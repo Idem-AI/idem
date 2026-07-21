@@ -1,4 +1,4 @@
-import { Component, output, signal, computed, inject } from '@angular/core';
+import { Component, effect, input, output, signal, computed, inject } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -12,6 +12,10 @@ import { LogoType, LogoPreferencesModel } from '../../../../models/logo.model';
   styleUrl: './logo-preferences.css',
 })
 export class LogoPreferences {
+  // Inputs
+  /** Préférences pré-remplies (ex. issues de l'analyse IA d'un logo importé) */
+  readonly initialPreferences = input<LogoPreferencesModel | null>(null);
+
   // Outputs
   readonly preferencesSelected = output<LogoPreferencesModel>();
 
@@ -20,6 +24,18 @@ export class LogoPreferences {
   protected readonly generationMode = signal<'ai' | 'custom' | null>(null);
   protected readonly customDescription = signal<string>('');
   protected readonly currentStep = signal<'type' | 'mode' | 'description'>('type');
+
+  constructor() {
+    // Pré-remplir depuis les préférences fournies, sans écraser un choix en cours
+    effect(() => {
+      const prefs = this.initialPreferences();
+      if (prefs && this.selectedType() === null) {
+        this.selectedType.set(prefs.type);
+        this.generationMode.set(prefs.customDescription ? 'custom' : 'ai');
+        this.customDescription.set(prefs.customDescription ?? '');
+      }
+    });
+  }
 
   // Computed
   protected readonly canProceed = computed(() => {

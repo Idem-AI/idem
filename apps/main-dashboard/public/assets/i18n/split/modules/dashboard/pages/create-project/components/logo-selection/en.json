@@ -24,6 +24,25 @@
       },
       "cards": {
         "colors": "Colors"
+      },
+      "live": {
+        "title": "Creating your logos live",
+        "subtitle": "Each concept is generated, reviewed by our AI design director, then fixed if needed — right before your eyes.",
+        "selectHint": "Like one of them? Click it to choose it and stop the remaining generation.",
+        "status": {
+          "pending": "Waiting…",
+          "generating": "Generating concept…",
+          "generated": "Concept generated",
+          "critiquing": "Quality review in progress…",
+          "revising": "Improving the logo…",
+          "final": "Approved",
+          "cancelled": "Cancelled",
+          "error": "This concept failed"
+        },
+        "critique": {
+          "title": "Design director's review",
+          "revised": "Fixed by the agent"
+        }
       }
     }
   }

@@ -11,8 +11,8 @@
     <section class="relative pt-32 pb-20 lg:pt-40 lg:pb-28">
       <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
         <!-- Breadcrumb -->
-        <div class="flex items-center justify-center gap-2 mb-8 text-sm text-white/50">
-          <a routerLink="/home" class="hover:text-white transition-colors" i18n="@@ideploy.breadcrumb.idem">Idem</a>
+        <div class="flex items-center justify-center gap-2 mb-8 text-sm text-text-tertiary">
+          <a routerLink="/home" class="hover:text-text-primary transition-colors" i18n="@@ideploy.breadcrumb.idem">Idem</a>
           <span>/</span>
           <span class="text-secondary font-medium">iDeploy</span>
         </div>
@@ -25,11 +25,11 @@
           <span class="text-xs font-bold text-secondary uppercase tracking-widest" i18n="@@ideploy.badge">Simplified Deployment</span>
         </div>
 
-        <h1 class="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-6 tracking-tight" i18n="@@ideploy.hero.title">
+        <h1 class="text-4xl sm:text-5xl lg:text-7xl font-bold text-text-primary mb-6 tracking-tight" i18n="@@ideploy.hero.title">
           Deploy <span class="i-underline">Anywhere</span>,<br />in One Click
         </h1>
 
-        <p class="text-lg lg:text-xl text-white/60 max-w-3xl mx-auto leading-relaxed mb-10" i18n="@@ideploy.hero.description">
+        <p class="text-lg lg:text-xl text-text-secondary max-w-3xl mx-auto leading-relaxed mb-10" i18n="@@ideploy.hero.description">
           From quick deploys to full cloud architectures — iDeploy handles all the complexity so you can focus on building. No DevOps expertise required.
         </p>
 
@@ -60,34 +60,34 @@
     <section class="relative py-24 lg:py-32">
       <div class="max-w-7xl mx-auto px-4 sm:px-6">
         <div class="text-center mb-16">
-          <h2 class="text-3xl lg:text-5xl font-bold text-white mb-4" i18n="@@ideploy.methods.title">
+          <h2 class="text-3xl lg:text-5xl font-bold text-text-primary mb-4" i18n="@@ideploy.methods.title">
             Choose Your <span class="i-underline">Method</span>
           </h2>
-          <p class="text-lg text-white/60 max-w-2xl mx-auto" i18n="@@ideploy.methods.description">
+          <p class="text-lg text-text-secondary max-w-2xl mx-auto" i18n="@@ideploy.methods.description">
             Three deployment options to match your needs — from instant to enterprise
           </p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           @for (method of deployMethods; track method.id) {
-            <div class="glass-card p-8 rounded-2xl border border-white/10 hover:border-secondary/30 transition-all duration-300 group flex flex-col">
+            <div class="glass-card p-8 rounded-2xl border border-[var(--glass-border)] hover:border-secondary/30 transition-all duration-300 group flex flex-col">
               <!-- Badge -->
               <div class="inline-flex self-start items-center px-3 py-1 rounded-full bg-secondary/10 border border-secondary/20 mb-6">
                 <span class="text-xs font-bold text-secondary">{{ method.badge }}</span>
               </div>
 
-              <h3 class="text-2xl font-bold text-white mb-3 group-hover:text-secondary transition-colors">
+              <h3 class="text-2xl font-bold text-text-primary mb-3 group-hover:text-secondary transition-colors">
                 {{ method.title }}
               </h3>
 
-              <p class="text-white/60 leading-relaxed mb-8 flex-1">{{ method.description }}</p>
+              <p class="text-text-secondary leading-relaxed mb-8 flex-1">{{ method.description }}</p>
 
               <!-- Stats -->
               <div class="grid grid-cols-2 gap-3">
                 @for (stat of method.stats; track stat.label) {
-                  <div class="bg-white/5 rounded-xl p-3 border border-white/5">
-                    <div class="text-white font-bold text-lg">{{ stat.value }}</div>
-                    <div class="text-white/50 text-xs">{{ stat.label }}</div>
+                  <div class="bg-[var(--glass-bg-subtle)] rounded-xl p-3 border border-[var(--glass-border-subtle)]">
+                    <div class="text-text-primary font-bold text-lg">{{ stat.value }}</div>
+                    <div class="text-text-tertiary text-xs">{{ stat.label }}</div>
                   </div>
                 }
               </div>
@@ -101,26 +101,26 @@
     <section class="relative py-24 lg:py-32 bg-bg-dark">
       <div class="max-w-7xl mx-auto px-4 sm:px-6">
         <div class="text-center mb-16">
-          <h2 class="text-3xl lg:text-5xl font-bold text-white mb-4" i18n="@@ideploy.features.title">
+          <h2 class="text-3xl lg:text-5xl font-bold text-text-primary mb-4" i18n="@@ideploy.features.title">
             Everything You <span class="i-underline">Need</span>
           </h2>
-          <p class="text-lg text-white/60 max-w-2xl mx-auto" i18n="@@ideploy.features.description">
+          <p class="text-lg text-text-secondary max-w-2xl mx-auto" i18n="@@ideploy.features.description">
             Enterprise-grade features, zero complexity
           </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           @for (feature of features; track feature.title) {
-            <div class="glass-card p-6 lg:p-8 rounded-2xl border border-white/10 hover:border-secondary/30 transition-all duration-300 group">
+            <div class="glass-card p-6 lg:p-8 rounded-2xl border border-[var(--glass-border)] hover:border-secondary/30 transition-all duration-300 group">
               <div class="w-10 h-10 rounded-lg bg-secondary/15 border border-secondary/25 flex items-center justify-center mb-5">
                 <svg class="w-5 h-5 text-secondary" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                 </svg>
               </div>
-              <h3 class="text-lg font-bold text-white mb-2 group-hover:text-secondary transition-colors">
+              <h3 class="text-lg font-bold text-text-primary mb-2 group-hover:text-secondary transition-colors">
                 {{ feature.title }}
               </h3>
-              <p class="text-white/60 text-sm leading-relaxed">{{ feature.description }}</p>
+              <p class="text-text-secondary text-sm leading-relaxed">{{ feature.description }}</p>
             </div>
           }
         </div>
@@ -131,33 +131,33 @@
     <section class="relative py-24 lg:py-32">
       <div class="max-w-5xl mx-auto px-4 sm:px-6">
         <div class="text-center mb-12">
-          <h2 class="text-3xl lg:text-4xl font-bold text-white mb-4" i18n="@@ideploy.ecosystem.title">
+          <h2 class="text-3xl lg:text-4xl font-bold text-text-primary mb-4" i18n="@@ideploy.ecosystem.title">
             Part of the <span class="i-underline">Idem</span> Ecosystem
           </h2>
-          <p class="text-lg text-white/60 max-w-2xl mx-auto" i18n="@@ideploy.ecosystem.description">
+          <p class="text-lg text-text-secondary max-w-2xl mx-auto" i18n="@@ideploy.ecosystem.description">
             iDeploy integrates seamlessly with the Idem platform
           </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <!-- Idem Platform -->
-          <a routerLink="/home" class="glass-card p-6 rounded-2xl border border-white/10 hover:border-primary/30 transition-all duration-300 group block">
+          <a routerLink="/home" class="glass-card p-6 rounded-2xl border border-[var(--glass-border)] hover:border-primary/30 transition-all duration-300 group block">
             <div class="flex items-center gap-4 mb-4">
               <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
                 <img src="/assets/icons/logo_white.webp" alt="Idem" class="w-6 h-auto" />
               </div>
               <div>
-                <h3 class="text-lg font-bold text-white group-hover:text-primary transition-colors" i18n="@@ideploy.ecosystem.idem.title">Idem Platform</h3>
-                <p class="text-white/50 text-xs" i18n="@@ideploy.ecosystem.idem.tagline">Complete business creation</p>
+                <h3 class="text-lg font-bold text-text-primary group-hover:text-primary transition-colors" i18n="@@ideploy.ecosystem.idem.title">Idem Platform</h3>
+                <p class="text-text-tertiary text-xs" i18n="@@ideploy.ecosystem.idem.tagline">Complete business creation</p>
               </div>
             </div>
-            <p class="text-white/60 text-sm" i18n="@@ideploy.ecosystem.idem.description">
+            <p class="text-text-secondary text-sm" i18n="@@ideploy.ecosystem.idem.description">
               Create your entire business with AI: brand, strategy, legal docs, and more.
             </p>
           </a>
 
           <!-- IDEV -->
-          <a routerLink="/idev" class="glass-card p-6 rounded-2xl border border-white/10 hover:border-primary/30 transition-all duration-300 group block">
+          <a routerLink="/idev" class="glass-card p-6 rounded-2xl border border-[var(--glass-border)] hover:border-primary/30 transition-all duration-300 group block">
             <div class="flex items-center gap-4 mb-4">
               <div class="w-10 h-10 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center">
                 <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,11 +165,11 @@
                 </svg>
               </div>
               <div>
-                <h3 class="text-lg font-bold text-white group-hover:text-primary transition-colors">IDEV</h3>
-                <p class="text-white/50 text-xs" i18n="@@ideploy.ecosystem.idev.tagline">AI App Generator</p>
+                <h3 class="text-lg font-bold text-text-primary group-hover:text-primary transition-colors">IDEV</h3>
+                <p class="text-text-tertiary text-xs" i18n="@@ideploy.ecosystem.idev.tagline">AI App Generator</p>
               </div>
             </div>
-            <p class="text-white/60 text-sm" i18n="@@ideploy.ecosystem.idev.description">
+            <p class="text-text-secondary text-sm" i18n="@@ideploy.ecosystem.idev.description">
               Generate complete applications from a simple description. Build with AI, deploy with iDeploy.
             </p>
           </a>
@@ -181,10 +181,10 @@
     <section class="relative py-16 lg:py-24">
       <div class="max-w-4xl mx-auto px-4 sm:px-6">
         <div class="glass-card p-8 lg:p-12 rounded-2xl border border-secondary/20 text-center">
-          <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4" i18n="@@ideploy.finalCta.title">
+          <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-text-primary mb-4" i18n="@@ideploy.finalCta.title">
             Ready to Deploy?
           </h2>
-          <p class="text-white/60 text-lg mb-8 max-w-2xl mx-auto" i18n="@@ideploy.finalCta.description">
+          <p class="text-text-secondary text-lg mb-8 max-w-2xl mx-auto" i18n="@@ideploy.finalCta.description">
             Stop worrying about infrastructure. Deploy your app in minutes with iDeploy — free to start.
           </p>
           <a

@@ -347,12 +347,12 @@ const PreviewIframe: React.FC<PreviewIframeProps> = ({ setShowIframe, isMinProgr
         </div>
         {isMinPrograme && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-            <div className="text-gray-400">{t('preview.wxminiPreview')}</div>
+            <div className="text-gray-500">{t('preview.wxminiPreview')}</div>
           </div>
         )}
         {!url && !isMinPrograme && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-            <div className="text-gray-400">{t('preview.noserver')}</div>
+            <div className="text-gray-500">{t('preview.noserver')}</div>
           </div>
         )}
       </div>

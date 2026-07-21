@@ -35,6 +35,7 @@ const CONFIG = {
     'modules/dashboard/components/add-team-member-modal': 'dashboard.addMemberModal',
     'modules/dashboard/components/add-team-to-project-modal': 'dashboard.addTeamToProjectModal',
     'modules/dashboard/components/incomplete-project-banner': 'dashboard.incompleteBanner',
+    'modules/dashboard/components/generation-status-panel': 'dashboard.generationPanel',
     'modules/dashboard/components/project-card': 'dashboard.projectCard',
     'modules/dashboard/components/sidebar-dashboard': 'dashboard.sidebar',
     'modules/dashboard/components/sidebar-global': 'dashboard.sidebarGlobal',
@@ -42,6 +43,7 @@ const CONFIG = {
     // Dashboard pages - Create Project
     'modules/dashboard/pages/create-project/components/color-customizer': 'dashboard.colorCustomizer',
     'modules/dashboard/pages/create-project/components/color-selection': 'dashboard.colorSelection',
+    'modules/dashboard/pages/create-project/components/logo-choice': 'dashboard.logoChoice',
     'modules/dashboard/pages/create-project/components/logo-creation-simulator': 'logoCreation',
     'modules/dashboard/pages/create-project/components/logo-editor-chat': 'dashboard.logoEditor',
     'modules/dashboard/pages/create-project/components/logo-preferences': 'dashboard.logoPreferences',
@@ -58,6 +60,7 @@ const CONFIG = {
     'modules/dashboard/pages/advisor': 'dashboard.advisor',
     'modules/dashboard/pages/create-team': 'dashboard.createTeam',
     'modules/dashboard/pages/dashboard': 'dashboard.dashboard',
+    'modules/dashboard/pages/finance': 'dashboard.finance',
     'modules/dashboard/pages/deployment/components/ai-assistant': 'dashboard.aiAssistant',
     'modules/dashboard/pages/deployment/components/expert-deployment': 'dashboard.expertDeployment',
     'modules/dashboard/pages/deployment/components/mode-selector': 'dashboard.modeSelector',

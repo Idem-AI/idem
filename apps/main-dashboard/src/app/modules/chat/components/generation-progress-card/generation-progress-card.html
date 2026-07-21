@@ -1,6 +1,6 @@
 <div
-  class="w-full max-w-md rounded-2xl border bg-white/[0.03] overflow-hidden shadow-lg shadow-black/20 transition-colors duration-300"
-  [class.border-white/10]="data().status === 'running'"
+  class="w-full max-w-md rounded-2xl border bg-[var(--glass-bg-subtle)] overflow-hidden shadow-lg shadow-black/20 transition-colors duration-300"
+  [class.border-surface-3]="data().status === 'running'"
   [class.border-emerald-400/30]="data().status === 'done'"
   [class.border-red-400/30]="data().status === 'error'"
 >
@@ -23,7 +23,7 @@
     }
 
     <div class="min-w-0 flex-1">
-      <h4 class="text-sm font-semibold text-white truncate">
+      <h4 class="text-sm font-semibold text-text-primary truncate">
         {{
           (data().status === 'running'
             ? 'chat.generation.cardRunning'
@@ -34,7 +34,7 @@
         }}
       </h4>
       @if (data().status === 'running') {
-        <p class="text-[11px] text-gray-500">
+        <p class="text-[11px] text-text-tertiary">
           {{ 'chat.generation.steps' | translate: { done: completedCount(), total: totalCount() } }}
         </p>
       }
@@ -48,7 +48,7 @@
   <!-- Barre de progression -->
   @if (data().status !== 'error') {
     <div class="px-4 pb-3">
-      <div class="h-1 rounded-full bg-white/5 overflow-hidden">
+      <div class="h-1 rounded-full bg-[var(--glass-bg-subtle)] overflow-hidden">
         <div
           class="h-full rounded-full transition-all duration-700 ease-out"
           [class.bg-primary]="data().status === 'running'"
@@ -63,13 +63,13 @@
   @if (data().status === 'running' && (data().stepsInProgress.length || completedCount())) {
     <div class="px-4 pb-4 space-y-1.5">
       @for (step of data().stepsInProgress; track step) {
-        <div class="flex items-center gap-2 text-xs text-white">
+        <div class="flex items-center gap-2 text-xs text-text-primary">
           <span class="step-spinner shrink-0" aria-hidden="true"></span>
           <span class="truncate">{{ step }}</span>
         </div>
       }
       @for (step of data().completedSteps; track step) {
-        <div class="flex items-center gap-2 text-xs text-gray-500">
+        <div class="flex items-center gap-2 text-xs text-text-tertiary">
           <i class="pi pi-check-circle text-emerald-400/70 text-[11px] shrink-0"></i>
           <span class="truncate">{{ step }}</span>
         </div>

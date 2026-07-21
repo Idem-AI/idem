@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { CookieService } from '../../../../shared/services/cookie.service';
@@ -9,6 +9,11 @@ import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loa
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { BrandingValidationService } from '../../services/branding-validation.service';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
+import { GenerationStatusPanelComponent } from '../../components/generation-status-panel/generation-status-panel';
+import {
+  analyzeGenerationCompleteness,
+  BUSINESS_PLAN_SECTION_NAMES,
+} from '../../models/generation-completeness';
 import { ProjectService } from '../../services/project.service';
 import { ProjectModel } from '@idem/shared-models';
 
@@ -21,6 +26,7 @@ import { ProjectModel } from '@idem/shared-models';
     Loader,
     TranslateModule,
     IncompleteProjectBannerComponent,
+    GenerationStatusPanelComponent,
   ],
   templateUrl: './show-business-plan.html',
   styleUrls: ['./show-business-plan.css'],
@@ -47,6 +53,18 @@ export class ShowBusinessPlan implements OnInit {
   protected readonly isBrandingComplete = signal<boolean>(false);
   protected readonly brandingMissingElements = signal<string[]>([]);
   protected readonly project = signal<ProjectModel | null>(null);
+
+  protected readonly completeness = computed(() =>
+    analyzeGenerationCompleteness(
+      BUSINESS_PLAN_SECTION_NAMES,
+      this.project()?.analysisResultModel?.businessPlan?.sections,
+    ),
+  );
+
+  protected readonly isBusinessPlanIncomplete = computed(() => {
+    const completeness = this.completeness();
+    return completeness.hasStarted && !completeness.isComplete;
+  });
 
   ngOnInit(): void {
     // Get project ID from cookies
@@ -149,9 +167,20 @@ export class ShowBusinessPlan implements OnInit {
   /**
    * Navigate to business plan generation page
    */
-  protected generateBusinessPlan(): void {
-    console.log('Navigating to business plan generation page');
-    this.router.navigate(['/project/business-plan/generate']);
+  protected generateBusinessPlan(force = false): void {
+    console.log('Navigating to business plan generation page, force:', force);
+    this.router.navigate(['/project/business-plan/generate'], {
+      queryParams: force ? { force: 'true' } : {}
+    });
+  }
+
+  /**
+   * Regenerate a single business plan section (canonical backend step name)
+   */
+  protected regenerateSection(sectionName: string): void {
+    this.router.navigate(['/project/business-plan/generate'], {
+      queryParams: { sections: sectionName },
+    });
   }
 
   /**

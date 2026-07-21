@@ -10,6 +10,7 @@ import {
 import { ProjectModel } from '../../models/project.model';
 import { SectionModel } from '../../models/section.model';
 // File operations have been removed - using in-memory context
+import { AI_CONFIG } from '../../config/ai.config';
 
 import logger from '../../config/logger';
 
@@ -98,8 +99,8 @@ export class GenericService {
     promptType?: string,
     contextFromPreviousSteps: string = '',
     promptConfig: PromptConfig = {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: AI_CONFIG.default.provider,
+      modelName: AI_CONFIG.default.modelName,
       userId,
       promptType: promptType || step.stepName,
     }
@@ -202,11 +203,30 @@ Please generate *only* the content for the '${
     promptConfig?: PromptConfig,
     promptType?: string,
     userId?: string,
-    finalizationCallback?: () => Promise<void>
+    finalizationCallback?: () => Promise<void>,
+    existingSections: SectionModel[] = []
   ): Promise<void> {
     const completedSteps: Map<string, { name: string; content: string }> = new Map();
     const runningSteps: Set<string> = new Set();
     const stepPromises: Map<string, Promise<void>> = new Map();
+
+    // Pre-populate completedSteps with existing sections to satisfy dependencies
+    for (const sec of existingSections) {
+      if (sec.name && sec.data && typeof sec.data === 'string' && sec.data.trim().length > 0) {
+        completedSteps.set(sec.name, {
+          name: sec.name,
+          content: sec.data,
+        });
+      }
+    }
+
+    const isRetry = existingSections.length > 0;
+    const effectivePromptConfig: PromptConfig = {
+      provider: promptConfig?.provider || AI_CONFIG.default.provider,
+      modelName: promptConfig?.modelName || AI_CONFIG.default.modelName,
+      ...promptConfig,
+      skipQuotaCheck: isRetry ? true : (promptConfig?.skipQuotaCheck ?? false),
+    };
 
     // Helper function to send progress updates
     const sendProgressUpdate = async () => {
@@ -285,7 +305,7 @@ Please generate *only* the content for the '${
           userId,
           promptType || step.stepName,
           contextFromPreviousSteps,
-          promptConfig
+          effectivePromptConfig
         );
 
         // Store the content of this step for future steps
@@ -354,7 +374,7 @@ Please generate *only* the content for the '${
     };
 
     // Main execution loop
-    const pendingSteps = [...steps];
+    const pendingSteps = steps.filter((step) => !completedSteps.has(step.stepName));
 
     while (pendingSteps.length > 0 || stepPromises.size > 0) {
       // Find steps that can be started (dependencies satisfied)

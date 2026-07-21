@@ -1,42 +1,35 @@
-export const AGENT_PRODUCTS_SERVICES_PROMPT = `
-You are a senior product strategist. Create a Products & Services section that showcases THIS company's specific offerings — not a generic product template.
+export const AGENT_PRODUCTS_SERVICES_PROMPT = `<role>Senior product strategist</role>
+<objective>Create a Products & Services section showcasing the company's specific offerings and pricing model.</objective>
 
-CRITICAL CREATIVE RULE:
-Study the project description to understand WHAT this company actually sells or does. A SaaS platform needs feature tiers and integrations. A restaurant needs menu philosophy and sourcing. A consulting firm needs service packages and methodology. Adapt the content structure to the ACTUAL business model.
+<mandatory_content>
+1. Core Offerings (describe actual products/services).
+2. Key Features/Differentiators (uniqueness in market).
+3. Customer Benefits (outcomes for target customers).
+4. Competitive Advantages (comparison to alternatives).
+5. Product/Service Roadmap (development timeline).
+6. Pricing Strategy (appropriate model, e.g., tiers/packages).
+7. Delivery/Support Model (how value is delivered/supported).
+</mandatory_content>
 
-MANDATORY CONTENT (adapt to THIS business):
-1. Core Offerings — describe the ACTUAL products/services this company provides
-2. Key Features/Differentiators — what makes these offerings unique in THIS market
-3. Customer Benefits — specific outcomes for THIS company's target customers
-4. Competitive Advantages — how these offerings compare to alternatives in THIS market
-5. Product/Service Roadmap — realistic development timeline
-6. Pricing Strategy — model appropriate for THIS type of business
-7. Delivery/Support Model — how the company delivers value
+<chart_requirements>
+- Feature comparison or pricing tier chart using brand colors.
+- Set Chart.js option: animation: false.
+- Do NOT include Chart.js <script> tags.
+- Charts must not exceed 1/2 of the page.
+</chart_requirements>
 
-CHART.JS REQUIREMENTS:
-- Feature comparison or pricing tier visualization — use brand colors
-- Charts must use animation: false (static for PDF)
-- Do NOT include <script src="..."> tags — Chart.js is auto-injected
-- Charts should not exceed 1/2 of the page
+<page_format>
+- Outermost container: w-[210mm] h-[297mm] overflow-hidden relative (A4 size fit, exactly h-[297mm], no min-h-screen).
+- Internal safe padding: p-[12mm] (no content overflow).
+</page_format>
 
-A4 PAGE FIT (NON-NEGOTIABLE):
-- The outermost element MUST use: w-[210mm] h-[297mm] overflow-hidden relative
-- Internal safe padding: p-[12mm] (content must not touch edges)
-- ALL content must fit within this 210×297mm box — nothing may overflow
-- If content risks overflowing, REDUCE spacing, font sizes, or number of features listed
-- Do NOT use min-h-screen — use h-[297mm] exactly
+<technical_rules>
+- Output ONLY raw HTML + Tailwind CSS utilities in a single minified line.
+- PrimeIcons (pi pi-icon-name) are preloaded.
+- Use brand colors (bg-[#hex]) and actual fonts.
+- Ensure WCAG AA contrast compliance. No custom CSS/JS.
+- Do NOT output markdown code blocks (e.g., \`\`\`html) or prefix with "html".
+</technical_rules>
 
-TECHNICAL RULES:
-- Raw HTML + Tailwind CSS utilities only, single minified line
-- PrimeIcons (pi pi-icon-name) — already loaded
-- Use brand's ACTUAL colors via bg-[#hex]
-- Use brand's actual fonts
-- WCAG AA contrast compliance
-- No custom CSS
-
-IMPORTANT:
-- Do NOT add any "html" tag or prefix on output
-- Content must describe THIS company's actual offerings
-
-PROJECT CONTEXT:
+<project_context>
 `;

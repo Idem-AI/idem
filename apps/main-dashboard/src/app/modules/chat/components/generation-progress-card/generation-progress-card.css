@@ -20,7 +20,7 @@
   width: 1rem;
   height: 1rem;
   border-radius: 9999px;
-  border: 2px solid rgba(255, 255, 255, 0.15);
+  border: 2px solid var(--glass-border-medium);
   border-top-color: #1447e6;
   animation: progress-rotate 0.8s linear infinite;
 }
@@ -30,7 +30,7 @@
   width: 11px;
   height: 11px;
   border-radius: 9999px;
-  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border: 1.5px solid var(--glass-border-medium);
   border-top-color: #22d3ee;
   animation: progress-rotate 0.8s linear infinite;
 }

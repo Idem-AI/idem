@@ -94,27 +94,26 @@ const useUserStore = create<UserState>()(
         set(() => ({ isLoading: true }))
         try {
           const token = localStorage.getItem("token")
-          if (token) {
-            const user = await authService.getUserInfo(token)
-            if (user.error) {
-              localStorage.removeItem("user")
-              localStorage.removeItem("token")
-              localStorage.removeItem("rememberMe")
-              localStorage.removeItem("user-storage")
-              fetch("/api/logout");
-              document.cookie =
-              "token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure=true;";
-              set(() => ({
-                user: null,
-                token: null,
-                isAuthenticated: false,
-                rememberMe: false,
-              }))
-            } else {
-              get().setUser(user)
-            }
-            return user
+          const user = await authService.getUserInfo(token || undefined)
+          
+          if (user?.error) {
+            localStorage.removeItem("user")
+            localStorage.removeItem("token")
+            localStorage.removeItem("rememberMe")
+            localStorage.removeItem("user-storage")
+            fetch("/api/logout").catch(() => {});
+            document.cookie =
+            "token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure=true;";
+            set(() => ({
+              user: null,
+              token: null,
+              isAuthenticated: false,
+              rememberMe: false,
+            }))
+          } else if (user) {
+            get().setUser(user)
           }
+          return user
         } catch (error) {
           console.error(error)
         } finally {

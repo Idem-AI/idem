@@ -91,3 +91,106 @@ section {
 ::-webkit-scrollbar-thumb:hover {
   background: #a5b4fc;
 }
+
+/* AppGen Handoff Banner - Fixed below navbar */
+.fixed-handoff-banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  top: 86px;
+}
+
+@media (max-width: 640px) {
+  .fixed-handoff-banner {
+    top: 52px;
+  }
+}
+
+/* Mode Toggle Container - Fixed below navbar or banner */
+.fixed-toggle-container {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 0.5rem;
+}
+
+/* Toggle top position WITHOUT banner */
+.toggle-standard {
+  top: 86px;
+}
+
+@media (max-width: 640px) {
+  .toggle-standard {
+    top: 52px;
+  }
+}
+
+/* Toggle top position WITH banner */
+.toggle-with-banner {
+  top: 138px;
+}
+
+@media (max-width: 640px) {
+  .toggle-with-banner {
+    top: 104px;
+  }
+}
+
+/* Content Container Padding */
+.content-standard {
+  padding-top: 138px;
+}
+
+@media (max-width: 640px) {
+  .content-standard {
+    padding-top: 104px;
+  }
+}
+
+.content-with-banner {
+  padding-top: 190px;
+}
+
+@media (max-width: 640px) {
+  .content-with-banner {
+    padding-top: 156px;
+  }
+}
+
+/* Chat viewport : hauteur fixe sous la navbar/toggle pour éviter tout scroll
+   externe. Seul le fil de messages (interne) défile. `dvh` gère la barre
+   d'URL mobile. Le `margin-top` positionne le viewport sous le toggle fixe. */
+.chat-viewport-standard {
+  height: calc(100dvh - 138px);
+  margin-top: 138px;
+  padding: 0.5rem 1rem 1rem;
+}
+
+@media (max-width: 640px) {
+  .chat-viewport-standard {
+    height: calc(100dvh - 104px);
+    margin-top: 104px;
+    padding: 0.5rem 0.75rem 0.75rem;
+  }
+}
+
+.chat-viewport-banner {
+  height: calc(100dvh - 190px);
+  margin-top: 190px;
+  padding: 0.5rem 1rem 1rem;
+}
+
+@media (max-width: 640px) {
+  .chat-viewport-banner {
+    height: calc(100dvh - 156px);
+    margin-top: 156px;
+    padding: 0.5rem 0.75rem 0.75rem;
+  }
+}
+

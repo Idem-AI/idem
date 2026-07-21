@@ -9,6 +9,8 @@
     "apps/chart",
     "apps/appgen",
     "apps/api",
+    "apps/ideploy-api",
+    "apps/ideploy-web",
     "packages/shared-models",
     "packages/shared-auth-client",
     "packages/shared-styles"
@@ -21,6 +23,9 @@
     "dev:appgen-next": "npm run dev:next --workspace=we-dev",
     "dev:appgen-client": "npm run dev:client --workspace=we-dev",
     "dev:api": "npm run dev --workspace=idem-api",
+    "dev:ideploy-api": "npm run dev --workspace=ideploy-api",
+    "build:ideploy-api": "npm run build --workspace=ideploy-api",
+    "lint:ideploy-api": "npm run lint --workspace=ideploy-api",
     "build:landing": "npm run build --workspace=landing",
     "dev:landing": "npm run dev --workspace=landing",
     "build:dashboard": "npm run build --workspace=main-dashboard",

@@ -16,6 +16,16 @@
         "selectType": "Select a type",
         "selectScope": "Select a scope",
         "selectTarget": "Select a target"
+      },
+      "dynamic": {
+        "sectionTitle": "Questions tailored to your project",
+        "loading": "Analyzing your project to tailor the questions…",
+        "error": "Unable to generate the questions. You can retry.",
+        "retry": "Retry",
+        "optional": "optional",
+        "selectPlaceholder": "Select an option",
+        "textPlaceholder": "Your answer (optional)",
+        "otherPlaceholder": "Please specify…"
       }
     }
   }

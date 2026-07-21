@@ -35,7 +35,7 @@ import { Loader } from '../../../../../../shared/components/loader/loader';
         <!-- Header Section -->
         <header class="text-center mb-6 lg:mb-8 xl:mb-12">
           <div class="space-y-3 lg:space-y-4 xl:space-y-6">
-            <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white text-glow-primary tracking-wider leading-tight">
+            <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-text-primary text-glow-primary tracking-wider leading-tight">
               {{ 'logoCreation.title' | translate }}
             </h1>
             <p class="text-accent text-sm sm:text-base md:text-lg lg:text-xl font-light tracking-wide max-w-2xl mx-auto">
@@ -71,9 +71,9 @@ import { Loader } from '../../../../../../shared/components/loader/loader';
 
                 <!-- Center Content -->
                 <div class="flex flex-col items-center justify-center space-y-1 z-10">
-                  <span class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-white text-glow-primary">{{ overallProgress().toFixed(0) }}%</span>
+                  <span class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-text-primary text-glow-primary">{{ overallProgress().toFixed(0) }}%</span>
                   <div class="flex flex-col items-center">
-                    <span class="text-xs text-gray-400 uppercase tracking-widest text-center font-medium">{{ 'logoCreation.estimatedTime' | translate }}</span>
+                    <span class="text-xs text-text-tertiary uppercase tracking-widest text-center font-medium">{{ 'logoCreation.estimatedTime' | translate }}</span>
                     <span class="text-accent font-mono text-xs sm:text-sm md:text-base lg:text-lg font-semibold">{{ remainingTime() }}</span>
                   </div>
                 </div>
@@ -124,7 +124,7 @@ import { Loader } from '../../../../../../shared/components/loader/loader';
           <!-- Desktop Timeline Adaptative -->
           <div class="hidden lg:block relative">
             <!-- Timeline Line -->
-            <div class="absolute top-1/2 left-0 w-full h-1 bg-white/10 rounded-full transform -translate-y-1/2"></div>
+            <div class="absolute top-1/2 left-0 w-full h-1 bg-[var(--glass-bg-subtle)] rounded-full transform -translate-y-1/2"></div>
             <div
               class="absolute top-1/2 left-0 h-1 bg-linear-to-r from-primary via-accent to-primary transition-all duration-1000 ease-out shadow-[0_0_10px_var(--color-primary)] rounded-full transform -translate-y-1/2"
               [style.width.%]="overallProgress()"
@@ -201,8 +201,8 @@ import { Loader } from '../../../../../../shared/components/loader/loader';
                   <div class="text-center">
                     <h4
                       class="font-medium text-xs lg:text-xs uppercase tracking-wide transition-colors duration-300"
-                      [class.text-gray-400]="!concept.isActive"
-                      [class.text-white]="concept.isActive"
+                      [class.text-text-tertiary]="!concept.isActive"
+                      [class.text-text-primary]="concept.isActive"
                     >
                       {{ concept.name }}
                     </h4>

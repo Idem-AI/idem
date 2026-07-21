@@ -22,7 +22,7 @@ export function Dialog({ title, isOpen, onClose, children }: DialogProps) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div
         ref={dialogRef}
-        className="bg-[#1a1a1c] rounded-lg shadow-xl w-[400px] p-4"
+        className="bg-white text-gray-900 dark:bg-[#1a1a1c] dark:text-gray-200 rounded-lg shadow-xl w-[400px] p-4"
         tabIndex={-1}
         onKeyDown={(e) => {
           if (e.key === 'Escape') onClose();

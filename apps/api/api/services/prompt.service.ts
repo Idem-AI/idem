@@ -1,4 +1,12 @@
-import { GoogleGenAI, createPartFromUri, Content, File } from '@google/genai';
+import {
+  GoogleGenAI,
+  createPartFromUri,
+  Content,
+  File,
+  FunctionDeclaration,
+  FunctionCallingConfigMode,
+  Part,
+} from '@google/genai';
 import dotenv from 'dotenv';
 import * as fs from 'fs-extra';
 import logger from '../config/logger';
@@ -7,18 +15,12 @@ import OpenAI from 'openai';
 import { userService } from './user.service';
 dotenv.config();
 
-export enum LLMProvider {
-  GEMINI = 'GEMINI',
-  CHATGPT = 'CHATGPT',
-  DEEPSEEK = 'DEEPSEEK',
-}
+import { LLMProvider, LLMOptions, AI_CONFIG } from '../config/ai.config';
+import { withGeminiFallback } from '../utils/gemini-fallback';
+import { getRequestLanguage } from '../utils/request-language';
+import { logAIEvent, previewValue } from '../utils/ai-trace.util';
+export { LLMProvider, LLMOptions };
 
-export interface LLMOptions {
-  maxOutputTokens?: number;
-  temperature?: number;
-  topP?: number;
-  topK?: number;
-}
 
 export interface PromptConfig {
   provider: LLMProvider;
@@ -32,6 +34,12 @@ export interface PromptConfig {
   userId?: string;
   promptType?: string;
   skipQuotaCheck?: boolean;
+  /**
+   * User UI language ('en' | 'fr'). When set, a language directive is injected so
+   * the model generates content in the requested language. Resolved from the
+   * request (query `lang` / body `language` / Accept-Language header) upstream.
+   */
+  language?: string;
 }
 
 export interface AIChatMessage {
@@ -52,6 +60,7 @@ export interface PromptRequest {
   userId?: string;
   promptType?: string;
   skipQuotaCheck?: boolean;
+  language?: string;
 }
 
 export interface AIResponse {
@@ -157,10 +166,22 @@ export class PromptService {
         lastMessageTurn.parts.push(filePart);
 
         // run prompt
-        const result = await this.genAIClient.models.generateContent({
-          model: modelName,
-          contents: geminiContent,
-        });
+        const fallbackModel = AI_CONFIG.fallback.textModel;
+        const secondaryFallback = 'gemini-1.5-flash';
+        const effectiveFallbackModel = modelName === fallbackModel ? secondaryFallback : fallbackModel;
+
+        const result = await withGeminiFallback(
+          () => this.genAIClient.models.generateContent({
+            model: modelName,
+            contents: geminiContent,
+          }),
+          () => this.genAIClient.models.generateContent({
+            model: effectiveFallbackModel,
+            contents: geminiContent,
+          }),
+          modelName,
+          effectiveFallbackModel
+        );
         // Safely access the text content
         const firstCandidate = result.candidates?.[0];
         const firstPart = firstCandidate?.content?.parts?.[0];
@@ -216,11 +237,24 @@ export class PromptService {
       ...(llmOptions.topK && { topK: llmOptions.topK }),
     };
 
-    const result = await this.genAIClient.models.generateContent({
-      model: modelName,
-      contents: geminiContent,
-      ...generationParams,
-    });
+    const fallbackModel = AI_CONFIG.fallback.textModel;
+    const secondaryFallback = 'gemini-1.5-flash';
+    const effectiveFallbackModel = modelName === fallbackModel ? secondaryFallback : fallbackModel;
+
+    const result = await withGeminiFallback(
+      () => this.genAIClient.models.generateContent({
+        model: modelName,
+        contents: geminiContent,
+        ...generationParams,
+      }),
+      () => this.genAIClient.models.generateContent({
+        model: effectiveFallbackModel,
+        contents: geminiContent,
+        ...generationParams,
+      }),
+      modelName,
+      effectiveFallbackModel
+    );
     const response = result.text;
     if (!response) {
       logger.error('Failed to generate response from Gemini API.');
@@ -405,6 +439,27 @@ export class PromptService {
     }
   }
 
+  /**
+   * Build a strong directive that forces the model to answer in the user's language.
+   * Returns an empty string when no (or an unknown) language is provided, leaving
+   * existing behavior unchanged.
+   */
+  private buildLanguageDirective(language?: string): string {
+    if (!language) {
+      return '';
+    }
+    const normalized = language.toLowerCase();
+    const label = normalized.startsWith('fr')
+      ? 'French (Français)'
+      : normalized.startsWith('en')
+        ? 'English'
+        : null;
+    if (!label) {
+      return '';
+    }
+    return `RESPONSE LANGUAGE (CRITICAL): You MUST write ALL generated content — every section, title, sentence, label and value — in ${label}. Do not mix languages. This instruction overrides any language implied by the examples or prompts below.`;
+  }
+
   public async runPrompt(request: PromptConfig, messages: AIChatMessage[]): Promise<string> {
     logger.info(
       `Running prompt for provider: ${request.provider}, model: ${
@@ -419,6 +474,7 @@ export class PromptService {
       userId,
       promptType,
       skipQuotaCheck = false,
+      language,
     } = request;
 
     if (!messages || messages.length === 0) {
@@ -475,6 +531,25 @@ export class PromptService {
       logger.info('Applied prompt modifications');
     }
 
+    // Force the output language. This is the single choke point for every AI
+    // feature/provider, so one directive here guarantees generated content is in
+    // the user's language (prevents wrong-language output). An explicit
+    // config.language wins; otherwise fall back to the request-scoped language.
+    const effectiveLanguage = language ?? getRequestLanguage();
+    const languageDirective = this.buildLanguageDirective(effectiveLanguage);
+    if (languageDirective && modifiedMessages.length > 0) {
+      // Append to the LAST message rather than inserting a new system message:
+      // this keeps message roles/adjacency intact (Gemini rejects consecutive
+      // same-role turns) and benefits from recency for stronger adherence.
+      const lastIdx = modifiedMessages.length - 1;
+      const last = modifiedMessages[lastIdx];
+      modifiedMessages = [
+        ...modifiedMessages.slice(0, lastIdx),
+        { ...last, content: `${last.content}\n\n${languageDirective}` },
+      ];
+      logger.info(`Injected language directive (language=${effectiveLanguage}).`);
+    }
+
     try {
       let result: string;
       switch (provider) {
@@ -515,6 +590,165 @@ export class PromptService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Boucle agentique avec function calling Gemini: le modèle peut appeler des
+   * outils (Context Engine, historique de versions…) et recevoir leurs
+   * résultats sur plusieurs tours, jusqu'à produire sa réponse finale.
+   *
+   * Passe par les mêmes garde-fous que runPrompt (quota, langue) — un seul
+   * incrément de quota par appel, quel que soit le nombre de tours d'outils.
+   */
+  public async runPromptWithTools(
+    request: PromptConfig,
+    messages: AIChatMessage[],
+    tools: FunctionDeclaration[],
+    executeTool: (name: string, args: Record<string, unknown>) => Promise<unknown>,
+    options: { maxToolTurns?: number } = {}
+  ): Promise<string> {
+    const { provider, modelName, llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
+
+    if (provider !== LLMProvider.GEMINI) {
+      throw new Error(`runPromptWithTools ne supporte que Gemini (reçu: ${provider}).`);
+    }
+    if (!messages || messages.length === 0) {
+      throw new Error('Messages array cannot be empty.');
+    }
+
+    if (userId && !skipQuotaCheck) {
+      const quotaCheck = await userService.checkQuota(userId);
+      if (!quotaCheck.allowed) {
+        logger.warn(`Quota exceeded for user ${userId}: ${quotaCheck.message}`);
+        throw new Error(quotaCheck.message || 'Quota exceeded');
+      }
+    }
+
+    // Directive de langue: même choke point que runPrompt.
+    const effectiveLanguage = language ?? getRequestLanguage();
+    const languageDirective = this.buildLanguageDirective(effectiveLanguage);
+
+    const systemParts = messages.filter((m) => m.role === 'system').map((m) => m.content);
+    if (languageDirective) {
+      systemParts.push(languageDirective);
+    }
+    const conversation = messages.filter((m) => m.role !== 'system');
+
+    const contents: Content[] = conversation.map((msg) => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }],
+    }));
+
+    const generationParams = {
+      ...(llmOptions.maxOutputTokens && { maxOutputTokens: llmOptions.maxOutputTokens }),
+      ...(llmOptions.temperature && { temperature: llmOptions.temperature }),
+      ...(llmOptions.topP && { topP: llmOptions.topP }),
+      ...(llmOptions.topK && { topK: llmOptions.topK }),
+    };
+
+    const config = {
+      ...generationParams,
+      ...(systemParts.length > 0 && { systemInstruction: systemParts.join('\n\n') }),
+      tools: [{ functionDeclarations: tools }],
+      toolConfig: { functionCallingConfig: { mode: FunctionCallingConfigMode.AUTO } },
+    };
+
+    const fallbackModel = AI_CONFIG.fallback.textModel;
+    const effectiveFallbackModel = modelName === fallbackModel ? 'gemini-1.5-flash' : fallbackModel;
+    const maxToolTurns = options.maxToolTurns ?? 8;
+
+    const loopStartedAt = Date.now();
+    logAIEvent('ai.agentic_loop_start', {
+      modelName,
+      promptType: request.promptType,
+      toolCount: tools.length,
+      maxToolTurns,
+    });
+
+    let finalText = '';
+    let turnsUsed = 0;
+    for (let turn = 0; turn <= maxToolTurns; turn++) {
+      turnsUsed = turn + 1;
+      const result = await withGeminiFallback(
+        () => this.genAIClient.models.generateContent({ model: modelName, contents, config }),
+        () =>
+          this.genAIClient.models.generateContent({
+            model: effectiveFallbackModel,
+            contents,
+            config,
+          }),
+        modelName,
+        effectiveFallbackModel
+      );
+
+      const functionCalls = result.functionCalls ?? [];
+      if (functionCalls.length === 0) {
+        finalText = result.text ?? '';
+        logAIEvent('ai.agentic_turn', {
+          turn: turn + 1,
+          decision: 'final_answer',
+          finalTextLength: finalText.length,
+        });
+        break;
+      }
+
+      const modelContent = result.candidates?.[0]?.content;
+      if (modelContent) {
+        contents.push(modelContent);
+      }
+
+      logAIEvent('ai.agentic_turn', {
+        turn: turn + 1,
+        decision: 'tool_calls',
+        tools: functionCalls.map((c) => ({ name: c.name, args: previewValue(c.args) })),
+      });
+      logger.info(
+        `runPromptWithTools turn=${turn + 1} tools=[${functionCalls.map((c) => c.name).join(', ')}]`
+      );
+
+      const responseParts: Part[] = [];
+      for (const call of functionCalls) {
+        const toolName = call.name ?? '';
+        let output: unknown;
+        try {
+          output = await executeTool(toolName, (call.args ?? {}) as Record<string, unknown>);
+        } catch (error: any) {
+          output = { error: error.message || String(error) };
+        }
+        responseParts.push({
+          functionResponse: { name: toolName, response: { result: output ?? null } },
+        });
+      }
+      contents.push({ role: 'user', parts: responseParts });
+
+      if (turn === maxToolTurns) {
+        logger.warn('runPromptWithTools: max tool turns reached, forcing final answer');
+        logAIEvent('ai.agentic_turn', { turn: turn + 1, decision: 'max_turns_forced' });
+        const finalResult = await this.genAIClient.models.generateContent({
+          model: modelName,
+          contents,
+          config: { ...config, toolConfig: { functionCallingConfig: { mode: FunctionCallingConfigMode.NONE } } },
+        });
+        finalText = finalResult.text ?? '';
+      }
+    }
+
+    logAIEvent('ai.agentic_loop_end', {
+      modelName,
+      turnsUsed,
+      finalTextLength: finalText.length,
+      durationMs: Date.now() - loopStartedAt,
+    });
+
+    if (userId && !skipQuotaCheck) {
+      try {
+        await userService.incrementUsage(userId, 1);
+      } catch (quotaError) {
+        logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
+      }
+    }
+
+    return finalText;
   }
 
   public getCleanAIText(response: any): string {

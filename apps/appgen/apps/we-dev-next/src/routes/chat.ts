@@ -34,7 +34,17 @@ router.post('/', async (req: Request, res: Response) => {
       otherConfig,
       tools,
       projectData,
+      language,
     } = req.body as ChatRequest;
+
+    // User UI language (from the client) so the AI generates content in the right
+    // language. Falls back to the Accept-Language header, then English.
+    const acceptFr = (req.headers['accept-language'] || '')
+      .toString()
+      .toLowerCase()
+      .startsWith('fr');
+    const resolvedLanguage =
+      language === 'fr' || language === 'en' ? language : acceptFr ? 'fr' : 'en';
 
     const userId = req.headers['userid'] as string | null;
 
@@ -110,11 +120,19 @@ router.post('/', async (req: Request, res: Response) => {
     if (mode === ChatMode.Chat) {
       console.log('  Delegating to handleChatMode');
       ChatLogger.info('HANDLER', 'Delegating to handleChatMode');
-      result = await handleChatMode(messages, model, userId, tools);
+      result = await handleChatMode(messages, model, userId, tools, resolvedLanguage);
     } else {
       console.log('  Delegating to handleBuilderMode');
       ChatLogger.info('HANDLER', 'Delegating to handleBuilderMode');
-      result = await handleBuilderMode(messages, model, userId, otherConfig, tools, projectData);
+      result = await handleBuilderMode(
+        messages,
+        model,
+        userId,
+        otherConfig,
+        tools,
+        projectData,
+        resolvedLanguage
+      );
     }
 
     const duration = Date.now() - startTime;

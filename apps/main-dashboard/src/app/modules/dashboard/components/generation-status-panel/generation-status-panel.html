@@ -1,0 +1,174 @@
+@if (!completeness().isComplete) {
+  <!-- Document incomplet : bannière d'avertissement + reprise / régénération -->
+  <section
+    class="glass-card p-6 mb-6 border border-yellow-500/30"
+    role="region"
+    [attr.aria-label]="'dashboard.generationPanel.incompleteTitle' | translate"
+  >
+    <div class="flex items-start gap-4 flex-wrap">
+      <div
+        class="w-12 h-12 shrink-0 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center"
+        aria-hidden="true"
+      >
+        <svg class="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.5"
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"
+          />
+        </svg>
+      </div>
+      <div class="flex-1 min-w-[220px]">
+        <h3 class="text-lg font-bold text-text-primary mb-1">
+          {{ 'dashboard.generationPanel.incompleteTitle' | translate }}
+        </h3>
+        <p class="text-sm text-text-tertiary m-0">
+          {{
+            'dashboard.generationPanel.incompleteSubtitle'
+              | translate
+                : {
+                    completed: completeness().completedCount,
+                    total: completeness().totalCount,
+                  }
+          }}
+        </p>
+      </div>
+    </div>
+
+    <ul class="mt-5 space-y-1.5 list-none p-0 m-0">
+      @for (item of completeness().items; track item.name) {
+        <li
+          class="flex items-center gap-3 px-4 py-2.5 rounded-lg border"
+          [class.border-[var(--glass-border-subtle)]]="item.status === 'complete'"
+          [class.bg-[var(--glass-bg-subtle)]]="item.status === 'complete'"
+          [class.border-yellow-500/30]="item.status !== 'complete'"
+          [class.bg-yellow-500/5]="item.status !== 'complete'"
+        >
+          <span class="w-5 h-5 shrink-0 flex items-center justify-center" aria-hidden="true">
+            @if (item.status === 'complete') {
+              <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            } @else {
+              <svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            }
+          </span>
+          <span class="text-sm flex-1 text-text-primary">
+            {{ sectionLabelPrefix() ? (sectionLabelPrefix() + item.name | translate) : item.name }}
+          </span>
+          <span
+            class="text-xs uppercase tracking-wider"
+            [class.text-text-tertiary]="item.status === 'complete'"
+            [class.text-yellow-500]="item.status !== 'complete'"
+          >
+            {{ 'dashboard.generationPanel.status.' + item.status | translate }}
+          </span>
+          <button
+            type="button"
+            class="text-xs font-medium text-primary hover:underline disabled:opacity-50 disabled:no-underline px-2 py-1"
+            [disabled]="disabled()"
+            [attr.aria-label]="
+              'dashboard.generationPanel.actions.regenerateSectionAria'
+                | translate
+                  : {
+                      section: sectionLabelPrefix()
+                        ? (sectionLabelPrefix() + item.name | translate)
+                        : item.name,
+                    }
+            "
+            (click)="onRegenerateSection(item.name)"
+          >
+            {{ 'dashboard.generationPanel.actions.regenerateSection' | translate }}
+          </button>
+        </li>
+      }
+    </ul>
+
+    <div class="mt-6 flex gap-3 flex-wrap">
+      <button type="button" class="inner-button" [disabled]="disabled()" (click)="resume.emit()">
+        {{ 'dashboard.generationPanel.actions.resume' | translate }}
+      </button>
+      <button
+        type="button"
+        class="bg-[var(--color-surface-3)] hover:bg-[var(--glass-bg-light)] text-text-primary px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+        [disabled]="disabled()"
+        (click)="regenerateAll.emit()"
+      >
+        {{ 'dashboard.generationPanel.actions.regenerateAll' | translate }}
+      </button>
+    </div>
+  </section>
+} @else {
+  <!-- Document complet : accès replié à la régénération par section -->
+  <section
+    class="glass-card px-6 py-4 mb-6"
+    role="region"
+    [attr.aria-label]="'dashboard.generationPanel.completeTitle' | translate"
+  >
+    <div class="flex items-center gap-3 flex-wrap">
+      <span
+        class="w-8 h-8 shrink-0 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center"
+        aria-hidden="true"
+      >
+        <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+      </span>
+      <span class="text-sm font-medium text-text-primary flex-1">
+        {{ 'dashboard.generationPanel.completeTitle' | translate }}
+      </span>
+      <button
+        type="button"
+        class="text-sm font-medium text-primary hover:underline"
+        [attr.aria-expanded]="expanded()"
+        (click)="toggleExpanded()"
+      >
+        {{
+          (expanded()
+            ? 'dashboard.generationPanel.actions.hideSections'
+            : 'dashboard.generationPanel.actions.showSections'
+          ) | translate
+        }}
+      </button>
+    </div>
+
+    @if (expanded()) {
+      <ul class="mt-4 space-y-1.5 list-none p-0 m-0">
+        @for (item of completeness().items; track item.name) {
+          <li
+            class="flex items-center gap-3 px-4 py-2 rounded-lg border border-[var(--glass-border-subtle)] bg-[var(--glass-bg-subtle)]"
+          >
+            <span class="text-sm flex-1 text-text-primary">
+              {{ sectionLabelPrefix() ? (sectionLabelPrefix() + item.name | translate) : item.name }}
+            </span>
+            <button
+              type="button"
+              class="text-xs font-medium text-primary hover:underline disabled:opacity-50 disabled:no-underline px-2 py-1"
+              [disabled]="disabled()"
+              [attr.aria-label]="
+                'dashboard.generationPanel.actions.regenerateSectionAria'
+                  | translate
+                    : {
+                        section: sectionLabelPrefix()
+                          ? (sectionLabelPrefix() + item.name | translate)
+                          : item.name,
+                      }
+              "
+              (click)="onRegenerateSection(item.name)"
+            >
+              {{ 'dashboard.generationPanel.actions.regenerateSection' | translate }}
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+}

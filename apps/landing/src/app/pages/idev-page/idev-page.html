@@ -11,8 +11,8 @@
     <section class="relative pt-32 pb-20 lg:pt-40 lg:pb-28">
       <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
         <!-- Breadcrumb -->
-        <div class="flex items-center justify-center gap-2 mb-8 text-sm text-white/50">
-          <a routerLink="/home" class="hover:text-white transition-colors" i18n="@@idev.breadcrumb.idem">Idem</a>
+        <div class="flex items-center justify-center gap-2 mb-8 text-sm text-text-tertiary">
+          <a routerLink="/home" class="hover:text-text-primary transition-colors" i18n="@@idev.breadcrumb.idem">Idem</a>
           <span>/</span>
           <span class="text-primary font-medium">IDEV</span>
         </div>
@@ -25,11 +25,11 @@
           <span class="text-xs font-bold text-primary uppercase tracking-widest" i18n="@@idev.badge">AI App Generator</span>
         </div>
 
-        <h1 class="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-6 tracking-tight" i18n="@@idev.hero.title">
+        <h1 class="text-4xl sm:text-5xl lg:text-7xl font-bold text-text-primary mb-6 tracking-tight" i18n="@@idev.hero.title">
           From Idea to <span class="i-underline">Application</span><br />in Minutes
         </h1>
 
-        <p class="text-lg lg:text-xl text-white/60 max-w-3xl mx-auto leading-relaxed mb-10" i18n="@@idev.hero.description">
+        <p class="text-lg lg:text-xl text-text-secondary max-w-3xl mx-auto leading-relaxed mb-10" i18n="@@idev.hero.description">
           Describe what you want to build. IDEV's AI generates a complete, production-ready application — frontend, backend, and database — instantly.
         </p>
 
@@ -60,34 +60,34 @@
     <section class="relative py-24 lg:py-32">
       <div class="max-w-6xl mx-auto px-4 sm:px-6">
         <div class="text-center mb-16">
-          <h2 class="text-3xl lg:text-5xl font-bold text-white mb-4" i18n="@@idev.howItWorks.title">
+          <h2 class="text-3xl lg:text-5xl font-bold text-text-primary mb-4" i18n="@@idev.howItWorks.title">
             How <span class="i-underline">IDEV</span> Works
           </h2>
-          <p class="text-lg text-white/60 max-w-2xl mx-auto" i18n="@@idev.howItWorks.description">
+          <p class="text-lg text-text-secondary max-w-2xl mx-auto" i18n="@@idev.howItWorks.description">
             Three simple steps from idea to application
           </p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
           @for (step of steps; track step.number; let i = $index) {
-            <div class="relative glass-card p-8 rounded-2xl border border-white/10 hover:border-primary/30 transition-all duration-300 group">
+            <div class="relative glass-card p-8 rounded-2xl border border-[var(--glass-border)] hover:border-primary/30 transition-all duration-300 group">
               <!-- Step Number -->
-              <div class="text-6xl font-black text-white/5 absolute top-4 right-6 select-none">{{ step.number }}</div>
+              <div class="text-6xl font-black text-text-primary/5 absolute top-4 right-6 select-none">{{ step.number }}</div>
 
               <div class="relative">
                 <div class="w-12 h-12 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center mb-6">
                   <span class="text-primary font-bold text-lg">{{ step.number }}</span>
                 </div>
-                <h3 class="text-xl font-bold text-white mb-3 group-hover:text-primary transition-colors">
+                <h3 class="text-xl font-bold text-text-primary mb-3 group-hover:text-primary transition-colors">
                   {{ step.title }}
                 </h3>
-                <p class="text-white/60 leading-relaxed">{{ step.description }}</p>
+                <p class="text-text-secondary leading-relaxed">{{ step.description }}</p>
               </div>
 
               <!-- Connector line (not on last item) -->
               @if (i < steps.length - 1) {
                 <div class="hidden lg:block absolute -right-4 top-1/2 -translate-y-1/2 z-20">
-                  <svg class="w-8 h-8 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-8 h-8 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>
                 </div>
@@ -102,17 +102,17 @@
     <section class="relative py-24 lg:py-32 bg-bg-dark">
       <div class="max-w-7xl mx-auto px-4 sm:px-6">
         <div class="text-center mb-16">
-          <h2 class="text-3xl lg:text-5xl font-bold text-white mb-4" i18n="@@idev.features.title">
+          <h2 class="text-3xl lg:text-5xl font-bold text-text-primary mb-4" i18n="@@idev.features.title">
             Built for <span class="i-underline">Developers</span>
           </h2>
-          <p class="text-lg text-white/60 max-w-2xl mx-auto" i18n="@@idev.features.description">
+          <p class="text-lg text-text-secondary max-w-2xl mx-auto" i18n="@@idev.features.description">
             Everything you need to go from concept to production-ready application
           </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           @for (feature of features; track feature.title) {
-            <div class="glass-card p-6 lg:p-8 rounded-2xl border border-white/10 hover:border-primary/30 transition-all duration-300 group">
+            <div class="glass-card p-6 lg:p-8 rounded-2xl border border-[var(--glass-border)] hover:border-primary/30 transition-all duration-300 group">
               <!-- Icon -->
               <div class="w-12 h-12 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center mb-5">
                 @if (feature.icon === 'code') {
@@ -143,10 +143,10 @@
                 }
               </div>
 
-              <h3 class="text-lg font-bold text-white mb-2 group-hover:text-primary transition-colors">
+              <h3 class="text-lg font-bold text-text-primary mb-2 group-hover:text-primary transition-colors">
                 {{ feature.title }}
               </h3>
-              <p class="text-white/60 text-sm leading-relaxed">{{ feature.description }}</p>
+              <p class="text-text-secondary text-sm leading-relaxed">{{ feature.description }}</p>
             </div>
           }
         </div>
@@ -157,33 +157,33 @@
     <section class="relative py-24 lg:py-32">
       <div class="max-w-5xl mx-auto px-4 sm:px-6">
         <div class="text-center mb-12">
-          <h2 class="text-3xl lg:text-4xl font-bold text-white mb-4" i18n="@@idev.ecosystem.title">
+          <h2 class="text-3xl lg:text-4xl font-bold text-text-primary mb-4" i18n="@@idev.ecosystem.title">
             Part of the <span class="i-underline">Idem</span> Ecosystem
           </h2>
-          <p class="text-lg text-white/60 max-w-2xl mx-auto" i18n="@@idev.ecosystem.description">
+          <p class="text-lg text-text-secondary max-w-2xl mx-auto" i18n="@@idev.ecosystem.description">
             IDEV works seamlessly with the rest of the Idem platform
           </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <!-- Idem Platform -->
-          <a routerLink="/home" class="glass-card p-6 rounded-2xl border border-white/10 hover:border-primary/30 transition-all duration-300 group block">
+          <a routerLink="/home" class="glass-card p-6 rounded-2xl border border-[var(--glass-border)] hover:border-primary/30 transition-all duration-300 group block">
             <div class="flex items-center gap-4 mb-4">
               <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
                 <img src="/assets/icons/logo_white.webp" alt="Idem" class="w-6 h-auto" />
               </div>
               <div>
-                <h3 class="text-lg font-bold text-white group-hover:text-primary transition-colors" i18n="@@idev.ecosystem.idem.title">Idem Platform</h3>
-                <p class="text-white/50 text-xs" i18n="@@idev.ecosystem.idem.tagline">Complete business creation</p>
+                <h3 class="text-lg font-bold text-text-primary group-hover:text-primary transition-colors" i18n="@@idev.ecosystem.idem.title">Idem Platform</h3>
+                <p class="text-text-tertiary text-xs" i18n="@@idev.ecosystem.idem.tagline">Complete business creation</p>
               </div>
             </div>
-            <p class="text-white/60 text-sm" i18n="@@idev.ecosystem.idem.description">
+            <p class="text-text-secondary text-sm" i18n="@@idev.ecosystem.idem.description">
               Create your entire business with AI: brand, strategy, legal docs, and more.
             </p>
           </a>
 
           <!-- iDeploy -->
-          <a routerLink="/ideploy" class="glass-card p-6 rounded-2xl border border-white/10 hover:border-secondary/30 transition-all duration-300 group block">
+          <a routerLink="/ideploy" class="glass-card p-6 rounded-2xl border border-[var(--glass-border)] hover:border-secondary/30 transition-all duration-300 group block">
             <div class="flex items-center gap-4 mb-4">
               <div class="w-10 h-10 rounded-lg bg-secondary/15 border border-secondary/25 flex items-center justify-center">
                 <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -191,11 +191,11 @@
                 </svg>
               </div>
               <div>
-                <h3 class="text-lg font-bold text-white group-hover:text-secondary transition-colors">iDeploy</h3>
-                <p class="text-white/50 text-xs" i18n="@@idev.ecosystem.ideploy.tagline">Simplified deployment</p>
+                <h3 class="text-lg font-bold text-text-primary group-hover:text-secondary transition-colors">iDeploy</h3>
+                <p class="text-text-tertiary text-xs" i18n="@@idev.ecosystem.ideploy.tagline">Simplified deployment</p>
               </div>
             </div>
-            <p class="text-white/60 text-sm" i18n="@@idev.ecosystem.ideploy.description">
+            <p class="text-text-secondary text-sm" i18n="@@idev.ecosystem.ideploy.description">
               Deploy your IDEV-generated app with one click. Custom domains, SSL, and monitoring included.
             </p>
           </a>
@@ -207,10 +207,10 @@
     <section class="relative py-16 lg:py-24">
       <div class="max-w-4xl mx-auto px-4 sm:px-6">
         <div class="glass-card p-8 lg:p-12 rounded-2xl border border-primary/20 text-center">
-          <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4" i18n="@@idev.finalCta.title">
+          <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-text-primary mb-4" i18n="@@idev.finalCta.title">
             Ready to Build Your App?
           </h2>
-          <p class="text-white/60 text-lg mb-8 max-w-2xl mx-auto" i18n="@@idev.finalCta.description">
+          <p class="text-text-secondary text-lg mb-8 max-w-2xl mx-auto" i18n="@@idev.finalCta.description">
             Join thousands of builders who use IDEV to turn their ideas into reality. Start for free, no credit card required.
           </p>
           <a

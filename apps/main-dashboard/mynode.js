@@ -13,6 +13,7 @@ for (const p of envPaths) {
   }
 }
 
+
 const isProduction = process.env.NODE_ENV === 'production';
 
 const envFileContent = `// ⚠️ FICHIER GÉNÉRÉ AUTOMATIQUEMENT - NE PAS MODIFIER MANUELLEMENT

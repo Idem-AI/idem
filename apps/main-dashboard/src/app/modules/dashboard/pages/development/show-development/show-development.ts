@@ -101,12 +101,6 @@ export class ShowDevelopment implements OnInit {
   }
 
   private fetchDevelopmentConfigs(projectId: string): void {
-    // Prevent multiple calls if already loading
-    if (this.loading()) {
-      console.log('Already loading development configs, skipping...');
-      return;
-    }
-
     this.loading.set(true);
     this.error.set(null);
 

@@ -4,13 +4,13 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       @for (i of [1, 2, 3, 4, 5, 6]; track i) {
         <div class="animate-pulse">
-          <div class="bg-gray-800/50 rounded-xl h-32 border border-gray-700/50"></div>
+          <div class="bg-[var(--glass-bg-light)] rounded-xl h-32 border border-[var(--glass-border)]"></div>
         </div>
       }
     </div>
   } @else if (typographies.length === 0) {
     <!-- Empty State -->
-    <div class="text-center py-12 bg-gray-800/30 rounded-2xl border border-gray-700/50">
+    <div class="text-center py-12 bg-[var(--glass-bg-subtle)] rounded-2xl border border-[var(--glass-border)]">
       <svg
         class="w-16 h-16 mx-auto text-gray-600 mb-4"
         fill="none"
@@ -24,10 +24,10 @@
           d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
         ></path>
       </svg>
-      <h3 class="text-lg font-medium text-gray-300 mb-2">
+      <h3 class="text-lg font-medium text-text-secondary mb-2">
         {{ 'dashboard.typographySelection.generated.empty.title' | translate }}
       </h3>
-      <p class="text-gray-500 mb-6 max-w-md mx-auto">
+      <p class="text-text-tertiary mb-6 max-w-md mx-auto">
         {{ 'dashboard.typographySelection.generated.empty.description' | translate }}
       </p>
       <button
@@ -48,15 +48,15 @@
   } @else {
     <!-- Typography List Header -->
     <div class="flex items-center justify-between shrink-0">
-      <h3 class="text-white font-medium flex items-center gap-2">
+      <h3 class="text-text-primary font-medium flex items-center gap-2">
         {{ 'dashboard.typographySelection.generated.title' | translate }}
-        <span class="px-2 py-0.5 rounded-full bg-gray-800 text-gray-400 text-xs font-medium">{{
+        <span class="px-2 py-0.5 rounded-full bg-[var(--color-surface-2)] text-text-tertiary text-xs font-medium">{{
           typographies.length
         }}</span>
       </h3>
       <button
         (click)="onRegenerate()"
-        class="text-xs flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-800"
+        class="text-xs flex items-center gap-1.5 text-text-tertiary hover:text-text-primary transition-colors px-3 py-1.5 rounded-lg hover:bg-[var(--glass-bg-light)]"
       >
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path

@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
-import { processLogoImport, convertSvgToPng, generateLogoVariationsFromSvg } from '../services/logo-import.service';
+import { processLogoImport, convertSvgToPng, resolveSvgContent } from '../services/logo-import.service';
+import { generateLogoVariations } from '../services/logoVariationEngine.service';
+import { logoAnalysisService } from '../services/BandIdentity/logoAnalysis.service';
 import { storageService } from '../services/storage.service';
 import logger from '../config/logger';
 
@@ -29,8 +31,8 @@ export const importLogoController = async (req: Request, res: Response): Promise
       `Logo import: success - ${result.width}x${result.height}, SVG length: ${result.svg.length}, extracted ${result.extractedColors.length} colors`
     );
 
-    // Generate programmatic variations from the processed SVG (synchronous)
-    const variations = generateLogoVariationsFromSvg(result.svg);
+    // Generate variations with the hybrid engine (deterministic OKLCH transforms + rendered QA)
+    const variations = await generateLogoVariations(result.svg);
 
     // Optional MinIO upload when projectId is provided
     let logoUrl: string | undefined;
@@ -86,6 +88,57 @@ export const importLogoController = async (req: Request, res: Response): Promise
 };
 
 
+
+/**
+ * POST /api/logo/analyze
+ * Accepts JSON body with { svg: string }.
+ * Runs a vision analysis of the imported logo and returns a structured
+ * redesign brief for the "improve my logo" flow (maps onto LogoPreferences).
+ */
+export const analyzeLogoController = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { svg } = req.body;
+
+    if (!svg || typeof svg !== 'string') {
+      res.status(400).json({
+        success: false,
+        error: 'SVG content is required in the request body.',
+      });
+      return;
+    }
+
+    // The frontend may send the stored MinIO URL instead of inline SVG content
+    let svgContent: string;
+    try {
+      svgContent = await resolveSvgContent(svg);
+    } catch (resolveError: any) {
+      res.status(400).json({
+        success: false,
+        error: resolveError.message || 'The provided content is not a valid SVG.',
+      });
+      return;
+    }
+
+    logger.info(`Logo analysis: analyzing imported logo (${svgContent.length} chars)`);
+
+    const analysis = await logoAnalysisService.analyzeLogo(svgContent);
+
+    logger.info(
+      `Logo analysis: success - type: ${analysis.logoType}, colors: ${analysis.colors.join(', ')}`
+    );
+
+    res.status(200).json({
+      success: true,
+      analysis,
+    });
+  } catch (error: any) {
+    logger.error(`Logo analysis error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({
+      success: false,
+      error: error.message || 'An unexpected error occurred during logo analysis.',
+    });
+  }
+};
 
 /**
  * POST /api/logo/export/png

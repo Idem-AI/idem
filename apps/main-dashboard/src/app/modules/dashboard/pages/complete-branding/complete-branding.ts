@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { ProjectModel } from '@idem/shared-models';
 import { ProjectService } from '../../services/project.service';
 import { CookieService } from '../../../../shared/services/cookie.service';
@@ -84,6 +85,14 @@ export class CompleteBrandingPage implements OnInit {
   /** Préférences IA (stockées avant de passer à la génération) */
   protected readonly aiLogoPreferences = signal<LogoPreferencesModel | null>(null);
 
+  /**
+   * File de sauvegarde séquentielle : les updateProject partent dans l'ordre
+   * d'émission, une requête à la fois. Sans cela, plusieurs écritures
+   * concurrentes (logo importé, couleurs générées, préférences…) arrivaient
+   * dans un ordre aléatoire et la dernière pouvait écraser les autres.
+   */
+  private saveQueue: Promise<void> = Promise.resolve();
+
   // ─── Steps dynamiques selon le workflow ─────────────────────────────────────
 
   protected get steps(): { id: string; label: string }[] {
@@ -131,6 +140,16 @@ export class CompleteBrandingPage implements OnInit {
     return this.project()?.analysisResultModel?.branding?.logo ?? null;
   }
 
+  /**
+   * Logos générés par l'IA uniquement — exclut le logo importé qui a pu être
+   * historiquement recopié dans generatedLogos, pour que logo-selection ne
+   * l'affiche pas comme un concept IA (ce qui bloquait la vraie génération).
+   */
+  protected get aiGeneratedLogos(): LogoModel[] {
+    const logos = this.project()?.analysisResultModel?.branding?.generatedLogos ?? [];
+    return logos.filter((l: LogoModel) => !l.id?.startsWith('imported-'));
+  }
+
   /** Couleur sélectionnée */
   protected get selectedColor(): ColorModel | null {
     return this.project()?.analysisResultModel?.branding?.colors ?? null;
@@ -164,6 +183,76 @@ export class CompleteBrandingPage implements OnInit {
       next: (project) => {
         this.project.set(project);
         this.isLoading.set(false);
+
+        // Restaurer l'étape et l'état en fonction des données existantes
+        const branding = project?.analysisResultModel?.branding;
+        if (branding) {
+          const hasAiPreferences = !!branding.logoPreferences;
+          // Ne compter que les VRAIS logos générés par l'IA : d'anciennes données
+          // pouvaient contenir le logo importé dans generatedLogos, ce qui basculait
+          // à tort un utilisateur « tel quel » dans le workflow IA à la reprise.
+          const aiLogos = (branding.generatedLogos ?? []).filter(
+            (l: LogoModel) => !l.id?.startsWith('imported-'),
+          );
+          const hasGeneratedLogos = aiLogos.length > 0;
+
+          if (hasAiPreferences || hasGeneratedLogos) {
+            this.logoChoice.set('ai');
+            if (branding.logoPreferences) {
+              this.aiLogoPreferences.set(branding.logoPreferences);
+            }
+          } else if (branding.logo) {
+            this.logoChoice.set('import');
+            this.logoImportComplete.set(true);
+          }
+
+          let targetStepIndex = 0;
+          const choice = this.logoChoice();
+
+          if (choice === 'import') {
+            if (branding.colors) this.colorSelected.set(true);
+            if (branding.typography) this.typographySelected.set(true);
+
+            if (branding.logo && branding.colors && branding.typography) {
+              targetStepIndex = 3; // overview
+            } else if (branding.logo && branding.colors) {
+              targetStepIndex = 2; // typography
+            } else if (branding.logo) {
+              targetStepIndex = 1; // colors
+            }
+          } else if (choice === 'ai') {
+            if (branding.colors) this.colorSelected.set(true);
+            if (branding.typography) this.typographySelected.set(true);
+
+            // Voie « améliorer mon logo » : le logo importé sert de référence à
+            // l'analyse mais ne compte pas comme un logo généré par l'IA
+            const logoIsImported = !!branding.logo?.id?.startsWith('imported-');
+            const hasLogo = !!branding.logo && !logoIsImported;
+            const hasVariations = hasLogo && !!branding.logo?.variations?.withText;
+
+            if (hasLogo && hasVariations) {
+              targetStepIndex = 6; // overview
+            } else if (hasLogo && !hasVariations) {
+              // Logo sélectionné mais variations non générées (ex: retour navigateur)
+              // → revenir à logo-selection pour que l'utilisateur re-confirme son choix
+              targetStepIndex = 4; // logo-selection
+            } else if (hasGeneratedLogos && !hasLogo) {
+              // Des logos ont été générés mais aucun n'a été sélectionné
+              // → aller directement à logo-selection avec les logos déjà générés
+              targetStepIndex = 4; // logo-selection
+            } else if (branding.logoPreferences) {
+              targetStepIndex = 4; // logo-selection
+            } else if (branding.typography) {
+              targetStepIndex = 3; // logo-preferences
+            } else if (branding.colors) {
+              targetStepIndex = 2; // typography
+            } else {
+              targetStepIndex = 1; // colors
+            }
+          }
+
+          this.currentStepIndex.set(targetStepIndex);
+        }
       },
       error: () => {
         this.isLoading.set(false);
@@ -244,35 +333,31 @@ export class CompleteBrandingPage implements OnInit {
       ? branding.generatedTypography[0]
       : null;
 
-    const patch: Record<string, unknown> = {};
+    const patch: Record<string, unknown> = {
+      isComplete: true
+    };
     if (autoColor) patch['colors'] = autoColor;
     if (autoTypo) patch['typography'] = autoTypo;
 
     this.isFinalizing.set(true);
 
-    const hasPatch = Object.keys(patch).length > 0;
+    const updated = {
+      ...proj,
+      analysisResultModel: {
+        ...proj.analysisResultModel,
+        branding: { ...branding, ...patch },
+      },
+    } as ProjectModel;
+    this.project.set(updated);
 
     const doNavigate = () => {
       this.isFinalizing.set(false);
       this.router.navigate(['/project/dashboard']);
     };
 
-    if (hasPatch) {
-      const updated = {
-        ...proj,
-        analysisResultModel: {
-          ...proj.analysisResultModel,
-          branding: { ...branding, ...patch },
-        },
-      } as ProjectModel;
-      this.project.set(updated);
-
-      this.projectService.updateProject(proj.id!, {
-        analysisResultModel: updated.analysisResultModel,
-      }).subscribe({ next: doNavigate, error: doNavigate });
-    } else {
-      doNavigate();
-    }
+    // Passe par la file séquentielle : la finalisation (isComplete) ne doit pas
+    // pouvoir être doublée puis écrasée par une écriture précédente en vol.
+    this.persistProject(proj.id!, { analysisResultModel: updated.analysisResultModel }, doNavigate);
   }
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -286,12 +371,34 @@ export class CompleteBrandingPage implements OnInit {
     if (data) this.onProjectUpdate(data);
   }
 
+  /**
+   * Persiste le projet via la file séquentielle. `onDone` (optionnel) est
+   * appelé une fois la requête terminée (succès ou échec).
+   */
+  private persistProject(projectId: string, data: Partial<ProjectModel>, onDone?: () => void): void {
+    this.saveQueue = this.saveQueue.then(async () => {
+      try {
+        await firstValueFrom(this.projectService.updateProject(projectId, data));
+      } catch (err) {
+        console.error('Failed to update project:', err);
+      } finally {
+        onDone?.();
+      }
+    });
+  }
+
   // ─── Child component handlers ────────────────────────────────────────────────
 
   /** Utilisateur choisit import ou IA */
   protected onLogoChoiceMade(choice: 'import' | 'ai'): void {
     this.logoChoice.set(choice);
     if (choice === 'ai') {
+      // Voie « améliorer mon logo » : les préférences issues de l'analyse
+      // ont déjà été poussées dans le projet par logo-choice
+      const analysisPrefs = this.project()?.analysisResultModel?.branding?.logoPreferences;
+      if (analysisPrefs && !this.aiLogoPreferences()) {
+        this.aiLogoPreferences.set(analysisPrefs);
+      }
       // Pour l'IA, on avance directement vers colors
       this.navigateToStep(1);
     }
@@ -354,17 +461,9 @@ export class CompleteBrandingPage implements OnInit {
     // Persister et attendre la fin de la requête avant de naviguer
     // pour éviter les conditions de course avec la génération
     this.isSaving.set(true);
-    this.projectService.updateProject(current.id, updated).subscribe({
-      next: () => {
-        this.isSaving.set(false);
-        this.navigateToStep(this.currentStepIndex() + 1);
-      },
-      error: (err) => {
-        console.error('Failed to update project with preferences:', err);
-        this.isSaving.set(false);
-        // Continue anyway
-        this.navigateToStep(this.currentStepIndex() + 1);
-      },
+    this.persistProject(current.id, updated, () => {
+      this.isSaving.set(false);
+      this.navigateToStep(this.currentStepIndex() + 1);
     });
   }
 
@@ -386,6 +485,8 @@ export class CompleteBrandingPage implements OnInit {
     const updated: ProjectModel = {
       ...current,
       ...updates,
+      // Ne jamais laisser une réponse API remplacer l'id du projet en cours
+      id: current.id,
       analysisResultModel: {
         ...current.analysisResultModel,
         ...updates.analysisResultModel,
@@ -398,9 +499,7 @@ export class CompleteBrandingPage implements OnInit {
     this.project.set(updated);
 
     if (current.id) {
-      this.projectService.updateProject(current.id, updated).subscribe({
-        error: (err) => console.error('Failed to update project:', err),
-      });
+      this.persistProject(current.id, updated);
     }
   }
 
@@ -408,9 +507,7 @@ export class CompleteBrandingPage implements OnInit {
   protected onProjectFullUpdate(updated: ProjectModel): void {
     this.project.set(updated);
     if (updated.id) {
-      this.projectService.updateProject(updated.id, updated).subscribe({
-        error: (err) => console.error('Failed to update project:', err),
-      });
+      this.persistProject(updated.id, updated);
     }
   }
 }

@@ -5,6 +5,7 @@ import { CustomRequest } from '../interfaces/express.interface';
 import logger from '../config/logger';
 import { userService } from '../services/user.service';
 import { ISectionResult } from '../services/common/generic.service';
+import { projectService } from '../services/project.service';
 
 const promptService = new PromptService();
 const brandingService = new BrandingService(promptService);
@@ -144,9 +145,18 @@ export const generateLogoConceptsController = async (
       return;
     }
 
+    const forceRegenerate = req.query.force === 'true' || req.body.force === true;
+
+    // Fetch project to see if this is a retry/resume
+    const project = await projectService.getUserProjectById(userId, projectId as string);
+    const hasLogos = (project?.analysisResultModel?.branding?.generatedLogos?.length ?? 0) > 0;
+    const isRetry = !!(project && !forceRegenerate && hasLogos);
+
     const logos = await brandingService.generateLogoConcepts(
       userId,
-      projectId as string
+      projectId as string,
+      forceRegenerate,
+      isRetry
     );
 
     if (!logos) {
@@ -158,7 +168,13 @@ export const generateLogoConceptsController = async (
     logger.info(
       `Successfully generated logo concepts - UserId: ${userId}, ProjectId: ${projectId}`
     );
-    userService.incrementUsage(userId, 5);
+    
+    if (!isRetry) {
+      userService.incrementUsage(userId, 5);
+      logger.info(`Charged 5 credits for user ${userId} on Logo Concepts completion.`);
+    } else {
+      logger.info(`Exempted user ${userId} from credit charge because this is a retry/resume.`);
+    }
     res.status(200).json(logos);
   } catch (error) {
     logger.error(
@@ -173,6 +189,272 @@ export const generateLogoConceptsController = async (
       message: 'Internal server error',
       error: error instanceof Error ? error.message : 'Unknown error',
     });
+  }
+};
+
+/**
+ * Étape 1 (SSE) : Génère les 3 concepts de logo en streaming temps réel,
+ * avec boucle qualité (agent critique → révision). Chaque événement
+ * (concept généré, remarques de la critique, révision, finalisation)
+ * est poussé au client au fil de l'eau.
+ */
+export const generateLogoConceptsStreamController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const { projectId } = req.params;
+  const userId = req.user?.uid;
+  logger.info(
+    `generateLogoConceptsStreamController called - UserId: ${userId}, ProjectId: ${projectId}`
+  );
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    if (!projectId) {
+      res.status(400).json({ message: 'Project ID is required' });
+      return;
+    }
+
+    const forceRegenerate = req.query.force === 'true';
+
+    // Retry/reprise : pas de re-facturation si des logos existent déjà
+    const project = await projectService.getUserProjectById(userId, projectId as string);
+    const hasLogos = (project?.analysisResultModel?.branding?.generatedLogos?.length ?? 0) > 0;
+    const isRetry = !!(project && !forceRegenerate && hasLogos);
+
+    // Configuration SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    // Client parti (navigation, sélection anticipée…) → annuler pour économiser les tokens
+    req.on('close', () => {
+      brandingService.cancelLogoGeneration(userId, projectId as string);
+    });
+
+    const streamCallback = async (event: import('../services/BandIdentity/branding.service').ILogoStreamEvent) => {
+      try {
+        const message = {
+          type: 'progress',
+          stepName: event.type,
+          data: JSON.stringify({
+            conceptIndex: event.conceptIndex,
+            logo: event.logo,
+            critique: event.critique,
+            message: event.message,
+          }),
+          summary: event.critique?.summary || '',
+          timestamp: new Date().toISOString(),
+          parsedData: { status: 'progress' },
+        };
+        res.write(`data: ${JSON.stringify(message)}\n\n`);
+        (res as any).flush?.();
+      } catch (error: any) {
+        logger.error(`Error streaming logo event: ${error.message}`);
+      }
+    };
+
+    // Préférences éventuellement passées en query (formulaire non encore persisté côté projet)
+    const prefType = req.query.prefType as string | undefined;
+    const preferencesOverride =
+      prefType && ['icon', 'name', 'initial'].includes(prefType)
+        ? {
+            type: prefType as 'icon' | 'name' | 'initial',
+            useAIGeneration: true,
+            customDescription: (req.query.prefDesc as string | undefined) || undefined,
+          }
+        : undefined;
+
+    const logos = await brandingService.generateLogoConceptsWithStreaming(
+      userId,
+      projectId as string,
+      streamCallback,
+      forceRegenerate,
+      preferencesOverride
+    );
+
+    if (!isRetry && logos.length > 0) {
+      userService.incrementUsage(userId, 5);
+      logger.info(`Charged 5 credits for user ${userId} on streamed logo concepts completion.`);
+    }
+
+    // Événement de fin (reconnu par le front comme signal de complétion)
+    res.write(
+      `data: ${JSON.stringify({
+        type: 'completed',
+        stepName: 'completion',
+        data: 'all_steps_completed',
+        summary: '',
+        timestamp: new Date().toISOString(),
+        parsedData: { status: 'completed' },
+      })}\n\n`
+    );
+    res.end();
+  } catch (error: any) {
+    logger.error(
+      `Error in generateLogoConceptsStreamController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
+      { stack: error.stack }
+    );
+    try {
+      res.write(
+        `data: ${JSON.stringify({
+          type: 'progress',
+          stepName: 'concept_error',
+          data: JSON.stringify({ message: error.message }),
+          summary: '',
+          timestamp: new Date().toISOString(),
+          parsedData: { status: 'progress' },
+        })}\n\n`
+      );
+    } catch {
+      // headers peut-être non envoyés
+    }
+    res.end();
+  }
+};
+
+/**
+ * Annule la génération de logos en cours pour un projet
+ * (appelé quand l'utilisateur sélectionne un logo pendant la génération).
+ */
+export const cancelLogoConceptsController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const { projectId } = req.params;
+  const userId = req.user?.uid;
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    if (!projectId) {
+      res.status(400).json({ message: 'Project ID is required' });
+      return;
+    }
+
+    const cancelled = brandingService.cancelLogoGeneration(userId, projectId as string);
+    logger.info(
+      `cancelLogoConceptsController - UserId: ${userId}, ProjectId: ${projectId}, wasRunning: ${cancelled}`
+    );
+    res.status(200).json({ success: true, cancelled });
+  } catch (error: any) {
+    logger.error(`Error in cancelLogoConceptsController: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Étape 2 (SSE) : Génère les déclinaisons du logo sélectionné en streaming,
+ * avec boucle qualité (critique fidélité/lisibilité → recoloration bornée).
+ * Le logo sélectionné est lu depuis le projet (persisté à la sélection).
+ */
+export const generateLogoVariationsStreamController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const { projectId } = req.params;
+  const userId = req.user?.uid;
+  logger.info(
+    `generateLogoVariationsStreamController called - UserId: ${userId}, ProjectId: ${projectId}`
+  );
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    if (!projectId) {
+      res.status(400).json({ message: 'Project ID is required' });
+      return;
+    }
+
+    const forceRegenerate = req.query.force === 'true';
+
+    const project = await projectService.getUserProjectById(userId, projectId as string);
+    const hasVariations =
+      project?.analysisResultModel?.branding?.logo?.variations?.withText !== undefined;
+    const isRetry = !!(project && !forceRegenerate && hasVariations);
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    // Fermeture de la page → annuler pour économiser les tokens
+    req.on('close', () => {
+      brandingService.cancelLogoVariationsGeneration(userId, projectId as string);
+    });
+
+    const streamCallback = async (
+      event: import('../services/BandIdentity/branding.service').ILogoVariationStreamEvent
+    ) => {
+      try {
+        const message = {
+          type: 'progress',
+          stepName: event.type,
+          data: JSON.stringify({
+            variant: event.variant,
+            svg: event.svg,
+            critique: event.critique,
+            message: event.message,
+          }),
+          summary: event.critique?.summary || '',
+          timestamp: new Date().toISOString(),
+          parsedData: { status: 'progress' },
+        };
+        res.write(`data: ${JSON.stringify(message)}\n\n`);
+        (res as any).flush?.();
+      } catch (error: any) {
+        logger.error(`Error streaming variation event: ${error.message}`);
+      }
+    };
+
+    const variations = await brandingService.generateLogoVariationsWithStreaming(
+      userId,
+      projectId as string,
+      streamCallback,
+      forceRegenerate
+    );
+
+    if (!isRetry && Object.keys(variations.withText).length > 0) {
+      userService.incrementUsage(userId, 5);
+      logger.info(`Charged 5 credits for user ${userId} on streamed logo variations completion.`);
+    }
+
+    res.write(
+      `data: ${JSON.stringify({
+        type: 'completed',
+        stepName: 'completion',
+        data: 'all_steps_completed',
+        summary: '',
+        timestamp: new Date().toISOString(),
+        parsedData: { status: 'completed' },
+      })}\n\n`
+    );
+    res.end();
+  } catch (error: any) {
+    logger.error(
+      `Error in generateLogoVariationsStreamController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
+      { stack: error.stack }
+    );
+    try {
+      res.write(
+        `data: ${JSON.stringify({
+          type: 'progress',
+          stepName: 'variation_error',
+          data: JSON.stringify({ message: error.message }),
+          summary: '',
+          timestamp: new Date().toISOString(),
+          parsedData: { status: 'progress' },
+        })}\n\n`
+      );
+    } catch {
+      // headers peut-être non envoyés
+    }
+    res.end();
   }
 };
 
@@ -197,10 +479,20 @@ export const generateLogoVariationsController = async (
       return;
     }
 
+    const forceRegenerate = req.query.force === 'true' || req.body.force === true;
+
+    // Fetch project to see if variations already exist
+    const project = await projectService.getUserProjectById(userId, projectId as string);
+    const existingLogo = project?.analysisResultModel?.branding?.logo;
+    const hasVariations = existingLogo?.variations?.withText !== undefined;
+    const isRetry = !!(project && !forceRegenerate && hasVariations);
+
     const variations = await brandingService.generateLogoVariations(
       userId,
       projectId as string,
-      selectedLogo
+      selectedLogo,
+      forceRegenerate,
+      isRetry
     );
 
     if (!variations) {
@@ -214,7 +506,13 @@ export const generateLogoVariationsController = async (
     logger.info(
       `Successfully generated logo variations - UserId: ${userId}, ProjectId: ${projectId}`
     );
-    userService.incrementUsage(userId, 5);
+    
+    if (!isRetry) {
+      userService.incrementUsage(userId, 5);
+      logger.info(`Charged 5 credits for user ${userId} on Logo Variations completion.`);
+    } else {
+      logger.info(`Exempted user ${userId} from credit charge because this is a retry/resume.`);
+    }
     res.status(200).json({ variations });
   } catch (error) {
     logger.error(
@@ -464,11 +762,26 @@ export const generateBrandingStreamingController = async (
     };
 
     // Appel au service avec le callback de streaming et le format PDF
+    const forceRegenerate = req.query.force === 'true' || req.body.force === true;
+
+    // Sections ciblées à régénérer (ex: ?sections=Color%20Palette,Typography)
+    const sectionsParam = typeof req.query.sections === 'string' ? req.query.sections : '';
+    const targetSections = sectionsParam
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    // Fetch project to see if this is a retry/resume
+    const project = await projectService.getUserProjectById(userId, projectId as string);
+    const isRetry = !!(project && !forceRegenerate && (project.analysisResultModel?.branding?.sections?.length ?? 0) > 0);
+
     const updatedProject = await brandingService.generateBrandingWithStreaming(
       userId,
       projectId as string,
       streamCallback, // Passer le callback de streaming
-      pdfFormat // Passer le format PDF
+      pdfFormat, // Passer le format PDF
+      forceRegenerate,
+      targetSections
     );
 
     if (!updatedProject) {
@@ -482,7 +795,13 @@ export const generateBrandingStreamingController = async (
     const newBranding = updatedProject.analysisResultModel?.branding;
 
     logger.info(`Branding generation completed - UserId: ${userId}, ProjectId: ${projectId}`);
-    userService.incrementUsage(userId, 5);
+    
+    if (!isRetry) {
+      userService.incrementUsage(userId, 5);
+      logger.info(`Charged 5 credits for user ${userId} on Branding guidelines completion.`);
+    } else {
+      logger.info(`Exempted user ${userId} from credit charge because this is a retry/resume.`);
+    }
 
     // Envoyer un événement de fin
     res.write(`data: ${JSON.stringify({ type: 'complete', branding: newBranding })}\n\n`);

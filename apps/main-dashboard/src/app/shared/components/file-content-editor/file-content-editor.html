@@ -1,13 +1,13 @@
-<div class="w-full bg-gray-800 rounded-lg shadow-lg p-4">
+<div class="w-full bg-[var(--color-surface-2)] rounded-lg shadow-lg p-4">
   <!-- Header with file tabs (only show if multiple files) -->
   @if (hasMultipleFiles()) {
-    <div class="flex mb-4 border-b border-gray-700">
+    <div class="flex mb-4 border-b border-[var(--glass-border)]">
       @for (file of fileContentsSignal(); track file.id) {
         <button
           [class.bg-blue-600]="activeFileIdSignal() === file.id"
-          [class.text-white]="activeFileIdSignal() === file.id"
-          [class.bg-gray-700]="activeFileIdSignal() !== file.id"
-          [class.text-gray-300]="activeFileIdSignal() !== file.id"
+          [class.text-text-primary]="activeFileIdSignal() === file.id"
+          [class.bg-surface-3]="activeFileIdSignal() !== file.id"
+          [class.text-text-secondary]="activeFileIdSignal() !== file.id"
           class="py-2 px-4 rounded-t-lg font-medium transition-colors duration-200 flex items-center gap-2"
           (click)="setActiveFile(file.id)"
         >
@@ -20,11 +20,11 @@
 
   <!-- Single file header (when only one file) -->
   @if (!hasMultipleFiles() && activeFile()) {
-    <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-700">
+    <div class="flex items-center justify-between mb-4 pb-2 border-b border-[var(--glass-border)]">
       <div class="flex items-center gap-2">
         <span class="text-lg">{{ getFileTypeIcon(activeFile()!.type) }}</span>
-        <h3 class="text-lg font-semibold text-white">{{ activeFile()!.name }}</h3>
-        <span class="text-sm text-gray-400 bg-gray-700 px-2 py-1 rounded">
+        <h3 class="text-lg font-semibold text-text-primary">{{ activeFile()!.name }}</h3>
+        <span class="text-sm text-text-tertiary bg-[var(--color-surface-3)] px-2 py-1 rounded">
           {{ getLanguageLabel(activeFile()!.language) }}
         </span>
       </div>
@@ -87,15 +87,15 @@
         <div class="space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-4">
-              <h4 class="text-white font-medium">Editing: {{ activeFile()!.name }}</h4>
+              <h4 class="text-text-primary font-medium">Editing: {{ activeFile()!.name }}</h4>
 
               <!-- Mode toggle for tfvars files -->
               @if (showModeToggle()) {
-                <div class="flex items-center bg-gray-700 rounded-lg p-1">
+                <div class="flex items-center bg-[var(--color-surface-3)] rounded-lg p-1">
                   <button
                     [class.bg-blue-600]="currentEditMode() === 'code'"
-                    [class.text-white]="currentEditMode() === 'code'"
-                    [class.text-gray-300]="currentEditMode() !== 'code'"
+                    [class.text-text-primary]="currentEditMode() === 'code'"
+                    [class.text-text-secondary]="currentEditMode() !== 'code'"
                     class="px-3 py-1 rounded text-sm font-medium transition-colors"
                     (click)="switchEditMode('code')"
                   >
@@ -116,8 +116,8 @@
                   </button>
                   <button
                     [class.bg-blue-600]="currentEditMode() === 'form'"
-                    [class.text-white]="currentEditMode() === 'form'"
-                    [class.text-gray-300]="currentEditMode() !== 'form'"
+                    [class.text-text-primary]="currentEditMode() === 'form'"
+                    [class.text-text-secondary]="currentEditMode() !== 'form'"
                     class="px-3 py-1 rounded text-sm font-medium transition-colors"
                     (click)="switchEditMode('form')"
                   >
@@ -163,7 +163,7 @@
               </button>
               <button
                 (click)="cancelEdit()"
-                class="bg-gray-600 hover:bg-gray-700 text-white py-1 px-3 rounded text-sm flex items-center gap-1 transition-colors"
+                class="bg-[var(--color-surface-3)] hover:bg-[var(--glass-bg-light)] text-text-primary py-1 px-3 rounded text-sm flex items-center gap-1 transition-colors"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -187,7 +187,7 @@
           <!-- Editing content based on mode -->
           @if (currentEditMode() === 'form' && isTfVarsFile() && tfVarsFormDataSignal()) {
             <!-- Form Mode for tfvars -->
-            <div class="bg-gray-900 rounded border border-gray-600 overflow-hidden">
+            <div class="bg-[var(--color-surface-1)] rounded border border-[var(--glass-border-medium)] overflow-hidden">
               <app-tfvars-form-editor
                 [formData]="tfVarsFormDataSignal()!"
                 [readonly]="false"
@@ -198,16 +198,16 @@
             <!-- Code Mode -->
             <textarea
               [(ngModel)]="editContentSignal"
-              class="w-full h-96 bg-gray-900 text-gray-100 font-mono text-sm p-4 rounded border border-gray-600 focus:border-blue-500 focus:outline-none resize-none"
+              class="w-full h-96 bg-[var(--color-surface-1)] text-text-primary font-mono text-sm p-4 rounded border border-[var(--glass-border-medium)] focus:border-blue-500 focus:outline-none resize-none"
               placeholder="Enter file content..."
             ></textarea>
           }
         </div>
       } @else {
         <!-- View Mode -->
-        <div class="bg-gray-900 rounded border border-gray-600 overflow-hidden">
+        <div class="bg-[var(--color-surface-1)] rounded border border-[var(--glass-border-medium)] overflow-hidden">
           <pre
-            class="text-gray-100 font-mono text-sm p-4 overflow-auto max-h-96 whitespace-pre-wrap"
+            class="text-text-primary font-mono text-sm p-4 overflow-auto max-h-96 whitespace-pre-wrap"
             >{{ displayContent() }}</pre
           >
         </div>
@@ -216,8 +216,8 @@
   } @else {
     <!-- No active file -->
     <div class="text-center py-8">
-      <div class="text-gray-400 text-lg mb-2">📄</div>
-      <p class="text-gray-400">No file selected</p>
+      <div class="text-text-tertiary text-lg mb-2">📄</div>
+      <p class="text-text-tertiary">No file selected</p>
     </div>
   }
 </div>

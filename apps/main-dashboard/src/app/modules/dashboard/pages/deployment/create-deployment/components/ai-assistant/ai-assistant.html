@@ -23,7 +23,7 @@
               class="p-3 sm:p-4 rounded-xl flex-1 min-w-0"
               [class]="
                 message.sender === 'ai'
-                  ? 'glass-dark text-gray-300 border border-primary/20'
+                  ? 'glass-dark text-text-secondary border border-primary/20'
                   : 'bg-primary text-white max-w-[85%] sm:max-w-xl ml-auto'
               "
             >
@@ -103,7 +103,7 @@
                       <button
                         (click)="submitSensitiveVariables()"
                         [disabled]="!sensitiveVariablesReady() || storingSensitiveVariables()"
-                        class="px-4 py-2 inner-button text-white font-medium flex items-center gap-2 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        class="px-4 py-2 inner-button font-medium flex items-center gap-2 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         @if (storingSensitiveVariables()) {
                           <i class="pi pi-spinner animate-spin"></i>
@@ -136,7 +136,7 @@
                     <!-- Mermaid Architecture Diagram -->
                     @if (message.asciiArchitecture) {
                       <div class="mb-4 p-4 glass-dark rounded-lg">
-                        <div class="flex items-center gap-2 mb-3 text-gray-300">
+                        <div class="flex items-center gap-2 mb-3 text-text-secondary">
                           <i class="pi pi-share-alt"></i>
                           <h5 class="text-sm font-medium">
                             {{ 'dashboard.aiAssistant.architecture.diagram' | translate }}
@@ -173,10 +173,10 @@
                                 <i class="{{ component.icon }}"></i>
                               </div>
                               <div>
-                                <h5 class="font-medium text-sm sm:text-base text-gray-200">
+                                <h5 class="font-medium text-sm sm:text-base text-text-secondary">
                                   {{ component.name }}
                                 </h5>
-                                <p class="text-xs text-gray-400">
+                                <p class="text-xs text-text-tertiary">
                                   {{ component.provider | uppercase }} | {{ component.type }}
                                 </p>
                               </div>
@@ -204,7 +204,7 @@
                     <div class="flex justify-end mt-4">
                       <button
                         (click)="acceptProposedArchitecture(message)"
-                        class="px-3 py-1.5 sm:px-4 sm:py-2 inner-button text-white text-sm sm:text-base font-medium flex items-center gap-2 transition-all"
+                        class="px-3 py-1.5 sm:px-4 sm:py-2 inner-button text-sm sm:text-base font-medium flex items-center gap-2 transition-all"
                       >
                         <i class="pi pi-check"></i>
                         <span>{{
@@ -228,7 +228,7 @@
               <i class="pi pi-sparkles text-xs sm:text-sm"></i>
             </div>
             <div
-              class="flex-1 p-3 sm:p-4 rounded-xl glass-dark text-gray-300 border border-primary/20 flex items-center gap-2 sm:gap-3 text-sm sm:text-base"
+              class="flex-1 p-3 sm:p-4 rounded-xl glass-dark text-text-secondary border border-primary/20 flex items-center gap-2 sm:gap-3 text-sm sm:text-base"
             >
               <i class="pi pi-spin pi-spinner"></i>
               <span>{{ 'common.thinking' | translate }}</span>
@@ -238,18 +238,18 @@
       </div>
 
       <!-- Input Area -->
-      <div class="mt-4 sm:mt-6 flex gap-2 sm:gap-4 border-t border-gray-700/50 pt-3 sm:pt-4">
+      <div class="mt-4 sm:mt-6 flex gap-2 sm:gap-4 border-t border-[var(--glass-border)] pt-3 sm:pt-4">
         <input
           [value]="aiPrompt()"
           (input)="updatePrompt($any($event.target).value)"
           (keyup.enter)="sendAiPrompt()"
           type="text"
           [placeholder]="'dashboard.aiAssistant.placeholders.prompt' | translate"
-          class="w-full glass border border-primary/20 focus:border-primary text-gray-100 rounded-lg p-2 sm:p-3 text-xs sm:text-base focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all placeholder-gray-400"
+          class="w-full glass border border-primary/20 focus:border-primary text-text-primary rounded-lg p-2 sm:p-3 text-xs sm:text-base focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all placeholder-text-tertiary"
         />
         <button
           (click)="sendAiPrompt()"
-          class="p-2 sm:px-6 sm:py-3 inner-button text-white font-medium flex items-center gap-2 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed transition-all align-center justify-center"
+          class="p-2 sm:px-6 sm:py-3 inner-button font-medium flex items-center gap-2 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed transition-all align-center justify-center"
           [disabled]="!aiPrompt() || aiIsThinking()"
         >
           <i class="pi pi-send"></i>
@@ -276,7 +276,7 @@
   <ng-template pTemplate="header">
     <div class="flex items-center gap-3">
       <i class="{{ activeProposedComponent()?.icon }}"></i>
-      <span class="text-xl font-semibold text-white">{{
+      <span class="text-xl font-semibold text-text-primary">{{
         'dashboard.aiAssistant.configure.title'
           | translate: { componentName: activeProposedComponent()?.name }
       }}</span>
@@ -288,14 +288,14 @@
       <div class="space-y-2">
         <label
           [for]="option.name"
-          class="text-sm font-medium flex items-center gap-2 text-gray-200"
+          class="text-sm font-medium flex items-center gap-2 text-text-secondary"
         >
           {{ option.label }}
           @if (option.required) {
             <span class="text-red-400">*</span>
           }
           @if (option.description) {
-            <i class="pi pi-info-circle text-gray-500" [title]="option.description"></i>
+            <i class="pi pi-info-circle text-text-tertiary" [title]="option.description"></i>
           }
         </label>
 
@@ -306,7 +306,7 @@
               type="text"
               [formControlName]="option.name"
               [placeholder]="option.placeholder || ''"
-              class="w-full backdrop-blur-md bg-gray-800/40 border border-gray-700/50 focus:border-primary/20 text-gray-100 rounded-lg p-3 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all placeholder-gray-500"
+              class="w-full backdrop-blur-md bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] focus:border-primary/20 text-text-primary rounded-lg p-3 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all placeholder-text-tertiary"
             />
           }
           @case ('number') {
@@ -314,14 +314,14 @@
               [id]="option.name"
               type="number"
               [formControlName]="option.name"
-              class="w-full backdrop-blur-md bg-gray-800/40 border border-gray-700/50 focus:border-primary/20 text-gray-100 rounded-lg p-3 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all"
+              class="w-full backdrop-blur-md bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] focus:border-primary/20 text-text-primary rounded-lg p-3 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all"
             />
           }
           @case ('select') {
             <select
               [id]="option.name"
               [formControlName]="option.name"
-              class="w-full backdrop-blur-md bg-gray-800/40 border border-gray-700/50 focus:border-primary/20 text-gray-100 rounded-lg p-3 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all"
+              class="w-full backdrop-blur-md bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] focus:border-primary/20 text-text-primary rounded-lg p-3 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all"
             >
               @for (opt of option.options; track opt.value) {
                 <option [value]="opt.value">{{ opt.label }}</option>
@@ -332,7 +332,7 @@
             <label class="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" [formControlName]="option.name" class="sr-only peer" />
               <div
-                class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"
+                class="w-11 h-6 bg-[var(--color-surface-3)] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"
               ></div>
             </label>
           }
@@ -357,7 +357,7 @@
       </button>
       <button
         (click)="saveComponentConfiguration()"
-        class="px-6 py-2.5 inner-button text-white font-medium flex items-center gap-2 transition-all"
+        class="px-6 py-2.5 inner-button font-medium flex items-center gap-2 transition-all"
         [disabled]="getActiveComponentForm()?.invalid"
       >
         <i class="pi pi-check"></i>
@@ -384,7 +384,7 @@
   <ng-template pTemplate="header">
     <div class="flex items-center gap-3">
       <i class="pi pi-cog text-primary"></i>
-      <span class="text-xl font-semibold text-white">{{
+      <span class="text-xl font-semibold text-text-primary">{{
         'dashboard.aiAssistant.deploymentConfig.title' | translate
       }}</span>
     </div>
@@ -393,7 +393,7 @@
   <div class="space-y-4">
     <form [formGroup]="deploymentConfigForm" class="space-y-4">
       <div>
-        <label for="name" class="block text-sm font-medium text-gray-200 mb-2">
+        <label for="name" class="block text-sm font-medium text-text-secondary mb-2">
           {{ 'dashboard.aiAssistant.deploymentConfig.fields.name' | translate }}
         </label>
         <input
@@ -401,18 +401,18 @@
           id="name"
           formControlName="name"
           [placeholder]="'dashboard.aiAssistant.deploymentConfig.placeholders.name' | translate"
-          class="w-full glass border border-primary/20 focus:border-primary text-gray-100 rounded-lg p-3 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all placeholder-gray-400"
+          class="w-full glass border border-primary/20 focus:border-primary text-text-primary rounded-lg p-3 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all placeholder-text-tertiary"
         />
       </div>
 
       <div>
-        <label for="environment" class="block text-sm font-medium text-gray-200 mb-2">
+        <label for="environment" class="block text-sm font-medium text-text-secondary mb-2">
           {{ 'dashboard.aiAssistant.deploymentConfig.fields.environment' | translate }}
         </label>
         <select
           id="environment"
           formControlName="environment"
-          class="w-full glass border border-primary/20 focus:border-primary text-gray-100 rounded-lg p-3 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all"
+          class="w-full glass border border-primary/20 focus:border-primary text-text-primary rounded-lg p-3 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all"
         >
           <option value="development">
             {{ 'dashboard.aiAssistant.deploymentConfig.environments.development' | translate }}
@@ -434,7 +434,7 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label for="repoUrl" class="block font-medium text-gray-300 mb-1 text-sm">
+            <label for="repoUrl" class="block font-medium text-text-secondary mb-1 text-sm">
               {{ 'dashboard.aiAssistant.deploymentConfig.git.repoUrl' | translate }}
             </label>
             <input
@@ -444,12 +444,12 @@
               [placeholder]="
                 'dashboard.aiAssistant.deploymentConfig.placeholders.repoUrl' | translate
               "
-              class="w-full glass border border-primary/20 focus:border-primary text-gray-200 rounded-lg p-2.5 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all text-sm placeholder-gray-400"
+              class="w-full glass border border-primary/20 focus:border-primary text-text-secondary rounded-lg p-2.5 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all text-sm placeholder-text-tertiary"
             />
           </div>
 
           <div>
-            <label for="branch" class="block font-medium text-gray-300 mb-1 text-sm">
+            <label for="branch" class="block font-medium text-text-secondary mb-1 text-sm">
               {{ 'dashboard.aiAssistant.deploymentConfig.git.branch' | translate }}
             </label>
             <input
@@ -459,7 +459,7 @@
               [placeholder]="
                 'dashboard.aiAssistant.deploymentConfig.placeholders.branch' | translate
               "
-              class="w-full glass border border-primary/20 focus:border-primary text-gray-200 rounded-lg p-2.5 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all text-sm placeholder-gray-400"
+              class="w-full glass border border-primary/20 focus:border-primary text-text-secondary rounded-lg p-2.5 focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all text-sm placeholder-text-tertiary"
             />
           </div>
         </div>
@@ -489,7 +489,7 @@
       </button>
       <button
         (click)="saveDeploymentConfig()"
-        class="px-6 py-2.5 inner-button text-white font-medium flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        class="px-6 py-2.5 inner-button font-medium flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         [disabled]="deploymentConfigForm.invalid || creatingDeployment()"
       >
         @if (creatingDeployment()) {
@@ -521,7 +521,7 @@
   <ng-template pTemplate="header">
     <div class="flex items-center gap-3">
       <i class="pi pi-shield text-yellow-400"></i>
-      <span class="text-xl font-semibold text-white">{{
+      <span class="text-xl font-semibold text-text-primary">{{
         'dashboard.aiAssistant.sensitiveVariables.dialogTitle' | translate
       }}</span>
     </div>
@@ -547,7 +547,7 @@
         <div class="space-y-2">
           <label
             [for]="variable.name"
-            class="text-sm font-medium text-gray-200 flex items-center gap-2"
+            class="text-sm font-medium text-text-secondary flex items-center gap-2"
           >
             <i class="pi pi-key text-yellow-400 text-xs"></i>
             {{ variable.label }}
@@ -557,7 +557,7 @@
           </label>
 
           @if (variable.description) {
-            <p class="text-xs text-gray-400 mb-2">{{ variable.description }}</p>
+            <p class="text-xs text-text-tertiary mb-2">{{ variable.description }}</p>
           }
           @switch (variable.type) {
             @case ('string') {
@@ -566,7 +566,7 @@
                 [type]="variable.sensitive ? 'password' : 'text'"
                 [formControlName]="variable.name"
                 [placeholder]="variable.placeholder || ''"
-                class="w-full glass border border-secondary/20 focus:border-secondary text-gray-100 rounded-lg p-3 focus:ring-2 focus:ring-secondary/30 focus:outline-none transition-all placeholder-gray-400"
+                class="w-full glass border border-secondary/20 focus:border-secondary text-text-primary rounded-lg p-3 focus:ring-2 focus:ring-secondary/30 focus:outline-none transition-all placeholder-text-tertiary"
                 [class.border-red-500]="
                   sensitiveVariablesForm()?.get(variable.name)?.invalid &&
                   sensitiveVariablesForm()?.get(variable.name)?.touched
@@ -578,7 +578,7 @@
                 [id]="variable.name"
                 type="number"
                 [formControlName]="variable.name"
-                class="w-full glass border border-secondary/20 focus:border-secondary text-gray-100 rounded-lg p-3 focus:ring-2 focus:ring-secondary/30 focus:outline-none transition-all"
+                class="w-full glass border border-secondary/20 focus:border-secondary text-text-primary rounded-lg p-3 focus:ring-2 focus:ring-secondary/30 focus:outline-none transition-all"
                 [class.border-red-500]="
                   sensitiveVariablesForm()?.get(variable.name)?.invalid &&
                   sensitiveVariablesForm()?.get(variable.name)?.touched
@@ -589,7 +589,7 @@
               <label class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" [formControlName]="variable.name" class="sr-only peer" />
                 <div
-                  class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"
+                  class="w-11 h-6 bg-[var(--color-surface-3)] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"
                 ></div>
               </label>
             }
@@ -634,7 +634,7 @@
       </button>
       <button
         (click)="validateSensitiveVariables()"
-        class="px-6 py-2.5 inner-button text-white font-medium flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        class="px-6 py-2.5 inner-button font-medium flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         [disabled]="!sensitiveVariablesForm()"
       >
         <i class="pi pi-check"></i>

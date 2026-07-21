@@ -1,3 +1,4 @@
+// Test trigger: Chart deployment pipeline (Update 2)
 import { toast } from 'svelte-sonner';
 
 export const notify = (message: string): void => {

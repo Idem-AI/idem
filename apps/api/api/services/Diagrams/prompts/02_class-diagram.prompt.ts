@@ -1,24 +1,15 @@
-export const CLASS_DIAGRAM_PROMPT = `
-As a certified UML expert, generate a rigorous Mermaid class diagram according to these specifications:
+export const CLASS_DIAGRAM_PROMPT = `<objective>Generate a Mermaid class diagram.</objective>
 
-# Class Diagram - [Domain]
+<requirements>
+1. Strict, valid Mermaid syntax.
+2. UML 2.5 notation (PascalCase/CamelCase naming).
+3. 3 levels of visibility (+, -, #).
+4. Explicit primitive types (String, int, bool, etc.).
+5. Methods with typed parameters.
+6. Clear relationships with explicit cardinalities.
+</requirements>
 
-## Strict Requirements:
-1. Valid Mermaid syntax
-2. Strict adherence to UML 2.5 notation
-3. 3 levels of visibility (+, -, #)
-4. Explicit types (String, int, bool, etc.)
-5. Methods with typed parameters
-6. Clear relationships (inheritance, association, etc.)
-
-## Required Output Format:
-
-classDiagram
-    [Classes with attributes/methods]
-    [Relationships between classes]
-
-## Structured Example:
-
+<example>
 classDiagram
     class Client {
         +String name
@@ -28,16 +19,10 @@ classDiagram
 
     Client "1" --> "*" Order : places
     Order *-- Article : contains
+</example>
 
-## Rules:
-- No explanations
-- No comments in the code
-- PascalCase/CamelCase naming
-- Primitive types only
-- Explicit cardinalities
-- Generate NO additional text, no explanations or comments - ONLY the diagram
-
-- Verry Important: ALWAYS wrap your diagram with \`\`\`mermaid and \`\`\` tags
-- Verry Important: Your response MUST begin with \`\`\`mermaid and end with \`\`\`
-- Verry Important: Do NOT add any additional text, explanations or comments - ONLY the diagram code wrapped in \`\`\`mermaid ... \`\`\` tags
+<output_format>
+- Output ONLY the diagram code wrapped in \`\`\`mermaid and \`\`\` tags.
+- No explanations, introduction, or comments.
+</output_format>
 `;

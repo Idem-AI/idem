@@ -62,7 +62,7 @@ import { CommonModule } from '@angular/common';
           <button
             (click)="previousSlide()"
             [disabled]="currentIndex() === 0 && !infinite"
-            class="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 glass backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors disabled:opacity-50 disabled:cursor-not-allowed z-10"
+            class="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 glass backdrop-blur-sm rounded-full flex items-center justify-center text-text-primary hover:bg-[var(--glass-bg-light)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed z-10"
             [attr.aria-label]="'Previous slide'"
           >
             <i class="pi pi-chevron-left"></i>
@@ -71,7 +71,7 @@ import { CommonModule } from '@angular/common';
           <button
             (click)="nextSlide()"
             [disabled]="currentIndex() === safeItems.length - 1 && !infinite"
-            class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 glass backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors disabled:opacity-50 disabled:cursor-not-allowed z-10"
+            class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 glass backdrop-blur-sm rounded-full flex items-center justify-center text-text-primary hover:bg-[var(--glass-bg-light)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed z-10"
             [attr.aria-label]="'Next slide'"
           >
             <i class="pi pi-chevron-right"></i>

@@ -2,8 +2,22 @@ import { ProjectTeam } from '../auth/project-team.model';
 
 /**
  * Type de projet
+ *
+ * Union alignée sur les choix proposés dans l'UI de création
+ * (`create-project/datas.ts`) et sur les types injectés par le mode chat.
  */
-export type ProjectType = 'web' | 'mobile' | 'iot' | 'desktop';
+export type ProjectType =
+  | 'web'
+  | 'mobile'
+  | 'iot'
+  | 'desktop'
+  | 'enterprise'
+  | 'ecommerce'
+  | 'api'
+  | 'ai'
+  | 'blockchain'
+  | 'landing'
+  | 'other';
 
 /**
  * Membre d'équipe dans le projet (legacy)
@@ -60,6 +74,8 @@ export interface ProjectModel {
   scope: string;
   budgetIntervals?: string;
   targets: string;
+  /** Devise du projet (ex. XAF, EUR, USD…). Utilisée par toutes les générations. */
+  currency?: string;
 
   // Propriétaire et équipes
   userId: string; // Propriétaire du projet
@@ -95,6 +111,7 @@ export interface CreateProjectDTO {
   scope: string;
   budgetIntervals?: string;
   targets: string;
+  currency?: string;
   selectedPhases: string[];
 }
 
@@ -110,6 +127,7 @@ export interface UpdateProjectDTO {
   scope?: string;
   budgetIntervals?: string;
   targets?: string;
+  currency?: string;
   selectedPhases?: string[];
   additionalInfos?: Partial<ProjectAdditionalInfos>;
 }

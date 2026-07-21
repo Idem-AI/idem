@@ -1,24 +1,42 @@
-import { Component, inject, OnInit, signal, computed, ViewChild } from '@angular/core';
+import {
+  Component,
+  inject,
+  OnInit,
+  OnDestroy,
+  signal,
+  computed,
+  effect,
+  ViewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ProjectModel } from '@idem/shared-models';
 import { ProjectService } from '../../services/project.service';
 import { CookieService } from '../../../../shared/services/cookie.service';
+import { UiModeService } from '../../../../shared/services/ui-mode.service';
 import { initEmptyObject } from '../../../../utils/init-empty-object';
 import CreateProjectDatas, { SelectElement } from './datas';
 
 // Import components
 import { ProjectDescriptionComponent } from './components/project-description/project-description';
-import { ProjectDetailsComponent } from './components/project-details/project-details';
+import { DynamicDetailsFormComponent } from './components/dynamic-details-form/dynamic-details-form';
 import { ColorSelectionComponent } from './components/color-selection/color-selection';
 import { TypographySelectionComponent } from './components/typography-selection/typography-selection';
 import { LogoSelectionComponent } from './components/logo-selection/logo-selection';
 import { LogoVariationsComponent } from './components/logo-variations/logo-variations';
 import { ProjectSummaryComponent } from './components/project-summary/project-summary';
 import { LogoChoiceComponent } from './components/logo-choice/logo-choice';
+import { FoundationsCardComponent } from './components/foundations-card/foundations-card';
 import { Loader } from '../../../../shared/components/loader/loader';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import {
+  OnboardingChatComponent,
+  OnboardingFoundations,
+} from '../../../chat/components/onboarding-chat/onboarding-chat';
+import { AuthService } from '../../../auth/services/auth.service';
+import { LoginCardComponent } from '../../../auth/components/login-card/login-card';
+import { DialogModule } from 'primeng/dialog';
 
 // Simple step configuration
 interface Step {
@@ -27,6 +45,10 @@ interface Step {
   component: string;
 }
 
+/** Mode d'affichage de la création de projet */
+type CreateMode = 'chat' | 'form';
+const CREATE_MODE_KEY = 'idem_create_project_mode';
+
 @Component({
   selector: 'app-create-project',
   standalone: true,
@@ -34,21 +56,35 @@ interface Step {
     CommonModule,
     SkeletonModule,
     ProjectDescriptionComponent,
-    ProjectDetailsComponent,
+    DynamicDetailsFormComponent,
     ProjectSummaryComponent,
     TranslateModule,
     Loader,
+    FoundationsCardComponent,
+    OnboardingChatComponent,
+    DialogModule,
+    LoginCardComponent,
   ],
   templateUrl: './create-project.html',
   styleUrl: './create-project.css',
 })
-export class CreateProjectComponent implements OnInit {
+export class CreateProjectComponent implements OnInit, OnDestroy {
   // Services
   private readonly projectService = inject(ProjectService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly cookieService = inject(CookieService);
+  private readonly uiModeService = inject(UiModeService);
   private readonly translate = inject(TranslateService);
+  private readonly authService = inject(AuthService);
+
+  // Authentication Modal State
+  protected readonly showLoginModal = signal<boolean>(false);
+  private pendingAction: 'nextStep' | 'foundations' | 'improvePrompt' | 'feelingLucky' | null = null;
+
+  // Prompt generation loading states
+  protected readonly isImprovingPrompt = signal<boolean>(false);
+  protected readonly isGeneratingLucky = signal<boolean>(false);
 
   // AppGen handoff
   protected readonly fromAppGen = signal<boolean>(false);
@@ -58,6 +94,82 @@ export class CreateProjectComponent implements OnInit {
   protected readonly currentStepIndex = signal<number>(0);
   protected readonly project = signal<ProjectModel>(initEmptyObject<ProjectModel>());
   protected readonly isLoading = signal<boolean>(false);
+
+  // Dual-mode : conversation (défaut) ⇄ formulaire classique
+  protected readonly mode = signal<CreateMode>(this.readMode());
+  protected readonly isChatRecapActive = signal<boolean>(false);
+
+  /** Indique si la page actuelle est la page de synthèse / validation des politiques (où le changement de mode doit être masqué) */
+  protected readonly isSummaryPage = computed(
+    () => (this.mode() === 'form' && this.currentStepIndex() === 2) || (this.mode() === 'chat' && this.isChatRecapActive()),
+  );
+
+  /** Vue conversationnelle active (chat + au-delà de l'étape description). */
+  protected readonly isChatConversation = computed(
+    () => this.mode() === 'chat' && this.currentStepIndex() !== 0,
+  );
+
+  constructor() {
+    // En vue conversationnelle, on verrouille le scroll global de la page :
+    // seul le fil de messages défile (comportement type Claude).
+    effect(() => {
+      const lock = this.isChatConversation();
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = lock ? 'hidden' : '';
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = '';
+    }
+  }
+
+  /** En mode chat : Fondations tant que description/nom/type ou projet manquent. */
+  protected readonly chatReadyForConversation = computed(() => {
+    const p = this.project();
+    return !!p.id && !!p.description?.trim() && !!p.name?.trim() && !!p.type;
+  });
+
+  /** Données passées au composant conversationnel. */
+  protected readonly conversationFoundations = computed<OnboardingFoundations>(() => {
+    const p = this.project();
+    const t = p.type as unknown as { name?: string; code?: string } | string | undefined;
+    const typeLabel = typeof t === 'string' ? t : (t?.name ?? '');
+    const typeCode = typeof t === 'string' ? t : (t?.code ?? '');
+    return {
+      description: p.description ?? '',
+      name: p.name ?? '',
+      type: typeCode,
+      typeLabel,
+      projectId: p.id ?? null,
+      // Réponses cœur déjà saisies (formulaire) → pré-remplissage/synchro du chat.
+      targets: p.targets ?? '',
+      scope: p.scope ?? '',
+      teamSize: p.teamSize ?? '',
+      currency: p.currency ?? '',
+      constraints: p.constraints ?? [],
+    };
+  });
+
+  private readMode(): CreateMode {
+    try {
+      return localStorage.getItem(CREATE_MODE_KEY) === 'chat' ? 'chat' : 'form';
+    } catch {
+      return 'form';
+    }
+  }
+
+  protected setMode(mode: CreateMode): void {
+    if (mode === this.mode()) return;
+    this.mode.set(mode);
+    try {
+      localStorage.setItem(CREATE_MODE_KEY, mode);
+    } catch {
+      // ignore
+    }
+  }
 
   // Step configuration
   protected get steps(): Step[] {
@@ -164,6 +276,14 @@ export class CreateProjectComponent implements OnInit {
       if (draft) {
         const projectData = JSON.parse(draft);
         this.project.set(projectData);
+
+        const draftStep = this.cookieService.get('draftProjectStep');
+        if (draftStep) {
+          const stepIndex = parseInt(draftStep, 10);
+          if (stepIndex >= 0 && stepIndex < this.steps.length) {
+            this.currentStepIndex.set(stepIndex);
+          }
+        }
       }
     } catch (error) {
       console.warn('Could not load draft project:', error);
@@ -176,6 +296,7 @@ export class CreateProjectComponent implements OnInit {
   private saveDraftProject(): void {
     try {
       this.cookieService.set('draftProject', JSON.stringify(this.project()));
+      this.cookieService.set('draftProjectStep', this.currentStepIndex().toString());
     } catch (error) {
       console.error('Could not save draft project:', error);
     }
@@ -192,7 +313,12 @@ export class CreateProjectComponent implements OnInit {
       case 'description':
         return !!project.description?.trim();
       case 'details':
-        return !!project.name?.trim() && !!project.type;
+        return (
+          !!project.name?.trim() &&
+          !!project.type &&
+          !!project.targets?.trim() &&
+          !!project.currency?.trim()
+        );
       case 'summary':
         const acceptances = this.acceptances();
         return acceptances.privacy && acceptances.terms && acceptances.beta;
@@ -226,7 +352,18 @@ export class CreateProjectComponent implements OnInit {
   protected async goToNextStep(): Promise<void> {
     // After completing the "details" step (index 1), create the project in the database
     if (this.currentStepIndex() === 1 && !this.project().id) {
+      const user = this.authService.getCurrentUser();
+      if (!user) {
+        this.pendingAction = 'nextStep';
+        this.showLoginModal.set(true);
+        return;
+      }
+      
       await this.createProjectInDatabase();
+      if (!this.project().id) {
+        // Project creation failed, block navigation
+        return;
+      }
     }
 
     if (this.canGoNext()) {
@@ -241,9 +378,106 @@ export class CreateProjectComponent implements OnInit {
   }
 
   /**
+   * Handle successful login from modal and resume the pending action
+   */
+  protected async onLoginSuccess(): Promise<void> {
+    this.showLoginModal.set(false);
+    const action = this.pendingAction;
+    this.pendingAction = null;
+
+    if (action === 'nextStep') {
+      await this.createProjectInDatabase();
+      if (this.project().id && this.canGoNext()) {
+        const nextIndex = this.currentStepIndex() + 1;
+        if (nextIndex < this.steps.length) {
+          this.navigateToStep(nextIndex);
+        } else {
+          this.finalizeProject();
+        }
+      }
+    } else if (action === 'foundations') {
+      await this.createProjectInDatabase();
+    } else if (action === 'improvePrompt') {
+      await this.executeImprovePrompt();
+    } else if (action === 'feelingLucky') {
+      await this.executeFeelingLucky();
+    }
+  }
+
+  /**
+   * Handle request to improve prompt
+   */
+  protected async onImprovePromptRequested(): Promise<void> {
+    const user = this.authService.getCurrentUser();
+    if (!user) {
+      this.pendingAction = 'improvePrompt';
+      this.showLoginModal.set(true);
+      return;
+    }
+    await this.executeImprovePrompt();
+  }
+
+  /**
+   * Handle request for feeling lucky / random idea
+   */
+  protected async onFeelingLuckyRequested(): Promise<void> {
+    const user = this.authService.getCurrentUser();
+    if (!user) {
+      this.pendingAction = 'feelingLucky';
+      this.showLoginModal.set(true);
+      return;
+    }
+    await this.executeFeelingLucky();
+  }
+
+  private async executeImprovePrompt(): Promise<void> {
+    const currentDesc = this.project().description?.trim();
+    if (!currentDesc || this.isImprovingPrompt()) return;
+
+    try {
+      this.isImprovingPrompt.set(true);
+      const res = await this.projectService.improvePrompt(currentDesc).toPromise();
+      if (res?.improvedPrompt) {
+        this.project.update((p) => ({ ...p, description: res.improvedPrompt }));
+        this.saveDraftProject();
+      }
+    } catch (error) {
+      console.error('Failed to improve prompt:', error);
+    } finally {
+      this.isImprovingPrompt.set(false);
+    }
+  }
+
+  private async executeFeelingLucky(): Promise<void> {
+    if (this.isGeneratingLucky()) return;
+
+    try {
+      this.isGeneratingLucky.set(true);
+      const res = await this.projectService.generateFeelingLucky().toPromise();
+      if (res?.idea) {
+        this.project.update((p) => ({ ...p, description: res.idea }));
+        this.saveDraftProject();
+      }
+    } catch (error) {
+      console.error('Failed to generate lucky project idea:', error);
+    } finally {
+      this.isGeneratingLucky.set(false);
+    }
+  }
+
+  /**
+   * Close login modal and cancel pending action
+   */
+  protected closeLoginModal(): void {
+    this.showLoginModal.set(false);
+    this.pendingAction = null;
+  }
+
+  /**
    * Create project in database after details step
    */
   private async createProjectInDatabase(): Promise<void> {
+    if (this.project().id || this.isLoading()) return;
     try {
       this.isLoading.set(true);
       const currentProject = this.project();
@@ -300,6 +534,36 @@ export class CreateProjectComponent implements OnInit {
   protected async finalizeProject(): Promise<void> {
     this.cookieService.set('projectId', this.project().id!);
     this.router.navigate(['/project/dashboard']);
+  }
+
+  // ─────────────────────────────────────────────── Mode conversation (chat)
+
+  /** Phase A → crée le projet en base (si nécessaire) puis lance la conversation. */
+  protected async onFoundationsContinue(): Promise<void> {
+    if (!this.project().id) {
+      const user = this.authService.getCurrentUser();
+      if (!user) {
+        this.pendingAction = 'foundations';
+        this.showLoginModal.set(true);
+        return;
+      }
+      await this.createProjectInDatabase();
+    } else {
+      this.saveDraftProject();
+    }
+    // chatReadyForConversation devient vrai → le composant conversationnel s'affiche
+  }
+
+  /** Le composant conversationnel a créé/finalisé le projet. */
+  protected onConversationCreated(projectId: string): void {
+    this.cookieService.set('projectId', projectId);
+    this.cookieService.remove('draftProject');
+    // Retour dans le contexte d'origine : chat si l'utilisateur est en mode chat
+    if (this.uiModeService.mode() === 'chat') {
+      this.router.navigate(['/chat']);
+    } else {
+      this.router.navigate(['/project/dashboard']);
+    }
   }
 
   /**

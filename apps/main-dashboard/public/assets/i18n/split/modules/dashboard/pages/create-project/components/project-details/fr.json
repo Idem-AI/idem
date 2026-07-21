@@ -19,6 +19,16 @@
         "selectType": "Sélectionnez un type",
         "selectScope": "Sélectionnez une portée",
         "selectTarget": "Sélectionnez une cible"
+      },
+      "dynamic": {
+        "sectionTitle": "Questions adaptées à votre projet",
+        "loading": "Analyse de votre projet pour adapter les questions…",
+        "error": "Impossible de générer les questions. Vous pouvez réessayer.",
+        "retry": "Réessayer",
+        "optional": "facultatif",
+        "selectPlaceholder": "Sélectionnez une option",
+        "textPlaceholder": "Votre réponse (facultatif)",
+        "otherPlaceholder": "Précisez…"
       }
     }
   }

@@ -66,7 +66,7 @@ export function FileTree({ items, onFileSelect }: FileTreeProps) {
           "flex flex-col h-full overflow-auto",
           "scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent",
           "px-1 py-2",
-          isDragging && "bg-gray-800/20"
+          isDragging && "bg-gray-200/50 dark:bg-gray-800/20"
         )}
         role="tree"
         aria-label="文件浏览器"

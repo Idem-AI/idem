@@ -1,21 +1,21 @@
 <div
-  class="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden shadow-lg shadow-black/20"
+  class="w-full max-w-md rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] overflow-hidden shadow-lg shadow-black/20"
 >
   <!-- En-tête : icône + titre + métadonnées -->
-  <div class="flex items-center gap-3 p-4 border-b border-white/5">
+  <div class="flex items-center gap-3 p-4 border-b border-[var(--glass-border-subtle)]">
     <div
       class="w-10 h-10 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0"
     >
       <i [class]="card().icon" class="text-primary text-lg"></i>
     </div>
     <div class="min-w-0 flex-1">
-      <h4 class="text-sm font-semibold text-white truncate">{{ card().titleKey | translate }}</h4>
+      <h4 class="text-sm font-semibold text-text-primary truncate">{{ card().titleKey | translate }}</h4>
       @if (card().updatedAt) {
-        <p class="text-[11px] text-gray-500">
+        <p class="text-[11px] text-text-tertiary">
           {{ 'chat.card.updatedAt' | translate }} {{ card().updatedAt | date: 'dd/MM/yyyy HH:mm' }}
         </p>
       } @else if (!card().available) {
-        <p class="text-[11px] text-gray-500">{{ 'chat.card.notGenerated' | translate }}</p>
+        <p class="text-[11px] text-text-tertiary">{{ 'chat.card.notGenerated' | translate }}</p>
       }
     </div>
   </div>
@@ -29,27 +29,27 @@
             class="w-1.5 h-1.5 rounded-full shrink-0"
             [class.bg-emerald-400]="section.status === 'ready'"
             [class.bg-amber-400]="section.status === 'inProgress'"
-            [class.bg-gray-600]="section.status === 'missing'"
+            [class.bg-surface-3]="section.status === 'missing'"
           ></span>
-          <span class="text-gray-300 truncate flex-1">{{ section.name }}</span>
+          <span class="text-text-secondary truncate flex-1">{{ section.name }}</span>
           <span
             class="text-[10px] uppercase tracking-wide"
             [class.text-emerald-400]="section.status === 'ready'"
             [class.text-amber-400]="section.status === 'inProgress'"
-            [class.text-gray-500]="section.status === 'missing'"
+            [class.text-text-disabled]="section.status === 'missing'"
           >
             {{ 'chat.card.status.' + section.status | translate }}
           </span>
         </li>
       }
       @if (hiddenSectionsCount() > 0) {
-        <li class="text-[11px] text-gray-500 pl-3.5">
+        <li class="text-[11px] text-text-tertiary pl-3.5">
           {{ 'chat.card.moreSections' | translate: { count: hiddenSectionsCount() } }}
         </li>
       }
     </ul>
   } @else {
-    <p class="px-4 py-3 text-xs text-gray-500">{{ 'chat.card.empty' | translate }}</p>
+    <p class="px-4 py-3 text-xs text-text-tertiary">{{ 'chat.card.empty' | translate }}</p>
   }
 
   <!-- Actions -->
@@ -69,7 +69,7 @@
           type="button"
           (click)="downloadRequested.emit()"
           [disabled]="busy()"
-          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 text-xs font-semibold transition-all duration-200 disabled:opacity-50"
+          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[var(--glass-bg-subtle)] hover:bg-[var(--glass-bg-light)] border border-[var(--glass-border)] text-text-secondary text-xs font-semibold transition-all duration-200 disabled:opacity-50"
         >
           <i class="pi pi-download text-[11px]"></i>
           {{ 'chat.card.actions.download' | translate }}
@@ -91,7 +91,7 @@
     <button
       type="button"
       (click)="editorRequested.emit()"
-      class="inline-flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-primary transition-colors duration-200"
+      class="inline-flex items-center gap-1.5 text-[11px] text-text-tertiary hover:text-primary transition-colors duration-200"
     >
       <i class="pi pi-arrow-up-right text-[10px]"></i>
       {{ 'chat.card.actions.openEditor' | translate }}

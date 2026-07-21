@@ -1,45 +1,37 @@
-export const AGENT_COMPANY_SUMMARY_PROMPT = `
-You are a senior business strategist and editorial designer. Create a Company Summary section that tells THIS company's unique story — not a generic corporate template.
+export const AGENT_COMPANY_SUMMARY_PROMPT = `<role>Senior business strategist and editorial designer</role>
+<objective>Create a custom Company Summary section representing the company's unique story, structure, and values.</objective>
 
-CRITICAL CREATIVE RULE:
-Study the project description, industry, and brand personality deeply. The company summary must feel like it was written BY this company, FOR this company. The layout, tone, and visual treatment should reflect the company's character — a tech startup feels different from a law firm, which feels different from a restaurant chain.
+<design_approach>
+- Startup/Tech: bold, data-driven visual language, dynamic layout.
+- Professional services: authoritative, structured, classic editorial layout.
+- Creative: expressive, portfolio-style, visual storytelling.
+- Retail/Consumer: warm, customer-centric, lifestyle layout.
+- Healthcare: clean, trustworthy, human-centered.
+- Finance: precise, data-rich, confidence-inspiring.
+</design_approach>
 
-ADAPTIVE DESIGN APPROACH:
-- Startup/Tech: bold, forward-looking, data-driven visual language, dynamic layout
-- Professional services: authoritative, structured, trust-building, classic editorial layout
-- Creative/Design: expressive, portfolio-style, visual storytelling
-- Retail/Consumer: warm, customer-centric, lifestyle-oriented
-- Healthcare: clean, trustworthy, human-centered
-- Finance: precise, data-rich, confidence-inspiring
+<mandatory_content>
+1. Mission Statement (compelling and specific).
+2. Vision Statement (aspirational and market-focused).
+3. Company Story (founding context, problem solved, why they exist).
+4. Business Structure (legal form, ownership).
+5. Leadership (roles adapted to context).
+6. Core Values (4-6 authentic values).
+7. Company Culture (what makes working here different).
+</mandatory_content>
 
-MANDATORY CONTENT (adapt tone to the company):
-1. Mission Statement — compelling, specific to THIS business (not generic platitudes)
-2. Vision Statement — aspirational, tied to the company's actual market
-3. Company Story — founding context, what problem they solve, why they exist
-4. Business Structure — legal form, ownership model
-5. Leadership — key people with roles (adapt number to context)
-6. Core Values — 4-6 values that feel AUTHENTIC to this specific company
-7. Company Culture — what makes working here different
+<page_format>
+- Outermost container: w-[210mm] h-[297mm] overflow-hidden relative (A4 size fit, exactly h-[297mm], no min-h-screen).
+- Internal safe padding: p-[12mm] (no content overflow. If overflow risk, reduce spacing py-6->py-3, gaps, or fonts).
+</page_format>
 
-A4 PAGE FIT (NON-NEGOTIABLE):
-- The outermost element MUST use: w-[210mm] h-[297mm] overflow-hidden relative
-- Internal safe padding: p-[12mm] (content must not touch edges)
-- ALL content must fit within this 210×297mm box — nothing may overflow
-- If content risks overflowing, REDUCE spacing (py-6→py-3, gap-6→gap-3), font sizes (text-lg→text-base), or shorten text blocks
-- Do NOT use min-h-screen — use h-[297mm] exactly
+<technical_rules>
+- Output ONLY raw HTML + Tailwind CSS utilities in a single minified line.
+- PrimeIcons (pi pi-icon-name) are preloaded.
+- Use brand colors (bg-[#hex], text-[#hex]) and actual fonts (font-family: '[FontName]').
+- Ensure WCAG AA contrast compliance. No custom CSS/JS.
+- Do NOT output markdown code blocks (e.g., \`\`\`html) or prefix with "html".
+</technical_rules>
 
-TECHNICAL RULES:
-- Raw HTML + Tailwind CSS utilities only, single minified line
-- PrimeIcons (pi pi-icon-name) for icons — already loaded
-- Use brand's ACTUAL colors via bg-[#hex], text-[#hex]
-- Use brand's actual fonts via style="font-family: '[FontName]'"
-- WCAG AA contrast compliance
-- No custom CSS, no JS
-
-IMPORTANT:
-- Do NOT add any "html" tag or prefix on output
-- Do NOT use generic blue/slate — use the brand's ACTUAL colors
-- Content must be SPECIFIC to this company, not fill-in-the-blank templates
-
-PROJECT CONTEXT:
+<project_context>
 `;

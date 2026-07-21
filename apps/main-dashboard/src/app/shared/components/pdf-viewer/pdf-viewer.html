@@ -6,7 +6,7 @@
     <div class="w-full flex flex-row justify-between p-4">
       <!-- PDF Title - Hidden on mobile to save space -->
       <div class="">
-        <h3 class="text-lg font-semibold text-gray-200 truncate">{{ title() }}</h3>
+        <h3 class="text-lg font-semibold text-text-secondary truncate">{{ title() }}</h3>
       </div>
 
       <!-- Action Buttons -->
@@ -31,7 +31,7 @@
         <p class="text-gray-600 text-center px-4" [class]="isMobile() ? 'text-sm' : 'text-base'">
           {{ 'dashboard.pdfViewer.loading' | translate }}
         </p>
-        <p class="text-gray-500 mt-2 text-center px-4" [class]="isMobile() ? 'text-xs' : 'text-sm'">
+        <p class="text-text-tertiary mt-2 text-center px-4" [class]="isMobile() ? 'text-xs' : 'text-sm'">
           {{ 'dashboard.pdfViewer.wait' | translate }}
         </p>
       </div>
@@ -84,7 +84,7 @@
                 'common.of' | translate
               }}</span>
               <span
-                class="px-2 py-1 bg-gray-700 text-white rounded-md font-medium"
+                class="px-2 py-1 bg-[var(--color-surface-3)] text-text-primary rounded-md font-medium"
                 [class]="isMobile() ? 'text-xs' : 'text-sm'"
               >
                 {{ totalPages() }}
@@ -127,7 +127,7 @@
       </div>
     } @else {
       <div class="w-full flex flex-col items-center justify-center" [style.height.px]="pdfHeight()">
-        <div class="text-gray-400 mb-4">
+        <div class="text-text-tertiary mb-4">
           <i class="pi pi-file-pdf" [class]="isMobile() ? 'text-3xl' : 'text-5xl'"></i>
         </div>
         <p

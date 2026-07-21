@@ -1,265 +1,214 @@
 @if (isSubmitting()) {
-  <!-- Full-screen loading state -->
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/5 backdrop-blur-sm h-screen w-full"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-[var(--glass-bg-subtle)] backdrop-blur-sm h-screen w-full"
   >
-    <div class="text-center space-y-6 max-w-md mx-auto px-6">
+    <div class="text-center space-y-4 max-w-sm mx-auto px-6">
       <app-loader></app-loader>
-      <p class="text-gray-300 text-sm">{{ 'dashboard.projectSummary.loading' | translate }}</p>
+      <p class="text-text-secondary text-sm font-medium">{{ 'dashboard.projectSummary.loading' | translate }}</p>
     </div>
   </div>
 } @else {
-  <section class="flex flex-col items-center min-h-[78vh] justify-center text-gray-100 w-full">
-    <h1 class="text-2xl md:text-5xl text-center font-bold text-gray-100 mb-8 pb-2 sm:w-[60%]">
-      {{ 'dashboard.projectSummary.title' | translate }}
-    </h1>
-    <div class="card flex justify-center w-full">
-      <div class="max-w-4xl mx-auto p-6 w-full">
-        <!-- {{ 'dashboard.projectSummary.sections.projectInfo' | translate }} Summary -->
-        <div class="bg-gray-800/50 rounded-xl p-6 mb-8">
-          <h2 class="text-2xl font-bold text-gray-100 mb-4 border-b border-gray-700 pb-2">
-            {{ 'dashboard.projectSummary.sections.projectInfo' | translate }}
-          </h2>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 class="text-lg font-semibold text-gray-300 mb-2">
-                {{ 'dashboard.projectSummary.subsections.details' | translate }}
-              </h3>
-              <div class="space-y-2">
-                <p class="text-gray-300">
-                  <span class="text-gray-400"
-                    >{{ 'dashboard.projectSummary.fields.name' | translate }}:</span
-                  >
-                  {{ project().name }}
-                </p>
-                <p class="text-gray-300">
-                  <span class="text-gray-400"
-                    >{{ 'dashboard.projectSummary.fields.type' | translate }}:</span
-                  >
-                  {{ formattedProjectType() }}
-                </p>
-              </div>
-            </div>
-            <div>
-              <h3 class="text-lg font-semibold text-gray-300 mb-2">
-                {{ 'dashboard.projectSummary.subsections.businessInfo' | translate }}
-              </h3>
-              <div class="space-y-2">
-                <p class="text-gray-300">
-                  <span class="text-gray-400"
-                    >{{ 'dashboard.projectSummary.fields.teamSize' | translate }}:</span
-                  >
-                  {{ project().teamSize }}
-                </p>
-                <p class="text-gray-300">
-                  <span class="text-gray-400"
-                    >{{ 'dashboard.projectSummary.fields.scope' | translate }}:</span
-                  >
-                  {{ formattedScope() }}
-                </p>
-                <p class="text-gray-300">
-                  <span class="text-gray-400"
-                    >{{ 'dashboard.projectSummary.fields.budget' | translate }}:</span
-                  >
-                  {{ formattedBudget() }}
-                </p>
-                <p class="text-gray-300">
-                  <span class="text-gray-400"
-                    >{{ 'dashboard.projectSummary.fields.target' | translate }}:</span
-                  >
-                  {{ formattedTargets() }}
-                </p>
-              </div>
-            </div>
+  <section class="w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+    
+    <!-- Header -->
+    <div class="space-y-1 pb-4 border-b border-[var(--glass-border)]">
+      <h1 class="text-2xl font-bold text-text-primary">
+        {{ 'dashboard.projectSummary.title' | translate }}
+      </h1>
+      <p class="text-sm text-text-tertiary">
+        Relisez les informations de votre projet et acceptez les conditions légales.
+      </p>
+    </div>
+
+    <!-- 2 Columns Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- Left Column: Project Details (7 cols) -->
+      <div class="lg:col-span-7">
+        <div class="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-6 space-y-5">
+          
+          <div class="flex items-center justify-between pb-3 border-b border-[var(--glass-border-subtle)]">
+            <h2 class="text-sm font-semibold text-text-primary">
+              {{ 'dashboard.projectSummary.sections.projectInfo' | translate }}
+            </h2>
+            <span class="text-xs text-text-tertiary font-medium">
+              {{ formattedProjectType() }}
+            </span>
           </div>
-        </div>
 
-        <!-- {{ 'dashboard.projectSummary.sections.visualIdentity' | translate }} Summary -->
-        <div class="bg-gray-800/50 rounded-xl p-6 mb-8">
-          <h2 class="text-2xl font-bold text-gray-100 mb-4 border-b border-gray-700 pb-2">
-            {{ 'dashboard.projectSummary.sections.visualIdentity' | translate }}
-          </h2>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Logo Preview -->
-            <div class="bg-gray-700/30 p-4 rounded-lg">
-              <h3 class="text-lg font-semibold text-gray-300 mb-4">
-                {{ 'dashboard.projectSummary.subsections.logo' | translate }}
-              </h3>
-              @if (selectedLogoData()) {
-                <div class="flex flex-col items-center justify-center">
-                  <div
-                    class="w-40 h-40 flex items-center justify-center p-4 mb-2 bg-zinc-100 rounded-lg"
-                    [innerHTML]="selectedLogoData()!.svg | safeHtml"
-                  ></div>
-                  <p class="text-gray-300">{{ selectedLogoData()?.name }}</p>
-                </div>
-              }
+          <!-- Project Name & Description -->
+          <div class="space-y-3">
+            <div>
+              <span class="text-xs text-text-tertiary">Nom du projet</span>
+              <h3 class="text-lg font-bold text-text-primary mt-0.5">{{ project().name }}</h3>
             </div>
 
-            <!-- Color Palette Preview -->
-            <div class="bg-gray-700/30 p-4 rounded-lg">
-              <h3 class="text-lg font-semibold text-gray-300 mb-4">
-                {{ 'dashboard.projectSummary.subsections.colorPalette' | translate }}
-              </h3>
-              @if (selectedColorData()) {
-                <div class="space-y-3">
-                  <p class="text-gray-300">{{ selectedColorData()?.name }}</p>
-                  <div class="flex space-x-2">
-                    <div
-                      class="w-10 h-10 rounded-lg"
-                      [style.backgroundColor]="(selectedColorData()?.colors)!.primary"
-                    ></div>
-                    <div
-                      class="w-10 h-10 rounded-lg"
-                      [style.backgroundColor]="(selectedColorData()?.colors)!.secondary"
-                    ></div>
-                    <div
-                      class="w-10 h-10 rounded-lg"
-                      [style.backgroundColor]="(selectedColorData()?.colors)!.accent"
-                    ></div>
-                  </div>
-                </div>
-              }
-            </div>
-
-            <!-- Typography Preview -->
-            <div class="bg-gray-700/30 p-4 rounded-lg">
-              <h3 class="text-lg font-semibold text-gray-300 mb-4">
-                {{ 'dashboard.projectSummary.subsections.typography' | translate }}
-              </h3>
-              @if (selectedTypographyData()) {
-                <div class="space-y-3">
-                  <p class="text-gray-300">{{ selectedTypographyData()?.name }}</p>
-                  <p
-                    [style.fontFamily]="selectedTypographyData()?.primaryFont"
-                    class="text-lg font-bold text-gray-200"
-                  >
-                    {{ selectedTypographyData()?.primaryFont }}
-                  </p>
-                  <p
-                    [style.fontFamily]="selectedTypographyData()?.secondaryFont"
-                    class="text-md text-gray-300"
-                  >
-                    {{ selectedTypographyData()?.secondaryFont }}
-                  </p>
-                </div>
-              }
-            </div>
-          </div>
-        </div>
-
-        <!-- Privacy Policy and Terms -->
-        <div class="bg-gray-800/50 rounded-xl p-6 mb-8">
-          <h2 class="text-2xl font-bold text-gray-100 mb-4 border-b border-gray-700 pb-2">
-            {{ 'dashboard.projectSummary.sections.legal' | translate }}
-          </h2>
-          <div class="space-y-4">
-            <!-- Privacy Policy (Required) -->
-            <div class="flex items-start space-x-3">
-              <input
-                type="checkbox"
-                id="privacyPolicy"
-                [checked]="privacyPolicyAccepted()"
-                (change)="onPrivacyPolicyChange($event)"
-                class="mt-1 accent-blue-500"
-                required
-              />
-              <label for="privacyPolicy" class="text-sm text-gray-300">
-                <span class="text-red-400">*</span>
-                {{ 'dashboard.projectSummary.agreements.iAgreeTo' | translate }}
-                <a
-                  href="{{ landingUrl }}/privacy-policy"
-                  class="text-blue-400 hover:underline"
-                  target="_blank"
-                  >{{ 'dashboard.projectSummary.agreements.privacyPolicy' | translate }}</a
-                >
-              </label>
-            </div>
-
-            <!-- Terms of Service (Required) -->
-            <div class="flex items-start space-x-3">
-              <input
-                type="checkbox"
-                id="termsOfService"
-                [checked]="termsOfServiceAccepted()"
-                (change)="onTermsOfServiceChange($event)"
-                class="mt-1 accent-blue-500"
-                required
-              />
-              <label for="termsOfService" class="text-sm text-gray-300">
-                <span class="text-red-400">*</span>
-                {{ 'dashboard.projectSummary.agreements.iAgreeTo' | translate }}
-                <a
-                  href="{{ landingUrl }}/terms-of-service"
-                  class="text-blue-400 hover:underline"
-                  target="_blank"
-                  >{{ 'dashboard.projectSummary.agreements.termsOfService' | translate }}</a
-                >
-              </label>
-            </div>
-
-            <!-- Beta Policy (Required only in beta) -->
-            @if (isBeta()) {
-              <div class="flex items-start space-x-3">
-                <input
-                  type="checkbox"
-                  id="betaPolicy"
-                  [checked]="betaPolicyAccepted()"
-                  (change)="onBetaPolicyChange($event)"
-                  class="mt-1 accent-yellow-500"
-                  required
-                />
-                <label for="betaPolicy" class="text-sm text-gray-300">
-                  <span class="text-red-400">*</span>
-                  {{ 'dashboard.projectSummary.agreements.iAgreeTo' | translate }}
-                  <a
-                    href="{{ landingUrl }}/beta-policy"
-                    class="text-yellow-400 hover:underline"
-                    target="_blank"
-                    >{{ 'dashboard.projectSummary.agreements.betaTerms' | translate }}</a
-                  >
-                  <span
-                    class="inline-flex items-center px-2 py-1 ml-2 text-xs font-medium bg-yellow-900/30 text-yellow-300 rounded-full"
-                  >
-                    BETA
-                  </span>
-                </label>
+            @if (project().description) {
+              <div class="space-y-1">
+                <span class="text-xs text-text-tertiary">Description</span>
+                <p class="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
+                  {{ project().description }}
+                </p>
               </div>
             }
+          </div>
 
-            <!-- Marketing Consent (Optional) -->
-            <div class="flex items-start space-x-3">
-              <input
-                type="checkbox"
-                id="marketingConsent"
-                [checked]="marketingConsentAccepted()"
-                (change)="onMarketingConsentChange($event)"
-                class="mt-1 accent-green-500"
-              />
-              <label for="marketingConsent" class="text-sm text-gray-300">
-                {{ 'dashboard.projectSummary.agreements.marketing' | translate }}
-                <span class="text-gray-500">({{ 'common.optional' | translate }})</span>
-              </label>
+          <!-- Key Specs -->
+          <div class="grid grid-cols-3 gap-3 pt-2 border-t border-[var(--glass-border-subtle)]">
+            <div>
+              <span class="text-xs text-text-tertiary block">
+                {{ 'dashboard.projectSummary.fields.scope' | translate }}
+              </span>
+              <span class="text-sm font-medium text-text-primary block truncate mt-0.5">{{ formattedScope() }}</span>
             </div>
 
-            <!-- Required fields notice -->
-            <div class="mt-4 p-3 bg-blue-900/20 border border-blue-600/30 rounded-lg">
-              <p class="text-sm text-blue-200">
-                <span class="text-red-400">*</span>
-                {{ 'dashboard.projectSummary.errors.requiredFields' | translate }}
-              </p>
+            <div>
+              <span class="text-xs text-text-tertiary block">
+                {{ 'dashboard.projectSummary.fields.target' | translate }}
+              </span>
+              <span class="text-sm font-medium text-text-primary block truncate mt-0.5">{{ formattedTargets() }}</span>
+            </div>
+
+            <div>
+              <span class="text-xs text-text-tertiary block">
+                Devise
+              </span>
+              <span class="text-sm font-medium text-text-primary block truncate mt-0.5">{{ formattedCurrency() }}</span>
             </div>
           </div>
-          <div class="flex justify-end mt-8">
+
+        </div>
+      </div>
+
+      <!-- Right Column: Legal Agreements (5 cols) -->
+      <div class="lg:col-span-5">
+        <div class="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-6 space-y-5">
+          
+          <div class="pb-3 border-b border-[var(--glass-border-subtle)]">
+            <h2 class="text-sm font-semibold text-text-primary">
+              {{ 'dashboard.projectSummary.sections.legal' | translate }}
+            </h2>
+          </div>
+
+          <!-- Legal Policy Checkboxes -->
+          <div class="space-y-3 text-sm">
+
+            <!-- 1. Privacy Policy -->
+            <label 
+              (click)="togglePrivacyPolicy()"
+              class="flex items-start gap-3 cursor-pointer select-none"
+            >
+              <input
+                type="checkbox"
+                [checked]="privacyPolicyAccepted()"
+                (change)="onPrivacyPolicyChange($event)"
+                (click)="$event.stopPropagation()"
+                class="w-4 h-4 mt-0.5 rounded accent-primary cursor-pointer shrink-0"
+              />
+              <span class="text-text-secondary leading-snug">
+                {{ 'dashboard.projectSummary.agreements.iAgreeTo' | translate }}
+                <a
+                  [href]="landingUrl + '/privacy-policy'"
+                  target="_blank"
+                  rel="noopener"
+                  (click)="$event.stopPropagation()"
+                  class="text-primary font-medium hover:underline"
+                >
+                  {{ 'dashboard.projectSummary.agreements.privacyPolicy' | translate }}
+                </a>
+                <span class="text-danger ml-0.5">*</span>
+              </span>
+            </label>
+
+            <!-- 2. Terms of Service -->
+            <label 
+              (click)="toggleTermsOfService()"
+              class="flex items-start gap-3 cursor-pointer select-none"
+            >
+              <input
+                type="checkbox"
+                [checked]="termsOfServiceAccepted()"
+                (change)="onTermsOfServiceChange($event)"
+                (click)="$event.stopPropagation()"
+                class="w-4 h-4 mt-0.5 rounded accent-primary cursor-pointer shrink-0"
+              />
+              <span class="text-text-secondary leading-snug">
+                {{ 'dashboard.projectSummary.agreements.iAgreeTo' | translate }}
+                <a
+                  [href]="landingUrl + '/terms-of-service'"
+                  target="_blank"
+                  rel="noopener"
+                  (click)="$event.stopPropagation()"
+                  class="text-primary font-medium hover:underline"
+                >
+                  {{ 'dashboard.projectSummary.agreements.termsOfService' | translate }}
+                </a>
+                <span class="text-danger ml-0.5">*</span>
+              </span>
+            </label>
+
+            <!-- 3. Beta Policy (If beta) -->
+            @if (isBeta()) {
+              <label 
+                (click)="toggleBetaPolicy()"
+                class="flex items-start gap-3 cursor-pointer select-none"
+              >
+                <input
+                  type="checkbox"
+                  [checked]="betaPolicyAccepted()"
+                  (change)="onBetaPolicyChange($event)"
+                  (click)="$event.stopPropagation()"
+                  class="w-4 h-4 mt-0.5 rounded accent-primary cursor-pointer shrink-0"
+                />
+                <span class="text-text-secondary leading-snug">
+                  {{ 'dashboard.projectSummary.agreements.iAgreeTo' | translate }}
+                  <a
+                    [href]="landingUrl + '/beta-policy'"
+                    target="_blank"
+                    rel="noopener"
+                    (click)="$event.stopPropagation()"
+                    class="text-primary font-medium hover:underline"
+                  >
+                    {{ 'dashboard.projectSummary.agreements.betaTerms' | translate }}
+                  </a>
+                  <span class="text-danger ml-0.5">*</span>
+                </span>
+              </label>
+            }
+
+            <!-- 4. Marketing Consent (Optional) -->
+            <label 
+              (click)="toggleMarketingConsent()"
+              class="flex items-start gap-3 cursor-pointer select-none"
+            >
+              <input
+                type="checkbox"
+                [checked]="marketingConsentAccepted()"
+                (change)="onMarketingConsentChange($event)"
+                (click)="$event.stopPropagation()"
+                class="w-4 h-4 mt-0.5 rounded accent-primary cursor-pointer shrink-0"
+              />
+              <span class="text-text-secondary leading-snug">
+                {{ 'dashboard.projectSummary.agreements.marketing' | translate }}
+                <span class="text-text-tertiary text-xs">({{ 'common.optional' | translate }})</span>
+              </span>
+            </label>
+
+          </div>
+
+          <p class="text-xs text-text-tertiary pt-1">
+            <span class="text-danger">*</span>
+            {{ 'dashboard.projectSummary.errors.requiredFields' | translate }}
+          </p>
+
+          <!-- Submit CTA -->
+          <div class="pt-2">
             <button
               (click)="submitProject()"
-              [disabled]="!canSubmit()"
-              [class]="
-                canSubmit()
-                  ? 'inner-button text-white'
-                  : 'inner-button text-gray-400 cursor-not-allowed'
-              "
-              class="px-8 py-3 rounded-lg font-semibold transition-all duration-200 min-w-[200px]"
+              [disabled]="!canSubmit() || isSubmitting()"
+              class="w-full inner-button py-2.5 rounded-lg font-medium text-sm transition-all"
+              [class.opacity-40]="!canSubmit()"
+              [class.cursor-not-allowed]="!canSubmit()"
             >
               @if (canSubmit()) {
                 {{ 'dashboard.projectSummary.buttons.create' | translate }}
@@ -268,8 +217,11 @@
               }
             </button>
           </div>
+
         </div>
       </div>
+
     </div>
+
   </section>
 }

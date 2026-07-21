@@ -32,7 +32,7 @@
 
 /* Step content styling */
 .prose {
-  color: #e5e7eb;
+  color: var(--color-text-primary);
 }
 
 .prose h1,
@@ -41,30 +41,32 @@
 .prose h4,
 .prose h5,
 .prose h6 {
-  color: #f9fafb;
+  color: var(--color-text-primary);
 }
 
 .prose strong {
-  color: #f9fafb;
+  color: var(--color-text-primary);
 }
 
 .prose ul,
 .prose ol {
-  color: #d1d5db;
+  color: var(--color-text-secondary);
 }
 
 /* Glass card effect */
 .glass-card {
-  background: rgba(17, 24, 39, 0.8);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(75, 85, 99, 0.3);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur-lg));
+  -webkit-backdrop-filter: blur(var(--glass-blur-lg));
+  border: 1px solid var(--glass-border);
 }
 
 /* Progress header styling */
 .progress-header {
-  background: rgba(17, 24, 39, 0.95);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(75, 85, 99, 0.3);
+  background: var(--glass-bg-intense);
+  backdrop-filter: blur(var(--glass-blur-xl));
+  -webkit-backdrop-filter: blur(var(--glass-blur-xl));
+  border-bottom: 1px solid var(--glass-border);
 }
 
 /* Step cards hover effect */

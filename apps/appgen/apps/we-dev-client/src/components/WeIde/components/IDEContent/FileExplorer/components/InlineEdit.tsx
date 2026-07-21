@@ -37,7 +37,7 @@ export function InlineEdit({ value, onSubmit, onCancel }: InlineEditProps) {
       onChange={(e) => setEditValue(e.target.value)}
       onKeyDown={handleKeyDown}
       onBlur={handleBlur}
-      className="bg-[#3c3c3c] text-white px-1 rounded outline-none border border-[#007acc] w-full"
+      className="bg-white text-gray-900 dark:bg-[#3c3c3c] dark:text-white px-1 rounded outline-none border border-[#007acc] w-full"
       onClick={(e) => e.stopPropagation()}
     />
   );

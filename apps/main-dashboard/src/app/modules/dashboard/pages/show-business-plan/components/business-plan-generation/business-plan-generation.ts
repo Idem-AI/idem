@@ -8,7 +8,7 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
@@ -39,8 +39,11 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
   private readonly generationService = inject(GenerationService);
   private readonly cookieService = inject(CookieService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);
   private readonly destroy$ = new Subject<void>();
+  private isForcingRegeneration = false;
+  private targetSections: string[] = [];
 
   // Outputs
   readonly businessPlanGenerated = output<BusinessPlanModel>();
@@ -82,6 +85,20 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.projectId.set(this.cookieService.get('projectId'));
+    this.isForcingRegeneration = this.route.snapshot.queryParams['force'] === 'true';
+
+    const sectionsParam = this.route.snapshot.queryParams['sections'];
+    this.targetSections =
+      typeof sectionsParam === 'string' && sectionsParam.length > 0
+        ? sectionsParam.split(',').filter(Boolean)
+        : [];
+
+    // Régénération ciblée : les infos additionnelles existent déjà côté projet,
+    // on saute le formulaire et on lance directement la génération.
+    if (this.targetSections.length > 0) {
+      this.showAdditionalInfoForm.set(false);
+      this.generateBusinessPlanWithoutAdditionalInfo();
+    }
   }
 
   ngOnDestroy(): void {
@@ -127,7 +144,12 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
     console.log('Starting business plan generation with SSE (no additional info)...');
 
     // Create SSE connection for business plan generation
-    const sseConnection = this.businessPlanService.createBusinessplanItem(this.projectId()!);
+    const sseConnection = this.businessPlanService.createBusinessplanItem(
+      this.projectId()!,
+      undefined,
+      this.isForcingRegeneration,
+      this.targetSections
+    );
 
     this.startGenerationProcess(sseConnection);
   }
@@ -155,6 +177,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
     const sseConnection = this.businessPlanService.createBusinessplanItem(
       this.projectId()!,
       additionalInfos,
+      this.isForcingRegeneration
     );
 
     // Use the generation service to handle the SSE connection properly

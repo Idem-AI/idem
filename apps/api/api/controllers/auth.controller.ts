@@ -96,6 +96,7 @@ export const sessionLoginController = async (req: Request, res: Response): Promi
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
       path: '/',
+      ...(isProduction && { domain: '.idem.africa' }),
     };
 
     res.cookie('refreshToken', refreshTokenResult.refreshToken, refreshTokenOptions);
@@ -232,9 +233,15 @@ export const logoutController = async (req: CustomRequest, res: Response): Promi
       await refreshTokenService.revokeRefreshToken(userId, refreshToken);
     }
 
+    const isProduction = process.env.NODE_ENV === 'production';
+    const clearOptions: CookieOptions = {
+      path: '/',
+      ...(isProduction && { domain: '.idem.africa' }),
+    };
+
     // Supprimer les cookies
-    res.clearCookie('session');
-    res.clearCookie('refreshToken');
+    res.clearCookie('session', clearOptions);
+    res.clearCookie('refreshToken', clearOptions);
 
     logger.info(`User ${userId} logged out successfully`);
 
@@ -276,9 +283,15 @@ export const logoutAllController = async (req: CustomRequest, res: Response): Pr
     // Révoquer tous les refresh tokens
     await refreshTokenService.revokeAllRefreshTokens(userId);
 
+    const isProduction = process.env.NODE_ENV === 'production';
+    const clearOptions: CookieOptions = {
+      path: '/',
+      ...(isProduction && { domain: '.idem.africa' }),
+    };
+
     // Supprimer les cookies de la session actuelle
-    res.clearCookie('session');
-    res.clearCookie('refreshToken');
+    res.clearCookie('session', clearOptions);
+    res.clearCookie('refreshToken', clearOptions);
 
     logger.info(`User ${userId} logged out from all devices successfully`);
 

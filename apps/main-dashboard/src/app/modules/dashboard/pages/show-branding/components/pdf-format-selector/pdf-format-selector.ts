@@ -11,10 +11,10 @@ export type PdfFormat = 'A4_PORTRAIT' | 'SLIDE_16_9';
   imports: [CommonModule, TranslateModule, ButtonModule],
   template: `
     <div class="glass-card p-6 mb-6 cursor-pointer">
-      <h3 class="text-lg font-semibold text-white mb-4">
+      <h3 class="text-lg font-semibold text-text-primary mb-4">
         {{ 'dashboard.showBranding.formatSelector.title' | translate }}
       </h3>
-      <p class="text-gray-400 text-sm mb-6">
+      <p class="text-text-tertiary text-sm mb-6">
         {{ 'dashboard.showBranding.formatSelector.description' | translate }}
       </p>
 
@@ -25,7 +25,7 @@ export type PdfFormat = 'A4_PORTRAIT' | 'SLIDE_16_9';
           [ngClass]="{
             'border-primary ring-2 ring-primary/30 bg-primary/10':
               selectedFormat() === 'A4_PORTRAIT',
-            'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20':
+            'border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] hover:bg-[var(--glass-bg-light)] hover:border-[var(--glass-border-medium)]':
               selectedFormat() !== 'A4_PORTRAIT',
           }"
           class="relative p-6 rounded-lg border-2 transition-all duration-300 text-left group cursor-pointer"
@@ -33,7 +33,7 @@ export type PdfFormat = 'A4_PORTRAIT' | 'SLIDE_16_9';
           <!-- Icon -->
           <div class="flex items-center justify-center mb-4">
             <svg
-              class="w-16 h-20 text-white/80"
+              class="w-16 h-20 text-text-primary"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -47,11 +47,11 @@ export type PdfFormat = 'A4_PORTRAIT' | 'SLIDE_16_9';
 
           <!-- Title & Description -->
           <div class="text-center">
-            <h4 class="text-white font-semibold mb-2">
+            <h4 class="text-text-primary font-semibold mb-2">
               {{ 'dashboard.showBranding.formatSelector.a4Portrait.title' | translate }}
             </h4>
-            <p class="text-gray-400 text-sm mb-2">210mm × 297mm</p>
-            <p class="text-gray-500 text-xs">
+            <p class="text-text-tertiary text-sm mb-2">210mm × 297mm</p>
+            <p class="text-text-tertiary text-xs">
               {{ 'dashboard.showBranding.formatSelector.a4Portrait.description' | translate }}
             </p>
           </div>
@@ -76,7 +76,7 @@ export type PdfFormat = 'A4_PORTRAIT' | 'SLIDE_16_9';
           [ngClass]="{
             'border-primary ring-2 ring-primary/30 bg-primary/10':
               selectedFormat() === 'SLIDE_16_9',
-            'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20':
+            'border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] hover:bg-[var(--glass-bg-light)] hover:border-[var(--glass-border-medium)]':
               selectedFormat() !== 'SLIDE_16_9',
           }"
           class="relative p-6 rounded-lg border-2 transition-all duration-300 text-left group cursor-pointer"
@@ -84,7 +84,7 @@ export type PdfFormat = 'A4_PORTRAIT' | 'SLIDE_16_9';
           <!-- Icon -->
           <div class="flex items-center justify-center mb-4">
             <svg
-              class="w-20 h-16 text-white/80"
+              class="w-20 h-16 text-text-primary"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -97,11 +97,11 @@ export type PdfFormat = 'A4_PORTRAIT' | 'SLIDE_16_9';
 
           <!-- Title & Description -->
           <div class="text-center">
-            <h4 class="text-white font-semibold mb-2">
+            <h4 class="text-text-primary font-semibold mb-2">
               {{ 'dashboard.showBranding.formatSelector.landscape.title' | translate }}
             </h4>
-            <p class="text-gray-400 text-sm mb-2">297mm × 167mm</p>
-            <p class="text-gray-500 text-xs">
+            <p class="text-text-tertiary text-sm mb-2">297mm × 167mm</p>
+            <p class="text-text-tertiary text-xs">
               {{ 'dashboard.showBranding.formatSelector.landscape.description' | translate }}
             </p>
           </div>
@@ -127,7 +127,7 @@ export type PdfFormat = 'A4_PORTRAIT' | 'SLIDE_16_9';
       <button
         [disabled]="!selectedFormat()"
         (click)="confirmSelection()"
-        class="px-8 py-3 inner-button hover:bg-primary/90 text-white font-semibold rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="px-8 py-3 inner-button hover:bg-primary/90 font-semibold rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <i class="pi pi-play mr-2"></i>
         {{ 'dashboard.showBranding.formatSelector.startGeneration' | translate }}

@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { importLogoController, exportLogoPngController } from '../controllers/logo-import.controller';
+import {
+  importLogoController,
+  exportLogoPngController,
+  analyzeLogoController,
+} from '../controllers/logo-import.controller';
 import { authenticate } from '../services/auth.service';
 
 const router = Router();
@@ -69,6 +73,57 @@ const upload = multer({
  *         description: Internal server error
  */
 router.post('/import', authenticate, upload.single('logo'), importLogoController);
+
+/**
+ * @openapi
+ * /api/logo/analyze:
+ *   post:
+ *     tags:
+ *       - Logo Import
+ *     summary: Analyze an imported logo with a vision model
+ *     description: |
+ *       Runs a multimodal analysis of the logo and returns a structured redesign
+ *       brief (logo type, shapes, colors, weaknesses, improvement brief) used by
+ *       the "improve my logo with AI" flow.
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - svg
+ *             properties:
+ *               svg:
+ *                 type: string
+ *                 description: SVG content of the imported logo
+ *     responses:
+ *       '200':
+ *         description: Analysis result
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 analysis:
+ *                   type: object
+ *                   properties:
+ *                     logoType:
+ *                       type: string
+ *                       enum: [icon, name, initial]
+ *                     improvementBrief:
+ *                       type: string
+ *       '400':
+ *         description: SVG content is required
+ *       '500':
+ *         description: Analysis failed
+ */
+router.post('/analyze', authenticate, analyzeLogoController);
 
 /**
  * @openapi

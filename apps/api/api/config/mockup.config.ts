@@ -1,7 +1,5 @@
-/**
- * Configuration centralisée pour la génération de mockups
- * Modifiez simplement MOCKUP_COUNT pour changer le nombre de mockups générés
- */
+import { AI_CONFIG } from './ai.config';
+
 
 export const MOCKUP_CONFIG = {
   /**
@@ -24,7 +22,7 @@ export const MOCKUP_CONFIG = {
    * Configuration Gemini pour la génération d'images
    */
   GEMINI_CONFIG: {
-    model: 'gemini-3.1-flash-image',
+    model: AI_CONFIG.branding.brandMockup.imageModel,
     responseModalities: ['TEXT', 'IMAGE'] as const,
   },
 

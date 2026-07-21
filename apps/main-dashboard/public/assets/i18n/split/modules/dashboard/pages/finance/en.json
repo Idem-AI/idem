@@ -1,0 +1,90 @@
+{
+  "dashboard": {
+    "finance": {
+      "title": "Financial Forecasts",
+      "subtitle": "Overview of your project's financial health",
+      "loading": "Loading financial data...",
+      "empty": {
+        "title": "Get started with AI",
+        "description": "No financial data yet. Let the AI analyze your project and generate consistent forecasts, then adjust freely.",
+        "cta": "Generate with AI"
+      },
+      "aiFill": {
+        "button": "Fill with AI",
+        "global": "Fill all with AI",
+        "section": "Fill this section with AI",
+        "tooltip": "Suggest a value with AI"
+      },
+      "alerts": {
+        "title": "AI Insights"
+      },
+      "kpi": {
+        "caY1": "Revenue Y1",
+        "resultatNet": "Net Result",
+        "year3": "Year 3",
+        "margeBrute": "Gross Margin",
+        "tresorerieY1": "Closing Cash Y1",
+        "pointMort": "Break-even (days)",
+        "bfr": "Working Capital",
+        "coutTotal": "Total Project Cost",
+        "tri": "IRR",
+        "van": "NPV"
+      },
+      "charts": {
+        "revenue36": "Monthly Revenue (36 months)",
+        "revenue36Sub": "Forecasted progression over 3 years",
+        "chargesMix": "Cost Structure (Y1)",
+        "treasury": "Cash Position (3 years)",
+        "netResult": "Net Result Y1 → Y3",
+        "fixed": "Fixed costs",
+        "variable": "Variable costs",
+        "noData": "No data available"
+      },
+      "sections": {
+        "title": "Financial Sections",
+        "open": "Open",
+        "overview": "Overview",
+        "products": "Products & Pricing",
+        "sales": "Sales Objectives",
+        "revenue": "Revenue Parameters",
+        "charges": "Variable Costs",
+        "fixedCharges": "Fixed Costs & Salaries",
+        "taxes": "Taxes",
+        "investments": "Investments",
+        "amortization": "Amortization",
+        "financing": "Financing",
+        "ratiosParams": "Ratios Parameters",
+        "exploitation": "P&L Statement",
+        "bilan": "Balance Sheet",
+        "cashflow": "Cash Flow",
+        "ratios": "Ratios & KPIs"
+      },
+      "status": {
+        "empty": "Empty",
+        "inProgress": "In progress",
+        "completed": "Completed",
+        "computed": "Computed"
+      },
+      "stub": {
+        "title": "Section coming soon",
+        "description": "This section will be fully editable in the next phase. In the meantime, use AI to pre-fill values that you can adjust later.",
+        "computed": "This section is automatically computed from your inputs."
+      },
+      "errors": {
+        "title": "Unable to load",
+        "noProjectSelected": "Please select a project first.",
+        "failedToLoad": "Failed to load financial data.",
+        "aiFillFailed": "AI auto-fill failed. Please try again."
+      },
+      "pdf": {
+        "download": "Download PDF report"
+      },
+      "bpMissingDialog": {
+        "title": "Business Plan Required",
+        "headline": "Generate Your Business Plan First",
+        "description": "The AI needs your Business Plan to generate consistent and personalized financial forecasts. Please generate your business plan before continuing.",
+        "generateCta": "Create My Business Plan"
+      }
+    }
+  }
+}

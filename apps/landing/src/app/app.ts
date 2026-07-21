@@ -5,6 +5,7 @@ import { SplashScreenComponent } from './components/splash-screen/splash-screen'
 import { filter } from 'rxjs/operators';
 
 import { AnalyticsService } from './shared/services/analytics.service';
+import { ThemeService } from './shared/services/theme.service';
 import { Header } from './components/header/header';
 import { Footer } from './components/footer/footer';
 
@@ -21,15 +22,16 @@ export class App implements OnInit {
   // Force Analytics service initialization
   private readonly analytics = inject(AnalyticsService);
 
+  // Applies the shared `idem_theme` cookie (light/dark/system) and keeps it in
+  // sync across Idem apps (SSR-safe).
+  private readonly themeService = inject(ThemeService);
+
   // Signal pour contrôler l'affichage du splash screen
   protected readonly isInitialLoading = signal(true);
 
   constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
 
   ngOnInit(): void {
-    // Force dark mode only - prevent light mode
-    this.forceDarkMode();
-
     // Masquer le splash screen après le chargement initial
     this.hideInitialSplashScreen();
 
@@ -40,20 +42,6 @@ export class App implements OnInit {
         }, 0);
       }
     });
-  }
-
-  private forceDarkMode(): void {
-    // Only run in browser (not during SSR)
-    if (!isPlatformBrowser(this.platformId)) {
-      return;
-    }
-
-    // Force dark class on html element
-    document.documentElement.classList.add('dark');
-    // Remove light class if it exists
-    document.documentElement.classList.remove('light');
-    // Set color-scheme to dark
-    document.documentElement.style.colorScheme = 'dark';
   }
 
   private hideInitialSplashScreen(): void {

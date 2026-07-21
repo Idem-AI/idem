@@ -7,6 +7,7 @@ import fsExtra from 'fs-extra';
 import path from 'path';
 import { storageService } from './storage.service';
 import { v4 as uuidv4 } from 'uuid';
+import { cacheService } from './cache.service';
 
 class ProjectService {
   private projectRepository: IRepository<ProjectModel>;
@@ -206,6 +207,12 @@ class ProjectService {
       const success = await this.projectRepository.delete(projectId, `users/${userId}/projects`);
       if (success) {
         logger.info(`Project ${projectId} deleted successfully for user ${userId} via repository`);
+        
+        // Invalider le cache du projet dans Redis
+        const projectCacheKey = `project_${userId}_${projectId}`;
+        await cacheService.delete(projectCacheKey, { prefix: 'project' }).catch((err) => {
+          logger.error(`Error invalidating project cache for key ${projectCacheKey}:`, err);
+        });
       } else {
         logger.warn(
           `Project ${projectId} not found for deletion or delete failed for user ${userId} via repository`
@@ -238,6 +245,12 @@ class ProjectService {
       );
       if (updatedProject) {
         logger.info(`Project ${projectId} updated successfully for user ${userId} via repository`);
+        
+        // Invalider le cache du projet dans Redis
+        const projectCacheKey = `project_${userId}_${projectId}`;
+        await cacheService.delete(projectCacheKey, { prefix: 'project' }).catch((err) => {
+          logger.error(`Error invalidating project cache for key ${projectCacheKey}:`, err);
+        });
       } else {
         logger.warn(
           `Project ${projectId} not found for update or update failed for user ${userId} via repository`
@@ -262,6 +275,7 @@ class ProjectService {
       project.teamSize !== undefined ? `${project.teamSize} développeurs` : 'Non spécifiée';
     const scope = project.scope || 'Non spécifié';
     const budgetIntervals = project.budgetIntervals || 'Non spécifiée';
+    const currency = project.currency || 'Non spécifiée';
     const targets = project.targets || 'Non spécifié';
     const type = project.type || 'Non spécifié';
     const description = project.description || 'Non spécifiée';
@@ -275,6 +289,7 @@ class ProjectService {
         - Composition de l'équipe : ${teamSize}
         - Périmètre fonctionnel couvert : ${scope}
         - Fourchette budgétaire prévue : ${budgetIntervals}
+        - Devise du projet (à utiliser pour tous les montants générés) : ${currency}
         - Publics cibles concernés : ${targets}
     `;
     logger.debug(`Generated project description for prompt for project: ${project.id || 'N/A'}`);
@@ -627,7 +642,14 @@ class ProjectService {
     missingElements: string[];
   } {
     const missingElements: string[] = [];
-    const branding = project.analysisResultModel?.branding;
+    const branding = project.analysisResultModel?.branding as any;
+
+    if (branding?.isComplete) {
+      return {
+        isComplete: true,
+        missingElements: [],
+      };
+    }
 
     // Check for logo
     if (!branding?.logo || !branding?.logo?.svg) {
@@ -635,15 +657,14 @@ class ProjectService {
     }
 
     // Check for colors
-    if (!branding?.colors || !branding?.generatedColors || branding.generatedColors.length === 0) {
+    if (!branding?.colors && (!branding?.generatedColors || branding.generatedColors.length === 0)) {
       missingElements.push('colors');
     }
 
     // Check for typography
     if (
-      !branding?.typography ||
-      !branding?.generatedTypography ||
-      branding.generatedTypography.length === 0
+      !branding?.typography &&
+      (!branding?.generatedTypography || branding.generatedTypography.length === 0)
     ) {
       missingElements.push('typography');
     }

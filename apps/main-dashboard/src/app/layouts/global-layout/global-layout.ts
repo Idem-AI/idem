@@ -3,11 +3,12 @@ import { RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { SidebarGlobal } from '../../modules/dashboard/components/sidebar-global/sidebar-global';
 import { LanguageSelectorComponent } from '../../shared/components/language-selector/language-selector';
+import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme-toggle';
 
 @Component({
   selector: 'app-global-layout',
   standalone: true,
-  imports: [RouterOutlet, SidebarGlobal, CommonModule, LanguageSelectorComponent],
+  imports: [RouterOutlet, SidebarGlobal, CommonModule, LanguageSelectorComponent, ThemeToggleComponent],
   templateUrl: './global-layout.html',
   styleUrl: './global-layout.css',
 })

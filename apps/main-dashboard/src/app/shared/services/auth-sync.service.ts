@@ -1,5 +1,5 @@
-import { Injectable, inject } from '@angular/core';
-import { Auth, User } from '@angular/fire/auth';
+import { Injectable, Injector, inject } from '@angular/core';
+import { Auth } from '@angular/fire/auth';
 import { Router } from '@angular/router';
 
 interface AuthSyncData {
@@ -12,10 +12,17 @@ interface AuthSyncData {
   providedIn: 'root',
 })
 export class AuthSyncService {
-  private readonly auth = inject(Auth);
+  // Résolution paresseuse de Firebase Auth : injecter AuthSyncService (fait au
+  // bootstrap par App) ne doit PAS construire Auth de façon anticipée, sous
+  // peine de dépendance circulaire NG0200 sur `Auth`.
+  private readonly injector = inject(Injector);
   private readonly router = inject(Router);
   private readonly STORAGE_KEY = 'idem_auth_sync';
   private readonly SYNC_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+
+  private get auth(): Auth {
+    return this.injector.get(Auth);
+  }
 
   /**
    * Check if user is authenticated via sync from landing page

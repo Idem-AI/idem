@@ -57,7 +57,7 @@ pnpm install
 前端 apps/we-dev-client/.env
 ```shell
 # 服务端地址 必填 例如 http://localhost:3000
-REACT_REACT_APP_BASE_URL=
+REACT_APP_BASE_URL=
 
 # jwt 密钥 选填
 JWT_SECRET=

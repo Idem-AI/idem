@@ -4,10 +4,10 @@
     <div class="text-center space-y-6 max-w-md mx-auto px-6">
       <app-loader></app-loader>
       <div class="space-y-2">
-        <h3 class="text-xl font-semibold text-white">
+        <h3 class="text-xl font-semibold text-text-primary">
           {{ 'dashboard.createProject.loading.title' | translate }}
         </h3>
-        <p class="text-gray-400">
+        <p class="text-text-tertiary">
           {{ 'dashboard.createProject.loading.subtitle' | translate }}
         </p>
       </div>
@@ -15,17 +15,22 @@
   </div>
 } @else {
   <!-- Main Content -->
-  <div class="w-full min-h-screen">
+  <div
+    class="w-full"
+    [class.min-h-screen]="!isChatConversation()"
+    [class.h-screen]="isChatConversation()"
+    [class.overflow-hidden]="isChatConversation()"
+  >
     <!-- AppGen Handoff Banner -->
     @if (fromAppGen()) {
       <div
-        class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3 bg-gradient-to-r from-blue-900/90 to-purple-900/90 backdrop-blur border-b border-blue-700/50"
+        class="fixed-handoff-banner flex items-center justify-between px-6 py-3 bg-gradient-to-r from-blue-900/90 to-purple-900/90 backdrop-blur border-b border-blue-700/50"
       >
         <div class="flex items-center gap-3">
           <div
             class="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0"
           >
-            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -35,13 +40,13 @@
             </svg>
           </div>
           <div>
-            <p class="text-sm font-semibold text-white">Importé depuis AppGen</p>
+            <p class="text-sm font-semibold text-text-primary">Importé depuis AppGen</p>
             <p class="text-xs text-blue-300">Votre génération a été pré-remplie ci-dessous</p>
           </div>
         </div>
         <a
           href="javascript:history.back()"
-          class="text-xs text-blue-300 hover:text-white flex items-center gap-1 transition-colors"
+          class="text-xs text-blue-300 hover:text-text-primary flex items-center gap-1 transition-colors"
         >
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -56,36 +61,113 @@
       </div>
     }
 
+    <!-- Mode toggle (masqué sur la page de synthèse / validation des politiques) -->
+    @if (!isSummaryPage()) {
+      <div
+        class="fixed-toggle-container"
+        [class.toggle-with-banner]="fromAppGen()"
+        [class.toggle-standard]="!fromAppGen()"
+      >
+        <div
+          class="flex items-center p-1 rounded-xl bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] text-xs font-medium backdrop-blur"
+          role="group"
+          [attr.aria-label]="'dashboard.createProject.modeLabel' | translate"
+        >
+          <button
+            type="button"
+            (click)="setMode('chat')"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
+            [class.bg-primary]="mode() === 'chat'"
+            [class.text-white]="mode() === 'chat'"
+            [class.shadow-lg]="mode() === 'chat'"
+            [class.text-text-tertiary]="mode() !== 'chat'"
+            [class.hover:text-text-primary]="mode() !== 'chat'"
+          >
+            <i class="pi pi-comments text-[11px]"></i>
+            <span>{{ 'dashboard.createProject.modeChat' | translate }}</span>
+          </button>
+          <button
+            type="button"
+            (click)="setMode('form')"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
+            [class.bg-primary]="mode() === 'form'"
+            [class.text-white]="mode() === 'form'"
+            [class.shadow-lg]="mode() === 'form'"
+            [class.text-text-tertiary]="mode() !== 'form'"
+            [class.hover:text-text-primary]="mode() !== 'form'"
+          >
+            <i class="pi pi-list text-[11px]"></i>
+            <span>{{ 'dashboard.createProject.modeForm' | translate }}</span>
+          </button>
+        </div>
+      </div>
+    }
+
+    @if (mode() === 'chat') {
+      <!-- ═══ MODE CONVERSATION ═══ -->
+      @if (currentStepIndex() === 0) {
+        <div
+          class="w-full content-wrapper pb-36"
+          [class.content-with-banner]="fromAppGen()"
+          [class.content-standard]="!fromAppGen()"
+        >
+          <app-project-description
+            [project]="project()"
+            [isImprovingPrompt]="isImprovingPrompt()"
+            [isGeneratingLucky]="isGeneratingLucky()"
+            (nextStep)="goToNextStep()"
+            (projectUpdate)="onProjectUpdate($event)"
+            (improvePromptRequest)="onImprovePromptRequested()"
+            (feelingLuckyRequest)="onFeelingLuckyRequested()"
+          ></app-project-description>
+        </div>
+      } @else {
+        <!-- Viewport à hauteur fixe : seul le fil de messages défile -->
+        <div
+          class="w-full"
+          [class.chat-viewport-banner]="fromAppGen()"
+          [class.chat-viewport-standard]="!fromAppGen()"
+        >
+          <app-onboarding-chat
+            [foundations]="conversationFoundations()"
+            [showFormSwitch]="!isSummaryPage()"
+            (created)="onConversationCreated($event)"
+            (switchToForm)="setMode('form')"
+            (projectUpdate)="onProjectUpdate($event)"
+            (recapPhaseActive)="isChatRecapActive.set($event)"
+          ></app-onboarding-chat>
+        </div>
+      }
+    } @else {
+    <!-- ═══ MODE FORMULAIRE CLASSIQUE ═══ -->
     <!-- Content Area -->
-    <div [class]="fromAppGen() ? 'pt-36 pb-24' : 'pt-24 pb-24'">
+    <div
+      class="w-full max-w-4xl mx-auto pb-36 content-wrapper"
+      [class.content-with-banner]="fromAppGen()"
+      [class.content-standard]="!fromAppGen()"
+    >
       <!-- Step Content -->
       @if (isStepActive(0)) {
         <app-project-description
           [project]="project()"
+          [isImprovingPrompt]="isImprovingPrompt()"
+          [isGeneratingLucky]="isGeneratingLucky()"
           (nextStep)="goToNextStep()"
           (projectUpdate)="onProjectUpdate($event)"
+          (improvePromptRequest)="onImprovePromptRequested()"
+          (feelingLuckyRequest)="onFeelingLuckyRequested()"
         ></app-project-description>
       }
       @if (isStepActive(1)) {
-        <app-project-details
+        <app-dynamic-details-form
           [project]="project()"
           [groupedProjectTypes]="projectTypes"
-          [groupedTargets]="targets"
-          [groupedScopes]="scopes"
-          (nextStep)="goToNextStep()"
-          (previousStep)="goToPreviousStep()"
           (projectUpdate)="onProjectUpdate($event)"
-        ></app-project-details>
+        ></app-dynamic-details-form>
       }
       @if (isStepActive(2)) {
         <app-project-summary
           [project]="project()"
-          [selectedLogo]="''"
-          [selectedColor]="''"
-          [selectedTypography]="''"
-          [logos]="[]"
-          [colorPalettes]="[]"
-          [typographyOptions]="[]"
           [privacyPolicyAccepted]="acceptances().privacy"
           [termsOfServiceAccepted]="acceptances().terms"
           [betaPolicyAccepted]="acceptances().beta"
@@ -101,16 +183,16 @@
     </div>
 
     <!-- Navigation Controls -->
-    @if (currentStepIndex() !== 0) {
+    @if (currentStepIndex() !== 0 && mode() !== 'chat') {
       <div
-        class="fixed bottom-0 left-0 right-0 z-40 bg-gray-900/80 backdrop-blur-sm border-t border-gray-700"
+        class="fixed bottom-0 left-0 right-0 z-40 bg-[var(--glass-bg-darker)] backdrop-blur-sm border-t border-[var(--glass-border)]"
       >
         <div class="max-w-4xl mx-auto px-4 py-4">
           <div class="flex justify-between items-center">
             <button
               (click)="goToPreviousStep()"
               [disabled]="!canGoPrevious()"
-              class="flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800 border border-gray-600 rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              class="flex items-center px-4 py-2 text-sm font-medium text-text-secondary bg-[var(--color-surface-2)] border border-[var(--glass-border-medium)] rounded-lg hover:bg-[var(--glass-bg-light)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -128,7 +210,7 @@
                 <div
                   class="w-2 h-2 rounded-full transition-colors"
                   [class.bg-primary]="i <= currentStepIndex()"
-                  [class.bg-gray-600]="i > currentStepIndex()"
+                  [class.bg-surface-3]="i > currentStepIndex()"
                 ></div>
               }
             </div>
@@ -137,7 +219,7 @@
               <button
                 (click)="goToNextStep()"
                 [disabled]="!canGoNext()"
-                class="flex items-center px-4 py-2 text-sm font-medium text-white inner-button rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                class="flex items-center px-4 py-2 text-sm font-medium inner-button rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {{ 'common.next' | translate }}
                 <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -154,5 +236,39 @@
         </div>
       </div>
     }
+    }
   </div>
 }
+
+<!-- Authentication Modal -->
+<p-dialog
+  [(visible)]="showLoginModal"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="w-full max-w-md auth-dialog"
+  [header]="'dashboard.colorSelection.auth.header' | translate"
+  (onHide)="closeLoginModal()"
+>
+  <div class="text-center mb-6">
+    <div class="inline-flex items-center justify-center w-16 h-16 bg-primary/20 rounded-full mb-4">
+      <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+        ></path>
+      </svg>
+    </div>
+    <h3 class="text-xl font-semibold text-text-primary mb-2">
+      {{ 'dashboard.colorSelection.auth.title' | translate }}
+    </h3>
+    <p class="text-text-tertiary text-sm">
+      {{ 'dashboard.colorSelection.auth.message' | translate }}
+    </p>
+  </div>
+
+  <app-login-card (loginSuccess)="onLoginSuccess()"></app-login-card>
+</p-dialog>

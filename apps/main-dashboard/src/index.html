@@ -1,24 +1,36 @@
 <!doctype html>
-<html lang="en" class="dark" style="color-scheme: dark; background-color: #0f141b; color: #ffffff;">
+<html lang="en" class="dark">
   <head>
     <meta charset="utf-8" />
     <title>MainDashboard</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="light dark" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <script>
-      // Force dark mode immediately to prevent any flash
-      (function() {
-        document.documentElement.classList.add('dark');
-        document.documentElement.classList.remove('light');
-        document.documentElement.style.colorScheme = 'dark';
-        document.documentElement.style.backgroundColor = '#0f141b';
-        document.documentElement.style.color = '#ffffff';
+      // No-flash theme boot: apply the shared `idem_theme` cookie (or the browser
+      // preference) before first paint. Keep in sync with theme-cookie.ts.
+      (function () {
+        try {
+          var m = document.cookie.match(/(?:^|;\s*)idem_theme=([^;]+)/);
+          var pref = m ? decodeURIComponent(m[1]) : null;
+          if (pref !== 'light' && pref !== 'dark' && pref !== 'system') pref = 'system';
+          var dark =
+            pref === 'dark' ||
+            (pref === 'system' &&
+              window.matchMedia &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var el = document.documentElement;
+          el.classList.toggle('dark', dark);
+          el.classList.toggle('light', !dark);
+          el.style.colorScheme = dark ? 'dark' : 'light';
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
       })();
     </script>
   </head>
-  <body style="background-color: #0f141b; color: #ffffff;">
+  <body>
     <app-root></app-root>
   </body>
 </html>

@@ -1,25 +1,25 @@
 import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
 
 export const SLIDE_SOLUTION_PROMPT = `
-You are designing the SOLUTION slide.
+<role>Pitch deck designer</role>
+<objective>Design the SOLUTION slide. Present value proposition and 3 core capabilities.</objective>
 
-GOAL:
-Show — in one glance — what the company does and why it is the right answer to the stated problem.
-
-MANDATORY CONTENT:
+<mandatory_content>
 - Slide number "02 / 10" top-right
-- Headline: what the product is (max 6 words)
-- One-line value proposition
-- 3 key capabilities / pillars (short label + one-line description each)
-- Optional: a small "how it works" strip (3 numbered steps, compact)
+- Headline describing what the product is (max 6 words)
+- 1-line value proposition
+- 3 key capabilities (short label + 1-line description each)
+- Optional: Compact "how it works" strip (3 quick steps) at the bottom
+- Max word count: 80 words
+</mandatory_content>
 
-LAYOUT:
-- Left side: headline + value proposition
-- Right side: 3 capability cards in a compact column (use thin borders, no heavy shadows)
-- Or: 2/3 for capabilities, 1/3 for the how-it-works strip at the bottom
-- Keep total word count under ~80 words
+<layout>
+- Left: Headline + Value proposition
+- Right: 3 capability cards in a compact column (thin borders, no heavy shadows)
+- Or: 2/3 width for capabilities, 1/3 width for "how it works" strip at the bottom
+</layout>
 
 ${PITCH_DECK_SHARED_RULES}
 
-PROJECT CONTEXT:
+<project_context>
 `;

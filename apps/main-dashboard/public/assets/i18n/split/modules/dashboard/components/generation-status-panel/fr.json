@@ -1,0 +1,48 @@
+{
+  "dashboard": {
+    "generationPanel": {
+      "incompleteTitle": "Génération incomplète",
+      "incompleteSubtitle": "{{completed}} section(s) sur {{total}} ont été générées. La génération a probablement été interrompue : complétez-la pour obtenir un document complet.",
+      "completeTitle": "Document complet — toutes les sections ont été générées",
+      "status": {
+        "complete": "Générée",
+        "missing": "Manquante",
+        "empty": "Incomplète"
+      },
+      "actions": {
+        "resume": "Compléter la génération",
+        "regenerateAll": "Tout régénérer de zéro",
+        "regenerateSection": "Régénérer",
+        "regenerateSectionAria": "Régénérer la section {{section}}",
+        "showSections": "Régénérer une section",
+        "hideSections": "Masquer les sections"
+      },
+      "sections": {
+        "businessPlan": {
+          "Cover Page": "Page de couverture",
+          "Company Summary": "Présentation de l'entreprise",
+          "Opportunity": "Opportunité",
+          "Target Audience": "Audience cible",
+          "Products & Services": "Produits et services",
+          "Marketing & Sales": "Marketing et ventes",
+          "Financial Plan": "Plan financier",
+          "Goal Planning": "Planification des objectifs",
+          "Appendix": "Annexes"
+        },
+        "branding": {
+          "Brand Header": "En-tête de marque",
+          "Logo Principal": "Logo principal",
+          "Logo Variation Fond Clair": "Logo — fond clair",
+          "Logo Variation Fond Sombre": "Logo — fond sombre",
+          "Logo Variation Monochrome": "Logo — monochrome",
+          "Logo Bonnes Pratiques": "Bonnes pratiques du logo",
+          "Color Palette": "Palette de couleurs",
+          "Typography": "Typographie",
+          "Brand Mockup 1": "Mockup 1",
+          "Brand Mockup 2": "Mockup 2",
+          "Brand Mockup 3": "Mockup 3"
+        }
+      }
+    }
+  }
+}

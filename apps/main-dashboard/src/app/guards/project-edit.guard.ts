@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
 import { ProjectPermissionsService } from '@idem/shared-auth-client';
-import { AuthClientService } from '../services/auth-client.service';
+import { AuthClientService } from '../shared/services/auth-client.service';
 
 export const projectEditGuard: CanActivateFn = async (route) => {
   const permissionsService = inject(ProjectPermissionsService);
