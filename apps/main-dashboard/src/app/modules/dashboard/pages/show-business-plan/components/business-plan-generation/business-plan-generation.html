@@ -83,35 +83,37 @@
         </div>
 
         <div class="flex flex-col md:flex-row items-center space-x-6">
-          <!-- Progress Stats -->
-          <div class="text-right">
-            <div class="text-2xl font-bold text-text-primary">
-              {{ generationState().completedSteps.length }}/{{ generationState().totalSteps }}
-            </div>
-            <div class="text-sm text-text-secondary">
-              {{ 'dashboard.businessPlanGeneration.stepsCompleted' | translate }}
-            </div>
-            @if (generationState().completedSteps.length > 0) {
-              <div class="text-xs text-green-400 mt-1">
-                {{ 'dashboard.businessPlanGeneration.lastStep' | translate }}:
-                {{ generationState().completedSteps[generationState().completedSteps.length - 1] }}
+          @if (!showConsole()) {
+            <!-- Progress Stats -->
+            <div class="text-right">
+              <div class="text-2xl font-bold text-text-primary">
+                {{ generationState().completedSteps.length }}/{{ generationState().totalSteps }}
               </div>
-            }
-          </div>
+              <div class="text-sm text-text-secondary">
+                {{ 'dashboard.businessPlanGeneration.stepsCompleted' | translate }}
+              </div>
+              @if (generationState().completedSteps.length > 0) {
+                <div class="text-xs text-green-400 mt-1">
+                  {{ 'dashboard.businessPlanGeneration.lastStep' | translate }}:
+                  {{ generationState().completedSteps[generationState().completedSteps.length - 1] }}
+                </div>
+              }
+            </div>
 
-          <!-- Progress Bar -->
-          <div class="w-32">
-            <div class="flex justify-between text-xs text-text-secondary mb-1">
-              <span>{{ 'dashboard.businessPlanGeneration.progress' | translate }}</span>
-              <span>{{ progressPercentage() }}%</span>
+            <!-- Progress Bar -->
+            <div class="w-32">
+              <div class="flex justify-between text-xs text-text-secondary mb-1">
+                <span>{{ 'dashboard.businessPlanGeneration.progress' | translate }}</span>
+                <span>{{ progressPercentage() }}%</span>
+              </div>
+              <div class="w-full bg-[var(--color-surface-3)] rounded-full h-2">
+                <div
+                  class="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300"
+                  [style.width.%]="progressPercentage()"
+                ></div>
+              </div>
             </div>
-            <div class="w-full bg-[var(--color-surface-3)] rounded-full h-2">
-              <div
-                class="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300"
-                [style.width.%]="progressPercentage()"
-              ></div>
-            </div>
-          </div>
+          }
 
           <!-- Cancel Button - Only show during generation, not post-processing -->
           @if (!isPostProcessing()) {
@@ -130,6 +132,14 @@
   <!-- Main Content with Top Padding -->
   <div class="pt-32 min-h-screen">
     <div class="max-w-7xl mx-auto px-6 space-y-8">
+      <!-- Salle de contrôle de l'équipe d'agents de recherche (temps réel) -->
+      @if (showConsole()) {
+        <app-agent-research-console
+          [state]="researchState()!"
+          [live]="isGenerating()"
+        ></app-agent-research-console>
+      }
+
       <!-- Post Processing Section -->
       @if (isPostProcessing()) {
         <div class="space-y-4">

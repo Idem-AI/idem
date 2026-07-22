@@ -1,0 +1,58 @@
+{
+  "dashboard": {
+    "researchConsole": {
+      "title": "Équipe de recherche IA",
+      "subtitle": "Vos agents collectent des données réelles et sourcées, en direct",
+      "dialogTitle": "Génération sourcée par l'équipe d'agents",
+      "viewResults": "Voir mes prévisions",
+      "countersLabel": "Statistiques de la recherche",
+      "counters": {
+        "agents": "agents actifs",
+        "queries": "recherches",
+        "sources": "sources",
+        "sections": "sections"
+      },
+      "team": {
+        "title": "Équipe",
+        "empty": "En attente du démarrage des agents…"
+      },
+      "feed": {
+        "title": "Activité en direct",
+        "empty": "Aucune activité pour le moment"
+      },
+      "roles": {
+        "orchestrator": "Orchestrateur",
+        "researcher": "Chercheur",
+        "writer": "Rédacteur",
+        "verifier": "Vérificateur"
+      },
+      "agentStatus": {
+        "queued": "En attente",
+        "planning": "Planification",
+        "searching": "Recherche web",
+        "reading": "Lecture",
+        "writing": "Rédaction",
+        "verifying": "Vérification",
+        "done": "Terminé",
+        "error": "Erreur"
+      },
+      "kinds": {
+        "agent_status": "Statut",
+        "search_query": "Recherche",
+        "source_found": "Source",
+        "finding": "Donnée",
+        "section_drafted": "Rédigé",
+        "verification": "Vérification",
+        "note": "Note"
+      },
+      "sources": {
+        "title": "Sources citées"
+      },
+      "sections": {
+        "title": "Vérification par section",
+        "cited": "cité(s)",
+        "uncited": "non sourcé(s)"
+      }
+    }
+  }
+}

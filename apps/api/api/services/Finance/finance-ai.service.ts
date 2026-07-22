@@ -29,6 +29,8 @@ import {
   FINANCE_CHAT_INTENT_PROMPT,
   FINANCE_SECTION_PROMPTS,
 } from './prompts/finance-autofill.prompt';
+import { SectionSource } from '../../models/section.model';
+import { DeliverableSection } from '../research/research.types';
 
 export type FinanceSectionKey =
   | 'products'
@@ -43,6 +45,8 @@ export type FinanceSectionKey =
 export interface FinanceAutoFillResult {
   finance: FinanceModel;
   suggestionsAdded: AISuggestion[];
+  /** Sources web réelles ayant servi de benchmark (mode sourcé). */
+  sources?: SectionSource[];
 }
 
 export interface FinanceChatIntent {
@@ -120,14 +124,32 @@ export class FinanceAIService {
     return { finance: final, suggestionsAdded };
   }
 
-  /** Auto-fill GLOBAL — remplit toutes les sections cohérentes ensemble. */
-  async autoFillAll(userId: string, projectId: string): Promise<FinanceAutoFillResult> {
-    logger.info(`FinanceAI.autoFillAll userId=${userId} projectId=${projectId}`);
+  /**
+   * Auto-fill GLOBAL — remplit toutes les sections cohérentes ensemble.
+   *
+   * @param groundedContext Digest de recherche marché sourcé (optionnel). Quand
+   *   fourni, les hypothèses chiffrées sont calées sur ces benchmarks réels.
+   * @param marketSources Sources réelles associées, rattachées aux suggestions.
+   */
+  async autoFillAll(
+    userId: string,
+    projectId: string,
+    groundedContext?: string,
+    marketSources?: SectionSource[]
+  ): Promise<FinanceAutoFillResult> {
+    logger.info(
+      `FinanceAI.autoFillAll userId=${userId} projectId=${projectId} grounded=${!!groundedContext}`
+    );
     const project = await this.loadProject(userId, projectId);
     const currentFinance =
       (await financeService.getFinance(userId, projectId)) || createEmptyFinanceModel(projectId);
 
-    const messages = this.buildMessages(project, currentFinance, FINANCE_AUTOFILL_GLOBAL_PROMPT);
+    const messages = this.buildMessages(
+      project,
+      currentFinance,
+      FINANCE_AUTOFILL_GLOBAL_PROMPT,
+      groundedContext
+    );
     const raw = await this.promptService.runPrompt({ ...DEFAULT_PROMPT_CONFIG, userId }, messages);
     const parsed = this.parseJSON(raw);
 
@@ -156,6 +178,14 @@ export class FinanceAIService {
     }
 
     const suggestionsAdded = this.extractSuggestions(parsed);
+    // Mode sourcé: on rattache les sources réelles et on les cite dans la justification.
+    if (marketSources && marketSources.length > 0 && suggestionsAdded.length > 0) {
+      const citation = marketSources.map((s) => `[${s.id}] ${s.url}`).join(' · ');
+      for (const suggestion of suggestionsAdded) {
+        suggestion.sources = marketSources;
+        suggestion.justification = `${suggestion.justification} — Sources: ${citation}`.trim();
+      }
+    }
     if (suggestionsAdded.length > 0) {
       incoming.meta = {
         ...(currentFinance.meta || {}),
@@ -166,7 +196,56 @@ export class FinanceAIService {
 
     const updated = await financeService.replaceFinance(userId, projectId, incoming);
     if (!updated) throw new Error('Failed to persist global finance auto-fill');
-    return { finance: updated, suggestionsAdded };
+    return { finance: updated, suggestionsAdded, sources: marketSources };
+  }
+
+  /**
+   * Spécifie les axes de recherche marché sourcés pour caler les prévisions
+   * financières (prix, coûts, fiscalité, croissance). Consommé par l'équipe
+   * d'agents avant l'auto-fill.
+   */
+  buildMarketResearchSpec(project: ProjectModel): DeliverableSection[] {
+    const country = project.additionalInfos?.country || '';
+    const geo = country ? ` (zone: ${country})` : '';
+    const ctx = `${project.name || ''} — ${project.description || ''}`.slice(0, 300);
+    return [
+      {
+        name: 'Prix de marché',
+        instructions:
+          'Synthèse des fourchettes de prix de vente constatées pour ce type de produit/service, avec année et zone.',
+        needsResearch: true,
+        researchBriefs: [
+          `Prix de vente pratiqués et fourchettes tarifaires pour ce type d'offre${geo}. Contexte: ${ctx}`,
+        ],
+      },
+      {
+        name: 'Structure de coûts',
+        instructions:
+          'Synthèse des postes de coûts et marges de référence du secteur (coûts unitaires, charges variables/fixes).',
+        needsResearch: true,
+        researchBriefs: [
+          `Structure de coûts, coûts unitaires et marges brutes de référence du secteur${geo}. Contexte: ${ctx}`,
+        ],
+      },
+      {
+        name: 'Fiscalité & charges sociales',
+        instructions:
+          "Synthèse des taux d'imposition sur les sociétés, TVA et taux de charges sociales applicables.",
+        needsResearch: true,
+        researchBriefs: [
+          `Taux d'impôt sur les sociétés, TVA et charges sociales en vigueur${geo}`,
+        ],
+      },
+      {
+        name: 'Croissance & adoption',
+        instructions:
+          "Synthèse des taux de croissance du marché et rythmes d'adoption observés.",
+        needsResearch: true,
+        researchBriefs: [
+          `Taux de croissance annuel du marché et rythme d'adoption pour ce secteur${geo}. Contexte: ${ctx}`,
+        ],
+      },
+    ];
   }
 
   /** Parse une intention finance à partir d'un message utilisateur. */
@@ -351,8 +430,9 @@ export class FinanceAIService {
     project: ProjectModel,
     currentFinance: FinanceModel,
     instructionPrompt: string,
+    groundedContext?: string,
   ): AIChatMessage[] {
-    return [
+    const messages: AIChatMessage[] = [
       { role: 'system', content: FINANCE_AUTOFILL_SYSTEM_PROMPT },
       {
         role: 'system',
@@ -366,8 +446,18 @@ export class FinanceAIService {
         role: 'system',
         content: `ÉTAT FINANCE ACTUEL:\n${this.summarizeFinanceForContext(currentFinance)}`,
       },
-      { role: 'user', content: instructionPrompt },
     ];
+    if (groundedContext && groundedContext.trim()) {
+      messages.push({
+        role: 'system',
+        content:
+          'BENCHMARKS DE MARCHÉ SOURCÉS (données réelles issues du web — cale tes hypothèses dessus, ' +
+          "n'invente aucun chiffre au-delà de ce qui est cohérent avec ces références):\n" +
+          groundedContext,
+      });
+    }
+    messages.push({ role: 'user', content: instructionPrompt });
+    return messages;
   }
 
   private summarizeProjectForContext(project: ProjectModel): string {

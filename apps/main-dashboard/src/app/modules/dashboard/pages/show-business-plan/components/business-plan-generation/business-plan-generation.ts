@@ -23,13 +23,20 @@ import {
 import { BusinessPlanModel } from '../../../../models/businessPlan.model';
 import { ProjectModel } from '@idem/shared-models';
 import { AdditionalInfoFormComponent } from '../additional-info-form/additional-info-form';
+import { AgentResearchConsoleComponent } from '../../../../../../shared/components/agent-research-console/agent-research-console';
 import { environment } from '../../../../../../../environments/environment';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-business-plan-generation',
   standalone: true,
-  imports: [DatePipe, SkeletonModule, AdditionalInfoFormComponent, TranslateModule],
+  imports: [
+    DatePipe,
+    SkeletonModule,
+    AdditionalInfoFormComponent,
+    AgentResearchConsoleComponent,
+    TranslateModule,
+  ],
   templateUrl: './business-plan-generation.html',
   styleUrl: './business-plan-generation.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -82,6 +89,15 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
   protected readonly progressPercentage = computed(() =>
     this.generationService.calculateProgress(this.generationState()),
   );
+
+  // Salle de contrôle de l'équipe d'agents (mode recherche sourcée).
+  protected readonly researchState = computed(
+    () => this.generationState().research ?? null,
+  );
+  protected readonly showConsole = computed(() => {
+    const r = this.researchState();
+    return !!r && (r.active || r.activities.length > 0 || r.agents.length > 0);
+  });
 
   ngOnInit(): void {
     this.projectId.set(this.cookieService.get('projectId'));
@@ -200,8 +216,12 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
 
           this.generationState.set(state);
 
-          // Check if generation is completed
-          if (state.completed && state.steps.length > 0) {
+          // Fin de génération: en mode "équipe de recherche", les étapes ne
+          // transitent pas par les événements 'completed' (les sections sont
+          // diffusées via 'section_completed'), donc on ne conditionne pas la
+          // finalisation à state.steps. Le garde isPostProcessing évite un
+          // double déclenchement sur les émissions suivantes.
+          if (state.completed && !this.isPostProcessing()) {
             this.emitBusinessPlanData(state.steps);
             this.handleGenerationComplete(state);
           }
@@ -237,8 +257,12 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
           console.log('Business plan generation state updated:', state);
           this.generationState.set(state);
 
-          // Check if generation is completed
-          if (state.completed && state.steps.length > 0) {
+          // Fin de génération: en mode "équipe de recherche", les étapes ne
+          // transitent pas par les événements 'completed' (les sections sont
+          // diffusées via 'section_completed'), donc on ne conditionne pas la
+          // finalisation à state.steps. Le garde isPostProcessing évite un
+          // double déclenchement sur les émissions suivantes.
+          if (state.completed && !this.isPostProcessing()) {
             this.emitBusinessPlanData(state.steps);
             this.handleGenerationComplete(state);
           }

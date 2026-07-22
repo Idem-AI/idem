@@ -6,6 +6,7 @@ import {
   FunctionDeclaration,
   FunctionCallingConfigMode,
   Part,
+  GroundingMetadata,
 } from '@google/genai';
 import dotenv from 'dotenv';
 import * as fs from 'fs-extra';
@@ -66,6 +67,33 @@ export interface PromptRequest {
 export interface AIResponse {
   content: string;
   summary: string;
+}
+
+/** Une source brute issue des groundingMetadata Gemini (URL toujours réelle). */
+export interface GroundedSourceRaw {
+  /** Index dans groundingChunks — sert d'ancre pour les supports. */
+  index: number;
+  title: string;
+  url: string;
+  domain?: string;
+}
+
+/** Segment de texte appuyé par une ou plusieurs sources (citation inline). */
+export interface GroundedSupport {
+  text: string;
+  sourceIndexes: number[];
+}
+
+/** Résultat d'un appel fondé (grounding Google Search). */
+export interface GroundedResult {
+  /** Texte produit par le modèle, appuyé sur les résultats de recherche. */
+  text: string;
+  /** Requêtes réellement exécutées par le moteur de recherche. */
+  queries: string[];
+  /** Sources réelles retournées par le grounding. */
+  sources: GroundedSourceRaw[];
+  /** Association segments de texte → sources (pour matérialiser les citations). */
+  supports: GroundedSupport[];
 }
 
 export class PromptService {
@@ -749,6 +777,147 @@ export class PromptService {
     }
 
     return finalText;
+  }
+
+  /**
+   * Appel FONDÉ (grounded) via le Google Search de Gemini: le modèle interroge
+   * le web et renvoie une réponse appuyée sur de vraies sources. On extrait des
+   * `groundingMetadata` les URLs réelles, les requêtes exécutées et la carte
+   * segments→sources. C'est le socle anti-invention: aucune donnée n'est acceptée
+   * si elle ne provient pas de ces résultats.
+   *
+   * Note: l'outil googleSearch est incompatible avec le function-calling dans un
+   * même appel — cette méthode ne fait donc PAS d'outils applicatifs. La phase de
+   * rédaction/vérification se fait via runPrompt à partir des sources collectées.
+   */
+  public async runGroundedResearch(
+    request: PromptConfig,
+    messages: AIChatMessage[]
+  ): Promise<GroundedResult> {
+    const { modelName, llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
+
+    if (!messages || messages.length === 0) {
+      throw new Error('Messages array cannot be empty.');
+    }
+
+    if (userId && !skipQuotaCheck) {
+      const quotaCheck = await userService.checkQuota(userId);
+      if (!quotaCheck.allowed) {
+        logger.warn(`Quota exceeded for user ${userId}: ${quotaCheck.message}`);
+        throw new Error(quotaCheck.message || 'Quota exceeded');
+      }
+    }
+
+    const effectiveLanguage = language ?? getRequestLanguage();
+    const languageDirective = this.buildLanguageDirective(effectiveLanguage);
+
+    const systemParts = messages.filter((m) => m.role === 'system').map((m) => m.content);
+    if (languageDirective) {
+      systemParts.push(languageDirective);
+    }
+    const conversation = messages.filter((m) => m.role !== 'system');
+    const contents: Content[] = conversation.map((msg) => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }],
+    }));
+
+    const generationParams = {
+      ...(llmOptions.maxOutputTokens && { maxOutputTokens: llmOptions.maxOutputTokens }),
+      ...(llmOptions.temperature !== undefined && { temperature: llmOptions.temperature }),
+      ...(llmOptions.topP && { topP: llmOptions.topP }),
+    };
+
+    const config = {
+      ...generationParams,
+      ...(systemParts.length > 0 && { systemInstruction: systemParts.join('\n\n') }),
+      // Grounding natif Google Search — renvoie de vraies sources.
+      tools: [{ googleSearch: {} }],
+    };
+
+    // Le modèle de repli doit lui aussi supporter googleSearch (gemini-2.5-flash).
+    const fallbackModel = AI_CONFIG.fallback.textModel;
+    const effectiveFallbackModel = modelName === fallbackModel ? modelName : fallbackModel;
+
+    const startedAt = Date.now();
+    logAIEvent('ai.grounded_research_start', {
+      modelName,
+      promptType: request.promptType,
+    });
+
+    const result = await withGeminiFallback(
+      () => this.genAIClient.models.generateContent({ model: modelName, contents, config }),
+      () =>
+        this.genAIClient.models.generateContent({
+          model: effectiveFallbackModel,
+          contents,
+          config,
+        }),
+      modelName,
+      effectiveFallbackModel
+    );
+
+    const candidate = result.candidates?.[0];
+    const text = result.text ?? candidate?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
+    const grounding: GroundingMetadata | undefined = candidate?.groundingMetadata;
+    const parsed = this.extractGrounding(grounding);
+
+    logAIEvent('ai.grounded_research_end', {
+      modelName,
+      durationMs: Date.now() - startedAt,
+      textLength: text.length,
+      sourceCount: parsed.sources.length,
+      queryCount: parsed.queries.length,
+    });
+
+    if (userId && !skipQuotaCheck) {
+      try {
+        await userService.incrementUsage(userId, 1);
+      } catch (quotaError) {
+        logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
+      }
+    }
+
+    return { text, ...parsed };
+  }
+
+  /** Extrait sources réelles, requêtes et supports depuis les groundingMetadata. */
+  private extractGrounding(grounding?: GroundingMetadata): Omit<GroundedResult, 'text'> {
+    const queries: string[] = Array.isArray(grounding?.webSearchQueries)
+      ? grounding!.webSearchQueries.filter((q): q is string => typeof q === 'string' && q.length > 0)
+      : [];
+
+    const sources: GroundedSourceRaw[] = [];
+    const chunks = grounding?.groundingChunks ?? [];
+    chunks.forEach((chunk, index) => {
+      const web = chunk.web;
+      if (web?.uri) {
+        let domain = web.domain;
+        if (!domain) {
+          try {
+            domain = new URL(web.uri).hostname.replace(/^www\./, '');
+          } catch {
+            domain = undefined;
+          }
+        }
+        sources.push({
+          index,
+          title: web.title?.trim() || domain || web.uri,
+          url: web.uri,
+          domain,
+        });
+      }
+    });
+
+    const supports: GroundedSupport[] = (grounding?.groundingSupports ?? [])
+      .map((s) => ({
+        text: s.segment?.text?.trim() || '',
+        sourceIndexes: (s.groundingChunkIndices ?? []).filter((i): i is number =>
+          typeof i === 'number'
+        ),
+      }))
+      .filter((s) => s.text.length > 0 && s.sourceIndexes.length > 0);
+
+    return { queries, sources, supports };
   }
 
   public getCleanAIText(response: any): string {

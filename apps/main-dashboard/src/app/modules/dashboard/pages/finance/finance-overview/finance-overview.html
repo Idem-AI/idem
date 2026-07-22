@@ -444,7 +444,7 @@
         >
           {{ 'common.cancel' | translate }}
         </button>
-        <button 
+        <button
           class="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer"
           (click)="navigateToBpGeneration()"
         >
@@ -453,5 +453,40 @@
         </button>
       </div>
     </div>
+  </p-dialog>
+
+  <!-- Salle de contrôle — auto-fill sourcé par l'équipe d'agents -->
+  <p-dialog
+    [header]="'dashboard.researchConsole.dialogTitle' | translate"
+    [modal]="true"
+    [(visible)]="researchVisible"
+    [closable]="false"
+    [dismissableMask]="false"
+    [style]="{ width: 'min(56rem, 94vw)' }"
+    styleClass="centered-modal"
+  >
+    @if (researchState(); as rs) {
+      <app-agent-research-console [state]="rs" [live]="researchLive()" />
+    }
+    <ng-template pTemplate="footer">
+      <div class="flex justify-end">
+        @if (researchDone()) {
+          <button
+            class="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer"
+            (click)="closeResearchConsole()"
+          >
+            <i class="pi pi-check"></i>
+            {{ 'dashboard.researchConsole.viewResults' | translate }}
+          </button>
+        } @else {
+          <button
+            class="px-4 py-2 rounded-lg bg-[var(--glass-bg-subtle)] hover:bg-[var(--glass-bg-light)] border border-[var(--glass-border)] text-text-primary text-sm font-medium transition-colors cursor-pointer"
+            (click)="closeResearchConsole()"
+          >
+            {{ 'common.cancel' | translate }}
+          </button>
+        }
+      </div>
+    </ng-template>
   </p-dialog>
 }
