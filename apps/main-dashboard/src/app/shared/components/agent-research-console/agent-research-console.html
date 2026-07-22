@@ -1,152 +1,205 @@
-<section class="arc" [attr.data-live]="live() ? '' : null" aria-label="{{ 'dashboard.researchConsole.title' | translate }}">
-  <header class="arc__head">
-    <div class="arc__title">
-      <span class="arc__pulse" aria-hidden="true"></span>
-      <div class="arc__title-text">
-        <h3 class="arc__h">{{ 'dashboard.researchConsole.title' | translate }}</h3>
-        <p class="arc__sub">{{ 'dashboard.researchConsole.subtitle' | translate }}</p>
-      </div>
+<section class="rc" [attr.data-phase]="phase()">
+  <!-- En-tête: titre + anneau de progression -->
+  <header class="rc__top">
+    <div class="rc__top-lead">
+      @if (isRunning()) {
+        <span class="rc__live">
+          <span class="rc__live-dot" aria-hidden="true"></span>
+          {{ 'dashboard.researchConsole.now.live' | translate }}
+        </span>
+      }
+      <h2 class="rc__title">{{ titleKey() | translate }}</h2>
     </div>
 
-    <div class="arc__counters" role="group" aria-label="{{ 'dashboard.researchConsole.countersLabel' | translate }}">
-      <span class="arc__stat">
-        <i class="pi pi-users" aria-hidden="true"></i>
-        <b>{{ activeCount() }}</b>
-        <em>{{ 'dashboard.researchConsole.counters.agents' | translate }}</em>
-      </span>
-      <span class="arc__stat">
-        <i class="pi pi-search" aria-hidden="true"></i>
-        <b>{{ queryCount() }}</b>
-        <em>{{ 'dashboard.researchConsole.counters.queries' | translate }}</em>
-      </span>
-      <span class="arc__stat arc__stat--accent">
-        <i class="pi pi-link" aria-hidden="true"></i>
-        <b>{{ sourceCount() }}</b>
-        <em>{{ 'dashboard.researchConsole.counters.sources' | translate }}</em>
-      </span>
-      <span class="arc__stat" [attr.data-warn]="flaggedCount() > 0 ? '' : null">
-        <i class="pi pi-verified" aria-hidden="true"></i>
-        <b>{{ sectionCount() }}</b>
-        <em>{{ 'dashboard.researchConsole.counters.sections' | translate }}</em>
+    <div
+      class="rc__ring"
+      [style.--rc-progress]="percent()"
+      role="progressbar"
+      [attr.aria-valuenow]="percent()"
+      aria-valuemin="0"
+      aria-valuemax="100"
+    >
+      <span class="rc__ring-inner">
+        <span class="rc__ring-val">{{ percent() }}<i>%</i></span>
+        <span class="rc__ring-sub">{{ doneCount() }}/{{ totalCount() }}</span>
       </span>
     </div>
   </header>
 
-  <div class="arc__grid">
-    <!-- Équipe -->
-    <div class="arc__panel arc__team">
-      <h4 class="arc__panel-title">{{ 'dashboard.researchConsole.team.title' | translate }}</h4>
-      <ul class="arc__agents">
-        @for (agent of agents(); track agent.agentId) {
-          <li class="arc__agent" [attr.data-role]="agent.role" [attr.data-active]="agent.active ? '' : null"
-              [attr.data-status]="agent.status">
-            <span class="arc__agent-icon" aria-hidden="true"><i class="pi" [class]="agent.icon"></i></span>
-            <div class="arc__agent-body">
-              <div class="arc__agent-head">
-                <span class="arc__agent-role">{{ agent.roleKey | translate }}</span>
-                @if (agent.section) {
-                  <span class="arc__agent-section">{{ agent.section }}</span>
-                }
-              </div>
-              @if (agent.message) {
-                <p class="arc__agent-msg">{{ agent.message }}</p>
-              }
-              <div class="arc__agent-meta">
-                <span class="arc__chip" [attr.data-status]="agent.status">{{ agent.statusKey | translate }}</span>
-                @if (agent.queryCount > 0) {
-                  <span class="arc__mini"><i class="pi pi-search" aria-hidden="true"></i>{{ agent.queryCount }}</span>
-                }
-                @if (agent.sourceCount > 0) {
-                  <span class="arc__mini"><i class="pi pi-link" aria-hidden="true"></i>{{ agent.sourceCount }}</span>
-                }
-              </div>
-            </div>
-          </li>
-        } @empty {
-          <li class="arc__empty">{{ 'dashboard.researchConsole.team.empty' | translate }}</li>
-        }
-      </ul>
-    </div>
+  <div class="rc__grid">
+    <!-- Panneau focal: ce qui se passe MAINTENANT -->
+    <div class="rc__focus" [attr.data-mode]="focus().mode" [attr.data-role]="focus().role ?? null">
+      <span class="rc__focus-aura" aria-hidden="true"></span>
 
-    <!-- Flux d'activité -->
-    <div class="arc__panel arc__feed">
-      <h4 class="arc__panel-title">{{ 'dashboard.researchConsole.feed.title' | translate }}</h4>
-      <ol class="arc__log" role="log" aria-live="polite" aria-relevant="additions">
-        @for (act of activities(); track $index) {
-          <li class="arc__entry" [attr.data-tone]="act.tone">
-            <time class="arc__entry-time">{{ act.ts | date: 'HH:mm:ss' }}</time>
-            <i class="pi arc__entry-icon" [class]="act.icon" aria-hidden="true"></i>
-            <div class="arc__entry-body">
-              <span class="arc__entry-kind">{{ act.kindKey | translate }}</span>
-              @if (act.url) {
-                <a class="arc__entry-link" [href]="act.url" target="_blank" rel="noopener noreferrer">
-                  <span class="arc__entry-text">{{ act.text }}</span>
-                  @if (act.domain) {
-                    <span class="arc__entry-domain">{{ act.domain }}</span>
-                  }
-                  <i class="pi pi-external-link" aria-hidden="true"></i>
-                </a>
-              } @else {
-                <span class="arc__entry-text">{{ act.text }}</span>
-              }
-            </div>
-          </li>
-        } @empty {
-          <li class="arc__empty">{{ 'dashboard.researchConsole.feed.empty' | translate }}</li>
-        }
-      </ol>
-    </div>
-  </div>
-
-  <!-- Sources réelles collectées -->
-  @if (sources().length > 0) {
-    <div class="arc__panel arc__sources">
-      <button type="button" class="arc__panel-toggle" (click)="toggleSources()"
-              [attr.aria-expanded]="sourcesOpen()">
-        <span class="arc__panel-title">
-          {{ 'dashboard.researchConsole.sources.title' | translate }}
-          <span class="arc__badge">{{ sourceCount() }}</span>
-        </span>
-        <i class="pi" [class.pi-chevron-up]="sourcesOpen()" [class.pi-chevron-down]="!sourcesOpen()" aria-hidden="true"></i>
-      </button>
-      @if (sourcesOpen()) {
-        <ul class="arc__source-list">
-          @for (s of sources(); track s.url) {
-            <li class="arc__source">
-              <a class="arc__source-link" [href]="s.url" target="_blank" rel="noopener noreferrer">
-                <span class="arc__source-id">{{ s.id }}</span>
-                <span class="arc__source-title">{{ s.title }}</span>
-                @if (s.domain) {
-                  <span class="arc__source-domain">{{ s.domain }}</span>
-                }
-                <i class="pi pi-external-link" aria-hidden="true"></i>
-              </a>
-            </li>
+      <div class="rc__focus-head">
+        <span class="rc__focus-icon" aria-hidden="true">
+          <i class="pi" [class]="focus().icon"></i>
+          @if (focus().mode === 'active' || focus().mode === 'starting') {
+            <span class="rc__bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
           }
-        </ul>
+        </span>
+        <div class="rc__focus-text">
+          @switch (focus().mode) {
+            @case ('active') {
+              <p class="rc__focus-action">{{ focus().actionKey! | translate }}</p>
+              <p class="rc__focus-section">{{ focus().sectionLabel }}</p>
+            }
+            @case ('starting') {
+              <p class="rc__focus-action">{{ 'dashboard.researchConsole.now.preparing' | translate }}</p>
+              <p class="rc__focus-section">{{ 'dashboard.researchConsole.now.starting' | translate }}</p>
+            }
+            @case ('finalizing') {
+              <p class="rc__focus-action">{{ 'dashboard.researchConsole.now.almost' | translate }}</p>
+              <p class="rc__focus-section">{{ 'dashboard.researchConsole.now.finalizing' | translate }}</p>
+            }
+            @case ('done') {
+              <p class="rc__focus-action">{{ 'dashboard.researchConsole.now.completed' | translate }}</p>
+              <p class="rc__focus-section">{{ 'dashboard.researchConsole.now.done' | translate }}</p>
+            }
+          }
+        </div>
+      </div>
+
+      @if (focus().evidence; as ev) {
+        <div class="rc__evidence" [attr.data-kind]="ev.kind">
+          <i class="pi rc__evidence-icon" [class]="ev.icon" aria-hidden="true"></i>
+          @if (ev.url) {
+            <a class="rc__evidence-link" [href]="ev.url" target="_blank" rel="noopener noreferrer">
+              <span class="rc__evidence-text">{{ ev.text }}</span>
+              @if (ev.domain) {
+                <span class="rc__evidence-domain">{{ ev.domain }}</span>
+              }
+            </a>
+          } @else {
+            <span class="rc__evidence-text">« {{ ev.text }} »</span>
+          }
+        </div>
       }
     </div>
-  }
 
-  <!-- Vérification par section -->
-  @if (sections().length > 0) {
-    <div class="arc__panel arc__verify">
-      <h4 class="arc__panel-title">{{ 'dashboard.researchConsole.sections.title' | translate }}</h4>
-      <ul class="arc__verify-list">
-        @for (sec of sections(); track sec.name) {
-          <li class="arc__verify-item" [attr.data-passed]="sec.passed ? '' : null">
-            <i class="pi arc__verify-icon" [class.pi-check-circle]="sec.passed"
-               [class.pi-exclamation-triangle]="!sec.passed" aria-hidden="true"></i>
-            <span class="arc__verify-name">{{ sec.name }}</span>
-            <span class="arc__verify-stats">
-              <span class="arc__verify-stat">{{ sec.cited }} {{ 'dashboard.researchConsole.sections.cited' | translate }}</span>
-              @if (sec.uncited > 0) {
-                <span class="arc__verify-stat arc__verify-stat--warn">{{ sec.uncited }} {{ 'dashboard.researchConsole.sections.uncited' | translate }}</span>
+    <!-- Fil d'étapes: où en est-on -->
+    <ol class="rc__journey" [attr.aria-label]="'dashboard.researchConsole.journey.title' | translate">
+      @for (node of journey(); track node.name) {
+        <li class="rc__node" [attr.data-state]="node.state">
+          <span class="rc__node-rail" aria-hidden="true">
+            <span class="rc__node-dot">
+              @if (node.state === 'done') {
+                <i class="pi pi-check"></i>
+              } @else {
+                {{ node.index }}
               }
             </span>
-          </li>
-        }
-      </ul>
+          </span>
+          <span class="rc__node-body">
+            <span class="rc__node-label">{{ node.label }}</span>
+            @if (node.state === 'current' && node.actionKey) {
+              <span class="rc__node-sub rc__node-sub--active">{{ node.actionKey | translate }}</span>
+            } @else if (node.state === 'done' && node.sourceCount) {
+              <span class="rc__node-sub">
+                {{
+                  'dashboard.researchConsole.journey.sources'
+                    | translate: { count: node.sourceCount }
+                }}
+              </span>
+            }
+          </span>
+        </li>
+      }
+    </ol>
+  </div>
+
+  <!-- Bandeau de confiance -->
+  <div class="rc__trust">
+    <span class="rc__trust-icon" aria-hidden="true"><i class="pi pi-verified"></i></span>
+    <div class="rc__trust-text">
+      <p class="rc__trust-title">
+        {{ 'dashboard.researchConsole.trust.title' | translate: { count: sourceCount() } }}
+      </p>
+      <p class="rc__trust-sub">{{ 'dashboard.researchConsole.trust.subtitle' | translate }}</p>
     </div>
+    @if (sourceCount() > 0) {
+      <button
+        type="button"
+        class="rc__link-btn"
+        (click)="toggleSources()"
+        [attr.aria-expanded]="sourcesOpen()"
+      >
+        {{
+          (sourcesOpen()
+            ? 'dashboard.researchConsole.trust.hideSources'
+            : 'dashboard.researchConsole.trust.showSources'
+          ) | translate
+        }}
+      </button>
+    }
+  </div>
+
+  @if (sourcesOpen() && sourceCount() > 0) {
+    <ul class="rc__source-list">
+      @for (s of sources(); track s.url) {
+        <li>
+          <a class="rc__source" [href]="s.url" target="_blank" rel="noopener noreferrer">
+            <span class="rc__source-id">{{ s.id }}</span>
+            <span class="rc__source-title">{{ s.title }}</span>
+            @if (s.domain) {
+              <span class="rc__source-domain">{{ s.domain }}</span>
+            }
+            <i class="pi pi-external-link" aria-hidden="true"></i>
+          </a>
+        </li>
+      }
+    </ul>
   }
+
+  <!-- Détail technique, replié -->
+  <div class="rc__details">
+    <button
+      type="button"
+      class="rc__details-toggle"
+      (click)="toggleDetails()"
+      [attr.aria-expanded]="detailsOpen()"
+    >
+      <i class="pi" [class.pi-chevron-down]="!detailsOpen()" [class.pi-chevron-up]="detailsOpen()" aria-hidden="true"></i>
+      <span>
+        {{
+          (detailsOpen()
+            ? 'dashboard.researchConsole.details.hide'
+            : 'dashboard.researchConsole.details.show'
+          ) | translate
+        }}
+      </span>
+      <span class="rc__details-meta">
+        {{
+          'dashboard.researchConsole.details.meta'
+            | translate: { queries: queryCount(), sources: sourceCount() }
+        }}
+      </span>
+    </button>
+
+    @if (detailsOpen()) {
+      <ol class="rc__log" role="log" aria-live="polite" aria-relevant="additions">
+        @for (act of activities(); track $index) {
+          <li class="rc__entry" [attr.data-tone]="act.tone">
+            <time class="rc__entry-time">{{ act.ts | date: 'HH:mm:ss' }}</time>
+            <i class="pi rc__entry-icon" [class]="act.icon" aria-hidden="true"></i>
+            <div class="rc__entry-body">
+              <span class="rc__entry-kind">{{ act.kindKey | translate }}</span>
+              @if (act.url) {
+                <a class="rc__entry-link" [href]="act.url" target="_blank" rel="noopener noreferrer">
+                  <span>{{ act.text }}</span>
+                  @if (act.domain) {
+                    <span class="rc__entry-domain">{{ act.domain }}</span>
+                  }
+                </a>
+              } @else {
+                <span class="rc__entry-text">{{ act.text }}</span>
+              }
+            </div>
+          </li>
+        } @empty {
+          <li class="rc__entry-empty">{{ 'dashboard.researchConsole.feed.empty' | translate }}</li>
+        }
+      </ol>
+    }
+  </div>
 </section>

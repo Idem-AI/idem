@@ -23,10 +23,21 @@ import {
   SectionCompletionStatus,
 } from '../../../models/finance.model';
 import { AiFillButtonComponent } from '../../../components/ai-fill-button/ai-fill-button';
-import { AgentResearchConsoleComponent } from '../../../../../shared/components/agent-research-console/agent-research-console';
+import {
+  AgentResearchConsoleComponent,
+  PlannedSection,
+} from '../../../../../shared/components/agent-research-console/agent-research-console';
 import { GenerationService } from '../../../../../shared/services/generation.service';
 import { SSEGenerationState } from '../../../../../shared/models/sse-step.model';
 import { Subscription } from 'rxjs';
+
+/** Sujets de recherche marché (noms alignés sur le backend financeAIService). */
+const FINANCE_RESEARCH_TOPICS: { name: string; labelKey: string }[] = [
+  { name: 'Prix de marché', labelKey: 'dashboard.researchConsole.financeTopics.pricing' },
+  { name: 'Structure de coûts', labelKey: 'dashboard.researchConsole.financeTopics.costs' },
+  { name: 'Fiscalité & charges sociales', labelKey: 'dashboard.researchConsole.financeTopics.taxes' },
+  { name: 'Croissance & adoption', labelKey: 'dashboard.researchConsole.financeTopics.growth' },
+];
 
 interface SectionCardVM {
   key: string;
@@ -69,6 +80,15 @@ export class FinanceOverviewComponent implements OnInit {
   protected readonly researchState = computed(() => this.genState()?.research ?? null);
   protected readonly researchLive = computed(() => this.genState()?.isGenerating ?? false);
   protected readonly researchDone = computed(() => this.genState()?.completed ?? false);
+  protected readonly researchPhase = computed<'running' | 'finalizing' | 'done'>(() =>
+    this.researchDone() ? 'done' : 'running',
+  );
+  protected readonly financePlanned = computed<PlannedSection[]>(() =>
+    FINANCE_RESEARCH_TOPICS.map((t) => ({
+      name: t.name,
+      label: this.translate.instant(t.labelKey),
+    })),
+  );
   private researchSub?: Subscription;
 
   protected readonly isLoading = signal<boolean>(true);

@@ -466,7 +466,12 @@
     styleClass="centered-modal"
   >
     @if (researchState(); as rs) {
-      <app-agent-research-console [state]="rs" [live]="researchLive()" />
+      <app-agent-research-console
+        [state]="rs"
+        [planned]="financePlanned()"
+        [phase]="researchPhase()"
+        variant="finance"
+      />
     }
     <ng-template pTemplate="footer">
       <div class="flex justify-end">
