@@ -79,6 +79,9 @@ export class CompleteBrandingPage implements OnInit {
   /** true dès qu'une couleur est sélectionnée */
   protected readonly colorSelected = signal<boolean>(false);
 
+  /** true pendant la génération des couleurs */
+  protected readonly colorGenerating = signal<boolean>(true);
+
   /** true dès qu'une typographie est sélectionnée */
   protected readonly typographySelected = signal<boolean>(false);
 
@@ -206,6 +209,10 @@ export class CompleteBrandingPage implements OnInit {
             this.logoImportComplete.set(true);
           }
 
+          if (branding.generatedColors && branding.generatedColors.length > 0) {
+            this.colorGenerating.set(false);
+          }
+
           let targetStepIndex = 0;
           const choice = this.logoChoice();
 
@@ -268,7 +275,7 @@ export class CompleteBrandingPage implements OnInit {
       case 'logo-choice':
         return this.logoImportComplete() || this.logoChoice() === 'ai';
       case 'colors':
-        return true; // color-selection gère elle-même la génération
+        return (this.colorSelected() || !!this.selectedColor) && !this.colorGenerating();
       case 'typography':
         return this.typographySelected();
       case 'logo-preferences':
@@ -417,6 +424,11 @@ export class CompleteBrandingPage implements OnInit {
   /** Couleur choisie */
   protected onColorSelected(_colorId: string): void {
     this.colorSelected.set(true);
+  }
+
+  /** État de génération des couleurs */
+  protected onColorGeneratingStateChanged(generating: boolean): void {
+    this.colorGenerating.set(generating);
   }
 
   /** Typographie valide / invalide */
