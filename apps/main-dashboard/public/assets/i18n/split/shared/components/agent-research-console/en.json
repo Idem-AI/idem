@@ -1,27 +1,73 @@
 {
   "dashboard": {
     "researchConsole": {
-      "title": "AI research team",
-      "subtitle": "Your agents gather real, sourced data, live",
-      "dialogTitle": "Sourced generation by the agent team",
+      "dialogTitle": "AI sourced generation",
       "viewResults": "View my forecast",
-      "countersLabel": "Research statistics",
-      "counters": {
-        "agents": "active agents",
-        "queries": "searches",
-        "sources": "sources",
-        "sections": "sections"
+      "phase": {
+        "businessPlan": {
+          "running": { "title": "We're building your business plan" },
+          "finalizing": { "title": "Almost there…" },
+          "done": { "title": "Your business plan is ready" }
+        },
+        "finance": {
+          "running": { "title": "We're setting your financial forecast" },
+          "finalizing": { "title": "Almost there…" },
+          "done": { "title": "Your forecast is ready" }
+        },
+        "subtitle": {
+          "running": "Our assistants look up real market data and check every figure.",
+          "finalizing": "We're putting your document together.",
+          "done": "Every figure is sourced and verified."
+        }
       },
-      "team": {
-        "title": "Team",
-        "empty": "Waiting for the agents to start…"
+      "progress": {
+        "sectionsProgress": "{{done}} of {{total}} sections done"
+      },
+      "now": {
+        "live": "Live",
+        "preparing": "Getting ready",
+        "starting": "We're analyzing your project",
+        "almost": "Final stretch",
+        "finalizing": "Putting your document together",
+        "completed": "Done",
+        "done": "All sections are ready"
+      },
+      "journey": {
+        "title": "Steps",
+        "sources": "{{count}} source(s)"
+      },
+      "sectionStatus": {
+        "done": "Done",
+        "pending": "Waiting"
+      },
+      "action": {
+        "researching": "Looking up market data…",
+        "writing": "Writing…",
+        "verifying": "Checking sources…",
+        "analyzing": "Analyzing…"
+      },
+      "trust": {
+        "title": "{{count}} verified sources",
+        "subtitle": "Every figure links to a real source. Nothing is made up.",
+        "showSources": "View sources",
+        "hideSources": "Hide sources"
+      },
+      "details": {
+        "show": "See research details",
+        "hide": "Hide details",
+        "meta": "{{queries}} searches · {{sources}} sources"
+      },
+      "financeTopics": {
+        "pricing": "Market pricing",
+        "costs": "Cost structure",
+        "taxes": "Taxes and charges",
+        "growth": "Market growth"
       },
       "feed": {
-        "title": "Live activity",
         "empty": "No activity yet"
       },
       "roles": {
-        "orchestrator": "Orchestrator",
+        "orchestrator": "Team lead",
         "researcher": "Researcher",
         "writer": "Writer",
         "verifier": "Verifier"
@@ -37,21 +83,13 @@
         "error": "Error"
       },
       "kinds": {
-        "agent_status": "Status",
+        "agent_status": "Step",
         "search_query": "Search",
         "source_found": "Source",
         "finding": "Data point",
         "section_drafted": "Drafted",
         "verification": "Verification",
         "note": "Note"
-      },
-      "sources": {
-        "title": "Cited sources"
-      },
-      "sections": {
-        "title": "Per-section verification",
-        "cited": "cited",
-        "uncited": "unsourced"
       }
     }
   }
