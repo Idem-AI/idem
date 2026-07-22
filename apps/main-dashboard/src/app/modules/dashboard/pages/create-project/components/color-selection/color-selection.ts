@@ -48,6 +48,7 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
   readonly projectUpdate = output<Partial<ProjectModel>>();
   readonly nextStep = output<void>();
   readonly previousStep = output<void>();
+  readonly generatingStateChanged = output<boolean>();
 
   // State management
   protected isGenerating = signal(false);
@@ -66,6 +67,11 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
   protected showColorCustomizer = signal(false);
   protected customizedColor = signal<ColorModel | null>(null);
 
+  private setGeneratingState(generating: boolean): void {
+    this.isGenerating.set(generating);
+    this.generatingStateChanged.emit(generating);
+  }
+
   ngOnInit() {
     const branding = this.project().analysisResultModel?.branding;
     const generatedColors = branding?.generatedColors;
@@ -78,6 +84,13 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
 
       this.colorPalettes.set(generatedColors);
       this.typographyOptions.set(generatedTypography);
+
+      if (branding?.colors?.id) {
+        this.selectColor(branding.colors.id);
+      } else if (generatedColors.length > 0) {
+        this.selectColor(generatedColors[0].id);
+      }
+
       this.colorsGenerated.emit(generatedColors);
       this.typographyGenerated.emit(generatedTypography);
       this.colorsAndTypographyGenerated.emit({
@@ -87,7 +100,7 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
       });
 
       this.hasGenerated.set(true);
-      this.isGenerating.set(false);
+      this.setGeneratingState(false);
     }
   }
 
@@ -97,7 +110,7 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
   }
 
   protected async generateColors(): Promise<void> {
-    this.isGenerating.set(true);
+    this.setGeneratingState(true);
     this.error.set(null);
     this.generationProgress.set(0);
 
@@ -126,7 +139,7 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
               this.error.set(
                 this.translate.instant('dashboard.colorSelection.errors.generationFailed'),
               );
-              this.isGenerating.set(false);
+              this.setGeneratingState(false);
             },
           });
       } else {
@@ -146,14 +159,14 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
               this.error.set(
                 this.translate.instant('dashboard.colorSelection.errors.generationFailed'),
               );
-              this.isGenerating.set(false);
+              this.setGeneratingState(false);
             },
           });
       }
     } catch (error) {
       console.error('Error in color generation:', error);
       this.error.set(this.translate.instant('dashboard.colorSelection.errors.generationFailed'));
-      this.isGenerating.set(false);
+      this.setGeneratingState(false);
     }
   }
 
@@ -171,7 +184,7 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
     // Réponse malformée : afficher l'erreur (avec retry) plutôt qu'une palette vide
     if (colors.length === 0) {
       this.error.set(this.translate.instant('dashboard.colorSelection.errors.generationFailed'));
-      this.isGenerating.set(false);
+      this.setGeneratingState(false);
       return;
     }
 
@@ -202,7 +215,12 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
     });
 
     this.hasGenerated.set(true);
-    this.isGenerating.set(false);
+    this.setGeneratingState(false);
+
+    // Auto-select the first palette if none selected
+    if (colors.length > 0 && !this.selectedColorId()) {
+      this.selectColor(colors[0].id);
+    }
   }
 
   protected selectColor(colorId: string): void {
