@@ -2191,6 +2191,60 @@
           "Brand Mockup 3": "Mockup 3"
         }
       }
+    },
+    "researchConsole": {
+      "title": "AI research team",
+      "subtitle": "Your agents gather real, sourced data, live",
+      "dialogTitle": "Sourced generation by the agent team",
+      "viewResults": "View my forecast",
+      "countersLabel": "Research statistics",
+      "counters": {
+        "agents": "active agents",
+        "queries": "searches",
+        "sources": "sources",
+        "sections": "sections"
+      },
+      "team": {
+        "title": "Team",
+        "empty": "Waiting for the agents to start…"
+      },
+      "feed": {
+        "title": "Live activity",
+        "empty": "No activity yet"
+      },
+      "roles": {
+        "orchestrator": "Orchestrator",
+        "researcher": "Researcher",
+        "writer": "Writer",
+        "verifier": "Verifier"
+      },
+      "agentStatus": {
+        "queued": "Queued",
+        "planning": "Planning",
+        "searching": "Web search",
+        "reading": "Reading",
+        "writing": "Writing",
+        "verifying": "Verifying",
+        "done": "Done",
+        "error": "Error"
+      },
+      "kinds": {
+        "agent_status": "Status",
+        "search_query": "Search",
+        "source_found": "Source",
+        "finding": "Data point",
+        "section_drafted": "Drafted",
+        "verification": "Verification",
+        "note": "Note"
+      },
+      "sources": {
+        "title": "Cited sources"
+      },
+      "sections": {
+        "title": "Per-section verification",
+        "cited": "cited",
+        "uncited": "unsourced"
+      }
     }
   },
   "deployment": {
