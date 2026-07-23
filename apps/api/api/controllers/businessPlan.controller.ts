@@ -6,6 +6,7 @@ import logger from '../config/logger';
 import { userService } from '../services/user.service';
 import { ISectionResult } from '../services/common/generic.service';
 import { projectService } from '../services/project.service';
+import { ResearchStreamEvent } from '../services/research/research.types';
 
 // Create instances of the services
 const promptService = new PromptService();
@@ -248,30 +249,24 @@ export const generateBusinessPlanStreamingController = async (
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no'); // Pour Nginx
 
-    // Fonction de callback pour envoyer chaque résultat d'étape
+    // Écriture d'un message SSE (avec flush immédiat).
+    const writeSSE = (payload: unknown) => {
+      res.write(`data: ${JSON.stringify(payload)}\n\n`);
+      (res as any).flush?.();
+    };
+
+    // Callback de l'ancien flux (mode classic) — conservé en repli.
     const streamCallback = async (stepResult: ISectionResult) => {
       try {
-        // Déterminer le type d'événement
         const eventType = stepResult.parsedData?.status || 'progress';
-
-        // Créer un message structuré pour le frontend
-        const message = {
-          type: eventType, // 'started', 'completed', 'progress'
+        writeSSE({
+          type: eventType,
           stepName: stepResult.name,
           data: stepResult.data,
           summary: stepResult.summary,
           timestamp: new Date().toISOString(),
           ...(stepResult.parsedData && { parsedData: stepResult.parsedData }),
-        };
-
-        // Formatage du message SSE
-        res.write(`data: ${JSON.stringify(message)}\n\n`);
-        // On force l'envoi immédiat si la fonction flush est disponible
-        (res as any).flush?.();
-
-        logger.info(
-          `Streamed step ${eventType} - UserId: ${userId}, ProjectId: ${projectId}, Step: ${stepResult.name}`
-        );
+        });
       } catch (error: any) {
         logger.error(
           `Error streaming step result - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
@@ -280,8 +275,8 @@ export const generateBusinessPlanStreamingController = async (
       }
     };
 
-    // Appel au service avec le callback de streaming
     const forceRegenerate = req.query.force === 'true' || req.body.force === true;
+    const useClassic = req.query.mode === 'classic';
 
     // Sections ciblées à régénérer (ex: ?sections=Financial%20Plan,Appendix)
     const sectionsParam = typeof req.query.sections === 'string' ? req.query.sections : '';
@@ -292,32 +287,45 @@ export const generateBusinessPlanStreamingController = async (
 
     // Fetch project to see if this is a retry/resume
     const project = await projectService.getUserProjectById(userId, projectId as string);
-    const isRetry = !!(project && !forceRegenerate && (project.analysisResultModel?.businessPlan?.sections?.length ?? 0) > 0);
-
-    const updatedProject = await businessPlanService.generateBusinessPlanWithStreaming(
-      userId,
-      projectId as string,
-      streamCallback, // Passer le callback de streaming
-      forceRegenerate,
-      targetSections
+    const isRetry = !!(
+      project &&
+      !forceRegenerate &&
+      (project.analysisResultModel?.businessPlan?.sections?.length ?? 0) > 0
     );
+
+    let updatedProject;
+    if (useClassic) {
+      updatedProject = await businessPlanService.generateBusinessPlanWithStreaming(
+        userId,
+        projectId as string,
+        streamCallback,
+        forceRegenerate,
+        targetSections
+      );
+    } else {
+      // Nouveau flux: équipe d'agents de recherche sourcée + salle de contrôle.
+      // Chaque ResearchStreamEvent est diffusé tel quel au frontend.
+      const emit = async (event: ResearchStreamEvent) => writeSSE(event);
+      updatedProject = await businessPlanService.generateBusinessPlanWithResearchTeam(
+        userId,
+        projectId as string,
+        emit,
+        forceRegenerate,
+        targetSections
+      );
+    }
 
     if (!updatedProject) {
       logger.warn(`Failed to generate business plan - UserId: ${userId}, ProjectId: ${projectId}`);
-      res.write(
-        `data: ${JSON.stringify({
-          error: 'Failed to generate business plan',
-        })}\n\n`
-      );
+      writeSSE({ error: 'Failed to generate business plan' });
       res.end();
       return;
     }
 
-    // Obtenir le business plan du projet mis à jour
     const newBusinessPlan = updatedProject.analysisResultModel?.businessPlan;
 
     logger.info(`Business plan generation completed - UserId: ${userId}, ProjectId: ${projectId}`);
-    
+
     if (!isRetry) {
       userService.incrementUsage(userId, 5);
       logger.info(`Charged 5 credits for user ${userId} on Business Plan completion.`);
@@ -325,13 +333,10 @@ export const generateBusinessPlanStreamingController = async (
       logger.info(`Exempted user ${userId} from credit charge because this is a retry/resume.`);
     }
 
-    // Envoyer un événement de fin
-    res.write(
-      `data: ${JSON.stringify({
-        type: 'complete',
-        businessPlan: newBusinessPlan,
-      })}\n\n`
-    );
+    // Événement métier de fin (le business plan complet).
+    writeSSE({ type: 'complete', businessPlan: newBusinessPlan });
+    // Événement de fin technique (convention existante → fermeture propre du SSE).
+    writeSSE({ type: 'completed', stepName: 'completion', data: 'all_steps_completed' });
     res.end();
   } catch (error: any) {
     logger.error(

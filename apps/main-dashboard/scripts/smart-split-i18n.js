@@ -95,6 +95,7 @@ const CONFIG = {
     // Shared components
     'shared/components/not-found': 'notFound',
     'shared/components/pdf-viewer': 'dashboard.pdfViewer',
+    'shared/components/agent-research-console': 'dashboard.researchConsole',
   },
 };
 
