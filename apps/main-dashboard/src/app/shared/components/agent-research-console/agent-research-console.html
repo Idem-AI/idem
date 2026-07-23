@@ -29,7 +29,9 @@
       @switch (now().mode) {
         @case ('active') {
           <span class="rc__now-line"><b>{{ now().sectionLabel }}</b> — {{ now().actionKey! | translate }}</span>
-          @if (now().query) {
+          @if (draftPreview(); as dp) {
+            <span class="rc__now-draft">…{{ dp }}<span class="rc__caret" aria-hidden="true"></span></span>
+          } @else if (now().query) {
             <span class="rc__now-query">« {{ now().query }} »</span>
           }
         }

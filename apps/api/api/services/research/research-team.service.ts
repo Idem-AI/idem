@@ -58,6 +58,8 @@ export interface ResearchTeamContext {
   userId: string;
   /** Devise, pour ancrer les données financières (optionnel). */
   currency?: string;
+  /** Nom d'un cache de contexte Gemini partagé (renseigné en interne par le run). */
+  sharedCache?: string;
 }
 
 const RESEARCH_CONFIG: PromptConfig = {
@@ -119,12 +121,23 @@ export class ResearchTeamService {
       }),
     });
 
+    // Cache de contexte partagé (best-effort): le contexte projet+marque est
+    // réutilisé par tous les appels rédacteur → moins d'input tokens facturés.
+    const sharedContextText = this.buildSharedContext(ctx);
+    const cacheName = await this.promptService.createContextCache(
+      WRITER_CONFIG.modelName,
+      sharedContextText,
+      RESEARCH_CACHE_TTL
+    );
+    const runCtx: ResearchTeamContext = { ...ctx, sharedCache: cacheName ?? undefined };
+
     const results: ResearchedSection[] = [];
+    try {
     // Exécution par vagues avec concurrence limitée.
     for (let i = 0; i < sections.length; i += SECTION_CONCURRENCY) {
       const batch = sections.slice(i, i + SECTION_CONCURRENCY);
       const settled = await Promise.all(
-        batch.map((section) => this.runSection(runId, section, ctx, emit))
+        batch.map((section) => this.runSection(runId, section, runCtx, emit))
       );
       for (const section of settled) {
         results.push(section);
@@ -160,6 +173,21 @@ export class ResearchTeamService {
 
     logger.info(`ResearchTeam run ${runId} completed (${results.length} sections)`);
     return results;
+    } finally {
+      // Libère le cache de contexte du run (best-effort).
+      if (cacheName) {
+        await this.promptService.deleteContextCache(cacheName);
+      }
+    }
+  }
+
+  /** Bloc de contexte partagé mis en cache et réutilisé par les rédacteurs. */
+  private buildSharedContext(ctx: ResearchTeamContext): string {
+    return (
+      `CONTEXTE PROJET:\n${ctx.projectContext}\n` +
+      (ctx.brandContext ? `\nCONTEXTE MARQUE:\n${ctx.brandContext}\n` : '') +
+      (ctx.currency ? `\nDEVISE: ${ctx.currency}\n` : '')
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -429,6 +457,10 @@ export class ResearchTeamService {
         "- N'invente jamais d'identifiant de source: n'utilise que les [sN] listés.\n"
       : "Cette section est qualitative: reste factuel, n'invente pas de chiffres.";
 
+    // Le contexte projet/marque est déjà dans le cache partagé quand il est
+    // actif → on ne le renvoie pas (économie d'input tokens).
+    const sharedBlock = ctx.sharedCache ? '' : this.buildSharedContext(ctx);
+
     const messages: AIChatMessage[] = [
       {
         role: 'system',
@@ -440,9 +472,7 @@ export class ResearchTeamService {
       {
         role: 'user',
         content:
-          `CONTEXTE PROJET:\n${ctx.projectContext}\n` +
-          (ctx.brandContext ? `\nCONTEXTE MARQUE:\n${ctx.brandContext}\n` : '') +
-          (ctx.currency ? `\nDEVISE: ${ctx.currency}\n` : '') +
+          sharedBlock +
           `\nSECTION À RÉDIGER: ${section.name}\n` +
           `INSTRUCTIONS:\n${section.instructions}\n` +
           (section.needsResearch
@@ -453,10 +483,31 @@ export class ResearchTeamService {
       },
     ];
 
+    // Streaming: l'aperçu du texte s'affiche pendant la rédaction (latence
+    // perçue). Émission throttlée (~300 ms) de la fin du texte en cours.
+    let lastEmitAt = 0;
+    const onDelta = (text: string): void => {
+      const now = Date.now();
+      if (now - lastEmitAt < 300) return;
+      lastEmitAt = now;
+      void this.safeEmit(emit, {
+        type: 'writer_delta',
+        section: section.name,
+        preview: text.slice(-240),
+        timestamp: new Date().toISOString(),
+      });
+    };
+
     const content = this.promptService.getCleanAIText(
-      await this.promptService.runPrompt(
-        { ...WRITER_CONFIG, userId: ctx.userId, language: ctx.language },
-        messages
+      await this.promptService.runPromptStream(
+        {
+          ...WRITER_CONFIG,
+          userId: ctx.userId,
+          language: ctx.language,
+          ...(ctx.sharedCache ? { cachedContent: ctx.sharedCache } : {}),
+        },
+        messages,
+        onDelta
       )
     );
 

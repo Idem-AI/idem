@@ -119,6 +119,8 @@ export interface ResearchConsoleState {
   sources: ResearchSourceItem[];
   /** Sections finalisées avec leur verdict. */
   sections: ConsoleSection[];
+  /** Aperçu du texte de la section en cours de rédaction (streaming). */
+  draft?: { section: string; preview: string };
 }
 
 // ---------------------------------------------------------------------------
