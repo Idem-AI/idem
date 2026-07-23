@@ -411,7 +411,7 @@
     }
   },
   "editMode": {
-    "hint": "点击选择 · Shift 点击多选 · 双击编辑 · 拖动排序 · Del 删除",
+    "hint": "点击选择 · 再次点击进入下层 · Shift 多选 · 双击编辑 · 拖动排序 · Del 删除",
     "noSelection": "在预览中选择一个元素进行编辑。",
     "deselect": "取消选择",
     "text": "文本",
@@ -463,6 +463,8 @@
     "undo": "撤销",
     "redo": "重做",
     "objectPosition": "位置",
-    "opacity": "不透明度"
+    "opacity": "不透明度",
+    "layers": "图层",
+    "layersHint": "光标下堆叠的元素 — 选择要编辑的一个。"
   }
 }

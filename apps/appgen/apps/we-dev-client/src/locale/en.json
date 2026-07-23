@@ -453,7 +453,7 @@
     "cancel": "Cancel"
   },
   "editMode": {
-    "hint": "Click to select · Shift-click for multi · dbl-click to edit · drag to reorder · Del to delete",
+    "hint": "Click to select · click again to go deeper · Shift-click multi · dbl-click edit · drag reorder · Del delete",
     "noSelection": "Select an element in the preview to edit it.",
     "deselect": "Deselect",
     "text": "Text",
@@ -505,6 +505,8 @@
     "undo": "Undo",
     "redo": "Redo",
     "objectPosition": "Position",
-    "opacity": "Opacity"
+    "opacity": "Opacity",
+    "layers": "Layers",
+    "layersHint": "Elements stacked under your click — pick the one to edit."
   }
 }
