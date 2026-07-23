@@ -113,7 +113,21 @@ REQUIRED FILES IN ORDER:
 
 5. vite.config.js - React plugin configuration
 
-6. index.html - Root HTML with proper meta tags
+6. index.html - Root HTML. It MUST contain BOTH the mount node <div id="root"></div>
+   AND the module script that bootstraps the app. Without the <script> tag the page
+   renders BLANK (main.jsx never runs). Exact required structure:
+   <!DOCTYPE html>
+   <html lang="en">
+     <head>
+       <meta charset="UTF-8" />
+       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+       <title>...</title>
+     </head>
+     <body>
+       <div id="root"></div>
+       <script type="module" src="/src/main.jsx"></script>
+     </body>
+   </html>
 
 7. src/main.jsx - Import styles:
    import React from 'react'
@@ -149,6 +163,9 @@ OUTPUT FORMAT:
 IMPORTANT RULES:
 1. NEVER run project initialization commands (create-vite, create-react-app, etc.)
 2. ALWAYS create package.json FIRST with ALL dependencies
+2b. index.html MUST include <script type="module" src="/src/main.jsx"></script> inside
+    <body> (right after <div id="root"></div>). Omitting it produces a BLANK page with no
+    console error. This is mandatory for every project.
 3. ALWAYS configure TailwindCSS properly (config files + CSS directives)
 4. Use professional folder structure (components/common, components/layout, etc.)
 5. Create reusable components, not monolithic files

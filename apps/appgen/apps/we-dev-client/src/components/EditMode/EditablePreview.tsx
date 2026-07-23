@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { getContainerInstance } from '../WeIde/services';
+import { getContainerInstance, onServerReady } from '../WeIde/services';
 import { useFileStore } from '../WeIde/stores/fileStore';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
@@ -64,14 +64,18 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
   /* -------- URL du serveur de dev (WebContainer) -------- */
   useEffect(() => {
     let mounted = true;
+    let unsubscribe: (() => void) | undefined;
     (async () => {
-      const instance = await getContainerInstance();
-      instance?.on('server-ready', (_port, serverUrl) => {
+      await getContainerInstance();
+      if (!mounted) return;
+      // Rappel immédiat avec la dernière URL connue si le serveur tourne déjà.
+      unsubscribe = onServerReady((_port, serverUrl) => {
         if (mounted) setUrl(serverUrl);
       });
     })();
     return () => {
       mounted = false;
+      unsubscribe?.();
     };
   }, []);
 
