@@ -453,7 +453,7 @@
     "cancel": "Cancel"
   },
   "editMode": {
-    "hint": "Click to select · double-click to edit text · drag to reorder · Del to delete",
+    "hint": "Click to select · Shift-click for multi · dbl-click to edit · drag to reorder · Del to delete",
     "noSelection": "Select an element in the preview to edit it.",
     "deselect": "Deselect",
     "text": "Text",
@@ -472,6 +472,12 @@
     "delete": "Delete element",
     "deleteHint": "You can also press the Delete key on the selected element.",
     "reorderUnsupported": "This element can't be reordered here.",
-    "deleteUnsupported": "This element can't be deleted here (it is generated dynamically)."
+    "deleteUnsupported": "This element can't be deleted here (it is generated dynamically).",
+    "refresh": "Reload preview",
+    "multiSelected": "{{count}} selected",
+    "multiHint": "Shift/Ctrl-click to select several elements at once.",
+    "apply": "Apply",
+    "upload": "Upload an image",
+    "deleteSelection": "Delete selection ({{count}})"
   }
 }

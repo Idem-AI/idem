@@ -1,31 +1,14 @@
 import { useEffect, useState, useRef, Dispatch, SetStateAction } from 'react';
 import { getContainerInstance, onServerReady } from './WeIde/services';
-import { Smartphone, Tablet, Laptop, Monitor, ChevronDown } from 'lucide-react';
 // Supprimé l'import de findWeChatDevToolsPath car il n'existe plus
 import { useFileStore } from './WeIde/stores/fileStore';
 import { useTranslation } from 'react-i18next';
+import { SizeSelector, WINDOW_SIZES, type WindowSize } from './EditMode/ResponsiveViewport';
 
 interface PreviewIframeProps {
   setShowIframe: Dispatch<SetStateAction<string>>;
   isMinPrograme: boolean;
 }
-interface WindowSize {
-  name: string;
-  width: number | string;
-  height: number | string;
-  icon: React.ComponentType<{ size?: string | number }>;
-}
-const WINDOW_SIZES: WindowSize[] = [
-  { name: 'Desktop', width: '100%', height: '100%', icon: Monitor },
-  { name: 'Mobile', width: 375, height: 667, icon: Smartphone },
-  {
-    name: 'Tablet',
-    width: Number((768 / 1.5).toFixed(0)),
-    height: Number((1024 / 1.5).toFixed(0)),
-    icon: Tablet,
-  },
-  { name: 'Laptop', width: 1366, height: 768, icon: Laptop },
-];
 
 const PreviewIframe: React.FC<PreviewIframeProps> = ({ setShowIframe, isMinPrograme }) => {
   // Supprimé la référence à ipcRenderer qui n'existe plus dans la version web
@@ -38,7 +21,6 @@ const PreviewIframe: React.FC<PreviewIframeProps> = ({ setShowIframe, isMinProgr
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedSize, setSelectedSize] = useState<WindowSize>(WINDOW_SIZES[0]);
-  const [isWindowSizeDropdownOpen, setIsWindowSizeDropdownOpen] = useState(false);
   const [iframeLoaded, setIframeLoaded] = useState(false);
 
   useEffect(() => {
@@ -207,50 +189,8 @@ const PreviewIframe: React.FC<PreviewIframeProps> = ({ setShowIframe, isMinProgr
           <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
           <div className="w-3 h-3 rounded-full bg-green-500" onClick={openExternal}></div>
         </div>
-        <div className="relative">
-          <button
-            className="ml-2 p-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#2c2c2c] text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 flex items-center gap-2"
-            onClick={() => setIsWindowSizeDropdownOpen(!isWindowSizeDropdownOpen)}
-          >
-            <selectedSize.icon size={16} />
-            <ChevronDown size={16} />
-          </button>
-          {isWindowSizeDropdownOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-50"
-                onClick={() => setIsWindowSizeDropdownOpen(false)}
-              />
-              <div className="absolute top-8 left-0 mt-2 z-50 min-w-[240px] bg-white dark:bg-black rounded-xl shadow-2xl border border-[#E5E7EB] dark:border-[rgba(255,255,255,0.1)] overflow-hidden">
-                {WINDOW_SIZES.map((size) => (
-                  <button
-                    key={size.name}
-                    className="w-full px-4 py-3.5 text-left text-[#111827] dark:text-gray-300 text-sm whitespace-nowrap flex items-center gap-3 group hover:bg-[#F5EEFF] dark:hover:bg-gray-900 bg-white dark:bg-black"
-                    onClick={async () => {
-                      setSelectedSize(size);
-                      setIsWindowSizeDropdownOpen(false);
-                      if (isMinPrograme) {
-                        console.log(
-                          "La prévisualisation WeChat n'est pas disponible dans la version web"
-                        );
-                        // Code de prévisualisation web standard sera utilisé par défaut
-                      }
-                    }}
-                  >
-                    <size.icon size={20} />
-                    <div className="flex flex-col">
-                      <span className="font-medium group-hover:text-[#6D28D9] dark:group-hover:text-[#6D28D9] transition-colors duration-200">
-                        {size.name}
-                      </span>
-                      <span className="text-xs text-[#6B7280] dark:text-gray-400 group-hover:text-[#6D28D9] dark:group-hover:text-[#6D28D9] transition-colors duration-200">
-                        {size.width} × {size.height}
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
+        <div className="ml-2">
+          <SizeSelector value={selectedSize} onChange={setSelectedSize} />
         </div>
         <div className="flex-1 ml-4 flex items-center">
           <div className="px-3 py-1 rounded-md text-sm text-gray-800 dark:text-gray-50 border bg-gray-50 dark:bg-[#2c2c2c] border-gray-200 dark:border-black w-full truncate">

@@ -46,11 +46,11 @@ export interface MsgEnableEdit {
   enabled: boolean;
 }
 
-/** Le parent demande à l'agent de (dé)surligner / sélectionner par programme. */
+/** Le parent demande à l'agent de sélectionner par programme (tableau vide = désélection). */
 export interface MsgSetSelection {
   source: typeof IDEM_SOURCE;
   type: 'SET_SELECTION';
-  id: string | null;
+  ids: string[];
 }
 
 export type ParentToAgentMessage = MsgEnableEdit | MsgSetSelection;
@@ -90,7 +90,8 @@ export interface SelectedElementInfo {
 export interface MsgSelected {
   source: typeof IDEM_SOURCE;
   type: 'SELECTED';
-  element: SelectedElementInfo | null;
+  /** Éléments actuellement sélectionnés (0, 1 ou plusieurs). */
+  elements: SelectedElementInfo[];
 }
 
 /** Édition de texte en place validée. */
@@ -117,11 +118,11 @@ export interface MsgRequestImage {
   id: string;
 }
 
-/** L'utilisateur a demandé la suppression de l'élément (touche Suppr). */
-export interface MsgDeleteElement {
+/** L'utilisateur a demandé la suppression des éléments sélectionnés (touche Suppr). */
+export interface MsgDeleteElements {
   source: typeof IDEM_SOURCE;
-  type: 'DELETE_ELEMENT';
-  id: string;
+  type: 'DELETE_ELEMENTS';
+  ids: string[];
 }
 
 export type AgentToParentMessage =
@@ -130,7 +131,7 @@ export type AgentToParentMessage =
   | MsgTextEdit
   | MsgReorder
   | MsgRequestImage
-  | MsgDeleteElement;
+  | MsgDeleteElements;
 
 /* ------------------------------------------------------------------ */
 /* Type guards                                                         */
