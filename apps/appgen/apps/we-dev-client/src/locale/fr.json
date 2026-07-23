@@ -230,7 +230,8 @@
     "preview": "Aperçu",
     "apiTest": "APITest",
     "search_in_files": "Rechercher dans les fichiers...",
-    "diff": "diff"
+    "diff": "diff",
+    "edit": "Édition"
   },
   "header": {
     "download": "Télécharger le code",
@@ -450,5 +451,23 @@
     "connect_idem_title": "Connecter à un projet Idem",
     "connect_idem_subtitle": "Créer ou associer à un projet existant",
     "cancel": "Annuler"
+  },
+  "editMode": {
+    "hint": "Cliquez pour sélectionner · double-clic pour éditer le texte · glissez pour réordonner",
+    "noSelection": "Sélectionnez un élément dans l'aperçu pour le modifier.",
+    "deselect": "Désélectionner",
+    "text": "Texte",
+    "textHint": "Vous pouvez aussi double-cliquer sur le texte directement dans l'aperçu.",
+    "image": "Image (URL)",
+    "imagePrompt": "Nouvelle URL de l'image :",
+    "style": "Style",
+    "textColor": "Couleur du texte",
+    "background": "Arrière-plan",
+    "fontSize": "Taille de police",
+    "fontWeight": "Graisse",
+    "align": "Alignement",
+    "loadingAgent": "Préparation de l'éditeur…",
+    "injectFailed": "Impossible d'activer le mode Édition : {{reason}}",
+    "editFailed": "Modification non appliquée : {{reason}}"
   }
 }
