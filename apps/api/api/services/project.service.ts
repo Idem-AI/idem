@@ -37,6 +37,8 @@ class ProjectService {
       });
 
       let projectToCreate: Omit<ProjectModel, 'id' | 'createdAt' | 'updatedAt'> = {
+        isArchived: false,
+        archived: false,
         ...projectData,
         userId: userId,
       };
@@ -142,8 +144,15 @@ class ProjectService {
 
     try {
       const projects = await this.projectRepository.findAll(`users/${userId}/projects`);
-      logger.info(`Projects fetched for user ${userId}: ${projects.length}`);
-      return projects;
+      // Filter out soft-deleted / archived projects from user dashboard while guaranteeing backwards compatibility
+      // For legacy projects created prior to soft delete feature, isArchived/archived may be undefined/null (treated as active).
+      const activeProjects = projects.filter(
+        (p) => p.isArchived !== true && (p as any).archived !== true
+      );
+      logger.info(
+        `Projects fetched for user ${userId}: ${activeProjects.length} active (${projects.length} total)`
+      );
+      return activeProjects;
     } catch (error: any) {
       logger.error(`Error fetching projects for user ${userId} in service: ${error.message}`, {
         stack: error.stack,
@@ -178,15 +187,21 @@ class ProjectService {
 
   async deleteUserProject(userId: string, projectId: string): Promise<void> {
     if (!userId || !projectId) {
-      logger.error('User ID and Project ID are required for deletion.');
+      logger.error('User ID and Project ID are required for archiving.');
       throw new Error('User ID and Project ID are required.');
     }
 
     try {
-      const success = await this.projectRepository.delete(projectId, `users/${userId}/projects`);
-      if (success) {
-        logger.info(`Project ${projectId} deleted successfully for user ${userId} via repository`);
-        
+      // Soft delete: set isArchived: true & archived: true instead of hard deleting from database
+      const updatedProject = await this.projectRepository.update(
+        projectId,
+        { isArchived: true, archived: true, archivedAt: new Date() } as any,
+        `users/${userId}/projects`
+      );
+
+      if (updatedProject) {
+        logger.info(`Project ${projectId} archived successfully for user ${userId} via repository`);
+
         // Invalider le cache du projet dans Redis
         const projectCacheKey = `project_${userId}_${projectId}`;
         await cacheService.delete(projectCacheKey, { prefix: 'project' }).catch((err) => {
@@ -194,12 +209,12 @@ class ProjectService {
         });
       } else {
         logger.warn(
-          `Project ${projectId} not found for deletion or delete failed for user ${userId} via repository`
+          `Project ${projectId} not found for archiving or archive failed for user ${userId} via repository`
         );
       }
     } catch (error: any) {
       logger.error(
-        `Error deleting project ${projectId} for user ${userId} in service: ${error.message}`,
+        `Error archiving project ${projectId} for user ${userId} in service: ${error.message}`,
         { stack: error.stack, details: error }
       );
       throw error;

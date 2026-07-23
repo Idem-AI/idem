@@ -21,9 +21,12 @@ import { CookieService } from '../../../../shared/services/cookie.service';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { SafeHtmlPipe } from '../../../../shared/pipes/safe-html.pipe';
 
+import { NotificationService } from '../../../../shared/services/notification.service';
+import { AnalyticsService } from '../../../../shared/services/analytics.service';
+
 @Component({
   selector: 'app-projects-list',
-  imports: [Loader, AsyncPipe, DatePipe, ProjectCard, TranslateModule, SafeHtmlPipe],
+  imports: [Loader, ProjectCard, TranslateModule],
   templateUrl: './projects-list.html',
   styleUrl: './projects-list.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,6 +37,8 @@ export class ProjectsList implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
+  private readonly notificationService = inject(NotificationService);
+  private readonly analyticsService = inject(AnalyticsService);
 
   // Data signals and state
   userProjects$!: Observable<ProjectModel[]>;
@@ -46,6 +51,10 @@ export class ProjectsList implements OnInit {
   cookieService = inject(CookieService);
   @ViewChild('menu') menuRef!: ElementRef;
   protected readonly logoLoadErrors = signal<Record<string, boolean>>({});
+
+  // Deletion modal state
+  protected readonly projectToDelete = signal<ProjectModel | null>(null);
+  protected readonly isDeleting = signal(false);
 
   // UI States for UX controls
   protected readonly searchQuery = signal('');
@@ -246,5 +255,55 @@ export class ProjectsList implements OnInit {
 
   openCreateProject() {
     this.router.navigate(['/create-project']);
+  }
+
+  protected openDeleteModal(project: ProjectModel) {
+    this.projectToDelete.set(project);
+  }
+
+  protected closeDeleteModal() {
+    if (this.isDeleting()) return;
+    this.projectToDelete.set(null);
+  }
+
+  protected confirmDeleteProject() {
+    const project = this.projectToDelete();
+    if (!project || !project.id || this.isDeleting()) return;
+    const deletedId = project.id;
+
+    this.isDeleting.set(true);
+    this.projectService.deleteProject(deletedId).subscribe({
+      next: () => {
+        // Update local project list signal
+        this.allProjects.update((projects) => projects.filter((p) => p.id !== deletedId));
+        this.projectCount.update((count) => Math.max(0, count - 1));
+        this.recentProjects.update((recent) => recent.filter((p) => p.id !== deletedId));
+
+        // Clear active project cookie if deleted
+        if (this.cookieService.get('projectId') === deletedId) {
+          this.cookieService.remove('projectId');
+        }
+
+        // Track analytics event
+        this.analyticsService.trackProjectDeleted({ project_id: deletedId });
+
+        // Notification toast feedback
+        this.notificationService.showSuccess({
+          title: 'Projet supprimé',
+          message: `Le projet "${project.name}" a été supprimé avec succès.`,
+        });
+
+        this.isDeleting.set(false);
+        this.projectToDelete.set(null);
+      },
+      error: (error) => {
+        console.error('Error deleting project:', error);
+        this.notificationService.showError({
+          title: 'Erreur',
+          message: `Impossible de supprimer le projet. Veuillez réessayer.`,
+        });
+        this.isDeleting.set(false);
+      },
+    });
   }
 }
