@@ -13,6 +13,8 @@ export const {
 
 // Container instance exports
 export const getContainerInstance = webContainer.getWebContainerInstance;
+export const onServerReady = webContainer.onServerReady;
+export const getLastServerUrl = webContainer.getLastServerUrl;
 
 // Export types and constants
 export type { CommandResult } from './webcontainer/types';

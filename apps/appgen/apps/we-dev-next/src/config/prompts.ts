@@ -113,7 +113,21 @@ REQUIRED FILES IN ORDER:
 
 5. vite.config.js - React plugin configuration
 
-6. index.html - Root HTML with proper meta tags
+6. index.html - Root HTML. It MUST contain BOTH the mount node <div id="root"></div>
+   AND the module script that bootstraps the app. Without the <script> tag the page
+   renders BLANK (main.jsx never runs). Exact required structure:
+   <!DOCTYPE html>
+   <html lang="en">
+     <head>
+       <meta charset="UTF-8" />
+       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+       <title>...</title>
+     </head>
+     <body>
+       <div id="root"></div>
+       <script type="module" src="/src/main.jsx"></script>
+     </body>
+   </html>
 
 7. src/main.jsx - Import styles:
    import React from 'react'
@@ -149,6 +163,9 @@ OUTPUT FORMAT:
 IMPORTANT RULES:
 1. NEVER run project initialization commands (create-vite, create-react-app, etc.)
 2. ALWAYS create package.json FIRST with ALL dependencies
+2b. index.html MUST include <script type="module" src="/src/main.jsx"></script> inside
+    <body> (right after <div id="root"></div>). Omitting it produces a BLANK page with no
+    console error. This is mandatory for every project.
 3. ALWAYS configure TailwindCSS properly (config files + CSS directives)
 4. Use professional folder structure (components/common, components/layout, etc.)
 5. Create reusable components, not monolithic files
@@ -166,6 +183,32 @@ CODE QUALITY STANDARDS:
 - Responsive design (mobile-first approach)
 - Accessibility (ARIA labels, semantic HTML)
 - Performance optimization (lazy loading, code splitting)
+
+VISUAL EDIT MODE FRIENDLINESS (IMPORTANT):
+The generated site is edited in a visual "Edit" mode where the user clicks elements
+on the live preview to change text, images, styles, reorder them, or delete them —
+and the change is written back into this JSX source automatically. Generate markup
+that maps cleanly to editable elements:
+
+1. TEXT IN LEAF ELEMENTS: put each piece of user-facing text directly inside a single
+   leaf element with NO nested element around the text. Prefer <h1>Title</h1> over
+   <h1><span>Title</span></h1>. A leaf whose only child is text is inline-editable;
+   text wrapped in extra spans/divs is not.
+2. EXPLICIT SIBLING BLOCKS: for a small, fixed set of presentational blocks the user
+   is likely to rearrange or remove — hero, feature cards, testimonials, pricing tiers,
+   steps, gallery items — write them as explicit sibling JSX elements (repeat the block),
+   NOT via {array.map(...)}. Elements produced by .map() or by {condition && <X/>} cannot
+   be individually reordered or deleted in Edit mode. Use .map() only for genuinely
+   data-driven or long/unbounded lists.
+3. DIRECT CHILDREN: keep these blocks as direct children of their container (a plain
+   <section>/<div>). Do not wrap each block in an extra Fragment or a one-off wrapper
+   component — the editor matches siblings by their real DOM parent.
+4. REAL <img> TAGS: use standard <img src="..." alt="..." /> for content images (not CSS
+   background-image), so they are selectable and replaceable in Edit mode.
+5. SIMPLE className: on presentational leaf elements, keep className as a plain string
+   literal when reasonable (avoid clsx/cn()/template-literal classNames there).
+6. Keep JSX well-indented with one element per line — it keeps the visual edits' code
+   output clean.
 
 TARGET AUDIENCE - SUB-SAHARAN AFRICA (CRITICAL):
 This platform primarily targets Sub-Saharan Africa. ALL generated content MUST reflect this:
