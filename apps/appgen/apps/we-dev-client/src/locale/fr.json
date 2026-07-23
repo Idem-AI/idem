@@ -501,6 +501,10 @@
     "transform": "Casse",
     "fontStyle": "Style",
     "width": "Largeur",
-    "height": "Hauteur"
+    "height": "Hauteur",
+    "undo": "Annuler",
+    "redo": "Rétablir",
+    "objectPosition": "Position",
+    "opacity": "Opacité"
   }
 }

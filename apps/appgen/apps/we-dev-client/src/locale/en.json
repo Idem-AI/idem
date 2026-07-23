@@ -501,6 +501,10 @@
     "transform": "Transform",
     "fontStyle": "Style",
     "width": "Width",
-    "height": "Height"
+    "height": "Height",
+    "undo": "Undo",
+    "redo": "Redo",
+    "objectPosition": "Position",
+    "opacity": "Opacity"
   }
 }
