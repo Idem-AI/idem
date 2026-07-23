@@ -8,6 +8,7 @@ import { ISectionResult } from '../services/common/generic.service';
 import { projectService } from '../services/project.service';
 import { ResearchStreamEvent } from '../services/research/research.types';
 import { getRequestLanguage } from '../utils/request-language';
+import { sectionEditingService } from '../services/common/section-editing.service';
 
 // Create instances of the services
 const promptService = new PromptService();
@@ -220,7 +221,12 @@ export const saveBusinessPlanSectionsController = async (
       return;
     }
 
-    const updated = await businessPlanService.saveSections(userId, projectId as string, sections);
+    const updated = await sectionEditingService.saveSections(
+      userId,
+      projectId as string,
+      'businessPlan',
+      sections
+    );
     if (!updated) {
       res.status(404).json({ message: 'Business plan not found for the project' });
       return;
@@ -263,9 +269,10 @@ export const aiEditBusinessPlanSectionController = async (
       return;
     }
 
-    const result = await businessPlanService.aiEditSection(
+    const result = await sectionEditingService.aiEditSection(
       userId,
       projectId as string,
+      'businessPlan',
       sectionId as string,
       instruction,
       getRequestLanguage()
