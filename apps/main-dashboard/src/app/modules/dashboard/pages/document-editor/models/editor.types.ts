@@ -53,6 +53,12 @@ export interface ChartConfigLite {
   legend?: boolean;
 }
 
+/** Un attribut HTML brut de l'élément (édition générique « tout paramètre »). */
+export interface EditorAttribute {
+  name: string;
+  value: string;
+}
+
 /** Infos de l'élément actuellement sélectionné dans l'iframe. */
 export interface EditorSelection {
   sectionId: string;
@@ -68,6 +74,8 @@ export interface EditorSelection {
   siblingCount: number;
   textContent: string;
   style: ElementStyle;
+  /** Tous les attributs HTML de l'élément (class, style, src, data-*, …). */
+  attributes: EditorAttribute[];
   chart?: ChartConfigLite;
 }
 
@@ -98,6 +106,9 @@ export type IframeMessage =
 export type HostMessage =
   | { source: typeof HOST_TO_IFRAME; type: 'apply-style'; sectionId: string; path: string; style: ElementStyle }
   | { source: typeof HOST_TO_IFRAME; type: 'apply-chart'; sectionId: string; path: string; config: ChartConfigLite }
+  | { source: typeof HOST_TO_IFRAME; type: 'apply-attr'; sectionId: string; path: string; name: string; value: string | null }
+  | { source: typeof HOST_TO_IFRAME; type: 'move-node'; sectionId: string; path: string; toIndex: number }
+  | { source: typeof HOST_TO_IFRAME; type: 'remove-node'; sectionId: string; path: string }
   | { source: typeof HOST_TO_IFRAME; type: 'select-path'; sectionId: string; path: string }
   | { source: typeof HOST_TO_IFRAME; type: 'clear-selection' }
   | { source: typeof HOST_TO_IFRAME; type: 'set-theme'; dark: boolean };

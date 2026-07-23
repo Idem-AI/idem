@@ -2406,6 +2406,13 @@
           "title": "Could not load",
           "subtitle": "The document failed to load. Try again from the business plan page."
         }
+      },
+      "attrs": {
+        "heading": "Attributes",
+        "name": "Name",
+        "value": "Value",
+        "add": "Add",
+        "remove": "Remove attribute"
       }
     }
   },

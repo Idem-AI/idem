@@ -179,6 +179,33 @@ const INTERACTION_RUNTIME = `
     else selBox.style.display = 'none';
   }
 
+  function readAttributes(el) {
+    var attrs = [];
+    for (var i = 0; i < el.attributes.length; i++) {
+      var a = el.attributes[i];
+      if (a.name === 'contenteditable') continue;
+      attrs.push({ name: a.name, value: a.value });
+    }
+    return attrs;
+  }
+
+  function buildSelection(el, sectionEl) {
+    var canvas = chartCanvasIn(el);
+    return {
+      sectionId: sectionEl.getAttribute('data-section-id'),
+      path: pathOf(el, sectionEl),
+      tag: el.tagName.toLowerCase(),
+      isTextLeaf: isTextLeaf(el),
+      isChart: !!canvas,
+      index: Array.prototype.indexOf.call(el.parentElement.children, el),
+      siblingCount: el.parentElement.children.length,
+      textContent: (el.textContent || '').trim().slice(0, 400),
+      style: readStyle(el),
+      attributes: readAttributes(el),
+      chart: canvas ? chartLite(canvas) : undefined
+    };
+  }
+
   function select(el, notify) {
     if (editingEl && editingEl !== el) commitEdit();
     selectedEl = el;
@@ -187,22 +214,7 @@ const INTERACTION_RUNTIME = `
     if (notify === false) return;
     var sectionEl = sectionOf(el);
     if (!sectionEl) return;
-    var canvas = chartCanvasIn(el);
-    post({
-      type: 'select',
-      selection: {
-        sectionId: sectionEl.getAttribute('data-section-id'),
-        path: pathOf(el, sectionEl),
-        tag: el.tagName.toLowerCase(),
-        isTextLeaf: isTextLeaf(el),
-        isChart: !!canvas,
-        index: Array.prototype.indexOf.call(el.parentElement.children, el),
-        siblingCount: el.parentElement.children.length,
-        textContent: (el.textContent || '').trim().slice(0, 400),
-        style: readStyle(el),
-        chart: canvas ? chartLite(canvas) : undefined
-      }
-    });
+    post({ type: 'select', selection: buildSelection(el, sectionEl) });
   }
 
   function clearSelection() {
@@ -237,36 +249,64 @@ const INTERACTION_RUNTIME = `
     place(selBox, el);
   }
 
-  /* ----- Réordonnancement par glisser (parmi les frères) ----- */
+  /* ----- Glisser-déposer LIVE (façon Figma) parmi les frères ----- */
   var drag = null;
+  var justDragged = false;
   var indicator = document.createElement('div');
-  indicator.style.cssText = 'position:absolute;height:3px;background:#1447e6;border-radius:3px;display:none;z-index:2147483001;box-shadow:0 0 6px rgba(20,71,230,.8);';
+  indicator.setAttribute('data-idem-ui', '');
+  indicator.style.cssText = 'position:absolute;height:3px;background:#1447e6;border-radius:3px;display:none;z-index:2147483001;box-shadow:0 0 8px rgba(20,71,230,.9);pointer-events:none;';
   layer.appendChild(indicator);
 
-  function onHandleDown(e) {
-    if (!selectedEl) return;
-    var parent = selectedEl.parentElement;
+  function beginDrag(el, e) {
+    var parent = el.parentElement;
     if (!parent) return;
-    e.preventDefault();
-    drag = { el: selectedEl, parent: parent, from: Array.prototype.indexOf.call(parent.children, selectedEl), to: -1 };
-    selectedEl.style.opacity = '0.4';
+    drag = {
+      el: el, parent: parent,
+      from: Array.prototype.indexOf.call(parent.children, el),
+      to: -1, started: false,
+      startX: e.clientX, startY: e.clientY, ghost: null
+    };
     window.addEventListener('pointermove', onDragMove, true);
     window.addEventListener('pointerup', onDragUp, true);
   }
 
+  function startDragVisual(e) {
+    drag.started = true;
+    var r = drag.el.getBoundingClientRect();
+    var ghost = drag.el.cloneNode(true);
+    ghost.setAttribute('data-idem-ui', '');
+    ghost.style.cssText += ';position:fixed;margin:0;left:' + (e.clientX - 12) + 'px;top:' + (e.clientY - 12) + 'px;width:' + r.width + 'px;height:' + r.height + 'px;pointer-events:none;opacity:.92;z-index:2147483003;box-shadow:0 16px 40px rgba(0,0,0,.4);transform:scale(.5);transform-origin:top left;background:#fff;border-radius:4px;overflow:hidden;';
+    document.body.appendChild(ghost);
+    drag.ghost = ghost;
+    drag.el.style.outline = '2px dashed rgba(20,71,230,.5)';
+    drag.el.style.opacity = '0.35';
+    hoverBox.style.display = 'none';
+    selBox.style.display = 'none';
+    handle.style.display = 'none';
+    document.body.style.cursor = 'grabbing';
+  }
+
   function onDragMove(e) {
     if (!drag) return;
+    if (!drag.started) {
+      if (Math.abs(e.clientX - drag.startX) + Math.abs(e.clientY - drag.startY) < 5) return;
+      startDragVisual(e);
+    }
+    drag.ghost.style.left = (e.clientX - 12) + 'px';
+    drag.ghost.style.top = (e.clientY - 12) + 'px';
     var kids = drag.parent.children;
     var y = e.clientY;
     var to = kids.length;
     for (var i = 0; i < kids.length; i++) {
+      if (kids[i] === drag.el || kids[i].hasAttribute('data-idem-ui')) continue;
       var r = kids[i].getBoundingClientRect();
       if (y < r.top + r.height / 2) { to = i; break; }
     }
     drag.to = to;
-    var refRect;
-    if (to >= kids.length) { refRect = kids[kids.length - 1].getBoundingClientRect(); indicator.style.top = (refRect.bottom + window.scrollY) + 'px'; }
-    else { refRect = kids[to].getBoundingClientRect(); indicator.style.top = (refRect.top + window.scrollY) + 'px'; }
+    var refRect, top;
+    if (to >= kids.length) { refRect = kids[kids.length - 1].getBoundingClientRect(); top = refRect.bottom; }
+    else { refRect = kids[to].getBoundingClientRect(); top = refRect.top; }
+    indicator.style.top = (top + window.scrollY - 1) + 'px';
     indicator.style.left = (refRect.left + window.scrollX) + 'px';
     indicator.style.width = refRect.width + 'px';
     indicator.style.display = 'block';
@@ -276,17 +316,32 @@ const INTERACTION_RUNTIME = `
     window.removeEventListener('pointermove', onDragMove, true);
     window.removeEventListener('pointerup', onDragUp, true);
     indicator.style.display = 'none';
+    document.body.style.cursor = '';
     if (!drag) return;
     var d = drag; drag = null;
+    if (d.ghost) d.ghost.remove();
     d.el.style.opacity = '';
-    // d.to = créneau d'insertion (0..len). Conversion en index post-suppression.
+    d.el.style.outline = '';
+    if (!d.started) return; // simple clic, pas un glissement
+    justDragged = true;
+    setTimeout(function () { justDragged = false; }, 0);
     var toIndex = d.to > d.from ? d.to - 1 : d.to;
-    if (d.to < 0 || toIndex === d.from) { place(selBox, d.el); return; }
+    if (d.to < 0 || toIndex === d.from) { select(d.el, true); return; }
+    // Déplacement LIVE dans le DOM (aucun rechargement de l'iframe).
+    d.parent.removeChild(d.el);
+    var ref = d.parent.children[toIndex] || null;
+    d.parent.insertBefore(d.el, ref);
     var sectionEl = sectionOf(d.parent);
-    var parentPath = pathOf(d.parent, sectionEl);
-    // Pas de déplacement live : l'hôte applique la mutation et re-render (resync des chemins).
-    post({ type: 'reorder', sectionId: sectionEl.getAttribute('data-section-id'), parentPath: parentPath, fromIndex: d.from, toIndex: toIndex });
+    post({ type: 'reorder', sectionId: sectionEl.getAttribute('data-section-id'), parentPath: pathOf(d.parent, sectionEl), fromIndex: d.from, toIndex: toIndex });
+    select(d.el, true);
   }
+
+  // Démarrage d'un glissement en pressant l'élément déjà sélectionné (seuil de 5px).
+  document.addEventListener('pointerdown', function (e) {
+    if (editingEl || drag) return;
+    if (e.target.closest && e.target.closest('[data-idem-ui]')) return;
+    if (selectedEl && e.target === selectedEl && sectionOf(selectedEl)) beginDrag(selectedEl, e);
+  }, true);
 
   /* ----- Événements globaux ----- */
   document.addEventListener('mousemove', function (e) {
@@ -299,6 +354,7 @@ const INTERACTION_RUNTIME = `
   }, true);
 
   document.addEventListener('click', function (e) {
+    if (justDragged) { justDragged = false; e.preventDefault(); e.stopPropagation(); return; }
     var el = e.target;
     if (el.closest && el.closest('[data-idem-ui]')) return;
     if (editingEl && el === editingEl) return;
@@ -345,28 +401,31 @@ const INTERACTION_RUNTIME = `
       if (node === selectedEl) place(selBox, node);
     } else if (m.type === 'apply-chart') {
       applyChart(node, m.config);
+    } else if (m.type === 'apply-attr') {
+      if (m.value === null || m.value === undefined) node.removeAttribute(m.name);
+      else node.setAttribute(m.name, m.value);
+      if (node === selectedEl) {
+        place(selBox, node);
+        post({ type: 'select', selection: buildSelection(node, sectionEl) });
+      }
+    } else if (m.type === 'move-node') {
+      var parent = node.parentElement;
+      if (parent) {
+        parent.removeChild(node);
+        var ref = parent.children[m.toIndex] || null;
+        parent.insertBefore(node, ref);
+        select(node, true);
+      }
+    } else if (m.type === 'remove-node') {
+      if (node === selectedEl) { selectedEl = null; selBox.style.display = 'none'; handle.style.display = 'none'; }
+      node.remove();
+      post({ type: 'deselect' });
     } else if (m.type === 'select-path') {
       select(node, false);
       node.scrollIntoView({ behavior: 'smooth', block: 'center' });
       post({ type: 'select', selection: buildSelection(node, sectionEl) });
     }
   });
-
-  function buildSelection(el, sectionEl) {
-    var canvas = chartCanvasIn(el);
-    return {
-      sectionId: sectionEl.getAttribute('data-section-id'),
-      path: pathOf(el, sectionEl),
-      tag: el.tagName.toLowerCase(),
-      isTextLeaf: isTextLeaf(el),
-      isChart: !!canvas,
-      index: Array.prototype.indexOf.call(el.parentElement.children, el),
-      siblingCount: el.parentElement.children.length,
-      textContent: (el.textContent || '').trim().slice(0, 400),
-      style: readStyle(el),
-      chart: canvas ? chartLite(canvas) : undefined
-    };
-  }
 
   function cssEscape(s) { return String(s).replace(/["\\\\]/g, '\\\\$&'); }
 
@@ -410,8 +469,14 @@ const INTERACTION_RUNTIME = `
   handle.setAttribute('aria-hidden', 'true');
   handle.style.cssText = 'position:absolute;display:none;width:22px;height:22px;border:none;border-radius:6px;background:#1447e6;color:#fff;cursor:grab;pointer-events:auto;z-index:2147483002;box-shadow:0 2px 6px rgba(0,0,0,.3);font-size:12px;line-height:22px;text-align:center;';
   handle.textContent = '\\u2195';
+  handle.title = 'Glisser pour déplacer';
   layer.appendChild(handle);
-  handle.addEventListener('pointerdown', onHandleDown);
+  handle.addEventListener('pointerdown', function (e) {
+    if (!selectedEl) return;
+    e.preventDefault();
+    e.stopPropagation();
+    beginDrag(selectedEl, e);
+  });
 
   var _place = place;
   place = function (box, el) {

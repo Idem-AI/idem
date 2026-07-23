@@ -1067,19 +1067,12 @@ export class PromptService {
   public getCleanAIText(response: any): string {
     logger.debug('Attempting to clean AI text response.');
     if (typeof response === 'string') {
-      return response
-        .replace(/^```(json)?\s*/i, '')
-        .replace(/```$/g, '')
-        .trim();
+      return this.stripModelFormatting(response);
     }
 
     if (response && typeof response.text === 'function') {
       try {
-        const text = response.text();
-        return text
-          .replace(/^```(json)?\s*/i, '')
-          .replace(/```$/g, '')
-          .trim();
+        return this.stripModelFormatting(response.text());
       } catch (e: any) {
         logger.warn(
           `Failed to extract text using response.text(). Trying older structure. Error: ${e.message}`,
@@ -1089,10 +1082,22 @@ export class PromptService {
     }
 
     const raw = response?.response?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    return this.stripModelFormatting(raw);
+  }
 
-    return raw
-      .replace(/^```(json)?\s*/i, '')
-      .replace(/```$/g, '')
+  /**
+   * Retire les artefacts de formatage laissés par les modèles :
+   *  - clôtures de bloc de code ouvrantes (```lang) et fermantes ;
+   *  - préfixe de langage nu en tête ("html" / "markdown"), qui sinon s'affiche
+   *    en texte brut au-dessus des sections (y compris dans le PDF).
+   * Sans effet sur du JSON (qui commence par { ou [).
+   */
+  private stripModelFormatting(text: string): string {
+    if (typeof text !== 'string') return text;
+    return text
+      .replace(/^```[a-zA-Z]*\s*/, '')
+      .replace(/```\s*$/g, '')
+      .replace(/^(?:html|markdown)\b[ \t]*\r?\n?/i, '')
       .trim();
   }
 }

@@ -66,6 +66,13 @@
         "removeSeries": "Remove series",
         "value": "Value"
       },
+      "attrs": {
+        "heading": "Attributes",
+        "name": "Name",
+        "value": "Value",
+        "add": "Add",
+        "remove": "Remove attribute"
+      },
       "ai": {
         "title": "AI editing",
         "placeholder": "Describe the change you want for this section…",

@@ -138,7 +138,7 @@ const PIE_LIKE = new Set(['pie', 'doughnut', 'polarArea']);
                     <input
                       type="number"
                       class="ce-input !h-8 !text-xs"
-                      [value]="ds.data[$index] ?? 0"
+                      [value]="ds.data[$index]"
                       (input)="setValue(dsIndex($index, ds), $index, $any($event.target).value)"
                     />
                   </label>
