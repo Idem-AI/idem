@@ -65,24 +65,40 @@ export interface MsgAgentReady {
   type: 'AGENT_READY';
 }
 
+/**
+ * Type d'élément reconnu automatiquement (pilote les contrôles affichés dans le
+ * panneau, façon Elementor).
+ */
+export type ElementKind =
+  | 'image'
+  | 'link'
+  | 'button'
+  | 'heading'
+  | 'text'
+  | 'icon'
+  | 'input'
+  | 'list'
+  | 'container'
+  | 'generic';
+
 /** Informations de l'élément survolé/sélectionné, remontées pour l'UI parent. */
 export interface SelectedElementInfo {
   id: string;
   tag: string;
+  /** Type reconnu (image, lien, bouton, titre, conteneur…). */
+  kind: ElementKind;
   /** true si l'élément ne contient que du texte (édition en place possible). */
   textEditable: boolean;
   text: string;
   /** src si c'est une image. */
   src?: string;
   className: string;
-  /** Styles calculés utiles au panneau de propriétés. */
-  computed: {
-    color: string;
-    fontSize: string;
-    fontWeight: string;
-    textAlign: string;
-    backgroundColor: string;
-  };
+  /** Attributs HTML pertinents (href, target, alt, placeholder, type…). */
+  attrs: Record<string, string>;
+  /** true si l'élément porte une image de fond CSS (background-image: url(...)). */
+  hasBackgroundImage: boolean;
+  /** Styles calculés (clés camelCase = propriétés CSS), pour préremplir les contrôles. */
+  computed: Record<string, string>;
   /** Rectangle dans le repère de l'iframe (pour positionner la barre d'outils). */
   rect: { top: number; left: number; width: number; height: number };
 }
@@ -149,16 +165,16 @@ export function isAgentMessage(data: unknown): data is AgentToParentMessage {
 /* Édition de propriété de style (parent -> astEdit)                   */
 /* ------------------------------------------------------------------ */
 
-export type StyleProperty =
-  | 'color'
-  | 'fontSize'
-  | 'fontWeight'
-  | 'textAlign'
-  | 'backgroundColor';
+/**
+ * Nom de propriété CSS en camelCase (ex. "color", "fontSize", "borderRadius",
+ * "flexDirection", "objectFit", "backgroundImage"…). Écrit tel quel dans l'objet
+ * `style` inline du JSX, donc n'importe quelle propriété CSS est acceptée.
+ */
+export type StyleProperty = string;
 
 export interface StyleEdit {
   id: string;
   property: StyleProperty;
-  /** Valeur brute : ex. "#ff0000", "18px", "bold", "center". */
+  /** Valeur brute : ex. "#ff0000", "18px", "bold", "center", "url(\"…\")". */
   value: string;
 }

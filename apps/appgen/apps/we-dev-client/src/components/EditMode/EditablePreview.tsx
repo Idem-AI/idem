@@ -9,23 +9,28 @@ import {
   AlignRight,
   Type,
   Image as ImageIcon,
+  Link as LinkIcon,
   MousePointerClick,
   Trash2,
   RefreshCw,
   Upload,
+  Palette,
+  LayoutGrid,
+  Move,
+  Ruler,
 } from 'lucide-react';
 import {
   IDEM_SOURCE,
   decodeIdemId,
   isAgentMessage,
   type SelectedElementInfo,
-  type StyleProperty,
   type ParentToAgentMessage,
 } from './idemProtocol';
 import {
   editText,
   editImageSrc,
   editStyle,
+  editAttribute,
   reorderSiblings,
   deleteElement,
   type EditResult,
@@ -34,22 +39,23 @@ import { buildInjectPlan, buildRemovePlan, type InstrumentationPlan } from './in
 import { SizeSelector, viewportStyle, WINDOW_SIZES, type WindowSize } from './ResponsiveViewport';
 
 interface EditablePreviewProps {
-  /** true quand l'onglet Edit est actif (déclenche l'instrumentation). */
   active: boolean;
 }
 
-/** rgb(a) -> #rrggbb pour alimenter <input type="color">. */
-function rgbToHex(rgb: string): string {
+/* ---------- helpers de lecture des valeurs calculées ---------- */
+function rgbToHex(rgb: string | undefined): string {
+  if (!rgb) return '#000000';
   const m = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
   if (!m) return '#000000';
   const hex = (n: string) => Number(n).toString(16).padStart(2, '0');
   return `#${hex(m[1])}${hex(m[2])}${hex(m[3])}`;
 }
-
-function pxToNumber(v: string): number {
+function toPx(v: string | undefined): number | undefined {
+  if (!v) return undefined;
   const n = Number.parseFloat(v);
-  return Number.isFinite(n) ? Math.round(n) : 16;
+  return Number.isFinite(n) ? Math.round(n) : undefined;
 }
+const cval = (info: SelectedElementInfo | null, key: string) => info?.computed?.[key];
 
 const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
   const { t } = useTranslation();
@@ -64,12 +70,10 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
   const primary = selected[0] ?? null;
   const multi = selected.length > 1;
 
-  // Refs pour les handlers asynchrones (postMessage).
   const selectedIdsRef = useRef<string[]>([]);
   selectedIdsRef.current = selected.map((e) => e.id);
   const injectedRef = useRef(false);
 
-  /* -------- postMessage vers l'agent -------- */
   const sendToAgent = useCallback((msg: ParentToAgentMessage) => {
     iframeRef.current?.contentWindow?.postMessage(msg, '*');
   }, []);
@@ -78,7 +82,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
     if (iframeRef.current) iframeRef.current.src = iframeRef.current.src;
   }, []);
 
-  /* -------- URL du serveur de dev (WebContainer) -------- */
+  /* -------- URL du serveur de dev -------- */
   useEffect(() => {
     let mounted = true;
     let unsubscribe: (() => void) | undefined;
@@ -95,7 +99,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
     };
   }, []);
 
-  /* -------- Injection / retrait de l'instrumentation selon `active` -------- */
+  /* -------- Injection / retrait de l'instrumentation -------- */
   useEffect(() => {
     const applyPlan = async (plan: InstrumentationPlan) => {
       const currentFiles = useFileStore.getState().files;
@@ -107,7 +111,6 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
         if (path in useFileStore.getState().files) await deleteFile(path);
       }
     };
-
     if (active) {
       const plan = buildInjectPlan(useFileStore.getState().files);
       if (!plan.ok) {
@@ -120,13 +123,12 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
       injectedRef.current = false;
       setAgentReady(false);
       setSelected([]);
-      const plan = buildRemovePlan(useFileStore.getState().files);
-      applyPlan(plan);
+      applyPlan(buildRemovePlan(useFileStore.getState().files));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
-  /* -------- Application d'un résultat d'édition (un seul élément) -------- */
+  /* -------- Application d'un résultat (mono-élément) -------- */
   const applyResult = useCallback(
     async (
       filePath: string,
@@ -144,11 +146,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
     [updateContent, t]
   );
 
-  /**
-   * Édition par lot (multi-sélection). Regroupe par fichier et applique les édits
-   * du plus grand offset au plus petit : chaque édit ne décale que les offsets
-   * situés APRÈS lui, donc les offsets encore à traiter (plus petits) restent valides.
-   */
+  /* -------- Édition par lot (multi-sélection) -------- */
   const applyBatch = useCallback(
     async (
       ids: string[],
@@ -183,48 +181,43 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
     [applyBatch, t]
   );
 
-  /* -------- Réception des messages de l'agent -------- */
+  /* -------- Messages de l'agent -------- */
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       if (!isAgentMessage(event.data)) return;
       const msg = event.data;
-
       switch (msg.type) {
-        case 'AGENT_READY': {
+        case 'AGENT_READY':
           setAgentReady(true);
           sendToAgent({ source: IDEM_SOURCE, type: 'ENABLE_EDIT', enabled: true });
-          if (selectedIdsRef.current.length) {
+          if (selectedIdsRef.current.length)
             sendToAgent({ source: IDEM_SOURCE, type: 'SET_SELECTION', ids: selectedIdsRef.current });
-          }
           break;
-        }
-        case 'SELECTED': {
+        case 'SELECTED':
           setSelected(msg.elements);
           break;
-        }
         case 'TEXT_EDIT': {
           const ref = decodeIdemId(msg.id);
-          if (!ref) return;
-          applyResult(ref.filePath, editText(getContent(ref.filePath), ref.start, msg.text), {
-            keepSelection: true,
-          });
+          if (ref)
+            applyResult(ref.filePath, editText(getContent(ref.filePath), ref.start, msg.text), {
+              keepSelection: true,
+            });
           break;
         }
         case 'REORDER': {
           const ref = decodeIdemId(msg.id);
           const beforeRef = decodeIdemId(msg.beforeId);
-          if (!ref) return;
-          applyResult(
-            ref.filePath,
-            reorderSiblings(getContent(ref.filePath), ref.start, beforeRef ? beforeRef.start : null),
-            { keepSelection: false, softFailMessage: t('editMode.reorderUnsupported') }
-          );
+          if (ref)
+            applyResult(
+              ref.filePath,
+              reorderSiblings(getContent(ref.filePath), ref.start, beforeRef ? beforeRef.start : null),
+              { keepSelection: false, softFailMessage: t('editMode.reorderUnsupported') }
+            );
           break;
         }
-        case 'DELETE_ELEMENTS': {
+        case 'DELETE_ELEMENTS':
           deleteIds(msg.ids);
           break;
-        }
         case 'REQUEST_IMAGE': {
           const ref = decodeIdemId(msg.id);
           if (!ref) return;
@@ -241,56 +234,70 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
     return () => window.removeEventListener('message', onMessage);
   }, [sendToAgent, applyResult, deleteIds, getContent, t]);
 
-  /* -------- Handlers du panneau de propriétés -------- */
+  /* -------- Handlers du panneau -------- */
   const applyStyle = useCallback(
-    (property: StyleProperty, value: string) => {
+    (cssProp: string, value: string) => {
       if (!selected.length) return;
       if (selected.length === 1) {
         const ref = decodeIdemId(selected[0].id);
-        if (!ref) return;
-        applyResult(ref.filePath, editStyle(getContent(ref.filePath), ref.start, property, value), {
-          keepSelection: true,
-        });
+        if (ref)
+          applyResult(ref.filePath, editStyle(getContent(ref.filePath), ref.start, cssProp, value), {
+            keepSelection: true,
+          });
       } else {
-        applyBatch(selected.map((e) => e.id), (c, s) => editStyle(c, s, property, value));
+        applyBatch(selected.map((e) => e.id), (c, s) => editStyle(c, s, cssProp, value));
       }
     },
     [selected, applyResult, applyBatch, getContent]
   );
 
-  const applyTextFromPanel = useCallback(
+  const applyAttr = useCallback(
+    (name: string, value: string | null) => {
+      if (!primary) return;
+      const ref = decodeIdemId(primary.id);
+      if (ref)
+        applyResult(ref.filePath, editAttribute(getContent(ref.filePath), ref.start, name, value), {
+          keepSelection: true,
+        });
+    },
+    [primary, applyResult, getContent]
+  );
+
+  const applyText = useCallback(
     (text: string) => {
       if (!primary) return;
       const ref = decodeIdemId(primary.id);
-      if (!ref) return;
-      applyResult(ref.filePath, editText(getContent(ref.filePath), ref.start, text), {
-        keepSelection: true,
-      });
+      if (ref)
+        applyResult(ref.filePath, editText(getContent(ref.filePath), ref.start, text), {
+          keepSelection: true,
+        });
     },
     [primary, applyResult, getContent]
   );
 
-  const applyImageFromPanel = useCallback(
+  const applyImageUrl = useCallback(
     (src: string) => {
       if (!primary) return;
       const ref = decodeIdemId(primary.id);
-      if (!ref) return;
-      applyResult(ref.filePath, editImageSrc(getContent(ref.filePath), ref.start, src), {
-        keepSelection: true,
-      });
+      if (ref)
+        applyResult(ref.filePath, editImageSrc(getContent(ref.filePath), ref.start, src), {
+          keepSelection: true,
+        });
     },
     [primary, applyResult, getContent]
   );
 
-  const onUploadImage = useCallback(
-    (file: File) => {
+  const uploadImage = useCallback(
+    (file: File, asBackground: boolean) => {
       const reader = new FileReader();
       reader.onload = () => {
-        if (typeof reader.result === 'string') applyImageFromPanel(reader.result);
+        if (typeof reader.result !== 'string') return;
+        if (asBackground) applyStyle('backgroundImage', `url("${reader.result}")`);
+        else applyImageUrl(reader.result);
       };
       reader.readAsDataURL(file);
     },
-    [applyImageFromPanel]
+    [applyStyle, applyImageUrl]
   );
 
   const deselect = useCallback(() => {
@@ -298,9 +305,16 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
     sendToAgent({ source: IDEM_SOURCE, type: 'SET_SELECTION', ids: [] });
   }, [sendToAgent]);
 
+  const handlers: Handlers = {
+    onStyle: applyStyle,
+    onAttr: applyAttr,
+    onText: applyText,
+    onImageUrl: applyImageUrl,
+    onUpload: uploadImage,
+  };
+
   return (
     <div className="w-full h-full flex overflow-hidden bg-white dark:bg-[#1e1e1e]">
-      {/* Zone preview éditable */}
       <div className="flex-1 relative flex flex-col overflow-hidden">
         <div className="h-10 flex items-center gap-2 px-3 bg-[#f3f3f3] dark:bg-[#1a1a1a] border-b border-[#e4e4e4] dark:border-[#333]">
           <div className="flex items-center gap-1.5 text-xs text-[#6D28D9] dark:text-[#a78bfa] min-w-0">
@@ -345,7 +359,6 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
         </div>
       </div>
 
-      {/* Panneau de propriétés */}
       <aside className="w-72 shrink-0 border-l border-[#e4e4e4] dark:border-[#333] bg-[#fafafa] dark:bg-[#232323] flex flex-col overflow-y-auto">
         {selected.length === 0 ? (
           <div className="p-4 text-sm text-gray-500 dark:text-gray-400">
@@ -356,88 +369,19 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
           <div className="p-3 space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium px-2 py-0.5 rounded bg-[#6D28D9] text-white uppercase">
-                {multi ? t('editMode.multiSelected', { count: selected.length }) : primary?.tag}
+                {multi ? t('editMode.multiSelected', { count: selected.length }) : primary?.kind}
               </span>
               <button className="text-xs text-gray-500 hover:text-[#6D28D9]" onClick={deselect}>
                 {t('editMode.deselect')}
               </button>
             </div>
 
-            {/* Texte (mono-sélection uniquement) */}
-            {!multi && primary?.textEditable && (
-              <PanelSection icon={<Type size={14} />} title={t('editMode.text')}>
-                <textarea
-                  key={primary.id}
-                  defaultValue={primary.text}
-                  rows={3}
-                  className="w-full text-sm rounded border border-gray-300 dark:border-[#444] bg-white dark:bg-[#2c2c2c] p-2 text-gray-800 dark:text-gray-100 resize-y"
-                  onBlur={(e) => {
-                    if (e.target.value !== primary.text) applyTextFromPanel(e.target.value);
-                  }}
-                />
-                <p className="text-[11px] text-gray-400 mt-1">{t('editMode.textHint')}</p>
-              </PanelSection>
+            {multi ? (
+              <MultiControls onStyle={applyStyle} />
+            ) : (
+              primary && <SingleControls info={primary} handlers={handlers} />
             )}
 
-            {/* Image (mono-sélection uniquement) */}
-            {!multi && primary?.tag === 'img' && (
-              <PanelSection icon={<ImageIcon size={14} />} title={t('editMode.image')}>
-                {primary.src && (
-                  <div className="mb-2 rounded border border-gray-200 dark:border-[#444] overflow-hidden bg-[repeating-conic-gradient(#eee_0_25%,#fff_0_50%)] bg-[length:16px_16px]">
-                    <img
-                      src={primary.src}
-                      alt=""
-                      className="max-h-28 w-full object-contain"
-                    />
-                  </div>
-                )}
-                <div className="flex gap-1.5">
-                  <input
-                    key={primary.id}
-                    type="text"
-                    defaultValue={primary.src}
-                    placeholder="https://…"
-                    className="flex-1 min-w-0 text-sm rounded border border-gray-300 dark:border-[#444] bg-white dark:bg-[#2c2c2c] p-2 text-gray-800 dark:text-gray-100"
-                    onKeyDown={(e) => {
-                      const el = e.target as HTMLInputElement;
-                      if (e.key === 'Enter' && el.value && el.value !== primary.src)
-                        applyImageFromPanel(el.value);
-                    }}
-                    id="idem-img-url"
-                  />
-                  <button
-                    className="px-2 rounded bg-[#6D28D9] text-white text-xs hover:bg-[#5b21b6]"
-                    onClick={() => {
-                      const el = document.getElementById('idem-img-url') as HTMLInputElement | null;
-                      if (el && el.value && el.value !== primary.src) applyImageFromPanel(el.value);
-                    }}
-                  >
-                    {t('editMode.apply')}
-                  </button>
-                </div>
-                <label className="mt-2 flex items-center justify-center gap-2 px-3 py-2 rounded border border-dashed border-gray-300 dark:border-[#555] text-sm text-gray-600 dark:text-gray-300 cursor-pointer hover:border-[#6D28D9] hover:text-[#6D28D9]">
-                  <Upload size={14} />
-                  {t('editMode.upload')}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) onUploadImage(f);
-                      e.target.value = '';
-                    }}
-                  />
-                </label>
-              </PanelSection>
-            )}
-
-            {/* Style (mono + multi) */}
-            <PanelSection title={t('editMode.style')}>
-              <StyleControls info={multi ? null : primary} onApply={applyStyle} />
-            </PanelSection>
-
-            {/* Suppression */}
             <button
               className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded border border-red-300 dark:border-red-900/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 text-sm font-medium"
               onClick={() => deleteIds(selected.map((e) => e.id))}
@@ -453,92 +397,533 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
   );
 };
 
-/* ------------------------------------------------------------------ */
-/* Sous-composants                                                     */
-/* ------------------------------------------------------------------ */
+/* ================================================================== */
+/* Contrôles contextuels                                               */
+/* ================================================================== */
 
-const StyleControls: React.FC<{
-  info: SelectedElementInfo | null;
-  onApply: (property: StyleProperty, value: string) => void;
-}> = ({ info, onApply }) => {
-  const { t } = useTranslation();
-  const key = info?.id ?? 'multi';
+interface Handlers {
+  onStyle: (cssProp: string, value: string) => void;
+  onAttr: (name: string, value: string | null) => void;
+  onText: (text: string) => void;
+  onImageUrl: (src: string) => void;
+  onUpload: (file: File, asBackground: boolean) => void;
+}
+
+const CONTAINERS = ['container', 'list', 'generic'];
+
+const SingleControls: React.FC<{ info: SelectedElementInfo; handlers: Handlers }> = ({
+  info,
+  handlers,
+}) => {
+  const { onStyle, onAttr, onText, onImageUrl, onUpload } = handlers;
+  const kind = info.kind;
+  const allowBgImage = CONTAINERS.includes(kind) || info.hasBackgroundImage;
+
   return (
-    <div className="space-y-3">
-      <LabeledRow label={t('editMode.textColor')}>
-        <input
-          key={`c-${key}`}
-          type="color"
-          defaultValue={info ? rgbToHex(info.computed.color) : '#000000'}
-          className="w-8 h-8 rounded cursor-pointer bg-transparent"
-          onChange={(e) => onApply('color', e.target.value)}
+    <>
+      {/* Contenu texte */}
+      {info.textEditable && kind !== 'image' && kind !== 'icon' && (
+        <TextContent info={info} onText={onText} />
+      )}
+
+      {/* Image */}
+      {kind === 'image' && (
+        <ImageSection info={info} onImageUrl={onImageUrl} onUpload={onUpload} onStyle={onStyle} onAttr={onAttr} />
+      )}
+
+      {/* Lien */}
+      {(kind === 'link' || (kind === 'button' && info.attrs.href !== undefined)) && (
+        <LinkSection info={info} onAttr={onAttr} />
+      )}
+
+      {/* Champ de saisie */}
+      {kind === 'input' && (
+        <Section icon={<Type size={14} />} title="Placeholder">
+          <AttrInput info={info} name="placeholder" onAttr={onAttr} placeholder="…" />
+        </Section>
+      )}
+
+      {/* Icône */}
+      {kind === 'icon' && (
+        <>
+          <Section icon={<Palette size={14} />} title="Icon">
+            <ColorRow labelKey="editMode.textColor" cssProp="color" info={info} onStyle={onStyle} />
+          </Section>
+          <SizeSection info={info} onStyle={onStyle} />
+        </>
+      )}
+
+      {/* Typographie (texte, titres, liens, boutons, inputs) */}
+      {['heading', 'text', 'link', 'button', 'input'].includes(kind) && (
+        <TypographySection info={info} onStyle={onStyle} />
+      )}
+
+      {/* Mise en page (conteneurs / listes) */}
+      {CONTAINERS.includes(kind) && <LayoutSection info={info} onStyle={onStyle} />}
+
+      {/* Fond */}
+      {kind !== 'image' && kind !== 'icon' && (
+        <BackgroundSection
+          info={info}
+          onStyle={onStyle}
+          onUpload={onUpload}
+          allowImage={allowBgImage}
         />
-      </LabeledRow>
-      <LabeledRow label={t('editMode.background')}>
-        <input
-          key={`b-${key}`}
-          type="color"
-          defaultValue={info ? rgbToHex(info.computed.backgroundColor) : '#ffffff'}
-          className="w-8 h-8 rounded cursor-pointer bg-transparent"
-          onChange={(e) => onApply('backgroundColor', e.target.value)}
-        />
-      </LabeledRow>
-      <LabeledRow label={t('editMode.fontSize')}>
-        <input
-          key={`f-${key}`}
-          type="number"
-          min={8}
-          max={200}
-          defaultValue={info ? pxToNumber(info.computed.fontSize) : undefined}
-          placeholder="—"
-          className="w-20 text-sm rounded border border-gray-300 dark:border-[#444] bg-white dark:bg-[#2c2c2c] p-1 text-gray-800 dark:text-gray-100"
-          onBlur={(e) => {
-            if (e.target.value) onApply('fontSize', `${e.target.value}px`);
-          }}
-        />
-      </LabeledRow>
-      <LabeledRow label={t('editMode.fontWeight')}>
-        <select
-          key={`w-${key}`}
-          defaultValue={info?.computed.fontWeight}
-          className="text-sm rounded border border-gray-300 dark:border-[#444] bg-white dark:bg-[#2c2c2c] p-1 text-gray-800 dark:text-gray-100"
-          onChange={(e) => onApply('fontWeight', e.target.value)}
-        >
-          <option value="400">Normal</option>
-          <option value="500">Medium</option>
-          <option value="600">Semibold</option>
-          <option value="700">Bold</option>
-        </select>
-      </LabeledRow>
-      <LabeledRow label={t('editMode.align')}>
-        <div className="flex gap-1">
-          {(
-            [
-              ['left', AlignLeft],
-              ['center', AlignCenter],
-              ['right', AlignRight],
-            ] as const
-          ).map(([value, Icon]) => (
-            <button
-              key={value}
-              className="p-1.5 rounded border border-gray-300 dark:border-[#444] hover:bg-[#F5EEFF] dark:hover:bg-[#2c2c2c] text-gray-700 dark:text-gray-200"
-              onClick={() => onApply('textAlign', value)}
-              aria-label={value}
-            >
-              <Icon size={14} />
-            </button>
-          ))}
-        </div>
-      </LabeledRow>
-    </div>
+      )}
+
+      {/* Taille (image / conteneurs) */}
+      {(kind === 'image' || CONTAINERS.includes(kind)) && (
+        <SizeSection info={info} onStyle={onStyle} />
+      )}
+
+      {/* Espacement */}
+      <SpacingSection info={info} onStyle={onStyle} />
+    </>
   );
 };
 
-const PanelSection: React.FC<{
-  title: string;
-  icon?: React.ReactNode;
-  children: React.ReactNode;
-}> = ({ title, icon, children }) => (
+const MultiControls: React.FC<{ onStyle: (p: string, v: string) => void }> = ({ onStyle }) => (
+  <>
+    <TypographySection info={null} onStyle={onStyle} />
+    <BackgroundSection info={null} onStyle={onStyle} allowImage={false} />
+    <SpacingSection info={null} onStyle={onStyle} />
+  </>
+);
+
+/* ---------- sections ---------- */
+
+const TextContent: React.FC<{ info: SelectedElementInfo; onText: (t: string) => void }> = ({
+  info,
+  onText,
+}) => {
+  const { t } = useTranslation();
+  return (
+    <Section icon={<Type size={14} />} title={t('editMode.text')}>
+      <textarea
+        key={info.id}
+        defaultValue={info.text}
+        rows={3}
+        className="w-full text-sm rounded border border-gray-300 dark:border-[#444] bg-white dark:bg-[#2c2c2c] p-2 text-gray-800 dark:text-gray-100 resize-y"
+        onBlur={(e) => {
+          if (e.target.value !== info.text) onText(e.target.value);
+        }}
+      />
+      <p className="text-[11px] text-gray-400 mt-1">{t('editMode.textHint')}</p>
+    </Section>
+  );
+};
+
+const ImageSection: React.FC<{
+  info: SelectedElementInfo;
+  onImageUrl: (s: string) => void;
+  onUpload: (f: File, bg: boolean) => void;
+  onStyle: (p: string, v: string) => void;
+  onAttr: (n: string, v: string | null) => void;
+}> = ({ info, onImageUrl, onUpload, onStyle, onAttr }) => {
+  const { t } = useTranslation();
+  const inputId = `idem-img-${info.id}`;
+  return (
+    <Section icon={<ImageIcon size={14} />} title={t('editMode.image')}>
+      {info.src && (
+        <div className="mb-2 rounded border border-gray-200 dark:border-[#444] overflow-hidden bg-[repeating-conic-gradient(#eee_0_25%,#fff_0_50%)] bg-[length:16px_16px]">
+          <img src={info.src} alt="" className="max-h-28 w-full object-contain" />
+        </div>
+      )}
+      <div className="flex gap-1.5">
+        <input
+          id={inputId}
+          key={info.id}
+          type="text"
+          defaultValue={info.src}
+          placeholder="https://…"
+          className="flex-1 min-w-0 text-sm rounded border border-gray-300 dark:border-[#444] bg-white dark:bg-[#2c2c2c] p-2 text-gray-800 dark:text-gray-100"
+          onKeyDown={(e) => {
+            const el = e.target as HTMLInputElement;
+            if (e.key === 'Enter' && el.value && el.value !== info.src) onImageUrl(el.value);
+          }}
+        />
+        <button
+          className="px-2 rounded bg-[#6D28D9] text-white text-xs hover:bg-[#5b21b6]"
+          onClick={() => {
+            const el = document.getElementById(inputId) as HTMLInputElement | null;
+            if (el && el.value && el.value !== info.src) onImageUrl(el.value);
+          }}
+        >
+          {t('editMode.apply')}
+        </button>
+      </div>
+      <label className="mt-2 flex items-center justify-center gap-2 px-3 py-2 rounded border border-dashed border-gray-300 dark:border-[#555] text-sm text-gray-600 dark:text-gray-300 cursor-pointer hover:border-[#6D28D9] hover:text-[#6D28D9]">
+        <Upload size={14} />
+        {t('editMode.upload')}
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) onUpload(f, false);
+            e.target.value = '';
+          }}
+        />
+      </label>
+      <div className="mt-3 space-y-3">
+        <AttrRow labelKey="editMode.alt" info={info} name="alt" onAttr={onAttr} />
+        <SelectRow
+          labelKey="editMode.objectFit"
+          cssProp="objectFit"
+          info={info}
+          onStyle={onStyle}
+          options={['cover', 'contain', 'fill', 'none', 'scale-down']}
+        />
+      </div>
+    </Section>
+  );
+};
+
+const LinkSection: React.FC<{
+  info: SelectedElementInfo;
+  onAttr: (n: string, v: string | null) => void;
+}> = ({ info, onAttr }) => {
+  const { t } = useTranslation();
+  const newTab = info.attrs.target === '_blank';
+  return (
+    <Section icon={<LinkIcon size={14} />} title={t('editMode.link')}>
+      <AttrInput info={info} name="href" onAttr={onAttr} placeholder="https://… or /page" />
+      <label className="flex items-center gap-2 mt-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={newTab}
+          onChange={(e) => {
+            if (e.target.checked) {
+              onAttr('target', '_blank');
+              onAttr('rel', 'noopener noreferrer');
+            } else {
+              onAttr('target', null);
+              onAttr('rel', null);
+            }
+          }}
+        />
+        {t('editMode.openNewTab')}
+      </label>
+    </Section>
+  );
+};
+
+const TypographySection: React.FC<{
+  info: SelectedElementInfo | null;
+  onStyle: (p: string, v: string) => void;
+}> = ({ info, onStyle }) => {
+  const { t } = useTranslation();
+  return (
+    <Section icon={<Type size={14} />} title={t('editMode.typography')}>
+      <div className="space-y-3">
+        <ColorRow labelKey="editMode.textColor" cssProp="color" info={info} onStyle={onStyle} />
+        <PxRow labelKey="editMode.fontSize" cssProp="fontSize" info={info} onStyle={onStyle} />
+        <SelectRow
+          labelKey="editMode.fontWeight"
+          cssProp="fontWeight"
+          info={info}
+          onStyle={onStyle}
+          options={[
+            ['400', 'Normal'],
+            ['500', 'Medium'],
+            ['600', 'Semibold'],
+            ['700', 'Bold'],
+            ['800', 'Extra'],
+          ]}
+        />
+        <SelectRow
+          labelKey="editMode.fontStyle"
+          cssProp="fontStyle"
+          info={info}
+          onStyle={onStyle}
+          options={['normal', 'italic']}
+        />
+        <SelectRow
+          labelKey="editMode.transform"
+          cssProp="textTransform"
+          info={info}
+          onStyle={onStyle}
+          options={['none', 'uppercase', 'capitalize', 'lowercase']}
+        />
+        <PxRow labelKey="editMode.lineHeight" cssProp="lineHeight" info={info} onStyle={onStyle} />
+        <AlignRow onStyle={onStyle} />
+      </div>
+    </Section>
+  );
+};
+
+const LayoutSection: React.FC<{
+  info: SelectedElementInfo | null;
+  onStyle: (p: string, v: string) => void;
+}> = ({ info, onStyle }) => {
+  const { t } = useTranslation();
+  return (
+    <Section icon={<LayoutGrid size={14} />} title={t('editMode.layout')}>
+      <div className="space-y-3">
+        <SelectRow
+          labelKey="editMode.display"
+          cssProp="display"
+          info={info}
+          onStyle={onStyle}
+          options={['block', 'flex', 'inline-flex', 'grid', 'none']}
+        />
+        <SelectRow
+          labelKey="editMode.direction"
+          cssProp="flexDirection"
+          info={info}
+          onStyle={onStyle}
+          options={['row', 'column', 'row-reverse', 'column-reverse']}
+        />
+        <SelectRow
+          labelKey="editMode.justify"
+          cssProp="justifyContent"
+          info={info}
+          onStyle={onStyle}
+          options={['flex-start', 'center', 'flex-end', 'space-between', 'space-around']}
+        />
+        <SelectRow
+          labelKey="editMode.alignItems"
+          cssProp="alignItems"
+          info={info}
+          onStyle={onStyle}
+          options={['stretch', 'flex-start', 'center', 'flex-end']}
+        />
+        <PxRow labelKey="editMode.gap" cssProp="gap" info={info} onStyle={onStyle} />
+      </div>
+    </Section>
+  );
+};
+
+const BackgroundSection: React.FC<{
+  info: SelectedElementInfo | null;
+  onStyle: (p: string, v: string) => void;
+  onUpload?: (f: File, bg: boolean) => void;
+  allowImage: boolean;
+}> = ({ info, onStyle, onUpload, allowImage }) => {
+  const { t } = useTranslation();
+  return (
+    <Section icon={<Palette size={14} />} title={t('editMode.background')}>
+      <div className="space-y-3">
+        <ColorRow
+          labelKey="editMode.bgColor"
+          cssProp="backgroundColor"
+          info={info}
+          onStyle={onStyle}
+          fallback="#ffffff"
+        />
+        {allowImage && (
+          <div className="flex flex-wrap gap-1.5">
+            {onUpload && (
+              <label className="flex-1 flex items-center justify-center gap-2 px-2 py-1.5 rounded border border-dashed border-gray-300 dark:border-[#555] text-xs text-gray-600 dark:text-gray-300 cursor-pointer hover:border-[#6D28D9] hover:text-[#6D28D9]">
+                <Upload size={13} />
+                {t('editMode.bgImage')}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) onUpload(f, true);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+            )}
+            {info?.hasBackgroundImage && (
+              <button
+                className="px-2 py-1.5 rounded border border-gray-300 dark:border-[#555] text-xs text-gray-600 dark:text-gray-300 hover:border-red-400 hover:text-red-500"
+                onClick={() => onStyle('backgroundImage', 'none')}
+              >
+                {t('editMode.removeBgImage')}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </Section>
+  );
+};
+
+const SizeSection: React.FC<{
+  info: SelectedElementInfo | null;
+  onStyle: (p: string, v: string) => void;
+}> = ({ info, onStyle }) => {
+  const { t } = useTranslation();
+  return (
+    <Section icon={<Ruler size={14} />} title={t('editMode.size')}>
+      <div className="space-y-3">
+        <PxRow labelKey="editMode.width" cssProp="width" info={info} onStyle={onStyle} />
+        <PxRow labelKey="editMode.height" cssProp="height" info={info} onStyle={onStyle} />
+      </div>
+    </Section>
+  );
+};
+
+const SpacingSection: React.FC<{
+  info: SelectedElementInfo | null;
+  onStyle: (p: string, v: string) => void;
+}> = ({ info, onStyle }) => {
+  const { t } = useTranslation();
+  return (
+    <Section icon={<Move size={14} />} title={t('editMode.spacing')}>
+      <div className="space-y-3">
+        <PxRow labelKey="editMode.padding" cssProp="padding" cvKey="paddingTop" info={info} onStyle={onStyle} />
+        <PxRow labelKey="editMode.radius" cssProp="borderRadius" info={info} onStyle={onStyle} />
+      </div>
+    </Section>
+  );
+};
+
+/* ---------- lignes de contrôle réutilisables ---------- */
+
+const ColorRow: React.FC<{
+  labelKey: string;
+  cssProp: string;
+  info: SelectedElementInfo | null;
+  onStyle: (p: string, v: string) => void;
+  fallback?: string;
+}> = ({ labelKey, cssProp, info, onStyle, fallback }) => {
+  const { t } = useTranslation();
+  return (
+    <Row label={t(labelKey)}>
+      <input
+        key={`${cssProp}-${info?.id ?? 'multi'}`}
+        type="color"
+        defaultValue={info ? rgbToHex(cval(info, cssProp)) : fallback ?? '#000000'}
+        className="w-8 h-8 rounded cursor-pointer bg-transparent"
+        onChange={(e) => onStyle(cssProp, e.target.value)}
+      />
+    </Row>
+  );
+};
+
+const PxRow: React.FC<{
+  labelKey: string;
+  cssProp: string;
+  cvKey?: string;
+  info: SelectedElementInfo | null;
+  onStyle: (p: string, v: string) => void;
+}> = ({ labelKey, cssProp, cvKey, info, onStyle }) => {
+  const { t } = useTranslation();
+  return (
+    <Row label={t(labelKey)}>
+      <input
+        key={`${cssProp}-${info?.id ?? 'multi'}`}
+        type="number"
+        defaultValue={info ? toPx(cval(info, cvKey ?? cssProp)) : undefined}
+        placeholder="—"
+        className="w-20 text-sm rounded border border-gray-300 dark:border-[#444] bg-white dark:bg-[#2c2c2c] p-1 text-gray-800 dark:text-gray-100"
+        onBlur={(e) => {
+          if (e.target.value !== '') onStyle(cssProp, `${e.target.value}px`);
+        }}
+      />
+    </Row>
+  );
+};
+
+const SelectRow: React.FC<{
+  labelKey: string;
+  cssProp: string;
+  info: SelectedElementInfo | null;
+  onStyle: (p: string, v: string) => void;
+  options: (string | [string, string])[];
+}> = ({ labelKey, cssProp, info, onStyle, options }) => {
+  const { t } = useTranslation();
+  return (
+    <Row label={t(labelKey)}>
+      <select
+        key={`${cssProp}-${info?.id ?? 'multi'}`}
+        defaultValue={info ? cval(info, cssProp) : undefined}
+        className="text-sm rounded border border-gray-300 dark:border-[#444] bg-white dark:bg-[#2c2c2c] p-1 text-gray-800 dark:text-gray-100 max-w-[8rem]"
+        onChange={(e) => onStyle(cssProp, e.target.value)}
+      >
+        {options.map((o) => {
+          const [value, label] = Array.isArray(o) ? o : [o, o];
+          return (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          );
+        })}
+      </select>
+    </Row>
+  );
+};
+
+const AlignRow: React.FC<{ onStyle: (p: string, v: string) => void }> = ({ onStyle }) => {
+  const { t } = useTranslation();
+  return (
+    <Row label={t('editMode.align')}>
+      <div className="flex gap-1">
+        {(
+          [
+            ['left', AlignLeft],
+            ['center', AlignCenter],
+            ['right', AlignRight],
+          ] as const
+        ).map(([value, Icon]) => (
+          <button
+            key={value}
+            className="p-1.5 rounded border border-gray-300 dark:border-[#444] hover:bg-[#F5EEFF] dark:hover:bg-[#2c2c2c] text-gray-700 dark:text-gray-200"
+            onClick={() => onStyle('textAlign', value)}
+            aria-label={value}
+          >
+            <Icon size={14} />
+          </button>
+        ))}
+      </div>
+    </Row>
+  );
+};
+
+const AttrRow: React.FC<{
+  labelKey: string;
+  info: SelectedElementInfo;
+  name: string;
+  onAttr: (n: string, v: string | null) => void;
+}> = ({ labelKey, info, name, onAttr }) => {
+  const { t } = useTranslation();
+  return (
+    <Row label={t(labelKey)}>
+      <input
+        key={`${name}-${info.id}`}
+        type="text"
+        defaultValue={info.attrs[name] ?? ''}
+        className="w-36 text-sm rounded border border-gray-300 dark:border-[#444] bg-white dark:bg-[#2c2c2c] p-1 text-gray-800 dark:text-gray-100"
+        onBlur={(e) => {
+          if (e.target.value !== (info.attrs[name] ?? '')) onAttr(name, e.target.value);
+        }}
+      />
+    </Row>
+  );
+};
+
+const AttrInput: React.FC<{
+  info: SelectedElementInfo;
+  name: string;
+  onAttr: (n: string, v: string | null) => void;
+  placeholder?: string;
+}> = ({ info, name, onAttr, placeholder }) => (
+  <input
+    key={`${name}-${info.id}`}
+    type="text"
+    defaultValue={info.attrs[name] ?? ''}
+    placeholder={placeholder}
+    className="w-full text-sm rounded border border-gray-300 dark:border-[#444] bg-white dark:bg-[#2c2c2c] p-2 text-gray-800 dark:text-gray-100"
+    onBlur={(e) => {
+      if (e.target.value !== (info.attrs[name] ?? '')) onAttr(name, e.target.value);
+    }}
+  />
+);
+
+/* ---------- primitives ---------- */
+
+const Section: React.FC<{ title: string; icon?: React.ReactNode; children: React.ReactNode }> = ({
+  title,
+  icon,
+  children,
+}) => (
   <section>
     <h3 className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2 uppercase tracking-wide">
       {icon}
@@ -548,8 +933,8 @@ const PanelSection: React.FC<{
   </section>
 );
 
-const LabeledRow: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="flex items-center justify-between">
+const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+  <div className="flex items-center justify-between gap-2">
     <span className="text-sm text-gray-600 dark:text-gray-300">{label}</span>
     {children}
   </div>
