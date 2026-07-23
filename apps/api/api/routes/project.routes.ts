@@ -237,6 +237,7 @@ projectRoutes.put('/:projectId', authenticate, projectController.updateProject);
  *         description: Internal server error.
  */
 projectRoutes.delete('/delete/:projectId', authenticate, projectController.deleteProject);
+projectRoutes.delete('/:projectId', authenticate, projectController.deleteProject);
 
 // Project Generation Routes
 

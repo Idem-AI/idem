@@ -59,52 +59,34 @@ export class PolicyAcceptanceService {
       policyAcceptance,
     };
 
-    // Vérifier et uploader les variations de logo si elles existent
-    const logoVariations = project.analysisResultModel?.branding?.logo?.variations;
-    const primaryLogo = project.analysisResultModel?.branding?.logo?.svg;
+    // Rasterize the logo (SVG) to PNG and upload the PNGs to object storage,
+    // keeping the inline SVG as the vector source of truth. The PNG URLs live in
+    // logo.assetUrls. Guard on an absent assetUrls so we don't re-upload when
+    // the branding/creation step already produced them.
+    const logo = project.analysisResultModel?.branding?.logo;
+    const logoVariations = logo?.variations;
 
     if (
-      logoVariations &&
-      (logoVariations.iconOnly?.lightBackground ||
-        logoVariations.iconOnly?.darkBackground ||
-        logoVariations.iconOnly?.monochrome ||
-        logoVariations.withText?.lightBackground ||
-        logoVariations.withText?.darkBackground ||
-        logoVariations.withText?.monochrome ||
-        primaryLogo)
+      logo &&
+      !logo.assetUrls &&
+      (logo.svg ||
+        logoVariations?.iconOnly?.lightBackground ||
+        logoVariations?.iconOnly?.darkBackground ||
+        logoVariations?.iconOnly?.monochrome ||
+        logoVariations?.withText?.lightBackground ||
+        logoVariations?.withText?.darkBackground ||
+        logoVariations?.withText?.monochrome)
     ) {
-      logger.info(`Uploading logo variations to Firebase Storage`, {
+      logger.info(`Uploading logo PNG assets to object storage`, {
         userId,
         projectId,
-        variations: Object.keys(logoVariations),
+        variations: logoVariations ? Object.keys(logoVariations) : [],
       });
 
       try {
-        // Upload logo variations to Firebase Storage
-        const iconSvg = project.analysisResultModel?.branding?.logo?.iconSvg;
-        const uploadResults = await storageService.uploadLogoVariations(
-          primaryLogo,
-          iconSvg,
-          logoVariations,
-          userId,
-          projectId
-        );
+        const assetUrls = await storageService.uploadProjectLogoAssets(logo, userId, projectId);
 
-        // Replace SVG content with download URLs
-        const updatedVariations = {
-          withText: {
-            lightBackground: uploadResults.withText?.lightBackground?.downloadURL,
-            darkBackground: uploadResults.withText?.darkBackground?.downloadURL,
-            monochrome: uploadResults.withText?.monochrome?.downloadURL,
-          },
-          iconOnly: {
-            lightBackground: uploadResults.iconOnly?.lightBackground?.downloadURL,
-            darkBackground: uploadResults.iconOnly?.darkBackground?.downloadURL,
-            monochrome: uploadResults.iconOnly?.monochrome?.downloadURL,
-          },
-        };
-
-        // Update the project data with the URLs
+        // Keep the SVG source intact; only attach the hosted PNG URLs.
         projectUpdateData = {
           ...projectUpdateData,
           analysisResultModel: {
@@ -112,23 +94,20 @@ export class PolicyAcceptanceService {
             branding: {
               ...project.analysisResultModel?.branding,
               logo: {
-                ...project.analysisResultModel?.branding?.logo,
-                svg: uploadResults.primaryLogo!.downloadURL,
-                iconSvg: uploadResults.iconSvg?.downloadURL,
-                variations: updatedVariations,
+                ...logo,
+                assetUrls,
               },
             },
           },
         };
 
-        logger.info(`Logo variations uploaded and URLs updated successfully`, {
+        logger.info(`Logo PNG assets uploaded successfully`, {
           userId,
           projectId,
-          primaryLogoUrl: uploadResults.primaryLogo?.downloadURL,
-          iconSvgUrl: uploadResults.iconSvg?.downloadURL,
+          uploaded: Object.keys(assetUrls),
         });
       } catch (error: any) {
-        logger.error(`Error uploading logo variations during project finalization`, {
+        logger.error(`Error uploading logo PNG assets during project finalization`, {
           userId,
           projectId,
           error: error.message,

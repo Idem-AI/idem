@@ -17,6 +17,9 @@ import { ProjectCard } from '../../components/project-card/project-card';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
+import { NotificationService } from '../../../../shared/services/notification.service';
+import { AnalyticsService } from '../../../../shared/services/analytics.service';
+
 @Component({
   selector: 'app-global-dashboard',
   imports: [CommonModule, RouterModule, Loader, ProjectCard, TranslateModule],
@@ -31,11 +34,17 @@ export class GlobalDashboard implements OnInit {
   private readonly router = inject(Router);
   private readonly cookieService = inject(CookieService);
   private readonly translate = inject(TranslateService);
+  private readonly notificationService = inject(NotificationService);
+  private readonly analyticsService = inject(AnalyticsService);
 
   // Signals
   protected readonly projects = signal<ProjectModel[]>([]);
   protected readonly isLoading = signal(true);
   protected readonly user$ = this.auth.user$;
+
+  // Deletion modal state
+  protected readonly projectToDelete = signal<ProjectModel | null>(null);
+  protected readonly isDeleting = signal(false);
 
   // Computed
   protected readonly recentProjects = computed(() => {
@@ -88,5 +97,49 @@ export class GlobalDashboard implements OnInit {
   protected openProjectDashboard(projectId: string): void {
     this.cookieService.set('projectId', projectId);
     this.router.navigate(['/project/dashboard']);
+  }
+
+  protected openDeleteModal(project: ProjectModel): void {
+    this.projectToDelete.set(project);
+  }
+
+  protected closeDeleteModal(): void {
+    if (this.isDeleting()) return;
+    this.projectToDelete.set(null);
+  }
+
+  protected confirmDeleteProject(): void {
+    const project = this.projectToDelete();
+    if (!project || !project.id || this.isDeleting()) return;
+    const deletedId = project.id;
+
+    this.isDeleting.set(true);
+    this.projectService.deleteProject(deletedId).subscribe({
+      next: () => {
+        this.projects.update((projs) => projs.filter((p) => p.id !== deletedId));
+
+        if (this.cookieService.get('projectId') === deletedId) {
+          this.cookieService.remove('projectId');
+        }
+
+        this.analyticsService.trackProjectDeleted({ project_id: deletedId });
+
+        this.notificationService.showSuccess({
+          title: 'Projet supprimé',
+          message: `Le projet "${project.name}" a été supprimé avec succès.`,
+        });
+
+        this.isDeleting.set(false);
+        this.projectToDelete.set(null);
+      },
+      error: (error) => {
+        console.error('Error deleting project:', error);
+        this.notificationService.showError({
+          title: 'Erreur',
+          message: `Impossible de supprimer le projet. Veuillez réessayer.`,
+        });
+        this.isDeleting.set(false);
+      },
+    });
   }
 }

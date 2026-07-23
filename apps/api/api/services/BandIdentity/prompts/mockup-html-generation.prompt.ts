@@ -59,6 +59,11 @@ export const MOCKUP_HTML_GENERATION_PROMPT = {
 
     return `<objective>Générer un HTML moderne et unique pour afficher le mockup "${mockup.title}" en format Paysage 16:9 pleine page.</objective>
 
+<editor_compatibility>
+- The output is edited afterwards in a visual (Figma-like) editor: put visible text in leaf elements (h1..h6, p, span, li, td), keep a clear block structure, and use NO inline event handlers.
+- Any Chart.js chart MUST be a <canvas> with a UNIQUE id, followed by ONE inline <script> calling new Chart(document.getElementById('THAT_ID'), {...}) with options.animation=false (one chart per canvas, no Chart.js <script src> tag).
+</editor_compatibility>
+
 <project_context>
 - Projet: ${projectName}
 - Description: ${projectDescription}

@@ -28,15 +28,15 @@ import {
   providedIn: 'root',
 })
 export class AnalyticsService {
-  private analytics: Analytics;
+  private analytics: Analytics | null;
   private readonly router = inject(Router);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly isEnabled = environment.analytics?.enabled ?? false;
 
   constructor() {
-    // Inject Analytics (Angular will handle SSR automatically)
-    this.analytics = inject(Analytics);
+    // Inject Analytics optionally (Angular will handle SSR and missing providers automatically)
+    this.analytics = inject(Analytics, { optional: true });
 
     // Only track in browser and when enabled (production)
     if (this.isBrowser && this.isEnabled && this.analytics) {

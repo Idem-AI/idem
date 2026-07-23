@@ -18,6 +18,7 @@
         }
       },
       "buttons": {
+        "edit": "Edit",
         "backToOverview": "Back to Overview",
         "backToProjects": "Back to Projects",
         "getCharter": "Get Brand Charter",

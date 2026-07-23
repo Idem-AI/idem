@@ -97,6 +97,9 @@ export interface ProjectModel {
   createdAt: Date;
   updatedAt: Date;
   isActive?: boolean; // Optionnel, par défaut true
+  isArchived?: boolean;
+  archived?: boolean;
+  archivedAt?: Date;
 }
 
 /**

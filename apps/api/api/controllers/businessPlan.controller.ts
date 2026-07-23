@@ -7,6 +7,8 @@ import { userService } from '../services/user.service';
 import { ISectionResult } from '../services/common/generic.service';
 import { projectService } from '../services/project.service';
 import { ResearchStreamEvent } from '../services/research/research.types';
+import { getRequestLanguage } from '../utils/request-language';
+import { sectionEditingService } from '../services/common/section-editing.service';
 
 // Create instances of the services
 const promptService = new PromptService();
@@ -190,6 +192,102 @@ export const updateBusinessPlanController = async (
     res.status(500).json({
       message: error.message || 'Failed to update business plan item',
     });
+  }
+};
+
+/**
+ * Contrôleur pour sauvegarder les sections éditées dans l'éditeur WYSIWYG.
+ * Body: { sections: SectionModel[] }. Persiste sur le projet et invalide le PDF.
+ */
+export const saveBusinessPlanSectionsController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId } = req.params;
+  logger.info(`saveBusinessPlanSectionsController called - UserId: ${userId}, ProjectId: ${projectId}`);
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    if (!projectId) {
+      res.status(400).json({ message: 'Project ID is required' });
+      return;
+    }
+    const { sections } = req.body ?? {};
+    if (!Array.isArray(sections)) {
+      res.status(400).json({ message: 'A "sections" array is required' });
+      return;
+    }
+
+    const updated = await sectionEditingService.saveSections(
+      userId,
+      projectId as string,
+      'businessPlan',
+      sections
+    );
+    if (!updated) {
+      res.status(404).json({ message: 'Business plan not found for the project' });
+      return;
+    }
+    res.status(200).json(updated);
+  } catch (error: any) {
+    logger.error(
+      `Error in saveBusinessPlanSectionsController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
+      { stack: error.stack }
+    );
+    res.status(500).json({ message: error.message || 'Failed to save business plan sections' });
+  }
+};
+
+/**
+ * Contrôleur d'édition IA d'une section. Body: { instruction: string }.
+ * Retourne { section, businessPlan } avec le HTML régénéré par l'IA.
+ */
+export const aiEditBusinessPlanSectionController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId, sectionId } = req.params;
+  logger.info(
+    `aiEditBusinessPlanSectionController called - UserId: ${userId}, ProjectId: ${projectId}, SectionId: ${sectionId}`
+  );
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    if (!projectId || !sectionId) {
+      res.status(400).json({ message: 'Project ID and section ID are required' });
+      return;
+    }
+    const instruction = (req.body?.instruction ?? '').toString().trim();
+    if (!instruction) {
+      res.status(400).json({ message: 'An "instruction" is required' });
+      return;
+    }
+
+    const result = await sectionEditingService.aiEditSection(
+      userId,
+      projectId as string,
+      'businessPlan',
+      sectionId as string,
+      instruction,
+      getRequestLanguage()
+    );
+    if (!result) {
+      res.status(404).json({ message: 'Section not found or AI edit failed' });
+      return;
+    }
+    res.status(200).json(result);
+  } catch (error: any) {
+    logger.error(
+      `Error in aiEditBusinessPlanSectionController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
+      { stack: error.stack }
+    );
+    res.status(500).json({ message: error.message || 'Failed to AI-edit business plan section' });
   }
 };
 

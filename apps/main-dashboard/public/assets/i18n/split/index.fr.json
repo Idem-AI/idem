@@ -24,6 +24,7 @@
     "modules/dashboard/pages/create-project",
     "modules/dashboard/pages/create-team",
     "modules/dashboard/pages/dashboard",
+    "modules/dashboard/pages/document-editor",
     "modules/dashboard/pages/deployment/components/ai-assistant",
     "modules/dashboard/pages/deployment/components/expert-deployment",
     "modules/dashboard/pages/deployment/components/mode-selector",

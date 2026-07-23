@@ -16,7 +16,7 @@ export const COLOR_PALETTE_SECTION_PROMPT = `<role>World-class color strategist 
 </page_content>
 
 <page_format>
-- Outermost container: w-[297mm] h-[167mm] overflow-hidden relative (Landscape 16:9, exactly h-[167mm], no min-h-screen).
+- Outermost container: w-[297mm] min-h-[167mm] relative (Landscape 16:9, min height 167mm; content is never clipped (it flows to another page if it slightly exceeds)).
 - Internal safe padding: p-[12mm] (no content overflow).
 </page_format>
 
@@ -27,6 +27,11 @@ export const COLOR_PALETTE_SECTION_PROMPT = `<role>World-class color strategist 
 - All text in French. Ensure WCAG AA contrast.
 - Do NOT output markdown code blocks (e.g., \`\`\`html) or prefix with "html".
 </technical_rules>
+
+<editor_compatibility>
+- The output is edited afterwards in a visual (Figma-like) editor: put visible text in leaf elements (h1..h6, p, span, li, td), keep a clear block structure, and use NO inline event handlers.
+- Any Chart.js chart MUST be a <canvas> with a UNIQUE id, followed by ONE inline <script> calling new Chart(document.getElementById('THAT_ID'), {...}) with options.animation=false (one chart per canvas, no Chart.js <script src> tag).
+</editor_compatibility>
 
 <project_context>
 `;

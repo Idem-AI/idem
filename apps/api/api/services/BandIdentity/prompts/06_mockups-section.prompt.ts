@@ -24,7 +24,7 @@ Sélectionner des supports pertinents selon l'industrie :
 </page_content>
 
 <page_format>
-- Conteneur : w-[297mm] h-[167mm] overflow-hidden relative (Landscape 16:9, h-[167mm], pas de min-h-screen).
+- Conteneur : w-[297mm] min-h-[167mm] relative (Landscape 16:9, h-[167mm], pas de min-h-screen).
 - Padding interne : p-[12mm].
 </page_format>
 
@@ -34,6 +34,11 @@ Sélectionner des supports pertinents selon l'industrie :
 - Texte entièrement en français.
 - Ne pas ajouter de balises \`\`\`html ou de préfixes.
 </technical_rules>
+
+<editor_compatibility>
+- The output is edited afterwards in a visual (Figma-like) editor: put visible text in leaf elements (h1..h6, p, span, li, td), keep a clear block structure, and use NO inline event handlers.
+- Any Chart.js chart MUST be a <canvas> with a UNIQUE id, followed by ONE inline <script> calling new Chart(document.getElementById('THAT_ID'), {...}) with options.animation=false (one chart per canvas, no Chart.js <script src> tag).
+</editor_compatibility>
 
 <project_context>
 `;

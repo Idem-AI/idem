@@ -30,7 +30,11 @@
       </div>
     }
     <!-- Display existing business plan -->
-    <app-business-plan-display [businessPlan]="existingBusinessPlan()!"></app-business-plan-display>
+    <app-business-plan-display
+      [businessPlan]="existingBusinessPlan()!"
+      [showEditButton]="true"
+      (editRequested)="editBusinessPlan()"
+    ></app-business-plan-display>
   } @else if (hasError() && isRetryable()) {
     <!-- Error state with retry button -->
     <div class="max-w-6xl mx-auto text-center py-10">
