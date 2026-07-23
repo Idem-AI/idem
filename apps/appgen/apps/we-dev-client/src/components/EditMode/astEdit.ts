@@ -10,7 +10,6 @@
  */
 import { parse } from '@babel/parser';
 import traverseDefault from '@babel/traverse';
-import type { StyleProperty } from './idemProtocol';
 
 // Interop CJS/ESM : @babel/traverse expose parfois la fonction sous .default.
 const traverse = ((traverseDefault as unknown as { default?: typeof traverseDefault })
@@ -25,14 +24,6 @@ export interface EditResult {
   code?: string;
   reason?: string;
 }
-
-const CSS_PROPERTY: Record<StyleProperty, string> = {
-  color: 'color',
-  fontSize: 'fontSize',
-  fontWeight: 'fontWeight',
-  textAlign: 'textAlign',
-  backgroundColor: 'backgroundColor',
-};
 
 function parseCode(code: string) {
   return parse(code, {
@@ -229,6 +220,53 @@ export function editImageSrc(code: string, start: number, newSrc: string): EditR
 }
 
 /* ------------------------------------------------------------------ */
+/* Édition d'attribut générique (href, alt, target, placeholder…)      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Définit / remplace un attribut. `value === null` retire l'attribut
+ * (utile pour un toggle, ex. target="_blank"). Ne gère que les valeurs chaînes
+ * (les attributs à valeur d'expression `{...}` sont remplacés par une chaîne).
+ */
+export function editAttribute(
+  code: string,
+  start: number,
+  name: string,
+  value: string | null
+): EditResult {
+  let ast;
+  try {
+    ast = parseCode(code);
+  } catch (e) {
+    return { ok: false, reason: `parse error: ${(e as Error).message}` };
+  }
+  const hit = findByStart(ast, start);
+  if (!hit) return { ok: false, reason: 'element introuvable' };
+
+  const opening = hit.opening;
+  const attr = findAttribute(opening, name);
+
+  if (value === null) {
+    if (!attr) return { ok: true, code }; // rien à retirer
+    let s = attr.start;
+    if (s > 0 && /\s/.test(code[s - 1])) s--; // consomme l'espace précédent
+    return { ok: true, code: code.slice(0, s) + code.slice(attr.end) };
+  }
+
+  const literal = JSON.stringify(value);
+  if (!attr) {
+    const nameNode = opening.name as unknown as Node;
+    return { ok: true, code: splice(code, nameNode.end, nameNode.end, ` ${name}=${literal}`) };
+  }
+  const val = attr.value as Node | null;
+  if (!val) {
+    // attribut booléen sans valeur -> le transforme en name="value"
+    return { ok: true, code: splice(code, attr.start, attr.end, `${name}=${literal}`) };
+  }
+  return { ok: true, code: splice(code, val.start, val.end, literal) };
+}
+
+/* ------------------------------------------------------------------ */
 /* Édition de style (attribut style inline — déterministe)             */
 /* ------------------------------------------------------------------ */
 
@@ -258,10 +296,15 @@ function serializeStyleObject(map: Map<string, string>): string {
   return `{{ ${entries.join(', ')} }}`;
 }
 
+/**
+ * Modifie une propriété CSS via l'attribut `style` inline. `cssProp` est une clé
+ * camelCase quelconque (color, fontSize, borderRadius, flexDirection, objectFit,
+ * backgroundImage…) : n'importe quelle propriété CSS est acceptée.
+ */
 export function editStyle(
   code: string,
   start: number,
-  property: StyleProperty,
+  cssProp: string,
   value: string
 ): EditResult {
   let ast;
@@ -274,7 +317,6 @@ export function editStyle(
   if (!hit) return { ok: false, reason: 'element introuvable' };
 
   const opening = hit.opening;
-  const cssProp = CSS_PROPERTY[property];
   const valueLiteral = JSON.stringify(value);
   const styleAttr = findAttribute(opening, 'style');
 
