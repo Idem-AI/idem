@@ -60,6 +60,7 @@ const CONFIG = {
     'modules/dashboard/pages/advisor': 'dashboard.advisor',
     'modules/dashboard/pages/create-team': 'dashboard.createTeam',
     'modules/dashboard/pages/dashboard': 'dashboard.dashboard',
+    'modules/dashboard/pages/document-editor': 'dashboard.documentEditor',
     'modules/dashboard/pages/finance': 'dashboard.finance',
     'modules/dashboard/pages/deployment/components/ai-assistant': 'dashboard.aiAssistant',
     'modules/dashboard/pages/deployment/components/expert-deployment': 'dashboard.expertDeployment',

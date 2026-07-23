@@ -7,7 +7,8 @@
       "buttons": {
         "backToProjects": "Back to Projects",
         "generate": "Generate Business Plan",
-        "selectProject": "Select a Project"
+        "selectProject": "Select a Project",
+        "edit": "Edit"
       },
       "empty": {
         "title": "No Business Plan Yet",

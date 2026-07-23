@@ -165,6 +165,13 @@ export class ShowBusinessPlan implements OnInit {
   }
 
   /**
+   * Navigate to the WYSIWYG business plan editor
+   */
+  protected editBusinessPlan(): void {
+    this.router.navigate(['/project/business-plan/edit']);
+  }
+
+  /**
    * Navigate to business plan generation page
    */
   protected generateBusinessPlan(force = false): void {
