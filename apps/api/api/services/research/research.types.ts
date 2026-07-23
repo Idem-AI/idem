@@ -159,6 +159,8 @@ export type ResearchStreamEvent =
       section: ResearchedSection;
       timestamp: string;
     }
+  /** Texte de section en cours de rédaction (streaming, aperçu tronqué). */
+  | { type: 'writer_delta'; section: string; preview: string; timestamp: string }
   | { type: 'run_completed'; sectionCount: number; timestamp: string }
   | { type: 'error'; message: string; timestamp: string };
 

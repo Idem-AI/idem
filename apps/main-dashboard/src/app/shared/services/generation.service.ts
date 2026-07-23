@@ -120,10 +120,21 @@ export class GenerationService {
       );
       return;
     }
+    if (eventType === 'writer_delta') {
+      const ev = event as unknown as { section?: string; preview?: string };
+      if (ev.section) {
+        this.applyResearchUpdate(serviceType, currentState, (research) => ({
+          ...research,
+          draft: { section: ev.section as string, preview: ev.preview ?? '' },
+        }));
+      }
+      return;
+    }
     if (eventType === 'run_completed') {
       this.applyResearchUpdate(serviceType, currentState, (research) => ({
         ...research,
         active: false,
+        draft: undefined,
       }));
       return;
     }

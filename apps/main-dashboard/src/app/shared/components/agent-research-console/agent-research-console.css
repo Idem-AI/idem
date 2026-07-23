@@ -173,6 +173,32 @@
   text-overflow: ellipsis;
 }
 
+/* Aperçu du texte en cours de rédaction (streaming). */
+.rc__now-draft {
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--color-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.rc__caret {
+  display: inline-block;
+  width: 0.5ch;
+  height: 1em;
+  margin-left: 1px;
+  vertical-align: -0.15em;
+  background: var(--color-info);
+  animation: rc-caret 1s steps(1) infinite;
+}
+
+@keyframes rc-caret {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
 /* ---------- Flux de découvertes (cœur) ---------- */
 .rc__feed {
   list-style: none;
@@ -370,10 +396,14 @@
   .rc__seg[data-state='current'],
   .rc__bars i,
   .rc__item,
-  .rc__spin {
+  .rc__spin,
+  .rc__caret {
     animation: none;
   }
   .rc__bars i {
     height: 65%;
+  }
+  .rc__caret {
+    opacity: 1;
   }
 }

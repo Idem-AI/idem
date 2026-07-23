@@ -41,6 +41,12 @@ export interface PromptConfig {
    * request (query `lang` / body `language` / Accept-Language header) upstream.
    */
   language?: string;
+  /**
+   * Nom d'un cache de contexte Gemini (caches.create). Quand fourni, le préfixe
+   * mis en cache est réutilisé côté serveur — on n'envoie alors QUE la partie
+   * variable dans les messages (économie d'input tokens).
+   */
+  cachedContent?: string;
 }
 
 export interface AIChatMessage {
@@ -62,6 +68,7 @@ export interface PromptRequest {
   promptType?: string;
   skipQuotaCheck?: boolean;
   language?: string;
+  cachedContent?: string;
 }
 
 export interface AIResponse {
@@ -139,7 +146,8 @@ export class PromptService {
     modelName: string,
     messages: AIChatMessage[],
     llmOptions: LLMOptions,
-    fileInput?: { localPath: string; mimeType?: string }
+    fileInput?: { localPath: string; mimeType?: string },
+    cachedContent?: string
   ): Promise<string> {
     const geminiContent: Content[] = this.toGeminiMessages(messages);
 
@@ -256,13 +264,15 @@ export class PromptService {
       }
     }
 
-    const generationParams = {
-      ...(llmOptions.maxOutputTokens && {
-        maxOutputTokens: llmOptions.maxOutputTokens,
-      }),
-      ...(llmOptions.temperature && { temperature: llmOptions.temperature }),
+    // IMPORTANT: dans @google/genai 1.x, ces paramètres DOIVENT être sous `config`
+    // (au top-level ils sont ignorés silencieusement). On y branche aussi le
+    // cache de contexte explicite quand il est fourni.
+    const config = {
+      ...(llmOptions.maxOutputTokens && { maxOutputTokens: llmOptions.maxOutputTokens }),
+      ...(llmOptions.temperature !== undefined && { temperature: llmOptions.temperature }),
       ...(llmOptions.topP && { topP: llmOptions.topP }),
       ...(llmOptions.topK && { topK: llmOptions.topK }),
+      ...(cachedContent && { cachedContent }),
     };
 
     const fallbackModel = AI_CONFIG.fallback.textModel;
@@ -270,16 +280,14 @@ export class PromptService {
     const effectiveFallbackModel = modelName === fallbackModel ? secondaryFallback : fallbackModel;
 
     const result = await withGeminiFallback(
-      () => this.genAIClient.models.generateContent({
-        model: modelName,
-        contents: geminiContent,
-        ...generationParams,
-      }),
-      () => this.genAIClient.models.generateContent({
-        model: effectiveFallbackModel,
-        contents: geminiContent,
-        ...generationParams,
-      }),
+      () => this.genAIClient.models.generateContent({ model: modelName, contents: geminiContent, config }),
+      () =>
+        this.genAIClient.models.generateContent({
+          model: effectiveFallbackModel,
+          contents: geminiContent,
+          // Le cache est lié au modèle principal: on ne le réutilise pas sur le repli.
+          config: { ...config, ...(cachedContent ? { cachedContent: undefined } : {}) },
+        }),
       modelName,
       effectiveFallbackModel
     );
@@ -582,7 +590,13 @@ export class PromptService {
       let result: string;
       switch (provider) {
         case LLMProvider.GEMINI:
-          result = await this._runGeminiPrompt(modelName, modifiedMessages, llmOptions, file);
+          result = await this._runGeminiPrompt(
+            modelName,
+            modifiedMessages,
+            llmOptions,
+            file,
+            request.cachedContent
+          );
           break;
         case LLMProvider.CHATGPT:
           result = await this._runChatGPTPrompt(modelName, modifiedMessages, llmOptions, file);
@@ -878,6 +892,136 @@ export class PromptService {
     }
 
     return { text, ...parsed };
+  }
+
+  /**
+   * Crée un cache de contexte Gemini (contenu partagé réutilisé sur plusieurs
+   * appels). Best-effort: renvoie null si le caching échoue (contenu trop court,
+   * modèle non supporté…), auquel cas l'appelant retombe sur l'envoi inline.
+   */
+  public async createContextCache(
+    modelName: string,
+    contextText: string,
+    ttlSeconds = 7200
+  ): Promise<string | null> {
+    try {
+      const cache = await this.genAIClient.caches.create({
+        model: modelName,
+        config: {
+          contents: [{ role: 'user', parts: [{ text: contextText }] }],
+          ttl: `${ttlSeconds}s`,
+          displayName: 'idem-shared-context',
+        },
+      });
+      logAIEvent('ai.context_cache_created', {
+        modelName,
+        cacheName: cache.name,
+        contextChars: contextText.length,
+      });
+      return cache.name ?? null;
+    } catch (error: any) {
+      // Cause fréquente: contexte sous le minimum de tokens du modèle → on ignore.
+      logger.warn(`Context cache disabled (create failed): ${error.message || error}`);
+      return null;
+    }
+  }
+
+  /** Supprime un cache de contexte (best-effort, en fin de run). */
+  public async deleteContextCache(name: string): Promise<void> {
+    try {
+      await this.genAIClient.caches.delete({ name });
+    } catch (error: any) {
+      logger.warn(`Context cache delete failed: ${error.message || error}`);
+    }
+  }
+
+  /**
+   * Variante streaming de runPrompt (Gemini uniquement): diffuse le texte au fil
+   * de l'eau via `onDelta(textCumulé)` et renvoie le texte complet. Améliore la
+   * latence PERÇUE (le contenu s'affiche pendant la génération). Applique les
+   * mêmes garde-fous que runPrompt (quota, directive de langue, config sous
+   * `config`, cache de contexte).
+   */
+  public async runPromptStream(
+    request: PromptConfig,
+    messages: AIChatMessage[],
+    onDelta: (cumulativeText: string) => void
+  ): Promise<string> {
+    const {
+      provider,
+      modelName,
+      llmOptions = {},
+      userId,
+      skipQuotaCheck = false,
+      language,
+      cachedContent,
+    } = request;
+
+    if (provider !== LLMProvider.GEMINI) {
+      // Repli simple: pas de streaming pour les autres fournisseurs.
+      const text = await this.runPrompt(request, messages);
+      onDelta(text);
+      return text;
+    }
+    if (!messages || messages.length === 0) {
+      throw new Error('Messages array cannot be empty.');
+    }
+
+    if (userId && !skipQuotaCheck) {
+      const quotaCheck = await userService.checkQuota(userId);
+      if (!quotaCheck.allowed) {
+        throw new Error(quotaCheck.message || 'Quota exceeded');
+      }
+    }
+
+    const effectiveLanguage = language ?? getRequestLanguage();
+    const languageDirective = this.buildLanguageDirective(effectiveLanguage);
+
+    const systemParts = messages.filter((m) => m.role === 'system').map((m) => m.content);
+    if (languageDirective) systemParts.push(languageDirective);
+    const conversation = messages.filter((m) => m.role !== 'system');
+    const contents: Content[] = conversation.map((msg) => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }],
+    }));
+
+    const config = {
+      ...(llmOptions.maxOutputTokens && { maxOutputTokens: llmOptions.maxOutputTokens }),
+      ...(llmOptions.temperature !== undefined && { temperature: llmOptions.temperature }),
+      ...(llmOptions.topP && { topP: llmOptions.topP }),
+      ...(systemParts.length > 0 && { systemInstruction: systemParts.join('\n\n') }),
+      ...(cachedContent && { cachedContent }),
+    };
+
+    let full = '';
+    try {
+      const stream = await this.genAIClient.models.generateContentStream({
+        model: modelName,
+        contents,
+        config,
+      });
+      for await (const chunk of stream) {
+        const delta = chunk.text ?? '';
+        if (delta) {
+          full += delta;
+          onDelta(full);
+        }
+      }
+    } catch (error: any) {
+      logger.warn(`runPromptStream failed, falling back to non-streaming: ${error.message}`);
+      full = await this.runPrompt(request, messages);
+      onDelta(full);
+    }
+
+    if (userId && !skipQuotaCheck) {
+      try {
+        await userService.incrementUsage(userId, 1);
+      } catch (quotaError) {
+        logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
+      }
+    }
+
+    return full;
   }
 
   /** Extrait sources réelles, requêtes et supports depuis les groundingMetadata. */

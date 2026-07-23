@@ -29,6 +29,7 @@ interface NowVm {
   mode: 'active' | 'starting' | 'finalizing' | 'done';
   icon: string;
   role?: AgentRole;
+  sectionName?: string;
   sectionLabel?: string;
   actionKey?: string;
   query?: string;
@@ -169,10 +170,21 @@ export class AgentResearchConsoleComponent {
       mode: 'active',
       icon: role ? ROLE_ICON[role] : 'pi-search',
       role,
+      sectionName: active.name,
       sectionLabel: active.label,
       actionKey: role ? ROLE_ACTION_KEY[role] : 'dashboard.researchConsole.action.analyzing',
       query: role === 'researcher' ? this.latestQuery() : undefined,
     };
+  });
+
+  /** Aperçu du texte en cours de rédaction (streaming), pour la section active. */
+  protected readonly draftPreview = computed<string | undefined>(() => {
+    const n = this.now();
+    const d = this.state().draft;
+    if (n.mode === 'active' && n.role === 'writer' && d && d.section === n.sectionName) {
+      return d.preview;
+    }
+    return undefined;
   });
 
   // --- Flux de découvertes ------------------------------------------------
