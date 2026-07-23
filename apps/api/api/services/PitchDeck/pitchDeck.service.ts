@@ -131,27 +131,31 @@ export class PitchDeckService extends GenericService {
       return trimmed;
     };
 
-    // Build logo URLs block — send all declinations formatted as valid Data URIs or URLs
+    // Build logo URLs block — prefer the hosted PNG URLs (assetUrls); fall back
+    // to the inline SVG (formatted as a Data URI) for legacy projects that were
+    // created before PNG assets were generated.
+    const assetUrls = logo?.assetUrls;
     const logoLines: string[] = [];
-    if (logo?.svg) {
-      const formatted = formatLogoUrl(logo.svg);
-      if (formatted) logoLines.push(`  Primary (full logo): ${formatted}`);
+    const pushLogoLine = (label: string, url?: string, svgFallback?: string) => {
+      const value = url || (svgFallback ? formatLogoUrl(svgFallback) : '');
+      if (value) logoLines.push(`  ${label}: ${value}`);
+    };
+
+    pushLogoLine('Primary (full logo)', assetUrls?.primary, logo?.svg);
+    pushLogoLine('Icon only', assetUrls?.icon, logo?.iconSvg);
+
+    const wt = logo?.variations?.withText;
+    if (assetUrls?.withText || wt) {
+      pushLogoLine('With text (light bg)', assetUrls?.withText?.lightBackground, wt?.lightBackground);
+      pushLogoLine('With text (dark bg)', assetUrls?.withText?.darkBackground, wt?.darkBackground);
+      pushLogoLine('With text (mono)', assetUrls?.withText?.monochrome, wt?.monochrome);
     }
-    if (logo?.iconSvg) {
-      const formatted = formatLogoUrl(logo.iconSvg);
-      if (formatted) logoLines.push(`  Icon only: ${formatted}`);
-    }
-    if (logo?.variations?.withText) {
-      const wt = logo.variations.withText;
-      if (wt.lightBackground) logoLines.push(`  With text (light bg): ${formatLogoUrl(wt.lightBackground)}`);
-      if (wt.darkBackground) logoLines.push(`  With text (dark bg): ${formatLogoUrl(wt.darkBackground)}`);
-      if (wt.monochrome) logoLines.push(`  With text (mono): ${formatLogoUrl(wt.monochrome)}`);
-    }
-    if (logo?.variations?.iconOnly) {
-      const io = logo.variations.iconOnly;
-      if (io.lightBackground) logoLines.push(`  Icon only (light bg): ${formatLogoUrl(io.lightBackground)}`);
-      if (io.darkBackground) logoLines.push(`  Icon only (dark bg): ${formatLogoUrl(io.darkBackground)}`);
-      if (io.monochrome) logoLines.push(`  Icon only (mono): ${formatLogoUrl(io.monochrome)}`);
+
+    const io = logo?.variations?.iconOnly;
+    if (assetUrls?.iconOnly || io) {
+      pushLogoLine('Icon only (light bg)', assetUrls?.iconOnly?.lightBackground, io?.lightBackground);
+      pushLogoLine('Icon only (dark bg)', assetUrls?.iconOnly?.darkBackground, io?.darkBackground);
+      pushLogoLine('Icon only (mono)', assetUrls?.iconOnly?.monochrome, io?.monochrome);
     }
 
     // Flat, explicit brand context — LLM uses bg-[#hex], text-[#hex] directly

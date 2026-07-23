@@ -41,51 +41,35 @@ class ProjectService {
         userId: userId,
       };
 
-      // Check if there are logo variations to upload
-      const logoVariations = projectData.analysisResultModel?.branding?.logo?.variations;
-      const primaryLogo = projectData.analysisResultModel?.branding?.logo?.svg;
-      if (
-        logoVariations &&
-        (logoVariations.iconOnly?.lightBackground ||
-          logoVariations.iconOnly?.darkBackground ||
-          logoVariations.iconOnly?.monochrome ||
-          logoVariations.withText?.lightBackground ||
-          logoVariations.withText?.darkBackground ||
-          logoVariations.withText?.monochrome ||
-          primaryLogo)
-      ) {
-        logger.info(`Uploading logo variations to Firebase Storage`, {
+      // Rasterize the logo (SVG) to PNG, upload the PNGs to object storage and
+      // keep the inline SVG as the vector source of truth. The resulting PNG
+      // URLs live in logo.assetUrls (used by generation contexts). Guard on an
+      // absent assetUrls so we don't re-upload if the branding step already did.
+      const logo = projectData.analysisResultModel?.branding?.logo;
+      const logoVariations = logo?.variations;
+      const hasLogoContent = !!(
+        logo &&
+        !logo.assetUrls &&
+        (logo.svg ||
+          logoVariations?.iconOnly?.lightBackground ||
+          logoVariations?.iconOnly?.darkBackground ||
+          logoVariations?.iconOnly?.monochrome ||
+          logoVariations?.withText?.lightBackground ||
+          logoVariations?.withText?.darkBackground ||
+          logoVariations?.withText?.monochrome)
+      );
+
+      if (hasLogoContent) {
+        logger.info(`Uploading logo PNG assets to object storage`, {
           userId,
           projectId,
-          variations: Object.keys(logoVariations),
+          variations: logoVariations ? Object.keys(logoVariations) : [],
         });
 
         try {
-          // Upload logo variations to Firebase Storage
-          const iconSvg = projectData.analysisResultModel?.branding?.logo?.iconSvg;
-          const uploadResults = await storageService.uploadLogoVariations(
-            primaryLogo,
-            iconSvg,
-            logoVariations,
-            userId,
-            projectId
-          );
+          const assetUrls = await storageService.uploadProjectLogoAssets(logo!, userId, projectId);
 
-          // Replace SVG content with download URLs
-          const updatedVariations = {
-            withText: {
-              lightBackground: uploadResults.withText?.lightBackground?.downloadURL,
-              darkBackground: uploadResults.withText?.darkBackground?.downloadURL,
-              monochrome: uploadResults.withText?.monochrome?.downloadURL,
-            },
-            iconOnly: {
-              lightBackground: uploadResults.iconOnly?.lightBackground?.downloadURL,
-              darkBackground: uploadResults.iconOnly?.darkBackground?.downloadURL,
-              monochrome: uploadResults.iconOnly?.monochrome?.downloadURL,
-            },
-          };
-
-          // Update the project data with the URLs
+          // Keep the SVG source intact; only attach the hosted PNG URLs.
           projectToCreate = {
             ...projectToCreate,
             analysisResultModel: {
@@ -93,35 +77,30 @@ class ProjectService {
               branding: {
                 ...projectToCreate.analysisResultModel?.branding,
                 logo: {
-                  ...projectToCreate.analysisResultModel?.branding?.logo,
-                  svg: uploadResults.primaryLogo!.downloadURL,
-                  iconSvg: uploadResults.iconSvg?.downloadURL,
-                  variations: updatedVariations,
+                  ...logo!,
+                  assetUrls,
                 },
               },
             },
           };
 
-          logger.info(`Logo variations uploaded successfully`, {
+          logger.info(`Logo PNG assets uploaded successfully`, {
             userId,
             projectId,
-            uploadedUrls: {
-              withText: updatedVariations.withText,
-              iconOnly: updatedVariations.iconOnly,
-            },
+            uploaded: Object.keys(assetUrls),
           });
         } catch (uploadError: any) {
-          logger.error(`Failed to upload logo variations`, {
+          logger.error(`Failed to upload logo PNG assets`, {
             userId,
             projectId,
             error: uploadError.message,
             stack: uploadError.stack,
           });
           // Continue with project creation even if logo upload fails
-          logger.warn(`Continuing project creation without uploaded logo variations`);
+          logger.warn(`Continuing project creation without uploaded logo assets`);
         }
       } else {
-        logger.info(`No logo variations to upload for project`, {
+        logger.info(`No logo content to upload for project`, {
           userId,
           projectId,
         });

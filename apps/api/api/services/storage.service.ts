@@ -1,6 +1,8 @@
 import minioConnection from '../config/minio.config';
 import logger from '../config/logger';
 import { Readable } from 'stream';
+import { convertSvgToPng, resolveSvgContent } from './logo-import.service';
+import { LogoAssetUrls, LogoModel } from '../models/logo.model';
 
 export interface UploadResult {
   fileName: string;
@@ -20,6 +22,12 @@ export interface LogoVariationsUpload {
   withText?: LogoVariationSetUpload;
   iconOnly?: LogoVariationSetUpload;
 }
+
+/**
+ * Rendered size (px) of the PNG logo assets uploaded to the bucket.
+ * 512 is enough for slides/flyers/brand-book <img> while staying lightweight.
+ */
+const LOGO_PNG_SIZE = 512;
 
 export class StorageService {
   private get client() {
@@ -103,7 +111,117 @@ export class StorageService {
   }
 
   /**
-   * Upload logo variations to MinIO Storage
+   * Rasterize a single logo SVG to PNG and upload it to the bucket.
+   *
+   * Accepts either inline SVG markup or a hosted URL (legacy data where the SVG
+   * field was replaced by a `.svg` URL) — the source is resolved to SVG first,
+   * then converted to PNG. Never throws: on any failure it logs and returns
+   * `undefined` so a single bad variation can't abort the whole upload.
+   *
+   * @param svgOrUrl - Inline SVG markup or a URL pointing to an SVG
+   * @param fileName - Target PNG file name (e.g. "logo-primary.png")
+   * @param folderPath - Destination folder in the bucket
+   * @returns The public PNG URL, or undefined when it couldn't be produced
+   */
+  private async uploadSvgAsPng(
+    svgOrUrl: string | undefined,
+    fileName: string,
+    folderPath: string
+  ): Promise<string | undefined> {
+    if (!svgOrUrl || !svgOrUrl.trim()) return undefined;
+
+    try {
+      const svgContent = await resolveSvgContent(svgOrUrl);
+      const pngBuffer = await convertSvgToPng(svgContent, LOGO_PNG_SIZE, LOGO_PNG_SIZE);
+      const result = await this.uploadFile(pngBuffer, fileName, folderPath, 'image/png');
+      return result.downloadURL;
+    } catch (error: any) {
+      logger.warn(`Skipping PNG asset upload for ${fileName}: ${error.message}`);
+      return undefined;
+    }
+  }
+
+  /**
+   * Upload the PNG assets of a logo (primary + icon + every variation) to the
+   * bucket and return their public URLs.
+   *
+   * IMPORTANT — SVG vs PNG distinction:
+   *  - The SVG markup (logo.svg / logo.iconSvg / logo.variations.*) stays the
+   *    inline vector source of truth and is NOT touched here.
+   *  - This method rasterizes each of those SVGs to PNG and uploads only the
+   *    PNGs. The returned {@link LogoAssetUrls} is meant to be stored alongside
+   *    the SVG (as `logo.assetUrls`) and used wherever the logo must be passed
+   *    by URL (pitch deck, flyers, brand book).
+   *
+   * @param logo - Logo carrying the inline SVG source (svg/iconSvg/variations)
+   * @param userId - User ID for folder structure
+   * @param projectId - Project ID for folder structure
+   * @returns URLs of the uploaded PNG assets (fields omitted when unavailable)
+   */
+  async uploadProjectLogoAssets(
+    logo: Pick<LogoModel, 'svg' | 'iconSvg' | 'variations'>,
+    userId: string,
+    projectId: string
+  ): Promise<LogoAssetUrls> {
+    const folderPath = `users/${userId}/projects/${projectId}/logos`;
+
+    logger.info(`Uploading logo PNG assets`, { userId, projectId, folderPath });
+
+    const wt = logo.variations?.withText;
+    const io = logo.variations?.iconOnly;
+
+    // Upload everything in parallel — each call is self-contained and safe.
+    const [
+      primary,
+      icon,
+      wtLight,
+      wtDark,
+      wtMono,
+      ioLight,
+      ioDark,
+      ioMono,
+    ] = await Promise.all([
+      this.uploadSvgAsPng(logo.svg, 'logo-primary.png', folderPath),
+      this.uploadSvgAsPng(logo.iconSvg, 'logo-icon.png', folderPath),
+      this.uploadSvgAsPng(wt?.lightBackground, 'logo-with-text-light.png', folderPath),
+      this.uploadSvgAsPng(wt?.darkBackground, 'logo-with-text-dark.png', folderPath),
+      this.uploadSvgAsPng(wt?.monochrome, 'logo-with-text-mono.png', folderPath),
+      this.uploadSvgAsPng(io?.lightBackground, 'logo-icon-light.png', folderPath),
+      this.uploadSvgAsPng(io?.darkBackground, 'logo-icon-dark.png', folderPath),
+      this.uploadSvgAsPng(io?.monochrome, 'logo-icon-mono.png', folderPath),
+    ]);
+
+    const assetUrls: LogoAssetUrls = {};
+    if (primary) assetUrls.primary = primary;
+    if (icon) assetUrls.icon = icon;
+    if (wtLight || wtDark || wtMono) {
+      assetUrls.withText = {
+        ...(wtLight ? { lightBackground: wtLight } : {}),
+        ...(wtDark ? { darkBackground: wtDark } : {}),
+        ...(wtMono ? { monochrome: wtMono } : {}),
+      };
+    }
+    if (ioLight || ioDark || ioMono) {
+      assetUrls.iconOnly = {
+        ...(ioLight ? { lightBackground: ioLight } : {}),
+        ...(ioDark ? { darkBackground: ioDark } : {}),
+        ...(ioMono ? { monochrome: ioMono } : {}),
+      };
+    }
+
+    logger.info(`Logo PNG assets uploaded`, {
+      userId,
+      projectId,
+      uploaded: Object.keys(assetUrls),
+    });
+
+    return assetUrls;
+  }
+
+  /**
+   * Upload logo variations to MinIO Storage as raw SVG files.
+   * @deprecated Prefer {@link uploadProjectLogoAssets}, which rasterizes the
+   * logo to PNG and keeps the SVG inline. Kept for backward compatibility.
    * @param variations - Object containing logo variations (SVG content)
    * @param userId - User ID for folder structure
    * @param projectId - Project ID for folder structure

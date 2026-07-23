@@ -46,6 +46,7 @@ import {
 } from '../logoVariationEngine.service';
 import { LOGO_VARIATION_CRITIQUE_PROMPT } from './prompts/singleGenerations/logo-variation-critique.prompt';
 import { resolveSvgContent } from '../logo-import.service';
+import { parseLlmJson } from '../../utils/llm-json.util';
 import { LOGO_VARIATION_RECOLOR_PROMPT } from './prompts/singleGenerations/logo-variation-recolor.prompt';
 import { PdfService, PAGE_FORMATS } from '../pdf.service';
 import { cacheService } from '../cache.service';
@@ -634,12 +635,39 @@ export class BrandingService extends GenericService {
 
     try {
       const branding = project.analysisResultModel?.branding;
-      const logoUrl = branding?.logo?.svg || '';
-      const logoVariations = branding?.logo?.variations;
+      const logo = branding?.logo;
+      const logoVariations = logo?.variations;
+      const assetUrls = logo?.assetUrls;
 
-      const lightLogoUrl = logoVariations?.withText?.lightBackground || logoUrl;
-      const darkLogoUrl = logoVariations?.withText?.darkBackground || logoUrl;
-      const monochromeLogoUrl = logoVariations?.withText?.monochrome || logoUrl;
+      // Turn a logo field into a valid <img src>: pass URLs/data-URIs through,
+      // wrap inline SVG markup into a data-URI. Prefer the hosted PNG URLs
+      // (assetUrls); fall back to the inline SVG variations for legacy projects.
+      const toImgSrc = (val?: string): string => {
+        const trimmed = (val || '').trim();
+        if (!trimmed) return '';
+        if (
+          trimmed.startsWith('http://') ||
+          trimmed.startsWith('https://') ||
+          trimmed.startsWith('data:')
+        ) {
+          return trimmed;
+        }
+        if (trimmed.includes('<svg')) {
+          return `data:image/svg+xml;base64,${Buffer.from(trimmed).toString('base64')}`;
+        }
+        return trimmed;
+      };
+
+      const logoUrl = toImgSrc(assetUrls?.primary || logo?.svg);
+      const lightLogoUrl =
+        toImgSrc(assetUrls?.withText?.lightBackground || logoVariations?.withText?.lightBackground) ||
+        logoUrl;
+      const darkLogoUrl =
+        toImgSrc(assetUrls?.withText?.darkBackground || logoVariations?.withText?.darkBackground) ||
+        logoUrl;
+      const monochromeLogoUrl =
+        toImgSrc(assetUrls?.withText?.monochrome || logoVariations?.withText?.monochrome) ||
+        logoUrl;
 
       // Define branding steps
       const steps: IPromptStep[] = [
@@ -1214,20 +1242,23 @@ export class BrandingService extends GenericService {
         stepName: `Logo Concept ${conceptIndex + 1}`,
         maxOutputTokens: 3500,
         modelParser: (content) => {
-          try {
-            // Parse JSON response containing SVG
-            const logoData = JSON.parse(content);
+          // Robust parse: repairs malformed LLM JSON (raw newlines in the SVG,
+          // fences, trailing commas) and salvages the raw SVG if needed.
+          const logoData = this.parseLogoModelResponse(content);
 
-            // Ensure unique ID for each concept
-            if (!logoData.id) {
-              logoData.id = `concept${String(conceptIndex + 1).padStart(2, '0')}`;
-            }
-
-            return logoData;
-          } catch (error) {
-            logger.error(`Error parsing logo data concept ${conceptIndex + 1}:`, error);
+          if (!logoData || typeof logoData.svg !== 'string' || !logoData.svg.includes('<svg')) {
+            logger.error(
+              `Error parsing logo data concept ${conceptIndex + 1}: no usable SVG in response`
+            );
             throw new Error(`Failed to parse logo data concept ${conceptIndex + 1}`);
           }
+
+          // Ensure unique ID for each concept
+          if (!logoData.id) {
+            logoData.id = `concept${String(conceptIndex + 1).padStart(2, '0')}`;
+          }
+
+          return logoData;
         },
         hasDependencies: false,
       },
@@ -1328,7 +1359,44 @@ export class BrandingService extends GenericService {
    * Extract icon-only SVG from the complete logo SVG
    * Removes text elements to create an icon-only version
    */
+  /**
+   * Best-effort SVG salvage from raw model text. Used as a last resort when the
+   * JSON wrapper is unrecoverable but the `<svg>…</svg>` markup itself is intact
+   * (e.g. an unescaped quote in the SVG broke the surrounding JSON string).
+   */
+  private extractSvgFromText(text: string): string | null {
+    if (!text || typeof text !== 'string') return null;
+    const match = text.match(/<svg[\s\S]*<\/svg>/i);
+    return match ? match[0] : null;
+  }
+
+  /**
+   * Robustly parse a logo model response (concept / revision / edit). Repairs
+   * the common LLM-JSON breakages (fences, raw newlines inside the SVG string,
+   * trailing commas) and, when the JSON is beyond repair, salvages the raw
+   * `<svg>` so a broken wrapper never yields a logo with an undefined SVG.
+   * Returns `null` only when no usable SVG can be recovered.
+   */
+  private parseLogoModelResponse(content: string): Record<string, any> | null {
+    const parsed = parseLlmJson<Record<string, any>>(content);
+    if (parsed && typeof parsed.svg === 'string' && parsed.svg.includes('<svg')) {
+      return parsed;
+    }
+
+    const salvagedSvg = this.extractSvgFromText(content);
+    if (salvagedSvg) {
+      logger.warn('Logo JSON unparseable — salvaged SVG directly from raw response');
+      return { ...(parsed && typeof parsed === 'object' ? parsed : {}), svg: salvagedSvg };
+    }
+
+    return parsed;
+  }
+
   private extractIconFromSvg(fullSvg: string): string {
+    if (!fullSvg || typeof fullSvg !== 'string') {
+      logger.warn('extractIconFromSvg called with a non-string SVG; skipping icon extraction');
+      return '';
+    }
     try {
       // Extract the icon group from the full SVG (using multiline regex)
       const iconMatch = fullSvg.match(/<g id="icon"[^>]*>([\s\S]*?)<\/g>/);
@@ -1570,12 +1638,12 @@ export class BrandingService extends GenericService {
         stepName: 'Logo Critique',
         maxOutputTokens: 1200,
         modelParser: (content) => {
-          try {
-            return JSON.parse(content);
-          } catch (error) {
-            logger.error('Error parsing logo critique JSON:', error);
+          const parsed = parseLlmJson<Record<string, any>>(content);
+          if (!parsed) {
+            logger.error('Error parsing logo critique JSON: unparseable response');
             throw new Error('Failed to parse logo critique');
           }
+          return parsed;
         },
         hasDependencies: false,
       },
@@ -1643,12 +1711,12 @@ export class BrandingService extends GenericService {
         stepName: 'Logo Revision',
         maxOutputTokens: 3500,
         modelParser: (content) => {
-          try {
-            return JSON.parse(content);
-          } catch (error) {
-            logger.error('Error parsing logo revision JSON:', error);
+          const parsed = this.parseLogoModelResponse(content);
+          if (!parsed || typeof parsed.svg !== 'string' || !parsed.svg.includes('<svg')) {
+            logger.error('Error parsing logo revision JSON: no usable SVG in response');
             throw new Error('Failed to parse logo revision');
           }
+          return parsed;
         },
         hasDependencies: false,
       },
@@ -2978,13 +3046,12 @@ ${LOGO_EDIT_PROMPT}`;
           stepName: 'Logo Edit',
           maxOutputTokens: 3000,
           modelParser: (content) => {
-            try {
-              const parsed = JSON.parse(content);
-              return parsed;
-            } catch (error) {
-              logger.error('Error parsing edited logo JSON:', error);
+            const parsed = this.parseLogoModelResponse(content);
+            if (!parsed || typeof parsed.svg !== 'string' || !parsed.svg.includes('<svg')) {
+              logger.error('Error parsing edited logo JSON: no usable SVG in response');
               throw new Error('Failed to parse edited logo JSON');
             }
+            return parsed;
           },
           hasDependencies: false,
         },
@@ -3282,6 +3349,24 @@ ${LOGO_EDIT_PROMPT}`;
       }
     }
 
+    // Une fois les déclinaisons générées, on les rasterise en PNG et on les
+    // envoie sur le bucket. Le SVG reste la source vectorielle inline ; ce sont
+    // ces URLs PNG (assetUrls) qui seront injectées dans les contextes de
+    // génération (pitch deck, flyers, brand book). Non bloquant : la génération
+    // des couleurs/typo doit réussir même si l'upload échoue.
+    let logoAssetUrls = existingLogo?.assetUrls;
+    if (!logoAssetUrls) {
+      try {
+        logoAssetUrls = await this.storageService.uploadProjectLogoAssets(
+          { svg: logoSvg, iconSvg: existingLogo?.iconSvg, variations: optimizedVariations },
+          userId,
+          createdProject.id
+        );
+      } catch (error) {
+        logger.error(`Logo PNG asset upload failed during branding generation:`, error);
+      }
+    }
+
     // Conserver le logo importé de l'utilisateur (complété des variations si
     // besoin). Ne JAMAIS écrire generatedLogos ici : ce champ est réservé aux
     // logos générés par l'IA — le polluer avec le logo importé faussait la
@@ -3290,6 +3375,7 @@ ${LOGO_EDIT_PROMPT}`;
       ? {
           ...existingLogo,
           ...(optimizedVariations ? { variations: optimizedVariations } : {}),
+          ...(logoAssetUrls ? { assetUrls: logoAssetUrls } : {}),
         }
       : {
           id: `imported-${Date.now()}`,
@@ -3299,6 +3385,7 @@ ${LOGO_EDIT_PROMPT}`;
           colors: logoColors,
           fonts: [],
           ...(optimizedVariations ? { variations: optimizedVariations } : {}),
+          ...(logoAssetUrls ? { assetUrls: logoAssetUrls } : {}),
         };
 
     const updatedProjectData = {

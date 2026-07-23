@@ -110,7 +110,7 @@ export class BusinessPlanService extends GenericService {
 
     // Extract branding information
     const brandName = project.name || 'Startup';
-    const logoSvg = project.analysisResultModel?.branding?.logo?.svg || '';
+    const logoUrl = this.resolveLogoContextUrl(project);
     const brandColors = project.analysisResultModel?.branding?.colors || {
       primary: '#007bff',
       secondary: '#6c757d',
@@ -123,7 +123,7 @@ export class BusinessPlanService extends GenericService {
     const language = getRequestLanguage() === 'fr' ? 'French' : 'English';
 
     // Create brand context for all agents
-    const brandContext = `Brand: ${brandName}\nLogo SVG: ${logoSvg}\nBrand Colors: ${JSON.stringify(
+    const brandContext = `Brand: ${brandName}\nLogo URL: ${logoUrl}\nBrand Colors: ${JSON.stringify(
       brandColors
     )}\nTypography: ${JSON.stringify(typography)}\nLanguage: ${language}`;
 
@@ -606,6 +606,29 @@ export class BusinessPlanService extends GenericService {
     ];
   }
 
+  /**
+   * Résout la meilleure référence de logo à injecter dans les prompts de
+   * génération : privilégie l'URL PNG hébergée (assetUrls.primary), puis
+   * retombe sur le champ SVG (URL pour les projets legacy, ou markup inline
+   * encapsulé en data-URI). Envoyer une URL plutôt que le SVG brut allège aussi
+   * le contexte transmis aux agents.
+   */
+  private resolveLogoContextUrl(project: ProjectModel): string {
+    const logo = project.analysisResultModel?.branding?.logo;
+    if (!logo) return '';
+    const hosted = logo.assetUrls?.primary?.trim();
+    if (hosted) return hosted;
+    const svg = (logo.svg || '').trim();
+    if (!svg) return '';
+    if (svg.startsWith('http://') || svg.startsWith('https://') || svg.startsWith('data:')) {
+      return svg;
+    }
+    if (svg.includes('<svg')) {
+      return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+    }
+    return svg;
+  }
+
   /** Construit le bloc de contexte financier réel (module Finance) pour les agents. */
   private buildFinanceContext(project: ProjectModel): string {
     if (!project.analysisResultModel?.finance) return '';
@@ -900,7 +923,7 @@ export class BusinessPlanService extends GenericService {
       JSON.stringify(project.additionalInfos);
 
     const brandName = project.name || 'Startup';
-    const logoSvg = project.analysisResultModel?.branding?.logo?.svg || '';
+    const logoUrl = this.resolveLogoContextUrl(project);
     const brandColors = project.analysisResultModel?.branding?.colors || {
       primary: '#007bff',
       secondary: '#6c757d',
@@ -910,7 +933,7 @@ export class BusinessPlanService extends GenericService {
     };
     const language = (requestLanguage || getRequestLanguage()) === 'fr' ? 'French' : 'English';
 
-    const brandContext = `Brand: ${brandName}\nLogo SVG: ${logoSvg}\nBrand Colors: ${JSON.stringify(
+    const brandContext = `Brand: ${brandName}\nLogo URL: ${logoUrl}\nBrand Colors: ${JSON.stringify(
       brandColors
     )}\nTypography: ${JSON.stringify(typography)}\nLanguage: ${language}`;
 

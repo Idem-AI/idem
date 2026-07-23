@@ -131,10 +131,11 @@ Generate the complete application code with all necessary files.`;
 
     let brandInfo = '## Brand Information\n';
 
-    // Logo information - simplified to just URL
+    // Logo information - simplified to just URL. Prefer the hosted PNG URL
+    // (assetUrls) and fall back to the svg field (legacy URL or inline SVG).
     if (branding.logo) {
       brandInfo += `### Logo\n`;
-      brandInfo += `- **Logo URL**: ${branding.logo.svg}\n`;
+      brandInfo += `- **Logo URL**: ${branding.logo.assetUrls?.primary || branding.logo.svg}\n`;
     }
 
     // Colors
