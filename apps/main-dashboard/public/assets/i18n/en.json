@@ -1622,7 +1622,8 @@
         "selectProject": "Select Project",
         "generate": "Generate Brand Identity",
         "viewIdentity": "View My Visual Identity",
-        "generateIdentity": "Generate My Visual Identity"
+        "generateIdentity": "Generate My Visual Identity",
+        "edit": "Edit"
       },
       "tooltips": {
         "downloadZip": "Download all logos in a ZIP file"
@@ -1843,7 +1844,8 @@
       "buttons": {
         "backToProjects": "Back to Projects",
         "generate": "Generate Business Plan",
-        "selectProject": "Select a Project"
+        "selectProject": "Select a Project",
+        "edit": "Edit"
       },
       "empty": {
         "title": "No Business Plan Yet",
@@ -1898,7 +1900,10 @@
         "download": "Could not download the PDF.",
         "pdfLoad": "Could not load the PDF preview."
       },
-      "loadingPdf": "Loading PDF preview…"
+      "loadingPdf": "Loading PDF preview…",
+      "buttons": {
+        "edit": "Edit"
+      }
     },
     "legalDocs": {
       "title": "Legal Documents",
@@ -2321,6 +2326,104 @@
       "foot": {
         "note": "Nothing made up · {{queries}} searches"
       }
+    },
+    "documentEditor": {
+      "businessPlan": {
+        "title": "Business plan editor"
+      },
+      "canvasLabel": "Document preview",
+      "inspector": "Properties",
+      "loading": "Loading document…",
+      "toolbar": {
+        "back": "Back",
+        "subtitle": "Double-click any text to edit it",
+        "undo": "Undo",
+        "redo": "Redo",
+        "zoomOut": "Zoom out",
+        "zoomIn": "Zoom in",
+        "save": "Save",
+        "saving": "Saving…",
+        "saved": "Saved",
+        "saveError": "Save failed",
+        "unsaved": "Unsaved changes",
+        "upToDate": "Up to date"
+      },
+      "layers": {
+        "title": "Document pages",
+        "pages": "Pages"
+      },
+      "emptySelection": {
+        "title": "No element selected",
+        "subtitle": "Click an element to edit its properties, or double-click text to edit it in place."
+      },
+      "props": {
+        "heading": "Properties",
+        "textColor": "Text color",
+        "bgColor": "Background",
+        "clearBg": "Clear background",
+        "fontSize": "Size",
+        "fontWeight": "Weight",
+        "align": "Alignment",
+        "opacity": "Opacity",
+        "arrange": "Arrange",
+        "moveUp": "Move up",
+        "moveDown": "Move down",
+        "delete": "Delete element"
+      },
+      "chart": {
+        "heading": "Chart",
+        "type": "Type",
+        "types": {
+          "bar": "Bar",
+          "line": "Line",
+          "pie": "Pie",
+          "doughnut": "Doughnut",
+          "radar": "Radar",
+          "polarArea": "Polar area"
+        },
+        "legend": "Legend",
+        "showLegend": "Show",
+        "title": "Chart title",
+        "labels": "Labels",
+        "sliceColor": "Slice color",
+        "removeLabel": "Remove label",
+        "datasets": "Series",
+        "seriesColor": "Series color",
+        "seriesName": "Series name",
+        "removeSeries": "Remove series",
+        "value": "Value"
+      },
+      "ai": {
+        "title": "AI editing",
+        "placeholder": "Describe the change you want for this section…",
+        "working": "Editing…",
+        "apply": "Apply with AI",
+        "hint": "The AI uses the whole project context to edit this section."
+      },
+      "error": {
+        "back": "Back",
+        "noProject": {
+          "title": "No project selected",
+          "subtitle": "Select a project first to edit its business plan."
+        },
+        "load": {
+          "title": "Could not load",
+          "subtitle": "The document failed to load. Try again from the business plan page."
+        }
+      },
+      "attrs": {
+        "heading": "Attributes",
+        "name": "Name",
+        "value": "Value",
+        "add": "Add",
+        "remove": "Remove attribute"
+      },
+      "pitchDeck": {
+        "title": "Pitch deck editor"
+      },
+      "branding": {
+        "title": "Brand identity editor"
+      }
     }
   },
   "deployment": {
@@ -2455,7 +2558,10 @@
       "financeCashflow": "Finance Cashflow",
       "financeRatios": "Finance Ratios",
       "createProject": "Create Project",
-      "notFound": "Page Not Found"
+      "notFound": "Page Not Found",
+      "businessPlanEdit": "Business Plan Editing",
+      "pitchDeckEdit": "Pitch Deck Editing",
+      "brandingEdit": "Brand Identity Editing"
     }
   },
   "notFound": {

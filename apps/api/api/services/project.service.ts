@@ -37,55 +37,41 @@ class ProjectService {
       });
 
       let projectToCreate: Omit<ProjectModel, 'id' | 'createdAt' | 'updatedAt'> = {
+        isArchived: false,
+        archived: false,
         ...projectData,
         userId: userId,
       };
 
-      // Check if there are logo variations to upload
-      const logoVariations = projectData.analysisResultModel?.branding?.logo?.variations;
-      const primaryLogo = projectData.analysisResultModel?.branding?.logo?.svg;
-      if (
-        logoVariations &&
-        (logoVariations.iconOnly?.lightBackground ||
-          logoVariations.iconOnly?.darkBackground ||
-          logoVariations.iconOnly?.monochrome ||
-          logoVariations.withText?.lightBackground ||
-          logoVariations.withText?.darkBackground ||
-          logoVariations.withText?.monochrome ||
-          primaryLogo)
-      ) {
-        logger.info(`Uploading logo variations to Firebase Storage`, {
+      // Rasterize the logo (SVG) to PNG, upload the PNGs to object storage and
+      // keep the inline SVG as the vector source of truth. The resulting PNG
+      // URLs live in logo.assetUrls (used by generation contexts). Guard on an
+      // absent assetUrls so we don't re-upload if the branding step already did.
+      const logo = projectData.analysisResultModel?.branding?.logo;
+      const logoVariations = logo?.variations;
+      const hasLogoContent = !!(
+        logo &&
+        !logo.assetUrls &&
+        (logo.svg ||
+          logoVariations?.iconOnly?.lightBackground ||
+          logoVariations?.iconOnly?.darkBackground ||
+          logoVariations?.iconOnly?.monochrome ||
+          logoVariations?.withText?.lightBackground ||
+          logoVariations?.withText?.darkBackground ||
+          logoVariations?.withText?.monochrome)
+      );
+
+      if (hasLogoContent) {
+        logger.info(`Uploading logo PNG assets to object storage`, {
           userId,
           projectId,
-          variations: Object.keys(logoVariations),
+          variations: logoVariations ? Object.keys(logoVariations) : [],
         });
 
         try {
-          // Upload logo variations to Firebase Storage
-          const iconSvg = projectData.analysisResultModel?.branding?.logo?.iconSvg;
-          const uploadResults = await storageService.uploadLogoVariations(
-            primaryLogo,
-            iconSvg,
-            logoVariations,
-            userId,
-            projectId
-          );
+          const assetUrls = await storageService.uploadProjectLogoAssets(logo!, userId, projectId);
 
-          // Replace SVG content with download URLs
-          const updatedVariations = {
-            withText: {
-              lightBackground: uploadResults.withText?.lightBackground?.downloadURL,
-              darkBackground: uploadResults.withText?.darkBackground?.downloadURL,
-              monochrome: uploadResults.withText?.monochrome?.downloadURL,
-            },
-            iconOnly: {
-              lightBackground: uploadResults.iconOnly?.lightBackground?.downloadURL,
-              darkBackground: uploadResults.iconOnly?.darkBackground?.downloadURL,
-              monochrome: uploadResults.iconOnly?.monochrome?.downloadURL,
-            },
-          };
-
-          // Update the project data with the URLs
+          // Keep the SVG source intact; only attach the hosted PNG URLs.
           projectToCreate = {
             ...projectToCreate,
             analysisResultModel: {
@@ -93,35 +79,30 @@ class ProjectService {
               branding: {
                 ...projectToCreate.analysisResultModel?.branding,
                 logo: {
-                  ...projectToCreate.analysisResultModel?.branding?.logo,
-                  svg: uploadResults.primaryLogo!.downloadURL,
-                  iconSvg: uploadResults.iconSvg?.downloadURL,
-                  variations: updatedVariations,
+                  ...logo!,
+                  assetUrls,
                 },
               },
             },
           };
 
-          logger.info(`Logo variations uploaded successfully`, {
+          logger.info(`Logo PNG assets uploaded successfully`, {
             userId,
             projectId,
-            uploadedUrls: {
-              withText: updatedVariations.withText,
-              iconOnly: updatedVariations.iconOnly,
-            },
+            uploaded: Object.keys(assetUrls),
           });
         } catch (uploadError: any) {
-          logger.error(`Failed to upload logo variations`, {
+          logger.error(`Failed to upload logo PNG assets`, {
             userId,
             projectId,
             error: uploadError.message,
             stack: uploadError.stack,
           });
           // Continue with project creation even if logo upload fails
-          logger.warn(`Continuing project creation without uploaded logo variations`);
+          logger.warn(`Continuing project creation without uploaded logo assets`);
         }
       } else {
-        logger.info(`No logo variations to upload for project`, {
+        logger.info(`No logo content to upload for project`, {
           userId,
           projectId,
         });
@@ -163,8 +144,15 @@ class ProjectService {
 
     try {
       const projects = await this.projectRepository.findAll(`users/${userId}/projects`);
-      logger.info(`Projects fetched for user ${userId}: ${projects.length}`);
-      return projects;
+      // Filter out soft-deleted / archived projects from user dashboard while guaranteeing backwards compatibility
+      // For legacy projects created prior to soft delete feature, isArchived/archived may be undefined/null (treated as active).
+      const activeProjects = projects.filter(
+        (p) => p.isArchived !== true && (p as any).archived !== true
+      );
+      logger.info(
+        `Projects fetched for user ${userId}: ${activeProjects.length} active (${projects.length} total)`
+      );
+      return activeProjects;
     } catch (error: any) {
       logger.error(`Error fetching projects for user ${userId} in service: ${error.message}`, {
         stack: error.stack,
@@ -199,15 +187,21 @@ class ProjectService {
 
   async deleteUserProject(userId: string, projectId: string): Promise<void> {
     if (!userId || !projectId) {
-      logger.error('User ID and Project ID are required for deletion.');
+      logger.error('User ID and Project ID are required for archiving.');
       throw new Error('User ID and Project ID are required.');
     }
 
     try {
-      const success = await this.projectRepository.delete(projectId, `users/${userId}/projects`);
-      if (success) {
-        logger.info(`Project ${projectId} deleted successfully for user ${userId} via repository`);
-        
+      // Soft delete: set isArchived: true & archived: true instead of hard deleting from database
+      const updatedProject = await this.projectRepository.update(
+        projectId,
+        { isArchived: true, archived: true, archivedAt: new Date() } as any,
+        `users/${userId}/projects`
+      );
+
+      if (updatedProject) {
+        logger.info(`Project ${projectId} archived successfully for user ${userId} via repository`);
+
         // Invalider le cache du projet dans Redis
         const projectCacheKey = `project_${userId}_${projectId}`;
         await cacheService.delete(projectCacheKey, { prefix: 'project' }).catch((err) => {
@@ -215,12 +209,12 @@ class ProjectService {
         });
       } else {
         logger.warn(
-          `Project ${projectId} not found for deletion or delete failed for user ${userId} via repository`
+          `Project ${projectId} not found for archiving or archive failed for user ${userId} via repository`
         );
       }
     } catch (error: any) {
       logger.error(
-        `Error deleting project ${projectId} for user ${userId} in service: ${error.message}`,
+        `Error archiving project ${projectId} for user ${userId} in service: ${error.message}`,
         { stack: error.stack, details: error }
       );
       throw error;

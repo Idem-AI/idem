@@ -180,6 +180,27 @@ export class CommunicationService extends GenericService {
     };
     const typography = branding?.typography;
 
+    // Build a valid <img src> for the logo: prefer a hosted URL, and when we
+    // fall back to inline SVG markup, wrap it into a data-URI so the flyer step
+    // always receives a usable src rather than raw markup.
+    const logoSrc = (url?: string, svgFallback?: string): string | undefined => {
+      const hosted = (url || '').trim();
+      if (hosted) return hosted;
+      const svg = (svgFallback || '').trim();
+      if (!svg) return undefined;
+      if (
+        svg.startsWith('http://') ||
+        svg.startsWith('https://') ||
+        svg.startsWith('data:')
+      ) {
+        return svg;
+      }
+      if (svg.includes('<svg')) {
+        return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+      }
+      return svg;
+    };
+
     const context: CommunicationContext = {
       brandName: parsed.brandName || project.name,
       businessType: parsed.businessType || project.type || 'business',
@@ -200,23 +221,48 @@ export class CommunicationService extends GenericService {
         secondaryFont: typography?.secondaryFont,
         fontUrl: typography?.url,
         logoSvg: branding?.logo?.svg,
+        // Prefer the hosted PNG URLs (assetUrls); fall back to the inline SVG
+        // variations for legacy projects created before PNG assets existed.
+        // logoSrc() guarantees the flyer step always receives a usable <img src>
+        // (URL or data-URI), never raw SVG markup.
         logoUrls: branding?.logo
           ? {
-              primary: branding.logo.svg,
-              withText: branding.logo.variations?.withText
-                ? {
-                    light: branding.logo.variations.withText.lightBackground,
-                    dark: branding.logo.variations.withText.darkBackground,
-                    mono: branding.logo.variations.withText.monochrome,
-                  }
-                : undefined,
-              iconOnly: branding.logo.variations?.iconOnly
-                ? {
-                    light: branding.logo.variations.iconOnly.lightBackground,
-                    dark: branding.logo.variations.iconOnly.darkBackground,
-                    mono: branding.logo.variations.iconOnly.monochrome,
-                  }
-                : undefined,
+              primary:
+                logoSrc(branding.logo.assetUrls?.primary, branding.logo.svg) || branding.logo.svg,
+              withText:
+                branding.logo.assetUrls?.withText || branding.logo.variations?.withText
+                  ? {
+                      light: logoSrc(
+                        branding.logo.assetUrls?.withText?.lightBackground,
+                        branding.logo.variations?.withText?.lightBackground
+                      ),
+                      dark: logoSrc(
+                        branding.logo.assetUrls?.withText?.darkBackground,
+                        branding.logo.variations?.withText?.darkBackground
+                      ),
+                      mono: logoSrc(
+                        branding.logo.assetUrls?.withText?.monochrome,
+                        branding.logo.variations?.withText?.monochrome
+                      ),
+                    }
+                  : undefined,
+              iconOnly:
+                branding.logo.assetUrls?.iconOnly || branding.logo.variations?.iconOnly
+                  ? {
+                      light: logoSrc(
+                        branding.logo.assetUrls?.iconOnly?.lightBackground,
+                        branding.logo.variations?.iconOnly?.lightBackground
+                      ),
+                      dark: logoSrc(
+                        branding.logo.assetUrls?.iconOnly?.darkBackground,
+                        branding.logo.variations?.iconOnly?.darkBackground
+                      ),
+                      mono: logoSrc(
+                        branding.logo.assetUrls?.iconOnly?.monochrome,
+                        branding.logo.variations?.iconOnly?.monochrome
+                      ),
+                    }
+                  : undefined,
             }
           : undefined,
       },

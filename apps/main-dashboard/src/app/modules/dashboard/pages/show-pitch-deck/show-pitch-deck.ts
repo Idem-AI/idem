@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CookieService } from '../../../../shared/services/cookie.service';
@@ -55,6 +56,7 @@ export class ShowPitchDeck implements OnInit, OnDestroy {
   private readonly brandingValidation = inject(BrandingValidationService);
   private readonly projectService = inject(ProjectService);
   private readonly translate = inject(TranslateService);
+  private readonly router = inject(Router);
 
   protected readonly projectId = signal<string | null>(null);
   protected readonly isLoading = signal(true);
@@ -252,6 +254,11 @@ export class ShowPitchDeck implements OnInit, OnDestroy {
           this.errorMessage.set(this.translate.instant('dashboard.showPitchDeck.errors.download'));
         },
       });
+  }
+
+  /** Ouvre l'éditeur WYSIWYG du pitch deck. */
+  protected editPitchDeck(): void {
+    this.router.navigate(['/project/pitch-deck/edit']);
   }
 
   protected regenerate(): void {

@@ -1625,7 +1625,8 @@
         "selectProject": "Sélectionner un projet",
         "generate": "Générer l'identité de marque",
         "viewIdentity": "Voir mon identité visuelle",
-        "generateIdentity": "Générer mon identité visuelle"
+        "generateIdentity": "Générer mon identité visuelle",
+        "edit": "Éditer"
       },
       "tooltips": {
         "downloadZip": "Télécharger tous les logos dans un fichier ZIP"
@@ -1846,7 +1847,8 @@
       "buttons": {
         "backToProjects": "Retour aux projets",
         "generate": "Générer le plan d'affaires",
-        "selectProject": "Sélectionner un projet"
+        "selectProject": "Sélectionner un projet",
+        "edit": "Éditer"
       },
       "empty": {
         "title": "Aucun plan d'affaires pour le moment",
@@ -1901,7 +1903,10 @@
         "download": "Impossible de télécharger le PDF.",
         "pdfLoad": "Impossible de charger l’aperçu PDF."
       },
-      "loadingPdf": "Chargement de l’aperçu PDF…"
+      "loadingPdf": "Chargement de l’aperçu PDF…",
+      "buttons": {
+        "edit": "Éditer"
+      }
     },
     "legalDocs": {
       "title": "Documents juridiques",
@@ -2324,6 +2329,104 @@
       "foot": {
         "note": "Aucune donnée inventée · {{queries}} recherches"
       }
+    },
+    "documentEditor": {
+      "businessPlan": {
+        "title": "Éditeur du business plan"
+      },
+      "canvasLabel": "Aperçu du document",
+      "inspector": "Propriétés",
+      "loading": "Chargement du document…",
+      "toolbar": {
+        "back": "Retour",
+        "subtitle": "Double-cliquez un texte pour le modifier",
+        "undo": "Annuler",
+        "redo": "Rétablir",
+        "zoomOut": "Dézoomer",
+        "zoomIn": "Zoomer",
+        "save": "Enregistrer",
+        "saving": "Enregistrement…",
+        "saved": "Enregistré",
+        "saveError": "Échec de l'enregistrement",
+        "unsaved": "Modifications non enregistrées",
+        "upToDate": "À jour"
+      },
+      "layers": {
+        "title": "Pages du document",
+        "pages": "Pages"
+      },
+      "emptySelection": {
+        "title": "Aucun élément sélectionné",
+        "subtitle": "Cliquez un élément pour modifier ses propriétés, ou double-cliquez un texte pour l'éditer directement."
+      },
+      "props": {
+        "heading": "Propriétés",
+        "textColor": "Couleur du texte",
+        "bgColor": "Fond",
+        "clearBg": "Retirer le fond",
+        "fontSize": "Taille",
+        "fontWeight": "Graisse",
+        "align": "Alignement",
+        "opacity": "Opacité",
+        "arrange": "Disposition",
+        "moveUp": "Monter",
+        "moveDown": "Descendre",
+        "delete": "Supprimer l'élément"
+      },
+      "chart": {
+        "heading": "Graphique",
+        "type": "Type",
+        "types": {
+          "bar": "Barres",
+          "line": "Courbes",
+          "pie": "Camembert",
+          "doughnut": "Anneau",
+          "radar": "Radar",
+          "polarArea": "Aire polaire"
+        },
+        "legend": "Légende",
+        "showLegend": "Afficher",
+        "title": "Titre du graphique",
+        "labels": "Libellés",
+        "sliceColor": "Couleur du secteur",
+        "removeLabel": "Retirer le libellé",
+        "datasets": "Séries",
+        "seriesColor": "Couleur de la série",
+        "seriesName": "Nom de la série",
+        "removeSeries": "Retirer la série",
+        "value": "Valeur"
+      },
+      "ai": {
+        "title": "Édition par IA",
+        "placeholder": "Décrivez la modification à apporter à cette section…",
+        "working": "Modification en cours…",
+        "apply": "Appliquer avec l'IA",
+        "hint": "L'IA tient compte de tout le contexte du projet pour modifier la section."
+      },
+      "error": {
+        "back": "Retour",
+        "noProject": {
+          "title": "Aucun projet sélectionné",
+          "subtitle": "Sélectionnez d'abord un projet pour éditer son business plan."
+        },
+        "load": {
+          "title": "Chargement impossible",
+          "subtitle": "Le document n'a pas pu être chargé. Réessayez depuis la page du business plan."
+        }
+      },
+      "attrs": {
+        "heading": "Attributs",
+        "name": "Nom",
+        "value": "Valeur",
+        "add": "Ajouter",
+        "remove": "Retirer l'attribut"
+      },
+      "pitchDeck": {
+        "title": "Éditeur du pitch deck"
+      },
+      "branding": {
+        "title": "Éditeur de la charte graphique"
+      }
     }
   },
   "deployment": {
@@ -2413,7 +2516,10 @@
       "financeCashflow": "Finance Flux de trésorerie",
       "financeRatios": "Finance Ratios",
       "createProject": "Créer un projet",
-      "notFound": "Page non trouvée"
+      "notFound": "Page non trouvée",
+      "businessPlanEdit": "Édition du business plan",
+      "pitchDeckEdit": "Édition du pitch deck",
+      "brandingEdit": "Édition de la charte graphique"
     }
   },
   "notFound": {

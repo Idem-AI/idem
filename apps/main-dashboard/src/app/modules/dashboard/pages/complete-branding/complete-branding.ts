@@ -235,14 +235,15 @@ export class CompleteBrandingPage implements OnInit {
             // l'analyse mais ne compte pas comme un logo généré par l'IA
             const logoIsImported = !!branding.logo?.id?.startsWith('imported-');
             const hasLogo = !!branding.logo && !logoIsImported;
-            const hasVariations = hasLogo && !!branding.logo?.variations?.withText;
+            const v = branding.logo?.variations?.withText;
+            const hasAllVariations = hasLogo && !!v && !!v.lightBackground && !!v.darkBackground && !!v.monochrome;
 
-            if (hasLogo && hasVariations) {
+            if (hasLogo && hasAllVariations) {
               targetStepIndex = 6; // overview
-            } else if (hasLogo && !hasVariations) {
-              // Logo sélectionné mais variations non générées (ex: retour navigateur)
-              // → revenir à logo-selection pour que l'utilisateur re-confirme son choix
-              targetStepIndex = 4; // logo-selection
+            } else if (hasLogo && !hasAllVariations) {
+              // Logo sélectionné mais 3 déclinaisons non entièrement générées
+              // → aller à logo-variations pour générer ou réessayer les déclinaisons manquantes
+              targetStepIndex = 5; // logo-variations
             } else if (hasGeneratedLogos && !hasLogo) {
               // Des logos ont été générés mais aucun n'a été sélectionné
               // → aller directement à logo-selection avec les logos déjà générés
@@ -282,8 +283,10 @@ export class CompleteBrandingPage implements OnInit {
         return true; // logo-preferences se valide en émettant preferencesSelected
       case 'logo-selection':
         return !!this.selectedLogo;
-      case 'logo-variations':
-        return true;
+      case 'logo-variations': {
+        const v = this.selectedLogo?.variations?.withText;
+        return !!v && !!v.lightBackground && !!v.darkBackground && !!v.monochrome;
+      }
       case 'overview':
         return true;
       default:
