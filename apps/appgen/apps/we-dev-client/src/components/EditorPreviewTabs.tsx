@@ -62,6 +62,7 @@ const EditorPreviewTabs: React.FC = () => {
             }}
             icon={<EditIcon />}
             label={t("editor.edit")}
+            badge="NEW"
           />
           <TabButton
             active={showIframe == "preview"}
@@ -157,6 +158,7 @@ interface TabButtonProps {
   onClick: () => void;
   icon: React.ReactNode;
   label: string;
+  badge?: React.ReactNode;
 }
 
 const TabButton: React.FC<TabButtonProps> = ({
@@ -164,6 +166,7 @@ const TabButton: React.FC<TabButtonProps> = ({
   onClick,
   icon,
   label,
+  badge,
 }) => (
   <div
     onClick={onClick}
@@ -180,6 +183,11 @@ const TabButton: React.FC<TabButtonProps> = ({
   >
     {icon}
     <span className="translate">{label}</span>
+    {badge && (
+      <span className="ml-1 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-md bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs leading-none">
+        {badge}
+      </span>
+    )}
   </div>
 );
 
