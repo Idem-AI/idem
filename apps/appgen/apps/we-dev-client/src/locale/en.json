@@ -230,7 +230,8 @@
     "preview": "Preview",
     "apiTest": "APITest",
     "search_in_files": "Search in files...",
-    "diff": "diff"
+    "diff": "diff",
+    "edit": "Edit"
   },
   "header": {
     "download": "Download Code",
@@ -450,5 +451,23 @@
     "connect_idem_title": "Connect to an Idem project",
     "connect_idem_subtitle": "Create or associate with an existing project",
     "cancel": "Cancel"
+  },
+  "editMode": {
+    "hint": "Click to select · double-click to edit text · drag to reorder",
+    "noSelection": "Select an element in the preview to edit it.",
+    "deselect": "Deselect",
+    "text": "Text",
+    "textHint": "You can also double-click the text directly in the preview.",
+    "image": "Image (URL)",
+    "imagePrompt": "New image URL:",
+    "style": "Style",
+    "textColor": "Text color",
+    "background": "Background",
+    "fontSize": "Font size",
+    "fontWeight": "Weight",
+    "align": "Alignment",
+    "loadingAgent": "Preparing editor…",
+    "injectFailed": "Could not enable Edit mode: {{reason}}",
+    "editFailed": "Edit could not be applied: {{reason}}"
   }
 }
