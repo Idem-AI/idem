@@ -453,7 +453,7 @@
     "cancel": "Annuler"
   },
   "editMode": {
-    "hint": "Cliquez pour sélectionner · double-clic pour éditer le texte · glissez pour réordonner",
+    "hint": "Cliquez pour sélectionner · double-clic pour éditer · glissez pour réordonner · Suppr pour supprimer",
     "noSelection": "Sélectionnez un élément dans l'aperçu pour le modifier.",
     "deselect": "Désélectionner",
     "text": "Texte",
@@ -468,6 +468,10 @@
     "align": "Alignement",
     "loadingAgent": "Préparation de l'éditeur…",
     "injectFailed": "Impossible d'activer le mode Édition : {{reason}}",
-    "editFailed": "Modification non appliquée : {{reason}}"
+    "editFailed": "Modification non appliquée : {{reason}}",
+    "delete": "Supprimer l'élément",
+    "deleteHint": "Vous pouvez aussi appuyer sur la touche Suppr sur l'élément sélectionné.",
+    "reorderUnsupported": "Cet élément ne peut pas être réordonné ici.",
+    "deleteUnsupported": "Cet élément ne peut pas être supprimé ici (généré dynamiquement)."
   }
 }

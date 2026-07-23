@@ -184,6 +184,32 @@ CODE QUALITY STANDARDS:
 - Accessibility (ARIA labels, semantic HTML)
 - Performance optimization (lazy loading, code splitting)
 
+VISUAL EDIT MODE FRIENDLINESS (IMPORTANT):
+The generated site is edited in a visual "Edit" mode where the user clicks elements
+on the live preview to change text, images, styles, reorder them, or delete them —
+and the change is written back into this JSX source automatically. Generate markup
+that maps cleanly to editable elements:
+
+1. TEXT IN LEAF ELEMENTS: put each piece of user-facing text directly inside a single
+   leaf element with NO nested element around the text. Prefer <h1>Title</h1> over
+   <h1><span>Title</span></h1>. A leaf whose only child is text is inline-editable;
+   text wrapped in extra spans/divs is not.
+2. EXPLICIT SIBLING BLOCKS: for a small, fixed set of presentational blocks the user
+   is likely to rearrange or remove — hero, feature cards, testimonials, pricing tiers,
+   steps, gallery items — write them as explicit sibling JSX elements (repeat the block),
+   NOT via {array.map(...)}. Elements produced by .map() or by {condition && <X/>} cannot
+   be individually reordered or deleted in Edit mode. Use .map() only for genuinely
+   data-driven or long/unbounded lists.
+3. DIRECT CHILDREN: keep these blocks as direct children of their container (a plain
+   <section>/<div>). Do not wrap each block in an extra Fragment or a one-off wrapper
+   component — the editor matches siblings by their real DOM parent.
+4. REAL <img> TAGS: use standard <img src="..." alt="..." /> for content images (not CSS
+   background-image), so they are selectable and replaceable in Edit mode.
+5. SIMPLE className: on presentational leaf elements, keep className as a plain string
+   literal when reasonable (avoid clsx/cn()/template-literal classNames there).
+6. Keep JSX well-indented with one element per line — it keeps the visual edits' code
+   output clean.
+
 TARGET AUDIENCE - SUB-SAHARAN AFRICA (CRITICAL):
 This platform primarily targets Sub-Saharan Africa. ALL generated content MUST reflect this:
 

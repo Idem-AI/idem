@@ -10,6 +10,7 @@ import {
   Type,
   Image as ImageIcon,
   MousePointerClick,
+  Trash2,
 } from 'lucide-react';
 import {
   IDEM_SOURCE,
@@ -19,7 +20,14 @@ import {
   type StyleProperty,
   type ParentToAgentMessage,
 } from './idemProtocol';
-import { editText, editImageSrc, editStyle, reorderSiblings, type EditResult } from './astEdit';
+import {
+  editText,
+  editImageSrc,
+  editStyle,
+  reorderSiblings,
+  deleteElement,
+  type EditResult,
+} from './astEdit';
 import { buildInjectPlan, buildRemovePlan, type InstrumentationPlan } from './instrumentation';
 
 interface EditablePreviewProps {
@@ -112,13 +120,19 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
 
   /* -------- Application d'un résultat d'édition au fichier -------- */
   const applyResult = useCallback(
-    async (filePath: string, result: EditResult, keepSelection: boolean) => {
+    async (
+      filePath: string,
+      result: EditResult,
+      opts: { keepSelection?: boolean; softFailMessage?: string } = {}
+    ) => {
       if (!result.ok || result.code === undefined) {
-        toast.error(t('editMode.editFailed', { reason: result.reason ?? '' }));
+        // Échec « doux » (ex. geste de drag impossible) : message discret, pas d'erreur rouge.
+        if (opts.softFailMessage) toast.info(opts.softFailMessage);
+        else toast.error(t('editMode.editFailed', { reason: result.reason ?? '' }));
         return;
       }
       await updateContent(filePath, result.code);
-      if (!keepSelection) {
+      if (!opts.keepSelection) {
         setSelected(null);
         selectedIdRef.current = null;
       }
@@ -149,7 +163,9 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
         case 'TEXT_EDIT': {
           const ref = decodeIdemId(msg.id);
           if (!ref) return;
-          applyResult(ref.filePath, editText(getContent(ref.filePath), ref.start, msg.text), true);
+          applyResult(ref.filePath, editText(getContent(ref.filePath), ref.start, msg.text), {
+            keepSelection: true,
+          });
           break;
         }
         case 'REORDER': {
@@ -160,8 +176,17 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
           applyResult(
             ref.filePath,
             reorderSiblings(getContent(ref.filePath), ref.start, beforeRef ? beforeRef.start : null),
-            false
+            { keepSelection: false, softFailMessage: t('editMode.reorderUnsupported') }
           );
+          break;
+        }
+        case 'DELETE_ELEMENT': {
+          const ref = decodeIdemId(msg.id);
+          if (!ref) return;
+          applyResult(ref.filePath, deleteElement(getContent(ref.filePath), ref.start), {
+            keepSelection: false,
+            softFailMessage: t('editMode.deleteUnsupported'),
+          });
           break;
         }
         case 'REQUEST_IMAGE': {
@@ -169,7 +194,9 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
           if (!ref) return;
           const newSrc = window.prompt(t('editMode.imagePrompt'));
           if (!newSrc) return;
-          applyResult(ref.filePath, editImageSrc(getContent(ref.filePath), ref.start, newSrc), true);
+          applyResult(ref.filePath, editImageSrc(getContent(ref.filePath), ref.start, newSrc), {
+            keepSelection: true,
+          });
           break;
         }
       }
@@ -184,7 +211,9 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
       if (!selected) return;
       const ref = decodeIdemId(selected.id);
       if (!ref) return;
-      applyResult(ref.filePath, editStyle(getContent(ref.filePath), ref.start, property, value), true);
+      applyResult(ref.filePath, editStyle(getContent(ref.filePath), ref.start, property, value), {
+        keepSelection: true,
+      });
     },
     [selected, applyResult, getContent]
   );
@@ -194,7 +223,9 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
       if (!selected) return;
       const ref = decodeIdemId(selected.id);
       if (!ref) return;
-      applyResult(ref.filePath, editText(getContent(ref.filePath), ref.start, text), true);
+      applyResult(ref.filePath, editText(getContent(ref.filePath), ref.start, text), {
+        keepSelection: true,
+      });
     },
     [selected, applyResult, getContent]
   );
@@ -204,10 +235,22 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
       if (!selected) return;
       const ref = decodeIdemId(selected.id);
       if (!ref) return;
-      applyResult(ref.filePath, editImageSrc(getContent(ref.filePath), ref.start, src), true);
+      applyResult(ref.filePath, editImageSrc(getContent(ref.filePath), ref.start, src), {
+        keepSelection: true,
+      });
     },
     [selected, applyResult, getContent]
   );
+
+  const deleteSelected = useCallback(() => {
+    if (!selected) return;
+    const ref = decodeIdemId(selected.id);
+    if (!ref) return;
+    applyResult(ref.filePath, deleteElement(getContent(ref.filePath), ref.start), {
+      keepSelection: false,
+      softFailMessage: t('editMode.deleteUnsupported'),
+    });
+  }, [selected, applyResult, getContent, t]);
 
   const deselect = useCallback(() => {
     setSelected(null);
@@ -361,6 +404,16 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
                 </LabeledRow>
               </div>
             </PanelSection>
+
+            {/* Suppression */}
+            <button
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded border border-red-300 dark:border-red-900/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 text-sm font-medium"
+              onClick={deleteSelected}
+            >
+              <Trash2 size={14} />
+              {t('editMode.delete')}
+            </button>
+            <p className="text-[11px] text-gray-400 -mt-2">{t('editMode.deleteHint')}</p>
           </div>
         )}
       </aside>
