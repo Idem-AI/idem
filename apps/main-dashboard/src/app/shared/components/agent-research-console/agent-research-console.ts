@@ -1,5 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import {
   AgentRole,
@@ -16,60 +15,62 @@ export interface PlannedSection {
   label: string;
 }
 
-type SectionStatus = 'done' | 'active' | 'pending';
+type SectionState = 'done' | 'current' | 'upcoming';
 
-/** Nœud du fil d'étapes. */
-interface JourneyNode {
-  index: number;
+/** Segment de la frise de chapitres. */
+interface Chapter {
   name: string;
   label: string;
-  state: 'done' | 'current' | 'upcoming';
-  actionKey?: string;
-  sourceCount?: number;
+  state: SectionState;
 }
 
-/** Preuve concrète de travail affichée en direct (requête ou source). */
-interface Evidence {
-  kind: 'query' | 'source';
-  icon: string;
-  text: string;
-  url?: string;
-  domain?: string;
-}
-
-/** Modèle du panneau focal "en ce moment". */
-interface FocusVm {
+/** Panneau "en ce moment". */
+interface NowVm {
   mode: 'active' | 'starting' | 'finalizing' | 'done';
   icon: string;
   role?: AgentRole;
   sectionLabel?: string;
   actionKey?: string;
-  evidence?: Evidence;
+  query?: string;
 }
 
-/** Entrée du flux détaillé. */
-interface ActivityVm {
-  ts: string;
+/** Élément du flux de découvertes (vue). */
+interface FeedItem {
+  key: string;
   icon: string;
-  kindKey: string;
+  tone: 'query' | 'source' | 'finding' | 'section' | 'verify';
+  leadKey: string;
   text: string;
   url?: string;
   domain?: string;
-  tone: 'default' | 'source' | 'query' | 'verify';
 }
 
-const KIND_ICON: Record<ConsoleActivity['kind'], string> = {
-  agent_status: 'pi-circle-fill',
+/** Kinds affichés dans le flux (les statuts d'agents pilotent le "maintenant"). */
+const FEED_KINDS = new Set<ConsoleActivity['kind']>([
+  'search_query',
+  'source_found',
+  'finding',
+  'section_drafted',
+  'verification',
+]);
+
+const FEED_ICON: Record<string, string> = {
   search_query: 'pi-search',
   source_found: 'pi-link',
-  finding: 'pi-bookmark',
+  finding: 'pi-chart-bar',
   section_drafted: 'pi-file-edit',
-  verification: 'pi-shield',
-  note: 'pi-info-circle',
+  verification: 'pi-verified',
 };
 
-/** Icône du panneau focal selon le rôle de l'agent actif. */
-const ROLE_FOCUS_ICON: Record<AgentRole, string> = {
+const FEED_TONE: Record<string, FeedItem['tone']> = {
+  search_query: 'query',
+  source_found: 'source',
+  finding: 'finding',
+  section_drafted: 'section',
+  verification: 'verify',
+};
+
+const ROLE_ICON: Record<AgentRole, string> = {
   researcher: 'pi-search',
   writer: 'pi-pencil',
   verifier: 'pi-verified',
@@ -92,176 +93,107 @@ const ACTIVE_STATUSES: AgentStatus[] = [
 ];
 
 /**
- * Génération en direct, pensée pour être comprise sans effort:
- *  - un panneau focal "En direct" qui dit, à l'instant T, quelle section est
- *    traitée, quelle action est en cours, et une preuve concrète (requête web ou
- *    source trouvée);
- *  - un fil d'étapes numéroté (où en est-on);
- *  - un anneau de progression;
- *  - un bandeau de confiance sur les sources.
- * Le détail technique reste disponible mais replié.
+ * Génération en direct, pensée pour CAPTER l'utilisateur pendant l'attente:
+ * le cœur est un flux vivant de découvertes réelles (sources et données
+ * chiffrées qui arrivent en continu), surmonté d'un panneau "en ce moment" et
+ * d'une frise de chapitres compacte. Simple à lire, toujours en mouvement.
  */
 @Component({
   selector: 'app-agent-research-console',
-  imports: [DatePipe, TranslateModule],
+  imports: [TranslateModule],
   templateUrl: './agent-research-console.html',
   styleUrl: './agent-research-console.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'arc-host' },
 })
 export class AgentResearchConsoleComponent {
-  /** État de la salle de contrôle (dérivé du flux SSE). */
   readonly state = input.required<ResearchConsoleState>();
-  /** Sections attendues, avec libellés traduits (pour le fil d'étapes). */
   readonly planned = input<PlannedSection[]>([]);
-  /** Phase courante, pilote l'en-tête et le panneau focal. */
   readonly phase = input<'running' | 'finalizing' | 'done'>('running');
-  /** Variante de copie ('businessPlan' | 'finance'). */
   readonly variant = input<'businessPlan' | 'finance'>('businessPlan');
 
-  protected readonly detailsOpen = signal(false);
-  protected readonly sourcesOpen = signal(false);
-
-  // --- En-tête ------------------------------------------------------------
   protected readonly titleKey = computed(
     () => `dashboard.researchConsole.phase.${this.variant()}.${this.phase()}.title`,
   );
   protected readonly isRunning = computed(() => this.phase() === 'running');
 
-  // --- Sections dérivées --------------------------------------------------
-  private readonly sectionRows = computed<
-    { name: string; label: string; status: SectionStatus; actionKey?: string; sourceCount?: number }[]
-  >(() => {
+  // --- Chapitres ----------------------------------------------------------
+  private readonly rows = computed<{ name: string; label: string; state: SectionState }[]>(() => {
     const st = this.state();
-    const doneMap = new Map(st.sections.map((s) => [s.name, s.sourceCount ?? 0]));
-
-    const activeBySection = new Map<string, AgentRole>();
-    for (const a of st.agents) {
-      if (a.section && ACTIVE_STATUSES.includes(a.status)) {
-        activeBySection.set(a.section, a.role);
-      }
-    }
-
+    const done = new Set(st.sections.map((s) => s.name));
+    const active = new Set(
+      st.agents.filter((a) => a.section && ACTIVE_STATUSES.includes(a.status)).map((a) => a.section!),
+    );
     const planned: PlannedSection[] =
       this.planned().length > 0
         ? this.planned()
         : st.sections.map((s) => ({ name: s.name, label: s.name }));
-
-    return planned.map((p) => {
-      if (doneMap.has(p.name)) {
-        return { name: p.name, label: p.label, status: 'done' as const, sourceCount: doneMap.get(p.name) };
-      }
-      const role = activeBySection.get(p.name);
-      if (role) {
-        return { name: p.name, label: p.label, status: 'active' as const, actionKey: ROLE_ACTION_KEY[role] };
-      }
-      return { name: p.name, label: p.label, status: 'pending' as const };
-    });
+    return planned.map((p) => ({
+      name: p.name,
+      label: p.label,
+      state: done.has(p.name) ? 'done' : active.has(p.name) ? 'current' : 'upcoming',
+    }));
   });
 
-  protected readonly journey = computed<JourneyNode[]>(() =>
-    this.sectionRows().map((r, i) => ({
-      index: i + 1,
-      name: r.name,
-      label: r.label,
-      state: r.status === 'done' ? 'done' : r.status === 'active' ? 'current' : 'upcoming',
-      actionKey: r.actionKey,
-      sourceCount: r.sourceCount,
-    })),
-  );
-
-  protected readonly doneCount = computed(
-    () => this.sectionRows().filter((s) => s.status === 'done').length,
-  );
-  protected readonly totalCount = computed(() => this.sectionRows().length);
+  protected readonly chapters = computed<Chapter[]>(() => this.rows());
+  protected readonly doneCount = computed(() => this.rows().filter((r) => r.state === 'done').length);
+  protected readonly totalCount = computed(() => this.rows().length);
   protected readonly percent = computed(() => {
     const total = this.totalCount();
-    if (total === 0) return this.phase() === 'done' ? 100 : 0;
     if (this.phase() === 'done') return 100;
+    if (total === 0) return 0;
     return Math.round((this.doneCount() / total) * 100);
   });
 
-  // --- Panneau focal "en direct" -----------------------------------------
-  private readonly latestEvidence = computed<Evidence | undefined>(() => {
+  // --- En ce moment -------------------------------------------------------
+  private readonly latestQuery = computed<string | undefined>(() => {
     const acts = this.state().activities;
     for (let i = acts.length - 1; i >= 0; i--) {
-      const a = acts[i];
-      if (a.kind === 'search_query') {
-        return { kind: 'query', icon: 'pi-search', text: a.text };
-      }
-      if (a.kind === 'source_found') {
-        return {
-          kind: 'source',
-          icon: 'pi-link',
-          text: a.source?.title ?? a.text,
-          url: a.source?.url,
-          domain: a.source?.domain,
-        };
-      }
+      if (acts[i].kind === 'search_query') return acts[i].text;
     }
     return undefined;
   });
 
-  protected readonly focus = computed<FocusVm>(() => {
+  protected readonly now = computed<NowVm>(() => {
     if (this.phase() === 'done') return { mode: 'done', icon: 'pi-check-circle' };
     if (this.phase() === 'finalizing') return { mode: 'finalizing', icon: 'pi-sparkles' };
 
-    const active = this.sectionRows().find((r) => r.status === 'active');
-    const st = this.state();
-    let role: AgentRole | undefined;
-    if (active) {
-      const agent = st.agents.find(
-        (a) => a.section === active.name && ACTIVE_STATUSES.includes(a.status),
-      );
-      role = agent?.role;
-    }
-    const evidence = this.latestEvidence();
+    const active = this.rows().find((r) => r.state === 'current');
+    if (!active) return { mode: 'starting', icon: 'pi-compass' };
 
-    if (!active) {
-      return { mode: 'starting', icon: 'pi-compass', evidence };
-    }
+    const agent = this.state().agents.find(
+      (a) => a.section === active.name && ACTIVE_STATUSES.includes(a.status),
+    );
+    const role = agent?.role;
     return {
       mode: 'active',
-      icon: role ? ROLE_FOCUS_ICON[role] : 'pi-search',
+      icon: role ? ROLE_ICON[role] : 'pi-search',
       role,
       sectionLabel: active.label,
-      actionKey: active.actionKey ?? 'dashboard.researchConsole.action.analyzing',
-      evidence,
+      actionKey: role ? ROLE_ACTION_KEY[role] : 'dashboard.researchConsole.action.analyzing',
+      query: role === 'researcher' ? this.latestQuery() : undefined,
     };
   });
 
-  // --- Sources & détail technique ----------------------------------------
-  protected readonly sources = computed(() => this.state().sources);
-  protected readonly sourceCount = computed(() => this.sources().length);
+  // --- Flux de découvertes ------------------------------------------------
+  protected readonly feed = computed<FeedItem[]>(() => {
+    const items: FeedItem[] = [];
+    const acts = this.state().activities;
+    acts.forEach((a, i) => {
+      if (!FEED_KINDS.has(a.kind)) return;
+      items.push({
+        key: `${i}-${a.ts}`,
+        icon: FEED_ICON[a.kind] ?? 'pi-circle-fill',
+        tone: FEED_TONE[a.kind] ?? 'section',
+        leadKey: `dashboard.researchConsole.kinds.${a.kind}`,
+        text: a.text,
+        url: a.source?.url,
+        domain: a.source?.domain,
+      });
+    });
+    return items;
+  });
+
+  protected readonly sourceCount = computed(() => this.state().sources.length);
   protected readonly queryCount = computed(() => this.state().queries.length);
-  protected readonly activities = computed<ActivityVm[]>(() =>
-    this.state().activities.map((x) => this.toActivityVm(x)),
-  );
-
-  protected toggleDetails(): void {
-    this.detailsOpen.update((v) => !v);
-  }
-  protected toggleSources(): void {
-    this.sourcesOpen.update((v) => !v);
-  }
-
-  private toActivityVm(x: ConsoleActivity): ActivityVm {
-    const tone: ActivityVm['tone'] =
-      x.kind === 'source_found'
-        ? 'source'
-        : x.kind === 'search_query'
-          ? 'query'
-          : x.kind === 'verification'
-            ? 'verify'
-            : 'default';
-    return {
-      ts: x.ts,
-      icon: KIND_ICON[x.kind] ?? 'pi-circle-fill',
-      kindKey: `dashboard.researchConsole.kinds.${x.kind}`,
-      text: x.text,
-      url: x.source?.url,
-      domain: x.source?.domain,
-      tone,
-    };
-  }
 }
