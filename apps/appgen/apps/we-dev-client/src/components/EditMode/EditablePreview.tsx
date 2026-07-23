@@ -18,6 +18,8 @@ import {
   LayoutGrid,
   Move,
   Ruler,
+  Undo2,
+  Redo2,
 } from 'lucide-react';
 import {
   IDEM_SOURCE,
@@ -40,6 +42,13 @@ import { SizeSelector, viewportStyle, WINDOW_SIZES, type WindowSize } from './Re
 
 interface EditablePreviewProps {
   active: boolean;
+}
+
+/** Un changement de fichier réversible (pour l'historique undo/redo). */
+interface FileChange {
+  filePath: string;
+  before: string;
+  after: string;
 }
 
 /* ---------- helpers de lecture des valeurs calculées ---------- */
@@ -73,6 +82,15 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
   const selectedIdsRef = useRef<string[]>([]);
   selectedIdsRef.current = selected.map((e) => e.id);
   const injectedRef = useRef(false);
+
+  // Historique undo/redo. Chaque entrée = un lot de changements de fichiers
+  // (un edit simple touche 1 fichier ; un edit multi peut en toucher plusieurs).
+  const undoStackRef = useRef<FileChange[][]>([]);
+  const redoStackRef = useRef<FileChange[][]>([]);
+  const [, setHistTick] = useState(0);
+  const bumpHist = useCallback(() => setHistTick((n) => n + 1), []);
+  const canUndo = undoStackRef.current.length > 0;
+  const canRedo = redoStackRef.current.length > 0;
 
   const sendToAgent = useCallback((msg: ParentToAgentMessage) => {
     iframeRef.current?.contentWindow?.postMessage(msg, '*');
@@ -111,6 +129,11 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
         if (path in useFileStore.getState().files) await deleteFile(path);
       }
     };
+    // L'historique undo/redo ne vaut que pour la session d'édition en cours.
+    undoStackRef.current = [];
+    redoStackRef.current = [];
+    bumpHist();
+
     if (active) {
       const plan = buildInjectPlan(useFileStore.getState().files);
       if (!plan.ok) {
@@ -128,6 +151,55 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
+  /* -------- Historique (undo / redo) -------- */
+  const commit = useCallback(
+    async (changes: FileChange[]) => {
+      if (!changes.length) return;
+      for (const c of changes) await updateContent(c.filePath, c.after);
+      undoStackRef.current.push(changes);
+      if (undoStackRef.current.length > 60) undoStackRef.current.shift();
+      redoStackRef.current = []; // toute nouvelle action invalide le redo
+      bumpHist();
+    },
+    [updateContent, bumpHist]
+  );
+
+  const undo = useCallback(async () => {
+    const entry = undoStackRef.current.pop();
+    if (!entry) return;
+    for (const c of entry) await updateContent(c.filePath, c.before);
+    redoStackRef.current.push(entry);
+    setSelected([]); // les offsets changent → on abandonne la sélection
+    bumpHist();
+  }, [updateContent, bumpHist]);
+
+  const redo = useCallback(async () => {
+    const entry = redoStackRef.current.pop();
+    if (!entry) return;
+    for (const c of entry) await updateContent(c.filePath, c.after);
+    undoStackRef.current.push(entry);
+    setSelected([]);
+    bumpHist();
+  }, [updateContent, bumpHist]);
+
+  /* -------- Raccourcis clavier côté parent (focus hors iframe) -------- */
+  useEffect(() => {
+    if (!active) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      const k = e.key.toLowerCase();
+      if (k === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if ((k === 'z' && e.shiftKey) || k === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [active, undo, redo]);
+
   /* -------- Application d'un résultat (mono-élément) -------- */
   const applyResult = useCallback(
     async (
@@ -140,10 +212,11 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
         else toast.error(t('editMode.editFailed', { reason: result.reason ?? '' }));
         return;
       }
-      await updateContent(filePath, result.code);
+      const before = getContent(filePath);
+      if (result.code !== before) await commit([{ filePath, before, after: result.code }]);
       if (!opts.keepSelection) setSelected([]);
     },
-    [updateContent, t]
+    [commit, getContent, t]
   );
 
   /* -------- Édition par lot (multi-sélection) -------- */
@@ -159,21 +232,24 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
         if (!ref) continue;
         (groups[ref.filePath] ||= []).push(ref.start);
       }
+      const changes: FileChange[] = [];
       let anyFail = false;
       for (const [file, starts] of Object.entries(groups)) {
-        let code = getContent(file);
+        const before = getContent(file);
+        let code = before;
         starts.sort((a, b) => b - a);
         for (const start of starts) {
           const res = make(code, start);
           if (res.ok && res.code !== undefined) code = res.code;
           else anyFail = true;
         }
-        await updateContent(file, code);
+        if (code !== before) changes.push({ filePath: file, before, after: code });
       }
+      if (changes.length) await commit(changes);
       if (anyFail && softFailMessage) toast.info(softFailMessage);
       setSelected([]);
     },
-    [getContent, updateContent]
+    [getContent, commit]
   );
 
   const deleteIds = useCallback(
@@ -218,6 +294,12 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
         case 'DELETE_ELEMENTS':
           deleteIds(msg.ids);
           break;
+        case 'UNDO':
+          undo();
+          break;
+        case 'REDO':
+          redo();
+          break;
         case 'REQUEST_IMAGE': {
           const ref = decodeIdemId(msg.id);
           if (!ref) return;
@@ -232,7 +314,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [sendToAgent, applyResult, deleteIds, getContent, t]);
+  }, [sendToAgent, applyResult, deleteIds, undo, redo, getContent, t]);
 
   /* -------- Handlers du panneau -------- */
   const applyStyle = useCallback(
@@ -322,6 +404,25 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
             <span className="truncate">{t('editMode.hint')}</span>
           </div>
           <div className="flex-1" />
+          <button
+            onClick={undo}
+            disabled={!canUndo}
+            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#2c2c2c] text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:hover:bg-transparent"
+            title={`${t('editMode.undo')} (Ctrl+Z)`}
+            aria-label={t('editMode.undo')}
+          >
+            <Undo2 size={15} />
+          </button>
+          <button
+            onClick={redo}
+            disabled={!canRedo}
+            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#2c2c2c] text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:hover:bg-transparent"
+            title={`${t('editMode.redo')} (Ctrl+Y)`}
+            aria-label={t('editMode.redo')}
+          >
+            <Redo2 size={15} />
+          </button>
+          <div className="w-px h-5 bg-gray-300 dark:bg-[#3a3a3a] mx-1" />
           <SizeSelector value={size} onChange={setSize} />
           <button
             onClick={handleRefresh}
@@ -575,6 +676,14 @@ const ImageSection: React.FC<{
           onStyle={onStyle}
           options={['cover', 'contain', 'fill', 'none', 'scale-down']}
         />
+        <SelectRow
+          labelKey="editMode.objectPosition"
+          cssProp="objectPosition"
+          info={info}
+          onStyle={onStyle}
+          options={['center', 'top', 'bottom', 'left', 'right']}
+        />
+        <RangeRow labelKey="editMode.opacity" cssProp="opacity" info={info} onStyle={onStyle} />
       </div>
     </Section>
   );
@@ -817,6 +926,29 @@ const PxRow: React.FC<{
         onBlur={(e) => {
           if (e.target.value !== '') onStyle(cssProp, `${e.target.value}px`);
         }}
+      />
+    </Row>
+  );
+};
+
+const RangeRow: React.FC<{
+  labelKey: string;
+  cssProp: string;
+  info: SelectedElementInfo | null;
+  onStyle: (p: string, v: string) => void;
+}> = ({ labelKey, cssProp, info, onStyle }) => {
+  const { t } = useTranslation();
+  const initial = info ? Math.round((Number.parseFloat(cval(info, cssProp) ?? '1') || 1) * 100) : 100;
+  return (
+    <Row label={t(labelKey)}>
+      <input
+        key={`${cssProp}-${info?.id ?? 'multi'}`}
+        type="range"
+        min={0}
+        max={100}
+        defaultValue={initial}
+        className="w-28"
+        onChange={(e) => onStyle(cssProp, String(Number(e.target.value) / 100))}
       />
     </Row>
   );

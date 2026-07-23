@@ -459,6 +459,10 @@
     "transform": "大小写",
     "fontStyle": "样式",
     "width": "宽度",
-    "height": "高度"
+    "height": "高度",
+    "undo": "撤销",
+    "redo": "重做",
+    "objectPosition": "位置",
+    "opacity": "不透明度"
   }
 }

@@ -141,13 +141,25 @@ export interface MsgDeleteElements {
   ids: string[];
 }
 
+/** Raccourcis undo/redo relayés depuis l'iframe (cross-origin) vers le parent. */
+export interface MsgUndo {
+  source: typeof IDEM_SOURCE;
+  type: 'UNDO';
+}
+export interface MsgRedo {
+  source: typeof IDEM_SOURCE;
+  type: 'REDO';
+}
+
 export type AgentToParentMessage =
   | MsgAgentReady
   | MsgSelected
   | MsgTextEdit
   | MsgReorder
   | MsgRequestImage
-  | MsgDeleteElements;
+  | MsgDeleteElements
+  | MsgUndo
+  | MsgRedo;
 
 /* ------------------------------------------------------------------ */
 /* Type guards                                                         */
