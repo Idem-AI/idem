@@ -14,9 +14,11 @@
  * plan, prévisions financières… lui passent une liste de DeliverableSection.
  */
 
+import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../../config/logger';
 import { AI_CONFIG, LLMProvider } from '../../config/ai.config';
+import { cacheService } from '../cache.service';
 import {
   PromptService,
   PromptConfig,
@@ -62,25 +64,33 @@ const RESEARCH_CONFIG: PromptConfig = {
   provider: LLMProvider.GEMINI,
   modelName: AI_CONFIG.default.modelName,
   promptType: 'research',
+  // Une seule synthèse factuelle et concise par section: on borne la sortie
+  // pour réduire coût et latence sans sacrifier les faits chiffrés.
+  llmOptions: { temperature: 0.3, maxOutputTokens: 1536 },
 };
 
 const WRITER_CONFIG: PromptConfig = {
   provider: AI_CONFIG.businessPlan.provider,
   modelName: AI_CONFIG.businessPlan.modelName,
   promptType: 'research-writer',
+  llmOptions: { maxOutputTokens: 2200 },
 };
 
 const VERIFIER_CONFIG: PromptConfig = {
   provider: AI_CONFIG.businessPlan.provider,
   modelName: AI_CONFIG.businessPlan.modelName,
   promptType: 'research-verifier',
-  llmOptions: { temperature: 0.1, maxOutputTokens: 2048 },
+  llmOptions: { temperature: 0.1, maxOutputTokens: 1024 },
 };
 
-/** Concurrence max de sections traitées en parallèle (grounding = appels lourds). */
-const SECTION_CONCURRENCY = 2;
-/** Nombre max de briefs de recherche par section. */
+/** Concurrence max de sections traitées en parallèle. */
+const SECTION_CONCURRENCY = 3;
+/** Nombre max d'axes de recherche fusionnés dans l'unique appel grounded. */
 const MAX_BRIEFS_PER_SECTION = 3;
+/** Durée de vie du cache des recherches (reprise/régénération sans re-chercher). */
+const RESEARCH_CACHE_TTL = 7200;
+/** Borne de la synthèse de recherche transmise au rédacteur. */
+const MAX_DIGEST_CHARS = 4000;
 
 export class ResearchTeamService {
   constructor(private readonly promptService: PromptService) {}
@@ -239,58 +249,76 @@ export class ResearchTeamService {
       : this.deriveBriefs(section, ctx)
     ).slice(0, MAX_BRIEFS_PER_SECTION);
 
+    // Cache: une reprise/régénération ne relance pas des recherches identiques.
+    const cacheKey = this.researchCacheKey(ctx, section.name, briefs);
+    const cached = await cacheService.get<{ sources: ResearchSource[]; digest: string }>(cacheKey, {
+      prefix: 'ai',
+      ttl: RESEARCH_CACHE_TTL,
+    });
+    if (cached && Array.isArray(cached.sources)) {
+      await this.emitAgent(emit, runId, 'researcher', agentId, section.name, {
+        kind: 'agent_status',
+        status: 'searching',
+        message: `Réutilisation de ${cached.sources.length} source(s) déjà collectée(s)`,
+      });
+      for (const source of cached.sources) {
+        await this.emitAgent(emit, runId, 'researcher', agentId, section.name, {
+          kind: 'source_found',
+          source,
+        });
+      }
+      await this.emitAgent(emit, runId, 'researcher', agentId, section.name, {
+        kind: 'agent_status',
+        status: 'done',
+        message: `${cached.sources.length} source(s) réutilisée(s)`,
+      });
+      return cached;
+    }
+
     await this.emitAgent(emit, runId, 'researcher', agentId, section.name, {
       kind: 'agent_status',
       status: 'searching',
-      message: `Recherche de données réelles (${briefs.length} axes) pour « ${section.name} »`,
+      message: `Recherche de données réelles pour « ${section.name} »`,
     });
+
+    // UN SEUL appel grounded consolidé pour toute la section (le modèle lance
+    // lui-même plusieurs recherches web internes pour couvrir chaque axe).
+    const result = await this.runGrounded(runId, agentId, section.name, briefs, ctx, emit);
 
     const globalSources: ResearchSource[] = [];
     const urlToId = new Map<string, string>();
-    const narratives: string[] = [];
-
-    for (const brief of briefs) {
-      const result = await this.runBrief(runId, agentId, section.name, brief, ctx, emit);
-
-      // Dédoublonnage des sources par URL, attribution d'un id stable sN.
-      const localIdxToGlobalId = new Map<number, string>();
-      for (const src of result.sources) {
-        let id = urlToId.get(src.url);
-        if (!id) {
-          id = `s${globalSources.length + 1}`;
-          urlToId.set(src.url, id);
-          const source: ResearchSource = {
-            id,
-            title: src.title,
-            url: src.url,
-            domain: src.domain,
-            retrievedAt: new Date().toISOString(),
-          };
-          globalSources.push(source);
-          await this.emitAgent(emit, runId, 'researcher', agentId, section.name, {
-            kind: 'source_found',
-            source,
-          });
-        }
-        localIdxToGlobalId.set(src.index, id);
-      }
-
-      // Faits sourcés (à partir des supports du grounding).
-      for (const support of result.supports) {
-        const sourceIds = support.sourceIndexes
-          .map((idx) => localIdxToGlobalId.get(idx))
-          .filter((v): v is string => !!v);
-        if (sourceIds.length === 0) continue;
-        const finding: ResearchFinding = { claim: support.text, sourceIds };
+    const localIdxToGlobalId = new Map<number, string>();
+    for (const src of result.sources) {
+      let id = urlToId.get(src.url);
+      if (!id) {
+        id = `s${globalSources.length + 1}`;
+        urlToId.set(src.url, id);
+        const source: ResearchSource = {
+          id,
+          title: src.title,
+          url: src.url,
+          domain: src.domain,
+          retrievedAt: new Date().toISOString(),
+        };
+        globalSources.push(source);
         await this.emitAgent(emit, runId, 'researcher', agentId, section.name, {
-          kind: 'finding',
-          finding,
+          kind: 'source_found',
+          source,
         });
       }
+      localIdxToGlobalId.set(src.index, id);
+    }
 
-      if (result.narrative.trim()) {
-        narratives.push(`### Axe: ${brief}\n${result.narrative.trim()}`);
-      }
+    for (const support of result.supports) {
+      const sourceIds = support.sourceIndexes
+        .map((idx) => localIdxToGlobalId.get(idx))
+        .filter((v): v is string => !!v);
+      if (sourceIds.length === 0) continue;
+      const finding: ResearchFinding = { claim: support.text, sourceIds };
+      await this.emitAgent(emit, runId, 'researcher', agentId, section.name, {
+        kind: 'finding',
+        finding,
+      });
     }
 
     await this.emitAgent(emit, runId, 'researcher', agentId, section.name, {
@@ -299,24 +327,27 @@ export class ResearchTeamService {
       message: `${globalSources.length} source(s) réelle(s) collectée(s)`,
     });
 
+    const narratives = result.narrative.trim() ? [result.narrative.trim()] : [];
     const digest = this.buildResearchDigest(narratives, globalSources);
-    return { sources: globalSources, digest };
+    const payload = { sources: globalSources, digest };
+    await cacheService.set(cacheKey, payload, { prefix: 'ai', ttl: RESEARCH_CACHE_TTL });
+    return payload;
   }
 
-  /** Exécute un brief de recherche fondé et diffuse les requêtes exécutées. */
-  private async runBrief(
+  /**
+   * Un unique appel grounded pour toute la section: tous les axes sont fusionnés
+   * en une seule mission. Gemini exécute plusieurs recherches web internes, ce
+   * qui divise par 2–3 le nombre d'appels (donc latence + coût) à couverture égale.
+   */
+  private async runGrounded(
     runId: string,
     agentId: string,
     sectionName: string,
-    brief: string,
+    briefs: string[],
     ctx: ResearchTeamContext,
     emit: ResearchEmit
   ): Promise<BriefResult> {
-    await this.emitAgent(emit, runId, 'researcher', agentId, sectionName, {
-      kind: 'agent_status',
-      status: 'searching',
-      message: brief,
-    });
+    const mission = briefs.map((b, i) => `${i + 1}. ${b}`).join('\n');
 
     const messages: AIChatMessage[] = [
       {
@@ -330,8 +361,8 @@ export class ResearchTeamService {
         role: 'user',
         content:
           `CONTEXTE PROJET:\n${ctx.projectContext}\n\n` +
-          `MISSION DE RECHERCHE:\n${brief}\n\n` +
-          "Fournis une synthèse factuelle et concise (données chiffrées avec année + zone géographique). " +
+          `DONNÉES À TROUVER (lance autant de recherches web que nécessaire pour couvrir chaque point):\n${mission}\n\n` +
+          "Fournis une synthèse factuelle et concise couvrant CHAQUE point (données chiffrées avec année + zone géographique). " +
           "N'invente rien. Si tu ne trouves pas une donnée, indique 'Donnée non trouvée'.",
       },
     ];
@@ -341,7 +372,6 @@ export class ResearchTeamService {
       messages
     );
 
-    // Diffuse les requêtes réellement exécutées par le moteur.
     for (const query of grounded.queries) {
       await this.emitAgent(emit, runId, 'researcher', agentId, sectionName, {
         kind: 'search_query',
@@ -350,12 +380,26 @@ export class ResearchTeamService {
     }
 
     return {
-      brief,
+      brief: sectionName,
       queries: grounded.queries,
       sources: grounded.sources,
       supports: grounded.supports,
       narrative: grounded.text,
     };
+  }
+
+  /** Clé de cache stable pour la recherche d'une section. */
+  private researchCacheKey(
+    ctx: ResearchTeamContext,
+    sectionName: string,
+    briefs: string[]
+  ): string {
+    const hash = crypto
+      .createHash('sha256')
+      .update(`${ctx.projectContext}|${ctx.language}|${sectionName}|${briefs.join('||')}`)
+      .digest('hex')
+      .slice(0, 20);
+    return cacheService.generateAIKey('research', ctx.userId, sectionName.replace(/\s+/g, '-'), hash);
   }
 
   // -------------------------------------------------------------------------
@@ -461,12 +505,31 @@ export class ResearchTeamService {
       return verdict;
     }
 
+    // Optimisation tokens: on ne soumet au vérificateur que les phrases
+    // contenant des chiffres (les seules à devoir porter une citation). Si la
+    // section n'avance aucun chiffre, rien à vérifier → aucun appel LLM.
+    const numeric = this.extractNumericSentences(draft);
+    if (!numeric) {
+      const verdict: VerificationVerdict = {
+        passed: true,
+        citedClaims: 0,
+        uncitedClaims: 0,
+        issues: [],
+      };
+      await this.emitAgent(emit, runId, 'verifier', agentId, section.name, {
+        kind: 'verification',
+        section: section.name,
+        verdict,
+      });
+      return verdict;
+    }
+
     const allowedIds = sources.map((s) => s.id).join(', ') || '(aucune)';
     const messages: AIChatMessage[] = [
       {
         role: 'system',
         content:
-          "Tu es un vérificateur qualité anti-hallucination. Tu reçois une section et la liste des identifiants de sources autorisés. " +
+          "Tu es un vérificateur qualité anti-hallucination. Tu reçois les phrases CHIFFRÉES d'une section et la liste des identifiants de sources autorisés. " +
           "Ta mission: repérer toute donnée chiffrée (statistique, taille/part de marché, taux, montant, date) NON accompagnée d'une citation [sN] valide (id présent dans la liste autorisée). " +
           "Réponds STRICTEMENT en JSON.",
       },
@@ -474,7 +537,7 @@ export class ResearchTeamService {
         role: 'user',
         content:
           `IDS DE SOURCES AUTORISÉS: [${allowedIds}]\n\n` +
-          `SECTION À VÉRIFIER:\n"""\n${draft}\n"""\n\n` +
+          `PHRASES CHIFFRÉES À VÉRIFIER:\n"""\n${numeric}\n"""\n\n` +
           'Réponds avec ce schéma JSON exact:\n' +
           '{\n' +
           '  "citedClaims": <nombre de données chiffrées correctement citées>,\n' +
@@ -590,7 +653,20 @@ export class ResearchTeamService {
     if (narratives.length === 0) {
       return 'Aucune donnée sourcée n\'a pu être collectée. Rédige la section sans avancer de chiffres non vérifiables.';
     }
-    return narratives.join('\n\n') + '\n\n' + this.renderSourceList(sources);
+    // Borne le digest transmis au rédacteur (économie de tokens en entrée).
+    const joined = narratives.join('\n\n');
+    const body =
+      joined.length > MAX_DIGEST_CHARS ? `${joined.slice(0, MAX_DIGEST_CHARS)}\n…` : joined;
+    return body + '\n\n' + this.renderSourceList(sources);
+  }
+
+  /** Extrait les phrases contenant au moins un chiffre (borné), pour la vérif. */
+  private extractNumericSentences(text: string): string {
+    return text
+      .split(/(?<=[.!?\n])\s+/)
+      .filter((s) => /\d/.test(s))
+      .join('\n')
+      .slice(0, 6000);
   }
 
   private renderSourceList(sources: ResearchSource[]): string {

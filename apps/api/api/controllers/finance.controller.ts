@@ -393,10 +393,12 @@ export const aiFillAllStreamController = async (
       emit
     );
 
-    // Agrège le digest + dédoublonne les sources par URL.
+    // Agrège le digest + dédoublonne les sources par URL. On borne la taille
+    // transmise à l'auto-fill (économie de tokens en entrée).
     const marketDigest = researched
       .map((s) => `## ${s.name}\n${s.data}`)
-      .join('\n\n');
+      .join('\n\n')
+      .slice(0, 8000);
     const sourceMap = new Map<string, SectionSource>();
     for (const section of researched) {
       for (const src of section.sources || []) {
