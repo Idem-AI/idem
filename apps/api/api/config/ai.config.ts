@@ -167,7 +167,7 @@ export const AI_CONFIG = {
     } as FeatureAIConfig,
     imageSourcing: {
       imageModel: 'gemini-3.1-flash-image',
-      visionModel: 'gemini-2.0-flash',
+      visionModel: 'gemini-2.5-flash',
     },
   },
 

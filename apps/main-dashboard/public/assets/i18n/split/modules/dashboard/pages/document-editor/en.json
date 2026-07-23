@@ -4,6 +4,12 @@
       "businessPlan": {
         "title": "Business plan editor"
       },
+      "pitchDeck": {
+        "title": "Pitch deck editor"
+      },
+      "branding": {
+        "title": "Brand identity editor"
+      },
       "canvasLabel": "Document preview",
       "inspector": "Properties",
       "loading": "Loading document…",

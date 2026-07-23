@@ -113,21 +113,45 @@ export class PitchDeckService extends GenericService {
     const primaryFont = typoModel?.primaryFont || 'Inter, sans-serif';
     const secondaryFont = typoModel?.secondaryFont || primaryFont;
 
-    // Build logo URLs block — send all declinations so the AI picks the right one per slide context
+    // Helper to format logo SVGs or URLs into valid img src targets
+    const formatLogoUrl = (val?: string): string => {
+      if (!val) return '';
+      const trimmed = val.trim();
+      if (!trimmed) return '';
+      if (
+        trimmed.startsWith('http://') ||
+        trimmed.startsWith('https://') ||
+        trimmed.startsWith('data:')
+      ) {
+        return trimmed;
+      }
+      if (trimmed.startsWith('<svg') || trimmed.includes('<svg')) {
+        return `data:image/svg+xml;base64,${Buffer.from(trimmed).toString('base64')}`;
+      }
+      return trimmed;
+    };
+
+    // Build logo URLs block — send all declinations formatted as valid Data URIs or URLs
     const logoLines: string[] = [];
-    if (logo?.svg) logoLines.push(`  Primary (full logo): ${logo.svg}`);
-    if (logo?.iconSvg) logoLines.push(`  Icon only: ${logo.iconSvg}`);
+    if (logo?.svg) {
+      const formatted = formatLogoUrl(logo.svg);
+      if (formatted) logoLines.push(`  Primary (full logo): ${formatted}`);
+    }
+    if (logo?.iconSvg) {
+      const formatted = formatLogoUrl(logo.iconSvg);
+      if (formatted) logoLines.push(`  Icon only: ${formatted}`);
+    }
     if (logo?.variations?.withText) {
       const wt = logo.variations.withText;
-      if (wt.lightBackground) logoLines.push(`  With text (light bg): ${wt.lightBackground}`);
-      if (wt.darkBackground) logoLines.push(`  With text (dark bg): ${wt.darkBackground}`);
-      if (wt.monochrome) logoLines.push(`  With text (mono): ${wt.monochrome}`);
+      if (wt.lightBackground) logoLines.push(`  With text (light bg): ${formatLogoUrl(wt.lightBackground)}`);
+      if (wt.darkBackground) logoLines.push(`  With text (dark bg): ${formatLogoUrl(wt.darkBackground)}`);
+      if (wt.monochrome) logoLines.push(`  With text (mono): ${formatLogoUrl(wt.monochrome)}`);
     }
     if (logo?.variations?.iconOnly) {
       const io = logo.variations.iconOnly;
-      if (io.lightBackground) logoLines.push(`  Icon only (light bg): ${io.lightBackground}`);
-      if (io.darkBackground) logoLines.push(`  Icon only (dark bg): ${io.darkBackground}`);
-      if (io.monochrome) logoLines.push(`  Icon only (mono): ${io.monochrome}`);
+      if (io.lightBackground) logoLines.push(`  Icon only (light bg): ${formatLogoUrl(io.lightBackground)}`);
+      if (io.darkBackground) logoLines.push(`  Icon only (dark bg): ${formatLogoUrl(io.darkBackground)}`);
+      if (io.monochrome) logoLines.push(`  Icon only (mono): ${formatLogoUrl(io.monochrome)}`);
     }
 
     // Flat, explicit brand context — LLM uses bg-[#hex], text-[#hex] directly
@@ -458,21 +482,31 @@ export class PitchDeckService extends GenericService {
       const fullTag = match[0];
       const attrsStr = match[1];
 
-      // Skip logos or existing SVG/data URIs unless explicitly tagged with data-image-query or data-image-prompt
-      const hasExplicitPrompt =
-        /data-image-query=["']/i.test(attrsStr) || /data-image-prompt=["']/i.test(attrsStr);
-      if (/src=["']data:image\/(?:svg\+xml|png|jpeg);base64,/i.test(attrsStr) && !hasExplicitPrompt) {
+      // Explicitly protect logos and data URIs from being replaced by stock photos
+      const isLogo =
+        /alt=["'][^"']*logo[^"']*["']/i.test(attrsStr) ||
+        /class=["'][^"']*logo[^"']*["']/i.test(attrsStr) ||
+        /src=["'][^"']*logo[^"']*["']/i.test(attrsStr);
+
+      const hasExplicitQuery = /data-image-query=["']/i.test(attrsStr);
+      const hasExplicitPrompt = /data-image-prompt=["']/i.test(attrsStr);
+      const isPlaceholder =
+        /src=["'][^"']*placehold\.co[^"']*["']/i.test(attrsStr) ||
+        /src=["'][^"']*placeholder[^"']*["']/i.test(attrsStr);
+
+      if (isLogo || (!hasExplicitQuery && !hasExplicitPrompt && !isPlaceholder)) {
+        continue;
+      }
+
+      if (/src=["']data:image\//i.test(attrsStr) && !hasExplicitQuery && !hasExplicitPrompt) {
         continue;
       }
 
       const queryMatch = attrsStr.match(/data-image-query=["']([^"']+)["']/i);
       const promptMatch = attrsStr.match(/data-image-prompt=["']([^"']+)["']/i);
-      const altMatch = attrsStr.match(/alt=["']([^"']+)["']/i);
 
       const searchQuery = queryMatch
         ? queryMatch[1]
-        : altMatch && altMatch[1] && altMatch[1].length > 3
-        ? altMatch[1]
         : `${slideName} startup visual`;
 
       const generationPrompt = promptMatch

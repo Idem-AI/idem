@@ -119,6 +119,14 @@
             {{ 'dashboard.showPitchDeck.generating.slides' | translate }}
           </p>
         </div>
+        <button
+          type="button"
+          class="inner-button !py-2 !px-4 !text-xs !normal-case"
+          (click)="editPitchDeck()"
+        >
+          <i class="pi pi-pencil" aria-hidden="true"></i>
+          {{ 'dashboard.showPitchDeck.buttons.edit' | translate }}
+        </button>
       </div>
 
       <!-- Régénération d'une diapositive particulière -->

@@ -1625,7 +1625,8 @@
         "selectProject": "Sélectionner un projet",
         "generate": "Générer l'identité de marque",
         "viewIdentity": "Voir mon identité visuelle",
-        "generateIdentity": "Générer mon identité visuelle"
+        "generateIdentity": "Générer mon identité visuelle",
+        "edit": "Éditer"
       },
       "tooltips": {
         "downloadZip": "Télécharger tous les logos dans un fichier ZIP"
@@ -1902,7 +1903,10 @@
         "download": "Impossible de télécharger le PDF.",
         "pdfLoad": "Impossible de charger l’aperçu PDF."
       },
-      "loadingPdf": "Chargement de l’aperçu PDF…"
+      "loadingPdf": "Chargement de l’aperçu PDF…",
+      "buttons": {
+        "edit": "Éditer"
+      }
     },
     "legalDocs": {
       "title": "Documents juridiques",
@@ -2416,6 +2420,12 @@
         "value": "Valeur",
         "add": "Ajouter",
         "remove": "Retirer l'attribut"
+      },
+      "pitchDeck": {
+        "title": "Éditeur du pitch deck"
+      },
+      "branding": {
+        "title": "Éditeur de la charte graphique"
       }
     }
   },
@@ -2507,7 +2517,9 @@
       "financeRatios": "Finance Ratios",
       "createProject": "Créer un projet",
       "notFound": "Page non trouvée",
-      "businessPlanEdit": "Édition du business plan"
+      "businessPlanEdit": "Édition du business plan",
+      "pitchDeckEdit": "Édition du pitch deck",
+      "brandingEdit": "Édition de la charte graphique"
     }
   },
   "notFound": {

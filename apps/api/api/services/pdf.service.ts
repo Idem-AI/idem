@@ -841,14 +841,17 @@ export class PdfService {
             margin: 0;
           }
 
-          /* Each section = one full page, force page break before each (except first) */
+          /* Each section starts on a new page but MAY span several pages:
+             min-height (not max-height) + visible overflow so nothing is clipped;
+             page-break-inside auto lets long content flow across pages. */
           .section {
             display: block;
             width: ${format.width};
             min-height: ${format.height};
-            max-height: ${format.height};
-            overflow: hidden;
+            overflow: visible;
             position: relative;
+            page-break-inside: auto;
+            break-inside: auto;
           }
 
           .section:not(:first-child) {
@@ -856,10 +859,10 @@ export class PdfService {
             break-before: page;
           }
 
-          /* Override overflow-hidden that AI may generate inside sections */
+          /* The AI container should grow with its content, not be capped. */
           .data-content {
             width: 100%;
-            height: 100%;
+            height: auto;
           }
 
           /* Within a section, avoid breaking cards/blocks across the page boundary */
@@ -887,8 +890,7 @@ export class PdfService {
             .section {
               width: ${format.width} !important;
               min-height: ${format.height} !important;
-              max-height: ${format.height} !important;
-              overflow: hidden !important;
+              overflow: visible !important;
             }
 
             .section:not(:first-child) {
@@ -906,9 +908,11 @@ export class PdfService {
       let sectionData =
         typeof section.data === 'string' ? section.data : JSON.stringify(section.data, null, 2);
 
-      // Strip overflow-hidden from the AI-generated outermost container
-      // to prevent content clipping at the PDF level (the .section wrapper handles overflow)
+      // Neutraliser ce qui tronque le contenu au niveau du conteneur généré :
+      // overflow-hidden -> overflow-visible, et hauteur FIXE h-[..mm] -> min-h-[..mm]
+      // pour que le contenu long s'étende sur plusieurs pages sans être coupé.
       sectionData = sectionData.replace(/overflow-hidden/g, 'overflow-visible');
+      sectionData = sectionData.replace(/(^|[\s"'])h-\[(\d+(?:\.\d+)?)(mm|cm|in)\]/g, '$1min-h-[$2$3]');
 
       htmlContent += `
         <div class="section">

@@ -73,7 +73,7 @@ export class SectionEditingService {
 
     await this.projectRepository.update(
       projectId,
-      { analysisResultModel: { ...analysis, [key]: updatedBucket } },
+      { analysisResultModel: { ...analysis, [key]: updatedBucket } } as Partial<ProjectModel>,
       this.analysisPath(userId)
     );
     await this.invalidatePdfCache(userId, projectId, key);
@@ -151,7 +151,7 @@ export class SectionEditingService {
     markRevisionAsAI(`Édition IA – ${target.name}: ${instruction}`.slice(0, 280));
     await this.projectRepository.update(
       projectId,
-      { analysisResultModel: { ...analysis, [key]: updatedBucket } },
+      { analysisResultModel: { ...analysis, [key]: updatedBucket } } as Partial<ProjectModel>,
       this.analysisPath(userId)
     );
     await this.invalidatePdfCache(userId, projectId, key);

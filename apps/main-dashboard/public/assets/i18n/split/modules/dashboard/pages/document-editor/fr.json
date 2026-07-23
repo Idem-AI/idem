@@ -4,6 +4,12 @@
       "businessPlan": {
         "title": "Éditeur du business plan"
       },
+      "pitchDeck": {
+        "title": "Éditeur du pitch deck"
+      },
+      "branding": {
+        "title": "Éditeur de la charte graphique"
+      },
       "canvasLabel": "Aperçu du document",
       "inspector": "Propriétés",
       "loading": "Chargement du document…",

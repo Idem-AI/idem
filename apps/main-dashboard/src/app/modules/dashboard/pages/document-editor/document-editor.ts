@@ -9,16 +9,19 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { TokenService } from '../../../../shared/services/token.service';
 import { BusinessPlanEditorAdapter } from './adapters/business-plan-editor.adapter';
+import { PitchDeckEditorAdapter } from './adapters/pitch-deck-editor.adapter';
+import { BrandingEditorAdapter } from './adapters/branding-editor.adapter';
 import { DocumentModelService } from './services/document-model.service';
 import { EditorHistoryService } from './services/editor-history.service';
 import {
   ChartConfigLite,
   DocumentTypeAdapter,
+  EditorDocumentType,
   EditorSelection,
   ElementStyle,
   FontHints,
@@ -68,6 +71,7 @@ const AUTOSAVE_DEBOUNCE = 1500;
 })
 export class DocumentEditorComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly cookieService = inject(CookieService);
   private readonly tokenService = inject(TokenService);
   private readonly renderer = inject(Renderer2);
@@ -75,8 +79,20 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
   protected readonly model = inject(DocumentModelService);
   protected readonly history = inject(EditorHistoryService);
 
-  /** Adaptateur du document en cours (Business Plan pour la phase 1). */
-  private readonly adapter: DocumentTypeAdapter = inject(BusinessPlanEditorAdapter);
+  /** Adaptateur du document en cours, résolu depuis la route (data.documentType). */
+  private readonly adapter: DocumentTypeAdapter = this.resolveAdapter();
+
+  private resolveAdapter(): DocumentTypeAdapter {
+    const type = this.route.snapshot.data['documentType'] as EditorDocumentType | undefined;
+    switch (type) {
+      case 'pitch-deck':
+        return inject(PitchDeckEditorAdapter);
+      case 'branding':
+        return inject(BrandingEditorAdapter);
+      default:
+        return inject(BusinessPlanEditorAdapter);
+    }
+  }
 
   private readonly canvas = viewChild(EditorCanvasComponent);
   private readonly aiPanel = viewChild(AiEditPanelComponent);
