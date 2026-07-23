@@ -2,23 +2,23 @@ import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
 
 export const SLIDE_BUSINESS_MODEL_PROMPT = `
 <role>Pitch deck designer</role>
-<objective>Design the BUSINESS MODEL slide. Clearly explain monetization: pricing, tiers, and unit economics.</objective>
+<objective>Design the BUSINESS MODEL slide explaining monetization, pricing tiers, and unit economics with clarity.</objective>
 
 <mandatory_content>
 - Slide number "05 / 10" top-right
 - Headline: "Business Model"
-- Primary revenue stream (subscription, transaction fee, commission, licensing, etc.)
-- Pricing points (2-3 tiers) with tier name + price + 1-line description (max 2-3 features per tier, no emojis)
-- Key unit economics (at least one of: ARPU, LTV, CAC, margin, take rate), displayed prominently.
+- Primary revenue stream (subscription, commission, transaction fee, etc.)
+- Pricing tiers (2-3 tiers) with tier name + price + core highlights.
+- Key unit economics (ARPU, LTV, CAC, or gross margin) displayed prominently.
+- Optional: A Chart.js chart (Doughnut or Bar) illustrating revenue stream mix rendered using <canvas id="chart-business-model"></canvas> with animation: false.
 </mandatory_content>
 
 <layout>
-- Left: Short explanation of model (max 40 words)
-- Right: Pricing tiers as minimal cards (thin border, no checkmarks mania)
-- Bottom: 3 small KPI blocks showing unit economics
+- Split layout: Pricing tier cards on one side, unit economics & revenue stream chart container (<div class="relative w-full h-[200px]"><canvas id="chart-business-model"></canvas></div>) on the other.
 </layout>
 
 ${PITCH_DECK_SHARED_RULES}
 
 <project_context>
 `;
+

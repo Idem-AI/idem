@@ -16,17 +16,6 @@
       [project]="project()!"
     />
   } @else if (existingBusinessPlan()) {
-    <!-- Edit action -->
-    <div class="max-w-6xl mx-auto flex justify-end mb-4">
-      <button
-        type="button"
-        class="inner-button !py-2 !px-4 !text-xs !normal-case"
-        (click)="editBusinessPlan()"
-      >
-        <i class="pi pi-pencil" aria-hidden="true"></i>
-        {{ 'dashboard.showBusinessPlan.buttons.edit' | translate }}
-      </button>
-    </div>
     <!-- Completion status + per-section regeneration (also warns when the PDF
          exists but was generated from an interrupted/incomplete run) -->
     @if (completeness().hasStarted) {
@@ -41,7 +30,11 @@
       </div>
     }
     <!-- Display existing business plan -->
-    <app-business-plan-display [businessPlan]="existingBusinessPlan()!"></app-business-plan-display>
+    <app-business-plan-display
+      [businessPlan]="existingBusinessPlan()!"
+      [showEditButton]="true"
+      (editRequested)="editBusinessPlan()"
+    ></app-business-plan-display>
   } @else if (hasError() && isRetryable()) {
     <!-- Error state with retry button -->
     <div class="max-w-6xl mx-auto text-center py-10">
