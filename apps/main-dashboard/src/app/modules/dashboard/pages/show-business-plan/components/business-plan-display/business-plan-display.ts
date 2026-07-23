@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, input, signal, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output, signal, OnInit } from '@angular/core';
 import { BusinessPlanModel } from '../../../../models/businessPlan.model';
 import { BusinessPlanService } from '../../../../services/ai-agents/business-plan.service';
 import { CookieService } from '../../../../../../shared/services/cookie.service';
@@ -16,6 +16,8 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 })
 export class BusinessPlanDisplayComponent implements OnInit {
   readonly businessPlan = input.required<BusinessPlanModel | null>();
+  readonly showEditButton = input<boolean>(false);
+  readonly editRequested = output<void>();
 
   private readonly businessPlanService = inject(BusinessPlanService);
   private readonly cookieService = inject(CookieService);

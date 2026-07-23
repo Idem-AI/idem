@@ -21,6 +21,7 @@ import { SLIDE_COMPETITION_PROMPT } from './prompts/slide-competition.prompt';
 import { SLIDE_TEAM_PROMPT } from './prompts/slide-team.prompt';
 import { SLIDE_FINANCIALS_PROMPT } from './prompts/slide-financials.prompt';
 import { SLIDE_ASK_PROMPT } from './prompts/slide-ask.prompt';
+import { imageSourcingService } from '../Communication/imageSourcing.service';
 
 export const PITCH_DECK_SLIDE_ORDER = [
   'Cover',
@@ -199,10 +200,20 @@ export class PitchDeckService extends GenericService {
             return;
           }
 
+          let enrichedData = result.data;
+          if (typeof enrichedData === 'string' && (enrichedData.includes('<img') || enrichedData.includes('data-image'))) {
+            enrichedData = await this.enrichSlideWithImages(
+              enrichedData,
+              userId,
+              projectId,
+              result.name
+            );
+          }
+
           const section: SectionModel = {
             name: result.name,
             type: result.type,
-            data: result.data,
+            data: enrichedData,
             summary: result.summary,
           };
           
@@ -241,7 +252,10 @@ export class PitchDeckService extends GenericService {
 
           if (updated) {
             await cacheService.set(cacheKey, updated, { prefix: 'ai', ttl: 7200 });
-            await streamCallback(result);
+            await streamCallback({
+              ...result,
+              data: enrichedData,
+            });
           } else {
             throw new Error(`Failed to update project after step: ${result.name}`);
           }
@@ -262,12 +276,25 @@ export class PitchDeckService extends GenericService {
     }
 
     const stepResults = await this.processSteps(steps, project, promptConfig);
-    sectionResults = stepResults.map((r) => ({
-      name: r.name,
-      type: r.type,
-      data: r.data,
-      summary: r.summary,
-    }));
+    sectionResults = await Promise.all(
+      stepResults.map(async (r) => {
+        let enrichedData = r.data;
+        if (typeof enrichedData === 'string' && (enrichedData.includes('<img') || enrichedData.includes('data-image'))) {
+          enrichedData = await this.enrichSlideWithImages(
+            enrichedData,
+            userId,
+            projectId,
+            r.name
+          );
+        }
+        return {
+          name: r.name,
+          type: r.type,
+          data: enrichedData,
+          summary: r.summary,
+        };
+      })
+    );
 
     const old = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!old) return null;
@@ -377,5 +404,81 @@ export class PitchDeckService extends GenericService {
       );
       throw err;
     }
+  }
+
+  /**
+   * Enrich slide HTML by resolving image placeholders (using Pexels stock search with Gemini fallback)
+   */
+  private async enrichSlideWithImages(
+    html: string,
+    userId: string,
+    projectId: string,
+    slideName: string
+  ): Promise<string> {
+    if (!html || typeof html !== 'string') return html;
+
+    const imgTagRegex = /<img\b([^>]*?)>/gi;
+    const matches = [...html.matchAll(imgTagRegex)];
+
+    if (matches.length === 0) return html;
+
+    let enrichedHtml = html;
+
+    for (const match of matches) {
+      const fullTag = match[0];
+      const attrsStr = match[1];
+
+      // Skip logos or existing SVG/data URIs unless explicitly tagged with data-image-query or data-image-prompt
+      const hasExplicitPrompt =
+        /data-image-query=["']/i.test(attrsStr) || /data-image-prompt=["']/i.test(attrsStr);
+      if (/src=["']data:image\/(?:svg\+xml|png|jpeg);base64,/i.test(attrsStr) && !hasExplicitPrompt) {
+        continue;
+      }
+
+      const queryMatch = attrsStr.match(/data-image-query=["']([^"']+)["']/i);
+      const promptMatch = attrsStr.match(/data-image-prompt=["']([^"']+)["']/i);
+      const altMatch = attrsStr.match(/alt=["']([^"']+)["']/i);
+
+      const searchQuery = queryMatch
+        ? queryMatch[1]
+        : altMatch && altMatch[1] && altMatch[1].length > 3
+        ? altMatch[1]
+        : `${slideName} startup visual`;
+
+      const generationPrompt = promptMatch
+        ? promptMatch[1]
+        : `High resolution professional visual depicting ${searchQuery} for pitch deck slide ${slideName}`;
+
+      try {
+        const sourced = await imageSourcingService.sourceImage(
+          {
+            searchQuery,
+            generationPrompt,
+            orientation: 'landscape',
+          },
+          {
+            userId,
+            projectId,
+            tag: `pitchdeck-${slideName.toLowerCase().replace(/\s+/g, '-')}`,
+          }
+        );
+
+        if (sourced && sourced.url) {
+          let newTag = fullTag;
+          if (/src=["'][^"']*["']/i.test(newTag)) {
+            newTag = newTag.replace(/src=["'][^"']*["']/i, `src="${sourced.url}"`);
+          } else {
+            newTag = newTag.replace(/<img/i, `<img src="${sourced.url}"`);
+          }
+          enrichedHtml = enrichedHtml.replace(fullTag, newTag);
+        }
+      } catch (err: any) {
+        logger.warn(
+          `Failed to source image for pitch deck slide ${slideName}: ${err.message}`
+        );
+      }
+    }
+
+    return enrichedHtml;
   }
 }

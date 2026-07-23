@@ -10,9 +10,21 @@
       </div>
 
       <!-- Action Buttons -->
-      <div class="flex flex-col xs:flex-row gap-2 w-full sm:w-auto">
+      <div class="flex flex-row items-center gap-2">
+        @if (showEditButton()) {
+          <button
+            type="button"
+            class="outer-button"
+            (click)="onEditClick()"
+            [disabled]="isLoading()"
+          >
+            <i class="pi pi-pencil"></i>
+            <span>{{ editButtonLabel() | translate }}</span>
+          </button>
+        }
         <button
-          class="inner-button w-full xs:w-auto flex-1 xs:flex-none"
+          type="button"
+          class="inner-button"
           (click)="onDownloadClick()"
           [disabled]="!pdfSrc() || isLoading()"
         >

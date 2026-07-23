@@ -2,24 +2,24 @@ import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
 
 export const SLIDE_COMPETITION_PROMPT = `
 <role>Pitch deck designer</role>
-<objective>Design the COMPETITION / DIFFERENTIATION slide. Show the competitive positioning honestly and clearly.</objective>
+<objective>Design the COMPETITION / DIFFERENTIATION slide. Show competitive advantage clearly and convincingly.</objective>
 
 <mandatory_content>
 - Slide number "07 / 10" top-right
-- Headline: "Why us" or "Competitive landscape"
+- Headline: "Competitive Advantage"
 - Choose ONE format:
-  a) 2x2 matrix with labeled axes and competitors placed as small dots (HTML/Tailwind only, no libraries).
-  b) Comparison table: rows are features, columns are {{companyName}} + 2-3 competitors, cells use text "Yes" / "No" / "Partial" (no emojis).
-  c) Short list of 3 differentiators compared against competitors.
-- Unfair advantage statement (1 line).
+  a) A Chart.js Radar chart comparing {{companyName}} against competitors across 4-5 dimensions using <canvas id="chart-competition"></canvas> with animation: false and brand colors.
+  b) Comparison table: rows are features/value drivers, columns are {{companyName}} + 2-3 competitors.
+  c) 2x2 positioning matrix with labeled axes.
+- Unfair advantage / moat statement (1 line).
 </mandatory_content>
 
 <layout>
-- Sober styling, no "we are 10x better" clichés.
-- Thin borders, muted fills (e.g., bg-[#hex]/5, bg-[#hex]/10).
+- Clean 50/50 split layout: Differentiator cards on the left, Chart.js radar chart container (<div class="relative w-full h-[220px]"><canvas id="chart-competition"></canvas></div>) or comparison matrix on the right.
 </layout>
 
 ${PITCH_DECK_SHARED_RULES}
 
 <project_context>
 `;
+
