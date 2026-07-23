@@ -90,8 +90,27 @@ export type LogoVariationKind = 'lightBackground' | 'darkBackground' | 'monochro
 const VARIATION_BACKGROUNDS: Record<LogoVariationKind, string> = {
   lightBackground: '#ffffff',
   darkBackground: '#1a1a2e',
-  monochrome: '#f5f5f5',
+  monochrome: '#f4f4f6',
 };
+
+function safeParseJson(content: string): any {
+  if (!content) return null;
+  let cleaned = content.trim();
+  // Strip markdown code fences (```json ... ``` or ``` ...)
+  cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  // Find JSON structure { ... } or [ ... ]
+  const firstBrace = cleaned.indexOf('{');
+  const lastBrace = cleaned.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+  }
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    const sanitized = cleaned.replace(/[\r\n]/g, (match) => (match === '\n' ? '\\n' : '\\r'));
+    return JSON.parse(sanitized);
+  }
+}
 
 /** Événement émis pendant la génération streamée des déclinaisons */
 export interface ILogoVariationStreamEvent {
@@ -1918,11 +1937,11 @@ export class BrandingService extends GenericService {
       {
         promptConstant: prompt,
         stepName: 'Light Background Variation',
-        maxOutputTokens: 1000,
+        maxOutputTokens: 4096,
         modelParser: (content) => {
           try {
-            const parsed = JSON.parse(content);
-            return parsed.variation;
+            const parsed = safeParseJson(content);
+            return parsed?.variation || parsed;
           } catch (error) {
             logger.error('Error parsing light variation JSON:', error);
             throw new Error('Failed to parse light variation JSON');
@@ -1959,11 +1978,11 @@ export class BrandingService extends GenericService {
       {
         promptConstant: prompt,
         stepName: 'Dark Background Variation',
-        maxOutputTokens: 1000,
+        maxOutputTokens: 4096,
         modelParser: (content) => {
           try {
-            const parsed = JSON.parse(content);
-            return parsed.variation;
+            const parsed = safeParseJson(content);
+            return parsed?.variation || parsed;
           } catch (error) {
             logger.error('Error parsing dark variation JSON:', error);
             throw new Error('Failed to parse dark variation JSON');
@@ -2000,11 +2019,11 @@ export class BrandingService extends GenericService {
       {
         promptConstant: prompt,
         stepName: 'Monochrome Variation',
-        maxOutputTokens: 1500,
+        maxOutputTokens: 4096,
         modelParser: (content) => {
           try {
-            const parsed = JSON.parse(content);
-            return parsed.variation;
+            const parsed = safeParseJson(content);
+            return parsed?.variation || parsed;
           } catch (error) {
             logger.error('Error parsing monochrome variation JSON:', error);
             throw new Error('Failed to parse monochrome variation JSON');
@@ -2193,10 +2212,10 @@ export class BrandingService extends GenericService {
       {
         promptConstant: prompt,
         stepName: `Variation Critique ${variant}`,
-        maxOutputTokens: 1200,
+        maxOutputTokens: 4096,
         modelParser: (content) => {
           try {
-            return JSON.parse(content);
+            return safeParseJson(content);
           } catch (error) {
             logger.error('Error parsing variation critique JSON:', error);
             throw new Error('Failed to parse variation critique');
@@ -2211,7 +2230,7 @@ export class BrandingService extends GenericService {
       llmOptions: {
         ...BrandingService.LOGO_LLM_CONFIG.llmOptions,
         temperature: 0.15,
-        maxOutputTokens: 1200,
+        maxOutputTokens: 4096,
       },
       skipQuotaCheck: true,
     });

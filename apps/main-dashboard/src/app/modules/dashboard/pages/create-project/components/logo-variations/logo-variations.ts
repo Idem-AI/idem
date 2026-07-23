@@ -99,8 +99,16 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
   protected readonly liveMode = signal(false);
   protected readonly variationSlots = signal<VariationSlot[]>([]);
 
-  /** Tableau de bord live affiché pendant la génération streamée */
-  protected readonly showLiveBoard = computed(() => this.liveMode() && this.isGenerating());
+  /** Signal true si une ou plusieurs déclinaisons ont échoué ou ne sont pas terminées */
+  protected readonly hasFailedSlots = computed(() => {
+    const slots = this.variationSlots();
+    return slots.length > 0 && slots.some((s) => s.status === 'error' || (s.status !== 'final' && !this.isGenerating()));
+  });
+
+  /** Tableau de bord live affiché pendant la génération streamée ou en cas de reprise/échec */
+  protected readonly showLiveBoard = computed(() => {
+    return this.liveMode() || (this.hasStartedGeneration() && !this.isCompleted());
+  });
 
   // Computed properties
   protected readonly shouldShowLoader = computed(() => {
@@ -108,15 +116,15 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
   });
 
   protected readonly shouldShowVariations = computed(() => {
-    return this.generatedVariations().length > 0 && !this.showLiveBoard();
+    return this.generatedVariations().length === 3 && !this.showLiveBoard();
   });
 
   protected readonly shouldShowInitialPrompt = computed(() => {
-    return !this.shouldShowLoader() && !this.shouldShowVariations() && !this.hasStartedGeneration();
+    return !this.shouldShowLoader() && !this.shouldShowVariations() && !this.hasStartedGeneration() && !this.showLiveBoard();
   });
 
   protected readonly canProceed = computed(() => {
-    return this.isCompleted();
+    return this.isCompleted() && this.generatedVariations().length === 3;
   });
 
   // Track function for carousel
@@ -131,47 +139,56 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const existingVariations = this.project().analysisResultModel?.branding?.logo?.variations;
-    if (existingVariations) {
+    if (existingVariations?.withText) {
       console.log('Using existing logo variations:', existingVariations);
+      const withText = existingVariations.withText;
       const variations: DisplayVariation[] = [];
-      
-      if (existingVariations.withText) {
-        const withText = existingVariations.withText;
-        if (withText.lightBackground) {
-          variations.push({
-            id: 'lightBackground',
-            background: 'lightBackground',
-            label: this.translate.instant('dashboard.logoVariations.labels.lightBackground'),
-            svgContent: withText.lightBackground,
-            description: this.translate.instant('dashboard.logoVariations.descriptions.lightBackground'),
-            backgroundColor: '#ffffff',
-          });
-        }
-        if (withText.darkBackground) {
-          variations.push({
-            id: 'darkBackground',
-            background: 'darkBackground',
-            label: this.translate.instant('dashboard.logoVariations.labels.darkBackground'),
-            svgContent: withText.darkBackground,
-            description: this.translate.instant('dashboard.logoVariations.descriptions.darkBackground'),
-            backgroundColor: '#1f2937',
-          });
-        }
-        if (withText.monochrome) {
-          variations.push({
-            id: 'monochrome',
-            background: 'monochrome',
-            label: this.translate.instant('dashboard.logoVariations.labels.monochrome'),
-            svgContent: withText.monochrome,
-            description: this.translate.instant('dashboard.logoVariations.descriptions.monochrome'),
-            backgroundColor: '#f3f4f6',
-          });
+
+      if (withText.lightBackground) {
+        variations.push({
+          id: 'lightBackground',
+          background: 'lightBackground',
+          label: this.translate.instant('dashboard.logoVariations.labels.lightBackground'),
+          svgContent: withText.lightBackground,
+          description: this.translate.instant('dashboard.logoVariations.descriptions.lightBackground'),
+          backgroundColor: '#ffffff',
+        });
+      }
+      if (withText.darkBackground) {
+        variations.push({
+          id: 'darkBackground',
+          background: 'darkBackground',
+          label: this.translate.instant('dashboard.logoVariations.labels.darkBackground'),
+          svgContent: withText.darkBackground,
+          description: this.translate.instant('dashboard.logoVariations.descriptions.darkBackground'),
+          backgroundColor: '#1f2937',
+        });
+      }
+      if (withText.monochrome) {
+        variations.push({
+          id: 'monochrome',
+          background: 'monochrome',
+          label: this.translate.instant('dashboard.logoVariations.labels.monochrome'),
+          svgContent: withText.monochrome,
+          description: this.translate.instant('dashboard.logoVariations.descriptions.monochrome'),
+          backgroundColor: '#f3f4f6',
+        });
+      }
+
+      this.generatedVariations.set(variations);
+
+      // N'est considéré comme complété QUE si les 3 déclinaisons sont toutes présentes !
+      if (variations.length === 3) {
+        this.isCompleted.set(true);
+        this.liveMode.set(false);
+        this.variationsGenerated.emit(existingVariations);
+      } else {
+        this.isCompleted.set(false);
+        this.liveMode.set(true);
+        if (this.selectedLogo()) {
+          this.startVariationGeneration();
         }
       }
-      
-      this.generatedVariations.set(variations);
-      this.isCompleted.set(true);
-      this.variationsGenerated.emit(existingVariations);
     } else if (this.selectedLogo()) {
       this.startVariationGeneration();
     }
@@ -199,15 +216,30 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
     this.isGenerating.set(true);
     this.liveMode.set(true);
     this.error.set(null);
+    this.isCompleted.set(false);
     this.generationProgress.set(0);
     this.currentStep.set(this.translate.instant('dashboard.logoVariations.progress.initializing'));
+
+    const existingWithText = this.project()?.analysisResultModel?.branding?.logo?.variations?.withText || {};
+
     this.variationSlots.set(
-      (['lightBackground', 'darkBackground', 'monochrome'] as VariationKind[]).map((kind) => ({
-        kind,
-        status: 'pending' as const,
-        svg: null,
-        critique: null,
-      })),
+      (['lightBackground', 'darkBackground', 'monochrome'] as VariationKind[]).map((kind) => {
+        const svg = existingWithText[kind];
+        if (!force && svg) {
+          return {
+            kind,
+            status: 'final' as const,
+            svg,
+            critique: null,
+          };
+        }
+        return {
+          kind,
+          status: 'pending' as const,
+          svg: null,
+          critique: null,
+        };
+      })
     );
 
     this.brandingService
@@ -218,11 +250,6 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
         error: (error) => {
           console.error('Error in streamed variation generation:', error);
           this.finishLiveGeneration();
-          if (this.generatedVariations().length === 0) {
-            this.error.set(
-              this.translate.instant('dashboard.logoVariations.errors.generationFailed'),
-            );
-          }
         },
         complete: () => this.finishLiveGeneration(),
       });
@@ -289,19 +316,24 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
     );
   }
 
-  /** Fin du flux : assemble les déclinaisons finalisées et bascule sur l'affichage classique */
+  /** Fin du flux : assemble les déclinaisons finalisées et bascule sur l'affichage classique si les 3 sont prêtes */
   private finishLiveGeneration(): void {
     this.isGenerating.set(false);
-    this.liveMode.set(false);
     this.currentStep.set(this.translate.instant('dashboard.logoVariations.progress.completed'));
 
     const finalSlots = this.variationSlots().filter((s) => s.status === 'final' && s.svg);
-    if (finalSlots.length === 0) {
-      if (!this.error()) {
-        this.error.set(this.translate.instant('dashboard.logoVariations.errors.generationFailed'));
-      }
+
+    if (finalSlots.length < 3) {
+      this.isCompleted.set(false);
+      this.liveMode.set(true);
+      this.error.set(
+        this.translate.instant('dashboard.logoVariations.errors.generationFailed')
+      );
       return;
     }
+
+    this.liveMode.set(false);
+    this.error.set(null);
 
     const variationSet: Record<string, string> = {};
     const displayVariations: DisplayVariation[] = [];
@@ -379,7 +411,7 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
   }
 
   protected onNextStep(): void {
-    if (this.isCompleted()) {
+    if (this.canProceed()) {
       this.nextStep.emit();
     }
   }
@@ -387,15 +419,10 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
   /**
    * Method to retry variation generation in case of failure
    */
-  protected retryGeneration(): void {
-    // Reset error state
+  protected retryGeneration(force = false): void {
     this.error.set(null);
     this.hasStartedGeneration.set(false);
-    this.generatedVariations.set([]);
-    this.generationProgress.set(0);
     this.isCompleted.set(false);
-
-    // Restart generation (reprise : les déclinaisons déjà validées sont conservées)
-    this.startVariationGeneration();
+    this.startVariationGeneration(force);
   }
 }
