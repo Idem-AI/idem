@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, Dispatch, SetStateAction } from 'react';
-import { getContainerInstance } from './WeIde/services';
+import { getContainerInstance, onServerReady } from './WeIde/services';
 import { Smartphone, Tablet, Laptop, Monitor, ChevronDown } from 'lucide-react';
 // Supprimé l'import de findWeChatDevToolsPath car il n'existe plus
 import { useFileStore } from './WeIde/stores/fileStore';
@@ -42,15 +42,25 @@ const PreviewIframe: React.FC<PreviewIframeProps> = ({ setShowIframe, isMinProgr
   const [iframeLoaded, setIframeLoaded] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+    let unsubscribe: (() => void) | undefined;
     (async () => {
-      const instance = await getContainerInstance();
-      instance?.on('server-ready', (port, url) => {
+      // Assure le boot du WebContainer, puis s'abonne : si un serveur est déjà
+      // prêt, `onServerReady` rappelle immédiatement avec la dernière URL connue,
+      // ce qui évite la page blanche quand la preview se monte après coup.
+      await getContainerInstance();
+      if (!mounted) return;
+      unsubscribe = onServerReady((port, url) => {
         console.log('server-ready', port, url);
         setUrl(url);
         setShowIframe('preview');
         setPort(port.toString());
       });
     })();
+    return () => {
+      mounted = false;
+      unsubscribe?.();
+    };
   }, []);
 
   const handleRefresh = () => {
