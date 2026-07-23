@@ -117,12 +117,20 @@ export interface MsgRequestImage {
   id: string;
 }
 
+/** L'utilisateur a demandé la suppression de l'élément (touche Suppr). */
+export interface MsgDeleteElement {
+  source: typeof IDEM_SOURCE;
+  type: 'DELETE_ELEMENT';
+  id: string;
+}
+
 export type AgentToParentMessage =
   | MsgAgentReady
   | MsgSelected
   | MsgTextEdit
   | MsgReorder
-  | MsgRequestImage;
+  | MsgRequestImage
+  | MsgDeleteElement;
 
 /* ------------------------------------------------------------------ */
 /* Type guards                                                         */

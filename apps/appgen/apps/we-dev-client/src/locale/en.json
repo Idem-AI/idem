@@ -453,7 +453,7 @@
     "cancel": "Cancel"
   },
   "editMode": {
-    "hint": "Click to select · double-click to edit text · drag to reorder",
+    "hint": "Click to select · double-click to edit text · drag to reorder · Del to delete",
     "noSelection": "Select an element in the preview to edit it.",
     "deselect": "Deselect",
     "text": "Text",
@@ -468,6 +468,10 @@
     "align": "Alignment",
     "loadingAgent": "Preparing editor…",
     "injectFailed": "Could not enable Edit mode: {{reason}}",
-    "editFailed": "Edit could not be applied: {{reason}}"
+    "editFailed": "Edit could not be applied: {{reason}}",
+    "delete": "Delete element",
+    "deleteHint": "You can also press the Delete key on the selected element.",
+    "reorderUnsupported": "This element can't be reordered here.",
+    "deleteUnsupported": "This element can't be deleted here (it is generated dynamically)."
   }
 }

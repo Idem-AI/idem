@@ -83,6 +83,88 @@ function splice(code: string, start: number, end: number, insert: string): strin
   return code.slice(0, start) + insert + code.slice(end);
 }
 
+/**
+ * Indentation (espaces/tabs) précédant `pos` sur sa ligne.
+ * Retourne null si un caractère non-blanc précède `pos` sur la ligne (donc `pos`
+ * n'est pas en début de ligne → élément « inline »).
+ */
+function lineIndentBefore(code: string, pos: number): string | null {
+  let i = pos - 1;
+  let ws = '';
+  while (i >= 0) {
+    const c = code[i];
+    if (c === '\n') return ws;
+    if (c === ' ' || c === '\t') {
+      ws = c + ws;
+      i--;
+      continue;
+    }
+    return null; // caractère non-blanc → inline
+  }
+  return ws; // début de fichier
+}
+
+/** Est-ce que `element` est un enfant JSX direct de `parent` (pas dans une expression) ? */
+function isDirectChild(parent: Node, element: Node): boolean {
+  const children = (parent.children as Node[]) || [];
+  return children.some((c) => c.type === 'JSXElement' && c.start === element.start);
+}
+
+/**
+ * Région à retirer pour supprimer proprement un élément : l'élément lui-même,
+ * plus l'indentation de sa ligne et le retour à la ligne, afin de ne pas laisser
+ * de ligne vide. Fonctionne aussi pour les éléments « inline ».
+ */
+function computeRemoval(code: string, node: Node): { remStart: number; remEnd: number } {
+  const indent = lineIndentBefore(code, node.start);
+  if (indent !== null) {
+    let remStart = node.start - indent.length; // début de ligne
+    let remEnd = node.end;
+    if (code[remEnd] === '\r') remEnd++;
+    if (code[remEnd] === '\n') {
+      remEnd++; // consomme le retour à la ligne suivant
+    } else {
+      // Pas de retour à la ligne après : on consomme celui d'avant.
+      if (remStart > 0 && code[remStart - 1] === '\n') remStart--;
+      if (remStart > 0 && code[remStart - 1] === '\r') remStart--;
+    }
+    return { remStart, remEnd };
+  }
+  // Inline : retire l'élément + un espace adjacent.
+  let remStart = node.start;
+  let remEnd = node.end;
+  if (code[remEnd] === ' ') remEnd++;
+  else if (remStart > 0 && code[remStart - 1] === ' ') remStart--;
+  return { remStart, remEnd };
+}
+
+/**
+ * Applique simultanément un retrait [remStart,remEnd) et une insertion de `insText`
+ * à `insPos`, sur la chaîne d'origine. Les deux zones ne doivent pas se chevaucher.
+ */
+function spliceMove(
+  code: string,
+  remStart: number,
+  remEnd: number,
+  insPos: number,
+  insText: string
+): EditResult {
+  if (insPos > remStart && insPos < remEnd) {
+    return { ok: false, reason: 'zones de déplacement chevauchantes' };
+  }
+  if (insPos <= remStart) {
+    return {
+      ok: true,
+      code: code.slice(0, insPos) + insText + code.slice(insPos, remStart) + code.slice(remEnd),
+    };
+  }
+  // insPos >= remEnd
+  return {
+    ok: true,
+    code: code.slice(0, remStart) + code.slice(remEnd, insPos) + insText + code.slice(insPos),
+  };
+}
+
 /* ------------------------------------------------------------------ */
 /* Édition de texte                                                    */
 /* ------------------------------------------------------------------ */
@@ -237,46 +319,83 @@ export function reorderSiblings(
   if (!hit.parent) return { ok: false, reason: 'parent introuvable' };
 
   const parent = hit.parent;
-  const rawChildren = (parent.children as Node[]) || [];
-
-  // On ne gère que le cas sûr : enfants = éléments JSX + espaces uniquement.
-  const nonWhitespaceNonElement = rawChildren.some((c) => {
-    if (c.type === 'JSXElement') return false;
-    if (c.type === 'JSXText') {
-      return (c as unknown as { value: string }).value.trim().length > 0;
-    }
-    return true; // expression container, etc.
-  });
-  if (nonWhitespaceNonElement) {
-    return { ok: false, reason: 'réordonnancement non sûr (enfants mixtes)' };
-  }
-
-  const elements = rawChildren.filter((c) => c.type === 'JSXElement');
+  // On ne réordonne QUE les éléments JSX enfants directs du parent. Les nœuds
+  // texte / expressions ({...}) entre eux sont laissés en place : le déplacement
+  // ne touche que la plage source de l'élément déplacé et son point d'insertion.
+  const elements = ((parent.children as Node[]) || []).filter((c) => c.type === 'JSXElement');
   if (elements.length < 2) return { ok: false, reason: 'pas assez de frères' };
 
-  const movedIdx = elements.findIndex((el) => (el.openingElement as Node).start === movedStart);
-  if (movedIdx === -1) return { ok: false, reason: 'element déplacé absent du parent' };
+  const movedIdx = elements.findIndex((el) => el.start === hit.element.start);
+  if (movedIdx === -1) return { ok: false, reason: 'element déplacé non direct' };
+  const moved = elements[movedIdx];
 
-  let targetIdx = elements.length; // fin par défaut
+  // Cible.
+  let targetIdx = -1;
   if (beforeStart !== null) {
     targetIdx = elements.findIndex((el) => (el.openingElement as Node).start === beforeStart);
     if (targetIdx === -1) return { ok: false, reason: 'cible introuvable' };
   }
 
-  // Nouvel ordre.
-  const order = elements.slice();
-  const [moved] = order.splice(movedIdx, 1);
-  // Après retrait, recalculer l'index d'insertion.
-  let insertIdx = targetIdx;
-  if (beforeStart !== null && targetIdx > movedIdx) insertIdx = targetIdx - 1;
-  if (beforeStart === null) insertIdx = order.length;
-  order.splice(insertIdx, 0, moved);
+  // No-op : déjà à la bonne place.
+  if (beforeStart !== null && (targetIdx === movedIdx || targetIdx === movedIdx + 1)) {
+    return { ok: true, code };
+  }
+  if (beforeStart === null && movedIdx === elements.length - 1) {
+    return { ok: true, code };
+  }
 
-  // Séparateur inter-éléments : espace entre les 2 premiers éléments d'origine.
-  const sep = code.slice(elements[0].end, elements[1].start);
-  const regionStart = elements[0].start;
-  const regionEnd = elements[elements.length - 1].end;
-  const rebuilt = order.map((el) => code.slice(el.start, el.end)).join(sep);
+  const block = code.slice(moved.start, moved.end);
+  const { remStart, remEnd } = computeRemoval(code, moved);
 
-  return { ok: true, code: splice(code, regionStart, regionEnd, rebuilt) };
+  let insPos: number;
+  let insText: string;
+  if (beforeStart !== null) {
+    const target = elements[targetIdx];
+    const tIndent = lineIndentBefore(code, target.start);
+    if (tIndent !== null) {
+      insPos = target.start - tIndent.length; // début de ligne de la cible
+      insText = tIndent + block + '\n';
+    } else {
+      insPos = target.start;
+      insText = block + ' ';
+    }
+  } else {
+    // Placer en dernier : après le dernier élément qui n'est pas celui déplacé.
+    const last = elements[elements.length - 1];
+    const lIndent = lineIndentBefore(code, last.start);
+    if (lIndent !== null) {
+      insPos = last.end;
+      insText = '\n' + lIndent + block;
+    } else {
+      insPos = last.end;
+      insText = ' ' + block;
+    }
+  }
+
+  return spliceMove(code, remStart, remEnd, insPos, insText);
+}
+
+/* ------------------------------------------------------------------ */
+/* Suppression d'élément                                               */
+/* ------------------------------------------------------------------ */
+
+export function deleteElement(code: string, start: number): EditResult {
+  let ast;
+  try {
+    ast = parseCode(code);
+  } catch (e) {
+    return { ok: false, reason: `parse error: ${(e as Error).message}` };
+  }
+  const hit = findByStart(ast, start);
+  if (!hit) return { ok: false, reason: 'element introuvable' };
+  if (!hit.parent) return { ok: false, reason: 'parent introuvable' };
+
+  // On ne supprime que les éléments enfants JSX directs : retirer un élément
+  // niché dans une expression ({cond && <X/>}, .map(...)) casserait la syntaxe.
+  if (!isDirectChild(hit.parent, hit.element)) {
+    return { ok: false, reason: 'suppression non supportée ici' };
+  }
+
+  const { remStart, remEnd } = computeRemoval(code, hit.element);
+  return { ok: true, code: code.slice(0, remStart) + code.slice(remEnd) };
 }

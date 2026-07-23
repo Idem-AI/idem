@@ -411,7 +411,7 @@
     }
   },
   "editMode": {
-    "hint": "点击选择 · 双击编辑文本 · 拖动重新排序",
+    "hint": "点击选择 · 双击编辑文本 · 拖动重新排序 · Del 删除",
     "noSelection": "在预览中选择一个元素进行编辑。",
     "deselect": "取消选择",
     "text": "文本",
@@ -426,6 +426,10 @@
     "align": "对齐",
     "loadingAgent": "正在准备编辑器…",
     "injectFailed": "无法启用编辑模式：{{reason}}",
-    "editFailed": "无法应用修改：{{reason}}"
+    "editFailed": "无法应用修改：{{reason}}",
+    "delete": "删除元素",
+    "deleteHint": "您也可以在选中元素上按 Delete 键。",
+    "reorderUnsupported": "此元素无法在此处重新排序。",
+    "deleteUnsupported": "此元素无法在此处删除（它是动态生成的）。"
   }
 }
