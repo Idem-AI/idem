@@ -411,7 +411,7 @@
     }
   },
   "editMode": {
-    "hint": "点击选择 · 双击编辑文本 · 拖动重新排序 · Del 删除",
+    "hint": "点击选择 · Shift 点击多选 · 双击编辑 · 拖动排序 · Del 删除",
     "noSelection": "在预览中选择一个元素进行编辑。",
     "deselect": "取消选择",
     "text": "文本",
@@ -430,6 +430,12 @@
     "delete": "删除元素",
     "deleteHint": "您也可以在选中元素上按 Delete 键。",
     "reorderUnsupported": "此元素无法在此处重新排序。",
-    "deleteUnsupported": "此元素无法在此处删除（它是动态生成的）。"
+    "deleteUnsupported": "此元素无法在此处删除（它是动态生成的）。",
+    "refresh": "重新加载预览",
+    "multiSelected": "已选 {{count}} 个",
+    "multiHint": "按住 Shift/Ctrl 点击可同时选择多个元素。",
+    "apply": "应用",
+    "upload": "上传图片",
+    "deleteSelection": "删除所选 ({{count}})"
   }
 }

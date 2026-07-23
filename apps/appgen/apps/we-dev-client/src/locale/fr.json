@@ -453,7 +453,7 @@
     "cancel": "Annuler"
   },
   "editMode": {
-    "hint": "Cliquez pour sélectionner · double-clic pour éditer · glissez pour réordonner · Suppr pour supprimer",
+    "hint": "Clic pour sélectionner · Maj+clic pour multi · double-clic pour éditer · glisser pour réordonner · Suppr pour supprimer",
     "noSelection": "Sélectionnez un élément dans l'aperçu pour le modifier.",
     "deselect": "Désélectionner",
     "text": "Texte",
@@ -472,6 +472,12 @@
     "delete": "Supprimer l'élément",
     "deleteHint": "Vous pouvez aussi appuyer sur la touche Suppr sur l'élément sélectionné.",
     "reorderUnsupported": "Cet élément ne peut pas être réordonné ici.",
-    "deleteUnsupported": "Cet élément ne peut pas être supprimé ici (généré dynamiquement)."
+    "deleteUnsupported": "Cet élément ne peut pas être supprimé ici (généré dynamiquement).",
+    "refresh": "Recharger l'aperçu",
+    "multiSelected": "{{count}} sélectionnés",
+    "multiHint": "Maj/Ctrl+clic pour sélectionner plusieurs éléments à la fois.",
+    "apply": "Appliquer",
+    "upload": "Téléverser une image",
+    "deleteSelection": "Supprimer la sélection ({{count}})"
   }
 }
