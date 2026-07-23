@@ -64,7 +64,11 @@
         "growth": "Market growth"
       },
       "feed": {
-        "empty": "No activity yet"
+        "empty": "No activity yet",
+        "starting": "Starting the research…"
+      },
+      "foot": {
+        "note": "Nothing made up · {{queries}} searches"
       },
       "roles": {
         "orchestrator": "Team lead",
@@ -84,11 +88,11 @@
       },
       "kinds": {
         "agent_status": "Step",
-        "search_query": "Search",
-        "source_found": "Source",
-        "finding": "Data point",
-        "section_drafted": "Drafted",
-        "verification": "Verification",
+        "search_query": "Searching",
+        "source_found": "Source found",
+        "finding": "Key data",
+        "section_drafted": "Section written",
+        "verification": "Verified",
         "note": "Note"
       }
     }

@@ -2213,7 +2213,8 @@
       },
       "feed": {
         "title": "Activité en direct",
-        "empty": "Aucune activité pour le moment"
+        "empty": "Aucune activité pour le moment",
+        "starting": "Démarrage de la recherche…"
       },
       "roles": {
         "orchestrator": "Chef d'équipe",
@@ -2234,10 +2235,10 @@
       "kinds": {
         "agent_status": "Étape",
         "search_query": "Recherche",
-        "source_found": "Source",
-        "finding": "Donnée",
-        "section_drafted": "Rédigé",
-        "verification": "Vérification",
+        "source_found": "Source trouvée",
+        "finding": "Donnée clé",
+        "section_drafted": "Section rédigée",
+        "verification": "Vérifié",
         "note": "Note"
       },
       "sources": {
@@ -2319,6 +2320,9 @@
       "journey": {
         "title": "Étapes",
         "sources": "{{count}} source(s)"
+      },
+      "foot": {
+        "note": "Aucune donnée inventée · {{queries}} recherches"
       }
     }
   },
