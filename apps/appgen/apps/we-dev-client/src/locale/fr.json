@@ -453,7 +453,7 @@
     "cancel": "Annuler"
   },
   "editMode": {
-    "hint": "Clic pour sélectionner · Maj+clic pour multi · double-clic pour éditer · glisser pour réordonner · Suppr pour supprimer",
+    "hint": "Clic pour sélectionner · recliquer pour l'élément en dessous · Maj+clic multi · double-clic éditer · glisser réordonner · Suppr supprimer",
     "noSelection": "Sélectionnez un élément dans l'aperçu pour le modifier.",
     "deselect": "Désélectionner",
     "text": "Texte",
@@ -505,6 +505,8 @@
     "undo": "Annuler",
     "redo": "Rétablir",
     "objectPosition": "Position",
-    "opacity": "Opacité"
+    "opacity": "Opacité",
+    "layers": "Calques",
+    "layersHint": "Éléments empilés sous votre clic — choisissez celui à éditer."
   }
 }

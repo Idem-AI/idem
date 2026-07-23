@@ -20,6 +20,7 @@ import {
   Ruler,
   Undo2,
   Redo2,
+  Layers,
 } from 'lucide-react';
 import {
   IDEM_SOURCE,
@@ -27,6 +28,7 @@ import {
   isAgentMessage,
   type SelectedElementInfo,
   type ParentToAgentMessage,
+  type StackItem,
 } from './idemProtocol';
 import {
   editText,
@@ -77,6 +79,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [url, setUrl] = useState('');
   const [selected, setSelected] = useState<SelectedElementInfo[]>([]);
+  const [stack, setStack] = useState<StackItem[]>([]);
   const [agentReady, setAgentReady] = useState(false);
   const [size, setSize] = useState<WindowSize>(WINDOW_SIZES[0]);
 
@@ -277,6 +280,10 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
           break;
         case 'SELECTED':
           setSelected(msg.elements);
+          // La pile de calques n'est envoyée que sur un clic direct : on la garde
+          // tant qu'on navigue dedans, on l'efface quand la sélection est vidée.
+          if (msg.elements.length === 0) setStack([]);
+          else if (msg.stack && msg.stack.length) setStack(msg.stack);
           break;
         case 'TEXT_EDIT': {
           const ref = decodeIdemId(msg.id);
@@ -390,8 +397,14 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
 
   const deselect = useCallback(() => {
     setSelected([]);
+    setStack([]);
     sendToAgent({ source: IDEM_SOURCE, type: 'SET_SELECTION', ids: [] });
   }, [sendToAgent]);
+
+  const selectLayer = useCallback(
+    (id: string) => sendToAgent({ source: IDEM_SOURCE, type: 'SET_SELECTION', ids: [id] }),
+    [sendToAgent]
+  );
 
   const handlers: Handlers = {
     onStyle: applyStyle,
@@ -482,6 +495,32 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
                 {t('editMode.deselect')}
               </button>
             </div>
+
+            {!multi && stack.length > 1 && (
+              <Section icon={<Layers size={14} />} title={t('editMode.layers')}>
+                <div className="space-y-0.5">
+                  {stack.map((s, i) => {
+                    const activeItem = primary?.id === s.id;
+                    return (
+                      <button
+                        key={`${s.id}-${i}`}
+                        className={`w-full text-left text-xs px-2 py-1.5 rounded flex items-center gap-2 ${
+                          activeItem
+                            ? 'bg-[#6D28D9] text-white'
+                            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2c2c2c]'
+                        }`}
+                        style={{ paddingLeft: 8 + i * 10 }}
+                        onClick={() => selectLayer(s.id)}
+                      >
+                        <span className="font-medium capitalize">{s.kind}</span>
+                        <span className="opacity-60">&lt;{s.tag}&gt;</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1">{t('editMode.layersHint')}</p>
+              </Section>
+            )}
 
             {multi ? (
               <MultiControls onStyle={applyStyle} />

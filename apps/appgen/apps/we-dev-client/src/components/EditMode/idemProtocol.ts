@@ -103,11 +103,20 @@ export interface SelectedElementInfo {
   rect: { top: number; left: number; width: number; height: number };
 }
 
+/** Un calque de la pile d'éléments empilés sous le curseur au moment du clic. */
+export interface StackItem {
+  id: string;
+  tag: string;
+  kind: string;
+}
+
 export interface MsgSelected {
   source: typeof IDEM_SOURCE;
   type: 'SELECTED';
   /** Éléments actuellement sélectionnés (0, 1 ou plusieurs). */
   elements: SelectedElementInfo[];
+  /** Éléments empilés sous le point cliqué (navigateur de calques). Vide si non pertinent. */
+  stack?: StackItem[];
 }
 
 /** Édition de texte en place validée. */
