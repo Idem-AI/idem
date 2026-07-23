@@ -11,7 +11,7 @@ export const SLIDE_ASK_PROMPT = `
 - Use of funds: 3 allocation buckets summing to 100% (e.g., Produit 45%, Acquisition 35%, Opérations 20%). Display as horizontal progress bars with bg-[PRIMARY COLOR] for the filled portion and bg-[PRIMARY COLOR]/10 for the track, with labels.
 - Closing sentence in text-lg font-medium text-[TEXT COLOR] (max 15 words, inspiring).
 - Contact info: founder name, email, website in text-sm text-[TEXT COLOR]/70.
-- Brand logo SVG embedded at the bottom or beside contact info if available.
+- Brand logo: use <img src="LOGO_URL"> from LOGO URLS in BRAND CONTEXT, placed beside contact info. Omit if no logo available.
 </mandatory_content>
 
 <layout>

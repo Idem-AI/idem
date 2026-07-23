@@ -4,10 +4,14 @@
  */
 export const PITCH_DECK_SHARED_RULES = `
 <slide_format>
-- Outermost element: a single <div> with classes w-[297mm] h-[167mm] overflow-hidden relative (exactly 297×167mm landscape).
-- Internal padding: p-[14mm] — nothing may touch the edges or overflow.
-- No min-h-screen, no viewport units, no scroll.
+- Outermost element: a single <div> with classes w-[297mm] min-h-[167mm] relative (16:9 landscape width; height grows with content). Do NOT use a fixed h-[...] nor overflow-hidden, and NEVER truncate content to fit — aim to fill exactly one slide, but content is never clipped if it slightly exceeds.
+- Internal padding: p-[14mm] — nothing may touch the edges.
+- No min-h-screen, no viewport units.
 </slide_format>
+
+<editor_compatibility>
+- The slide is edited afterwards in a visual (Figma-like) editor: put visible text in leaf elements (h1..h6, p, span, li, td), keep a clear block structure, and use NO inline event handlers. Charts already follow the editor-compatible pattern (canvas with unique id + inline new Chart(document.getElementById(...))).
+</editor_compatibility>
 
 <brand_enforcement>
 CRITICAL — read the BRAND CONTEXT block at the end of this prompt and apply it rigorously:
@@ -18,7 +22,11 @@ CRITICAL — read the BRAND CONTEXT block at the end of this prompt and apply it
 - TEXT COLOR → use text-[TEXT COLOR] for body text and descriptions.
 - PRIMARY FONT → apply via style="font-family: [PRIMARY FONT]" on the outermost slide container.
 - SECONDARY FONT → use style="font-family: [SECONDARY FONT]" for body text / descriptions.
-- Brand logo SVG: render it at the top-left or top-right of every slide (small, ~40×40px) if provided. Embed the raw SVG from Logo SVG in BRAND CONTEXT using a <div> container. If logo SVG is empty, omit it.
+- Brand logo: LOGO URLS in BRAND CONTEXT lists all available logo variants. Pick the right one based on your slide background:
+  • Light background slides → use "With text (light bg)" or "Primary (full logo)" URL.
+  • Dark background slides → use "With text (dark bg)" URL.
+  • Minimal/small usage → use "Icon only (light bg)" or "Icon only (dark bg)" URL.
+  Render as <img src="LOGO_URL" class="h-8 w-auto object-contain" alt="logo" /> at the top-left or top-right of each slide. If "No logo available", omit the logo entirely.
 - ALL colors on the slide MUST come from the brand palette above. Do NOT invent colors, use generic blue/red/green, or use Tailwind default palette (blue-500, gray-800, etc.).
 </brand_enforcement>
 

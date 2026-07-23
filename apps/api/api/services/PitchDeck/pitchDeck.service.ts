@@ -101,7 +101,7 @@ export class PitchDeckService extends GenericService {
     }
 
     const brandName = project.name || 'Startup';
-    const logoSvg = project.analysisResultModel?.branding?.logo?.svg || '';
+    const logo = project.analysisResultModel?.branding?.logo;
     const colorsObj = project.analysisResultModel?.branding?.colors?.colors || {
       primary: '#1447e6',
       secondary: '#000060',
@@ -113,10 +113,28 @@ export class PitchDeckService extends GenericService {
     const primaryFont = typoModel?.primaryFont || 'Inter, sans-serif';
     const secondaryFont = typoModel?.secondaryFont || primaryFont;
 
-    // Flat, explicit brand context so the LLM can directly use bg-[#hex], text-[#hex], font-[name]
+    // Build logo URLs block — send all declinations so the AI picks the right one per slide context
+    const logoLines: string[] = [];
+    if (logo?.svg) logoLines.push(`  Primary (full logo): ${logo.svg}`);
+    if (logo?.iconSvg) logoLines.push(`  Icon only: ${logo.iconSvg}`);
+    if (logo?.variations?.withText) {
+      const wt = logo.variations.withText;
+      if (wt.lightBackground) logoLines.push(`  With text (light bg): ${wt.lightBackground}`);
+      if (wt.darkBackground) logoLines.push(`  With text (dark bg): ${wt.darkBackground}`);
+      if (wt.monochrome) logoLines.push(`  With text (mono): ${wt.monochrome}`);
+    }
+    if (logo?.variations?.iconOnly) {
+      const io = logo.variations.iconOnly;
+      if (io.lightBackground) logoLines.push(`  Icon only (light bg): ${io.lightBackground}`);
+      if (io.darkBackground) logoLines.push(`  Icon only (dark bg): ${io.darkBackground}`);
+      if (io.monochrome) logoLines.push(`  Icon only (mono): ${io.monochrome}`);
+    }
+
+    // Flat, explicit brand context — LLM uses bg-[#hex], text-[#hex] directly
     const brandContext = [
       `Brand Name: ${brandName}`,
-      `Logo SVG: ${logoSvg}`,
+      `LOGO URLS (use <img src="URL"> — pick the right variant for the slide background):`,
+      ...(logoLines.length > 0 ? logoLines : ['  No logo available']),
       `PRIMARY COLOR: ${colorsObj.primary}`,
       `SECONDARY COLOR: ${colorsObj.secondary}`,
       `ACCENT COLOR: ${colorsObj.accent}`,

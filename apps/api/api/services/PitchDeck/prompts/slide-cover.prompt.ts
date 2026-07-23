@@ -9,7 +9,7 @@ export const SLIDE_COVER_PROMPT = `
 - 1-sentence positioning statement: max 14 words, displayed in text-lg in TEXT COLOR — what we do, for whom, key advantage.
 - Uppercase label "PITCH DECK" in text-xs tracking-widest in ACCENT COLOR.
 - Footer: current month + year + "Confidentiel" in text-xs text-[TEXT COLOR]/50.
-- Brand logo SVG: embed from BRAND CONTEXT at top-left (~40px), only if not empty.
+- Brand logo: use <img src="LOGO_URL"> from LOGO URLS in BRAND CONTEXT (pick the variant that fits the slide background). Place at top-left, h-8 w-auto. Omit if no logo available.
 - A striking hero image that conveys the project's industry/vision via <img data-image-query="..." data-image-prompt="..." ... />
 </mandatory_content>
 
