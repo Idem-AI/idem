@@ -230,9 +230,27 @@
               }
             </div>
           }
-        </div>
       }
     </div>
+
+    <!-- Banner d'erreur et Bouton Réessayer si des déclinaisons ont échoué -->
+    @if (!isGenerating() && (hasFailedSlots() || error())) {
+      <div class="mt-8 flex flex-col items-center justify-center gap-4 p-6 rounded-2xl bg-danger/10 border border-danger/30 text-center max-w-xl mx-auto">
+        <div class="flex items-center gap-3 text-danger">
+          <i class="pi pi-exclamation-triangle text-2xl text-danger"></i>
+          <span class="font-semibold text-base">
+            {{ (error() || 'dashboard.logoVariations.errors.generationFailed') | translate }}
+          </span>
+        </div>
+        <button
+          (click)="retryGeneration()"
+          class="px-6 py-3 rounded-xl bg-danger/20 hover:bg-danger/30 border border-danger/40 text-light-text font-medium transition-all flex items-center gap-2 cursor-pointer"
+        >
+          <i class="pi pi-refresh mr-2"></i>
+          <span>{{ 'dashboard.logoVariations.buttons.retry' | translate }}</span>
+        </button>
+      </div>
+    }
   </div>
 }
 
