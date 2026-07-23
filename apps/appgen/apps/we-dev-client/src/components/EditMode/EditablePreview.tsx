@@ -64,6 +64,12 @@ function toPx(v: string | undefined): number | undefined {
   const n = Number.parseFloat(v);
   return Number.isFinite(n) ? Math.round(n) : undefined;
 }
+/** Extrait l'URL d'un background-image CSS (`url("…")`). */
+function extractBgUrl(v: string | undefined): string {
+  if (!v || v === 'none') return '';
+  const m = v.match(/url\((['"]?)(.*?)\1\)/);
+  return m ? m[2] : '';
+}
 const cval = (info: SelectedElementInfo | null, key: string) => info?.computed?.[key];
 
 const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
@@ -811,6 +817,11 @@ const BackgroundSection: React.FC<{
   allowImage: boolean;
 }> = ({ info, onStyle, onUpload, allowImage }) => {
   const { t } = useTranslation();
+  const bg = extractBgUrl(cval(info, 'backgroundImage'));
+  const inputId = `idem-bg-${info?.id ?? 'multi'}`;
+  const applyBg = (value: string) => {
+    if (value) onStyle('backgroundImage', `url("${value}")`);
+  };
   return (
     <Section icon={<Palette size={14} />} title={t('editMode.background')}>
       <div className="space-y-3">
@@ -822,31 +833,63 @@ const BackgroundSection: React.FC<{
           fallback="#ffffff"
         />
         {allowImage && (
-          <div className="flex flex-wrap gap-1.5">
-            {onUpload && (
-              <label className="flex-1 flex items-center justify-center gap-2 px-2 py-1.5 rounded border border-dashed border-gray-300 dark:border-[#555] text-xs text-gray-600 dark:text-gray-300 cursor-pointer hover:border-[#6D28D9] hover:text-[#6D28D9]">
-                <Upload size={13} />
-                {t('editMode.bgImage')}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) onUpload(f, true);
-                    e.target.value = '';
-                  }}
-                />
-              </label>
+          <div className="space-y-2 pt-1 border-t border-gray-200 dark:border-[#3a3a3a]">
+            <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              {t('editMode.bgImage')}
+            </span>
+            {bg && (
+              <div className="rounded border border-gray-200 dark:border-[#444] overflow-hidden bg-[repeating-conic-gradient(#eee_0_25%,#fff_0_50%)] bg-[length:16px_16px]">
+                <img src={bg} alt="" className="max-h-24 w-full object-contain" />
+              </div>
             )}
-            {info?.hasBackgroundImage && (
+            <div className="flex gap-1.5">
+              <input
+                id={inputId}
+                key={inputId}
+                type="text"
+                defaultValue={bg}
+                placeholder="https://…"
+                className="flex-1 min-w-0 text-sm rounded border border-gray-300 dark:border-[#444] bg-white dark:bg-[#2c2c2c] p-2 text-gray-800 dark:text-gray-100"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') applyBg((e.target as HTMLInputElement).value);
+                }}
+              />
               <button
-                className="px-2 py-1.5 rounded border border-gray-300 dark:border-[#555] text-xs text-gray-600 dark:text-gray-300 hover:border-red-400 hover:text-red-500"
-                onClick={() => onStyle('backgroundImage', 'none')}
+                className="px-2 rounded bg-[#6D28D9] text-white text-xs hover:bg-[#5b21b6]"
+                onClick={() => {
+                  const el = document.getElementById(inputId) as HTMLInputElement | null;
+                  if (el) applyBg(el.value);
+                }}
               >
-                {t('editMode.removeBgImage')}
+                {t('editMode.apply')}
               </button>
-            )}
+            </div>
+            <div className="flex gap-1.5">
+              {onUpload && (
+                <label className="flex-1 flex items-center justify-center gap-2 px-2 py-1.5 rounded border border-dashed border-gray-300 dark:border-[#555] text-xs text-gray-600 dark:text-gray-300 cursor-pointer hover:border-[#6D28D9] hover:text-[#6D28D9]">
+                  <Upload size={13} />
+                  {t('editMode.upload')}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) onUpload(f, true);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+              )}
+              {info?.hasBackgroundImage && (
+                <button
+                  className="px-2 py-1.5 rounded border border-gray-300 dark:border-[#555] text-xs text-gray-600 dark:text-gray-300 hover:border-red-400 hover:text-red-500"
+                  onClick={() => onStyle('backgroundImage', 'none')}
+                >
+                  {t('editMode.removeBgImage')}
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
