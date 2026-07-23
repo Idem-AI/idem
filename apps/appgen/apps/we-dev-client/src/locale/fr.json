@@ -507,6 +507,7 @@
     "objectPosition": "Position",
     "opacity": "Opacité",
     "layers": "Calques",
-    "layersHint": "Éléments empilés sous votre clic — choisissez celui à éditer."
+    "layersHint": "Éléments empilés sous votre clic — choisissez celui à éditer.",
+    "layersLoading": "Chargement de l'arborescence…"
   }
 }

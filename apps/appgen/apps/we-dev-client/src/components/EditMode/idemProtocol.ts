@@ -53,7 +53,13 @@ export interface MsgSetSelection {
   ids: string[];
 }
 
-export type ParentToAgentMessage = MsgEnableEdit | MsgSetSelection;
+/** Le parent demande à l'agent de (re)construire et renvoyer l'arborescence. */
+export interface MsgRequestTree {
+  source: typeof IDEM_SOURCE;
+  type: 'REQUEST_TREE';
+}
+
+export type ParentToAgentMessage = MsgEnableEdit | MsgSetSelection | MsgRequestTree;
 
 /* ------------------------------------------------------------------ */
 /* Messages agent (iframe) -> parent                                   */
@@ -160,6 +166,21 @@ export interface MsgRedo {
   type: 'REDO';
 }
 
+/** Nœud de l'arborescence des éléments éditables (façon explorateur de fichiers). */
+export interface TreeNode {
+  id: string;
+  tag: string;
+  kind: string;
+  children: TreeNode[];
+}
+
+/** Arborescence complète des éléments (data-idem-id) de la page. */
+export interface MsgTree {
+  source: typeof IDEM_SOURCE;
+  type: 'TREE';
+  nodes: TreeNode[];
+}
+
 export type AgentToParentMessage =
   | MsgAgentReady
   | MsgSelected
@@ -168,7 +189,8 @@ export type AgentToParentMessage =
   | MsgRequestImage
   | MsgDeleteElements
   | MsgUndo
-  | MsgRedo;
+  | MsgRedo
+  | MsgTree;
 
 /* ------------------------------------------------------------------ */
 /* Type guards                                                         */
