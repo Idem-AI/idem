@@ -507,6 +507,7 @@
     "objectPosition": "Position",
     "opacity": "Opacity",
     "layers": "Layers",
-    "layersHint": "Elements stacked under your click — pick the one to edit."
+    "layersHint": "Elements stacked under your click — pick the one to edit.",
+    "layersLoading": "Loading page tree…"
   }
 }

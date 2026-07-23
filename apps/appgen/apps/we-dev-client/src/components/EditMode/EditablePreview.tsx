@@ -21,6 +21,8 @@ import {
   Undo2,
   Redo2,
   Layers,
+  ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 import {
   IDEM_SOURCE,
@@ -28,7 +30,7 @@ import {
   isAgentMessage,
   type SelectedElementInfo,
   type ParentToAgentMessage,
-  type StackItem,
+  type TreeNode,
 } from './idemProtocol';
 import {
   editText,
@@ -79,7 +81,9 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [url, setUrl] = useState('');
   const [selected, setSelected] = useState<SelectedElementInfo[]>([]);
-  const [stack, setStack] = useState<StackItem[]>([]);
+  const [tree, setTree] = useState<TreeNode[]>([]);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [layersOpen, setLayersOpen] = useState(true);
   const [agentReady, setAgentReady] = useState(false);
   const [size, setSize] = useState<WindowSize>(WINDOW_SIZES[0]);
 
@@ -155,6 +159,8 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
       injectedRef.current = false;
       setAgentReady(false);
       setSelected([]);
+      setTree([]);
+      setExpanded(new Set());
       applyPlan(buildRemovePlan(useFileStore.getState().files));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -275,15 +281,15 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
         case 'AGENT_READY':
           setAgentReady(true);
           sendToAgent({ source: IDEM_SOURCE, type: 'ENABLE_EDIT', enabled: true });
+          sendToAgent({ source: IDEM_SOURCE, type: 'REQUEST_TREE' });
           if (selectedIdsRef.current.length)
             sendToAgent({ source: IDEM_SOURCE, type: 'SET_SELECTION', ids: selectedIdsRef.current });
           break;
         case 'SELECTED':
           setSelected(msg.elements);
-          // La pile de calques n'est envoyée que sur un clic direct : on la garde
-          // tant qu'on navigue dedans, on l'efface quand la sélection est vidée.
-          if (msg.elements.length === 0) setStack([]);
-          else if (msg.stack && msg.stack.length) setStack(msg.stack);
+          break;
+        case 'TREE':
+          setTree(msg.nodes);
           break;
         case 'TEXT_EDIT': {
           const ref = decodeIdemId(msg.id);
@@ -397,7 +403,6 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
 
   const deselect = useCallback(() => {
     setSelected([]);
-    setStack([]);
     sendToAgent({ source: IDEM_SOURCE, type: 'SET_SELECTION', ids: [] });
   }, [sendToAgent]);
 
@@ -405,6 +410,38 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
     (id: string) => sendToAgent({ source: IDEM_SOURCE, type: 'SET_SELECTION', ids: [id] }),
     [sendToAgent]
   );
+
+  const toggleExpand = useCallback((id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  // Déplie automatiquement le chemin jusqu'à l'élément sélectionné.
+  useEffect(() => {
+    if (!primary || !tree.length) return;
+    const parentOf: Record<string, string | null> = {};
+    const walk = (nodes: TreeNode[], pid: string | null) => {
+      for (const n of nodes) {
+        parentOf[n.id] = pid;
+        walk(n.children, n.id);
+      }
+    };
+    walk(tree, null);
+    if (!(primary.id in parentOf)) return;
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      let cur = parentOf[primary.id];
+      while (cur) {
+        next.add(cur);
+        cur = parentOf[cur] ?? null;
+      }
+      return next;
+    });
+  }, [primary?.id, tree]);
 
   const handlers: Handlers = {
     onStyle: applyStyle,
@@ -479,65 +516,77 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
         </div>
       </div>
 
-      <aside className="w-72 shrink-0 border-l border-[#e4e4e4] dark:border-[#333] bg-[#fafafa] dark:bg-[#232323] flex flex-col overflow-y-auto">
-        {selected.length === 0 ? (
-          <div className="p-4 text-sm text-gray-500 dark:text-gray-400">
-            {t('editMode.noSelection')}
-            <p className="mt-2 text-[11px] text-gray-400">{t('editMode.multiHint')}</p>
-          </div>
-        ) : (
-          <div className="p-3 space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium px-2 py-0.5 rounded bg-[#6D28D9] text-white uppercase">
-                {multi ? t('editMode.multiSelected', { count: selected.length }) : primary?.kind}
+      <aside className="w-72 shrink-0 border-l border-[#e4e4e4] dark:border-[#333] bg-[#fafafa] dark:bg-[#232323] flex flex-col overflow-hidden">
+        {/* Navigateur de calques (arborescence pliable), toujours visible */}
+        <div className="shrink-0 border-b border-[#e4e4e4] dark:border-[#333]">
+          <button
+            className="w-full flex items-center gap-1.5 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2c2c2c]"
+            onClick={() => setLayersOpen((o) => !o)}
+          >
+            {layersOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            <Layers size={14} />
+            {t('editMode.layers')}
+            {tree.length > 0 && (
+              <span className="ml-auto text-[10px] font-normal text-gray-400 normal-case">
+                {tree.length}
               </span>
-              <button className="text-xs text-gray-500 hover:text-[#6D28D9]" onClick={deselect}>
-                {t('editMode.deselect')}
-              </button>
+            )}
+          </button>
+          {layersOpen && (
+            <div className="max-h-[38vh] overflow-auto px-1 pb-2">
+              {tree.length > 0 ? (
+                <LayersTree
+                  nodes={tree}
+                  depth={0}
+                  selectedId={multi ? null : primary?.id ?? null}
+                  expanded={expanded}
+                  onToggle={toggleExpand}
+                  onSelect={selectLayer}
+                />
+              ) : (
+                <p className="px-3 py-2 text-[11px] text-gray-400">{t('editMode.layersLoading')}</p>
+              )}
             </div>
+          )}
+        </div>
 
-            {!multi && stack.length > 1 && (
-              <Section icon={<Layers size={14} />} title={t('editMode.layers')}>
-                <div className="space-y-0.5">
-                  {stack.map((s, i) => {
-                    const activeItem = primary?.id === s.id;
-                    return (
-                      <button
-                        key={`${s.id}-${i}`}
-                        className={`w-full text-left text-xs px-2 py-1.5 rounded flex items-center gap-2 ${
-                          activeItem
-                            ? 'bg-[#6D28D9] text-white'
-                            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2c2c2c]'
-                        }`}
-                        style={{ paddingLeft: 8 + i * 10 }}
-                        onClick={() => selectLayer(s.id)}
-                      >
-                        <span className="font-medium capitalize">{s.kind}</span>
-                        <span className="opacity-60">&lt;{s.tag}&gt;</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="text-[11px] text-gray-400 mt-1">{t('editMode.layersHint')}</p>
-              </Section>
-            )}
+        {/* Contrôles de l'élément sélectionné (scrollable) */}
+        <div className="flex-1 overflow-y-auto">
+          {selected.length === 0 ? (
+            <div className="p-4 text-sm text-gray-500 dark:text-gray-400">
+              {t('editMode.noSelection')}
+              <p className="mt-2 text-[11px] text-gray-400">{t('editMode.multiHint')}</p>
+            </div>
+          ) : (
+            <div className="p-3 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium px-2 py-0.5 rounded bg-[#6D28D9] text-white uppercase">
+                  {multi ? t('editMode.multiSelected', { count: selected.length }) : primary?.kind}
+                </span>
+                <button className="text-xs text-gray-500 hover:text-[#6D28D9]" onClick={deselect}>
+                  {t('editMode.deselect')}
+                </button>
+              </div>
 
-            {multi ? (
-              <MultiControls onStyle={applyStyle} />
-            ) : (
-              primary && <SingleControls info={primary} handlers={handlers} />
-            )}
+              {multi ? (
+                <MultiControls onStyle={applyStyle} />
+              ) : (
+                primary && <SingleControls info={primary} handlers={handlers} />
+              )}
 
-            <button
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded border border-red-300 dark:border-red-900/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 text-sm font-medium"
-              onClick={() => deleteIds(selected.map((e) => e.id))}
-            >
-              <Trash2 size={14} />
-              {multi ? t('editMode.deleteSelection', { count: selected.length }) : t('editMode.delete')}
-            </button>
-            <p className="text-[11px] text-gray-400 -mt-2">{t('editMode.deleteHint')}</p>
-          </div>
-        )}
+              <button
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded border border-red-300 dark:border-red-900/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 text-sm font-medium"
+                onClick={() => deleteIds(selected.map((e) => e.id))}
+              >
+                <Trash2 size={14} />
+                {multi
+                  ? t('editMode.deleteSelection', { count: selected.length })
+                  : t('editMode.delete')}
+              </button>
+              <p className="text-[11px] text-gray-400 -mt-2">{t('editMode.deleteHint')}</p>
+            </div>
+          )}
+        </div>
       </aside>
     </div>
   );
@@ -634,6 +683,65 @@ const MultiControls: React.FC<{ onStyle: (p: string, v: string) => void }> = ({ 
     <BackgroundSection info={null} onStyle={onStyle} allowImage={false} />
     <SpacingSection info={null} onStyle={onStyle} />
   </>
+);
+
+/** Arborescence pliable des éléments (façon explorateur de fichiers). */
+const LayersTree: React.FC<{
+  nodes: TreeNode[];
+  depth: number;
+  selectedId: string | null;
+  expanded: Set<string>;
+  onToggle: (id: string) => void;
+  onSelect: (id: string) => void;
+}> = ({ nodes, depth, selectedId, expanded, onToggle, onSelect }) => (
+  <ul>
+    {nodes.map((n) => {
+      const hasChildren = n.children.length > 0;
+      const open = expanded.has(n.id);
+      const active = n.id === selectedId;
+      return (
+        <li key={n.id}>
+          <div
+            className={`flex items-center rounded text-xs ${
+              active
+                ? 'bg-[#6D28D9] text-white'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2c2c2c]'
+            }`}
+            style={{ paddingLeft: depth * 12 }}
+          >
+            {hasChildren ? (
+              <button
+                className="p-0.5 shrink-0 opacity-70 hover:opacity-100"
+                onClick={() => onToggle(n.id)}
+                aria-label="toggle"
+              >
+                {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              </button>
+            ) : (
+              <span className="w-[18px] shrink-0" />
+            )}
+            <button
+              className="flex-1 min-w-0 text-left py-1 pr-2 flex items-center gap-1.5"
+              onClick={() => onSelect(n.id)}
+            >
+              <span className="font-medium capitalize truncate">{n.kind}</span>
+              <span className="opacity-60 shrink-0">&lt;{n.tag}&gt;</span>
+            </button>
+          </div>
+          {hasChildren && open && (
+            <LayersTree
+              nodes={n.children}
+              depth={depth + 1}
+              selectedId={selectedId}
+              expanded={expanded}
+              onToggle={onToggle}
+              onSelect={onSelect}
+            />
+          )}
+        </li>
+      );
+    })}
+  </ul>
 );
 
 /* ---------- sections ---------- */

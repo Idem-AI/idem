@@ -465,6 +465,7 @@
     "objectPosition": "位置",
     "opacity": "不透明度",
     "layers": "图层",
-    "layersHint": "光标下堆叠的元素 — 选择要编辑的一个。"
+    "layersHint": "光标下堆叠的元素 — 选择要编辑的一个。",
+    "layersLoading": "正在加载页面结构…"
   }
 }
