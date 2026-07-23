@@ -102,18 +102,30 @@ export class PitchDeckService extends GenericService {
 
     const brandName = project.name || 'Startup';
     const logoSvg = project.analysisResultModel?.branding?.logo?.svg || '';
-    const brandColors = project.analysisResultModel?.branding?.colors || {
+    const colorsObj = project.analysisResultModel?.branding?.colors?.colors || {
       primary: '#1447e6',
       secondary: '#000060',
       accent: '#22d3ee',
+      background: '#ffffff',
+      text: '#1f2937',
     };
-    const typography = project.analysisResultModel?.branding?.typography || {
-      primary: 'Jura, sans-serif',
-    };
+    const typoModel = project.analysisResultModel?.branding?.typography;
+    const primaryFont = typoModel?.primaryFont || 'Inter, sans-serif';
+    const secondaryFont = typoModel?.secondaryFont || primaryFont;
 
-    const brandContext = `Brand: ${brandName}\nLogo SVG: ${logoSvg}\nBrand Colors: ${JSON.stringify(
-      brandColors
-    )}\nTypography: ${JSON.stringify(typography)}\nLanguage: fr`;
+    // Flat, explicit brand context so the LLM can directly use bg-[#hex], text-[#hex], font-[name]
+    const brandContext = [
+      `Brand Name: ${brandName}`,
+      `Logo SVG: ${logoSvg}`,
+      `PRIMARY COLOR: ${colorsObj.primary}`,
+      `SECONDARY COLOR: ${colorsObj.secondary}`,
+      `ACCENT COLOR: ${colorsObj.accent}`,
+      `BACKGROUND COLOR: ${colorsObj.background}`,
+      `TEXT COLOR: ${colorsObj.text}`,
+      `PRIMARY FONT: ${primaryFont}`,
+      `SECONDARY FONT: ${secondaryFont}`,
+      `Language: fr`,
+    ].join('\n');
 
     const steps: IPromptStep[] = [
       {

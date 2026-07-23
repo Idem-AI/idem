@@ -1,42 +1,71 @@
 /**
  * Shared constraints injected into every pitch deck slide prompt.
- * Enforces a minimalist, premium, pro aesthetic — NO emojis, NO cheesy decoration.
+ * Enforces strict brand adherence, premium professional quality, and investor-grade design.
  */
 export const PITCH_DECK_SHARED_RULES = `
 <slide_format>
-- Outermost element: w-[297mm] h-[167mm] overflow-hidden relative (exactly 297x167mm landscape, no min-h-screen/viewport units)
-- Padding: p-[14mm] (no content touching edges, zero scroll/overflow)
-- Colors: Brand colors only via bg-[#hex], text-[#hex], border-[#hex]
+- Outermost element: a single <div> with classes w-[297mm] h-[167mm] overflow-hidden relative (exactly 297×167mm landscape).
+- Internal padding: p-[14mm] — nothing may touch the edges or overflow.
+- No min-h-screen, no viewport units, no scroll.
 </slide_format>
 
-<visual_style>
-- Modern, editorial, high-impact, investor-grade design.
-- Slides MUST be vivid, lively, and convey emotion tailored to the project while strictly respecting the brand identity.
-- Use strong visual hierarchy, card layouts, contrast overlays, subtle glassmorphism, and generous spacing.
-- NO cheap clip-art or cheesy emojis. Use PrimeIcons (pi pi-icon-name) sparingly for bullet points or subtle icons.
-</visual_style>
+<brand_enforcement>
+CRITICAL — read the BRAND CONTEXT block at the end of this prompt and apply it rigorously:
+- PRIMARY COLOR → use bg-[PRIMARY COLOR], text-[PRIMARY COLOR], border-[PRIMARY COLOR] (replace PRIMARY COLOR with the exact hex from BRAND CONTEXT).
+- SECONDARY COLOR → use bg-[SECONDARY COLOR], text-[SECONDARY COLOR] for secondary elements.
+- ACCENT COLOR → use bg-[ACCENT COLOR], text-[ACCENT COLOR] for highlights, accents, chart emphasis.
+- BACKGROUND COLOR → use bg-[BACKGROUND COLOR] for slide backgrounds and card backgrounds.
+- TEXT COLOR → use text-[TEXT COLOR] for body text and descriptions.
+- PRIMARY FONT → apply via style="font-family: [PRIMARY FONT]" on the outermost slide container.
+- SECONDARY FONT → use style="font-family: [SECONDARY FONT]" for body text / descriptions.
+- Brand logo SVG: render it at the top-left or top-right of every slide (small, ~40×40px) if provided. Embed the raw SVG from Logo SVG in BRAND CONTEXT using a <div> container. If logo SVG is empty, omit it.
+- ALL colors on the slide MUST come from the brand palette above. Do NOT invent colors, use generic blue/red/green, or use Tailwind default palette (blue-500, gray-800, etc.).
+</brand_enforcement>
+
+<visual_quality>
+- Investor-grade, world-class design. Slides must look like they were designed by a professional agency.
+- Strong visual hierarchy: one dominant element per slide (hero stat, title, chart), supported by secondary content.
+- Use generous whitespace and negative space. Avoid cramming content.
+- Card elements: rounded-xl, subtle borders (border border-[SECONDARY COLOR]/10), light fill (bg-[PRIMARY COLOR]/5 or bg-[SECONDARY COLOR]/5).
+- Typography: headlines → text-3xl or text-4xl font-bold; subtitles → text-lg font-medium; body → text-sm; labels → text-xs uppercase tracking-widest.
+- Numbers / KPIs: display in text-4xl or text-5xl font-bold tabular-nums for impact.
+- NO emojis. NO cheap icons. NO decorative clip-art. NO placeholder text like "lorem ipsum".
+- Use PrimeIcons (pi pi-check, pi pi-arrow-right, pi pi-chart-bar, etc.) very sparingly — only as small supporting icons, never as hero visuals.
+</visual_quality>
 
 <images_and_visuals>
-- Where imagery adds emotion or clarity (Cover background/hero, Problem, Solution/Product mockup, Market visual, Team portraits):
-- Insert <img> tags with attributes data-image-query (English keywords for stock search) and data-image-prompt (detailed prompt for fallback AI generation), e.g.:
-  <img data-image-query="modern tech workspace team" data-image-prompt="Cinematic high quality photo of a modern innovative startup team collaborating" src="https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover rounded-xl" alt="..." />
-- Ensure images fit seamlessly into the layout (object-cover, overlay cards, gradient masks).
+- For slides where a visual image adds emotional impact or clarity (Cover, Problem, Solution, Product, Team):
+  Insert an <img> tag with TWO data attributes for the image sourcing pipeline:
+  data-image-query="English keywords for Pexels stock search, specific to the project industry"
+  data-image-prompt="Detailed English prompt for AI image generation fallback, photorealistic style, relevant to the project"
+  Also include src="https://placehold.co/800x450/[PRIMARY_HEX_WITHOUT_#]/[TEXT_HEX_WITHOUT_#]?text=..." as a fallback placeholder using brand colors.
+  Apply classes: w-full h-full object-cover rounded-xl
+- Image containers: use a fixed-size div with overflow-hidden rounded-xl, and optionally a gradient overlay (bg-gradient-to-t from-[SECONDARY COLOR] to-transparent) to ensure text legibility.
+- Maximum 1 image per slide. Choose quality over quantity.
 </images_and_visuals>
 
 <chart_requirements>
-- For slides with metrics or data (Market, Traction, Financials, Business Model, Competition):
-- Render charts using Chart.js with a canvas tag inside a container with explicit height (e.g. <div class="relative w-full h-[200px]"><canvas id="chart-[slideName]"></canvas></div>).
-- Follow immediately with an inline initialization script:
-  <script>new Chart(document.getElementById('chart-[slideName]'), { type: 'bar'|'line'|'doughnut'|'radar', data: { labels: [...], datasets: [{ data: [...], backgroundColor: [...], borderColor: [...] }] }, options: { animation: false, responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#666' } } } } });</script>
-- CRITICAL: Always set animation: false in chart options so PDF rendering captures it synchronously.
-- Use brand colors (primary, secondary, accent from BRAND CONTEXT) for datasets and chart styling.
-- Do NOT include <script src="..."> for Chart.js (it is preloaded).
+- For data-driven slides (Market, Traction, Financials, Business Model, Competition):
+  a) Wrap the chart in a sized container: <div class="relative" style="width:100%;height:220px;"><canvas id="chart-[slidename]"></canvas></div>
+  b) Follow immediately with an inline <script>:
+     new Chart(document.getElementById('chart-[slidename]'), {
+       type: 'bar'|'line'|'doughnut'|'radar',
+       data: { labels: [...], datasets: [{ label: '...', data: [...], backgroundColor: ['PRIMARY_COLOR','SECONDARY_COLOR','ACCENT_COLOR'], borderColor: ['PRIMARY_COLOR','SECONDARY_COLOR','ACCENT_COLOR'], borderWidth: 1 }] },
+       options: { animation: false, responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom', labels: { color: 'TEXT_COLOR', font: { size: 10 } } } }, scales: { x: { ticks: { color: 'TEXT_COLOR', font: { size: 9 } } }, y: { ticks: { color: 'TEXT_COLOR', font: { size: 9 } } } } }
+     });
+  c) Replace PRIMARY_COLOR, SECONDARY_COLOR, ACCENT_COLOR, TEXT_COLOR with the exact hex values from BRAND CONTEXT.
+  d) CRITICAL: Always set animation: false — PDF rendering requires synchronous chart capture.
+  e) Do NOT include <script src="..."> for Chart.js — it is preloaded globally.
+  f) Use real, plausible numbers that fit the project context. Never use 0 or obviously fake data.
 </chart_requirements>
 
 <technical_rules>
-- Output raw HTML + Tailwind CSS ONLY in a single minified line. No newlines inside.
-- No markdown code blocks (e.g. \`\`\`html) or "html" prefix.
-- Replace {{companyName}} with the actual project name.
+- Output ONLY raw HTML + Tailwind CSS in a single minified line. No line breaks inside.
+- No markdown code blocks (no \`\`\`html wrapper), no "html" prefix.
+- No <style> blocks. No external CSS links.
+- Replace {{companyName}} with the actual brand name from BRAND CONTEXT.
+- Ensure WCAG AA contrast between text and backgrounds.
+- All content MUST be in the language specified in BRAND CONTEXT (French if "fr").
 </technical_rules>
 `;
 
