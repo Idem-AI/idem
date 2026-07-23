@@ -6,274 +6,76 @@
   ></app-additional-info-form>
 } @else if (isSavingAdditionalInfo()) {
   <!-- Saving Additional Info Loading State -->
-  <div
-    class="min-h-screen flex items-center justify-center bg-gradient-to-br from-bg-dark via-bg-light to-bg-dark"
-  >
-    <div class="max-w-md mx-auto text-center">
-      <div class="glass-card rounded-xl shadow-lg p-8">
+  <div class="min-h-screen flex items-center justify-center px-4">
+    <div class="w-full max-w-md text-center">
+      <div class="glass-card rounded-2xl shadow-lg p-8">
         <div
-          class="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6"
+          class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
+          style="background: color-mix(in srgb, var(--color-primary) 12%, transparent)"
         >
-          <i class="pi pi-spin pi-spinner text-3xl text-blue-500"></i>
+          <i class="pi pi-spin pi-spinner text-2xl" style="color: var(--color-primary)"></i>
         </div>
-        <h3 class="text-xl font-bold text-text-primary mb-2">
+        <h3 class="text-lg font-bold text-text-primary mb-2">
           {{ 'dashboard.businessPlanGeneration.saving.title' | translate }}
         </h3>
-        <p class="text-text-tertiary mb-4">
+        <p class="text-text-secondary text-sm">
           {{ 'dashboard.businessPlanGeneration.saving.subtitle' | translate }}
         </p>
-
         @if (additionalInfoError()) {
-          <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4">
-            <p class="text-red-400 text-sm">{{ additionalInfoError() }}</p>
+          <div
+            class="mt-4 rounded-lg p-3 text-sm"
+            style="
+              background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+              color: var(--color-danger);
+            "
+          >
+            {{ additionalInfoError() }}
           </div>
         }
-
-        <div class="flex justify-center">
-          <div class="flex space-x-1">
-            <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-            <div
-              class="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
-              style="animation-delay: 0.1s"
-            ></div>
-            <div
-              class="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
-              style="animation-delay: 0.2s"
-            ></div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
 } @else if (isGenerating() || isPostProcessing()) {
-  <!-- Sticky Progress Header - Always Visible -->
-  <div
-    class="fixed top-0 left-0 right-0 z-50 bg-[var(--glass-bg-darker)] backdrop-blur-md border-b border-[var(--glass-border)]"
-  >
-    <div class="max-w-7xl mx-auto px-6 py-4">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-          <div class="w-12 h-12 bg-primary/5 rounded-full flex items-center justify-center">
-            <i class="pi pi-cog animate-spin text-xl text-text-primary"></i>
-          </div>
-          <div>
-            <h2 class="text-xl font-bold text-text-primary">
-              @if (isPostProcessing()) {
-                {{ 'dashboard.businessPlanGeneration.finalizing' | translate }}
-              } @else {
-                {{ 'dashboard.businessPlanGeneration.generating' | translate }}
-              }
-            </h2>
-            <p class="text-text-secondary text-sm">
-              @if (isPostProcessing()) {
-                {{ postProcessingMessage() }}
-              } @else {
-                {{ 'dashboard.businessPlanGeneration.creating' | translate }}
-              }
-            </p>
-            @if (generationState().stepsInProgress.length > 0) {
-              <p class="text-xs text-blue-400 mt-1">
-                {{
-                  'dashboard.businessPlanGeneration.processing'
-                    | translate: { steps: generationState().stepsInProgress.join(', ') }
-                }}
-              </p>
-            }
-          </div>
-        </div>
-
-        <div class="flex flex-col md:flex-row items-center space-x-6">
-          <!-- Progress Stats -->
-          <div class="text-right">
-            <div class="text-2xl font-bold text-text-primary">
-              {{ generationState().completedSteps.length }}/{{ generationState().totalSteps }}
-            </div>
-            <div class="text-sm text-text-secondary">
-              {{ 'dashboard.businessPlanGeneration.stepsCompleted' | translate }}
-            </div>
-            @if (generationState().completedSteps.length > 0) {
-              <div class="text-xs text-green-400 mt-1">
-                {{ 'dashboard.businessPlanGeneration.lastStep' | translate }}:
-                {{ generationState().completedSteps[generationState().completedSteps.length - 1] }}
-              </div>
-            }
-          </div>
-
-          <!-- Progress Bar -->
-          <div class="w-32">
-            <div class="flex justify-between text-xs text-text-secondary mb-1">
-              <span>{{ 'dashboard.businessPlanGeneration.progress' | translate }}</span>
-              <span>{{ progressPercentage() }}%</span>
-            </div>
-            <div class="w-full bg-[var(--color-surface-3)] rounded-full h-2">
-              <div
-                class="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300"
-                [style.width.%]="progressPercentage()"
-              ></div>
-            </div>
-          </div>
-
-          <!-- Cancel Button - Only show during generation, not post-processing -->
-          @if (!isPostProcessing()) {
-            <button
-              (click)="cancelGeneration()"
-              class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors duration-200"
-            >
-              {{ 'dashboard.businessPlanGeneration.buttons.cancel' | translate }}
-            </button>
-          }
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Main Content with Top Padding -->
-  <div class="pt-32 min-h-screen">
-    <div class="max-w-7xl mx-auto px-6 space-y-8">
-      <!-- Post Processing Section -->
-      @if (isPostProcessing()) {
-        <div class="space-y-4">
-          <div class="glass-card rounded-xl shadow-lg border border-[var(--glass-border-subtle)]">
-            <div class="bg-gradient-to-r px-6 py-4 border-b">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                  <div
-                    class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center animate-pulse"
-                  >
-                    <i class="pi pi-save animate-pulse text-text-primary"></i>
-                  </div>
-                  <div>
-                    <h3 class="text-lg font-semibold text-text-primary">
-                      {{ 'dashboard.businessPlanGeneration.savingData' | translate }}
-                    </h3>
-                    <p class="text-text-secondary text-sm">{{ postProcessingMessage() }}</p>
-                  </div>
-                </div>
-                <div class="flex items-center space-x-2">
-                  <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <div
-                    class="w-2 h-2 bg-green-500 rounded-full animate-pulse"
-                    style="animation-delay: 0.2s"
-                  ></div>
-                  <div
-                    class="w-2 h-2 bg-green-500 rounded-full animate-pulse"
-                    style="animation-delay: 0.4s"
-                  ></div>
-                </div>
-              </div>
-            </div>
-            <div class="p-6 space-y-4">
-              <p class="text-text-secondary">{{ 'dashboard.businessPlanGeneration.wait' | translate }}</p>
-              <div class="w-full bg-[var(--color-surface-3)] rounded-full h-2">
-                <div
-                  class="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full animate-pulse"
-                  style="width: 100%"
-                ></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      } @else if (generationState().stepsInProgress.length > 0) {
-        <div class="space-y-4">
-          @for (stepName of generationState().stepsInProgress; track stepName) {
-            <div class="glass-card rounded-xl shadow-lg border border-[var(--glass-border-subtle)]">
-              <div class="bg-gradient-to-r px-6 py-4 border-b">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center space-x-3">
-                    <div
-                      class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center animate-pulse"
-                    >
-                      <i class="pi pi-cog animate-spin text-text-primary"></i>
-                    </div>
-                    <div>
-                      <h3 class="text-lg font-semibold text-text-primary">{{ stepName }}</h3>
-                      <p class="text-text-secondary text-sm">{{ 'common.inProgress' | translate }}</p>
-                    </div>
-                  </div>
-                  <div class="flex items-center space-x-2">
-                    <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                    <div
-                      class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"
-                      style="animation-delay: 0.2s"
-                    ></div>
-                    <div
-                      class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"
-                      style="animation-delay: 0.4s"
-                    ></div>
-                  </div>
-                </div>
-              </div>
-              <div class="p-6">
-                <p-skeleton height="2rem" width="70%"></p-skeleton>
-              </div>
-            </div>
-          }
-        </div>
+  <!-- Live generation experience (simple, sourced, reassuring) -->
+  <div class="min-h-screen flex items-start justify-center px-4 py-10 sm:py-14">
+    <div class="w-full max-w-3xl space-y-6">
+      @if (researchState(); as rs) {
+        <app-agent-research-console
+          [state]="rs"
+          [planned]="plannedSections()"
+          [phase]="consolePhase()"
+          variant="businessPlan"
+        />
       }
 
-      <!-- Completed Steps Section -->
-      @if (hasCompletedSteps()) {
-        <div class="space-y-6">
-          <div class="grid gap-6">
-            @for (step of completedSteps(); track step.name) {
-              <div
-                class="glass-card rounded-xl shadow-md border border-[var(--glass-border-subtle)] overflow-hidden"
-              >
-                <div class="px-6 py-4 border-b">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                      <div
-                        class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center"
-                      >
-                        <i class="pi pi-check text-text-primary text-sm"></i>
-                      </div>
-                      <div>
-                        <h4 class="font-semibold text-text-primary">{{ step.name }}</h4>
-                        <p class="text-text-tertiary text-sm">
-                          {{
-                            'dashboard.businessPlanGeneration.stepCompletedAt'
-                              | translate: { time: (step.timestamp | date: 'short') }
-                          }}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                @if (step.content) {
-                  <div class="p-6">
-                    <div class="prose prose-invert max-w-none">
-                      <div [innerHTML]="step.content"></div>
-                    </div>
-                  </div>
-                }
-              </div>
-            }
-          </div>
+      @if (isGenerating() && !isPostProcessing()) {
+        <div class="flex justify-center">
+          <button
+            type="button"
+            (click)="cancelGeneration()"
+            class="px-4 py-2 rounded-lg bg-[var(--glass-bg-subtle)] hover:bg-[var(--glass-bg-light)] border border-[var(--glass-border)] text-text-secondary hover:text-text-primary text-sm font-medium transition-colors cursor-pointer"
+          >
+            {{ 'dashboard.businessPlanGeneration.buttons.cancel' | translate }}
+          </button>
         </div>
       }
     </div>
   </div>
 } @else if (generationError()) {
   <!-- Error State -->
-  <div class="min-h-screen flex items-center justify-center">
-    <div class="max-w-md mx-auto text-center">
-      <div class="glass-card rounded-xl shadow-lg p-8">
+  <div class="min-h-screen flex items-center justify-center px-4">
+    <div class="w-full max-w-md text-center">
+      <div class="glass-card rounded-2xl shadow-lg p-8">
         <div
-          class="w-16 h-16 bg-red-100/5 rounded-full flex items-center justify-center mx-auto mb-4"
+          class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+          style="background: color-mix(in srgb, var(--color-danger) 12%, transparent)"
         >
-          <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            ></path>
-          </svg>
+          <i class="pi pi-exclamation-triangle text-2xl" style="color: var(--color-danger)"></i>
         </div>
         <h3 class="text-xl font-bold text-text-primary mb-2">
           {{ 'dashboard.businessPlanGeneration.errors.title' | translate }}
         </h3>
-        <p class="text-text-tertiary mb-6">{{ generationError() }}</p>
+        <p class="text-text-secondary mb-6">{{ generationError() }}</p>
         <button (click)="generateBusinessPlan()" class="w-full inner-button">
           {{ 'common.retry' | translate }}
         </button>
@@ -282,30 +84,19 @@
   </div>
 } @else {
   <!-- Initial State -->
-  <div class="min-h-[80vh] flex items-center justify-center">
-    <div class="max-w-2xl mx-auto text-center">
-      <div class="glass-card rounded-xl shadow-lg p-12">
+  <div class="min-h-[80vh] flex items-center justify-center px-4">
+    <div class="w-full max-w-xl text-center">
+      <div class="glass-card rounded-2xl shadow-lg p-10">
         <div
-          class="w-20 h-20 bg-blue-800/5 rounded-full flex items-center justify-center mx-auto mb-6"
+          class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6"
+          style="background: color-mix(in srgb, var(--color-primary) 12%, transparent)"
         >
-          <svg
-            class="w-10 h-10 text-blue-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            ></path>
-          </svg>
+          <i class="pi pi-file-edit text-3xl" style="color: var(--color-primary)"></i>
         </div>
-        <h3 class="text-2xl font-bold text-text-primary mb-4">
+        <h3 class="text-2xl font-bold text-text-primary mb-3">
           {{ 'dashboard.businessPlanGeneration.empty.title' | translate }}
         </h3>
-        <p class="text-gray-600 mb-8">
+        <p class="text-text-secondary mb-8">
           {{ 'dashboard.businessPlanGeneration.empty.subtitle' | translate }}
         </p>
         <button (click)="generateBusinessPlan()" class="w-full inner-button">

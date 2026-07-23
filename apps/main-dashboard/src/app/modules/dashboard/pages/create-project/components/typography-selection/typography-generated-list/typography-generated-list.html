@@ -3,8 +3,8 @@
     <!-- Loading State -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       @for (i of [1, 2, 3, 4, 5, 6]; track i) {
-        <div class="animate-pulse">
-          <div class="bg-[var(--glass-bg-light)] rounded-xl h-32 border border-[var(--glass-border)]"></div>
+        <div>
+          <div class="skeleton-loader rounded-xl h-32 border border-[var(--glass-border)]"></div>
         </div>
       }
     </div>

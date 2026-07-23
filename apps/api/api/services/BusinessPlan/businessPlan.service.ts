@@ -21,6 +21,12 @@ import { AGENT_GOAL_PLANNING_PROMPT } from './prompts/agent-goal-planning.prompt
 import { AGENT_APPENDIX_PROMPT } from './prompts/agent-appendix.prompt';
 import { TeamMember } from '../../models/project.model';
 import { storageService } from '../storage.service';
+import { researchTeamService } from '../research/research-team.service';
+import {
+  DeliverableSection,
+  ResearchEmit,
+  ResearchedSection,
+} from '../research/research.types';
 
 export const BUSINESS_PLAN_SECTION_NAMES = [
   'Cover Page',
@@ -394,6 +400,234 @@ export class BusinessPlanService extends GenericService {
     } finally {
       logger.info(`Completed business plan generation for projectId ${projectId}`);
     }
+  }
+
+  /**
+   * Génère le business plan via l'ÉQUIPE D'AGENTS DE RECHERCHE:
+   * chercheurs (grounding web) → rédacteur (citations [sN]) → vérificateur
+   * (anti-invention). Les micro-actions sont diffusées en temps réel via `emit`
+   * (salle de contrôle), et chaque section est persistée dès qu'elle est prête.
+   */
+  async generateBusinessPlanWithResearchTeam(
+    userId: string,
+    projectId: string,
+    emit: ResearchEmit,
+    forceRegenerate = false,
+    targetSections: string[] = []
+  ): Promise<ProjectModel | null> {
+    logger.info(
+      `Generating business plan with RESEARCH TEAM for userId: ${userId}, projectId: ${projectId}, force: ${forceRegenerate}, targets: [${targetSections.join(', ')}]`
+    );
+
+    const project = await this.getProject(projectId, userId);
+    if (!project) return null;
+
+    const projectDescription =
+      this.extractProjectDescription(project) +
+      '\n' +
+      'Additional infos: ' +
+      JSON.stringify(project.additionalInfos);
+
+    const brandName = project.name || 'Startup';
+    const brandColors = project.analysisResultModel?.branding?.colors || {};
+    const typography = project.analysisResultModel?.branding?.typography || {};
+    const language = getRequestLanguage() === 'fr' ? 'French' : 'English';
+    const brandContext = `Brand: ${brandName}\nBrand Colors: ${JSON.stringify(
+      brandColors
+    )}\nTypography: ${JSON.stringify(typography)}\nLanguage: ${language}`;
+
+    const financeContext = this.buildFinanceContext(project);
+    const currency = project.analysisResultModel?.finance?.meta?.currency;
+    const country = project.additionalInfos?.country || '';
+
+    const cacheKey = cacheService.generateAIKey(
+      'business-plan',
+      userId,
+      projectId,
+      crypto.createHash('sha256').update(projectDescription).digest('hex').substring(0, 16)
+    );
+
+    // Résumé/reprise: quelles sections conserver telles quelles.
+    const currentSections = project.analysisResultModel?.businessPlan?.sections || [];
+    const existingSections: SectionModel[] = forceRegenerate
+      ? []
+      : targetSections.length > 0
+        ? currentSections.filter((s) => !targetSections.includes(s.name))
+        : currentSections;
+    const existingNames = new Set(existingSections.map((s) => s.name));
+
+    const fullSpec = this.buildBusinessPlanSpec(
+      projectDescription,
+      financeContext,
+      country
+    );
+    // À (re)générer: celles qui ne sont pas conservées (ou celles ciblées).
+    const sectionsToGenerate = fullSpec.filter((s) =>
+      targetSections.length > 0 ? targetSections.includes(s.name) : !existingNames.has(s.name)
+    );
+
+    if (sectionsToGenerate.length === 0) {
+      logger.info(`Nothing to generate for project ${projectId} (all sections present).`);
+      return project;
+    }
+
+    const sectionResults: SectionModel[] = [...existingSections];
+    const orderIndex = (name: string) => {
+      const i = BUSINESS_PLAN_SECTION_NAMES.indexOf(name);
+      return i === -1 ? BUSINESS_PLAN_SECTION_NAMES.length : i;
+    };
+
+    const persistSection = async (rs: ResearchedSection): Promise<void> => {
+      const section: SectionModel = {
+        name: rs.name,
+        type: 'text/markdown',
+        data: rs.data,
+        summary: rs.summary,
+        sources: rs.sources?.map((s) => ({
+          id: s.id,
+          title: s.title,
+          url: s.url,
+          domain: s.domain,
+        })),
+        verification: rs.verdict
+          ? {
+              passed: rs.verdict.passed,
+              citedClaims: rs.verdict.citedClaims,
+              uncitedClaims: rs.verdict.uncitedClaims,
+            }
+          : undefined,
+        updatedAt: new Date(),
+      };
+
+      const idx = sectionResults.findIndex((s) => s.name === section.name);
+      if (idx !== -1) sectionResults[idx] = section;
+      else sectionResults.push(section);
+      sectionResults.sort((a, b) => orderIndex(a.name) - orderIndex(b.name));
+
+      const currentProject = await this.projectRepository.findById(
+        projectId,
+        `users/${userId}/projects`
+      );
+      if (!currentProject) throw new Error(`Project not found: ${projectId}`);
+
+      const updated = await this.projectRepository.update(
+        projectId,
+        {
+          ...currentProject,
+          analysisResultModel: {
+            ...currentProject.analysisResultModel,
+            businessPlan: { sections: sectionResults },
+          },
+        },
+        `users/${userId}/projects`
+      );
+      if (updated) {
+        await cacheService.set(cacheKey, updated, { prefix: 'ai', ttl: 7200 });
+      }
+    };
+
+    await researchTeamService.runResearchTeam(
+      sectionsToGenerate,
+      { projectContext: projectDescription, brandContext, language, userId, currency },
+      emit,
+      persistSection
+    );
+
+    // Le PDF stocké ne correspond plus aux sections régénérées.
+    const pdfCacheKey = cacheService.generateAIKey('business-plan-pdf', userId, projectId);
+    await cacheService.delete(pdfCacheKey, { prefix: 'pdf' });
+
+    return this.projectRepository.findById(projectId, `users/${userId}/projects`);
+  }
+
+  /**
+   * Construit la spécification des 9 sections pour l'équipe de recherche.
+   * Les sections "marché/chiffrées" activent la recherche web sourcée; les
+   * sections qualitatives (Cover, résumé, objectifs, annexe) restent internes.
+   */
+  private buildBusinessPlanSpec(
+    projectDescription: string,
+    financeContext: string,
+    country: string
+  ): DeliverableSection[] {
+    const geo = country ? ` (marché prioritaire: ${country})` : '';
+    const ctx = projectDescription.slice(0, 400);
+    return [
+      { name: 'Cover Page', instructions: AGENT_COVER_PROMPT, needsResearch: false },
+      { name: 'Company Summary', instructions: AGENT_COMPANY_SUMMARY_PROMPT, needsResearch: false },
+      {
+        name: 'Opportunity',
+        instructions: AGENT_OPPORTUNITY_PROMPT,
+        needsResearch: true,
+        researchBriefs: [
+          `Taille du marché (TAM/SAM/SOM), taux de croissance annuel (CAGR) et projections récentes pour le secteur du projet${geo}. Contexte: ${ctx}`,
+          `Problème adressé: statistiques et études récentes chiffrant son ampleur${geo}`,
+          `Tendances récentes et facteurs réglementaires impactant ce marché${geo}`,
+        ],
+      },
+      {
+        name: 'Target Audience',
+        instructions: AGENT_TARGET_AUDIENCE_PROMPT,
+        needsResearch: true,
+        researchBriefs: [
+          `Taille et démographie des segments de clientèle cibles${geo}. Contexte: ${ctx}`,
+          `Comportements d'achat, pouvoir d'achat et taux d'adoption pour ces segments${geo}`,
+        ],
+      },
+      {
+        name: 'Products & Services',
+        instructions: AGENT_PRODUCTS_SERVICES_PROMPT,
+        needsResearch: true,
+        researchBriefs: [
+          `Concurrents directs et indirects, leurs offres et positionnements tarifaires${geo}. Contexte: ${ctx}`,
+          `Fourchettes de prix pratiquées sur ce type de produit/service${geo}`,
+        ],
+      },
+      {
+        name: 'Marketing & Sales',
+        instructions: AGENT_MARKETING_SALES_PROMPT,
+        needsResearch: true,
+        researchBriefs: [
+          `Canaux d'acquisition performants et coûts d'acquisition client (CAC) de référence dans ce secteur${geo}`,
+          `Benchmarks de conversion, de rétention et de budget marketing pour ce type d'activité${geo}`,
+        ],
+      },
+      {
+        name: 'Financial Plan',
+        instructions: AGENT_FINANCIAL_PLAN_PROMPT + financeContext,
+        needsResearch: true,
+        researchBriefs: [
+          `Marges brutes et structures de coûts de référence du secteur${geo}. Contexte: ${ctx}`,
+          `Multiples de valorisation et benchmarks de rentabilité pour ce type d'entreprise${geo}`,
+        ],
+      },
+      { name: 'Goal Planning', instructions: AGENT_GOAL_PLANNING_PROMPT, needsResearch: false },
+      { name: 'Appendix', instructions: AGENT_APPENDIX_PROMPT, needsResearch: false },
+    ];
+  }
+
+  /** Construit le bloc de contexte financier réel (module Finance) pour les agents. */
+  private buildFinanceContext(project: ProjectModel): string {
+    if (!project.analysisResultModel?.finance) return '';
+    const finance = project.analysisResultModel.finance;
+    const currency = finance.meta?.currency || 'FCFA';
+    const summaryText: string[] = [];
+    if (finance.computed) {
+      const ce = finance.computed.compteExploitation || [];
+      summaryText.push('--- DONNÉES FINANCIÈRES RÉELLES DU MODULE FINANCE ---');
+      summaryText.push(`Devise: ${currency}`);
+      ce.forEach((y: any) => {
+        summaryText.push(
+          `- Année ${y.year}: CA = ${y.chiffreAffaires} ${currency}, Résultat Net = ${y.resultatNet} ${currency}, Marge brute = ${y.margeBrute} ${currency} (${y.tauxMargePct}%)`
+        );
+      });
+    } else {
+      summaryText.push('--- DONNÉES DU MODULE FINANCE (Non calculées) ---');
+      summaryText.push(
+        `Produits: ${finance.products.map((p) => `${p.name}: ${p.prices?.[0]} ${currency}`).join(', ')}`
+      );
+    }
+    return '\n\n' + summaryText.join('\n');
   }
 
   async getBusinessPlansByProjectId(

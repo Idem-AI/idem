@@ -1,0 +1,89 @@
+<section class="rc" [attr.data-phase]="phase()">
+  <!-- En-tête compact -->
+  <header class="rc__head">
+    <div class="rc__head-lead">
+      @if (isRunning()) {
+        <span class="rc__live"><span class="rc__live-dot" aria-hidden="true"></span>{{ 'dashboard.researchConsole.now.live' | translate }}</span>
+      }
+      <h2 class="rc__title">{{ titleKey() | translate }}</h2>
+    </div>
+    <span class="rc__count">{{ doneCount() }}<i>/{{ totalCount() }}</i></span>
+  </header>
+
+  <!-- Frise de chapitres (progression + position) -->
+  <div class="rc__chapters" [attr.aria-label]="'dashboard.researchConsole.journey.title' | translate">
+    @for (c of chapters(); track c.name) {
+      <span class="rc__seg" [attr.data-state]="c.state" [attr.title]="c.label"></span>
+    }
+  </div>
+
+  <!-- En ce moment (épinglé) -->
+  <div class="rc__now" [attr.data-role]="now().role ?? null" [attr.data-mode]="now().mode">
+    <span class="rc__now-icon" aria-hidden="true">
+      <i class="pi" [class]="now().icon"></i>
+      @if (now().mode === 'active' || now().mode === 'starting') {
+        <span class="rc__bars"><i></i><i></i><i></i><i></i></span>
+      }
+    </span>
+    <div class="rc__now-text">
+      @switch (now().mode) {
+        @case ('active') {
+          <span class="rc__now-line"><b>{{ now().sectionLabel }}</b> — {{ now().actionKey! | translate }}</span>
+          @if (draftPreview(); as dp) {
+            <span class="rc__now-draft">…{{ dp }}<span class="rc__caret" aria-hidden="true"></span></span>
+          } @else if (now().query) {
+            <span class="rc__now-query">« {{ now().query }} »</span>
+          }
+        }
+        @case ('starting') {
+          <span class="rc__now-line">{{ 'dashboard.researchConsole.now.starting' | translate }}</span>
+        }
+        @case ('finalizing') {
+          <span class="rc__now-line">{{ 'dashboard.researchConsole.now.finalizing' | translate }}</span>
+        }
+        @case ('done') {
+          <span class="rc__now-line">{{ 'dashboard.researchConsole.now.done' | translate }}</span>
+        }
+      }
+    </div>
+  </div>
+
+  <!-- Flux de découvertes en direct (le cœur) -->
+  <ol class="rc__feed" role="log" aria-live="polite" aria-relevant="additions">
+    @for (item of feed(); track item.key) {
+      <li class="rc__item" [attr.data-tone]="item.tone">
+        <span class="rc__item-icon" aria-hidden="true"><i class="pi" [class]="item.icon"></i></span>
+        <div class="rc__item-body">
+          <span class="rc__item-lead">{{ item.leadKey | translate }}</span>
+          @if (item.url) {
+            <a class="rc__item-link" [href]="item.url" target="_blank" rel="noopener noreferrer">
+              <span class="rc__item-text">{{ item.text }}</span>
+              @if (item.domain) {
+                <span class="rc__item-domain">{{ item.domain }}</span>
+              }
+              <i class="pi pi-external-link" aria-hidden="true"></i>
+            </a>
+          } @else {
+            <span class="rc__item-text">{{ item.text }}</span>
+          }
+        </div>
+      </li>
+    } @empty {
+      <li class="rc__feed-empty">
+        <span class="rc__spin" aria-hidden="true"></span>
+        {{ 'dashboard.researchConsole.feed.starting' | translate }}
+      </li>
+    }
+  </ol>
+
+  <!-- Confiance + compteurs -->
+  <footer class="rc__foot">
+    <span class="rc__foot-badge">
+      <i class="pi pi-verified" aria-hidden="true"></i>
+      {{ 'dashboard.researchConsole.trust.title' | translate: { count: sourceCount() } }}
+    </span>
+    <span class="rc__foot-note">
+      {{ 'dashboard.researchConsole.foot.note' | translate: { queries: queryCount() } }}
+    </span>
+  </footer>
+</section>

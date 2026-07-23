@@ -36,6 +36,7 @@
           [project]="project()!"
           (projectUpdate)="onProjectUpdate($event)"
           (colorSelected)="onColorSelected($event)"
+          (generatingStateChanged)="onColorGeneratingStateChanged($event)"
           (nextStep)="goToNextStep()"
           (previousStep)="goToPreviousStep()"
         ></app-color-selection>

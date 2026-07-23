@@ -2194,6 +2194,136 @@
           "Brand Mockup 3": "Mockup 3"
         }
       }
+    },
+    "researchConsole": {
+      "title": "Équipe de recherche IA",
+      "subtitle": "Vos agents collectent des données réelles et sourcées, en direct",
+      "dialogTitle": "Génération sourcée par l'IA",
+      "viewResults": "Voir mes prévisions",
+      "countersLabel": "Statistiques de la recherche",
+      "counters": {
+        "agents": "agents actifs",
+        "queries": "recherches",
+        "sources": "sources",
+        "sections": "sections"
+      },
+      "team": {
+        "title": "Équipe",
+        "empty": "En attente du démarrage des agents…"
+      },
+      "feed": {
+        "title": "Activité en direct",
+        "empty": "Aucune activité pour le moment",
+        "starting": "Démarrage de la recherche…"
+      },
+      "roles": {
+        "orchestrator": "Chef d'équipe",
+        "researcher": "Chercheur",
+        "writer": "Rédacteur",
+        "verifier": "Vérificateur"
+      },
+      "agentStatus": {
+        "queued": "En attente",
+        "planning": "Planification",
+        "searching": "Recherche web",
+        "reading": "Lecture",
+        "writing": "Rédaction",
+        "verifying": "Vérification",
+        "done": "Terminé",
+        "error": "Erreur"
+      },
+      "kinds": {
+        "agent_status": "Étape",
+        "search_query": "Recherche",
+        "source_found": "Source trouvée",
+        "finding": "Donnée clé",
+        "section_drafted": "Section rédigée",
+        "verification": "Vérifié",
+        "note": "Note"
+      },
+      "sources": {
+        "title": "Sources citées"
+      },
+      "sections": {
+        "title": "Vérification par section",
+        "cited": "cité(s)",
+        "uncited": "non sourcé(s)"
+      },
+      "phase": {
+        "businessPlan": {
+          "running": {
+            "title": "Nous préparons votre business plan"
+          },
+          "finalizing": {
+            "title": "Presque terminé…"
+          },
+          "done": {
+            "title": "Votre business plan est prêt"
+          }
+        },
+        "finance": {
+          "running": {
+            "title": "Nous calons vos prévisions financières"
+          },
+          "finalizing": {
+            "title": "Presque terminé…"
+          },
+          "done": {
+            "title": "Vos prévisions sont prêtes"
+          }
+        },
+        "subtitle": {
+          "running": "Nos assistants recherchent des données de marché réelles et vérifient chaque chiffre.",
+          "finalizing": "Nous mettons votre document en forme.",
+          "done": "Toutes les données sont sourcées et vérifiées."
+        }
+      },
+      "progress": {
+        "sectionsProgress": "{{done}} sur {{total}} sections terminées"
+      },
+      "sectionStatus": {
+        "done": "Terminé",
+        "pending": "En attente"
+      },
+      "action": {
+        "researching": "Recherche de données de marché…",
+        "writing": "Rédaction en cours…",
+        "verifying": "Vérification des sources…",
+        "analyzing": "Analyse…"
+      },
+      "trust": {
+        "title": "{{count}} sources vérifiées",
+        "subtitle": "Chaque donnée chiffrée renvoie à une source réelle. Aucune statistique inventée.",
+        "showSources": "Voir les sources",
+        "hideSources": "Masquer les sources"
+      },
+      "details": {
+        "show": "Voir le détail de la recherche",
+        "hide": "Masquer le détail",
+        "meta": "{{queries}} recherches · {{sources}} sources"
+      },
+      "financeTopics": {
+        "pricing": "Prix de marché",
+        "costs": "Structure de coûts",
+        "taxes": "Fiscalité et charges",
+        "growth": "Croissance du marché"
+      },
+      "now": {
+        "live": "En direct",
+        "preparing": "Préparation",
+        "starting": "Nous analysons votre projet",
+        "almost": "Dernière ligne droite",
+        "finalizing": "Mise en forme de votre document",
+        "completed": "Terminé",
+        "done": "Toutes les sections sont prêtes"
+      },
+      "journey": {
+        "title": "Étapes",
+        "sources": "{{count}} source(s)"
+      },
+      "foot": {
+        "note": "Aucune donnée inventée · {{queries}} recherches"
+      }
     }
   },
   "deployment": {

@@ -9,6 +9,11 @@ import {
 } from '../services/Finance/finance-ai.service';
 import { financePdfService } from '../services/Finance/finance-pdf.service';
 import { userService } from '../services/user.service';
+import { projectService } from '../services/project.service';
+import { researchTeamService } from '../services/research/research-team.service';
+import { ResearchStreamEvent } from '../services/research/research.types';
+import { SectionSource } from '../models/section.model';
+import { getRequestLanguage } from '../utils/request-language';
 import logger from '../config/logger';
 
 /**
@@ -315,6 +320,123 @@ export const aiFillAllController = async (req: CustomRequest, res: Response): Pr
   } catch (error: any) {
     logger.error(`aiFillAllController error: ${error.message}`, { stack: error.stack });
     res.status(500).json({ message: error.message || 'AI global auto-fill failed' });
+  }
+};
+
+/**
+ * Auto-fill IA global SOURCÉ, en streaming (SSE): une équipe d'agents recherche
+ * d'abord des benchmarks marché réels (grounding web), puis cale les prévisions
+ * financières dessus. Chaque micro-action est diffusée en temps réel pour la
+ * salle de contrôle, et les sources sont rattachées aux suggestions.
+ * URL: GET /project/finance/:projectId/ai-fill-stream
+ */
+export const aiFillAllStreamController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const projectId = req.params.projectId as string;
+
+  if (!userId) {
+    res.status(401).json({ message: 'User not authenticated' });
+    return;
+  }
+  if (!projectId) {
+    res.status(400).json({ message: 'Project ID is required' });
+    return;
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+
+  const writeSSE = (payload: unknown) => {
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    (res as any).flush?.();
+  };
+
+  try {
+    const project = await projectService.getUserProjectById(userId, projectId);
+    if (!project) {
+      writeSSE({ type: 'error', message: 'Project not found', timestamp: new Date().toISOString() });
+      res.end();
+      return;
+    }
+
+    const currency = project.analysisResultModel?.finance?.meta?.currency || 'FCFA';
+    const products = (project.analysisResultModel?.finance?.products || [])
+      .map((p: any) => p.name)
+      .filter(Boolean)
+      .join(', ');
+    const projectContext = [
+      `Nom: ${project.name || '—'}`,
+      `Description: ${project.description || '—'}`,
+      `Type: ${project.type || '—'}`,
+      `Cible: ${project.targets || '—'}`,
+      `Pays: ${project.additionalInfos?.country || '—'}`,
+      `Devise: ${currency}`,
+      products ? `Produits: ${products}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const language = getRequestLanguage() === 'fr' ? 'French' : 'English';
+    const spec = financeAIService.buildMarketResearchSpec(project);
+
+    const emit = async (event: ResearchStreamEvent) => writeSSE(event);
+
+    // Phase 1: recherche marché sourcée (sans persistance de sections markdown).
+    const researched = await researchTeamService.runResearchTeam(
+      spec,
+      { projectContext, language, userId, currency },
+      emit
+    );
+
+    // Agrège le digest + dédoublonne les sources par URL. On borne la taille
+    // transmise à l'auto-fill (économie de tokens en entrée).
+    const marketDigest = researched
+      .map((s) => `## ${s.name}\n${s.data}`)
+      .join('\n\n')
+      .slice(0, 8000);
+    const sourceMap = new Map<string, SectionSource>();
+    for (const section of researched) {
+      for (const src of section.sources || []) {
+        if (!sourceMap.has(src.url)) sourceMap.set(src.url, src);
+      }
+    }
+    const allSources = Array.from(sourceMap.values());
+
+    // Phase 2: application des benchmarks aux prévisions financières.
+    writeSSE({
+      type: 'agent_event',
+      timestamp: new Date().toISOString(),
+      agentEvent: {
+        ts: new Date().toISOString(),
+        runId: 'finance-fill',
+        agentId: 'writer:finance',
+        role: 'writer',
+        kind: 'agent_status',
+        status: 'writing',
+        message: 'Application des benchmarks sourcés aux prévisions financières',
+      },
+    });
+
+    const result = await financeAIService.autoFillAll(
+      userId,
+      projectId,
+      marketDigest,
+      allSources
+    );
+    userService.incrementUsage(userId, 3);
+
+    writeSSE({ type: 'complete', finance: result.finance, sources: allSources });
+    writeSSE({ type: 'completed', stepName: 'completion', data: 'all_steps_completed' });
+    res.end();
+  } catch (error: any) {
+    logger.error(`aiFillAllStreamController error: ${error.message}`, { stack: error.stack });
+    writeSSE({ type: 'error', message: error.message || 'AI sourced auto-fill failed', timestamp: new Date().toISOString() });
+    res.end();
   }
 };
 
