@@ -65,6 +65,13 @@
  *         variations:
  *           $ref: '#/components/schemas/LogoVariations'
  *           nullable: true
+ *         assetUrls:
+ *           $ref: '#/components/schemas/LogoAssetUrls'
+ *           description: >-
+ *             Public URLs of the rasterized (PNG) logo assets uploaded to object
+ *             storage. The vector SVG source stays inline in svg/iconSvg/variations;
+ *             these URLs are what gets injected into generation contexts.
+ *           nullable: true
  *       required:
  *         - id
  *         - name
@@ -72,6 +79,43 @@
  *         - concept
  *         - colors
  *         - fonts
+ *     LogoAssetUrlSet:
+ *       type: object
+ *       properties:
+ *         lightBackground:
+ *           type: string
+ *           format: uri
+ *           description: URL of the PNG rendered for light backgrounds.
+ *           nullable: true
+ *         darkBackground:
+ *           type: string
+ *           format: uri
+ *           description: URL of the PNG rendered for dark backgrounds.
+ *           nullable: true
+ *         monochrome:
+ *           type: string
+ *           format: uri
+ *           description: URL of the monochrome PNG.
+ *           nullable: true
+ *     LogoAssetUrls:
+ *       type: object
+ *       properties:
+ *         primary:
+ *           type: string
+ *           format: uri
+ *           description: URL of the primary (full) logo PNG.
+ *           nullable: true
+ *         icon:
+ *           type: string
+ *           format: uri
+ *           description: URL of the icon-only logo PNG.
+ *           nullable: true
+ *         withText:
+ *           $ref: '#/components/schemas/LogoAssetUrlSet'
+ *           nullable: true
+ *         iconOnly:
+ *           $ref: '#/components/schemas/LogoAssetUrlSet'
+ *           nullable: true
  */
 export interface LogoVariationSet {
   lightBackground?: string; // SVG optimized for light backgrounds
@@ -82,6 +126,31 @@ export interface LogoVariationSet {
 export interface LogoVariations {
   withText?: LogoVariationSet; // Logo variations including text elements
   iconOnly?: LogoVariationSet; // Icon-only variations without text elements
+}
+
+/**
+ * A set of hosted PNG asset URLs (one per background variant).
+ * Distinct from {@link LogoVariationSet}, whose values are inline SVG markup.
+ */
+export interface LogoAssetUrlSet {
+  lightBackground?: string; // URL of the PNG rendered for light backgrounds
+  darkBackground?: string; // URL of the PNG rendered for dark backgrounds
+  monochrome?: string; // URL of the monochrome PNG
+}
+
+/**
+ * URLs of the rasterized (PNG) logo assets uploaded to object storage (MinIO).
+ *
+ * The vector source of truth (SVG) stays inline in `svg` / `iconSvg` /
+ * `variations`; these PNG URLs are what we inject into generation contexts
+ * (pitch deck, flyers, brand book) as `<img src="…">` — lighter than an inline
+ * SVG data URI and renderable everywhere.
+ */
+export interface LogoAssetUrls {
+  primary?: string; // URL of the primary (full) logo PNG
+  icon?: string; // URL of the icon-only logo PNG
+  withText?: LogoAssetUrlSet; // PNG URLs of the with-text variations
+  iconOnly?: LogoAssetUrlSet; // PNG URLs of the icon-only variations
 }
 
 export type LogoType = 'icon' | 'name' | 'initial';
@@ -103,5 +172,9 @@ export interface LogoModel {
   type?: LogoType; // Type of logo (icon, name, initial)
   customDescription?: string; // User-provided custom description
 
-  variations?: LogoVariations; // Enhanced variations with text/icon separation
+  variations?: LogoVariations; // Enhanced variations with text/icon separation (inline SVG)
+
+  // Hosted PNG asset URLs (object storage). SVG above stays the source of truth;
+  // these are used when the logo must be referenced by URL (generation contexts).
+  assetUrls?: LogoAssetUrls;
 }
