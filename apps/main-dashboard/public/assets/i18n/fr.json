@@ -2409,6 +2409,13 @@
           "title": "Chargement impossible",
           "subtitle": "Le document n'a pas pu être chargé. Réessayez depuis la page du business plan."
         }
+      },
+      "attrs": {
+        "heading": "Attributs",
+        "name": "Nom",
+        "value": "Valeur",
+        "add": "Ajouter",
+        "remove": "Retirer l'attribut"
       }
     }
   },

@@ -12,6 +12,9 @@
  *  - les liens de redirection grounding résiduels (vertexaisearch…redirect) ;
  *  - les marqueurs de citation isolés type [s12].
  */
+const OPEN_FENCE = /^```[a-zA-Z]*\s*/;
+const CLOSE_FENCE = /```\s*$/;
+const LANG_PREFIX = /^(?:html|markdown)\b[ \t]*\r?\n?/i;
 const SOURCES_HEADING = /\s*#{2,6}\s*Sources\b[\s\S]*$/i;
 const GROUNDING_ANCHOR = /<a\b[^>]*grounding-api-redirect[^>]*>[\s\S]*?<\/a>/gi;
 const GROUNDING_MD_LINK = /\[[^\]]*\]\(https?:\/\/[^)]*grounding-api-redirect[^)]*\)/gi;
@@ -19,7 +22,10 @@ const CITATION_TOKEN = /\[s\d+\]/gi;
 
 export function sanitizeSectionHtml(html: string): string {
   if (!html) return html;
-  let out = html.replace(SOURCES_HEADING, '');
+  let out = html.trim();
+  out = out.replace(OPEN_FENCE, '').replace(CLOSE_FENCE, '');
+  out = out.replace(LANG_PREFIX, '');
+  out = out.replace(SOURCES_HEADING, '');
   out = out.replace(GROUNDING_ANCHOR, '');
   out = out.replace(GROUNDING_MD_LINK, '');
   out = out.replace(CITATION_TOKEN, '');

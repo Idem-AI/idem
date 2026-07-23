@@ -28,6 +28,7 @@ import { EditorToolbarComponent } from './components/editor-toolbar/editor-toolb
 import { LayersPanelComponent } from './components/layers-panel/layers-panel';
 import { PropertyPanelComponent } from './components/property-panel/property-panel';
 import { ChartEditorPanelComponent } from './components/chart-editor-panel/chart-editor-panel';
+import { AttributesPanelComponent } from './components/attributes-panel/attributes-panel';
 import { AiEditPanelComponent } from './components/ai-edit-panel/ai-edit-panel';
 import {
   EditorCanvasComponent,
@@ -56,6 +57,7 @@ const AUTOSAVE_DEBOUNCE = 1500;
     LayersPanelComponent,
     PropertyPanelComponent,
     ChartEditorPanelComponent,
+    AttributesPanelComponent,
     AiEditPanelComponent,
     EditorCanvasComponent,
   ],
@@ -194,10 +196,11 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
   /* ------------------------------------------------------------------ */
 
   protected onReorderRequest(event: ReorderEvent): void {
+    // Le déplacement DOM a déjà eu lieu dans l'iframe (live, façon Figma) ; on
+    // aligne seulement le modèle, sans re-render. Le runtime re-sélectionne
+    // l'élément et renvoie sa nouvelle sélection.
     this.record();
     this.model.reorder(event.sectionId, event.parentPath, event.fromIndex, event.toIndex);
-    this.rerender();
-    this.selection.set(null);
     this.markDirty();
   }
 
@@ -208,9 +211,8 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     const toIndex = direction === 'up' ? sel.index - 1 : sel.index + 1;
     if (toIndex < 0 || toIndex > sel.siblingCount - 1) return;
     this.record();
+    this.canvas()?.moveNode(sel.sectionId, sel.path, toIndex); // déplacement live + re-sélection
     this.model.reorder(sel.sectionId, parentPath, sel.index, toIndex);
-    this.rerender();
-    this.selection.set(null);
     this.markDirty();
   }
 
@@ -218,9 +220,40 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     const sel = this.selection();
     if (!sel) return;
     this.record();
+    this.canvas()?.removeNodeLive(sel.sectionId, sel.path); // suppression live + deselect
     this.model.removeNode(sel.sectionId, sel.path);
-    this.rerender();
     this.selection.set(null);
+    this.markDirty();
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Attributs génériques (tout paramètre présent dans le code)          */
+  /* ------------------------------------------------------------------ */
+
+  protected onAttrChange(change: { name: string; value: string }): void {
+    const sel = this.selection();
+    if (!sel) return;
+    this.record(`attr-${sel.sectionId}-${sel.path}-${change.name}`);
+    this.model.setAttribute(sel.sectionId, sel.path, change.name, change.value);
+    this.canvas()?.applyAttr(sel.sectionId, sel.path, change.name, change.value);
+    this.markDirty();
+  }
+
+  protected onAttrAdd(change: { name: string; value: string }): void {
+    const sel = this.selection();
+    if (!sel || !change.name) return;
+    this.record();
+    this.model.setAttribute(sel.sectionId, sel.path, change.name, change.value);
+    this.canvas()?.applyAttr(sel.sectionId, sel.path, change.name, change.value);
+    this.markDirty();
+  }
+
+  protected onAttrRemove(name: string): void {
+    const sel = this.selection();
+    if (!sel) return;
+    this.record();
+    this.model.removeAttribute(sel.sectionId, sel.path, name);
+    this.canvas()?.applyAttr(sel.sectionId, sel.path, name, null);
     this.markDirty();
   }
 

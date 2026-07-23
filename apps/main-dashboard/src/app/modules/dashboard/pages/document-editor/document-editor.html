@@ -94,6 +94,15 @@
             }
 
             <section class="inspector-section">
+              <app-attributes-panel
+                [selection]="sel"
+                (changeAttr)="onAttrChange($event)"
+                (addAttr)="onAttrAdd($event)"
+                (removeAttr)="onAttrRemove($event)"
+              />
+            </section>
+
+            <section class="inspector-section">
               <app-ai-edit-panel
                 [sectionName]="selectedSectionName()"
                 [loading]="aiLoading()"

@@ -7,6 +7,7 @@ import logger from '../config/logger';
 import { SectionModel } from '../models/section.model';
 import { TypographyModel } from '../models/brand-identity.model';
 import { cacheService } from './cache.service';
+import { sanitizeSectionHtml } from '../utils/sanitize-section-html';
 import axios from 'axios';
 
 export interface PageFormat {
@@ -599,17 +600,11 @@ export class PdfService {
         format === 'Letter' ? PAGE_FORMATS.LETTER_PORTRAIT : PAGE_FORMATS.A4_PORTRAIT;
     }
 
-    // Nettoyer les sections en supprimant le préfixe "html" du contenu data
+    // Nettoyer les sections : préfixes de langage ("html"/"markdown"), clôtures
+    // de code et bloc de sources markdown résiduel (voir sanitizeSectionHtml).
     let cleanedSections = sections.map((section) => {
-      if (
-        section.data &&
-        typeof section.data === 'string' &&
-        section.data.toLowerCase().startsWith('html')
-      ) {
-        return {
-          ...section,
-          data: section.data.substring(4), // Supprimer les 4 premiers caractères "html"
-        };
+      if (section.data && typeof section.data === 'string') {
+        return { ...section, data: sanitizeSectionHtml(section.data) };
       }
       return section;
     });

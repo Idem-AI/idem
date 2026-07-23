@@ -147,6 +147,18 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
     this.post({ source: HOST_TO_IFRAME, type: 'apply-chart', sectionId, path, config });
   }
 
+  applyAttr(sectionId: string, path: string, name: string, value: string | null): void {
+    this.post({ source: HOST_TO_IFRAME, type: 'apply-attr', sectionId, path, name, value });
+  }
+
+  moveNode(sectionId: string, path: string, toIndex: number): void {
+    this.post({ source: HOST_TO_IFRAME, type: 'move-node', sectionId, path, toIndex });
+  }
+
+  removeNodeLive(sectionId: string, path: string): void {
+    this.post({ source: HOST_TO_IFRAME, type: 'remove-node', sectionId, path });
+  }
+
   selectPath(sectionId: string, path: string): void {
     this.post({ source: HOST_TO_IFRAME, type: 'select-path', sectionId, path });
   }

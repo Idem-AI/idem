@@ -104,6 +104,23 @@ export class DocumentModelService {
     });
   }
 
+  /** Définit (ou met à jour) un attribut HTML arbitraire de l'élément. */
+  setAttribute(sectionId: string, path: string, name: string, value: string): void {
+    if (!name) return;
+    this.withSection(sectionId, (root) => {
+      const el = this.nodeAt(root, path);
+      if (el) el.setAttribute(name, value);
+    });
+  }
+
+  /** Retire un attribut HTML de l'élément. */
+  removeAttribute(sectionId: string, path: string, name: string): void {
+    this.withSection(sectionId, (root) => {
+      const el = this.nodeAt(root, path);
+      if (el) el.removeAttribute(name);
+    });
+  }
+
   /** Remplace intégralement le HTML d'une section (édition IA / restauration). */
   replaceSectionHtml(sectionId: string, html: string): void {
     this.sections.update((list) =>

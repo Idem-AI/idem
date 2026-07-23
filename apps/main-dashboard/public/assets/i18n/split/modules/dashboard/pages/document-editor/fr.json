@@ -66,6 +66,13 @@
         "removeSeries": "Retirer la série",
         "value": "Valeur"
       },
+      "attrs": {
+        "heading": "Attributs",
+        "name": "Nom",
+        "value": "Valeur",
+        "add": "Ajouter",
+        "remove": "Retirer l'attribut"
+      },
       "ai": {
         "title": "Édition par IA",
         "placeholder": "Décrivez la modification à apporter à cette section…",
