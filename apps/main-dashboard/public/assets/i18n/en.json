@@ -1622,7 +1622,8 @@
         "selectProject": "Select Project",
         "generate": "Generate Brand Identity",
         "viewIdentity": "View My Visual Identity",
-        "generateIdentity": "Generate My Visual Identity"
+        "generateIdentity": "Generate My Visual Identity",
+        "edit": "Edit"
       },
       "tooltips": {
         "downloadZip": "Download all logos in a ZIP file"
@@ -1899,7 +1900,10 @@
         "download": "Could not download the PDF.",
         "pdfLoad": "Could not load the PDF preview."
       },
-      "loadingPdf": "Loading PDF preview…"
+      "loadingPdf": "Loading PDF preview…",
+      "buttons": {
+        "edit": "Edit"
+      }
     },
     "legalDocs": {
       "title": "Legal Documents",
@@ -2413,6 +2417,12 @@
         "value": "Value",
         "add": "Add",
         "remove": "Remove attribute"
+      },
+      "pitchDeck": {
+        "title": "Pitch deck editor"
+      },
+      "branding": {
+        "title": "Brand identity editor"
       }
     }
   },
@@ -2549,7 +2559,9 @@
       "financeRatios": "Finance Ratios",
       "createProject": "Create Project",
       "notFound": "Page Not Found",
-      "businessPlanEdit": "Business Plan Editing"
+      "businessPlanEdit": "Business Plan Editing",
+      "pitchDeckEdit": "Pitch Deck Editing",
+      "brandingEdit": "Brand Identity Editing"
     }
   },
   "notFound": {

@@ -173,7 +173,27 @@ export const routes: Routes = [
         (m) => m.DocumentEditorComponent,
       ),
     canActivate: [authGuard],
-    data: { layout: 'empty' },
+    data: { layout: 'empty', documentType: 'business-plan' },
+  },
+  {
+    path: 'project/pitch-deck/edit',
+    title: 'navigation.titles.pitchDeckEdit',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/document-editor/document-editor').then(
+        (m) => m.DocumentEditorComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'empty', documentType: 'pitch-deck' },
+  },
+  {
+    path: 'project/branding/edit',
+    title: 'navigation.titles.brandingEdit',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/document-editor/document-editor').then(
+        (m) => m.DocumentEditorComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'empty', documentType: 'branding' },
   },
   {
     path: 'project/communication',

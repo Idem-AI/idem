@@ -18,6 +18,17 @@ function attr(value: string): string {
 }
 
 /**
+ * Normalise le HTML d'une section pour l'affichage éditeur, à l'identique du
+ * PdfService : overflow-hidden -> visible et hauteur fixe h-[..mm] -> min-h,
+ * afin que le contenu long ne soit pas tronqué et coule sur plusieurs pages.
+ */
+function normalizeSectionHtml(html: string): string {
+  return html
+    .replace(/overflow-hidden/g, 'overflow-visible')
+    .replace(/(^|[\s"'])h-\[(\d+(?:\.\d+)?)(mm|cm|in)\]/g, '$1min-h-[$2$3]');
+}
+
+/**
  * Snippet exécuté dans le <head>, APRÈS le chargement de chart.js et AVANT les
  * scripts de section : il enveloppe `window.Chart` pour capturer chaque
  * instance par canvas (édition ultérieure) et force `animation:false`.
@@ -517,7 +528,7 @@ function pageStyles(format: PageFormat): string {
       min-height: ${format.height};
       background: #ffffff;
       position: relative;
-      overflow: hidden;
+      overflow: visible;
       box-shadow: 0 8px 30px rgba(0,0,0,0.18);
       border-radius: 2px;
     }
@@ -535,7 +546,7 @@ export function buildIframeDocument(sections: EditableSection[], ctx: RenderCont
   const sectionsHtml = sections
     .map(
       (s, i) =>
-        `<section class="idem-section" data-section-id="${attr(s.id)}" data-section-index="${i}">${s.html}</section>`,
+        `<section class="idem-section" data-section-id="${attr(s.id)}" data-section-index="${i}">${normalizeSectionHtml(s.html)}</section>`,
     )
     .join('');
 
