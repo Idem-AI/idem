@@ -22,6 +22,9 @@ import { AGENT_APPENDIX_PROMPT } from './prompts/agent-appendix.prompt';
 import { TeamMember } from '../../models/project.model';
 import { storageService } from '../storage.service';
 import { researchTeamService } from '../research/research-team.service';
+import { contextEngineService } from '../context-engine/context-engine.service';
+import { markRevisionAsAI } from '../../utils/revision-context.util';
+import { buildSectionEditPrompt } from './prompts/agent-section-edit.prompt';
 import {
   DeliverableSection,
   ResearchEmit,
@@ -677,6 +680,161 @@ export class BusinessPlanService extends GenericService {
       });
       throw error; // Or return null depending on desired error handling
     }
+  }
+
+  /**
+   * Persiste l'ensemble des sections éditées manuellement dans l'éditeur
+   * WYSIWYG. Écrit sur analysisResultModel.businessPlan.sections (pattern du
+   * flux de génération) puis invalide le cache PDF pour que la page d'affichage
+   * régénère un PDF conforme aux modifications.
+   */
+  async saveSections(
+    userId: string,
+    projectId: string,
+    sections: SectionModel[]
+  ): Promise<BusinessPlanModel | null> {
+    logger.info(
+      `Saving ${sections.length} edited business plan sections for projectId: ${projectId}, userId: ${userId}`
+    );
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    if (!project) {
+      logger.warn(`Project not found with ID: ${projectId} for user: ${userId} on saveSections.`);
+      return null;
+    }
+
+    const existingBusinessPlan = project.analysisResultModel?.businessPlan || { sections: [] };
+    const updatedBusinessPlan: BusinessPlanModel = {
+      ...existingBusinessPlan,
+      sections,
+    };
+
+    await this.projectRepository.update(
+      projectId,
+      {
+        analysisResultModel: {
+          ...project.analysisResultModel,
+          businessPlan: updatedBusinessPlan,
+        },
+      },
+      `users/${userId}/projects`
+    );
+
+    // Le PDF stocké ne correspond plus aux sections éditées.
+    const pdfCacheKey = cacheService.generateAIKey('business-plan-pdf', userId, projectId);
+    await cacheService.delete(pdfCacheKey, { prefix: 'pdf' });
+
+    logger.info(`Successfully saved edited business plan sections for projectId: ${projectId}`);
+    return updatedBusinessPlan;
+  }
+
+  /**
+   * Édition assistée par IA d'UNE section: prend le HTML actuel + une instruction
+   * en langage naturel, injecte le contexte projet (Context Engine) et renvoie le
+   * HTML complet modifié. La révision est marquée comme "ai" (Chronicle) avec
+   * l'instruction en note, puis le cache PDF est invalidé.
+   */
+  async aiEditSection(
+    userId: string,
+    projectId: string,
+    sectionId: string,
+    instruction: string,
+    language?: SupportedLanguage
+  ): Promise<{ section: SectionModel; businessPlan: BusinessPlanModel } | null> {
+    logger.info(
+      `AI edit of section "${sectionId}" for projectId: ${projectId}, userId: ${userId}`
+    );
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    if (!project) {
+      logger.warn(`Project not found with ID: ${projectId} on aiEditSection.`);
+      return null;
+    }
+
+    const businessPlan = project.analysisResultModel?.businessPlan;
+    const sections = businessPlan?.sections || [];
+    const index = sections.findIndex((s) => s.id === sectionId || s.name === sectionId);
+    if (index < 0 || !businessPlan) {
+      logger.warn(`Section "${sectionId}" not found in business plan for projectId: ${projectId}.`);
+      return null;
+    }
+    const target = sections[index];
+
+    // Contexte projet compact via le Context Engine (carte des sections).
+    let projectContext = '';
+    try {
+      const map = await contextEngineService.getProjectMap(userId, projectId);
+      const existing = map.sections
+        .filter((s) => s.exists)
+        .map((s) => `- ${s.section}: ${s.description}${s.lastChangeSummary ? ` (dernier changement: ${s.lastChangeSummary})` : ''}`)
+        .join('\n');
+      projectContext = `Project "${map.name}" (type: ${map.type}).\nProject description: ${project.description || 'N/A'}\nAvailable sections:\n${existing}`;
+    } catch (err: any) {
+      logger.warn(`Context Engine unavailable for aiEditSection, falling back: ${err.message}`);
+      projectContext = this.extractProjectDescription(project);
+    }
+
+    const brandColorsJson = JSON.stringify(
+      project.analysisResultModel?.branding?.colors || {}
+    );
+    const typographyJson = JSON.stringify(
+      project.analysisResultModel?.branding?.typography || {}
+    );
+
+    const prompt = buildSectionEditPrompt({
+      instruction,
+      sectionName: target.name,
+      currentHtml: typeof target.data === 'string' ? target.data : JSON.stringify(target.data),
+      projectContext,
+      brandColorsJson,
+      typographyJson,
+    });
+
+    const promptConfig: PromptConfig = {
+      provider: AI_CONFIG.default.provider,
+      modelName: AI_CONFIG.default.modelName,
+      userId,
+      promptType: 'business-plan-section-edit',
+      language,
+    };
+    const messages: AIChatMessage[] = [{ role: 'user', content: prompt }];
+
+    const response = await this.promptService.runPrompt(promptConfig, messages);
+    let newHtml = this.promptService.getCleanAIText(response);
+    // Filet de sécurité: retirer un éventuel préfixe "html" laissé par le modèle.
+    newHtml = newHtml.replace(/^html\s*/i, '').trim();
+
+    if (!newHtml) {
+      logger.warn(`AI edit returned empty HTML for section "${sectionId}", keeping original.`);
+      return null;
+    }
+
+    const updatedSection: SectionModel = {
+      ...target,
+      data: newHtml,
+      updatedAt: new Date(),
+    };
+    const updatedSections = [...sections];
+    updatedSections[index] = updatedSection;
+    const updatedBusinessPlan: BusinessPlanModel = { ...businessPlan, sections: updatedSections };
+
+    // Trace l'écriture comme éditée par l'IA dans le Chronicle (git-blame).
+    markRevisionAsAI(`Édition IA – ${target.name}: ${instruction}`.slice(0, 280));
+
+    await this.projectRepository.update(
+      projectId,
+      {
+        analysisResultModel: {
+          ...project.analysisResultModel,
+          businessPlan: updatedBusinessPlan,
+        },
+      },
+      `users/${userId}/projects`
+    );
+
+    const pdfCacheKey = cacheService.generateAIKey('business-plan-pdf', userId, projectId);
+    await cacheService.delete(pdfCacheKey, { prefix: 'pdf' });
+
+    logger.info(`Successfully AI-edited section "${target.name}" for projectId: ${projectId}`);
+    return { section: updatedSection, businessPlan: updatedBusinessPlan };
   }
 
   async deleteBusinessPlan(userId: string, itemId: string): Promise<void> {

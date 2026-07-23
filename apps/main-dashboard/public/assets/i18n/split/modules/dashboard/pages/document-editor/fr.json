@@ -1,0 +1,89 @@
+{
+  "dashboard": {
+    "documentEditor": {
+      "businessPlan": {
+        "title": "Éditeur du business plan"
+      },
+      "canvasLabel": "Aperçu du document",
+      "inspector": "Propriétés",
+      "loading": "Chargement du document…",
+      "toolbar": {
+        "back": "Retour",
+        "subtitle": "Double-cliquez un texte pour le modifier",
+        "undo": "Annuler",
+        "redo": "Rétablir",
+        "zoomOut": "Dézoomer",
+        "zoomIn": "Zoomer",
+        "save": "Enregistrer",
+        "saving": "Enregistrement…",
+        "saved": "Enregistré",
+        "saveError": "Échec de l'enregistrement",
+        "unsaved": "Modifications non enregistrées",
+        "upToDate": "À jour"
+      },
+      "layers": {
+        "title": "Pages du document",
+        "pages": "Pages"
+      },
+      "emptySelection": {
+        "title": "Aucun élément sélectionné",
+        "subtitle": "Cliquez un élément pour modifier ses propriétés, ou double-cliquez un texte pour l'éditer directement."
+      },
+      "props": {
+        "heading": "Propriétés",
+        "textColor": "Couleur du texte",
+        "bgColor": "Fond",
+        "clearBg": "Retirer le fond",
+        "fontSize": "Taille",
+        "fontWeight": "Graisse",
+        "align": "Alignement",
+        "opacity": "Opacité",
+        "arrange": "Disposition",
+        "moveUp": "Monter",
+        "moveDown": "Descendre",
+        "delete": "Supprimer l'élément"
+      },
+      "chart": {
+        "heading": "Graphique",
+        "type": "Type",
+        "types": {
+          "bar": "Barres",
+          "line": "Courbes",
+          "pie": "Camembert",
+          "doughnut": "Anneau",
+          "radar": "Radar",
+          "polarArea": "Aire polaire"
+        },
+        "legend": "Légende",
+        "showLegend": "Afficher",
+        "title": "Titre du graphique",
+        "labels": "Libellés",
+        "sliceColor": "Couleur du secteur",
+        "removeLabel": "Retirer le libellé",
+        "datasets": "Séries",
+        "seriesColor": "Couleur de la série",
+        "seriesName": "Nom de la série",
+        "removeSeries": "Retirer la série",
+        "value": "Valeur"
+      },
+      "ai": {
+        "title": "Édition par IA",
+        "placeholder": "Décrivez la modification à apporter à cette section…",
+        "working": "Modification en cours…",
+        "apply": "Appliquer avec l'IA",
+        "hint": "L'IA tient compte de tout le contexte du projet pour modifier la section."
+      },
+      "error": {
+        "back": "Retour",
+        "noProject": {
+          "title": "Aucun projet sélectionné",
+          "subtitle": "Sélectionnez d'abord un projet pour éditer son business plan."
+        },
+        "load": {
+          "title": "Chargement impossible",
+          "subtitle": "Le document n'a pas pu être chargé. Réessayez depuis la page du business plan."
+        }
+      }
+    }
+  }
+}

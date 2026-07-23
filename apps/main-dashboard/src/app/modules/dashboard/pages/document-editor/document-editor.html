@@ -1,0 +1,118 @@
+<div class="editor-shell">
+  <app-editor-toolbar
+    [title]="title() || (titleKey | translate)"
+    [canUndo]="history.canUndo()"
+    [canRedo]="history.canRedo()"
+    [saveState]="saveState()"
+    [zoom]="zoom()"
+    (undo)="undo()"
+    (redo)="redo()"
+    (save)="saveNow()"
+    (zoomIn)="zoomIn()"
+    (zoomOut)="zoomOut()"
+    (exit)="exit()"
+  />
+
+  @if (loadError()) {
+    <div class="editor-fallback">
+      <div class="glass-card max-w-md w-full text-center p-10 space-y-4">
+        <i class="pi pi-exclamation-triangle text-4xl text-amber-400" aria-hidden="true"></i>
+        <h2 class="text-lg font-semibold text-text-primary">
+          {{ 'dashboard.documentEditor.error.' + loadError() + '.title' | translate }}
+        </h2>
+        <p class="text-sm text-text-tertiary">
+          {{ 'dashboard.documentEditor.error.' + loadError() + '.subtitle' | translate }}
+        </p>
+        <button type="button" class="inner-button !text-xs !normal-case mx-auto" (click)="exit()">
+          {{ 'dashboard.documentEditor.error.back' | translate }}
+        </button>
+      </div>
+    </div>
+  } @else {
+    <div class="editor-body">
+      <!-- Panneau gauche : pages / calques -->
+      <aside class="editor-side editor-side-left">
+        <app-layers-panel
+          [sections]="model.sections()"
+          [activeSectionId]="activeSectionId()"
+          (selectSection)="onSelectSectionFromLayers($event)"
+        />
+      </aside>
+
+      <!-- Canvas central -->
+      <main class="editor-main" [attr.aria-label]="'dashboard.documentEditor.canvasLabel' | translate">
+        <app-editor-canvas
+          [pageFormat]="pageFormat"
+          [fonts]="fonts()"
+          [dark]="dark()"
+          [zoom]="zoom()"
+          (selectionChange)="onSelectionChange($event)"
+          (textChange)="onTextChange($event)"
+          (reorderRequest)="onReorderRequest($event)"
+        />
+
+        @if (loading()) {
+          <div class="editor-loading">
+            <div class="spinner" aria-hidden="true"></div>
+            <p class="text-sm text-text-tertiary">
+              {{ 'dashboard.documentEditor.loading' | translate }}
+            </p>
+          </div>
+        }
+      </main>
+
+      <!-- Panneau droit : inspecteur -->
+      <aside class="editor-side editor-side-right" [attr.aria-label]="'dashboard.documentEditor.inspector' | translate">
+        @if (selection(); as sel) {
+          <div class="inspector-scroll">
+            <header class="inspector-header">
+              <span class="inspector-tag">{{ sel.tag }}</span>
+              <span class="text-xs text-text-tertiary truncate">{{ selectedSectionName() }}</span>
+            </header>
+
+            @if (sel.isChart && sel.chart) {
+              <section class="inspector-section">
+                <h2 class="inspector-title">
+                  <i class="pi pi-chart-bar" aria-hidden="true"></i>
+                  {{ 'dashboard.documentEditor.chart.heading' | translate }}
+                </h2>
+                <app-chart-editor-panel [chart]="sel.chart" (chartChange)="onChartChange($event)" />
+              </section>
+            } @else {
+              <section class="inspector-section">
+                <h2 class="inspector-title">
+                  <i class="pi pi-sliders-h" aria-hidden="true"></i>
+                  {{ 'dashboard.documentEditor.props.heading' | translate }}
+                </h2>
+                <app-property-panel
+                  [selection]="sel"
+                  (styleChange)="onStyleChange($event)"
+                  (reorder)="onReorderButton($event)"
+                  (remove)="onRemove()"
+                />
+              </section>
+            }
+
+            <section class="inspector-section">
+              <app-ai-edit-panel
+                [sectionName]="selectedSectionName()"
+                [loading]="aiLoading()"
+                (submitInstruction)="onAiSubmit($event)"
+              />
+            </section>
+          </div>
+        } @else {
+          <div class="inspector-empty">
+            <i class="pi pi-hand-pointer text-3xl text-text-tertiary" aria-hidden="true"></i>
+            <p class="text-sm font-medium text-text-secondary">
+              {{ 'dashboard.documentEditor.emptySelection.title' | translate }}
+            </p>
+            <p class="text-xs text-text-tertiary leading-relaxed">
+              {{ 'dashboard.documentEditor.emptySelection.subtitle' | translate }}
+            </p>
+          </div>
+        }
+      </aside>
+    </div>
+  }
+</div>
