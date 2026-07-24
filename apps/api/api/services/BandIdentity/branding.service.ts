@@ -47,6 +47,7 @@ import {
 import { LOGO_VARIATION_CRITIQUE_PROMPT } from './prompts/singleGenerations/logo-variation-critique.prompt';
 import { resolveSvgContent } from '../logo-import.service';
 import { parseLlmJson } from '../../utils/llm-json.util';
+import { summarizeLogoForPrompt } from '../../utils/logo-context.util';
 import { LOGO_VARIATION_RECOLOR_PROMPT } from './prompts/singleGenerations/logo-variation-recolor.prompt';
 import { PdfService, PAGE_FORMATS } from '../pdf.service';
 import { cacheService } from '../cache.service';
@@ -634,8 +635,11 @@ export class BrandingService extends GenericService {
       JSON.stringify(project.analysisResultModel.branding.colors) +
       '\n\nHere is the project branding typography: ' +
       JSON.stringify(project.analysisResultModel.branding.typography) +
-      '\n\nHere is the project branding logo: ' +
-      JSON.stringify(project.analysisResultModel.branding.logo);
+      // Token-lean: send the hosted logo URLs (use them as <img src>), never the
+      // raw SVG markup — an SVG runs thousands of tokens and this is appended to
+      // every brand-book step.
+      '\n\nHere is the project branding logo (hosted asset URLs — use as <img src>): ' +
+      JSON.stringify(summarizeLogoForPrompt(project.analysisResultModel.branding.logo));
 
     const contentHash = crypto
       .createHash('sha256')
@@ -863,7 +867,9 @@ export class BrandingService extends GenericService {
                   throw new Error('Missing branding information');
                 }
 
-                const logoUrl = branding.logo.svg;
+                // Prefer the hosted PNG URL (lighter for the image model);
+                // fall back to the svg field for legacy projects.
+                const logoUrl = branding.logo.assetUrls?.primary || branding.logo.svg;
                 const brandColors = {
                   primary: branding.colors.colors.primary || '#000000',
                   secondary: branding.colors.colors.secondary || '#666666',

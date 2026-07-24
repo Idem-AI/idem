@@ -439,7 +439,10 @@ export class PromptService {
           model,
           messages: openaiMessages,
           ...generationParams,
+          // Défaut du provider, puis surcharge éventuelle par-feature (ex: réactiver
+          // le raisonnement GLM sur la génération de logo). La feature l'emporte.
           ...(def.extraBody ?? {}),
+          ...(llmOptions.extraBody ?? {}),
         } as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming);
 
       // Repli optionnel propre au fournisseur (ex: glm-5.2 → glm-4.6).
@@ -526,6 +529,7 @@ export class PromptService {
         messages: conversation,
         ...generationParams,
         ...(def.extraBody ?? {}),
+        ...(llmOptions.extraBody ?? {}),
         tools: openaiTools,
         tool_choice: forceFinal ? 'none' : 'auto',
       } as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming);
@@ -610,6 +614,7 @@ export class PromptService {
       messages: openaiMessages,
       ...generationParams,
       ...(def.extraBody ?? {}),
+      ...(llmOptions.extraBody ?? {}),
       stream: true,
     } as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming);
 
