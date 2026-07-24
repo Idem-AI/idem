@@ -21,7 +21,7 @@ export const LOGO_SYSTEM_SECTION_PROMPT = `<role>Senior brand identity art direc
 </page_content>
 
 <page_format>
-- Outermost container: w-[297mm] min-h-[167mm] relative (min height 167mm; content is never clipped (it flows to another page if it slightly exceeds)).
+- Outermost container: w-[297mm] h-[167mm] overflow-hidden relative (exactly h-[167mm] — the content MUST fit within this single page (no overflow, no scroll). If it is too long, shorten, summarize or use smaller type to fit — never exceed the page).
 - Internal safe padding: p-[12mm] (no content overflow).
 </page_format>
 
@@ -59,7 +59,7 @@ export const LOGO_VARIATION_PAGE_PROMPT = `<role>Senior brand identity designer<
 </page_content>
 
 <page_format>
-- Outermost container: w-[297mm] min-h-[167mm] relative (min height 167mm; content is never clipped (it flows to another page if it slightly exceeds)).
+- Outermost container: w-[297mm] h-[167mm] overflow-hidden relative (exactly h-[167mm] — the content MUST fit within this single page (no overflow, no scroll). If it is too long, shorten, summarize or use smaller type to fit — never exceed the page).
 - Internal safe padding: p-[12mm] (no content overflow).
 </page_format>
 
@@ -99,7 +99,7 @@ export const LOGO_BEST_PRACTICES_PAGE_PROMPT = `<role>Brand standards expert</ro
 </design_principles>
 
 <page_format>
-- Outermost container: w-[297mm] min-h-[167mm] relative (min height 167mm; content is never clipped (it flows to another page if it slightly exceeds)).
+- Outermost container: w-[297mm] h-[167mm] overflow-hidden relative (exactly h-[167mm] — the content MUST fit within this single page (no overflow, no scroll). If it is too long, shorten, summarize or use smaller type to fit — never exceed the page).
 - Internal safe padding: p-[12mm] (no content overflow).
 </page_format>
 

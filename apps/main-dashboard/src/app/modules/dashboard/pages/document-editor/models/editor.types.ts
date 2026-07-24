@@ -145,6 +145,11 @@ export interface LoadedDocument {
 export interface DocumentTypeAdapter {
   readonly type: EditorDocumentType;
   readonly pageFormat: PageFormat;
+  /**
+   * true → une section peut s'étendre sur plusieurs pages (business plan) ;
+   * false → chaque section = une page fixe rognée (pitch deck, charte).
+   */
+  readonly multiPage: boolean;
   /** Préfixe des clés i18n (ex: 'dashboard.documentEditor'). */
   readonly i18nTitleKey: string;
   /** Charge le document éditable du projet (sections + polices + titre). */

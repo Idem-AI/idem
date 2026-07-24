@@ -108,6 +108,7 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
   protected readonly aiLoading = signal(false);
 
   protected readonly pageFormat = this.adapter.pageFormat;
+  protected readonly multiPage = this.adapter.multiPage;
   protected readonly titleKey = this.adapter.i18nTitleKey;
 
   protected readonly activeSectionId = computed(() => this.selection()?.sectionId ?? null);

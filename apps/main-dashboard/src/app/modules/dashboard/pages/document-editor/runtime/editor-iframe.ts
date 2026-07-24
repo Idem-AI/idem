@@ -18,14 +18,21 @@ function attr(value: string): string {
 }
 
 /**
- * Normalise le HTML d'une section pour l'affichage éditeur, à l'identique du
- * PdfService : overflow-hidden -> visible et hauteur fixe h-[..mm] -> min-h,
- * afin que le contenu long ne soit pas tronqué et coule sur plusieurs pages.
+ * Business plan (multi-page) uniquement : sur le CONTENEUR RACINE seul, remplace
+ * la hauteur fixe par min-h et enlève overflow-hidden pour laisser le contenu
+ * s'étendre (parité avec le PDF). Ne modifie que les classes de la racine : la
+ * structure — donc les chemins d'édition — reste inchangée.
  */
-function normalizeSectionHtml(html: string): string {
-  return html
-    .replace(/overflow-hidden/g, 'overflow-visible')
-    .replace(/(^|[\s"'])h-\[(\d+(?:\.\d+)?)(mm|cm|in)\]/g, '$1min-h-[$2$3]');
+function normalizeRootForFlow(html: string): string {
+  return html.replace(
+    /(<[a-zA-Z][^>]*\bclass=")([^"]*)(")/,
+    (_m, pre: string, cls: string, post: string) => {
+      const fixed = cls
+        .replace(/\bh-\[(\d+(?:\.\d+)?)(mm|cm|in)\]/g, 'min-h-[$1$2]')
+        .replace(/\boverflow-hidden\b/g, 'overflow-visible');
+      return pre + fixed + post;
+    },
+  );
 }
 
 /**
@@ -518,17 +525,21 @@ const INTERACTION_RUNTIME = `
 `;
 
 /** Styles de page (calage mm) + affordances d'édition. */
-function pageStyles(format: PageFormat): string {
+function pageStyles(format: PageFormat, multiPage: boolean): string {
+  // multiPage (business plan) : la page grandit avec le contenu (min-height,
+  // overflow visible). Sinon (pitch/charte) : page fixe rognée comme le PDF.
+  const sectionSizing = multiPage
+    ? `min-height: ${format.height}; overflow: visible;`
+    : `height: ${format.height}; overflow: hidden;`;
   return `
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { background: transparent; }
     .idem-doc { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 20px; }
     .idem-section {
       width: ${format.width};
-      min-height: ${format.height};
+      ${sectionSizing}
       background: #ffffff;
       position: relative;
-      overflow: visible;
       box-shadow: 0 8px 30px rgba(0,0,0,0.18);
       border-radius: 2px;
     }
@@ -540,14 +551,21 @@ function pageStyles(format: PageFormat): string {
 }
 
 /** Assemble le document complet injecté via srcdoc. */
-export function buildIframeDocument(sections: EditableSection[], ctx: RenderContext, format: PageFormat): string {
+export function buildIframeDocument(
+  sections: EditableSection[],
+  ctx: RenderContext,
+  format: PageFormat,
+  multiPage = false,
+): string {
   const primary = ctx.primaryFont || 'Jura';
   const secondary = ctx.secondaryFont || 'Jura';
+  // Multi-page (BP) : conteneur racine passé en flux (min-h + overflow visible),
+  // sans toucher aux classes internes. Sinon (pitch/charte) : HTML tel quel.
   const sectionsHtml = sections
-    .map(
-      (s, i) =>
-        `<section class="idem-section" data-section-id="${attr(s.id)}" data-section-index="${i}">${normalizeSectionHtml(s.html)}</section>`,
-    )
+    .map((s, i) => {
+      const inner = multiPage ? normalizeRootForFlow(s.html) : s.html;
+      return `<section class="idem-section" data-section-id="${attr(s.id)}" data-section-index="${i}">${inner}</section>`;
+    })
     .join('');
 
   return `<!doctype html>
@@ -573,7 +591,7 @@ ${ctx.fontUrl ? `<link href="${attr(ctx.fontUrl)}" rel="stylesheet" />` : ''}
 </script>
 <style>
   body { font-family: '${secondary}', system-ui, sans-serif; --idem-primary-font: '${primary}'; }
-  ${pageStyles(format)}
+  ${pageStyles(format, multiPage)}
 </style>
 </head>
 <body>

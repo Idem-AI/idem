@@ -22,6 +22,7 @@ import { sanitizeSectionHtml } from '../utils/sanitize-section';
 export abstract class HtmlSectionsEditorAdapter implements DocumentTypeAdapter {
   abstract readonly type: EditorDocumentType;
   abstract readonly pageFormat: PageFormat;
+  abstract readonly multiPage: boolean;
   abstract readonly i18nTitleKey: string;
   abstract readonly backRoute: string;
 

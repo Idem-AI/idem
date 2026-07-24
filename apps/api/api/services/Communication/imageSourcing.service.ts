@@ -285,7 +285,7 @@ export class ImageSourcingService {
     searchQuery: string
   ): Promise<FlyerImageAnalysis> {
     const fallbackVisionModel = AI_CONFIG.fallback.textModel;
-    const effectiveFallback = GEMINI_VISION_MODEL === fallbackVisionModel ? 'gemini-1.5-flash' : fallbackVisionModel;
+    const effectiveFallback = GEMINI_VISION_MODEL === fallbackVisionModel ? 'gemini-2.0-flash' : fallbackVisionModel;
 
     const response = await withGeminiFallback(
       () => this.geminiAI.models.generateContent({
