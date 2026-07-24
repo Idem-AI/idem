@@ -12,6 +12,14 @@ export interface LLMOptions {
   temperature?: number;
   topP?: number;
   topK?: number;
+  /**
+   * Champs de corps bruts fusionnés dans la requête du fournisseur, PAR-FEATURE.
+   * Ils PRIORISENT sur le `extraBody` par-défaut du provider (ai-providers.config.ts).
+   * Usage principal: réactiver le raisonnement GLM sur une génération précise
+   * (`{ thinking: { type: 'enabled' } }`) alors qu'il est désactivé globalement.
+   * Ignoré par l'adaptateur Gemini natif.
+   */
+  extraBody?: Record<string, unknown>;
 }
 
 export interface FeatureAIConfig {
@@ -182,8 +190,15 @@ export const AI_CONFIG = {
   },
 
   // Branding configurations
-  // Génération de logos (SVG) : GLM-5.2 configuré pour une qualité vectorielle maximale
-  // (budget de tokens étendu à 12000 et température optimisée à 0.35 pour la précision géométrique).
+  // Génération de logos (SVG) : GLM-5.2 configuré pour une qualité vectorielle maximale.
+  // PRIORITÉ QUALITÉ > VITESSE (choix produit assumé) :
+  //  - `thinking: enabled` réactive le raisonnement GLM (désactivé globalement dans
+  //    ai-providers.config.ts) : indispensable pour la précision géométrique/typographique
+  //    exigée par la doctrine des prompts (grille modulaire, kerning, symétrie calculée).
+  //  - budget de tokens très large : le raisonnement + un SVG complet (paths de
+  //    letterforms pour les types "name"/"initial") dépassent facilement 1–2k tokens ;
+  //    un budget trop court tronquait le JSON et cassait la génération de ces types.
+  //  - température basse : sorties déterministes et géométriquement exactes.
   branding: {
     brandIdentity: {
       provider: LLMProvider.GLM,
@@ -199,10 +214,12 @@ export const AI_CONFIG = {
       provider: LLMProvider.GLM,
       modelName: 'glm-5.2',
       llmOptions: {
-        maxOutputTokens: 1000,
-        temperature: 0.35,
+        maxOutputTokens: 24000,
+        temperature: 0.28,
         topP: 0.9,
         topK: 40,
+        // Réactive le raisonnement GLM pour CE cas d'usage (qualité maximale).
+        extraBody: { thinking: { type: 'enabled' } },
       },
     } as FeatureAIConfig,
     colors: {

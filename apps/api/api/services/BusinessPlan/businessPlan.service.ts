@@ -21,6 +21,7 @@ import { AGENT_GOAL_PLANNING_PROMPT } from './prompts/agent-goal-planning.prompt
 import { AGENT_APPENDIX_PROMPT } from './prompts/agent-appendix.prompt';
 import { TeamMember } from '../../models/project.model';
 import { storageService } from '../storage.service';
+import { resolveLogoUrl } from '../../utils/logo-context.util';
 import { researchTeamService } from '../research/research-team.service';
 import {
   DeliverableSection,
@@ -607,26 +608,11 @@ export class BusinessPlanService extends GenericService {
   }
 
   /**
-   * Résout la meilleure référence de logo à injecter dans les prompts de
-   * génération : privilégie l'URL PNG hébergée (assetUrls.primary), puis
-   * retombe sur le champ SVG (URL pour les projets legacy, ou markup inline
-   * encapsulé en data-URI). Envoyer une URL plutôt que le SVG brut allège aussi
-   * le contexte transmis aux agents.
+   * URL du logo à injecter dans les prompts (URL PNG hébergée en priorité, sinon
+   * une URL legacy). Le SVG brut n'est jamais envoyé — cf. {@link resolveLogoUrl}.
    */
   private resolveLogoContextUrl(project: ProjectModel): string {
-    const logo = project.analysisResultModel?.branding?.logo;
-    if (!logo) return '';
-    const hosted = logo.assetUrls?.primary?.trim();
-    if (hosted) return hosted;
-    const svg = (logo.svg || '').trim();
-    if (!svg) return '';
-    if (svg.startsWith('http://') || svg.startsWith('https://') || svg.startsWith('data:')) {
-      return svg;
-    }
-    if (svg.includes('<svg')) {
-      return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
-    }
-    return svg;
+    return resolveLogoUrl(project.analysisResultModel?.branding?.logo);
   }
 
   /** Construit le bloc de contexte financier réel (module Finance) pour les agents. */
