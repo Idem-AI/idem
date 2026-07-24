@@ -216,6 +216,29 @@ export class BrandingService extends GenericService {
   }
 
   /**
+   * Adapte un prompt de section (écrit par défaut en slide 16:9 = 297×167mm) au
+   * format de page RÉELLEMENT choisi par l'utilisateur, en remplaçant les tokens
+   * de dimensions. No-op quand le format cible est déjà 297×167.
+   */
+  private applyPageFormatToPrompt(
+    prompt: string,
+    format: { width: string; height: string; orientation: string }
+  ): string {
+    if (format.width === '297mm' && format.height === '167mm') {
+      return prompt;
+    }
+    return prompt
+      .split('w-[297mm] h-[167mm]')
+      .join(`w-[${format.width}] h-[${format.height}]`)
+      .split('h-[167mm]')
+      .join(`h-[${format.height}]`)
+      .split('w-[297mm]')
+      .join(`w-[${format.width}]`)
+      .split('Landscape 16:9')
+      .join(`${format.orientation} ${format.width}×${format.height}`);
+  }
+
+  /**
    * Récupération optimisée du projet avec cache intelligent
    */
   private async getProjectOptimized(
@@ -760,6 +783,14 @@ export class BrandingService extends GenericService {
         });
       }
 
+      // Adapter les prompts au FORMAT DE PAGE CHOISI (les prompts sont écrits en
+      // 16:9 par défaut). No-op si le format choisi est déjà SLIDE_16_9.
+      const chosenFormat =
+        PAGE_FORMATS[pdfFormat as keyof typeof PAGE_FORMATS] || PAGE_FORMATS.SLIDE_16_9;
+      for (const step of steps) {
+        step.promptConstant = this.applyPageFormatToPrompt(step.promptConstant, chosenFormat);
+      }
+
       logger.info(`[BRANDING] Generated ${mockupCount} mockup steps dynamically`, {
         projectId,
         mockupCount,
@@ -1014,8 +1045,8 @@ export class BrandingService extends GenericService {
             }
           },
           {
-            provider: AI_CONFIG.default.provider,
-            modelName: AI_CONFIG.default.modelName,
+            provider: AI_CONFIG.branding.brandIdentity.provider,
+            modelName: AI_CONFIG.branding.brandIdentity.modelName,
             userId,
           }, // promptConfig
           'branding', // promptType

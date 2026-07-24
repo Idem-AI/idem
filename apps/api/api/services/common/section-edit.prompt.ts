@@ -20,10 +20,11 @@ export interface SectionEditPromptInput {
 /** Règles de format de page par type (multi-page, non tronquées). */
 export const EDIT_FORMAT_RULES = {
   businessPlan: `- Outermost container: w-[210mm] min-h-[297mm] relative (A4 width; the page GROWS with content and paginates cleanly across multiple A4 pages). Do NOT use a fixed h-[...] nor overflow-hidden, and NEVER truncate content to fit one page.
+- Keep each block whole (cards, tables, lists, sub-sections each fit within a single A4 page) so no block is split across a page break.
 - Safe padding: p-[12mm].`,
-  pitchDeck: `- Outermost container: w-[297mm] min-h-[167mm] relative (16:9 slide width). Aim to fit one slide; content is never clipped if it slightly exceeds (it flows to a second page). Do NOT use a fixed h-[...] nor overflow-hidden.
+  pitchDeck: `- Outermost container: w-[297mm] h-[167mm] overflow-hidden relative (16:9 slide = ONE page). The content MUST fit entirely within this single slide (no overflow, no scroll); if the edit makes it too long, shorten/summarize or use smaller type.
 - Padding: p-[14mm].`,
-  branding: `- Outermost container: w-[297mm] min-h-[167mm] relative (16:9 slide width). Aim to fit one slide; content is never clipped if it slightly exceeds. Do NOT use a fixed h-[...] nor overflow-hidden.
+  branding: `- Outermost container: w-[297mm] h-[167mm] overflow-hidden relative (16:9 slide = ONE page). The content MUST fit entirely within this single slide (no overflow, no scroll); if the edit makes it too long, shorten/summarize or use smaller type.
 - Padding: p-[14mm].`,
 } as const;
 

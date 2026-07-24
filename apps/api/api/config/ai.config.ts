@@ -2,6 +2,8 @@ export enum LLMProvider {
   GEMINI = 'GEMINI',
   CHATGPT = 'CHATGPT',
   DEEPSEEK = 'DEEPSEEK',
+  // GLM-5.2 (Zhipu / Z.ai), via API OpenAI-compatible — voir ai-providers.config.ts.
+  GLM = 'GLM',
 }
 // Test trigger: API deployment pipeline (Update 2)
 
@@ -58,28 +60,35 @@ export const AI_CONFIG = {
   },
 
   // Business Plan service configuration
+  // [Migration GLM-5.2] Ancienne valeur: { GEMINI, 'gemini-3-flash-preview' }.
+  // Note: research-team (rédacteur) réutilise cette config → passe aussi sur GLM ;
+  // le chercheur (grounding Google Search) reste figé Gemini.
   businessPlan: {
-    provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3-flash-preview',
+    provider: LLMProvider.GLM,
+    modelName: 'glm-5.2',
   } as FeatureAIConfig,
 
   // Pitch Deck service configuration
+  // [Migration GLM-5.2] Ancienne valeur: { GEMINI, 'gemini-3-flash-preview' }.
   pitchDeck: {
-    provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3-flash-preview',
+    provider: LLMProvider.GLM,
+    modelName: 'glm-5.2',
   } as FeatureAIConfig,
 
   // Advisor service configuration
+  // [Migration GLM-5.2] Ancienne valeur: { GEMINI, 'gemini-3-flash-preview' }.
+  // GLM supporte le function-calling → la boucle Context Engine tourne sur GLM.
   advisor: {
-    provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3-flash-preview',
+    provider: LLMProvider.GLM,
+    modelName: 'glm-5.2',
     promptType: 'advisor',
   } as FeatureAIConfig,
 
   // Legal Docs service configuration
+  // [Migration GLM-5.2] Ancienne valeur: { GEMINI, 'gemini-3-flash-preview' }.
   legalDocs: {
-    provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3-flash-preview',
+    provider: LLMProvider.GLM,
+    modelName: 'glm-5.2',
   } as FeatureAIConfig,
 
   // Deployment configurations
@@ -104,10 +113,11 @@ export const AI_CONFIG = {
   },
 
   // Finance configurations
+  // [Migration GLM-5.2] Ancienne valeur de chaque clé: { GEMINI, 'gemini-3-flash-preview' }.
   finance: {
     autofill: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: 'glm-5.2',
       promptType: 'finance',
       llmOptions: {
         temperature: 0.4,
@@ -115,8 +125,8 @@ export const AI_CONFIG = {
       },
     } as FeatureAIConfig,
     intent: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: 'glm-5.2',
       promptType: 'finance',
       llmOptions: {
         temperature: 0.2,
@@ -124,8 +134,8 @@ export const AI_CONFIG = {
       },
     } as FeatureAIConfig,
     pdfCover: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: 'glm-5.2',
       promptType: 'finance-cover-generation',
       llmOptions: {
         temperature: 0.7,
@@ -133,8 +143,8 @@ export const AI_CONFIG = {
       },
     } as FeatureAIConfig,
     pdfInterpretation: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: 'glm-5.2',
       promptType: 'finance-pdf-interpretation',
       llmOptions: {
         temperature: 0.5,
@@ -172,14 +182,26 @@ export const AI_CONFIG = {
   },
 
   // Branding configurations
+  // Génération de logos (SVG) : GLM-5.2 configuré pour une qualité vectorielle maximale
+  // (budget de tokens étendu à 12000 et température optimisée à 0.35 pour la précision géométrique).
   branding: {
-    logo: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3.5-flash',
+    brandIdentity: {
+      provider: LLMProvider.GLM,
+      modelName: 'glm-5.2',
       llmOptions: {
-        maxOutputTokens: 4000,
-        temperature: 0.5,
-        topP: 0.95,
+        maxOutputTokens: 12000,
+        temperature: 0.35,
+        topP: 0.9,
+        topK: 40,
+      },
+    } as FeatureAIConfig,
+    logo: {
+      provider: LLMProvider.GLM,
+      modelName: 'glm-5.2',
+      llmOptions: {
+        maxOutputTokens: 12000,
+        temperature: 0.35,
+        topP: 0.9,
         topK: 40,
       },
     } as FeatureAIConfig,

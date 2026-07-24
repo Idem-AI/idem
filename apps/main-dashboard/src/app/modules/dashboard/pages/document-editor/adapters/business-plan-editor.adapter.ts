@@ -7,6 +7,7 @@ import { HtmlSectionsEditorAdapter } from './html-sections.adapter.base';
 export class BusinessPlanEditorAdapter extends HtmlSectionsEditorAdapter {
   readonly type = 'business-plan' as const;
   readonly pageFormat: PageFormat = { width: '210mm', height: '297mm' };
+  readonly multiPage = true;
   readonly i18nTitleKey = 'dashboard.documentEditor.businessPlan.title';
   readonly backRoute = '/project/business-plan';
   protected readonly resource = 'businessPlans';

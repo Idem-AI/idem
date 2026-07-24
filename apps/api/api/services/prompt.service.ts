@@ -17,6 +17,11 @@ import { userService } from './user.service';
 dotenv.config();
 
 import { LLMProvider, LLMOptions, AI_CONFIG } from '../config/ai.config';
+import {
+  getProvider,
+  providerSupports,
+  resolveGlobalOverride,
+} from '../config/ai-providers.config';
 import { withGeminiFallback } from '../utils/gemini-fallback';
 import { getRequestLanguage } from '../utils/request-language';
 import { logAIEvent, previewValue } from '../utils/ai-trace.util';
@@ -105,7 +110,8 @@ export interface GroundedResult {
 
 export class PromptService {
   private _genAIClient?: GoogleGenAI;
-  private _openaiClient?: OpenAI;
+  /** Clients OpenAI-compatible mis en cache par fournisseur (GLM, OpenAI, DeepSeek…). */
+  private _openaiClients = new Map<LLMProvider, OpenAI>();
 
   constructor() {
     logger.info('Initializing PromptService...');
@@ -124,15 +130,35 @@ export class PromptService {
     return this._genAIClient;
   }
 
-  private get openaiClient(): OpenAI | undefined {
-    if (!this._openaiClient) {
-      const openaiApiKey = process.env.OPENAI_API_KEY;
-      if (openaiApiKey) {
-        this._openaiClient = new OpenAI({ apiKey: openaiApiKey });
-        logger.info('OpenAI client initialized successfully lazily.');
-      }
+  /**
+   * Client OpenAI-compatible pour un fournisseur donné (GLM, OpenAI, DeepSeek,
+   * futur modèle maison…). La clé, l'URL de base et les en-têtes proviennent du
+   * registre `AI_PROVIDERS`. Les clients sont mis en cache par fournisseur.
+   */
+  private getOpenAICompatibleClient(provider: LLMProvider): OpenAI {
+    const cached = this._openaiClients.get(provider);
+    if (cached) {
+      return cached;
     }
-    return this._openaiClient;
+
+    const def = getProvider(provider);
+    const apiKey = process.env[def.apiKeyEnv];
+    if (!apiKey) {
+      const message = `${def.apiKeyEnv} is not set — cannot use provider ${provider}.`;
+      logger.error(message);
+      throw new Error(message);
+    }
+
+    const client = new OpenAI({
+      apiKey,
+      ...(def.baseUrl ? { baseURL: def.baseUrl } : {}),
+      ...(def.defaultHeaders ? { defaultHeaders: def.defaultHeaders } : {}),
+    });
+    this._openaiClients.set(provider, client);
+    logger.info(
+      `OpenAI-compatible client initialized for provider=${provider} (baseURL=${def.baseUrl ?? 'default'}).`
+    );
+    return client;
   }
 
   private toGeminiMessages(messages: AIChatMessage[]): Content[] {
@@ -203,7 +229,7 @@ export class PromptService {
 
         // run prompt
         const fallbackModel = AI_CONFIG.fallback.textModel;
-        const secondaryFallback = 'gemini-1.5-flash';
+        const secondaryFallback = 'gemini-2.0-flash';
         const effectiveFallbackModel = modelName === fallbackModel ? secondaryFallback : fallbackModel;
 
         const result = await withGeminiFallback(
@@ -276,7 +302,7 @@ export class PromptService {
     };
 
     const fallbackModel = AI_CONFIG.fallback.textModel;
-    const secondaryFallback = 'gemini-1.5-flash';
+    const secondaryFallback = 'gemini-2.0-flash';
     const effectiveFallbackModel = modelName === fallbackModel ? secondaryFallback : fallbackModel;
 
     const result = await withGeminiFallback(
@@ -301,178 +327,301 @@ export class PromptService {
     return response;
   }
 
-  private async _runChatGPTPrompt(
+  /**
+   * Convertit un schéma d'outil Gemini (@google/genai `Schema`, `type` en
+   * MAJUSCULES) en JSON Schema OpenAI (`type` en minuscules). Récursif sur
+   * `properties` et `items` ; conserve `enum`/`description`/`required`.
+   */
+  private geminiSchemaToJsonSchema(schema: any): Record<string, unknown> {
+    if (!schema || typeof schema !== 'object') {
+      return {};
+    }
+    const out: Record<string, unknown> = {};
+    if (schema.type) out.type = String(schema.type).toLowerCase();
+    if (schema.description) out.description = schema.description;
+    if (Array.isArray(schema.enum)) out.enum = schema.enum;
+    if (schema.properties && typeof schema.properties === 'object') {
+      const props: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(schema.properties)) {
+        props[key] = this.geminiSchemaToJsonSchema(value);
+      }
+      out.properties = props;
+    }
+    if (Array.isArray(schema.required)) out.required = schema.required;
+    if (schema.items) out.items = this.geminiSchemaToJsonSchema(schema.items);
+    return out;
+  }
+
+  /** Traduit des FunctionDeclaration Gemini en `tools` OpenAI (function-calling). */
+  private toOpenAITools(
+    tools: FunctionDeclaration[]
+  ): OpenAI.Chat.Completions.ChatCompletionTool[] {
+    return tools.map((t) => ({
+      type: 'function',
+      function: {
+        name: t.name ?? '',
+        ...(t.description ? { description: t.description } : {}),
+        parameters: this.geminiSchemaToJsonSchema(
+          t.parameters ?? { type: 'OBJECT', properties: {} }
+        ),
+      },
+    }));
+  }
+
+  /**
+   * Détecte une enveloppe d'erreur renvoyée en HTTP 200 par un gateway
+   * openai-compatible (ex: Z.ai/GLM: `{code, msg, success:false}`) et lève une
+   * erreur lisible. Sans quoi le SDK OpenAI présente un objet sans `choices` et
+   * on perd la cause réelle (mauvaise URL, solde insuffisant, modèle inconnu…).
+   */
+  private assertNoErrorEnvelope(provider: LLMProvider, response: any): void {
+    if (
+      response &&
+      typeof response === 'object' &&
+      !Array.isArray(response.choices) &&
+      (response.success === false || response.code !== undefined || response.msg)
+    ) {
+      const detail = response.msg || response.error || JSON.stringify(response).slice(0, 300);
+      logger.error(`${provider} API error envelope (HTTP 200): ${JSON.stringify(response).slice(0, 500)}`);
+      throw new Error(`${provider} API error: ${detail}`);
+    }
+  }
+
+  /**
+   * Adaptateur générique pour TOUT fournisseur `openai-compatible` du registre
+   * (GLM, OpenAI, DeepSeek, futur modèle maison). Remplace les anciennes méthodes
+   * dédiées ChatGPT/DeepSeek : la seule différence entre fournisseurs (clé, URL,
+   * en-têtes, modèle de repli) est portée par `AI_PROVIDERS`.
+   */
+  private async _runOpenAICompatiblePrompt(
+    provider: LLMProvider,
     modelName: string,
     messages: AIChatMessage[],
     llmOptions: LLMOptions,
     fileInput?: { localPath: string; mimeType?: string }
   ): Promise<string> {
-    const client = this.openaiClient;
-    if (!client) {
-      const error = new Error(
-        'OpenAI client is not initialized. Please set OPENAI_API_KEY environment variable.'
-      );
-      logger.error(error.message);
-      throw error;
-    }
+    const client = this.getOpenAICompatibleClient(provider);
+    const def = getProvider(provider);
 
     try {
-      // Convert our internal message format to OpenAI's format
       const openaiMessages = messages.map((msg) => ({
         role: msg.role,
         content: msg.content,
-      }));
+      })) as OpenAI.Chat.Completions.ChatCompletionMessageParam[];
 
       const generationParams = {
-        ...(llmOptions.maxOutputTokens && {
-          max_tokens: llmOptions.maxOutputTokens,
-        }),
-        ...(llmOptions.temperature !== undefined && {
-          temperature: llmOptions.temperature,
-        }),
+        ...(llmOptions.maxOutputTokens && { max_tokens: llmOptions.maxOutputTokens }),
+        ...(llmOptions.temperature !== undefined && { temperature: llmOptions.temperature }),
         ...(llmOptions.topP !== undefined && { top_p: llmOptions.topP }),
-        // OpenAI doesn't have a topK parameter
+        // Pas de topK dans l'API OpenAI.
       };
 
-      // Handle file uploads if needed
+      // Le SDK n'upload pas de fichier ici : on injecte son contenu comme contexte
+      // système (comportement historique des chemins ChatGPT/DeepSeek).
       if (fileInput && fileInput.localPath) {
-        logger.info(`Processing file input for ChatGPT: ${fileInput.localPath}`);
-
+        logger.info(`Processing file input for ${provider}: ${fileInput.localPath}`);
         try {
-          // Read the file content
           const fileContent = await fs.readFile(fileInput.localPath, 'utf-8');
-
-          // Instead of uploading the file directly, we'll add its contents to the prompt
-          // Add context as system message at the beginning
           openaiMessages.unshift({
             role: 'system',
             content: `File content for context: ${fileContent}`,
           });
-
-          logger.info('File content added to ChatGPT prompt');
         } catch (fileError) {
-          logger.error(`Error reading file for ChatGPT: ${fileInput.localPath}`, fileError);
+          logger.error(`Error reading file for ${provider}: ${fileInput.localPath}`, fileError);
           throw new Error(
-            `Failed to read file for ChatGPT: ${(fileError as Error).message || fileError}`
+            `Failed to read file for ${provider}: ${(fileError as Error).message || fileError}`
           );
         }
       }
 
-      // Create chat completion
-      const response = await client.chat.completions.create({
-        model: modelName,
-        messages: openaiMessages,
-        ...generationParams,
-      });
+      const doCreate = (model: string) =>
+        client.chat.completions.create({
+          model,
+          messages: openaiMessages,
+          ...generationParams,
+          ...(def.extraBody ?? {}),
+        } as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming);
+
+      // Repli optionnel propre au fournisseur (ex: glm-5.2 → glm-4.6).
+      let response;
+      try {
+        response = await doCreate(modelName);
+      } catch (primaryError: any) {
+        if (def.fallbackModel && def.fallbackModel !== modelName) {
+          logger.warn(
+            `${provider} model "${modelName}" failed (${primaryError.message || primaryError}). Retrying with "${def.fallbackModel}"...`
+          );
+          response = await doCreate(def.fallbackModel);
+        } else {
+          throw primaryError;
+        }
+      }
+
+      // Certains gateways openai-compatible (ex: Z.ai/GLM) renvoient un HTTP 200
+      // dont le corps est en réalité une enveloppe d'erreur ({code, msg, success:
+      // false}) SANS `choices`. On la détecte pour remonter un message exploitable
+      // au lieu d'un opaque "no choices".
+      this.assertNoErrorEnvelope(provider, response);
 
       if (!response.choices || response.choices.length === 0) {
-        logger.error('ChatGPT API returned no choices');
-        throw new Error('ChatGPT API returned no choices');
+        const raw = JSON.stringify(response).slice(0, 500);
+        logger.error(`${provider} API returned no choices. Raw response: ${raw}`);
+        throw new Error(`${provider} API returned no choices. Raw: ${raw}`);
       }
 
       const textContent = response.choices[0].message.content;
-
       if (!textContent) {
-        logger.error('ChatGPT API returned empty text content');
-        throw new Error('ChatGPT API returned empty text content');
+        // finish_reason='length' ⇒ budget épuisé (souvent par le raisonnement d'un
+        // modèle "thinking"): augmenter maxOutputTokens ou désactiver le thinking.
+        const finishReason = response.choices[0].finish_reason;
+        logger.error(
+          `${provider} API returned empty text content (finish_reason=${finishReason}).`
+        );
+        throw new Error(
+          `${provider} API returned empty text content (finish_reason=${finishReason})`
+        );
       }
 
       return textContent;
     } catch (error) {
-      const errorMessage = `Error with ChatGPT API: ${(error as Error).message || error}`;
+      const errorMessage = `Error with ${provider} API: ${(error as Error).message || error}`;
       logger.error(errorMessage);
       throw new Error(errorMessage);
     }
   }
 
-  private async _runDeepSeekPrompt(
+  /**
+   * Boucle agentique (function-calling) pour un fournisseur `openai-compatible`
+   * qui supporte les outils (ex: GLM). Miroir de la boucle Gemile de
+   * runPromptWithTools, au format OpenAI (`tool_calls` / messages `role:'tool'`).
+   */
+  private async _runOpenAICompatibleTools(
+    provider: LLMProvider,
     modelName: string,
     messages: AIChatMessage[],
     llmOptions: LLMOptions,
-    fileInput?: { localPath: string; mimeType?: string }
+    tools: FunctionDeclaration[],
+    executeTool: (name: string, args: Record<string, unknown>) => Promise<unknown>,
+    maxToolTurns: number
   ): Promise<string> {
-    // DeepSeek is accessed through the OpenAI API compatibility layer
-    if (!this.openaiClient) {
-      const error = new Error(
-        'OpenAI client is not initialized. Please set OPENAI_API_KEY environment variable.'
-      );
-      logger.error(error.message);
-      throw error;
-    }
+    const client = this.getOpenAICompatibleClient(provider);
+    const def = getProvider(provider);
+    const openaiTools = this.toOpenAITools(tools);
 
-    try {
-      // Convert our internal message format to OpenAI's format
-      const openaiMessages = messages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+    const conversation: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = messages.map(
+      (msg) => ({ role: msg.role, content: msg.content })
+    ) as OpenAI.Chat.Completions.ChatCompletionMessageParam[];
 
-      const generationParams = {
-        ...(llmOptions.maxOutputTokens && {
-          max_tokens: llmOptions.maxOutputTokens,
-        }),
-        ...(llmOptions.temperature !== undefined && {
-          temperature: llmOptions.temperature,
-        }),
-        ...(llmOptions.topP !== undefined && { top_p: llmOptions.topP }),
-        // DeepSeek may support additional parameters, but we'll stick to the OpenAI compatibility
-      };
+    const generationParams = {
+      ...(llmOptions.maxOutputTokens && { max_tokens: llmOptions.maxOutputTokens }),
+      ...(llmOptions.temperature !== undefined && { temperature: llmOptions.temperature }),
+      ...(llmOptions.topP !== undefined && { top_p: llmOptions.topP }),
+    };
 
-      // Handle file uploads if needed
-      if (fileInput && fileInput.localPath) {
-        logger.info(`Processing file input for DeepSeek: ${fileInput.localPath}`);
-
-        try {
-          // Read the file content
-          const fileContent = await fs.readFile(fileInput.localPath, 'utf-8');
-
-          // Add file content to the prompt
-          openaiMessages.unshift({
-            role: 'system',
-            content: `File content for context: ${fileContent}`,
-          });
-
-          logger.info('File content added to DeepSeek prompt');
-        } catch (fileError) {
-          logger.error(`Error reading file for DeepSeek: ${fileInput.localPath}`, fileError);
-          throw new Error(
-            `Failed to read file for DeepSeek: ${(fileError as Error).message || fileError}`
-          );
-        }
-      }
-
-      // Make API call with the DeepSeek base URL if provided, otherwise use the default OpenAI URL
-      const deepSeekBaseUrl = process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com';
-      const customClient = new OpenAI({
-        apiKey: process.env.OPENROUTER_API_KEY || '',
-        baseURL: deepSeekBaseUrl,
-      });
-
-      // Create chat completion
-      const response = await customClient.chat.completions.create({
+    let finalText = '';
+    for (let turn = 0; turn <= maxToolTurns; turn++) {
+      const forceFinal = turn === maxToolTurns;
+      const response = await client.chat.completions.create({
         model: modelName,
-        messages: openaiMessages,
+        messages: conversation,
         ...generationParams,
+        ...(def.extraBody ?? {}),
+        tools: openaiTools,
+        tool_choice: forceFinal ? 'none' : 'auto',
+      } as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming);
+
+      this.assertNoErrorEnvelope(provider, response);
+      const choice = response.choices?.[0]?.message;
+      const toolCalls = choice?.tool_calls ?? [];
+
+      if (!choice || toolCalls.length === 0 || forceFinal) {
+        finalText = choice?.content ?? '';
+        logAIEvent('ai.agentic_turn', {
+          turn: turn + 1,
+          decision: forceFinal && toolCalls.length > 0 ? 'max_turns_forced' : 'final_answer',
+          finalTextLength: finalText.length,
+        });
+        break;
+      }
+
+      // Rejoue le tour: message assistant avec ses tool_calls, puis une réponse
+      // par outil.
+      conversation.push(choice);
+      logAIEvent('ai.agentic_turn', {
+        turn: turn + 1,
+        decision: 'tool_calls',
+        tools: toolCalls.map((c) => ({
+          name: c.function?.name,
+          args: previewValue(c.function?.arguments),
+        })),
       });
 
-      if (!response.choices || response.choices.length === 0) {
-        logger.error('DeepSeek API returned no choices');
-        throw new Error('DeepSeek API returned no choices');
+      for (const call of toolCalls) {
+        const toolName = call.function?.name ?? '';
+        let parsedArgs: Record<string, unknown> = {};
+        try {
+          parsedArgs = call.function?.arguments ? JSON.parse(call.function.arguments) : {};
+        } catch {
+          parsedArgs = {};
+        }
+        let output: unknown;
+        try {
+          output = await executeTool(toolName, parsedArgs);
+        } catch (error: any) {
+          output = { error: error.message || String(error) };
+        }
+        conversation.push({
+          role: 'tool',
+          tool_call_id: call.id,
+          content: JSON.stringify(output ?? null),
+        });
       }
-
-      const textContent = response.choices[0].message.content;
-
-      if (!textContent) {
-        logger.error('DeepSeek API returned empty text content');
-        throw new Error('DeepSeek API returned empty text content');
-      }
-
-      return textContent;
-    } catch (error) {
-      const errorMessage = `Error with DeepSeek API: ${(error as Error).message || error}`;
-      logger.error(errorMessage);
-      throw new Error(errorMessage);
     }
+
+    return finalText;
+  }
+
+  /**
+   * Streaming pour un fournisseur `openai-compatible` (ex: GLM) : diffuse le texte
+   * cumulé via `onDelta` et renvoie le texte complet.
+   */
+  private async _streamOpenAICompatible(
+    provider: LLMProvider,
+    modelName: string,
+    messages: AIChatMessage[],
+    llmOptions: LLMOptions,
+    onDelta: (cumulativeText: string) => void
+  ): Promise<string> {
+    const client = this.getOpenAICompatibleClient(provider);
+    const def = getProvider(provider);
+    const openaiMessages = messages.map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+    })) as OpenAI.Chat.Completions.ChatCompletionMessageParam[];
+
+    const generationParams = {
+      ...(llmOptions.maxOutputTokens && { max_tokens: llmOptions.maxOutputTokens }),
+      ...(llmOptions.temperature !== undefined && { temperature: llmOptions.temperature }),
+      ...(llmOptions.topP !== undefined && { top_p: llmOptions.topP }),
+    };
+
+    const stream = await client.chat.completions.create({
+      model: modelName,
+      messages: openaiMessages,
+      ...generationParams,
+      ...(def.extraBody ?? {}),
+      stream: true,
+    } as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming);
+
+    let full = '';
+    for await (const chunk of stream) {
+      const delta = chunk.choices?.[0]?.delta?.content ?? '';
+      if (delta) {
+        full += delta;
+        onDelta(full);
+      }
+    }
+    return full;
   }
 
   /**
@@ -502,9 +651,11 @@ export class PromptService {
         request.modelName
       }, file attached: ${!!request.file}, userId: ${request.userId}`
     );
+    // Interrupteur global optionnel (AI_DEFAULT_PROVIDER / AI_DEFAULT_MODEL) :
+    // permet de faire tourner idem entièrement sur un autre fournisseur sans
+    // toucher aux configs par fonctionnalité. Sans variable d'env → no-op.
+    const { provider, modelName } = resolveGlobalOverride(request);
     const {
-      provider,
-      modelName,
       llmOptions = {},
       file,
       userId,
@@ -588,8 +739,11 @@ export class PromptService {
 
     try {
       let result: string;
-      switch (provider) {
-        case LLMProvider.GEMINI:
+      // Aiguillage piloté par le registre : `gemini` (SDK natif) vs
+      // `openai-compatible` (adaptateur générique GLM/OpenAI/DeepSeek/maison).
+      const kind = getProvider(provider).kind;
+      switch (kind) {
+        case 'gemini':
           result = await this._runGeminiPrompt(
             modelName,
             modifiedMessages,
@@ -598,17 +752,20 @@ export class PromptService {
             request.cachedContent
           );
           break;
-        case LLMProvider.CHATGPT:
-          result = await this._runChatGPTPrompt(modelName, modifiedMessages, llmOptions, file);
-          break;
-        case LLMProvider.DEEPSEEK:
-          result = await this._runDeepSeekPrompt(modelName, modifiedMessages, llmOptions, file);
+        case 'openai-compatible':
+          result = await this._runOpenAICompatiblePrompt(
+            provider,
+            modelName,
+            modifiedMessages,
+            llmOptions,
+            file
+          );
           break;
         default:
-          const unsupportedProviderError = new Error(`Unsupported LLM provider: ${provider}`);
+          const unsupportedProviderError = new Error(`Unsupported provider kind: ${kind}`);
           logger.error(
-            `Unsupported LLM provider encountered in runPrompt: ${unsupportedProviderError.message}`,
-            { provider, stack: unsupportedProviderError.stack }
+            `Unsupported provider kind encountered in runPrompt: ${unsupportedProviderError.message}`,
+            { provider, kind, stack: unsupportedProviderError.stack }
           );
           throw unsupportedProviderError;
       }
@@ -649,13 +806,21 @@ export class PromptService {
     executeTool: (name: string, args: Record<string, unknown>) => Promise<unknown>,
     options: { maxToolTurns?: number } = {}
   ): Promise<string> {
-    const { provider, modelName, llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
+    const { provider, modelName } = resolveGlobalOverride(request);
+    const { llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
 
-    if (provider !== LLMProvider.GEMINI) {
-      throw new Error(`runPromptWithTools ne supporte que Gemini (reçu: ${provider}).`);
-    }
     if (!messages || messages.length === 0) {
       throw new Error('Messages array cannot be empty.');
+    }
+
+    // Garde-fou par capacité : un fournisseur openai-compatible sans support des
+    // outils ne peut pas exécuter la boucle agentique (l'appelant — ex: Advisor —
+    // retombe alors sur runPrompt).
+    const providerKind = getProvider(provider).kind;
+    if (providerKind !== 'gemini' && !providerSupports(provider, 'tools')) {
+      throw new Error(
+        `runPromptWithTools: le fournisseur ${provider} ne supporte pas le function-calling.`
+      );
     }
 
     if (userId && !skipQuotaCheck) {
@@ -669,6 +834,45 @@ export class PromptService {
     // Directive de langue: même choke point que runPrompt.
     const effectiveLanguage = language ?? getRequestLanguage();
     const languageDirective = this.buildLanguageDirective(effectiveLanguage);
+    const maxToolTurns = options.maxToolTurns ?? 8;
+
+    // Branche openai-compatible (ex: GLM) : boucle d'outils au format OpenAI.
+    if (providerKind === 'openai-compatible') {
+      const toolMessages: AIChatMessage[] = languageDirective
+        ? [...messages, { role: 'system', content: languageDirective }]
+        : messages;
+      const loopStartedAt = Date.now();
+      logAIEvent('ai.agentic_loop_start', {
+        provider,
+        modelName,
+        promptType: request.promptType,
+        toolCount: tools.length,
+        maxToolTurns,
+      });
+      const text = await this._runOpenAICompatibleTools(
+        provider,
+        modelName,
+        toolMessages,
+        llmOptions,
+        tools,
+        executeTool,
+        maxToolTurns
+      );
+      logAIEvent('ai.agentic_loop_end', {
+        provider,
+        modelName,
+        finalTextLength: text.length,
+        durationMs: Date.now() - loopStartedAt,
+      });
+      if (userId && !skipQuotaCheck) {
+        try {
+          await userService.incrementUsage(userId, 1);
+        } catch (quotaError) {
+          logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
+        }
+      }
+      return text;
+    }
 
     const systemParts = messages.filter((m) => m.role === 'system').map((m) => m.content);
     if (languageDirective) {
@@ -696,8 +900,7 @@ export class PromptService {
     };
 
     const fallbackModel = AI_CONFIG.fallback.textModel;
-    const effectiveFallbackModel = modelName === fallbackModel ? 'gemini-1.5-flash' : fallbackModel;
-    const maxToolTurns = options.maxToolTurns ?? 8;
+    const effectiveFallbackModel = modelName === fallbackModel ? 'gemini-2.0-flash' : fallbackModel;
 
     const loopStartedAt = Date.now();
     logAIEvent('ai.agentic_loop_start', {
@@ -808,10 +1011,21 @@ export class PromptService {
     request: PromptConfig,
     messages: AIChatMessage[]
   ): Promise<GroundedResult> {
-    const { modelName, llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
+    const { provider, llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
 
     if (!messages || messages.length === 0) {
       throw new Error('Messages array cannot be empty.');
+    }
+
+    // Le grounding (Google Search) est propre à Gemini. Si la config pointe un
+    // fournisseur incapable (ex: GLM), on retombe sur le modèle Gemini par défaut
+    // plutôt que d'envoyer un modèle inconnu au SDK Google.
+    const groundingSupported = providerSupports(provider, 'grounding');
+    const modelName = groundingSupported ? request.modelName : AI_CONFIG.default.modelName;
+    if (!groundingSupported) {
+      logger.warn(
+        `runGroundedResearch: le fournisseur ${provider} ne supporte pas le grounding — repli sur Gemini (${modelName}).`
+      );
     }
 
     if (userId && !skipQuotaCheck) {
@@ -904,6 +1118,12 @@ export class PromptService {
     contextText: string,
     ttlSeconds = 7200
   ): Promise<string | null> {
+    // Le cache de contexte serveur est une fonctionnalité Gemini. Pour tout autre
+    // modèle (ex: glm-5.2) on n'essaie même pas : l'appelant retombe sur l'inline.
+    if (!modelName.startsWith('gemini')) {
+      logger.debug(`Context cache skipped: model "${modelName}" is not a Gemini model.`);
+      return null;
+    }
     try {
       const cache = await this.genAIClient.caches.create({
         model: modelName,
@@ -947,9 +1167,8 @@ export class PromptService {
     messages: AIChatMessage[],
     onDelta: (cumulativeText: string) => void
   ): Promise<string> {
+    const { provider, modelName } = resolveGlobalOverride(request);
     const {
-      provider,
-      modelName,
       llmOptions = {},
       userId,
       skipQuotaCheck = false,
@@ -957,15 +1176,11 @@ export class PromptService {
       cachedContent,
     } = request;
 
-    if (provider !== LLMProvider.GEMINI) {
-      // Repli simple: pas de streaming pour les autres fournisseurs.
-      const text = await this.runPrompt(request, messages);
-      onDelta(text);
-      return text;
-    }
     if (!messages || messages.length === 0) {
       throw new Error('Messages array cannot be empty.');
     }
+
+    const providerKind = getProvider(provider).kind;
 
     if (userId && !skipQuotaCheck) {
       const quotaCheck = await userService.checkQuota(userId);
@@ -976,6 +1191,41 @@ export class PromptService {
 
     const effectiveLanguage = language ?? getRequestLanguage();
     const languageDirective = this.buildLanguageDirective(effectiveLanguage);
+
+    // Fournisseur openai-compatible (ex: GLM) : vrai flux via le SDK OpenAI si la
+    // capacité est déclarée, sinon repli non-streamé. Le repli passe par runPrompt
+    // qui gère lui-même le quota ; le flux réussi incrémente ici (une seule fois).
+    if (providerKind === 'openai-compatible') {
+      if (providerSupports(provider, 'streaming')) {
+        const streamMessages: AIChatMessage[] = languageDirective
+          ? [...messages, { role: 'system', content: languageDirective }]
+          : messages;
+        try {
+          const full = await this._streamOpenAICompatible(
+            provider,
+            modelName,
+            streamMessages,
+            llmOptions,
+            onDelta
+          );
+          if (userId && !skipQuotaCheck) {
+            try {
+              await userService.incrementUsage(userId, 1);
+            } catch (quotaError) {
+              logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
+            }
+          }
+          return full;
+        } catch (error: any) {
+          logger.warn(
+            `runPromptStream (${provider}) failed, falling back to non-streaming: ${error.message}`
+          );
+        }
+      }
+      const text = await this.runPrompt(request, messages);
+      onDelta(text);
+      return text;
+    }
 
     const systemParts = messages.filter((m) => m.role === 'system').map((m) => m.content);
     if (languageDirective) systemParts.push(languageDirective);

@@ -55,6 +55,8 @@ const OPTIONAL_SECRETS = [
   'GEMINI_API_KEY',
   'DEEPSEEK_API_KEY',
   'OPENAI_API_KEY',
+  // Clé du fournisseur GLM (Zhipu / Z.ai), API OpenAI-compatible.
+  'GLM_API_KEY',
   'GITHUB_CLIENT_ID',
   'GITHUB_CLIENT_SECRET',
   'PEXELS_API_KEY',
