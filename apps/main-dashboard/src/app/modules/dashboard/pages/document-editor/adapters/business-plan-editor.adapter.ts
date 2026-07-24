@@ -7,7 +7,9 @@ import { HtmlSectionsEditorAdapter } from './html-sections.adapter.base';
 export class BusinessPlanEditorAdapter extends HtmlSectionsEditorAdapter {
   readonly type = 'business-plan' as const;
   readonly pageFormat: PageFormat = { width: '210mm', height: '297mm' };
-  readonly multiPage = true;
+  // Chaque section = une page A4 pleine (comme pitch/charte). Le contenu est
+  // généré pour remplir et tenir dans la page.
+  readonly multiPage = false;
   readonly i18nTitleKey = 'dashboard.documentEditor.businessPlan.title';
   readonly backRoute = '/project/business-plan';
   protected readonly resource = 'businessPlans';
