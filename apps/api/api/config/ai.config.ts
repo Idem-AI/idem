@@ -199,7 +199,7 @@ export const AI_CONFIG = {
       provider: LLMProvider.GLM,
       modelName: 'glm-5.2',
       llmOptions: {
-        maxOutputTokens: 12000,
+        maxOutputTokens: 1000,
         temperature: 0.35,
         topP: 0.9,
         topK: 40,

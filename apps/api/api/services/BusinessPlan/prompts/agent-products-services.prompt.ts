@@ -19,8 +19,7 @@ export const AGENT_PRODUCTS_SERVICES_PROMPT = `<role>Senior product strategist</
 </chart_requirements>
 
 <page_format>
-- Outermost container: w-[210mm] min-h-[297mm] relative (A4 size fit, min height 297mm; the page grows with content and may span multiple A4 pages — NEVER truncate content to fit one page).
-- Keep each block whole: build self-contained blocks (cards, tables, lists, sub-sections) that EACH fit within a single A4 page, so no block is ever split across a page break.
+- Outermost container: w-[210mm] h-[297mm] overflow-hidden relative (A4 page, exactly h-[297mm]). The content MUST FILL and FIT this single A4 page (no overflow, no scroll): if it is too long, shorten/summarize; if it is short, use generous spacing, larger type or balanced layout to FILL the whole page — never leave a large empty area.
 - Internal safe padding: p-[12mm] (no content overflow).
 </page_format>
 
