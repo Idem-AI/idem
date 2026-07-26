@@ -37,6 +37,7 @@ import {
 import { AuthService } from '../../../auth/services/auth.service';
 import { LoginCardComponent } from '../../../auth/components/login-card/login-card';
 import { DialogModule } from 'primeng/dialog';
+import { ModeChoiceComponent, CreateMode } from './components/mode-choice/mode-choice';
 
 // Simple step configuration
 interface Step {
@@ -45,8 +46,6 @@ interface Step {
   component: string;
 }
 
-/** Mode d'affichage de la création de projet */
-type CreateMode = 'chat' | 'form';
 const CREATE_MODE_KEY = 'idem_create_project_mode';
 
 @Component({
@@ -64,6 +63,7 @@ const CREATE_MODE_KEY = 'idem_create_project_mode';
     OnboardingChatComponent,
     DialogModule,
     LoginCardComponent,
+    ModeChoiceComponent,
   ],
   templateUrl: './create-project.html',
   styleUrl: './create-project.css',
@@ -99,14 +99,17 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
   protected readonly mode = signal<CreateMode>(this.readMode());
   protected readonly isChatRecapActive = signal<boolean>(false);
 
+  // Choice screen display after description step
+  protected readonly showModeChoice = signal<boolean>(false);
+
   /** Indique si la page actuelle est la page de synthèse / validation des politiques (où le changement de mode doit être masqué) */
   protected readonly isSummaryPage = computed(
     () => (this.mode() === 'form' && this.currentStepIndex() === 2) || (this.mode() === 'chat' && this.isChatRecapActive()),
   );
 
-  /** Vue conversationnelle active (chat + au-delà de l'étape description). */
+  /** Vue conversationnelle active (chat + au-delà de l'étape description et hors écran de choix de mode). */
   protected readonly isChatConversation = computed(
-    () => this.mode() === 'chat' && this.currentStepIndex() !== 0,
+    () => this.mode() === 'chat' && this.currentStepIndex() !== 0 && !this.showModeChoice(),
   );
 
   constructor() {
@@ -332,11 +335,27 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
    */
   protected navigateToStep(index: number): void {
     if (index >= 0 && index < this.steps.length) {
+      this.showModeChoice.set(false);
       this.currentStepIndex.set(index);
       this.saveDraftProject();
       // Scroll to top of page
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  }
+
+  /**
+   * Handle mode selection from mode choice screen
+   */
+  protected onModeSelected(selectedMode: CreateMode): void {
+    this.setMode(selectedMode);
+    this.navigateToStep(1);
+  }
+
+  /**
+   * Back from mode choice screen to project description
+   */
+  protected onBackFromModeChoice(): void {
+    this.showModeChoice.set(false);
   }
 
   /**
@@ -350,6 +369,15 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
    * Navigate to next step
    */
   protected async goToNextStep(): Promise<void> {
+    // After description step (index 0), ask user to choose between form or chat mode
+    if (this.currentStepIndex() === 0 && !this.showModeChoice()) {
+      if (this.canGoNext()) {
+        this.showModeChoice.set(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      return;
+    }
+
     // After completing the "details" step (index 1), create the project in the database
     if (this.currentStepIndex() === 1 && !this.project().id) {
       const user = this.authService.getCurrentUser();
