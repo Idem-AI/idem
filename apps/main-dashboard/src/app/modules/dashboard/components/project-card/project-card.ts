@@ -5,6 +5,8 @@ import { CookieService } from '../../../../shared/services/cookie.service';
 import { TranslateModule } from '@ngx-translate/core';
 import { SafeHtmlPipe } from '../../../../shared/pipes/safe-html.pipe';
 
+import { UiModeService } from '../../../../shared/services/ui-mode.service';
+
 @Component({
   selector: 'app-project-card',
   imports: [TranslateModule, SafeHtmlPipe],
@@ -17,7 +19,7 @@ export class ProjectCard {
   readonly deleteProject = output<ProjectModel>();
   router = inject(Router);
   cookieService = inject(CookieService);
-
+  private readonly uiModeService = inject(UiModeService);
 
   /** Track if the logo image has failed to load */
   readonly logoLoadError = signal(false);
@@ -92,7 +94,11 @@ export class ProjectCard {
 
   cardClick(id: string) {
     this.cookieService.set('projectId', id);
-    this.router.navigate(['/project/dashboard']);
+    if (this.uiModeService.mode() === 'chat') {
+      this.router.navigate(['/chat']);
+    } else {
+      this.router.navigate(['/project/dashboard']);
+    }
   }
 
   onDelete(event: MouseEvent) {
