@@ -24,17 +24,17 @@
   </div>
 
   <!-- Mode Cards Grid -->
-  <div class="w-full max-w-4xl mx-auto">
+  <div class="w-full max-w-4xl mx-auto pt-4">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-stretch">
       
       <!-- Card 1: Formulaire Classique -->
       <div
         (click)="onSelectForm()"
-        class="group relative rounded-2xl border border-[var(--glass-border)] glass p-6 transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 hover:scale-[1.01] hover:shadow-xl flex flex-col justify-between cursor-pointer overflow-hidden"
+        class="group relative rounded-2xl border border-[var(--glass-border)] glass p-6 transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 hover:scale-[1.01] hover:shadow-xl flex flex-col justify-between cursor-pointer"
       >
         <div>
-          <!-- Representative Image -->
-          <div class="w-full h-48 sm:h-52 rounded-xl overflow-hidden mb-6 bg-gradient-to-br from-blue-900/20 via-purple-900/10 to-transparent border border-[var(--glass-border)] flex items-center justify-center">
+          <!-- Representative Pro Image -->
+          <div class="w-full h-48 sm:h-56 rounded-xl overflow-hidden mb-6 bg-slate-900/50 border border-[var(--glass-border)] flex items-center justify-center">
             <img
               src="assets/images/mode-choice-form.png"
               alt="Formulaire classique"
@@ -71,17 +71,17 @@
       <!-- Card 2: Interface Chat Interactive (Recommandé) -->
       <div
         (click)="onSelectChat()"
-        class="group relative rounded-2xl border-2 border-primary/40 glass p-6 transition-all duration-300 hover:border-primary hover:bg-primary/10 hover:scale-[1.01] hover:shadow-2xl shadow-primary/10 flex flex-col justify-between cursor-pointer overflow-hidden"
+        class="group relative rounded-2xl border-2 border-primary/50 glass p-6 transition-all duration-300 hover:border-primary hover:bg-primary/10 hover:scale-[1.01] hover:shadow-2xl shadow-primary/10 flex flex-col justify-between cursor-pointer"
       >
-        <!-- Recommended Badge -->
-        <div class="absolute top-4 right-4 z-10 inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-lg">
+        <!-- Recommended Badge floating above top border -->
+        <div class="absolute -top-3.5 right-6 z-20 inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-full bg-primary text-white border border-blue-300/40 shadow-xl">
           <i class="pi pi-sparkles text-[11px]"></i>
           <span>{{ 'dashboard.createProject.modeChoice.chat.badge' | translate }}</span>
         </div>
 
         <div>
-          <!-- Representative Image -->
-          <div class="w-full h-48 sm:h-52 rounded-xl overflow-hidden mb-6 bg-gradient-to-br from-indigo-900/20 via-purple-900/20 to-transparent border border-primary/30 flex items-center justify-center">
+          <!-- Representative Pro Image -->
+          <div class="w-full h-48 sm:h-56 rounded-xl overflow-hidden mb-6 bg-slate-900/50 border border-primary/30 flex items-center justify-center">
             <img
               src="assets/images/mode-choice-chat.png"
               alt="Interface Chat interactive"

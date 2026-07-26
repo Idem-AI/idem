@@ -59,7 +59,6 @@ const CREATE_MODE_KEY = 'idem_create_project_mode';
     ProjectSummaryComponent,
     TranslateModule,
     Loader,
-    FoundationsCardComponent,
     OnboardingChatComponent,
     DialogModule,
     LoginCardComponent,
@@ -158,19 +157,28 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
 
   private readMode(): CreateMode {
     try {
-      return localStorage.getItem(CREATE_MODE_KEY) === 'chat' ? 'chat' : 'form';
+      const saved = localStorage.getItem(CREATE_MODE_KEY);
+      if (saved === 'chat' || saved === 'form') {
+        return saved;
+      }
+      return this.uiModeService.mode() === 'chat' ? 'chat' : 'form';
     } catch {
       return 'form';
     }
   }
 
   protected setMode(mode: CreateMode): void {
-    if (mode === this.mode()) return;
     this.mode.set(mode);
     try {
       localStorage.setItem(CREATE_MODE_KEY, mode);
     } catch {
       // ignore
+    }
+    // Synchronise avec le UiModeService global pour que le dashboard ouvre par défaut le bon mode
+    if (mode === 'chat') {
+      this.uiModeService.setMode('chat');
+    } else {
+      this.uiModeService.setMode('advanced');
     }
   }
 
