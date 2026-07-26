@@ -628,6 +628,11 @@ export class BrandingService extends GenericService {
       return null;
     }
 
+    // Make sure the logo has hosted PNG URLs before we build any prompt — else
+    // the fallback would inject a giant SVG data-URI that the LLM turns into a
+    // broken link (e.g. "https://brand-logo.svg"). Persists them for reuse.
+    await this.ensureLogoAssetUrls(userId, projectId, project);
+
     // Generate cache key based on project content
     const projectDescription =
       this.extractProjectDescription(project) +
@@ -1199,6 +1204,12 @@ export class BrandingService extends GenericService {
       throw new Error(`Failed to create project`);
     }
 
+    // Rasterize + upload the selected logo's PNG assets now, at selection time,
+    // so every downstream consumer (brand book, pitch deck, business plan,
+    // communication, dashboard) references hosted URLs instead of inline SVG.
+    // persist=false: the project update below already writes the mutated logo.
+    await this.ensureLogoAssetUrls(userId, createdProject.id, createdProject, false);
+
     // Stocker le projet en cache
     try {
       const projectCacheKey = `project_${userId}_${createdProject.id}`;
@@ -1415,6 +1426,71 @@ export class BrandingService extends GenericService {
    * Extract icon-only SVG from the complete logo SVG
    * Removes text elements to create an icon-only version
    */
+  /**
+   * Guarantees the project's logo carries hosted PNG asset URLs (`assetUrls`).
+   *
+   * The upload normally happens when the logo is selected / colors are generated,
+   * but some flows reach a downstream consumer (brand book, pitch deck…) before
+   * that ran. Without hosted URLs, consumers fall back to inline SVG data-URIs —
+   * which the LLM then hallucinates into broken links (e.g. `https://brand-logo.svg`).
+   *
+   * When `assetUrls` is missing this rasterizes+uploads now, mutates the in-memory
+   * project so the current run uses real URLs, and (unless `persist` is false)
+   * writes them back to DB + cache. Non-fatal: logs and returns on failure.
+   */
+  private async ensureLogoAssetUrls(
+    userId: string,
+    projectId: string,
+    project: ProjectModel,
+    persist = true
+  ): Promise<void> {
+    const logo = project.analysisResultModel?.branding?.logo;
+    if (!logo || logo.assetUrls) return;
+
+    const v = logo.variations;
+    const hasContent = !!(
+      logo.svg ||
+      v?.withText?.lightBackground ||
+      v?.withText?.darkBackground ||
+      v?.withText?.monochrome ||
+      v?.iconOnly?.lightBackground ||
+      v?.iconOnly?.darkBackground ||
+      v?.iconOnly?.monochrome
+    );
+    if (!hasContent) return;
+
+    try {
+      const assetUrls = await this.storageService.uploadProjectLogoAssets(logo, userId, projectId);
+      // Mutate in-memory so the current generation uses hosted URLs immediately.
+      logo.assetUrls = assetUrls;
+
+      logger.info(`ensureLogoAssetUrls: uploaded logo asset URLs`, {
+        projectId,
+        uploaded: Object.keys(assetUrls),
+        persisted: persist,
+      });
+
+      if (persist && project.analysisResultModel?.branding) {
+        const updated = {
+          ...project,
+          analysisResultModel: {
+            ...project.analysisResultModel,
+            branding: {
+              ...project.analysisResultModel.branding,
+              logo: { ...logo, assetUrls },
+            },
+          },
+        };
+        await this.projectRepository.update(projectId, updated as any, `users/${userId}/projects`);
+        await cacheService
+          .set(`project_${userId}_${projectId}`, updated, { prefix: 'project', ttl: 3600 })
+          .catch((error) => logger.error(`ensureLogoAssetUrls: cache update failed`, error));
+      }
+    } catch (error) {
+      logger.error(`ensureLogoAssetUrls failed (continuing without asset URLs)`, error);
+    }
+  }
+
   /**
    * Best-effort SVG salvage from raw model text. Used as a last resort when the
    * JSON wrapper is unrecoverable but the `<svg>…</svg>` markup itself is intact

@@ -843,6 +843,31 @@
       "modeChat": "Conversation",
       "modeForm": "Form",
       "switchToForm": "Switch to form",
+      "modeChoice": {
+        "badge": "Onboarding Mode",
+        "title": "How would you like to proceed?",
+        "subtitle": "Your description is saved. Choose the experience that best fits your workflow to complete your project setup.",
+        "backToDescription": "Edit description",
+        "form": {
+          "title": "Classic Form",
+          "tag": "Step-by-step input",
+          "description": "Fill out a structured step-by-step form to configure the technical and functional details of your project.",
+          "feature1": "Clear and fast overview",
+          "feature2": "Structured & guided fields",
+          "feature3": "Direct control over all parameters",
+          "button": "Continue with Form"
+        },
+        "chat": {
+          "title": "Interactive Chat Interface",
+          "badge": "Recommended",
+          "tag": "AI Assisted",
+          "description": "A simple and easy-to-use chat interface to guide you and unlock all IDEM features effortlessly.",
+          "feature1": "Smart and personalized AI assistance",
+          "feature2": "Easy access to all IDEM features",
+          "feature3": "Smooth, dynamic & interactive experience",
+          "button": "Start with Chat"
+        }
+      },
       "foundations": {
         "title": "Let's talk about your project",
         "subtitle": "A few basics to start — the AI handles the rest in conversation.",
