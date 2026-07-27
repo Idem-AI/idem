@@ -17,7 +17,7 @@ export const LOGO_VARIATION_CRITIQUE_PROMPT = `<role>Uncompromising brand system
 2. READABILITY ON TARGET — every element clearly visible on {{BACKGROUND}}. Elements that blend into the background (e.g. dark fills on dark background, white fills on white) are an automatic fail. Use the measured visibility as strong evidence.
 3. COLOR ADAPTATION QUALITY — brand hues preserved (lightness adjusted, not hue-shifted); no neon/fluorescent drift; contrast sufficient without distorting the identity.
 4. MONOCHROME RULES (only for monochrome variant) — strictly grayscale; at least distinct tones preserving the original hierarchy; no flat single-color blob; darkest tone on the primary shape.
-5. TEXT — if the original had text, it must remain identical (same string, same font) and readable on the target background.
+5. {{TEXT_RULE}}
 6. NO ADDED EFFECTS — no new gradients, shadows, outlines or background rectangles that were not in the original.
 </evaluation_checklist>
 

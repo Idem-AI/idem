@@ -13,6 +13,11 @@ import { LOGO_GENERATION_INITIAL_TYPE_PROMPT } from './prompts/singleGenerations
 import { LOGO_VARIATION_LIGHT_PROMPT } from './prompts/singleGenerations/logo-variation-light.prompt';
 import { LOGO_VARIATION_DARK_PROMPT } from './prompts/singleGenerations/logo-variation-dark.prompt';
 import { LOGO_VARIATION_MONOCHROME_PROMPT } from './prompts/singleGenerations/logo-variation-monochrome.prompt';
+import {
+  LOGO_VARIATION_LIGHT_WITHTEXT_PROMPT,
+  LOGO_VARIATION_DARK_WITHTEXT_PROMPT,
+  LOGO_VARIATION_MONOCHROME_WITHTEXT_PROMPT,
+} from './prompts/singleGenerations/logo-variation-withtext.prompt';
 import { LOGO_EDIT_PROMPT } from './prompts/singleGenerations/logo-edit.prompt';
 import { LOGO_CRITIQUE_PROMPT } from './prompts/singleGenerations/logo-critique.prompt';
 import { LOGO_REVISION_PROMPT } from './prompts/singleGenerations/logo-revision.prompt';
@@ -88,10 +93,34 @@ export interface ILogoStreamEvent {
 /** Déclinaison de logo : type + fond cible */
 export type LogoVariationKind = 'lightBackground' | 'darkBackground' | 'monochrome';
 
+/**
+ * Style de déclinaison :
+ *  - 'withText'  → logo COMPLET recoloré (icône + wordmark), le nom de marque est
+ *    conservé. C'est le jeu "héros" affiché en direct et jugé par le vérificateur.
+ *  - 'iconOnly'  → symbole seul, texte retiré + recentré (déclinaison d'icône).
+ * Les deux jeux partagent la même géométrie ; seules les couleurs et la présence
+ * du texte diffèrent.
+ */
+export type LogoVariationStyle = 'withText' | 'iconOnly';
+
 const VARIATION_BACKGROUNDS: Record<LogoVariationKind, string> = {
   lightBackground: '#ffffff',
   darkBackground: '#1a1a2e',
   monochrome: '#f4f4f6',
+};
+
+/** Prompts recolorant le LOGO COMPLET en conservant le texte (jeu withText). */
+const WITHTEXT_VARIATION_PROMPTS: Record<LogoVariationKind, string> = {
+  lightBackground: LOGO_VARIATION_LIGHT_WITHTEXT_PROMPT,
+  darkBackground: LOGO_VARIATION_DARK_WITHTEXT_PROMPT,
+  monochrome: LOGO_VARIATION_MONOCHROME_WITHTEXT_PROMPT,
+};
+
+/** Prompts extrayant + recentrant + recolorant l'icône seule (jeu iconOnly). */
+const ICONONLY_VARIATION_PROMPTS: Record<LogoVariationKind, string> = {
+  lightBackground: LOGO_VARIATION_LIGHT_PROMPT,
+  darkBackground: LOGO_VARIATION_DARK_PROMPT,
+  monochrome: LOGO_VARIATION_MONOCHROME_PROMPT,
 };
 
 function safeParseJson(content: string): any {
@@ -2042,126 +2071,52 @@ export class BrandingService extends GenericService {
   }
 
   /**
-   * Generate single logo variation for light background
+   * Génère UNE déclinaison (un fond) pour un style donné. Générique : le prompt
+   * (withText vs iconOnly) et la structure source (logo complet vs icône) sont
+   * fournis par l'appelant. Renvoie le SVG brut de l'IA, ou `undefined` si la
+   * réponse n'est pas exploitable (le parser échoue → parsedData n'est pas un SVG).
    */
-  private async generateSingleLightVariation(
+  private async generateSingleVariation(
+    kind: LogoVariationKind,
     logoStructure: any,
+    promptTemplate: string,
     project: ProjectModel,
     skipQuotaCheck = false
-  ): Promise<{ lightBackground?: string }> {
-    const prompt = `Logo structure: ${JSON.stringify(
-      logoStructure
-    )}\n\n${LOGO_VARIATION_LIGHT_PROMPT}`;
+  ): Promise<string | undefined> {
+    const prompt = `Logo structure: ${JSON.stringify(logoStructure)}\n\n${promptTemplate}`;
 
     const steps: IPromptStep[] = [
       {
         promptConstant: prompt,
-        stepName: 'Light Background Variation',
+        stepName: `${kind} Variation`,
         maxOutputTokens: 4096,
         modelParser: (content) => {
           try {
             const parsed = safeParseJson(content);
-            return parsed?.variation || parsed;
+            const container = parsed?.variation ?? parsed;
+            // Le SVG peut être sous la clé du fond ({ lightBackground: svg }) ou
+            // directement une chaîne. On valide qu'un vrai <svg> est présent.
+            const svg =
+              typeof container === 'string' ? container : container?.[kind];
+            if (typeof svg !== 'string' || !svg.includes('<svg')) {
+              throw new Error('no usable SVG in variation response');
+            }
+            return svg;
           } catch (error) {
-            logger.error('Error parsing light variation JSON:', error);
-            throw new Error('Failed to parse light variation JSON');
+            logger.error(`Error parsing ${kind} variation JSON:`, error);
+            throw new Error(`Failed to parse ${kind} variation JSON`);
           }
         },
         hasDependencies: false,
       },
     ];
 
-    const sectionResults = await this.processSteps(
-      steps,
-      project,
-      {
-        ...BrandingService.LOGO_LLM_CONFIG,
-        skipQuotaCheck,
-      }
-    );
-    return sectionResults[0].parsedData;
-  }
-
-  /**
-   * Generate single logo variation for dark background
-   */
-  private async generateSingleDarkVariation(
-    logoStructure: any,
-    project: ProjectModel,
-    skipQuotaCheck = false
-  ): Promise<{ darkBackground?: string }> {
-    const prompt = `Logo structure: ${JSON.stringify(
-      logoStructure
-    )}\n\n${LOGO_VARIATION_DARK_PROMPT}`;
-
-    const steps: IPromptStep[] = [
-      {
-        promptConstant: prompt,
-        stepName: 'Dark Background Variation',
-        maxOutputTokens: 4096,
-        modelParser: (content) => {
-          try {
-            const parsed = safeParseJson(content);
-            return parsed?.variation || parsed;
-          } catch (error) {
-            logger.error('Error parsing dark variation JSON:', error);
-            throw new Error('Failed to parse dark variation JSON');
-          }
-        },
-        hasDependencies: false,
-      },
-    ];
-
-    const sectionResults = await this.processSteps(
-      steps,
-      project,
-      {
-        ...BrandingService.LOGO_LLM_CONFIG,
-        skipQuotaCheck,
-      }
-    );
-    return sectionResults[0].parsedData;
-  }
-
-  /**
-   * Generate single logo variation for monochrome
-   */
-  private async generateSingleMonochromeVariation(
-    logoStructure: any,
-    project: ProjectModel,
-    skipQuotaCheck = false
-  ): Promise<{ monochrome?: string }> {
-    const prompt = `Logo structure: ${JSON.stringify(
-      logoStructure
-    )}\n\n${LOGO_VARIATION_MONOCHROME_PROMPT}`;
-
-    const steps: IPromptStep[] = [
-      {
-        promptConstant: prompt,
-        stepName: 'Monochrome Variation',
-        maxOutputTokens: 4096,
-        modelParser: (content) => {
-          try {
-            const parsed = safeParseJson(content);
-            return parsed?.variation || parsed;
-          } catch (error) {
-            logger.error('Error parsing monochrome variation JSON:', error);
-            throw new Error('Failed to parse monochrome variation JSON');
-          }
-        },
-        hasDependencies: false,
-      },
-    ];
-
-    const sectionResults = await this.processSteps(
-      steps,
-      project,
-      {
-        ...BrandingService.LOGO_LLM_CONFIG,
-        skipQuotaCheck,
-      }
-    );
-    return sectionResults[0].parsedData;
+    const sectionResults = await this.processSteps(steps, project, {
+      ...BrandingService.LOGO_LLM_CONFIG,
+      skipQuotaCheck,
+    });
+    const svg = sectionResults[0].parsedData;
+    return typeof svg === 'string' ? svg : undefined;
   }
 
   /**
@@ -2193,58 +2148,62 @@ export class BrandingService extends GenericService {
       throw new Error(`Project not found with ID: ${projectId}`);
     }
 
-    // Create compact logo structure for AI input (token-efficient)
-    const logoStructure = {
+    // Deux structures source : le LOGO COMPLET (avec texte) pour le jeu withText,
+    // et l'icône seule pour le jeu iconOnly. Le nom de marque n'est conservé que
+    // pour withText — c'est ce que le vérificateur contrôle.
+    const withTextStructure = {
       id: selectedLogo.id,
       name: selectedLogo.name,
       colors: selectedLogo.colors,
       concept: selectedLogo.concept,
-      svg: selectedLogo.iconSvg,
+      svg: selectedLogo.svg,
+    };
+    const iconStructure = { ...withTextStructure, svg: selectedLogo.iconSvg || selectedLogo.svg };
+
+    const existingWithText =
+      !forceRegenerate && selectedLogo.variations?.withText ? selectedLogo.variations.withText : {};
+    const existingIconOnly =
+      !forceRegenerate && selectedLogo.variations?.iconOnly ? selectedLogo.variations.iconOnly : {};
+    const isRetry = selectedLogo.variations?.withText !== undefined || skipQuotaCheck;
+
+    const kinds: LogoVariationKind[] = ['lightBackground', 'darkBackground', 'monochrome'];
+
+    // Génère (ou réutilise) un jeu complet pour un style donné, en parallèle sur
+    // les 3 fonds.
+    const buildSet = async (
+      structure: any,
+      prompts: Record<LogoVariationKind, string>,
+      existing: Partial<Record<LogoVariationKind, string>>
+    ): Promise<Record<LogoVariationKind, string | undefined>> => {
+      const entries = await Promise.all(
+        kinds.map(async (kind) => {
+          const reused = existing[kind];
+          if (reused) return [kind, reused] as const;
+          const svg = await this.generateSingleVariation(
+            kind,
+            structure,
+            prompts[kind],
+            project,
+            isRetry
+          );
+          return [kind, svg] as const;
+        })
+      );
+      return Object.fromEntries(entries) as Record<LogoVariationKind, string | undefined>;
     };
 
-    const existingVariations = (!forceRegenerate && selectedLogo.variations?.withText) ? selectedLogo.variations.withText : {};
-    const isRetry = (selectedLogo.variations?.withText !== undefined) || skipQuotaCheck;
-
-    // Execute only the missing variations in parallel
-    logger.info(`Starting parallel generation of logo variations (resuming completed ones)`);
-    const lightPromise = existingVariations.lightBackground
-      ? Promise.resolve({ lightBackground: existingVariations.lightBackground })
-      : this.generateSingleLightVariation(logoStructure, project, isRetry);
-
-    const darkPromise = existingVariations.darkBackground
-      ? Promise.resolve({ darkBackground: existingVariations.darkBackground })
-      : this.generateSingleDarkVariation(logoStructure, project, isRetry);
-
-    const monochromePromise = existingVariations.monochrome
-      ? Promise.resolve({ monochrome: existingVariations.monochrome })
-      : this.generateSingleMonochromeVariation(logoStructure, project, isRetry);
-
-    const [lightVariation, darkVariation, monochromeVariation] = await Promise.all([
-      lightPromise,
-      darkPromise,
-      monochromePromise,
+    logger.info('Generating withText + iconOnly variation sets (resuming completed ones)');
+    const [withTextSet, iconOnlySet] = await Promise.all([
+      buildSet(withTextStructure, WITHTEXT_VARIATION_PROMPTS, existingWithText),
+      buildSet(iconStructure, ICONONLY_VARIATION_PROMPTS, existingIconOnly),
     ]);
 
-    logger.info(`Successfully processed all 3 variations`);
-
-    // Create direct SVG variations (bypassing JSON-to-SVG conversion since we already have SVGs)
-    const svgVariations = {
-      withText: {
-        lightBackground: lightVariation.lightBackground,
-        darkBackground: darkVariation.darkBackground,
-        monochrome: monochromeVariation.monochrome,
-      },
-      iconOnly: {
-        lightBackground: lightVariation.lightBackground,
-        darkBackground: darkVariation.darkBackground,
-        monochrome: monochromeVariation.monochrome,
-      },
-    };
+    logger.info(`Successfully processed all variations (withText + iconOnly)`);
 
     // Apply advanced SVG optimization
     const optimizedVariations = {
-      withText: this.optimizeVariationSet(svgVariations.withText),
-      iconOnly: this.optimizeVariationSet(svgVariations.iconOnly),
+      withText: this.optimizeVariationSet(withTextSet),
+      iconOnly: this.optimizeVariationSet(iconOnlySet),
     };
 
     // Update project with optimized variations
@@ -2317,14 +2276,24 @@ export class BrandingService extends GenericService {
     originalSvg: string,
     variationSvg: string,
     variant: LogoVariationKind,
-    project: ProjectModel
+    project: ProjectModel,
+    style: LogoVariationStyle = 'withText'
   ): Promise<LogoCritiqueResult> {
     const background = VARIATION_BACKGROUNDS[variant];
     const visibility = await measureSvgVisibility(variationSvg, background);
 
+    // Règle texte dépendante du style : withText EXIGE le nom de marque ;
+    // iconOnly l'INTERDIT (le texte est délibérément retiré). Sans cette bascule,
+    // le vérificateur échouait à trouver le nom sur les déclinaisons icône.
+    const textRule =
+      style === 'withText'
+        ? 'TEXT — this is a WITH-TEXT declination: the brand name / wordmark MUST be present and identical to the original (same string, same font, readable on the target background). If the text is missing, altered or unreadable, it is an automatic fail.'
+        : 'TEXT — this is an ICON-ONLY declination: the wordmark is intentionally removed. The variation must contain NO <text>. NEVER flag a missing brand name or missing text as an issue here.';
+
     const prompt = LOGO_VARIATION_CRITIQUE_PROMPT.replace(/\{\{VARIANT\}\}/g, variant)
       .replace(/\{\{BACKGROUND\}\}/g, background)
       .replace(/\{\{VISIBILITY\}\}/g, String(Math.round(visibility * 100)))
+      .replace(/\{\{TEXT_RULE\}\}/g, textRule)
       .replace('{{ORIGINAL_SVG}}', originalSvg)
       .replace('{{VARIATION_SVG}}', variationSvg);
 
@@ -2398,53 +2367,70 @@ export class BrandingService extends GenericService {
       throw new Error('No selected logo found on project. Select a logo first.');
     }
 
-    const existing =
+    const existingWithText =
       !forceRegenerate && selectedLogo.variations?.withText ? selectedLogo.variations.withText : {};
+    const existingIconOnly =
+      !forceRegenerate && selectedLogo.variations?.iconOnly ? selectedLogo.variations.iconOnly : {};
     const isRetry = selectedLogo.variations?.withText !== undefined;
 
     const kinds: LogoVariationKind[] = ['lightBackground', 'darkBackground', 'monochrome'];
+    // results = jeu withText (streamé, héros avec le nom) ; iconResults = jeu icône.
     const results: Partial<Record<LogoVariationKind, string>> = {};
+    const iconResults: Partial<Record<LogoVariationKind, string>> = {};
 
     // Réémettre l'existant (reprise), ne générer que le manquant
     for (const kind of kinds) {
-      const existingSvg = (existing as Record<string, string | undefined>)[kind];
+      const existingSvg = (existingWithText as Record<string, string | undefined>)[kind];
+      const existingIconSvg = (existingIconOnly as Record<string, string | undefined>)[kind];
+      if (existingIconSvg) {
+        iconResults[kind] = existingIconSvg;
+      }
       if (existingSvg) {
         results[kind] = existingSvg;
         await streamCallback({ type: 'variation_finalized', variant: kind, svg: existingSvg });
       }
     }
-    const missingKinds = kinds.filter((kind) => !results[kind]);
+    const missingKinds = kinds.filter((kind) => !results[kind] || !iconResults[kind]);
     if (missingKinds.length === 0) {
-      return { withText: { ...results }, iconOnly: { ...results } };
+      return { withText: { ...results }, iconOnly: { ...iconResults } };
     }
 
     const generationKey = BrandingService.variationsGenerationKey(userId, projectId);
     const cancelState = { cancelled: false };
     BrandingService.activeLogoGenerations.set(generationKey, cancelState);
 
-    // Structure compacte pour l'IA (mêmes entrées que le flux non streamé)
-    const logoStructure = {
+    // Deux sources : le LOGO COMPLET (avec texte) pour withText, l'icône seule
+    // pour iconOnly. La critique streamée juge le jeu withText contre le logo
+    // complet → elle vérifie que le nom de marque est bien présent.
+    const withTextStructure = {
       id: selectedLogo.id,
       name: selectedLogo.name,
       colors: selectedLogo.colors,
       concept: selectedLogo.concept,
-      svg: selectedLogo.iconSvg,
+      svg: selectedLogo.svg,
     };
-    const originalSvg = selectedLogo.iconSvg || selectedLogo.svg;
+    const iconStructure = { ...withTextStructure, svg: selectedLogo.iconSvg || selectedLogo.svg };
+    const originalSvg = selectedLogo.svg;
 
-    const generateOne = async (kind: LogoVariationKind): Promise<string | undefined> => {
-      switch (kind) {
-        case 'lightBackground':
-          return (await this.generateSingleLightVariation(logoStructure, project, isRetry))
-            .lightBackground;
-        case 'darkBackground':
-          return (await this.generateSingleDarkVariation(logoStructure, project, isRetry))
-            .darkBackground;
-        case 'monochrome':
-          return (await this.generateSingleMonochromeVariation(logoStructure, project, isRetry))
-            .monochrome;
-      }
-    };
+    // withText streamé (héros). Le nom est conservé.
+    const generateOne = (kind: LogoVariationKind): Promise<string | undefined> =>
+      this.generateSingleVariation(
+        kind,
+        withTextStructure,
+        WITHTEXT_VARIATION_PROMPTS[kind],
+        project,
+        isRetry
+      );
+
+    // iconOnly généré en silence (pas de critique streamée) via les prompts icône.
+    const generateIconOnly = (kind: LogoVariationKind): Promise<string | undefined> =>
+      this.generateSingleVariation(
+        kind,
+        iconStructure,
+        ICONONLY_VARIATION_PROMPTS[kind],
+        project,
+        true
+      );
 
     const processVariant = async (kind: LogoVariationKind): Promise<void> => {
       try {
@@ -2453,6 +2439,16 @@ export class BrandingService extends GenericService {
           return;
         }
         await streamCallback({ type: 'variation_started', variant: kind });
+
+        // iconOnly généré en parallèle (silencieux) — réutilise l'existant si présent.
+        const iconOnlyPromise: Promise<string | undefined> = iconResults[kind]
+          ? Promise.resolve(iconResults[kind])
+          : generateIconOnly(kind)
+              .then((raw) => (raw ? SvgOptimizerService.optimizeSvg(raw) : undefined))
+              .catch((error) => {
+                logger.warn(`iconOnly ${kind} generation failed: ${error?.message ?? error}`);
+                return undefined;
+              });
 
         let svg = await generateOne(kind);
         if (!svg) {
@@ -2465,7 +2461,8 @@ export class BrandingService extends GenericService {
           await streamCallback({ type: 'critique_started', variant: kind });
           let critique: LogoCritiqueResult | null = null;
           try {
-            critique = await this.critiqueLogoVariation(originalSvg, svg, kind, project);
+            // Style 'withText' : la critique EXIGE la présence du nom de marque.
+            critique = await this.critiqueLogoVariation(originalSvg, svg, kind, project, 'withText');
           } catch (error) {
             logger.warn(`Variation critique failed for ${kind}, keeping as-is`);
           }
@@ -2509,6 +2506,10 @@ export class BrandingService extends GenericService {
         }
 
         results[kind] = svg;
+        const iconSvg = await iconOnlyPromise;
+        if (iconSvg) {
+          iconResults[kind] = iconSvg;
+        }
         await streamCallback({ type: 'variation_finalized', variant: kind, svg });
       } catch (error: any) {
         logger.error(`Streamed variation ${kind} failed:`, error);
@@ -2528,7 +2529,7 @@ export class BrandingService extends GenericService {
 
     const optimizedVariations = {
       withText: this.optimizeVariationSet({ ...results }),
-      iconOnly: this.optimizeVariationSet({ ...results }),
+      iconOnly: this.optimizeVariationSet({ ...iconResults }),
     };
 
     // Persistance sur le projet (même logique que le flux non streamé)
