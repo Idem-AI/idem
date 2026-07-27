@@ -91,7 +91,7 @@ export const AI_CONFIG = {
     modelName: 'glm-5.2',
     promptType: 'advisor',
   } as FeatureAIConfig,
-
+  
   // Legal Docs service configuration
   // [Migration GLM-5.2] Ancienne valeur: { GEMINI, 'gemini-3-flash-preview' }.
   legalDocs: {
@@ -129,7 +129,7 @@ export const AI_CONFIG = {
       promptType: 'finance',
       llmOptions: {
         temperature: 0.4,
-        maxOutputTokens: 8192,
+        maxOutputTokens: 18192,
       },
     } as FeatureAIConfig,
     intent: {
