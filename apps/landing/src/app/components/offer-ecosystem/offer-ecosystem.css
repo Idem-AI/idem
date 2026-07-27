@@ -1,0 +1,33 @@
+:host {
+  display: block;
+}
+
+/* Price-list rows: quiet, scannable, only linked rows react. */
+.oe-row {
+  transition: background-color 0.2s var(--ease-out, cubic-bezier(0, 0, 0.2, 1));
+  border-radius: 0.5rem;
+  margin: 0 -0.75rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+.oe-row:hover {
+  background: var(--glass-bg-subtle);
+}
+.oe-row:hover .oe-name {
+  color: var(--color-primary);
+}
+.oe-arrow {
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+.oe-row:hover .oe-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+.oe-row:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
