@@ -111,6 +111,29 @@
   transform: scale(1.05);
 }
 
+/* Repli icône (livrables sans illustration SVG dédiée) */
+.fc-icon-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fc-icon-fallback i {
+  font-size: 2.4rem;
+  color: color-mix(in srgb, var(--color-text-primary) 45%, transparent);
+}
+
+.feature-card:hover:not(.is-locked) .fc-icon-fallback {
+  transform: scale(1.05);
+}
+
+.feature-card:hover:not(.is-locked) .fc-icon-fallback i {
+  color: color-mix(in srgb, var(--color-text-primary) 70%, transparent);
+}
+
 /* SVG element colors */
 .svg-bg {
   fill: color-mix(in srgb, var(--color-text-primary) 1.5%, transparent);
