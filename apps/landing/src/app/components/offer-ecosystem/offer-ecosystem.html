@@ -1,0 +1,63 @@
+<!-- Economic model as a price list: every engine, billed on its own, at a glance -->
+<section class="relative py-24 lg:py-32 bg-bg-dark border-y border-[var(--glass-border-subtle)]">
+  <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="max-w-2xl mb-16">
+      <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-text-primary tracking-tight text-balance">
+        <span i18n="@@offer.title.lead">Pay only for</span>&nbsp;<span class="i-underline" i18n="@@offer.title.accent">what you use</span>
+      </h2>
+      <p class="mt-5 text-lg text-text-secondary leading-relaxed text-pretty" i18n="@@offer.description">
+        Each engine is billed on its own, in FCFA, on Mobile Money. Generating is free, you pay to
+        own the result.
+      </p>
+    </div>
+
+    <!-- Service groups -->
+    <div class="flex flex-col gap-14 lg:gap-16">
+      @for (group of groups; track group.title) {
+        <div class="grid lg:grid-cols-12 gap-4 lg:gap-8">
+          <h3 class="lg:col-span-3 text-sm font-semibold text-text-tertiary lg:pt-4">{{ group.title }}</h3>
+          <ul class="lg:col-span-9 flex flex-col">
+            @for (service of group.services; track service.name) {
+              <li>
+                @if (service.link) {
+                  <a
+                    [routerLink]="service.link"
+                    class="oe-row group flex items-baseline gap-4 py-4 border-t border-[var(--glass-border-subtle)]"
+                  >
+                    <span class="oe-name font-bold text-text-primary whitespace-nowrap">{{ service.name }}</span>
+                    <span class="oe-desc hidden sm:block flex-1 text-text-tertiary text-sm truncate">{{ service.descriptor }}</span>
+                    <span class="flex-1 sm:hidden"></span>
+                    <span class="oe-price text-sm font-medium text-text-secondary whitespace-nowrap">{{ service.price }}</span>
+                    <svg class="oe-arrow w-4 h-4 text-text-tertiary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </a>
+                } @else {
+                  <div class="flex items-baseline gap-4 py-4 border-t border-[var(--glass-border-subtle)]">
+                    <span class="oe-name font-bold text-text-primary whitespace-nowrap">{{ service.name }}</span>
+                    <span class="oe-desc hidden sm:block flex-1 text-text-tertiary text-sm truncate">{{ service.descriptor }}</span>
+                    <span class="flex-1 sm:hidden"></span>
+                    <span class="oe-price text-sm font-medium text-text-secondary whitespace-nowrap">{{ service.price }}</span>
+                    <span class="w-4 h-4 shrink-0"></span>
+                  </div>
+                }
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-16 flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8">
+      <a routerLink="/pricing" class="inner-button">
+        <span i18n="@@offer.cta">See full pricing</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+        </svg>
+      </a>
+      <p class="text-sm text-text-tertiary" i18n="@@offer.footnote">1 credit ≈ 20 F · free watermarked preview before you spend anything.</p>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,472 @@
+/* ═══════════════════════════════════════════════════════════════
+   Journey — Immersive full-screen scroll-snap timeline
+   ═══════════════════════════════════════════════════════════════ */
+
+:host {
+  display: block;
+}
+
+/* ── Wrapper ────────────────────────────────────────────────── */
+.jn-wrapper {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Scroll-snap container ──────────────────────────────────── */
+.jn-scroll {
+  height: 100%;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+
+  /* Hide scrollbar but keep scroll functionality */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.jn-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Each snap section = full viewport ──────────────────────── */
+.jn-snap-section {
+  position: relative;
+  height: 100vh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  overflow: hidden;
+}
+
+/* ── Full-screen blurred background ────────────────────────── */
+.jn-bg-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.jn-bg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: blur(28px) brightness(0.35) saturate(1.3);
+  transform: scale(1.15); /* prevent blur edge bleed */
+}
+.jn-bg-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(3, 7, 18, 0.6) 0%,
+    rgba(3, 7, 18, 0.45) 40%,
+    rgba(3, 7, 18, 0.7) 100%
+  );
+}
+.jn-bg-overlay-success {
+  background: linear-gradient(
+    180deg,
+    rgba(3, 7, 18, 0.5) 0%,
+    rgba(16, 185, 129, 0.12) 50%,
+    rgba(3, 7, 18, 0.7) 100%
+  );
+}
+
+/* ── Content overlay (on top of blur) ──────────────────────── */
+.jn-content-overlay {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 5rem 1.5rem 2rem;
+}
+@media (min-width: 640px) {
+  .jn-content-overlay {
+    padding: 5.5rem 2rem 2.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .jn-content-overlay {
+    padding: 5.5rem 4rem 3rem;
+  }
+}
+
+/* ── Progress bar (fixed at top) ───────────────────────────── */
+.jn-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  z-index: 50;
+}
+.jn-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-accent-500));
+  border-radius: 0 2px 2px 0;
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Step navigation dots ──────────────────────────────────── */
+.jn-step-nav {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  transform: translateY(-50%);
+  z-index: 50;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+@media (min-width: 1024px) {
+  .jn-step-nav {
+    display: flex;
+    right: 1.5rem;
+  }
+}
+@media (min-width: 1280px) {
+  .jn-step-nav {
+    right: 2.5rem;
+  }
+}
+
+.jn-nav-dot {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 0;
+}
+.jn-nav-dot.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+  transform: scale(1.2);
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.5);
+}
+.jn-nav-dot.completed {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.jn-nav-dot-end.active {
+  background: var(--color-success);
+  border-color: var(--color-success);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.5);
+}
+.jn-nav-num {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.jn-nav-line {
+  width: 1.5px;
+  height: 1.25rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  transition: background 0.35s ease;
+}
+.jn-nav-line.filled {
+  background: var(--color-primary);
+}
+
+/* ── INTRO section ─────────────────────────────────────────── */
+.jn-intro .jn-content-overlay {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+.jn-intro-content {
+  max-width: 52rem;
+}
+.jn-eyebrow {
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+.jn-hero-title {
+  font-size: clamp(2rem, 5.5vw, 4.5rem);
+  font-weight: 800;
+  line-height: 1.1;
+  color: #fff;
+  letter-spacing: -0.03em;
+  margin-bottom: 1.75rem;
+}
+.jn-quote {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 1rem;
+  padding: 0.85rem 1.5rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-style: italic;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  margin: 0;
+}
+.jn-author {
+  margin-top: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.9rem;
+}
+.jn-intro-lead {
+  margin-top: 1.5rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: clamp(0.95rem, 1.5vw, 1.15rem);
+  line-height: 1.7;
+  max-width: 38rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Scroll hint */
+.jn-scroll-hint {
+  margin-top: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  animation: jn-bounce 2s ease-in-out infinite;
+}
+@keyframes jn-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+
+/* ── STAGE sections ────────────────────────────────────────── */
+.jn-stage-section .jn-content-overlay {
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+}
+@media (min-width: 1024px) {
+  .jn-stage-section .jn-content-overlay {
+    gap: 2rem;
+  }
+}
+
+/* Showcase browser frame */
+.jn-showcase {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  width: 100%;
+  max-width: 56rem;
+}
+@media (min-width: 1280px) {
+  .jn-showcase {
+    max-width: 64rem;
+  }
+}
+
+.jn-browser-frame {
+  width: 100%;
+  border-radius: 0.85rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Browser top bar */
+.jn-browser-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.9rem;
+  background: rgba(15, 23, 42, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.jn-browser-dots {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.jn-browser-dots span {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+}
+.jn-browser-dots span:nth-child(1) { background: #ef4444; opacity: 0.85; }
+.jn-browser-dots span:nth-child(2) { background: #f59e0b; opacity: 0.85; }
+.jn-browser-dots span:nth-child(3) { background: #10b981; opacity: 0.85; }
+
+.jn-browser-url {
+  font-size: 0.68rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.12rem 0.6rem;
+  border-radius: 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  letter-spacing: 0.02em;
+}
+
+/* Showcase image */
+.jn-showcase-img-wrap {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: #0f172a;
+}
+.jn-showcase-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  display: block;
+}
+
+/* ── Info card (glass, bottom of viewport) ─────────────────── */
+.jn-info-card {
+  width: 100%;
+  max-width: 56rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 1.25rem;
+  padding: 1.25rem 1.5rem;
+  flex-shrink: 0;
+}
+@media (min-width: 640px) {
+  .jn-info-card {
+    padding: 1.5rem 2rem;
+  }
+}
+@media (min-width: 1024px) {
+  .jn-info-card {
+    padding: 1.75rem 2.5rem;
+  }
+}
+@media (min-width: 1280px) {
+  .jn-info-card {
+    max-width: 64rem;
+  }
+}
+
+.jn-info-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.6rem;
+}
+.jn-stage-badge {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.jn-stage-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.jn-stage-title {
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.02em;
+}
+.jn-stage-caption {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0 0 1rem;
+}
+.jn-stage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+.jn-price {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* ── OUTRO section ─────────────────────────────────────────── */
+.jn-outro .jn-content-overlay {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+.jn-outro-content {
+  max-width: 40rem;
+}
+.jn-success-icon {
+  width: 5rem;
+  height: 5rem;
+  margin: 0 auto 2rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.08));
+  border: 2px solid rgba(16, 185, 129, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-success);
+  animation: jn-pulse 3s ease-in-out infinite;
+}
+@keyframes jn-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.2); }
+  50% { box-shadow: 0 0 40px 8px rgba(16, 185, 129, 0.15); }
+}
+.jn-outro-title {
+  font-size: clamp(1.5rem, 4vw, 3rem);
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 1rem;
+  letter-spacing: -0.03em;
+}
+.jn-outro-subtitle {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* ── Motion ────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  .jn-snap-section {
+    animation: jn-fadeIn 0.5s ease both;
+  }
+  @keyframes jn-fadeIn {
+    from { opacity: 0.7; }
+    to { opacity: 1; }
+  }
+}

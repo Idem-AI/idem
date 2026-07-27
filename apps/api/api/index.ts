@@ -105,12 +105,17 @@ app.use(metricsMiddleware);
 app.use(morgan('combined', { stream: loggerStream }));
 app.use(cookieParser());
 
-// Body size limits prevent trivial DoS via huge payloads.
-app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: process.env.URLENCODED_BODY_LIMIT || '1mb' }));
-
 // Strict CORS (env-driven, no localhost in prod).
+// MUST run before the body parsers: if express.json rejects an oversized payload
+// (413), it forwards an error via next(err), which SKIPS any cors() registered
+// afterwards — the browser then sees a misleading "blocked by CORS" instead of the
+// real 413. Registering CORS first guarantees the error response carries the
+// Access-Control-Allow-Origin header.
 app.use(cors(buildCorsOptions()));
+
+// Body size limits prevent trivial DoS via huge payloads.
+app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: process.env.URLENCODED_BODY_LIMIT || '10mb' }));
 
 // Burst protection + global IP rate limit (in addition to per-route limits).
 app.use(burstProtection({ maxBurst: 30, burstWindowMs: 1000 }));
