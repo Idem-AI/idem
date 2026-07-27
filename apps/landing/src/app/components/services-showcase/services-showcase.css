@@ -1,0 +1,87 @@
+:host {
+  display: block;
+}
+
+/* Accent hue per pillar — used only for the decorative glow, never for text,
+   so contrast never depends on it. */
+.svc-row[data-accent='primary'] {
+  --svc-accent: var(--color-primary);
+}
+.svc-row[data-accent='accent'] {
+  --svc-accent: var(--color-accent-500);
+}
+.svc-row[data-accent='secondary'] {
+  --svc-accent: var(--color-secondary-500);
+}
+.svc-row[data-accent='success'] {
+  --svc-accent: var(--color-success);
+}
+
+/* Media frame + soft accent glow behind it */
+.svc-media {
+  isolation: isolate;
+}
+
+.svc-glow {
+  position: absolute;
+  inset: -12% -8% -12% -8%;
+  z-index: -1;
+  background: radial-gradient(60% 60% at 50% 45%, var(--svc-accent) 0%, transparent 70%);
+  opacity: 0.14;
+  filter: blur(48px);
+  pointer-events: none;
+}
+
+.svc-frame {
+  transition:
+    transform 0.5s var(--ease-out, cubic-bezier(0, 0, 0.2, 1)),
+    box-shadow 0.5s var(--ease-out, cubic-bezier(0, 0, 0.2, 1));
+}
+
+.svc-row:hover .svc-frame {
+  transform: translateY(-4px);
+}
+
+/* Readable, theme-safe accents for text + icons */
+.svc-kicker {
+  color: var(--color-primary);
+  letter-spacing: 0.01em;
+}
+
+.svc-check {
+  background: color-mix(in oklch, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+}
+
+.svc-price {
+  color: var(--color-text-secondary);
+}
+
+/* Alternate media/body sides on large screens */
+@media (min-width: 1024px) {
+  .svc-list > .svc-row:nth-child(even) .svc-media {
+    order: 2;
+  }
+}
+
+/* On-load entrance — enhances an already-visible default, disabled for
+   reduced-motion. Content is never gated behind a scroll class. */
+@media (prefers-reduced-motion: no-preference) {
+  .svc-media,
+  .svc-body {
+    animation: svc-rise 0.7s var(--ease-out, cubic-bezier(0, 0, 0.2, 1)) both;
+  }
+  .svc-body {
+    animation-delay: 0.08s;
+  }
+  @keyframes svc-rise {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
