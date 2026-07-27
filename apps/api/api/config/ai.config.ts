@@ -68,35 +68,31 @@ export const AI_CONFIG = {
   },
 
   // Business Plan service configuration
-  // [Migration GLM-5.2] Ancienne valeur: { GEMINI, 'gemini-3-flash-preview' }.
-  // Note: research-team (rédacteur) réutilise cette config → passe aussi sur GLM ;
+  // Note: research-team (rédacteur) réutilise cette config ;
   // le chercheur (grounding Google Search) reste figé Gemini.
   businessPlan: {
-    provider: LLMProvider.GLM,
-    modelName: 'glm-5.2',
+    provider: LLMProvider.GEMINI,
+    modelName: 'gemini-3-flash-preview',
   } as FeatureAIConfig,
 
   // Pitch Deck service configuration
-  // [Migration GLM-5.2] Ancienne valeur: { GEMINI, 'gemini-3-flash-preview' }.
   pitchDeck: {
-    provider: LLMProvider.GLM,
-    modelName: 'glm-5.2',
+    provider: LLMProvider.GEMINI,
+    modelName: 'gemini-3-flash-preview',
   } as FeatureAIConfig,
 
   // Advisor service configuration
-  // [Migration GLM-5.2] Ancienne valeur: { GEMINI, 'gemini-3-flash-preview' }.
-  // GLM supporte le function-calling → la boucle Context Engine tourne sur GLM.
+  // Function-calling requis : la boucle Context Engine tourne sur Gemini.
   advisor: {
-    provider: LLMProvider.GLM,
-    modelName: 'glm-5.2',
+    provider: LLMProvider.GEMINI,
+    modelName: 'gemini-3-flash-preview',
     promptType: 'advisor',
   } as FeatureAIConfig,
-  
+
   // Legal Docs service configuration
-  // [Migration GLM-5.2] Ancienne valeur: { GEMINI, 'gemini-3-flash-preview' }.
   legalDocs: {
-    provider: LLMProvider.GLM,
-    modelName: 'glm-5.2',
+    provider: LLMProvider.GEMINI,
+    modelName: 'gemini-3-flash-preview',
   } as FeatureAIConfig,
 
   // Deployment configurations
@@ -121,11 +117,10 @@ export const AI_CONFIG = {
   },
 
   // Finance configurations
-  // [Migration GLM-5.2] Ancienne valeur de chaque clé: { GEMINI, 'gemini-3-flash-preview' }.
   finance: {
     autofill: {
-      provider: LLMProvider.GLM,
-      modelName: 'glm-5.2',
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
       promptType: 'finance',
       llmOptions: {
         temperature: 0.4,
@@ -133,8 +128,8 @@ export const AI_CONFIG = {
       },
     } as FeatureAIConfig,
     intent: {
-      provider: LLMProvider.GLM,
-      modelName: 'glm-5.2',
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
       promptType: 'finance',
       llmOptions: {
         temperature: 0.2,
@@ -142,8 +137,8 @@ export const AI_CONFIG = {
       },
     } as FeatureAIConfig,
     pdfCover: {
-      provider: LLMProvider.GLM,
-      modelName: 'glm-5.2',
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
       promptType: 'finance-cover-generation',
       llmOptions: {
         temperature: 0.7,
@@ -151,8 +146,8 @@ export const AI_CONFIG = {
       },
     } as FeatureAIConfig,
     pdfInterpretation: {
-      provider: LLMProvider.GLM,
-      modelName: 'glm-5.2',
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
       promptType: 'finance-pdf-interpretation',
       llmOptions: {
         temperature: 0.5,
@@ -190,19 +185,16 @@ export const AI_CONFIG = {
   },
 
   // Branding configurations
-  // Génération de logos (SVG) : GLM-5.2 configuré pour une qualité vectorielle maximale.
+  // Génération de logos (SVG) : Gemini configuré pour une qualité vectorielle maximale.
   // PRIORITÉ QUALITÉ > VITESSE (choix produit assumé) :
-  //  - `thinking: enabled` réactive le raisonnement GLM (désactivé globalement dans
-  //    ai-providers.config.ts) : indispensable pour la précision géométrique/typographique
-  //    exigée par la doctrine des prompts (grille modulaire, kerning, symétrie calculée).
-  //  - budget de tokens très large : le raisonnement + un SVG complet (paths de
-  //    letterforms pour les types "name"/"initial") dépassent facilement 1–2k tokens ;
-  //    un budget trop court tronquait le JSON et cassait la génération de ces types.
+  //  - budget de tokens très large : un SVG complet (paths de letterforms pour les
+  //    types "name"/"initial") dépasse facilement 1–2k tokens ; un budget trop court
+  //    tronquait le JSON et cassait la génération de ces types.
   //  - température basse : sorties déterministes et géométriquement exactes.
   branding: {
     brandIdentity: {
-      provider: LLMProvider.GLM,
-      modelName: 'glm-5.2',
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
       llmOptions: {
         maxOutputTokens: 12000,
         temperature: 0.35,
@@ -211,15 +203,13 @@ export const AI_CONFIG = {
       },
     } as FeatureAIConfig,
     logo: {
-      provider: LLMProvider.GLM,
-      modelName: 'glm-5.2',
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
       llmOptions: {
         maxOutputTokens: 24000,
         temperature: 0.28,
         topP: 0.9,
         topK: 40,
-        // Réactive le raisonnement GLM pour CE cas d'usage (qualité maximale).
-        extraBody: { thinking: { type: 'enabled' } },
       },
     } as FeatureAIConfig,
     colors: {
