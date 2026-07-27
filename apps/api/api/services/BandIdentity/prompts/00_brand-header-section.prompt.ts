@@ -16,7 +16,7 @@ export const BRAND_HEADER_SECTION_PROMPT = `<role>World-class editorial art dire
 </mandatory_elements>
 
 <page_format>
-- Outermost container: w-[297mm] min-h-[167mm] relative (Landscape 16:9 page fit, min height 167mm; content is never clipped (it flows to another page if it slightly exceeds)).
+- Outermost container: w-[297mm] h-[167mm] overflow-hidden relative (Landscape 16:9 page fit, exactly h-[167mm] — the content MUST fit within this single page (no overflow, no scroll). If it is too long, shorten, summarize or use smaller type to fit — never exceed the page).
 - Internal safe padding: p-[12mm] (no content overflow).
 </page_format>
 

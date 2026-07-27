@@ -47,6 +47,7 @@ import {
 import { LOGO_VARIATION_CRITIQUE_PROMPT } from './prompts/singleGenerations/logo-variation-critique.prompt';
 import { resolveSvgContent } from '../logo-import.service';
 import { parseLlmJson } from '../../utils/llm-json.util';
+import { summarizeLogoForPrompt } from '../../utils/logo-context.util';
 import { LOGO_VARIATION_RECOLOR_PROMPT } from './prompts/singleGenerations/logo-variation-recolor.prompt';
 import { PdfService, PAGE_FORMATS } from '../pdf.service';
 import { cacheService } from '../cache.service';
@@ -213,6 +214,29 @@ export class BrandingService extends GenericService {
     this.logoJsonToSvgService = new LogoJsonToSvgService();
     this.storageService = new StorageService();
     logger.info('BrandingService initialized with optimized logo generation');
+  }
+
+  /**
+   * Adapte un prompt de section (écrit par défaut en slide 16:9 = 297×167mm) au
+   * format de page RÉELLEMENT choisi par l'utilisateur, en remplaçant les tokens
+   * de dimensions. No-op quand le format cible est déjà 297×167.
+   */
+  private applyPageFormatToPrompt(
+    prompt: string,
+    format: { width: string; height: string; orientation: string }
+  ): string {
+    if (format.width === '297mm' && format.height === '167mm') {
+      return prompt;
+    }
+    return prompt
+      .split('w-[297mm] h-[167mm]')
+      .join(`w-[${format.width}] h-[${format.height}]`)
+      .split('h-[167mm]')
+      .join(`h-[${format.height}]`)
+      .split('w-[297mm]')
+      .join(`w-[${format.width}]`)
+      .split('Landscape 16:9')
+      .join(`${format.orientation} ${format.width}×${format.height}`);
   }
 
   /**
@@ -604,15 +628,24 @@ export class BrandingService extends GenericService {
       return null;
     }
 
+    // Make sure the logo has hosted PNG URLs before we build any prompt — else
+    // the fallback would inject a giant SVG data-URI that the LLM turns into a
+    // broken link (e.g. "https://brand-logo.svg"). Persists them for reuse.
+    await this.ensureLogoAssetUrls(userId, projectId, project);
+
     // Generate cache key based on project content
+    const branding = project.analysisResultModel?.branding;
     const projectDescription =
       this.extractProjectDescription(project) +
       '\n\nHere is the project branding colors: ' +
-      JSON.stringify(project.analysisResultModel.branding.colors) +
+      JSON.stringify(branding?.colors || {}) +
       '\n\nHere is the project branding typography: ' +
-      JSON.stringify(project.analysisResultModel.branding.typography) +
-      '\n\nHere is the project branding logo: ' +
-      JSON.stringify(project.analysisResultModel.branding.logo);
+      JSON.stringify(branding?.typography || {}) +
+      // Token-lean: send the hosted logo URLs (use them as <img src>), never the
+      // raw SVG markup — an SVG runs thousands of tokens and this is appended to
+      // every brand-book step.
+      '\n\nHere is the project branding logo (hosted asset URLs — use as <img src>): ' +
+      JSON.stringify(summarizeLogoForPrompt(branding?.logo));
 
     const contentHash = crypto
       .createHash('sha256')
@@ -760,6 +793,14 @@ export class BrandingService extends GenericService {
         });
       }
 
+      // Adapter les prompts au FORMAT DE PAGE CHOISI (les prompts sont écrits en
+      // 16:9 par défaut). No-op si le format choisi est déjà SLIDE_16_9.
+      const chosenFormat =
+        PAGE_FORMATS[pdfFormat as keyof typeof PAGE_FORMATS] || PAGE_FORMATS.SLIDE_16_9;
+      for (const step of steps) {
+        step.promptConstant = this.applyPageFormatToPrompt(step.promptConstant, chosenFormat);
+      }
+
       logger.info(`[BRANDING] Generated ${mockupCount} mockup steps dynamically`, {
         projectId,
         mockupCount,
@@ -832,7 +873,9 @@ export class BrandingService extends GenericService {
                   throw new Error('Missing branding information');
                 }
 
-                const logoUrl = branding.logo.svg;
+                // Prefer the hosted PNG URL (lighter for the image model);
+                // fall back to the svg field for legacy projects.
+                const logoUrl = branding.logo.assetUrls?.primary || branding.logo.svg;
                 const brandColors = {
                   primary: branding.colors.colors.primary || '#000000',
                   secondary: branding.colors.colors.secondary || '#666666',
@@ -959,21 +1002,21 @@ export class BrandingService extends GenericService {
             sections.sort((a, b) => stepOrder.indexOf(a.name) - stepOrder.indexOf(b.name));
 
             // Prepare the updated project data
+            const currentBranding = project.analysisResultModel?.branding;
             const updatedProjectData = {
               ...project,
               analysisResultModel: {
                 ...project.analysisResultModel,
                 branding: {
                   sections: sections,
-                  colors: project.analysisResultModel.branding.colors,
-                  typography: project.analysisResultModel.branding.typography,
-                  logo: project.analysisResultModel.branding.logo,
-                  generatedLogos: project.analysisResultModel.branding.generatedLogos || [],
-                  generatedColors: project.analysisResultModel.branding.generatedColors || [],
-                  generatedTypography:
-                    project.analysisResultModel.branding.generatedTypography || [],
+                  colors: currentBranding?.colors,
+                  typography: currentBranding?.typography,
+                  logo: currentBranding?.logo,
+                  generatedLogos: currentBranding?.generatedLogos || [],
+                  generatedColors: currentBranding?.generatedColors || [],
+                  generatedTypography: currentBranding?.generatedTypography || [],
                   pdfFormat: pdfFormat, // Stocker le format PDF choisi
-                  createdAt: project.analysisResultModel.branding.createdAt || new Date(),
+                  createdAt: currentBranding?.createdAt || new Date(),
                   updatedAt: new Date(),
                 },
               },
@@ -1014,8 +1057,8 @@ export class BrandingService extends GenericService {
             }
           },
           {
-            provider: AI_CONFIG.default.provider,
-            modelName: AI_CONFIG.default.modelName,
+            provider: AI_CONFIG.branding.brandIdentity.provider,
+            modelName: AI_CONFIG.branding.brandIdentity.modelName,
             userId,
           }, // promptConfig
           'branding', // promptType
@@ -1146,7 +1189,13 @@ export class BrandingService extends GenericService {
       logger.info(
         `Reusing existing project for colors/typography generation - ProjectId: ${existingProject.id}`
       );
-      createdProject = existingProject;
+      createdProject = {
+        ...existingProject,
+        analysisResultModel: {
+          ...existingProject.analysisResultModel,
+          branding: existingProject.analysisResultModel?.branding || BrandIdentityBuilder.createEmpty(),
+        },
+      };
     } else {
       project = {
         ...project,
@@ -1161,6 +1210,12 @@ export class BrandingService extends GenericService {
     if (!createdProject.id) {
       throw new Error(`Failed to create project`);
     }
+
+    // Rasterize + upload the selected logo's PNG assets now, at selection time,
+    // so every downstream consumer (brand book, pitch deck, business plan,
+    // communication, dashboard) references hosted URLs instead of inline SVG.
+    // persist=false: the project update below already writes the mutated logo.
+    await this.ensureLogoAssetUrls(userId, createdProject.id, createdProject, false);
 
     // Stocker le projet en cache
     try {
@@ -1195,7 +1250,7 @@ export class BrandingService extends GenericService {
       analysisResultModel: {
         ...createdProject.analysisResultModel,
         branding: {
-          ...createdProject.analysisResultModel.branding,
+          ...createdProject.analysisResultModel?.branding,
           generatedColors: colors,
           generatedTypography: typography,
           updatedAt: new Date(),
@@ -1329,7 +1384,7 @@ export class BrandingService extends GenericService {
         analysisResultModel: {
           ...project.analysisResultModel,
           branding: {
-            ...project.analysisResultModel.branding,
+            ...project.analysisResultModel?.branding,
             colors: selectedColors,
             typography: selectedTypography,
             generatedLogos: logos,
@@ -1378,6 +1433,71 @@ export class BrandingService extends GenericService {
    * Extract icon-only SVG from the complete logo SVG
    * Removes text elements to create an icon-only version
    */
+  /**
+   * Guarantees the project's logo carries hosted PNG asset URLs (`assetUrls`).
+   *
+   * The upload normally happens when the logo is selected / colors are generated,
+   * but some flows reach a downstream consumer (brand book, pitch deck…) before
+   * that ran. Without hosted URLs, consumers fall back to inline SVG data-URIs —
+   * which the LLM then hallucinates into broken links (e.g. `https://brand-logo.svg`).
+   *
+   * When `assetUrls` is missing this rasterizes+uploads now, mutates the in-memory
+   * project so the current run uses real URLs, and (unless `persist` is false)
+   * writes them back to DB + cache. Non-fatal: logs and returns on failure.
+   */
+  private async ensureLogoAssetUrls(
+    userId: string,
+    projectId: string,
+    project: ProjectModel,
+    persist = true
+  ): Promise<void> {
+    const logo = project.analysisResultModel?.branding?.logo;
+    if (!logo || logo.assetUrls) return;
+
+    const v = logo.variations;
+    const hasContent = !!(
+      logo.svg ||
+      v?.withText?.lightBackground ||
+      v?.withText?.darkBackground ||
+      v?.withText?.monochrome ||
+      v?.iconOnly?.lightBackground ||
+      v?.iconOnly?.darkBackground ||
+      v?.iconOnly?.monochrome
+    );
+    if (!hasContent) return;
+
+    try {
+      const assetUrls = await this.storageService.uploadProjectLogoAssets(logo, userId, projectId);
+      // Mutate in-memory so the current generation uses hosted URLs immediately.
+      logo.assetUrls = assetUrls;
+
+      logger.info(`ensureLogoAssetUrls: uploaded logo asset URLs`, {
+        projectId,
+        uploaded: Object.keys(assetUrls),
+        persisted: persist,
+      });
+
+      if (persist && project.analysisResultModel?.branding) {
+        const updated = {
+          ...project,
+          analysisResultModel: {
+            ...project.analysisResultModel,
+            branding: {
+              ...project.analysisResultModel?.branding,
+              logo: { ...logo, assetUrls },
+            },
+          },
+        };
+        await this.projectRepository.update(projectId, updated as any, `users/${userId}/projects`);
+        await cacheService
+          .set(`project_${userId}_${projectId}`, updated, { prefix: 'project', ttl: 3600 })
+          .catch((error) => logger.error(`ensureLogoAssetUrls: cache update failed`, error));
+      }
+    } catch (error) {
+      logger.error(`ensureLogoAssetUrls failed (continuing without asset URLs)`, error);
+    }
+  }
+
   /**
    * Best-effort SVG salvage from raw model text. Used as a last resort when the
    * JSON wrapper is unrecoverable but the `<svg>…</svg>` markup itself is intact
@@ -2133,7 +2253,7 @@ export class BrandingService extends GenericService {
       analysisResultModel: {
         ...project.analysisResultModel,
         branding: {
-          ...project.analysisResultModel.branding,
+          ...project.analysisResultModel?.branding,
           logo: {
             ...selectedLogo,
             variations: optimizedVariations,
@@ -2417,7 +2537,7 @@ export class BrandingService extends GenericService {
       analysisResultModel: {
         ...project.analysisResultModel,
         branding: {
-          ...project.analysisResultModel.branding,
+          ...project.analysisResultModel?.branding,
           logo: {
             ...selectedLogo,
             variations: optimizedVariations,
@@ -2458,7 +2578,7 @@ export class BrandingService extends GenericService {
     }
     logger.info(`Successfully fetched branding for projectId: ${projectId}`);
 
-    return project.analysisResultModel.branding;
+    return project.analysisResultModel?.branding || null;
   }
 
   async getBrandingById(userId: string, brandingId: string): Promise<BrandIdentityModel | null> {
@@ -2489,7 +2609,7 @@ export class BrandingService extends GenericService {
       analysisResultModel: {
         ...project.analysisResultModel,
         branding: {
-          ...project.analysisResultModel.branding,
+          ...project.analysisResultModel?.branding,
           ...data,
         },
       },
@@ -2516,6 +2636,9 @@ export class BrandingService extends GenericService {
     }
 
     // Reset branding to empty state rather than removing it completely
+    if (!project.analysisResultModel) {
+      project.analysisResultModel = {} as any;
+    }
     project.analysisResultModel.branding = {
       logo: {
         svg: '',
@@ -2574,7 +2697,7 @@ export class BrandingService extends GenericService {
       );
       throw new Error(`Project not found with ID: ${projectId}`);
     }
-    const branding = project.analysisResultModel.branding;
+    const branding = project.analysisResultModel?.branding;
     if (!branding || !branding.sections || branding.sections.length === 0) {
       logger.warn(`No branding sections found for project ${projectId} when generating PDF.`);
       return '';
@@ -2598,12 +2721,12 @@ export class BrandingService extends GenericService {
       logger.info(`Branding PDF cache miss, generating new PDF for projectId: ${projectId}`);
 
       // Déterminer le format de page à utiliser
-      const pageFormat = project.analysisResultModel?.branding?.pdfFormat
-        ? PAGE_FORMATS[project.analysisResultModel.branding.pdfFormat as keyof typeof PAGE_FORMATS]
+      const pageFormat = branding?.pdfFormat
+        ? PAGE_FORMATS[branding.pdfFormat as keyof typeof PAGE_FORMATS]
         : PAGE_FORMATS.SLIDE_16_9;
 
       logger.info(
-        `Generating PDF with format: ${project.analysisResultModel?.branding?.pdfFormat || 'SLIDE_16_9'}`
+        `Generating PDF with format: ${branding?.pdfFormat || 'SLIDE_16_9'}`
       );
 
       // Utiliser le PdfService pour générer le PDF avec le format choisi
@@ -2668,7 +2791,7 @@ export class BrandingService extends GenericService {
       throw new Error(`Project not found with ID: ${projectId}`);
     }
 
-    const branding = project.analysisResultModel.branding;
+    const branding = project.analysisResultModel?.branding;
     if (!branding || !branding.logo) {
       logger.warn(`No logo found for project ${projectId} when generating logos ZIP.`);
       throw new Error(`No logo found for project ${projectId}`);
@@ -3166,10 +3289,10 @@ ${LOGO_EDIT_PROMPT}`;
         timestamp: new Date().toISOString(),
       });
 
-      const logoUrl = project.analysisResultModel.branding.logo.svg;
+      const logoUrl = branding.logo.svg;
 
       // Récupérer le format PDF depuis le projet (défaut: SLIDE_16_9)
-      const pdfFormat = project.analysisResultModel?.branding?.pdfFormat || 'SLIDE_16_9';
+      const pdfFormat = branding.pdfFormat || 'SLIDE_16_9';
 
       // Générer les mockups avec le service Gemini (logo envoyé comme image)
       // Le service analyse automatiquement le projet et sélectionne les supports adaptés
@@ -3278,7 +3401,13 @@ ${LOGO_EDIT_PROMPT}`;
       logger.info(
         `Reusing existing project for logo-based colors/typography - ProjectId: ${existingProject.id}`
       );
-      createdProject = existingProject;
+      createdProject = {
+        ...existingProject,
+        analysisResultModel: {
+          ...existingProject.analysisResultModel,
+          branding: existingProject.analysisResultModel?.branding || BrandIdentityBuilder.createEmpty(),
+        },
+      };
     } else {
       project = {
         ...project,
@@ -3412,7 +3541,7 @@ ${LOGO_EDIT_PROMPT}`;
       analysisResultModel: {
         ...createdProject.analysisResultModel,
         branding: {
-          ...createdProject.analysisResultModel.branding,
+          ...createdProject.analysisResultModel?.branding,
           generatedColors: colors,
           generatedTypography: typography,
           logo: importedLogo,

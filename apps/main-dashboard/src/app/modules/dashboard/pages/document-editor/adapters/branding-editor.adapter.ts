@@ -7,6 +7,7 @@ import { HtmlSectionsEditorAdapter } from './html-sections.adapter.base';
 export class BrandingEditorAdapter extends HtmlSectionsEditorAdapter {
   readonly type = 'branding' as const;
   readonly pageFormat: PageFormat = { width: '297mm', height: '167mm' };
+  readonly multiPage = false;
   readonly i18nTitleKey = 'dashboard.documentEditor.branding.title';
   readonly backRoute = '/project/branding/display';
   protected readonly resource = 'brandings';

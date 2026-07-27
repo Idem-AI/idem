@@ -7,6 +7,7 @@ import { HtmlSectionsEditorAdapter } from './html-sections.adapter.base';
 export class PitchDeckEditorAdapter extends HtmlSectionsEditorAdapter {
   readonly type = 'pitch-deck' as const;
   readonly pageFormat: PageFormat = { width: '297mm', height: '167mm' };
+  readonly multiPage = false;
   readonly i18nTitleKey = 'dashboard.documentEditor.pitchDeck.title';
   readonly backRoute = '/project/pitch-deck';
   protected readonly resource = 'pitchDecks';

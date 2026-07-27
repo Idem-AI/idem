@@ -2,6 +2,8 @@ export enum LLMProvider {
   GEMINI = 'GEMINI',
   CHATGPT = 'CHATGPT',
   DEEPSEEK = 'DEEPSEEK',
+  // GLM-5.2 (Zhipu / Z.ai), via API OpenAI-compatible — voir ai-providers.config.ts.
+  GLM = 'GLM',
 }
 // Test trigger: API deployment pipeline (Update 2)
 
@@ -10,6 +12,14 @@ export interface LLMOptions {
   temperature?: number;
   topP?: number;
   topK?: number;
+  /**
+   * Champs de corps bruts fusionnés dans la requête du fournisseur, PAR-FEATURE.
+   * Ils PRIORISENT sur le `extraBody` par-défaut du provider (ai-providers.config.ts).
+   * Usage principal: réactiver le raisonnement GLM sur une génération précise
+   * (`{ thinking: { type: 'enabled' } }`) alors qu'il est désactivé globalement.
+   * Ignoré par l'adaptateur Gemini natif.
+   */
+  extraBody?: Record<string, unknown>;
 }
 
 export interface FeatureAIConfig {
@@ -58,6 +68,8 @@ export const AI_CONFIG = {
   },
 
   // Business Plan service configuration
+  // Note: research-team (rédacteur) réutilise cette config ;
+  // le chercheur (grounding Google Search) reste figé Gemini.
   businessPlan: {
     provider: LLMProvider.GEMINI,
     modelName: 'gemini-3-flash-preview',
@@ -70,6 +82,7 @@ export const AI_CONFIG = {
   } as FeatureAIConfig,
 
   // Advisor service configuration
+  // Function-calling requis : la boucle Context Engine tourne sur Gemini.
   advisor: {
     provider: LLMProvider.GEMINI,
     modelName: 'gemini-3-flash-preview',
@@ -111,7 +124,7 @@ export const AI_CONFIG = {
       promptType: 'finance',
       llmOptions: {
         temperature: 0.4,
-        maxOutputTokens: 8192,
+        maxOutputTokens: 18192,
       },
     } as FeatureAIConfig,
     intent: {
@@ -172,14 +185,30 @@ export const AI_CONFIG = {
   },
 
   // Branding configurations
+  // Génération de logos (SVG) : Gemini configuré pour une qualité vectorielle maximale.
+  // PRIORITÉ QUALITÉ > VITESSE (choix produit assumé) :
+  //  - budget de tokens très large : un SVG complet (paths de letterforms pour les
+  //    types "name"/"initial") dépasse facilement 1–2k tokens ; un budget trop court
+  //    tronquait le JSON et cassait la génération de ces types.
+  //  - température basse : sorties déterministes et géométriquement exactes.
   branding: {
+    brandIdentity: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      llmOptions: {
+        maxOutputTokens: 12000,
+        temperature: 0.35,
+        topP: 0.9,
+        topK: 40,
+      },
+    } as FeatureAIConfig,
     logo: {
       provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3.5-flash',
+      modelName: 'gemini-3-flash-preview',
       llmOptions: {
         maxOutputTokens: 4000,
-        temperature: 0.5,
-        topP: 0.95,
+        temperature: 0.28,
+        topP: 0.9,
         topK: 40,
       },
     } as FeatureAIConfig,

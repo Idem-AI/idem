@@ -24,7 +24,7 @@ Sélectionner des supports pertinents selon l'industrie :
 </page_content>
 
 <page_format>
-- Conteneur : w-[297mm] min-h-[167mm] relative (Landscape 16:9, h-[167mm], pas de min-h-screen).
+- Conteneur : w-[297mm] h-[167mm] overflow-hidden relative (Landscape 16:9, h-[167mm], pas de min-h-screen).
 - Padding interne : p-[12mm].
 </page_format>
 
