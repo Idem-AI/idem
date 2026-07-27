@@ -7,6 +7,7 @@ import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
+import { UiModeService } from '../../../../shared/services/ui-mode.service';
 import { SafeHtmlPipe } from '../../../../shared/pipes/safe-html.pipe';
 
 @Component({
@@ -30,6 +31,7 @@ export class DashboardComponent implements OnInit {
   protected readonly router = inject(Router);
   protected readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);
+  private readonly uiModeService = inject(UiModeService);
 
   readonly project = signal<ProjectModel | null>(null);
   readonly isLoading = signal<boolean>(true);
@@ -78,6 +80,12 @@ export class DashboardComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Si l'utilisateur est en mode chat, on le redirige par défaut vers l'interface de chat
+    if (this.uiModeService.mode() === 'chat') {
+      this.router.navigate(['/chat']);
+      return;
+    }
+
     this.isLoading.set(true);
 
     // Get project ID from cookie (set by navigation from projects list)

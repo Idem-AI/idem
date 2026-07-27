@@ -846,6 +846,31 @@
       "modeChat": "Conversation",
       "modeForm": "Formulaire",
       "switchToForm": "Passer au formulaire",
+      "modeChoice": {
+        "badge": "Mode d'accompagnement",
+        "title": "Comment souhaitez-vous continuer ?",
+        "subtitle": "Votre description est enregistrée. Choisissez l'expérience qui vous convient le mieux pour finaliser la création de votre projet.",
+        "backToDescription": "Modifier la description",
+        "form": {
+          "title": "Formulaire classique",
+          "tag": "Saisie étape par étape",
+          "description": "Remplissez un formulaire structuré étape par étape pour renseigner les détails techniques et fonctionnels de votre projet.",
+          "feature1": "Vue d'ensemble claire et rapide",
+          "feature2": "Champs structurés et guidés",
+          "feature3": "Contrôle direct sur chaque paramètre",
+          "button": "Continuer avec le formulaire"
+        },
+        "chat": {
+          "title": "Interface Chat interactive",
+          "badge": "Recommandé",
+          "tag": "IA Assistée",
+          "description": "Une interface de chat simple et facile à prendre en main pour vous guider et utiliser toutes les fonctionnalités d'IDEM.",
+          "feature1": "Accompagnement IA intelligent et personnalisé",
+          "feature2": "Accès simple à toutes les fonctionnalités IDEM",
+          "feature3": "Expérience fluide, dynamique et interactive",
+          "button": "Démarrer avec le Chat"
+        }
+      },
       "foundations": {
         "title": "Parlons de votre projet",
         "subtitle": "Quelques bases pour démarrer — l'IA s'occupe du reste en conversation.",
@@ -862,12 +887,15 @@
       "subtitle": "Vous pouvez importer votre logo existant ou laisser notre IA en créer un pour vous",
       "import": {
         "title": "J'ai déjà un logo",
-        "description": "Importez votre fichier logo existant. Nous l'optimiserons et le convertirons en format vectoriel propre."
+        "description": "Importez votre fichier logo existant. Nous l'optimiserons et le convertirons en format vectoriel propre.",
+        "tag": "Fichier existant",
+        "button": "Importer mon logo"
       },
       "ai": {
         "title": "Créer avec l'IA",
-        "description": "Laissez notre IA générer des concepts de logo uniques basés sur l'identité de votre projet.",
-        "badge": "Propulsé par l'IA"
+        "description": "Laissez notre IA générer des concepts de logo uniques et sur-mesure basés sur l'identité de votre projet.",
+        "badge": "Recommandé",
+        "button": "Générer avec l'IA"
       },
       "backToChoice": "Retour aux options",
       "continueWithLogo": "Continuer avec ce logo",

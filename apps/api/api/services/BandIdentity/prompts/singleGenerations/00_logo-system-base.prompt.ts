@@ -122,22 +122,26 @@ Verify internally before answering — fix and re-verify on any failure:
 </step_5_quality_gates>
 
 <output_format>
-Output ONLY valid JSON. No markdown fences, no prose.
+Output ONLY valid JSON. No markdown fences, no prose. Shape of the object:
 {
   "id": "concept01",
   "archetype": "<chosen archetype>",
   "seed": "<chosen visual seed>",
   "name": "<Creative logo name>",
-  "concept": "<concept explanation>",
+  "concept": "<40-60 word concept: symmetry, scale, shape meanings>",
   "colors": ["#HEX1", "#HEX2", "#HEX3"],
   "fonts": ["<primary font name>"],
   "svg": "<complete valid SVG string>",
-  "layout": {
-    "textPosition": "right|center|below",
-    "spacing": 12,
-    "totalWidth": 120,
-    "totalHeight": 80
-  }
+  "layout": { <EXACTLY the layout block specified by the active module below> }
 }
+
+MODULE AUTHORITY — CRITICAL:
+- Exactly ONE <module_*_logo> block is appended below this base. It is AUTHORITATIVE
+  for the logo TYPE, the SVG viewBox, what the SVG must (and must NOT) contain, and
+  the exact "layout" values. Where this base and the module differ, THE MODULE WINS.
+- Do not blend types. If the module is "name" or "initial", the SVG contains NO
+  pictorial icon/symbol and NO icon+wordmark lockup — honor that literally.
+- Copy the module's viewBox and "layout" numbers verbatim; never fall back to the
+  generic 120×80 icon+wordmark shape.
 </output_format>
 `;

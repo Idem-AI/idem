@@ -61,8 +61,8 @@
       </div>
     }
 
-    <!-- Mode toggle (masqué sur la page de synthèse / validation des politiques) -->
-    @if (!isSummaryPage()) {
+    <!-- Mode toggle (masqué sur la page de synthèse / validation des politiques / choix du mode) -->
+    @if (!isSummaryPage() && !showModeChoice()) {
       <div
         class="fixed-toggle-container"
         [class.toggle-with-banner]="fromAppGen()"
@@ -103,7 +103,20 @@
       </div>
     }
 
-    @if (mode() === 'chat') {
+    @if (showModeChoice()) {
+      <!-- ═══ ECRAN DE CHOIX DU MODE D'ACCOMPAGNEMENT ═══ -->
+      <div
+        class="w-full content-wrapper pb-12 flex items-center justify-center min-h-[75vh]"
+        [class.content-with-banner]="fromAppGen()"
+        [class.content-standard]="!fromAppGen()"
+      >
+        <app-mode-choice
+          [projectDescription]="project().description"
+          (selectMode)="onModeSelected($event)"
+          (back)="onBackFromModeChoice()"
+        ></app-mode-choice>
+      </div>
+    } @else if (mode() === 'chat') {
       <!-- ═══ MODE CONVERSATION ═══ -->
       @if (currentStepIndex() === 0) {
         <div

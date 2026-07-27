@@ -4,8 +4,9 @@
  */
 export const PITCH_DECK_SHARED_RULES = `
 <slide_format>
-- Outermost element: a single <div> with classes w-[297mm] min-h-[167mm] relative (16:9 landscape width; height grows with content). Do NOT use a fixed h-[...] nor overflow-hidden, and NEVER truncate content to fit — aim to fill exactly one slide, but content is never clipped if it slightly exceeds.
-- Internal padding: p-[14mm] — nothing may touch the edges.
+- Outermost element: a single <div> with classes w-[297mm] h-[167mm] overflow-hidden relative (exactly 297×167mm landscape — ONE slide = ONE page).
+- Internal padding: p-[14mm] — nothing may touch the edges or overflow.
+- The content MUST fit entirely within this single slide (no overflow, no scroll). If content is long, reduce the amount, summarize, or use smaller type — NEVER let content exceed or be cut by the slide.
 - No min-h-screen, no viewport units.
 </slide_format>
 

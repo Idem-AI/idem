@@ -90,6 +90,7 @@ export interface ReorderEvent {
 })
 export class EditorCanvasComponent implements OnInit, OnDestroy {
   readonly pageFormat = input.required<PageFormat>();
+  readonly multiPage = input<boolean>(false);
   readonly fonts = input<FontHints>({});
   readonly dark = input<boolean>(false);
   readonly zoom = input<number>(1);
@@ -135,7 +136,7 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
       fontUrl: this.fonts().fontUrl,
       dark: this.dark(),
     };
-    const html = buildIframeDocument(sections, ctx, this.pageFormat());
+    const html = buildIframeDocument(sections, ctx, this.pageFormat(), this.multiPage());
     this.srcdoc.set(this.sanitizer.bypassSecurityTrustHtml(html));
   }
 

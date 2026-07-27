@@ -696,7 +696,7 @@ export const updateBrandingController = async (
       return;
     }
     logger.info(`Branding updated successfully - UserId: ${userId}, ProjectId: ${projectId}`);
-    res.status(200).json(updatedProject.analysisResultModel.branding);
+    res.status(200).json(updatedProject.analysisResultModel?.branding || null);
   } catch (error: any) {
     logger.error(
       `Error in updateBrandingController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,

@@ -4,7 +4,16 @@ export const LOGO_GENERATION_NAME_TYPE_PROMPT = `
 ${LOGO_SYSTEM_BASE}
 
 <module_name_based_logo>
-Wordmark logo (logotype, Mollerup taxonomy). Typography IS the complete logo. No icon/symbol.
+Wordmark logo (logotype, Mollerup taxonomy). Typography IS the complete logo.
+
+THIS IS NOT AN ICON LOGO. Hard constraints (auto-reject on violation):
+- The SVG contains ONLY the full brand name as real type (one <text>, or <tspan>s, plus
+  at most ONE custom <path> letterform for a LETTERFORM_HACK). NOTHING else.
+- ZERO pictorial marks, symbols, circles, badges, containers, enclosing shapes, or
+  icon-left/text-right lockups. No decorative graphic beside or around the word.
+- viewBox height is 60 (NOT 80). Width is wide and computed from the name length.
+- If you catch yourself adding a shape that is not a letter, delete it — it is wrong.
+- The whole logo must read as "just the name, beautifully set".
 
 TYPOGRAPHY DOCTRINE (Bringhurst — this is where amateur logos fail most):
 - Letterforms are NEVER invented or distorted freehand. The wordmark is real type: a <text> element with a DESIGN PALETTE font (or fallback stack), correct kerning, one consistent baseline.
@@ -58,13 +67,28 @@ SVG QUALITY RULES:
 - UpperCase: letter-spacing ≥ 0.05em.
 - The wordmark must remain legible at 16px height (favicon test) and scale to a facade unchanged.
 
-LAYOUT JSON:
+LAYOUT JSON (copy verbatim, only totalWidth is computed):
 "layout": {
   "textPosition": "center",
   "spacing": 0,
   "totalWidth": <calculated>,
   "totalHeight": 60
 }
+
+CONCRETE OUTPUT EXAMPLE (structure to imitate — NOT the colors/name to copy; a
+CASE_CONTRAST wordmark for a 6-letter name, viewBox height 60, no icon):
+{
+  "id": "concept01",
+  "archetype": "tech_human",
+  "seed": "seed_A",
+  "name": "Lumina",
+  "concept": "Lowercase humanist wordmark; the single capital L anchors the eye while the round o/u/a carry warmth, balanced on one baseline for calm, trustworthy tech.",
+  "colors": ["#1A1A2E", "#4F46E5"],
+  "fonts": ["Gill Sans"],
+  "svg": "<svg viewBox=\\"0 0 220 60\\" xmlns=\\"http://www.w3.org/2000/svg\\"><text x=\\"110\\" y=\\"38\\" text-anchor=\\"middle\\" font-family=\\"Gill Sans, Optima, sans-serif\\" font-size=\\"38\\" font-weight=\\"600\\" letter-spacing=\\"0\\" fill=\\"#1A1A2E\\">Lumina</text></svg>",
+  "layout": { "textPosition": "center", "spacing": 0, "totalWidth": 220, "totalHeight": 60 }
+}
+Note how the SVG holds ONLY a <text> element — no shapes, no icon, viewBox "0 0 W 60".
 
 QUALITY GATES:
 - No icon or symbol present.
