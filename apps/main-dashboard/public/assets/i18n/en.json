@@ -2671,7 +2671,10 @@
       "pitchDeck": "Pitch Deck",
       "diagrams": "Diagrams",
       "legalDocs": "Legal Documents",
-      "finance": "Financial Report"
+      "finance": "Financial Report",
+      "communication": "Communication",
+      "development": "Development",
+      "deployment": "Deployment"
     },
     "card": {
       "updatedAt": "Updated",
@@ -2695,7 +2698,8 @@
         "typography": "Typography"
       },
       "diagramsSection": "Architecture diagrams",
-      "financeSection": "Full financial model"
+      "financeSection": "Full financial model",
+      "developmentSection": "Development configuration"
     },
     "preview": {
       "download": "Download",
@@ -2733,7 +2737,10 @@
         "pitchDeck": "Show my pitch deck",
         "diagrams": "Show my diagrams",
         "legalDocs": "Show my legal documents",
-        "finance": "Show my financial report"
+        "finance": "Show my financial report",
+        "communication": "Show my communication",
+        "development": "Show my development",
+        "deployment": "Show my deployments"
       },
       "generate": {
         "businessPlan": "Write my business plan",
@@ -2741,7 +2748,10 @@
         "pitchDeck": "Generate my pitch deck",
         "diagrams": "Generate my diagrams",
         "legalDocs": "Create my legal documents",
-        "finance": "Complete my finances"
+        "finance": "Complete my finances",
+        "communication": "Generate my communication",
+        "development": "Set up development",
+        "deployment": "Set up deployment"
       }
     },
     "recap": {
@@ -2971,7 +2981,10 @@
         "pitchDeck": "The deck to win over your investors.",
         "finance": "Financial forecasts and tables.",
         "diagrams": "Architecture and technical diagrams.",
-        "legalDocs": "Articles, terms, contracts and legal notices."
+        "legalDocs": "Articles, terms, contracts and legal notices.",
+        "communication": "Strategy, editorial calendar and flyers.",
+        "development": "Generation of your app or website.",
+        "deployment": "Deploy your infrastructure and go live."
       },
       "state": {
         "ready": "Ready",
@@ -2983,6 +2996,50 @@
       },
       "open": "Open",
       "brandCalloutHint": "Logo, colors and typography — the base of every deliverable."
+    },
+    "legal": {
+      "intro": "Let's create your **legal documents**. Which document would you like to generate? (For precise articles — capital, partners — fill in the context in the editor.)",
+      "chips": {
+        "essentials": "Essentials pack (Terms, Sales terms, Privacy, Legal notice)",
+        "cgu": "Terms of use",
+        "cgv": "Terms of sale",
+        "privacy": "Privacy policy",
+        "statutes": "Articles (SAS)",
+        "nda": "Non-disclosure agreement (NDA)",
+        "editor": "Browse the full catalog"
+      }
+    },
+    "comm": {
+      "intro": "Let's work on your **communication**. I can define your editorial strategy and build a content calendar. Where do we start?",
+      "introNeedsBranding": "Let's work on your **communication**. 💡 Tip: complete your brand identity first for consistent visuals. Where do we start?",
+      "strategyTitle": "Communication strategy",
+      "calendarTitle": "Editorial calendar",
+      "strategyDone": "✅ Your **communication strategy** is ready! You can now generate your editorial calendar or refine it in the editor.",
+      "calendarDone": "✅ Your **editorial calendar** is ready! Open the editor to create flyers or adjust your content.",
+      "steps": {
+        "context": "Analyzing context",
+        "trends": "Spotting trends",
+        "strategy": "Writing the strategy",
+        "calendar": "Building the calendar"
+      },
+      "chips": {
+        "strategy": "Generate the strategy",
+        "calendar": "Generate the calendar"
+      }
+    },
+    "dev": {
+      "intro": "The **development workshop** generates the code for your app or website (landing page, web app, PWA…) from your project. Open it to choose your configuration.",
+      "chips": {
+        "open": "Open the development workshop",
+        "view": "View my configuration"
+      }
+    },
+    "deploy": {
+      "intro": "The **deployment assistant** takes your project live (infrastructure, Terraform, CI/CD). It needs a Git repository. Let's start a deployment or review previous ones.",
+      "chips": {
+        "start": "Start a deployment",
+        "list": "View my deployments"
+      }
     }
   }
 }
