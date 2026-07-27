@@ -84,7 +84,10 @@ export interface VerificationVerdict {
 /** Résultat final d'une section produite par l'équipe. */
 export interface ResearchedSection {
   name: string;
-  /** Contenu markdown, avec citations inline [sN] et une liste de sources. */
+  /**
+   * Contenu HTML (Tailwind, pages A4 multi-pages, graphes Chart.js), avec
+   * citations inline en exposant et un bloc « Sources » ajouté en fin de section.
+   */
   data: string;
   summary: string;
   sources: ResearchSource[];

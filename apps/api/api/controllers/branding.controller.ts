@@ -477,6 +477,21 @@ export const generateLogoVariationsStreamController = async (
       logger.info(`Charged 5 credits for user ${userId} on streamed logo variations completion.`);
     }
 
+    // Jeux finaux distincts (withText avec le nom + iconOnly) poussés en événement
+    // progress AVANT la complétion : le front les persiste tels quels au lieu de
+    // dupliquer le jeu streamé. La complétion garde son contrat générique
+    // (data='all_steps_completed') pour ne pas casser la détection SSE partagée.
+    res.write(
+      `data: ${JSON.stringify({
+        type: 'progress',
+        stepName: 'variations_result',
+        data: JSON.stringify({ variations }),
+        summary: '',
+        timestamp: new Date().toISOString(),
+        parsedData: { status: 'progress' },
+      })}\n\n`
+    );
+
     res.write(
       `data: ${JSON.stringify({
         type: 'completed',
