@@ -317,6 +317,19 @@ export class PromptService {
       modelName,
       effectiveFallbackModel
     );
+    // Surface truncation explicitly. gemini-3 "thinking" models count reasoning
+    // tokens against maxOutputTokens; when the budget is too small the answer is
+    // cut mid-string and downstream JSON/SVG parsing fails with cryptic errors
+    // ("no usable SVG"). Logging finishReason here makes the real cause visible.
+    const finishReason = result.candidates?.[0]?.finishReason;
+    if (finishReason === 'MAX_TOKENS') {
+      logger.warn(
+        `Gemini response truncated (finishReason=MAX_TOKENS) for model ${modelName}: output hit ` +
+          `maxOutputTokens=${config.maxOutputTokens ?? 'default'}. Increase maxOutputTokens for this ` +
+          `feature in ai.config.ts — the partial output will likely break JSON/SVG parsing.`
+      );
+    }
+
     const response = result.text;
     if (!response) {
       logger.error('Failed to generate response from Gemini API.');

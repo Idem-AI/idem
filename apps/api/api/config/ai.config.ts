@@ -206,7 +206,12 @@ export const AI_CONFIG = {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-3-flash-preview',
       llmOptions: {
-        maxOutputTokens: 4000,
+        // ⚠️ NE PAS RÉDUIRE. gemini-3-flash-preview est un modèle "thinking" :
+        // les tokens de raisonnement sont décomptés de maxOutputTokens. Un SVG de
+        // logo complet (types name/initial = paths de letterforms) pèse déjà 2–4k
+        // tokens ; raisonnement + SVG sous un budget trop court (ex: 4000) tronque
+        // la réponse → JSON cassé → "no usable SVG". Valeur large validée = 24000.
+        maxOutputTokens: 24000,
         temperature: 0.28,
         topP: 0.9,
         topK: 40,
