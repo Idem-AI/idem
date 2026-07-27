@@ -634,17 +634,18 @@ export class BrandingService extends GenericService {
     await this.ensureLogoAssetUrls(userId, projectId, project);
 
     // Generate cache key based on project content
+    const branding = project.analysisResultModel?.branding;
     const projectDescription =
       this.extractProjectDescription(project) +
       '\n\nHere is the project branding colors: ' +
-      JSON.stringify(project.analysisResultModel.branding.colors) +
+      JSON.stringify(branding?.colors || {}) +
       '\n\nHere is the project branding typography: ' +
-      JSON.stringify(project.analysisResultModel.branding.typography) +
+      JSON.stringify(branding?.typography || {}) +
       // Token-lean: send the hosted logo URLs (use them as <img src>), never the
       // raw SVG markup — an SVG runs thousands of tokens and this is appended to
       // every brand-book step.
       '\n\nHere is the project branding logo (hosted asset URLs — use as <img src>): ' +
-      JSON.stringify(summarizeLogoForPrompt(project.analysisResultModel.branding.logo));
+      JSON.stringify(summarizeLogoForPrompt(branding?.logo));
 
     const contentHash = crypto
       .createHash('sha256')
@@ -1001,21 +1002,21 @@ export class BrandingService extends GenericService {
             sections.sort((a, b) => stepOrder.indexOf(a.name) - stepOrder.indexOf(b.name));
 
             // Prepare the updated project data
+            const currentBranding = project.analysisResultModel?.branding;
             const updatedProjectData = {
               ...project,
               analysisResultModel: {
                 ...project.analysisResultModel,
                 branding: {
                   sections: sections,
-                  colors: project.analysisResultModel.branding.colors,
-                  typography: project.analysisResultModel.branding.typography,
-                  logo: project.analysisResultModel.branding.logo,
-                  generatedLogos: project.analysisResultModel.branding.generatedLogos || [],
-                  generatedColors: project.analysisResultModel.branding.generatedColors || [],
-                  generatedTypography:
-                    project.analysisResultModel.branding.generatedTypography || [],
+                  colors: currentBranding?.colors,
+                  typography: currentBranding?.typography,
+                  logo: currentBranding?.logo,
+                  generatedLogos: currentBranding?.generatedLogos || [],
+                  generatedColors: currentBranding?.generatedColors || [],
+                  generatedTypography: currentBranding?.generatedTypography || [],
                   pdfFormat: pdfFormat, // Stocker le format PDF choisi
-                  createdAt: project.analysisResultModel.branding.createdAt || new Date(),
+                  createdAt: currentBranding?.createdAt || new Date(),
                   updatedAt: new Date(),
                 },
               },
@@ -1188,7 +1189,13 @@ export class BrandingService extends GenericService {
       logger.info(
         `Reusing existing project for colors/typography generation - ProjectId: ${existingProject.id}`
       );
-      createdProject = existingProject;
+      createdProject = {
+        ...existingProject,
+        analysisResultModel: {
+          ...existingProject.analysisResultModel,
+          branding: existingProject.analysisResultModel?.branding || BrandIdentityBuilder.createEmpty(),
+        },
+      };
     } else {
       project = {
         ...project,
@@ -1243,7 +1250,7 @@ export class BrandingService extends GenericService {
       analysisResultModel: {
         ...createdProject.analysisResultModel,
         branding: {
-          ...createdProject.analysisResultModel.branding,
+          ...createdProject.analysisResultModel?.branding,
           generatedColors: colors,
           generatedTypography: typography,
           updatedAt: new Date(),
@@ -1377,7 +1384,7 @@ export class BrandingService extends GenericService {
         analysisResultModel: {
           ...project.analysisResultModel,
           branding: {
-            ...project.analysisResultModel.branding,
+            ...project.analysisResultModel?.branding,
             colors: selectedColors,
             typography: selectedTypography,
             generatedLogos: logos,
@@ -1476,7 +1483,7 @@ export class BrandingService extends GenericService {
           analysisResultModel: {
             ...project.analysisResultModel,
             branding: {
-              ...project.analysisResultModel.branding,
+              ...project.analysisResultModel?.branding,
               logo: { ...logo, assetUrls },
             },
           },
@@ -2246,7 +2253,7 @@ export class BrandingService extends GenericService {
       analysisResultModel: {
         ...project.analysisResultModel,
         branding: {
-          ...project.analysisResultModel.branding,
+          ...project.analysisResultModel?.branding,
           logo: {
             ...selectedLogo,
             variations: optimizedVariations,
@@ -2530,7 +2537,7 @@ export class BrandingService extends GenericService {
       analysisResultModel: {
         ...project.analysisResultModel,
         branding: {
-          ...project.analysisResultModel.branding,
+          ...project.analysisResultModel?.branding,
           logo: {
             ...selectedLogo,
             variations: optimizedVariations,
@@ -2571,7 +2578,7 @@ export class BrandingService extends GenericService {
     }
     logger.info(`Successfully fetched branding for projectId: ${projectId}`);
 
-    return project.analysisResultModel.branding;
+    return project.analysisResultModel?.branding || null;
   }
 
   async getBrandingById(userId: string, brandingId: string): Promise<BrandIdentityModel | null> {
@@ -2602,7 +2609,7 @@ export class BrandingService extends GenericService {
       analysisResultModel: {
         ...project.analysisResultModel,
         branding: {
-          ...project.analysisResultModel.branding,
+          ...project.analysisResultModel?.branding,
           ...data,
         },
       },
@@ -2629,6 +2636,9 @@ export class BrandingService extends GenericService {
     }
 
     // Reset branding to empty state rather than removing it completely
+    if (!project.analysisResultModel) {
+      project.analysisResultModel = {} as any;
+    }
     project.analysisResultModel.branding = {
       logo: {
         svg: '',
@@ -2687,7 +2697,7 @@ export class BrandingService extends GenericService {
       );
       throw new Error(`Project not found with ID: ${projectId}`);
     }
-    const branding = project.analysisResultModel.branding;
+    const branding = project.analysisResultModel?.branding;
     if (!branding || !branding.sections || branding.sections.length === 0) {
       logger.warn(`No branding sections found for project ${projectId} when generating PDF.`);
       return '';
@@ -2711,12 +2721,12 @@ export class BrandingService extends GenericService {
       logger.info(`Branding PDF cache miss, generating new PDF for projectId: ${projectId}`);
 
       // Déterminer le format de page à utiliser
-      const pageFormat = project.analysisResultModel?.branding?.pdfFormat
-        ? PAGE_FORMATS[project.analysisResultModel.branding.pdfFormat as keyof typeof PAGE_FORMATS]
+      const pageFormat = branding?.pdfFormat
+        ? PAGE_FORMATS[branding.pdfFormat as keyof typeof PAGE_FORMATS]
         : PAGE_FORMATS.SLIDE_16_9;
 
       logger.info(
-        `Generating PDF with format: ${project.analysisResultModel?.branding?.pdfFormat || 'SLIDE_16_9'}`
+        `Generating PDF with format: ${branding?.pdfFormat || 'SLIDE_16_9'}`
       );
 
       // Utiliser le PdfService pour générer le PDF avec le format choisi
@@ -2781,7 +2791,7 @@ export class BrandingService extends GenericService {
       throw new Error(`Project not found with ID: ${projectId}`);
     }
 
-    const branding = project.analysisResultModel.branding;
+    const branding = project.analysisResultModel?.branding;
     if (!branding || !branding.logo) {
       logger.warn(`No logo found for project ${projectId} when generating logos ZIP.`);
       throw new Error(`No logo found for project ${projectId}`);
@@ -3279,10 +3289,10 @@ ${LOGO_EDIT_PROMPT}`;
         timestamp: new Date().toISOString(),
       });
 
-      const logoUrl = project.analysisResultModel.branding.logo.svg;
+      const logoUrl = branding.logo.svg;
 
       // Récupérer le format PDF depuis le projet (défaut: SLIDE_16_9)
-      const pdfFormat = project.analysisResultModel?.branding?.pdfFormat || 'SLIDE_16_9';
+      const pdfFormat = branding.pdfFormat || 'SLIDE_16_9';
 
       // Générer les mockups avec le service Gemini (logo envoyé comme image)
       // Le service analyse automatiquement le projet et sélectionne les supports adaptés
@@ -3391,7 +3401,13 @@ ${LOGO_EDIT_PROMPT}`;
       logger.info(
         `Reusing existing project for logo-based colors/typography - ProjectId: ${existingProject.id}`
       );
-      createdProject = existingProject;
+      createdProject = {
+        ...existingProject,
+        analysisResultModel: {
+          ...existingProject.analysisResultModel,
+          branding: existingProject.analysisResultModel?.branding || BrandIdentityBuilder.createEmpty(),
+        },
+      };
     } else {
       project = {
         ...project,
@@ -3525,7 +3541,7 @@ ${LOGO_EDIT_PROMPT}`;
       analysisResultModel: {
         ...createdProject.analysisResultModel,
         branding: {
-          ...createdProject.analysisResultModel.branding,
+          ...createdProject.analysisResultModel?.branding,
           generatedColors: colors,
           generatedTypography: typography,
           logo: importedLogo,
