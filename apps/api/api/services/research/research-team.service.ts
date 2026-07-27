@@ -75,7 +75,10 @@ const WRITER_CONFIG: PromptConfig = {
   provider: AI_CONFIG.businessPlan.provider,
   modelName: AI_CONFIG.businessPlan.modelName,
   promptType: 'research-writer',
-  llmOptions: { maxOutputTokens: 2200 },
+  // Le rédacteur produit une PAGE A4 HTML riche (Tailwind + graphes Chart.js),
+  // pouvant s'étendre sur plusieurs pages : budget de sortie large, sinon le HTML
+  // est tronqué en plein milieu (section coupée / graphe cassé).
+  llmOptions: { maxOutputTokens: 16000, temperature: 0.55 },
 };
 
 const VERIFIER_CONFIG: PromptConfig = {
@@ -227,10 +230,10 @@ export class ResearchTeamService {
         );
       }
 
-      const withSourcesBlock = this.ensureSourcesBlock(finalData, sources, ctx.language);
+      const finalizedHtml = this.finalizeSectionHtml(finalData, sources, ctx.language);
       const result: ResearchedSection = {
         name: section.name,
-        data: withSourcesBlock,
+        data: finalizedHtml,
         summary: `${section.name} — ${sources.length} source(s) vérifiée(s)`,
         sources,
         verdict,
@@ -251,10 +254,13 @@ export class ResearchTeamService {
         status: 'error',
         message: `Échec sur "${section.name}": ${err.message}`,
       });
-      // On renvoie une section dégradée plutôt que d'interrompre tout le run.
+      // On renvoie une section dégradée (HTML) plutôt que d'interrompre tout le run.
       return {
         name: section.name,
-        data: `> ⚠️ La génération sourcée de cette section a échoué (${err.message}).`,
+        data:
+          '<div class="w-[210mm] min-h-[297mm] p-[12mm] flex items-center justify-center">' +
+          '<p class="text-sm text-gray-500">⚠️ La génération sourcée de cette section a échoué. ' +
+          'Vous pouvez la régénérer.</p></div>',
         summary: `${section.name} — échec de génération`,
         sources: [],
       };
@@ -451,11 +457,13 @@ export class ResearchTeamService {
 
     const sourceList = this.renderSourceList(sources);
     const groundingRules = section.needsResearch
-      ? "RÈGLES DE CITATION (STRICTES):\n" +
-        "- Chaque chiffre, statistique, taille/part de marché, taux ou montant DOIT être suivi d'une citation inline au format [sN] renvoyant à la liste des sources ci-dessous.\n" +
-        "- N'invente AUCUNE donnée. N'utilise QUE les faits présents dans la synthèse de recherche. Si une donnée manque, écris-le explicitement plutôt que d'estimer.\n" +
-        "- N'invente jamais d'identifiant de source: n'utilise que les [sN] listés.\n"
-      : "Cette section est qualitative: reste factuel, n'invente pas de chiffres.";
+      ? 'RÈGLES DE DONNÉES ET DE CITATION (STRICTES):\n' +
+        "- Chaque chiffre, statistique, taille/part de marché, taux ou montant affiché DOIT être suivi d'un marqueur de citation inline au format [sN] renvoyant à la liste des sources ci-dessous.\n" +
+        '- Les GRAPHIQUES (Chart.js) ne doivent tracer QUE des données réelles issues de la synthèse de recherche ou des données financières fournies. Ne trace JAMAIS un graphique à partir de chiffres inventés : si aucune série chiffrée fiable et sourcée n\'est disponible pour un graphe, remplace-le par un visuel qualitatif (schéma, liste, cartouche) plutôt qu\'un graphe inventé.\n' +
+        "- N'utilise QUE les faits présents dans la synthèse de recherche. Si une donnée manque, dis-le explicitement plutôt que d'estimer.\n" +
+        "- N'invente jamais d'identifiant de source : n'utilise que les [sN] listés.\n" +
+        "- N'ajoute PAS toi-même de liste « Sources » à la fin : elle est ajoutée automatiquement au document."
+      : "Cette section est qualitative (pas de recherche web) : n'invente pas de statistiques de marché ni de chiffres externes. Les éventuels graphiques ne doivent illustrer que des éléments internes au plan (jalons, échéancier, répartition d'objectifs), sans chiffres de marché inventés.";
 
     // Le contexte projet/marque est déjà dans le cache partagé quand il est
     // actif → on ne le renvoie pas (économie d'input tokens).
@@ -465,21 +473,24 @@ export class ResearchTeamService {
       {
         role: 'system',
         content:
-          "Tu es un rédacteur expert de documents stratégiques (business plan, études de marché). " +
-          "Tu écris dans un style professionnel, structuré (markdown), directement exploitable. " +
+          "Tu es un directeur artistique éditorial et rédacteur expert de business plans « investor-grade ». " +
+          'Tu produis des PAGES A4 en HTML + Tailwind CSS (mise en page soignée, graphes Chart.js), ' +
+          'en suivant À LA LETTRE les instructions de contenu et de mise en page fournies (structure, charts, format A4 multi-pages). ' +
+          'Tu écris dans la langue demandée, dans un style professionnel et concret. ' +
           groundingRules,
       },
       {
         role: 'user',
         content:
           sharedBlock +
-          `\nSECTION À RÉDIGER: ${section.name}\n` +
-          `INSTRUCTIONS:\n${section.instructions}\n` +
+          `\nSECTION À RÉDIGER : ${section.name}\n\n` +
+          `INSTRUCTIONS DE CONTENU ET DE MISE EN PAGE (À SUIVRE STRICTEMENT) :\n${section.instructions}\n` +
           (section.needsResearch
-            ? `\n--- SYNTHÈSE DE RECHERCHE (faits réels collectés) ---\n${researchDigest}\n` +
+            ? `\n--- SYNTHÈSE DE RECHERCHE (faits réels collectés — SEULE source de chiffres autorisée) ---\n${researchDigest}\n` +
               `\n--- SOURCES DISPONIBLES (utilise ces ids pour les citations [sN]) ---\n${sourceList}\n`
             : '') +
-          `\nRédige uniquement le contenu de la section « ${section.name} » en markdown.`,
+          `\nProduis UNIQUEMENT le HTML (Tailwind) de la section « ${section.name} », en respectant le format A4 (la page peut s'étendre sur plusieurs pages A4 si le contenu est riche). ` +
+          'Pas de bloc de code markdown, pas de préfixe « html », pas d\'explication : uniquement le HTML de la section.',
       },
     ];
 
@@ -559,7 +570,10 @@ export class ResearchTeamService {
     // Optimisation tokens: on ne soumet au vérificateur que les phrases
     // contenant des chiffres (les seules à devoir porter une citation). Si la
     // section n'avance aucun chiffre, rien à vérifier → aucun appel LLM.
-    const numeric = this.extractNumericSentences(draft);
+    // IMPORTANT: le draft est du HTML → on ne vérifie que le TEXTE VISIBLE
+    // (les classes Tailwind `w-[210mm]`, couleurs `#2563eb` et scripts Chart.js
+    // regorgent de nombres qui ne sont PAS des données à sourcer).
+    const numeric = this.extractNumericSentences(this.htmlToVisibleText(draft));
     if (!numeric) {
       const verdict: VerificationVerdict = {
         passed: true,
@@ -663,17 +677,19 @@ export class ResearchTeamService {
       {
         role: 'system',
         content:
-          "Tu corriges une section pour supprimer toute donnée chiffrée non sourcée. " +
-          "Pour chaque problème: soit tu ajoutes une citation [sN] valide si un fait sourcé la justifie, " +
-          "soit tu reformules pour retirer le chiffre non vérifiable (sans inventer). Ne rajoute jamais de nouveau chiffre non sourcé.",
+          'Tu corriges une section de business plan (HTML + Tailwind) pour supprimer toute donnée chiffrée non sourcée. ' +
+          'Pour chaque problème : soit tu ajoutes un marqueur de citation [sN] valide si un fait sourcé le justifie, ' +
+          'soit tu reformules pour retirer le chiffre non vérifiable (sans inventer). Ne rajoute jamais de nouveau chiffre non sourcé. ' +
+          'Conserve intégralement la mise en page HTML, les classes Tailwind et les graphiques Chart.js existants. ' +
+          "N'ajoute PAS de liste « Sources » (elle est ajoutée automatiquement).",
       },
       {
         role: 'user',
         content:
           `IDS DE SOURCES AUTORISÉS: [${allowedIds}]\n\n` +
           `PROBLÈMES À CORRIGER:\n${issuesText}\n\n` +
-          `SECTION ACTUELLE:\n"""\n${draft}\n"""\n\n` +
-          'Renvoie la version corrigée complète de la section en markdown.',
+          `SECTION ACTUELLE (HTML):\n"""\n${draft}\n"""\n\n` +
+          'Renvoie la version corrigée complète de la section en HTML (Tailwind), sans bloc de code markdown ni préfixe « html ».',
       },
     ];
 
@@ -727,17 +743,77 @@ export class ResearchTeamService {
       .join('\n');
   }
 
-  /** Ajoute une section "Sources" en fin de contenu si absente. */
-  private ensureSourcesBlock(content: string, sources: ResearchSource[], language: string): string {
-    if (sources.length === 0) return content;
-    const heading = language.toLowerCase().startsWith('fr') ? 'Sources' : 'Sources';
-    if (new RegExp(`(^|\\n)#{1,4}\\s*${heading}\\b`, 'i').test(content)) {
-      return content;
-    }
-    const list = sources
-      .map((s) => `- [${s.id}] [${s.title}](${s.url})${s.domain ? ` — ${s.domain}` : ''}`)
-      .join('\n');
-    return `${content}\n\n#### ${heading}\n${list}`;
+  /**
+   * Finalise le HTML d'une section :
+   *  1. convertit les marqueurs de citation `[sN]` en exposants HTML discrets
+   *     (les ids inconnus sont retirés) — au format inline non capté par le
+   *     sanitizer PDF (qui supprimerait les `[sN]` bruts et un bloc markdown) ;
+   *  2. ajoute un bloc « Sources » déterministe (généré côté serveur à partir de
+   *     `sources`, donc TOUJOURS présent dans le document et jamais halluciné).
+   */
+  private finalizeSectionHtml(
+    content: string,
+    sources: ResearchSource[],
+    language: string
+  ): string {
+    const validIds = new Set(sources.map((s) => s.id.toLowerCase()));
+    // [sN] → exposant cliquable-like ; garde le mapping numéro ↔ liste des sources.
+    let html = content.replace(/\[s(\d+)\]/gi, (_m, n: string) => {
+      if (!validIds.has(`s${n}`.toLowerCase())) return '';
+      return `<sup class="align-super text-[9px] font-semibold text-[#2563eb]">${n}</sup>`;
+    });
+
+    if (sources.length === 0) return html.trim();
+    return `${html.trim()}\n${this.renderSourcesHtml(sources, language)}`;
+  }
+
+  /**
+   * Bloc « Sources » en HTML, volontairement « sanitizer-safe » : pas de titre
+   * markdown `#### Sources`, pas de marqueur `[sN]`, pas d'ancre de redirection
+   * grounding — tous supprimés par {@link sanitizeSectionHtml} avant le PDF.
+   * Le numéro affiché correspond au N des exposants [sN] du corps.
+   */
+  private renderSourcesHtml(sources: ResearchSource[], language: string): string {
+    const title = language.toLowerCase().startsWith('fr') ? 'Sources' : 'Sources';
+    const items = sources
+      .map((s) => {
+        const n = s.id.replace(/^s/i, '');
+        const domain = s.domain
+          ? ` <span class="text-gray-400">— ${this.escapeHtml(s.domain)}</span>`
+          : '';
+        return (
+          `<li class="mb-1"><span class="font-semibold text-gray-700">${this.escapeHtml(n)}.</span> ` +
+          `<span class="text-gray-600">${this.escapeHtml(s.title)}</span>${domain}</li>`
+        );
+      })
+      .join('');
+    return (
+      '<div class="w-[210mm] px-[12mm] pb-[12mm] pt-6 mt-6 border-t border-gray-200 break-inside-avoid" ' +
+      'style="break-inside:avoid;page-break-inside:avoid;">' +
+      `<h3 class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-2">${title}</h3>` +
+      `<ol class="list-none text-[10px] leading-snug">${items}</ol></div>`
+    );
+  }
+
+  /** Texte visible d'un HTML (sans <script>/<style>/balises) pour la vérification. */
+  private htmlToVisibleText(html: string): string {
+    return html
+      .replace(/<script\b[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style\b[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  /** Échappe le texte injecté dans le HTML des sources. */
+  private escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 
   private countWords(text: string): number {

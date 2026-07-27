@@ -99,6 +99,13 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
   protected readonly liveMode = signal(false);
   protected readonly variationSlots = signal<VariationSlot[]>([]);
 
+  /**
+   * Jeux distincts (withText avec le nom + iconOnly) poussés par le backend dans
+   * l'événement `variations_result`, juste avant la complétion. Utilisés tels
+   * quels à la finalisation — on ne duplique plus le jeu streamé dans les deux.
+   */
+  private finalVariations: LogoVariations | null = null;
+
   /** Signal true si une ou plusieurs déclinaisons ont échoué ou ne sont pas terminées */
   protected readonly hasFailedSlots = computed(() => {
     const slots = this.variationSlots();
@@ -265,12 +272,23 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
       svg?: string;
       critique?: VariationCritiqueView;
       message?: string;
+      variations?: LogoVariations;
     } = {};
     try {
       payload = event.data ? JSON.parse(event.data) : {};
     } catch {
       return;
     }
+
+    // Jeux finaux distincts (withText + iconOnly) envoyés juste avant la
+    // complétion : on les mémorise pour les persister tels quels.
+    if (event.stepName === 'variations_result') {
+      if (payload.variations) {
+        this.finalVariations = payload.variations;
+      }
+      return;
+    }
+
     const kind = payload.variant;
     if (!kind) return;
 
@@ -349,7 +367,10 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
       });
     }
 
-    const variations: LogoVariations = {
+    // Jeux distincts envoyés par le backend (withText garde le nom, iconOnly non).
+    // Repli : si l'événement final n'est pas arrivé, on réutilise le jeu streamé
+    // pour les deux (ancien comportement) plutôt que de perdre les déclinaisons.
+    const variations: LogoVariations = this.finalVariations ?? {
       withText: { ...variationSet },
       iconOnly: { ...variationSet },
     };
