@@ -1,13 +1,17 @@
 import { Router } from 'express';
 import {
+  createMomentController,
   extractContextController,
   generateCalendarStreamController,
   generateFlyerController,
   generateStrategyStreamController,
   getCommunicationController,
   getFlyerImageController,
+  getMomentSuggestionsController,
+  preparePublicationController,
   regenerateFlyerController,
   updateCalendarItemController,
+  updatePublicationController,
   updateStrategyController,
 } from '../controllers/communication.controller';
 import { authenticate } from '../services/auth.service';
@@ -151,6 +155,59 @@ communicationRoutes.put(
 
 /**
  * @openapi
+ * /project/communication/{projectId}/moments/suggestions:
+ *   get:
+ *     tags: [Communication]
+ *     summary: Suggest upcoming timely occasions (holidays, hiring, promos…) for the brand.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema: { type: string }
+ *       - in: query
+ *         name: force
+ *         schema: { type: boolean }
+ */
+communicationRoutes.get(
+  `/${resource}/:projectId/moments/suggestions`,
+  authenticate,
+  checkPolicyAcceptance,
+  checkQuota,
+  getMomentSuggestionsController
+);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/moments:
+ *   post:
+ *     tags: [Communication]
+ *     summary: Create a one-off "moment" (occasion-driven content) with a publishable caption.
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [occasion]
+ *             properties:
+ *               occasion: { type: string }
+ *               occasionDate: { type: string }
+ *               message: { type: string }
+ *               intent: { type: string }
+ *               channel: { type: string }
+ *               source: { type: string, enum: [suggestion, custom] }
+ */
+communicationRoutes.post(
+  `/${resource}/:projectId/moments`,
+  authenticate,
+  checkPolicyAcceptance,
+  checkQuota,
+  createMomentController
+);
+
+/**
+ * @openapi
  * /project/communication/{projectId}/flyer/{contentId}:
  *   post:
  *     tags: [Communication]
@@ -190,6 +247,45 @@ communicationRoutes.post(
   checkPolicyAcceptance,
   checkQuota,
   regenerateFlyerController
+);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/publish:
+ *   post:
+ *     tags: [Communication]
+ *     summary: Prepare an assisted publication (caption + visual + composer deep link) and queue it.
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [contentId, network]
+ *             properties:
+ *               contentId: { type: string }
+ *               network: { type: string, enum: [linkedin, x] }
+ *               flyerId: { type: string }
+ *               scheduledFor: { type: string }
+ */
+communicationRoutes.post(
+  `/${resource}/:projectId/publish`,
+  authenticate,
+  preparePublicationController
+);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/publish/{publicationId}:
+ *   put:
+ *     tags: [Communication]
+ *     summary: Update a queued publication (schedule, mark as published, set external url).
+ *     security: [{ bearerAuth: [] }]
+ */
+communicationRoutes.put(
+  `/${resource}/:projectId/publish/:publicationId`,
+  authenticate,
+  updatePublicationController
 );
 
 /**

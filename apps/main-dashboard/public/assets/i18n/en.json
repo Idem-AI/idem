@@ -2452,6 +2452,171 @@
       "branding": {
         "title": "Brand identity editor"
       }
+    },
+    "showCommunication": {
+      "eyebrow": "Communication engine",
+      "title": "Communication & editorial calendar",
+      "subtitle": "Strategy, calendar, timely moments and publishing — to keep your brand alive every day.",
+      "loading": "Loading communication engine…",
+      "comingSoon": "Soon",
+      "tabs": {
+        "strategy": "Strategy",
+        "calendar": "Calendar",
+        "moments": "Moments",
+        "publishing": "Publishing"
+      },
+      "selectProject": {
+        "title": "Select a project",
+        "body": "Choose a project from your list to start generating communication assets.",
+        "cta": "Go to my projects"
+      },
+      "status": {
+        "idea": "Idea",
+        "approved": "Approved",
+        "scheduled": "Scheduled",
+        "published": "Published"
+      },
+      "intent": {
+        "label": "Intent",
+        "awareness": "Awareness",
+        "celebration": "Celebration",
+        "promotion": "Promotion",
+        "recruitment": "Recruitment",
+        "announcement": "Announcement"
+      },
+      "strategy": {
+        "empty": {
+          "title": "Generate your communication strategy",
+          "body": "We extract a compact context from your project, pull lightweight trend signals, and produce a structured, editable strategy.",
+          "cta": "Generate strategy"
+        },
+        "context": {
+          "brand": "Brand",
+          "type": "Type",
+          "tone": "Tone"
+        },
+        "summaryLabel": "Strategy summary",
+        "regenerate": "Regenerate",
+        "save": "Save changes",
+        "saved": "Changes saved",
+        "trendsTitle": "Trend signals used",
+        "blockKinds": {
+          "positioning": "Positioning",
+          "pillars": "Content pillars",
+          "messaging": "Key messaging",
+          "channels": "Channels",
+          "cadence": "Cadence",
+          "kpis": "KPIs",
+          "tone": "Tone of voice",
+          "custom": "Custom block"
+        }
+      },
+      "calendar": {
+        "empty": {
+          "title": "Build your editorial calendar",
+          "body": "We'll produce 4 weeks of content ideas — titles, hooks, formats, channels — so you can pick what to publish. Visuals are only generated on demand.",
+          "cta": "Generate calendar",
+          "needStrategy": "Generate a strategy first to produce a more relevant calendar."
+        },
+        "filters": {
+          "channel": "Channel",
+          "format": "Format",
+          "allChannels": "All channels",
+          "allFormats": "All formats"
+        },
+        "regenerate": "Regenerate calendar",
+        "week": "Week",
+        "ideas": "ideas",
+        "generateVisual": "Visual",
+        "schedule": "Schedule"
+      },
+      "visual": {
+        "eyebrow": "Content visual",
+        "format": "Format",
+        "generate": "Generate visual",
+        "regenerate": "Regenerate",
+        "download": "Download PNG",
+        "close": "Close",
+        "generating": "Sourcing image, scanning, composing visual…",
+        "loadingImage": "Loading rendered image…",
+        "noneTitle": "No visual yet",
+        "noneBody": "Click “Generate visual” to create one. We search free stock libraries first, then fall back to AI generation.",
+        "notRendered": "Visual generated but not yet rendered as PNG.",
+        "placeholder": "Marketing text and concept will appear here after generation.",
+        "sourceStock": "Stock photo",
+        "sourceGenerated": "AI generated",
+        "by": "by",
+        "scan": "Image scan",
+        "mood": "Mood",
+        "concept": "Concept",
+        "layout": "Layout notes",
+        "headline": "Headline",
+        "subheadline": "Subheadline",
+        "body": "Body",
+        "cta": "Call to action",
+        "logoUsed": "Logo declension used"
+      },
+      "moments": {
+        "eyebrow": "Timely moments",
+        "empty": {
+          "title": "Keep your brand alive around every occasion",
+          "body": "National holidays, hiring, company anniversary, seasonal promos… Generate a one-off visual and ready-to-publish content in one click.",
+          "cta": "See suggested occasions"
+        },
+        "suggestionsTitle": "Suggested occasions",
+        "refresh": "Refresh suggestions",
+        "createTitle": "Create a free-form moment",
+        "createBody": "Describe the occasion and Idem generates the visual and publishable content.",
+        "generate": "Generate",
+        "generateVisual": "Generate visual",
+        "fields": {
+          "occasion": "Occasion",
+          "occasionPlaceholder": "e.g. World Environment Day, a new job opening…",
+          "date": "Date",
+          "message": "Message / angle",
+          "messagePlaceholder": "What you want to say for this occasion",
+          "intent": "Intent"
+        },
+        "loadingSuggestions": "Finding relevant occasions for your brand…",
+        "noSuggestions": "No suggestions right now. Create a free-form moment below."
+      },
+      "publishing": {
+        "eyebrow": "Publishing",
+        "empty": {
+          "title": "Publish to your networks from Idem",
+          "body": "Prepare, schedule and publish your visuals and captions to LinkedIn and X. Connect a network first or use assisted publishing.",
+          "cta": "Prepare a post"
+        },
+        "queueTitle": "Publishing queue",
+        "readyTitle": "Ready to publish",
+        "readyHint": "Your content that already has a visual. Prepare an assisted post on a network.",
+        "noPublishable": "Generate a visual first (Calendar or Moments tab) to prepare a post.",
+        "prepareOn": "Prepare on",
+        "downloadVisual": "Download visual",
+        "assistedNote": "Assisted publishing: Idem copies the caption, downloads the visual and opens the network composer. You finalize the post on the network.",
+        "publishAssisted": "Publish (assisted)",
+        "markPublished": "Mark as published",
+        "openComposer": "Open composer",
+        "copyCaption": "Copy caption",
+        "captionCopied": "Caption copied",
+        "networks": {
+          "linkedin": "LinkedIn",
+          "x": "X (Twitter)"
+        },
+        "scheduleAt": "Schedule for",
+        "scheduledFor": "Scheduled for"
+      },
+      "errors": {
+        "load": "Failed to load communication data",
+        "checkProject": "Error while checking the project",
+        "strategy": "Strategy generation failed",
+        "calendar": "Calendar generation failed",
+        "flyer": "Visual generation failed",
+        "saveStrategy": "Failed to save strategy",
+        "updateContent": "Failed to update content",
+        "moments": "Moment generation failed",
+        "publish": "Publishing failed"
+      }
     }
   },
   "deployment": {

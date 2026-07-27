@@ -1,0 +1,93 @@
+<!-- Services Showcase: what IDEM builds, one pillar per row -->
+<section class="relative py-24 lg:py-32 overflow-hidden">
+  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Section header -->
+    <div class="max-w-3xl mb-16 lg:mb-24">
+      <h2
+        class="text-3xl sm:text-4xl lg:text-5xl font-bold text-text-primary tracking-tight text-balance"
+        i18n="@@services.header.title"
+      >
+        Everything to launch, <span class="i-underline">under one roof</span>
+      </h2>
+      <p class="mt-5 text-lg text-text-secondary leading-relaxed text-pretty" i18n="@@services.header.description">
+        Five services, one continuous flow: brand, strategy, product, hosting and the human
+        follow-up. Each one works on its own, and they are built to work together.
+      </p>
+    </div>
+
+    <!-- Pillars -->
+    <div class="svc-list flex flex-col gap-20 lg:gap-32">
+      @for (svc of services; track svc.id) {
+        <article class="svc-row grid lg:grid-cols-2 gap-10 lg:gap-16 items-center" [attr.data-accent]="svc.accent">
+          <!-- Media -->
+          <div class="svc-media relative">
+            <div class="svc-glow" aria-hidden="true"></div>
+            <div class="svc-frame relative rounded-2xl overflow-hidden border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] shadow-2xl">
+              <div class="svc-chrome flex items-center gap-1.5 px-4 py-3 border-b border-[var(--glass-border-subtle)]">
+                <span class="w-2.5 h-2.5 rounded-full bg-[var(--glass-border-strong)]"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-[var(--glass-border-strong)]"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-[var(--glass-border-strong)]"></span>
+              </div>
+              <img
+                [src]="svc.image"
+                [alt]="svc.imageAlt"
+                width="1024"
+                height="1024"
+                loading="lazy"
+                decoding="async"
+                class="w-full h-auto block"
+              />
+            </div>
+          </div>
+
+          <!-- Body -->
+          <div class="svc-body">
+            <p class="svc-kicker text-sm font-semibold mb-4">{{ svc.kicker }}</p>
+            <h3 class="text-2xl lg:text-4xl font-bold text-text-primary tracking-tight text-balance mb-4">
+              {{ svc.title }}
+            </h3>
+            <p class="text-base lg:text-lg text-text-secondary leading-relaxed text-pretty mb-7 max-w-xl">
+              {{ svc.description }}
+            </p>
+
+            <ul class="flex flex-col gap-3 mb-8">
+              @for (feature of svc.features; track feature) {
+                <li class="flex items-start gap-3">
+                  <span class="svc-check mt-0.5 w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                      <path
+                        fill-rule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  </span>
+                  <span class="text-text-secondary">{{ feature }}</span>
+                </li>
+              }
+            </ul>
+
+            <div class="flex flex-wrap items-center gap-x-5 gap-y-3">
+              @if (svc.external) {
+                <a [href]="svc.link" class="inner-button" target="_blank" rel="noopener noreferrer">
+                  {{ svc.ctaLabel }}
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </a>
+              } @else {
+                <a [routerLink]="svc.link" class="inner-button">
+                  {{ svc.ctaLabel }}
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </a>
+              }
+              <span class="svc-price text-sm font-medium">{{ svc.priceLine }}</span>
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+  </div>
+</section>
