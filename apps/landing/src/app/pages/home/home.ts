@@ -6,15 +6,11 @@ import { SeoService } from '../../shared/services/seo.service';
 
 // Import components
 import { Hero } from '../../components/hero/hero';
-import { OpenSourceSovereigntyComponent } from '../../components/open-source-sovereignty/open-source-sovereignty';
-import { MultiAgentArchitectureComponent } from '../../components/multi-agent-architecture/multi-agent-architecture';
-import { Features } from '../../components/features/features';
-
-import { DeploymentScreenshots } from '../../components/deployment-screenshots/deployment-screenshots';
-import { AfricanMarketComponent } from '../../components/african-market/african-market';
+import { VideoTrailer } from '../../components/video-trailer/video-trailer';
+import { JourneyComponent } from '../../components/journey/journey';
+import { OfferEcosystemComponent } from '../../components/offer-ecosystem/offer-ecosystem';
+import { TechnologySovereigntyComponent } from '../../components/technology-sovereignty/technology-sovereignty';
 import { Cta } from '../../components/cta/cta';
-import { VideoTrailer } from "../../components/video-trailer/video-trailer";
-import { EcosystemShowcaseComponent } from '../../components/ecosystem-showcase/ecosystem-showcase';
 
 @Component({
   selector: 'app-home',
@@ -22,15 +18,12 @@ import { EcosystemShowcaseComponent } from '../../components/ecosystem-showcase/
   imports: [
     CommonModule,
     Hero,
-    OpenSourceSovereigntyComponent,
-    MultiAgentArchitectureComponent,
-    Features,
-    DeploymentScreenshots,
-    AfricanMarketComponent,
-    EcosystemShowcaseComponent,
+    VideoTrailer,
+    JourneyComponent,
+    OfferEcosystemComponent,
+    TechnologySovereigntyComponent,
     Cta,
-    VideoTrailer
-],
+  ],
   templateUrl: './home.html',
   styleUrl: './home.css',
 })

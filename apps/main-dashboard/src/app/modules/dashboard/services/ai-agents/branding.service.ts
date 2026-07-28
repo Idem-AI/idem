@@ -189,13 +189,20 @@ export class BrandingService {
     project: ProjectModel;
   }> {
     console.log('Generating colors and typography from imported logo...');
+    // Payload allégé : le backend recharge le projet via findById et ne lit du
+    // payload que quelques champs légers + branding.logo (fallback). Envoyer le
+    // projet complet avec les variations de logo en SVG inline (souvent des
+    // rasters encodés en base64) faisait exploser la limite de body JSON de l'API
+    // → 413 Content Too Large. On retire ces variations lourdes : le backend les
+    // régénère au besoin. Le logo est référencé par URL (MinIO) quand disponible.
+    const leanProject = this.stripHeavyLogoVariations(project);
     return this.http
       .post<{
         colors: ColorModel[];
         typography: TypographyModel[];
         project: ProjectModel;
       }>(`${this.apiUrl}/generate/colors-typography-from-logo`, {
-        project,
+        project: leanProject,
         logoSvg,
         logoColors,
       })
@@ -206,6 +213,32 @@ export class BrandingService {
           throw error;
         }),
       );
+  }
+
+  /**
+   * Retire les variations de logo (SVG inline, potentiellement des rasters base64)
+   * du projet avant de l'envoyer à l'endpoint de génération de palette. C'est la
+   * principale source de gonflement du payload : le backend les régénère si
+   * absentes et privilégie de toute façon le logo persisté en base. Retourne le
+   * projet inchangé s'il n'y a pas de variations à retirer.
+   */
+  private stripHeavyLogoVariations(project: ProjectModel): ProjectModel {
+    const branding = project.analysisResultModel?.branding;
+    const logo = branding?.logo;
+    if (!logo?.variations) {
+      return project;
+    }
+    const { variations: _variations, ...leanLogo } = logo;
+    return {
+      ...project,
+      analysisResultModel: {
+        ...project.analysisResultModel,
+        branding: {
+          ...branding,
+          logo: leanLogo,
+        },
+      },
+    };
   }
 
   /**

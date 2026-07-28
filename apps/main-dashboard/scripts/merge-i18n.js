@@ -77,6 +77,7 @@ const CONFIG = {
 
     // Dashboard pages - Show pages
     'modules/dashboard/pages/show-branding': 'dashboard.showBranding',
+    'modules/dashboard/pages/show-communication': 'dashboard.showCommunication',
     'modules/dashboard/pages/show-branding/components/branding-display': 'dashboard.brandingDisplay',
     'modules/dashboard/pages/show-branding/components/branding-generation': 'dashboard.brandingGeneration',
     'modules/dashboard/pages/show-business-plan': 'dashboard.showBusinessPlan',

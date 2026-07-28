@@ -1,0 +1,35 @@
+:host {
+  display: block;
+}
+
+.ts-milestone {
+  transition:
+    border-color 0.25s ease,
+    transform 0.25s ease;
+}
+.ts-milestone:hover {
+  border-color: var(--glass-border-medium);
+  transform: translateY(-3px);
+}
+.ts-when {
+  color: var(--color-primary);
+}
+.ts-tag {
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border);
+  color: var(--color-text-secondary);
+}
+
+.ts-figure {
+  color: var(--color-primary);
+  letter-spacing: -0.05em;
+}
+.ts-chip {
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border);
+  color: var(--color-text-secondary);
+}
+
+.ts-vision {
+  line-height: 1.2;
+}

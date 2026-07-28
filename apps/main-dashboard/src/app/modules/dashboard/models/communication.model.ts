@@ -81,6 +81,14 @@ export type ContentChannel =
 
 export type ContentStatus = 'idea' | 'approved' | 'scheduled' | 'published';
 
+/** Communication purpose — drives whether a visual carries a CTA button. */
+export type VisualIntent =
+  | 'awareness'
+  | 'celebration'
+  | 'promotion'
+  | 'recruitment'
+  | 'announcement';
+
 export interface ContentIdea {
   id: string;
   title: string;
@@ -92,6 +100,7 @@ export interface ContentIdea {
   week: number;
   hashtags: string[];
   callToAction: string;
+  intent?: VisualIntent;
   status: ContentStatus;
   flyerIds?: string[];
 }
@@ -102,6 +111,25 @@ export interface EditorialCalendar {
   items: ContentIdea[];
   createdAt?: string | Date;
   updatedAt?: string | Date;
+}
+
+/** A timely, one-off content tied to an occasion (holiday, hiring, promo…). */
+export interface MomentIdea extends ContentIdea {
+  occasion: string;
+  occasionDate?: string;
+  source: 'suggestion' | 'custom';
+  caption?: string;
+}
+
+/** A suggested occasion surfaced in the Moments tab. */
+export interface MomentSuggestion {
+  id: string;
+  occasion: string;
+  date?: string;
+  intent: VisualIntent;
+  angle: string;
+  why?: string;
+  emoji?: string;
 }
 
 export type FlyerFormat = 'square' | 'story' | 'banner' | 'post' | 'a4';
@@ -127,13 +155,15 @@ export interface Flyer {
   id: string;
   contentId: string;
   format: FlyerFormat;
+  intent?: VisualIntent;
+  logoUsed?: string;
   concept: string;
   layoutNotes: string;
   marketingText: {
     headline: string;
     subheadline?: string;
     body: string;
-    cta: string;
+    cta?: string;
   };
   html: string;
   imageUrl?: string;
@@ -145,11 +175,43 @@ export interface Flyer {
   updatedAt?: string | Date;
 }
 
+export type SocialNetwork = 'linkedin' | 'x';
+export type PublicationStatus = 'draft' | 'scheduled' | 'published';
+
+export interface Publication {
+  id: string;
+  contentId: string;
+  network: SocialNetwork;
+  status: PublicationStatus;
+  caption: string;
+  hashtags: string[];
+  imageUrl?: string;
+  flyerId?: string;
+  shareUrl?: string;
+  scheduledFor?: string;
+  publishedAt?: string;
+  externalUrl?: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+}
+
+/** Assisted-share payload returned by the prepare-publication endpoint. */
+export interface AssistedShare {
+  network: SocialNetwork;
+  caption: string;
+  shareUrl: string;
+  imageUrl?: string;
+  requiresManualImage: boolean;
+}
+
 export interface CommunicationModel {
   context?: CommunicationContext;
   strategy?: CommunicationStrategy;
   calendar?: EditorialCalendar;
+  moments?: MomentIdea[];
+  momentSuggestions?: MomentSuggestion[];
   flyers?: Flyer[];
+  publications?: Publication[];
   trends?: TrendSignal[];
   createdAt?: string | Date;
   updatedAt?: string | Date;
