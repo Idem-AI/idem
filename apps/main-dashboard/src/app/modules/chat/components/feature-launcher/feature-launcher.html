@@ -113,6 +113,11 @@
                 <path d="M 30 30 L 44 18 M 30 30 L 44 42 M 56 18 L 70 30 M 56 42 L 70 30" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" class="svg-stroke-dim" />
               </svg>
             }
+            @default {
+              <div class="fc-icon-fallback">
+                <i [class]="tile.icon"></i>
+              </div>
+            }
           }
         </div>
 

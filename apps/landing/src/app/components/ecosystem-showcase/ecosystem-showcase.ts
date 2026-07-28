@@ -34,11 +34,11 @@ export class EcosystemShowcaseComponent implements OnInit, AfterViewInit, OnDest
   readonly apps = [
     {
       id: 'idev',
-      name: 'IDEV',
+      name: 'iCode',
       tagline: $localize`:@@ecosystem.idev.tagline:AI-Powered App Generator`,
-      description: $localize`:@@ecosystem.idev.description:Transform your idea into a fully functional application. Describe what you want, and IDEV generates the code, the interface, and the logic — powered by AI.`,
+      description: $localize`:@@ecosystem.idev.description:Transform your idea into a fully functional application. Describe what you want, and iCode generates the code, the interface, and the logic — powered by AI.`,
       route: '/idev',
-      ctaLabel: $localize`:@@ecosystem.idev.cta:Discover IDEV`,
+      ctaLabel: $localize`:@@ecosystem.idev.cta:Discover iCode`,
       accentColor: 'var(--color-primary)',
       features: [
         $localize`:@@ecosystem.idev.feature1:Full-stack code generation`,
@@ -105,7 +105,7 @@ export class EcosystemShowcaseComponent implements OnInit, AfterViewInit, OnDest
       {
         '@context': 'https://schema.org',
         '@type': 'SoftwareApplication',
-        name: 'IDEV',
+        name: 'iCode',
         description: 'AI-powered application generator. Transform your idea into a fully functional web application with AI-driven code generation.',
         url: `${this.seoService.domain}/idev`,
         applicationCategory: 'DeveloperApplication',

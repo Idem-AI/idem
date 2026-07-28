@@ -30,6 +30,18 @@ const KIND_PATTERNS: Array<{ kind: DeliverableKind; pattern: RegExp }> = [
     kind: 'finance',
     pattern: /financ(es?|ier|ière)|rapport financier|pr[ée]visionnel|tr[ée]sorerie|cash\s*-?flow|bilan/i,
   },
+  {
+    kind: 'communication',
+    pattern: /communication|marketing|r[ée]seaux sociaux|social media|calendrier [ée]ditorial|strat[ée]gie de comm|posts?\b|flyers?/i,
+  },
+  {
+    kind: 'development',
+    pattern: /d[ée]veloppement|\bdev\b|landing\s*page|site web|application web|coder?|g[ée]n[ée]rer (l['’]|une )?app/i,
+  },
+  {
+    kind: 'deployment',
+    pattern: /d[ée]ploie?ment|d[ée]ployer|\bdeploy\b|infrastructure|terraform|h[ée]bergement|hosting|mise en (ligne|production)/i,
+  },
 ];
 
 const SHOW_VERBS = /montre|affiche|voir|ouvr(e|ir)|consulter?|regarde|pr[ée]sente|show|display|open|view|see\b/i;

@@ -1,49 +1,50 @@
 <div class="w-full min-h-screen md:p-6 relative">
   @if (isLoading()) {
     <div class="max-w-6xl mx-auto text-center py-20">
-      <p class="text-text-tertiary">Chargement...</p>
+      <i class="pi pi-spin pi-spinner text-3xl text-[var(--color-accent-500)]"></i>
+      <p class="mt-3 text-[var(--color-text-secondary)]">
+        {{ 'dashboard.showCommunication.loading' | translate }}
+      </p>
     </div>
   } @else if (!isLoading() && !isBrandingComplete()) {
-    <!-- Incomplete Project Banner -->
-    <app-incomplete-project-banner
-      [project]="project()!"
-    />
+    <app-incomplete-project-banner [project]="project()!" />
   } @else {
     <!-- HEADER -->
     <div class="max-w-7xl mx-auto mb-6">
-      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+      <div class="flex flex-col gap-5">
         <div>
           <div class="text-[10px] uppercase tracking-[0.3em] text-[var(--color-accent-500)]">
-            Communication Engine
+            {{ 'dashboard.showCommunication.eyebrow' | translate }}
           </div>
           <h1 class="text-3xl font-bold text-[var(--color-text-primary)] mt-1">
-            Strategy &amp; editorial calendar
+            {{ 'dashboard.showCommunication.title' | translate }}
           </h1>
-          <p class="text-[var(--color-text-secondary)] mt-1 text-sm">
-            Strategy, editorial calendar, and on-demand visuals for your project.
+          <p class="text-[var(--color-text-secondary)] mt-1 text-sm max-w-2xl">
+            {{ 'dashboard.showCommunication.subtitle' | translate }}
           </p>
         </div>
 
-        <!-- Tabs -->
-        <div class="glass inline-flex rounded-full p-1 w-fit">
-          <button
-            type="button"
-            class="px-5 py-2 rounded-full text-sm font-semibold transition-all uppercase tracking-wider"
-            [class.inner-button]="activeTab() === 'strategy'"
-            [class.text-\[var\(--color-text-secondary\)\]]="activeTab() !== 'strategy'"
-            (click)="setActiveTab('strategy')"
-          >
-            <i class="pi pi-compass mr-2"></i> Strategy
-          </button>
-          <button
-            type="button"
-            class="px-5 py-2 rounded-full text-sm font-semibold transition-all uppercase tracking-wider"
-            [class.inner-button]="activeTab() === 'calendar'"
-            [class.text-\[var\(--color-text-secondary\)\]]="activeTab() !== 'calendar'"
-            (click)="setActiveTab('calendar')"
-          >
-            <i class="pi pi-calendar mr-2"></i> Calendar
-          </button>
+        <!-- Segmented guided navigation -->
+        <div class="glass inline-flex flex-wrap rounded-2xl p-1 w-fit gap-1">
+          @for (tab of navTabs; track tab.id) {
+            <button
+              type="button"
+              class="relative px-4 py-2 rounded-xl text-sm font-semibold transition-all uppercase tracking-wider flex items-center gap-2"
+              [class.inner-button]="activeTab() === tab.id"
+              [class.text-\[var\(--color-text-secondary\)\]]="activeTab() !== tab.id"
+              (click)="setActiveTab(tab.id)"
+            >
+              <i [class]="tab.icon"></i>
+              <span>{{ tab.labelKey | translate }}</span>
+              @if (tab.soon) {
+                <span
+                  class="text-[8px] leading-none px-1.5 py-0.5 rounded-full bg-[var(--color-accent-500)]/20 text-[var(--color-accent-500)] tracking-normal"
+                >
+                  {{ 'dashboard.showCommunication.comingSoon' | translate }}
+                </span>
+              }
+            </button>
+          }
         </div>
       </div>
 
@@ -66,24 +67,18 @@
       }
     </div>
 
-    <!-- LOADING / EMPTY STATE -->
-    @if (isLoading()) {
-      <div class="max-w-7xl mx-auto text-center py-20">
-        <i class="pi pi-spin pi-spinner text-3xl text-[var(--color-accent-500)]"></i>
-        <p class="mt-3 text-[var(--color-text-secondary)]">Loading communication engine…</p>
-      </div>
-    } @else if (!projectId()) {
+    @if (!projectId()) {
       <div class="glass-card max-w-3xl mx-auto text-center py-16 px-8">
         <i class="pi pi-info-circle text-5xl text-[var(--color-text-tertiary)]"></i>
         <h3 class="mt-4 text-lg font-semibold text-[var(--color-text-primary)]">
-          Select a project
+          {{ 'dashboard.showCommunication.selectProject.title' | translate }}
         </h3>
         <p class="mt-2 text-[var(--color-text-secondary)]">
-          Choose a project from your list to start generating communication assets.
+          {{ 'dashboard.showCommunication.selectProject.body' | translate }}
         </p>
         <div class="flex justify-center mt-6">
           <button class="inner-button" (click)="goToProjects()">
-            <i class="pi pi-arrow-right"></i> Go to my projects
+            <i class="pi pi-arrow-right"></i> {{ 'dashboard.showCommunication.selectProject.cta' | translate }}
           </button>
         </div>
       </div>
@@ -97,11 +92,10 @@
             >
               <i class="pi pi-compass text-5xl text-[var(--color-accent-500)]"></i>
               <h3 class="mt-4 text-xl font-semibold text-[var(--color-text-primary)]">
-                Generate your communication strategy
+                {{ 'dashboard.showCommunication.strategy.empty.title' | translate }}
               </h3>
               <p class="mt-2 text-[var(--color-text-secondary)] max-w-lg mx-auto">
-                We extract a compact context from your project, pull lightweight trend signals, and
-                produce a structured, editable strategy.
+                {{ 'dashboard.showCommunication.strategy.empty.body' | translate }}
               </p>
               <div class="flex justify-center mt-6">
                 <button
@@ -114,30 +108,29 @@
                   } @else {
                     <i class="pi pi-sparkles"></i>
                   }
-                  Generate strategy
+                  {{ 'dashboard.showCommunication.strategy.empty.cta' | translate }}
                 </button>
               </div>
             </div>
           } @else {
-            <!-- Context chip -->
             @if (context()) {
               <div class="glass mb-6 rounded-2xl p-4 flex flex-wrap gap-2 text-sm">
                 <span
                   class="px-3 py-1 rounded-full border border-[var(--glass-border)] text-[var(--color-text-secondary)]"
                 >
-                  <strong class="text-[var(--color-text-primary)]">Brand:</strong>
+                  <strong class="text-[var(--color-text-primary)]">{{ 'dashboard.showCommunication.strategy.context.brand' | translate }}:</strong>
                   {{ context()!.brandName }}
                 </span>
                 <span
                   class="px-3 py-1 rounded-full border border-[var(--glass-border)] text-[var(--color-text-secondary)]"
                 >
-                  <strong class="text-[var(--color-text-primary)]">Type:</strong>
+                  <strong class="text-[var(--color-text-primary)]">{{ 'dashboard.showCommunication.strategy.context.type' | translate }}:</strong>
                   {{ context()!.businessType }}
                 </span>
                 <span
                   class="px-3 py-1 rounded-full border border-[var(--glass-border)] text-[var(--color-text-secondary)]"
                 >
-                  <strong class="text-[var(--color-text-primary)]">Tone:</strong>
+                  <strong class="text-[var(--color-text-primary)]">{{ 'dashboard.showCommunication.strategy.context.tone' | translate }}:</strong>
                   {{ context()!.tone }}
                 </span>
                 @for (ch of context()!.channels; track ch) {
@@ -150,12 +143,11 @@
               </div>
             }
 
-            <!-- Summary -->
             <div class="glass-card p-6 mb-6">
               <label
                 class="block text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-tertiary)] mb-2"
               >
-                Strategy summary
+                {{ 'dashboard.showCommunication.strategy.summaryLabel' | translate }}
               </label>
               <textarea
                 rows="3"
@@ -164,7 +156,6 @@
               ></textarea>
             </div>
 
-            <!-- Blocks grid -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
               @for (block of strategy()!.blocks; track block.id) {
                 <div class="glass-card p-5 flex flex-col gap-3">
@@ -172,7 +163,7 @@
                     <span
                       class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-accent-500)] border border-[var(--color-accent-500)]/40 px-2 py-1 rounded-full"
                     >
-                      {{ block.kind }}
+                      {{ 'dashboard.showCommunication.strategy.blockKinds.' + block.kind | translate }}
                     </span>
                     <input
                       class="font-semibold text-[var(--color-text-primary)] bg-transparent border-0 focus:outline-none focus:ring-0 flex-1"
@@ -196,20 +187,19 @@
                 (click)="generateStrategy(true)"
                 [disabled]="isGeneratingStrategy()"
               >
-                <i class="pi pi-refresh mr-2"></i> Regenerate
+                <i class="pi pi-refresh mr-2"></i> {{ 'dashboard.showCommunication.strategy.regenerate' | translate }}
               </button>
               <button class="inner-button button-sm" (click)="saveStrategy()">
-                <i class="pi pi-save mr-2"></i> Save changes
+                <i class="pi pi-save mr-2"></i> {{ 'dashboard.showCommunication.strategy.save' | translate }}
               </button>
             </div>
 
-            <!-- Trends row -->
             @if (trends().length > 0) {
               <div class="mt-8">
                 <h3
                   class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-tertiary)] mb-3"
                 >
-                  Trend signals used
+                  {{ 'dashboard.showCommunication.strategy.trendsTitle' | translate }}
                 </h3>
                 <div class="flex flex-wrap gap-2">
                   @for (t of trends(); track t.id) {
@@ -236,11 +226,10 @@
             >
               <i class="pi pi-calendar text-5xl text-[var(--color-accent-500)]"></i>
               <h3 class="mt-4 text-xl font-semibold text-[var(--color-text-primary)]">
-                Build your editorial calendar
+                {{ 'dashboard.showCommunication.calendar.empty.title' | translate }}
               </h3>
               <p class="mt-2 text-[var(--color-text-secondary)] max-w-lg mx-auto">
-                We'll produce 4 weeks of content ideas — titles, hooks, formats, channels — so you
-                can pick what to publish. Visuals are only generated on demand.
+                {{ 'dashboard.showCommunication.calendar.empty.body' | translate }}
               </p>
               <div class="flex justify-center mt-6">
                 <button
@@ -253,31 +242,30 @@
                   } @else {
                     <i class="pi pi-sparkles"></i>
                   }
-                  Generate calendar
+                  {{ 'dashboard.showCommunication.calendar.empty.cta' | translate }}
                 </button>
               </div>
               @if (!strategy()) {
                 <p class="mt-3 text-xs text-[var(--color-text-tertiary)]">
-                  Generate a strategy first to produce a more relevant calendar.
+                  {{ 'dashboard.showCommunication.calendar.empty.needStrategy' | translate }}
                 </p>
               }
             </div>
           } @else {
-            <!-- Filters -->
             <div class="flex flex-wrap gap-3 items-end mb-6">
               <div>
-                <label>Channel</label>
+                <label>{{ 'dashboard.showCommunication.calendar.filters.channel' | translate }}</label>
                 <select [ngModel]="filterChannel()" (ngModelChange)="setFilterChannel($event)">
-                  <option value="all">All channels</option>
+                  <option value="all">{{ 'dashboard.showCommunication.calendar.filters.allChannels' | translate }}</option>
                   @for (ch of channels; track ch) {
                     <option [value]="ch">{{ ch }}</option>
                   }
                 </select>
               </div>
               <div>
-                <label>Format</label>
+                <label>{{ 'dashboard.showCommunication.calendar.filters.format' | translate }}</label>
                 <select [ngModel]="filterFormat()" (ngModelChange)="setFilterFormat($event)">
-                  <option value="all">All formats</option>
+                  <option value="all">{{ 'dashboard.showCommunication.calendar.filters.allFormats' | translate }}</option>
                   @for (fm of formats; track fm) {
                     <option [value]="fm">{{ fm }}</option>
                   }
@@ -289,12 +277,11 @@
                   (click)="generateCalendar(true)"
                   [disabled]="isGeneratingCalendar()"
                 >
-                  <i class="pi pi-refresh mr-2"></i> Regenerate calendar
+                  <i class="pi pi-refresh mr-2"></i> {{ 'dashboard.showCommunication.calendar.regenerate' | translate }}
                 </button>
               </div>
             </div>
 
-            <!-- Weeks -->
             <div class="space-y-8">
               @for (weekGroup of calendarWeeks(); track weekGroup.week) {
                 <div>
@@ -305,10 +292,10 @@
                       {{ weekGroup.week }}
                     </div>
                     <h2 class="text-lg font-semibold text-[var(--color-text-primary)]">
-                      Week {{ weekGroup.week }}
+                      {{ 'dashboard.showCommunication.calendar.week' | translate }} {{ weekGroup.week }}
                     </h2>
                     <span class="text-xs text-[var(--color-text-tertiary)]"
-                      >{{ weekGroup.items.length }} ideas</span
+                      >{{ weekGroup.items.length }} {{ 'dashboard.showCommunication.calendar.ideas' | translate }}</span
                     >
                   </div>
                   <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -326,10 +313,26 @@
                             >
                               {{ item.format }}
                             </span>
-                            <span class="text-[10px] text-[var(--color-text-tertiary)]">
-                              {{ item.scheduledFor }}
-                            </span>
                           </div>
+                          <span
+                            class="text-[10px] uppercase tracking-[0.1em] px-2 py-0.5 rounded-full border"
+                            [class]="statusPillClass(item.status)"
+                          >
+                            {{ 'dashboard.showCommunication.status.' + item.status | translate }}
+                          </span>
+                        </div>
+
+                        <div class="mt-2 flex items-center gap-2 flex-wrap">
+                          <span class="text-[10px] text-[var(--color-text-tertiary)]">
+                            <i class="pi pi-clock text-[10px] mr-1"></i>{{ item.scheduledFor }}
+                          </span>
+                          @if (item.intent) {
+                            <span
+                              class="text-[10px] text-[var(--color-text-secondary)] border border-[var(--glass-border)] px-2 py-0.5 rounded-full"
+                            >
+                              {{ 'dashboard.showCommunication.intent.' + item.intent | translate }}
+                            </span>
+                          }
                           @if (item.flyerIds && item.flyerIds.length > 0) {
                             <span
                               class="text-[10px] text-[var(--color-success)] border border-[var(--color-success)]/40 bg-[var(--color-success)]/10 px-2 py-0.5 rounded inline-flex items-center gap-1"
@@ -339,9 +342,8 @@
                             </span>
                           }
                         </div>
-                        <h3
-                          class="mt-3 font-semibold text-[var(--color-text-primary)] line-clamp-2"
-                        >
+
+                        <h3 class="mt-3 font-semibold text-[var(--color-text-primary)] line-clamp-2">
                           {{ item.title }}
                         </h3>
                         <p class="mt-1 text-sm text-[var(--color-text-secondary)] line-clamp-2">
@@ -354,20 +356,15 @@
                         @if (item.hashtags.length > 0) {
                           <div class="mt-2 flex flex-wrap gap-1">
                             @for (tag of item.hashtags; track tag) {
-                              <span class="text-[10px] text-[var(--color-text-tertiary)]"
-                                >#{{ tag }}</span
-                              >
+                              <span class="text-[10px] text-[var(--color-text-tertiary)]">#{{ tag }}</span>
                             }
                           </div>
                         }
 
-                        <div class="mt-auto pt-4 flex items-center justify-between">
-                          <span class="text-xs text-[var(--color-text-secondary)]">
-                            <i class="pi pi-megaphone mr-1"></i>{{ item.callToAction }}
-                          </span>
+                        <div class="mt-auto pt-4 flex items-center justify-end">
                           <button class="inner-button button-sm" (click)="openFlyerModal(item)">
                             <i class="pi pi-image"></i>
-                            Visual
+                            {{ 'dashboard.showCommunication.calendar.generateVisual' | translate }}
                           </button>
                         </div>
                       </div>
@@ -379,9 +376,379 @@
           }
         </div>
       }
+
+      <!-- MOMENTS TAB -->
+      @if (activeTab() === 'moments') {
+        <div class="max-w-7xl mx-auto space-y-8">
+          <!-- Intro + actions -->
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <div class="text-[10px] uppercase tracking-[0.3em] text-[var(--color-accent-500)]">
+                {{ 'dashboard.showCommunication.moments.eyebrow' | translate }}
+              </div>
+              <p class="text-sm text-[var(--color-text-secondary)] mt-1 max-w-xl">
+                {{ 'dashboard.showCommunication.moments.empty.body' | translate }}
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                class="outer-button button-sm"
+                [disabled]="isLoadingSuggestions()"
+                (click)="loadMomentSuggestions(true)"
+              >
+                <i class="pi pi-refresh mr-2"></i>
+                {{ 'dashboard.showCommunication.moments.refresh' | translate }}
+              </button>
+              <button class="inner-button button-sm" (click)="toggleMomentForm()">
+                <i class="pi pi-plus mr-2"></i>
+                {{ 'dashboard.showCommunication.moments.createTitle' | translate }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Free-form moment creator -->
+          @if (showMomentForm()) {
+            <div class="glass-card p-5 space-y-3">
+              <p class="text-sm text-[var(--color-text-secondary)]">
+                {{ 'dashboard.showCommunication.moments.createBody' | translate }}
+              </p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="md:col-span-2">
+                  <label>{{ 'dashboard.showCommunication.moments.fields.occasion' | translate }}</label>
+                  <input
+                    type="text"
+                    [ngModel]="momentOccasion()"
+                    (ngModelChange)="momentOccasion.set($event)"
+                    [attr.placeholder]="'dashboard.showCommunication.moments.fields.occasionPlaceholder' | translate"
+                  />
+                </div>
+                <div>
+                  <label>{{ 'dashboard.showCommunication.moments.fields.date' | translate }}</label>
+                  <input type="date" [ngModel]="momentDate()" (ngModelChange)="momentDate.set($event)" />
+                </div>
+                <div>
+                  <label>{{ 'dashboard.showCommunication.moments.fields.intent' | translate }}</label>
+                  <select [ngModel]="momentIntent()" (ngModelChange)="momentIntent.set($event)">
+                    <option value="">—</option>
+                    @for (it of momentIntents; track it) {
+                      <option [value]="it">{{ 'dashboard.showCommunication.intent.' + it | translate }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="md:col-span-2">
+                  <label>{{ 'dashboard.showCommunication.moments.fields.message' | translate }}</label>
+                  <textarea
+                    rows="2"
+                    [ngModel]="momentMessage()"
+                    (ngModelChange)="momentMessage.set($event)"
+                    [attr.placeholder]="'dashboard.showCommunication.moments.fields.messagePlaceholder' | translate"
+                  ></textarea>
+                </div>
+              </div>
+              <div class="flex justify-end">
+                <button
+                  class="inner-button button-sm"
+                  [disabled]="isCreatingMoment() || !momentOccasion().trim()"
+                  (click)="submitCustomMoment()"
+                >
+                  @if (isCreatingMoment()) {
+                    <i class="pi pi-spin pi-spinner mr-2"></i>
+                  } @else {
+                    <i class="pi pi-sparkles mr-2"></i>
+                  }
+                  {{ 'dashboard.showCommunication.moments.generate' | translate }}
+                </button>
+              </div>
+            </div>
+          }
+
+          <!-- Suggestions -->
+          <div>
+            <h3 class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-tertiary)] mb-3">
+              {{ 'dashboard.showCommunication.moments.suggestionsTitle' | translate }}
+            </h3>
+            @if (isLoadingSuggestions()) {
+              <div class="glass-card p-8 text-center">
+                <i class="pi pi-spin pi-spinner text-2xl text-[var(--color-accent-500)]"></i>
+                <p class="mt-2 text-sm text-[var(--color-text-secondary)]">
+                  {{ 'dashboard.showCommunication.moments.loadingSuggestions' | translate }}
+                </p>
+              </div>
+            } @else if (momentSuggestions().length === 0) {
+              <div class="glass-card p-8 text-center text-sm text-[var(--color-text-tertiary)]">
+                {{ 'dashboard.showCommunication.moments.noSuggestions' | translate }}
+              </div>
+            } @else {
+              <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                @for (s of momentSuggestions(); track s.id) {
+                  <div class="glass-card p-4 flex flex-col">
+                    <div class="flex items-start gap-3">
+                      <div class="text-2xl leading-none">{{ s.emoji || '✨' }}</div>
+                      <div class="flex-1">
+                        <h4 class="font-semibold text-[var(--color-text-primary)]">{{ s.occasion }}</h4>
+                        @if (s.date) {
+                          <div class="text-[10px] text-[var(--color-text-tertiary)] mt-0.5">
+                            <i class="pi pi-calendar text-[10px] mr-1"></i>{{ s.date }}
+                          </div>
+                        }
+                      </div>
+                      <span
+                        class="text-[10px] uppercase tracking-[0.1em] px-2 py-0.5 rounded-full border border-[var(--glass-border)] text-[var(--color-text-secondary)]"
+                      >
+                        {{ 'dashboard.showCommunication.intent.' + s.intent | translate }}
+                      </span>
+                    </div>
+                    @if (s.angle) {
+                      <p class="mt-3 text-sm text-[var(--color-text-secondary)] line-clamp-3">{{ s.angle }}</p>
+                    }
+                    @if (s.why) {
+                      <p class="mt-1 text-xs text-[var(--color-text-tertiary)] italic line-clamp-2">{{ s.why }}</p>
+                    }
+                    <div class="mt-auto pt-4 flex justify-end">
+                      <button
+                        class="inner-button button-sm"
+                        [disabled]="creatingSuggestionId() === s.id"
+                        (click)="createFromSuggestion(s)"
+                      >
+                        @if (creatingSuggestionId() === s.id) {
+                          <i class="pi pi-spin pi-spinner mr-2"></i>
+                        } @else {
+                          <i class="pi pi-sparkles mr-2"></i>
+                        }
+                        {{ 'dashboard.showCommunication.moments.generate' | translate }}
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Generated moments -->
+          @if (moments().length > 0) {
+            <div>
+              <h3 class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-tertiary)] mb-3">
+                {{ 'dashboard.showCommunication.tabs.moments' | translate }}
+              </h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                @for (m of moments(); track m.id) {
+                  <div class="glass-card p-4 flex flex-col">
+                    <div class="flex items-start justify-between gap-2">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span
+                          class="text-[10px] uppercase tracking-[0.15em] text-[var(--color-accent-500)] border border-[var(--color-accent-500)]/40 px-2 py-0.5 rounded"
+                        >
+                          {{ m.occasion }}
+                        </span>
+                        @if (m.intent) {
+                          <span
+                            class="text-[10px] text-[var(--color-text-secondary)] border border-[var(--glass-border)] px-2 py-0.5 rounded-full"
+                          >
+                            {{ 'dashboard.showCommunication.intent.' + m.intent | translate }}
+                          </span>
+                        }
+                        @if (m.occasionDate) {
+                          <span class="text-[10px] text-[var(--color-text-tertiary)]">
+                            <i class="pi pi-calendar text-[10px] mr-1"></i>{{ m.occasionDate }}
+                          </span>
+                        }
+                      </div>
+                      @if (m.flyerIds && m.flyerIds.length > 0) {
+                        <span
+                          class="text-[10px] text-[var(--color-success)] border border-[var(--color-success)]/40 bg-[var(--color-success)]/10 px-2 py-0.5 rounded inline-flex items-center gap-1"
+                        >
+                          <i class="pi pi-image text-[10px]"></i>{{ m.flyerIds.length }}
+                        </span>
+                      }
+                    </div>
+
+                    <h4 class="mt-3 font-semibold text-[var(--color-text-primary)]">{{ m.title }}</h4>
+                    @if (m.caption) {
+                      <p class="mt-2 text-sm text-[var(--color-text-secondary)] whitespace-pre-line line-clamp-6">
+                        {{ m.caption }}
+                      </p>
+                    }
+                    @if (m.hashtags.length > 0) {
+                      <div class="mt-2 flex flex-wrap gap-1">
+                        @for (tag of m.hashtags; track tag) {
+                          <span class="text-[10px] text-[var(--color-text-tertiary)]">#{{ tag }}</span>
+                        }
+                      </div>
+                    }
+
+                    <div class="mt-auto pt-4 flex items-center justify-end gap-2">
+                      @if (m.caption) {
+                        <button class="outer-button button-sm" (click)="copyToClipboard(m.caption!, m.id)">
+                          <i class="pi mr-1" [class.pi-copy]="copiedId() !== m.id" [class.pi-check]="copiedId() === m.id"></i>
+                          {{
+                            (copiedId() === m.id
+                              ? 'dashboard.showCommunication.publishing.captionCopied'
+                              : 'dashboard.showCommunication.publishing.copyCaption') | translate
+                          }}
+                        </button>
+                      }
+                      <button class="inner-button button-sm" (click)="openFlyerModal(m)">
+                        <i class="pi pi-image mr-1"></i>
+                        {{ 'dashboard.showCommunication.moments.generateVisual' | translate }}
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- PUBLISHING TAB -->
+      @if (activeTab() === 'publishing') {
+        <div class="max-w-7xl mx-auto space-y-8">
+          <div class="glass rounded-2xl p-4 flex items-start gap-3 text-sm text-[var(--color-text-secondary)]">
+            <i class="pi pi-info-circle text-[var(--color-accent-500)] mt-0.5"></i>
+            <span>{{ 'dashboard.showCommunication.publishing.assistedNote' | translate }}</span>
+          </div>
+
+          @if (publishableItems().length === 0 && publications().length === 0) {
+            <div
+              class="glass-card text-center py-16 px-8 border border-dashed border-[var(--glass-border-medium)]"
+            >
+              <i class="pi pi-send text-5xl text-[var(--color-accent-500)]"></i>
+              <h3 class="mt-4 text-xl font-semibold text-[var(--color-text-primary)]">
+                {{ 'dashboard.showCommunication.publishing.empty.title' | translate }}
+              </h3>
+              <p class="mt-2 text-[var(--color-text-secondary)] max-w-lg mx-auto">
+                {{ 'dashboard.showCommunication.publishing.noPublishable' | translate }}
+              </p>
+            </div>
+          } @else {
+            <!-- Ready to publish -->
+            @if (publishableItems().length > 0) {
+              <div>
+                <h3 class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-tertiary)] mb-1">
+                  {{ 'dashboard.showCommunication.publishing.readyTitle' | translate }}
+                </h3>
+                <p class="text-sm text-[var(--color-text-secondary)] mb-3">
+                  {{ 'dashboard.showCommunication.publishing.readyHint' | translate }}
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  @for (entry of publishableItems(); track entry.content.id) {
+                    <div class="glass-card p-4 flex flex-col">
+                      <div class="flex gap-3">
+                        @if (entry.flyer?.imageUrl) {
+                          <img
+                            [src]="entry.flyer!.imageUrl"
+                            [alt]="entry.content.title"
+                            class="h-16 w-16 rounded-lg object-cover flex-shrink-0"
+                          />
+                        }
+                        <div class="min-w-0">
+                          <h4 class="font-semibold text-[var(--color-text-primary)] line-clamp-2">
+                            {{ entry.content.title }}
+                          </h4>
+                          <div class="text-[10px] text-[var(--color-text-tertiary)] mt-1 uppercase tracking-[0.1em]">
+                            {{ entry.content.channel }} · {{ entry.content.format }}
+                          </div>
+                        </div>
+                      </div>
+                      <div class="mt-auto pt-4 flex items-center gap-2">
+                        <span class="text-[10px] text-[var(--color-text-tertiary)] mr-1">
+                          {{ 'dashboard.showCommunication.publishing.prepareOn' | translate }}:
+                        </span>
+                        @for (net of networks; track net) {
+                          <button
+                            class="outer-button button-sm"
+                            [disabled]="preparingKey() === entry.content.id + ':' + net"
+                            (click)="prepareAndPublish(entry.content, net)"
+                          >
+                            @if (preparingKey() === entry.content.id + ':' + net) {
+                              <i class="pi pi-spin pi-spinner"></i>
+                            } @else {
+                              <i [class]="networkIcon(net)"></i>
+                            }
+                            {{ 'dashboard.showCommunication.publishing.networks.' + net | translate }}
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Publishing queue -->
+            @if (publications().length > 0) {
+              <div>
+                <h3 class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-tertiary)] mb-3">
+                  {{ 'dashboard.showCommunication.publishing.queueTitle' | translate }}
+                </h3>
+                <div class="space-y-3">
+                  @for (pub of publications(); track pub.id) {
+                    <div class="glass-card p-4 flex flex-col md:flex-row md:items-center gap-4">
+                      @if (pub.imageUrl) {
+                        <img
+                          [src]="pub.imageUrl"
+                          [alt]="pub.network"
+                          class="h-16 w-16 rounded-lg object-cover flex-shrink-0"
+                        />
+                      }
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                          <span class="text-sm font-semibold text-[var(--color-text-primary)] inline-flex items-center gap-1">
+                            <i [class]="networkIcon(pub.network)"></i>
+                            {{ 'dashboard.showCommunication.publishing.networks.' + pub.network | translate }}
+                          </span>
+                          <span
+                            class="text-[10px] uppercase tracking-[0.1em] px-2 py-0.5 rounded-full border"
+                            [class]="pubPillClass(pub.status)"
+                          >
+                            {{ 'dashboard.showCommunication.status.' + pub.status | translate }}
+                          </span>
+                          @if (pub.scheduledFor) {
+                            <span class="text-[10px] text-[var(--color-text-tertiary)]">
+                              <i class="pi pi-clock text-[10px] mr-1"></i>{{ pub.scheduledFor }}
+                            </span>
+                          }
+                        </div>
+                        <p class="mt-1 text-xs text-[var(--color-text-secondary)] line-clamp-2 whitespace-pre-line">
+                          {{ pub.caption }}
+                        </p>
+                      </div>
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <button class="outer-button button-sm" (click)="copyToClipboard(pub.caption, pub.id)">
+                          <i class="pi mr-1" [class.pi-copy]="copiedId() !== pub.id" [class.pi-check]="copiedId() === pub.id"></i>
+                          {{
+                            (copiedId() === pub.id
+                              ? 'dashboard.showCommunication.publishing.captionCopied'
+                              : 'dashboard.showCommunication.publishing.copyCaption') | translate
+                          }}
+                        </button>
+                        @if (pub.imageUrl) {
+                          <a class="outer-button button-sm" [href]="pub.imageUrl" [download]="pub.id + '.png'" target="_blank">
+                            <i class="pi pi-download"></i>
+                          </a>
+                        }
+                        <button class="inner-button button-sm" (click)="assistedPublish(pub)">
+                          <i class="pi pi-external-link mr-1"></i>
+                          {{ 'dashboard.showCommunication.publishing.openComposer' | translate }}
+                        </button>
+                        @if (pub.status !== 'published') {
+                          <button class="outer-button button-sm" (click)="markPublished(pub)">
+                            <i class="pi pi-check mr-1"></i>
+                            {{ 'dashboard.showCommunication.publishing.markPublished' | translate }}
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          }
+        </div>
+      }
     }
 
-    <!-- FLYER MODAL (on-demand generation) -->
+    <!-- VISUAL MODAL (on-demand generation) -->
     @if (isFlyerModalOpen() && selectedContent()) {
       <div
         class="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -393,11 +760,10 @@
           style="background: var(--glass-bg-intense)"
           (click)="$event.stopPropagation()"
         >
-          <!-- Modal header -->
           <div class="flex items-start justify-between p-5 border-b border-[var(--glass-border)]">
             <div>
               <div class="text-[10px] uppercase tracking-[0.3em] text-[var(--color-accent-500)]">
-                Visual for content
+                {{ 'dashboard.showCommunication.visual.eyebrow' | translate }}
               </div>
               <h2 class="text-xl font-bold text-[var(--color-text-primary)] mt-1">
                 {{ selectedContent()!.title }}
@@ -411,7 +777,6 @@
             </button>
           </div>
 
-          <!-- Format selector -->
           <div
             class="flex items-center gap-2 px-5 py-3 border-b border-[var(--glass-border)] overflow-x-auto"
             style="background: var(--glass-bg-subtle)"
@@ -419,7 +784,7 @@
             <span
               class="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)] mr-2"
             >
-              Format:
+              {{ 'dashboard.showCommunication.visual.format' | translate }}:
             </span>
             @for (fmt of flyerFormats; track fmt) {
               <button
@@ -433,9 +798,7 @@
             }
           </div>
 
-          <!-- Body -->
           <div class="grid grid-cols-1 md:grid-cols-5 gap-0 flex-1 overflow-auto">
-            <!-- Preview -->
             <div
               class="md:col-span-3 p-6 min-h-[400px] flex items-center justify-center"
               style="background: var(--color-bg-darker)"
@@ -444,14 +807,14 @@
                 <div class="text-center">
                   <i class="pi pi-spin pi-spinner text-4xl text-[var(--color-accent-500)]"></i>
                   <p class="mt-3 text-sm text-[var(--color-text-secondary)]">
-                    Sourcing image, scanning, composing visual…
+                    {{ 'dashboard.showCommunication.visual.generating' | translate }}
                   </p>
                 </div>
               } @else if (isDownloadingImage()) {
                 <div class="text-center">
                   <i class="pi pi-spin pi-spinner text-4xl text-[var(--color-accent-500)]"></i>
                   <p class="mt-3 text-sm text-[var(--color-text-secondary)]">
-                    Loading rendered image...
+                    {{ 'dashboard.showCommunication.visual.loadingImage' | translate }}
                   </p>
                 </div>
               } @else if (currentFlyer()?.imageUrl) {
@@ -462,103 +825,88 @@
                   style="box-shadow: var(--glass-shadow-xl)"
                 />
               } @else if (currentFlyer()) {
-                <!-- Fallback: HTML render if PNG missing -->
                 <div class="text-center text-[var(--color-text-secondary)] text-sm">
                   <i class="pi pi-image text-3xl"></i>
-                  <p class="mt-2">Visual generated but not yet rendered as PNG.</p>
+                  <p class="mt-2">{{ 'dashboard.showCommunication.visual.notRendered' | translate }}</p>
                 </div>
               } @else {
                 <div class="text-center max-w-sm">
                   <i class="pi pi-image text-5xl text-[var(--color-text-tertiary)]"></i>
                   <h3 class="mt-3 text-lg font-semibold text-[var(--color-text-primary)]">
-                    No visual yet
+                    {{ 'dashboard.showCommunication.visual.noneTitle' | translate }}
                   </h3>
                   <p class="mt-2 text-sm text-[var(--color-text-secondary)]">
-                    Click <strong>Generate visual</strong> to create a flyer. We'll search free
-                    stock libraries first, then fall back to AI generation.
+                    {{ 'dashboard.showCommunication.visual.noneBody' | translate }}
                   </p>
                 </div>
               }
             </div>
 
-            <!-- Concept / text -->
             <div
               class="md:col-span-2 p-6 border-l border-[var(--glass-border)] space-y-4 overflow-y-auto"
             >
               @if (currentFlyer()) {
-                @if (currentFlyer()!.imageSource) {
-                  <div class="flex items-center gap-2 text-xs">
+                <div class="flex items-center gap-2 flex-wrap text-xs">
+                  @if (currentFlyer()!.imageSource) {
                     <span
                       class="px-2 py-1 rounded-full uppercase tracking-wider font-semibold"
-                      [class.bg-\[var\(--color-success\)\]\/20]="
-                        currentFlyer()!.imageSource === 'stock'
-                      "
-                      [class.text-\[var\(--color-success\)\]]="
-                        currentFlyer()!.imageSource === 'stock'
-                      "
-                      [class.bg-\[var\(--color-accent-500\)\]\/20]="
-                        currentFlyer()!.imageSource === 'generated'
-                      "
-                      [class.text-\[var\(--color-accent-500\)\]]="
-                        currentFlyer()!.imageSource === 'generated'
-                      "
+                      [class.bg-\[var\(--color-success\)\]\/20]="currentFlyer()!.imageSource === 'stock'"
+                      [class.text-\[var\(--color-success\)\]]="currentFlyer()!.imageSource === 'stock'"
+                      [class.bg-\[var\(--color-accent-500\)\]\/20]="currentFlyer()!.imageSource === 'generated'"
+                      [class.text-\[var\(--color-accent-500\)\]]="currentFlyer()!.imageSource === 'generated'"
                     >
                       <i
                         class="pi mr-1"
                         [class.pi-images]="currentFlyer()!.imageSource === 'stock'"
                         [class.pi-sparkles]="currentFlyer()!.imageSource === 'generated'"
                       ></i>
-                      {{ currentFlyer()!.imageSource === 'stock' ? 'Stock photo' : 'AI generated' }}
+                      {{
+                        (currentFlyer()!.imageSource === 'stock'
+                          ? 'dashboard.showCommunication.visual.sourceStock'
+                          : 'dashboard.showCommunication.visual.sourceGenerated') | translate
+                      }}
                     </span>
-                    @if (currentFlyer()!.imageAttribution?.author) {
-                      <span class="text-[var(--color-text-tertiary)]">
-                        by {{ currentFlyer()!.imageAttribution!.author }}
-                      </span>
-                    }
-                  </div>
-                }
+                  }
+                  @if (currentFlyer()!.intent) {
+                    <span
+                      class="px-2 py-1 rounded-full uppercase tracking-wider font-semibold border border-[var(--glass-border)] text-[var(--color-text-secondary)]"
+                    >
+                      {{ 'dashboard.showCommunication.intent.' + currentFlyer()!.intent | translate }}
+                    </span>
+                  }
+                  @if (currentFlyer()!.imageAttribution?.author) {
+                    <span class="text-[var(--color-text-tertiary)]">
+                      {{ 'dashboard.showCommunication.visual.by' | translate }} {{ currentFlyer()!.imageAttribution!.author }}
+                    </span>
+                  }
+                </div>
+
                 @if (currentFlyer()!.imageAnalysis?.subject) {
                   <div>
-                    <div
-                      class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]"
-                    >
-                      Image scan
+                    <div class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]">
+                      {{ 'dashboard.showCommunication.visual.scan' | translate }}
                     </div>
                     <p class="mt-1 text-sm text-[var(--color-text-primary)]">
                       {{ currentFlyer()!.imageAnalysis!.subject }}
                     </p>
                     @if (currentFlyer()!.imageAnalysis!.mood) {
                       <p class="mt-1 text-xs text-[var(--color-text-secondary)]">
-                        Mood: {{ currentFlyer()!.imageAnalysis!.mood }}
+                        {{ 'dashboard.showCommunication.visual.mood' | translate }}: {{ currentFlyer()!.imageAnalysis!.mood }}
                       </p>
                     }
                   </div>
                 }
                 <div>
-                  <div
-                    class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]"
-                  >
-                    Concept
+                  <div class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]">
+                    {{ 'dashboard.showCommunication.visual.concept' | translate }}
                   </div>
                   <p class="mt-1 text-sm text-[var(--color-text-primary)]">
                     {{ currentFlyer()!.concept }}
                   </p>
                 </div>
-                <div>
-                  <div
-                    class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]"
-                  >
-                    Layout notes
-                  </div>
-                  <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
-                    {{ currentFlyer()!.layoutNotes }}
-                  </p>
-                </div>
                 <div class="border-t border-[var(--glass-border)] pt-4">
-                  <div
-                    class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]"
-                  >
-                    Headline
+                  <div class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]">
+                    {{ 'dashboard.showCommunication.visual.headline' | translate }}
                   </div>
                   <p class="mt-1 text-sm font-semibold text-[var(--color-text-primary)]">
                     {{ currentFlyer()!.marketingText.headline }}
@@ -566,10 +914,8 @@
                 </div>
                 @if (currentFlyer()!.marketingText.subheadline) {
                   <div>
-                    <div
-                      class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]"
-                    >
-                      Subheadline
+                    <div class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]">
+                      {{ 'dashboard.showCommunication.visual.subheadline' | translate }}
                     </div>
                     <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
                       {{ currentFlyer()!.marketingText.subheadline }}
@@ -577,39 +923,38 @@
                   </div>
                 }
                 <div>
-                  <div
-                    class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]"
-                  >
-                    Body
+                  <div class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]">
+                    {{ 'dashboard.showCommunication.visual.body' | translate }}
                   </div>
                   <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
                     {{ currentFlyer()!.marketingText.body }}
                   </p>
                 </div>
-                <div>
-                  <div
-                    class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]"
-                  >
-                    CTA
+                @if (currentFlyer()!.marketingText.cta) {
+                  <div>
+                    <div class="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]">
+                      {{ 'dashboard.showCommunication.visual.cta' | translate }}
+                    </div>
+                    <p class="mt-1 text-sm font-semibold text-[var(--color-accent-500)]">
+                      {{ currentFlyer()!.marketingText.cta }}
+                    </p>
                   </div>
-                  <p class="mt-1 text-sm font-semibold text-[var(--color-accent-500)]">
-                    {{ currentFlyer()!.marketingText.cta }}
-                  </p>
-                </div>
+                }
               } @else {
                 <p class="text-sm text-[var(--color-text-tertiary)]">
-                  Marketing text and concept will appear here after generation.
+                  {{ 'dashboard.showCommunication.visual.placeholder' | translate }}
                 </p>
               }
             </div>
           </div>
 
-          <!-- Modal footer -->
           <div
             class="flex items-center justify-end gap-2 p-5 border-t border-[var(--glass-border)]"
             style="background: var(--glass-bg-subtle)"
           >
-            <button class="outer-button button-sm" (click)="closeFlyerModal()">Close</button>
+            <button class="outer-button button-sm" (click)="closeFlyerModal()">
+              {{ 'dashboard.showCommunication.visual.close' | translate }}
+            </button>
             @if (currentFlyer()?.imageUrl) {
               <a
                 class="outer-button button-sm"
@@ -617,7 +962,7 @@
                 [download]="currentFlyer()!.id + '.png'"
                 target="_blank"
               >
-                <i class="pi pi-download mr-2"></i> Download PNG
+                <i class="pi pi-download mr-2"></i> {{ 'dashboard.showCommunication.visual.download' | translate }}
               </a>
             }
             @if (currentFlyer()) {
@@ -626,7 +971,7 @@
                 [disabled]="isGeneratingFlyer()"
                 (click)="triggerFlyerGeneration(true)"
               >
-                <i class="pi pi-refresh mr-2"></i> Regenerate
+                <i class="pi pi-refresh mr-2"></i> {{ 'dashboard.showCommunication.visual.regenerate' | translate }}
               </button>
             } @else {
               <button
@@ -639,7 +984,7 @@
                 } @else {
                   <i class="pi pi-sparkles"></i>
                 }
-                Generate visual
+                {{ 'dashboard.showCommunication.visual.generate' | translate }}
               </button>
             }
           </div>

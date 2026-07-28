@@ -178,6 +178,22 @@ export const AI_CONFIG = {
         maxOutputTokens: 2000,
       },
     } as FeatureAIConfig,
+    momentSuggestions: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'communication_moment_suggestions',
+      llmOptions: {
+        maxOutputTokens: 1200,
+      },
+    } as FeatureAIConfig,
+    moment: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'communication_moment',
+      llmOptions: {
+        maxOutputTokens: 1200,
+      },
+    } as FeatureAIConfig,
     imageSourcing: {
       imageModel: 'gemini-3.1-flash-image',
       visionModel: 'gemini-2.5-flash',
