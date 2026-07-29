@@ -79,6 +79,9 @@ export class CompleteBrandingPage implements OnInit {
   /** true dès qu'une couleur est sélectionnée */
   protected readonly colorSelected = signal<boolean>(false);
 
+  /** true pendant la génération des couleurs */
+  protected readonly colorGenerating = signal<boolean>(true);
+
   /** true dès qu'une typographie est sélectionnée */
   protected readonly typographySelected = signal<boolean>(false);
 
@@ -206,6 +209,10 @@ export class CompleteBrandingPage implements OnInit {
             this.logoImportComplete.set(true);
           }
 
+          if (branding.generatedColors && branding.generatedColors.length > 0) {
+            this.colorGenerating.set(false);
+          }
+
           let targetStepIndex = 0;
           const choice = this.logoChoice();
 
@@ -228,14 +235,15 @@ export class CompleteBrandingPage implements OnInit {
             // l'analyse mais ne compte pas comme un logo généré par l'IA
             const logoIsImported = !!branding.logo?.id?.startsWith('imported-');
             const hasLogo = !!branding.logo && !logoIsImported;
-            const hasVariations = hasLogo && !!branding.logo?.variations?.withText;
+            const v = branding.logo?.variations?.withText;
+            const hasAllVariations = hasLogo && !!v && !!v.lightBackground && !!v.darkBackground && !!v.monochrome;
 
-            if (hasLogo && hasVariations) {
+            if (hasLogo && hasAllVariations) {
               targetStepIndex = 6; // overview
-            } else if (hasLogo && !hasVariations) {
-              // Logo sélectionné mais variations non générées (ex: retour navigateur)
-              // → revenir à logo-selection pour que l'utilisateur re-confirme son choix
-              targetStepIndex = 4; // logo-selection
+            } else if (hasLogo && !hasAllVariations) {
+              // Logo sélectionné mais 3 déclinaisons non entièrement générées
+              // → aller à logo-variations pour générer ou réessayer les déclinaisons manquantes
+              targetStepIndex = 5; // logo-variations
             } else if (hasGeneratedLogos && !hasLogo) {
               // Des logos ont été générés mais aucun n'a été sélectionné
               // → aller directement à logo-selection avec les logos déjà générés
@@ -268,15 +276,17 @@ export class CompleteBrandingPage implements OnInit {
       case 'logo-choice':
         return this.logoImportComplete() || this.logoChoice() === 'ai';
       case 'colors':
-        return true; // color-selection gère elle-même la génération
+        return (this.colorSelected() || !!this.selectedColor) && !this.colorGenerating();
       case 'typography':
         return this.typographySelected();
       case 'logo-preferences':
         return true; // logo-preferences se valide en émettant preferencesSelected
       case 'logo-selection':
         return !!this.selectedLogo;
-      case 'logo-variations':
-        return true;
+      case 'logo-variations': {
+        const v = this.selectedLogo?.variations?.withText;
+        return !!v && !!v.lightBackground && !!v.darkBackground && !!v.monochrome;
+      }
       case 'overview':
         return true;
       default:
@@ -417,6 +427,11 @@ export class CompleteBrandingPage implements OnInit {
   /** Couleur choisie */
   protected onColorSelected(_colorId: string): void {
     this.colorSelected.set(true);
+  }
+
+  /** État de génération des couleurs */
+  protected onColorGeneratingStateChanged(generating: boolean): void {
+    this.colorGenerating.set(generating);
   }
 
   /** Typographie valide / invalide */

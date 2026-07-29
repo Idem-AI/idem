@@ -283,22 +283,35 @@ Generate the complete application code with all necessary files.`;
     let brandInfo = '## Brand Information\n';
 
     if (branding.logo) {
-      brandInfo += `### Logo\n`;
-      brandInfo += `- **Main Logo**: ${branding.logo.svg} (URL)\n`;
-      brandInfo += `- **Concept**: ${branding.logo.concept}\n`;
-      brandInfo += `- **Colors**: ${branding.logo.colors?.join(', ') || 'Not specified'}\n`;
-      brandInfo += `- **Fonts**: ${branding.logo.fonts?.join(', ') || 'Not specified'}\n`;
+      const logo = branding.logo;
+      const assetUrls = logo.assetUrls;
 
-      if (branding.logo.variations) {
+      // Prefer the hosted PNG URLs (assetUrls); fall back to the svg field and
+      // the inline SVG variations for projects created before PNG assets existed.
+      const mainLogo = assetUrls?.primary || logo.svg;
+      const lightBg =
+        assetUrls?.withText?.lightBackground || logo.variations?.withText?.lightBackground || logo.variations?.lightBackground;
+      const darkBg =
+        assetUrls?.withText?.darkBackground || logo.variations?.withText?.darkBackground || logo.variations?.darkBackground;
+      const monochrome =
+        assetUrls?.withText?.monochrome || logo.variations?.withText?.monochrome || logo.variations?.monochrome;
+
+      brandInfo += `### Logo\n`;
+      brandInfo += `- **Main Logo**: ${mainLogo} (URL)\n`;
+      brandInfo += `- **Concept**: ${logo.concept}\n`;
+      brandInfo += `- **Colors**: ${logo.colors?.join(', ') || 'Not specified'}\n`;
+      brandInfo += `- **Fonts**: ${logo.fonts?.join(', ') || 'Not specified'}\n`;
+
+      if (lightBg || darkBg || monochrome) {
         brandInfo += `- **Variations**:\n`;
-        if (branding.logo.variations.lightBackground) {
-          brandInfo += `  - Light Background: ${branding.logo.variations.lightBackground} (URL)\n`;
+        if (lightBg) {
+          brandInfo += `  - Light Background: ${lightBg} (URL)\n`;
         }
-        if (branding.logo.variations.darkBackground) {
-          brandInfo += `  - Dark Background: ${branding.logo.variations.darkBackground} (URL)\n`;
+        if (darkBg) {
+          brandInfo += `  - Dark Background: ${darkBg} (URL)\n`;
         }
-        if (branding.logo.variations.monochrome) {
-          brandInfo += `  - Monochrome: ${branding.logo.variations.monochrome} (URL)\n`;
+        if (monochrome) {
+          brandInfo += `  - Monochrome: ${monochrome} (URL)\n`;
         }
       }
     }

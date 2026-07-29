@@ -4,7 +4,21 @@ export const LOGO_GENERATION_INITIAL_TYPE_PROMPT = `
 ${LOGO_SYSTEM_BASE}
 
 <module_initial_based_logo>
-Initials-only logo (monogram, Mollerup taxonomy). Letters are the mark.
+Initials-only logo (monogram, Mollerup taxonomy). The LETTERS themselves are the mark.
+
+THIS IS NOT AN ICON LOGO AND NOT A WORDMARK. Hard constraints (auto-reject on violation):
+- The mark is 2 (preferred) or 3 UPPERCASE INITIALS, optionally sitting inside ONE
+  simple geometric container (circle/square/rounded). The letters MUST be visible,
+  dominant, and readable AS LETTERS — a viewer instantly reads "AB", not a picture.
+- FORBIDDEN: pictorial/abstract symbols, illustrations, mascots, or any shape that
+  reads as an icon rather than a letter. The container is a plain frame ONLY — never a
+  pictogram, never a symbol with meaning of its own.
+- FORBIDDEN: the full brand name or any word. Initials only.
+- FORBIDDEN: icon-left + text-right lockups. There is NO wordmark here.
+- viewBox is exactly "0 0 80 80" (square). If your draft looks like a symbol with a
+  word beside it, or a picture inside a circle, it is WRONG — restart as pure letters.
+- Distinctiveness comes from HOW the initials are drawn (weight, overlap, cutout,
+  color split), never from adding a graphic next to them.
 
 LETTER RULES (Bringhurst — letterforms are typography, not drawings):
 - Max 2 initials (preferred) or 3 initials maximum. No full words. UPPERCASE unless specified.
@@ -45,13 +59,28 @@ ADVANCED TECHNIQUES (Apply exactly ONE — the single deliberate idea that makes
 TECHNICAL:
 - individual <text> elements (text-anchor="middle", dominant-baseline="central", font-size in px) or <path> for perfect control.
 
-LAYOUT JSON:
+LAYOUT JSON (copy verbatim — always 80×80):
 "layout": {
   "textPosition": "center",
   "spacing": 0,
   "totalWidth": 80,
   "totalHeight": 80
 }
+
+CONCRETE OUTPUT EXAMPLE (structure to imitate — NOT the colors/initials to copy; two
+initials "LN" in a circle container, WEIGHT CONTRAST technique, viewBox 80×80):
+{
+  "id": "concept01",
+  "archetype": "finance_trust",
+  "seed": "seed_A",
+  "name": "Lumina Monogram",
+  "concept": "Two initials locked in a calm circle; the bold L grounds the mark while the light N adds lift, a weight contrast that signals stability with a modern edge.",
+  "colors": ["#1A1A2E", "#FFFFFF"],
+  "fonts": ["Helvetica Neue"],
+  "svg": "<svg viewBox=\\"0 0 80 80\\" xmlns=\\"http://www.w3.org/2000/svg\\"><circle cx=\\"40\\" cy=\\"40\\" r=\\"36\\" fill=\\"#1A1A2E\\"/><text x=\\"26.5\\" y=\\"39\\" text-anchor=\\"middle\\" dominant-baseline=\\"central\\" font-family=\\"Helvetica Neue, Arial, sans-serif\\" font-size=\\"32\\" font-weight=\\"800\\" fill=\\"#FFFFFF\\">L</text><text x=\\"53.5\\" y=\\"39\\" text-anchor=\\"middle\\" dominant-baseline=\\"central\\" font-family=\\"Helvetica Neue, Arial, sans-serif\\" font-size=\\"32\\" font-weight=\\"300\\" fill=\\"#FFFFFF\\">N</text></svg>",
+  "layout": { "textPosition": "center", "spacing": 0, "totalWidth": 80, "totalHeight": 80 }
+}
+Note: only a container + readable letters. No pictogram, no word, viewBox "0 0 80 80".
 
 QUALITY GATES:
 - No full name present.

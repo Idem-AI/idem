@@ -1,0 +1,181 @@
+<!-- Immersive full-screen journey with scroll-lock, 3D animations & overview image swiper.
+     [attr.data-direction] drives the CSS entrance direction (up/down). -->
+
+<div class="jn-viewport" [attr.data-direction]="direction()">
+
+  <!-- Progress bar -->
+  <div class="jn-progress-bar" aria-hidden="true">
+    <div class="jn-progress-fill" [style.width.%]="progressPercent"></div>
+  </div>
+
+  <!-- Step nav dots (desktop right rail) -->
+  <nav class="jn-step-nav" aria-label="Journey progress">
+    <button class="jn-nav-dot" [class.active]="activeIndex() === 0" [class.completed]="activeIndex() > 0" aria-label="Intro">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+    </button>
+    @for (stage of stages; track stage.title; let i = $index) {
+      <span class="jn-nav-line" [class.filled]="activeIndex() > i"></span>
+      <button class="jn-nav-dot" [class.active]="activeIndex() === i + 1" [class.completed]="activeIndex() > i + 1" [attr.aria-label]="stage.step">
+        <span class="jn-nav-num">{{ i + 1 }}</span>
+      </button>
+    }
+    <span class="jn-nav-line" [class.filled]="activeIndex() >= stages.length + 1"></span>
+    <button class="jn-nav-dot jn-nav-dot-end" [class.active]="activeIndex() === stages.length + 1" aria-label="Complete">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+    </button>
+  </nav>
+
+  <!-- ═══ Slide 0 : Intro ═══ -->
+  <div class="jn-slide" [class.jn-active]="activeIndex() === 0">
+    <div class="jn-bg-layer">
+      <img src="assets/images/overview/brand-identity.webp" alt="" aria-hidden="true" class="jn-bg-img" />
+      <div class="jn-bg-overlay"></div>
+    </div>
+    <div class="jn-content jn-content-center">
+      <div class="jn-anim-group">
+        <p class="jn-eyebrow" i18n="@@journey.start.label">Your idea</p>
+        <h2 class="jn-hero-title">
+          <span i18n="@@what-is-idem.title.lead">From idea to investment in</span>&nbsp;<span class="i-underline" i18n="@@what-is-idem.title.accent">72 hours</span>
+        </h2>
+        <blockquote class="jn-quote" i18n="@@journey.start.prompt">"I want to launch a specialty coffee brand in Douala."</blockquote>
+        <p class="jn-author" i18n="@@journey.start.author">— Aïcha, future entrepreneur</p>
+        <p class="jn-intro-lead" i18n="@@journey.intro">
+          Follow one real case, step by step: from a single sentence to a registered company with its
+          website online.
+        </p>
+        <div class="jn-scroll-hint" aria-hidden="true">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
+          <span i18n="@@journey.scrollHint">Scroll to explore</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Stage slides with Overview Swiper ═══ -->
+  @for (stage of stages; track stage.title; let i = $index) {
+    <div class="jn-slide" [class.jn-active]="activeIndex() === i + 1">
+      <!-- Dynamic Blurred Background synced to active swiper image -->
+      <div class="jn-bg-layer">
+        <img [src]="getActiveImage(i)" alt="" aria-hidden="true" class="jn-bg-img" />
+        <div class="jn-bg-overlay"></div>
+      </div>
+      <div class="jn-content">
+        <!-- Showcase Swiper Container -->
+        <div class="jn-showcase jn-anim-showcase">
+          <div class="jn-browser-frame">
+            <!-- Browser Header Bar -->
+            <div class="jn-browser-bar" aria-hidden="true">
+              <div class="jn-browser-dots"><span></span><span></span><span></span></div>
+              <div class="jn-browser-url">app.idem.africa/overview/{{ stage.step.toLowerCase() }}</div>
+              @if (stage.images.length > 1) {
+                <div class="jn-swiper-counter">
+                  {{ getActiveImageIndex(i) + 1 }} / {{ stage.images.length }}
+                </div>
+              }
+            </div>
+
+            <!-- Image Swiper Viewport (with touch swipe support for mobile) -->
+            <div
+              class="jn-showcase-img-wrap"
+              (touchstart)="onImgTouchStart($event)"
+              (touchend)="onImgTouchEnd(i, $event)"
+            >
+              @for (img of stage.images; track img; let imgIdx = $index) {
+                <img
+                  [src]="img"
+                  [alt]="stage.imageAlt"
+                  width="1280"
+                  height="780"
+                  loading="lazy"
+                  decoding="async"
+                  class="jn-showcase-img"
+                  [class.jn-img-active]="getActiveImageIndex(i) === imgIdx"
+                />
+              }
+
+              <!-- Swiper Navigation Arrows (if multiple images) -->
+              @if (stage.images.length > 1) {
+                <button
+                  type="button"
+                  class="jn-swiper-arrow jn-swiper-prev"
+                  (click)="prevStageImage(i, $event)"
+                  aria-label="Previous image"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  class="jn-swiper-arrow jn-swiper-next"
+                  (click)="nextStageImage(i, $event)"
+                  aria-label="Next image"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+
+                <!-- Swiper Dots Pagination -->
+                <div class="jn-swiper-dots" (click)="$event.stopPropagation()">
+                  @for (img of stage.images; track img; let imgIdx = $index) {
+                    <button
+                      type="button"
+                      class="jn-swiper-dot"
+                      [class.active]="getActiveImageIndex(i) === imgIdx"
+                      (click)="setStageImage(i, imgIdx, $event)"
+                      [attr.aria-label]="'Go to image ' + (imgIdx + 1)"
+                    ></button>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Info card -->
+        <div class="jn-info-card jn-anim-card">
+          <div class="jn-info-meta">
+            <span class="jn-stage-badge">{{ '0' + (i + 1) }}</span>
+            <span class="jn-stage-label">{{ stage.step }}</span>
+          </div>
+          <h3 class="jn-stage-title">{{ stage.title }}</h3>
+          <p class="jn-stage-caption">{{ stage.caption }}</p>
+          <div class="jn-stage-actions">
+            <a [routerLink]="stage.link" class="inner-button button-sm">
+              {{ stage.ctaLabel }}
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </a>
+            <span class="jn-price">{{ stage.price }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ═══ Outro ═══ -->
+  <div class="jn-slide" [class.jn-active]="activeIndex() === stages.length + 1">
+    <div class="jn-bg-layer">
+      <img src="assets/images/overview/hosted-website.webp" alt="" aria-hidden="true" class="jn-bg-img" />
+      <div class="jn-bg-overlay jn-bg-overlay-success"></div>
+    </div>
+    <div class="jn-content jn-content-center">
+      <div class="jn-anim-group">
+        <div class="jn-success-icon">
+          <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h3 class="jn-outro-title" i18n="@@journey.end.label">Her company is live, hosted in Africa</h3>
+        <p class="jn-outro-subtitle" i18n="@@journey.end.subtitle">
+          From idea to reality, 100% AI-assisted, deployed on African servers.
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>

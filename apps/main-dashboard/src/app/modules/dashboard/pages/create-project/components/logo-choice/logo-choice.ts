@@ -110,12 +110,16 @@ export class LogoChoiceComponent {
   private buildImportedLogoBranding(): Record<string, unknown> | null {
     const svg = this.importedSvg();
     const colors = this.importedColors();
-    const variations = this.importedVariations();
 
     if (!svg || colors.length === 0) {
       return null;
     }
 
+    // NOTE : on ne persiste PAS les variations (SVG inline) ici. Elles sont
+    // volumineuses et faisaient dépasser la limite de body JSON de l'API sur le
+    // PUT /projects/:id (413 Content Too Large). Le backend les (re)génère et les
+    // persiste lui-même lors de la génération de palette (écriture DB directe,
+    // sans limite de body) — voir generateColorsAndTypographyFromLogo côté API.
     return {
       logo: {
         id: `imported-${Date.now()}`,
@@ -125,8 +129,6 @@ export class LogoChoiceComponent {
         concept: 'User-imported logo',
         colors: colors,
         fonts: [],
-        // Include programmatic variations if available
-        ...(variations ? { variations } : {}),
       },
       importedLogoColors: colors,
     };

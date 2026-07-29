@@ -14,6 +14,13 @@ import {
   EditorialCalendar,
   Flyer,
   FlyerFormat,
+  MomentIdea,
+  MomentSuggestion,
+  VisualIntent,
+  Publication,
+  PublicationStatus,
+  SocialNetwork,
+  AssistedShare,
 } from '../../models/communication.model';
 
 @Injectable({ providedIn: 'root' })
@@ -99,6 +106,58 @@ export class CommunicationService {
   regenerateFlyer(projectId: string, contentId: string, format: FlyerFormat): Observable<Flyer> {
     return this.http
       .post<Flyer>(`${this.apiUrl}/${projectId}/flyer/${contentId}/regenerate`, { format })
+      .pipe(catchError((err) => throwError(() => err)));
+  }
+
+  /** GET /project/communication/:projectId/moments/suggestions */
+  getMomentSuggestions(
+    projectId: string,
+    opts: { force?: boolean } = {},
+  ): Observable<MomentSuggestion[]> {
+    const q = opts.force ? '?force=true' : '';
+    return this.http
+      .get<MomentSuggestion[]>(`${this.apiUrl}/${projectId}/moments/suggestions${q}`)
+      .pipe(catchError((err) => throwError(() => err)));
+  }
+
+  /** POST /project/communication/:projectId/moments */
+  createMoment(
+    projectId: string,
+    input: {
+      occasion: string;
+      occasionDate?: string;
+      message?: string;
+      intent?: VisualIntent;
+      channel?: ContentIdea['channel'];
+      source?: 'suggestion' | 'custom';
+    },
+  ): Observable<MomentIdea> {
+    return this.http
+      .post<MomentIdea>(`${this.apiUrl}/${projectId}/moments`, input)
+      .pipe(catchError((err) => throwError(() => err)));
+  }
+
+  /** POST /project/communication/:projectId/publish (assisted) */
+  preparePublication(
+    projectId: string,
+    input: { contentId: string; network: SocialNetwork; flyerId?: string; scheduledFor?: string },
+  ): Observable<{ publication: Publication; share: AssistedShare }> {
+    return this.http
+      .post<{ publication: Publication; share: AssistedShare }>(
+        `${this.apiUrl}/${projectId}/publish`,
+        input,
+      )
+      .pipe(catchError((err) => throwError(() => err)));
+  }
+
+  /** PUT /project/communication/:projectId/publish/:publicationId */
+  updatePublication(
+    projectId: string,
+    publicationId: string,
+    patch: { status?: PublicationStatus; externalUrl?: string; scheduledFor?: string },
+  ): Observable<Publication> {
+    return this.http
+      .put<Publication>(`${this.apiUrl}/${projectId}/publish/${publicationId}`, patch)
       .pipe(catchError((err) => throwError(() => err)));
   }
 

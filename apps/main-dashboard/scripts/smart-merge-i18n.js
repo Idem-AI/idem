@@ -60,6 +60,7 @@ const CONFIG = {
     'modules/dashboard/pages/advisor': 'dashboard.advisor',
     'modules/dashboard/pages/create-team': 'dashboard.createTeam',
     'modules/dashboard/pages/dashboard': 'dashboard.dashboard',
+    'modules/dashboard/pages/document-editor': 'dashboard.documentEditor',
     'modules/dashboard/pages/finance': 'dashboard.finance',
     'modules/dashboard/pages/deployment/components/ai-assistant': 'dashboard.aiAssistant',
     'modules/dashboard/pages/deployment/components/expert-deployment': 'dashboard.expertDeployment',
@@ -80,6 +81,7 @@ const CONFIG = {
     'modules/dashboard/pages/show-branding/components/branding-display': 'dashboard.brandingDisplay',
     'modules/dashboard/pages/show-branding/components/branding-generation': 'dashboard.brandingGeneration',
     'modules/dashboard/pages/show-branding': 'dashboard.showBranding',
+    'modules/dashboard/pages/show-communication': 'dashboard.showCommunication',
     'modules/dashboard/pages/show-business-plan/components/additional-info-form': 'dashboard.additionalInfoForm',
     'modules/dashboard/pages/show-business-plan/components/business-plan-display': 'dashboard.businessPlanDisplay',
     'modules/dashboard/pages/show-business-plan/components/business-plan-generation': 'dashboard.businessPlanGeneration',
@@ -95,6 +97,7 @@ const CONFIG = {
     // Shared components
     'shared/components/not-found': 'notFound',
     'shared/components/pdf-viewer': 'dashboard.pdfViewer',
+    'shared/components/agent-research-console': 'dashboard.researchConsole',
   },
 };
 

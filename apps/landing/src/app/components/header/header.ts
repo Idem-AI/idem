@@ -101,7 +101,7 @@ export class Header implements OnInit {
       type: 'dropdown',
       items: [
         { label: $localize`:@@header.menu.pricing:Pricing`, route: '/pricing' },
-        { label: 'IDEV', route: '/idev' },
+        { label: 'iCode', route: '/idev' },
         { label: 'iDeploy', route: '/ideploy' },
       ],
     },

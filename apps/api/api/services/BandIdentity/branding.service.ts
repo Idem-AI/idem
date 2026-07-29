@@ -13,6 +13,11 @@ import { LOGO_GENERATION_INITIAL_TYPE_PROMPT } from './prompts/singleGenerations
 import { LOGO_VARIATION_LIGHT_PROMPT } from './prompts/singleGenerations/logo-variation-light.prompt';
 import { LOGO_VARIATION_DARK_PROMPT } from './prompts/singleGenerations/logo-variation-dark.prompt';
 import { LOGO_VARIATION_MONOCHROME_PROMPT } from './prompts/singleGenerations/logo-variation-monochrome.prompt';
+import {
+  LOGO_VARIATION_LIGHT_WITHTEXT_PROMPT,
+  LOGO_VARIATION_DARK_WITHTEXT_PROMPT,
+  LOGO_VARIATION_MONOCHROME_WITHTEXT_PROMPT,
+} from './prompts/singleGenerations/logo-variation-withtext.prompt';
 import { LOGO_EDIT_PROMPT } from './prompts/singleGenerations/logo-edit.prompt';
 import { LOGO_CRITIQUE_PROMPT } from './prompts/singleGenerations/logo-critique.prompt';
 import { LOGO_REVISION_PROMPT } from './prompts/singleGenerations/logo-revision.prompt';
@@ -46,6 +51,8 @@ import {
 } from '../logoVariationEngine.service';
 import { LOGO_VARIATION_CRITIQUE_PROMPT } from './prompts/singleGenerations/logo-variation-critique.prompt';
 import { resolveSvgContent } from '../logo-import.service';
+import { parseLlmJson } from '../../utils/llm-json.util';
+import { summarizeLogoForPrompt } from '../../utils/logo-context.util';
 import { LOGO_VARIATION_RECOLOR_PROMPT } from './prompts/singleGenerations/logo-variation-recolor.prompt';
 import { PdfService, PAGE_FORMATS } from '../pdf.service';
 import { cacheService } from '../cache.service';
@@ -86,11 +93,54 @@ export interface ILogoStreamEvent {
 /** Déclinaison de logo : type + fond cible */
 export type LogoVariationKind = 'lightBackground' | 'darkBackground' | 'monochrome';
 
+/**
+ * Style de déclinaison :
+ *  - 'withText'  → logo COMPLET recoloré (icône + wordmark), le nom de marque est
+ *    conservé. C'est le jeu "héros" affiché en direct et jugé par le vérificateur.
+ *  - 'iconOnly'  → symbole seul, texte retiré + recentré (déclinaison d'icône).
+ * Les deux jeux partagent la même géométrie ; seules les couleurs et la présence
+ * du texte diffèrent.
+ */
+export type LogoVariationStyle = 'withText' | 'iconOnly';
+
 const VARIATION_BACKGROUNDS: Record<LogoVariationKind, string> = {
   lightBackground: '#ffffff',
   darkBackground: '#1a1a2e',
-  monochrome: '#f5f5f5',
+  monochrome: '#f4f4f6',
 };
+
+/** Prompts recolorant le LOGO COMPLET en conservant le texte (jeu withText). */
+const WITHTEXT_VARIATION_PROMPTS: Record<LogoVariationKind, string> = {
+  lightBackground: LOGO_VARIATION_LIGHT_WITHTEXT_PROMPT,
+  darkBackground: LOGO_VARIATION_DARK_WITHTEXT_PROMPT,
+  monochrome: LOGO_VARIATION_MONOCHROME_WITHTEXT_PROMPT,
+};
+
+/** Prompts extrayant + recentrant + recolorant l'icône seule (jeu iconOnly). */
+const ICONONLY_VARIATION_PROMPTS: Record<LogoVariationKind, string> = {
+  lightBackground: LOGO_VARIATION_LIGHT_PROMPT,
+  darkBackground: LOGO_VARIATION_DARK_PROMPT,
+  monochrome: LOGO_VARIATION_MONOCHROME_PROMPT,
+};
+
+function safeParseJson(content: string): any {
+  if (!content) return null;
+  let cleaned = content.trim();
+  // Strip markdown code fences (```json ... ``` or ``` ...)
+  cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  // Find JSON structure { ... } or [ ... ]
+  const firstBrace = cleaned.indexOf('{');
+  const lastBrace = cleaned.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+  }
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    const sanitized = cleaned.replace(/[\r\n]/g, (match) => (match === '\n' ? '\\n' : '\\r'));
+    return JSON.parse(sanitized);
+  }
+}
 
 /** Événement émis pendant la génération streamée des déclinaisons */
 export interface ILogoVariationStreamEvent {
@@ -193,6 +243,29 @@ export class BrandingService extends GenericService {
     this.logoJsonToSvgService = new LogoJsonToSvgService();
     this.storageService = new StorageService();
     logger.info('BrandingService initialized with optimized logo generation');
+  }
+
+  /**
+   * Adapte un prompt de section (écrit par défaut en slide 16:9 = 297×167mm) au
+   * format de page RÉELLEMENT choisi par l'utilisateur, en remplaçant les tokens
+   * de dimensions. No-op quand le format cible est déjà 297×167.
+   */
+  private applyPageFormatToPrompt(
+    prompt: string,
+    format: { width: string; height: string; orientation: string }
+  ): string {
+    if (format.width === '297mm' && format.height === '167mm') {
+      return prompt;
+    }
+    return prompt
+      .split('w-[297mm] h-[167mm]')
+      .join(`w-[${format.width}] h-[${format.height}]`)
+      .split('h-[167mm]')
+      .join(`h-[${format.height}]`)
+      .split('w-[297mm]')
+      .join(`w-[${format.width}]`)
+      .split('Landscape 16:9')
+      .join(`${format.orientation} ${format.width}×${format.height}`);
   }
 
   /**
@@ -584,15 +657,24 @@ export class BrandingService extends GenericService {
       return null;
     }
 
+    // Make sure the logo has hosted PNG URLs before we build any prompt — else
+    // the fallback would inject a giant SVG data-URI that the LLM turns into a
+    // broken link (e.g. "https://brand-logo.svg"). Persists them for reuse.
+    await this.ensureLogoAssetUrls(userId, projectId, project);
+
     // Generate cache key based on project content
+    const branding = project.analysisResultModel?.branding;
     const projectDescription =
       this.extractProjectDescription(project) +
       '\n\nHere is the project branding colors: ' +
-      JSON.stringify(project.analysisResultModel.branding.colors) +
+      JSON.stringify(branding?.colors || {}) +
       '\n\nHere is the project branding typography: ' +
-      JSON.stringify(project.analysisResultModel.branding.typography) +
-      '\n\nHere is the project branding logo: ' +
-      JSON.stringify(project.analysisResultModel.branding.logo);
+      JSON.stringify(branding?.typography || {}) +
+      // Token-lean: send the hosted logo URLs (use them as <img src>), never the
+      // raw SVG markup — an SVG runs thousands of tokens and this is appended to
+      // every brand-book step.
+      '\n\nHere is the project branding logo (hosted asset URLs — use as <img src>): ' +
+      JSON.stringify(summarizeLogoForPrompt(branding?.logo));
 
     const contentHash = crypto
       .createHash('sha256')
@@ -634,12 +716,39 @@ export class BrandingService extends GenericService {
 
     try {
       const branding = project.analysisResultModel?.branding;
-      const logoUrl = branding?.logo?.svg || '';
-      const logoVariations = branding?.logo?.variations;
+      const logo = branding?.logo;
+      const logoVariations = logo?.variations;
+      const assetUrls = logo?.assetUrls;
 
-      const lightLogoUrl = logoVariations?.withText?.lightBackground || logoUrl;
-      const darkLogoUrl = logoVariations?.withText?.darkBackground || logoUrl;
-      const monochromeLogoUrl = logoVariations?.withText?.monochrome || logoUrl;
+      // Turn a logo field into a valid <img src>: pass URLs/data-URIs through,
+      // wrap inline SVG markup into a data-URI. Prefer the hosted PNG URLs
+      // (assetUrls); fall back to the inline SVG variations for legacy projects.
+      const toImgSrc = (val?: string): string => {
+        const trimmed = (val || '').trim();
+        if (!trimmed) return '';
+        if (
+          trimmed.startsWith('http://') ||
+          trimmed.startsWith('https://') ||
+          trimmed.startsWith('data:')
+        ) {
+          return trimmed;
+        }
+        if (trimmed.includes('<svg')) {
+          return `data:image/svg+xml;base64,${Buffer.from(trimmed).toString('base64')}`;
+        }
+        return trimmed;
+      };
+
+      const logoUrl = toImgSrc(assetUrls?.primary || logo?.svg);
+      const lightLogoUrl =
+        toImgSrc(assetUrls?.withText?.lightBackground || logoVariations?.withText?.lightBackground) ||
+        logoUrl;
+      const darkLogoUrl =
+        toImgSrc(assetUrls?.withText?.darkBackground || logoVariations?.withText?.darkBackground) ||
+        logoUrl;
+      const monochromeLogoUrl =
+        toImgSrc(assetUrls?.withText?.monochrome || logoVariations?.withText?.monochrome) ||
+        logoUrl;
 
       // Define branding steps
       const steps: IPromptStep[] = [
@@ -711,6 +820,14 @@ export class BrandingService extends GenericService {
           stepName: `Brand Mockup ${i}`,
           hasDependencies: false,
         });
+      }
+
+      // Adapter les prompts au FORMAT DE PAGE CHOISI (les prompts sont écrits en
+      // 16:9 par défaut). No-op si le format choisi est déjà SLIDE_16_9.
+      const chosenFormat =
+        PAGE_FORMATS[pdfFormat as keyof typeof PAGE_FORMATS] || PAGE_FORMATS.SLIDE_16_9;
+      for (const step of steps) {
+        step.promptConstant = this.applyPageFormatToPrompt(step.promptConstant, chosenFormat);
       }
 
       logger.info(`[BRANDING] Generated ${mockupCount} mockup steps dynamically`, {
@@ -785,7 +902,9 @@ export class BrandingService extends GenericService {
                   throw new Error('Missing branding information');
                 }
 
-                const logoUrl = branding.logo.svg;
+                // Prefer the hosted PNG URL (lighter for the image model);
+                // fall back to the svg field for legacy projects.
+                const logoUrl = branding.logo.assetUrls?.primary || branding.logo.svg;
                 const brandColors = {
                   primary: branding.colors.colors.primary || '#000000',
                   secondary: branding.colors.colors.secondary || '#666666',
@@ -912,21 +1031,21 @@ export class BrandingService extends GenericService {
             sections.sort((a, b) => stepOrder.indexOf(a.name) - stepOrder.indexOf(b.name));
 
             // Prepare the updated project data
+            const currentBranding = project.analysisResultModel?.branding;
             const updatedProjectData = {
               ...project,
               analysisResultModel: {
                 ...project.analysisResultModel,
                 branding: {
                   sections: sections,
-                  colors: project.analysisResultModel.branding.colors,
-                  typography: project.analysisResultModel.branding.typography,
-                  logo: project.analysisResultModel.branding.logo,
-                  generatedLogos: project.analysisResultModel.branding.generatedLogos || [],
-                  generatedColors: project.analysisResultModel.branding.generatedColors || [],
-                  generatedTypography:
-                    project.analysisResultModel.branding.generatedTypography || [],
+                  colors: currentBranding?.colors,
+                  typography: currentBranding?.typography,
+                  logo: currentBranding?.logo,
+                  generatedLogos: currentBranding?.generatedLogos || [],
+                  generatedColors: currentBranding?.generatedColors || [],
+                  generatedTypography: currentBranding?.generatedTypography || [],
                   pdfFormat: pdfFormat, // Stocker le format PDF choisi
-                  createdAt: project.analysisResultModel.branding.createdAt || new Date(),
+                  createdAt: currentBranding?.createdAt || new Date(),
                   updatedAt: new Date(),
                 },
               },
@@ -967,8 +1086,8 @@ export class BrandingService extends GenericService {
             }
           },
           {
-            provider: AI_CONFIG.default.provider,
-            modelName: AI_CONFIG.default.modelName,
+            provider: AI_CONFIG.branding.brandIdentity.provider,
+            modelName: AI_CONFIG.branding.brandIdentity.modelName,
             userId,
           }, // promptConfig
           'branding', // promptType
@@ -1099,7 +1218,13 @@ export class BrandingService extends GenericService {
       logger.info(
         `Reusing existing project for colors/typography generation - ProjectId: ${existingProject.id}`
       );
-      createdProject = existingProject;
+      createdProject = {
+        ...existingProject,
+        analysisResultModel: {
+          ...existingProject.analysisResultModel,
+          branding: existingProject.analysisResultModel?.branding || BrandIdentityBuilder.createEmpty(),
+        },
+      };
     } else {
       project = {
         ...project,
@@ -1114,6 +1239,12 @@ export class BrandingService extends GenericService {
     if (!createdProject.id) {
       throw new Error(`Failed to create project`);
     }
+
+    // Rasterize + upload the selected logo's PNG assets now, at selection time,
+    // so every downstream consumer (brand book, pitch deck, business plan,
+    // communication, dashboard) references hosted URLs instead of inline SVG.
+    // persist=false: the project update below already writes the mutated logo.
+    await this.ensureLogoAssetUrls(userId, createdProject.id, createdProject, false);
 
     // Stocker le projet en cache
     try {
@@ -1148,7 +1279,7 @@ export class BrandingService extends GenericService {
       analysisResultModel: {
         ...createdProject.analysisResultModel,
         branding: {
-          ...createdProject.analysisResultModel.branding,
+          ...createdProject.analysisResultModel?.branding,
           generatedColors: colors,
           generatedTypography: typography,
           updatedAt: new Date(),
@@ -1214,20 +1345,23 @@ export class BrandingService extends GenericService {
         stepName: `Logo Concept ${conceptIndex + 1}`,
         maxOutputTokens: 3500,
         modelParser: (content) => {
-          try {
-            // Parse JSON response containing SVG
-            const logoData = JSON.parse(content);
+          // Robust parse: repairs malformed LLM JSON (raw newlines in the SVG,
+          // fences, trailing commas) and salvages the raw SVG if needed.
+          const logoData = this.parseLogoModelResponse(content);
 
-            // Ensure unique ID for each concept
-            if (!logoData.id) {
-              logoData.id = `concept${String(conceptIndex + 1).padStart(2, '0')}`;
-            }
-
-            return logoData;
-          } catch (error) {
-            logger.error(`Error parsing logo data concept ${conceptIndex + 1}:`, error);
+          if (!logoData || typeof logoData.svg !== 'string' || !logoData.svg.includes('<svg')) {
+            logger.error(
+              `Error parsing logo data concept ${conceptIndex + 1}: no usable SVG in response`
+            );
             throw new Error(`Failed to parse logo data concept ${conceptIndex + 1}`);
           }
+
+          // Ensure unique ID for each concept
+          if (!logoData.id) {
+            logoData.id = `concept${String(conceptIndex + 1).padStart(2, '0')}`;
+          }
+
+          return logoData;
         },
         hasDependencies: false,
       },
@@ -1279,7 +1413,7 @@ export class BrandingService extends GenericService {
         analysisResultModel: {
           ...project.analysisResultModel,
           branding: {
-            ...project.analysisResultModel.branding,
+            ...project.analysisResultModel?.branding,
             colors: selectedColors,
             typography: selectedTypography,
             generatedLogos: logos,
@@ -1328,7 +1462,121 @@ export class BrandingService extends GenericService {
    * Extract icon-only SVG from the complete logo SVG
    * Removes text elements to create an icon-only version
    */
+  /**
+   * Guarantees the project's logo carries hosted PNG asset URLs (`assetUrls`).
+   *
+   * The upload normally happens when the logo is selected / colors are generated,
+   * but some flows reach a downstream consumer (brand book, pitch deck…) before
+   * that ran. Without hosted URLs, consumers fall back to inline SVG data-URIs —
+   * which the LLM then hallucinates into broken links (e.g. `https://brand-logo.svg`).
+   *
+   * When `assetUrls` is missing this rasterizes+uploads now, mutates the in-memory
+   * project so the current run uses real URLs, and (unless `persist` is false)
+   * writes them back to DB + cache. Non-fatal: logs and returns on failure.
+   */
+  private async ensureLogoAssetUrls(
+    userId: string,
+    projectId: string,
+    project: ProjectModel,
+    persist = true
+  ): Promise<void> {
+    const logo = project.analysisResultModel?.branding?.logo;
+    if (!logo || logo.assetUrls) return;
+
+    const v = logo.variations;
+    const hasContent = !!(
+      logo.svg ||
+      v?.withText?.lightBackground ||
+      v?.withText?.darkBackground ||
+      v?.withText?.monochrome ||
+      v?.iconOnly?.lightBackground ||
+      v?.iconOnly?.darkBackground ||
+      v?.iconOnly?.monochrome
+    );
+    if (!hasContent) return;
+
+    try {
+      // First, upload inline SVGs to MinIO if they haven't been externalized yet.
+      // uploadAllLogoSvgs skips values that are already URLs.
+      try {
+        const svgUrls = await this.storageService.uploadAllLogoSvgs(logo, userId, projectId);
+        logo.svg = svgUrls.svg;
+        if (svgUrls.iconSvg) logo.iconSvg = svgUrls.iconSvg;
+        if (svgUrls.variations) logo.variations = svgUrls.variations;
+        logger.info(`ensureLogoAssetUrls: externalized inline SVGs to MinIO`, { projectId });
+      } catch (svgUploadError) {
+        logger.warn(`ensureLogoAssetUrls: SVG externalization failed (continuing with inline)`, svgUploadError);
+      }
+
+      const assetUrls = await this.storageService.uploadProjectLogoAssets(logo, userId, projectId);
+      // Mutate in-memory so the current generation uses hosted URLs immediately.
+      logo.assetUrls = assetUrls;
+
+      logger.info(`ensureLogoAssetUrls: uploaded logo asset URLs`, {
+        projectId,
+        uploaded: Object.keys(assetUrls),
+        persisted: persist,
+      });
+
+      if (persist && project.analysisResultModel?.branding) {
+        const updated = {
+          ...project,
+          analysisResultModel: {
+            ...project.analysisResultModel,
+            branding: {
+              ...project.analysisResultModel?.branding,
+              logo: { ...logo, assetUrls },
+            },
+          },
+        };
+        await this.projectRepository.update(projectId, updated as any, `users/${userId}/projects`);
+        await cacheService
+          .set(`project_${userId}_${projectId}`, updated, { prefix: 'project', ttl: 3600 })
+          .catch((error) => logger.error(`ensureLogoAssetUrls: cache update failed`, error));
+      }
+    } catch (error) {
+      logger.error(`ensureLogoAssetUrls failed (continuing without asset URLs)`, error);
+    }
+  }
+
+  /**
+   * Best-effort SVG salvage from raw model text. Used as a last resort when the
+   * JSON wrapper is unrecoverable but the `<svg>…</svg>` markup itself is intact
+   * (e.g. an unescaped quote in the SVG broke the surrounding JSON string).
+   */
+  private extractSvgFromText(text: string): string | null {
+    if (!text || typeof text !== 'string') return null;
+    const match = text.match(/<svg[\s\S]*<\/svg>/i);
+    return match ? match[0] : null;
+  }
+
+  /**
+   * Robustly parse a logo model response (concept / revision / edit). Repairs
+   * the common LLM-JSON breakages (fences, raw newlines inside the SVG string,
+   * trailing commas) and, when the JSON is beyond repair, salvages the raw
+   * `<svg>` so a broken wrapper never yields a logo with an undefined SVG.
+   * Returns `null` only when no usable SVG can be recovered.
+   */
+  private parseLogoModelResponse(content: string): Record<string, any> | null {
+    const parsed = parseLlmJson<Record<string, any>>(content);
+    if (parsed && typeof parsed.svg === 'string' && parsed.svg.includes('<svg')) {
+      return parsed;
+    }
+
+    const salvagedSvg = this.extractSvgFromText(content);
+    if (salvagedSvg) {
+      logger.warn('Logo JSON unparseable — salvaged SVG directly from raw response');
+      return { ...(parsed && typeof parsed === 'object' ? parsed : {}), svg: salvagedSvg };
+    }
+
+    return parsed;
+  }
+
   private extractIconFromSvg(fullSvg: string): string {
+    if (!fullSvg || typeof fullSvg !== 'string') {
+      logger.warn('extractIconFromSvg called with a non-string SVG; skipping icon extraction');
+      return '';
+    }
     try {
       // Extract the icon group from the full SVG (using multiline regex)
       const iconMatch = fullSvg.match(/<g id="icon"[^>]*>([\s\S]*?)<\/g>/);
@@ -1570,12 +1818,12 @@ export class BrandingService extends GenericService {
         stepName: 'Logo Critique',
         maxOutputTokens: 1200,
         modelParser: (content) => {
-          try {
-            return JSON.parse(content);
-          } catch (error) {
-            logger.error('Error parsing logo critique JSON:', error);
+          const parsed = parseLlmJson<Record<string, any>>(content);
+          if (!parsed) {
+            logger.error('Error parsing logo critique JSON: unparseable response');
             throw new Error('Failed to parse logo critique');
           }
+          return parsed;
         },
         hasDependencies: false,
       },
@@ -1643,12 +1891,12 @@ export class BrandingService extends GenericService {
         stepName: 'Logo Revision',
         maxOutputTokens: 3500,
         modelParser: (content) => {
-          try {
-            return JSON.parse(content);
-          } catch (error) {
-            logger.error('Error parsing logo revision JSON:', error);
+          const parsed = this.parseLogoModelResponse(content);
+          if (!parsed || typeof parsed.svg !== 'string' || !parsed.svg.includes('<svg')) {
+            logger.error('Error parsing logo revision JSON: no usable SVG in response');
             throw new Error('Failed to parse logo revision');
           }
+          return parsed;
         },
         hasDependencies: false,
       },
@@ -1835,126 +2083,52 @@ export class BrandingService extends GenericService {
   }
 
   /**
-   * Generate single logo variation for light background
+   * Génère UNE déclinaison (un fond) pour un style donné. Générique : le prompt
+   * (withText vs iconOnly) et la structure source (logo complet vs icône) sont
+   * fournis par l'appelant. Renvoie le SVG brut de l'IA, ou `undefined` si la
+   * réponse n'est pas exploitable (le parser échoue → parsedData n'est pas un SVG).
    */
-  private async generateSingleLightVariation(
+  private async generateSingleVariation(
+    kind: LogoVariationKind,
     logoStructure: any,
+    promptTemplate: string,
     project: ProjectModel,
     skipQuotaCheck = false
-  ): Promise<{ lightBackground?: string }> {
-    const prompt = `Logo structure: ${JSON.stringify(
-      logoStructure
-    )}\n\n${LOGO_VARIATION_LIGHT_PROMPT}`;
+  ): Promise<string | undefined> {
+    const prompt = `Logo structure: ${JSON.stringify(logoStructure)}\n\n${promptTemplate}`;
 
     const steps: IPromptStep[] = [
       {
         promptConstant: prompt,
-        stepName: 'Light Background Variation',
-        maxOutputTokens: 1000,
+        stepName: `${kind} Variation`,
+        maxOutputTokens: 4096,
         modelParser: (content) => {
           try {
-            const parsed = JSON.parse(content);
-            return parsed.variation;
+            const parsed = safeParseJson(content);
+            const container = parsed?.variation ?? parsed;
+            // Le SVG peut être sous la clé du fond ({ lightBackground: svg }) ou
+            // directement une chaîne. On valide qu'un vrai <svg> est présent.
+            const svg =
+              typeof container === 'string' ? container : container?.[kind];
+            if (typeof svg !== 'string' || !svg.includes('<svg')) {
+              throw new Error('no usable SVG in variation response');
+            }
+            return svg;
           } catch (error) {
-            logger.error('Error parsing light variation JSON:', error);
-            throw new Error('Failed to parse light variation JSON');
+            logger.error(`Error parsing ${kind} variation JSON:`, error);
+            throw new Error(`Failed to parse ${kind} variation JSON`);
           }
         },
         hasDependencies: false,
       },
     ];
 
-    const sectionResults = await this.processSteps(
-      steps,
-      project,
-      {
-        ...BrandingService.LOGO_LLM_CONFIG,
-        skipQuotaCheck,
-      }
-    );
-    return sectionResults[0].parsedData;
-  }
-
-  /**
-   * Generate single logo variation for dark background
-   */
-  private async generateSingleDarkVariation(
-    logoStructure: any,
-    project: ProjectModel,
-    skipQuotaCheck = false
-  ): Promise<{ darkBackground?: string }> {
-    const prompt = `Logo structure: ${JSON.stringify(
-      logoStructure
-    )}\n\n${LOGO_VARIATION_DARK_PROMPT}`;
-
-    const steps: IPromptStep[] = [
-      {
-        promptConstant: prompt,
-        stepName: 'Dark Background Variation',
-        maxOutputTokens: 1000,
-        modelParser: (content) => {
-          try {
-            const parsed = JSON.parse(content);
-            return parsed.variation;
-          } catch (error) {
-            logger.error('Error parsing dark variation JSON:', error);
-            throw new Error('Failed to parse dark variation JSON');
-          }
-        },
-        hasDependencies: false,
-      },
-    ];
-
-    const sectionResults = await this.processSteps(
-      steps,
-      project,
-      {
-        ...BrandingService.LOGO_LLM_CONFIG,
-        skipQuotaCheck,
-      }
-    );
-    return sectionResults[0].parsedData;
-  }
-
-  /**
-   * Generate single logo variation for monochrome
-   */
-  private async generateSingleMonochromeVariation(
-    logoStructure: any,
-    project: ProjectModel,
-    skipQuotaCheck = false
-  ): Promise<{ monochrome?: string }> {
-    const prompt = `Logo structure: ${JSON.stringify(
-      logoStructure
-    )}\n\n${LOGO_VARIATION_MONOCHROME_PROMPT}`;
-
-    const steps: IPromptStep[] = [
-      {
-        promptConstant: prompt,
-        stepName: 'Monochrome Variation',
-        maxOutputTokens: 1500,
-        modelParser: (content) => {
-          try {
-            const parsed = JSON.parse(content);
-            return parsed.variation;
-          } catch (error) {
-            logger.error('Error parsing monochrome variation JSON:', error);
-            throw new Error('Failed to parse monochrome variation JSON');
-          }
-        },
-        hasDependencies: false,
-      },
-    ];
-
-    const sectionResults = await this.processSteps(
-      steps,
-      project,
-      {
-        ...BrandingService.LOGO_LLM_CONFIG,
-        skipQuotaCheck,
-      }
-    );
-    return sectionResults[0].parsedData;
+    const sectionResults = await this.processSteps(steps, project, {
+      ...BrandingService.LOGO_LLM_CONFIG,
+      skipQuotaCheck,
+    });
+    const svg = sectionResults[0].parsedData;
+    return typeof svg === 'string' ? svg : undefined;
   }
 
   /**
@@ -1986,71 +2160,97 @@ export class BrandingService extends GenericService {
       throw new Error(`Project not found with ID: ${projectId}`);
     }
 
-    // Create compact logo structure for AI input (token-efficient)
-    const logoStructure = {
+    // Deux structures source : le LOGO COMPLET (avec texte) pour le jeu withText,
+    // et l'icône seule pour le jeu iconOnly. Le nom de marque n'est conservé que
+    // pour withText — c'est ce que le vérificateur contrôle.
+    const withTextStructure = {
       id: selectedLogo.id,
       name: selectedLogo.name,
       colors: selectedLogo.colors,
       concept: selectedLogo.concept,
-      svg: selectedLogo.iconSvg,
+      svg: selectedLogo.svg,
+    };
+    const iconStructure = { ...withTextStructure, svg: selectedLogo.iconSvg || selectedLogo.svg };
+
+    const existingWithText =
+      !forceRegenerate && selectedLogo.variations?.withText ? selectedLogo.variations.withText : {};
+    const existingIconOnly =
+      !forceRegenerate && selectedLogo.variations?.iconOnly ? selectedLogo.variations.iconOnly : {};
+    const isRetry = selectedLogo.variations?.withText !== undefined || skipQuotaCheck;
+
+    const kinds: LogoVariationKind[] = ['lightBackground', 'darkBackground', 'monochrome'];
+
+    // Génère (ou réutilise) un jeu complet pour un style donné, en parallèle sur
+    // les 3 fonds.
+    const buildSet = async (
+      structure: any,
+      prompts: Record<LogoVariationKind, string>,
+      existing: Partial<Record<LogoVariationKind, string>>
+    ): Promise<Record<LogoVariationKind, string | undefined>> => {
+      const entries = await Promise.all(
+        kinds.map(async (kind) => {
+          const reused = existing[kind];
+          if (reused) return [kind, reused] as const;
+          const svg = await this.generateSingleVariation(
+            kind,
+            structure,
+            prompts[kind],
+            project,
+            isRetry
+          );
+          return [kind, svg] as const;
+        })
+      );
+      return Object.fromEntries(entries) as Record<LogoVariationKind, string | undefined>;
     };
 
-    const existingVariations = (!forceRegenerate && selectedLogo.variations?.withText) ? selectedLogo.variations.withText : {};
-    const isRetry = (selectedLogo.variations?.withText !== undefined) || skipQuotaCheck;
-
-    // Execute only the missing variations in parallel
-    logger.info(`Starting parallel generation of logo variations (resuming completed ones)`);
-    const lightPromise = existingVariations.lightBackground
-      ? Promise.resolve({ lightBackground: existingVariations.lightBackground })
-      : this.generateSingleLightVariation(logoStructure, project, isRetry);
-
-    const darkPromise = existingVariations.darkBackground
-      ? Promise.resolve({ darkBackground: existingVariations.darkBackground })
-      : this.generateSingleDarkVariation(logoStructure, project, isRetry);
-
-    const monochromePromise = existingVariations.monochrome
-      ? Promise.resolve({ monochrome: existingVariations.monochrome })
-      : this.generateSingleMonochromeVariation(logoStructure, project, isRetry);
-
-    const [lightVariation, darkVariation, monochromeVariation] = await Promise.all([
-      lightPromise,
-      darkPromise,
-      monochromePromise,
+    logger.info('Generating withText + iconOnly variation sets (resuming completed ones)');
+    const [withTextSet, iconOnlySet] = await Promise.all([
+      buildSet(withTextStructure, WITHTEXT_VARIATION_PROMPTS, existingWithText),
+      buildSet(iconStructure, ICONONLY_VARIATION_PROMPTS, existingIconOnly),
     ]);
 
-    logger.info(`Successfully processed all 3 variations`);
-
-    // Create direct SVG variations (bypassing JSON-to-SVG conversion since we already have SVGs)
-    const svgVariations = {
-      withText: {
-        lightBackground: lightVariation.lightBackground,
-        darkBackground: darkVariation.darkBackground,
-        monochrome: monochromeVariation.monochrome,
-      },
-      iconOnly: {
-        lightBackground: lightVariation.lightBackground,
-        darkBackground: darkVariation.darkBackground,
-        monochrome: monochromeVariation.monochrome,
-      },
-    };
+    logger.info(`Successfully processed all variations (withText + iconOnly)`);
 
     // Apply advanced SVG optimization
     const optimizedVariations = {
-      withText: this.optimizeVariationSet(svgVariations.withText),
-      iconOnly: this.optimizeVariationSet(svgVariations.iconOnly),
+      withText: this.optimizeVariationSet(withTextSet),
+      iconOnly: this.optimizeVariationSet(iconOnlySet),
     };
 
-    // Update project with optimized variations
+    // Upload ALL SVGs (logo primary + icon + variations) to MinIO.
+    // Replace inline SVG content with hosted URLs before persisting to DB.
+    let logoSvgUrl = selectedLogo.svg;
+    let iconSvgUrl = selectedLogo.iconSvg;
+    let variationUrls: typeof optimizedVariations | undefined = optimizedVariations;
+    try {
+      const svgUrls = await this.storageService.uploadAllLogoSvgs(
+        { svg: selectedLogo.svg, iconSvg: selectedLogo.iconSvg, variations: optimizedVariations },
+        userId,
+        projectId
+      );
+      logoSvgUrl = svgUrls.svg;
+      if (svgUrls.iconSvg) iconSvgUrl = svgUrls.iconSvg;
+      if (svgUrls.variations) variationUrls = svgUrls.variations as typeof optimizedVariations;
+      logger.info(`Logo SVGs (primary + variations) uploaded to MinIO`, { projectId });
+    } catch (uploadError: any) {
+      logger.error(`Logo SVG upload failed after variation generation (keeping inline): ${uploadError.message}`);
+    }
+
+    // Update project with hosted URLs for logo SVGs
     const updatedProjectData = {
       ...project,
       analysisResultModel: {
         ...project.analysisResultModel,
         branding: {
-          ...project.analysisResultModel.branding,
+          ...project.analysisResultModel?.branding,
           logo: {
             ...selectedLogo,
-            variations: optimizedVariations,
+            svg: logoSvgUrl,
+            ...(iconSvgUrl ? { iconSvg: iconSvgUrl } : {}),
+            variations: variationUrls,
           },
+          generatedLogos: [], // Delete other generated logo concepts once one is selected
           updatedAt: new Date(),
         },
       },
@@ -2110,14 +2310,24 @@ export class BrandingService extends GenericService {
     originalSvg: string,
     variationSvg: string,
     variant: LogoVariationKind,
-    project: ProjectModel
+    project: ProjectModel,
+    style: LogoVariationStyle = 'withText'
   ): Promise<LogoCritiqueResult> {
     const background = VARIATION_BACKGROUNDS[variant];
     const visibility = await measureSvgVisibility(variationSvg, background);
 
+    // Règle texte dépendante du style : withText EXIGE le nom de marque ;
+    // iconOnly l'INTERDIT (le texte est délibérément retiré). Sans cette bascule,
+    // le vérificateur échouait à trouver le nom sur les déclinaisons icône.
+    const textRule =
+      style === 'withText'
+        ? 'TEXT — this is a WITH-TEXT declination: the brand name / wordmark MUST be present and identical to the original (same string, same font, readable on the target background). If the text is missing, altered or unreadable, it is an automatic fail.'
+        : 'TEXT — this is an ICON-ONLY declination: the wordmark is intentionally removed. The variation must contain NO <text>. NEVER flag a missing brand name or missing text as an issue here.';
+
     const prompt = LOGO_VARIATION_CRITIQUE_PROMPT.replace(/\{\{VARIANT\}\}/g, variant)
       .replace(/\{\{BACKGROUND\}\}/g, background)
       .replace(/\{\{VISIBILITY\}\}/g, String(Math.round(visibility * 100)))
+      .replace(/\{\{TEXT_RULE\}\}/g, textRule)
       .replace('{{ORIGINAL_SVG}}', originalSvg)
       .replace('{{VARIATION_SVG}}', variationSvg);
 
@@ -2125,10 +2335,10 @@ export class BrandingService extends GenericService {
       {
         promptConstant: prompt,
         stepName: `Variation Critique ${variant}`,
-        maxOutputTokens: 1200,
+        maxOutputTokens: 4096,
         modelParser: (content) => {
           try {
-            return JSON.parse(content);
+            return safeParseJson(content);
           } catch (error) {
             logger.error('Error parsing variation critique JSON:', error);
             throw new Error('Failed to parse variation critique');
@@ -2143,7 +2353,7 @@ export class BrandingService extends GenericService {
       llmOptions: {
         ...BrandingService.LOGO_LLM_CONFIG.llmOptions,
         temperature: 0.15,
-        maxOutputTokens: 1200,
+        maxOutputTokens: 4096,
       },
       skipQuotaCheck: true,
     });
@@ -2191,53 +2401,70 @@ export class BrandingService extends GenericService {
       throw new Error('No selected logo found on project. Select a logo first.');
     }
 
-    const existing =
+    const existingWithText =
       !forceRegenerate && selectedLogo.variations?.withText ? selectedLogo.variations.withText : {};
+    const existingIconOnly =
+      !forceRegenerate && selectedLogo.variations?.iconOnly ? selectedLogo.variations.iconOnly : {};
     const isRetry = selectedLogo.variations?.withText !== undefined;
 
     const kinds: LogoVariationKind[] = ['lightBackground', 'darkBackground', 'monochrome'];
+    // results = jeu withText (streamé, héros avec le nom) ; iconResults = jeu icône.
     const results: Partial<Record<LogoVariationKind, string>> = {};
+    const iconResults: Partial<Record<LogoVariationKind, string>> = {};
 
     // Réémettre l'existant (reprise), ne générer que le manquant
     for (const kind of kinds) {
-      const existingSvg = (existing as Record<string, string | undefined>)[kind];
+      const existingSvg = (existingWithText as Record<string, string | undefined>)[kind];
+      const existingIconSvg = (existingIconOnly as Record<string, string | undefined>)[kind];
+      if (existingIconSvg) {
+        iconResults[kind] = existingIconSvg;
+      }
       if (existingSvg) {
         results[kind] = existingSvg;
         await streamCallback({ type: 'variation_finalized', variant: kind, svg: existingSvg });
       }
     }
-    const missingKinds = kinds.filter((kind) => !results[kind]);
+    const missingKinds = kinds.filter((kind) => !results[kind] || !iconResults[kind]);
     if (missingKinds.length === 0) {
-      return { withText: { ...results }, iconOnly: { ...results } };
+      return { withText: { ...results }, iconOnly: { ...iconResults } };
     }
 
     const generationKey = BrandingService.variationsGenerationKey(userId, projectId);
     const cancelState = { cancelled: false };
     BrandingService.activeLogoGenerations.set(generationKey, cancelState);
 
-    // Structure compacte pour l'IA (mêmes entrées que le flux non streamé)
-    const logoStructure = {
+    // Deux sources : le LOGO COMPLET (avec texte) pour withText, l'icône seule
+    // pour iconOnly. La critique streamée juge le jeu withText contre le logo
+    // complet → elle vérifie que le nom de marque est bien présent.
+    const withTextStructure = {
       id: selectedLogo.id,
       name: selectedLogo.name,
       colors: selectedLogo.colors,
       concept: selectedLogo.concept,
-      svg: selectedLogo.iconSvg,
+      svg: selectedLogo.svg,
     };
-    const originalSvg = selectedLogo.iconSvg || selectedLogo.svg;
+    const iconStructure = { ...withTextStructure, svg: selectedLogo.iconSvg || selectedLogo.svg };
+    const originalSvg = selectedLogo.svg;
 
-    const generateOne = async (kind: LogoVariationKind): Promise<string | undefined> => {
-      switch (kind) {
-        case 'lightBackground':
-          return (await this.generateSingleLightVariation(logoStructure, project, isRetry))
-            .lightBackground;
-        case 'darkBackground':
-          return (await this.generateSingleDarkVariation(logoStructure, project, isRetry))
-            .darkBackground;
-        case 'monochrome':
-          return (await this.generateSingleMonochromeVariation(logoStructure, project, isRetry))
-            .monochrome;
-      }
-    };
+    // withText streamé (héros). Le nom est conservé.
+    const generateOne = (kind: LogoVariationKind): Promise<string | undefined> =>
+      this.generateSingleVariation(
+        kind,
+        withTextStructure,
+        WITHTEXT_VARIATION_PROMPTS[kind],
+        project,
+        isRetry
+      );
+
+    // iconOnly généré en silence (pas de critique streamée) via les prompts icône.
+    const generateIconOnly = (kind: LogoVariationKind): Promise<string | undefined> =>
+      this.generateSingleVariation(
+        kind,
+        iconStructure,
+        ICONONLY_VARIATION_PROMPTS[kind],
+        project,
+        true
+      );
 
     const processVariant = async (kind: LogoVariationKind): Promise<void> => {
       try {
@@ -2246,6 +2473,16 @@ export class BrandingService extends GenericService {
           return;
         }
         await streamCallback({ type: 'variation_started', variant: kind });
+
+        // iconOnly généré en parallèle (silencieux) — réutilise l'existant si présent.
+        const iconOnlyPromise: Promise<string | undefined> = iconResults[kind]
+          ? Promise.resolve(iconResults[kind])
+          : generateIconOnly(kind)
+              .then((raw) => (raw ? SvgOptimizerService.optimizeSvg(raw) : undefined))
+              .catch((error) => {
+                logger.warn(`iconOnly ${kind} generation failed: ${error?.message ?? error}`);
+                return undefined;
+              });
 
         let svg = await generateOne(kind);
         if (!svg) {
@@ -2258,7 +2495,8 @@ export class BrandingService extends GenericService {
           await streamCallback({ type: 'critique_started', variant: kind });
           let critique: LogoCritiqueResult | null = null;
           try {
-            critique = await this.critiqueLogoVariation(originalSvg, svg, kind, project);
+            // Style 'withText' : la critique EXIGE la présence du nom de marque.
+            critique = await this.critiqueLogoVariation(originalSvg, svg, kind, project, 'withText');
           } catch (error) {
             logger.warn(`Variation critique failed for ${kind}, keeping as-is`);
           }
@@ -2302,6 +2540,10 @@ export class BrandingService extends GenericService {
         }
 
         results[kind] = svg;
+        const iconSvg = await iconOnlyPromise;
+        if (iconSvg) {
+          iconResults[kind] = iconSvg;
+        }
         await streamCallback({ type: 'variation_finalized', variant: kind, svg });
       } catch (error: any) {
         logger.error(`Streamed variation ${kind} failed:`, error);
@@ -2321,20 +2563,41 @@ export class BrandingService extends GenericService {
 
     const optimizedVariations = {
       withText: this.optimizeVariationSet({ ...results }),
-      iconOnly: this.optimizeVariationSet({ ...results }),
+      iconOnly: this.optimizeVariationSet({ ...iconResults }),
     };
 
-    // Persistance sur le projet (même logique que le flux non streamé)
+    // Upload ALL SVGs to MinIO (logo primary + icon + variations)
+    let logoSvgUrl = selectedLogo.svg;
+    let iconSvgUrl = selectedLogo.iconSvg;
+    let variationUrls: typeof optimizedVariations | undefined = optimizedVariations;
+    try {
+      const svgUrls = await this.storageService.uploadAllLogoSvgs(
+        { svg: selectedLogo.svg, iconSvg: selectedLogo.iconSvg, variations: optimizedVariations },
+        userId,
+        projectId
+      );
+      logoSvgUrl = svgUrls.svg;
+      if (svgUrls.iconSvg) iconSvgUrl = svgUrls.iconSvg;
+      if (svgUrls.variations) variationUrls = svgUrls.variations as typeof optimizedVariations;
+      logger.info(`Streamed variation SVGs uploaded to MinIO`, { projectId });
+    } catch (uploadError: any) {
+      logger.error(`Streamed variation SVG upload failed (keeping inline): ${uploadError.message}`);
+    }
+
+    // Persistance sur le projet avec les URLs MinIO
     const updatedProjectData = {
       ...project,
       analysisResultModel: {
         ...project.analysisResultModel,
         branding: {
-          ...project.analysisResultModel.branding,
+          ...project.analysisResultModel?.branding,
           logo: {
             ...selectedLogo,
-            variations: optimizedVariations,
+            svg: logoSvgUrl,
+            ...(iconSvgUrl ? { iconSvg: iconSvgUrl } : {}),
+            variations: variationUrls,
           },
+          generatedLogos: [], // Delete other generated logo concepts once one is selected
           updatedAt: new Date(),
         },
       },
@@ -2354,7 +2617,7 @@ export class BrandingService extends GenericService {
       );
     }
 
-    return optimizedVariations;
+    return variationUrls || optimizedVariations;
   }
 
   async getBrandingsByProjectId(
@@ -2371,7 +2634,7 @@ export class BrandingService extends GenericService {
     }
     logger.info(`Successfully fetched branding for projectId: ${projectId}`);
 
-    return project.analysisResultModel.branding;
+    return project.analysisResultModel?.branding || null;
   }
 
   async getBrandingById(userId: string, brandingId: string): Promise<BrandIdentityModel | null> {
@@ -2402,7 +2665,7 @@ export class BrandingService extends GenericService {
       analysisResultModel: {
         ...project.analysisResultModel,
         branding: {
-          ...project.analysisResultModel.branding,
+          ...project.analysisResultModel?.branding,
           ...data,
         },
       },
@@ -2429,6 +2692,9 @@ export class BrandingService extends GenericService {
     }
 
     // Reset branding to empty state rather than removing it completely
+    if (!project.analysisResultModel) {
+      project.analysisResultModel = {} as any;
+    }
     project.analysisResultModel.branding = {
       logo: {
         svg: '',
@@ -2487,7 +2753,7 @@ export class BrandingService extends GenericService {
       );
       throw new Error(`Project not found with ID: ${projectId}`);
     }
-    const branding = project.analysisResultModel.branding;
+    const branding = project.analysisResultModel?.branding;
     if (!branding || !branding.sections || branding.sections.length === 0) {
       logger.warn(`No branding sections found for project ${projectId} when generating PDF.`);
       return '';
@@ -2511,12 +2777,12 @@ export class BrandingService extends GenericService {
       logger.info(`Branding PDF cache miss, generating new PDF for projectId: ${projectId}`);
 
       // Déterminer le format de page à utiliser
-      const pageFormat = project.analysisResultModel?.branding?.pdfFormat
-        ? PAGE_FORMATS[project.analysisResultModel.branding.pdfFormat as keyof typeof PAGE_FORMATS]
+      const pageFormat = branding?.pdfFormat
+        ? PAGE_FORMATS[branding.pdfFormat as keyof typeof PAGE_FORMATS]
         : PAGE_FORMATS.SLIDE_16_9;
 
       logger.info(
-        `Generating PDF with format: ${project.analysisResultModel?.branding?.pdfFormat || 'SLIDE_16_9'}`
+        `Generating PDF with format: ${branding?.pdfFormat || 'SLIDE_16_9'}`
       );
 
       // Utiliser le PdfService pour générer le PDF avec le format choisi
@@ -2581,7 +2847,7 @@ export class BrandingService extends GenericService {
       throw new Error(`Project not found with ID: ${projectId}`);
     }
 
-    const branding = project.analysisResultModel.branding;
+    const branding = project.analysisResultModel?.branding;
     if (!branding || !branding.logo) {
       logger.warn(`No logo found for project ${projectId} when generating logos ZIP.`);
       throw new Error(`No logo found for project ${projectId}`);
@@ -2978,13 +3244,12 @@ ${LOGO_EDIT_PROMPT}`;
           stepName: 'Logo Edit',
           maxOutputTokens: 3000,
           modelParser: (content) => {
-            try {
-              const parsed = JSON.parse(content);
-              return parsed;
-            } catch (error) {
-              logger.error('Error parsing edited logo JSON:', error);
+            const parsed = this.parseLogoModelResponse(content);
+            if (!parsed || typeof parsed.svg !== 'string' || !parsed.svg.includes('<svg')) {
+              logger.error('Error parsing edited logo JSON: no usable SVG in response');
               throw new Error('Failed to parse edited logo JSON');
             }
+            return parsed;
           },
           hasDependencies: false,
         },
@@ -3011,6 +3276,21 @@ ${LOGO_EDIT_PROMPT}`;
 
       // Optimize the edited SVG
       const optimizedLogo = this.optimizeLogoSvgs(editedLogo);
+
+      // Upload the edited SVG (+ icon) to MinIO and replace inline content with URLs
+      try {
+        const svgUrls = await this.storageService.uploadAllLogoSvgs(
+          optimizedLogo,
+          userId,
+          projectId
+        );
+        optimizedLogo.svg = svgUrls.svg;
+        if (svgUrls.iconSvg) optimizedLogo.iconSvg = svgUrls.iconSvg;
+        if (svgUrls.variations) optimizedLogo.variations = svgUrls.variations;
+        logger.info(`Edited logo SVGs uploaded to MinIO for projectId: ${projectId}`);
+      } catch (uploadError: any) {
+        logger.error(`Failed to upload edited logo SVGs (keeping inline): ${uploadError.message}`);
+      }
 
       logger.info(
         `Successfully edited logo for projectId: ${projectId}, changes: ${editedLogoData.changesSummary}`
@@ -3080,10 +3360,10 @@ ${LOGO_EDIT_PROMPT}`;
         timestamp: new Date().toISOString(),
       });
 
-      const logoUrl = project.analysisResultModel.branding.logo.svg;
+      const logoUrl = branding.logo.svg;
 
       // Récupérer le format PDF depuis le projet (défaut: SLIDE_16_9)
-      const pdfFormat = project.analysisResultModel?.branding?.pdfFormat || 'SLIDE_16_9';
+      const pdfFormat = branding.pdfFormat || 'SLIDE_16_9';
 
       // Générer les mockups avec le service Gemini (logo envoyé comme image)
       // Le service analyse automatiquement le projet et sélectionne les supports adaptés
@@ -3169,7 +3449,6 @@ ${LOGO_EDIT_PROMPT}`;
   ): Promise<{
     colors: ColorModel[];
     typography: TypographyModel[];
-    project: ProjectModel;
   }> {
     logger.info(
       `Generating colors and typography from imported logo for userId: ${userId}, logo colors: ${logoColors.join(', ')}`
@@ -3192,7 +3471,13 @@ ${LOGO_EDIT_PROMPT}`;
       logger.info(
         `Reusing existing project for logo-based colors/typography - ProjectId: ${existingProject.id}`
       );
-      createdProject = existingProject;
+      createdProject = {
+        ...existingProject,
+        analysisResultModel: {
+          ...existingProject.analysisResultModel,
+          branding: existingProject.analysisResultModel?.branding || BrandIdentityBuilder.createEmpty(),
+        },
+      };
     } else {
       project = {
         ...project,
@@ -3219,7 +3504,11 @@ ${LOGO_EDIT_PROMPT}`;
       logger.error(`Error caching project for userId: ${userId}`, error);
     }
 
-    const projectDescription = this.extractProjectDescription(project);
+    // Contexte projet lu depuis la DB (createdProject), PAS depuis le payload :
+    // le front n'envoie plus qu'un projet minimal (id + champs légers) pour éviter
+    // le 413, et le projet complet est de toute façon rechargé ici via findById.
+    // Ça garantit un prompt fiable même si le payload est réduit à l'id.
+    const projectDescription = this.extractProjectDescription(createdProject);
 
     // Determine primary, secondary colors and style hint from logo colors
     const primaryColor = logoColors.length > 0 ? logoColors[0] : '#6a11cb';
@@ -3282,6 +3571,44 @@ ${LOGO_EDIT_PROMPT}`;
       }
     }
 
+    // Upload ALL SVGs (primary + icon + variations) to MinIO and replace inline
+    // content with hosted URLs. The inline SVG markup is no longer stored in DB.
+    // Non-fatal: the logo is still functional with inline SVG if upload fails.
+    let logoSvgUrl = logoSvg; // fallback to inline/existing URL
+    let iconSvgUrl = existingLogo?.iconSvg;
+    let variationUrls = optimizedVariations;
+    try {
+      // Resolve logoSvg to inline SVG content for upload (it might already be a URL)
+      const inlineSvg = /^https?:\/\//i.test(logoSvg.trim()) ? logoSvg : logoSvg;
+      const svgUrls = await this.storageService.uploadAllLogoSvgs(
+        { svg: inlineSvg, iconSvg: existingLogo?.iconSvg, variations: optimizedVariations },
+        userId,
+        createdProject.id
+      );
+      logoSvgUrl = svgUrls.svg;
+      if (svgUrls.iconSvg) iconSvgUrl = svgUrls.iconSvg;
+      if (svgUrls.variations) variationUrls = svgUrls.variations;
+      logger.info(`Imported logo SVGs uploaded to MinIO`, { projectId: createdProject.id });
+    } catch (error) {
+      logger.error(`Logo SVG upload failed during branding generation (keeping inline):`, error);
+    }
+
+    // Rasterize SVGs to PNG and upload to bucket. PNGs are used in generation
+    // contexts (pitch deck, flyers, brand book) as <img> tags.
+    // resolveSvgContent() handles both MinIO URLs and inline SVG.
+    let logoAssetUrls = existingLogo?.assetUrls;
+    if (!logoAssetUrls) {
+      try {
+        logoAssetUrls = await this.storageService.uploadProjectLogoAssets(
+          { svg: logoSvgUrl, iconSvg: iconSvgUrl, variations: variationUrls },
+          userId,
+          createdProject.id
+        );
+      } catch (error) {
+        logger.error(`Logo PNG asset upload failed during branding generation:`, error);
+      }
+    }
+
     // Conserver le logo importé de l'utilisateur (complété des variations si
     // besoin). Ne JAMAIS écrire generatedLogos ici : ce champ est réservé aux
     // logos générés par l'IA — le polluer avec le logo importé faussait la
@@ -3289,16 +3616,21 @@ ${LOGO_EDIT_PROMPT}`;
     const importedLogo: LogoModel = existingLogo
       ? {
           ...existingLogo,
-          ...(optimizedVariations ? { variations: optimizedVariations } : {}),
+          svg: logoSvgUrl,
+          ...(iconSvgUrl ? { iconSvg: iconSvgUrl } : {}),
+          ...(variationUrls ? { variations: variationUrls } : {}),
+          ...(logoAssetUrls ? { assetUrls: logoAssetUrls } : {}),
         }
       : {
           id: `imported-${Date.now()}`,
           name: 'Imported Logo',
-          svg: logoSvg,
+          svg: logoSvgUrl,
           concept: 'User-imported logo',
           colors: logoColors,
           fonts: [],
-          ...(optimizedVariations ? { variations: optimizedVariations } : {}),
+          ...(iconSvgUrl ? { iconSvg: iconSvgUrl } : {}),
+          ...(variationUrls ? { variations: variationUrls } : {}),
+          ...(logoAssetUrls ? { assetUrls: logoAssetUrls } : {}),
         };
 
     const updatedProjectData = {
@@ -3306,7 +3638,7 @@ ${LOGO_EDIT_PROMPT}`;
       analysisResultModel: {
         ...createdProject.analysisResultModel,
         branding: {
-          ...createdProject.analysisResultModel.branding,
+          ...createdProject.analysisResultModel?.branding,
           generatedColors: colors,
           generatedTypography: typography,
           logo: importedLogo,
@@ -3334,10 +3666,13 @@ ${LOGO_EDIT_PROMPT}`;
       });
     }
 
+    // On ne renvoie QUE les couleurs et typographies. Le projet complet (avec le
+    // logo et ses variations SVG inline réattachées) est déjà persisté en DB
+    // ci-dessus ; le renvoyer alourdissait inutilement la réponse (sérialisation +
+    // transfert + parsing) et le front ne l'exploitait pas.
     return {
       colors,
       typography,
-      project: updatedProject || createdProject,
     };
   }
 

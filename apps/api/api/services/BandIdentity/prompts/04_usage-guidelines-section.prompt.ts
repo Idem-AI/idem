@@ -16,7 +16,7 @@ export const USAGE_GUIDELINES_SECTION_PROMPT = `<role>Brand governance expert an
 </page_content>
 
 <page_format>
-- Outermost container: w-[297mm] h-[167mm] overflow-hidden relative (Landscape 16:9, exactly h-[167mm], no min-h-screen).
+- Outermost container: w-[297mm] h-[167mm] overflow-hidden relative (Landscape 16:9, exactly h-[167mm] — the content MUST fit within this single page (no overflow, no scroll). If it is too long, shorten, summarize or use smaller type to fit — never exceed the page).
 - Internal safe padding: p-[12mm] (no content overflow).
 </page_format>
 
@@ -28,6 +28,11 @@ export const USAGE_GUIDELINES_SECTION_PROMPT = `<role>Brand governance expert an
 - Do NOT output markdown code blocks (e.g., \`\`\`html) or prefix with "html".
 - Replace {{logo_url}} with actual logo URL from context.
 </technical_rules>
+
+<editor_compatibility>
+- The output is edited afterwards in a visual (Figma-like) editor: put visible text in leaf elements (h1..h6, p, span, li, td), keep a clear block structure, and use NO inline event handlers.
+- Any Chart.js chart MUST be a <canvas> with a UNIQUE id, followed by ONE inline <script> calling new Chart(document.getElementById('THAT_ID'), {...}) with options.animation=false (one chart per canvas, no Chart.js <script src> tag).
+</editor_compatibility>
 
 <project_context>
 `;

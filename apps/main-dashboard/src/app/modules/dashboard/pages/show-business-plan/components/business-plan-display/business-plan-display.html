@@ -5,6 +5,9 @@
     [error]="pdfError()"
     [title]="'dashboard.businessPlanDisplay.title' | translate"
     [showPagination]="true"
+    [showEditButton]="showEditButton()"
+    [editButtonLabel]="'dashboard.showBusinessPlan.buttons.edit'"
+    (editRequested)="editRequested.emit()"
     (regenerateRequested)="regeneratePdf()"
     (downloadRequested)="downloadPdf()"
   ></app-pdf-viewer>

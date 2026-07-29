@@ -21,6 +21,7 @@ import { SLIDE_COMPETITION_PROMPT } from './prompts/slide-competition.prompt';
 import { SLIDE_TEAM_PROMPT } from './prompts/slide-team.prompt';
 import { SLIDE_FINANCIALS_PROMPT } from './prompts/slide-financials.prompt';
 import { SLIDE_ASK_PROMPT } from './prompts/slide-ask.prompt';
+import { imageSourcingService } from '../Communication/imageSourcing.service';
 
 export const PITCH_DECK_SLIDE_ORDER = [
   'Cover',
@@ -100,19 +101,77 @@ export class PitchDeckService extends GenericService {
     }
 
     const brandName = project.name || 'Startup';
-    const logoSvg = project.analysisResultModel?.branding?.logo?.svg || '';
-    const brandColors = project.analysisResultModel?.branding?.colors || {
+    const logo = project.analysisResultModel?.branding?.logo;
+    const colorsObj = project.analysisResultModel?.branding?.colors?.colors || {
       primary: '#1447e6',
       secondary: '#000060',
       accent: '#22d3ee',
+      background: '#ffffff',
+      text: '#1f2937',
     };
-    const typography = project.analysisResultModel?.branding?.typography || {
-      primary: 'Jura, sans-serif',
+    const typoModel = project.analysisResultModel?.branding?.typography;
+    const primaryFont = typoModel?.primaryFont || 'Inter, sans-serif';
+    const secondaryFont = typoModel?.secondaryFont || primaryFont;
+
+    // Helper to format logo SVGs or URLs into valid img src targets
+    const formatLogoUrl = (val?: string): string => {
+      if (!val) return '';
+      const trimmed = val.trim();
+      if (!trimmed) return '';
+      if (
+        trimmed.startsWith('http://') ||
+        trimmed.startsWith('https://') ||
+        trimmed.startsWith('data:')
+      ) {
+        return trimmed;
+      }
+      if (trimmed.startsWith('<svg') || trimmed.includes('<svg')) {
+        return `data:image/svg+xml;base64,${Buffer.from(trimmed).toString('base64')}`;
+      }
+      return trimmed;
     };
 
-    const brandContext = `Brand: ${brandName}\nLogo SVG: ${logoSvg}\nBrand Colors: ${JSON.stringify(
-      brandColors
-    )}\nTypography: ${JSON.stringify(typography)}\nLanguage: fr`;
+    // Build logo URLs block — prefer the hosted PNG URLs (assetUrls); fall back
+    // to the inline SVG (formatted as a Data URI) for legacy projects that were
+    // created before PNG assets were generated.
+    const assetUrls = logo?.assetUrls;
+    const logoLines: string[] = [];
+    const pushLogoLine = (label: string, url?: string, svgFallback?: string) => {
+      const value = url || (svgFallback ? formatLogoUrl(svgFallback) : '');
+      if (value) logoLines.push(`  ${label}: ${value}`);
+    };
+
+    pushLogoLine('Primary (full logo)', assetUrls?.primary, logo?.svg);
+    pushLogoLine('Icon only', assetUrls?.icon, logo?.iconSvg);
+
+    const wt = logo?.variations?.withText;
+    if (assetUrls?.withText || wt) {
+      pushLogoLine('With text (light bg)', assetUrls?.withText?.lightBackground, wt?.lightBackground);
+      pushLogoLine('With text (dark bg)', assetUrls?.withText?.darkBackground, wt?.darkBackground);
+      pushLogoLine('With text (mono)', assetUrls?.withText?.monochrome, wt?.monochrome);
+    }
+
+    const io = logo?.variations?.iconOnly;
+    if (assetUrls?.iconOnly || io) {
+      pushLogoLine('Icon only (light bg)', assetUrls?.iconOnly?.lightBackground, io?.lightBackground);
+      pushLogoLine('Icon only (dark bg)', assetUrls?.iconOnly?.darkBackground, io?.darkBackground);
+      pushLogoLine('Icon only (mono)', assetUrls?.iconOnly?.monochrome, io?.monochrome);
+    }
+
+    // Flat, explicit brand context — LLM uses bg-[#hex], text-[#hex] directly
+    const brandContext = [
+      `Brand Name: ${brandName}`,
+      `LOGO URLS (use <img src="URL"> — pick the right variant for the slide background):`,
+      ...(logoLines.length > 0 ? logoLines : ['  No logo available']),
+      `PRIMARY COLOR: ${colorsObj.primary}`,
+      `SECONDARY COLOR: ${colorsObj.secondary}`,
+      `ACCENT COLOR: ${colorsObj.accent}`,
+      `BACKGROUND COLOR: ${colorsObj.background}`,
+      `TEXT COLOR: ${colorsObj.text}`,
+      `PRIMARY FONT: ${primaryFont}`,
+      `SECONDARY FONT: ${secondaryFont}`,
+      `Language: fr`,
+    ].join('\n');
 
     const steps: IPromptStep[] = [
       {
@@ -199,10 +258,20 @@ export class PitchDeckService extends GenericService {
             return;
           }
 
+          let enrichedData = result.data;
+          if (typeof enrichedData === 'string' && (enrichedData.includes('<img') || enrichedData.includes('data-image'))) {
+            enrichedData = await this.enrichSlideWithImages(
+              enrichedData,
+              userId,
+              projectId,
+              result.name
+            );
+          }
+
           const section: SectionModel = {
             name: result.name,
             type: result.type,
-            data: result.data,
+            data: enrichedData,
             summary: result.summary,
           };
           
@@ -241,7 +310,10 @@ export class PitchDeckService extends GenericService {
 
           if (updated) {
             await cacheService.set(cacheKey, updated, { prefix: 'ai', ttl: 7200 });
-            await streamCallback(result);
+            await streamCallback({
+              ...result,
+              data: enrichedData,
+            });
           } else {
             throw new Error(`Failed to update project after step: ${result.name}`);
           }
@@ -262,12 +334,25 @@ export class PitchDeckService extends GenericService {
     }
 
     const stepResults = await this.processSteps(steps, project, promptConfig);
-    sectionResults = stepResults.map((r) => ({
-      name: r.name,
-      type: r.type,
-      data: r.data,
-      summary: r.summary,
-    }));
+    sectionResults = await Promise.all(
+      stepResults.map(async (r) => {
+        let enrichedData = r.data;
+        if (typeof enrichedData === 'string' && (enrichedData.includes('<img') || enrichedData.includes('data-image'))) {
+          enrichedData = await this.enrichSlideWithImages(
+            enrichedData,
+            userId,
+            projectId,
+            r.name
+          );
+        }
+        return {
+          name: r.name,
+          type: r.type,
+          data: enrichedData,
+          summary: r.summary,
+        };
+      })
+    );
 
     const old = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!old) return null;
@@ -377,5 +462,91 @@ export class PitchDeckService extends GenericService {
       );
       throw err;
     }
+  }
+
+  /**
+   * Enrich slide HTML by resolving image placeholders (using Pexels stock search with Gemini fallback)
+   */
+  private async enrichSlideWithImages(
+    html: string,
+    userId: string,
+    projectId: string,
+    slideName: string
+  ): Promise<string> {
+    if (!html || typeof html !== 'string') return html;
+
+    const imgTagRegex = /<img\b([^>]*?)>/gi;
+    const matches = [...html.matchAll(imgTagRegex)];
+
+    if (matches.length === 0) return html;
+
+    let enrichedHtml = html;
+
+    for (const match of matches) {
+      const fullTag = match[0];
+      const attrsStr = match[1];
+
+      // Explicitly protect logos and data URIs from being replaced by stock photos
+      const isLogo =
+        /alt=["'][^"']*logo[^"']*["']/i.test(attrsStr) ||
+        /class=["'][^"']*logo[^"']*["']/i.test(attrsStr) ||
+        /src=["'][^"']*logo[^"']*["']/i.test(attrsStr);
+
+      const hasExplicitQuery = /data-image-query=["']/i.test(attrsStr);
+      const hasExplicitPrompt = /data-image-prompt=["']/i.test(attrsStr);
+      const isPlaceholder =
+        /src=["'][^"']*placehold\.co[^"']*["']/i.test(attrsStr) ||
+        /src=["'][^"']*placeholder[^"']*["']/i.test(attrsStr);
+
+      if (isLogo || (!hasExplicitQuery && !hasExplicitPrompt && !isPlaceholder)) {
+        continue;
+      }
+
+      if (/src=["']data:image\//i.test(attrsStr) && !hasExplicitQuery && !hasExplicitPrompt) {
+        continue;
+      }
+
+      const queryMatch = attrsStr.match(/data-image-query=["']([^"']+)["']/i);
+      const promptMatch = attrsStr.match(/data-image-prompt=["']([^"']+)["']/i);
+
+      const searchQuery = queryMatch
+        ? queryMatch[1]
+        : `${slideName} startup visual`;
+
+      const generationPrompt = promptMatch
+        ? promptMatch[1]
+        : `High resolution professional visual depicting ${searchQuery} for pitch deck slide ${slideName}`;
+
+      try {
+        const sourced = await imageSourcingService.sourceImage(
+          {
+            searchQuery,
+            generationPrompt,
+            orientation: 'landscape',
+          },
+          {
+            userId,
+            projectId,
+            tag: `pitchdeck-${slideName.toLowerCase().replace(/\s+/g, '-')}`,
+          }
+        );
+
+        if (sourced && sourced.url) {
+          let newTag = fullTag;
+          if (/src=["'][^"']*["']/i.test(newTag)) {
+            newTag = newTag.replace(/src=["'][^"']*["']/i, `src="${sourced.url}"`);
+          } else {
+            newTag = newTag.replace(/<img/i, `<img src="${sourced.url}"`);
+          }
+          enrichedHtml = enrichedHtml.replace(fullTag, newTag);
+        }
+      } catch (err: any) {
+        logger.warn(
+          `Failed to source image for pitch deck slide ${slideName}: ${err.message}`
+        );
+      }
+    }
+
+    return enrichedHtml;
   }
 }

@@ -48,6 +48,9 @@
     [error]="pdfError()"
     [title]="'dashboard.brandingDisplay.title' | translate"
     [showPagination]="true"
+    [showEditButton]="true"
+    [editButtonLabel]="'dashboard.showBranding.buttons.edit'"
+    (editRequested)="editBranding()"
     (regenerateRequested)="regeneratePdf()"
     (downloadRequested)="downloadPdf()"
   ></app-pdf-viewer>

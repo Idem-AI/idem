@@ -1,0 +1,117 @@
+<section
+  class="flex flex-col min-h-[60vh] items-center justify-center text-text-primary w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-10 animate-fadeIn"
+>
+  <!-- Back button -->
+  <div class="w-full max-w-4xl mb-6 flex justify-start">
+    <button
+      type="button"
+      (click)="onBack()"
+      class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-text-tertiary hover:text-text-primary hover:bg-[var(--glass-bg-subtle)] border border-transparent hover:border-[var(--glass-border)] transition-all duration-200 cursor-pointer"
+    >
+      <i class="pi pi-arrow-left text-xs"></i>
+      <span>{{ 'dashboard.createProject.modeChoice.backToDescription' | translate }}</span>
+    </button>
+  </div>
+
+  <!-- Main Title & Subtitle -->
+  <div class="text-center mb-8 sm:mb-10 max-w-2xl">
+    <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-text-primary leading-tight mb-3">
+      {{ 'dashboard.createProject.modeChoice.title' | translate }}
+    </h1>
+    <p class="text-sm sm:text-base text-text-tertiary leading-relaxed">
+      {{ 'dashboard.createProject.modeChoice.subtitle' | translate }}
+    </p>
+  </div>
+
+  <!-- Mode Cards Grid -->
+  <div class="w-full max-w-4xl mx-auto pt-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-stretch">
+      
+      <!-- Card 1: Formulaire Classique -->
+      <div
+        (click)="onSelectForm()"
+        class="group relative rounded-2xl border border-[var(--glass-border)] glass p-6 transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 hover:scale-[1.01] hover:shadow-xl flex flex-col justify-between cursor-pointer"
+      >
+        <div>
+          <!-- Representative Pro Image -->
+          <div class="w-full h-48 sm:h-56 rounded-xl overflow-hidden mb-6 bg-slate-900/50 border border-[var(--glass-border)] flex items-center justify-center">
+            <img
+              src="assets/images/mode-choice-form.png"
+              alt="Formulaire classique"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          </div>
+
+          <!-- Tag & Title -->
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-xl font-bold text-text-primary group-hover:text-primary transition-colors">
+              {{ 'dashboard.createProject.modeChoice.form.title' | translate }}
+            </h2>
+            <span class="px-2.5 py-0.5 text-xs rounded-full bg-[var(--glass-bg-subtle)] text-text-tertiary border border-[var(--glass-border)] font-medium">
+              {{ 'dashboard.createProject.modeChoice.form.tag' | translate }}
+            </span>
+          </div>
+
+          <!-- Description -->
+          <p class="text-sm text-text-tertiary leading-relaxed mb-6">
+            {{ 'dashboard.createProject.modeChoice.form.description' | translate }}
+          </p>
+        </div>
+
+        <!-- Action Button -->
+        <button
+          type="button"
+          class="w-full py-3 px-4 rounded-xl border border-[var(--glass-border-medium)] bg-[var(--color-surface-2)] text-text-primary group-hover:bg-primary group-hover:text-white group-hover:border-primary text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200"
+        >
+          <span>{{ 'dashboard.createProject.modeChoice.form.button' | translate }}</span>
+          <i class="pi pi-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+        </button>
+      </div>
+
+      <!-- Card 2: Interface Chat Interactive (Recommandé) -->
+      <div
+        (click)="onSelectChat()"
+        class="group relative rounded-2xl border-2 border-primary/50 glass p-6 transition-all duration-300 hover:border-primary hover:bg-primary/10 hover:scale-[1.01] hover:shadow-2xl shadow-primary/10 flex flex-col justify-between cursor-pointer"
+      >
+        <!-- Recommended Badge floating above top border -->
+        <div class="absolute -top-3.5 right-6 z-20 inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-full bg-primary text-white border border-blue-300/40 shadow-xl">
+          <i class="pi pi-sparkles text-[11px]"></i>
+          <span>{{ 'dashboard.createProject.modeChoice.chat.badge' | translate }}</span>
+        </div>
+
+        <div>
+          <!-- Representative Pro Image -->
+          <div class="w-full h-48 sm:h-56 rounded-xl overflow-hidden mb-6 bg-slate-900/50 border border-primary/30 flex items-center justify-center">
+            <img
+              src="assets/images/mode-choice-chat.png"
+              alt="Interface Chat interactive"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          </div>
+
+          <!-- Tag & Title -->
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-xl font-bold text-text-primary group-hover:text-primary transition-colors">
+              {{ 'dashboard.createProject.modeChoice.chat.title' | translate }}
+            </h2>
+          </div>
+
+          <!-- Description -->
+          <p class="text-sm text-text-tertiary leading-relaxed mb-6">
+            {{ 'dashboard.createProject.modeChoice.chat.description' | translate }}
+          </p>
+        </div>
+
+        <!-- Action Button -->
+        <button
+          type="button"
+          class="w-full py-3 px-4 rounded-xl bg-primary text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 group-hover:bg-primary/90 transition-all duration-200"
+        >
+          <span>{{ 'dashboard.createProject.modeChoice.chat.button' | translate }}</span>
+          <i class="pi pi-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+        </button>
+      </div>
+
+    </div>
+  </div>
+</section>
