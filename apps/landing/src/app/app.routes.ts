@@ -13,11 +13,6 @@ export const routes: Routes = [
     data: { layout: 'public' },
   },
   {
-    path: 'deployment',
-    loadComponent: () => import('./pages/deployment/deployment').then((m) => m.DeploymentPage),
-    data: { layout: 'public' },
-  },
-  {
     path: 'african-market',
     loadComponent: () =>
       import('./pages/african-market-page/african-market-page').then((m) => m.AfricanMarketPage),
@@ -30,20 +25,8 @@ export const routes: Routes = [
     data: { layout: 'public' },
   },
   {
-    path: 'architecture',
-    loadComponent: () =>
-      import('./pages/architecture-page/architecture-page').then((m) => m.ArchitecturePage),
-    data: { layout: 'public' },
-  },
-  {
     path: 'pricing',
     loadComponent: () => import('./pages/pricing-page/pricing-page').then((m) => m.PricingPage),
-    data: { layout: 'public' },
-  },
-  {
-    path: 'solutions',
-    loadComponent: () =>
-      import('./pages/solutions-page/solutions-page').then((m) => m.SolutionsPage),
     data: { layout: 'public' },
   },
   {

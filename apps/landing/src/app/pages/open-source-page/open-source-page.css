@@ -1,1 +1,27 @@
 /* Open Source Page Styles */
+:host {
+  display: block;
+}
+
+.os-num {
+  color: color-mix(in oklch, var(--color-primary) 55%, transparent);
+  letter-spacing: -0.05em;
+  min-width: 2ch;
+}
+
+.os-link {
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+.os-link:hover {
+  border-color: var(--glass-border-medium);
+  transform: translateY(-2px);
+}
+.os-arrow {
+  transition: transform 0.2s ease;
+}
+.os-link:hover .os-arrow {
+  transform: translateX(3px);
+  color: var(--color-primary);
+}

@@ -1,5 +1,7 @@
-<!-- Main container with animated gradient background -->
-<div class="relative mt-24 sm:mt-0 min-h-screen overflow-hidden bg-grid">
+<!-- Main container with animated gradient background.
+     overflow-clip (not overflow-hidden): clipping without creating a scroll
+     container, so the journey section's sticky pinning keeps working. -->
+<div class="relative mt-24 sm:mt-0 min-h-screen overflow-clip bg-grid">
   <!-- Content container -->
   <div class="relative">
     <!-- Hero -->
