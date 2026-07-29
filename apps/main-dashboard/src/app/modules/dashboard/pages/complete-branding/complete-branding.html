@@ -123,7 +123,7 @@
               <div class="flex items-center space-x-4">
                 <div class="w-20 h-20 bg-white rounded-xl flex items-center justify-center p-2 overflow-hidden flex-shrink-0">
                   @if (logoIsInline()) {
-                    <div class="w-full h-full svg-logo" [innerHTML]="selectedLogo!.svg | safeHtml"></div>
+                    <img class="w-full h-full svg-logo object-contain" [src]="selectedLogo!.svg" alt="Logo"   />
                   } @else {
                     <img [src]="selectedLogo!.svg" class="w-full h-full object-contain" />
                   }

@@ -320,6 +320,252 @@ projectRoutes.get('/:projectId/generation', authenticate, projectController.getP
  */
 projectRoutes.post('/:projectId/generation', authenticate, projectController.saveProjectGeneration);
 
+// Incremental code storage + chat session (iCode/AppGen workspace persistence)
+
+/**
+ * @openapi
+ * /projects/{projectId}/code/manifest:
+ *   get:
+ *     tags:
+ *       - Project Generation
+ *     summary: Get the content hashes of the code stored for a project
+ *     description: Used by the client to compute which files actually changed before uploading.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: Manifest (empty when nothing is stored yet).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 files:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: string
+ *       '401':
+ *         description: Unauthorized.
+ */
+projectRoutes.get(
+  '/:projectId/code/manifest',
+  authenticate,
+  projectController.getProjectCodeManifest
+);
+
+/**
+ * @openapi
+ * /projects/{projectId}/code:
+ *   put:
+ *     tags:
+ *       - Project Generation
+ *     summary: Incrementally sync the generated code to object storage
+ *     description: Writes only added/modified files, removes deleted ones and updates the manifest.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [manifest]
+ *             properties:
+ *               upserts:
+ *                 type: object
+ *                 description: Map of file path to content, limited to changed files.
+ *               deletions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               manifest:
+ *                 type: object
+ *                 description: Content hashes of the complete resulting file set.
+ *     responses:
+ *       '200':
+ *         description: Sync applied.
+ *       '400':
+ *         description: Bad request.
+ *       '401':
+ *         description: Unauthorized.
+ */
+projectRoutes.put('/:projectId/code', authenticate, projectController.syncProjectCode);
+
+/**
+ * @openapi
+ * /projects/{projectId}/chat-session:
+ *   get:
+ *     tags:
+ *       - Project Generation
+ *     summary: Get the iCode chat session attached to a project
+ *     description: Lets the user reopen the same conversation from any machine.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: Chat session found.
+ *       '401':
+ *         description: Unauthorized.
+ *       '404':
+ *         description: No chat session yet.
+ */
+projectRoutes.get(
+  '/:projectId/chat-session',
+  authenticate,
+  projectController.getProjectChatSession
+);
+
+/**
+ * @openapi
+ * /projects/{projectId}/chat-session:
+ *   put:
+ *     tags:
+ *       - Project Generation
+ *     summary: Save the iCode chat session of a project
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [sessionId, messages]
+ *             properties:
+ *               sessionId:
+ *                 type: string
+ *               title:
+ *                 type: string
+ *               messages:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       '200':
+ *         description: Chat session saved.
+ *       '400':
+ *         description: Bad request.
+ *       '401':
+ *         description: Unauthorized.
+ */
+projectRoutes.put(
+  '/:projectId/chat-session',
+  authenticate,
+  projectController.saveProjectChatSession
+);
+
+// App Deployment Routes (quick deploys from iCode/AppGen)
+
+/**
+ * @openapi
+ * /projects/{projectId}/app-deployment:
+ *   get:
+ *     tags:
+ *       - Project Generation
+ *     summary: Get the last quick deployment (Netlify) of a project
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: Deployment found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 provider:
+ *                   type: string
+ *                 siteId:
+ *                   type: string
+ *                 siteName:
+ *                   type: string
+ *                 url:
+ *                   type: string
+ *                 adminUrl:
+ *                   type: string
+ *                 lastDeployedAt:
+ *                   type: string
+ *       '401':
+ *         description: Unauthorized.
+ *       '404':
+ *         description: No deployment found.
+ */
+projectRoutes.get('/:projectId/app-deployment', authenticate, projectController.getAppDeployment);
+
+/**
+ * @openapi
+ * /projects/{projectId}/app-deployment:
+ *   post:
+ *     tags:
+ *       - Project Generation
+ *     summary: Record the quick deployment (Netlify) of a project
+ *     description: Stores the Netlify site id so the next deploy updates the same site.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [siteId, url]
+ *             properties:
+ *               siteId:
+ *                 type: string
+ *               siteName:
+ *                 type: string
+ *               url:
+ *                 type: string
+ *               adminUrl:
+ *                 type: string
+ *               deployId:
+ *                 type: string
+ *     responses:
+ *       '200':
+ *         description: Deployment recorded.
+ *       '400':
+ *         description: Bad request.
+ *       '401':
+ *         description: Unauthorized.
+ */
+projectRoutes.post('/:projectId/app-deployment', authenticate, projectController.saveAppDeployment);
+
 // Save project ZIP file
 /**
  * @openapi

@@ -118,19 +118,19 @@
  *           nullable: true
  */
 export interface LogoVariationSet {
-  lightBackground?: string; // SVG optimized for light backgrounds
-  darkBackground?: string; // SVG optimized for dark backgrounds
-  monochrome?: string; // Monochrome version (black or white)
+  lightBackground?: string; // MinIO URL of SVG optimized for light backgrounds
+  darkBackground?: string; // MinIO URL of SVG optimized for dark backgrounds
+  monochrome?: string; // MinIO URL of monochrome SVG version
 }
 
 export interface LogoVariations {
-  withText?: LogoVariationSet; // Logo variations including text elements
-  iconOnly?: LogoVariationSet; // Icon-only variations without text elements
+  withText?: LogoVariationSet; // Logo variation URLs including text elements
+  iconOnly?: LogoVariationSet; // Icon-only variation URLs without text elements
 }
 
 /**
  * A set of hosted PNG asset URLs (one per background variant).
- * Distinct from {@link LogoVariationSet}, whose values are inline SVG markup.
+ * Distinct from {@link LogoVariationSet}, whose values are hosted SVG URLs.
  */
 export interface LogoAssetUrlSet {
   lightBackground?: string; // URL of the PNG rendered for light backgrounds
@@ -141,10 +141,9 @@ export interface LogoAssetUrlSet {
 /**
  * URLs of the rasterized (PNG) logo assets uploaded to object storage (MinIO).
  *
- * The vector source of truth (SVG) stays inline in `svg` / `iconSvg` /
- * `variations`; these PNG URLs are what we inject into generation contexts
- * (pitch deck, flyers, brand book) as `<img src="…">` — lighter than an inline
- * SVG data URI and renderable everywhere.
+ * The vector SVG source is also hosted in MinIO (see `svg` / `iconSvg` /
+ * `variations`). These PNG URLs are what we inject into generation contexts
+ * (pitch deck, flyers, brand book) as `<img src="…">`.
  */
 export interface LogoAssetUrls {
   primary?: string; // URL of the primary (full) logo PNG
@@ -164,17 +163,16 @@ export interface LogoPreferences {
 export interface LogoModel {
   id: string;
   name: string;
-  svg: string; // Main SVG logo (default full version)
-  iconSvg?: string; // Icon-only SVG content (without text elements)
+  svg: string; // MinIO URL of the main SVG logo (legacy: may be inline SVG — use resolveSvgContent())
+  iconSvg?: string; // MinIO URL of the icon-only SVG (legacy: may be inline SVG)
   concept: string; // Branding story or meaning behind the logo
   colors: string[]; // Array of HEX color codes used in the logo
   fonts: string[]; // Fonts used in the logo (if any)
   type?: LogoType; // Type of logo (icon, name, initial)
   customDescription?: string; // User-provided custom description
 
-  variations?: LogoVariations; // Enhanced variations with text/icon separation (inline SVG)
+  variations?: LogoVariations; // Variation SVG URLs (legacy: may be inline SVG)
 
-  // Hosted PNG asset URLs (object storage). SVG above stays the source of truth;
-  // these are used when the logo must be referenced by URL (generation contexts).
+  // Hosted PNG asset URLs (object storage) for generation contexts.
   assetUrls?: LogoAssetUrls;
 }
