@@ -205,3 +205,55 @@ export async function getProjectCodeFromFirebase(
     return null;
   }
 }
+
+// Quick deployment (Netlify) tracking — lets a redeploy update the same site
+export interface AppDeployment {
+  provider?: string;
+  siteId: string;
+  siteName?: string | null;
+  url: string;
+  adminUrl?: string | null;
+  deployId?: string | null;
+  firstDeployedAt?: string;
+  lastDeployedAt?: string;
+}
+
+export async function getAppDeployment(projectId: string): Promise<AppDeployment | null> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/app-deployment`, {
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      // 404 simply means the project has never been deployed yet.
+      return null;
+    }
+
+    return (await response.json()) as AppDeployment;
+  } catch (error) {
+    console.error('Error getting app deployment:', error);
+    return null;
+  }
+}
+
+export async function saveAppDeployment(
+  projectId: string,
+  deployment: AppDeployment
+): Promise<void> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/app-deployment`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(deployment),
+    });
+
+    if (!response.ok) {
+      console.error('Error saving app deployment:', response.statusText);
+    }
+  } catch (error) {
+    console.error('Error saving app deployment:', error);
+  }
+}

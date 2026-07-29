@@ -24,6 +24,27 @@ export interface LogoVariationsUpload {
 }
 
 /**
+ * URLs of all SVG files uploaded to object storage for a logo.
+ * Mirrors the inline SVG fields of LogoModel, but with hosted URLs instead of markup.
+ */
+export interface LogoSvgUrls {
+  svg: string;
+  iconSvg?: string;
+  variations?: {
+    withText?: {
+      lightBackground?: string;
+      darkBackground?: string;
+      monochrome?: string;
+    };
+    iconOnly?: {
+      lightBackground?: string;
+      darkBackground?: string;
+      monochrome?: string;
+    };
+  };
+}
+
+/**
  * Rendered size (px) of the PNG logo assets uploaded to the bucket.
  * 512 is enough for slides/flyers/brand-book <img> while staying lightweight.
  */
@@ -141,19 +162,131 @@ export class StorageService {
     }
   }
 
+  // ─── SVG file upload helpers ────────────────────────────────────────────────
+
+  /**
+   * Upload a single SVG string to MinIO and return its public URL.
+   * Convenience wrapper around {@link uploadFile} with SVG content-type.
+   */
+  async uploadSvgFile(
+    svgContent: string,
+    fileName: string,
+    folderPath: string
+  ): Promise<string> {
+    const result = await this.uploadFile(svgContent, fileName, folderPath, 'image/svg+xml');
+    return result.downloadURL;
+  }
+
+  /**
+   * Upload ALL SVG assets of a logo (primary, icon, and every variation) to the
+   * bucket in parallel and return their public URLs.
+   *
+   * Each non-empty SVG field is uploaded as a separate `.svg` file. The returned
+   * {@link LogoSvgUrls} object can be used to replace the inline SVG markup in
+   * the logo model.
+   *
+   * @param logo - Logo carrying inline SVG content (svg/iconSvg/variations)
+   * @param userId - User ID for folder structure
+   * @param projectId - Project ID for folder structure
+   * @returns URLs of the uploaded SVG files
+   */
+  async uploadAllLogoSvgs(
+    logo: Pick<LogoModel, 'svg' | 'iconSvg' | 'variations'>,
+    userId: string,
+    projectId: string
+  ): Promise<LogoSvgUrls> {
+    const folderPath = `users/${userId}/projects/${projectId}/logos`;
+
+    logger.info(`Uploading logo SVG assets`, { userId, projectId, folderPath });
+
+    const wt = logo.variations?.withText;
+    const io = logo.variations?.iconOnly;
+
+    // Helper: upload if content is inline SVG (not a URL, not empty)
+    const maybeUpload = async (
+      content: string | undefined,
+      name: string
+    ): Promise<string | undefined> => {
+      if (!content || !content.trim()) return undefined;
+      // Skip if already a URL (legacy data or already uploaded)
+      if (/^https?:\/\//i.test(content.trim())) return content.trim();
+      try {
+        return await this.uploadSvgFile(content, name, folderPath);
+      } catch (error: any) {
+        logger.warn(`Skipping SVG upload for ${name}: ${error.message}`);
+        return undefined;
+      }
+    };
+
+    const [
+      svgUrl,
+      iconUrl,
+      wtLight,
+      wtDark,
+      wtMono,
+      ioLight,
+      ioDark,
+      ioMono,
+    ] = await Promise.all([
+      this.uploadSvgFile(logo.svg, 'logo-primary.svg', folderPath),
+      maybeUpload(logo.iconSvg, 'logo-icon.svg'),
+      maybeUpload(wt?.lightBackground, 'logo-with-text-light.svg'),
+      maybeUpload(wt?.darkBackground, 'logo-with-text-dark.svg'),
+      maybeUpload(wt?.monochrome, 'logo-with-text-mono.svg'),
+      maybeUpload(io?.lightBackground, 'logo-icon-light.svg'),
+      maybeUpload(io?.darkBackground, 'logo-icon-dark.svg'),
+      maybeUpload(io?.monochrome, 'logo-icon-mono.svg'),
+    ]);
+
+    const result: LogoSvgUrls = { svg: svgUrl };
+    if (iconUrl) result.iconSvg = iconUrl;
+
+    if (wtLight || wtDark || wtMono) {
+      result.variations = {
+        ...result.variations,
+        withText: {
+          ...(wtLight ? { lightBackground: wtLight } : {}),
+          ...(wtDark ? { darkBackground: wtDark } : {}),
+          ...(wtMono ? { monochrome: wtMono } : {}),
+        },
+      };
+    }
+    if (ioLight || ioDark || ioMono) {
+      result.variations = {
+        ...result.variations,
+        iconOnly: {
+          ...(ioLight ? { lightBackground: ioLight } : {}),
+          ...(ioDark ? { darkBackground: ioDark } : {}),
+          ...(ioMono ? { monochrome: ioMono } : {}),
+        },
+      };
+    }
+
+    logger.info(`Logo SVG assets uploaded`, {
+      userId,
+      projectId,
+      uploaded: Object.keys(result),
+    });
+
+    return result;
+  }
+
+  // ─── PNG rasterization upload ──────────────────────────────────────────────
+
   /**
    * Upload the PNG assets of a logo (primary + icon + every variation) to the
    * bucket and return their public URLs.
    *
    * IMPORTANT — SVG vs PNG distinction:
-   *  - The SVG markup (logo.svg / logo.iconSvg / logo.variations.*) stays the
-   *    inline vector source of truth and is NOT touched here.
-   *  - This method rasterizes each of those SVGs to PNG and uploads only the
-   *    PNGs. The returned {@link LogoAssetUrls} is meant to be stored alongside
-   *    the SVG (as `logo.assetUrls`) and used wherever the logo must be passed
-   *    by URL (pitch deck, flyers, brand book).
+   *  - The SVG source is stored as hosted .svg files in the bucket (uploaded via
+   *    {@link uploadAllLogoSvgs}). The `svg`/`iconSvg`/`variations.*` fields
+   *    now contain MinIO URLs rather than inline markup.
+   *  - This method resolves those URLs to SVG content, rasterizes to PNG, and
+   *    uploads the PNGs. The returned {@link LogoAssetUrls} is stored alongside
+   *    the SVG URLs (as `logo.assetUrls`) and used wherever the logo must be
+   *    referenced as a raster image (pitch deck, flyers, brand book).
    *
-   * @param logo - Logo carrying the inline SVG source (svg/iconSvg/variations)
+   * @param logo - Logo carrying SVG source (inline markup OR hosted URLs)
    * @param userId - User ID for folder structure
    * @param projectId - Project ID for folder structure
    * @returns URLs of the uploaded PNG assets (fields omitted when unavailable)

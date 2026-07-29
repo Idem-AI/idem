@@ -320,6 +320,94 @@ projectRoutes.get('/:projectId/generation', authenticate, projectController.getP
  */
 projectRoutes.post('/:projectId/generation', authenticate, projectController.saveProjectGeneration);
 
+// App Deployment Routes (quick deploys from iCode/AppGen)
+
+/**
+ * @openapi
+ * /projects/{projectId}/app-deployment:
+ *   get:
+ *     tags:
+ *       - Project Generation
+ *     summary: Get the last quick deployment (Netlify) of a project
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: Deployment found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 provider:
+ *                   type: string
+ *                 siteId:
+ *                   type: string
+ *                 siteName:
+ *                   type: string
+ *                 url:
+ *                   type: string
+ *                 adminUrl:
+ *                   type: string
+ *                 lastDeployedAt:
+ *                   type: string
+ *       '401':
+ *         description: Unauthorized.
+ *       '404':
+ *         description: No deployment found.
+ */
+projectRoutes.get('/:projectId/app-deployment', authenticate, projectController.getAppDeployment);
+
+/**
+ * @openapi
+ * /projects/{projectId}/app-deployment:
+ *   post:
+ *     tags:
+ *       - Project Generation
+ *     summary: Record the quick deployment (Netlify) of a project
+ *     description: Stores the Netlify site id so the next deploy updates the same site.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [siteId, url]
+ *             properties:
+ *               siteId:
+ *                 type: string
+ *               siteName:
+ *                 type: string
+ *               url:
+ *                 type: string
+ *               adminUrl:
+ *                 type: string
+ *               deployId:
+ *                 type: string
+ *     responses:
+ *       '200':
+ *         description: Deployment recorded.
+ *       '400':
+ *         description: Bad request.
+ *       '401':
+ *         description: Unauthorized.
+ */
+projectRoutes.post('/:projectId/app-deployment', authenticate, projectController.saveAppDeployment);
+
 // Save project ZIP file
 /**
  * @openapi

@@ -4,11 +4,11 @@ import { LogoModel } from '../models/logo.model';
  * Helpers to reference a logo inside AI generation contexts by URL rather than
  * by inline SVG markup.
  *
- * The SVG stays the vector source of truth in `logo.svg` / `logo.iconSvg` /
- * `logo.variations`, but dumping that markup into a prompt is expensive (an SVG
- * easily runs thousands of tokens, ×N variations, ×N steps). These helpers emit
- * the hosted PNG URLs (`logo.assetUrls`) instead — and deliberately DROP any
- * value that is still inline SVG, so raw markup never leaks into a prompt.
+ * Since SVGs are now hosted on MinIO (as `.svg` URLs in `logo.svg` /
+ * `logo.iconSvg` / `logo.variations`), these helpers simply pick the best URL
+ * for prompt injection. For legacy projects with inline SVG, the helpers filter
+ * out raw markup (which would bloat prompts) and prefer the hosted PNG URLs
+ * from `logo.assetUrls` instead.
  */
 
 type LogoLike = Pick<LogoModel, 'svg' | 'iconSvg' | 'name' | 'concept' | 'colors' | 'fonts'> &

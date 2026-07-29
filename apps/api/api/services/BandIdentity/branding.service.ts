@@ -1496,6 +1496,18 @@ export class BrandingService extends GenericService {
     if (!hasContent) return;
 
     try {
+      // First, upload inline SVGs to MinIO if they haven't been externalized yet.
+      // uploadAllLogoSvgs skips values that are already URLs.
+      try {
+        const svgUrls = await this.storageService.uploadAllLogoSvgs(logo, userId, projectId);
+        logo.svg = svgUrls.svg;
+        if (svgUrls.iconSvg) logo.iconSvg = svgUrls.iconSvg;
+        if (svgUrls.variations) logo.variations = svgUrls.variations;
+        logger.info(`ensureLogoAssetUrls: externalized inline SVGs to MinIO`, { projectId });
+      } catch (svgUploadError) {
+        logger.warn(`ensureLogoAssetUrls: SVG externalization failed (continuing with inline)`, svgUploadError);
+      }
+
       const assetUrls = await this.storageService.uploadProjectLogoAssets(logo, userId, projectId);
       // Mutate in-memory so the current generation uses hosted URLs immediately.
       logo.assetUrls = assetUrls;
@@ -2206,7 +2218,26 @@ export class BrandingService extends GenericService {
       iconOnly: this.optimizeVariationSet(iconOnlySet),
     };
 
-    // Update project with optimized variations
+    // Upload ALL SVGs (logo primary + icon + variations) to MinIO.
+    // Replace inline SVG content with hosted URLs before persisting to DB.
+    let logoSvgUrl = selectedLogo.svg;
+    let iconSvgUrl = selectedLogo.iconSvg;
+    let variationUrls: typeof optimizedVariations | undefined = optimizedVariations;
+    try {
+      const svgUrls = await this.storageService.uploadAllLogoSvgs(
+        { svg: selectedLogo.svg, iconSvg: selectedLogo.iconSvg, variations: optimizedVariations },
+        userId,
+        projectId
+      );
+      logoSvgUrl = svgUrls.svg;
+      if (svgUrls.iconSvg) iconSvgUrl = svgUrls.iconSvg;
+      if (svgUrls.variations) variationUrls = svgUrls.variations;
+      logger.info(`Logo SVGs (primary + variations) uploaded to MinIO`, { projectId });
+    } catch (uploadError: any) {
+      logger.error(`Logo SVG upload failed after variation generation (keeping inline): ${uploadError.message}`);
+    }
+
+    // Update project with hosted URLs for logo SVGs
     const updatedProjectData = {
       ...project,
       analysisResultModel: {
@@ -2215,8 +2246,11 @@ export class BrandingService extends GenericService {
           ...project.analysisResultModel?.branding,
           logo: {
             ...selectedLogo,
-            variations: optimizedVariations,
+            svg: logoSvgUrl,
+            ...(iconSvgUrl ? { iconSvg: iconSvgUrl } : {}),
+            variations: variationUrls,
           },
+          generatedLogos: [], // Delete other generated logo concepts once one is selected
           updatedAt: new Date(),
         },
       },
@@ -2532,7 +2566,25 @@ export class BrandingService extends GenericService {
       iconOnly: this.optimizeVariationSet({ ...iconResults }),
     };
 
-    // Persistance sur le projet (même logique que le flux non streamé)
+    // Upload ALL SVGs to MinIO (logo primary + icon + variations)
+    let logoSvgUrl = selectedLogo.svg;
+    let iconSvgUrl = selectedLogo.iconSvg;
+    let variationUrls: typeof optimizedVariations | undefined = optimizedVariations;
+    try {
+      const svgUrls = await this.storageService.uploadAllLogoSvgs(
+        { svg: selectedLogo.svg, iconSvg: selectedLogo.iconSvg, variations: optimizedVariations },
+        userId,
+        projectId
+      );
+      logoSvgUrl = svgUrls.svg;
+      if (svgUrls.iconSvg) iconSvgUrl = svgUrls.iconSvg;
+      if (svgUrls.variations) variationUrls = svgUrls.variations;
+      logger.info(`Streamed variation SVGs uploaded to MinIO`, { projectId });
+    } catch (uploadError: any) {
+      logger.error(`Streamed variation SVG upload failed (keeping inline): ${uploadError.message}`);
+    }
+
+    // Persistance sur le projet avec les URLs MinIO
     const updatedProjectData = {
       ...project,
       analysisResultModel: {
@@ -2541,8 +2593,11 @@ export class BrandingService extends GenericService {
           ...project.analysisResultModel?.branding,
           logo: {
             ...selectedLogo,
-            variations: optimizedVariations,
+            svg: logoSvgUrl,
+            ...(iconSvgUrl ? { iconSvg: iconSvgUrl } : {}),
+            variations: variationUrls,
           },
+          generatedLogos: [], // Delete other generated logo concepts once one is selected
           updatedAt: new Date(),
         },
       },
@@ -2562,7 +2617,7 @@ export class BrandingService extends GenericService {
       );
     }
 
-    return optimizedVariations;
+    return variationUrls || optimizedVariations;
   }
 
   async getBrandingsByProjectId(
@@ -3222,6 +3277,21 @@ ${LOGO_EDIT_PROMPT}`;
       // Optimize the edited SVG
       const optimizedLogo = this.optimizeLogoSvgs(editedLogo);
 
+      // Upload the edited SVG (+ icon) to MinIO and replace inline content with URLs
+      try {
+        const svgUrls = await this.storageService.uploadAllLogoSvgs(
+          optimizedLogo,
+          userId,
+          projectId
+        );
+        optimizedLogo.svg = svgUrls.svg;
+        if (svgUrls.iconSvg) optimizedLogo.iconSvg = svgUrls.iconSvg;
+        if (svgUrls.variations) optimizedLogo.variations = svgUrls.variations;
+        logger.info(`Edited logo SVGs uploaded to MinIO for projectId: ${projectId}`);
+      } catch (uploadError: any) {
+        logger.error(`Failed to upload edited logo SVGs (keeping inline): ${uploadError.message}`);
+      }
+
       logger.info(
         `Successfully edited logo for projectId: ${projectId}, changes: ${editedLogoData.changesSummary}`
       );
@@ -3379,7 +3449,6 @@ ${LOGO_EDIT_PROMPT}`;
   ): Promise<{
     colors: ColorModel[];
     typography: TypographyModel[];
-    project: ProjectModel;
   }> {
     logger.info(
       `Generating colors and typography from imported logo for userId: ${userId}, logo colors: ${logoColors.join(', ')}`
@@ -3435,7 +3504,11 @@ ${LOGO_EDIT_PROMPT}`;
       logger.error(`Error caching project for userId: ${userId}`, error);
     }
 
-    const projectDescription = this.extractProjectDescription(project);
+    // Contexte projet lu depuis la DB (createdProject), PAS depuis le payload :
+    // le front n'envoie plus qu'un projet minimal (id + champs légers) pour éviter
+    // le 413, et le projet complet est de toute façon rechargé ici via findById.
+    // Ça garantit un prompt fiable même si le payload est réduit à l'id.
+    const projectDescription = this.extractProjectDescription(createdProject);
 
     // Determine primary, secondary colors and style hint from logo colors
     const primaryColor = logoColors.length > 0 ? logoColors[0] : '#6a11cb';
@@ -3498,16 +3571,36 @@ ${LOGO_EDIT_PROMPT}`;
       }
     }
 
-    // Une fois les déclinaisons générées, on les rasterise en PNG et on les
-    // envoie sur le bucket. Le SVG reste la source vectorielle inline ; ce sont
-    // ces URLs PNG (assetUrls) qui seront injectées dans les contextes de
-    // génération (pitch deck, flyers, brand book). Non bloquant : la génération
-    // des couleurs/typo doit réussir même si l'upload échoue.
+    // Upload ALL SVGs (primary + icon + variations) to MinIO and replace inline
+    // content with hosted URLs. The inline SVG markup is no longer stored in DB.
+    // Non-fatal: the logo is still functional with inline SVG if upload fails.
+    let logoSvgUrl = logoSvg; // fallback to inline/existing URL
+    let iconSvgUrl = existingLogo?.iconSvg;
+    let variationUrls = optimizedVariations;
+    try {
+      // Resolve logoSvg to inline SVG content for upload (it might already be a URL)
+      const inlineSvg = /^https?:\/\//i.test(logoSvg.trim()) ? logoSvg : logoSvg;
+      const svgUrls = await this.storageService.uploadAllLogoSvgs(
+        { svg: inlineSvg, iconSvg: existingLogo?.iconSvg, variations: optimizedVariations },
+        userId,
+        createdProject.id
+      );
+      logoSvgUrl = svgUrls.svg;
+      if (svgUrls.iconSvg) iconSvgUrl = svgUrls.iconSvg;
+      if (svgUrls.variations) variationUrls = svgUrls.variations;
+      logger.info(`Imported logo SVGs uploaded to MinIO`, { projectId: createdProject.id });
+    } catch (error) {
+      logger.error(`Logo SVG upload failed during branding generation (keeping inline):`, error);
+    }
+
+    // Rasterize SVGs to PNG and upload to bucket. PNGs are used in generation
+    // contexts (pitch deck, flyers, brand book) as <img> tags.
+    // resolveSvgContent() handles both MinIO URLs and inline SVG.
     let logoAssetUrls = existingLogo?.assetUrls;
     if (!logoAssetUrls) {
       try {
         logoAssetUrls = await this.storageService.uploadProjectLogoAssets(
-          { svg: logoSvg, iconSvg: existingLogo?.iconSvg, variations: optimizedVariations },
+          { svg: logoSvgUrl, iconSvg: iconSvgUrl, variations: variationUrls },
           userId,
           createdProject.id
         );
@@ -3523,17 +3616,20 @@ ${LOGO_EDIT_PROMPT}`;
     const importedLogo: LogoModel = existingLogo
       ? {
           ...existingLogo,
-          ...(optimizedVariations ? { variations: optimizedVariations } : {}),
+          svg: logoSvgUrl,
+          ...(iconSvgUrl ? { iconSvg: iconSvgUrl } : {}),
+          ...(variationUrls ? { variations: variationUrls } : {}),
           ...(logoAssetUrls ? { assetUrls: logoAssetUrls } : {}),
         }
       : {
           id: `imported-${Date.now()}`,
           name: 'Imported Logo',
-          svg: logoSvg,
+          svg: logoSvgUrl,
           concept: 'User-imported logo',
           colors: logoColors,
           fonts: [],
-          ...(optimizedVariations ? { variations: optimizedVariations } : {}),
+          ...(iconSvgUrl ? { iconSvg: iconSvgUrl } : {}),
+          ...(variationUrls ? { variations: variationUrls } : {}),
           ...(logoAssetUrls ? { assetUrls: logoAssetUrls } : {}),
         };
 
@@ -3570,10 +3666,13 @@ ${LOGO_EDIT_PROMPT}`;
       });
     }
 
+    // On ne renvoie QUE les couleurs et typographies. Le projet complet (avec le
+    // logo et ses variations SVG inline réattachées) est déjà persisté en DB
+    // ci-dessus ; le renvoyer alourdissait inutilement la réponse (sérialisation +
+    // transfert + parsing) et le front ne l'exploitait pas.
     return {
       colors,
       typography,
-      project: updatedProject || createdProject,
     };
   }
 

@@ -9,7 +9,7 @@ import { catchError, finalize, of, tap } from 'rxjs';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { BrandingValidationService } from '../../../services/branding-validation.service';
 import { IncompleteProjectBannerComponent } from '../../../components/incomplete-project-banner/incomplete-project-banner';
-import { ProjectService } from '../../../services/project.service';
+import { AppDeploymentModel, ProjectService } from '../../../services/project.service';
 import { ProjectModel } from '@idem/shared-models';
 
 import { environment } from '../../../../../../environments/environment';
@@ -41,6 +41,10 @@ export class ShowDevelopment implements OnInit {
   protected readonly router = inject(Router);
   protected readonly webgenUrl = environment.services.webgen.url;
 
+  // Last quick deployment (Netlify) published from iCode for this project
+  protected readonly deployment = signal<AppDeploymentModel | null>(null);
+  protected readonly copiedDeployUrl = signal<boolean>(false);
+
   // Computed signals to optimize template access
   protected readonly configs = computed(() => this.developmentConfigs());
   protected readonly hasConfigs = computed(() => this.developmentConfigs() !== null);
@@ -66,6 +70,7 @@ export class ShowDevelopment implements OnInit {
     if (storedProjectId) {
       this.projectId.set(storedProjectId);
       this.checkBrandingCompletion(storedProjectId);
+      this.loadDeployment(storedProjectId);
     } else {
       this.error.set('No project ID found. Please select a project first.');
     }
@@ -129,6 +134,35 @@ export class ShowDevelopment implements OnInit {
         }),
       )
       .subscribe();
+  }
+
+  /**
+   * Loads the live URL of the app already deployed from iCode, if any.
+   */
+  private loadDeployment(projectId: string): void {
+    this.projectService.getAppDeployment(projectId).subscribe((deployment) => {
+      this.deployment.set(deployment);
+    });
+  }
+
+  protected openDeployedApp(): void {
+    const url = this.deployment()?.url;
+    if (url) {
+      window.open(url, '_blank', 'noopener');
+    }
+  }
+
+  protected async copyDeployUrl(): Promise<void> {
+    const url = this.deployment()?.url;
+    if (!url) return;
+
+    try {
+      await navigator.clipboard.writeText(url);
+      this.copiedDeployUrl.set(true);
+      setTimeout(() => this.copiedDeployUrl.set(false), 2000);
+    } catch (error) {
+      console.error('Unable to copy the deployment URL:', error);
+    }
   }
 
   protected openApplication(): void {

@@ -512,6 +512,86 @@ class ProjectService {
     }
   }
 
+  // App Deployment Methods (quick deploys made from iCode/AppGen, e.g. Netlify)
+
+  /**
+   * Returns the last quick deployment recorded for a project (site id + public url),
+   * so a redeploy updates the existing site instead of creating a new one.
+   */
+  async getAppDeployment(userId: string, projectId: string): Promise<any | null> {
+    if (!userId || !projectId) {
+      logger.error('User ID and Project ID are required to get an app deployment.');
+      return null;
+    }
+
+    try {
+      // Bypass the repository cache: a redeploy rewrites this document and the
+      // cache is not invalidated on create, which would serve a stale url/date.
+      const deployment = await this.projectRepository.findById(
+        `${projectId}_deployment`,
+        `users/${userId}/appDeployments`,
+        { bypassCache: true }
+      );
+
+      if (!deployment) {
+        logger.info(`No app deployment found for project ${projectId} and user ${userId}`);
+        return null;
+      }
+
+      return deployment;
+    } catch (error: any) {
+      logger.error(
+        `Error fetching app deployment for project ${projectId} and user ${userId}: ${error.message}`,
+        { stack: error.stack, details: error }
+      );
+      throw error;
+    }
+  }
+
+  async saveAppDeployment(
+    userId: string,
+    projectId: string,
+    deploymentData: any
+  ): Promise<any> {
+    if (!userId || !projectId || !deploymentData) {
+      logger.error('User ID, Project ID, and deployment data are required.');
+      throw new Error('User ID, Project ID, and deployment data are required.');
+    }
+
+    try {
+      const existing = await this.getAppDeployment(userId, projectId).catch(() => null);
+
+      const deploymentRecord = {
+        projectId,
+        userId,
+        provider: 'netlify',
+        ...deploymentData,
+        // Keep the very first deployment date across redeploys.
+        firstDeployedAt: existing?.firstDeployedAt || new Date().toISOString(),
+        lastDeployedAt: new Date().toISOString(),
+      };
+
+      const saved = await this.projectRepository.create(
+        deploymentRecord,
+        `users/${userId}/appDeployments`,
+        `${projectId}_deployment`
+      );
+
+      logger.info(`App deployment saved for project ${projectId} and user ${userId}`, {
+        siteId: deploymentData.siteId,
+        url: deploymentData.url,
+      });
+
+      return saved;
+    } catch (error: any) {
+      logger.error(
+        `Error saving app deployment for project ${projectId} and user ${userId}: ${error.message}`,
+        { stack: error.stack, details: error }
+      );
+      throw error;
+    }
+  }
+
   async saveProjectZip(userId: string, projectId: string, zipFile: any): Promise<string> {
     if (!userId || !projectId || !zipFile) {
       logger.error('User ID, Project ID, and ZIP file are required.');

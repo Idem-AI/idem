@@ -14,6 +14,11 @@ import { DeployModal } from '../DeployModal/DeployModal';
 import useAppGenContextStore from '@/stores/appgenContextSlice';
 import { UserProfile } from './UserProfile';
 import type { UserModel } from '@/api/persistence/userModel';
+import {
+  loadDeployment,
+  persistDeployment,
+  type AppDeployment,
+} from '@/utils/netlifyDeployment';
 
 // Add a helper function to recursively get all files
 const getAllFiles = async (
@@ -80,6 +85,8 @@ export function HeaderActions() {
   const [deployUrl, setDeployUrl] = useState('');
   const [isDeploying, setIsDeploying] = useState(false);
   const [isSendingToGitHub, setIsSendingToGitHub] = useState(false);
+  const [deployment, setDeployment] = useState<AppDeployment | null>(null);
+  const [isRedeploy, setIsRedeploy] = useState(false);
 
   const handleDownload = async () => {
     try {
@@ -102,12 +109,28 @@ export function HeaderActions() {
     }
   };
 
-  const { updateDraftFiles } = useAppGenContextStore();
+  const { updateDraftFiles, updateDraftMetadata, draft } = useAppGenContextStore();
   const [currentUser, setCurrentUser] = useState<UserModel | null>(null);
+
+  // Project this generation is attached to (set when coming from the dashboard).
+  const projectId = new URLSearchParams(window.location.search).get('projectId');
+  const draftId = draft?.id ?? null;
 
   useEffect(() => {
     getCurrentUser().then((user) => setCurrentUser(user));
   }, []);
+
+  // Restore the Netlify site already used for this project/draft so the next
+  // deploy updates it instead of spawning a brand new site.
+  useEffect(() => {
+    let cancelled = false;
+    loadDeployment(projectId, draftId).then((existing) => {
+      if (!cancelled && existing) setDeployment(existing);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, draftId]);
 
   const handleDeployClick = () => {
     setShowDeployChoiceModal(true);
@@ -138,6 +161,11 @@ export function HeaderActions() {
           // Generate and download zip file
           const blob = await zip.generateAsync({ type: 'blob' });
           const formData = new FormData();
+          // Sent before the file so it is parsed even by streaming middlewares.
+          const existing = await loadDeployment(projectId, draftId);
+          if (existing?.siteId) {
+            formData.append('siteId', existing.siteId);
+          }
           formData.append('file', new File([blob], 'dist.zip', { type: 'application/zip' }));
 
           // Send request
@@ -149,9 +177,28 @@ export function HeaderActions() {
           console.log('Deploy API response:', data);
 
           if (data.success) {
+            const nextDeployment: AppDeployment = {
+              provider: 'netlify',
+              siteId: data.siteId,
+              siteName: data.siteName ?? null,
+              url: data.url,
+              adminUrl: data.adminUrl ?? null,
+              deployId: data.deployId ?? null,
+            };
+
+            setDeployment(nextDeployment);
+            setIsRedeploy(!data.isNewSite);
             setDeployUrl(data.url);
             setShowModal(true);
-            toast.success(t('header.deploySuccess'));
+            updateDraftMetadata({ deployUrl: data.url });
+
+            if (data.siteId) {
+              await persistDeployment(projectId, draftId, nextDeployment);
+            }
+
+            toast.success(
+              data.isNewSite ? t('header.deploySuccess') : t('header.redeploySuccess')
+            );
           } else {
             console.error('Deploy failed:', data);
             const errorMessage = data.message || t('header.error.deploy_failed');
@@ -266,7 +313,13 @@ export function HeaderActions() {
                 />
               </svg>
             )}
-            <span>{isDeploying ? t('header.deploying') : t('header.deploy')}</span>
+            <span>
+              {isDeploying
+                ? t('header.deploying')
+                : deployment
+                  ? t('header.redeploy')
+                  : t('header.deploy')}
+            </span>
           </button>
           <button
             onClick={handleSendToGitHub}
@@ -338,8 +391,12 @@ export function HeaderActions() {
                 d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t('header.deploySuccess')}</h3>
-            <p className="text-gray-600 dark:text-gray-300 mt-2">{t('header.deployToCloud')}</p>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+              {isRedeploy ? t('header.redeploySuccess') : t('header.deploySuccess')}
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300 mt-2">
+              {isRedeploy ? t('header.redeployToCloud') : t('header.deployToCloud')}
+            </p>
           </div>
 
           <div className="bg-gray-100 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-6">
