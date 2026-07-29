@@ -40,6 +40,7 @@ export interface PromptConfig {
   userId?: string;
   promptType?: string;
   skipQuotaCheck?: boolean;
+  fallbackModels?: string[];
   /**
    * User UI language ('en' | 'fr'). When set, a language directive is injected so
    * the model generates content in the requested language. Resolved from the
@@ -72,6 +73,7 @@ export interface PromptRequest {
   userId?: string;
   promptType?: string;
   skipQuotaCheck?: boolean;
+  fallbackModels?: string[];
   language?: string;
   cachedContent?: string;
 }
@@ -755,58 +757,78 @@ export class PromptService {
       logger.info(`Injected language directive (language=${effectiveLanguage}).`);
     }
 
-    try {
-      let result: string;
-      // Aiguillage piloté par le registre : `gemini` (SDK natif) vs
-      // `openai-compatible` (adaptateur générique GLM/OpenAI/DeepSeek/maison).
-      const kind = getProvider(provider).kind;
-      switch (kind) {
-        case 'gemini':
-          result = await this._runGeminiPrompt(
-            modelName,
-            modifiedMessages,
-            llmOptions,
-            file,
-            request.cachedContent
-          );
-          break;
-        case 'openai-compatible':
-          result = await this._runOpenAICompatiblePrompt(
-            provider,
-            modelName,
-            modifiedMessages,
-            llmOptions,
-            file
-          );
-          break;
-        default:
-          const unsupportedProviderError = new Error(`Unsupported provider kind: ${kind}`);
-          logger.error(
-            `Unsupported provider kind encountered in runPrompt: ${unsupportedProviderError.message}`,
-            { provider, kind, stack: unsupportedProviderError.stack }
-          );
-          throw unsupportedProviderError;
-      }
+    const modelsToTry = [modelName, ...(request.fallbackModels || [])];
+    const kind = getProvider(provider).kind;
 
-      // Increment quota after successful API call
-      if (userId && !skipQuotaCheck) {
-        try {
-          await userService.incrementUsage(userId, 1);
-          logger.info(`Incremented quota usage for user ${userId}`);
-        } catch (quotaError) {
-          logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
-          // Don't throw here as the API call was successful
+    let result: string | undefined;
+    let lastError: any;
+
+    for (let i = 0; i < modelsToTry.length; i++) {
+      const currentModel = modelsToTry[i];
+      try {
+        switch (kind) {
+          case 'gemini':
+            result = await this._runGeminiPrompt(
+              currentModel,
+              modifiedMessages,
+              llmOptions,
+              file,
+              request.cachedContent
+            );
+            break;
+          case 'openai-compatible':
+            result = await this._runOpenAICompatiblePrompt(
+              provider,
+              currentModel,
+              modifiedMessages,
+              llmOptions,
+              file
+            );
+            break;
+          default:
+            const unsupportedProviderError = new Error(`Unsupported provider kind: ${kind}`);
+            logger.error(
+              `Unsupported provider kind encountered in runPrompt: ${unsupportedProviderError.message}`,
+              { provider, kind, stack: unsupportedProviderError.stack }
+            );
+            throw unsupportedProviderError;
+        }
+        
+        lastError = undefined;
+        break; // Success, exit retry loop
+      } catch (error: any) {
+        lastError = error;
+        if (i < modelsToTry.length - 1) {
+          logger.warn(`Model ${currentModel} failed, falling back to ${modelsToTry[i + 1]}... Error: ${error.message}`);
+        } else {
+          logger.error(
+            `Error in runPrompt for provider ${provider}, model ${currentModel} (exhausted fallbacks): ${error.message}`,
+            { stack: error.stack, details: error }
+          );
         }
       }
-
-      return result;
-    } catch (error: any) {
-      logger.error(
-        `Error in runPrompt for provider ${provider}, model ${modelName}: ${error.message}`,
-        { stack: error.stack, details: error }
-      );
-      throw error;
     }
+
+    if (lastError) {
+      throw lastError;
+    }
+
+    if (result === undefined) {
+      throw new Error('Unexpected empty result after trying all models.');
+    }
+
+    // Increment quota after successful API call
+    if (userId && !skipQuotaCheck) {
+      try {
+        await userService.incrementUsage(userId, 1);
+        logger.info(`Incremented quota usage for user ${userId}`);
+      } catch (quotaError) {
+        logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
+        // Don't throw here as the API call was successful
+      }
+    }
+
+    return result;
   }
 
   /**

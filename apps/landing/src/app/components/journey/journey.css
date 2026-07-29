@@ -2,18 +2,23 @@
    Journey — pinned, scroll-driven story
    ---------------------------------------------------------------
    The host reserves the scroll length; .jn-stage is sticky, so the
-   story can only advance while it is pinned full-screen. Motion is
-   read from three custom properties written per slide by the rAF
+   story can only advance while it is pinned full-screen. All motion
+   is read from custom properties written per section by the rAF
    loop in journey.ts:
-     --e  presence, 0 (out) → 1 (settled)
-     --w  away-ness, 1 - e
-     --s  direction, +1 when the slide sits before the reading head
+     --e   scene presence, 0 (out) → 1 (settled). Long dissolve.
+     --w   1 - e, for the scene's travel
+     --t   copy presence. Shorter, earlier window, so the outgoing
+           text is gone before the incoming text arrives.
+     --tw  1 - t, for the copy's travel
+     --s   direction, +1 when the section sits before the reading head
    ═══════════════════════════════════════════════════════════════ */
 
 :host {
   /* Scroll distance a section occupies. One gesture covers it whole, so this
      is really about how the section reads on the scrollbar. */
   --jn-step: 52svh;
+  /* Intro + 8 stages + outro. Set from the component at runtime too, so this
+     stays a fallback rather than a second source of truth. */
   --jn-count: 10;
 
   /* Dark is the default: this band is a lit room with screens in it. */
