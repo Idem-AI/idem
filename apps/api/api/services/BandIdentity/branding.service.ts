@@ -1330,7 +1330,8 @@ export class BrandingService extends GenericService {
     project: ProjectModel,
     conceptIndex: number,
     preferences?: LogoPreferences,
-    skipQuotaCheck = false
+    skipQuotaCheck = false,
+    modelNameOverride?: string
   ): Promise<LogoModel> {
     logger.info(
       `Generating raw logo concept ${
@@ -1367,13 +1368,18 @@ export class BrandingService extends GenericService {
       },
     ];
 
+    const config = {
+      ...BrandingService.LOGO_LLM_CONFIG,
+      skipQuotaCheck,
+    };
+    if (modelNameOverride) {
+      config.modelName = modelNameOverride;
+    }
+
     const sectionResults = await this.processSteps(
       steps,
       project,
-      {
-        ...BrandingService.LOGO_LLM_CONFIG,
-        skipQuotaCheck,
-      }
+      config
     );
     const logoResult = sectionResults[0];
     const logoData = logoResult.parsedData;
@@ -1712,43 +1718,43 @@ export class BrandingService extends GenericService {
     const aiStartTime = Date.now();
 
     // Créer promesses pour génération AI pure en parallèle pour les concepts restants
-    const logoPromises = Array.from({ length: logosToGenerateCount }, (_, index) =>
-      this.generateRawLogoConcept(optimizedPrompt, project, index + existingLogosCount, preferences, isRetry)
-    );
-
-    // Attendre toutes les générations AI avec gestion d'erreurs robuste
-    const logoResults = await Promise.allSettled(logoPromises);
-
-    // Extraire les logos réussis
+    const modelsToTry = [
+      AI_CONFIG.branding.logo.modelName,
+      ...(AI_CONFIG.branding.logo.fallbackModels || [])
+    ];
+    let failedIndexes = Array.from({ length: logosToGenerateCount }, (_, i) => i);
     const rawLogos: LogoModel[] = [];
-    const failedIndexes: number[] = [];
 
-    logoResults.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        rawLogos.push(result.value);
-      } else {
-        logger.error(`Logo concept ${index + existingLogosCount + 1} generation failed:`, result.reason);
-        failedIndexes.push(index);
+    for (let modelIndex = 0; modelIndex < modelsToTry.length && failedIndexes.length > 0; modelIndex++) {
+      const currentModel = modelsToTry[modelIndex];
+      const isFallback = modelIndex > 0;
+
+      if (isFallback) {
+        logger.warn(
+          `Retrying ${failedIndexes.length} failed logo concept(s) using fallback model ${currentModel}: [${failedIndexes.join(', ')}]`
+        );
       }
-    });
 
-    // Retry des concepts échoués (une passe) pour atteindre 3 propositions de façon fiable
-    if (failedIndexes.length > 0) {
-      logger.warn(
-        `Retrying ${failedIndexes.length} failed logo concept(s): [${failedIndexes.join(', ')}]`
-      );
-      const retryResults = await Promise.allSettled(
-        failedIndexes.map((index) =>
-          this.generateRawLogoConcept(optimizedPrompt, project, index + existingLogosCount, preferences, isRetry)
-        )
-      );
+      const retryPromises = failedIndexes.map(async (index) => {
+        return {
+          index,
+          result: await this.generateRawLogoConcept(optimizedPrompt, project, index + existingLogosCount, preferences, isRetry, currentModel)
+        };
+      });
+
+      const retryResults = await Promise.allSettled(retryPromises);
+      const stillFailed: number[] = [];
+
       retryResults.forEach((result, i) => {
+        const originalIndex = failedIndexes[i];
         if (result.status === 'fulfilled') {
-          rawLogos.push(result.value);
+          rawLogos.push(result.value.result);
         } else {
-          logger.error(`Logo concept ${failedIndexes[i] + existingLogosCount + 1} retry failed:`, result.reason);
+          logger.error(`Logo concept ${originalIndex + existingLogosCount + 1} generation failed with model ${currentModel}:`, result.reason);
+          stillFailed.push(originalIndex);
         }
       });
+      failedIndexes = stillFailed;
     }
 
     const aiGenerationTime = Date.now() - aiStartTime;
@@ -2004,68 +2010,83 @@ export class BrandingService extends GenericService {
         });
     };
 
+    const modelsToTry = [
+      AI_CONFIG.branding.logo.modelName,
+      ...(AI_CONFIG.branding.logo.fallbackModels || [])
+    ];
+
     const processConcept = async (offset: number): Promise<LogoModel | null> => {
       const index = existingLogos.length + offset;
-      try {
-        if (cancelState.cancelled) {
-          await streamCallback({ type: 'concept_cancelled', conceptIndex: index });
-          return null;
-        }
-        await streamCallback({ type: 'concept_started', conceptIndex: index });
-
-        let logo = await this.generateRawLogoConcept(
-          optimizedPrompt,
-          project,
-          index,
-          preferences,
-          isRetry
-        );
-        logo = this.optimizeLogoSvgs(logo);
-        await streamCallback({ type: 'concept_generated', conceptIndex: index, logo });
-
-        // Annulé pendant la génération : on garde le logo tel quel, sans passe qualité
-        if (!cancelState.cancelled) {
-          await streamCallback({ type: 'critique_started', conceptIndex: index });
-          let critique: LogoCritiqueResult | null = null;
-          try {
-            critique = await this.critiqueLogoConcept(logo, project);
-          } catch (error) {
-            logger.warn(`Logo critique failed for concept ${index + 1}, keeping logo as-is`);
+      
+      for (let modelIndex = 0; modelIndex < modelsToTry.length; modelIndex++) {
+        const currentModel = modelsToTry[modelIndex];
+        try {
+          if (cancelState.cancelled) {
+            if (modelIndex === 0) await streamCallback({ type: 'concept_cancelled', conceptIndex: index });
+            return null;
           }
-          if (critique) {
-            await streamCallback({ type: 'critique_result', conceptIndex: index, critique });
+          if (modelIndex === 0) await streamCallback({ type: 'concept_started', conceptIndex: index });
 
-            if (critique.verdict === 'fail' && !cancelState.cancelled) {
-              await streamCallback({ type: 'revision_started', conceptIndex: index, critique });
-              try {
-                let revised = await this.reviseLogoConcept(logo, critique, project);
-                revised = this.optimizeLogoSvgs(revised);
-                logo = revised;
-                await streamCallback({ type: 'concept_updated', conceptIndex: index, logo });
-              } catch (error) {
-                logger.warn(`Logo revision failed for concept ${index + 1}, keeping original`);
+          let logo = await this.generateRawLogoConcept(
+            optimizedPrompt,
+            project,
+            index,
+            preferences,
+            isRetry,
+            currentModel
+          );
+          logo = this.optimizeLogoSvgs(logo);
+          await streamCallback({ type: 'concept_generated', conceptIndex: index, logo });
+
+          // Annulé pendant la génération : on garde le logo tel quel, sans passe qualité
+          if (!cancelState.cancelled) {
+            await streamCallback({ type: 'critique_started', conceptIndex: index });
+            let critique: LogoCritiqueResult | null = null;
+            try {
+              critique = await this.critiqueLogoConcept(logo, project);
+            } catch (error) {
+              logger.warn(`Logo critique failed for concept ${index + 1}, keeping logo as-is`);
+            }
+            if (critique) {
+              await streamCallback({ type: 'critique_result', conceptIndex: index, critique });
+
+              if (critique.verdict === 'fail' && !cancelState.cancelled) {
+                await streamCallback({ type: 'revision_started', conceptIndex: index, critique });
+                try {
+                  let revised = await this.reviseLogoConcept(logo, critique, project);
+                  revised = this.optimizeLogoSvgs(revised);
+                  logo = revised;
+                  await streamCallback({ type: 'concept_updated', conceptIndex: index, logo });
+                } catch (error) {
+                  logger.warn(`Logo revision failed for concept ${index + 1}, keeping original`);
+                }
               }
             }
           }
-        }
 
-        finalLogos.push(logo);
-        persistLogos();
-        await streamCallback({ type: 'concept_finalized', conceptIndex: index, logo });
-        return logo;
-      } catch (error: any) {
-        logger.error(`Streamed logo concept ${index + 1} failed:`, error);
-        try {
-          await streamCallback({
-            type: 'concept_error',
-            conceptIndex: index,
-            message: error.message,
-          });
-        } catch {
-          // le client a peut-être fermé la connexion
+          finalLogos.push(logo);
+          persistLogos();
+          await streamCallback({ type: 'concept_finalized', conceptIndex: index, logo });
+          return logo;
+        } catch (error: any) {
+          logger.error(`Streamed logo concept ${index + 1} failed with model ${currentModel}:`, error);
+          if (modelIndex === modelsToTry.length - 1) {
+            try {
+              await streamCallback({
+                type: 'concept_error',
+                conceptIndex: index,
+                message: error.message,
+              });
+            } catch {
+              // le client a peut-être fermé la connexion
+            }
+            return null;
+          } else {
+            logger.warn(`Streamed logo concept ${index + 1} falling back to ${modelsToTry[modelIndex + 1]}...`);
+          }
         }
-        return null;
       }
+      return null;
     };
 
     try {

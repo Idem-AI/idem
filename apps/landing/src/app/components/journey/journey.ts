@@ -1,18 +1,22 @@
 import {
+  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  inject,
-  signal,
-  AfterViewInit,
+  NgZone,
   OnDestroy,
   PLATFORM_ID,
-  NgZone,
+  inject,
+  signal,
+  viewChild,
+  viewChildren,
 } from '@angular/core';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
 interface Stage {
+  /** Stable, non-localized path fragment shown in the mock browser bar. */
+  readonly path: string;
   readonly step: string;
   readonly title: string;
   readonly caption: string;
@@ -23,70 +27,102 @@ interface Stage {
   readonly imageAlt: string;
 }
 
+/* Two dissolve windows, both measured in fractions of one scroll step.
+   Imagery gets the long one: two screenshots blending reads as depth.
+   Copy gets the short one, offset earlier, so the outgoing text is gone
+   before the incoming text arrives. Text over text is never legible. */
+const SCENE_IN = 0.3;
+const SCENE_OUT = 0.7;
+const TEXT_IN = 0.2;
+const TEXT_OUT = 0.42;
+/** Residual smoothing on top of the eased step, in case scroll input is raw. */
+const EASE_HALFLIFE_MS = 120;
+/** Auto-advance delay for the screenshot swiper. */
+const SWIPER_INTERVAL_MS = 5200;
+
+/* Step animation. Owned here rather than delegated to the browser's smooth
+   scroll: its duration is unspecified and it can be cancelled out from under
+   us, which is what let a single flick land two sections away. */
+const STEP_BASE_MS = 400;
+const STEP_PER_SECTION_MS = 70;
+const STEP_MAX_MS = 900;
+/** Rest after a step. Guarantees the section that was reached is seen at rest
+ *  before anything can move again, so nothing ever looks skipped over. */
+const STEP_SETTLE_MS = 150;
+
+/* One gesture, one section. Quiet gap that separates two gestures. It has to
+   clear the gaps inside macOS trackpad inertia, which keeps firing, with
+   pauses, long after the fingers lift. */
+const GESTURE_GAP_MS = 260;
+/** Wheel distance that commits the first step of a fresh gesture. */
+const WHEEL_START_PX = 12;
+/** Distance needed to keep stepping without ever lifting off. */
+const WHEEL_CHAIN_PX = 240;
+/** Swipe distance that commits a step. */
+const TOUCH_STEP_PX = 42;
+
+/** Clamped smoothstep: no overshoot, decelerating at both ends. */
+function smoothstep(value: number): number {
+  const t = value <= 0 ? 0 : value >= 1 ? 1 : value;
+  return t * t * (3 - 2 * t);
+}
+
+/** Eased both ways: a step starts from rest and arrives at rest. */
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+/**
+ * Pinned, scroll-driven story of one entrepreneur going from a sentence to a
+ * live company.
+ *
+ * Scroll position stays the single source of truth. The stage is
+ * `position: sticky`, so sections can only advance while it is pinned
+ * full-screen, and one gesture is quantized to exactly one section by scrolling
+ * the page to that section's resting offset. At either end the gesture is
+ * handed straight back to the page, so arriving and leaving are ordinary
+ * scrolls with nothing to lock, release, or re-align.
+ *
+ * A single rAF loop reads that offset, eases it, and writes a handful of custom
+ * properties per visible section. Nothing else animates.
+ */
 @Component({
   selector: 'app-journey',
-  imports: [CommonModule, RouterLink],
+  imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './journey.html',
   styleUrl: './journey.css',
+  host: {
+    '[class.jn-live]': 'live()',
+  },
 })
 export class JourneyComponent implements AfterViewInit, OnDestroy {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly zone = inject(NgZone);
-  private readonly hostEl = inject(ElementRef<HTMLElement>);
+  private readonly hostEl = inject<ElementRef<HTMLElement>>(ElementRef);
 
-  /** Currently visible section index (0 = intro, 1..N = stages, N+1 = outro). */
+  private readonly stageRef = viewChild.required<ElementRef<HTMLElement>>('stage');
+  private readonly progressRef = viewChild.required<ElementRef<HTMLElement>>('progress');
+  /** Live query, so a re-rendered view never leaves the engine writing to
+   *  detached nodes. Each element carries its own data-index. */
+  private readonly slideRefs = viewChildren<ElementRef<HTMLElement>>('slide');
+
+  /** Nearest settled slide: drives the rail, the swiper target and aria state. */
   protected readonly activeIndex = signal(0);
-  /** Direction of last transition: 'down' or 'up'. */
-  protected readonly direction = signal<'down' | 'up'>('down');
+  /** True once the scroll engine owns the layout (browser only). */
+  protected readonly live = signal(false);
+  /** Direction of the last screenshot change, for a direction-aware swipe. */
+  protected readonly swipeDir = signal<1 | -1>(1);
 
-  /** Track active image index for each stage. */
-  protected readonly activeImageIndices = signal<number[]>([0, 0, 0, 0, 0, 0, 0, 0]);
+  protected readonly imageIndices = signal<readonly number[]>([]);
 
-  protected get totalSections(): number {
-    return this.stages.length + 2;
-  }
-
-  /* ── Internal state ──────────────────────────────────────── */
-  private observer?: IntersectionObserver;
-  private isLocked = false;
-  private isAligning = false;
-  private alignTimeoutId: any = null;
-  private releaseCooldown = false;
-  private lastAdvanceTime = 0;
-  private readonly ADVANCE_COOLDOWN_MS = 650;
-  private readonly BOUNDARY_DWELL_MS = 850;
-  private readonly BOUNDARY_RELEASE_THRESHOLD = 120;
-
-  /* Swiper auto-play timer */
-  private swiperTimerId: any = null;
-
-  /* Accumulated wheel delta */
-  private wheelAccumulator = 0;
-  private readonly WHEEL_THRESHOLD = 60;
-
-  /* Touch */
-  private touchStartY = 0;
-  private touchHandled = false;
-
-  /* Bound listeners */
-  private boundWheel = (e: WheelEvent) => this.onWheel(e);
-  private boundTouchStart = (e: TouchEvent) => this.onTouchStart(e);
-  private boundTouchMove = (e: TouchEvent) => this.onTouchMove(e);
-  private boundTouchEnd = () => this.onTouchEnd();
-  private boundKeyDown = (e: KeyboardEvent) => this.onKeyDown(e);
-
-  /* Single-gesture lock to prevent momentum double-skipping */
-  private isAdvancingLocked = false;
-  private wheelIdleTimerId: any = null;
-
-  /* Image touch swipe tracking */
-  private imgTouchStartX = 0;
-
+  protected readonly navStart = $localize`:@@journey.nav.start:The idea`;
+  protected readonly navDone = $localize`:@@journey.nav.done:Live`;
   private readonly seePricing = $localize`:@@journey.pricingCta:See pricing`;
 
   protected readonly stages: readonly Stage[] = [
     {
+      path: 'brand',
       step: $localize`:@@what-is-idem.step.brand.label:Brand`,
       title: $localize`:@@services.brand.name:Brand identity`,
       caption: $localize`:@@journey.brand.caption:Her logo, brand guidelines and business cards, ready in minutes.`,
@@ -103,6 +139,7 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
       imageAlt: $localize`:@@services.brand.alt:IDEM brand studio: generated logo concepts and OKLCH color palette`,
     },
     {
+      path: 'strategy',
       step: $localize`:@@what-is-idem.step.strategy.label:Strategy`,
       title: $localize`:@@journey.strategy.title:Business plan & pitch deck`,
       caption: $localize`:@@journey.strategy.caption:A structured business plan and an investor pitch deck, ready to present.`,
@@ -116,6 +153,7 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
       imageAlt: $localize`:@@services.strategy.alt:IDEM business plan dashboard with financial projections and OHADA compliance`,
     },
     {
+      path: 'finance',
       step: $localize`:@@journey.step.finance:Finances`,
       title: $localize`:@@journey.finance.title:Financial projections`,
       caption: $localize`:@@journey.finance.caption:3-year forecasts, then plan vs actuals tracked month by month.`,
@@ -129,18 +167,18 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
       imageAlt: $localize`:@@journey.finance.alt:IDEM financial projections and 3-year revenue forecast dashboard`,
     },
     {
+      path: 'legal',
       step: $localize`:@@journey.step.legal:Legal`,
       title: $localize`:@@journey.legal.title:OHADA legal kit`,
       caption: $localize`:@@journey.legal.caption:Articles, shareholder agreement and T&Cs, compliant with OHADA law.`,
       price: $localize`:@@services.legal.price:Compliance Pack from 2,499 F`,
       ctaLabel: this.seePricing,
       link: '/pricing',
-      images: [
-        'assets/images/overview/statust-of-enterprise.webp',
-      ],
+      images: ['assets/images/overview/statust-of-enterprise.webp'],
       imageAlt: $localize`:@@journey.legal.alt:OHADA legal document kit and articles of association generator`,
     },
     {
+      path: 'media',
       step: $localize`:@@journey.step.media:Communication`,
       title: 'IDEM Media',
       caption: $localize`:@@journey.media.caption:Communication strategy, editorial calendar and one-click publishing of flyers and videos to her networks.`,
@@ -154,30 +192,29 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
       imageAlt: $localize`:@@services.media.alt:IDEM Media social editorial calendar and content publisher`,
     },
     {
+      path: 'icode',
       step: $localize`:@@what-is-idem.step.product.label:Product`,
       title: 'iCode',
       caption: $localize`:@@journey.code.caption:Her online shop, generated from a sentence and editable live.`,
       price: $localize`:@@services.code.price:Free to generate · Project Pass 999 F`,
       ctaLabel: $localize`:@@services.code.cta:Discover iCode`,
       link: '/idev',
-      images: [
-        'assets/images/overview/generated-website-icode.webp',
-      ],
+      images: ['assets/images/overview/generated-website-icode.webp'],
       imageAlt: $localize`:@@services.code.alt:iCode editor with a live web-app preview generated by AI`,
     },
     {
+      path: 'ideploy',
       step: $localize`:@@what-is-idem.step.deploy.label:Deploy`,
       title: 'iDeploy',
       caption: $localize`:@@journey.deploy.caption:Her site goes live on cafe.idem.africa, free domain and SSL.`,
       price: $localize`:@@services.deploy.price:5 deployments free`,
       ctaLabel: $localize`:@@services.deploy.cta:Deploy with iDeploy`,
       link: '/ideploy',
-      images: [
-        'assets/images/overview/hosted-website.webp',
-      ],
+      images: ['assets/images/overview/hosted-website.webp'],
       imageAlt: $localize`:@@services.deploy.alt:iDeploy console: domain management, one-click deploy status and server metrics`,
     },
     {
+      path: 'conseil',
       step: $localize`:@@what-is-idem.step.support.label:Support`,
       title: 'IDEM Conseil',
       caption: $localize`:@@journey.conseil.caption:A certified advisor helps her land her first financing.`,
@@ -192,334 +229,471 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
     },
   ];
 
-  /* ────────────────────────────────────────────────────────── */
-  /*  Lifecycle                                                 */
-  /* ────────────────────────────────────────────────────────── */
+  /** Intro + stages + outro. */
+  protected readonly sectionCount = this.stages.length + 2;
+
+  /** Zero-padded position of a stage in the sequence. */
+  protected stepNumber(index: number): string {
+    return String(index + 1).padStart(2, '0');
+  }
+
+  /* ── Scroll engine state ─────────────────────────────────────── */
+  private rafId = 0;
+  private frameStamp = 0;
+  private lastScrollY = -1;
+  private targetPos = 0;
+  private renderPos = 0;
+  private settled = false;
+  private observer?: IntersectionObserver;
+  private reduceMotion = false;
+  private motionQuery?: MediaQueryList;
+
+  /* ── Step animation ──────────────────────────────────────────── */
+  /** Section the step in flight is travelling to, null when at rest. */
+  private navTarget: number | null = null;
+  private stepFrom = 0;
+  private stepStamp = 0;
+  private stepDuration = 0;
+  private stepEndStamp = 0;
+
+  /* ── Gesture state ───────────────────────────────────────────── */
+  private wasPinned = false;
+  private wheelAccum = 0;
+  private lastWheelStamp = 0;
+  /** Set for the whole gesture that scrolled the section into place. */
+  private gestureSpent = false;
+  private swipeStartY = 0;
+  private swipeStepped = false;
+
+  /* ── Swiper state ────────────────────────────────────────────── */
+  private swiperTimerId: ReturnType<typeof setInterval> | null = null;
+  private swiperPaused = false;
+  private touchStartX = 0;
+  private touchStartY = 0;
+
+  private readonly onMotionChange = (e: MediaQueryListEvent) => {
+    this.reduceMotion = e.matches;
+    if (this.reduceMotion) this.stopSwiper();
+    else this.startSwiper();
+  };
+
+  constructor() {
+    this.imageIndices.set(this.stages.map(() => 0));
+  }
+
+  /* ────────────────────────────────────────────────────────────── */
+  /*  Lifecycle                                                     */
+  /* ────────────────────────────────────────────────────────────── */
 
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
 
+    // Browser only: the server DOM has no setProperty for custom properties,
+    // and a host style binding would throw there and break prerendering.
+    // The stylesheet carries the same value as its default.
+    this.hostEl.nativeElement.style.setProperty('--jn-count', String(this.sectionCount));
+
+    this.motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    this.reduceMotion = this.motionQuery.matches;
+    this.motionQuery.addEventListener('change', this.onMotionChange);
+
+    // Hand layout over to the pinned engine, then sync before the next paint.
+    this.live.set(true);
+
     this.zone.runOutsideAngular(() => {
+      this.renderPos = this.targetPos = this.readPosition();
+      this.paint(this.renderPos);
+
       this.observer = new IntersectionObserver(
         ([entry]) => {
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.45) {
-            if (!this.releaseCooldown && !this.isLocked) {
-              this.lock();
-            }
-          }
-          if (!entry.isIntersecting || entry.intersectionRatio < 0.15) {
-            this.releaseCooldown = false;
-            if (!this.isLocked) {
-              const rect = this.hostEl.nativeElement.getBoundingClientRect();
-              if (rect.top > 0) {
-                this.zone.run(() => this.activeIndex.set(0));
-              } else if (rect.bottom < window.innerHeight) {
-                this.zone.run(() => this.activeIndex.set(this.totalSections - 1));
-              }
-            }
-          }
+          if (entry.isIntersecting) this.start();
+          else this.stop();
         },
-        { threshold: [0, 0.15, 0.45, 1] }
+        { rootMargin: '15% 0px 15% 0px' }
       );
-
       this.observer.observe(this.hostEl.nativeElement);
     });
 
-    this.startSwiperAutoPlay();
+    this.startSwiper();
   }
 
   ngOnDestroy(): void {
     this.observer?.disconnect();
-    this.stopSwiperAutoPlay();
-    if (this.wheelIdleTimerId) clearTimeout(this.wheelIdleTimerId);
-    this.unlock();
+    this.motionQuery?.removeEventListener('change', this.onMotionChange);
+    this.stop();
+    this.stopSwiper();
   }
 
-  /* ────────────────────────────────────────────────────────── */
-  /*  Swiper logic & Image touch gestures                       */
-  /* ────────────────────────────────────────────────────────── */
+  /* ────────────────────────────────────────────────────────────── */
+  /*  Scroll engine                                                 */
+  /* ────────────────────────────────────────────────────────────── */
 
-  protected getActiveImage(stageIndex: number): string {
-    const images = this.stages[stageIndex].images;
-    const imgIdx = this.activeImageIndices()[stageIndex] || 0;
-    return images[imgIdx % images.length];
+  private start(): void {
+    if (this.rafId) return;
+    this.frameStamp = 0;
+    this.lastScrollY = -1;
+    this.settled = false;
+    this.rafId = requestAnimationFrame(this.tick);
+
+    window.addEventListener('wheel', this.onWheel, { passive: false });
+    window.addEventListener('touchstart', this.onTouchStart, { passive: true });
+    window.addEventListener('touchmove', this.onTouchMove, { passive: false });
+    window.addEventListener('keydown', this.onKeyDown);
   }
 
-  protected getActiveImageIndex(stageIndex: number): number {
-    return this.activeImageIndices()[stageIndex] || 0;
+  private stop(): void {
+    window.removeEventListener('wheel', this.onWheel);
+    window.removeEventListener('touchstart', this.onTouchStart);
+    window.removeEventListener('touchmove', this.onTouchMove);
+    window.removeEventListener('keydown', this.onKeyDown);
+    this.cancelStep();
+    this.wasPinned = false;
+    this.gestureSpent = false;
+
+    if (!this.rafId) return;
+    cancelAnimationFrame(this.rafId);
+    this.rafId = 0;
   }
 
-  protected setStageImage(stageIndex: number, imageIndex: number, event?: Event): void {
-    if (event) event.stopPropagation();
-    const images = this.stages[stageIndex].images;
-    const validIndex = (imageIndex + images.length) % images.length;
-    this.activeImageIndices.update((indices) => {
-      const copy = [...indices];
-      copy[stageIndex] = validIndex;
+  private readonly tick = (now: number): void => {
+    this.rafId = requestAnimationFrame(this.tick);
+
+    // A step in flight owns the scroll offset for its duration.
+    if (this.navTarget !== null) this.driveStep(now);
+
+    const scrollY = window.scrollY;
+    const moved = scrollY !== this.lastScrollY;
+    this.lastScrollY = scrollY;
+
+    // Nothing moved and the eased position has caught up: no DOM work at all.
+    if (!moved && this.settled) {
+      this.frameStamp = now;
+      return;
+    }
+
+    const dt = this.frameStamp ? Math.min(80, now - this.frameStamp) : 16.7;
+    this.frameStamp = now;
+
+    this.targetPos = this.readPosition();
+
+    const delta = this.targetPos - this.renderPos;
+    if (this.reduceMotion || Math.abs(delta) < 0.0008) {
+      this.renderPos = this.targetPos;
+      this.settled = true;
+    } else {
+      // Exponential approach, framerate independent.
+      this.renderPos += delta * (1 - Math.pow(2, -dt / EASE_HALFLIFE_MS));
+      this.settled = false;
+    }
+
+    this.paint(this.renderPos);
+  };
+
+  /* ────────────────────────────────────────────────────────────── */
+  /*  Gestures: one gesture moves exactly one section                */
+  /*  Only while the stage is actually pinned full-screen, measured  */
+  /*  rather than guessed, so approaching or leaving the section is  */
+  /*  always an ordinary page scroll.                                */
+  /* ────────────────────────────────────────────────────────────── */
+
+  private isPinned(): boolean {
+    const rect = this.hostEl.nativeElement.getBoundingClientRect();
+    const stageHeight = this.stageRef().nativeElement.offsetHeight;
+    return rect.top <= 1 && rect.bottom >= stageHeight - 1;
+  }
+
+  /**
+   * Section a step in this direction would land on, or null when the page
+   * should keep the gesture: not pinned yet, or already at the end the gesture
+   * points towards. Returning null is what makes leaving the section an
+   * ordinary scroll with nothing to unlock.
+   */
+  private nextIndex(forward: boolean): number | null {
+    if (!this.isPinned()) {
+      this.wasPinned = false;
+      return null;
+    }
+    const from = this.navTarget ?? Math.round(this.readPosition());
+    const next = from + (forward ? 1 : -1);
+    return next < 0 || next > this.sectionCount - 1 ? null : next;
+  }
+
+  /** A step is playing, or the section it reached is still settling. */
+  private stepBusy(now: number): boolean {
+    return this.navTarget !== null || now - this.stepEndStamp < STEP_SETTLE_MS;
+  }
+
+  /** Starts a step. The rAF loop drives it from here. */
+  private moveTo(index: number): void {
+    const from = this.readPosition();
+
+    if (this.reduceMotion) {
+      this.scrollToPosition(index);
+      return;
+    }
+
+    this.navTarget = index;
+    this.stepFrom = from;
+    this.stepStamp = 0;
+    this.stepDuration = Math.min(
+      STEP_MAX_MS,
+      STEP_BASE_MS + STEP_PER_SECTION_MS * Math.abs(index - from)
+    );
+  }
+
+  /** Advances the step, recomputed from live geometry so it lands exactly. */
+  private driveStep(now: number): void {
+    const target = this.navTarget;
+    if (target === null) return;
+    if (!this.stepStamp) this.stepStamp = now;
+
+    const t = Math.min(1, (now - this.stepStamp) / this.stepDuration);
+    if (!this.scrollToPosition(this.stepFrom + (target - this.stepFrom) * easeInOutCubic(t))) {
+      this.navTarget = null;
+      return;
+    }
+    if (t >= 1) {
+      this.navTarget = null;
+      this.stepEndStamp = now;
+    }
+  }
+
+  private cancelStep(): void {
+    this.navTarget = null;
+    this.wheelAccum = 0;
+  }
+
+  private readonly onWheel = (event: WheelEvent): void => {
+    if (event.ctrlKey) return; // pinch zoom
+
+    const forward = event.deltaY > 0;
+    const next = this.nextIndex(forward);
+    if (next === null) {
+      this.wheelAccum = 0;
+      return;
+    }
+
+    event.preventDefault();
+
+    const now = event.timeStamp;
+    // A gesture is one flick: trackpad inertia fires in bursts with gaps for
+    // a long time after the fingers lift, and all of it is the same flick.
+    const fresh = now - this.lastWheelStamp > GESTURE_GAP_MS;
+    this.lastWheelStamp = now;
+
+    if (fresh) this.gestureSpent = false;
+
+    // The flick that scrolled the section into place is spent on that arrival,
+    // all of it, however much inertia is left in it.
+    if (!this.wasPinned) {
+      this.wasPinned = true;
+      if (!fresh) this.gestureSpent = true;
+    }
+
+    // Mid-step, or the section just reached is still settling: swallow. This is
+    // what keeps one flick worth one section, since inertia easily outlives the
+    // step it already paid for.
+    if (this.gestureSpent || this.stepBusy(now)) {
+      this.wheelAccum = 0;
+      return;
+    }
+
+    // Direction changes and pauses both start the count over.
+    if (fresh || this.wheelAccum * event.deltaY < 0) this.wheelAccum = 0;
+    this.wheelAccum += event.deltaY;
+
+    // A fresh flick commits at once. Scrolling that never lifted off has to
+    // cover real distance, which decaying inertia does not.
+    if (Math.abs(this.wheelAccum) < (fresh ? WHEEL_START_PX : WHEEL_CHAIN_PX)) return;
+
+    this.wheelAccum = 0;
+    this.moveTo(next);
+  };
+
+  private readonly onTouchStart = (event: TouchEvent): void => {
+    this.swipeStartY = event.touches[0].clientY;
+    // A swipe that starts before the section is pinned, or while a step is
+    // still playing, belongs to the page rather than to the story.
+    this.swipeStepped = !this.isPinned() || this.stepBusy(event.timeStamp);
+  };
+
+  private readonly onTouchMove = (event: TouchEvent): void => {
+    const delta = this.swipeStartY - event.touches[0].clientY;
+    const next = this.nextIndex(delta > 0);
+    if (next === null) return;
+
+    event.preventDefault();
+    if (this.swipeStepped || Math.abs(delta) < TOUCH_STEP_PX) return;
+    this.swipeStepped = true;
+    this.moveTo(next);
+  };
+
+  private readonly onKeyDown = (event: KeyboardEvent): void => {
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+
+    const forward =
+      event.key === 'ArrowDown' || event.key === 'PageDown' || event.key === ' ';
+    const back = event.key === 'ArrowUp' || event.key === 'PageUp';
+    if (!forward && !back) return;
+
+    // Never swallow keys meant for a focused control.
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('a, button, input, select, textarea, [contenteditable]')) return;
+
+    const next = this.nextIndex(forward);
+    if (next === null) return;
+
+    event.preventDefault();
+    // Held keys repeat fast: one step at a time, not one per repeat.
+    if (!this.stepBusy(event.timeStamp)) this.moveTo(next);
+  };
+
+  /** Scroll offset inside the pinned range, mapped to a slide position. */
+  private readPosition(): number {
+    const rect = this.hostEl.nativeElement.getBoundingClientRect();
+    const span = rect.height - this.stageRef().nativeElement.offsetHeight;
+    if (span <= 0) return 0;
+    const progress = Math.min(1, Math.max(0, -rect.top / span));
+    return progress * (this.sectionCount - 1);
+  }
+
+  /** Writes the per-slide motion variables. Transforms and opacity only. */
+  private paint(pos: number): void {
+    const slides = this.slideRefs();
+
+    for (const ref of slides) {
+      const el = ref.nativeElement;
+      const index = Number(el.dataset['index']);
+      const signed = pos - index;
+      const distance = Math.abs(signed);
+      const wasNear = el.classList.contains('is-near');
+
+      if (distance >= 1) {
+        if (wasNear) {
+          el.classList.remove('is-near', 'is-current');
+          el.style.setProperty('--e', '0');
+          el.style.setProperty('--w', '1');
+          el.style.setProperty('--t', '0');
+          el.style.setProperty('--tw', '1');
+        }
+        continue;
+      }
+
+      const scene = smoothstep((SCENE_OUT - distance) / (SCENE_OUT - SCENE_IN));
+      const text = smoothstep((TEXT_OUT - distance) / (TEXT_OUT - TEXT_IN));
+
+      if (!wasNear) el.classList.add('is-near');
+      el.classList.toggle('is-current', distance < 0.5);
+      el.style.setProperty('--e', scene.toFixed(3));
+      el.style.setProperty('--w', (1 - scene).toFixed(3));
+      el.style.setProperty('--t', text.toFixed(3));
+      el.style.setProperty('--tw', (1 - text).toFixed(3));
+      el.style.setProperty('--s', signed >= 0 ? '1' : '-1');
+    }
+
+    const ratio = this.sectionCount > 1 ? pos / (this.sectionCount - 1) : 0;
+    this.progressRef().nativeElement.style.transform = `scaleX(${ratio.toFixed(4)})`;
+
+    const active = Math.round(pos);
+    if (active !== this.activeIndex()) {
+      this.zone.run(() => this.activeIndex.set(active));
+    }
+  }
+
+  /** Rail navigation: scrolls the page to the resting point of one section. */
+  protected goTo(index: number): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    this.moveTo(index);
+  }
+
+  /**
+   * Puts a section position at rest under the viewport. Always `auto`: the
+   * global `scroll-behavior: smooth` would otherwise animate every frame of an
+   * animation that is already eased.
+   */
+  private scrollToPosition(pos: number): boolean {
+    const rect = this.hostEl.nativeElement.getBoundingClientRect();
+    const span = rect.height - this.stageRef().nativeElement.offsetHeight;
+    if (span <= 0) return false;
+    const ratio = pos / (this.sectionCount - 1);
+    window.scrollTo({ top: window.scrollY + rect.top + span * ratio, behavior: 'auto' });
+    return true;
+  }
+
+  /* ────────────────────────────────────────────────────────────── */
+  /*  Screenshot swiper                                             */
+  /* ────────────────────────────────────────────────────────────── */
+
+  protected imageIndex(stageIndex: number): number {
+    return this.imageIndices()[stageIndex] ?? 0;
+  }
+
+  protected showImage(stageIndex: number, imageIndex: number, event?: Event): void {
+    event?.stopPropagation();
+    const total = this.stages[stageIndex].images.length;
+    const next = ((imageIndex % total) + total) % total;
+    const current = this.imageIndex(stageIndex);
+    if (next === current) return;
+
+    // Shortest visual direction, so wrapping around still reads correctly.
+    const forward = (next - current + total) % total <= total / 2;
+    this.swipeDir.set(forward ? 1 : -1);
+    this.imageIndices.update((list) => {
+      const copy = [...list];
+      copy[stageIndex] = next;
       return copy;
     });
-    this.restartSwiperAutoPlay();
+    this.startSwiper();
   }
 
-  protected nextStageImage(stageIndex: number, event?: Event): void {
-    if (event) event.stopPropagation();
-    const current = this.getActiveImageIndex(stageIndex);
-    this.setStageImage(stageIndex, current + 1);
+  protected nextImage(stageIndex: number, event?: Event): void {
+    this.showImage(stageIndex, this.imageIndex(stageIndex) + 1, event);
   }
 
-  protected prevStageImage(stageIndex: number, event?: Event): void {
-    if (event) event.stopPropagation();
-    const current = this.getActiveImageIndex(stageIndex);
-    this.setStageImage(stageIndex, current - 1);
+  protected prevImage(stageIndex: number, event?: Event): void {
+    this.showImage(stageIndex, this.imageIndex(stageIndex) - 1, event);
   }
 
-  protected onImgTouchStart(e: TouchEvent): void {
-    this.imgTouchStartX = e.touches[0].clientX;
+  protected onShotTouchStart(event: TouchEvent): void {
+    this.touchStartX = event.touches[0].clientX;
+    this.touchStartY = event.touches[0].clientY;
   }
 
-  protected onImgTouchEnd(stageIndex: number, e: TouchEvent): void {
-    const deltaX = this.imgTouchStartX - e.changedTouches[0].clientX;
-    if (Math.abs(deltaX) > 40) {
-      if (deltaX > 0) {
-        this.nextStageImage(stageIndex);
-      } else {
-        this.prevStageImage(stageIndex);
-      }
-    }
+  protected onShotTouchEnd(stageIndex: number, event: TouchEvent): void {
+    const touch = event.changedTouches[0];
+    const dx = this.touchStartX - touch.clientX;
+    const dy = this.touchStartY - touch.clientY;
+    // Horizontal intent only: vertical drags belong to the page scroll.
+    if (Math.abs(dx) < 44 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    if (dx > 0) this.nextImage(stageIndex);
+    else this.prevImage(stageIndex);
   }
 
-  private startSwiperAutoPlay(): void {
-    if (!isPlatformBrowser(this.platformId)) return;
-    this.stopSwiperAutoPlay();
+  protected pauseSwiper(): void {
+    this.swiperPaused = true;
+  }
+
+  protected resumeSwiper(): void {
+    this.swiperPaused = false;
+  }
+
+  private startSwiper(): void {
+    if (!isPlatformBrowser(this.platformId) || this.reduceMotion) return;
+    this.stopSwiper();
     this.zone.runOutsideAngular(() => {
       this.swiperTimerId = setInterval(() => {
-        const currentSection = this.activeIndex();
-        // Section indices 1..8 correspond to stage 0..7
-        if (currentSection >= 1 && currentSection <= this.stages.length) {
-          const stageIdx = currentSection - 1;
-          const stage = this.stages[stageIdx];
-          if (stage && stage.images.length > 1) {
-            this.zone.run(() => {
-              const currentImgIdx = this.getActiveImageIndex(stageIdx);
-              this.setStageImage(stageIdx, currentImgIdx + 1);
-            });
-          }
-        }
-      }, 6500);
+        if (this.swiperPaused || document.hidden) return;
+        const stageIndex = this.activeIndex() - 1;
+        const stage = this.stages[stageIndex];
+        if (!stage || stage.images.length < 2) return;
+        this.zone.run(() => this.nextImage(stageIndex));
+      }, SWIPER_INTERVAL_MS);
     });
   }
 
-  private stopSwiperAutoPlay(): void {
-    if (this.swiperTimerId) {
-      clearInterval(this.swiperTimerId);
-      this.swiperTimerId = null;
-    }
-  }
-
-  private restartSwiperAutoPlay(): void {
-    this.startSwiperAutoPlay();
-  }
-
-  /* ────────────────────────────────────────────────────────── */
-  /*  Lock / Unlock                                             */
-  /* ────────────────────────────────────────────────────────── */
-
-  private lock(): void {
-    if (this.isLocked) return;
-    this.isLocked = true;
-    this.isAligning = true;
-    this.isAdvancingLocked = false;
-    this.wheelAccumulator = 0;
-
-    this.hostEl.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    window.addEventListener('wheel', this.boundWheel, { passive: false });
-    window.addEventListener('touchstart', this.boundTouchStart, { passive: true });
-    window.addEventListener('touchmove', this.boundTouchMove, { passive: false });
-    window.addEventListener('touchend', this.boundTouchEnd, { passive: true });
-    window.addEventListener('keydown', this.boundKeyDown);
-
-    if (this.alignTimeoutId) clearTimeout(this.alignTimeoutId);
-    this.alignTimeoutId = setTimeout(() => {
-      this.isAligning = false;
-      this.lastAdvanceTime = Date.now();
-    }, 450);
-  }
-
-  private unlock(scrollDirection?: 'up' | 'down'): void {
-    if (!this.isLocked) return;
-    this.isLocked = false;
-    this.isAligning = false;
-    this.isAdvancingLocked = false;
-    if (this.alignTimeoutId) clearTimeout(this.alignTimeoutId);
-    if (this.wheelIdleTimerId) clearTimeout(this.wheelIdleTimerId);
-    this.releaseCooldown = true;
-    this.wheelAccumulator = 0;
-
-    window.removeEventListener('wheel', this.boundWheel);
-    window.removeEventListener('touchstart', this.boundTouchStart);
-    window.removeEventListener('touchmove', this.boundTouchMove);
-    window.removeEventListener('touchend', this.boundTouchEnd);
-    window.removeEventListener('keydown', this.boundKeyDown);
-
-    if (scrollDirection) {
-      this.snapToAdjacentSection(scrollDirection);
-    }
-  }
-
-  private snapToAdjacentSection(direction: 'up' | 'down'): void {
-    const host = this.hostEl.nativeElement;
-    const wrapper = host.closest('section') || host.parentElement;
-    if (!wrapper) return;
-
-    const target = direction === 'down'
-      ? wrapper.nextElementSibling as HTMLElement | null
-      : wrapper.previousElementSibling as HTMLElement | null;
-
-    if (target) {
-      setTimeout(() => {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 50);
-    }
-  }
-
-  /* ────────────────────────────────────────────────────────── */
-  /*  Event handlers — Strict 1-gesture-1-slide enforcement     */
-  /* ────────────────────────────────────────────────────────── */
-
-  private onWheel(e: WheelEvent): void {
-    if (!this.isLocked) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    // Reset wheel idle timer on every wheel event
-    if (this.wheelIdleTimerId) clearTimeout(this.wheelIdleTimerId);
-    this.wheelIdleTimerId = setTimeout(() => {
-      // Finger lifted / inertia stopped → unlock gesture for next scroll
-      this.isAdvancingLocked = false;
-      this.wheelAccumulator = 0;
-    }, 180);
-
-    if (this.isAligning) {
-      this.wheelAccumulator = 0;
-      return;
-    }
-
-    const idx = this.activeIndex();
-    const last = this.totalSections - 1;
-    const down = e.deltaY > 0;
-    const now = Date.now();
-
-    if ((down && idx === last) || (!down && idx === 0)) {
-      if (now - this.lastAdvanceTime < this.BOUNDARY_DWELL_MS) {
-        this.wheelAccumulator = 0;
-        return;
-      }
-
-      this.wheelAccumulator += e.deltaY;
-      if (Math.abs(this.wheelAccumulator) >= this.BOUNDARY_RELEASE_THRESHOLD) {
-        this.unlock(down ? 'down' : 'up');
-      }
-      return;
-    }
-
-    this.wheelAccumulator += e.deltaY;
-
-    if (Math.abs(this.wheelAccumulator) < this.WHEEL_THRESHOLD) return;
-
-    if (now - this.lastAdvanceTime < this.ADVANCE_COOLDOWN_MS) {
-      this.wheelAccumulator = 0;
-      return;
-    }
-
-    const dir = this.wheelAccumulator > 0 ? 1 : -1;
-    this.wheelAccumulator = 0;
-    this.lastAdvanceTime = now;
-    this.advance(dir);
-  }
-
-  private onTouchStart(e: TouchEvent): void {
-    this.touchStartY = e.touches[0].clientY;
-    this.touchHandled = false;
-  }
-
-  private onTouchMove(e: TouchEvent): void {
-    if (!this.isLocked || this.touchHandled) return;
-
-    const deltaY = this.touchStartY - e.touches[0].clientY;
-    if (Math.abs(deltaY) < 50) return;
-
-    const idx = this.activeIndex();
-    const last = this.totalSections - 1;
-    const down = deltaY > 0;
-    const now = Date.now();
-
-    if ((down && idx === last) || (!down && idx === 0)) {
-      if (now - this.lastAdvanceTime < this.BOUNDARY_DWELL_MS) {
-        return;
-      }
-      e.preventDefault();
-      this.touchHandled = true;
-      this.unlock(down ? 'down' : 'up');
-      return;
-    }
-
-    e.preventDefault();
-    if (this.isAligning) return;
-    this.touchHandled = true;
-    this.advance(down ? 1 : -1);
-  }
-
-  private onTouchEnd(): void {
-    this.touchHandled = false;
-  }
-
-  private onKeyDown(e: KeyboardEvent): void {
-    if (!this.isLocked) return;
-    const idx = this.activeIndex();
-    const last = this.totalSections - 1;
-    const now = Date.now();
-
-    if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
-      e.preventDefault();
-      if (idx === last) {
-        if (now - this.lastAdvanceTime >= this.BOUNDARY_DWELL_MS) {
-          this.unlock('down');
-        }
-        return;
-      }
-      this.advance(1);
-    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-      e.preventDefault();
-      if (idx === 0) {
-        if (now - this.lastAdvanceTime >= this.BOUNDARY_DWELL_MS) {
-          this.unlock('up');
-        }
-        return;
-      }
-      this.advance(-1);
-    }
-  }
-
-  private advance(delta: number): void {
-    const last = this.totalSections - 1;
-    const next = Math.max(0, Math.min(last, this.activeIndex() + delta));
-    if (next !== this.activeIndex()) {
-      this.zone.run(() => {
-        this.direction.set(delta > 0 ? 'down' : 'up');
-        this.activeIndex.set(next);
-      });
-      this.lastAdvanceTime = Date.now();
-    }
-  }
-
-  /* ────────────────────────────────────────────────────────── */
-  /*  Progress                                                  */
-  /* ────────────────────────────────────────────────────────── */
-
-  protected get progressPercent(): number {
-    const max = this.totalSections - 1;
-    return max > 0 ? (this.activeIndex() / max) * 100 : 0;
+  private stopSwiper(): void {
+    if (this.swiperTimerId === null) return;
+    clearInterval(this.swiperTimerId);
+    this.swiperTimerId = null;
   }
 }
