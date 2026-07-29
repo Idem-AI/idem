@@ -2231,7 +2231,7 @@ export class BrandingService extends GenericService {
       );
       logoSvgUrl = svgUrls.svg;
       if (svgUrls.iconSvg) iconSvgUrl = svgUrls.iconSvg;
-      if (svgUrls.variations) variationUrls = svgUrls.variations;
+      if (svgUrls.variations) variationUrls = svgUrls.variations as typeof optimizedVariations;
       logger.info(`Logo SVGs (primary + variations) uploaded to MinIO`, { projectId });
     } catch (uploadError: any) {
       logger.error(`Logo SVG upload failed after variation generation (keeping inline): ${uploadError.message}`);
@@ -2578,7 +2578,7 @@ export class BrandingService extends GenericService {
       );
       logoSvgUrl = svgUrls.svg;
       if (svgUrls.iconSvg) iconSvgUrl = svgUrls.iconSvg;
-      if (svgUrls.variations) variationUrls = svgUrls.variations;
+      if (svgUrls.variations) variationUrls = svgUrls.variations as typeof optimizedVariations;
       logger.info(`Streamed variation SVGs uploaded to MinIO`, { projectId });
     } catch (uploadError: any) {
       logger.error(`Streamed variation SVG upload failed (keeping inline): ${uploadError.message}`);
