@@ -1,1 +1,16 @@
 /* African Market Page Styles */
+:host {
+  display: block;
+}
+
+.am-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.7rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: color-mix(in oklch, var(--color-primary) 12%, transparent);
+  border: 1px solid color-mix(in oklch, var(--color-primary) 22%, transparent);
+}
