@@ -1,578 +1,743 @@
 /* ═══════════════════════════════════════════════════════════════
-   Journey — Immersive full-screen with scroll-lock & animations
+   Journey — pinned, scroll-driven story
+   ---------------------------------------------------------------
+   The host reserves the scroll length; .jn-stage is sticky, so the
+   story can only advance while it is pinned full-screen. Motion is
+   read from three custom properties written per slide by the rAF
+   loop in journey.ts:
+     --e  presence, 0 (out) → 1 (settled)
+     --w  away-ness, 1 - e
+     --s  direction, +1 when the slide sits before the reading head
    ═══════════════════════════════════════════════════════════════ */
 
 :host {
+  /* Scroll distance a section occupies. One gesture covers it whole, so this
+     is really about how the section reads on the scrollbar. */
+  --jn-step: 52svh;
+  --jn-count: 10;
+
+  /* Dark is the default: this band is a lit room with screens in it. */
+  --jn-base: oklch(0.155 0.022 265);
+  --jn-surface: oklch(0.195 0.022 265);
+  --jn-surface-high: oklch(0.225 0.024 265);
+  --jn-ink: oklch(0.98 0.004 265);
+  --jn-ink-soft: oklch(0.87 0.008 265);
+  --jn-ink-mute: oklch(0.745 0.012 265);
+  --jn-line: oklch(1 0 0 / 0.1);
+  --jn-line-high: oklch(1 0 0 / 0.22);
+  --jn-mark: oklch(0.8 0.12 195);
+  --jn-done: oklch(0.79 0.15 155);
+  --jn-shade: oklch(0 0 0 / 0.9);
+  --jn-veil-1: oklch(0.13 0.02 265 / 0.94);
+  --jn-veil-2: oklch(0.13 0.02 265 / 0.76);
+  --jn-veil-3: oklch(0.13 0.02 265 / 0.48);
+  --jn-veil-floor: oklch(0.12 0.02 265 / 0.85);
+  --jn-ambient-filter: blur(9px) saturate(1.3) brightness(0.62);
+  --jn-ambient-opacity: 0.8;
+
   display: block;
   position: relative;
-  height: 100vh;
-  height: 100dvh;
+  height: 100svh;
+  background: var(--jn-base);
+  color: var(--jn-ink);
+}
+
+/* Light: a daylit gallery. The ambient screenshot is bleached to a haze
+   instead of a glow, and the accent moves to brand blue, which is the only
+   one of the two that carries text contrast on a near-white ground. */
+:host-context(html.light) {
+  /* Lighter than the page around it, so the chapter still reads as one panel. */
+  --jn-base: oklch(0.99 0.003 265);
+  --jn-surface: oklch(1 0 0);
+  --jn-surface-high: oklch(0.955 0.004 265);
+  --jn-ink: oklch(0.22 0.025 265);
+  --jn-ink-soft: oklch(0.38 0.018 265);
+  --jn-ink-mute: oklch(0.46 0.016 265);
+  --jn-line: oklch(0.22 0.02 265 / 0.14);
+  --jn-line-high: oklch(0.22 0.02 265 / 0.32);
+  --jn-mark: oklch(0.45 0.18 264);
+  --jn-done: oklch(0.48 0.14 155);
+  --jn-shade: oklch(0.55 0.03 265 / 0.35);
+  --jn-veil-1: oklch(0.99 0.003 265 / 0.92);
+  --jn-veil-2: oklch(0.99 0.003 265 / 0.78);
+  --jn-veil-3: oklch(0.99 0.003 265 / 0.62);
+  --jn-veil-floor: oklch(0.985 0.004 265 / 0.85);
+  --jn-ambient-filter: blur(14px) saturate(0.4) brightness(2.7) contrast(0.45);
+  --jn-ambient-opacity: 0.26;
+}
+
+@media (min-width: 768px) {
+  :host {
+    --jn-step: 58svh;
+  }
+}
+
+/* Only the browser engine may claim the long scroll track. */
+:host(.jn-live) {
+  height: calc(100svh + (var(--jn-count) - 1) * var(--jn-step));
+}
+
+.jn-stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
   overflow: hidden;
+  isolation: isolate;
 }
 
-.jn-viewport {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
+/* ── Slides ─────────────────────────────────────────────────── */
 
-/* ── Slides: absolutely stacked ────────────────────────────── */
 .jn-slide {
+  --e: 0; /* scene presence: backdrop + product */
+  --w: 1;
+  --t: 0; /* copy presence: shorter, earlier window */
+  --tw: 1;
+  --s: 1;
+
   position: absolute;
   inset: 0;
-  z-index: 0;
+  opacity: var(--e);
+  visibility: hidden;
   pointer-events: none;
+  transform: translate3d(0, calc(var(--s) * var(--w) * -6svh), 0)
+    scale(calc(1 - 0.03 * var(--w)));
 }
-.jn-slide.jn-active {
-  z-index: 1;
+
+.jn-slide.is-near {
+  visibility: visible;
+  will-change: transform, opacity;
+}
+
+.jn-slide.is-current {
   pointer-events: auto;
 }
 
-/* ── Background layer (cross-fade) ─────────────────────────── */
-.jn-bg-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  opacity: 0;
-  transition: opacity 0.7s ease;
-}
-.jn-active .jn-bg-layer {
-  opacity: 1;
-}
-.jn-bg-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  filter: blur(28px) brightness(0.3) saturate(1.3);
-  transform: scale(1.15);
-}
-.jn-bg-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(3, 7, 18, 0.55) 0%,
-    rgba(3, 7, 18, 0.4) 40%,
-    rgba(3, 7, 18, 0.7) 100%
-  );
-}
-.jn-bg-overlay-success {
-  background: linear-gradient(
-    180deg,
-    rgba(3, 7, 18, 0.45) 0%,
-    rgba(16, 185, 129, 0.1) 50%,
-    rgba(3, 7, 18, 0.65) 100%
-  );
+/* Server-rendered and no-script: the opening section reads as a normal hero. */
+:host(:not(.jn-live)) .jn-slide:first-of-type {
+  --e: 1;
+  --w: 0;
+  --t: 1;
+  --tw: 0;
+  visibility: visible;
+  pointer-events: auto;
 }
 
-/* ── Content layer ─────────────────────────────────────────── */
-.jn-content {
+/* ── Ambient backdrop ───────────────────────────────────────── */
+
+.jn-bg {
+  position: absolute;
+  inset: -6%;
+  overflow: hidden;
+}
+
+/* Blur a quarter-scale raster, then upscale it: same softness, a
+   sixteenth of the pixels to filter. */
+.jn-bg-img {
+  width: 25%;
+  height: 25%;
+  object-fit: cover;
+  object-position: center;
+  transform-origin: 0 0;
+  transform: scale(calc(4 + 0.2 * var(--w)));
+  filter: var(--jn-ambient-filter);
+  opacity: var(--jn-ambient-opacity);
+}
+
+.jn-veil {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(96deg, var(--jn-veil-1) 0%, var(--jn-veil-2) 44%, var(--jn-veil-3) 100%),
+    linear-gradient(0deg, var(--jn-veil-floor) 0%, transparent 40%);
+}
+
+.jn-veil-center {
+  background:
+    radial-gradient(110% 85% at 50% 42%, var(--jn-veil-3) 0%, var(--jn-veil-1) 100%),
+    linear-gradient(0deg, var(--jn-veil-floor) 0%, transparent 45%);
+}
+
+.jn-veil-done {
+  background:
+    radial-gradient(
+      70% 55% at 50% 55%,
+      color-mix(in oklch, var(--jn-done) 13%, transparent) 0%,
+      transparent 72%
+    ),
+    radial-gradient(110% 85% at 50% 42%, var(--jn-veil-3) 0%, var(--jn-veil-1) 100%),
+    linear-gradient(0deg, var(--jn-veil-floor) 0%, transparent 45%);
+}
+
+/* ── Slide shell ────────────────────────────────────────────── */
+
+.jn-inner {
   position: relative;
   z-index: 1;
-  height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 4rem 1rem 1.25rem;
-}
-.jn-content-center {
   justify-content: center;
+  gap: clamp(1.25rem, 3vh, 2.25rem);
+  height: 100%;
+  width: 100%;
+  max-width: 92rem;
+  margin-inline: auto;
+  padding: clamp(4.75rem, 9vh, 6.25rem) clamp(1.25rem, 5vw, 3.25rem)
+    clamp(2.5rem, 6vh, 3.75rem);
+}
+
+.jn-slide-center .jn-inner {
   align-items: center;
   text-align: center;
 }
-@media (min-width: 640px) {
-  .jn-content { padding: 5.5rem 2rem 2.5rem; }
-}
-@media (min-width: 1024px) {
-  .jn-content { padding: 5.5rem 4rem 3rem; }
+
+.jn-copy,
+.jn-media,
+.jn-lede {
+  min-width: 0;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ANIMATIONS — Grandiose 3D Slide, Scale & Cross-Fade
-   Controlled by [data-direction="down"|"up"] on .jn-viewport
-   ═══════════════════════════════════════════════════════════════ */
-
-/* -- Base states: content is 3D offset, scaled & transparent -- */
-.jn-anim-group,
-.jn-anim-showcase,
-.jn-anim-card {
-  opacity: 0;
-  will-change: transform, opacity;
-  transition:
-    opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.65s cubic-bezier(0.16, 1, 0.3, 1),
-    filter 0.65s ease;
+/* Copy rides the short window and travels a little further than the scene:
+   it clears the frame before the next section's copy fades in. */
+.jn-lede,
+.jn-copy {
+  opacity: var(--t);
+  transform: translate3d(0, calc(var(--s) * var(--tw) * -5svh), 0);
 }
 
-/* Default direction (scrolling down): content enters from below with scale */
-.jn-anim-group {
-  transform: translateY(45px) scale(0.96);
-}
-.jn-anim-showcase {
-  transform: translateY(50px) scale(0.94);
-  filter: blur(4px);
-}
-.jn-anim-card {
-  transform: translateY(60px) scale(0.95);
-  transition-delay: 0.1s;
-  filter: blur(2px);
-}
-
-/* Reverse direction (scrolling up): content enters from above */
-[data-direction="up"] .jn-anim-group {
-  transform: translateY(-45px) scale(0.96);
-}
-[data-direction="up"] .jn-anim-showcase {
-  transform: translateY(-50px) scale(0.94);
-  filter: blur(4px);
-}
-[data-direction="up"] .jn-anim-card {
-  transform: translateY(-60px) scale(0.95);
-  transition-delay: 0.1s;
-  filter: blur(2px);
-}
-
-/* Active state: smooth transition into perfect full view */
-.jn-active .jn-anim-group,
-.jn-active .jn-anim-showcase,
-.jn-active .jn-anim-card {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  filter: blur(0);
-}
-
-/* ── Progress bar ──────────────────────────────────────────── */
-.jn-progress-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.06);
-  z-index: 50;
-}
-.jn-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-accent-500));
-  border-radius: 0 2px 2px 0;
-  transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/* ── Step navigation (right rail, desktop) ─────────────────── */
-.jn-step-nav {
-  position: absolute;
-  top: 50%;
-  right: 1rem;
-  transform: translateY(-50%);
-  z-index: 50;
-  display: none;
+.jn-lede {
+  display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
-}
-@media (min-width: 1024px) {
-  .jn-step-nav { display: flex; right: 1.5rem; }
-}
-@media (min-width: 1280px) {
-  .jn-step-nav { right: 2.5rem; }
+  gap: clamp(0.9rem, 2.2vh, 1.6rem);
 }
 
-.jn-nav-dot {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  padding: 0;
-}
-.jn-nav-dot.active {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: #fff;
-  transform: scale(1.2);
-  box-shadow: 0 0 16px rgba(99, 102, 241, 0.5);
-}
-.jn-nav-dot.completed {
-  background: rgba(99, 102, 241, 0.2);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-.jn-nav-dot-end.active {
-  background: var(--color-success);
-  border-color: var(--color-success);
-  box-shadow: 0 0 16px rgba(16, 185, 129, 0.5);
-}
-.jn-nav-num {
-  font-size: 0.65rem;
-  font-weight: 700;
-}
-.jn-nav-line {
-  width: 1.5px;
-  height: 1.25rem;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 2px;
-  transition: background 0.35s ease;
-}
-.jn-nav-line.filled {
-  background: var(--color-primary);
+/* Product shot lags the plane slightly: that difference is what reads as depth. */
+.jn-media {
+  transform: translate3d(0, calc(var(--s) * var(--w) * 2svh), 0);
 }
 
-/* ── INTRO ─────────────────────────────────────────────────── */
-.jn-eyebrow {
-  color: var(--color-primary);
-  font-weight: 600;
-  font-size: 0.85rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin-bottom: 1rem;
-}
-.jn-hero-title {
-  font-size: clamp(2rem, 5.5vw, 4.5rem);
-  font-weight: 800;
-  line-height: 1.1;
-  color: #fff;
-  letter-spacing: -0.03em;
-  margin-bottom: 1.75rem;
-  max-width: 52rem;
-}
-.jn-quote {
-  display: inline-block;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 1rem;
-  padding: 0.85rem 1.5rem;
-  color: rgba(255, 255, 255, 0.85);
-  font-style: italic;
-  font-size: clamp(1rem, 2vw, 1.25rem);
+/* ── Opening & closing sections ─────────────────────────────── */
+
+.jn-hero {
   margin: 0;
+  max-width: 26ch;
+  font-size: clamp(1.9rem, 4.6vw, 3.5rem);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+  color: var(--jn-ink);
 }
-.jn-author {
-  margin-top: 0.75rem;
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 0.9rem;
+
+.jn-hero-done {
+  max-width: 30ch;
+  font-size: clamp(1.6rem, 3.6vw, 2.75rem);
 }
-.jn-intro-lead {
-  margin-top: 1.5rem;
-  color: rgba(255, 255, 255, 0.55);
-  font-size: clamp(0.95rem, 1.5vw, 1.15rem);
+
+.jn-quote {
+  margin: 0;
+  max-width: 40ch;
+}
+
+.jn-quote p {
+  margin: 0;
+  font-size: clamp(1.05rem, 1.9vw, 1.4rem);
+  font-weight: 300;
+  line-height: 1.5;
+  color: var(--jn-ink-soft);
+  text-wrap: balance;
+}
+
+.jn-quote cite {
+  display: block;
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  font-style: normal;
+  color: var(--jn-ink-mute);
+}
+
+.jn-lead {
+  margin: 0;
+  max-width: 56ch;
+  font-size: clamp(1rem, 1.3vw, 1.18rem);
   line-height: 1.7;
-  max-width: 38rem;
+  color: var(--jn-ink-mute);
+  text-wrap: pretty;
 }
-.jn-scroll-hint {
-  margin-top: 2.5rem;
-  display: flex;
-  flex-direction: column;
+
+/* Anchored to the bottom edge so it never fights the centred lede. */
+.jn-hint {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(1.75rem, 5vh, 3rem);
+  opacity: var(--t);
+  transform: translate3d(-50%, calc(var(--s) * var(--tw) * -5svh), 0);
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  color: rgba(255, 255, 255, 0.25);
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  animation: jn-bounce 2s ease-in-out infinite;
-}
-@keyframes jn-bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(6px); }
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--jn-ink-mute);
 }
 
-/* ── STAGE slides ──────────────────────────────────────────── */
-.jn-slide .jn-content:not(.jn-content-center) {
-  justify-content: center;
-  align-items: center;
-  gap: 1.5rem;
+.jn-hint-arrow {
+  width: 1.05rem;
+  height: 1.05rem;
+  animation: jn-drift 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
+
+@keyframes jn-drift {
+  0%,
+  100% {
+    transform: translateY(-2px);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(3px);
+    opacity: 1;
+  }
+}
+
+.jn-done-mark {
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in oklch, var(--jn-done) 40%, transparent);
+  background: color-mix(in oklch, var(--jn-done) 11%, transparent);
+  color: var(--jn-done);
+}
+
+.jn-done-mark svg {
+  width: 1.9rem;
+  height: 1.9rem;
+}
+
+/* ── Stage sections: copy beside the product ────────────────── */
+
+/* Narrow: copy and product stay grouped as one centred block (inherits the
+   flex column from .jn-inner). Wide: two columns. */
+.jn-inner-split {
+  gap: clamp(1.25rem, 3vh, 2rem);
+}
+
+@media (min-width: 1024px), (min-width: 720px) and (max-height: 620px) {
+  .jn-inner-split {
+    display: grid;
+    grid-template-columns: minmax(0, 18.5rem) minmax(0, 1fr);
+    align-items: center;
+    gap: clamp(1.75rem, 4vw, 3.5rem);
+  }
+
+  /* Let the frame grow until it runs out of either width or height. */
+  .jn-media {
+    width: min(100%, calc((100svh - 15rem) * 1.6));
+    margin-inline: auto;
+  }
+}
+
+@media (min-width: 1280px) {
+  .jn-inner-split {
+    grid-template-columns: minmax(0, 21rem) minmax(0, 1fr);
+  }
+}
+
+/* Reserve the rail lane. */
 @media (min-width: 1024px) {
-  .jn-slide .jn-content:not(.jn-content-center) { gap: 2rem; }
+  .jn-inner {
+    padding-right: clamp(3.5rem, 4vw, 5rem);
+  }
 }
 
-/* Showcase browser frame */
-.jn-showcase {
-  flex: 1;
+.jn-meta {
   display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin: 0 0 0.7rem;
+}
+
+.jn-meta-index {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--jn-ink-mute);
+}
+
+.jn-meta-step {
+  font-size: 0.84rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--jn-mark);
+}
+
+.jn-title {
+  margin: 0 0 0.7rem;
+  font-size: clamp(1.45rem, 2.6vw, 2.3rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  color: var(--jn-ink);
+}
+
+.jn-caption {
+  margin: 0 0 clamp(1.1rem, 2.5vh, 1.6rem);
+  max-width: 44ch;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--jn-ink-soft);
+  text-wrap: pretty;
+}
+
+.jn-actions {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: 0.9rem 1.25rem;
+}
+
+.jn-cta {
+  text-decoration: none;
+}
+
+.jn-cta-arrow {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+
+.jn-price {
+  font-size: 0.85rem;
+  color: var(--jn-ink-mute);
+}
+
+/* ── Product frame ──────────────────────────────────────────── */
+
+.jn-media {
+  display: flex;
+  flex-direction: column;
   justify-content: center;
   min-height: 0;
-  width: 100%;
-  max-width: 56rem;
-}
-@media (min-width: 1280px) {
-  .jn-showcase { max-width: 64rem; }
+  margin: 0;
 }
 
-.jn-browser-frame {
+.jn-frame {
+  position: relative;
   width: 100%;
   border-radius: 0.85rem;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--jn-line-high);
+  background: var(--jn-surface);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.35),
-    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
-  background: rgba(15, 23, 42, 0.7);
-}
-.jn-browser-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.55rem 0.9rem;
-  background: rgba(15, 23, 42, 0.95);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-.jn-browser-dots {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-.jn-browser-dots span {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 9999px;
-}
-.jn-browser-dots span:nth-child(1) { background: #ef4444; opacity: 0.85; }
-.jn-browser-dots span:nth-child(2) { background: #f59e0b; opacity: 0.85; }
-.jn-browser-dots span:nth-child(3) { background: #10b981; opacity: 0.85; }
-.jn-browser-url {
-  font-size: 0.68rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  color: rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.05);
-  padding: 0.12rem 0.6rem;
-  border-radius: 0.35rem;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-.jn-swiper-counter {
-  margin-left: auto;
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--color-primary);
-  background: rgba(99, 102, 241, 0.15);
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  padding: 0.1rem 0.5rem;
-  border-radius: 9999px;
-  letter-spacing: 0.04em;
+    0 28px 64px -26px var(--jn-shade),
+    0 6px 18px -12px var(--jn-shade);
 }
 
-/* Showcase image wrap + Swiper viewport */
-.jn-showcase-img-wrap {
+.jn-frame-bar {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.85rem;
+  border-bottom: 1px solid var(--jn-line);
+  background: var(--jn-surface-high);
+}
+
+.jn-frame-path {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.01em;
+  color: var(--jn-ink-mute);
+}
+
+.jn-shots {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 10;
+  max-height: 100%;
+  /* Slightly taller on phones, where a 16/10 slice of a desktop UI is thin. */
+  aspect-ratio: 3 / 2;
   overflow: hidden;
-  background: #0f172a;
+  background: var(--jn-surface);
+  touch-action: pan-y;
 }
-.jn-showcase-img {
+
+@media (min-width: 640px) {
+  .jn-shots {
+    aspect-ratio: 16 / 10;
+  }
+}
+
+.jn-shot {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: top center;
-  display: block;
   opacity: 0;
-  transform: scale(1.02);
-  transition: opacity 0.85s ease-in-out,
-              transform 0.85s ease-in-out;
-  pointer-events: none;
-  z-index: 0;
-}
-.jn-showcase-img.jn-img-active {
-  opacity: 1;
-  transform: scale(1);
-  pointer-events: auto;
-  z-index: 1;
+  /* Outgoing shots fade in place; the reset of the offset is deferred until
+     they are invisible, so only the incoming shot appears to travel. */
+  transform: translate3d(calc(var(--dir, 1) * 3.5%), 0, 0) scale(1.02);
+  transition:
+    opacity 0.5s cubic-bezier(0.4, 0, 0.4, 1),
+    transform 0s linear 0.5s;
 }
 
-/* ── Modern Glassmorphism Swiper Controls ──────────────────── */
-.jn-swiper-arrow {
+.jn-shots[data-dir='-1'] .jn-shot {
+  --dir: -1;
+}
+
+.jn-shot.is-active {
+  z-index: 1;
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  transition:
+    opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.jn-shot-nav {
   position: absolute;
   top: 50%;
-  transform: translateY(-50%) scale(0.9);
-  z-index: 10;
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: 9999px;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: rgba(255, 255, 255, 0.85);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  opacity: 0.6;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
   padding: 0;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--jn-line-high);
+  border-radius: 9999px;
+  background: color-mix(in oklch, var(--jn-surface) 78%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: var(--jn-ink);
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(-50%) scale(0.9);
+  transition:
+    opacity 0.28s var(--ease-out),
+    transform 0.28s var(--ease-out),
+    background 0.2s var(--ease-out);
 }
-.jn-showcase-img-wrap:hover .jn-swiper-arrow {
+
+.jn-shot-nav svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.jn-shot-prev {
+  left: 0.75rem;
+}
+
+.jn-shot-next {
+  right: 0.75rem;
+}
+
+.jn-frame:hover .jn-shot-nav,
+.jn-shot-nav:focus-visible {
   opacity: 1;
   transform: translateY(-50%) scale(1);
 }
-.jn-swiper-arrow:hover {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: #fff;
-  box-shadow: 0 0 20px rgba(99, 102, 241, 0.6);
-  transform: translateY(-50%) scale(1.1) !important;
-}
-.jn-swiper-prev { left: 1rem; }
-.jn-swiper-next { right: 1rem; }
 
-/* Swiper Dots Pagination */
-.jn-swiper-dots {
-  position: absolute;
-  bottom: 1rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 0.35rem 0.75rem;
-  border-radius: 9999px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-}
-.jn-swiper-dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.35);
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.jn-swiper-dot:hover {
-  background: rgba(255, 255, 255, 0.7);
-}
-.jn-swiper-dot.active {
-  width: 1.5rem;
-  background: var(--color-primary);
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.7);
+.jn-shot-nav:hover {
+  background: var(--jn-surface);
+  border-color: var(--jn-mark);
+  color: var(--jn-mark);
 }
 
-/* ── Glass info card ───────────────────────────────────────── */
-.jn-info-card {
-  width: 100%;
-  max-width: 56rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: 1.25rem;
-  padding: 1.25rem 1.5rem;
-  flex-shrink: 0;
-}
-@media (max-width: 639px) {
-  .jn-info-card {
-    padding: 0.85rem 1rem;
-    border-radius: 0.95rem;
+/* No hover to reveal them: keep the controls visible on touch. */
+@media (hover: none) {
+  .jn-shot-nav {
+    opacity: 0.8;
+    transform: translateY(-50%) scale(1);
   }
 }
-@media (min-width: 640px) {
-  .jn-info-card { padding: 1.5rem 2rem; }
+
+.jn-shot-dots {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.85rem;
 }
+
+.jn-shot-dot {
+  position: relative;
+  width: 1.6rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.jn-shot-dot::after {
+  content: '';
+  position: absolute;
+  inset: calc(50% - 1.5px) 0 auto 0;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--jn-line-high);
+  transition: background 0.3s var(--ease-out);
+}
+
+.jn-shot-dot:hover::after {
+  background: var(--jn-ink-mute);
+}
+
+.jn-shot-dot.is-active::after {
+  background: var(--jn-mark);
+}
+
+/* ── Section rail ───────────────────────────────────────────── */
+
+.jn-rail {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  right: clamp(0.9rem, 2vw, 2rem);
+  transform: translateY(-50%);
+  display: none;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
 @media (min-width: 1024px) {
-  .jn-info-card { padding: 1.75rem 2.5rem; }
-}
-@media (min-width: 1280px) {
-  .jn-info-card { max-width: 64rem; }
-}
-
-.jn-info-meta {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  margin-bottom: 0.6rem;
-}
-.jn-stage-badge {
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 0.5rem;
-  background: var(--color-primary);
-  color: #fff;
-  font-size: 0.7rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.jn-stage-label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--color-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-.jn-stage-title {
-  font-size: clamp(1.25rem, 3vw, 1.75rem);
-  font-weight: 700;
-  color: #fff;
-  margin: 0 0 0.5rem;
-  letter-spacing: -0.02em;
-}
-.jn-stage-caption {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.95rem;
-  line-height: 1.6;
-  margin: 0 0 1rem;
-}
-.jn-stage-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 1rem;
-}
-.jn-price {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.4);
+  .jn-rail {
+    display: flex;
+  }
 }
 
-/* ── OUTRO ─────────────────────────────────────────────────── */
-.jn-success-icon {
-  width: 5rem;
-  height: 5rem;
-  margin: 0 auto 2rem;
-  border-radius: 9999px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.08));
-  border: 2px solid rgba(16, 185, 129, 0.35);
+.jn-rail-item {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: var(--color-success);
-  animation: jn-pulse 3s ease-in-out infinite;
+  justify-content: flex-end;
+  width: 2.75rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
 }
-@keyframes jn-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.2); }
-  50% { box-shadow: 0 0 40px 8px rgba(16, 185, 129, 0.15); }
+
+.jn-rail-dot {
+  width: 1.35rem;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--jn-line-high);
+  transition:
+    width 0.4s var(--ease-out),
+    background 0.35s var(--ease-out);
 }
-.jn-outro-title {
-  font-size: clamp(1.5rem, 4vw, 3rem);
-  font-weight: 800;
-  color: #fff;
-  margin: 0 0 1rem;
-  letter-spacing: -0.03em;
+
+.jn-rail-item.is-past .jn-rail-dot {
+  background: color-mix(in oklch, var(--jn-ink) 45%, transparent);
 }
-.jn-outro-subtitle {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: clamp(1rem, 1.5vw, 1.2rem);
-  line-height: 1.7;
-  margin: 0;
-  max-width: 40rem;
+
+.jn-rail-item:hover .jn-rail-dot {
+  background: var(--jn-ink);
+}
+
+.jn-rail-item.is-active .jn-rail-dot {
+  width: 2.5rem;
+  background: var(--jn-mark);
+}
+
+.jn-rail-label {
+  position: absolute;
+  right: 100%;
+  margin-right: 0.75rem;
+  white-space: nowrap;
+  font-size: 0.76rem;
+  color: var(--jn-ink-mute);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(0.35rem);
+  transition:
+    opacity 0.3s var(--ease-out),
+    transform 0.3s var(--ease-out);
+}
+
+/* Named only on demand: the active section is already titled in the copy. */
+.jn-rail-item:hover .jn-rail-label,
+.jn-rail-item:focus-visible .jn-rail-label {
+  opacity: 1;
+  transform: none;
+  color: var(--jn-ink);
+}
+
+/* ── Progress ───────────────────────────────────────────────── */
+
+.jn-progress {
+  position: absolute;
+  z-index: 3;
+  inset: auto 0 0 0;
+  height: 2px;
+  background: color-mix(in oklch, var(--jn-ink) 8%, transparent);
+}
+
+.jn-progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--jn-mark);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+}
+
+/* ── Focus ──────────────────────────────────────────────────── */
+
+.jn-shot-nav:focus-visible,
+.jn-shot-dot:focus-visible,
+.jn-rail-item:focus-visible,
+.jn-cta:focus-visible {
+  outline: 2px solid var(--jn-mark);
+  outline-offset: 3px;
+}
+
+/* ── Short viewports (landscape phones, small laptops) ──────── */
+
+@media (max-height: 620px) {
+  .jn-inner {
+    gap: 0.9rem;
+    padding-block: 4.5rem 2rem;
+  }
+
+  .jn-caption {
+    margin-bottom: 0.9rem;
+  }
+
+  .jn-shot-dots {
+    margin-top: 0.5rem;
+  }
+}
+
+/* ── Reduced motion ─────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .jn-slide,
+  .jn-lede,
+  .jn-copy,
+  .jn-media {
+    transform: none;
+  }
+
+  .jn-hint {
+    transform: translateX(-50%);
+  }
+
+  .jn-bg-img {
+    transform: scale(4);
+  }
+
+  .jn-shot,
+  .jn-shot.is-active {
+    transform: none;
+    transition: opacity 0.2s linear;
+  }
+
+  .jn-shot-nav {
+    transition: opacity 0.2s linear;
+  }
+
+  .jn-hint-arrow {
+    animation: none;
+  }
 }

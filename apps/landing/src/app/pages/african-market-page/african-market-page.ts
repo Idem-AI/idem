@@ -248,14 +248,14 @@ export class AfricanMarketPage implements OnInit {
       ],
     },
     {
-      icon: 'pi-dollar',
+      icon: 'pi-money-bill',
       title: $localize`:@@african-market-page.advantages.pricing.title:Pricing Designed for African Budgets`,
-      description: $localize`:@@african-market-page.advantages.pricing.description:Our pricing is 60-80% cheaper than international alternatives, with a freemium model that lets entrepreneurs start for free.`,
+      description: $localize`:@@african-market-page.advantages.pricing.description:Priced in FCFA and 3 to 5 times cheaper than international platforms, with a freemium model that lets entrepreneurs start for free.`,
       benefits: [
-        $localize`:@@african-market-page.advantages.pricing.benefit1:Free tier with 10 credits`,
-        $localize`:@@african-market-page.advantages.pricing.benefit2:Starter plan at $15/month`,
+        $localize`:@@african-market-page.advantages.pricing.benefit1:Free tier: preview every deliverable`,
+        $localize`:@@african-market-page.advantages.pricing.benefit2:Plans from 2,999 F/month`,
         $localize`:@@african-market-page.advantages.pricing.benefit3:No hidden fees`,
-        $localize`:@@african-market-page.advantages.pricing.benefit4:Pay-as-you-grow model`,
+        $localize`:@@african-market-page.advantages.pricing.benefit4:Pay with Mobile Money (MTN, Orange)`,
       ],
     },
     {
