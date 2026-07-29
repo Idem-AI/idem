@@ -159,7 +159,7 @@ export const generateColorsAndTypographyFromLogoController = async (
     }
 
     logger.info(
-      `Successfully generated colors and typography from logo - UserId: ${userId}, ProjectId: ${result.project.id}`
+      `Successfully generated colors and typography from logo - UserId: ${userId}, ProjectId: ${project?.id}`
     );
     res.status(200).json(result);
   } catch (error) {

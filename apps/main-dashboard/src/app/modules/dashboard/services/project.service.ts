@@ -1,9 +1,30 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { catchError, tap, map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import { ProjectModel } from '@idem/shared-models';
+
+/** Existing iCode conversation attached to a project, without its messages. */
+export interface AppChatSummary {
+  sessionId: string;
+  title?: string;
+  messageCount?: number;
+  startedAt?: string;
+  lastMessageAt?: string;
+}
+
+/** Quick deployment published from iCode (Netlify) and attached to a project. */
+export interface AppDeploymentModel {
+  provider?: string;
+  siteId: string;
+  siteName?: string | null;
+  url: string;
+  adminUrl?: string | null;
+  deployId?: string | null;
+  firstDeployedAt?: string;
+  lastDeployedAt?: string;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -192,6 +213,26 @@ export class ProjectService {
           return throwError(() => error);
         }),
       );
+  }
+
+  /**
+   * Lightweight check for an existing iCode conversation on this project.
+   * Returns null when the app has never been generated.
+   */
+  getAppChatSummary(projectId: string): Observable<AppChatSummary | null> {
+    return this.http
+      .get<AppChatSummary>(`${this.apiUrl}/${projectId}/chat-session?summary=1`)
+      .pipe(catchError(() => of(null)));
+  }
+
+  /**
+   * Retrieves the last quick deployment (Netlify) published from iCode for a project.
+   * Returns null when the project has never been deployed.
+   */
+  getAppDeployment(projectId: string): Observable<AppDeploymentModel | null> {
+    return this.http
+      .get<AppDeploymentModel>(`${this.apiUrl}/${projectId}/app-deployment`)
+      .pipe(catchError(() => of(null)));
   }
 
   /**

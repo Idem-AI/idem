@@ -10,7 +10,7 @@
     <div class="tile-logo-wrapper">
       @if (project()?.analysisResultModel?.branding?.logo && !logoLoadError()) {
         @if (logoIsInline()) {
-          <div class="tile-logo-inner inline-logo" [innerHTML]="project()?.analysisResultModel?.branding?.logo?.svg | safeHtml"></div>
+          <img class="tile-logo-inner inline-logo object-contain" [src]="project()?.analysisResultModel?.branding?.logo?.svg" alt="Logo"   />
         } @else {
           <div class="tile-logo-inner">
             <img

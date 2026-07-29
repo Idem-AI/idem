@@ -186,7 +186,6 @@ export class BrandingService {
   ): Observable<{
     colors: ColorModel[];
     typography: TypographyModel[];
-    project: ProjectModel;
   }> {
     console.log('Generating colors and typography from imported logo...');
     // Payload minimal : le backend recharge le projet via findById et ne lit du
@@ -201,7 +200,6 @@ export class BrandingService {
       .post<{
         colors: ColorModel[];
         typography: TypographyModel[];
-        project: ProjectModel;
       }>(`${this.apiUrl}/generate/colors-typography-from-logo`, {
         project: leanProject,
         logoSvg,
