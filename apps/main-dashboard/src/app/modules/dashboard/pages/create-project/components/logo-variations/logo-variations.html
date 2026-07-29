@@ -144,10 +144,11 @@
             [style.background-color]="slotBackground(slot.kind)"
           >
             @if (slot.svg) {
-              <div
-                [innerHTML]="slot.svg | safeHtml"
-                class="w-full h-full flex items-center justify-center transition-opacity duration-500 [&>svg]:max-w-full [&>svg]:max-h-full"
-              ></div>
+              <img
+                [src]="slot.svg"
+                alt="Logo"
+                class="w-full h-full object-contain transition-opacity duration-500 max-w-full max-h-full"
+              />
               @if (slot.status === 'revising') {
                 <div
                   class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex flex-col items-center justify-center gap-2"
@@ -436,10 +437,10 @@
                 class="w-full h-48 rounded-lg flex items-center justify-center mb-4 border-2 border-glass-border"
                 [style.background-color]="variation.backgroundColor"
               >
-                <div
-                  class="w-32 h-32 flex items-center justify-center"
-                  [innerHTML]="variation.svgContent | safeHtml"
-                ></div>
+                <img class="w-32 h-32 flex items-center justify-center object-contain" [src]="variation.svgContent" alt="Logo" 
+                  
+                  
+                />
               </div>
 
               <!-- Variation Info -->

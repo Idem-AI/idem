@@ -9,7 +9,11 @@ import { catchError, finalize, of, tap } from 'rxjs';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { BrandingValidationService } from '../../../services/branding-validation.service';
 import { IncompleteProjectBannerComponent } from '../../../components/incomplete-project-banner/incomplete-project-banner';
-import { AppDeploymentModel, ProjectService } from '../../../services/project.service';
+import {
+  AppChatSummary,
+  AppDeploymentModel,
+  ProjectService,
+} from '../../../services/project.service';
 import { ProjectModel } from '@idem/shared-models';
 
 import { environment } from '../../../../../../environments/environment';
@@ -45,6 +49,10 @@ export class ShowDevelopment implements OnInit {
   protected readonly deployment = signal<AppDeploymentModel | null>(null);
   protected readonly copiedDeployUrl = signal<boolean>(false);
 
+  // Existing iCode conversation: the CTA reopens it instead of starting over
+  protected readonly appChat = signal<AppChatSummary | null>(null);
+  protected readonly hasExistingApp = computed(() => this.appChat() !== null);
+
   // Computed signals to optimize template access
   protected readonly configs = computed(() => this.developmentConfigs());
   protected readonly hasConfigs = computed(() => this.developmentConfigs() !== null);
@@ -71,6 +79,7 @@ export class ShowDevelopment implements OnInit {
       this.projectId.set(storedProjectId);
       this.checkBrandingCompletion(storedProjectId);
       this.loadDeployment(storedProjectId);
+      this.loadAppChat(storedProjectId);
     } else {
       this.error.set('No project ID found. Please select a project first.');
     }
@@ -142,6 +151,16 @@ export class ShowDevelopment implements OnInit {
   private loadDeployment(projectId: string): void {
     this.projectService.getAppDeployment(projectId).subscribe((deployment) => {
       this.deployment.set(deployment);
+    });
+  }
+
+  /**
+   * Detects an existing iCode conversation so the CTA reopens it rather than
+   * suggesting a fresh generation.
+   */
+  private loadAppChat(projectId: string): void {
+    this.projectService.getAppChatSummary(projectId).subscribe((session) => {
+      this.appChat.set(session);
     });
   }
 

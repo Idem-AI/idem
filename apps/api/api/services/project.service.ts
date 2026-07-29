@@ -686,7 +686,16 @@ class ProjectService {
         `Attempting to retrieve project code from Firebase Storage for project ${projectId} and user ${userId}`
       );
 
-      // Use storage service to download and extract the project code ZIP
+      // Manifest-based storage is the current format; fall back to the legacy
+      // full-ZIP layout for projects generated before the incremental sync.
+      const incrementalFiles = await storageService.downloadProjectCodeFiles(projectId, userId);
+      if (incrementalFiles && Object.keys(incrementalFiles).length > 0) {
+        logger.info(
+          `Successfully retrieved ${Object.keys(incrementalFiles).length} code files from the incremental store for project ${projectId}`
+        );
+        return incrementalFiles;
+      }
+
       const codeFiles = await storageService.downloadProjectCodeZip(projectId, userId);
 
       if (!codeFiles || Object.keys(codeFiles).length === 0) {
@@ -704,6 +713,106 @@ class ProjectService {
         { stack: error.stack, details: error }
       );
       return null;
+    }
+  }
+
+  /**
+   * Content hashes of the code currently stored for a project. The client diffs
+   * its workspace against this to upload only what changed.
+   */
+  async getProjectCodeManifest(
+    userId: string,
+    projectId: string
+  ): Promise<Record<string, string>> {
+    const manifest = await storageService.getProjectCodeManifest(projectId, userId);
+    return manifest?.files || {};
+  }
+
+  /**
+   * Applies an incremental code change set to the bucket.
+   */
+  async syncProjectCode(
+    userId: string,
+    projectId: string,
+    upserts: Record<string, string>,
+    deletions: string[],
+    manifest: Record<string, string>
+  ): Promise<{ written: number; deleted: number; total: number }> {
+    if (!userId || !projectId) {
+      throw new Error('User ID and Project ID are required to sync project code.');
+    }
+
+    return storageService.syncProjectCodeFiles(projectId, userId, upserts, deletions, manifest);
+  }
+
+  // Chat session — the conversation that produced the code. Stored in the
+  // database (small, text only) while the code itself lives in the bucket, so a
+  // user reopening iCode from any machine lands back in the same chat.
+
+  async getProjectChatSession(userId: string, projectId: string): Promise<any | null> {
+    if (!userId || !projectId) {
+      logger.error('User ID and Project ID are required to get a chat session.');
+      return null;
+    }
+
+    try {
+      const session = await this.projectRepository.findById(
+        `${projectId}_chat`,
+        `users/${userId}/appChats`,
+        { bypassCache: true }
+      );
+
+      return session || null;
+    } catch (error: any) {
+      logger.error(
+        `Error fetching chat session for project ${projectId} and user ${userId}: ${error.message}`,
+        { stack: error.stack, details: error }
+      );
+      throw error;
+    }
+  }
+
+  async saveProjectChatSession(
+    userId: string,
+    projectId: string,
+    session: { sessionId: string; title?: string; messages: any[] }
+  ): Promise<any> {
+    if (!userId || !projectId || !session?.sessionId) {
+      throw new Error('User ID, Project ID and sessionId are required.');
+    }
+
+    try {
+      const existing = await this.getProjectChatSession(userId, projectId).catch(() => null);
+
+      const record = {
+        projectId,
+        userId,
+        sessionId: session.sessionId,
+        title: session.title || existing?.title || 'Nouvelle conversation',
+        messages: session.messages || [],
+        messageCount: (session.messages || []).length,
+        startedAt: existing?.startedAt || new Date().toISOString(),
+        lastMessageAt: new Date().toISOString(),
+      };
+
+      const saved = await this.projectRepository.create(
+        record as any,
+        `users/${userId}/appChats`,
+        `${projectId}_chat`
+      );
+
+      logger.info(`Chat session saved for project ${projectId} and user ${userId}`, {
+        sessionId: session.sessionId,
+        messageCount: record.messageCount,
+      });
+
+      return saved;
+    } catch (error: any) {
+      logger.error(
+        `Error saving chat session for project ${projectId} and user ${userId}: ${error.message}`,
+        { stack: error.stack, details: error }
+      );
+      throw error;
     }
   }
 

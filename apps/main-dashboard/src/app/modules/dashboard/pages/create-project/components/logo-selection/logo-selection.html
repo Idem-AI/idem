@@ -59,10 +59,11 @@
               class="relative w-full bg-white rounded-xl h-[150px] sm:h-[170px] flex items-center justify-center p-4 mb-4 overflow-hidden"
             >
               @if (slot.logo) {
-                <div
-                  [innerHTML]="slot.logo.svg | safeHtml"
-                  class="w-full h-full flex items-center justify-center transition-opacity duration-500 [&>svg]:max-w-full [&>svg]:max-h-full"
-                ></div>
+                <img
+                  [src]="slot.logo.svg"
+                  alt="Logo"
+                  class="w-full h-full object-contain transition-opacity duration-500 max-w-full max-h-full"
+                />
                 @if (slot.status === 'revising') {
                   <div
                     class="absolute inset-0 bg-white/75 backdrop-blur-[1px] flex flex-col items-center justify-center gap-2"
@@ -367,10 +368,11 @@
                 <div
                   class="w-full bg-white rounded-xl flex items-center justify-center p-3 sm:p-4 md:p-6 shadow-lg mb-4 h-[140px] sm:h-[160px] md:h-[180px]"
                 >
-                  <div
-                    [innerHTML]="logo.svg | safeHtml"
-                    class="w-full h-full flex items-center justify-center [&>svg]:max-w-full [&>svg]:max-h-full"
-                  ></div>
+                  <img
+                    [src]="logo.svg"
+                    alt="Logo"
+                    class="w-full h-full object-contain max-w-full max-h-full"
+                  />
                 </div>
 
                 <!-- Logo Info -->
