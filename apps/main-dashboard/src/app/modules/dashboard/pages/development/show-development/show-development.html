@@ -20,6 +20,71 @@
 
   <!-- Development configs display -->
   @if (!loading() && hasConfigs() && !error()) {
+    <!-- Live application (already deployed from iCode) -->
+    @if (deployment(); as deployed) {
+      <div class="w-full max-w-4xl mb-8">
+        <div class="glass-card p-6 border border-green-400/30">
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div class="flex items-start gap-4 min-w-0">
+              <div
+                class="w-12 h-12 shrink-0 rounded-xl bg-green-500/20 flex items-center justify-center"
+              >
+                <i class="pi pi-globe text-green-400 text-xl"></i>
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <h2 class="text-lg font-semibold text-text-primary">Application en ligne</h2>
+                  <span
+                    class="bg-green-500/20 text-green-300 text-xs px-2 py-0.5 rounded-full whitespace-nowrap"
+                  >
+                    Déployée
+                  </span>
+                </div>
+                <a
+                  [href]="deployed.url"
+                  target="_blank"
+                  rel="noopener"
+                  class="text-accent hover:underline break-all text-sm"
+                >
+                  {{ deployed.url }}
+                </a>
+                @if (deployed.lastDeployedAt) {
+                  <p class="text-text-tertiary text-xs mt-1">
+                    Dernière mise à jour le
+                    {{ deployed.lastDeployedAt | date: 'dd/MM/yyyy à HH:mm' }}
+                  </p>
+                }
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                (click)="copyDeployUrl()"
+                class="outer-button flex items-center gap-2 px-4 py-2"
+                aria-label="Copier le lien de déploiement"
+              >
+                <i
+                  class="pi text-accent"
+                  [class.pi-check]="copiedDeployUrl()"
+                  [class.pi-copy]="!copiedDeployUrl()"
+                ></i>
+                <span>{{ copiedDeployUrl() ? 'Copié' : 'Copier le lien' }}</span>
+              </button>
+              <button
+                type="button"
+                (click)="openDeployedApp()"
+                class="inner-button flex items-center gap-2 px-4 py-2"
+              >
+                <span>Ouvrir</span>
+                <i class="pi pi-external-link"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
     <!-- Landing Page Only - Simplified Interface -->
     @if (isLandingPageOnly()) {
       <div class="w-full max-w-4xl">

@@ -176,7 +176,7 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
   private handleGenerationResponse(response: {
     colors: ColorModel[];
     typography: TypographyModel[];
-    project: ProjectModel;
+    project?: ProjectModel;
   }): void {
     const colors = Array.isArray(response.colors) ? response.colors : [];
     const typography = Array.isArray(response.typography) ? response.typography : [];

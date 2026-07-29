@@ -1,9 +1,21 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { catchError, tap, map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import { ProjectModel } from '@idem/shared-models';
+
+/** Quick deployment published from iCode (Netlify) and attached to a project. */
+export interface AppDeploymentModel {
+  provider?: string;
+  siteId: string;
+  siteName?: string | null;
+  url: string;
+  adminUrl?: string | null;
+  deployId?: string | null;
+  firstDeployedAt?: string;
+  lastDeployedAt?: string;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -192,6 +204,16 @@ export class ProjectService {
           return throwError(() => error);
         }),
       );
+  }
+
+  /**
+   * Retrieves the last quick deployment (Netlify) published from iCode for a project.
+   * Returns null when the project has never been deployed.
+   */
+  getAppDeployment(projectId: string): Observable<AppDeploymentModel | null> {
+    return this.http
+      .get<AppDeploymentModel>(`${this.apiUrl}/${projectId}/app-deployment`)
+      .pipe(catchError(() => of(null)));
   }
 
   /**
