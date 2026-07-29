@@ -157,11 +157,62 @@ code, pre, i, .pi, [class^="pi-"], [class*=" pi-"] {
   .choice-enter { animation: none; }
 }
 
-/* Theme-reactive overrides for PrimeNG skeleton loaders */
+/* Theme-reactive skeleton loaders with active wave shimmer */
+.skeleton-loader,
 .p-skeleton {
-  background: rgba(15, 23, 42, 0.08) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  background-color: #e2e8f0 !important; /* Slate-200 base for clear light mode contrast */
+  animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
 }
 
-.dark .p-skeleton {
-  background: rgba(255, 255, 255, 0.08) !important;
+.skeleton-loader::after,
+.p-skeleton::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  transform: translateX(-100%) !important;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.75) 50%,
+    transparent 100%
+  ) !important;
+  animation: skeleton-wave 1.5s infinite ease-in-out !important;
 }
+
+.dark .skeleton-loader,
+.dark .p-skeleton {
+  background-color: #1e293b !important; /* Slate-800 base for dark mode */
+}
+
+.dark .skeleton-loader::after,
+.dark .p-skeleton::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  ) !important;
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.65;
+  }
+}
+
+@keyframes skeleton-wave {
+  0% {
+    transform: translateX(-100%);
+  }
+  60%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+

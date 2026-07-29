@@ -25,15 +25,13 @@ import {
   getProjectById,
   getProjectGeneration,
   saveProjectGeneration,
-  sendZipToBackend,
-  sendToGitHub,
   getProjectCodeFromFirebase,
+  getProjectChatSession,
+  saveProjectChatSession,
 } from '@/api/persistence/db';
-import {
-  createZipFromFiles,
-  createProjectMetadata,
-  extractFilesFromMessages,
-} from '@/utils/zipUtils';
+import { createProjectMetadata } from '@/utils/zipUtils';
+import { pushProjectCode } from '@/utils/codeSync';
+import { compactMessagesForStorage, deriveSessionTitle } from '@/utils/chatPersistence';
 import { MCPTool } from '@/types/mcp';
 import useMCPTools from '@/hooks/useMCPTools';
 import { ProjectTutorial } from '../../Onboarding/ProjectTutorial';
@@ -330,6 +328,14 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
   const refUuidMessages = useRef([]);
 
+  // Conversation restored from the server, waiting for `chatUuid` to switch to
+  // its sessionId before being injected (useChat keys its store by id).
+  const pendingSessionRef = useRef<{
+    sessionId: string;
+    messages: Array<{ id: string; role: string; content: string }>;
+  } | null>(null);
+  const hasRestoredSessionRef = useRef(false);
+
   useEffect(() => {
     if (checkCount >= 1) {
       checkFinish(messages[messages.length - 1].content, append, t);
@@ -620,33 +626,45 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       }
       setCheckCount((checkCount) => checkCount + 1);
 
-      // Save generation data after completion using ZIP upload
+      // Persist the generation: code goes to the bucket (incrementally, only
+      // the files that changed), the conversation goes to the database.
       if (projectId && projectData) {
+        const finalMessages = [...messages, message];
+
         try {
-          // Extract files from the latest message
-          const generatedFiles = extractFilesFromMessages([...messages, message]);
+          // The workspace is the source of truth here: onFinish has already
+          // applied every file from the message through updateContent.
+          const workspaceFiles = useFileStore.getState().files;
 
-          if (Object.keys(generatedFiles).length > 0) {
-            // Create ZIP from generated files
-            const zipBlob = await createZipFromFiles(generatedFiles);
-
-            // Upload ZIP to backend
-            await sendZipToBackend(projectId, zipBlob);
+          if (Object.keys(workspaceFiles).length > 0) {
+            const syncResult = await pushProjectCode(projectId, workspaceFiles);
+            if (syncResult) {
+              console.log(
+                `Code synced: ${syncResult.written} written, ${syncResult.deleted} deleted, ${syncResult.total} total`
+              );
+            }
 
             // Create and save minimal metadata (without large files)
-            const metadata = createProjectMetadata(projectData, [...messages, message]);
+            const metadata = createProjectMetadata(projectData, finalMessages);
             await saveProjectGeneration(projectId, metadata);
-
-            console.log('Generation saved as ZIP for project:', projectData.name);
           } else {
             console.warn('No files generated to save');
           }
-
-          setIsGenerationComplete(true);
-          // Ne plus afficher les boutons GitHub - le code est automatiquement sauvé sur Firebase
         } catch (error) {
-          console.error('Error saving generation:', error);
+          console.error('Error saving generated code:', error);
         }
+
+        try {
+          await saveProjectChatSession(projectId, {
+            sessionId: chatUuid,
+            title: deriveSessionTitle(finalMessages, projectData.name || 'Nouvelle conversation'),
+            messages: compactMessagesForStorage(finalMessages),
+          });
+        } catch (error) {
+          console.error('Error saving chat session:', error);
+        }
+
+        setIsGenerationComplete(true);
       }
     },
     onError: (error: any) => {
@@ -665,6 +683,31 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       }
     },
   });
+
+  // Inject the conversation restored from the server. Runs once `chatUuid` has
+  // switched to the stored sessionId, otherwise useChat would write the
+  // messages into the store of the throwaway uuid created at mount.
+  useEffect(() => {
+    const pending = pendingSessionRef.current;
+    if (!pending || pending.sessionId !== chatUuid) return;
+
+    pendingSessionRef.current = null;
+
+    const restored = pending.messages.map((message) => ({
+      id: message.id || uuidv4(),
+      role: message.role as Message['role'],
+      content: message.content,
+    })) as Message[];
+
+    // Mark them as already parsed: their artifacts were summarized before
+    // storage, so re-parsing would find nothing and only waste work.
+    refUuidMessages.current = restored.map((message) => message.id) as never[];
+
+    setMessages(restored);
+    setMessagesa(restored as WeMessages);
+    setActiveChatUuid(chatUuid);
+    scrollToBottom();
+  }, [chatUuid]);
 
   // Listen for auto-prompt from AppGen landing page (placed here, after useChat, so isLoading/append are defined)
   useEffect(() => {
@@ -724,9 +767,27 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         if (project) {
           setProjectData(project);
 
+          // Reopen the conversation that produced this app. It lives in the
+          // database, so coming back from another machine lands in the same
+          // chat instead of starting over.
+          const chatSession = await getProjectChatSession(projectId);
+          const hasStoredSession = !!chatSession?.messages?.length;
+
+          if (hasStoredSession) {
+            hasRestoredSessionRef.current = true;
+            pendingSessionRef.current = {
+              sessionId: chatSession!.sessionId,
+              messages: chatSession!.messages,
+            };
+            setChatUuid(chatSession!.sessionId);
+            console.log(
+              `Restored chat session ${chatSession!.sessionId} (${chatSession!.messages.length} messages)`
+            );
+          }
+
           // Check if generation already exists
           const existingGeneration = await getProjectGeneration(projectId);
-          if (existingGeneration) {
+          if (existingGeneration || hasStoredSession) {
             setHasGeneration(true);
             setIsGenerationComplete(true);
             console.log('Existing generation found for project:', project.name);
@@ -753,8 +814,10 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
               // Marquer les fichiers comme étant déjà envoyés (réinitialiser d'abord)
               setIsFirstSend();
 
-              // Créer un message initial avec le code existant si on est en mode Builder
-              if (mode === ChatMode.Builder && messages.length === 0) {
+              // Créer un message initial avec le code existant si on est en mode Builder.
+              // Inutile quand une conversation a été restaurée : elle porte déjà
+              // son historique et le contexte fichiers est réinjecté séparément.
+              if (mode === ChatMode.Builder && messages.length === 0 && !hasRestoredSessionRef.current) {
                 const boltAction = convertToBoltAction(existingCode);
                 setMessages([
                   {
@@ -846,18 +909,14 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     }
   };
 
-  // Fonction pour sauvegarder automatiquement le code sur Firebase Storage
-  const saveCodeToFirebase = async (generatedFiles: Record<string, string>) => {
+  // Sauvegarde manuelle du code dans le bucket (delta uniquement)
+  const saveCodeToStorage = async (generatedFiles: Record<string, string>) => {
     if (!projectId || !generatedFiles || Object.keys(generatedFiles).length === 0) return;
 
     try {
-      console.log('Saving code to Firebase Storage for project:', projectId);
+      console.log('Saving code to object storage for project:', projectId);
 
-      // Create ZIP from generated files
-      const zipBlob = await createZipFromFiles(generatedFiles);
-
-      // Upload ZIP to backend (Firebase Storage)
-      await sendZipToBackend(projectId, zipBlob);
+      await pushProjectCode(projectId, generatedFiles);
 
       toast.success(
         t('chat.success.firebase_save_success', {
@@ -865,7 +924,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         })
       );
     } catch (error) {
-      console.error('Error saving code to Firebase Storage:', error);
+      console.error('Error saving code to object storage:', error);
       toast.error(t('chat.errors.firebase_save_failed'));
     }
   };
@@ -893,6 +952,21 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       document.removeEventListener('visibilitychange', visibleFun);
     };
   }, [isLoading, files]);
+
+  // Keep the bucket in step with manual edits made in the IDE. Debounced, and
+  // idle while streaming — the generation path syncs on its own in onFinish.
+  useEffect(() => {
+    if (!projectId || isLoading || !isProjectLoaded) return;
+    if (Object.keys(files).length === 0) return;
+
+    const timer = setTimeout(() => {
+      pushProjectCode(projectId, files).catch((error) =>
+        console.error('Incremental code sync failed:', error)
+      );
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [files, isLoading, projectId, isProjectLoaded]);
 
   useEffect(() => {
     if (Date.now() - parseTimeRef.current > 200 && isLoading) {

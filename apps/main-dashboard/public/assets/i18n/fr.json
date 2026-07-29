@@ -846,6 +846,31 @@
       "modeChat": "Conversation",
       "modeForm": "Formulaire",
       "switchToForm": "Passer au formulaire",
+      "modeChoice": {
+        "badge": "Mode d'accompagnement",
+        "title": "Comment souhaitez-vous continuer ?",
+        "subtitle": "Votre description est enregistrée. Choisissez l'expérience qui vous convient le mieux pour finaliser la création de votre projet.",
+        "backToDescription": "Modifier la description",
+        "form": {
+          "title": "Formulaire classique",
+          "tag": "Saisie étape par étape",
+          "description": "Remplissez un formulaire structuré étape par étape pour renseigner les détails techniques et fonctionnels de votre projet.",
+          "feature1": "Vue d'ensemble claire et rapide",
+          "feature2": "Champs structurés et guidés",
+          "feature3": "Contrôle direct sur chaque paramètre",
+          "button": "Continuer avec le formulaire"
+        },
+        "chat": {
+          "title": "Interface Chat interactive",
+          "badge": "Recommandé",
+          "tag": "IA Assistée",
+          "description": "Une interface de chat simple et facile à prendre en main pour vous guider et utiliser toutes les fonctionnalités d'IDEM.",
+          "feature1": "Accompagnement IA intelligent et personnalisé",
+          "feature2": "Accès simple à toutes les fonctionnalités IDEM",
+          "feature3": "Expérience fluide, dynamique et interactive",
+          "button": "Démarrer avec le Chat"
+        }
+      },
       "foundations": {
         "title": "Parlons de votre projet",
         "subtitle": "Quelques bases pour démarrer — l'IA s'occupe du reste en conversation.",
@@ -862,12 +887,15 @@
       "subtitle": "Vous pouvez importer votre logo existant ou laisser notre IA en créer un pour vous",
       "import": {
         "title": "J'ai déjà un logo",
-        "description": "Importez votre fichier logo existant. Nous l'optimiserons et le convertirons en format vectoriel propre."
+        "description": "Importez votre fichier logo existant. Nous l'optimiserons et le convertirons en format vectoriel propre.",
+        "tag": "Fichier existant",
+        "button": "Importer mon logo"
       },
       "ai": {
         "title": "Créer avec l'IA",
-        "description": "Laissez notre IA générer des concepts de logo uniques basés sur l'identité de votre projet.",
-        "badge": "Propulsé par l'IA"
+        "description": "Laissez notre IA générer des concepts de logo uniques et sur-mesure basés sur l'identité de votre projet.",
+        "badge": "Recommandé",
+        "button": "Générer avec l'IA"
       },
       "backToChoice": "Retour aux options",
       "continueWithLogo": "Continuer avec ce logo",
@@ -1625,7 +1653,8 @@
         "selectProject": "Sélectionner un projet",
         "generate": "Générer l'identité de marque",
         "viewIdentity": "Voir mon identité visuelle",
-        "generateIdentity": "Générer mon identité visuelle"
+        "generateIdentity": "Générer mon identité visuelle",
+        "edit": "Éditer"
       },
       "tooltips": {
         "downloadZip": "Télécharger tous les logos dans un fichier ZIP"
@@ -1846,7 +1875,8 @@
       "buttons": {
         "backToProjects": "Retour aux projets",
         "generate": "Générer le plan d'affaires",
-        "selectProject": "Sélectionner un projet"
+        "selectProject": "Sélectionner un projet",
+        "edit": "Éditer"
       },
       "empty": {
         "title": "Aucun plan d'affaires pour le moment",
@@ -1901,7 +1931,10 @@
         "download": "Impossible de télécharger le PDF.",
         "pdfLoad": "Impossible de charger l’aperçu PDF."
       },
-      "loadingPdf": "Chargement de l’aperçu PDF…"
+      "loadingPdf": "Chargement de l’aperçu PDF…",
+      "buttons": {
+        "edit": "Éditer"
+      }
     },
     "legalDocs": {
       "title": "Documents juridiques",
@@ -2194,6 +2227,399 @@
           "Brand Mockup 3": "Mockup 3"
         }
       }
+    },
+    "researchConsole": {
+      "title": "Équipe de recherche IA",
+      "subtitle": "Vos agents collectent des données réelles et sourcées, en direct",
+      "dialogTitle": "Génération sourcée par l'IA",
+      "viewResults": "Voir mes prévisions",
+      "countersLabel": "Statistiques de la recherche",
+      "counters": {
+        "agents": "agents actifs",
+        "queries": "recherches",
+        "sources": "sources",
+        "sections": "sections"
+      },
+      "team": {
+        "title": "Équipe",
+        "empty": "En attente du démarrage des agents…"
+      },
+      "feed": {
+        "title": "Activité en direct",
+        "empty": "Aucune activité pour le moment",
+        "starting": "Démarrage de la recherche…"
+      },
+      "roles": {
+        "orchestrator": "Chef d'équipe",
+        "researcher": "Chercheur",
+        "writer": "Rédacteur",
+        "verifier": "Vérificateur"
+      },
+      "agentStatus": {
+        "queued": "En attente",
+        "planning": "Planification",
+        "searching": "Recherche web",
+        "reading": "Lecture",
+        "writing": "Rédaction",
+        "verifying": "Vérification",
+        "done": "Terminé",
+        "error": "Erreur"
+      },
+      "kinds": {
+        "agent_status": "Étape",
+        "search_query": "Recherche",
+        "source_found": "Source trouvée",
+        "finding": "Donnée clé",
+        "section_drafted": "Section rédigée",
+        "verification": "Vérifié",
+        "note": "Note"
+      },
+      "sources": {
+        "title": "Sources citées"
+      },
+      "sections": {
+        "title": "Vérification par section",
+        "cited": "cité(s)",
+        "uncited": "non sourcé(s)"
+      },
+      "phase": {
+        "businessPlan": {
+          "running": {
+            "title": "Nous préparons votre business plan"
+          },
+          "finalizing": {
+            "title": "Presque terminé…"
+          },
+          "done": {
+            "title": "Votre business plan est prêt"
+          }
+        },
+        "finance": {
+          "running": {
+            "title": "Nous calons vos prévisions financières"
+          },
+          "finalizing": {
+            "title": "Presque terminé…"
+          },
+          "done": {
+            "title": "Vos prévisions sont prêtes"
+          }
+        },
+        "subtitle": {
+          "running": "Nos assistants recherchent des données de marché réelles et vérifient chaque chiffre.",
+          "finalizing": "Nous mettons votre document en forme.",
+          "done": "Toutes les données sont sourcées et vérifiées."
+        }
+      },
+      "progress": {
+        "sectionsProgress": "{{done}} sur {{total}} sections terminées"
+      },
+      "sectionStatus": {
+        "done": "Terminé",
+        "pending": "En attente"
+      },
+      "action": {
+        "researching": "Recherche de données de marché…",
+        "writing": "Rédaction en cours…",
+        "verifying": "Vérification des sources…",
+        "analyzing": "Analyse…"
+      },
+      "trust": {
+        "title": "{{count}} sources vérifiées",
+        "subtitle": "Chaque donnée chiffrée renvoie à une source réelle. Aucune statistique inventée.",
+        "showSources": "Voir les sources",
+        "hideSources": "Masquer les sources"
+      },
+      "details": {
+        "show": "Voir le détail de la recherche",
+        "hide": "Masquer le détail",
+        "meta": "{{queries}} recherches · {{sources}} sources"
+      },
+      "financeTopics": {
+        "pricing": "Prix de marché",
+        "costs": "Structure de coûts",
+        "taxes": "Fiscalité et charges",
+        "growth": "Croissance du marché"
+      },
+      "now": {
+        "live": "En direct",
+        "preparing": "Préparation",
+        "starting": "Nous analysons votre projet",
+        "almost": "Dernière ligne droite",
+        "finalizing": "Mise en forme de votre document",
+        "completed": "Terminé",
+        "done": "Toutes les sections sont prêtes"
+      },
+      "journey": {
+        "title": "Étapes",
+        "sources": "{{count}} source(s)"
+      },
+      "foot": {
+        "note": "Aucune donnée inventée · {{queries}} recherches"
+      }
+    },
+    "documentEditor": {
+      "businessPlan": {
+        "title": "Éditeur du business plan"
+      },
+      "canvasLabel": "Aperçu du document",
+      "inspector": "Propriétés",
+      "loading": "Chargement du document…",
+      "toolbar": {
+        "back": "Retour",
+        "subtitle": "Double-cliquez un texte pour le modifier",
+        "undo": "Annuler",
+        "redo": "Rétablir",
+        "zoomOut": "Dézoomer",
+        "zoomIn": "Zoomer",
+        "save": "Enregistrer",
+        "saving": "Enregistrement…",
+        "saved": "Enregistré",
+        "saveError": "Échec de l'enregistrement",
+        "unsaved": "Modifications non enregistrées",
+        "upToDate": "À jour"
+      },
+      "layers": {
+        "title": "Pages du document",
+        "pages": "Pages"
+      },
+      "emptySelection": {
+        "title": "Aucun élément sélectionné",
+        "subtitle": "Cliquez un élément pour modifier ses propriétés, ou double-cliquez un texte pour l'éditer directement."
+      },
+      "props": {
+        "heading": "Propriétés",
+        "textColor": "Couleur du texte",
+        "bgColor": "Fond",
+        "clearBg": "Retirer le fond",
+        "fontSize": "Taille",
+        "fontWeight": "Graisse",
+        "align": "Alignement",
+        "opacity": "Opacité",
+        "arrange": "Disposition",
+        "moveUp": "Monter",
+        "moveDown": "Descendre",
+        "delete": "Supprimer l'élément"
+      },
+      "chart": {
+        "heading": "Graphique",
+        "type": "Type",
+        "types": {
+          "bar": "Barres",
+          "line": "Courbes",
+          "pie": "Camembert",
+          "doughnut": "Anneau",
+          "radar": "Radar",
+          "polarArea": "Aire polaire"
+        },
+        "legend": "Légende",
+        "showLegend": "Afficher",
+        "title": "Titre du graphique",
+        "labels": "Libellés",
+        "sliceColor": "Couleur du secteur",
+        "removeLabel": "Retirer le libellé",
+        "datasets": "Séries",
+        "seriesColor": "Couleur de la série",
+        "seriesName": "Nom de la série",
+        "removeSeries": "Retirer la série",
+        "value": "Valeur"
+      },
+      "ai": {
+        "title": "Édition par IA",
+        "placeholder": "Décrivez la modification à apporter à cette section…",
+        "working": "Modification en cours…",
+        "apply": "Appliquer avec l'IA",
+        "hint": "L'IA tient compte de tout le contexte du projet pour modifier la section."
+      },
+      "error": {
+        "back": "Retour",
+        "noProject": {
+          "title": "Aucun projet sélectionné",
+          "subtitle": "Sélectionnez d'abord un projet pour éditer son business plan."
+        },
+        "load": {
+          "title": "Chargement impossible",
+          "subtitle": "Le document n'a pas pu être chargé. Réessayez depuis la page du business plan."
+        }
+      },
+      "attrs": {
+        "heading": "Attributs",
+        "name": "Nom",
+        "value": "Valeur",
+        "add": "Ajouter",
+        "remove": "Retirer l'attribut"
+      },
+      "pitchDeck": {
+        "title": "Éditeur du pitch deck"
+      },
+      "branding": {
+        "title": "Éditeur de la charte graphique"
+      }
+    },
+    "showCommunication": {
+      "eyebrow": "Moteur de communication",
+      "title": "Communication & calendrier éditorial",
+      "subtitle": "Stratégie, calendrier, moments ponctuels et publication — pour faire vivre votre marque au quotidien.",
+      "loading": "Chargement du moteur de communication…",
+      "comingSoon": "Bientôt",
+      "tabs": {
+        "strategy": "Stratégie",
+        "calendar": "Calendrier",
+        "moments": "Moments",
+        "publishing": "Publication"
+      },
+      "selectProject": {
+        "title": "Sélectionnez un projet",
+        "body": "Choisissez un projet dans votre liste pour générer vos contenus de communication.",
+        "cta": "Voir mes projets"
+      },
+      "status": {
+        "idea": "Idée",
+        "approved": "Approuvé",
+        "scheduled": "Planifié",
+        "published": "Publié"
+      },
+      "intent": {
+        "label": "Intention",
+        "awareness": "Notoriété",
+        "celebration": "Célébration",
+        "promotion": "Promotion",
+        "recruitment": "Recrutement",
+        "announcement": "Annonce"
+      },
+      "strategy": {
+        "empty": {
+          "title": "Générez votre stratégie de communication",
+          "body": "Nous extrayons un contexte compact de votre projet, captons des signaux de tendance légers et produisons une stratégie structurée et éditable.",
+          "cta": "Générer la stratégie"
+        },
+        "context": {
+          "brand": "Marque",
+          "type": "Type",
+          "tone": "Ton"
+        },
+        "summaryLabel": "Résumé de la stratégie",
+        "regenerate": "Régénérer",
+        "save": "Enregistrer",
+        "saved": "Modifications enregistrées",
+        "trendsTitle": "Signaux de tendance utilisés",
+        "blockKinds": {
+          "positioning": "Positionnement",
+          "pillars": "Piliers de contenu",
+          "messaging": "Messages clés",
+          "channels": "Canaux",
+          "cadence": "Cadence",
+          "kpis": "Indicateurs",
+          "tone": "Ton de voix",
+          "custom": "Bloc libre"
+        }
+      },
+      "calendar": {
+        "empty": {
+          "title": "Construisez votre calendrier éditorial",
+          "body": "Nous produisons 4 semaines d'idées de contenu — titres, accroches, formats, canaux — pour choisir quoi publier. Les visuels ne sont générés qu'à la demande.",
+          "cta": "Générer le calendrier",
+          "needStrategy": "Générez d'abord une stratégie pour un calendrier plus pertinent."
+        },
+        "filters": {
+          "channel": "Canal",
+          "format": "Format",
+          "allChannels": "Tous les canaux",
+          "allFormats": "Tous les formats"
+        },
+        "regenerate": "Régénérer le calendrier",
+        "week": "Semaine",
+        "ideas": "idées",
+        "generateVisual": "Visuel",
+        "schedule": "Programmer"
+      },
+      "visual": {
+        "eyebrow": "Visuel du contenu",
+        "format": "Format",
+        "generate": "Générer le visuel",
+        "regenerate": "Régénérer",
+        "download": "Télécharger le PNG",
+        "close": "Fermer",
+        "generating": "Recherche d'image, analyse et composition du visuel…",
+        "loadingImage": "Chargement de l'image rendue…",
+        "noneTitle": "Pas encore de visuel",
+        "noneBody": "Cliquez sur « Générer le visuel » pour créer un visuel. Nous cherchons d'abord dans les banques d'images libres, puis basculons sur la génération IA.",
+        "notRendered": "Visuel généré mais pas encore rendu en PNG.",
+        "placeholder": "Le texte marketing et le concept apparaîtront ici après génération.",
+        "sourceStock": "Photo de stock",
+        "sourceGenerated": "Généré par IA",
+        "by": "par",
+        "scan": "Analyse de l'image",
+        "mood": "Ambiance",
+        "concept": "Concept",
+        "layout": "Notes de mise en page",
+        "headline": "Titre",
+        "subheadline": "Sous-titre",
+        "body": "Corps du texte",
+        "cta": "Appel à l'action",
+        "logoUsed": "Déclinaison de logo utilisée"
+      },
+      "moments": {
+        "eyebrow": "Moments ponctuels",
+        "empty": {
+          "title": "Faites vivre votre marque au fil des occasions",
+          "body": "Fêtes nationales, recrutement, anniversaire de l'entreprise, promotions saisonnières… Générez un visuel ponctuel et un contenu prêt à publier en un clic.",
+          "cta": "Voir les occasions suggérées"
+        },
+        "suggestionsTitle": "Occasions suggérées",
+        "refresh": "Actualiser les suggestions",
+        "createTitle": "Créer un moment libre",
+        "createBody": "Décrivez l'occasion et Idem génère le visuel et le contenu publiable.",
+        "generate": "Générer",
+        "generateVisual": "Générer le visuel",
+        "fields": {
+          "occasion": "Occasion",
+          "occasionPlaceholder": "Ex. : Journée mondiale de l'environnement, ouverture d'un poste…",
+          "date": "Date",
+          "message": "Message / angle",
+          "messagePlaceholder": "Ce que vous voulez dire pour cette occasion",
+          "intent": "Intention"
+        },
+        "loadingSuggestions": "Recherche d'occasions pertinentes pour votre marque…",
+        "noSuggestions": "Aucune suggestion pour le moment. Créez un moment libre ci-dessous."
+      },
+      "publishing": {
+        "eyebrow": "Publication",
+        "empty": {
+          "title": "Publiez sur vos réseaux depuis Idem",
+          "body": "Préparez, programmez et publiez vos visuels et légendes sur LinkedIn et X. Connectez d'abord un réseau ou utilisez la publication assistée.",
+          "cta": "Préparer une publication"
+        },
+        "queueTitle": "File de publication",
+        "readyTitle": "Prêt à publier",
+        "readyHint": "Vos contenus disposant d'un visuel. Préparez une publication assistée sur un réseau.",
+        "noPublishable": "Générez d'abord un visuel (onglet Calendrier ou Moments) pour préparer une publication.",
+        "prepareOn": "Préparer sur",
+        "downloadVisual": "Télécharger le visuel",
+        "assistedNote": "Publication assistée : Idem copie la légende, télécharge le visuel et ouvre le composer du réseau. Vous finalisez la publication sur le réseau.",
+        "publishAssisted": "Publier (assisté)",
+        "markPublished": "Marquer comme publié",
+        "openComposer": "Ouvrir le composer",
+        "copyCaption": "Copier la légende",
+        "captionCopied": "Légende copiée",
+        "networks": {
+          "linkedin": "LinkedIn",
+          "x": "X (Twitter)"
+        },
+        "scheduleAt": "Programmer le",
+        "scheduledFor": "Programmé pour"
+      },
+      "errors": {
+        "load": "Échec du chargement des données de communication",
+        "checkProject": "Erreur lors de la vérification du projet",
+        "strategy": "Échec de la génération de la stratégie",
+        "calendar": "Échec de la génération du calendrier",
+        "flyer": "Échec de la génération du visuel",
+        "saveStrategy": "Échec de l'enregistrement de la stratégie",
+        "updateContent": "Échec de la mise à jour du contenu",
+        "moments": "Échec de la génération du moment",
+        "publish": "Échec de la publication"
+      }
     }
   },
   "deployment": {
@@ -2283,7 +2709,10 @@
       "financeCashflow": "Finance Flux de trésorerie",
       "financeRatios": "Finance Ratios",
       "createProject": "Créer un projet",
-      "notFound": "Page non trouvée"
+      "notFound": "Page non trouvée",
+      "businessPlanEdit": "Édition du business plan",
+      "pitchDeckEdit": "Édition du pitch deck",
+      "brandingEdit": "Édition de la charte graphique"
     }
   },
   "notFound": {
@@ -2373,7 +2802,10 @@
       "pitchDeck": "Pitch Deck",
       "diagrams": "Diagrammes",
       "legalDocs": "Documents juridiques",
-      "finance": "Rapport financier"
+      "finance": "Rapport financier",
+      "communication": "Communication",
+      "development": "Développement",
+      "deployment": "Déploiement"
     },
     "card": {
       "updatedAt": "Modifié le",
@@ -2397,7 +2829,8 @@
         "typography": "Typographie"
       },
       "diagramsSection": "Diagrammes d'architecture",
-      "financeSection": "Modèle financier complet"
+      "financeSection": "Modèle financier complet",
+      "developmentSection": "Configuration de développement"
     },
     "preview": {
       "download": "Télécharger",
@@ -2435,7 +2868,10 @@
         "pitchDeck": "Voir mon pitch deck",
         "diagrams": "Voir mes diagrammes",
         "legalDocs": "Voir mes documents juridiques",
-        "finance": "Voir mon rapport financier"
+        "finance": "Voir mon rapport financier",
+        "communication": "Voir ma communication",
+        "development": "Voir mon développement",
+        "deployment": "Voir mes déploiements"
       },
       "generate": {
         "businessPlan": "Rédiger mon business plan",
@@ -2443,7 +2879,10 @@
         "pitchDeck": "Générer mon pitch deck",
         "diagrams": "Générer mes diagrammes",
         "legalDocs": "Créer mes documents juridiques",
-        "finance": "Compléter mes finances"
+        "finance": "Compléter mes finances",
+        "communication": "Générer ma communication",
+        "development": "Configurer le développement",
+        "deployment": "Configurer le déploiement"
       }
     },
     "recap": {
@@ -2673,7 +3112,10 @@
         "pitchDeck": "La présentation pour convaincre vos investisseurs.",
         "finance": "Prévisions et tableaux financiers.",
         "diagrams": "Schémas d'architecture et diagrammes techniques.",
-        "legalDocs": "Statuts, CGU, contrats et mentions légales."
+        "legalDocs": "Statuts, CGU, contrats et mentions légales.",
+        "communication": "Stratégie, calendrier éditorial et flyers.",
+        "development": "Génération de votre application ou site web.",
+        "deployment": "Déploiement de votre infrastructure et mise en ligne."
       },
       "state": {
         "ready": "Prêt",
@@ -2685,6 +3127,50 @@
       },
       "open": "Ouvrir",
       "brandCalloutHint": "Logo, couleurs et typographie — la base de tous vos livrables."
+    },
+    "legal": {
+      "intro": "Créons vos **documents juridiques**. Quel document voulez-vous générer ? (Pour des statuts précis — capital, associés — complétez le contexte dans l'éditeur.)",
+      "chips": {
+        "essentials": "Pack essentiel (CGU, CGV, confidentialité, mentions)",
+        "cgu": "CGU",
+        "cgv": "CGV",
+        "privacy": "Politique de confidentialité",
+        "statutes": "Statuts (SAS)",
+        "nda": "Accord de confidentialité (NDA)",
+        "editor": "Voir tout le catalogue"
+      }
+    },
+    "comm": {
+      "intro": "Passons à votre **communication**. Je peux définir votre stratégie éditoriale et bâtir un calendrier de contenus. Par quoi commençons-nous ?",
+      "introNeedsBranding": "Passons à votre **communication**. 💡 Astuce : complétez d'abord votre identité de marque pour des visuels cohérents. Par quoi commençons-nous ?",
+      "strategyTitle": "Stratégie de communication",
+      "calendarTitle": "Calendrier éditorial",
+      "strategyDone": "✅ Votre **stratégie de communication** est prête ! Vous pouvez maintenant générer votre calendrier éditorial ou l'affiner dans l'éditeur.",
+      "calendarDone": "✅ Votre **calendrier éditorial** est prêt ! Ouvrez l'éditeur pour créer des flyers ou ajuster vos contenus.",
+      "steps": {
+        "context": "Analyse du contexte",
+        "trends": "Repérage des tendances",
+        "strategy": "Rédaction de la stratégie",
+        "calendar": "Construction du calendrier"
+      },
+      "chips": {
+        "strategy": "Générer la stratégie",
+        "calendar": "Générer le calendrier"
+      }
+    },
+    "dev": {
+      "intro": "L'**atelier de développement** génère le code de votre application ou site web (landing, app web, PWA…) à partir de votre projet. Ouvrez-le pour choisir votre configuration.",
+      "chips": {
+        "open": "Ouvrir l'atelier de développement",
+        "view": "Voir ma configuration"
+      }
+    },
+    "deploy": {
+      "intro": "L'**assistant de déploiement** met votre projet en ligne (infrastructure, Terraform, CI/CD). Il a besoin d'un dépôt Git. Lançons un déploiement ou consultons les précédents.",
+      "chips": {
+        "start": "Lancer un déploiement",
+        "list": "Voir mes déploiements"
+      }
     }
   }
 }

@@ -843,6 +843,31 @@
       "modeChat": "Conversation",
       "modeForm": "Form",
       "switchToForm": "Switch to form",
+      "modeChoice": {
+        "badge": "Onboarding Mode",
+        "title": "How would you like to proceed?",
+        "subtitle": "Your description is saved. Choose the experience that best fits your workflow to complete your project setup.",
+        "backToDescription": "Edit description",
+        "form": {
+          "title": "Classic Form",
+          "tag": "Step-by-step input",
+          "description": "Fill out a structured step-by-step form to configure the technical and functional details of your project.",
+          "feature1": "Clear and fast overview",
+          "feature2": "Structured & guided fields",
+          "feature3": "Direct control over all parameters",
+          "button": "Continue with Form"
+        },
+        "chat": {
+          "title": "Interactive Chat Interface",
+          "badge": "Recommended",
+          "tag": "AI Assisted",
+          "description": "A simple and easy-to-use chat interface to guide you and unlock all IDEM features effortlessly.",
+          "feature1": "Smart and personalized AI assistance",
+          "feature2": "Easy access to all IDEM features",
+          "feature3": "Smooth, dynamic & interactive experience",
+          "button": "Start with Chat"
+        }
+      },
       "foundations": {
         "title": "Let's talk about your project",
         "subtitle": "A few basics to start — the AI handles the rest in conversation.",
@@ -859,12 +884,15 @@
       "subtitle": "You can import your existing logo or let our AI create one for you",
       "import": {
         "title": "I already have a logo",
-        "description": "Upload your existing logo file. We'll optimize it and convert it to a clean vector format."
+        "description": "Upload your existing logo file. We'll optimize it and convert it to a clean vector format.",
+        "tag": "Existing file",
+        "button": "Import my logo"
       },
       "ai": {
         "title": "Create with AI",
-        "description": "Let our AI generate unique logo concepts based on your project's identity.",
-        "badge": "AI Powered"
+        "description": "Let our AI generate unique custom logo concepts based on your project's identity.",
+        "badge": "Recommended",
+        "button": "Generate with AI"
       },
       "backToChoice": "Back to options",
       "continueWithLogo": "Continue with this logo",
@@ -1622,7 +1650,8 @@
         "selectProject": "Select Project",
         "generate": "Generate Brand Identity",
         "viewIdentity": "View My Visual Identity",
-        "generateIdentity": "Generate My Visual Identity"
+        "generateIdentity": "Generate My Visual Identity",
+        "edit": "Edit"
       },
       "tooltips": {
         "downloadZip": "Download all logos in a ZIP file"
@@ -1843,7 +1872,8 @@
       "buttons": {
         "backToProjects": "Back to Projects",
         "generate": "Generate Business Plan",
-        "selectProject": "Select a Project"
+        "selectProject": "Select a Project",
+        "edit": "Edit"
       },
       "empty": {
         "title": "No Business Plan Yet",
@@ -1898,7 +1928,10 @@
         "download": "Could not download the PDF.",
         "pdfLoad": "Could not load the PDF preview."
       },
-      "loadingPdf": "Loading PDF preview…"
+      "loadingPdf": "Loading PDF preview…",
+      "buttons": {
+        "edit": "Edit"
+      }
     },
     "legalDocs": {
       "title": "Legal Documents",
@@ -2191,6 +2224,399 @@
           "Brand Mockup 3": "Mockup 3"
         }
       }
+    },
+    "researchConsole": {
+      "title": "AI research team",
+      "subtitle": "Your agents gather real, sourced data, live",
+      "dialogTitle": "AI sourced generation",
+      "viewResults": "View my forecast",
+      "countersLabel": "Research statistics",
+      "counters": {
+        "agents": "active agents",
+        "queries": "searches",
+        "sources": "sources",
+        "sections": "sections"
+      },
+      "team": {
+        "title": "Team",
+        "empty": "Waiting for the agents to start…"
+      },
+      "feed": {
+        "title": "Live activity",
+        "empty": "No activity yet",
+        "starting": "Starting the research…"
+      },
+      "roles": {
+        "orchestrator": "Team lead",
+        "researcher": "Researcher",
+        "writer": "Writer",
+        "verifier": "Verifier"
+      },
+      "agentStatus": {
+        "queued": "Queued",
+        "planning": "Planning",
+        "searching": "Web search",
+        "reading": "Reading",
+        "writing": "Writing",
+        "verifying": "Verifying",
+        "done": "Done",
+        "error": "Error"
+      },
+      "kinds": {
+        "agent_status": "Step",
+        "search_query": "Searching",
+        "source_found": "Source found",
+        "finding": "Key data",
+        "section_drafted": "Section written",
+        "verification": "Verified",
+        "note": "Note"
+      },
+      "sources": {
+        "title": "Cited sources"
+      },
+      "sections": {
+        "title": "Per-section verification",
+        "cited": "cited",
+        "uncited": "unsourced"
+      },
+      "phase": {
+        "businessPlan": {
+          "running": {
+            "title": "We're building your business plan"
+          },
+          "finalizing": {
+            "title": "Almost there…"
+          },
+          "done": {
+            "title": "Your business plan is ready"
+          }
+        },
+        "finance": {
+          "running": {
+            "title": "We're setting your financial forecast"
+          },
+          "finalizing": {
+            "title": "Almost there…"
+          },
+          "done": {
+            "title": "Your forecast is ready"
+          }
+        },
+        "subtitle": {
+          "running": "Our assistants look up real market data and check every figure.",
+          "finalizing": "We're putting your document together.",
+          "done": "Every figure is sourced and verified."
+        }
+      },
+      "progress": {
+        "sectionsProgress": "{{done}} of {{total}} sections done"
+      },
+      "sectionStatus": {
+        "done": "Done",
+        "pending": "Waiting"
+      },
+      "action": {
+        "researching": "Looking up market data…",
+        "writing": "Writing…",
+        "verifying": "Checking sources…",
+        "analyzing": "Analyzing…"
+      },
+      "trust": {
+        "title": "{{count}} verified sources",
+        "subtitle": "Every figure links to a real source. Nothing is made up.",
+        "showSources": "View sources",
+        "hideSources": "Hide sources"
+      },
+      "details": {
+        "show": "See research details",
+        "hide": "Hide details",
+        "meta": "{{queries}} searches · {{sources}} sources"
+      },
+      "financeTopics": {
+        "pricing": "Market pricing",
+        "costs": "Cost structure",
+        "taxes": "Taxes and charges",
+        "growth": "Market growth"
+      },
+      "now": {
+        "live": "Live",
+        "preparing": "Getting ready",
+        "starting": "We're analyzing your project",
+        "almost": "Final stretch",
+        "finalizing": "Putting your document together",
+        "completed": "Done",
+        "done": "All sections are ready"
+      },
+      "journey": {
+        "title": "Steps",
+        "sources": "{{count}} source(s)"
+      },
+      "foot": {
+        "note": "Nothing made up · {{queries}} searches"
+      }
+    },
+    "documentEditor": {
+      "businessPlan": {
+        "title": "Business plan editor"
+      },
+      "canvasLabel": "Document preview",
+      "inspector": "Properties",
+      "loading": "Loading document…",
+      "toolbar": {
+        "back": "Back",
+        "subtitle": "Double-click any text to edit it",
+        "undo": "Undo",
+        "redo": "Redo",
+        "zoomOut": "Zoom out",
+        "zoomIn": "Zoom in",
+        "save": "Save",
+        "saving": "Saving…",
+        "saved": "Saved",
+        "saveError": "Save failed",
+        "unsaved": "Unsaved changes",
+        "upToDate": "Up to date"
+      },
+      "layers": {
+        "title": "Document pages",
+        "pages": "Pages"
+      },
+      "emptySelection": {
+        "title": "No element selected",
+        "subtitle": "Click an element to edit its properties, or double-click text to edit it in place."
+      },
+      "props": {
+        "heading": "Properties",
+        "textColor": "Text color",
+        "bgColor": "Background",
+        "clearBg": "Clear background",
+        "fontSize": "Size",
+        "fontWeight": "Weight",
+        "align": "Alignment",
+        "opacity": "Opacity",
+        "arrange": "Arrange",
+        "moveUp": "Move up",
+        "moveDown": "Move down",
+        "delete": "Delete element"
+      },
+      "chart": {
+        "heading": "Chart",
+        "type": "Type",
+        "types": {
+          "bar": "Bar",
+          "line": "Line",
+          "pie": "Pie",
+          "doughnut": "Doughnut",
+          "radar": "Radar",
+          "polarArea": "Polar area"
+        },
+        "legend": "Legend",
+        "showLegend": "Show",
+        "title": "Chart title",
+        "labels": "Labels",
+        "sliceColor": "Slice color",
+        "removeLabel": "Remove label",
+        "datasets": "Series",
+        "seriesColor": "Series color",
+        "seriesName": "Series name",
+        "removeSeries": "Remove series",
+        "value": "Value"
+      },
+      "ai": {
+        "title": "AI editing",
+        "placeholder": "Describe the change you want for this section…",
+        "working": "Editing…",
+        "apply": "Apply with AI",
+        "hint": "The AI uses the whole project context to edit this section."
+      },
+      "error": {
+        "back": "Back",
+        "noProject": {
+          "title": "No project selected",
+          "subtitle": "Select a project first to edit its business plan."
+        },
+        "load": {
+          "title": "Could not load",
+          "subtitle": "The document failed to load. Try again from the business plan page."
+        }
+      },
+      "attrs": {
+        "heading": "Attributes",
+        "name": "Name",
+        "value": "Value",
+        "add": "Add",
+        "remove": "Remove attribute"
+      },
+      "pitchDeck": {
+        "title": "Pitch deck editor"
+      },
+      "branding": {
+        "title": "Brand identity editor"
+      }
+    },
+    "showCommunication": {
+      "eyebrow": "Communication engine",
+      "title": "Communication & editorial calendar",
+      "subtitle": "Strategy, calendar, timely moments and publishing — to keep your brand alive every day.",
+      "loading": "Loading communication engine…",
+      "comingSoon": "Soon",
+      "tabs": {
+        "strategy": "Strategy",
+        "calendar": "Calendar",
+        "moments": "Moments",
+        "publishing": "Publishing"
+      },
+      "selectProject": {
+        "title": "Select a project",
+        "body": "Choose a project from your list to start generating communication assets.",
+        "cta": "Go to my projects"
+      },
+      "status": {
+        "idea": "Idea",
+        "approved": "Approved",
+        "scheduled": "Scheduled",
+        "published": "Published"
+      },
+      "intent": {
+        "label": "Intent",
+        "awareness": "Awareness",
+        "celebration": "Celebration",
+        "promotion": "Promotion",
+        "recruitment": "Recruitment",
+        "announcement": "Announcement"
+      },
+      "strategy": {
+        "empty": {
+          "title": "Generate your communication strategy",
+          "body": "We extract a compact context from your project, pull lightweight trend signals, and produce a structured, editable strategy.",
+          "cta": "Generate strategy"
+        },
+        "context": {
+          "brand": "Brand",
+          "type": "Type",
+          "tone": "Tone"
+        },
+        "summaryLabel": "Strategy summary",
+        "regenerate": "Regenerate",
+        "save": "Save changes",
+        "saved": "Changes saved",
+        "trendsTitle": "Trend signals used",
+        "blockKinds": {
+          "positioning": "Positioning",
+          "pillars": "Content pillars",
+          "messaging": "Key messaging",
+          "channels": "Channels",
+          "cadence": "Cadence",
+          "kpis": "KPIs",
+          "tone": "Tone of voice",
+          "custom": "Custom block"
+        }
+      },
+      "calendar": {
+        "empty": {
+          "title": "Build your editorial calendar",
+          "body": "We'll produce 4 weeks of content ideas — titles, hooks, formats, channels — so you can pick what to publish. Visuals are only generated on demand.",
+          "cta": "Generate calendar",
+          "needStrategy": "Generate a strategy first to produce a more relevant calendar."
+        },
+        "filters": {
+          "channel": "Channel",
+          "format": "Format",
+          "allChannels": "All channels",
+          "allFormats": "All formats"
+        },
+        "regenerate": "Regenerate calendar",
+        "week": "Week",
+        "ideas": "ideas",
+        "generateVisual": "Visual",
+        "schedule": "Schedule"
+      },
+      "visual": {
+        "eyebrow": "Content visual",
+        "format": "Format",
+        "generate": "Generate visual",
+        "regenerate": "Regenerate",
+        "download": "Download PNG",
+        "close": "Close",
+        "generating": "Sourcing image, scanning, composing visual…",
+        "loadingImage": "Loading rendered image…",
+        "noneTitle": "No visual yet",
+        "noneBody": "Click “Generate visual” to create one. We search free stock libraries first, then fall back to AI generation.",
+        "notRendered": "Visual generated but not yet rendered as PNG.",
+        "placeholder": "Marketing text and concept will appear here after generation.",
+        "sourceStock": "Stock photo",
+        "sourceGenerated": "AI generated",
+        "by": "by",
+        "scan": "Image scan",
+        "mood": "Mood",
+        "concept": "Concept",
+        "layout": "Layout notes",
+        "headline": "Headline",
+        "subheadline": "Subheadline",
+        "body": "Body",
+        "cta": "Call to action",
+        "logoUsed": "Logo declension used"
+      },
+      "moments": {
+        "eyebrow": "Timely moments",
+        "empty": {
+          "title": "Keep your brand alive around every occasion",
+          "body": "National holidays, hiring, company anniversary, seasonal promos… Generate a one-off visual and ready-to-publish content in one click.",
+          "cta": "See suggested occasions"
+        },
+        "suggestionsTitle": "Suggested occasions",
+        "refresh": "Refresh suggestions",
+        "createTitle": "Create a free-form moment",
+        "createBody": "Describe the occasion and Idem generates the visual and publishable content.",
+        "generate": "Generate",
+        "generateVisual": "Generate visual",
+        "fields": {
+          "occasion": "Occasion",
+          "occasionPlaceholder": "e.g. World Environment Day, a new job opening…",
+          "date": "Date",
+          "message": "Message / angle",
+          "messagePlaceholder": "What you want to say for this occasion",
+          "intent": "Intent"
+        },
+        "loadingSuggestions": "Finding relevant occasions for your brand…",
+        "noSuggestions": "No suggestions right now. Create a free-form moment below."
+      },
+      "publishing": {
+        "eyebrow": "Publishing",
+        "empty": {
+          "title": "Publish to your networks from Idem",
+          "body": "Prepare, schedule and publish your visuals and captions to LinkedIn and X. Connect a network first or use assisted publishing.",
+          "cta": "Prepare a post"
+        },
+        "queueTitle": "Publishing queue",
+        "readyTitle": "Ready to publish",
+        "readyHint": "Your content that already has a visual. Prepare an assisted post on a network.",
+        "noPublishable": "Generate a visual first (Calendar or Moments tab) to prepare a post.",
+        "prepareOn": "Prepare on",
+        "downloadVisual": "Download visual",
+        "assistedNote": "Assisted publishing: Idem copies the caption, downloads the visual and opens the network composer. You finalize the post on the network.",
+        "publishAssisted": "Publish (assisted)",
+        "markPublished": "Mark as published",
+        "openComposer": "Open composer",
+        "copyCaption": "Copy caption",
+        "captionCopied": "Caption copied",
+        "networks": {
+          "linkedin": "LinkedIn",
+          "x": "X (Twitter)"
+        },
+        "scheduleAt": "Schedule for",
+        "scheduledFor": "Scheduled for"
+      },
+      "errors": {
+        "load": "Failed to load communication data",
+        "checkProject": "Error while checking the project",
+        "strategy": "Strategy generation failed",
+        "calendar": "Calendar generation failed",
+        "flyer": "Visual generation failed",
+        "saveStrategy": "Failed to save strategy",
+        "updateContent": "Failed to update content",
+        "moments": "Moment generation failed",
+        "publish": "Publishing failed"
+      }
     }
   },
   "deployment": {
@@ -2325,7 +2751,10 @@
       "financeCashflow": "Finance Cashflow",
       "financeRatios": "Finance Ratios",
       "createProject": "Create Project",
-      "notFound": "Page Not Found"
+      "notFound": "Page Not Found",
+      "businessPlanEdit": "Business Plan Editing",
+      "pitchDeckEdit": "Pitch Deck Editing",
+      "brandingEdit": "Brand Identity Editing"
     }
   },
   "notFound": {
@@ -2407,7 +2836,10 @@
       "pitchDeck": "Pitch Deck",
       "diagrams": "Diagrams",
       "legalDocs": "Legal Documents",
-      "finance": "Financial Report"
+      "finance": "Financial Report",
+      "communication": "Communication",
+      "development": "Development",
+      "deployment": "Deployment"
     },
     "card": {
       "updatedAt": "Updated",
@@ -2431,7 +2863,8 @@
         "typography": "Typography"
       },
       "diagramsSection": "Architecture diagrams",
-      "financeSection": "Full financial model"
+      "financeSection": "Full financial model",
+      "developmentSection": "Development configuration"
     },
     "preview": {
       "download": "Download",
@@ -2469,7 +2902,10 @@
         "pitchDeck": "Show my pitch deck",
         "diagrams": "Show my diagrams",
         "legalDocs": "Show my legal documents",
-        "finance": "Show my financial report"
+        "finance": "Show my financial report",
+        "communication": "Show my communication",
+        "development": "Show my development",
+        "deployment": "Show my deployments"
       },
       "generate": {
         "businessPlan": "Write my business plan",
@@ -2477,7 +2913,10 @@
         "pitchDeck": "Generate my pitch deck",
         "diagrams": "Generate my diagrams",
         "legalDocs": "Create my legal documents",
-        "finance": "Complete my finances"
+        "finance": "Complete my finances",
+        "communication": "Generate my communication",
+        "development": "Set up development",
+        "deployment": "Set up deployment"
       }
     },
     "recap": {
@@ -2707,7 +3146,10 @@
         "pitchDeck": "The deck to win over your investors.",
         "finance": "Financial forecasts and tables.",
         "diagrams": "Architecture and technical diagrams.",
-        "legalDocs": "Articles, terms, contracts and legal notices."
+        "legalDocs": "Articles, terms, contracts and legal notices.",
+        "communication": "Strategy, editorial calendar and flyers.",
+        "development": "Generation of your app or website.",
+        "deployment": "Deploy your infrastructure and go live."
       },
       "state": {
         "ready": "Ready",
@@ -2719,6 +3161,50 @@
       },
       "open": "Open",
       "brandCalloutHint": "Logo, colors and typography — the base of every deliverable."
+    },
+    "legal": {
+      "intro": "Let's create your **legal documents**. Which document would you like to generate? (For precise articles — capital, partners — fill in the context in the editor.)",
+      "chips": {
+        "essentials": "Essentials pack (Terms, Sales terms, Privacy, Legal notice)",
+        "cgu": "Terms of use",
+        "cgv": "Terms of sale",
+        "privacy": "Privacy policy",
+        "statutes": "Articles (SAS)",
+        "nda": "Non-disclosure agreement (NDA)",
+        "editor": "Browse the full catalog"
+      }
+    },
+    "comm": {
+      "intro": "Let's work on your **communication**. I can define your editorial strategy and build a content calendar. Where do we start?",
+      "introNeedsBranding": "Let's work on your **communication**. 💡 Tip: complete your brand identity first for consistent visuals. Where do we start?",
+      "strategyTitle": "Communication strategy",
+      "calendarTitle": "Editorial calendar",
+      "strategyDone": "✅ Your **communication strategy** is ready! You can now generate your editorial calendar or refine it in the editor.",
+      "calendarDone": "✅ Your **editorial calendar** is ready! Open the editor to create flyers or adjust your content.",
+      "steps": {
+        "context": "Analyzing context",
+        "trends": "Spotting trends",
+        "strategy": "Writing the strategy",
+        "calendar": "Building the calendar"
+      },
+      "chips": {
+        "strategy": "Generate the strategy",
+        "calendar": "Generate the calendar"
+      }
+    },
+    "dev": {
+      "intro": "The **development workshop** generates the code for your app or website (landing page, web app, PWA…) from your project. Open it to choose your configuration.",
+      "chips": {
+        "open": "Open the development workshop",
+        "view": "View my configuration"
+      }
+    },
+    "deploy": {
+      "intro": "The **deployment assistant** takes your project live (infrastructure, Terraform, CI/CD). It needs a Git repository. Let's start a deployment or review previous ones.",
+      "chips": {
+        "start": "Start a deployment",
+        "list": "View my deployments"
+      }
     }
   }
 }

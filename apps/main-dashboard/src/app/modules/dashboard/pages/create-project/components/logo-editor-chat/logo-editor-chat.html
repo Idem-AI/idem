@@ -95,10 +95,10 @@
               <div
                 class="bg-white rounded-2xl p-8 shadow-xl border-2 border-[var(--glass-border)] hover:border-primary transition-all max-w-md"
               >
-                <div
-                  class="w-64 h-64 flex items-center justify-center"
-                  [innerHTML]="message.logo.svg | safeHtml"
-                ></div>
+                <img class="w-64 h-64 flex items-center justify-center object-contain" [src]="message.logo.svg" alt="Logo" 
+                  
+                  
+                />
               </div>
 
               <!-- Select Button Overlay -->

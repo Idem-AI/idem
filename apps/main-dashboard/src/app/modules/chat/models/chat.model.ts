@@ -35,7 +35,10 @@ export type DeliverableKind =
   | 'pitchDeck'
   | 'diagrams'
   | 'legalDocs'
-  | 'finance';
+  | 'finance'
+  | 'communication'
+  | 'development'
+  | 'deployment';
 
 export type DeliverableSectionStatus = 'ready' | 'inProgress' | 'missing';
 
@@ -87,7 +90,11 @@ export type ChatChipAction =
   | 'bp-generate'
   | 'download-logos-zip'
   | 'preview'
-  | 'charte-regenerate';
+  | 'charte-regenerate'
+  | 'legal-type'
+  | 'comm-strategy'
+  | 'comm-calendar'
+  | 'open-route';
 
 export interface ChatChip {
   /** Clé i18n du label (prioritaire sur label) */

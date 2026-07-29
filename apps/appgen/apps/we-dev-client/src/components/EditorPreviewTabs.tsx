@@ -1,9 +1,10 @@
 import PreviewIframe from "./PreviewIframe";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useFileStore } from "./WeIde/stores/fileStore";
 import WeIde from "./WeIde";
 import useTerminalStore from "@/stores/terminalSlice";
 import WeAPI from "./WeAPI";
+import EditablePreview from "./EditMode/EditablePreview";
 import { useTranslation } from "react-i18next";
 // import { Diff } from "./Diff"; // Commenté car non utilisé ou inexistant
 
@@ -13,11 +14,16 @@ const EditorPreviewTabs: React.FC = () => {
   const [showIframe, setShowIframe] = useState<string>("editor");
   const [frameStyleMap, setFrameStyleMap] = useState<Record<string, string>>({
     editor: "translate-x-0 opacity-100",
+    edit: "translate-x-full opacity-100",
     weApi: "translate-x-full opacity-100",
     preview: "translate-x-full opacity-100",
     diff: "translate-x-full opacity-100"
   });
   const { t } = useTranslation();
+  // La bascule automatique vers l'onglet Preview ne doit se produire qu'au premier
+  // démarrage du serveur : les redémarrages (ex. instrumentation du mode Edit)
+  // ne doivent pas éjecter l'utilisateur de l'onglet courant.
+  const didAutoSwitchRef = useRef(false);
 
   const isMinPrograme = getFiles().includes("app.json");
 
@@ -48,6 +54,15 @@ const EditorPreviewTabs: React.FC = () => {
             }}
             icon={<EditorIcon />}
             label={t("editor.editor")}
+          />
+          <TabButton
+            active={showIframe == "edit"}
+            onClick={() => {
+              onToggle("edit");
+            }}
+            icon={<EditIcon />}
+            label={t("editor.edit")}
+            badge="NEW"
           />
           <TabButton
             active={showIframe == "preview"}
@@ -93,12 +108,23 @@ const EditorPreviewTabs: React.FC = () => {
           className={`
           absolute inset-0
           transform transition-all duration-500 ease-in-out
+      ${frameStyleMap["edit"]}
+        `}
+        >
+          <EditablePreview active={showIframe === "edit"} />
+        </div>
+        <div
+          className={`
+          absolute inset-0
+          transform transition-all duration-500 ease-in-out
       ${frameStyleMap["preview"]}
         `}
         >
           <PreviewIframe
             isMinPrograme={isMinPrograme}
             setShowIframe={(show) => {
+              if (didAutoSwitchRef.current) return;
+              didAutoSwitchRef.current = true;
               onToggle("preview");
               setShowIframe(show ? "preview" : "");
             }}
@@ -132,6 +158,7 @@ interface TabButtonProps {
   onClick: () => void;
   icon: React.ReactNode;
   label: string;
+  badge?: React.ReactNode;
 }
 
 const TabButton: React.FC<TabButtonProps> = ({
@@ -139,6 +166,7 @@ const TabButton: React.FC<TabButtonProps> = ({
   onClick,
   icon,
   label,
+  badge,
 }) => (
   <div
     onClick={onClick}
@@ -155,6 +183,11 @@ const TabButton: React.FC<TabButtonProps> = ({
   >
     {icon}
     <span className="translate">{label}</span>
+    {badge && (
+      <span className="ml-1 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-md bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs leading-none">
+        {badge}
+      </span>
+    )}
   </div>
 );
 
@@ -183,6 +216,30 @@ const EditorIcon = () => (
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
+    />
+  </svg>
+);
+
+const EditIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M12 20H21"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    <path
+      d="M16.5 3.5C16.8978 3.10218 17.4374 2.87868 18 2.87868C18.5626 2.87868 19.1022 3.10218 19.5 3.5C19.8978 3.89782 20.1213 4.43739 20.1213 5C20.1213 5.56261 19.8978 6.10218 19.5 6.5L7 19L3 20L4 16L16.5 3.5Z"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
     />
   </svg>
 );

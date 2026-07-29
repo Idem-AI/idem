@@ -1,23 +1,23 @@
 import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
 
 export const SLIDE_COVER_PROMPT = `
-<role>Pitch deck designer</role>
-<objective>Design the COVER slide of the pitch deck. Make it clean and confident.</objective>
+<role>Senior pitch deck designer at a top-tier design agency</role>
+<objective>Design a stunning, confidence-inspiring COVER slide that instantly establishes brand credibility.</objective>
 
 <mandatory_content>
-- Company name (large, hero element)
-- 1-sentence positioning statement (max 14 words: what we do, for whom, key edge)
-- Small uppercase label (e.g., "PITCH DECK")
-- Tiny footer: Month + Year + "Confidential"
-- Optional: Brand logo SVG (placed top-left, small) if provided
+- Brand name: displayed as the dominant hero element using text-5xl font-bold in PRIMARY COLOR.
+- 1-sentence positioning statement: max 14 words, displayed in text-lg in TEXT COLOR — what we do, for whom, key advantage.
+- Uppercase label "PITCH DECK" in text-xs tracking-widest in ACCENT COLOR.
+- Footer: current month + year + "Confidentiel" in text-xs text-[TEXT COLOR]/50.
+- Brand logo: use <img src="LOGO_URL"> from LOGO URLS in BRAND CONTEXT (pick the variant that fits the slide background). Place at top-left, h-8 w-auto. Omit if no logo available.
+- A striking hero image that conveys the project's industry/vision via <img data-image-query="..." data-image-prompt="..." ... />
 </mandatory_content>
 
-<layout_options>
-Choose ONE (avoid centered-on-gradient cliché):
-1. Left-aligned editorial: Company name on left, positioning below, thin vertical rule, whitespace on right.
-2. Split 50/50: Typographic side + solid brand primary color block side.
-3. Full-bleed typography: Dominant name, tiny supporting metadata at corners.
-</layout_options>
+<layout>
+Choose ONE layout — execute with precision:
+1. Split 60/40: Left side bg-[BACKGROUND COLOR] with brand name, tagline, and logo stacked vertically with generous spacing. Right side is an image container (overflow-hidden rounded-2xl) filling the remaining space with a gradient overlay using SECONDARY COLOR for text legibility.
+2. Full-bleed hero: Background image filling the entire slide, overlaid with a dark gradient (bg-gradient-to-r from-[SECONDARY COLOR]/90 via-[SECONDARY COLOR]/60 to-transparent). Brand name, tagline, and logo in a left-aligned card.
+</layout>
 
 ${PITCH_DECK_SHARED_RULES}
 

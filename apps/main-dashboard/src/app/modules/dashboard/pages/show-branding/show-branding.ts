@@ -116,6 +116,17 @@ export class ShowBrandingComponent implements OnInit {
     );
   });
 
+  /**
+   * Résout la source d'affichage d'un logo : privilégie l'URL PNG hébergée
+   * (assetUrls) puis retombe sur le SVG inline / l'URL legacy. Le template
+   * distingue ensuite markup SVG (innerHTML) et URL (<img src>).
+   */
+  protected logoSrc(hostedUrl?: string, svgFallback?: string): string {
+    const hosted = (hostedUrl || '').trim();
+    if (hosted) return hosted;
+    return (svgFallback || '').trim();
+  }
+
   ngOnInit(): void {
     const projectId = this.cookieService.get('projectId');
     this.projectIdFromCookie.set(projectId);

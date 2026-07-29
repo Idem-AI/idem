@@ -166,6 +166,36 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
+    path: 'project/business-plan/edit',
+    title: 'navigation.titles.businessPlanEdit',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/document-editor/document-editor').then(
+        (m) => m.DocumentEditorComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'empty', documentType: 'business-plan' },
+  },
+  {
+    path: 'project/pitch-deck/edit',
+    title: 'navigation.titles.pitchDeckEdit',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/document-editor/document-editor').then(
+        (m) => m.DocumentEditorComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'empty', documentType: 'pitch-deck' },
+  },
+  {
+    path: 'project/branding/edit',
+    title: 'navigation.titles.brandingEdit',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/document-editor/document-editor').then(
+        (m) => m.DocumentEditorComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'empty', documentType: 'branding' },
+  },
+  {
     path: 'project/communication',
     title: 'navigation.titles.communication',
     loadComponent: () =>

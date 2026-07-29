@@ -32,6 +32,11 @@ export class BrandingDisplayComponent implements OnInit {
   protected readonly pdfError = signal<string | null>(null);
   protected readonly loadError = signal<string | null>(null);
 
+  /** Ouvre l'éditeur WYSIWYG de la charte graphique. */
+  protected editBranding(): void {
+    this.router.navigate(['/project/branding/edit']);
+  }
+
   async ngOnInit(): Promise<void> {
     const projectId = this.cookieService.get('projectId');
     if (!projectId) {

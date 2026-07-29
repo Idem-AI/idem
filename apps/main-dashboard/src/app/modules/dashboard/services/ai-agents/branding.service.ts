@@ -186,16 +186,22 @@ export class BrandingService {
   ): Observable<{
     colors: ColorModel[];
     typography: TypographyModel[];
-    project: ProjectModel;
   }> {
     console.log('Generating colors and typography from imported logo...');
+    // Payload minimal : le backend recharge le projet via findById et ne lit du
+    // payload QUE l'id + quelques champs scalaires (name/description/type/scope/
+    // targets, via extractProjectDescription). Le logo est transmis à part
+    // (logoSvg = URL MinIO, résolu côté serveur), et les variations sont
+    // régénérées côté backend. Envoyer tout le projet — analysisResultModel avec
+    // ses variations SVG inline et le contenu déjà généré — faisait exploser la
+    // limite de body JSON de l'API → 413 Content Too Large.
+    const leanProject = this.buildLeanProjectForColorGen(project);
     return this.http
       .post<{
         colors: ColorModel[];
         typography: TypographyModel[];
-        project: ProjectModel;
       }>(`${this.apiUrl}/generate/colors-typography-from-logo`, {
-        project,
+        project: leanProject,
         logoSvg,
         logoColors,
       })
@@ -206,6 +212,23 @@ export class BrandingService {
           throw error;
         }),
       );
+  }
+
+  /**
+   * Ne conserve que l'id et les champs scalaires légers dont le backend a besoin
+   * pour la génération de palette (le reste du projet est rechargé via findById).
+   * Retire tout `analysisResultModel` — c'est là que vivent les variations de logo
+   * en SVG inline et le contenu déjà généré, source du 413 Content Too Large.
+   */
+  private buildLeanProjectForColorGen(project: ProjectModel): Partial<ProjectModel> {
+    return {
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      type: project.type,
+      scope: project.scope,
+      targets: project.targets,
+    };
   }
 
   /**

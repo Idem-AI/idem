@@ -145,6 +145,9 @@ export interface ProjectModel {
   currency?: string;
   createdAt: Date;
   updatedAt: Date;
+  isArchived?: boolean;
+  archived?: boolean;
+  archivedAt?: Date;
   userId: string;
   selectedPhases: string[];
   analysisResultModel: AnalysisResultModel;

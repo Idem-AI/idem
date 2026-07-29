@@ -15,6 +15,8 @@ import {
   generateBrandingPdfController,
   generateLogosZipController,
   editLogoController,
+  saveBrandingSectionsController,
+  aiEditBrandingSectionController,
 } from '../controllers/branding.controller';
 import { authenticate } from '../services/auth.service'; // Updated import path
 import { checkQuota } from '../middleware/quota.middleware';
@@ -497,6 +499,35 @@ brandingRoutes.get(`/${resourceName}/get/:projectId`, authenticate, getBrandingB
  *         description: Internal server error.
  */
 brandingRoutes.put(`/${resourceName}/update/:projectId`, authenticate, updateBrandingController);
+
+/**
+ * @openapi
+ * /brandings/{projectId}/sections:
+ *   put:
+ *     tags: [Brand Identity]
+ *     summary: Save edited brand identity sections (WYSIWYG editor)
+ *     security: [{ bearerAuth: [] }]
+ */
+brandingRoutes.put(
+  `/${resourceName}/:projectId/sections`,
+  authenticate,
+  saveBrandingSectionsController
+);
+
+/**
+ * @openapi
+ * /brandings/{projectId}/sections/{sectionId}/ai-edit:
+ *   post:
+ *     tags: [Brand Identity]
+ *     summary: AI-assisted edit of a single brand identity section
+ *     security: [{ bearerAuth: [] }]
+ */
+brandingRoutes.post(
+  `/${resourceName}/:projectId/sections/:sectionId/ai-edit`,
+  authenticate,
+  checkQuota,
+  aiEditBrandingSectionController
+);
 
 // Delete a specific branding by its ID
 /**

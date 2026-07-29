@@ -1,0 +1,20 @@
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Light mode background overrides if needed */
+:host-context(.light-theme) .glass {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(226, 232, 240, 0.8);
+}

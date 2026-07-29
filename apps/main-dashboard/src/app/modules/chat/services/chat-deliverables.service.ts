@@ -61,6 +61,26 @@ const KIND_CONFIG: Record<DeliverableKind, DeliverableKindConfig> = {
     editorRoute: '/project/finance',
     pdfSupported: true,
   },
+  communication: {
+    titleKey: 'chat.deliverables.communication',
+    icon: 'pi pi-megaphone',
+    editorRoute: '/project/communication',
+    pdfSupported: false,
+  },
+  development: {
+    titleKey: 'chat.deliverables.development',
+    icon: 'pi pi-code',
+    editorRoute: '/project/development',
+    generateRoute: '/project/development/create',
+    pdfSupported: false,
+  },
+  deployment: {
+    titleKey: 'chat.deliverables.deployment',
+    icon: 'pi pi-cloud-upload',
+    editorRoute: '/project/ideploy',
+    generateRoute: '/project/deployments/create',
+    pdfSupported: false,
+  },
 };
 
 /**
@@ -185,6 +205,21 @@ export class ChatDeliverablesService {
           },
         ];
       }
+      case 'development': {
+        const configs = analysis?.development?.configs;
+        const hasConfig = !!(configs?.mode || configs?.generationType);
+        return [
+          {
+            name: this.translate.instant('chat.card.developmentSection'),
+            status: this.sectionStatus(hasConfig),
+          },
+        ];
+      }
+      case 'communication':
+      case 'deployment':
+        // Ces modules vivent derrière leurs propres endpoints (pas dans le
+        // projet) : la carte reste un lanceur qui renvoie vers l'éditeur.
+        return [];
     }
   }
 
@@ -242,6 +277,9 @@ export class ChatDeliverablesService {
       diagrams: 'diagrams',
       legalDocs: 'legal-docs',
       finance: 'finance-report',
+      communication: 'communication',
+      development: 'development',
+      deployment: 'deployment',
     };
     return `${safeName}-${suffix[kind]}.pdf`;
   }
@@ -281,7 +319,9 @@ export class ChatDeliverablesService {
       const ready = card.sections.filter((s) => s.status === 'ready').length;
       const total = card.sections.length;
       let statusLabel: string;
-      if (kind === 'finance') {
+      // Modules gérés côté éditeur (pas de statut dérivable du projet).
+      const editorStatusKinds: DeliverableKind[] = ['finance', 'communication', 'deployment'];
+      if (editorStatusKinds.includes(kind)) {
         statusLabel = this.translate.instant('chat.status.openEditor');
       } else if (total === 0 || ready === 0) {
         statusLabel = this.translate.instant('chat.status.missing');

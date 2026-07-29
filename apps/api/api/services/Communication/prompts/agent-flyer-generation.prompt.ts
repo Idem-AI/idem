@@ -1,5 +1,13 @@
-export const AGENT_FLYER_GENERATION_PROMPT = `<role>World-class print graphic designer</role>
-<objective>Produce a print flyer as a single-line Tailwind HTML block based on the provided creative brief (design seed) and image context.</objective>
+export const AGENT_FLYER_GENERATION_PROMPT = `<role>World-class art director & social-media visual designer</role>
+<objective>Produce ONE social/print visual as a single-line Tailwind HTML block based on the creative brief (design seed), the visual intent and the image context. This is a VISUAL (poster/social post), NOT a website or a landing page.</objective>
+
+<visual_intent>
+Intent of this visual: {{VISUAL_INTENT}}
+The intent decides whether a call-to-action (CTA) is appropriate:
+- awareness / celebration / announcement / storytelling => NO CTA button. The visual exists to make people feel or remember something. At most a discreet brand signature (@handle or website) in small type. A pushy button here looks like spam.
+- promotion / recruitment / conversion => a CTA is welcome, but as a small typographic tag/stamp, never a glossy web button.
+When in doubt, prefer NO CTA. A beautiful editorial visual without a button beats a generic ad with one.
+</visual_intent>
 
 <design_brief>
 Seed: {{DESIGN_SEED}}
@@ -85,11 +93,19 @@ Forbidden: Plain full-bleed img as bg with centered text.
 </image_integration>
 
 <logos>
-- Main: BRAND.branding.logoUrls.primary
-- Light backgrounds: BRAND.branding.logoUrls.withText.light
-- Dark backgrounds: BRAND.branding.logoUrls.withText.dark
-- Minimalist: BRAND.branding.logoUrls.withText.mono
-- Watermarks/patterns: BRAND.branding.logoUrls.iconOnly.light/.dark/.mono
+The brand logo declensions are provided below as READY-TO-USE image URLs. Pick the ONE that fits the exact background where you place it. NEVER invent a URL, NEVER inline raw SVG markup, NEVER paste a symbolic path like "BRAND.branding.logoUrls.primary".
+- Primary (default full logo): {{LOGO_PRIMARY}}
+- With text — for LIGHT backgrounds: {{LOGO_WITHTEXT_LIGHT}}
+- With text — for DARK backgrounds: {{LOGO_WITHTEXT_DARK}}
+- With text — monochrome (single-color zones): {{LOGO_WITHTEXT_MONO}}
+- Icon only — for LIGHT backgrounds: {{LOGO_ICON_LIGHT}}
+- Icon only — for DARK backgrounds: {{LOGO_ICON_DARK}}
+- Icon only — monochrome (watermark / pattern / corner mark): {{LOGO_ICON_MONO}}
+Selection rules:
+- Choose by CONTRAST against the zone where the logo sits: dark zone -> a light/mono-light declension; light zone -> a dark declension.
+- Use an ICON-ONLY declension for small corner marks, watermarks or repeated patterns; use a WITH-TEXT declension when the logo is the main brand signature.
+- If the chosen URL is empty, fall back to {{LOGO_PRIMARY}}.
+- Render exactly ONE logo as <img src="THE_CHOSEN_URL" .../>. Vary its size and placement across designs (do NOT always pin it bottom-left).
 </logos>
 
 <format_dimensions>
@@ -107,10 +123,10 @@ Active format: {{format}}
 - Inline style allowed for: transform, mix-blend-mode, letter-spacing, gradients, text-shadow, clip-path, filter.
 - Outer container: exact format dimensions, overflow-hidden, relative.
 - Inner elements: absolute positioning.
-- CTA: bold, solid brand color, ALL CAPS, square corners. Looks like print stamp.
+- CTA: OPTIONAL — include it ONLY when {{VISUAL_INTENT}} is promotion/recruitment/conversion. When present, it is a small typographic tag/stamp (square corners, brand color), NEVER a glossy rounded web button. For awareness/celebration/announcement intents, omit any button entirely.
 - Accent icons: PrimeIcons (pi pi-*) only.
 - Contrast: WCAG AA compliant.
-- Include: headline, subheadline, body, CTA, logo.
+- Always include: headline, body, ONE logo (chosen declension). Include a subheadline when it helps. Include a CTA ONLY per the intent rule above.
 - Headline must match image mood/colors. Use IMAGE_COMPOSITION ({{IMAGE_COMPOSITION}}) to place text.
 - Do not cover text in image ({{IMAGE_DETECTED_TEXT}}).
 </technical_rules>
@@ -124,7 +140,9 @@ Ensure all are TRUE:
 - spacingMultiplier {{DESIGN_SEED.spacingMultiplier}} utilized.
 - Min two image integration techniques used.
 - Absolute positioning only (no flex/grid).
-- CTA has square corners.
+- Logo: exactly ONE real logo URL from <logos>, declension chosen by contrast, size/placement varied.
+- CTA presence matches {{VISUAL_INTENT}} (no button on awareness/celebration/announcement).
+- Anti-sameness: this design must NOT default to "photo full-bleed + headline bottom-left + logo bottom-left + button". Commit fully to the seed archetype so two visuals never look alike.
 </seed_compliance_checklist>
 
 <output_format>
@@ -135,10 +153,11 @@ Respond in strict JSON:
   "seedUsed": {{DESIGN_SEED}},
   "marketingText": {
     "headline": "headline text <= 60 chars",
-    "subheadline": "subheadline text <= 90 chars",
+    "subheadline": "subheadline text <= 90 chars (optional, empty string if none)",
     "body": "body text <= 220 chars",
-    "cta": "cta text <= 30 chars"
+    "cta": "cta text <= 30 chars — EMPTY STRING when the intent does not warrant a CTA"
   },
+  "logoUsed": "the exact logo URL you placed in the html",
   "html": "single-line HTML string"
 }
 Strictly NO markdown fences or text outside the JSON.

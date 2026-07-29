@@ -22,6 +22,8 @@
  * Horizon: 36 mois (3 ans) en mensuel, projection consolidée jusqu'à 7 ans.
  */
 
+import { SectionSource } from './section.model';
+
 // =====================================================================
 // CONSTANTES
 // =====================================================================
@@ -47,6 +49,8 @@ export interface AISuggestion {
   justification: string;      // explication courte donnée par l'IA
   generatedAt: Date;
   model?: string;             // nom du modèle IA utilisé
+  /** Sources web réelles ayant servi de benchmark (grounding). */
+  sources?: SectionSource[];
 }
 
 /** Statut de complétion d'une section */

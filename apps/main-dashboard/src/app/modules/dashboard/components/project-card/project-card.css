@@ -133,6 +133,51 @@
   letter-spacing: -0.015em;
 }
 
+/* Tile Actions (Delete Button & Chevron) */
+.tile-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.tile-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 0.6rem;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: all 0.2s ease;
+}
+
+.project-tile:hover .tile-delete-btn {
+  opacity: 1;
+}
+
+.tile-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  transform: scale(1.08);
+}
+
+.tile-delete-btn:focus-visible {
+  outline: 2px solid #ef4444;
+  outline-offset: 2px;
+}
+
+.delete-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
 /* Accessible Action Chevron */
 .tile-action-chevron {
   display: flex;

@@ -18,6 +18,7 @@
         }
       },
       "buttons": {
+        "edit": "Éditer",
         "backToOverview": "Retour à l'aperçu",
         "backToProjects": "Retour aux projets",
         "getCharter": "Obtenir la charte graphique",

@@ -31,10 +31,13 @@ export class PdfViewer implements OnInit, OnDestroy {
   readonly error = input<string | null>(null);
   readonly showPagination = input<boolean>(true);
   readonly title = input<string>('PDF Document');
+  readonly showEditButton = input<boolean>(false);
+  readonly editButtonLabel = input<string>('common.edit');
 
   // Outputs
   readonly regenerateRequested = output<void>();
   readonly downloadRequested = output<void>();
+  readonly editRequested = output<void>();
 
   // Internal state
   protected readonly totalPages = signal<number>(0);
@@ -86,6 +89,10 @@ export class PdfViewer implements OnInit, OnDestroy {
 
   protected onDownloadClick(): void {
     this.downloadRequested.emit();
+  }
+
+  protected onEditClick(): void {
+    this.editRequested.emit();
   }
 
   ngOnInit(): void {

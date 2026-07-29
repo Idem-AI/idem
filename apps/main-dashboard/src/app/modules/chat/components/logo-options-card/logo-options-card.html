@@ -38,7 +38,7 @@
           class="w-full aspect-square max-h-28 flex items-center justify-center rounded-xl bg-white logo-canvas overflow-hidden"
         >
           @if (isInlineSvg(option)) {
-            <span class="logo-svg" [innerHTML]="option.svg | safeHtml"></span>
+            <img class="logo-svg" [src]="option.svg" alt="Logo"/>
           } @else if (option.svg) {
             <img [src]="option.svg" [alt]="option.name" class="max-h-20 max-w-[80%] object-contain" />
           }

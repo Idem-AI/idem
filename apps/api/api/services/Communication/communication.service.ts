@@ -9,9 +9,17 @@ import {
   EditorialCalendar,
   Flyer,
   FlyerFormat,
+  MomentIdea,
+  MomentSuggestion,
+  Publication,
+  PublicationStatus,
+  SocialNetwork,
   StrategyBlock,
   TrendSignal,
+  VisualIntent,
 } from '../../models/communication.model';
+import { getSocialConnector } from '../Connectors/social-providers.config';
+import { AssistedShare } from '../Connectors/social-connector.interface';
 import { cacheService } from '../cache.service';
 
 interface DesignSeed {
@@ -30,6 +38,8 @@ import { AGENT_EDITORIAL_CALENDAR_PROMPT } from './prompts/agent-editorial-calen
 import { AGENT_FLYER_GENERATION_PROMPT } from './prompts/agent-flyer-generation.prompt';
 import { AGENT_IMAGE_BRIEF_PROMPT } from './prompts/agent-image-brief.prompt';
 import { AGENT_TRENDS_SUMMARY_PROMPT } from './prompts/agent-trends-summary.prompt';
+import { AGENT_MOMENT_SUGGESTIONS_PROMPT } from './prompts/agent-moment-suggestions.prompt';
+import { AGENT_MOMENT_CONTENT_PROMPT } from './prompts/agent-moment-content.prompt';
 import { imageSourcingService, ImageBrief, SourcedImage } from './imageSourcing.service';
 import { flyerRenderService } from './flyerRender.service';
 
@@ -180,6 +190,27 @@ export class CommunicationService extends GenericService {
     };
     const typography = branding?.typography;
 
+    // Build a valid <img src> for the logo: prefer a hosted URL, and when we
+    // fall back to inline SVG markup, wrap it into a data-URI so the flyer step
+    // always receives a usable src rather than raw markup.
+    const logoSrc = (url?: string, svgFallback?: string): string | undefined => {
+      const hosted = (url || '').trim();
+      if (hosted) return hosted;
+      const svg = (svgFallback || '').trim();
+      if (!svg) return undefined;
+      if (
+        svg.startsWith('http://') ||
+        svg.startsWith('https://') ||
+        svg.startsWith('data:')
+      ) {
+        return svg;
+      }
+      if (svg.includes('<svg')) {
+        return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+      }
+      return svg;
+    };
+
     const context: CommunicationContext = {
       brandName: parsed.brandName || project.name,
       businessType: parsed.businessType || project.type || 'business',
@@ -200,23 +231,48 @@ export class CommunicationService extends GenericService {
         secondaryFont: typography?.secondaryFont,
         fontUrl: typography?.url,
         logoSvg: branding?.logo?.svg,
+        // Prefer the hosted PNG URLs (assetUrls); fall back to the inline SVG
+        // variations for legacy projects created before PNG assets existed.
+        // logoSrc() guarantees the flyer step always receives a usable <img src>
+        // (URL or data-URI), never raw SVG markup.
         logoUrls: branding?.logo
           ? {
-              primary: branding.logo.svg,
-              withText: branding.logo.variations?.withText
-                ? {
-                    light: branding.logo.variations.withText.lightBackground,
-                    dark: branding.logo.variations.withText.darkBackground,
-                    mono: branding.logo.variations.withText.monochrome,
-                  }
-                : undefined,
-              iconOnly: branding.logo.variations?.iconOnly
-                ? {
-                    light: branding.logo.variations.iconOnly.lightBackground,
-                    dark: branding.logo.variations.iconOnly.darkBackground,
-                    mono: branding.logo.variations.iconOnly.monochrome,
-                  }
-                : undefined,
+              primary:
+                logoSrc(branding.logo.assetUrls?.primary, branding.logo.svg) || branding.logo.svg,
+              withText:
+                branding.logo.assetUrls?.withText || branding.logo.variations?.withText
+                  ? {
+                      light: logoSrc(
+                        branding.logo.assetUrls?.withText?.lightBackground,
+                        branding.logo.variations?.withText?.lightBackground
+                      ),
+                      dark: logoSrc(
+                        branding.logo.assetUrls?.withText?.darkBackground,
+                        branding.logo.variations?.withText?.darkBackground
+                      ),
+                      mono: logoSrc(
+                        branding.logo.assetUrls?.withText?.monochrome,
+                        branding.logo.variations?.withText?.monochrome
+                      ),
+                    }
+                  : undefined,
+              iconOnly:
+                branding.logo.assetUrls?.iconOnly || branding.logo.variations?.iconOnly
+                  ? {
+                      light: logoSrc(
+                        branding.logo.assetUrls?.iconOnly?.lightBackground,
+                        branding.logo.variations?.iconOnly?.lightBackground
+                      ),
+                      dark: logoSrc(
+                        branding.logo.assetUrls?.iconOnly?.darkBackground,
+                        branding.logo.variations?.iconOnly?.darkBackground
+                      ),
+                      mono: logoSrc(
+                        branding.logo.assetUrls?.iconOnly?.monochrome,
+                        branding.logo.variations?.iconOnly?.monochrome
+                      ),
+                    }
+                  : undefined,
             }
           : undefined,
       },
@@ -474,8 +530,11 @@ export class CommunicationService extends GenericService {
     const format = opts.format || 'square';
     logger.info(`[Communication] Generating flyer`, { userId, projectId, contentId, format });
     const communication = await this.getCommunication(userId, projectId);
-    const calendar = communication?.calendar;
-    const content = calendar?.items.find((i) => i.id === contentId);
+    // A visual can be requested for a calendar item OR a one-off moment — both are
+    // ContentIdea, so the whole composition pipeline is shared.
+    const content =
+      communication?.calendar?.items.find((i) => i.id === contentId) ||
+      communication?.moments?.find((m) => m.id === contentId);
     if (!content) {
       logger.error(`[Communication] Content idea not found`, { contentId });
       throw new Error(`Content idea not found: ${contentId}`);
@@ -513,6 +572,7 @@ export class CommunicationService extends GenericService {
 
     // ---- Step 5c: composition (copy + HTML coherent with the image) --------
     const seed = this.generateDesignSeed();
+    const intent = this.inferVisualIntent(content);
     let systemPrompt = AGENT_FLYER_GENERATION_PROMPT.replace(/\{\{format\}\}/g, format).replace(
       /\{\{DESIGN_SEED\}\}/g,
       JSON.stringify(seed, null, 2)
@@ -524,15 +584,27 @@ export class CommunicationService extends GenericService {
       .replace(/\{\{BRAND\.colors\.text\}\}/g, context.branding.text || '#000000')
       .replace(/\{\{BRAND\.branding\.fontUrl\}\}/g, context.branding.fontUrl || 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap')
       .replace(/\{\{BRAND\.branding\.primaryFont\}\}/g, context.branding.primaryFont || 'Montserrat')
-      .replace(/\{\{BRAND\.branding\.secondaryFont\}\}/g, context.branding.secondaryFont || 'Montserrat');
+      .replace(/\{\{BRAND\.branding\.secondaryFont\}\}/g, context.branding.secondaryFont || 'Montserrat')
+      .replace(/\{\{VISUAL_INTENT\}\}/g, intent);
+
+    // Resolve the logo declensions to REAL urls and inject them into the prompt
+    // via {{LOGO_*}} placeholders (same mechanism as {{IMAGE_URL}}), so the model
+    // receives usable <img src> values instead of symbolic paths.
+    systemPrompt = this.injectLogoPlaceholders(systemPrompt, context);
+
+    // Strip the heavy inline SVG markup before sending branding to the LLM: it
+    // bloats the payload and tempts the model into pasting raw SVG. The resolved
+    // logoUrls remain available (both in the prompt and here).
+    const { logoSvg, ...brandingForLlm } = context.branding;
 
     const userPayload: Record<string, unknown> = {
       BRAND: {
         name: context.brandName,
         tone: context.tone,
-        branding: context.branding, // Detailed branding including logoUrls
-        colors: context.branding, // Legacy path for color placeholders
+        branding: brandingForLlm, // Detailed branding including logoUrls (no raw SVG)
+        colors: brandingForLlm, // Legacy path for color placeholders
       },
+      VISUAL_INTENT: intent,
       DESIGN_SEED: seed,
       CONTENT_IDEA: {
         title: content.title,
@@ -540,6 +612,7 @@ export class CommunicationService extends GenericService {
         description: content.description,
         format: content.format,
         channel: content.channel,
+        intent,
         callToAction: content.callToAction,
         hashtags: content.hashtags,
       },
@@ -591,17 +664,26 @@ export class CommunicationService extends GenericService {
     const apiUrl = process.env.API_URL || `http://localhost:${port}`;
     const renderedUrl = `${apiUrl}/project/communication/${projectId}/flyer/${flyerId}/image`;
 
+    // CTA is intent-driven: only promotion/recruitment visuals keep a button.
+    // For awareness/celebration/announcement we deliberately drop it (a visual
+    // is not a landing page) — this is the core "always a CTA" fix.
+    const wantsCta = intent === 'promotion' || intent === 'recruitment';
+    const ctaText =
+      (parsed.marketingText?.cta || '').trim() || (wantsCta ? content.callToAction : '');
+
     const flyer: Flyer = {
       id: flyerId,
       contentId,
       format,
+      intent,
+      logoUsed: (parsed as Partial<Flyer>).logoUsed,
       concept: parsed.concept || '',
       layoutNotes: parsed.layoutNotes || '',
       marketingText: {
         headline: parsed.marketingText?.headline || content.title,
         subheadline: parsed.marketingText?.subheadline,
         body: parsed.marketingText?.body || content.description,
-        cta: parsed.marketingText?.cta || content.callToAction,
+        cta: ctaText || undefined,
       },
       html,
       imageUrl: renderedUrl,
@@ -615,19 +697,21 @@ export class CommunicationService extends GenericService {
 
     await cacheService.set(cacheKey, flyer, { prefix: 'ai', ttl: 7200 });
 
-    // Persist the flyer AND link its id on the ContentIdea.
+    // Persist the flyer AND link its id on the owning ContentIdea, whether it
+    // lives in the calendar or in the moments list.
     await this.patchCommunication(userId, projectId, (existing) => {
       const nextFlyers = [...(existing.flyers || []), flyer];
+      const linkFlyer = <T extends ContentIdea>(it: T): T =>
+        it.id === contentId ? { ...it, flyerIds: [...(it.flyerIds || []), flyer.id] } : it;
       const nextCalendar = existing.calendar
         ? {
             ...existing.calendar,
-            items: existing.calendar.items.map((it) =>
-              it.id === contentId ? { ...it, flyerIds: [...(it.flyerIds || []), flyer.id] } : it
-            ),
+            items: existing.calendar.items.map(linkFlyer),
             updatedAt: new Date(),
           }
         : existing.calendar;
-      return { ...existing, flyers: nextFlyers, calendar: nextCalendar };
+      const nextMoments = existing.moments ? existing.moments.map(linkFlyer) : existing.moments;
+      return { ...existing, flyers: nextFlyers, calendar: nextCalendar, moments: nextMoments };
     });
 
     return flyer;
@@ -640,6 +724,303 @@ export class CommunicationService extends GenericService {
     format: FlyerFormat
   ): Promise<Flyer> {
     return this.generateFlyer(userId, projectId, contentId, { format, force: true });
+  }
+
+  // --------------------------------------------------------------------------
+  // 5bis. Moments — timely, one-off, occasion-driven content
+  // --------------------------------------------------------------------------
+
+  /**
+   * Suggest a short list of upcoming occasions relevant to the brand (national
+   * holidays of the project country, awareness days, hiring, anniversary, promos).
+   * Cached per project + month so we never pay for it twice in a billing cycle.
+   */
+  async getMomentSuggestions(
+    userId: string,
+    projectId: string,
+    opts: { force?: boolean } = {}
+  ): Promise<MomentSuggestion[]> {
+    const context = await this.extractContext(userId, projectId);
+    const project = await this.getProject(projectId, userId);
+    const country = (project as any)?.additionalInfos?.country || '';
+    const today = new Date().toISOString().slice(0, 10);
+
+    const cacheKey = cacheService.generateAIKey(
+      'communication-moment-suggestions',
+      userId,
+      projectId,
+      this.shortHash({ businessType: context.businessType, country, month: today.slice(0, 7) })
+    );
+    if (!opts.force) {
+      const cached = await cacheService.get<MomentSuggestion[]>(cacheKey, { prefix: 'ai', ttl: 7200 });
+      if (cached && cached.length) return cached;
+    }
+
+    const messages: AIChatMessage[] = [
+      { role: 'system', content: AGENT_MOMENT_SUGGESTIONS_PROMPT },
+      {
+        role: 'user',
+        content: JSON.stringify({
+          businessType: context.businessType,
+          keywords: context.keywords,
+          tone: context.tone,
+          targetAudience: context.targetAudience,
+          country,
+          today,
+        }),
+      },
+    ];
+    const raw = await this.promptService.runPrompt(
+      {
+        ...DEFAULT_PROMPT_CONFIG,
+        userId,
+        promptType: AI_CONFIG.communication.momentSuggestions.promptType,
+        llmOptions: { ...AI_CONFIG.communication.momentSuggestions.llmOptions },
+      },
+      messages
+    );
+    const parsed = this.safeJson<{ suggestions: Partial<MomentSuggestion>[] }>(raw);
+    const suggestions: MomentSuggestion[] = (parsed?.suggestions || [])
+      .filter((s) => s && s.occasion)
+      .slice(0, 8)
+      .map((s, idx) => ({
+        id: s.id || `moment-sugg-${idx + 1}`,
+        occasion: s.occasion!,
+        date: s.date,
+        intent: (s.intent as VisualIntent) || 'awareness',
+        angle: s.angle || '',
+        why: s.why,
+        emoji: s.emoji,
+      }));
+
+    await cacheService.set(cacheKey, suggestions, { prefix: 'ai', ttl: 7200 });
+    await this.patchCommunication(userId, projectId, (existing) => ({
+      ...existing,
+      momentSuggestions: suggestions,
+    }));
+    return suggestions;
+  }
+
+  /**
+   * Turn an occasion (from a suggestion or a free-form request) into a stored
+   * MomentIdea with a ready-to-publish caption. The visual is generated later,
+   * on demand, through the shared generateFlyer() pipeline (a moment IS a
+   * ContentIdea, so it reuses everything).
+   */
+  async createMoment(
+    userId: string,
+    projectId: string,
+    input: {
+      occasion: string;
+      occasionDate?: string;
+      message?: string;
+      intent?: VisualIntent;
+      channel?: ContentIdea['channel'];
+      source?: 'suggestion' | 'custom';
+    }
+  ): Promise<MomentIdea> {
+    if (!input.occasion || !input.occasion.trim()) {
+      throw new Error('An occasion is required to create a moment');
+    }
+    const context = await this.extractContext(userId, projectId);
+    const intent =
+      input.intent || this.inferVisualIntent({ title: input.occasion, description: input.message });
+    const channel = input.channel || (context.channels?.[0] as ContentIdea['channel']) || 'linkedin';
+
+    const systemPrompt = AGENT_MOMENT_CONTENT_PROMPT.replace(
+      /\{\{LANGUAGE\}\}/g,
+      context.language || 'fr'
+    );
+    const messages: AIChatMessage[] = [
+      { role: 'system', content: systemPrompt },
+      {
+        role: 'user',
+        content: JSON.stringify({
+          BRAND: {
+            name: context.brandName,
+            businessType: context.businessType,
+            tone: context.tone,
+            keywords: context.keywords,
+            targetAudience: context.targetAudience,
+            language: context.language,
+          },
+          OCCASION: { label: input.occasion, date: input.occasionDate },
+          MESSAGE: input.message || '',
+          INTENT: intent,
+          CHANNEL: channel,
+        }),
+      },
+    ];
+    const raw = await this.promptService.runPrompt(
+      {
+        ...DEFAULT_PROMPT_CONFIG,
+        userId,
+        promptType: AI_CONFIG.communication.moment.promptType,
+        llmOptions: { ...AI_CONFIG.communication.moment.llmOptions },
+      },
+      messages
+    );
+    const parsed =
+      this.safeJson<{
+        title: string;
+        hook: string;
+        description: string;
+        caption: string;
+        hashtags: string[];
+        callToAction: string;
+      }>(raw) ?? ({} as Record<string, never>);
+
+    const moment: MomentIdea = {
+      id: `moment-${Date.now().toString(36)}-${crypto.randomInt(1e6).toString(36)}`,
+      title: parsed.title || input.occasion,
+      hook: parsed.hook || '',
+      description: parsed.description || input.message || '',
+      caption: parsed.caption || '',
+      format: 'post',
+      channel,
+      scheduledFor: input.occasionDate || new Date().toISOString().slice(0, 10),
+      week: 0,
+      hashtags: Array.isArray(parsed.hashtags) ? parsed.hashtags.slice(0, 6) : [],
+      callToAction: parsed.callToAction || '',
+      intent,
+      status: 'idea',
+      flyerIds: [],
+      occasion: input.occasion,
+      occasionDate: input.occasionDate,
+      source: input.source || 'custom',
+    };
+
+    await this.patchCommunication(userId, projectId, (existing) => ({
+      ...existing,
+      moments: [...(existing.moments || []), moment],
+    }));
+    return moment;
+  }
+
+  // --------------------------------------------------------------------------
+  // 5ter. Publishing (assisted — no OAuth in phase 1)
+  // --------------------------------------------------------------------------
+
+  /**
+   * Prepare an assisted publication for a content/moment on a given network:
+   * builds the caption, resolves the visual, produces a deep link to the network
+   * composer, and stores a Publication in the queue. Returns the record plus the
+   * assisted-share payload the UI needs (deep link + caption + image).
+   */
+  async preparePublication(
+    userId: string,
+    projectId: string,
+    input: { contentId: string; network: SocialNetwork; flyerId?: string; scheduledFor?: string }
+  ): Promise<{ publication: Publication; share: AssistedShare }> {
+    const communication = await this.getCommunication(userId, projectId);
+    const content =
+      communication?.calendar?.items.find((i) => i.id === input.contentId) ||
+      communication?.moments?.find((m) => m.id === input.contentId);
+    if (!content) {
+      throw new Error(`Content not found: ${input.contentId}`);
+    }
+
+    const connector = getSocialConnector(input.network);
+    const { caption, hashtags } = this.buildPublishCaption(content);
+    const flyer = input.flyerId
+      ? communication?.flyers?.find((f) => f.id === input.flyerId)
+      : communication?.flyers?.filter((f) => f.contentId === content.id).slice(-1)[0];
+    const imageUrl = flyer?.imageUrl;
+
+    const share = connector.buildAssistedShare({ caption, hashtags, imageUrl });
+
+    const publication: Publication = {
+      id: `pub-${Date.now().toString(36)}-${crypto.randomInt(1e6).toString(36)}`,
+      contentId: content.id,
+      network: input.network,
+      status: input.scheduledFor ? 'scheduled' : 'draft',
+      caption,
+      hashtags,
+      imageUrl,
+      flyerId: flyer?.id,
+      shareUrl: share.shareUrl,
+      scheduledFor: input.scheduledFor,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    await this.patchCommunication(userId, projectId, (existing) => {
+      const withPub = { ...existing, publications: [...(existing.publications || []), publication] };
+      return input.scheduledFor
+        ? this.reflectContentStatus(withPub, content.id, 'scheduled')
+        : withPub;
+    });
+
+    return { publication, share };
+  }
+
+  /** Update a queued publication (schedule, mark published, set external url). */
+  async updatePublication(
+    userId: string,
+    projectId: string,
+    publicationId: string,
+    patch: { status?: PublicationStatus; externalUrl?: string; scheduledFor?: string }
+  ): Promise<Publication | null> {
+    let updated: Publication | null = null;
+    await this.patchCommunication(userId, projectId, (existing) => {
+      const publications = (existing.publications || []).map((p) => {
+        if (p.id !== publicationId) return p;
+        updated = {
+          ...p,
+          ...patch,
+          publishedAt:
+            patch.status === 'published'
+              ? p.publishedAt || new Date().toISOString()
+              : p.publishedAt,
+          updatedAt: new Date(),
+        };
+        return updated;
+      });
+      let next: CommunicationModel = { ...existing, publications };
+      if (updated) {
+        next = this.reflectContentStatus(next, updated.contentId, this.contentStatusFor(updated.status));
+      }
+      return next;
+    });
+    return updated;
+  }
+
+  /** Compose the caption to publish for a content idea or moment. */
+  private buildPublishCaption(content: ContentIdea): { caption: string; hashtags: string[] } {
+    const hashtags = Array.isArray(content.hashtags) ? content.hashtags : [];
+    const momentCaption = (content as MomentIdea).caption;
+    let base =
+      momentCaption && momentCaption.trim()
+        ? momentCaption.trim()
+        : [content.hook, content.description].filter(Boolean).join('\n\n');
+    const tagLine = hashtags.map((t) => `#${String(t).replace(/^#/, '')}`).join(' ');
+    if (tagLine && !base.includes('#')) {
+      base = `${base}\n\n${tagLine}`;
+    }
+    return { caption: base, hashtags };
+  }
+
+  private contentStatusFor(status: PublicationStatus): ContentIdea['status'] {
+    if (status === 'published') return 'published';
+    if (status === 'scheduled') return 'scheduled';
+    return 'approved';
+  }
+
+  /** Reflect a publication status onto the owning content (calendar or moment). */
+  private reflectContentStatus(
+    model: CommunicationModel,
+    contentId: string,
+    status: ContentIdea['status']
+  ): CommunicationModel {
+    const apply = <T extends ContentIdea>(items?: T[]): T[] | undefined =>
+      items?.map((it) => (it.id === contentId ? { ...it, status } : it));
+    return {
+      ...model,
+      calendar: model.calendar
+        ? { ...model.calendar, items: apply(model.calendar.items) || model.calendar.items }
+        : model.calendar,
+      moments: apply(model.moments),
+    };
   }
 
   // --------------------------------------------------------------------------
@@ -744,6 +1125,20 @@ export class CommunicationService extends GenericService {
   }
 
   private hashProjectForContext(project: ProjectModel): string {
+    const logo = project.analysisResultModel?.branding?.logo as any;
+    // Fingerprint the logo declensions so that generating logos AFTER the first
+    // context extraction invalidates the cache and re-runs extraction — otherwise
+    // context.branding.logoUrls stays empty and visuals never receive the logo.
+    const logoFingerprint = logo
+      ? {
+          primary: logo.assetUrls?.primary,
+          icon: logo.assetUrls?.icon,
+          withText: logo.assetUrls?.withText,
+          iconOnly: logo.assetUrls?.iconOnly,
+          hasVariations: !!logo.variations,
+          svgLen: (logo.svg || '').length,
+        }
+      : null;
     return crypto
       .createHash('sha256')
       .update(
@@ -755,10 +1150,60 @@ export class CommunicationService extends GenericService {
           targets: project.targets,
           colors: project.analysisResultModel?.branding?.colors?.colors,
           typo: project.analysisResultModel?.branding?.typography,
+          logo: logoFingerprint,
         })
       )
       .digest('hex')
       .substring(0, 16);
+  }
+
+  /**
+   * Infer the communication purpose of a content idea so the visual composer
+   * knows whether a CTA belongs on it. A social visual is not a landing page:
+   * awareness/celebration pieces carry no button. Heuristic + multilingual
+   * keyword scan, defaulting to 'awareness' (the safe, button-free choice).
+   */
+  private inferVisualIntent(content: {
+    intent?: VisualIntent;
+    title?: string;
+    hook?: string;
+    description?: string;
+    callToAction?: string;
+  }): VisualIntent {
+    if (content.intent) return content.intent;
+    const haystack = [content.title, content.hook, content.description, content.callToAction]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    const has = (words: string[]) => words.some((w) => haystack.includes(w));
+    if (has(['recrut', 'hiring', 'we\'re hiring', 'join our', 'join the team', 'postul', 'emploi', 'nous recrutons', 'career', 'carrière', 'offre d\'emploi']))
+      return 'recruitment';
+    if (has(['promo', 'sale', 'discount', 'offre', 'réduction', 'deal', 'shop now', 'buy', 'order now', 'commande', 'soldes', '% off', '-50', 'code promo']))
+      return 'promotion';
+    if (has(['launch', 'lance', 'nouveau', 'new ', 'introducing', 'annonce', 'announce', 'disponible', 'now available', 'sortie']))
+      return 'announcement';
+    if (has(['fête', 'célèbr', 'celebrat', 'anniversa', 'happy ', 'joyeux', 'congrat', 'félicit', 'merci', 'thank you', 'holiday']))
+      return 'celebration';
+    return 'awareness';
+  }
+
+  /**
+   * Replace the {{LOGO_*}} placeholders in the flyer prompt with the brand's
+   * actual hosted declension URLs. Empty declensions fall back to the primary
+   * logo so the model always has a usable value.
+   */
+  private injectLogoPlaceholders(prompt: string, context: CommunicationContext): string {
+    const logos = context.branding.logoUrls;
+    const primary = logos?.primary || '';
+    const pick = (url?: string) => (url && url.trim()) || primary;
+    return prompt
+      .replace(/\{\{LOGO_PRIMARY\}\}/g, primary || '(no logo available)')
+      .replace(/\{\{LOGO_WITHTEXT_LIGHT\}\}/g, pick(logos?.withText?.light))
+      .replace(/\{\{LOGO_WITHTEXT_DARK\}\}/g, pick(logos?.withText?.dark))
+      .replace(/\{\{LOGO_WITHTEXT_MONO\}\}/g, pick(logos?.withText?.mono))
+      .replace(/\{\{LOGO_ICON_LIGHT\}\}/g, pick(logos?.iconOnly?.light))
+      .replace(/\{\{LOGO_ICON_DARK\}\}/g, pick(logos?.iconOnly?.dark))
+      .replace(/\{\{LOGO_ICON_MONO\}\}/g, pick(logos?.iconOnly?.mono));
   }
 
   private shortHash(data: unknown): string {
@@ -966,9 +1411,9 @@ export class CommunicationService extends GenericService {
       'COLLAGE_LAYER', // 3+ layered elements at varying opacities
     ];
 
-    // Rotate based on timestamp bucket (changes every generation)
-    const now = Date.now();
-    const pick = <T>(arr: T[]): T => arr[Math.floor((now / 1000 + Math.random() * 100) % arr.length)];
+    // Use a CSPRNG so two visuals generated within the same second still differ
+    // (the old Date.now()-based pick produced near-identical seeds in bursts).
+    const pick = <T>(arr: T[]): T => arr[crypto.randomInt(arr.length)];
 
     return {
       archetype: pick(archetypes),
@@ -976,7 +1421,7 @@ export class CommunicationService extends GenericService {
       typographyMood: pick(typographyMoods),
       layoutTension: pick(layoutTensions),
       // Extra entropy: random odd number for spacing/sizing decisions
-      spacingMultiplier: (Math.floor(Math.random() * 5) + 1) * 2 + 1, // 3,5,7,9,11
+      spacingMultiplier: crypto.randomInt(5) * 2 + 3, // 3,5,7,9,11
     };
   }
 }

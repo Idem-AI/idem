@@ -6,6 +6,8 @@ import {
   generateBusinessPlanStreamingController,
   generateBusinessPlanPdfController,
   setAdditionalInfoController,
+  saveBusinessPlanSectionsController,
+  aiEditBusinessPlanSectionController,
 } from '../controllers/businessPlan.controller';
 import { authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
@@ -180,6 +182,100 @@ businessPlanRoutes.get(`/${resourceName}/:projectId`, authenticate, getBusinessP
  *         description: Internal server error.
  */
 businessPlanRoutes.put(`/${resourceName}/:projectId`, authenticate, updateBusinessPlanController);
+
+// Save WYSIWYG-edited sections for a project's business plan
+/**
+ * @openapi
+ * /businessPlans/{projectId}/sections:
+ *   put:
+ *     tags:
+ *       - Business Plans
+ *     summary: Save edited business plan sections (WYSIWYG editor)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               sections:
+ *                 type: array
+ *                 items:
+ *                   $ref: '#/components/schemas/SectionModel'
+ *     responses:
+ *       '200':
+ *         description: Sections saved successfully.
+ *       '400':
+ *         description: Bad request.
+ *       '401':
+ *         description: Unauthorized.
+ *       '404':
+ *         description: Business plan not found.
+ */
+businessPlanRoutes.put(
+  `/${resourceName}/:projectId/sections`,
+  authenticate,
+  saveBusinessPlanSectionsController
+);
+
+// AI-assisted edit of a single business plan section
+/**
+ * @openapi
+ * /businessPlans/{projectId}/sections/{sectionId}/ai-edit:
+ *   post:
+ *     tags:
+ *       - Business Plans
+ *     summary: AI-assisted edit of a single business plan section
+ *     description: Applies a natural-language instruction to a section using project context, returns the regenerated HTML.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: sectionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - instruction
+ *             properties:
+ *               instruction:
+ *                 type: string
+ *     responses:
+ *       '200':
+ *         description: Section edited successfully.
+ *       '400':
+ *         description: Bad request.
+ *       '401':
+ *         description: Unauthorized.
+ *       '404':
+ *         description: Section not found.
+ */
+businessPlanRoutes.post(
+  `/${resourceName}/:projectId/sections/:sectionId/ai-edit`,
+  authenticate,
+  checkPolicyAcceptance,
+  checkQuota,
+  aiEditBusinessPlanSectionController
+);
 
 // Delete a specific business plan by its project ID
 /**
