@@ -189,13 +189,14 @@ export class BrandingService {
     project: ProjectModel;
   }> {
     console.log('Generating colors and typography from imported logo...');
-    // Payload allégé : le backend recharge le projet via findById et ne lit du
-    // payload que quelques champs légers + branding.logo (fallback). Envoyer le
-    // projet complet avec les variations de logo en SVG inline (souvent des
-    // rasters encodés en base64) faisait exploser la limite de body JSON de l'API
-    // → 413 Content Too Large. On retire ces variations lourdes : le backend les
-    // régénère au besoin. Le logo est référencé par URL (MinIO) quand disponible.
-    const leanProject = this.stripHeavyLogoVariations(project);
+    // Payload minimal : le backend recharge le projet via findById et ne lit du
+    // payload QUE l'id + quelques champs scalaires (name/description/type/scope/
+    // targets, via extractProjectDescription). Le logo est transmis à part
+    // (logoSvg = URL MinIO, résolu côté serveur), et les variations sont
+    // régénérées côté backend. Envoyer tout le projet — analysisResultModel avec
+    // ses variations SVG inline et le contenu déjà généré — faisait exploser la
+    // limite de body JSON de l'API → 413 Content Too Large.
+    const leanProject = this.buildLeanProjectForColorGen(project);
     return this.http
       .post<{
         colors: ColorModel[];
@@ -216,28 +217,19 @@ export class BrandingService {
   }
 
   /**
-   * Retire les variations de logo (SVG inline, potentiellement des rasters base64)
-   * du projet avant de l'envoyer à l'endpoint de génération de palette. C'est la
-   * principale source de gonflement du payload : le backend les régénère si
-   * absentes et privilégie de toute façon le logo persisté en base. Retourne le
-   * projet inchangé s'il n'y a pas de variations à retirer.
+   * Ne conserve que l'id et les champs scalaires légers dont le backend a besoin
+   * pour la génération de palette (le reste du projet est rechargé via findById).
+   * Retire tout `analysisResultModel` — c'est là que vivent les variations de logo
+   * en SVG inline et le contenu déjà généré, source du 413 Content Too Large.
    */
-  private stripHeavyLogoVariations(project: ProjectModel): ProjectModel {
-    const branding = project.analysisResultModel?.branding;
-    const logo = branding?.logo;
-    if (!logo?.variations) {
-      return project;
-    }
-    const { variations: _variations, ...leanLogo } = logo;
+  private buildLeanProjectForColorGen(project: ProjectModel): Partial<ProjectModel> {
     return {
-      ...project,
-      analysisResultModel: {
-        ...project.analysisResultModel,
-        branding: {
-          ...branding,
-          logo: leanLogo,
-        },
-      },
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      type: project.type,
+      scope: project.scope,
+      targets: project.targets,
     };
   }
 
