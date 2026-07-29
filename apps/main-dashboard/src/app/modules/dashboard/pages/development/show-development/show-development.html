@@ -106,13 +106,22 @@
 
             <!-- Title -->
             <h1 class="text-5xl font-bold text-text-primary text-glow-primary mb-4">
-              Votre Landing Page est Prête à Générer
+              @if (hasExistingApp()) {
+                Votre Landing Page est Prête
+              } @else {
+                Votre Landing Page est Prête à Générer
+              }
             </h1>
 
             <!-- Description -->
             <p class="text-xl text-text-secondary mb-8 max-w-2xl mx-auto leading-relaxed">
-              Votre configuration est finalisée. Lancez la génération pour créer votre landing page
-              professionnelle et moderne en quelques minutes.
+              @if (hasExistingApp()) {
+                Reprenez la conversation iCode là où vous l'aviez laissée pour faire évoluer votre
+                landing page.
+              } @else {
+                Votre configuration est finalisée. Lancez la génération pour créer votre landing
+                page professionnelle et moderne en quelques minutes.
+              }
             </p>
 
             <!-- Main CTA Button -->
@@ -125,7 +134,9 @@
                   d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"
                 />
               </svg>
-              <span class="font-semibold">Générer ma Landing Page</span>
+              <span class="font-semibold">
+                {{ hasExistingApp() ? 'Reprendre dans iCode' : 'Générer ma Landing Page' }}
+              </span>
             </button>
 
             <!-- Features Preview -->
@@ -217,13 +228,22 @@
 
             <!-- Title -->
             <h1 class="text-4xl font-bold text-text-primary text-glow-primary mb-4">
-              Configuration prête
+              @if (hasExistingApp()) {
+                Application générée
+              } @else {
+                Configuration prête
+              }
             </h1>
 
             <!-- Concise explanation -->
             <p class="text-lg text-text-secondary mb-8 max-w-2xl mx-auto">
-              Votre stack technologique est configurée. Lancez la génération pour créer votre
-              application complète.
+              @if (hasExistingApp()) {
+                Reprenez la conversation iCode là où vous l'aviez laissée : votre code et votre
+                historique sont restaurés automatiquement, depuis n'importe quel appareil.
+              } @else {
+                Votre stack technologique est configurée. Lancez la génération pour créer votre
+                application complète.
+              }
             </p>
 
             <!-- Main CTA -->
@@ -231,7 +251,7 @@
               (click)="redirectToWebGenerator(projectId())"
               class="inner-button inline-flex items-center gap-3 text-lg px-8 py-4 mb-6 glow-accent"
             >
-              <span>Générer l'application</span>
+              <span>{{ hasExistingApp() ? 'Reprendre dans iCode' : "Générer l'application" }}</span>
             </button>
 
             <!-- Tech Stack Cards -->

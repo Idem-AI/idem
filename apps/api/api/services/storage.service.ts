@@ -45,6 +45,16 @@ export interface LogoSvgUrls {
 }
 
 /**
+ * Content hashes of every stored code file, used to compute the delta between
+ * the workspace and the bucket so only changed files are re-uploaded.
+ */
+export interface ProjectCodeManifest {
+  version: number;
+  updatedAt: string;
+  files: Record<string, string>;
+}
+
+/**
  * Rendered size (px) of the PNG logo assets uploaded to the bucket.
  * 512 is enough for slides/flyers/brand-book <img> while staying lightweight.
  */
@@ -739,6 +749,230 @@ export class StorageService {
       });
       return null;
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Incremental project code storage
+  //
+  // Generated code lives in the bucket as individual objects plus a manifest of
+  // content hashes, so an update only rewrites the files that actually changed
+  // instead of pushing a full ZIP on every message (which piled up one archive
+  // per save and was never pruned).
+  //
+  //   users/{userId}/projects/{projectId}/code/manifest.json
+  //   users/{userId}/projects/{projectId}/code/files/<relative path>
+  // ---------------------------------------------------------------------------
+
+  private codeFolderPath(projectId: string, userId?: string): string {
+    return userId
+      ? `users/${userId}/projects/${projectId}/code`
+      : `projects/${projectId}/code`;
+  }
+
+  /**
+   * Normalizes a workspace path into a safe object key suffix.
+   * Returns null for paths that would escape the project folder.
+   */
+  private normalizeCodePath(filePath: string): string | null {
+    const cleaned = filePath.replace(/\\/g, '/').replace(/^\/+/, '').trim();
+    if (!cleaned) return null;
+    if (cleaned.split('/').some((segment) => segment === '..' || segment === '.')) return null;
+    return cleaned;
+  }
+
+  private async getObjectAsString(objectPath: string): Promise<string | null> {
+    try {
+      const stream = await this.client.getObject(this.bucketName, objectPath);
+      const chunks: Buffer[] = [];
+      await new Promise((resolve, reject) => {
+        stream.on('data', (chunk) => chunks.push(chunk));
+        stream.on('error', reject);
+        stream.on('end', resolve);
+      });
+      return Buffer.concat(chunks).toString('utf8');
+    } catch (error: any) {
+      // NoSuchKey is an expected miss, not a failure.
+      if (error?.code === 'NoSuchKey' || error?.code === 'NotFound') return null;
+      throw error;
+    }
+  }
+
+  /** Runs `worker` over `items` with a bounded number of concurrent calls. */
+  private async mapWithConcurrency<T, R>(
+    items: T[],
+    limit: number,
+    worker: (item: T) => Promise<R>
+  ): Promise<R[]> {
+    const results: R[] = new Array(items.length);
+    let cursor = 0;
+
+    const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (cursor < items.length) {
+        const index = cursor++;
+        results[index] = await worker(items[index]);
+      }
+    });
+
+    await Promise.all(runners);
+    return results;
+  }
+
+  /**
+   * Reads the content-hash manifest describing what is currently stored.
+   * Returns null when the project has never been synced with this format.
+   */
+  async getProjectCodeManifest(
+    projectId: string,
+    userId?: string
+  ): Promise<ProjectCodeManifest | null> {
+    const manifestPath = `${this.codeFolderPath(projectId, userId)}/manifest.json`;
+
+    try {
+      const raw = await this.getObjectAsString(manifestPath);
+      if (!raw) return null;
+
+      const manifest = JSON.parse(raw) as ProjectCodeManifest;
+      return manifest?.files ? manifest : null;
+    } catch (error: any) {
+      logger.warn(`Unable to read the project code manifest`, {
+        projectId,
+        userId,
+        error: error.message,
+      });
+      return null;
+    }
+  }
+
+  private async saveProjectCodeManifest(
+    projectId: string,
+    userId: string | undefined,
+    manifest: ProjectCodeManifest
+  ): Promise<void> {
+    await this.uploadFile(
+      JSON.stringify(manifest),
+      'manifest.json',
+      this.codeFolderPath(projectId, userId),
+      'application/json'
+    );
+  }
+
+  /**
+   * Applies an incremental change set to the stored code: writes the added or
+   * modified files, removes the deleted ones and rewrites the manifest.
+   *
+   * @param upserts - Map of path -> content for files to write
+   * @param deletions - Paths to remove from storage
+   * @param manifest - Content hashes of the full resulting file set
+   */
+  async syncProjectCodeFiles(
+    projectId: string,
+    userId: string | undefined,
+    upserts: Record<string, string>,
+    deletions: string[],
+    manifest: Record<string, string>
+  ): Promise<{ written: number; deleted: number; total: number }> {
+    const folderPath = this.codeFolderPath(projectId, userId);
+    const filesPrefix = `${folderPath}/files`;
+
+    const writable = Object.entries(upserts)
+      .map(([path, content]) => ({ path: this.normalizeCodePath(path), content }))
+      .filter((entry): entry is { path: string; content: string } => entry.path !== null);
+
+    const removable = deletions
+      .map((path) => this.normalizeCodePath(path))
+      .filter((path): path is string => path !== null);
+
+    logger.info(`Syncing project code to MinIO Storage`, {
+      projectId,
+      userId,
+      upserts: writable.length,
+      deletions: removable.length,
+    });
+
+    await this.mapWithConcurrency(writable, 12, async ({ path, content }) => {
+      const buffer = Buffer.from(content, 'utf8');
+      await this.client.putObject(
+        this.bucketName,
+        `${filesPrefix}/${path}`,
+        Readable.from(buffer),
+        buffer.length,
+        {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'x-amz-meta-uploaded-at': new Date().toISOString(),
+        }
+      );
+    });
+
+    if (removable.length > 0) {
+      await this.mapWithConcurrency(removable, 12, async (path) => {
+        try {
+          await this.client.removeObject(this.bucketName, `${filesPrefix}/${path}`);
+        } catch (error: any) {
+          // Deleting an object that is already gone is not an error here.
+          logger.warn(`Unable to delete stored code file ${path}`, {
+            projectId,
+            error: error.message,
+          });
+        }
+      });
+    }
+
+    const normalizedManifest: Record<string, string> = {};
+    for (const [path, hash] of Object.entries(manifest)) {
+      const normalized = this.normalizeCodePath(path);
+      if (normalized) normalizedManifest[normalized] = hash;
+    }
+
+    await this.saveProjectCodeManifest(projectId, userId, {
+      version: 1,
+      updatedAt: new Date().toISOString(),
+      files: normalizedManifest,
+    });
+
+    logger.info(`Project code synced successfully`, {
+      projectId,
+      userId,
+      written: writable.length,
+      deleted: removable.length,
+      total: Object.keys(normalizedManifest).length,
+    });
+
+    return {
+      written: writable.length,
+      deleted: removable.length,
+      total: Object.keys(normalizedManifest).length,
+    };
+  }
+
+  /**
+   * Reads back every file listed in the manifest.
+   * Returns null when the project has no manifest-based storage yet.
+   */
+  async downloadProjectCodeFiles(
+    projectId: string,
+    userId?: string
+  ): Promise<Record<string, string> | null> {
+    const manifest = await this.getProjectCodeManifest(projectId, userId);
+    if (!manifest) return null;
+
+    const paths = Object.keys(manifest.files);
+    if (paths.length === 0) return {};
+
+    const filesPrefix = `${this.codeFolderPath(projectId, userId)}/files`;
+    const files: Record<string, string> = {};
+
+    await this.mapWithConcurrency(paths, 12, async (path) => {
+      const content = await this.getObjectAsString(`${filesPrefix}/${path}`);
+      if (content !== null) files[path] = content;
+    });
+
+    logger.info(`Loaded ${Object.keys(files).length} code files from MinIO Storage`, {
+      projectId,
+      userId,
+      expected: paths.length,
+    });
+
+    return files;
   }
 
   /**

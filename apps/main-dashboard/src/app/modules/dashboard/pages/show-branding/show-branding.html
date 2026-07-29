@@ -145,10 +145,10 @@
                     >
                       @if (logoSrc(existingBranding()?.logo?.assetUrls?.primary, existingBranding()?.logo?.svg); as logoImg) {
                         @if (logoImg.startsWith('<')) {
-                          <div
-                            class="w-32 h-32 sm:w-36 sm:h-36 flex items-center justify-center svg-logo"
-                            [innerHTML]="logoImg | safeHtml"
-                          ></div>
+                          <img class="w-32 h-32 sm:w-36 sm:h-36 flex items-center justify-center svg-logo object-contain" [src]="logoImg" alt="Logo" 
+                            
+                            
+                          />
                         } @else {
                           <img
                             [src]="logoImg"
@@ -410,10 +410,10 @@
                   >
                     @if (logoImg.startsWith('<')) {
                       <!-- Raw SVG inline -->
-                      <div
-                        class="w-full h-full flex items-center justify-center svg-logo"
-                        [innerHTML]="logoImg | safeHtml"
-                      ></div>
+                      <img class="w-full h-full flex items-center justify-center svg-logo object-contain" [src]="logoImg" alt="Logo" 
+                        
+                        
+                      />
                     } @else {
                       <!-- URL (hosted PNG or legacy URL) -->
                       <img [src]="logoImg" class="w-full h-full object-contain" />
@@ -442,10 +442,10 @@
                         class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-white rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
                         @if (v.startsWith('<')) {
-                          <div
-                            class="w-full h-full svg-logo"
-                            [innerHTML]="v | safeHtml"
-                          ></div>
+                          <img class="w-full h-full svg-logo object-contain" [src]="v" alt="Logo" 
+                            
+                            
+                          />
                         } @else {
                           <img [src]="v" class="w-full h-full object-contain" />
                         }
@@ -463,10 +463,10 @@
                         class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-gray-900 rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
                         @if (v.startsWith('<')) {
-                          <div
-                            class="w-full h-full svg-logo"
-                            [innerHTML]="v | safeHtml"
-                          ></div>
+                          <img class="w-full h-full svg-logo object-contain" [src]="v" alt="Logo" 
+                            
+                            
+                          />
                         } @else {
                           <img [src]="v" class="w-full h-full object-contain" />
                         }
@@ -484,10 +484,10 @@
                         class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-[var(--glass-bg-subtle)] rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
                         @if (v.startsWith('<')) {
-                          <div
-                            class="w-full h-full svg-logo"
-                            [innerHTML]="v | safeHtml"
-                          ></div>
+                          <img class="w-full h-full svg-logo object-contain" [src]="v" alt="Logo" 
+                            
+                            
+                          />
                         } @else {
                           <img [src]="v" class="w-full h-full object-contain" />
                         }
@@ -505,10 +505,10 @@
                         class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-white rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
                         @if (v.startsWith('<')) {
-                          <div
-                            class="w-full h-full svg-logo"
-                            [innerHTML]="v | safeHtml"
-                          ></div>
+                          <img class="w-full h-full svg-logo object-contain" [src]="v" alt="Logo" 
+                            
+                            
+                          />
                         } @else {
                           <img [src]="v" class="w-full h-full object-contain" />
                         }
@@ -526,10 +526,10 @@
                         class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-gray-900 rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
                         @if (v.startsWith('<')) {
-                          <div
-                            class="w-full h-full svg-logo"
-                            [innerHTML]="v | safeHtml"
-                          ></div>
+                          <img class="w-full h-full svg-logo object-contain" [src]="v" alt="Logo" 
+                            
+                            
+                          />
                         } @else {
                           <img [src]="v" class="w-full h-full object-contain" />
                         }
@@ -547,10 +547,10 @@
                         class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-[var(--glass-bg-subtle)] rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
                         @if (v.startsWith('<')) {
-                          <div
-                            class="w-full h-full svg-logo"
-                            [innerHTML]="v | safeHtml"
-                          ></div>
+                          <img class="w-full h-full svg-logo object-contain" [src]="v" alt="Logo" 
+                            
+                            
+                          />
                         } @else {
                           <img [src]="v" class="w-full h-full object-contain" />
                         }

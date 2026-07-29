@@ -5,6 +5,15 @@ import { catchError, tap, map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import { ProjectModel } from '@idem/shared-models';
 
+/** Existing iCode conversation attached to a project, without its messages. */
+export interface AppChatSummary {
+  sessionId: string;
+  title?: string;
+  messageCount?: number;
+  startedAt?: string;
+  lastMessageAt?: string;
+}
+
 /** Quick deployment published from iCode (Netlify) and attached to a project. */
 export interface AppDeploymentModel {
   provider?: string;
@@ -204,6 +213,16 @@ export class ProjectService {
           return throwError(() => error);
         }),
       );
+  }
+
+  /**
+   * Lightweight check for an existing iCode conversation on this project.
+   * Returns null when the app has never been generated.
+   */
+  getAppChatSummary(projectId: string): Observable<AppChatSummary | null> {
+    return this.http
+      .get<AppChatSummary>(`${this.apiUrl}/${projectId}/chat-session?summary=1`)
+      .pipe(catchError(() => of(null)));
   }
 
   /**

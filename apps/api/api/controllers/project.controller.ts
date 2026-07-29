@@ -258,6 +258,156 @@ class ProjectController {
     }
   }
 
+  /**
+   * Returns the content hashes of the code currently stored in the bucket so
+   * the client can push only the files that changed.
+   */
+  async getProjectCodeManifest(
+    req: CustomRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    const userId = req.user?.uid;
+    const { projectId } = req.params;
+    try {
+      if (!userId) {
+        res.status(401).json({ message: 'User not authenticated' });
+        return;
+      }
+      if (!projectId) {
+        res.status(400).json({ message: 'Project ID is required' });
+        return;
+      }
+
+      const files = await projectService.getProjectCodeManifest(userId, projectId as string);
+      res.status(200).json({ files });
+    } catch (error: any) {
+      logger.error(
+        `Error in getProjectCodeManifest controller for projectId ${projectId}, userId ${userId}: ${error.message}`,
+        { stack: error.stack, details: error }
+      );
+      next(error);
+    }
+  }
+
+  /**
+   * Applies an incremental code change set (added/modified files + deletions).
+   */
+  async syncProjectCode(req: CustomRequest, res: Response, next: NextFunction): Promise<void> {
+    const userId = req.user?.uid;
+    const { projectId } = req.params;
+    const { upserts, deletions, manifest } = req.body || {};
+    try {
+      if (!userId) {
+        res.status(401).json({ message: 'User not authenticated' });
+        return;
+      }
+      if (!projectId) {
+        res.status(400).json({ message: 'Project ID is required' });
+        return;
+      }
+      if (!manifest || typeof manifest !== 'object') {
+        res.status(400).json({ message: 'manifest is required' });
+        return;
+      }
+
+      const result = await projectService.syncProjectCode(
+        userId,
+        projectId as string,
+        upserts && typeof upserts === 'object' ? upserts : {},
+        Array.isArray(deletions) ? deletions : [],
+        manifest
+      );
+
+      res.status(200).json(result);
+    } catch (error: any) {
+      logger.error(
+        `Error in syncProjectCode controller for projectId ${projectId}, userId ${userId}: ${error.message}`,
+        { stack: error.stack, details: error }
+      );
+      next(error);
+    }
+  }
+
+  async getProjectChatSession(
+    req: CustomRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    const userId = req.user?.uid;
+    const { projectId } = req.params;
+    try {
+      if (!userId) {
+        res.status(401).json({ message: 'User not authenticated' });
+        return;
+      }
+      if (!projectId) {
+        res.status(400).json({ message: 'Project ID is required' });
+        return;
+      }
+
+      const session = await projectService.getProjectChatSession(userId, projectId as string);
+      if (!session) {
+        res.status(404).json({ message: 'No chat session found for this project' });
+        return;
+      }
+
+      // `?summary=1` skips the message list for callers that only need to know
+      // a conversation exists (the dashboard CTA, for instance).
+      if (req.query.summary === '1' || req.query.summary === 'true') {
+        const { messages, ...summary } = session;
+        res.status(200).json(summary);
+        return;
+      }
+
+      res.status(200).json(session);
+    } catch (error: any) {
+      logger.error(
+        `Error in getProjectChatSession controller for projectId ${projectId}, userId ${userId}: ${error.message}`,
+        { stack: error.stack, details: error }
+      );
+      next(error);
+    }
+  }
+
+  async saveProjectChatSession(
+    req: CustomRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    const userId = req.user?.uid;
+    const { projectId } = req.params;
+    const { sessionId, title, messages } = req.body || {};
+    try {
+      if (!userId) {
+        res.status(401).json({ message: 'User not authenticated' });
+        return;
+      }
+      if (!projectId) {
+        res.status(400).json({ message: 'Project ID is required' });
+        return;
+      }
+      if (!sessionId || !Array.isArray(messages)) {
+        res.status(400).json({ message: 'sessionId and messages are required' });
+        return;
+      }
+
+      const saved = await projectService.saveProjectChatSession(userId, projectId as string, {
+        sessionId,
+        title,
+        messages,
+      });
+
+      res.status(200).json(saved);
+    } catch (error: any) {
+      logger.error(
+        `Error in saveProjectChatSession controller for projectId ${projectId}, userId ${userId}: ${error.message}`,
+        { stack: error.stack, details: error }
+      );
+      next(error);
+    }
+  }
+
   async getAppDeployment(req: CustomRequest, res: Response, next: NextFunction): Promise<void> {
     const userId = req.user?.uid;
     const { projectId } = req.params;
