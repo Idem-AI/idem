@@ -104,13 +104,44 @@ export class ProjectService {
    * @returns Observable of the updated project
    */
   updateProject(projectId: string, updatedData: Partial<ProjectModel>): Observable<ProjectModel> {
-    return this.http.put<ProjectModel>(`${this.apiUrl}/${projectId}`, updatedData).pipe(
+    const payload = this.stripRedundantInlineLogoVariations(updatedData);
+    return this.http.put<ProjectModel>(`${this.apiUrl}/${projectId}`, payload).pipe(
       tap((response) => console.log(`updateProject response for ${projectId}:`, response)),
       catchError((error) => {
         console.error(`Error in updateProject for ${projectId}:`, error);
         return throwError(() => error);
       }),
     );
+  }
+
+  /**
+   * Les variations de logo sont des SVG inline volumineux qui faisaient dépasser
+   * la limite de body JSON de l'API (PUT → 413 Content Too Large). On ne les
+   * retire du payload QUE si `logo.assetUrls` est présent : ces URLs de PNG
+   * hébergés prouvent que le backend a déjà généré ET persisté les assets du logo
+   * (flux logo importé, après génération de palette), et l'affichage privilégie
+   * déjà `assetUrls`. Sans `assetUrls` (ex. flux chat/IA où le front est le seul
+   * détenteur des variations), on conserve les variations pour ne rien perdre.
+   */
+  private stripRedundantInlineLogoVariations(
+    data: Partial<ProjectModel>,
+  ): Partial<ProjectModel> {
+    const branding = data.analysisResultModel?.branding;
+    const logo = branding?.logo;
+    if (!logo?.variations || !logo?.assetUrls) {
+      return data;
+    }
+    const { variations: _variations, ...leanLogo } = logo;
+    return {
+      ...data,
+      analysisResultModel: {
+        ...data.analysisResultModel,
+        branding: {
+          ...branding,
+          logo: leanLogo,
+        },
+      },
+    };
   }
 
   /**
