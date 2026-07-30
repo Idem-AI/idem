@@ -339,12 +339,16 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
     this.frameStamp = 0;
     this.lastScrollY = -1;
     this.settled = false;
-    this.rafId = requestAnimationFrame(this.tick);
 
-    window.addEventListener('wheel', this.onWheel, { passive: false });
-    window.addEventListener('touchstart', this.onTouchStart, { passive: true });
-    window.addEventListener('touchmove', this.onTouchMove, { passive: false });
-    window.addEventListener('keydown', this.onKeyDown);
+    // Explicitly outside Angular: neither the frame loop nor the input
+    // listeners should register as pending work or trigger change detection.
+    this.zone.runOutsideAngular(() => {
+      this.rafId = requestAnimationFrame(this.tick);
+      window.addEventListener('wheel', this.onWheel, { passive: false });
+      window.addEventListener('touchstart', this.onTouchStart, { passive: true });
+      window.addEventListener('touchmove', this.onTouchMove, { passive: false });
+      window.addEventListener('keydown', this.onKeyDown);
+    });
   }
 
   private stop(): void {
@@ -570,9 +574,15 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
     const back = event.key === 'ArrowUp' || event.key === 'PageUp';
     if (!forward && !back) return;
 
-    // Never swallow keys meant for a focused control.
-    const target = event.target as HTMLElement | null;
-    if (target?.closest('a, button, input, select, textarea, [contenteditable]')) return;
+    // Never swallow keys meant for a focused control. The target is not always
+    // an element: keys can arrive on the document itself.
+    const target = event.target;
+    if (
+      target instanceof Element &&
+      target.closest('a, button, input, select, textarea, [contenteditable]')
+    ) {
+      return;
+    }
 
     const next = this.nextIndex(forward);
     if (next === null) return;

@@ -130,15 +130,58 @@ function safeParseJson(content: string): any {
   cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
   // Find JSON structure { ... } or [ ... ]
   const firstBrace = cleaned.indexOf('{');
+  const firstBracket = cleaned.indexOf('[');
   const lastBrace = cleaned.lastIndexOf('}');
+  const lastBracket = cleaned.lastIndexOf(']');
+
   if (firstBrace !== -1 && lastBrace > firstBrace) {
     cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+  } else if (firstBracket !== -1 && lastBracket > firstBracket) {
+    cleaned = cleaned.substring(firstBracket, lastBracket + 1);
   }
+
+  // Attempt 1: direct parse
   try {
     return JSON.parse(cleaned);
-  } catch (e) {
+  } catch (_) {
+    // continue
+  }
+
+  // Attempt 2: escape raw newlines
+  try {
     const sanitized = cleaned.replace(/[\r\n]/g, (match) => (match === '\n' ? '\\n' : '\\r'));
     return JSON.parse(sanitized);
+  } catch (_) {
+    // continue
+  }
+
+  // Attempt 3: repair truncated JSON — close open brackets/braces
+  try {
+    let repaired = cleaned;
+    // Strip trailing comma + whitespace that precedes a missing element
+    repaired = repaired.replace(/,\s*$/, '');
+    // Strip incomplete trailing key/value (e.g. `"name": "foo`, `"id":`)
+    repaired = repaired.replace(/,?\s*"[^"]*":\s*"?[^",}\]]*$/m, '');
+    // Count open vs close braces/brackets and append missing closers
+    const opens = { '{': 0, '[': 0 };
+    for (const ch of repaired) {
+      if (ch === '{') opens['{']++;
+      else if (ch === '}') opens['{']--;
+      else if (ch === '[') opens['[']++;
+      else if (ch === ']') opens['[']--;
+    }
+    // Close innermost first: arrays before objects
+    for (let i = 0; i < opens['[']; i++) repaired += ']';
+    for (let i = 0; i < opens['{']; i++) repaired += '}';
+    return JSON.parse(repaired);
+  } catch (e) {
+    logger.error(`safeParseJson: all repair attempts failed`, {
+      error: e instanceof Error ? e.message : e,
+      snippet: cleaned.slice(0, 300),
+    });
+    throw new Error(
+      `safeParseJson failed: ${e instanceof Error ? e.message : 'unknown error'}`
+    );
   }
 }
 
@@ -1137,13 +1180,19 @@ export class BrandingService extends GenericService {
         ),
         stepName: 'Colors Generation',
         modelParser: (content) => {
-          try {
-            const parsedColors = JSON.parse(content);
-            return parsedColors.colors;
-          } catch (error) {
-            logger.error(`Error parsing colors:`, error);
-            throw new Error(`Failed to parse colors`);
+          // Use safeParseJson to handle markdown fences, truncated JSON,
+          // and raw newlines that cause naive JSON.parse to fail.
+          const parsed = safeParseJson(content);
+          if (!parsed) {
+            throw new Error('safeParseJson returned null – empty or unparseable content');
           }
+          const colors = parsed.colors ?? parsed;
+          if (!Array.isArray(colors)) {
+            throw new Error(
+              `Expected colors array but got ${typeof colors}: ${JSON.stringify(colors).slice(0, 200)}`
+            );
+          }
+          return colors;
         },
         hasDependencies: false,
       },
@@ -1174,13 +1223,17 @@ export class BrandingService extends GenericService {
         promptConstant: projectDescription + TYPOGRAPHY_GENERATION_PROMPT,
         stepName: 'Typography Generation',
         modelParser: (content) => {
-          try {
-            const parsedTypography = JSON.parse(content);
-            return parsedTypography.typography;
-          } catch (error) {
-            logger.error(`Error parsing typography:`, error);
-            throw new Error(`Failed to parse typography`);
+          const parsed = safeParseJson(content);
+          if (!parsed) {
+            throw new Error('safeParseJson returned null – empty or unparseable content');
           }
+          const typography = parsed.typography ?? parsed;
+          if (!Array.isArray(typography)) {
+            throw new Error(
+              `Expected typography array but got ${typeof typography}: ${JSON.stringify(typography).slice(0, 200)}`
+            );
+          }
+          return typography;
         },
         hasDependencies: false,
       },
