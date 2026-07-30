@@ -641,16 +641,19 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Puts a section position at rest under the viewport. Always `auto`: the
-   * global `scroll-behavior: smooth` would otherwise animate every frame of an
-   * animation that is already eased.
+   * Puts a section position under the viewport, this frame.
+   *
+   * `instant`, never `auto`: `auto` defers to the computed `scroll-behavior`,
+   * which the design system sets to `smooth` globally. That had the browser
+   * animating towards every frame of an animation that is already eased, so
+   * steps landed short and never truly finished.
    */
   private scrollToPosition(pos: number): boolean {
     const rect = this.hostEl.nativeElement.getBoundingClientRect();
     const span = rect.height - this.stageRef().nativeElement.offsetHeight;
     if (span <= 0) return false;
     const ratio = pos / (this.sectionCount - 1);
-    window.scrollTo({ top: window.scrollY + rect.top + span * ratio, behavior: 'auto' });
+    window.scrollTo({ top: window.scrollY + rect.top + span * ratio, behavior: 'instant' });
     return true;
   }
 
