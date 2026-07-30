@@ -482,6 +482,14 @@ export class GeminiMockupService {
       if (mimeType.includes('image/svg') || mimeType.includes('text/xml')) {
         console.log('⚡ SVG detected → converting to PNG...');
 
+        // Un asset servi en image/svg+xml dont le corps n'est pas du markup ferait
+        // échouer sharp sur « unsupported image format », sans indiquer la source.
+        if (!buffer.toString('utf8', 0, 512).includes('<svg')) {
+          throw new Error(
+            `Asset served as SVG but body is not SVG markup: ${input.slice(0, 120)}`
+          );
+        }
+
         buffer = (await sharp(buffer, { density: 300 })
           .png({
             compressionLevel: 9,

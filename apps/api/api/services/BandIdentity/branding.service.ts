@@ -1540,7 +1540,10 @@ export class BrandingService extends GenericService {
     persist = true
   ): Promise<void> {
     const logo = project.analysisResultModel?.branding?.logo;
-    if (!logo || logo.assetUrls) return;
+    // On teste `primary` et non la seule présence de `assetUrls` : une passe où la
+    // rasterisation du logo principal a échoué laisse un objet partiel (icône +
+    // déclinaisons), et sortir ici gelait cette lacune définitivement.
+    if (!logo || logo.assetUrls?.primary) return;
 
     const v = logo.variations;
     const hasContent = !!(
