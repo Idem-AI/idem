@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { SafeHtmlPipe } from '../../../projects-list/safehtml.pipe';
+import { LogoSrcPipe } from '../../../../../../shared/pipes/logo-src.pipe';
 import { LogoModel, LogoPreferencesModel } from '../../../../models/logo.model';
 import { CarouselComponent } from '../../../../../../shared/components/carousel/carousel.component';
 import { LogoPreferences } from '../logo-preferences/logo-preferences';
@@ -58,7 +58,7 @@ export interface ConceptSlot {
   imports: [
     CommonModule,
     FormsModule,
-    SafeHtmlPipe,
+    LogoSrcPipe,
     CarouselComponent,
     LogoPreferences,
     LogoEditorChat,

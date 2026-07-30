@@ -221,6 +221,93 @@ class ProjectService {
     }
   }
 
+  /**
+   * Conserve les SVG de logo déjà externalisés (URLs MinIO) face à une écriture
+   * client qui repousserait le markup inline.
+   *
+   * Le front garde en mémoire le logo tel qu'il l'a reçu en streaming (SVG
+   * inline) et resauvegarde le projet entier à plusieurs moments du workflow.
+   * Quand le backend a externalisé les SVG entre-temps (génération des
+   * déclinaisons), cette écriture arrivait après et remplaçait les URLs par du
+   * markup — les consommateurs qui attendent une URL (aperçus, PDF, pitch deck)
+   * n'affichaient alors plus le logo principal.
+   *
+   * Le garde-fou ne s'applique qu'au même logo (id identique) : choisir un
+   * autre concept reste possible et remplace bien les assets.
+   */
+  private async preserveHostedLogoAssets(
+    userId: string,
+    projectId: string,
+    updatedData: Partial<Omit<ProjectModel, 'id' | 'createdAt' | 'updatedAt' | 'userId'>>
+  ): Promise<Partial<Omit<ProjectModel, 'id' | 'createdAt' | 'updatedAt' | 'userId'>>> {
+    const isInlineSvg = (value: unknown): value is string =>
+      typeof value === 'string' && value.trimStart().startsWith('<');
+    const isHostedUrl = (value: unknown): value is string =>
+      typeof value === 'string' && /^https?:\/\//i.test(value.trim());
+
+    const incomingLogo = updatedData.analysisResultModel?.branding?.logo as
+      | Record<string, any>
+      | undefined;
+    if (!incomingLogo) return updatedData;
+
+    const variationSets = ['withText', 'iconOnly'] as const;
+    const variationKinds = ['lightBackground', 'darkBackground', 'monochrome'] as const;
+
+    const hasInline =
+      isInlineSvg(incomingLogo['svg']) ||
+      isInlineSvg(incomingLogo['iconSvg']) ||
+      variationSets.some((set) =>
+        variationKinds.some((kind) => isInlineSvg(incomingLogo['variations']?.[set]?.[kind]))
+      );
+    if (!hasInline) return updatedData;
+
+    const stored = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    const storedLogo = stored?.analysisResultModel?.branding?.logo as Record<string, any> | undefined;
+    if (!storedLogo || (incomingLogo['id'] && storedLogo['id'] !== incomingLogo['id'])) {
+      return updatedData;
+    }
+
+    const preservedFields: string[] = [];
+    const logo: Record<string, any> = { ...incomingLogo };
+
+    for (const field of ['svg', 'iconSvg'] as const) {
+      if (isInlineSvg(logo[field]) && isHostedUrl(storedLogo[field])) {
+        logo[field] = storedLogo[field];
+        preservedFields.push(field);
+      }
+    }
+
+    for (const set of variationSets) {
+      for (const kind of variationKinds) {
+        const incoming = logo['variations']?.[set]?.[kind];
+        const hosted = storedLogo['variations']?.[set]?.[kind];
+        if (isInlineSvg(incoming) && isHostedUrl(hosted)) {
+          logo['variations'] = {
+            ...logo['variations'],
+            [set]: { ...logo['variations'][set], [kind]: hosted },
+          };
+          preservedFields.push(`variations.${set}.${kind}`);
+        }
+      }
+    }
+
+    if (preservedFields.length === 0) return updatedData;
+
+    logger.info(
+      `Preserved hosted logo SVG URLs against inline overwrite - ProjectId: ${projectId}, fields: ${preservedFields.join(
+        ', '
+      )}`
+    );
+
+    return {
+      ...updatedData,
+      analysisResultModel: {
+        ...updatedData.analysisResultModel,
+        branding: { ...updatedData.analysisResultModel?.branding, logo },
+      },
+    } as Partial<Omit<ProjectModel, 'id' | 'createdAt' | 'updatedAt' | 'userId'>>;
+  }
+
   async editUserProject(
     userId: string,
     projectId: string,
@@ -232,9 +319,11 @@ class ProjectService {
     }
 
     try {
+      const safeData = await this.preserveHostedLogoAssets(userId, projectId, updatedData);
+
       const updatedProject = await this.projectRepository.update(
         projectId,
-        updatedData,
+        safeData,
         `users/${userId}/projects`
       );
       if (updatedProject) {

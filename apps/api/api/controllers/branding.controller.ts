@@ -465,7 +465,7 @@ export const generateLogoVariationsStreamController = async (
       }
     };
 
-    const variations = await brandingService.generateLogoVariationsWithStreaming(
+    const { variations, logo } = await brandingService.generateLogoVariationsWithStreaming(
       userId,
       projectId as string,
       streamCallback,
@@ -479,13 +479,16 @@ export const generateLogoVariationsStreamController = async (
 
     // Jeux finaux distincts (withText avec le nom + iconOnly) poussés en événement
     // progress AVANT la complétion : le front les persiste tels quels au lieu de
-    // dupliquer le jeu streamé. La complétion garde son contrat générique
-    // (data='all_steps_completed') pour ne pas casser la détection SSE partagée.
+    // dupliquer le jeu streamé. Le logo principal est envoyé avec, sous sa forme
+    // hébergée (URLs MinIO), pour que la sauvegarde côté client ne le réécrive
+    // pas avec le SVG inline qu'il détient depuis la sélection du concept.
+    // La complétion garde son contrat générique (data='all_steps_completed')
+    // pour ne pas casser la détection SSE partagée.
     res.write(
       `data: ${JSON.stringify({
         type: 'progress',
         stepName: 'variations_result',
-        data: JSON.stringify({ variations }),
+        data: JSON.stringify({ variations, logo }),
         summary: '',
         timestamp: new Date().toISOString(),
         parsedData: { status: 'progress' },

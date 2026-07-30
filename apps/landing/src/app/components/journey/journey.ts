@@ -58,6 +58,10 @@ const GESTURE_GAP_MS = 260;
 const WHEEL_START_PX = 12;
 /** Distance needed to keep stepping without ever lifting off. */
 const WHEEL_CHAIN_PX = 240;
+/* Inertia decays, a gesture under way does not. Once a step is committed the
+   rest of the burst is read as coasting until an event comes back up to this
+   share of the burst's peak, which only happens if the user is still pushing. */
+const WHEEL_ENERGY_RATIO = 0.6;
 /** Swipe distance that commits a step. */
 const TOUCH_STEP_PX = 42;
 
@@ -254,14 +258,16 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
   private stepFrom = 0;
   private stepStamp = 0;
   private stepDuration = 0;
-  private stepEndStamp = 0;
 
   /* ── Gesture state ───────────────────────────────────────────── */
   private wasPinned = false;
   private wheelAccum = 0;
   private lastWheelStamp = 0;
-  /** Set for the whole gesture that scrolled the section into place. */
-  private gestureSpent = false;
+  private wheelPeak = 0;
+  /** This gesture scrolled the section into place: it may not also step. */
+  private entryGesture = false;
+  /** A step was committed; what is left of the burst is read as inertia. */
+  private coasting = false;
   private swipeStartY = 0;
   private swipeStepped = false;
 
@@ -333,12 +339,16 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
     this.frameStamp = 0;
     this.lastScrollY = -1;
     this.settled = false;
-    this.rafId = requestAnimationFrame(this.tick);
 
-    window.addEventListener('wheel', this.onWheel, { passive: false });
-    window.addEventListener('touchstart', this.onTouchStart, { passive: true });
-    window.addEventListener('touchmove', this.onTouchMove, { passive: false });
-    window.addEventListener('keydown', this.onKeyDown);
+    // Explicitly outside Angular: neither the frame loop nor the input
+    // listeners should register as pending work or trigger change detection.
+    this.zone.runOutsideAngular(() => {
+      this.rafId = requestAnimationFrame(this.tick);
+      window.addEventListener('wheel', this.onWheel, { passive: false });
+      window.addEventListener('touchstart', this.onTouchStart, { passive: true });
+      window.addEventListener('touchmove', this.onTouchMove, { passive: false });
+      window.addEventListener('keydown', this.onKeyDown);
+    });
   }
 
   private stop(): void {
@@ -348,7 +358,8 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
     window.removeEventListener('keydown', this.onKeyDown);
     this.cancelStep();
     this.wasPinned = false;
-    this.gestureSpent = false;
+    this.entryGesture = false;
+    this.coasting = false;
 
     if (!this.rafId) return;
     cancelAnimationFrame(this.rafId);
@@ -418,9 +429,9 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
     return next < 0 || next > this.sectionCount - 1 ? null : next;
   }
 
-  /** A step is playing, or the section it reached is still settling. */
-  private stepBusy(now: number): boolean {
-    return this.navTarget !== null || now - this.stepEndStamp < STEP_SETTLE_MS;
+  /** A step is playing, or holding on the section it just reached. */
+  private stepBusy(): boolean {
+    return this.navTarget !== null;
   }
 
   /** Starts a step. The rAF loop drives it from here. */
@@ -447,15 +458,19 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
     if (target === null) return;
     if (!this.stepStamp) this.stepStamp = now;
 
-    const t = Math.min(1, (now - this.stepStamp) / this.stepDuration);
-    if (!this.scrollToPosition(this.stepFrom + (target - this.stepFrom) * easeInOutCubic(t))) {
+    const elapsed = now - this.stepStamp;
+    const t = Math.min(1, elapsed / this.stepDuration);
+    const pos = t < 1 ? this.stepFrom + (target - this.stepFrom) * easeInOutCubic(t) : target;
+
+    if (!this.scrollToPosition(pos)) {
       this.navTarget = null;
       return;
     }
-    if (t >= 1) {
-      this.navTarget = null;
-      this.stepEndStamp = now;
-    }
+
+    // Then hold on the target for a moment. Re-asserting it absorbs any layout
+    // shift that happened mid-step, and the section is seen at rest before
+    // anything else can move, so nothing ever reads as skipped over.
+    if (elapsed >= this.stepDuration + STEP_SETTLE_MS) this.navTarget = null;
   }
 
   private cancelStep(): void {
@@ -476,37 +491,60 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
     event.preventDefault();
 
     const now = event.timeStamp;
-    // A gesture is one flick: trackpad inertia fires in bursts with gaps for
-    // a long time after the fingers lift, and all of it is the same flick.
+    const magnitude = Math.abs(event.deltaY);
+
+    // One gesture is one burst. Trackpad inertia keeps firing, with gaps, long
+    // after the fingers lift; only real quiet separates two gestures.
     const fresh = now - this.lastWheelStamp > GESTURE_GAP_MS;
     this.lastWheelStamp = now;
 
-    if (fresh) this.gestureSpent = false;
+    if (fresh) {
+      this.entryGesture = false;
+      this.coasting = false;
+      this.wheelPeak = 0;
+      this.wheelAccum = 0;
+    }
+    this.wheelPeak = Math.max(this.wheelPeak, magnitude);
 
-    // The flick that scrolled the section into place is spent on that arrival,
-    // all of it, however much inertia is left in it.
+    // The burst that scrolled the section into place is spent on that arrival,
+    // however much inertia is left in it.
     if (!this.wasPinned) {
       this.wasPinned = true;
-      if (!fresh) this.gestureSpent = true;
+      this.entryGesture = !fresh;
     }
-
-    // Mid-step, or the section just reached is still settling: swallow. This is
-    // what keeps one flick worth one section, since inertia easily outlives the
-    // step it already paid for.
-    if (this.gestureSpent || this.stepBusy(now)) {
+    if (this.entryGesture) {
       this.wheelAccum = 0;
       return;
     }
 
-    // Direction changes and pauses both start the count over.
-    if (fresh || this.wheelAccum * event.deltaY < 0) this.wheelAccum = 0;
+    // Mid-step, or the section just reached is still settling. Swallowing here
+    // is what keeps one gesture worth one section.
+    if (this.stepBusy()) {
+      this.wheelAccum = 0;
+      return;
+    }
+
+    // Back up near the burst's peak means the user is still pushing, so this is
+    // fresh intent rather than the tail of the flick that already stepped.
+    if (this.coasting && magnitude >= this.wheelPeak * WHEEL_ENERGY_RATIO) {
+      this.coasting = false;
+      this.wheelAccum = 0;
+    }
+    if (this.coasting) {
+      this.wheelAccum = 0;
+      return;
+    }
+
+    // A direction change starts the count over.
+    if (this.wheelAccum * event.deltaY < 0) this.wheelAccum = 0;
     this.wheelAccum += event.deltaY;
 
-    // A fresh flick commits at once. Scrolling that never lifted off has to
-    // cover real distance, which decaying inertia does not.
+    // A fresh gesture commits at once. Scrolling that never lifted off has to
+    // cover real distance.
     if (Math.abs(this.wheelAccum) < (fresh ? WHEEL_START_PX : WHEEL_CHAIN_PX)) return;
 
     this.wheelAccum = 0;
+    this.coasting = true;
     this.moveTo(next);
   };
 
@@ -514,7 +552,7 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
     this.swipeStartY = event.touches[0].clientY;
     // A swipe that starts before the section is pinned, or while a step is
     // still playing, belongs to the page rather than to the story.
-    this.swipeStepped = !this.isPinned() || this.stepBusy(event.timeStamp);
+    this.swipeStepped = !this.isPinned() || this.stepBusy();
   };
 
   private readonly onTouchMove = (event: TouchEvent): void => {
@@ -536,16 +574,22 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
     const back = event.key === 'ArrowUp' || event.key === 'PageUp';
     if (!forward && !back) return;
 
-    // Never swallow keys meant for a focused control.
-    const target = event.target as HTMLElement | null;
-    if (target?.closest('a, button, input, select, textarea, [contenteditable]')) return;
+    // Never swallow keys meant for a focused control. The target is not always
+    // an element: keys can arrive on the document itself.
+    const target = event.target;
+    if (
+      target instanceof Element &&
+      target.closest('a, button, input, select, textarea, [contenteditable]')
+    ) {
+      return;
+    }
 
     const next = this.nextIndex(forward);
     if (next === null) return;
 
     event.preventDefault();
     // Held keys repeat fast: one step at a time, not one per repeat.
-    if (!this.stepBusy(event.timeStamp)) this.moveTo(next);
+    if (!this.stepBusy()) this.moveTo(next);
   };
 
   /** Scroll offset inside the pinned range, mapped to a slide position. */
@@ -607,16 +651,19 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Puts a section position at rest under the viewport. Always `auto`: the
-   * global `scroll-behavior: smooth` would otherwise animate every frame of an
-   * animation that is already eased.
+   * Puts a section position under the viewport, this frame.
+   *
+   * `instant`, never `auto`: `auto` defers to the computed `scroll-behavior`,
+   * which the design system sets to `smooth` globally. That had the browser
+   * animating towards every frame of an animation that is already eased, so
+   * steps landed short and never truly finished.
    */
   private scrollToPosition(pos: number): boolean {
     const rect = this.hostEl.nativeElement.getBoundingClientRect();
     const span = rect.height - this.stageRef().nativeElement.offsetHeight;
     if (span <= 0) return false;
     const ratio = pos / (this.sectionCount - 1);
-    window.scrollTo({ top: window.scrollY + rect.top + span * ratio, behavior: 'auto' });
+    window.scrollTo({ top: window.scrollY + rect.top + span * ratio, behavior: 'instant' });
     return true;
   }
 

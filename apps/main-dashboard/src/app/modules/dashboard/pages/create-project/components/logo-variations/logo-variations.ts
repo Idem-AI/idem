@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { SafeHtmlPipe } from '../../../projects-list/safehtml.pipe';
+import { LogoSrcPipe } from '../../../../../../shared/pipes/logo-src.pipe';
 import { LogoModel, LogoVariations } from '../../../../models/logo.model';
 import { ProjectModel } from '@idem/shared-models';
 import { CarouselComponent } from '../../../../../../shared/components/carousel/carousel.component';
@@ -66,7 +66,7 @@ const VARIATION_DISPLAY: Record<VariationKind, { backgroundColor: string }> = {
 @Component({
   selector: 'app-logo-variations',
   standalone: true,
-  imports: [CommonModule, FormsModule, SafeHtmlPipe, CarouselComponent, TranslateModule],
+  imports: [CommonModule, FormsModule, LogoSrcPipe, CarouselComponent, TranslateModule],
   templateUrl: './logo-variations.html',
   styleUrl: './logo-variations.css',
 })
@@ -105,6 +105,15 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
    * quels à la finalisation — on ne duplique plus le jeu streamé dans les deux.
    */
   private finalVariations: LogoVariations | null = null;
+
+  /**
+   * Logo principal renvoyé par le backend dans `variations_result`, sous sa
+   * forme hébergée (URLs). Sans lui, la sauvegarde de fin d'étape réécrirait en
+   * base le SVG inline reçu à la sélection du concept et écraserait les URLs
+   * que le backend vient d'enregistrer — le logo principal disparaissait alors
+   * de la charte alors que ses déclinaisons s'affichaient.
+   */
+  private finalLogoAssets: { svg?: string; iconSvg?: string } | null = null;
 
   /** Signal true si une ou plusieurs déclinaisons ont échoué ou ne sont pas terminées */
   protected readonly hasFailedSlots = computed(() => {
@@ -273,6 +282,7 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
       critique?: VariationCritiqueView;
       message?: string;
       variations?: LogoVariations;
+      logo?: { svg?: string; iconSvg?: string };
     } = {};
     try {
       payload = event.data ? JSON.parse(event.data) : {};
@@ -285,6 +295,9 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
     if (event.stepName === 'variations_result') {
       if (payload.variations) {
         this.finalVariations = payload.variations;
+      }
+      if (payload.logo) {
+        this.finalLogoAssets = payload.logo;
       }
       return;
     }
@@ -407,9 +420,14 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
     const currentProject = this.project();
     const currentBranding = currentProject?.analysisResultModel?.branding;
 
-    // Update the logo with all variations
+    // Update the logo with all variations. Le SVG hébergé renvoyé par le backend
+    // prime sur celui détenu localement (inline) : le réécrire ferait perdre les
+    // URLs persistées côté serveur.
+    const hosted = this.finalLogoAssets;
     const updatedLogo: LogoModel = {
       ...this.selectedLogo(),
+      ...(hosted?.svg ? { svg: hosted.svg } : {}),
+      ...(hosted?.iconSvg ? { iconSvg: hosted.iconSvg } : {}),
       variations: variations,
     };
 

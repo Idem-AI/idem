@@ -122,11 +122,11 @@
               </h2>
               <div class="flex items-center space-x-4">
                 <div class="w-20 h-20 bg-white rounded-xl flex items-center justify-center p-2 overflow-hidden flex-shrink-0">
-                  @if (logoIsInline()) {
-                    <img class="w-full h-full svg-logo object-contain" [src]="selectedLogo!.svg" alt="Logo"   />
-                  } @else {
-                    <img [src]="selectedLogo!.svg" class="w-full h-full object-contain" />
-                  }
+                  <img
+                    [src]="selectedLogo!.svg | logoSrc"
+                    class="w-full h-full object-contain"
+                    alt="Logo"
+                  />
                 </div>
                 <div>
                   <p class="text-text-primary font-medium">{{ selectedLogo!.name || 'Logo' }}</p>

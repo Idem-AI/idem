@@ -130,15 +130,58 @@ function safeParseJson(content: string): any {
   cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
   // Find JSON structure { ... } or [ ... ]
   const firstBrace = cleaned.indexOf('{');
+  const firstBracket = cleaned.indexOf('[');
   const lastBrace = cleaned.lastIndexOf('}');
+  const lastBracket = cleaned.lastIndexOf(']');
+
   if (firstBrace !== -1 && lastBrace > firstBrace) {
     cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+  } else if (firstBracket !== -1 && lastBracket > firstBracket) {
+    cleaned = cleaned.substring(firstBracket, lastBracket + 1);
   }
+
+  // Attempt 1: direct parse
   try {
     return JSON.parse(cleaned);
-  } catch (e) {
+  } catch (_) {
+    // continue
+  }
+
+  // Attempt 2: escape raw newlines
+  try {
     const sanitized = cleaned.replace(/[\r\n]/g, (match) => (match === '\n' ? '\\n' : '\\r'));
     return JSON.parse(sanitized);
+  } catch (_) {
+    // continue
+  }
+
+  // Attempt 3: repair truncated JSON — close open brackets/braces
+  try {
+    let repaired = cleaned;
+    // Strip trailing comma + whitespace that precedes a missing element
+    repaired = repaired.replace(/,\s*$/, '');
+    // Strip incomplete trailing key/value (e.g. `"name": "foo`, `"id":`)
+    repaired = repaired.replace(/,?\s*"[^"]*":\s*"?[^",}\]]*$/m, '');
+    // Count open vs close braces/brackets and append missing closers
+    const opens = { '{': 0, '[': 0 };
+    for (const ch of repaired) {
+      if (ch === '{') opens['{']++;
+      else if (ch === '}') opens['{']--;
+      else if (ch === '[') opens['[']++;
+      else if (ch === ']') opens['[']--;
+    }
+    // Close innermost first: arrays before objects
+    for (let i = 0; i < opens['[']; i++) repaired += ']';
+    for (let i = 0; i < opens['{']; i++) repaired += '}';
+    return JSON.parse(repaired);
+  } catch (e) {
+    logger.error(`safeParseJson: all repair attempts failed`, {
+      error: e instanceof Error ? e.message : e,
+      snippet: cleaned.slice(0, 300),
+    });
+    throw new Error(
+      `safeParseJson failed: ${e instanceof Error ? e.message : 'unknown error'}`
+    );
   }
 }
 
@@ -1137,13 +1180,19 @@ export class BrandingService extends GenericService {
         ),
         stepName: 'Colors Generation',
         modelParser: (content) => {
-          try {
-            const parsedColors = JSON.parse(content);
-            return parsedColors.colors;
-          } catch (error) {
-            logger.error(`Error parsing colors:`, error);
-            throw new Error(`Failed to parse colors`);
+          // Use safeParseJson to handle markdown fences, truncated JSON,
+          // and raw newlines that cause naive JSON.parse to fail.
+          const parsed = safeParseJson(content);
+          if (!parsed) {
+            throw new Error('safeParseJson returned null – empty or unparseable content');
           }
+          const colors = parsed.colors ?? parsed;
+          if (!Array.isArray(colors)) {
+            throw new Error(
+              `Expected colors array but got ${typeof colors}: ${JSON.stringify(colors).slice(0, 200)}`
+            );
+          }
+          return colors;
         },
         hasDependencies: false,
       },
@@ -1174,13 +1223,17 @@ export class BrandingService extends GenericService {
         promptConstant: projectDescription + TYPOGRAPHY_GENERATION_PROMPT,
         stepName: 'Typography Generation',
         modelParser: (content) => {
-          try {
-            const parsedTypography = JSON.parse(content);
-            return parsedTypography.typography;
-          } catch (error) {
-            logger.error(`Error parsing typography:`, error);
-            throw new Error(`Failed to parse typography`);
+          const parsed = safeParseJson(content);
+          if (!parsed) {
+            throw new Error('safeParseJson returned null – empty or unparseable content');
           }
+          const typography = parsed.typography ?? parsed;
+          if (!Array.isArray(typography)) {
+            throw new Error(
+              `Expected typography array but got ${typeof typography}: ${JSON.stringify(typography).slice(0, 200)}`
+            );
+          }
+          return typography;
         },
         hasDependencies: false,
       },
@@ -1384,6 +1437,15 @@ export class BrandingService extends GenericService {
     const logoResult = sectionResults[0];
     const logoData = logoResult.parsedData;
 
+    const branding = project.analysisResultModel?.branding;
+    if (branding?.typography) {
+      logoData.svg = this.enforceLogoTextIntegrity(
+        logoData.svg,
+        branding.typography,
+        preferences?.type
+      );
+    }
+
     // Créer LogoModel RAW (sans optimisation SVG)
     const logoModel: LogoModel = {
       id: `concept${String(conceptIndex + 1).padStart(2, '0')}`,
@@ -1487,7 +1549,10 @@ export class BrandingService extends GenericService {
     persist = true
   ): Promise<void> {
     const logo = project.analysisResultModel?.branding?.logo;
-    if (!logo || logo.assetUrls) return;
+    // On teste `primary` et non la seule présence de `assetUrls` : une passe où la
+    // rasterisation du logo principal a échoué laisse un objet partiel (icône +
+    // déclinaisons), et sortir ici gelait cette lacune définitivement.
+    if (!logo || logo.assetUrls?.primary) return;
 
     const v = logo.variations;
     const hasContent = !!(
@@ -1599,6 +1664,75 @@ export class BrandingService extends GenericService {
       logger.error('Error extracting icon from SVG:', error);
       return fullSvg; // Return original if extraction fails
     }
+  }
+
+  /**
+   * Enforce correct typography and text alignment in generated SVG logos.
+   * Called after AI generation to guarantee:
+   * 1. font-family matches the user's selected typography
+   * 2. text elements are properly aligned relative to the icon
+   */
+  private enforceLogoTextIntegrity(
+    svg: string,
+    typography: TypographyModel,
+    logoType?: string
+  ): string {
+    if (!svg || typeof svg !== 'string') return svg;
+
+    let processedSvg = svg;
+
+    // 1. Enforce Typography
+    if (typography && typography.primaryFont) {
+      const fontAttrValue = `'${typography.primaryFont}', 'Helvetica Neue', Arial, sans-serif`;
+      
+      // Remove existing font-family attributes
+      processedSvg = processedSvg.replace(/\s*font-family="[^"]*"/g, '');
+      processedSvg = processedSvg.replace(/\s*font-family='[^']*'/g, '');
+      
+      // Inject correct font-family to all <text> elements
+      processedSvg = processedSvg.replace(/<text\b([^>]*)>/g, `<text font-family="${fontAttrValue}"$1>`);
+    }
+
+    // 2. Fix Text Alignment (specifically for icon+text layout)
+    if (logoType === 'icon' && processedSvg.includes('<text')) {
+      // Extract viewBox to understand dimensions
+      const viewBoxMatch = processedSvg.match(/viewBox=["']([\d\.\s,-]+)["']/);
+      if (viewBoxMatch) {
+        const parts = viewBoxMatch[1].trim().split(/[\s,]+/);
+        if (parts.length === 4) {
+          const height = parseFloat(parts[3]);
+          const centerY = height / 2;
+
+          // For the standard "right" layout (horizontal), we want vertical centering.
+          // The logo generation prompt states: y = totalHeight / 2, dominant-baseline="central"
+          
+          processedSvg = processedSvg.replace(/<text\b([^>]*)>/g, (match, attrs) => {
+            let newAttrs = attrs;
+            
+            // Enforce vertical centering (y)
+            if (/y="[^"]*"/.test(newAttrs)) {
+              newAttrs = newAttrs.replace(/y="[^"]*"/, `y="${centerY}"`);
+            } else if (/y='[^']*'/.test(newAttrs)) {
+              newAttrs = newAttrs.replace(/y='[^']*'/, `y="${centerY}"`);
+            } else {
+              newAttrs += ` y="${centerY}"`;
+            }
+            
+            // Enforce dominant-baseline="central"
+            if (!newAttrs.includes('dominant-baseline')) {
+              newAttrs += ` dominant-baseline="central"`;
+            } else {
+              newAttrs = newAttrs.replace(/dominant-baseline="[^"]*"/g, `dominant-baseline="central"`);
+              newAttrs = newAttrs.replace(/dominant-baseline='[^']*'/g, `dominant-baseline="central"`);
+            }
+
+            return `<text${newAttrs}>`;
+          });
+        }
+      }
+    }
+
+    return processedSvg;
   }
 
   /**
@@ -1821,8 +1955,13 @@ export class BrandingService extends GenericService {
     const steps: IPromptStep[] = [
       {
         promptConstant: prompt,
+        // ⚠️ Le modèle de la feature `logo` est un modèle "thinking" : ses tokens
+        // de raisonnement sont décomptés du budget. À 1200, la réponse était
+        // systématiquement tronquée (finishReason=MAX_TOKENS) → JSON illisible →
+        // la boucle qualité (critique + révision) ne s'exécutait jamais.
+        // Aligné sur la critique de déclinaisons, qui passe avec ce budget.
         stepName: 'Logo Critique',
-        maxOutputTokens: 1200,
+        maxOutputTokens: 4096,
         modelParser: (content) => {
           const parsed = parseLlmJson<Record<string, any>>(content);
           if (!parsed) {
@@ -1840,7 +1979,7 @@ export class BrandingService extends GenericService {
       llmOptions: {
         ...BrandingService.LOGO_LLM_CONFIG.llmOptions,
         temperature: 0.15,
-        maxOutputTokens: 1200,
+        maxOutputTokens: 4096,
       },
       skipQuotaCheck: true,
     });
@@ -1916,6 +2055,15 @@ export class BrandingService extends GenericService {
 
     if (!logoData?.svg || typeof logoData.svg !== 'string') {
       throw new Error('Logo revision returned no SVG');
+    }
+
+    const branding = project.analysisResultModel?.branding;
+    if (branding?.typography) {
+      logoData.svg = this.enforceLogoTextIntegrity(
+        logoData.svg,
+        branding.typography,
+        branding.logoPreferences?.type
+      );
     }
 
     return {
@@ -2409,8 +2557,16 @@ export class BrandingService extends GenericService {
     streamCallback: (event: ILogoVariationStreamEvent) => Promise<void>,
     forceRegenerate = false
   ): Promise<{
-    withText: { lightBackground?: string; darkBackground?: string; monochrome?: string };
-    iconOnly: { lightBackground?: string; darkBackground?: string; monochrome?: string };
+    variations: {
+      withText: { lightBackground?: string; darkBackground?: string; monochrome?: string };
+      iconOnly: { lightBackground?: string; darkBackground?: string; monochrome?: string };
+    };
+    /**
+     * Logo principal après externalisation (URLs MinIO). Renvoyé au client pour
+     * qu'il persiste ces URLs et n'écrase pas la base avec le SVG inline qu'il
+     * détient encore en mémoire depuis la sélection du concept.
+     */
+    logo: { svg: string; iconSvg?: string };
   }> {
     const project = await this.getProjectOptimized(userId, projectId);
     if (!project) {
@@ -2447,7 +2603,10 @@ export class BrandingService extends GenericService {
     }
     const missingKinds = kinds.filter((kind) => !results[kind] || !iconResults[kind]);
     if (missingKinds.length === 0) {
-      return { withText: { ...results }, iconOnly: { ...iconResults } };
+      return {
+        variations: { withText: { ...results }, iconOnly: { ...iconResults } },
+        logo: { svg: selectedLogo.svg, ...(selectedLogo.iconSvg ? { iconSvg: selectedLogo.iconSvg } : {}) },
+      };
     }
 
     const generationKey = BrandingService.variationsGenerationKey(userId, projectId);
@@ -2638,7 +2797,10 @@ export class BrandingService extends GenericService {
       );
     }
 
-    return variationUrls || optimizedVariations;
+    return {
+      variations: variationUrls || optimizedVariations,
+      logo: { svg: logoSvgUrl, ...(iconSvgUrl ? { iconSvg: iconSvgUrl } : {}) },
+    };
   }
 
   async getBrandingsByProjectId(

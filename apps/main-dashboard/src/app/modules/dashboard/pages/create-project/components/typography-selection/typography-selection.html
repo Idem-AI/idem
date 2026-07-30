@@ -114,6 +114,7 @@
               [searchResults]="searchResults()"
               [isSearching]="isSearching()"
               (searchInput)="onSearchInput($event)"
+              (categoryChanged)="onCategoryChanged($event)"
               (fontSelected)="selectFont($event)"
             ></app-typography-custom-creator>
           }
@@ -123,7 +124,7 @@
         <div class="lg:col-span-7">
           <app-typography-preview
             [typography]="currentSelectedTypography()"
-            [previewText]="previewText"
+            [previewText]="previewText()"
           ></app-typography-preview>
         </div>
       </div>

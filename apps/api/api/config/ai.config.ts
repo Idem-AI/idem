@@ -256,14 +256,11 @@ export const AI_CONFIG = {
     } as FeatureAIConfig,
     colors: {
       provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3.1-pro-preview',
+      modelName: 'gemini-2.5-flash',
       fallbackModels: [
-        'gemini-3.6-flash',
-        'gemini-3.5-flash',
-        'gemini-3-flash-preview'
       ],
       llmOptions: {
-        maxOutputTokens: 1200,
+
         temperature: 0.05,
         topP: 0.8,
         topK: 20,
@@ -271,14 +268,10 @@ export const AI_CONFIG = {
     } as FeatureAIConfig,
     typography: {
       provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3.1-pro-preview',
+      modelName: 'gemini-2.5-flash',
       fallbackModels: [
-        'gemini-3.6-flash',
-        'gemini-3.5-flash',
-        'gemini-3-flash-preview'
       ],
       llmOptions: {
-        maxOutputTokens: 1800,
         temperature: 0.3,
         topP: 0.8,
         topK: 20,

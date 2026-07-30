@@ -5,6 +5,7 @@ import { isPlatformServer } from '@angular/common';
 import { Observable, from, of } from 'rxjs';
 import { switchMap, catchError, timeout } from 'rxjs/operators';
 import { readLocaleCookie } from '../utils/locale-cookie';
+import { SKIP_AUTH } from './http-context';
 
 /**
  * Interceptor function to add JWT to requests.
@@ -31,6 +32,12 @@ export const authInterceptor: HttpInterceptorFn = (
   // synchronously during bootstrap (the translate loader fires at startup),
   // which triggers an NG0200 circular dependency on `Auth`. Resolve them early.
   if (req.url.includes('/assets/') || req.url.startsWith('assets/')) {
+    return next(req);
+  }
+
+  // Third-party endpoints (Google Fonts…) explicitly opted out: never leak the
+  // user's bearer token to a host outside our infrastructure.
+  if (req.context.get(SKIP_AUTH)) {
     return next(req);
   }
 

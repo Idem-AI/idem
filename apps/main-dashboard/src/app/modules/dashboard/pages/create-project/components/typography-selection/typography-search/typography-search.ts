@@ -1,43 +1,94 @@
-import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
-import { TypographyModel } from '../../../../../models/brand-identity.model';
+import {
+  FontCategory,
+  GoogleFont,
+  TypographyService,
+  fontStack,
+} from '../../../../../../../shared/services/typography.service';
+
+interface CategoryFilter {
+  readonly id: FontCategory | null;
+  readonly labelKey: string;
+}
 
 @Component({
   selector: 'app-typography-search',
-  standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule],
+  imports: [TranslateModule],
   templateUrl: './typography-search.html',
   styleUrls: ['./typography-search.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TypographySearchComponent {
-  @Input() searchResults: any[] = [];
-  @Input() isSearching = false;
-  @Output() searchInput = new EventEmitter<string>();
-  @Output() fontSelected = new EventEmitter<{ font: any; type: 'primary' | 'secondary' }>();
-  @Output() customTypographyCreated = new EventEmitter<TypographyModel>();
+  private readonly typographyService = inject(TypographyService);
 
-  searchQuery = signal('');
+  readonly searchResults = input<GoogleFont[]>([]);
+  readonly isSearching = input(false);
+  readonly selectedPrimaryFont = input('');
+  readonly selectedSecondaryFont = input('');
 
-  onSearchInput(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    this.searchQuery.set(target.value);
-    this.searchInput.emit(target.value);
+  readonly searchInput = output<string>();
+  readonly categoryChanged = output<FontCategory | null>();
+  readonly fontSelected = output<{ font: GoogleFont; type: 'primary' | 'secondary' }>();
+
+  protected readonly searchQuery = signal('');
+  protected readonly activeCategory = signal<FontCategory | null>(null);
+
+  protected readonly categories: readonly CategoryFilter[] = [
+    { id: null, labelKey: 'dashboard.typographySelection.categories.all' },
+    { id: 'sans-serif', labelKey: 'dashboard.typographySelection.categories.sansSerif' },
+    { id: 'serif', labelKey: 'dashboard.typographySelection.categories.serif' },
+    { id: 'display', labelKey: 'dashboard.typographySelection.categories.display' },
+    { id: 'handwriting', labelKey: 'dashboard.typographySelection.categories.handwriting' },
+    { id: 'monospace', labelKey: 'dashboard.typographySelection.categories.monospace' },
+  ];
+
+  constructor() {
+    // Each row is rendered in its own typeface — pull every visible family in a
+    // single batched Google Fonts request.
+    effect(() => {
+      const families = this.searchResults().map((font) => font.family);
+      if (families.length > 0) {
+        void this.typographyService.loadGoogleFonts(families);
+      }
+    });
   }
 
-  onFontSelect(font: any, type: 'primary' | 'secondary'): void {
+  protected onSearchInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.searchQuery.set(value);
+    this.searchInput.emit(value);
+  }
+
+  protected onClearSearch(): void {
+    this.searchQuery.set('');
+    this.searchInput.emit('');
+  }
+
+  protected onCategoryClick(category: FontCategory | null): void {
+    if (this.activeCategory() === category) return;
+    this.activeCategory.set(category);
+    this.categoryChanged.emit(category);
+  }
+
+  protected onFontSelect(font: GoogleFont, type: 'primary' | 'secondary'): void {
     this.fontSelected.emit({ font, type });
   }
 
-  onCreateCustomTypography(primaryFont: string, secondaryFont: string): void {
-    const customTypography: TypographyModel = {
-      id: `custom-${Date.now()}`,
-      name: `${primaryFont} + ${secondaryFont}`,
-      primaryFont,
-      secondaryFont,
-      description: 'Custom typography combination',
-    };
-    this.customTypographyCreated.emit(customTypography);
+  protected stackFor(font: GoogleFont): string {
+    return fontStack(font.family, font.category);
+  }
+
+  protected categoryLabelKey(font: GoogleFont): string {
+    const match = this.categories.find((category) => category.id === font.category);
+    return match?.labelKey ?? 'dashboard.typographySelection.categories.all';
+  }
+
+  protected isPrimary(font: GoogleFont): boolean {
+    return this.selectedPrimaryFont() === font.family;
+  }
+
+  protected isSecondary(font: GoogleFont): boolean {
+    return this.selectedSecondaryFont() === font.family;
   }
 }
