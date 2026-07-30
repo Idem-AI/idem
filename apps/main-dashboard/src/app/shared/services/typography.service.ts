@@ -166,14 +166,22 @@ const REQUESTED_WEIGHTS = [400, 500, 600, 700];
 const FAMILIES_PER_REQUEST = 10;
 
 /**
- * Builds a CSS `font-family` value. The family name is always quoted: bare
- * identifiers break for names containing a digit (`Source Sans 3`, `M PLUS 1`),
- * which silently drops the whole declaration.
+ * Builds a CSS `font-family` value for a font preview.
+ *
+ * Two non-obvious requirements:
+ * - The family name is always quoted: a bare identifier is invalid when a word
+ *   starts with a digit (`Exo 2`, `Source Sans 3` — both produced by our own
+ *   typography prompt), and the browser then drops the whole declaration.
+ * - The value is `!important`, because `styles.css` forces `* { font-family:
+ *   'Jura' !important }` app-wide. An important declaration from a stylesheet
+ *   beats a plain inline style, so a preview could never show its own font.
+ *   Angular strips the suffix from a style binding and sets the priority flag,
+ *   and an important *inline* style outranks an important stylesheet rule.
  */
 export function fontStack(family: string | null | undefined, category?: string): string {
   if (!family) return 'inherit';
   const generic = GENERIC_FALLBACK[normalizeCategory(category)] ?? 'sans-serif';
-  return `"${family.replace(/"/g, '')}", ${generic}`;
+  return `"${family.replace(/"/g, '')}", ${generic} !important`;
 }
 
 function normalizeCategory(category?: string): string {

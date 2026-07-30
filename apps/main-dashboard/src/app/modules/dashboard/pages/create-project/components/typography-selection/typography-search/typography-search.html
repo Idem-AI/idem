@@ -1,6 +1,6 @@
-<div class="flex flex-col gap-4 min-h-0 flex-1">
+<div class="flex flex-col gap-3 min-h-0 flex-1">
   <!-- Search Input -->
-  <div class="relative">
+  <div class="relative shrink-0">
     <svg
       class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary pointer-events-none"
       fill="none"
@@ -39,7 +39,7 @@
 
   <!-- Category Filters -->
   <div
-    class="flex flex-wrap gap-2"
+    class="flex flex-wrap gap-2 shrink-0"
     role="group"
     [attr.aria-label]="'dashboard.typographySelection.categories.label' | translate"
   >
@@ -69,7 +69,7 @@
       }}</span>
     </div>
   } @else if (searchResults().length > 0) {
-    <p class="text-xs text-text-tertiary" aria-live="polite">
+    <p class="text-xs text-text-tertiary shrink-0" aria-live="polite">
       {{
         'dashboard.typographySelection.resultsCount'
           | translate: { count: searchResults().length }
@@ -78,10 +78,10 @@
     <ul class="flex-1 min-h-0 grid grid-cols-1 gap-2 overflow-y-auto custom-scrollbar pr-1">
       @for (font of searchResults(); track font.family) {
         <li
-          class="flex items-center justify-between gap-3 p-3 bg-[var(--glass-bg-light)] border border-[var(--glass-border)] rounded-lg hover:border-[var(--glass-border-medium)] transition-colors"
+          class="flex items-center justify-between gap-3 px-3 py-2 bg-[var(--glass-bg-light)] border border-[var(--glass-border)] rounded-lg hover:border-[var(--glass-border-medium)] transition-colors"
         >
           <div class="min-w-0">
-            <div class="text-text-primary text-lg leading-snug truncate" [style.fontFamily]="stackFor(font)">
+            <div class="text-text-primary text-base leading-snug truncate" [style.fontFamily]="stackFor(font)">
               {{ font.family }}
             </div>
             <div class="text-text-tertiary text-xs mt-0.5">
