@@ -35,11 +35,6 @@ export const environment = {
     appId: '${process.env.FIREBASE_APP_ID || ''}',
     measurementId: '${process.env.FIREBASE_MEASUREMENT_ID || ''}',
   },
-  googleFonts: {
-    // Optionnel : clé Google Cloud avec l'API Web Fonts activée. Vide ⇒ le
-    // catalogue Google Fonts est lu via le miroir public (sans clé).
-    apiKey: '${process.env.GOOGLE_FONTS_API_KEY || ''}',
-  },
   services: {
     domain: '${process.env.SERVICES_DOMAIN || 'https://idem.africa'}',
     api: {
