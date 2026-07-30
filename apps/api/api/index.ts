@@ -76,6 +76,7 @@ import githubRoutes from './routes/github.routes';
 import archetypeRoutes from './routes/archetype.routes';
 import quotaRoutes from './routes/quota.routes';
 import cacheRoutes from './routes/cache.routes';
+import fontRoutes from './routes/font.routes';
 import { PdfService } from './services/pdf.service';
 import RedisConnection from './config/redis.config';
 import policyRoutes from './routes/policy.routes';
@@ -157,6 +158,7 @@ app.use('/quota', quotaRoutes);
 app.use('/archetypes', archetypeRoutes);
 app.use('/github', githubRoutes);
 app.use('/cache', cacheRoutes);
+app.use('/fonts', fontRoutes);
 app.use('/project', policyRoutes);
 
 
