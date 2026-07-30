@@ -9,18 +9,14 @@
   <div class="tile-header-row">
     <div class="tile-logo-wrapper">
       @if (project()?.analysisResultModel?.branding?.logo && !logoLoadError()) {
-        @if (logoIsInline()) {
-          <img class="tile-logo-inner inline-logo object-contain" [src]="project()?.analysisResultModel?.branding?.logo?.svg" alt="Logo"   />
-        } @else {
-          <div class="tile-logo-inner">
-            <img
-              [src]="project()?.analysisResultModel?.branding?.logo?.svg"
-              [alt]="'dashboard.projectCard.logoAlt' | translate"
-              class="tile-logo-img"
-              (error)="handleImageError()"
-            />
-          </div>
-        }
+        <div class="tile-logo-inner">
+          <img
+            [src]="project()?.analysisResultModel?.branding?.logo?.svg | logoSrc"
+            [alt]="'dashboard.projectCard.logoAlt' | translate"
+            class="tile-logo-img"
+            (error)="handleImageError()"
+          />
+        </div>
       } @else {
         <!-- Premium dynamic gradient placeholder -->
         <div class="tile-logo-placeholder" [style]="placeholderBgStyle()">
