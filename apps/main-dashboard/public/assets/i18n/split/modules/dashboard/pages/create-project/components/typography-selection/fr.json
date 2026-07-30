@@ -88,7 +88,6 @@
       "custom": {
         "title": "Vos mélanges personnalisés",
         "createNew": "Créer un nouveau mélange",
-        "searchIntro": "Cherchez dans tout le catalogue Google Fonts, puis assignez une police :",
         "searchLabel": "RECHERCHER GOOGLE FONTS",
         "searchPlaceholder": "Rechercher des polices (ex. Roboto, Open Sans)...",
         "setPrimary": "Définir comme primaire",

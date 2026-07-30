@@ -1,9 +1,11 @@
-<div class="h-full flex flex-col">
+<!-- Height is pinned to the preview panel: the font list scrolls inside the card
+     instead of stretching the page. -->
+<div class="h-[600px] flex flex-col">
   <!-- Custom Typography Creator -->
   <div
-    class="bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] rounded-xl p-6 backdrop-blur-sm flex-1 flex flex-col"
+    class="bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] rounded-xl p-5 backdrop-blur-sm flex-1 min-h-0 flex flex-col"
   >
-    <h3 class="text-text-primary font-semibold mb-6 flex items-center">
+    <h3 class="text-text-primary font-semibold mb-4 flex items-center shrink-0">
       <svg
         class="w-5 h-5 mr-2 text-primary"
         fill="none"
@@ -22,10 +24,10 @@
     </h3>
 
     <!-- Current Selection Display -->
-    <div class="grid grid-cols-2 gap-4 mb-6">
+    <div class="grid grid-cols-2 gap-3 mb-4 shrink-0">
       <!-- Primary Font Selection -->
       <div
-        class="p-4 rounded-xl border transition-colors duration-200"
+        class="p-3 rounded-xl border transition-colors duration-200"
         [class]="
           selectedPrimaryFont()
             ? 'bg-[var(--glass-bg-light)] border-primary'
@@ -36,7 +38,7 @@
           {{ 'dashboard.typographySelection.custom.primaryFont' | translate }}
         </div>
         <div
-          class="font-medium text-lg truncate"
+          class="font-medium text-base truncate"
           [class]="selectedPrimaryFont() ? 'text-text-primary' : 'text-text-tertiary'"
           [style.fontFamily]="primaryStack()"
         >
@@ -48,7 +50,7 @@
 
       <!-- Secondary Font Selection -->
       <div
-        class="p-4 rounded-xl border transition-colors duration-200"
+        class="p-3 rounded-xl border transition-colors duration-200"
         [class]="
           selectedSecondaryFont()
             ? 'bg-[var(--glass-bg-light)] border-primary'
@@ -59,7 +61,7 @@
           {{ 'dashboard.typographySelection.custom.secondaryFont' | translate }}
         </div>
         <div
-          class="font-medium text-lg truncate"
+          class="font-medium text-base truncate"
           [class]="selectedSecondaryFont() ? 'text-text-primary' : 'text-text-tertiary'"
           [style.fontFamily]="secondaryStack()"
         >
@@ -72,20 +74,15 @@
     </div>
 
     <!-- Typography Search Component -->
-    <div class="flex-1 min-h-0 flex flex-col">
-      <div class="text-sm text-text-tertiary mb-3">
-        {{ 'dashboard.typographySelection.custom.searchIntro' | translate }}
-      </div>
-      <app-typography-search
-        class="flex-1 min-h-0 flex flex-col"
-        [searchResults]="searchResults()"
-        [isSearching]="isSearching()"
-        [selectedPrimaryFont]="selectedPrimaryFont()"
-        [selectedSecondaryFont]="selectedSecondaryFont()"
-        (searchInput)="onSearchInput($event)"
-        (categoryChanged)="onCategoryChanged($event)"
-        (fontSelected)="onFontSelected($event)"
-      ></app-typography-search>
-    </div>
+    <app-typography-search
+      class="flex-1 min-h-0 flex flex-col"
+      [searchResults]="searchResults()"
+      [isSearching]="isSearching()"
+      [selectedPrimaryFont]="selectedPrimaryFont()"
+      [selectedSecondaryFont]="selectedSecondaryFont()"
+      (searchInput)="onSearchInput($event)"
+      (categoryChanged)="onCategoryChanged($event)"
+      (fontSelected)="onFontSelected($event)"
+    ></app-typography-search>
   </div>
 </div>
