@@ -1437,6 +1437,15 @@ export class BrandingService extends GenericService {
     const logoResult = sectionResults[0];
     const logoData = logoResult.parsedData;
 
+    const branding = project.analysisResultModel?.branding;
+    if (branding?.typography) {
+      logoData.svg = this.enforceLogoTextIntegrity(
+        logoData.svg,
+        branding.typography,
+        preferences?.type
+      );
+    }
+
     // Créer LogoModel RAW (sans optimisation SVG)
     const logoModel: LogoModel = {
       id: `concept${String(conceptIndex + 1).padStart(2, '0')}`,
@@ -1655,6 +1664,75 @@ export class BrandingService extends GenericService {
       logger.error('Error extracting icon from SVG:', error);
       return fullSvg; // Return original if extraction fails
     }
+  }
+
+  /**
+   * Enforce correct typography and text alignment in generated SVG logos.
+   * Called after AI generation to guarantee:
+   * 1. font-family matches the user's selected typography
+   * 2. text elements are properly aligned relative to the icon
+   */
+  private enforceLogoTextIntegrity(
+    svg: string,
+    typography: TypographyModel,
+    logoType?: string
+  ): string {
+    if (!svg || typeof svg !== 'string') return svg;
+
+    let processedSvg = svg;
+
+    // 1. Enforce Typography
+    if (typography && typography.primaryFont) {
+      const fontAttrValue = `'${typography.primaryFont}', 'Helvetica Neue', Arial, sans-serif`;
+      
+      // Remove existing font-family attributes
+      processedSvg = processedSvg.replace(/\s*font-family="[^"]*"/g, '');
+      processedSvg = processedSvg.replace(/\s*font-family='[^']*'/g, '');
+      
+      // Inject correct font-family to all <text> elements
+      processedSvg = processedSvg.replace(/<text\b([^>]*)>/g, `<text font-family="${fontAttrValue}"$1>`);
+    }
+
+    // 2. Fix Text Alignment (specifically for icon+text layout)
+    if (logoType === 'icon' && processedSvg.includes('<text')) {
+      // Extract viewBox to understand dimensions
+      const viewBoxMatch = processedSvg.match(/viewBox=["']([\d\.\s,-]+)["']/);
+      if (viewBoxMatch) {
+        const parts = viewBoxMatch[1].trim().split(/[\s,]+/);
+        if (parts.length === 4) {
+          const height = parseFloat(parts[3]);
+          const centerY = height / 2;
+
+          // For the standard "right" layout (horizontal), we want vertical centering.
+          // The logo generation prompt states: y = totalHeight / 2, dominant-baseline="central"
+          
+          processedSvg = processedSvg.replace(/<text\b([^>]*)>/g, (match, attrs) => {
+            let newAttrs = attrs;
+            
+            // Enforce vertical centering (y)
+            if (/y="[^"]*"/.test(newAttrs)) {
+              newAttrs = newAttrs.replace(/y="[^"]*"/, `y="${centerY}"`);
+            } else if (/y='[^']*'/.test(newAttrs)) {
+              newAttrs = newAttrs.replace(/y='[^']*'/, `y="${centerY}"`);
+            } else {
+              newAttrs += ` y="${centerY}"`;
+            }
+            
+            // Enforce dominant-baseline="central"
+            if (!newAttrs.includes('dominant-baseline')) {
+              newAttrs += ` dominant-baseline="central"`;
+            } else {
+              newAttrs = newAttrs.replace(/dominant-baseline="[^"]*"/g, `dominant-baseline="central"`);
+              newAttrs = newAttrs.replace(/dominant-baseline='[^']*'/g, `dominant-baseline="central"`);
+            }
+
+            return `<text${newAttrs}>`;
+          });
+        }
+      }
+    }
+
+    return processedSvg;
   }
 
   /**
@@ -1977,6 +2055,15 @@ export class BrandingService extends GenericService {
 
     if (!logoData?.svg || typeof logoData.svg !== 'string') {
       throw new Error('Logo revision returned no SVG');
+    }
+
+    const branding = project.analysisResultModel?.branding;
+    if (branding?.typography) {
+      logoData.svg = this.enforceLogoTextIntegrity(
+        logoData.svg,
+        branding.typography,
+        branding.logoPreferences?.type
+      );
     }
 
     return {

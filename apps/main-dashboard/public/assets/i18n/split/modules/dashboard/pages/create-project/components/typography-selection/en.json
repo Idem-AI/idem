@@ -72,10 +72,23 @@
       "searching": "Searching fonts...",
       "noResults": "No fonts found for your search",
       "searchHint": "Start typing to search Google Fonts",
+      "clearSearch": "Clear search",
+      "resultsCount": "{{count}} fonts",
+      "weightsCount": "{{count}} weights",
+      "categories": {
+        "label": "Filter by font category",
+        "all": "All",
+        "sansSerif": "Sans serif",
+        "serif": "Serif",
+        "display": "Display",
+        "handwriting": "Handwriting",
+        "monospace": "Monospace"
+      },
       "selectToPreview": "Select fonts to preview your custom typography mix",
       "custom": {
         "title": "Your Custom Mixes",
         "createNew": "Create New Mix",
+        "searchIntro": "Search the full Google Fonts catalog, then assign a font:",
         "searchLabel": "SEARCH GOOGLE FONTS",
         "searchPlaceholder": "Search fonts (e.g. Roboto, Open Sans)...",
         "setPrimary": "Set Primary",
