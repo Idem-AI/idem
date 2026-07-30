@@ -1,33 +1,41 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import {
-  TypographyPreview,
+  FontCategory,
   GoogleFont,
+  fontStack,
 } from '../../../../../../../shared/services/typography.service';
 import { TypographySearchComponent } from '../typography-search/typography-search';
 
 @Component({
   selector: 'app-typography-custom-creator',
-  standalone: true,
-  imports: [CommonModule, TranslateModule, TypographySearchComponent],
+  imports: [TranslateModule, TypographySearchComponent],
   templateUrl: './typography-custom-creator.html',
   styleUrls: ['./typography-custom-creator.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TypographyCustomCreatorComponent {
-  @Input() selectedPrimaryFont = '';
-  @Input() selectedSecondaryFont = '';
-  @Input() searchResults: GoogleFont[] = [];
-  @Input() isSearching = false;
+  readonly selectedPrimaryFont = input('');
+  readonly selectedSecondaryFont = input('');
+  readonly searchResults = input<GoogleFont[]>([]);
+  readonly isSearching = input(false);
 
-  @Output() searchInput = new EventEmitter<string>();
-  @Output() fontSelected = new EventEmitter<{ font: GoogleFont; type: 'primary' | 'secondary' }>();
+  readonly searchInput = output<string>();
+  readonly categoryChanged = output<FontCategory | null>();
+  readonly fontSelected = output<{ font: GoogleFont; type: 'primary' | 'secondary' }>();
 
-  onSearchInput(query: string): void {
+  protected readonly primaryStack = computed(() => fontStack(this.selectedPrimaryFont()));
+  protected readonly secondaryStack = computed(() => fontStack(this.selectedSecondaryFont()));
+
+  protected onSearchInput(query: string): void {
     this.searchInput.emit(query);
   }
 
-  onFontSelected(event: { font: GoogleFont; type: 'primary' | 'secondary' }): void {
+  protected onCategoryChanged(category: FontCategory | null): void {
+    this.categoryChanged.emit(category);
+  }
+
+  protected onFontSelected(event: { font: GoogleFont; type: 'primary' | 'secondary' }): void {
     this.fontSelected.emit(event);
   }
 }

@@ -814,7 +814,20 @@
         "primaryFont": "PRIMARY FONT",
         "secondaryFont": "SECONDARY FONT",
         "notSelected": "Not selected",
-        "addButton": "Add Custom Mix"
+        "addButton": "Add Custom Mix",
+        "searchIntro": "Search the full Google Fonts catalog, then assign a font:"
+      },
+      "clearSearch": "Clear search",
+      "resultsCount": "{{count}} fonts",
+      "weightsCount": "{{count}} weights",
+      "categories": {
+        "label": "Filter by font category",
+        "all": "All",
+        "sansSerif": "Sans serif",
+        "serif": "Serif",
+        "display": "Display",
+        "handwriting": "Handwriting",
+        "monospace": "Monospace"
       }
     },
     "createProject": {

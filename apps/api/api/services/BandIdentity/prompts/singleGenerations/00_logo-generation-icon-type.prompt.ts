@@ -25,9 +25,10 @@ ICON CONSTRUCTION:
 - Negative space inside and around the icon is designed on the same grid — counters ≥ 1.5 * icon_unit.
 
 WORDMARK RULES (Bringhurst — real typography, never drawn freehand):
-- Full brand name, complete spelling, rendered as a real <text> element with a DESIGN PALETTE font (or fallback stack).
+- Full brand name, complete spelling, rendered as a real <text> element.
+- TYPOGRAPHY ENFORCEMENT: The font-family MUST be EXACTLY the font provided in the DESIGN PALETTE.
 - Positioned RIGHT of the icon: left edge = icon_size + spacing (min 12px spacing — this template value is fixed, never improvised).
-- Vertically centered: y = totalHeight / 2, dominant-baseline="central".
+- ALIGNMENT ENFORCEMENT: Vertically centered EXACTLY using y = totalHeight / 2 AND dominant-baseline="central" on the <text> element.
 - Font size: totalHeight * 0.35.
 - Weight: 600 or 700.
 - Letter-spacing:
