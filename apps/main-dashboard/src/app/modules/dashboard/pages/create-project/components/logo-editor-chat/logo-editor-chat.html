@@ -95,9 +95,10 @@
               <div
                 class="bg-white rounded-2xl p-8 shadow-xl border-2 border-[var(--glass-border)] hover:border-primary transition-all max-w-md"
               >
-                <img class="w-64 h-64 flex items-center justify-center object-contain" [src]="message.logo.svg" alt="Logo" 
-                  
-                  
+                <img
+                  class="w-64 h-64 flex items-center justify-center object-contain"
+                  [src]="message.logo.svg | logoSrc"
+                  alt="Logo"
                 />
               </div>
 

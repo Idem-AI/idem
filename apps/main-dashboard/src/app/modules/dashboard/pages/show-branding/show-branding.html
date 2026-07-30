@@ -144,17 +144,7 @@
                       class="w-40 h-40 sm:w-44 sm:h-44 bg-white rounded-2xl flex items-center justify-center p-4 shadow-lg border-2 border-[var(--glass-border-medium)] group-hover/logo:shadow-xl group-hover/logo:bg-[var(--glass-bg-subtle)] transition-all duration-300"
                     >
                       @if (logoSrc(existingBranding()?.logo?.assetUrls?.primary, existingBranding()?.logo?.svg); as logoImg) {
-                        @if (logoImg.startsWith('<')) {
-                          <img class="w-32 h-32 sm:w-36 sm:h-36 flex items-center justify-center svg-logo object-contain" [src]="logoImg" alt="Logo" 
-                            
-                            
-                          />
-                        } @else {
-                          <img
-                            [src]="logoImg"
-                            class="w-32 h-32 sm:w-36 sm:h-36 object-contain"
-                          />
-                        }
+                        <img [src]="logoImg" class="w-32 h-32 sm:w-36 sm:h-36 object-contain" alt="Logo" />
                       } @else {
                         <svg
                           class="w-20 h-20 text-text-secondary"
@@ -408,16 +398,7 @@
                   <div
                     class="w-36 h-36 sm:w-40 sm:h-40 mx-auto mb-3 bg-white rounded-xl flex items-center justify-center p-3 overflow-hidden"
                   >
-                    @if (logoImg.startsWith('<')) {
-                      <!-- Raw SVG inline -->
-                      <img class="w-full h-full flex items-center justify-center svg-logo object-contain" [src]="logoImg" alt="Logo" 
-                        
-                        
-                      />
-                    } @else {
-                      <!-- URL (hosted PNG or legacy URL) -->
-                      <img [src]="logoImg" class="w-full h-full object-contain" />
-                    }
+                    <img [src]="logoImg" class="w-full h-full object-contain" alt="Logo" />
                   </div>
                   <p class="text-text-primary font-medium">
                     {{
@@ -441,14 +422,7 @@
                       <div
                         class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-white rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
-                        @if (v.startsWith('<')) {
-                          <img class="w-full h-full svg-logo object-contain" [src]="v" alt="Logo" 
-                            
-                            
-                          />
-                        } @else {
-                          <img [src]="v" class="w-full h-full object-contain" />
-                        }
+                        <img [src]="v" class="w-full h-full object-contain" alt="Logo" />
                       </div>
                       <p class="text-text-primary text-xs">
                         {{ 'dashboard.showBranding.sections.logos.lightBg' | translate }}
@@ -462,14 +436,7 @@
                       <div
                         class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-gray-900 rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
-                        @if (v.startsWith('<')) {
-                          <img class="w-full h-full svg-logo object-contain" [src]="v" alt="Logo" 
-                            
-                            
-                          />
-                        } @else {
-                          <img [src]="v" class="w-full h-full object-contain" />
-                        }
+                        <img [src]="v" class="w-full h-full object-contain" alt="Logo" />
                       </div>
                       <p class="text-white text-xs font-medium">
                         {{ 'dashboard.showBranding.sections.logos.darkBg' | translate }}
@@ -483,14 +450,7 @@
                       <div
                         class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-[var(--glass-bg-subtle)] rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
-                        @if (v.startsWith('<')) {
-                          <img class="w-full h-full svg-logo object-contain" [src]="v" alt="Logo" 
-                            
-                            
-                          />
-                        } @else {
-                          <img [src]="v" class="w-full h-full object-contain" />
-                        }
+                        <img [src]="v" class="w-full h-full object-contain" alt="Logo" />
                       </div>
                       <p class="text-text-primary text-xs">
                         {{ 'dashboard.showBranding.sections.logos.monochrome' | translate }}
@@ -504,14 +464,7 @@
                       <div
                         class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-white rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
-                        @if (v.startsWith('<')) {
-                          <img class="w-full h-full svg-logo object-contain" [src]="v" alt="Logo" 
-                            
-                            
-                          />
-                        } @else {
-                          <img [src]="v" class="w-full h-full object-contain" />
-                        }
+                        <img [src]="v" class="w-full h-full object-contain" alt="Logo" />
                       </div>
                       <p class="text-text-primary text-xs">
                         {{ 'dashboard.showBranding.sections.logos.iconOnly' | translate }}
@@ -525,14 +478,7 @@
                       <div
                         class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-gray-900 rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
-                        @if (v.startsWith('<')) {
-                          <img class="w-full h-full svg-logo object-contain" [src]="v" alt="Logo" 
-                            
-                            
-                          />
-                        } @else {
-                          <img [src]="v" class="w-full h-full object-contain" />
-                        }
+                        <img [src]="v" class="w-full h-full object-contain" alt="Logo" />
                       </div>
                       <p class="text-white text-xs font-medium">
                         {{ 'dashboard.showBranding.sections.logos.darkBg' | translate }} (icon)
@@ -546,14 +492,7 @@
                       <div
                         class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-[var(--glass-bg-subtle)] rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
-                        @if (v.startsWith('<')) {
-                          <img class="w-full h-full svg-logo object-contain" [src]="v" alt="Logo" 
-                            
-                            
-                          />
-                        } @else {
-                          <img [src]="v" class="w-full h-full object-contain" />
-                        }
+                        <img [src]="v" class="w-full h-full object-contain" alt="Logo" />
                       </div>
                       <p class="text-text-primary text-xs">
                         {{ 'dashboard.showBranding.sections.logos.monochrome' | translate }} (icon)

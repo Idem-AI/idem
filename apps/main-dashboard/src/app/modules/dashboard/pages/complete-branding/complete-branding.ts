@@ -20,7 +20,7 @@ import { TypographySelectionComponent } from '../create-project/components/typog
 import { LogoVariationsComponent } from '../create-project/components/logo-variations/logo-variations';
 import { LogoSelectionComponent } from '../create-project/components/logo-selection/logo-selection';
 import { LogoPreferences } from '../create-project/components/logo-preferences/logo-preferences';
-import { SafeHtmlPipe } from '../projects-list/safehtml.pipe';
+import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
 
 import { LogoModel, LogoPreferencesModel } from '../../models/logo.model';
 import { ColorModel, TypographyModel } from '../../models/brand-identity.model';
@@ -42,7 +42,7 @@ import { ColorModel, TypographyModel } from '../../models/brand-identity.model';
   imports: [
     CommonModule,
     TranslateModule,
-    SafeHtmlPipe,
+    LogoSrcPipe,
     LogoChoiceComponent,
     ColorSelectionComponent,
     TypographySelectionComponent,
@@ -162,12 +162,6 @@ export class CompleteBrandingPage implements OnInit {
   protected get selectedTypography(): TypographyModel | null {
     return this.project()?.analysisResultModel?.branding?.typography ?? null;
   }
-
-  /** SVG du logo — détecte si inline ou URL */
-  protected readonly logoIsInline = computed(() => {
-    const svg = this.selectedLogo?.svg;
-    return !!svg && svg.trimStart().startsWith('<');
-  });
 
   // ─── Lifecycle ──────────────────────────────────────────────────────────────
 

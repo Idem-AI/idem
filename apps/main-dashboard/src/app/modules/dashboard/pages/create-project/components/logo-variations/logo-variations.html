@@ -145,7 +145,7 @@
           >
             @if (slot.svg) {
               <img
-                [src]="slot.svg"
+                [src]="slot.svg | logoSrc"
                 alt="Logo"
                 class="w-full h-full object-contain transition-opacity duration-500 max-w-full max-h-full"
               />
@@ -437,9 +437,10 @@
                 class="w-full h-48 rounded-lg flex items-center justify-center mb-4 border-2 border-glass-border"
                 [style.background-color]="variation.backgroundColor"
               >
-                <img class="w-32 h-32 flex items-center justify-center object-contain" [src]="variation.svgContent" alt="Logo" 
-                  
-                  
+                <img
+                  class="w-32 h-32 flex items-center justify-center object-contain"
+                  [src]="variation.svgContent | logoSrc"
+                  alt="Logo"
                 />
               </div>
 

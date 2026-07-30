@@ -40,18 +40,14 @@
           <!-- Logo Frame -->
           <div class="header-logo-wrapper">
             @if (currentProject.analysisResultModel?.branding?.logo && !logoLoadError()) {
-              @if (logoIsInline()) {
-                <img class="header-logo-inner inline-logo object-contain" [src]="currentProject.analysisResultModel.branding.logo.svg" alt="Logo"   />
-              } @else {
-                <div class="header-logo-inner">
-                  <img
-                    [src]="currentProject.analysisResultModel.branding.logo.svg"
-                    [alt]="currentProject.name"
-                    class="header-logo-img"
-                    (error)="handleImageError()"
-                  />
-                </div>
-              }
+              <div class="header-logo-inner">
+                <img
+                  [src]="currentProject.analysisResultModel.branding.logo.svg | logoSrc"
+                  [alt]="currentProject.name"
+                  class="header-logo-img"
+                  (error)="handleImageError()"
+                />
+              </div>
             } @else {
               <!-- Premium dynamic gradient placeholder -->
               <div class="header-logo-placeholder" [style]="placeholderBgStyle()">

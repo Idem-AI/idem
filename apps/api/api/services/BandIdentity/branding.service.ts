@@ -1874,8 +1874,13 @@ export class BrandingService extends GenericService {
     const steps: IPromptStep[] = [
       {
         promptConstant: prompt,
+        // ⚠️ Le modèle de la feature `logo` est un modèle "thinking" : ses tokens
+        // de raisonnement sont décomptés du budget. À 1200, la réponse était
+        // systématiquement tronquée (finishReason=MAX_TOKENS) → JSON illisible →
+        // la boucle qualité (critique + révision) ne s'exécutait jamais.
+        // Aligné sur la critique de déclinaisons, qui passe avec ce budget.
         stepName: 'Logo Critique',
-        maxOutputTokens: 1200,
+        maxOutputTokens: 4096,
         modelParser: (content) => {
           const parsed = parseLlmJson<Record<string, any>>(content);
           if (!parsed) {
@@ -1893,7 +1898,7 @@ export class BrandingService extends GenericService {
       llmOptions: {
         ...BrandingService.LOGO_LLM_CONFIG.llmOptions,
         temperature: 0.15,
-        maxOutputTokens: 1200,
+        maxOutputTokens: 4096,
       },
       skipQuotaCheck: true,
     });
@@ -2462,8 +2467,16 @@ export class BrandingService extends GenericService {
     streamCallback: (event: ILogoVariationStreamEvent) => Promise<void>,
     forceRegenerate = false
   ): Promise<{
-    withText: { lightBackground?: string; darkBackground?: string; monochrome?: string };
-    iconOnly: { lightBackground?: string; darkBackground?: string; monochrome?: string };
+    variations: {
+      withText: { lightBackground?: string; darkBackground?: string; monochrome?: string };
+      iconOnly: { lightBackground?: string; darkBackground?: string; monochrome?: string };
+    };
+    /**
+     * Logo principal après externalisation (URLs MinIO). Renvoyé au client pour
+     * qu'il persiste ces URLs et n'écrase pas la base avec le SVG inline qu'il
+     * détient encore en mémoire depuis la sélection du concept.
+     */
+    logo: { svg: string; iconSvg?: string };
   }> {
     const project = await this.getProjectOptimized(userId, projectId);
     if (!project) {
@@ -2500,7 +2513,10 @@ export class BrandingService extends GenericService {
     }
     const missingKinds = kinds.filter((kind) => !results[kind] || !iconResults[kind]);
     if (missingKinds.length === 0) {
-      return { withText: { ...results }, iconOnly: { ...iconResults } };
+      return {
+        variations: { withText: { ...results }, iconOnly: { ...iconResults } },
+        logo: { svg: selectedLogo.svg, ...(selectedLogo.iconSvg ? { iconSvg: selectedLogo.iconSvg } : {}) },
+      };
     }
 
     const generationKey = BrandingService.variationsGenerationKey(userId, projectId);
@@ -2691,7 +2707,10 @@ export class BrandingService extends GenericService {
       );
     }
 
-    return variationUrls || optimizedVariations;
+    return {
+      variations: variationUrls || optimizedVariations,
+      logo: { svg: logoSvgUrl, ...(iconSvgUrl ? { iconSvg: iconSvgUrl } : {}) },
+    };
   }
 
   async getBrandingsByProjectId(
