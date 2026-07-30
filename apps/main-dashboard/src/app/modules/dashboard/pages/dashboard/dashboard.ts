@@ -8,7 +8,7 @@ import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loa
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
 import { UiModeService } from '../../../../shared/services/ui-mode.service';
-import { SafeHtmlPipe } from '../../../../shared/pipes/safe-html.pipe';
+import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
 
 @Component({
   selector: 'app-dashboard',
@@ -19,7 +19,7 @@ import { SafeHtmlPipe } from '../../../../shared/pipes/safe-html.pipe';
     Loader,
     TranslateModule,
     IncompleteProjectBannerComponent,
-    SafeHtmlPipe,
+    LogoSrcPipe,
   ],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.css'],
@@ -66,12 +66,6 @@ export class DashboardComponent implements OnInit {
     ];
     const index = Math.abs(hash) % gradients.length;
     return `background: ${gradients[index]}`;
-  });
-
-  /** SVG of the logo - detects if inline SVG string */
-  readonly logoIsInline = computed(() => {
-    const svg = this.project()?.analysisResultModel?.branding?.logo?.svg;
-    return !!svg && svg.trimStart().startsWith('<');
   });
 
   /** Handles image loading errors */

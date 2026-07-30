@@ -37,10 +37,12 @@
         <span
           class="w-full aspect-square max-h-28 flex items-center justify-center rounded-xl bg-white logo-canvas overflow-hidden"
         >
-          @if (isInlineSvg(option)) {
-            <img class="logo-svg" [src]="option.svg" alt="Logo"/>
-          } @else if (option.svg) {
-            <img [src]="option.svg" [alt]="option.name" class="max-h-20 max-w-[80%] object-contain" />
+          @if (option.svg) {
+            <img
+              [src]="option.svg | logoSrc"
+              [alt]="option.name"
+              class="max-h-20 max-w-[80%] object-contain"
+            />
           }
         </span>
         <span class="mt-2 text-[11px] font-medium text-text-secondary truncate w-full text-center">

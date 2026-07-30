@@ -817,7 +817,20 @@
         "primaryFont": "POLICE PRIMAIRE",
         "secondaryFont": "POLICE SECONDAIRE",
         "notSelected": "Non sélectionné",
-        "addButton": "Ajouter un mélange personnalisé"
+        "addButton": "Ajouter un mélange personnalisé",
+        "searchIntro": "Cherchez dans tout le catalogue Google Fonts, puis assignez une police :"
+      },
+      "clearSearch": "Effacer la recherche",
+      "resultsCount": "{{count}} polices",
+      "weightsCount": "{{count}} graisses",
+      "categories": {
+        "label": "Filtrer par catégorie de police",
+        "all": "Toutes",
+        "sansSerif": "Sans serif",
+        "serif": "Serif",
+        "display": "Display",
+        "handwriting": "Manuscrite",
+        "monospace": "Monospace"
       }
     },
     "createProject": {

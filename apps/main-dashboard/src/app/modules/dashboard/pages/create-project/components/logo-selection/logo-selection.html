@@ -60,7 +60,7 @@
             >
               @if (slot.logo) {
                 <img
-                  [src]="slot.logo.svg"
+                  [src]="slot.logo.svg | logoSrc"
                   alt="Logo"
                   class="w-full h-full object-contain transition-opacity duration-500 max-w-full max-h-full"
                 />
@@ -369,7 +369,7 @@
                   class="w-full bg-white rounded-xl flex items-center justify-center p-3 sm:p-4 md:p-6 shadow-lg mb-4 h-[140px] sm:h-[160px] md:h-[180px]"
                 >
                   <img
-                    [src]="logo.svg"
+                    [src]="logo.svg | logoSrc"
                     alt="Logo"
                     class="w-full h-full object-contain max-w-full max-h-full"
                   />

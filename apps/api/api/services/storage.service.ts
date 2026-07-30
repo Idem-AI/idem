@@ -177,13 +177,24 @@ export class StorageService {
   /**
    * Upload a single SVG string to MinIO and return its public URL.
    * Convenience wrapper around {@link uploadFile} with SVG content-type.
+   *
+   * Rejette tout contenu qui n'est pas du markup SVG. Passer une URL déjà
+   * hébergée écrivait ce texte comme corps du fichier et écrasait le vrai SVG
+   * au même chemin : le logo devenait un fichier texte servi en `image/svg+xml`
+   * (aperçus vides, rasterisation en échec, PDF sans logo).
    */
   async uploadSvgFile(
     svgContent: string,
     fileName: string,
     folderPath: string
   ): Promise<string> {
-    const result = await this.uploadFile(svgContent, fileName, folderPath, 'image/svg+xml');
+    const content = (svgContent || '').trim();
+    if (!content.startsWith('<')) {
+      throw new Error(
+        `Refusing to upload ${fileName}: content is not SVG markup (got "${content.slice(0, 60)}")`
+      );
+    }
+    const result = await this.uploadFile(content, fileName, folderPath, 'image/svg+xml');
     return result.downloadURL;
   }
 
@@ -238,7 +249,10 @@ export class StorageService {
       ioDark,
       ioMono,
     ] = await Promise.all([
-      this.uploadSvgFile(logo.svg, 'logo-primary.svg', folderPath),
+      // Le SVG principal passe par le même garde que les autres : la méthode est
+      // appelée à plusieurs étapes du workflow et `logo.svg` est déjà une URL dès
+      // le deuxième passage — la ré-uploader écrasait le fichier par son URL.
+      maybeUpload(logo.svg, 'logo-primary.svg'),
       maybeUpload(logo.iconSvg, 'logo-icon.svg'),
       maybeUpload(wt?.lightBackground, 'logo-with-text-light.svg'),
       maybeUpload(wt?.darkBackground, 'logo-with-text-dark.svg'),
@@ -248,7 +262,9 @@ export class StorageService {
       maybeUpload(io?.monochrome, 'logo-icon-mono.svg'),
     ]);
 
-    const result: LogoSvgUrls = { svg: svgUrl };
+    // Repli sur le contenu reçu si l'upload du SVG principal n'a rien produit :
+    // le logo reste exploitable (markup inline) plutôt que vide.
+    const result: LogoSvgUrls = { svg: svgUrl ?? logo.svg };
     if (iconUrl) result.iconSvg = iconUrl;
 
     if (wtLight || wtDark || wtMono) {

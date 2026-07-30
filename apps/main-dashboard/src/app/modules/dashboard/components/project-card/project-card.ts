@@ -3,13 +3,13 @@ import { ProjectModel } from '@idem/shared-models';
 import { Router } from '@angular/router';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { TranslateModule } from '@ngx-translate/core';
-import { SafeHtmlPipe } from '../../../../shared/pipes/safe-html.pipe';
+import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
 
 import { UiModeService } from '../../../../shared/services/ui-mode.service';
 
 @Component({
   selector: 'app-project-card',
-  imports: [TranslateModule, SafeHtmlPipe],
+  imports: [TranslateModule, LogoSrcPipe],
   templateUrl: './project-card.html',
   styleUrl: './project-card.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -79,12 +79,6 @@ export class ProjectCard {
     ];
     const index = Math.abs(hash) % gradients.length;
     return `background: ${gradients[index]}`;
-  });
-
-  /** SVG of the logo - detects if inline SVG string */
-  readonly logoIsInline = computed(() => {
-    const svg = this.project()?.analysisResultModel?.branding?.logo?.svg;
-    return !!svg && svg.trimStart().startsWith('<');
   });
 
   /** Handles image loading errors */

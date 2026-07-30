@@ -26,7 +26,7 @@ import {
   analyzeGenerationCompleteness,
   BRANDING_SECTION_NAMES,
 } from '../../models/generation-completeness';
-import { SafeHtmlPipe } from '../projects-list/safehtml.pipe';
+import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
 
 @Component({
   selector: 'app-show-branding',
@@ -40,7 +40,6 @@ import { SafeHtmlPipe } from '../projects-list/safehtml.pipe';
     TranslateModule,
     IncompleteProjectBannerComponent,
     GenerationStatusPanelComponent,
-    SafeHtmlPipe,
   ],
   templateUrl: './show-branding.html',
   styleUrl: './show-branding.css',
@@ -53,6 +52,7 @@ export class ShowBrandingComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
   private readonly brandingValidation = inject(BrandingValidationService);
+  private readonly logoSrcPipe = new LogoSrcPipe();
 
   // Loading and error states
   protected readonly isLoading = signal<boolean>(true);
@@ -118,13 +118,14 @@ export class ShowBrandingComponent implements OnInit {
 
   /**
    * Résout la source d'affichage d'un logo : privilégie l'URL PNG hébergée
-   * (assetUrls) puis retombe sur le SVG inline / l'URL legacy. Le template
-   * distingue ensuite markup SVG (innerHTML) et URL (<img src>).
+   * (assetUrls) puis retombe sur le SVG. Ce repli peut être du markup inline
+   * (concepts non encore externalisés) — un `<img>` ne sait pas l'afficher tel
+   * quel, d'où la conversion en data-URI par le pipe partagé.
    */
   protected logoSrc(hostedUrl?: string, svgFallback?: string): string {
     const hosted = (hostedUrl || '').trim();
     if (hosted) return hosted;
-    return (svgFallback || '').trim();
+    return this.logoSrcPipe.transform(svgFallback);
   }
 
   ngOnInit(): void {

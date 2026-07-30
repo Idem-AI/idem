@@ -589,9 +589,15 @@ Please generate *only* the content for the '${
           try {
             parsedData = step.modelParser(content);
             logger.info(`Successfully parsed ${step.stepName} for projectId: ${project.id}`);
-          } catch (error) {
-            logger.error(`Error parsing ${step.stepName} for project ${project.id}:`, error);
-            parsedData = { error: 'Parsing error', content };
+          } catch (parseError) {
+            logger.error(`Error parsing ${step.stepName} for project ${project.id}:`, parseError);
+            // Re-throw so the caller gets a proper error instead of a 200
+            // with a broken payload (e.g. { error: 'Parsing error', content }).
+            throw new Error(
+              `Parsing failed for step "${step.stepName}": ${
+                parseError instanceof Error ? parseError.message : 'unknown error'
+              }`
+            );
           }
         }
 

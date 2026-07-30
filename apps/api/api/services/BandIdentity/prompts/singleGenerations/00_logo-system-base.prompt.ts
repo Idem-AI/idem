@@ -88,12 +88,9 @@ CLEAR SPACE (zone de protection):
 - Flat Design Only: no 3D, bevel, skeuomorphism, or shadows. Max 1 meaningful linear gradient — and the mark must still work with the gradient flattened (BLACK-AND-WHITE FIRST).
 - Distinctiveness gates (Auto-reject if triggered): globe, gear, bulb, upward arrow, speech bubble, shield, menu burger, orbit, swoosh, handshake.
 - Typography (Bringhurst) — letterforms are NEVER drawn freehand:
-  1. Preferred: real <text> elements with fonts from the DESIGN PALETTE or fallbacks below, correct kerning, consistent baseline.
-  2. Custom <path> letterforms allowed ONLY when constructed on the modular grid with canonical angles (e.g. one deliberate geometric modification of one letter).
-  Font fallbacks:
-  * Helvetica Neue, Arial, sans-serif (700 weight, geometric).
-  * Gill Sans, Optima, sans-serif (600 weight, humanist).
-  * Didot, Bodoni MT, serif (400 weight, luxury).
+  1. TYPOGRAPHY ENFORCEMENT: The font-family for the wordmark MUST be exactly the primary font from the DESIGN PALETTE. You cannot invent or change the font. Fallback stack should be "<primaryFont>", "Helvetica Neue", Arial, sans-serif.
+  2. Preferred: real <text> elements with fonts from the DESIGN PALETTE or fallbacks below, correct kerning, consistent baseline.
+  3. Custom <path> letterforms allowed ONLY when constructed on the modular grid with canonical angles (e.g. one deliberate geometric modification of one letter).
   Letter-spacing: tight=-0.03em, normal=0, open=0.12em, very open=0.2em.
 - Wordmark safety margin: totalWidth ≥ char_count * font_size * 0.62 + tracking_px * 1.12.
 - CONSTRAINED PALETTE — never invent hex values: use ONLY the DESIGN PALETTE colors (Primary/Secondary/Accent) plus white and rich near-blacks (#0B1220 to #1A1A2E). Max 3 colors. Primary carries 60-70% weight, secondary 25-30%, accent ≤10%. Adjacent fills must remain distinguishable when converted to grayscale.
