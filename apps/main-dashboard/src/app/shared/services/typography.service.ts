@@ -1,10 +1,9 @@
 import { DOCUMENT, Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
-import { Observable, of, shareReplay } from 'rxjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { skipAuth } from '../interceptors/http-context';
 
 export type FontCategory = 'sans-serif' | 'serif' | 'display' | 'handwriting' | 'monospace';
 
@@ -19,12 +18,6 @@ export interface GoogleFont {
   weights?: number[];
   /** Lower is more popular. Used to rank search results. */
   popularity?: number;
-  variable?: boolean;
-}
-
-export interface GoogleFontsResponse {
-  kind: string;
-  items: GoogleFont[];
 }
 
 export interface TypographyPreview {
@@ -36,27 +29,25 @@ export interface TypographyPreview {
   isLoaded: boolean;
 }
 
-interface FontsourceFont {
-  id: string;
+/** Font summary as returned by our API (`GET /fonts`). */
+interface FontSummaryDto {
   family: string;
-  subsets: string[];
-  weights: number[];
-  styles: string[];
-  variable: boolean;
   category: string;
-  type: string;
+  weights: number[];
+  subsets: string[];
+  popularity: number;
 }
 
-/** Official catalog — needs a Google Cloud key with the Web Fonts API enabled. */
-const GOOGLE_FONTS_API = 'https://www.googleapis.com/webfonts/v1/webfonts';
+interface FontSearchResponse {
+  success: boolean;
+  data: { fonts: FontSummaryDto[]; total: number };
+}
 
 /**
- * Key-less mirror of the very same Google Fonts catalog. `fonts.google.com/metadata/fonts`
- * sends no CORS header, so it is unreachable from the browser; Fontsource republishes
- * the catalog with `Access-Control-Allow-Origin: *`, which lets the search run
- * without provisioning an API key. Font files themselves always come from Google.
+ * Our own API proxies the Google Fonts catalog: the API key stays server-side
+ * (Secret Manager) and the catalog is cached there for every user at once.
  */
-const FONTSOURCE_API = 'https://api.fontsource.org/v1/fonts';
+const FONTS_ENDPOINT = `${environment.services.api.url}/fonts`;
 
 /** Generic family appended to every font stack so text stays readable while loading. */
 const GENERIC_FALLBACK: Record<string, string> = {
@@ -68,66 +59,10 @@ const GENERIC_FALLBACK: Record<string, string> = {
 };
 
 /**
- * Ranking hint: the catalog mirror carries no popularity metric, so these
- * well-known families are surfaced first. Anything not listed is ranked after,
- * alphabetically.
+ * Last-resort list used when `GET /fonts` is unreachable or the server has no
+ * Google Fonts key configured. Ordered by popularity — the index doubles as the
+ * ranking, so the search still behaves sensibly offline.
  */
-const POPULAR_FAMILIES = [
-  'Inter',
-  'Roboto',
-  'Open Sans',
-  'Montserrat',
-  'Poppins',
-  'Lato',
-  'Raleway',
-  'Nunito',
-  'Nunito Sans',
-  'Playfair Display',
-  'Merriweather',
-  'Oswald',
-  'Source Sans 3',
-  'Work Sans',
-  'DM Sans',
-  'Rubik',
-  'Manrope',
-  'Outfit',
-  'Plus Jakarta Sans',
-  'Figtree',
-  'Space Grotesk',
-  'Sora',
-  'Lora',
-  'Libre Baskerville',
-  'PT Serif',
-  'Cormorant Garamond',
-  'EB Garamond',
-  'Crimson Text',
-  'Bitter',
-  'Karla',
-  'Quicksand',
-  'Barlow',
-  'Mulish',
-  'Josefin Sans',
-  'Cabin',
-  'Fira Sans',
-  'Heebo',
-  'Archivo',
-  'Public Sans',
-  'Bebas Neue',
-  'Anton',
-  'Dancing Script',
-  'Pacifico',
-  'Caveat',
-  'Lobster',
-  'JetBrains Mono',
-  'Fira Code',
-  'Source Code Pro',
-  'IBM Plex Sans',
-  'IBM Plex Mono',
-  'Space Mono',
-  'Inconsolata',
-];
-
-/** Offline safety net if both catalog sources fail. */
 const FALLBACK_FAMILIES: ReadonlyArray<[string, FontCategory]> = [
   ['Inter', 'sans-serif'],
   ['Roboto', 'sans-serif'],
@@ -199,7 +134,6 @@ export class TypographyService {
 
   /** family → in-flight or settled load, so a family is never requested twice. */
   private readonly fontLoads = new Map<string, Promise<void>>();
-  private catalog$?: Observable<GoogleFont[]>;
 
   // Typographies populaires pré-définies
   private readonly popularTypographies: TypographyPreview[] = [
@@ -294,40 +228,26 @@ export class TypographyService {
   }
 
   /**
-   * Recherche dans le catalogue Google Fonts complet (~1900 familles).
-   * Une requête vide renvoie les familles les plus populaires, ce qui donne
-   * quelque chose à parcourir avant même de taper.
+   * Recherche dans le catalogue Google Fonts complet (~1900 familles), servi par
+   * notre API. Une requête vide renvoie les familles les plus populaires, ce qui
+   * donne quelque chose à parcourir avant même de taper.
    */
   searchGoogleFonts(
     query: string,
     category?: FontCategory | null,
     limit = 48,
   ): Observable<GoogleFont[]> {
-    const needle = query.trim().toLowerCase();
+    let params = new HttpParams().set('limit', limit);
+    if (query.trim()) params = params.set('q', query.trim());
+    if (category) params = params.set('category', category);
 
-    return this.getCatalog().pipe(
-      map((fonts) => {
-        const filtered = category
-          ? fonts.filter((font) => normalizeCategory(font.category) === category)
-          : fonts;
-
-        if (!needle) {
-          return [...filtered]
-            .sort((a, b) => (a.popularity ?? 0) - (b.popularity ?? 0))
-            .slice(0, limit);
-        }
-
-        return filtered
-          .map((font) => ({ font, score: matchScore(font.family, needle) }))
-          .filter((entry) => entry.score >= 0)
-          .sort(
-            (a, b) =>
-              a.score - b.score ||
-              (a.font.popularity ?? 0) - (b.font.popularity ?? 0) ||
-              a.font.family.localeCompare(b.font.family),
-          )
-          .slice(0, limit)
-          .map((entry) => entry.font);
+    return this.http.get<FontSearchResponse>(FONTS_ENDPOINT, { params }).pipe(
+      map((response) => (response.data?.fonts ?? []).map(fromApi)),
+      catchError((error) => {
+        // 503 = clé Google Fonts non configurée côté serveur ; toute autre erreur
+        // = API injoignable. Dans les deux cas la sélection reste utilisable.
+        console.warn('Font catalog unavailable, using built-in list:', error);
+        return of(searchFallback(query, category, limit));
       }),
     );
   }
@@ -371,42 +291,6 @@ export class TypographyService {
    */
   getFontsByCategory(category: FontCategory, limit = 48): Observable<GoogleFont[]> {
     return this.searchGoogleFonts('', category, limit);
-  }
-
-  /** Catalogue chargé une seule fois puis partagé par tous les abonnés. */
-  private getCatalog(): Observable<GoogleFont[]> {
-    this.catalog$ ??= this.fetchCatalog().pipe(shareReplay({ bufferSize: 1, refCount: false }));
-    return this.catalog$;
-  }
-
-  private fetchCatalog(): Observable<GoogleFont[]> {
-    const apiKey = environment.googleFonts?.apiKey;
-
-    const request = apiKey
-      ? this.http
-          .get<GoogleFontsResponse>(GOOGLE_FONTS_API, {
-            params: { key: apiKey, sort: 'popularity' },
-            context: skipAuth(),
-          })
-          .pipe(map((response) => (response.items ?? []).map(fromGoogleApi)))
-      : this.http
-          .get<FontsourceFont[]>(FONTSOURCE_API, { context: skipAuth() })
-          .pipe(
-            map((fonts) =>
-              (fonts ?? [])
-                // `icons` covers Material Symbols & co — glyph sets, not typefaces.
-                .filter((font) => font.type === 'google' && font.category !== 'icons')
-                .map(fromFontsource),
-            ),
-          );
-
-    return request.pipe(
-      map((fonts) => (fonts.length > 0 ? fonts : buildFallbackCatalog())),
-      catchError((error) => {
-        console.warn('Google Fonts catalog unavailable, using built-in list:', error);
-        return of(buildFallbackCatalog());
-      }),
-    );
   }
 
   /** Ajoute une feuille de style Google Fonts couvrant plusieurs familles. */
@@ -464,24 +348,7 @@ function matchScore(family: string, needle: string): number {
   return -1;
 }
 
-function popularityRank(family: string): number {
-  const index = POPULAR_FAMILIES.indexOf(family);
-  return index >= 0 ? index : POPULAR_FAMILIES.length;
-}
-
-function fromGoogleApi(font: GoogleFont, index: number): GoogleFont {
-  return {
-    ...font,
-    category: normalizeCategory(font.category),
-    weights: (font.variants ?? [])
-      .map((variant) => Number.parseInt(variant, 10))
-      .filter((weight) => !Number.isNaN(weight)),
-    // The API is queried with `sort=popularity`, so the response order is the ranking.
-    popularity: index,
-  };
-}
-
-function fromFontsource(font: FontsourceFont): GoogleFont {
+function fromApi(font: FontSummaryDto): GoogleFont {
   return {
     family: font.family,
     variants: (font.weights ?? []).map(String),
@@ -489,19 +356,33 @@ function fromFontsource(font: FontsourceFont): GoogleFont {
     category: normalizeCategory(font.category),
     kind: 'webfont',
     weights: font.weights ?? [],
-    variable: font.variable,
-    popularity: popularityRank(font.family),
+    popularity: font.popularity,
   };
 }
 
-function buildFallbackCatalog(): GoogleFont[] {
-  return FALLBACK_FAMILIES.map(([family, category]) => ({
+/** Same ranking rules as the server, applied to the built-in list. */
+function searchFallback(
+  query: string,
+  category: FontCategory | null | undefined,
+  limit: number,
+): GoogleFont[] {
+  const needle = query.trim().toLowerCase();
+  const scoped = FALLBACK_FAMILIES.map(([family, fontCategory], index) => ({
     family,
     variants: ['400', '700'],
     subsets: ['latin'],
-    category,
+    category: fontCategory,
     kind: 'webfont',
     weights: [400, 700],
-    popularity: popularityRank(family),
-  }));
+    popularity: index,
+  })).filter((font) => !category || font.category === category);
+
+  if (!needle) return scoped.slice(0, limit);
+
+  return scoped
+    .map((font) => ({ font, score: matchScore(font.family, needle) }))
+    .filter((entry) => entry.score >= 0)
+    .sort((a, b) => a.score - b.score || a.font.popularity - b.font.popularity)
+    .slice(0, limit)
+    .map((entry) => entry.font);
 }
