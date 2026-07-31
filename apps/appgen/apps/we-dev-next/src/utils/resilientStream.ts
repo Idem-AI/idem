@@ -4,6 +4,15 @@ import { streamTextFn, StreamingOptions } from '../services/aiService.js';
 import { getFallbackModelKeys } from '../config/modelConfig.js';
 import { ChatLogger } from './logger.js';
 
+/**
+ * Repli automatique entre modèles Gemini.
+ *
+ * Google renvoie 503 « This model is currently experiencing high demand » dès
+ * qu'un modèle est saturé : la requête est valide, c'est la capacité qui manque,
+ * et les pools sont PAR MODÈLE. Rejouer le même modèle ne sert donc à rien — on
+ * bascule sur le suivant de la chaîne (voir `getFallbackModelKeys`).
+ */
+
 /** Prefix of an error part in the Vercel AI data stream protocol (`3:"..."`). */
 const ERROR_PART_PREFIX = '3:';
 
@@ -67,6 +76,36 @@ function errorText(error: unknown): string {
     })
     .join(' | ')
     .toLowerCase();
+}
+
+/**
+ * Échecs propres à un modèle donné (retiré, restreint pour cette clé, non
+ * supporté) : un autre modèle de la chaîne peut très bien répondre.
+ */
+const MODEL_UNAVAILABLE_PATTERNS = [
+  'not found',
+  'does not exist',
+  'is not supported',
+  'unsupported model',
+  'model configuration not found',
+];
+
+function isModelUnavailableError(error: unknown): boolean {
+  const nodes = flattenErrors(error);
+
+  for (const node of nodes) {
+    if (node && typeof node === 'object' && (node as any).statusCode === 404) {
+      return true;
+    }
+  }
+
+  const text = errorText(error);
+  return MODEL_UNAVAILABLE_PATTERNS.some((pattern) => text.includes(pattern));
+}
+
+/** Faut-il tenter le modèle suivant de la chaîne ? */
+export function shouldTryNextModel(error: unknown): boolean {
+  return isTransientModelError(error) || isModelUnavailableError(error);
 }
 
 /**
@@ -189,7 +228,7 @@ export function createResilientStream(
           lastError = error;
           ChatLogger.error('MODEL_INIT_FAILED', `Cannot start stream on ${candidate}`, error);
 
-          if (isTransientModelError(error) && !isLastCandidate) {
+          if (shouldTryNextModel(error) && !isLastCandidate) {
             await delay(DELAY_BETWEEN_MODELS_MS);
             continue;
           }
@@ -212,9 +251,9 @@ export function createResilientStream(
           lastError = capturedError ?? lastError;
           reader.cancel().catch(() => undefined);
 
-          const transient = capturedError == null || isTransientModelError(capturedError);
+          const recoverable = capturedError == null || shouldTryNextModel(capturedError);
 
-          if (transient && !isLastCandidate) {
+          if (recoverable && !isLastCandidate) {
             ChatLogger.warn('MODEL_FALLBACK', `Switching from ${candidate} to next model`, {
               nextModel: candidates[index + 1],
               reason: capturedError ? rawErrorMessage(capturedError) : 'empty stream',
