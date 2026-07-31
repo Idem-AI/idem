@@ -91,46 +91,6 @@ Create a standalone landing page for "${projectData.name}" without any applicati
 
 ${techStack}
 
-## Landing Page Sections
-1. **Hero Section**: Compelling headline, value proposition, primary CTA
-2. **Features**: Key product features and benefits
-3. **Social Proof**: Testimonials, reviews, client logos
-4. **Pricing**: Pricing plans and packages (if applicable)
-5. **About**: Company/product information
-6. **Contact**: Contact form and information
-7. **Footer**: Legal links, social media, additional info
-
-## Instructions
-- Create a high-converting standalone landing page
-- Focus on marketing and conversion optimization
-- Implement modern design with smooth animations
-- Optimize for SEO and performance
-- Include clear call-to-action buttons
-- Make it fully responsive across all devices
-- Use the provided brand assets and colors
-- No application functionality needed
-
-## TARGET AUDIENCE - SUB-SAHARAN AFRICA (CRITICAL)
-This platform primarily targets Sub-Saharan Africa. ALL generated content MUST reflect this:
-
-### Images of People
-- ALWAYS use images featuring Black African people. NEVER use generic Western/European/Asian stock photos.
-- Use Unsplash with search terms: "african business", "african woman", "african man", "african team", "black professional", "african entrepreneur"
-- For avatars/testimonials: use diverse Black African faces (men, women, young professionals)
-- For hero/team photos: show diverse African teams in modern work environments
-
-### UI and Cultural Context
-- Testimonials and user names MUST use African names (e.g., Amara Diallo, Kwame Asante, Fatou Ndiaye, Chidi Okonkwo, Aisha Mbeki)
-- Locations MUST reference African cities (Lagos, Nairobi, Dakar, Accra, Douala, Abidjan, Kigali, Johannesburg)
-- Currency references: use local currencies (XAF/FCFA, NGN, KES, GHS, XOF) or USD
-- Phone numbers: use African country codes (+237, +234, +254, +233, +225)
-
-### Content and Messaging
-- Use inclusive language that resonates with African audiences
-- Social proof should mention African companies, organizations, or communities
-- Success stories should feature African entrepreneurs and businesses
-- Placeholder company names should be African-sounding or Africa-based
-
 Generate the complete landing page code with all necessary files.`;
   }
 
@@ -184,52 +144,24 @@ Generate the complete landing page code with all necessary files.`;
     let title = 'Web Application Generation';
     let objective = '';
     let specifications = '';
-    let instructions = '';
 
     switch (type) {
       case 'separate':
         title = 'Application Generation (Separate Configuration)';
-        objective = `Create the main "${projectData.name}" application without integrated landing page.`;
+        objective = `Create the main "${projectData.name}" application. The landing page is built separately — do not include one.`;
         specifications = `## Application Specifications
 - **Type**: Complete web application
 - **Landing Page**: Separate (managed in another chat)
-- **Focus**: Business features and user interface`;
-        instructions = `## Instructions
-- Create a complete and functional web application
-- Implement all required business features based on use case diagrams
-- Ensure excellent UX/UI with brand consistency
-- Optimize performance and security
-- Include authentication and user management
-- Landing page will be managed separately
-- Use the provided brand assets and design system
-
-${this.getAfricanAudienceDirectives()}`;
+- **Entry point**: authentication surface or dashboard`;
         break;
       case 'integrated':
         title = 'Application Generation with Integrated Landing Page';
         objective = `Create a complete "${projectData.name}" web application with integrated landing page.`;
         specifications = `## Architecture
 - **Type**: Monolithic application with integrated landing page
-- **Structure**: Landing page + Application in the same project
-- **Routing**: Separate routes for landing (/), app (/app/*, /dashboard/*, etc.)
-
-## Integrated Landing Page Sections
-1. **Hero Section**: Product presentation
-2. **Features**: Main features
-3. **Benefits**: User advantages
-4. **CTA**: Buttons to signup/login
-5. **Footer**: Legal information`;
-        instructions = `## Instructions
-- Create a complete application with integrated landing page
-- Use a routing system to separate landing and app
-- Ensure smooth transition between landing and application
-- Implement authentication with appropriate redirection
-- Optimize for SEO on the landing page
-- Maintain design consistency between landing and app
-- Use the provided brand assets throughout
-- Implement all features based on use case diagrams
-
-${this.getAfricanAudienceDirectives()}`;
+- **Routing**: landing at \`/\`, application under \`/app/*\` and \`/dashboard/*\`
+- **Auth**: sign-in redirects into the application
+- **Consistency**: one visual system across landing and app`;
         break;
       case 'none':
         title = 'Web Application Generation';
@@ -237,35 +169,26 @@ ${this.getAfricanAudienceDirectives()}`;
         specifications = `## Specifications
 - **Type**: Pure web application
 - **Landing Page**: None
-- **Focus**: User interface and business features only`;
-        instructions = `## Instructions
-- Create a complete and functional web application
-- Start directly with authentication interface or dashboard
-- Implement all required business features based on use case diagrams
-- Ensure excellent UX/UI with brand consistency
-- Optimize performance and security
-- Include complete user management
-- Use the provided brand assets and design system
-
-${this.getAfricanAudienceDirectives()}`;
+- **Entry point**: authentication surface or dashboard`;
         break;
     }
 
-    return `# ${title}
-
-${projectInfo}
-
-${brandInfo}
-
-## Objective
-${objective}
-
-${specifications}
-
-${techStack}
-
-
-Generate the complete application code with all necessary files.`;
+    // `features` and `useCaseDiagrams` used to be computed here and then dropped
+    // from the returned template, so applications were generated with no idea
+    // what they were supposed to do. They are part of the brief now.
+    return [
+      `# ${title}`,
+      projectInfo,
+      brandInfo,
+      `## Objective\n${objective}`,
+      specifications,
+      techStack,
+      features,
+      useCaseDiagrams,
+      'Generate the complete application code with all necessary files.',
+    ]
+      .filter((section) => section && section.trim().length > 0)
+      .join('\n\n');
   }
 
   private getCompleteProjectInfo(projectData: ProjectModel): string {
@@ -283,61 +206,129 @@ Generate the complete application code with all necessary files.`;
     let brandInfo = '## Brand Information\n';
 
     if (branding.logo) {
-      const logo = branding.logo;
-      const assetUrls = logo.assetUrls;
-
-      // Prefer the hosted PNG URLs (assetUrls); fall back to the svg field and
-      // the inline SVG variations for projects created before PNG assets existed.
-      const mainLogo = assetUrls?.primary || logo.svg;
-      const lightBg =
-        assetUrls?.withText?.lightBackground || logo.variations?.withText?.lightBackground || logo.variations?.lightBackground;
-      const darkBg =
-        assetUrls?.withText?.darkBackground || logo.variations?.withText?.darkBackground || logo.variations?.darkBackground;
-      const monochrome =
-        assetUrls?.withText?.monochrome || logo.variations?.withText?.monochrome || logo.variations?.monochrome;
-
-      brandInfo += `### Logo\n`;
-      brandInfo += `- **Main Logo**: ${mainLogo} (URL)\n`;
-      brandInfo += `- **Concept**: ${logo.concept}\n`;
-      brandInfo += `- **Colors**: ${logo.colors?.join(', ') || 'Not specified'}\n`;
-      brandInfo += `- **Fonts**: ${logo.fonts?.join(', ') || 'Not specified'}\n`;
-
-      if (lightBg || darkBg || monochrome) {
-        brandInfo += `- **Variations**:\n`;
-        if (lightBg) {
-          brandInfo += `  - Light Background: ${lightBg} (URL)\n`;
-        }
-        if (darkBg) {
-          brandInfo += `  - Dark Background: ${darkBg} (URL)\n`;
-        }
-        if (monochrome) {
-          brandInfo += `  - Monochrome: ${monochrome} (URL)\n`;
-        }
-      }
+      brandInfo += this.getLogoSection(branding.logo, projectData.name);
     }
 
+    // Raw brand values are named, not listed as usable colours: the token forge
+    // has already turned them into a contrast-verified Tailwind palette above.
+    // Repeating the hexes here is what makes models hardcode `bg-[#7C3AED]`
+    // next to the tokens and drift off the system.
     if (branding.colors) {
-      brandInfo += `### Colors\n`;
-      brandInfo += `- **Color Scheme**: ${branding.colors.name}\n`;
-      brandInfo += `- **Reference**: ${branding.colors.url} (URL)\n`;
-      if (branding.colors.colors) {
-        brandInfo += `- **Primary**: ${branding.colors.colors.primary}\n`;
-        brandInfo += `- **Secondary**: ${branding.colors.colors.secondary}\n`;
-        brandInfo += `- **Accent**: ${branding.colors.colors.accent}\n`;
-        brandInfo += `- **Background**: ${branding.colors.colors.background}\n`;
-        brandInfo += `- **Text**: ${branding.colors.colors.text}\n`;
-      }
+      brandInfo += `### Colour scheme\n`;
+      brandInfo += `- **Name**: ${branding.colors.name}\n`;
+      brandInfo += `- Already converted into the \`brand\` / \`accent\` / \`surface\` / \`ink\` Tailwind tokens in the design system above. Use those tokens; do not hardcode hex values.\n`;
     }
 
     if (branding.typography) {
       brandInfo += `### Typography\n`;
-      brandInfo += `- **Font System**: ${branding.typography.name}\n`;
-      brandInfo += `- **Reference**: ${branding.typography.url} (URL)\n`;
-      brandInfo += `- **Primary Font**: ${branding.typography.primaryFont}\n`;
-      brandInfo += `- **Secondary Font**: ${branding.typography.secondaryFont}\n`;
+      brandInfo += `- **Font System**: ${branding.typography.name} (${branding.typography.primaryFont} / ${branding.typography.secondaryFont})\n`;
+      brandInfo += `- Already wired into \`fontFamily.display\` and \`fontFamily.sans\` above.\n`;
     }
 
     return brandInfo;
+  }
+
+  /**
+   * Logo section of the prompt.
+   *
+   * A stored logo value is EITHER a hosted URL (bucket — the nominal case since
+   * the assets were externalized) OR raw inline `<svg>` markup (projects created
+   * before that, which are still the majority). Labelling markup as "(URL)" —
+   * what this prompt used to do — makes the model emit `<img src="<svg ...>">`
+   * or drop the logo altogether, which is why generated sites came out with no
+   * logo at all. So each value is typed explicitly and comes with the matching
+   * integration instructions.
+   */
+  private getLogoSection(
+    logo: NonNullable<NonNullable<ProjectModel['analysisResultModel']>['branding']>['logo'],
+    projectName: string
+  ): string {
+    if (!logo) return '';
+
+    const assetUrls = logo.assetUrls;
+    const variations = logo.variations;
+
+    // A hosted URL always wins over inline markup, whichever field it sits in:
+    // it costs a handful of tokens instead of a few thousand, and an <img src>
+    // is far harder for the model to get wrong than hand-converted JSX markup.
+    const pickBest = (...candidates: (string | undefined)[]): string | undefined => {
+      const usable = candidates.map((c) => c?.trim()).filter((c): c is string => !!c);
+      return usable.find((c) => !c.startsWith('<')) ?? usable[0];
+    };
+
+    const light = pickBest(
+      assetUrls?.withText?.lightBackground,
+      assetUrls?.primary,
+      variations?.withText?.lightBackground,
+      variations?.lightBackground,
+      logo.svg
+    );
+    const dark = pickBest(
+      assetUrls?.withText?.darkBackground,
+      variations?.withText?.darkBackground,
+      variations?.darkBackground
+    );
+
+    let section = `### Logo\n`;
+    section += `- **Concept**: ${logo.concept}\n`;
+    section += `- **Colors**: ${logo.colors?.join(', ') || 'Not specified'}\n`;
+    section += `- **Fonts**: ${logo.fonts?.join(', ') || 'Not specified'}\n`;
+
+    if (!light) {
+      section += `- No logo asset available: use the project name "${projectName}" as a styled wordmark.\n`;
+      return section;
+    }
+
+    section += `\n⚠️ LOGO IS MANDATORY: the header/navbar MUST display this logo (footer too when there is one).\n`;
+    section += `Never replace it with an emoji, an icon-font glyph or a plain text wordmark.\n`;
+    section += this.renderLogoAsset('Primary logo', light, projectName);
+
+    // Second asset only when it is genuinely different AND cheap enough: a full
+    // inline SVG can weigh several thousand characters, and burying the rest of
+    // the brief under a duplicate of the same drawing costs more than the dark
+    // variant is worth.
+    const inlineBudget = ProjectPromptService.MAX_INLINE_LOGO_PAYLOAD_CHARS;
+    const inlineWeight = (value: string) => (value.startsWith('<') ? value.length : 0);
+
+    if (dark && dark !== light && inlineWeight(light) + inlineWeight(dark) <= inlineBudget) {
+      section += this.renderLogoAsset('Dark-background version', dark, projectName);
+    }
+
+    return section;
+  }
+
+  /** Longest inline SVG worth pasting into the prompt (keeps the context sane). */
+  private static readonly MAX_INLINE_SVG_CHARS = 8000;
+
+  /** Above this, a second inline rendition is not worth its weight in context. */
+  private static readonly MAX_INLINE_LOGO_PAYLOAD_CHARS = 4000;
+
+  private renderLogoAsset(label: string, value: string, projectName: string): string {
+    const isInlineSvg = value.startsWith('<');
+
+    if (!isInlineSvg) {
+      return (
+        `\n**${label}** — hosted image, reference it by URL:\n` +
+        `${value}\n` +
+        `Use: <img src="${value}" alt="${projectName} logo" className="h-10 w-auto" />\n`
+      );
+    }
+
+    if (value.length > ProjectPromptService.MAX_INLINE_SVG_CHARS) {
+      return `\n**${label}** — inline SVG too large to embed; render the project name "${projectName}" as a styled wordmark instead.\n`;
+    }
+
+    return (
+      `\n**${label}** — inline SVG markup (NOT a URL). Paste it directly into the JSX:\n` +
+      '```svg\n' +
+      `${value}\n` +
+      '```\n' +
+      `Rules: convert the attributes to JSX (fill-rule → fillRule, stroke-width → strokeWidth, ` +
+      `style="fill:#abc" → style={{ fill: '#abc' }}), KEEP the viewBox, drop any width/height ` +
+      `attribute and size it with a class (e.g. className="h-10 w-auto"). ` +
+      `NEVER put this markup inside an <img src="..."> — an <img> cannot render raw SVG markup ` +
+      `and the logo would silently stay blank.\n`
+    );
   }
 
   private getCompleteTechStack(projectData: ProjectModel): string {
@@ -479,26 +470,7 @@ Generate the complete application code with all necessary files.`;
     return diagramsInfo;
   }
 
-  private getAfricanAudienceDirectives(): string {
-    return `## TARGET AUDIENCE - SUB-SAHARAN AFRICA (CRITICAL)
-This platform primarily targets Sub-Saharan Africa. ALL generated content MUST reflect this:
-
-### Images of People
-- ALWAYS use images featuring Black African people. NEVER use generic Western/European/Asian stock photos.
-- Use Unsplash with search terms: "african business", "african woman", "african man", "african team", "black professional", "african entrepreneur"
-- For avatars/testimonials: use diverse Black African faces (men, women, young professionals)
-- For hero/team photos: show diverse African teams in modern work environments
-
-### UI and Cultural Context
-- Testimonials and user names MUST use African names (e.g., Amara Diallo, Kwame Asante, Fatou Ndiaye, Chidi Okonkwo, Aisha Mbeki)
-- Locations MUST reference African cities (Lagos, Nairobi, Dakar, Accra, Douala, Abidjan, Kigali, Johannesburg)
-- Currency references: use local currencies (XAF/FCFA, NGN, KES, GHS, XOF) or USD
-- Phone numbers: use African country codes (+237, +234, +254, +233, +225)
-
-### Content and Messaging
-- Use inclusive language that resonates with African audiences
-- Social proof should mention African companies, organizations, or communities
-- Success stories should feature African entrepreneurs and businesses
-- Placeholder company names should be African-sounding or Africa-based`;
-  }
+  // The Sub-Saharan Africa directives used to be inlined here twice and in two
+  // other files. They now live in a single skill (`src/skills/catalog/audience.md`)
+  // loaded into the cacheable system prefix on every request.
 }

@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import useChatModeStore from '../../../stores/chatModeSlice';
 import useTerminalStore from '@/stores/terminalSlice';
 import { checkExecList, checkFinish } from '../utils/checkFinish';
+import { runQualityPass } from '../utils/qualityPass';
 import { useUrlData } from '@/hooks/useUrlData';
 import {
   getProjectById,
@@ -339,9 +340,15 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
   useEffect(() => {
     if (checkCount >= 1) {
-      checkFinish(messages[messages.length - 1].content, append, t);
+      const isComplete = checkFinish(messages[messages.length - 1].content, append, t);
       checkExecList(messages);
       setCheckCount(0);
+
+      // Only worth linting a finished artifact: a truncated one trips rules that
+      // the continuation would have fixed on its own.
+      if (isComplete) {
+        runQualityPass(chatUuid, messages, append, t);
+      }
     }
   }, [checkCount]);
 
