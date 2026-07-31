@@ -18,9 +18,18 @@ import {
   LOGO_VARIATION_DARK_WITHTEXT_PROMPT,
   LOGO_VARIATION_MONOCHROME_WITHTEXT_PROMPT,
 } from './prompts/singleGenerations/logo-variation-withtext.prompt';
-import { LOGO_EDIT_PROMPT } from './prompts/singleGenerations/logo-edit.prompt';
-import { LOGO_CRITIQUE_PROMPT } from './prompts/singleGenerations/logo-critique.prompt';
-import { LOGO_REVISION_PROMPT } from './prompts/singleGenerations/logo-revision.prompt';
+import {
+  ICON_ONLY_EDIT_SCOPE,
+  LOGO_EDIT_PROMPT,
+} from './prompts/singleGenerations/logo-edit.prompt';
+import {
+  COMPOSED_LOCKUP_REVIEW_NOTE,
+  LOGO_CRITIQUE_PROMPT,
+} from './prompts/singleGenerations/logo-critique.prompt';
+import {
+  ICON_ONLY_REVISION_SCOPE,
+  LOGO_REVISION_PROMPT,
+} from './prompts/singleGenerations/logo-revision.prompt';
 
 import { BRAND_HEADER_SECTION_PROMPT } from './prompts/00_brand-header-section.prompt';
 import {
@@ -36,7 +45,13 @@ import { MOCKUP_CONFIG } from '../../config/mockup.config';
 import { SectionModel } from '../../models/section.model';
 import { BrandIdentityBuilder } from '../../models/builders/brandIdentity.builder';
 import { GenericService, IPromptStep, ISectionResult } from '../common/generic.service';
-import { LogoModel, LogoPreferences } from '../../models/logo.model';
+import { LogoLockupSpec, LogoModel, LogoPreferences, LogoType } from '../../models/logo.model';
+import {
+  logoLockupService,
+  normalizeTracking,
+  normalizeWordmarkWeight,
+  pickWordmarkColor,
+} from './lockup/logoLockup.service';
 import { COLORS_GENERATION_PROMPT } from './prompts/singleGenerations/colors-generation.prompt';
 import { TYPOGRAPHY_GENERATION_PROMPT } from './prompts/singleGenerations/typography-generation.prompt';
 import {
@@ -361,6 +376,16 @@ export class BrandingService extends GenericService {
     // Fallback: première ligne non vide
     const firstLine = projectDescription.split('\n').find((line) => line.trim());
     return firstLine?.trim() || 'Brand';
+  }
+
+  /**
+   * Nom de marque à afficher dans le logo : le nom du projet, sinon celui
+   * déduit de la description. Jamais le titre créatif du concept.
+   */
+  private resolveBrandName(project: ProjectModel): string {
+    const projectName = project.name?.trim();
+    if (projectName) return projectName;
+    return this.extractProjectName(this.extractProjectDescription(project));
   }
 
   /**
@@ -1438,13 +1463,14 @@ export class BrandingService extends GenericService {
     const logoData = logoResult.parsedData;
 
     const branding = project.analysisResultModel?.branding;
-    if (branding?.typography) {
-      logoData.svg = this.enforceLogoTextIntegrity(
-        logoData.svg,
-        branding.typography,
-        preferences?.type
-      );
-    }
+    // Le nom affiché est celui de la marque, jamais le titre créatif du concept.
+    const brandName = this.resolveBrandName(project);
+    const artwork = await this.finalizeLogoArtwork(
+      logoData,
+      branding?.typography,
+      preferences?.type,
+      brandName
+    );
 
     // Créer LogoModel RAW (sans optimisation SVG)
     const logoModel: LogoModel = {
@@ -1452,11 +1478,12 @@ export class BrandingService extends GenericService {
       name: logoData.name || `Logo Concept ${conceptIndex + 1}`,
       concept: logoData.concept || 'Professional logo design',
       colors: logoData.colors || [],
-      fonts: logoData.fonts || [],
-      svg: logoData.svg, // SVG brut de l'AI
-      iconSvg: this.extractIconFromSvg(logoData.svg), // Extract icon part
+      fonts: artwork.lockup ? [artwork.lockup.fontFamily] : logoData.fonts || [],
+      svg: artwork.svg,
+      iconSvg: artwork.iconSvg ?? this.extractIconFromSvg(artwork.svg),
       type: preferences?.type,
       customDescription: preferences?.customDescription,
+      ...(artwork.lockup ? { lockup: artwork.lockup } : {}),
     };
 
     logger.info(`Raw logo concept ${conceptIndex + 1} generated successfully`);
@@ -1667,72 +1694,58 @@ export class BrandingService extends GenericService {
   }
 
   /**
-   * Enforce correct typography and text alignment in generated SVG logos.
-   * Called after AI generation to guarantee:
-   * 1. font-family matches the user's selected typography
-   * 2. text elements are properly aligned relative to the icon
+   * Finalise l'artwork d'un concept, après l'IA et avant tout stockage.
+   *
+   * Type `icon` : le modèle n'a produit que l'icône ; le nom de marque est
+   * composé ici (logoLockupService) à partir des métriques réelles de la police
+   * choisie, puis vectorisé. L'alignement icône/texte et la typographie
+   * deviennent donc des invariants du pipeline, plus des paris sur le modèle.
+   *
+   * Types `name` / `initial` : le texte dessiné par l'IA est vectorisé dans la
+   * même police, ce qui garantit la typographie jusque dans les PNG/PDF.
    */
-  private enforceLogoTextIntegrity(
-    svg: string,
-    typography: TypographyModel,
-    logoType?: string
-  ): string {
-    if (!svg || typeof svg !== 'string') return svg;
+  private async finalizeLogoArtwork(
+    logoData: Record<string, any>,
+    typography: TypographyModel | undefined,
+    logoType: LogoType | undefined,
+    brandName: string
+  ): Promise<{ svg: string; iconSvg?: string; lockup?: LogoLockupSpec }> {
+    const svg: string = logoData?.svg;
+    if (!svg || typeof svg !== 'string') return { svg };
 
-    let processedSvg = svg;
+    const fontFamily = typography?.primaryFont?.trim();
+    if (!fontFamily) return { svg };
 
-    // 1. Enforce Typography
-    if (typography && typography.primaryFont) {
-      const fontAttrValue = `'${typography.primaryFont}', 'Helvetica Neue', Arial, sans-serif`;
-      
-      // Remove existing font-family attributes
-      processedSvg = processedSvg.replace(/\s*font-family="[^"]*"/g, '');
-      processedSvg = processedSvg.replace(/\s*font-family='[^']*'/g, '');
-      
-      // Inject correct font-family to all <text> elements
-      processedSvg = processedSvg.replace(/<text\b([^>]*)>/g, `<text font-family="${fontAttrValue}"$1>`);
-    }
+    const fontWeight = normalizeWordmarkWeight(logoData.wordmarkWeight);
 
-    // 2. Fix Text Alignment (specifically for icon+text layout)
-    if (logoType === 'icon' && processedSvg.includes('<text')) {
-      // Extract viewBox to understand dimensions
-      const viewBoxMatch = processedSvg.match(/viewBox=["']([\d\.\s,-]+)["']/);
-      if (viewBoxMatch) {
-        const parts = viewBoxMatch[1].trim().split(/[\s,]+/);
-        if (parts.length === 4) {
-          const height = parseFloat(parts[3]);
-          const centerY = height / 2;
+    if (logoType === 'icon' && brandName) {
+      const composed = await logoLockupService.compose(svg, {
+        brandName,
+        fontFamily,
+        fontWeight,
+        letterSpacing: normalizeTracking(logoData.wordmarkTracking),
+        wordmarkColor: pickWordmarkColor(
+          logoData.wordmarkColor,
+          Array.isArray(logoData.colors) ? logoData.colors : []
+        ),
+        arrangement: logoData.lockupArrangement === 'stacked' ? 'stacked' : 'horizontal',
+      });
 
-          // For the standard "right" layout (horizontal), we want vertical centering.
-          // The logo generation prompt states: y = totalHeight / 2, dominant-baseline="central"
-          
-          processedSvg = processedSvg.replace(/<text\b([^>]*)>/g, (match, attrs) => {
-            let newAttrs = attrs;
-            
-            // Enforce vertical centering (y)
-            if (/y="[^"]*"/.test(newAttrs)) {
-              newAttrs = newAttrs.replace(/y="[^"]*"/, `y="${centerY}"`);
-            } else if (/y='[^']*'/.test(newAttrs)) {
-              newAttrs = newAttrs.replace(/y='[^']*'/, `y="${centerY}"`);
-            } else {
-              newAttrs += ` y="${centerY}"`;
-            }
-            
-            // Enforce dominant-baseline="central"
-            if (!newAttrs.includes('dominant-baseline')) {
-              newAttrs += ` dominant-baseline="central"`;
-            } else {
-              newAttrs = newAttrs.replace(/dominant-baseline="[^"]*"/g, `dominant-baseline="central"`);
-              newAttrs = newAttrs.replace(/dominant-baseline='[^']*'/g, `dominant-baseline="central"`);
-            }
-
-            return `<text${newAttrs}>`;
-          });
+      if (composed) {
+        if (!composed.outlined) {
+          logger.warn(
+            `Lockup composed without outlines (font "${fontFamily}" unavailable) — falling back to <text>`
+          );
         }
+        return { svg: composed.svg, iconSvg: composed.iconSvg, lockup: composed.spec };
       }
+
+      // Composition impossible (SVG illisible) : on garde le SVG du modèle
+      // plutôt que de perdre le concept, en imposant au moins la police.
+      logger.warn('Lockup composition failed, keeping the model SVG with enforced typography');
     }
 
-    return processedSvg;
+    return { svg: await logoLockupService.outlineSvgText(svg, fontFamily, fontWeight) };
   }
 
   /**
@@ -1938,19 +1951,24 @@ export class BrandingService extends GenericService {
     logo: LogoModel,
     project: ProjectModel
   ): Promise<LogoCritiqueResult> {
-    // "conceptName" = titre créatif du concept ; le nom de marque est passé à part
-    // pour que le critique ne les confonde pas (le wordmark doit afficher la marque)
+    // Lockup composé côté serveur : on soumet l'ICÔNE SEULE. Le wordmark est
+    // déterministe (métriques réelles), le critique n'a donc rien à y juger —
+    // et on évite de lui envoyer un tracé vectorisé de plusieurs kilo-octets.
+    const isComposedLockup = Boolean(logo.lockup && logo.iconSvg);
     const logoJson = JSON.stringify({
+      // "conceptName" = titre créatif du concept ; le nom de marque est passé à part
+      // pour que le critique ne les confonde pas (le wordmark doit afficher la marque)
       conceptName: logo.name,
       concept: logo.concept,
       colors: logo.colors,
       fonts: logo.fonts,
-      svg: logo.svg,
+      svg: isComposedLockup ? logo.iconSvg : logo.svg,
     });
-    const brandName = project.name || this.extractProjectName(this.extractProjectDescription(project));
+    const brandName = this.resolveBrandName(project);
     const prompt = LOGO_CRITIQUE_PROMPT.replace('{{LOGO_JSON}}', logoJson)
       .replace(/\{\{BRAND_NAME\}\}/g, brandName)
-      .replace(/\{\{LOGO_TYPE\}\}/g, logo.type || 'unspecified');
+      .replace(/\{\{LOGO_TYPE\}\}/g, logo.type || 'unspecified')
+      .replace('{{COMPOSITION_NOTE}}', isComposedLockup ? COMPOSED_LOCKUP_REVIEW_NOTE : '');
 
     const steps: IPromptStep[] = [
       {
@@ -2015,7 +2033,10 @@ export class BrandingService extends GenericService {
       .map((r, i) => `${i + 1}. [${r.criterion}] ${r.fix}`)
       .join('\n');
 
-    const brandName = project.name || this.extractProjectName(this.extractProjectDescription(project));
+    const brandName = this.resolveBrandName(project);
+    // Même règle que la critique : sur un lockup composé, on ne fait réviser que
+    // l'icône — le nom sera recomposé ensuite, à l'identique.
+    const isComposedLockup = Boolean(logo.lockup && logo.iconSvg);
     const prompt = LOGO_REVISION_PROMPT.replace(
       '{{ORIGINAL_LOGO_JSON}}',
       JSON.stringify({
@@ -2024,10 +2045,19 @@ export class BrandingService extends GenericService {
         concept: logo.concept,
         colors: logo.colors,
         fonts: logo.fonts,
-        svg: logo.svg,
+        svg: isComposedLockup ? logo.iconSvg : logo.svg,
+        ...(isComposedLockup
+          ? {
+              wordmarkColor: logo.lockup?.wordmarkColor,
+              wordmarkTracking: logo.lockup?.letterSpacing,
+              wordmarkWeight: logo.lockup?.fontWeight,
+              lockupArrangement: logo.lockup?.arrangement,
+            }
+          : {}),
       })
     )
       .replace(/\{\{BRAND_NAME\}\}/g, brandName)
+      .replace('{{REVISION_SCOPE}}', isComposedLockup ? ICON_ONLY_REVISION_SCOPE : '')
       .replace('{{CRITIQUE_REMARKS}}', remarksText || critique.summary);
 
     const steps: IPromptStep[] = [
@@ -2058,22 +2088,26 @@ export class BrandingService extends GenericService {
     }
 
     const branding = project.analysisResultModel?.branding;
-    if (branding?.typography) {
-      logoData.svg = this.enforceLogoTextIntegrity(
-        logoData.svg,
-        branding.typography,
-        branding.logoPreferences?.type
-      );
-    }
+    const artwork = await this.finalizeLogoArtwork(
+      logoData,
+      branding?.typography,
+      logo.type ?? branding?.logoPreferences?.type,
+      brandName
+    );
 
     return {
       ...logo,
       name: logoData.name || logo.name,
       concept: logoData.concept || logo.concept,
       colors: Array.isArray(logoData.colors) ? logoData.colors : logo.colors,
-      fonts: Array.isArray(logoData.fonts) ? logoData.fonts : logo.fonts,
-      svg: logoData.svg,
-      iconSvg: this.extractIconFromSvg(logoData.svg),
+      fonts: artwork.lockup
+        ? [artwork.lockup.fontFamily]
+        : Array.isArray(logoData.fonts)
+          ? logoData.fonts
+          : logo.fonts,
+      svg: artwork.svg,
+      iconSvg: artwork.iconSvg ?? this.extractIconFromSvg(artwork.svg),
+      ...(artwork.lockup ? { lockup: artwork.lockup } : {}),
     };
   }
 
@@ -2301,6 +2335,49 @@ export class BrandingService extends GenericService {
   }
 
   /**
+   * Reconstruit les déclinaisons « avec texte » à partir des icônes recolorées,
+   * en réappliquant la recette de lockup (police, interlettrage, alignement).
+   * Aucun appel IA : la seule variable est la couleur du nom, choisie pour son
+   * contraste sur le fond visé.
+   */
+  private async recomposeWithTextVariations(
+    iconOnlySet: Record<LogoVariationKind, string | undefined>,
+    selectedLogo: LogoModel,
+    existing: Partial<Record<LogoVariationKind, string>>
+  ): Promise<Record<LogoVariationKind, string | undefined>> {
+    const lockup = selectedLogo.lockup!;
+    const backgrounds: Record<LogoVariationKind, 'light' | 'dark' | 'mono'> = {
+      lightBackground: 'light',
+      darkBackground: 'dark',
+      monochrome: 'mono',
+    };
+
+    const entries = await Promise.all(
+      (Object.keys(backgrounds) as LogoVariationKind[]).map(async (kind) => {
+        const reused = existing[kind];
+        if (reused) return [kind, reused] as const;
+
+        const iconVariation = iconOnlySet[kind];
+        if (!iconVariation) return [kind, undefined] as const;
+
+        try {
+          // Une déclinaison réutilisée d'un run précédent peut être une URL MinIO.
+          const iconSvg = await resolveSvgContent(iconVariation);
+          const composed = await logoLockupService.recompose(iconSvg, lockup, backgrounds[kind]);
+          return [kind, composed ?? undefined] as const;
+        } catch (error) {
+          logger.warn(
+            `Lockup recomposition failed for ${kind}: ${(error as Error).message}`
+          );
+          return [kind, undefined] as const;
+        }
+      })
+    );
+
+    return Object.fromEntries(entries) as Record<LogoVariationKind, string | undefined>;
+  }
+
+  /**
    * Generate logo variations using parallel execution for each variation type
    * Implements optimized parallel generation strategy
    */
@@ -2373,11 +2450,34 @@ export class BrandingService extends GenericService {
       return Object.fromEntries(entries) as Record<LogoVariationKind, string | undefined>;
     };
 
-    logger.info('Generating withText + iconOnly variation sets (resuming completed ones)');
-    const [withTextSet, iconOnlySet] = await Promise.all([
-      buildSet(withTextStructure, WITHTEXT_VARIATION_PROMPTS, existingWithText),
-      buildSet(iconStructure, ICONONLY_VARIATION_PROMPTS, existingIconOnly),
-    ]);
+    // Lockup composé : les déclinaisons "avec texte" se déduisent des icônes
+    // recolorées, en recomposant le wordmark. Aucune IA n'a à recopier un tracé
+    // vectorisé (coûteux et fragile), et la géométrie reste rigoureusement
+    // identique d'une déclinaison à l'autre.
+    let withTextSet: Record<LogoVariationKind, string | undefined>;
+    let iconOnlySet: Record<LogoVariationKind, string | undefined>;
+
+    if (selectedLogo.lockup) {
+      logger.info('Generating iconOnly variations, then recomposing the withText lockups');
+      // Le modèle doit recevoir le SVG de l'icône, pas son URL MinIO.
+      const sourceIcon = await resolveSvgContent(iconStructure.svg).catch(() => iconStructure.svg);
+      iconOnlySet = await buildSet(
+        { ...iconStructure, svg: sourceIcon },
+        ICONONLY_VARIATION_PROMPTS,
+        existingIconOnly
+      );
+      withTextSet = await this.recomposeWithTextVariations(
+        iconOnlySet,
+        selectedLogo,
+        existingWithText
+      );
+    } else {
+      logger.info('Generating withText + iconOnly variation sets (resuming completed ones)');
+      [withTextSet, iconOnlySet] = await Promise.all([
+        buildSet(withTextStructure, WITHTEXT_VARIATION_PROMPTS, existingWithText),
+        buildSet(iconStructure, ICONONLY_VARIATION_PROMPTS, existingIconOnly),
+      ]);
+    }
 
     logger.info(`Successfully processed all variations (withText + iconOnly)`);
 
@@ -2546,6 +2646,100 @@ export class BrandingService extends GenericService {
   }
 
   /**
+   * Déclinaison d'un lockup composé : seule l'icône est recolorée par l'IA (et
+   * auditée), le nom est reposé ensuite avec la recette d'origine. Le client
+   * reçoit exactement les mêmes événements SSE que la voie classique.
+   */
+  private async processComposedLockupVariation(
+    kind: LogoVariationKind,
+    lockup: LogoLockupSpec,
+    background: 'light' | 'dark' | 'mono',
+    iconStructure: { svg: string; [key: string]: unknown },
+    iconResults: Partial<Record<LogoVariationKind, string>>,
+    results: Partial<Record<LogoVariationKind, string>>,
+    project: ProjectModel,
+    cancelState: { cancelled: boolean },
+    streamCallback: (event: ILogoVariationStreamEvent) => Promise<void>
+  ): Promise<void> {
+    const recompose = async (iconSvg: string): Promise<string> => {
+      const composed = await logoLockupService.recompose(iconSvg, lockup, background);
+      if (!composed) throw new Error(`Lockup recomposition failed for ${kind}`);
+      return SvgOptimizerService.optimizeSvg(composed);
+    };
+
+    // L'icône source peut déjà être externalisée (URL MinIO) : le modèle doit
+    // recevoir le SVG, pas un lien.
+    const sourceIcon = await resolveSvgContent(iconStructure.svg).catch(() => iconStructure.svg);
+
+    let iconSvg = iconResults[kind];
+    if (!iconSvg) {
+      const generated = await this.generateSingleVariation(
+        kind,
+        { ...iconStructure, svg: sourceIcon },
+        ICONONLY_VARIATION_PROMPTS[kind],
+        project,
+        true
+      );
+      if (!generated) throw new Error(`Empty ${kind} icon variation`);
+      iconSvg = SvgOptimizerService.optimizeSvg(generated);
+    }
+
+    let svg = await recompose(iconSvg);
+    await streamCallback({ type: 'variation_generated', variant: kind, svg });
+
+    if (!cancelState.cancelled) {
+      await streamCallback({ type: 'critique_started', variant: kind });
+      let critique: LogoCritiqueResult | null = null;
+      try {
+        // L'audit porte sur l'icône recolorée : c'est la seule chose qui varie.
+        critique = await this.critiqueLogoVariation(sourceIcon, iconSvg, kind, project, 'iconOnly');
+      } catch (error) {
+        logger.warn(`Variation critique failed for ${kind}, keeping as-is`);
+      }
+
+      if (critique) {
+        await streamCallback({ type: 'critique_result', variant: kind, critique });
+
+        if (critique.verdict === 'fail' && !cancelState.cancelled) {
+          await streamCallback({ type: 'revision_started', variant: kind, critique });
+          try {
+            const mapping = await this.aiRecolorLogoVariation(
+              {
+                svg: iconSvg,
+                variant: kind,
+                background: VARIATION_BACKGROUNDS[kind],
+                issue: critique.remarks.map((r) => r.fix).join('; ') || critique.summary,
+              },
+              project
+            );
+            if (mapping && Object.keys(mapping).length > 0) {
+              const revisedIcon = SvgOptimizerService.optimizeSvg(
+                await applyColorMappingToSvg(iconSvg, mapping)
+              );
+              // Même garde-fou que la voie classique : pas de régression de visibilité.
+              const [before, after] = await Promise.all([
+                measureSvgVisibility(iconSvg, VARIATION_BACKGROUNDS[kind]),
+                measureSvgVisibility(revisedIcon, VARIATION_BACKGROUNDS[kind]),
+              ]);
+              if (after >= before) {
+                iconSvg = revisedIcon;
+                svg = await recompose(iconSvg);
+                await streamCallback({ type: 'variation_updated', variant: kind, svg });
+              }
+            }
+          } catch (error) {
+            logger.warn(`Variation revision failed for ${kind}, keeping original`);
+          }
+        }
+      }
+    }
+
+    iconResults[kind] = iconSvg;
+    results[kind] = svg;
+    await streamCallback({ type: 'variation_finalized', variant: kind, svg });
+  }
+
+  /**
    * Génération streamée des déclinaisons (fond clair / sombre / monochrome)
    * avec boucle qualité : génération → critique (fidélité + lisibilité mesurée)
    * → recoloration bornée si échec (la géométrie reste gelée). Chaque étape est
@@ -2646,6 +2840,17 @@ export class BrandingService extends GenericService {
         true
       );
 
+    // Lockup composé : la déclinaison "avec texte" n'est plus générée par l'IA.
+    // On ne fait recolorer QUE l'icône, puis on repose le nom avec la recette
+    // d'origine — la boucle qualité continue de porter sur ce qui varie vraiment
+    // (la couleur), et le nom ne peut plus se décaler d'une déclinaison à l'autre.
+    const lockup = selectedLogo.lockup;
+    const lockupBackgrounds: Record<LogoVariationKind, 'light' | 'dark' | 'mono'> = {
+      lightBackground: 'light',
+      darkBackground: 'dark',
+      monochrome: 'mono',
+    };
+
     const processVariant = async (kind: LogoVariationKind): Promise<void> => {
       try {
         if (cancelState.cancelled) {
@@ -2653,6 +2858,21 @@ export class BrandingService extends GenericService {
           return;
         }
         await streamCallback({ type: 'variation_started', variant: kind });
+
+        if (lockup) {
+          await this.processComposedLockupVariation(
+            kind,
+            lockup,
+            lockupBackgrounds[kind],
+            iconStructure,
+            iconResults,
+            results,
+            project,
+            cancelState,
+            streamCallback
+          );
+          return;
+        }
 
         // iconOnly généré en parallèle (silencieux) — réutilise l'existant si présent.
         const iconOnlyPromise: Promise<string | undefined> = iconResults[kind]
@@ -3409,14 +3629,31 @@ Generated by Lexis API - Brand Identity System
         throw new Error(`Project not found with ID: ${projectId}`);
       }
 
+      // Lockup composé : on ne soumet que l'icône. Envoyer le wordmark vectorisé
+      // coûterait des milliers de tokens et le modèle le redessinerait de travers,
+      // alors qu'il suffit de recomposer après coup.
+      const currentLogo = project.analysisResultModel?.branding?.logo;
+      const lockup = currentLogo?.lockup;
+      let svgForEdit = logoSvg;
+      if (lockup && currentLogo?.iconSvg) {
+        try {
+          svgForEdit = await resolveSvgContent(currentLogo.iconSvg);
+        } catch (error) {
+          logger.warn(
+            `Could not resolve icon SVG for edit, falling back to the full logo: ${(error as Error).message}`
+          );
+        }
+      }
+
       // Build the edit prompt with current logo and modification request
       const editPrompt = `**CURRENT LOGO SVG:**
 \`\`\`svg
-${logoSvg}
+${svgForEdit}
 \`\`\`
 
 **USER MODIFICATION REQUEST:**
 ${modificationPrompt}
+${lockup ? ICON_ONLY_EDIT_SCOPE : ''}
 
 ${LOGO_EDIT_PROMPT}`;
 
@@ -3446,15 +3683,22 @@ ${LOGO_EDIT_PROMPT}`;
 
       const editedLogoData = sectionResults[0].parsedData;
 
+      // Le nom est reposé par le pipeline, avec la recette d'origine : une
+      // édition d'icône ne peut donc plus casser l'alignement ni la typographie.
+      const recomposed = lockup
+        ? await logoLockupService.compose(editedLogoData.svg, lockup)
+        : null;
+
       // Create the edited logo model
       const editedLogo: LogoModel = {
         id: `edited-${Date.now()}`,
         name: 'Edited Logo',
         concept: editedLogoData.changesSummary || 'User-modified logo',
         colors: [],
-        fonts: [],
-        svg: editedLogoData.svg,
-        iconSvg: this.extractIconFromSvg(editedLogoData.svg),
+        fonts: lockup ? [lockup.fontFamily] : [],
+        svg: recomposed?.svg ?? editedLogoData.svg,
+        iconSvg: recomposed?.iconSvg ?? this.extractIconFromSvg(editedLogoData.svg),
+        ...(recomposed ? { type: currentLogo?.type, lockup: recomposed.spec } : {}),
       };
 
       // Optimize the edited SVG

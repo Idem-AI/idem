@@ -1,9 +1,9 @@
 {
   "dashboard": {
     "generationPanel": {
-      "incompleteTitle": "Incomplete generation",
-      "incompleteSubtitle": "{{completed}} of {{total}} sections have been generated. The generation was probably interrupted: finish it to get a complete document.",
-      "completeTitle": "Complete document — all sections have been generated",
+      "incompleteTitle": "Generation incomplete",
+      "incompleteSubtitle": "Generation was interrupted. Resume it to get the missing sections.",
+      "completeTitle": "Generation complete",
       "status": {
         "complete": "Generated",
         "missing": "Missing",
@@ -14,7 +14,7 @@
         "regenerateAll": "Regenerate everything",
         "regenerateSection": "Regenerate",
         "regenerateSectionAria": "Regenerate the {{section}} section",
-        "showSections": "Regenerate a section",
+        "showSections": "View sections",
         "hideSections": "Hide sections"
       },
       "sections": {
@@ -42,7 +42,10 @@
           "Brand Mockup 2": "Mockup 2",
           "Brand Mockup 3": "Mockup 3"
         }
-      }
+      },
+      "completeSubtitle": "Every section has been generated. You can regenerate one if needed.",
+      "sectionsLabel": "sections",
+      "progressAria": "{{completed}} of {{total}} sections generated"
     }
   }
 }

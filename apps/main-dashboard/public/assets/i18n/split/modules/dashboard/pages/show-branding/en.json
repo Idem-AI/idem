@@ -26,7 +26,9 @@
         "selectProject": "Select Project",
         "generate": "Generate Brand Identity",
         "viewIdentity": "View My Visual Identity",
-        "generateIdentity": "Generate My Visual Identity"
+        "generateIdentity": "Generate My Visual Identity",
+        "editIdentity": "Edit",
+        "downloadLogos": "Download every logo version"
       },
       "tooltips": {
         "downloadZip": "Download all logos in a ZIP file"
@@ -40,7 +42,8 @@
           "lightBg": "Light Background",
           "darkBg": "Dark Background",
           "iconOnly": "Icon Only",
-          "monochrome": "Monochrome"
+          "monochrome": "Monochrome",
+          "downloadHint": "Every version of the logo (light, dark, monochrome, icon) in a single ZIP file."
         },
         "colors": {
           "title": "Color Palette",
@@ -119,24 +122,28 @@
         "loading": "Preparing branding content..."
       },
       "dialog": {
-        "title": "Download Logos",
-        "subtitle": "Choose the format you want to download:",
-        "preparing": "Preparing download...",
-        "wait": "This may take a few moments",
+        "title": "Download the logo versions",
+        "subtitle": "Pick a file format. You will get a ZIP containing every version of the logo.",
+        "preparing": "Preparing…",
+        "wait": "Preparing the file can take a few moments.",
         "formats": {
           "svg": {
-            "name": "SVG Format",
-            "description": "Vector format, scalable"
+            "name": "SVG",
+            "description": "Vector: scales up without ever losing quality. The safe choice for both print and web."
           },
           "png": {
-            "name": "PNG Format",
-            "description": "High quality raster image"
+            "name": "PNG",
+            "description": "Transparent-background image, ready to drop into a document, a slide or a website."
           },
           "psd": {
-            "name": "PSD Format",
-            "description": "Photoshop editable file"
+            "name": "PSD",
+            "description": "Layered file, open it in Photoshop to retouch the logo."
           }
-        }
+        },
+        "legend": "File format",
+        "recommended": "Recommended",
+        "confirm": "Download ZIP",
+        "zipNote": "The ZIP contains the main logo, the icon on its own, and the light, dark and monochrome versions."
       },
       "formatSelector": {
         "title": "Choose PDF Format",
@@ -150,6 +157,19 @@
           "description": "Modern presentation format"
         },
         "startGeneration": "Start Generation"
+      },
+      "summary": {
+        "sections": "Sections",
+        "palette": "Palette",
+        "typography": "Typography",
+        "logoVariations": "Variations"
+      },
+      "businessCards": {
+        "title": "Business cards",
+        "badge": "Derived from the guidelines",
+        "subtitle": "Generate a card template from your brand identity, then create a card for every team member and download it, ready to print.",
+        "cta": "Manage business cards",
+        "locked": "Generate your visual identity first to create cards."
       }
     }
   }

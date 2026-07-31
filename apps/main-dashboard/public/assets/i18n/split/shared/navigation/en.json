@@ -55,7 +55,9 @@
       "financeCashflow": "Finance Cashflow",
       "financeRatios": "Finance Ratios",
       "createProject": "Create Project",
-      "notFound": "Page Not Found"
+      "notFound": "Page Not Found",
+      "businessCards": "Business cards",
+      "businessCardsEdit": "Business card editor"
     }
   }
 }

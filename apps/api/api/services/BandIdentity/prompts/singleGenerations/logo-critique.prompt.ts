@@ -4,6 +4,28 @@
  * Le verdict pilote la boucle de révision ; le résumé et les remarques (issue)
  * sont affichés à l'utilisateur en temps réel, donc rédigés en français.
  */
+/**
+ * Injecté à la place de {{COMPOSITION_NOTE}} quand le lockup « icône + nom » est
+ * composé par le serveur : le critique ne voit alors que l'icône, et les
+ * critères typographiques ne le concernent plus.
+ */
+export const COMPOSED_LOCKUP_REVIEW_NOTE = `<composition_note>
+IMPORTANT — WHAT YOU ARE REVIEWING: the SVG below is the ICON ALONE.
+The brand name is NOT drawn by the designer: the rendering pipeline typesets it in
+the brand font, converts it to outlines, and locks it to the icon with exact metric
+alignment (wordmark cap-height midline on the icon's measured optical centre,
+computed clear space, viewBox fitted to the real ink box).
+Consequences for this review:
+- Criterion 7 (TYPOGRAPHY) DOES NOT APPLY. Never judge the font, the kerning, the
+  tracking or the letterforms of the wordmark.
+- In criterion 8 (LAYOUT), judge only the icon's own composition. The icon/text
+  balance, the gap and the clipping of the text are handled by the pipeline.
+- NEVER fail this logo because the brand name is missing, misaligned or clipped —
+  it is simply not in the SVG you are given.
+Judge the ICON: geometry, symmetry, simplicity, silhouette, scalability, stroke
+discipline, colour, clichés, relevance.
+</composition_note>`;
+
 export const LOGO_CRITIQUE_PROMPT = `<role>Uncompromising design director at a world-class identity studio (Pentagram level). You review juniors' logo work before it ever reaches a client.</role>
 <objective>Audit the logo SVG below against professional standards. Decide if it ships as-is (pass) or goes back for revision (fail), with precise, actionable remarks.</objective>
 
@@ -17,6 +39,7 @@ export const LOGO_CRITIQUE_PROMPT = `<role>Uncompromising design director at a w
   as text in the logo. NEVER flag the wordmark for not matching the concept
   title — the wordmark is correct if and only if it matches the BRAND NAME.
 </brand_context>
+{{COMPOSITION_NOTE}}
 
 <evaluation_checklist>
 Score each criterion mentally, then aggregate:
