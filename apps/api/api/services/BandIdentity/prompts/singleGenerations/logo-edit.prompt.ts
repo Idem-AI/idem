@@ -1,3 +1,16 @@
+/**
+ * Ajouté à la demande d'édition quand le logo est un lockup composé par le
+ * serveur : seule l'icône est éditable par le modèle, le nom étant reposé
+ * ensuite avec les mêmes métriques.
+ */
+export const ICON_ONLY_EDIT_SCOPE = `
+**SCOPE — ICON ONLY:** the SVG above is the ICON of an "icon + brand name" logo.
+The brand name is typeset by the rendering pipeline (real font metrics, outlined,
+metric-aligned to the icon) and is re-applied automatically after your edit.
+Return the edited ICON with the SAME viewBox and NO <text>, NO <tspan>, NO
+letterform. If the request concerns the brand name itself (its wording, font,
+spacing or position), change NOTHING and say so in "changesSummary".`;
+
 export const LOGO_EDIT_PROMPT = `<role>Senior logo designer</role>
 <objective>Perform a precision edit on an existing logo SVG based on the modification request, preserving visual geometry and other untouched attributes.</objective>
 

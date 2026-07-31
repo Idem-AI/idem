@@ -8,7 +8,7 @@
 import { Observable } from 'rxjs';
 
 /** Type de document éditable. */
-export type EditorDocumentType = 'business-plan' | 'pitch-deck' | 'branding';
+export type EditorDocumentType = 'business-plan' | 'pitch-deck' | 'branding' | 'business-card';
 
 /** Une section éditable (page/slide). `html` est la source de vérité. */
 export interface EditableSection {

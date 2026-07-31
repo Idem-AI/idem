@@ -78,6 +78,7 @@ const CONFIG = {
     'modules/dashboard/pages/profile': 'dashboard.profile',
     'modules/dashboard/pages/project-teams': 'dashboard.projectTeams',
     'modules/dashboard/pages/projects-list': 'dashboard.projectsList',
+    'modules/dashboard/pages/business-cards': 'dashboard.businessCards',
     'modules/dashboard/pages/show-branding/components/branding-display': 'dashboard.brandingDisplay',
     'modules/dashboard/pages/show-branding/components/branding-generation': 'dashboard.brandingGeneration',
     'modules/dashboard/pages/show-branding': 'dashboard.showBranding',

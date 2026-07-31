@@ -65,6 +65,13 @@
  *         variations:
  *           $ref: '#/components/schemas/LogoVariations'
  *           nullable: true
+ *         lockup:
+ *           $ref: '#/components/schemas/LogoLockupSpec'
+ *           description: >-
+ *             Composition recipe of the "icon + brand name" lockup (icon type only).
+ *             The wordmark is typeset server-side from the real font metrics, so this
+ *             recipe is what allows recomposing it identically for every declination.
+ *           nullable: true
  *         assetUrls:
  *           $ref: '#/components/schemas/LogoAssetUrls'
  *           description: >-
@@ -79,6 +86,24 @@
  *         - concept
  *         - colors
  *         - fonts
+ *     LogoLockupSpec:
+ *       type: object
+ *       properties:
+ *         brandName:
+ *           type: string
+ *         fontFamily:
+ *           type: string
+ *         fontWeight:
+ *           type: number
+ *         letterSpacing:
+ *           type: number
+ *           description: Letter-spacing in em.
+ *         wordmarkColor:
+ *           type: string
+ *           format: hex-color
+ *         arrangement:
+ *           type: string
+ *           enum: [horizontal, stacked]
  *     LogoAssetUrlSet:
  *       type: object
  *       properties:
@@ -154,6 +179,26 @@ export interface LogoAssetUrls {
 
 export type LogoType = 'icon' | 'name' | 'initial';
 
+export type LogoLockupArrangement = 'horizontal' | 'stacked';
+
+/**
+ * Recette de composition du lockup « icône + nom » (type `icon`).
+ *
+ * Le nom n'est pas dessiné par l'IA mais posé par le serveur à partir des
+ * métriques réelles de la police. Conserver cette recette permet de recomposer
+ * le lockup à l'identique (déclinaisons claires/sombres/monochromes) sans
+ * nouvel appel au modèle, donc sans dérive d'alignement ni de typographie.
+ */
+export interface LogoLockupSpec {
+  brandName: string;
+  fontFamily: string;
+  fontWeight: number;
+  /** Interlettrage en em. */
+  letterSpacing: number;
+  wordmarkColor: string;
+  arrangement: LogoLockupArrangement;
+}
+
 export interface LogoPreferences {
   type: LogoType;
   useAIGeneration: boolean;
@@ -170,6 +215,10 @@ export interface LogoModel {
   fonts: string[]; // Fonts used in the logo (if any)
   type?: LogoType; // Type of logo (icon, name, initial)
   customDescription?: string; // User-provided custom description
+
+  // Recette de composition du lockup (type `icon` uniquement) : permet de
+  // recomposer icône + nom sans repasser par l'IA.
+  lockup?: LogoLockupSpec;
 
   variations?: LogoVariations; // Variation SVG URLs (legacy: may be inline SVG)
 

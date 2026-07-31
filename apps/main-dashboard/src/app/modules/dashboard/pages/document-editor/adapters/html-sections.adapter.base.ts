@@ -29,7 +29,7 @@ export abstract class HtmlSectionsEditorAdapter implements DocumentTypeAdapter {
   /** Segment d'URL de l'API (ex: 'businessPlans', 'pitchDecks', 'brandings'). */
   protected abstract readonly resource: string;
   /** Clé du document dans analysisResultModel. */
-  protected abstract readonly analysisKey: 'businessPlan' | 'pitchDeck' | 'branding';
+  protected abstract readonly analysisKey: 'businessPlan' | 'pitchDeck' | 'branding' | 'businessCard';
 
   private readonly http = inject(HttpClient);
   private readonly projectService = inject(ProjectService);

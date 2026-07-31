@@ -96,6 +96,9 @@
           "title": "Could not load",
           "subtitle": "The document failed to load. Try again from the business plan page."
         }
+      },
+      "businessCard": {
+        "title": "Business card editor"
       }
     }
   }

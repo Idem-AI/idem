@@ -1,0 +1,104 @@
+/* Ligne d'une personne dans la liste : l'état sélectionné doit rester lisible
+   en thème clair comme en thème sombre, d'où l'usage des tokens du design
+   system plutôt que d'un aplat de couleur fixe. */
+.holder-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.625rem;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.holder-row:hover {
+  background: var(--glass-bg-light);
+}
+
+.holder-row.is-selected {
+  background: var(--glass-bg-light);
+  border-color: var(--color-primary, #6366f1);
+}
+
+.holder-row button:focus-visible {
+  outline: 2px solid var(--color-primary, #6366f1);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* ── Choix de l'orientation de la carte ────────────────────────────────── */
+.orientation-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.orientation-option {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.875rem;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-subtle);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.orientation-option:hover {
+  background: var(--glass-bg-light);
+}
+
+.orientation-option.is-selected {
+  border-color: var(--color-primary, #1447e6);
+  background: color-mix(in srgb, var(--color-primary, #1447e6) 8%, transparent);
+}
+
+.orientation-option:focus-within {
+  outline: 2px solid var(--color-primary, #1447e6);
+  outline-offset: 2px;
+}
+
+.orientation-option:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Vignette de proportion : la forme EST l'information, elle prend donc la
+   couleur d'accent une fois l'option retenue. */
+.orientation-shape {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 1.5rem;
+  border-radius: 0.25rem;
+  border: 2px solid var(--glass-border-strong, #6b7280);
+}
+
+.orientation-shape.is-portrait {
+  width: 1.5rem;
+  height: 2.25rem;
+}
+
+.orientation-option.is-selected .orientation-shape {
+  border-color: var(--color-primary, #1447e6);
+  background: color-mix(in srgb, var(--color-primary, #1447e6) 15%, transparent);
+}
+
+/* Masque visuellement le libellé de recherche sans le retirer aux lecteurs
+   d'écran (utilitaire non fourni par le design system). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

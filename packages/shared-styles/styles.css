@@ -555,6 +555,22 @@ html.dark body::before {
   text-shadow: 0 0 10px var(--color-secondary-glow);
 }
 
+/* Curseur des boutons.
+   Tailwind 4 a retiré le `cursor: pointer` par défaut des <button> (son
+   preflight impose `cursor: default`). Résultat : tout bouton qui ne définit
+   pas explicitement son curseur — typiquement ceux stylés avec .glass-card —
+   ne « paraît » pas cliquable. On rétablit le comportement attendu ici, pour
+   toutes les apps. Règle volontairement hors @layer : les styles non-layered
+   l'emportent sur le preflight, quel que soit l'ordre des imports. */
+button:not(:disabled),
+[role='button']:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
 /* ============================================================================
    BUTTON SYSTEM - Professional glass morphism buttons
    ============================================================================ */
