@@ -1664,7 +1664,9 @@
         "generate": "Generate Brand Identity",
         "viewIdentity": "View My Visual Identity",
         "generateIdentity": "Generate My Visual Identity",
-        "edit": "Edit"
+        "edit": "Edit",
+        "editIdentity": "Edit",
+        "downloadLogos": "Download every logo version"
       },
       "tooltips": {
         "downloadZip": "Download all logos in a ZIP file"
@@ -1678,7 +1680,8 @@
           "lightBg": "Light Background",
           "darkBg": "Dark Background",
           "iconOnly": "Icon Only",
-          "monochrome": "Monochrome"
+          "monochrome": "Monochrome",
+          "downloadHint": "Every version of the logo (light, dark, monochrome, icon) in a single ZIP file."
         },
         "colors": {
           "title": "Color Palette",
@@ -1757,24 +1760,28 @@
         "loading": "Preparing branding content..."
       },
       "dialog": {
-        "title": "Download Logos",
-        "subtitle": "Choose the format you want to download:",
-        "preparing": "Preparing download...",
-        "wait": "This may take a few moments",
+        "title": "Download the logo versions",
+        "subtitle": "Pick a file format. You will get a ZIP containing every version of the logo.",
+        "preparing": "Preparing…",
+        "wait": "Preparing the file can take a few moments.",
         "formats": {
           "svg": {
-            "name": "SVG Format",
-            "description": "Vector format, scalable"
+            "name": "SVG",
+            "description": "Vector: scales up without ever losing quality. The safe choice for both print and web."
           },
           "png": {
-            "name": "PNG Format",
-            "description": "High quality raster image"
+            "name": "PNG",
+            "description": "Transparent-background image, ready to drop into a document, a slide or a website."
           },
           "psd": {
-            "name": "PSD Format",
-            "description": "Photoshop editable file"
+            "name": "PSD",
+            "description": "Layered file, open it in Photoshop to retouch the logo."
           }
-        }
+        },
+        "legend": "File format",
+        "recommended": "Recommended",
+        "confirm": "Download ZIP",
+        "zipNote": "The ZIP contains the main logo, the icon on its own, and the light, dark and monochrome versions."
       },
       "formatSelector": {
         "title": "Choose PDF Format",
@@ -1788,6 +1795,19 @@
           "description": "Modern presentation format"
         },
         "startGeneration": "Start Generation"
+      },
+      "summary": {
+        "sections": "Sections",
+        "palette": "Palette",
+        "typography": "Typography",
+        "logoVariations": "Variations"
+      },
+      "businessCards": {
+        "title": "Business cards",
+        "badge": "Derived from the guidelines",
+        "subtitle": "Generate a card template from your brand identity, then create a card for every team member and download it, ready to print.",
+        "cta": "Manage business cards",
+        "locked": "Generate your visual identity first to create cards."
       }
     },
     "additionalInfoForm": {
@@ -2195,9 +2215,9 @@
       "completeButton": "Complete Brand Identity"
     },
     "generationPanel": {
-      "incompleteTitle": "Incomplete generation",
-      "incompleteSubtitle": "{{completed}} of {{total}} sections have been generated. The generation was probably interrupted: finish it to get a complete document.",
-      "completeTitle": "Complete document — all sections have been generated",
+      "incompleteTitle": "Generation incomplete",
+      "incompleteSubtitle": "Generation was interrupted. Resume it to get the missing sections.",
+      "completeTitle": "Generation complete",
       "status": {
         "complete": "Generated",
         "missing": "Missing",
@@ -2208,7 +2228,7 @@
         "regenerateAll": "Regenerate everything",
         "regenerateSection": "Regenerate",
         "regenerateSectionAria": "Regenerate the {{section}} section",
-        "showSections": "Regenerate a section",
+        "showSections": "View sections",
         "hideSections": "Hide sections"
       },
       "sections": {
@@ -2236,7 +2256,10 @@
           "Brand Mockup 2": "Mockup 2",
           "Brand Mockup 3": "Mockup 3"
         }
-      }
+      },
+      "completeSubtitle": "Every section has been generated. You can regenerate one if needed.",
+      "sectionsLabel": "sections",
+      "progressAria": "{{completed}} of {{total}} sections generated"
     },
     "researchConsole": {
       "title": "AI research team",
@@ -2464,6 +2487,9 @@
       },
       "branding": {
         "title": "Brand identity editor"
+      },
+      "businessCard": {
+        "title": "Business card editor"
       }
     },
     "showCommunication": {
@@ -2630,6 +2656,93 @@
         "moments": "Moment generation failed",
         "publish": "Publishing failed"
       }
+    },
+    "businessCards": {
+      "title": "Business cards",
+      "subtitle": "One template generated from your brand guidelines, then one card per person — editable and ready to print.",
+      "loading": "Loading business cards…",
+      "downloadHint": "Files are rendered at 300 dpi at the exact card size: the PDF is press-ready.",
+      "confirmDelete": "Delete {{name}} and their card?",
+      "orientation": {
+        "landscape": "Landscape",
+        "portrait": "Portrait"
+      },
+      "sides": {
+        "front": "Front",
+        "back": "Back"
+      },
+      "actions": {
+        "editTemplate": "Edit template",
+        "regenerate": "Regenerate template",
+        "editHolder": "Edit details"
+      },
+      "empty": {
+        "brandingFirst": {
+          "title": "Create your visual identity first",
+          "subtitle": "Business cards reuse your logo, colors and fonts. Generate your brand guidelines to unlock this step.",
+          "cta": "Go to brand identity"
+        },
+        "generate": {
+          "title": "Generate your card template",
+          "subtitle": "The AI composes a front and a back from your guidelines. Personal details stay as fields — you fill them in for each person afterwards.",
+          "orientationLabel": "Orientation",
+          "briefLabel": "Art direction (optional)",
+          "briefPlaceholder": "e.g. very minimal, dark background, centered logo",
+          "cta": "Generate template",
+          "generating": "Generating…",
+          "wait": "Composing both faces usually takes under a minute.",
+          "hint": "You can then refine the template in the visual editor."
+        }
+      },
+      "people": {
+        "title": "People",
+        "add": "Add a person",
+        "search": "Search a person",
+        "empty": "No one yet.",
+        "editAria": "Edit {{name}}",
+        "deleteAria": "Delete {{name}}",
+        "emptyDetail": {
+          "title": "No card selected",
+          "subtitle": "Add a person: their card builds itself live while you fill in the form."
+        }
+      },
+      "form": {
+        "createTitle": "New card",
+        "editTitle": "Edit card",
+        "livePreviewHint": "The preview updates as you type.",
+        "create": "Create card",
+        "update": "Save",
+        "nameRequired": "A name is required.",
+        "unusedField": "not shown"
+      },
+      "fields": {
+        "fullName": "Full name",
+        "jobTitle": "Job title",
+        "email": "Email",
+        "phone": "Phone",
+        "mobile": "Mobile",
+        "website": "Website",
+        "address": "Address",
+        "linkedin": "LinkedIn"
+      },
+      "placeholders": {
+        "fullName": "Jane Doe",
+        "jobTitle": "Head of Sales",
+        "email": "jane@example.com",
+        "phone": "+1 555 010 1234",
+        "mobile": "+1 555 010 5678",
+        "website": "www.example.com",
+        "address": "12 Market Street, London",
+        "linkedin": "linkedin.com/in/janedoe"
+      },
+      "errors": {
+        "load": "Business cards could not be loaded.",
+        "generate": "Template generation failed. Please try again.",
+        "brandingRequired": "Generate your visual identity first.",
+        "saveHolder": "Saving the person failed.",
+        "deleteHolder": "Deletion failed.",
+        "download": "Downloading the card failed."
+      }
     }
   },
   "deployment": {
@@ -2767,7 +2880,9 @@
       "notFound": "Page Not Found",
       "businessPlanEdit": "Business Plan Editing",
       "pitchDeckEdit": "Pitch Deck Editing",
-      "brandingEdit": "Brand Identity Editing"
+      "brandingEdit": "Brand Identity Editing",
+      "businessCards": "Business cards",
+      "businessCardsEdit": "Business card editor"
     }
   },
   "notFound": {

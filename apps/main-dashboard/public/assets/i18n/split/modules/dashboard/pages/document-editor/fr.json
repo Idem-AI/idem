@@ -96,6 +96,9 @@
           "title": "Chargement impossible",
           "subtitle": "Le document n'a pas pu être chargé. Réessayez depuis la page du business plan."
         }
+      },
+      "businessCard": {
+        "title": "Éditeur de carte de visite"
       }
     }
   }

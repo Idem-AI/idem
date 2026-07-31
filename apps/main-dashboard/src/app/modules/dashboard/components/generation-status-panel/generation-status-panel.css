@@ -1,0 +1,151 @@
+/* Panneau d'état de génération : styles portés ici plutôt qu'en classes
+   utilitaires, parce que les états (complet / incomplet, section générée /
+   manquante) demandent des variantes que les bindings de classe rendaient
+   illisibles dans le template. */
+
+.status-panel--warning {
+  border: 1px solid rgb(234 179 8 / 0.3);
+}
+
+.status-badge {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border-radius: 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary, #6366f1);
+  background: color-mix(in srgb, var(--color-primary, #6366f1) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary, #6366f1) 25%, transparent);
+}
+
+.status-badge.is-warning {
+  color: #eab308;
+  background: rgb(234 179 8 / 0.12);
+  border-color: rgb(234 179 8 / 0.28);
+}
+
+/* Bouton secondaire du panneau (régénérer, replier) — plus discret que
+   .outer-button, qui est en majuscules et trop lourd à cette échelle. */
+.panel-ghost-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  background: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.panel-ghost-button:hover:not(:disabled) {
+  background: var(--glass-bg-light);
+  border-color: var(--glass-border-medium);
+}
+
+.panel-ghost-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chevron {
+  transition: transform 0.2s ease;
+}
+
+.chevron.is-open {
+  transform: rotate(180deg);
+}
+
+/* Grille de sections : deux colonnes dès qu'il y a la place, pour éviter la
+   longue pile de lignes identiques qui rendait la liste pénible à parcourir. */
+.section-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 640px) {
+  .section-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.section-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--glass-border-subtle, var(--glass-border));
+  background: var(--glass-bg-subtle);
+}
+
+.section-row.is-pending {
+  border-color: rgb(234 179 8 / 0.3);
+  background: rgb(234 179 8 / 0.06);
+}
+
+.section-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: var(--glass-border-strong, #6b7280);
+}
+
+.section-dot.is-complete {
+  background: var(--color-primary, #6366f1);
+}
+
+.section-dot.is-empty {
+  background: #eab308;
+}
+
+/* L'action reste discrète au repos et se révèle au survol/focus de la ligne :
+   la liste se lit comme un sommaire, pas comme une barre d'outils. */
+.section-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-shrink: 0;
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.section-row:hover .section-action,
+.section-action:focus-visible {
+  color: var(--color-primary, #6366f1);
+  background: color-mix(in srgb, var(--color-primary, #6366f1) 10%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary, #6366f1) 25%, transparent);
+}
+
+.section-action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.section-action:focus-visible,
+.panel-ghost-button:focus-visible {
+  outline: 2px solid var(--color-primary, #6366f1);
+  outline-offset: 2px;
+}

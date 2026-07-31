@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  linkedSignal,
+  output,
+} from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { GenerationCompleteness } from '../../models/generation-completeness';
 
@@ -6,16 +13,16 @@ import { GenerationCompleteness } from '../../models/generation-completeness';
  * Panneau d'état d'une génération IA par sections (business plan, pitch deck,
  * charte graphique).
  *
- * - Document incomplet : bannière d'avertissement listant les sections
- *   manquantes/vides, avec reprise de la génération, régénération complète et
- *   régénération section par section.
- * - Document complet : panneau replié donnant accès à la régénération d'une
- *   section particulière.
+ * Les deux états partagent la même présentation (compteur, barre segmentée,
+ * liste repliable) : seuls la couleur d'accent et les actions changent. Le
+ * détail des sections est déplié d'office quand il manque quelque chose —
+ * c'est le seul moment où l'utilisateur a besoin de le lire.
  */
 @Component({
   selector: 'app-generation-status-panel',
   imports: [TranslateModule],
   templateUrl: './generation-status-panel.html',
+  styleUrl: './generation-status-panel.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GenerationStatusPanelComponent {
@@ -39,7 +46,18 @@ export class GenerationStatusPanelComponent {
   /** Régénérer une seule section (nom canonique backend). */
   readonly regenerateSection = output<string>();
 
-  protected readonly expanded = signal(false);
+  /**
+   * Déplié par défaut quand le document est incomplet ; se recale si la
+   * complétude change (fin d'une reprise), tout en laissant l'utilisateur
+   * replier ou déplier à la main entre-temps.
+   */
+  protected readonly expanded = linkedSignal(() => !this.completeness().isComplete);
+
+  protected readonly headingKey = computed(() =>
+    this.completeness().isComplete
+      ? 'dashboard.generationPanel.completeTitle'
+      : 'dashboard.generationPanel.incompleteTitle',
+  );
 
   protected toggleExpanded(): void {
     this.expanded.update((value) => !value);

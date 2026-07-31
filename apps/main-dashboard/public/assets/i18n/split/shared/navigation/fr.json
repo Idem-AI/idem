@@ -55,7 +55,9 @@
       "financeCashflow": "Finance Flux de trésorerie",
       "financeRatios": "Finance Ratios",
       "createProject": "Créer un projet",
-      "notFound": "Page non trouvée"
+      "notFound": "Page non trouvée",
+      "businessCards": "Cartes de visite",
+      "businessCardsEdit": "Éditeur de carte de visite"
     }
   }
 }

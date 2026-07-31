@@ -6,6 +6,21 @@ import { LOGO_SYSTEM_BASE } from './00_logo-system-base.prompt';
  * respect de la doctrine (LOGO_SYSTEM_BASE). Sortie : même format JSON que la
  * génération, pour réutiliser le parseur existant.
  */
+/**
+ * Injecté à la place de {{REVISION_SCOPE}} pour le type `icon` : la révision ne
+ * porte que sur l'icône, le nom étant composé par le serveur.
+ */
+export const ICON_ONLY_REVISION_SCOPE = `
+REVISION SCOPE — ICON ONLY (overrides every wordmark instruction above):
+- The "svg" in the JSON below is the ICON ALONE, on viewBox="0 0 100 100".
+- The brand name is typeset by the rendering pipeline (real font metrics, outlined,
+  metric-aligned to the icon). You neither draw it nor position it.
+- Return the CORRECTED ICON in the same format: viewBox="0 0 100 100", ZERO <text>,
+  ZERO <tspan>, ZERO letterforms, no lockup.
+- You may also update the wordmark STYLE fields if a remark calls for it:
+  "wordmarkColor" (#HEX), "wordmarkTracking" (em), "wordmarkWeight" (600|700),
+  "lockupArrangement" ("horizontal" | "stacked").`;
+
 export const LOGO_REVISION_PROMPT = `
 ${LOGO_SYSTEM_BASE}
 
@@ -18,6 +33,7 @@ BRAND CONTEXT:
   this name (or its initials for a monogram/initial type). The original logo's
   "name" field is only the creative title of the concept: NEVER replace the
   displayed brand name with the concept title.
+{{REVISION_SCOPE}}
 
 REVISION RULES:
 - KEEP the concept, the visual idea, the layout type and the overall composition.

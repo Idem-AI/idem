@@ -74,6 +74,16 @@ export class ShowBrandingComponent implements OnInit {
   protected selectedExtension = 'svg';
   protected readonly isDownloading = signal<boolean>(false);
 
+  /**
+   * Formats proposés au téléchargement. Le SVG est mis en avant : c'est le
+   * seul qui ne se dégrade pas, et donc le bon choix par défaut pour un logo.
+   */
+  protected readonly logoFormats = [
+    { id: 'svg', recommended: true },
+    { id: 'png', recommended: false },
+    { id: 'psd', recommended: false },
+  ];
+
   // Computed properties for UI state
   protected readonly hasProjectData = computed(() => {
     const project = this.currentProject();
@@ -114,6 +124,51 @@ export class ShowBrandingComponent implements OnInit {
         branding.typography ||
         branding.generatedTypography?.length > 0)
     );
+  });
+
+  /**
+   * Repères affichés dans le bandeau de statut de la charte : nombre de
+   * sections réellement générées (la pseudo-section « Brand Guide » ajoutée
+   * quand le PDF existe n'en est pas une).
+   */
+  protected readonly brandSectionCount = computed(
+    () => (this.existingBranding()?.sections ?? []).filter((s) => s.name !== 'Brand Guide').length,
+  );
+
+  /**
+   * Les cartes de visite dérivent du logo et de la palette RETENUS : tant que
+   * l'un des deux manque, la génération échouerait côté serveur — on n'affiche
+   * donc pas l'accès (mêmes critères que la page cartes de visite).
+   */
+  protected readonly canCreateBusinessCards = computed(() => {
+    const branding = this.existingBranding();
+    return Boolean(
+      branding?.colors?.colors?.primary ||
+        branding?.logo?.assetUrls?.primary ||
+        branding?.logo?.svg,
+    );
+  });
+
+  /** Couleurs de la palette sélectionnée, dans l'ordre d'importance. */
+  protected readonly paletteSwatches = computed(() => {
+    const colors = this.existingBranding()?.colors?.colors;
+    if (!colors) return [];
+    return [colors.primary, colors.secondary, colors.accent, colors.background].filter(
+      (color): color is string => Boolean(color),
+    );
+  });
+
+  /** Nombre de déclinaisons de logo disponibles (avec texte + icône seule). */
+  protected readonly logoVariationCount = computed(() => {
+    const variations = this.existingBranding()?.logo?.variations;
+    if (!variations) return 0;
+    return [variations.withText, variations.iconOnly].reduce((total, set) => {
+      if (!set) return total;
+      return (
+        total +
+        [set.lightBackground, set.darkBackground, set.monochrome].filter((svg) => Boolean(svg)).length
+      );
+    }, 0);
   });
 
   /**
@@ -347,6 +402,16 @@ export class ShowBrandingComponent implements OnInit {
   protected viewBrandingGuide(): void {
     console.log('Navigating to branding display page');
     this.router.navigate(['/project/branding/display']);
+  }
+
+  /** Ouvre l'éditeur WYSIWYG de la charte graphique. */
+  protected editBrandingGuide(): void {
+    this.router.navigate(['/project/branding/edit']);
+  }
+
+  /** Ouvre le module « cartes de visite » (dérivé de la charte graphique). */
+  protected goToBusinessCards(): void {
+    this.router.navigate(['/project/business-cards']);
   }
 
   /**

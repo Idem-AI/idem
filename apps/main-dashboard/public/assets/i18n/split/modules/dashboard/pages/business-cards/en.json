@@ -1,0 +1,91 @@
+{
+  "dashboard": {
+    "businessCards": {
+      "title": "Business cards",
+      "subtitle": "One template generated from your brand guidelines, then one card per person — editable and ready to print.",
+      "loading": "Loading business cards…",
+      "downloadHint": "Files are rendered at 300 dpi at the exact card size: the PDF is press-ready.",
+      "confirmDelete": "Delete {{name}} and their card?",
+      "orientation": {
+        "landscape": "Landscape",
+        "portrait": "Portrait"
+      },
+      "sides": {
+        "front": "Front",
+        "back": "Back"
+      },
+      "actions": {
+        "editTemplate": "Edit template",
+        "regenerate": "Regenerate template",
+        "editHolder": "Edit details"
+      },
+      "empty": {
+        "brandingFirst": {
+          "title": "Create your visual identity first",
+          "subtitle": "Business cards reuse your logo, colors and fonts. Generate your brand guidelines to unlock this step.",
+          "cta": "Go to brand identity"
+        },
+        "generate": {
+          "title": "Generate your card template",
+          "subtitle": "The AI composes a front and a back from your guidelines. Personal details stay as fields — you fill them in for each person afterwards.",
+          "orientationLabel": "Orientation",
+          "briefLabel": "Art direction (optional)",
+          "briefPlaceholder": "e.g. very minimal, dark background, centered logo",
+          "cta": "Generate template",
+          "generating": "Generating…",
+          "wait": "Composing both faces usually takes under a minute.",
+          "hint": "You can then refine the template in the visual editor."
+        }
+      },
+      "people": {
+        "title": "People",
+        "add": "Add a person",
+        "search": "Search a person",
+        "empty": "No one yet.",
+        "editAria": "Edit {{name}}",
+        "deleteAria": "Delete {{name}}",
+        "emptyDetail": {
+          "title": "No card selected",
+          "subtitle": "Add a person: their card builds itself live while you fill in the form."
+        }
+      },
+      "form": {
+        "createTitle": "New card",
+        "editTitle": "Edit card",
+        "livePreviewHint": "The preview updates as you type.",
+        "create": "Create card",
+        "update": "Save",
+        "nameRequired": "A name is required.",
+        "unusedField": "not shown"
+      },
+      "fields": {
+        "fullName": "Full name",
+        "jobTitle": "Job title",
+        "email": "Email",
+        "phone": "Phone",
+        "mobile": "Mobile",
+        "website": "Website",
+        "address": "Address",
+        "linkedin": "LinkedIn"
+      },
+      "placeholders": {
+        "fullName": "Jane Doe",
+        "jobTitle": "Head of Sales",
+        "email": "jane@example.com",
+        "phone": "+1 555 010 1234",
+        "mobile": "+1 555 010 5678",
+        "website": "www.example.com",
+        "address": "12 Market Street, London",
+        "linkedin": "linkedin.com/in/janedoe"
+      },
+      "errors": {
+        "load": "Business cards could not be loaded.",
+        "generate": "Template generation failed. Please try again.",
+        "brandingRequired": "Generate your visual identity first.",
+        "saveHolder": "Saving the person failed.",
+        "deleteHolder": "Deletion failed.",
+        "download": "Downloading the card failed."
+      }
+    }
+  }
+}

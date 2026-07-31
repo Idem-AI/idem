@@ -96,6 +96,26 @@ export const routes: Routes = [
     data: { layout: 'empty' },
   },
   {
+    path: 'project/business-cards',
+    title: 'navigation.titles.businessCards',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/business-cards/business-cards').then(
+        (m) => m.BusinessCardsPage,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
+    path: 'project/business-cards/edit',
+    title: 'navigation.titles.businessCardsEdit',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/document-editor/document-editor').then(
+        (m) => m.DocumentEditorComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'empty', documentType: 'business-card' },
+  },
+  {
     path: 'project/branding/display',
     title: 'navigation.titles.brandingDisplay',
     loadComponent: () =>
