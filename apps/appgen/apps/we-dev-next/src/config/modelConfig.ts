@@ -53,4 +53,22 @@ export function getDefaultModelKey(): string {
   return fallbackModel;
 }
 
+/**
+ * Ordered list of models to try for a single request: the requested one first,
+ * then the other configured ones. Gemini answers 503 ("this model is currently
+ * experiencing high demand") during spikes, so a generation that would die on
+ * one model can land on a sibling instead of failing in the user's face.
+ */
+export function getFallbackModelKeys(preferredKey?: string): string[] {
+  const keys = preferredKey ? [preferredKey] : [];
+
+  for (const { modelKey } of defaultModelConfigs) {
+    if (!keys.includes(modelKey)) {
+      keys.push(modelKey);
+    }
+  }
+
+  return keys;
+}
+
 export const modelConfig: ModelConfig[] = defaultModelConfigs;
