@@ -225,9 +225,15 @@ export function streamTextFn(messages: Messages, options?: StreamingOptions, mod
   console.log(`  Generation config: ${JSON.stringify(generationConfig)}`);
   console.log('🤖 === END STREAM TEXT FUNCTION ===\n');
 
+  // Retrying the same saturated model rarely helps within a few seconds, while
+  // switching model does (see createResilientStream). Keep one quick retry for
+  // one-off blips and let the fallback chain handle real outages.
+  const maxRetries = Number(process.env.AI_MAX_RETRIES ?? 1);
+
   const streamConfig: any = {
     model: model || defaultModel,
     messages: convertToCoreMessages(newMessages),
+    maxRetries: Number.isFinite(maxRetries) ? maxRetries : 1,
     ...generationConfig,
     ...initOptions,
     ...options,

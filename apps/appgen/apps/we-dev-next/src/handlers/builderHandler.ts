@@ -393,7 +393,7 @@ REQUIREMENTS:
       finalMessageLength: messages[messages.length - 1].content.length,
     });
 
-    const response = await streamResponse(messages, model, userId, tools);
+    const response = await streamResponse(messages, model, userId, tools, language);
 
     const duration = Date.now() - startTime;
     console.log('\n BUILDER HANDLER COMPLETED');

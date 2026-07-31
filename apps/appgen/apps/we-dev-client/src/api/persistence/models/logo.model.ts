@@ -1,3 +1,8 @@
+/**
+ * Values are hosted SVG URLs (bucket). Projects created before the assets were
+ * externalized still carry inline SVG markup here, so always run them through
+ * `toLogoSrc()` before feeding an `<img src>`.
+ */
 export interface LogoVariationSet {
   lightBackground?: string; // SVG optimized for light backgrounds
   darkBackground?: string; // SVG optimized for dark backgrounds
@@ -11,7 +16,7 @@ export interface LogoVariations {
 
 /**
  * A set of hosted PNG asset URLs (one per background variant).
- * Distinct from LogoVariationSet, whose values are inline SVG markup.
+ * Distinct from LogoVariationSet, whose values are SVG (hosted URL or legacy markup).
  */
 export interface LogoAssetUrlSet {
   lightBackground?: string; // URL of the PNG rendered for light backgrounds
@@ -21,8 +26,8 @@ export interface LogoAssetUrlSet {
 
 /**
  * URLs of the rasterized (PNG) logo assets uploaded to object storage.
- * The vector SVG source stays inline in svg/iconSvg/variations; these URLs are
- * what gets injected into generation contexts as <img src>.
+ * The vector SVG source lives in svg/iconSvg/variations; these PNG URLs are the
+ * preferred source for an <img src> and for generation contexts.
  */
 export interface LogoAssetUrls {
   primary?: string; // URL of the primary (full) logo PNG
@@ -34,12 +39,12 @@ export interface LogoAssetUrls {
 export interface LogoModel {
   id: string;
   name: string;
-  svg: string; // Main SVG logo (full version with text)
-  iconSvg?: string; // Icon-only SVG content (without text elements)
+  svg: string; // Hosted URL of the main SVG logo (legacy: inline markup)
+  iconSvg?: string; // Hosted URL of the icon-only SVG (legacy: inline markup)
   concept: string; // Branding story or meaning behind the logo
   colors: string[]; // Array of HEX color codes used in the logo
   fonts: string[]; // Fonts used in the logo (if any)
 
-  variations?: LogoVariations; // Enhanced variations with text/icon separation (inline SVG)
+  variations?: LogoVariations; // Enhanced variations with text/icon separation
   assetUrls?: LogoAssetUrls; // Hosted PNG asset URLs (SVG stays the source of truth)
 }
