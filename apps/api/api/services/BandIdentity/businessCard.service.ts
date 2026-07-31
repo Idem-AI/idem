@@ -131,17 +131,28 @@ export class BusinessCardService extends GenericService {
       userId,
       promptType: 'branding_business_card',
       language: options.language,
+      // Deux faces de HTML complètes : un plafond global (MAX_OUTPUT_TOKENS)
+      // tronquerait la réponse en plein milieu du markup et la rendrait
+      // inexploitable. Le budget de ai.config.ts fait foi ici.
+      bypassOutputTokenCap: true,
     };
     const messages: AIChatMessage[] = [{ role: 'user', content: prompt }];
 
     logger.info('[BusinessCard] generating template', { projectId, orientation });
     const raw = await this.promptService.runPrompt(config, messages);
-    const parsed = parseLlmJson<GeneratedTemplate>(raw);
+    const parsed = this.parseTemplateResponse(raw);
 
-    const frontHtml = sanitizeSectionHtml(parsed?.frontHtml ?? '');
-    const backHtml = sanitizeSectionHtml(parsed?.backHtml ?? '');
+    const frontHtml = sanitizeSectionHtml(parsed.frontHtml ?? '');
+    const backHtml = sanitizeSectionHtml(parsed.backHtml ?? '');
     if (!frontHtml) {
-      logger.error('[BusinessCard] AI returned no usable front face', { projectId });
+      // Trace de quoi diagnostiquer sans déverser une réponse entière (plusieurs
+      // milliers de caractères) dans les logs.
+      logger.error('[BusinessCard] AI returned no usable front face', {
+        projectId,
+        rawLength: raw?.length ?? 0,
+        rawHead: (raw ?? '').slice(0, 300),
+        rawTail: (raw ?? '').slice(-300),
+      });
       throw new Error('TEMPLATE_GENERATION_FAILED');
     }
 
@@ -182,6 +193,44 @@ export class BusinessCardService extends GenericService {
       createdAt: existing.createdAt ?? new Date(),
       updatedAt: new Date(),
     }));
+  }
+
+  /**
+   * Lit la réponse du modèle.
+   *
+   * Le format demandé est délimité par des marqueurs `===NAME===` plutôt que
+   * du JSON : deux faces de HTML Tailwind dans des chaînes JSON, ce sont des
+   * centaines de guillemets à échapper, et un seul raté rendait TOUTE la
+   * réponse inparsable (`parseLlmJson: all parse attempts failed`). Les
+   * marqueurs n'ont pas ce problème. Le repli JSON reste là pour les modèles
+   * qui ignorent la consigne.
+   */
+  private parseTemplateResponse(raw: string): GeneratedTemplate {
+    const text = (raw ?? '').trim();
+
+    const block = (marker: string, next: string | null): string | undefined => {
+      const pattern = next
+        ? new RegExp(`={2,}\\s*${marker}\\s*={2,}([\\s\\S]*?)={2,}\\s*${next}\\s*={2,}`, 'i')
+        : new RegExp(`={2,}\\s*${marker}\\s*={2,}([\\s\\S]*)$`, 'i');
+      const match = text.match(pattern);
+      return match ? match[1].trim() : undefined;
+    };
+
+    const frontHtml = block('FRONT', 'BACK');
+    if (frontHtml) {
+      return {
+        name: block('NAME', 'CONCEPT'),
+        concept: block('CONCEPT', 'FRONT'),
+        frontHtml,
+        backHtml: block('BACK', null),
+      };
+    }
+
+    const json = parseLlmJson<GeneratedTemplate>(text);
+    if (json?.frontHtml) return json;
+
+    logger.warn('[BusinessCard] neither the delimited format nor JSON could be read');
+    return {};
   }
 
   /**

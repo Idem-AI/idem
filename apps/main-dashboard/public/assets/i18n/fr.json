@@ -2694,7 +2694,13 @@
           "cta": "Générer le modèle",
           "generating": "Génération en cours…",
           "wait": "La composition des deux faces prend généralement moins d'une minute.",
-          "hint": "Vous pourrez ensuite modifier le modèle dans l'éditeur visuel."
+          "hint": "Vous pourrez ensuite modifier le modèle dans l'éditeur visuel.",
+          "steps": {
+            "0": "Lecture de votre charte graphique",
+            "1": "Composition du recto",
+            "2": "Composition du verso",
+            "3": "Finalisation du modèle"
+          }
         }
       },
       "people": {
