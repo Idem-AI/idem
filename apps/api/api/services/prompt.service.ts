@@ -53,6 +53,17 @@ export interface PromptConfig {
    * variable dans les messages (économie d'input tokens).
    */
   cachedContent?: string;
+  /**
+   * Exempte cet appel du plafond global MAX_OUTPUT_TOKENS.
+   *
+   * Réservé aux appels INTERNES dont le budget de ai.config.ts est un choix
+   * délibéré (SVG de logo, HTML de carte de visite…) : une réponse tronquée y
+   * est inexploitable, donc plafonner revient à casser la fonctionnalité. Le
+   * plafond reste actif pour l'endpoint public /prompt, dont le corps de
+   * requête est fourni par le client — `promptController` retire d'ailleurs ce
+   * drapeau de la charge utile entrante.
+   */
+  bypassOutputTokenCap?: boolean;
 }
 
 export interface AIChatMessage {
@@ -76,6 +87,8 @@ export interface PromptRequest {
   fallbackModels?: string[];
   language?: string;
   cachedContent?: string;
+  /** Voir PromptConfig.bypassOutputTokenCap — jamais accepté depuis le client. */
+  bypassOutputTokenCap?: boolean;
 }
 
 export interface AIResponse {

@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -19,6 +27,7 @@ import {
 } from '../../models/business-card.model';
 import { ProjectModel } from '@idem/shared-models';
 import { CardPreviewComponent } from './components/card-preview/card-preview';
+import { GenerationPreviewComponent } from './components/generation-preview/generation-preview';
 import { HolderFormComponent } from './components/holder-form/holder-form';
 import { CardPreviewFonts } from './utils/business-card-preview';
 
@@ -35,7 +44,14 @@ type WorkspaceMode = 'view' | 'form';
  */
 @Component({
   selector: 'app-business-cards',
-  imports: [FormsModule, TranslateModule, Loader, CardPreviewComponent, HolderFormComponent],
+  imports: [
+    FormsModule,
+    TranslateModule,
+    Loader,
+    CardPreviewComponent,
+    GenerationPreviewComponent,
+    HolderFormComponent,
+  ],
   templateUrl: './business-cards.html',
   styleUrl: './business-cards.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -46,6 +62,12 @@ export class BusinessCardsPage implements OnInit {
   private readonly cookieService = inject(CookieService);
   private readonly translate = inject(TranslateService);
   private readonly router = inject(Router);
+
+  constructor() {
+    // Quitter la page pendant une génération ne doit pas laisser des timers
+    // orphelins réveiller un composant détruit.
+    inject(DestroyRef).onDestroy(() => this.stopStepTimeline());
+  }
 
   // --- État de chargement ----------------------------------------------------
   protected readonly isLoading = signal(true);
@@ -61,6 +83,16 @@ export class BusinessCardsPage implements OnInit {
   protected readonly orientation = signal<BusinessCardOrientation>('landscape');
   protected readonly orientations: BusinessCardOrientation[] = ['landscape', 'portrait'];
   protected styleBrief = '';
+
+  /**
+   * Étape affichée pendant la génération. Le serveur ne renvoie qu'une seule
+   * réponse (pas de flux) : cette progression est INDICATIVE et calée sur les
+   * durées observées (~50 s). Elle s'arrête à la dernière étape et n'annonce
+   * jamais de pourcentage, qui laisserait croire à une mesure réelle.
+   */
+  protected readonly generationStep = signal(0);
+  private readonly stepDelaysMs = [9000, 22000, 38000];
+  private stepTimers: ReturnType<typeof setTimeout>[] = [];
 
   // --- Espace de travail -----------------------------------------------------
   protected readonly mode = signal<WorkspaceMode>('view');
@@ -201,6 +233,7 @@ export class BusinessCardsPage implements OnInit {
 
     this.isGenerating.set(true);
     this.errorMessage.set('');
+    this.startStepTimeline();
     this.cardService
       .generateTemplate(projectId, {
         orientation: this.orientation(),
@@ -209,6 +242,7 @@ export class BusinessCardsPage implements OnInit {
       .subscribe({
         next: (card) => {
           this.card.set(card);
+          this.stopStepTimeline();
           this.isGenerating.set(false);
         },
         error: (err) => {
@@ -219,9 +253,23 @@ export class BusinessCardsPage implements OnInit {
                 : 'dashboard.businessCards.errors.generate',
             ),
           );
+          this.stopStepTimeline();
           this.isGenerating.set(false);
         },
       });
+  }
+
+  private startStepTimeline(): void {
+    this.stopStepTimeline();
+    this.generationStep.set(0);
+    this.stepTimers = this.stepDelaysMs.map((delay, index) =>
+      setTimeout(() => this.generationStep.set(index + 1), delay),
+    );
+  }
+
+  private stopStepTimeline(): void {
+    this.stepTimers.forEach((timer) => clearTimeout(timer));
+    this.stepTimers = [];
   }
 
   protected editTemplate(): void {

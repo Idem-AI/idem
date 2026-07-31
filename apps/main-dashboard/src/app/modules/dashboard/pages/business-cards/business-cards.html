@@ -193,18 +193,10 @@
                 </p>
               </div>
 
-              <!-- Illustration : deux cartes fantômes -->
-              <div class="relative h-56 sm:h-64 hidden lg:block" aria-hidden="true">
-                <div
-                  class="absolute left-6 top-6 w-64 h-40 rounded-xl bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] rotate-[-8deg]"
-                ></div>
-                <div
-                  class="absolute left-20 top-14 w-64 h-40 rounded-xl bg-[var(--glass-bg-light)] border border-[var(--glass-border-medium)] rotate-[6deg] flex flex-col justify-end p-5 gap-2"
-                >
-                  <span class="block h-2.5 w-28 rounded-full bg-primary/50"></span>
-                  <span class="block h-2 w-20 rounded-full bg-[var(--glass-border-strong)]"></span>
-                  <span class="block h-2 w-32 rounded-full bg-[var(--glass-border-medium)]"></span>
-                </div>
+              <!-- Maquettes : décoratives au repos, la carte se compose sous
+                   les yeux de l'utilisateur pendant la génération. -->
+              <div class="hidden sm:block">
+                <app-generation-preview [active]="isGenerating()" [step]="generationStep()" />
               </div>
             </div>
           }

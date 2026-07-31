@@ -119,14 +119,18 @@ The template is edited afterwards in a visual (Figma-like) editor:
 </editor_compatibility>
 
 <output_format>
-Return ONLY a raw JSON object (no markdown fence, no prose) with exactly these keys:
-{
-  "name": "short name of the design direction (max 4 words)",
-  "concept": "2 sentences explaining the design rationale, in the same language as the project description",
-  "frontHtml": "<div class=\\"w-[${width}mm] h-[${height}mm] overflow-hidden relative ...\\">…</div>",
-  "backHtml": "<div class=\\"w-[${width}mm] h-[${height}mm] overflow-hidden relative ...\\">…</div>",
-  "fields": ["fullName", "jobTitle", "email", "phone", "mobile", "website", "address", "linkedin"]
-}
-"fields" lists ONLY the markers you actually used (excluding companyName/tagline if hardcoded).
+Return the four blocks below, in this exact order, each introduced by its marker alone on its line.
+Output NOTHING else: no JSON, no markdown fence, no commentary before or after.
+
+===NAME===
+short name of the design direction, max 4 words
+===CONCEPT===
+2 sentences explaining the design rationale, written in the same language as the project description
+===FRONT===
+the complete front face, as ONE line of HTML starting with <div class="w-[${width}mm] h-[${height}mm] overflow-hidden relative …">
+===BACK===
+the complete back face, as ONE line of HTML, same outer container rules
+
+Write the HTML raw — plain double quotes around attribute values, no backslash escaping of any kind.
 </output_format>`;
 }

@@ -34,7 +34,13 @@
           "cta": "Generate template",
           "generating": "Generating…",
           "wait": "Composing both faces usually takes under a minute.",
-          "hint": "You can then refine the template in the visual editor."
+          "hint": "You can then refine the template in the visual editor.",
+          "steps": {
+            "0": "Reading your brand guidelines",
+            "1": "Composing the front",
+            "2": "Composing the back",
+            "3": "Finishing the template"
+          }
         }
       },
       "people": {
