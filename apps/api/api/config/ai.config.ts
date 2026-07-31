@@ -285,6 +285,23 @@ export const AI_CONFIG = {
         temperature: 0.2,
       },
     } as FeatureAIConfig,
+    // Template de carte de visite : deux faces HTML complètes + concept.
+    // ⚠️ NE PAS RÉDUIRE maxOutputTokens. Comme pour le logo, le modèle est
+    // « thinking » : les tokens de raisonnement sont décomptés du budget. Deux
+    // faces de HTML Tailwind pèsent déjà 2–4k tokens ; sous un budget trop
+    // court la réponse est tronquée en plein milieu du HTML et devient
+    // illisible côté parseur.
+    businessCard: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3.1-pro-preview',
+      fallbackModels: ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'],
+      llmOptions: {
+        maxOutputTokens: 24000,
+        temperature: 0.45,
+        topP: 0.9,
+        topK: 40,
+      },
+    } as FeatureAIConfig,
     mockupHtml: {
       modelName: 'gemini-3.5-flash',
     },

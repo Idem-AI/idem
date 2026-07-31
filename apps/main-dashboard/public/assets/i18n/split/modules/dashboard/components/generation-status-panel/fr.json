@@ -2,8 +2,8 @@
   "dashboard": {
     "generationPanel": {
       "incompleteTitle": "Génération incomplète",
-      "incompleteSubtitle": "{{completed}} section(s) sur {{total}} ont été générées. La génération a probablement été interrompue : complétez-la pour obtenir un document complet.",
-      "completeTitle": "Document complet — toutes les sections ont été générées",
+      "incompleteSubtitle": "La génération a été interrompue. Reprenez-la pour obtenir les sections manquantes.",
+      "completeTitle": "Génération terminée",
       "status": {
         "complete": "Générée",
         "missing": "Manquante",
@@ -11,10 +11,10 @@
       },
       "actions": {
         "resume": "Compléter la génération",
-        "regenerateAll": "Tout régénérer de zéro",
+        "regenerateAll": "Tout régénérer",
         "regenerateSection": "Régénérer",
         "regenerateSectionAria": "Régénérer la section {{section}}",
-        "showSections": "Régénérer une section",
+        "showSections": "Voir les sections",
         "hideSections": "Masquer les sections"
       },
       "sections": {
@@ -42,7 +42,10 @@
           "Brand Mockup 2": "Mockup 2",
           "Brand Mockup 3": "Mockup 3"
         }
-      }
+      },
+      "completeSubtitle": "Toutes les sections sont générées. Vous pouvez en régénérer une si besoin.",
+      "sectionsLabel": "sections",
+      "progressAria": "{{completed}} sections générées sur {{total}}"
     }
   }
 }

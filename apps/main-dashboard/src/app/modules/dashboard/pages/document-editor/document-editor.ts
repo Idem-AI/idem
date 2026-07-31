@@ -16,6 +16,7 @@ import { TokenService } from '../../../../shared/services/token.service';
 import { BusinessPlanEditorAdapter } from './adapters/business-plan-editor.adapter';
 import { PitchDeckEditorAdapter } from './adapters/pitch-deck-editor.adapter';
 import { BrandingEditorAdapter } from './adapters/branding-editor.adapter';
+import { BusinessCardEditorAdapter } from './adapters/business-card-editor.adapter';
 import { DocumentModelService } from './services/document-model.service';
 import { EditorHistoryService } from './services/editor-history.service';
 import {
@@ -89,6 +90,8 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
         return inject(PitchDeckEditorAdapter);
       case 'branding':
         return inject(BrandingEditorAdapter);
+      case 'business-card':
+        return inject(BusinessCardEditorAdapter);
       default:
         return inject(BusinessPlanEditorAdapter);
     }

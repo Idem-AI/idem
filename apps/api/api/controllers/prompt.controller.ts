@@ -15,7 +15,10 @@ class PromptController {
         return;
       }
       const messages = requestBody.messages;
-      const config = requestBody;
+      // Le corps de requête vient du client : il ne doit pas pouvoir s'exempter
+      // lui-même du plafond MAX_OUTPUT_TOKENS. Ce drapeau est réservé aux
+      // appels internes dont le budget est fixé dans ai.config.ts.
+      const { bypassOutputTokenCap: _ignored, ...config } = requestBody;
 
       // Pass the runPrompt function from the service to tryGenerateFullJSON
       const jsonResponse = await promptService.runPrompt(config, messages);

@@ -26,6 +26,10 @@ export const EDIT_FORMAT_RULES = {
 - Padding: p-[14mm].`,
   branding: `- Outermost container: w-[297mm] h-[167mm] overflow-hidden relative (16:9 slide = ONE page). The content MUST fit entirely within this single slide (no overflow, no scroll); if the edit makes it too long, shorten/summarize or use smaller type.
 - Padding: p-[14mm].`,
+  businessCard: `- Outermost container: w-[85mm] h-[55mm] overflow-hidden relative (business card face — keep the exact w-[..mm] h-[..mm] values already present in the current HTML, they encode the chosen orientation).
+- Safety margin: keep at least 4mm free of text/logo on every edge.
+- Print type scale: name 11-14pt, job title 7-9pt, contact lines 7-8pt, never below 6pt.
+- TEMPLATE, NOT A FINISHED CARD: personal data stays as markers {{fullName}}, {{jobTitle}}, {{email}}, {{phone}}, {{mobile}}, {{website}}, {{address}}, {{linkedin}}. NEVER replace a marker with a real value, never invent new markers, and keep each optional marker inside an element carrying the matching data-field="<marker>" attribute (those blocks are removed when the person leaves the field empty, so the layout must survive without them).`,
 } as const;
 
 /** Contraintes garantissant que la sortie reste éditable dans l'éditeur WYSIWYG. */
