@@ -107,7 +107,8 @@
       "error": "Failed to optimize prompt:",
       "designPlaceholder": "Enter your prompt here, we'll help you generate a design..."
     },
-    "regenerate_incomplete": "Please check which files were generated last time, rebuild and continue with the incomplete code files last time, and there is no need to generate the completed code files again"
+    "regenerate_incomplete": "Please check which files were generated last time, rebuild and continue with the incomplete code files last time, and there is no need to generate the completed code files again",
+    "quality_pass": "Design review: applying {{count}} fixes to the generated interface."
   },
   "settings": {
     "title": "Settings",

@@ -1,67 +1,64 @@
 {
   "dashboard": {
     "showDevelopment": {
-      "title": "Configuration Ready",
-      "subtitle": "Your tech stack is configured. Launch the generation to create your full application.",
-      "landingPage": {
-        "title": "Your Landing Page is Ready to Generate",
-        "subtitle": "Your configuration is complete. Start the generation to create your professional and modern landing page in minutes.",
-        "cta": "Generate My Landing Page",
-        "features": {
-          "modern": {
-            "title": "Modern Design",
-            "description": "Elegant and responsive interface"
-          },
-          "seo": {
-            "title": "SEO Optimized",
-            "description": "Natural search engine optimization"
-          },
-          "customizable": {
-            "title": "Customizable",
-            "description": "Easily modifiable to your needs"
-          }
-        }
+      "liveApp": "Live Application",
+      "deployed": "Deployed",
+      "lastUpdated": "Last updated:",
+      "linkCopied": "Link copied",
+      "copyLink": "Copy link",
+      "open": "Open",
+      "landingReady": "Your Landing Page<br/>is ready.",
+      "landingReadyToGenerate": "Your Landing Page<br/>is ready to be generated.",
+      "landingExistingDesc": "Resume the iCode conversation where you left off to evolve your page.",
+      "landingNewDesc": "Your configuration is finalized. Launch generation to create your professional and modern landing page in minutes.",
+      "resumeInIcode": "Resume in iCode",
+      "generateLanding": "Generate landing page",
+      "features": {
+        "design": "Modern Design",
+        "designDesc": "Elegant, responsive interface adapted to your visual identity.",
+        "seo": "SEO Optimized",
+        "seoDesc": "Semantic structure and optimized performance for search engines.",
+        "customizable": "Customizable",
+        "customizableDesc": "Clear modular code, easily modifiable according to future needs."
       },
-      "buttons": {
-        "generate": "Generate Application",
-        "preview": "Preview",
-        "export": "Export Config",
-        "edit": "Edit Config"
-      },
-      "sections": {
-        "frontend": "Frontend",
-        "backend": "Backend",
-        "database": "Database",
-        "projectConfig": "Project Configuration",
-        "constraints": "Constraints"
-      },
-      "techStack": {
-        "styling": "Styling",
-        "stateManagement": "State Management",
-        "features": "Features",
-        "orm": "ORM",
-        "noFeatures": "No features configured"
-      },
-      "projectFeatures": {
-        "seo": "SEO",
-        "contactForm": "Contact Form",
-        "analytics": "Analytics",
-        "i18n": "i18n",
-        "performance": "Performance",
-        "authentication": "Authentication",
-        "authorization": "Authorization",
-        "uiTheme": "UI Theme",
-        "payment": "Payment",
-        "enabled": "Enabled",
-        "disabled": "Disabled",
-        "optimized": "Optimized",
-        "standard": "Standard",
-        "integrated": "Integrated",
-        "notIntegrated": "Not Integrated",
-        "modern": "Modern"
-      },
-      "customOptions": "Custom Options",
-      "technicalDetails": "Technical Details"
+      "appExistingTitle": "Environment generated.",
+      "appNewTitle": "Technical configuration finalized.",
+      "appExistingDesc": "Resume the iCode conversation: your code and history are automatically restored.",
+      "appNewDesc": "Your tech stack is configured. Launch generation to create your full application.",
+      "generateApp": "Generate application",
+      "preview": "Preview",
+      "exportConfig": "Export Config",
+      "stackOverview": "Stack Overview",
+      "frontend": "Frontend",
+      "backend": "Backend",
+      "database": "Database",
+      "configDetails": "Configuration Details",
+      "clientLayer": "Client Layer",
+      "clientLayerDesc": "Definition of UI, UX, and state management.",
+      "version": "Version",
+      "styling": "Styling",
+      "stateManagement": "State Management",
+      "enabledFeatures": "Enabled Features",
+      "serverLayer": "Server Layer",
+      "serverLayerDesc": "Business logic, API architecture, and complex data management.",
+      "language": "Language",
+      "framework": "Framework",
+      "apiType": "API Type",
+      "orm": "ORM",
+      "apiFeatures": "API Features",
+      "persistence": "Persistence",
+      "persistenceDesc": "Database infrastructure and persistent state management.",
+      "configurations": "Configurations",
+      "globals": "Globals",
+      "globalsDesc": "Cross-cutting project settings and specific constraints.",
+      "seo": "SEO",
+      "i18n": "i18n",
+      "auth": "Auth",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "secured": "Secured",
+      "public": "Public",
+      "imposedConstraints": "Imposed Constraints"
     }
   }
 }
