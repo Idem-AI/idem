@@ -112,7 +112,23 @@ After generation completes, the client posts the parsed file map to `POST /api/q
 
 `missing-bootstrap-script` (blank page, no console error) · `logo-missing` · `purple-gradient` · `gradient-text` · `inter-default` · `side-stripe-border` · `uppercase-eyebrow` (2+ occurrences) · `glassmorphism` · `light-gray-body` · `stock-palette` · `buzzwords` · `em-dash` · `emoji-in-ui` · `placeholder-content` · `dead-link` · `img-without-alt` · `identical-card-grid`
 
-`logo-missing` takes an `expectedLogo` (hosted URL or inline SVG) and checks that a fingerprint of it — the filename, or a path's `d` attribute for inline markup — appears somewhere in the generated code. Deterministic, so it cannot produce a false positive on a logo that is present under a different class name.
+`logo-missing` takes `expectedLogo` (a rendition or a list of them: hosted URLs, inline SVG) and checks that a fingerprint of any one — the filename, or a path's `d` attribute for inline markup — appears somewhere in the generated code. Deterministic, and tolerant of the model picking the dark variant over the light one.
+
+### Insecure asset URLs in the preview (local only)
+
+The WebContainer preview is served on an HTTPS origin. In production the bucket is HTTPS too, so a generated `<img src="https://…/logo.png">` loads normally and nothing below runs.
+
+In development `MINIO_PUBLIC_URL` is `http://localhost:9000`, and a browser silently blocks an `http://` image inside an HTTPS page as mixed content: no request, no console error the app can see, just a logo that never appears. That is why generated sites showed no logo even though the URL was in the prompt and the model used it correctly.
+
+The fix lives in [`webcontainer/insecureAssets.ts`](../apps/we-dev-client/src/components/WeIde/services/webcontainer/insecureAssets.ts) and runs from `mountFileSystem`, next to the existing `ensureHtmlEntryScript` guard:
+
+1. Scan the text files for `http://…{png,jpg,webp,gif,avif,svg}` URLs.
+2. Resolve each through `GET /api/assets/inline` (server-side, so no CORS to configure) into a data URI, cached per URL.
+3. Substitute **only in the copy handed to `instance.mount()`**.
+
+The file store keeps the original URL, and the file store is what `codeSync` pushes to the bucket — so no image bytes are ever duplicated into stored project code, and the asset stays referenced by URL exactly as it should be. The content hash is computed on the transformed text, so the read-back from the container does not push the substitution into the store either.
+
+The trigger is the `http:` scheme, which never occurs in production, so there is no flag to remember to switch off. `/api/assets/inline` refuses HTTPS URLs outright and only fetches hosts on an allowlist (`ASSET_INLINE_ALLOWED_HOSTS`, plus the configured bucket host and `localhost:9000`), which keeps it from becoming an open proxy.
 
 When `shouldRepair` is true (any error, or four or more warnings), the response carries a `repairPrompt` containing **only the offending files** plus the exact fixes — roughly 2 000 tokens instead of regenerating the project. Capped at one repair per conversation.
 

@@ -2,6 +2,7 @@ import { WebContainer } from '@webcontainer/api';
 import { useFileStore } from '../../stores/fileStore';
 import { getWebContainerInstance } from './instance';
 import { debounce } from 'lodash';
+import { resolveInsecureAssets, rewriteInsecureAssetUrls } from './insecureAssets';
 
 // Définition locale des fichiers masqués pour le mode web
 const isHiddenNodeModules = ['node_modules', '.git', '.DS_Store'];
@@ -87,11 +88,22 @@ export async function mountFileSystem(
 
     const fileTree: Record<string, FileTreeContent> = {};
 
+    // Assets `http://` (bucket local) → data URI, pour cette copie uniquement.
+    // La preview est servie en HTTPS et bloquerait l'image en mixed content.
+    // Le store — donc ce qui part au bucket — garde l'URL d'origine.
+    const insecureAssets = await resolveInsecureAssets(files);
+
     for (const [path, rawContents] of Object.entries(files)) {
       if (typeof rawContents !== 'string') continue;
 
       // Répare un index.html sans script d'amorçage avant montage/hash.
-      const contents = ensureHtmlEntryScript(path, rawContents, files);
+      // Le hash porte sur le contenu TRANSFORMÉ : la relecture depuis le
+      // container retrouve le même hash et ne réinjecte donc jamais ces
+      // substitutions dans le store.
+      const contents = rewriteInsecureAssetUrls(
+        ensureHtmlEntryScript(path, rawContents, files),
+        insecureAssets
+      );
 
       const newHash = await calculateMD5(contents);
       const oldHash = fileHashMap.get(path);
