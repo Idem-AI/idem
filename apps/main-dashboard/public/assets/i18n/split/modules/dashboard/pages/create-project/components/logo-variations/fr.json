@@ -108,6 +108,36 @@
         "critique": {
           "title": "Avis de l'agent qualité",
           "revised": "Corrigée par l'agent"
+        },
+        "phases": {
+          "read": "Lecture du logo",
+          "recolor": "Adaptation des couleurs",
+          "contrast": "Mesure du contraste",
+          "audit": "Contrôle qualité",
+          "finalize": "Finalisation"
+        },
+        "ambient": [
+          "Extraction des couleurs du logo retenu",
+          "Repérage des zones à recolorer",
+          "Adaptation de la palette au fond de destination",
+          "Mesure du contraste sur le fond cible",
+          "Test d'affichage en 32 px",
+          "Conservation des proportions d'origine",
+          "Aplatissement de la version monochrome",
+          "Nettoyage des tracés SVG"
+        ],
+        "log": {
+          "read": "Logo source analysé",
+          "started": "{{variant}} : recoloration lancée",
+          "generated": "{{variant}} : version reçue",
+          "audit": "{{variant}} : vérification sur le fond cible",
+          "auditPass": "{{variant}} validée ({{score}}/100)",
+          "auditFail": "{{variant}} à corriger ({{score}}/100)",
+          "revising": "{{variant}} : correction des couleurs",
+          "revised": "{{variant}} : correction appliquée",
+          "final": "{{variant}} prête",
+          "cancelled": "{{variant}} abandonnée",
+          "error": "{{variant}} : échec de la génération"
         }
       }
     }

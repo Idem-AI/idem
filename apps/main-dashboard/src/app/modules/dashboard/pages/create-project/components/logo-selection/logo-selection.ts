@@ -17,6 +17,12 @@ import { CarouselComponent } from '../../../../../../shared/components/carousel/
 import { LogoPreferences } from '../logo-preferences/logo-preferences';
 import { LogoEditorChat } from '../logo-editor-chat/logo-editor-chat';
 import { LogoCreationSimulatorComponent } from '../logo-creation-simulator/logo-creation-simulator';
+import {
+  AtelierNote,
+  AtelierNoteTone,
+  AtelierPhase,
+  GenerationAtelierComponent,
+} from '../generation-atelier/generation-atelier';
 
 import { Subject, takeUntil } from 'rxjs';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
@@ -52,6 +58,25 @@ export interface ConceptSlot {
   revised?: boolean;
 }
 
+/**
+ * Poids d'avancement d'un concept selon son statut. Sert à dériver une
+ * progression réelle et granulaire du flux SSE (et non un simple 0/33/66/100
+ * qui laisserait la barre figée pendant des dizaines de secondes).
+ */
+const CONCEPT_WEIGHT: Record<ConceptSlotStatus, number> = {
+  pending: 0,
+  generating: 0.18,
+  generated: 0.5,
+  critiquing: 0.66,
+  revising: 0.82,
+  final: 1,
+  cancelled: 1,
+  error: 1,
+};
+
+/** Phases narratives du rail de progression. */
+const CONCEPT_PHASES = ['brief', 'exploration', 'vector', 'audit', 'finalize'] as const;
+
 @Component({
   selector: 'app-logo-selection',
   standalone: true,
@@ -63,6 +88,7 @@ export interface ConceptSlot {
     LogoPreferences,
     LogoEditorChat,
     LogoCreationSimulatorComponent,
+    GenerationAtelierComponent,
     TranslateModule,
   ],
   templateUrl: './logo-selection.html',
@@ -111,6 +137,36 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
 
   /** Tableau de bord live affiché pendant la génération streamée */
   protected readonly showLiveBoard = computed(() => this.liveMode() && this.isGenerating());
+
+  // --- Atelier de suivi (barre, rail de phases, journal) --------------------
+
+  /** Journal des vrais événements du flux, append-only. */
+  protected readonly atelierNotes = signal<AtelierNote[]>([]);
+  /** Incrémenté à chaque tentative pour réinitialiser le panneau de suivi. */
+  protected readonly atelierRun = signal(0);
+  private noteSeq = 0;
+
+  protected readonly atelierPhases = computed<AtelierPhase[]>(() =>
+    CONCEPT_PHASES.map((id) => ({
+      id,
+      label: this.translate.instant(`dashboard.logoSelection.live.phases.${id}`),
+    })),
+  );
+
+  protected readonly atelierAmbient = computed<string[]>(() => {
+    const pool = this.translate.instant('dashboard.logoSelection.live.ambient');
+    return Array.isArray(pool) ? pool : [];
+  });
+
+  /** Progression réelle, dérivée du statut de chacun des concepts. */
+  protected readonly atelierMilestone = computed(() => {
+    const slots = this.conceptSlots();
+    if (slots.length === 0) {
+      return 0;
+    }
+    const total = slots.reduce((sum, slot) => sum + CONCEPT_WEIGHT[slot.status], 0);
+    return Math.round((total / slots.length) * 100);
+  });
 
   // Computed properties
   protected readonly shouldShowLoader = computed(() => {
@@ -324,6 +380,9 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
     this.conceptSlots.set(
       [0, 1, 2].map((index) => ({ index, status: 'pending' as const, logo: null, critique: null })),
     );
+    this.atelierNotes.set([]);
+    this.atelierRun.update((run) => run + 1);
+    this.pushNote('brief', {}, 'info');
 
     this.brandingService
       .generateLogoConceptsStream(this.projectId()!, force, this.logoPreferences())
@@ -359,29 +418,46 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
     const index = payload.conceptIndex ?? -1;
     if (index < 0) return;
 
+    const concept = index + 1;
+
     switch (event.stepName) {
       case 'concept_started':
         this.updateSlot(index, { status: 'generating' });
+        this.pushNote('started', { concept }, 'info');
         break;
       case 'concept_generated':
         this.updateSlot(index, { status: 'generated', logo: this.normalizeLogo(payload.logo!, index) });
+        this.pushNote('generated', { concept }, 'info');
         break;
       case 'critique_started':
         this.updateSlot(index, { status: 'critiquing' });
+        this.pushNote('audit', { concept }, 'info');
         break;
-      case 'critique_result':
-        this.updateSlot(index, { critique: payload.critique ?? null });
+      case 'critique_result': {
+        const critique = payload.critique ?? null;
+        this.updateSlot(index, { critique });
+        if (critique) {
+          this.pushNote(
+            critique.verdict === 'pass' ? 'auditPass' : 'auditFail',
+            { concept, score: critique.score },
+            critique.verdict === 'pass' ? 'success' : 'warn',
+          );
+        }
         break;
+      }
       case 'revision_started':
         this.updateSlot(index, { status: 'revising' });
+        this.pushNote('revising', { concept }, 'warn');
         break;
       case 'concept_updated':
         this.updateSlot(index, { logo: this.normalizeLogo(payload.logo!, index), revised: true });
+        this.pushNote('revised', { concept }, 'success');
         break;
       case 'concept_finalized': {
         const logo = this.normalizeLogo(payload.logo!, index);
         this.updateSlot(index, { status: 'final', logo });
         this.mergeFinalLogo(logo);
+        this.pushNote('final', { concept }, 'success');
         this.generationProgress.set(
           Math.round((this.conceptSlots().filter((s) => s.status === 'final').length / 3) * 100),
         );
@@ -389,11 +465,20 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
       }
       case 'concept_cancelled':
         this.updateSlot(index, { status: 'cancelled' });
+        this.pushNote('cancelled', { concept }, 'info');
         break;
       case 'concept_error':
         this.updateSlot(index, { status: 'error' });
+        this.pushNote('error', { concept }, 'danger');
         break;
     }
+  }
+
+  /** Ajoute une ligne au journal de l'atelier (clé sous `live.log.*`). */
+  private pushNote(key: string, params: Record<string, unknown>, tone: AtelierNoteTone): void {
+    this.noteSeq += 1;
+    const text = this.translate.instant(`dashboard.logoSelection.live.log.${key}`, params);
+    this.atelierNotes.update((notes) => [...notes, { id: `note-${this.noteSeq}`, text, tone }]);
   }
 
   private updateSlot(index: number, patch: Partial<ConceptSlot>): void {

@@ -1,0 +1,95 @@
+<section class="atelier" [attr.aria-busy]="running()">
+  <header class="atelier__head">
+    <div class="atelier__titles">
+      <!-- h1 : ce panneau est le titre de l'étape tant que la génération dure,
+           au même niveau que les autres états de l'écran. -->
+      <h1 class="atelier__title">{{ heading() }}</h1>
+      @if (subheading()) {
+        <p class="atelier__subtitle">{{ subheading() }}</p>
+      }
+    </div>
+
+    <div class="atelier__meter">
+      <p class="atelier__pct">
+        {{ percent() }}<span class="atelier__pct-unit">%</span>
+      </p>
+      <p class="atelier__clock">
+        <svg class="atelier__clock-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" />
+          <path d="M12 7.5V12l3 1.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+        </svg>
+        <span>{{ elapsedLabel() }}</span>
+      </p>
+    </div>
+  </header>
+
+  <div
+    class="atelier__rail"
+    role="progressbar"
+    aria-valuemin="0"
+    aria-valuemax="100"
+    [attr.aria-valuenow]="percent()"
+    [attr.aria-label]="heading()"
+  >
+    <div class="atelier__rail-fill" [style.width.%]="progress()">
+      <span class="atelier__rail-sheen" aria-hidden="true"></span>
+      <span class="atelier__rail-head" aria-hidden="true"></span>
+    </div>
+  </div>
+
+  <p class="atelier__eta">
+    @if (running()) {
+      @if (remainingLabel(); as remaining) {
+        {{ 'dashboard.generationAtelier.remaining' | translate: { time: remaining } }}
+      } @else {
+        {{ 'dashboard.generationAtelier.almostThere' | translate }}
+      }
+    } @else if (failed()) {
+      {{ 'dashboard.generationAtelier.stopped' | translate }}
+    } @else {
+      {{ 'dashboard.generationAtelier.done' | translate }}
+    }
+  </p>
+
+  <p class="atelier__phase-compact">
+    <span class="atelier__phase-dot" data-state="active" aria-hidden="true"></span>
+    <span>{{ activeLabel() }}</span>
+    <span class="atelier__phase-count">{{ stepLabel() }}</span>
+  </p>
+
+  <ol class="atelier__phases">
+    @for (phase of phaseView(); track phase.id) {
+      <!-- L'état n'est porté visuellement que par la couleur de la pastille :
+           `aria-current` le rend disponible aux lecteurs d'écran. -->
+      <li
+        class="atelier__phase"
+        [attr.data-state]="phase.state"
+        [attr.aria-current]="phase.state === 'active' ? 'step' : null"
+      >
+        <span class="atelier__phase-dot" [attr.data-state]="phase.state" aria-hidden="true"></span>
+        <span class="atelier__phase-label">{{ phase.label }}</span>
+      </li>
+    }
+  </ol>
+
+  <div class="atelier__log" role="log" aria-live="polite" aria-relevant="additions">
+    @for (line of lines(); track line.key) {
+      <p
+        class="atelier__line"
+        [attr.data-tone]="line.tone"
+        [attr.aria-hidden]="line.ambient ? 'true' : null"
+      >
+        <span class="atelier__stamp">{{ line.stamp }}</span>
+        <span class="atelier__bullet" aria-hidden="true"></span>
+        <span class="atelier__text">{{ line.text }}</span>
+      </p>
+    }
+  </div>
+
+  @if (running()) {
+    <p class="atelier__hold">
+      <span class="atelier__hold-pulse" aria-hidden="true"></span>
+      {{ 'dashboard.generationAtelier.hold' | translate }}
+    </p>
+  }
+</section>

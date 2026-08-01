@@ -1,0 +1,444 @@
+:host {
+  display: block;
+  width: 100%;
+
+  /* Marques d'état (barre, pastilles, halo). `--color-primary` ne tient que
+     2,97:1 sur une surface sombre et `--color-accent` que 1,78:1 sur une
+     surface claire : chaque thème prend donc la déclinaison qui passe le
+     seuil 3:1 de la WCAG pour les éléments d'interface. */
+  --atelier-mark: var(--color-primary);
+  --atelier-mark-2: var(--color-primary-400);
+}
+
+:host-context(.dark) {
+  --atelier-mark: var(--color-primary-400);
+  --atelier-mark-2: var(--color-accent);
+}
+
+.atelier {
+  background: var(--color-surface-1);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-glass);
+  box-shadow: var(--glass-shadow-sm);
+  padding: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .atelier {
+    padding: 1.5rem 1.75rem;
+  }
+}
+
+/* ---------------------------------------------------------------- en-tête */
+
+.atelier__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 640px) {
+  .atelier__head {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+}
+
+.atelier__title {
+  color: var(--color-text-primary);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+
+@media (min-width: 640px) {
+  .atelier__title {
+    font-size: 1.5rem;
+  }
+}
+
+.atelier__subtitle {
+  margin-top: 0.35rem;
+  max-width: 62ch;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.atelier__meter {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  .atelier__meter {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.15rem;
+  }
+}
+
+.atelier__pct {
+  color: var(--color-text-primary);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.atelier__pct-unit {
+  margin-left: 0.1em;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.atelier__clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.atelier__clock-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+/* ------------------------------------------------------------ barre live */
+
+/* Pas d'`overflow: hidden` ici : la tête de lecture déborde volontairement du
+   remplissage. Le balayage est découpé par son propre calque. */
+.atelier__rail {
+  position: relative;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-3);
+  box-shadow: inset 0 0 0 1px var(--glass-border-subtle);
+}
+
+.atelier__rail-fill {
+  position: relative;
+  height: 100%;
+  min-width: 6px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--atelier-mark), var(--atelier-mark-2));
+  /* Linéaire : la largeur est repoussée toutes les 200 ms, un easing
+     produirait un à-coup à chaque mise à jour. */
+  transition: width 400ms linear;
+}
+
+/* Balayage continu : la barre reste vivante même quand la largeur stagne. */
+.atelier__rail-sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.atelier__rail-sheen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: translateX(-100%);
+  animation: atelier-sheen 2.2s ease-in-out infinite;
+}
+
+.atelier__rail-head {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  transform: translate(45%, -50%);
+  border-radius: var(--radius-full);
+  background: var(--atelier-mark-2);
+  box-shadow: 0 0 12px 2px var(--color-primary-glow, rgba(20, 71, 230, 0.45));
+  animation: atelier-head 1.6s ease-in-out infinite;
+}
+
+.atelier__eta {
+  margin-top: 0.5rem;
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+}
+
+/* --------------------------------------------------------- rail de phases */
+
+.atelier__phase-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.1rem;
+  color: var(--color-text-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.atelier__phase-count {
+  margin-left: auto;
+  color: var(--color-text-secondary);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.atelier__phases {
+  display: none;
+  margin-top: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .atelier__phase-compact {
+    display: none;
+  }
+
+  .atelier__phases {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
+/* `0 1 auto` (et non `1 1 0`) : les libellés gardent leur largeur naturelle,
+   ce sont les traits de liaison qui absorbent l'espace disponible. */
+.atelier__phase {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.atelier__phase:not(:last-child) {
+  flex: 1 1 auto;
+}
+
+/* Trait de liaison entre deux phases. */
+.atelier__phase:not(:last-child)::after {
+  content: '';
+  flex: 1 1 auto;
+  height: 1px;
+  min-width: 0.5rem;
+  background: var(--glass-border-medium);
+}
+
+.atelier__phase[data-state='done']:not(:last-child)::after {
+  background: var(--atelier-mark-2);
+  opacity: 0.6;
+}
+
+.atelier__phase-dot {
+  position: relative;
+  flex-shrink: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-3);
+  box-shadow: inset 0 0 0 1px var(--glass-border-strong);
+}
+
+.atelier__phase-dot[data-state='done'] {
+  background: var(--atelier-mark-2);
+  box-shadow: none;
+}
+
+.atelier__phase-dot[data-state='active'] {
+  background: var(--atelier-mark);
+  box-shadow: none;
+}
+
+/* Halo qui bat sur la phase en cours : le seul repère « ça travaille ». */
+.atelier__phase-dot[data-state='active']::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--atelier-mark);
+  animation: atelier-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Le statut est porté par la pastille, pas par un gris plus clair : baisser
+   encore le contraste du libellé le ferait passer sous le seuil AA. */
+.atelier__phase-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.atelier__phase[data-state='active'] .atelier__phase-label {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------- journal */
+
+.atelier__log {
+  margin-top: 1.1rem;
+  padding: 0.75rem 0.9rem;
+  min-height: 7.5rem;
+  border-radius: var(--radius-lg);
+  background: var(--glass-bg-subtle);
+  border: 1px solid var(--glass-border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  overflow: hidden;
+}
+
+.atelier__line {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  animation: atelier-line-in 320ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+
+.atelier__stamp {
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.atelier__bullet {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: var(--color-text-secondary);
+  transform: translateY(-1px);
+}
+
+.atelier__line[data-tone='success'] .atelier__bullet {
+  background: var(--color-success);
+}
+
+.atelier__line[data-tone='warn'] .atelier__bullet {
+  background: var(--color-warning);
+}
+
+.atelier__line[data-tone='danger'] .atelier__bullet {
+  background: var(--color-danger);
+}
+
+.atelier__text {
+  color: var(--color-text-secondary);
+  min-width: 0;
+}
+
+/* La hiérarchie de la pile passe par la graisse et la teinte, jamais par
+   l'opacité : un texte à 40 % d'opacité tomberait sous le seuil AA. */
+.atelier__line:first-child .atelier__text,
+.atelier__line[data-tone='success'] .atelier__text,
+.atelier__line[data-tone='warn'] .atelier__text,
+.atelier__line[data-tone='danger'] .atelier__text {
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+/* ---------------------------------------------------------- avertissement */
+
+.atelier__hold {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+}
+
+.atelier__hold-pulse {
+  position: relative;
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-success);
+}
+
+.atelier__hold-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-success);
+  animation: atelier-ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* ---------------------------------------------------------------- motion */
+
+@keyframes atelier-sheen {
+  0% {
+    transform: translateX(-100%);
+  }
+  65%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes atelier-head {
+  0%,
+  100% {
+    opacity: 1;
+    transform: translate(45%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: translate(45%, -50%) scale(0.72);
+  }
+}
+
+@keyframes atelier-ping {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.7);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+@keyframes atelier-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atelier__rail-sheen::after,
+  .atelier__rail-head,
+  .atelier__phase-dot[data-state='active']::after,
+  .atelier__hold-pulse::after {
+    animation: none;
+  }
+
+  .atelier__rail-head {
+    opacity: 1;
+    transform: translate(45%, -50%) scale(1);
+  }
+
+  .atelier__line {
+    animation: atelier-fade-in 160ms linear both;
+  }
+}
+
+@keyframes atelier-fade-in {
+  from {
+    opacity: 0;
+  }
+}
