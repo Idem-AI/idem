@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
@@ -24,6 +24,7 @@ import { environment } from '../../../../../../environments/environment';
   imports: [CommonModule, RouterModule, TranslateModule, Loader, IncompleteProjectBannerComponent],
   templateUrl: './show-development.html',
   styleUrls: ['./show-development.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ShowDevelopment implements OnInit {
   // Services

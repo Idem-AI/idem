@@ -107,7 +107,8 @@
       "error": "Échec de l'optimisation du prompt :",
       "designPlaceholder": "Saisissez votre prompt ici, nous vous aiderons à générer un design..."
     },
-    "regenerate_incomplete": "Veuillez vérifier quels fichiers ont été générés la dernière fois, reconstruire et poursuivre les fichiers de code incomplets de la dernière fois, sans qu'il soit nécessaire de régénérer les fichiers de code déjà terminés"
+    "regenerate_incomplete": "Veuillez vérifier quels fichiers ont été générés la dernière fois, reconstruire et poursuivre les fichiers de code incomplets de la dernière fois, sans qu'il soit nécessaire de régénérer les fichiers de code déjà terminés",
+    "quality_pass": "Revue de design : application de {{count}} corrections à l'interface générée."
   },
   "settings": {
     "title": "Paramètres",

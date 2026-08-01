@@ -10,6 +10,7 @@ import { AuthService } from '../../../../auth/services/auth.service';
 import { ProjectModel } from '@idem/shared-models';
 import { ProjectService } from '../../../services/project.service';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
+import { TranslateModule } from '@ngx-translate/core';
 
 import {
   DevelopmentConfigsModel,
@@ -32,6 +33,7 @@ import { DeploymentConfigComponent } from './components/deployment-config/deploy
     Loader,
     CommonModule,
     ReactiveFormsModule,
+    TranslateModule,
     FrontendConfigComponent,
     BackendConfigComponent,
     DatabaseConfigComponent,

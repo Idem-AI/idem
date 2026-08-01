@@ -150,4 +150,9 @@ export interface ChatRequest {
   projectData?: ProjectModel;
   /** User UI language ('en' | 'fr') so the AI generates content in the right language. */
   language?: string;
+  /**
+   * Design-linter repair instructions, sent alongside a short human-readable
+   * message so the transcript stays clean while the model gets the full list.
+   */
+  qualityRepair?: string;
 }

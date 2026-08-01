@@ -49,6 +49,111 @@
     "reset": "Reset"
   },
   "dashboard": {
+    "createDevelopment": {
+      "errorsDetected": "Errors detected",
+      "title": "Web Creation",
+      "subtitle": "Configure and generate your web project",
+      "back": "Back",
+      "step1": {
+        "title": "What do you want to create?",
+        "subtitle": "Choose the main format of your web project."
+      },
+      "landing": {
+        "title": "Landing Page",
+        "status": "Ready",
+        "description": "Create an elegant and highly performant website to present your business, services, or product.",
+        "feature1": "Custom Design",
+        "feature2": "SEO Optimized"
+      },
+      "app": {
+        "title": "Web Application",
+        "status": "Soon",
+        "description": "Full application with database, user authentication, and complex business logic.",
+        "feature1": "Database",
+        "feature2": "Authentication",
+        "badgeTitle": "Coming Soon"
+      },
+      "step2": {
+        "title": "What do you want to generate?",
+        "subtitle": "Select the technical architecture for your project.",
+        "landingDesc": "A standalone landing page to optimize your visibility and present your services.",
+        "appDesc": "A full-featured functional application without a marketing site, dedicated to your users.",
+        "integratedTitle": "Integrated Site + App",
+        "integratedDesc": "The landing page and application within the same codebase for a unified experience.",
+        "separatedTitle": "Separated Site + App",
+        "separatedDesc": "Two distinct projects for maximum flexibility and independent deployment."
+      },
+      "step3": {
+        "title": "Configuration Summary",
+        "subtitle": "Verify your settings before generating.",
+        "generationType": "Generation Type",
+        "techStack": "Tech Stack",
+        "generateProject": "Generate Project",
+        "advancedTitle": "Advanced Configuration",
+        "advancedSubtitle": "Fine-tune your technical environment.",
+        "saveAndContinue": "Save and Continue"
+      }
+    },
+    "showDevelopment": {
+      "liveApp": "Live Application",
+      "deployed": "Deployed",
+      "lastUpdated": "Last updated:",
+      "linkCopied": "Link copied",
+      "copyLink": "Copy link",
+      "open": "Open",
+      "landingReady": "Your Landing Page<br/>is ready.",
+      "landingReadyToGenerate": "Your Landing Page<br/>is ready to be generated.",
+      "landingExistingDesc": "Resume the iCode conversation where you left off to evolve your page.",
+      "landingNewDesc": "Your configuration is finalized. Launch generation to create your professional and modern landing page in minutes.",
+      "resumeInIcode": "Resume in iCode",
+      "generateLanding": "Generate landing page",
+      "features": {
+        "design": "Modern Design",
+        "designDesc": "Elegant, responsive interface adapted to your visual identity.",
+        "seo": "SEO Optimized",
+        "seoDesc": "Semantic structure and optimized performance for search engines.",
+        "customizable": "Customizable",
+        "customizableDesc": "Clear modular code, easily modifiable according to future needs."
+      },
+      "appExistingTitle": "Environment generated.",
+      "appNewTitle": "Technical configuration finalized.",
+      "appExistingDesc": "Resume the iCode conversation: your code and history are automatically restored.",
+      "appNewDesc": "Your tech stack is configured. Launch generation to create your full application.",
+      "generateApp": "Generate application",
+      "preview": "Preview",
+      "exportConfig": "Export Config",
+      "stackOverview": "Stack Overview",
+      "frontend": "Frontend",
+      "backend": "Backend",
+      "database": "Database",
+      "configDetails": "Configuration Details",
+      "clientLayer": "Client Layer",
+      "clientLayerDesc": "Definition of UI, UX, and state management.",
+      "version": "Version",
+      "styling": "Styling",
+      "stateManagement": "State Management",
+      "enabledFeatures": "Enabled Features",
+      "serverLayer": "Server Layer",
+      "serverLayerDesc": "Business logic, API architecture, and complex data management.",
+      "language": "Language",
+      "framework": "Framework",
+      "apiType": "API Type",
+      "orm": "ORM",
+      "apiFeatures": "API Features",
+      "persistence": "Persistence",
+      "persistenceDesc": "Database infrastructure and persistent state management.",
+      "configurations": "Configurations",
+      "globals": "Globals",
+      "globalsDesc": "Cross-cutting project settings and specific constraints.",
+      "seo": "SEO",
+      "i18n": "i18n",
+      "auth": "Auth",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "secured": "Secured",
+      "public": "Public",
+      "imposedConstraints": "Imposed Constraints"
+    },
     "addMemberModal": {
       "title": "Add Team Member",
       "fields": {
@@ -220,7 +325,7 @@
       "legalDocs": "Legal Documents",
       "advisor": "Business Advisor",
       "diagrams": "Diagrams",
-      "development": "Development",
+      "development": "Site & App",
       "deploymentOverview": "Deployment Overview",
       "deployment": "Deployment",
       "viewAllProjects": "View All Projects",
@@ -1326,145 +1431,6 @@
         "viewLogs": "View Logs",
         "redeploy": "Redeploy"
       }
-    },
-    "createDevelopment": {
-      "title": "Development Configuration",
-      "subtitle": "Configure your application development settings",
-      "errors": {
-        "submissionTitle": "There were errors with your submission"
-      },
-      "modeSelection": {
-        "title": "Choose Your Development Mode",
-        "subtitle": "Select how you want to configure your application",
-        "quick": {
-          "title": "Quick",
-          "subtitle": "Pre-configured setup with React, Express.js, and Supabase",
-          "features": {
-            "react": "React",
-            "express": "Express.js"
-          }
-        },
-        "advanced": {
-          "title": "Advanced",
-          "subtitle": "Full control over all technology choices and settings",
-          "features": {
-            "custom": "Custom",
-            "fullControl": "Full Control"
-          }
-        }
-      },
-      "generationType": {
-        "title": "What do you want to generate?",
-        "subtitle": "Choose the type of application you want to create",
-        "landing": {
-          "title": "Landing",
-          "subtitle": "A beautiful standalone marketing website to showcase your product or service",
-          "badge": "Marketing"
-        },
-        "app": {
-          "title": "Web App",
-          "subtitle": "A full-featured web application with user authentication and database",
-          "badge": "App"
-        },
-        "integrated": {
-          "title": "Integrated",
-          "subtitle": "Landing page integrated within the web application for seamless user experience",
-          "badge": "Unified"
-        },
-        "both": {
-          "title": "Complete",
-          "subtitle": "Separate landing page + web application for maximum flexibility and scalability",
-          "badge": "Full Stack"
-        }
-      },
-      "configuration": {
-        "title": "Configuration Summary",
-        "subtitle": "Review your quick generation settings",
-        "generationType": "Generation Type",
-        "techStack": "Technology Stack",
-        "features": {
-          "react": "React Frontend",
-          "express": "Express.js Backend",
-          "supabase": "Supabase Database"
-        },
-        "buttons": {
-          "generate": "Generate Application",
-          "save": "Save configs"
-        }
-      },
-      "advanced": {
-        "title": "Advanced Configuration",
-        "subtitle": "Configure all aspects of your application",
-        "tabs": {
-          "frontend": "Frontend",
-          "backend": "Backend",
-          "database": "Database",
-          "deployment": "Deployment"
-        }
-      }
-    },
-    "showDevelopment": {
-      "title": "Configuration Ready",
-      "subtitle": "Your tech stack is configured. Launch the generation to create your full application.",
-      "landingPage": {
-        "title": "Your Landing Page is Ready to Generate",
-        "subtitle": "Your configuration is complete. Start the generation to create your professional and modern landing page in minutes.",
-        "cta": "Generate My Landing Page",
-        "features": {
-          "modern": {
-            "title": "Modern Design",
-            "description": "Elegant and responsive interface"
-          },
-          "seo": {
-            "title": "SEO Optimized",
-            "description": "Natural search engine optimization"
-          },
-          "customizable": {
-            "title": "Customizable",
-            "description": "Easily modifiable to your needs"
-          }
-        }
-      },
-      "buttons": {
-        "generate": "Generate Application",
-        "preview": "Preview",
-        "export": "Export Config",
-        "edit": "Edit Config"
-      },
-      "sections": {
-        "frontend": "Frontend",
-        "backend": "Backend",
-        "database": "Database",
-        "projectConfig": "Project Configuration",
-        "constraints": "Constraints"
-      },
-      "techStack": {
-        "styling": "Styling",
-        "stateManagement": "State Management",
-        "features": "Features",
-        "orm": "ORM",
-        "noFeatures": "No features configured"
-      },
-      "projectFeatures": {
-        "seo": "SEO",
-        "contactForm": "Contact Form",
-        "analytics": "Analytics",
-        "i18n": "i18n",
-        "performance": "Performance",
-        "authentication": "Authentication",
-        "authorization": "Authorization",
-        "uiTheme": "UI Theme",
-        "payment": "Payment",
-        "enabled": "Enabled",
-        "disabled": "Disabled",
-        "optimized": "Optimized",
-        "standard": "Standard",
-        "integrated": "Integrated",
-        "notIntegrated": "Not Integrated",
-        "modern": "Modern"
-      },
-      "customOptions": "Custom Options",
-      "technicalDetails": "Technical Details"
     },
     "globalDashboard": {
       "title": "Dashboard",
