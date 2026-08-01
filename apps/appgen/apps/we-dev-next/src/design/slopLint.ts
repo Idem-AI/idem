@@ -84,6 +84,27 @@ export const RULES: Rule[] = [
     },
   },
   {
+    id: 'package-scripts-missing',
+    severity: 'error',
+    message:
+      'package.json has no "dev" script — the preview never starts and the user sees `npm error Missing script: "dev"`.',
+    fix: 'Add "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview" } to package.json.',
+    extensions: ['json'],
+    testFile: (content, context) => {
+      if (!/(^|\/)package\.json$/.test(context.path)) return null;
+
+      try {
+        const manifest = JSON.parse(content);
+        return typeof manifest?.scripts?.dev === 'string' && manifest.scripts.dev.trim()
+          ? null
+          : [1];
+      } catch {
+        // Unparseable manifest breaks the install outright; worth flagging too.
+        return [1];
+      }
+    },
+  },
+  {
     id: 'purple-gradient',
     severity: 'error',
     message: 'Purple or violet gradient: the single most recognisable generated-site marker.',
@@ -411,11 +432,24 @@ export function lintGeneratedFiles(
 const MAX_REPAIR_FILES = 4;
 const MAX_REPAIR_FILE_CHARS = 12000;
 
+/**
+ * Never hand the manifest or a lockfile to the repair pass.
+ *
+ * The client patches package.json deterministically before running `npm install`
+ * (see the client's ensureRunnable), and letting the model rewrite it while the
+ * install is in flight is a good way to break a project that was about to work.
+ */
+const NEVER_REPAIR = /(^|\/)(package(-lock)?\.json|pnpm-lock\.yaml|yarn\.lock)$/;
+
 /** Worst files first: errors weigh more than warnings. */
 function selectRepairTargets(violations: Violation[]): string[] {
   const weightByFile = new Map<string, number>();
 
   for (const violation of violations) {
+    if (NEVER_REPAIR.test(violation.file)) {
+      continue;
+    }
+
     const weight = violation.severity === 'error' ? 3 : 1;
     weightByFile.set(violation.file, (weightByFile.get(violation.file) ?? 0) + weight);
   }
