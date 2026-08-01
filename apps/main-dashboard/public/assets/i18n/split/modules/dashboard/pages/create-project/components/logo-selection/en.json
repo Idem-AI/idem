@@ -43,13 +43,6 @@
           "title": "Design director's review",
           "revised": "Fixed by the agent"
         },
-        "phases": {
-          "brief": "Reading the brief",
-          "exploration": "Exploring directions",
-          "vector": "Vector drawing",
-          "audit": "Quality review",
-          "finalize": "Finishing"
-        },
         "ambient": [
           "Reading the project palette and typography",
           "Listing the symbols common to the sector",

@@ -109,13 +109,6 @@
           "title": "Quality agent's review",
           "revised": "Fixed by the agent"
         },
-        "phases": {
-          "read": "Reading the logo",
-          "recolor": "Adapting colors",
-          "contrast": "Measuring contrast",
-          "audit": "Quality review",
-          "finalize": "Finishing"
-        },
         "ambient": [
           "Extracting the colors of the selected logo",
           "Locating the areas to recolor",

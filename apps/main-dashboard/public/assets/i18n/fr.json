@@ -611,13 +611,6 @@
           "title": "Avis du directeur artistique",
           "revised": "Corrigé par l’agent"
         },
-        "phases": {
-          "brief": "Lecture du brief",
-          "exploration": "Recherche de pistes",
-          "vector": "Tracé vectoriel",
-          "audit": "Contrôle qualité",
-          "finalize": "Finalisation"
-        },
         "ambient": [
           "Lecture de la palette et de la typographie du projet",
           "Recensement des symboles courants du secteur",
@@ -752,13 +745,6 @@
         "critique": {
           "title": "Avis de l'agent qualité",
           "revised": "Corrigée par l'agent"
-        },
-        "phases": {
-          "read": "Lecture du logo",
-          "recolor": "Adaptation des couleurs",
-          "contrast": "Mesure du contraste",
-          "audit": "Contrôle qualité",
-          "finalize": "Finalisation"
         },
         "ambient": [
           "Extraction des couleurs du logo retenu",
