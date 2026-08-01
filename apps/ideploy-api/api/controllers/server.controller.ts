@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
-import { ok, fail } from '../utils/response';
+import { ok, fail, respondWithError } from '../utils/response';
 import logger from '../config/logger';
 import * as serverService from '../services/server.service';
 
@@ -40,17 +40,18 @@ export async function createLocalServer(req: CustomRequest, res: Response): Prom
   }
 }
 
+/** Body validated by `createServerSchema` on the route. */
 export async function createServer(req: CustomRequest, res: Response): Promise<void> {
-  const { name, ip, private_key_id } = req.body ?? {};
-  if (!name || !ip || !private_key_id) {
-    return fail(res, 'name, ip and private_key_id are required', 422, 'VALIDATION');
-  }
   try {
-    const server = await serverService.createServer(req.user!.currentTeamId!, req.body);
-    ok(res, server, 201);
+    const { server, destinationId } = await serverService.createServer(
+      req.user!.currentTeamId!,
+      req.body
+    );
+    // Flat shape: the destination is an implementation detail of "a usable
+    // server", but callers need its id to target deployments.
+    ok(res, { ...server, destination_id: destinationId }, 201);
   } catch (err) {
-    logger.error('createServer error', { message: (err as Error).message });
-    fail(res, 'Failed to create server');
+    respondWithError(res, err, 'Creating the server');
   }
 }
 
@@ -65,22 +66,20 @@ export async function deleteServer(req: CustomRequest, res: Response): Promise<v
   }
 }
 
+/** Full readiness report — every check carries a remedy when it fails. */
 export async function validateServer(req: CustomRequest, res: Response): Promise<void> {
   try {
-    const result = await serverService.validateServer(req.user!.currentTeamId!, String(req.params.uuid));
-    ok(res, result);
+    ok(res, await serverService.validateServer(req.user!.currentTeamId!, String(req.params.uuid)));
   } catch (err) {
-    logger.error('validateServer error', { message: (err as Error).message });
-    fail(res, (err as Error).message || 'Failed to validate server');
+    respondWithError(res, err, 'Validating the server');
   }
 }
 
-export async function installDocker(req: CustomRequest, res: Response): Promise<void> {
+/** Install and configure Docker, then re-check readiness. */
+export async function setUpServer(req: CustomRequest, res: Response): Promise<void> {
   try {
-    const result = await serverService.installDocker(req.user!.currentTeamId!, String(req.params.uuid));
-    ok(res, result);
+    ok(res, await serverService.setUpServer(req.user!.currentTeamId!, String(req.params.uuid)));
   } catch (err) {
-    logger.error('installDocker error', { message: (err as Error).message });
-    fail(res, (err as Error).message || 'Failed to install Docker');
+    respondWithError(res, err, 'Setting up the server');
   }
 }

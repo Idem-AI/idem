@@ -5,6 +5,7 @@
  */
 import axios from 'axios';
 import pool from '../config/db.config';
+import logger from '../config/logger';
 import { encryptString, tryDecryptString } from '../utils/laravel-crypto';
 
 interface ChannelField {
@@ -119,12 +120,12 @@ export async function updateSettings(
   return getSettings(channel, teamId);
 }
 
-/** Send a test notification through a channel. */
-export async function testSend(channel: string, teamId: number, message = 'iDeploy test notification'): Promise<{ sent: boolean }> {
-  const def = getChannel(channel);
-  if (!def) throw new Error(`Unknown channel: ${channel}`);
-  const creds = await getDecrypted(def, teamId);
-
+/** Deliver a message through one configured channel. Throws when unconfigured. */
+async function sendVia(
+  channel: string,
+  creds: Record<string, string>,
+  message: string
+): Promise<void> {
   if (channel === 'slack' || channel === 'discord') {
     const url = channel === 'slack' ? creds.slack_webhook_url : creds.discord_webhook_url;
     if (!url) throw new Error('Webhook URL not configured');
@@ -137,14 +138,68 @@ export async function testSend(channel: string, teamId: number, message = 'iDepl
       timeout: 10000,
     });
   } else if (channel === 'pushover') {
-    if (!creds.pushover_user_key || !creds.pushover_api_token) throw new Error('Pushover not configured');
+    if (!creds.pushover_user_key || !creds.pushover_api_token) {
+      throw new Error('Pushover not configured');
+    }
     await axios.post(
       'https://api.pushover.net/1/messages.json',
       { token: creds.pushover_api_token, user: creds.pushover_user_key, message },
       { timeout: 10000 }
     );
   } else {
-    throw new Error(`Test send not implemented for ${channel}`);
+    throw new Error(`Sending is not implemented for ${channel}`);
   }
+}
+
+/** Send a test notification through a channel. */
+export async function testSend(
+  channel: string,
+  teamId: number,
+  message = 'iDeploy test notification'
+): Promise<{ sent: boolean }> {
+  const def = getChannel(channel);
+  if (!def) throw new Error(`Unknown channel: ${channel}`);
+
+  await sendVia(channel, await getDecrypted(def, teamId), message);
   return { sent: true };
+}
+
+export interface NotifyOutcome {
+  delivered: string[];
+  failed: string[];
+}
+
+/**
+ * Notify a team through every channel it has enabled.
+ *
+ * This is what turns the notification settings from a form into a feature: until
+ * now only the "send test" button reached a channel, so nothing informed anyone
+ * when a server went down or a backup failed.
+ *
+ * One channel failing must not stop the others — a broken Slack webhook should
+ * not suppress the Telegram alert — so failures are collected and reported, not
+ * thrown.
+ */
+export async function notifyTeam(teamId: number, message: string): Promise<NotifyOutcome> {
+  const outcome: NotifyOutcome = { delivered: [], failed: [] };
+
+  const attempts = Object.entries(CHANNELS).map(async ([channel, def]) => {
+    const row = await getRow(def, teamId);
+    if (!row || !row[def.enabledCol]) return;
+
+    try {
+      await sendVia(channel, await getDecrypted(def, teamId), message);
+      outcome.delivered.push(channel);
+    } catch (err) {
+      outcome.failed.push(channel);
+      logger.warn('Notification delivery failed', {
+        teamId,
+        channel,
+        message: (err as Error).message,
+      });
+    }
+  });
+
+  await Promise.all(attempts);
+  return outcome;
 }

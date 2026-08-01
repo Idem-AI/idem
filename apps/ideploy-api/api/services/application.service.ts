@@ -5,6 +5,7 @@
  */
 import { randomUUID } from 'crypto';
 import pool from '../config/db.config';
+import { assertDomainsAvailable } from './domain.service';
 import { ApplicationRow } from '../models/ideploy.types';
 import * as serverService from './server.service';
 import { executeRemoteCommand } from '../ssh/ssh';
@@ -25,6 +26,7 @@ function mapApp(r: Record<string, unknown>): ApplicationRow {
     environment_id: Number(r.environment_id),
     destination_id: r.destination_id ? Number(r.destination_id) : null,
     destination_type: (r.destination_type as string) ?? null,
+    project_id: r.project_id ? Number(r.project_id) : null,
     status: (r.status as string) ?? null,
     base_directory: (r.base_directory as string) ?? null,
     build_command: (r.build_command as string) ?? null,
@@ -38,6 +40,14 @@ function mapApp(r: Record<string, unknown>): ApplicationRow {
  * Public URL to open the app: the FQDN if set, else the first published host
  * port (local dev) as http://localhost:<port>. Null if not exposed yet.
  */
+/** An `fqdn` column may hold several comma-separated domains. */
+function splitDomains(fqdn: string): string[] {
+  return fqdn
+    .split(',')
+    .map((d) => d.trim())
+    .filter(Boolean);
+}
+
 export function computeAppLink(app: ApplicationRow): string | null {
   if (app.fqdn) {
     const f = app.fqdn.split(',')[0].trim();
@@ -60,6 +70,18 @@ export async function getApplication(teamId: number, uuid: string): Promise<Appl
      WHERE p.team_id = $1 AND a.uuid = $2 LIMIT 1`,
     [teamId, uuid]
   );
+  return rows[0] ? mapApp(rows[0]) : null;
+}
+
+/**
+ * Look up an application by primary key, without a team filter.
+ *
+ * For callers that have already established authorisation by another route — the
+ * webhook handler, which authenticates by signature rather than by session.
+ * Everything user-facing must keep going through the team-scoped `getApplication`.
+ */
+export async function getApplicationById(id: number): Promise<ApplicationRow | null> {
+  const { rows } = await pool.query('SELECT * FROM applications WHERE id = $1 LIMIT 1', [id]);
   return rows[0] ? mapApp(rows[0]) : null;
 }
 
@@ -94,6 +116,8 @@ export interface CreateApplicationDto {
   start_command?: string;
   install_command?: string;
   publish_directory?: string;
+  /** The Project this belongs to, resolved server-side — never client-chosen. */
+  project_id?: number | null;
 }
 
 /** Ensure the target environment belongs to the team. */
@@ -112,14 +136,21 @@ export async function createApplication(
   dto: CreateApplicationDto
 ): Promise<ApplicationRow> {
   await assertEnvironmentInTeam(teamId, dto.environment_id);
+
+  // Refuse a domain another resource already serves: the proxy would resolve the
+  // clash arbitrarily and one application would start answering for the other.
+  if (dto.fqdn) {
+    await assertDomainsAvailable(splitDomains(dto.fqdn));
+  }
+
   const uuid = randomUUID();
   const { rows } = await pool.query(
     `INSERT INTO applications
        (uuid, name, description, git_repository, git_branch, git_commit_sha,
         build_pack, ports_exposes, fqdn, environment_id, destination_id, destination_type,
         base_directory, build_command, start_command, install_command, publish_directory,
-        status, created_at, updated_at)
-     VALUES ($1,$2,$3,$4,$5,'HEAD',$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'exited', now(), now())
+        project_id, status, created_at, updated_at)
+     VALUES ($1,$2,$3,$4,$5,'HEAD',$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,'exited', now(), now())
      RETURNING *`,
     [
       uuid,
@@ -138,6 +169,7 @@ export async function createApplication(
       dto.start_command ?? null,
       dto.install_command ?? null,
       dto.publish_directory ?? null,
+      dto.project_id ?? null,
     ]
   );
   return mapApp(rows[0]);
@@ -183,6 +215,10 @@ export async function updateApplication(
 ): Promise<ApplicationRow | null> {
   const existing = await getApplication(teamId, uuid);
   if (!existing) return null;
+
+  if (dto.fqdn !== undefined && dto.fqdn !== existing.fqdn) {
+    await assertDomainsAvailable(splitDomains(dto.fqdn), existing.id);
+  }
 
   const sets: string[] = [];
   const params: unknown[] = [];
