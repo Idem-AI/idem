@@ -35,6 +35,7 @@ router.post('/', async (req: Request, res: Response) => {
       tools,
       projectData,
       language,
+      qualityRepair,
     } = req.body as ChatRequest;
 
     // User UI language (from the client) so the AI generates content in the right
@@ -131,7 +132,8 @@ router.post('/', async (req: Request, res: Response) => {
         otherConfig,
         tools,
         projectData,
-        resolvedLanguage
+        resolvedLanguage,
+        qualityRepair
       );
     }
 

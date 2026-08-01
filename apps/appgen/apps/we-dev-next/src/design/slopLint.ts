@@ -263,12 +263,89 @@ export interface LintReport {
   errorCount: number;
   warningCount: number;
   filesScanned: number;
+  /** Issues covered by the repair prompt; the count worth showing a user. */
+  repairCount: number;
 }
 
-export function lintGeneratedFiles(files: Record<string, string>): LintReport {
+export interface LintOptions {
+  /**
+   * The project's logo, hosted URL or inline SVG. When given, the linter checks
+   * that the generated code actually references it — the deterministic way to
+   * catch a logo the model silently dropped.
+   */
+  expectedLogo?: string;
+}
+
+/** Enough of the asset to identify it without matching on whitespace. */
+function logoFingerprint(logo: string): string | null {
+  const trimmed = logo.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  if (!trimmed.startsWith('<')) {
+    // Hosted URL: the filename is stable and survives query-string edits.
+    const withoutQuery = trimmed.split('?')[0];
+    const filename = withoutQuery.split('/').filter(Boolean).pop();
+    return filename && filename.length > 3 ? filename : withoutQuery;
+  }
+
+  // Inline SVG: a path's `d` attribute is the most distinctive fragment.
+  const path = trimmed.match(/\sd="([^"]{24,})"/);
+  return path ? path[1].slice(0, 24) : null;
+}
+
+function checkLogoPresence(
+  files: Record<string, string>,
+  expectedLogo: string
+): Violation | null {
+  const fingerprint = logoFingerprint(expectedLogo);
+
+  if (!fingerprint) {
+    return null;
+  }
+
+  const referenced = Object.values(files).some(
+    (content) => typeof content === 'string' && content.includes(fingerprint)
+  );
+
+  if (referenced) {
+    return null;
+  }
+
+  const header =
+    Object.keys(files).find((path) => /header|navbar|nav\b/i.test(path)) ||
+    Object.keys(files).find((path) => /App\.(jsx|tsx)$/.test(path)) ||
+    Object.keys(files)[0];
+
+  return {
+    rule: 'logo-missing',
+    severity: 'error',
+    file: header ?? 'src/App.jsx',
+    line: 1,
+    excerpt: '',
+    message: 'The project logo was supplied but does not appear anywhere in the generated code.',
+    fix: expectedLogo.trim().startsWith('<')
+      ? 'Paste the brand logo SVG markup into the header (and the footer when there is one), converted to JSX. Never inside an <img>.'
+      : `Render the logo in the header (and footer when there is one): <img src="${expectedLogo.trim()}" alt="logo" className="h-10 w-auto" />`,
+  };
+}
+
+export function lintGeneratedFiles(
+  files: Record<string, string>,
+  options: LintOptions = {}
+): LintReport {
   const hasForgedTokens = detectForgedTokens(files);
   const violations: Violation[] = [];
   let filesScanned = 0;
+
+  if (options.expectedLogo) {
+    const missing = checkLogoPresence(files, options.expectedLogo);
+    if (missing) {
+      violations.push(missing);
+    }
+  }
 
   for (const [path, content] of Object.entries(files)) {
     const extension = extensionOf(path);
@@ -319,17 +396,35 @@ export function lintGeneratedFiles(files: Record<string, string>): LintReport {
     }
   }
 
+  const targets = selectRepairTargets(violations);
+
   return {
     violations,
     errorCount: violations.filter((violation) => violation.severity === 'error').length,
     warningCount: violations.filter((violation) => violation.severity === 'warning').length,
     filesScanned,
+    repairCount: violations.filter((violation) => targets.includes(violation.file)).length,
   };
 }
 
 /** Files sent back for repair; beyond this the repair costs more than it saves. */
 const MAX_REPAIR_FILES = 4;
 const MAX_REPAIR_FILE_CHARS = 12000;
+
+/** Worst files first: errors weigh more than warnings. */
+function selectRepairTargets(violations: Violation[]): string[] {
+  const weightByFile = new Map<string, number>();
+
+  for (const violation of violations) {
+    const weight = violation.severity === 'error' ? 3 : 1;
+    weightByFile.set(violation.file, (weightByFile.get(violation.file) ?? 0) + weight);
+  }
+
+  return [...weightByFile.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, MAX_REPAIR_FILES)
+    .map(([path]) => path);
+}
 
 /**
  * Builds a repair request carrying only the offending files and the exact fixes.
@@ -346,18 +441,7 @@ export function buildRepairPrompt(
     return null;
   }
 
-  // Worst files first: errors weigh more than warnings.
-  const weightByFile = new Map<string, number>();
-
-  for (const violation of report.violations) {
-    const weight = violation.severity === 'error' ? 3 : 1;
-    weightByFile.set(violation.file, (weightByFile.get(violation.file) ?? 0) + weight);
-  }
-
-  const targets = [...weightByFile.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, MAX_REPAIR_FILES)
-    .map(([path]) => path);
+  const targets = selectRepairTargets(report.violations);
 
   const checklist = report.violations
     .filter((violation) => targets.includes(violation.file))

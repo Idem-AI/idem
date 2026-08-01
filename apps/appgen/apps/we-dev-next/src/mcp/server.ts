@@ -181,16 +181,23 @@ const TOOLS: ToolDefinition[] = [
           description: 'Map of file path to file contents.',
           additionalProperties: { type: 'string' },
         },
+        expectedLogo: {
+          type: 'string',
+          description:
+            'The project logo (hosted URL or inline SVG). When given, the linter verifies the generated code actually references it.',
+        },
       },
       required: ['files'],
       additionalProperties: false,
     },
-    handler: ({ files }) => {
+    handler: ({ files, expectedLogo }) => {
       if (!files || typeof files !== 'object' || Array.isArray(files)) {
         return { ...text('`files` must be an object mapping paths to contents.'), isError: true };
       }
 
-      const report = lintGeneratedFiles(files as Record<string, string>);
+      const report = lintGeneratedFiles(files as Record<string, string>, {
+        expectedLogo: typeof expectedLogo === 'string' ? expectedLogo : undefined,
+      });
 
       return json({
         ...report,

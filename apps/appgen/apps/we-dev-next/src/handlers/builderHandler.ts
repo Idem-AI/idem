@@ -76,7 +76,13 @@ export async function handleBuilderMode(
   otherConfig?: PromptExtra,
   tools?: ToolInfo[],
   projectData?: ProjectModel,
-  language?: string
+  language?: string,
+  /**
+   * Repair instructions from the design linter, sent out of band by the client.
+   * They never appear in the transcript: the chat shows a one-line summary while
+   * the model receives the full checklist.
+   */
+  qualityRepair?: string
 ) {
   const startTime = Date.now();
 
@@ -107,15 +113,25 @@ export async function handleBuilderMode(
   const rawRequest = messages[messages.length - 1].content;
 
   // Only the opening turn is "build the whole thing". Later turns carry a real
-  // instruction from the user (a change request, or the linter's repair list),
-  // and overwriting it with the initial framing throws that instruction away.
+  // instruction from the user, and overwriting it with the initial framing
+  // throws that instruction away.
   const isFirstTurn = !messages.some((message) => message.role === 'assistant');
 
   let projectBrief: string | undefined;
   let extraContext: string | undefined;
-  let request = rawRequest;
+  let request = qualityRepair?.trim() ? qualityRepair : rawRequest;
 
-  if (projectData && isFirstTurn) {
+  // The logo goes out on every turn. Living only inside the first-turn brief is
+  // why it kept disappearing from generated sites.
+  const brandLockup = projectData
+    ? new ProjectPromptService().buildLogoDirective(projectData)
+    : undefined;
+
+  if (qualityRepair?.trim()) {
+    ChatLogger.info('QUALITY_REPAIR', 'Repair instructions received out of band', {
+      chars: qualityRepair.length,
+    });
+  } else if (projectData && isFirstTurn) {
     try {
       projectBrief = new ProjectPromptService().generatePrompt(projectData);
     } catch (error) {
@@ -156,6 +172,7 @@ export async function handleBuilderMode(
   const { system, user, diagnostics } = assembleBuilderPrompt({
     request,
     projectBrief,
+    brandLockup,
     projectData,
     language,
     extraContext,

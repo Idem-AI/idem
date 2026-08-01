@@ -347,7 +347,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       // Only worth linting a finished artifact: a truncated one trips rules that
       // the continuation would have fixed on its own.
       if (isComplete) {
-        runQualityPass(chatUuid, messages, append, t);
+        runQualityPass(chatUuid, messages, append, t, projectData);
       }
     }
   }, [checkCount]);

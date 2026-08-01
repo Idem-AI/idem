@@ -47,6 +47,8 @@ export interface AssembleOptions {
   request: string;
   /** Project brief produced by ProjectPromptService, when a project is attached. */
   projectBrief?: string;
+  /** Logo instructions. Emitted on every turn, unlike the brief. */
+  brandLockup?: string;
   projectData?: ProjectModel;
   language?: string;
   /** Extra constraints appended after the task (file trees, diffs, …). */
@@ -69,7 +71,7 @@ export interface AssembleOptions {
  *   3. language          last, so it is the most recent instruction
  */
 export function assembleBuilderPrompt(options: AssembleOptions): AssembledPrompt {
-  const { request, projectBrief, projectData, language, extraContext } = options;
+  const { request, projectBrief, brandLockup, projectData, language, extraContext } = options;
 
   const register = resolveRegister(projectData);
   const skills = routeSkills({ request, register, projectData });
@@ -87,6 +89,7 @@ export function assembleBuilderPrompt(options: AssembleOptions): AssembledPrompt
 
   const user = [
     renderDesignBrief(designSystem),
+    brandLockup ? `\n${brandLockup}` : '',
     projectBrief ? `\n${projectBrief}` : '',
     extraContext ? `\n${extraContext}` : '',
     `\n## YOUR TASK\n${request}`,

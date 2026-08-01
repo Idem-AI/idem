@@ -59,10 +59,8 @@ function buildHaystack({ request, projectData }: RouteInput): string {
     })
     .map(String);
 
-  const sections = (projectData?.analysisResultModel?.design?.sections ?? []).map(
-    (section) => `${section.name} ${section.type} ${section.summary}`
-  );
-
+  // `analysisResultModel.design.sections` (the use-case diagrams) is no longer
+  // sent by the client, so it is not part of the routing signal.
   return [
     request,
     projectData?.name,
@@ -71,7 +69,6 @@ function buildHaystack({ request, projectData }: RouteInput): string {
     configs?.landingPageConfig,
     ...enabledFlags,
     ...featureNames,
-    ...sections,
   ]
     .filter(Boolean)
     .join(' ')

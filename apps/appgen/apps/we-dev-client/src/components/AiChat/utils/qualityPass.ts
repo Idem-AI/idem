@@ -32,6 +32,8 @@ interface LintResponse {
   violations: LintViolation[];
   errorCount: number;
   warningCount: number;
+  /** Issues the repair pass will actually address; the number worth showing. */
+  repairCount: number;
   shouldRepair: boolean;
   repairPrompt: string | null;
 }
@@ -53,11 +55,30 @@ function collectGeneratedFiles(messages: Message[]): Record<string, string> {
   return files;
 }
 
+/** The logo the generated site is supposed to show, if the project has one. */
+function expectedLogoOf(projectData?: { analysisResultModel?: any } | null): string | undefined {
+  const logo = projectData?.analysisResultModel?.branding?.logo;
+
+  if (!logo) {
+    return undefined;
+  }
+
+  return (
+    logo.assetUrls?.withText?.lightBackground ||
+    logo.assetUrls?.primary ||
+    logo.variations?.withText?.lightBackground ||
+    logo.variations?.lightBackground ||
+    logo.svg ||
+    undefined
+  );
+}
+
 export async function runQualityPass(
   chatId: string,
   messages: Message[],
   append: AppendFn,
-  t?: TFunction
+  t?: TFunction,
+  projectData?: { analysisResultModel?: any } | null
 ): Promise<LintResponse | null> {
   if (repairedChats.has(chatId)) {
     return null;
@@ -77,7 +98,7 @@ export async function runQualityPass(
     const response = await fetch(`${apiBase}/api/quality/lint`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ files }),
+      body: JSON.stringify({ files, expectedLogo: expectedLogoOf(projectData) }),
     });
 
     if (!response.ok) {
@@ -104,16 +125,17 @@ export async function runQualityPass(
 
   repairedChats.add(chatId);
 
-  // The visible line is short and human; the instructions ride along inside
-  // <weD2c>, which the message renderer strips from the transcript.
-  const visible =
-    t?.('chat.quality_pass', { count: report.violations.length }) ??
-    `Applying ${report.violations.length} design fixes.`;
+  const count = report.repairCount || report.violations.length;
 
-  await append({
-    role: 'user',
-    content: `${visible}\n<weD2c>\n${report.repairPrompt}\n</weD2c>`,
-  });
+  // The transcript gets one short line saying what is happening. The checklist
+  // and the file payload travel out of band in the request body, so the user is
+  // never shown a wall of machine instructions.
+  const visible = t?.('chat.quality_pass', { count }) ?? `Applying ${count} design fixes.`;
+
+  await append(
+    { role: 'user', content: visible },
+    { body: { qualityRepair: report.repairPrompt } }
+  );
 
   return report;
 }

@@ -27,13 +27,28 @@ apps/we-dev-next/src/
 
 `forgeDesignSystem(projectData)` derives, from the project's branding plus a hash of its id:
 
-- an **art direction** out of eight (editorial serif, Swiss grid, terminal dark, committed earth, brutalist block, drenched monochrome, precision product, layered depth), each fixing surface, colour strategy, radius, density, borders, shadows, page cadence and one signature move;
+- an **art direction** out of eight (editorial serif, Swiss grid, terminal dark, committed earth, brutalist block, drenched monochrome, precision product, layered depth), each fixing radius, density, borders, shadows, page cadence and one signature move;
 - a **font pairing** on a contrast axis, from a list that deliberately excludes Inter;
 - **OKLCH colour ramps** derived from the brand colour, with chroma falloff so the ends do not clip;
 - **`ink` and `ink-muted` verified against the surface** — `ensureContrast()` walks lightness until the ratio is met, so the numbers printed in the prompt are measured, not hoped for;
 - a Tailwind `theme.extend` block the model pastes verbatim.
 
 The seed is the anti-monoculture mechanism. Two projects with similar briefs get different constraints, so they cannot converge on the same page. The same project always regenerates the same system.
+
+#### Brand guidelines outrank the art direction
+
+When a project has committed brand guidelines, they win outright and the direction is reduced to composition, rhythm and personality:
+
+| Brand supplies | Result |
+|---|---|
+| `colors.background` | becomes `surface` verbatim; `surface-raised` steps off it rather than being invented |
+| `colors.text` | seeds `ink`; verification only moves lightness, so the hue stays on brand |
+| `colors.secondary` | exposed as its own token instead of being derived |
+| `typography.primaryFont` / `secondaryFont` | used exactly, `fonts.fromBrand` is set |
+
+The background's luminance also filters the direction pool, so a brand with a light background can never be handed a dark direction. `brandDriven` on the result drives an explicit "not negotiable" note at the top of the prompt block.
+
+**Font links are emitted one per family, on purpose.** The Google Fonts css2 endpoint answers 400 for a family it does not host, and it answers for the *whole* request — so a single brand font that is not on Google Fonts would take every other family down with it and silently drop the site to a system stack. The brief also writes the families into `index.css` under `@layer base`, so nothing depends on Tailwind classes being applied everywhere.
 
 ### 2. Skills — progressive disclosure, three tiers
 
@@ -75,10 +90,15 @@ Tuning knobs: `SKILLS_MAX_CONTEXTUAL` (default 3), `SKILLS_CONTEXTUAL_BUDGET` (d
 system  ┌ core skills          identical on every request  → global cache hit
         ├ contextual skills    stable within a session     → session cache hit
         └ language directive   last, so it stays salient
-user    ┌ forged design system
-        ├ project brief
+user    ┌ forged design system   every turn
+        ├ brand logo directive   every turn
+        ├ project brief          opening turn only
         └ the task
 ```
+
+The logo sits outside the project brief deliberately. The brief is only sent on the opening turn, so a logo living inside it vanished from every follow-up and the model quietly stopped rendering it. `ProjectPromptService.buildLogoDirective()` is emitted on every turn instead.
+
+`analysisResultModel.design.sections` (the use-case diagrams) is no longer sent by the client and is read nowhere — not in the brief, not in the router's scoring signal.
 
 Gemini's implicit cache discounts input tokens by 90% when a request shares a prefix with an earlier one, and it matches on the **prefix**, so anything invariant has to come first and stay byte-identical. That is why the router sorts its output deterministically instead of by score.
 
@@ -90,11 +110,13 @@ Set `DEBUG_PROMPTS=true` to dump the assembled prompt; it is off by default beca
 
 After generation completes, the client posts the parsed file map to `POST /api/quality/lint`. The linter is regex over text and costs nothing. It catches:
 
-`missing-bootstrap-script` (blank page, no console error) · `purple-gradient` · `gradient-text` · `inter-default` · `side-stripe-border` · `uppercase-eyebrow` (2+ occurrences) · `glassmorphism` · `light-gray-body` · `stock-palette` · `buzzwords` · `em-dash` · `emoji-in-ui` · `placeholder-content` · `dead-link` · `img-without-alt` · `identical-card-grid`
+`missing-bootstrap-script` (blank page, no console error) · `logo-missing` · `purple-gradient` · `gradient-text` · `inter-default` · `side-stripe-border` · `uppercase-eyebrow` (2+ occurrences) · `glassmorphism` · `light-gray-body` · `stock-palette` · `buzzwords` · `em-dash` · `emoji-in-ui` · `placeholder-content` · `dead-link` · `img-without-alt` · `identical-card-grid`
+
+`logo-missing` takes an `expectedLogo` (hosted URL or inline SVG) and checks that a fingerprint of it — the filename, or a path's `d` attribute for inline markup — appears somewhere in the generated code. Deterministic, so it cannot produce a false positive on a logo that is present under a different class name.
 
 When `shouldRepair` is true (any error, or four or more warnings), the response carries a `repairPrompt` containing **only the offending files** plus the exact fixes — roughly 2 000 tokens instead of regenerating the project. Capped at one repair per conversation.
 
-The repair message rides inside `<weD2c>` tags, which the message renderer strips from the transcript, so the user sees one short line rather than a wall of instructions.
+**The repair payload never enters the transcript.** The client appends a one-line message (`chat.quality_pass`) and passes the checklist out of band through `append(msg, { body: { qualityRepair } })`; the chat route forwards it to `handleBuilderMode`, which uses it as the request. The count shown is `repairCount` — issues inside the files actually being repaired — not the raw violation total, which is much larger and alarming for no reason.
 
 ## The MCP endpoint
 
