@@ -11,6 +11,7 @@ import enhancedPromptRouter from './routes/enhancedPrompt.js';
 import modelRouter from './routes/model.js';
 import handoffRouter from './routes/handoff.js';
 import qualityRouter from './routes/quality.js';
+import assetsRouter from './routes/assets.js';
 import mcpRouter from './mcp/server.js';
 import { loadSkills } from './skills/registry.js';
 
@@ -71,6 +72,10 @@ app.use('/api/enhancedPrompt', enhancedPromptRouter);
 app.use('/api/model', modelRouter);
 app.use('/api/handoff', handoffRouter);
 app.use('/api/quality', qualityRouter);
+
+// Local-development helper: reads an http:// bucket asset back as a data URI so
+// the HTTPS WebContainer preview can display it. See routes/assets.ts.
+app.use('/api/assets', assetsRouter);
 
 // MCP endpoint: the skill catalog, the token forge and the linter, reusable by
 // any MCP client. appgen's own generation path imports them directly instead.
