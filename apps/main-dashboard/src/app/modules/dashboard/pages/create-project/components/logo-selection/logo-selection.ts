@@ -17,12 +17,7 @@ import { CarouselComponent } from '../../../../../../shared/components/carousel/
 import { LogoPreferences } from '../logo-preferences/logo-preferences';
 import { LogoEditorChat } from '../logo-editor-chat/logo-editor-chat';
 import { LogoCreationSimulatorComponent } from '../logo-creation-simulator/logo-creation-simulator';
-import {
-  AtelierNote,
-  AtelierNoteTone,
-  AtelierPhase,
-  GenerationAtelierComponent,
-} from '../generation-atelier/generation-atelier';
+import { AtelierNote, GenerationAtelierComponent } from '../generation-atelier/generation-atelier';
 
 import { Subject, takeUntil } from 'rxjs';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
@@ -73,9 +68,6 @@ const CONCEPT_WEIGHT: Record<ConceptSlotStatus, number> = {
   cancelled: 1,
   error: 1,
 };
-
-/** Phases narratives du rail de progression. */
-const CONCEPT_PHASES = ['brief', 'exploration', 'vector', 'audit', 'finalize'] as const;
 
 @Component({
   selector: 'app-logo-selection',
@@ -145,13 +137,6 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
   /** Incrémenté à chaque tentative pour réinitialiser le panneau de suivi. */
   protected readonly atelierRun = signal(0);
   private noteSeq = 0;
-
-  protected readonly atelierPhases = computed<AtelierPhase[]>(() =>
-    CONCEPT_PHASES.map((id) => ({
-      id,
-      label: this.translate.instant(`dashboard.logoSelection.live.phases.${id}`),
-    })),
-  );
 
   protected readonly atelierAmbient = computed<string[]>(() => {
     const pool = this.translate.instant('dashboard.logoSelection.live.ambient');
@@ -382,7 +367,7 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
     );
     this.atelierNotes.set([]);
     this.atelierRun.update((run) => run + 1);
-    this.pushNote('brief', {}, 'info');
+    this.pushNote('brief', {});
 
     this.brandingService
       .generateLogoConceptsStream(this.projectId()!, force, this.logoPreferences())
@@ -423,41 +408,40 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
     switch (event.stepName) {
       case 'concept_started':
         this.updateSlot(index, { status: 'generating' });
-        this.pushNote('started', { concept }, 'info');
+        this.pushNote('started', { concept });
         break;
       case 'concept_generated':
         this.updateSlot(index, { status: 'generated', logo: this.normalizeLogo(payload.logo!, index) });
-        this.pushNote('generated', { concept }, 'info');
+        this.pushNote('generated', { concept });
         break;
       case 'critique_started':
         this.updateSlot(index, { status: 'critiquing' });
-        this.pushNote('audit', { concept }, 'info');
+        this.pushNote('audit', { concept });
         break;
       case 'critique_result': {
         const critique = payload.critique ?? null;
         this.updateSlot(index, { critique });
         if (critique) {
-          this.pushNote(
-            critique.verdict === 'pass' ? 'auditPass' : 'auditFail',
-            { concept, score: critique.score },
-            critique.verdict === 'pass' ? 'success' : 'warn',
-          );
+          this.pushNote(critique.verdict === 'pass' ? 'auditPass' : 'auditFail', {
+            concept,
+            score: critique.score,
+          });
         }
         break;
       }
       case 'revision_started':
         this.updateSlot(index, { status: 'revising' });
-        this.pushNote('revising', { concept }, 'warn');
+        this.pushNote('revising', { concept });
         break;
       case 'concept_updated':
         this.updateSlot(index, { logo: this.normalizeLogo(payload.logo!, index), revised: true });
-        this.pushNote('revised', { concept }, 'success');
+        this.pushNote('revised', { concept });
         break;
       case 'concept_finalized': {
         const logo = this.normalizeLogo(payload.logo!, index);
         this.updateSlot(index, { status: 'final', logo });
         this.mergeFinalLogo(logo);
-        this.pushNote('final', { concept }, 'success');
+        this.pushNote('final', { concept });
         this.generationProgress.set(
           Math.round((this.conceptSlots().filter((s) => s.status === 'final').length / 3) * 100),
         );
@@ -465,20 +449,20 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
       }
       case 'concept_cancelled':
         this.updateSlot(index, { status: 'cancelled' });
-        this.pushNote('cancelled', { concept }, 'info');
+        this.pushNote('cancelled', { concept });
         break;
       case 'concept_error':
         this.updateSlot(index, { status: 'error' });
-        this.pushNote('error', { concept }, 'danger');
+        this.pushNote('error', { concept });
         break;
     }
   }
 
-  /** Ajoute une ligne au journal de l'atelier (clé sous `live.log.*`). */
-  private pushNote(key: string, params: Record<string, unknown>, tone: AtelierNoteTone): void {
+  /** Ajoute une ligne au fil d'activité (clé sous `live.log.*`). */
+  private pushNote(key: string, params: Record<string, unknown>): void {
     this.noteSeq += 1;
     const text = this.translate.instant(`dashboard.logoSelection.live.log.${key}`, params);
-    this.atelierNotes.update((notes) => [...notes, { id: `note-${this.noteSeq}`, text, tone }]);
+    this.atelierNotes.update((notes) => [...notes, { id: `note-${this.noteSeq}`, text }]);
   }
 
   private updateSlot(index: number, patch: Partial<ConceptSlot>): void {

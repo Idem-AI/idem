@@ -611,13 +611,6 @@
           "title": "Design director's review",
           "revised": "Fixed by the agent"
         },
-        "phases": {
-          "brief": "Reading the brief",
-          "exploration": "Exploring directions",
-          "vector": "Vector drawing",
-          "audit": "Quality review",
-          "finalize": "Finishing"
-        },
         "ambient": [
           "Reading the project palette and typography",
           "Listing the symbols common to the sector",
@@ -752,13 +745,6 @@
         "critique": {
           "title": "Quality agent's review",
           "revised": "Fixed by the agent"
-        },
-        "phases": {
-          "read": "Reading the logo",
-          "recolor": "Adapting colors",
-          "contrast": "Measuring contrast",
-          "audit": "Quality review",
-          "finalize": "Finishing"
         },
         "ambient": [
           "Extracting the colors of the selected logo",

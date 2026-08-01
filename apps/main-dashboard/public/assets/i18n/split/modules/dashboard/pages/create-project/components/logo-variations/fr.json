@@ -109,13 +109,6 @@
           "title": "Avis de l'agent qualité",
           "revised": "Corrigée par l'agent"
         },
-        "phases": {
-          "read": "Lecture du logo",
-          "recolor": "Adaptation des couleurs",
-          "contrast": "Mesure du contraste",
-          "audit": "Contrôle qualité",
-          "finalize": "Finalisation"
-        },
         "ambient": [
           "Extraction des couleurs du logo retenu",
           "Repérage des zones à recolorer",

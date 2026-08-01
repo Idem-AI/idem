@@ -14,12 +14,7 @@ import { LogoSrcPipe } from '../../../../../../shared/pipes/logo-src.pipe';
 import { LogoModel, LogoVariations } from '../../../../models/logo.model';
 import { ProjectModel } from '@idem/shared-models';
 import { CarouselComponent } from '../../../../../../shared/components/carousel/carousel.component';
-import {
-  AtelierNote,
-  AtelierNoteTone,
-  AtelierPhase,
-  GenerationAtelierComponent,
-} from '../generation-atelier/generation-atelier';
+import { AtelierNote, GenerationAtelierComponent } from '../generation-atelier/generation-atelier';
 
 import { Subject, takeUntil } from 'rxjs';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
@@ -83,9 +78,6 @@ const VARIATION_WEIGHT: Record<VariationSlotStatus, number> = {
   cancelled: 1,
   error: 1,
 };
-
-/** Phases narratives du rail de progression. */
-const VARIATION_PHASES = ['read', 'recolor', 'contrast', 'audit', 'finalize'] as const;
 
 @Component({
   selector: 'app-logo-variations',
@@ -164,13 +156,6 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
   /** Incrémenté à chaque tentative pour réinitialiser le panneau de suivi. */
   protected readonly atelierRun = signal(0);
   private noteSeq = 0;
-
-  protected readonly atelierPhases = computed<AtelierPhase[]>(() =>
-    VARIATION_PHASES.map((id) => ({
-      id,
-      label: this.translate.instant(`dashboard.logoVariations.live.phases.${id}`),
-    })),
-  );
 
   protected readonly atelierAmbient = computed<string[]>(() => {
     const pool = this.translate.instant('dashboard.logoVariations.live.ambient');
@@ -321,7 +306,7 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
 
     this.atelierNotes.set([]);
     this.atelierRun.update((run) => run + 1);
-    this.pushNote('read', {}, 'info');
+    this.pushNote('read', {});
 
     this.brandingService
       .generateLogoVariationsStream(this.project().id!, force)
@@ -375,39 +360,38 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
     switch (event.stepName) {
       case 'variation_started':
         this.updateSlot(kind, { status: 'generating' });
-        this.pushNote('started', { variant }, 'info');
+        this.pushNote('started', { variant });
         break;
       case 'variation_generated':
         this.updateSlot(kind, { status: 'generated', svg: payload.svg ?? null });
-        this.pushNote('generated', { variant }, 'info');
+        this.pushNote('generated', { variant });
         break;
       case 'critique_started':
         this.updateSlot(kind, { status: 'critiquing' });
-        this.pushNote('audit', { variant }, 'info');
+        this.pushNote('audit', { variant });
         break;
       case 'critique_result': {
         const critique = payload.critique ?? null;
         this.updateSlot(kind, { critique });
         if (critique) {
-          this.pushNote(
-            critique.verdict === 'pass' ? 'auditPass' : 'auditFail',
-            { variant, score: critique.score },
-            critique.verdict === 'pass' ? 'success' : 'warn',
-          );
+          this.pushNote(critique.verdict === 'pass' ? 'auditPass' : 'auditFail', {
+            variant,
+            score: critique.score,
+          });
         }
         break;
       }
       case 'revision_started':
         this.updateSlot(kind, { status: 'revising' });
-        this.pushNote('revising', { variant }, 'warn');
+        this.pushNote('revising', { variant });
         break;
       case 'variation_updated':
         this.updateSlot(kind, { svg: payload.svg ?? null, revised: true });
-        this.pushNote('revised', { variant }, 'success');
+        this.pushNote('revised', { variant });
         break;
       case 'variation_finalized':
         this.updateSlot(kind, { status: 'final', svg: payload.svg ?? null });
-        this.pushNote('final', { variant }, 'success');
+        this.pushNote('final', { variant });
         this.generationProgress.set(
           Math.round(
             (this.variationSlots().filter((s) => s.status === 'final').length / 3) * 100,
@@ -416,20 +400,20 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
         break;
       case 'variation_cancelled':
         this.updateSlot(kind, { status: 'cancelled' });
-        this.pushNote('cancelled', { variant }, 'info');
+        this.pushNote('cancelled', { variant });
         break;
       case 'variation_error':
         this.updateSlot(kind, { status: 'error' });
-        this.pushNote('error', { variant }, 'danger');
+        this.pushNote('error', { variant });
         break;
     }
   }
 
-  /** Ajoute une ligne au journal de l'atelier (clé sous `live.log.*`). */
-  private pushNote(key: string, params: Record<string, unknown>, tone: AtelierNoteTone): void {
+  /** Ajoute une ligne au fil d'activité (clé sous `live.log.*`). */
+  private pushNote(key: string, params: Record<string, unknown>): void {
     this.noteSeq += 1;
     const text = this.translate.instant(`dashboard.logoVariations.live.log.${key}`, params);
-    this.atelierNotes.update((notes) => [...notes, { id: `note-${this.noteSeq}`, text, tone }]);
+    this.atelierNotes.update((notes) => [...notes, { id: `note-${this.noteSeq}`, text }]);
   }
 
   private updateSlot(kind: VariationKind, patch: Partial<VariationSlot>): void {

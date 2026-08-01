@@ -8,15 +8,6 @@ import {
 } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 
-/** Une phase macro du processus, affichée dans le rail de progression. */
-export interface AtelierPhase {
-  id: string;
-  /** Libellé déjà traduit. */
-  label: string;
-}
-
-export type AtelierNoteTone = 'info' | 'success' | 'warn' | 'danger';
-
 /**
  * Événement réel poussé par la page hôte (issu du flux SSE). La liste est
  * append-only : chaque note n'est consommée qu'une fois, dans l'ordre.
@@ -26,45 +17,34 @@ export interface AtelierNote {
   id: string;
   /** Texte déjà traduit. */
   text: string;
-  tone: AtelierNoteTone;
 }
 
 interface ConsoleLine {
   key: string;
   text: string;
-  tone: AtelierNoteTone;
-  stamp: string;
   ambient: boolean;
 }
 
 const TICK_MS = 200;
-/** Nombre de lignes gardées à l'écran (les plus anciennes s'effacent). */
-const MAX_LINES = 5;
+/** Nombre de lignes gardées à l'écran. */
+const MAX_LINES = 3;
 /** Silence maximal du backend avant d'insérer une ligne d'ambiance. */
 const AMBIENT_GAP_MS = 4200;
 /** Marge de progression simulée autorisée au-dessus de la progression réelle. */
 const SIMULATED_HEADROOM = 20;
 
-function formatClock(ms: number): string {
-  const total = Math.max(Math.floor(ms / 1000), 0);
-  const minutes = Math.floor(total / 60);
-  const seconds = total % 60;
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-}
-
 /**
- * Panneau de suivi d'une génération longue (logos, déclinaisons).
+ * Suivi d'une génération longue (logos, déclinaisons).
  *
  * Le problème résolu : la génération dure 1 à 3 minutes et le backend reste
  * silencieux pendant de longues secondes. Un écran figé pousse l'utilisateur à
- * fermer l'onglet. Ce panneau superpose donc deux couches :
+ * fermer l'onglet. Deux couches se superposent donc :
  *
  * - le **réel** : `milestone` (progression dérivée des événements du flux) sert
- *   de plancher à la barre, et `notes` alimente le journal avec les vrais
- *   événements ;
+ *   de plancher à la barre, et `notes` alimente le fil d'activité ;
  * - le **simulé** : entre deux événements, la barre continue de progresser
  *   selon une courbe asymptotique bornée à +20 points au-dessus du réel, et le
- *   journal insère des lignes d'ambiance pour que quelque chose bouge toujours.
+ *   fil insère une ligne d'ambiance pour que quelque chose bouge toujours.
  *
  * La progression ne recule jamais et ne dépasse jamais 99 % tant que
  * `running` est vrai.
@@ -79,7 +59,6 @@ function formatClock(ms: number): string {
 export class GenerationAtelierComponent implements OnDestroy {
   readonly heading = input.required<string>();
   readonly subheading = input<string>('');
-  readonly phases = input.required<AtelierPhase[]>();
   /** Progression réelle 0-100 dérivée du flux ; sert de plancher à la barre. */
   readonly milestone = input<number>(0);
   readonly running = input<boolean>(true);
@@ -93,7 +72,7 @@ export class GenerationAtelierComponent implements OnDestroy {
   /**
    * Numéro de tentative. Le panneau survit à un « Réessayer » (le tableau live
    * reste monté) : changer cette valeur remet à zéro le chronomètre, la barre
-   * et le journal au lieu de repartir de l'état de l'essai précédent.
+   * et le fil au lieu de repartir de l'état de l'essai précédent.
    */
   readonly runId = input<number>(0);
 
@@ -102,7 +81,6 @@ export class GenerationAtelierComponent implements OnDestroy {
   protected readonly lines = signal<ConsoleLine[]>([]);
 
   protected readonly percent = computed(() => Math.round(this.progress()));
-  protected readonly elapsedLabel = computed(() => formatClock(this.elapsedMs()));
 
   /** Durée restante formatée, ou null quand l'estimation est dépassée. */
   protected readonly remainingLabel = computed(() => {
@@ -115,26 +93,6 @@ export class GenerationAtelierComponent implements OnDestroy {
     const seconds = total % 60;
     return minutes > 0 ? `${minutes} min ${seconds.toString().padStart(2, '0')}` : `${seconds} s`;
   });
-
-  private readonly activeIndex = computed(() => {
-    const count = this.phases().length;
-    if (count === 0) {
-      return 0;
-    }
-    return Math.min(Math.floor((this.progress() / 100) * count), count - 1);
-  });
-
-  protected readonly phaseView = computed(() => {
-    const active = this.activeIndex();
-    const allDone = !this.running() && !this.failed() && this.progress() > 99;
-    return this.phases().map((phase, index) => ({
-      ...phase,
-      state: allDone || index < active ? 'done' : index === active ? 'active' : 'todo',
-    }));
-  });
-
-  protected readonly activeLabel = computed(() => this.phases()[this.activeIndex()]?.label ?? '');
-  protected readonly stepLabel = computed(() => `${this.activeIndex() + 1}/${this.phases().length}`);
 
   private startedAt = Date.now();
   private lastMilestone = 0;
@@ -183,7 +141,7 @@ export class GenerationAtelierComponent implements OnDestroy {
       return target - next < 0.4 ? target : next;
     });
 
-    this.pumpConsole(now, running);
+    this.pumpFeed(now, running);
   }
 
   /** Nouvelle tentative : tout repart de zéro, y compris le curseur de notes. */
@@ -209,11 +167,11 @@ export class GenerationAtelierComponent implements OnDestroy {
   }
 
   /** Les vrais événements passent d'abord ; l'ambiance ne comble que le silence. */
-  private pumpConsole(now: number, running: boolean): void {
+  private pumpFeed(now: number, running: boolean): void {
     const notes = this.notes();
     if (notes.length > this.consumedNotes) {
       for (const note of notes.slice(this.consumedNotes)) {
-        this.pushLine(note.text, note.tone, false, now);
+        this.pushLine(note.text, false);
       }
       this.consumedNotes = notes.length;
       this.lastLineAt = now;
@@ -232,20 +190,14 @@ export class GenerationAtelierComponent implements OnDestroy {
       return;
     }
 
-    this.pushLine(pool[this.ambientCursor % pool.length], 'info', true, now);
+    this.pushLine(pool[this.ambientCursor % pool.length], true);
     this.ambientCursor += 1;
     this.lastLineAt = now;
   }
 
-  private pushLine(text: string, tone: AtelierNoteTone, ambient: boolean, now: number): void {
+  private pushLine(text: string, ambient: boolean): void {
     this.lineSeq += 1;
-    const line: ConsoleLine = {
-      key: `line-${this.lineSeq}`,
-      text,
-      tone,
-      ambient,
-      stamp: formatClock(now - this.startedAt),
-    };
+    const line: ConsoleLine = { key: `line-${this.lineSeq}`, text, ambient };
     this.lines.update((lines) => [line, ...lines].slice(0, MAX_LINES));
   }
 }
