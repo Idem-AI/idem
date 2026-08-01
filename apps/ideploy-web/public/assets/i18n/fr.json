@@ -153,7 +153,6 @@
     "nav": {
       "dashboard": "Tableau de bord",
       "sectionDeploy": "Déploiement",
-      "projects": "Projets",
       "templates": "Modèles",
       "sectionResources": "Ressources",
       "servers": "Serveurs",
@@ -169,7 +168,8 @@
       "sharedVariables": "Variables partagées",
       "notifications": "Notifications",
       "keysTokens": "Clés et jetons",
-      "team": "Équipe"
+      "team": "Équipe",
+      "workspaces": "Espaces"
     }
   },
   "applications": {
@@ -182,9 +182,7 @@
       "cancel": "Annuler",
       "newApplication": "+ Nouvelle application",
       "name": "Nom",
-      "environmentId": "ID d'environnement",
       "gitRepositoryUrl": "URL du dépôt Git",
-      "destinationId": "ID de destination",
       "creating": "Création…",
       "createApplication": "Créer l'application",
       "empty": "Aucune application pour l'instant.",
@@ -233,7 +231,9 @@
       "runPipeline": "Exécuter le pipeline",
       "deploymentHistory": "Historique des déploiements",
       "noDeployments": "Aucun déploiement pour l'instant.",
-      "redeployCommit": "Redéployer ce commit"
+      "redeployCommit": "Redéployer ce commit",
+      "firewallNotEnforced": "Règles enregistrées mais non actives.",
+      "firewallDeployError": "Les règles n'ont pas pu être appliquées."
     }
   },
   "projects": {
@@ -243,8 +243,7 @@
       "cancel": "Annuler",
       "deploy": "Déployer",
       "loading": "Chargement…",
-      "deploymentFailed": "Échec du déploiement",
-      "errCreateProject": "Échec de la création du projet"
+      "deploymentFailed": "Échec du déploiement"
     },
     "import": {
       "importingFromGit": "Import depuis Git",
@@ -311,27 +310,6 @@
       "createEmptyDesc": "Ignorez la connexion Git et démarrez un environnement vierge à partir de zéro.",
       "errGithubNotConfigured": "L'intégration GitHub n'est pas configurée sur l'API Idem (GITHUB_CLIENT_ID/SECRET manquants). Demandez à un administrateur de les définir, ou collez plutôt l'URL d'un dépôt Git ci-dessus.",
       "errGithubUnreachable": "Impossible de joindre l'intégration GitHub. L'API Idem est-elle en cours d'exécution ?"
-    },
-    "detail": {
-      "environment": "Environnement :",
-      "envNumber": "env n°",
-      "appNamePlaceholder": "nom de l'application",
-      "gitRepoPlaceholder": "URL du dépôt git",
-      "branchPlaceholder": "branche",
-      "destinationIdPlaceholder": "id de destination",
-      "newApplication": "Nouvelle application"
-    },
-    "list": {
-      "title": "Projets",
-      "newProject": "+ Nouveau projet",
-      "name": "Nom",
-      "namePlaceholder": "Mon projet",
-      "description": "Description",
-      "creating": "Création…",
-      "createProject": "Créer le projet",
-      "noProjects": "Aucun projet pour le moment.",
-      "delete": "supprimer",
-      "viewDetails": "Voir les détails"
     }
   },
   "servers": {
@@ -339,13 +317,8 @@
     "addServerButton": "+ Ajouter un serveur",
     "loading": "Chargement…",
     "empty": "Aucun serveur pour le moment. Ajoutez-en un pour commencer.",
-    "reachable": "accessible",
-    "unreachable": "inaccessible",
-    "installed": "installé",
-    "missing": "absent",
     "proxyStatus": "Proxy : {{status}}",
     "validate": "Valider",
-    "installDocker": "Installer Docker",
     "proxyStatusButton": "État du proxy",
     "startProxy": "Démarrer le proxy",
     "installCrowdSec": "Installer CrowdSec",
@@ -358,7 +331,11 @@
     "privateKeyId": "ID de clé privée",
     "creating": "Création…",
     "createServer": "Créer le serveur",
-    "createError": "Échec de la création du serveur"
+    "createError": "Échec de la création du serveur",
+    "ready": "Prêt à déployer",
+    "notReady": "Non prêt",
+    "setUp": "Configurer",
+    "settingUp": "Configuration…"
   },
   "databases": {
     "title": "Bases de données",
@@ -371,8 +348,6 @@
     "newDatabase": "Nouvelle base de données",
     "type": "Type",
     "name": "Nom",
-    "environmentId": "ID d'environnement",
-    "destinationId": "ID de destination",
     "creating": "Création…",
     "createDatabase": "Créer la base de données",
     "createError": "Échec de la création de la base de données"
@@ -387,8 +362,6 @@
     "template": "Modèle",
     "customNone": "— personnalisé (aucun) —",
     "name": "Nom",
-    "environmentId": "ID d'environnement",
-    "destinationId": "ID de destination",
     "dockerComposeLabel": "docker-compose.yml (ignoré lorsqu'un modèle est sélectionné)",
     "creating": "Création…",
     "createService": "Créer le service",
@@ -502,5 +475,91 @@
   },
   "auth": {
     "signingIn": "Connexion en cours…"
+  },
+  "workspaces": {
+    "title": "Espaces",
+    "subtitle": "Un espace regroupe les parties d'une même application — un frontend, une API, une base — pour qu'elles tournent ensemble et puissent communiquer.",
+    "create": "Nouvel espace",
+    "createFirst": "Créer votre premier espace",
+    "createTitle": "Nouvel espace",
+    "createSubtitle": "Choisissez où tourne cette application. Tout ce que vous y ajouterez en hérite.",
+    "emptyTitle": "Aucun espace pour l'instant.",
+    "emptyHint": "Créez-en un pour choisir où tourne votre application, puis ajoutez les projets qui la composent.",
+    "open": "Ouvrir",
+    "delete": "Supprimer l'espace",
+    "deleteError": "Impossible de supprimer cet espace.",
+    "notFound": "Cet espace n'existe pas, ou ne vous appartient pas.",
+    "backToList": "Tous les espaces",
+    "hosting": "Hébergement",
+    "environments": "Environnements",
+    "projects": "Projets",
+    "addProject": "Ajouter un projet",
+    "noProjects": "Rien de déployé ici. Ajoutez un frontend, une API ou une base de données.",
+    "colocationNote": "Les projets de cet espace partagent un réseau privé et se joignent par leur nom.",
+    "step": {
+      "identity": "Nom",
+      "hosting": "Hébergement"
+    },
+    "target": {
+      "saas": "Infrastructure IDEM",
+      "own": "Mon propre serveur"
+    },
+    "targetHint": {
+      "saas": "Nous choisissons et maintenons le serveur. Rien à configurer.",
+      "own": "Déployer sur un serveur que vous avez ajouté."
+    },
+    "field": {
+      "target": "Cible",
+      "region": "Région",
+      "server": "Serveur",
+      "projects": "Projets",
+      "environments": "Environnements"
+    },
+    "form": {
+      "name": "Nom de l'espace",
+      "namePlaceholder": "Ma boutique en ligne",
+      "nameHint": "En général le nom de l'application, pas celui d'une de ses parties.",
+      "description": "Description (facultatif)",
+      "target": "Où doit-il tourner ?",
+      "server": "Serveur",
+      "chooseServer": "Choisir un serveur…",
+      "noServers": "Vous n'avez pas encore de serveur.",
+      "addServer": "En ajouter un",
+      "region": "Région",
+      "defaultRegion": "Par défaut ({{region}})",
+      "regionLocked": "Hébergé dans la région par défaut ({{region}}). Le choix de la région est disponible sur les plans Pro et Enterprise.",
+      "next": "Continuer",
+      "back": "Retour",
+      "create": "Créer l'espace",
+      "creating": "Création…",
+      "createError": "Impossible de créer cet espace."
+    },
+    "env": {
+      "add": "Ajouter",
+      "placeholder": "staging",
+      "delete": "Supprimer",
+      "addError": "Impossible d'ajouter cet environnement.",
+      "deleteError": "Impossible de supprimer cet environnement."
+    }
+  },
+  "workspaceTargetPicker": {
+    "workspace": "Workspace",
+    "noWorkspaces": "Aucun workspace pour l’instant. Créez-en un d’abord.",
+    "chooseWorkspace": "Choisir un workspace…",
+    "environment": "Environnement",
+    "project": "Projet",
+    "projectOptional": "(optionnel)",
+    "projectPlaceholder": "ex. frontend, backend, database",
+    "willUseExisting": "Sera ajouté au projet existant « {{name}} ».",
+    "willCreateNew": "Créera un nouveau projet « {{name}} »."
+  },
+  "workspaceChoicePicker": {
+    "label": "Où cela doit-il tourner ?",
+    "createNew": "Créer",
+    "useExisting": "Utiliser un existant",
+    "choose": "Choisir un workspace…",
+    "existingHint": "Déployé dans le workspace choisi — il partagera son serveur et son réseau.",
+    "namePlaceholder": "Nom du workspace",
+    "newHint": "Un nouveau workspace, dédié à ceci. Vous pourrez y ajouter d’autres ressources plus tard."
   }
 }

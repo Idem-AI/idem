@@ -13,10 +13,16 @@ import {
   Destination,
   EnvVar,
   PrivateKey,
-  Project,
   ProxyStatus,
   Server,
-  ServerValidation,
+  ServerReadiness,
+  ServerSetupResult,
+  Workspace,
+  WorkspaceEnvironment,
+  WorkspaceOptions,
+  WorkspaceProject,
+  CreateWorkspaceProjectRequest,
+  CreateWorkspaceRequest,
   Service,
   ServiceTemplate,
   ScheduledTask,
@@ -67,6 +73,73 @@ export class ApiService {
     return this.unwrap(this.http.delete<ApiResponse<unknown>>(`${this.base}/github/disconnect`));
   }
 
+  // ── Workspaces ───────────────────────────────────────
+  /**
+   * A workspace groups related projects onto one server and network. The
+   * deployment target is decided here, once, instead of on every project.
+   */
+  listWorkspaces(): Observable<Workspace[]> {
+    return this.unwrap(this.http.get<ApiResponse<Workspace[]>>(`${this.base}/workspaces`));
+  }
+  getWorkspace(uuid: string): Observable<Workspace> {
+    return this.unwrap(this.http.get<ApiResponse<Workspace>>(`${this.base}/workspaces/${uuid}`));
+  }
+  /** Targets and regions this team may actually pick — plan and capacity aware. */
+  workspaceOptions(): Observable<WorkspaceOptions> {
+    return this.unwrap(
+      this.http.get<ApiResponse<WorkspaceOptions>>(`${this.base}/workspaces/options`)
+    );
+  }
+  createWorkspace(body: CreateWorkspaceRequest): Observable<Workspace> {
+    return this.unwrap(this.http.post<ApiResponse<Workspace>>(`${this.base}/workspaces`, body));
+  }
+  updateWorkspace(uuid: string, body: { name?: string; description?: string }): Observable<Workspace> {
+    return this.unwrap(
+      this.http.patch<ApiResponse<Workspace>>(`${this.base}/workspaces/${uuid}`, body)
+    );
+  }
+  deleteWorkspace(uuid: string): Observable<unknown> {
+    return this.unwrap(this.http.delete<ApiResponse<unknown>>(`${this.base}/workspaces/${uuid}`));
+  }
+  addEnvironment(uuid: string, name: string): Observable<WorkspaceEnvironment> {
+    return this.unwrap(
+      this.http.post<ApiResponse<WorkspaceEnvironment>>(
+        `${this.base}/workspaces/${uuid}/environments`,
+        { name }
+      )
+    );
+  }
+  deleteEnvironment(uuid: string, environmentUuid: string): Observable<unknown> {
+    return this.unwrap(
+      this.http.delete<ApiResponse<unknown>>(
+        `${this.base}/workspaces/${uuid}/environments/${environmentUuid}`
+      )
+    );
+  }
+  /**
+   * Named groupings of resources within a workspace — "frontend", "backend",
+   * "the database" — for the three-tier scenario a workspace exists for.
+   */
+  listWorkspaceProjects(uuid: string, environmentName?: string): Observable<WorkspaceProject[]> {
+    const q = environmentName ? `?environment_name=${encodeURIComponent(environmentName)}` : '';
+    return this.unwrap(
+      this.http.get<ApiResponse<WorkspaceProject[]>>(`${this.base}/workspaces/${uuid}/projects${q}`)
+    );
+  }
+  createWorkspaceProject(
+    uuid: string,
+    body: CreateWorkspaceProjectRequest
+  ): Observable<WorkspaceProject> {
+    return this.unwrap(
+      this.http.post<ApiResponse<WorkspaceProject>>(`${this.base}/workspaces/${uuid}/projects`, body)
+    );
+  }
+  deleteWorkspaceProject(uuid: string, projectUuid: string): Observable<unknown> {
+    return this.unwrap(
+      this.http.delete<ApiResponse<unknown>>(`${this.base}/workspaces/${uuid}/projects/${projectUuid}`)
+    );
+  }
+
   // ── Servers ──────────────────────────────────────────
   listServers(): Observable<Server[]> {
     return this.unwrap(this.http.get<ApiResponse<Server[]>>(`${this.base}/servers`));
@@ -74,17 +147,19 @@ export class ApiService {
   createServer(body: Partial<Server> & { private_key_id: number }): Observable<Server> {
     return this.unwrap(this.http.post<ApiResponse<Server>>(`${this.base}/servers`, body));
   }
-  validateServer(uuid: string): Observable<ServerValidation> {
+  /** Full readiness report: SSH, OS, Docker, Compose, shared network, disk. */
+  validateServer(uuid: string): Observable<ServerReadiness> {
     return this.unwrap(
-      this.http.post<ApiResponse<ServerValidation>>(`${this.base}/servers/${uuid}/validate`, {})
+      this.http.post<ApiResponse<ServerReadiness>>(`${this.base}/servers/${uuid}/validate`, {})
     );
   }
-  installDocker(uuid: string): Observable<{ success: boolean; output: string }> {
+  /**
+   * Install and configure Docker (log rotation, shared network) and re-check.
+   * Idempotent, so it is safe to re-run on a partially configured host.
+   */
+  setUpServer(uuid: string): Observable<ServerSetupResult> {
     return this.unwrap(
-      this.http.post<ApiResponse<{ success: boolean; output: string }>>(
-        `${this.base}/servers/${uuid}/install-docker`,
-        {}
-      )
+      this.http.post<ApiResponse<ServerSetupResult>>(`${this.base}/servers/${uuid}/setup`, {})
     );
   }
   deleteServer(uuid: string): Observable<unknown> {
@@ -97,40 +172,24 @@ export class ApiService {
     );
   }
 
-  // ── Projects ─────────────────────────────────────────
-  listProjects(): Observable<Project[]> {
-    return this.unwrap(this.http.get<ApiResponse<Project[]>>(`${this.base}/projects`));
-  }
-  getProject(uuid: string): Observable<Project> {
-    return this.unwrap(this.http.get<ApiResponse<Project>>(`${this.base}/projects/${uuid}`));
-  }
-  createProject(body: { name: string; description?: string }): Observable<Project> {
-    return this.unwrap(this.http.post<ApiResponse<Project>>(`${this.base}/projects`, body));
-  }
-  deleteProject(uuid: string): Observable<unknown> {
-    return this.unwrap(this.http.delete<ApiResponse<unknown>>(`${this.base}/projects/${uuid}`));
-  }
-  listEnvironments(projectUuid: string): Observable<{ id: number; uuid: string; name: string }[]> {
-    return this.unwrap(
-      this.http.get<ApiResponse<{ id: number; uuid: string; name: string }[]>>(
-        `${this.base}/projects/${projectUuid}/environments`
-      )
-    );
-  }
-
   // ── Applications ─────────────────────────────────────
   listApplications(environmentId?: number): Observable<Application[]> {
     const q = environmentId ? `?environment_id=${environmentId}` : '';
     return this.unwrap(this.http.get<ApiResponse<Application[]>>(`${this.base}/applications${q}`));
   }
+  /**
+   * The destination is resolved server-side from the workspace — never a raw
+   * `destination_id` the client picks. `project_name` is optional: naming
+   * "frontend" here creates that project if it does not exist yet.
+   */
   createApplication(body: {
     name: string;
-    environment_id: number;
+    workspace_uuid: string;
+    environment_name?: string;
+    project_name?: string;
     git_repository: string;
     git_branch?: string;
     build_pack?: string;
-    destination_id?: number;
-    destination_type?: string;
   }): Observable<Application> {
     return this.unwrap(this.http.post<ApiResponse<Application>>(`${this.base}/applications`, body));
   }
@@ -172,9 +231,10 @@ export class ApiService {
   listDatabases(): Observable<Database[]> {
     return this.unwrap(this.http.get<ApiResponse<Database[]>>(`${this.base}/databases`));
   }
+  /** As with applications, the destination is resolved from the workspace, not client-chosen. */
   createDatabase(
     type: DatabaseType,
-    body: { name: string; environment_id: number; destination_id: number }
+    body: { name: string; workspace_uuid: string; environment_name?: string; project_name?: string }
   ): Observable<Database> {
     return this.unwrap(this.http.post<ApiResponse<Database>>(`${this.base}/databases/${type}`, body));
   }
@@ -208,10 +268,12 @@ export class ApiService {
       this.http.get<ApiResponse<ServiceTemplate[]>>(`${this.base}/services/templates`)
     );
   }
+  /** As with applications, the destination is resolved from the workspace, not client-chosen. */
   createService(body: {
     name: string;
-    environment_id: number;
-    destination_id: number;
+    workspace_uuid: string;
+    environment_name?: string;
+    project_name?: string;
     docker_compose_raw: string;
   }): Observable<Service> {
     return this.unwrap(this.http.post<ApiResponse<Service>>(`${this.base}/services`, body));
@@ -219,8 +281,9 @@ export class ApiService {
   createServiceFromTemplate(body: {
     template: string;
     name: string;
-    environment_id: number;
-    destination_id: number;
+    workspace_uuid: string;
+    environment_name?: string;
+    project_name?: string;
   }): Observable<Service> {
     return this.unwrap(
       this.http.post<ApiResponse<Service>>(`${this.base}/services/from-template`, body)
@@ -396,7 +459,10 @@ export class ApiService {
     git_branch?: string;
     build_pack?: string;
     template?: string;
-    project_name?: string;
+    /** Deploy into this existing workspace. */
+    workspace_uuid?: string;
+    /** Find-or-create a workspace by name. */
+    workspace_name?: string;
     base_directory?: string;
     build_command?: string;
     start_command?: string;

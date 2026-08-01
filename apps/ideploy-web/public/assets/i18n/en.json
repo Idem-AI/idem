@@ -153,7 +153,6 @@
     "nav": {
       "dashboard": "Dashboard",
       "sectionDeploy": "Deploy",
-      "projects": "Projects",
       "templates": "Templates",
       "sectionResources": "Resources",
       "servers": "Servers",
@@ -169,7 +168,8 @@
       "sharedVariables": "Shared Variables",
       "notifications": "Notifications",
       "keysTokens": "Keys & Tokens",
-      "team": "Team"
+      "team": "Team",
+      "workspaces": "Workspaces"
     }
   },
   "applications": {
@@ -182,9 +182,7 @@
       "cancel": "Cancel",
       "newApplication": "+ New application",
       "name": "Name",
-      "environmentId": "Environment ID",
       "gitRepositoryUrl": "Git repository URL",
-      "destinationId": "Destination ID",
       "creating": "Creating…",
       "createApplication": "Create application",
       "empty": "No applications yet.",
@@ -233,7 +231,9 @@
       "runPipeline": "Run pipeline",
       "deploymentHistory": "Deployment history",
       "noDeployments": "No deployments yet.",
-      "redeployCommit": "Redeploy this commit"
+      "redeployCommit": "Redeploy this commit",
+      "firewallNotEnforced": "Rules are saved but not active.",
+      "firewallDeployError": "The rules could not be applied."
     }
   },
   "projects": {
@@ -243,8 +243,7 @@
       "cancel": "Cancel",
       "deploy": "Deploy",
       "loading": "Loading…",
-      "deploymentFailed": "Deployment failed",
-      "errCreateProject": "Failed to create project"
+      "deploymentFailed": "Deployment failed"
     },
     "import": {
       "importingFromGit": "Importing from Git",
@@ -311,27 +310,6 @@
       "createEmptyDesc": "Skip Git connection and start a blank environment from scratch.",
       "errGithubNotConfigured": "GitHub integration is not configured on the Idem API (missing GITHUB_CLIENT_ID/SECRET). Ask an admin to set them, or paste a Git repository URL above instead.",
       "errGithubUnreachable": "Could not reach the GitHub integration. Is the Idem API running?"
-    },
-    "detail": {
-      "environment": "Environment:",
-      "envNumber": "env #",
-      "appNamePlaceholder": "app name",
-      "gitRepoPlaceholder": "git repository URL",
-      "branchPlaceholder": "branch",
-      "destinationIdPlaceholder": "destination id",
-      "newApplication": "New application"
-    },
-    "list": {
-      "title": "Projects",
-      "newProject": "+ New project",
-      "name": "Name",
-      "namePlaceholder": "My project",
-      "description": "Description",
-      "creating": "Creating…",
-      "createProject": "Create project",
-      "noProjects": "No projects yet.",
-      "delete": "delete",
-      "viewDetails": "View details"
     }
   },
   "servers": {
@@ -339,13 +317,8 @@
     "addServerButton": "+ Add server",
     "loading": "Loading…",
     "empty": "No servers yet. Add one to get started.",
-    "reachable": "reachable",
-    "unreachable": "unreachable",
-    "installed": "installed",
-    "missing": "missing",
     "proxyStatus": "Proxy: {{status}}",
     "validate": "Validate",
-    "installDocker": "Install Docker",
     "proxyStatusButton": "Proxy status",
     "startProxy": "Start proxy",
     "installCrowdSec": "Install CrowdSec",
@@ -358,7 +331,11 @@
     "privateKeyId": "Private key ID",
     "creating": "Creating…",
     "createServer": "Create server",
-    "createError": "Failed to create server"
+    "createError": "Failed to create server",
+    "ready": "Ready to deploy",
+    "notReady": "Not ready",
+    "setUp": "Set up",
+    "settingUp": "Setting up…"
   },
   "databases": {
     "title": "Databases",
@@ -371,8 +348,6 @@
     "newDatabase": "New database",
     "type": "Type",
     "name": "Name",
-    "environmentId": "Environment ID",
-    "destinationId": "Destination ID",
     "creating": "Creating…",
     "createDatabase": "Create database",
     "createError": "Failed to create database"
@@ -387,8 +362,6 @@
     "template": "Template",
     "customNone": "— custom (none) —",
     "name": "Name",
-    "environmentId": "Environment ID",
-    "destinationId": "Destination ID",
     "dockerComposeLabel": "docker-compose.yml (ignored when a template is selected)",
     "creating": "Creating…",
     "createService": "Create service",
@@ -502,5 +475,91 @@
   },
   "auth": {
     "signingIn": "Signing you in…"
+  },
+  "workspaces": {
+    "title": "Workspaces",
+    "subtitle": "A workspace groups the parts of one application — a frontend, an API, a database — so they run together and can reach each other.",
+    "create": "New workspace",
+    "createFirst": "Create your first workspace",
+    "createTitle": "New workspace",
+    "createSubtitle": "Decide where this application runs. Everything you add to it inherits the choice.",
+    "emptyTitle": "No workspaces yet.",
+    "emptyHint": "Create one to choose where your application runs, then add the projects that make it up.",
+    "open": "Open",
+    "delete": "Delete workspace",
+    "deleteError": "Could not delete this workspace.",
+    "notFound": "This workspace does not exist, or is not yours.",
+    "backToList": "All workspaces",
+    "hosting": "Hosting",
+    "environments": "Environments",
+    "projects": "Projects",
+    "addProject": "Add a project",
+    "noProjects": "Nothing deployed here yet. Add a frontend, an API or a database.",
+    "colocationNote": "Projects in this workspace share a private network and can reach each other by name.",
+    "step": {
+      "identity": "Name",
+      "hosting": "Hosting"
+    },
+    "target": {
+      "saas": "IDEM infrastructure",
+      "own": "My own server"
+    },
+    "targetHint": {
+      "saas": "We pick and maintain the server. Nothing to set up.",
+      "own": "Deploy to a server you added yourself."
+    },
+    "field": {
+      "target": "Target",
+      "region": "Region",
+      "server": "Server",
+      "projects": "Projects",
+      "environments": "Environments"
+    },
+    "form": {
+      "name": "Workspace name",
+      "namePlaceholder": "My online shop",
+      "nameHint": "Usually the name of the application, not of one of its parts.",
+      "description": "Description (optional)",
+      "target": "Where should it run?",
+      "server": "Server",
+      "chooseServer": "Choose a server…",
+      "noServers": "You have no server yet.",
+      "addServer": "Add one",
+      "region": "Region",
+      "defaultRegion": "Default ({{region}})",
+      "regionLocked": "Hosted in the default region ({{region}}). Choosing a region is available on the Pro and Enterprise plans.",
+      "next": "Continue",
+      "back": "Back",
+      "create": "Create workspace",
+      "creating": "Creating…",
+      "createError": "Could not create this workspace."
+    },
+    "env": {
+      "add": "Add",
+      "placeholder": "staging",
+      "delete": "Delete",
+      "addError": "Could not add this environment.",
+      "deleteError": "Could not delete this environment."
+    }
+  },
+  "workspaceTargetPicker": {
+    "workspace": "Workspace",
+    "noWorkspaces": "No workspaces yet. Create one first.",
+    "chooseWorkspace": "Choose a workspace…",
+    "environment": "Environment",
+    "project": "Project",
+    "projectOptional": "(optional)",
+    "projectPlaceholder": "e.g. frontend, backend, database",
+    "willUseExisting": "Will be added to the existing \"{{name}}\" project.",
+    "willCreateNew": "Will create a new \"{{name}}\" project."
+  },
+  "workspaceChoicePicker": {
+    "label": "Where should this run?",
+    "createNew": "Create new",
+    "useExisting": "Use existing",
+    "choose": "Choose a workspace…",
+    "existingHint": "Deployed into the workspace you pick — it will share that workspace's server and network.",
+    "namePlaceholder": "Workspace name",
+    "newHint": "A new workspace, dedicated to this. You can add more to it later."
   }
 }

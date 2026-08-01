@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import {
   Application,
@@ -140,6 +140,18 @@ import {
             <input type="checkbox" [checked]="fw.enabled" (change)="toggleFirewall(fw)" />
             {{ 'applications.detail.firewallStats' | translate: { blocked: fw.total_blocked, requests: fw.total_requests } }}
           </label>
+
+          @if (fw.enforcement && fw.enforcement.state !== 'enforced') {
+            <!-- Saved rules are not active rules. Saying so is the point. -->
+            <p
+              class="mb-3 rounded-lg p-3 text-sm"
+              role="status"
+              style="background: rgba(184,60,60,.12); color: var(--color-danger);"
+            >
+              <strong>{{ 'applications.detail.firewallNotEnforced' | translate }}</strong><br />
+              {{ fw.enforcement.reason }}
+            </p>
+          }
           @for (rule of firewallRules(); track rule.id) {
             <div class="mb-1 flex items-center gap-3 text-sm">
               <span class="font-semibold">{{ rule.name }}</span>
@@ -153,6 +165,9 @@ import {
             <button class="button" type="submit" [disabled]="ruleForm.invalid">{{ 'applications.detail.addRule' | translate }}</button>
           </form>
           <button class="button-secondary mt-3" (click)="deployFirewall()">{{ 'applications.detail.deployFirewall' | translate }}</button>
+          @if (firewallMessage()) {
+            <p class="mt-2 text-sm" style="color: var(--color-danger);">{{ firewallMessage() }}</p>
+          }
         }
       </section>
 
@@ -201,6 +216,7 @@ export class ApplicationDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder);
+  private translate = inject(TranslateService);
 
   protected readonly app = signal<Application | null>(null);
   protected readonly envVars = signal<EnvVar[]>([]);
@@ -209,6 +225,8 @@ export class ApplicationDetailComponent implements OnInit {
   protected readonly volumes = signal<AppVolumes | null>(null);
   protected readonly opsOutput = signal<string>('');
   protected readonly firewall = signal<FirewallConfig | null>(null);
+  /** Outcome of the last apply attempt, shown next to the button. */
+  protected readonly firewallMessage = signal<string | null>(null);
   protected readonly firewallRules = signal<FirewallRule[]>([]);
   protected readonly pipeline = signal<{ enabled: boolean; stages: string[]; trigger_mode: string } | null>(null);
   protected readonly pipelineExecutions = signal<Record<string, unknown>[]>([]);
@@ -379,8 +397,22 @@ export class ApplicationDetailComponent implements OnInit {
     });
   }
 
+  /**
+   * Apply the rules to the proxy.
+   *
+   * The API currently refuses — enforcement is not wired — and that refusal is
+   * shown rather than swallowed. The previous `subscribe()` with no handlers
+   * turned a 501 into a button that appeared to work.
+   */
   protected deployFirewall(): void {
-    this.api.deployFirewall(this.uuid).subscribe();
+    this.firewallMessage.set(null);
+    this.api.deployFirewall(this.uuid).subscribe({
+      next: () => this.firewallMessage.set(null),
+      error: (e) =>
+        this.firewallMessage.set(
+          e?.error?.error?.message ?? this.translate.instant('applications.detail.firewallDeployError')
+        ),
+    });
   }
 
   protected runPipeline(): void {

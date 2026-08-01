@@ -3,10 +3,14 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { Service, ServiceTemplate } from '../../../shared/models/ideploy.models';
+import {
+  WorkspaceTarget,
+  WorkspaceTargetPickerComponent,
+} from '../../../shared/components/workspace-target-picker/workspace-target-picker';
 
 @Component({
   selector: 'app-services-list',
-  imports: [ReactiveFormsModule, TranslateModule],
+  imports: [ReactiveFormsModule, TranslateModule, WorkspaceTargetPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h1 class="mb-6 text-2xl font-bold">{{ 'services.title' | translate }}</h1>
@@ -52,24 +56,19 @@ import { Service, ServiceTemplate } from '../../../shared/models/ideploy.models'
           <label class="mb-1 block text-sm">{{ 'services.name' | translate }}</label>
           <input class="input" formControlName="name" />
         </div>
-        <div class="flex gap-3">
-          <div class="flex-1">
-            <label class="mb-1 block text-sm">{{ 'services.environmentId' | translate }}</label>
-            <input class="input" type="number" formControlName="environment_id" />
+
+        <app-workspace-target-picker (targetChange)="target.set($event)" />
+
+        @if (!form.controls.template.value) {
+          <div>
+            <label class="mb-1 block text-sm">{{ 'services.dockerComposeLabel' | translate }}</label>
+            <textarea class="input font-mono" rows="6" formControlName="docker_compose_raw"></textarea>
           </div>
-          <div class="flex-1">
-            <label class="mb-1 block text-sm">{{ 'services.destinationId' | translate }}</label>
-            <input class="input" type="number" formControlName="destination_id" />
-          </div>
-        </div>
-        <div>
-          <label class="mb-1 block text-sm">{{ 'services.dockerComposeLabel' | translate }}</label>
-          <textarea class="input font-mono" rows="6" formControlName="docker_compose_raw"></textarea>
-        </div>
+        }
         @if (error()) {
           <p class="text-sm text-red-400">{{ error() }}</p>
         }
-        <button class="button" type="submit" [disabled]="saving()">
+        <button class="button" type="submit" [disabled]="!target() || saving()">
           {{ (saving() ? 'services.creating' : 'services.createService') | translate }}
         </button>
       </form>
@@ -86,12 +85,11 @@ export class ServicesListComponent implements OnInit {
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
+  protected readonly target = signal<WorkspaceTarget | null>(null);
 
   protected readonly form = this.fb.nonNullable.group({
     template: [''],
     name: ['', Validators.required],
-    environment_id: [0, Validators.required],
-    destination_id: [0, Validators.required],
     docker_compose_raw: [''],
   });
 
@@ -111,13 +109,15 @@ export class ServicesListComponent implements OnInit {
   }
 
   protected create(): void {
+    const target = this.target();
     const v = this.form.getRawValue();
-    if (!v.name) return;
+    if (!v.name || !target) return;
     this.saving.set(true);
     this.error.set(null);
     const done = {
       next: () => {
-        this.form.reset({ template: '', name: '', environment_id: 0, destination_id: 0, docker_compose_raw: '' });
+        this.form.reset({ template: '', name: '', docker_compose_raw: '' });
+        this.target.set(null);
         this.saving.set(false);
         this.load();
       },
@@ -131,16 +131,18 @@ export class ServicesListComponent implements OnInit {
         .createServiceFromTemplate({
           template: v.template,
           name: v.name,
-          environment_id: v.environment_id,
-          destination_id: v.destination_id,
+          workspace_uuid: target.workspace_uuid,
+          environment_name: target.environment_name,
+          project_name: target.project_name,
         })
         .subscribe(done);
     } else {
       this.api
         .createService({
           name: v.name,
-          environment_id: v.environment_id,
-          destination_id: v.destination_id,
+          workspace_uuid: target.workspace_uuid,
+          environment_name: target.environment_name,
+          project_name: target.project_name,
           docker_compose_raw: v.docker_compose_raw,
         })
         .subscribe(done);

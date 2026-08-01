@@ -4,6 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { environment } from '../../../../environments/environment';
+import {
+  WorkspaceChoice,
+  WorkspaceChoicePickerComponent,
+} from '../../../shared/components/workspace-choice-picker/workspace-choice-picker';
 
 interface Preset {
   label: string;
@@ -18,7 +22,7 @@ interface Preset {
  */
 @Component({
   selector: 'app-import-config',
-  imports: [FormsModule, RouterLink, TranslateModule],
+  imports: [FormsModule, RouterLink, TranslateModule, WorkspaceChoicePickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex h-16 items-center justify-between border-b px-6" style="border-color:var(--color-surface-2);">
@@ -94,6 +98,13 @@ interface Preset {
           <p class="mt-1 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.import.rootDirHint' | translate }}</p>
         </div>
 
+        <div class="mb-5 rounded-xl p-4 border" style="background:var(--color-surface-1);border-color:var(--color-surface-2);">
+          <app-workspace-choice-picker
+            [suggestedName]="projectName"
+            (choiceChange)="workspaceChoice.set($event)"
+          />
+        </div>
+
         <!-- Collapsibles -->
         <button class="mb-3 flex w-full items-center gap-2 rounded-lg p-3 text-left text-sm font-semibold cursor-pointer hover:bg-white/[0.02] transition-colors"
                 style="border:1px solid var(--color-surface-2);" (click)="showBuild.set(!showBuild())">
@@ -140,7 +151,7 @@ interface Preset {
           </div>
         }
 
-        <button class="button w-full cursor-pointer py-2.5 text-base" [disabled]="deploying() || !projectName" (click)="deploy()">
+        <button class="button w-full cursor-pointer py-2.5 text-base" [disabled]="deploying() || !projectName || !workspaceChoice()" (click)="deploy()">
           {{ (deploying() ? 'projects.import.deploying' : 'projects.common.deploy') | translate }}
         </button>
       </div>
@@ -202,6 +213,8 @@ export class ImportConfigComponent implements OnInit {
   protected readonly showDockerModal = signal(false);
   protected readonly modalBuildMethod = signal<'docker' | 'buildless'>('buildless');
   protected readonly buildMethod = signal<'docker' | 'buildless'>('buildless');
+  /** Where this lands — an existing workspace, or a new one. Never implicit. */
+  protected readonly workspaceChoice = signal<WorkspaceChoice | null>(null);
   protected readonly deploying = signal(false);
   protected readonly settingUpLocal = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -301,7 +314,8 @@ export class ImportConfigComponent implements OnInit {
   }
 
   protected executeDeploy(): void {
-    if (!this.projectName || !this.cloneUrl) {
+    const workspaceChoice = this.workspaceChoice();
+    if (!this.projectName || !this.cloneUrl || !workspaceChoice) {
       this.error.set(this.translate.instant('projects.import.errMissingRepo'));
       return;
     }
@@ -311,7 +325,8 @@ export class ImportConfigComponent implements OnInit {
     this.api
       .quickDeploy({
         name: this.projectName,
-        project_name: this.projectName,
+        workspace_uuid: workspaceChoice.workspace_uuid,
+        workspace_name: workspaceChoice.workspace_name,
         git_repository: this.cloneUrl,
         git_branch: this.branch(),
         build_pack: buildPack,
