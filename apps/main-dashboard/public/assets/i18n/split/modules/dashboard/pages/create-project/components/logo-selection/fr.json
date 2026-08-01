@@ -42,6 +42,37 @@
         "critique": {
           "title": "Avis du directeur artistique",
           "revised": "Corrigé par l’agent"
+        },
+        "phases": {
+          "brief": "Lecture du brief",
+          "exploration": "Recherche de pistes",
+          "vector": "Tracé vectoriel",
+          "audit": "Contrôle qualité",
+          "finalize": "Finalisation"
+        },
+        "ambient": [
+          "Lecture de la palette et de la typographie du projet",
+          "Recensement des symboles courants du secteur",
+          "Composition des formes primaires",
+          "Ajustement des proportions sur la grille",
+          "Vérification de la lisibilité en petite taille",
+          "Simplification des courbes superflues",
+          "Contrôle du rendu sur fond clair et sur fond sombre",
+          "Nettoyage des tracés SVG",
+          "Comparaison avec les concepts déjà produits"
+        ],
+        "log": {
+          "brief": "Brief de marque transmis aux agents",
+          "started": "Concept {{concept}} : exploration lancée",
+          "generated": "Concept {{concept}} : tracé reçu",
+          "audit": "Concept {{concept}} : passage au contrôle qualité",
+          "auditPass": "Concept {{concept}} validé ({{score}}/100)",
+          "auditFail": "Concept {{concept}} à corriger ({{score}}/100)",
+          "revising": "Concept {{concept}} : correction en cours",
+          "revised": "Concept {{concept}} : correction appliquée",
+          "final": "Concept {{concept}} prêt",
+          "cancelled": "Concept {{concept}} abandonné",
+          "error": "Concept {{concept}} : échec de la génération"
         }
       }
     }

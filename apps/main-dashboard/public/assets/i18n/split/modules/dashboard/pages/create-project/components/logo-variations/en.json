@@ -108,6 +108,36 @@
         "critique": {
           "title": "Quality agent's review",
           "revised": "Fixed by the agent"
+        },
+        "phases": {
+          "read": "Reading the logo",
+          "recolor": "Adapting colors",
+          "contrast": "Measuring contrast",
+          "audit": "Quality review",
+          "finalize": "Finishing"
+        },
+        "ambient": [
+          "Extracting the colors of the selected logo",
+          "Locating the areas to recolor",
+          "Adapting the palette to the destination background",
+          "Measuring contrast on the target background",
+          "Testing the display at 32 px",
+          "Preserving the original proportions",
+          "Flattening the monochrome version",
+          "Cleaning up the SVG paths"
+        ],
+        "log": {
+          "read": "Source logo analyzed",
+          "started": "{{variant}}: recoloring started",
+          "generated": "{{variant}}: version received",
+          "audit": "{{variant}}: checked on the target background",
+          "auditPass": "{{variant}} approved ({{score}}/100)",
+          "auditFail": "{{variant}} needs fixing ({{score}}/100)",
+          "revising": "{{variant}}: fixing colors",
+          "revised": "{{variant}}: fix applied",
+          "final": "{{variant}} ready",
+          "cancelled": "{{variant}} dropped",
+          "error": "{{variant}}: generation failed"
         }
       }
     }
