@@ -1,0 +1,45 @@
+<section class="atelier" [attr.aria-busy]="running()">
+  <div class="atelier__head">
+    <!-- h1 : ce panneau est le titre de l'étape tant que la génération dure,
+         au même niveau que les autres états de l'écran. -->
+    <h1 class="atelier__title">{{ heading() }}</h1>
+    <p class="atelier__pct">{{ percent() }} %</p>
+  </div>
+
+  @if (subheading()) {
+    <p class="atelier__subtitle">{{ subheading() }}</p>
+  }
+
+  <div
+    class="atelier__rail"
+    role="progressbar"
+    aria-valuemin="0"
+    aria-valuemax="100"
+    [attr.aria-valuenow]="percent()"
+    [attr.aria-label]="heading()"
+  >
+    <div class="atelier__rail-fill" [style.width.%]="progress()"></div>
+  </div>
+
+  <div class="atelier__feed" role="log" aria-live="polite" aria-relevant="additions">
+    @for (line of lines(); track line.key) {
+      <p class="atelier__line" [attr.aria-hidden]="line.ambient ? 'true' : null">{{ line.text }}</p>
+    }
+  </div>
+
+  <p class="atelier__foot">
+    @if (running()) {
+      @if (remainingLabel(); as remaining) {
+        {{ 'dashboard.generationAtelier.remaining' | translate: { time: remaining } }}
+      } @else {
+        {{ 'dashboard.generationAtelier.almostThere' | translate }}
+      }
+      <span class="atelier__sep" aria-hidden="true">·</span>
+      {{ 'dashboard.generationAtelier.hold' | translate }}
+    } @else if (failed()) {
+      {{ 'dashboard.generationAtelier.stopped' | translate }}
+    } @else {
+      {{ 'dashboard.generationAtelier.done' | translate }}
+    }
+  </p>
+</section>

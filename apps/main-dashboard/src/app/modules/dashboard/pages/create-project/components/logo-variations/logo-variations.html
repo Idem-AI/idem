@@ -114,14 +114,18 @@
 <!-- Live Generation Board (SSE) : déclinaisons, vérification qualité et correction en temps réel -->
 @if (showLiveBoard()) {
   <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="text-center mb-8">
-      <h1 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-text-primary mb-3">
-        {{ 'dashboard.logoVariations.live.title' | translate }}
-      </h1>
-      <p class="text-text-tertiary text-sm sm:text-base max-w-2xl mx-auto">
-        {{ 'dashboard.logoVariations.live.subtitle' | translate }}
-      </p>
-    </div>
+    <app-generation-atelier
+      class="mb-6 block"
+      [heading]="'dashboard.logoVariations.live.title' | translate"
+      [subheading]="'dashboard.logoVariations.live.subtitle' | translate"
+      [ambientMessages]="atelierAmbient()"
+      [notes]="atelierNotes()"
+      [runId]="atelierRun()"
+      [milestone]="atelierMilestone()"
+      [running]="isGenerating()"
+      [failed]="!isGenerating() && (hasFailedSlots() || !!error())"
+      [estimatedMs]="105000"
+    />
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
       @for (slot of variationSlots(); track slot.kind) {
@@ -143,11 +147,14 @@
             class="relative w-full rounded-xl h-[150px] sm:h-[170px] flex items-center justify-center p-4 mb-4 overflow-hidden border border-[var(--glass-border)]"
             [style.background-color]="slotBackground(slot.kind)"
           >
+            @if (slot.status === 'generating' || slot.status === 'critiquing' || slot.status === 'revising') {
+              <span class="forge-worm" aria-hidden="true"></span>
+            }
             @if (slot.svg) {
               <img
                 [src]="slot.svg | logoSrc"
                 alt="Logo"
-                class="w-full h-full object-contain transition-opacity duration-500 max-w-full max-h-full"
+                class="forge-reveal w-full h-full object-contain max-w-full max-h-full"
               />
               @if (slot.status === 'revising') {
                 <div
@@ -170,7 +177,11 @@
                 <span class="text-xs">{{ 'dashboard.logoVariations.live.status.error' | translate }}</span>
               </div>
             } @else {
-              <div class="w-20 h-20 bg-gray-400/30 rounded-lg animate-pulse"></div>
+              <span class="forge-canvas" aria-hidden="true">
+                <span class="forge-ghost forge-ghost--a"></span>
+                <span class="forge-ghost forge-ghost--b"></span>
+                <span class="forge-ghost forge-ghost--c"></span>
+              </span>
             }
           </div>
 

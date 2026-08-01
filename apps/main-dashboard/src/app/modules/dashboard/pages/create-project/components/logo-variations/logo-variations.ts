@@ -14,6 +14,7 @@ import { LogoSrcPipe } from '../../../../../../shared/pipes/logo-src.pipe';
 import { LogoModel, LogoVariations } from '../../../../models/logo.model';
 import { ProjectModel } from '@idem/shared-models';
 import { CarouselComponent } from '../../../../../../shared/components/carousel/carousel.component';
+import { AtelierNote, GenerationAtelierComponent } from '../generation-atelier/generation-atelier';
 
 import { Subject, takeUntil } from 'rxjs';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
@@ -63,10 +64,32 @@ const VARIATION_DISPLAY: Record<VariationKind, { backgroundColor: string }> = {
   monochrome: { backgroundColor: '#f3f4f6' },
 };
 
+/**
+ * Poids d'avancement d'une déclinaison selon son statut : donne une progression
+ * réelle granulaire plutôt qu'un palier tous les 33 %.
+ */
+const VARIATION_WEIGHT: Record<VariationSlotStatus, number> = {
+  pending: 0,
+  generating: 0.18,
+  generated: 0.5,
+  critiquing: 0.66,
+  revising: 0.82,
+  final: 1,
+  cancelled: 1,
+  error: 1,
+};
+
 @Component({
   selector: 'app-logo-variations',
   standalone: true,
-  imports: [CommonModule, FormsModule, LogoSrcPipe, CarouselComponent, TranslateModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    LogoSrcPipe,
+    CarouselComponent,
+    GenerationAtelierComponent,
+    TranslateModule,
+  ],
   templateUrl: './logo-variations.html',
   styleUrl: './logo-variations.css',
 })
@@ -124,6 +147,29 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
   /** Tableau de bord live affiché pendant la génération streamée ou en cas de reprise/échec */
   protected readonly showLiveBoard = computed(() => {
     return this.liveMode() || (this.hasStartedGeneration() && !this.isCompleted());
+  });
+
+  // --- Atelier de suivi (barre, rail de phases, journal) --------------------
+
+  /** Journal des vrais événements du flux, append-only. */
+  protected readonly atelierNotes = signal<AtelierNote[]>([]);
+  /** Incrémenté à chaque tentative pour réinitialiser le panneau de suivi. */
+  protected readonly atelierRun = signal(0);
+  private noteSeq = 0;
+
+  protected readonly atelierAmbient = computed<string[]>(() => {
+    const pool = this.translate.instant('dashboard.logoVariations.live.ambient');
+    return Array.isArray(pool) ? pool : [];
+  });
+
+  /** Progression réelle, dérivée du statut de chacune des déclinaisons. */
+  protected readonly atelierMilestone = computed(() => {
+    const slots = this.variationSlots();
+    if (slots.length === 0) {
+      return 0;
+    }
+    const total = slots.reduce((sum, slot) => sum + VARIATION_WEIGHT[slot.status], 0);
+    return Math.round((total / slots.length) * 100);
   });
 
   // Computed properties
@@ -258,6 +304,10 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
       })
     );
 
+    this.atelierNotes.set([]);
+    this.atelierRun.update((run) => run + 1);
+    this.pushNote('read', {});
+
     this.brandingService
       .generateLogoVariationsStream(this.project().id!, force)
       .pipe(takeUntil(this.destroy$))
@@ -305,27 +355,43 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
     const kind = payload.variant;
     if (!kind) return;
 
+    const variant = this.translate.instant(this.slotLabelKey(kind));
+
     switch (event.stepName) {
       case 'variation_started':
         this.updateSlot(kind, { status: 'generating' });
+        this.pushNote('started', { variant });
         break;
       case 'variation_generated':
         this.updateSlot(kind, { status: 'generated', svg: payload.svg ?? null });
+        this.pushNote('generated', { variant });
         break;
       case 'critique_started':
         this.updateSlot(kind, { status: 'critiquing' });
+        this.pushNote('audit', { variant });
         break;
-      case 'critique_result':
-        this.updateSlot(kind, { critique: payload.critique ?? null });
+      case 'critique_result': {
+        const critique = payload.critique ?? null;
+        this.updateSlot(kind, { critique });
+        if (critique) {
+          this.pushNote(critique.verdict === 'pass' ? 'auditPass' : 'auditFail', {
+            variant,
+            score: critique.score,
+          });
+        }
         break;
+      }
       case 'revision_started':
         this.updateSlot(kind, { status: 'revising' });
+        this.pushNote('revising', { variant });
         break;
       case 'variation_updated':
         this.updateSlot(kind, { svg: payload.svg ?? null, revised: true });
+        this.pushNote('revised', { variant });
         break;
       case 'variation_finalized':
         this.updateSlot(kind, { status: 'final', svg: payload.svg ?? null });
+        this.pushNote('final', { variant });
         this.generationProgress.set(
           Math.round(
             (this.variationSlots().filter((s) => s.status === 'final').length / 3) * 100,
@@ -334,11 +400,20 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
         break;
       case 'variation_cancelled':
         this.updateSlot(kind, { status: 'cancelled' });
+        this.pushNote('cancelled', { variant });
         break;
       case 'variation_error':
         this.updateSlot(kind, { status: 'error' });
+        this.pushNote('error', { variant });
         break;
     }
+  }
+
+  /** Ajoute une ligne au fil d'activité (clé sous `live.log.*`). */
+  private pushNote(key: string, params: Record<string, unknown>): void {
+    this.noteSeq += 1;
+    const text = this.translate.instant(`dashboard.logoVariations.live.log.${key}`, params);
+    this.atelierNotes.update((notes) => [...notes, { id: `note-${this.noteSeq}`, text }]);
   }
 
   private updateSlot(kind: VariationKind, patch: Partial<VariationSlot>): void {

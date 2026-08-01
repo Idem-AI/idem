@@ -610,6 +610,30 @@
         "critique": {
           "title": "Avis du directeur artistique",
           "revised": "Corrigé par l’agent"
+        },
+        "ambient": [
+          "Lecture de la palette et de la typographie du projet",
+          "Recensement des symboles courants du secteur",
+          "Composition des formes primaires",
+          "Ajustement des proportions sur la grille",
+          "Vérification de la lisibilité en petite taille",
+          "Simplification des courbes superflues",
+          "Contrôle du rendu sur fond clair et sur fond sombre",
+          "Nettoyage des tracés SVG",
+          "Comparaison avec les concepts déjà produits"
+        ],
+        "log": {
+          "brief": "Brief de marque transmis aux agents",
+          "started": "Concept {{concept}} : exploration lancée",
+          "generated": "Concept {{concept}} : tracé reçu",
+          "audit": "Concept {{concept}} : passage au contrôle qualité",
+          "auditPass": "Concept {{concept}} validé ({{score}}/100)",
+          "auditFail": "Concept {{concept}} à corriger ({{score}}/100)",
+          "revising": "Concept {{concept}} : correction en cours",
+          "revised": "Concept {{concept}} : correction appliquée",
+          "final": "Concept {{concept}} prêt",
+          "cancelled": "Concept {{concept}} abandonné",
+          "error": "Concept {{concept}} : échec de la génération"
         }
       }
     },
@@ -721,6 +745,29 @@
         "critique": {
           "title": "Avis de l'agent qualité",
           "revised": "Corrigée par l'agent"
+        },
+        "ambient": [
+          "Extraction des couleurs du logo retenu",
+          "Repérage des zones à recolorer",
+          "Adaptation de la palette au fond de destination",
+          "Mesure du contraste sur le fond cible",
+          "Test d'affichage en 32 px",
+          "Conservation des proportions d'origine",
+          "Aplatissement de la version monochrome",
+          "Nettoyage des tracés SVG"
+        ],
+        "log": {
+          "read": "Logo source analysé",
+          "started": "{{variant}} : recoloration lancée",
+          "generated": "{{variant}} : version reçue",
+          "audit": "{{variant}} : vérification sur le fond cible",
+          "auditPass": "{{variant}} validée ({{score}}/100)",
+          "auditFail": "{{variant}} à corriger ({{score}}/100)",
+          "revising": "{{variant}} : correction des couleurs",
+          "revised": "{{variant}} : correction appliquée",
+          "final": "{{variant}} prête",
+          "cancelled": "{{variant}} abandonnée",
+          "error": "{{variant}} : échec de la génération"
         }
       }
     },
@@ -2718,6 +2765,13 @@
         "deleteHolder": "La suppression a échoué.",
         "download": "Le téléchargement de la carte a échoué."
       }
+    },
+    "generationAtelier": {
+      "remaining": "Encore {{time}} environ",
+      "almostThere": "Plus que quelques secondes",
+      "done": "Traitement terminé",
+      "hold": "Laissez cet onglet ouvert : la génération s'arrête si vous quittez la page.",
+      "stopped": "Génération interrompue"
     }
   },
   "deployment": {

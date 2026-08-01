@@ -1,0 +1,11 @@
+{
+  "dashboard": {
+    "generationAtelier": {
+      "remaining": "About {{time}} left",
+      "almostThere": "A few seconds left",
+      "done": "Processing complete",
+      "hold": "Keep this tab open: generation stops if you leave the page.",
+      "stopped": "Generation interrupted"
+    }
+  }
+}

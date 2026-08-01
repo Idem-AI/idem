@@ -56,20 +56,37 @@ function collectGeneratedFiles(messages: Message[]): Record<string, string> {
 }
 
 /** The logo the generated site is supposed to show, if the project has one. */
-function expectedLogoOf(projectData?: { analysisResultModel?: any } | null): string | undefined {
+/**
+ * Every rendition the generated code could legitimately reference. The linter
+ * passes when it finds any one of them, so choosing the dark variant over the
+ * light one is not reported as a missing logo.
+ */
+function expectedLogoOf(projectData?: { analysisResultModel?: any } | null): string[] {
   const logo = projectData?.analysisResultModel?.branding?.logo;
 
   if (!logo) {
-    return undefined;
+    return [];
   }
 
-  return (
-    logo.assetUrls?.withText?.lightBackground ||
-    logo.assetUrls?.primary ||
-    logo.variations?.withText?.lightBackground ||
-    logo.variations?.lightBackground ||
-    logo.svg ||
-    undefined
+  const candidates: unknown[] = [
+    logo.assetUrls?.withText?.lightBackground,
+    logo.assetUrls?.primary,
+    logo.assetUrls?.icon,
+    logo.assetUrls?.withText?.darkBackground,
+    logo.assetUrls?.iconOnly?.lightBackground,
+    logo.variations?.withText?.lightBackground,
+    logo.variations?.lightBackground,
+    logo.svg,
+    logo.iconSvg,
+  ];
+
+  return Array.from(
+    new Set(
+      candidates
+        .filter((value): value is string => typeof value === 'string')
+        .map((value) => value.trim())
+        .filter(Boolean)
+    )
   );
 }
 

@@ -42,6 +42,30 @@
         "critique": {
           "title": "Design director's review",
           "revised": "Fixed by the agent"
+        },
+        "ambient": [
+          "Reading the project palette and typography",
+          "Listing the symbols common to the sector",
+          "Composing the primary shapes",
+          "Aligning proportions to the grid",
+          "Checking legibility at small sizes",
+          "Simplifying redundant curves",
+          "Checking the result on light and dark backgrounds",
+          "Cleaning up the SVG paths",
+          "Comparing with the concepts already produced"
+        ],
+        "log": {
+          "brief": "Brand brief sent to the agents",
+          "started": "Concept {{concept}}: exploration started",
+          "generated": "Concept {{concept}}: drawing received",
+          "audit": "Concept {{concept}}: sent to quality review",
+          "auditPass": "Concept {{concept}} approved ({{score}}/100)",
+          "auditFail": "Concept {{concept}} needs fixing ({{score}}/100)",
+          "revising": "Concept {{concept}}: fix in progress",
+          "revised": "Concept {{concept}}: fix applied",
+          "final": "Concept {{concept}} ready",
+          "cancelled": "Concept {{concept}} dropped",
+          "error": "Concept {{concept}}: generation failed"
         }
       }
     }
