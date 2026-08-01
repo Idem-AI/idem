@@ -1,4 +1,7 @@
 import { stripIndents } from '../utils/stripIndent.js';
+import { ProjectModel } from '../types/project.js';
+import { forgeDesignSystem, renderDesignBrief, resolveRegister } from '../design/tokenForge.js';
+import { renderSkills, routeSkills, RouteResult } from '../skills/router.js';
 
 export const WORK_DIR_NAME = 'project';
 export const WORK_DIR = `/home/${WORK_DIR_NAME}`;
@@ -18,7 +21,6 @@ export function getLanguageDirective(language?: string): string {
   const isFr = (language || 'en').toLowerCase().startsWith('fr');
   const label = isFr ? 'French (Français)' : 'English';
   return `
-
 RESPONSE LANGUAGE (CRITICAL): All user-facing content you generate — UI text, copy,
 headings, labels, button text, placeholder/demo data, testimonials and any message
 addressed to the user — MUST be written in ${label}. Keep code, identifiers, file
@@ -26,222 +28,87 @@ paths, HTML/JSX tags and technical tokens unchanged.
 `;
 }
 
-export function getSystemPrompt(language?: string): string {
-  return getLanguageDirective(language) + `
-You are an expert web developer. Generate complete, production-ready code with professional architecture.
-
-TECHNICAL CONSTRAINTS:
-- WebContainer environment (browser Node.js)
-- Use Vite + React 18 + TailwindCSS v3
-- No native binaries
-
-PROJECT SETUP:
-- The project is ALREADY initialized with Vite + React
-- DO NOT run "npx create-vite" or any project initialization commands
-- The project structure already exists in /home/project
-- Only modify existing files or add new files as needed
-- Use "npm install <package>" to add dependencies
-- Use "npm run dev" to start the development server
-
-PROFESSIONAL ARCHITECTURE (MANDATORY):
-src/
-├── components/          # Reusable UI components
-│   ├── common/         # Shared components (Button, Card, etc.)
-│   ├── layout/         # Layout components (Header, Footer, etc.)
-│   └── sections/       # Page sections (Hero, Features, etc.)
-├── assets/             # Images, fonts, icons
-├── styles/             # Global styles and Tailwind
-│   └── index.css       # Main CSS with Tailwind directives
-├── utils/              # Helper functions
-├── hooks/              # Custom React hooks
-├── App.jsx             # Main App component
-└── main.jsx            # Entry point
-
-TAILWIND CSS CONFIGURATION (CRITICAL):
-1. Install dependencies: tailwindcss, postcss, autoprefixer
-2. Create tailwind.config.js with proper content paths
-3. Create postcss.config.js
-4. Create src/styles/index.css with Tailwind directives
-5. Import index.css in main.jsx
-
-REQUIRED FILES IN ORDER:
-1. package.json - Include ALL dependencies:
-   {
-     "dependencies": {
-       "react": "^18.2.0",
-       "react-dom": "^18.2.0"
-     },
-     "devDependencies": {
-       "@vitejs/plugin-react": "^4.2.0",
-       "vite": "^5.0.0",
-       "tailwindcss": "^3.4.0",
-       "postcss": "^8.4.0",
-       "autoprefixer": "^10.4.0"
-     }
-   }
-
-2. tailwind.config.js - Proper configuration:
-   export default {
-     content: [
-       "./index.html",
-       "./src/**/*.{js,ts,jsx,tsx}",
-     ],
-     theme: {
-       extend: {
-         colors: {
-           // Add project-specific colors here
-         },
-       },
-     },
-     plugins: [],
-   }
-
-3. postcss.config.js:
-   export default {
-     plugins: {
-       tailwindcss: {},
-       autoprefixer: {},
-     },
-   }
-
-4. src/styles/index.css - Tailwind directives:
-   @tailwind base;
-   @tailwind components;
-   @tailwind utilities;
-
-   /* Custom styles here */
-
-5. vite.config.js - React plugin configuration
-
-6. index.html - Root HTML. It MUST contain BOTH the mount node <div id="root"></div>
-   AND the module script that bootstraps the app. Without the <script> tag the page
-   renders BLANK (main.jsx never runs). Exact required structure:
-   <!DOCTYPE html>
-   <html lang="en">
-     <head>
-       <meta charset="UTF-8" />
-       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-       <title>...</title>
-     </head>
-     <body>
-       <div id="root"></div>
-       <script type="module" src="/src/main.jsx"></script>
-     </body>
-   </html>
-
-7. src/main.jsx - Import styles:
-   import React from 'react'
-   import ReactDOM from 'react-dom/client'
-   import App from './App'
-   import './styles/index.css'
-
-   ReactDOM.createRoot(document.getElementById('root')).render(
-     <React.StrictMode>
-       <App />
-     </React.StrictMode>,
-   )
-
-8. src/App.jsx - Main component with routing if needed
-
-9. Component files in proper folders
-
-OUTPUT FORMAT:
-<boltArtifact id="project-id" title="Project Title">
-  <boltAction type="file" filePath="package.json">...</boltAction>
-  <boltAction type="file" filePath="tailwind.config.js">...</boltAction>
-  <boltAction type="file" filePath="postcss.config.js">...</boltAction>
-  <boltAction type="file" filePath="src/styles/index.css">...</boltAction>
-  <boltAction type="file" filePath="vite.config.js">...</boltAction>
-  <boltAction type="file" filePath="index.html">...</boltAction>
-  <boltAction type="file" filePath="src/main.jsx">...</boltAction>
-  <boltAction type="file" filePath="src/App.jsx">...</boltAction>
-  <boltAction type="file" filePath="src/components/...">...</boltAction>
-  <boltAction type="shell">npm install</boltAction>
-  <boltAction type="start">npm run dev</boltAction>
-</boltArtifact>
-
-IMPORTANT RULES:
-1. NEVER run project initialization commands (create-vite, create-react-app, etc.)
-2. ALWAYS create package.json FIRST with ALL dependencies
-2b. index.html MUST include <script type="module" src="/src/main.jsx"></script> inside
-    <body> (right after <div id="root"></div>). Omitting it produces a BLANK page with no
-    console error. This is mandatory for every project.
-3. ALWAYS configure TailwindCSS properly (config files + CSS directives)
-4. Use professional folder structure (components/common, components/layout, etc.)
-5. Create reusable components, not monolithic files
-6. Use semantic HTML and proper accessibility attributes
-7. Implement responsive design with Tailwind breakpoints (sm:, md:, lg:, xl:)
-8. Use Tailwind utility classes, not inline styles
-9. Add proper meta tags for SEO
-10. Include error boundaries and loading states
-
-CODE QUALITY STANDARDS:
-- Clean, readable code with proper indentation
-- Meaningful component and variable names
-- Proper prop types or TypeScript interfaces
-- Reusable components with clear responsibilities
-- Responsive design (mobile-first approach)
-- Accessibility (ARIA labels, semantic HTML)
-- Performance optimization (lazy loading, code splitting)
-
-VISUAL EDIT MODE FRIENDLINESS (IMPORTANT):
-The generated site is edited in a visual "Edit" mode where the user clicks elements
-on the live preview to change text, images, styles, reorder them, or delete them —
-and the change is written back into this JSX source automatically. Generate markup
-that maps cleanly to editable elements:
-
-1. TEXT IN LEAF ELEMENTS: put each piece of user-facing text directly inside a single
-   leaf element with NO nested element around the text. Prefer <h1>Title</h1> over
-   <h1><span>Title</span></h1>. A leaf whose only child is text is inline-editable;
-   text wrapped in extra spans/divs is not.
-2. EXPLICIT SIBLING BLOCKS: for a small, fixed set of presentational blocks the user
-   is likely to rearrange or remove — hero, feature cards, testimonials, pricing tiers,
-   steps, gallery items — write them as explicit sibling JSX elements (repeat the block),
-   NOT via {array.map(...)}. Elements produced by .map() or by {condition && <X/>} cannot
-   be individually reordered or deleted in Edit mode. Use .map() only for genuinely
-   data-driven or long/unbounded lists.
-3. DIRECT CHILDREN: keep these blocks as direct children of their container (a plain
-   <section>/<div>). Do not wrap each block in an extra Fragment or a one-off wrapper
-   component — the editor matches siblings by their real DOM parent.
-4. REAL <img> TAGS: use standard <img src="..." alt="..." /> for content images (not CSS
-   background-image), so they are selectable and replaceable in Edit mode.
-5. SIMPLE className: on presentational leaf elements, keep className as a plain string
-   literal when reasonable (avoid clsx/cn()/template-literal classNames there).
-6. Keep JSX well-indented with one element per line — it keeps the visual edits' code
-   output clean.
-
-TARGET AUDIENCE - SUB-SAHARAN AFRICA (CRITICAL):
-This platform primarily targets Sub-Saharan Africa. ALL generated content MUST reflect this:
-
-1. **Images of people**: ALWAYS use images featuring Black African people. Never use generic Western/European/Asian stock photos.
-   - Use Unsplash collections with search terms like "african business", "african woman", "african man", "african team", "black professional", "african entrepreneur", "african technology"
-   - Example URLs: https://images.unsplash.com/photo-1531123897727-8f129e1688ce (African woman), https://images.unsplash.com/photo-1560250097-0b93528c311a (Black professional)
-   - For avatars/testimonials: use diverse Black African faces (men, women, young professionals)
-   - For team photos: show diverse African teams in modern work environments
-
-2. **UI and Cultural Context**:
-   - Use warm, vibrant color palettes that resonate with African aesthetics when no brand colors are specified
-   - Testimonials and user names should use African names (e.g., Amara Diallo, Kwame Asante, Fatou Ndiaye, Chidi Okonkwo, Aisha Mbeki)
-   - Locations should reference African cities (Lagos, Nairobi, Dakar, Accra, Douala, Abidjan, Kigali, Johannesburg)
-   - Currency references should use local currencies (XAF/FCFA, NGN, KES, GHS, XOF) or USD when appropriate
-   - Phone number formats should use African country codes (+237, +234, +254, +233, +225)
-
-3. **Content and Messaging**:
-   - Use inclusive language that resonates with African audiences
-   - Reference African market challenges and opportunities
-   - Social proof should mention African companies, organizations, or communities
-   - Success stories should feature African entrepreneurs and businesses
-
-4. **Placeholder/Demo Data**:
-   - Company names: use African-sounding or Africa-based company names
-   - User profiles: African names with African city locations
-   - Statistics: reference African market data when relevant
-
-`;
+export interface AssembledPrompt {
+  /** Stable, cacheable prefix: routed skills. Sent as a real `system` message. */
+  system: string;
+  /** Volatile tail: forged design system, project brief, task. */
+  user: string;
+  diagnostics: {
+    skills: RouteResult;
+    systemChars: number;
+    userChars: number;
+    artDirection: string;
+    seed: number;
+  };
 }
 
-export function buildSystemPrompt(language?: string): string {
-  return getSystemPrompt(language);
+export interface AssembleOptions {
+  /** The user's own request, before any prompt assembly. */
+  request: string;
+  /** Project brief produced by ProjectPromptService, when a project is attached. */
+  projectBrief?: string;
+  /** Logo instructions. Emitted on every turn, unlike the brief. */
+  brandLockup?: string;
+  projectData?: ProjectModel;
+  language?: string;
+  /** Extra constraints appended after the task (file trees, diffs, …). */
+  extraContext?: string;
+}
+
+/**
+ * Assembles the two halves of a builder request.
+ *
+ * The split is what makes the whole thing cheap. Gemini's implicit cache
+ * discounts input tokens by 90% when a request shares a prefix with a previous
+ * one, so everything invariant goes into the `system` message, in a stable
+ * order, and everything that changes per project stays in the trailing user
+ * message. Concatenating the two (as this codebase used to) means the prefix is
+ * never repeated and the cache never hits.
+ *
+ * Ordering inside the system message is deliberate:
+ *   1. core skills       identical on every request, anywhere → global cache hit
+ *   2. contextual skills stable within a project session      → session cache hit
+ *   3. language          last, so it is the most recent instruction
+ */
+export function assembleBuilderPrompt(options: AssembleOptions): AssembledPrompt {
+  const { request, projectBrief, brandLockup, projectData, language, extraContext } = options;
+
+  const register = resolveRegister(projectData);
+  const skills = routeSkills({ request, register, projectData });
+  const designSystem = forgeDesignSystem(projectData);
+
+  const system = [
+    'You are a senior product designer who also writes production React. You ship interfaces that look designed, not generated.',
+    '',
+    'The instructions below are grouped into skills. All of them apply.',
+    '',
+    renderSkills(skills),
+    '',
+    getLanguageDirective(language),
+  ].join('\n');
+
+  const user = [
+    renderDesignBrief(designSystem),
+    brandLockup ? `\n${brandLockup}` : '',
+    projectBrief ? `\n${projectBrief}` : '',
+    extraContext ? `\n${extraContext}` : '',
+    `\n## YOUR TASK\n${request}`,
+    '\nStart your response immediately with the <boltArtifact> tag. No preamble, no explanation before it.',
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  return {
+    system,
+    user,
+    diagnostics: {
+      skills,
+      systemChars: system.length,
+      userChars: user.length,
+      artDirection: designSystem.direction.id,
+      seed: designSystem.seed,
+    },
+  };
 }
 
 export const CONTINUE_PROMPT = stripIndents`
@@ -249,12 +116,24 @@ export const CONTINUE_PROMPT = stripIndents`
   Do not repeat any content, including artifact and action tags.
 `;
 
-export function buildMaxSystemPrompt(
+/**
+ * Context block for edits on an existing project: the file tree the model is
+ * allowed to touch, the current contents, and the diff since last turn.
+ */
+export function buildExistingProjectContext(
   filesPath: string[],
   files: Record<string, string>,
-  diffString: string,
-  language?: string
+  diffString: string
 ): string {
-  return `Current file directory tree: ${filesPath.join('\n')}\n\n,You can only modify the contents within the directory tree, requirements: ${getSystemPrompt(language)}
-Current requirement file contents:\n${JSON.stringify(files)}${diffString ? `,diff:\n${diffString}` : ''}`;
+  return [
+    '## EXISTING PROJECT',
+    'You may only modify files within this tree:',
+    filesPath.join('\n'),
+    '',
+    'Current contents:',
+    JSON.stringify(files),
+    diffString ? `\nChanges since the last turn:\n${diffString}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
 }

@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import useChatModeStore from '../../../stores/chatModeSlice';
 import useTerminalStore from '@/stores/terminalSlice';
 import { checkExecList, checkFinish } from '../utils/checkFinish';
+import { runQualityPass } from '../utils/qualityPass';
 import { useUrlData } from '@/hooks/useUrlData';
 import {
   getProjectById,
@@ -35,6 +36,7 @@ import { compactMessagesForStorage, deriveSessionTitle } from '@/utils/chatPersi
 import { MCPTool } from '@/types/mcp';
 import useMCPTools from '@/hooks/useMCPTools';
 import { ProjectTutorial } from '../../Onboarding/ProjectTutorial';
+import { ProjectLogo } from '@/components/ProjectLogo';
 import { useLoading } from '../../loading';
 import { ProjectModel } from '@/api/persistence/models/project.model';
 import { MultiChatPromptService } from './services/multiChatPromptService';
@@ -338,9 +340,15 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
   useEffect(() => {
     if (checkCount >= 1) {
-      checkFinish(messages[messages.length - 1].content, append, t);
+      const isComplete = checkFinish(messages[messages.length - 1].content, append, t);
       checkExecList(messages);
       setCheckCount(0);
+
+      // Only worth linting a finished artifact: a truncated one trips rules that
+      // the continuation would have fixed on its own.
+      if (isComplete) {
+        runQualityPass(chatUuid, messages, append, t, projectData);
+      }
     }
   }, [checkCount]);
 
@@ -668,7 +676,9 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       }
     },
     onError: (error: any) => {
-      const msg = error?.errors?.[0]?.responseBody || String(error);
+      // The server sends a readable message (model saturation, quota, ...) either
+      // as the body of a non-2xx response or as a data-stream error part.
+      const msg = error?.errors?.[0]?.responseBody || error?.message || String(error);
       console.log('error', error, msg);
       toast.error(msg);
       if (String(error).includes('Quota not enough')) {
@@ -726,28 +736,6 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   // Get status and type from URL data (projectId already obtained above)
   const { status, type } = useUrlData({ append });
   const { setLoading } = useLoading();
-
-  // Extract project colors for theming
-  const projectColors = useMemo(() => {
-    const colors = projectData?.analysisResultModel?.branding?.colors?.colors;
-    if (colors) {
-      return {
-        primary: colors.primary || '#3B82F6',
-        secondary: colors.secondary || '#8B5CF6',
-        accent: colors.accent || '#10B981',
-        background: colors.background || '#F3F4F6',
-        text: colors.text || '#1F2937',
-      };
-    }
-    // Fallback colors
-    return {
-      primary: '#3B82F6',
-      secondary: '#8B5CF6',
-      accent: '#10B981',
-      background: '#F3F4F6',
-      text: '#1F2937',
-    };
-  }, [projectData]);
 
   // Load project data when projectId is present in URL
   // Does not automatically start generation
@@ -1324,45 +1312,18 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         {/* Project Generation Workspace Header */}
         {projectData && (
           <div className="max-w-[640px] w-full mx-auto mb-6">
-            <div
-              className="rounded-xl p-6"
-              style={{
-                background: `linear-gradient(135deg, ${projectColors.primary}15 0%, ${projectColors.secondary}15 100%)`,
-                border: `1px solid ${projectColors.primary}30`,
-              }}
-            >
+            <div className="rounded-xl p-6 border border-primary/20 bg-gradient-to-br from-primary/10 to-secondary/10">
               <div className="text-center mb-4">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 bg-zinc-100">
-                  {projectData.analysisResultModel?.branding?.logo?.variations?.iconOnly
-                    ?.lightBackground ? (
-                    <img
-                      src={
-                        projectData.analysisResultModel.branding.logo.variations.iconOnly
-                          .lightBackground
-                      }
-                      alt="Project Logo"
-                      className="w-10 h-10 rounded-full"
-                    />
-                  ) : (
-                    <svg
-                      className="w-8 h-8 text-gray-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
-                    </svg>
-                  )}
-                </div>
-                <h2 className="text-2xl font-bold mb-2" style={{ color: projectColors.primary }}>
+                <ProjectLogo
+                  logo={projectData.analysisResultModel?.branding?.logo}
+                  name={projectData.name}
+                  size={64}
+                  className="mx-auto mb-3"
+                />
+                <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">
                   {projectData.name}
                 </h2>
-                <p className="mb-4" style={{ color: `${projectColors.text}CC` }}>
+                <p className="mb-4 text-gray-600 dark:text-gray-300">
                   {projectData.description || 'Ready to generate your application'}
                 </p>
               </div>
@@ -1373,10 +1334,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                   </p>
                   <button
                     onClick={handleStartGeneration}
-                    className="text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 flex items-center gap-3 mx-auto shadow-lg hover:shadow-xl transform hover:scale-105 hover:opacity-90"
-                    style={{
-                      background: `linear-gradient(135deg, ${projectColors.primary} 0%, ${projectColors.secondary} 100%)`,
-                    }}
+                    className="inner-button flex items-center gap-3 mx-auto px-8 py-4 text-lg font-semibold"
                   >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
@@ -1392,15 +1350,11 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
               ) : hasGeneration && !isGenerationComplete ? (
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-3 mb-2">
-                    <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: `${projectColors.accent}20` }}
-                    >
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center bg-primary/15">
                       <svg
-                        className="w-4 h-4 animate-spin"
+                        className="w-4 h-4 animate-spin text-primary dark:text-blue-300"
                         fill="none"
                         viewBox="0 0 24 24"
-                        style={{ color: projectColors.accent }}
                       >
                         <circle
                           className="opacity-25"
@@ -1417,25 +1371,22 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                         ></path>
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold" style={{ color: projectColors.accent }}>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                       Generation in Progress
                     </h3>
                   </div>
-                  <p className="text-sm" style={{ color: `${projectColors.accent}CC` }}>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
                     Your application is being generated. Please wait...
                   </p>
                 </div>
               ) : isGenerationComplete ? (
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-3 mb-4">
-                    <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: `${projectColors.accent}20` }}
-                    >
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center bg-green-500/15">
                       <svg
-                        className="w-4 h-4"
+                        className="w-4 h-4 text-green-600 dark:text-green-400"
                         fill="none"
-                        stroke={projectColors.accent}
+                        stroke="currentColor"
                         viewBox="0 0 24 24"
                       >
                         <path
@@ -1446,11 +1397,11 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                         />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold" style={{ color: projectColors.accent }}>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                       Generation Complete
                     </h3>
                   </div>
-                  <p className="text-sm mb-4" style={{ color: `${projectColors.accent}CC` }}>
+                  <p className="text-sm mb-4 text-gray-600 dark:text-gray-300">
                     Your application has been successfully generated and is ready for export.
                   </p>
                 </div>

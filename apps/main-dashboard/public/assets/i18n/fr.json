@@ -49,6 +49,111 @@
     "reset": "Réinitialiser"
   },
   "dashboard": {
+    "createDevelopment": {
+      "errorsDetected": "Des erreurs ont été détectées",
+      "title": "Création Web",
+      "subtitle": "Paramétrez et générez votre projet web",
+      "back": "Retour",
+      "step1": {
+        "title": "Que souhaitez-vous créer ?",
+        "subtitle": "Choisissez le format principal de votre projet web."
+      },
+      "landing": {
+        "title": "Site Vitrine",
+        "status": "Prêt",
+        "description": "Créez un site web élégant et très performant pour présenter votre activité, vos services ou votre produit.",
+        "feature1": "Design sur mesure",
+        "feature2": "Optimisé Référencement (SEO)"
+      },
+      "app": {
+        "title": "Application Web",
+        "status": "Bientôt",
+        "description": "Application complète avec base de données, authentification utilisateur et logique métier complexe.",
+        "feature1": "Base de données",
+        "feature2": "Authentification",
+        "badgeTitle": "Bientôt Disponible"
+      },
+      "step2": {
+        "title": "Que souhaitez-vous générer ?",
+        "subtitle": "Sélectionnez l'architecture technique de votre projet.",
+        "landingDesc": "Un site vitrine indépendant pour optimiser votre visibilité et présenter vos services.",
+        "appDesc": "Une application fonctionnelle complète sans partie marketing, dédiée à vos utilisateurs.",
+        "integratedTitle": "Site + App Intégrés",
+        "integratedDesc": "Le site vitrine et l'application au sein de la même base de code pour une expérience unifiée.",
+        "separatedTitle": "Site + App Séparés",
+        "separatedDesc": "Deux projets distincts pour une flexibilité maximale et un déploiement indépendant."
+      },
+      "step3": {
+        "title": "Résumé de configuration",
+        "subtitle": "Vérifiez vos paramètres avant de lancer la génération.",
+        "generationType": "Type de génération",
+        "techStack": "Stack Technique",
+        "generateProject": "Générer le projet",
+        "advancedTitle": "Configuration Avancée",
+        "advancedSubtitle": "Paramétrez finement votre environnement technique.",
+        "saveAndContinue": "Sauvegarder et Continuer"
+      }
+    },
+    "showDevelopment": {
+      "liveApp": "Application en ligne",
+      "deployed": "Déployée",
+      "lastUpdated": "Dernière mise à jour :",
+      "linkCopied": "Lien copié",
+      "copyLink": "Copier le lien",
+      "open": "Ouvrir",
+      "landingReady": "Votre Site Vitrine<br/>est prêt.",
+      "landingReadyToGenerate": "Votre Site Vitrine<br/>est prêt à être généré.",
+      "landingExistingDesc": "Reprenez la conversation iCode là où vous l'aviez laissée pour faire évoluer votre page.",
+      "landingNewDesc": "Votre configuration est finalisée. Lancez la génération pour créer votre site vitrine professionnel et moderne en quelques minutes.",
+      "resumeInIcode": "Reprendre dans iCode",
+      "generateLanding": "Générer le site vitrine",
+      "features": {
+        "design": "Design Moderne",
+        "designDesc": "Interface élégante, responsive et adaptée à votre identité visuelle.",
+        "seo": "Optimisé SEO",
+        "seoDesc": "Structure sémantique et performances optimisées pour le référencement naturel.",
+        "customizable": "Personnalisable",
+        "customizableDesc": "Code clair et modulaire, facilement modifiable selon vos futurs besoins."
+      },
+      "appExistingTitle": "Environnement généré.",
+      "appNewTitle": "Configuration technique finalisée.",
+      "appExistingDesc": "Reprenez la conversation iCode là où vous l'aviez laissée : votre code et votre historique sont restaurés automatiquement.",
+      "appNewDesc": "Votre stack technologique est configurée. Lancez la génération pour créer votre application complète.",
+      "generateApp": "Générer l'application",
+      "preview": "Aperçu",
+      "exportConfig": "Exporter Config",
+      "stackOverview": "Vue d'ensemble de la stack",
+      "frontend": "Frontend",
+      "backend": "Backend",
+      "database": "Base de données",
+      "configDetails": "Détails de configuration",
+      "clientLayer": "Couche Client",
+      "clientLayerDesc": "Définition de l'interface utilisateur, de l'expérience client et de la gestion d'état.",
+      "version": "Version",
+      "styling": "Styling",
+      "stateManagement": "State Management",
+      "enabledFeatures": "Fonctionnalités activées",
+      "serverLayer": "Couche Serveur",
+      "serverLayerDesc": "Logique métier, architecture API et gestion des données complexes.",
+      "language": "Langage",
+      "framework": "Framework",
+      "apiType": "API Type",
+      "orm": "ORM",
+      "apiFeatures": "Fonctionnalités API",
+      "persistence": "Persistance",
+      "persistenceDesc": "Infrastructure de base de données et gestion de l'état persistant.",
+      "configurations": "Configurations",
+      "globals": "Globales",
+      "globalsDesc": "Paramètres de projet transversaux et contraintes spécifiques.",
+      "seo": "SEO",
+      "i18n": "i18n",
+      "auth": "Auth",
+      "enabled": "Activé",
+      "disabled": "Désactivé",
+      "secured": "Sécurisé",
+      "public": "Public",
+      "imposedConstraints": "Contraintes Imposées"
+    },
     "addMemberModal": {
       "title": "Ajouter un membre à l'équipe",
       "fields": {
@@ -220,7 +325,7 @@
       "legalDocs": "Documents juridiques",
       "advisor": "Conseiller",
       "diagrams": "Diagrammes",
-      "development": "Développement",
+      "development": "Site & App",
       "deploymentOverview": "Aperçu du déploiement",
       "deployment": "Déploiement",
       "viewAllProjects": "Voir tous les projets",
@@ -1329,145 +1434,6 @@
         "viewLogs": "Voir les journaux",
         "redeploy": "Redéployer"
       }
-    },
-    "createDevelopment": {
-      "title": "Configuration du développement",
-      "subtitle": "Configurez les paramètres de développement de votre application",
-      "errors": {
-        "submissionTitle": "Il y a eu des erreurs avec votre soumission"
-      },
-      "modeSelection": {
-        "title": "Choisissez votre mode de développement",
-        "subtitle": "Sélectionnez comment vous voulez configurer votre application",
-        "quick": {
-          "title": "Rapide",
-          "subtitle": "Configuration pré-établie avec React, Express.js et Supabase",
-          "features": {
-            "react": "React",
-            "express": "Express.js"
-          }
-        },
-        "advanced": {
-          "title": "Avancé",
-          "subtitle": "Contrôle total sur tous les choix technologiques et paramètres",
-          "features": {
-            "custom": "Personnalisé",
-            "fullControl": "Contrôle total"
-          }
-        }
-      },
-      "generationType": {
-        "title": "Que voulez-vous générer ?",
-        "subtitle": "Choisissez le type d'application que vous voulez créer",
-        "landing": {
-          "title": "Landing",
-          "subtitle": "Un beau site web marketing autonome pour présenter votre produit ou service",
-          "badge": "Marketing"
-        },
-        "app": {
-          "title": "Application Web",
-          "subtitle": "Une application web complète avec authentification utilisateur et base de données",
-          "badge": "App"
-        },
-        "integrated": {
-          "title": "Intégré",
-          "subtitle": "Page de destination intégrée dans l'application web pour une expérience utilisateur fluide",
-          "badge": "Unifié"
-        },
-        "both": {
-          "title": "Complet",
-          "subtitle": "Page de destination + application web séparées pour une flexibilité et évolutivité maximales",
-          "badge": "Full Stack"
-        }
-      },
-      "configuration": {
-        "title": "Résumé de la configuration",
-        "subtitle": "Vérifiez vos paramètres de génération rapide",
-        "generationType": "Type de génération",
-        "techStack": "Stack technologique",
-        "features": {
-          "react": "Frontend React",
-          "express": "Backend Express.js",
-          "supabase": "Base de données Supabase"
-        },
-        "buttons": {
-          "generate": "Générer l'application",
-          "save": "Enregistrer les configurations"
-        }
-      },
-      "advanced": {
-        "title": "Configuration avancée",
-        "subtitle": "Configurez tous les aspects de votre application",
-        "tabs": {
-          "frontend": "Frontend",
-          "backend": "Backend",
-          "database": "Base de données",
-          "deployment": "Déploiement"
-        }
-      }
-    },
-    "showDevelopment": {
-      "title": "Configuration prête",
-      "subtitle": "Votre stack technologique est configurée. Lancez la génération pour créer votre application complète.",
-      "landingPage": {
-        "title": "Votre Landing Page est Prête à Générer",
-        "subtitle": "Votre configuration est finalisée. Lancez la génération pour créer votre landing page professionnelle et moderne en quelques minutes.",
-        "cta": "Générer ma Landing Page",
-        "features": {
-          "modern": {
-            "title": "Design Moderne",
-            "description": "Interface élégante et responsive"
-          },
-          "seo": {
-            "title": "Optimisé SEO",
-            "description": "Référencement naturel optimisé"
-          },
-          "customizable": {
-            "title": "Personnalisable",
-            "description": "Facilement modifiable selon vos besoins"
-          }
-        }
-      },
-      "buttons": {
-        "generate": "Générer l'application",
-        "preview": "Aperçu",
-        "export": "Exporter la configuration",
-        "edit": "Modifier la configuration"
-      },
-      "sections": {
-        "frontend": "Frontend",
-        "backend": "Backend",
-        "database": "Base de données",
-        "projectConfig": "Configuration du projet",
-        "constraints": "Contraintes"
-      },
-      "techStack": {
-        "styling": "Style",
-        "stateManagement": "Gestion d'état",
-        "features": "Fonctionnalités",
-        "orm": "ORM",
-        "noFeatures": "Aucune fonctionnalité configurée"
-      },
-      "projectFeatures": {
-        "seo": "SEO",
-        "contactForm": "Formulaire de contact",
-        "analytics": "Analytique",
-        "i18n": "i18n",
-        "performance": "Performance",
-        "authentication": "Authentification",
-        "authorization": "Autorisation",
-        "uiTheme": "Thème UI",
-        "payment": "Paiement",
-        "enabled": "Activé",
-        "disabled": "Désactivé",
-        "optimized": "Optimisé",
-        "standard": "Standard",
-        "integrated": "Intégré",
-        "notIntegrated": "Non intégré",
-        "modern": "Moderne"
-      },
-      "customOptions": "Options personnalisées",
-      "technicalDetails": "Détails techniques"
     },
     "globalDashboard": {
       "title": "Tableau de bord",

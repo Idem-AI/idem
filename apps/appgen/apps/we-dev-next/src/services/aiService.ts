@@ -82,126 +82,54 @@ export interface StreamingOptions {
   onFinish?: (response: any) => Promise<void>;
 }
 
+/**
+ * Verbose prompt dumps are useful while debugging and enormous in production
+ * (a full builder prompt is tens of kilobytes per request). Opt in explicitly.
+ */
+const DEBUG_PROMPTS = process.env.DEBUG_PROMPTS === 'true';
+
 export function streamTextFn(messages: Messages, options?: StreamingOptions, modelKey?: string) {
-  console.log('\n🤖 === STREAM TEXT FUNCTION ===');
-  console.log(`Attempting to use model: ${modelKey}`);
-  console.log(`Available models: ${modelConfig.map((m) => m.modelKey).join(', ')}`);
-  console.log(`Messages count: ${messages.length}`);
-
-  console.log('\n📋 ALL MESSAGES DETAILS:');
-  messages.forEach((msg, index) => {
-    console.log(`\n  Message ${index + 1}/${messages.length}:`);
-    console.log(`    Role: ${msg.role}`);
-    console.log(`    Content length: ${msg.content?.length || 0}`);
-    console.log(`    Has attachments: ${!!msg.experimental_attachments}`);
-    if (msg.content && msg.content.length > 0) {
-      console.log(`    Content preview (first 200 chars): ${msg.content.substring(0, 200)}...`);
-    } else {
-      console.log(`    ⚠️  CONTENT IS EMPTY!`);
-    }
-  });
-
-  if (messages.length > 0) {
-    const lastMessage = messages[messages.length - 1];
-    console.log('\n📝 LAST MESSAGE TO AI (DETAILED):');
-    console.log(`  Role: ${lastMessage.role}`);
-    console.log(`  Content length: ${lastMessage.content?.length || 0}`);
-
-    if (!lastMessage.content || lastMessage.content.trim().length === 0) {
-      console.log('\n❌ CRITICAL WARNING: Last message content is EMPTY!');
-      console.log('❌ This will cause Gemini to return a generic response!');
-    } else {
-      console.log('\n✅ Last message content is NOT empty');
-      console.log('\n' + '='.repeat(100));
-      console.log('===== FINAL PROMPT SENT TO GEMINI =====');
-      console.log('='.repeat(100));
-      console.log(lastMessage.content);
-      console.log('='.repeat(100));
-      console.log('===== END FINAL PROMPT =====');
-      console.log('='.repeat(100) + '\n');
-    }
-  }
-
   const modelConf = modelConfig.find((item) => item.modelKey === modelKey);
 
   if (!modelConf) {
-    console.log('\n❌ ERROR: Model configuration not found!');
     throw new Error(`Model configuration not found for model: ${modelKey}`);
   }
-
-  console.log('\n🔧 MODEL CONFIGURATION:');
-  console.log(`  Model key: ${modelKey}`);
-  console.log(`  Provider: ${modelConf.provider}`);
-  console.log(`  API URL: ${modelConf.apiUrl || process.env.THIRD_API_URL}`);
-  console.log(`  Has API Key: ${!!(modelConf.apiKey || process.env.THIRD_API_KEY)}`);
 
   const { apiKey = process.env.THIRD_API_KEY, apiUrl = process.env.THIRD_API_URL } = modelConf;
   const model = getOpenAIModel(apiUrl || '', apiKey || '', modelKey || '') as LanguageModel;
 
-  let systemInstruction = '';
-  const newMessages = messages.map((item, index) => {
-    if (item.role === 'assistant') {
-      delete item.parts;
-    }
-    return item;
-  });
+  // Every provider takes the system prompt out of band, so pull `system` roles
+  // out of the message list rather than leaving them in the conversation. The
+  // system text is also the cacheable prefix: keeping it in one place, in a
+  // stable order, is what makes implicit caching hit.
+  const systemInstruction = messages
+    .filter((item) => item.role === 'system')
+    .map((item) => item.content)
+    .join('\n\n')
+    .trim();
 
-  if (modelConf.provider === 'gemini' || modelConf.provider === 'google') {
-    const lastMessage = newMessages[newMessages.length - 1];
-    if (lastMessage && lastMessage.role === 'user' && lastMessage.content) {
-      const projectContextIndex = lastMessage.content.indexOf('PROJECT CONTEXT AND REQUIREMENTS:');
-
-      if (projectContextIndex > 0) {
-        console.log('\n🔄 SEPARATING SYSTEM PROMPT FROM USER MESSAGE FOR GEMINI');
-
-        systemInstruction = lastMessage.content.substring(0, projectContextIndex).trim();
-
-        const userMessage = lastMessage.content.substring(projectContextIndex).trim();
-
-        console.log('\n📋 SYSTEM INSTRUCTION LENGTH:', systemInstruction.length, 'characters');
-        console.log('📋 USER MESSAGE LENGTH:', userMessage.length, 'characters');
-
-        newMessages[newMessages.length - 1] = {
-          ...lastMessage,
-          content: userMessage,
-        };
-
-        console.log('\n' + '='.repeat(100));
-        console.log('===== SYSTEM INSTRUCTION (sent to Gemini systemInstruction) =====');
-        console.log('='.repeat(100));
-        console.log(systemInstruction.substring(0, 1000) + '\n... (truncated for display)');
-        console.log('='.repeat(100));
-        console.log('\n' + '='.repeat(100));
-        console.log('===== USER MESSAGE (sent to Gemini messages) =====');
-        console.log('='.repeat(100));
-        console.log('\n📏 USER MESSAGE LENGTH:', userMessage.length, 'characters');
-        console.log('\n📄 FULL USER MESSAGE (NOT TRUNCATED):');
-        console.log(userMessage);
-        console.log('\n' + '='.repeat(100));
-        console.log('===== END FINAL PROMPT =====');
-        console.log('='.repeat(100) + '\n');
-      } else {
-        console.log('\n⚠️  No PROJECT CONTEXT marker found, sending as-is');
-        console.log('\n' + '='.repeat(100));
-        console.log('===== FINAL PROMPT SENT TO GEMINI =====');
-        console.log('='.repeat(100));
-        console.log(lastMessage.content);
-        console.log('='.repeat(100));
-        console.log('===== END FINAL PROMPT =====');
-        console.log('='.repeat(100) + '\n');
+  const newMessages = messages
+    .filter((item) => item.role !== 'system')
+    .map((item) => {
+      if (item.role === 'assistant') {
+        delete item.parts;
       }
-    }
-  } else {
-    const lastMessage = newMessages[newMessages.length - 1];
-    if (lastMessage && lastMessage.content) {
-      console.log('\n' + '='.repeat(100));
-      console.log('===== FINAL PROMPT SENT TO AI =====');
-      console.log('='.repeat(100));
-      console.log(lastMessage.content);
-      console.log('='.repeat(100));
-      console.log('===== END FINAL PROMPT =====');
-      console.log('='.repeat(100) + '\n');
-    }
+      return item;
+    });
+
+  const lastMessage = newMessages[newMessages.length - 1];
+
+  if (!lastMessage?.content?.trim()) {
+    console.warn('[ai] last message is empty — the model will answer generically');
+  }
+
+  console.log(
+    `[ai] ${modelKey} (${modelConf.provider}) · ${newMessages.length} messages · system ${systemInstruction.length} chars · last message ${lastMessage?.content?.length ?? 0} chars`
+  );
+
+  if (DEBUG_PROMPTS) {
+    console.log('----- SYSTEM -----\n' + systemInstruction);
+    console.log('----- LAST MESSAGE -----\n' + (lastMessage?.content ?? ''));
   }
 
   // Ajouter les paramètres de génération depuis modelConfig
@@ -216,25 +144,23 @@ export function streamTextFn(messages: Messages, options?: StreamingOptions, mod
     generationConfig.maxTokens = modelConf.maxOutputTokens;
   }
 
-  console.log('\n🚀 CALLING STREAMTEXT:');
-  console.log(`  Model: ${modelKey}`);
-  console.log(`  Provider: ${modelConf.provider}`);
-  console.log(`  Messages after cleanup: ${newMessages.length}`);
-  console.log(`  Has system instruction: ${!!systemInstruction}`);
-  console.log(`  Has tools: ${!!options?.tools}`);
-  console.log(`  Generation config: ${JSON.stringify(generationConfig)}`);
-  console.log('🤖 === END STREAM TEXT FUNCTION ===\n');
+  // Retrying the same saturated model rarely helps within a few seconds, while
+  // switching model does (see createResilientStream). Keep one quick retry for
+  // one-off blips and let the fallback chain handle real outages.
+  const maxRetries = Number(process.env.AI_MAX_RETRIES ?? 1);
 
   const streamConfig: any = {
     model: model || defaultModel,
     messages: convertToCoreMessages(newMessages),
+    maxRetries: Number.isFinite(maxRetries) ? maxRetries : 1,
     ...generationConfig,
     ...initOptions,
     ...options,
   };
 
-  if (systemInstruction && (modelConf.provider === 'gemini' || modelConf.provider === 'google')) {
-    console.log('✅ Adding systemInstruction to Gemini config');
+  // Every provider we target accepts a top-level `system`; the SDK maps it to
+  // Gemini's `systemInstruction` and to an OpenAI system message.
+  if (systemInstruction) {
     streamConfig.system = systemInstruction;
   }
 
