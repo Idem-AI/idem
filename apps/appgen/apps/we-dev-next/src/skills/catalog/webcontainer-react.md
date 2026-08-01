@@ -13,7 +13,34 @@ The project is **already initialised** in `/home/project`. Never run `npx create
 
 ## Files that must exist
 
-1. **`package.json` first**, with every dependency you use. Base: `react@^18.2.0`, `react-dom@^18.2.0`; dev: `@vitejs/plugin-react@^4.2.0`, `vite@^5.0.0`, `tailwindcss@^3.4.0`, `postcss@^8.4.0`, `autoprefixer@^10.4.0`.
+1. **`package.json` first.** The `scripts` block is **mandatory** — without a `dev` script the preview never starts and the user sees `npm error Missing script: "dev"`. Start from exactly this and add the dependencies you actually use:
+
+   ```json
+   {
+     "name": "project",
+     "private": true,
+     "version": "0.0.0",
+     "type": "module",
+     "scripts": {
+       "dev": "vite",
+       "build": "vite build",
+       "preview": "vite preview"
+     },
+     "dependencies": {
+       "react": "^18.2.0",
+       "react-dom": "^18.2.0"
+     },
+     "devDependencies": {
+       "@vitejs/plugin-react": "^4.2.0",
+       "vite": "^5.0.0",
+       "tailwindcss": "^3.4.0",
+       "postcss": "^8.4.0",
+       "autoprefixer": "^10.4.0"
+     }
+   }
+   ```
+
+   Every package imported anywhere in the code must appear in `dependencies`. An import with no matching dependency fails the dev server on start.
 2. **`tailwind.config.js`** — `content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"]`, plus the `theme.extend` block from the design system, pasted verbatim.
 3. **`postcss.config.js`** — `{ plugins: { tailwindcss: {}, autoprefixer: {} } }`.
 4. **`src/styles/index.css`** — `@tailwind base; @tailwind components; @tailwind utilities;` then any custom layers.
