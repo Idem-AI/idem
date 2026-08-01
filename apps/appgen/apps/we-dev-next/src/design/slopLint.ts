@@ -290,11 +290,11 @@ export interface LintReport {
 
 export interface LintOptions {
   /**
-   * The project's logo, hosted URL or inline SVG. When given, the linter checks
-   * that the generated code actually references it — the deterministic way to
-   * catch a logo the model silently dropped.
+   * The project's logo renditions: hosted URLs, inline SVG, or both. The check
+   * passes as soon as the generated code references *any* of them — the model
+   * may pick the rendition that suits the markup, it just may not drop the logo.
    */
-  expectedLogo?: string;
+  expectedLogo?: string | string[];
 }
 
 /** Enough of the asset to identify it without matching on whitespace. */
@@ -319,21 +319,31 @@ function logoFingerprint(logo: string): string | null {
 
 function checkLogoPresence(
   files: Record<string, string>,
-  expectedLogo: string
+  expectedLogo: string | string[]
 ): Violation | null {
-  const fingerprint = logoFingerprint(expectedLogo);
+  const candidates = (Array.isArray(expectedLogo) ? expectedLogo : [expectedLogo]).filter(
+    (value): value is string => typeof value === 'string' && value.trim().length > 0
+  );
 
-  if (!fingerprint) {
+  const fingerprints = candidates
+    .map(logoFingerprint)
+    .filter((value): value is string => Boolean(value));
+
+  if (!fingerprints.length) {
     return null;
   }
 
   const referenced = Object.values(files).some(
-    (content) => typeof content === 'string' && content.includes(fingerprint)
+    (content) =>
+      typeof content === 'string' &&
+      fingerprints.some((fingerprint) => content.includes(fingerprint))
   );
 
   if (referenced) {
     return null;
   }
+
+  const preferred = candidates[0];
 
   const header =
     Object.keys(files).find((path) => /header|navbar|nav\b/i.test(path)) ||
@@ -347,9 +357,9 @@ function checkLogoPresence(
     line: 1,
     excerpt: '',
     message: 'The project logo was supplied but does not appear anywhere in the generated code.',
-    fix: expectedLogo.trim().startsWith('<')
+    fix: preferred.trim().startsWith('<')
       ? 'Paste the brand logo SVG markup into the header (and the footer when there is one), converted to JSX. Never inside an <img>.'
-      : `Render the logo in the header (and footer when there is one): <img src="${expectedLogo.trim()}" alt="logo" className="h-10 w-auto" />`,
+      : `Render the logo in the header (and footer when there is one): <img src="${preferred.trim()}" alt="logo" className="h-10 w-auto" />`,
   };
 }
 

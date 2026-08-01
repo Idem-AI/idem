@@ -15,7 +15,7 @@ const router = Router();
 router.post('/lint', (req: Request, res: Response) => {
   const { files, expectedLogo } = req.body as {
     files?: Record<string, string>;
-    expectedLogo?: string;
+    expectedLogo?: string | string[];
   };
 
   if (!files || typeof files !== 'object' || Array.isArray(files)) {
@@ -23,7 +23,8 @@ router.post('/lint', (req: Request, res: Response) => {
   }
 
   const report = lintGeneratedFiles(files, {
-    expectedLogo: typeof expectedLogo === 'string' ? expectedLogo : undefined,
+    expectedLogo:
+      typeof expectedLogo === 'string' || Array.isArray(expectedLogo) ? expectedLogo : undefined,
   });
   const repairPrompt = buildRepairPrompt(report, files);
 
