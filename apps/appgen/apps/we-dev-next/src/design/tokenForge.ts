@@ -21,7 +21,9 @@ import {
   contrastRatio,
   ensureContrast,
   hexToOklch,
+  hexToRgb,
   oklchToHex,
+  relativeLuminance,
   rotateHue,
 } from './color.js';
 import {
@@ -37,11 +39,14 @@ export interface DesignSystem {
   seed: number;
   register: Register;
   direction: ArtDirection;
-  fonts: FontPairing & { mono: string };
+  /** True when the project's own brand guidelines drove the palette or the fonts. */
+  brandDriven: boolean;
+  fonts: FontPairing & { mono: string; fromBrand?: boolean };
   colors: {
     brand: Record<string, string>;
     neutral: Record<string, string>;
     accent: string;
+    secondary: string;
     surface: string;
     surfaceRaised: string;
     ink: string;
@@ -53,7 +58,8 @@ export interface DesignSystem {
     inkOnAccent: number;
   };
   typeScale: Record<string, string>;
-  fontsHref: string;
+  /** One stylesheet URL per family; see googleFontsHrefs for why they are split. */
+  fontsHrefs: string[];
 }
 
 /** xmur3: string to a well-distributed 32-bit seed. */
@@ -133,19 +139,27 @@ function resolveAccentColor(
   return rotateHue(brand, random() > 0.5 ? 150 : -140);
 }
 
-function resolveFonts(projectData: ProjectModel | undefined, random: () => number): FontPairing {
+interface ResolvedFonts extends FontPairing {
+  /** True when the families come from the project's brand guidelines. */
+  fromBrand: boolean;
+}
+
+function resolveFonts(projectData: ProjectModel | undefined, random: () => number): ResolvedFonts {
   const typography = projectData?.analysisResultModel?.branding?.typography;
   const seeded = pick(FONT_PAIRINGS, random);
 
   if (!typography?.primaryFont) {
-    return seeded;
+    return { ...seeded, fromBrand: false };
   }
 
+  // The brand's typography wins outright. The art direction governs composition
+  // and rhythm, never the typefaces a project has already committed to.
   return {
     display: typography.primaryFont,
     body: typography.secondaryFont || typography.primaryFont,
     displayWeights: '400;600;700',
     bodyWeights: '400;500;600;700',
+    fromBrand: true,
   };
 }
 
@@ -171,14 +185,35 @@ function buildTypeScale(ratio: number): Record<string, string> {
   return scale;
 }
 
-function googleFontsHref(fonts: FontPairing): string {
-  const family = (name: string, weights: string) =>
-    `family=${encodeURIComponent(name).replace(/%20/g, '+')}:wght@${weights}`;
+/**
+ * One stylesheet URL per family, deliberately.
+ *
+ * The css2 endpoint answers 400 for a family it does not host, and it answers
+ * for the *whole* request: a single brand font that is not on Google Fonts
+ * would take the entire stylesheet down and silently drop the site to a system
+ * stack. That is very likely why brand typography was not showing up. Split
+ * across links, an unknown family costs only itself.
+ */
+function googleFontsHrefs(fonts: FontPairing): string[] {
+  const href = (name: string, weights: string) =>
+    `https://fonts.googleapis.com/css2?family=${encodeURIComponent(name.trim()).replace(/%20/g, '+')}:wght@${weights}&display=swap`;
 
-  return `https://fonts.googleapis.com/css2?${family(fonts.display, fonts.displayWeights)}&${family(
-    fonts.body,
-    fonts.bodyWeights
-  )}&${family(MONO_FAMILY, '400;500')}&display=swap`;
+  const families: Array<[string, string]> = [
+    [fonts.display, fonts.displayWeights],
+    [fonts.body, fonts.bodyWeights],
+    [MONO_FAMILY, '400;500'],
+  ];
+
+  const seen = new Set<string>();
+
+  return families
+    .filter(([name]) => {
+      const key = name.trim().toLowerCase();
+      if (!name.trim() || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map(([name, weights]) => href(name, weights));
 }
 
 export function forgeDesignSystem(projectData?: ProjectModel): DesignSystem {
@@ -187,8 +222,36 @@ export function forgeDesignSystem(projectData?: ProjectModel): DesignSystem {
   const random = createRandom(seed);
 
   const register = resolveRegister(projectData);
-  const candidates = ART_DIRECTIONS.filter((direction) => direction.registers.includes(register));
-  const direction = pick(candidates.length ? candidates : ART_DIRECTIONS, random);
+  const brandColors = projectData?.analysisResultModel?.branding?.colors?.colors;
+
+  // A project that already has brand guidelines has already made these choices.
+  // The art direction governs composition, rhythm and personality; it must not
+  // repaint a committed palette, and in particular it must not flip a brand's
+  // light background to a dark surface because the direction happens to be dark.
+  const brandBackground =
+    brandColors?.background && hexToOklch(brandColors.background) ? brandColors.background : null;
+  const brandText = brandColors?.text && hexToOklch(brandColors.text) ? brandColors.text : null;
+  const brandSecondary =
+    brandColors?.secondary && hexToOklch(brandColors.secondary) ? brandColors.secondary : null;
+
+  const brandPolarity = brandBackground
+    ? relativeLuminance(hexToRgb(brandBackground)!) < 0.35
+      ? 'dark'
+      : 'light'
+    : null;
+
+  const candidates = ART_DIRECTIONS.filter(
+    (direction) =>
+      direction.registers.includes(register) &&
+      // Keep only directions whose surface polarity matches the brand's.
+      (!brandPolarity || direction.surface === brandPolarity)
+  );
+
+  const usable = candidates.length
+    ? candidates
+    : ART_DIRECTIONS.filter((direction) => direction.registers.includes(register));
+
+  const direction = pick(usable.length ? usable : ART_DIRECTIONS, random);
 
   const fonts = resolveFonts(projectData, random);
   const brandColor = resolveBrandColor(projectData, random);
@@ -197,43 +260,79 @@ export function forgeDesignSystem(projectData?: ProjectModel): DesignSystem {
   const brand = buildRamp(brandColor);
   const neutral = buildNeutralRamp(brandOklch.h, direction.surface === 'dark' ? 0.014 : 0.008);
   const accent = resolveAccentColor(projectData, brandColor, random);
+  const secondary = brandSecondary ?? rotateHue(brandColor, 28);
 
-  // Surfaces follow the direction, not the brief's adjectives. `drenched` puts
-  // the brand hue on the surface itself; everything else uses the tinted
-  // neutral ramp so the brand stays a signal rather than wallpaper.
   const isDark = direction.surface === 'dark';
   const drenched = direction.colorStrategy === 'drenched';
 
-  const surface = drenched
-    ? oklchToHex({ l: isDark ? 0.24 : 0.93, c: brandOklch.c * 0.55, h: brandOklch.h })
-    : isDark
-      ? neutral['950']
-      : neutral['50'];
+  // Brand background wins. Only when the project has none does the direction
+  // get to choose the surface: `drenched` puts the brand hue on the surface
+  // itself, everything else sits on the tinted neutral ramp.
+  const surface =
+    brandBackground ??
+    (drenched
+      ? oklchToHex({ l: isDark ? 0.24 : 0.93, c: brandOklch.c * 0.55, h: brandOklch.h })
+      : isDark
+        ? neutral['950']
+        : neutral['50']);
 
-  const surfaceRaised = drenched
-    ? oklchToHex({ l: isDark ? 0.32 : 0.97, c: brandOklch.c * 0.42, h: brandOklch.h })
-    : isDark
-      ? neutral['900']
-      : '#ffffff';
+  const surfaceOklch = hexToOklch(surface) ?? { l: isDark ? 0.2 : 0.97, c: 0, h: brandOklch.h };
 
-  // Ink is derived then *verified*: this is the step model-authored palettes skip.
-  const ink = ensureContrast(isDark ? neutral['100'] : neutral['950'], surface, 7);
-  const inkMuted = ensureContrast(isDark ? neutral['300'] : neutral['700'], surface, 4.5);
+  const surfaceRaised = brandBackground
+    ? // Step away from the brand surface rather than inventing a second colour.
+      oklchToHex({
+        ...surfaceOklch,
+        l: clamp01(surfaceOklch.l + (brandPolarity === 'dark' ? 0.07 : -0.035)),
+      })
+    : drenched
+      ? oklchToHex({ l: isDark ? 0.32 : 0.97, c: brandOklch.c * 0.42, h: brandOklch.h })
+      : isDark
+        ? neutral['900']
+        : '#ffffff';
+
+  // Ink starts from the brand's own text colour when there is one, then gets
+  // verified. Verification only ever moves lightness, so the hue stays on brand.
+  const inkSeed = brandText ?? (isDark ? neutral['100'] : neutral['950']);
+  const ink = ensureContrast(inkSeed, surface, 7);
+  const inkMuted = ensureContrast(
+    brandText ? mixToward(brandText, surface, 0.38) : isDark ? neutral['300'] : neutral['700'],
+    surface,
+    4.5
+  );
 
   return {
     seed,
     register,
     direction,
+    brandDriven: Boolean(brandColors || fonts.fromBrand),
     fonts: { ...fonts, mono: MONO_FAMILY },
-    colors: { brand, neutral, accent, surface, surfaceRaised, ink, inkMuted },
+    colors: { brand, neutral, accent, secondary, surface, surfaceRaised, ink, inkMuted },
     contrast: {
       bodyOnSurface: contrastRatio(ink, surface),
       mutedOnSurface: contrastRatio(inkMuted, surface),
       inkOnAccent: contrastRatio(ensureContrast(ink, accent, 4.5), accent),
     },
     typeScale: buildTypeScale(direction.typeRatio),
-    fontsHref: googleFontsHref(fonts),
+    fontsHrefs: googleFontsHrefs(fonts),
   };
+}
+
+const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
+
+/** Moves a colour toward another in OKLCH, keeping it on the same family. */
+function mixToward(from: string, toward: string, amount: number): string {
+  const a = hexToOklch(from);
+  const b = hexToOklch(toward);
+
+  if (!a || !b) {
+    return from;
+  }
+
+  return oklchToHex({
+    l: a.l + (b.l - a.l) * amount,
+    c: a.c + (b.c - a.c) * amount,
+    h: a.h,
+  });
 }
 
 const compactRamp = (ramp: Record<string, string>, stops: string[]) =>
@@ -256,8 +355,17 @@ export function renderDesignBrief(system: DesignSystem): string {
     .map(([name, size]) => `'${name}':'${size}'`)
     .join(', ');
 
-  return `## DESIGN SYSTEM (pre-computed and contrast-verified — apply exactly, do not substitute)
+  const fontLinks = [
+    '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
+    ...system.fontsHrefs.map((href) => `<link rel="stylesheet" href="${href}">`),
+  ].join('\n');
 
+  const brandNote = system.brandDriven
+    ? `\n**This project has committed brand guidelines.** The palette and typefaces below come from them and are not negotiable. The art direction shapes layout, rhythm and personality only — it never repaints the brand.\n`
+    : '';
+
+  return `## DESIGN SYSTEM (pre-computed and contrast-verified — apply exactly, do not substitute)
+${brandNote}
 ### Art direction: ${direction.name}
 - Surface: ${direction.surface} · Colour strategy: ${direction.colorStrategy}
 - Borders: ${direction.borders}
@@ -266,11 +374,19 @@ export function renderDesignBrief(system: DesignSystem): string {
 - Signature move (must be present): ${direction.signature}
 - Wrong for this direction: ${direction.avoid}
 
-### Fonts
+### Fonts${fonts.fromBrand ? ' (from the project brand guidelines — use these exact families)' : ''}
 Display "${fonts.display}", body "${fonts.body}", mono "${fonts.mono}".
-Put this in index.html <head> (fonts must load, otherwise the whole system collapses to a system stack):
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="${system.fontsHref}">
+
+Put these in index.html <head>. One link per family on purpose: the Google Fonts endpoint rejects the whole request if any single family is unknown, which would silently drop every font.
+${fontLinks}
+
+Then set the body family in \`src/styles/index.css\` so nothing falls back silently:
+\`\`\`css
+@layer base {
+  body { font-family: '${fonts.body}', system-ui, sans-serif; }
+  h1, h2, h3 { font-family: '${fonts.display}', ${direction.id === 'editorial-serif' ? "Georgia, serif" : 'system-ui, sans-serif'}; }
+}
+\`\`\`
 
 ### tailwind.config.js → theme.extend (paste verbatim)
 \`\`\`js
@@ -278,6 +394,7 @@ colors: {
   brand: { ${compactRamp(colors.brand, BRAND_STOPS)} },
   neutral: { ${compactRamp(colors.neutral, NEUTRAL_STOPS)} },
   accent: '${colors.accent}',
+  secondary: '${colors.secondary}',
   surface: '${colors.surface}',
   'surface-raised': '${colors.surfaceRaised}',
   ink: '${colors.ink}',

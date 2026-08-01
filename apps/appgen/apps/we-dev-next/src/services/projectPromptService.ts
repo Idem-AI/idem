@@ -139,7 +139,6 @@ Generate the complete landing page code with all necessary files.`;
     const brandInfo = this.getCompleteBrandInfo(projectData);
     const techStack = this.getCompleteTechStack(projectData);
     const features = this.getCompleteFeatures(projectData);
-    const useCaseDiagrams = this.getUseCaseDiagrams(projectData);
 
     let title = 'Web Application Generation';
     let objective = '';
@@ -173,9 +172,8 @@ Generate the complete landing page code with all necessary files.`;
         break;
     }
 
-    // `features` and `useCaseDiagrams` used to be computed here and then dropped
-    // from the returned template, so applications were generated with no idea
-    // what they were supposed to do. They are part of the brief now.
+    // `features` used to be computed here and then dropped from the returned
+    // template, so applications were generated with no idea what they had to do.
     return [
       `# ${title}`,
       projectInfo,
@@ -184,7 +182,6 @@ Generate the complete landing page code with all necessary files.`;
       specifications,
       techStack,
       features,
-      useCaseDiagrams,
       'Generate the complete application code with all necessary files.',
     ]
       .filter((section) => section && section.trim().length > 0)
@@ -199,15 +196,24 @@ Generate the complete landing page code with all necessary files.`;
 `;
   }
 
+  /**
+   * The logo block, hoisted out of the project brief.
+   *
+   * The brief is only sent on the opening turn, so a logo living inside it
+   * disappeared from every follow-up and the model quietly stopped rendering
+   * it. This is emitted on every turn instead, right below the design system.
+   */
+  buildLogoDirective(projectData: ProjectModel): string {
+    const logo = projectData.analysisResultModel?.branding?.logo;
+    return logo ? `## BRAND LOGO\n${this.getLogoSection(logo, projectData.name)}` : '';
+  }
+
   private getCompleteBrandInfo(projectData: ProjectModel): string {
     const branding = projectData.analysisResultModel?.branding;
     if (!branding) return '## Brand Information\n- No brand information specified';
 
+    // The logo is emitted separately by `buildLogoDirective`, on every turn.
     let brandInfo = '## Brand Information\n';
-
-    if (branding.logo) {
-      brandInfo += this.getLogoSection(branding.logo, projectData.name);
-    }
 
     // Raw brand values are named, not listed as usable colours: the token forge
     // has already turned them into a contrast-verified Tailwind palette above.
@@ -447,28 +453,8 @@ Generate the complete landing page code with all necessary files.`;
     return featuresInfo || '## Features\n- No features specified';
   }
 
-  private getUseCaseDiagrams(projectData: ProjectModel): string {
-    const diagrams = projectData.analysisResultModel?.design;
-    if (!diagrams || !diagrams.sections || diagrams.sections.length === 0) {
-      return '## Use Case Diagrams\n- No use case diagrams specified';
-    }
-
-    let diagramsInfo = '## Use Case Diagrams\n';
-    diagramsInfo +=
-      '**IMPORTANT**: Implement the application based on these use case diagrams:\n\n';
-
-    diagrams.sections.forEach((section) => {
-      diagramsInfo += `### ${section.name}\n`;
-      diagramsInfo += `- **Type**: ${section.type}\n`;
-      diagramsInfo += `- **Summary**: ${section.summary}\n`;
-      if (section.data) {
-        diagramsInfo += `- **Details**: ${JSON.stringify(section.data, null, 2)}\n`;
-      }
-      diagramsInfo += `\n`;
-    });
-
-    return diagramsInfo;
-  }
+  // `analysisResultModel.design.sections` (the use-case / class diagrams) is no
+  // longer sent by the client, so nothing reads it here any more.
 
   // The Sub-Saharan Africa directives used to be inlined here twice and in two
   // other files. They now live in a single skill (`src/skills/catalog/audience.md`)

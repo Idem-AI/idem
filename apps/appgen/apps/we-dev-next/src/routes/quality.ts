@@ -13,13 +13,18 @@ const router = Router();
  * when there is something to repair.
  */
 router.post('/lint', (req: Request, res: Response) => {
-  const { files } = req.body as { files?: Record<string, string> };
+  const { files, expectedLogo } = req.body as {
+    files?: Record<string, string>;
+    expectedLogo?: string;
+  };
 
   if (!files || typeof files !== 'object' || Array.isArray(files)) {
     return res.status(400).json({ error: 'Expected a `files` object mapping paths to contents.' });
   }
 
-  const report = lintGeneratedFiles(files);
+  const report = lintGeneratedFiles(files, {
+    expectedLogo: typeof expectedLogo === 'string' ? expectedLogo : undefined,
+  });
   const repairPrompt = buildRepairPrompt(report, files);
 
   ChatLogger.setContext('QualityRoute');
