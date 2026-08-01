@@ -170,6 +170,43 @@
         }
       </div>
     </div>
+
+    <!-- Propositions des séries précédentes, restées accessibles pendant la
+         régénération : elle dure deux à trois minutes, et l'utilisateur doit
+         pouvoir revenir sur un concept qu'il préférait sans attendre la fin.
+         Le sélectionner annule les concepts restants (voir selectLogo). -->
+    @if (previousProposals().length > 0) {
+      <section class="w-full max-w-5xl mx-auto mt-8" aria-live="polite">
+        <h2 class="text-base sm:text-lg font-semibold text-text-primary text-center">
+          {{ 'dashboard.logoSelection.previous.title' | translate }}
+        </h2>
+        <p class="text-xs sm:text-sm text-text-tertiary text-center mt-1 mb-4">
+          {{ 'dashboard.logoSelection.previous.hint' | translate }}
+        </p>
+
+        <ul class="grid grid-cols-2 sm:grid-cols-3 gap-3 list-none p-0 m-0">
+          @for (logo of previousProposals(); track logo.id) {
+            <li>
+              <button
+                type="button"
+                (click)="selectLogo(logo.id)"
+                class="w-full rounded-xl border border-[var(--glass-border-medium)] bg-[var(--glass-bg-subtle)] p-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                [attr.aria-label]="logo.name"
+              >
+                <span class="flex w-full h-20 bg-white rounded-lg items-center justify-center p-2">
+                  <img
+                    [src]="logo.svg | logoSrc"
+                    alt=""
+                    class="max-w-full max-h-full object-contain"
+                  />
+                </span>
+                <span class="block mt-2 text-xs text-text-secondary truncate">{{ logo.name }}</span>
+              </button>
+            </li>
+          }
+        </ul>
+      </section>
+    }
   }
 
   <!-- Fallback Loading State (si simulateur non disponible) -->
@@ -352,6 +389,16 @@
               [class.bg-surface-1]="selectedLogoComputed() === logo.id"
               [style.borderColor]="selectedLogoComputed() === logo.id ? 'rgb(99, 102, 241)' : ''"
             >
+              <!-- Repère de série : sans lui, une liste fusionnée de 6 ou 9
+                   concepts ne dit plus lesquels viennent d'être générés. -->
+              @if (isPreviousProposal(logo)) {
+                <div
+                  class="absolute top-3 left-3 z-50 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--glass-bg-subtle)] border border-[var(--glass-border-medium)] text-text-secondary"
+                >
+                  {{ 'dashboard.logoSelection.previous.badge' | translate }}
+                </div>
+              }
+
               <!-- Selection Indicator -->
               @if (selectedLogoComputed() === logo.id) {
                 <div

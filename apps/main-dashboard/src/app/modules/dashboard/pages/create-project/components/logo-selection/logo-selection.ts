@@ -110,6 +110,13 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
   // Internal state
   protected readonly isGenerating = signal(false);
   protected readonly generatedLogos = signal<LogoModel[]>([]);
+  /**
+   * Concepts des séries précédentes de la session. Une régénération vide
+   * `generatedLogos` pour repartir de zéro ; sans cette archive les propositions
+   * antérieures disparaîtraient de l'écran, alors que l'intérêt d'en redemander
+   * est justement de pouvoir les comparer.
+   */
+  protected readonly archivedLogos = signal<LogoModel[]>([]);
   protected readonly generationProgress = signal(0);
   protected readonly currentStep = signal('');
   protected readonly estimatedTime = signal('2-3 minutes');
@@ -169,16 +176,56 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
 
   protected readonly shouldShowLogos = computed(() => {
     if (this.showLiveBoard()) return false;
-    const inputLogos = this.logos();
-    const generatedLogos = this.generatedLogos();
-    return (inputLogos && inputLogos.length > 0) || generatedLogos.length > 0;
+    return this.displayedLogos().length > 0;
   });
 
+  /**
+   * Tous les concepts proposés à l'utilisateur : la série qui vient d'être
+   * générée, celles des séries précédentes de la session, puis les logos déjà
+   * persistés sur le projet.
+   *
+   * L'ordre compte et la déduplication garde la PREMIÈRE occurrence : les
+   * nouveaux passent donc devant, et une version rééditée d'un concept masque
+   * son ancienne version. Auparavant l'input `logos()` court-circuitait
+   * `generatedLogos()` dès qu'il n'était pas vide — après une régénération
+   * l'utilisateur retombait sur les anciens concepts et ne voyait jamais ceux
+   * qu'il venait de demander.
+   */
   protected readonly displayedLogos = computed(() => {
-    const inputLogos = this.logos();
-    const generatedLogos = this.generatedLogos();
-    return inputLogos && inputLogos.length > 0 ? inputLogos : generatedLogos;
+    const merged = [...this.generatedLogos(), ...this.archivedLogos(), ...(this.logos() ?? [])];
+    const seen = new Set<string>();
+
+    return merged.filter((logo, index) => {
+      const key = logo.id || `logo-${index}`;
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
   });
+
+  /**
+   * Concepts issus des séries précédentes, encore proposables.
+   *
+   * Ils restent affichés pendant la régénération : une série prend deux à trois
+   * minutes, et faire disparaître de l'écran ce que l'utilisateur préférait
+   * peut-être l'oblige à attendre la fin pour y revenir. Les choisir annule la
+   * génération en cours (voir `selectLogo`).
+   */
+  protected readonly previousProposals = computed(() => {
+    const currentIds = new Set(this.generatedLogos().map((logo) => logo.id));
+    return this.archivedLogos().filter((logo) => !currentIds.has(logo.id));
+  });
+
+  private readonly previousProposalIds = computed(
+    () => new Set(this.previousProposals().map((logo) => logo.id)),
+  );
+
+  /** Distingue une proposition antérieure dans la liste fusionnée. */
+  protected isPreviousProposal(logo: LogoModel): boolean {
+    return this.previousProposalIds().has(logo.id);
+  }
 
   // Computed property for template binding
   protected readonly selectedLogoComputed = computed(() => {
@@ -471,12 +518,33 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
     );
   }
 
-  /** Garantit id/type/description sur un logo reçu du flux */
+  /**
+   * Met de côté les propositions actuellement affichées avant de relancer une
+   * série. Sans archive, `generatedLogos.set([])` les ferait disparaître.
+   */
+  private archiveCurrentProposals(): void {
+    const current = this.displayedLogos();
+
+    if (current.length === 0) {
+      return;
+    }
+
+    this.archivedLogos.set(current);
+  }
+
+  /**
+   * Garantit id/type/description sur un logo reçu du flux.
+   *
+   * L'identifiant de repli est préfixé par le numéro de série : sans cela une
+   * régénération renvoie à nouveau `concept-1..3` et les nouveaux concepts
+   * écrasent les anciens à la déduplication, ce qui viderait l'archive de son
+   * intérêt.
+   */
   private normalizeLogo(logo: LogoModel, index: number): LogoModel {
     const preferences = this.logoPreferences();
     return {
       ...logo,
-      id: logo.id || `concept-${index + 1}`,
+      id: logo.id || `concept-${this.atelierRun()}-${index + 1}`,
       type: logo.type ?? preferences?.type,
       customDescription: logo.customDescription ?? preferences?.customDescription,
     };
@@ -533,6 +601,7 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
   protected retryGeneration(): void {
     this.error.set(null);
     this.hasStartedGeneration.set(false);
+    this.archiveCurrentProposals();
     this.generatedLogos.set([]);
     this.generationProgress.set(0);
     this.showSimulator.set(false);
@@ -572,11 +641,18 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
       id: logoId, // Keep the original ID
     };
 
-    // Update the logo in the list - replace the old one with the new one
-    const updatedLogos = this.generatedLogos().map((l) => (l.id === logoId ? updatedLogo : l));
-    this.generatedLogos.set(updatedLogos);
+    // Replace it in the current series. A concept coming from an earlier series
+    // is not in `generatedLogos`, so the edited version is prepended instead:
+    // that list comes first in `displayedLogos`, which makes it shadow the
+    // archived original rather than leaving the edit nowhere.
+    this.generatedLogos.update((logos) =>
+      logos.some((l) => l.id === logoId)
+        ? logos.map((l) => (l.id === logoId ? updatedLogo : l))
+        : [updatedLogo, ...logos],
+    );
 
-    // Emit the updated logos to parent component
+    // Everything on screen, so what is persisted matches what the user sees.
+    const updatedLogos = this.displayedLogos();
     this.logosGenerated.emit(updatedLogos);
 
     // Update the project with the new logo
@@ -621,6 +697,7 @@ export class LogoSelectionComponent implements OnInit, OnDestroy {
 
     // Reset state
     this.error.set(null);
+    this.archiveCurrentProposals();
     this.generatedLogos.set([]);
     this.generationProgress.set(0);
     this.selectedLogoId.set(null);

@@ -67,6 +67,11 @@
           "cancelled": "Concept {{concept}} abandonné",
           "error": "Concept {{concept}} : échec de la génération"
         }
+      },
+      "previous": {
+        "badge": "Série précédente",
+        "title": "Propositions précédentes",
+        "hint": "Vous préférez une proposition précédente ? Sélectionnez-la : la génération en cours s'arrêtera."
       }
     }
   }

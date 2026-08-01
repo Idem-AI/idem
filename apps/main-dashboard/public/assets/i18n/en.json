@@ -635,6 +635,11 @@
           "cancelled": "Concept {{concept}} dropped",
           "error": "Concept {{concept}}: generation failed"
         }
+      },
+      "previous": {
+        "badge": "Earlier set",
+        "title": "Earlier proposals",
+        "hint": "Prefer one of the earlier proposals? Pick it and the run in progress will stop."
       }
     },
     "logoVariations": {
