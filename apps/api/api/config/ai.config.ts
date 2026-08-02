@@ -43,7 +43,6 @@ export const AI_CONFIG = {
     imageModel: 'gemini-3-pro-image',
   },
 
-
   // Onboarding service configurations
   // gemini-2.5-flash : modèle rapide pour la génération des questions et le
   // parsing des réponses lors de la création de projet (chat + formulaire).
@@ -74,22 +73,14 @@ export const AI_CONFIG = {
   businessPlan: {
     provider: LLMProvider.GEMINI,
     modelName: 'gemini-3.1-pro-preview',
-    fallbackModels: [
-      'gemini-3.6-flash',
-      'gemini-3.5-flash',
-      'gemini-3-flash-preview'
-    ],
+    fallbackModels: ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'],
   } as FeatureAIConfig,
 
   // Pitch Deck service configuration
   pitchDeck: {
     provider: LLMProvider.GEMINI,
     modelName: 'gemini-3.1-pro-preview',
-    fallbackModels: [
-      'gemini-3.6-flash',
-      'gemini-3.5-flash',
-      'gemini-3-flash-preview'
-    ],
+    fallbackModels: ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'],
   } as FeatureAIConfig,
 
   // Advisor service configuration
@@ -183,10 +174,15 @@ export const AI_CONFIG = {
     } as FeatureAIConfig,
     flyer: {
       provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      modelName: 'gemini-3.1-pro-preview',
+      // Priorité à la qualité : pas de fallback vers des modèles 'flash' rapides.
+      fallbackModels: ['gemini-3-pro-preview'],
       promptType: 'communication_flyer',
       llmOptions: {
-        maxOutputTokens: 2000,
+        maxOutputTokens: 32000, // Budget de tokens étendu pour laisser le temps de 'thinking'
+        temperature: 0.65, // Température ajustée pour plus de créativité
+        topP: 0.95,
+        topK: 64,
       },
     } as FeatureAIConfig,
     momentSuggestions: {
@@ -222,11 +218,7 @@ export const AI_CONFIG = {
     brandIdentity: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-3.1-pro-preview',
-      fallbackModels: [
-        'gemini-3.6-flash',
-        'gemini-3.5-flash',
-        'gemini-3-flash-preview'
-      ],
+      fallbackModels: ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'],
       llmOptions: {
         maxOutputTokens: 12000,
         temperature: 0.35,
@@ -237,11 +229,7 @@ export const AI_CONFIG = {
     logo: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-3.1-pro-preview',
-      fallbackModels: [
-        'gemini-3.6-flash',
-        'gemini-3.5-flash',
-        'gemini-3-flash-preview'
-      ],
+      fallbackModels: ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'],
       llmOptions: {
         // ⚠️ NE PAS RÉDUIRE. gemini-3-flash-preview est un modèle "thinking" :
         // les tokens de raisonnement sont décomptés de maxOutputTokens. Un SVG de
@@ -257,10 +245,8 @@ export const AI_CONFIG = {
     colors: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-2.5-flash',
-      fallbackModels: [
-      ],
+      fallbackModels: [],
       llmOptions: {
-
         temperature: 0.05,
         topP: 0.8,
         topK: 20,
@@ -269,8 +255,7 @@ export const AI_CONFIG = {
     typography: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-2.5-flash',
-      fallbackModels: [
-      ],
+      fallbackModels: [],
       llmOptions: {
         temperature: 0.3,
         topP: 0.8,
