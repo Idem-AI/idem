@@ -238,11 +238,13 @@ export class NewProjectComponent implements OnInit {
     });
   }
 
+  /**
+   * "Create empty" now means creating a Workspace: the old flow inserted a bare
+   * `projects` row with no deployment target or server, which is exactly the
+   * state a workspace refuses to be created in — the target and region are
+   * asked for once, here, rather than defaulted silently.
+   */
   protected createEmpty(): void {
-    const name = `project-${Date.now().toString(36)}`;
-    this.api.createProject({ name }).subscribe({
-      next: (p) => this.router.navigate(['/projects', p.uuid]),
-      error: (e) => this.error.set(e?.error?.error?.message ?? this.translate.instant('projects.common.errCreateProject')),
-    });
+    void this.router.navigate(['/workspaces/new']);
   }
 }

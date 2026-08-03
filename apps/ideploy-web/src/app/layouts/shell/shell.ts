@@ -159,7 +159,7 @@ export class ShellComponent implements OnInit {
     {
       title: 'shell.nav.sectionDeploy',
       items: [
-        { path: '/projects', label: 'shell.nav.projects', icon: 'fa-solid fa-layer-group' },
+        { path: '/workspaces', label: 'shell.nav.workspaces', icon: 'fa-solid fa-layer-group' },
         { path: '/templates', label: 'shell.nav.templates', icon: 'fa-solid fa-wand-magic-sparkles' },
       ],
     },

@@ -18,6 +18,23 @@ router.get('/backups/:scheduleUuid/executions', ctrl.listExecutions);
 
 /**
  * @swagger
+ * /api/v1/databases/backups/executions/{executionUuid}/download:
+ *   get:
+ *     summary: Download a backup file
+ *     description: >
+ *       Streams the dump straight from the server holding it, so size is not
+ *       bounded by the API host's memory or disk. Responds with a JSON error when
+ *       the backup exists only on S3, or was pruned by the retention policy.
+ *     tags: [Databases]
+ *     responses:
+ *       200: { description: The backup file, as application/octet-stream }
+ *       404: { description: Not found, or no longer on the server }
+ *       422: { description: Present only on S3, or the execution has no file }
+ */
+router.get('/backups/executions/:executionUuid/download', ctrl.downloadBackup);
+
+/**
+ * @swagger
  * /api/v1/databases/{type}:
  *   post: { summary: Create a database (type = postgresql|mysql|mariadb|mongodb|redis|keydb|dragonfly|clickhouse), tags: [Databases], responses: { 201: { description: Created } } }
  */
