@@ -29,6 +29,7 @@ function mapService(r: Record<string, unknown>): ServiceRow {
     environment_id: Number(r.environment_id),
     destination_id: r.destination_id ? Number(r.destination_id) : null,
     destination_type: (r.destination_type as string) ?? null,
+    project_id: r.project_id ? Number(r.project_id) : null,
   };
 }
 
@@ -76,6 +77,8 @@ export interface CreateServiceDto {
   destination_id: number;
   docker_compose_raw: string;
   service_type?: string;
+  /** The Project this belongs to, resolved server-side — never client-chosen. */
+  project_id?: number | null;
 }
 
 async function assertEnvironmentInTeam(teamId: number, environmentId: number): Promise<void> {
@@ -91,8 +94,10 @@ export async function createService(teamId: number, dto: CreateServiceDto): Prom
   await assertEnvironmentInTeam(teamId, dto.environment_id);
   const uuid = randomUUID();
   const { rows } = await pool.query(
-    `INSERT INTO services (uuid, name, service_type, docker_compose_raw, environment_id, destination_id, destination_type, created_at, updated_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7, now(), now()) RETURNING *`,
+    `INSERT INTO services
+       (uuid, name, service_type, docker_compose_raw, environment_id, destination_id,
+        destination_type, project_id, created_at, updated_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8, now(), now()) RETURNING *`,
     [
       uuid,
       dto.name,
@@ -101,6 +106,7 @@ export async function createService(teamId: number, dto: CreateServiceDto): Prom
       dto.environment_id,
       dto.destination_id,
       STANDALONE_DOCKER_MODEL,
+      dto.project_id ?? null,
     ]
   );
   const service = mapService(rows[0]);

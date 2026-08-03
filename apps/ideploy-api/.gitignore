@@ -5,3 +5,10 @@ logs/
 .env.local
 # Prisma generated client
 /prisma/generated/
+
+# Materialised SSH private keys and ControlMaster sockets — secrets, never commit
+.ssh-storage/
+
+# Test artifacts
+coverage/
+.env.test

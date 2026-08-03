@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 import { ApiService } from '../../../shared/services/api.service';
-import { Project, Server, ServiceTemplate } from '../../../shared/models/ideploy.models';
+import { Workspace, Server, ServiceTemplate } from '../../../shared/models/ideploy.models';
 
 interface DeployRow {
   id: string;
@@ -126,7 +126,7 @@ interface DeployRow {
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 @for (p of displayedProjects(); track p.uuid) {
                   <a class="db-glass block p-5 hover:border-blue-500/50 hover:bg-white/[0.01] transition-all duration-200 rounded-2xl group"
-                     [routerLink]="['/projects', p.uuid]">
+                     [routerLink]="['/workspaces', p.uuid]">
                     <div class="flex items-center gap-3">
                       <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 transition-colors">
                         <i class="fa-solid fa-layer-group"></i>
@@ -146,7 +146,7 @@ interface DeployRow {
               <div class="space-y-3">
                 @for (p of displayedProjects(); track p.uuid) {
                   <a class="db-glass block p-4 hover:border-blue-500/50 hover:bg-white/[0.01] transition-all duration-200 rounded-xl group"
-                     [routerLink]="['/projects', p.uuid]">
+                     [routerLink]="['/workspaces', p.uuid]">
                     <div class="flex items-center justify-between gap-4">
                       <div class="flex items-center gap-3">
                         <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 transition-colors">
@@ -258,7 +258,7 @@ export class DashboardComponent implements OnInit {
   private router = inject(Router);
   private translate = inject(TranslateService);
 
-  protected readonly projects = signal<Project[]>([]);
+  protected readonly projects = signal<Workspace[]>([]);
   protected readonly servers = signal<Server[]>([]);
   protected readonly templates = signal<ServiceTemplate[]>([]);
   protected readonly dbCount = signal(0);
@@ -312,7 +312,7 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     forkJoin({
-      projects: this.api.listProjects(),
+      projects: this.api.listWorkspaces(),
       servers: this.api.listServers(),
       databases: this.api.listDatabases(),
       quota: this.api.getQuota(),
