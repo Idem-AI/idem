@@ -1,3 +1,49 @@
+/** Where a workspace's projects run. */
+export type DeploymentType = 'saas' | 'own';
+
+export interface WorkspaceEnvironment {
+  id: number;
+  uuid: string;
+  name: string;
+}
+
+/**
+ * A workspace groups the projects of one application — a frontend, an API, a
+ * database — onto a shared server and network, so they can reach each other by
+ * hostname. The deployment target and region are chosen once, here, rather than
+ * on every project.
+ */
+export interface Workspace {
+  id: number;
+  uuid: string;
+  name: string;
+  description: string | null;
+  deploymentType: DeploymentType;
+  /** Two-letter country code, or null when hosted on the team's own server. */
+  region: string | null;
+  assignedServerId: number | null;
+  assignedServerName: string | null;
+  environments: WorkspaceEnvironment[];
+  /** Applications, services and databases inside, across all environments — not a count of `WorkspaceProject`s. */
+  projectCount: number;
+}
+
+/** What the creation form may offer, given the team's plan and fleet capacity. */
+export interface WorkspaceOptions {
+  regionSelectionAllowed: boolean;
+  availableRegions: string[];
+  defaultRegion: string;
+  deploymentTypes: DeploymentType[];
+}
+
+export interface CreateWorkspaceRequest {
+  name: string;
+  description?: string;
+  deployment_type: DeploymentType;
+  region?: string;
+  server_uuid?: string;
+}
+
 export interface Server {
   id: number;
   uuid: string;
@@ -8,17 +54,63 @@ export interface Server {
   user: string;
 }
 
-export interface ServerValidation {
-  reachable: boolean;
-  dockerInstalled: boolean;
-  output: string;
+/** One item of the server readiness report. */
+export interface ServerCheck {
+  id:
+    | 'ssh'
+    | 'os'
+    | 'docker_engine'
+    | 'docker_version'
+    | 'docker_compose'
+    | 'network'
+    | 'disk';
+  /** Human label, supplied by the API alongside the diagnosis it belongs to. */
+  label: string;
+  status: 'ok' | 'failed' | 'warning' | 'skipped';
+  /** What was observed. */
+  detail?: string;
+  /** What to do about it, when there is something to do. */
+  remedy?: string;
 }
 
-export interface Project {
+/**
+ * Result of validating a server. `ready` is false when any check failed;
+ * warnings (a nearly full disk, say) do not block deployment.
+ */
+export interface ServerReadiness {
+  ready: boolean;
+  checks: ServerCheck[];
+  raw: string;
+}
+
+/** Outcome of the setup step, including the readiness re-check that followed. */
+export interface ServerSetupResult {
+  success: boolean;
+  output: string;
+  readiness: ServerReadiness;
+}
+
+/**
+ * A named grouping of resources within one workspace environment — "frontend",
+ * "backend", "the database" — so a three-tier application is three named
+ * things sharing a workspace, not three unlabelled rows told apart by URL.
+ *
+ * Optional: a resource created without naming one is simply ungrouped, not an
+ * error — most workspaces only ever hold one thing.
+ */
+export interface WorkspaceProject {
   id: number;
   uuid: string;
   name: string;
   description: string | null;
+  environmentId: number;
+}
+
+export interface CreateWorkspaceProjectRequest {
+  name: string;
+  description?: string;
+  /** Defaults to the workspace's default environment. */
+  environment_name?: string;
 }
 
 export interface Application {
@@ -30,6 +122,8 @@ export interface Application {
   build_pack: string | null;
   status: string | null;
   link?: string | null;
+  /** The named WorkspaceProject ("frontend", "backend", …) this belongs to, if any. */
+  project_id?: number | null;
 }
 
 export interface ApiResponse<T> {
@@ -166,10 +260,25 @@ export interface GithubRepo {
   language?: string;
 }
 
+/**
+ * Whether the saved rules actually filter traffic.
+ *
+ * Saved and enforced are different states, and conflating them is how someone
+ * ends up believing an application is protected when nothing inspects its
+ * traffic. The API reports this on every read; the interface must show it.
+ */
+export interface FirewallEnforcement {
+  state: 'enforced' | 'not_enforced';
+  reason: string;
+  rulesConfigured: number;
+  rulesEnforced: number;
+}
+
 export interface FirewallConfig {
   id: number;
   application_id: number;
   enabled: boolean;
+  enforcement?: FirewallEnforcement;
   appsec_enabled: boolean;
   inband_enabled: boolean;
   default_remediation: string;

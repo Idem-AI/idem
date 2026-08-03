@@ -4,10 +4,14 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { Application } from '../../../shared/models/ideploy.models';
+import {
+  WorkspaceTarget,
+  WorkspaceTargetPickerComponent,
+} from '../../../shared/components/workspace-target-picker/workspace-target-picker';
 
 @Component({
   selector: 'app-applications-list',
-  imports: [RouterLink, ReactiveFormsModule, TranslateModule],
+  imports: [RouterLink, ReactiveFormsModule, TranslateModule, WorkspaceTargetPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-6 flex items-center justify-between">
@@ -17,34 +21,25 @@ import { Application } from '../../../shared/models/ideploy.models';
 
     @if (creating()) {
       <form class="box mb-6 max-w-2xl space-y-3" [formGroup]="form" (ngSubmit)="create()">
-        <div class="flex gap-3">
-          <div class="flex-1">
-            <label class="mb-1 block text-sm">{{ 'applications.list.name' | translate }}</label>
-            <input class="input" formControlName="name" />
-          </div>
-          <div class="w-40">
-            <label class="mb-1 block text-sm">{{ 'applications.list.environmentId' | translate }}</label>
-            <input class="input" type="number" formControlName="environment_id" />
-          </div>
+        <div>
+          <label class="mb-1 block text-sm">{{ 'applications.list.name' | translate }}</label>
+          <input class="input" formControlName="name" />
         </div>
         <div>
           <label class="mb-1 block text-sm">{{ 'applications.list.gitRepositoryUrl' | translate }}</label>
           <input class="input" formControlName="git_repository" placeholder="https://github.com/org/repo" />
         </div>
-        <div class="flex gap-3">
-          <div class="flex-1">
-            <label class="mb-1 block text-sm">{{ 'applications.branch' | translate }}</label>
-            <input class="input" formControlName="git_branch" />
-          </div>
-          <div class="w-40">
-            <label class="mb-1 block text-sm">{{ 'applications.list.destinationId' | translate }}</label>
-            <input class="input" type="number" formControlName="destination_id" />
-          </div>
+        <div>
+          <label class="mb-1 block text-sm">{{ 'applications.branch' | translate }}</label>
+          <input class="input" formControlName="git_branch" />
         </div>
+
+        <app-workspace-target-picker (targetChange)="target.set($event)" />
+
         @if (error()) {
           <p class="text-sm text-red-400">{{ error() }}</p>
         }
-        <button class="button" type="submit" [disabled]="form.invalid || saving()">
+        <button class="button" type="submit" [disabled]="form.invalid || !target() || saving()">
           {{ (saving() ? 'applications.list.creating' : 'applications.list.createApplication') | translate }}
         </button>
       </form>
@@ -95,13 +90,13 @@ export class ApplicationsListComponent implements OnInit {
   protected readonly creating = signal(false);
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
+  /** Where the new application lands — resolved by the workspace, never a raw id. */
+  protected readonly target = signal<WorkspaceTarget | null>(null);
 
   protected readonly form = this.fb.nonNullable.group({
     name: ['', Validators.required],
-    environment_id: [0, Validators.required],
     git_repository: ['', Validators.required],
     git_branch: ['main'],
-    destination_id: [0],
   });
 
   ngOnInit(): void {
@@ -119,22 +114,24 @@ export class ApplicationsListComponent implements OnInit {
   }
 
   protected create(): void {
-    if (this.form.invalid) return;
+    const target = this.target();
+    if (this.form.invalid || !target) return;
     this.saving.set(true);
     this.error.set(null);
     const raw = this.form.getRawValue();
     this.api
       .createApplication({
         name: raw.name,
-        environment_id: raw.environment_id,
         git_repository: raw.git_repository,
         git_branch: raw.git_branch || 'main',
-        destination_id: raw.destination_id || undefined,
-        destination_type: raw.destination_id ? 'App\\Models\\StandaloneDocker' : undefined,
+        workspace_uuid: target.workspace_uuid,
+        environment_name: target.environment_name,
+        project_name: target.project_name,
       })
       .subscribe({
         next: () => {
-          this.form.reset({ name: '', environment_id: 0, git_repository: '', git_branch: 'main', destination_id: 0 });
+          this.form.reset({ name: '', git_repository: '', git_branch: 'main' });
+          this.target.set(null);
           this.creating.set(false);
           this.saving.set(false);
           this.load();

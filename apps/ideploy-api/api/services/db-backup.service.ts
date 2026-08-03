@@ -4,11 +4,15 @@
  * model. Cron scheduling runs via BullMQ repeatable jobs (see jobs/backup.worker).
  */
 import { randomUUID } from 'crypto';
+import { Writable } from 'stream';
 import pool from '../config/db.config';
 import { getDbType, DbType } from './database-types';
 import { tryDecryptString } from '../utils/laravel-crypto';
 import * as serverService from './server.service';
-import { executeRemoteCommand } from '../ssh/ssh';
+import { downloadRemoteFile, executeRemoteCommand } from '../ssh/ssh';
+import { statRemoteFile } from '../ssh/files';
+import { PrivateKeyRow, ServerRow } from '../models/ideploy.types';
+import { notFound, unprocessable } from '../utils/errors';
 import * as databaseService from './database.service';
 
 import { backupRoot } from '../utils/paths';
@@ -104,6 +108,99 @@ export async function listExecutions(
     [teamId, scheduleUuid]
   );
   return rows;
+}
+
+export interface DownloadableBackup {
+  filename: string;
+  /** Absolute path on the server hosting the database. */
+  remotePath: string;
+  sizeBytes: number;
+  server: ServerRow;
+  key: PrivateKeyRow;
+}
+
+/**
+ * Resolve a backup execution to something streamable, or explain why it is not.
+ *
+ * Mirrors the Laravel download route, including its distinction between "gone"
+ * and "only on S3" — the latter is recoverable information for the user, and
+ * collapsing both into a bare 404 sends them looking in the wrong place.
+ */
+export async function resolveBackupForDownload(
+  teamId: number,
+  executionUuid: string
+): Promise<DownloadableBackup> {
+  const { rows } = await pool.query(
+    `SELECT ex.filename, ex.status, ex.size,
+            sb.disable_local_backup, sb.save_s3,
+            d.server_id
+     FROM scheduled_database_backup_executions ex
+     JOIN scheduled_database_backups sb ON sb.id = ex.scheduled_database_backup_id
+     LEFT JOIN standalone_dockers d ON d.id = sb.destination_id
+     WHERE sb.team_id = $1 AND ex.uuid = $2
+     LIMIT 1`,
+    [teamId, executionUuid]
+  );
+
+  const row = rows[0];
+  if (!row) throw notFound('Backup');
+
+  const filename = row.filename as string | null;
+  if (!filename) {
+    throw unprocessable(
+      'BACKUP_INCOMPLETE',
+      'This backup has no file — it may have failed before writing anything.'
+    );
+  }
+
+  if (row.disable_local_backup && row.save_s3) {
+    throw unprocessable(
+      'BACKUP_ONLY_ON_S3',
+      'This schedule keeps backups only on S3, so there is no copy on the server to download.'
+    );
+  }
+
+  if (!row.server_id) {
+    throw unprocessable(
+      'BACKUP_SERVER_UNKNOWN',
+      'The server that held this backup can no longer be determined.'
+    );
+  }
+
+  const server = await serverService.getServerById(teamId, Number(row.server_id));
+  if (!server) throw notFound('The server holding this backup');
+
+  const key = await serverService.getPrivateKey(teamId, server.private_key_id);
+  if (!key) throw notFound('The private key for that server');
+
+  const info = await statRemoteFile(server, key, filename);
+  if (!info) {
+    throw notFound(
+      `The backup file (${filename}) is no longer on the server. It may have been pruned by the retention policy, and`
+    );
+  }
+
+  return {
+    filename,
+    remotePath: filename,
+    sizeBytes: info.size,
+    server,
+    key,
+  };
+}
+
+/**
+ * Stream a resolved backup into `destination`.
+ *
+ * Streamed rather than buffered: database dumps routinely reach gigabytes, and
+ * staging one in memory or on the API host's disk would be a denial of service
+ * against ourselves.
+ */
+export async function streamBackup(
+  backup: DownloadableBackup,
+  destination: Writable
+): Promise<number> {
+  return downloadRemoteFile(backup.server, backup.key, backup.remotePath, destination);
 }
 
 async function loadCreds(t: DbType, dbUuid: string): Promise<Record<string, string>> {

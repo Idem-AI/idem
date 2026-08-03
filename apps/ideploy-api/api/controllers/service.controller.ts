@@ -1,9 +1,10 @@
 import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
-import { ok, fail } from '../utils/response';
+import { ok, fail, respondWithError } from '../utils/response';
 import logger from '../config/logger';
 import * as service from '../services/service.service';
 import * as templates from '../services/templates.service';
+import { resolveWorkspaceDestination } from '../services/workspace.service';
 
 export async function list(req: CustomRequest, res: Response): Promise<void> {
   try {
@@ -26,46 +27,70 @@ export async function get(req: CustomRequest, res: Response): Promise<void> {
   }
 }
 
+/**
+ * Create a service (Docker Compose stack) inside a workspace.
+ *
+ * The destination is resolved from the workspace, not accepted from the
+ * client — see the identical note on `application.controller.ts::createApplication`.
+ */
 export async function create(req: CustomRequest, res: Response): Promise<void> {
-  const { name, environment_id, destination_id, docker_compose_raw } = req.body ?? {};
-  if (!name || !environment_id || !destination_id || !docker_compose_raw) {
-    return fail(
-      res,
-      'name, environment_id, destination_id and docker_compose_raw are required',
-      422,
-      'VALIDATION'
-    );
+  const { name, workspace_uuid, environment_name, project_name, docker_compose_raw } = req.body ?? {};
+  if (!name || !workspace_uuid || !docker_compose_raw) {
+    return fail(res, 'name, workspace_uuid and docker_compose_raw are required', 422, 'VALIDATION');
   }
   try {
-    ok(res, await service.createService(req.user!.currentTeamId!, req.body), 201);
+    const teamId = req.user!.currentTeamId!;
+    const destination = await resolveWorkspaceDestination(
+      teamId,
+      workspace_uuid,
+      environment_name,
+      project_name
+    );
+    ok(
+      res,
+      await service.createService(teamId, {
+        ...req.body,
+        environment_id: destination.environmentId,
+        destination_id: destination.destinationId,
+        project_id: destination.projectId,
+      }),
+      201
+    );
   } catch (err) {
-    logger.error('createService error', { message: (err as Error).message });
-    fail(res, (err as Error).message || 'Failed to create service');
+    respondWithError(res, err, 'Creating the service');
   }
 }
 
 /** Create a service from a one-click template. */
 export async function createFromTemplate(req: CustomRequest, res: Response): Promise<void> {
-  const { template, name, environment_id, destination_id } = req.body ?? {};
-  if (!template || !name || !environment_id || !destination_id) {
-    return fail(res, 'template, name, environment_id and destination_id are required', 422, 'VALIDATION');
+  const { template, name, workspace_uuid, environment_name, project_name } = req.body ?? {};
+  if (!template || !name || !workspace_uuid) {
+    return fail(res, 'template, name and workspace_uuid are required', 422, 'VALIDATION');
   }
   const compose = templates.getTemplateCompose(String(template));
   if (!compose) return fail(res, `Unknown template: ${template}`, 404, 'NOT_FOUND');
   try {
+    const teamId = req.user!.currentTeamId!;
+    const destination = await resolveWorkspaceDestination(
+      teamId,
+      workspace_uuid,
+      environment_name,
+      project_name
+    );
     ok(
       res,
-      await service.createService(req.user!.currentTeamId!, {
+      await service.createService(teamId, {
         name,
-        environment_id,
-        destination_id,
+        environment_id: destination.environmentId,
+        destination_id: destination.destinationId,
+        project_id: destination.projectId,
         docker_compose_raw: compose,
         service_type: String(template),
       }),
       201
     );
   } catch (err) {
-    fail(res, (err as Error).message || 'Failed to create service from template');
+    respondWithError(res, err, 'Creating the service from a template');
   }
 }
 

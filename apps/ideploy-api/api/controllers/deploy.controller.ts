@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
-import { ok, fail } from '../utils/response';
+import { ok, fail, respondWithError } from '../utils/response';
 import logger from '../config/logger';
 import * as appService from '../services/application.service';
 import * as deploymentService from '../services/deployment.service';
@@ -39,5 +39,37 @@ export async function getDeployment(req: CustomRequest, res: Response): Promise<
   } catch (err) {
     logger.error('getDeployment error', { message: (err as Error).message });
     fail(res, 'Failed to fetch deployment');
+  }
+}
+
+/** Past deployments this application can be rolled back to. */
+export async function rollbackTargets(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    ok(
+      res,
+      await deploymentService.listRollbackTargets(
+        req.user!.currentTeamId!,
+        String(req.params.uuid)
+      )
+    );
+  } catch (err) {
+    respondWithError(res, err, 'Listing rollback targets');
+  }
+}
+
+/** Redeploy the commit a previous deployment used. */
+export async function rollback(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    ok(
+      res,
+      await deploymentService.rollbackTo(
+        req.user!.currentTeamId!,
+        String(req.params.uuid),
+        String(req.body.deployment_uuid)
+      ),
+      202
+    );
+  } catch (err) {
+    respondWithError(res, err, 'Rolling back');
   }
 }

@@ -1,12 +1,13 @@
 import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
-import { ok, fail } from '../utils/response';
+import { ok, fail, respondWithError } from '../utils/response';
 import logger from '../config/logger';
 import * as appService from '../services/application.service';
 import * as envVarService from '../services/env-var.service';
 import * as deploymentService from '../services/deployment.service';
 import * as taskService from '../services/scheduled-task.service';
 import * as volumeService from '../services/volume.service';
+import { resolveWorkspaceDestination, STANDALONE_DOCKER_TYPE } from '../services/workspace.service';
 
 export async function listApplications(req: CustomRequest, res: Response): Promise<void> {
   try {
@@ -30,16 +31,41 @@ export async function getApplication(req: CustomRequest, res: Response): Promise
   }
 }
 
+/**
+ * Create an application inside a workspace.
+ *
+ * The client names a *workspace*, never a destination: `resolveWorkspaceDestination`
+ * decides the server and Docker network, which is what guarantees this
+ * application can reach the other resources in the same workspace by hostname.
+ * A caller-supplied `destination_id` would defeat that guarantee — the whole
+ * reason a workspace exists — so none is accepted here.
+ */
 export async function createApplication(req: CustomRequest, res: Response): Promise<void> {
-  const { name, environment_id, git_repository } = req.body ?? {};
-  if (!name || !environment_id || !git_repository) {
-    return fail(res, 'name, environment_id and git_repository are required', 422, 'VALIDATION');
+  const { name, workspace_uuid, environment_name, project_name, git_repository } = req.body ?? {};
+  if (!name || !workspace_uuid || !git_repository) {
+    return fail(res, 'name, workspace_uuid and git_repository are required', 422, 'VALIDATION');
   }
   try {
-    ok(res, await appService.createApplication(req.user!.currentTeamId!, req.body), 201);
+    const teamId = req.user!.currentTeamId!;
+    const destination = await resolveWorkspaceDestination(
+      teamId,
+      workspace_uuid,
+      environment_name,
+      project_name
+    );
+    ok(
+      res,
+      await appService.createApplication(teamId, {
+        ...req.body,
+        environment_id: destination.environmentId,
+        destination_id: destination.destinationId,
+        destination_type: STANDALONE_DOCKER_TYPE,
+        project_id: destination.projectId,
+      }),
+      201
+    );
   } catch (err) {
-    logger.error('createApplication error', { message: (err as Error).message });
-    fail(res, (err as Error).message || 'Failed to create application');
+    respondWithError(res, err, 'Creating the application');
   }
 }
 
