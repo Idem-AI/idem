@@ -83,6 +83,8 @@ export interface DatabaseRow {
   environment_id: number | null;
   destination_id: number | null;
   destination_type: string | null;
+  /** The named Project ("frontend", "backend", …) this belongs to, if any. */
+  project_id: number | null;
 }
 
 export interface ServiceRow {
@@ -94,6 +96,8 @@ export interface ServiceRow {
   environment_id: number;
   destination_id: number | null;
   destination_type: string | null;
+  /** The named Project ("frontend", "backend", …) this belongs to, if any. */
+  project_id: number | null;
 }
 
 export interface ApplicationRow {
@@ -116,4 +120,6 @@ export interface ApplicationRow {
   start_command: string | null;
   install_command: string | null;
   publish_directory: string | null;
+  /** The named Project ("frontend", "backend", …) this belongs to, if any. */
+  project_id: number | null;
 }

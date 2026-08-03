@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticate, requireTeam } from '../middleware/auth.middleware';
 import * as ctrl from '../controllers/application.controller';
+import * as deployCtrl from '../controllers/deploy.controller';
 
 const router = Router();
 router.use(authenticate, requireTeam);
@@ -29,6 +30,16 @@ router.delete('/:uuid/envs/:key', ctrl.deleteEnvVar);
 
 // Deployments / previews
 router.get('/:uuid/deployments', ctrl.listDeployments);
+
+/**
+ * @swagger
+ * /api/v1/applications/{uuid}/rollback-targets:
+ *   get: { summary: Successful past deployments this application can return to, tags: [Deployments], responses: { 200: { description: OK } } }
+ * /api/v1/applications/{uuid}/rollback:
+ *   post: { summary: Redeploy the commit a previous deployment used, tags: [Deployments], responses: { 202: { description: Queued }, 422: { description: That deployment cannot be reproduced } } }
+ */
+router.get('/:uuid/rollback-targets', deployCtrl.rollbackTargets);
+router.post('/:uuid/rollback', deployCtrl.rollback);
 router.get('/:uuid/previews', ctrl.listPreviews);
 
 // Scheduled tasks

@@ -8,6 +8,8 @@ import pool from '../config/db.config';
 import * as serverService from './server.service';
 import { executeRemoteCommand } from '../ssh/ssh';
 import { ServerRow, PrivateKeyRow } from '../models/ideploy.types';
+import { bouncerStaticFlags } from '../docker/labels';
+import { geoBlockStaticFlags } from '../docker/protection';
 
 import { proxyPath } from '../utils/paths';
 const PROXY_PATH = proxyPath();
@@ -22,6 +24,22 @@ async function resolve(
   const key = await serverService.getPrivateKey(teamId, server.private_key_id);
   if (!key) throw new Error('Private key not found for server');
   return { server, key };
+}
+
+/**
+ * Plugins the proxy must know about before any application's labels can use
+ * them.
+ *
+ * A dynamic label referencing `plugin.bouncer` or `plugin.geoblock` means
+ * nothing to a Traefik instance that was never told the plugin exists — that
+ * declaration only happens here, in the static command, not in a per-application
+ * label. Declared unconditionally, for every server: the proxy is shared across
+ * tenants, plugins load once at start-up, and gating this on one tenant's
+ * firewall setting would mean restarting a shared proxy the moment anyone
+ * enables it.
+ */
+function pluginCommandFlags(): string {
+  return [...bouncerStaticFlags(), ...geoBlockStaticFlags()].map((flag) => `      - ${flag}`).join('\n');
 }
 
 /** The Traefik v3 compose, equivalent to Coolify's GetProxyConfiguration. */
@@ -57,6 +75,7 @@ export function buildTraefikCompose(): string {
       - --providers.docker.exposedbydefault=false
       - --providers.file.directory=/traefik/dynamic/
       - --providers.file.watch=true
+${pluginCommandFlags()}
 networks:
   ideploy:
     external: true
