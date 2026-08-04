@@ -10,6 +10,7 @@ import { metricsMiddleware } from './middleware/metrics.middleware';
 import { languageMiddleware } from './middleware/language.middleware';
 import { requestTraceMiddleware } from './middleware/request-trace.middleware';
 import { revisionContextMiddleware } from './utils/revision-context.util';
+import { aiUsageContextMiddleware } from './utils/ai-usage-context.util';
 import metricsRouter from './routes/metrics.routes';
 import admin from 'firebase-admin';
 import cors from 'cors';
@@ -23,6 +24,7 @@ import { User } from './schemas/user.schema';
 import { Project } from './schemas/project.schema';
 import { ProjectRevision } from './schemas/revision.schema';
 import { CoherenceAlert } from './schemas/coherence.schema';
+import { AiUsageEvent } from './schemas/aiUsage.schema';
 import { authRoutes } from './routes/auth.routes';
 import { promptRoutes } from './routes/prompt.routes';
 import swaggerJsdoc from 'swagger-jsdoc';
@@ -140,6 +142,11 @@ app.use(languageMiddleware);
 // hook can attribute every project write — the "git blame" of project data.
 app.use(revisionContextMiddleware);
 
+// Seed the AI usage context (feature + operation derived from the route) so
+// every model call can be attributed to a user, a project and a project
+// element without threading those values through every generation service.
+app.use(aiUsageContextMiddleware);
+
 app.use('/projects', projectRoutes);
 app.use('/project', contextRoutes);
 app.use('/project', coherenceRoutes);
@@ -252,6 +259,7 @@ function startServer() {
         Project.init(), // Creates all indexes defined in ProjectSchema
         ProjectRevision.init(), // Chronicle: unique (projectId, section, version) + log indexes
         CoherenceAlert.init(), // Coherence Guard: alertes de synchronisation inter-artefacts
+        AiUsageEvent.init(), // Journal de consommation IA (+ TTL de rétention)
       ]);
       console.log('MongoDB indexes created successfully');
     } catch (error) {
