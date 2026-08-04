@@ -25,6 +25,13 @@ import { Project } from './schemas/project.schema';
 import { ProjectRevision } from './schemas/revision.schema';
 import { CoherenceAlert } from './schemas/coherence.schema';
 import { AiUsageEvent } from './schemas/aiUsage.schema';
+import {
+  BillingInvoice,
+  BillingPlan,
+  BillingSubscription,
+  CreditLedgerEntry,
+} from './schemas/billing.schema';
+import { billingService } from './services/billing.service';
 import { authRoutes } from './routes/auth.routes';
 import { promptRoutes } from './routes/prompt.routes';
 import swaggerJsdoc from 'swagger-jsdoc';
@@ -260,7 +267,18 @@ function startServer() {
         ProjectRevision.init(), // Chronicle: unique (projectId, section, version) + log indexes
         CoherenceAlert.init(), // Coherence Guard: alertes de synchronisation inter-artefacts
         AiUsageEvent.init(), // Journal de consommation IA (+ TTL de rétention)
+        // Facturation : index partiels uniques (un abonnement actif par user,
+        // une facture par période) qui garantissent l'absence de double
+        // facturation au niveau de la base.
+        BillingPlan.init(),
+        BillingSubscription.init(),
+        BillingInvoice.init(),
+        CreditLedgerEntry.init(),
       ]);
+
+      // Catalogue de plans aligné sur la landing page. N'écrase jamais un plan
+      // existant (un prix négocié en production doit survivre au redémarrage).
+      await billingService.seedPlans();
       console.log('MongoDB indexes created successfully');
     } catch (error) {
       console.error('Failed to connect to MongoDB:', error);

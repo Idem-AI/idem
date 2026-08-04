@@ -89,6 +89,14 @@ export interface AiUsageEventModel {
    * une facture.
    */
   tokensEstimated?: boolean;
+  /**
+   * Coût ventilé. Stocké au lieu d'être recalculé depuis les totaux de tokens :
+   * les tarifs entrée/sortie diffèrent par modèle, donc une reconstitution à
+   * partir de tokens agrégés tous modèles confondus serait fausse.
+   */
+  inputCostUsd: number;
+  outputCostUsd: number;
+  /** Somme de `inputCostUsd` et `outputCostUsd`. */
   estimatedCostUsd: number;
 
   // --- Contexte d'exécution -------------------------------------------------
