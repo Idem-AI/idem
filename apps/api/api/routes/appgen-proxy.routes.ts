@@ -4,6 +4,8 @@ import { checkQuota } from '../middleware/quota.middleware';
 import { rateLimitByUser, rateLimitByEndpoint } from '../middleware/rate-limit.middleware';
 import tokenTrackingService from '../services/token-tracking.service';
 import anomalyDetectionService from '../services/anomaly-detection.service';
+import { aiUsageService } from '../services/ai-usage.service';
+import { extractOpenAIUsage } from '../utils/ai-usage-extract.util';
 import logger from '../config/logger';
 
 const router = Router();
@@ -100,19 +102,25 @@ router.post(
 
       const aiData = await aiResponse.json();
 
-      // Track token usage
-      const usage = aiData.usage;
-      if (usage) {
-        await tokenTrackingService.trackTokenUsage(
-          userId,
-          usage.prompt_tokens || 0,
-          usage.completion_tokens || 0,
-          model
-        );
-      }
+      // Journal détaillé, à la même granularité que les générations IDEM : le
+      // coût d'appgen doit apparaître dans le panel admin au même titre que
+      // celui des autres fonctionnalités, et rattaché au projet quand il est
+      // connu. `aiUsageService.record` met aussi à jour le compteur journalier
+      // `token_usage` (de façon atomique) qui alimente les plafonds.
+      const usage = extractOpenAIUsage(aiData);
+      await aiUsageService.record({
+        provider: 'appgen',
+        modelName: model,
+        usage: usage ?? { inputTokens: 0, outputTokens: 0, estimated: true },
+        userId,
+        projectId: typeof req.body?.projectId === 'string' ? req.body.projectId : undefined,
+        feature: 'appgen',
+        element: typeof req.body?.step === 'string' ? req.body.step : undefined,
+        operation: 'appgen',
+      });
 
       logger.info(
-        `AppGen proxy success for user ${userId}: tokens=${usage?.total_tokens || 0}`
+        `AppGen proxy success for user ${userId}: tokens=${aiData.usage?.total_tokens || 0}`
       );
 
       return res.json(aiData);

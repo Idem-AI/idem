@@ -52,6 +52,7 @@ const ChatMessageSchema = new Schema<ChatMessage>(
 
 const ProjectSchema = new Schema<ProjectDocument>(
   {
+    _id: { type: Schema.Types.Mixed },
     name: { type: String, required: true },
     description: { type: String, required: true },
     type: {

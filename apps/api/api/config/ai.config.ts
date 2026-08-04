@@ -176,7 +176,7 @@ export const AI_CONFIG = {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-3.1-pro-preview',
       // Priorité à la qualité
-      fallbackModels: ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'],,
+      fallbackModels: ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'],
       promptType: 'communication_flyer',
       llmOptions: {
         maxOutputTokens: 32000, // Budget de tokens étendu pour laisser le temps de 'thinking'
