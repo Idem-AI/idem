@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import logger from '../config/logger';
-import { computeCostUsd, isPricingEstimated } from '../config/ai-pricing.config';
+import { computeCost, isPricingEstimated } from '../config/ai-pricing.config';
 import {
   AiUsageEventModel,
   AiUsageOperation,
@@ -71,7 +71,7 @@ class AiUsageService {
       const outputTokens = Math.max(Math.round(input.usage.outputTokens || 0), 0);
       const cachedInputTokens = Math.max(Math.round(input.usage.cachedInputTokens || 0), 0);
 
-      const estimatedCostUsd = computeCostUsd({
+      const cost = computeCost({
         modelName: input.modelName,
         inputTokens,
         outputTokens,
@@ -103,7 +103,9 @@ class AiUsageService {
         cachedInputTokens,
         totalTokens: inputTokens + outputTokens,
         tokensEstimated: !!input.usage.estimated,
-        estimatedCostUsd,
+        inputCostUsd: cost.inputCostUsd,
+        outputCostUsd: cost.outputCostUsd,
+        estimatedCostUsd: cost.totalCostUsd,
 
         status: input.status ?? 'success',
         errorMessage: input.errorMessage?.slice(0, 1000),
@@ -123,7 +125,9 @@ class AiUsageService {
         model: event.modelName,
         inputTokens,
         outputTokens,
-        costUsd: estimatedCostUsd,
+        inputCostUsd: cost.inputCostUsd,
+        outputCostUsd: cost.outputCostUsd,
+        costUsd: cost.totalCostUsd,
         estimated: !!input.usage.estimated,
       });
 
@@ -135,7 +139,7 @@ class AiUsageService {
           userId,
           inputTokens,
           outputTokens,
-          estimatedCostUsd,
+          estimatedCostUsd: cost.totalCostUsd,
         });
       }
 

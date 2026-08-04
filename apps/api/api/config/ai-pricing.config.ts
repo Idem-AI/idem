@@ -104,28 +104,63 @@ export function isPricingEstimated(modelName: string): boolean {
   return !Object.keys(table).some((key) => normalized.startsWith(key.toLowerCase()));
 }
 
+/** 6 décimales : un appel court coûte souvent moins d'un dix-millième de dollar. */
+function round(value: number): number {
+  return Math.round(value * 1_000_000) / 1_000_000;
+}
+
+/** Coût ventilé entrée / sortie d'un appel. */
+export interface CostBreakdown {
+  /** Coût des tokens d'entrée (cache inclus, à son tarif réduit). */
+  inputCostUsd: number;
+  /** Coût des tokens de sortie. */
+  outputCostUsd: number;
+  /** Somme des deux. */
+  totalCostUsd: number;
+}
+
 /**
- * Coût en USD d'un appel. Les tokens d'entrée servis depuis le cache de
- * contexte Gemini sont facturés à leur tarif réduit, et déduits des tokens
- * d'entrée pleins pour ne pas être comptés deux fois.
+ * Coût d'un appel, ventilé entrée / sortie.
+ *
+ * La ventilation est calculée et STOCKÉE ici plutôt que déduite plus tard des
+ * totaux de tokens : les tarifs varient d'un modèle à l'autre (et le rapport
+ * sortie/entrée va de 3× à 8×), donc un coût recalculé à partir de tokens
+ * agrégés tous modèles confondus serait faux.
+ *
+ * Les tokens d'entrée servis depuis le cache de contexte Gemini sont facturés à
+ * leur tarif réduit et déduits des tokens d'entrée pleins pour ne pas être
+ * comptés deux fois.
  */
-export function computeCostUsd(params: {
+export function computeCost(params: {
   modelName: string;
   inputTokens: number;
   outputTokens: number;
   cachedInputTokens?: number;
-}): number {
+}): CostBreakdown {
   const pricing = getModelPricing(params.modelName);
 
   const cached = Math.max(params.cachedInputTokens ?? 0, 0);
   const billableInput = Math.max(params.inputTokens - cached, 0);
   const cachedRate = pricing.cachedInput ?? pricing.input;
 
-  const cost =
-    (billableInput / 1_000_000) * pricing.input +
-    (cached / 1_000_000) * cachedRate +
-    (params.outputTokens / 1_000_000) * pricing.output;
+  const inputCostUsd = round(
+    (billableInput / 1_000_000) * pricing.input + (cached / 1_000_000) * cachedRate
+  );
+  const outputCostUsd = round((params.outputTokens / 1_000_000) * pricing.output);
 
-  // 6 décimales : un appel court coûte souvent moins d'un dix-millième de dollar.
-  return Math.round(cost * 1_000_000) / 1_000_000;
+  return {
+    inputCostUsd,
+    outputCostUsd,
+    totalCostUsd: round(inputCostUsd + outputCostUsd),
+  };
+}
+
+/** Coût total d'un appel (raccourci sur `computeCost`). */
+export function computeCostUsd(params: {
+  modelName: string;
+  inputTokens: number;
+  outputTokens: number;
+  cachedInputTokens?: number;
+}): number {
+  return computeCost(params).totalCostUsd;
 }
