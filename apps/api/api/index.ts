@@ -10,6 +10,7 @@ import { metricsMiddleware } from './middleware/metrics.middleware';
 import { languageMiddleware } from './middleware/language.middleware';
 import { requestTraceMiddleware } from './middleware/request-trace.middleware';
 import { revisionContextMiddleware } from './utils/revision-context.util';
+import { describeGeminiBackend, isGeminiConfigured } from './config/google-genai.client';
 import { aiUsageContextMiddleware } from './utils/ai-usage-context.util';
 import metricsRouter from './routes/metrics.routes';
 import admin from 'firebase-admin';
@@ -67,6 +68,18 @@ function initFirebase(): void {
       'Firebase Admin SDK initialization failed: Missing credentials in environment variables.'
     );
   }
+}
+
+// Backend Gemini (Vertex AI ou AI Studio) : tracé au démarrage plutôt qu'à la
+// première génération, pour qu'une configuration incomplète se voie tout de
+// suite et non au milieu d'un business plan.
+if (isGeminiConfigured()) {
+  console.log(`Gemini backend: ${describeGeminiBackend()}`);
+} else {
+  console.error(
+    `Gemini backend NON CONFIGURÉ — ${describeGeminiBackend()}. ` +
+      'Toute génération IA échouera. Voir docs/VERTEX_AI.md.'
+  );
 }
 
 import { projectRoutes } from './routes/project.routes';

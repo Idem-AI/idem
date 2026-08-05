@@ -4,6 +4,7 @@ import { AI_CONFIG } from '../../config/ai.config';
 import { withGeminiFallback } from '../../utils/gemini-fallback';
 import { convertSvgToPng } from '../logo-import.service';
 import { LOGO_ANALYSIS_PROMPT } from './prompts/singleGenerations/logo-analysis.prompt';
+import { describeGeminiBackend, getGoogleGenAIClient, isGeminiConfigured } from '../../config/google-genai.client';
 
 /**
  * Structured result of the vision analysis of an imported logo.
@@ -85,16 +86,16 @@ export class LogoAnalysisService {
 
   private get geminiAI(): GoogleGenAI {
     if (!this._geminiAI) {
-      this._geminiAI = new GoogleGenAI({
-        apiKey: process.env.GEMINI_API_KEY || '',
-      });
+      this._geminiAI = getGoogleGenAIClient();
     }
     return this._geminiAI;
   }
 
   async analyzeLogo(svg: string): Promise<LogoAnalysisResult> {
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY is not configured. Cannot analyze logo.');
+    if (!isGeminiConfigured()) {
+      throw new Error(
+        `Backend Gemini non configuré (${describeGeminiBackend()}). Impossible d'analyser le logo.`
+      );
     }
 
     logger.info(`Logo analysis: rendering SVG (${svg.length} chars) to PNG for vision model`);
