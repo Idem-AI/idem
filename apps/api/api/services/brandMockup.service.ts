@@ -110,14 +110,16 @@ export class GeminiMockupService {
       const logoImageBase64 = convertedLogo.base64;
       let logoMimeType = convertedLogo.mimeType;
 
-      // Étape 3: Génération de tous les mockups en parallèle avec les supports sélectionnés
-      logger.info(`Generating ${selectedSupports.length} mockups in parallel`, {
+      // Étape 3: Génération de tous les mockups séquentiellement avec les supports sélectionnés
+      // (Pour éviter les erreurs 429 RESOURCE_EXHAUSTED liées aux quotas stricts d'Imagen)
+      logger.info(`Generating ${selectedSupports.length} mockups sequentially`, {
         projectId,
         mockupCount: selectedSupports.length,
       });
 
-      const mockupPromises = selectedSupports.map((selectedSupport) =>
-        this.generateMockup(
+      const mockups: MockupGenerationResult[] = [];
+      for (const selectedSupport of selectedSupports) {
+        const mockup = await this.generateMockup(
           {
             logoImageBase64,
             logoMimeType,
@@ -130,10 +132,9 @@ export class GeminiMockupService {
           userId,
           projectId,
           `mockup-${selectedSupport.mockupIndex}`
-        )
-      );
-
-      const mockups = await Promise.all(mockupPromises);
+        );
+        mockups.push(mockup);
+      }
 
       const duration = Date.now() - startTime;
 

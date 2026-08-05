@@ -407,14 +407,14 @@ export const AI_CONFIG = {
       // Celles qui portent du SVG demandent bien plus de budget que celles qui
       // ne produisent que de la mise en page : un SVG tronqué est inutilisable.
       sections: {
-        'Brand Header': { llmOptions: { maxOutputTokens: 10000, temperature: 0.4 } },
+        'Brand Header': { llmOptions: { maxOutputTokens: 24000, temperature: 0.4 } },
         // Rendu du logo principal en HTML/SVG : la pièce maîtresse de la page.
         'Logo Principal': { llmOptions: { maxOutputTokens: 20000, temperature: 0.3 } },
         'Logo Variation Fond Clair': { llmOptions: { maxOutputTokens: 16000, temperature: 0.28 } },
         'Logo Variation Fond Sombre': { llmOptions: { maxOutputTokens: 16000, temperature: 0.28 } },
         'Logo Variation Monochrome': { llmOptions: { maxOutputTokens: 16000, temperature: 0.28 } },
         // Règles d'usage : du texte structuré, peu de balisage.
-        'Logo Bonnes Pratiques': { llmOptions: { maxOutputTokens: 10000, temperature: 0.4 } },
+        'Logo Bonnes Pratiques': { llmOptions: { maxOutputTokens: 24000, temperature: 0.4 } },
         // Nuanciers et spécimens typographiques : beaucoup de petites cellules.
         'Color Palette': { llmOptions: { maxOutputTokens: 14000, temperature: 0.25 } },
         Typography: { llmOptions: { maxOutputTokens: 14000, temperature: 0.3 } },
