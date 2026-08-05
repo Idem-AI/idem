@@ -5,7 +5,12 @@ import { AI_CONFIG } from '../../config/ai.config';
 import { ProjectModel } from '../../models/project.model';
 import logger from '../../config/logger';
 import { PitchDeckModel } from '../../models/pitchDeck.model';
-import { GenericService, IPromptStep, ISectionResult } from '../common/generic.service';
+import {
+  GenericService,
+  IPromptStep,
+  ISectionResult,
+  withSectionConfigs,
+} from '../common/generic.service';
 import { SectionModel } from '../../models/section.model';
 import { PAGE_FORMATS, PdfService } from '../pdf.service';
 import { cacheService } from '../cache.service';
@@ -231,9 +236,17 @@ export class PitchDeckService extends GenericService {
       },
     ];
 
+    // Chaque slide reçoit son propre budget de tokens et sa température
+    // (voir AI_CONFIG.pitchDeck.sections) ; la config de la feature sert de
+    // base pour ceux qui n'en redéfinissent pas.
+    const configuredSteps = withSectionConfigs(AI_CONFIG.pitchDeck, steps);
+
     const promptConfig: PromptConfig = {
       provider: AI_CONFIG.pitchDeck.provider,
       modelName: AI_CONFIG.pitchDeck.modelName,
+      llmOptions: AI_CONFIG.pitchDeck.llmOptions,
+      // Était omis : la chaîne de repli n'atteignait jamais runPrompt.
+      fallbackModels: AI_CONFIG.pitchDeck.fallbackModels,
     };
 
 
@@ -250,7 +263,7 @@ export class PitchDeckService extends GenericService {
 
     if (streamCallback) {
       await this.processStepsWithStreaming(
-        steps,
+        configuredSteps,
         project,
         async (result: ISectionResult) => {
           if (result.data === 'steps_in_progress' || result.data === 'all_steps_completed') {
@@ -333,7 +346,7 @@ export class PitchDeckService extends GenericService {
       return this.projectRepository.findById(projectId, `users/${userId}/projects`);
     }
 
-    const stepResults = await this.processSteps(steps, project, promptConfig);
+    const stepResults = await this.processSteps(configuredSteps, project, promptConfig);
     sectionResults = await Promise.all(
       stepResults.map(async (r) => {
         let enrichedData = r.data;

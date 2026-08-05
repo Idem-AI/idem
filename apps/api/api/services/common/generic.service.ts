@@ -10,7 +10,7 @@ import {
 import { ProjectModel } from '../../models/project.model';
 import { SectionModel } from '../../models/section.model';
 // File operations have been removed - using in-memory context
-import { AI_CONFIG } from '../../config/ai.config';
+import { AI_CONFIG, FeatureAIConfig, resolveSectionConfig } from '../../config/ai.config';
 
 import logger from '../../config/logger';
 import { withAiUsage } from '../../utils/ai-usage-context.util';
@@ -30,6 +30,31 @@ export interface IPromptStep {
   hasDependencies?: boolean;
   // Maximum output tokens for LLM generation (optimization feature)
   maxOutputTokens?: number;
+  /**
+   * Réglages IA propres à cette section, déjà fusionnés avec ceux de la feature
+   * (voir `resolveSectionConfig`). Posés par `withSectionConfigs`.
+   *
+   * Ne pas confondre avec `maxOutputTokens` ci-dessus, qui n'est lu nulle part :
+   * le budget effectif vient de `aiConfig.llmOptions.maxOutputTokens`.
+   */
+  aiConfig?: FeatureAIConfig;
+}
+
+/**
+ * Attache à chaque étape les réglages IA de sa section.
+ *
+ * Le `stepName` est la clé de section : c'est lui qui indexe
+ * `AI_CONFIG.<feature>.sections`. Une étape sans entrée dédiée hérite
+ * simplement de la config de la feature.
+ */
+export function withSectionConfigs(
+  feature: FeatureAIConfig,
+  steps: IPromptStep[]
+): IPromptStep[] {
+  return steps.map((step) => ({
+    ...step,
+    aiConfig: step.aiConfig ?? resolveSectionConfig(feature, step.stepName),
+  }));
 }
 
 // Define interface for section result
@@ -172,13 +197,34 @@ Please generate *only* the content for the '${
       }' section, building upon the context provided above.`;
     }
 
+    // Réglages de la section par-dessus ceux de l'appel. Une section lourde
+    // (plan financier, slide financials) obtient ainsi son propre budget de
+    // tokens sans imposer le même à toutes les autres.
+    const effectiveConfig: PromptConfig = step.aiConfig
+      ? {
+          ...promptConfig,
+          provider: step.aiConfig.provider,
+          modelName: step.aiConfig.modelName,
+          promptType: promptConfig.promptType ?? step.aiConfig.promptType,
+          fallbackModels: step.aiConfig.fallbackModels ?? promptConfig.fallbackModels,
+          llmOptions: { ...promptConfig.llmOptions, ...step.aiConfig.llmOptions },
+        }
+      : promptConfig;
+
+    logger.info(
+      `Section '${step.stepName}' → ${effectiveConfig.modelName} ` +
+        `(maxOutputTokens=${effectiveConfig.llmOptions?.maxOutputTokens ?? 'default'}, ` +
+        `temperature=${effectiveConfig.llmOptions?.temperature ?? 'default'}, ` +
+        `fallbacks=${effectiveConfig.fallbackModels?.length ?? 0})`
+    );
+
     // Chokepoint partagé de TOUTES les générations par sections (branding,
     // business plan, landing, diagrammes…). Nommer l'élément ici avec le nom de
     // l'étape suffit à ventiler le coût par élément de projet, sans instrumenter
     // chacun des services métier séparément.
     const response = await withAiUsage(
       { userId, projectId: project.id, element: step.stepName },
-      () => this.promptService.runPrompt(promptConfig, messages)
+      () => this.promptService.runPrompt(effectiveConfig, messages)
     );
 
     logger.debug(`LLM response for section '${step.stepName}': ${response}`);
