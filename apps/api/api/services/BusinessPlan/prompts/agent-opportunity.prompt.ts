@@ -1,3 +1,5 @@
+import { bpPageFormat } from './_shared.prompt';
+
 export const AGENT_OPPORTUNITY_PROMPT = `<role>Senior market analyst and visual storyteller</role>
 <objective>Create a detailed Market Opportunity section showing TAM, SAM, SOM, trends, and competitive landscape.</objective>
 
@@ -22,11 +24,7 @@ Adapt to the industry (Tech/SaaS: digital trends; Food: local dynamics; Health: 
 - Charts must not exceed 1/2 of the page.
 </chart_requirements>
 
-<page_format>
-- Outermost container: w-[210mm] min-h-[297mm] relative (A4 size fit, min height 297mm; the page grows with content and may span multiple A4 pages — NEVER truncate content to fit one page).
-- Keep each block whole: build self-contained blocks (cards, tables, lists, sub-sections) that EACH fit within a single A4 page, so no block is ever split across a page break.
-- Internal safe padding: p-[12mm] (no content overflow).
-</page_format>
+${bpPageFormat('2-3')}
 
 <technical_rules>
 - Output ONLY raw HTML + Tailwind CSS utilities in a single minified line.

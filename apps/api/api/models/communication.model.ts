@@ -133,9 +133,10 @@ export type ContentChannel =
 export type ContentStatus = 'idea' | 'approved' | 'scheduled' | 'published';
 
 /**
- * Communication purpose of a visual. Decides — among other things — whether a
- * call-to-action button belongs on the generated visual. Awareness/celebration
- * pieces deliberately carry NO CTA (a visual is not a landing page).
+ * Communication purpose of a visual. Drives the TONE and the message of the
+ * composition (atmospheric for awareness, factual for an announcement, the
+ * offer as a headline for a promotion) — never the presence of a button: a
+ * generated visual never carries a CTA, whatever the intent.
  */
 export type VisualIntent =
   | 'awareness'
@@ -155,8 +156,9 @@ export interface ContentIdea {
   scheduledFor: string;
   week: number;
   hashtags: string[];
+  /** Appel à l'action de la LÉGENDE du post — jamais dessiné sur le visuel. */
   callToAction: string;
-  /** Communication purpose — drives CTA presence on the visual. */
+  /** Communication purpose — drives the tone of the visual. */
   intent?: VisualIntent;
   status: ContentStatus;
   /** Set after a flyer is generated on-demand for this content. */
@@ -241,7 +243,12 @@ export interface Flyer {
     headline: string;
     subheadline?: string;
     body: string;
-    /** Optional — omitted for awareness/celebration visuals (no CTA button). */
+    /**
+     * @deprecated Legacy — plus jamais renseigné. Un visuel ne porte aucun
+     * appel à l'action (cf. `CommunicationService.generateFlyer`) : le CTA vit
+     * dans la légende du post (`ContentIdea.callToAction`). Le champ subsiste
+     * pour les visuels déjà persistés avant ce changement.
+     */
     cta?: string;
   };
   /** Communication purpose used to compose this visual. */

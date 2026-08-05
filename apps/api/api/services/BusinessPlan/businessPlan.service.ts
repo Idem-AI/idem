@@ -794,6 +794,9 @@ export class BusinessPlanService extends GenericService {
       // PLUSIEURS pages A4 (contenu détaillé, graphes, sources), sans qu'un bloc
       // soit coupé entre deux pages. Sans ceci, chaque section est rognée à 1 page.
       multiPage: true,
+      // La couverture est une composition pleine page : elle est rendue telle
+      // quelle, jamais redécoupée ni étirée par le paginateur.
+      fixedPageSections: ['Cover Page'],
     });
 
     // Cache the PDF path for future requests

@@ -16,7 +16,7 @@ export const AGENT_EDITORIAL_CALENDAR_PROMPT = `<role>Senior content planner</ro
       "scheduledFor": "YYYY-MM-DD (ISO date sequential from {{startDate}})",
       "week": number,
       "hashtags": ["3-6 tags, no #"],
-      "callToAction": "CTA (max 60 chars)",
+      "callToAction": "CTA for the post CAPTION, never printed on the visual (max 60 chars)",
       "status": "idea"
     }
   ]

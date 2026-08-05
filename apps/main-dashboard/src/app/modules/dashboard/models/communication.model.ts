@@ -163,6 +163,11 @@ export interface Flyer {
     headline: string;
     subheadline?: string;
     body: string;
+    /**
+     * @deprecated Legacy — les visuels générés ne portent plus d'appel à
+     * l'action (le CTA vit dans la légende du post). Conservé pour l'affichage
+     * des visuels produits avant ce changement.
+     */
     cta?: string;
   };
   html: string;
