@@ -20,6 +20,27 @@ export interface LLMOptions {
    * Ignoré par l'adaptateur Gemini natif.
    */
   extraBody?: Record<string, unknown>;
+  /**
+   * Budget de raisonnement Gemini, en tokens. `0` DÉSACTIVE le « thinking »,
+   * `-1` le laisse automatique (défaut du modèle).
+   *
+   * À poser à 0 sur toute génération MÉCANIQUE — classification, extraction,
+   * reformulation, petit JSON de brief. Deux gains, pas un :
+   *  - le prix : on cesse de facturer des tokens de raisonnement pour une tâche
+   *    qui n'en tire rien ;
+   *  - la FIABILITÉ : le raisonnement est décompté de `maxOutputTokens`, donc
+   *    sur un petit budget (256, 400…) il consommait tout et la réponse
+   *    revenait vide ou tronquée. Ces appels échouaient en silence, chacun
+   *    derrière son propre repli heuristique.
+   *
+   * ⚠️ Réglage propre à la famille Gemini 2.5 : les modèles 3.x pilotent leur
+   * raisonnement par `thinkingLevel` et n'acceptent pas de budget nul. Le
+   * drapeau n'est donc transmis QUE lorsque le modèle réellement appelé le
+   * supporte (cf. `PromptService._runGeminiPrompt`) — sur un autre modèle il
+   * est ignoré, jamais une cause d'erreur. Une feature qui déclare
+   * `thinkingBudget: 0` doit épingler un modèle 2.5 pour que ce soit effectif.
+   */
+  thinkingBudget?: number;
 }
 
 /**
@@ -129,10 +150,11 @@ export function resolveSectionConfig(
  * Centralisée ici pour qu'une feature ne se retrouve pas sans repli par oubli.
  */
 export const TEXT_FALLBACK_MODELS = [
-  'gemini-3.6-flash',
-  'gemini-3.5-flash',
-  'gemini-3-flash-preview',
   'gemini-2.5-flash',
+  'gemini-3-flash-preview',
+  'gemini-3.5-flash',
+  'gemini-3.6-flash',
+  'gemini-2.5-pro'
 ];
 
 export const AI_CONFIG = {
@@ -152,6 +174,8 @@ export const AI_CONFIG = {
   // Onboarding service configurations
   // gemini-2.5-flash : modèle rapide pour la génération des questions et le
   // parsing des réponses lors de la création de projet (chat + formulaire).
+  // Raisonnement DÉSACTIVÉ des deux côtés : poser la question suivante et lire
+  // une réponse sont des tâches de forme, pas de fond.
   onboarding: {
     default: {
       provider: LLMProvider.GEMINI,
@@ -161,6 +185,7 @@ export const AI_CONFIG = {
       llmOptions: {
         temperature: 0.5,
         maxOutputTokens: 2048,
+        thinkingBudget: 0,
       },
     } as FeatureAIConfig,
     parseAnswer: {
@@ -170,7 +195,11 @@ export const AI_CONFIG = {
       promptType: 'onboarding',
       llmOptions: {
         temperature: 0.1,
+        // 256 tokens ne laissaient AUCUNE place au raisonnement, qui est
+        // décompté du même budget : l'appel revenait vide dès que le modèle
+        // décidait de réfléchir. Sans raisonnement, 256 suffisent largement.
         maxOutputTokens: 256,
+        thinkingBudget: 0,
       },
     } as FeatureAIConfig,
   },
@@ -300,14 +329,18 @@ export const AI_CONFIG = {
         maxOutputTokens: 18192,
       },
     } as FeatureAIConfig,
+    // Détection d'intention : de la classification. Aucun raisonnement à payer,
+    // et 1024 tokens redeviennent un budget de sortie plein plutôt qu'un budget
+    // partagé avec la réflexion.
     intent: {
       provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      modelName: 'gemini-2.5-flash',
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'finance',
       llmOptions: {
         temperature: 0.2,
         maxOutputTokens: 1024,
+        thinkingBudget: 0,
       },
     } as FeatureAIConfig,
     pdfCover: {
@@ -353,27 +386,29 @@ export const AI_CONFIG = {
       fallbackModels: TEXT_FALLBACK_MODELS,
     } as FeatureAIConfig,
     // Extraction du contexte de marque : lecture et reformulation d'un projet
-    // existant, aucune création — l'étage mécanique suffit.
+    // existant, aucune création — modèle SANS raisonnement.
     context: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-2.5-flash',
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'communication_context',
       llmOptions: {
-        maxOutputTokens: 4000,
+        maxOutputTokens: 2500,
         temperature: 0.2,
+        thinkingBudget: 0,
       },
     } as FeatureAIConfig,
+    // Signaux de tendance : restitution de ce que le modèle sait déjà d'un
+    // secteur, en 3 à 5 lignes. De la mémoire, pas du raisonnement.
     trends: {
       provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      modelName: 'gemini-2.5-flash',
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'communication_trends',
       llmOptions: {
-        // 800 ne suffisait pas : le raisonnement consommait le budget et la
-        // liste de signaux revenait tronquée (donc vide après parsing).
-        maxOutputTokens: 4000,
+        maxOutputTokens: 2000,
         temperature: 0.5,
+        thinkingBudget: 0,
       },
     } as FeatureAIConfig,
     // Stratégie éditoriale : c'est la matière dont dérivent le calendrier PUIS
@@ -405,18 +440,20 @@ export const AI_CONFIG = {
         topK: 64,
       },
     } as FeatureAIConfig,
-    // Brief d'image : petit JSON, mais 400 tokens sur un modèle « thinking »
-    // rendaient une réponse vide une fois sur deux (tout le budget passait
-    // dans le raisonnement) — la pipeline retombait alors sur la requête
-    // heuristique, d'où des photos hors sujet.
+    // Brief d'image : deux phrases et une orientation. Le raisonnement n'y
+    // apportait rien mais consommait tout le budget (400 tokens à l'origine),
+    // d'où des réponses vides et un repli silencieux sur la requête
+    // heuristique — donc des photos hors sujet. Modèle sans raisonnement,
+    // budget confortable : l'appel redevient fiable ET moins cher.
     imageBrief: {
       provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      modelName: 'gemini-2.5-flash',
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'communication_image_brief',
       llmOptions: {
-        maxOutputTokens: 3000,
+        maxOutputTokens: 1200,
         temperature: 0.7,
+        thinkingBudget: 0,
       },
     } as FeatureAIConfig,
     // Composition du visuel — la tâche la plus exigeante du module : le modèle
