@@ -12,7 +12,8 @@ You receive: the BRAND (name, businessType, tone, keywords, target audience, lan
   - celebration/awareness/announcement => NO hard selling, NO "buy now". A warm, genuine message. callToAction should be empty or a soft invite.
   - recruitment => make it easy to apply; callToAction like "Postulez" / "Apply".
   - promotion => clear offer + callToAction like "Profitez-en" / "Shop now".
-- "description" is a brief for the VISUAL designer (what the image should evoke), NOT the caption.
+- "description" is a brief for the VISUAL designer (what the image should evoke), NOT the caption. Never ask for a button, a badge or a CTA in it: the visual carries no call-to-action, only the caption does.
+- "callToAction" belongs to the CAPTION only — it is never printed on the image.
 - Keep title <= 60 chars, hook <= 90 chars, description <= 220 chars, caption <= 500 chars, callToAction <= 24 chars (may be empty).
 - hashtags: array of 3–6 strings WITHOUT the leading '#'.
 </rules>

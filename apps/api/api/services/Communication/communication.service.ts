@@ -30,8 +30,8 @@ interface DesignSeed {
   spacingMultiplier: number;
 }
 import { GenericService } from '../common/generic.service';
-import { AIChatMessage, LLMProvider, PromptConfig, PromptService } from '../prompt.service';
-import { AI_CONFIG } from '../../config/ai.config';
+import { AIChatMessage, PromptConfig, PromptService } from '../prompt.service';
+import { AI_CONFIG, FeatureAIConfig } from '../../config/ai.config';
 import { AGENT_COMMUNICATION_STRATEGY_PROMPT } from './prompts/agent-communication-strategy.prompt';
 import { AGENT_CONTEXT_EXTRACTION_PROMPT } from './prompts/agent-context-extraction.prompt';
 import { AGENT_EDITORIAL_CALENDAR_PROMPT } from './prompts/agent-editorial-calendar.prompt';
@@ -49,10 +49,36 @@ export type CommunicationStreamEvent =
   | { type: 'complete'; payload: CommunicationModel }
   | { type: 'error'; message: string };
 
-const DEFAULT_PROMPT_CONFIG: PromptConfig = {
-  provider: AI_CONFIG.communication.default.provider,
-  modelName: AI_CONFIG.communication.default.modelName,
-};
+/**
+ * Traduit une entrée de `ai.config.ts` en `PromptConfig` complet.
+ *
+ * Les appels du module ne transmettaient jusqu'ici que `provider` + `modelName`
+ * de `communication.default`, en y greffant à la main les seuls `llmOptions`.
+ * Deux réglages décidés en config étaient donc perdus en chemin :
+ *  - le MODÈLE propre à la feature (la composition d'un visuel tournait sur le
+ *    modèle par défaut du module, pas sur celui qu'on croyait avoir choisi) ;
+ *  - les `fallbackModels` : un 503 « high demand » de Gemini faisait échouer la
+ *    génération sans seconde chance, alors que la chaîne de repli existait.
+ *
+ * Passer par cette fabrique rend l'oubli impossible : la config est la source
+ * unique, l'appelant ne décrit plus que ce qui lui est spécifique.
+ */
+const promptConfigFor = (
+  feature: FeatureAIConfig,
+  userId: string,
+  extra: Partial<PromptConfig> = {}
+): PromptConfig => ({
+  provider: feature.provider,
+  modelName: feature.modelName,
+  fallbackModels: feature.fallbackModels,
+  promptType: feature.promptType,
+  // Copie défensive : `runPrompt` traverse restrictionsService, qui écrête le
+  // budget — sur l'objet partagé, l'écrêtage contaminerait tous les appels
+  // suivants du process.
+  llmOptions: { ...feature.llmOptions },
+  userId,
+  ...extra,
+});
 
 /**
  * CommunicationService — modular, token-efficient pipeline:
@@ -171,7 +197,7 @@ export class CommunicationService extends GenericService {
 
     const start = Date.now();
     const raw = await this.promptService.runPrompt(
-      { ...DEFAULT_PROMPT_CONFIG, userId, promptType: 'communication_context' },
+      promptConfigFor(AI_CONFIG.communication.context, userId),
       messages
     );
     logger.info(`[Communication] Context extraction LLM complete`, {
@@ -324,12 +350,7 @@ export class CommunicationService extends GenericService {
     ];
 
     const raw = await this.promptService.runPrompt(
-      {
-        ...DEFAULT_PROMPT_CONFIG,
-        userId,
-        promptType: AI_CONFIG.communication.trends.promptType,
-        llmOptions: { ...AI_CONFIG.communication.trends.llmOptions },
-      },
+      promptConfigFor(AI_CONFIG.communication.trends, userId),
       messages
     );
     const parsed = this.safeJson<{ signals: Partial<TrendSignal>[] }>(raw);
@@ -398,7 +419,7 @@ export class CommunicationService extends GenericService {
       },
     ];
     const raw = await this.promptService.runPrompt(
-      { ...DEFAULT_PROMPT_CONFIG, userId, promptType: 'communication_strategy' },
+      promptConfigFor(AI_CONFIG.communication.strategy, userId),
       messages
     );
     const parsed = this.safeJson<{ summary: string; blocks: StrategyBlock[] }>(raw);
@@ -493,7 +514,7 @@ export class CommunicationService extends GenericService {
       },
     ];
     const raw = await this.promptService.runPrompt(
-      { ...DEFAULT_PROMPT_CONFIG, userId, promptType: 'communication_calendar' },
+      promptConfigFor(AI_CONFIG.communication.calendar, userId),
       messages
     );
     const parsed = this.safeJson<EditorialCalendar>(raw);
@@ -613,7 +634,11 @@ export class CommunicationService extends GenericService {
         format: content.format,
         channel: content.channel,
         intent,
-        callToAction: content.callToAction,
+        // `callToAction` n'est VOLONTAIREMENT pas transmis : c'est le texte de la
+        // légende du post, pas un élément du visuel. Tant qu'on l'envoyait ici,
+        // le modèle le prenait pour une consigne de composition et dessinait un
+        // bouton sur chaque visuel — d'autant plus que la valeur par défaut du
+        // calendrier est « Learn more ». Le visuel ne porte aucun CTA.
         hashtags: content.hashtags,
       },
       FORMAT: format,
@@ -640,21 +665,21 @@ export class CommunicationService extends GenericService {
     ];
 
     const raw = await this.promptService.runPrompt(
-      {
-        ...DEFAULT_PROMPT_CONFIG,
-        userId,
-        promptType: AI_CONFIG.communication.flyer.promptType,
-        llmOptions: { ...AI_CONFIG.communication.flyer.llmOptions },
-      },
+      promptConfigFor(AI_CONFIG.communication.flyer, userId, {
+        // Budget délibéré (cf. ai.config.ts) : le raisonnement de direction
+        // artistique est décompté de maxOutputTokens, et un HTML tronqué ne
+        // produit aucun visuel. Le plafond global reste actif ailleurs.
+        bypassOutputTokenCap: true,
+      }),
       messages
     );
     const parsed = this.safeJson<Partial<Flyer>>(raw) ?? {};
 
     let html =
       typeof parsed.html === 'string'
-        ? parsed.html
+        ? this.stripCtaButtons(parsed.html)
         : this.fallbackFlyerHtml(content, context, format, sourced?.url);
-    
+
     // Note: We no longer need the post-processing regex replace for {{IMAGE_URL}} 
     // because we correctly populate the system prompt now. The AI will see 
     // the real URL. We keep the logic clean and rely on the prompt quality.
@@ -664,13 +689,11 @@ export class CommunicationService extends GenericService {
     const apiUrl = process.env.API_URL || `http://localhost:${port}`;
     const renderedUrl = `${apiUrl}/project/communication/${projectId}/flyer/${flyerId}/image`;
 
-    // CTA is intent-driven: only promotion/recruitment visuals keep a button.
-    // For awareness/celebration/announcement we deliberately drop it (a visual
-    // is not a landing page) — this is the core "always a CTA" fix.
-    const wantsCta = intent === 'promotion' || intent === 'recruitment';
-    const ctaText =
-      (parsed.marketingText?.cta || '').trim() || (wantsCta ? content.callToAction : '');
-
+    // Aucun CTA sur le visuel, quelle que soit l'intention. L'ancienne règle
+    // « CTA si promotion/recrutement » laissait passer un bouton sur une part
+    // des visuels ; or un post social n'est pas une landing page, et le bouton
+    // dessiné dans une image n'est même pas cliquable. L'appel à l'action vit
+    // dans la LÉGENDE (`content.callToAction`, publiée avec le post).
     const flyer: Flyer = {
       id: flyerId,
       contentId,
@@ -683,7 +706,6 @@ export class CommunicationService extends GenericService {
         headline: parsed.marketingText?.headline || content.title,
         subheadline: parsed.marketingText?.subheadline,
         body: parsed.marketingText?.body || content.description,
-        cta: ctaText || undefined,
       },
       html,
       imageUrl: renderedUrl,
@@ -771,12 +793,7 @@ export class CommunicationService extends GenericService {
       },
     ];
     const raw = await this.promptService.runPrompt(
-      {
-        ...DEFAULT_PROMPT_CONFIG,
-        userId,
-        promptType: AI_CONFIG.communication.momentSuggestions.promptType,
-        llmOptions: { ...AI_CONFIG.communication.momentSuggestions.llmOptions },
-      },
+      promptConfigFor(AI_CONFIG.communication.momentSuggestions, userId),
       messages
     );
     const parsed = this.safeJson<{ suggestions: Partial<MomentSuggestion>[] }>(raw);
@@ -852,12 +869,7 @@ export class CommunicationService extends GenericService {
       },
     ];
     const raw = await this.promptService.runPrompt(
-      {
-        ...DEFAULT_PROMPT_CONFIG,
-        userId,
-        promptType: AI_CONFIG.communication.moment.promptType,
-        llmOptions: { ...AI_CONFIG.communication.moment.llmOptions },
-      },
+      promptConfigFor(AI_CONFIG.communication.moment, userId),
       messages
     );
     const parsed =
@@ -1159,9 +1171,9 @@ export class CommunicationService extends GenericService {
 
   /**
    * Infer the communication purpose of a content idea so the visual composer
-   * knows whether a CTA belongs on it. A social visual is not a landing page:
-   * awareness/celebration pieces carry no button. Heuristic + multilingual
-   * keyword scan, defaulting to 'awareness' (the safe, button-free choice).
+   * knows which TONE to hold (atmospheric, factual, celebratory…). It no longer
+   * arbitrates a CTA: no visual carries one. Heuristic + multilingual keyword
+   * scan, defaulting to 'awareness'.
    */
   private inferVisualIntent(content: {
     intent?: VisualIntent;
@@ -1287,7 +1299,38 @@ export class CommunicationService extends GenericService {
     const bgImage = imageUrl
       ? `<img src="${imageUrl}" class="absolute inset-0 w-full h-full object-cover" /><div class="absolute inset-0 bg-gradient-to-t from-[${secondary}]/90 via-[${secondary}]/40 to-transparent"></div>`
       : '';
-    return `<div class="${size} relative overflow-hidden flex flex-col justify-between p-16 bg-[${secondary}] text-[${text}]">${bgImage}<div class="relative text-xs uppercase tracking-[0.3em] opacity-70">${context.brandName}</div><div class="relative flex-1 flex flex-col justify-end gap-6"><div class="text-6xl font-black leading-[1.05] max-w-[80%]">${this.escapeHtml(content.title)}</div><div class="text-lg max-w-[75%] opacity-90">${this.escapeHtml(content.description)}</div></div><div class="relative flex items-center justify-between"><div class="bg-[${primary}] text-[${secondary}] font-bold px-6 py-3 rounded-full">${this.escapeHtml(content.callToAction)}</div><div class="text-xs opacity-60">${content.channel} · ${content.format}</div></div></div>`;
+    // Pied de page : signature de marque typographique, jamais un bouton — ce
+    // repli servait auparavant une pastille contenant le callToAction, ce qui
+    // reproduisait dans le fallback le défaut qu'on corrige côté modèle.
+    return `<div class="${size} relative overflow-hidden flex flex-col justify-between p-16 bg-[${secondary}] text-[${text}]">${bgImage}<div class="relative text-xs uppercase tracking-[0.3em] opacity-70">${context.brandName}</div><div class="relative flex-1 flex flex-col justify-end gap-6"><div class="text-6xl font-black leading-[1.05] max-w-[80%]">${this.escapeHtml(content.title)}</div><div class="text-lg max-w-[75%] opacity-90">${this.escapeHtml(content.description)}</div></div><div class="relative flex items-end justify-between border-t border-[${text}]/25 pt-6"><div class="text-xs uppercase tracking-[0.35em] opacity-80">${this.escapeHtml(context.brandName)}</div><div class="h-[4px] w-28 bg-[${primary}]"></div></div></div>`;
+  }
+
+  /**
+   * Filet déterministe contre le bouton d'appel à l'action.
+   *
+   * Le prompt l'interdit et la légende n'est plus transmise au compositeur,
+   * mais une consigne textuelle ne garantit rien : le visuel part à
+   * l'impression ou en publication sans relecture, il faut donc une règle qui
+   * ne dépende pas du bon vouloir du modèle.
+   *
+   * Portée assumée : on ne supprime que ce qui EST un bouton par nature
+   * (`<button>`, `role="button"`). Une pastille construite en <div>/<span>
+   * n'est pas identifiable sans moteur de rendu — il faudrait comparer les
+   * styles calculés — et reste couverte par le seul prompt.
+   */
+  private stripCtaButtons(html: string): string {
+    if (!html) return html;
+    const cleaned = html
+      // Un <button> ne peut pas en contenir un autre : le non-greedy est sûr.
+      .replace(/<button\b[^>]*>[\s\S]*?<\/button>/gi, '')
+      // Idem pour <a> (imbrication interdite en HTML).
+      .replace(/<a\b[^>]*\brole\s*=\s*["']button["'][^>]*>[\s\S]*?<\/a>/gi, '');
+    if (cleaned !== html) {
+      logger.warn(
+        '[Communication] CTA button removed from the generated visual — the model ignored the no-button rule'
+      );
+    }
+    return cleaned;
   }
 
   /**
@@ -1325,12 +1368,7 @@ export class CommunicationService extends GenericService {
         },
       ];
       const raw = await this.promptService.runPrompt(
-        {
-          ...DEFAULT_PROMPT_CONFIG,
-          userId,
-          promptType: 'communication_image_brief',
-          llmOptions: { maxOutputTokens: 400 },
-        },
+        promptConfigFor(AI_CONFIG.communication.imageBrief, userId),
         messages
       );
       const parsed = this.safeJson<Partial<ImageBrief>>(raw) ?? {};

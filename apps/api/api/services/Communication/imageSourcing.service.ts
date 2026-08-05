@@ -9,7 +9,8 @@
  *  - analyzeImage accepts raw Buffer directly (no HTTP re-fetch needed when
  *    the bytes are already in memory).
  *  - Pexels: fetch medium URL for analysis, keep large URL for the flyer.
- *  - max_tokens capped to 256 on the vision-only call (JSON fits in <150 tokens).
+ *  - vision-only call kept lean (small image + short JSON schema); its budget
+ *    and its fallback model live in ai.config.ts (`communication.imageSourcing`).
  */
 import axios from 'axios';
 import { GoogleGenAI } from '@google/genai';
@@ -39,8 +40,15 @@ export interface ImageBrief {
 }
 
 // ─── Gemini model names ────────────────────────────────────────────────────
-const GEMINI_IMAGE_MODEL = AI_CONFIG.communication.imageSourcing.imageModel;
-const GEMINI_VISION_MODEL = AI_CONFIG.communication.imageSourcing.visionModel; // fast + cheap for vision-only
+// Modèles ET replis viennent d'ai.config.ts : le repli était auparavant déduit
+// de `AI_CONFIG.fallback` (le repli texte global), qui n'a rien à voir avec ce
+// que fait ce service.
+const IMAGE_SOURCING_CONFIG = AI_CONFIG.communication.imageSourcing;
+const GEMINI_IMAGE_MODEL = IMAGE_SOURCING_CONFIG.imageModel;
+const GEMINI_IMAGE_FALLBACK_MODEL = IMAGE_SOURCING_CONFIG.imageFallbackModel;
+const GEMINI_VISION_MODEL = IMAGE_SOURCING_CONFIG.visionModel; // fast + cheap for vision-only
+const GEMINI_VISION_FALLBACK_MODEL = IMAGE_SOURCING_CONFIG.visionFallbackModel;
+const VISION_MAX_OUTPUT_TOKENS = IMAGE_SOURCING_CONFIG.visionMaxOutputTokens;
 
 const PEXELS_ENDPOINT = 'https://api.pexels.com/v1/search';
 
@@ -164,7 +172,7 @@ export class ImageSourcingService {
   ): Promise<SourcedImage> {
     logger.info(`[ImageSourcing] Generating and analyzing with Gemini`, { tag: opts.tag });
     const start = Date.now();
-    const fallbackImageModel = AI_CONFIG.fallback.imageModel;
+    const fallbackImageModel = GEMINI_IMAGE_FALLBACK_MODEL;
     const response = await withGeminiFallback(
       () => this.geminiAI.models.generateContent({
         model: GEMINI_IMAGE_MODEL,
@@ -285,8 +293,12 @@ export class ImageSourcingService {
     mimeType: string,
     searchQuery: string
   ): Promise<FlyerImageAnalysis> {
-    const fallbackVisionModel = AI_CONFIG.fallback.textModel;
-    const effectiveFallback = GEMINI_VISION_MODEL === fallbackVisionModel ? 'gemini-2.0-flash' : fallbackVisionModel;
+    // Un repli identique au modèle principal ne sert à rien (Google sature par
+    // MODÈLE) : on retombe alors sur le repli texte global.
+    const effectiveFallback =
+      GEMINI_VISION_FALLBACK_MODEL === GEMINI_VISION_MODEL
+        ? AI_CONFIG.fallback.textModel
+        : GEMINI_VISION_FALLBACK_MODEL;
 
     const response = await withGeminiFallback(
       () => this.geminiAI.models.generateContent({
@@ -303,7 +315,7 @@ export class ImageSourcingService {
         config: {
           responseModalities: ['TEXT'],
           candidateCount: 1,
-          maxOutputTokens: 256,
+          maxOutputTokens: VISION_MAX_OUTPUT_TOKENS,
         },
       }),
       () => this.geminiAI.models.generateContent({
@@ -320,7 +332,7 @@ export class ImageSourcingService {
         config: {
           responseModalities: ['TEXT'],
           candidateCount: 1,
-          maxOutputTokens: 256,
+          maxOutputTokens: VISION_MAX_OUTPUT_TOKENS,
         },
       }),
       GEMINI_VISION_MODEL,
