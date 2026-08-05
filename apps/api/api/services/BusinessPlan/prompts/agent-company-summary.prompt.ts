@@ -1,3 +1,5 @@
+import { bpPageFormat } from './_shared.prompt';
+
 export const AGENT_COMPANY_SUMMARY_PROMPT = `<role>Senior business strategist and editorial designer</role>
 <objective>Create a custom Company Summary section representing the company's unique story, structure, and values.</objective>
 
@@ -20,11 +22,7 @@ export const AGENT_COMPANY_SUMMARY_PROMPT = `<role>Senior business strategist an
 7. Company Culture (what makes working here different).
 </mandatory_content>
 
-<page_format>
-- Outermost container: w-[210mm] min-h-[297mm] relative (A4 size fit, min height 297mm; the page grows with content and may span multiple A4 pages — NEVER truncate content to fit one page).
-- Keep each block whole: build self-contained blocks (cards, tables, lists, sub-sections) that EACH fit within a single A4 page, so no block is ever split across a page break.
-- Internal safe padding: p-[12mm] (no content overflow. If overflow risk, reduce spacing py-6->py-3, gaps, or fonts).
-</page_format>
+${bpPageFormat('2')}
 
 <technical_rules>
 - Output ONLY raw HTML + Tailwind CSS utilities in a single minified line.

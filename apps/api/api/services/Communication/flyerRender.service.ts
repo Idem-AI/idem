@@ -18,7 +18,7 @@
  * The browser instance is reused via PdfService's launched Chromium when
  * possible to avoid the cold-start cost on every flyer generation.
  */
-import puppeteer, { Browser } from 'puppeteer';
+import puppeteer, { Browser, Page } from 'puppeteer';
 import logger from '../../config/logger';
 import { StorageService } from '../storage.service';
 import { FlyerFormat } from '../../models/communication.model';
@@ -30,7 +30,7 @@ interface FlyerSize {
   deviceScaleFactor: number;
 }
 
-const FORMAT_DIMENSIONS: Record<FlyerFormat, FlyerSize> = {
+export const FORMAT_DIMENSIONS: Record<FlyerFormat, FlyerSize> = {
   square: { width: 1080, height: 1080, deviceScaleFactor: 1 },
   story: { width: 1080, height: 1920, deviceScaleFactor: 1 },
   banner: { width: 1200, height: 630, deviceScaleFactor: 1 },
@@ -38,6 +38,30 @@ const FORMAT_DIMENSIONS: Record<FlyerFormat, FlyerSize> = {
   // A4 @ 150dpi ≈ 1240 × 1754
   a4: { width: 1240, height: 1754, deviceScaleFactor: 1 },
 };
+
+/**
+ * Largeur minimale du logo, en fraction de la largeur du visuel.
+ *
+ * Livré à lui-même, le modèle place systématiquement une vignette de 40 à 80px
+ * dans un coin : à l'échelle d'un post vu sur un téléphone, la marque est
+ * illisible et le visuel ne lui appartient plus. 13% de la largeur (≈140px sur
+ * un carré 1080) est le seuil en dessous duquel une signature cesse d'être
+ * lisible d'un coup d'œil.
+ */
+export const LOGO_MIN_WIDTH_RATIO = 0.13;
+
+/**
+ * Garde-fou haut : un logo agrandi ne doit pas devenir le sujet du visuel.
+ * Sert aux logos très étroits, où atteindre la largeur minimale ferait exploser
+ * la hauteur.
+ */
+const LOGO_MAX_HEIGHT_RATIO = 0.22;
+
+/** Largeur minimale attendue du logo, en pixels, pour un format donné. */
+export function minLogoWidthFor(format: FlyerFormat): number {
+  const dims = FORMAT_DIMENSIONS[format] || FORMAT_DIMENSIONS.square;
+  return Math.round(dims.width * LOGO_MIN_WIDTH_RATIO);
+}
 
 export class FlyerRenderService {
   private static browser: Browser | null = null;
@@ -73,7 +97,13 @@ export class FlyerRenderService {
   async renderFlyerToPng(
     innerHtml: string,
     format: FlyerFormat,
-    typography?: { url?: string; primaryFont?: string; secondaryFont?: string }
+    typography?: { url?: string; primaryFont?: string; secondaryFont?: string },
+    /**
+     * URLs des déclinaisons du logo de la marque. Fournies, elles permettent de
+     * MESURER le logo une fois la page rendue et de le remonter au seuil de
+     * lisibilité s'il est trop petit (cf. `enforceLogoVisibility`).
+     */
+    logoUrls: string[] = []
   ): Promise<Buffer> {
     const start = Date.now();
     logger.info(`[FlyerRender] Starting PNG render`, { format });
@@ -108,6 +138,8 @@ export class FlyerRenderService {
         );
       });
 
+      await this.enforceLogoVisibility(page, dims, logoUrls);
+
       const buffer = (await page.screenshot({
         type: 'png',
         clip: { x: 0, y: 0, width: dims.width, height: dims.height },
@@ -122,6 +154,98 @@ export class FlyerRenderService {
       return buffer;
     } finally {
       await page.close().catch(() => undefined);
+    }
+  }
+
+  /**
+   * Remonte le logo au seuil de lisibilité, APRÈS rendu.
+   *
+   * Le prompt donne déjà une taille minimale, mais le modèle y déroge presque
+   * systématiquement : la marque finit en vignette de 40px dans un coin. Une
+   * correction sur la chaîne HTML ne suffirait pas — la contrainte vient
+   * souvent du conteneur (`<div class="w-[80px]">`), pas de l'image, et la
+   * règle `img { max-width: 100% }` de ce document plafonnerait l'agrandissement.
+   * Ici on travaille sur la page rendue : on MESURE, donc on ne corrige que ce
+   * qui est réellement trop petit, et on desserre les ancêtres qui bloquent.
+   *
+   * Le facteur d'échelle est piloté par la largeur, et borné en hauteur : sur un
+   * logo très étroit, atteindre la largeur minimale en ferait le sujet du visuel.
+   */
+  private async enforceLogoVisibility(
+    page: Page,
+    dims: FlyerSize,
+    logoUrls: string[]
+  ): Promise<void> {
+    const urls = logoUrls.filter((u) => typeof u === 'string' && u.trim().length > 0);
+    if (!urls.length) return;
+
+    const minWidth = Math.round(dims.width * LOGO_MIN_WIDTH_RATIO);
+    const maxHeight = Math.round(dims.height * LOGO_MAX_HEIGHT_RATIO);
+
+    try {
+      const rescaled = await page.evaluate(
+        (srcs: string[], minW: number, maxH: number) => {
+          // Les URLs signées portent une query volatile : on compare les chemins.
+          const stripQuery = (value: string) => value.split('?')[0];
+          const wanted = new Set(srcs.map(stripQuery));
+          const report: { before: number; after: number }[] = [];
+
+          for (const img of Array.from(document.images)) {
+            const raw = stripQuery(img.getAttribute('src') || '');
+            const resolved = stripQuery(img.currentSrc || img.src || '');
+            if (!wanted.has(raw) && !wanted.has(resolved)) continue;
+
+            const rect = img.getBoundingClientRect();
+            if (rect.width <= 0 || rect.width >= minW) continue;
+
+            let factor = minW / rect.width;
+            if (rect.height > 0 && rect.height * factor > maxH) {
+              factor = maxH / rect.height;
+            }
+            if (factor <= 1) continue;
+
+            // Desserrer les conteneurs qui plafonnent l'image. Bornée à trois
+            // niveaux et aux seuls ancêtres plus étroits que la cible : au-delà
+            // on toucherait à la composition, pas à l'emballage du logo.
+            let parent = img.parentElement;
+            let depth = 0;
+            while (parent && depth < 3) {
+              if (parent.getBoundingClientRect().width < minW) {
+                parent.style.maxWidth = 'none';
+                parent.style.width = 'auto';
+                parent.style.minWidth = `${Math.ceil(minW)}px`;
+              }
+              parent = parent.parentElement;
+              depth += 1;
+            }
+
+            img.style.maxWidth = 'none';
+            img.style.maxHeight = 'none';
+            img.style.width = `${Math.round(rect.width * factor)}px`;
+            img.style.height = 'auto';
+            // Un logo posé en filigrane n'est pas une signature.
+            if (parseFloat(getComputedStyle(img).opacity || '1') < 1) {
+              img.style.opacity = '1';
+            }
+            report.push({ before: Math.round(rect.width), after: Math.round(rect.width * factor) });
+          }
+          return report;
+        },
+        urls,
+        minWidth,
+        maxHeight
+      );
+
+      if (rescaled.length) {
+        logger.info('[FlyerRender] Logo remonté au seuil de lisibilité', {
+          minWidth,
+          rescaled,
+        });
+      }
+    } catch (err: any) {
+      // Un logo trop petit reste un visuel exploitable : on ne perd pas le
+      // rendu pour autant.
+      logger.warn('[FlyerRender] Logo visibility enforcement failed', { error: err?.message });
     }
   }
 

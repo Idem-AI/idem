@@ -18,6 +18,26 @@ WHAT IS STILL ALLOWED (this is information, not a CTA — typeset it as editoria
 Ship the visual without any of these rather than smuggling a button back in.
 </hard_rule_no_button>
 
+<brand_charter>
+This is a BRAND ASSET for {{BRAND_NAME}}, not a generic poster: someone who knows the brand must recognize it even with the logo covered. The charter below is not a suggestion.
+
+Palette — these are the ONLY colors you may write in the html:
+- primary:    {{BRAND_PRIMARY}}
+- secondary:  {{BRAND_SECONDARY}}
+- accent:     {{BRAND_ACCENT}}
+- background: {{BRAND_BACKGROUND}}
+- text:       {{BRAND_TEXT}}
+Plus pure white, pure black, and any of the above at reduced opacity. Nothing else.
+- Never invent a hex value, never borrow a color from the photo for text, rules, blocks or shapes. Image-derived colors ({{IMAGE_DOMINANT_COLORS}}) may only drive the PHOTO treatment itself (duotone, overlay, filter).
+- The dominant chromatic impression of the visual must come from a brand color, not from the photograph.
+- Tints and shades are produced with opacity (/10 /20 /40 …), never by shifting the hue.
+
+Typography — these two families only, no third font, no system fallback written by hand:
+- display / headline: {{BRAND_PRIMARY_FONT}} — apply with the class font-primary
+- running text:       {{BRAND_SECONDARY_FONT}} — apply with the class font-secondary
+Every text node must carry font-primary or font-secondary. Never write font-['Anything'], font-sans, font-serif or an inline font-family: the render harness binds font-primary/font-secondary to the brand fonts, anything else silently falls back and breaks the charter.
+</brand_charter>
+
 <visual_intent>
 Intent of this visual: {{VISUAL_INTENT}}
 The intent shapes the TONE and the MESSAGE, never the presence of a button (there is none — see the hard rule):
@@ -134,10 +154,18 @@ The brand logo declensions are provided below as READY-TO-USE image URLs. Pick t
 - Icon only — monochrome (watermark / pattern / corner mark): {{LOGO_ICON_MONO}}
 Selection rules:
 - Choose by CONTRAST against the zone where the logo sits: dark zone -> a light/mono-light declension; light zone -> a dark declension.
-- Use an ICON-ONLY declension for small corner marks, watermarks or repeated patterns; use a WITH-TEXT declension when the logo is the main brand signature.
+- Use a WITH-TEXT declension when the logo is the brand signature (the default). An ICON-ONLY declension is for a corner mark or a repeated pattern — and then the brand name must appear elsewhere as type.
 - If the chosen URL is empty, fall back to {{LOGO_PRIMARY}}.
-- Render exactly ONE logo as <img src="THE_CHOSEN_URL" .../>. Vary its size and placement across designs (do NOT always pin it bottom-left).
+- Render exactly ONE logo as <img src="THE_CHOSEN_URL" .../>. Vary its placement across designs (do NOT always pin it bottom-left).
 - Never enclose the logo in a filled pill or box: it is a signature, not a button.
+
+SIZE — the recurring failure of this brief is a logo shrunk to a 40px crumb in a corner. It must be READ, not found:
+- Minimum rendered width: {{LOGO_MIN_WIDTH}}px on this format. Write it explicitly: <img src="…" class="w-[{{LOGO_MIN_WIDTH}}px] h-auto …" />, or larger.
+- The container that holds it must not be narrower than the logo (no <div class="w-[80px]"> around it) — and never constrain it with max-w / max-h below that width.
+- Full opacity. A logo at 30% is a watermark, not a signature; if you want a ghost mark, that is a SECOND, purely decorative element — the real logo still sits at 100%.
+- Keep the aspect ratio (h-auto, never a fixed width AND height together) and leave clear space around it of at least half its own height — no text, no rule, no image subject inside that margin.
+- Place it where it reads: over a plain zone, with real contrast against what is behind it. Never over a busy part of the photo.
+- Treating the logo as a large graphic element (up to a third of the canvas, cropped by an edge, used as the composition's anchor) is encouraged when the archetype allows it.
 </logos>
 
 <format_dimensions>
@@ -151,14 +179,16 @@ Active format: {{format}}
 
 <technical_rules>
 - Raw HTML + Tailwind classes only. Single unbroken line, no newlines inside html string.
-- FONTS: Include Google Fonts <link> tag at start of html string. Must include: {{BRAND.branding.fontUrl}}
+- FONTS: Include Google Fonts <link> tag at start of html string. Must include: {{BRAND_FONT_URL}}
+- Every text element carries font-primary (display) or font-secondary (running text) — see <brand_charter>.
+- Colors: palette hex values only, exactly as written in <brand_charter>.
 - Inline style allowed for: transform, mix-blend-mode, letter-spacing, gradients, text-shadow, clip-path, filter.
 - Outer container: exact format dimensions, overflow-hidden, relative.
 - Inner elements: absolute positioning.
 - NO BUTTON, NO CTA, NO BADGE, NO PILL — see <hard_rule_no_button>. Never emit a <button> tag.
 - Accent icons: PrimeIcons (pi pi-*) only, and only as graphic ornaments — never paired with short text as a fake button.
 - Contrast: WCAG AA compliant.
-- Always include: headline, body, ONE logo (chosen declension). Include a subheadline when it helps.
+- Always include: headline, body, ONE logo (chosen declension, sized per <logos>). Include a subheadline when it helps.
 - Headline must match image mood/colors. Use IMAGE_COMPOSITION ({{IMAGE_COMPOSITION}}) to place text.
 - Do not cover text in image ({{IMAGE_DETECTED_TEXT}}).
 </technical_rules>
@@ -166,13 +196,17 @@ Active format: {{format}}
 <final_self_review>
 Before emitting the JSON, re-read your own html string once and fix it if needed:
 1. Scan for <button>, role="button", and for any small element combining a background color (or border) with 1–5 words. If one exists, DELETE it — do not restyle it, delete it. The composition must still hold without it.
-2. Check the seed compliance checklist below, item by item.
-3. Check that no text is clipped by the canvas edges and that every text passes AA contrast over what sits behind it.
+2. Find your logo <img>: is its width at least {{LOGO_MIN_WIDTH}}px, is it at full opacity, is its container wide enough? Fix it before anything else.
+3. Grep your own html for every hex value and every font declaration: each must appear in <brand_charter>. Replace any stray one.
+4. Check the seed compliance checklist below, item by item.
+5. Check that no text is clipped by the canvas edges and that every text passes AA contrast over what sits behind it.
 </final_self_review>
 
 <seed_compliance_checklist>
 Ensure all are TRUE:
 - ZERO button / CTA / pill / badge in the html (the non-negotiable one).
+- Logo width >= {{LOGO_MIN_WIDTH}}px, full opacity, unconstrained container, clear space respected.
+- Every hex value is a {{BRAND_NAME}} palette color; every text carries font-primary or font-secondary.
 - archetype {{DESIGN_SEED.archetype}} implemented.
 - colorStrategy {{DESIGN_SEED.colorStrategy}} applied.
 - typographyMood {{DESIGN_SEED.typographyMood}} applied.
