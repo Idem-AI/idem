@@ -55,13 +55,11 @@ const OPTIONAL_SECRETS = [
   // Clé AI Studio. N'est plus utilisée quand GEMINI_BACKEND vaut `vertex`
   // (le défaut) : la facturation passe alors par Google Cloud.
   'GEMINI_API_KEY',
-  // Vertex AI — voir api/config/google-genai.client.ts. Le projet est requis en
-  // mode Vertex ; l'authentification passe par ADC si le couple
-  // VERTEX_CLIENT_EMAIL / VERTEX_PRIVATE_KEY n'est pas fourni.
-  'GOOGLE_CLOUD_PROJECT',
+  // Vertex AI — voir api/config/ai-providers.config.ts. Le projet et le compte
+  // de service sont ceux de Firebase (FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL
+  // / FIREBASE_PRIVATE_KEY, déjà requis plus haut) : c'est le même projet Google
+  // Cloud. Seule la région est propre à Vertex.
   'GOOGLE_CLOUD_LOCATION',
-  'VERTEX_CLIENT_EMAIL',
-  'VERTEX_PRIVATE_KEY',
   'DEEPSEEK_API_KEY',
   'OPENAI_API_KEY',
   // Clé du fournisseur GLM (Zhipu / Z.ai), API OpenAI-compatible.

@@ -8,14 +8,14 @@ Les modèles ne changent pas. `ai.config.ts` reste la seule source de vérité p
 
 ### 1. Côté Google Cloud
 
+Vertex réutilise le **compte de service Firebase déjà en place**. Un projet Firebase est un projet Google Cloud : c'est la même identité, le même projet, la même facture. Rien à créer — il manque seulement le droit d'appeler Vertex.
+
 ```bash
 gcloud services enable aiplatform.googleapis.com --project=<PROJET>
 
-# Compte de service dédié à l'API
-gcloud iam service-accounts create idem-vertex --project=<PROJET>
-
+# Le compte de service Firebase, celui de FIREBASE_CLIENT_EMAIL
 gcloud projects add-iam-policy-binding <PROJET> \
-  --member="serviceAccount:idem-vertex@<PROJET>.iam.gserviceaccount.com" \
+  --member="serviceAccount:<FIREBASE_CLIENT_EMAIL>" \
   --role="roles/aiplatform.user"
 ```
 
@@ -23,27 +23,35 @@ gcloud projects add-iam-policy-binding <PROJET> \
 
 ### 2. Variables d'environnement
 
+**Aucune variable à ajouter.** Vertex lit celles de Firebase, déjà requises :
+
+| Variable | Rôle |
+|---|---|
+| `FIREBASE_PROJECT_ID` | Projet Google Cloud, donc celui qui porte la facturation Vertex |
+| `FIREBASE_CLIENT_EMAIL` | Compte de service qui signe les appels |
+| `FIREBASE_PRIVATE_KEY` | Sa clé privée, `\n` échappés acceptés |
+
+Deux variables facultatives, propres à Vertex :
+
 | Variable | Rôle |
 |---|---|
 | `GEMINI_BACKEND` | `vertex` (défaut) ou `ai-studio` pour un retour arrière |
-| `GOOGLE_CLOUD_PROJECT` | **Requis.** Projet qui porte la facturation |
 | `GOOGLE_CLOUD_LOCATION` | Région Vertex. Défaut `global` |
-| `VERTEX_CLIENT_EMAIL` | Compte de service (optionnel, voir authentification) |
-| `VERTEX_PRIVATE_KEY` | Clé privée, `\n` échappés acceptés |
 
 `GEMINI_API_KEY` devient inutile en mode Vertex. Elle n'est lue que si `GEMINI_BACKEND=ai-studio`.
 
 ### 3. Authentification
 
-Deux chemins, dans cet ordre :
+Le compte de service Firebase signe les appels Vertex — pas de second compte, pas de second secret à faire tourner. Il n'y a volontairement **aucun repli** vers un autre jeu de variables ni vers les Application Default Credentials : une identité unique et explicite vaut mieux qu'une résolution en cascade dont on ne sait plus, en incident, laquelle a servi.
 
-1. **Compte de service en variables** — `VERTEX_CLIENT_EMAIL` + `VERTEX_PRIVATE_KEY`. À privilégier en conteneur, où monter un fichier de clé est rarement pratique. Même approche que l'initialisation Firebase de `api/index.ts`.
-2. **Application Default Credentials** — sinon. Couvre `GOOGLE_APPLICATION_CREDENTIALS=/chemin/vers/cle.json`, `gcloud auth application-default login` en local, et l'identité attachée à la machine sur Cloud Run / GKE / GCE (le cas le plus propre : aucun secret à gérer).
+Si les trois variables Firebase ne sont pas complètes, la construction du client échoue avec un message qui les nomme.
 
 Au démarrage, l'API journalise le backend résolu :
 
 ```
-Gemini backend: Vertex AI (projet=idem-prod, région=global, auth=ADC, sans cache de contexte)
+Gemini backend: Vertex AI (projet=idem-prod, région=global,
+                auth=compte de service Firebase (firebase-adminsdk-x1y2@idem-prod.iam.gserviceaccount.com),
+                sans cache de contexte)
 ```
 
 Si la configuration est incomplète, la ligne part en `console.error` dès le boot au lieu d'échouer au milieu d'une génération.
