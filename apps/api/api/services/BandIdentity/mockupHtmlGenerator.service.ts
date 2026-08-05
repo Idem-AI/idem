@@ -1,4 +1,9 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
+import {
+  describeGeminiBackend,
+  getGoogleGenAIClient,
+  isGeminiConfigured,
+} from '../../config/google-genai.client';
 import logger from '../../config/logger';
 import { MOCKUP_HTML_GENERATION_PROMPT } from './prompts/mockup-html-generation.prompt';
 import { AI_CONFIG } from '../../config/ai.config';
@@ -8,15 +13,23 @@ import { AI_CONFIG } from '../../config/ai.config';
  * Génère un HTML professionnel et adapté au projet
  */
 export class MockupHtmlGeneratorService {
-  private geminiAI: GoogleGenerativeAI;
+  // Migré de `@google/generative-ai` (SDK historique, sans support Vertex AI)
+  // vers `@google/genai` : c'était le dernier appel qui serait resté sur
+  // AI Studio après la bascule, donc facturé hors Google Cloud.
+  private _geminiAI?: GoogleGenAI;
   private readonly MODEL_NAME = AI_CONFIG.branding.mockupHtml.modelName;
 
-  constructor() {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error('GEMINI_API_KEY is not configured');
+  private get geminiAI(): GoogleGenAI {
+    if (!this._geminiAI) {
+      this._geminiAI = getGoogleGenAIClient();
     }
-    this.geminiAI = new GoogleGenerativeAI(apiKey);
+    return this._geminiAI;
+  }
+
+  constructor() {
+    if (!isGeminiConfigured()) {
+      throw new Error(`Backend Gemini non configuré (${describeGeminiBackend()}).`);
+    }
   }
 
   /**
@@ -88,14 +101,15 @@ export class MockupHtmlGeneratorService {
         });
 
         // Appeler Gemini pour générer le HTML de cette page
-        const model = this.geminiAI.getGenerativeModel({
+        const result = await this.geminiAI.models.generateContent({
           model: this.MODEL_NAME,
-          systemInstruction: MOCKUP_HTML_GENERATION_PROMPT.systemPrompt,
+          contents: prompt,
+          config: {
+            systemInstruction: MOCKUP_HTML_GENERATION_PROMPT.systemPrompt,
+          },
         });
 
-        const result = await model.generateContent(prompt);
-        const response = result.response;
-        let generatedHtml = response.text();
+        let generatedHtml = result.text ?? '';
 
         // Nettoyer le HTML
         generatedHtml = this.cleanGeneratedHtml(generatedHtml);

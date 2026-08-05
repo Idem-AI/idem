@@ -10,6 +10,7 @@ import {
 import { MOCKUP_CONFIG } from '../config/mockup.config';
 import { AI_CONFIG } from '../config/ai.config';
 import { withGeminiFallback } from '../utils/gemini-fallback';
+import { describeGeminiBackend, getGoogleGenAIClient, isGeminiConfigured } from '../config/google-genai.client';
 
 
 export interface MockupGenerationRequest {
@@ -48,9 +49,7 @@ export class GeminiMockupService {
 
   private get geminiAI(): GoogleGenAI {
     if (!this._geminiAI) {
-      this._geminiAI = new GoogleGenAI({
-        apiKey: process.env.GEMINI_API_KEY || '',
-      });
+      this._geminiAI = getGoogleGenAIClient();
     }
     return this._geminiAI;
   }
@@ -195,20 +194,22 @@ export class GeminiMockupService {
       });
 
       // Vérifier que l'API key Gemini est configurée
-      if (!process.env.GEMINI_API_KEY) {
+      if (!isGeminiConfigured()) {
         logger.error(
-          `[MOCKUP][${mockupName}] GEMINI_API_KEY is NOT configured - cannot generate mockup images`,
+          `[MOCKUP][${mockupName}] Backend Gemini non configuré (${describeGeminiBackend()}) - cannot generate mockup images`,
           {
             mockupName,
             projectId,
           }
         );
-        console.error(`[MOCKUP] ❌ GEMINI_API_KEY is not set! Cannot generate mockup images.`);
-        throw new Error('GEMINI_API_KEY is not configured. Cannot generate mockup images.');
+        console.error(`[MOCKUP] ❌ Backend Gemini non configuré (${describeGeminiBackend()}).`);
+        throw new Error(
+          `Backend Gemini non configuré (${describeGeminiBackend()}). Cannot generate mockup images.`
+        );
       }
 
       console.log(
-        `[MOCKUP] ✅ GEMINI_API_KEY is configured, proceeding with real image generation for mockup ${request.selectedSupport.mockupIndex}`
+        `[MOCKUP] ✅ ${describeGeminiBackend()} — proceeding with real image generation for mockup ${request.selectedSupport.mockupIndex}`
       );
 
       // Construire le contenu multimodal (texte + image du logo)
