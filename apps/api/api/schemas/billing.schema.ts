@@ -1,48 +1,58 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import {
   BillingInvoiceModel,
-  BillingPlanModel,
+  BillingProductModel,
+  BillingPurchaseModel,
   BillingSubscriptionModel,
   CreditLedgerEntryModel,
 } from '../models/billing.model';
 
 /**
- * Collections de facturation. Voir models/billing.model.ts pour le modèle.
+ * Collections de facturation. Voir models/billing.model.ts pour le modèle et
+ * apps/api/docs/BILLING.md pour la vue d'ensemble.
  *
- * Les index sont choisis pour les deux usages réels :
- *  - l'exécution (résoudre l'abonnement et le solde de crédits d'un user) ;
- *  - l'analyse (chiffre d'affaires par période, à comparer au coût des tokens).
+ * Les index servent deux usages : l'exécution (résoudre l'abonnement et le
+ * solde de crédits d'un utilisateur sur un moteur donné) et l'analyse (chiffre
+ * d'affaires par période, moteur et type de produit, à comparer au coût des
+ * tokens).
  */
 
 // ============================================
-// PLANS
+// CATALOGUE
 // ============================================
 
-export interface BillingPlanDocument extends Omit<BillingPlanModel, 'id'>, Document {}
+export interface BillingProductDocument extends Omit<BillingProductModel, 'id'>, Document {}
 
-const BillingPlanSchema = new Schema<BillingPlanDocument>(
+const BillingProductSchema = new Schema<BillingProductDocument>(
   {
     code: { type: String, required: true, unique: true },
+    kind: { type: String, required: true },
+    engine: { type: String, default: null },
     name: { type: String, required: true },
     description: { type: String },
-    price: { type: Number, required: true, default: 0 },
-    currency: { type: String, required: true, default: 'USD' },
+    priceXaf: { type: Number, required: true, default: 0 },
     interval: { type: String, required: true, default: 'month' },
-    creditsPerPeriod: { type: Number, required: true, default: 0 },
-    subscriptionTier: { type: String, required: true, default: 'free' },
+    credits: { type: Number, required: true, default: 0 },
+    validityHours: { type: Number },
+    subscriptionTier: { type: String },
     highlighted: { type: Boolean, default: false },
     features: [{ type: String }],
+    discountLabel: { type: String },
+    localAlternative: { type: String },
     isActive: { type: Boolean, default: true },
     sortOrder: { type: Number, default: 0 },
   },
-  { timestamps: true, collection: 'billing_plans' }
+  { timestamps: true, collection: 'billing_products' }
 );
 
-// L'unicité de `code` est déjà déclarée sur le champ ; on n'indexe ici que
-// l'affichage du catalogue.
-BillingPlanSchema.index({ isActive: 1, sortOrder: 1 });
+// Affichage du catalogue, filtré par moteur et par nature.
+BillingProductSchema.index({ engine: 1, kind: 1, sortOrder: 1 });
+BillingProductSchema.index({ isActive: 1, sortOrder: 1 });
 
-export const BillingPlan = mongoose.model<BillingPlanDocument>('BillingPlan', BillingPlanSchema);
+export const BillingProduct = mongoose.model<BillingProductDocument>(
+  'BillingProduct',
+  BillingProductSchema
+);
 
 // ============================================
 // ABONNEMENTS
@@ -55,14 +65,16 @@ export interface BillingSubscriptionDocument
 const BillingSubscriptionSchema = new Schema<BillingSubscriptionDocument>(
   {
     userId: { type: String, required: true },
-    planCode: { type: String, required: true },
+    engine: { type: String, required: true },
+    productCode: { type: String, required: true },
     status: { type: String, required: true, default: 'active' },
-    price: { type: Number, required: true, default: 0 },
-    currency: { type: String, required: true, default: 'USD' },
+    priceXaf: { type: Number, required: true, default: 0 },
     interval: { type: String, required: true, default: 'month' },
+    installments: { type: Number, default: 1 },
     currentPeriodStart: { type: Date, required: true },
     currentPeriodEnd: { type: Date, required: true },
     canceledAt: { type: Date },
+    consecutivePeriods: { type: Number, default: 0 },
     provider: { type: String, required: true, default: 'manual' },
     providerSubscriptionId: { type: String },
     providerCustomerId: { type: String },
@@ -71,26 +83,29 @@ const BillingSubscriptionSchema = new Schema<BillingSubscriptionDocument>(
 );
 
 /**
- * Un seul abonnement ACTIF par utilisateur, garanti EN BASE.
+ * Un seul abonnement actif par (utilisateur, MOTEUR), garanti EN BASE.
  *
- * Index partiel unique plutôt qu'un contrôle applicatif : deux requêtes
- * concurrentes de souscription créeraient sinon deux abonnements actifs, et
- * l'utilisateur serait facturé deux fois.
+ * La clé porte sur le couple et non sur le seul utilisateur : un même client
+ * peut légitimement être abonné à Business, AppGen et iDeploy simultanément —
+ * c'est même le but des bundles. L'index partiel unique empêche en revanche
+ * deux abonnements actifs sur le MÊME moteur, donc la double facturation, y
+ * compris sous requêtes concurrentes.
  */
 BillingSubscriptionSchema.index(
-  { userId: 1 },
+  { userId: 1, engine: 1 },
   {
     unique: true,
     partialFilterExpression: { status: { $in: ['active', 'trialing'] } },
-    name: 'one_active_subscription_per_user',
+    name: 'one_active_subscription_per_user_engine',
   }
 );
 
 // Renouvellements à traiter (tâche planifiée).
 BillingSubscriptionSchema.index({ status: 1, currentPeriodEnd: 1 });
 
-// Répartition des abonnés par plan (dashboard admin).
-BillingSubscriptionSchema.index({ planCode: 1, status: 1 });
+// Répartition des abonnés par produit / moteur (dashboard admin).
+BillingSubscriptionSchema.index({ productCode: 1, status: 1 });
+BillingSubscriptionSchema.index({ engine: 1, status: 1 });
 
 // Historique d'un utilisateur.
 BillingSubscriptionSchema.index({ userId: 1, createdAt: -1 });
@@ -98,6 +113,55 @@ BillingSubscriptionSchema.index({ userId: 1, createdAt: -1 });
 export const BillingSubscription = mongoose.model<BillingSubscriptionDocument>(
   'BillingSubscription',
   BillingSubscriptionSchema
+);
+
+// ============================================
+// ACHATS PONCTUELS
+// ============================================
+
+export interface BillingPurchaseDocument extends Omit<BillingPurchaseModel, 'id'>, Document {}
+
+const BillingPurchaseSchema = new Schema<BillingPurchaseDocument>(
+  {
+    userId: { type: String, required: true },
+    productCode: { type: String, required: true },
+    kind: { type: String, required: true },
+    engine: { type: String, default: null },
+    priceXaf: { type: Number, required: true, default: 0 },
+    creditsGranted: { type: Number, default: 0 },
+    projectId: { type: String },
+    expiresAt: { type: Date },
+    provider: { type: String, required: true, default: 'manual' },
+    providerPaymentId: { type: String },
+    day: { type: String, required: true },
+  },
+  { timestamps: true, collection: 'billing_purchases' }
+);
+
+// Chiffre d'affaires ponctuel par période / produit — le pendant du MRR.
+BillingPurchaseSchema.index({ day: 1, kind: 1 });
+BillingPurchaseSchema.index({ productCode: 1, day: 1 });
+BillingPurchaseSchema.index({ userId: 1, createdAt: -1 });
+
+/**
+ * Un seul Project Pass par (utilisateur, projet) : le pass débloque un projet
+ * une fois pour toutes, le racheter serait une erreur de facturation.
+ */
+BillingPurchaseSchema.index(
+  { userId: 1, projectId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { kind: 'project_pass' },
+    name: 'one_project_pass_per_project',
+  }
+);
+
+// Passes actifs d'un utilisateur (contrôle d'accès AppGen).
+BillingPurchaseSchema.index({ userId: 1, expiresAt: 1 });
+
+export const BillingPurchase = mongoose.model<BillingPurchaseDocument>(
+  'BillingPurchase',
+  BillingPurchaseSchema
 );
 
 // ============================================
@@ -110,15 +174,17 @@ const BillingInvoiceSchema = new Schema<BillingInvoiceDocument>(
   {
     userId: { type: String, required: true },
     subscriptionId: { type: String },
-    planCode: { type: String, required: true },
+    purchaseId: { type: String },
+    productCode: { type: String, required: true },
+    kind: { type: String, required: true },
+    engine: { type: String, default: null },
     number: { type: String, required: true, unique: true },
     status: { type: String, required: true, default: 'draft' },
-    amount: { type: Number, required: true, default: 0 },
-    currency: { type: String, required: true, default: 'USD' },
+    amountXaf: { type: Number, required: true, default: 0 },
     amountUsd: { type: Number, required: true, default: 0 },
-    fxRateToUsd: { type: Number, required: true, default: 1 },
-    periodStart: { type: Date, required: true },
-    periodEnd: { type: Date, required: true },
+    xafPerUsd: { type: Number, required: true, default: 577 },
+    periodStart: { type: Date },
+    periodEnd: { type: Date },
     day: { type: String, required: true },
     issuedAt: { type: Date, required: true },
     paidAt: { type: Date },
@@ -132,12 +198,14 @@ const BillingInvoiceSchema = new Schema<BillingInvoiceDocument>(
 BillingInvoiceSchema.index({ status: 1, day: 1 });
 BillingInvoiceSchema.index({ day: 1 });
 
-// Factures d'un utilisateur.
+// CA par moteur et par type de produit (récurrent vs ponctuel).
+BillingInvoiceSchema.index({ engine: 1, day: 1 });
+BillingInvoiceSchema.index({ kind: 1, day: 1 });
+
 BillingInvoiceSchema.index({ userId: 1, issuedAt: -1 });
 
-// Idempotence de la facturation périodique : une seule facture par
-// (abonnement, période). Empêche une double émission si la tâche de
-// renouvellement est rejouée.
+// Idempotence : une seule facture par (abonnement, période). Rejouer la tâche
+// de renouvellement ne double-facture pas.
 BillingInvoiceSchema.index(
   { subscriptionId: 1, periodStart: 1 },
   { unique: true, sparse: true, name: 'one_invoice_per_subscription_period' }
@@ -159,6 +227,7 @@ export interface CreditLedgerEntryDocument
 const CreditLedgerEntrySchema = new Schema<CreditLedgerEntryDocument>(
   {
     userId: { type: String, required: true },
+    engine: { type: String, required: true },
     delta: { type: Number, required: true },
     balanceAfter: { type: Number, required: true },
     reason: { type: String, required: true },
@@ -168,21 +237,29 @@ const CreditLedgerEntrySchema = new Schema<CreditLedgerEntryDocument>(
     element: { type: String },
     aiUsageEventId: { type: String },
     subscriptionId: { type: String },
+    purchaseId: { type: String },
+    expiresAt: { type: Date },
     note: { type: String },
     day: { type: String, required: true },
   },
   { timestamps: true, collection: 'credit_ledger' }
 );
 
-// Reconstitution du solde et relevé d'un utilisateur.
-CreditLedgerEntrySchema.index({ userId: 1, createdAt: -1 });
+/**
+ * Solde et relevé par MOTEUR : les compteurs étant séparés, toute lecture de
+ * solde est nécessairement filtrée sur (userId, engine).
+ */
+CreditLedgerEntrySchema.index({ userId: 1, engine: 1, createdAt: -1 });
 
-// Consommation de crédits par période / par action (analyse).
-CreditLedgerEntrySchema.index({ day: 1, reason: 1 });
+// Consommation par période, moteur et livrable (analyse).
+CreditLedgerEntrySchema.index({ day: 1, engine: 1, reason: 1 });
 CreditLedgerEntrySchema.index({ action: 1, day: 1 });
 
 // Crédits consommés par projet.
 CreditLedgerEntrySchema.index({ projectId: 1, createdAt: -1 });
+
+// Péremption des crédits reportés (rollover de 2 mois).
+CreditLedgerEntrySchema.index({ expiresAt: 1 }, { sparse: true });
 
 export const CreditLedgerEntry = mongoose.model<CreditLedgerEntryDocument>(
   'CreditLedgerEntry',
