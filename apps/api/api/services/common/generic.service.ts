@@ -13,6 +13,7 @@ import { SectionModel } from '../../models/section.model';
 import { AI_CONFIG } from '../../config/ai.config';
 
 import logger from '../../config/logger';
+import { withAiUsage } from '../../utils/ai-usage-context.util';
 
 // Define interface for prompt step
 export interface IPromptStep {
@@ -171,7 +172,14 @@ Please generate *only* the content for the '${
       }' section, building upon the context provided above.`;
     }
 
-    const response = await this.promptService.runPrompt(promptConfig, messages);
+    // Chokepoint partagé de TOUTES les générations par sections (branding,
+    // business plan, landing, diagrammes…). Nommer l'élément ici avec le nom de
+    // l'étape suffit à ventiler le coût par élément de projet, sans instrumenter
+    // chacun des services métier séparément.
+    const response = await withAiUsage(
+      { userId, projectId: project.id, element: step.stepName },
+      () => this.promptService.runPrompt(promptConfig, messages)
+    );
 
     logger.debug(`LLM response for section '${step.stepName}': ${response}`);
     const stepSpecificContent = this.promptService.getCleanAIText(response);
