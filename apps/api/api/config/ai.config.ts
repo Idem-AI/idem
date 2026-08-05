@@ -22,19 +22,125 @@ export interface LLMOptions {
   extraBody?: Record<string, unknown>;
 }
 
+/**
+ * Étage de modèle (cf. `model-router.ts`).
+ *
+ * Déclaré ici et non dans le routeur pour que `ai.config.ts` reste la feuille
+ * du graphe d'imports : le routeur dépend de cette config, jamais l'inverse.
+ *
+ *   XS — mécanique (résumé, vérification, classification)
+ *   M  — rédaction
+ *   S  — raisonnement
+ */
+export type ModelTier = 'XS' | 'M' | 'S';
+
+/**
+ * Réglages propres à UNE section d'une feature (une section de business plan,
+ * un slide de pitch deck…). Tout champ omis retombe sur la config de la feature.
+ */
+export interface SectionAIConfig {
+  provider?: LLMProvider;
+  modelName?: string;
+  llmOptions?: LLMOptions;
+  promptType?: string;
+  fallbackModels?: string[];
+  /**
+   * Route cette section vers un étage de modèle plutôt que vers le modèle de la
+   * feature. Sert à ne pas payer le tarif « raisonnement » pour une section dont
+   * le travail est de la mise en page ou de la reformulation.
+   *
+   * Prioritaire sur `modelName` de la feature, dominé par un `modelName` déclaré
+   * sur la section elle-même (échappatoire explicite).
+   */
+  tier?: ModelTier;
+}
+
 export interface FeatureAIConfig {
   provider: LLMProvider;
   modelName: string;
   llmOptions?: LLMOptions;
   promptType?: string;
   fallbackModels?: string[];
+  /** Étage par défaut de la feature — même sémantique que sur une section. */
+  tier?: ModelTier;
+  /**
+   * Réglages par section, indexés par le `stepName` EXACT de la section.
+   *
+   * Un budget unique pour toute une feature est un compromis: il est soit trop
+   * court pour la section la plus lourde (plan financier, slide financials →
+   * réponse tronquée), soit inutilement large pour les autres. Les modèles
+   * utilisés ici sont « thinking » : le raisonnement est décompté de
+   * `maxOutputTokens`, donc un budget serré ampute d'abord la réflexion, puis
+   * la sortie elle-même — la qualité tombe bien avant que la troncature ne
+   * devienne visible.
+   */
+  sections?: Record<string, SectionAIConfig>;
 }
+
+/**
+ * Fusionne la config d'une feature avec celle d'une de ses sections.
+ *
+ * `llmOptions` est fusionné champ par champ (et non remplacé) : une section
+ * peut ne redéfinir que `maxOutputTokens` sans perdre la température de la
+ * feature. `extraBody` suit la même règle, pour pouvoir activer le raisonnement
+ * sur une seule section.
+ */
+export function resolveSectionConfig(
+  feature: FeatureAIConfig,
+  sectionName?: string
+): FeatureAIConfig {
+  const section = sectionName ? feature.sections?.[sectionName] : undefined;
+
+  if (!section) {
+    return feature;
+  }
+
+  return {
+    provider: section.provider ?? feature.provider,
+    modelName: section.modelName ?? feature.modelName,
+    promptType: section.promptType ?? feature.promptType,
+    fallbackModels: section.fallbackModels ?? feature.fallbackModels,
+    // L'étage n'est PAS résolu ici (ce fichier ne connaît pas le routeur) : il
+    // est propagé tel quel, `applyTier` le traduit en modèle au moment de l'appel.
+    // Un `modelName` déclaré sur la section est une décision explicite : elle
+    // annule l'étage, sinon le routeur écraserait le choix de l'auteur.
+    tier: section.modelName ? undefined : (section.tier ?? feature.tier),
+    llmOptions: {
+      ...feature.llmOptions,
+      ...section.llmOptions,
+      ...(feature.llmOptions?.extraBody || section.llmOptions?.extraBody
+        ? {
+            extraBody: {
+              ...feature.llmOptions?.extraBody,
+              ...section.llmOptions?.extraBody,
+            },
+          }
+        : {}),
+    },
+    sections: feature.sections,
+  };
+}
+
+/**
+ * Chaîne de repli standard pour la génération de texte.
+ *
+ * Ordre = qualité décroissante / disponibilité croissante. Google renvoie 503
+ * « high demand » par MODÈLE : rejouer le même ne sert à rien, il faut basculer.
+ * Centralisée ici pour qu'une feature ne se retrouve pas sans repli par oubli.
+ */
+export const TEXT_FALLBACK_MODELS = [
+  'gemini-3.6-flash',
+  'gemini-3.5-flash',
+  'gemini-3-flash-preview',
+  'gemini-2.5-flash',
+];
 
 export const AI_CONFIG = {
   // Global / default settings
   default: {
     provider: LLMProvider.GEMINI,
     modelName: 'gemini-3-flash-preview',
+    fallbackModels: TEXT_FALLBACK_MODELS,
   } as FeatureAIConfig,
 
   // Fallback settings
@@ -50,6 +156,7 @@ export const AI_CONFIG = {
     default: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-2.5-flash',
+      fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'onboarding',
       llmOptions: {
         temperature: 0.5,
@@ -59,6 +166,7 @@ export const AI_CONFIG = {
     parseAnswer: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-2.5-flash',
+      fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'onboarding',
       llmOptions: {
         temperature: 0.1,
@@ -70,17 +178,75 @@ export const AI_CONFIG = {
   // Business Plan service configuration
   // Note: research-team (rédacteur) réutilise cette config ;
   // le chercheur (grounding Google Search) reste figé Gemini.
+  // ⚠️ PRIORITÉ QUALITÉ (choix produit). Les sections sortent du HTML + Tailwind
+  // minifié sur une seule ligne, et le modèle est « thinking » : le raisonnement
+  // consomme le même budget que la sortie. Les valeurs ci-dessous laissent de la
+  // marge au raisonnement AVANT la rédaction. Ne pas rabaisser pour gagner du
+  // temps : une section tronquée casse le parseur HTML et la section est perdue.
   businessPlan: {
     provider: LLMProvider.GEMINI,
     modelName: 'gemini-3.1-pro-preview',
-    fallbackModels: ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'],
+    fallbackModels: TEXT_FALLBACK_MODELS,
+    llmOptions: {
+      maxOutputTokens: 14000,
+      temperature: 0.55,
+      topP: 0.92,
+      topK: 40,
+    },
+    sections: {
+      // Page de garde : peu de contenu, mais la mise en page doit être soignée.
+      // `tier: 'M'` — c'est de la mise en page à partir d'éléments déjà connus
+      // (nom, marque, couleurs) : le modèle de raisonnement n'y apporte rien.
+      'Cover Page': { tier: 'M', llmOptions: { maxOutputTokens: 9000, temperature: 0.6 } },
+      // Synthèse : c'est la section la plus lue, elle doit être dense et juste.
+      'Company Summary': { llmOptions: { maxOutputTokens: 16000, temperature: 0.5 } },
+      // Sections nourries par la recherche : beaucoup de matière à structurer.
+      Opportunity: { llmOptions: { maxOutputTokens: 20000, temperature: 0.5 } },
+      'Target Audience': { llmOptions: { maxOutputTokens: 18000, temperature: 0.55 } },
+      'Products & Services': { llmOptions: { maxOutputTokens: 18000, temperature: 0.55 } },
+      'Marketing & Sales': { llmOptions: { maxOutputTokens: 18000, temperature: 0.6 } },
+      // Section la plus lourde : tableaux chiffrés, hypothèses, projections.
+      // Température basse : on veut des chiffres cohérents, pas de la créativité.
+      'Financial Plan': { llmOptions: { maxOutputTokens: 24000, temperature: 0.3, topP: 0.85 } },
+      // Jalons et annexes : restructuration de matière déjà produite en amont
+      // (elles reçoivent les digests des sections dont elles dépendent).
+      'Goal Planning': { tier: 'M', llmOptions: { maxOutputTokens: 14000, temperature: 0.5 } },
+      Appendix: { tier: 'M', llmOptions: { maxOutputTokens: 12000, temperature: 0.45 } },
+    },
   } as FeatureAIConfig,
 
   // Pitch Deck service configuration
+  // Chaque slide est du HTML + Tailwind autonome. Budgets plus resserrés que le
+  // business plan (un slide reste un slide), mais large devant le raisonnement.
   pitchDeck: {
     provider: LLMProvider.GEMINI,
     modelName: 'gemini-3.1-pro-preview',
-    fallbackModels: ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'],
+    fallbackModels: TEXT_FALLBACK_MODELS,
+    llmOptions: {
+      maxOutputTokens: 12000,
+      temperature: 0.6,
+      topP: 0.92,
+      topK: 40,
+    },
+    sections: {
+      // Slide d'ouverture : c'est la première impression, on lui laisse de la
+      // marge — mais le travail est de la composition, pas du raisonnement.
+      Cover: { tier: 'M', llmOptions: { maxOutputTokens: 12000, temperature: 0.7 } },
+      Problem: { llmOptions: { maxOutputTokens: 12000, temperature: 0.62 } },
+      Solution: { llmOptions: { maxOutputTokens: 13000, temperature: 0.62 } },
+      // Chiffres de marché : structure dense (TAM/SAM/SOM), créativité inutile.
+      Market: { llmOptions: { maxOutputTokens: 15000, temperature: 0.4, topP: 0.88 } },
+      Product: { llmOptions: { maxOutputTokens: 14000, temperature: 0.6 } },
+      'Business Model': { llmOptions: { maxOutputTokens: 14000, temperature: 0.45 } },
+      Traction: { llmOptions: { maxOutputTokens: 12000, temperature: 0.45 } },
+      // Tableau comparatif : beaucoup de cellules pour peu de mots.
+      Competition: { llmOptions: { maxOutputTokens: 15000, temperature: 0.45 } },
+      // Trombinoscope : mise en page de données fournies, aucun arbitrage.
+      Team: { tier: 'M', llmOptions: { maxOutputTokens: 11000, temperature: 0.55 } },
+      // Projections chiffrées : le slide le plus dense du deck.
+      Financials: { llmOptions: { maxOutputTokens: 18000, temperature: 0.3, topP: 0.85 } },
+      Ask: { llmOptions: { maxOutputTokens: 11000, temperature: 0.45 } },
+    },
   } as FeatureAIConfig,
 
   // Advisor service configuration
@@ -88,6 +254,7 @@ export const AI_CONFIG = {
   advisor: {
     provider: LLMProvider.GEMINI,
     modelName: 'gemini-3-flash-preview',
+    fallbackModels: TEXT_FALLBACK_MODELS,
     promptType: 'advisor',
   } as FeatureAIConfig,
 
@@ -95,6 +262,7 @@ export const AI_CONFIG = {
   legalDocs: {
     provider: LLMProvider.GEMINI,
     modelName: 'gemini-3-flash-preview',
+    fallbackModels: TEXT_FALLBACK_MODELS,
   } as FeatureAIConfig,
 
   // Deployment configurations
@@ -102,6 +270,7 @@ export const AI_CONFIG = {
     terraform: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-3-flash-preview',
+      fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'terraform_tfvars_generation',
       llmOptions: {
         temperature: 0.3,
@@ -111,6 +280,7 @@ export const AI_CONFIG = {
     chat: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-3-flash-preview',
+      fallbackModels: TEXT_FALLBACK_MODELS,
       llmOptions: {
         temperature: 0.7,
         maxOutputTokens: 1024,
@@ -123,6 +293,7 @@ export const AI_CONFIG = {
     autofill: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-3-flash-preview',
+      fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'finance',
       llmOptions: {
         temperature: 0.4,
@@ -132,6 +303,7 @@ export const AI_CONFIG = {
     intent: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-3-flash-preview',
+      fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'finance',
       llmOptions: {
         temperature: 0.2,
@@ -141,6 +313,7 @@ export const AI_CONFIG = {
     pdfCover: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-3-flash-preview',
+      fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'finance-cover-generation',
       llmOptions: {
         temperature: 0.7,
@@ -150,6 +323,7 @@ export const AI_CONFIG = {
     pdfInterpretation: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-3-flash-preview',
+      fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'finance-pdf-interpretation',
       llmOptions: {
         temperature: 0.5,
@@ -163,10 +337,12 @@ export const AI_CONFIG = {
     default: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-3-flash-preview',
+      fallbackModels: TEXT_FALLBACK_MODELS,
     } as FeatureAIConfig,
     trends: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-3-flash-preview',
+      fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'communication_trends',
       llmOptions: {
         maxOutputTokens: 800,
@@ -176,7 +352,7 @@ export const AI_CONFIG = {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-3.1-pro-preview',
       // Priorité à la qualité
-      fallbackModels: ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'],
+      fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'communication_flyer',
       llmOptions: {
         maxOutputTokens: 32000, // Budget de tokens étendu pour laisser le temps de 'thinking'
@@ -188,6 +364,7 @@ export const AI_CONFIG = {
     momentSuggestions: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-3-flash-preview',
+      fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'communication_moment_suggestions',
       llmOptions: {
         maxOutputTokens: 1200,
@@ -196,6 +373,7 @@ export const AI_CONFIG = {
     moment: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-3-flash-preview',
+      fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'communication_moment',
       llmOptions: {
         maxOutputTokens: 1200,
@@ -218,18 +396,34 @@ export const AI_CONFIG = {
     brandIdentity: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-3.1-pro-preview',
-      fallbackModels: ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'],
+      fallbackModels: TEXT_FALLBACK_MODELS,
       llmOptions: {
         maxOutputTokens: 12000,
         temperature: 0.35,
         topP: 0.9,
         topK: 40,
       },
+      // Sections de la charte graphique (clés = `stepName` de branding.service.ts).
+      // Celles qui portent du SVG demandent bien plus de budget que celles qui
+      // ne produisent que de la mise en page : un SVG tronqué est inutilisable.
+      sections: {
+        'Brand Header': { llmOptions: { maxOutputTokens: 24000, temperature: 0.4 } },
+        // Rendu du logo principal en HTML/SVG : la pièce maîtresse de la page.
+        'Logo Principal': { llmOptions: { maxOutputTokens: 20000, temperature: 0.3 } },
+        'Logo Variation Fond Clair': { llmOptions: { maxOutputTokens: 16000, temperature: 0.28 } },
+        'Logo Variation Fond Sombre': { llmOptions: { maxOutputTokens: 16000, temperature: 0.28 } },
+        'Logo Variation Monochrome': { llmOptions: { maxOutputTokens: 16000, temperature: 0.28 } },
+        // Règles d'usage : du texte structuré, peu de balisage.
+        'Logo Bonnes Pratiques': { llmOptions: { maxOutputTokens: 24000, temperature: 0.4 } },
+        // Nuanciers et spécimens typographiques : beaucoup de petites cellules.
+        'Color Palette': { llmOptions: { maxOutputTokens: 14000, temperature: 0.25 } },
+        Typography: { llmOptions: { maxOutputTokens: 14000, temperature: 0.3 } },
+      },
     } as FeatureAIConfig,
     logo: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-3.1-pro-preview',
-      fallbackModels: ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'],
+      fallbackModels: TEXT_FALLBACK_MODELS,
       llmOptions: {
         // ⚠️ NE PAS RÉDUIRE. gemini-3-flash-preview est un modèle "thinking" :
         // les tokens de raisonnement sont décomptés de maxOutputTokens. Un SVG de
@@ -245,7 +439,9 @@ export const AI_CONFIG = {
     colors: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-2.5-flash',
-      fallbackModels: [],
+      // La liste était vide : une saturation du modèle faisait échouer l'étape
+      // sans seconde chance, alors que le repli ne coûte rien tant qu'il ne sert pas.
+      fallbackModels: TEXT_FALLBACK_MODELS,
       llmOptions: {
         temperature: 0.05,
         topP: 0.8,
@@ -255,7 +451,9 @@ export const AI_CONFIG = {
     typography: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-2.5-flash',
-      fallbackModels: [],
+      // La liste était vide : une saturation du modèle faisait échouer l'étape
+      // sans seconde chance, alors que le repli ne coûte rien tant qu'il ne sert pas.
+      fallbackModels: TEXT_FALLBACK_MODELS,
       llmOptions: {
         temperature: 0.3,
         topP: 0.8,
@@ -265,6 +463,7 @@ export const AI_CONFIG = {
     logoAnalysis: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-3-flash-preview',
+      fallbackModels: TEXT_FALLBACK_MODELS,
       llmOptions: {
         maxOutputTokens: 2000,
         temperature: 0.2,
@@ -279,7 +478,7 @@ export const AI_CONFIG = {
     businessCard: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-3.1-pro-preview',
-      fallbackModels: ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'],
+      fallbackModels: TEXT_FALLBACK_MODELS,
       llmOptions: {
         maxOutputTokens: 24000,
         temperature: 0.45,

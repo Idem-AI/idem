@@ -52,17 +52,24 @@ export class DiagramService extends GenericService {
           stepName: 'Architecture Diagram',
           hasDependencies: false,
         },
+        // Ces deux diagrammes doivent parler des MÊMES acteurs et entités que le
+        // diagramme de cas d'usage. Leur `requiresSteps` était neutralisé par
+        // `hasDependencies: false` — la dépendance n'a jamais été honorée.
+        // `contextMode: 'full'` : sur du Mermaid, un résumé perdrait les noms
+        // exacts des nœuds, qui sont précisément ce qu'il faut réutiliser.
         {
           promptConstant: ENTITY_DIAGRAM_PROMPT,
           stepName: 'Entity Relationship Diagram',
           requiresSteps: ['Uses Cases Diagram'],
-          hasDependencies: false,
+          hasDependencies: true,
+          contextMode: 'full',
         },
         {
           promptConstant: SEQUENCE_DIAGRAM_PROMPT,
           stepName: 'Sequence Diagram',
           requiresSteps: ['Uses Cases Diagram'],
-          hasDependencies: false,
+          hasDependencies: true,
+          contextMode: 'full',
         },
       ];
 

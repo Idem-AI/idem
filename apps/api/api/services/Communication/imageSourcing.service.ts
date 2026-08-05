@@ -22,6 +22,7 @@ import {
   FlyerImageAttribution,
   FlyerImageSource,
 } from '../../models/communication.model';
+import { getGoogleGenAIClient, isGeminiConfigured } from '../../config/google-genai.client';
 
 export interface SourcedImage {
   url: string;
@@ -63,7 +64,7 @@ export class ImageSourcingService {
 
   private get geminiAI(): GoogleGenAI {
     if (!this._geminiAI) {
-      this._geminiAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+      this._geminiAI = getGoogleGenAIClient();
     }
     return this._geminiAI;
   }
@@ -264,7 +265,7 @@ export class ImageSourcingService {
     imageUrl: string,
     searchQuery: string
   ): Promise<FlyerImageAnalysis> {
-    if (!process.env.GEMINI_API_KEY) return this.fallbackAnalysis();
+    if (!isGeminiConfigured()) return this.fallbackAnalysis();
 
     const fetched = await axios.get<ArrayBuffer>(imageUrl, {
       responseType: 'arraybuffer',

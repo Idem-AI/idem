@@ -4,7 +4,13 @@ import { AI_CONFIG } from '../../config/ai.config';
 import { ProjectModel } from '../../models/project.model';
 import logger from '../../config/logger';
 import { BusinessPlanModel } from '../../models/businessPlan.model';
-import { GenericService, IPromptStep, ISectionResult } from '../common/generic.service';
+import {
+  GenericService,
+  IPromptStep,
+  ISectionResult,
+  withGraph,
+} from '../common/generic.service';
+import { BUSINESS_PLAN_GRAPH } from '../agents/deliverable-graph';
 import { SectionModel } from '../../models/section.model';
 import { PdfService } from '../pdf.service';
 import { cacheService, CacheOptions } from '../cache.service';
@@ -167,57 +173,75 @@ export class BusinessPlanService extends GenericService {
     }
 
     try {
-      // Define business plan steps with specialized agents
+      // Les dépendances entre sections ne sont PLUS déclarées ici : elles vivent
+      // dans BUSINESS_PLAN_GRAPH (services/agents/deliverable-graph.ts), au même
+      // endroit que celles du deck, validées (cycles, noms inconnus) et
+      // documentées avec leur coût en latence.
       const steps: IPromptStep[] = [
         {
           promptConstant: `${projectDescription}\n${AGENT_COVER_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
           stepName: 'Cover Page',
-          hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_COMPANY_SUMMARY_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
           stepName: 'Company Summary',
-          hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_OPPORTUNITY_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
           stepName: 'Opportunity',
-          hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_TARGET_AUDIENCE_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
           stepName: 'Target Audience',
-          hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_PRODUCTS_SERVICES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
           stepName: 'Products & Services',
-          hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_MARKETING_SALES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
           stepName: 'Marketing & Sales',
-          hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}${financeContext}`,
           stepName: 'Financial Plan',
-          hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_GOAL_PLANNING_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
           stepName: 'Goal Planning',
-          hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_APPENDIX_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
           stepName: 'Appendix',
-          hasDependencies: false,
         },
       ];
+
+      // Chaque section produit une page HTML : la grille déterministe attrape
+      // troncatures, balises déséquilibrées et gabarits non remplis avant que la
+      // section n'atteigne le PDF. La devise vient du module Finance quand il
+      // existe — c'est la dérive la plus fréquente sur un projet en XAF.
+      const sectionQuality = {
+        format: 'html' as const,
+        minChars: 400,
+        currency: project.analysisResultModel?.finance?.meta?.currency,
+      };
+
+      // Le graphe pose les dépendances, `withGraph` y ajoute les réglages IA de
+      // chaque section (budget de tokens, température, étage de modèle).
+      const configuredSteps = withGraph(
+        AI_CONFIG.businessPlan,
+        steps,
+        BUSINESS_PLAN_GRAPH,
+        sectionQuality
+      );
+
       const promptConfig: PromptConfig = {
         provider: AI_CONFIG.businessPlan.provider,
         modelName: AI_CONFIG.businessPlan.modelName,
+        llmOptions: AI_CONFIG.businessPlan.llmOptions,
+        // Était omis : la chaîne de repli déclarée dans ai.config.ts n'atteignait
+        // jamais runPrompt, donc une saturation du modèle perdait la section.
+        fallbackModels: AI_CONFIG.businessPlan.fallbackModels,
       };
 
       // Load existing sections if not forcing regeneration.
@@ -235,7 +259,7 @@ export class BusinessPlanService extends GenericService {
       // Process steps one by one with streaming if callback provided
       if (streamCallback) {
         await this.processStepsWithStreaming(
-          steps,
+          configuredSteps,
           project,
           async (result: ISectionResult) => {
             logger.info(`Received streamed result for step: ${result.name}`);
@@ -341,7 +365,7 @@ export class BusinessPlanService extends GenericService {
         return finalProject;
       } else {
         // Fallback to non-streaming processing
-        const stepResults = await this.processSteps(steps, project, promptConfig);
+        const stepResults = await this.processSteps(configuredSteps, project, promptConfig);
         sectionResults = stepResults.map((result) => ({
           name: result.name,
           type: result.type,
@@ -972,24 +996,12 @@ export class BusinessPlanService extends GenericService {
       skipQuotaCheck: true,
     };
 
-    const messages: AIChatMessage[] = [
-      {
-        role: 'user',
-        content: step.promptConstant,
-      },
-    ];
-
     try {
-      const content = await this.runStepAndAppend(
-        step,
-        project,
-        true,
-        messages,
+      const content = await this.runStepAndAppend(step, project, {
         userId,
-        'Financial Plan Auto-Update',
-        '',
-        promptConfig
-      );
+        promptType: 'Financial Plan Auto-Update',
+        promptConfig,
+      });
 
       existingSections[finPlanIndex] = {
         ...existingSections[finPlanIndex],
