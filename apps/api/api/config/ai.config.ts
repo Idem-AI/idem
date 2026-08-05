@@ -333,11 +333,36 @@ export const AI_CONFIG = {
   },
 
   // Communication configurations
+  //
+  // ⚠️ PRIORITÉ QUALITÉ & CRÉATIVITÉ > VITESSE (choix produit assumé).
+  //
+  // Tous les modèles employés ici sont « thinking » : leurs tokens de
+  // raisonnement sont décomptés de `maxOutputTokens`. Un budget serré n'ampute
+  // donc pas d'abord la sortie mais la RÉFLEXION — la composition retombe sur
+  // le réflexe « photo plein cadre + titre + logo » bien avant que la
+  // troncature ne devienne visible. Les budgets ci-dessous laissent
+  // délibérément de la marge au raisonnement AVANT la production.
+  //
+  // Chaque entrée porte aussi sa chaîne de repli : Google renvoie 503 « high
+  // demand » PAR MODÈLE, et une génération de visuel qui échoue faute de
+  // second choix est perçue comme une panne du produit.
   communication: {
     default: {
       provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      modelName: 'gemini-3.1-pro-preview',
       fallbackModels: TEXT_FALLBACK_MODELS,
+    } as FeatureAIConfig,
+    // Extraction du contexte de marque : lecture et reformulation d'un projet
+    // existant, aucune création — l'étage mécanique suffit.
+    context: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-2.5-flash',
+      fallbackModels: TEXT_FALLBACK_MODELS,
+      promptType: 'communication_context',
+      llmOptions: {
+        maxOutputTokens: 4000,
+        temperature: 0.2,
+      },
     } as FeatureAIConfig,
     trends: {
       provider: LLMProvider.GEMINI,
@@ -345,19 +370,75 @@ export const AI_CONFIG = {
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'communication_trends',
       llmOptions: {
-        maxOutputTokens: 800,
+        // 800 ne suffisait pas : le raisonnement consommait le budget et la
+        // liste de signaux revenait tronquée (donc vide après parsing).
+        maxOutputTokens: 4000,
+        temperature: 0.5,
       },
     } as FeatureAIConfig,
+    // Stratégie éditoriale : c'est la matière dont dérivent le calendrier PUIS
+    // les visuels. Une stratégie plate produit des visuels plats.
+    strategy: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3.1-pro-preview',
+      fallbackModels: TEXT_FALLBACK_MODELS,
+      promptType: 'communication_strategy',
+      llmOptions: {
+        maxOutputTokens: 16000,
+        temperature: 0.7,
+        topP: 0.95,
+        topK: 50,
+      },
+    } as FeatureAIConfig,
+    // Calendrier : 12 à 20 idées de contenu distinctes en un seul JSON. Le
+    // volume de sortie ET l'exigence de non-répétition justifient le modèle de
+    // raisonnement et une température haute.
+    calendar: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3.1-pro-preview',
+      fallbackModels: TEXT_FALLBACK_MODELS,
+      promptType: 'communication_calendar',
+      llmOptions: {
+        maxOutputTokens: 20000,
+        temperature: 0.8,
+        topP: 0.95,
+        topK: 64,
+      },
+    } as FeatureAIConfig,
+    // Brief d'image : petit JSON, mais 400 tokens sur un modèle « thinking »
+    // rendaient une réponse vide une fois sur deux (tout le budget passait
+    // dans le raisonnement) — la pipeline retombait alors sur la requête
+    // heuristique, d'où des photos hors sujet.
+    imageBrief: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      fallbackModels: TEXT_FALLBACK_MODELS,
+      promptType: 'communication_image_brief',
+      llmOptions: {
+        maxOutputTokens: 3000,
+        temperature: 0.7,
+      },
+    } as FeatureAIConfig,
+    // Composition du visuel — la tâche la plus exigeante du module : le modèle
+    // doit tenir une graine de design, une image analysée, une charte de marque
+    // et sortir un bloc HTML/Tailwind complet sur UNE seule ligne.
+    // ⚠️ NE PAS RÉDUIRE maxOutputTokens : le raisonnement de direction
+    // artistique (choix d'archétype, calage typographique, contrastes) pèse ici
+    // plus lourd que le HTML lui-même.
     flyer: {
       provider: LLMProvider.GEMINI,
       modelName: 'gemini-3.1-pro-preview',
-      // Priorité à la qualité
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'communication_flyer',
       llmOptions: {
-        maxOutputTokens: 32000, // Budget de tokens étendu pour laisser le temps de 'thinking'
-        temperature: 0.65, // Température ajustée pour plus de créativité
-        topP: 0.95,
+        maxOutputTokens: 48000,
+        // 0.8 est le plafond raisonnable : au-delà, la créativité gagnée se
+        // paie en JSON malformé (le HTML voyage dans une chaîne JSON, une
+        // guillemet mal échappée perd toute la génération). La diversité des
+        // compositions vient d'abord de la graine de design tirée au sort
+        // côté service, pas de la température.
+        temperature: 0.8,
+        topP: 0.97,
         topK: 64,
       },
     } as FeatureAIConfig,
@@ -367,21 +448,43 @@ export const AI_CONFIG = {
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'communication_moment_suggestions',
       llmOptions: {
-        maxOutputTokens: 1200,
+        maxOutputTokens: 5000,
+        temperature: 0.7,
       },
     } as FeatureAIConfig,
+    // Contenu d'un moment : la légende est publiée telle quelle par
+    // l'utilisateur — c'est de l'écriture, pas du remplissage de gabarit.
     moment: {
       provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      modelName: 'gemini-3.1-pro-preview',
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'communication_moment',
       llmOptions: {
-        maxOutputTokens: 1200,
+        maxOutputTokens: 8000,
+        temperature: 0.75,
+        topP: 0.95,
+        topK: 50,
       },
     } as FeatureAIConfig,
+    // Image de fond du visuel : génération (modèle image) puis scan de vision
+    // (sujet, humeur, couleurs dominantes, zones vides) qui nourrit ensuite la
+    // composition. Les replis sont déclarés ICI plutôt que déduits de
+    // `AI_CONFIG.fallback` : ce module doit pouvoir changer de modèle image
+    // sans embarquer le repli texte global, et l'inverse.
     imageSourcing: {
       imageModel: 'gemini-3.1-flash-image',
+      imageFallbackModel: 'gemini-3-pro-image',
       visionModel: 'gemini-2.5-flash',
+      visionFallbackModel: 'gemini-2.0-flash',
+      /**
+       * Budget du scan de vision. Le JSON d'analyse tient en ~150 tokens, mais
+       * le modèle est « thinking » : à 256 tokens le raisonnement épuisait le
+       * budget et la réponse revenait vide, la pipeline retombant en silence
+       * sur une analyse neutre (`fallbackAnalysis`). Le visuel était alors
+       * composé à l'aveugle sur sa propre image — couleurs et zones de texte
+       * choisies au hasard.
+       */
+      visionMaxOutputTokens: 1500,
     },
   },
 
