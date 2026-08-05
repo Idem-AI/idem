@@ -9,11 +9,30 @@ import {
 } from '../prompt.service';
 import { ProjectModel } from '../../models/project.model';
 import { SectionModel } from '../../models/section.model';
+import { ProjectSectionKey } from '../../models/revision.model';
 // File operations have been removed - using in-memory context
-import { AI_CONFIG } from '../../config/ai.config';
+import { AI_CONFIG, FeatureAIConfig, resolveSectionConfig } from '../../config/ai.config';
+import { applyTier } from '../../config/model-router';
 
 import logger from '../../config/logger';
-import { withAiUsage } from '../../utils/ai-usage-context.util';
+import { RunBudget, createRunBudget, runAgent } from '../agents/agent-runtime';
+import { buildDependencyContext } from '../agents/section-digest.service';
+import { QualityExpectation, qualityValidator } from '../agents/quality-gate';
+import { verifySection } from '../agents/section-verifier.service';
+import { DeliverableGraph, graphDepth, validateGraph } from '../agents/deliverable-graph';
+import { CONTEXT_TOOL_DECLARATIONS, createContextToolExecutor } from '../context-engine/context-tools';
+
+/**
+ * Comment une étape reçoit ce que les étapes amont ont produit.
+ *
+ *  - `digest` (défaut dès qu'il y a des dépendances) : les faits des sections
+ *    amont, réduits ~20× (cf. `section-digest.service`). C'est ce qui rend la
+ *    cohérence inter-sections finançable.
+ *  - `full`   : le texte intégral. À réserver aux étapes qui doivent réécrire ou
+ *    prolonger littéralement l'amont — sinon le coût redevient quadratique.
+ *  - `none`   : aucune injection.
+ */
+export type StepContextMode = 'none' | 'digest' | 'full';
 
 // Define interface for prompt step
 export interface IPromptStep {
@@ -30,6 +49,124 @@ export interface IPromptStep {
   hasDependencies?: boolean;
   // Maximum output tokens for LLM generation (optimization feature)
   maxOutputTokens?: number;
+  /**
+   * Réglages IA propres à cette section, déjà fusionnés avec ceux de la feature
+   * (voir `resolveSectionConfig`). Posés par `withSectionConfigs`.
+   *
+   * Ne pas confondre avec `maxOutputTokens` ci-dessus, qui n'est lu nulle part :
+   * le budget effectif vient de `aiConfig.llmOptions.maxOutputTokens`.
+   */
+  aiConfig?: FeatureAIConfig;
+  /** Voir `StepContextMode`. Défaut : `digest` si l'étape a des dépendances. */
+  contextMode?: StepContextMode;
+  /**
+   * Autorise l'étape à interroger elle-même le Context Engine (branding,
+   * finance, historique…) via le function-calling, au lieu de recevoir ces
+   * données empilées dans son prompt « au cas où ».
+   *
+   * C'est la différence entre pousser 8k tokens de contexte à 9 sections et
+   * laisser 2 sections aller chercher les 300 tokens dont elles ont besoin.
+   */
+  contextTools?: boolean;
+  /** Sections d'autres modules que l'étape est censée consulter (documentaire + prompt). */
+  consults?: ProjectSectionKey[];
+  /**
+   * Attentes de forme sur la sortie. Quand elles sont déclarées, la sortie passe
+   * la grille déterministe et, si besoin, UNE passe de réparation bornée.
+   */
+  quality?: QualityExpectation;
+}
+
+/**
+ * Attache à chaque étape les réglages IA de sa section.
+ *
+ * Le `stepName` est la clé de section : c'est lui qui indexe
+ * `AI_CONFIG.<feature>.sections`. Une étape sans entrée dédiée hérite
+ * simplement de la config de la feature.
+ *
+ * `applyTier` traduit ensuite un éventuel étage (`tier`) en modèle concret :
+ * c'est le point où le routeur prend la main sur le choix du modèle.
+ */
+export function withSectionConfigs(
+  feature: FeatureAIConfig,
+  steps: IPromptStep[]
+): IPromptStep[] {
+  return steps.map((step) => ({
+    ...step,
+    aiConfig: step.aiConfig ?? applyTier(resolveSectionConfig(feature, step.stepName)),
+  }));
+}
+
+/**
+ * Applique un graphe de dépendances à une liste d'étapes, puis leurs réglages IA.
+ *
+ * Remplace la déclaration manuelle de `requiresSteps` étape par étape : le
+ * graphe est décrit à un seul endroit (`deliverable-graph.ts`), validé
+ * (références inconnues, cycles) et journalisé avec sa profondeur — qui est le
+ * multiplicateur de latence du livrable.
+ */
+export function withGraph(
+  feature: FeatureAIConfig,
+  steps: IPromptStep[],
+  graph: DeliverableGraph,
+  quality?: QualityExpectation
+): IPromptStep[] {
+  const stepNames = steps.map((step) => step.stepName);
+  validateGraph(graph, stepNames);
+
+  logger.info(
+    `Graphe appliqué: ${steps.length} étapes, profondeur ${graphDepth(graph)} vague(s)`
+  );
+
+  const wired = steps.map((step) => {
+    const node = graph[step.stepName];
+    if (!node) {
+      // Étape hors graphe : elle reste indépendante plutôt que d'hériter d'un
+      // « dépend de tout » implicite, qui sérialiserait tout le livrable.
+      return { ...step, hasDependencies: false, quality: step.quality ?? quality };
+    }
+
+    const requires = node.requires ?? [];
+    return {
+      ...step,
+      hasDependencies: requires.length > 0,
+      requiresSteps: requires,
+      contextMode: step.contextMode ?? (requires.length > 0 ? 'digest' : 'none'),
+      contextTools: step.contextTools ?? Boolean(node.consults?.length),
+      consults: step.consults ?? node.consults,
+      quality: step.quality ?? quality,
+    } as IPromptStep;
+  });
+
+  return withSectionConfigs(feature, wired);
+}
+
+/**
+ * Plafond de tokens d'un livrable, déduit des budgets de sortie déclarés.
+ *
+ * Ce n'est pas une prévision de coût mais un COUPE-CIRCUIT : le facteur 3
+ * couvre l'entrée, la sortie et une escalade, si bien qu'un run normal ne
+ * l'atteint jamais — seul un run qui dérape (boucle d'outils emballée,
+ * réparations en chaîne) vient buter dessus et s'arrête au lieu de creuser.
+ */
+export function estimateRunBudget(steps: IPromptStep[]): number {
+  const perStep = steps.reduce(
+    (total, step) => total + (step.aiConfig?.llmOptions?.maxOutputTokens ?? 8000),
+    0
+  );
+  return Math.max(50_000, perStep * 3);
+}
+
+/** Ce dont une étape a besoin en plus de sa propre déclaration pour s'exécuter. */
+export interface StepRunOptions {
+  userId?: string;
+  promptType?: string;
+  /** Contexte des étapes amont, DÉJÀ réduit en digests par l'ordonnanceur. */
+  dependencyContext?: string;
+  promptConfig?: PromptConfig;
+  /** Plafond de consommation partagé par toutes les étapes du même livrable. */
+  budget?: RunBudget;
+  language?: string;
 }
 
 // Define interface for section result
@@ -83,114 +220,209 @@ export class GenericService {
   }
 
   /**
-   * Runs a single step and appends the result to the temp file
-   * @param step Prompt step configuration
-   * @param project Project model
-   * @param includeProjectInfo Whether to include project details in the prompt
-   * @param userId User ID for quota tracking
+   * Contexte amont d'une étape, à la forme dictée par `contextMode`.
+   *
+   * C'est ICI que se joue l'essentiel du coût d'un livrable. L'ancien
+   * comportement — concaténer le texte intégral de toutes les étapes
+   * précédentes — faisait croître le prompt de la n-ième section avec la somme
+   * des n-1 précédentes : sur 9 sections de ~12k tokens, la facture d'entrée
+   * seule dépassait celle de tout le contenu produit. Le mode `digest` ramène
+   * chaque dépendance à ~200 tokens de faits.
+   */
+  protected async buildStepContext(
+    step: IPromptStep,
+    completedSteps: Map<string, { name: string; content: string }>,
+    ctx: { userId?: string; projectId?: string; budget?: RunBudget; language?: string } = {}
+  ): Promise<string> {
+    const hasDependencies = step.hasDependencies !== undefined ? step.hasDependencies : true;
+    const mode: StepContextMode = step.contextMode ?? (hasDependencies ? 'digest' : 'none');
 
-   * @returns Generated content for the step
+    if (!hasDependencies || mode === 'none') {
+      logger.info(`Aucun contexte amont pour '${step.stepName}'`);
+      return '';
+    }
+
+    // Sans `requiresSteps`, l'étape hérite de tout ce qui précède : c'est le
+    // comportement historique, conservé pour ne pas casser les flux existants.
+    const dependencies =
+      step.requiresSteps && step.requiresSteps.length > 0
+        ? (step.requiresSteps
+            .map((name) => completedSteps.get(name))
+            .filter(Boolean) as { name: string; content: string }[])
+        : Array.from(completedSteps.values());
+
+    if (dependencies.length === 0) return '';
+
+    const sourceChars = dependencies.reduce((total, d) => total + d.content.length, 0);
+
+    if (mode === 'full') {
+      logger.info(
+        `Contexte INTÉGRAL pour '${step.stepName}' depuis [${dependencies
+          .map((d) => d.name)
+          .join(', ')}] (${sourceChars} car.)`
+      );
+      return dependencies.map((d) => `## ${d.name}\n\n${d.content}\n\n---\n`).join('\n');
+    }
+
+    const context = await buildDependencyContext(dependencies, {
+      userId: ctx.userId,
+      projectId: ctx.projectId,
+      budget: ctx.budget,
+      language: ctx.language,
+    });
+
+    logger.info(
+      `Contexte DIGEST pour '${step.stepName}' depuis [${dependencies
+        .map((d) => d.name)
+        .join(', ')}] : ${sourceChars} → ${context.length} car. ` +
+        `(÷${Math.max(1, Math.round(sourceChars / Math.max(1, context.length)))})`
+    );
+
+    return context;
+  }
+
+  /**
+   * Exécute UNE étape de génération.
+   *
+   * C'est le chokepoint de toutes les générations par sections (branding,
+   * business plan, deck, diagrammes, docs légaux) : tout ce qui doit valoir pour
+   * l'ensemble de la plateforme — routage de modèle, budget de run, contrôle de
+   * sortie, ventilation du coût — se branche ici et nulle part ailleurs.
+   *
+   * Note historique : cette méthode construisait auparavant un long prompt
+   * (« CURRENT TASK / PROJECT DETAILS / SPECIFIC INSTRUCTIONS ») qui n'était
+   * jamais envoyé — seuls les `messages` de l'appelant partaient au modèle. Ce
+   * code mort a été retiré ; la composition du prompt se fait désormais ici,
+   * une seule fois, et c'est bien elle qui part au modèle.
    */
   protected async runStepAndAppend(
     step: IPromptStep,
     project: ProjectModel,
-    includeProjectInfo: boolean = true,
-    messages: AIChatMessage[],
-    userId?: string,
-    promptType?: string,
-    contextFromPreviousSteps: string = '',
-    promptConfig: PromptConfig = {
+    options: StepRunOptions = {}
+  ): Promise<string> {
+    const { userId, promptType, dependencyContext = '', budget, language } = options;
+    const promptConfig: PromptConfig = options.promptConfig ?? {
       provider: AI_CONFIG.default.provider,
       modelName: AI_CONFIG.default.modelName,
       userId,
       promptType: promptType || step.stepName,
-    }
-  ): Promise<string> {
+    };
+
     logger.info(`Generating section: '${step.stepName}' for projectId: ${project.id}`);
 
-    // Construire le prompt avec ou sans contexte des étapes précédentes
-    const hasDependencies = step.hasDependencies !== undefined ? step.hasDependencies : true;
+    // Réglages de la section par-dessus ceux de l'appel. Une section lourde
+    // (plan financier, slide financials) obtient ainsi son propre budget de
+    // tokens sans imposer le même à toutes les autres.
+    const effectiveConfig: PromptConfig = step.aiConfig
+      ? {
+          ...promptConfig,
+          provider: step.aiConfig.provider,
+          modelName: step.aiConfig.modelName,
+          promptType: promptConfig.promptType ?? step.aiConfig.promptType,
+          fallbackModels: step.aiConfig.fallbackModels ?? promptConfig.fallbackModels,
+          llmOptions: { ...promptConfig.llmOptions, ...step.aiConfig.llmOptions },
+        }
+      : promptConfig;
 
-    let currentStepPrompt: string;
+    const useTools = Boolean(step.contextTools && userId && project.id);
 
-    if (!hasDependencies || !contextFromPreviousSteps) {
-      // Prompt sans contexte des étapes précédentes
-      currentStepPrompt = `CURRENT TASK: Generate the '${step.stepName}' section.
+    logger.info(
+      `Section '${step.stepName}' → ${effectiveConfig.modelName} ` +
+        `(maxOutputTokens=${effectiveConfig.llmOptions?.maxOutputTokens ?? 'default'}, ` +
+        `temperature=${effectiveConfig.llmOptions?.temperature ?? 'default'}, ` +
+        `fallbacks=${effectiveConfig.fallbackModels?.length ?? 0}, ` +
+        `contexte=${dependencyContext ? `${dependencyContext.length} car.` : 'aucun'}, ` +
+        `outils=${useTools ? 'oui' : 'non'})`
+    );
 
-${
-  includeProjectInfo
-    ? `PROJECT DETAILS (from input 'data' object):
-${JSON.stringify(
-  {
-    description: project.description,
-    targets: project.targets,
-    type: project.type,
-    scope: project.scope,
-  },
-  null,
-  2
-)}`
-    : ''
-}
+    const messages: AIChatMessage[] = [];
 
-SPECIFIC INSTRUCTIONS FOR '${step.stepName}':
-${step.promptConstant}
-
-Please generate *only* the content for the '${step.stepName}' section.`;
-    } else {
-      // Prompt avec contexte des étapes précédentes intégré directement
-      currentStepPrompt = `You are generating content section by section.
-Here is the previously generated content for context:
-
---- PREVIOUS CONTEXT ---
-${contextFromPreviousSteps}
---- END PREVIOUS CONTEXT ---
-
-CURRENT TASK: Generate the '${step.stepName}' section.
-
-${
-  includeProjectInfo
-    ? `PROJECT DETAILS (from input 'data' object):
-${JSON.stringify(
-  {
-    description: project.description,
-    targets: project.targets,
-    type: project.type,
-    scope: project.scope,
-  },
-  null,
-  2
-)}`
-    : ''
-}
-
-SPECIFIC INSTRUCTIONS FOR '${step.stepName}':
-${step.promptConstant}
-
-Please generate *only* the content for the '${
-        step.stepName
-      }' section, building upon the context provided above.`;
+    if (dependencyContext) {
+      // Le contexte amont est un RÉSUMÉ : il faut le dire au modèle, sinon il
+      // tente de le prolonger ou de le recopier au lieu de s'y conformer.
+      messages.push({
+        role: 'system',
+        content:
+          `SECTIONS DÉJÀ PRODUITES POUR CE LIVRABLE (faits à respecter, à ne PAS recopier) :\n\n` +
+          `${dependencyContext}\n\n` +
+          `Ta section doit être cohérente avec ces faits : mêmes chiffres, mêmes noms, ` +
+          `même devise, même positionnement. Ne les contredis jamais et ne répète pas leur contenu.`,
+      });
     }
 
-    // Chokepoint partagé de TOUTES les générations par sections (branding,
-    // business plan, landing, diagrammes…). Nommer l'élément ici avec le nom de
-    // l'étape suffit à ventiler le coût par élément de projet, sans instrumenter
-    // chacun des services métier séparément.
-    const response = await withAiUsage(
-      { userId, projectId: project.id, element: step.stepName },
-      () => this.promptService.runPrompt(promptConfig, messages)
+    if (useTools && step.consults?.length) {
+      messages.push({
+        role: 'system',
+        content:
+          `Tu peux consulter les données réelles du projet avec les outils fournis. ` +
+          `Sections utiles pour cette étape : ${step.consults.join(', ')}. ` +
+          `N'invente jamais une donnée que tu peux aller lire.`,
+      });
+    }
+
+    messages.push({ role: 'user', content: step.promptConstant });
+
+    const result = await runAgent(
+      {
+        role: 'section-writer',
+        // La tâche ne sert que de défaut : `baseConfig` impose le modèle réel
+        // choisi par la feature/section, l'étage n'entre en jeu qu'en escalade.
+        task: 'draft',
+        baseConfig: {
+          provider: effectiveConfig.provider,
+          modelName: effectiveConfig.modelName,
+          fallbackModels: effectiveConfig.fallbackModels,
+          llmOptions: effectiveConfig.llmOptions,
+        },
+        promptType: effectiveConfig.promptType ?? step.stepName,
+        tools: useTools ? CONTEXT_TOOL_DECLARATIONS : undefined,
+        toolExecutor: useTools ? createContextToolExecutor(userId!, project.id!) : undefined,
+        maxToolTurns: 4,
+        validate: step.quality ? qualityValidator(step.quality) : undefined,
+      },
+      {
+        messages,
+        userId,
+        projectId: project.id,
+        element: step.stepName,
+        budget,
+        // Tout ce que la config d'appel porte encore doit atteindre le modèle :
+        // un champ oublié ici redevient un réglage mort côté service métier.
+        language: language ?? effectiveConfig.language,
+        cachedContent: effectiveConfig.cachedContent,
+        file: effectiveConfig.file,
+        contextFilePaths: effectiveConfig.contextFilePaths,
+        skipQuotaCheck: effectiveConfig.skipQuotaCheck,
+        bypassOutputTokenCap: effectiveConfig.bypassOutputTokenCap,
+      }
     );
 
-    logger.debug(`LLM response for section '${step.stepName}': ${response}`);
-    const stepSpecificContent = this.promptService.getCleanAIText(response);
+    let content = result.text;
+
+    // Contrôle + réparation bornée. `verifySection` sort immédiatement si la
+    // grille déterministe ne trouve rien : le cas nominal ne coûte rien.
+    if (step.quality) {
+      const outcome = await verifySection(content, step.quality, {
+        userId,
+        projectId: project.id,
+        sectionName: step.stepName,
+        budget,
+        language,
+      });
+      content = outcome.content;
+      if (outcome.flagged) {
+        logger.warn(
+          `Section '${step.stepName}' livrée avec défauts non corrigés: ${outcome.report.summary}`
+        );
+      }
+    }
+
     logger.info(
-      `Successfully generated and processed section: '${step.stepName}' for projectId: ${project.id}`
+      `Section '${step.stepName}' produite (${content.length} car., tier=${result.tier}` +
+        `${result.escalated ? ', escaladée' : ''}, ${result.durationMs} ms)`
     );
 
-    // In-memory context handling - no file operations needed
-    logger.info(`Successfully processed section '${step.stepName}' for in-memory context`);
-
-    return stepSpecificContent;
+    return content;
   }
 
   /**
@@ -212,7 +444,11 @@ Please generate *only* the content for the '${
     promptType?: string,
     userId?: string,
     finalizationCallback?: () => Promise<void>,
-    existingSections: SectionModel[] = []
+    existingSections: SectionModel[] = [],
+    budget: RunBudget = createRunBudget(
+      `${promptType ?? 'deliverable'}:${project.id}`,
+      estimateRunBudget(steps)
+    )
   ): Promise<void> {
     const completedSteps: Map<string, { name: string; content: string }> = new Map();
     const runningSteps: Set<string> = new Set();
@@ -260,61 +496,20 @@ Please generate *only* the content for the '${
 
         logger.info(`Starting execution of step: ${step.stepName}`);
 
-        const hasDependencies = step.hasDependencies !== undefined ? step.hasDependencies : true;
-
-        // Build context from previous steps if necessary
-        let contextFromPreviousSteps = '';
-
-        if (hasDependencies && step.requiresSteps && step.requiresSteps.length > 0) {
-          // Filter and concatenate only the specified steps
-          const requiredSteps = Array.from(completedSteps.values()).filter((s) =>
-            step.requiresSteps!.includes(s.name)
-          );
-
-          contextFromPreviousSteps = requiredSteps
-            .map((s) => `## ${s.name}\n\n${s.content}\n\n---\n`)
-            .join('\n');
-
-          logger.info(
-            `Built context for step '${step.stepName}' from ${
-              requiredSteps.length
-            } required steps: [${requiredSteps.map((s) => s.name).join(', ')}]`
-          );
-        } else if (hasDependencies && (!step.requiresSteps || step.requiresSteps.length === 0)) {
-          // Include all previous steps if hasDependencies=true but requiresSteps not specified
-          contextFromPreviousSteps = Array.from(completedSteps.values())
-            .map((s) => `## ${s.name}\n\n${s.content}\n\n---\n`)
-            .join('\n');
-
-          logger.info(
-            `Built context for step '${step.stepName}' from all ${completedSteps.size} previous steps`
-          );
-        } else {
-          logger.info(`No context needed for step '${step.stepName}' (no dependencies)`);
-        }
-
-        const messages: AIChatMessage[] = [
-          {
-            role: 'system',
-            content: contextFromPreviousSteps,
-          },
-          {
-            role: 'user',
-            content: step.promptConstant,
-          },
-        ];
+        const dependencyContext = await this.buildStepContext(step, completedSteps, {
+          userId,
+          projectId: project.id,
+          budget,
+        });
 
         // Execute the current step with the built context
-        const content = await this.runStepAndAppend(
-          step,
-          project,
-          true,
-          messages,
+        const content = await this.runStepAndAppend(step, project, {
           userId,
-          promptType || step.stepName,
-          contextFromPreviousSteps,
-          effectivePromptConfig
-        );
+          promptType: promptType || step.stepName,
+          dependencyContext,
+          promptConfig: effectivePromptConfig,
+          budget,
+        });
 
         // Store the content of this step for future steps
         completedSteps.set(step.stepName, {
@@ -498,7 +693,11 @@ Please generate *only* the content for the '${
     project: ProjectModel,
     promptConfig?: PromptConfig,
     promptType?: string,
-    userId?: string
+    userId?: string,
+    budget: RunBudget = createRunBudget(
+      `${promptType ?? 'deliverable'}:${project.id}`,
+      estimateRunBudget(steps)
+    )
   ): Promise<ISectionResult[]> {
     const results: ISectionResult[] = [];
     const completedSteps = new Map<string, { name: string; content: string }>();
@@ -512,78 +711,37 @@ Please generate *only* the content for the '${
       logger.info(`Starting execution of step: ${step.stepName}`);
 
       const hasDependencies = step.hasDependencies !== undefined ? step.hasDependencies : true;
-      let contextFromPreviousSteps = '';
 
-      if (hasDependencies && step.requiresSteps && step.requiresSteps.length > 0) {
-        // Wait for specific required steps to complete
-        const requiredPromises = step.requiresSteps
-          .map((stepName) => stepPromises.get(stepName))
-          .filter((promise) => promise !== undefined) as Promise<ISectionResult>[];
-
-        if (requiredPromises.length > 0) {
-          await Promise.all(requiredPromises);
+      // Attendre les dépendances AVANT de construire le contexte : sans
+      // `requiresSteps`, l'étape attend tout ce qui est déjà lancé (comportement
+      // séquentiel historique).
+      if (hasDependencies) {
+        const awaited =
+          step.requiresSteps && step.requiresSteps.length > 0
+            ? (step.requiresSteps
+                .map((stepName) => stepPromises.get(stepName))
+                .filter(Boolean) as Promise<ISectionResult>[])
+            : Array.from(stepPromises.values());
+        if (awaited.length > 0) {
+          await Promise.all(awaited);
         }
-
-        // Build context from required steps
-        const requiredSteps = step.requiresSteps
-          .map((stepName) => completedSteps.get(stepName))
-          .filter((step) => step !== undefined) as {
-          name: string;
-          content: string;
-        }[];
-
-        contextFromPreviousSteps = requiredSteps
-          .map((s) => `## ${s.name}\n\n${s.content}\n\n---\n`)
-          .join('\n');
-
-        logger.info(
-          `Built context for step '${step.stepName}' from ${
-            requiredSteps.length
-          } required steps: [${requiredSteps.map((s) => s.name).join(', ')}]`
-        );
-      } else if (hasDependencies && (!step.requiresSteps || step.requiresSteps.length === 0)) {
-        // Wait for all previous steps to complete (sequential behavior)
-        const allPreviousPromises = Array.from(stepPromises.values());
-        if (allPreviousPromises.length > 0) {
-          await Promise.all(allPreviousPromises);
-        }
-
-        // Build context from all completed steps
-        const allCompletedSteps = Array.from(completedSteps.values());
-        contextFromPreviousSteps = allCompletedSteps
-          .map((s) => `## ${s.name}\n\n${s.content}\n\n---\n`)
-          .join('\n');
-
-        logger.info(
-          `Built context for step '${step.stepName}' from all ${allCompletedSteps.length} previous steps`
-        );
-      } else {
-        logger.info(`No context needed for step '${step.stepName}' (no dependencies)`);
       }
 
-      const messages: AIChatMessage[] = [
-        {
-          role: 'system',
-          content: contextFromPreviousSteps,
-        },
-        {
-          role: 'user',
-          content: step.promptConstant,
-        },
-      ];
+      const dependencyContext = await this.buildStepContext(step, completedSteps, {
+        userId: userId ?? promptConfig?.userId,
+        projectId: project.id,
+        budget,
+      });
 
       try {
         // Execute the step
-        const content = await this.runStepAndAppend(
-          step,
-          project,
-          true,
-          messages,
-          userId,
-          promptType || step.stepName,
-          contextFromPreviousSteps,
-          promptConfig
-        );
+        const content = await this.runStepAndAppend(step, project, {
+          userId: userId ?? promptConfig?.userId,
+          promptType: promptType || step.stepName,
+          dependencyContext,
+          promptConfig,
+          budget,
+        });
 
         // Store the completed step
         completedSteps.set(step.stepName, {

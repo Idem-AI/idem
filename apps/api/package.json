@@ -5,6 +5,7 @@
   "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "check:agents": "ts-node --transpile-only api/scripts/checkAgentPipeline.ts",
     "dev": "nodemon api/index.ts",
     "build": "tsc",
     "start": "ts-node api/index.ts",

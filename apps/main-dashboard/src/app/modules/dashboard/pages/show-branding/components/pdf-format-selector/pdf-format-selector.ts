@@ -81,6 +81,11 @@ export type PdfFormat = 'A4_PORTRAIT' | 'SLIDE_16_9';
           }"
           class="relative p-6 rounded-lg border-2 transition-all duration-300 text-left group cursor-pointer"
         >
+          <!-- Recommended Badge -->
+          <div class="absolute -top-3 right-6 bg-accent text-white text-xs font-bold px-3 py-1 rounded-full shadow-md z-10 border border-white/20">
+            {{ 'dashboard.showBranding.dialog.recommended' | translate }}
+          </div>
+          
           <!-- Icon -->
           <div class="flex items-center justify-center mb-4">
             <svg

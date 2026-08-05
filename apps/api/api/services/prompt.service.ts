@@ -22,6 +22,7 @@ import {
   providerSupports,
   resolveGlobalOverride,
 } from '../config/ai-providers.config';
+import { describeGeminiBackend, getGoogleGenAIClient } from '../config/google-genai.client';
 import { withGeminiFallback } from '../utils/gemini-fallback';
 import { getRequestLanguage } from '../utils/request-language';
 import { logAIEvent, previewValue } from '../utils/ai-trace.util';
@@ -142,13 +143,8 @@ export class PromptService {
 
   private get genAIClient(): GoogleGenAI {
     if (!this._genAIClient) {
-      const geminiApiKey = process.env.GEMINI_API_KEY;
-      if (!geminiApiKey) {
-        logger.error('GEMINI_API_KEY is not set in environment variables.');
-        throw new Error('GEMINI_API_KEY is not set in environment variables.');
-      }
-      this._genAIClient = new GoogleGenAI({ apiKey: geminiApiKey });
-      logger.info('GoogleGenAI client initialized successfully lazily.');
+      // Backend (Vertex AI ou AI Studio) résolu par la fabrique partagée.
+      this._genAIClient = getGoogleGenAIClient();
     }
     return this._genAIClient;
   }
@@ -1274,6 +1270,15 @@ export class PromptService {
     contextText: string,
     ttlSeconds = 7200
   ): Promise<string | null> {
+    // Le backend Gemini actif ne sert pas toujours le cache de contexte :
+    // l'endpoint Vertex `global` ne le propose pas. Sans ce garde-fou chaque
+    // appel tenterait un `caches.create` voué à l'échec, avalé par le catch plus
+    // bas — un aller-retour perdu par génération, pour une cause invisible.
+    if (!providerSupports(LLMProvider.GEMINI, 'contextCache')) {
+      logger.debug(`Context cache unavailable on this backend — ${describeGeminiBackend()}.`);
+      return null;
+    }
+
     // Le cache de contexte serveur est une fonctionnalité Gemini. Pour tout autre
     // modèle (ex: glm-5.2) on n'essaie même pas : l'appelant retombe sur l'inline.
     if (!modelName.startsWith('gemini')) {
