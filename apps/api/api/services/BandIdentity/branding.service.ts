@@ -44,7 +44,12 @@ import { BRAND_FOOTER_SECTION_PROMPT } from './prompts/07_brand-footer-section.p
 import { MOCKUP_CONFIG } from '../../config/mockup.config';
 import { SectionModel } from '../../models/section.model';
 import { BrandIdentityBuilder } from '../../models/builders/brandIdentity.builder';
-import { GenericService, IPromptStep, ISectionResult } from '../common/generic.service';
+import {
+  GenericService,
+  IPromptStep,
+  ISectionResult,
+  withSectionConfigs,
+} from '../common/generic.service';
 import { LogoLockupSpec, LogoModel, LogoPreferences, LogoType } from '../../models/logo.model';
 import {
   logoLockupService,
@@ -932,10 +937,14 @@ export class BrandingService extends GenericService {
       // Initialize sections array to collect results
       let sections: SectionModel[] = [...existingSections];
 
+      // Chaque section de la charte reçoit ses propres réglages
+      // (voir AI_CONFIG.branding.brandIdentity.sections).
+      const configuredSteps = withSectionConfigs(AI_CONFIG.branding.brandIdentity, steps);
+
       // Process steps one by one with streaming if callback provided
       if (streamCallback) {
         await this.processStepsWithStreaming(
-          steps,
+          configuredSteps,
           project,
           async (result: ISectionResult) => {
             logger.info(`Received streamed result for step: ${result.name}`);
@@ -1165,6 +1174,10 @@ export class BrandingService extends GenericService {
           {
             provider: AI_CONFIG.branding.brandIdentity.provider,
             modelName: AI_CONFIG.branding.brandIdentity.modelName,
+            // Étaient omis : la charte partait sans budget de tokens ni repli,
+            // alors que ai.config.ts en déclare pour cette feature.
+            llmOptions: AI_CONFIG.branding.brandIdentity.llmOptions,
+            fallbackModels: AI_CONFIG.branding.brandIdentity.fallbackModels,
             userId,
           }, // promptConfig
           'branding', // promptType

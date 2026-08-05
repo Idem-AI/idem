@@ -4,7 +4,12 @@ import { AI_CONFIG } from '../../config/ai.config';
 import { ProjectModel } from '../../models/project.model';
 import logger from '../../config/logger';
 import { BusinessPlanModel } from '../../models/businessPlan.model';
-import { GenericService, IPromptStep, ISectionResult } from '../common/generic.service';
+import {
+  GenericService,
+  IPromptStep,
+  ISectionResult,
+  withSectionConfigs,
+} from '../common/generic.service';
 import { SectionModel } from '../../models/section.model';
 import { PdfService } from '../pdf.service';
 import { cacheService, CacheOptions } from '../cache.service';
@@ -215,9 +220,18 @@ export class BusinessPlanService extends GenericService {
           hasDependencies: false,
         },
       ];
+      // Chaque section reçoit son propre budget de tokens et sa température
+      // (voir AI_CONFIG.businessPlan.sections) ; la config de la feature sert
+      // de base pour celles qui n'en redéfinissent pas.
+      const configuredSteps = withSectionConfigs(AI_CONFIG.businessPlan, steps);
+
       const promptConfig: PromptConfig = {
         provider: AI_CONFIG.businessPlan.provider,
         modelName: AI_CONFIG.businessPlan.modelName,
+        llmOptions: AI_CONFIG.businessPlan.llmOptions,
+        // Était omis : la chaîne de repli déclarée dans ai.config.ts n'atteignait
+        // jamais runPrompt, donc une saturation du modèle perdait la section.
+        fallbackModels: AI_CONFIG.businessPlan.fallbackModels,
       };
 
       // Load existing sections if not forcing regeneration.
@@ -235,7 +249,7 @@ export class BusinessPlanService extends GenericService {
       // Process steps one by one with streaming if callback provided
       if (streamCallback) {
         await this.processStepsWithStreaming(
-          steps,
+          configuredSteps,
           project,
           async (result: ISectionResult) => {
             logger.info(`Received streamed result for step: ${result.name}`);
@@ -341,7 +355,7 @@ export class BusinessPlanService extends GenericService {
         return finalProject;
       } else {
         // Fallback to non-streaming processing
-        const stepResults = await this.processSteps(steps, project, promptConfig);
+        const stepResults = await this.processSteps(configuredSteps, project, promptConfig);
         sectionResults = stepResults.map((result) => ({
           name: result.name,
           type: result.type,
