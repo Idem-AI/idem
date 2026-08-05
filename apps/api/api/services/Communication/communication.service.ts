@@ -41,7 +41,8 @@ import { AGENT_TRENDS_SUMMARY_PROMPT } from './prompts/agent-trends-summary.prom
 import { AGENT_MOMENT_SUGGESTIONS_PROMPT } from './prompts/agent-moment-suggestions.prompt';
 import { AGENT_MOMENT_CONTENT_PROMPT } from './prompts/agent-moment-content.prompt';
 import { imageSourcingService, ImageBrief, SourcedImage } from './imageSourcing.service';
-import { flyerRenderService, minLogoWidthFor } from './flyerRender.service';
+import { flyerRenderService, minLogoWidthFor, LogoDeclensionSet } from './flyerRender.service';
+import { summarizeLogoForPrompt } from '../../utils/logo-context.util';
 
 export type CommunicationStreamEvent =
   | { type: 'step-start'; step: string }
@@ -1025,7 +1026,10 @@ export class CommunicationService extends GenericService {
   // --------------------------------------------------------------------------
 
   async getFlyerImage(projectId: string, flyerId: string): Promise<Buffer> {
-    const cacheKey = cacheService.generateAIKey('flyer-img', 'public', projectId, flyerId);
+    // `v2` : le rendu corrige désormais la déclinaison du logo par mesure du
+    // contraste. Sans changer la clé, les PNG déjà en cache (24 h) resteraient
+    // servis avec l'ancien logo illisible.
+    const cacheKey = cacheService.generateAIKey('flyer-img', 'public', projectId, `${flyerId}:v2`);
     const cachedBase64 = await cacheService.get<string>(cacheKey, { prefix: 'flyer', ttl: 86400 });
     if (cachedBase64) {
       return Buffer.from(cachedBase64, 'base64');
@@ -1048,19 +1052,23 @@ export class CommunicationService extends GenericService {
     const branding = (project.analysisResultModel as any)?.branding;
     const typography = branding?.typography;
 
-    // Le logo réellement placé par le modèle d'abord, puis toutes les
-    // déclinaisons connues : `logoUsed` peut manquer sur un visuel ancien ou
-    // pointer une déclinaison que le rendu doit quand même reconnaître.
-    const logoUrls = [
-      flyer.logoUsed,
-      ...this.collectStringValues(branding?.logo?.assetUrls),
-    ].filter((url): url is string => typeof url === 'string' && url.trim().length > 0);
+    // Le logo réellement placé par le modèle, plus la table des déclinaisons :
+    // le rendu doit pouvoir RECONNAÎTRE le logo (mise à l'échelle) et le
+    // REMPLACER par la bonne polarité si le contraste mesuré est insuffisant.
+    const logoSummary = summarizeLogoForPrompt(branding?.logo);
+    const logos: LogoDeclensionSet = {
+      used: typeof flyer.logoUsed === 'string' ? flyer.logoUsed : undefined,
+      primary: logoSummary?.urls.primary,
+      icon: logoSummary?.urls.icon,
+      withText: logoSummary?.urls.withText,
+      iconOnly: logoSummary?.urls.iconOnly,
+    };
 
     const buffer = await flyerRenderService.renderFlyerToPng(
       flyer.html,
       flyer.format,
       typography,
-      logoUrls
+      logos
     );
     await cacheService.set(cacheKey, buffer.toString('base64'), { prefix: 'flyer', ttl: 86400 });
 

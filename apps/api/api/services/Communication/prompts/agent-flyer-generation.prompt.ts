@@ -145,15 +145,18 @@ Forbidden: Plain full-bleed img as bg with centered text.
 
 <logos>
 The brand logo declensions are provided below as READY-TO-USE image URLs. Pick the ONE that fits the exact background where you place it. NEVER invent a URL, NEVER inline raw SVG markup, NEVER paste a symbolic path like "BRAND.branding.logoUrls.primary".
-- Primary (default full logo): {{LOGO_PRIMARY}}
-- With text — for LIGHT backgrounds: {{LOGO_WITHTEXT_LIGHT}}
-- With text — for DARK backgrounds: {{LOGO_WITHTEXT_DARK}}
+Each declension is named by the colour of its INK and by the background it is made for — read both before picking, they always go together.
+- Primary (default full logo, dark ink): {{LOGO_PRIMARY}}
+- With text — DARK ink, goes ON A LIGHT background: {{LOGO_WITHTEXT_LIGHT}}
+- With text — LIGHT ink, goes ON A DARK background: {{LOGO_WITHTEXT_DARK}}
 - With text — monochrome (single-color zones): {{LOGO_WITHTEXT_MONO}}
-- Icon only — for LIGHT backgrounds: {{LOGO_ICON_LIGHT}}
-- Icon only — for DARK backgrounds: {{LOGO_ICON_DARK}}
+- Icon only — DARK ink, goes ON A LIGHT background: {{LOGO_ICON_LIGHT}}
+- Icon only — LIGHT ink, goes ON A DARK background: {{LOGO_ICON_DARK}}
 - Icon only — monochrome (watermark / pattern / corner mark): {{LOGO_ICON_MONO}}
 Selection rules:
-- Choose by CONTRAST against the zone where the logo sits: dark zone -> a light/mono-light declension; light zone -> a dark declension.
+- Judge the ZONE the logo actually sits on, not the overall mood of the design. Light zone (white, pastel, sand, bright photo) -> the DARK-ink declension. Dark zone (deep color, night photo, black band) -> the LIGHT-ink declension.
+- Ink and background must never belong to the same luminance family. A LIGHT-ink logo dropped on a LIGHT visual is THE recurring failure of this brief: the signature vanishes. The contrast is measured on the rendered pixels after you answer and a wrong declension gets swapped — a swap means your composition was wrong.
+- If the zone under the logo is mixed (gradient, busy photo, half-light/half-dark), move the logo onto a plain zone instead of hoping it reads.
 - Use a WITH-TEXT declension when the logo is the brand signature (the default). An ICON-ONLY declension is for a corner mark or a repeated pattern — and then the brand name must appear elsewhere as type.
 - If the chosen URL is empty, fall back to {{LOGO_PRIMARY}}.
 - Render exactly ONE logo as <img src="THE_CHOSEN_URL" .../>. Vary its placement across designs (do NOT always pin it bottom-left).
@@ -197,6 +200,7 @@ Active format: {{format}}
 Before emitting the JSON, re-read your own html string once and fix it if needed:
 1. Scan for <button>, role="button", and for any small element combining a background color (or border) with 1–5 words. If one exists, DELETE it — do not restyle it, delete it. The composition must still hold without it.
 2. Find your logo <img>: is its width at least {{LOGO_MIN_WIDTH}}px, is it at full opacity, is its container wide enough? Fix it before anything else.
+2b. Name out loud, to yourself, the colour of the zone directly BEHIND that logo. Light zone -> the URL must be the DARK-ink one; dark zone -> the LIGHT-ink one. If they disagree, change the URL (or move the logo).
 3. Grep your own html for every hex value and every font declaration: each must appear in <brand_charter>. Replace any stray one.
 4. Check the seed compliance checklist below, item by item.
 5. Check that no text is clipped by the canvas edges and that every text passes AA contrast over what sits behind it.
@@ -214,7 +218,7 @@ Ensure all are TRUE:
 - spacingMultiplier {{DESIGN_SEED.spacingMultiplier}} utilized.
 - Min two image integration techniques used.
 - Absolute positioning only (no flex/grid).
-- Logo: exactly ONE real logo URL from <logos>, declension chosen by contrast, size/placement varied.
+- Logo: exactly ONE real logo URL from <logos>; ink and background are in OPPOSITE luminance families (dark ink on a light zone, light ink on a dark zone); size/placement varied.
 - Anti-sameness: this design must NOT default to "photo full-bleed + headline bottom-left + logo bottom-left". Commit fully to the seed archetype so two visuals never look alike.
 </seed_compliance_checklist>
 
