@@ -51,11 +51,15 @@ export function getGoogleGenAIClient(): GoogleGenAI {
     return client;
   }
 
-  if (!backend.project) {
+  // Vertex réutilise le compte de service Firebase : même projet Google Cloud,
+  // donc les mêmes variables. Si Firebase est configuré, Vertex l'est aussi.
+  if (!backend.project || !backend.credentials) {
     throw new Error(
-      'Vertex AI est actif mais GOOGLE_CLOUD_PROJECT est absent. ' +
-        'Renseignez le projet Google Cloud qui porte la facturation, ' +
-        'ou repassez temporairement sur AI Studio (GEMINI_BACKEND=ai-studio).'
+      'Vertex AI est actif mais les identifiants Firebase sont incomplets ' +
+        '(FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY). ' +
+        "Vertex signe ses appels avec le compte de service Firebase — c'est le " +
+        'même projet Google Cloud. Vérifiez ces trois variables, ou repassez ' +
+        'temporairement sur AI Studio (GEMINI_BACKEND=ai-studio).'
     );
   }
 
@@ -63,7 +67,7 @@ export function getGoogleGenAIClient(): GoogleGenAI {
     vertexai: true,
     project: backend.project,
     location: backend.location,
-    ...(backend.credentials ? { googleAuthOptions: { credentials: backend.credentials } } : {}),
+    googleAuthOptions: { credentials: backend.credentials },
   });
 
   logger.info(`Client Gemini initialisé — ${describeGeminiBackend()}`);

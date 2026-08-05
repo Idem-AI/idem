@@ -70,17 +70,6 @@ function initFirebase(): void {
   }
 }
 
-// Backend Gemini (Vertex AI ou AI Studio) : tracé au démarrage plutôt qu'à la
-// première génération, pour qu'une configuration incomplète se voie tout de
-// suite et non au milieu d'un business plan.
-if (isGeminiConfigured()) {
-  console.log(`Gemini backend: ${describeGeminiBackend()}`);
-} else {
-  console.error(
-    `Gemini backend NON CONFIGURÉ — ${describeGeminiBackend()}. ` +
-      'Toute génération IA échouera. Voir docs/VERTEX_AI.md.'
-  );
-}
 
 import { projectRoutes } from './routes/project.routes';
 import { contextRoutes } from './routes/context.routes';
@@ -261,6 +250,19 @@ app.use((err: Error, req: Request, res: Response /*, next: NextFunction */) => {
 async function bootstrap() {
   await loadSecrets();
   initFirebase();
+
+  // Backend Gemini (Vertex AI ou AI Studio) : tracé au démarrage plutôt qu'à la
+  // première génération, pour qu'une configuration incomplète se voie tout de
+  // suite et non au milieu d'un business plan.
+  if (isGeminiConfigured()) {
+    console.log(`Gemini backend: ${describeGeminiBackend()}`);
+  } else {
+    console.error(
+      `Gemini backend NON CONFIGURÉ — ${describeGeminiBackend()}. ` +
+        'Toute génération IA échouera. Voir docs/VERTEX_AI.md.'
+    );
+  }
+
   return startServer();
 }
 

@@ -55,7 +55,7 @@ export interface GeminiBackend {
   project?: string;
   /** Région Vertex, ou `global`. */
   location: string;
-  /** Compte de service fourni en variables plutôt qu'en fichier (mode vertex). */
+  /** Compte de service signant les appels : celui de Firebase (mode vertex). */
   credentials?: { client_email: string; private_key: string };
   /** Clé AI Studio (mode ai-studio). */
   apiKey?: string;
@@ -136,16 +136,20 @@ export function getGeminiBackend(): GeminiBackend {
       ? 'ai-studio'
       : DEFAULT_GEMINI_MODE;
 
-  const clientEmail = trimmed(process.env.VERTEX_CLIENT_EMAIL);
-  const privateKey = trimmed(process.env.VERTEX_PRIVATE_KEY)?.replace(/\\n/g, '\n');
+  // Identité et projet : ceux de Firebase. Un projet Firebase EST un projet
+  // Google Cloud, donc le compte de service déjà configuré pour l'Admin SDK
+  // signe aussi les appels Vertex. Pas de second compte à créer, pas de second
+  // secret à faire tourner. Il lui faut seulement le rôle `roles/aiplatform.user`
+  // (voir docs/VERTEX_AI.md).
+  const clientEmail = trimmed(process.env.FIREBASE_CLIENT_EMAIL);
+  // `secrets.normalize()` a déjà déséchappé les \n, mais la variable peut aussi
+  // arriver d'ailleurs (docker-compose, CI) : on reste tolérant.
+  const privateKey = trimmed(process.env.FIREBASE_PRIVATE_KEY)?.replace(/\\n/g, '\n');
 
   geminiBackend = {
     mode,
-    project: trimmed(process.env.GOOGLE_CLOUD_PROJECT) ?? trimmed(process.env.VERTEX_PROJECT_ID),
-    location:
-      trimmed(process.env.GOOGLE_CLOUD_LOCATION) ??
-      trimmed(process.env.VERTEX_LOCATION) ??
-      DEFAULT_GEMINI_LOCATION,
+    project: trimmed(process.env.FIREBASE_PROJECT_ID),
+    location: trimmed(process.env.GOOGLE_CLOUD_LOCATION) ?? DEFAULT_GEMINI_LOCATION,
     ...(clientEmail && privateKey
       ? { credentials: { client_email: clientEmail, private_key: privateKey } }
       : {}),
@@ -163,7 +167,12 @@ export function resetGeminiBackend(): void {
 /** Le backend actif est-il utilisable ? */
 export function isGeminiConfigured(): boolean {
   const backend = getGeminiBackend();
-  return backend.mode === 'vertex' ? Boolean(backend.project) : Boolean(backend.apiKey);
+
+  // En mode Vertex il faut le projet ET l'identité Firebase qui le signe : sans
+  // les deux, l'appel partirait sans authentification utilisable.
+  return backend.mode === 'vertex'
+    ? Boolean(backend.project && backend.credentials)
+    : Boolean(backend.apiKey);
 }
 
 /** Description lisible du backend actif, pour les logs et les messages d'erreur. */
@@ -175,10 +184,8 @@ export function describeGeminiBackend(): string {
   }
 
   const auth = backend.credentials
-    ? 'compte de service en variables'
-    : trimmed(process.env.GOOGLE_APPLICATION_CREDENTIALS)
-      ? 'GOOGLE_APPLICATION_CREDENTIALS'
-      : 'ADC';
+    ? `compte de service Firebase (${backend.credentials.client_email})`
+    : 'IDENTITÉ MANQUANTE (FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY)';
 
   const cache = providerSupportsContextCache() ? '' : ', sans cache de contexte';
 
