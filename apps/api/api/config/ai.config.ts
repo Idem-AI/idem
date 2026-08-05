@@ -23,6 +23,18 @@ export interface LLMOptions {
 }
 
 /**
+ * Étage de modèle (cf. `model-router.ts`).
+ *
+ * Déclaré ici et non dans le routeur pour que `ai.config.ts` reste la feuille
+ * du graphe d'imports : le routeur dépend de cette config, jamais l'inverse.
+ *
+ *   XS — mécanique (résumé, vérification, classification)
+ *   M  — rédaction
+ *   S  — raisonnement
+ */
+export type ModelTier = 'XS' | 'M' | 'S';
+
+/**
  * Réglages propres à UNE section d'une feature (une section de business plan,
  * un slide de pitch deck…). Tout champ omis retombe sur la config de la feature.
  */
@@ -32,6 +44,15 @@ export interface SectionAIConfig {
   llmOptions?: LLMOptions;
   promptType?: string;
   fallbackModels?: string[];
+  /**
+   * Route cette section vers un étage de modèle plutôt que vers le modèle de la
+   * feature. Sert à ne pas payer le tarif « raisonnement » pour une section dont
+   * le travail est de la mise en page ou de la reformulation.
+   *
+   * Prioritaire sur `modelName` de la feature, dominé par un `modelName` déclaré
+   * sur la section elle-même (échappatoire explicite).
+   */
+  tier?: ModelTier;
 }
 
 export interface FeatureAIConfig {
@@ -40,6 +61,8 @@ export interface FeatureAIConfig {
   llmOptions?: LLMOptions;
   promptType?: string;
   fallbackModels?: string[];
+  /** Étage par défaut de la feature — même sémantique que sur une section. */
+  tier?: ModelTier;
   /**
    * Réglages par section, indexés par le `stepName` EXACT de la section.
    *
@@ -77,6 +100,11 @@ export function resolveSectionConfig(
     modelName: section.modelName ?? feature.modelName,
     promptType: section.promptType ?? feature.promptType,
     fallbackModels: section.fallbackModels ?? feature.fallbackModels,
+    // L'étage n'est PAS résolu ici (ce fichier ne connaît pas le routeur) : il
+    // est propagé tel quel, `applyTier` le traduit en modèle au moment de l'appel.
+    // Un `modelName` déclaré sur la section est une décision explicite : elle
+    // annule l'étage, sinon le routeur écraserait le choix de l'auteur.
+    tier: section.modelName ? undefined : (section.tier ?? feature.tier),
     llmOptions: {
       ...feature.llmOptions,
       ...section.llmOptions,
@@ -167,7 +195,9 @@ export const AI_CONFIG = {
     },
     sections: {
       // Page de garde : peu de contenu, mais la mise en page doit être soignée.
-      'Cover Page': { llmOptions: { maxOutputTokens: 9000, temperature: 0.6 } },
+      // `tier: 'M'` — c'est de la mise en page à partir d'éléments déjà connus
+      // (nom, marque, couleurs) : le modèle de raisonnement n'y apporte rien.
+      'Cover Page': { tier: 'M', llmOptions: { maxOutputTokens: 9000, temperature: 0.6 } },
       // Synthèse : c'est la section la plus lue, elle doit être dense et juste.
       'Company Summary': { llmOptions: { maxOutputTokens: 16000, temperature: 0.5 } },
       // Sections nourries par la recherche : beaucoup de matière à structurer.
@@ -178,8 +208,10 @@ export const AI_CONFIG = {
       // Section la plus lourde : tableaux chiffrés, hypothèses, projections.
       // Température basse : on veut des chiffres cohérents, pas de la créativité.
       'Financial Plan': { llmOptions: { maxOutputTokens: 24000, temperature: 0.3, topP: 0.85 } },
-      'Goal Planning': { llmOptions: { maxOutputTokens: 14000, temperature: 0.5 } },
-      Appendix: { llmOptions: { maxOutputTokens: 12000, temperature: 0.45 } },
+      // Jalons et annexes : restructuration de matière déjà produite en amont
+      // (elles reçoivent les digests des sections dont elles dépendent).
+      'Goal Planning': { tier: 'M', llmOptions: { maxOutputTokens: 14000, temperature: 0.5 } },
+      Appendix: { tier: 'M', llmOptions: { maxOutputTokens: 12000, temperature: 0.45 } },
     },
   } as FeatureAIConfig,
 
@@ -197,8 +229,9 @@ export const AI_CONFIG = {
       topK: 40,
     },
     sections: {
-      // Slide d'ouverture : c'est la première impression, on lui laisse de la marge.
-      Cover: { llmOptions: { maxOutputTokens: 12000, temperature: 0.7 } },
+      // Slide d'ouverture : c'est la première impression, on lui laisse de la
+      // marge — mais le travail est de la composition, pas du raisonnement.
+      Cover: { tier: 'M', llmOptions: { maxOutputTokens: 12000, temperature: 0.7 } },
       Problem: { llmOptions: { maxOutputTokens: 12000, temperature: 0.62 } },
       Solution: { llmOptions: { maxOutputTokens: 13000, temperature: 0.62 } },
       // Chiffres de marché : structure dense (TAM/SAM/SOM), créativité inutile.
@@ -208,7 +241,8 @@ export const AI_CONFIG = {
       Traction: { llmOptions: { maxOutputTokens: 12000, temperature: 0.45 } },
       // Tableau comparatif : beaucoup de cellules pour peu de mots.
       Competition: { llmOptions: { maxOutputTokens: 15000, temperature: 0.45 } },
-      Team: { llmOptions: { maxOutputTokens: 11000, temperature: 0.55 } },
+      // Trombinoscope : mise en page de données fournies, aucun arbitrage.
+      Team: { tier: 'M', llmOptions: { maxOutputTokens: 11000, temperature: 0.55 } },
       // Projections chiffrées : le slide le plus dense du deck.
       Financials: { llmOptions: { maxOutputTokens: 18000, temperature: 0.3, topP: 0.85 } },
       Ask: { llmOptions: { maxOutputTokens: 11000, temperature: 0.45 } },

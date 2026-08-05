@@ -14,6 +14,7 @@ import { ProjectModel } from '../../models/project.model';
 import { ADVISOR_SYSTEM_PROMPT, ADVISOR_TOOLS_GUIDE } from './prompts/system.prompt';
 import { financeAIService, FinanceChatIntent } from '../Finance/finance-ai.service';
 import { CONTEXT_TOOL_DECLARATIONS, createContextToolExecutor } from '../context-engine/context-tools';
+import { runAgent } from '../agents/agent-runtime';
 import { setTraceProjectId } from '../../utils/trace.util';
 import { logAIEvent } from '../../utils/ai-trace.util';
 
@@ -191,41 +192,39 @@ export class AdvisorService {
       { role: 'user', content: trimmed },
     ];
 
-    const promptConfig: PromptConfig = {
-      provider: AI_CONFIG.advisor.provider,
-      modelName: AI_CONFIG.advisor.modelName,
-      userId,
-      promptType: AI_CONFIG.advisor.promptType,
-    };
-
     logger.info(
       `AdvisorService.sendMessage calling LLM projectId=${projectId} historyLen=${history.length}`
     );
-    let raw: string;
+
+    // L'advisor passe par le runtime commun: même boucle d'outils, même repli
+    // sans outils, même trace et même ventilation du coût que les agents de
+    // génération. La résilience n'est plus une particularité de ce service.
+    let reply: string;
     try {
-      raw = await this.promptService.runPromptWithTools(
-        promptConfig,
-        aiMessages,
-        CONTEXT_TOOL_DECLARATIONS,
-        createContextToolExecutor(userId, projectId)
+      const result = await runAgent(
+        {
+          role: 'advisor',
+          task: 'draft',
+          baseConfig: {
+            provider: AI_CONFIG.advisor.provider,
+            modelName: AI_CONFIG.advisor.modelName,
+            fallbackModels: AI_CONFIG.advisor.fallbackModels,
+            llmOptions: AI_CONFIG.advisor.llmOptions,
+          },
+          promptType: AI_CONFIG.advisor.promptType,
+          tools: CONTEXT_TOOL_DECLARATIONS,
+          toolExecutor: createContextToolExecutor(userId, projectId),
+        },
+        { messages: aiMessages, userId, projectId, element: 'advisor-reply' }
       );
-    } catch (toolLoopError: any) {
-      // Résilience: si la boucle agentique échoue, retomber sur le flow simple.
-      logger.warn(
-        `AdvisorService.sendMessage tool loop failed, falling back to plain prompt: ${toolLoopError?.message}`
+      reply = result.text.trim();
+    } catch (err: any) {
+      logger.error(
+        `AdvisorService.sendMessage LLM call failed projectId=${projectId}: ${err?.message}`,
+        { stack: err?.stack }
       );
-      logAIEvent('advisor.tool_loop_fallback', { projectId, reason: toolLoopError?.message });
-      try {
-        raw = await this.promptService.runPrompt(promptConfig, aiMessages);
-      } catch (err: any) {
-        logger.error(
-          `AdvisorService.sendMessage LLM call failed projectId=${projectId}: ${err?.message}`,
-          { stack: err?.stack }
-        );
-        throw err;
-      }
+      throw err;
     }
-    const reply = this.promptService.getCleanAIText(raw).trim();
     logger.debug(
       `AdvisorService.sendMessage LLM replyLen=${reply.length} durationMs=${Date.now() - startedAt}`
     );

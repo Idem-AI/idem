@@ -8,8 +8,9 @@ import {
   GenericService,
   IPromptStep,
   ISectionResult,
-  withSectionConfigs,
+  withGraph,
 } from '../common/generic.service';
+import { BUSINESS_PLAN_GRAPH } from '../agents/deliverable-graph';
 import { SectionModel } from '../../models/section.model';
 import { PdfService } from '../pdf.service';
 import { cacheService, CacheOptions } from '../cache.service';
@@ -172,58 +173,67 @@ export class BusinessPlanService extends GenericService {
     }
 
     try {
-      // Define business plan steps with specialized agents
+      // Les dépendances entre sections ne sont PLUS déclarées ici : elles vivent
+      // dans BUSINESS_PLAN_GRAPH (services/agents/deliverable-graph.ts), au même
+      // endroit que celles du deck, validées (cycles, noms inconnus) et
+      // documentées avec leur coût en latence.
       const steps: IPromptStep[] = [
         {
           promptConstant: `${projectDescription}\n${AGENT_COVER_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
           stepName: 'Cover Page',
-          hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_COMPANY_SUMMARY_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
           stepName: 'Company Summary',
-          hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_OPPORTUNITY_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
           stepName: 'Opportunity',
-          hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_TARGET_AUDIENCE_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
           stepName: 'Target Audience',
-          hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_PRODUCTS_SERVICES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
           stepName: 'Products & Services',
-          hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_MARKETING_SALES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
           stepName: 'Marketing & Sales',
-          hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}${financeContext}`,
           stepName: 'Financial Plan',
-          hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_GOAL_PLANNING_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
           stepName: 'Goal Planning',
-          hasDependencies: false,
         },
         {
           promptConstant: `${projectDescription}\n${AGENT_APPENDIX_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
           stepName: 'Appendix',
-          hasDependencies: false,
         },
       ];
-      // Chaque section reçoit son propre budget de tokens et sa température
-      // (voir AI_CONFIG.businessPlan.sections) ; la config de la feature sert
-      // de base pour celles qui n'en redéfinissent pas.
-      const configuredSteps = withSectionConfigs(AI_CONFIG.businessPlan, steps);
+
+      // Chaque section produit une page HTML : la grille déterministe attrape
+      // troncatures, balises déséquilibrées et gabarits non remplis avant que la
+      // section n'atteigne le PDF. La devise vient du module Finance quand il
+      // existe — c'est la dérive la plus fréquente sur un projet en XAF.
+      const sectionQuality = {
+        format: 'html' as const,
+        minChars: 400,
+        currency: project.analysisResultModel?.finance?.meta?.currency,
+      };
+
+      // Le graphe pose les dépendances, `withGraph` y ajoute les réglages IA de
+      // chaque section (budget de tokens, température, étage de modèle).
+      const configuredSteps = withGraph(
+        AI_CONFIG.businessPlan,
+        steps,
+        BUSINESS_PLAN_GRAPH,
+        sectionQuality
+      );
 
       const promptConfig: PromptConfig = {
         provider: AI_CONFIG.businessPlan.provider,
@@ -986,24 +996,12 @@ export class BusinessPlanService extends GenericService {
       skipQuotaCheck: true,
     };
 
-    const messages: AIChatMessage[] = [
-      {
-        role: 'user',
-        content: step.promptConstant,
-      },
-    ];
-
     try {
-      const content = await this.runStepAndAppend(
-        step,
-        project,
-        true,
-        messages,
+      const content = await this.runStepAndAppend(step, project, {
         userId,
-        'Financial Plan Auto-Update',
-        '',
-        promptConfig
-      );
+        promptType: 'Financial Plan Auto-Update',
+        promptConfig,
+      });
 
       existingSections[finPlanIndex] = {
         ...existingSections[finPlanIndex],
