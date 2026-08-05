@@ -19,9 +19,20 @@
  * possible to avoid the cold-start cost on every flyer generation.
  */
 import puppeteer, { Browser, Page } from 'puppeteer';
+import sharp from 'sharp';
 import logger from '../../config/logger';
 import { StorageService } from '../storage.service';
 import { FlyerFormat } from '../../models/communication.model';
+
+/** Déclinaisons de logo disponibles pour la marque, par famille et polarité. */
+export interface LogoDeclensionSet {
+  /** URL réellement placée par le modèle dans le HTML (si connue). */
+  used?: string;
+  primary?: string;
+  icon?: string;
+  withText?: { lightBackground?: string; darkBackground?: string; monochrome?: string };
+  iconOnly?: { lightBackground?: string; darkBackground?: string; monochrome?: string };
+}
 
 interface FlyerSize {
   width: number;
@@ -56,6 +67,66 @@ export const LOGO_MIN_WIDTH_RATIO = 0.13;
  * la hauteur.
  */
 const LOGO_MAX_HEIGHT_RATIO = 0.22;
+
+/**
+ * Contraste minimal d'un pixel d'encre contre ce qui est rendu derrière lui.
+ * 3:1 est le seuil WCAG des éléments graphiques non textuels.
+ */
+const LOGO_PIXEL_CONTRAST = 3;
+
+/**
+ * Part des pixels d'encre devant atteindre ce contraste pour que la signature
+ * « tienne ». On raisonne en fraction, pas en moyenne : sur un fond contrasté
+ * (photo, damier, dégradé), une moyenne flatteuse peut cacher une moitié de
+ * logo effacée.
+ */
+const LOGO_MIN_VISIBLE_FRACTION = 0.85;
+
+/** Au-delà, inutile d'essayer d'autres déclinaisons. */
+const LOGO_GOOD_VISIBLE_FRACTION = 0.97;
+
+/** Écart par canal en deçà duquel deux clichés sont tenus pour identiques. */
+const INK_DELTA = 10;
+
+/** En dessous, aucune encre détectable : image cassée ou transparente. */
+const MIN_INK_RATIO = 0.015;
+
+/**
+ * Au-dessus, le logo couvre sa boîte de bord en bord : c'est un PNG avec son
+ * propre fond, il porte son contraste avec lui.
+ */
+const OPAQUE_TILE_RATIO = 0.92;
+
+/** Luminance relative WCAG d'un pixel sRGB. */
+function luminance(r: number, g: number, b: number): number {
+  const lin = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+function contrastRatio(a: number, b: number): number {
+  const hi = Math.max(a, b);
+  const lo = Math.min(a, b);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/** Les URLs signées portent une query volatile : on compare les chemins. */
+function stripQuery(value: string): string {
+  return (value || '').split('?')[0];
+}
+
+/** Luminance moyenne d'un buffer RGB brut. */
+function meanLuminance(data: Buffer | Uint8Array): number {
+  let sum = 0;
+  let n = 0;
+  for (let i = 0; i < data.length; i += 3) {
+    sum += luminance(data[i], data[i + 1], data[i + 2]);
+    n++;
+  }
+  return n ? sum / n : 0;
+}
 
 /** Largeur minimale attendue du logo, en pixels, pour un format donné. */
 export function minLogoWidthFor(format: FlyerFormat): number {
@@ -99,12 +170,17 @@ export class FlyerRenderService {
     format: FlyerFormat,
     typography?: { url?: string; primaryFont?: string; secondaryFont?: string },
     /**
-     * URLs des déclinaisons du logo de la marque. Fournies, elles permettent de
-     * MESURER le logo une fois la page rendue et de le remonter au seuil de
-     * lisibilité s'il est trop petit (cf. `enforceLogoVisibility`).
+     * Déclinaisons du logo de la marque. Fournies, elles permettent de MESURER
+     * le logo une fois la page rendue, de le remonter au seuil de lisibilité
+     * s'il est trop petit (`enforceLogoVisibility`) et de corriger la
+     * déclinaison si elle ne contraste pas avec le fond (`enforceLogoContrast`).
+     * Un tableau d'URLs reste accepté (appelant historique) : dans ce cas seule
+     * la mise à l'échelle s'applique, faute de savoir quoi substituer.
      */
-    logoUrls: string[] = []
+    logos: LogoDeclensionSet | string[] = []
   ): Promise<Buffer> {
+    const declensions: LogoDeclensionSet = Array.isArray(logos) ? { used: logos[0] } : logos;
+    const logoUrls = Array.isArray(logos) ? logos : this.allLogoUrls(logos);
     const start = Date.now();
     logger.info(`[FlyerRender] Starting PNG render`, { format });
     const dims = FORMAT_DIMENSIONS[format] || FORMAT_DIMENSIONS.square;
@@ -139,6 +215,7 @@ export class FlyerRenderService {
       });
 
       await this.enforceLogoVisibility(page, dims, logoUrls);
+      await this.enforceLogoContrast(page, declensions, logoUrls);
 
       const buffer = (await page.screenshot({
         type: 'png',
@@ -247,6 +324,303 @@ export class FlyerRenderService {
       // rendu pour autant.
       logger.warn('[FlyerRender] Logo visibility enforcement failed', { error: err?.message });
     }
+  }
+
+  /** Toutes les URLs connues de déclinaisons, dédoublonnées. */
+  private allLogoUrls(logos: LogoDeclensionSet): string[] {
+    const raw = [
+      logos.used,
+      logos.primary,
+      logos.icon,
+      logos.withText?.lightBackground,
+      logos.withText?.darkBackground,
+      logos.withText?.monochrome,
+      logos.iconOnly?.lightBackground,
+      logos.iconOnly?.darkBackground,
+      logos.iconOnly?.monochrome,
+    ].filter((u): u is string => typeof u === 'string' && u.trim().length > 0);
+    const seen = new Set<string>();
+    return raw.filter((u) => {
+      const key = stripQuery(u);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  /**
+   * Corrige la déclinaison du logo APRÈS rendu, sur mesure du contraste réel.
+   *
+   * Le modèle choisit la déclinaison « à l'œil » d'après l'idée qu'il se fait de
+   * sa composition ; il se trompe régulièrement d'un cran — typiquement la
+   * version claire (conçue pour fond sombre) posée sur une photo claire, où le
+   * logo disparaît. Aucune consigne de prompt ne rend ce jugement fiable : la
+   * luminance qui compte est celle des pixels effectivement rendus SOUS le logo
+   * (photo, dégradé, aplat), pas celle que le modèle imagine.
+   *
+   * On mesure donc, et on substitue :
+   *   1. silhouette exacte de l'encre (le logo photographié sur fond blanc puis
+   *      sur fond noir : les pixels identiques sont opaques) ;
+   *   2. part de cette encre dont le contraste LOCAL contre le fond réellement
+   *      rendu atteint 3:1 ;
+   *   3. sous 85 % de lisibilité, on essaie les autres déclinaisons (polarité
+   *      opposée d'abord, d'après la luminance mesurée) et on garde la
+   *      meilleure ;
+   *   4. si aucune ne passe (fond chargé), halo doux dans la polarité inverse
+   *      de l'encre — un artifice de graphiste, pas une pastille pleine.
+   */
+  private async enforceLogoContrast(
+    page: Page,
+    logos: LogoDeclensionSet,
+    logoUrls: string[]
+  ): Promise<void> {
+    const known = logoUrls.filter((u) => typeof u === 'string' && u.trim().length > 0);
+    if (!known.length) return;
+
+    try {
+      // 1. Repérer le logo et le marquer pour les manipulations suivantes.
+      const found = await page.evaluate((srcs: string[]) => {
+        const strip = (v: string) => (v || '').split('?')[0];
+        const wanted = new Set(srcs.map(strip));
+        for (const img of Array.from(document.images)) {
+          const raw = strip(img.getAttribute('src') || '');
+          const resolved = strip(img.currentSrc || img.src || '');
+          if (!wanted.has(raw) && !wanted.has(resolved)) continue;
+          const rect = img.getBoundingClientRect();
+          if (rect.width < 8 || rect.height < 8) continue;
+          img.setAttribute('data-idem-logo', '1');
+          return { src: img.getAttribute('src') || resolved };
+        }
+        return null;
+      }, known);
+      if (!found) return;
+
+      const initial = await this.measureLogoContrast(page);
+      if (!initial) return;
+      if (initial.visible >= LOGO_MIN_VISIBLE_FRACTION) return;
+
+      const candidates = this.orderedDeclensions(logos, found.src, initial.background);
+      let best = { url: found.src, ...initial };
+
+      let current = found.src;
+      for (const url of candidates) {
+        if (!(await this.swapLogoSrc(page, url))) continue;
+        current = url;
+        const measured = await this.measureLogoContrast(page);
+        if (!measured) continue;
+        if (
+          measured.visible > best.visible + 0.01 ||
+          (Math.abs(measured.visible - best.visible) <= 0.01 && measured.contrast > best.contrast)
+        ) {
+          best = { url, ...measured };
+        }
+        if (best.visible >= LOGO_GOOD_VISIBLE_FRACTION) break;
+      }
+
+      // Toujours reposer la meilleure déclinaison : la boucle a pu laisser en
+      // place un candidat essayé qui était pire que l'original.
+      if (stripQuery(current) !== stripQuery(best.url)) {
+        await this.swapLogoSrc(page, best.url);
+      }
+      if (stripQuery(best.url) !== stripQuery(found.src)) {
+        logger.info(
+          `[FlyerRender] Déclinaison de logo corrigée par mesure du rendu : ` +
+            `${Math.round(initial.visible * 100)}% -> ${Math.round(best.visible * 100)}% ` +
+            `de l'encre lisible (contraste moyen ${best.contrast.toFixed(1)}:1, ` +
+            `luminance du fond ${initial.background.toFixed(2)})`
+        );
+      }
+
+      if (best.visible < LOGO_MIN_VISIBLE_FRACTION) {
+        // Dernier recours : fond trop chargé pour qu'une déclinaison suffise.
+        // Le halo doit contraster avec l'ENCRE (pas avec le fond, dont elle est
+        // justement trop proche) : encre claire -> halo sombre, et l'inverse.
+        const darkHalo = best.ink >= 0.45;
+        await page.evaluate((dark: boolean) => {
+          const el = document.querySelector('[data-idem-logo]') as HTMLElement | null;
+          if (!el) return;
+          el.style.filter = dark
+            ? 'drop-shadow(0 0 10px rgba(0,0,0,0.55)) drop-shadow(0 0 3px rgba(0,0,0,0.45))'
+            : 'drop-shadow(0 0 10px rgba(255,255,255,0.75)) drop-shadow(0 0 3px rgba(255,255,255,0.6))';
+        }, darkHalo);
+        logger.warn(
+          `[FlyerRender] Logo encore partiellement effacé après substitution ` +
+            `(${Math.round(best.visible * 100)}% de l'encre lisible) — halo ` +
+            `${darkHalo ? 'sombre' : 'clair'} appliqué`
+        );
+      }
+    } catch (err: any) {
+      // Un logo mal contrasté reste un visuel exploitable : on ne perd pas le
+      // rendu pour une mesure ratée.
+      logger.warn('[FlyerRender] Logo contrast enforcement failed', { error: err?.message });
+    }
+  }
+
+  /** Remplace la source du logo marqué et attend son chargement. */
+  private async swapLogoSrc(page: Page, url: string): Promise<boolean> {
+    try {
+      // Fonction NON async : compilée en ES2016, une fonction async injectée
+      // dans la page référencerait les helpers __awaiter/__generator, absents
+      // du contexte navigateur (l'évaluation échouerait silencieusement).
+      return await page.evaluate((src: string) => {
+        const el = document.querySelector('[data-idem-logo]') as HTMLImageElement | null;
+        if (!el) return Promise.resolve(false);
+        el.src = src;
+        if (el.complete && el.naturalWidth > 0) return Promise.resolve(true);
+        return new Promise<boolean>((resolve) => {
+          el.addEventListener('load', () => resolve(true), { once: true });
+          el.addEventListener('error', () => resolve(false), { once: true });
+          setTimeout(() => resolve(el.naturalWidth > 0), 5000);
+        });
+      }, url);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Lisibilité du logo sur ce qui est rendu derrière lui.
+   *
+   * `visible` = part des pixels d'encre dont le contraste LOCAL atteint le
+   * seuil : c'est le critère de décision. `contrast` (moyenne) et les
+   * luminances servent aux logs, à l'ordre d'essai des déclinaisons et à la
+   * polarité du halo de secours.
+   */
+  private async measureLogoContrast(
+    page: Page
+  ): Promise<{ visible: number; contrast: number; ink: number; background: number } | null> {
+    const rect = await page.evaluate(() => {
+      const el = document.querySelector('[data-idem-logo]') as HTMLElement | null;
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      const x = Math.max(0, Math.floor(r.left));
+      const y = Math.max(0, Math.floor(r.top));
+      const width = Math.min(Math.ceil(r.width), document.documentElement.clientWidth - x);
+      const height = Math.min(Math.ceil(r.height), document.documentElement.clientHeight - y);
+      return width > 4 && height > 4 ? { x, y, width, height } : null;
+    });
+    if (!rect) return null;
+
+    // Silhouette exacte du logo : on le photographie sur fond blanc puis sur
+    // fond noir (via son propre background). Les pixels IDENTIQUES entre les
+    // deux clichés sont opaques — c'est l'encre. Comparer simplement « avec »
+    // et « sans » logo raterait l'encre qui se confond déjà avec le fond, donc
+    // exactement les pixels illisibles qu'on cherche à compter.
+    const setBackdrop = (color: string | null) =>
+      page.evaluate((c: string | null) => {
+        const el = document.querySelector('[data-idem-logo]') as HTMLElement | null;
+        if (!el) return;
+        if (c === null) {
+          el.style.visibility = 'hidden';
+          el.style.backgroundColor = '';
+        } else {
+          el.style.visibility = 'visible';
+          el.style.backgroundColor = c;
+        }
+      }, color);
+
+    await setBackdrop('#ffffff');
+    const onWhite = (await page.screenshot({ type: 'png', clip: rect })) as Buffer;
+    await setBackdrop('#000000');
+    const onBlack = (await page.screenshot({ type: 'png', clip: rect })) as Buffer;
+    await setBackdrop(null);
+    const backdrop = (await page.screenshot({ type: 'png', clip: rect })) as Buffer;
+    await page.evaluate(() => {
+      const el = document.querySelector('[data-idem-logo]') as HTMLElement | null;
+      if (el) {
+        el.style.visibility = 'visible';
+        el.style.backgroundColor = '';
+      }
+    });
+
+    const [white, black, back] = await Promise.all([
+      sharp(onWhite).removeAlpha().raw().toBuffer({ resolveWithObject: true }),
+      sharp(onBlack).removeAlpha().raw().toBuffer({ resolveWithObject: true }),
+      sharp(backdrop).removeAlpha().raw().toBuffer({ resolveWithObject: true }),
+    ]);
+    if (white.data.length !== black.data.length || white.data.length !== back.data.length) {
+      return null;
+    }
+
+    let inkPixels = 0;
+    let readablePixels = 0;
+    let inkLum = 0;
+    let bgLum = 0;
+    const total = white.data.length / 3;
+    for (let i = 0; i < white.data.length; i += 3) {
+      const dr = Math.abs(white.data[i] - black.data[i]);
+      const dg = Math.abs(white.data[i + 1] - black.data[i + 1]);
+      const db = Math.abs(white.data[i + 2] - black.data[i + 2]);
+      // Pixel transparent (ou semi-transparent) : il a suivi le fond imposé.
+      if (dr > INK_DELTA || dg > INK_DELTA || db > INK_DELTA) continue;
+      const ink = luminance(white.data[i], white.data[i + 1], white.data[i + 2]);
+      const behind = luminance(back.data[i], back.data[i + 1], back.data[i + 2]);
+      inkPixels++;
+      inkLum += ink;
+      bgLum += behind;
+      if (contrastRatio(ink, behind) >= LOGO_PIXEL_CONTRAST) readablePixels++;
+    }
+
+    const flat = meanLuminance(back.data);
+    // Aucune encre détectable : image cassée ou entièrement transparente.
+    if (!total || inkPixels / total < MIN_INK_RATIO) {
+      return { visible: 0, contrast: 1, ink: flat, background: flat };
+    }
+    // Logo opaque de bord à bord (PNG avec son propre fond) : il porte son
+    // propre contraste, la question de la déclinaison ne se pose pas.
+    if (inkPixels / total > OPAQUE_TILE_RATIO) {
+      return { visible: 1, contrast: 21, ink: inkLum / inkPixels, background: flat };
+    }
+
+    const ink = inkLum / inkPixels;
+    const background = bgLum / inkPixels;
+    return {
+      visible: readablePixels / inkPixels,
+      contrast: contrastRatio(ink, background),
+      ink,
+      background,
+    };
+  }
+
+  /**
+   * Déclinaisons à essayer, dans l'ordre : même famille (signature avec texte
+   * ou icône seule) en commençant par la polarité qu'appelle le fond mesuré,
+   * puis le monochrome, puis l'autre famille, puis le logo principal.
+   */
+  private orderedDeclensions(
+    logos: LogoDeclensionSet,
+    currentUrl: string,
+    backgroundLuminance: number
+  ): string[] {
+    const current = stripQuery(currentUrl);
+    const inFamily = (set?: LogoDeclensionSet['withText']) =>
+      !!set &&
+      [set.lightBackground, set.darkBackground, set.monochrome].some(
+        (u) => u && stripQuery(u) === current
+      );
+
+    const isIconFamily = inFamily(logos.iconOnly) || stripQuery(logos.icon || '') === current;
+    const family = isIconFamily ? logos.iconOnly : logos.withText;
+    const other = isIconFamily ? logos.withText : logos.iconOnly;
+
+    // Fond clair → déclinaison "pour fond clair" (encre foncée), et l'inverse.
+    const bgIsLight = backgroundLuminance >= 0.4;
+    const byPolarity = (set?: LogoDeclensionSet['withText']) =>
+      set
+        ? bgIsLight
+          ? [set.lightBackground, set.monochrome, set.darkBackground]
+          : [set.darkBackground, set.monochrome, set.lightBackground]
+        : [];
+
+    const ordered = [...byPolarity(family), ...byPolarity(other), logos.primary, logos.icon];
+    const seen = new Set<string>([current]);
+    return ordered.filter((u): u is string => {
+      if (!u || !u.trim()) return false;
+      const key = stripQuery(u);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }
 
   /**
