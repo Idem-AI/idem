@@ -30,8 +30,8 @@ interface DesignSeed {
   spacingMultiplier: number;
 }
 import { GenericService } from '../common/generic.service';
-import { AIChatMessage, LLMProvider, PromptConfig, PromptService } from '../prompt.service';
-import { AI_CONFIG } from '../../config/ai.config';
+import { AIChatMessage, PromptConfig, PromptService } from '../prompt.service';
+import { AI_CONFIG, FeatureAIConfig } from '../../config/ai.config';
 import { AGENT_COMMUNICATION_STRATEGY_PROMPT } from './prompts/agent-communication-strategy.prompt';
 import { AGENT_CONTEXT_EXTRACTION_PROMPT } from './prompts/agent-context-extraction.prompt';
 import { AGENT_EDITORIAL_CALENDAR_PROMPT } from './prompts/agent-editorial-calendar.prompt';
@@ -41,7 +41,8 @@ import { AGENT_TRENDS_SUMMARY_PROMPT } from './prompts/agent-trends-summary.prom
 import { AGENT_MOMENT_SUGGESTIONS_PROMPT } from './prompts/agent-moment-suggestions.prompt';
 import { AGENT_MOMENT_CONTENT_PROMPT } from './prompts/agent-moment-content.prompt';
 import { imageSourcingService, ImageBrief, SourcedImage } from './imageSourcing.service';
-import { flyerRenderService } from './flyerRender.service';
+import { flyerRenderService, minLogoWidthFor, LogoDeclensionSet } from './flyerRender.service';
+import { summarizeLogoForPrompt } from '../../utils/logo-context.util';
 
 export type CommunicationStreamEvent =
   | { type: 'step-start'; step: string }
@@ -49,10 +50,36 @@ export type CommunicationStreamEvent =
   | { type: 'complete'; payload: CommunicationModel }
   | { type: 'error'; message: string };
 
-const DEFAULT_PROMPT_CONFIG: PromptConfig = {
-  provider: AI_CONFIG.communication.default.provider,
-  modelName: AI_CONFIG.communication.default.modelName,
-};
+/**
+ * Traduit une entrée de `ai.config.ts` en `PromptConfig` complet.
+ *
+ * Les appels du module ne transmettaient jusqu'ici que `provider` + `modelName`
+ * de `communication.default`, en y greffant à la main les seuls `llmOptions`.
+ * Deux réglages décidés en config étaient donc perdus en chemin :
+ *  - le MODÈLE propre à la feature (la composition d'un visuel tournait sur le
+ *    modèle par défaut du module, pas sur celui qu'on croyait avoir choisi) ;
+ *  - les `fallbackModels` : un 503 « high demand » de Gemini faisait échouer la
+ *    génération sans seconde chance, alors que la chaîne de repli existait.
+ *
+ * Passer par cette fabrique rend l'oubli impossible : la config est la source
+ * unique, l'appelant ne décrit plus que ce qui lui est spécifique.
+ */
+const promptConfigFor = (
+  feature: FeatureAIConfig,
+  userId: string,
+  extra: Partial<PromptConfig> = {}
+): PromptConfig => ({
+  provider: feature.provider,
+  modelName: feature.modelName,
+  fallbackModels: feature.fallbackModels,
+  promptType: feature.promptType,
+  // Copie défensive : `runPrompt` traverse restrictionsService, qui écrête le
+  // budget — sur l'objet partagé, l'écrêtage contaminerait tous les appels
+  // suivants du process.
+  llmOptions: { ...feature.llmOptions },
+  userId,
+  ...extra,
+});
 
 /**
  * CommunicationService — modular, token-efficient pipeline:
@@ -171,7 +198,7 @@ export class CommunicationService extends GenericService {
 
     const start = Date.now();
     const raw = await this.promptService.runPrompt(
-      { ...DEFAULT_PROMPT_CONFIG, userId, promptType: 'communication_context' },
+      promptConfigFor(AI_CONFIG.communication.context, userId),
       messages
     );
     logger.info(`[Communication] Context extraction LLM complete`, {
@@ -324,12 +351,7 @@ export class CommunicationService extends GenericService {
     ];
 
     const raw = await this.promptService.runPrompt(
-      {
-        ...DEFAULT_PROMPT_CONFIG,
-        userId,
-        promptType: AI_CONFIG.communication.trends.promptType,
-        llmOptions: { ...AI_CONFIG.communication.trends.llmOptions },
-      },
+      promptConfigFor(AI_CONFIG.communication.trends, userId),
       messages
     );
     const parsed = this.safeJson<{ signals: Partial<TrendSignal>[] }>(raw);
@@ -398,7 +420,7 @@ export class CommunicationService extends GenericService {
       },
     ];
     const raw = await this.promptService.runPrompt(
-      { ...DEFAULT_PROMPT_CONFIG, userId, promptType: 'communication_strategy' },
+      promptConfigFor(AI_CONFIG.communication.strategy, userId),
       messages
     );
     const parsed = this.safeJson<{ summary: string; blocks: StrategyBlock[] }>(raw);
@@ -493,7 +515,7 @@ export class CommunicationService extends GenericService {
       },
     ];
     const raw = await this.promptService.runPrompt(
-      { ...DEFAULT_PROMPT_CONFIG, userId, promptType: 'communication_calendar' },
+      promptConfigFor(AI_CONFIG.communication.calendar, userId),
       messages
     );
     const parsed = this.safeJson<EditorialCalendar>(raw);
@@ -573,24 +595,15 @@ export class CommunicationService extends GenericService {
     // ---- Step 5c: composition (copy + HTML coherent with the image) --------
     const seed = this.generateDesignSeed();
     const intent = this.inferVisualIntent(content);
-    let systemPrompt = AGENT_FLYER_GENERATION_PROMPT.replace(/\{\{format\}\}/g, format).replace(
-      /\{\{DESIGN_SEED\}\}/g,
-      JSON.stringify(seed, null, 2)
+    // Un SEUL passage de substitution, piloté par une table exhaustive : les
+    // remplacements en cascade laissaient passer des marqueurs non résolus
+    // ({{DESIGN_SEED.archetype}}, {{IMAGE_DOMINANT_COLORS}}…) que le modèle
+    // recevait littéralement — au mieux du bruit, au pire une consigne illisible
+    // là où on croyait lui donner la charte.
+    const systemPrompt = this.applyPlaceholders(
+      AGENT_FLYER_GENERATION_PROMPT,
+      this.buildFlyerPlaceholders(context, seed, intent, format, sourced)
     );
-
-    // Inject brand colors and fonts into the system prompt
-    systemPrompt = systemPrompt
-      .replace(/\{\{BRAND\.colors\.primary\}\}/g, context.branding.primary)
-      .replace(/\{\{BRAND\.colors\.text\}\}/g, context.branding.text || '#000000')
-      .replace(/\{\{BRAND\.branding\.fontUrl\}\}/g, context.branding.fontUrl || 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap')
-      .replace(/\{\{BRAND\.branding\.primaryFont\}\}/g, context.branding.primaryFont || 'Montserrat')
-      .replace(/\{\{BRAND\.branding\.secondaryFont\}\}/g, context.branding.secondaryFont || 'Montserrat')
-      .replace(/\{\{VISUAL_INTENT\}\}/g, intent);
-
-    // Resolve the logo declensions to REAL urls and inject them into the prompt
-    // via {{LOGO_*}} placeholders (same mechanism as {{IMAGE_URL}}), so the model
-    // receives usable <img src> values instead of symbolic paths.
-    systemPrompt = this.injectLogoPlaceholders(systemPrompt, context);
 
     // Strip the heavy inline SVG markup before sending branding to the LLM: it
     // bloats the payload and tempts the model into pasting raw SVG. The resolved
@@ -613,7 +626,11 @@ export class CommunicationService extends GenericService {
         format: content.format,
         channel: content.channel,
         intent,
-        callToAction: content.callToAction,
+        // `callToAction` n'est VOLONTAIREMENT pas transmis : c'est le texte de la
+        // légende du post, pas un élément du visuel. Tant qu'on l'envoyait ici,
+        // le modèle le prenait pour une consigne de composition et dessinait un
+        // bouton sur chaque visuel — d'autant plus que la valeur par défaut du
+        // calendrier est « Learn more ». Le visuel ne porte aucun CTA.
         hashtags: content.hashtags,
       },
       FORMAT: format,
@@ -626,12 +643,6 @@ export class CommunicationService extends GenericService {
       userPayload.IMAGE_LUMINANCE = sourced.analysis.luminance;
       userPayload.IMAGE_COMPOSITION = sourced.analysis.composition;
       userPayload.IMAGE_DETECTED_TEXT = sourced.analysis.detectedText;
-
-      // Also inject image metadata into the system prompt for better AI context
-      systemPrompt = systemPrompt
-        .replace(/\{\{IMAGE_URL\}\}/g, sourced.url)
-        .replace(/\{\{IMAGE_LUMINANCE\}\}/g, sourced.analysis.luminance)
-        .replace(/\{\{IMAGE_COMPOSITION\}\}/g, sourced.analysis.composition || 'balanced');
     }
 
     const messages: AIChatMessage[] = [
@@ -640,21 +651,21 @@ export class CommunicationService extends GenericService {
     ];
 
     const raw = await this.promptService.runPrompt(
-      {
-        ...DEFAULT_PROMPT_CONFIG,
-        userId,
-        promptType: AI_CONFIG.communication.flyer.promptType,
-        llmOptions: { ...AI_CONFIG.communication.flyer.llmOptions },
-      },
+      promptConfigFor(AI_CONFIG.communication.flyer, userId, {
+        // Budget délibéré (cf. ai.config.ts) : le raisonnement de direction
+        // artistique est décompté de maxOutputTokens, et un HTML tronqué ne
+        // produit aucun visuel. Le plafond global reste actif ailleurs.
+        bypassOutputTokenCap: true,
+      }),
       messages
     );
     const parsed = this.safeJson<Partial<Flyer>>(raw) ?? {};
 
     let html =
       typeof parsed.html === 'string'
-        ? parsed.html
+        ? this.enforceBrandTypography(this.stripCtaButtons(parsed.html), context)
         : this.fallbackFlyerHtml(content, context, format, sourced?.url);
-    
+
     // Note: We no longer need the post-processing regex replace for {{IMAGE_URL}} 
     // because we correctly populate the system prompt now. The AI will see 
     // the real URL. We keep the logic clean and rely on the prompt quality.
@@ -664,13 +675,11 @@ export class CommunicationService extends GenericService {
     const apiUrl = process.env.API_URL || `http://localhost:${port}`;
     const renderedUrl = `${apiUrl}/project/communication/${projectId}/flyer/${flyerId}/image`;
 
-    // CTA is intent-driven: only promotion/recruitment visuals keep a button.
-    // For awareness/celebration/announcement we deliberately drop it (a visual
-    // is not a landing page) — this is the core "always a CTA" fix.
-    const wantsCta = intent === 'promotion' || intent === 'recruitment';
-    const ctaText =
-      (parsed.marketingText?.cta || '').trim() || (wantsCta ? content.callToAction : '');
-
+    // Aucun CTA sur le visuel, quelle que soit l'intention. L'ancienne règle
+    // « CTA si promotion/recrutement » laissait passer un bouton sur une part
+    // des visuels ; or un post social n'est pas une landing page, et le bouton
+    // dessiné dans une image n'est même pas cliquable. L'appel à l'action vit
+    // dans la LÉGENDE (`content.callToAction`, publiée avec le post).
     const flyer: Flyer = {
       id: flyerId,
       contentId,
@@ -683,7 +692,6 @@ export class CommunicationService extends GenericService {
         headline: parsed.marketingText?.headline || content.title,
         subheadline: parsed.marketingText?.subheadline,
         body: parsed.marketingText?.body || content.description,
-        cta: ctaText || undefined,
       },
       html,
       imageUrl: renderedUrl,
@@ -771,12 +779,7 @@ export class CommunicationService extends GenericService {
       },
     ];
     const raw = await this.promptService.runPrompt(
-      {
-        ...DEFAULT_PROMPT_CONFIG,
-        userId,
-        promptType: AI_CONFIG.communication.momentSuggestions.promptType,
-        llmOptions: { ...AI_CONFIG.communication.momentSuggestions.llmOptions },
-      },
+      promptConfigFor(AI_CONFIG.communication.momentSuggestions, userId),
       messages
     );
     const parsed = this.safeJson<{ suggestions: Partial<MomentSuggestion>[] }>(raw);
@@ -852,12 +855,7 @@ export class CommunicationService extends GenericService {
       },
     ];
     const raw = await this.promptService.runPrompt(
-      {
-        ...DEFAULT_PROMPT_CONFIG,
-        userId,
-        promptType: AI_CONFIG.communication.moment.promptType,
-        llmOptions: { ...AI_CONFIG.communication.moment.llmOptions },
-      },
+      promptConfigFor(AI_CONFIG.communication.moment, userId),
       messages
     );
     const parsed =
@@ -1028,7 +1026,10 @@ export class CommunicationService extends GenericService {
   // --------------------------------------------------------------------------
 
   async getFlyerImage(projectId: string, flyerId: string): Promise<Buffer> {
-    const cacheKey = cacheService.generateAIKey('flyer-img', 'public', projectId, flyerId);
+    // `v2` : le rendu corrige désormais la déclinaison du logo par mesure du
+    // contraste. Sans changer la clé, les PNG déjà en cache (24 h) resteraient
+    // servis avec l'ancien logo illisible.
+    const cacheKey = cacheService.generateAIKey('flyer-img', 'public', projectId, `${flyerId}:v2`);
     const cachedBase64 = await cacheService.get<string>(cacheKey, { prefix: 'flyer', ttl: 86400 });
     if (cachedBase64) {
       return Buffer.from(cachedBase64, 'base64');
@@ -1051,7 +1052,24 @@ export class CommunicationService extends GenericService {
     const branding = (project.analysisResultModel as any)?.branding;
     const typography = branding?.typography;
 
-    const buffer = await flyerRenderService.renderFlyerToPng(flyer.html, flyer.format, typography);
+    // Le logo réellement placé par le modèle, plus la table des déclinaisons :
+    // le rendu doit pouvoir RECONNAÎTRE le logo (mise à l'échelle) et le
+    // REMPLACER par la bonne polarité si le contraste mesuré est insuffisant.
+    const logoSummary = summarizeLogoForPrompt(branding?.logo);
+    const logos: LogoDeclensionSet = {
+      used: typeof flyer.logoUsed === 'string' ? flyer.logoUsed : undefined,
+      primary: logoSummary?.urls.primary,
+      icon: logoSummary?.urls.icon,
+      withText: logoSummary?.urls.withText,
+      iconOnly: logoSummary?.urls.iconOnly,
+    };
+
+    const buffer = await flyerRenderService.renderFlyerToPng(
+      flyer.html,
+      flyer.format,
+      typography,
+      logos
+    );
     await cacheService.set(cacheKey, buffer.toString('base64'), { prefix: 'flyer', ttl: 86400 });
 
     return buffer;
@@ -1159,9 +1177,9 @@ export class CommunicationService extends GenericService {
 
   /**
    * Infer the communication purpose of a content idea so the visual composer
-   * knows whether a CTA belongs on it. A social visual is not a landing page:
-   * awareness/celebration pieces carry no button. Heuristic + multilingual
-   * keyword scan, defaulting to 'awareness' (the safe, button-free choice).
+   * knows which TONE to hold (atmospheric, factual, celebratory…). It no longer
+   * arbitrates a CTA: no visual carries one. Heuristic + multilingual keyword
+   * scan, defaulting to 'awareness'.
    */
   private inferVisualIntent(content: {
     intent?: VisualIntent;
@@ -1188,22 +1206,100 @@ export class CommunicationService extends GenericService {
   }
 
   /**
-   * Replace the {{LOGO_*}} placeholders in the flyer prompt with the brand's
-   * actual hosted declension URLs. Empty declensions fall back to the primary
-   * logo so the model always has a usable value.
+   * Table de substitution du prompt de composition.
+   *
+   * Elle porte la CHARTE (hex exacts, familles typographiques, déclinaisons de
+   * logo réelles) : ce sont des valeurs, pas des chemins symboliques — le modèle
+   * ne doit jamais avoir à deviner une couleur ni à inventer une URL. Toute
+   * valeur manquante reçoit un repli explicite plutôt que de laisser un trou.
    */
-  private injectLogoPlaceholders(prompt: string, context: CommunicationContext): string {
-    const logos = context.branding.logoUrls;
-    const primary = logos?.primary || '';
-    const pick = (url?: string) => (url && url.trim()) || primary;
-    return prompt
-      .replace(/\{\{LOGO_PRIMARY\}\}/g, primary || '(no logo available)')
-      .replace(/\{\{LOGO_WITHTEXT_LIGHT\}\}/g, pick(logos?.withText?.light))
-      .replace(/\{\{LOGO_WITHTEXT_DARK\}\}/g, pick(logos?.withText?.dark))
-      .replace(/\{\{LOGO_WITHTEXT_MONO\}\}/g, pick(logos?.withText?.mono))
-      .replace(/\{\{LOGO_ICON_LIGHT\}\}/g, pick(logos?.iconOnly?.light))
-      .replace(/\{\{LOGO_ICON_DARK\}\}/g, pick(logos?.iconOnly?.dark))
-      .replace(/\{\{LOGO_ICON_MONO\}\}/g, pick(logos?.iconOnly?.mono));
+  private buildFlyerPlaceholders(
+    context: CommunicationContext,
+    seed: DesignSeed,
+    intent: VisualIntent,
+    format: FlyerFormat,
+    sourced: SourcedImage | null
+  ): Record<string, string> {
+    const branding = context.branding;
+    const logos = branding.logoUrls;
+    const primaryLogo = logos?.primary || '';
+    const pickLogo = (url?: string) => (url && url.trim()) || primaryLogo || '(no logo available)';
+
+    return {
+      BRAND_NAME: context.brandName,
+      BRAND_PRIMARY: branding.primary,
+      BRAND_SECONDARY: branding.secondary,
+      // Sans accent défini, renvoyer la primaire plutôt qu'un vide : le modèle
+      // comblerait un trou de palette par une couleur de son cru.
+      BRAND_ACCENT: branding.accent || branding.primary,
+      BRAND_BACKGROUND: branding.background || '#ffffff',
+      BRAND_TEXT: branding.text || '#0f172a',
+      BRAND_PRIMARY_FONT: branding.primaryFont || 'Montserrat',
+      BRAND_SECONDARY_FONT: branding.secondaryFont || branding.primaryFont || 'Montserrat',
+      BRAND_FONT_URL:
+        branding.fontUrl ||
+        'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap',
+
+      LOGO_PRIMARY: primaryLogo || '(no logo available)',
+      LOGO_WITHTEXT_LIGHT: pickLogo(logos?.withText?.light),
+      LOGO_WITHTEXT_DARK: pickLogo(logos?.withText?.dark),
+      LOGO_WITHTEXT_MONO: pickLogo(logos?.withText?.mono),
+      LOGO_ICON_LIGHT: pickLogo(logos?.iconOnly?.light),
+      LOGO_ICON_DARK: pickLogo(logos?.iconOnly?.dark),
+      LOGO_ICON_MONO: pickLogo(logos?.iconOnly?.mono),
+      // Même seuil que celui appliqué à la mesure au moment du rendu : le
+      // modèle est prévenu de la règle qui sera de toute façon imposée.
+      LOGO_MIN_WIDTH: String(minLogoWidthFor(format)),
+
+      format,
+      VISUAL_INTENT: intent,
+      DESIGN_SEED: JSON.stringify(seed, null, 2),
+      'DESIGN_SEED.archetype': seed.archetype,
+      'DESIGN_SEED.colorStrategy': seed.colorStrategy,
+      'DESIGN_SEED.typographyMood': seed.typographyMood,
+      'DESIGN_SEED.layoutTension': seed.layoutTension,
+      'DESIGN_SEED.spacingMultiplier': String(seed.spacingMultiplier),
+
+      IMAGE_URL: sourced?.url || '(no image — build a purely typographic composition)',
+      IMAGE_DOMINANT_COLORS: sourced?.analysis.dominantColors?.join(', ') || 'unknown',
+      IMAGE_LUMINANCE: sourced?.analysis.luminance || 'mixed',
+      IMAGE_COMPOSITION: sourced?.analysis.composition || 'balanced',
+      IMAGE_DETECTED_TEXT: sourced?.analysis.detectedText || 'none',
+    };
+  }
+
+  /**
+   * Substitue les `{{MARQUEURS}}` d'un prompt en un seul passage.
+   *
+   * Un marqueur absent de la table est laissé tel quel ET signalé : un `{{…}}`
+   * qui atteint le modèle est un réglage qu'on croyait transmis et qui ne l'est
+   * pas — le genre de bug qui ne casse rien et dégrade tout.
+   */
+  private applyPlaceholders(template: string, values: Record<string, string>): string {
+    const missing = new Set<string>();
+    const rendered = template.replace(/\{\{([A-Za-z0-9_.]+)\}\}/g, (match, key: string) => {
+      if (key in values) return values[key];
+      missing.add(key);
+      return match;
+    });
+    if (missing.size) {
+      logger.warn('[Communication] Unresolved placeholders in the flyer prompt', {
+        placeholders: [...missing],
+      });
+    }
+    return rendered;
+  }
+
+  /**
+   * Aplatit une arborescence d'URLs (les déclinaisons de logo sont imbriquées
+   * par usage puis par fond) en une simple liste de chaînes.
+   */
+  private collectStringValues(source: unknown): string[] {
+    if (typeof source === 'string') return [source];
+    if (!source || typeof source !== 'object') return [];
+    return Object.values(source as Record<string, unknown>).flatMap((value) =>
+      this.collectStringValues(value)
+    );
   }
 
   private shortHash(data: unknown): string {
@@ -1287,7 +1383,105 @@ export class CommunicationService extends GenericService {
     const bgImage = imageUrl
       ? `<img src="${imageUrl}" class="absolute inset-0 w-full h-full object-cover" /><div class="absolute inset-0 bg-gradient-to-t from-[${secondary}]/90 via-[${secondary}]/40 to-transparent"></div>`
       : '';
-    return `<div class="${size} relative overflow-hidden flex flex-col justify-between p-16 bg-[${secondary}] text-[${text}]">${bgImage}<div class="relative text-xs uppercase tracking-[0.3em] opacity-70">${context.brandName}</div><div class="relative flex-1 flex flex-col justify-end gap-6"><div class="text-6xl font-black leading-[1.05] max-w-[80%]">${this.escapeHtml(content.title)}</div><div class="text-lg max-w-[75%] opacity-90">${this.escapeHtml(content.description)}</div></div><div class="relative flex items-center justify-between"><div class="bg-[${primary}] text-[${secondary}] font-bold px-6 py-3 rounded-full">${this.escapeHtml(content.callToAction)}</div><div class="text-xs opacity-60">${content.channel} · ${content.format}</div></div></div>`;
+    // Pied de page : signature de marque typographique, jamais un bouton — ce
+    // repli servait auparavant une pastille contenant le callToAction, ce qui
+    // reproduisait dans le fallback le défaut qu'on corrige côté modèle.
+    return `<div class="${size} relative overflow-hidden flex flex-col justify-between p-16 bg-[${secondary}] text-[${text}]">${bgImage}<div class="relative text-xs uppercase tracking-[0.3em] opacity-70">${context.brandName}</div><div class="relative flex-1 flex flex-col justify-end gap-6"><div class="text-6xl font-black leading-[1.05] max-w-[80%]">${this.escapeHtml(content.title)}</div><div class="text-lg max-w-[75%] opacity-90">${this.escapeHtml(content.description)}</div></div><div class="relative flex items-end justify-between border-t border-[${text}]/25 pt-6"><div class="text-xs uppercase tracking-[0.35em] opacity-80">${this.escapeHtml(context.brandName)}</div><div class="h-[4px] w-28 bg-[${primary}]"></div></div></div>`;
+  }
+
+  /**
+   * Ramène la typographie du visuel dans la charte.
+   *
+   * Le harnais de rendu lie `font-primary`/`font-secondary` aux polices de la
+   * marque, mais rien n'empêchait le modèle d'écrire `font-['Anton']` ou un
+   * `font-family` en style inline — et d'ajouter le <link> Google Fonts qui va
+   * avec. Le visuel sortait alors typographié dans une police que la marque
+   * n'utilise nulle part ailleurs.
+   *
+   * On réécrit donc les familles arbitraires vers les classes de la charte
+   * (`font-primary` par défaut : une police choisie à la main sert quasi
+   * toujours un titre) et on retire les imports de polices étrangères, devenus
+   * inutiles — celui de la marque est injecté par le rendu, pas par le modèle.
+   *
+   * Les COULEURS ne sont volontairement pas normalisées ici : remplacer un hex
+   * hors palette demanderait de deviner l'intention (accent ? traitement de la
+   * photo ? dégradé ?), et une substitution mécanique abîmerait la composition
+   * plus sûrement qu'une teinte approximative. C'est la charte du prompt qui
+   * les tient.
+   */
+  private enforceBrandTypography(html: string, context: CommunicationContext): string {
+    if (!html) return html;
+
+    // L'identité d'une URL Google Fonts est dans sa QUERY (`family=…`), pas dans
+    // son chemin : comparer les chemins revient à trouver toutes ces URLs
+    // identiques, et à laisser passer les polices étrangères.
+    const familiesOf = (url: string): string[] =>
+      [...url.replace(/&amp;/g, '&').matchAll(/family=([^&:]+)/gi)].map((m) =>
+        decodeURIComponent(m[1]).replace(/\+/g, ' ').trim().toLowerCase()
+      );
+    const brandFamilies = new Set(familiesOf(context.branding.fontUrl || ''));
+
+    // Le `font-family` inline est traité DANS l'attribut style, pour ne pas
+    // s'arrêter au premier guillemet d'une famille citée (`'Bebas Neue'`).
+    const rewriteStyleAttributes = (input: string, quote: '"' | "'"): string => {
+      const pattern = new RegExp(`style\\s*=\\s*${quote}([^${quote}]*)${quote}`, 'gi');
+      return input.replace(pattern, (match, body: string) => {
+        if (!/font-family/i.test(body)) return match;
+        const fixed = body.replace(/font-family\s*:[^;]*/gi, 'font-family: var(--font-primary)');
+        return `style=${quote}${fixed}${quote}`;
+      });
+    };
+
+    let normalised = html
+      // font-['Anton'] / font-["Anton"] → police d'affichage de la marque.
+      .replace(/\bfont-\[(?:'[^']*'|"[^"]*")\]/g, 'font-primary')
+      // Familles génériques de Tailwind : hors charte elles aussi.
+      .replace(/\bfont-(?:sans|serif|mono)\b/g, 'font-secondary');
+    normalised = rewriteStyleAttributes(normalised, '"');
+    normalised = rewriteStyleAttributes(normalised, "'");
+    // Imports de polices tierces ajoutés par le modèle. Celui de la marque est
+    // injecté par le harnais de rendu : rien n'est perdu à les retirer.
+    normalised = normalised.replace(
+      /<link\b[^>]*href\s*=\s*["']([^"']*fonts\.googleapis\.com[^"']*)["'][^>]*>/gi,
+      (tag, href: string) => {
+        const families = familiesOf(String(href));
+        const isBrand = families.length > 0 && families.every((f) => brandFamilies.has(f));
+        return isBrand ? tag : '';
+      }
+    );
+
+    if (normalised !== html) {
+      logger.info('[Communication] Typographie du visuel réalignée sur la charte');
+    }
+    return normalised;
+  }
+
+  /**
+   * Filet déterministe contre le bouton d'appel à l'action.
+   *
+   * Le prompt l'interdit et la légende n'est plus transmise au compositeur,
+   * mais une consigne textuelle ne garantit rien : le visuel part à
+   * l'impression ou en publication sans relecture, il faut donc une règle qui
+   * ne dépende pas du bon vouloir du modèle.
+   *
+   * Portée assumée : on ne supprime que ce qui EST un bouton par nature
+   * (`<button>`, `role="button"`). Une pastille construite en <div>/<span>
+   * n'est pas identifiable sans moteur de rendu — il faudrait comparer les
+   * styles calculés — et reste couverte par le seul prompt.
+   */
+  private stripCtaButtons(html: string): string {
+    if (!html) return html;
+    const cleaned = html
+      // Un <button> ne peut pas en contenir un autre : le non-greedy est sûr.
+      .replace(/<button\b[^>]*>[\s\S]*?<\/button>/gi, '')
+      // Idem pour <a> (imbrication interdite en HTML).
+      .replace(/<a\b[^>]*\brole\s*=\s*["']button["'][^>]*>[\s\S]*?<\/a>/gi, '');
+    if (cleaned !== html) {
+      logger.warn(
+        '[Communication] CTA button removed from the generated visual — the model ignored the no-button rule'
+      );
+    }
+    return cleaned;
   }
 
   /**
@@ -1325,12 +1519,7 @@ export class CommunicationService extends GenericService {
         },
       ];
       const raw = await this.promptService.runPrompt(
-        {
-          ...DEFAULT_PROMPT_CONFIG,
-          userId,
-          promptType: 'communication_image_brief',
-          llmOptions: { maxOutputTokens: 400 },
-        },
+        promptConfigFor(AI_CONFIG.communication.imageBrief, userId),
         messages
       );
       const parsed = this.safeJson<Partial<ImageBrief>>(raw) ?? {};

@@ -59,7 +59,13 @@ export const MODEL_TIERS: Record<ModelTier, TierDefinition> = {
     fallbackModels: TEXT_FALLBACK_MODELS,
     // Températures basses: ces tâches sont déterministes par nature, la
     // créativité n'y est qu'une source de variance.
-    llmOptions: { temperature: 0.1, maxOutputTokens: 1024 },
+    //
+    // Raisonnement DÉSACTIVÉ (`thinkingBudget: 0`): c'est la définition même de
+    // cet étage. Il évitait déjà le tarif « raisonnement » en choisissant un
+    // petit modèle, mais continuait à payer des tokens de réflexion — lesquels
+    // sont décomptés des 1024 tokens de sortie, au point de tronquer des
+    // résumés et des vérifications qui tiennent pourtant en trois lignes.
+    llmOptions: { temperature: 0.1, maxOutputTokens: 1024, thinkingBudget: 0 },
     purpose: 'mécanique (résumé, vérification, classification, extraction)',
   },
   M: {

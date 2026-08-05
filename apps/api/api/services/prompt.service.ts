@@ -36,6 +36,20 @@ import {
 import { aiUsageService } from './ai-usage.service';
 export { LLMProvider, LLMOptions };
 
+/**
+ * Le modèle accepte-t-il `thinkingConfig.thinkingBudget` ?
+ *
+ * Google pilote le raisonnement différemment selon la génération: la famille
+ * 2.5 prend un budget en tokens (0 = désactivé), les modèles 3.x un niveau
+ * (`thinkingLevel`) dont le minimum n'est pas « aucun ». Envoyer un budget nul
+ * à un 3.x fait donc échouer la requête — et comme un appel peut basculer sur
+ * un repli d'une autre famille, la question se pose modèle par modèle, pas une
+ * fois pour toutes. Un modèle inconnu est traité comme non supporté: ignorer un
+ * réglage d'économie est bénin, casser la génération ne l'est pas.
+ */
+function supportsThinkingBudget(modelName: string): boolean {
+  return /gemini-2\.5/i.test(modelName);
+}
 
 export interface PromptConfig {
   provider: LLMProvider;
@@ -326,26 +340,49 @@ export class PromptService {
     // IMPORTANT: dans @google/genai 1.x, ces paramètres DOIVENT être sous `config`
     // (au top-level ils sont ignorés silencieusement). On y branche aussi le
     // cache de contexte explicite quand il est fourni.
-    const config = {
+    //
+    // La config est construite PAR MODÈLE et non une fois pour toutes: le
+    // pilotage du raisonnement dépend de la famille du modèle, et un repli
+    // n'est pas forcément de la même famille que le modèle principal.
+    const buildConfig = (model: string) => ({
       ...(llmOptions.maxOutputTokens && { maxOutputTokens: llmOptions.maxOutputTokens }),
       ...(llmOptions.temperature !== undefined && { temperature: llmOptions.temperature }),
       ...(llmOptions.topP && { topP: llmOptions.topP }),
       ...(llmOptions.topK && { topK: llmOptions.topK }),
+      ...(llmOptions.thinkingBudget !== undefined && supportsThinkingBudget(model)
+        ? { thinkingConfig: { thinkingBudget: llmOptions.thinkingBudget } }
+        : {}),
       ...(cachedContent && { cachedContent }),
-    };
+    });
+
+    if (llmOptions.thinkingBudget !== undefined && !supportsThinkingBudget(modelName)) {
+      logger.info(
+        `thinkingBudget=${llmOptions.thinkingBudget} ignoré pour "${modelName}" : réglage propre à la ` +
+          `famille Gemini 2.5. Épingler un modèle 2.5 dans ai.config.ts pour le rendre effectif.`
+      );
+    }
 
     const fallbackModel = AI_CONFIG.fallback.textModel;
     const secondaryFallback = 'gemini-2.0-flash';
     const effectiveFallbackModel = modelName === fallbackModel ? secondaryFallback : fallbackModel;
 
+    const config = buildConfig(modelName);
     const result = await withGeminiFallback(
-      () => this.genAIClient.models.generateContent({ model: modelName, contents: geminiContent, config }),
+      () =>
+        this.genAIClient.models.generateContent({
+          model: modelName,
+          contents: geminiContent,
+          config,
+        }),
       () =>
         this.genAIClient.models.generateContent({
           model: effectiveFallbackModel,
           contents: geminiContent,
           // Le cache est lié au modèle principal: on ne le réutilise pas sur le repli.
-          config: { ...config, ...(cachedContent ? { cachedContent: undefined } : {}) },
+          config: {
+            ...buildConfig(effectiveFallbackModel),
+            ...(cachedContent ? { cachedContent: undefined } : {}),
+          },
         }),
       modelName,
       effectiveFallbackModel
