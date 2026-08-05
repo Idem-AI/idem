@@ -16,9 +16,10 @@ export const AGENT_COVER_PROMPT = `<role>World-class editorial art director</rol
 </mandatory_elements>
 
 <page_format>
-- Outermost container: w-[210mm] min-h-[297mm] relative (A4 size fit, min height 297mm; the page grows with content and may span multiple A4 pages — NEVER truncate content to fit one page).
-- Keep each block whole: build self-contained blocks (cards, tables, lists, sub-sections) that EACH fit within a single A4 page, so no block is ever split across a page break.
-- Internal safe padding: p-[12mm] (no content overflow).
+- The cover is a FIXED full-bleed page: it is rendered as-is, never re-flowed nor stretched by the paginator.
+- Outermost container: w-[210mm] h-[297mm] relative overflow-hidden (EXACT A4 height, not min-h).
+- Compose within these bounds: full-bleed backgrounds are welcome, absolutely positioned elements are supported, but NOTHING may exceed the page — anything past 297mm is clipped.
+- Keep a safe margin of at least 15mm around text.
 </page_format>
 
 <technical_rules>
