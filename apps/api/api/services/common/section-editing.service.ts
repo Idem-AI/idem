@@ -10,6 +10,7 @@ import { promptService, PromptConfig, AIChatMessage } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
 import { SupportedLanguage } from '../../utils/request-language';
 import { sanitizeSectionHtml } from '../../utils/sanitize-section-html';
+import { withAiUsage } from '../../utils/ai-usage-context.util';
 import {
   buildSectionEditPrompt,
   EDIT_FORMAT_RULES,
@@ -139,7 +140,13 @@ export class SectionEditingService {
     };
     const messages: AIChatMessage[] = [{ role: 'user', content: prompt }];
 
-    const response = await promptService.runPrompt(promptConfig, messages);
+    // `key` est la clé de document (branding, businessPlan…) et `sectionId` la
+    // sous-section réellement retouchée : le coût d'une édition IA est ainsi
+    // imputé à l'élément précis, et non au projet en bloc.
+    const response = await withAiUsage(
+      { userId, projectId, feature: key, element: sectionId, operation: 'edit' },
+      () => promptService.runPrompt(promptConfig, messages)
+    );
     const newHtml = sanitizeSectionHtml(promptService.getCleanAIText(response));
     if (!newHtml) {
       logger.warn(`AI edit returned empty HTML for ${key}/${sectionId}.`);

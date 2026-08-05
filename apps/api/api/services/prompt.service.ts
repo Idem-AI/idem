@@ -25,6 +25,14 @@ import {
 import { withGeminiFallback } from '../utils/gemini-fallback';
 import { getRequestLanguage } from '../utils/request-language';
 import { logAIEvent, previewValue } from '../utils/ai-trace.util';
+import {
+  UsageSink,
+  estimateUsage,
+  extractGeminiUsage,
+  extractOpenAIUsage,
+  joinMessagesForEstimate,
+} from '../utils/ai-usage-extract.util';
+import { aiUsageService } from './ai-usage.service';
 export { LLMProvider, LLMOptions };
 
 
@@ -188,7 +196,14 @@ export class PromptService {
     messages: AIChatMessage[],
     llmOptions: LLMOptions,
     fileInput?: { localPath: string; mimeType?: string },
-    cachedContent?: string
+    cachedContent?: string,
+    /**
+     * Collecteur d'usage : rempli avec les compteurs de tokens réellement
+     * renvoyés par l'API. Passer par un collecteur évite de changer le type de
+     * retour de cet exécuteur (et donc de toucher tous ses appelants) tout en
+     * remontant l'information dont runPrompt a besoin pour journaliser.
+     */
+    usageSink?: UsageSink
   ): Promise<string> {
     const geminiContent: Content[] = this.toGeminiMessages(messages);
 
@@ -259,6 +274,13 @@ export class PromptService {
           modelName,
           effectiveFallbackModel
         );
+        // Relevé de consommation avant tout retour/erreur : l'appel a été
+        // facturé par Google même si la réponse est inexploitable.
+        if (usageSink) {
+          usageSink.usage = extractGeminiUsage(result);
+          usageSink.modelUsed = modelName;
+        }
+
         // Safely access the text content
         const firstCandidate = result.candidates?.[0];
         const firstPart = firstCandidate?.content?.parts?.[0];
@@ -332,6 +354,11 @@ export class PromptService {
       modelName,
       effectiveFallbackModel
     );
+    if (usageSink) {
+      usageSink.usage = extractGeminiUsage(result);
+      usageSink.modelUsed = modelName;
+    }
+
     // Surface truncation explicitly. gemini-3 "thinking" models count reasoning
     // tokens against maxOutputTokens; when the budget is too small the answer is
     // cut mid-string and downstream JSON/SVG parsing fails with cryptic errors
@@ -426,7 +453,9 @@ export class PromptService {
     modelName: string,
     messages: AIChatMessage[],
     llmOptions: LLMOptions,
-    fileInput?: { localPath: string; mimeType?: string }
+    fileInput?: { localPath: string; mimeType?: string },
+    /** Voir _runGeminiPrompt : collecteur des compteurs de tokens réels. */
+    usageSink?: UsageSink
   ): Promise<string> {
     const client = this.getOpenAICompatibleClient(provider);
     const def = getProvider(provider);
@@ -486,6 +515,13 @@ export class PromptService {
         } else {
           throw primaryError;
         }
+      }
+
+      // Relevé de consommation avant les contrôles de validité : une enveloppe
+      // d'erreur ou une réponse vide a tout de même été facturée.
+      if (usageSink) {
+        usageSink.usage = extractOpenAIUsage(response);
+        usageSink.modelUsed = (response as any)?.model || modelName;
       }
 
       // Certains gateways openai-compatible (ex: Z.ai/GLM) renvoient un HTTP 200
@@ -678,6 +714,52 @@ export class PromptService {
     return `RESPONSE LANGUAGE (CRITICAL): You MUST write ALL generated content — every section, title, sentence, label and value — in ${label}. Do not mix languages. This instruction overrides any language implied by the examples or prompts below.`;
   }
 
+  /**
+   * Journalise la consommation de chaque tentative de modèle d'un appel.
+   *
+   * Deux règles :
+   *  - une tentative sans métadonnées d'usage est estimée par longueur de texte
+   *    plutôt qu'ignorée (une consommation invisible fausse tous les totaux) ;
+   *  - toute erreur d'écriture est avalée par `aiUsageService.record` :
+   *    l'observabilité ne doit jamais faire échouer une génération.
+   */
+  private async recordUsageAttempts(params: {
+    attempts: { model: string; sink: UsageSink; startedAt: number }[];
+    provider: LLMProvider;
+    promptType?: string;
+    userId?: string;
+    messages: AIChatMessage[];
+    resultText?: string;
+    error?: any;
+  }): Promise<void> {
+    const { attempts, provider, promptType, userId, messages, resultText, error } = params;
+    if (attempts.length === 0) return;
+
+    const promptText = joinMessagesForEstimate(messages);
+
+    for (let i = 0; i < attempts.length; i++) {
+      const attempt = attempts[i];
+      const isLast = i === attempts.length - 1;
+      // Seule la dernière tentative peut avoir produit le résultat final ; les
+      // précédentes ont nécessairement échoué (la boucle sort au succès).
+      const succeeded = isLast && !error && resultText !== undefined;
+
+      const usage =
+        attempt.sink.usage ?? estimateUsage(promptText, succeeded ? (resultText ?? '') : '');
+
+      await aiUsageService.record({
+        provider,
+        modelName: attempt.sink.modelUsed ?? attempt.model,
+        usage,
+        status: succeeded ? 'success' : 'error',
+        errorMessage: succeeded ? undefined : (error?.message ?? 'Model attempt failed'),
+        durationMs: Date.now() - attempt.startedAt,
+        promptType,
+        userId,
+      });
+    }
+  }
+
   public async runPrompt(request: PromptConfig, messages: AIChatMessage[]): Promise<string> {
     logger.info(
       `Running prompt for provider: ${request.provider}, model: ${
@@ -775,9 +857,15 @@ export class PromptService {
 
     let result: string | undefined;
     let lastError: any;
+    // Un relevé par modèle essayé : un repli après échec a consommé des tokens
+    // sur les DEUX modèles, et les deux doivent apparaître dans le journal.
+    const attempts: { model: string; sink: UsageSink; startedAt: number }[] = [];
 
     for (let i = 0; i < modelsToTry.length; i++) {
       const currentModel = modelsToTry[i];
+      const sink: UsageSink = {};
+      const attemptStartedAt = Date.now();
+      attempts.push({ model: currentModel, sink, startedAt: attemptStartedAt });
       try {
         switch (kind) {
           case 'gemini':
@@ -786,7 +874,8 @@ export class PromptService {
               modifiedMessages,
               llmOptions,
               file,
-              request.cachedContent
+              request.cachedContent,
+              sink
             );
             break;
           case 'openai-compatible':
@@ -795,7 +884,8 @@ export class PromptService {
               currentModel,
               modifiedMessages,
               llmOptions,
-              file
+              file,
+              sink
             );
             break;
           default:
@@ -821,6 +911,19 @@ export class PromptService {
         }
       }
     }
+
+    // Journalisation de la consommation, y compris pour les tentatives en échec :
+    // un modèle qui répond puis échoue au parsing a bien été facturé, et le
+    // masquer sous-estimerait le coût réel de la plateforme.
+    await this.recordUsageAttempts({
+      attempts,
+      provider,
+      promptType,
+      userId,
+      messages: modifiedMessages,
+      resultText: result,
+      error: lastError,
+    });
 
     if (lastError) {
       throw lastError;

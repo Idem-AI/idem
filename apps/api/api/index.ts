@@ -10,6 +10,7 @@ import { metricsMiddleware } from './middleware/metrics.middleware';
 import { languageMiddleware } from './middleware/language.middleware';
 import { requestTraceMiddleware } from './middleware/request-trace.middleware';
 import { revisionContextMiddleware } from './utils/revision-context.util';
+import { aiUsageContextMiddleware } from './utils/ai-usage-context.util';
 import metricsRouter from './routes/metrics.routes';
 import admin from 'firebase-admin';
 import cors from 'cors';
@@ -23,6 +24,15 @@ import { User } from './schemas/user.schema';
 import { Project } from './schemas/project.schema';
 import { ProjectRevision } from './schemas/revision.schema';
 import { CoherenceAlert } from './schemas/coherence.schema';
+import { AiUsageEvent } from './schemas/aiUsage.schema';
+import {
+  BillingInvoice,
+  BillingProduct,
+  BillingPurchase,
+  BillingSubscription,
+  CreditLedgerEntry,
+} from './schemas/billing.schema';
+import { billingService } from './services/billing.service';
 import { authRoutes } from './routes/auth.routes';
 import { promptRoutes } from './routes/prompt.routes';
 import swaggerJsdoc from 'swagger-jsdoc';
@@ -140,6 +150,11 @@ app.use(languageMiddleware);
 // hook can attribute every project write — the "git blame" of project data.
 app.use(revisionContextMiddleware);
 
+// Seed the AI usage context (feature + operation derived from the route) so
+// every model call can be attributed to a user, a project and a project
+// element without threading those values through every generation service.
+app.use(aiUsageContextMiddleware);
+
 app.use('/projects', projectRoutes);
 app.use('/project', contextRoutes);
 app.use('/project', coherenceRoutes);
@@ -252,7 +267,22 @@ function startServer() {
         Project.init(), // Creates all indexes defined in ProjectSchema
         ProjectRevision.init(), // Chronicle: unique (projectId, section, version) + log indexes
         CoherenceAlert.init(), // Coherence Guard: alertes de synchronisation inter-artefacts
+        AiUsageEvent.init(), // Journal de consommation IA (+ TTL de rétention)
+        // Facturation : index partiels uniques (un abonnement actif par
+        // utilisateur ET par moteur, un Project Pass par projet, une facture
+        // par période) qui garantissent l'absence de double facturation au
+        // niveau de la base.
+        BillingProduct.init(),
+        BillingSubscription.init(),
+        BillingPurchase.init(),
+        BillingInvoice.init(),
+        CreditLedgerEntry.init(),
       ]);
+
+      // Catalogue aligné sur la page de tarification publique. N'écrase jamais
+      // un produit existant (un prix ajusté en production doit survivre au
+      // redémarrage).
+      await billingService.seedProducts();
       console.log('MongoDB indexes created successfully');
     } catch (error) {
       console.error('Failed to connect to MongoDB:', error);
