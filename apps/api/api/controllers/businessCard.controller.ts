@@ -17,7 +17,7 @@ const businessCardService = new BusinessCardService(promptService);
 /** Vérifie l'authentification et la présence du projet ; renvoie null si KO. */
 function requireContext(req: CustomRequest, res: Response): { userId: string; projectId: string } | null {
   const userId = req.user?.uid;
-  const projectId = req.params.projectId;
+  const projectId = req.params.projectId as string;
   if (!userId) {
     res.status(401).json({ message: 'User not authenticated' });
     return null;
@@ -108,7 +108,7 @@ export const aiEditBusinessCardSectionController = async (
 ): Promise<void> => {
   const ctx = requireContext(req, res);
   if (!ctx) return;
-  const { sectionId } = req.params;
+  const sectionId = req.params.sectionId as string;
   try {
     const instruction = (req.body?.instruction ?? '').toString().trim();
     if (!sectionId || !instruction) {
