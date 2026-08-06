@@ -57,7 +57,8 @@
       "createProject": "Créer un projet",
       "notFound": "Page non trouvée",
       "businessCards": "Cartes de visite",
-      "businessCardsEdit": "Éditeur de carte de visite"
+      "businessCardsEdit": "Éditeur de carte de visite",
+      "flyerEdit": "Éditeur de visuel"
     }
   }
 }

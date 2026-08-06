@@ -82,6 +82,7 @@
         "format": "Format",
         "generate": "Générer le visuel",
         "regenerate": "Régénérer",
+        "edit": "Modifier",
         "download": "Télécharger le PNG",
         "close": "Fermer",
         "generating": "Recherche d'image, analyse et composition du visuel…",

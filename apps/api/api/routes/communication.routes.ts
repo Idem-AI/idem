@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import {
+  aiEditFlyerController,
   createMomentController,
   extractContextController,
   generateCalendarStreamController,
@@ -10,6 +11,7 @@ import {
   getMomentSuggestionsController,
   preparePublicationController,
   regenerateFlyerController,
+  saveFlyerHtmlController,
   updateCalendarItemController,
   updatePublicationController,
   updateStrategyController,
@@ -21,6 +23,13 @@ import { checkQuota } from '../middleware/quota.middleware';
 export const communicationRoutes = Router();
 
 const resource = 'communication';
+
+/** La retouche IA d'un visuel (HTML complet) dépasse le timeout par défaut. */
+const extendedTimeout = (req: any, res: any, next: any) => {
+  req.setTimeout(180000);
+  res.setTimeout(180000);
+  next();
+};
 
 /**
  * @openapi
@@ -247,6 +256,53 @@ communicationRoutes.post(
   checkPolicyAcceptance,
   checkQuota,
   regenerateFlyerController
+);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/flyer/{flyerId}/html:
+ *   put:
+ *     tags: [Communication]
+ *     summary: Save the flyer HTML edited in the WYSIWYG editor.
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [html]
+ *             properties:
+ *               html: { type: string }
+ */
+communicationRoutes.put(
+  `/${resource}/:projectId/flyer/:flyerId/html`,
+  authenticate,
+  saveFlyerHtmlController
+);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/flyer/{flyerId}/ai-edit:
+ *   post:
+ *     tags: [Communication]
+ *     summary: AI-assisted retouch of one flyer, from a natural-language instruction.
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [instruction]
+ *             properties:
+ *               instruction: { type: string }
+ */
+communicationRoutes.post(
+  `/${resource}/:projectId/flyer/:flyerId/ai-edit`,
+  authenticate,
+  extendedTimeout,
+  checkPolicyAcceptance,
+  checkQuota,
+  aiEditFlyerController
 );
 
 /**
