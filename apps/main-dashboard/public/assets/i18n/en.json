@@ -2486,11 +2486,11 @@
         "back": "Back",
         "noProject": {
           "title": "No project selected",
-          "subtitle": "Select a project first to edit its business plan."
+          "subtitle": "Select a project first to edit its documents."
         },
         "load": {
           "title": "Could not load",
-          "subtitle": "The document failed to load. Try again from the business plan page."
+          "subtitle": "The document failed to load. Try again from the page you opened it from."
         }
       },
       "attrs": {
@@ -2508,6 +2508,9 @@
       },
       "businessCard": {
         "title": "Business card editor"
+      },
+      "flyer": {
+        "title": "Visual editor"
       }
     },
     "showCommunication": {
@@ -2611,7 +2614,8 @@
         "subheadline": "Subheadline",
         "body": "Body",
         "cta": "Call to action",
-        "logoUsed": "Logo declension used"
+        "logoUsed": "Logo declension used",
+        "edit": "Edit"
       },
       "moments": {
         "eyebrow": "Timely moments",
@@ -2913,7 +2917,8 @@
       "pitchDeckEdit": "Pitch Deck Editing",
       "brandingEdit": "Brand Identity Editing",
       "businessCards": "Business cards",
-      "businessCardsEdit": "Business card editor"
+      "businessCardsEdit": "Business card editor",
+      "flyerEdit": "Visual editor"
     }
   },
   "notFound": {

@@ -651,6 +651,24 @@
                         </div>
                       </div>
                       <div class="mt-auto pt-4 flex items-center gap-2">
+                        @if (entry.flyer?.id) {
+                          <button
+                            class="outer-button button-sm"
+                            [attr.aria-label]="
+                              ('dashboard.showCommunication.visual.edit' | translate) +
+                              ' (' + ('common.new' | translate) + ')'
+                            "
+                            (click)="editFlyer(entry.flyer!.id)"
+                          >
+                            <i class="pi pi-pencil"></i>
+                            <span
+                              class="ml-1.5 text-[8px] leading-none px-1.5 py-0.5 rounded-full bg-[var(--color-primary-500)] text-white font-semibold tracking-normal uppercase"
+                              aria-hidden="true"
+                            >
+                              {{ 'common.new' | translate }}
+                            </span>
+                          </button>
+                        }
                         <span class="text-[10px] text-[var(--color-text-tertiary)] mr-1">
                           {{ 'dashboard.showCommunication.publishing.prepareOn' | translate }}:
                         </span>
@@ -966,6 +984,18 @@
               </a>
             }
             @if (currentFlyer()) {
+              <button
+                class="outer-button button-sm"
+                [disabled]="isGeneratingFlyer()"
+                (click)="editFlyer()"
+              >
+                <i class="pi pi-pencil mr-2"></i> {{ 'dashboard.showCommunication.visual.edit' | translate }}
+                <span
+                  class="ml-2 text-[8px] leading-none px-1.5 py-0.5 rounded-full bg-[var(--color-primary-500)] text-white font-semibold tracking-normal uppercase"
+                >
+                  {{ 'common.new' | translate }}
+                </span>
+              </button>
               <button
                 class="outer-button button-sm"
                 [disabled]="isGeneratingFlyer()"

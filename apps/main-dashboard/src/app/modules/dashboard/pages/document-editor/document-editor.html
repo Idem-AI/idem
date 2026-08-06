@@ -42,8 +42,9 @@
       <!-- Canvas central -->
       <main class="editor-main" [attr.aria-label]="'dashboard.documentEditor.canvasLabel' | translate">
         <app-editor-canvas
-          [pageFormat]="pageFormat"
+          [pageFormat]="pageFormat()"
           [multiPage]="multiPage"
+          [fitRoot]="fitRoot"
           [fonts]="fonts()"
           [dark]="dark()"
           [zoom]="zoom()"

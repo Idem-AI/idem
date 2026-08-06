@@ -418,6 +418,17 @@ export class ShowCommunication implements OnInit {
     });
   }
 
+  /**
+   * Ouvre le visuel dans l'éditeur WYSIWYG (même éditeur que le business plan,
+   * le pitch deck et la charte). Le visuel est désigné par son id dans l'URL :
+   * un projet en compte autant que de contenus programmés.
+   */
+  protected editFlyer(flyerId?: string): void {
+    const id = flyerId ?? this.currentFlyer()?.id;
+    if (!id) return;
+    this.router.navigate(['/project/communication/flyer/edit'], { queryParams: { flyerId: id } });
+  }
+
   protected flyerSafeHtml(flyer: Flyer | null): SafeHtml | null {
     if (!flyer?.html) return null;
     return this.sanitizer.bypassSecurityTrustHtml(flyer.html);

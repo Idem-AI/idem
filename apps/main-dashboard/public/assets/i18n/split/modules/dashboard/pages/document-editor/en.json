@@ -90,15 +90,18 @@
         "back": "Back",
         "noProject": {
           "title": "No project selected",
-          "subtitle": "Select a project first to edit its business plan."
+          "subtitle": "Select a project first to edit its documents."
         },
         "load": {
           "title": "Could not load",
-          "subtitle": "The document failed to load. Try again from the business plan page."
+          "subtitle": "The document failed to load. Try again from the page you opened it from."
         }
       },
       "businessCard": {
         "title": "Business card editor"
+      },
+      "flyer": {
+        "title": "Visual editor"
       }
     }
   }

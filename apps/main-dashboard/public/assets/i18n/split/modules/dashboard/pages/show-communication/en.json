@@ -82,6 +82,7 @@
         "format": "Format",
         "generate": "Generate visual",
         "regenerate": "Regenerate",
+        "edit": "Edit",
         "download": "Download PNG",
         "close": "Close",
         "generating": "Sourcing image, scanning, composing visual…",

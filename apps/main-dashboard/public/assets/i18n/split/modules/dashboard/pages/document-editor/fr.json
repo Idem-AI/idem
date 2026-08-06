@@ -90,15 +90,18 @@
         "back": "Retour",
         "noProject": {
           "title": "Aucun projet sélectionné",
-          "subtitle": "Sélectionnez d'abord un projet pour éditer son business plan."
+          "subtitle": "Sélectionnez d'abord un projet pour éditer ses documents."
         },
         "load": {
           "title": "Chargement impossible",
-          "subtitle": "Le document n'a pas pu être chargé. Réessayez depuis la page du business plan."
+          "subtitle": "Le document n'a pas pu être chargé. Réessayez depuis la page d'où vous l'avez ouvert."
         }
       },
       "businessCard": {
         "title": "Éditeur de carte de visite"
+      },
+      "flyer": {
+        "title": "Éditeur de visuel"
       }
     }
   }
