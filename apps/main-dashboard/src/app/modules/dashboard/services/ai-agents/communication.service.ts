@@ -162,6 +162,23 @@ export class CommunicationService {
   }
 
   /** GET on-demand flyer image blob */
+  /**
+   * PUT le HTML d'un visuel retouché dans l'éditeur WYSIWYG. L'API oublie le PNG
+   * en cache : l'`imageUrl` du visuel ne change pas, son contenu si.
+   */
+  updateFlyerHtml(projectId: string, flyerId: string, html: string): Observable<Flyer> {
+    return this.http
+      .put<Flyer>(`${this.apiUrl}/${projectId}/flyer/${flyerId}/html`, { html })
+      .pipe(catchError((err) => throwError(() => err)));
+  }
+
+  /** POST une consigne de retouche IA sur un visuel ; renvoie le visuel modifié. */
+  aiEditFlyer(projectId: string, flyerId: string, instruction: string): Observable<Flyer> {
+    return this.http
+      .post<Flyer>(`${this.apiUrl}/${projectId}/flyer/${flyerId}/ai-edit`, { instruction })
+      .pipe(catchError((err) => throwError(() => err)));
+  }
+
   downloadFlyerImage(projectId: string, flyerId: string): Observable<Blob> {
     return this.http
       .get(`${this.apiUrl}/${projectId}/flyer/${flyerId}/image`, {

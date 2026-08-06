@@ -525,12 +525,34 @@ const INTERACTION_RUNTIME = `
 `;
 
 /** Styles de page (calage mm) + affordances d'édition. */
-function pageStyles(format: PageFormat, multiPage: boolean): string {
+function pageStyles(format: PageFormat, multiPage: boolean, fitRoot: boolean): string {
   // multiPage (business plan) : la page grandit avec le contenu (min-height,
   // overflow visible). Sinon (pitch/charte) : page fixe rognée comme le PDF.
   const sectionSizing = multiPage
     ? `min-height: ${format.height}; overflow: visible;`
     : `height: ${format.height}; overflow: hidden;`;
+  // fitRoot (visuels de communication) : le conteneur racine produit par l'IA
+  // est forcé à remplir la page, exactement comme le harnais de rendu PNG. Sans
+  // cela, un conteneur dimensionné de travers s'éditerait à une échelle qui
+  // n'est pas celle de l'image finale.
+  // `:not(link)` : le HTML d'un visuel commence par le <link> de la police de
+  // marque. Viser `*:first-child` calerait donc ce lien invisible et laisserait
+  // le vrai conteneur libre de déborder.
+  const rootFit = fitRoot
+    ? `.idem-section > *:not(link):not(script):not(style) {
+      width: 100% !important;
+      height: 100% !important;
+      overflow: hidden !important;
+    }
+    /* Le harnais de rendu PNG charge le CDN Tailwind avec son preflight ; ici il
+       est désactivé (corePlugins). Sans cette reprise, une image reste "inline"
+       et traîne l'espace de sa ligne de base : le logo qu'on cale à l'écran ne
+       tomberait pas au même pixel dans l'image produite. */
+    .idem-section img,
+    .idem-section svg,
+    .idem-section video,
+    .idem-section canvas { display: block; vertical-align: middle; }`
+    : '';
   return `
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { background: transparent; }
@@ -543,6 +565,7 @@ function pageStyles(format: PageFormat, multiPage: boolean): string {
       box-shadow: 0 8px 30px rgba(0,0,0,0.18);
       border-radius: 2px;
     }
+    ${rootFit}
     [data-section-id] * { cursor: default; }
     .idem-editing { outline: 2px solid #1447e6 !important; outline-offset: 2px; cursor: text !important; }
     h1,h2,h3,h4,h5,h6 { font-family: var(--idem-primary-font, inherit); }
@@ -556,6 +579,7 @@ export function buildIframeDocument(
   ctx: RenderContext,
   format: PageFormat,
   multiPage = false,
+  fitRoot = false,
 ): string {
   const primary = ctx.primaryFont || 'Jura';
   const secondary = ctx.secondaryFont || 'Jura';
@@ -591,7 +615,7 @@ ${ctx.fontUrl ? `<link href="${attr(ctx.fontUrl)}" rel="stylesheet" />` : ''}
 </script>
 <style>
   body { font-family: '${secondary}', system-ui, sans-serif; --idem-primary-font: '${primary}'; }
-  ${pageStyles(format, multiPage)}
+  ${pageStyles(format, multiPage, fitRoot)}
 </style>
 </head>
 <body>

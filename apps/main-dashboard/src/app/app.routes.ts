@@ -216,6 +216,16 @@ export const routes: Routes = [
     data: { layout: 'empty', documentType: 'branding' },
   },
   {
+    path: 'project/communication/flyer/edit',
+    title: 'navigation.titles.flyerEdit',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/document-editor/document-editor').then(
+        (m) => m.DocumentEditorComponent,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'empty', documentType: 'flyer' },
+  },
+  {
     path: 'project/communication',
     title: 'navigation.titles.communication',
     loadComponent: () =>

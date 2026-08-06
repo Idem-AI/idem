@@ -40,9 +40,19 @@ import { AGENT_IMAGE_BRIEF_PROMPT } from './prompts/agent-image-brief.prompt';
 import { AGENT_TRENDS_SUMMARY_PROMPT } from './prompts/agent-trends-summary.prompt';
 import { AGENT_MOMENT_SUGGESTIONS_PROMPT } from './prompts/agent-moment-suggestions.prompt';
 import { AGENT_MOMENT_CONTENT_PROMPT } from './prompts/agent-moment-content.prompt';
+import { buildFlyerEditPrompt } from './prompts/agent-flyer-edit.prompt';
 import { imageSourcingService, ImageBrief, SourcedImage } from './imageSourcing.service';
-import { flyerRenderService, minLogoWidthFor, LogoDeclensionSet } from './flyerRender.service';
+import {
+  flyerRenderService,
+  minLogoWidthFor,
+  LogoDeclensionSet,
+  FORMAT_DIMENSIONS,
+} from './flyerRender.service';
 import { summarizeLogoForPrompt } from '../../utils/logo-context.util';
+import { sanitizeSectionHtml } from '../../utils/sanitize-section-html';
+import { markRevisionAsAI } from '../../utils/revision-context.util';
+import { withAiUsage } from '../../utils/ai-usage-context.util';
+import { SupportedLanguage } from '../../utils/request-language';
 
 export type CommunicationStreamEvent =
   | { type: 'step-start'; step: string }
@@ -1025,11 +1035,27 @@ export class CommunicationService extends GenericService {
   // 6. Get Flyer Image (On-the-fly rendering + cache)
   // --------------------------------------------------------------------------
 
+  /**
+   * Clé du PNG rendu. `v2` : le rendu corrige désormais la déclinaison du logo
+   * par mesure du contraste. Sans changer la clé, les PNG déjà en cache (24 h)
+   * resteraient servis avec l'ancien logo illisible.
+   */
+  private flyerImageCacheKey(projectId: string, flyerId: string): string {
+    return cacheService.generateAIKey('flyer-img', 'public', projectId, `${flyerId}:v2`);
+  }
+
+  /**
+   * Oublie le PNG rendu d'un visuel. À appeler après TOUTE modification de son
+   * HTML : `imageUrl` ne change jamais (c'est l'URL de l'endpoint de rendu), donc
+   * sans cette invalidation l'utilisateur continuerait de voir l'ancienne image
+   * pendant 24 h, ses retouches apparemment perdues.
+   */
+  private async invalidateFlyerImage(projectId: string, flyerId: string): Promise<void> {
+    await cacheService.delete(this.flyerImageCacheKey(projectId, flyerId), { prefix: 'flyer' });
+  }
+
   async getFlyerImage(projectId: string, flyerId: string): Promise<Buffer> {
-    // `v2` : le rendu corrige désormais la déclinaison du logo par mesure du
-    // contraste. Sans changer la clé, les PNG déjà en cache (24 h) resteraient
-    // servis avec l'ancien logo illisible.
-    const cacheKey = cacheService.generateAIKey('flyer-img', 'public', projectId, `${flyerId}:v2`);
+    const cacheKey = this.flyerImageCacheKey(projectId, flyerId);
     const cachedBase64 = await cacheService.get<string>(cacheKey, { prefix: 'flyer', ttl: 86400 });
     if (cachedBase64) {
       return Buffer.from(cachedBase64, 'base64');
@@ -1073,6 +1099,134 @@ export class CommunicationService extends GenericService {
     await cacheService.set(cacheKey, buffer.toString('base64'), { prefix: 'flyer', ttl: 86400 });
 
     return buffer;
+  }
+
+  // --------------------------------------------------------------------------
+  // 7. Flyer editing (WYSIWYG editor + AI retouch)
+  //
+  // Même logique que les trois documents (business plan, pitch deck, charte) :
+  // le HTML est la source de vérité, l'éditeur le renvoie tel quel, et l'IA
+  // retouche la même chaîne. La seule différence tient au support : un visuel
+  // n'est pas une section de `analysisResultModel`, il vit dans
+  // `communication.flyers[]` et son rendu est un PNG produit à la demande — d'où
+  // l'invalidation du cache image à chaque écriture, en lieu et place du cache
+  // PDF invalidé par `SectionEditingService`.
+  // --------------------------------------------------------------------------
+
+  /** Un visuel du projet, par son id. */
+  async getFlyer(userId: string, projectId: string, flyerId: string): Promise<Flyer | null> {
+    const communication = await this.getCommunication(userId, projectId);
+    return communication?.flyers?.find((f) => f.id === flyerId) ?? null;
+  }
+
+  /** Sauvegarde le HTML retouché à la main dans l'éditeur WYSIWYG. */
+  async updateFlyerHtml(
+    userId: string,
+    projectId: string,
+    flyerId: string,
+    html: string
+  ): Promise<Flyer | null> {
+    const cleaned = sanitizeSectionHtml(html);
+    if (!cleaned) {
+      logger.warn(`[Communication] Refusing to save an empty HTML for flyer ${flyerId}`);
+      return null;
+    }
+
+    const existingFlyer = await this.getFlyer(userId, projectId, flyerId);
+    if (!existingFlyer) {
+      logger.warn(`[Communication] Flyer ${flyerId} not found on updateFlyerHtml`);
+      return null;
+    }
+
+    const patched = await this.patchCommunication(userId, projectId, (existing) => ({
+      ...existing,
+      flyers: (existing.flyers || []).map((f) =>
+        f.id === flyerId ? { ...f, html: cleaned, updatedAt: new Date() } : f
+      ),
+    }));
+    const updated = patched?.flyers?.find((f) => f.id === flyerId) ?? null;
+    if (!updated) {
+      logger.warn(`[Communication] Failed to persist flyer ${flyerId}`);
+      return null;
+    }
+
+    await this.invalidateFlyerImage(projectId, flyerId);
+    logger.info(`[Communication] Flyer ${flyerId} updated from the editor`, { projectId });
+    return updated;
+  }
+
+  /** Retouche IA d'un visuel : renvoie le visuel modifié, déjà persisté. */
+  async aiEditFlyer(
+    userId: string,
+    projectId: string,
+    flyerId: string,
+    instruction: string,
+    language?: SupportedLanguage
+  ): Promise<Flyer | null> {
+    const communication = await this.getCommunication(userId, projectId);
+    const flyer = communication?.flyers?.find((f) => f.id === flyerId);
+    if (!flyer?.html) {
+      logger.warn(`[Communication] Flyer ${flyerId} not found (or without HTML) on aiEditFlyer`);
+      return null;
+    }
+
+    const context = communication?.context ?? (await this.extractContext(userId, projectId));
+    const dims = FORMAT_DIMENSIONS[flyer.format] || FORMAT_DIMENSIONS.square;
+    // Le SVG brut du logo alourdit la charge utile et invite le modèle à le
+    // recopier dans le HTML : seules les URLs de déclinaisons lui servent.
+    const { logoSvg, logoUrls, ...brandForPrompt } = context.branding;
+
+    const prompt = buildFlyerEditPrompt({
+      instruction,
+      currentHtml: flyer.html,
+      format: flyer.format,
+      width: dims.width,
+      height: dims.height,
+      minLogoWidth: minLogoWidthFor(flyer.format),
+      brandName: context.brandName,
+      brandJson: JSON.stringify(brandForPrompt),
+      logoUrlsJson: JSON.stringify(logoUrls ?? {}),
+      intent: flyer.intent,
+      imageContext: flyer.imageAnalysis
+        ? `${flyer.imageAnalysis.subject} (${flyer.imageAnalysis.mood}, ${flyer.imageAnalysis.luminance})`
+        : undefined,
+    });
+
+    const raw = await withAiUsage(
+      { userId, projectId, feature: 'communication', element: flyerId, operation: 'edit' },
+      () =>
+        this.promptService.runPrompt(
+          promptConfigFor(AI_CONFIG.communication.flyer, userId, {
+            language,
+            // Même arbitrage qu'à la composition : le raisonnement de direction
+            // artistique se décompte de maxOutputTokens, et un HTML tronqué ne
+            // produit aucun visuel.
+            bypassOutputTokenCap: true,
+          }),
+          [{ role: 'user', content: prompt }]
+        )
+    );
+
+    // La sortie est du HTML brut (pas de JSON) : un visuel entier transporté
+    // dans une chaîne JSON se perd tout entier sur une seule guillemet mal
+    // échappée, et l'édition n'a rien d'autre à renvoyer que le HTML.
+    const edited = sanitizeSectionHtml(
+      this.enforceBrandTypography(
+        this.stripCtaButtons(this.promptService.getCleanAIText(raw)),
+        context
+      )
+    );
+    if (!edited || !edited.startsWith('<')) {
+      logger.warn(`[Communication] AI edit returned no usable HTML for flyer ${flyerId}`);
+      return null;
+    }
+
+    markRevisionAsAI(`Édition IA – visuel ${flyerId}: ${instruction}`.slice(0, 280));
+    const updated = await this.updateFlyerHtml(userId, projectId, flyerId, edited);
+    if (updated) {
+      logger.info(`[Communication] Flyer ${flyerId} AI-edited`, { projectId, instruction });
+    }
+    return updated;
   }
 
   // --------------------------------------------------------------------------

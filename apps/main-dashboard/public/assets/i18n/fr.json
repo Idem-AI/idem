@@ -2489,11 +2489,11 @@
         "back": "Retour",
         "noProject": {
           "title": "Aucun projet sélectionné",
-          "subtitle": "Sélectionnez d'abord un projet pour éditer son business plan."
+          "subtitle": "Sélectionnez d'abord un projet pour éditer ses documents."
         },
         "load": {
           "title": "Chargement impossible",
-          "subtitle": "Le document n'a pas pu être chargé. Réessayez depuis la page du business plan."
+          "subtitle": "Le document n'a pas pu être chargé. Réessayez depuis la page d'où vous l'avez ouvert."
         }
       },
       "attrs": {
@@ -2511,6 +2511,9 @@
       },
       "businessCard": {
         "title": "Éditeur de carte de visite"
+      },
+      "flyer": {
+        "title": "Éditeur de visuel"
       }
     },
     "showCommunication": {
@@ -2614,7 +2617,8 @@
         "subheadline": "Sous-titre",
         "body": "Corps du texte",
         "cta": "Appel à l'action",
-        "logoUsed": "Déclinaison de logo utilisée"
+        "logoUsed": "Déclinaison de logo utilisée",
+        "edit": "Modifier"
       },
       "moments": {
         "eyebrow": "Moments ponctuels",
@@ -2871,7 +2875,8 @@
       "pitchDeckEdit": "Édition du pitch deck",
       "brandingEdit": "Édition de la charte graphique",
       "businessCards": "Cartes de visite",
-      "businessCardsEdit": "Éditeur de carte de visite"
+      "businessCardsEdit": "Éditeur de carte de visite",
+      "flyerEdit": "Éditeur de visuel"
     }
   },
   "notFound": {

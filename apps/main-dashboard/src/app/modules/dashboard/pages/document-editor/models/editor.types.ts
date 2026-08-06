@@ -8,7 +8,12 @@
 import { Observable } from 'rxjs';
 
 /** Type de document éditable. */
-export type EditorDocumentType = 'business-plan' | 'pitch-deck' | 'branding' | 'business-card';
+export type EditorDocumentType =
+  | 'business-plan'
+  | 'pitch-deck'
+  | 'branding'
+  | 'business-card'
+  | 'flyer';
 
 /** Une section éditable (page/slide). `html` est la source de vérité. */
 export interface EditableSection {
@@ -136,6 +141,12 @@ export interface LoadedDocument {
   title: string;
   sections: EditableSection[];
   fonts: FontHints;
+  /**
+   * Format de page RÉEL du document chargé, quand il n'est connu qu'à
+   * l'exécution : un visuel de communication est carré, story ou bannière selon
+   * le flyer ouvert. Absent, le format déclaré par l'adaptateur s'applique.
+   */
+  pageFormat?: PageFormat;
 }
 
 /**
@@ -150,6 +161,13 @@ export interface DocumentTypeAdapter {
    * false → chaque section = une page fixe rognée (pitch deck, charte).
    */
   readonly multiPage: boolean;
+  /**
+   * true → le conteneur racine de la section est forcé aux dimensions de la page
+   * (parité avec le rendu PNG d'un visuel, qui applique la même contrainte).
+   * Sans cela, un conteneur dimensionné autrement par l'IA laisserait un écart
+   * entre ce qu'on édite et ce qui sera produit.
+   */
+  readonly fitRoot?: boolean;
   /** Préfixe des clés i18n (ex: 'dashboard.documentEditor'). */
   readonly i18nTitleKey: string;
   /** Charge le document éditable du projet (sections + polices + titre). */
