@@ -17,6 +17,7 @@ import { BusinessPlanEditorAdapter } from './adapters/business-plan-editor.adapt
 import { PitchDeckEditorAdapter } from './adapters/pitch-deck-editor.adapter';
 import { BrandingEditorAdapter } from './adapters/branding-editor.adapter';
 import { BusinessCardEditorAdapter } from './adapters/business-card-editor.adapter';
+import { FlyerEditorAdapter } from './adapters/flyer-editor.adapter';
 import { DocumentModelService } from './services/document-model.service';
 import { EditorHistoryService } from './services/editor-history.service';
 import {
@@ -26,6 +27,7 @@ import {
   EditorSelection,
   ElementStyle,
   FontHints,
+  PageFormat,
   SaveState,
 } from './models/editor.types';
 import { EditorToolbarComponent } from './components/editor-toolbar/editor-toolbar';
@@ -92,6 +94,8 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
         return inject(BrandingEditorAdapter);
       case 'business-card':
         return inject(BusinessCardEditorAdapter);
+      case 'flyer':
+        return inject(FlyerEditorAdapter);
       default:
         return inject(BusinessPlanEditorAdapter);
     }
@@ -110,8 +114,14 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
   protected readonly saveState = signal<SaveState>('idle');
   protected readonly aiLoading = signal(false);
 
-  protected readonly pageFormat = this.adapter.pageFormat;
+  /**
+   * Format déclaré par l'adaptateur, remplacé au chargement quand le document
+   * ne le connaît qu'à l'exécution (un visuel est carré, story ou bannière
+   * selon le flyer ouvert).
+   */
+  protected readonly pageFormat = signal<PageFormat>(this.adapter.pageFormat);
   protected readonly multiPage = this.adapter.multiPage;
+  protected readonly fitRoot = this.adapter.fitRoot ?? false;
   protected readonly titleKey = this.adapter.i18nTitleKey;
 
   protected readonly activeSectionId = computed(() => this.selection()?.sectionId ?? null);
@@ -150,6 +160,7 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
       next: (doc) => {
         this.title.set(doc.title);
         this.fonts.set(doc.fonts);
+        if (doc.pageFormat) this.pageFormat.set(doc.pageFormat);
         this.model.setSections(doc.sections);
         this.history.reset();
         this.loading.set(false);

@@ -14,6 +14,7 @@ import {
   PublicationStatus,
 } from '../models/communication.model';
 import { SUPPORTED_NETWORKS } from '../services/Connectors/social-providers.config';
+import { getRequestLanguage } from '../utils/request-language';
 
 const promptService = new PromptService();
 const communicationService = new CommunicationService(promptService);
@@ -434,6 +435,76 @@ export const updatePublicationController = async (
 // ---------------------------------------------------------------------------
 // GET /project/communication/:projectId/flyer/:flyerId/image
 // ---------------------------------------------------------------------------
+/**
+ * PUT /project/communication/:projectId/flyer/:flyerId/html
+ * Sauvegarde du visuel retouché dans l'éditeur WYSIWYG.
+ */
+export const saveFlyerHtmlController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  const flyerId = req.params.flyerId as string;
+
+  try {
+    const html = (req.body?.html ?? '').toString();
+    if (!flyerId || !html.trim()) {
+      res.status(400).json({ message: 'Flyer ID and html are required' });
+      return;
+    }
+    const flyer = await communicationService.updateFlyerHtml(userId, projectId, flyerId, html);
+    if (!flyer) {
+      res.status(404).json({ message: 'Flyer not found' });
+      return;
+    }
+    res.status(200).json(flyer);
+  } catch (error: any) {
+    logger.error(`saveFlyerHtmlController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to save flyer' });
+  }
+};
+
+/**
+ * POST /project/communication/:projectId/flyer/:flyerId/ai-edit
+ * Retouche du visuel par l'IA, à partir d'une consigne en langue naturelle.
+ */
+export const aiEditFlyerController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  const flyerId = req.params.flyerId as string;
+
+  try {
+    const instruction = (req.body?.instruction ?? '').toString().trim();
+    if (!flyerId || !instruction) {
+      res.status(400).json({ message: 'Flyer ID and instruction are required' });
+      return;
+    }
+    const flyer = await communicationService.aiEditFlyer(
+      userId,
+      projectId,
+      flyerId,
+      instruction,
+      getRequestLanguage()
+    );
+    if (!flyer) {
+      res.status(404).json({ message: 'Flyer not found or AI edit failed' });
+      return;
+    }
+    res.status(200).json(flyer);
+  } catch (error: any) {
+    logger.error(`aiEditFlyerController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to AI-edit flyer' });
+  }
+};
+
 export const getFlyerImageController = async (
   req: CustomRequest,
   res: Response
