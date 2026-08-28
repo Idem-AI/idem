@@ -31,6 +31,7 @@ function mapRow(type: string, r: Record<string, unknown>): DatabaseRow {
     environment_id: r.environment_id ? Number(r.environment_id) : null,
     destination_id: r.destination_id ? Number(r.destination_id) : null,
     destination_type: (r.destination_type as string) ?? null,
+    project_id: r.project_id ? Number(r.project_id) : null,
   };
 }
 
@@ -81,6 +82,8 @@ export interface CreateDatabaseDto {
   image?: string;
   /** Optional explicit credential overrides keyed by column name. */
   credentials?: Record<string, string>;
+  /** The Project this belongs to, resolved server-side — never client-chosen. */
+  project_id?: number | null;
 }
 
 async function assertEnvironmentInTeam(teamId: number, environmentId: number): Promise<void> {
@@ -102,7 +105,16 @@ export async function createDatabase(
   await assertEnvironmentInTeam(teamId, dto.environment_id);
 
   const uuid = randomUUID();
-  const cols: string[] = ['uuid', 'name', 'image', 'status', 'environment_id', 'destination_id', 'destination_type'];
+  const cols: string[] = [
+    'uuid',
+    'name',
+    'image',
+    'status',
+    'environment_id',
+    'destination_id',
+    'destination_type',
+    'project_id',
+  ];
   const vals: unknown[] = [
     uuid,
     dto.name,
@@ -111,6 +123,7 @@ export async function createDatabase(
     dto.environment_id,
     dto.destination_id,
     STANDALONE_DOCKER_MODEL,
+    dto.project_id ?? null,
   ];
 
   for (const f of t.fields) {

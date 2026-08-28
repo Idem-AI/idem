@@ -7,6 +7,7 @@ export interface ProjectModel {
     branding?: {
       logo?: {
         svg: string;
+        iconSvg?: string;
         concept: string;
         colors?: string[];
         fonts?: string[];
@@ -14,6 +15,32 @@ export interface ProjectModel {
           lightBackground?: string;
           darkBackground?: string;
           monochrome?: string;
+          withText?: {
+            lightBackground?: string;
+            darkBackground?: string;
+            monochrome?: string;
+          };
+          iconOnly?: {
+            lightBackground?: string;
+            darkBackground?: string;
+            monochrome?: string;
+          };
+        };
+        // Hosted PNG asset URLs (SVG stays the source of truth). Preferred when
+        // referencing the logo by URL in generation contexts.
+        assetUrls?: {
+          primary?: string;
+          icon?: string;
+          withText?: {
+            lightBackground?: string;
+            darkBackground?: string;
+            monochrome?: string;
+          };
+          iconOnly?: {
+            lightBackground?: string;
+            darkBackground?: string;
+            monochrome?: string;
+          };
         };
       };
       colors?: {
@@ -121,4 +148,11 @@ export interface ChatRequest {
   };
   tools?: ToolInfo[];
   projectData?: ProjectModel;
+  /** User UI language ('en' | 'fr') so the AI generates content in the right language. */
+  language?: string;
+  /**
+   * Design-linter repair instructions, sent alongside a short human-readable
+   * message so the transcript stays clean while the model gets the full list.
+   */
+  qualityRepair?: string;
 }

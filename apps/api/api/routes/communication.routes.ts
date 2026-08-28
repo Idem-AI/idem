@@ -1,13 +1,19 @@
 import { Router } from 'express';
 import {
+  aiEditFlyerController,
+  createMomentController,
   extractContextController,
   generateCalendarStreamController,
   generateFlyerController,
   generateStrategyStreamController,
   getCommunicationController,
   getFlyerImageController,
+  getMomentSuggestionsController,
+  preparePublicationController,
   regenerateFlyerController,
+  saveFlyerHtmlController,
   updateCalendarItemController,
+  updatePublicationController,
   updateStrategyController,
 } from '../controllers/communication.controller';
 import { authenticate } from '../services/auth.service';
@@ -17,6 +23,13 @@ import { checkQuota } from '../middleware/quota.middleware';
 export const communicationRoutes = Router();
 
 const resource = 'communication';
+
+/** La retouche IA d'un visuel (HTML complet) dépasse le timeout par défaut. */
+const extendedTimeout = (req: any, res: any, next: any) => {
+  req.setTimeout(180000);
+  res.setTimeout(180000);
+  next();
+};
 
 /**
  * @openapi
@@ -151,6 +164,59 @@ communicationRoutes.put(
 
 /**
  * @openapi
+ * /project/communication/{projectId}/moments/suggestions:
+ *   get:
+ *     tags: [Communication]
+ *     summary: Suggest upcoming timely occasions (holidays, hiring, promos…) for the brand.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema: { type: string }
+ *       - in: query
+ *         name: force
+ *         schema: { type: boolean }
+ */
+communicationRoutes.get(
+  `/${resource}/:projectId/moments/suggestions`,
+  authenticate,
+  checkPolicyAcceptance,
+  checkQuota,
+  getMomentSuggestionsController
+);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/moments:
+ *   post:
+ *     tags: [Communication]
+ *     summary: Create a one-off "moment" (occasion-driven content) with a publishable caption.
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [occasion]
+ *             properties:
+ *               occasion: { type: string }
+ *               occasionDate: { type: string }
+ *               message: { type: string }
+ *               intent: { type: string }
+ *               channel: { type: string }
+ *               source: { type: string, enum: [suggestion, custom] }
+ */
+communicationRoutes.post(
+  `/${resource}/:projectId/moments`,
+  authenticate,
+  checkPolicyAcceptance,
+  checkQuota,
+  createMomentController
+);
+
+/**
+ * @openapi
  * /project/communication/{projectId}/flyer/{contentId}:
  *   post:
  *     tags: [Communication]
@@ -190,6 +256,92 @@ communicationRoutes.post(
   checkPolicyAcceptance,
   checkQuota,
   regenerateFlyerController
+);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/flyer/{flyerId}/html:
+ *   put:
+ *     tags: [Communication]
+ *     summary: Save the flyer HTML edited in the WYSIWYG editor.
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [html]
+ *             properties:
+ *               html: { type: string }
+ */
+communicationRoutes.put(
+  `/${resource}/:projectId/flyer/:flyerId/html`,
+  authenticate,
+  saveFlyerHtmlController
+);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/flyer/{flyerId}/ai-edit:
+ *   post:
+ *     tags: [Communication]
+ *     summary: AI-assisted retouch of one flyer, from a natural-language instruction.
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [instruction]
+ *             properties:
+ *               instruction: { type: string }
+ */
+communicationRoutes.post(
+  `/${resource}/:projectId/flyer/:flyerId/ai-edit`,
+  authenticate,
+  extendedTimeout,
+  checkPolicyAcceptance,
+  checkQuota,
+  aiEditFlyerController
+);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/publish:
+ *   post:
+ *     tags: [Communication]
+ *     summary: Prepare an assisted publication (caption + visual + composer deep link) and queue it.
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [contentId, network]
+ *             properties:
+ *               contentId: { type: string }
+ *               network: { type: string, enum: [linkedin, x] }
+ *               flyerId: { type: string }
+ *               scheduledFor: { type: string }
+ */
+communicationRoutes.post(
+  `/${resource}/:projectId/publish`,
+  authenticate,
+  preparePublicationController
+);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/publish/{publicationId}:
+ *   put:
+ *     tags: [Communication]
+ *     summary: Update a queued publication (schedule, mark as published, set external url).
+ *     security: [{ bearerAuth: [] }]
+ */
+communicationRoutes.put(
+  `/${resource}/:projectId/publish/:publicationId`,
+  authenticate,
+  updatePublicationController
 );
 
 /**

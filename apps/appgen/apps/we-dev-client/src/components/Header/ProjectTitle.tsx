@@ -3,6 +3,7 @@ import { getProjectById } from '../../api/persistence/db';
 import { useUrlData } from '../../hooks/useUrlData';
 import { ProjectModel } from '@/api/persistence/models/project.model';
 import ChatHistoryPanel from '@/components/ChatHistory/ChatHistoryPanel';
+import { ProjectLogo } from '@/components/ProjectLogo';
 import useChatHistoryStore from '@/stores/chatHistoryStore';
 
 export function ProjectTitle() {
@@ -24,17 +25,11 @@ export function ProjectTitle() {
   if (projectId) {
     return (
       <div className="flex items-center space-x-3 px-3 py-2">
-        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium">
-          <img
-            src={
-              projectData?.analysisResultModel?.branding?.logo?.variations?.iconOnly
-                ?.lightBackground || ''
-            }
-            alt=""
-            width={32}
-            height={32}
-          />
-        </div>
+        <ProjectLogo
+          logo={projectData?.analysisResultModel?.branding?.logo}
+          name={projectData?.name}
+          size={32}
+        />
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
             {projectData?.name || 'Project'}
@@ -53,10 +48,10 @@ export function ProjectTitle() {
     <div className="relative flex items-center px-2 py-1">
       <button
         onClick={() => setHistoryOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-lg px-3 py-1.5 hover:bg-white/10 dark:hover:bg-white/10 hover:bg-gray-100 transition-colors group"
+        className="flex items-center gap-2 rounded-lg px-3 py-1.5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors group"
       >
         <svg
-          className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors"
+          className="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -72,7 +67,7 @@ export function ProjectTitle() {
           <div className="text-sm font-medium text-gray-800 dark:text-white truncate max-w-[160px]">
             {activeSession?.title || 'Nouvelle conversation'}
           </div>
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-gray-500 dark:text-gray-400">
             {sessions.length > 0
               ? `${sessions.length} chat${sessions.length > 1 ? 's' : ''}`
               : 'Historique vide'}

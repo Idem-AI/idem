@@ -24,6 +24,54 @@
       },
       "cards": {
         "colors": "Couleurs"
+      },
+      "live": {
+        "title": "Création de vos logos en direct",
+        "subtitle": "Chaque concept est généré, audité par notre directeur artistique IA, puis corrigé si nécessaire — sous vos yeux.",
+        "selectHint": "Un logo vous plaît ? Cliquez dessus pour le choisir et arrêter le reste de la génération.",
+        "status": {
+          "pending": "En attente…",
+          "generating": "Génération du concept…",
+          "generated": "Concept généré",
+          "critiquing": "Contrôle qualité en cours…",
+          "revising": "Amélioration du logo…",
+          "final": "Validé",
+          "cancelled": "Annulé",
+          "error": "Échec de ce concept"
+        },
+        "critique": {
+          "title": "Avis du directeur artistique",
+          "revised": "Corrigé par l’agent"
+        },
+        "ambient": [
+          "Lecture de la palette et de la typographie du projet",
+          "Recensement des symboles courants du secteur",
+          "Composition des formes primaires",
+          "Ajustement des proportions sur la grille",
+          "Vérification de la lisibilité en petite taille",
+          "Simplification des courbes superflues",
+          "Contrôle du rendu sur fond clair et sur fond sombre",
+          "Nettoyage des tracés SVG",
+          "Comparaison avec les concepts déjà produits"
+        ],
+        "log": {
+          "brief": "Brief de marque transmis aux agents",
+          "started": "Concept {{concept}} : exploration lancée",
+          "generated": "Concept {{concept}} : tracé reçu",
+          "audit": "Concept {{concept}} : passage au contrôle qualité",
+          "auditPass": "Concept {{concept}} validé ({{score}}/100)",
+          "auditFail": "Concept {{concept}} à corriger ({{score}}/100)",
+          "revising": "Concept {{concept}} : correction en cours",
+          "revised": "Concept {{concept}} : correction appliquée",
+          "final": "Concept {{concept}} prêt",
+          "cancelled": "Concept {{concept}} abandonné",
+          "error": "Concept {{concept}} : échec de la génération"
+        }
+      },
+      "previous": {
+        "badge": "Série précédente",
+        "title": "Propositions précédentes",
+        "hint": "Vous préférez une proposition précédente ? Sélectionnez-la : la génération en cours s'arrêtera."
       }
     }
   }

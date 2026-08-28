@@ -1,0 +1,748 @@
+/* ═══════════════════════════════════════════════════════════════
+   Journey — pinned, scroll-driven story
+   ---------------------------------------------------------------
+   The host reserves the scroll length; .jn-stage is sticky, so the
+   story can only advance while it is pinned full-screen. All motion
+   is read from custom properties written per section by the rAF
+   loop in journey.ts:
+     --e   scene presence, 0 (out) → 1 (settled). Long dissolve.
+     --w   1 - e, for the scene's travel
+     --t   copy presence. Shorter, earlier window, so the outgoing
+           text is gone before the incoming text arrives.
+     --tw  1 - t, for the copy's travel
+     --s   direction, +1 when the section sits before the reading head
+   ═══════════════════════════════════════════════════════════════ */
+
+:host {
+  /* Scroll distance a section occupies. One gesture covers it whole, so this
+     is really about how the section reads on the scrollbar. */
+  --jn-step: 52svh;
+  /* Intro + 8 stages + outro. Set from the component at runtime too, so this
+     stays a fallback rather than a second source of truth. */
+  --jn-count: 10;
+
+  /* Dark is the default: this band is a lit room with screens in it. */
+  --jn-base: oklch(0.155 0.022 265);
+  --jn-surface: oklch(0.195 0.022 265);
+  --jn-surface-high: oklch(0.225 0.024 265);
+  --jn-ink: oklch(0.98 0.004 265);
+  --jn-ink-soft: oklch(0.87 0.008 265);
+  --jn-ink-mute: oklch(0.745 0.012 265);
+  --jn-line: oklch(1 0 0 / 0.1);
+  --jn-line-high: oklch(1 0 0 / 0.22);
+  --jn-mark: oklch(0.8 0.12 195);
+  --jn-done: oklch(0.79 0.15 155);
+  --jn-shade: oklch(0 0 0 / 0.9);
+  --jn-veil-1: oklch(0.13 0.02 265 / 0.94);
+  --jn-veil-2: oklch(0.13 0.02 265 / 0.76);
+  --jn-veil-3: oklch(0.13 0.02 265 / 0.48);
+  --jn-veil-floor: oklch(0.12 0.02 265 / 0.85);
+  --jn-ambient-filter: blur(9px) saturate(1.3) brightness(0.62);
+  --jn-ambient-opacity: 0.8;
+
+  display: block;
+  position: relative;
+  height: 100svh;
+  background: var(--jn-base);
+  color: var(--jn-ink);
+}
+
+/* Light: a daylit gallery. The ambient screenshot is bleached to a haze
+   instead of a glow, and the accent moves to brand blue, which is the only
+   one of the two that carries text contrast on a near-white ground. */
+:host-context(html.light) {
+  /* Lighter than the page around it, so the chapter still reads as one panel. */
+  --jn-base: oklch(0.99 0.003 265);
+  --jn-surface: oklch(1 0 0);
+  --jn-surface-high: oklch(0.955 0.004 265);
+  --jn-ink: oklch(0.22 0.025 265);
+  --jn-ink-soft: oklch(0.38 0.018 265);
+  --jn-ink-mute: oklch(0.46 0.016 265);
+  --jn-line: oklch(0.22 0.02 265 / 0.14);
+  --jn-line-high: oklch(0.22 0.02 265 / 0.32);
+  --jn-mark: oklch(0.45 0.18 264);
+  --jn-done: oklch(0.48 0.14 155);
+  --jn-shade: oklch(0.55 0.03 265 / 0.35);
+  --jn-veil-1: oklch(0.99 0.003 265 / 0.92);
+  --jn-veil-2: oklch(0.99 0.003 265 / 0.78);
+  --jn-veil-3: oklch(0.99 0.003 265 / 0.62);
+  --jn-veil-floor: oklch(0.985 0.004 265 / 0.85);
+  --jn-ambient-filter: blur(14px) saturate(0.4) brightness(2.7) contrast(0.45);
+  --jn-ambient-opacity: 0.26;
+}
+
+@media (min-width: 768px) {
+  :host {
+    --jn-step: 58svh;
+  }
+}
+
+/* Only the browser engine may claim the long scroll track. */
+:host(.jn-live) {
+  height: calc(100svh + (var(--jn-count) - 1) * var(--jn-step));
+}
+
+.jn-stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* ── Slides ─────────────────────────────────────────────────── */
+
+.jn-slide {
+  --e: 0; /* scene presence: backdrop + product */
+  --w: 1;
+  --t: 0; /* copy presence: shorter, earlier window */
+  --tw: 1;
+  --s: 1;
+
+  position: absolute;
+  inset: 0;
+  opacity: var(--e);
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate3d(0, calc(var(--s) * var(--w) * -6svh), 0)
+    scale(calc(1 - 0.03 * var(--w)));
+}
+
+.jn-slide.is-near {
+  visibility: visible;
+  will-change: transform, opacity;
+}
+
+.jn-slide.is-current {
+  pointer-events: auto;
+}
+
+/* Server-rendered and no-script: the opening section reads as a normal hero. */
+:host(:not(.jn-live)) .jn-slide:first-of-type {
+  --e: 1;
+  --w: 0;
+  --t: 1;
+  --tw: 0;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* ── Ambient backdrop ───────────────────────────────────────── */
+
+.jn-bg {
+  position: absolute;
+  inset: -6%;
+  overflow: hidden;
+}
+
+/* Blur a quarter-scale raster, then upscale it: same softness, a
+   sixteenth of the pixels to filter. */
+.jn-bg-img {
+  width: 25%;
+  height: 25%;
+  object-fit: cover;
+  object-position: center;
+  transform-origin: 0 0;
+  transform: scale(calc(4 + 0.2 * var(--w)));
+  filter: var(--jn-ambient-filter);
+  opacity: var(--jn-ambient-opacity);
+}
+
+.jn-veil {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(96deg, var(--jn-veil-1) 0%, var(--jn-veil-2) 44%, var(--jn-veil-3) 100%),
+    linear-gradient(0deg, var(--jn-veil-floor) 0%, transparent 40%);
+}
+
+.jn-veil-center {
+  background:
+    radial-gradient(110% 85% at 50% 42%, var(--jn-veil-3) 0%, var(--jn-veil-1) 100%),
+    linear-gradient(0deg, var(--jn-veil-floor) 0%, transparent 45%);
+}
+
+.jn-veil-done {
+  background:
+    radial-gradient(
+      70% 55% at 50% 55%,
+      color-mix(in oklch, var(--jn-done) 13%, transparent) 0%,
+      transparent 72%
+    ),
+    radial-gradient(110% 85% at 50% 42%, var(--jn-veil-3) 0%, var(--jn-veil-1) 100%),
+    linear-gradient(0deg, var(--jn-veil-floor) 0%, transparent 45%);
+}
+
+/* ── Slide shell ────────────────────────────────────────────── */
+
+.jn-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(1.25rem, 3vh, 2.25rem);
+  height: 100%;
+  width: 100%;
+  max-width: 92rem;
+  margin-inline: auto;
+  padding: clamp(4.75rem, 9vh, 6.25rem) clamp(1.25rem, 5vw, 3.25rem)
+    clamp(2.5rem, 6vh, 3.75rem);
+}
+
+.jn-slide-center .jn-inner {
+  align-items: center;
+  text-align: center;
+}
+
+.jn-copy,
+.jn-media,
+.jn-lede {
+  min-width: 0;
+}
+
+/* Copy rides the short window and travels a little further than the scene:
+   it clears the frame before the next section's copy fades in. */
+.jn-lede,
+.jn-copy {
+  opacity: var(--t);
+  transform: translate3d(0, calc(var(--s) * var(--tw) * -5svh), 0);
+}
+
+.jn-lede {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.9rem, 2.2vh, 1.6rem);
+}
+
+/* Product shot lags the plane slightly: that difference is what reads as depth. */
+.jn-media {
+  transform: translate3d(0, calc(var(--s) * var(--w) * 2svh), 0);
+}
+
+/* ── Opening & closing sections ─────────────────────────────── */
+
+.jn-hero {
+  margin: 0;
+  max-width: 26ch;
+  font-size: clamp(1.9rem, 4.6vw, 3.5rem);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+  color: var(--jn-ink);
+}
+
+.jn-hero-done {
+  max-width: 30ch;
+  font-size: clamp(1.6rem, 3.6vw, 2.75rem);
+}
+
+.jn-quote {
+  margin: 0;
+  max-width: 40ch;
+}
+
+.jn-quote p {
+  margin: 0;
+  font-size: clamp(1.05rem, 1.9vw, 1.4rem);
+  font-weight: 300;
+  line-height: 1.5;
+  color: var(--jn-ink-soft);
+  text-wrap: balance;
+}
+
+.jn-quote cite {
+  display: block;
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  font-style: normal;
+  color: var(--jn-ink-mute);
+}
+
+.jn-lead {
+  margin: 0;
+  max-width: 56ch;
+  font-size: clamp(1rem, 1.3vw, 1.18rem);
+  line-height: 1.7;
+  color: var(--jn-ink-mute);
+  text-wrap: pretty;
+}
+
+/* Anchored to the bottom edge so it never fights the centred lede. */
+.jn-hint {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(1.75rem, 5vh, 3rem);
+  opacity: var(--t);
+  transform: translate3d(-50%, calc(var(--s) * var(--tw) * -5svh), 0);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--jn-ink-mute);
+}
+
+.jn-hint-arrow {
+  width: 1.05rem;
+  height: 1.05rem;
+  animation: jn-drift 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@keyframes jn-drift {
+  0%,
+  100% {
+    transform: translateY(-2px);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(3px);
+    opacity: 1;
+  }
+}
+
+.jn-done-mark {
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in oklch, var(--jn-done) 40%, transparent);
+  background: color-mix(in oklch, var(--jn-done) 11%, transparent);
+  color: var(--jn-done);
+}
+
+.jn-done-mark svg {
+  width: 1.9rem;
+  height: 1.9rem;
+}
+
+/* ── Stage sections: copy beside the product ────────────────── */
+
+/* Narrow: copy and product stay grouped as one centred block (inherits the
+   flex column from .jn-inner). Wide: two columns. */
+.jn-inner-split {
+  gap: clamp(1.25rem, 3vh, 2rem);
+}
+
+@media (min-width: 1024px), (min-width: 720px) and (max-height: 620px) {
+  .jn-inner-split {
+    display: grid;
+    grid-template-columns: minmax(0, 18.5rem) minmax(0, 1fr);
+    align-items: center;
+    gap: clamp(1.75rem, 4vw, 3.5rem);
+  }
+
+  /* Let the frame grow until it runs out of either width or height. */
+  .jn-media {
+    width: min(100%, calc((100svh - 15rem) * 1.6));
+    margin-inline: auto;
+  }
+}
+
+@media (min-width: 1280px) {
+  .jn-inner-split {
+    grid-template-columns: minmax(0, 21rem) minmax(0, 1fr);
+  }
+}
+
+/* Reserve the rail lane. */
+@media (min-width: 1024px) {
+  .jn-inner {
+    padding-right: clamp(3.5rem, 4vw, 5rem);
+  }
+}
+
+.jn-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin: 0 0 0.7rem;
+}
+
+.jn-meta-index {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--jn-ink-mute);
+}
+
+.jn-meta-step {
+  font-size: 0.84rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--jn-mark);
+}
+
+.jn-title {
+  margin: 0 0 0.7rem;
+  font-size: clamp(1.45rem, 2.6vw, 2.3rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  color: var(--jn-ink);
+}
+
+.jn-caption {
+  margin: 0 0 clamp(1.1rem, 2.5vh, 1.6rem);
+  max-width: 44ch;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--jn-ink-soft);
+  text-wrap: pretty;
+}
+
+.jn-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.9rem 1.25rem;
+}
+
+.jn-cta {
+  text-decoration: none;
+}
+
+.jn-cta-arrow {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+
+.jn-price {
+  font-size: 0.85rem;
+  color: var(--jn-ink-mute);
+}
+
+/* ── Product frame ──────────────────────────────────────────── */
+
+.jn-media {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+  margin: 0;
+}
+
+.jn-frame {
+  position: relative;
+  width: 100%;
+  border-radius: 0.85rem;
+  overflow: hidden;
+  border: 1px solid var(--jn-line-high);
+  background: var(--jn-surface);
+  box-shadow:
+    0 28px 64px -26px var(--jn-shade),
+    0 6px 18px -12px var(--jn-shade);
+}
+
+.jn-frame-bar {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.85rem;
+  border-bottom: 1px solid var(--jn-line);
+  background: var(--jn-surface-high);
+}
+
+.jn-frame-path {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.01em;
+  color: var(--jn-ink-mute);
+}
+
+.jn-shots {
+  position: relative;
+  width: 100%;
+  max-height: 100%;
+  /* Slightly taller on phones, where a 16/10 slice of a desktop UI is thin. */
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  background: var(--jn-surface);
+  touch-action: pan-y;
+}
+
+@media (min-width: 640px) {
+  .jn-shots {
+    aspect-ratio: 16 / 10;
+  }
+}
+
+.jn-shot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  opacity: 0;
+  /* Outgoing shots fade in place; the reset of the offset is deferred until
+     they are invisible, so only the incoming shot appears to travel. */
+  transform: translate3d(calc(var(--dir, 1) * 3.5%), 0, 0) scale(1.02);
+  transition:
+    opacity 0.5s cubic-bezier(0.4, 0, 0.4, 1),
+    transform 0s linear 0.5s;
+}
+
+.jn-shots[data-dir='-1'] .jn-shot {
+  --dir: -1;
+}
+
+.jn-shot.is-active {
+  z-index: 1;
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  transition:
+    opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.jn-shot-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid var(--jn-line-high);
+  border-radius: 9999px;
+  background: color-mix(in oklch, var(--jn-surface) 78%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: var(--jn-ink);
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(-50%) scale(0.9);
+  transition:
+    opacity 0.28s var(--ease-out),
+    transform 0.28s var(--ease-out),
+    background 0.2s var(--ease-out);
+}
+
+.jn-shot-nav svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.jn-shot-prev {
+  left: 0.75rem;
+}
+
+.jn-shot-next {
+  right: 0.75rem;
+}
+
+.jn-frame:hover .jn-shot-nav,
+.jn-shot-nav:focus-visible {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+
+.jn-shot-nav:hover {
+  background: var(--jn-surface);
+  border-color: var(--jn-mark);
+  color: var(--jn-mark);
+}
+
+/* No hover to reveal them: keep the controls visible on touch. */
+@media (hover: none) {
+  .jn-shot-nav {
+    opacity: 0.8;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+.jn-shot-dots {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.85rem;
+}
+
+.jn-shot-dot {
+  position: relative;
+  width: 1.6rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.jn-shot-dot::after {
+  content: '';
+  position: absolute;
+  inset: calc(50% - 1.5px) 0 auto 0;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--jn-line-high);
+  transition: background 0.3s var(--ease-out);
+}
+
+.jn-shot-dot:hover::after {
+  background: var(--jn-ink-mute);
+}
+
+.jn-shot-dot.is-active::after {
+  background: var(--jn-mark);
+}
+
+/* ── Section rail ───────────────────────────────────────────── */
+
+.jn-rail {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  right: clamp(0.9rem, 2vw, 2rem);
+  transform: translateY(-50%);
+  display: none;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+@media (min-width: 1024px) {
+  .jn-rail {
+    display: flex;
+  }
+}
+
+.jn-rail-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 2.75rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.jn-rail-dot {
+  width: 1.35rem;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--jn-line-high);
+  transition:
+    width 0.4s var(--ease-out),
+    background 0.35s var(--ease-out);
+}
+
+.jn-rail-item.is-past .jn-rail-dot {
+  background: color-mix(in oklch, var(--jn-ink) 45%, transparent);
+}
+
+.jn-rail-item:hover .jn-rail-dot {
+  background: var(--jn-ink);
+}
+
+.jn-rail-item.is-active .jn-rail-dot {
+  width: 2.5rem;
+  background: var(--jn-mark);
+}
+
+.jn-rail-label {
+  position: absolute;
+  right: 100%;
+  margin-right: 0.75rem;
+  white-space: nowrap;
+  font-size: 0.76rem;
+  color: var(--jn-ink-mute);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(0.35rem);
+  transition:
+    opacity 0.3s var(--ease-out),
+    transform 0.3s var(--ease-out);
+}
+
+/* Named only on demand: the active section is already titled in the copy. */
+.jn-rail-item:hover .jn-rail-label,
+.jn-rail-item:focus-visible .jn-rail-label {
+  opacity: 1;
+  transform: none;
+  color: var(--jn-ink);
+}
+
+/* ── Progress ───────────────────────────────────────────────── */
+
+.jn-progress {
+  position: absolute;
+  z-index: 3;
+  inset: auto 0 0 0;
+  height: 2px;
+  background: color-mix(in oklch, var(--jn-ink) 8%, transparent);
+}
+
+.jn-progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--jn-mark);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+}
+
+/* ── Focus ──────────────────────────────────────────────────── */
+
+.jn-shot-nav:focus-visible,
+.jn-shot-dot:focus-visible,
+.jn-rail-item:focus-visible,
+.jn-cta:focus-visible {
+  outline: 2px solid var(--jn-mark);
+  outline-offset: 3px;
+}
+
+/* ── Short viewports (landscape phones, small laptops) ──────── */
+
+@media (max-height: 620px) {
+  .jn-inner {
+    gap: 0.9rem;
+    padding-block: 4.5rem 2rem;
+  }
+
+  .jn-caption {
+    margin-bottom: 0.9rem;
+  }
+
+  .jn-shot-dots {
+    margin-top: 0.5rem;
+  }
+}
+
+/* ── Reduced motion ─────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .jn-slide,
+  .jn-lede,
+  .jn-copy,
+  .jn-media {
+    transform: none;
+  }
+
+  .jn-hint {
+    transform: translateX(-50%);
+  }
+
+  .jn-bg-img {
+    transform: scale(4);
+  }
+
+  .jn-shot,
+  .jn-shot.is-active {
+    transform: none;
+    transition: opacity 0.2s linear;
+  }
+
+  .jn-shot-nav {
+    transition: opacity 0.2s linear;
+  }
+
+  .jn-hint-arrow {
+    animation: none;
+  }
+}

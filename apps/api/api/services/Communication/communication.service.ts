@@ -9,9 +9,17 @@ import {
   EditorialCalendar,
   Flyer,
   FlyerFormat,
+  MomentIdea,
+  MomentSuggestion,
+  Publication,
+  PublicationStatus,
+  SocialNetwork,
   StrategyBlock,
   TrendSignal,
+  VisualIntent,
 } from '../../models/communication.model';
+import { getSocialConnector } from '../Connectors/social-providers.config';
+import { AssistedShare } from '../Connectors/social-connector.interface';
 import { cacheService } from '../cache.service';
 
 interface DesignSeed {
@@ -26,16 +34,29 @@ interface DesignSeed {
   contentDensity: string;
 }
 import { GenericService } from '../common/generic.service';
-import { AIChatMessage, LLMProvider, PromptConfig, PromptService } from '../prompt.service';
-import { AI_CONFIG } from '../../config/ai.config';
+import { AIChatMessage, PromptConfig, PromptService } from '../prompt.service';
+import { AI_CONFIG, FeatureAIConfig } from '../../config/ai.config';
 import { AGENT_COMMUNICATION_STRATEGY_PROMPT } from './prompts/agent-communication-strategy.prompt';
 import { AGENT_CONTEXT_EXTRACTION_PROMPT } from './prompts/agent-context-extraction.prompt';
 import { AGENT_EDITORIAL_CALENDAR_PROMPT } from './prompts/agent-editorial-calendar.prompt';
 import { AGENT_FLYER_GENERATION_PROMPT } from './prompts/agent-flyer-generation.prompt';
 import { AGENT_IMAGE_BRIEF_PROMPT } from './prompts/agent-image-brief.prompt';
 import { AGENT_TRENDS_SUMMARY_PROMPT } from './prompts/agent-trends-summary.prompt';
+import { AGENT_MOMENT_SUGGESTIONS_PROMPT } from './prompts/agent-moment-suggestions.prompt';
+import { AGENT_MOMENT_CONTENT_PROMPT } from './prompts/agent-moment-content.prompt';
+import { buildFlyerEditPrompt } from './prompts/agent-flyer-edit.prompt';
 import { imageSourcingService, ImageBrief, SourcedImage } from './imageSourcing.service';
-import { flyerRenderService } from './flyerRender.service';
+import {
+  flyerRenderService,
+  minLogoWidthFor,
+  LogoDeclensionSet,
+  FORMAT_DIMENSIONS,
+} from './flyerRender.service';
+import { summarizeLogoForPrompt } from '../../utils/logo-context.util';
+import { sanitizeSectionHtml } from '../../utils/sanitize-section-html';
+import { markRevisionAsAI } from '../../utils/revision-context.util';
+import { withAiUsage } from '../../utils/ai-usage-context.util';
+import { SupportedLanguage } from '../../utils/request-language';
 
 export type CommunicationStreamEvent =
   | { type: 'step-start'; step: string }
@@ -43,10 +64,36 @@ export type CommunicationStreamEvent =
   | { type: 'complete'; payload: CommunicationModel }
   | { type: 'error'; message: string };
 
-const DEFAULT_PROMPT_CONFIG: PromptConfig = {
-  provider: AI_CONFIG.communication.default.provider,
-  modelName: AI_CONFIG.communication.default.modelName,
-};
+/**
+ * Traduit une entrée de `ai.config.ts` en `PromptConfig` complet.
+ *
+ * Les appels du module ne transmettaient jusqu'ici que `provider` + `modelName`
+ * de `communication.default`, en y greffant à la main les seuls `llmOptions`.
+ * Deux réglages décidés en config étaient donc perdus en chemin :
+ *  - le MODÈLE propre à la feature (la composition d'un visuel tournait sur le
+ *    modèle par défaut du module, pas sur celui qu'on croyait avoir choisi) ;
+ *  - les `fallbackModels` : un 503 « high demand » de Gemini faisait échouer la
+ *    génération sans seconde chance, alors que la chaîne de repli existait.
+ *
+ * Passer par cette fabrique rend l'oubli impossible : la config est la source
+ * unique, l'appelant ne décrit plus que ce qui lui est spécifique.
+ */
+const promptConfigFor = (
+  feature: FeatureAIConfig,
+  userId: string,
+  extra: Partial<PromptConfig> = {}
+): PromptConfig => ({
+  provider: feature.provider,
+  modelName: feature.modelName,
+  fallbackModels: feature.fallbackModels,
+  promptType: feature.promptType,
+  // Copie défensive : `runPrompt` traverse restrictionsService, qui écrête le
+  // budget — sur l'objet partagé, l'écrêtage contaminerait tous les appels
+  // suivants du process.
+  llmOptions: { ...feature.llmOptions },
+  userId,
+  ...extra,
+});
 
 /**
  * CommunicationService — modular, token-efficient pipeline:
@@ -165,7 +212,7 @@ export class CommunicationService extends GenericService {
 
     const start = Date.now();
     const raw = await this.promptService.runPrompt(
-      { ...DEFAULT_PROMPT_CONFIG, userId, promptType: 'communication_context' },
+      promptConfigFor(AI_CONFIG.communication.context, userId),
       messages
     );
     logger.info(`[Communication] Context extraction LLM complete`, {
@@ -183,6 +230,27 @@ export class CommunicationService extends GenericService {
       text: '#0f172a',
     };
     const typography = branding?.typography;
+
+    // Build a valid <img src> for the logo: prefer a hosted URL, and when we
+    // fall back to inline SVG markup, wrap it into a data-URI so the flyer step
+    // always receives a usable src rather than raw markup.
+    const logoSrc = (url?: string, svgFallback?: string): string | undefined => {
+      const hosted = (url || '').trim();
+      if (hosted) return hosted;
+      const svg = (svgFallback || '').trim();
+      if (!svg) return undefined;
+      if (
+        svg.startsWith('http://') ||
+        svg.startsWith('https://') ||
+        svg.startsWith('data:')
+      ) {
+        return svg;
+      }
+      if (svg.includes('<svg')) {
+        return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+      }
+      return svg;
+    };
 
     const context: CommunicationContext = {
       brandName: parsed.brandName || project.name,
@@ -204,23 +272,48 @@ export class CommunicationService extends GenericService {
         secondaryFont: typography?.secondaryFont,
         fontUrl: typography?.url,
         logoSvg: branding?.logo?.svg,
+        // Prefer the hosted PNG URLs (assetUrls); fall back to the inline SVG
+        // variations for legacy projects created before PNG assets existed.
+        // logoSrc() guarantees the flyer step always receives a usable <img src>
+        // (URL or data-URI), never raw SVG markup.
         logoUrls: branding?.logo
           ? {
-              primary: branding.logo.svg,
-              withText: branding.logo.variations?.withText
-                ? {
-                    light: branding.logo.variations.withText.lightBackground,
-                    dark: branding.logo.variations.withText.darkBackground,
-                    mono: branding.logo.variations.withText.monochrome,
-                  }
-                : undefined,
-              iconOnly: branding.logo.variations?.iconOnly
-                ? {
-                    light: branding.logo.variations.iconOnly.lightBackground,
-                    dark: branding.logo.variations.iconOnly.darkBackground,
-                    mono: branding.logo.variations.iconOnly.monochrome,
-                  }
-                : undefined,
+              primary:
+                logoSrc(branding.logo.assetUrls?.primary, branding.logo.svg) || branding.logo.svg,
+              withText:
+                branding.logo.assetUrls?.withText || branding.logo.variations?.withText
+                  ? {
+                      light: logoSrc(
+                        branding.logo.assetUrls?.withText?.lightBackground,
+                        branding.logo.variations?.withText?.lightBackground
+                      ),
+                      dark: logoSrc(
+                        branding.logo.assetUrls?.withText?.darkBackground,
+                        branding.logo.variations?.withText?.darkBackground
+                      ),
+                      mono: logoSrc(
+                        branding.logo.assetUrls?.withText?.monochrome,
+                        branding.logo.variations?.withText?.monochrome
+                      ),
+                    }
+                  : undefined,
+              iconOnly:
+                branding.logo.assetUrls?.iconOnly || branding.logo.variations?.iconOnly
+                  ? {
+                      light: logoSrc(
+                        branding.logo.assetUrls?.iconOnly?.lightBackground,
+                        branding.logo.variations?.iconOnly?.lightBackground
+                      ),
+                      dark: logoSrc(
+                        branding.logo.assetUrls?.iconOnly?.darkBackground,
+                        branding.logo.variations?.iconOnly?.darkBackground
+                      ),
+                      mono: logoSrc(
+                        branding.logo.assetUrls?.iconOnly?.monochrome,
+                        branding.logo.variations?.iconOnly?.monochrome
+                      ),
+                    }
+                  : undefined,
             }
           : undefined,
       },
@@ -272,12 +365,7 @@ export class CommunicationService extends GenericService {
     ];
 
     const raw = await this.promptService.runPrompt(
-      {
-        ...DEFAULT_PROMPT_CONFIG,
-        userId,
-        promptType: AI_CONFIG.communication.trends.promptType,
-        llmOptions: { ...AI_CONFIG.communication.trends.llmOptions },
-      },
+      promptConfigFor(AI_CONFIG.communication.trends, userId),
       messages
     );
     const parsed = this.safeJson<{ signals: Partial<TrendSignal>[] }>(raw);
@@ -346,7 +434,7 @@ export class CommunicationService extends GenericService {
       },
     ];
     const raw = await this.promptService.runPrompt(
-      { ...DEFAULT_PROMPT_CONFIG, userId, promptType: 'communication_strategy' },
+      promptConfigFor(AI_CONFIG.communication.strategy, userId),
       messages
     );
     const parsed = this.safeJson<{ summary: string; blocks: StrategyBlock[] }>(raw);
@@ -441,7 +529,7 @@ export class CommunicationService extends GenericService {
       },
     ];
     const raw = await this.promptService.runPrompt(
-      { ...DEFAULT_PROMPT_CONFIG, userId, promptType: 'communication_calendar' },
+      promptConfigFor(AI_CONFIG.communication.calendar, userId),
       messages
     );
     const parsed = this.safeJson<EditorialCalendar>(raw);
@@ -478,8 +566,11 @@ export class CommunicationService extends GenericService {
     const format = opts.format || 'square';
     logger.info(`[Communication] Generating flyer`, { userId, projectId, contentId, format });
     const communication = await this.getCommunication(userId, projectId);
-    const calendar = communication?.calendar;
-    const content = calendar?.items.find((i) => i.id === contentId);
+    // A visual can be requested for a calendar item OR a one-off moment — both are
+    // ContentIdea, so the whole composition pipeline is shared.
+    const content =
+      communication?.calendar?.items.find((i) => i.id === contentId) ||
+      communication?.moments?.find((m) => m.id === contentId);
     if (!content) {
       logger.error(`[Communication] Content idea not found`, { contentId });
       throw new Error(`Content idea not found: ${contentId}`);
@@ -517,26 +608,30 @@ export class CommunicationService extends GenericService {
 
     // ---- Step 5c: composition (copy + HTML coherent with the image) --------
     const seed = this.generateDesignSeed();
-    let systemPrompt = AGENT_FLYER_GENERATION_PROMPT.replace(/\{\{format\}\}/g, format).replace(
-      /\{\{DESIGN_SEED\}\}/g,
-      JSON.stringify(seed, null, 2)
+    const intent = this.inferVisualIntent(content);
+    // Un SEUL passage de substitution, piloté par une table exhaustive : les
+    // remplacements en cascade laissaient passer des marqueurs non résolus
+    // ({{DESIGN_SEED.archetype}}, {{IMAGE_DOMINANT_COLORS}}…) que le modèle
+    // recevait littéralement — au mieux du bruit, au pire une consigne illisible
+    // là où on croyait lui donner la charte.
+    const systemPrompt = this.applyPlaceholders(
+      AGENT_FLYER_GENERATION_PROMPT,
+      this.buildFlyerPlaceholders(context, seed, intent, format, sourced)
     );
 
-    // Inject brand colors and fonts into the system prompt
-    systemPrompt = systemPrompt
-      .replace(/\{\{BRAND\.colors\.primary\}\}/g, context.branding.primary)
-      .replace(/\{\{BRAND\.colors\.text\}\}/g, context.branding.text || '#000000')
-      .replace(/\{\{BRAND\.branding\.fontUrl\}\}/g, context.branding.fontUrl || 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap')
-      .replace(/\{\{BRAND\.branding\.primaryFont\}\}/g, context.branding.primaryFont || 'Montserrat')
-      .replace(/\{\{BRAND\.branding\.secondaryFont\}\}/g, context.branding.secondaryFont || 'Montserrat');
+    // Strip the heavy inline SVG markup before sending branding to the LLM: it
+    // bloats the payload and tempts the model into pasting raw SVG. The resolved
+    // logoUrls remain available (both in the prompt and here).
+    const { logoSvg, ...brandingForLlm } = context.branding;
 
     const userPayload: Record<string, unknown> = {
       BRAND: {
         name: context.brandName,
         tone: context.tone,
-        branding: context.branding, // Detailed branding including logoUrls
-        colors: context.branding, // Legacy path for color placeholders
+        branding: brandingForLlm, // Detailed branding including logoUrls (no raw SVG)
+        colors: brandingForLlm, // Legacy path for color placeholders
       },
+      VISUAL_INTENT: intent,
       DESIGN_SEED: seed,
       CONTENT_IDEA: {
         title: content.title,
@@ -544,7 +639,12 @@ export class CommunicationService extends GenericService {
         description: content.description,
         format: content.format,
         channel: content.channel,
-        callToAction: content.callToAction,
+        intent,
+        // `callToAction` n'est VOLONTAIREMENT pas transmis : c'est le texte de la
+        // légende du post, pas un élément du visuel. Tant qu'on l'envoyait ici,
+        // le modèle le prenait pour une consigne de composition et dessinait un
+        // bouton sur chaque visuel — d'autant plus que la valeur par défaut du
+        // calendrier est « Learn more ». Le visuel ne porte aucun CTA.
         hashtags: content.hashtags,
       },
       FORMAT: format,
@@ -557,12 +657,6 @@ export class CommunicationService extends GenericService {
       userPayload.IMAGE_LUMINANCE = sourced.analysis.luminance;
       userPayload.IMAGE_COMPOSITION = sourced.analysis.composition;
       userPayload.IMAGE_DETECTED_TEXT = sourced.analysis.detectedText;
-
-      // Also inject image metadata into the system prompt for better AI context
-      systemPrompt = systemPrompt
-        .replace(/\{\{IMAGE_URL\}\}/g, sourced.url)
-        .replace(/\{\{IMAGE_LUMINANCE\}\}/g, sourced.analysis.luminance)
-        .replace(/\{\{IMAGE_COMPOSITION\}\}/g, sourced.analysis.composition || 'balanced');
     }
 
     const messages: AIChatMessage[] = [
@@ -571,21 +665,21 @@ export class CommunicationService extends GenericService {
     ];
 
     const raw = await this.promptService.runPrompt(
-      {
-        ...DEFAULT_PROMPT_CONFIG,
-        userId,
-        promptType: AI_CONFIG.communication.flyer.promptType,
-        llmOptions: { ...AI_CONFIG.communication.flyer.llmOptions },
-      },
+      promptConfigFor(AI_CONFIG.communication.flyer, userId, {
+        // Budget délibéré (cf. ai.config.ts) : le raisonnement de direction
+        // artistique est décompté de maxOutputTokens, et un HTML tronqué ne
+        // produit aucun visuel. Le plafond global reste actif ailleurs.
+        bypassOutputTokenCap: true,
+      }),
       messages
     );
     const parsed = this.safeJson<Partial<Flyer>>(raw) ?? {};
 
     let html =
       typeof parsed.html === 'string'
-        ? parsed.html
+        ? this.enforceBrandTypography(this.stripCtaButtons(parsed.html), context)
         : this.fallbackFlyerHtml(content, context, format, sourced?.url);
-    
+
     // Note: We no longer need the post-processing regex replace for {{IMAGE_URL}} 
     // because we correctly populate the system prompt now. The AI will see 
     // the real URL. We keep the logic clean and rely on the prompt quality.
@@ -595,17 +689,23 @@ export class CommunicationService extends GenericService {
     const apiUrl = process.env.API_URL || `http://localhost:${port}`;
     const renderedUrl = `${apiUrl}/project/communication/${projectId}/flyer/${flyerId}/image`;
 
+    // Aucun CTA sur le visuel, quelle que soit l'intention. L'ancienne règle
+    // « CTA si promotion/recrutement » laissait passer un bouton sur une part
+    // des visuels ; or un post social n'est pas une landing page, et le bouton
+    // dessiné dans une image n'est même pas cliquable. L'appel à l'action vit
+    // dans la LÉGENDE (`content.callToAction`, publiée avec le post).
     const flyer: Flyer = {
       id: flyerId,
       contentId,
       format,
+      intent,
+      logoUsed: (parsed as Partial<Flyer>).logoUsed,
       concept: parsed.concept || '',
       layoutNotes: parsed.layoutNotes || '',
       marketingText: {
         headline: parsed.marketingText?.headline || content.title,
         subheadline: parsed.marketingText?.subheadline,
         body: parsed.marketingText?.body || content.description,
-        cta: parsed.marketingText?.cta || content.callToAction,
       },
       html,
       imageUrl: renderedUrl,
@@ -619,19 +719,21 @@ export class CommunicationService extends GenericService {
 
     await cacheService.set(cacheKey, flyer, { prefix: 'ai', ttl: 7200 });
 
-    // Persist the flyer AND link its id on the ContentIdea.
+    // Persist the flyer AND link its id on the owning ContentIdea, whether it
+    // lives in the calendar or in the moments list.
     await this.patchCommunication(userId, projectId, (existing) => {
       const nextFlyers = [...(existing.flyers || []), flyer];
+      const linkFlyer = <T extends ContentIdea>(it: T): T =>
+        it.id === contentId ? { ...it, flyerIds: [...(it.flyerIds || []), flyer.id] } : it;
       const nextCalendar = existing.calendar
         ? {
             ...existing.calendar,
-            items: existing.calendar.items.map((it) =>
-              it.id === contentId ? { ...it, flyerIds: [...(it.flyerIds || []), flyer.id] } : it
-            ),
+            items: existing.calendar.items.map(linkFlyer),
             updatedAt: new Date(),
           }
         : existing.calendar;
-      return { ...existing, flyers: nextFlyers, calendar: nextCalendar };
+      const nextMoments = existing.moments ? existing.moments.map(linkFlyer) : existing.moments;
+      return { ...existing, flyers: nextFlyers, calendar: nextCalendar, moments: nextMoments };
     });
 
     return flyer;
@@ -647,11 +749,317 @@ export class CommunicationService extends GenericService {
   }
 
   // --------------------------------------------------------------------------
+  // 5bis. Moments — timely, one-off, occasion-driven content
+  // --------------------------------------------------------------------------
+
+  /**
+   * Suggest a short list of upcoming occasions relevant to the brand (national
+   * holidays of the project country, awareness days, hiring, anniversary, promos).
+   * Cached per project + month so we never pay for it twice in a billing cycle.
+   */
+  async getMomentSuggestions(
+    userId: string,
+    projectId: string,
+    opts: { force?: boolean } = {}
+  ): Promise<MomentSuggestion[]> {
+    const context = await this.extractContext(userId, projectId);
+    const project = await this.getProject(projectId, userId);
+    const country = (project as any)?.additionalInfos?.country || '';
+    const today = new Date().toISOString().slice(0, 10);
+
+    const cacheKey = cacheService.generateAIKey(
+      'communication-moment-suggestions',
+      userId,
+      projectId,
+      this.shortHash({ businessType: context.businessType, country, month: today.slice(0, 7) })
+    );
+    if (!opts.force) {
+      const cached = await cacheService.get<MomentSuggestion[]>(cacheKey, { prefix: 'ai', ttl: 7200 });
+      if (cached && cached.length) return cached;
+    }
+
+    const messages: AIChatMessage[] = [
+      { role: 'system', content: AGENT_MOMENT_SUGGESTIONS_PROMPT },
+      {
+        role: 'user',
+        content: JSON.stringify({
+          businessType: context.businessType,
+          keywords: context.keywords,
+          tone: context.tone,
+          targetAudience: context.targetAudience,
+          country,
+          today,
+        }),
+      },
+    ];
+    const raw = await this.promptService.runPrompt(
+      promptConfigFor(AI_CONFIG.communication.momentSuggestions, userId),
+      messages
+    );
+    const parsed = this.safeJson<{ suggestions: Partial<MomentSuggestion>[] }>(raw);
+    const suggestions: MomentSuggestion[] = (parsed?.suggestions || [])
+      .filter((s) => s && s.occasion)
+      .slice(0, 8)
+      .map((s, idx) => ({
+        id: s.id || `moment-sugg-${idx + 1}`,
+        occasion: s.occasion!,
+        date: s.date,
+        intent: (s.intent as VisualIntent) || 'awareness',
+        angle: s.angle || '',
+        why: s.why,
+        emoji: s.emoji,
+      }));
+
+    await cacheService.set(cacheKey, suggestions, { prefix: 'ai', ttl: 7200 });
+    await this.patchCommunication(userId, projectId, (existing) => ({
+      ...existing,
+      momentSuggestions: suggestions,
+    }));
+    return suggestions;
+  }
+
+  /**
+   * Turn an occasion (from a suggestion or a free-form request) into a stored
+   * MomentIdea with a ready-to-publish caption. The visual is generated later,
+   * on demand, through the shared generateFlyer() pipeline (a moment IS a
+   * ContentIdea, so it reuses everything).
+   */
+  async createMoment(
+    userId: string,
+    projectId: string,
+    input: {
+      occasion: string;
+      occasionDate?: string;
+      message?: string;
+      intent?: VisualIntent;
+      channel?: ContentIdea['channel'];
+      source?: 'suggestion' | 'custom';
+    }
+  ): Promise<MomentIdea> {
+    if (!input.occasion || !input.occasion.trim()) {
+      throw new Error('An occasion is required to create a moment');
+    }
+    const context = await this.extractContext(userId, projectId);
+    const intent =
+      input.intent || this.inferVisualIntent({ title: input.occasion, description: input.message });
+    const channel = input.channel || (context.channels?.[0] as ContentIdea['channel']) || 'linkedin';
+
+    const systemPrompt = AGENT_MOMENT_CONTENT_PROMPT.replace(
+      /\{\{LANGUAGE\}\}/g,
+      context.language || 'fr'
+    );
+    const messages: AIChatMessage[] = [
+      { role: 'system', content: systemPrompt },
+      {
+        role: 'user',
+        content: JSON.stringify({
+          BRAND: {
+            name: context.brandName,
+            businessType: context.businessType,
+            tone: context.tone,
+            keywords: context.keywords,
+            targetAudience: context.targetAudience,
+            language: context.language,
+          },
+          OCCASION: { label: input.occasion, date: input.occasionDate },
+          MESSAGE: input.message || '',
+          INTENT: intent,
+          CHANNEL: channel,
+        }),
+      },
+    ];
+    const raw = await this.promptService.runPrompt(
+      promptConfigFor(AI_CONFIG.communication.moment, userId),
+      messages
+    );
+    const parsed =
+      this.safeJson<{
+        title: string;
+        hook: string;
+        description: string;
+        caption: string;
+        hashtags: string[];
+        callToAction: string;
+      }>(raw) ?? ({} as Record<string, never>);
+
+    const moment: MomentIdea = {
+      id: `moment-${Date.now().toString(36)}-${crypto.randomInt(1e6).toString(36)}`,
+      title: parsed.title || input.occasion,
+      hook: parsed.hook || '',
+      description: parsed.description || input.message || '',
+      caption: parsed.caption || '',
+      format: 'post',
+      channel,
+      scheduledFor: input.occasionDate || new Date().toISOString().slice(0, 10),
+      week: 0,
+      hashtags: Array.isArray(parsed.hashtags) ? parsed.hashtags.slice(0, 6) : [],
+      callToAction: parsed.callToAction || '',
+      intent,
+      status: 'idea',
+      flyerIds: [],
+      occasion: input.occasion,
+      occasionDate: input.occasionDate,
+      source: input.source || 'custom',
+    };
+
+    await this.patchCommunication(userId, projectId, (existing) => ({
+      ...existing,
+      moments: [...(existing.moments || []), moment],
+    }));
+    return moment;
+  }
+
+  // --------------------------------------------------------------------------
+  // 5ter. Publishing (assisted — no OAuth in phase 1)
+  // --------------------------------------------------------------------------
+
+  /**
+   * Prepare an assisted publication for a content/moment on a given network:
+   * builds the caption, resolves the visual, produces a deep link to the network
+   * composer, and stores a Publication in the queue. Returns the record plus the
+   * assisted-share payload the UI needs (deep link + caption + image).
+   */
+  async preparePublication(
+    userId: string,
+    projectId: string,
+    input: { contentId: string; network: SocialNetwork; flyerId?: string; scheduledFor?: string }
+  ): Promise<{ publication: Publication; share: AssistedShare }> {
+    const communication = await this.getCommunication(userId, projectId);
+    const content =
+      communication?.calendar?.items.find((i) => i.id === input.contentId) ||
+      communication?.moments?.find((m) => m.id === input.contentId);
+    if (!content) {
+      throw new Error(`Content not found: ${input.contentId}`);
+    }
+
+    const connector = getSocialConnector(input.network);
+    const { caption, hashtags } = this.buildPublishCaption(content);
+    const flyer = input.flyerId
+      ? communication?.flyers?.find((f) => f.id === input.flyerId)
+      : communication?.flyers?.filter((f) => f.contentId === content.id).slice(-1)[0];
+    const imageUrl = flyer?.imageUrl;
+
+    const share = connector.buildAssistedShare({ caption, hashtags, imageUrl });
+
+    const publication: Publication = {
+      id: `pub-${Date.now().toString(36)}-${crypto.randomInt(1e6).toString(36)}`,
+      contentId: content.id,
+      network: input.network,
+      status: input.scheduledFor ? 'scheduled' : 'draft',
+      caption,
+      hashtags,
+      imageUrl,
+      flyerId: flyer?.id,
+      shareUrl: share.shareUrl,
+      scheduledFor: input.scheduledFor,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    await this.patchCommunication(userId, projectId, (existing) => {
+      const withPub = { ...existing, publications: [...(existing.publications || []), publication] };
+      return input.scheduledFor
+        ? this.reflectContentStatus(withPub, content.id, 'scheduled')
+        : withPub;
+    });
+
+    return { publication, share };
+  }
+
+  /** Update a queued publication (schedule, mark published, set external url). */
+  async updatePublication(
+    userId: string,
+    projectId: string,
+    publicationId: string,
+    patch: { status?: PublicationStatus; externalUrl?: string; scheduledFor?: string }
+  ): Promise<Publication | null> {
+    let updated: Publication | null = null;
+    await this.patchCommunication(userId, projectId, (existing) => {
+      const publications = (existing.publications || []).map((p) => {
+        if (p.id !== publicationId) return p;
+        updated = {
+          ...p,
+          ...patch,
+          publishedAt:
+            patch.status === 'published'
+              ? p.publishedAt || new Date().toISOString()
+              : p.publishedAt,
+          updatedAt: new Date(),
+        };
+        return updated;
+      });
+      let next: CommunicationModel = { ...existing, publications };
+      if (updated) {
+        next = this.reflectContentStatus(next, updated.contentId, this.contentStatusFor(updated.status));
+      }
+      return next;
+    });
+    return updated;
+  }
+
+  /** Compose the caption to publish for a content idea or moment. */
+  private buildPublishCaption(content: ContentIdea): { caption: string; hashtags: string[] } {
+    const hashtags = Array.isArray(content.hashtags) ? content.hashtags : [];
+    const momentCaption = (content as MomentIdea).caption;
+    let base =
+      momentCaption && momentCaption.trim()
+        ? momentCaption.trim()
+        : [content.hook, content.description].filter(Boolean).join('\n\n');
+    const tagLine = hashtags.map((t) => `#${String(t).replace(/^#/, '')}`).join(' ');
+    if (tagLine && !base.includes('#')) {
+      base = `${base}\n\n${tagLine}`;
+    }
+    return { caption: base, hashtags };
+  }
+
+  private contentStatusFor(status: PublicationStatus): ContentIdea['status'] {
+    if (status === 'published') return 'published';
+    if (status === 'scheduled') return 'scheduled';
+    return 'approved';
+  }
+
+  /** Reflect a publication status onto the owning content (calendar or moment). */
+  private reflectContentStatus(
+    model: CommunicationModel,
+    contentId: string,
+    status: ContentIdea['status']
+  ): CommunicationModel {
+    const apply = <T extends ContentIdea>(items?: T[]): T[] | undefined =>
+      items?.map((it) => (it.id === contentId ? { ...it, status } : it));
+    return {
+      ...model,
+      calendar: model.calendar
+        ? { ...model.calendar, items: apply(model.calendar.items) || model.calendar.items }
+        : model.calendar,
+      moments: apply(model.moments),
+    };
+  }
+
+  // --------------------------------------------------------------------------
   // 6. Get Flyer Image (On-the-fly rendering + cache)
   // --------------------------------------------------------------------------
 
+  /**
+   * Clé du PNG rendu. `v2` : le rendu corrige désormais la déclinaison du logo
+   * par mesure du contraste. Sans changer la clé, les PNG déjà en cache (24 h)
+   * resteraient servis avec l'ancien logo illisible.
+   */
+  private flyerImageCacheKey(projectId: string, flyerId: string): string {
+    return cacheService.generateAIKey('flyer-img', 'public', projectId, `${flyerId}:v2`);
+  }
+
+  /**
+   * Oublie le PNG rendu d'un visuel. À appeler après TOUTE modification de son
+   * HTML : `imageUrl` ne change jamais (c'est l'URL de l'endpoint de rendu), donc
+   * sans cette invalidation l'utilisateur continuerait de voir l'ancienne image
+   * pendant 24 h, ses retouches apparemment perdues.
+   */
+  private async invalidateFlyerImage(projectId: string, flyerId: string): Promise<void> {
+    await cacheService.delete(this.flyerImageCacheKey(projectId, flyerId), { prefix: 'flyer' });
+  }
+
   async getFlyerImage(projectId: string, flyerId: string): Promise<Buffer> {
-    const cacheKey = cacheService.generateAIKey('flyer-img', 'public', projectId, flyerId);
+    const cacheKey = this.flyerImageCacheKey(projectId, flyerId);
     const cachedBase64 = await cacheService.get<string>(cacheKey, { prefix: 'flyer', ttl: 86400 });
     if (cachedBase64) {
       return Buffer.from(cachedBase64, 'base64');
@@ -674,10 +1082,155 @@ export class CommunicationService extends GenericService {
     const branding = (project.analysisResultModel as any)?.branding;
     const typography = branding?.typography;
 
-    const buffer = await flyerRenderService.renderFlyerToPng(flyer.html, flyer.format, typography);
+    // Le logo réellement placé par le modèle, plus la table des déclinaisons :
+    // le rendu doit pouvoir RECONNAÎTRE le logo (mise à l'échelle) et le
+    // REMPLACER par la bonne polarité si le contraste mesuré est insuffisant.
+    const logoSummary = summarizeLogoForPrompt(branding?.logo);
+    const logos: LogoDeclensionSet = {
+      used: typeof flyer.logoUsed === 'string' ? flyer.logoUsed : undefined,
+      primary: logoSummary?.urls.primary,
+      icon: logoSummary?.urls.icon,
+      withText: logoSummary?.urls.withText,
+      iconOnly: logoSummary?.urls.iconOnly,
+    };
+
+    const buffer = await flyerRenderService.renderFlyerToPng(
+      flyer.html,
+      flyer.format,
+      typography,
+      logos
+    );
     await cacheService.set(cacheKey, buffer.toString('base64'), { prefix: 'flyer', ttl: 86400 });
 
     return buffer;
+  }
+
+  // --------------------------------------------------------------------------
+  // 7. Flyer editing (WYSIWYG editor + AI retouch)
+  //
+  // Même logique que les trois documents (business plan, pitch deck, charte) :
+  // le HTML est la source de vérité, l'éditeur le renvoie tel quel, et l'IA
+  // retouche la même chaîne. La seule différence tient au support : un visuel
+  // n'est pas une section de `analysisResultModel`, il vit dans
+  // `communication.flyers[]` et son rendu est un PNG produit à la demande — d'où
+  // l'invalidation du cache image à chaque écriture, en lieu et place du cache
+  // PDF invalidé par `SectionEditingService`.
+  // --------------------------------------------------------------------------
+
+  /** Un visuel du projet, par son id. */
+  async getFlyer(userId: string, projectId: string, flyerId: string): Promise<Flyer | null> {
+    const communication = await this.getCommunication(userId, projectId);
+    return communication?.flyers?.find((f) => f.id === flyerId) ?? null;
+  }
+
+  /** Sauvegarde le HTML retouché à la main dans l'éditeur WYSIWYG. */
+  async updateFlyerHtml(
+    userId: string,
+    projectId: string,
+    flyerId: string,
+    html: string
+  ): Promise<Flyer | null> {
+    const cleaned = sanitizeSectionHtml(html);
+    if (!cleaned) {
+      logger.warn(`[Communication] Refusing to save an empty HTML for flyer ${flyerId}`);
+      return null;
+    }
+
+    const existingFlyer = await this.getFlyer(userId, projectId, flyerId);
+    if (!existingFlyer) {
+      logger.warn(`[Communication] Flyer ${flyerId} not found on updateFlyerHtml`);
+      return null;
+    }
+
+    const patched = await this.patchCommunication(userId, projectId, (existing) => ({
+      ...existing,
+      flyers: (existing.flyers || []).map((f) =>
+        f.id === flyerId ? { ...f, html: cleaned, updatedAt: new Date() } : f
+      ),
+    }));
+    const updated = patched?.flyers?.find((f) => f.id === flyerId) ?? null;
+    if (!updated) {
+      logger.warn(`[Communication] Failed to persist flyer ${flyerId}`);
+      return null;
+    }
+
+    await this.invalidateFlyerImage(projectId, flyerId);
+    logger.info(`[Communication] Flyer ${flyerId} updated from the editor`, { projectId });
+    return updated;
+  }
+
+  /** Retouche IA d'un visuel : renvoie le visuel modifié, déjà persisté. */
+  async aiEditFlyer(
+    userId: string,
+    projectId: string,
+    flyerId: string,
+    instruction: string,
+    language?: SupportedLanguage
+  ): Promise<Flyer | null> {
+    const communication = await this.getCommunication(userId, projectId);
+    const flyer = communication?.flyers?.find((f) => f.id === flyerId);
+    if (!flyer?.html) {
+      logger.warn(`[Communication] Flyer ${flyerId} not found (or without HTML) on aiEditFlyer`);
+      return null;
+    }
+
+    const context = communication?.context ?? (await this.extractContext(userId, projectId));
+    const dims = FORMAT_DIMENSIONS[flyer.format] || FORMAT_DIMENSIONS.square;
+    // Le SVG brut du logo alourdit la charge utile et invite le modèle à le
+    // recopier dans le HTML : seules les URLs de déclinaisons lui servent.
+    const { logoSvg, logoUrls, ...brandForPrompt } = context.branding;
+
+    const prompt = buildFlyerEditPrompt({
+      instruction,
+      currentHtml: flyer.html,
+      format: flyer.format,
+      width: dims.width,
+      height: dims.height,
+      minLogoWidth: minLogoWidthFor(flyer.format),
+      brandName: context.brandName,
+      brandJson: JSON.stringify(brandForPrompt),
+      logoUrlsJson: JSON.stringify(logoUrls ?? {}),
+      intent: flyer.intent,
+      imageContext: flyer.imageAnalysis
+        ? `${flyer.imageAnalysis.subject} (${flyer.imageAnalysis.mood}, ${flyer.imageAnalysis.luminance})`
+        : undefined,
+    });
+
+    const raw = await withAiUsage(
+      { userId, projectId, feature: 'communication', element: flyerId, operation: 'edit' },
+      () =>
+        this.promptService.runPrompt(
+          promptConfigFor(AI_CONFIG.communication.flyer, userId, {
+            language,
+            // Même arbitrage qu'à la composition : le raisonnement de direction
+            // artistique se décompte de maxOutputTokens, et un HTML tronqué ne
+            // produit aucun visuel.
+            bypassOutputTokenCap: true,
+          }),
+          [{ role: 'user', content: prompt }]
+        )
+    );
+
+    // La sortie est du HTML brut (pas de JSON) : un visuel entier transporté
+    // dans une chaîne JSON se perd tout entier sur une seule guillemet mal
+    // échappée, et l'édition n'a rien d'autre à renvoyer que le HTML.
+    const edited = sanitizeSectionHtml(
+      this.enforceBrandTypography(
+        this.stripCtaButtons(this.promptService.getCleanAIText(raw)),
+        context
+      )
+    );
+    if (!edited || !edited.startsWith('<')) {
+      logger.warn(`[Communication] AI edit returned no usable HTML for flyer ${flyerId}`);
+      return null;
+    }
+
+    markRevisionAsAI(`Édition IA – visuel ${flyerId}: ${instruction}`.slice(0, 280));
+    const updated = await this.updateFlyerHtml(userId, projectId, flyerId, edited);
+    if (updated) {
+      logger.info(`[Communication] Flyer ${flyerId} AI-edited`, { projectId, instruction });
+    }
+    return updated;
   }
 
   // --------------------------------------------------------------------------
@@ -748,6 +1301,20 @@ export class CommunicationService extends GenericService {
   }
 
   private hashProjectForContext(project: ProjectModel): string {
+    const logo = project.analysisResultModel?.branding?.logo as any;
+    // Fingerprint the logo declensions so that generating logos AFTER the first
+    // context extraction invalidates the cache and re-runs extraction — otherwise
+    // context.branding.logoUrls stays empty and visuals never receive the logo.
+    const logoFingerprint = logo
+      ? {
+          primary: logo.assetUrls?.primary,
+          icon: logo.assetUrls?.icon,
+          withText: logo.assetUrls?.withText,
+          iconOnly: logo.assetUrls?.iconOnly,
+          hasVariations: !!logo.variations,
+          svgLen: (logo.svg || '').length,
+        }
+      : null;
     return crypto
       .createHash('sha256')
       .update(
@@ -759,10 +1326,138 @@ export class CommunicationService extends GenericService {
           targets: project.targets,
           colors: project.analysisResultModel?.branding?.colors?.colors,
           typo: project.analysisResultModel?.branding?.typography,
+          logo: logoFingerprint,
         })
       )
       .digest('hex')
       .substring(0, 16);
+  }
+
+  /**
+   * Infer the communication purpose of a content idea so the visual composer
+   * knows which TONE to hold (atmospheric, factual, celebratory…). It no longer
+   * arbitrates a CTA: no visual carries one. Heuristic + multilingual keyword
+   * scan, defaulting to 'awareness'.
+   */
+  private inferVisualIntent(content: {
+    intent?: VisualIntent;
+    title?: string;
+    hook?: string;
+    description?: string;
+    callToAction?: string;
+  }): VisualIntent {
+    if (content.intent) return content.intent;
+    const haystack = [content.title, content.hook, content.description, content.callToAction]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    const has = (words: string[]) => words.some((w) => haystack.includes(w));
+    if (has(['recrut', 'hiring', 'we\'re hiring', 'join our', 'join the team', 'postul', 'emploi', 'nous recrutons', 'career', 'carrière', 'offre d\'emploi']))
+      return 'recruitment';
+    if (has(['promo', 'sale', 'discount', 'offre', 'réduction', 'deal', 'shop now', 'buy', 'order now', 'commande', 'soldes', '% off', '-50', 'code promo']))
+      return 'promotion';
+    if (has(['launch', 'lance', 'nouveau', 'new ', 'introducing', 'annonce', 'announce', 'disponible', 'now available', 'sortie']))
+      return 'announcement';
+    if (has(['fête', 'célèbr', 'celebrat', 'anniversa', 'happy ', 'joyeux', 'congrat', 'félicit', 'merci', 'thank you', 'holiday']))
+      return 'celebration';
+    return 'awareness';
+  }
+
+  /**
+   * Table de substitution du prompt de composition.
+   *
+   * Elle porte la CHARTE (hex exacts, familles typographiques, déclinaisons de
+   * logo réelles) : ce sont des valeurs, pas des chemins symboliques — le modèle
+   * ne doit jamais avoir à deviner une couleur ni à inventer une URL. Toute
+   * valeur manquante reçoit un repli explicite plutôt que de laisser un trou.
+   */
+  private buildFlyerPlaceholders(
+    context: CommunicationContext,
+    seed: DesignSeed,
+    intent: VisualIntent,
+    format: FlyerFormat,
+    sourced: SourcedImage | null
+  ): Record<string, string> {
+    const branding = context.branding;
+    const logos = branding.logoUrls;
+    const primaryLogo = logos?.primary || '';
+    const pickLogo = (url?: string) => (url && url.trim()) || primaryLogo || '(no logo available)';
+
+    return {
+      BRAND_NAME: context.brandName,
+      BRAND_PRIMARY: branding.primary,
+      BRAND_SECONDARY: branding.secondary,
+      // Sans accent défini, renvoyer la primaire plutôt qu'un vide : le modèle
+      // comblerait un trou de palette par une couleur de son cru.
+      BRAND_ACCENT: branding.accent || branding.primary,
+      BRAND_BACKGROUND: branding.background || '#ffffff',
+      BRAND_TEXT: branding.text || '#0f172a',
+      BRAND_PRIMARY_FONT: branding.primaryFont || 'Montserrat',
+      BRAND_SECONDARY_FONT: branding.secondaryFont || branding.primaryFont || 'Montserrat',
+      BRAND_FONT_URL:
+        branding.fontUrl ||
+        'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap',
+
+      LOGO_PRIMARY: primaryLogo || '(no logo available)',
+      LOGO_WITHTEXT_LIGHT: pickLogo(logos?.withText?.light),
+      LOGO_WITHTEXT_DARK: pickLogo(logos?.withText?.dark),
+      LOGO_WITHTEXT_MONO: pickLogo(logos?.withText?.mono),
+      LOGO_ICON_LIGHT: pickLogo(logos?.iconOnly?.light),
+      LOGO_ICON_DARK: pickLogo(logos?.iconOnly?.dark),
+      LOGO_ICON_MONO: pickLogo(logos?.iconOnly?.mono),
+      // Même seuil que celui appliqué à la mesure au moment du rendu : le
+      // modèle est prévenu de la règle qui sera de toute façon imposée.
+      LOGO_MIN_WIDTH: String(minLogoWidthFor(format)),
+
+      format,
+      VISUAL_INTENT: intent,
+      DESIGN_SEED: JSON.stringify(seed, null, 2),
+      'DESIGN_SEED.archetype': seed.archetype,
+      'DESIGN_SEED.colorStrategy': seed.colorStrategy,
+      'DESIGN_SEED.typographyMood': seed.typographyMood,
+      'DESIGN_SEED.layoutTension': seed.layoutTension,
+      'DESIGN_SEED.spacingMultiplier': String(seed.spacingMultiplier),
+
+      IMAGE_URL: sourced?.url || '(no image — build a purely typographic composition)',
+      IMAGE_DOMINANT_COLORS: sourced?.analysis.dominantColors?.join(', ') || 'unknown',
+      IMAGE_LUMINANCE: sourced?.analysis.luminance || 'mixed',
+      IMAGE_COMPOSITION: sourced?.analysis.composition || 'balanced',
+      IMAGE_DETECTED_TEXT: sourced?.analysis.detectedText || 'none',
+    };
+  }
+
+  /**
+   * Substitue les `{{MARQUEURS}}` d'un prompt en un seul passage.
+   *
+   * Un marqueur absent de la table est laissé tel quel ET signalé : un `{{…}}`
+   * qui atteint le modèle est un réglage qu'on croyait transmis et qui ne l'est
+   * pas — le genre de bug qui ne casse rien et dégrade tout.
+   */
+  private applyPlaceholders(template: string, values: Record<string, string>): string {
+    const missing = new Set<string>();
+    const rendered = template.replace(/\{\{([A-Za-z0-9_.]+)\}\}/g, (match, key: string) => {
+      if (key in values) return values[key];
+      missing.add(key);
+      return match;
+    });
+    if (missing.size) {
+      logger.warn('[Communication] Unresolved placeholders in the flyer prompt', {
+        placeholders: [...missing],
+      });
+    }
+    return rendered;
+  }
+
+  /**
+   * Aplatit une arborescence d'URLs (les déclinaisons de logo sont imbriquées
+   * par usage puis par fond) en une simple liste de chaînes.
+   */
+  private collectStringValues(source: unknown): string[] {
+    if (typeof source === 'string') return [source];
+    if (!source || typeof source !== 'object') return [];
+    return Object.values(source as Record<string, unknown>).flatMap((value) =>
+      this.collectStringValues(value)
+    );
   }
 
   private shortHash(data: unknown): string {
@@ -846,7 +1541,105 @@ export class CommunicationService extends GenericService {
     const bgImage = imageUrl
       ? `<img src="${imageUrl}" class="absolute inset-0 w-full h-full object-cover" /><div class="absolute inset-0 bg-gradient-to-t from-[${secondary}]/90 via-[${secondary}]/40 to-transparent"></div>`
       : '';
-    return `<div class="${size} relative overflow-hidden flex flex-col justify-between p-16 bg-[${secondary}] text-[${text}]">${bgImage}<div class="relative text-xs uppercase tracking-[0.3em] opacity-70">${context.brandName}</div><div class="relative flex-1 flex flex-col justify-end gap-6"><div class="text-6xl font-black leading-[1.05] max-w-[80%]">${this.escapeHtml(content.title)}</div><div class="text-lg max-w-[75%] opacity-90">${this.escapeHtml(content.description)}</div></div><div class="relative flex items-center justify-between"><div class="bg-[${primary}] text-[${secondary}] font-bold px-6 py-3 rounded-full">${this.escapeHtml(content.callToAction)}</div><div class="text-xs opacity-60">${content.channel} · ${content.format}</div></div></div>`;
+    // Pied de page : signature de marque typographique, jamais un bouton — ce
+    // repli servait auparavant une pastille contenant le callToAction, ce qui
+    // reproduisait dans le fallback le défaut qu'on corrige côté modèle.
+    return `<div class="${size} relative overflow-hidden flex flex-col justify-between p-16 bg-[${secondary}] text-[${text}]">${bgImage}<div class="relative text-xs uppercase tracking-[0.3em] opacity-70">${context.brandName}</div><div class="relative flex-1 flex flex-col justify-end gap-6"><div class="text-6xl font-black leading-[1.05] max-w-[80%]">${this.escapeHtml(content.title)}</div><div class="text-lg max-w-[75%] opacity-90">${this.escapeHtml(content.description)}</div></div><div class="relative flex items-end justify-between border-t border-[${text}]/25 pt-6"><div class="text-xs uppercase tracking-[0.35em] opacity-80">${this.escapeHtml(context.brandName)}</div><div class="h-[4px] w-28 bg-[${primary}]"></div></div></div>`;
+  }
+
+  /**
+   * Ramène la typographie du visuel dans la charte.
+   *
+   * Le harnais de rendu lie `font-primary`/`font-secondary` aux polices de la
+   * marque, mais rien n'empêchait le modèle d'écrire `font-['Anton']` ou un
+   * `font-family` en style inline — et d'ajouter le <link> Google Fonts qui va
+   * avec. Le visuel sortait alors typographié dans une police que la marque
+   * n'utilise nulle part ailleurs.
+   *
+   * On réécrit donc les familles arbitraires vers les classes de la charte
+   * (`font-primary` par défaut : une police choisie à la main sert quasi
+   * toujours un titre) et on retire les imports de polices étrangères, devenus
+   * inutiles — celui de la marque est injecté par le rendu, pas par le modèle.
+   *
+   * Les COULEURS ne sont volontairement pas normalisées ici : remplacer un hex
+   * hors palette demanderait de deviner l'intention (accent ? traitement de la
+   * photo ? dégradé ?), et une substitution mécanique abîmerait la composition
+   * plus sûrement qu'une teinte approximative. C'est la charte du prompt qui
+   * les tient.
+   */
+  private enforceBrandTypography(html: string, context: CommunicationContext): string {
+    if (!html) return html;
+
+    // L'identité d'une URL Google Fonts est dans sa QUERY (`family=…`), pas dans
+    // son chemin : comparer les chemins revient à trouver toutes ces URLs
+    // identiques, et à laisser passer les polices étrangères.
+    const familiesOf = (url: string): string[] =>
+      [...url.replace(/&amp;/g, '&').matchAll(/family=([^&:]+)/gi)].map((m) =>
+        decodeURIComponent(m[1]).replace(/\+/g, ' ').trim().toLowerCase()
+      );
+    const brandFamilies = new Set(familiesOf(context.branding.fontUrl || ''));
+
+    // Le `font-family` inline est traité DANS l'attribut style, pour ne pas
+    // s'arrêter au premier guillemet d'une famille citée (`'Bebas Neue'`).
+    const rewriteStyleAttributes = (input: string, quote: '"' | "'"): string => {
+      const pattern = new RegExp(`style\\s*=\\s*${quote}([^${quote}]*)${quote}`, 'gi');
+      return input.replace(pattern, (match, body: string) => {
+        if (!/font-family/i.test(body)) return match;
+        const fixed = body.replace(/font-family\s*:[^;]*/gi, 'font-family: var(--font-primary)');
+        return `style=${quote}${fixed}${quote}`;
+      });
+    };
+
+    let normalised = html
+      // font-['Anton'] / font-["Anton"] → police d'affichage de la marque.
+      .replace(/\bfont-\[(?:'[^']*'|"[^"]*")\]/g, 'font-primary')
+      // Familles génériques de Tailwind : hors charte elles aussi.
+      .replace(/\bfont-(?:sans|serif|mono)\b/g, 'font-secondary');
+    normalised = rewriteStyleAttributes(normalised, '"');
+    normalised = rewriteStyleAttributes(normalised, "'");
+    // Imports de polices tierces ajoutés par le modèle. Celui de la marque est
+    // injecté par le harnais de rendu : rien n'est perdu à les retirer.
+    normalised = normalised.replace(
+      /<link\b[^>]*href\s*=\s*["']([^"']*fonts\.googleapis\.com[^"']*)["'][^>]*>/gi,
+      (tag, href: string) => {
+        const families = familiesOf(String(href));
+        const isBrand = families.length > 0 && families.every((f) => brandFamilies.has(f));
+        return isBrand ? tag : '';
+      }
+    );
+
+    if (normalised !== html) {
+      logger.info('[Communication] Typographie du visuel réalignée sur la charte');
+    }
+    return normalised;
+  }
+
+  /**
+   * Filet déterministe contre le bouton d'appel à l'action.
+   *
+   * Le prompt l'interdit et la légende n'est plus transmise au compositeur,
+   * mais une consigne textuelle ne garantit rien : le visuel part à
+   * l'impression ou en publication sans relecture, il faut donc une règle qui
+   * ne dépende pas du bon vouloir du modèle.
+   *
+   * Portée assumée : on ne supprime que ce qui EST un bouton par nature
+   * (`<button>`, `role="button"`). Une pastille construite en <div>/<span>
+   * n'est pas identifiable sans moteur de rendu — il faudrait comparer les
+   * styles calculés — et reste couverte par le seul prompt.
+   */
+  private stripCtaButtons(html: string): string {
+    if (!html) return html;
+    const cleaned = html
+      // Un <button> ne peut pas en contenir un autre : le non-greedy est sûr.
+      .replace(/<button\b[^>]*>[\s\S]*?<\/button>/gi, '')
+      // Idem pour <a> (imbrication interdite en HTML).
+      .replace(/<a\b[^>]*\brole\s*=\s*["']button["'][^>]*>[\s\S]*?<\/a>/gi, '');
+    if (cleaned !== html) {
+      logger.warn(
+        '[Communication] CTA button removed from the generated visual — the model ignored the no-button rule'
+      );
+    }
+    return cleaned;
   }
 
   /**
@@ -884,12 +1677,7 @@ export class CommunicationService extends GenericService {
         },
       ];
       const raw = await this.promptService.runPrompt(
-        {
-          ...DEFAULT_PROMPT_CONFIG,
-          userId,
-          promptType: 'communication_image_brief',
-          llmOptions: { maxOutputTokens: 400 },
-        },
+        promptConfigFor(AI_CONFIG.communication.imageBrief, userId),
         messages
       );
       const parsed = this.safeJson<Partial<ImageBrief>>(raw) ?? {};
@@ -1006,8 +1794,9 @@ export class CommunicationService extends GenericService {
       'TYPE_HEAVY', // Text IS the design. Large blocks of typographic content.
     ];
 
-    // Pure random selection for maximum diversity
-    const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+    // Use a CSPRNG so two visuals generated within the same second still differ
+    // (the old Date.now()-based pick produced near-identical seeds in bursts).
+    const pick = <T>(arr: T[]): T => arr[crypto.randomInt(arr.length)];
 
     return {
       archetype: pick(archetypes),
@@ -1015,11 +1804,7 @@ export class CommunicationService extends GenericService {
       typographyMood: pick(typographyMoods),
       layoutTension: pick(layoutTensions),
       // Extra entropy: random odd number for spacing/sizing decisions
-      spacingMultiplier: (Math.floor(Math.random() * 5) + 1) * 2 + 1, // 3,5,7,9,11
-      imagePosition: pick(imagePositions),
-      readingDirection: pick(readingDirections),
-      graphicAccent: pick(graphicAccents),
-      contentDensity: pick(contentDensities),
+      spacingMultiplier: crypto.randomInt(5) * 2 + 3, // 3,5,7,9,11
     };
   }
 }

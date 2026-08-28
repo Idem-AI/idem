@@ -8,7 +8,31 @@ import YAML from 'yaml';
 import { ApplicationRow } from '../models/ideploy.types';
 import { appWorkdirFor } from '../utils/paths';
 
-export function generateComposeFile(app: ApplicationRow, imageTag: string): string {
+/**
+ * Attach the resolved labels, and join the shared network so the container is
+ * both reachable from the proxy and from its neighbours in the same workspace.
+ */
+function networkingFor(
+  labels: string[] | undefined,
+  network: string | undefined
+): Record<string, unknown> {
+  const extras: Record<string, unknown> = {};
+  if (labels && labels.length > 0) extras.labels = labels;
+  if (network) extras.networks = [network];
+  return extras;
+}
+
+/** Top-level `networks:` declaring the shared network as pre-existing. */
+function externalNetwork(network: string | undefined): Record<string, unknown> {
+  return network ? { networks: { [network]: { external: true } } } : {};
+}
+
+export function generateComposeFile(
+  app: ApplicationRow,
+  imageTag: string,
+  labels?: string[],
+  network?: string
+): string {
   const serviceName = `${app.name}-${app.uuid}`.toLowerCase().replace(/[^a-z0-9-]/g, '-');
 
   // Publish ports so the app is reachable. Prefer explicit ports_mappings
@@ -29,15 +53,23 @@ export function generateComposeFile(app: ApplicationRow, imageTag: string): stri
         container_name: serviceName,
         restart: 'unless-stopped',
         ...(mappings.length ? { ports: mappings } : {}),
-        labels: {
-          'ideploy.managed': 'true',
-          'ideploy.applicationUuid': app.uuid,
-        },
+        ...networkingFor(labels ?? defaultOwnershipLabels(app), network),
       },
     },
+    ...externalNetwork(network),
   };
 
   return YAML.stringify(compose);
+}
+
+/**
+ * Minimal ownership labels, used when no resolved set was supplied.
+ *
+ * A container we cannot recognise later is a container we cannot show, restart or
+ * clean up, so this floor is never skipped.
+ */
+function defaultOwnershipLabels(app: ApplicationRow): string[] {
+  return ['ideploy.managed=true', `ideploy.applicationUuid=${app.uuid}`];
 }
 
 /**
@@ -46,16 +78,28 @@ export function generateComposeFile(app: ApplicationRow, imageTag: string): stri
  * the app, trying common scripts (start / preview / dev) and a static fallback.
  * Lets users deploy a repo without containerizing it.
  */
-export function generateBuildlessCompose(app: ApplicationRow, srcDir: string, port: number): string {
+export function generateBuildlessCompose(
+  app: ApplicationRow,
+  srcDir: string,
+  port: number,
+  labels?: string[],
+  network?: string
+): string {
   const serviceName = `${app.name}-${app.uuid}`.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-  const start =
-    `npm install` +
-    ` && (npm run build || true)` +
-    ` && (npm start` +
-    ` || npm run preview -- --host 0.0.0.0 --port ${port}` +
-    ` || npm run dev -- --host 0.0.0.0 --port ${port}` +
-    ` || npx --yes serve -s dist -l ${port}` +
-    ` || npx --yes serve -s . -l ${port})`;
+
+  let baseDir = app.base_directory || '/';
+  if (baseDir.startsWith('./')) {
+    baseDir = baseDir.slice(2);
+  }
+  baseDir = baseDir.replace(/^\/+|\/+$/g, '');
+  const workingDir = baseDir ? `/app/${baseDir}` : '/app';
+
+  const installCmd = app.install_command || 'npm install';
+  const buildCmd = app.build_command || 'npm run build || true';
+  const startCmd = app.start_command ||
+    `npm start -- --host 0.0.0.0 --port ${port} || npm start || npm run preview -- --host 0.0.0.0 --port ${port} || npm run dev -- --host 0.0.0.0 --port ${port} || npx --yes serve -s dist -l ${port} || npx --yes serve -s . -l ${port}`;
+
+  const startScript = `${installCmd} && (${buildCmd}) && (${startCmd})`;
 
   const compose = {
     services: {
@@ -63,17 +107,15 @@ export function generateBuildlessCompose(app: ApplicationRow, srcDir: string, po
         image: 'node:20-alpine',
         container_name: serviceName,
         restart: 'unless-stopped',
-        working_dir: '/app',
+        working_dir: workingDir,
         volumes: [`${srcDir}:/app`],
         environment: [`PORT=${port}`, 'HOST=0.0.0.0'],
-        command: ['sh', '-lc', start],
+        command: ['sh', '-lc', startScript],
         ports: [`${port}:${port}`],
-        labels: {
-          'ideploy.managed': 'true',
-          'ideploy.applicationUuid': app.uuid,
-        },
+        ...networkingFor(labels ?? defaultOwnershipLabels(app), network),
       },
     },
+    ...externalNetwork(network),
   };
   return YAML.stringify(compose);
 }

@@ -7,6 +7,7 @@ import fsExtra from 'fs-extra';
 import path from 'path';
 import { storageService } from './storage.service';
 import { v4 as uuidv4 } from 'uuid';
+import { cacheService } from './cache.service';
 
 class ProjectService {
   private projectRepository: IRepository<ProjectModel>;
@@ -36,55 +37,41 @@ class ProjectService {
       });
 
       let projectToCreate: Omit<ProjectModel, 'id' | 'createdAt' | 'updatedAt'> = {
+        isArchived: false,
+        archived: false,
         ...projectData,
         userId: userId,
       };
 
-      // Check if there are logo variations to upload
-      const logoVariations = projectData.analysisResultModel?.branding?.logo?.variations;
-      const primaryLogo = projectData.analysisResultModel?.branding?.logo?.svg;
-      if (
-        logoVariations &&
-        (logoVariations.iconOnly?.lightBackground ||
-          logoVariations.iconOnly?.darkBackground ||
-          logoVariations.iconOnly?.monochrome ||
-          logoVariations.withText?.lightBackground ||
-          logoVariations.withText?.darkBackground ||
-          logoVariations.withText?.monochrome ||
-          primaryLogo)
-      ) {
-        logger.info(`Uploading logo variations to Firebase Storage`, {
+      // Rasterize the logo (SVG) to PNG, upload the PNGs to object storage and
+      // keep the inline SVG as the vector source of truth. The resulting PNG
+      // URLs live in logo.assetUrls (used by generation contexts). Guard on an
+      // absent assetUrls so we don't re-upload if the branding step already did.
+      const logo = projectData.analysisResultModel?.branding?.logo;
+      const logoVariations = logo?.variations;
+      const hasLogoContent = !!(
+        logo &&
+        !logo.assetUrls &&
+        (logo.svg ||
+          logoVariations?.iconOnly?.lightBackground ||
+          logoVariations?.iconOnly?.darkBackground ||
+          logoVariations?.iconOnly?.monochrome ||
+          logoVariations?.withText?.lightBackground ||
+          logoVariations?.withText?.darkBackground ||
+          logoVariations?.withText?.monochrome)
+      );
+
+      if (hasLogoContent) {
+        logger.info(`Uploading logo PNG assets to object storage`, {
           userId,
           projectId,
-          variations: Object.keys(logoVariations),
+          variations: logoVariations ? Object.keys(logoVariations) : [],
         });
 
         try {
-          // Upload logo variations to Firebase Storage
-          const iconSvg = projectData.analysisResultModel?.branding?.logo?.iconSvg;
-          const uploadResults = await storageService.uploadLogoVariations(
-            primaryLogo,
-            iconSvg,
-            logoVariations,
-            userId,
-            projectId
-          );
+          const assetUrls = await storageService.uploadProjectLogoAssets(logo!, userId, projectId);
 
-          // Replace SVG content with download URLs
-          const updatedVariations = {
-            withText: {
-              lightBackground: uploadResults.withText?.lightBackground?.downloadURL,
-              darkBackground: uploadResults.withText?.darkBackground?.downloadURL,
-              monochrome: uploadResults.withText?.monochrome?.downloadURL,
-            },
-            iconOnly: {
-              lightBackground: uploadResults.iconOnly?.lightBackground?.downloadURL,
-              darkBackground: uploadResults.iconOnly?.darkBackground?.downloadURL,
-              monochrome: uploadResults.iconOnly?.monochrome?.downloadURL,
-            },
-          };
-
-          // Update the project data with the URLs
+          // Keep the SVG source intact; only attach the hosted PNG URLs.
           projectToCreate = {
             ...projectToCreate,
             analysisResultModel: {
@@ -92,35 +79,30 @@ class ProjectService {
               branding: {
                 ...projectToCreate.analysisResultModel?.branding,
                 logo: {
-                  ...projectToCreate.analysisResultModel?.branding?.logo,
-                  svg: uploadResults.primaryLogo!.downloadURL,
-                  iconSvg: uploadResults.iconSvg?.downloadURL,
-                  variations: updatedVariations,
+                  ...logo!,
+                  assetUrls,
                 },
               },
             },
           };
 
-          logger.info(`Logo variations uploaded successfully`, {
+          logger.info(`Logo PNG assets uploaded successfully`, {
             userId,
             projectId,
-            uploadedUrls: {
-              withText: updatedVariations.withText,
-              iconOnly: updatedVariations.iconOnly,
-            },
+            uploaded: Object.keys(assetUrls),
           });
         } catch (uploadError: any) {
-          logger.error(`Failed to upload logo variations`, {
+          logger.error(`Failed to upload logo PNG assets`, {
             userId,
             projectId,
             error: uploadError.message,
             stack: uploadError.stack,
           });
           // Continue with project creation even if logo upload fails
-          logger.warn(`Continuing project creation without uploaded logo variations`);
+          logger.warn(`Continuing project creation without uploaded logo assets`);
         }
       } else {
-        logger.info(`No logo variations to upload for project`, {
+        logger.info(`No logo content to upload for project`, {
           userId,
           projectId,
         });
@@ -162,8 +144,15 @@ class ProjectService {
 
     try {
       const projects = await this.projectRepository.findAll(`users/${userId}/projects`);
-      logger.info(`Projects fetched for user ${userId}: ${projects.length}`);
-      return projects;
+      // Filter out soft-deleted / archived projects from user dashboard while guaranteeing backwards compatibility
+      // For legacy projects created prior to soft delete feature, isArchived/archived may be undefined/null (treated as active).
+      const activeProjects = projects.filter(
+        (p) => p.isArchived !== true && (p as any).archived !== true
+      );
+      logger.info(
+        `Projects fetched for user ${userId}: ${activeProjects.length} active (${projects.length} total)`
+      );
+      return activeProjects;
     } catch (error: any) {
       logger.error(`Error fetching projects for user ${userId} in service: ${error.message}`, {
         stack: error.stack,
@@ -198,26 +187,125 @@ class ProjectService {
 
   async deleteUserProject(userId: string, projectId: string): Promise<void> {
     if (!userId || !projectId) {
-      logger.error('User ID and Project ID are required for deletion.');
+      logger.error('User ID and Project ID are required for archiving.');
       throw new Error('User ID and Project ID are required.');
     }
 
     try {
-      const success = await this.projectRepository.delete(projectId, `users/${userId}/projects`);
-      if (success) {
-        logger.info(`Project ${projectId} deleted successfully for user ${userId} via repository`);
+      // Soft delete: set isArchived: true & archived: true instead of hard deleting from database
+      const updatedProject = await this.projectRepository.update(
+        projectId,
+        { isArchived: true, archived: true, archivedAt: new Date() } as any,
+        `users/${userId}/projects`
+      );
+
+      if (updatedProject) {
+        logger.info(`Project ${projectId} archived successfully for user ${userId} via repository`);
+
+        // Invalider le cache du projet dans Redis
+        const projectCacheKey = `project_${userId}_${projectId}`;
+        await cacheService.delete(projectCacheKey, { prefix: 'project' }).catch((err) => {
+          logger.error(`Error invalidating project cache for key ${projectCacheKey}:`, err);
+        });
       } else {
         logger.warn(
-          `Project ${projectId} not found for deletion or delete failed for user ${userId} via repository`
+          `Project ${projectId} not found for archiving or archive failed for user ${userId} via repository`
         );
       }
     } catch (error: any) {
       logger.error(
-        `Error deleting project ${projectId} for user ${userId} in service: ${error.message}`,
+        `Error archiving project ${projectId} for user ${userId} in service: ${error.message}`,
         { stack: error.stack, details: error }
       );
       throw error;
     }
+  }
+
+  /**
+   * Conserve les SVG de logo déjà externalisés (URLs MinIO) face à une écriture
+   * client qui repousserait le markup inline.
+   *
+   * Le front garde en mémoire le logo tel qu'il l'a reçu en streaming (SVG
+   * inline) et resauvegarde le projet entier à plusieurs moments du workflow.
+   * Quand le backend a externalisé les SVG entre-temps (génération des
+   * déclinaisons), cette écriture arrivait après et remplaçait les URLs par du
+   * markup — les consommateurs qui attendent une URL (aperçus, PDF, pitch deck)
+   * n'affichaient alors plus le logo principal.
+   *
+   * Le garde-fou ne s'applique qu'au même logo (id identique) : choisir un
+   * autre concept reste possible et remplace bien les assets.
+   */
+  private async preserveHostedLogoAssets(
+    userId: string,
+    projectId: string,
+    updatedData: Partial<Omit<ProjectModel, 'id' | 'createdAt' | 'updatedAt' | 'userId'>>
+  ): Promise<Partial<Omit<ProjectModel, 'id' | 'createdAt' | 'updatedAt' | 'userId'>>> {
+    const isInlineSvg = (value: unknown): value is string =>
+      typeof value === 'string' && value.trimStart().startsWith('<');
+    const isHostedUrl = (value: unknown): value is string =>
+      typeof value === 'string' && /^https?:\/\//i.test(value.trim());
+
+    const incomingLogo = updatedData.analysisResultModel?.branding?.logo as
+      | Record<string, any>
+      | undefined;
+    if (!incomingLogo) return updatedData;
+
+    const variationSets = ['withText', 'iconOnly'] as const;
+    const variationKinds = ['lightBackground', 'darkBackground', 'monochrome'] as const;
+
+    const hasInline =
+      isInlineSvg(incomingLogo['svg']) ||
+      isInlineSvg(incomingLogo['iconSvg']) ||
+      variationSets.some((set) =>
+        variationKinds.some((kind) => isInlineSvg(incomingLogo['variations']?.[set]?.[kind]))
+      );
+    if (!hasInline) return updatedData;
+
+    const stored = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    const storedLogo = stored?.analysisResultModel?.branding?.logo as Record<string, any> | undefined;
+    if (!storedLogo || (incomingLogo['id'] && storedLogo['id'] !== incomingLogo['id'])) {
+      return updatedData;
+    }
+
+    const preservedFields: string[] = [];
+    const logo: Record<string, any> = { ...incomingLogo };
+
+    for (const field of ['svg', 'iconSvg'] as const) {
+      if (isInlineSvg(logo[field]) && isHostedUrl(storedLogo[field])) {
+        logo[field] = storedLogo[field];
+        preservedFields.push(field);
+      }
+    }
+
+    for (const set of variationSets) {
+      for (const kind of variationKinds) {
+        const incoming = logo['variations']?.[set]?.[kind];
+        const hosted = storedLogo['variations']?.[set]?.[kind];
+        if (isInlineSvg(incoming) && isHostedUrl(hosted)) {
+          logo['variations'] = {
+            ...logo['variations'],
+            [set]: { ...logo['variations'][set], [kind]: hosted },
+          };
+          preservedFields.push(`variations.${set}.${kind}`);
+        }
+      }
+    }
+
+    if (preservedFields.length === 0) return updatedData;
+
+    logger.info(
+      `Preserved hosted logo SVG URLs against inline overwrite - ProjectId: ${projectId}, fields: ${preservedFields.join(
+        ', '
+      )}`
+    );
+
+    return {
+      ...updatedData,
+      analysisResultModel: {
+        ...updatedData.analysisResultModel,
+        branding: { ...updatedData.analysisResultModel?.branding, logo },
+      },
+    } as Partial<Omit<ProjectModel, 'id' | 'createdAt' | 'updatedAt' | 'userId'>>;
   }
 
   async editUserProject(
@@ -231,13 +319,21 @@ class ProjectService {
     }
 
     try {
+      const safeData = await this.preserveHostedLogoAssets(userId, projectId, updatedData);
+
       const updatedProject = await this.projectRepository.update(
         projectId,
-        updatedData,
+        safeData,
         `users/${userId}/projects`
       );
       if (updatedProject) {
         logger.info(`Project ${projectId} updated successfully for user ${userId} via repository`);
+        
+        // Invalider le cache du projet dans Redis
+        const projectCacheKey = `project_${userId}_${projectId}`;
+        await cacheService.delete(projectCacheKey, { prefix: 'project' }).catch((err) => {
+          logger.error(`Error invalidating project cache for key ${projectCacheKey}:`, err);
+        });
       } else {
         logger.warn(
           `Project ${projectId} not found for update or update failed for user ${userId} via repository`
@@ -262,6 +358,7 @@ class ProjectService {
       project.teamSize !== undefined ? `${project.teamSize} développeurs` : 'Non spécifiée';
     const scope = project.scope || 'Non spécifié';
     const budgetIntervals = project.budgetIntervals || 'Non spécifiée';
+    const currency = project.currency || 'Non spécifiée';
     const targets = project.targets || 'Non spécifié';
     const type = project.type || 'Non spécifié';
     const description = project.description || 'Non spécifiée';
@@ -275,6 +372,7 @@ class ProjectService {
         - Composition de l'équipe : ${teamSize}
         - Périmètre fonctionnel couvert : ${scope}
         - Fourchette budgétaire prévue : ${budgetIntervals}
+        - Devise du projet (à utiliser pour tous les montants générés) : ${currency}
         - Publics cibles concernés : ${targets}
     `;
     logger.debug(`Generated project description for prompt for project: ${project.id || 'N/A'}`);
@@ -503,6 +601,86 @@ class ProjectService {
     }
   }
 
+  // App Deployment Methods (quick deploys made from iCode/AppGen, e.g. Netlify)
+
+  /**
+   * Returns the last quick deployment recorded for a project (site id + public url),
+   * so a redeploy updates the existing site instead of creating a new one.
+   */
+  async getAppDeployment(userId: string, projectId: string): Promise<any | null> {
+    if (!userId || !projectId) {
+      logger.error('User ID and Project ID are required to get an app deployment.');
+      return null;
+    }
+
+    try {
+      // Bypass the repository cache: a redeploy rewrites this document and the
+      // cache is not invalidated on create, which would serve a stale url/date.
+      const deployment = await this.projectRepository.findById(
+        `${projectId}_deployment`,
+        `users/${userId}/appDeployments`,
+        { bypassCache: true }
+      );
+
+      if (!deployment) {
+        logger.info(`No app deployment found for project ${projectId} and user ${userId}`);
+        return null;
+      }
+
+      return deployment;
+    } catch (error: any) {
+      logger.error(
+        `Error fetching app deployment for project ${projectId} and user ${userId}: ${error.message}`,
+        { stack: error.stack, details: error }
+      );
+      throw error;
+    }
+  }
+
+  async saveAppDeployment(
+    userId: string,
+    projectId: string,
+    deploymentData: any
+  ): Promise<any> {
+    if (!userId || !projectId || !deploymentData) {
+      logger.error('User ID, Project ID, and deployment data are required.');
+      throw new Error('User ID, Project ID, and deployment data are required.');
+    }
+
+    try {
+      const existing = await this.getAppDeployment(userId, projectId).catch(() => null);
+
+      const deploymentRecord = {
+        projectId,
+        userId,
+        provider: 'netlify',
+        ...deploymentData,
+        // Keep the very first deployment date across redeploys.
+        firstDeployedAt: existing?.firstDeployedAt || new Date().toISOString(),
+        lastDeployedAt: new Date().toISOString(),
+      };
+
+      const saved = await this.projectRepository.create(
+        deploymentRecord,
+        `users/${userId}/appDeployments`,
+        `${projectId}_deployment`
+      );
+
+      logger.info(`App deployment saved for project ${projectId} and user ${userId}`, {
+        siteId: deploymentData.siteId,
+        url: deploymentData.url,
+      });
+
+      return saved;
+    } catch (error: any) {
+      logger.error(
+        `Error saving app deployment for project ${projectId} and user ${userId}: ${error.message}`,
+        { stack: error.stack, details: error }
+      );
+      throw error;
+    }
+  }
+
   async saveProjectZip(userId: string, projectId: string, zipFile: any): Promise<string> {
     if (!userId || !projectId || !zipFile) {
       logger.error('User ID, Project ID, and ZIP file are required.');
@@ -597,7 +775,16 @@ class ProjectService {
         `Attempting to retrieve project code from Firebase Storage for project ${projectId} and user ${userId}`
       );
 
-      // Use storage service to download and extract the project code ZIP
+      // Manifest-based storage is the current format; fall back to the legacy
+      // full-ZIP layout for projects generated before the incremental sync.
+      const incrementalFiles = await storageService.downloadProjectCodeFiles(projectId, userId);
+      if (incrementalFiles && Object.keys(incrementalFiles).length > 0) {
+        logger.info(
+          `Successfully retrieved ${Object.keys(incrementalFiles).length} code files from the incremental store for project ${projectId}`
+        );
+        return incrementalFiles;
+      }
+
       const codeFiles = await storageService.downloadProjectCodeZip(projectId, userId);
 
       if (!codeFiles || Object.keys(codeFiles).length === 0) {
@@ -615,6 +802,106 @@ class ProjectService {
         { stack: error.stack, details: error }
       );
       return null;
+    }
+  }
+
+  /**
+   * Content hashes of the code currently stored for a project. The client diffs
+   * its workspace against this to upload only what changed.
+   */
+  async getProjectCodeManifest(
+    userId: string,
+    projectId: string
+  ): Promise<Record<string, string>> {
+    const manifest = await storageService.getProjectCodeManifest(projectId, userId);
+    return manifest?.files || {};
+  }
+
+  /**
+   * Applies an incremental code change set to the bucket.
+   */
+  async syncProjectCode(
+    userId: string,
+    projectId: string,
+    upserts: Record<string, string>,
+    deletions: string[],
+    manifest: Record<string, string>
+  ): Promise<{ written: number; deleted: number; total: number }> {
+    if (!userId || !projectId) {
+      throw new Error('User ID and Project ID are required to sync project code.');
+    }
+
+    return storageService.syncProjectCodeFiles(projectId, userId, upserts, deletions, manifest);
+  }
+
+  // Chat session — the conversation that produced the code. Stored in the
+  // database (small, text only) while the code itself lives in the bucket, so a
+  // user reopening iCode from any machine lands back in the same chat.
+
+  async getProjectChatSession(userId: string, projectId: string): Promise<any | null> {
+    if (!userId || !projectId) {
+      logger.error('User ID and Project ID are required to get a chat session.');
+      return null;
+    }
+
+    try {
+      const session = await this.projectRepository.findById(
+        `${projectId}_chat`,
+        `users/${userId}/appChats`,
+        { bypassCache: true }
+      );
+
+      return session || null;
+    } catch (error: any) {
+      logger.error(
+        `Error fetching chat session for project ${projectId} and user ${userId}: ${error.message}`,
+        { stack: error.stack, details: error }
+      );
+      throw error;
+    }
+  }
+
+  async saveProjectChatSession(
+    userId: string,
+    projectId: string,
+    session: { sessionId: string; title?: string; messages: any[] }
+  ): Promise<any> {
+    if (!userId || !projectId || !session?.sessionId) {
+      throw new Error('User ID, Project ID and sessionId are required.');
+    }
+
+    try {
+      const existing = await this.getProjectChatSession(userId, projectId).catch(() => null);
+
+      const record = {
+        projectId,
+        userId,
+        sessionId: session.sessionId,
+        title: session.title || existing?.title || 'Nouvelle conversation',
+        messages: session.messages || [],
+        messageCount: (session.messages || []).length,
+        startedAt: existing?.startedAt || new Date().toISOString(),
+        lastMessageAt: new Date().toISOString(),
+      };
+
+      const saved = await this.projectRepository.create(
+        record as any,
+        `users/${userId}/appChats`,
+        `${projectId}_chat`
+      );
+
+      logger.info(`Chat session saved for project ${projectId} and user ${userId}`, {
+        sessionId: session.sessionId,
+        messageCount: record.messageCount,
+      });
+
+      return saved;
+    } catch (error: any) {
+      logger.error(
+        `Error saving chat session for project ${projectId} and user ${userId}: ${error.message}`,
+        { stack: error.stack, details: error }
+      );
+      throw error;
     }
   }
 

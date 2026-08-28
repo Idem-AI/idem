@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { TranslateModule } from '@ngx-translate/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { CookieService } from '../../../../shared/services/cookie.service';
@@ -21,19 +22,25 @@ import {
   EditorialCalendar,
   Flyer,
   FlyerFormat,
+  MomentIdea,
+  MomentSuggestion,
+  Publication,
+  PublicationStatus,
+  SocialNetwork,
   StrategyBlock,
+  VisualIntent,
 } from '../../models/communication.model';
 import { BrandingValidationService } from '../../services/branding-validation.service';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
 import { ProjectService } from '../../services/project.service';
 import { ProjectModel } from '@idem/shared-models';
 
-type Tab = 'strategy' | 'calendar';
+type Tab = 'strategy' | 'calendar' | 'moments' | 'publishing';
 
 @Component({
   selector: 'app-show-communication',
   standalone: true,
-  imports: [CommonModule, FormsModule, IncompleteProjectBannerComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, IncompleteProjectBannerComponent],
   templateUrl: './show-communication.html',
   styleUrls: ['./show-communication.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -99,10 +106,79 @@ export class ShowCommunication implements OnInit {
     'reel',
   ];
 
+  /** Segmented navigation. `soon` tabs are placeholders wired in phases 2 & 3. */
+  protected readonly navTabs: { id: Tab; icon: string; labelKey: string; soon: boolean }[] = [
+    { id: 'strategy', icon: 'pi pi-compass', labelKey: 'dashboard.showCommunication.tabs.strategy', soon: false },
+    { id: 'calendar', icon: 'pi pi-calendar', labelKey: 'dashboard.showCommunication.tabs.calendar', soon: false },
+    { id: 'moments', icon: 'pi pi-star', labelKey: 'dashboard.showCommunication.tabs.moments', soon: false },
+    { id: 'publishing', icon: 'pi pi-send', labelKey: 'dashboard.showCommunication.tabs.publishing', soon: false },
+  ];
+
+  /** Tailwind classes for the content status pill in the calendar. */
+  protected statusPillClass(status: ContentIdea['status']): string {
+    switch (status) {
+      case 'published':
+        return 'text-[var(--color-success)] border-[var(--color-success)]/40 bg-[var(--color-success)]/10';
+      case 'scheduled':
+        return 'text-[var(--color-accent-500)] border-[var(--color-accent-500)]/40 bg-[var(--color-accent-500)]/10';
+      case 'approved':
+        return 'text-[var(--color-primary-400)] border-[var(--color-primary-500)]/40 bg-[var(--color-primary-500)]/10';
+      default:
+        return 'text-[var(--color-text-tertiary)] border-[var(--glass-border)] bg-transparent';
+    }
+  }
+
   protected readonly strategy = computed(() => this.model()?.strategy ?? null);
   protected readonly calendar = computed(() => this.model()?.calendar ?? null);
   protected readonly trends = computed(() => this.model()?.trends ?? []);
   protected readonly context = computed(() => this.model()?.context ?? null);
+
+  // ---------------- Moments (timely one-off content)
+  protected readonly moments = computed(() => this.model()?.moments ?? []);
+  protected readonly momentSuggestions = computed(() => this.model()?.momentSuggestions ?? []);
+  protected readonly isLoadingSuggestions = signal<boolean>(false);
+  protected readonly suggestionsLoaded = signal<boolean>(false);
+  protected readonly creatingSuggestionId = signal<string | null>(null);
+  protected readonly isCreatingMoment = signal<boolean>(false);
+  protected readonly showMomentForm = signal<boolean>(false);
+  protected readonly momentOccasion = signal<string>('');
+  protected readonly momentDate = signal<string>('');
+  protected readonly momentMessage = signal<string>('');
+  protected readonly momentIntent = signal<VisualIntent | ''>('');
+  protected readonly momentIntents: VisualIntent[] = [
+    'awareness',
+    'celebration',
+    'promotion',
+    'recruitment',
+    'announcement',
+  ];
+
+  // ---------------- Publishing (assisted)
+  protected readonly networks: SocialNetwork[] = ['linkedin', 'x'];
+  protected readonly preparingKey = signal<string | null>(null);
+  protected readonly publications = computed(() =>
+    [...(this.model()?.publications ?? [])].reverse(),
+  );
+
+  /** Content ideas + moments that already have a visual, ready to publish. */
+  protected readonly publishableItems = computed(() => {
+    const model = this.model();
+    const flyers = model?.flyers ?? [];
+    const latestFlyer = (contentId: string): Flyer | undefined =>
+      flyers.filter((f) => f.contentId === contentId).slice(-1)[0];
+    const list: { content: ContentIdea; flyer?: Flyer }[] = [];
+    for (const it of model?.calendar?.items ?? []) {
+      if (it.flyerIds && it.flyerIds.length > 0) {
+        list.push({ content: it, flyer: latestFlyer(it.id) });
+      }
+    }
+    for (const m of model?.moments ?? []) {
+      if (m.flyerIds && m.flyerIds.length > 0) {
+        list.push({ content: m, flyer: latestFlyer(m.id) });
+      }
+    }
+    return list;
+  });
 
   protected readonly calendarWeeks = computed(() => {
     const cal = this.calendar();
@@ -342,6 +418,17 @@ export class ShowCommunication implements OnInit {
     });
   }
 
+  /**
+   * Ouvre le visuel dans l'éditeur WYSIWYG (même éditeur que le business plan,
+   * le pitch deck et la charte). Le visuel est désigné par son id dans l'URL :
+   * un projet en compte autant que de contenus programmés.
+   */
+  protected editFlyer(flyerId?: string): void {
+    const id = flyerId ?? this.currentFlyer()?.id;
+    if (!id) return;
+    this.router.navigate(['/project/communication/flyer/edit'], { queryParams: { flyerId: id } });
+  }
+
   protected flyerSafeHtml(flyer: Flyer | null): SafeHtml | null {
     if (!flyer?.html) return null;
     return this.sanitizer.bypassSecurityTrustHtml(flyer.html);
@@ -382,6 +469,178 @@ export class ShowCommunication implements OnInit {
 
   protected setActiveTab(tab: Tab): void {
     this.activeTab.set(tab);
+    if (tab === 'moments' && !this.suggestionsLoaded() && this.momentSuggestions().length === 0) {
+      this.loadMomentSuggestions(false);
+    }
+  }
+
+  // ---------------- actions: moments
+  protected loadMomentSuggestions(force = false): void {
+    const projectId = this.projectId();
+    if (!projectId) return;
+    this.isLoadingSuggestions.set(true);
+    this.errorMessage.set('');
+    this.communication.getMomentSuggestions(projectId, { force }).subscribe({
+      next: (suggestions) => {
+        this.patchModel({ momentSuggestions: suggestions });
+        this.suggestionsLoaded.set(true);
+        this.isLoadingSuggestions.set(false);
+      },
+      error: (err) => {
+        this.errorMessage.set(err?.error?.message || 'Failed to load moment suggestions');
+        this.isLoadingSuggestions.set(false);
+      },
+    });
+  }
+
+  protected createFromSuggestion(suggestion: MomentSuggestion): void {
+    const projectId = this.projectId();
+    if (!projectId || this.creatingSuggestionId()) return;
+    this.creatingSuggestionId.set(suggestion.id);
+    this.errorMessage.set('');
+    this.communication
+      .createMoment(projectId, {
+        occasion: suggestion.occasion,
+        occasionDate: suggestion.date,
+        message: suggestion.angle,
+        intent: suggestion.intent,
+        source: 'suggestion',
+      })
+      .subscribe({
+        next: (moment) => {
+          this.addMomentToModel(moment);
+          this.creatingSuggestionId.set(null);
+        },
+        error: (err) => {
+          this.errorMessage.set(err?.error?.message || 'Moment generation failed');
+          this.creatingSuggestionId.set(null);
+        },
+      });
+  }
+
+  protected submitCustomMoment(): void {
+    const projectId = this.projectId();
+    const occasion = this.momentOccasion().trim();
+    if (!projectId || !occasion) return;
+    this.isCreatingMoment.set(true);
+    this.errorMessage.set('');
+    const intent = this.momentIntent();
+    this.communication
+      .createMoment(projectId, {
+        occasion,
+        occasionDate: this.momentDate() || undefined,
+        message: this.momentMessage() || undefined,
+        intent: intent || undefined,
+        source: 'custom',
+      })
+      .subscribe({
+        next: (moment) => {
+          this.addMomentToModel(moment);
+          this.isCreatingMoment.set(false);
+          this.showMomentForm.set(false);
+          this.momentOccasion.set('');
+          this.momentDate.set('');
+          this.momentMessage.set('');
+          this.momentIntent.set('');
+        },
+        error: (err) => {
+          this.errorMessage.set(err?.error?.message || 'Moment generation failed');
+          this.isCreatingMoment.set(false);
+        },
+      });
+  }
+
+  protected toggleMomentForm(): void {
+    this.showMomentForm.update((v) => !v);
+  }
+
+  protected readonly copiedId = signal<string | null>(null);
+
+  /** Copy arbitrary text (a caption) to the clipboard with transient feedback. */
+  protected copyToClipboard(text: string, id: string): void {
+    if (!text || !navigator.clipboard) return;
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        this.copiedId.set(id);
+        setTimeout(() => this.copiedId.set(null), 2000);
+      })
+      .catch(() => {
+        /* clipboard unavailable — ignore */
+      });
+  }
+
+  // ---------------- actions: publishing (assisted)
+  protected prepareAndPublish(content: ContentIdea, network: SocialNetwork): void {
+    const projectId = this.projectId();
+    if (!projectId) return;
+    const key = `${content.id}:${network}`;
+    if (this.preparingKey()) return;
+    this.preparingKey.set(key);
+    this.errorMessage.set('');
+    this.communication.preparePublication(projectId, { contentId: content.id, network }).subscribe({
+      next: ({ publication, share }) => {
+        this.addPublicationToModel(publication);
+        this.preparingKey.set(null);
+        // Assisted flow: copy the caption then open the network composer.
+        this.copyToClipboard(share.caption, publication.id);
+        this.openComposer(share.shareUrl);
+      },
+      error: (err) => {
+        this.errorMessage.set(err?.error?.message || 'Publishing failed');
+        this.preparingKey.set(null);
+      },
+    });
+  }
+
+  protected assistedPublish(pub: Publication): void {
+    if (pub.caption) this.copyToClipboard(pub.caption, pub.id);
+    if (pub.shareUrl) this.openComposer(pub.shareUrl);
+  }
+
+  protected openComposer(url?: string): void {
+    if (url) window.open(url, '_blank', 'noopener');
+  }
+
+  protected markPublished(pub: Publication): void {
+    const projectId = this.projectId();
+    if (!projectId) return;
+    this.communication.updatePublication(projectId, pub.id, { status: 'published' }).subscribe({
+      next: (updated) => this.replacePublicationInModel(updated),
+      error: (err) => this.errorMessage.set(err?.error?.message || 'Publishing failed'),
+    });
+  }
+
+  protected pubPillClass(status: PublicationStatus): string {
+    switch (status) {
+      case 'published':
+        return 'text-[var(--color-success)] border-[var(--color-success)]/40 bg-[var(--color-success)]/10';
+      case 'scheduled':
+        return 'text-[var(--color-accent-500)] border-[var(--color-accent-500)]/40 bg-[var(--color-accent-500)]/10';
+      default:
+        return 'text-[var(--color-text-tertiary)] border-[var(--glass-border)] bg-transparent';
+    }
+  }
+
+  protected networkIcon(network: SocialNetwork): string {
+    return network === 'linkedin' ? 'pi pi-linkedin' : 'pi pi-twitter';
+  }
+
+  private addPublicationToModel(pub: Publication): void {
+    const existing = this.model() ?? {};
+    this.patchModel({ publications: [...(existing.publications || []), pub] });
+  }
+
+  private replacePublicationInModel(pub: Publication): void {
+    const existing = this.model() ?? {};
+    const pubs = (existing.publications || []).map((p) => (p.id === pub.id ? pub : p));
+    this.patchModel({ publications: pubs });
+  }
+
+  private addMomentToModel(moment: MomentIdea): void {
+    const existing = this.model() ?? {};
+    const without = (existing.moments || []).filter((m) => m.id !== moment.id);
+    this.patchModel({ moments: [...without, moment] });
   }
 
   protected setFilterChannel(value: string): void {
@@ -408,20 +667,16 @@ export class ShowCommunication implements OnInit {
     const flyers = existing.flyers || [];
     const without = flyers.filter((f) => f.id !== flyer.id);
     const nextFlyers = [...without, flyer];
-    // Also attach flyer id to the content idea's flyerIds.
+    // Also attach the flyer id to the owning content, whether it is a calendar
+    // item or a moment.
+    const linkFlyer = <T extends ContentIdea>(item: T): T =>
+      item.id === flyer.contentId
+        ? { ...item, flyerIds: Array.from(new Set([...(item.flyerIds || []), flyer.id])) }
+        : item;
     const calendar = existing.calendar
-      ? {
-          ...existing.calendar,
-          items: existing.calendar.items.map((item) =>
-            item.id === flyer.contentId
-              ? {
-                  ...item,
-                  flyerIds: Array.from(new Set([...(item.flyerIds || []), flyer.id])),
-                }
-              : item,
-          ),
-        }
+      ? { ...existing.calendar, items: existing.calendar.items.map(linkFlyer) }
       : existing.calendar;
-    this.model.set({ ...existing, flyers: nextFlyers, calendar });
+    const moments = existing.moments ? existing.moments.map(linkFlyer) : existing.moments;
+    this.model.set({ ...existing, flyers: nextFlyers, calendar, moments });
   }
 }

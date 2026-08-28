@@ -2,11 +2,11 @@
  * Raw PostgreSQL pool against the SHARED iDeploy database.
  *
  * This is the same database the Laravel app uses (strangler-fig: both stacks
- * read/write it concurrently). Prefer the Prisma client (see prisma.config.ts)
- * for typed model access; this raw pool is kept for ad-hoc queries, health
- * checks, and bootstrap code that runs before the Prisma client is generated.
+ * read/write it concurrently). Raw SQL is the project's data layer by decision —
+ * see the "Architecture decisions" section of the README; the Prisma client is
+ * not used at runtime.
  */
-import { Pool } from 'pg';
+import { Pool, PoolClient } from 'pg';
 import logger from './logger';
 
 const pool = new Pool({
@@ -24,6 +24,36 @@ const pool = new Pool({
 
 pool.on('connect', () => logger.info('Connected to iDeploy PostgreSQL (raw pool)'));
 pool.on('error', (err: Error) => logger.error('iDeploy PG pool error', { message: err.message }));
+
+/**
+ * Run `fn` inside a single transaction on one dedicated connection.
+ *
+ * Needed wherever a resource is only meaningful together with its dependants —
+ * a server without its settings row and Docker destination, for instance, is a
+ * row the rest of the system cannot use. Committing those separately leaves
+ * half-created records behind on the first error.
+ *
+ * `fn` must run all its queries on the `client` it is handed: queries issued
+ * against the pool instead would take a different connection and sit outside
+ * the transaction.
+ */
+export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await fn(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    // A failed rollback must not mask the error that caused it.
+    await client.query('ROLLBACK').catch((rollbackErr) => {
+      logger.error('Transaction rollback failed', { message: (rollbackErr as Error).message });
+    });
+    throw err;
+  } finally {
+    client.release();
+  }
+}
 
 export async function checkDbConnection(): Promise<boolean> {
   try {

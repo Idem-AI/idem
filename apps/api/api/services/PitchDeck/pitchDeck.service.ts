@@ -5,7 +5,13 @@ import { AI_CONFIG } from '../../config/ai.config';
 import { ProjectModel } from '../../models/project.model';
 import logger from '../../config/logger';
 import { PitchDeckModel } from '../../models/pitchDeck.model';
-import { GenericService, IPromptStep, ISectionResult } from '../common/generic.service';
+import {
+  GenericService,
+  IPromptStep,
+  ISectionResult,
+  withGraph,
+} from '../common/generic.service';
+import { PITCH_DECK_GRAPH } from '../agents/deliverable-graph';
 import { SectionModel } from '../../models/section.model';
 import { PAGE_FORMATS, PdfService } from '../pdf.service';
 import { cacheService } from '../cache.service';
@@ -21,6 +27,7 @@ import { SLIDE_COMPETITION_PROMPT } from './prompts/slide-competition.prompt';
 import { SLIDE_TEAM_PROMPT } from './prompts/slide-team.prompt';
 import { SLIDE_FINANCIALS_PROMPT } from './prompts/slide-financials.prompt';
 import { SLIDE_ASK_PROMPT } from './prompts/slide-ask.prompt';
+import { imageSourcingService } from '../Communication/imageSourcing.service';
 
 export const PITCH_DECK_SLIDE_ORDER = [
   'Cover',
@@ -48,10 +55,12 @@ export class PitchDeckService extends GenericService {
   async generatePitchDeckWithStreaming(
     userId: string,
     projectId: string,
-    streamCallback?: (sectionResult: ISectionResult) => Promise<void>
+    streamCallback?: (sectionResult: ISectionResult) => Promise<void>,
+    forceRegenerate = false,
+    targetSections: string[] = []
   ): Promise<ProjectModel | null> {
     logger.info(
-      `Generating pitch deck with streaming for userId: ${userId}, projectId: ${projectId}`
+      `Generating pitch deck with streaming for userId: ${userId}, projectId: ${projectId}, force: ${forceRegenerate}, targetSections: [${targetSections.join(', ')}]`
     );
 
     const project = await this.getProject(projectId, userId);
@@ -77,99 +86,182 @@ export class PitchDeckService extends GenericService {
       .substring(0, 16);
 
     const cacheKey = cacheService.generateAIKey('pitch-deck', userId, projectId, contentHash);
-    const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
-      prefix: 'ai',
-      ttl: 7200,
-    });
-    if (cachedResult) {
-      logger.info(`Pitch deck cache hit for projectId: ${projectId}`);
-      return cachedResult;
+
+    // The cached result may be an incomplete deck (it is updated after each step),
+    // so only short-circuit on it when nothing needs to be (re)generated.
+    const currentSections = project.analysisResultModel?.pitchDeck?.sections || [];
+    const skipCacheRead =
+      forceRegenerate ||
+      targetSections.length > 0 ||
+      currentSections.length < PITCH_DECK_SLIDE_ORDER.length;
+
+    if (!skipCacheRead) {
+      const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
+        prefix: 'ai',
+        ttl: 7200,
+      });
+      if (cachedResult) {
+        logger.info(`Pitch deck cache hit for projectId: ${projectId}`);
+        return cachedResult;
+      }
     }
 
     const brandName = project.name || 'Startup';
-    const logoSvg = project.analysisResultModel?.branding?.logo?.svg || '';
-    const brandColors = project.analysisResultModel?.branding?.colors || {
+    const logo = project.analysisResultModel?.branding?.logo;
+    const colorsObj = project.analysisResultModel?.branding?.colors?.colors || {
       primary: '#1447e6',
       secondary: '#000060',
       accent: '#22d3ee',
+      background: '#ffffff',
+      text: '#1f2937',
     };
-    const typography = project.analysisResultModel?.branding?.typography || {
-      primary: 'Jura, sans-serif',
+    const typoModel = project.analysisResultModel?.branding?.typography;
+    const primaryFont = typoModel?.primaryFont || 'Inter, sans-serif';
+    const secondaryFont = typoModel?.secondaryFont || primaryFont;
+
+    // Helper to format logo SVGs or URLs into valid img src targets
+    const formatLogoUrl = (val?: string): string => {
+      if (!val) return '';
+      const trimmed = val.trim();
+      if (!trimmed) return '';
+      if (
+        trimmed.startsWith('http://') ||
+        trimmed.startsWith('https://') ||
+        trimmed.startsWith('data:')
+      ) {
+        return trimmed;
+      }
+      if (trimmed.startsWith('<svg') || trimmed.includes('<svg')) {
+        return `data:image/svg+xml;base64,${Buffer.from(trimmed).toString('base64')}`;
+      }
+      return trimmed;
     };
 
-    const brandContext = `Brand: ${brandName}\nLogo SVG: ${logoSvg}\nBrand Colors: ${JSON.stringify(
-      brandColors
-    )}\nTypography: ${JSON.stringify(typography)}\nLanguage: fr`;
+    // Build logo URLs block — prefer the hosted PNG URLs (assetUrls); fall back
+    // to the inline SVG (formatted as a Data URI) for legacy projects that were
+    // created before PNG assets were generated.
+    const assetUrls = logo?.assetUrls;
+    const logoLines: string[] = [];
+    const pushLogoLine = (label: string, url?: string, svgFallback?: string) => {
+      const value = url || (svgFallback ? formatLogoUrl(svgFallback) : '');
+      if (value) logoLines.push(`  ${label}: ${value}`);
+    };
+
+    pushLogoLine('Primary (full logo)', assetUrls?.primary, logo?.svg);
+    pushLogoLine('Icon only', assetUrls?.icon, logo?.iconSvg);
+
+    const wt = logo?.variations?.withText;
+    if (assetUrls?.withText || wt) {
+      pushLogoLine('With text (light bg)', assetUrls?.withText?.lightBackground, wt?.lightBackground);
+      pushLogoLine('With text (dark bg)', assetUrls?.withText?.darkBackground, wt?.darkBackground);
+      pushLogoLine('With text (mono)', assetUrls?.withText?.monochrome, wt?.monochrome);
+    }
+
+    const io = logo?.variations?.iconOnly;
+    if (assetUrls?.iconOnly || io) {
+      pushLogoLine('Icon only (light bg)', assetUrls?.iconOnly?.lightBackground, io?.lightBackground);
+      pushLogoLine('Icon only (dark bg)', assetUrls?.iconOnly?.darkBackground, io?.darkBackground);
+      pushLogoLine('Icon only (mono)', assetUrls?.iconOnly?.monochrome, io?.monochrome);
+    }
+
+    // Flat, explicit brand context — LLM uses bg-[#hex], text-[#hex] directly
+    const brandContext = [
+      `Brand Name: ${brandName}`,
+      `LOGO URLS (use <img src="URL"> — pick the right variant for the slide background):`,
+      ...(logoLines.length > 0 ? logoLines : ['  No logo available']),
+      `PRIMARY COLOR: ${colorsObj.primary}`,
+      `SECONDARY COLOR: ${colorsObj.secondary}`,
+      `ACCENT COLOR: ${colorsObj.accent}`,
+      `BACKGROUND COLOR: ${colorsObj.background}`,
+      `TEXT COLOR: ${colorsObj.text}`,
+      `PRIMARY FONT: ${primaryFont}`,
+      `SECONDARY FONT: ${secondaryFont}`,
+      `Language: fr`,
+    ].join('\n');
 
     const steps: IPromptStep[] = [
       {
         stepName: 'Cover',
-        hasDependencies: false,
         promptConstant: `${projectDescription}\n${SLIDE_COVER_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
       },
       {
         stepName: 'Problem',
-        hasDependencies: false,
         promptConstant: `${projectDescription}\n${SLIDE_PROBLEM_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
       },
       {
         stepName: 'Solution',
-        hasDependencies: false,
         promptConstant: `${projectDescription}\n${SLIDE_SOLUTION_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
       },
       {
         stepName: 'Market',
-        hasDependencies: false,
         promptConstant: `${projectDescription}\n${SLIDE_MARKET_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
       },
       {
         stepName: 'Product',
-        hasDependencies: false,
         promptConstant: `${projectDescription}\n${SLIDE_PRODUCT_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
       },
       {
         stepName: 'Business Model',
-        hasDependencies: false,
         promptConstant: `${projectDescription}\n${SLIDE_BUSINESS_MODEL_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
       },
       {
         stepName: 'Traction',
-        hasDependencies: false,
         promptConstant: `${projectDescription}\n${SLIDE_TRACTION_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
       },
       {
         stepName: 'Competition',
-        hasDependencies: false,
         promptConstant: `${projectDescription}\n${SLIDE_COMPETITION_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
       },
       {
         stepName: 'Team',
-        hasDependencies: false,
         promptConstant: `${projectDescription}\n${SLIDE_TEAM_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
       },
       {
         stepName: 'Financials',
-        hasDependencies: false,
         promptConstant: `${projectDescription}\n${SLIDE_FINANCIALS_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
       },
       {
         stepName: 'Ask',
-        hasDependencies: false,
         promptConstant: `${projectDescription}\n${SLIDE_ASK_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
       },
     ];
 
+    // Chaque slide reçoit son propre budget de tokens et sa température
+    // (voir AI_CONFIG.pitchDeck.sections) ; la config de la feature sert de
+    // base pour ceux qui n'en redéfinissent pas. Les dépendances entre slides
+    // vivent dans PITCH_DECK_GRAPH — notamment `Ask` ← `Financials`, pour que le
+    // montant demandé découle des projections affichées deux slides plus tôt.
+    const slideQuality = {
+      format: 'html' as const,
+      minChars: 300,
+      currency: project.analysisResultModel?.finance?.meta?.currency,
+    };
+
+    const configuredSteps = withGraph(AI_CONFIG.pitchDeck, steps, PITCH_DECK_GRAPH, slideQuality);
+
     const promptConfig: PromptConfig = {
       provider: AI_CONFIG.pitchDeck.provider,
       modelName: AI_CONFIG.pitchDeck.modelName,
+      llmOptions: AI_CONFIG.pitchDeck.llmOptions,
+      // Était omis : la chaîne de repli n'atteignait jamais runPrompt.
+      fallbackModels: AI_CONFIG.pitchDeck.fallbackModels,
     };
 
 
-    let sectionResults: SectionModel[] = [];
+    // Load existing sections if not forcing regeneration.
+    // Sections listed in targetSections are dropped so they get regenerated,
+    // while the others are kept as-is (resume semantics).
+    const existingSections = forceRegenerate
+      ? []
+      : targetSections.length > 0
+        ? currentSections.filter((s) => !targetSections.includes(s.name))
+        : currentSections;
+
+    let sectionResults: SectionModel[] = [...existingSections];
 
     if (streamCallback) {
       await this.processStepsWithStreaming(
-        steps,
+        configuredSteps,
         project,
         async (result: ISectionResult) => {
           if (result.data === 'steps_in_progress' || result.data === 'all_steps_completed') {
@@ -177,13 +269,34 @@ export class PitchDeckService extends GenericService {
             return;
           }
 
+          let enrichedData = result.data;
+          if (typeof enrichedData === 'string' && (enrichedData.includes('<img') || enrichedData.includes('data-image'))) {
+            enrichedData = await this.enrichSlideWithImages(
+              enrichedData,
+              userId,
+              projectId,
+              result.name
+            );
+          }
+
           const section: SectionModel = {
             name: result.name,
             type: result.type,
-            data: result.data,
+            data: enrichedData,
             summary: result.summary,
           };
-          sectionResults.push(section);
+          
+          // Add or replace in sections array to avoid duplicates
+          const existingIndex = sectionResults.findIndex((s) => s.name === section.name);
+          if (existingIndex !== -1) {
+            sectionResults[existingIndex] = section;
+          } else {
+            sectionResults.push(section);
+          }
+
+          // Sort sections to match original step order
+          const stepOrder = steps.map((s) => s.stepName);
+          sectionResults.sort((a, b) => stepOrder.indexOf(a.name) - stepOrder.indexOf(b.name));
 
           const currentProject = await this.projectRepository.findById(
             projectId,
@@ -208,26 +321,49 @@ export class PitchDeckService extends GenericService {
 
           if (updated) {
             await cacheService.set(cacheKey, updated, { prefix: 'ai', ttl: 7200 });
-            await streamCallback(result);
+            await streamCallback({
+              ...result,
+              data: enrichedData,
+            });
           } else {
             throw new Error(`Failed to update project after step: ${result.name}`);
           }
         },
         promptConfig,
         'pitch_deck',
-        userId
+        userId,
+        undefined, // finalizationCallback
+        existingSections
       );
+
+      // The stored PDF no longer matches the regenerated sections
+      await cacheService.delete(cacheService.generateAIKey('pitch-deck-pdf', userId, projectId), {
+        prefix: 'pdf',
+      });
 
       return this.projectRepository.findById(projectId, `users/${userId}/projects`);
     }
 
-    const stepResults = await this.processSteps(steps, project, promptConfig);
-    sectionResults = stepResults.map((r) => ({
-      name: r.name,
-      type: r.type,
-      data: r.data,
-      summary: r.summary,
-    }));
+    const stepResults = await this.processSteps(configuredSteps, project, promptConfig);
+    sectionResults = await Promise.all(
+      stepResults.map(async (r) => {
+        let enrichedData = r.data;
+        if (typeof enrichedData === 'string' && (enrichedData.includes('<img') || enrichedData.includes('data-image'))) {
+          enrichedData = await this.enrichSlideWithImages(
+            enrichedData,
+            userId,
+            projectId,
+            r.name
+          );
+        }
+        return {
+          name: r.name,
+          type: r.type,
+          data: enrichedData,
+          summary: r.summary,
+        };
+      })
+    );
 
     const old = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!old) return null;
@@ -249,6 +385,10 @@ export class PitchDeckService extends GenericService {
 
     if (updated) {
       await cacheService.set(cacheKey, updated, { prefix: 'ai', ttl: 7200 });
+      // The stored PDF no longer matches the regenerated sections
+      await cacheService.delete(cacheService.generateAIKey('pitch-deck-pdf', userId, projectId), {
+        prefix: 'pdf',
+      });
     }
     return updated;
   }
@@ -333,5 +473,91 @@ export class PitchDeckService extends GenericService {
       );
       throw err;
     }
+  }
+
+  /**
+   * Enrich slide HTML by resolving image placeholders (using Pexels stock search with Gemini fallback)
+   */
+  private async enrichSlideWithImages(
+    html: string,
+    userId: string,
+    projectId: string,
+    slideName: string
+  ): Promise<string> {
+    if (!html || typeof html !== 'string') return html;
+
+    const imgTagRegex = /<img\b([^>]*?)>/gi;
+    const matches = [...html.matchAll(imgTagRegex)];
+
+    if (matches.length === 0) return html;
+
+    let enrichedHtml = html;
+
+    for (const match of matches) {
+      const fullTag = match[0];
+      const attrsStr = match[1];
+
+      // Explicitly protect logos and data URIs from being replaced by stock photos
+      const isLogo =
+        /alt=["'][^"']*logo[^"']*["']/i.test(attrsStr) ||
+        /class=["'][^"']*logo[^"']*["']/i.test(attrsStr) ||
+        /src=["'][^"']*logo[^"']*["']/i.test(attrsStr);
+
+      const hasExplicitQuery = /data-image-query=["']/i.test(attrsStr);
+      const hasExplicitPrompt = /data-image-prompt=["']/i.test(attrsStr);
+      const isPlaceholder =
+        /src=["'][^"']*placehold\.co[^"']*["']/i.test(attrsStr) ||
+        /src=["'][^"']*placeholder[^"']*["']/i.test(attrsStr);
+
+      if (isLogo || (!hasExplicitQuery && !hasExplicitPrompt && !isPlaceholder)) {
+        continue;
+      }
+
+      if (/src=["']data:image\//i.test(attrsStr) && !hasExplicitQuery && !hasExplicitPrompt) {
+        continue;
+      }
+
+      const queryMatch = attrsStr.match(/data-image-query=["']([^"']+)["']/i);
+      const promptMatch = attrsStr.match(/data-image-prompt=["']([^"']+)["']/i);
+
+      const searchQuery = queryMatch
+        ? queryMatch[1]
+        : `${slideName} startup visual`;
+
+      const generationPrompt = promptMatch
+        ? promptMatch[1]
+        : `High resolution professional visual depicting ${searchQuery} for pitch deck slide ${slideName}`;
+
+      try {
+        const sourced = await imageSourcingService.sourceImage(
+          {
+            searchQuery,
+            generationPrompt,
+            orientation: 'landscape',
+          },
+          {
+            userId,
+            projectId,
+            tag: `pitchdeck-${slideName.toLowerCase().replace(/\s+/g, '-')}`,
+          }
+        );
+
+        if (sourced && sourced.url) {
+          let newTag = fullTag;
+          if (/src=["'][^"']*["']/i.test(newTag)) {
+            newTag = newTag.replace(/src=["'][^"']*["']/i, `src="${sourced.url}"`);
+          } else {
+            newTag = newTag.replace(/<img/i, `<img src="${sourced.url}"`);
+          }
+          enrichedHtml = enrichedHtml.replace(fullTag, newTag);
+        }
+      } catch (err: any) {
+        logger.warn(
+          `Failed to source image for pitch deck slide ${slideName}: ${err.message}`
+        );
+      }
+    }
+
+    return enrichedHtml;
   }
 }

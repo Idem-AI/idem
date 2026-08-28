@@ -18,6 +18,7 @@
         }
       },
       "buttons": {
+        "edit": "Éditer",
         "backToOverview": "Retour à l'aperçu",
         "backToProjects": "Retour aux projets",
         "getCharter": "Obtenir la charte graphique",
@@ -25,7 +26,9 @@
         "selectProject": "Sélectionner un projet",
         "generate": "Générer l'identité de marque",
         "viewIdentity": "Voir mon identité visuelle",
-        "generateIdentity": "Générer mon identité visuelle"
+        "generateIdentity": "Générer mon identité visuelle",
+        "editIdentity": "Éditer",
+        "downloadLogos": "Télécharger toutes les déclinaisons"
       },
       "tooltips": {
         "downloadZip": "Télécharger tous les logos dans un fichier ZIP"
@@ -39,7 +42,8 @@
           "lightBg": "Fond clair",
           "darkBg": "Fond sombre",
           "iconOnly": "Icône seule",
-          "monochrome": "Monochrome"
+          "monochrome": "Monochrome",
+          "downloadHint": "Toutes les versions du logo (fond clair, sombre, monochrome, icône) dans un fichier ZIP."
         },
         "colors": {
           "title": "Palette de couleurs",
@@ -118,24 +122,28 @@
         "loading": "Préparation du contenu de branding..."
       },
       "dialog": {
-        "title": "Télécharger les Logos",
-        "subtitle": "Choisissez le format que vous souhaitez télécharger :",
-        "preparing": "Préparation du téléchargement...",
-        "wait": "Cela peut prendre quelques instants",
+        "title": "Télécharger les déclinaisons du logo",
+        "subtitle": "Choisissez le format des fichiers. Vous recevrez un ZIP contenant toutes les versions du logo.",
+        "preparing": "Préparation…",
+        "wait": "La préparation du fichier peut prendre quelques instants.",
         "formats": {
           "svg": {
-            "name": "Format SVG",
-            "description": "Format vectoriel, redimensionnable"
+            "name": "SVG",
+            "description": "Vectoriel : s'agrandit sans jamais perdre en qualité. Le choix sûr pour l'impression comme pour le web."
           },
           "png": {
-            "name": "Format PNG",
-            "description": "Image raster haute qualité"
+            "name": "PNG",
+            "description": "Image à fond transparent, prête à coller dans un document, un slide ou un site."
           },
           "psd": {
-            "name": "Format PSD",
-            "description": "Fichier éditable Photoshop"
+            "name": "PSD",
+            "description": "Fichier en calques, à ouvrir dans Photoshop pour retoucher le logo."
           }
-        }
+        },
+        "legend": "Format des fichiers",
+        "recommended": "Recommandé",
+        "confirm": "Télécharger le ZIP",
+        "zipNote": "Le ZIP contient le logo principal, l'icône seule et les versions fond clair, fond sombre et monochrome."
       },
       "formatSelector": {
         "title": "Choisir le format PDF",
@@ -149,6 +157,19 @@
           "description": "Format présentation moderne"
         },
         "startGeneration": "Lancer la génération"
+      },
+      "summary": {
+        "sections": "Sections",
+        "palette": "Palette",
+        "typography": "Typographie",
+        "logoVariations": "Déclinaisons"
+      },
+      "businessCards": {
+        "title": "Cartes de visite",
+        "badge": "Dérivé de la charte",
+        "subtitle": "Générez un modèle de carte à partir de votre identité, puis créez la carte de chaque personne de l'équipe et téléchargez-la, prête à imprimer.",
+        "cta": "Gérer les cartes de visite",
+        "locked": "Générez d'abord votre identité visuelle pour créer vos cartes."
       }
     }
   }

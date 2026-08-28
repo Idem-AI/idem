@@ -1,9 +1,30 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { catchError, tap, map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import { ProjectModel } from '@idem/shared-models';
+
+/** Existing iCode conversation attached to a project, without its messages. */
+export interface AppChatSummary {
+  sessionId: string;
+  title?: string;
+  messageCount?: number;
+  startedAt?: string;
+  lastMessageAt?: string;
+}
+
+/** Quick deployment published from iCode (Netlify) and attached to a project. */
+export interface AppDeploymentModel {
+  provider?: string;
+  siteId: string;
+  siteName?: string | null;
+  url: string;
+  adminUrl?: string | null;
+  deployId?: string | null;
+  firstDeployedAt?: string;
+  lastDeployedAt?: string;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -104,13 +125,44 @@ export class ProjectService {
    * @returns Observable of the updated project
    */
   updateProject(projectId: string, updatedData: Partial<ProjectModel>): Observable<ProjectModel> {
-    return this.http.put<ProjectModel>(`${this.apiUrl}/${projectId}`, updatedData).pipe(
+    const payload = this.stripRedundantInlineLogoVariations(updatedData);
+    return this.http.put<ProjectModel>(`${this.apiUrl}/${projectId}`, payload).pipe(
       tap((response) => console.log(`updateProject response for ${projectId}:`, response)),
       catchError((error) => {
         console.error(`Error in updateProject for ${projectId}:`, error);
         return throwError(() => error);
       }),
     );
+  }
+
+  /**
+   * Les variations de logo sont des SVG inline volumineux qui faisaient dépasser
+   * la limite de body JSON de l'API (PUT → 413 Content Too Large). On ne les
+   * retire du payload QUE si `logo.assetUrls` est présent : ces URLs de PNG
+   * hébergés prouvent que le backend a déjà généré ET persisté les assets du logo
+   * (flux logo importé, après génération de palette), et l'affichage privilégie
+   * déjà `assetUrls`. Sans `assetUrls` (ex. flux chat/IA où le front est le seul
+   * détenteur des variations), on conserve les variations pour ne rien perdre.
+   */
+  private stripRedundantInlineLogoVariations(
+    data: Partial<ProjectModel>,
+  ): Partial<ProjectModel> {
+    const branding = data.analysisResultModel?.branding;
+    const logo = branding?.logo;
+    if (!logo?.variations || !logo?.assetUrls) {
+      return data;
+    }
+    const { variations: _variations, ...leanLogo } = logo;
+    return {
+      ...data,
+      analysisResultModel: {
+        ...data.analysisResultModel,
+        branding: {
+          ...branding,
+          logo: leanLogo,
+        },
+      },
+    };
   }
 
   /**
@@ -138,9 +190,64 @@ export class ProjectService {
         - Composition de l'équipe : ${project.teamSize} développeurs
         - Périmètre fonctionnel couvert : ${project.scope}
         - Fourchette budgétaire prévue : ${project.budgetIntervals}
+        - Devise du projet : ${project.currency || 'non spécifiée'}
         - Publics cibles concernés : ${project.targets}
 `;
 
     return projectDescription;
   }
+
+  /**
+   * Improves the user project prompt using AI
+   * @param prompt User prompt to refine
+   * @returns Observable with improved prompt
+   */
+  improvePrompt(prompt: string): Observable<{ success: boolean; improvedPrompt: string }> {
+    const promptUrl = `${environment.services.api.url}/prompt/improve`;
+    return this.http
+      .post<{ success: boolean; improvedPrompt: string }>(promptUrl, { prompt })
+      .pipe(
+        tap((response) => console.log('improvePrompt response:', response)),
+        catchError((error) => {
+          console.error('Error in improvePrompt:', error);
+          return throwError(() => error);
+        }),
+      );
+  }
+
+  /**
+   * Lightweight check for an existing iCode conversation on this project.
+   * Returns null when the app has never been generated.
+   */
+  getAppChatSummary(projectId: string): Observable<AppChatSummary | null> {
+    return this.http
+      .get<AppChatSummary>(`${this.apiUrl}/${projectId}/chat-session?summary=1`)
+      .pipe(catchError(() => of(null)));
+  }
+
+  /**
+   * Retrieves the last quick deployment (Netlify) published from iCode for a project.
+   * Returns null when the project has never been deployed.
+   */
+  getAppDeployment(projectId: string): Observable<AppDeploymentModel | null> {
+    return this.http
+      .get<AppDeploymentModel>(`${this.apiUrl}/${projectId}/app-deployment`)
+      .pipe(catchError(() => of(null)));
+  }
+
+  /**
+   * Generates a random project idea focused on Africa
+   * @returns Observable with generated project idea
+   */
+  generateFeelingLucky(): Observable<{ success: boolean; idea: string }> {
+    const promptUrl = `${environment.services.api.url}/prompt/feeling-lucky`;
+    return this.http.post<{ success: boolean; idea: string }>(promptUrl, {}).pipe(
+      tap((response) => console.log('generateFeelingLucky response:', response)),
+      catchError((error) => {
+        console.error('Error in generateFeelingLucky:', error);
+        return throwError(() => error);
+      }),
+    );
+  }
 }
+

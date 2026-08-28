@@ -49,6 +49,111 @@
     "reset": "Réinitialiser"
   },
   "dashboard": {
+    "createDevelopment": {
+      "errorsDetected": "Des erreurs ont été détectées",
+      "title": "Création Web",
+      "subtitle": "Paramétrez et générez votre projet web",
+      "back": "Retour",
+      "step1": {
+        "title": "Que souhaitez-vous créer ?",
+        "subtitle": "Choisissez le format principal de votre projet web."
+      },
+      "landing": {
+        "title": "Site Vitrine",
+        "status": "Prêt",
+        "description": "Créez un site web élégant et très performant pour présenter votre activité, vos services ou votre produit.",
+        "feature1": "Design sur mesure",
+        "feature2": "Optimisé Référencement (SEO)"
+      },
+      "app": {
+        "title": "Application Web",
+        "status": "Bientôt",
+        "description": "Application complète avec base de données, authentification utilisateur et logique métier complexe.",
+        "feature1": "Base de données",
+        "feature2": "Authentification",
+        "badgeTitle": "Bientôt Disponible"
+      },
+      "step2": {
+        "title": "Que souhaitez-vous générer ?",
+        "subtitle": "Sélectionnez l'architecture technique de votre projet.",
+        "landingDesc": "Un site vitrine indépendant pour optimiser votre visibilité et présenter vos services.",
+        "appDesc": "Une application fonctionnelle complète sans partie marketing, dédiée à vos utilisateurs.",
+        "integratedTitle": "Site + App Intégrés",
+        "integratedDesc": "Le site vitrine et l'application au sein de la même base de code pour une expérience unifiée.",
+        "separatedTitle": "Site + App Séparés",
+        "separatedDesc": "Deux projets distincts pour une flexibilité maximale et un déploiement indépendant."
+      },
+      "step3": {
+        "title": "Résumé de configuration",
+        "subtitle": "Vérifiez vos paramètres avant de lancer la génération.",
+        "generationType": "Type de génération",
+        "techStack": "Stack Technique",
+        "generateProject": "Générer le projet",
+        "advancedTitle": "Configuration Avancée",
+        "advancedSubtitle": "Paramétrez finement votre environnement technique.",
+        "saveAndContinue": "Sauvegarder et Continuer"
+      }
+    },
+    "showDevelopment": {
+      "liveApp": "Application en ligne",
+      "deployed": "Déployée",
+      "lastUpdated": "Dernière mise à jour :",
+      "linkCopied": "Lien copié",
+      "copyLink": "Copier le lien",
+      "open": "Ouvrir",
+      "landingReady": "Votre Site Vitrine<br/>est prêt.",
+      "landingReadyToGenerate": "Votre Site Vitrine<br/>est prêt à être généré.",
+      "landingExistingDesc": "Reprenez la conversation iCode là où vous l'aviez laissée pour faire évoluer votre page.",
+      "landingNewDesc": "Votre configuration est finalisée. Lancez la génération pour créer votre site vitrine professionnel et moderne en quelques minutes.",
+      "resumeInIcode": "Reprendre dans iCode",
+      "generateLanding": "Générer le site vitrine",
+      "features": {
+        "design": "Design Moderne",
+        "designDesc": "Interface élégante, responsive et adaptée à votre identité visuelle.",
+        "seo": "Optimisé SEO",
+        "seoDesc": "Structure sémantique et performances optimisées pour le référencement naturel.",
+        "customizable": "Personnalisable",
+        "customizableDesc": "Code clair et modulaire, facilement modifiable selon vos futurs besoins."
+      },
+      "appExistingTitle": "Environnement généré.",
+      "appNewTitle": "Configuration technique finalisée.",
+      "appExistingDesc": "Reprenez la conversation iCode là où vous l'aviez laissée : votre code et votre historique sont restaurés automatiquement.",
+      "appNewDesc": "Votre stack technologique est configurée. Lancez la génération pour créer votre application complète.",
+      "generateApp": "Générer l'application",
+      "preview": "Aperçu",
+      "exportConfig": "Exporter Config",
+      "stackOverview": "Vue d'ensemble de la stack",
+      "frontend": "Frontend",
+      "backend": "Backend",
+      "database": "Base de données",
+      "configDetails": "Détails de configuration",
+      "clientLayer": "Couche Client",
+      "clientLayerDesc": "Définition de l'interface utilisateur, de l'expérience client et de la gestion d'état.",
+      "version": "Version",
+      "styling": "Styling",
+      "stateManagement": "State Management",
+      "enabledFeatures": "Fonctionnalités activées",
+      "serverLayer": "Couche Serveur",
+      "serverLayerDesc": "Logique métier, architecture API et gestion des données complexes.",
+      "language": "Langage",
+      "framework": "Framework",
+      "apiType": "API Type",
+      "orm": "ORM",
+      "apiFeatures": "Fonctionnalités API",
+      "persistence": "Persistance",
+      "persistenceDesc": "Infrastructure de base de données et gestion de l'état persistant.",
+      "configurations": "Configurations",
+      "globals": "Globales",
+      "globalsDesc": "Paramètres de projet transversaux et contraintes spécifiques.",
+      "seo": "SEO",
+      "i18n": "i18n",
+      "auth": "Auth",
+      "enabled": "Activé",
+      "disabled": "Désactivé",
+      "secured": "Sécurisé",
+      "public": "Public",
+      "imposedConstraints": "Contraintes Imposées"
+    },
     "addMemberModal": {
       "title": "Ajouter un membre à l'équipe",
       "fields": {
@@ -202,6 +307,12 @@
       },
       "pdf": {
         "download": "Télécharger le rapport PDF"
+      },
+      "bpMissingDialog": {
+        "title": "Business Plan requis",
+        "headline": "Générez d'abord votre Business Plan",
+        "description": "L'IA a besoin de votre Business Plan pour générer des prévisions financières cohérentes et personnalisées. Veuillez générer votre business plan avant de continuer.",
+        "generateCta": "Créer mon Business Plan"
       }
     },
     "sidebar": {
@@ -214,7 +325,7 @@
       "legalDocs": "Documents juridiques",
       "advisor": "Conseiller",
       "diagrams": "Diagrammes",
-      "development": "Développement",
+      "development": "Site & App",
       "deploymentOverview": "Aperçu du déploiement",
       "deployment": "Déploiement",
       "viewAllProjects": "Voir tous les projets",
@@ -481,6 +592,54 @@
       },
       "cards": {
         "colors": "Couleurs"
+      },
+      "live": {
+        "title": "Création de vos logos en direct",
+        "subtitle": "Chaque concept est généré, audité par notre directeur artistique IA, puis corrigé si nécessaire — sous vos yeux.",
+        "selectHint": "Un logo vous plaît ? Cliquez dessus pour le choisir et arrêter le reste de la génération.",
+        "status": {
+          "pending": "En attente…",
+          "generating": "Génération du concept…",
+          "generated": "Concept généré",
+          "critiquing": "Contrôle qualité en cours…",
+          "revising": "Amélioration du logo…",
+          "final": "Validé",
+          "cancelled": "Annulé",
+          "error": "Échec de ce concept"
+        },
+        "critique": {
+          "title": "Avis du directeur artistique",
+          "revised": "Corrigé par l’agent"
+        },
+        "ambient": [
+          "Lecture de la palette et de la typographie du projet",
+          "Recensement des symboles courants du secteur",
+          "Composition des formes primaires",
+          "Ajustement des proportions sur la grille",
+          "Vérification de la lisibilité en petite taille",
+          "Simplification des courbes superflues",
+          "Contrôle du rendu sur fond clair et sur fond sombre",
+          "Nettoyage des tracés SVG",
+          "Comparaison avec les concepts déjà produits"
+        ],
+        "log": {
+          "brief": "Brief de marque transmis aux agents",
+          "started": "Concept {{concept}} : exploration lancée",
+          "generated": "Concept {{concept}} : tracé reçu",
+          "audit": "Concept {{concept}} : passage au contrôle qualité",
+          "auditPass": "Concept {{concept}} validé ({{score}}/100)",
+          "auditFail": "Concept {{concept}} à corriger ({{score}}/100)",
+          "revising": "Concept {{concept}} : correction en cours",
+          "revised": "Concept {{concept}} : correction appliquée",
+          "final": "Concept {{concept}} prêt",
+          "cancelled": "Concept {{concept}} abandonné",
+          "error": "Concept {{concept}} : échec de la génération"
+        }
+      },
+      "previous": {
+        "badge": "Série précédente",
+        "title": "Propositions précédentes",
+        "hint": "Vous préférez une proposition précédente ? Sélectionnez-la : la génération en cours s'arrêtera."
       }
     },
     "logoVariations": {
@@ -574,7 +733,48 @@
         "darkBackground": "Optimisé pour les fonds sombres et modernes",
         "monochrome": "Version en noir et blanc pour toutes les utilisations"
       },
-      "selectionsMade": "{{count}} sélection(s) faite(s)"
+      "selectionsMade": "{{count}} sélection(s) faite(s)",
+      "live": {
+        "title": "Création des déclinaisons en direct",
+        "subtitle": "Chaque déclinaison est générée, vérifiée sur son fond cible par notre agent qualité, puis corrigée si nécessaire.",
+        "status": {
+          "pending": "En attente…",
+          "generating": "Génération de la déclinaison…",
+          "generated": "Déclinaison générée",
+          "critiquing": "Vérification sur le fond cible…",
+          "revising": "Correction des couleurs…",
+          "final": "Validée",
+          "cancelled": "Annulée",
+          "error": "Échec de cette déclinaison"
+        },
+        "critique": {
+          "title": "Avis de l'agent qualité",
+          "revised": "Corrigée par l'agent"
+        },
+        "ambient": [
+          "Extraction des couleurs du logo retenu",
+          "Repérage des zones à recolorer",
+          "Adaptation de la palette au fond de destination",
+          "Mesure du contraste sur le fond cible",
+          "Test d'affichage en 32 px",
+          "Conservation des proportions d'origine",
+          "Aplatissement de la version monochrome",
+          "Nettoyage des tracés SVG"
+        ],
+        "log": {
+          "read": "Logo source analysé",
+          "started": "{{variant}} : recoloration lancée",
+          "generated": "{{variant}} : version reçue",
+          "audit": "{{variant}} : vérification sur le fond cible",
+          "auditPass": "{{variant}} validée ({{score}}/100)",
+          "auditFail": "{{variant}} à corriger ({{score}}/100)",
+          "revising": "{{variant}} : correction des couleurs",
+          "revised": "{{variant}} : correction appliquée",
+          "final": "{{variant}} prête",
+          "cancelled": "{{variant}} abandonnée",
+          "error": "{{variant}} : échec de la génération"
+        }
+      }
     },
     "projectDescription": {
       "hello": "Bonjour",
@@ -583,7 +783,9 @@
       "placeholder": "Une application qui génère des poèmes à partir de photos",
       "buttons": {
         "improvePrompt": "Améliorer l'invite",
+        "improving": "Amélioration...",
         "feelingLucky": "J'ai de la chance",
+        "generatingIdea": "Génération...",
         "continue": "Continuer"
       },
       "needInspiration": "Besoin d'inspiration ?",
@@ -639,6 +841,16 @@
         "selectType": "Sélectionnez un type",
         "selectScope": "Sélectionnez une portée",
         "selectTarget": "Sélectionnez une cible"
+      },
+      "dynamic": {
+        "sectionTitle": "Questions adaptées à votre projet",
+        "loading": "Analyse de votre projet pour adapter les questions…",
+        "error": "Impossible de générer les questions. Vous pouvez réessayer.",
+        "retry": "Réessayer",
+        "optional": "facultatif",
+        "selectPlaceholder": "Sélectionnez une option",
+        "textPlaceholder": "Votre réponse (facultatif)",
+        "otherPlaceholder": "Précisez…"
       }
     },
     "projectSummary": {
@@ -762,7 +974,20 @@
         "primaryFont": "POLICE PRIMAIRE",
         "secondaryFont": "POLICE SECONDAIRE",
         "notSelected": "Non sélectionné",
-        "addButton": "Ajouter un mélange personnalisé"
+        "addButton": "Ajouter un mélange personnalisé",
+        "searchIntro": "Cherchez dans tout le catalogue Google Fonts, puis assignez une police :"
+      },
+      "clearSearch": "Effacer la recherche",
+      "resultsCount": "{{count}} polices",
+      "weightsCount": "{{count}} graisses",
+      "categories": {
+        "label": "Filtrer par catégorie de police",
+        "all": "Toutes",
+        "sansSerif": "Sans serif",
+        "serif": "Serif",
+        "display": "Display",
+        "handwriting": "Manuscrite",
+        "monospace": "Monospace"
       }
     },
     "createProject": {
@@ -791,6 +1016,31 @@
       "modeChat": "Conversation",
       "modeForm": "Formulaire",
       "switchToForm": "Passer au formulaire",
+      "modeChoice": {
+        "badge": "Mode d'accompagnement",
+        "title": "Comment souhaitez-vous continuer ?",
+        "subtitle": "Votre description est enregistrée. Choisissez l'expérience qui vous convient le mieux pour finaliser la création de votre projet.",
+        "backToDescription": "Modifier la description",
+        "form": {
+          "title": "Formulaire classique",
+          "tag": "Saisie étape par étape",
+          "description": "Remplissez un formulaire structuré étape par étape pour renseigner les détails techniques et fonctionnels de votre projet.",
+          "feature1": "Vue d'ensemble claire et rapide",
+          "feature2": "Champs structurés et guidés",
+          "feature3": "Contrôle direct sur chaque paramètre",
+          "button": "Continuer avec le formulaire"
+        },
+        "chat": {
+          "title": "Interface Chat interactive",
+          "badge": "Recommandé",
+          "tag": "IA Assistée",
+          "description": "Une interface de chat simple et facile à prendre en main pour vous guider et utiliser toutes les fonctionnalités d'IDEM.",
+          "feature1": "Accompagnement IA intelligent et personnalisé",
+          "feature2": "Accès simple à toutes les fonctionnalités IDEM",
+          "feature3": "Expérience fluide, dynamique et interactive",
+          "button": "Démarrer avec le Chat"
+        }
+      },
       "foundations": {
         "title": "Parlons de votre projet",
         "subtitle": "Quelques bases pour démarrer — l'IA s'occupe du reste en conversation.",
@@ -807,19 +1057,37 @@
       "subtitle": "Vous pouvez importer votre logo existant ou laisser notre IA en créer un pour vous",
       "import": {
         "title": "J'ai déjà un logo",
-        "description": "Importez votre fichier logo existant. Nous l'optimiserons et le convertirons en format vectoriel propre."
+        "description": "Importez votre fichier logo existant. Nous l'optimiserons et le convertirons en format vectoriel propre.",
+        "tag": "Fichier existant",
+        "button": "Importer mon logo"
       },
       "ai": {
         "title": "Créer avec l'IA",
-        "description": "Laissez notre IA générer des concepts de logo uniques basés sur l'identité de votre projet.",
-        "badge": "Propulsé par l'IA"
+        "description": "Laissez notre IA générer des concepts de logo uniques et sur-mesure basés sur l'identité de votre projet.",
+        "badge": "Recommandé",
+        "button": "Générer avec l'IA"
       },
       "backToChoice": "Retour aux options",
       "continueWithLogo": "Continuer avec ce logo",
       "extractedColors": "Couleurs détectées dans votre logo",
       "colorsUsedAsPrimary": "Ces couleurs seront utilisées comme couleurs primaires. Notre IA proposera des palettes complémentaires.",
       "generatingBranding": "Génération de votre identité visuelle...",
-      "generatingBrandingSubtitle": "Notre IA crée des palettes de couleurs et des typographies basées sur votre logo."
+      "generatingBrandingSubtitle": "Notre IA crée des palettes de couleurs et des typographies basées sur votre logo.",
+      "postImport": {
+        "title": "Votre logo est prêt. Que souhaitez-vous en faire ?",
+        "useAsIs": {
+          "title": "Utiliser tel quel",
+          "description": "Conservez votre logo exactement comme il est. Ses déclinaisons (fond clair, fond sombre, monochrome) sont générées automatiquement."
+        },
+        "improve": {
+          "title": "Améliorer avec l'IA",
+          "description": "L'IA analyse votre logo et génère des versions plus professionnelles, fidèles à votre identité (formes, couleurs, symbolique)."
+        },
+        "analyzing": "Analyse de votre logo en cours…",
+        "analysisError": "L'analyse du logo a échoué. Réessayez ou utilisez votre logo tel quel.",
+        "subtitle": "Vous pouvez le conserver tel quel ou laisser l'IA en proposer une version plus professionnelle.",
+        "back": "Retour à l'import"
+      }
     },
     "logoImport": {
       "dropzone": {
@@ -953,8 +1221,10 @@
       },
       "quotaWarning": {
         "title": "Avertissement de quota",
-        "daily": "Quotidien",
-        "weekly": "Hebdomadaire",
+        "daily": "Quotidien :",
+        "weekly": "Hebdomadaire :",
+        "credits": "Crédits",
+        "beta": "BÊTA",
         "messages": {
           "approaching": "Vous approchez de votre limite de quota",
           "daily": "Vous approchez de votre limite de quota quotidien",
@@ -963,6 +1233,21 @@
         },
         "buttons": {
           "viewDetails": "Voir les détails"
+        },
+        "tooltip": {
+          "title": "Informations de quota",
+          "exceededTitle": "Quota dépassé",
+          "exceededMessage": "Vous avez atteint vos limites d'utilisation",
+          "limitedTitle": "Fonctionnalité limitée",
+          "limitedMessage": "Non disponible en version bêta",
+          "nearlyReachedTitle": "Quota presque atteint",
+          "nearlyReachedMessage": "À utiliser avec modération",
+          "availableMessage": "Quotas disponibles",
+          "betaLimitations": "Limitations bêta :",
+          "maxStyles": "styles maximum",
+          "resolution": "Résolution :",
+          "maxTokens": "tokens max",
+          "featureNotAuthorized": "Fonctionnalité non autorisée"
         }
       }
     },
@@ -1202,145 +1487,6 @@
         "redeploy": "Redéployer"
       }
     },
-    "createDevelopment": {
-      "title": "Configuration du développement",
-      "subtitle": "Configurez les paramètres de développement de votre application",
-      "errors": {
-        "submissionTitle": "Il y a eu des erreurs avec votre soumission"
-      },
-      "modeSelection": {
-        "title": "Choisissez votre mode de développement",
-        "subtitle": "Sélectionnez comment vous voulez configurer votre application",
-        "quick": {
-          "title": "Rapide",
-          "subtitle": "Configuration pré-établie avec React, Express.js et Supabase",
-          "features": {
-            "react": "React",
-            "express": "Express.js"
-          }
-        },
-        "advanced": {
-          "title": "Avancé",
-          "subtitle": "Contrôle total sur tous les choix technologiques et paramètres",
-          "features": {
-            "custom": "Personnalisé",
-            "fullControl": "Contrôle total"
-          }
-        }
-      },
-      "generationType": {
-        "title": "Que voulez-vous générer ?",
-        "subtitle": "Choisissez le type d'application que vous voulez créer",
-        "landing": {
-          "title": "Landing",
-          "subtitle": "Un beau site web marketing autonome pour présenter votre produit ou service",
-          "badge": "Marketing"
-        },
-        "app": {
-          "title": "Application Web",
-          "subtitle": "Une application web complète avec authentification utilisateur et base de données",
-          "badge": "App"
-        },
-        "integrated": {
-          "title": "Intégré",
-          "subtitle": "Page de destination intégrée dans l'application web pour une expérience utilisateur fluide",
-          "badge": "Unifié"
-        },
-        "both": {
-          "title": "Complet",
-          "subtitle": "Page de destination + application web séparées pour une flexibilité et évolutivité maximales",
-          "badge": "Full Stack"
-        }
-      },
-      "configuration": {
-        "title": "Résumé de la configuration",
-        "subtitle": "Vérifiez vos paramètres de génération rapide",
-        "generationType": "Type de génération",
-        "techStack": "Stack technologique",
-        "features": {
-          "react": "Frontend React",
-          "express": "Backend Express.js",
-          "supabase": "Base de données Supabase"
-        },
-        "buttons": {
-          "generate": "Générer l'application",
-          "save": "Enregistrer les configurations"
-        }
-      },
-      "advanced": {
-        "title": "Configuration avancée",
-        "subtitle": "Configurez tous les aspects de votre application",
-        "tabs": {
-          "frontend": "Frontend",
-          "backend": "Backend",
-          "database": "Base de données",
-          "deployment": "Déploiement"
-        }
-      }
-    },
-    "showDevelopment": {
-      "title": "Configuration prête",
-      "subtitle": "Votre stack technologique est configurée. Lancez la génération pour créer votre application complète.",
-      "landingPage": {
-        "title": "Votre Landing Page est Prête à Générer",
-        "subtitle": "Votre configuration est finalisée. Lancez la génération pour créer votre landing page professionnelle et moderne en quelques minutes.",
-        "cta": "Générer ma Landing Page",
-        "features": {
-          "modern": {
-            "title": "Design Moderne",
-            "description": "Interface élégante et responsive"
-          },
-          "seo": {
-            "title": "Optimisé SEO",
-            "description": "Référencement naturel optimisé"
-          },
-          "customizable": {
-            "title": "Personnalisable",
-            "description": "Facilement modifiable selon vos besoins"
-          }
-        }
-      },
-      "buttons": {
-        "generate": "Générer l'application",
-        "preview": "Aperçu",
-        "export": "Exporter la configuration",
-        "edit": "Modifier la configuration"
-      },
-      "sections": {
-        "frontend": "Frontend",
-        "backend": "Backend",
-        "database": "Base de données",
-        "projectConfig": "Configuration du projet",
-        "constraints": "Contraintes"
-      },
-      "techStack": {
-        "styling": "Style",
-        "stateManagement": "Gestion d'état",
-        "features": "Fonctionnalités",
-        "orm": "ORM",
-        "noFeatures": "Aucune fonctionnalité configurée"
-      },
-      "projectFeatures": {
-        "seo": "SEO",
-        "contactForm": "Formulaire de contact",
-        "analytics": "Analytique",
-        "i18n": "i18n",
-        "performance": "Performance",
-        "authentication": "Authentification",
-        "authorization": "Autorisation",
-        "uiTheme": "Thème UI",
-        "payment": "Paiement",
-        "enabled": "Activé",
-        "disabled": "Désactivé",
-        "optimized": "Optimisé",
-        "standard": "Standard",
-        "integrated": "Intégré",
-        "notIntegrated": "Non intégré",
-        "modern": "Moderne"
-      },
-      "customOptions": "Options personnalisées",
-      "technicalDetails": "Détails techniques"
-    },
     "globalDashboard": {
       "title": "Tableau de bord",
       "tabs": {
@@ -1538,7 +1684,10 @@
         "selectProject": "Sélectionner un projet",
         "generate": "Générer l'identité de marque",
         "viewIdentity": "Voir mon identité visuelle",
-        "generateIdentity": "Générer mon identité visuelle"
+        "generateIdentity": "Générer mon identité visuelle",
+        "edit": "Éditer",
+        "editIdentity": "Éditer",
+        "downloadLogos": "Télécharger toutes les déclinaisons"
       },
       "tooltips": {
         "downloadZip": "Télécharger tous les logos dans un fichier ZIP"
@@ -1552,7 +1701,8 @@
           "lightBg": "Fond clair",
           "darkBg": "Fond sombre",
           "iconOnly": "Icône seule",
-          "monochrome": "Monochrome"
+          "monochrome": "Monochrome",
+          "downloadHint": "Toutes les versions du logo (fond clair, sombre, monochrome, icône) dans un fichier ZIP."
         },
         "colors": {
           "title": "Palette de couleurs",
@@ -1631,24 +1781,28 @@
         "loading": "Préparation du contenu de branding..."
       },
       "dialog": {
-        "title": "Télécharger les Logos",
-        "subtitle": "Choisissez le format que vous souhaitez télécharger :",
-        "preparing": "Préparation du téléchargement...",
-        "wait": "Cela peut prendre quelques instants",
+        "title": "Télécharger les déclinaisons du logo",
+        "subtitle": "Choisissez le format des fichiers. Vous recevrez un ZIP contenant toutes les versions du logo.",
+        "preparing": "Préparation…",
+        "wait": "La préparation du fichier peut prendre quelques instants.",
         "formats": {
           "svg": {
-            "name": "Format SVG",
-            "description": "Format vectoriel, redimensionnable"
+            "name": "SVG",
+            "description": "Vectoriel : s'agrandit sans jamais perdre en qualité. Le choix sûr pour l'impression comme pour le web."
           },
           "png": {
-            "name": "Format PNG",
-            "description": "Image raster haute qualité"
+            "name": "PNG",
+            "description": "Image à fond transparent, prête à coller dans un document, un slide ou un site."
           },
           "psd": {
-            "name": "Format PSD",
-            "description": "Fichier éditable Photoshop"
+            "name": "PSD",
+            "description": "Fichier en calques, à ouvrir dans Photoshop pour retoucher le logo."
           }
-        }
+        },
+        "legend": "Format des fichiers",
+        "recommended": "Recommandé",
+        "confirm": "Télécharger le ZIP",
+        "zipNote": "Le ZIP contient le logo principal, l'icône seule et les versions fond clair, fond sombre et monochrome."
       },
       "formatSelector": {
         "title": "Choisir le format PDF",
@@ -1662,6 +1816,19 @@
           "description": "Format présentation moderne"
         },
         "startGeneration": "Lancer la génération"
+      },
+      "summary": {
+        "sections": "Sections",
+        "palette": "Palette",
+        "typography": "Typographie",
+        "logoVariations": "Déclinaisons"
+      },
+      "businessCards": {
+        "title": "Cartes de visite",
+        "badge": "Dérivé de la charte",
+        "subtitle": "Générez un modèle de carte à partir de votre identité, puis créez la carte de chaque personne de l'équipe et téléchargez-la, prête à imprimer.",
+        "cta": "Gérer les cartes de visite",
+        "locked": "Générez d'abord votre identité visuelle pour créer vos cartes."
       }
     },
     "additionalInfoForm": {
@@ -1686,13 +1853,13 @@
       },
       "placeholders": {
         "email": "entreprise@exemple.com",
-        "phone": "+33 1 23 45 67 89",
-        "address": "123 Rue Principale",
-        "city": "Paris",
-        "country": "France",
-        "zipCode": "75001",
-        "fullName": "Jean Dupont",
-        "memberEmail": "jean@exemple.com",
+        "phone": "+237 6 00 00 00 00",
+        "address": "Akwa",
+        "city": "Douala",
+        "country": "Cameroun",
+        "zipCode": "BP 1234",
+        "fullName": "Paul Etoga",
+        "memberEmail": "paul@exemple.com",
         "role": "CEO",
         "bio": "Brève description de ce membre de l'équipe",
         "linkedin": "https://linkedin.com/in/nomutilisateur",
@@ -1759,7 +1926,8 @@
       "buttons": {
         "backToProjects": "Retour aux projets",
         "generate": "Générer le plan d'affaires",
-        "selectProject": "Sélectionner un projet"
+        "selectProject": "Sélectionner un projet",
+        "edit": "Éditer"
       },
       "empty": {
         "title": "Aucun plan d'affaires pour le moment",
@@ -1814,7 +1982,10 @@
         "download": "Impossible de télécharger le PDF.",
         "pdfLoad": "Impossible de charger l’aperçu PDF."
       },
-      "loadingPdf": "Chargement de l’aperçu PDF…"
+      "loadingPdf": "Chargement de l’aperçu PDF…",
+      "buttons": {
+        "edit": "Éditer"
+      }
     },
     "legalDocs": {
       "title": "Documents juridiques",
@@ -2063,6 +2234,553 @@
         "typography": "Typographies"
       },
       "completeButton": "Compléter l'identité de marque"
+    },
+    "generationPanel": {
+      "incompleteTitle": "Génération incomplète",
+      "incompleteSubtitle": "La génération a été interrompue. Reprenez-la pour obtenir les sections manquantes.",
+      "completeTitle": "Génération terminée",
+      "status": {
+        "complete": "Générée",
+        "missing": "Manquante",
+        "empty": "Incomplète"
+      },
+      "actions": {
+        "resume": "Compléter la génération",
+        "regenerateAll": "Tout régénérer",
+        "regenerateSection": "Régénérer",
+        "regenerateSectionAria": "Régénérer la section {{section}}",
+        "showSections": "Voir les sections",
+        "hideSections": "Masquer les sections"
+      },
+      "sections": {
+        "businessPlan": {
+          "Cover Page": "Page de couverture",
+          "Company Summary": "Présentation de l'entreprise",
+          "Opportunity": "Opportunité",
+          "Target Audience": "Audience cible",
+          "Products & Services": "Produits et services",
+          "Marketing & Sales": "Marketing et ventes",
+          "Financial Plan": "Plan financier",
+          "Goal Planning": "Planification des objectifs",
+          "Appendix": "Annexes"
+        },
+        "branding": {
+          "Brand Header": "En-tête de marque",
+          "Logo Principal": "Logo principal",
+          "Logo Variation Fond Clair": "Logo — fond clair",
+          "Logo Variation Fond Sombre": "Logo — fond sombre",
+          "Logo Variation Monochrome": "Logo — monochrome",
+          "Logo Bonnes Pratiques": "Bonnes pratiques du logo",
+          "Color Palette": "Palette de couleurs",
+          "Typography": "Typographie",
+          "Brand Mockup 1": "Mockup 1",
+          "Brand Mockup 2": "Mockup 2",
+          "Brand Mockup 3": "Mockup 3"
+        }
+      },
+      "completeSubtitle": "Toutes les sections sont générées. Vous pouvez en régénérer une si besoin.",
+      "sectionsLabel": "sections",
+      "progressAria": "{{completed}} sections générées sur {{total}}"
+    },
+    "researchConsole": {
+      "title": "Équipe de recherche IA",
+      "subtitle": "Vos agents collectent des données réelles et sourcées, en direct",
+      "dialogTitle": "Génération sourcée par l'IA",
+      "viewResults": "Voir mes prévisions",
+      "countersLabel": "Statistiques de la recherche",
+      "counters": {
+        "agents": "agents actifs",
+        "queries": "recherches",
+        "sources": "sources",
+        "sections": "sections"
+      },
+      "team": {
+        "title": "Équipe",
+        "empty": "En attente du démarrage des agents…"
+      },
+      "feed": {
+        "title": "Activité en direct",
+        "empty": "Aucune activité pour le moment",
+        "starting": "Démarrage de la recherche…"
+      },
+      "roles": {
+        "orchestrator": "Chef d'équipe",
+        "researcher": "Chercheur",
+        "writer": "Rédacteur",
+        "verifier": "Vérificateur"
+      },
+      "agentStatus": {
+        "queued": "En attente",
+        "planning": "Planification",
+        "searching": "Recherche web",
+        "reading": "Lecture",
+        "writing": "Rédaction",
+        "verifying": "Vérification",
+        "done": "Terminé",
+        "error": "Erreur"
+      },
+      "kinds": {
+        "agent_status": "Étape",
+        "search_query": "Recherche",
+        "source_found": "Source trouvée",
+        "finding": "Donnée clé",
+        "section_drafted": "Section rédigée",
+        "verification": "Vérifié",
+        "note": "Note"
+      },
+      "sources": {
+        "title": "Sources citées"
+      },
+      "sections": {
+        "title": "Vérification par section",
+        "cited": "cité(s)",
+        "uncited": "non sourcé(s)"
+      },
+      "phase": {
+        "businessPlan": {
+          "running": {
+            "title": "Nous préparons votre business plan"
+          },
+          "finalizing": {
+            "title": "Presque terminé…"
+          },
+          "done": {
+            "title": "Votre business plan est prêt"
+          }
+        },
+        "finance": {
+          "running": {
+            "title": "Nous calons vos prévisions financières"
+          },
+          "finalizing": {
+            "title": "Presque terminé…"
+          },
+          "done": {
+            "title": "Vos prévisions sont prêtes"
+          }
+        },
+        "subtitle": {
+          "running": "Nos assistants recherchent des données de marché réelles et vérifient chaque chiffre.",
+          "finalizing": "Nous mettons votre document en forme.",
+          "done": "Toutes les données sont sourcées et vérifiées."
+        }
+      },
+      "progress": {
+        "sectionsProgress": "{{done}} sur {{total}} sections terminées"
+      },
+      "sectionStatus": {
+        "done": "Terminé",
+        "pending": "En attente"
+      },
+      "action": {
+        "researching": "Recherche de données de marché…",
+        "writing": "Rédaction en cours…",
+        "verifying": "Vérification des sources…",
+        "analyzing": "Analyse…"
+      },
+      "trust": {
+        "title": "{{count}} sources vérifiées",
+        "subtitle": "Chaque donnée chiffrée renvoie à une source réelle. Aucune statistique inventée.",
+        "showSources": "Voir les sources",
+        "hideSources": "Masquer les sources"
+      },
+      "details": {
+        "show": "Voir le détail de la recherche",
+        "hide": "Masquer le détail",
+        "meta": "{{queries}} recherches · {{sources}} sources"
+      },
+      "financeTopics": {
+        "pricing": "Prix de marché",
+        "costs": "Structure de coûts",
+        "taxes": "Fiscalité et charges",
+        "growth": "Croissance du marché"
+      },
+      "now": {
+        "live": "En direct",
+        "preparing": "Préparation",
+        "starting": "Nous analysons votre projet",
+        "almost": "Dernière ligne droite",
+        "finalizing": "Mise en forme de votre document",
+        "completed": "Terminé",
+        "done": "Toutes les sections sont prêtes"
+      },
+      "journey": {
+        "title": "Étapes",
+        "sources": "{{count}} source(s)"
+      },
+      "foot": {
+        "note": "Aucune donnée inventée · {{queries}} recherches"
+      }
+    },
+    "documentEditor": {
+      "businessPlan": {
+        "title": "Éditeur du business plan"
+      },
+      "canvasLabel": "Aperçu du document",
+      "inspector": "Propriétés",
+      "loading": "Chargement du document…",
+      "toolbar": {
+        "back": "Retour",
+        "subtitle": "Double-cliquez un texte pour le modifier",
+        "undo": "Annuler",
+        "redo": "Rétablir",
+        "zoomOut": "Dézoomer",
+        "zoomIn": "Zoomer",
+        "save": "Enregistrer",
+        "saving": "Enregistrement…",
+        "saved": "Enregistré",
+        "saveError": "Échec de l'enregistrement",
+        "unsaved": "Modifications non enregistrées",
+        "upToDate": "À jour"
+      },
+      "layers": {
+        "title": "Pages du document",
+        "pages": "Pages"
+      },
+      "emptySelection": {
+        "title": "Aucun élément sélectionné",
+        "subtitle": "Cliquez un élément pour modifier ses propriétés, ou double-cliquez un texte pour l'éditer directement."
+      },
+      "props": {
+        "heading": "Propriétés",
+        "textColor": "Couleur du texte",
+        "bgColor": "Fond",
+        "clearBg": "Retirer le fond",
+        "fontSize": "Taille",
+        "fontWeight": "Graisse",
+        "align": "Alignement",
+        "opacity": "Opacité",
+        "arrange": "Disposition",
+        "moveUp": "Monter",
+        "moveDown": "Descendre",
+        "delete": "Supprimer l'élément"
+      },
+      "chart": {
+        "heading": "Graphique",
+        "type": "Type",
+        "types": {
+          "bar": "Barres",
+          "line": "Courbes",
+          "pie": "Camembert",
+          "doughnut": "Anneau",
+          "radar": "Radar",
+          "polarArea": "Aire polaire"
+        },
+        "legend": "Légende",
+        "showLegend": "Afficher",
+        "title": "Titre du graphique",
+        "labels": "Libellés",
+        "sliceColor": "Couleur du secteur",
+        "removeLabel": "Retirer le libellé",
+        "datasets": "Séries",
+        "seriesColor": "Couleur de la série",
+        "seriesName": "Nom de la série",
+        "removeSeries": "Retirer la série",
+        "value": "Valeur"
+      },
+      "ai": {
+        "title": "Édition par IA",
+        "placeholder": "Décrivez la modification à apporter à cette section…",
+        "working": "Modification en cours…",
+        "apply": "Appliquer avec l'IA",
+        "hint": "L'IA tient compte de tout le contexte du projet pour modifier la section."
+      },
+      "error": {
+        "back": "Retour",
+        "noProject": {
+          "title": "Aucun projet sélectionné",
+          "subtitle": "Sélectionnez d'abord un projet pour éditer ses documents."
+        },
+        "load": {
+          "title": "Chargement impossible",
+          "subtitle": "Le document n'a pas pu être chargé. Réessayez depuis la page d'où vous l'avez ouvert."
+        }
+      },
+      "attrs": {
+        "heading": "Attributs",
+        "name": "Nom",
+        "value": "Valeur",
+        "add": "Ajouter",
+        "remove": "Retirer l'attribut"
+      },
+      "pitchDeck": {
+        "title": "Éditeur du pitch deck"
+      },
+      "branding": {
+        "title": "Éditeur de la charte graphique"
+      },
+      "businessCard": {
+        "title": "Éditeur de carte de visite"
+      },
+      "flyer": {
+        "title": "Éditeur de visuel"
+      }
+    },
+    "showCommunication": {
+      "eyebrow": "Moteur de communication",
+      "title": "Communication & calendrier éditorial",
+      "subtitle": "Stratégie, calendrier, moments ponctuels et publication — pour faire vivre votre marque au quotidien.",
+      "loading": "Chargement du moteur de communication…",
+      "comingSoon": "Bientôt",
+      "tabs": {
+        "strategy": "Stratégie",
+        "calendar": "Calendrier",
+        "moments": "Moments",
+        "publishing": "Publication"
+      },
+      "selectProject": {
+        "title": "Sélectionnez un projet",
+        "body": "Choisissez un projet dans votre liste pour générer vos contenus de communication.",
+        "cta": "Voir mes projets"
+      },
+      "status": {
+        "idea": "Idée",
+        "approved": "Approuvé",
+        "scheduled": "Planifié",
+        "published": "Publié"
+      },
+      "intent": {
+        "label": "Intention",
+        "awareness": "Notoriété",
+        "celebration": "Célébration",
+        "promotion": "Promotion",
+        "recruitment": "Recrutement",
+        "announcement": "Annonce"
+      },
+      "strategy": {
+        "empty": {
+          "title": "Générez votre stratégie de communication",
+          "body": "Nous extrayons un contexte compact de votre projet, captons des signaux de tendance légers et produisons une stratégie structurée et éditable.",
+          "cta": "Générer la stratégie"
+        },
+        "context": {
+          "brand": "Marque",
+          "type": "Type",
+          "tone": "Ton"
+        },
+        "summaryLabel": "Résumé de la stratégie",
+        "regenerate": "Régénérer",
+        "save": "Enregistrer",
+        "saved": "Modifications enregistrées",
+        "trendsTitle": "Signaux de tendance utilisés",
+        "blockKinds": {
+          "positioning": "Positionnement",
+          "pillars": "Piliers de contenu",
+          "messaging": "Messages clés",
+          "channels": "Canaux",
+          "cadence": "Cadence",
+          "kpis": "Indicateurs",
+          "tone": "Ton de voix",
+          "custom": "Bloc libre"
+        }
+      },
+      "calendar": {
+        "empty": {
+          "title": "Construisez votre calendrier éditorial",
+          "body": "Nous produisons 4 semaines d'idées de contenu — titres, accroches, formats, canaux — pour choisir quoi publier. Les visuels ne sont générés qu'à la demande.",
+          "cta": "Générer le calendrier",
+          "needStrategy": "Générez d'abord une stratégie pour un calendrier plus pertinent."
+        },
+        "filters": {
+          "channel": "Canal",
+          "format": "Format",
+          "allChannels": "Tous les canaux",
+          "allFormats": "Tous les formats"
+        },
+        "regenerate": "Régénérer le calendrier",
+        "week": "Semaine",
+        "ideas": "idées",
+        "generateVisual": "Visuel",
+        "schedule": "Programmer"
+      },
+      "visual": {
+        "eyebrow": "Visuel du contenu",
+        "format": "Format",
+        "generate": "Générer le visuel",
+        "regenerate": "Régénérer",
+        "download": "Télécharger le PNG",
+        "close": "Fermer",
+        "generating": "Recherche d'image, analyse et composition du visuel…",
+        "loadingImage": "Chargement de l'image rendue…",
+        "noneTitle": "Pas encore de visuel",
+        "noneBody": "Cliquez sur « Générer le visuel » pour créer un visuel. Nous cherchons d'abord dans les banques d'images libres, puis basculons sur la génération IA.",
+        "notRendered": "Visuel généré mais pas encore rendu en PNG.",
+        "placeholder": "Le texte marketing et le concept apparaîtront ici après génération.",
+        "sourceStock": "Photo de stock",
+        "sourceGenerated": "Généré par IA",
+        "by": "par",
+        "scan": "Analyse de l'image",
+        "mood": "Ambiance",
+        "concept": "Concept",
+        "layout": "Notes de mise en page",
+        "headline": "Titre",
+        "subheadline": "Sous-titre",
+        "body": "Corps du texte",
+        "cta": "Appel à l'action",
+        "logoUsed": "Déclinaison de logo utilisée",
+        "edit": "Modifier"
+      },
+      "moments": {
+        "eyebrow": "Moments ponctuels",
+        "empty": {
+          "title": "Faites vivre votre marque au fil des occasions",
+          "body": "Fêtes nationales, recrutement, anniversaire de l'entreprise, promotions saisonnières… Générez un visuel ponctuel et un contenu prêt à publier en un clic.",
+          "cta": "Voir les occasions suggérées"
+        },
+        "suggestionsTitle": "Occasions suggérées",
+        "refresh": "Actualiser les suggestions",
+        "createTitle": "Créer un moment libre",
+        "createBody": "Décrivez l'occasion et Idem génère le visuel et le contenu publiable.",
+        "generate": "Générer",
+        "generateVisual": "Générer le visuel",
+        "fields": {
+          "occasion": "Occasion",
+          "occasionPlaceholder": "Ex. : Journée mondiale de l'environnement, ouverture d'un poste…",
+          "date": "Date",
+          "message": "Message / angle",
+          "messagePlaceholder": "Ce que vous voulez dire pour cette occasion",
+          "intent": "Intention"
+        },
+        "loadingSuggestions": "Recherche d'occasions pertinentes pour votre marque…",
+        "noSuggestions": "Aucune suggestion pour le moment. Créez un moment libre ci-dessous."
+      },
+      "publishing": {
+        "eyebrow": "Publication",
+        "empty": {
+          "title": "Publiez sur vos réseaux depuis Idem",
+          "body": "Préparez, programmez et publiez vos visuels et légendes sur LinkedIn et X. Connectez d'abord un réseau ou utilisez la publication assistée.",
+          "cta": "Préparer une publication"
+        },
+        "queueTitle": "File de publication",
+        "readyTitle": "Prêt à publier",
+        "readyHint": "Vos contenus disposant d'un visuel. Préparez une publication assistée sur un réseau.",
+        "noPublishable": "Générez d'abord un visuel (onglet Calendrier ou Moments) pour préparer une publication.",
+        "prepareOn": "Préparer sur",
+        "downloadVisual": "Télécharger le visuel",
+        "assistedNote": "Publication assistée : Idem copie la légende, télécharge le visuel et ouvre le composer du réseau. Vous finalisez la publication sur le réseau.",
+        "publishAssisted": "Publier (assisté)",
+        "markPublished": "Marquer comme publié",
+        "openComposer": "Ouvrir le composer",
+        "copyCaption": "Copier la légende",
+        "captionCopied": "Légende copiée",
+        "networks": {
+          "linkedin": "LinkedIn",
+          "x": "X (Twitter)"
+        },
+        "scheduleAt": "Programmer le",
+        "scheduledFor": "Programmé pour"
+      },
+      "errors": {
+        "load": "Échec du chargement des données de communication",
+        "checkProject": "Erreur lors de la vérification du projet",
+        "strategy": "Échec de la génération de la stratégie",
+        "calendar": "Échec de la génération du calendrier",
+        "flyer": "Échec de la génération du visuel",
+        "saveStrategy": "Échec de l'enregistrement de la stratégie",
+        "updateContent": "Échec de la mise à jour du contenu",
+        "moments": "Échec de la génération du moment",
+        "publish": "Échec de la publication"
+      }
+    },
+    "businessCards": {
+      "title": "Cartes de visite",
+      "subtitle": "Un modèle généré depuis votre charte graphique, puis une carte par personne — modifiable et prête à imprimer.",
+      "loading": "Chargement des cartes de visite…",
+      "downloadHint": "Les fichiers sont rendus à 300 dpi aux dimensions exactes de la carte : le PDF est prêt pour l'imprimeur.",
+      "confirmDelete": "Supprimer {{name}} et sa carte ?",
+      "orientation": {
+        "landscape": "Paysage",
+        "portrait": "Portrait"
+      },
+      "sides": {
+        "front": "Recto",
+        "back": "Verso"
+      },
+      "actions": {
+        "editTemplate": "Modifier le modèle",
+        "regenerate": "Régénérer le modèle",
+        "editHolder": "Modifier les informations"
+      },
+      "empty": {
+        "brandingFirst": {
+          "title": "Créez d'abord votre identité visuelle",
+          "subtitle": "Les cartes de visite reprennent votre logo, vos couleurs et vos polices. Générez votre charte graphique pour débloquer cette étape.",
+          "cta": "Aller à l'identité de marque"
+        },
+        "generate": {
+          "title": "Générez votre modèle de carte",
+          "subtitle": "L'IA compose un recto et un verso à partir de votre charte. Les informations personnelles restent des champs : vous les remplirez ensuite pour chaque personne.",
+          "orientationLabel": "Orientation",
+          "briefLabel": "Direction artistique (facultatif)",
+          "briefPlaceholder": "ex. très épuré, fond sombre, logo centré",
+          "cta": "Générer le modèle",
+          "generating": "Génération en cours…",
+          "wait": "La composition des deux faces prend généralement moins d'une minute.",
+          "hint": "Vous pourrez ensuite modifier le modèle dans l'éditeur visuel.",
+          "steps": {
+            "0": "Lecture de votre charte graphique",
+            "1": "Composition du recto",
+            "2": "Composition du verso",
+            "3": "Finalisation du modèle"
+          }
+        }
+      },
+      "people": {
+        "title": "Personnes",
+        "add": "Ajouter une personne",
+        "search": "Rechercher une personne",
+        "empty": "Aucune personne pour l'instant.",
+        "editAria": "Modifier {{name}}",
+        "deleteAria": "Supprimer {{name}}",
+        "emptyDetail": {
+          "title": "Aucune carte sélectionnée",
+          "subtitle": "Ajoutez une personne : sa carte se construit en direct pendant que vous remplissez le formulaire."
+        }
+      },
+      "form": {
+        "createTitle": "Nouvelle carte",
+        "editTitle": "Modifier la carte",
+        "livePreviewHint": "L'aperçu se met à jour à chaque saisie.",
+        "create": "Créer la carte",
+        "update": "Enregistrer",
+        "nameRequired": "Le nom est obligatoire.",
+        "unusedField": "non affiché"
+      },
+      "fields": {
+        "fullName": "Nom complet",
+        "jobTitle": "Fonction",
+        "email": "E-mail",
+        "phone": "Téléphone",
+        "mobile": "Mobile",
+        "website": "Site web",
+        "address": "Adresse",
+        "linkedin": "LinkedIn"
+      },
+      "placeholders": {
+        "fullName": "Marie Dupont",
+        "jobTitle": "Directrice commerciale",
+        "email": "marie@exemple.com",
+        "phone": "+33 1 23 45 67 89",
+        "mobile": "+33 6 12 34 56 78",
+        "website": "www.exemple.com",
+        "address": "12 rue de la Paix, Paris",
+        "linkedin": "linkedin.com/in/mariedupont"
+      },
+      "errors": {
+        "load": "Impossible de charger les cartes de visite.",
+        "generate": "La génération du modèle a échoué. Réessayez.",
+        "brandingRequired": "Générez d'abord votre identité visuelle.",
+        "saveHolder": "L'enregistrement de la personne a échoué.",
+        "deleteHolder": "La suppression a échoué.",
+        "download": "Le téléchargement de la carte a échoué."
+      }
+    },
+    "generationAtelier": {
+      "remaining": "Encore {{time}} environ",
+      "almostThere": "Plus que quelques secondes",
+      "done": "Traitement terminé",
+      "hold": "Laissez cet onglet ouvert : la génération s'arrête si vous quittez la page.",
+      "stopped": "Génération interrompue"
     }
   },
   "deployment": {
@@ -2105,7 +2823,61 @@
     "teams": "Équipes",
     "profile": "Profil",
     "settings": "Paramètres",
-    "logout": "Déconnexion"
+    "logout": "Déconnexion",
+    "titles": {
+      "login": "Connexion",
+      "console": "Console",
+      "projects": "Projets",
+      "chat": "Chat",
+      "chatNew": "Nouvelle conversation",
+      "dashboard": "Tableau de bord",
+      "branding": "Branding",
+      "completeBranding": "Branding complet",
+      "brandingDisplay": "Affichage du branding",
+      "brandingGenerate": "Génération de branding",
+      "logoVariations": "Variations de logo",
+      "selectColors": "Sélection des couleurs",
+      "selectTypography": "Sélection de la typographie",
+      "businessPlan": "Business Plan",
+      "businessPlanGenerate": "Génération du business plan",
+      "communication": "Communication",
+      "pitchDeck": "Pitch Deck",
+      "legalDocs": "Documents légaux",
+      "advisor": "Conseiller",
+      "diagrams": "Diagrammes",
+      "diagramsGenerate": "Génération de diagrammes",
+      "tests": "Tests",
+      "createDevelopment": "Créer un développement",
+      "development": "Développement",
+      "ideploy": "iDeploy",
+      "createDeployment": "Créer un déploiement",
+      "deployments": "Déploiements",
+      "deploymentDetails": "Détails du déploiement",
+      "profilePage": "Profil",
+      "finance": "Aperçu de la finance",
+      "financeProducts": "Finance Produits",
+      "financeSales": "Finance Objectifs de vente",
+      "financeCharges": "Finance Charges variables",
+      "financeFixedCharges": "Finance Charges fixes",
+      "financeTaxes": "Finance Taxes",
+      "financeRevenue": "Finance Revenus",
+      "financeInvestments": "Finance Investissements",
+      "financeAmortization": "Finance Amortissements",
+      "financeFinancing": "Finance Financements",
+      "financeRatiosParams": "Finance Paramètres des ratios",
+      "financeExploitation": "Finance Compte d'exploitation",
+      "financeBilan": "Finance Bilan",
+      "financeCashflow": "Finance Flux de trésorerie",
+      "financeRatios": "Finance Ratios",
+      "createProject": "Créer un projet",
+      "notFound": "Page non trouvée",
+      "businessPlanEdit": "Édition du business plan",
+      "pitchDeckEdit": "Édition du pitch deck",
+      "brandingEdit": "Édition de la charte graphique",
+      "businessCards": "Cartes de visite",
+      "businessCardsEdit": "Éditeur de carte de visite",
+      "flyerEdit": "Éditeur de visuel"
+    }
   },
   "notFound": {
     "title": "Page introuvable",
@@ -2194,7 +2966,10 @@
       "pitchDeck": "Pitch Deck",
       "diagrams": "Diagrammes",
       "legalDocs": "Documents juridiques",
-      "finance": "Rapport financier"
+      "finance": "Rapport financier",
+      "communication": "Communication",
+      "development": "Développement",
+      "deployment": "Déploiement"
     },
     "card": {
       "updatedAt": "Modifié le",
@@ -2218,7 +2993,8 @@
         "typography": "Typographie"
       },
       "diagramsSection": "Diagrammes d'architecture",
-      "financeSection": "Modèle financier complet"
+      "financeSection": "Modèle financier complet",
+      "developmentSection": "Configuration de développement"
     },
     "preview": {
       "download": "Télécharger",
@@ -2256,7 +3032,10 @@
         "pitchDeck": "Voir mon pitch deck",
         "diagrams": "Voir mes diagrammes",
         "legalDocs": "Voir mes documents juridiques",
-        "finance": "Voir mon rapport financier"
+        "finance": "Voir mon rapport financier",
+        "communication": "Voir ma communication",
+        "development": "Voir mon développement",
+        "deployment": "Voir mes déploiements"
       },
       "generate": {
         "businessPlan": "Rédiger mon business plan",
@@ -2264,7 +3043,10 @@
         "pitchDeck": "Générer mon pitch deck",
         "diagrams": "Générer mes diagrammes",
         "legalDocs": "Créer mes documents juridiques",
-        "finance": "Compléter mes finances"
+        "finance": "Compléter mes finances",
+        "communication": "Générer ma communication",
+        "development": "Configurer le développement",
+        "deployment": "Configurer le déploiement"
       }
     },
     "recap": {
@@ -2274,7 +3056,8 @@
         "targets": "Cible",
         "scope": "Portée",
         "teamSize": "Équipe",
-        "budget": "Budget"
+        "budget": "Budget",
+        "currency": "Devise"
       },
       "policies": {
         "accept": "J'accepte la",
@@ -2322,7 +3105,9 @@
           "desktop": "Application desktop",
           "api": "API / Backend",
           "ai": "IA / ML",
-          "blockchain": "Blockchain"
+          "blockchain": "Blockchain",
+          "ecommerce": "Commerce / E-commerce",
+          "other": "Autres"
         },
         "targets": {
           "business": "Entreprises",
@@ -2352,7 +3137,10 @@
         }
       },
       "aiWelcome": "Parfait, {{name}} ! 🚀 J'ai bien noté votre idée. Laissez-moi vous poser quelques questions pour bien cadrer votre projet.",
-      "composerPlaceholder": "Écrivez votre réponse, ou choisissez une suggestion…"
+      "composerPlaceholder": "Écrivez votre réponse, ou choisissez une suggestion…",
+      "customType": "Très bien. Décrivez en quelques mots le type de votre projet :",
+      "aiWelcomeNoName": "Parfait ! 🚀 J'ai bien noté votre idée. Laissez-moi vous poser quelques questions simples pour bien cadrer votre projet.",
+      "customCurrency": "D'accord. Quelle devise souhaitez-vous utiliser ?"
     },
     "branding": {
       "invite": "Passons maintenant à votre **identité de marque** (logo, couleurs, typographie). Voulez-vous la générer avec l'IA, ou importer votre propre logo ?",
@@ -2488,7 +3276,10 @@
         "pitchDeck": "La présentation pour convaincre vos investisseurs.",
         "finance": "Prévisions et tableaux financiers.",
         "diagrams": "Schémas d'architecture et diagrammes techniques.",
-        "legalDocs": "Statuts, CGU, contrats et mentions légales."
+        "legalDocs": "Statuts, CGU, contrats et mentions légales.",
+        "communication": "Stratégie, calendrier éditorial et flyers.",
+        "development": "Génération de votre application ou site web.",
+        "deployment": "Déploiement de votre infrastructure et mise en ligne."
       },
       "state": {
         "ready": "Prêt",
@@ -2500,6 +3291,50 @@
       },
       "open": "Ouvrir",
       "brandCalloutHint": "Logo, couleurs et typographie — la base de tous vos livrables."
+    },
+    "legal": {
+      "intro": "Créons vos **documents juridiques**. Quel document voulez-vous générer ? (Pour des statuts précis — capital, associés — complétez le contexte dans l'éditeur.)",
+      "chips": {
+        "essentials": "Pack essentiel (CGU, CGV, confidentialité, mentions)",
+        "cgu": "CGU",
+        "cgv": "CGV",
+        "privacy": "Politique de confidentialité",
+        "statutes": "Statuts (SAS)",
+        "nda": "Accord de confidentialité (NDA)",
+        "editor": "Voir tout le catalogue"
+      }
+    },
+    "comm": {
+      "intro": "Passons à votre **communication**. Je peux définir votre stratégie éditoriale et bâtir un calendrier de contenus. Par quoi commençons-nous ?",
+      "introNeedsBranding": "Passons à votre **communication**. 💡 Astuce : complétez d'abord votre identité de marque pour des visuels cohérents. Par quoi commençons-nous ?",
+      "strategyTitle": "Stratégie de communication",
+      "calendarTitle": "Calendrier éditorial",
+      "strategyDone": "✅ Votre **stratégie de communication** est prête ! Vous pouvez maintenant générer votre calendrier éditorial ou l'affiner dans l'éditeur.",
+      "calendarDone": "✅ Votre **calendrier éditorial** est prêt ! Ouvrez l'éditeur pour créer des flyers ou ajuster vos contenus.",
+      "steps": {
+        "context": "Analyse du contexte",
+        "trends": "Repérage des tendances",
+        "strategy": "Rédaction de la stratégie",
+        "calendar": "Construction du calendrier"
+      },
+      "chips": {
+        "strategy": "Générer la stratégie",
+        "calendar": "Générer le calendrier"
+      }
+    },
+    "dev": {
+      "intro": "L'**atelier de développement** génère le code de votre application ou site web (landing, app web, PWA…) à partir de votre projet. Ouvrez-le pour choisir votre configuration.",
+      "chips": {
+        "open": "Ouvrir l'atelier de développement",
+        "view": "Voir ma configuration"
+      }
+    },
+    "deploy": {
+      "intro": "L'**assistant de déploiement** met votre projet en ligne (infrastructure, Terraform, CI/CD). Il a besoin d'un dépôt Git. Lançons un déploiement ou consultons les précédents.",
+      "chips": {
+        "start": "Lancer un déploiement",
+        "list": "Voir mes déploiements"
+      }
     }
   }
 }

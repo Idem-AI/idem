@@ -4,6 +4,40 @@ import multer from 'multer';
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
+type NetlifySite = {
+  id: string;
+  name?: string;
+  url?: string;
+  ssl_url?: string;
+  admin_url?: string;
+};
+
+/**
+ * Checks that a previously created site still exists and still belongs to this
+ * account. Returns the site when reusable, null when it should be recreated.
+ */
+async function fetchExistingSite(
+  baseUrl: string,
+  accessToken: string,
+  siteId: string
+): Promise<NetlifySite | null> {
+  try {
+    const response = await fetch(`${baseUrl}/${siteId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (response.ok) {
+      return (await response.json()) as NetlifySite;
+    }
+
+    console.warn(`Site ${siteId} not reusable (status ${response.status}), creating a new one`);
+    return null;
+  } catch (error) {
+    console.error('Failed to look up existing site:', error);
+    return null;
+  }
+}
+
 router.post('/', upload.single('file'), async (req: Request, res: Response) => {
   try {
     console.log('=== DEPLOY API CALLED ===');
@@ -45,32 +79,48 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
       });
     }
 
-    console.log('Creating new site on Netlify...');
-    const createSiteResponse = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        name: `idem-app-${Date.now()}`,
-      }),
-    });
+    // The client sends back the siteId of a previous deploy so a redeploy
+    // updates the very same site (same URL) instead of creating a new one.
+    const requestedSiteId =
+      typeof req.body?.siteId === 'string' && req.body.siteId.trim() ? req.body.siteId.trim() : null;
 
-    if (!createSiteResponse.ok) {
-      const errorText = await createSiteResponse.text();
-      console.error('Failed to create site:', createSiteResponse.status, errorText);
-      return res.json({
-        success: false,
-        message: `Failed to create site: ${createSiteResponse.status} - ${errorText}`,
-      });
+    let site: NetlifySite | null = null;
+    let isNewSite = false;
+
+    if (requestedSiteId) {
+      console.log('Reusing existing Netlify site:', requestedSiteId);
+      site = await fetchExistingSite(url, accessToken, requestedSiteId);
     }
 
-    const siteData = (await createSiteResponse.json()) as { id: string };
-    console.log('Site created:', siteData);
+    if (!site) {
+      console.log('Creating new site on Netlify...');
+      const createSiteResponse = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          name: `idem-app-${Date.now()}`,
+        }),
+      });
 
-    const deployUrl = `${url}/${siteData.id}/deploys`;
-    console.log('Deploying to site:', deployUrl);
+      if (!createSiteResponse.ok) {
+        const errorText = await createSiteResponse.text();
+        console.error('Failed to create site:', createSiteResponse.status, errorText);
+        return res.json({
+          success: false,
+          message: `Failed to create site: ${createSiteResponse.status} - ${errorText}`,
+        });
+      }
+
+      site = (await createSiteResponse.json()) as NetlifySite;
+      isNewSite = true;
+      console.log('Site created:', site.id);
+    }
+
+    const deployUrl = `${url}/${site.id}/deploys`;
+    console.log(isNewSite ? 'Deploying to new site:' : 'Redeploying to site:', deployUrl);
 
     const headers = {
       'Content-Type': 'application/zip',
@@ -85,21 +135,28 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
     });
 
     console.log('Netlify response status:', response.status);
-    console.log('Netlify response headers:', Object.fromEntries(response.headers.entries()));
 
     const responseText = await response.text();
-    console.log('Netlify response body:', responseText);
 
     if (response.ok) {
       try {
-        const siteInfo = JSON.parse(responseText);
-        console.log('Site created and deployed successfully');
-        console.log('Site URL:', siteInfo.url);
+        const deployInfo = JSON.parse(responseText);
+        // A deploy payload carries the deploy-scoped url (e.g. 68f--site.netlify.app).
+        // The stable production url lives on the site itself.
+        const publicUrl =
+          site.ssl_url || site.url || deployInfo.ssl_url || deployInfo.url || deployInfo.deploy_url;
+
+        console.log('Deployment successful:', publicUrl);
 
         return res.json({
           success: true,
-          url: siteInfo.url,
-          siteInfo: siteInfo,
+          url: publicUrl,
+          siteId: site.id,
+          siteName: site.name || deployInfo.name,
+          adminUrl: site.admin_url || deployInfo.admin_url,
+          deployId: deployInfo.id,
+          isNewSite,
+          siteInfo: deployInfo,
         });
       } catch (parseError) {
         console.error('Failed to parse Netlify response:', parseError);
@@ -109,7 +166,7 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
         });
       }
     } else {
-      console.error(`Failed to create site. Status code: ${response.status}`);
+      console.error(`Failed to deploy. Status code: ${response.status}`);
       console.error(`Response content: ${responseText}`);
 
       return res.json({

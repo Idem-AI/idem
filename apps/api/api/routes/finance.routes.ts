@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../services/auth.service';
 import {
   aiFillAllController,
+  aiFillAllStreamController,
   aiFillSectionController,
   applyChatIntentController,
   appendAISuggestionsController,
@@ -147,6 +148,23 @@ financeRoutes.post(
   checkPolicyAcceptance,
   checkQuota,
   aiFillAllController
+);
+
+/**
+ * @openapi
+ * /project/finance/{projectId}/ai-fill-stream:
+ *   get:
+ *     tags: [Finance]
+ *     summary: Auto-fill IA global SOURCÉ en streaming (SSE) — équipe d'agents de recherche
+ *     description: Diffuse en temps réel l'activité des agents (recherche web sourcée) puis cale les prévisions financières sur les benchmarks réels collectés.
+ *     security: [{ bearerAuth: [] }]
+ */
+financeRoutes.get(
+  `/${resource}/:projectId/ai-fill-stream`,
+  authenticate,
+  checkPolicyAcceptance,
+  checkQuota,
+  aiFillAllStreamController
 );
 
 /**

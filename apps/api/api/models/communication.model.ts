@@ -132,6 +132,19 @@ export type ContentChannel =
 
 export type ContentStatus = 'idea' | 'approved' | 'scheduled' | 'published';
 
+/**
+ * Communication purpose of a visual. Drives the TONE and the message of the
+ * composition (atmospheric for awareness, factual for an announcement, the
+ * offer as a headline for a promotion) — never the presence of a button: a
+ * generated visual never carries a CTA, whatever the intent.
+ */
+export type VisualIntent =
+  | 'awareness'
+  | 'celebration'
+  | 'promotion'
+  | 'recruitment'
+  | 'announcement';
+
 export interface ContentIdea {
   id: string;
   title: string;
@@ -143,7 +156,10 @@ export interface ContentIdea {
   scheduledFor: string;
   week: number;
   hashtags: string[];
+  /** Appel à l'action de la LÉGENDE du post — jamais dessiné sur le visuel. */
   callToAction: string;
+  /** Communication purpose — drives the tone of the visual. */
+  intent?: VisualIntent;
   status: ContentStatus;
   /** Set after a flyer is generated on-demand for this content. */
   flyerIds?: string[];
@@ -155,6 +171,38 @@ export interface EditorialCalendar {
   items: ContentIdea[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+/**
+ * A timely / one-off communication opportunity ("moment"): national holidays,
+ * hiring, company anniversary, seasonal promos… Sits OUTSIDE the weekly calendar
+ * and carries a ready-to-publish caption. A MomentIdea is a ContentIdea (so it
+ * reuses the whole visual-generation pipeline) enriched with occasion metadata.
+ */
+export interface MomentIdea extends ContentIdea {
+  /** Human label of the occasion, e.g. "Fête nationale", "Nous recrutons". */
+  occasion: string;
+  /** ISO date of the occasion when known. */
+  occasionDate?: string;
+  /** Where this moment came from. */
+  source: 'suggestion' | 'custom';
+  /** Ready-to-publish social caption (post body). */
+  caption?: string;
+}
+
+/** A suggested occasion surfaced to the user (before it becomes a MomentIdea). */
+export interface MomentSuggestion {
+  id: string;
+  occasion: string;
+  /** ISO date of the occasion. */
+  date?: string;
+  intent: VisualIntent;
+  /** One-line angle proposal for the brand. */
+  angle: string;
+  /** Why this occasion is relevant for this brand. */
+  why?: string;
+  /** Emoji/icon hint for the UI. */
+  emoji?: string;
 }
 
 export type FlyerFormat = 'square' | 'story' | 'banner' | 'post' | 'a4';
@@ -195,8 +243,18 @@ export interface Flyer {
     headline: string;
     subheadline?: string;
     body: string;
-    cta: string;
+    /**
+     * @deprecated Legacy — plus jamais renseigné. Un visuel ne porte aucun
+     * appel à l'action (cf. `CommunicationService.generateFlyer`) : le CTA vit
+     * dans la légende du post (`ContentIdea.callToAction`). Le champ subsiste
+     * pour les visuels déjà persistés avant ce changement.
+     */
+    cta?: string;
   };
+  /** Communication purpose used to compose this visual. */
+  intent?: VisualIntent;
+  /** The exact logo declension URL the AI placed inside the visual. */
+  logoUsed?: string;
   /** Single-line Tailwind HTML used internally to render the PNG. */
   html: string;
   /** Public URL of the rendered flyer PNG (served from MinIO). */
@@ -210,11 +268,51 @@ export interface Flyer {
   updatedAt: Date;
 }
 
+/**
+ * Social networks Idem can publish to. Phase 1 ships assisted publishing (no
+ * OAuth): Idem prepares the caption + visual and deep-links the user to the
+ * network composer. The connector abstraction (services/Connectors) is built so
+ * real API publishing can be dropped in later without touching callers.
+ */
+export type SocialNetwork = 'linkedin' | 'x';
+
+export type PublicationStatus = 'draft' | 'scheduled' | 'published';
+
+export interface Publication {
+  id: string;
+  /** Id of the owning ContentIdea or MomentIdea. */
+  contentId: string;
+  network: SocialNetwork;
+  status: PublicationStatus;
+  /** Ready-to-post caption (already includes hashtags). */
+  caption: string;
+  hashtags: string[];
+  /** Rendered visual image URL, when a flyer exists. */
+  imageUrl?: string;
+  flyerId?: string;
+  /** Deep link that opens the network composer (assisted publishing). */
+  shareUrl?: string;
+  /** ISO date the user scheduled the post for. */
+  scheduledFor?: string;
+  /** Set once the user confirms the post is live. */
+  publishedAt?: string;
+  /** Optional URL of the live post (entered by the user). */
+  externalUrl?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface CommunicationModel {
   context?: CommunicationContext;
   strategy?: CommunicationStrategy;
   calendar?: EditorialCalendar;
+  /** One-off, occasion-driven contents (see MomentIdea). */
+  moments?: MomentIdea[];
+  /** Cached list of suggested occasions for the "Moments" tab. */
+  momentSuggestions?: MomentSuggestion[];
   flyers?: Flyer[];
+  /** Assisted/queued social publications. */
+  publications?: Publication[];
   trends?: TrendSignal[];
   createdAt?: Date;
   updatedAt?: Date;

@@ -35,6 +35,7 @@ const CONFIG = {
     'modules/dashboard/components/add-team-member-modal': 'dashboard.addMemberModal',
     'modules/dashboard/components/add-team-to-project-modal': 'dashboard.addTeamToProjectModal',
     'modules/dashboard/components/incomplete-project-banner': 'dashboard.incompleteBanner',
+    'modules/dashboard/components/generation-status-panel': 'dashboard.generationPanel',
     'modules/dashboard/components/project-card': 'dashboard.projectCard',
     'modules/dashboard/components/sidebar-dashboard': 'dashboard.sidebar',
     'modules/dashboard/components/sidebar-global': 'dashboard.sidebarGlobal',
@@ -42,6 +43,8 @@ const CONFIG = {
     // Dashboard pages - Create Project
     'modules/dashboard/pages/create-project/components/color-customizer': 'dashboard.colorCustomizer',
     'modules/dashboard/pages/create-project/components/color-selection': 'dashboard.colorSelection',
+    'modules/dashboard/pages/create-project/components/generation-atelier': 'dashboard.generationAtelier',
+    'modules/dashboard/pages/create-project/components/logo-choice': 'dashboard.logoChoice',
     'modules/dashboard/pages/create-project/components/logo-creation-simulator': 'logoCreation',
     'modules/dashboard/pages/create-project/components/logo-editor-chat': 'dashboard.logoEditor',
     'modules/dashboard/pages/create-project/components/logo-preferences': 'dashboard.logoPreferences',
@@ -58,6 +61,8 @@ const CONFIG = {
     'modules/dashboard/pages/advisor': 'dashboard.advisor',
     'modules/dashboard/pages/create-team': 'dashboard.createTeam',
     'modules/dashboard/pages/dashboard': 'dashboard.dashboard',
+    'modules/dashboard/pages/document-editor': 'dashboard.documentEditor',
+    'modules/dashboard/pages/finance': 'dashboard.finance',
     'modules/dashboard/pages/deployment/components/ai-assistant': 'dashboard.aiAssistant',
     'modules/dashboard/pages/deployment/components/expert-deployment': 'dashboard.expertDeployment',
     'modules/dashboard/pages/deployment/components/mode-selector': 'dashboard.modeSelector',
@@ -74,9 +79,11 @@ const CONFIG = {
     'modules/dashboard/pages/profile': 'dashboard.profile',
     'modules/dashboard/pages/project-teams': 'dashboard.projectTeams',
     'modules/dashboard/pages/projects-list': 'dashboard.projectsList',
+    'modules/dashboard/pages/business-cards': 'dashboard.businessCards',
     'modules/dashboard/pages/show-branding/components/branding-display': 'dashboard.brandingDisplay',
     'modules/dashboard/pages/show-branding/components/branding-generation': 'dashboard.brandingGeneration',
     'modules/dashboard/pages/show-branding': 'dashboard.showBranding',
+    'modules/dashboard/pages/show-communication': 'dashboard.showCommunication',
     'modules/dashboard/pages/show-business-plan/components/additional-info-form': 'dashboard.additionalInfoForm',
     'modules/dashboard/pages/show-business-plan/components/business-plan-display': 'dashboard.businessPlanDisplay',
     'modules/dashboard/pages/show-business-plan/components/business-plan-generation': 'dashboard.businessPlanGeneration',
@@ -92,6 +99,7 @@ const CONFIG = {
     // Shared components
     'shared/components/not-found': 'notFound',
     'shared/components/pdf-viewer': 'dashboard.pdfViewer',
+    'shared/components/agent-research-console': 'dashboard.researchConsole',
   },
 };
 

@@ -1,0 +1,170 @@
+{
+  "dashboard": {
+    "showCommunication": {
+      "eyebrow": "Moteur de communication",
+      "title": "Communication & calendrier éditorial",
+      "subtitle": "Stratégie, calendrier, moments ponctuels et publication — pour faire vivre votre marque au quotidien.",
+      "loading": "Chargement du moteur de communication…",
+      "comingSoon": "Bientôt",
+      "tabs": {
+        "strategy": "Stratégie",
+        "calendar": "Calendrier",
+        "moments": "Moments",
+        "publishing": "Publication"
+      },
+      "selectProject": {
+        "title": "Sélectionnez un projet",
+        "body": "Choisissez un projet dans votre liste pour générer vos contenus de communication.",
+        "cta": "Voir mes projets"
+      },
+      "status": {
+        "idea": "Idée",
+        "approved": "Approuvé",
+        "scheduled": "Planifié",
+        "published": "Publié"
+      },
+      "intent": {
+        "label": "Intention",
+        "awareness": "Notoriété",
+        "celebration": "Célébration",
+        "promotion": "Promotion",
+        "recruitment": "Recrutement",
+        "announcement": "Annonce"
+      },
+      "strategy": {
+        "empty": {
+          "title": "Générez votre stratégie de communication",
+          "body": "Nous extrayons un contexte compact de votre projet, captons des signaux de tendance légers et produisons une stratégie structurée et éditable.",
+          "cta": "Générer la stratégie"
+        },
+        "context": {
+          "brand": "Marque",
+          "type": "Type",
+          "tone": "Ton"
+        },
+        "summaryLabel": "Résumé de la stratégie",
+        "regenerate": "Régénérer",
+        "save": "Enregistrer",
+        "saved": "Modifications enregistrées",
+        "trendsTitle": "Signaux de tendance utilisés",
+        "blockKinds": {
+          "positioning": "Positionnement",
+          "pillars": "Piliers de contenu",
+          "messaging": "Messages clés",
+          "channels": "Canaux",
+          "cadence": "Cadence",
+          "kpis": "Indicateurs",
+          "tone": "Ton de voix",
+          "custom": "Bloc libre"
+        }
+      },
+      "calendar": {
+        "empty": {
+          "title": "Construisez votre calendrier éditorial",
+          "body": "Nous produisons 4 semaines d'idées de contenu — titres, accroches, formats, canaux — pour choisir quoi publier. Les visuels ne sont générés qu'à la demande.",
+          "cta": "Générer le calendrier",
+          "needStrategy": "Générez d'abord une stratégie pour un calendrier plus pertinent."
+        },
+        "filters": {
+          "channel": "Canal",
+          "format": "Format",
+          "allChannels": "Tous les canaux",
+          "allFormats": "Tous les formats"
+        },
+        "regenerate": "Régénérer le calendrier",
+        "week": "Semaine",
+        "ideas": "idées",
+        "generateVisual": "Visuel",
+        "schedule": "Programmer"
+      },
+      "visual": {
+        "eyebrow": "Visuel du contenu",
+        "format": "Format",
+        "generate": "Générer le visuel",
+        "regenerate": "Régénérer",
+        "edit": "Modifier",
+        "download": "Télécharger le PNG",
+        "close": "Fermer",
+        "generating": "Recherche d'image, analyse et composition du visuel…",
+        "loadingImage": "Chargement de l'image rendue…",
+        "noneTitle": "Pas encore de visuel",
+        "noneBody": "Cliquez sur « Générer le visuel » pour créer un visuel. Nous cherchons d'abord dans les banques d'images libres, puis basculons sur la génération IA.",
+        "notRendered": "Visuel généré mais pas encore rendu en PNG.",
+        "placeholder": "Le texte marketing et le concept apparaîtront ici après génération.",
+        "sourceStock": "Photo de stock",
+        "sourceGenerated": "Généré par IA",
+        "by": "par",
+        "scan": "Analyse de l'image",
+        "mood": "Ambiance",
+        "concept": "Concept",
+        "layout": "Notes de mise en page",
+        "headline": "Titre",
+        "subheadline": "Sous-titre",
+        "body": "Corps du texte",
+        "cta": "Appel à l'action",
+        "logoUsed": "Déclinaison de logo utilisée"
+      },
+      "moments": {
+        "eyebrow": "Moments ponctuels",
+        "empty": {
+          "title": "Faites vivre votre marque au fil des occasions",
+          "body": "Fêtes nationales, recrutement, anniversaire de l'entreprise, promotions saisonnières… Générez un visuel ponctuel et un contenu prêt à publier en un clic.",
+          "cta": "Voir les occasions suggérées"
+        },
+        "suggestionsTitle": "Occasions suggérées",
+        "refresh": "Actualiser les suggestions",
+        "createTitle": "Créer un moment libre",
+        "createBody": "Décrivez l'occasion et Idem génère le visuel et le contenu publiable.",
+        "generate": "Générer",
+        "generateVisual": "Générer le visuel",
+        "fields": {
+          "occasion": "Occasion",
+          "occasionPlaceholder": "Ex. : Journée mondiale de l'environnement, ouverture d'un poste…",
+          "date": "Date",
+          "message": "Message / angle",
+          "messagePlaceholder": "Ce que vous voulez dire pour cette occasion",
+          "intent": "Intention"
+        },
+        "loadingSuggestions": "Recherche d'occasions pertinentes pour votre marque…",
+        "noSuggestions": "Aucune suggestion pour le moment. Créez un moment libre ci-dessous."
+      },
+      "publishing": {
+        "eyebrow": "Publication",
+        "empty": {
+          "title": "Publiez sur vos réseaux depuis Idem",
+          "body": "Préparez, programmez et publiez vos visuels et légendes sur LinkedIn et X. Connectez d'abord un réseau ou utilisez la publication assistée.",
+          "cta": "Préparer une publication"
+        },
+        "queueTitle": "File de publication",
+        "readyTitle": "Prêt à publier",
+        "readyHint": "Vos contenus disposant d'un visuel. Préparez une publication assistée sur un réseau.",
+        "noPublishable": "Générez d'abord un visuel (onglet Calendrier ou Moments) pour préparer une publication.",
+        "prepareOn": "Préparer sur",
+        "downloadVisual": "Télécharger le visuel",
+        "assistedNote": "Publication assistée : Idem copie la légende, télécharge le visuel et ouvre le composer du réseau. Vous finalisez la publication sur le réseau.",
+        "publishAssisted": "Publier (assisté)",
+        "markPublished": "Marquer comme publié",
+        "openComposer": "Ouvrir le composer",
+        "copyCaption": "Copier la légende",
+        "captionCopied": "Légende copiée",
+        "networks": {
+          "linkedin": "LinkedIn",
+          "x": "X (Twitter)"
+        },
+        "scheduleAt": "Programmer le",
+        "scheduledFor": "Programmé pour"
+      },
+      "errors": {
+        "load": "Échec du chargement des données de communication",
+        "checkProject": "Erreur lors de la vérification du projet",
+        "strategy": "Échec de la génération de la stratégie",
+        "calendar": "Échec de la génération du calendrier",
+        "flyer": "Échec de la génération du visuel",
+        "saveStrategy": "Échec de l'enregistrement de la stratégie",
+        "updateContent": "Échec de la mise à jour du contenu",
+        "moments": "Échec de la génération du moment",
+        "publish": "Échec de la publication"
+      }
+    }
+  }
+}

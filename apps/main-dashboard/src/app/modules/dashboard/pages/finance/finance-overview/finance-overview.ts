@@ -9,8 +9,11 @@ import {
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { DialogModule } from 'primeng/dialog';
 import { CookieService } from '../../../../../shared/services/cookie.service';
 import { FinanceService } from '../../../services/finance.service';
+import { ProjectService } from '../../../services/project.service';
+import { ProjectModel } from '@idem/shared-models';
 import {
   FINANCE_SECTIONS,
   FinanceModel,
@@ -20,6 +23,21 @@ import {
   SectionCompletionStatus,
 } from '../../../models/finance.model';
 import { AiFillButtonComponent } from '../../../components/ai-fill-button/ai-fill-button';
+import {
+  AgentResearchConsoleComponent,
+  PlannedSection,
+} from '../../../../../shared/components/agent-research-console/agent-research-console';
+import { GenerationService } from '../../../../../shared/services/generation.service';
+import { SSEGenerationState } from '../../../../../shared/models/sse-step.model';
+import { Subscription } from 'rxjs';
+
+/** Sujets de recherche marché (noms alignés sur le backend financeAIService). */
+const FINANCE_RESEARCH_TOPICS: { name: string; labelKey: string }[] = [
+  { name: 'Prix de marché', labelKey: 'dashboard.researchConsole.financeTopics.pricing' },
+  { name: 'Structure de coûts', labelKey: 'dashboard.researchConsole.financeTopics.costs' },
+  { name: 'Fiscalité & charges sociales', labelKey: 'dashboard.researchConsole.financeTopics.taxes' },
+  { name: 'Croissance & adoption', labelKey: 'dashboard.researchConsole.financeTopics.growth' },
+];
 
 interface SectionCardVM {
   key: string;
@@ -33,7 +51,14 @@ interface SectionCardVM {
 @Component({
   selector: 'app-finance-overview',
   standalone: true,
-  imports: [CommonModule, RouterLink, TranslateModule, AiFillButtonComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    TranslateModule,
+    AiFillButtonComponent,
+    AgentResearchConsoleComponent,
+    DialogModule,
+  ],
   templateUrl: './finance-overview.html',
   styleUrl: './finance-overview.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -43,6 +68,28 @@ export class FinanceOverviewComponent implements OnInit {
   private readonly cookieService = inject(CookieService);
   private readonly translate = inject(TranslateService);
   private readonly router = inject(Router);
+  private readonly projectService = inject(ProjectService);
+  private readonly generationService = inject(GenerationService);
+
+  protected readonly project = signal<ProjectModel | null>(null);
+  protected readonly bpMissingDialogVisible = signal<boolean>(false);
+
+  // Salle de contrôle de l'auto-fill sourcé (équipe d'agents).
+  protected readonly researchVisible = signal<boolean>(false);
+  protected readonly genState = signal<SSEGenerationState | null>(null);
+  protected readonly researchState = computed(() => this.genState()?.research ?? null);
+  protected readonly researchLive = computed(() => this.genState()?.isGenerating ?? false);
+  protected readonly researchDone = computed(() => this.genState()?.completed ?? false);
+  protected readonly researchPhase = computed<'running' | 'finalizing' | 'done'>(() =>
+    this.researchDone() ? 'done' : 'running',
+  );
+  protected readonly financePlanned = computed<PlannedSection[]>(() =>
+    FINANCE_RESEARCH_TOPICS.map((t) => ({
+      name: t.name,
+      label: this.translate.instant(t.labelKey),
+    })),
+  );
+  private researchSub?: Subscription;
 
   protected readonly isLoading = signal<boolean>(true);
   protected readonly error = signal<string | null>(null);
@@ -164,6 +211,15 @@ export class FinanceOverviewComponent implements OnInit {
     }
 
     this.isLoading.set(true);
+    this.projectService.getProjectById(projectId).subscribe({
+      next: (proj) => {
+        this.project.set(proj);
+      },
+      error: (err) => {
+        console.error('[FinanceOverview] Failed to load project', err);
+      }
+    });
+
     this.financeService.getSummary(projectId).subscribe({
       next: (response: FinanceSummaryResponse) => {
         this.finance.set(response.finance);
@@ -192,20 +248,56 @@ export class FinanceOverviewComponent implements OnInit {
   protected onAutoFillGlobal(): void {
     const projectId = this.cookieService.get('projectId');
     if (!projectId) return;
+
+    // Check if Business Plan is generated
+    const project = this.project();
+    const hasBp = !!(project?.analysisResultModel?.businessPlan?.sections &&
+                    project.analysisResultModel.businessPlan.sections.length > 0);
+
+    if (!hasBp) {
+      this.bpMissingDialogVisible.set(true);
+      return;
+    }
+
+    // Flux sourcé: une équipe d'agents recherche des benchmarks réels (grounding)
+    // puis cale les prévisions dessus. La salle de contrôle s'affiche en direct.
     this.aiGlobalLoading.set(true);
-    this.financeService.autoFillAll(projectId).subscribe({
-      next: () => {
-        this.aiGlobalLoading.set(false);
-        this.loadSummary();
-      },
-      error: (err) => {
-        console.error('[FinanceOverview] autoFillAll failed', err);
-        this.aiGlobalLoading.set(false);
-        this.error.set(
-          this.translate.instant('dashboard.finance.errors.aiFillFailed') || 'AI auto-fill failed',
-        );
-      },
-    });
+    this.researchVisible.set(true);
+    this.genState.set(null);
+
+    const connection = this.financeService.autoFillAllStream(projectId);
+    this.researchSub?.unsubscribe();
+    this.researchSub = this.generationService
+      .startGeneration('finance-fill', connection)
+      .subscribe({
+        next: (state) => {
+          this.genState.set(state);
+          if (state.completed) {
+            this.aiGlobalLoading.set(false);
+            this.loadSummary();
+          }
+        },
+        error: (err) => {
+          console.error('[FinanceOverview] autoFillAll (sourced) failed', err);
+          this.aiGlobalLoading.set(false);
+          this.error.set(
+            this.translate.instant('dashboard.finance.errors.aiFillFailed') || 'AI auto-fill failed',
+          );
+        },
+      });
+  }
+
+  /** Ferme la salle de contrôle de l'auto-fill sourcé. */
+  protected closeResearchConsole(): void {
+    this.researchVisible.set(false);
+    this.researchSub?.unsubscribe();
+    this.financeService.closeAutoFillStream();
+    this.aiGlobalLoading.set(false);
+  }
+
+  protected navigateToBpGeneration(): void {
+    this.bpMissingDialogVisible.set(false);
+    this.router.navigate(['/project/business-plan/generate']);
   }
 
   protected onAutoFillSection(sectionKey: string): void {
@@ -288,7 +380,7 @@ export class FinanceOverviewComponent implements OnInit {
       case 'computed':
         return 'bg-blue-500/15 text-blue-300 border-blue-500/30';
       default:
-        return 'bg-gray-500/15 text-gray-400 border-gray-500/30';
+        return 'bg-[var(--glass-bg-subtle)] text-text-tertiary border-gray-500/30';
     }
   }
 

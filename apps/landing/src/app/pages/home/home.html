@@ -1,73 +1,35 @@
-<!-- Main container with animated gradient background -->
-<div class="relative mt-24 sm:mt-0 min-h-screen overflow-hidden bg-grid">
-  <!-- Animated background elements -->
-  <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
-    <!-- Gradient orb top-right -->
-    <div
-      class="absolute top-[-300px] right-[-300px] w-[600px] h-[600px] rounded-full bg-linear-to-br from-primary to-secondary opacity-20 blur-[100px]"
-    ></div>
-    <!-- Gradient orb bottom-left -->
-    <div
-      class="absolute bottom-[-200px] left-[-200px] w-[500px] h-[500px] rounded-full bg-linear-to-tr from-secondary to-accent opacity-20 blur-[100px]"
-    ></div>
-  </div>
-
-  <!-- Floating glass elements -->
-  <div
-    class="absolute top-[15%] left-[10%] w-20 h-20 glass rounded-full opacity-30 animate-float-slow"
-  ></div>
-  <div
-    class="absolute top-[40%] right-[8%] w-16 h-16 glass rounded-xl opacity-30 animate-float-medium"
-  ></div>
-  <div
-    class="absolute bottom-[20%] left-[20%] w-24 h-24 glass-dark rounded-2xl opacity-30 animate-spin-slow"
-  ></div>
-
+<!-- Main container with animated gradient background.
+     overflow-clip (not overflow-hidden): clipping without creating a scroll
+     container, so the journey section's sticky pinning keeps working. -->
+<div class="relative mt-24 sm:mt-0 min-h-screen overflow-clip bg-grid">
   <!-- Content container -->
   <div class="relative">
-    <!-- Hero section with parallax scrolling -->
+    <!-- Hero -->
     <section class="relative">
       <app-hero></app-hero>
     </section>
-    
-    <!-- Video Trailer section -->
-    <section class="relative">
+
+    <!-- Product in action (video) -->
+    <section class="relative z-10">
       <app-video-trailer></app-video-trailer>
     </section>
 
-    <!-- Open Source & Sovereignty section - NEW -->
+    <!-- What is IDEM: the promise, told as an illustrated journey -->
     <section class="relative z-10">
-      <app-open-source-sovereignty></app-open-source-sovereignty>
-    </section>
-    <section class="relative z-10">
-      <app-features></app-features>
+      <app-journey></app-journey>
     </section>
 
-    <!-- Multi-Agent Architecture section - NEW -->
+    <!-- Every service & the pricing model -->
     <section class="relative z-10">
-      <app-multi-agent-architecture></app-multi-agent-architecture>
+      <app-offer-ecosystem></app-offer-ecosystem>
     </section>
 
-
-    <!-- Website Showcase section -->
-    <!-- <section class="relative">
-      <app-website-showcase></app-website-showcase>
-    </section> -->
-
-    <!-- Deployment Screenshots section -->
+    <!-- Technology & sovereignty: the ambition -->
     <section class="relative z-10">
-      <app-deployment-screenshots></app-deployment-screenshots>
+      <app-technology-sovereignty></app-technology-sovereignty>
     </section>
 
-    <!-- Ecosystem Showcase section - IDEV & iDeploy -->
-    <section class="relative z-10">
-      <app-ecosystem-showcase></app-ecosystem-showcase>
-    </section>
-
-    <!-- African Market Focus section - NEW -->
-    <section class="relative z-10">
-      <app-african-market></app-african-market>
-    </section>
+    <!-- Final call to action -->
     <app-cta></app-cta>
   </div>
 </div>

@@ -1,41 +1,41 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   Input,
   Output,
   EventEmitter,
   OnInit,
   OnDestroy,
+  effect,
   signal,
   computed,
   inject,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateModule } from '@ngx-translate/core';
 import { TypographyModel } from '../../../../models/brand-identity.model';
 import {
-  TypographyService,
-  TypographyPreview,
+  FontCategory,
   GoogleFont,
+  TypographyService,
 } from '../../../../../../shared/services/typography.service';
-import { ProjectService } from '../../../../services/project.service';
 import { debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs/operators';
 import { Subject, of } from 'rxjs';
 import { TypographyPreviewComponent } from './typography-preview/typography-preview';
 import { ProjectModel } from '@idem/shared-models';
-import { BrandingService } from '../../../../services/ai-agents/branding.service';
 
 // Import new sub-components
 import { TypographyTabsComponent, TypographyTab } from './typography-tabs/typography-tabs';
 import { TypographyGeneratedListComponent } from './typography-generated-list/typography-generated-list';
 import { TypographyCustomCreatorComponent } from './typography-custom-creator/typography-custom-creator';
 
+interface SearchRequest {
+  readonly query: string;
+  readonly category: FontCategory | null;
+}
+
 @Component({
   selector: 'app-typography-selection',
-  standalone: true,
   imports: [
-    CommonModule,
-    FormsModule,
     TranslateModule,
     TypographyPreviewComponent,
     TypographyTabsComponent,
@@ -44,14 +44,14 @@ import { TypographyCustomCreatorComponent } from './typography-custom-creator/ty
   ],
   templateUrl: './typography-selection.html',
   styleUrls: ['./typography-selection.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TypographySelectionComponent implements OnInit, OnDestroy {
   // Services
-  private readonly brandingService = inject(BrandingService);
   private readonly typographyService = inject(TypographyService);
   private readonly destroy$ = new Subject<void>();
-  private readonly translate = inject(TranslateService);
-  private readonly searchSubject = new Subject<string>();
+  private readonly searchSubject = new Subject<SearchRequest>();
+  private catalogRequested = false;
 
   // Inputs
   @Input() project: ProjectModel = {} as ProjectModel;
@@ -77,7 +77,7 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
   protected searchResults = signal<GoogleFont[]>([]);
   protected isSearching = signal(false);
   protected searchQuery = signal('');
-  protected showCustomSearch = signal(false);
+  protected searchCategory = signal<FontCategory | null>(null);
   protected previewText = signal('Your Brand Name');
 
   // Computed properties
@@ -93,8 +93,10 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
 
   protected currentSelectedTypography = computed(() => {
     if (this.activeTab() === 'generated') {
-      return this.typographyModels().find(
-        (t: TypographyModel) => t.id === this.selectedTypographyId(),
+      return (
+        this.typographyModels().find(
+          (t: TypographyModel) => t.id === this.selectedTypographyId(),
+        ) ?? null
       );
     }
 
@@ -112,14 +114,31 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
     return null;
   });
 
+  constructor() {
+    // Fetch every family shown in the list up-front so the cards and the preview
+    // render with the real typeface instead of the browser default.
+    effect(() => {
+      const families = this.typographyModels().flatMap((typography) => [
+        typography.primaryFont,
+        typography.secondaryFont,
+      ]);
+      if (families.length > 0) {
+        void this.typographyService.loadGoogleFonts(families);
+      }
+    });
+  }
+
   // Event handlers for new template
   protected onTabChanged(tab: TypographyTab): void {
     this.activeTab.set(tab);
     // If switching to generated, ensure something is selected if possible
     if (tab === 'generated' && !this.selectedTypographyId() && this.typographyModels().length > 0) {
       this.selectedTypographyId.set(this.typographyModels()[0].id);
-      this.notifySelectionChange();
     }
+    if (tab === 'custom') {
+      this.ensureCatalogLoaded();
+    }
+    this.notifySelectionChange();
   }
 
   protected onTypographySelected(typography: TypographyModel): void {
@@ -186,7 +205,12 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
 
   protected onSearchInput(query: string): void {
     this.searchQuery.set(query);
-    this.searchSubject.next(query);
+    this.searchSubject.next({ query, category: this.searchCategory() });
+  }
+
+  protected onCategoryChanged(category: FontCategory | null): void {
+    this.searchCategory.set(category);
+    this.searchSubject.next({ query: this.searchQuery(), category });
   }
 
   protected selectFont(event: { font: GoogleFont; type: 'primary' | 'secondary' }): void {
@@ -196,13 +220,29 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
     } else {
       this.selectedSecondaryFont.set(font.family);
     }
-    this.typographyService.loadGoogleFont(font.family);
+    void this.typographyService.loadGoogleFont(font.family);
     this.notifySelectionChange();
   }
 
   ngOnInit(): void {
+    const brandName = this.project?.name?.trim();
+    if (brandName) {
+      this.previewText.set(brandName);
+    }
     this.initializeTypographies();
     this.setupSearch();
+  }
+
+  /**
+   * Shows popular families as soon as the custom tab opens, so the panel is
+   * browsable before anything is typed. Deferred until then: the catalog is a
+   * ~36 kB download nobody needs while staying on the generated tab.
+   */
+  private ensureCatalogLoaded(): void {
+    if (this.catalogRequested) return;
+    this.catalogRequested = true;
+    this.isSearching.set(true);
+    this.searchSubject.next({ query: '', category: null });
   }
 
   ngOnDestroy(): void {
@@ -211,21 +251,20 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
   }
 
   private initializeTypographies(): void {
-    setTimeout(() => {
-      const generatedTypography = this.project.analysisResultModel?.branding?.generatedTypography;
+    const generatedTypography = this.project.analysisResultModel?.branding?.generatedTypography;
 
-      if (generatedTypography && generatedTypography.length > 0) {
-        this.typographyModels.set(generatedTypography);
-        this.isLoading.set(false);
-        // Auto-select first typography if none selected
-        if (!this.selectedTypographyId()) {
-          this.selectedTypographyId.set(generatedTypography[0].id);
-          this.notifySelectionChange();
-        }
-      } else {
-        this.regenerateTypographies();
+    if (generatedTypography && generatedTypography.length > 0) {
+      this.typographyModels.set(generatedTypography);
+      this.isLoading.set(false);
+      // Auto-select first typography if none selected
+      if (!this.selectedTypographyId()) {
+        this.selectedTypographyId.set(generatedTypography[0].id);
+        this.notifySelectionChange();
       }
-    }, 2000);
+    } else {
+      this.isLoading.set(false);
+      this.regenerateTypographies();
+    }
   }
 
   private regenerateTypographies(): void {
@@ -238,7 +277,7 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
           id: 'generated-1',
           name: 'Modern Sans',
           primaryFont: 'Inter',
-          secondaryFont: 'Source Sans Pro',
+          secondaryFont: 'Source Sans 3',
           description: 'Clean and modern typography for professional brands',
         },
         {
@@ -270,14 +309,19 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
   private setupSearch(): void {
     this.searchSubject
       .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        switchMap((query) => {
-          if (!query || query.length < 2) {
+        debounceTime(250),
+        distinctUntilChanged(
+          (previous, current) =>
+            previous.query === current.query && previous.category === current.category,
+        ),
+        switchMap(({ query, category }) => {
+          // A single character matches almost everything: wait for a real term,
+          // but keep browsing by category available with an empty query.
+          if (query.trim().length === 1) {
             return of([]);
           }
           this.isSearching.set(true);
-          return this.typographyService.searchGoogleFonts(query);
+          return this.typographyService.searchGoogleFonts(query, category);
         }),
         takeUntil(this.destroy$),
       )
@@ -288,6 +332,7 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Search error:', error);
+          this.searchResults.set([]);
           this.isSearching.set(false);
         },
       });

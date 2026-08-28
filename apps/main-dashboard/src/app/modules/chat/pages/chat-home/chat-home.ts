@@ -20,17 +20,27 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { MarkdownModule } from 'ngx-markdown';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Observable } from 'rxjs';
 import { ProjectModel } from '@idem/shared-models';
 
 import { Loader } from '../../../../shared/components/loader/loader';
 import { UiModeService } from '../../../../shared/services/ui-mode.service';
 import { GenerationService } from '../../../../shared/services/generation.service';
-import { SSEGenerationState } from '../../../../shared/models/sse-step.model';
+import {
+  SSEGenerationState,
+  SSEServiceEventType,
+  SSEStepEvent,
+} from '../../../../shared/models/sse-step.model';
 import { AdvisorService } from '../../../dashboard/services/ai-agents/advisor.service';
 import { BusinessPlanService } from '../../../dashboard/services/ai-agents/business-plan.service';
 import { BrandingService } from '../../../dashboard/services/ai-agents/branding.service';
 import { PitchDeckService } from '../../../dashboard/services/ai-agents/pitch-deck.service';
+import { DiagramsService } from '../../../dashboard/services/ai-agents/diagrams.service';
+import { LegalDocsService } from '../../../dashboard/services/ai-agents/legal-docs.service';
+import { CommunicationService } from '../../../dashboard/services/ai-agents/communication.service';
+import { FinanceService } from '../../../dashboard/services/finance.service';
+import { LegalDocumentType } from '../../../dashboard/models/legalDocs.model';
+import { CommunicationStreamEvent } from '../../../dashboard/models/communication.model';
 import { ChatSessionService } from '../../services/chat-session.service';
 import { ChatConversationStoreService } from '../../services/chat-conversation-store.service';
 import { ChatIntentService, ChatIntent } from '../../services/chat-intent.service';
@@ -80,6 +90,9 @@ interface PreviewState {
   error: string | null;
 }
 
+/** Livrables générés in-chat via le moteur SSE partagé (GenerationService). */
+type SseGenKind = 'businessPlan' | 'branding' | 'pitchDeck' | 'diagrams' | 'finance' | 'legalDocs';
+
 let chatMessageCounter = 0;
 
 /**
@@ -128,6 +141,10 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   private readonly businessPlanService = inject(BusinessPlanService);
   private readonly brandingApiService = inject(BrandingService);
   private readonly pitchDeckService = inject(PitchDeckService);
+  private readonly diagramsService = inject(DiagramsService);
+  private readonly legalDocsService = inject(LegalDocsService);
+  private readonly communicationService = inject(CommunicationService);
+  private readonly financeService = inject(FinanceService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly session = inject(ChatSessionService);
@@ -162,7 +179,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   private previewBlob: Blob | null = null;
   private pendingLogoType: LogoType | null = null;
   private pendingBpInfos: AdditionalInfos | null = null;
-  private activeGenerationType: 'business-plan' | 'branding' | 'pitch-deck' | null = null;
+  private activeGenerationType: SSEServiceEventType | null = null;
 
   protected readonly messages = this.store.messages;
   protected readonly isEmpty = computed(() => this.messages().length === 0);
@@ -453,6 +470,23 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         icon: 'pi pi-sparkles',
         action: 'branding-start',
       });
+    } else if (kind === 'finance') {
+      // Finance n'expose pas son état réel dans la carte : on propose toujours
+      // de (re)compléter les prévisions directement dans le chat.
+      chips.push({
+        labelKey: 'chat.chips.generate.finance',
+        icon: 'pi pi-sparkles',
+        action: 'generate',
+        payload: 'finance',
+      });
+    } else if (kind !== 'branding' && !available) {
+      // Livrable pas encore généré : proposer de le générer directement ici.
+      chips.push({
+        labelKey: `chat.chips.generate.${kind}`,
+        icon: 'pi pi-sparkles',
+        action: 'generate',
+        payload: kind,
+      });
     }
     if (available && pdfSupported) {
       chips.push({
@@ -475,6 +509,9 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
       diagrams: 'businessPlan',
       legalDocs: 'finance',
       finance: 'businessPlan',
+      communication: 'pitchDeck',
+      development: 'deployment',
+      deployment: 'diagrams',
     };
     const next = crossSell[kind];
     chips.push({
@@ -753,6 +790,21 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         this.appendUser(this.chipLabel(chip));
         this.askCharteFormat();
         break;
+      case 'legal-type':
+        this.appendUser(this.chipLabel(chip));
+        this.generateLegalDocs(chip.payload ?? '');
+        break;
+      case 'comm-strategy':
+        this.appendUser(this.chipLabel(chip));
+        this.runCommunicationGeneration('strategy');
+        break;
+      case 'comm-calendar':
+        this.appendUser(this.chipLabel(chip));
+        this.runCommunicationGeneration('calendar');
+        break;
+      case 'open-route':
+        this.uiMode.openInEditor(chip.payload ?? '/project/dashboard');
+        break;
     }
   }
 
@@ -780,12 +832,8 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   protected openGenerateFor(card: DeliverableCardData): void {
-    // L'identité de marque se complète directement dans le chat
-    if (card.kind === 'branding') {
-      void this.advanceBrandingFlow();
-      return;
-    }
-    this.uiMode.openInEditor(card.generateRoute ?? card.editorRoute);
+    // Chaque livrable est généré / guidé directement dans le chat.
+    void this.startGeneration(card.kind);
   }
 
   protected async downloadFromCard(kind: DeliverableKind): Promise<void> {
@@ -1147,17 +1195,253 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
       case 'pitchDeck':
         await this.runSseGeneration('pitchDeck');
         break;
-      default: {
-        // Les autres générations restent dans l'éditeur (porte de sortie)
-        const config = this.deliverables.config(kind);
-        this.appendAssistant({
-          content: this.translate.instant('chat.responses.openGenerator', {
-            title: this.translate.instant(config.titleKey),
-          }),
-        });
-        this.uiMode.openInEditor(config.generateRoute ?? config.editorRoute);
-      }
+      case 'diagrams':
+        await this.runSseGeneration('diagrams');
+        break;
+      case 'finance':
+        await this.runSseGeneration('finance');
+        break;
+      case 'legalDocs':
+        this.startLegalDocsFlow();
+        break;
+      case 'communication':
+        this.startCommunicationFlow();
+        break;
+      case 'development':
+        this.openDevelopmentGuide();
+        break;
+      case 'deployment':
+        this.openDeploymentGuide();
+        break;
     }
+  }
+
+  // ─────────────────────────────────────────────── Documents juridiques
+
+  /** Propose de choisir le(s) type(s) de document juridique à générer. */
+  private startLegalDocsFlow(): void {
+    this.appendAssistant({
+      content: this.translate.instant('chat.legal.intro'),
+      chips: [
+        {
+          labelKey: 'chat.legal.chips.essentials',
+          icon: 'pi pi-star',
+          action: 'legal-type',
+          payload: 'cgu,cgv,privacy_policy,legal_mentions',
+        },
+        { labelKey: 'chat.legal.chips.cgu', icon: 'pi pi-file', action: 'legal-type', payload: 'cgu' },
+        { labelKey: 'chat.legal.chips.cgv', icon: 'pi pi-file', action: 'legal-type', payload: 'cgv' },
+        { labelKey: 'chat.legal.chips.privacy', icon: 'pi pi-shield', action: 'legal-type', payload: 'privacy_policy' },
+        { labelKey: 'chat.legal.chips.statutes', icon: 'pi pi-building', action: 'legal-type', payload: 'statuts_sas' },
+        { labelKey: 'chat.legal.chips.nda', icon: 'pi pi-lock', action: 'legal-type', payload: 'nda' },
+        {
+          labelKey: 'chat.legal.chips.editor',
+          icon: 'pi pi-arrow-up-right',
+          action: 'open-route',
+          payload: '/project/legal-docs',
+        },
+      ],
+    });
+  }
+
+  private generateLegalDocs(rawTypes: string): void {
+    const types = rawTypes.split(',').filter(Boolean) as LegalDocumentType[];
+    if (types.length === 0) return;
+    void this.runSseGeneration('legalDocs', undefined, undefined, types);
+  }
+
+  // ─────────────────────────────────────────────── Communication
+
+  /** Propose de générer la stratégie ou le calendrier de communication. */
+  private startCommunicationFlow(): void {
+    const brandComplete = this.branding.isComplete(this.session.activeProject());
+    const content = brandComplete
+      ? this.translate.instant('chat.comm.intro')
+      : this.translate.instant('chat.comm.introNeedsBranding');
+    this.appendAssistant({
+      content,
+      chips: [
+        { labelKey: 'chat.comm.chips.strategy', icon: 'pi pi-compass', action: 'comm-strategy' },
+        { labelKey: 'chat.comm.chips.calendar', icon: 'pi pi-calendar', action: 'comm-calendar' },
+        {
+          labelKey: 'chat.card.actions.openEditor',
+          icon: 'pi pi-arrow-up-right',
+          action: 'open-route',
+          payload: '/project/communication',
+        },
+      ],
+    });
+  }
+
+  /**
+   * Génération SSE de la communication (stratégie ou calendrier). Le flux
+   * utilise son propre transport (CommunicationStreamEvent), on met donc à jour
+   * la carte de progression à la main.
+   */
+  private runCommunicationGeneration(step: 'strategy' | 'calendar'): void {
+    const projectId = this.session.activeProjectId();
+    if (!projectId || this.isGenerating()) return;
+
+    const title = this.translate.instant(
+      step === 'strategy' ? 'chat.comm.strategyTitle' : 'chat.comm.calendarTitle',
+    );
+    const progressId = this.nextId();
+    this.store.append({
+      id: progressId,
+      role: 'assistant',
+      content: '',
+      createdAt: new Date().toISOString(),
+      generation: { title, status: 'running', completedSteps: [], stepsInProgress: [] },
+    });
+    this.isGenerating.set(true);
+    // Flux géré hors GenerationService : rien à annuler côté SSEService partagé.
+    this.activeGenerationType = null;
+
+    const completed: string[] = [];
+    const stream =
+      step === 'strategy'
+        ? this.communicationService.streamStrategy(projectId, { force: true })
+        : this.communicationService.streamCalendar(projectId, { force: true });
+
+    let finished = false;
+    stream.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (event: CommunicationStreamEvent) => {
+        if (finished) return;
+        const stepLabel = event.step ? this.translate.instant(`chat.comm.steps.${event.step}`) : '';
+        if (event.type === 'step-start' && stepLabel) {
+          this.store.patch(progressId, {
+            generation: { title, status: 'running', completedSteps: [...completed], stepsInProgress: [stepLabel] },
+          });
+        } else if (event.type === 'step-complete' && stepLabel) {
+          if (!completed.includes(stepLabel)) completed.push(stepLabel);
+          this.store.patch(progressId, {
+            generation: { title, status: 'running', completedSteps: [...completed], stepsInProgress: [] },
+          });
+        } else if (event.type === 'complete') {
+          finished = true;
+          this.finishCommunication(step, progressId, title, completed);
+        } else if (event.type === 'error') {
+          finished = true;
+          this.failCommunication(step, progressId, title, completed);
+        }
+      },
+      error: (error) => {
+        if (finished) return;
+        finished = true;
+        console.error(`Chat: communication ${step} generation failed`, error);
+        this.failCommunication(step, progressId, title, completed);
+      },
+      complete: () => {
+        if (!finished) {
+          finished = true;
+          this.finishCommunication(step, progressId, title, completed);
+        }
+      },
+    });
+  }
+
+  private finishCommunication(
+    step: 'strategy' | 'calendar',
+    progressId: string,
+    title: string,
+    completed: string[],
+  ): void {
+    this.isGenerating.set(false);
+    this.store.patch(progressId, {
+      generation: { title, status: 'done', completedSteps: completed, stepsInProgress: [] },
+    });
+    const chips: ChatChip[] =
+      step === 'strategy'
+        ? [
+            { labelKey: 'chat.comm.chips.calendar', icon: 'pi pi-calendar', action: 'comm-calendar' },
+            {
+              labelKey: 'chat.card.actions.openEditor',
+              icon: 'pi pi-arrow-up-right',
+              action: 'open-route',
+              payload: '/project/communication',
+            },
+          ]
+        : [
+            {
+              labelKey: 'chat.card.actions.openEditor',
+              icon: 'pi pi-arrow-up-right',
+              action: 'open-route',
+              payload: '/project/communication',
+            },
+          ];
+    this.appendAssistant({
+      content: this.translate.instant(
+        step === 'strategy' ? 'chat.comm.strategyDone' : 'chat.comm.calendarDone',
+      ),
+      chips,
+    });
+  }
+
+  private failCommunication(
+    step: 'strategy' | 'calendar',
+    progressId: string,
+    title: string,
+    completed: string[],
+  ): void {
+    this.isGenerating.set(false);
+    this.store.patch(progressId, {
+      generation: { title, status: 'error', completedSteps: completed, stepsInProgress: [] },
+    });
+    this.appendAssistant({
+      content: this.translate.instant('chat.generation.retryHint'),
+      chips: [
+        {
+          labelKey: 'chat.generation.chips.retry',
+          icon: 'pi pi-refresh',
+          action: step === 'strategy' ? 'comm-strategy' : 'comm-calendar',
+        },
+      ],
+    });
+  }
+
+  // ─────────────────────────────────────────────── Développement / Déploiement
+
+  /** Guide vers l'atelier de développement (config app générée dans l'éditeur). */
+  private openDevelopmentGuide(): void {
+    const hasConfig = this.deliverables.buildCard('development', this.session.activeProject()).available;
+    const chips: ChatChip[] = [
+      {
+        labelKey: 'chat.dev.chips.open',
+        icon: 'pi pi-bolt',
+        action: 'open-route',
+        payload: '/project/development/create',
+      },
+    ];
+    if (hasConfig) {
+      chips.push({
+        labelKey: 'chat.dev.chips.view',
+        icon: 'pi pi-arrow-up-right',
+        action: 'open-route',
+        payload: '/project/development',
+      });
+    }
+    this.appendAssistant({ content: this.translate.instant('chat.dev.intro'), chips });
+  }
+
+  /** Guide vers l'assistant de déploiement (Terraform / infrastructure). */
+  private openDeploymentGuide(): void {
+    this.appendAssistant({
+      content: this.translate.instant('chat.deploy.intro'),
+      chips: [
+        {
+          labelKey: 'chat.deploy.chips.start',
+          icon: 'pi pi-bolt',
+          action: 'open-route',
+          payload: '/project/deployments/create',
+        },
+        {
+          labelKey: 'chat.deploy.chips.list',
+          icon: 'pi pi-list',
+          action: 'open-route',
+          payload: '/project/deployments',
+        },
+      ],
+    });
   }
 
   /** La charte existe déjà : on le dit et on propose prévisualiser / télécharger. */
@@ -1282,9 +1566,10 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
    * chat : un message de progression est mis à jour à chaque étape.
    */
   private async runSseGeneration(
-    kind: 'businessPlan' | 'branding' | 'pitchDeck',
+    kind: SseGenKind,
     infos?: AdditionalInfos,
     pdfFormat?: ChartePdfFormat,
+    legalTypes?: LegalDocumentType[],
   ): Promise<void> {
     const projectId = this.session.activeProjectId();
     if (!projectId || this.isGenerating()) return;
@@ -1306,14 +1591,37 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     this.store.append(progressMessage);
     this.isGenerating.set(true);
 
-    const connection =
-      kind === 'businessPlan'
-        ? this.businessPlanService.createBusinessplanItem(projectId, infos)
-        : kind === 'pitchDeck'
-          ? this.pitchDeckService.generatePitchDeck(projectId)
-          : this.brandingApiService.createBrandIdentityModel(projectId, pdfFormat ?? 'SLIDE_16_9');
-    const serviceType: 'business-plan' | 'branding' | 'pitch-deck' =
-      kind === 'businessPlan' ? 'business-plan' : kind === 'pitchDeck' ? 'pitch-deck' : 'branding';
+    let connection: Observable<SSEStepEvent>;
+    let serviceType: SSEServiceEventType;
+    switch (kind) {
+      case 'businessPlan':
+        connection = this.businessPlanService.createBusinessplanItem(projectId, infos);
+        serviceType = 'business-plan';
+        break;
+      case 'pitchDeck':
+        connection = this.pitchDeckService.generatePitchDeck(projectId);
+        serviceType = 'pitch-deck';
+        break;
+      case 'branding':
+        connection = this.brandingApiService.createBrandIdentityModel(
+          projectId,
+          pdfFormat ?? 'SLIDE_16_9',
+        );
+        serviceType = 'branding';
+        break;
+      case 'diagrams':
+        connection = this.diagramsService.createDiagramModel(projectId);
+        serviceType = 'diagram';
+        break;
+      case 'finance':
+        connection = this.financeService.autoFillAllStream(projectId);
+        serviceType = 'finance-fill';
+        break;
+      case 'legalDocs':
+        connection = this.legalDocsService.generate(projectId, legalTypes ?? [], {});
+        serviceType = 'legal-docs';
+        break;
+    }
     this.activeGenerationType = serviceType;
 
     let finished = false;
@@ -1364,7 +1672,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   private async finishGeneration(
-    kind: 'businessPlan' | 'branding' | 'pitchDeck',
+    kind: SseGenKind,
     progressId: string,
     title: string,
     state: SSEGenerationState | null,
@@ -1389,7 +1697,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   private failGeneration(
-    kind: 'businessPlan' | 'branding' | 'pitchDeck',
+    kind: SseGenKind,
     progressId: string,
     title: string,
     state: SSEGenerationState | null,

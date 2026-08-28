@@ -1,58 +1,54 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { Application } from '../../../shared/models/ideploy.models';
+import {
+  WorkspaceTarget,
+  WorkspaceTargetPickerComponent,
+} from '../../../shared/components/workspace-target-picker/workspace-target-picker';
 
 @Component({
   selector: 'app-applications-list',
-  imports: [RouterLink, ReactiveFormsModule],
+  imports: [RouterLink, ReactiveFormsModule, TranslateModule, WorkspaceTargetPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mb-6 flex items-center justify-between">
-      <h1 class="text-2xl font-bold">Applications</h1>
-      <button class="button" (click)="creating.set(!creating())">{{ creating() ? 'Cancel' : '+ New application' }}</button>
+      <h1 class="text-2xl font-bold">{{ 'applications.list.title' | translate }}</h1>
+      <button class="button" (click)="creating.set(!creating())">{{ (creating() ? 'applications.list.cancel' : 'applications.list.newApplication') | translate }}</button>
     </div>
 
     @if (creating()) {
       <form class="box mb-6 max-w-2xl space-y-3" [formGroup]="form" (ngSubmit)="create()">
-        <div class="flex gap-3">
-          <div class="flex-1">
-            <label class="mb-1 block text-sm">Name</label>
-            <input class="input" formControlName="name" />
-          </div>
-          <div class="w-40">
-            <label class="mb-1 block text-sm">Environment ID</label>
-            <input class="input" type="number" formControlName="environment_id" />
-          </div>
+        <div>
+          <label class="mb-1 block text-sm">{{ 'applications.list.name' | translate }}</label>
+          <input class="input" formControlName="name" />
         </div>
         <div>
-          <label class="mb-1 block text-sm">Git repository URL</label>
+          <label class="mb-1 block text-sm">{{ 'applications.list.gitRepositoryUrl' | translate }}</label>
           <input class="input" formControlName="git_repository" placeholder="https://github.com/org/repo" />
         </div>
-        <div class="flex gap-3">
-          <div class="flex-1">
-            <label class="mb-1 block text-sm">Branch</label>
-            <input class="input" formControlName="git_branch" />
-          </div>
-          <div class="w-40">
-            <label class="mb-1 block text-sm">Destination ID</label>
-            <input class="input" type="number" formControlName="destination_id" />
-          </div>
+        <div>
+          <label class="mb-1 block text-sm">{{ 'applications.branch' | translate }}</label>
+          <input class="input" formControlName="git_branch" />
         </div>
+
+        <app-workspace-target-picker (targetChange)="target.set($event)" />
+
         @if (error()) {
           <p class="text-sm text-red-400">{{ error() }}</p>
         }
-        <button class="button" type="submit" [disabled]="form.invalid || saving()">
-          {{ saving() ? 'Creating…' : 'Create application' }}
+        <button class="button" type="submit" [disabled]="form.invalid || !target() || saving()">
+          {{ (saving() ? 'applications.list.creating' : 'applications.list.createApplication') | translate }}
         </button>
       </form>
     }
 
     @if (loading()) {
-      <p class="text-sm" style="color: var(--color-text-secondary)">Loading…</p>
+      <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'applications.loading' | translate }}</p>
     } @else if (applications().length === 0) {
-      <div class="box">No applications yet.</div>
+      <div class="box">{{ 'applications.list.empty' | translate }}</div>
     } @else {
       <div class="space-y-3">
         @for (app of applications(); track app.uuid) {
@@ -63,17 +59,17 @@ import { Application } from '../../../shared/models/ideploy.models';
                 {{ app.git_repository }} ({{ app.git_branch }}) · {{ app.build_pack }}
               </div>
               <div class="text-xs" style="color: var(--color-text-tertiary)">
-                status: {{ app.status }}
+                {{ 'applications.list.statusLabel' | translate }} {{ app.status }}
               </div>
             </div>
             <div class="flex items-center gap-2">
               @if (app.link) {
                 <a class="button-secondary" [href]="app.link" target="_blank" rel="noopener">
-                  <i class="fa-solid fa-arrow-up-right-from-square mr-2"></i>Open
+                  <i class="fa-solid fa-arrow-up-right-from-square mr-2"></i>{{ 'applications.open' | translate }}
                 </a>
               }
               <button class="button" [disabled]="deploying() === app.uuid" (click)="deploy(app)">
-                {{ deploying() === app.uuid ? 'Queuing…' : 'Deploy' }}
+                {{ (deploying() === app.uuid ? 'applications.list.queuing' : 'applications.deploy') | translate }}
               </button>
             </div>
           </div>
@@ -86,6 +82,7 @@ export class ApplicationsListComponent implements OnInit {
   private api = inject(ApiService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
+  private translate = inject(TranslateService);
 
   protected readonly applications = signal<Application[]>([]);
   protected readonly loading = signal(true);
@@ -93,13 +90,13 @@ export class ApplicationsListComponent implements OnInit {
   protected readonly creating = signal(false);
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
+  /** Where the new application lands — resolved by the workspace, never a raw id. */
+  protected readonly target = signal<WorkspaceTarget | null>(null);
 
   protected readonly form = this.fb.nonNullable.group({
     name: ['', Validators.required],
-    environment_id: [0, Validators.required],
     git_repository: ['', Validators.required],
     git_branch: ['main'],
-    destination_id: [0],
   });
 
   ngOnInit(): void {
@@ -117,28 +114,30 @@ export class ApplicationsListComponent implements OnInit {
   }
 
   protected create(): void {
-    if (this.form.invalid) return;
+    const target = this.target();
+    if (this.form.invalid || !target) return;
     this.saving.set(true);
     this.error.set(null);
     const raw = this.form.getRawValue();
     this.api
       .createApplication({
         name: raw.name,
-        environment_id: raw.environment_id,
         git_repository: raw.git_repository,
         git_branch: raw.git_branch || 'main',
-        destination_id: raw.destination_id || undefined,
-        destination_type: raw.destination_id ? 'App\\Models\\StandaloneDocker' : undefined,
+        workspace_uuid: target.workspace_uuid,
+        environment_name: target.environment_name,
+        project_name: target.project_name,
       })
       .subscribe({
         next: () => {
-          this.form.reset({ name: '', environment_id: 0, git_repository: '', git_branch: 'main', destination_id: 0 });
+          this.form.reset({ name: '', git_repository: '', git_branch: 'main' });
+          this.target.set(null);
           this.creating.set(false);
           this.saving.set(false);
           this.load();
         },
         error: (e) => {
-          this.error.set(e?.error?.error?.message ?? 'Failed to create application');
+          this.error.set(e?.error?.error?.message ?? this.translate.instant('applications.list.createFailed'));
           this.saving.set(false);
         },
       });

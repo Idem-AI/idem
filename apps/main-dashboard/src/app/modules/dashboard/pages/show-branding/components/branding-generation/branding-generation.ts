@@ -77,8 +77,31 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
     this.generationService.calculateProgress(this.generationState()),
   );
 
+  private isForcingRegeneration = false;
+  private targetSections: string[] = [];
+
   ngOnInit(): void {
     this.projectId.set(this.cookieService.get('projectId'));
+    this.isForcingRegeneration = this.route.snapshot.queryParams['force'] === 'true';
+
+    const sectionsParam = this.route.snapshot.queryParams['sections'];
+    this.targetSections =
+      typeof sectionsParam === 'string' && sectionsParam.length > 0
+        ? sectionsParam.split(',').filter(Boolean)
+        : [];
+
+    // Régénération ciblée : le format PDF a déjà été choisi lors de la
+    // génération initiale, on saute l'écran de sélection et on lance direct.
+    if (this.targetSections.length > 0) {
+      const formatParam = this.route.snapshot.queryParams['format'];
+      if (typeof formatParam === 'string' && formatParam.length > 0) {
+        this.pdfFormat.set(formatParam);
+      }
+      this.isSelectingFormat.set(false);
+      this.generateBranding();
+      return;
+    }
+
     // Start with format selection screen
     this.isSelectingFormat.set(true);
   }
@@ -109,12 +132,14 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
 
     // Reset state for new generation
     this.resetGenerationState();
-    console.log('Starting branding generation with SSE and format:', this.pdfFormat());
+    console.log('Starting branding generation with SSE and format:', this.pdfFormat(), 'force:', this.isForcingRegeneration);
 
     // Create SSE connection for branding generation with format
     const sseConnection = this.brandingService.createBrandIdentityModel(
       this.projectId()!,
       this.pdfFormat(),
+      this.isForcingRegeneration,
+      this.targetSections,
     );
 
     this.generationService
@@ -183,10 +208,10 @@ export class BrandingGenerationComponent implements OnInit, OnDestroy {
 
     // Wait 4 seconds to allow backend to complete saving
     setTimeout(() => {
-      console.log('Post-processing complete, redirecting to logo selection');
+      console.log('Post-processing complete, redirecting to branding display');
       this.isPostProcessing.set(false);
-      // Redirect to logo selection workflow instead of direct display
-      this.router.navigate(['/console/project/branding/select-logo']);
+      // Redirect to display the generated branding PDF and elements
+      this.router.navigate(['/project/branding/display']);
     }, 4000);
   }
 }

@@ -4,7 +4,7 @@
 >
   <h2
     id="backend-config-title"
-    class="text-xl md:text-2xl font-semibold text-white mb-4 md:mb-6 border-b border-gray-700/50 pb-2 md:pb-3"
+    class="text-xl md:text-2xl font-semibold text-text-primary mb-4 md:mb-6 border-b border-[var(--glass-border)] pb-2 md:pb-3"
   >
     Backend Configuration
   </h2>
@@ -12,7 +12,7 @@
   <form [formGroup]="backendForm()" class="space-y-8">
     <!-- Programming Language Selection -->
     <div aria-labelledby="language-section">
-      <h3 id="language-section" class="text-lg md:text-xl font-medium text-white mb-3 md:mb-4">
+      <h3 id="language-section" class="text-lg md:text-xl font-medium text-text-primary mb-3 md:mb-4">
         Choose Programming Language
       </h3>
       <div
@@ -36,7 +36,7 @@
     <!-- Framework Selection -->
     @if (availableFrameworks().length > 0) {
       <div class="mt-6 md:mt-8" aria-labelledby="framework-section">
-        <h3 id="framework-section" class="text-lg md:text-xl font-medium text-white mb-3 md:mb-4">
+        <h3 id="framework-section" class="text-lg md:text-xl font-medium text-text-primary mb-3 md:mb-4">
           Choose Framework
         </h3>
         @if (availableFrameworks().length > 0) {
@@ -58,7 +58,7 @@
           </div>
         } @else {
           <div class="text-center py-8">
-            <div class="text-gray-400 text-lg" role="alert">
+            <div class="text-text-tertiary text-lg" role="alert">
               No frameworks available for the selected language
             </div>
           </div>
@@ -69,7 +69,7 @@
     <!-- API Type Selection -->
     @if (availableFrameworks().length > 0) {
       <div class="mt-6 md:mt-8" aria-labelledby="api-type-section">
-        <h3 id="api-type-section" class="text-lg md:text-xl font-medium text-white mb-3 md:mb-4">
+        <h3 id="api-type-section" class="text-lg md:text-xl font-medium text-text-primary mb-3 md:mb-4">
           API Type
         </h3>
         @if (availableApiTypes().length > 0) {
@@ -91,7 +91,7 @@
           </div>
         } @else {
           <div class="text-center py-8">
-            <div class="text-gray-400 text-lg" role="alert">
+            <div class="text-text-tertiary text-lg" role="alert">
               No API types available for the selected framework
             </div>
           </div>
@@ -102,7 +102,7 @@
     <!-- ORM Selection -->
     @if (availableOrms().length > 0) {
       <div class="mt-6 md:mt-8" aria-labelledby="orm-section">
-        <h3 id="orm-section" class="text-lg md:text-xl font-medium text-white mb-3 md:mb-4">
+        <h3 id="orm-section" class="text-lg md:text-xl font-medium text-text-primary mb-3 md:mb-4">
           ORM/ODM Selection
         </h3>
         @if (availableOrms().length > 0) {
@@ -124,7 +124,7 @@
           </div>
         } @else {
           <div class="text-center py-8">
-            <div class="text-gray-400 text-lg" role="alert">
+            <div class="text-text-tertiary text-lg" role="alert">
               No ORMs available for the selected framework
             </div>
           </div>
@@ -134,28 +134,28 @@
 
     <!-- Backend Features -->
     <div formGroupName="features" class="mt-6 md:mt-8" aria-labelledby="features-section">
-      <h3 id="features-section" class="text-lg md:text-xl font-medium text-white mb-3 md:mb-4">
+      <h3 id="features-section" class="text-lg md:text-xl font-medium text-text-primary mb-3 md:mb-4">
         Backend Features
       </h3>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
         @for (feature of backendFeatures; track feature.id) {
           <div
-            class="glass-card p-3 md:p-4 rounded-xl transition-all border border-gray-800/30 backdrop-blur-sm hover:border-gray-600/50"
+            class="glass-card p-3 md:p-4 rounded-xl transition-all border border-[var(--glass-border-subtle)] backdrop-blur-sm hover:border-[var(--glass-border-medium)]"
             [class.border-primary]="getFeatureValue(feature.formControlName)"
             [class.shadow-glow]="getFeatureValue(feature.formControlName)"
           >
             <div class="flex items-center justify-between gap-3">
               <div class="flex items-center min-w-0 flex-1">
                 <div
-                  class="w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center text-sm md:text-lg mr-2 md:mr-3 bg-gray-800/50 flex-shrink-0"
+                  class="w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center text-sm md:text-lg mr-2 md:mr-3 bg-[var(--glass-bg-light)] flex-shrink-0"
                 >
                   <span class="{{ feature.icon }}"></span>
                 </div>
                 <div class="min-w-0 flex-1">
-                  <div class="text-white font-medium text-sm md:text-base truncate">
+                  <div class="text-text-primary font-medium text-sm md:text-base truncate">
                     {{ feature.name }}
                   </div>
-                  <p class="text-gray-400 text-xs md:text-sm hidden lg:block truncate">
+                  <p class="text-text-tertiary text-xs md:text-sm hidden lg:block truncate">
                     {{ feature.description }}
                   </p>
                 </div>

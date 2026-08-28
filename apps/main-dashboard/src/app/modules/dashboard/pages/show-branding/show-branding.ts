@@ -21,7 +21,12 @@ import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loa
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { BrandingValidationService } from '../../services/branding-validation.service';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
-import { SafeHtmlPipe } from '../projects-list/safehtml.pipe';
+import { GenerationStatusPanelComponent } from '../../components/generation-status-panel/generation-status-panel';
+import {
+  analyzeGenerationCompleteness,
+  BRANDING_SECTION_NAMES,
+} from '../../models/generation-completeness';
+import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
 
 @Component({
   selector: 'app-show-branding',
@@ -34,7 +39,7 @@ import { SafeHtmlPipe } from '../projects-list/safehtml.pipe';
     ButtonModule,
     TranslateModule,
     IncompleteProjectBannerComponent,
-    SafeHtmlPipe,
+    GenerationStatusPanelComponent,
   ],
   templateUrl: './show-branding.html',
   styleUrl: './show-branding.css',
@@ -47,6 +52,7 @@ export class ShowBrandingComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
   private readonly brandingValidation = inject(BrandingValidationService);
+  private readonly logoSrcPipe = new LogoSrcPipe();
 
   // Loading and error states
   protected readonly isLoading = signal<boolean>(true);
@@ -68,6 +74,16 @@ export class ShowBrandingComponent implements OnInit {
   protected selectedExtension = 'svg';
   protected readonly isDownloading = signal<boolean>(false);
 
+  /**
+   * Formats proposés au téléchargement. Le SVG est mis en avant : c'est le
+   * seul qui ne se dégrade pas, et donc le bon choix par défaut pour un logo.
+   */
+  protected readonly logoFormats = [
+    { id: 'svg', recommended: true },
+    { id: 'png', recommended: false },
+    { id: 'psd', recommended: false },
+  ];
+
   // Computed properties for UI state
   protected readonly hasProjectData = computed(() => {
     const project = this.currentProject();
@@ -83,6 +99,20 @@ export class ShowBrandingComponent implements OnInit {
     return branding && branding.sections && branding.sections.length > 0;
   });
 
+  /**
+   * Complétude des sections de la charte graphique générée. La pseudo-section
+   * « Brand Guide » ajoutée quand le PDF existe est ignorée (seuls les noms
+   * canoniques attendus sont analysés).
+   */
+  protected readonly guidelinesCompleteness = computed(() =>
+    analyzeGenerationCompleteness(BRANDING_SECTION_NAMES, this.existingBranding()?.sections),
+  );
+
+  protected readonly isBrandingIncomplete = computed(() => {
+    const completeness = this.guidelinesCompleteness();
+    return completeness.hasStarted && !completeness.isComplete;
+  });
+
   protected readonly hasBrandingData = computed(() => {
     const branding = this.existingBranding();
     return (
@@ -95,6 +125,63 @@ export class ShowBrandingComponent implements OnInit {
         branding.generatedTypography?.length > 0)
     );
   });
+
+  /**
+   * Repères affichés dans le bandeau de statut de la charte : nombre de
+   * sections réellement générées (la pseudo-section « Brand Guide » ajoutée
+   * quand le PDF existe n'en est pas une).
+   */
+  protected readonly brandSectionCount = computed(
+    () => (this.existingBranding()?.sections ?? []).filter((s) => s.name !== 'Brand Guide').length,
+  );
+
+  /**
+   * Les cartes de visite dérivent du logo et de la palette RETENUS : tant que
+   * l'un des deux manque, la génération échouerait côté serveur — on n'affiche
+   * donc pas l'accès (mêmes critères que la page cartes de visite).
+   */
+  protected readonly canCreateBusinessCards = computed(() => {
+    const branding = this.existingBranding();
+    return Boolean(
+      branding?.colors?.colors?.primary ||
+        branding?.logo?.assetUrls?.primary ||
+        branding?.logo?.svg,
+    );
+  });
+
+  /** Couleurs de la palette sélectionnée, dans l'ordre d'importance. */
+  protected readonly paletteSwatches = computed(() => {
+    const colors = this.existingBranding()?.colors?.colors;
+    if (!colors) return [];
+    return [colors.primary, colors.secondary, colors.accent, colors.background].filter(
+      (color): color is string => Boolean(color),
+    );
+  });
+
+  /** Nombre de déclinaisons de logo disponibles (avec texte + icône seule). */
+  protected readonly logoVariationCount = computed(() => {
+    const variations = this.existingBranding()?.logo?.variations;
+    if (!variations) return 0;
+    return [variations.withText, variations.iconOnly].reduce((total, set) => {
+      if (!set) return total;
+      return (
+        total +
+        [set.lightBackground, set.darkBackground, set.monochrome].filter((svg) => Boolean(svg)).length
+      );
+    }, 0);
+  });
+
+  /**
+   * Résout la source d'affichage d'un logo : privilégie l'URL PNG hébergée
+   * (assetUrls) puis retombe sur le SVG. Ce repli peut être du markup inline
+   * (concepts non encore externalisés) — un `<img>` ne sait pas l'afficher tel
+   * quel, d'où la conversion en data-URI par le pipe partagé.
+   */
+  protected logoSrc(hostedUrl?: string, svgFallback?: string): string {
+    const hosted = (hostedUrl || '').trim();
+    if (hosted) return hosted;
+    return this.logoSrcPipe.transform(svgFallback);
+  }
 
   ngOnInit(): void {
     const projectId = this.cookieService.get('projectId');
@@ -139,13 +226,33 @@ export class ShowBrandingComponent implements OnInit {
    * Load existing branding data for the project
    * Load branding data from project and check for PDF
    */
+  /**
+   * Le branding issu du workflow d'import peut être partiel (couleurs ou
+   * typographie pas encore sélectionnées, sections absentes). On normalise
+   * pour que le template puisse lire colors.colors, generatedColors.length,
+   * logo.variations, etc. sans planter — les sections correspondantes
+   * basculent alors sur leur état vide.
+   */
+  private normalizeBranding(branding: BrandIdentityModel): BrandIdentityModel {
+    return {
+      ...branding,
+      logo: branding.logo ?? ({} as LogoModel),
+      colors: branding.colors ?? ({} as ColorModel),
+      typography: branding.typography ?? ({} as TypographyModel),
+      generatedLogos: branding.generatedLogos ?? [],
+      generatedColors: branding.generatedColors ?? [],
+      generatedTypography: branding.generatedTypography ?? [],
+      sections: branding.sections ?? [],
+    };
+  }
+
   private loadExistingBranding(project: ProjectModel): void {
     // Load branding data from project
     const brandingData = project.analysisResultModel?.branding;
 
     if (brandingData) {
       console.log('Branding data found in project:', brandingData);
-      this.existingBranding.set(brandingData);
+      this.existingBranding.set(this.normalizeBranding(brandingData));
 
       // Also check for PDF if available
       this.checkForBrandingPdf(project.id!);
@@ -170,7 +277,7 @@ export class ShowBrandingComponent implements OnInit {
               ...currentBranding,
               pdfBlob: pdfBlob,
               sections: [
-                ...currentBranding.sections,
+                ...(currentBranding.sections ?? []),
                 {
                   name: 'Brand Guide',
                   type: 'pdf',
@@ -262,16 +369,31 @@ export class ShowBrandingComponent implements OnInit {
   /**
    * Navigate to branding generation page
    */
-  protected generateBranding(): void {
-    console.log('Navigating to branding generation page');
-    this.router.navigate(['/project/branding/generate']);
+  protected generateBranding(force = false): void {
+    console.log('Navigating to branding generation page, force:', force);
+    this.router.navigate(['/project/branding/generate'], {
+      queryParams: force ? { force: 'true' } : {}
+    });
   }
 
   /**
    * Navigate to branding generation (alias for banner)
    */
-  protected navigateToBrandingGeneration(): void {
-    this.generateBranding();
+  protected navigateToBrandingGeneration(force = false): void {
+    this.generateBranding(force);
+  }
+
+  /**
+   * Regenerate a single brand guide section (canonical backend step name).
+   * Le format PDF déjà choisi est transmis pour sauter l'écran de sélection.
+   */
+  protected regenerateSection(sectionName: string): void {
+    const queryParams: Record<string, string> = { sections: sectionName };
+    const format = this.existingBranding()?.pdfFormat;
+    if (format) {
+      queryParams['format'] = format;
+    }
+    this.router.navigate(['/project/branding/generate'], { queryParams });
   }
 
   /**
@@ -280,6 +402,16 @@ export class ShowBrandingComponent implements OnInit {
   protected viewBrandingGuide(): void {
     console.log('Navigating to branding display page');
     this.router.navigate(['/project/branding/display']);
+  }
+
+  /** Ouvre l'éditeur WYSIWYG de la charte graphique. */
+  protected editBrandingGuide(): void {
+    this.router.navigate(['/project/branding/edit']);
+  }
+
+  /** Ouvre le module « cartes de visite » (dérivé de la charte graphique). */
+  protected goToBusinessCards(): void {
+    this.router.navigate(['/project/business-cards']);
   }
 
   /**

@@ -1,322 +1,142 @@
 <!-- Open Source & Sovereignty Page -->
-<div class="relative min-h-screen bg-black overflow-hidden">
-  <!-- Background with image -->
-  <div class="absolute inset-0">
-    <div class="absolute inset-0 bg-gradient-to-b from-black/80 via-black/90 to-black"></div>
-    <div
-      class="absolute inset-0 opacity-10"
-      style="background-image: url('/assets/images/code-pattern.svg'); background-size: cover"
-    ></div>
-  </div>
-
-  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-    <!-- Hero Section -->
-    <div class="text-center mb-20">
-      <div
-        class="inline-flex items-center gap-2 px-4 py-2 glass rounded-full text-sm font-medium mb-6"
-      >
-        <i class="pi pi-code text-primary"></i>
-        <span class="text-white" i18n="@@open-source-page.100_open_source">100% Open Source</span>
-      </div>
-
-      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
-        Open Source &
-        <br />
-        <span class="i-underline" i18n="@@open-source-page.data_sovereignty">Data Sovereignty</span>
+<div class="relative min-h-screen bg-transparent overflow-hidden">
+  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-28">
+    <!-- Hero -->
+    <div class="max-w-3xl mb-20 lg:mb-28">
+      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-text-primary tracking-tight text-balance">
+        <span i18n="@@open-source-page.title.lead">Open source &amp;</span>&nbsp;<span class="i-underline" i18n="@@open-source-page.data_sovereignty">Data Sovereignty</span>
       </h1>
-
-      <p
-        class="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed"
-        i18n="@@open-source-page.description"
-      >
-        IDEM is fully open source under Apache 2.0 license. Your data stays in Africa with complete
+      <p class="mt-6 text-lg lg:text-xl text-text-secondary leading-relaxed text-pretty" i18n="@@open-source-page.description">
+        IDEM is fully open source under Apache 2.0. Your data stays in Africa, with full
         transparency, no vendor lock-in, and community-driven development.
       </p>
     </div>
 
-    <!-- Stats -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
-      @for (stat of stats; track stat.label) {
-        <div
-          class="glass-card p-6 rounded-xl border border-white/10 text-center hover:border-primary/50 transition-all"
-        >
-          <div class="text-4xl font-bold text-primary mb-2">{{ stat.value }}</div>
-          <div class="text-sm text-white font-semibold mb-1" i18n="@@open-source-page.stat.label">
-            {{ stat.label }}
-          </div>
-          <div class="text-xs text-gray-500" i18n="@@open-source-page.stat.description">
-            {{ stat.description }}
-          </div>
-        </div>
-      }
-    </div>
-
-    <!-- Main Features Grid -->
-    <div class="mb-20">
-      <div class="text-center mb-12">
-        <h2
-          class="text-3xl sm:text-4xl font-bold text-white mb-4"
-          i18n="@@open-source-page.why_open_source"
-        >
+    <!-- Why open source: editorial list, no cards/icons/bullets -->
+    <div class="mb-20 lg:mb-28">
+      <div class="max-w-2xl mb-10">
+        <h2 class="text-3xl sm:text-4xl font-bold text-text-primary tracking-tight" i18n="@@open-source-page.why_open_source">
           Why Open Source Matters
         </h2>
-        <p
-          class="text-gray-400 max-w-2xl mx-auto"
-          i18n="@@open-source-page.whyOpenSource.description"
-        >
-          Transparency, security, and freedom for African tech entrepreneurs
+        <p class="mt-3 text-text-secondary" i18n="@@open-source-page.whyOpenSource.description">
+          Transparency, security and freedom for African tech entrepreneurs
         </p>
       </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        @for (feature of features; track feature.title) {
-          <div
-            class="glass-card p-8 rounded-xl border border-white/10 hover:border-primary/50 transition-all"
-          >
-            <div class="flex items-start gap-4 mb-4">
-              <div
-                class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0"
-              >
-                <i [class]="'pi ' + feature.icon + ' text-2xl text-primary'"></i>
-              </div>
-              <div class="flex-1">
-                <h3
-                  class="text-xl font-bold text-white mb-2"
-                  i18n="@@open-source-page.feature.title"
-                >
-                  {{ feature.title }}
-                </h3>
-                <p class="text-sm text-gray-400 mb-4" i18n="@@open-source-page.feature.description">
-                  {{ feature.description }}
-                </p>
-              </div>
+      <ol class="grid sm:grid-cols-2 gap-x-12 lg:gap-x-20">
+        @for (feature of features; track feature.title; let i = $index) {
+          <li class="flex items-baseline gap-5 py-6 border-t border-[var(--glass-border)]">
+            <span class="os-num text-xl font-bold shrink-0">{{ '0' + (i + 1) }}</span>
+            <div>
+              <h3 class="text-lg font-bold text-text-primary" i18n="@@open-source-page.feature.title">{{ feature.title }}</h3>
+              <p class="mt-1 text-text-tertiary leading-relaxed" i18n="@@open-source-page.feature.description">{{ feature.description }}</p>
             </div>
-            <ul class="space-y-2">
-              @for (benefit of feature.benefits; track benefit) {
-                <li class="text-xs text-gray-400 flex items-start gap-2">
-                  <i class="pi pi-check-circle text-primary mt-0.5 flex-shrink-0"></i>
-                  <span i18n="@@open-source-page.feature.benefit">{{ benefit }}</span>
-                </li>
-              }
-            </ul>
-          </div>
+          </li>
         }
-      </div>
+      </ol>
     </div>
 
-    <!-- Data Sovereignty Section - Asymmetric Layout -->
-    <div class="mb-20 relative">
-      <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
-        <!-- Large Image Left -->
-        <div class="lg:col-span-3 rounded-2xl overflow-hidden border border-primary/30 relative">
-          <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10"></div>
-          <img
-            src="assets/images/open-source-page/data-sovereignty.webp"
-            i18n-alt="@@open-source-page.alt.dataSovereignty"
-            alt="Data sovereignty"
-            loading="lazy"
-            class="w-full h-full object-cover min-h-[400px] lg:min-h-[500px]"
-          />
-          <div class="absolute bottom-0 left-0 right-0 p-4 sm:p-6 lg:p-8 z-20">
-            <div
-              class="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-primary/90 rounded-full text-xs sm:text-sm font-bold mb-3 sm:mb-4"
-            >
-              <i class="pi pi-map-marker text-white text-xs sm:text-sm"></i>
-              <span class="text-white" i18n="@@open-source-page.african_infrastructure"
-                >African Infrastructure</span
-              >
-            </div>
-            <h2
-              class="text-2xl sm:text-3xl font-bold text-white mb-2"
-              i18n="@@open-source-page.dataSovereignty.title"
-            >
-              Your Data Stays in Africa
-            </h2>
-            <p
-              class="text-sm sm:text-base text-white/90 leading-relaxed"
-              i18n="@@open-source-page.dataSovereignty.description"
-            >
-              IDEM deploys on African cloud infrastructure, ensuring your data remains on the
-              continent.
-            </p>
-          </div>
-        </div>
-
-        <!-- Stacked Cards Right -->
-        <div class="lg:col-span-2 space-y-3 lg:space-y-4">
-          <div class="glass-card p-6 rounded-xl border border-white/10">
-            <div class="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center mb-4">
-              <i class="pi pi-server text-2xl text-primary"></i>
-            </div>
-            <h3
-              class="text-lg font-bold text-white mb-2"
-              i18n="@@open-source-page.african_data_centers"
-            >
-              African Data Centers
-            </h3>
-            <p class="text-sm text-gray-400" i18n="@@open-source-page.dataCenters.description">
-              Low latency across the continent with sovereign infrastructure
-            </p>
-          </div>
-          <div class="glass-card p-6 rounded-xl border border-white/10">
-            <div class="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center mb-4">
-              <i class="pi pi-shield text-2xl text-primary"></i>
-            </div>
-            <h3
-              class="text-lg font-bold text-white mb-2"
-              i18n="@@open-source-page.regulatory_compliance"
-            >
-              Regulatory Compliance
-            </h3>
-            <p class="text-sm text-gray-400" i18n="@@open-source-page.gdpr_and_local">
-              GDPR and local data protection laws fully respected
-            </p>
-          </div>
-          <div class="glass-card p-6 rounded-xl border border-white/10">
-            <div class="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center mb-4">
-              <i class="pi pi-home text-2xl text-primary"></i>
-            </div>
-            <h3
-              class="text-lg font-bold text-white mb-2"
-              i18n="@@open-source-page.onpremise_option"
-            >
-              On-Premise Option
-            </h3>
-            <p class="text-sm text-gray-400" i18n="@@open-source-page.onPremise.description">
-              Deploy on your own infrastructure for complete control
-            </p>
-          </div>
+    <!-- Data sovereignty: image + clean list -->
+    <div class="mb-20 lg:mb-28 grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-10 items-stretch">
+      <div class="lg:col-span-3 rounded-2xl overflow-hidden border border-[var(--glass-border)] relative min-h-[320px]">
+        <img
+          src="assets/images/open-source-page/data-sovereignty.webp"
+          i18n-alt="@@open-source-page.alt.dataSovereignty"
+          alt="Data sovereignty"
+          loading="lazy"
+          class="w-full h-full object-cover"
+        />
+        <div class="absolute inset-0 bg-gradient-to-t from-black/75 to-transparent"></div>
+        <div class="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
+          <h2 class="text-2xl sm:text-3xl font-bold text-white text-balance" i18n="@@open-source-page.dataSovereignty.title">
+            Your Data Stays in Africa
+          </h2>
+          <p class="mt-2 text-sm sm:text-base text-white/85 leading-relaxed max-w-md" i18n="@@open-source-page.dataSovereignty.description">
+            IDEM deploys on African cloud infrastructure, so your data never leaves the continent.
+          </p>
         </div>
       </div>
+
+      <ul class="lg:col-span-2 flex flex-col justify-center gap-6">
+        <li class="border-t border-[var(--glass-border)] pt-5">
+          <h3 class="font-bold text-text-primary" i18n="@@open-source-page.african_data_centers">African Data Centers</h3>
+          <p class="mt-1 text-sm text-text-tertiary leading-relaxed" i18n="@@open-source-page.dataCenters.description">Low latency across the continent, on sovereign infrastructure.</p>
+        </li>
+        <li class="border-t border-[var(--glass-border)] pt-5">
+          <h3 class="font-bold text-text-primary" i18n="@@open-source-page.regulatory_compliance">Regulatory Compliance</h3>
+          <p class="mt-1 text-sm text-text-tertiary leading-relaxed" i18n="@@open-source-page.gdpr_and_local">GDPR and local data-protection laws fully respected.</p>
+        </li>
+        <li class="border-t border-[var(--glass-border)] pt-5">
+          <h3 class="font-bold text-text-primary" i18n="@@open-source-page.onpremise_option">On-Premise Option</h3>
+          <p class="mt-1 text-sm text-text-tertiary leading-relaxed" i18n="@@open-source-page.onPremise.description">Deploy on your own infrastructure for complete control.</p>
+        </li>
+      </ul>
     </div>
 
-    <!-- Community Section - Bento Grid Layout -->
-    <div class="mb-20">
-      <div class="text-center mb-8 lg:mb-12">
-        <h2
-          class="text-3xl sm:text-4xl font-bold text-white mb-4"
-          i18n="@@open-source-page.join_the_community"
-        >
+    <!-- Community -->
+    <div class="mb-20 lg:mb-24">
+      <div class="max-w-2xl mb-10">
+        <h2 class="text-3xl sm:text-4xl font-bold text-text-primary tracking-tight" i18n="@@open-source-page.join_the_community">
           Join the Community
         </h2>
-        <p
-          class="text-gray-400 max-w-2xl mx-auto px-4"
-          i18n="@@open-source-page.joinCommunity.description"
-        >
-          Contribute to Africa's first sovereign AI platform and help shape the future of African
-          tech
+        <p class="mt-3 text-text-secondary" i18n="@@open-source-page.joinCommunity.description">
+          Contribute to Africa's first sovereign AI platform and help shape African tech.
         </p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-6 gap-4 lg:gap-6">
-        <!-- Large Community Image -->
-        <div
-          class="md:col-span-4 rounded-2xl overflow-hidden border border-white/10 relative group"
-        >
+        <div class="md:col-span-3 rounded-2xl overflow-hidden border border-[var(--glass-border)] relative min-h-[280px]">
           <img
             src="assets/images/african-market-page/developer.webp"
             i18n-alt="@@open-source-page.alt.techTeam"
             alt="African tech team collaboration"
             loading="lazy"
-            class="w-full h-64 sm:h-80 lg:h-96 object-cover group-hover:scale-105 transition-transform duration-500"
+            class="w-full h-full object-cover"
           />
-          <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-          <div class="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
-            <h3
-              class="text-xl sm:text-2xl font-bold text-white mb-1 sm:mb-2"
-              i18n="@@open-source-page.growingEcosystem"
-            >
-              Growing African Tech Ecosystem
+          <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+          <div class="absolute bottom-0 left-0 right-0 p-6">
+            <h3 class="text-xl sm:text-2xl font-bold text-white text-balance" i18n="@@open-source-page.growingEcosystem">
+              A Growing African Tech Ecosystem
             </h3>
-            <p
-              class="text-sm sm:text-base text-white/90"
-              i18n="@@open-source-page.join_developers_across"
-            >
-              Join developers across the continent
-            </p>
           </div>
         </div>
 
-        <!-- Stacked Cards -->
-        <div class="md:col-span-2 space-y-3 lg:space-y-6">
-          <div class="glass-card p-6 rounded-xl border border-white/10">
-            <i class="pi pi-github text-3xl text-primary mb-3"></i>
-            <h3 class="text-base font-bold text-white mb-2" i18n="@@open-source-page.github">
-              GitHub
-            </h3>
-            <p class="text-xs text-gray-400 mb-3" i18n="@@open-source-page.explore_code_and">
-              Explore code and contribute
-            </p>
-            <a
-              href="https://github.com/Idem-AI"
-              target="_blank"
-              class="outer-button px-4 py-2 rounded-lg text-xs inline-block w-full text-center"
-              i18n="@@open-source-page.github.button"
-            >
-              View Repository
-            </a>
-          </div>
-
-          <div class="glass-card p-6 rounded-xl border border-white/10">
-            <i class="pi pi-discord text-3xl text-primary mb-3"></i>
-            <h3 class="text-base font-bold text-white mb-2" i18n="@@open-source-page.discord">
-              Discord
-            </h3>
-            <p class="text-xs text-gray-400 mb-3" i18n="@@open-source-page.join_discussions">
-              Join discussions
-            </p>
-            <a
-              href="https://discord.gg/idem"
-              target="_blank"
-              class="outer-button px-4 py-2 rounded-lg text-xs inline-block w-full text-center"
-              i18n="@@open-source-page.discord.button"
-            >
-              Join Discord
-            </a>
-          </div>
-
-          <div class="glass-card p-6 rounded-xl border border-white/10">
-            <i class="pi pi-book text-3xl text-primary mb-3"></i>
-            <h3 class="text-base font-bold text-white mb-2" i18n="@@open-source-page.documentation">
-              Documentation
-            </h3>
-            <p class="text-xs text-gray-400 mb-3" i18n="@@open-source-page.learn_and_customize">
-              Learn and customize
-            </p>
-            <a
-              routerLink="/documentation"
-              class="outer-button px-4 py-2 rounded-lg text-xs inline-block w-full text-center"
-              i18n="@@open-source-page.docs.button"
-            >
-              Read Docs
-            </a>
-          </div>
+        <div class="md:col-span-3 grid sm:grid-cols-3 md:grid-cols-1 gap-4">
+          <a href="https://github.com/Idem-AI" target="_blank" rel="noopener noreferrer" class="os-link group rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-5 flex items-center justify-between gap-3">
+            <span>
+              <span class="block font-bold text-text-primary">GitHub</span>
+              <span class="block text-sm text-text-tertiary" i18n="@@open-source-page.explore_code_and">Explore the code and contribute</span>
+            </span>
+            <svg class="os-arrow w-5 h-5 text-text-tertiary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+          </a>
+          <a href="https://discord.gg/idem" target="_blank" rel="noopener noreferrer" class="os-link group rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-5 flex items-center justify-between gap-3">
+            <span>
+              <span class="block font-bold text-text-primary">Discord</span>
+              <span class="block text-sm text-text-tertiary" i18n="@@open-source-page.join_discussions">Join the discussions</span>
+            </span>
+            <svg class="os-arrow w-5 h-5 text-text-tertiary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+          </a>
+          <a routerLink="/contact" class="os-link group rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-5 flex items-center justify-between gap-3">
+            <span>
+              <span class="block font-bold text-text-primary" i18n="@@open-source-page.documentation">Documentation</span>
+              <span class="block text-sm text-text-tertiary" i18n="@@open-source-page.learn_and_customize">Learn and customize</span>
+            </span>
+            <svg class="os-arrow w-5 h-5 text-text-tertiary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+          </a>
         </div>
       </div>
     </div>
 
     <!-- CTA -->
-    <div class="text-center glass-card p-12 rounded-2xl border border-white/10">
-      <h2 class="text-3xl font-bold text-white mb-4" i18n="@@open-source-page.start_building_with">
-        Start Building with Open Source AI
-      </h2>
-      <p
-        class="text-lg text-gray-400 mb-8 max-w-2xl mx-auto"
-        i18n="@@open-source-page.cta.description"
-      >
-        Experience the freedom of open source with the power of AI. Start for free today.
-      </p>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a routerLink="/auth/signup" class="inner-button px-8 py-3 rounded-lg font-semibold">
-          <i class="pi pi-rocket mr-2"></i>
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-8 sm:p-10">
+      <div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-text-primary tracking-tight" i18n="@@open-source-page.start_building_with">Start building with open source AI</h2>
+        <p class="mt-2 text-text-secondary max-w-xl" i18n="@@open-source-page.cta.description">The freedom of open source with the power of AI. Free to start.</p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-3 shrink-0">
+        <a [href]="dashboardUrl + '/create-project'" class="inner-button">
           <ng-container i18n="@@open-source-page.cta.getStarted">Get Started Free</ng-container>
         </a>
-        <a
-          href="https://github.com/Idem-AI"
-          target="_blank"
-          class="outer-button px-8 py-3 rounded-lg font-semibold"
-        >
-          <i class="pi pi-github mr-2"></i>
+        <a href="https://github.com/Idem-AI" target="_blank" rel="noopener noreferrer" class="outer-button">
           <ng-container i18n="@@open-source-page.cta.github">View on GitHub</ng-container>
         </a>
       </div>

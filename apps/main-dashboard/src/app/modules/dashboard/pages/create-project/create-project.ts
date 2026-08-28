@@ -1,4 +1,13 @@
-import { Component, inject, OnInit, signal, computed, ViewChild } from '@angular/core';
+import {
+  Component,
+  inject,
+  OnInit,
+  OnDestroy,
+  signal,
+  computed,
+  effect,
+  ViewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ProjectModel } from '@idem/shared-models';
@@ -10,7 +19,7 @@ import CreateProjectDatas, { SelectElement } from './datas';
 
 // Import components
 import { ProjectDescriptionComponent } from './components/project-description/project-description';
-import { ProjectDetailsComponent } from './components/project-details/project-details';
+import { DynamicDetailsFormComponent } from './components/dynamic-details-form/dynamic-details-form';
 import { ColorSelectionComponent } from './components/color-selection/color-selection';
 import { TypographySelectionComponent } from './components/typography-selection/typography-selection';
 import { LogoSelectionComponent } from './components/logo-selection/logo-selection';
@@ -28,6 +37,7 @@ import {
 import { AuthService } from '../../../auth/services/auth.service';
 import { LoginCardComponent } from '../../../auth/components/login-card/login-card';
 import { DialogModule } from 'primeng/dialog';
+import { ModeChoiceComponent, CreateMode } from './components/mode-choice/mode-choice';
 
 // Simple step configuration
 interface Step {
@@ -36,8 +46,6 @@ interface Step {
   component: string;
 }
 
-/** Mode d'affichage de la création de projet */
-type CreateMode = 'chat' | 'form';
 const CREATE_MODE_KEY = 'idem_create_project_mode';
 
 @Component({
@@ -47,19 +55,19 @@ const CREATE_MODE_KEY = 'idem_create_project_mode';
     CommonModule,
     SkeletonModule,
     ProjectDescriptionComponent,
-    ProjectDetailsComponent,
+    DynamicDetailsFormComponent,
     ProjectSummaryComponent,
     TranslateModule,
     Loader,
-    FoundationsCardComponent,
     OnboardingChatComponent,
     DialogModule,
     LoginCardComponent,
+    ModeChoiceComponent,
   ],
   templateUrl: './create-project.html',
   styleUrl: './create-project.css',
 })
-export class CreateProjectComponent implements OnInit {
+export class CreateProjectComponent implements OnInit, OnDestroy {
   // Services
   private readonly projectService = inject(ProjectService);
   private readonly router = inject(Router);
@@ -71,7 +79,11 @@ export class CreateProjectComponent implements OnInit {
 
   // Authentication Modal State
   protected readonly showLoginModal = signal<boolean>(false);
-  private pendingAction: 'nextStep' | 'foundations' | null = null;
+  private pendingAction: 'nextStep' | 'foundations' | 'improvePrompt' | 'feelingLucky' | null = null;
+
+  // Prompt generation loading states
+  protected readonly isImprovingPrompt = signal<boolean>(false);
+  protected readonly isGeneratingLucky = signal<boolean>(false);
 
   // AppGen handoff
   protected readonly fromAppGen = signal<boolean>(false);
@@ -84,6 +96,37 @@ export class CreateProjectComponent implements OnInit {
 
   // Dual-mode : conversation (défaut) ⇄ formulaire classique
   protected readonly mode = signal<CreateMode>(this.readMode());
+  protected readonly isChatRecapActive = signal<boolean>(false);
+
+  // Choice screen display after description step
+  protected readonly showModeChoice = signal<boolean>(false);
+
+  /** Indique si la page actuelle est la page de synthèse / validation des politiques (où le changement de mode doit être masqué) */
+  protected readonly isSummaryPage = computed(
+    () => (this.mode() === 'form' && this.currentStepIndex() === 2) || (this.mode() === 'chat' && this.isChatRecapActive()),
+  );
+
+  /** Vue conversationnelle active (chat + au-delà de l'étape description et hors écran de choix de mode). */
+  protected readonly isChatConversation = computed(
+    () => this.mode() === 'chat' && this.currentStepIndex() !== 0 && !this.showModeChoice(),
+  );
+
+  constructor() {
+    // En vue conversationnelle, on verrouille le scroll global de la page :
+    // seul le fil de messages défile (comportement type Claude).
+    effect(() => {
+      const lock = this.isChatConversation();
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = lock ? 'hidden' : '';
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = '';
+    }
+  }
 
   /** En mode chat : Fondations tant que description/nom/type ou projet manquent. */
   protected readonly chatReadyForConversation = computed(() => {
@@ -103,24 +146,39 @@ export class CreateProjectComponent implements OnInit {
       type: typeCode,
       typeLabel,
       projectId: p.id ?? null,
+      // Réponses cœur déjà saisies (formulaire) → pré-remplissage/synchro du chat.
+      targets: p.targets ?? '',
+      scope: p.scope ?? '',
+      teamSize: p.teamSize ?? '',
+      currency: p.currency ?? '',
+      constraints: p.constraints ?? [],
     };
   });
 
   private readMode(): CreateMode {
     try {
-      return localStorage.getItem(CREATE_MODE_KEY) === 'chat' ? 'chat' : 'form';
+      const saved = localStorage.getItem(CREATE_MODE_KEY);
+      if (saved === 'chat' || saved === 'form') {
+        return saved;
+      }
+      return this.uiModeService.mode() === 'chat' ? 'chat' : 'form';
     } catch {
       return 'form';
     }
   }
 
   protected setMode(mode: CreateMode): void {
-    if (mode === this.mode()) return;
     this.mode.set(mode);
     try {
       localStorage.setItem(CREATE_MODE_KEY, mode);
     } catch {
       // ignore
+    }
+    // Synchronise avec le UiModeService global pour que le dashboard ouvre par défaut le bon mode
+    if (mode === 'chat') {
+      this.uiModeService.setMode('chat');
+    } else {
+      this.uiModeService.setMode('advanced');
     }
   }
 
@@ -266,7 +324,12 @@ export class CreateProjectComponent implements OnInit {
       case 'description':
         return !!project.description?.trim();
       case 'details':
-        return !!project.name?.trim() && !!project.type;
+        return (
+          !!project.name?.trim() &&
+          !!project.type &&
+          !!project.targets?.trim() &&
+          !!project.currency?.trim()
+        );
       case 'summary':
         const acceptances = this.acceptances();
         return acceptances.privacy && acceptances.terms && acceptances.beta;
@@ -280,11 +343,27 @@ export class CreateProjectComponent implements OnInit {
    */
   protected navigateToStep(index: number): void {
     if (index >= 0 && index < this.steps.length) {
+      this.showModeChoice.set(false);
       this.currentStepIndex.set(index);
       this.saveDraftProject();
       // Scroll to top of page
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  }
+
+  /**
+   * Handle mode selection from mode choice screen
+   */
+  protected onModeSelected(selectedMode: CreateMode): void {
+    this.setMode(selectedMode);
+    this.navigateToStep(1);
+  }
+
+  /**
+   * Back from mode choice screen to project description
+   */
+  protected onBackFromModeChoice(): void {
+    this.showModeChoice.set(false);
   }
 
   /**
@@ -298,6 +377,15 @@ export class CreateProjectComponent implements OnInit {
    * Navigate to next step
    */
   protected async goToNextStep(): Promise<void> {
+    // After description step (index 0), ask user to choose between form or chat mode
+    if (this.currentStepIndex() === 0 && !this.showModeChoice()) {
+      if (this.canGoNext()) {
+        this.showModeChoice.set(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      return;
+    }
+
     // After completing the "details" step (index 1), create the project in the database
     if (this.currentStepIndex() === 1 && !this.project().id) {
       const user = this.authService.getCurrentUser();
@@ -345,6 +433,71 @@ export class CreateProjectComponent implements OnInit {
       }
     } else if (action === 'foundations') {
       await this.createProjectInDatabase();
+    } else if (action === 'improvePrompt') {
+      await this.executeImprovePrompt();
+    } else if (action === 'feelingLucky') {
+      await this.executeFeelingLucky();
+    }
+  }
+
+  /**
+   * Handle request to improve prompt
+   */
+  protected async onImprovePromptRequested(): Promise<void> {
+    const user = this.authService.getCurrentUser();
+    if (!user) {
+      this.pendingAction = 'improvePrompt';
+      this.showLoginModal.set(true);
+      return;
+    }
+    await this.executeImprovePrompt();
+  }
+
+  /**
+   * Handle request for feeling lucky / random idea
+   */
+  protected async onFeelingLuckyRequested(): Promise<void> {
+    const user = this.authService.getCurrentUser();
+    if (!user) {
+      this.pendingAction = 'feelingLucky';
+      this.showLoginModal.set(true);
+      return;
+    }
+    await this.executeFeelingLucky();
+  }
+
+  private async executeImprovePrompt(): Promise<void> {
+    const currentDesc = this.project().description?.trim();
+    if (!currentDesc || this.isImprovingPrompt()) return;
+
+    try {
+      this.isImprovingPrompt.set(true);
+      const res = await this.projectService.improvePrompt(currentDesc).toPromise();
+      if (res?.improvedPrompt) {
+        this.project.update((p) => ({ ...p, description: res.improvedPrompt }));
+        this.saveDraftProject();
+      }
+    } catch (error) {
+      console.error('Failed to improve prompt:', error);
+    } finally {
+      this.isImprovingPrompt.set(false);
+    }
+  }
+
+  private async executeFeelingLucky(): Promise<void> {
+    if (this.isGeneratingLucky()) return;
+
+    try {
+      this.isGeneratingLucky.set(true);
+      const res = await this.projectService.generateFeelingLucky().toPromise();
+      if (res?.idea) {
+        this.project.update((p) => ({ ...p, description: res.idea }));
+        this.saveDraftProject();
+      }
+    } catch (error) {
+      console.error('Failed to generate lucky project idea:', error);
+    } finally {
+      this.isGeneratingLucky.set(false);
     }
   }
 
@@ -360,6 +513,7 @@ export class CreateProjectComponent implements OnInit {
    * Create project in database after details step
    */
   private async createProjectInDatabase(): Promise<void> {
+    if (this.project().id || this.isLoading()) return;
     try {
       this.isLoading.set(true);
       const currentProject = this.project();

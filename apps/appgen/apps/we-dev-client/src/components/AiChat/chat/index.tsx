@@ -20,23 +20,23 @@ import { useTranslation } from 'react-i18next';
 import useChatModeStore from '../../../stores/chatModeSlice';
 import useTerminalStore from '@/stores/terminalSlice';
 import { checkExecList, checkFinish } from '../utils/checkFinish';
+import { runQualityPass } from '../utils/qualityPass';
 import { useUrlData } from '@/hooks/useUrlData';
 import {
   getProjectById,
   getProjectGeneration,
   saveProjectGeneration,
-  sendZipToBackend,
-  sendToGitHub,
   getProjectCodeFromFirebase,
+  getProjectChatSession,
+  saveProjectChatSession,
 } from '@/api/persistence/db';
-import {
-  createZipFromFiles,
-  createProjectMetadata,
-  extractFilesFromMessages,
-} from '@/utils/zipUtils';
+import { createProjectMetadata } from '@/utils/zipUtils';
+import { pushProjectCode } from '@/utils/codeSync';
+import { compactMessagesForStorage, deriveSessionTitle } from '@/utils/chatPersistence';
 import { MCPTool } from '@/types/mcp';
 import useMCPTools from '@/hooks/useMCPTools';
 import { ProjectTutorial } from '../../Onboarding/ProjectTutorial';
+import { ProjectLogo } from '@/components/ProjectLogo';
 import { useLoading } from '../../loading';
 import { ProjectModel } from '@/api/persistence/models/project.model';
 import { MultiChatPromptService } from './services/multiChatPromptService';
@@ -186,7 +186,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { otherConfig } = useChatStore();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [checkCount, setCheckCount] = useState(0);
   const [visible, setVisible] = useState(false);
   const [baseModal, setBaseModal] = useState<IModelOption>({
@@ -330,11 +330,25 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
   const refUuidMessages = useRef([]);
 
+  // Conversation restored from the server, waiting for `chatUuid` to switch to
+  // its sessionId before being injected (useChat keys its store by id).
+  const pendingSessionRef = useRef<{
+    sessionId: string;
+    messages: Array<{ id: string; role: string; content: string }>;
+  } | null>(null);
+  const hasRestoredSessionRef = useRef(false);
+
   useEffect(() => {
     if (checkCount >= 1) {
-      checkFinish(messages[messages.length - 1].content, append, t);
+      const isComplete = checkFinish(messages[messages.length - 1].content, append, t);
       checkExecList(messages);
       setCheckCount(0);
+
+      // Only worth linting a finished artifact: a truncated one trips rules that
+      // the continuation would have fixed on its own.
+      if (isComplete) {
+        runQualityPass(chatUuid, messages, append, t, projectData);
+      }
     }
   }, [checkCount]);
 
@@ -386,7 +400,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       }
     } catch (error) {
       console.error('Failed to load chat history:', error);
-      toast.error('Failed to load chat history');
+      toast.error(t('chat.errors.load_history_failed'));
     }
   };
 
@@ -493,6 +507,9 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     body: {
       model: baseModal.value,
       mode: mode,
+      // User UI language so the AI answers/generates content in the right language.
+      // (Distinct from otherConfig.backendLanguage, which is the target programming language.)
+      language: i18n.language,
       otherConfig: {
         ...otherConfig,
         extra: {
@@ -617,37 +634,51 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       }
       setCheckCount((checkCount) => checkCount + 1);
 
-      // Save generation data after completion using ZIP upload
+      // Persist the generation: code goes to the bucket (incrementally, only
+      // the files that changed), the conversation goes to the database.
       if (projectId && projectData) {
+        const finalMessages = [...messages, message];
+
         try {
-          // Extract files from the latest message
-          const generatedFiles = extractFilesFromMessages([...messages, message]);
+          // The workspace is the source of truth here: onFinish has already
+          // applied every file from the message through updateContent.
+          const workspaceFiles = useFileStore.getState().files;
 
-          if (Object.keys(generatedFiles).length > 0) {
-            // Create ZIP from generated files
-            const zipBlob = await createZipFromFiles(generatedFiles);
-
-            // Upload ZIP to backend
-            await sendZipToBackend(projectId, zipBlob);
+          if (Object.keys(workspaceFiles).length > 0) {
+            const syncResult = await pushProjectCode(projectId, workspaceFiles);
+            if (syncResult) {
+              console.log(
+                `Code synced: ${syncResult.written} written, ${syncResult.deleted} deleted, ${syncResult.total} total`
+              );
+            }
 
             // Create and save minimal metadata (without large files)
-            const metadata = createProjectMetadata(projectData, [...messages, message]);
+            const metadata = createProjectMetadata(projectData, finalMessages);
             await saveProjectGeneration(projectId, metadata);
-
-            console.log('Generation saved as ZIP for project:', projectData.name);
           } else {
             console.warn('No files generated to save');
           }
-
-          setIsGenerationComplete(true);
-          // Ne plus afficher les boutons GitHub - le code est automatiquement sauvé sur Firebase
         } catch (error) {
-          console.error('Error saving generation:', error);
+          console.error('Error saving generated code:', error);
         }
+
+        try {
+          await saveProjectChatSession(projectId, {
+            sessionId: chatUuid,
+            title: deriveSessionTitle(finalMessages, projectData.name || 'Nouvelle conversation'),
+            messages: compactMessagesForStorage(finalMessages),
+          });
+        } catch (error) {
+          console.error('Error saving chat session:', error);
+        }
+
+        setIsGenerationComplete(true);
       }
     },
     onError: (error: any) => {
-      const msg = error?.errors?.[0]?.responseBody || String(error);
+      // The server sends a readable message (model saturation, quota, ...) either
+      // as the body of a non-2xx response or as a data-stream error part.
+      const msg = error?.errors?.[0]?.responseBody || error?.message || String(error);
       console.log('error', error, msg);
       toast.error(msg);
       if (String(error).includes('Quota not enough')) {
@@ -658,10 +689,35 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       }
       // add Ollama error handling
       if (baseModal.from === 'ollama') {
-        toast.error('Ollama server connection failed, please check configuration');
+        toast.error(t('chat.errors.ollama_connection_failed'));
       }
     },
   });
+
+  // Inject the conversation restored from the server. Runs once `chatUuid` has
+  // switched to the stored sessionId, otherwise useChat would write the
+  // messages into the store of the throwaway uuid created at mount.
+  useEffect(() => {
+    const pending = pendingSessionRef.current;
+    if (!pending || pending.sessionId !== chatUuid) return;
+
+    pendingSessionRef.current = null;
+
+    const restored = pending.messages.map((message) => ({
+      id: message.id || uuidv4(),
+      role: message.role as Message['role'],
+      content: message.content,
+    })) as Message[];
+
+    // Mark them as already parsed: their artifacts were summarized before
+    // storage, so re-parsing would find nothing and only waste work.
+    refUuidMessages.current = restored.map((message) => message.id) as never[];
+
+    setMessages(restored);
+    setMessagesa(restored as WeMessages);
+    setActiveChatUuid(chatUuid);
+    scrollToBottom();
+  }, [chatUuid]);
 
   // Listen for auto-prompt from AppGen landing page (placed here, after useChat, so isLoading/append are defined)
   useEffect(() => {
@@ -681,28 +737,6 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const { status, type } = useUrlData({ append });
   const { setLoading } = useLoading();
 
-  // Extract project colors for theming
-  const projectColors = useMemo(() => {
-    const colors = projectData?.analysisResultModel?.branding?.colors?.colors;
-    if (colors) {
-      return {
-        primary: colors.primary || '#3B82F6',
-        secondary: colors.secondary || '#8B5CF6',
-        accent: colors.accent || '#10B981',
-        background: colors.background || '#F3F4F6',
-        text: colors.text || '#1F2937',
-      };
-    }
-    // Fallback colors
-    return {
-      primary: '#3B82F6',
-      secondary: '#8B5CF6',
-      accent: '#10B981',
-      background: '#F3F4F6',
-      text: '#1F2937',
-    };
-  }, [projectData]);
-
   // Load project data when projectId is present in URL
   // Does not automatically start generation
   useEffect(() => {
@@ -721,9 +755,27 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         if (project) {
           setProjectData(project);
 
+          // Reopen the conversation that produced this app. It lives in the
+          // database, so coming back from another machine lands in the same
+          // chat instead of starting over.
+          const chatSession = await getProjectChatSession(projectId);
+          const hasStoredSession = !!chatSession?.messages?.length;
+
+          if (hasStoredSession) {
+            hasRestoredSessionRef.current = true;
+            pendingSessionRef.current = {
+              sessionId: chatSession!.sessionId,
+              messages: chatSession!.messages,
+            };
+            setChatUuid(chatSession!.sessionId);
+            console.log(
+              `Restored chat session ${chatSession!.sessionId} (${chatSession!.messages.length} messages)`
+            );
+          }
+
           // Check if generation already exists
           const existingGeneration = await getProjectGeneration(projectId);
-          if (existingGeneration) {
+          if (existingGeneration || hasStoredSession) {
             setHasGeneration(true);
             setIsGenerationComplete(true);
             console.log('Existing generation found for project:', project.name);
@@ -750,8 +802,10 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
               // Marquer les fichiers comme étant déjà envoyés (réinitialiser d'abord)
               setIsFirstSend();
 
-              // Créer un message initial avec le code existant si on est en mode Builder
-              if (mode === ChatMode.Builder && messages.length === 0) {
+              // Créer un message initial avec le code existant si on est en mode Builder.
+              // Inutile quand une conversation a été restaurée : elle porte déjà
+              // son historique et le contexte fichiers est réinjecté séparément.
+              if (mode === ChatMode.Builder && messages.length === 0 && !hasRestoredSessionRef.current) {
                 const boltAction = convertToBoltAction(existingCode);
                 setMessages([
                   {
@@ -839,30 +893,27 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       console.log('Generation started for project:', projectData.name);
     } catch (error) {
       console.error('Error starting generation:', error);
-      toast.error('Error starting generation');
+      toast.error(t('chat.errors.start_generation_failed'));
     }
   };
 
-  // Fonction pour sauvegarder automatiquement le code sur Firebase Storage
-  const saveCodeToFirebase = async (generatedFiles: Record<string, string>) => {
+  // Sauvegarde manuelle du code dans le bucket (delta uniquement)
+  const saveCodeToStorage = async (generatedFiles: Record<string, string>) => {
     if (!projectId || !generatedFiles || Object.keys(generatedFiles).length === 0) return;
 
     try {
-      console.log('Saving code to Firebase Storage for project:', projectId);
+      console.log('Saving code to object storage for project:', projectId);
 
-      // Create ZIP from generated files
-      const zipBlob = await createZipFromFiles(generatedFiles);
+      await pushProjectCode(projectId, generatedFiles);
 
-      // Upload ZIP to backend (Firebase Storage)
-      await sendZipToBackend(projectId, zipBlob);
-
-      console.log('Code successfully saved to Firebase Storage');
       toast.success(
-        `Code sauvegardé sur Firebase Storage (${Object.keys(generatedFiles).length} fichiers)`
+        t('chat.success.firebase_save_success', {
+          count: Object.keys(generatedFiles).length,
+        })
       );
     } catch (error) {
-      console.error('Error saving code to Firebase Storage:', error);
-      toast.error('Erreur lors de la sauvegarde sur Firebase Storage');
+      console.error('Error saving code to object storage:', error);
+      toast.error(t('chat.errors.firebase_save_failed'));
     }
   };
 
@@ -889,6 +940,21 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       document.removeEventListener('visibilitychange', visibleFun);
     };
   }, [isLoading, files]);
+
+  // Keep the bucket in step with manual edits made in the IDE. Debounced, and
+  // idle while streaming — the generation path syncs on its own in onFinish.
+  useEffect(() => {
+    if (!projectId || isLoading || !isProjectLoaded) return;
+    if (Object.keys(files).length === 0) return;
+
+    const timer = setTimeout(() => {
+      pushProjectCode(projectId, files).catch((error) =>
+        console.error('Incremental code sync failed:', error)
+      );
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [files, isLoading, projectId, isProjectLoaded]);
 
   useEffect(() => {
     if (Date.now() - parseTimeRef.current > 200 && isLoading) {
@@ -1060,7 +1126,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       }, 100);
     } catch (error) {
       console.error('Upload failed:', error);
-      toast.error('Failed to upload files');
+      toast.error(t('chat.errors.upload_files_failed'));
     }
   };
 
@@ -1170,13 +1236,17 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       addImages(uploadResults);
 
       if (uploadResults.length === 1) {
-        toast.success('Image added to input box');
+        toast.success(t('chat.success.image_added'));
       } else {
-        toast.success(`${uploadResults.length} images added to input box`);
+        toast.success(
+          t('chat.success.images_added_multiple', {
+            count: uploadResults.length,
+          })
+        );
       }
     } catch (error) {
       console.error('Failed to process dropped images:', error);
-      toast.error('Failed to process dropped images');
+      toast.error(t('chat.errors.process_dropped_images_failed'));
     } finally {
       setIsUploading(false);
     }
@@ -1242,45 +1312,18 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         {/* Project Generation Workspace Header */}
         {projectData && (
           <div className="max-w-[640px] w-full mx-auto mb-6">
-            <div
-              className="rounded-xl p-6"
-              style={{
-                background: `linear-gradient(135deg, ${projectColors.primary}15 0%, ${projectColors.secondary}15 100%)`,
-                border: `1px solid ${projectColors.primary}30`,
-              }}
-            >
+            <div className="rounded-xl p-6 border border-primary/20 bg-gradient-to-br from-primary/10 to-secondary/10">
               <div className="text-center mb-4">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 bg-zinc-100">
-                  {projectData.analysisResultModel?.branding?.logo?.variations?.iconOnly
-                    ?.lightBackground ? (
-                    <img
-                      src={
-                        projectData.analysisResultModel.branding.logo.variations.iconOnly
-                          .lightBackground
-                      }
-                      alt="Project Logo"
-                      className="w-10 h-10 rounded-full"
-                    />
-                  ) : (
-                    <svg
-                      className="w-8 h-8 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
-                    </svg>
-                  )}
-                </div>
-                <h2 className="text-2xl font-bold mb-2" style={{ color: projectColors.primary }}>
+                <ProjectLogo
+                  logo={projectData.analysisResultModel?.branding?.logo}
+                  name={projectData.name}
+                  size={64}
+                  className="mx-auto mb-3"
+                />
+                <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">
                   {projectData.name}
                 </h2>
-                <p className="mb-4" style={{ color: `${projectColors.text}CC` }}>
+                <p className="mb-4 text-gray-600 dark:text-gray-300">
                   {projectData.description || 'Ready to generate your application'}
                 </p>
               </div>
@@ -1291,10 +1334,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                   </p>
                   <button
                     onClick={handleStartGeneration}
-                    className="text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 flex items-center gap-3 mx-auto shadow-lg hover:shadow-xl transform hover:scale-105 hover:opacity-90"
-                    style={{
-                      background: `linear-gradient(135deg, ${projectColors.primary} 0%, ${projectColors.secondary} 100%)`,
-                    }}
+                    className="inner-button flex items-center gap-3 mx-auto px-8 py-4 text-lg font-semibold"
                   >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
@@ -1310,15 +1350,11 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
               ) : hasGeneration && !isGenerationComplete ? (
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-3 mb-2">
-                    <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: `${projectColors.accent}20` }}
-                    >
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center bg-primary/15">
                       <svg
-                        className="w-4 h-4 animate-spin"
+                        className="w-4 h-4 animate-spin text-primary dark:text-blue-300"
                         fill="none"
                         viewBox="0 0 24 24"
-                        style={{ color: projectColors.accent }}
                       >
                         <circle
                           className="opacity-25"
@@ -1335,25 +1371,22 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                         ></path>
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold" style={{ color: projectColors.accent }}>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                       Generation in Progress
                     </h3>
                   </div>
-                  <p className="text-sm" style={{ color: `${projectColors.accent}CC` }}>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
                     Your application is being generated. Please wait...
                   </p>
                 </div>
               ) : isGenerationComplete ? (
                 <div className="text-center">
                   <div className="flex items-center justify-center space-x-3 mb-4">
-                    <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: `${projectColors.accent}20` }}
-                    >
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center bg-green-500/15">
                       <svg
-                        className="w-4 h-4"
+                        className="w-4 h-4 text-green-600 dark:text-green-400"
                         fill="none"
-                        stroke={projectColors.accent}
+                        stroke="currentColor"
                         viewBox="0 0 24 24"
                       >
                         <path
@@ -1364,11 +1397,11 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                         />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold" style={{ color: projectColors.accent }}>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                       Generation Complete
                     </h3>
                   </div>
-                  <p className="text-sm mb-4" style={{ color: `${projectColors.accent}CC` }}>
+                  <p className="text-sm mb-4 text-gray-600 dark:text-gray-300">
                     Your application has been successfully generated and is ready for export.
                   </p>
                 </div>
@@ -1403,8 +1436,8 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
           {isLoading && (
             <div className="group" key="loading-indicator">
-              <div className="flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-white/[0.02] transition-colors">
-                <div className="w-6 h-6 rounded-md bg-[rgba(45,45,45)] text-gray-400 flex items-center justify-center text-xs border border-gray-700/50">
+              <div className="flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                <div className="w-6 h-6 rounded-md bg-gray-100 dark:bg-[rgba(45,45,45)] text-gray-500 dark:text-gray-400 flex items-center justify-center text-xs border border-gray-200 dark:border-gray-700/50">
                   <svg
                     className="w-4 h-4 animate-spin"
                     viewBox="0 0 24 24"
@@ -1428,13 +1461,13 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <div className="w-24 h-4 rounded bg-gray-700/50 animate-pulse" />
-                    <div className="w-32 h-4 rounded bg-gray-700/50 animate-pulse" />
-                    <div className="w-16 h-4 rounded bg-gray-700/50 animate-pulse" />
+                    <div className="w-24 h-4 rounded bg-gray-200 dark:bg-gray-700/50 animate-pulse" />
+                    <div className="w-32 h-4 rounded bg-gray-200 dark:bg-gray-700/50 animate-pulse" />
+                    <div className="w-16 h-4 rounded bg-gray-200 dark:bg-gray-700/50 animate-pulse" />
                   </div>
                   <div className="mt-2 space-y-2">
-                    <div className="w-full h-3 rounded bg-gray-700/50 animate-pulse" />
-                    <div className="w-4/5 h-3 rounded bg-gray-700/50 animate-pulse" />
+                    <div className="w-full h-3 rounded bg-gray-200 dark:bg-gray-700/50 animate-pulse" />
+                    <div className="w-4/5 h-3 rounded bg-gray-200 dark:bg-gray-700/50 animate-pulse" />
                   </div>
                 </div>
               </div>

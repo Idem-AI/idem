@@ -2,6 +2,7 @@ import { WebContainer } from '@webcontainer/api';
 import { useFileStore } from '../../stores/fileStore';
 import { getWebContainerInstance } from './instance';
 import { debounce } from 'lodash';
+import { resolveInsecureAssets, rewriteInsecureAssetUrls } from './insecureAssets';
 
 // Définition locale des fichiers masqués pour le mode web
 const isHiddenNodeModules = ['node_modules', '.git', '.DS_Store'];
@@ -29,6 +30,50 @@ async function calculateMD5(content: string): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+// Points d'entrée Vite possibles, par ordre de préférence.
+const ENTRY_CANDIDATES = [
+  'src/main.jsx',
+  'src/main.tsx',
+  'src/main.js',
+  'src/main.ts',
+  'src/index.jsx',
+  'src/index.tsx',
+];
+
+/**
+ * Filet de sécurité anti-page-blanche.
+ *
+ * Beaucoup de projets générés ont un `index.html` avec `<div id="root">` mais
+ * SANS le `<script type="module">` qui charge le point d'entrée. Dans ce cas Vite
+ * sert la page, `server-ready` se déclenche, l'iframe charge l'URL… mais rien ne
+ * s'exécute → page blanche silencieuse (aucune erreur console).
+ *
+ * On injecte la balise manquante avant le montage, uniquement si :
+ *  - c'est bien le `index.html` racine,
+ *  - il ne contient AUCUN script module (on ne double-injecte jamais),
+ *  - il a un `</body>` où insérer,
+ *  - un point d'entrée connu existe réellement dans le projet.
+ * Sinon on renvoie le contenu inchangé (jamais de devinette hasardeuse).
+ */
+function ensureHtmlEntryScript(
+  path: string,
+  contents: string,
+  files: Record<string, unknown>
+): string {
+  if (path !== 'index.html') return contents;
+  if (/<script[^>]*type=["']module["'][^>]*>/i.test(contents)) return contents;
+  if (!/<\/body>/i.test(contents)) return contents;
+
+  const entry = ENTRY_CANDIDATES.find((candidate) => candidate in files);
+  if (!entry) return contents;
+
+  console.warn(
+    `[appgen] index.html sans <script type="module"> — injection de /${entry} (anti-page-blanche)`
+  );
+  const tag = `    <script type="module" src="/${entry}"></script>\n`;
+  return contents.replace(/<\/body>/i, `${tag}  </body>`);
+}
+
 export async function mountFileSystem(
   instance: WebContainer,
   close: boolean = false
@@ -43,8 +88,22 @@ export async function mountFileSystem(
 
     const fileTree: Record<string, FileTreeContent> = {};
 
-    for (const [path, contents] of Object.entries(files)) {
-      if (typeof contents !== 'string') continue;
+    // Assets `http://` (bucket local) → data URI, pour cette copie uniquement.
+    // La preview est servie en HTTPS et bloquerait l'image en mixed content.
+    // Le store — donc ce qui part au bucket — garde l'URL d'origine.
+    const insecureAssets = await resolveInsecureAssets(files);
+
+    for (const [path, rawContents] of Object.entries(files)) {
+      if (typeof rawContents !== 'string') continue;
+
+      // Répare un index.html sans script d'amorçage avant montage/hash.
+      // Le hash porte sur le contenu TRANSFORMÉ : la relecture depuis le
+      // container retrouve le même hash et ne réinjecte donc jamais ces
+      // substitutions dans le store.
+      const contents = rewriteInsecureAssetUrls(
+        ensureHtmlEntryScript(path, rawContents, files),
+        insecureAssets
+      );
 
       const newHash = await calculateMD5(contents);
       const oldHash = fileHashMap.get(path);

@@ -8,11 +8,9 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { Router } from '@angular/router';
-import { DatePipe } from '@angular/common';
+import { Router, ActivatedRoute } from '@angular/router';
 import { takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
-import { SkeletonModule } from 'primeng/skeleton';
 import { BusinessPlanService } from '../../../../services/ai-agents/business-plan.service';
 import { CookieService } from '../../../../../../shared/services/cookie.service';
 import { GenerationService } from '../../../../../../shared/services/generation.service';
@@ -23,13 +21,30 @@ import {
 import { BusinessPlanModel } from '../../../../models/businessPlan.model';
 import { ProjectModel } from '@idem/shared-models';
 import { AdditionalInfoFormComponent } from '../additional-info-form/additional-info-form';
+import {
+  AgentResearchConsoleComponent,
+  PlannedSection,
+} from '../../../../../../shared/components/agent-research-console/agent-research-console';
 import { environment } from '../../../../../../../environments/environment';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+
+/** Noms canoniques des sections du business plan (alignés backend). */
+const BUSINESS_PLAN_SECTIONS = [
+  'Cover Page',
+  'Company Summary',
+  'Opportunity',
+  'Target Audience',
+  'Products & Services',
+  'Marketing & Sales',
+  'Financial Plan',
+  'Goal Planning',
+  'Appendix',
+];
 
 @Component({
   selector: 'app-business-plan-generation',
   standalone: true,
-  imports: [DatePipe, SkeletonModule, AdditionalInfoFormComponent, TranslateModule],
+  imports: [AdditionalInfoFormComponent, AgentResearchConsoleComponent, TranslateModule],
   templateUrl: './business-plan-generation.html',
   styleUrl: './business-plan-generation.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -39,8 +54,11 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
   private readonly generationService = inject(GenerationService);
   private readonly cookieService = inject(CookieService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);
   private readonly destroy$ = new Subject<void>();
+  private isForcingRegeneration = false;
+  private targetSections: string[] = [];
 
   // Outputs
   readonly businessPlanGenerated = output<BusinessPlanModel>();
@@ -80,8 +98,40 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
     this.generationService.calculateProgress(this.generationState()),
   );
 
+  // Expérience de génération en direct (équipe de recherche sourcée).
+  protected readonly researchState = computed(() => this.generationState().research ?? null);
+
+  /** Sections attendues, avec libellés amicaux issus du design system i18n. */
+  protected readonly plannedSections = computed<PlannedSection[]>(() =>
+    BUSINESS_PLAN_SECTIONS.map((name) => ({
+      name,
+      label: this.translate.instant(`dashboard.generationPanel.sections.businessPlan.${name}`),
+    })),
+  );
+
+  /** Phase affichée par la console: en cours / finalisation / terminé. */
+  protected readonly consolePhase = computed<'running' | 'finalizing' | 'done'>(() => {
+    if (this.isPostProcessing()) return 'finalizing';
+    if (this.generationState().completed) return 'done';
+    return 'running';
+  });
+
   ngOnInit(): void {
     this.projectId.set(this.cookieService.get('projectId'));
+    this.isForcingRegeneration = this.route.snapshot.queryParams['force'] === 'true';
+
+    const sectionsParam = this.route.snapshot.queryParams['sections'];
+    this.targetSections =
+      typeof sectionsParam === 'string' && sectionsParam.length > 0
+        ? sectionsParam.split(',').filter(Boolean)
+        : [];
+
+    // Régénération ciblée : les infos additionnelles existent déjà côté projet,
+    // on saute le formulaire et on lance directement la génération.
+    if (this.targetSections.length > 0) {
+      this.showAdditionalInfoForm.set(false);
+      this.generateBusinessPlanWithoutAdditionalInfo();
+    }
   }
 
   ngOnDestroy(): void {
@@ -127,7 +177,12 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
     console.log('Starting business plan generation with SSE (no additional info)...');
 
     // Create SSE connection for business plan generation
-    const sseConnection = this.businessPlanService.createBusinessplanItem(this.projectId()!);
+    const sseConnection = this.businessPlanService.createBusinessplanItem(
+      this.projectId()!,
+      undefined,
+      this.isForcingRegeneration,
+      this.targetSections
+    );
 
     this.startGenerationProcess(sseConnection);
   }
@@ -155,6 +210,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
     const sseConnection = this.businessPlanService.createBusinessplanItem(
       this.projectId()!,
       additionalInfos,
+      this.isForcingRegeneration
     );
 
     // Use the generation service to handle the SSE connection properly
@@ -177,8 +233,12 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
 
           this.generationState.set(state);
 
-          // Check if generation is completed
-          if (state.completed && state.steps.length > 0) {
+          // Fin de génération: en mode "équipe de recherche", les étapes ne
+          // transitent pas par les événements 'completed' (les sections sont
+          // diffusées via 'section_completed'), donc on ne conditionne pas la
+          // finalisation à state.steps. Le garde isPostProcessing évite un
+          // double déclenchement sur les émissions suivantes.
+          if (state.completed && !this.isPostProcessing()) {
             this.emitBusinessPlanData(state.steps);
             this.handleGenerationComplete(state);
           }
@@ -214,8 +274,12 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
           console.log('Business plan generation state updated:', state);
           this.generationState.set(state);
 
-          // Check if generation is completed
-          if (state.completed && state.steps.length > 0) {
+          // Fin de génération: en mode "équipe de recherche", les étapes ne
+          // transitent pas par les événements 'completed' (les sections sont
+          // diffusées via 'section_completed'), donc on ne conditionne pas la
+          // finalisation à state.steps. Le garde isPostProcessing évite un
+          // double déclenchement sur les émissions suivantes.
+          if (state.completed && !this.isPostProcessing()) {
             this.emitBusinessPlanData(state.steps);
             this.handleGenerationComplete(state);
           }

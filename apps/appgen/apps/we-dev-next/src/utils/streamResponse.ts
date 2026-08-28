@@ -1,13 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Messages, ToolInfo } from '../types/project.js';
-import { streamTextFn, StreamingOptions } from '../services/aiService.js';
+import { StreamingOptions } from '../services/aiService.js';
 import { CONTINUE_PROMPT } from '../config/prompts.js';
 import { deductUserTokens, estimateTokens } from './tokens.js';
 import SwitchableStream from './switchableStream.js';
 import { tool } from 'ai';
 import { jsonSchemaToZodSchema } from './json2zod.js';
 import { ChatLogger } from './logger.js';
-import { Response } from 'express';
+import { createResilientStream } from './resilientStream.js';
 
 const MAX_RESPONSE_SEGMENTS = 2;
 
@@ -15,7 +15,8 @@ export async function streamResponse(
   messages: Messages,
   model: string,
   userId: string | null,
-  tools?: ToolInfo[]
+  tools?: ToolInfo[],
+  language?: string
 ) {
   const startTime = Date.now();
   ChatLogger.setContext('StreamResponse');
@@ -74,10 +75,10 @@ export async function streamResponse(
         errorCount: err?.errors?.length || 0,
       });
 
-      if (msg) {
-        throw new Error(msg, { cause: err });
-      }
-      throw err;
+      // Do NOT rethrow: the AI SDK invokes this from inside a stream transform,
+      // so a throw here only produces an unhandled rejection. Recovery (model
+      // fallback) and client-facing messaging are handled by the resilient
+      // stream wrapper below.
     },
     onFinish: async (response) => {
       const { text: content, finishReason } = response;
@@ -132,7 +133,7 @@ export async function streamResponse(
       lastMessagePreview: messages[messages.length - 1]?.content?.substring(0, 300) || 'N/A',
     });
 
-    const result = streamTextFn(messages, options, model);
+    const result = createResilientStream(messages, options, model, language);
 
     ChatLogger.success('AI_RESPONSE', 'AI stream created successfully');
 

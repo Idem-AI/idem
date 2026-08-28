@@ -55,7 +55,10 @@
       "pitchDeck": "Pitch Deck",
       "diagrams": "Diagrammes",
       "legalDocs": "Documents juridiques",
-      "finance": "Rapport financier"
+      "finance": "Rapport financier",
+      "communication": "Communication",
+      "development": "Développement",
+      "deployment": "Déploiement"
     },
     "card": {
       "updatedAt": "Modifié le",
@@ -79,7 +82,8 @@
         "typography": "Typographie"
       },
       "diagramsSection": "Diagrammes d'architecture",
-      "financeSection": "Modèle financier complet"
+      "financeSection": "Modèle financier complet",
+      "developmentSection": "Configuration de développement"
     },
     "preview": {
       "download": "Télécharger",
@@ -117,7 +121,10 @@
         "pitchDeck": "Voir mon pitch deck",
         "diagrams": "Voir mes diagrammes",
         "legalDocs": "Voir mes documents juridiques",
-        "finance": "Voir mon rapport financier"
+        "finance": "Voir mon rapport financier",
+        "communication": "Voir ma communication",
+        "development": "Voir mon développement",
+        "deployment": "Voir mes déploiements"
       },
       "generate": {
         "businessPlan": "Rédiger mon business plan",
@@ -125,7 +132,10 @@
         "pitchDeck": "Générer mon pitch deck",
         "diagrams": "Générer mes diagrammes",
         "legalDocs": "Créer mes documents juridiques",
-        "finance": "Compléter mes finances"
+        "finance": "Compléter mes finances",
+        "communication": "Générer ma communication",
+        "development": "Configurer le développement",
+        "deployment": "Configurer le déploiement"
       }
     },
     "bp": {
@@ -183,7 +193,8 @@
         "targets": "Cible",
         "scope": "Portée",
         "teamSize": "Équipe",
-        "budget": "Budget"
+        "budget": "Budget",
+        "currency": "Devise"
       },
       "policies": {
         "accept": "J'accepte la",
@@ -266,6 +277,9 @@
       "welcome": "Bonjour ! 👋 Créons votre projet ensemble, étape par étape. Première question : **décrivez votre idée en quelques phrases.** Que voulez-vous construire, et pour résoudre quel problème ?",
       "resume": "Content de vous revoir ! 👋 Reprenons la création de votre projet exactement là où vous vous étiez arrêté.",
       "aiWelcome": "Parfait, {{name}} ! 🚀 J'ai bien noté votre idée. Laissez-moi vous poser quelques questions pour bien cadrer votre projet.",
+      "aiWelcomeNoName": "Parfait ! 🚀 J'ai bien noté votre idée. Laissez-moi vous poser quelques questions simples pour bien cadrer votre projet.",
+      "customType": "Très bien. Décrivez en quelques mots le type de votre projet :",
+      "customCurrency": "D'accord. Quelle devise souhaitez-vous utiliser ?",
       "composerPlaceholder": "Écrivez votre réponse, ou choisissez une suggestion…",
       "questions": {
         "description": "Décrivez votre idée en quelques phrases : que voulez-vous construire, et pour résoudre quel problème ?",
@@ -292,13 +306,15 @@
       "options": {
         "type": {
           "enterprise": "Création d'entreprise",
+          "ecommerce": "Commerce / E-commerce",
           "web": "Application web",
           "mobile": "Application mobile",
           "iot": "IoT",
           "desktop": "Application desktop",
           "api": "API / Backend",
           "ai": "IA / ML",
-          "blockchain": "Blockchain"
+          "blockchain": "Blockchain",
+          "other": "Autres"
         },
         "targets": {
           "business": "Entreprises",
@@ -328,6 +344,50 @@
         }
       }
     },
+    "legal": {
+      "intro": "Créons vos **documents juridiques**. Quel document voulez-vous générer ? (Pour des statuts précis — capital, associés — complétez le contexte dans l'éditeur.)",
+      "chips": {
+        "essentials": "Pack essentiel (CGU, CGV, confidentialité, mentions)",
+        "cgu": "CGU",
+        "cgv": "CGV",
+        "privacy": "Politique de confidentialité",
+        "statutes": "Statuts (SAS)",
+        "nda": "Accord de confidentialité (NDA)",
+        "editor": "Voir tout le catalogue"
+      }
+    },
+    "comm": {
+      "intro": "Passons à votre **communication**. Je peux définir votre stratégie éditoriale et bâtir un calendrier de contenus. Par quoi commençons-nous ?",
+      "introNeedsBranding": "Passons à votre **communication**. 💡 Astuce : complétez d'abord votre identité de marque pour des visuels cohérents. Par quoi commençons-nous ?",
+      "strategyTitle": "Stratégie de communication",
+      "calendarTitle": "Calendrier éditorial",
+      "strategyDone": "✅ Votre **stratégie de communication** est prête ! Vous pouvez maintenant générer votre calendrier éditorial ou l'affiner dans l'éditeur.",
+      "calendarDone": "✅ Votre **calendrier éditorial** est prêt ! Ouvrez l'éditeur pour créer des flyers ou ajuster vos contenus.",
+      "steps": {
+        "context": "Analyse du contexte",
+        "trends": "Repérage des tendances",
+        "strategy": "Rédaction de la stratégie",
+        "calendar": "Construction du calendrier"
+      },
+      "chips": {
+        "strategy": "Générer la stratégie",
+        "calendar": "Générer le calendrier"
+      }
+    },
+    "dev": {
+      "intro": "L'**atelier de développement** génère le code de votre application ou site web (landing, app web, PWA…) à partir de votre projet. Ouvrez-le pour choisir votre configuration.",
+      "chips": {
+        "open": "Ouvrir l'atelier de développement",
+        "view": "Voir ma configuration"
+      }
+    },
+    "deploy": {
+      "intro": "L'**assistant de déploiement** met votre projet en ligne (infrastructure, Terraform, CI/CD). Il a besoin d'un dépôt Git. Lançons un déploiement ou consultons les précédents.",
+      "chips": {
+        "start": "Lancer un déploiement",
+        "list": "Voir mes déploiements"
+      }
+    },
     "launcher": {
       "title": "Que construisons-nous pour {{name}} ?",
       "subtitle": "Choisissez un livrable à consulter ou à générer — ou écrivez votre demande ci-dessous.",
@@ -340,7 +400,10 @@
         "pitchDeck": "La présentation pour convaincre vos investisseurs.",
         "finance": "Prévisions et tableaux financiers.",
         "diagrams": "Schémas d'architecture et diagrammes techniques.",
-        "legalDocs": "Statuts, CGU, contrats et mentions légales."
+        "legalDocs": "Statuts, CGU, contrats et mentions légales.",
+        "communication": "Stratégie, calendrier éditorial et flyers.",
+        "development": "Génération de votre application ou site web.",
+        "deployment": "Déploiement de votre infrastructure et mise en ligne."
       },
       "state": {
         "ready": "Prêt",

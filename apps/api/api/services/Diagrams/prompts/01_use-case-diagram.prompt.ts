@@ -1,25 +1,15 @@
-export const USE_CASE_DIAGRAM_PROMPT = `
-As a certified UML expert, generate an immediate Mermaid flowchart-style use case diagram with these specifications:
+export const USE_CASE_DIAGRAM_PROMPT = `<objective>Generate a Mermaid flowchart-style use case diagram.</objective>
 
-# Use Case Diagram - [SystemName]
+<requirements>
+1. Use "flowchart TD" syntax.
+2. Actors: rectangular nodes [name].
+3. Use cases: rounded nodes (name).
+4. Decisions: diamond nodes {name}.
+5. Label all arrows with |"relationship"|.
+6. Use subgraph for system boundaries.
+</requirements>
 
-## Strict Requirements:
-1. Must use "flowchart TD" syntax
-2. Actors as rectangular nodes (A[ ])
-3. Use cases as rounded nodes (B( ))
-4. Decisions as diamonds C{ }
-5. Arrows with |relationship| labels
-6. System boundary as subgraph
-
-## Output Format:
-flowchart TD
-    [Actors]
-    [UseCases]
-    [Relationships]
-    [SystemBoundary]
-
-## Structured Example:
-
+<example>
 flowchart TD
     U[User] -->|"Initiates"| L(Login)
     A[Admin] -->|"Manages"| UCM(User Management)
@@ -32,20 +22,10 @@ flowchart TD
     V --> D{Valid?}
     D -->|Yes| S[Success]
     D -->|No| F(Failure)
+</example>
 
-
-## Rules:
-- No explanations
-- No code comments
-- Actors must use [ ]
-- Use cases must use ( )
-- Decisions must use { }
-- Label all arrows with |"text"|
-- Include at least one system boundary
-- Do NOT add any additional text, explanations or comments - ONLY generate the diagram code
-
-
-- Verry Important: ALWAYS wrap your diagram with \`\`\`mermaid and \`\`\` tags
-- Verry Important: Your response MUST begin with \`\`\`mermaid and end with \`\`\`
-- Verry Important: Do NOT add any additional text, explanations or comments - ONLY the diagram code wrapped in \`\`\`mermaid ... \`\`\` tags
+<output_format>
+- Output ONLY the diagram code wrapped in \`\`\`mermaid and \`\`\` tags.
+- No explanations, introduction, or comments.
+</output_format>
 `;

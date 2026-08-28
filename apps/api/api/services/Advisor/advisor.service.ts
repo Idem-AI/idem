@@ -11,9 +11,12 @@ import { AI_CONFIG } from '../../config/ai.config';
 import { RepositoryFactory } from '../../repository/RepositoryFactory';
 import { IRepository } from '../../repository/IRepository';
 import { ProjectModel } from '../../models/project.model';
-import { ADVISOR_SYSTEM_PROMPT } from './prompts/system.prompt';
+import { ADVISOR_SYSTEM_PROMPT, ADVISOR_TOOLS_GUIDE } from './prompts/system.prompt';
 import { financeAIService, FinanceChatIntent } from '../Finance/finance-ai.service';
-import { financeService } from '../Finance/finance.service';
+import { CONTEXT_TOOL_DECLARATIONS, createContextToolExecutor } from '../context-engine/context-tools';
+import { runAgent } from '../agents/agent-runtime';
+import { setTraceProjectId } from '../../utils/trace.util';
+import { logAIEvent } from '../../utils/ai-trace.util';
 
 export interface AdvisorReplyResult {
   userMessage: AdvisorMessage;
@@ -50,13 +53,7 @@ export class AdvisorService {
 
   async clearConversation(userId: string, projectId: string): Promise<void> {
     logger.info(`AdvisorService.clearConversation userId=${userId} projectId=${projectId}`);
-    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
-    if (!project) {
-      logger.warn(`AdvisorService.clearConversation: project not found ${projectId}`);
-      return;
-    }
-    project.analysisResultModel.advisorConversation = { messages: [], updatedAt: new Date() };
-    await this.projectRepository.update(projectId, project, `users/${userId}/projects`);
+    await this.persistConversationField(userId, projectId, { messages: [], updatedAt: new Date() });
     logger.info(`AdvisorService.clearConversation: cleared projectId=${projectId}`);
   }
 
@@ -86,6 +83,7 @@ export class AdvisorService {
     content: string
   ): Promise<AdvisorReplyResult> {
     const startedAt = Date.now();
+    setTraceProjectId(projectId);
     const trimmed = (content || '').trim();
     if (!trimmed) {
       logger.warn(`AdvisorService.sendMessage: empty message from userId=${userId}`);
@@ -94,6 +92,7 @@ export class AdvisorService {
     logger.info(
       `AdvisorService.sendMessage userId=${userId} projectId=${projectId} length=${trimmed.length}`
     );
+    logAIEvent('advisor.message_received', { projectId, messageLength: trimmed.length });
 
     const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!project) {
@@ -123,35 +122,20 @@ export class AdvisorService {
       logger.debug(
         `AdvisorService.sendMessage finance intent: kind=${financeIntent?.kind} isFin=${financeIntent?.isFinanceIntent}`
       );
+      logAIEvent('advisor.finance_intent', {
+        projectId,
+        isFinanceIntent: financeIntent?.isFinanceIntent,
+        kind: financeIntent?.kind,
+      });
     } catch (err: any) {
       logger.warn(`AdvisorService.sendMessage parseChatIntent failed: ${err?.message}`);
       financeIntent = null;
     }
 
-    // a) Intent lecture → on répond directement avec le résumé
-    if (
-      financeIntent?.isFinanceIntent &&
-      (financeIntent.kind === 'read_summary' || financeIntent.kind === 'read_section')
-    ) {
-      const replyText =
-        financeIntent.summaryText ||
-        (await this.buildFinanceSummaryFallback(userId, projectId, financeIntent));
-      const assistantMessage: AdvisorMessage = {
-        id: uuidv4(),
-        role: 'assistant',
-        content: replyText,
-        createdAt: new Date(),
-      };
-      const conversation = await this.persistConversation(
-        userId,
-        projectId,
-        project,
-        existing,
-        userMessage,
-        assistantMessage
-      );
-      return { userMessage, assistantMessage, conversation };
-    }
+    // a) Les intentions de LECTURE finance ne court-circuitent PLUS la boucle
+    // agentique: l'agent croise le module Finance (project_finance_summary) et
+    // le business plan (project_get_section) au lieu de répondre depuis le seul
+    // module Finance — c'est la garantie de cohérence entre artefacts.
 
     // b) Intent mutation → on renvoie la phrase de confirmation + intent stockée
     if (
@@ -184,7 +168,6 @@ export class AdvisorService {
       const conversation = await this.persistConversation(
         userId,
         projectId,
-        project,
         existing,
         userMessage,
         assistantMessage
@@ -192,13 +175,15 @@ export class AdvisorService {
       return { userMessage, assistantMessage, conversation };
     }
 
-    // c) Pas d'intent finance → flow LLM générique
+    // c) Pas d'intent finance → flow LLM agentique (Context Engine + Chronicle).
+    // Stratégie hybride (context engineering): fiche synthétique toujours en
+    // contexte + récupération just-in-time du reste via tools.
     const history = existing.messages.slice(-MAX_HISTORY_MESSAGES);
     const aiMessages: AIChatMessage[] = [
       { role: 'system', content: ADVISOR_SYSTEM_PROMPT },
       {
         role: 'system',
-        content: `CONTEXTE PROJET:\n${this.buildProjectContext(project)}`,
+        content: `CONTEXTE PROJET (fiche synthétique):\n${this.buildProjectContext(project)}\n\n${ADVISOR_TOOLS_GUIDE}`,
       },
       ...history.map((m) => ({
         role: (m.role === 'system' ? 'system' : m.role) as AIChatMessage['role'],
@@ -207,19 +192,32 @@ export class AdvisorService {
       { role: 'user', content: trimmed },
     ];
 
-    const promptConfig: PromptConfig = {
-      provider: AI_CONFIG.advisor.provider,
-      modelName: AI_CONFIG.advisor.modelName,
-      userId,
-      promptType: AI_CONFIG.advisor.promptType,
-    };
-
     logger.info(
       `AdvisorService.sendMessage calling LLM projectId=${projectId} historyLen=${history.length}`
     );
-    let raw: string;
+
+    // L'advisor passe par le runtime commun: même boucle d'outils, même repli
+    // sans outils, même trace et même ventilation du coût que les agents de
+    // génération. La résilience n'est plus une particularité de ce service.
+    let reply: string;
     try {
-      raw = await this.promptService.runPrompt(promptConfig, aiMessages);
+      const result = await runAgent(
+        {
+          role: 'advisor',
+          task: 'draft',
+          baseConfig: {
+            provider: AI_CONFIG.advisor.provider,
+            modelName: AI_CONFIG.advisor.modelName,
+            fallbackModels: AI_CONFIG.advisor.fallbackModels,
+            llmOptions: AI_CONFIG.advisor.llmOptions,
+          },
+          promptType: AI_CONFIG.advisor.promptType,
+          tools: CONTEXT_TOOL_DECLARATIONS,
+          toolExecutor: createContextToolExecutor(userId, projectId),
+        },
+        { messages: aiMessages, userId, projectId, element: 'advisor-reply' }
+      );
+      reply = result.text.trim();
     } catch (err: any) {
       logger.error(
         `AdvisorService.sendMessage LLM call failed projectId=${projectId}: ${err?.message}`,
@@ -227,10 +225,14 @@ export class AdvisorService {
       );
       throw err;
     }
-    const reply = this.promptService.getCleanAIText(raw).trim();
     logger.debug(
       `AdvisorService.sendMessage LLM replyLen=${reply.length} durationMs=${Date.now() - startedAt}`
     );
+    logAIEvent('advisor.reply_ready', {
+      projectId,
+      replyLength: reply.length,
+      durationMs: Date.now() - startedAt,
+    });
 
     const assistantMessage: AdvisorMessage = {
       id: uuidv4(),
@@ -245,17 +247,7 @@ export class AdvisorService {
       updatedAt: new Date(),
     };
 
-    await this.projectRepository.update(
-      projectId,
-      {
-        ...project,
-        analysisResultModel: {
-          ...project.analysisResultModel,
-          advisorConversation: conversation,
-        },
-      },
-      `users/${userId}/projects`
-    );
+    await this.persistConversationField(userId, projectId, conversation);
 
     logger.info(
       `AdvisorService.sendMessage done projectId=${projectId} totalMessages=${conversation.messages.length} durationMs=${Date.now() - startedAt}`
@@ -344,17 +336,7 @@ export class AdvisorService {
       updatedAt: new Date(),
     };
 
-    await this.projectRepository.update(
-      projectId,
-      {
-        ...project,
-        analysisResultModel: {
-          ...project.analysisResultModel,
-          advisorConversation: conversation,
-        },
-      },
-      `users/${userId}/projects`
-    );
+    await this.persistConversationField(userId, projectId, conversation);
     return { userMessage, assistantMessage, conversation };
   }
 
@@ -366,7 +348,6 @@ export class AdvisorService {
   private async persistConversation(
     userId: string,
     projectId: string,
-    project: ProjectModel,
     existing: AdvisorConversationModel,
     userMessage: AdvisorMessage,
     assistantMessage: AdvisorMessage
@@ -375,55 +356,41 @@ export class AdvisorService {
       messages: [...existing.messages, userMessage, assistantMessage],
       updatedAt: new Date(),
     };
-    await this.projectRepository.update(
-      projectId,
-      {
-        ...project,
-        analysisResultModel: {
-          ...project.analysisResultModel,
-          advisorConversation: conversation,
-        },
-      },
-      `users/${userId}/projects`
-    );
+    await this.persistConversationField(userId, projectId, conversation);
     return conversation;
   }
 
-  /** Construit un résumé finance de secours si l'IA n'a pas renvoyé `summaryText`. */
-  private async buildFinanceSummaryFallback(
+  /**
+   * Écrit UNIQUEMENT `analysisResultModel.advisorConversation` (notation
+   * pointée MongoDB), jamais le projet entier.
+   *
+   * Le pattern précédent — relire le projet en début de requête puis réécrire
+   * `{...project, analysisResultModel: {...project.analysisResultModel, advisorConversation}}`
+   * — capture un instantané figé AVANT l'appel LLM (10-60s pour la boucle
+   * agentique). Toute écriture concurrente sur une autre section pendant ce
+   * délai (ex: un autofill Finance déclenché par le Coherence Guard) se
+   * retrouvait silencieusement écrasée par cet instantané périmé, et Chronicle
+   * enregistrait la régression comme une révision utilisateur légitime,
+   * déclenchant même un audit de cohérence fantôme.
+   *
+   * `MongooseRepository.update` passe l'objet tel quel à un `$set` natif
+   * MongoDB: une clé en notation pointée ne touche que ce champ imbriqué,
+   * quel que soit l'état courant du reste du document.
+   */
+  private async persistConversationField(
     userId: string,
     projectId: string,
-    intent: FinanceChatIntent
-  ): Promise<string> {
-    try {
-      const result = await financeService.getSummary(userId, projectId);
-      if (!result) {
-        return 'Aucune donn\u00e9e financi\u00e8re disponible pour le moment. Voulez-vous que je remplisse une premi\u00e8re \u00e9bauche avec l\u2019IA ?';
-      }
-      const s = result.summary;
-      const fmt = (v: number) =>
-        Math.round(v)
-          .toString()
-          .replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' FCFA';
-      const lines = [
-        `Voici un r\u00e9sum\u00e9 de vos finances :`,
-        `- Chiffre d\u2019affaires An 1: ${fmt(s.caY1)}`,
-        `- R\u00e9sultat net An 3: ${fmt(s.resultatNetY3)}`,
-        `- Marge brute: ${s.margeBrutePct.toFixed(1)}%`,
-        `- Tr\u00e9sorerie cl\u00f4ture An 1: ${fmt(s.tresorerieClotureY1)}`,
-        `- Point mort: ${Math.round(s.pointMortJours)} jours`,
-        `- Co\u00fbt total du projet: ${fmt(s.coutTotalProjet)}`,
-        `- TRI: ${s.tri.toFixed(1)}%`,
-        `- VAN: ${fmt(s.van)}`,
-      ];
-      if (s.alerts && s.alerts.length > 0) {
-        lines.push('', 'Points de vigilance:');
-        s.alerts.forEach((a) => lines.push(`- ${a}`));
-      }
-      return lines.join('\n');
-    } catch (err: any) {
-      logger.warn(`buildFinanceSummaryFallback failed: ${err?.message}`);
-      return 'Je n\u2019ai pas pu r\u00e9cup\u00e9rer le r\u00e9sum\u00e9 de vos finances pour le moment.';
+    conversation: AdvisorConversationModel
+  ): Promise<void> {
+    const updated = await this.projectRepository.update(
+      projectId,
+      { 'analysisResultModel.advisorConversation': conversation } as unknown as Partial<
+        Omit<ProjectModel, 'id' | 'createdAt' | 'updatedAt'>
+      >,
+      `users/${userId}/projects`
+    );
+    if (!updated) {
+      logger.warn(`AdvisorService.persistConversationField: project not found ${projectId}`);
     }
   }
 }

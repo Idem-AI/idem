@@ -158,8 +158,13 @@ async function processSvg(buffer: Buffer): Promise<LogoImportResult> {
 
   const dimensions = extractSvgDimensions(optimizedSvg);
 
-  // Extract colors from the optimized SVG
+  // Extract colors from the optimized SVG. A logo made only of black/white/gray
+  // has every color filtered as non-brand — fall back to a rich near-black so
+  // the workflow always has at least one usable primary color.
   const extractedColors = extractColorsFromSvg(optimizedSvg);
+  if (extractedColors.length === 0) {
+    extractedColors.push('#1a1a2e');
+  }
 
   return {
     success: true,
@@ -223,14 +228,346 @@ async function extractColorsFromRasterImage(buffer: Buffer): Promise<string[]> {
 }
 
 /**
+ * Maximum dimension used for color-layer tracing (kept lower than
+ * MAX_RASTER_DIMENSION: one trace per color layer)
+ */
+const MAX_TRACE_DIMENSION = 1000;
+
+/**
+ * Maximum number of color layers traced for a multicolor logo
+ */
+const MAX_COLOR_LAYERS = 6;
+
+/**
+ * Minimum share of opaque foreground pixels a color must cover to get its own layer
+ */
+const MIN_LAYER_SHARE = 0.02;
+
+interface ColorCluster {
+  r: number;
+  g: number;
+  b: number;
+  hex: string;
+  count: number;
+}
+
+function clusterDistance(r1: number, g1: number, b1: number, r2: number, g2: number, b2: number): number {
+  return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2);
+}
+
+/**
+ * Detects the background color by sampling the four corners of the image.
+ * Returns null when corners are transparent or inconsistent (no flat background).
+ */
+function detectBackgroundColor(
+  data: Buffer,
+  width: number,
+  height: number,
+  channels: number
+): { r: number; g: number; b: number } | null {
+  const cornerIdx = [
+    0,
+    (width - 1) * channels,
+    (height - 1) * width * channels,
+    ((height - 1) * width + width - 1) * channels,
+  ];
+
+  const corners: { r: number; g: number; b: number }[] = [];
+  for (const idx of cornerIdx) {
+    const alpha = channels === 4 ? data[idx + 3] : 255;
+    if (alpha < 128) return null; // transparent background — nothing to strip
+    corners.push({ r: data[idx], g: data[idx + 1], b: data[idx + 2] });
+  }
+
+  const avg = {
+    r: Math.round(corners.reduce((s, c) => s + c.r, 0) / 4),
+    g: Math.round(corners.reduce((s, c) => s + c.g, 0) / 4),
+    b: Math.round(corners.reduce((s, c) => s + c.b, 0) / 4),
+  };
+
+  // Corners must agree with each other to be considered a flat background
+  const consistent = corners.every((c) => clusterDistance(c.r, c.g, c.b, avg.r, avg.g, avg.b) < 30);
+  return consistent ? avg : null;
+}
+
+/**
+ * Quantizes the opaque, non-background pixels of an image into a small palette.
+ * Clusters are merged when perceptually close, sorted by coverage (largest first).
+ */
+function quantizeImagePalette(
+  data: Buffer,
+  width: number,
+  height: number,
+  channels: number
+): { clusters: ColorCluster[]; background: { r: number; g: number; b: number } | null } {
+  const background = detectBackgroundColor(data, width, height, channels);
+  const counts = new Map<string, ColorCluster>();
+  let foregroundPixels = 0;
+
+  for (let i = 0; i < data.length; i += channels) {
+    const alpha = channels === 4 ? data[i + 3] : 255;
+    if (alpha < 128) continue;
+
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+
+    if (background && clusterDistance(r, g, b, background.r, background.g, background.b) < 40) {
+      continue;
+    }
+    foregroundPixels++;
+
+    // Quantize to /32 buckets to absorb anti-aliasing noise
+    const qr = Math.min(255, Math.round(r / 32) * 32);
+    const qg = Math.min(255, Math.round(g / 32) * 32);
+    const qb = Math.min(255, Math.round(b / 32) * 32);
+    const key = `${qr},${qg},${qb}`;
+
+    const existing = counts.get(key);
+    if (existing) {
+      existing.count++;
+    } else {
+      counts.set(key, { r: qr, g: qg, b: qb, hex: rgbToHex(qr, qg, qb), count: 1 });
+    }
+  }
+
+  if (foregroundPixels === 0) {
+    return { clusters: [], background };
+  }
+
+  // Merge clusters that are perceptually close (weighted average)
+  const sorted = Array.from(counts.values()).sort((a, b) => b.count - a.count);
+  const merged: ColorCluster[] = [];
+  for (const cluster of sorted) {
+    const target = merged.find(
+      (m) => clusterDistance(m.r, m.g, m.b, cluster.r, cluster.g, cluster.b) < 48
+    );
+    if (target) {
+      const total = target.count + cluster.count;
+      target.r = Math.round((target.r * target.count + cluster.r * cluster.count) / total);
+      target.g = Math.round((target.g * target.count + cluster.g * cluster.count) / total);
+      target.b = Math.round((target.b * target.count + cluster.b * cluster.count) / total);
+      target.hex = rgbToHex(target.r, target.g, target.b);
+      target.count = total;
+    } else {
+      merged.push({ ...cluster });
+    }
+  }
+
+  const clusters = merged
+    .filter((c) => c.count / foregroundPixels >= MIN_LAYER_SHARE)
+    .slice(0, MAX_COLOR_LAYERS);
+
+  // Refinement pass: replace quantized bucket colors with the true average of
+  // the pixels assigned to each cluster (recovers exact brand colors)
+  if (clusters.length > 0) {
+    const sums = clusters.map(() => ({ r: 0, g: 0, b: 0, n: 0 }));
+    for (let i = 0; i < data.length; i += channels) {
+      const alpha = channels === 4 ? data[i + 3] : 255;
+      if (alpha < 128) continue;
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      if (background && clusterDistance(r, g, b, background.r, background.g, background.b) < 40) {
+        continue;
+      }
+      let nearest = 0;
+      let nearestDist = Infinity;
+      for (let c = 0; c < clusters.length; c++) {
+        const d = clusterDistance(r, g, b, clusters[c].r, clusters[c].g, clusters[c].b);
+        if (d < nearestDist) {
+          nearestDist = d;
+          nearest = c;
+        }
+      }
+      sums[nearest].r += r;
+      sums[nearest].g += g;
+      sums[nearest].b += b;
+      sums[nearest].n++;
+    }
+    for (let c = 0; c < clusters.length; c++) {
+      if (sums[c].n > 0) {
+        clusters[c].r = Math.round(sums[c].r / sums[c].n);
+        clusters[c].g = Math.round(sums[c].g / sums[c].n);
+        clusters[c].b = Math.round(sums[c].b / sums[c].n);
+        clusters[c].hex = rgbToHex(clusters[c].r, clusters[c].g, clusters[c].b);
+      }
+    }
+  }
+
+  return { clusters, background };
+}
+
+/**
+ * Builds a black-on-white binary mask PNG for one color cluster:
+ * a pixel is black when its nearest cluster is the target one.
+ */
+async function buildClusterMask(
+  data: Buffer,
+  width: number,
+  height: number,
+  channels: number,
+  clusters: ColorCluster[],
+  targetIndex: number,
+  background: { r: number; g: number; b: number } | null
+): Promise<Buffer> {
+  const mask = Buffer.alloc(width * height, 255);
+
+  for (let p = 0, i = 0; i < data.length; i += channels, p++) {
+    const alpha = channels === 4 ? data[i + 3] : 255;
+    if (alpha < 128) continue;
+
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+
+    if (background && clusterDistance(r, g, b, background.r, background.g, background.b) < 40) {
+      continue;
+    }
+
+    let nearest = 0;
+    let nearestDist = Infinity;
+    for (let c = 0; c < clusters.length; c++) {
+      const d = clusterDistance(r, g, b, clusters[c].r, clusters[c].g, clusters[c].b);
+      if (d < nearestDist) {
+        nearestDist = d;
+        nearest = c;
+      }
+    }
+
+    if (nearest === targetIndex) {
+      mask[p] = 0;
+    }
+  }
+
+  return sharp(mask, { raw: { width, height, channels: 1 } }).png().toBuffer();
+}
+
+/**
+ * Traces a binary mask with potrace and returns the <path> elements
+ * recolored with the given hex color.
+ */
+async function traceMaskToPaths(maskPng: Buffer, colorHex: string): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const potrace = require('potrace');
+
+  const svg = await new Promise<string>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error('Potrace vectorization timed out after 30 seconds'));
+    }, 30000);
+
+    potrace.trace(
+      maskPng,
+      {
+        turdSize: 2,
+        optTolerance: 0.2,
+        color: colorHex,
+        background: 'transparent',
+      },
+      (err: Error | null, out: string) => {
+        clearTimeout(timeout);
+        if (err) reject(err);
+        else resolve(out);
+      }
+    );
+  });
+
+  const paths = svg.match(/<path[^>]*\/?>(<\/path>)?/g);
+  return paths ? paths.join('') : '';
+}
+
+/**
+ * Vectorizes a raster logo preserving its colors:
+ * quantize palette → binary mask per color → potrace per layer → stacked SVG.
+ * Returns null when the image is effectively single-colored (caller falls back
+ * to the classic single-color trace).
+ */
+async function vectorizeMulticolor(buffer: Buffer): Promise<LogoImportResult | null> {
+  const { data, info } = await sharp(buffer)
+    .resize(MAX_TRACE_DIMENSION, MAX_TRACE_DIMENSION, { fit: 'inside', withoutEnlargement: true })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const { width, height, channels } = info;
+  const { clusters, background } = quantizeImagePalette(data, width, height, channels);
+
+  if (clusters.length < 2) {
+    logger.info(
+      `Multicolor vectorization skipped: ${clusters.length} color cluster(s) detected, using single-color trace`
+    );
+    return null;
+  }
+
+  logger.info(
+    `Multicolor vectorization: ${clusters.length} layers - ${clusters.map((c) => c.hex).join(', ')}`
+  );
+
+  // Trace every color layer in parallel; layers are stacked largest-coverage first
+  const layerPaths = await Promise.all(
+    clusters.map(async (cluster, index) => {
+      const mask = await buildClusterMask(data, width, height, channels, clusters, index, background);
+      return traceMaskToPaths(mask, cluster.hex);
+    })
+  );
+
+  const combinedPaths = layerPaths.filter((p) => p.length > 0).join('');
+  if (!combinedPaths) {
+    logger.warn('Multicolor vectorization produced no paths, falling back to single-color trace');
+    return null;
+  }
+
+  const rawSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}">${combinedPaths}</svg>`;
+  const optimized = optimize(rawSvg, SVGO_CONFIG);
+  const optimizedSvg = optimized.data;
+
+  // Filter near-black/near-white for the brand color suggestions, like the raster extractor
+  const extractedColors = clusters
+    .map((c) => c.hex)
+    .filter((hex) => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+      return lum > 30 && lum < 230;
+    });
+
+  return {
+    success: true,
+    svg: optimizedSvg,
+    width,
+    height,
+    extractedColors: extractedColors.length > 0 ? extractedColors : clusters.map((c) => c.hex),
+  };
+}
+
+/**
  * Processes a raster image (PNG/JPG/WebP):
- * 1. Extract colors from the original image BEFORE grayscale conversion
- * 2. Resize + grayscale + normalize for vectorization
- * 3. Vectorize with potrace
- * 4. Recolor the vectorized SVG with the dominant extracted color
- * 5. Optimize resulting SVG with SVGO
+ * 1. Try color-preserving multicolor vectorization (one potrace layer per color)
+ * 2. Fallback — single-color trace:
+ *    a. Extract colors from the original image BEFORE grayscale conversion
+ *    b. Resize + grayscale + normalize for vectorization
+ *    c. Vectorize with potrace, recolored with the dominant extracted color
+ * 3. Optimize resulting SVG with SVGO
  */
 async function processRasterImage(buffer: Buffer): Promise<LogoImportResult> {
+  try {
+    const multicolor = await vectorizeMulticolor(buffer);
+    if (multicolor) {
+      return multicolor;
+    }
+  } catch (error) {
+    logger.warn(
+      `Multicolor vectorization failed, falling back to single-color trace: ${(error as Error).message}`
+    );
+  }
+  return processSingleColorRaster(buffer);
+}
+
+/**
+ * Legacy single-color raster vectorization (grayscale + potrace, dominant color).
+ */
+async function processSingleColorRaster(buffer: Buffer): Promise<LogoImportResult> {
   // Step 1: Extract colors from the ORIGINAL image (before grayscale)
   const extractedColors = await extractColorsFromRasterImage(buffer);
   const dominantColor = extractedColors.length > 0 ? extractedColors[0] : '#000000';
@@ -302,7 +639,8 @@ async function processRasterImage(buffer: Buffer): Promise<LogoImportResult> {
     svg: optimizedSvg,
     width: dimensions.width || width,
     height: dimensions.height || height,
-    extractedColors,
+    // Logo entièrement noir/blanc : garantir au moins une couleur exploitable
+    extractedColors: extractedColors.length > 0 ? extractedColors : [dominantColor],
   };
 }
 
@@ -435,153 +773,36 @@ function rgbToHex(r: number, g: number, b: number): string {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
-/**
- * Generates logo variations (light background, dark background, monochrome) from an SVG.
- * For imported logos, we create programmatic color variations instead of using AI.
- */
-export function generateLogoVariationsFromSvg(svgContent: string): {
-  withText: {
-    lightBackground: string;
-    darkBackground: string;
-    monochrome: string;
-  };
-  iconOnly: {
-    lightBackground: string;
-    darkBackground: string;
-    monochrome: string;
-  };
-} {
-  // Light background: keep original colors (logo is typically designed for light bg)
-  const lightVariation = svgContent;
-
-  // Dark background: invert dark fills to light, keep brand colors
-  const darkVariation = createDarkBackgroundVariation(svgContent);
-
-  // Monochrome: convert all colors to grayscale
-  const monochromeVariation = createMonochromeVariation(svgContent);
-
-  return {
-    withText: {
-      lightBackground: lightVariation,
-      darkBackground: darkVariation,
-      monochrome: monochromeVariation,
-    },
-    iconOnly: {
-      lightBackground: lightVariation,
-      darkBackground: darkVariation,
-      monochrome: monochromeVariation,
-    },
-  };
-}
+// Logo variation generation now lives in logoVariationEngine.service.ts
+// (hybrid engine: OKLCH transforms + rendered QA + optional AI recolor fallback)
 
 /**
- * Creates a dark background variation by adjusting dark colors to light
+ * Resolves SVG content from either inline markup or a stored URL (e.g. MinIO).
+ * The frontend stores the MinIO URL in logo.svg when the upload succeeded, so
+ * any server-side consumer of that field must handle both forms.
  */
-function createDarkBackgroundVariation(svg: string): string {
-  let result = svg;
+export async function resolveSvgContent(svgOrUrl: string): Promise<string> {
+  const value = (svgOrUrl || '').trim();
 
-  // Replace very dark fills/strokes with white equivalents
-  // Match hex colors in attributes
-  result = result.replace(
-    /((?:fill|stroke|stop-color|color)\s*=\s*["'])#([0-9a-fA-F]{3,6})(["'])/gi,
-    (match, prefix, hex, suffix) => {
-      const normalized = normalizeHexRaw(hex);
-      const inverted = invertForDarkBg(normalized);
-      return `${prefix}#${inverted}${suffix}`;
+  if (/^https?:\/\//i.test(value)) {
+    logger.info(`Resolving SVG content from URL`);
+    const axios = (await import('axios')).default;
+    const response = await axios.get(value, {
+      responseType: 'text',
+      timeout: 15000,
+      maxContentLength: 5 * 1024 * 1024,
+    });
+    const fetched = String(response.data);
+    if (!fetched.includes('<svg')) {
+      throw new Error('Fetched content is not a valid SVG');
     }
-  );
-
-  // Match hex colors in inline styles
-  result = result.replace(
-    /((?:fill|stroke|stop-color|color)\s*:\s*)#([0-9a-fA-F]{3,6})/gi,
-    (match, prefix, hex) => {
-      const normalized = normalizeHexRaw(hex);
-      const inverted = invertForDarkBg(normalized);
-      return `${prefix}#${inverted}`;
-    }
-  );
-
-  return result;
-}
-
-/**
- * Creates a monochrome variation by converting all colors to grayscale
- */
-function createMonochromeVariation(svg: string): string {
-  let result = svg;
-
-  // Convert hex colors in attributes to grayscale
-  result = result.replace(
-    /((?:fill|stroke|stop-color|color)\s*=\s*["'])#([0-9a-fA-F]{3,6})(["'])/gi,
-    (match, prefix, hex, suffix) => {
-      const normalized = normalizeHexRaw(hex);
-      const gray = toGrayscale(normalized);
-      return `${prefix}#${gray}${suffix}`;
-    }
-  );
-
-  // Convert hex colors in inline styles to grayscale
-  result = result.replace(
-    /((?:fill|stroke|stop-color|color)\s*:\s*)#([0-9a-fA-F]{3,6})/gi,
-    (match, prefix, hex) => {
-      const normalized = normalizeHexRaw(hex);
-      const gray = toGrayscale(normalized);
-      return `${prefix}#${gray}`;
-    }
-  );
-
-  return result;
-}
-
-/**
- * Normalizes hex without # prefix
- */
-function normalizeHexRaw(hex: string): string {
-  let h = hex.toLowerCase();
-  if (h.length === 3) {
-    h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    return fetched;
   }
-  if (h.length === 8) {
-    h = h.substring(0, 6);
-  }
-  return h;
-}
 
-/**
- * Inverts dark colors for dark background usage.
- * Very dark colors become white, very light colors stay, mid-range colors lighten.
- */
-function invertForDarkBg(hex6: string): string {
-  const r = parseInt(hex6.slice(0, 2), 16);
-  const g = parseInt(hex6.slice(2, 4), 16);
-  const b = parseInt(hex6.slice(4, 6), 16);
-  const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-
-  // Very dark colors (text, outlines) → make white
-  if (luminance < 50) {
-    return 'ffffff';
+  if (!value.includes('<svg')) {
+    throw new Error('The provided content is not a valid SVG');
   }
-  // Very light colors → make dark
-  if (luminance > 220) {
-    return '1a1a2e';
-  }
-  // Mid-range brand colors → lighten slightly for dark bg visibility
-  const lighten = (v: number) => Math.min(255, Math.round(v + (255 - v) * 0.2));
-  const toHex = (n: number) => n.toString(16).padStart(2, '0');
-  return `${toHex(lighten(r))}${toHex(lighten(g))}${toHex(lighten(b))}`;
-}
-
-/**
- * Converts a hex color to grayscale
- */
-function toGrayscale(hex6: string): string {
-  const r = parseInt(hex6.slice(0, 2), 16);
-  const g = parseInt(hex6.slice(2, 4), 16);
-  const b = parseInt(hex6.slice(4, 6), 16);
-  // Standard luminance formula
-  const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
-  const h = gray.toString(16).padStart(2, '0');
-  return `${h}${h}${h}`;
+  return value;
 }
 
 /**

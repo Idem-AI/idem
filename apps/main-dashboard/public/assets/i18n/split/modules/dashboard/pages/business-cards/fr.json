@@ -1,0 +1,97 @@
+{
+  "dashboard": {
+    "businessCards": {
+      "title": "Cartes de visite",
+      "subtitle": "Un modèle généré depuis votre charte graphique, puis une carte par personne — modifiable et prête à imprimer.",
+      "loading": "Chargement des cartes de visite…",
+      "downloadHint": "Les fichiers sont rendus à 300 dpi aux dimensions exactes de la carte : le PDF est prêt pour l'imprimeur.",
+      "confirmDelete": "Supprimer {{name}} et sa carte ?",
+      "orientation": {
+        "landscape": "Paysage",
+        "portrait": "Portrait"
+      },
+      "sides": {
+        "front": "Recto",
+        "back": "Verso"
+      },
+      "actions": {
+        "editTemplate": "Modifier le modèle",
+        "regenerate": "Régénérer le modèle",
+        "editHolder": "Modifier les informations"
+      },
+      "empty": {
+        "brandingFirst": {
+          "title": "Créez d'abord votre identité visuelle",
+          "subtitle": "Les cartes de visite reprennent votre logo, vos couleurs et vos polices. Générez votre charte graphique pour débloquer cette étape.",
+          "cta": "Aller à l'identité de marque"
+        },
+        "generate": {
+          "title": "Générez votre modèle de carte",
+          "subtitle": "L'IA compose un recto et un verso à partir de votre charte. Les informations personnelles restent des champs : vous les remplirez ensuite pour chaque personne.",
+          "orientationLabel": "Orientation",
+          "briefLabel": "Direction artistique (facultatif)",
+          "briefPlaceholder": "ex. très épuré, fond sombre, logo centré",
+          "cta": "Générer le modèle",
+          "generating": "Génération en cours…",
+          "wait": "La composition des deux faces prend généralement moins d'une minute.",
+          "hint": "Vous pourrez ensuite modifier le modèle dans l'éditeur visuel.",
+          "steps": {
+            "0": "Lecture de votre charte graphique",
+            "1": "Composition du recto",
+            "2": "Composition du verso",
+            "3": "Finalisation du modèle"
+          }
+        }
+      },
+      "people": {
+        "title": "Personnes",
+        "add": "Ajouter une personne",
+        "search": "Rechercher une personne",
+        "empty": "Aucune personne pour l'instant.",
+        "editAria": "Modifier {{name}}",
+        "deleteAria": "Supprimer {{name}}",
+        "emptyDetail": {
+          "title": "Aucune carte sélectionnée",
+          "subtitle": "Ajoutez une personne : sa carte se construit en direct pendant que vous remplissez le formulaire."
+        }
+      },
+      "form": {
+        "createTitle": "Nouvelle carte",
+        "editTitle": "Modifier la carte",
+        "livePreviewHint": "L'aperçu se met à jour à chaque saisie.",
+        "create": "Créer la carte",
+        "update": "Enregistrer",
+        "nameRequired": "Le nom est obligatoire.",
+        "unusedField": "non affiché"
+      },
+      "fields": {
+        "fullName": "Nom complet",
+        "jobTitle": "Fonction",
+        "email": "E-mail",
+        "phone": "Téléphone",
+        "mobile": "Mobile",
+        "website": "Site web",
+        "address": "Adresse",
+        "linkedin": "LinkedIn"
+      },
+      "placeholders": {
+        "fullName": "Marie Dupont",
+        "jobTitle": "Directrice commerciale",
+        "email": "marie@exemple.com",
+        "phone": "+33 1 23 45 67 89",
+        "mobile": "+33 6 12 34 56 78",
+        "website": "www.exemple.com",
+        "address": "12 rue de la Paix, Paris",
+        "linkedin": "linkedin.com/in/mariedupont"
+      },
+      "errors": {
+        "load": "Impossible de charger les cartes de visite.",
+        "generate": "La génération du modèle a échoué. Réessayez.",
+        "brandingRequired": "Générez d'abord votre identité visuelle.",
+        "saveHolder": "L'enregistrement de la personne a échoué.",
+        "deleteHolder": "La suppression a échoué.",
+        "download": "Le téléchargement de la carte a échoué."
+      }
+    }
+  }
+}

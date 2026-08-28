@@ -1,15 +1,15 @@
 <div class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
   <div
-    class="bg-gray-900/95 backdrop-blur-md rounded-2xl shadow-2xl max-w-md w-full border border-gray-700/50"
+    class="bg-[var(--glass-bg-darker)] backdrop-blur-md rounded-2xl shadow-2xl max-w-md w-full border border-[var(--glass-border)]"
   >
     <!-- Header Minimal -->
-    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-700/50">
-      <h2 class="text-lg font-bold text-white">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-[var(--glass-border)]">
+      <h2 class="text-lg font-bold text-text-primary">
         {{ 'dashboard.colorCustomizer.title' | translate }}
       </h2>
       <button
         (click)="close()"
-        class="text-gray-400 hover:text-white transition-colors p-1"
+        class="text-text-tertiary hover:text-text-primary transition-colors p-1"
         [attr.aria-label]="'common.close' | translate"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -28,8 +28,8 @@
         <div class="group relative">
           <!-- Color Row -->
           <div
-            class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-800/50 transition-all"
-            [class.bg-gray-800]="activeColor() === colorKey"
+            class="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--glass-bg-light)] transition-all"
+            [class.bg-surface-2]="activeColor() === colorKey"
           >
             <!-- Color Swatch with Visible Picker -->
             <div class="relative shrink-0">
@@ -52,7 +52,7 @@
                   <div
                     class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
-                    <i class="pi pi-edit text-white"></i>
+                    <i class="pi pi-edit text-text-primary"></i>
                   </div>
                   <!-- Click hint -->
                   <div
@@ -66,10 +66,10 @@
 
             <!-- Color Info -->
             <div class="flex-1 min-w-0 cursor-pointer" (click)="selectColor(colorKey)">
-              <div class="text-sm font-medium text-white">
+              <div class="text-sm font-medium text-text-primary">
                 {{ getColorLabel(colorKey) }}
               </div>
-              <div class="text-xs text-gray-500 font-mono">
+              <div class="text-xs text-text-tertiary font-mono">
                 {{ customColors()[colorKey] }}
               </div>
             </div>
@@ -77,10 +77,10 @@
             <!-- Expand/Collapse Icon -->
             <button
               (click)="selectColor(colorKey)"
-              class="p-1 hover:bg-gray-700 rounded transition-colors"
+              class="p-1 hover:bg-[var(--glass-bg-light)] rounded transition-colors"
             >
               <svg
-                class="w-4 h-4 text-gray-500 transition-transform"
+                class="w-4 h-4 text-text-tertiary transition-transform"
                 [class.rotate-180]="activeColor() === colorKey"
                 fill="none"
                 stroke="currentColor"
@@ -100,14 +100,14 @@
           @if (activeColor() === colorKey) {
             <div class="mt-2 px-2 animate-in slide-in-from-top-2 duration-200">
               <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-500"
+                <span class="text-xs text-text-tertiary"
                   >{{ 'dashboard.colorCustomizer.hex' | translate }}:</span
                 >
                 <input
                   type="text"
                   [value]="customColors()[colorKey]"
                   (input)="updateColor(colorKey, $event)"
-                  class="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-xs font-mono text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                  class="flex-1 px-3 py-2 bg-[var(--color-surface-2)] border border-[var(--glass-border)] rounded-lg text-xs font-mono text-text-primary focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
                   [placeholder]="'dashboard.colorCustomizer.hexPlaceholder' | translate"
                   maxlength="7"
                 />
@@ -117,7 +117,7 @@
         </div>
       }
       <div
-        class="mt-4 p-4 rounded-xl border border-gray-700/50 transition-all"
+        class="mt-4 p-4 rounded-xl border border-[var(--glass-border)] transition-all"
         [style.backgroundColor]="customColors().background"
       >
         <div class="flex items-center gap-2 mb-3">
@@ -141,7 +141,7 @@
         </div>
         <div class="flex gap-2">
           <div
-            class="px-3 py-1.5 rounded-md text-xs font-medium text-white"
+            class="px-3 py-1.5 rounded-md text-xs font-medium text-text-primary"
             [style.backgroundColor]="customColors().primary"
           >
             {{ 'dashboard.colorCustomizer.labels.primary' | translate }}
@@ -165,17 +165,17 @@
             clip-rule="evenodd"
           />
         </svg>
-        <p class="text-xs text-gray-400 leading-relaxed">
+        <p class="text-xs text-text-tertiary leading-relaxed">
           {{ 'dashboard.colorCustomizer.tip' | translate }}
         </p>
       </div>
     </div>
 
     <!-- Footer Actions -->
-    <div class="flex gap-2 px-5 py-4 border-t border-gray-700/50">
+    <div class="flex gap-2 px-5 py-4 border-t border-[var(--glass-border)]">
       <button
         (click)="resetColors()"
-        class="flex-1 px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors"
+        class="flex-1 px-4 py-2.5 bg-[var(--color-surface-2)] hover:bg-[var(--glass-bg-light)] text-text-primary text-sm font-medium rounded-lg transition-colors"
       >
         {{ 'common.reset' | translate }}
       </button>

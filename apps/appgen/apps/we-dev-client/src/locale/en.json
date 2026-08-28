@@ -35,7 +35,13 @@
       "file_size_limit": "File {fileName} exceeds 5MB limit",
       "upload_failed": "Upload failed",
       "paste_failed": "Failed to paste image",
-      "add_image_failed": "Failed to add image"
+      "add_image_failed": "Failed to add image",
+      "load_history_failed": "Failed to load chat history",
+      "ollama_connection_failed": "Ollama server connection failed, please check configuration",
+      "start_generation_failed": "Error starting generation",
+      "firebase_save_failed": "Failed to save on Firebase Storage",
+      "upload_files_failed": "Failed to upload files",
+      "process_dropped_images_failed": "Failed to process dropped images"
     },
     "success": {
       "images_uploaded": "Image uploaded successfully",
@@ -43,7 +49,8 @@
       "image_pasted": "Image pasted successfully",
       "images_pasted_multiple": "{count} images pasted successfully",
       "image_added": "Image added to input",
-      "images_added_multiple": "{count} images added to input"
+      "images_added_multiple": "{count} images added to input",
+      "firebase_save_success": "Code saved to Firebase Storage ({count} files)"
     },
     "placeholders": {
       "input": "Enter message, press Enter to send, Shift+Enter for new line...",
@@ -100,7 +107,8 @@
       "error": "Failed to optimize prompt:",
       "designPlaceholder": "Enter your prompt here, we'll help you generate a design..."
     },
-    "regenerate_incomplete": "Please check which files were generated last time, rebuild and continue with the incomplete code files last time, and there is no need to generate the completed code files again"
+    "regenerate_incomplete": "Please check which files were generated last time, rebuild and continue with the incomplete code files last time, and there is no need to generate the completed code files again",
+    "quality_pass": "Design review: applying {{count}} fixes to the generated interface."
   },
   "settings": {
     "title": "Settings",
@@ -210,7 +218,9 @@
         "username": "Database Username",
         "password": "Database Password"
       }
-    }
+    },
+    "projectNotFound": "Project not found",
+    "errorLoadingProject": "Failed to load project"
   },
   "preview": {
     "noserver": "No server running",
@@ -221,7 +231,8 @@
     "preview": "Preview",
     "apiTest": "APITest",
     "search_in_files": "Search in files...",
-    "diff": "diff"
+    "diff": "diff",
+    "edit": "Edit"
   },
   "header": {
     "download": "Download Code",
@@ -229,14 +240,30 @@
     "deploying": "Deploying...",
     "deploySuccess": "Deployment Successful!",
     "deployToCloud": "Your project has been successfully deployed to the cloud",
+    "redeploy": "Redeploy",
+    "redeploySuccess": "Update Successful!",
+    "redeployToCloud": "Your live app has been updated, the link stays the same",
     "accessLink": "Access Link:",
     "copy": "Copy",
     "close": "Close",
     "visitSite": "Visit Site",
     "open_directory": "Open Directory",
+    "copied_link": "Link copied to clipboard!",
+    "github": {
+      "sending": "Sending...",
+      "send": "Send to GitHub",
+      "success": "Project sent to GitHub successfully!",
+      "error_sending": "Failed to send to GitHub. Please try again.",
+      "no_project_id": "Project ID not found"
+    },
+    "deploy_modal": {
+      "title": "Deploying Your Project",
+      "loading_text": "Please wait while we deploy your application..."
+    },
     "error": {
       "open_directory": "Failed to open directory",
-      "deploy_failed": "Deployment failed, please try again later"
+      "deploy_failed": "Deployment failed, please try again later",
+      "deploy_failed_with_msg": "Deployment failed: {{message}}"
     }
   },
   "explorer": {
@@ -407,5 +434,84 @@
       "invalidOldPassword": "Invalid old password",
       "updateFailed": "Failed to update password"
     }
+  },
+  "deployModal": {
+    "title": "Deploy your application",
+    "subtitle": "Choose how you want to deploy",
+    "no_generation": "No generation available to deploy",
+    "default_app_name": "My Application",
+    "quick_deploy_title": "Quick Deploy",
+    "quick_deploy_subtitle": "Netlify · No account required",
+    "quick_deploy_desc": "Instantly deploy with global CDN and automatic SSL.",
+    "tag_instant": "Instant",
+    "tag_ssl": "Auto SSL",
+    "tag_cdn": "Global CDN",
+    "idem_deploy_title": "Deploy with Idem",
+    "idem_deploy_subtitle": "iDeploy · Auto-configured project",
+    "idem_deploy_desc": "Your application is transferred to iDeploy with all metadata. Ready to deploy.",
+    "tag_auto_project": "Auto project",
+    "tag_prefilled": "Prefilled data",
+    "login_required": "Login required",
+    "connect_idem_title": "Connect to an Idem project",
+    "connect_idem_subtitle": "Create or associate with an existing project",
+    "cancel": "Cancel"
+  },
+  "editMode": {
+    "hint": "Click to select · click again to go deeper · Shift-click multi · dbl-click edit · drag reorder · Del delete",
+    "noSelection": "Select an element in the preview to edit it.",
+    "deselect": "Deselect",
+    "text": "Text",
+    "textHint": "You can also double-click the text directly in the preview.",
+    "image": "Image (URL)",
+    "imagePrompt": "New image URL:",
+    "style": "Style",
+    "textColor": "Text color",
+    "background": "Background",
+    "fontSize": "Font size",
+    "fontWeight": "Weight",
+    "align": "Alignment",
+    "loadingAgent": "Preparing editor…",
+    "injectFailed": "Could not enable Edit mode: {{reason}}",
+    "editFailed": "Edit could not be applied: {{reason}}",
+    "delete": "Delete element",
+    "deleteHint": "You can also press the Delete key on the selected element.",
+    "reorderUnsupported": "This element can't be reordered here.",
+    "deleteUnsupported": "This element can't be deleted here (it is generated dynamically).",
+    "refresh": "Reload preview",
+    "multiSelected": "{{count}} selected",
+    "multiHint": "Shift/Ctrl-click to select several elements at once.",
+    "apply": "Apply",
+    "upload": "Upload an image",
+    "deleteSelection": "Delete selection ({{count}})",
+    "typography": "Typography",
+    "layout": "Layout",
+    "spacing": "Spacing",
+    "size": "Size",
+    "link": "Link",
+    "bgColor": "Color",
+    "bgImage": "Background image",
+    "removeBgImage": "Remove image",
+    "openNewTab": "Open in new tab",
+    "alt": "Alt text",
+    "objectFit": "Fit",
+    "radius": "Radius",
+    "padding": "Padding",
+    "gap": "Gap",
+    "display": "Display",
+    "direction": "Direction",
+    "justify": "Justify",
+    "alignItems": "Align",
+    "lineHeight": "Line height",
+    "transform": "Transform",
+    "fontStyle": "Style",
+    "width": "Width",
+    "height": "Height",
+    "undo": "Undo",
+    "redo": "Redo",
+    "objectPosition": "Position",
+    "opacity": "Opacity",
+    "layers": "Layers",
+    "layersHint": "Elements stacked under your click — pick the one to edit.",
+    "layersLoading": "Loading page tree…"
   }
 }

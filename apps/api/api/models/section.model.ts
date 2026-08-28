@@ -29,10 +29,30 @@
  *         - data
  *         - summary
  */
+/** Source réelle citée dans une section (issue du grounding web). */
+export interface SectionSource {
+  id: string;
+  title: string;
+  url: string;
+  domain?: string;
+}
+
+/** Résumé du contrôle anti-invention appliqué à la section. */
+export interface SectionVerification {
+  passed: boolean;
+  citedClaims: number;
+  uncitedClaims: number;
+}
+
 export interface SectionModel {
   id?: string;
   name: string;
   type: string;
   data: any;
   summary: string;
+  /** Sources web réelles utilisées pour cette section (citations [sN]). */
+  sources?: SectionSource[];
+  /** Verdict du vérificateur (présent pour les sections issues de recherche). */
+  verification?: SectionVerification;
+  updatedAt?: Date;
 }

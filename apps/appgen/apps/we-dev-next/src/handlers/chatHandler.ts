@@ -1,12 +1,12 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Messages, ToolInfo } from '../types/project.js';
-import { streamTextFn, StreamingOptions } from '../services/aiService.js';
-import { CONTINUE_PROMPT } from '../config/prompts.js';
+import { StreamingOptions } from '../services/aiService.js';
+import { CONTINUE_PROMPT, getLanguageDirective } from '../config/prompts.js';
 import { deductUserTokens, estimateTokens } from '../utils/tokens.js';
 import SwitchableStream from '../utils/switchableStream.js';
 import { tool } from 'ai';
 import { jsonSchemaToZodSchema } from '../utils/json2zod.js';
-import { Response } from 'express';
+import { createResilientStream } from '../utils/resilientStream.js';
 
 const MAX_RESPONSE_SEGMENTS = 2;
 
@@ -14,10 +14,18 @@ export async function handleChatMode(
   messages: Messages,
   model: string,
   userId: string | null,
-  tools?: ToolInfo[]
+  tools?: ToolInfo[],
+  language?: string
 ) {
   const stream = new SwitchableStream();
   let toolList = {};
+
+  // Prepend a system message so the assistant replies in the user's UI language.
+  messages.unshift({
+    id: uuidv4(),
+    role: 'system',
+    content: getLanguageDirective(language),
+  });
 
   if (tools && tools.length > 0) {
     toolList = tools.reduce(
@@ -40,9 +48,11 @@ export async function handleChatMode(
     tools: toolList,
     toolCallStreaming: true,
     onError: (error: any) => {
-      const uuid = uuidv4();
-      const msg = error?.errors?.[0]?.responseBody;
-      throw new Error(`${msg || JSON.stringify(error)} logid ${uuid}`);
+      // Logged only: throwing from this callback runs inside a stream transform
+      // and would end up as an unhandled rejection. The resilient stream below
+      // takes care of retrying on another model and of the client message.
+      const msg = error?.errors?.[0]?.responseBody || error?.message;
+      console.error(`[chat] stream error (logid ${uuidv4()}):`, msg || error);
     },
     onFinish: async (response) => {
       const { text: content, finishReason } = response;
@@ -64,7 +74,5 @@ export async function handleChatMode(
     },
   };
 
-  const result = await streamTextFn(messages, options, model);
-
-  return result;
+  return createResilientStream(messages, options, model, language);
 }

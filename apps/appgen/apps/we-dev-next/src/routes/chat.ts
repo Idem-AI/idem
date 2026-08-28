@@ -34,7 +34,18 @@ router.post('/', async (req: Request, res: Response) => {
       otherConfig,
       tools,
       projectData,
+      language,
+      qualityRepair,
     } = req.body as ChatRequest;
+
+    // User UI language (from the client) so the AI generates content in the right
+    // language. Falls back to the Accept-Language header, then English.
+    const acceptFr = (req.headers['accept-language'] || '')
+      .toString()
+      .toLowerCase()
+      .startsWith('fr');
+    const resolvedLanguage =
+      language === 'fr' || language === 'en' ? language : acceptFr ? 'fr' : 'en';
 
     const userId = req.headers['userid'] as string | null;
 
@@ -110,11 +121,20 @@ router.post('/', async (req: Request, res: Response) => {
     if (mode === ChatMode.Chat) {
       console.log('  Delegating to handleChatMode');
       ChatLogger.info('HANDLER', 'Delegating to handleChatMode');
-      result = await handleChatMode(messages, model, userId, tools);
+      result = await handleChatMode(messages, model, userId, tools, resolvedLanguage);
     } else {
       console.log('  Delegating to handleBuilderMode');
       ChatLogger.info('HANDLER', 'Delegating to handleBuilderMode');
-      result = await handleBuilderMode(messages, model, userId, otherConfig, tools, projectData);
+      result = await handleBuilderMode(
+        messages,
+        model,
+        userId,
+        otherConfig,
+        tools,
+        projectData,
+        resolvedLanguage,
+        qualityRepair
+      );
     }
 
     const duration = Date.now() - startTime;
@@ -125,10 +145,9 @@ router.post('/', async (req: Request, res: Response) => {
 
     ChatLogger.stepEnd('POST /api/chat - Request completed', duration);
 
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('X-Vercel-AI-Data-Stream', 'v1');
-
-    return result.pipeDataStreamToResponse(res);
+    // The resilient stream sets its own headers: on success it writes the data
+    // stream (200), otherwise it answers with a real HTTP error status.
+    return await result.pipeDataStreamToResponse(res);
   } catch (error) {
     const duration = Date.now() - startTime;
     console.log('\n REQUEST FAILED');
@@ -140,12 +159,20 @@ router.post('/', async (req: Request, res: Response) => {
     ChatLogger.error('REQUEST_FAILED', 'Error processing request', error);
     ChatLogger.stepEnd('POST /api/chat - Request failed', duration);
 
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    // The stream may already be on the wire (headers sent): nothing left to do
+    // but close it, the client got the error part from the data stream.
+    if (res.headersSent) {
+      ChatLogger.error('LATE_ERROR', 'Error after headers were sent', errorMessage);
+      return res.end();
+    }
+
     if (error instanceof Error && error.message?.includes('API key')) {
       ChatLogger.error('AUTH_ERROR', 'Invalid or missing API key');
       return res.status(401).send('Invalid or missing API key');
     }
 
-    const errorMessage = error instanceof Error ? error.message : String(error);
     ChatLogger.error('UNKNOWN_ERROR', errorMessage);
     return res.status(500).send(errorMessage);
   }

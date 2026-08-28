@@ -74,11 +74,33 @@ const children: Routes = [
     loadComponent: () =>
       import('./modules/security/private-keys/private-keys').then((m) => m.PrivateKeysComponent),
   },
+  // Workspaces group the projects of one application onto a shared server and
+  // network. Listed before `projects` because it is now the entry point.
   {
-    path: 'projects',
+    path: 'workspaces',
     loadComponent: () =>
-      import('./modules/projects/projects-list/projects-list').then((m) => m.ProjectsListComponent),
+      import('./modules/workspaces/workspaces-list/workspaces-list').then(
+        (m) => m.WorkspacesListComponent
+      ),
   },
+  {
+    path: 'workspaces/new',
+    loadComponent: () =>
+      import('./modules/workspaces/workspace-create/workspace-create').then(
+        (m) => m.WorkspaceCreateComponent
+      ),
+  },
+  {
+    path: 'workspaces/:uuid',
+    loadComponent: () =>
+      import('./modules/workspaces/workspace-detail/workspace-detail').then(
+        (m) => m.WorkspaceDetailComponent
+      ),
+  },
+  // `/projects` predates the Workspace vocabulary and named the same thing.
+  // Redirected, not removed outright, so bookmarks and old links still land
+  // somewhere real.
+  { path: 'projects', redirectTo: 'workspaces' },
   {
     path: 'applications',
     loadComponent: () =>
@@ -103,11 +125,7 @@ const children: Routes = [
     loadComponent: () =>
       import('./modules/templates/templates-page/templates-page').then((m) => m.TemplatesPageComponent),
   },
-  {
-    path: 'projects/:uuid',
-    loadComponent: () =>
-      import('./modules/projects/project-detail/project-detail').then((m) => m.ProjectDetailComponent),
-  },
+  { path: 'projects/:uuid', redirectTo: 'workspaces/:uuid' },
   {
     path: 'applications/:uuid',
     loadComponent: () =>
@@ -130,6 +148,11 @@ export const routes: Routes = [
     path: '',
     pathMatch: 'full',
     loadComponent: () => import('./modules/landing/landing/landing').then((m) => m.LandingComponent),
+  },
+  // Public pricing page (no auth required).
+  {
+    path: 'pricing',
+    loadComponent: () => import('./modules/landing/pricing/pricing').then((m) => m.PricingComponent),
   },
   // SSO callback from the central app after login.
   {

@@ -50,7 +50,7 @@ export function CreateDialog({ type, isOpen, path, onSubmit, onClose }: CreateDi
           />
           {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
           {path && (
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Will be created in: {path}
             </p>
           )}
@@ -59,14 +59,14 @@ export function CreateDialog({ type, isOpen, path, onSubmit, onClose }: CreateDi
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 text-sm hover:bg-[#2d2d2d] rounded"
+            className="px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-[#2d2d2d] rounded"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={!name.trim()}
-            className="px-3 py-1.5 text-sm bg-[#007acc] hover:bg-[#006bb3] rounded disabled:opacity-50"
+            className="px-3 py-1.5 text-sm bg-[#007acc] hover:bg-[#006bb3] text-white rounded disabled:opacity-50"
           >
             Create
           </button>

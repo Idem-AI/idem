@@ -1,151 +1,137 @@
 <section
-  class="flex flex-col min-h-[60vh] items-center justify-center text-gray-100 w-full px-4 sm:px-6 lg:px-8"
+  class="flex flex-col min-h-[60vh] items-center justify-center text-text-primary w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-10 animate-fadeIn"
 >
-  <!-- Title -->
-  <div class="text-center mb-8 sm:mb-12 max-w-4xl">
-    <h1
-      class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-100 leading-tight px-4"
-    >
-      {{ 'dashboard.logoChoice.title' | translate }}
+  <!-- Main Title & Subtitle -->
+  <div class="text-center mb-8 sm:mb-10 max-w-2xl">
+    <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-text-primary leading-tight mb-3">
+      @if (choice() === 'import' && importStep() === 'decision') {
+        {{ 'dashboard.logoChoice.postImport.title' | translate }}
+      } @else {
+        {{ 'dashboard.logoChoice.title' | translate }}
+      }
     </h1>
-    <p class="text-sm sm:text-base text-gray-400 mt-3 max-w-2xl mx-auto">
-      {{ 'dashboard.logoChoice.subtitle' | translate }}
+    <p class="text-sm sm:text-base text-text-tertiary leading-relaxed">
+      @if (choice() === 'import' && importStep() === 'decision') {
+        {{ 'dashboard.logoChoice.postImport.subtitle' | translate }}
+      } @else {
+        {{ 'dashboard.logoChoice.subtitle' | translate }}
+      }
     </p>
   </div>
 
   <!-- Choice cards (no choice made yet) -->
   @if (!choice()) {
-    <div class="w-full max-w-3xl mx-auto">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <!-- Option 1: I have a logo -->
-        <button
+    <div class="w-full max-w-4xl mx-auto pt-2">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-stretch">
+        
+        <!-- Card 1: J'ai déjà un logo (Import) -->
+        <div
           (click)="selectImport()"
-          class="group relative rounded-xl border border-white/10 glass p-6 sm:p-8 text-left transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/30"
+          class="group relative rounded-2xl border border-[var(--glass-border)] glass p-6 transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 hover:scale-[1.01] hover:shadow-xl flex flex-col justify-between cursor-pointer"
         >
-          <div class="flex flex-col items-center text-center space-y-4">
-            <!-- Icon -->
-            <div
-              class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors"
-            >
-              <svg
-                class="w-8 h-8 text-gray-400 group-hover:text-primary transition-colors"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="1.5"
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
+          <div>
+            <!-- Representative Pro Image -->
+            <div class="w-full h-48 sm:h-56 rounded-xl overflow-hidden mb-6 bg-slate-900/50 border border-[var(--glass-border)] flex items-center justify-center relative">
+              <img
+                src="assets/images/logo-choice-import.png"
+                alt="J'ai déjà un logo"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div class="absolute bottom-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-md border border-white/10 text-[11px] font-medium text-white/90 shadow-sm">
+                <i class="pi pi-file text-[10px] text-blue-400"></i>
+                <span>SVG · PNG · JPG</span>
+              </div>
             </div>
 
-            <div>
-              <h3 class="text-lg font-semibold text-gray-100 mb-2">
+            <!-- Tag & Title -->
+            <div class="flex items-center justify-between mb-2">
+              <h2 class="text-xl font-bold text-text-primary group-hover:text-primary transition-colors">
                 {{ 'dashboard.logoChoice.import.title' | translate }}
-              </h3>
-              <p class="text-sm text-gray-400 leading-relaxed">
-                {{ 'dashboard.logoChoice.import.description' | translate }}
-              </p>
-            </div>
-
-            <!-- Supported formats -->
-            <div class="flex flex-wrap items-center justify-center gap-1.5 pt-2">
-              <span
-                class="px-2 py-0.5 text-xs rounded-full bg-white/5 text-gray-500 border border-white/10"
-                >SVG</span
-              >
-              <span
-                class="px-2 py-0.5 text-xs rounded-full bg-white/5 text-gray-500 border border-white/10"
-                >PNG</span
-              >
-              <span
-                class="px-2 py-0.5 text-xs rounded-full bg-white/5 text-gray-500 border border-white/10"
-                >JPG</span
-              >
-              <span
-                class="px-2 py-0.5 text-xs rounded-full bg-white/5 text-gray-500 border border-white/10"
-                >WebP</span
-              >
-            </div>
-          </div>
-        </button>
-
-        <!-- Option 2: Create with AI -->
-        <button
-          (click)="selectAI()"
-          class="group relative rounded-xl border border-white/10 glass p-6 sm:p-8 text-left transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/30"
-        >
-          <div class="flex flex-col items-center text-center space-y-4">
-            <!-- Icon -->
-            <div
-              class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors"
-            >
-              <svg
-                class="w-8 h-8 text-gray-400 group-hover:text-primary transition-colors"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="1.5"
-                  d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"
-                />
-              </svg>
-            </div>
-
-            <div>
-              <h3 class="text-lg font-semibold text-gray-100 mb-2">
-                {{ 'dashboard.logoChoice.ai.title' | translate }}
-              </h3>
-              <p class="text-sm text-gray-400 leading-relaxed">
-                {{ 'dashboard.logoChoice.ai.description' | translate }}
-              </p>
-            </div>
-
-            <!-- AI badge -->
-            <div class="pt-2">
-              <span
-                class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary border border-primary/20"
-              >
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
-                {{ 'dashboard.logoChoice.ai.badge' | translate }}
+              </h2>
+              <span class="px-2.5 py-0.5 text-xs rounded-full bg-[var(--glass-bg-subtle)] text-text-tertiary border border-[var(--glass-border)] font-medium">
+                {{ 'dashboard.logoChoice.import.tag' | translate }}
               </span>
             </div>
+
+            <!-- Description -->
+            <p class="text-sm text-text-tertiary leading-relaxed mb-6">
+              {{ 'dashboard.logoChoice.import.description' | translate }}
+            </p>
           </div>
-        </button>
+
+          <!-- Action Button -->
+          <button
+            type="button"
+            class="w-full py-3 px-4 rounded-xl border border-[var(--glass-border-medium)] bg-[var(--color-surface-2)] text-text-primary group-hover:bg-primary group-hover:text-white group-hover:border-primary text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200"
+          >
+            <span>{{ 'dashboard.logoChoice.import.button' | translate }}</span>
+            <i class="pi pi-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+          </button>
+        </div>
+
+        <!-- Card 2: Créer avec l'IA (Recommandé) -->
+        <div
+          (click)="selectAI()"
+          class="group relative rounded-2xl border-2 border-primary/50 glass p-6 transition-all duration-300 hover:border-primary hover:bg-primary/10 hover:scale-[1.01] hover:shadow-2xl shadow-primary/10 flex flex-col justify-between cursor-pointer"
+        >
+          <!-- Recommended Badge floating above top border -->
+          <div class="absolute -top-3.5 right-6 z-20 inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-full bg-primary text-white border border-blue-300/40 shadow-xl">
+            <i class="pi pi-sparkles text-[11px]"></i>
+            <span>{{ 'dashboard.logoChoice.ai.badge' | translate }}</span>
+          </div>
+
+          <div>
+            <!-- Representative Pro Image -->
+            <div class="w-full h-48 sm:h-56 rounded-xl overflow-hidden mb-6 bg-slate-900/50 border border-primary/30 flex items-center justify-center relative">
+              <img
+                src="assets/images/logo-choice-ai.png"
+                alt="Créer avec l'IA"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div class="absolute bottom-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-md border border-white/10 text-[11px] font-medium text-white/90 shadow-sm">
+                <i class="pi pi-bolt text-[10px] text-amber-400"></i>
+                <span>Génération Vectorielle</span>
+              </div>
+            </div>
+
+            <!-- Tag & Title -->
+            <div class="flex items-center justify-between mb-2">
+              <h2 class="text-xl font-bold text-text-primary group-hover:text-primary transition-colors">
+                {{ 'dashboard.logoChoice.ai.title' | translate }}
+              </h2>
+            </div>
+
+            <!-- Description -->
+            <p class="text-sm text-text-tertiary leading-relaxed mb-6">
+              {{ 'dashboard.logoChoice.ai.description' | translate }}
+            </p>
+          </div>
+
+          <!-- Action Button -->
+          <button
+            type="button"
+            class="w-full py-3 px-4 rounded-xl bg-primary text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 group-hover:bg-primary/90 transition-all duration-200"
+          >
+            <span>{{ 'dashboard.logoChoice.ai.button' | translate }}</span>
+            <i class="pi pi-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+          </button>
+        </div>
+
       </div>
     </div>
   }
 
   <!-- Import mode: show logo import component -->
-  @if (choice() === 'import') {
-    <div class="w-full max-w-3xl mx-auto animate-slideIn">
+  @if (choice() === 'import' && importStep() === 'upload') {
+    <div class="w-full max-w-4xl mx-auto animate-slideIn">
       <!-- Back to choice -->
       <button
+        type="button"
         (click)="backToChoice()"
-        class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-200 transition-colors mb-6"
+        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-text-tertiary hover:text-text-primary hover:bg-[var(--glass-bg-subtle)] border border-transparent hover:border-[var(--glass-border)] transition-all duration-200 cursor-pointer mb-6"
       >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M15 19l-7-7 7-7"
-          />
-        </svg>
-        {{ 'dashboard.logoChoice.backToChoice' | translate }}
+        <i class="pi pi-arrow-left text-xs"></i>
+        <span>{{ 'dashboard.logoChoice.backToChoice' | translate }}</span>
       </button>
 
       <!-- Logo import component -->
@@ -157,4 +143,111 @@
       ></app-logo-import>
     </div>
   }
+
+  <!-- Decision step: use as-is or improve with AI (dedicated screen) -->
+  @if (choice() === 'import' && importStep() === 'decision') {
+    <div class="w-full max-w-4xl mx-auto animate-slideIn">
+      <!-- Back to upload -->
+      <button
+        type="button"
+        (click)="backToUpload()"
+        [disabled]="isAnalyzing()"
+        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-text-tertiary hover:text-text-primary hover:bg-[var(--glass-bg-subtle)] border border-transparent hover:border-[var(--glass-border)] transition-all duration-200 cursor-pointer mb-6 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <i class="pi pi-arrow-left text-xs"></i>
+        <span>{{ 'dashboard.logoChoice.postImport.back' | translate }}</span>
+      </button>
+
+      @if (analysisFailed()) {
+        <p
+          role="alert"
+          class="text-center text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2 mb-6"
+        >
+          {{ 'dashboard.logoChoice.postImport.analysisError' | translate }}
+        </p>
+      }
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-stretch">
+        <!-- Option A: Use as-is -->
+        <div
+          (click)="useLogoAsIs()"
+          [class.pointer-events-none]="isAnalyzing()"
+          class="group relative rounded-2xl border border-[var(--glass-border)] glass p-6 transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 hover:scale-[1.01] hover:shadow-xl flex flex-col justify-between cursor-pointer"
+        >
+          <div>
+            <div class="w-14 h-14 rounded-2xl bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] flex items-center justify-center mb-5 group-hover:bg-primary/10 group-hover:border-primary/30 transition-colors">
+              <i class="pi pi-check text-xl text-text-secondary group-hover:text-primary transition-colors"></i>
+            </div>
+
+            <h3 class="text-xl font-bold text-text-primary group-hover:text-primary transition-colors mb-2">
+              {{ 'dashboard.logoChoice.postImport.useAsIs.title' | translate }}
+            </h3>
+            
+            <p class="text-sm text-text-tertiary leading-relaxed mb-6">
+              {{ 'dashboard.logoChoice.postImport.useAsIs.description' | translate }}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            [disabled]="isAnalyzing()"
+            class="w-full py-3 px-4 rounded-xl border border-[var(--glass-border-medium)] bg-[var(--color-surface-2)] text-text-primary group-hover:bg-primary group-hover:text-white group-hover:border-primary text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50"
+          >
+            <span>{{ 'dashboard.logoChoice.postImport.useAsIs.title' | translate }}</span>
+            <i class="pi pi-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+          </button>
+        </div>
+
+        <!-- Option B: Improve with AI -->
+        <div
+          (click)="improveLogoWithAI()"
+          [class.pointer-events-none]="isAnalyzing()"
+          class="group relative rounded-2xl border-2 border-primary/50 glass p-6 transition-all duration-300 hover:border-primary hover:bg-primary/10 hover:scale-[1.01] hover:shadow-2xl shadow-primary/10 flex flex-col justify-between cursor-pointer"
+        >
+          <div class="absolute -top-3.5 right-6 z-20 inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-full bg-primary text-white border border-blue-300/40 shadow-xl">
+            <i class="pi pi-sparkles text-[11px]"></i>
+            <span>{{ 'dashboard.logoChoice.ai.badge' | translate }}</span>
+          </div>
+
+          <div>
+            <div class="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center mb-5 group-hover:bg-primary/20 transition-colors">
+              @if (isAnalyzing()) {
+                <i class="pi pi-spin pi-spinner text-xl text-primary"></i>
+              } @else {
+                <i class="pi pi-bolt text-xl text-primary"></i>
+              }
+            </div>
+
+            <h3 class="text-xl font-bold text-text-primary group-hover:text-primary transition-colors mb-2">
+              @if (isAnalyzing()) {
+                {{ 'dashboard.logoChoice.postImport.analyzing' | translate }}
+              } @else {
+                {{ 'dashboard.logoChoice.postImport.improve.title' | translate }}
+              }
+            </h3>
+
+            <p class="text-sm text-text-tertiary leading-relaxed mb-6">
+              {{ 'dashboard.logoChoice.postImport.improve.description' | translate }}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            [disabled]="isAnalyzing()"
+            class="w-full py-3 px-4 rounded-xl bg-primary text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 group-hover:bg-primary/90 transition-all duration-200 disabled:opacity-50"
+          >
+            @if (isAnalyzing()) {
+              <i class="pi pi-spin pi-spinner text-xs"></i>
+              <span>{{ 'dashboard.logoChoice.postImport.analyzing' | translate }}</span>
+            } @else {
+              <span>{{ 'dashboard.logoChoice.postImport.improve.title' | translate }}</span>
+              <i class="pi pi-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+            }
+          </button>
+        </div>
+
+      </div>
+    </div>
+  }
 </section>
+

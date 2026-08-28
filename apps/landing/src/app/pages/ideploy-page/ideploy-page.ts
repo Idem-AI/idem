@@ -74,8 +74,8 @@ export class IdeployPage implements OnInit {
       description: $localize`:@@ideploy.feature5.description:Staging, preview, and production environments with easy promotion between stages.`,
     },
     {
-      title: $localize`:@@ideploy.feature6.title:IDEV Integration`,
-      description: $localize`:@@ideploy.feature6.description:Seamlessly deploy applications built with IDEV. The perfect end-to-end workflow.`,
+      title: $localize`:@@ideploy.feature6.title:iCode Integration`,
+      description: $localize`:@@ideploy.feature6.description:Seamlessly deploy applications built with iCode. The perfect end-to-end workflow.`,
     },
   ];
 

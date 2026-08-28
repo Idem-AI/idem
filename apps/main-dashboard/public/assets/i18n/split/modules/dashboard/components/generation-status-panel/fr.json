@@ -1,0 +1,51 @@
+{
+  "dashboard": {
+    "generationPanel": {
+      "incompleteTitle": "Génération incomplète",
+      "incompleteSubtitle": "La génération a été interrompue. Reprenez-la pour obtenir les sections manquantes.",
+      "completeTitle": "Génération terminée",
+      "status": {
+        "complete": "Générée",
+        "missing": "Manquante",
+        "empty": "Incomplète"
+      },
+      "actions": {
+        "resume": "Compléter la génération",
+        "regenerateAll": "Tout régénérer",
+        "regenerateSection": "Régénérer",
+        "regenerateSectionAria": "Régénérer la section {{section}}",
+        "showSections": "Voir les sections",
+        "hideSections": "Masquer les sections"
+      },
+      "sections": {
+        "businessPlan": {
+          "Cover Page": "Page de couverture",
+          "Company Summary": "Présentation de l'entreprise",
+          "Opportunity": "Opportunité",
+          "Target Audience": "Audience cible",
+          "Products & Services": "Produits et services",
+          "Marketing & Sales": "Marketing et ventes",
+          "Financial Plan": "Plan financier",
+          "Goal Planning": "Planification des objectifs",
+          "Appendix": "Annexes"
+        },
+        "branding": {
+          "Brand Header": "En-tête de marque",
+          "Logo Principal": "Logo principal",
+          "Logo Variation Fond Clair": "Logo — fond clair",
+          "Logo Variation Fond Sombre": "Logo — fond sombre",
+          "Logo Variation Monochrome": "Logo — monochrome",
+          "Logo Bonnes Pratiques": "Bonnes pratiques du logo",
+          "Color Palette": "Palette de couleurs",
+          "Typography": "Typographie",
+          "Brand Mockup 1": "Mockup 1",
+          "Brand Mockup 2": "Mockup 2",
+          "Brand Mockup 3": "Mockup 3"
+        }
+      },
+      "completeSubtitle": "Toutes les sections sont générées. Vous pouvez en régénérer une si besoin.",
+      "sectionsLabel": "sections",
+      "progressAria": "{{completed}} sections générées sur {{total}}"
+    }
+  }
+}

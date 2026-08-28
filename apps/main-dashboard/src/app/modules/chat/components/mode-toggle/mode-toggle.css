@@ -1,3 +1,12 @@
 :host {
   display: block;
 }
+
+/* Ensure the inner-button design system styles fit the compact sidebar toggle layout */
+.inner-button {
+  padding: 0.375rem 0.75rem !important; /* py-1.5 px-3 */
+  font-size: 0.75rem !important; /* text-xs */
+  text-transform: none !important; /* preserve title-case capitalization */
+  border-radius: var(--radius-lg) !important; /* match rounded-lg */
+  font-weight: 500 !important; /* match font-medium */
+}
