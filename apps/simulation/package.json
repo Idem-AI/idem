@@ -1,0 +1,69 @@
+{
+  "name": "simulation",
+  "version": "1.0.0",
+  "description": "IDEM Simulator — Angular 22 CSR app to stress-test a business project before launching it.",
+  "scripts": {
+    "ng": "ng",
+    "env:dev": "node mynode.js",
+    "env:prod": "NODE_ENV=production node mynode.js",
+    "prestart": "npm run env:dev",
+    "start": "ng serve --host 0.0.0.0 --port 4203",
+    "dev": "npm run start",
+    "prebuild": "npm run env:prod",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "lint": "ng lint",
+    "lint:fix": "ng lint --fix"
+  },
+  "prettier": {
+    "printWidth": 100,
+    "singleQuote": true,
+    "overrides": [
+      {
+        "files": "*.html",
+        "options": {
+          "parser": "angular"
+        }
+      }
+    ]
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/cdk": "^22.0.0",
+    "@angular/common": "^22.0.0",
+    "@angular/compiler": "^22.0.0",
+    "@angular/core": "^22.0.0",
+    "@angular/forms": "^22.0.0",
+    "@angular/platform-browser": "^22.0.0",
+    "@angular/router": "^22.0.0",
+    "@idem/shared-styles": "file:../../packages/shared-styles",
+    "@ngx-translate/core": "^18.0.0",
+    "@ngx-translate/http-loader": "^18.0.0",
+    "@primeuix/themes": "^3.0.0",
+    "@tailwindcss/postcss": "^4.3.3",
+    "postcss": "^8.5.6",
+    "primeicons": "^7.0.0",
+    "primeng": "^22.1.0",
+    "rxjs": "~7.8.0",
+    "tailwindcss": "^4.3.3",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^22.0.0",
+    "@angular/cli": "^22.0.0",
+    "@angular/compiler-cli": "^22.0.0",
+    "@types/jasmine": "~5.1.0",
+    "angular-eslint": "^22.0.0",
+    "dotenv": "^16.4.7",
+    "eslint": "^9.0.0",
+    "jasmine-core": "~5.9.0",
+    "karma": "~6.4.0",
+    "karma-chrome-launcher": "~3.2.0",
+    "karma-coverage": "~2.2.0",
+    "karma-jasmine": "~5.1.0",
+    "karma-jasmine-html-reporter": "~2.1.0",
+    "typescript": "~6.0.0",
+    "typescript-eslint": "^8.46.2"
+  }
+}

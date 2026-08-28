@@ -4,8 +4,6 @@
 
 /* Note: Applications using this design system should import Tailwind CSS themselves */
 
-@import url('https://fonts.googleapis.com/css2?family=Jura:wght@300;400;500;600;700&display=swap');
-
 /* Dual theme (dark + light). The active theme is driven by the `.dark` / `.light`
    class on <html> (set by each app's ThemeService / boot script from the shared
    `idem_theme` cookie, defaulting to the browser's prefers-color-scheme). */

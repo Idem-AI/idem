@@ -1,0 +1,308 @@
+/* ============================================================================
+   IDEM Simulator — feuille de styles globale
+   ----------------------------------------------------------------------------
+   Le design system IDEM est la seule source de vérité. Rien n'est redéfini ici :
+   ce fichier se contente (1) d'aliaser les tokens du design system vers des
+   noms d'utilitaires lisibles et (2) de re-pointer ces mêmes tokens en thème
+   clair, que le design system ne couvre pas puisqu'il est sombre par nature.
+   ============================================================================ */
+
+/* Ordre d'import repris du dashboard IDEM. */
+@import '@idem/shared-styles/styles.css';
+@import 'tailwindcss';
+@import 'primeicons/primeicons.css';
+
+/* Alias attendus par le design system, comme dans le dashboard. */
+@theme {
+  --color-secondary: var(--color-accent-500);
+  --color-accent: var(--color-accent-500);
+}
+
+/* ----------------------------------------------------------------------------
+   Alias sémantiques
+   `@theme inline` conserve la référence var() dans l'utilitaire généré : les
+   classes suivent donc le thème actif au lieu d'être figées à la compilation.
+   ---------------------------------------------------------------------------- */
+
+@theme inline {
+  --color-canvas: var(--color-bg-dark);
+  --color-canvas-deep: var(--color-bg-darker);
+  --color-brand: var(--color-primary);
+  --color-brand-soft: var(--color-primary-400);
+
+  --color-ink: var(--color-text-primary);
+  --color-ink-muted: var(--color-text-secondary);
+  --color-ink-subtle: var(--color-text-tertiary);
+  --color-line: var(--glass-border);
+  --color-line-strong: var(--glass-border-strong);
+  --color-panel: var(--color-surface-1);
+  --color-panel-raised: var(--color-surface-2);
+  --color-panel-sunken: var(--color-surface-3);
+
+  --color-verdict-go: var(--color-success);
+  --color-verdict-warn: var(--color-warning);
+  --color-verdict-stop: var(--color-danger);
+  --color-verdict-info: var(--color-info);
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --shadow-raised: var(--glass-shadow-lg);
+}
+
+/* ----------------------------------------------------------------------------
+   Échelle typographique
+   Le design system expose des variables de taille mais pas d'utilitaires
+   Tailwind : on déclare ici une échelle courte et fixe, pour que les écrans
+   n'aient jamais à choisir entre douze tailles voisines.
+   ---------------------------------------------------------------------------- */
+
+@theme {
+  --text-meta: 0.8125rem;
+  --text-meta--line-height: 1.15rem;
+  --text-label: 0.875rem;
+  --text-label--line-height: 1.25rem;
+  --text-h3: 1.0625rem;
+  --text-h3--line-height: 1.5rem;
+  --text-h2: 1.375rem;
+  --text-h2--line-height: 1.85rem;
+  --text-h1: 1.75rem;
+  --text-h1--line-height: 2.2rem;
+  --text-display: 2.5rem;
+  --text-display--line-height: 2.85rem;
+
+  --color-brand-ink: #ffffff;
+}
+
+/* ----------------------------------------------------------------------------
+   Thèmes
+   Le design system fournit les deux palettes, portées par les classes `.dark`
+   et `.light` posées sur la racine par ThemeService. Il ne reste ici que ce
+   qu'il ne couvre pas.
+   ---------------------------------------------------------------------------- */
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+html[data-theme='light'] {
+  color-scheme: light;
+}
+
+/* ----------------------------------------------------------------------------
+   Base
+   Le design system fixe un fond sombre en dur ; on le repointe sur le token
+   pour que le thème clair soit un vrai thème et non un rustine.
+   ---------------------------------------------------------------------------- */
+
+body {
+  background-color: var(--color-bg-dark);
+  color: var(--color-text-primary);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+html[data-theme='light'] body {
+  /* La grille de fond du design system est blanche : invisible en clair. */
+  background-image:
+    linear-gradient(to right, rgba(20, 30, 60, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(20, 30, 60, 0.045) 1px, transparent 1px);
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 0.35rem;
+}
+
+::selection {
+  background: color-mix(in oklch, var(--color-primary) 35%, transparent);
+  color: var(--color-text-primary);
+}
+
+* {
+  scrollbar-color: var(--glass-border-strong) transparent;
+  scrollbar-width: thin;
+}
+
+/* ----------------------------------------------------------------------------
+   Compléments au design system
+   Uniquement ce qu'il ne fournit pas : états de chargement, entrées, et une
+   variante compacte des boutons pour les barres d'outils denses.
+   ---------------------------------------------------------------------------- */
+
+@keyframes sim-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-surface-2);
+  border-radius: 0.5rem;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklch, var(--color-text-primary) 8%, transparent),
+    transparent
+  );
+  animation: sim-shimmer 1.4s infinite;
+}
+
+@keyframes sim-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: sim-rise 260ms var(--ease-out-quint) both;
+}
+
+/* Entrée décalée d'une liste, l'index étant passé en `--i`. */
+.rise-stagger {
+  animation: sim-rise 320ms var(--ease-out-quint) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+/* ----------------------------------------------------------------------------
+   Boutons
+   Les boutons du design system sont en capitales : lisible pour un CTA de
+   landing, illisible pour une barre d'outils. On garde le style et on rend la
+   casse au texte dans l'application.
+   ---------------------------------------------------------------------------- */
+
+.inner-button,
+.outer-button,
+.button-ghost {
+  text-transform: none;
+  letter-spacing: normal;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  white-space: nowrap;
+}
+
+.inner-button.button-sm,
+.outer-button.button-sm,
+.button-ghost.button-sm {
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-lg);
+}
+
+/* Bouton réduit à son icône : même surface tactile qu'un bouton compact. */
+.button-ghost.button-icon-only {
+  padding: var(--spacing-2);
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  border-color: transparent;
+  color: var(--color-text-secondary);
+}
+
+.button-ghost.button-icon-only:hover {
+  color: var(--color-text-primary);
+  border-color: var(--glass-border);
+}
+
+/* ----------------------------------------------------------------------------
+   Lien de navigation
+   Défini en une classe plutôt qu'en utilitaires : l'état actif doit gagner sur
+   le survol de façon fiable, ce que l'ordre des utilitaires ne garantit pas.
+   ---------------------------------------------------------------------------- */
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-2-5) var(--spacing-3);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  transition:
+    background-color var(--duration-150) var(--ease-out),
+    color var(--duration-150) var(--ease-out);
+}
+
+.nav-link:hover {
+  background: var(--glass-bg-light);
+  color: var(--color-text-primary);
+}
+
+.nav-link-active,
+.nav-link-active:hover {
+  background: var(--color-primary);
+  color: #ffffff;
+  box-shadow: 0 6px 18px var(--color-primary-glow-subtle);
+}
+
+/* Champ de formulaire aligné sur les inputs natifs du design system. */
+.field {
+  width: 100%;
+  display: block;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-3) var(--spacing-4);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  transition: border-color var(--duration-200) var(--ease-out);
+}
+
+.field::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.field:hover:not(:disabled) {
+  border-color: var(--glass-border-strong);
+}
+
+.field:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.field[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .skeleton::after {
+    display: none;
+  }
+}

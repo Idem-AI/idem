@@ -1,0 +1,85 @@
+<sim-lab-panel
+  lab="blackSwan"
+  [heading]="'lab.blackSwan.heading' | translate"
+  [body]="'lab.blackSwan.body' | translate"
+>
+  @if (report(); as report) {
+    <div class="flex flex-col gap-5">
+      @if (absorption() !== null) {
+        <div class="glass-card p-5">
+          <h3 class="text-label font-semibold text-ink-muted">
+            {{ 'lab.blackSwan.absorption' | translate }}
+          </h3>
+          <p class="mt-1 text-display font-semibold tabular-nums text-ink">{{ absorption() }} %</p>
+          <p class="mt-1 max-w-[65ch] text-meta leading-relaxed text-ink-subtle">
+            {{ 'lab.blackSwan.absorptionHint' | translate }}
+          </p>
+        </div>
+      }
+
+      <ul class="flex flex-col gap-3">
+        @for (event of report.events; track event.id) {
+          <li class="glass-card p-5">
+            <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h3 class="text-sm font-semibold text-ink">{{ event.title }}</h3>
+              <span class="text-meta text-ink-subtle">
+                {{ 'likelihood.' + event.likelihood | translate }}
+              </span>
+              @if (event.outcome; as outcome) {
+                <span
+                  class="ml-auto inline-flex items-center gap-1.5 text-meta font-semibold"
+                  [class.text-verdict-go]="outcome.survives"
+                  [class.text-verdict-stop]="!outcome.survives"
+                >
+                  <span class="size-1.5 rounded-full bg-current" aria-hidden="true"></span>
+                  {{ (outcome.survives ? 'scenario.holdsYes' : 'scenario.holdsNo') | translate }}
+                </span>
+              }
+            </div>
+
+            <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">{{ event.description }}</p>
+
+            @if (event.shifts.length) {
+              <ul class="mt-3 flex flex-wrap gap-1.5">
+                @for (shift of event.shifts; track shift.factorId + shift.label) {
+                  <li class="rounded-full border border-line px-2.5 py-1 text-meta text-ink-muted">
+                    {{ shift.label }} <span class="font-semibold text-ink">{{ shift.delta }}</span>
+                  </li>
+                }
+              </ul>
+            }
+
+            @if (event.outcome; as outcome) {
+              <dl class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div>
+                  <dt class="text-meta text-ink-subtle">{{ 'scenario.viability' | translate }}</dt>
+                  <dd class="text-sm font-semibold tabular-nums text-ink">{{ outcome.viability }}</dd>
+                </div>
+                <div>
+                  <dt class="text-meta text-ink-subtle">{{ 'scenario.runway' | translate }}</dt>
+                  <dd class="text-sm tabular-nums text-ink-muted">
+                    {{
+                      outcome.runwayMonths === null
+                        ? '—'
+                        : ('scenario.monthsN' | translate: { months: outcome.runwayMonths })
+                    }}
+                  </dd>
+                </div>
+                <div class="col-span-2">
+                  <dt class="text-meta text-ink-subtle">{{ 'lab.blackSwan.lowestCash' | translate }}</dt>
+                  <dd class="text-sm tabular-nums text-ink-muted">
+                    {{ outcome.lowestCash.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) }}
+                  </dd>
+                </div>
+              </dl>
+            }
+
+            <p class="mt-3 border-t border-line pt-3 text-meta leading-relaxed text-ink-muted">
+              {{ event.survivalNarrative }}
+            </p>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</sim-lab-panel>

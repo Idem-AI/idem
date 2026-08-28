@@ -100,6 +100,7 @@ import ideployRoutes from './routes/ideploy.routes';
 import appgenRoutes from './routes/appgen.routes';
 import { communicationRoutes } from './routes/communication.routes';
 import { financeRoutes } from './routes/finance.routes';
+import { simulationRoutes } from './routes/simulation.routes';
 
 const app: Express = express();
 const port = process.env.PORT || 3001;
@@ -170,6 +171,7 @@ app.use('/project', advisorRoutes);
 app.use('/project', onboardingRoutes);
 app.use('/project', deploymentRoutes);
 app.use('/project', developmentRoutes);
+app.use('/project', simulationRoutes);
 app.use('/auth', authRoutes);
 app.use('/auth', userRoutes);
 app.use('/prompt', promptRoutes);

@@ -1,0 +1,176 @@
+/* ============================================================================
+   IDEM SIMULATOR — landing page
+   ============================================================================ */
+
+:host {
+  display: block;
+
+  /* The fan is drawn in SVG, which cannot use Tailwind's theme utilities on
+     strokes, so its palette lives here and flips with the app theme. Light
+     values first: the cyan/blue of the dark design is unreadable on a light
+     background, so both hues are darkened rather than reused as-is. */
+  --fan-break: #d24a30;
+  --fan-hold: #0891b2;
+  --fan-ref: #1447e6;
+  --fan-threshold: rgba(15, 23, 42, 0.3);
+  --fan-grid: rgba(15, 23, 42, 0.07);
+  --fan-label: rgba(15, 23, 42, 0.55);
+}
+
+:host-context(html.dark) {
+  --fan-break: #f4735d;
+  --fan-hold: #22d3ee;
+  --fan-ref: #4f7dff;
+  --fan-threshold: rgba(255, 255, 255, 0.22);
+  --fan-grid: rgba(255, 255, 255, 0.05);
+  --fan-label: rgba(255, 255, 255, 0.5);
+}
+
+.fan-break path {
+  stroke: var(--fan-break);
+  stroke-opacity: 0.55;
+}
+
+.fan-hold path {
+  stroke: var(--fan-hold);
+  stroke-opacity: 0.9;
+}
+
+.fan-ref {
+  stroke: var(--fan-ref);
+}
+
+.fan-grid line {
+  stroke: var(--fan-grid);
+}
+
+.fan-threshold {
+  stroke: var(--fan-threshold);
+}
+
+.fan-label {
+  fill: var(--fan-label);
+  font-size: 18px;
+  letter-spacing: 0.08em;
+}
+
+/* The chart keeps its viewBox but loses width on a phone, so the only way to
+   keep the annotation readable is to grow it in user units. */
+@media (max-width: 767px) {
+  .fan-label {
+    font-size: 30px;
+  }
+}
+
+.fan-dot-hold circle {
+  fill: var(--fan-hold);
+}
+
+.fan-dot-ref {
+  fill: var(--fan-ref);
+}
+
+.fan-origin {
+  fill: var(--fan-ref);
+}
+
+.fan-origin-ring {
+  stroke: var(--fan-ref);
+  stroke-opacity: 0.4;
+  transform-origin: 150px 320px;
+  animation: fan-pulse 3s ease-in-out infinite;
+  animation-delay: 1.2s;
+}
+
+/* The legend chips are HTML, but they name the strokes above, so they read
+   from the same variables instead of guessing a matching Tailwind colour. */
+.legend-ref {
+  background: var(--fan-ref);
+}
+
+.legend-hold {
+  background: var(--fan-hold);
+}
+
+.legend-break {
+  background: var(--fan-break);
+}
+
+.legend-threshold {
+  border-top: 2px dashed var(--fan-label);
+}
+
+/* The scenario fan draws itself once, left to right, so the divergence reads
+   as something that happens rather than something that was always there.
+   `pathLength="1"` normalises every curve, so one dash rule covers them all. */
+.fan path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: fan-draw 1.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.fan-break path:nth-child(1) { animation-delay: 0.05s; }
+.fan-break path:nth-child(2) { animation-delay: 0.12s; }
+.fan-break path:nth-child(3) { animation-delay: 0.19s; }
+.fan-break path:nth-child(4) { animation-delay: 0.26s; }
+.fan-break path:nth-child(5) { animation-delay: 0.33s; }
+.fan-break path:nth-child(6) { animation-delay: 0.4s; }
+.fan-hold path:nth-child(1) { animation-delay: 0.5s; }
+.fan-hold path:nth-child(2) { animation-delay: 0.58s; }
+.fan-hold path:nth-child(3) { animation-delay: 0.66s; }
+.fan-ref { animation-delay: 0.78s; }
+
+/* The endpoints belong to curves that are still being drawn: they appear once
+   their trajectory has arrived. */
+.fan-dot-hold circle,
+.fan-dot-ref {
+  opacity: 0;
+  animation: fan-dot-in 0.4s ease-out forwards;
+}
+
+.fan-dot-hold circle:nth-child(1) { animation-delay: 1.5s; }
+.fan-dot-hold circle:nth-child(2) { animation-delay: 1.58s; }
+.fan-dot-hold circle:nth-child(3) { animation-delay: 1.66s; }
+.fan-dot-ref { animation-delay: 1.8s; }
+
+@keyframes fan-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes fan-dot-in {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fan-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    stroke-opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.18);
+    stroke-opacity: 0.12;
+  }
+}
+
+/* The fan is content, not decoration: it must be fully drawn either way. */
+@media (prefers-reduced-motion: reduce) {
+  .fan path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+
+  .fan-dot-hold circle,
+  .fan-dot-ref {
+    animation: none;
+    opacity: 1;
+  }
+
+  .fan-origin-ring {
+    animation: none;
+  }
+}
