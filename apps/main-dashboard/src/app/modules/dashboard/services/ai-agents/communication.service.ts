@@ -14,6 +14,13 @@ import {
   EditorialCalendar,
   Flyer,
   FlyerFormat,
+  MomentIdea,
+  MomentSuggestion,
+  VisualIntent,
+  Publication,
+  PublicationStatus,
+  SocialNetwork,
+  AssistedShare,
 } from '../../models/communication.model';
 
 @Injectable({ providedIn: 'root' })
@@ -102,7 +109,76 @@ export class CommunicationService {
       .pipe(catchError((err) => throwError(() => err)));
   }
 
+  /** GET /project/communication/:projectId/moments/suggestions */
+  getMomentSuggestions(
+    projectId: string,
+    opts: { force?: boolean } = {},
+  ): Observable<MomentSuggestion[]> {
+    const q = opts.force ? '?force=true' : '';
+    return this.http
+      .get<MomentSuggestion[]>(`${this.apiUrl}/${projectId}/moments/suggestions${q}`)
+      .pipe(catchError((err) => throwError(() => err)));
+  }
+
+  /** POST /project/communication/:projectId/moments */
+  createMoment(
+    projectId: string,
+    input: {
+      occasion: string;
+      occasionDate?: string;
+      message?: string;
+      intent?: VisualIntent;
+      channel?: ContentIdea['channel'];
+      source?: 'suggestion' | 'custom';
+    },
+  ): Observable<MomentIdea> {
+    return this.http
+      .post<MomentIdea>(`${this.apiUrl}/${projectId}/moments`, input)
+      .pipe(catchError((err) => throwError(() => err)));
+  }
+
+  /** POST /project/communication/:projectId/publish (assisted) */
+  preparePublication(
+    projectId: string,
+    input: { contentId: string; network: SocialNetwork; flyerId?: string; scheduledFor?: string },
+  ): Observable<{ publication: Publication; share: AssistedShare }> {
+    return this.http
+      .post<{ publication: Publication; share: AssistedShare }>(
+        `${this.apiUrl}/${projectId}/publish`,
+        input,
+      )
+      .pipe(catchError((err) => throwError(() => err)));
+  }
+
+  /** PUT /project/communication/:projectId/publish/:publicationId */
+  updatePublication(
+    projectId: string,
+    publicationId: string,
+    patch: { status?: PublicationStatus; externalUrl?: string; scheduledFor?: string },
+  ): Observable<Publication> {
+    return this.http
+      .put<Publication>(`${this.apiUrl}/${projectId}/publish/${publicationId}`, patch)
+      .pipe(catchError((err) => throwError(() => err)));
+  }
+
   /** GET on-demand flyer image blob */
+  /**
+   * PUT le HTML d'un visuel retouché dans l'éditeur WYSIWYG. L'API oublie le PNG
+   * en cache : l'`imageUrl` du visuel ne change pas, son contenu si.
+   */
+  updateFlyerHtml(projectId: string, flyerId: string, html: string): Observable<Flyer> {
+    return this.http
+      .put<Flyer>(`${this.apiUrl}/${projectId}/flyer/${flyerId}/html`, { html })
+      .pipe(catchError((err) => throwError(() => err)));
+  }
+
+  /** POST une consigne de retouche IA sur un visuel ; renvoie le visuel modifié. */
+  aiEditFlyer(projectId: string, flyerId: string, instruction: string): Observable<Flyer> {
+    return this.http
+      .post<Flyer>(`${this.apiUrl}/${projectId}/flyer/${flyerId}/ai-edit`, { instruction })
+      .pipe(catchError((err) => throwError(() => err)));
+  }
+
   downloadFlyerImage(projectId: string, flyerId: string): Observable<Blob> {
     return this.http
       .get(`${this.apiUrl}/${projectId}/flyer/${flyerId}/image`, {

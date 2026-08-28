@@ -1,42 +1,29 @@
-export const GENERIC_JSON_FORMAT_PROMPT = `
-You are an expert AI assistant that generates perfect JSON output for web applications.
+export const GENERIC_JSON_FORMAT_PROMPT = `<objective>Generate perfect JSON output for web applications.</objective>
 
-STRICT REQUIREMENTS:
-1. Output ONLY raw JSON in this exact format:
+<output_schema>
 {"content":"[CONTENT]","summary":"[SUMMARY]"}
+</output_schema>
 
-2. For content:
-- Can be HTML, plain text, or Markdown.
-- Remove ALL line breaks and tabs if the content is HTML.
-- Keep content in a single line if it is HTML.
-- Escape ONLY what's necessary if the content is HTML: " → \\", / → \\/.
-- Preserve original formatting for plain text or Markdown.
+<requirements>
+- Output ONLY raw JSON matching the schema. No pretty-printing, explanations, code blocks, or trailing commas.
+- For "content" field:
+  * Can be HTML, plain text, or Markdown.
+  * If HTML: Remove all line breaks/tabs (keep on a single line), escape double quotes (\") and slashes (\/).
+  * If plain text or Markdown: Preserve original formatting.
+- For "summary" field:
+  * Single line, max 500 characters, escape quotes.
+- If output is invalid/error, return: {"content":"","summary":""}
+</requirements>
 
-3. For summary:
-- Single line only
-- Max 500 chars
-- Escape quotes
+<examples>
+- HTML: {"content":"<div class=\\"header\\"><h1>Title</h1><p>Content</p></div>","summary":"Header section"}
+- Plain Text: {"content":"This is a simple text example.","summary":"Simple text"}
+- Markdown: {"content":"# Markdown Example\n* List item 1","summary":"Markdown list"}
+</examples>
 
-4. NEVER INCLUDE:
-- Pretty-printed JSON
-- Markdown formatting (except within the content, if applicable)
-- Explanations
-- Code blocks
-- Trailing commas
-
-TECHNICAL RULES:
-1. Test output with:
-   JSON.parse(yourOutput)
-2. If invalid, return:
-   {"content":"","summary":""}
-
-EXAMPLE OUTPUTS:
-- HTML: {"content":"<div class=\\"header\\"><h1>Title</h1><p>Content</p></div>","summary":"Header section with title"}
-- Plain Text: {"content":"This is a simple text example.","summary":"Simple text example"}
-- Markdown: {"content":"# Markdown Example\n* List item 1\n* List item 2","summary":"Markdown list example"}
-
-ERROR CASES:
-- If HTML contains unescaped " → INVALID
-- If HTML contains \n or \t → INVALID
-- If HTML contains --> or /* */ → INVALID
+<error_conditions>
+- HTML contains unescaped " -> INVALID
+- HTML contains \n or \t -> INVALID
+- HTML contains --> or /* */ -> INVALID
+</error_conditions>
 `;

@@ -1,67 +1,64 @@
 {
   "dashboard": {
     "showDevelopment": {
-      "title": "Configuration prête",
-      "subtitle": "Votre stack technologique est configurée. Lancez la génération pour créer votre application complète.",
-      "landingPage": {
-        "title": "Votre Landing Page est Prête à Générer",
-        "subtitle": "Votre configuration est finalisée. Lancez la génération pour créer votre landing page professionnelle et moderne en quelques minutes.",
-        "cta": "Générer ma Landing Page",
-        "features": {
-          "modern": {
-            "title": "Design Moderne",
-            "description": "Interface élégante et responsive"
-          },
-          "seo": {
-            "title": "Optimisé SEO",
-            "description": "Référencement naturel optimisé"
-          },
-          "customizable": {
-            "title": "Personnalisable",
-            "description": "Facilement modifiable selon vos besoins"
-          }
-        }
+      "liveApp": "Application en ligne",
+      "deployed": "Déployée",
+      "lastUpdated": "Dernière mise à jour :",
+      "linkCopied": "Lien copié",
+      "copyLink": "Copier le lien",
+      "open": "Ouvrir",
+      "landingReady": "Votre Site Vitrine<br/>est prêt.",
+      "landingReadyToGenerate": "Votre Site Vitrine<br/>est prêt à être généré.",
+      "landingExistingDesc": "Reprenez la conversation iCode là où vous l'aviez laissée pour faire évoluer votre page.",
+      "landingNewDesc": "Votre configuration est finalisée. Lancez la génération pour créer votre site vitrine professionnel et moderne en quelques minutes.",
+      "resumeInIcode": "Reprendre dans iCode",
+      "generateLanding": "Générer le site vitrine",
+      "features": {
+        "design": "Design Moderne",
+        "designDesc": "Interface élégante, responsive et adaptée à votre identité visuelle.",
+        "seo": "Optimisé SEO",
+        "seoDesc": "Structure sémantique et performances optimisées pour le référencement naturel.",
+        "customizable": "Personnalisable",
+        "customizableDesc": "Code clair et modulaire, facilement modifiable selon vos futurs besoins."
       },
-      "buttons": {
-        "generate": "Générer l'application",
-        "preview": "Aperçu",
-        "export": "Exporter la configuration",
-        "edit": "Modifier la configuration"
-      },
-      "sections": {
-        "frontend": "Frontend",
-        "backend": "Backend",
-        "database": "Base de données",
-        "projectConfig": "Configuration du projet",
-        "constraints": "Contraintes"
-      },
-      "techStack": {
-        "styling": "Style",
-        "stateManagement": "Gestion d'état",
-        "features": "Fonctionnalités",
-        "orm": "ORM",
-        "noFeatures": "Aucune fonctionnalité configurée"
-      },
-      "projectFeatures": {
-        "seo": "SEO",
-        "contactForm": "Formulaire de contact",
-        "analytics": "Analytique",
-        "i18n": "i18n",
-        "performance": "Performance",
-        "authentication": "Authentification",
-        "authorization": "Autorisation",
-        "uiTheme": "Thème UI",
-        "payment": "Paiement",
-        "enabled": "Activé",
-        "disabled": "Désactivé",
-        "optimized": "Optimisé",
-        "standard": "Standard",
-        "integrated": "Intégré",
-        "notIntegrated": "Non intégré",
-        "modern": "Moderne"
-      },
-      "customOptions": "Options personnalisées",
-      "technicalDetails": "Détails techniques"
+      "appExistingTitle": "Environnement généré.",
+      "appNewTitle": "Configuration technique finalisée.",
+      "appExistingDesc": "Reprenez la conversation iCode là où vous l'aviez laissée : votre code et votre historique sont restaurés automatiquement.",
+      "appNewDesc": "Votre stack technologique est configurée. Lancez la génération pour créer votre application complète.",
+      "generateApp": "Générer l'application",
+      "preview": "Aperçu",
+      "exportConfig": "Exporter Config",
+      "stackOverview": "Vue d'ensemble de la stack",
+      "frontend": "Frontend",
+      "backend": "Backend",
+      "database": "Base de données",
+      "configDetails": "Détails de configuration",
+      "clientLayer": "Couche Client",
+      "clientLayerDesc": "Définition de l'interface utilisateur, de l'expérience client et de la gestion d'état.",
+      "version": "Version",
+      "styling": "Styling",
+      "stateManagement": "State Management",
+      "enabledFeatures": "Fonctionnalités activées",
+      "serverLayer": "Couche Serveur",
+      "serverLayerDesc": "Logique métier, architecture API et gestion des données complexes.",
+      "language": "Langage",
+      "framework": "Framework",
+      "apiType": "API Type",
+      "orm": "ORM",
+      "apiFeatures": "Fonctionnalités API",
+      "persistence": "Persistance",
+      "persistenceDesc": "Infrastructure de base de données et gestion de l'état persistant.",
+      "configurations": "Configurations",
+      "globals": "Globales",
+      "globalsDesc": "Paramètres de projet transversaux et contraintes spécifiques.",
+      "seo": "SEO",
+      "i18n": "i18n",
+      "auth": "Auth",
+      "enabled": "Activé",
+      "disabled": "Désactivé",
+      "secured": "Sécurisé",
+      "public": "Public",
+      "imposedConstraints": "Contraintes Imposées"
     }
   }
 }

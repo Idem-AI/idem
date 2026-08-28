@@ -4,6 +4,8 @@ import {
   deletePitchDeckController,
   generatePitchDeckStreamingController,
   generatePitchDeckPdfController,
+  savePitchDeckSectionsController,
+  aiEditPitchDeckSectionController,
 } from '../controllers/pitchDeck.controller';
 import { authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
@@ -55,6 +57,36 @@ pitchDeckRoutes.get(`/${resourceName}/:projectId`, authenticate, getPitchDeckCon
  *     summary: Delete pitch deck for a project
  */
 pitchDeckRoutes.delete(`/${resourceName}/:projectId`, authenticate, deletePitchDeckController);
+
+/**
+ * @openapi
+ * /pitchDecks/{projectId}/sections:
+ *   put:
+ *     tags: [Pitch Deck]
+ *     summary: Save edited pitch deck slides (WYSIWYG editor)
+ *     security: [{ bearerAuth: [] }]
+ */
+pitchDeckRoutes.put(
+  `/${resourceName}/:projectId/sections`,
+  authenticate,
+  savePitchDeckSectionsController
+);
+
+/**
+ * @openapi
+ * /pitchDecks/{projectId}/sections/{sectionId}/ai-edit:
+ *   post:
+ *     tags: [Pitch Deck]
+ *     summary: AI-assisted edit of a single pitch deck slide
+ *     security: [{ bearerAuth: [] }]
+ */
+pitchDeckRoutes.post(
+  `/${resourceName}/:projectId/sections/:sectionId/ai-edit`,
+  authenticate,
+  checkPolicyAcceptance,
+  checkQuota,
+  aiEditPitchDeckSectionController
+);
 
 /**
  * @openapi

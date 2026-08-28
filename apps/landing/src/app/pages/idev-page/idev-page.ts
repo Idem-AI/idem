@@ -23,7 +23,7 @@ export class IdevPage implements OnInit {
     {
       number: '01',
       title: $localize`:@@idev.step1.title:Describe Your Idea`,
-      description: $localize`:@@idev.step1.description:Tell IDEV what you want to build. Describe your app in plain language — no technical expertise required.`,
+      description: $localize`:@@idev.step1.description:Tell iCode what you want to build. Describe your app in plain language — no technical expertise required.`,
     },
     {
       number: '02',
@@ -77,10 +77,10 @@ export class IdevPage implements OnInit {
 
   private setupSeo(): void {
     this.seoService.setupPageSeo({
-      title: $localize`:@@idev.seo.title:IDEV — AI App Generator & Code Builder by Idem`,
-      description: $localize`:@@idev.seo.description:Transformer votre idée en application SaaS ou mobile avec IDEV. Le générateur d'applications intelligent de l'écosystème Idem. Code React/Next.js propre, souveraineté numérique et déploiement instantané.`,
+      title: $localize`:@@idev.seo.title:iCode — AI App Generator & Code Builder by Idem`,
+      description: $localize`:@@idev.seo.description:Transformer votre idée en application SaaS ou mobile avec iCode. Le générateur d'applications intelligent de l'écosystème Idem. Code React/Next.js propre, souveraineté numérique et déploiement instantané.`,
       path: '/idev',
-      keywords: 'generateur de code IA, AI app generator, build SaaS with AI, code generation, React builder, Next.js generator, software development automation, Idem, IDEV, African tech innovation, AI startup tools',
+      keywords: 'generateur de code IA, AI app generator, build SaaS with AI, code generation, React builder, Next.js generator, software development automation, Idem, iCode, African tech innovation, AI startup tools',
       ogImage: `${this.seoService.domain}/assets/seo/og-image.webp`,
     });
   }
@@ -92,8 +92,8 @@ export class IdevPage implements OnInit {
     const structuredData = {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
-      name: 'IDEV',
-      alternateName: 'IDEV by Idem',
+      name: 'iCode',
+      alternateName: 'iCode by Idem',
       description: 'AI-powered application generator. Transform your idea into a fully functional web application with full-stack code generation, real-time preview, and AI-driven iteration.',
       url: `${this.seoService.domain}/idev`,
       applicationCategory: 'DeveloperApplication',

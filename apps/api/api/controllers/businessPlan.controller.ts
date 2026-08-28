@@ -5,6 +5,10 @@ import { PromptService } from '../services/prompt.service';
 import logger from '../config/logger';
 import { userService } from '../services/user.service';
 import { ISectionResult } from '../services/common/generic.service';
+import { projectService } from '../services/project.service';
+import { ResearchStreamEvent } from '../services/research/research.types';
+import { getRequestLanguage } from '../utils/request-language';
+import { sectionEditingService } from '../services/common/section-editing.service';
 
 // Create instances of the services
 const promptService = new PromptService();
@@ -191,6 +195,102 @@ export const updateBusinessPlanController = async (
   }
 };
 
+/**
+ * Contrôleur pour sauvegarder les sections éditées dans l'éditeur WYSIWYG.
+ * Body: { sections: SectionModel[] }. Persiste sur le projet et invalide le PDF.
+ */
+export const saveBusinessPlanSectionsController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId } = req.params;
+  logger.info(`saveBusinessPlanSectionsController called - UserId: ${userId}, ProjectId: ${projectId}`);
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    if (!projectId) {
+      res.status(400).json({ message: 'Project ID is required' });
+      return;
+    }
+    const { sections } = req.body ?? {};
+    if (!Array.isArray(sections)) {
+      res.status(400).json({ message: 'A "sections" array is required' });
+      return;
+    }
+
+    const updated = await sectionEditingService.saveSections(
+      userId,
+      projectId as string,
+      'businessPlan',
+      sections
+    );
+    if (!updated) {
+      res.status(404).json({ message: 'Business plan not found for the project' });
+      return;
+    }
+    res.status(200).json(updated);
+  } catch (error: any) {
+    logger.error(
+      `Error in saveBusinessPlanSectionsController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
+      { stack: error.stack }
+    );
+    res.status(500).json({ message: error.message || 'Failed to save business plan sections' });
+  }
+};
+
+/**
+ * Contrôleur d'édition IA d'une section. Body: { instruction: string }.
+ * Retourne { section, businessPlan } avec le HTML régénéré par l'IA.
+ */
+export const aiEditBusinessPlanSectionController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId, sectionId } = req.params;
+  logger.info(
+    `aiEditBusinessPlanSectionController called - UserId: ${userId}, ProjectId: ${projectId}, SectionId: ${sectionId}`
+  );
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    if (!projectId || !sectionId) {
+      res.status(400).json({ message: 'Project ID and section ID are required' });
+      return;
+    }
+    const instruction = (req.body?.instruction ?? '').toString().trim();
+    if (!instruction) {
+      res.status(400).json({ message: 'An "instruction" is required' });
+      return;
+    }
+
+    const result = await sectionEditingService.aiEditSection(
+      userId,
+      projectId as string,
+      'businessPlan',
+      sectionId as string,
+      instruction,
+      getRequestLanguage()
+    );
+    if (!result) {
+      res.status(404).json({ message: 'Section not found or AI edit failed' });
+      return;
+    }
+    res.status(200).json(result);
+  } catch (error: any) {
+    logger.error(
+      `Error in aiEditBusinessPlanSectionController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
+      { stack: error.stack }
+    );
+    res.status(500).json({ message: error.message || 'Failed to AI-edit business plan section' });
+  }
+};
+
 export const deleteBusinessPlanController = async (
   req: CustomRequest,
   res: Response
@@ -247,30 +347,24 @@ export const generateBusinessPlanStreamingController = async (
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no'); // Pour Nginx
 
-    // Fonction de callback pour envoyer chaque résultat d'étape
+    // Écriture d'un message SSE (avec flush immédiat).
+    const writeSSE = (payload: unknown) => {
+      res.write(`data: ${JSON.stringify(payload)}\n\n`);
+      (res as any).flush?.();
+    };
+
+    // Callback de l'ancien flux (mode classic) — conservé en repli.
     const streamCallback = async (stepResult: ISectionResult) => {
       try {
-        // Déterminer le type d'événement
         const eventType = stepResult.parsedData?.status || 'progress';
-
-        // Créer un message structuré pour le frontend
-        const message = {
-          type: eventType, // 'started', 'completed', 'progress'
+        writeSSE({
+          type: eventType,
           stepName: stepResult.name,
           data: stepResult.data,
           summary: stepResult.summary,
           timestamp: new Date().toISOString(),
           ...(stepResult.parsedData && { parsedData: stepResult.parsedData }),
-        };
-
-        // Formatage du message SSE
-        res.write(`data: ${JSON.stringify(message)}\n\n`);
-        // On force l'envoi immédiat si la fonction flush est disponible
-        (res as any).flush?.();
-
-        logger.info(
-          `Streamed step ${eventType} - UserId: ${userId}, ProjectId: ${projectId}, Step: ${stepResult.name}`
-        );
+        });
       } catch (error: any) {
         logger.error(
           `Error streaming step result - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
@@ -279,37 +373,68 @@ export const generateBusinessPlanStreamingController = async (
       }
     };
 
-    // Appel au service avec le callback de streaming
-    const updatedProject = await businessPlanService.generateBusinessPlanWithStreaming(
-      userId,
-      projectId as string,
-      streamCallback // Passer le callback de streaming
+    const forceRegenerate = req.query.force === 'true' || req.body.force === true;
+    const useClassic = req.query.mode === 'classic';
+
+    // Sections ciblées à régénérer (ex: ?sections=Financial%20Plan,Appendix)
+    const sectionsParam = typeof req.query.sections === 'string' ? req.query.sections : '';
+    const targetSections = sectionsParam
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    // Fetch project to see if this is a retry/resume
+    const project = await projectService.getUserProjectById(userId, projectId as string);
+    const isRetry = !!(
+      project &&
+      !forceRegenerate &&
+      (project.analysisResultModel?.businessPlan?.sections?.length ?? 0) > 0
     );
+
+    let updatedProject;
+    if (useClassic) {
+      updatedProject = await businessPlanService.generateBusinessPlanWithStreaming(
+        userId,
+        projectId as string,
+        streamCallback,
+        forceRegenerate,
+        targetSections
+      );
+    } else {
+      // Nouveau flux: équipe d'agents de recherche sourcée + salle de contrôle.
+      // Chaque ResearchStreamEvent est diffusé tel quel au frontend.
+      const emit = async (event: ResearchStreamEvent) => writeSSE(event);
+      updatedProject = await businessPlanService.generateBusinessPlanWithResearchTeam(
+        userId,
+        projectId as string,
+        emit,
+        forceRegenerate,
+        targetSections
+      );
+    }
 
     if (!updatedProject) {
       logger.warn(`Failed to generate business plan - UserId: ${userId}, ProjectId: ${projectId}`);
-      res.write(
-        `data: ${JSON.stringify({
-          error: 'Failed to generate business plan',
-        })}\n\n`
-      );
+      writeSSE({ error: 'Failed to generate business plan' });
       res.end();
       return;
     }
 
-    // Obtenir le business plan du projet mis à jour
     const newBusinessPlan = updatedProject.analysisResultModel?.businessPlan;
 
     logger.info(`Business plan generation completed - UserId: ${userId}, ProjectId: ${projectId}`);
-    userService.incrementUsage(userId, 5);
 
-    // Envoyer un événement de fin
-    res.write(
-      `data: ${JSON.stringify({
-        type: 'complete',
-        businessPlan: newBusinessPlan,
-      })}\n\n`
-    );
+    if (!isRetry) {
+      userService.incrementUsage(userId, 5);
+      logger.info(`Charged 5 credits for user ${userId} on Business Plan completion.`);
+    } else {
+      logger.info(`Exempted user ${userId} from credit charge because this is a retry/resume.`);
+    }
+
+    // Événement métier de fin (le business plan complet).
+    writeSSE({ type: 'complete', businessPlan: newBusinessPlan });
+    // Événement de fin technique (convention existante → fermeture propre du SSE).
+    writeSSE({ type: 'completed', stepName: 'completion', data: 'all_steps_completed' });
     res.end();
   } catch (error: any) {
     logger.error(

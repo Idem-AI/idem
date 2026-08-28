@@ -5,19 +5,19 @@
     >
       <i class="pi pi-sparkles text-primary text-xl"></i>
     </div>
-    <h1 class="text-2xl sm:text-3xl font-bold text-white mb-2">
+    <h1 class="text-2xl sm:text-3xl font-bold text-text-primary mb-2">
       {{ 'dashboard.createProject.foundations.title' | translate }}
     </h1>
-    <p class="text-sm text-gray-400">
+    <p class="text-sm text-text-tertiary">
       {{ 'dashboard.createProject.foundations.subtitle' | translate }}
     </p>
   </div>
 
   <div class="w-full max-w-xl">
-    <div class="rounded-2xl p-5 sm:p-6 border border-white/10 glass space-y-5">
+    <div class="rounded-2xl p-5 sm:p-6 border border-[var(--glass-border)] glass space-y-5">
       <!-- Description -->
       <div>
-        <label for="foundDesc" class="block text-sm font-medium text-gray-200 mb-2">
+        <label for="foundDesc" class="block text-sm font-medium text-text-secondary mb-2">
           {{ 'dashboard.createProject.foundations.descriptionLabel' | translate }}
         </label>
         <textarea
@@ -33,7 +33,7 @@
       <!-- Nom + Type -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label for="foundName" class="block text-sm font-medium text-gray-200 mb-2">
+          <label for="foundName" class="block text-sm font-medium text-text-secondary mb-2">
             {{ 'dashboard.createProject.foundations.nameLabel' | translate }}
           </label>
           <input
@@ -47,7 +47,7 @@
           />
         </div>
         <div>
-          <label for="foundType" class="block text-sm font-medium text-gray-200 mb-2">
+          <label for="foundType" class="block text-sm font-medium text-text-secondary mb-2">
             {{ 'dashboard.createProject.foundations.typeLabel' | translate }}
           </label>
           <p-select

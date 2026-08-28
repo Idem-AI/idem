@@ -1,39 +1,39 @@
-export const AGENT_COVER_PROMPT = `
-You are a world-class editorial art director. Design a FULL-PAGE cover for a business plan that feels like a premium publication — completely unique to THIS specific company and industry.
+export const AGENT_COVER_PROMPT = `<role>World-class editorial art director</role>
+<objective>Design a FULL-PAGE cover for a business plan that feels like a premium publication, custom-made for the target company and industry.</objective>
 
-CRITICAL CREATIVE RULE:
-Do NOT fall back on generic "gradient with centered text" layouts. Study the company name, industry, description, and brand colors, then invent a UNIQUE visual concept that captures the essence of THIS business. Every cover must be radically different from the last.
+<concept_creation>
+1. Study company name, industry, and description.
+2. Formulate a unique visual metaphor reflecting the business (e.g., pathways for logistics, flowing shapes for wellness, data streams for AI).
+3. Select a layout archetype: split-screen, editorial grid, full-bleed typography, diagonal slice, typographic sculpture, or negative space (avoid plain centered text on gradient).
+4. Strictly use the brand colors (bg-[#hex], text-[#hex]).
+</concept_creation>
 
-CONCEPT INVENTION PROCESS:
-1. Read the company name, industry, and description
-2. Identify a VISUAL METAPHOR that captures the business essence (e.g., a logistics company → interconnected routes forming abstract patterns; a wellness brand → organic flowing shapes suggesting calm; an AI startup → data streams converging into clarity)
-3. Choose a LAYOUT ARCHETYPE: split-screen, editorial grid, full-bleed typography, diagonal slice, circular composition, typographic sculpture, negative-space art — NOT always centered text on gradient
-4. Design around the brand's ACTUAL colors using bg-[#hex]
+<mandatory_elements>
+- Company name (dominant visual hero element).
+- Subtitle: "Plan d'Affaires Stratégique" or creative equivalent.
+- Date and version (elegantly integrated, replace {{currentDate}} and {{companyName}}).
+- At least one bold visual element representing the company's identity.
+</mandatory_elements>
 
-A4 PAGE FIT (NON-NEGOTIABLE):
-- The outermost element MUST use: w-[210mm] h-[297mm] overflow-hidden relative
-- Internal safe padding: p-[12mm] (content must not touch edges)
-- ALL content must fit within this 210×297mm box — nothing may overflow
-- Do NOT use min-h-screen — use h-[297mm] exactly
-- Use the brand's real colors via Tailwind arbitrary values bg-[#hex], text-[#hex]
+<page_format>
+- The cover is a FIXED full-bleed page: it is rendered as-is, never re-flowed nor stretched by the paginator.
+- Outermost container: w-[210mm] h-[297mm] relative overflow-hidden (EXACT A4 height, not min-h).
+- Compose within these bounds: full-bleed backgrounds are welcome, absolutely positioned elements are supported, but NOTHING may exceed the page — anything past 297mm is clipped.
+- Keep a safe margin of at least 15mm around text.
+</page_format>
 
-TECHNICAL RULES:
-- Raw HTML + Tailwind CSS utilities only, single minified line
-- PrimeIcons (pi pi-icon-name) — already loaded, no CDN
-- Replace {{companyName}} and {{currentDate}} with actual project values
-- WCAG AA contrast compliance
-- No custom CSS, no JS, no <style> tags
+<technical_rules>
+- Output ONLY raw HTML + Tailwind CSS utilities in a single minified line.
+- PrimeIcons (pi pi-icon-name) are preloaded, no external CDN.
+- Ensure WCAG AA contrast compliance.
+- No custom CSS, JS, or <style> tags.
+- Do NOT output markdown code blocks (e.g., \`\`\`html) or prefix with "html".
+</technical_rules>
 
-MANDATORY ELEMENTS:
-- Company name as dominant visual element
-- "Plan d'Affaires Stratégique" or creative equivalent subtitle
-- Date and version, elegantly integrated
-- At least one bold visual element that reinforces the company's unique identity
+<editor_compatibility>
+- The output is edited afterwards in a visual (Figma-like) editor: put visible text in leaf elements (h1..h6, p, span, li, td), keep a clear block structure, and use NO inline event handlers.
+- Any Chart.js chart MUST be a <canvas> with a UNIQUE id, followed by ONE inline <script> calling new Chart(document.getElementById('THAT_ID'), {...}) with options.animation=false (one chart per canvas, no Chart.js <script src> tag).
+</editor_compatibility>
 
-IMPORTANT:
-- Do NOT add any "html" tag or prefix on output
-- Do NOT reuse the same layout concept across different companies
-- The output must feel custom-designed for this specific client
-
-PROJECT CONTEXT:
+<project_context>
 `;

@@ -13,7 +13,15 @@ export const redisOptions: RedisOptions = {
   enableReadyCheck: false,
 };
 
-const redis = new Redis(redisOptions);
+/**
+ * Standalone client for caching and ad-hoc commands.
+ *
+ * `lazyConnect` so importing this module never opens a socket: the API can boot
+ * and answer /health (reporting `redis: false`) while Redis is still starting,
+ * and tests that import a route graph do not silently hold a connection open.
+ * BullMQ keeps its own eager connections — see queue/queues.ts.
+ */
+const redis = new Redis({ ...redisOptions, lazyConnect: true });
 
 redis.on('connect', () => logger.info('Connected to Redis'));
 redis.on('error', (err: Error) => logger.error('Redis error', { message: err.message }));

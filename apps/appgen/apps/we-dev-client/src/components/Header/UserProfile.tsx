@@ -45,7 +45,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-white/10 transition-colors"
+        className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
       >
         <div
           className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0 ${user.photoURL ? '' : 'bg-purple-500'}`}
@@ -58,13 +58,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
           {!user.photoURL && initials}
         </div>
         <div className="hidden md:block text-left">
-          <div className="text-[13px] font-medium text-white truncate max-w-[100px]">
+          <div className="text-[13px] font-medium text-gray-900 dark:text-white truncate max-w-[100px]">
             {displayName}
           </div>
-          <div className="text-[11px] text-gray-400 uppercase">{user.subscription}</div>
+          <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase">{user.subscription}</div>
         </div>
         <svg
-          className="w-3 h-3 text-gray-400 hidden md:block"
+          className="w-3 h-3 text-gray-500 dark:text-gray-400 hidden md:block"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -74,16 +74,16 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-1 w-52 bg-gray-900 border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden">
-          <div className="px-4 py-3 border-b border-white/10">
-            <div className="text-sm font-semibold text-white truncate">{displayName}</div>
-            <div className="text-xs text-gray-400 truncate">{user.email}</div>
+        <div className="absolute right-0 mt-1 w-52 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl shadow-xl z-50 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-200 dark:border-white/10">
+            <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{displayName}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</div>
           </div>
           <a
             href={`${mainAppUrl}/console`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-colors"
             onClick={() => setOpen(false)}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,7 +98,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
           </a>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-white/10 hover:text-red-300 transition-colors"
+            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-red-700 dark:hover:text-red-300 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path

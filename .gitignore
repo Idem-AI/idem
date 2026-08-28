@@ -7,8 +7,6 @@
 /build
 .npm-cache
 
-CLAUDE.md
-
 # Node
 node_modules
 npm-debug.log
@@ -113,3 +111,5 @@ docker-compose.staging.yml
 apps/ideploy/public/hot
 apps/chart/vite.config.js.timestamp-1776724487404-1ec21a1d67413.mjs
 apps/api/firebase-key.json
+
+docs/business-plan

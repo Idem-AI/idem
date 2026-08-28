@@ -1,1 +1,56 @@
 /* About Page Styles */
+:host {
+  display: block;
+}
+
+/* Values: ghost numbers */
+.ab-num {
+  color: color-mix(in oklch, var(--color-primary) 55%, transparent);
+  letter-spacing: -0.05em;
+  min-width: 2ch;
+}
+
+/* Journey timeline */
+.ab-timeline-line {
+  position: absolute;
+  left: 4px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: var(--glass-border-medium);
+  display: none;
+}
+.ab-milestone::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 9px;
+  height: 9px;
+  border-radius: 9999px;
+  background: var(--color-primary);
+  display: none;
+}
+.ab-year {
+  color: var(--color-primary);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.ab-year-inline {
+  color: var(--color-primary);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+@media (min-width: 640px) {
+  .ab-timeline-line,
+  .ab-milestone::before {
+    display: block;
+  }
+  .ab-milestone {
+    padding-left: 5rem;
+  }
+  .ab-year {
+    left: 1.9rem;
+  }
+}

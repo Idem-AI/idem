@@ -1,0 +1,167 @@
+<!--
+  Un SEUL bloc pour les deux états (complet / incomplet) : même en-tête, même
+  barre de progression, même liste de sections. Seuls la couleur d'accent, le
+  message et la présence des actions de reprise changent — l'utilisateur
+  n'a donc qu'une lecture à apprendre, et la barre segmentée montre
+  immédiatement ce qui est fait et ce qui manque.
+-->
+<section
+  class="glass-card p-5 mb-6"
+  [class.status-panel--warning]="!completeness().isComplete"
+  role="region"
+  [attr.aria-label]="headingKey() | translate"
+>
+  <div class="flex items-start gap-4">
+    <span class="status-badge" [class.is-warning]="!completeness().isComplete" aria-hidden="true">
+      @if (completeness().isComplete) {
+        <i class="pi pi-check text-sm"></i>
+      } @else {
+        <i class="pi pi-exclamation-triangle text-sm"></i>
+      }
+    </span>
+
+    <div class="flex-1 min-w-0">
+      <h3 class="text-base font-semibold text-text-primary m-0">
+        {{ headingKey() | translate }}
+      </h3>
+      <p class="text-sm text-text-tertiary mt-1 mb-0">
+        @if (completeness().isComplete) {
+          {{ 'dashboard.generationPanel.completeSubtitle' | translate }}
+        } @else {
+          {{ 'dashboard.generationPanel.incompleteSubtitle' | translate }}
+        }
+      </p>
+    </div>
+
+    <!-- Compteur : l'information la plus utile, lisible d'un coup d'œil. -->
+    <p class="m-0 text-right shrink-0">
+      <span
+        class="text-2xl font-bold leading-none"
+        [class.text-text-primary]="completeness().isComplete"
+        [class.text-yellow-500]="!completeness().isComplete"
+      >
+        {{ completeness().completedCount }}
+      </span>
+      <span class="text-sm text-text-tertiary">/ {{ completeness().totalCount }}</span>
+      <span class="block text-[11px] uppercase tracking-wider text-text-tertiary mt-0.5">
+        {{ 'dashboard.generationPanel.sectionsLabel' | translate }}
+      </span>
+    </p>
+  </div>
+
+  <!-- Barre segmentée : une case par section, dans l'ordre du document. -->
+  <div
+    class="flex gap-1 mt-4"
+    role="img"
+    [attr.aria-label]="
+      'dashboard.generationPanel.progressAria'
+        | translate: { completed: completeness().completedCount, total: completeness().totalCount }
+    "
+  >
+    @for (item of completeness().items; track item.name) {
+      <span
+        class="h-1.5 flex-1 rounded-full"
+        [class.bg-primary]="item.status === 'complete'"
+        [class.bg-yellow-500]="item.status === 'empty'"
+        [class.bg-[var(--glass-border-medium)]]="item.status === 'missing'"
+        [title]="
+          (sectionLabelPrefix() ? (sectionLabelPrefix() + item.name | translate) : item.name) +
+          ' — ' +
+          ('dashboard.generationPanel.status.' + item.status | translate)
+        "
+      ></span>
+    }
+  </div>
+
+  <!-- Actions -->
+  <div class="flex items-center gap-2.5 flex-wrap mt-4">
+    @if (!completeness().isComplete) {
+      <button
+        type="button"
+        class="inner-button !text-sm !py-2.5 !px-5"
+        [disabled]="disabled()"
+        (click)="resume.emit()"
+      >
+        <i class="pi pi-play text-xs" aria-hidden="true"></i>
+        <span>{{ 'dashboard.generationPanel.actions.resume' | translate }}</span>
+      </button>
+    }
+    <button
+      type="button"
+      class="panel-ghost-button"
+      [disabled]="disabled()"
+      (click)="regenerateAll.emit()"
+    >
+      <i class="pi pi-refresh text-xs" aria-hidden="true"></i>
+      <span>{{ 'dashboard.generationPanel.actions.regenerateAll' | translate }}</span>
+    </button>
+
+    <button
+      type="button"
+      class="panel-ghost-button ml-auto"
+      [attr.aria-expanded]="expanded()"
+      aria-controls="generation-sections-list"
+      (click)="toggleExpanded()"
+    >
+      <i
+        class="pi pi-chevron-down text-xs chevron"
+        [class.is-open]="expanded()"
+        aria-hidden="true"
+      ></i>
+      <span>
+        {{
+          (expanded()
+            ? 'dashboard.generationPanel.actions.hideSections'
+            : 'dashboard.generationPanel.actions.showSections'
+          ) | translate
+        }}
+      </span>
+    </button>
+  </div>
+
+  <!-- Détail par section -->
+  @if (expanded()) {
+    <ul id="generation-sections-list" class="section-grid">
+      @for (item of completeness().items; track item.name) {
+        <li class="section-row" [class.is-pending]="item.status !== 'complete'">
+          <span
+            class="section-dot"
+            [class.is-complete]="item.status === 'complete'"
+            [class.is-empty]="item.status === 'empty'"
+            aria-hidden="true"
+          ></span>
+
+          <span class="min-w-0 flex-1">
+            <span class="block text-sm text-text-primary truncate">
+              {{ sectionLabelPrefix() ? (sectionLabelPrefix() + item.name | translate) : item.name }}
+            </span>
+            @if (item.status !== 'complete') {
+              <span class="block text-[11px] uppercase tracking-wider text-yellow-500">
+                {{ 'dashboard.generationPanel.status.' + item.status | translate }}
+              </span>
+            }
+          </span>
+
+          <button
+            type="button"
+            class="section-action"
+            [disabled]="disabled()"
+            [attr.aria-label]="
+              'dashboard.generationPanel.actions.regenerateSectionAria'
+                | translate
+                  : {
+                      section: sectionLabelPrefix()
+                        ? (sectionLabelPrefix() + item.name | translate)
+                        : item.name,
+                    }
+            "
+            (click)="onRegenerateSection(item.name)"
+          >
+            <i class="pi pi-refresh text-[11px]" aria-hidden="true"></i>
+            <span>{{ 'dashboard.generationPanel.actions.regenerateSection' | translate }}</span>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</section>

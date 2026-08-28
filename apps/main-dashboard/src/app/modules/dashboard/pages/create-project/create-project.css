@@ -163,24 +163,34 @@ section {
   }
 }
 
-/* Chat container fixed height to prevent outer scrolling */
+/* Chat viewport : hauteur fixe sous la navbar/toggle pour éviter tout scroll
+   externe. Seul le fil de messages (interne) défile. `dvh` gère la barre
+   d'URL mobile. Le `margin-top` positionne le viewport sous le toggle fixe. */
 .chat-viewport-standard {
-  height: calc(100vh - 138px);
+  height: calc(100dvh - 138px);
+  margin-top: 138px;
+  padding: 0.5rem 1rem 1rem;
 }
 
 @media (max-width: 640px) {
   .chat-viewport-standard {
-    height: calc(100vh - 104px);
+    height: calc(100dvh - 104px);
+    margin-top: 104px;
+    padding: 0.5rem 0.75rem 0.75rem;
   }
 }
 
 .chat-viewport-banner {
-  height: calc(100vh - 190px);
+  height: calc(100dvh - 190px);
+  margin-top: 190px;
+  padding: 0.5rem 1rem 1rem;
 }
 
 @media (max-width: 640px) {
   .chat-viewport-banner {
-    height: calc(100vh - 156px);
+    height: calc(100dvh - 156px);
+    margin-top: 156px;
+    padding: 0.5rem 0.75rem 0.75rem;
   }
 }
 

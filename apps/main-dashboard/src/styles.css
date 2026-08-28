@@ -9,54 +9,27 @@
   --color-accent: var(--color-accent-500);
 }
 
+/* Force standard project font Jura globally */
+* {
+  font-family: 'Jura', sans-serif !important;
+}
+
+/* Permit code segments, icons, and preformatted areas to keep their respective fonts */
+code, pre, i, .pi, [class^="pi-"], [class*=" pi-"] {
+  font-family: inherit !important;
+}
+.pi, [class^="pi-"], [class*=" pi-"] {
+  font-family: 'primeicons' !important;
+}
+
 /* PrimeNG Icons */
 @import 'primeicons/primeicons.css';
 
-/* Force Dark Theme Globally */
-:root {
-  color-scheme: dark !important;
-}
+/* Tailwind v4 dark variant, driven by the `.dark` class on <html> (set by the
+   theme boot script / ThemeService from the shared `idem_theme` cookie). */
+@custom-variant dark (&:where(.dark, .dark *));
 
-/* Override system light mode preferences */
-@media (prefers-color-scheme: light) {
-  :root {
-    color-scheme: dark !important;
-  }
-
-  html {
-    background-color: #0f141b !important;
-    color: #ffffff !important;
-  }
-
-  body {
-    background-color: #0f141b !important;
-    color: #ffffff !important;
-  }
-}
-
-
-
-html.light {
-  background-color: #0f141b !important;
-  color: #ffffff !important;
-}
-
-/* Ensure PrimeNG components always use dark theme */
-.p-component,
-.p-dialog,
-.p-overlay,
-.p-menu,
-.p-dropdown,
-.p-select,
-.p-checkbox,
-.p-radiobutton,
-.p-inputtext,
-.p-textarea,
-.p-button {
-  color-scheme: dark !important;
-}
-
-/* Override any potential light backgrounds */
+/* Dialogs / overlays follow the design-system tokens (both themes). */
 .p-dialog,
 .p-dialog .p-dialog-header,
 .p-dialog .p-dialog-content,
@@ -65,23 +38,23 @@ html.light {
 .p-menu .p-menu-list,
 .p-dropdown-panel,
 .p-select-overlay {
-  background-color: #0f141b !important;
-  color: #ffffff !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
+  background-color: var(--color-surface-1);
+  color: var(--color-text-primary);
+  border-color: var(--glass-border);
 }
 
 .p-dialog .p-dialog-header .p-dialog-title {
-  color: #ffffff !important;
+  color: var(--color-text-primary);
 }
 
 .p-dialog .p-dialog-header .p-dialog-header-icon,
 .p-dialog .p-dialog-header .p-dialog-close-icon {
-  color: rgba(255, 255, 255, 0.6) !important;
+  color: var(--color-text-secondary);
 }
 
 .p-dialog .p-dialog-header .p-dialog-header-icon:hover {
-  color: #ffffff !important;
-  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: var(--color-text-primary);
+  background-color: var(--glass-bg-subtle);
 }
 
 /* Angular-specific or project-specific styles can be added below */
@@ -183,3 +156,245 @@ html.light {
   .choice-check { animation: none; }
   .choice-enter { animation: none; }
 }
+
+/* ============================================================================
+   FORGE — placeholder animé d'une carte dont le visuel est en cours de calcul.
+   Utilisé par les étapes de génération de logo et de déclinaisons : la zone
+   d'aperçu reste vivante (grille technique, balayage, formes à l'essai) tant
+   que le SVG n'est pas arrivé, au lieu d'un carré gris figé.
+   Les teintes sont neutres à dessein : la même zone est posée sur du blanc,
+   du gris clair (#f3f4f6) et du gris foncé (#1f2937).
+   ============================================================================ */
+
+.forge-canvas {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  --forge-ink: rgba(100, 116, 139, 0.75);
+  --forge-line: rgba(100, 116, 139, 0.2);
+}
+
+/* Grille technique, atténuée sur les bords. */
+.forge-canvas::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, var(--forge-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--forge-line) 1px, transparent 1px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 35%, transparent 78%);
+  mask-image: radial-gradient(ellipse at center, #000 35%, transparent 78%);
+}
+
+/* Tête de lecture qui balaie la zone. */
+.forge-canvas::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 38%;
+  top: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(99, 102, 241, 0.24) 45%,
+    rgba(99, 102, 241, 0.38) 50%,
+    transparent
+  );
+  animation: forge-scan 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Trois pistes graphiques alignées : elles restent visibles en permanence et
+   s'illuminent chacune à leur tour, comme des options passées en revue. */
+.forge-ghost {
+  flex-shrink: 0;
+  border: 2px solid var(--forge-ink);
+  opacity: 0.26;
+  animation: forge-try 4.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.forge-ghost--a {
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+}
+
+.forge-ghost--b {
+  width: 30px;
+  height: 30px;
+  border-radius: 5px;
+  rotate: 45deg;
+  animation-delay: 1.4s;
+}
+
+.forge-ghost--c {
+  width: 44px;
+  height: 16px;
+  border-radius: 9999px;
+  animation-delay: 2.8s;
+}
+
+/* Fil d'activité sur le bord haut de la zone d'aperçu. */
+.forge-worm {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.forge-worm::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 38%;
+  /* `primary-400` et non `primary` : le fil passe aussi bien sur le fond blanc
+     que sur le fond sombre #1f2937 des déclinaisons. */
+  background: linear-gradient(90deg, transparent, var(--color-primary-400), transparent);
+  animation: forge-worm-slide 1.7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Arrivée du visuel : il se pose au lieu d'apparaître d'un coup. */
+.forge-reveal {
+  animation: forge-reveal-in 520ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+
+@keyframes forge-scan {
+  0% {
+    transform: translateY(-100%);
+  }
+  70%,
+  100% {
+    transform: translateY(280%);
+  }
+}
+
+@keyframes forge-try {
+  0%,
+  100% {
+    opacity: 0.26;
+    scale: 1;
+  }
+  9%,
+  25% {
+    opacity: 1;
+    scale: 1.12;
+  }
+  34% {
+    opacity: 0.26;
+    scale: 1;
+  }
+}
+
+@keyframes forge-worm-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(360%);
+  }
+}
+
+@keyframes forge-reveal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+    filter: blur(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .forge-canvas::after,
+  .forge-worm::after {
+    animation: none;
+  }
+
+  .forge-canvas::after {
+    opacity: 0.35;
+    top: 30%;
+  }
+
+  .forge-ghost {
+    animation: none;
+    opacity: 0.6;
+  }
+
+  .forge-reveal {
+    animation: forge-reveal-fade 200ms linear both;
+  }
+}
+
+@keyframes forge-reveal-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Theme-reactive skeleton loaders with active wave shimmer */
+.skeleton-loader,
+.p-skeleton {
+  position: relative !important;
+  overflow: hidden !important;
+  background-color: #e2e8f0 !important; /* Slate-200 base for clear light mode contrast */
+  animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+}
+
+.skeleton-loader::after,
+.p-skeleton::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  transform: translateX(-100%) !important;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.75) 50%,
+    transparent 100%
+  ) !important;
+  animation: skeleton-wave 1.5s infinite ease-in-out !important;
+}
+
+.dark .skeleton-loader,
+.dark .p-skeleton {
+  background-color: #1e293b !important; /* Slate-800 base for dark mode */
+}
+
+.dark .skeleton-loader::after,
+.dark .p-skeleton::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  ) !important;
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.65;
+  }
+}
+
+@keyframes skeleton-wave {
+  0% {
+    transform: translateX(-100%);
+  }
+  60%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+

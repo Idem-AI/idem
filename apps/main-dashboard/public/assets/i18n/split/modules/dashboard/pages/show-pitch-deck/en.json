@@ -3,6 +3,9 @@
     "showPitchDeck": {
       "loading": "Loading your pitch deck…",
       "title": "Pitch Deck",
+      "buttons": {
+        "edit": "Edit"
+      },
       "slide": "Slide",
       "allSlides": "All slides",
       "noProject": {

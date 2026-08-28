@@ -24,6 +24,7 @@ import { ChatConversationCategory, ChatConversationMeta } from '../../models/cha
 import { ModeToggleComponent } from '../mode-toggle/mode-toggle';
 import { BetaBadgeComponent } from '../../../../shared/components/beta-badge/beta-badge';
 import { LanguageSelectorComponent } from '../../../../shared/components/language-selector/language-selector';
+import { ThemeToggleComponent } from '../../../../shared/components/theme-toggle/theme-toggle';
 
 const COLLAPSED_STORAGE_KEY = 'chatSidebarCollapsed';
 
@@ -47,6 +48,7 @@ interface ConversationGroup {
     ModeToggleComponent,
     BetaBadgeComponent,
     LanguageSelectorComponent,
+    ThemeToggleComponent,
   ],
   templateUrl: './chat-sidebar.html',
   styleUrl: './chat-sidebar.css',

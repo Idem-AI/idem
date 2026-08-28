@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { viteCommonjs } from '@originjs/vite-plugin-commonjs';
 
-export default defineConfig(async ({ mode }) => {
+export default defineConfig(async ({ mode, command }) => {
   const glslPlugin = (await import('vite-plugin-glsl')).default;
 
   const env = loadEnv(mode, process.cwd(), '');
@@ -42,7 +42,7 @@ export default defineConfig(async ({ mode }) => {
       }),
     ],
 
-    base: './',
+    base: command === 'build' ? './' : '/',
     build: {
       outDir: 'dist',
       emptyOutDir: true,

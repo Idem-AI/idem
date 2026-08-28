@@ -1,15 +1,15 @@
 <div
-  class="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden shadow-lg shadow-black/20"
+  class="w-full max-w-md rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] overflow-hidden shadow-lg shadow-black/20"
 >
-  <div class="flex items-center gap-3 p-4 border-b border-white/5">
+  <div class="flex items-center gap-3 p-4 border-b border-[var(--glass-border-subtle)]">
     <div
       class="w-10 h-10 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0"
     >
       <i class="pi pi-palette text-primary text-lg"></i>
     </div>
     <div class="min-w-0">
-      <h4 class="text-sm font-semibold text-white">{{ 'chat.branding.cards.colorsTitle' | translate }}</h4>
-      <p class="text-[11px] text-gray-500">{{ 'chat.branding.cards.colorsSubtitle' | translate }}</p>
+      <h4 class="text-sm font-semibold text-text-primary">{{ 'chat.branding.cards.colorsTitle' | translate }}</h4>
+      <p class="text-[11px] text-text-tertiary">{{ 'chat.branding.cards.colorsSubtitle' | translate }}</p>
     </div>
   </div>
 
@@ -33,11 +33,11 @@
         <!-- Bande de dégradé d'aperçu -->
         <span class="block h-12 w-full" [style.background]="gradient(option)"></span>
         <span class="flex items-center justify-between gap-2 px-3 py-2.5">
-          <span class="text-xs font-medium text-gray-200 truncate">{{ option.name }}</span>
+          <span class="text-xs font-medium text-text-secondary truncate">{{ option.name }}</span>
           <span class="flex items-center gap-1 shrink-0">
             @for (swatch of swatches(option); track $index) {
               <span
-                class="w-4 h-4 rounded-full border border-white/25"
+                class="w-4 h-4 rounded-full border border-[var(--glass-border-medium)]"
                 [style.background-color]="swatch"
               ></span>
             }

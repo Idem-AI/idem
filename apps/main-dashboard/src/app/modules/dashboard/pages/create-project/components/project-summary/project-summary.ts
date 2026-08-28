@@ -3,9 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ProjectModel } from '@idem/shared-models';
-import { SafeHtmlPipe } from '../../../projects-list/safehtml.pipe';
-import { ColorModel, TypographyModel } from '../../../../models/brand-identity.model';
-import { LogoModel } from '../../../../models/logo.model';
 import { environment } from '../../../../../../../environments/environment';
 import { ProjectService } from '../../../../services/project.service';
 import { CookieService } from '../../../../../../shared/services/cookie.service';
@@ -13,11 +10,12 @@ import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loa
 import { TranslateModule } from '@ngx-translate/core';
 import { switchMap } from 'rxjs';
 import { AuthService } from '../../../../../auth/services/auth.service';
+import CreateProjectDatas, { SelectElement } from '../../datas';
 
 @Component({
   selector: 'app-project-summary',
   standalone: true,
-  imports: [CommonModule, FormsModule, SafeHtmlPipe, RouterModule, Loader, TranslateModule],
+  imports: [CommonModule, FormsModule, RouterModule, Loader, TranslateModule],
   templateUrl: './project-summary.html',
   styleUrl: './project-summary.css',
 })
@@ -31,12 +29,6 @@ export class ProjectSummaryComponent implements OnInit {
 
   // Angular inputs
   readonly project = input.required<ProjectModel>();
-  readonly selectedLogo = input.required<string>();
-  readonly selectedColor = input.required<string>();
-  readonly selectedTypography = input.required<string>();
-  readonly logos = input.required<LogoModel[]>();
-  readonly colorPalettes = input.required<ColorModel[]>();
-  readonly typographyOptions = input.required<TypographyModel[]>();
   readonly privacyPolicyAccepted = input.required<boolean>();
   readonly termsOfServiceAccepted = input.required<boolean>();
   readonly betaPolicyAccepted = input.required<boolean>();
@@ -53,83 +45,75 @@ export class ProjectSummaryComponent implements OnInit {
   protected readonly isBeta = signal(environment.isBeta);
   protected readonly isSubmitting = signal(false);
 
+  protected readonly requiredCount = computed(() => (this.isBeta() ? 3 : 2));
+
+  protected readonly acceptedCount = computed(() => {
+    let count = 0;
+    if (this.privacyPolicyAccepted()) count++;
+    if (this.termsOfServiceAccepted()) count++;
+    if (this.isBeta() && this.betaPolicyAccepted()) count++;
+    return count;
+  });
+
   protected readonly canSubmit = computed(() => {
     const requiredPolicies = this.privacyPolicyAccepted() && this.termsOfServiceAccepted();
     const betaRequired = this.isBeta() ? this.betaPolicyAccepted() : true;
     return requiredPolicies && betaRequired;
   });
 
+  /** Résout un code d'option vers son libellé lisible (ou renvoie la valeur telle quelle). */
+  private labelFromCode(value: unknown, options: SelectElement[]): string {
+    if (typeof value === 'object' && value !== null) {
+      return (value as any).name || JSON.stringify(value);
+    }
+    if (typeof value === 'string' && value) {
+      return options.find((o) => o.code === value)?.name || value;
+    }
+    return 'Non spécifié';
+  }
+
   // Computed properties for formatted display
-  protected readonly formattedProjectType = computed(() => {
-    const type = this.project().type;
-    if (typeof type === 'object' && type !== null) {
-      return (type as any).name || JSON.stringify(type);
-    }
-    return type || 'Non spécifié';
-  });
+  protected readonly formattedProjectType = computed(() =>
+    this.labelFromCode(this.project().type, CreateProjectDatas.groupedProjectTypes),
+  );
 
-  protected readonly formattedScope = computed(() => {
-    const scope = this.project().scope;
-    if (typeof scope === 'object' && scope !== null) {
-      return (scope as any).name || JSON.stringify(scope);
-    }
-    return scope || 'Non spécifié';
-  });
+  protected readonly formattedScope = computed(() =>
+    this.labelFromCode(this.project().scope, CreateProjectDatas.groupedScopes),
+  );
 
-  protected readonly formattedTargets = computed(() => {
-    const targets = this.project().targets;
-    return targets || 'Non spécifié';
-  });
+  protected readonly formattedTargets = computed(() =>
+    this.labelFromCode(this.project().targets, CreateProjectDatas.groupedTargets),
+  );
 
-  protected readonly formattedBudget = computed(() => {
-    const budget = this.project().budgetIntervals;
-    if (typeof budget === 'object' && budget !== null) {
-      const budgetObj = budget as any;
-      if (budgetObj.min && budgetObj.max) {
-        return `${budgetObj.min} - ${budgetObj.max}`;
-      }
-      return budgetObj.name || JSON.stringify(budget);
+  protected readonly formattedCurrency = computed(() => {
+    const currency = (this.project() as any).currency;
+    if (typeof currency === 'string' && currency.trim()) {
+      return currency;
     }
-    return budget || 'Non spécifié';
+    return 'Non spécifiée';
   });
 
   ngOnInit(): void {
     console.log('=== PROJECT SUMMARY DEBUG ===');
     console.log('Project:', this.project());
-    console.log('Selected Logo ID:', this.selectedLogo());
-    console.log('Logos array:', this.logos());
-    console.log('Branding logo:', this.project().analysisResultModel?.branding?.logo);
-    console.log(
-      'Imported logo colors:',
-      this.project().analysisResultModel?.branding?.importedLogoColors,
-    );
     console.log('============================');
   }
 
-  // ✅ Computed signals pour éviter les boucles infinies
-  protected readonly selectedLogoData = computed<LogoModel | undefined>(() => {
-    // D'abord chercher dans la liste des logos générés
-    const logo = this.logos().find((logo) => logo.id === this.selectedLogo());
-    if (logo) {
-      return logo;
-    }
+  protected togglePrivacyPolicy(): void {
+    this.privacyPolicyChange.emit(!this.privacyPolicyAccepted());
+  }
 
-    // Si pas trouvé, c'est peut-être un logo importé
-    const importedLogo = this.project().analysisResultModel?.branding?.logo;
-    if (importedLogo) {
-      return importedLogo;
-    }
+  protected toggleTermsOfService(): void {
+    this.termsOfServiceChange.emit(!this.termsOfServiceAccepted());
+  }
 
-    return undefined;
-  });
+  protected toggleBetaPolicy(): void {
+    this.betaPolicyChange.emit(!this.betaPolicyAccepted());
+  }
 
-  protected readonly selectedColorData = computed<ColorModel | undefined>(() => {
-    return this.colorPalettes().find((color) => color.id === this.selectedColor());
-  });
-
-  protected readonly selectedTypographyData = computed<TypographyModel | undefined>(() => {
-    return this.typographyOptions().find((typo) => typo.id === this.selectedTypography());
-  });
+  protected toggleMarketingConsent(): void {
+    this.marketingConsentChange.emit(!this.marketingConsentAccepted());
+  }
 
   protected onPrivacyPolicyChange(event: Event): void {
     const checkbox = event.target as HTMLInputElement;

@@ -1,23 +1,22 @@
 import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
 
 export const SLIDE_PRODUCT_PROMPT = `
-You are designing the PRODUCT / HOW IT WORKS slide.
+<role>Senior pitch deck designer at a top-tier design agency</role>
+<objective>Design the PRODUCT / HOW IT WORKS slide — explain the workflow in clear steps with a polished product visual.</objective>
 
-GOAL:
-Explain how the solution works in 3 to 5 clear steps. The investor should grasp the mechanic in under 10 seconds.
+<mandatory_content>
+- Slide number "04 / 10" in text-xs tracking-widest text-[TEXT COLOR]/40 at top-right.
+- Headline: "Comment ça marche" in text-3xl font-bold text-[PRIMARY COLOR].
+- 3-4 numbered steps: each with a number badge (text-2xl font-bold text-[PRIMARY COLOR]) and a concise title (font-semibold text-[TEXT COLOR]) + 1-line explanation (text-sm text-[TEXT COLOR]/70). Connected by a thin vertical line (w-px bg-[PRIMARY COLOR]/20) between badges.
+- A product visual/mockup image using <img data-image-query="..." data-image-prompt="..." ... />
+</mandatory_content>
 
-MANDATORY CONTENT:
-- Slide number "04 / 10" top-right
-- Headline: "How it works" or equivalent
-- 3 to 5 numbered steps (01, 02, 03, ...), each with a 2-3 word title and a 1-line explanation
-- Optional closing line: outcome for the user ("Result: ...")
-
-LAYOUT:
-- Horizontal pipeline with thin connectors between steps (plain borders, no illustrations)
-- Or: vertical stack on the left + large numeral on the right
-- No screenshots, no fake UIs — this is a conceptual flow, not a product demo
+<layout>
+- Split layout: Left 45% with headline and vertical step timeline. Right 55% with product image container (bg-[PRIMARY COLOR]/5 rounded-2xl p-4 overflow-hidden) housing the product visual.
+- Step timeline: badges aligned vertically with connecting line, labels to the right of each badge.
+</layout>
 
 ${PITCH_DECK_SHARED_RULES}
 
-PROJECT CONTEXT:
+<project_context>
 `;

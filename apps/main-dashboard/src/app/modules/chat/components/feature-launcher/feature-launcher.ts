@@ -14,7 +14,9 @@ export interface FeatureSelection {
 
 interface FeatureTile {
   kind: DeliverableKind;
-  image: string;
+  /** Illustration PNG optionnelle ; à défaut, on affiche l'icône du livrable. */
+  image?: string;
+  icon: string;
   titleKey: string;
   descKey: string;
   state: FeatureState;
@@ -23,19 +25,25 @@ interface FeatureTile {
 
 interface FeatureMeta {
   kind: DeliverableKind;
-  image: string;
+  /** Illustration partagée avec le tableau de bord (absente → icône). */
+  image?: string;
   descKey: string;
   /** Nécessite une identité de marque complète (logo + couleurs + typo) */
   needsBrandIdentity?: boolean;
 }
 
 // Illustrations partagées avec le tableau de bord (assets/images/dashboard).
+// Les livrables sans illustration retombent sur leur icône (pi pi-*).
 const FEATURES: FeatureMeta[] = [
   { kind: 'branding', image: 'branding.png', descKey: 'chat.launcher.features.branding' },
   { kind: 'businessPlan', image: 'business_plan.png', descKey: 'chat.launcher.features.businessPlan' },
   { kind: 'pitchDeck', image: 'pitch_deck.png', descKey: 'chat.launcher.features.pitchDeck', needsBrandIdentity: true },
   { kind: 'finance', image: 'finance.png', descKey: 'chat.launcher.features.finance' },
   { kind: 'diagrams', image: 'diagrams.png', descKey: 'chat.launcher.features.diagrams' },
+  { kind: 'legalDocs', descKey: 'chat.launcher.features.legalDocs' },
+  { kind: 'communication', descKey: 'chat.launcher.features.communication', needsBrandIdentity: true },
+  { kind: 'development', image: 'development.png', descKey: 'chat.launcher.features.development' },
+  { kind: 'deployment', descKey: 'chat.launcher.features.deployment' },
 ];
 
 /**
@@ -86,7 +94,8 @@ export class FeatureLauncherComponent {
 
       return {
         kind: f.kind,
-        image: `assets/images/dashboard/${f.image}`,
+        image: f.image ? `assets/images/dashboard/${f.image}` : undefined,
+        icon: this.deliverables.config(f.kind).icon,
         titleKey: this.deliverables.config(f.kind).titleKey,
         descKey: f.descKey,
         state,

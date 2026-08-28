@@ -78,8 +78,10 @@
       },
       "quotaWarning": {
         "title": "Avertissement de quota",
-        "daily": "Quotidien",
-        "weekly": "Hebdomadaire",
+        "daily": "Quotidien :",
+        "weekly": "Hebdomadaire :",
+        "credits": "Crédits",
+        "beta": "BÊTA",
         "messages": {
           "approaching": "Vous approchez de votre limite de quota",
           "daily": "Vous approchez de votre limite de quota quotidien",
@@ -88,6 +90,21 @@
         },
         "buttons": {
           "viewDetails": "Voir les détails"
+        },
+        "tooltip": {
+          "title": "Informations de quota",
+          "exceededTitle": "Quota dépassé",
+          "exceededMessage": "Vous avez atteint vos limites d'utilisation",
+          "limitedTitle": "Fonctionnalité limitée",
+          "limitedMessage": "Non disponible en version bêta",
+          "nearlyReachedTitle": "Quota presque atteint",
+          "nearlyReachedMessage": "À utiliser avec modération",
+          "availableMessage": "Quotas disponibles",
+          "betaLimitations": "Limitations bêta :",
+          "maxStyles": "styles maximum",
+          "resolution": "Résolution :",
+          "maxTokens": "tokens max",
+          "featureNotAuthorized": "Fonctionnalité non autorisée"
         }
       }
     }

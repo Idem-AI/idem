@@ -26,6 +26,97 @@
   background-color: rgba(0, 0, 0, 0.5) !important;
 }
 
+/* ── Choix du format de téléchargement des logos ──────────────────────────
+   Boutons radio natifs masqués visuellement : le <label> porte l'apparence,
+   l'<input> garde le clavier et l'annonce lecteur d'écran. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.format-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.format-option {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  border-radius: 0.875rem;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-subtle);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.format-option:hover {
+  background: var(--glass-bg-light);
+}
+
+.format-option.is-selected {
+  border-color: var(--color-primary, #6366f1);
+  background: color-mix(in srgb, var(--color-primary, #6366f1) 8%, transparent);
+}
+
+.format-option:focus-within {
+  outline: 2px solid var(--color-primary, #6366f1);
+  outline-offset: 2px;
+}
+
+.format-option:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Pastille du format : remplace les icônes chargées depuis des CDN externes
+   (dépendance réseau inutile pour trois libellés de trois lettres). */
+.format-badge {
+  flex-shrink: 0;
+  width: 3rem;
+  padding: 0.4rem 0;
+  text-align: center;
+  border-radius: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--color-text-primary);
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border-medium);
+}
+
+.format-option.is-selected .format-badge {
+  color: #fff;
+  background: var(--color-primary, #6366f1);
+  border-color: var(--color-primary, #6366f1);
+}
+
+.format-tag {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  color: var(--color-primary, #6366f1);
+  background: color-mix(in srgb, var(--color-primary, #6366f1) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary, #6366f1) 28%, transparent);
+}
+
 /* Inline SVG scaling — force SVGs injected via [innerHTML] to fill their container */
 ::ng-deep .svg-logo svg {
   width: 100% !important;

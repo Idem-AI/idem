@@ -10,6 +10,8 @@ import {
   FinanceSectionKey,
   FinanceSummaryResponse,
 } from '../models/finance.model';
+import { SSEService } from '../../../shared/services/sse.service';
+import { SSEStepEvent, SSEConnectionConfig } from '../../../shared/models/sse-step.model';
 
 /** Intent finance retournée par /chat/parse */
 export interface FinanceChatIntent {
@@ -34,6 +36,7 @@ export interface FinanceAutoFillResult {
 export class FinanceService {
   private readonly baseUrl = `${environment.services.api.url}/project/finance`;
   private readonly http = inject(HttpClient);
+  private readonly sseService = inject(SSEService);
 
   /** Récupère le modèle Finance complet (avec snapshot calculé) */
   getFinance(projectId: string): Observable<FinanceModel> {
@@ -145,6 +148,26 @@ export class FinanceService {
           return throwError(() => error);
         }),
       );
+  }
+
+  /**
+   * Auto-fill IA global SOURCÉ, en streaming (SSE): l'équipe d'agents recherche
+   * des benchmarks marché réels (grounding) puis cale les prévisions dessus.
+   * Émet les événements de la salle de contrôle en temps réel.
+   */
+  autoFillAllStream(projectId: string): Observable<SSEStepEvent> {
+    this.sseService.closeConnection('finance-fill');
+    const config: SSEConnectionConfig = {
+      url: `${this.baseUrl}/${projectId}/ai-fill-stream`,
+      keepAlive: true,
+      reconnectionDelay: 1000,
+    };
+    return this.sseService.createConnection(config, 'finance-fill');
+  }
+
+  /** Ferme la connexion SSE de l'auto-fill sourcé. */
+  closeAutoFillStream(): void {
+    this.sseService.closeConnection('finance-fill');
   }
 
   /** Parse l'intention finance d'un message utilisateur (sans appliquer). */

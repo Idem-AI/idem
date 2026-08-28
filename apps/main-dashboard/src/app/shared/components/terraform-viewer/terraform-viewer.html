@@ -1,11 +1,11 @@
-<div class="w-full bg-gray-800 rounded-lg shadow-lg p-4">
+<div class="w-full bg-[var(--color-surface-2)] rounded-lg shadow-lg p-4">
   <!-- Tab Navigation -->
-  <div class="flex mb-4 border-b border-gray-700">
+  <div class="flex mb-4 border-b border-[var(--glass-border)]">
     <button
       [class.bg-blue-600]="activeTab() === 'main'"
-      [class.text-white]="activeTab() === 'main'"
-      [class.bg-gray-700]="activeTab() !== 'main'"
-      [class.text-gray-300]="activeTab() !== 'main'"
+      [class.text-text-primary]="activeTab() === 'main'"
+      [class.bg-surface-3]="activeTab() !== 'main'"
+      [class.text-text-secondary]="activeTab() !== 'main'"
       class="py-2 px-4 rounded-t-lg font-medium transition-colors duration-200"
       (click)="setActiveTab('main')"
     >
@@ -13,9 +13,9 @@
     </button>
     <button
       [class.bg-blue-600]="activeTab() === 'variables'"
-      [class.text-white]="activeTab() === 'variables'"
-      [class.bg-gray-700]="activeTab() !== 'variables'"
-      [class.text-gray-300]="activeTab() !== 'variables'"
+      [class.text-text-primary]="activeTab() === 'variables'"
+      [class.bg-surface-3]="activeTab() !== 'variables'"
+      [class.text-text-secondary]="activeTab() !== 'variables'"
       class="py-2 px-4 rounded-t-lg font-medium ml-2 transition-colors duration-200"
       (click)="setActiveTab('variables')"
     >
@@ -23,9 +23,9 @@
     </button>
     <button
       [class.bg-blue-600]="activeTab() === 'variablesMap'"
-      [class.text-white]="activeTab() === 'variablesMap'"
-      [class.bg-gray-700]="activeTab() !== 'variablesMap'"
-      [class.text-gray-300]="activeTab() !== 'variablesMap'"
+      [class.text-text-primary]="activeTab() === 'variablesMap'"
+      [class.bg-surface-3]="activeTab() !== 'variablesMap'"
+      [class.text-text-secondary]="activeTab() !== 'variablesMap'"
       class="py-2 px-4 rounded-t-lg font-medium ml-2 transition-colors duration-200"
       (click)="setActiveTab('variablesMap')"
     >
@@ -35,7 +35,7 @@
 
   <!-- Code Display Area -->
   <div class="relative">
-    <pre class="bg-gray-900 text-gray-200 p-4 rounded-lg overflow-x-auto max-h-96">
+    <pre class="bg-[var(--color-surface-1)] text-text-secondary p-4 rounded-lg overflow-x-auto max-h-96">
       <code>{{ getActiveFileContent() }}</code>
     </pre>
 

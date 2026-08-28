@@ -10,8 +10,16 @@ import deployRouter from './routes/deploy.js';
 import enhancedPromptRouter from './routes/enhancedPrompt.js';
 import modelRouter from './routes/model.js';
 import handoffRouter from './routes/handoff.js';
+import qualityRouter from './routes/quality.js';
+import assetsRouter from './routes/assets.js';
+import mcpRouter from './mcp/server.js';
+import { loadSkills } from './skills/registry.js';
 
 dotenv.config();
+
+// Read the catalog off disk once at boot rather than on the first generation,
+// so a malformed skill fails loudly at startup instead of mid-request.
+loadSkills();
 
 const app: Express = express();
 const PORT = process.env.PORT || 3000;
@@ -44,6 +52,8 @@ app.get('/', (req: Request, res: Response) => {
       deploy: '/api/deploy',
       enhancedPrompt: '/api/enhancedPrompt',
       model: '/api/model',
+      quality: '/api/quality/lint',
+      mcp: '/mcp',
     },
   });
 });
@@ -61,6 +71,15 @@ app.use('/api/deploy', deployRouter);
 app.use('/api/enhancedPrompt', enhancedPromptRouter);
 app.use('/api/model', modelRouter);
 app.use('/api/handoff', handoffRouter);
+app.use('/api/quality', qualityRouter);
+
+// Local-development helper: reads an http:// bucket asset back as a data URI so
+// the HTTPS WebContainer preview can display it. See routes/assets.ts.
+app.use('/api/assets', assetsRouter);
+
+// MCP endpoint: the skill catalog, the token forge and the linter, reusable by
+// any MCP client. appgen's own generation path imports them directly instead.
+app.use('/mcp', mcpRouter);
 
 // Prometheus metrics endpoint
 app.get('/metrics', async (req: Request, res: Response) => {

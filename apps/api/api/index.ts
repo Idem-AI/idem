@@ -7,6 +7,11 @@ import express, { Express, Request, Response } from 'express';
 import morgan from 'morgan';
 import { stream as loggerStream } from './config/logger';
 import { metricsMiddleware } from './middleware/metrics.middleware';
+import { languageMiddleware } from './middleware/language.middleware';
+import { requestTraceMiddleware } from './middleware/request-trace.middleware';
+import { revisionContextMiddleware } from './utils/revision-context.util';
+import { describeGeminiBackend, isGeminiConfigured } from './config/google-genai.client';
+import { aiUsageContextMiddleware } from './utils/ai-usage-context.util';
 import metricsRouter from './routes/metrics.routes';
 import admin from 'firebase-admin';
 import cors from 'cors';
@@ -18,6 +23,17 @@ import mongoDBConnection from './config/mongodb.config';
 import { storageService } from './services/storage.service';
 import { User } from './schemas/user.schema';
 import { Project } from './schemas/project.schema';
+import { ProjectRevision } from './schemas/revision.schema';
+import { CoherenceAlert } from './schemas/coherence.schema';
+import { AiUsageEvent } from './schemas/aiUsage.schema';
+import {
+  BillingInvoice,
+  BillingProduct,
+  BillingPurchase,
+  BillingSubscription,
+  CreditLedgerEntry,
+} from './schemas/billing.schema';
+import { billingService } from './services/billing.service';
 import { authRoutes } from './routes/auth.routes';
 import { promptRoutes } from './routes/prompt.routes';
 import swaggerJsdoc from 'swagger-jsdoc';
@@ -54,8 +70,12 @@ function initFirebase(): void {
   }
 }
 
+
 import { projectRoutes } from './routes/project.routes';
+import { contextRoutes } from './routes/context.routes';
+import { coherenceRoutes } from './routes/coherence.routes';
 import { brandingRoutes } from './routes/branding.routes';
+import { businessCardRoutes } from './routes/businessCard.routes';
 import { diagramRoutes } from './routes/diagram.routes';
 import { businessPlanRoutes } from './routes/businessPlan.routes';
 import { pitchDeckRoutes } from './routes/pitchDeck.routes';
@@ -69,6 +89,7 @@ import githubRoutes from './routes/github.routes';
 import archetypeRoutes from './routes/archetype.routes';
 import quotaRoutes from './routes/quota.routes';
 import cacheRoutes from './routes/cache.routes';
+import fontRoutes from './routes/font.routes';
 import { PdfService } from './services/pdf.service';
 import RedisConnection from './config/redis.config';
 import policyRoutes from './routes/policy.routes';
@@ -84,6 +105,11 @@ import { simulationRoutes } from './routes/simulation.routes';
 const app: Express = express();
 const port = process.env.PORT || 3001;
 
+// Ouvre le contexte de traçage (requestId) en tout premier: tout ce qui suit
+// dans la chaîne (sécurité, morgan, routes, services IA) hérite de la
+// corrélation automatiquement via le logger (voir config/logger.ts).
+app.use(requestTraceMiddleware);
+
 // Hardening (helmet, hpp, trust proxy, hide X-Powered-By).
 applySecurity(app);
 
@@ -94,12 +120,17 @@ app.use(metricsMiddleware);
 app.use(morgan('combined', { stream: loggerStream }));
 app.use(cookieParser());
 
-// Body size limits prevent trivial DoS via huge payloads.
-app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: process.env.URLENCODED_BODY_LIMIT || '1mb' }));
-
 // Strict CORS (env-driven, no localhost in prod).
+// MUST run before the body parsers: if express.json rejects an oversized payload
+// (413), it forwards an error via next(err), which SKIPS any cors() registered
+// afterwards — the browser then sees a misleading "blocked by CORS" instead of the
+// real 413. Registering CORS first guarantees the error response carries the
+// Access-Control-Allow-Origin header.
 app.use(cors(buildCorsOptions()));
+
+// Body size limits prevent trivial DoS via huge payloads.
+app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: process.env.URLENCODED_BODY_LIMIT || '10mb' }));
 
 // Burst protection + global IP rate limit (in addition to per-route limits).
 app.use(burstProtection({ maxBurst: 30, burstWindowMs: 1000 }));
@@ -114,8 +145,24 @@ app.use(
 // Audit log for sensitive routes.
 app.use(auditLogger);
 
+// Resolve the user's UI language (query > body > Accept-Language) and expose it to
+// all downstream services so AI generation replies in the right language.
+app.use(languageMiddleware);
+
+// Seed the revision context (author user vs AI, source route) so the versioning
+// hook can attribute every project write — the "git blame" of project data.
+app.use(revisionContextMiddleware);
+
+// Seed the AI usage context (feature + operation derived from the route) so
+// every model call can be attributed to a user, a project and a project
+// element without threading those values through every generation service.
+app.use(aiUsageContextMiddleware);
+
 app.use('/projects', projectRoutes);
+app.use('/project', contextRoutes);
+app.use('/project', coherenceRoutes);
 app.use('/project', brandingRoutes);
+app.use('/project', businessCardRoutes);
 app.use('/project', diagramRoutes);
 app.use('/project', businessPlanRoutes);
 app.use('/project', pitchDeckRoutes);
@@ -132,6 +179,7 @@ app.use('/quota', quotaRoutes);
 app.use('/archetypes', archetypeRoutes);
 app.use('/github', githubRoutes);
 app.use('/cache', cacheRoutes);
+app.use('/fonts', fontRoutes);
 app.use('/project', policyRoutes);
 
 
@@ -186,12 +234,37 @@ app.use((req: Request, res: Response) => {
 
 app.use((err: Error, req: Request, res: Response /*, next: NextFunction */) => {
   console.error('Global error handler:', err);
-  res.status(500).send('Something broke!');
+  
+  // S'assurer que les en-têtes CORS sont présents même en cas d'erreur
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: err.message || 'Something broke!'
+  });
 });
+
 
 async function bootstrap() {
   await loadSecrets();
   initFirebase();
+
+  // Backend Gemini (Vertex AI ou AI Studio) : tracé au démarrage plutôt qu'à la
+  // première génération, pour qu'une configuration incomplète se voie tout de
+  // suite et non au milieu d'un business plan.
+  if (isGeminiConfigured()) {
+    console.log(`Gemini backend: ${describeGeminiBackend()}`);
+  } else {
+    console.error(
+      `Gemini backend NON CONFIGURÉ — ${describeGeminiBackend()}. ` +
+        'Toute génération IA échouera. Voir docs/VERTEX_AI.md.'
+    );
+  }
+
   return startServer();
 }
 
@@ -209,7 +282,24 @@ function startServer() {
       await Promise.all([
         User.init(), // Creates all indexes defined in UserSchema
         Project.init(), // Creates all indexes defined in ProjectSchema
+        ProjectRevision.init(), // Chronicle: unique (projectId, section, version) + log indexes
+        CoherenceAlert.init(), // Coherence Guard: alertes de synchronisation inter-artefacts
+        AiUsageEvent.init(), // Journal de consommation IA (+ TTL de rétention)
+        // Facturation : index partiels uniques (un abonnement actif par
+        // utilisateur ET par moteur, un Project Pass par projet, une facture
+        // par période) qui garantissent l'absence de double facturation au
+        // niveau de la base.
+        BillingProduct.init(),
+        BillingSubscription.init(),
+        BillingPurchase.init(),
+        BillingInvoice.init(),
+        CreditLedgerEntry.init(),
       ]);
+
+      // Catalogue aligné sur la page de tarification publique. N'écrase jamais
+      // un produit existant (un prix ajusté en production doit survivre au
+      // redémarrage).
+      await billingService.seedProducts();
       console.log('MongoDB indexes created successfully');
     } catch (error) {
       console.error('Failed to connect to MongoDB:', error);

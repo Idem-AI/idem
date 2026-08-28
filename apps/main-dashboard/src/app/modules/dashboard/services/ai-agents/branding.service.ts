@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, map, tap } from 'rxjs/operators';
+import { catchError, map, tap, timeout, retry } from 'rxjs/operators';
 import { environment } from '../../../../../environments/environment';
 import { BrandIdentityModel, ColorModel, TypographyModel } from '../../models/brand-identity.model';
 import { ProjectModel } from '@idem/shared-models';
@@ -40,14 +40,21 @@ export class BrandingService {
   createBrandIdentityModel(
     projectId: string,
     pdfFormat: string = 'SLIDE_16_9',
+    force = false,
+    sections: string[] = [],
   ): Observable<SSEStepEvent> {
     console.log('Starting branding generation with SSE and format:', pdfFormat);
 
     // Close any existing SSE connection
     this.closeSSEConnection();
 
+    const params = new URLSearchParams();
+    params.set('format', pdfFormat);
+    if (force) params.set('force', 'true');
+    if (sections.length > 0) params.set('sections', sections.join(','));
+
     const config: SSEConnectionConfig = {
-      url: `${this.apiUrl}/generate/${projectId}?format=${pdfFormat}`,
+      url: `${this.apiUrl}/generate/${projectId}?${params.toString()}`,
       keepAlive: true,
       reconnectionDelay: 1000,
     };
@@ -60,6 +67,90 @@ export class BrandingService {
    */
   cancelGeneration(): void {
     this.sseService.cancelGeneration('branding');
+  }
+
+  /**
+   * Génération streamée des concepts de logo (SSE) avec boucle qualité :
+   * l'API pousse chaque étape en temps réel — concept généré, remarques de
+   * l'agent critique, révision, finalisation.
+   * stepName des événements : concept_started, concept_generated,
+   * critique_started, critique_result, revision_started, concept_updated,
+   * concept_finalized, concept_cancelled, concept_error.
+   */
+  generateLogoConceptsStream(
+    projectId: string,
+    force = false,
+    preferences?: LogoPreferencesModel | null,
+  ): Observable<SSEStepEvent> {
+    this.sseService.closeConnection('logo');
+
+    // Les préférences voyagent en query : le formulaire local peut ne pas être
+    // encore persisté côté projet au moment où le flux démarre.
+    const params = new URLSearchParams();
+    if (force) params.set('force', 'true');
+    if (preferences?.type) {
+      params.set('prefType', preferences.type);
+      if (preferences.customDescription) {
+        params.set('prefDesc', preferences.customDescription.slice(0, 800));
+      }
+    }
+    const query = params.toString();
+
+    const config: SSEConnectionConfig = {
+      url: `${this.apiUrl}/generate/logo-concepts-stream/${projectId}${query ? `?${query}` : ''}`,
+      keepAlive: true,
+      reconnectionDelay: 1000,
+    };
+
+    return this.sseService.createConnection(config, 'logo');
+  }
+
+  /**
+   * Annule la génération de logos en cours côté serveur (économie de tokens
+   * quand l'utilisateur a déjà sélectionné un logo) et ferme le flux SSE.
+   */
+  cancelLogoConceptsGeneration(projectId: string): Observable<{ success: boolean; cancelled: boolean }> {
+    this.sseService.closeConnection('logo');
+    return this.http
+      .post<{ success: boolean; cancelled: boolean }>(
+        `${this.apiUrl}/generate/logo-concepts-cancel/${projectId}`,
+        {},
+      )
+      .pipe(
+        catchError((error) => {
+          console.error('Error cancelling logo generation:', error);
+          return throwError(() => error);
+        }),
+      );
+  }
+
+  /** Ferme le flux SSE de génération de logos sans annuler côté serveur */
+  closeLogoConceptsStream(): void {
+    this.sseService.closeConnection('logo');
+  }
+
+  /**
+   * Génération streamée des déclinaisons du logo sélectionné (SSE) avec boucle
+   * qualité. stepName des événements : variation_started, variation_generated,
+   * critique_started, critique_result, revision_started, variation_updated,
+   * variation_finalized, variation_cancelled, variation_error.
+   * Le logo sélectionné est lu depuis le projet côté API.
+   */
+  generateLogoVariationsStream(projectId: string, force = false): Observable<SSEStepEvent> {
+    this.sseService.closeConnection('logo-variations');
+
+    const config: SSEConnectionConfig = {
+      url: `${this.apiUrl}/generate/logo-variations-stream/${projectId}${force ? '?force=true' : ''}`,
+      keepAlive: true,
+      reconnectionDelay: 1000,
+    };
+
+    return this.sseService.createConnection(config, 'logo-variations');
+  }
+
+  /** Ferme le flux SSE des déclinaisons ; le serveur annule à la déconnexion */
+  closeLogoVariationsStream(): void {
+    this.sseService.closeConnection('logo-variations');
   }
 
   generateColorsAndTypography(project: ProjectModel): Observable<{
@@ -95,16 +186,22 @@ export class BrandingService {
   ): Observable<{
     colors: ColorModel[];
     typography: TypographyModel[];
-    project: ProjectModel;
   }> {
     console.log('Generating colors and typography from imported logo...');
+    // Payload minimal : le backend recharge le projet via findById et ne lit du
+    // payload QUE l'id + quelques champs scalaires (name/description/type/scope/
+    // targets, via extractProjectDescription). Le logo est transmis à part
+    // (logoSvg = URL MinIO, résolu côté serveur), et les variations sont
+    // régénérées côté backend. Envoyer tout le projet — analysisResultModel avec
+    // ses variations SVG inline et le contenu déjà généré — faisait exploser la
+    // limite de body JSON de l'API → 413 Content Too Large.
+    const leanProject = this.buildLeanProjectForColorGen(project);
     return this.http
       .post<{
         colors: ColorModel[];
         typography: TypographyModel[];
-        project: ProjectModel;
       }>(`${this.apiUrl}/generate/colors-typography-from-logo`, {
-        project,
+        project: leanProject,
         logoSvg,
         logoColors,
       })
@@ -118,6 +215,23 @@ export class BrandingService {
   }
 
   /**
+   * Ne conserve que l'id et les champs scalaires légers dont le backend a besoin
+   * pour la génération de palette (le reste du projet est rechargé via findById).
+   * Retire tout `analysisResultModel` — c'est là que vivent les variations de logo
+   * en SVG inline et le contenu déjà généré, source du 413 Content Too Large.
+   */
+  private buildLeanProjectForColorGen(project: ProjectModel): Partial<ProjectModel> {
+    return {
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      type: project.type,
+      scope: project.scope,
+      targets: project.targets,
+    };
+  }
+
+  /**
    * Generate logos with user preferences (type and custom description)
    */
   generateLogosWithPreferences(
@@ -125,6 +239,7 @@ export class BrandingService {
     selectedColor: ColorModel,
     selectedTypography: TypographyModel,
     preferences: LogoPreferencesModel,
+    force = false,
   ): Observable<{
     logos: LogoModel[];
   }> {
@@ -136,8 +251,10 @@ export class BrandingService {
     return this.http
       .post<{
         logos: LogoModel[];
-      }>(`${this.apiUrl}/generate/logo-concepts/${projectId}`, {})
+      }>(`${this.apiUrl}/generate/logo-concepts/${projectId}${force ? '?force=true' : ''}`, {})
       .pipe(
+        timeout(180000), // 3 minutes timeout
+        retry(1), // retry once on transient network or CORS error
         tap((response) => console.log('generateLogosWithPreferences response:', response)),
         catchError((error) => {
           console.error('Error in generateLogosWithPreferences:', error);
@@ -153,6 +270,7 @@ export class BrandingService {
   generateLogoVariations(
     selectedLogo: LogoModel,
     project: ProjectModel,
+    force = false,
   ): Observable<{
     variations: {
       withText?: {
@@ -184,10 +302,12 @@ export class BrandingService {
             monochrome?: string;
           };
         };
-      }>(`${this.apiUrl}/generate/logo-variations/${project.id}`, {
+      }>(`${this.apiUrl}/generate/logo-variations/${project.id}${force ? '?force=true' : ''}`, {
         selectedLogo: selectedLogo,
       })
       .pipe(
+        timeout(180000), // 3 minutes timeout
+        retry(1), // retry once
         tap((response) => console.log('generateLogoVariations response:', response)),
         catchError((error) => {
           console.error('Error in generateLogoVariations:', error);
@@ -214,6 +334,8 @@ export class BrandingService {
         modificationPrompt: modificationPrompt,
       })
       .pipe(
+        timeout(180000), // 3 minutes timeout
+        retry(1), // retry once
         tap((response) => console.log('editLogo response:', response)),
         catchError((error) => {
           console.error('Error in editLogo:', error);

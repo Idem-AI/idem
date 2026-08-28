@@ -67,15 +67,15 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ open, onClose }) =>
   return (
     <div
       ref={panelRef}
-      className="absolute left-0 top-full mt-1 w-72 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col"
+      className="absolute left-0 top-full mt-1 w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col"
       style={{ maxHeight: '70vh' }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-        <span className="text-sm font-semibold text-white">Historique des chats</span>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-white/10">
+        <span className="text-sm font-semibold text-gray-900 dark:text-white">Historique des chats</span>
         <button
           onClick={handleNewChat}
-          className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+          className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -87,7 +87,7 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ open, onClose }) =>
       {/* List */}
       <div className="overflow-y-auto flex-1">
         {sessions.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-gray-500">
+          <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
             Aucun chat pour l'instant
           </div>
         ) : (
@@ -95,17 +95,17 @@ const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = ({ open, onClose }) =>
             <button
               key={session.uuid}
               onClick={() => handleSelectChat(session)}
-              className={`w-full flex items-start justify-between gap-2 px-4 py-3 text-left hover:bg-white/5 transition-colors group ${
-                session.uuid === activeChatUuid ? 'bg-white/10' : ''
+              className={`w-full flex items-start justify-between gap-2 px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group ${
+                session.uuid === activeChatUuid ? 'bg-gray-100 dark:bg-white/10' : ''
               }`}
             >
               <div className="flex-1 min-w-0">
-                <div className="text-sm text-white truncate">{session.title}</div>
-                <div className="text-xs text-gray-500 mt-0.5">{formatDate(session.updatedAt)}</div>
+                <div className="text-sm text-gray-900 dark:text-white truncate">{session.title}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{formatDate(session.updatedAt)}</div>
               </div>
               <button
                 onClick={(e) => handleDeleteSession(e, session.uuid)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white/10 text-gray-400 hover:text-red-400 flex-shrink-0"
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-gray-200 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 flex-shrink-0"
                 title="Supprimer"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1,45 +1,40 @@
-export const AGENT_FINANCIAL_PLAN_PROMPT = `
-You are a senior financial analyst. Create a Financial Plan section with projections and analysis that are REALISTIC and specific to THIS company's business model, industry, and stage — not a generic financial template.
+import { bpPageFormat } from './_shared.prompt';
 
-CRITICAL CREATIVE RULE:
-Study the project description, industry, and business model. A SaaS company has subscription revenue and CAC/LTV metrics. A restaurant has food cost ratios and table turnover. A consulting firm has billable hours and utilization rates. Create financial projections that use the RIGHT financial model for THIS type of business.
+export const AGENT_FINANCIAL_PLAN_PROMPT = `<role>Senior financial analyst</role>
+<objective>Create a Financial Plan section detailing projections, cost structure, and break-even analysis.</objective>
 
-MANDATORY CONTENT (specific to THIS business):
-1. Executive Financial Summary — key metrics relevant to THIS business model
-2. Revenue Model — how THIS specific company makes money (pricing, revenue streams)
-3. Financial Projections — 3-year P&L realistic for THIS industry
-4. Cost Structure — costs specific to THIS type of business (COGS, operational expenses)
-5. Break-even Analysis — realistic timeline for THIS business
-6. Funding Requirements — capital needs appropriate for THIS stage and industry
-7. Financial Risks — risks specific to THIS market and business model
+<mandatory_content>
+1. Executive Financial Summary (key metrics for the business model).
+2. Revenue Model (streams, pricing models).
+3. Financial Projections (3-year P&L realistic for the industry).
+4. Cost Structure (COGS, operating expenses).
+5. Break-even Analysis (realistic timeline).
+6. Funding Requirements (capital needs).
+7. Financial Risks (market and financial risks).
+</mandatory_content>
 
-CHART.JS REQUIREMENTS:
-- Revenue projection chart (3-year) — use brand colors
-- Cost breakdown or cash flow visualization
-- Charts must use animation: false (static for PDF)
-- Do NOT include <script src="..."> tags — Chart.js is auto-injected
-- Charts should not exceed 1/2 of the page
-- Use 2-3 focused charts, not 8 generic ones
+<chart_requirements>
+- 3-year revenue projection chart and cost breakdown using brand colors.
+- Set Chart.js option: animation: false.
+- Do NOT include Chart.js <script> tags.
+- Charts must not exceed 1/2 of the page.
+- Use 2-3 focused charts, not generic ones.
+</chart_requirements>
 
-A4 PAGE FIT (NON-NEGOTIABLE):
-- The outermost element MUST use: w-[210mm] h-[297mm] overflow-hidden relative
-- Internal safe padding: p-[12mm] (content must not touch edges)
-- ALL content must fit within this 210×297mm box — nothing may overflow
-- If content risks overflowing, REDUCE spacing, font sizes, or number of financial sections
-- Do NOT use min-h-screen — use h-[297mm] exactly
+${bpPageFormat('3')}
 
-TECHNICAL RULES:
-- Raw HTML + Tailwind CSS utilities only, single minified line
-- PrimeIcons (pi pi-icon-name) — already loaded
-- Use brand's ACTUAL colors via bg-[#hex]
-- Use brand's actual fonts
-- WCAG AA contrast compliance
-- No custom CSS
+<technical_rules>
+- Output ONLY raw HTML + Tailwind CSS utilities in a single minified line.
+- PrimeIcons (pi pi-icon-name) are preloaded.
+- Use brand colors (bg-[#hex]) and actual fonts.
+- Ensure WCAG AA contrast compliance. No custom CSS/JS.
+- Do NOT output markdown code blocks (e.g., \`\`\`html) or prefix with "html".
+</technical_rules>
 
-IMPORTANT:
-- Do NOT add any "html" tag or prefix on output
-- Financial projections must be REALISTIC for this type of business
-- Use the RIGHT financial metrics for this industry (not every metric for every business)
+<editor_compatibility>
+- The output is edited afterwards in a visual (Figma-like) editor: put visible text in leaf elements (h1..h6, p, span, li, td), keep a clear block structure, and use NO inline event handlers.
+- Any Chart.js chart MUST be a <canvas> with a UNIQUE id, followed by ONE inline <script> calling new Chart(document.getElementById('THAT_ID'), {...}) with options.animation=false (one chart per canvas, no Chart.js <script src> tag).
+</editor_compatibility>
 
-PROJECT CONTEXT:
+<project_context>
 `;

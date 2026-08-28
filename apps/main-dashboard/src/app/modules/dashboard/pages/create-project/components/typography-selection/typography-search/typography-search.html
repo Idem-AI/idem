@@ -1,18 +1,12 @@
-<div class="space-y-6">
+<div class="flex flex-col gap-3 min-h-0 flex-1">
   <!-- Search Input -->
-  <div class="relative">
-    <input
-      type="text"
-      [value]="searchQuery()"
-      (input)="onSearchInput($event)"
-      placeholder="{{ 'dashboard.typographySelection.searchPlaceholder' | translate }}"
-      class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-    />
+  <div class="relative shrink-0">
     <svg
-      class="absolute right-3 top-3.5 w-5 h-5 text-gray-400"
+      class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary pointer-events-none"
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
+      aria-hidden="true"
     >
       <path
         stroke-linecap="round"
@@ -21,52 +15,133 @@
         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
       ></path>
     </svg>
+    <input
+      type="text"
+      [value]="searchQuery()"
+      (input)="onSearchInput($event)"
+      [attr.aria-label]="'dashboard.typographySelection.custom.searchLabel' | translate"
+      placeholder="{{ 'dashboard.typographySelection.searchPlaceholder' | translate }}"
+      class="w-full pl-10 pr-10 py-3 bg-[var(--color-surface-2)] border border-[var(--glass-border)] rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+    />
+    @if (searchQuery()) {
+      <button
+        type="button"
+        (click)="onClearSearch()"
+        [attr.aria-label]="'dashboard.typographySelection.clearSearch' | translate"
+        class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-text-tertiary hover:text-text-primary hover:bg-[var(--glass-bg-light)] focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    }
+  </div>
+
+  <!-- Category Filters -->
+  <div
+    class="flex flex-wrap gap-2 shrink-0"
+    role="group"
+    [attr.aria-label]="'dashboard.typographySelection.categories.label' | translate"
+  >
+    @for (category of categories; track category.id) {
+      <button
+        type="button"
+        (click)="onCategoryClick(category.id)"
+        [attr.aria-pressed]="activeCategory() === category.id"
+        class="px-3 py-1.5 text-xs font-medium rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-[var(--color-surface-1)]"
+        [class]="
+          activeCategory() === category.id
+            ? 'bg-primary text-white border-primary'
+            : 'bg-[var(--glass-bg-light)] text-text-secondary border-[var(--glass-border)] hover:text-text-primary hover:border-[var(--glass-border-medium)]'
+        "
+      >
+        {{ category.labelKey | translate }}
+      </button>
+    }
   </div>
 
   <!-- Search Results -->
-  @if (isSearching) {
-    <div class="flex items-center justify-center py-8">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      <span class="ml-3 text-gray-400">{{
+  @if (isSearching()) {
+    <div class="flex items-center justify-center py-8" role="status" aria-live="polite">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" aria-hidden="true"></div>
+      <span class="ml-3 text-text-tertiary">{{
         'dashboard.typographySelection.searching' | translate
       }}</span>
     </div>
-  } @else if (searchResults.length > 0) {
-    <div class="grid grid-cols-1 gap-3 max-h-[400px] overflow-y-auto custom-scrollbar">
-      @for (font of searchResults; track font.family) {
-        <div
-          class="flex items-center justify-between p-3 bg-gray-800/50 border border-gray-700 rounded-lg hover:border-primary/50 transition-colors"
+  } @else if (searchResults().length > 0) {
+    <p class="text-xs text-text-tertiary shrink-0" aria-live="polite">
+      {{
+        'dashboard.typographySelection.resultsCount'
+          | translate: { count: searchResults().length }
+      }}
+    </p>
+    <ul class="flex-1 min-h-0 grid grid-cols-1 gap-2 overflow-y-auto custom-scrollbar pr-1">
+      @for (font of searchResults(); track font.family) {
+        <li
+          class="flex items-center justify-between gap-3 px-3 py-2 bg-[var(--glass-bg-light)] border border-[var(--glass-border)] rounded-lg hover:border-[var(--glass-border-medium)] transition-colors"
         >
-          <div>
-            <div class="text-white font-medium text-sm" [style.fontFamily]="font.family">
+          <div class="min-w-0">
+            <div class="text-text-primary text-base leading-snug truncate" [style.fontFamily]="stackFor(font)">
               {{ font.family }}
             </div>
-            <div class="text-gray-400 text-xs">{{ font.category }}</div>
+            <div class="text-text-tertiary text-xs mt-0.5">
+              {{ categoryLabelKey(font) | translate }}
+              @if (font.weights?.length) {
+                ·
+                {{
+                  'dashboard.typographySelection.weightsCount'
+                    | translate: { count: font.weights?.length }
+                }}
+              }
+            </div>
           </div>
-          <div class="flex gap-2">
+          <div class="flex gap-2 shrink-0">
             <button
-              class="flex-1 px-3 py-1.5 bg-indigo-500/10 text-indigo-300 text-xs rounded border border-indigo-500/30 hover:bg-indigo-500/20 transition-colors"
+              type="button"
               (click)="onFontSelect(font, 'primary')"
+              [attr.aria-pressed]="isPrimary(font)"
+              [attr.aria-label]="
+                ('dashboard.typographySelection.custom.setPrimary' | translate) + ' — ' + font.family
+              "
+              class="px-3 py-1.5 text-xs font-medium rounded-md border transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+              [class]="
+                isPrimary(font)
+                  ? 'bg-primary text-white border-primary'
+                  : 'bg-[var(--color-surface-2)] text-text-secondary border-[var(--glass-border)] hover:text-text-primary'
+              "
             >
               {{ 'dashboard.typographySelection.custom.setPrimary' | translate }}
             </button>
             <button
-              class="flex-1 px-3 py-1.5 bg-purple-500/10 text-purple-300 text-xs rounded border border-purple-500/30 hover:bg-purple-500/20 transition-colors"
+              type="button"
               (click)="onFontSelect(font, 'secondary')"
+              [attr.aria-pressed]="isSecondary(font)"
+              [attr.aria-label]="
+                ('dashboard.typographySelection.custom.setSecondary' | translate) +
+                ' — ' +
+                font.family
+              "
+              class="px-3 py-1.5 text-xs font-medium rounded-md border transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+              [class]="
+                isSecondary(font)
+                  ? 'bg-primary text-white border-primary'
+                  : 'bg-[var(--color-surface-2)] text-text-secondary border-[var(--glass-border)] hover:text-text-primary'
+              "
             >
               {{ 'dashboard.typographySelection.custom.setSecondary' | translate }}
             </button>
           </div>
-        </div>
+        </li>
       }
-    </div>
-  } @else if (searchQuery()) {
-    <div class="text-center py-8 text-gray-400">
+    </ul>
+  } @else {
+    <div class="text-center py-8 text-text-tertiary" aria-live="polite">
       <svg
-        class="w-12 h-12 mx-auto mb-3 text-gray-600"
+        class="w-12 h-12 mx-auto mb-3 text-text-disabled"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
+        aria-hidden="true"
       >
         <path
           stroke-linecap="round"
@@ -76,23 +151,7 @@
         ></path>
       </svg>
       <p>{{ 'dashboard.typographySelection.noResults' | translate }}</p>
-    </div>
-  } @else {
-    <div class="text-center py-8 text-gray-400">
-      <svg
-        class="w-12 h-12 mx-auto mb-3 text-gray-600"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-        ></path>
-      </svg>
-      <p>{{ 'dashboard.typographySelection.searchHint' | translate }}</p>
+      <p class="text-xs mt-1">{{ 'dashboard.typographySelection.searchHint' | translate }}</p>
     </div>
   }
 </div>

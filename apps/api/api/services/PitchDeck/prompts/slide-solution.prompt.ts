@@ -1,25 +1,23 @@
 import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
 
 export const SLIDE_SOLUTION_PROMPT = `
-You are designing the SOLUTION slide.
+<role>Senior pitch deck designer at a top-tier design agency</role>
+<objective>Design the SOLUTION slide — clearly present the value proposition and key capabilities with striking visual appeal.</objective>
 
-GOAL:
-Show — in one glance — what the company does and why it is the right answer to the stated problem.
+<mandatory_content>
+- Slide number "02 / 10" in text-xs tracking-widest text-[TEXT COLOR]/40 at top-right.
+- Headline: product name or "Notre Solution" in text-3xl font-bold text-[PRIMARY COLOR].
+- 1-line value proposition in text-lg text-[TEXT COLOR] (max 20 words).
+- 3 key capabilities: each in a card (bg-[BACKGROUND COLOR] border border-[PRIMARY COLOR]/10 rounded-xl p-4) with a bold label in text-[TEXT COLOR] and 1-line description in text-[TEXT COLOR]/70.
+- A visual/mockup image showcasing the solution using <img data-image-query="..." data-image-prompt="..." ... />
+</mandatory_content>
 
-MANDATORY CONTENT:
-- Slide number "02 / 10" top-right
-- Headline: what the product is (max 6 words)
-- One-line value proposition
-- 3 key capabilities / pillars (short label + one-line description each)
-- Optional: a small "how it works" strip (3 numbered steps, compact)
-
-LAYOUT:
-- Left side: headline + value proposition
-- Right side: 3 capability cards in a compact column (use thin borders, no heavy shadows)
-- Or: 2/3 for capabilities, 1/3 for the how-it-works strip at the bottom
-- Keep total word count under ~80 words
+<layout>
+- Split 50/50: Left side with headline, value proposition, and 3 capability cards stacked with gap-3. Right side with image container (overflow-hidden rounded-2xl) filling the space.
+- Optional: thin accent line (w-16 h-1 bg-[ACCENT COLOR] rounded-full) between headline and capabilities.
+</layout>
 
 ${PITCH_DECK_SHARED_RULES}
 
-PROJECT CONTEXT:
+<project_context>
 `;

@@ -7,7 +7,8 @@ import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
-import { SafeHtmlPipe } from '../../../../shared/pipes/safe-html.pipe';
+import { UiModeService } from '../../../../shared/services/ui-mode.service';
+import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
 
 @Component({
   selector: 'app-dashboard',
@@ -18,7 +19,7 @@ import { SafeHtmlPipe } from '../../../../shared/pipes/safe-html.pipe';
     Loader,
     TranslateModule,
     IncompleteProjectBannerComponent,
-    SafeHtmlPipe,
+    LogoSrcPipe,
   ],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.css'],
@@ -30,6 +31,7 @@ export class DashboardComponent implements OnInit {
   protected readonly router = inject(Router);
   protected readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);
+  private readonly uiModeService = inject(UiModeService);
 
   readonly project = signal<ProjectModel | null>(null);
   readonly isLoading = signal<boolean>(true);
@@ -66,18 +68,18 @@ export class DashboardComponent implements OnInit {
     return `background: ${gradients[index]}`;
   });
 
-  /** SVG of the logo - detects if inline SVG string */
-  readonly logoIsInline = computed(() => {
-    const svg = this.project()?.analysisResultModel?.branding?.logo?.svg;
-    return !!svg && svg.trimStart().startsWith('<');
-  });
-
   /** Handles image loading errors */
   handleImageError() {
     this.logoLoadError.set(true);
   }
 
   ngOnInit(): void {
+    // Si l'utilisateur est en mode chat, on le redirige par défaut vers l'interface de chat
+    if (this.uiModeService.mode() === 'chat') {
+      this.router.navigate(['/chat']);
+      return;
+    }
+
     this.isLoading.set(true);
 
     // Get project ID from cookie (set by navigation from projects list)

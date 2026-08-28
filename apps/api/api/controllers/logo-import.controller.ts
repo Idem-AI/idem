@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
-import { processLogoImport, convertSvgToPng, generateLogoVariationsFromSvg } from '../services/logo-import.service';
+import { processLogoImport, convertSvgToPng, resolveSvgContent } from '../services/logo-import.service';
+import { generateLogoVariations } from '../services/logoVariationEngine.service';
+import { logoAnalysisService } from '../services/BandIdentity/logoAnalysis.service';
 import { storageService } from '../services/storage.service';
 import logger from '../config/logger';
 
@@ -29,35 +31,80 @@ export const importLogoController = async (req: Request, res: Response): Promise
       `Logo import: success - ${result.width}x${result.height}, SVG length: ${result.svg.length}, extracted ${result.extractedColors.length} colors`
     );
 
-    // Generate programmatic variations from the processed SVG (synchronous)
-    const variations = generateLogoVariationsFromSvg(result.svg);
+    // Generate variations with the hybrid engine (deterministic OKLCH transforms + rendered QA)
+    const variations = await generateLogoVariations(result.svg);
 
-    // Optional MinIO upload when projectId is provided
-    let logoUrl: string | undefined;
-    const projectId = req.body?.projectId as string | undefined;
+    // Upload SVG assets to MinIO (primary + icon + all variations).
+    // When projectId is provided, files go under the project folder; otherwise
+    // they are stored under a temp folder so the frontend can reference them
+    // immediately and move/copy when the logo is selected.
+    let svgUrls: Record<string, any> | undefined;
     const userId = (req as any).user?.uid as string | undefined;
+    const projectId = req.body?.projectId as string | undefined;
 
-    if (projectId && userId) {
+    if (userId) {
       try {
-        const folderPath = `users/${userId}/projects/${projectId}/logos`;
-        const uploadResult = await storageService.uploadFile(
+        const targetProjectId = projectId || `temp-${Date.now()}`;
+        const folderPath = `users/${userId}/projects/${targetProjectId}/logos`;
+
+        // Upload primary SVG
+        const primaryUrl = await storageService.uploadSvgFile(
           result.svg,
           `logo-imported-${Date.now()}.svg`,
           folderPath,
-          'image/svg+xml'
         );
-        logoUrl = uploadResult.downloadURL;
-        logger.info(`Logo import: uploaded to MinIO - ${logoUrl}`);
+
+        // Upload variation SVGs in parallel
+        const variationUploads: Record<string, Record<string, string>> = {};
+
+        const uploadVariation = async (
+          category: string,
+          variant: string,
+          content: string | undefined
+        ): Promise<void> => {
+          if (!content || !content.trim()) return;
+          try {
+            const url = await storageService.uploadSvgFile(
+              content,
+              `logo-${category}-${variant}.svg`,
+              folderPath,
+            );
+            if (!variationUploads[category]) variationUploads[category] = {};
+            variationUploads[category][variant] = url;
+          } catch (err: any) {
+            logger.warn(`Logo import: variation upload failed for ${category}/${variant}: ${err.message}`);
+          }
+        };
+
+        await Promise.all([
+          uploadVariation('with-text', 'lightBackground', variations.withText?.lightBackground),
+          uploadVariation('with-text', 'darkBackground', variations.withText?.darkBackground),
+          uploadVariation('with-text', 'monochrome', variations.withText?.monochrome),
+          uploadVariation('icon-only', 'lightBackground', variations.iconOnly?.lightBackground),
+          uploadVariation('icon-only', 'darkBackground', variations.iconOnly?.darkBackground),
+          uploadVariation('icon-only', 'monochrome', variations.iconOnly?.monochrome),
+        ]);
+
+        svgUrls = {
+          svg: primaryUrl,
+          variations: {
+            ...(variationUploads['with-text'] ? { withText: variationUploads['with-text'] } : {}),
+            ...(variationUploads['icon-only'] ? { iconOnly: variationUploads['icon-only'] } : {}),
+          },
+        };
+
+        logger.info(`Logo import: all SVGs uploaded to MinIO`, { primaryUrl });
       } catch (uploadErr: any) {
-        logger.warn(`Logo import: MinIO upload failed (non-critical): ${uploadErr.message}`);
+        logger.warn(`Logo import: MinIO SVG upload failed (non-critical): ${uploadErr.message}`);
       }
     }
 
+    // Return URLs only — frontend uses <img src> to display
     res.status(200).json({
       success: true,
-      svg: result.svg,
-      logoUrl,
-      variations,
+      svg: svgUrls?.svg || result.svg,           // URL (falls back to inline only if upload failed)
+      logoUrl: svgUrls?.svg,                      // Explicit URL field
+      variations: svgUrls?.variations || variations,
       width: result.width,
       height: result.height,
       extractedColors: result.extractedColors,
@@ -86,6 +133,57 @@ export const importLogoController = async (req: Request, res: Response): Promise
 };
 
 
+
+/**
+ * POST /api/logo/analyze
+ * Accepts JSON body with { svg: string }.
+ * Runs a vision analysis of the imported logo and returns a structured
+ * redesign brief for the "improve my logo" flow (maps onto LogoPreferences).
+ */
+export const analyzeLogoController = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { svg } = req.body;
+
+    if (!svg || typeof svg !== 'string') {
+      res.status(400).json({
+        success: false,
+        error: 'SVG content is required in the request body.',
+      });
+      return;
+    }
+
+    // The frontend may send the stored MinIO URL instead of inline SVG content
+    let svgContent: string;
+    try {
+      svgContent = await resolveSvgContent(svg);
+    } catch (resolveError: any) {
+      res.status(400).json({
+        success: false,
+        error: resolveError.message || 'The provided content is not a valid SVG.',
+      });
+      return;
+    }
+
+    logger.info(`Logo analysis: analyzing imported logo (${svgContent.length} chars)`);
+
+    const analysis = await logoAnalysisService.analyzeLogo(svgContent);
+
+    logger.info(
+      `Logo analysis: success - type: ${analysis.logoType}, colors: ${analysis.colors.join(', ')}`
+    );
+
+    res.status(200).json({
+      success: true,
+      analysis,
+    });
+  } catch (error: any) {
+    logger.error(`Logo analysis error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({
+      success: false,
+      error: error.message || 'An unexpected error occurred during logo analysis.',
+    });
+  }
+};
 
 /**
  * POST /api/logo/export/png

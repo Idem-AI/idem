@@ -52,5 +52,7 @@ export function buildCorsOptions(): CorsOptions {
     ],
     exposedHeaders: ['Content-Type', 'Cache-Control', 'Connection', 'X-Accel-Buffering'],
     maxAge: 600,
+    optionsSuccessStatus: 200,
   };
 }
+

@@ -1,17 +1,17 @@
 <div
-  class="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden shadow-lg shadow-black/20"
+  class="w-full max-w-md rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] overflow-hidden shadow-lg shadow-black/20"
 >
-  <div class="flex items-center gap-3 p-4 border-b border-white/5">
+  <div class="flex items-center gap-3 p-4 border-b border-[var(--glass-border-subtle)]">
     <div
       class="w-10 h-10 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0"
     >
       <i class="pi pi-language text-primary text-lg"></i>
     </div>
     <div class="min-w-0">
-      <h4 class="text-sm font-semibold text-white">
+      <h4 class="text-sm font-semibold text-text-primary">
         {{ 'chat.branding.cards.typographyTitle' | translate }}
       </h4>
-      <p class="text-[11px] text-gray-500">
+      <p class="text-[11px] text-text-tertiary">
         {{ 'chat.branding.cards.typographySubtitle' | translate }}
       </p>
     </div>
@@ -38,17 +38,17 @@
           <!-- Aperçu réel des polices -->
           <div class="min-w-0">
             <div
-              class="text-2xl leading-tight text-white truncate"
+              class="text-2xl leading-tight text-text-primary truncate"
               [style.font-family]="option.primaryFont"
             >
               Aa
-              <span class="text-base text-gray-300">{{ option.primaryFont }}</span>
+              <span class="text-base text-text-secondary">{{ option.primaryFont }}</span>
             </div>
-            <div class="text-xs text-gray-400 truncate mt-0.5" [style.font-family]="option.secondaryFont">
+            <div class="text-xs text-text-tertiary truncate mt-0.5" [style.font-family]="option.secondaryFont">
               {{ 'chat.branding.cards.typographySample' | translate }}
             </div>
           </div>
-          <span class="text-[10px] uppercase tracking-wide text-gray-500 shrink-0">{{ option.name }}</span>
+          <span class="text-[10px] uppercase tracking-wide text-text-tertiary shrink-0">{{ option.name }}</span>
         </div>
       </button>
     }

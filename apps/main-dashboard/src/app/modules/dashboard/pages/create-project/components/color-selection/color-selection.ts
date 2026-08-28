@@ -48,6 +48,7 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
   readonly projectUpdate = output<Partial<ProjectModel>>();
   readonly nextStep = output<void>();
   readonly previousStep = output<void>();
+  readonly generatingStateChanged = output<boolean>();
 
   // State management
   protected isGenerating = signal(false);
@@ -66,38 +67,41 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
   protected showColorCustomizer = signal(false);
   protected customizedColor = signal<ColorModel | null>(null);
 
+  private setGeneratingState(generating: boolean): void {
+    this.isGenerating.set(generating);
+    this.generatingStateChanged.emit(generating);
+  }
+
   ngOnInit() {
-    console.log(this.project());
-    const generatedColors = this.project().analysisResultModel?.branding?.generatedColors;
+    const branding = this.project().analysisResultModel?.branding;
+    const generatedColors = branding?.generatedColors;
 
     if (!generatedColors || generatedColors.length === 0) {
       this.checkAuthAndGenerate();
     } else {
-      this.typographyGenerated.emit(
-        this.project().analysisResultModel?.branding?.generatedTypography,
-      );
+      // Reprise : réémettre l'état déjà généré (typographie pas forcément présente)
+      const generatedTypography = branding?.generatedTypography ?? [];
+
+      this.colorPalettes.set(generatedColors);
+      this.typographyOptions.set(generatedTypography);
+
+      if (branding?.colors?.id) {
+        this.selectColor(branding.colors.id);
+      } else if (generatedColors.length > 0) {
+        this.selectColor(generatedColors[0].id);
+      }
+
+      this.colorsGenerated.emit(generatedColors);
+      this.typographyGenerated.emit(generatedTypography);
       this.colorsAndTypographyGenerated.emit({
-        colors: this.project().analysisResultModel?.branding?.generatedColors,
-        typography: this.project().analysisResultModel?.branding?.generatedTypography,
+        colors: generatedColors,
+        typography: generatedTypography,
         project: this.project(),
       });
-      this.colorPalettes.set(this.project().analysisResultModel?.branding?.generatedColors);
-      this.typographyOptions.set(this.project().analysisResultModel?.branding?.generatedTypography);
-      this.colorsGenerated.emit(this.project().analysisResultModel?.branding?.generatedColors);
-      this.typographyGenerated.emit(
-        this.project().analysisResultModel?.branding?.generatedTypography,
-      );
 
       this.hasGenerated.set(true);
-      this.isGenerating.set(false);
+      this.setGeneratingState(false);
     }
-  }
-
-  /**
-   * Détecte si on vient du workflow import logo
-   */
-  private isFromLogoImport(): boolean {
-    return !!this.project().analysisResultModel?.branding?.importedLogoColors;
   }
 
   ngOnDestroy() {
@@ -106,23 +110,24 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
   }
 
   protected async generateColors(): Promise<void> {
-    this.isGenerating.set(true);
+    this.setGeneratingState(true);
     this.error.set(null);
     this.generationProgress.set(0);
 
     try {
-      // Détecter le workflow : import logo ou normal
-      const isFromImport = this.isFromLogoImport();
+      // Workflow import logo : uniquement si le SVG ET les couleurs extraites sont
+      // réellement disponibles. Sinon (donnée partielle, course de sauvegarde…),
+      // repli sur la génération normale au lieu d'un appel API voué au 400.
+      const branding = this.project().analysisResultModel?.branding;
+      const logoSvg = branding?.logo?.svg;
+      const logoColors = branding?.importedLogoColors;
+      const isFromImport = !!logoSvg && !!logoColors && logoColors.length > 0;
 
       if (isFromImport) {
-        // Workflow import logo : utiliser generateColorsAndTypographyFromLogo
-        const logoSvg = this.project().analysisResultModel?.branding?.logo?.svg;
-        const logoColors = this.project().analysisResultModel?.branding?.importedLogoColors;
-
         console.log('Generating colors from imported logo:', logoColors);
 
         this.brandingService
-          .generateColorsAndTypographyFromLogo(this.project(), logoSvg!, logoColors!)
+          .generateColorsAndTypographyFromLogo(this.project(), logoSvg, logoColors)
           .pipe(takeUntil(this.destroy$))
           .subscribe({
             next: (response) => {
@@ -134,7 +139,7 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
               this.error.set(
                 this.translate.instant('dashboard.colorSelection.errors.generationFailed'),
               );
-              this.isGenerating.set(false);
+              this.setGeneratingState(false);
             },
           });
       } else {
@@ -154,14 +159,14 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
               this.error.set(
                 this.translate.instant('dashboard.colorSelection.errors.generationFailed'),
               );
-              this.isGenerating.set(false);
+              this.setGeneratingState(false);
             },
           });
       }
     } catch (error) {
       console.error('Error in color generation:', error);
       this.error.set(this.translate.instant('dashboard.colorSelection.errors.generationFailed'));
-      this.isGenerating.set(false);
+      this.setGeneratingState(false);
     }
   }
 
@@ -171,37 +176,51 @@ export class ColorSelectionComponent implements OnInit, OnDestroy {
   private handleGenerationResponse(response: {
     colors: ColorModel[];
     typography: TypographyModel[];
-    project: ProjectModel;
+    project?: ProjectModel;
   }): void {
-    this.colorPalettes.set(response.colors);
-    this.typographyOptions.set(response.typography);
-    this.colorsGenerated.emit(response.colors);
+    const colors = Array.isArray(response.colors) ? response.colors : [];
+    const typography = Array.isArray(response.typography) ? response.typography : [];
+
+    // Réponse malformée : afficher l'erreur (avec retry) plutôt qu'une palette vide
+    if (colors.length === 0) {
+      this.error.set(this.translate.instant('dashboard.colorSelection.errors.generationFailed'));
+      this.setGeneratingState(false);
+      return;
+    }
+
+    this.colorPalettes.set(colors);
+    this.typographyOptions.set(typography);
+    this.colorsGenerated.emit(colors);
 
     // Emit typography as well
-    this.typographyGenerated.emit(response.typography);
+    this.typographyGenerated.emit(typography);
 
     // Emit both colors and typography together
     this.colorsAndTypographyGenerated.emit({
-      colors: response.colors,
-      typography: response.typography,
+      colors,
+      typography,
       project: this.project(),
     });
 
     // Update project with both colors and typography
     this.projectUpdate.emit({
-      id: response.project.id, // Include the project ID from the response
       analysisResultModel: {
         ...this.project().analysisResultModel,
         branding: {
           ...this.project().analysisResultModel?.branding,
-          generatedColors: response.colors,
-          generatedTypography: response.typography,
+          generatedColors: colors,
+          generatedTypography: typography,
         },
       },
     });
 
     this.hasGenerated.set(true);
-    this.isGenerating.set(false);
+    this.setGeneratingState(false);
+
+    // Auto-select the first palette if none selected
+    if (colors.length > 0 && !this.selectedColorId()) {
+      this.selectColor(colors[0].id);
+    }
   }
 
   protected selectColor(colorId: string): void {

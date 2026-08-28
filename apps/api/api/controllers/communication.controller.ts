@@ -6,7 +6,15 @@ import {
   CommunicationStreamEvent,
 } from '../services/Communication/communication.service';
 import { PromptService } from '../services/prompt.service';
-import { FlyerFormat } from '../models/communication.model';
+import {
+  FlyerFormat,
+  VisualIntent,
+  ContentChannel,
+  SocialNetwork,
+  PublicationStatus,
+} from '../models/communication.model';
+import { SUPPORTED_NETWORKS } from '../services/Connectors/social-providers.config';
+import { getRequestLanguage } from '../utils/request-language';
 
 const promptService = new PromptService();
 const communicationService = new CommunicationService(promptService);
@@ -296,8 +304,207 @@ export const regenerateFlyerController = async (
 };
 
 // ---------------------------------------------------------------------------
+// GET /project/communication/:projectId/moments/suggestions
+// ---------------------------------------------------------------------------
+export const getMomentSuggestionsController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+
+  try {
+    const force = req.query.force === 'true';
+    const suggestions = await communicationService.getMomentSuggestions(userId, projectId, {
+      force,
+    });
+    res.status(200).json(suggestions);
+  } catch (error: any) {
+    logger.error(`getMomentSuggestionsController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to get moment suggestions' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// POST /project/communication/:projectId/moments
+// ---------------------------------------------------------------------------
+export const createMomentController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+
+  const occasion = (req.body?.occasion || '').toString().trim();
+  if (!occasion) {
+    res.status(400).json({ message: 'An occasion is required' });
+    return;
+  }
+
+  try {
+    const moment = await communicationService.createMoment(userId, projectId, {
+      occasion,
+      occasionDate: req.body?.occasionDate,
+      message: req.body?.message,
+      intent: req.body?.intent as VisualIntent | undefined,
+      channel: req.body?.channel as ContentChannel | undefined,
+      source: req.body?.source === 'suggestion' ? 'suggestion' : 'custom',
+    });
+    res.status(200).json(moment);
+  } catch (error: any) {
+    logger.error(`createMomentController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to create moment' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// POST /project/communication/:projectId/publish
+// ---------------------------------------------------------------------------
+export const preparePublicationController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+
+  const contentId = (req.body?.contentId || '').toString();
+  const network = (req.body?.network || '').toString() as SocialNetwork;
+  if (!contentId) {
+    res.status(400).json({ message: 'contentId is required' });
+    return;
+  }
+  if (!SUPPORTED_NETWORKS.includes(network)) {
+    res.status(400).json({ message: `Unsupported network. Use one of: ${SUPPORTED_NETWORKS.join(', ')}` });
+    return;
+  }
+
+  try {
+    const result = await communicationService.preparePublication(userId, projectId, {
+      contentId,
+      network,
+      flyerId: req.body?.flyerId,
+      scheduledFor: req.body?.scheduledFor,
+    });
+    res.status(200).json(result);
+  } catch (error: any) {
+    logger.error(`preparePublicationController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to prepare publication' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// PUT /project/communication/:projectId/publish/:publicationId
+// ---------------------------------------------------------------------------
+export const updatePublicationController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  const publicationId = (req.params.publicationId || '').toString();
+  if (!publicationId) {
+    res.status(400).json({ message: 'publicationId is required' });
+    return;
+  }
+
+  try {
+    const updated = await communicationService.updatePublication(userId, projectId, publicationId, {
+      status: req.body?.status as PublicationStatus | undefined,
+      externalUrl: req.body?.externalUrl,
+      scheduledFor: req.body?.scheduledFor,
+    });
+    if (!updated) {
+      res.status(404).json({ message: 'Publication not found' });
+      return;
+    }
+    res.status(200).json(updated);
+  } catch (error: any) {
+    logger.error(`updatePublicationController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to update publication' });
+  }
+};
+
+// ---------------------------------------------------------------------------
 // GET /project/communication/:projectId/flyer/:flyerId/image
 // ---------------------------------------------------------------------------
+/**
+ * PUT /project/communication/:projectId/flyer/:flyerId/html
+ * Sauvegarde du visuel retouché dans l'éditeur WYSIWYG.
+ */
+export const saveFlyerHtmlController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  const flyerId = req.params.flyerId as string;
+
+  try {
+    const html = (req.body?.html ?? '').toString();
+    if (!flyerId || !html.trim()) {
+      res.status(400).json({ message: 'Flyer ID and html are required' });
+      return;
+    }
+    const flyer = await communicationService.updateFlyerHtml(userId, projectId, flyerId, html);
+    if (!flyer) {
+      res.status(404).json({ message: 'Flyer not found' });
+      return;
+    }
+    res.status(200).json(flyer);
+  } catch (error: any) {
+    logger.error(`saveFlyerHtmlController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to save flyer' });
+  }
+};
+
+/**
+ * POST /project/communication/:projectId/flyer/:flyerId/ai-edit
+ * Retouche du visuel par l'IA, à partir d'une consigne en langue naturelle.
+ */
+export const aiEditFlyerController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  const flyerId = req.params.flyerId as string;
+
+  try {
+    const instruction = (req.body?.instruction ?? '').toString().trim();
+    if (!flyerId || !instruction) {
+      res.status(400).json({ message: 'Flyer ID and instruction are required' });
+      return;
+    }
+    const flyer = await communicationService.aiEditFlyer(
+      userId,
+      projectId,
+      flyerId,
+      instruction,
+      getRequestLanguage()
+    );
+    if (!flyer) {
+      res.status(404).json({ message: 'Flyer not found or AI edit failed' });
+      return;
+    }
+    res.status(200).json(flyer);
+  } catch (error: any) {
+    logger.error(`aiEditFlyerController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to AI-edit flyer' });
+  }
+};
+
 export const getFlyerImageController = async (
   req: CustomRequest,
   res: Response

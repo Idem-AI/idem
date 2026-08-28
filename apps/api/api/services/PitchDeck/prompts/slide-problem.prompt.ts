@@ -1,25 +1,23 @@
 import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
 
 export const SLIDE_PROBLEM_PROMPT = `
-You are designing the PROBLEM slide of a pitch deck.
+<role>Senior pitch deck designer at a top-tier design agency</role>
+<objective>Design the PROBLEM slide — make the audience feel the pain. Emotionally compelling, data-backed, visually striking.</objective>
 
-GOAL:
-Make the reader feel the pain. Concrete, specific, verifiable.
+<mandatory_content>
+- Slide number "01 / 10" in text-xs tracking-widest text-[TEXT COLOR]/40 at top-right.
+- Headline: "Le Problème" in text-3xl font-bold text-[PRIMARY COLOR].
+- Sub-headline: 1-sentence framing who suffers and why, in text-base text-[TEXT COLOR].
+- 3 pain points: each with a numbered badge (01, 02, 03) in bg-[PRIMARY COLOR] text-white rounded-full, a bold title in text-[TEXT COLOR], and a 1-line explanation in text-[TEXT COLOR]/70. Under 22 words each.
+- 1 bold statistic displayed in text-5xl font-bold tabular-nums text-[PRIMARY COLOR] with a supporting label below in text-xs uppercase tracking-widest text-[TEXT COLOR]/50.
+- An illustrative image depicting the problem using <img data-image-query="..." data-image-prompt="..." ... />
+</mandatory_content>
 
-MANDATORY CONTENT:
-- Slide number marker (top-right, small): "01 / 10"
-- Headline: "The Problem" or a sharper equivalent (max 4 words)
-- Sub-headline: 1 sentence framing WHO suffers and WHY it matters
-- 3 concrete pain points, each with a short label + 1-line explanation
-- If possible: ONE bold statistic pulled from or consistent with the project context (e.g. "68% of SMBs in West Africa still operate without...")
-
-LAYOUT:
-- Clean 3-column grid for pain points OR a vertical stack with numbered markers
-- Use small numerals (01, 02, 03) as visual anchors, not PrimeIcons
-- Keep each pain point under 22 words
-- One statistic displayed large (text-5xl or text-6xl) with a thin descriptor below
+<layout>
+- Split layout: Left 55% with headline, 3 pain points stacked vertically, and bold stat card (bg-[PRIMARY COLOR]/5 rounded-xl p-6). Right 45% with image container (overflow-hidden rounded-2xl, full height).
+</layout>
 
 ${PITCH_DECK_SHARED_RULES}
 
-PROJECT CONTEXT:
+<project_context>
 `;

@@ -205,3 +205,152 @@ export async function getProjectCodeFromFirebase(
     return null;
   }
 }
+
+// Incremental code storage — the workspace lives in the bucket, addressed by a
+// content-hash manifest so an update only pushes the files that changed.
+
+export async function getProjectCodeManifest(
+  projectId: string
+): Promise<Record<string, string>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/code/manifest`, {
+      credentials: 'include',
+    });
+
+    if (!response.ok) return {};
+
+    const data = (await response.json()) as { files?: Record<string, string> };
+    return data.files || {};
+  } catch (error) {
+    console.error('Error getting project code manifest:', error);
+    return {};
+  }
+}
+
+export async function syncProjectCode(
+  projectId: string,
+  payload: {
+    upserts: Record<string, string>;
+    deletions: string[];
+    manifest: Record<string, string>;
+  }
+): Promise<{ written: number; deleted: number; total: number } | null> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/code`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      console.error('Error syncing project code:', response.statusText);
+      return null;
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error syncing project code:', error);
+    return null;
+  }
+}
+
+// Chat session — the conversation is kept in the database so the user can
+// reopen it from any machine.
+export interface ProjectChatSession {
+  sessionId: string;
+  title?: string;
+  messages: Array<{ id: string; role: string; content: string }>;
+  messageCount?: number;
+  startedAt?: string;
+  lastMessageAt?: string;
+}
+
+export async function getProjectChatSession(
+  projectId: string
+): Promise<ProjectChatSession | null> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/chat-session`, {
+      credentials: 'include',
+    });
+
+    if (!response.ok) return null;
+
+    return (await response.json()) as ProjectChatSession;
+  } catch (error) {
+    console.error('Error getting project chat session:', error);
+    return null;
+  }
+}
+
+export async function saveProjectChatSession(
+  projectId: string,
+  session: ProjectChatSession
+): Promise<void> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/chat-session`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(session),
+    });
+
+    if (!response.ok) {
+      console.error('Error saving project chat session:', response.statusText);
+    }
+  } catch (error) {
+    console.error('Error saving project chat session:', error);
+  }
+}
+
+// Quick deployment (Netlify) tracking — lets a redeploy update the same site
+export interface AppDeployment {
+  provider?: string;
+  siteId: string;
+  siteName?: string | null;
+  url: string;
+  adminUrl?: string | null;
+  deployId?: string | null;
+  firstDeployedAt?: string;
+  lastDeployedAt?: string;
+}
+
+export async function getAppDeployment(projectId: string): Promise<AppDeployment | null> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/app-deployment`, {
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      // 404 simply means the project has never been deployed yet.
+      return null;
+    }
+
+    return (await response.json()) as AppDeployment;
+  } catch (error) {
+    console.error('Error getting app deployment:', error);
+    return null;
+  }
+}
+
+export async function saveAppDeployment(
+  projectId: string,
+  deployment: AppDeployment
+): Promise<void> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/app-deployment`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(deployment),
+    });
+
+    if (!response.ok) {
+      console.error('Error saving app deployment:', response.statusText);
+    }
+  } catch (error) {
+    console.error('Error saving app deployment:', error);
+  }
+}

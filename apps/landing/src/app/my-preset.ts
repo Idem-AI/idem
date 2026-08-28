@@ -18,6 +18,19 @@ export const MyPreset = definePreset(Aura, {
       950: '{blue.950}',
     },
     colorScheme: {
+      light: {
+        primary: {
+          color: '{blue.600}',
+          hoverColor: '{blue.700}',
+          activeColor: '{blue.800}',
+        },
+        highlight: {
+          background: 'rgba(20, 71, 230, 0.10)',
+          focusBackground: 'rgba(20, 71, 230, 0.16)',
+          color: '#0f172a',
+          focusColor: '#0f172a',
+        },
+      },
       dark: {
         primary: {
           // Slightly lighter tints for dark mode interactions
@@ -55,11 +68,11 @@ export const MyPreset = definePreset(Aura, {
         fontWeight: '600',
         borderWidth: '0.5px',
         borderColor: '{content.border.color}',
-        // glass-like backgrounds (match styles.css glass vars)
-        background: 'rgba(15, 20, 27, 0.7)',
-        hoverBackground: 'rgba(20, 20, 30, 0.6)',
-        activeBackground: 'rgba(20, 20, 30, 0.6)',
-        activeHoverBackground: 'rgba(20, 20, 30, 0.6)',
+        // glass-like backgrounds (theme-reactive design-system vars)
+        background: 'var(--glass-bg-medium)',
+        hoverBackground: 'var(--glass-bg-dark)',
+        activeBackground: 'var(--glass-bg-dark)',
+        activeHoverBackground: 'var(--glass-bg-dark)',
         focusRing: {
           width: '{focus.ring.width}',
           style: '{focus.ring.style}',
@@ -84,14 +97,14 @@ export const MyPreset = definePreset(Aura, {
       },
       content: {
         borderColor: '{content.border.color}',
-        background: 'rgba(15, 20, 27, 0.7)',
+        background: 'var(--glass-bg-medium)',
         color: '{text.color}',
         padding: '0 1rem 1rem 1rem',
       },
     },
     select: {
       root: {
-        background: 'rgba(15, 20, 27, 0.7)',
+        background: 'var(--glass-bg-medium)',
         borderColor: '{content.border.color}',
         color: '{text.color}',
         borderRadius: '0.5rem',
@@ -108,7 +121,7 @@ export const MyPreset = definePreset(Aura, {
         },
       },
       overlay: {
-        background: 'rgba(20, 25, 32, 0.95)',
+        background: 'var(--glass-bg-intense)',
         borderColor: '{content.border.color}',
         borderRadius: '0.5rem',
         color: '{text.color}',
@@ -122,7 +135,7 @@ export const MyPreset = definePreset(Aura, {
         padding: '0.5rem 0.75rem',
         borderRadius: '0.375rem',
         color: '{text.muted.color}',
-        focusBackground: 'rgba(255, 255, 255, 0.07)',
+        focusBackground: 'var(--glass-bg-subtle)',
         selectedBackground: '{highlight.background}',
         selectedFocusBackground: '{highlight.focus.background}',
         selectedColor: '{highlight.color}',

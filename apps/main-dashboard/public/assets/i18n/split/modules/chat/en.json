@@ -55,7 +55,10 @@
       "pitchDeck": "Pitch Deck",
       "diagrams": "Diagrams",
       "legalDocs": "Legal Documents",
-      "finance": "Financial Report"
+      "finance": "Financial Report",
+      "communication": "Communication",
+      "development": "Development",
+      "deployment": "Deployment"
     },
     "card": {
       "updatedAt": "Updated",
@@ -79,7 +82,8 @@
         "typography": "Typography"
       },
       "diagramsSection": "Architecture diagrams",
-      "financeSection": "Full financial model"
+      "financeSection": "Full financial model",
+      "developmentSection": "Development configuration"
     },
     "preview": {
       "download": "Download",
@@ -117,7 +121,10 @@
         "pitchDeck": "Show my pitch deck",
         "diagrams": "Show my diagrams",
         "legalDocs": "Show my legal documents",
-        "finance": "Show my financial report"
+        "finance": "Show my financial report",
+        "communication": "Show my communication",
+        "development": "Show my development",
+        "deployment": "Show my deployments"
       },
       "generate": {
         "businessPlan": "Write my business plan",
@@ -125,7 +132,10 @@
         "pitchDeck": "Generate my pitch deck",
         "diagrams": "Generate my diagrams",
         "legalDocs": "Create my legal documents",
-        "finance": "Complete my finances"
+        "finance": "Complete my finances",
+        "communication": "Generate my communication",
+        "development": "Set up development",
+        "deployment": "Set up deployment"
       }
     },
     "bp": {
@@ -183,7 +193,8 @@
         "targets": "Audience",
         "scope": "Scope",
         "teamSize": "Team",
-        "budget": "Budget"
+        "budget": "Budget",
+        "currency": "Currency"
       },
       "policies": {
         "accept": "I accept the",
@@ -266,6 +277,9 @@
       "welcome": "Hi! 👋 Let's create your project together, step by step. First question: **describe your idea in a few sentences.** What do you want to build, and what problem does it solve?",
       "resume": "Welcome back! 👋 Let's pick up your project creation exactly where you left off.",
       "aiWelcome": "Perfect, {{name}}! 🚀 I've got your idea. Let me ask a few questions to shape your project.",
+      "aiWelcomeNoName": "Perfect! 🚀 I've got your idea. Let me ask a few simple questions to shape your project.",
+      "customType": "Great. Describe your project type in a few words:",
+      "customCurrency": "Alright. Which currency would you like to use?",
       "composerPlaceholder": "Type your answer, or pick a suggestion…",
       "questions": {
         "description": "Describe your idea in a few sentences: what do you want to build, and what problem does it solve?",
@@ -292,13 +306,15 @@
       "options": {
         "type": {
           "enterprise": "Enterprise creation",
+          "ecommerce": "Commerce / E-commerce",
           "web": "Web application",
           "mobile": "Mobile application",
           "iot": "IoT",
           "desktop": "Desktop application",
           "api": "API / Backend",
           "ai": "AI / ML",
-          "blockchain": "Blockchain"
+          "blockchain": "Blockchain",
+          "other": "Other"
         },
         "targets": {
           "business": "Companies",
@@ -328,6 +344,50 @@
         }
       }
     },
+    "legal": {
+      "intro": "Let's create your **legal documents**. Which document would you like to generate? (For precise articles — capital, partners — fill in the context in the editor.)",
+      "chips": {
+        "essentials": "Essentials pack (Terms, Sales terms, Privacy, Legal notice)",
+        "cgu": "Terms of use",
+        "cgv": "Terms of sale",
+        "privacy": "Privacy policy",
+        "statutes": "Articles (SAS)",
+        "nda": "Non-disclosure agreement (NDA)",
+        "editor": "Browse the full catalog"
+      }
+    },
+    "comm": {
+      "intro": "Let's work on your **communication**. I can define your editorial strategy and build a content calendar. Where do we start?",
+      "introNeedsBranding": "Let's work on your **communication**. 💡 Tip: complete your brand identity first for consistent visuals. Where do we start?",
+      "strategyTitle": "Communication strategy",
+      "calendarTitle": "Editorial calendar",
+      "strategyDone": "✅ Your **communication strategy** is ready! You can now generate your editorial calendar or refine it in the editor.",
+      "calendarDone": "✅ Your **editorial calendar** is ready! Open the editor to create flyers or adjust your content.",
+      "steps": {
+        "context": "Analyzing context",
+        "trends": "Spotting trends",
+        "strategy": "Writing the strategy",
+        "calendar": "Building the calendar"
+      },
+      "chips": {
+        "strategy": "Generate the strategy",
+        "calendar": "Generate the calendar"
+      }
+    },
+    "dev": {
+      "intro": "The **development workshop** generates the code for your app or website (landing page, web app, PWA…) from your project. Open it to choose your configuration.",
+      "chips": {
+        "open": "Open the development workshop",
+        "view": "View my configuration"
+      }
+    },
+    "deploy": {
+      "intro": "The **deployment assistant** takes your project live (infrastructure, Terraform, CI/CD). It needs a Git repository. Let's start a deployment or review previous ones.",
+      "chips": {
+        "start": "Start a deployment",
+        "list": "View my deployments"
+      }
+    },
     "launcher": {
       "title": "What are we building for {{name}}?",
       "subtitle": "Pick a deliverable to view or generate — or just type your request below.",
@@ -340,7 +400,10 @@
         "pitchDeck": "The deck to win over your investors.",
         "finance": "Financial forecasts and tables.",
         "diagrams": "Architecture and technical diagrams.",
-        "legalDocs": "Articles, terms, contracts and legal notices."
+        "legalDocs": "Articles, terms, contracts and legal notices.",
+        "communication": "Strategy, editorial calendar and flyers.",
+        "development": "Generation of your app or website.",
+        "deployment": "Deploy your infrastructure and go live."
       },
       "state": {
         "ready": "Ready",

@@ -5,9 +5,62 @@ import { PromptService } from '../services/prompt.service';
 import { ISectionResult } from '../services/common/generic.service';
 import { userService } from '../services/user.service';
 import logger from '../config/logger';
+import { projectService } from '../services/project.service';
+import { getRequestLanguage } from '../utils/request-language';
+import { sectionEditingService } from '../services/common/section-editing.service';
 
 const promptService = new PromptService();
 const pitchDeckService = new PitchDeckService(promptService);
+
+/**
+ * Sauvegarde les diapositives éditées (éditeur WYSIWYG). Body: { sections }.
+ */
+export const savePitchDeckSectionsController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId } = req.params;
+  try {
+    if (!userId) { res.status(401).json({ message: 'User not authenticated' }); return; }
+    if (!projectId) { res.status(400).json({ message: 'Project ID is required' }); return; }
+    const { sections } = req.body ?? {};
+    if (!Array.isArray(sections)) { res.status(400).json({ message: 'A "sections" array is required' }); return; }
+
+    const updated = await sectionEditingService.saveSections(userId, projectId as string, 'pitchDeck', sections);
+    if (!updated) { res.status(404).json({ message: 'Pitch deck not found for the project' }); return; }
+    res.status(200).json(updated);
+  } catch (error: any) {
+    logger.error(`Error in savePitchDeckSectionsController: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to save pitch deck sections' });
+  }
+};
+
+/**
+ * Édition IA d'une diapositive. Body: { instruction }.
+ */
+export const aiEditPitchDeckSectionController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId, sectionId } = req.params;
+  try {
+    if (!userId) { res.status(401).json({ message: 'User not authenticated' }); return; }
+    if (!projectId || !sectionId) { res.status(400).json({ message: 'Project ID and section ID are required' }); return; }
+    const instruction = (req.body?.instruction ?? '').toString().trim();
+    if (!instruction) { res.status(400).json({ message: 'An "instruction" is required' }); return; }
+
+    const result = await sectionEditingService.aiEditSection(
+      userId, projectId as string, 'pitchDeck', sectionId as string, instruction, getRequestLanguage()
+    );
+    if (!result) { res.status(404).json({ message: 'Slide not found or AI edit failed' }); return; }
+    res.status(200).json(result);
+  } catch (error: any) {
+    logger.error(`Error in aiEditPitchDeckSectionController: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to AI-edit pitch deck slide' });
+  }
+};
 
 export const getPitchDeckController = async (req: CustomRequest, res: Response): Promise<void> => {
   const userId = req.user?.uid;
@@ -95,10 +148,25 @@ export const generatePitchDeckStreamingController = async (
       (res as any).flush?.();
     };
 
+    const forceRegenerate = req.query.force === 'true' || req.body.force === true;
+
+    // Sections ciblées à régénérer (ex: ?sections=Financials,Ask)
+    const sectionsParam = typeof req.query.sections === 'string' ? req.query.sections : '';
+    const targetSections = sectionsParam
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    // Fetch project to see if this is a retry/resume
+    const project = await projectService.getUserProjectById(userId, projectId as string);
+    const isRetry = !!(project && !forceRegenerate && (project.analysisResultModel?.pitchDeck?.sections?.length ?? 0) > 0);
+
     const updatedProject = await pitchDeckService.generatePitchDeckWithStreaming(
       userId,
       projectId as string,
-      streamCallback
+      streamCallback,
+      forceRegenerate,
+      targetSections
     );
 
     if (!updatedProject) {
@@ -110,7 +178,13 @@ export const generatePitchDeckStreamingController = async (
       return;
     }
 
-    userService.incrementUsage(userId, 5);
+    if (!isRetry) {
+      userService.incrementUsage(userId, 5);
+      logger.info(`Charged 5 credits for user ${userId} on Pitch Deck completion.`);
+    } else {
+      logger.info(`Exempted user ${userId} from credit charge because this is a retry/resume.`);
+    }
+
     logger.info(
       `generatePitchDeckStreamingController success projectId=${projectId} durationMs=${Date.now() - startedAt}`
     );

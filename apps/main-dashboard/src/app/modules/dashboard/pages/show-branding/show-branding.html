@@ -25,8 +25,8 @@
         <div class="mb-4">
           <app-loader />
         </div>
-        <h3 class="text-lg font-medium text-white mb-2">{{ 'common.loading' | translate }}</h3>
-        <p class="text-gray-400">{{ 'dashboard.showBranding.loading.checking' | translate }}</p>
+        <h3 class="text-lg font-medium text-text-primary mb-2">{{ 'common.loading' | translate }}</h3>
+        <p class="text-text-tertiary">{{ 'dashboard.showBranding.loading.checking' | translate }}</p>
       </div>
     </div>
   } @else if (hasError() && isRetryable()) {
@@ -36,15 +36,15 @@
         <div class="mb-6">
           <i class="pi pi-exclamation-triangle text-6xl text-red-400 mb-4"></i>
         </div>
-        <h3 class="text-2xl font-bold text-white mb-4">{{ 'common.error' | translate }}</h3>
-        <p class="text-gray-300 mb-8">{{ errorMessage() }}</p>
+        <h3 class="text-2xl font-bold text-text-primary mb-4">{{ 'common.error' | translate }}</h3>
+        <p class="text-text-secondary mb-8">{{ errorMessage() }}</p>
         <div class="flex gap-4 justify-center">
           <button class="inner-button" (click)="retryLoadBranding()">
             <i class="pi pi-refresh mr-2"></i>
             {{ 'common.retry' | translate }}
           </button>
           <button
-            class="glass-card px-6 py-3 text-white hover:bg-white/20 transition-all duration-300 rounded-lg"
+            class="glass-card px-6 py-3 text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-300 rounded-lg"
             (click)="goToProjects()"
           >
             <i class="pi pi-arrow-left mr-2"></i>
@@ -64,259 +64,167 @@
         />
       }
 
-      <!-- Header Section -->
-      <div class="glass-card p-6">
-        <div class="flex items-center justify-between mb-6">
-          <div>
-            <h1 class="text-3xl font-bold text-white mb-2">
-              {{ 'dashboard.showBranding.title' | translate }}
-            </h1>
-            <p class="text-gray-300">
-              @if (currentProject()) {
-                {{ currentProject()!.name }}
-              }
-            </p>
-          </div>
+      <!-- Guidelines completion status + per-section regeneration -->
+      @if (currentProject() && isBrandingComplete() && guidelinesCompleteness().hasStarted) {
+        <app-generation-status-panel
+          [completeness]="guidelinesCompleteness()"
+          sectionLabelPrefix="dashboard.generationPanel.sections.branding."
+          (resume)="generateBranding(false)"
+          (regenerateAll)="generateBranding(true)"
+          (regenerateSection)="regenerateSection($event)"
+        />
+      }
+
+      <!-- ── En-tête de page ───────────────────────────────────────────── -->
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div>
+          <h1 class="text-3xl font-bold text-text-primary">
+            {{ 'dashboard.showBranding.title' | translate }}
+          </h1>
+          @if (currentProject()) {
+            <p class="text-text-secondary mt-1">{{ currentProject()!.name }}</p>
+          }
         </div>
       </div>
 
-      <!-- Visual Identity Section -->
+      <!-- ── Charte graphique : statut et accès ────────────────────────── -->
       @if (hasBrandingSections()) {
-        <!-- Existing Identity - Gallery Showcase Layout -->
-        <div (click)="viewBrandingGuide()" class="relative cursor-pointer group">
-          <!-- Gallery Container -->
-          <div
-            class="glass-card border-2 border-green-400/30 hover:border-green-400/50 transition-all duration-500 p-8 sm:p-10 lg:p-12 relative overflow-hidden"
-          >
-            <!-- Background Pattern -->
-            <div class="absolute top-0 right-0 w-64 h-64 opacity-5">
-              <svg viewBox="0 0 100 100" class="w-full h-full">
-                <defs>
-                  <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                    <path
-                      d="M 10 0 L 0 0 0 10"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1"
-                    />
-                  </pattern>
-                </defs>
-                <rect width="100" height="100" fill="url(#grid)" />
-              </svg>
-            </div>
-
-            <!-- Success Ribbon -->
+        <section class="glass-card overflow-hidden" aria-labelledby="brand-guide-heading">
+          <div class="flex flex-col lg:flex-row">
+            <!-- Aperçu du logo -->
             <div
-              class="absolute -top-2 -right-2 bg-green-500 text-white px-6 py-2 rounded-full shadow-lg transform rotate-12 text-sm font-bold"
+              class="lg:w-60 shrink-0 p-8 flex items-center justify-center bg-[var(--glass-bg-subtle)] border-b lg:border-b-0 lg:border-r border-[var(--glass-border)]"
             >
-              ✓ {{ 'dashboard.showBranding.status.ready' | translate }}
+              <div
+                class="w-32 h-32 rounded-2xl bg-white flex items-center justify-center p-4 shadow-lg border border-[var(--glass-border-medium)]"
+              >
+                @if (
+                  logoSrc(
+                    existingBranding()?.logo?.assetUrls?.primary,
+                    existingBranding()?.logo?.svg
+                  );
+                  as logoImg
+                ) {
+                  <img [src]="logoImg" class="w-full h-full object-contain" alt="" />
+                } @else {
+                  <i class="pi pi-image text-3xl text-text-tertiary" aria-hidden="true"></i>
+                }
+              </div>
             </div>
 
-            <!-- Main Layout -->
-            <div class="relative z-10">
-              <!-- Header -->
-              <div class="text-center mb-8">
-                <h3 class="text-3xl sm:text-4xl font-bold text-white mb-3">
-                  {{ 'dashboard.showBranding.identityCard.existing.title' | translate }}
-                </h3>
-                <p class="text-gray-300 text-lg max-w-2xl mx-auto">
-                  {{ 'dashboard.showBranding.identityCard.existing.subtitle' | translate }}
-                </p>
-              </div>
-
-              <!-- Brand Showcase Grid -->
-              <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-                <!-- Logo Display -->
-                <div class="lg:col-span-1 flex justify-center">
-                  <div class="relative group/logo">
-                    <div
-                      class="w-32 h-32 bg-white rounded-2xl flex items-center justify-center shadow-lg border-2 border-white/20 group-hover/logo:shadow-xl group-hover/logo:bg-white/15 transition-all duration-300"
-                    >
-                      @if (existingBranding()?.logo?.svg) {
-                        <img
-                          [src]="existingBranding()!.logo.svg"
-                          class="w-24 h-24 object-contain"
-                        />
-                      } @else {
-                        <svg
-                          class="w-16 h-16 text-white/70"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fill-rule="evenodd"
-                            d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
-                            clip-rule="evenodd"
-                          />
-                        </svg>
-                      }
-                    </div>
-                    <div
-                      class="absolute -bottom-2 left-1/2 text-center transform -translate-x-1/2 bg-white text-gray-900 px-3 py-1 rounded-full text-xs font-medium shadow-lg"
-                    >
-                      Logo
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Features List -->
-                <div class="lg:col-span-2">
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    @for (
-                      feature of [
-                        'dashboard.showBranding.identityCard.existing.features.0',
-                        'dashboard.showBranding.identityCard.existing.features.1',
-                        'dashboard.showBranding.identityCard.existing.features.2',
-                        'dashboard.showBranding.identityCard.existing.features.3',
-                      ];
-                      track feature
-                    ) {
-                      <div
-                        class="flex items-start gap-3 p-4 bg-white/5 rounded-xl border border-white/10"
-                      >
-                        <div
-                          class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                        >
-                          <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path
-                              fill-rule="evenodd"
-                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                              clip-rule="evenodd"
-                            />
-                          </svg>
-                        </div>
-                        <div>
-                          <span class="text-sm font-semibold text-white">{{
-                            feature | translate
-                          }}</span>
-                        </div>
-                      </div>
-                    }
-                  </div>
-                </div>
-              </div>
-
-              <!-- Action Center -->
-              <div class="text-center">
-                <button
-                  class="inner-button inline-flex items-center gap-4 px-8 py-4 text-lg font-semibold rounded-2xl shadow-lg hover:shadow-xl group/btn"
-                >
-                  <svg
-                    class="arrow-slide group-hover/btn:translate-x-1 transition-transform w-6 h-6 text-blue-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+            <!-- Contenu -->
+            <div class="flex-1 p-6 sm:p-8">
+              <div class="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-5">
+                <div>
+                  <span
+                    class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-green-500/15 text-green-400 border border-green-500/30"
                   >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                    />
-                  </svg>
-                  <span>{{ 'dashboard.showBranding.buttons.viewIdentity' | translate }}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      } @else {
-        <!-- Generate Identity - Modern Card Design -->
-        <div (click)="generateBranding()" class="relative overflow-hidden cursor-pointer group">
-          <!-- Main Card -->
-          <div
-            class="glass-card border border-white/20 hover:border-white/30 transition-all duration-500"
-          >
-            <!-- Header with Icon -->
-            <div class="p-6 sm:p-8 lg:p-10 border-b border-white/10">
-              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div class="flex items-center gap-4">
-                  <!-- Icon Container -->
-                  <div class="">
-                    <img
-                      src="assets/images/dashboard/brand.webp"
-                      alt=""
-                      class="w-16 h-16 object-cover sm:w-20 sm:h-20 bg-white rounded-2xl flex items-center justify-center shadow-lg"
-                    />
-                  </div>
-
-                  <!-- Title & Status -->
-                  <div>
-                    <h3 class="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-1">
-                      {{ 'dashboard.showBranding.identityCard.generate.title' | translate }}
-                    </h3>
-                    <div class="flex items-center gap-2">
-                      <div class="w-2 h-2 bg-blue-400 rounded-full"></div>
-                      <span class="text-sm text-blue-400 font-medium">{{
-                        'dashboard.showBranding.status.pending' | translate
-                      }}</span>
-                    </div>
-                  </div>
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-400" aria-hidden="true"></span>
+                    {{ 'dashboard.showBranding.status.ready' | translate }}
+                  </span>
+                  <h2 id="brand-guide-heading" class="text-2xl font-bold text-text-primary mt-3">
+                    {{ 'dashboard.showBranding.identityCard.existing.title' | translate }}
+                  </h2>
+                  <p class="text-text-secondary mt-1.5 max-w-xl">
+                    {{ 'dashboard.showBranding.identityCard.existing.subtitle' | translate }}
+                  </p>
                 </div>
 
-                <!-- Action Button -->
-                <div class="relative">
-                  <!-- Glow Effect -->
-                  <div
-                    class="absolute inset-0 bg-primary/20 rounded-xl blur-lg group-hover:bg-primary/30 transition-all duration-500"
-                  ></div>
-
-                  <!-- Main Button -->
+                <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+                  <button type="button" class="inner-button !text-sm" (click)="viewBrandingGuide()">
+                    <i class="pi pi-eye text-sm" aria-hidden="true"></i>
+                    <span>{{ 'dashboard.showBranding.buttons.viewIdentity' | translate }}</span>
+                  </button>
                   <button
-                    class="relative px-6 py-3 bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl border border-primary/50 hover:border-primary/70 transition-all duration-300 shadow-lg hover:shadow-primary/25 hover:shadow-xl"
+                    type="button"
+                    class="glass-card px-4 py-2.5 text-sm text-text-primary hover:bg-[var(--glass-bg-light)] transition-colors rounded-xl flex items-center gap-2"
+                    (click)="editBrandingGuide()"
                   >
-                    <div class="flex items-center gap-3">
-                      <span class="text-sm sm:text-base">{{
-                        'dashboard.showBranding.buttons.generateIdentity' | translate
-                      }}</span>
-                      <svg
-                        class="w-5 h-5 arrow-slide"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M17 8l4 4m0 0l-4 4m4-4H3"
-                        />
-                      </svg>
-                    </div>
+                    <i class="pi pi-pencil text-xs" aria-hidden="true"></i>
+                    {{ 'dashboard.showBranding.buttons.editIdentity' | translate }}
                   </button>
                 </div>
               </div>
-            </div>
 
-            <!-- Content -->
-            <div class="p-6 sm:p-8 lg:p-10">
-              <p class="text-gray-300 text-base sm:text-lg mb-4 max-w-2xl">
+              <!-- Repères rapides -->
+              <dl class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+                <div class="p-3 rounded-xl bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)]">
+                  <dt class="text-xs text-text-tertiary uppercase tracking-wide">
+                    {{ 'dashboard.showBranding.summary.sections' | translate }}
+                  </dt>
+                  <dd class="text-lg font-semibold text-text-primary mt-0.5">
+                    {{ brandSectionCount() }}
+                  </dd>
+                </div>
+
+                <div class="p-3 rounded-xl bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)]">
+                  <dt class="text-xs text-text-tertiary uppercase tracking-wide">
+                    {{ 'dashboard.showBranding.summary.palette' | translate }}
+                  </dt>
+                  <dd class="flex items-center gap-1.5 mt-2">
+                    @for (swatch of paletteSwatches(); track swatch) {
+                      <span
+                        class="w-5 h-5 rounded-full border border-[var(--glass-border-medium)]"
+                        [style.background-color]="swatch"
+                        [title]="swatch"
+                      ></span>
+                    } @empty {
+                      <span class="text-sm text-text-tertiary">—</span>
+                    }
+                  </dd>
+                </div>
+
+                <div class="p-3 rounded-xl bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)]">
+                  <dt class="text-xs text-text-tertiary uppercase tracking-wide">
+                    {{ 'dashboard.showBranding.summary.typography' | translate }}
+                  </dt>
+                  <dd
+                    class="text-sm font-semibold text-text-primary mt-1 truncate"
+                    [style.font-family]="existingBranding()?.typography?.primaryFont"
+                  >
+                    {{ existingBranding()?.typography?.primaryFont || '—' }}
+                  </dd>
+                </div>
+
+                <div class="p-3 rounded-xl bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)]">
+                  <dt class="text-xs text-text-tertiary uppercase tracking-wide">
+                    {{ 'dashboard.showBranding.summary.logoVariations' | translate }}
+                  </dt>
+                  <dd class="text-lg font-semibold text-text-primary mt-0.5">
+                    {{ logoVariationCount() }}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+        </section>
+      } @else {
+        <!-- Charte absente : invitation à générer -->
+        <section
+          class="glass-card p-6 sm:p-8 border border-dashed border-[var(--glass-border-strong)]"
+          aria-labelledby="brand-generate-heading"
+        >
+          <div class="flex flex-col lg:flex-row lg:items-center gap-6">
+            <img
+              src="assets/images/dashboard/brand.webp"
+              alt=""
+              class="w-20 h-20 rounded-2xl object-cover shadow-lg shrink-0"
+            />
+            <div class="flex-1">
+              <span
+                class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/30"
+              >
+                <span class="w-1.5 h-1.5 rounded-full bg-blue-400" aria-hidden="true"></span>
+                {{ 'dashboard.showBranding.status.pending' | translate }}
+              </span>
+              <h2 id="brand-generate-heading" class="text-2xl font-bold text-text-primary mt-3">
+                {{ 'dashboard.showBranding.identityCard.generate.title' | translate }}
+              </h2>
+              <p class="text-text-secondary mt-1.5 max-w-2xl">
                 {{ 'dashboard.showBranding.identityCard.generate.subtitle' | translate }}
               </p>
 
-              <!-- Time Estimate -->
-              <div
-                class="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/10 text-blue-400 rounded-full text-sm mb-6 border border-blue-500/20"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                {{ 'dashboard.showBranding.identityCard.generate.estimatedTime' | translate }}
-              </div>
-
-              <!-- Features Grid -->
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <ul class="flex flex-wrap gap-2 mt-4">
                 @for (
                   feature of [
                     'dashboard.showBranding.identityCard.generate.features.0',
@@ -326,28 +234,69 @@
                   ];
                   track feature
                 ) {
-                  <div
-                    class="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/10"
+                  <li
+                    class="px-3 py-1.5 rounded-full text-xs text-text-secondary bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)]"
                   >
-                    <svg
-                      class="w-5 h-5 text-blue-400 shrink-0"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fill-rule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
-                    <span class="text-sm text-gray-300 font-medium">{{ feature | translate }}</span>
-                  </div>
+                    {{ feature | translate }}
+                  </li>
                 }
-              </div>
+              </ul>
+            </div>
+
+            <div class="shrink-0 flex flex-col items-start lg:items-end gap-2">
+              <button type="button" class="inner-button" (click)="generateBranding()">
+                <span>{{ 'dashboard.showBranding.buttons.generateIdentity' | translate }}</span>
+                <i class="pi pi-arrow-right text-sm arrow-slide" aria-hidden="true"></i>
+              </button>
+              <span class="text-xs text-text-tertiary">
+                {{ 'dashboard.showBranding.identityCard.generate.estimatedTime' | translate }}
+              </span>
             </div>
           </div>
-        </div>
+        </section>
       }
+
+      <!-- ── Cartes de visite ──────────────────────────────────────────── -->
+      <section class="glass-card p-6 sm:p-7" aria-labelledby="business-cards-heading">
+        <div class="flex flex-col lg:flex-row lg:items-center gap-6">
+          <div
+            class="w-14 h-14 rounded-2xl bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0"
+          >
+            <i class="pi pi-id-card text-2xl text-primary" aria-hidden="true"></i>
+          </div>
+
+          <div class="flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h2 id="business-cards-heading" class="text-xl font-bold text-text-primary">
+                {{ 'dashboard.showBranding.businessCards.title' | translate }}
+              </h2>
+              @if (hasBrandingSections()) {
+                <span
+                  class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-[var(--glass-bg-light)] text-text-secondary border border-[var(--glass-border)]"
+                >
+                  {{ 'dashboard.showBranding.businessCards.badge' | translate }}
+                </span>
+              }
+            </div>
+            <p class="text-text-secondary mt-1.5 max-w-2xl">
+              {{ 'dashboard.showBranding.businessCards.subtitle' | translate }}
+            </p>
+          </div>
+
+          <div class="shrink-0">
+            @if (canCreateBusinessCards()) {
+              <button type="button" class="inner-button !text-sm" (click)="goToBusinessCards()">
+                <i class="pi pi-id-card text-sm" aria-hidden="true"></i>
+                <span>{{ 'dashboard.showBranding.businessCards.cta' | translate }}</span>
+              </button>
+            } @else {
+              <p class="text-xs text-text-tertiary max-w-[16rem]">
+                {{ 'dashboard.showBranding.businessCards.locked' | translate }}
+              </p>
+            }
+          </div>
+        </div>
+      </section>
 
       <!-- Branding Elements Grid -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -355,26 +304,13 @@
         <div class="glass-card p-6">
           <div class="flex items-center justify-between mb-6">
             <div>
-              <h3 class="text-xl font-semibold text-white">
+              <h3 class="text-xl font-semibold text-text-primary">
                 {{ 'dashboard.showBranding.sections.logos.title' | translate }}
               </h3>
-              <p class="text-gray-400 text-sm">
+              <p class="text-text-tertiary text-sm">
                 {{ 'dashboard.showBranding.sections.logos.subtitle' | translate }}
               </p>
             </div>
-            @if (
-              existingBranding() &&
-              (existingBranding()!.logo!.svg || existingBranding()!.generatedLogos!.length > 0)
-            ) {
-              <button
-                (click)="showDialog()"
-                class="glass-card px-4 py-2 text-white hover:bg-white/20 transition-all duration-300 rounded-lg flex items-center gap-2"
-                [title]="'dashboard.showBranding.tooltips.downloadZip' | translate"
-              >
-                <i class="pi pi-download text-sm"></i>
-                <span class="text-sm">ZIP</span>
-              </button>
-            }
           </div>
 
           @if (
@@ -384,30 +320,21 @@
             <!-- Real Logo Data -->
             <div class="space-y-4">
 
-              @if (existingBranding()!.logo!.svg) {
+              @if (logoSrc(existingBranding()!.logo!.assetUrls?.primary, existingBranding()!.logo!.svg); as logoImg) {
                 <!-- Selected Logo -->
                 <div class="glass-card p-4 text-center">
                   <div
-                    class="w-24 h-24 mx-auto mb-3 bg-white rounded-lg flex items-center justify-center p-2 overflow-hidden"
+                    class="w-36 h-36 sm:w-40 sm:h-40 mx-auto mb-3 bg-white rounded-xl flex items-center justify-center p-3 overflow-hidden"
                   >
-                    @if (existingBranding()!.logo.svg.startsWith('<')) {
-                      <!-- Raw SVG inline -->
-                      <div
-                        class="w-full h-full flex items-center justify-center svg-logo"
-                        [innerHTML]="existingBranding()!.logo.svg | safeHtml"
-                      ></div>
-                    } @else {
-                      <!-- URL -->
-                      <img [src]="existingBranding()!.logo.svg" class="w-full h-full object-contain" />
-                    }
+                    <img [src]="logoImg" class="w-full h-full object-contain" alt="Logo" />
                   </div>
-                  <p class="text-white font-medium">
+                  <p class="text-text-primary font-medium">
                     {{
                       existingBranding()!.logo.name ||
                         ('dashboard.showBranding.sections.logos.main' | translate)
                     }}
                   </p>
-                  <p class="text-gray-400 text-sm">
+                  <p class="text-text-tertiary text-sm">
                     {{ 'dashboard.showBranding.sections.logos.selected' | translate }}
                   </p>
                 </div>
@@ -418,126 +345,84 @@
                 <div class="grid grid-cols-2 gap-3">
 
                   <!-- withText · light -->
-                  @if (existingBranding()!.logo!.variations!.withText?.lightBackground) {
+                  @if (logoSrc(existingBranding()!.logo!.assetUrls?.withText?.lightBackground, existingBranding()!.logo!.variations!.withText?.lightBackground); as v) {
                     <div class="glass-card p-3 text-center">
                       <div
-                        class="w-16 h-16 mx-auto mb-2 bg-white rounded flex items-center justify-center p-1 overflow-hidden"
+                        class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-white rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
-                        @if (existingBranding()!.logo!.variations!.withText!.lightBackground!.startsWith('<')) {
-                          <div
-                            class="w-full h-full svg-logo"
-                            [innerHTML]="existingBranding()!.logo!.variations!.withText!.lightBackground! | safeHtml"
-                          ></div>
-                        } @else {
-                          <img [src]="existingBranding()!.logo!.variations!.withText!.lightBackground" class="w-full h-full object-contain" />
-                        }
+                        <img [src]="v" class="w-full h-full object-contain" alt="Logo" />
                       </div>
-                      <p class="text-white text-xs">
+                      <p class="text-text-primary text-xs">
                         {{ 'dashboard.showBranding.sections.logos.lightBg' | translate }}
                       </p>
                     </div>
                   }
 
                   <!-- withText · dark -->
-                  @if (existingBranding()!.logo!.variations!.withText?.darkBackground) {
-                    <div class="glass-card p-3 text-center">
+                  @if (logoSrc(existingBranding()!.logo!.assetUrls?.withText?.darkBackground, existingBranding()!.logo!.variations!.withText?.darkBackground); as v) {
+                    <div class="glass-card !bg-gray-900 border border-gray-800 p-3 text-center">
                       <div
-                        class="w-16 h-16 mx-auto mb-2 bg-gray-800/50 rounded flex items-center justify-center p-1 overflow-hidden"
+                        class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-gray-900 rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
-                        @if (existingBranding()!.logo!.variations!.withText!.darkBackground!.startsWith('<')) {
-                          <div
-                            class="w-full h-full svg-logo"
-                            [innerHTML]="existingBranding()!.logo!.variations!.withText!.darkBackground! | safeHtml"
-                          ></div>
-                        } @else {
-                          <img [src]="existingBranding()!.logo!.variations!.withText!.darkBackground" class="w-full h-full object-contain" />
-                        }
+                        <img [src]="v" class="w-full h-full object-contain" alt="Logo" />
                       </div>
-                      <p class="text-white text-xs">
+                      <p class="text-white text-xs font-medium">
                         {{ 'dashboard.showBranding.sections.logos.darkBg' | translate }}
                       </p>
                     </div>
                   }
 
                   <!-- withText · monochrome -->
-                  @if (existingBranding()!.logo!.variations!.withText?.monochrome) {
+                  @if (logoSrc(existingBranding()!.logo!.assetUrls?.withText?.monochrome, existingBranding()!.logo!.variations!.withText?.monochrome); as v) {
                     <div class="glass-card p-3 text-center">
                       <div
-                        class="w-16 h-16 mx-auto mb-2 bg-white/10 rounded flex items-center justify-center p-1 overflow-hidden"
+                        class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-[var(--glass-bg-subtle)] rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
-                        @if (existingBranding()!.logo!.variations!.withText!.monochrome!.startsWith('<')) {
-                          <div
-                            class="w-full h-full svg-logo"
-                            [innerHTML]="existingBranding()!.logo!.variations!.withText!.monochrome! | safeHtml"
-                          ></div>
-                        } @else {
-                          <img [src]="existingBranding()!.logo!.variations!.withText!.monochrome" class="w-full h-full object-contain" />
-                        }
+                        <img [src]="v" class="w-full h-full object-contain" alt="Logo" />
                       </div>
-                      <p class="text-white text-xs">
+                      <p class="text-text-primary text-xs">
                         {{ 'dashboard.showBranding.sections.logos.monochrome' | translate }}
                       </p>
                     </div>
                   }
 
                   <!-- iconOnly · light -->
-                  @if (existingBranding()!.logo!.variations!.iconOnly?.lightBackground) {
+                  @if (logoSrc(existingBranding()!.logo!.assetUrls?.iconOnly?.lightBackground, existingBranding()!.logo!.variations!.iconOnly?.lightBackground); as v) {
                     <div class="glass-card p-3 text-center">
                       <div
-                        class="w-16 h-16 mx-auto mb-2 bg-white rounded flex items-center justify-center p-1 overflow-hidden"
+                        class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-white rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
-                        @if (existingBranding()!.logo!.variations!.iconOnly!.lightBackground!.startsWith('<')) {
-                          <div
-                            class="w-full h-full svg-logo"
-                            [innerHTML]="existingBranding()!.logo!.variations!.iconOnly!.lightBackground! | safeHtml"
-                          ></div>
-                        } @else {
-                          <img [src]="existingBranding()!.logo!.variations!.iconOnly!.lightBackground" class="w-full h-full object-contain" />
-                        }
+                        <img [src]="v" class="w-full h-full object-contain" alt="Logo" />
                       </div>
-                      <p class="text-white text-xs">
+                      <p class="text-text-primary text-xs">
                         {{ 'dashboard.showBranding.sections.logos.iconOnly' | translate }}
                       </p>
                     </div>
                   }
 
                   <!-- iconOnly · dark -->
-                  @if (existingBranding()!.logo!.variations!.iconOnly?.darkBackground) {
-                    <div class="glass-card p-3 text-center">
+                  @if (logoSrc(existingBranding()!.logo!.assetUrls?.iconOnly?.darkBackground, existingBranding()!.logo!.variations!.iconOnly?.darkBackground); as v) {
+                    <div class="glass-card !bg-gray-900 border border-gray-800 p-3 text-center">
                       <div
-                        class="w-16 h-16 mx-auto mb-2 bg-gray-800/50 rounded flex items-center justify-center p-1 overflow-hidden"
+                        class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-gray-900 rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
-                        @if (existingBranding()!.logo!.variations!.iconOnly!.darkBackground!.startsWith('<')) {
-                          <div
-                            class="w-full h-full svg-logo"
-                            [innerHTML]="existingBranding()!.logo!.variations!.iconOnly!.darkBackground! | safeHtml"
-                          ></div>
-                        } @else {
-                          <img [src]="existingBranding()!.logo!.variations!.iconOnly!.darkBackground" class="w-full h-full object-contain" />
-                        }
+                        <img [src]="v" class="w-full h-full object-contain" alt="Logo" />
                       </div>
-                      <p class="text-white text-xs">
+                      <p class="text-white text-xs font-medium">
                         {{ 'dashboard.showBranding.sections.logos.darkBg' | translate }} (icon)
                       </p>
                     </div>
                   }
 
                   <!-- iconOnly · monochrome -->
-                  @if (existingBranding()!.logo!.variations!.iconOnly?.monochrome) {
+                  @if (logoSrc(existingBranding()!.logo!.assetUrls?.iconOnly?.monochrome, existingBranding()!.logo!.variations!.iconOnly?.monochrome); as v) {
                     <div class="glass-card p-3 text-center">
                       <div
-                        class="w-16 h-16 mx-auto mb-2 bg-white/10 rounded flex items-center justify-center p-1 overflow-hidden"
+                        class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 bg-[var(--glass-bg-subtle)] rounded-lg flex items-center justify-center p-2 overflow-hidden"
                       >
-                        @if (existingBranding()!.logo!.variations!.iconOnly!.monochrome!.startsWith('<')) {
-                          <div
-                            class="w-full h-full svg-logo"
-                            [innerHTML]="existingBranding()!.logo!.variations!.iconOnly!.monochrome! | safeHtml"
-                          ></div>
-                        } @else {
-                          <img [src]="existingBranding()!.logo!.variations!.iconOnly!.monochrome" class="w-full h-full object-contain" />
-                        }
+                        <img [src]="v" class="w-full h-full object-contain" alt="Logo" />
                       </div>
-                      <p class="text-white text-xs">
+                      <p class="text-text-primary text-xs">
                         {{ 'dashboard.showBranding.sections.logos.monochrome' | translate }} (icon)
                       </p>
                     </div>
@@ -545,11 +430,24 @@
 
                 </div>
               }
+
+              <!-- Action principale de la section : récupérer les fichiers.
+                   Placée sous les déclinaisons (et non dans l'en-tête) pour
+                   laisser la place à un libellé explicite. -->
+              <div class="pt-2">
+                <button type="button" class="inner-button w-full !text-sm" (click)="showDialog()">
+                  <i class="pi pi-download text-sm" aria-hidden="true"></i>
+                  <span>{{ 'dashboard.showBranding.buttons.downloadLogos' | translate }}</span>
+                </button>
+                <p class="text-xs text-text-tertiary text-center mt-2">
+                  {{ 'dashboard.showBranding.sections.logos.downloadHint' | translate }}
+                </p>
+              </div>
             </div>
           } @else {
             <div class="bg-linear-to-r py-8">
-              <i class="pi pi-image text-4xl text-gray-500 mb-3"></i>
-              <p class="text-gray-400">{{ 'dashboard.showBranding.empty.noLogos' | translate }}</p>
+              <i class="pi pi-image text-4xl text-text-tertiary mb-3"></i>
+              <p class="text-text-tertiary">{{ 'dashboard.showBranding.empty.noLogos' | translate }}</p>
             </div>
           }
         </div>
@@ -558,10 +456,10 @@
         <div class="glass-card p-6">
           <div class="flex items-center mb-6">
             <div>
-              <h3 class="text-xl font-semibold text-white">
+              <h3 class="text-xl font-semibold text-text-primary">
                 {{ 'dashboard.showBranding.sections.colors.title' | translate }}
               </h3>
-              <p class="text-gray-400 text-sm">
+              <p class="text-text-tertiary text-sm">
                 {{ 'dashboard.showBranding.sections.colors.subtitle' | translate }}
               </p>
             </div>
@@ -576,7 +474,7 @@
               @if (existingBranding()!.colors!.colors) {
                 <!-- Selected Color Palette -->
                 <div class="space-y-3">
-                  <p class="text-white font-medium mb-3">
+                  <p class="text-text-primary font-medium mb-3">
                     {{
                       existingBranding()!.colors.name ||
                         ('dashboard.showBranding.sections.colors.selected' | translate)
@@ -589,10 +487,10 @@
                           class="w-full h-12 rounded mb-2"
                           [style.background-color]="existingBranding()!.colors.colors.primary"
                         ></div>
-                        <p class="text-white text-sm font-medium">
+                        <p class="text-text-primary text-sm font-medium">
                           {{ 'dashboard.showBranding.sections.colors.primary' | translate }}
                         </p>
-                        <p class="text-gray-400 text-xs">
+                        <p class="text-text-tertiary text-xs">
                           {{ existingBranding()!.colors.colors.primary }}
                         </p>
                       </div>
@@ -603,10 +501,10 @@
                           class="w-full h-12 rounded mb-2"
                           [style.background-color]="existingBranding()!.colors.colors.secondary"
                         ></div>
-                        <p class="text-white text-sm font-medium">
+                        <p class="text-text-primary text-sm font-medium">
                           {{ 'dashboard.showBranding.sections.colors.secondary' | translate }}
                         </p>
-                        <p class="text-gray-400 text-xs">
+                        <p class="text-text-tertiary text-xs">
                           {{ existingBranding()!.colors.colors.secondary }}
                         </p>
                       </div>
@@ -617,10 +515,10 @@
                           class="w-full h-12 rounded mb-2"
                           [style.background-color]="existingBranding()!.colors.colors.accent"
                         ></div>
-                        <p class="text-white text-sm font-medium">
+                        <p class="text-text-primary text-sm font-medium">
                           {{ 'dashboard.showBranding.sections.colors.accent' | translate }}
                         </p>
-                        <p class="text-gray-400 text-xs">
+                        <p class="text-text-tertiary text-xs">
                           {{ existingBranding()!.colors.colors.accent }}
                         </p>
                       </div>
@@ -631,10 +529,10 @@
                           class="w-full h-12 rounded mb-2"
                           [style.background-color]="existingBranding()!.colors.colors.background"
                         ></div>
-                        <p class="text-white text-sm font-medium">
+                        <p class="text-text-primary text-sm font-medium">
                           {{ 'dashboard.showBranding.sections.colors.background' | translate }}
                         </p>
-                        <p class="text-gray-400 text-xs">
+                        <p class="text-text-tertiary text-xs">
                           {{ existingBranding()!.colors.colors.background }}
                         </p>
                       </div>
@@ -645,8 +543,8 @@
             </div>
           } @else {
             <div class="bg-linear-to-r py-8">
-              <i class="pi pi-palette text-4xl text-gray-500 mb-3"></i>
-              <p class="text-gray-400">{{ 'dashboard.showBranding.empty.noColors' | translate }}</p>
+              <i class="pi pi-palette text-4xl text-text-tertiary mb-3"></i>
+              <p class="text-text-tertiary">{{ 'dashboard.showBranding.empty.noColors' | translate }}</p>
             </div>
           }
         </div>
@@ -655,10 +553,10 @@
         <div class="glass-card p-6">
           <div class="flex items-center mb-6">
             <div>
-              <h3 class="text-xl font-semibold text-white">
+              <h3 class="text-xl font-semibold text-text-primary">
                 {{ 'dashboard.showBranding.sections.typography.title' | translate }}
               </h3>
-              <p class="text-gray-400 text-sm">
+              <p class="text-text-tertiary text-sm">
                 {{ 'dashboard.showBranding.sections.typography.subtitle' | translate }}
               </p>
             </div>
@@ -674,7 +572,7 @@
               @if (existingBranding()!.typography!.primaryFont) {
                 <!-- Selected Typography -->
                 <div class="space-y-3">
-                  <p class="text-white font-medium mb-3">
+                  <p class="text-text-primary font-medium mb-3">
                     {{
                       existingBranding()!.typography.name ||
                         ('dashboard.showBranding.sections.typography.selected' | translate)
@@ -684,29 +582,29 @@
                   <!-- Primary Font -->
                   <div class="glass-card p-4">
                     <h4
-                      class="text-2xl font-bold text-white mb-2"
+                      class="text-2xl font-bold text-text-primary mb-2"
                       [style.font-family]="existingBranding()!.typography.primaryFont"
                     >
                       {{ existingBranding()!.typography.primaryFont }}
                     </h4>
-                    <p class="text-gray-400 text-sm mb-3">
+                    <p class="text-text-tertiary text-sm mb-3">
                       {{ 'dashboard.showBranding.sections.typography.primary' | translate }}
                     </p>
                     <div class="space-y-1">
                       <p
-                        class="text-white text-lg font-bold"
+                        class="text-text-primary text-lg font-bold"
                         [style.font-family]="existingBranding()!.typography.primaryFont"
                       >
                         Aa Bb Cc
                       </p>
                       <p
-                        class="text-gray-300 text-base font-medium"
+                        class="text-text-secondary text-base font-medium"
                         [style.font-family]="existingBranding()!.typography.primaryFont"
                       >
                         Aa Bb Cc
                       </p>
                       <p
-                        class="text-gray-400 text-sm"
+                        class="text-text-tertiary text-sm"
                         [style.font-family]="existingBranding()!.typography.primaryFont"
                       >
                         Aa Bb Cc
@@ -718,23 +616,23 @@
                   @if (existingBranding()!.typography.secondaryFont) {
                     <div class="glass-card p-4">
                       <h4
-                        class="text-xl text-white mb-2"
+                        class="text-xl text-text-primary mb-2"
                         [style.font-family]="existingBranding()!.typography.secondaryFont"
                       >
                         {{ existingBranding()!.typography.secondaryFont }}
                       </h4>
-                      <p class="text-gray-400 text-sm mb-3">
+                      <p class="text-text-tertiary text-sm mb-3">
                         {{ 'dashboard.showBranding.sections.typography.secondary' | translate }}
                       </p>
                       <div class="space-y-1">
                         <p
-                          class="text-white text-base"
+                          class="text-text-primary text-base"
                           [style.font-family]="existingBranding()!.typography.secondaryFont"
                         >
                           Aa Bb Cc
                         </p>
                         <p
-                          class="text-gray-300 text-sm"
+                          class="text-text-secondary text-sm"
                           [style.font-family]="existingBranding()!.typography.secondaryFont"
                         >
                           Aa Bb Cc
@@ -747,8 +645,8 @@
             </div>
           } @else {
             <div class="bg-linear-to-r py-8">
-              <i class="pi pi-font text-4xl text-gray-500 mb-3"></i>
-              <p class="text-gray-400">
+              <i class="pi pi-font text-4xl text-text-tertiary mb-3"></i>
+              <p class="text-text-tertiary">
                 {{ 'dashboard.showBranding.empty.noTypography' | translate }}
               </p>
             </div>
@@ -761,12 +659,12 @@
     <div class="max-w-4xl mx-auto text-center py-20">
       <div class="glass-card p-8">
         <div class="mb-6">
-          <i class="pi pi-exclamation-triangle text-6xl text-gray-400 mb-4"></i>
+          <i class="pi pi-exclamation-triangle text-6xl text-text-tertiary mb-4"></i>
         </div>
-        <h3 class="text-2xl font-bold text-white mb-4">
+        <h3 class="text-2xl font-bold text-text-primary mb-4">
           {{ 'dashboard.showBranding.empty.noProject.title' | translate }}
         </h3>
-        <p class="text-gray-300 mb-8">
+        <p class="text-text-secondary mb-8">
           {{ 'dashboard.showBranding.empty.noProject.subtitle' | translate }}
         </p>
         <div class="flex justify-center">
@@ -779,138 +677,96 @@
     </div>
   }
 
-  <!-- Extension Selection Dialog -->
+  <!-- Choix du format de téléchargement des déclinaisons de logo -->
   <p-dialog
     [header]="'dashboard.showBranding.dialog.title' | translate"
     [modal]="true"
     [(visible)]="visible"
-    [style]="{ width: '25rem' }"
+    [dismissableMask]="true"
+    [draggable]="false"
+    [style]="{ width: '30rem' }"
     styleClass="extension-dialog centered-modal"
   >
-    <span class="p-text-secondary block mb-8">{{
-      'dashboard.showBranding.dialog.subtitle' | translate
-    }}</span>
+    <p id="logo-format-help" class="text-sm text-text-secondary mt-0 mb-5">
+      {{ 'dashboard.showBranding.dialog.subtitle' | translate }}
+    </p>
 
-    <!-- Extension Options -->
-    <div class="space-y-3 mb-6">
-      <!-- SVG Option -->
-      <div
-        class="glass-card p-4 cursor-pointer transition-all duration-300 hover:bg-white/10"
-        [class.ring-2]="selectedExtension === 'svg'"
-        [class.ring-blue-400]="selectedExtension === 'svg'"
-        (click)="selectExtension('svg')"
-      >
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-3">
-            <div class="w-12 h-12 bg-zinc-200 rounded-lg flex items-center justify-center p-2">
-              <img
-                src="https://uxwing.com/wp-content/themes/uxwing/download/file-and-folder-type/svg-icon.png"
-                alt="SVG"
-                class="w-full h-full"
-              />
-            </div>
-            <div>
-              <h4 class="text-white font-medium">
-                {{ 'dashboard.showBranding.dialog.formats.svg.name' | translate }}
-              </h4>
-              <p class="text-gray-400 text-sm">
-                {{ 'dashboard.showBranding.dialog.formats.svg.description' | translate }}
-              </p>
-            </div>
-          </div>
-          @if (selectedExtension === 'svg') {
-            <i class="pi pi-check-circle text-blue-400"></i>
-          }
-        </div>
-      </div>
+    <!-- Vrais boutons radio (masqués visuellement) : navigation clavier et
+         annonce lecteur d'écran natives, sans réimplémenter un radiogroup. -->
+    <fieldset class="format-list" aria-describedby="logo-format-help">
+      <legend class="sr-only">{{ 'dashboard.showBranding.dialog.legend' | translate }}</legend>
 
-      <!-- PNG Option -->
-      <div
-        class="glass-card p-4 cursor-pointer transition-all duration-300 hover:bg-white/10"
-        [class.ring-2]="selectedExtension === 'png'"
-        [class.ring-green-400]="selectedExtension === 'png'"
-        (click)="selectExtension('png')"
-      >
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-3">
-            <div class="w-12 h-12 bg-zinc-200 rounded-lg flex items-center justify-center p-2">
-              <img
-                src="https://cdn-icons-png.flaticon.com/512/337/337948.png"
-                alt="PNG"
-                class="w-full h-full"
-              />
-            </div>
-            <div>
-              <h4 class="text-white font-medium">
-                {{ 'dashboard.showBranding.dialog.formats.png.name' | translate }}
-              </h4>
-              <p class="text-gray-400 text-sm">
-                {{ 'dashboard.showBranding.dialog.formats.png.description' | translate }}
-              </p>
-            </div>
-          </div>
-          @if (selectedExtension === 'png') {
-            <i class="pi pi-check-circle text-green-400"></i>
-          }
-        </div>
-      </div>
+      @for (format of logoFormats; track format.id) {
+        <label class="format-option" [class.is-selected]="selectedExtension === format.id">
+          <input
+            type="radio"
+            name="logo-format"
+            class="sr-only"
+            [value]="format.id"
+            [checked]="selectedExtension === format.id"
+            [disabled]="isDownloading()"
+            (change)="selectExtension(format.id)"
+          />
 
-      <!-- PSD Option -->
-      <div
-        class="glass-card p-4 cursor-pointer transition-all duration-300 hover:bg-white/10"
-        [class.ring-2]="selectedExtension === 'psd'"
-        [class.ring-purple-400]="selectedExtension === 'psd'"
-        (click)="selectExtension('psd')"
-      >
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-3">
-            <div class="w-12 h-12 bg-zinc-200 rounded-lg flex items-center justify-center p-2">
-              <img
-                src="https://cdn-icons-png.flaticon.com/512/9645/9645799.png"
-                alt="PSD"
-                class="w-full h-full"
-              />
-            </div>
-            <div>
-              <h4 class="text-white font-medium">
-                {{ 'dashboard.showBranding.dialog.formats.psd.name' | translate }}
-              </h4>
-              <p class="text-gray-400 text-sm">
-                {{ 'dashboard.showBranding.dialog.formats.psd.description' | translate }}
-              </p>
-            </div>
-          </div>
-          @if (selectedExtension === 'psd') {
-            <i class="pi pi-check-circle text-purple-400"></i>
-          }
-        </div>
-      </div>
-    </div>
+          <span class="format-badge" aria-hidden="true">{{ format.id | uppercase }}</span>
 
-    <div class="flex justify-end gap-2">
-      <button class="outer-button" (click)="visible = false" [disabled]="isDownloading()">
+          <span class="min-w-0 flex-1">
+            <span class="flex items-center gap-2 flex-wrap">
+              <span class="text-sm font-semibold text-text-primary">
+                {{ 'dashboard.showBranding.dialog.formats.' + format.id + '.name' | translate }}
+              </span>
+              @if (format.recommended) {
+                <span class="format-tag">
+                  {{ 'dashboard.showBranding.dialog.recommended' | translate }}
+                </span>
+              }
+            </span>
+            <span class="block text-xs text-text-tertiary mt-0.5">
+              {{ 'dashboard.showBranding.dialog.formats.' + format.id + '.description' | translate }}
+            </span>
+          </span>
+
+          <i
+            class="pi pi-check-circle text-primary"
+            [class.opacity-0]="selectedExtension !== format.id"
+            aria-hidden="true"
+          ></i>
+        </label>
+      }
+    </fieldset>
+
+    <p class="text-xs text-text-tertiary flex items-start gap-2 mt-4 mb-0">
+      <i class="pi pi-info-circle mt-0.5" aria-hidden="true"></i>
+      <span>{{ 'dashboard.showBranding.dialog.zipNote' | translate }}</span>
+    </p>
+
+    <div class="flex justify-end gap-2 mt-6">
+      <button type="button" class="outer-button !text-sm !py-2.5" (click)="visible = false" [disabled]="isDownloading()">
         {{ 'common.cancel' | translate }}
       </button>
-      <button class="inner-button" (click)="downloadLogosZip()" [disabled]="isDownloading()">
-        {{ (isDownloading() ? 'common.downloading' : 'common.download') | translate }}
+      <button type="button" class="inner-button !text-sm" (click)="downloadLogosZip()" [disabled]="isDownloading()">
+        <i
+          class="pi text-sm"
+          [class.pi-download]="!isDownloading()"
+          [class.pi-spinner]="isDownloading()"
+          [class.pi-spin]="isDownloading()"
+          aria-hidden="true"
+        ></i>
+        <span>
+          {{
+            (isDownloading()
+              ? 'dashboard.showBranding.dialog.preparing'
+              : 'dashboard.showBranding.dialog.confirm'
+            ) | translate
+          }}
+        </span>
       </button>
     </div>
 
-    <!-- Loading overlay -->
     @if (isDownloading()) {
-      <div
-        class="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-lg flex items-center justify-center"
-      >
-        <div class="bg-linear-to-r">
-          <app-loader />
-          <p class="text-white mt-4 font-medium">
-            {{ 'dashboard.showBranding.dialog.preparing' | translate }}
-          </p>
-          <p class="text-gray-400 text-sm">
-            {{ 'dashboard.showBranding.dialog.wait' | translate }}
-          </p>
-        </div>
-      </div>
+      <p class="text-xs text-text-tertiary text-right mt-2 mb-0" aria-live="polite">
+        {{ 'dashboard.showBranding.dialog.wait' | translate }}
+      </p>
     }
   </p-dialog>
 </div>

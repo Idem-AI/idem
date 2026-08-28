@@ -1,7 +1,7 @@
-# Idem - AI-Powered Software Development Lifecycle Platform
+# Idem - The African AI that Creates Companies
 
 <div align="center">
-  <p><strong>Transform ideas into complete software projects with AI</strong></p>
+  <p><strong>The African AI that builds complete companies from a single idea</strong></p>
 </div>
 
 [![License: Apache 2.0 + Commons Clause](https://img.shields.io/badge/License-Apache%202.0%20%2B%20Commons%20Clause-orange.svg)](./LICENSE)
@@ -15,9 +15,9 @@
 
 ## 🚀 Overview
 
-**Idem** is an open-source AI platform that allows you to start from your idea and make it a real project.
+**Idem** is the first sovereign pan-African AI platform that builds complete companies from a simple idea.
 
-You simply write a few lines about what you want to create, and the tool generates your logo, your visual identity, your business plan, your showcase site, and even an application. Then, you have several options to deploy all this easily.
+You write a few lines about your concept, and the platform generates a comprehensive business strategy, brand identity (with logos), web applications, financial plans, and deploys the entire ecosystem directly onto servers in Africa. Designed for Africa, it enables rapid, secure, and low-latency digital transformation.
 
 This monorepo workspace is managed with **npm workspaces** and contains four integrated applications that work together to provide a complete AI-powered development experience.
 

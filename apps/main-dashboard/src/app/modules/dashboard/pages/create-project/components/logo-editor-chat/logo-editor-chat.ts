@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { SafeHtmlPipe } from '../../../projects-list/safehtml.pipe';
+import { LogoSrcPipe } from '../../../../../../shared/pipes/logo-src.pipe';
 import { LogoModel } from '../../../../models/logo.model';
 import { BrandingService } from '../../../../services/ai-agents/branding.service';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -27,7 +27,7 @@ interface ChatMessage {
 @Component({
   selector: 'app-logo-editor-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule, SafeHtmlPipe, TranslateModule],
+  imports: [CommonModule, FormsModule, LogoSrcPipe, TranslateModule],
   templateUrl: './logo-editor-chat.html',
   styleUrl: './logo-editor-chat.css',
 })

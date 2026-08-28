@@ -7,7 +7,8 @@
       "buttons": {
         "backToProjects": "Retour aux projets",
         "generate": "Générer le plan d'affaires",
-        "selectProject": "Sélectionner un projet"
+        "selectProject": "Sélectionner un projet",
+        "edit": "Éditer"
       },
       "empty": {
         "title": "Aucun plan d'affaires pour le moment",

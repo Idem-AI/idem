@@ -2,6 +2,11 @@ import mongoose, { Model, Document } from 'mongoose';
 import { IRepository } from './IRepository';
 import logger from '../config/logger';
 import { cacheService } from '../services/cache.service';
+import {
+  extractUserIdFromPath,
+  isProjectCollectionPath,
+  recordProjectRevisions,
+} from '../services/history/project-revision-hook';
 
 /**
  * A generic Mongoose repository implementation.
@@ -95,6 +100,16 @@ export class MongooseRepository<
           `Document created successfully in ${collectionPath}, documentId: ${id} (custom ID via native collection)`
         );
 
+        // Versioning hook (Chronicle): baseline v1 for each non-empty section.
+        if (isProjectCollectionPath(collectionPath)) {
+          await recordProjectRevisions(
+            id,
+            extractUserIdFromPath(collectionPath) || (createdItem as any).userId || '',
+            null,
+            createdItem as any
+          );
+        }
+
         return createdItem;
       }
 
@@ -115,6 +130,16 @@ export class MongooseRepository<
       logger.info(
         `Document created successfully in ${collectionPath}, documentId: ${createdItem.id} (generated ID)`
       );
+
+      // Versioning hook (Chronicle): baseline v1 for each non-empty section.
+      if (isProjectCollectionPath(collectionPath)) {
+        await recordProjectRevisions(
+          createdItem.id as string,
+          extractUserIdFromPath(collectionPath) || (createdItem as any).userId || '',
+          null,
+          createdItem as any
+        );
+      }
 
       return createdItem;
     } catch (error: any) {
@@ -253,9 +278,29 @@ export class MongooseRepository<
         queryId = new mongoose.Types.ObjectId(id);
       }
 
+      // Capture the pre-update state for the versioning hook (projects only).
+      let beforeEntity: T | null = null;
+      if (isProjectCollectionPath(collectionPath)) {
+        try {
+          const beforeDoc = await mongoose.connection
+            .collection(collectionName)
+            .findOne({ _id: queryId, ...nestedFilter } as any);
+          const beforeDocFallback =
+            !beforeDoc && queryId !== id
+              ? await mongoose.connection
+                  .collection(collectionName)
+                  .findOne({ _id: id, ...nestedFilter } as any)
+              : null;
+          const resolved = beforeDoc || beforeDocFallback;
+          beforeEntity = resolved ? this.mapToEntity(resolved) : null;
+        } catch (hookError: any) {
+          logger.warn(`Versioning pre-read failed for ${collectionPath}/${id}: ${hookError.message}`);
+        }
+      }
+
       // Use native MongoDB collection to support string _id (Firebase UIDs)
       const query = { _id: queryId, ...nestedFilter };
-      
+
       let result = await mongoose.connection
         .collection(collectionName)
         .findOneAndUpdate(
@@ -302,6 +347,16 @@ export class MongooseRepository<
         prefix: 'db',
         ttl: 1800, // 30 minutes
       });
+
+      // Versioning hook (Chronicle): record per-section revisions for projects.
+      if (isProjectCollectionPath(collectionPath)) {
+        await recordProjectRevisions(
+          id,
+          extractUserIdFromPath(collectionPath) || (updatedEntity as any).userId || '',
+          beforeEntity as any,
+          updatedEntity as any
+        );
+      }
 
       logger.info(`Document updated in ${collectionPath} with id: ${id}`);
       return updatedEntity;

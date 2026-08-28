@@ -29,9 +29,33 @@ export class RecapCardComponent {
   protected readonly beta = signal(false);
   protected readonly marketing = signal(false);
 
+  protected readonly acceptedCount = computed(() => {
+    let count = 0;
+    if (this.privacy()) count++;
+    if (this.terms()) count++;
+    if (this.beta()) count++;
+    return count;
+  });
+
   protected readonly canConfirm = computed(
     () => this.privacy() && this.terms() && this.beta() && !this.busy(),
   );
+
+  protected togglePrivacy(): void {
+    this.privacy.update((val) => !val);
+  }
+
+  protected toggleTerms(): void {
+    this.terms.update((val) => !val);
+  }
+
+  protected toggleBeta(): void {
+    this.beta.update((val) => !val);
+  }
+
+  protected toggleMarketing(): void {
+    this.marketing.update((val) => !val);
+  }
 
   protected confirm(): void {
     if (!this.canConfirm()) return;

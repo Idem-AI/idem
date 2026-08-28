@@ -2,6 +2,7 @@ import { Component, inject, PLATFORM_ID, signal, OnInit } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { SeoService } from '../../shared/services/seo.service';
+import { environment } from '../../../environments/environment';
 
 interface Feature {
   icon: string;
@@ -26,6 +27,7 @@ interface LicenseDetail {
 export class OpenSourcePage implements OnInit {
   protected readonly isBrowser = signal(isPlatformBrowser(inject(PLATFORM_ID)));
   private readonly seoService = inject(SeoService);
+  protected readonly dashboardUrl = environment.services.dashboard.url;
 
   protected readonly features: Feature[] = [
     {

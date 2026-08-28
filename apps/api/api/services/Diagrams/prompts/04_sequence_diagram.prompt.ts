@@ -1,22 +1,14 @@
-export const SEQUENCE_DIAGRAM_PROMPT = `
-As a certified UML expert, generate an immediate Mermaid sequence diagram with these specifications:
+export const SEQUENCE_DIAGRAM_PROMPT = `<objective>Generate a Mermaid sequence diagram.</objective>
 
-# Sequence Diagram - [InteractionName]
+<requirements>
+1. Strict, valid Mermaid sequence diagram syntax.
+2. UML 2.5 compliant.
+3. Clear participant ordering.
+4. Synchronous/asynchronous arrows (use ->, ->>, -->, -->> correctly).
+5. Activation bars and return messages where needed.
+</requirements>
 
-## Strict Requirements:
-1. Valid Mermaid syntax
-2. UML 2.5 compliant
-3. Clear participant ordering
-4. Synchronous/asynchronous arrows
-5. Activation bars
-6. Return messages where needed
-
-## Output Format:
-sequenceDiagram
-    [Participants]
-    [Interaction sequence]
-
-## Structured Example:
+<example>
 sequenceDiagram
     participant Client
     participant Server
@@ -28,13 +20,10 @@ sequenceDiagram
     Database-->>Server: Results
     Server-->>Client: AuthResponse()
     deactivate Server
+</example>
 
-## Rules:
-- No explanations
-- No code comments
-- Use exact arrow types (->, ->>, -->, -->>)
-- Include activations where appropriate
-- Verry Important: ALWAYS wrap your diagram with \`\`\`mermaid and \`\`\` tags
-- Verry Important: Your response MUST begin with \`\`\`mermaid and end with \`\`\`
-- Verry Important: Do NOT add any additional text, explanations or comments - ONLY the diagram code wrapped in \`\`\`mermaid ... \`\`\` tags
+<output_format>
+- Output ONLY the diagram code wrapped in \`\`\`mermaid and \`\`\` tags.
+- No explanations, introduction, or comments.
+</output_format>
 `;

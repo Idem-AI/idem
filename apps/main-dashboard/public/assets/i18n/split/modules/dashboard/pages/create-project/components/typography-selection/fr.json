@@ -72,6 +72,18 @@
       "searching": "Recherche de polices...",
       "noResults": "Aucune police trouvée pour votre recherche",
       "searchHint": "Commencez à taper pour rechercher dans Google Fonts",
+      "clearSearch": "Effacer la recherche",
+      "resultsCount": "{{count}} polices",
+      "weightsCount": "{{count}} graisses",
+      "categories": {
+        "label": "Filtrer par catégorie de police",
+        "all": "Toutes",
+        "sansSerif": "Sans serif",
+        "serif": "Serif",
+        "display": "Display",
+        "handwriting": "Manuscrite",
+        "monospace": "Monospace"
+      },
       "selectToPreview": "Sélectionnez les polices pour prévisualiser votre mélange de typographie personnalisé",
       "custom": {
         "title": "Vos mélanges personnalisés",

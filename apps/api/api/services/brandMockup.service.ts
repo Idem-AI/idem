@@ -10,6 +10,7 @@ import {
 import { MOCKUP_CONFIG } from '../config/mockup.config';
 import { AI_CONFIG } from '../config/ai.config';
 import { withGeminiFallback } from '../utils/gemini-fallback';
+import { describeGeminiBackend, getGoogleGenAIClient, isGeminiConfigured } from '../config/google-genai.client';
 
 
 export interface MockupGenerationRequest {
@@ -48,9 +49,7 @@ export class GeminiMockupService {
 
   private get geminiAI(): GoogleGenAI {
     if (!this._geminiAI) {
-      this._geminiAI = new GoogleGenAI({
-        apiKey: process.env.GEMINI_API_KEY || '',
-      });
+      this._geminiAI = getGoogleGenAIClient();
     }
     return this._geminiAI;
   }
@@ -111,14 +110,16 @@ export class GeminiMockupService {
       const logoImageBase64 = convertedLogo.base64;
       let logoMimeType = convertedLogo.mimeType;
 
-      // Étape 3: Génération de tous les mockups en parallèle avec les supports sélectionnés
-      logger.info(`Generating ${selectedSupports.length} mockups in parallel`, {
+      // Étape 3: Génération de tous les mockups séquentiellement avec les supports sélectionnés
+      // (Pour éviter les erreurs 429 RESOURCE_EXHAUSTED liées aux quotas stricts d'Imagen)
+      logger.info(`Generating ${selectedSupports.length} mockups sequentially`, {
         projectId,
         mockupCount: selectedSupports.length,
       });
 
-      const mockupPromises = selectedSupports.map((selectedSupport) =>
-        this.generateMockup(
+      const mockups: MockupGenerationResult[] = [];
+      for (const selectedSupport of selectedSupports) {
+        const mockup = await this.generateMockup(
           {
             logoImageBase64,
             logoMimeType,
@@ -131,10 +132,9 @@ export class GeminiMockupService {
           userId,
           projectId,
           `mockup-${selectedSupport.mockupIndex}`
-        )
-      );
-
-      const mockups = await Promise.all(mockupPromises);
+        );
+        mockups.push(mockup);
+      }
 
       const duration = Date.now() - startTime;
 
@@ -195,20 +195,22 @@ export class GeminiMockupService {
       });
 
       // Vérifier que l'API key Gemini est configurée
-      if (!process.env.GEMINI_API_KEY) {
+      if (!isGeminiConfigured()) {
         logger.error(
-          `[MOCKUP][${mockupName}] GEMINI_API_KEY is NOT configured - cannot generate mockup images`,
+          `[MOCKUP][${mockupName}] Backend Gemini non configuré (${describeGeminiBackend()}) - cannot generate mockup images`,
           {
             mockupName,
             projectId,
           }
         );
-        console.error(`[MOCKUP] ❌ GEMINI_API_KEY is not set! Cannot generate mockup images.`);
-        throw new Error('GEMINI_API_KEY is not configured. Cannot generate mockup images.');
+        console.error(`[MOCKUP] ❌ Backend Gemini non configuré (${describeGeminiBackend()}).`);
+        throw new Error(
+          `Backend Gemini non configuré (${describeGeminiBackend()}). Cannot generate mockup images.`
+        );
       }
 
       console.log(
-        `[MOCKUP] ✅ GEMINI_API_KEY is configured, proceeding with real image generation for mockup ${request.selectedSupport.mockupIndex}`
+        `[MOCKUP] ✅ ${describeGeminiBackend()} — proceeding with real image generation for mockup ${request.selectedSupport.mockupIndex}`
       );
 
       // Construire le contenu multimodal (texte + image du logo)
@@ -481,6 +483,14 @@ export class GeminiMockupService {
       // ✅ si SVG → conversion PNG (densité élevée pour un rendu net dans les mockups)
       if (mimeType.includes('image/svg') || mimeType.includes('text/xml')) {
         console.log('⚡ SVG detected → converting to PNG...');
+
+        // Un asset servi en image/svg+xml dont le corps n'est pas du markup ferait
+        // échouer sharp sur « unsupported image format », sans indiquer la source.
+        if (!buffer.toString('utf8', 0, 512).includes('<svg')) {
+          throw new Error(
+            `Asset served as SVG but body is not SVG markup: ${input.slice(0, 120)}`
+          );
+        }
 
         buffer = (await sharp(buffer, { density: 300 })
           .png({

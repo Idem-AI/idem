@@ -1,4 +1,13 @@
-import { GoogleGenAI, createPartFromUri, Content, File } from '@google/genai';
+import {
+  GoogleGenAI,
+  createPartFromUri,
+  Content,
+  File,
+  FunctionDeclaration,
+  FunctionCallingConfigMode,
+  Part,
+  GroundingMetadata,
+} from '@google/genai';
 import dotenv from 'dotenv';
 import * as fs from 'fs-extra';
 import logger from '../config/logger';
@@ -8,9 +17,39 @@ import { userService } from './user.service';
 dotenv.config();
 
 import { LLMProvider, LLMOptions, AI_CONFIG } from '../config/ai.config';
+import {
+  getProvider,
+  providerSupports,
+  resolveGlobalOverride,
+} from '../config/ai-providers.config';
+import { describeGeminiBackend, getGoogleGenAIClient } from '../config/google-genai.client';
 import { withGeminiFallback } from '../utils/gemini-fallback';
+import { getRequestLanguage } from '../utils/request-language';
+import { logAIEvent, previewValue } from '../utils/ai-trace.util';
+import {
+  UsageSink,
+  estimateUsage,
+  extractGeminiUsage,
+  extractOpenAIUsage,
+  joinMessagesForEstimate,
+} from '../utils/ai-usage-extract.util';
+import { aiUsageService } from './ai-usage.service';
 export { LLMProvider, LLMOptions };
 
+/**
+ * Le modèle accepte-t-il `thinkingConfig.thinkingBudget` ?
+ *
+ * Google pilote le raisonnement différemment selon la génération: la famille
+ * 2.5 prend un budget en tokens (0 = désactivé), les modèles 3.x un niveau
+ * (`thinkingLevel`) dont le minimum n'est pas « aucun ». Envoyer un budget nul
+ * à un 3.x fait donc échouer la requête — et comme un appel peut basculer sur
+ * un repli d'une autre famille, la question se pose modèle par modèle, pas une
+ * fois pour toutes. Un modèle inconnu est traité comme non supporté: ignorer un
+ * réglage d'économie est bénin, casser la génération ne l'est pas.
+ */
+function supportsThinkingBudget(modelName: string): boolean {
+  return /gemini-2\.5/i.test(modelName);
+}
 
 export interface PromptConfig {
   provider: LLMProvider;
@@ -24,6 +63,30 @@ export interface PromptConfig {
   userId?: string;
   promptType?: string;
   skipQuotaCheck?: boolean;
+  fallbackModels?: string[];
+  /**
+   * User UI language ('en' | 'fr'). When set, a language directive is injected so
+   * the model generates content in the requested language. Resolved from the
+   * request (query `lang` / body `language` / Accept-Language header) upstream.
+   */
+  language?: string;
+  /**
+   * Nom d'un cache de contexte Gemini (caches.create). Quand fourni, le préfixe
+   * mis en cache est réutilisé côté serveur — on n'envoie alors QUE la partie
+   * variable dans les messages (économie d'input tokens).
+   */
+  cachedContent?: string;
+  /**
+   * Exempte cet appel du plafond global MAX_OUTPUT_TOKENS.
+   *
+   * Réservé aux appels INTERNES dont le budget de ai.config.ts est un choix
+   * délibéré (SVG de logo, HTML de carte de visite…) : une réponse tronquée y
+   * est inexploitable, donc plafonner revient à casser la fonctionnalité. Le
+   * plafond reste actif pour l'endpoint public /prompt, dont le corps de
+   * requête est fourni par le client — `promptController` retire d'ailleurs ce
+   * drapeau de la charge utile entrante.
+   */
+  bypassOutputTokenCap?: boolean;
 }
 
 export interface AIChatMessage {
@@ -44,6 +107,11 @@ export interface PromptRequest {
   userId?: string;
   promptType?: string;
   skipQuotaCheck?: boolean;
+  fallbackModels?: string[];
+  language?: string;
+  cachedContent?: string;
+  /** Voir PromptConfig.bypassOutputTokenCap — jamais accepté depuis le client. */
+  bypassOutputTokenCap?: boolean;
 }
 
 export interface AIResponse {
@@ -51,9 +119,37 @@ export interface AIResponse {
   summary: string;
 }
 
+/** Une source brute issue des groundingMetadata Gemini (URL toujours réelle). */
+export interface GroundedSourceRaw {
+  /** Index dans groundingChunks — sert d'ancre pour les supports. */
+  index: number;
+  title: string;
+  url: string;
+  domain?: string;
+}
+
+/** Segment de texte appuyé par une ou plusieurs sources (citation inline). */
+export interface GroundedSupport {
+  text: string;
+  sourceIndexes: number[];
+}
+
+/** Résultat d'un appel fondé (grounding Google Search). */
+export interface GroundedResult {
+  /** Texte produit par le modèle, appuyé sur les résultats de recherche. */
+  text: string;
+  /** Requêtes réellement exécutées par le moteur de recherche. */
+  queries: string[];
+  /** Sources réelles retournées par le grounding. */
+  sources: GroundedSourceRaw[];
+  /** Association segments de texte → sources (pour matérialiser les citations). */
+  supports: GroundedSupport[];
+}
+
 export class PromptService {
   private _genAIClient?: GoogleGenAI;
-  private _openaiClient?: OpenAI;
+  /** Clients OpenAI-compatible mis en cache par fournisseur (GLM, OpenAI, DeepSeek…). */
+  private _openaiClients = new Map<LLMProvider, OpenAI>();
 
   constructor() {
     logger.info('Initializing PromptService...');
@@ -61,26 +157,41 @@ export class PromptService {
 
   private get genAIClient(): GoogleGenAI {
     if (!this._genAIClient) {
-      const geminiApiKey = process.env.GEMINI_API_KEY;
-      if (!geminiApiKey) {
-        logger.error('GEMINI_API_KEY is not set in environment variables.');
-        throw new Error('GEMINI_API_KEY is not set in environment variables.');
-      }
-      this._genAIClient = new GoogleGenAI({ apiKey: geminiApiKey });
-      logger.info('GoogleGenAI client initialized successfully lazily.');
+      // Backend (Vertex AI ou AI Studio) résolu par la fabrique partagée.
+      this._genAIClient = getGoogleGenAIClient();
     }
     return this._genAIClient;
   }
 
-  private get openaiClient(): OpenAI | undefined {
-    if (!this._openaiClient) {
-      const openaiApiKey = process.env.OPENAI_API_KEY;
-      if (openaiApiKey) {
-        this._openaiClient = new OpenAI({ apiKey: openaiApiKey });
-        logger.info('OpenAI client initialized successfully lazily.');
-      }
+  /**
+   * Client OpenAI-compatible pour un fournisseur donné (GLM, OpenAI, DeepSeek,
+   * futur modèle maison…). La clé, l'URL de base et les en-têtes proviennent du
+   * registre `AI_PROVIDERS`. Les clients sont mis en cache par fournisseur.
+   */
+  private getOpenAICompatibleClient(provider: LLMProvider): OpenAI {
+    const cached = this._openaiClients.get(provider);
+    if (cached) {
+      return cached;
     }
-    return this._openaiClient;
+
+    const def = getProvider(provider);
+    const apiKey = process.env[def.apiKeyEnv];
+    if (!apiKey) {
+      const message = `${def.apiKeyEnv} is not set — cannot use provider ${provider}.`;
+      logger.error(message);
+      throw new Error(message);
+    }
+
+    const client = new OpenAI({
+      apiKey,
+      ...(def.baseUrl ? { baseURL: def.baseUrl } : {}),
+      ...(def.defaultHeaders ? { defaultHeaders: def.defaultHeaders } : {}),
+    });
+    this._openaiClients.set(provider, client);
+    logger.info(
+      `OpenAI-compatible client initialized for provider=${provider} (baseURL=${def.baseUrl ?? 'default'}).`
+    );
+    return client;
   }
 
   private toGeminiMessages(messages: AIChatMessage[]): Content[] {
@@ -94,7 +205,15 @@ export class PromptService {
     modelName: string,
     messages: AIChatMessage[],
     llmOptions: LLMOptions,
-    fileInput?: { localPath: string; mimeType?: string }
+    fileInput?: { localPath: string; mimeType?: string },
+    cachedContent?: string,
+    /**
+     * Collecteur d'usage : rempli avec les compteurs de tokens réellement
+     * renvoyés par l'API. Passer par un collecteur évite de changer le type de
+     * retour de cet exécuteur (et donc de toucher tous ses appelants) tout en
+     * remontant l'information dont runPrompt a besoin pour journaliser.
+     */
+    usageSink?: UsageSink
   ): Promise<string> {
     const geminiContent: Content[] = this.toGeminiMessages(messages);
 
@@ -150,7 +269,7 @@ export class PromptService {
 
         // run prompt
         const fallbackModel = AI_CONFIG.fallback.textModel;
-        const secondaryFallback = 'gemini-1.5-flash';
+        const secondaryFallback = 'gemini-2.0-flash';
         const effectiveFallbackModel = modelName === fallbackModel ? secondaryFallback : fallbackModel;
 
         const result = await withGeminiFallback(
@@ -165,6 +284,13 @@ export class PromptService {
           modelName,
           effectiveFallbackModel
         );
+        // Relevé de consommation avant tout retour/erreur : l'appel a été
+        // facturé par Google même si la réponse est inexploitable.
+        if (usageSink) {
+          usageSink.usage = extractGeminiUsage(result);
+          usageSink.modelUsed = modelName;
+        }
+
         // Safely access the text content
         const firstCandidate = result.candidates?.[0];
         const firstPart = firstCandidate?.content?.parts?.[0];
@@ -211,33 +337,74 @@ export class PromptService {
       }
     }
 
-    const generationParams = {
-      ...(llmOptions.maxOutputTokens && {
-        maxOutputTokens: llmOptions.maxOutputTokens,
-      }),
-      ...(llmOptions.temperature && { temperature: llmOptions.temperature }),
+    // IMPORTANT: dans @google/genai 1.x, ces paramètres DOIVENT être sous `config`
+    // (au top-level ils sont ignorés silencieusement). On y branche aussi le
+    // cache de contexte explicite quand il est fourni.
+    //
+    // La config est construite PAR MODÈLE et non une fois pour toutes: le
+    // pilotage du raisonnement dépend de la famille du modèle, et un repli
+    // n'est pas forcément de la même famille que le modèle principal.
+    const buildConfig = (model: string) => ({
+      ...(llmOptions.maxOutputTokens && { maxOutputTokens: llmOptions.maxOutputTokens }),
+      ...(llmOptions.temperature !== undefined && { temperature: llmOptions.temperature }),
       ...(llmOptions.topP && { topP: llmOptions.topP }),
       ...(llmOptions.topK && { topK: llmOptions.topK }),
-    };
+      ...(llmOptions.thinkingBudget !== undefined && supportsThinkingBudget(model)
+        ? { thinkingConfig: { thinkingBudget: llmOptions.thinkingBudget } }
+        : {}),
+      ...(cachedContent && { cachedContent }),
+    });
+
+    if (llmOptions.thinkingBudget !== undefined && !supportsThinkingBudget(modelName)) {
+      logger.info(
+        `thinkingBudget=${llmOptions.thinkingBudget} ignoré pour "${modelName}" : réglage propre à la ` +
+          `famille Gemini 2.5. Épingler un modèle 2.5 dans ai.config.ts pour le rendre effectif.`
+      );
+    }
 
     const fallbackModel = AI_CONFIG.fallback.textModel;
-    const secondaryFallback = 'gemini-1.5-flash';
+    const secondaryFallback = 'gemini-2.0-flash';
     const effectiveFallbackModel = modelName === fallbackModel ? secondaryFallback : fallbackModel;
 
+    const config = buildConfig(modelName);
     const result = await withGeminiFallback(
-      () => this.genAIClient.models.generateContent({
-        model: modelName,
-        contents: geminiContent,
-        ...generationParams,
-      }),
-      () => this.genAIClient.models.generateContent({
-        model: effectiveFallbackModel,
-        contents: geminiContent,
-        ...generationParams,
-      }),
+      () =>
+        this.genAIClient.models.generateContent({
+          model: modelName,
+          contents: geminiContent,
+          config,
+        }),
+      () =>
+        this.genAIClient.models.generateContent({
+          model: effectiveFallbackModel,
+          contents: geminiContent,
+          // Le cache est lié au modèle principal: on ne le réutilise pas sur le repli.
+          config: {
+            ...buildConfig(effectiveFallbackModel),
+            ...(cachedContent ? { cachedContent: undefined } : {}),
+          },
+        }),
       modelName,
       effectiveFallbackModel
     );
+    if (usageSink) {
+      usageSink.usage = extractGeminiUsage(result);
+      usageSink.modelUsed = modelName;
+    }
+
+    // Surface truncation explicitly. gemini-3 "thinking" models count reasoning
+    // tokens against maxOutputTokens; when the budget is too small the answer is
+    // cut mid-string and downstream JSON/SVG parsing fails with cryptic errors
+    // ("no usable SVG"). Logging finishReason here makes the real cause visible.
+    const finishReason = result.candidates?.[0]?.finishReason;
+    if (finishReason === 'MAX_TOKENS') {
+      logger.warn(
+        `Gemini response truncated (finishReason=MAX_TOKENS) for model ${modelName}: output hit ` +
+          `maxOutputTokens=${config.maxOutputTokens ?? 'default'}. Increase maxOutputTokens for this ` +
+          `feature in ai.config.ts — the partial output will likely break JSON/SVG parsing.`
+      );
+    }
+
     const response = result.text;
     if (!response) {
       logger.error('Failed to generate response from Gemini API.');
@@ -248,177 +415,381 @@ export class PromptService {
     return response;
   }
 
-  private async _runChatGPTPrompt(
+  /**
+   * Convertit un schéma d'outil Gemini (@google/genai `Schema`, `type` en
+   * MAJUSCULES) en JSON Schema OpenAI (`type` en minuscules). Récursif sur
+   * `properties` et `items` ; conserve `enum`/`description`/`required`.
+   */
+  private geminiSchemaToJsonSchema(schema: any): Record<string, unknown> {
+    if (!schema || typeof schema !== 'object') {
+      return {};
+    }
+    const out: Record<string, unknown> = {};
+    if (schema.type) out.type = String(schema.type).toLowerCase();
+    if (schema.description) out.description = schema.description;
+    if (Array.isArray(schema.enum)) out.enum = schema.enum;
+    if (schema.properties && typeof schema.properties === 'object') {
+      const props: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(schema.properties)) {
+        props[key] = this.geminiSchemaToJsonSchema(value);
+      }
+      out.properties = props;
+    }
+    if (Array.isArray(schema.required)) out.required = schema.required;
+    if (schema.items) out.items = this.geminiSchemaToJsonSchema(schema.items);
+    return out;
+  }
+
+  /** Traduit des FunctionDeclaration Gemini en `tools` OpenAI (function-calling). */
+  private toOpenAITools(
+    tools: FunctionDeclaration[]
+  ): OpenAI.Chat.Completions.ChatCompletionTool[] {
+    return tools.map((t) => ({
+      type: 'function',
+      function: {
+        name: t.name ?? '',
+        ...(t.description ? { description: t.description } : {}),
+        parameters: this.geminiSchemaToJsonSchema(
+          t.parameters ?? { type: 'OBJECT', properties: {} }
+        ),
+      },
+    }));
+  }
+
+  /**
+   * Détecte une enveloppe d'erreur renvoyée en HTTP 200 par un gateway
+   * openai-compatible (ex: Z.ai/GLM: `{code, msg, success:false}`) et lève une
+   * erreur lisible. Sans quoi le SDK OpenAI présente un objet sans `choices` et
+   * on perd la cause réelle (mauvaise URL, solde insuffisant, modèle inconnu…).
+   */
+  private assertNoErrorEnvelope(provider: LLMProvider, response: any): void {
+    if (
+      response &&
+      typeof response === 'object' &&
+      !Array.isArray(response.choices) &&
+      (response.success === false || response.code !== undefined || response.msg)
+    ) {
+      const detail = response.msg || response.error || JSON.stringify(response).slice(0, 300);
+      logger.error(`${provider} API error envelope (HTTP 200): ${JSON.stringify(response).slice(0, 500)}`);
+      throw new Error(`${provider} API error: ${detail}`);
+    }
+  }
+
+  /**
+   * Adaptateur générique pour TOUT fournisseur `openai-compatible` du registre
+   * (GLM, OpenAI, DeepSeek, futur modèle maison). Remplace les anciennes méthodes
+   * dédiées ChatGPT/DeepSeek : la seule différence entre fournisseurs (clé, URL,
+   * en-têtes, modèle de repli) est portée par `AI_PROVIDERS`.
+   */
+  private async _runOpenAICompatiblePrompt(
+    provider: LLMProvider,
     modelName: string,
     messages: AIChatMessage[],
     llmOptions: LLMOptions,
-    fileInput?: { localPath: string; mimeType?: string }
+    fileInput?: { localPath: string; mimeType?: string },
+    /** Voir _runGeminiPrompt : collecteur des compteurs de tokens réels. */
+    usageSink?: UsageSink
   ): Promise<string> {
-    const client = this.openaiClient;
-    if (!client) {
-      const error = new Error(
-        'OpenAI client is not initialized. Please set OPENAI_API_KEY environment variable.'
-      );
-      logger.error(error.message);
-      throw error;
-    }
+    const client = this.getOpenAICompatibleClient(provider);
+    const def = getProvider(provider);
 
     try {
-      // Convert our internal message format to OpenAI's format
       const openaiMessages = messages.map((msg) => ({
         role: msg.role,
         content: msg.content,
-      }));
+      })) as OpenAI.Chat.Completions.ChatCompletionMessageParam[];
 
       const generationParams = {
-        ...(llmOptions.maxOutputTokens && {
-          max_tokens: llmOptions.maxOutputTokens,
-        }),
-        ...(llmOptions.temperature !== undefined && {
-          temperature: llmOptions.temperature,
-        }),
+        ...(llmOptions.maxOutputTokens && { max_tokens: llmOptions.maxOutputTokens }),
+        ...(llmOptions.temperature !== undefined && { temperature: llmOptions.temperature }),
         ...(llmOptions.topP !== undefined && { top_p: llmOptions.topP }),
-        // OpenAI doesn't have a topK parameter
+        // Pas de topK dans l'API OpenAI.
       };
 
-      // Handle file uploads if needed
+      // Le SDK n'upload pas de fichier ici : on injecte son contenu comme contexte
+      // système (comportement historique des chemins ChatGPT/DeepSeek).
       if (fileInput && fileInput.localPath) {
-        logger.info(`Processing file input for ChatGPT: ${fileInput.localPath}`);
-
+        logger.info(`Processing file input for ${provider}: ${fileInput.localPath}`);
         try {
-          // Read the file content
           const fileContent = await fs.readFile(fileInput.localPath, 'utf-8');
-
-          // Instead of uploading the file directly, we'll add its contents to the prompt
-          // Add context as system message at the beginning
           openaiMessages.unshift({
             role: 'system',
             content: `File content for context: ${fileContent}`,
           });
-
-          logger.info('File content added to ChatGPT prompt');
         } catch (fileError) {
-          logger.error(`Error reading file for ChatGPT: ${fileInput.localPath}`, fileError);
+          logger.error(`Error reading file for ${provider}: ${fileInput.localPath}`, fileError);
           throw new Error(
-            `Failed to read file for ChatGPT: ${(fileError as Error).message || fileError}`
+            `Failed to read file for ${provider}: ${(fileError as Error).message || fileError}`
           );
         }
       }
 
-      // Create chat completion
-      const response = await client.chat.completions.create({
-        model: modelName,
-        messages: openaiMessages,
-        ...generationParams,
-      });
+      const doCreate = (model: string) =>
+        client.chat.completions.create({
+          model,
+          messages: openaiMessages,
+          ...generationParams,
+          // Défaut du provider, puis surcharge éventuelle par-feature (ex: réactiver
+          // le raisonnement GLM sur la génération de logo). La feature l'emporte.
+          ...(def.extraBody ?? {}),
+          ...(llmOptions.extraBody ?? {}),
+        } as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming);
+
+      // Repli optionnel propre au fournisseur (ex: glm-5.2 → glm-4.6).
+      let response;
+      try {
+        response = await doCreate(modelName);
+      } catch (primaryError: any) {
+        if (def.fallbackModel && def.fallbackModel !== modelName) {
+          logger.warn(
+            `${provider} model "${modelName}" failed (${primaryError.message || primaryError}). Retrying with "${def.fallbackModel}"...`
+          );
+          response = await doCreate(def.fallbackModel);
+        } else {
+          throw primaryError;
+        }
+      }
+
+      // Relevé de consommation avant les contrôles de validité : une enveloppe
+      // d'erreur ou une réponse vide a tout de même été facturée.
+      if (usageSink) {
+        usageSink.usage = extractOpenAIUsage(response);
+        usageSink.modelUsed = (response as any)?.model || modelName;
+      }
+
+      // Certains gateways openai-compatible (ex: Z.ai/GLM) renvoient un HTTP 200
+      // dont le corps est en réalité une enveloppe d'erreur ({code, msg, success:
+      // false}) SANS `choices`. On la détecte pour remonter un message exploitable
+      // au lieu d'un opaque "no choices".
+      this.assertNoErrorEnvelope(provider, response);
 
       if (!response.choices || response.choices.length === 0) {
-        logger.error('ChatGPT API returned no choices');
-        throw new Error('ChatGPT API returned no choices');
+        const raw = JSON.stringify(response).slice(0, 500);
+        logger.error(`${provider} API returned no choices. Raw response: ${raw}`);
+        throw new Error(`${provider} API returned no choices. Raw: ${raw}`);
       }
 
       const textContent = response.choices[0].message.content;
-
       if (!textContent) {
-        logger.error('ChatGPT API returned empty text content');
-        throw new Error('ChatGPT API returned empty text content');
+        // finish_reason='length' ⇒ budget épuisé (souvent par le raisonnement d'un
+        // modèle "thinking"): augmenter maxOutputTokens ou désactiver le thinking.
+        const finishReason = response.choices[0].finish_reason;
+        logger.error(
+          `${provider} API returned empty text content (finish_reason=${finishReason}).`
+        );
+        throw new Error(
+          `${provider} API returned empty text content (finish_reason=${finishReason})`
+        );
       }
 
       return textContent;
     } catch (error) {
-      const errorMessage = `Error with ChatGPT API: ${(error as Error).message || error}`;
+      const errorMessage = `Error with ${provider} API: ${(error as Error).message || error}`;
       logger.error(errorMessage);
       throw new Error(errorMessage);
     }
   }
 
-  private async _runDeepSeekPrompt(
+  /**
+   * Boucle agentique (function-calling) pour un fournisseur `openai-compatible`
+   * qui supporte les outils (ex: GLM). Miroir de la boucle Gemile de
+   * runPromptWithTools, au format OpenAI (`tool_calls` / messages `role:'tool'`).
+   */
+  private async _runOpenAICompatibleTools(
+    provider: LLMProvider,
     modelName: string,
     messages: AIChatMessage[],
     llmOptions: LLMOptions,
-    fileInput?: { localPath: string; mimeType?: string }
+    tools: FunctionDeclaration[],
+    executeTool: (name: string, args: Record<string, unknown>) => Promise<unknown>,
+    maxToolTurns: number
   ): Promise<string> {
-    // DeepSeek is accessed through the OpenAI API compatibility layer
-    if (!this.openaiClient) {
-      const error = new Error(
-        'OpenAI client is not initialized. Please set OPENAI_API_KEY environment variable.'
-      );
-      logger.error(error.message);
-      throw error;
+    const client = this.getOpenAICompatibleClient(provider);
+    const def = getProvider(provider);
+    const openaiTools = this.toOpenAITools(tools);
+
+    const conversation: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = messages.map(
+      (msg) => ({ role: msg.role, content: msg.content })
+    ) as OpenAI.Chat.Completions.ChatCompletionMessageParam[];
+
+    const generationParams = {
+      ...(llmOptions.maxOutputTokens && { max_tokens: llmOptions.maxOutputTokens }),
+      ...(llmOptions.temperature !== undefined && { temperature: llmOptions.temperature }),
+      ...(llmOptions.topP !== undefined && { top_p: llmOptions.topP }),
+    };
+
+    let finalText = '';
+    for (let turn = 0; turn <= maxToolTurns; turn++) {
+      const forceFinal = turn === maxToolTurns;
+      const response = await client.chat.completions.create({
+        model: modelName,
+        messages: conversation,
+        ...generationParams,
+        ...(def.extraBody ?? {}),
+        ...(llmOptions.extraBody ?? {}),
+        tools: openaiTools,
+        tool_choice: forceFinal ? 'none' : 'auto',
+      } as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming);
+
+      this.assertNoErrorEnvelope(provider, response);
+      const choice = response.choices?.[0]?.message;
+      const toolCalls = choice?.tool_calls ?? [];
+
+      if (!choice || toolCalls.length === 0 || forceFinal) {
+        finalText = choice?.content ?? '';
+        logAIEvent('ai.agentic_turn', {
+          turn: turn + 1,
+          decision: forceFinal && toolCalls.length > 0 ? 'max_turns_forced' : 'final_answer',
+          finalTextLength: finalText.length,
+        });
+        break;
+      }
+
+      // Rejoue le tour: message assistant avec ses tool_calls, puis une réponse
+      // par outil.
+      conversation.push(choice);
+      logAIEvent('ai.agentic_turn', {
+        turn: turn + 1,
+        decision: 'tool_calls',
+        tools: toolCalls.map((c) => ({
+          name: c.function?.name,
+          args: previewValue(c.function?.arguments),
+        })),
+      });
+
+      for (const call of toolCalls) {
+        const toolName = call.function?.name ?? '';
+        let parsedArgs: Record<string, unknown> = {};
+        try {
+          parsedArgs = call.function?.arguments ? JSON.parse(call.function.arguments) : {};
+        } catch {
+          parsedArgs = {};
+        }
+        let output: unknown;
+        try {
+          output = await executeTool(toolName, parsedArgs);
+        } catch (error: any) {
+          output = { error: error.message || String(error) };
+        }
+        conversation.push({
+          role: 'tool',
+          tool_call_id: call.id,
+          content: JSON.stringify(output ?? null),
+        });
+      }
     }
 
-    try {
-      // Convert our internal message format to OpenAI's format
-      const openaiMessages = messages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+    return finalText;
+  }
 
-      const generationParams = {
-        ...(llmOptions.maxOutputTokens && {
-          max_tokens: llmOptions.maxOutputTokens,
-        }),
-        ...(llmOptions.temperature !== undefined && {
-          temperature: llmOptions.temperature,
-        }),
-        ...(llmOptions.topP !== undefined && { top_p: llmOptions.topP }),
-        // DeepSeek may support additional parameters, but we'll stick to the OpenAI compatibility
-      };
+  /**
+   * Streaming pour un fournisseur `openai-compatible` (ex: GLM) : diffuse le texte
+   * cumulé via `onDelta` et renvoie le texte complet.
+   */
+  private async _streamOpenAICompatible(
+    provider: LLMProvider,
+    modelName: string,
+    messages: AIChatMessage[],
+    llmOptions: LLMOptions,
+    onDelta: (cumulativeText: string) => void
+  ): Promise<string> {
+    const client = this.getOpenAICompatibleClient(provider);
+    const def = getProvider(provider);
+    const openaiMessages = messages.map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+    })) as OpenAI.Chat.Completions.ChatCompletionMessageParam[];
 
-      // Handle file uploads if needed
-      if (fileInput && fileInput.localPath) {
-        logger.info(`Processing file input for DeepSeek: ${fileInput.localPath}`);
+    const generationParams = {
+      ...(llmOptions.maxOutputTokens && { max_tokens: llmOptions.maxOutputTokens }),
+      ...(llmOptions.temperature !== undefined && { temperature: llmOptions.temperature }),
+      ...(llmOptions.topP !== undefined && { top_p: llmOptions.topP }),
+    };
 
-        try {
-          // Read the file content
-          const fileContent = await fs.readFile(fileInput.localPath, 'utf-8');
+    const stream = await client.chat.completions.create({
+      model: modelName,
+      messages: openaiMessages,
+      ...generationParams,
+      ...(def.extraBody ?? {}),
+      ...(llmOptions.extraBody ?? {}),
+      stream: true,
+    } as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming);
 
-          // Add file content to the prompt
-          openaiMessages.unshift({
-            role: 'system',
-            content: `File content for context: ${fileContent}`,
-          });
-
-          logger.info('File content added to DeepSeek prompt');
-        } catch (fileError) {
-          logger.error(`Error reading file for DeepSeek: ${fileInput.localPath}`, fileError);
-          throw new Error(
-            `Failed to read file for DeepSeek: ${(fileError as Error).message || fileError}`
-          );
-        }
+    let full = '';
+    for await (const chunk of stream) {
+      const delta = chunk.choices?.[0]?.delta?.content ?? '';
+      if (delta) {
+        full += delta;
+        onDelta(full);
       }
+    }
+    return full;
+  }
 
-      // Make API call with the DeepSeek base URL if provided, otherwise use the default OpenAI URL
-      const deepSeekBaseUrl = process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com';
-      const customClient = new OpenAI({
-        apiKey: process.env.OPENROUTER_API_KEY || '',
-        baseURL: deepSeekBaseUrl,
+  /**
+   * Build a strong directive that forces the model to answer in the user's language.
+   * Returns an empty string when no (or an unknown) language is provided, leaving
+   * existing behavior unchanged.
+   */
+  private buildLanguageDirective(language?: string): string {
+    if (!language) {
+      return '';
+    }
+    const normalized = language.toLowerCase();
+    const label = normalized.startsWith('fr')
+      ? 'French (Français)'
+      : normalized.startsWith('en')
+        ? 'English'
+        : null;
+    if (!label) {
+      return '';
+    }
+    return `RESPONSE LANGUAGE (CRITICAL): You MUST write ALL generated content — every section, title, sentence, label and value — in ${label}. Do not mix languages. This instruction overrides any language implied by the examples or prompts below.`;
+  }
+
+  /**
+   * Journalise la consommation de chaque tentative de modèle d'un appel.
+   *
+   * Deux règles :
+   *  - une tentative sans métadonnées d'usage est estimée par longueur de texte
+   *    plutôt qu'ignorée (une consommation invisible fausse tous les totaux) ;
+   *  - toute erreur d'écriture est avalée par `aiUsageService.record` :
+   *    l'observabilité ne doit jamais faire échouer une génération.
+   */
+  private async recordUsageAttempts(params: {
+    attempts: { model: string; sink: UsageSink; startedAt: number }[];
+    provider: LLMProvider;
+    promptType?: string;
+    userId?: string;
+    messages: AIChatMessage[];
+    resultText?: string;
+    error?: any;
+  }): Promise<void> {
+    const { attempts, provider, promptType, userId, messages, resultText, error } = params;
+    if (attempts.length === 0) return;
+
+    const promptText = joinMessagesForEstimate(messages);
+
+    for (let i = 0; i < attempts.length; i++) {
+      const attempt = attempts[i];
+      const isLast = i === attempts.length - 1;
+      // Seule la dernière tentative peut avoir produit le résultat final ; les
+      // précédentes ont nécessairement échoué (la boucle sort au succès).
+      const succeeded = isLast && !error && resultText !== undefined;
+
+      const usage =
+        attempt.sink.usage ?? estimateUsage(promptText, succeeded ? (resultText ?? '') : '');
+
+      await aiUsageService.record({
+        provider,
+        modelName: attempt.sink.modelUsed ?? attempt.model,
+        usage,
+        status: succeeded ? 'success' : 'error',
+        errorMessage: succeeded ? undefined : (error?.message ?? 'Model attempt failed'),
+        durationMs: Date.now() - attempt.startedAt,
+        promptType,
+        userId,
       });
-
-      // Create chat completion
-      const response = await customClient.chat.completions.create({
-        model: modelName,
-        messages: openaiMessages,
-        ...generationParams,
-      });
-
-      if (!response.choices || response.choices.length === 0) {
-        logger.error('DeepSeek API returned no choices');
-        throw new Error('DeepSeek API returned no choices');
-      }
-
-      const textContent = response.choices[0].message.content;
-
-      if (!textContent) {
-        logger.error('DeepSeek API returned empty text content');
-        throw new Error('DeepSeek API returned empty text content');
-      }
-
-      return textContent;
-    } catch (error) {
-      const errorMessage = `Error with DeepSeek API: ${(error as Error).message || error}`;
-      logger.error(errorMessage);
-      throw new Error(errorMessage);
     }
   }
 
@@ -428,14 +799,17 @@ export class PromptService {
         request.modelName
       }, file attached: ${!!request.file}, userId: ${request.userId}`
     );
+    // Interrupteur global optionnel (AI_DEFAULT_PROVIDER / AI_DEFAULT_MODEL) :
+    // permet de faire tourner idem entièrement sur un autre fournisseur sans
+    // toucher aux configs par fonctionnalité. Sans variable d'env → no-op.
+    const { provider, modelName } = resolveGlobalOverride(request);
     const {
-      provider,
-      modelName,
       llmOptions = {},
       file,
       userId,
       promptType,
       skipQuotaCheck = false,
+      language,
     } = request;
 
     if (!messages || messages.length === 0) {
@@ -492,64 +866,661 @@ export class PromptService {
       logger.info('Applied prompt modifications');
     }
 
-    try {
-      let result: string;
-      switch (provider) {
-        case LLMProvider.GEMINI:
-          result = await this._runGeminiPrompt(modelName, modifiedMessages, llmOptions, file);
-          break;
-        case LLMProvider.CHATGPT:
-          result = await this._runChatGPTPrompt(modelName, modifiedMessages, llmOptions, file);
-          break;
-        case LLMProvider.DEEPSEEK:
-          result = await this._runDeepSeekPrompt(modelName, modifiedMessages, llmOptions, file);
-          break;
-        default:
-          const unsupportedProviderError = new Error(`Unsupported LLM provider: ${provider}`);
-          logger.error(
-            `Unsupported LLM provider encountered in runPrompt: ${unsupportedProviderError.message}`,
-            { provider, stack: unsupportedProviderError.stack }
-          );
-          throw unsupportedProviderError;
-      }
+    // Force the output language. This is the single choke point for every AI
+    // feature/provider, so one directive here guarantees generated content is in
+    // the user's language (prevents wrong-language output). An explicit
+    // config.language wins; otherwise fall back to the request-scoped language.
+    const effectiveLanguage = language ?? getRequestLanguage();
+    const languageDirective = this.buildLanguageDirective(effectiveLanguage);
+    if (languageDirective && modifiedMessages.length > 0) {
+      // Append to the LAST message rather than inserting a new system message:
+      // this keeps message roles/adjacency intact (Gemini rejects consecutive
+      // same-role turns) and benefits from recency for stronger adherence.
+      const lastIdx = modifiedMessages.length - 1;
+      const last = modifiedMessages[lastIdx];
+      modifiedMessages = [
+        ...modifiedMessages.slice(0, lastIdx),
+        { ...last, content: `${last.content}\n\n${languageDirective}` },
+      ];
+      logger.info(`Injected language directive (language=${effectiveLanguage}).`);
+    }
 
-      // Increment quota after successful API call
+    const modelsToTry = [modelName, ...(request.fallbackModels || [])];
+    const kind = getProvider(provider).kind;
+
+    let result: string | undefined;
+    let lastError: any;
+    // Un relevé par modèle essayé : un repli après échec a consommé des tokens
+    // sur les DEUX modèles, et les deux doivent apparaître dans le journal.
+    const attempts: { model: string; sink: UsageSink; startedAt: number }[] = [];
+
+    for (let i = 0; i < modelsToTry.length; i++) {
+      const currentModel = modelsToTry[i];
+      const sink: UsageSink = {};
+      const attemptStartedAt = Date.now();
+      attempts.push({ model: currentModel, sink, startedAt: attemptStartedAt });
+      try {
+        switch (kind) {
+          case 'gemini':
+            result = await this._runGeminiPrompt(
+              currentModel,
+              modifiedMessages,
+              llmOptions,
+              file,
+              request.cachedContent,
+              sink
+            );
+            break;
+          case 'openai-compatible':
+            result = await this._runOpenAICompatiblePrompt(
+              provider,
+              currentModel,
+              modifiedMessages,
+              llmOptions,
+              file,
+              sink
+            );
+            break;
+          default:
+            const unsupportedProviderError = new Error(`Unsupported provider kind: ${kind}`);
+            logger.error(
+              `Unsupported provider kind encountered in runPrompt: ${unsupportedProviderError.message}`,
+              { provider, kind, stack: unsupportedProviderError.stack }
+            );
+            throw unsupportedProviderError;
+        }
+        
+        lastError = undefined;
+        break; // Success, exit retry loop
+      } catch (error: any) {
+        lastError = error;
+        if (i < modelsToTry.length - 1) {
+          logger.warn(`Model ${currentModel} failed, falling back to ${modelsToTry[i + 1]}... Error: ${error.message}`);
+        } else {
+          logger.error(
+            `Error in runPrompt for provider ${provider}, model ${currentModel} (exhausted fallbacks): ${error.message}`,
+            { stack: error.stack, details: error }
+          );
+        }
+      }
+    }
+
+    // Journalisation de la consommation, y compris pour les tentatives en échec :
+    // un modèle qui répond puis échoue au parsing a bien été facturé, et le
+    // masquer sous-estimerait le coût réel de la plateforme.
+    await this.recordUsageAttempts({
+      attempts,
+      provider,
+      promptType,
+      userId,
+      messages: modifiedMessages,
+      resultText: result,
+      error: lastError,
+    });
+
+    if (lastError) {
+      throw lastError;
+    }
+
+    if (result === undefined) {
+      throw new Error('Unexpected empty result after trying all models.');
+    }
+
+    // Increment quota after successful API call
+    if (userId && !skipQuotaCheck) {
+      try {
+        await userService.incrementUsage(userId, 1);
+        logger.info(`Incremented quota usage for user ${userId}`);
+      } catch (quotaError) {
+        logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
+        // Don't throw here as the API call was successful
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Boucle agentique avec function calling Gemini: le modèle peut appeler des
+   * outils (Context Engine, historique de versions…) et recevoir leurs
+   * résultats sur plusieurs tours, jusqu'à produire sa réponse finale.
+   *
+   * Passe par les mêmes garde-fous que runPrompt (quota, langue) — un seul
+   * incrément de quota par appel, quel que soit le nombre de tours d'outils.
+   */
+  public async runPromptWithTools(
+    request: PromptConfig,
+    messages: AIChatMessage[],
+    tools: FunctionDeclaration[],
+    executeTool: (name: string, args: Record<string, unknown>) => Promise<unknown>,
+    options: { maxToolTurns?: number } = {}
+  ): Promise<string> {
+    const { provider, modelName } = resolveGlobalOverride(request);
+    const { llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
+
+    if (!messages || messages.length === 0) {
+      throw new Error('Messages array cannot be empty.');
+    }
+
+    // Garde-fou par capacité : un fournisseur openai-compatible sans support des
+    // outils ne peut pas exécuter la boucle agentique (l'appelant — ex: Advisor —
+    // retombe alors sur runPrompt).
+    const providerKind = getProvider(provider).kind;
+    if (providerKind !== 'gemini' && !providerSupports(provider, 'tools')) {
+      throw new Error(
+        `runPromptWithTools: le fournisseur ${provider} ne supporte pas le function-calling.`
+      );
+    }
+
+    if (userId && !skipQuotaCheck) {
+      const quotaCheck = await userService.checkQuota(userId);
+      if (!quotaCheck.allowed) {
+        logger.warn(`Quota exceeded for user ${userId}: ${quotaCheck.message}`);
+        throw new Error(quotaCheck.message || 'Quota exceeded');
+      }
+    }
+
+    // Directive de langue: même choke point que runPrompt.
+    const effectiveLanguage = language ?? getRequestLanguage();
+    const languageDirective = this.buildLanguageDirective(effectiveLanguage);
+    const maxToolTurns = options.maxToolTurns ?? 8;
+
+    // Branche openai-compatible (ex: GLM) : boucle d'outils au format OpenAI.
+    if (providerKind === 'openai-compatible') {
+      const toolMessages: AIChatMessage[] = languageDirective
+        ? [...messages, { role: 'system', content: languageDirective }]
+        : messages;
+      const loopStartedAt = Date.now();
+      logAIEvent('ai.agentic_loop_start', {
+        provider,
+        modelName,
+        promptType: request.promptType,
+        toolCount: tools.length,
+        maxToolTurns,
+      });
+      const text = await this._runOpenAICompatibleTools(
+        provider,
+        modelName,
+        toolMessages,
+        llmOptions,
+        tools,
+        executeTool,
+        maxToolTurns
+      );
+      logAIEvent('ai.agentic_loop_end', {
+        provider,
+        modelName,
+        finalTextLength: text.length,
+        durationMs: Date.now() - loopStartedAt,
+      });
       if (userId && !skipQuotaCheck) {
         try {
           await userService.incrementUsage(userId, 1);
-          logger.info(`Incremented quota usage for user ${userId}`);
         } catch (quotaError) {
           logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
-          // Don't throw here as the API call was successful
         }
       }
-
-      return result;
-    } catch (error: any) {
-      logger.error(
-        `Error in runPrompt for provider ${provider}, model ${modelName}: ${error.message}`,
-        { stack: error.stack, details: error }
-      );
-      throw error;
+      return text;
     }
+
+    const systemParts = messages.filter((m) => m.role === 'system').map((m) => m.content);
+    if (languageDirective) {
+      systemParts.push(languageDirective);
+    }
+    const conversation = messages.filter((m) => m.role !== 'system');
+
+    const contents: Content[] = conversation.map((msg) => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }],
+    }));
+
+    const generationParams = {
+      ...(llmOptions.maxOutputTokens && { maxOutputTokens: llmOptions.maxOutputTokens }),
+      ...(llmOptions.temperature && { temperature: llmOptions.temperature }),
+      ...(llmOptions.topP && { topP: llmOptions.topP }),
+      ...(llmOptions.topK && { topK: llmOptions.topK }),
+    };
+
+    const config = {
+      ...generationParams,
+      ...(systemParts.length > 0 && { systemInstruction: systemParts.join('\n\n') }),
+      tools: [{ functionDeclarations: tools }],
+      toolConfig: { functionCallingConfig: { mode: FunctionCallingConfigMode.AUTO } },
+    };
+
+    const fallbackModel = AI_CONFIG.fallback.textModel;
+    const effectiveFallbackModel = modelName === fallbackModel ? 'gemini-2.0-flash' : fallbackModel;
+
+    const loopStartedAt = Date.now();
+    logAIEvent('ai.agentic_loop_start', {
+      modelName,
+      promptType: request.promptType,
+      toolCount: tools.length,
+      maxToolTurns,
+    });
+
+    let finalText = '';
+    let turnsUsed = 0;
+    for (let turn = 0; turn <= maxToolTurns; turn++) {
+      turnsUsed = turn + 1;
+      const result = await withGeminiFallback(
+        () => this.genAIClient.models.generateContent({ model: modelName, contents, config }),
+        () =>
+          this.genAIClient.models.generateContent({
+            model: effectiveFallbackModel,
+            contents,
+            config,
+          }),
+        modelName,
+        effectiveFallbackModel
+      );
+
+      const functionCalls = result.functionCalls ?? [];
+      if (functionCalls.length === 0) {
+        finalText = result.text ?? '';
+        logAIEvent('ai.agentic_turn', {
+          turn: turn + 1,
+          decision: 'final_answer',
+          finalTextLength: finalText.length,
+        });
+        break;
+      }
+
+      const modelContent = result.candidates?.[0]?.content;
+      if (modelContent) {
+        contents.push(modelContent);
+      }
+
+      logAIEvent('ai.agentic_turn', {
+        turn: turn + 1,
+        decision: 'tool_calls',
+        tools: functionCalls.map((c) => ({ name: c.name, args: previewValue(c.args) })),
+      });
+      logger.info(
+        `runPromptWithTools turn=${turn + 1} tools=[${functionCalls.map((c) => c.name).join(', ')}]`
+      );
+
+      const responseParts: Part[] = [];
+      for (const call of functionCalls) {
+        const toolName = call.name ?? '';
+        let output: unknown;
+        try {
+          output = await executeTool(toolName, (call.args ?? {}) as Record<string, unknown>);
+        } catch (error: any) {
+          output = { error: error.message || String(error) };
+        }
+        responseParts.push({
+          functionResponse: { name: toolName, response: { result: output ?? null } },
+        });
+      }
+      contents.push({ role: 'user', parts: responseParts });
+
+      if (turn === maxToolTurns) {
+        logger.warn('runPromptWithTools: max tool turns reached, forcing final answer');
+        logAIEvent('ai.agentic_turn', { turn: turn + 1, decision: 'max_turns_forced' });
+        const finalResult = await this.genAIClient.models.generateContent({
+          model: modelName,
+          contents,
+          config: { ...config, toolConfig: { functionCallingConfig: { mode: FunctionCallingConfigMode.NONE } } },
+        });
+        finalText = finalResult.text ?? '';
+      }
+    }
+
+    logAIEvent('ai.agentic_loop_end', {
+      modelName,
+      turnsUsed,
+      finalTextLength: finalText.length,
+      durationMs: Date.now() - loopStartedAt,
+    });
+
+    if (userId && !skipQuotaCheck) {
+      try {
+        await userService.incrementUsage(userId, 1);
+      } catch (quotaError) {
+        logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
+      }
+    }
+
+    return finalText;
+  }
+
+  /**
+   * Appel FONDÉ (grounded) via le Google Search de Gemini: le modèle interroge
+   * le web et renvoie une réponse appuyée sur de vraies sources. On extrait des
+   * `groundingMetadata` les URLs réelles, les requêtes exécutées et la carte
+   * segments→sources. C'est le socle anti-invention: aucune donnée n'est acceptée
+   * si elle ne provient pas de ces résultats.
+   *
+   * Note: l'outil googleSearch est incompatible avec le function-calling dans un
+   * même appel — cette méthode ne fait donc PAS d'outils applicatifs. La phase de
+   * rédaction/vérification se fait via runPrompt à partir des sources collectées.
+   */
+  public async runGroundedResearch(
+    request: PromptConfig,
+    messages: AIChatMessage[]
+  ): Promise<GroundedResult> {
+    const { provider, llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
+
+    if (!messages || messages.length === 0) {
+      throw new Error('Messages array cannot be empty.');
+    }
+
+    // Le grounding (Google Search) est propre à Gemini. Si la config pointe un
+    // fournisseur incapable (ex: GLM), on retombe sur le modèle Gemini par défaut
+    // plutôt que d'envoyer un modèle inconnu au SDK Google.
+    const groundingSupported = providerSupports(provider, 'grounding');
+    const modelName = groundingSupported ? request.modelName : AI_CONFIG.default.modelName;
+    if (!groundingSupported) {
+      logger.warn(
+        `runGroundedResearch: le fournisseur ${provider} ne supporte pas le grounding — repli sur Gemini (${modelName}).`
+      );
+    }
+
+    if (userId && !skipQuotaCheck) {
+      const quotaCheck = await userService.checkQuota(userId);
+      if (!quotaCheck.allowed) {
+        logger.warn(`Quota exceeded for user ${userId}: ${quotaCheck.message}`);
+        throw new Error(quotaCheck.message || 'Quota exceeded');
+      }
+    }
+
+    const effectiveLanguage = language ?? getRequestLanguage();
+    const languageDirective = this.buildLanguageDirective(effectiveLanguage);
+
+    const systemParts = messages.filter((m) => m.role === 'system').map((m) => m.content);
+    if (languageDirective) {
+      systemParts.push(languageDirective);
+    }
+    const conversation = messages.filter((m) => m.role !== 'system');
+    const contents: Content[] = conversation.map((msg) => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }],
+    }));
+
+    const generationParams = {
+      ...(llmOptions.maxOutputTokens && { maxOutputTokens: llmOptions.maxOutputTokens }),
+      ...(llmOptions.temperature !== undefined && { temperature: llmOptions.temperature }),
+      ...(llmOptions.topP && { topP: llmOptions.topP }),
+    };
+
+    const config = {
+      ...generationParams,
+      ...(systemParts.length > 0 && { systemInstruction: systemParts.join('\n\n') }),
+      // Grounding natif Google Search — renvoie de vraies sources.
+      tools: [{ googleSearch: {} }],
+    };
+
+    // Le modèle de repli doit lui aussi supporter googleSearch (gemini-2.5-flash).
+    const fallbackModel = AI_CONFIG.fallback.textModel;
+    const effectiveFallbackModel = modelName === fallbackModel ? modelName : fallbackModel;
+
+    const startedAt = Date.now();
+    logAIEvent('ai.grounded_research_start', {
+      modelName,
+      promptType: request.promptType,
+    });
+
+    const result = await withGeminiFallback(
+      () => this.genAIClient.models.generateContent({ model: modelName, contents, config }),
+      () =>
+        this.genAIClient.models.generateContent({
+          model: effectiveFallbackModel,
+          contents,
+          config,
+        }),
+      modelName,
+      effectiveFallbackModel
+    );
+
+    const candidate = result.candidates?.[0];
+    const text = result.text ?? candidate?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
+    const grounding: GroundingMetadata | undefined = candidate?.groundingMetadata;
+    const parsed = this.extractGrounding(grounding);
+
+    logAIEvent('ai.grounded_research_end', {
+      modelName,
+      durationMs: Date.now() - startedAt,
+      textLength: text.length,
+      sourceCount: parsed.sources.length,
+      queryCount: parsed.queries.length,
+    });
+
+    if (userId && !skipQuotaCheck) {
+      try {
+        await userService.incrementUsage(userId, 1);
+      } catch (quotaError) {
+        logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
+      }
+    }
+
+    return { text, ...parsed };
+  }
+
+  /**
+   * Crée un cache de contexte Gemini (contenu partagé réutilisé sur plusieurs
+   * appels). Best-effort: renvoie null si le caching échoue (contenu trop court,
+   * modèle non supporté…), auquel cas l'appelant retombe sur l'envoi inline.
+   */
+  public async createContextCache(
+    modelName: string,
+    contextText: string,
+    ttlSeconds = 7200
+  ): Promise<string | null> {
+    // Le backend Gemini actif ne sert pas toujours le cache de contexte :
+    // l'endpoint Vertex `global` ne le propose pas. Sans ce garde-fou chaque
+    // appel tenterait un `caches.create` voué à l'échec, avalé par le catch plus
+    // bas — un aller-retour perdu par génération, pour une cause invisible.
+    if (!providerSupports(LLMProvider.GEMINI, 'contextCache')) {
+      logger.debug(`Context cache unavailable on this backend — ${describeGeminiBackend()}.`);
+      return null;
+    }
+
+    // Le cache de contexte serveur est une fonctionnalité Gemini. Pour tout autre
+    // modèle (ex: glm-5.2) on n'essaie même pas : l'appelant retombe sur l'inline.
+    if (!modelName.startsWith('gemini')) {
+      logger.debug(`Context cache skipped: model "${modelName}" is not a Gemini model.`);
+      return null;
+    }
+    try {
+      const cache = await this.genAIClient.caches.create({
+        model: modelName,
+        config: {
+          contents: [{ role: 'user', parts: [{ text: contextText }] }],
+          ttl: `${ttlSeconds}s`,
+          displayName: 'idem-shared-context',
+        },
+      });
+      logAIEvent('ai.context_cache_created', {
+        modelName,
+        cacheName: cache.name,
+        contextChars: contextText.length,
+      });
+      return cache.name ?? null;
+    } catch (error: any) {
+      // Cause fréquente: contexte sous le minimum de tokens du modèle → on ignore.
+      logger.warn(`Context cache disabled (create failed): ${error.message || error}`);
+      return null;
+    }
+  }
+
+  /** Supprime un cache de contexte (best-effort, en fin de run). */
+  public async deleteContextCache(name: string): Promise<void> {
+    try {
+      await this.genAIClient.caches.delete({ name });
+    } catch (error: any) {
+      logger.warn(`Context cache delete failed: ${error.message || error}`);
+    }
+  }
+
+  /**
+   * Variante streaming de runPrompt (Gemini uniquement): diffuse le texte au fil
+   * de l'eau via `onDelta(textCumulé)` et renvoie le texte complet. Améliore la
+   * latence PERÇUE (le contenu s'affiche pendant la génération). Applique les
+   * mêmes garde-fous que runPrompt (quota, directive de langue, config sous
+   * `config`, cache de contexte).
+   */
+  public async runPromptStream(
+    request: PromptConfig,
+    messages: AIChatMessage[],
+    onDelta: (cumulativeText: string) => void
+  ): Promise<string> {
+    const { provider, modelName } = resolveGlobalOverride(request);
+    const {
+      llmOptions = {},
+      userId,
+      skipQuotaCheck = false,
+      language,
+      cachedContent,
+    } = request;
+
+    if (!messages || messages.length === 0) {
+      throw new Error('Messages array cannot be empty.');
+    }
+
+    const providerKind = getProvider(provider).kind;
+
+    if (userId && !skipQuotaCheck) {
+      const quotaCheck = await userService.checkQuota(userId);
+      if (!quotaCheck.allowed) {
+        throw new Error(quotaCheck.message || 'Quota exceeded');
+      }
+    }
+
+    const effectiveLanguage = language ?? getRequestLanguage();
+    const languageDirective = this.buildLanguageDirective(effectiveLanguage);
+
+    // Fournisseur openai-compatible (ex: GLM) : vrai flux via le SDK OpenAI si la
+    // capacité est déclarée, sinon repli non-streamé. Le repli passe par runPrompt
+    // qui gère lui-même le quota ; le flux réussi incrémente ici (une seule fois).
+    if (providerKind === 'openai-compatible') {
+      if (providerSupports(provider, 'streaming')) {
+        const streamMessages: AIChatMessage[] = languageDirective
+          ? [...messages, { role: 'system', content: languageDirective }]
+          : messages;
+        try {
+          const full = await this._streamOpenAICompatible(
+            provider,
+            modelName,
+            streamMessages,
+            llmOptions,
+            onDelta
+          );
+          if (userId && !skipQuotaCheck) {
+            try {
+              await userService.incrementUsage(userId, 1);
+            } catch (quotaError) {
+              logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
+            }
+          }
+          return full;
+        } catch (error: any) {
+          logger.warn(
+            `runPromptStream (${provider}) failed, falling back to non-streaming: ${error.message}`
+          );
+        }
+      }
+      const text = await this.runPrompt(request, messages);
+      onDelta(text);
+      return text;
+    }
+
+    const systemParts = messages.filter((m) => m.role === 'system').map((m) => m.content);
+    if (languageDirective) systemParts.push(languageDirective);
+    const conversation = messages.filter((m) => m.role !== 'system');
+    const contents: Content[] = conversation.map((msg) => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }],
+    }));
+
+    const config = {
+      ...(llmOptions.maxOutputTokens && { maxOutputTokens: llmOptions.maxOutputTokens }),
+      ...(llmOptions.temperature !== undefined && { temperature: llmOptions.temperature }),
+      ...(llmOptions.topP && { topP: llmOptions.topP }),
+      ...(systemParts.length > 0 && { systemInstruction: systemParts.join('\n\n') }),
+      ...(cachedContent && { cachedContent }),
+    };
+
+    let full = '';
+    try {
+      const stream = await this.genAIClient.models.generateContentStream({
+        model: modelName,
+        contents,
+        config,
+      });
+      for await (const chunk of stream) {
+        const delta = chunk.text ?? '';
+        if (delta) {
+          full += delta;
+          onDelta(full);
+        }
+      }
+    } catch (error: any) {
+      logger.warn(`runPromptStream failed, falling back to non-streaming: ${error.message}`);
+      full = await this.runPrompt(request, messages);
+      onDelta(full);
+    }
+
+    if (userId && !skipQuotaCheck) {
+      try {
+        await userService.incrementUsage(userId, 1);
+      } catch (quotaError) {
+        logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
+      }
+    }
+
+    return full;
+  }
+
+  /** Extrait sources réelles, requêtes et supports depuis les groundingMetadata. */
+  private extractGrounding(grounding?: GroundingMetadata): Omit<GroundedResult, 'text'> {
+    const queries: string[] = Array.isArray(grounding?.webSearchQueries)
+      ? grounding!.webSearchQueries.filter((q): q is string => typeof q === 'string' && q.length > 0)
+      : [];
+
+    const sources: GroundedSourceRaw[] = [];
+    const chunks = grounding?.groundingChunks ?? [];
+    chunks.forEach((chunk, index) => {
+      const web = chunk.web;
+      if (web?.uri) {
+        let domain = web.domain;
+        if (!domain) {
+          try {
+            domain = new URL(web.uri).hostname.replace(/^www\./, '');
+          } catch {
+            domain = undefined;
+          }
+        }
+        sources.push({
+          index,
+          title: web.title?.trim() || domain || web.uri,
+          url: web.uri,
+          domain,
+        });
+      }
+    });
+
+    const supports: GroundedSupport[] = (grounding?.groundingSupports ?? [])
+      .map((s) => ({
+        text: s.segment?.text?.trim() || '',
+        sourceIndexes: (s.groundingChunkIndices ?? []).filter((i): i is number =>
+          typeof i === 'number'
+        ),
+      }))
+      .filter((s) => s.text.length > 0 && s.sourceIndexes.length > 0);
+
+    return { queries, sources, supports };
   }
 
   public getCleanAIText(response: any): string {
     logger.debug('Attempting to clean AI text response.');
     if (typeof response === 'string') {
-      return response
-        .replace(/^```(json)?\s*/i, '')
-        .replace(/```$/g, '')
-        .trim();
+      return this.stripModelFormatting(response);
     }
 
     if (response && typeof response.text === 'function') {
       try {
-        const text = response.text();
-        return text
-          .replace(/^```(json)?\s*/i, '')
-          .replace(/```$/g, '')
-          .trim();
+        return this.stripModelFormatting(response.text());
       } catch (e: any) {
         logger.warn(
           `Failed to extract text using response.text(). Trying older structure. Error: ${e.message}`,
@@ -559,10 +1530,22 @@ export class PromptService {
     }
 
     const raw = response?.response?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    return this.stripModelFormatting(raw);
+  }
 
-    return raw
-      .replace(/^```(json)?\s*/i, '')
-      .replace(/```$/g, '')
+  /**
+   * Retire les artefacts de formatage laissés par les modèles :
+   *  - clôtures de bloc de code ouvrantes (```lang) et fermantes ;
+   *  - préfixe de langage nu en tête ("html" / "markdown"), qui sinon s'affiche
+   *    en texte brut au-dessus des sections (y compris dans le PDF).
+   * Sans effet sur du JSON (qui commence par { ou [).
+   */
+  private stripModelFormatting(text: string): string {
+    if (typeof text !== 'string') return text;
+    return text
+      .replace(/^```[a-zA-Z]*\s*/, '')
+      .replace(/```\s*$/g, '')
+      .replace(/^(?:html|markdown)\b[ \t]*\r?\n?/i, '')
       .trim();
   }
 }

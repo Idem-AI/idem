@@ -4,7 +4,7 @@
       <div
         class="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4"
       ></div>
-      <p class="text-sm text-gray-400">{{ 'dashboard.showPitchDeck.loadingPdf' | translate }}</p>
+      <p class="text-sm text-text-tertiary">{{ 'dashboard.showPitchDeck.loadingPdf' | translate }}</p>
     </div>
   } @else if (errorMessage()) {
     <div class="glass-card p-8 text-center">
@@ -17,10 +17,10 @@
     <!-- Thumbnails grid (en haut) -->
     <div class="glass-card p-4 mb-4">
       <div class="flex items-center justify-between mb-3">
-        <h3 class="text-xs uppercase tracking-wider text-gray-400">
+        <h3 class="text-xs uppercase tracking-wider text-text-tertiary">
           {{ 'dashboard.showPitchDeck.allSlides' | translate }}
         </h3>
-        <span class="text-xs text-gray-500">{{ pages().length }} slides</span>
+        <span class="text-xs text-text-tertiary">{{ pages().length }} slides</span>
       </div>
       <div
         class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-11 gap-2"
@@ -32,7 +32,7 @@
             class="group relative rounded-lg overflow-hidden border transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
             [ngClass]="{
               'border-primary ring-2 ring-primary/40': activePage() === page.pageNumber,
-              'border-white/10 hover:border-white/30': activePage() !== page.pageNumber,
+              'border-[var(--glass-border)] hover:border-[var(--glass-border-strong)]': activePage() !== page.pageNumber,
             }"
           >
             <div class="relative bg-white">
@@ -52,19 +52,19 @@
     <div class="glass-card p-4">
       <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <div class="flex items-center gap-3">
-          <span class="text-xs text-gray-400 uppercase tracking-wider">
+          <span class="text-xs text-text-tertiary uppercase tracking-wider">
             {{ 'dashboard.showPitchDeck.slide' | translate }}
             {{ activePage() }} / {{ pages().length }}
           </span>
           @if (currentSlideName()) {
-            <span class="text-sm text-white/80 truncate max-w-[200px] sm:max-w-[300px]">{{
+            <span class="text-sm text-text-primary truncate max-w-[200px] sm:max-w-[300px]">{{
               currentSlideName()
             }}</span>
           }
         </div>
         <div class="flex items-center gap-2 flex-wrap">
           <button
-            class="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed text-white"
+            class="w-9 h-9 flex items-center justify-center rounded-lg bg-[var(--glass-bg-subtle)] hover:bg-[var(--glass-bg-light)] disabled:opacity-30 disabled:cursor-not-allowed text-text-primary"
             (click)="prev()"
             [disabled]="activePage() === 1"
             [attr.aria-label]="'common.previous' | translate"
@@ -79,7 +79,7 @@
             </svg>
           </button>
           <button
-            class="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed text-white"
+            class="w-9 h-9 flex items-center justify-center rounded-lg bg-[var(--glass-bg-subtle)] hover:bg-[var(--glass-bg-light)] disabled:opacity-30 disabled:cursor-not-allowed text-text-primary"
             (click)="next()"
             [disabled]="activePage() === pages().length"
             [attr.aria-label]="'common.next' | translate"
@@ -93,7 +93,7 @@
               />
             </svg>
           </button>
-          <div class="w-px h-6 bg-white/10 mx-1"></div>
+          <div class="w-px h-6 bg-[var(--glass-bg-subtle)] mx-1"></div>
           <button class="outer-button button-sm" (click)="onRegenerate()">
             {{ 'dashboard.showPitchDeck.actions.regenerate' | translate }}
           </button>
@@ -106,7 +106,7 @@
       <!-- Main slide (real PDF page) - ratio 16:9 sans espaces noirs -->
       <div class="w-full flex items-center justify-center rounded-lg overflow-hidden">
         <div
-          class="w-full max-w-4xl aspect-video bg-neutral-950 rounded-lg border border-white/10 overflow-hidden"
+          class="w-full max-w-4xl aspect-video bg-neutral-950 rounded-lg border border-[var(--glass-border)] overflow-hidden"
         >
           <canvas
             #mainCanvas

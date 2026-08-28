@@ -7,18 +7,18 @@
     </div>
   } @else if (!projectId()) {
     <div class="max-w-3xl mx-auto text-center py-20">
-      <h3 class="text-xl font-semibold text-white mb-2">
+      <h3 class="text-xl font-semibold text-text-primary mb-2">
         {{ 'dashboard.advisor.noProject.title' | translate }}
       </h3>
-      <p class="text-gray-400">{{ 'dashboard.advisor.noProject.subtitle' | translate }}</p>
+      <p class="text-text-tertiary">{{ 'dashboard.advisor.noProject.subtitle' | translate }}</p>
     </div>
   } @else {
     <div class="max-w-4xl mx-auto w-full flex flex-col flex-1 min-h-0">
       <!-- Header -->
-      <div class="flex items-center justify-between mb-4 pb-4 border-b border-white/5 shrink-0">
+      <div class="flex items-center justify-between mb-4 pb-4 border-b border-[var(--glass-border-subtle)] shrink-0">
         <div>
-          <h1 class="text-xl font-bold text-white">{{ 'dashboard.advisor.title' | translate }}</h1>
-          <p class="text-xs text-gray-400">{{ 'dashboard.advisor.subtitle' | translate }}</p>
+          <h1 class="text-xl font-bold text-text-primary">{{ 'dashboard.advisor.title' | translate }}</h1>
+          <p class="text-xs text-text-tertiary">{{ 'dashboard.advisor.subtitle' | translate }}</p>
         </div>
         @if (!isEmpty()) {
           <button class="outer-button button-sm" (click)="clearConversation()">
@@ -31,10 +31,10 @@
       <div class="flex-1 min-h-0 overflow-y-auto pr-2 space-y-4 pb-4">
         @if (isEmpty()) {
           <div class="max-w-2xl mx-auto text-center py-10">
-            <h2 class="text-2xl font-bold text-white mb-3">
+            <h2 class="text-2xl font-bold text-text-primary mb-3">
               {{ 'dashboard.advisor.empty.title' | translate }}
             </h2>
-            <p class="text-gray-400 mb-8">
+            <p class="text-text-tertiary mb-8">
               {{ 'dashboard.advisor.empty.subtitle' | translate }}
             </p>
             <div class="grid md:grid-cols-2 gap-3 text-left">
@@ -42,7 +42,7 @@
                 <button
                   type="button"
                   (click)="useSuggestion(s)"
-                  class="p-4 rounded-lg border border-white/10 bg-white/[0.02] hover:border-primary/40 hover:bg-primary/5 transition-colors text-sm text-gray-200"
+                  class="p-4 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] hover:border-primary/40 hover:bg-primary/5 transition-colors text-sm text-text-secondary"
                 >
                   {{ s }}
                 </button>
@@ -56,7 +56,7 @@
                 class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold uppercase"
                 [ngClass]="{
                   'bg-primary text-white': msg.role === 'user',
-                  'bg-white/5 text-white border border-white/10': msg.role !== 'user',
+                  'bg-[var(--glass-bg-subtle)] text-text-primary border border-[var(--glass-border)]': msg.role !== 'user',
                 }"
               >
                 {{ msg.role === 'user' ? 'Me' : 'AI' }}
@@ -65,7 +65,7 @@
                 class="max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed advisor-message"
                 [ngClass]="{
                   'bg-primary text-white': msg.role === 'user',
-                  'bg-white/5 text-gray-100 border border-white/5': msg.role !== 'user',
+                  'bg-[var(--glass-bg-subtle)] text-text-primary border border-[var(--glass-border-subtle)]': msg.role !== 'user',
                 }"
               >
                 @if (msg.role === 'user') {
@@ -73,7 +73,7 @@
                 } @else {
                   <markdown [data]="msg.content" class="markdown-content"></markdown>
                   @if (msg.pendingFinanceIntent) {
-                    <div class="mt-3 pt-3 border-t border-white/10 flex items-center gap-2">
+                    <div class="mt-3 pt-3 border-t border-[var(--glass-border)] flex items-center gap-2">
                       <button
                         type="button"
                         [disabled]="pendingAssistant()"
@@ -87,7 +87,7 @@
                         type="button"
                         [disabled]="pendingAssistant()"
                         (click)="confirmFinanceIntent(msg.id, false)"
-                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-medium transition-all disabled:opacity-50"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[var(--glass-bg-subtle)] hover:bg-[var(--glass-bg-light)] text-text-secondary text-xs font-medium transition-all disabled:opacity-50"
                       >
                         <i class="pi pi-times text-[10px]"></i>
                         {{ 'dashboard.advisor.financeIntent.cancel' | translate }}
@@ -96,7 +96,7 @@
                   }
                   @if (msg.appliedFinanceIntent) {
                     <div
-                      class="mt-3 pt-3 border-t border-white/10 flex items-center gap-2 text-emerald-400 text-xs"
+                      class="mt-3 pt-3 border-t border-[var(--glass-border)] flex items-center gap-2 text-emerald-400 text-xs"
                     >
                       <i class="pi pi-check-circle"></i>
                       <span>{{ 'dashboard.advisor.financeIntent.applied' | translate }}</span>
@@ -109,12 +109,12 @@
           @if (pendingAssistant()) {
             <div class="flex gap-3">
               <div
-                class="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-xs font-semibold uppercase text-white"
+                class="w-8 h-8 rounded-full bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] flex items-center justify-center text-xs font-semibold uppercase text-text-primary"
               >
                 AI
               </div>
               <div
-                class="bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-3 flex items-center gap-2"
+                class="bg-[var(--glass-bg-subtle)] border border-[var(--glass-border-subtle)] rounded-2xl px-4 py-3 flex items-center gap-2"
               >
                 <span class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></span>
                 <span
@@ -131,7 +131,7 @@
       </div>
 
       <!-- Composer (sticky at bottom of flex container) -->
-      <div class="pt-4 border-t border-white/5 shrink-0 bg-transparent">
+      <div class="pt-4 border-t border-[var(--glass-border-subtle)] shrink-0 bg-transparent">
         @if (errorMessage()) {
           <p class="text-sm text-red-400 mb-3">{{ errorMessage() }}</p>
         }
@@ -152,7 +152,7 @@
             {{ 'dashboard.advisor.composer.send' | translate }}
           </button>
         </div>
-        <p class="text-xs text-gray-500 mt-2">
+        <p class="text-xs text-text-tertiary mt-2">
           {{ 'dashboard.advisor.composer.hint' | translate }}
         </p>
       </div>
