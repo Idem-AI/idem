@@ -45,6 +45,12 @@ export const routes: Routes = [
     data: { layout: 'public' },
   },
   {
+    path: 'simulation',
+    loadComponent: () =>
+      import('./pages/simulation-page/simulation-page').then((m) => m.SimulationPage),
+    data: { layout: 'public' },
+  },
+  {
     path: 'ideploy',
     loadComponent: () => import('./pages/ideploy-page/ideploy-page').then((m) => m.IdeployPage),
     data: { layout: 'public' },

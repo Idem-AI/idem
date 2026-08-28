@@ -1,0 +1,174 @@
+@if (simulation(); as run) {
+  @if (run.result; as result) {
+    <div class="flex flex-col gap-8">
+      <!-- Verdict --------------------------------------------------------- -->
+      <section class="grid gap-6 lg:grid-cols-[minmax(0,17rem)_minmax(0,1fr)] lg:items-start">
+        <div class="glass-card p-5">
+          <h2 class="mb-4 text-label font-semibold text-ink-muted">
+            {{ 'result.index' | translate }}
+          </h2>
+          <sim-viability-gauge
+            [value]="result.viabilityIndex"
+            [robustness]="result.robustness"
+            [confidence]="result.confidence"
+            [rangeMin]="scenarioRange()?.min ?? null"
+            [rangeMax]="scenarioRange()?.max ?? null"
+            [label]="'result.gaugeLabel' | translate: { value: result.viabilityIndex }"
+          />
+          <p class="mt-4 border-t border-line pt-3 text-meta leading-relaxed text-ink-subtle">
+            {{ 'result.indexMeaning' | translate }}
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-5">
+          <div>
+            <h2 class="text-h2 font-semibold text-ink">
+              {{ 'verdict.' + result.verdict | translate }}
+            </h2>
+            <p class="mt-2 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+              {{ result.verdictRationale }}
+            </p>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <h3 class="mb-2 text-label font-semibold text-ink-muted">
+                {{ 'result.strengths' | translate }}
+              </h3>
+              <ul class="flex flex-col gap-1.5">
+                @for (item of result.strengths; track item) {
+                  <li class="flex items-start gap-2 text-sm leading-relaxed text-ink-muted">
+                    <span class="mt-2 size-1 shrink-0 rounded-full bg-verdict-go" aria-hidden="true"></span>
+                    {{ item }}
+                  </li>
+                }
+              </ul>
+            </div>
+            <div>
+              <h3 class="mb-2 text-label font-semibold text-ink-muted">
+                {{ 'result.weaknesses' | translate }}
+              </h3>
+              <ul class="flex flex-col gap-1.5">
+                @for (item of result.weaknesses; track item) {
+                  <li class="flex items-start gap-2 text-sm leading-relaxed text-ink-muted">
+                    <span class="mt-2 size-1 shrink-0 rounded-full bg-verdict-stop" aria-hidden="true"></span>
+                    {{ item }}
+                  </li>
+                }
+              </ul>
+            </div>
+          </div>
+
+          <div class="rounded-xl border border-line bg-panel-sunken p-4">
+            <h3 class="text-label font-semibold text-ink">{{ 'result.uncertainties' | translate }}</h3>
+            <p class="mt-0.5 text-meta leading-relaxed text-ink-subtle">
+              {{ 'result.uncertaintiesHint' | translate }}
+            </p>
+            <ul class="mt-2.5 flex flex-wrap gap-1.5">
+              @for (item of result.keyUncertainties; track item) {
+                <li class="rounded-full border border-line px-2.5 py-1 text-meta text-ink-muted">
+                  {{ item }}
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Repères --------------------------------------------------------- -->
+      <section>
+        <h2 class="mb-3 text-h2 font-semibold text-ink">{{ 'overview.atAGlance' | translate }}</h2>
+        <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4">
+          @for (entry of tierCounts(); track entry.tier) {
+            <div class="bg-panel p-4">
+              <dt class="text-meta text-ink-subtle">{{ 'factorTier.' + entry.tier | translate }}</dt>
+              <dd class="mt-0.5 text-h2 font-semibold tabular-nums text-ink">{{ entry.count }}</dd>
+            </div>
+          }
+        </dl>
+        <p class="mt-2 text-meta text-ink-subtle">
+          {{
+            'result.scenariosBody'
+              | translate: { total: result.scenarios.length, broken: brokenScenarios() }
+          }}
+        </p>
+      </section>
+
+      <!-- Risques --------------------------------------------------------- -->
+      @if (result.risks.length) {
+        <section class="flex flex-col gap-3">
+          <h2 class="text-h2 font-semibold text-ink">{{ 'result.risks' | translate }}</h2>
+          <ul class="divide-y divide-line overflow-hidden rounded-xl border border-line bg-panel">
+            @for (risk of result.risks; track risk.id) {
+              <li class="p-4">
+                <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <h3 class="text-sm font-semibold text-ink">{{ risk.title }}</h3>
+                  <span
+                    class="text-[0.6875rem] font-semibold uppercase tracking-wide"
+                    [class.text-verdict-stop]="risk.severity === 'critical'"
+                    [class.text-verdict-warn]="risk.severity === 'high'"
+                    [class.text-ink-subtle]="risk.severity === 'moderate'"
+                  >
+                    {{ 'severity.' + risk.severity | translate }}
+                  </span>
+                </div>
+                <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+                  {{ risk.description }}
+                </p>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      <!-- Suite ----------------------------------------------------------- -->
+      <section class="flex flex-col gap-3">
+        <h2 class="text-h2 font-semibold text-ink">{{ 'overview.nextSteps' | translate }}</h2>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="inner-button" [disabled]="generating()" (click)="openReport()">
+            <i class="pi pi-file" aria-hidden="true"></i>
+            {{
+              (run.hasReport ? 'results.openReport' : generating() ? 'results.unlocking' : 'results.getReport')
+                | translate
+            }}
+          </button>
+          <a [routerLink]="['/simulations', run.id, 'labs', 'red-team']" class="outer-button">
+            <i class="pi pi-bolt" aria-hidden="true"></i>
+            {{ 'nav.lab.redTeam' | translate }}
+          </a>
+          @if (run.previousRunId) {
+            <a [routerLink]="['/simulations', run.id, 'compare']" class="outer-button">
+              <i class="pi pi-arrows-h" aria-hidden="true"></i>
+              {{ 'results.compare' | translate }}
+            </a>
+          }
+        </div>
+        @if (!run.hasReport) {
+          <p class="max-w-[70ch] text-meta leading-relaxed text-ink-subtle">
+            {{ 'results.upsell.body' | translate }}
+          </p>
+        }
+      </section>
+
+      <sim-disclaimer-note />
+    </div>
+  } @else {
+    <!-- Exécution en cours ou interrompue -------------------------------- -->
+    <div class="flex flex-col gap-6">
+      <div class="glass-card p-5">
+        <sim-pipeline-progress [progress]="run.progress" />
+      </div>
+      @if (run.status === 'failed') {
+        <div class="rounded-xl border border-verdict-stop/40 bg-panel-sunken p-4" role="alert">
+          <p class="text-label font-semibold text-ink">{{ 'run.failed' | translate }}</p>
+          <p class="mt-1 text-meta text-ink-muted">{{ run.failureReason }}</p>
+        </div>
+      } @else {
+        <p class="max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+          {{ 'run.body' | translate }}
+        </p>
+      }
+      <sim-disclaimer-note [compact]="true" />
+    </div>
+  }
+}

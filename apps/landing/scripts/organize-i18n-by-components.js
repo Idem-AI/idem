@@ -45,6 +45,7 @@ const structure = {
     'open-source-page',
     'premium-beta-access',
     'pricing-page',
+    'simulation-page',
     'solutions-page',
   ],
   shared: {

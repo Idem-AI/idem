@@ -69,6 +69,9 @@ export const environment = {
     ideploy: {
       url: '${process.env.SERVICES_IDEPLOY_URL || (isProduction ? 'https://deploy.idem.africa' : 'http://localhost:8000')}',
     },
+    simulation: {
+      url: '${process.env.SERVICES_SIMULATION_URL || (isProduction ? 'https://simulation.idem.africa' : 'http://localhost:4203')}',
+    },
   },
 };`;
 // trigger ci/cd

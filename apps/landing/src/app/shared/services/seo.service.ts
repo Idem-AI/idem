@@ -1,5 +1,5 @@
-import { Injectable, inject, LOCALE_ID } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
+import { Injectable, inject, LOCALE_ID } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { environment } from '../../../environments/environment';
 

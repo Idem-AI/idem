@@ -1,0 +1,137 @@
+<div class="flex h-full flex-col">
+  <!-- Marque -->
+  <div
+    class="flex h-16 shrink-0 items-center border-b border-line px-4"
+    [class.justify-center]="isCompact()"
+    [class.px-3]="isCompact()"
+  >
+    <a routerLink="/simulations" class="flex items-center gap-2.5" (click)="navigate.emit()">
+      @if (isCompact()) {
+        <span
+          class="grid size-9 place-items-center rounded-xl bg-primary text-brand-ink"
+          aria-hidden="true"
+        >
+          <i class="pi pi-chart-bar text-base"></i>
+        </span>
+        <span class="sr-only">IDEM Simulator</span>
+      } @else {
+        <img
+          ngSrc="/assets/icons/logo_white.png"
+          width="512"
+          height="262"
+          priority
+          alt="IDEM"
+          class="h-6 w-auto"
+          [class.invert]="onLightTheme()"
+          [class.hue-rotate-180]="onLightTheme()"
+        />
+        <span class="text-label font-semibold tracking-tight text-ink">Simulator</span>
+      }
+    </a>
+  </div>
+
+  <!-- Navigation -->
+  <nav
+    class="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 py-4"
+    [attr.aria-label]="'nav.main' | translate"
+  >
+    <ul class="space-y-1">
+      @for (item of workspaceNav; track item.route) {
+        <li>
+          <a
+            [routerLink]="item.route"
+            routerLinkActive="nav-link-active"
+            [routerLinkActiveOptions]="{ exact: !!item.exact }"
+            ariaCurrentWhenActive="page"
+            class="nav-link group relative"
+            [class.justify-center]="isCompact()"
+            (click)="navigate.emit()"
+          >
+            <i [class]="item.icon" class="shrink-0 text-base" aria-hidden="true"></i>
+            @if (!isCompact()) {
+              <span class="truncate">{{ item.labelKey | translate }}</span>
+            } @else {
+              <span class="sr-only">{{ item.labelKey | translate }}</span>
+              <span
+                class="pointer-events-none absolute left-full z-50 ml-2 whitespace-nowrap rounded-lg border border-line bg-panel-raised px-2 py-1 text-meta text-ink opacity-0 shadow-raised transition-opacity group-hover:opacity-100"
+              >
+                {{ item.labelKey | translate }}
+              </span>
+            }
+          </a>
+        </li>
+      }
+    </ul>
+
+    @if (groups().length) {
+      @if (!isCompact() && activeName(); as name) {
+        <p class="mt-6 truncate px-3 text-meta text-ink-subtle" [title]="name">
+          <i class="pi pi-bookmark mr-1.5 text-[0.7rem]" aria-hidden="true"></i>{{ name }}
+        </p>
+      }
+
+      @for (group of groups(); track group.labelKey) {
+        <div class="mt-4">
+          @if (isCompact()) {
+            <hr class="mx-2 my-3 border-t border-line" />
+          } @else {
+            <h2
+              class="px-3 pb-1.5 text-[0.7rem] font-semibold uppercase tracking-wider text-ink-subtle"
+            >
+              {{ group.labelKey | translate }}
+            </h2>
+          }
+          <ul class="space-y-1">
+            @for (item of group.items; track item.route) {
+              <li>
+                <a
+                  [routerLink]="item.route"
+                  routerLinkActive="nav-link-active"
+                  [routerLinkActiveOptions]="{ exact: !!item.exact }"
+                  ariaCurrentWhenActive="page"
+                  class="nav-link group relative"
+                  [class.justify-center]="isCompact()"
+                  (click)="navigate.emit()"
+                >
+                  <i [class]="item.icon" class="shrink-0 text-base" aria-hidden="true"></i>
+                  @if (!isCompact()) {
+                    <span class="flex-1 truncate">{{ item.labelKey | translate }}</span>
+                    @if (isPending(item)) {
+                      <span
+                        class="size-1.5 animate-pulse rounded-full bg-verdict-info"
+                        [attr.aria-label]="'lab.running' | translate"
+                      ></span>
+                    } @else if (hasRun(item)) {
+                      <span
+                        class="size-1.5 rounded-full bg-verdict-go"
+                        [attr.aria-label]="'lab.done' | translate"
+                      ></span>
+                    }
+                  } @else {
+                    <span class="sr-only">{{ item.labelKey | translate }}</span>
+                    @if (hasRun(item)) {
+                      <span class="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-verdict-go"></span>
+                    }
+                    <span
+                      class="pointer-events-none absolute left-full z-50 ml-2 whitespace-nowrap rounded-lg border border-line bg-panel-raised px-2 py-1 text-meta text-ink opacity-0 shadow-raised transition-opacity group-hover:opacity-100"
+                    >
+                      {{ item.labelKey | translate }}
+                    </span>
+                  }
+                </a>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    }
+  </nav>
+
+  <!-- Pied -->
+  <div class="shrink-0 border-t border-line p-3">
+    <div class="flex items-center gap-1" [class.flex-col]="isCompact()">
+      <sim-theme-toggle />
+      <sim-language-menu />
+    </div>
+  </div>
+</div>
