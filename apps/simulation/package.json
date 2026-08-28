@@ -42,7 +42,6 @@
     "@ngx-translate/http-loader": "^18.0.0",
     "@primeuix/themes": "^3.0.0",
     "@tailwindcss/postcss": "^4.3.3",
-    "firebase": "^12.0.0",
     "postcss": "^8.5.6",
     "primeicons": "^7.0.0",
     "primeng": "^22.1.0",

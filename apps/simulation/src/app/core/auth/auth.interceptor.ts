@@ -1,61 +1,30 @@
-import { HttpErrorResponse, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
+import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { catchError, from, switchMap, throwError } from 'rxjs';
 
 import { environment } from '@env';
 
-import { TokenService } from './token.service';
-
-const PUBLIC_AUTH_PATHS = ['/auth/login', '/auth/register', '/auth/refresh'];
+import { LanguageService } from '../i18n/language.service';
 
 /**
- * Attaches the IDEM bearer token to API calls, and retries once with a fresh
- * token when the server rejects a cached one.
+ * L'API IDEM authentifie par le cookie de session `httpOnly` posé au login
+ * central : cette application n'a aucun jeton à porter, il lui suffit
+ * d'envoyer les credentials. On annonce aussi la langue active pour que l'API
+ * localise ses messages (validation, erreurs).
+ *
+ * Les ressources locales (bundles i18n, icônes) sortent tôt : elles n'ont
+ * besoin ni de cookie ni du service de langue, qu'elles chargent justement.
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const isApiCall = req.url.startsWith(environment.services.api.url);
-  const isPublicAuthCall = PUBLIC_AUTH_PATHS.some((path) => req.url.includes(path));
-
-  // Local assets (i18n bundles, icons) must not resolve TokenService: doing so
-  // pulls Firebase Auth into the bootstrap path before it is ready.
-  if (!isApiCall || isPublicAuthCall || req.headers.has('Authorization')) {
+  if (!req.url.startsWith(environment.services.api.url)) {
     return next(req);
   }
 
-  const tokens = inject(TokenService);
+  const language = inject(LanguageService).language();
 
-  return from(tokens.ready).pipe(
-    switchMap(() => {
-      const cached = tokens.getToken();
-      if (!cached) {
-        return from(tokens.getValidToken()).pipe(
-          switchMap((token) => next(token ? withBearer(req, token) : req)),
-        );
-      }
-
-      return next(withBearer(req, cached)).pipe(
-        catchError((error: unknown) => {
-          if (!isExpiredTokenError(error)) {
-            return throwError(() => error);
-          }
-          return from(tokens.refresh()).pipe(
-            switchMap((token) => {
-              if (!token) {
-                return throwError(() => error);
-              }
-              return next(withBearer(req, token));
-            }),
-          );
-        }),
-      );
+  return next(
+    req.clone({
+      withCredentials: true,
+      setHeaders: { 'Accept-Language': language },
     }),
   );
 };
-
-function withBearer(req: HttpRequest<unknown>, token: string): HttpRequest<unknown> {
-  return req.clone({ headers: req.headers.set('Authorization', `Bearer ${token}`) });
-}
-
-function isExpiredTokenError(error: unknown): boolean {
-  return error instanceof HttpErrorResponse && (error.status === 401 || error.status === 403);
-}

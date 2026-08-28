@@ -1,165 +1,255 @@
-<div class="relative min-h-screen overflow-hidden">
+<div class="relative overflow-hidden">
   <!-- Ambient light, kept behind everything -->
   <div class="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-    <div class="absolute -left-40 -top-52 h-[520px] w-[520px] rounded-full bg-linear-to-br from-primary to-accent opacity-[0.12] blur-[130px]"></div>
-    <div class="absolute -bottom-52 -right-40 h-[440px] w-[440px] rounded-full bg-linear-to-tr from-accent to-secondary opacity-[0.1] blur-[130px]"></div>
+    <div class="absolute -left-40 -top-52 h-[520px] w-[520px] rounded-full bg-linear-to-br from-primary to-accent-500 opacity-[0.16] blur-[130px] dark:opacity-[0.12]"></div>
+    <div class="absolute right-[-10rem] top-[18rem] h-[560px] w-[560px] rounded-full bg-linear-to-tr from-accent-500 to-primary opacity-[0.14] blur-[140px] dark:opacity-[0.1]"></div>
+    <div class="absolute -bottom-52 -right-40 h-[440px] w-[440px] rounded-full bg-linear-to-tr from-accent-500 to-secondary-500 opacity-[0.12] blur-[130px] dark:opacity-[0.1]"></div>
   </div>
 
   <div class="relative z-10">
     <!-- =================================================== HERO -->
-    <section class="pt-32 lg:pt-40">
-      <div class="mx-auto max-w-7xl px-4 sm:px-6">
-        <div class="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16">
-          <div>
-            <div class="mb-7 flex items-center gap-2 text-sm text-white/45">
-              <a routerLink="/home" class="transition-colors hover:text-white" i18n="@@simulation.breadcrumb.idem">Idem</a>
+    <section class="relative flex items-center pt-28 pb-20 sm:pt-32 lg:min-h-screen lg:pt-28 lg:pb-16">
+      <div class="mx-auto w-full max-w-[90rem] px-2 sm:px-4 lg:px-8">
+        <div class="grid items-center gap-8 lg:grid-cols-12 lg:gap-8 xl:gap-12">
+          <!-- ---------------------------------------- Hero copy -->
+          <div class="lg:col-span-7 xl:col-span-7">
+            <div class="mb-5 flex items-center gap-2 text-sm text-text-tertiary">
+              <a routerLink="/home" class="transition-colors hover:text-text-primary" i18n="@@simulation.breadcrumb.idem">Idem</a>
               <span aria-hidden="true">/</span>
-              <span class="font-medium text-accent-500">IDEM Simulator</span>
+              <span class="font-medium text-accent-700 dark:text-accent-500">IDEM Simulator</span>
             </div>
 
-            <h1 class="text-4xl font-bold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-6xl" i18n="@@simulation.hero.title">
+            <h1 class="text-5xl font-bold leading-[1.03] tracking-tight text-balance text-text-primary sm:text-6xl lg:text-6xl xl:text-7xl 2xl:text-[5rem]" i18n="@@simulation.hero.title">
               Test your business<br />before you <span class="i-underline">launch</span> it
             </h1>
 
-            <p class="mt-7 max-w-xl text-lg leading-relaxed text-white/60" i18n="@@simulation.hero.description">
+            <p class="mt-6 max-w-lg text-lg leading-relaxed text-pretty text-text-secondary" i18n="@@simulation.hero.description">
               An idea can look excellent on paper and still fail once it meets the market. IDEM looks for the factors that can genuinely influence your business, simulates several possible futures, and shows you where your model breaks.
             </p>
 
-            <div class="mt-9 flex flex-col gap-4 sm:flex-row sm:items-center">
-              <a [href]="simulationUrl" class="inner-button rounded-xl px-8 py-4 text-lg font-semibold">
+            <div class="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
+              <a [href]="simulationUrl" class="inner-button rounded-xl px-8 py-4 text-center text-lg font-semibold">
                 <span i18n="@@simulation.hero.cta">Run a simulation</span>
               </a>
-              <a href="#how" class="outer-button rounded-xl px-8 py-4 text-lg font-semibold">
+              <a href="#how" class="outer-button rounded-xl px-8 py-4 text-center text-lg font-semibold">
                 <span i18n="@@simulation.hero.secondaryCta">See how it works</span>
               </a>
             </div>
 
-            <p class="mt-6 max-w-md text-sm leading-relaxed text-white/40" i18n="@@simulation.hero.note">
-              Import your business plan, or start from a project you already built in IDEM.
-            </p>
           </div>
 
-          <!-- The product, drawn: one project, many trajectories, most of
-               them failing. -->
-          <figure class="relative">
-            <svg viewBox="0 0 480 268" class="w-full" role="img" aria-labelledby="fan-title fan-desc">
-              <title id="fan-title" i18n="@@simulation.fan.title">Fan of simulated trajectories</title>
-              <desc id="fan-desc" i18n="@@simulation.fan.desc">
-                From a single project, the engine lets many trajectories diverge. A minority stay above the viability threshold; most fall below it.
-              </desc>
+          <!-- ---------------------------------------- The product, drawn:
+               one project, many trajectories, most of them failing. -->
+          <div class="relative lg:col-span-5 xl:col-span-5">
 
-              <!-- Viability threshold -->
-              <line x1="30" y1="150" x2="466" y2="150" stroke="rgba(255,255,255,0.22)" stroke-width="1" stroke-dasharray="4 5" />
-              <text x="466" y="143" text-anchor="end" fill="rgba(255,255,255,0.45)" style="font-size: 10px; letter-spacing: 0.06em" i18n="@@simulation.fan.threshold">
-                VIABILITY THRESHOLD
-              </text>
 
-              <g class="fan" fill="none" stroke-linecap="round">
-                <!-- Trajectories that break the model -->
-                <g stroke="#f4735d" stroke-opacity="0.5" stroke-width="1.5">
-                  <path d="M30 150 C 170 154, 300 190, 452 244" />
-                  <path d="M30 150 C 170 152, 300 182, 452 226" />
-                  <path d="M30 150 C 170 156, 300 176, 452 208" />
-                  <path d="M30 150 C 170 150, 300 170, 452 192" />
-                  <path d="M30 150 C 170 148, 300 162, 452 176" />
-                  <path d="M30 150 C 170 152, 300 158, 452 162" />
+            <figure class="relative">
+              <svg viewBox="0 0 820 560" class="w-full" role="img" aria-labelledby="fan-title fan-desc">
+                <title id="fan-title" i18n="@@simulation.fan.title">Fan of simulated trajectories</title>
+                <desc id="fan-desc" i18n="@@simulation.fan.desc">
+                  From a single project, the engine lets many trajectories diverge. A minority stay above the viability threshold; most fall below it.
+                </desc>
+
+                <!-- Depth gridlines -->
+                <g class="fan-grid" stroke-width="1" aria-hidden="true">
+                  <line x1="150" y1="140" x2="790" y2="140" />
+                  <line x1="150" y1="230" x2="790" y2="230" />
+                  <line x1="150" y1="410" x2="790" y2="410" />
+                  <line x1="150" y1="500" x2="790" y2="500" />
                 </g>
 
-                <!-- Trajectories where it holds -->
-                <g stroke="#22d3ee" stroke-opacity="0.85" stroke-width="1.8">
-                  <path d="M30 150 C 170 146, 300 132, 452 118" />
-                  <path d="M30 150 C 170 144, 300 118, 452 92" />
-                  <path d="M30 150 C 170 142, 300 104, 452 64" />
+                <!-- Viability threshold -->
+                <line class="fan-threshold" x1="150" y1="320" x2="790" y2="320" stroke-width="1.5" stroke-dasharray="5 6" />
+                <text class="fan-label" x="790" y="308" text-anchor="end" i18n="@@simulation.fan.threshold">
+                  VIABILITY THRESHOLD
+                </text>
+
+                <g class="fan" fill="none" stroke-linecap="round">
+                  <!-- Trajectories that break the model -->
+                  <g class="fan-break" stroke-width="2">
+                    <path pathLength="1" d="M150 320 C 340 328, 560 400, 786 512" />
+                    <path pathLength="1" d="M150 320 C 340 324, 560 384, 786 476" />
+                    <path pathLength="1" d="M150 320 C 340 332, 560 372, 786 442" />
+                    <path pathLength="1" d="M150 320 C 340 320, 560 360, 786 408" />
+                    <path pathLength="1" d="M150 320 C 340 316, 560 344, 786 376" />
+                    <path pathLength="1" d="M150 320 C 340 324, 560 336, 786 350" />
+                  </g>
+
+                  <!-- Trajectories where it holds -->
+                  <g class="fan-hold" stroke-width="2.4">
+                    <path pathLength="1" d="M150 320 C 340 312, 560 282, 786 252" />
+                    <path pathLength="1" d="M150 320 C 340 308, 560 252, 786 184" />
+                    <path pathLength="1" d="M150 320 C 340 302, 560 212, 786 104" />
+                  </g>
+
+                  <!-- The reference scenario -->
+                  <path class="fan-ref" pathLength="1" d="M150 320 C 340 316, 560 272, 786 218" stroke-width="4" />
                 </g>
 
-                <!-- The reference scenario -->
-                <path d="M30 150 C 170 148, 300 126, 452 104" stroke="#1447e6" stroke-width="3" />
-              </g>
+                <!-- Endpoints -->
+                <g class="fan-dot-hold" aria-hidden="true">
+                  <circle cx="786" cy="252" r="4" />
+                  <circle cx="786" cy="184" r="4" />
+                  <circle cx="786" cy="104" r="4" />
+                </g>
+                <circle class="fan-dot-ref" cx="786" cy="218" r="6" aria-hidden="true" />
 
-              <circle cx="30" cy="150" r="5" fill="#1447e6" />
-              <circle cx="30" cy="150" r="10" fill="none" stroke="#1447e6" stroke-opacity="0.35" stroke-width="1.5" />
-              <text x="16" y="176" fill="rgba(255,255,255,0.5)" style="font-size: 10px; letter-spacing: 0.06em" i18n="@@simulation.fan.origin">
-                YOUR PROJECT
-              </text>
-            </svg>
+                <!-- Origin -->
+                <circle class="fan-origin-ring" cx="150" cy="320" r="15" fill="none" stroke-width="2" aria-hidden="true" />
+                <circle class="fan-origin" cx="150" cy="320" r="7" aria-hidden="true" />
+                <text class="fan-label" x="150" y="390" text-anchor="middle" i18n="@@simulation.fan.origin">
+                  YOUR PROJECT
+                </text>
+              </svg>
 
-            <figcaption class="mt-4 text-sm leading-relaxed text-white/40" i18n="@@simulation.fan.caption">
-              Each trajectory is a different combination of factors. What matters is not the best one, it is how many of them break the model.
-            </figcaption>
-          </figure>
+            </figure>
+          </div>
         </div>
       </div>
     </section>
 
     <!-- =================================================== FACTOR WALL -->
-    <section class="py-28 lg:py-36">
-      <div class="mx-auto max-w-5xl px-4 sm:px-6">
-        <h2 class="max-w-3xl text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.wall.title">
-          A business does not run on five variables
-        </h2>
-        <p class="mt-5 max-w-2xl text-lg leading-relaxed text-white/55" i18n="@@simulation.wall.body">
-          It runs on dozens, sometimes hundreds of factors, and they are never quite the same from one project to the next.
-        </p>
+    <section class="py-24 lg:py-32">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6">
+        <div class="grid items-center gap-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-16">
+          <figure class="relative order-2 h-[22rem] overflow-hidden rounded-3xl border border-[var(--glass-border)] sm:h-[26rem] lg:order-1 lg:h-[32rem]">
+            <img
+              ngSrc="/assets/images/features-component/entrepreneur-working.webp"
+              fill
+              sizes="(max-width: 1024px) 100vw, 40vw"
+              i18n-alt="@@simulation.wall.image.alt"
+              alt="An entrepreneur working through the many variables of her project"
+              class="object-cover"
+            />
+            <div class="absolute inset-0 bg-linear-to-t from-black/85 via-black/35 to-transparent" aria-hidden="true"></div>
+            <figcaption class="absolute inset-x-0 bottom-0 p-6 sm:p-8">
+              <p class="text-4xl font-bold leading-none text-white sm:text-5xl" i18n="@@simulation.wall.badge.value">60+</p>
+              <p class="mt-2 max-w-xs text-sm leading-relaxed text-white/80" i18n="@@simulation.wall.badge.label">
+                factors typically identified on a single project, before a single scenario is run.
+              </p>
+            </figcaption>
+          </figure>
 
-        <ul class="mt-12 flex flex-wrap gap-x-3 gap-y-2.5" aria-label="Example factors" i18n-aria-label="@@simulation.wall.listLabel">
-          @for (factor of factorWall; track factor) {
-            <li class="rounded-full border border-white/10 px-3.5 py-1.5 text-sm text-white/45 transition-colors hover:border-accent-500/40 hover:text-white/80">
-              {{ factor }}
-            </li>
-          }
-          <li class="rounded-full px-3.5 py-1.5 text-sm text-white/25" i18n="@@simulation.wall.more">and many more, depending on your sector</li>
-        </ul>
+          <div class="order-1 lg:order-2">
+            <h2 class="max-w-3xl text-3xl font-bold leading-tight text-balance text-text-primary sm:text-4xl lg:text-5xl" i18n="@@simulation.wall.title">
+              A business does not run on five variables
+            </h2>
+            <p class="mt-5 max-w-2xl text-lg leading-relaxed text-pretty text-text-secondary" i18n="@@simulation.wall.body">
+              It runs on dozens, sometimes hundreds of factors, and they are never quite the same from one project to the next.
+            </p>
+
+            <ul class="mt-10 flex flex-wrap gap-x-3 gap-y-2.5" aria-label="Example factors" i18n-aria-label="@@simulation.wall.listLabel">
+              @for (factor of factorWall; track factor) {
+                <li class="rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] px-3.5 py-1.5 text-sm text-text-secondary transition-colors hover:border-accent-500/50 hover:text-text-primary">
+                  {{ factor }}
+                </li>
+              }
+              <li class="rounded-full px-3.5 py-1.5 text-sm text-text-tertiary" i18n="@@simulation.wall.more">and many more, depending on your sector</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- =================================================== HOW IT WORKS -->
-    <section id="how" class="scroll-mt-24 border-y border-white/[0.07] py-28 lg:py-36">
-      <div class="mx-auto max-w-5xl px-4 sm:px-6">
-        <h2 class="max-w-3xl text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.how.title">
-          What IDEM does when you start a simulation
-        </h2>
-        <p class="mt-5 max-w-2xl text-lg leading-relaxed text-white/55" i18n="@@simulation.how.body">
-          This is not a conversation with an AI. It is a five-stage analysis.
-        </p>
+    <section id="how" class="scroll-mt-20 border-y border-[var(--glass-border-subtle)] py-24 lg:py-32">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6">
+        <div class="max-w-3xl">
+          <h2 class="text-3xl font-bold leading-tight text-balance text-text-primary sm:text-4xl lg:text-5xl" i18n="@@simulation.how.title">
+            What IDEM does when you start a simulation
+          </h2>
+          <p class="mt-5 text-lg leading-relaxed text-pretty text-text-secondary" i18n="@@simulation.how.body">
+            This is not a conversation with an AI. It is a five-stage analysis.
+          </p>
+        </div>
 
-        <ol class="mt-14 flex flex-col">
-          @for (step of pipeline; track step.id; let i = $index; let last = $last) {
-            <li class="relative flex gap-6 pb-10 last:pb-0 sm:gap-8">
-              @if (!last) {
-                <span class="absolute left-[1.4375rem] top-12 bottom-0 w-px bg-linear-to-b from-accent-500/40 to-white/5" aria-hidden="true"></span>
-              }
-              <span class="relative z-10 grid size-12 shrink-0 place-items-center rounded-xl border border-white/10 bg-[#0b0f16] font-mono text-sm font-bold text-accent-500">
-                {{ i + 1 }}
-              </span>
-              <div class="pt-2">
-                <h3 class="text-xl font-semibold text-white">{{ step.title }}</h3>
-                <p class="mt-2 max-w-2xl leading-relaxed text-white/55">{{ step.body }}</p>
-              </div>
-            </li>
-          }
-        </ol>
+        <div class="mt-14 grid gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16">
+          <ol class="flex flex-col">
+            @for (step of pipeline; track step.id; let i = $index; let last = $last) {
+              <li class="relative flex gap-6 pb-10 last:pb-0 sm:gap-8">
+                @if (!last) {
+                  <span class="absolute left-[1.4375rem] top-12 bottom-0 w-px bg-linear-to-b from-accent-500/50 to-transparent" aria-hidden="true"></span>
+                }
+                <span class="relative z-10 grid size-12 shrink-0 place-items-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg-medium)] font-mono text-sm font-bold text-accent-700 dark:text-accent-500">
+                  {{ i + 1 }}
+                </span>
+                <div class="pt-2">
+                  <h3 class="text-xl font-semibold text-text-primary">{{ step.title }}</h3>
+                  <p class="mt-2 max-w-2xl leading-relaxed text-text-secondary">{{ step.body }}</p>
+                </div>
+              </li>
+            }
+          </ol>
+
+          <div class="lg:sticky lg:top-24 lg:self-start">
+            <figure class="relative h-[18rem] overflow-hidden rounded-3xl border border-[var(--glass-border)] sm:h-[22rem] lg:h-[26rem]">
+              <img
+                ngSrc="/assets/images/architecture-page/ai-network.webp"
+                fill
+                sizes="(max-width: 1024px) 100vw, 40vw"
+                i18n-alt="@@simulation.how.image.alt"
+                alt="Network of agents researching and cross-checking a project"
+                class="object-cover"
+              />
+              <div class="absolute inset-0 bg-linear-to-t from-black/85 via-black/30 to-transparent" aria-hidden="true"></div>
+              <figcaption class="absolute inset-x-0 bottom-0 p-6">
+                <p class="font-mono text-xs uppercase tracking-[0.2em] text-accent-300" i18n="@@simulation.how.card.label">Under the hood</p>
+                <p class="mt-2 text-base leading-relaxed text-white/90" i18n="@@simulation.how.card.body">
+                  Several agents work in parallel: one reads the project, others research external data, another combines them into scenarios.
+                </p>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- =================================================== SECTOR FACTORS -->
-    <section class="py-28 lg:py-36">
-      <div class="mx-auto max-w-5xl px-4 sm:px-6">
-        <h2 class="max-w-3xl text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.sectors.title">
+    <section class="py-24 lg:py-32">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6">
+        <h2 class="max-w-3xl text-3xl font-bold leading-tight text-balance text-text-primary sm:text-4xl lg:text-5xl" i18n="@@simulation.sectors.title">
           Factors depend on the business, not on a template
         </h2>
-        <p class="mt-5 max-w-2xl text-lg leading-relaxed text-white/55" i18n="@@simulation.sectors.body">
+        <p class="mt-5 max-w-2xl text-lg leading-relaxed text-pretty text-text-secondary" i18n="@@simulation.sectors.body">
           Two businesses, two worlds. A fixed list of twenty variables applied to everyone would describe neither of them properly.
         </p>
 
-        <div class="mt-14 grid gap-6 sm:grid-cols-2">
-          @for (column of sectorFactors; track column.sector) {
-            <div class="glass-card rounded-2xl border border-white/10 p-7">
-              <h3 class="text-lg font-semibold text-white">{{ column.sector }}</h3>
-              <p class="mt-1 text-sm text-white/40">{{ column.note }}</p>
-              <ul class="mt-6 flex flex-col gap-2.5">
+        <div class="mt-14 grid gap-6 sm:grid-cols-2 lg:gap-8">
+          @for (column of sectorFactors; track column.id) {
+            <div class="glass-card overflow-hidden rounded-3xl">
+              <div
+                class="flex items-center gap-4 border-b border-[var(--glass-border-subtle)] bg-linear-to-br p-6"
+                [class]="column.id === 'delivery' ? 'from-accent-500/25 to-primary/10' : 'from-emerald-400/25 to-teal-500/10'"
+              >
+                <span class="grid size-12 shrink-0 place-items-center rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-medium)]">
+                  <svg
+                    viewBox="0 0 24 24"
+                    class="size-6"
+                    [class]="column.id === 'delivery' ? 'text-accent-700 dark:text-accent-400' : 'text-emerald-700 dark:text-emerald-400'"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path [attr.d]="column.icon" />
+                  </svg>
+                </span>
+                <div>
+                  <h3 class="text-lg font-semibold text-text-primary">{{ column.sector }}</h3>
+                  <p class="mt-0.5 text-sm text-text-tertiary">{{ column.note }}</p>
+                </div>
+              </div>
+
+              <ul class="flex flex-col gap-2.5 p-6 sm:p-7">
                 @for (factor of column.factors; track factor) {
-                  <li class="flex items-center gap-2.5 text-white/60">
-                    <span class="size-1 shrink-0 rounded-full bg-accent-500" aria-hidden="true"></span>
+                  <li class="flex items-center gap-3 text-text-secondary">
+                    <span
+                      class="size-1.5 shrink-0 rounded-full"
+                      [class]="column.id === 'delivery' ? 'bg-accent-500' : 'bg-emerald-500'"
+                      aria-hidden="true"
+                    ></span>
                     {{ factor }}
                   </li>
                 }
@@ -171,60 +261,86 @@
     </section>
 
     <!-- =================================================== STRESS TESTS -->
-    <section class="border-y border-white/[0.07] py-28 lg:py-36">
-      <div class="mx-auto max-w-5xl px-4 sm:px-6">
-        <h2 class="max-w-3xl text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.stress.title">
-          The point is not to reassure you. It is to find where the model breaks.
-        </h2>
-        <p class="mt-5 max-w-2xl text-lg leading-relaxed text-white/55" i18n="@@simulation.stress.body">
-          IDEM deliberately puts your business through hard situations, then tells you which ones it cannot take.
-        </p>
+    <section class="border-y border-[var(--glass-border-subtle)] py-24 lg:py-32">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6">
+        <div class="grid gap-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-16">
+          <div class="relative lg:sticky lg:top-24 lg:self-start">
+            <figure class="relative h-[22rem] overflow-hidden rounded-3xl border border-[var(--glass-border)] sm:h-[26rem] lg:h-[30rem]">
+              <img
+                ngSrc="/assets/images/african-market-page/woman-tech-entrepreneur.webp"
+                fill
+                sizes="(max-width: 1024px) 100vw, 40vw"
+                i18n-alt="@@simulation.stress.image.alt"
+                alt="A founder working through what could go wrong before committing"
+                class="object-cover"
+              />
+              <div class="absolute inset-0 bg-linear-to-t from-black/90 via-black/40 to-black/10" aria-hidden="true"></div>
+              <figcaption class="absolute inset-x-0 bottom-0 p-6 sm:p-8">
+                <p class="inline-flex items-center gap-2 rounded-full border border-[#f4735d]/60 bg-[#e2563e]/25 px-3.5 py-1.5 font-mono text-xs font-bold uppercase tracking-widest text-[#ffc0b1]" i18n="@@simulation.stress.verdict.label">
+                  Verdict: no-go
+                </p>
+                <p class="mt-4 text-base leading-relaxed text-white/85" i18n="@@simulation.stress.verdict.body">
+                  When the conditions are genuinely bad, the engine says so, and lists exactly which scenarios the model could not survive.
+                </p>
+              </figcaption>
+            </figure>
+          </div>
 
-        <ul class="mt-14 flex flex-col divide-y divide-white/[0.07] border-y border-white/[0.07]">
-          @for (question of stressTests; track question) {
-            <li class="flex items-start gap-5 py-6">
-              <svg viewBox="0 0 24 24" class="mt-1 size-5 shrink-0 text-accent-500" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-                <path d="M12 3v3m0 12v3m9-9h-3M6 12H3m13.5-6.5-2 2m-5 5-2 2m0-9 2 2m5 5 2 2" stroke-linecap="round" />
-              </svg>
-              <p class="text-lg leading-relaxed text-white/75">{{ question }}</p>
-            </li>
-          }
-        </ul>
+          <div>
+            <h2 class="max-w-2xl text-3xl font-bold leading-tight text-balance text-text-primary sm:text-4xl lg:text-5xl" i18n="@@simulation.stress.title">
+              The point is not to reassure you. It is to find where the model breaks.
+            </h2>
+            <p class="mt-5 max-w-2xl text-lg leading-relaxed text-pretty text-text-secondary" i18n="@@simulation.stress.body">
+              IDEM deliberately puts your business through hard situations, then tells you which ones it cannot take.
+            </p>
 
-        <p class="mt-10 max-w-2xl text-lg leading-relaxed text-white/55" i18n="@@simulation.stress.closing">
-          If the conditions are genuinely bad, IDEM answers NO-GO. And it explains why.
-        </p>
+            <ul class="mt-10 flex flex-col divide-y divide-[var(--glass-border-subtle)] border-y border-[var(--glass-border-subtle)]">
+              @for (question of stressTests; track question) {
+                <li class="flex items-start gap-5 py-6">
+                  <svg viewBox="0 0 24 24" class="mt-1 size-5 shrink-0 text-accent-700 dark:text-accent-500" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                    <path d="M12 3v3m0 12v3m9-9h-3M6 12H3m13.5-6.5-2 2m-5 5-2 2m0-9 2 2m5 5 2 2" stroke-linecap="round" />
+                  </svg>
+                  <p class="text-lg leading-relaxed text-text-primary">{{ question }}</p>
+                </li>
+              }
+            </ul>
+
+            <p class="mt-10 max-w-2xl text-lg leading-relaxed text-text-secondary" i18n="@@simulation.stress.closing">
+              If the conditions are genuinely bad, IDEM answers NO-GO. And it explains why.
+            </p>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- =================================================== THE READOUT -->
-    <section class="py-28 lg:py-36">
-      <div class="mx-auto max-w-5xl px-4 sm:px-6">
-        <div class="grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
+    <section class="py-24 lg:py-32">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6">
+        <div class="grid items-start gap-12 lg:grid-cols-2 lg:gap-16">
           <div>
-            <h2 class="text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.readout.title">
+            <h2 class="text-3xl font-bold leading-tight text-balance text-text-primary sm:text-4xl lg:text-5xl" i18n="@@simulation.readout.title">
               An index, never on its own
             </h2>
-            <p class="mt-5 text-lg leading-relaxed text-white/55" i18n="@@simulation.readout.body">
+            <p class="mt-5 text-lg leading-relaxed text-pretty text-text-secondary" i18n="@@simulation.readout.body">
               An index of 72 backed by solid data and an index of 72 riddled with uncertainty do not mean the same thing. IDEM always shows both together.
             </p>
 
             <dl class="mt-10 flex flex-col gap-6">
-              <div>
-                <dt class="font-semibold text-white" i18n="@@simulation.readout.robustness.term">Robustness</dt>
-                <dd class="mt-1 leading-relaxed text-white/50" i18n="@@simulation.readout.robustness.def">
+              <div class="rounded-2xl border border-[var(--glass-border-subtle)] bg-[var(--glass-bg-subtle)] p-5">
+                <dt class="font-semibold text-text-primary" i18n="@@simulation.readout.robustness.term">Robustness</dt>
+                <dd class="mt-1 leading-relaxed text-text-secondary" i18n="@@simulation.readout.robustness.def">
                   How well the model keeps holding as the factors deteriorate.
                 </dd>
               </div>
-              <div>
-                <dt class="font-semibold text-white" i18n="@@simulation.readout.confidence.term">Confidence level</dt>
-                <dd class="mt-1 leading-relaxed text-white/50" i18n="@@simulation.readout.confidence.def">
+              <div class="rounded-2xl border border-[var(--glass-border-subtle)] bg-[var(--glass-bg-subtle)] p-5">
+                <dt class="font-semibold text-text-primary" i18n="@@simulation.readout.confidence.term">Confidence level</dt>
+                <dd class="mt-1 leading-relaxed text-text-secondary" i18n="@@simulation.readout.confidence.def">
                   The quality of the data the analysis rests on, assumptions included.
                 </dd>
               </div>
-              <div>
-                <dt class="font-semibold text-white" i18n="@@simulation.readout.uncertainties.term">Main uncertainties</dt>
-                <dd class="mt-1 leading-relaxed text-white/50" i18n="@@simulation.readout.uncertainties.def">
+              <div class="rounded-2xl border border-[var(--glass-border-subtle)] bg-[var(--glass-bg-subtle)] p-5">
+                <dt class="font-semibold text-text-primary" i18n="@@simulation.readout.uncertainties.term">Main uncertainties</dt>
+                <dd class="mt-1 leading-relaxed text-text-secondary" i18n="@@simulation.readout.uncertainties.def">
                   What the simulation could not establish, and what still has to be checked on the ground.
                 </dd>
               </div>
@@ -232,39 +348,39 @@
           </div>
 
           <!-- A real readout, not a marketing metric tile -->
-          <div class="glass-card rounded-2xl border border-white/10 p-7">
-            <p class="text-sm text-white/40" i18n="@@simulation.readout.card.label">Simulated viability index</p>
+          <div class="glass-card rounded-3xl p-6 sm:p-8">
+            <p class="text-sm text-text-tertiary" i18n="@@simulation.readout.card.label">Simulated viability index</p>
 
             <div class="mt-4 flex items-end gap-4">
-              <span class="text-6xl font-bold leading-none text-white">72</span>
-              <span class="pb-2 text-xl text-white/30">/ 100</span>
+              <span class="text-6xl font-bold leading-none text-text-primary sm:text-7xl">72</span>
+              <span class="pb-2 text-xl text-text-tertiary">/ 100</span>
             </div>
 
-            <div class="mt-6 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.07]">
-              <div class="h-full rounded-full bg-accent-500" style="width: 72%"></div>
+            <div class="mt-6 h-2 w-full overflow-hidden rounded-full bg-[var(--glass-bg-subtle)]">
+              <div class="h-full rounded-full bg-linear-to-r from-primary to-accent-500" style="width: 72%"></div>
             </div>
 
-            <dl class="mt-7 grid grid-cols-2 gap-5 border-t border-white/[0.07] pt-6">
+            <dl class="mt-7 grid grid-cols-2 gap-5 border-t border-[var(--glass-border-subtle)] pt-6">
               <div>
-                <dt class="text-sm text-white/40" i18n="@@simulation.readout.card.robustness">Robustness</dt>
-                <dd class="mt-0.5 font-semibold text-white" i18n="@@simulation.readout.card.robustnessValue">Medium to high</dd>
+                <dt class="text-sm text-text-tertiary" i18n="@@simulation.readout.card.robustness">Robustness</dt>
+                <dd class="mt-0.5 font-semibold text-text-primary" i18n="@@simulation.readout.card.robustnessValue">Medium to high</dd>
               </div>
               <div>
-                <dt class="text-sm text-white/40" i18n="@@simulation.readout.card.confidence">Confidence</dt>
-                <dd class="mt-0.5 font-semibold text-white" i18n="@@simulation.readout.card.confidenceValue">Medium</dd>
+                <dt class="text-sm text-text-tertiary" i18n="@@simulation.readout.card.confidence">Confidence</dt>
+                <dd class="mt-0.5 font-semibold text-text-primary" i18n="@@simulation.readout.card.confidenceValue">Medium</dd>
               </div>
             </dl>
 
-            <div class="mt-6 border-t border-white/[0.07] pt-6">
-              <p class="text-sm text-white/40" i18n="@@simulation.readout.card.uncertainties">Main uncertainties</p>
+            <div class="mt-6 border-t border-[var(--glass-border-subtle)] pt-6">
+              <p class="text-sm text-text-tertiary" i18n="@@simulation.readout.card.uncertainties">Main uncertainties</p>
               <ul class="mt-3 flex flex-wrap gap-2">
-                <li class="rounded-full border border-white/10 px-3 py-1 text-sm text-white/55" i18n="@@simulation.readout.card.u1">conversion rate</li>
-                <li class="rounded-full border border-white/10 px-3 py-1 text-sm text-white/55" i18n="@@simulation.readout.card.u2">real acquisition cost</li>
-                <li class="rounded-full border border-white/10 px-3 py-1 text-sm text-white/55" i18n="@@simulation.readout.card.u3">competitor response</li>
+                <li class="rounded-full border border-[var(--glass-border)] px-3 py-1 text-sm text-text-secondary" i18n="@@simulation.readout.card.u1">conversion rate</li>
+                <li class="rounded-full border border-[var(--glass-border)] px-3 py-1 text-sm text-text-secondary" i18n="@@simulation.readout.card.u2">real acquisition cost</li>
+                <li class="rounded-full border border-[var(--glass-border)] px-3 py-1 text-sm text-text-secondary" i18n="@@simulation.readout.card.u3">competitor response</li>
               </ul>
             </div>
 
-            <p class="mt-6 border-t border-white/[0.07] pt-5 text-sm leading-relaxed text-white/35" i18n="@@simulation.readout.card.caveat">
+            <p class="mt-6 border-t border-[var(--glass-border-subtle)] pt-5 text-sm leading-relaxed text-text-tertiary" i18n="@@simulation.readout.card.caveat">
               This index measures how robust the project is across the scenarios that were run. It is not a prediction of success.
             </p>
           </div>
@@ -273,31 +389,40 @@
     </section>
 
     <!-- =================================================== EVIDENCE -->
-    <section class="border-y border-white/[0.07] py-28 lg:py-36">
-      <div class="mx-auto max-w-5xl px-4 sm:px-6">
-        <h2 class="max-w-3xl text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.evidence.title">
+    <section class="border-y border-[var(--glass-border-subtle)] py-24 lg:py-32">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6">
+        <h2 class="max-w-3xl text-3xl font-bold leading-tight text-balance text-text-primary sm:text-4xl lg:text-5xl" i18n="@@simulation.evidence.title">
           Every figure says where it came from
         </h2>
-        <p class="mt-5 max-w-2xl text-lg leading-relaxed text-white/55" i18n="@@simulation.evidence.body">
+        <p class="mt-5 max-w-2xl text-lg leading-relaxed text-pretty text-text-secondary" i18n="@@simulation.evidence.body">
           Observed data, a derived estimate and an assumption are not worth the same. Blurring them would give a false impression of precision.
         </p>
 
-        <div class="mt-14 grid gap-x-10 gap-y-8 sm:grid-cols-3">
-          <div>
-            <p class="font-mono text-sm uppercase tracking-widest text-accent-500" i18n="@@simulation.evidence.data.label">Data</p>
-            <p class="mt-3 leading-relaxed text-white/55" i18n="@@simulation.evidence.data.body">
+        <div class="mt-14 grid gap-6 sm:grid-cols-3">
+          <div class="glass-card rounded-2xl p-6">
+            <div class="flex items-center gap-2.5">
+              <span class="size-2.5 rounded-full bg-accent-500" aria-hidden="true"></span>
+              <p class="font-mono text-sm uppercase tracking-widest text-accent-700 dark:text-accent-500" i18n="@@simulation.evidence.data.label">Data</p>
+            </div>
+            <p class="mt-3 leading-relaxed text-text-secondary" i18n="@@simulation.evidence.data.body">
               An observed, published figure with its source and its date. Fuel prices, urban density, exchange rates.
             </p>
           </div>
-          <div>
-            <p class="font-mono text-sm uppercase tracking-widest text-white/60" i18n="@@simulation.evidence.estimate.label">Estimate</p>
-            <p class="mt-3 leading-relaxed text-white/55" i18n="@@simulation.evidence.estimate.body">
+          <div class="glass-card rounded-2xl p-6">
+            <div class="flex items-center gap-2.5">
+              <span class="size-2.5 rounded-full bg-text-secondary" aria-hidden="true"></span>
+              <p class="font-mono text-sm uppercase tracking-widest text-text-secondary" i18n="@@simulation.evidence.estimate.label">Estimate</p>
+            </div>
+            <p class="mt-3 leading-relaxed text-text-secondary" i18n="@@simulation.evidence.estimate.body">
               A value derived from comparable data, when nothing direct exists for your market.
             </p>
           </div>
-          <div>
-            <p class="font-mono text-sm uppercase tracking-widest text-white/40" i18n="@@simulation.evidence.assumption.label">Assumption</p>
-            <p class="mt-3 leading-relaxed text-white/55" i18n="@@simulation.evidence.assumption.body">
+          <div class="glass-card rounded-2xl p-6">
+            <div class="flex items-center gap-2.5">
+              <span class="size-2.5 rounded-full bg-text-disabled" aria-hidden="true"></span>
+              <p class="font-mono text-sm uppercase tracking-widest text-text-tertiary" i18n="@@simulation.evidence.assumption.label">Assumption</p>
+            </div>
+            <p class="mt-3 leading-relaxed text-text-secondary" i18n="@@simulation.evidence.assumption.body">
               A deliberate choice by the engine, flagged as such, because no reliable data was available.
             </p>
           </div>
@@ -306,93 +431,161 @@
     </section>
 
     <!-- =================================================== REPORT -->
-    <section class="py-28 lg:py-36">
-      <div class="mx-auto max-w-5xl px-4 sm:px-6">
-        <div class="grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
-          <div>
-            <h2 class="text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.report.title">
-              The report answers one question
-            </h2>
-            <p class="mt-5 text-lg leading-relaxed text-white/55" i18n="@@simulation.report.body">
-              What could make this project succeed or fail, and what should I change?
-            </p>
-            <p class="mt-5 leading-relaxed text-white/45" i18n="@@simulation.report.note">
-              Not "improve your marketing". Rather: acquisition cost is the model's main weakness, test an organic channel before raising the ad budget. Expected impact high, priority critical, confidence medium.
-            </p>
-          </div>
+    <section class="py-24 lg:py-32">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6">
+        <div class="max-w-3xl">
+          <h2 class="text-3xl font-bold leading-tight text-balance text-text-primary sm:text-4xl lg:text-5xl" i18n="@@simulation.report.title">
+            The report answers one question
+          </h2>
+          <p class="mt-5 text-lg leading-relaxed text-pretty text-text-secondary" i18n="@@simulation.report.body">
+            What could make this project succeed or fail, and what should I change?
+          </p>
+          <p class="mt-5 leading-relaxed text-text-tertiary" i18n="@@simulation.report.note">
+            Not "improve your marketing". Rather: acquisition cost is the model's main weakness, test an organic channel before raising the ad budget. Expected impact high, priority critical, confidence medium.
+          </p>
+        </div>
 
-          <ol class="flex flex-col divide-y divide-white/[0.07] border-y border-white/[0.07]">
+        <div class="mt-14 grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start lg:gap-16">
+          <ol class="flex flex-col divide-y divide-[var(--glass-border-subtle)] border-y border-[var(--glass-border-subtle)]">
             @for (section of reportSections; track section; let i = $index) {
               <li class="flex items-baseline gap-4 py-3.5">
-                <span class="font-mono text-sm text-white/25">{{ i + 1 < 10 ? '0' : '' }}{{ i + 1 }}</span>
-                <span class="text-white/70">{{ section }}</span>
+                <span class="font-mono text-sm text-accent-700/70 dark:text-accent-500/70">{{ i + 1 < 10 ? '0' : '' }}{{ i + 1 }}</span>
+                <span class="text-text-secondary">{{ section }}</span>
               </li>
             }
           </ol>
+
+          <figure>
+            <div class="relative aspect-[16/10] overflow-hidden rounded-3xl border border-[var(--glass-border)] shadow-[var(--glass-shadow-lg)]">
+              <img
+                ngSrc="/assets/images/overview/financial-report.webp"
+                fill
+                sizes="(max-width: 1024px) 100vw, 55vw"
+                i18n-alt="@@simulation.report.image.alt"
+                alt="A simulation report opened in IDEM, showing the financial summary and its indicators"
+                class="object-cover"
+              />
+            </div>
+            <figcaption class="mt-4 text-sm leading-relaxed text-text-tertiary" i18n="@@simulation.report.caption">
+              The report is delivered inside your project, next to the deliverables it was built from.
+            </figcaption>
+          </figure>
         </div>
       </div>
     </section>
 
     <!-- =================================================== THE LOOP -->
-    <section class="border-y border-white/[0.07] py-28 lg:py-36">
-      <div class="mx-auto max-w-5xl px-4 sm:px-6">
-        <h2 class="max-w-3xl text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.loop.title">
-          A simulation is not an endpoint
-        </h2>
-        <p class="mt-5 max-w-2xl text-lg leading-relaxed text-white/55" i18n="@@simulation.loop.body">
-          Change your price, your target customer or your funding in IDEM, run it again, and compare the two versions. What moves is not your chance of succeeding: it is how much strain your model takes.
-        </p>
+    <section class="border-y border-[var(--glass-border-subtle)] py-24 lg:py-32">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6">
+        <div class="grid items-center gap-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-16">
+          <div>
+            <h2 class="max-w-2xl text-3xl font-bold leading-tight text-balance text-text-primary sm:text-4xl lg:text-5xl" i18n="@@simulation.loop.title">
+              A simulation is not an endpoint
+            </h2>
+            <p class="mt-5 max-w-2xl text-lg leading-relaxed text-pretty text-text-secondary" i18n="@@simulation.loop.body">
+              Change your price, your target customer or your funding in IDEM, run it again, and compare the two versions. What moves is not your chance of succeeding: it is how much strain your model takes.
+            </p>
 
-        <div class="mt-14 flex flex-wrap items-center gap-x-3 gap-y-4">
-          @for (item of loopSteps; track item; let last = $last) {
-            <span class="rounded-full border border-white/10 px-5 py-2.5 text-white/70">{{ item }}</span>
-            @if (!last) {
-              <svg viewBox="0 0 24 24" class="size-4 shrink-0 text-white/25" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M5 12h14m0 0-5-5m5 5-5 5" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            }
-          }
+            <ol class="mt-10 flex flex-wrap items-center gap-x-3 gap-y-4">
+              @for (item of loopSteps; track item; let i = $index) {
+                <li class="flex items-center gap-3">
+                  @if (i > 0) {
+                    <svg viewBox="0 0 24 24" class="size-4 shrink-0 text-text-tertiary" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="M5 12h14m0 0-5-5m5 5-5 5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  }
+                  <span class="inline-flex items-center gap-2.5 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] py-2.5 pl-3 pr-5 text-text-primary">
+                    <span class="grid size-6 shrink-0 place-items-center rounded-full bg-accent-500/15 font-mono text-xs font-bold text-accent-700 dark:text-accent-400">
+                      {{ i + 1 }}
+                    </span>
+                    {{ item }}
+                  </span>
+                </li>
+              }
+            </ol>
+          </div>
+
+          <figure class="relative h-[20rem] overflow-hidden rounded-3xl border border-[var(--glass-border)] sm:h-[24rem]">
+            <img
+              ngSrc="/assets/images/african-market-component/team-celebrating.webp"
+              fill
+              sizes="(max-width: 1024px) 100vw, 40vw"
+              i18n-alt="@@simulation.loop.image.alt"
+              alt="A team reviewing an improved version of their model together"
+              class="object-cover"
+            />
+            <div class="absolute inset-0 bg-linear-to-t from-black/85 via-black/30 to-transparent" aria-hidden="true"></div>
+            <figcaption class="absolute inset-x-0 bottom-0 p-6" i18n="@@simulation.loop.caption">
+              <span class="text-base leading-relaxed text-white/90">Each new run is kept, so you can compare versions instead of arguing about them.</span>
+            </figcaption>
+          </figure>
         </div>
       </div>
     </section>
 
     <!-- =================================================== TWO WAYS IN -->
-    <section class="py-28 lg:py-36">
-      <div class="mx-auto max-w-5xl px-4 sm:px-6">
-        <h2 class="max-w-3xl text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.entry.title">
+    <section class="py-24 lg:py-32">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6">
+        <h2 class="max-w-3xl text-3xl font-bold leading-tight text-balance text-text-primary sm:text-4xl lg:text-5xl" i18n="@@simulation.entry.title">
           Two ways to start
         </h2>
 
-        <div class="mt-12 grid gap-6 sm:grid-cols-2">
-          <div class="glass-card rounded-2xl border border-white/10 p-7">
-            <h3 class="text-xl font-semibold text-white" i18n="@@simulation.entry.project.title">From an IDEM project</h3>
-            <p class="mt-3 leading-relaxed text-white/55" i18n="@@simulation.entry.project.body">
-              Business plan, market analysis, financial forecasts and business model are already there. The engine has less to ask for, and you pay less.
-            </p>
-            <a [href]="dashboardUrl" class="mt-6 inline-flex items-center gap-2 font-semibold text-accent-500 transition-colors hover:text-white">
-              <span i18n="@@simulation.entry.project.cta">Open my dashboard</span>
-              <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M5 12h14m0 0-5-5m5 5-5 5" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </a>
+        <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:gap-8">
+          <div class="glass-card flex flex-col overflow-hidden rounded-3xl">
+            <div class="relative h-44 shrink-0 border-b border-[var(--glass-border-subtle)]">
+              <img
+                ngSrc="/assets/images/home/bp_showcase.webp"
+                fill
+                sizes="(max-width: 640px) 100vw, 45vw"
+                i18n-alt="@@simulation.entry.project.imageAlt"
+                alt="Deliverables already generated inside an IDEM project"
+                class="object-cover object-top"
+              />
+              <div class="absolute inset-0 bg-linear-to-t from-[var(--glass-bg-darker)] to-transparent" aria-hidden="true"></div>
+            </div>
+            <div class="flex flex-1 flex-col p-6 sm:p-7">
+              <h3 class="text-xl font-semibold text-text-primary" i18n="@@simulation.entry.project.title">From an IDEM project</h3>
+              <p class="mt-3 flex-1 leading-relaxed text-text-secondary" i18n="@@simulation.entry.project.body">
+                Business plan, market analysis, financial forecasts and business model are already there. The engine has less to ask for, and you pay less.
+              </p>
+              <a [href]="dashboardUrl" class="mt-6 inline-flex items-center gap-2 font-semibold text-accent-700 transition-colors hover:text-text-primary dark:text-accent-500">
+                <span i18n="@@simulation.entry.project.cta">Open my dashboard</span>
+                <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M5 12h14m0 0-5-5m5 5-5 5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </a>
+            </div>
           </div>
 
-          <div class="glass-card rounded-2xl border border-white/10 p-7">
-            <h3 class="text-xl font-semibold text-white" i18n="@@simulation.entry.import.title">By importing your business plan</h3>
-            <p class="mt-3 leading-relaxed text-white/55" i18n="@@simulation.entry.import.body">
-              PDF, DOCX or plain text. IDEM extracts the activity, market, target customer, prices and costs, then lets you fill in the gaps before you start.
-            </p>
-            <a [href]="simulationUrl" class="mt-6 inline-flex items-center gap-2 font-semibold text-accent-500 transition-colors hover:text-white">
-              <span i18n="@@simulation.entry.import.cta">Import a business plan</span>
-              <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M5 12h14m0 0-5-5m5 5-5 5" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </a>
+          <div class="glass-card flex flex-col overflow-hidden rounded-3xl">
+            <div class="relative h-44 shrink-0 border-b border-[var(--glass-border-subtle)]">
+              <img
+                ngSrc="/assets/images/overview/businessplan.webp"
+                fill
+                sizes="(max-width: 640px) 100vw, 45vw"
+                i18n-alt="@@simulation.entry.import.imageAlt"
+                alt="An existing business plan being read by IDEM"
+                class="object-cover object-top"
+              />
+              <div class="absolute inset-0 bg-linear-to-t from-[var(--glass-bg-darker)] to-transparent" aria-hidden="true"></div>
+            </div>
+            <div class="flex flex-1 flex-col p-6 sm:p-7">
+              <h3 class="text-xl font-semibold text-text-primary" i18n="@@simulation.entry.import.title">By importing your business plan</h3>
+              <p class="mt-3 flex-1 leading-relaxed text-text-secondary" i18n="@@simulation.entry.import.body">
+                PDF, DOCX or plain text. IDEM extracts the activity, market, target customer, prices and costs, then lets you fill in the gaps before you start.
+              </p>
+              <a [href]="simulationUrl" class="mt-6 inline-flex items-center gap-2 font-semibold text-accent-700 transition-colors hover:text-text-primary dark:text-accent-500">
+                <span i18n="@@simulation.entry.import.cta">Import a business plan</span>
+                <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M5 12h14m0 0-5-5m5 5-5 5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </a>
+            </div>
           </div>
         </div>
 
-        <h3 class="mt-20 text-2xl font-bold text-white" i18n="@@simulation.offers.title">What you are buying</h3>
-        <p class="mt-4 max-w-2xl leading-relaxed text-white/50" i18n="@@simulation.offers.body">
+        <h3 class="mt-20 text-2xl font-bold text-text-primary sm:text-3xl" i18n="@@simulation.offers.title">What you are buying</h3>
+        <p class="mt-4 max-w-2xl leading-relaxed text-text-secondary" i18n="@@simulation.offers.body">
           Simulation is billed separately from the rest of IDEM: it spends external research, several agents and compute. The amount is shown and confirmed before anything starts.
         </p>
 
@@ -400,10 +593,10 @@
           @for (offer of offers; track offer.id) {
             <li
               class="rounded-2xl border p-6"
-              [class]="offer.highlight ? 'border-accent-500/40 bg-accent-500/[0.06]' : 'border-white/10'"
+              [class]="offer.highlight ? 'border-accent-500/50 bg-accent-500/[0.08]' : 'border-[var(--glass-border)] bg-[var(--glass-bg-subtle)]'"
             >
-              <p class="font-semibold text-white">{{ offer.name }}</p>
-              <p class="mt-2.5 text-sm leading-relaxed text-white/50">{{ offer.body }}</p>
+              <p class="font-semibold text-text-primary">{{ offer.name }}</p>
+              <p class="mt-2.5 text-sm leading-relaxed text-text-secondary">{{ offer.body }}</p>
             </li>
           }
         </ul>
@@ -411,13 +604,13 @@
     </section>
 
     <!-- =================================================== HONESTY -->
-    <section class="border-t border-white/[0.07] py-28 lg:py-36">
+    <section class="border-t border-[var(--glass-border-subtle)] py-24 lg:py-32">
       <div class="mx-auto max-w-3xl px-4 sm:px-6">
-        <h2 class="text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.honesty.title">
+        <h2 class="text-3xl font-bold leading-tight text-balance text-text-primary sm:text-4xl" i18n="@@simulation.honesty.title">
           What IDEM Simulator does not promise you
         </h2>
 
-        <div class="mt-10 space-y-6 text-lg leading-relaxed text-white/60">
+        <div class="mt-10 space-y-6 border-l-2 border-accent-500/40 pl-6 text-lg leading-relaxed text-text-secondary sm:pl-8">
           <p i18n="@@simulation.honesty.p1">
             The results are estimates based on the data, assumptions and scenarios available at the time of analysis.
           </p>
@@ -432,21 +625,33 @@
     </section>
 
     <!-- =================================================== CTA -->
-    <section class="pb-32 lg:pb-40">
-      <div class="mx-auto max-w-3xl px-4 text-center sm:px-6">
-        <h2 class="text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.cta.title">
-          Put your project under strain
-        </h2>
-        <p class="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-white/55" i18n="@@simulation.cta.body">
-          Before you commit your time and your money, find out under what conditions your business can work and what could make it fail.
-        </p>
-        <div class="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <a [href]="simulationUrl" class="inner-button rounded-xl px-8 py-4 text-lg font-semibold">
-            <span i18n="@@simulation.cta.primary">Run a simulation</span>
-          </a>
-          <a routerLink="/pricing" class="outer-button rounded-xl px-8 py-4 text-lg font-semibold">
-            <span i18n="@@simulation.cta.secondary">See IDEM pricing</span>
-          </a>
+    <section class="px-4 pb-24 sm:px-6 lg:pb-32">
+      <div class="relative mx-auto max-w-7xl overflow-hidden rounded-[2rem] border border-[var(--glass-border)]">
+        <img
+          ngSrc="/assets/images/pricing-page/business-success.webp"
+          fill
+          sizes="100vw"
+          i18n-alt="@@simulation.cta.image.alt"
+          alt="Entrepreneurs going ahead with a project they have tested"
+          class="object-cover"
+        />
+        <div class="absolute inset-0 bg-linear-to-br from-black/90 via-black/75 to-primary/50" aria-hidden="true"></div>
+
+        <div class="relative px-6 py-20 text-center sm:px-10 lg:py-28">
+          <h2 class="mx-auto max-w-2xl text-3xl font-bold leading-tight text-balance text-white sm:text-4xl lg:text-5xl" i18n="@@simulation.cta.title">
+            Put your project under strain
+          </h2>
+          <p class="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-pretty text-white/75" i18n="@@simulation.cta.body">
+            Before you commit your time and your money, find out under what conditions your business can work and what could make it fail.
+          </p>
+          <div class="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <a [href]="simulationUrl" class="inner-button rounded-xl px-8 py-4 text-center text-lg font-semibold">
+              <span i18n="@@simulation.cta.primary">Run a simulation</span>
+            </a>
+            <a routerLink="/pricing" class="rounded-xl border border-white/30 bg-white/10 px-8 py-4 text-center text-lg font-semibold uppercase text-white backdrop-blur-sm transition-colors hover:bg-white/20">
+              <span i18n="@@simulation.cta.secondary">See IDEM pricing</span>
+            </a>
+          </div>
         </div>
       </div>
     </section>
