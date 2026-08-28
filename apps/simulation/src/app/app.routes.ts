@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-import { anonymousGuard, authGuard } from './core/auth';
+import { authGuard } from './core/auth';
 
 /** Écrans d'une exécution : chargés sous la coquille de contexte. */
 const simulationRoutes: Routes = [
@@ -151,16 +151,12 @@ export const routes: Routes = [
     ],
   },
   {
-    path: 'login',
-    canActivate: [anonymousGuard],
-    title: 'auth.signIn',
-    loadComponent: () => import('./features/auth/pages/login/login').then((m) => m.Login),
-  },
-  {
-    // Point d'arrivée du bouton « Simuler mon entreprise » du dashboard IDEM :
-    // consomme le jeton de transfert, puis continue vers l'exécution.
+    // Retour du login central, et point d'arrivée du bouton « Simuler mon
+    // entreprise » du dashboard IDEM : confirme la session, puis entre dans
+    // l'application. Aucune connexion ne se fait ici.
     path: 'auth/idem',
-    loadComponent: () => import('./features/auth/pages/handoff/handoff').then((m) => m.Handoff),
+    loadComponent: () =>
+      import('./features/auth/pages/sso-callback/sso-callback').then((m) => m.SsoCallback),
   },
   {
     path: '**',

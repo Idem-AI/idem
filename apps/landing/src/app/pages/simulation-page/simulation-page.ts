@@ -1,14 +1,22 @@
-import { CommonModule, DOCUMENT } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { CommonModule, DOCUMENT, NgOptimizedImage } from '@angular/common';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../environments/environment';
 import { SeoService } from '../../shared/services/seo.service';
 
 interface FactorColumn {
+  id: string;
   sector: string;
   note: string;
+  /** Path data for the card glyph. Photos would misdescribe these sectors. */
+  icon: string;
   factors: string[];
+}
+
+interface HeroStat {
+  value: string;
+  label: string;
 }
 
 interface PipelineStep {
@@ -27,9 +35,10 @@ interface Offer {
 @Component({
   selector: 'app-simulation-page',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, NgOptimizedImage],
   templateUrl: './simulation-page.html',
   styleUrl: './simulation-page.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SimulationPage implements OnInit {
   private readonly seoService = inject(SeoService);
@@ -70,6 +79,22 @@ export class SimulationPage implements OnInit {
     $localize`:@@simulation.factorWall.20:supply chain`,
   ];
 
+  /** The three numbers the hero leads with, kept next to the fan. */
+  readonly heroStats: HeroStat[] = [
+    {
+      value: $localize`:@@simulation.hero.stat1.value:60+`,
+      label: $localize`:@@simulation.hero.stat1.label:factors researched per project`,
+    },
+    {
+      value: $localize`:@@simulation.hero.stat2.value:3`,
+      label: $localize`:@@simulation.hero.stat2.label:scenarios, plus stress tests`,
+    },
+    {
+      value: $localize`:@@simulation.hero.stat3.value:5`,
+      label: $localize`:@@simulation.hero.stat3.label:analysis stages, sources included`,
+    },
+  ];
+
   readonly pipeline: PipelineStep[] = [
     {
       id: 'read',
@@ -104,6 +129,8 @@ export class SimulationPage implements OnInit {
    */
   readonly sectorFactors: FactorColumn[] = [
     {
+      id: 'delivery',
+      icon: 'M4 16h1a2 2 0 1 0 4 0h6a2 2 0 1 0 4 0h1v-4l-3-4h-3V6H4z',
       sector: $localize`:@@simulation.sectors.delivery.name:Urban delivery`,
       note: $localize`:@@simulation.sectors.delivery.note:Douala, B2C, commission per trip`,
       factors: [
@@ -118,6 +145,8 @@ export class SimulationPage implements OnInit {
       ],
     },
     {
+      id: 'farming',
+      icon: 'M12 21V11m0 0c0-3.5 2.5-6.5 7-7 0 4.5-3 7.5-7 7Zm0 4c0-3-2-5.5-6-6 0 3.5 2.5 6 6 6Z',
       sector: $localize`:@@simulation.sectors.farming.name:Farming`,
       note: $localize`:@@simulation.sectors.farming.note:Western Cameroon, short supply chain, B2B`,
       factors: [

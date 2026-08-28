@@ -48,29 +48,14 @@
     "en": "English"
   },
   "auth": {
-    "heading": "Connexion",
-    "subheading": "Votre compte IDEM ouvre le simulateur. Aucun compte séparé à créer.",
     "signIn": "Se connecter",
     "signingIn": "Connexion…",
-    "signOut": "Se déconnecter",
-    "continueWithGoogle": "Continuer avec Google",
-    "continueWithGithub": "Continuer avec GitHub",
-    "or": "ou",
-    "email": "Adresse e-mail",
-    "password": "Mot de passe",
-    "sharedAccountNote": "Le simulateur utilise l'authentification IDEM. Pas encore de compte ?",
-    "error": {
-      "badCredentials": "Adresse e-mail ou mot de passe incorrect.",
-      "tooManyAttempts": "Trop de tentatives. Réessayez dans quelques minutes.",
-      "popupClosed": "La fenêtre de connexion a été fermée avant la fin.",
-      "network": "Connexion au serveur impossible. Vérifiez votre réseau.",
-      "generic": "La connexion a échoué. Réessayez."
-    }
+    "signOut": "Se déconnecter"
   },
   "handoff": {
-    "connecting": "Connexion à votre projet IDEM…",
-    "failedHeading": "Lien expiré",
-    "failedBody": "Ce lien de connexion n'est plus valide. Connectez-vous pour continuer."
+    "connecting": "Connexion à votre compte IDEM…",
+    "failedHeading": "Session introuvable",
+    "failedBody": "Votre session IDEM n'a pas pu être confirmée. Connectez-vous pour continuer."
   },
   "error": {
     "loadFailed": "Chargement impossible"

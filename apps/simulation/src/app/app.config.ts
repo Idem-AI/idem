@@ -14,7 +14,7 @@ import { providePrimeNG } from 'primeng/config';
 
 import { environment } from '@env';
 
-import { authInterceptor, provideFirebase } from './core/auth';
+import { authInterceptor } from './core/auth';
 import { LanguageService } from './core/i18n/language.service';
 import { TranslatedTitleStrategy } from './core/seo/title.strategy';
 import { ThemeService } from './core/theme/theme.service';
@@ -32,7 +32,6 @@ export const appConfig: ApplicationConfig = {
       withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' }),
     ),
     provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
-    provideFirebase(),
     provideSimulationBackend(),
     providePrimeNG({
       theme: {

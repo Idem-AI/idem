@@ -109,10 +109,10 @@ export class AppShell {
     this.drawerOpen.set(false);
   }
 
+  /** La déconnexion vaut pour tout IDEM : `AuthService` renvoie au login central. */
   protected async signOut(): Promise<void> {
     this.closeMenus();
     await this.auth.signOut();
-    await this.router.navigate(['/login']);
   }
 
   protected onDocumentClick(event: MouseEvent): void {

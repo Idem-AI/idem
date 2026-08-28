@@ -24,9 +24,10 @@ npm start          # http://localhost:4203
 `npm start` regenerates `src/environments/environment.ts` from `.env` via
 `mynode.js`, the same convention as the other IDEM front-ends.
 
-With the placeholder credentials still in `.env`, the app runs on its built-in
-demo dataset and skips authentication. Fill in the real IDEM Firebase values to
-exercise the actual sign-in flow.
+With `USE_MOCK_DATA=true` in `.env`, the app runs on its built-in demo dataset
+and asks for no session at all. Set it to `false` to exercise the real API,
+which means signing in on the IDEM dashboard first — there is no sign-in screen
+here.
 
 ## Architecture
 
@@ -36,7 +37,7 @@ src/app/
   shared/        presentational components with no domain knowledge
   layouts/       app shell for the authenticated surface
   features/
-    auth/        sign-in and the IDEM handoff
+    auth/        the SSO callback from the IDEM dashboard
     simulations/ the product
       models/       domain types
       data-access/  gateway (HTTP or demo), signal store
@@ -91,21 +92,53 @@ The endpoints the HTTP gateway expects:
 
 ### Authentication
 
-The same system every other IDEM app uses, and no accounts of its own:
-Firebase Auth for the credential, `POST /auth/sessionLogin` to open the server
-session, the shared `authToken` / `currentUser` cookies, and the
-`idem_session_active` sentinel so signing out of one IDEM app signs this one
-out too.
+**No IDEM app has a login screen of its own, and this one is no exception.**
+The IDEM dashboard owns sign-in, the IDEM API owns the session: it sets an
+`httpOnly` `session` cookie on the shared domain (`.idem.africa` in
+production; a host-only `localhost` cookie in dev, which every dev port
+shares). This app manages no token — it only asks the API whether the session
+is valid.
 
-It talks to Firebase through the `firebase` SDK directly rather than
-`@angular/fire`, whose peer range stops at Angular 20. The flows, cookies and
-API calls are unchanged — only the wrapper is gone.
+The same pattern as `apps/ideploy-web`, in three pieces:
 
-`/auth/idem?token=…&projectId=…` is the landing spot for the dashboard's
-"Simuler mon entreprise" button. It exchanges the one-time token at
-`POST /auth/simulation-token/exchange` for a Firebase custom token, mirroring
-how the dashboard already hands sessions to iDeploy. **That endpoint is not
-implemented yet**; until it is, the route falls back to the sign-in screen.
+| Piece | What it does |
+| --- | --- |
+| `authInterceptor` | Adds `withCredentials` + `Accept-Language` to every API call. Nothing else — no bearer token. |
+| `AuthService` | `GET /auth/profile` to read the identity, `POST /auth/logout` to end it, `redirectToLogin()` to hand the user over. |
+| `authGuard` | Guards the authenticated surface: no session → straight to the central login. |
+
+The round trip when a signed-out user opens a page here:
+
+```
+/simulations/42/report                      guard: no session
+  → {dashboard}/login?redirect=simulation&from=simulation
+                     &returnUrl={simulation}/auth/idem?returnUrl=/simulations/42/report
+  → sign in (or straight through, when the session is already valid)
+  → {simulation}/auth/idem                  confirms the session, retrying
+  → /simulations/42/report                  session cookie in place
+```
+
+`redirect=simulation` is the flag the dashboard login reads to know which app
+to return to — the exact counterpart of iDeploy's `redirect=ideploy`. It is
+handled in `apps/main-dashboard`, in both the login page and `publicGuard`, so
+an already-authenticated user is bounced back without seeing the form. A
+`returnUrl` is followed only when it points at this app: the login refuses to
+be an open redirector.
+
+`AuthService.redirectToLogin()` bounces at most once per tab
+(`idem_simulation_login_attempt` in `sessionStorage`). If the user comes back
+still without a session — a cookie that never crossed, typically — the second
+attempt lands on the public landing page instead of looping forever.
+
+`/auth/idem` is the return leg, and also the landing spot for the dashboard's
+"Simuler mon entreprise" button (`?projectId=…`). There is no token to
+exchange: it confirms the session and enters the app. The login comes back
+through it rather than straight to the requested page because the cookie can
+take a moment to become readable after a redirect chain — the callback retries
+a few times instead of letting the guard conclude there is no session.
+
+In demo mode (`USE_MOCK_DATA` / `?mock=on`) the guard lets everything through:
+no request reaches the API, so there is no identity to enforce.
 
 ### Theming
 

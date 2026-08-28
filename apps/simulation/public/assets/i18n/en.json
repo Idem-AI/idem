@@ -48,29 +48,14 @@
     "en": "English"
   },
   "auth": {
-    "heading": "Sign in",
-    "subheading": "Your IDEM account opens the simulator. There is no separate account to create.",
     "signIn": "Sign in",
     "signingIn": "Signing in…",
-    "signOut": "Sign out",
-    "continueWithGoogle": "Continue with Google",
-    "continueWithGithub": "Continue with GitHub",
-    "or": "or",
-    "email": "Email address",
-    "password": "Password",
-    "sharedAccountNote": "The simulator uses IDEM authentication. No account yet?",
-    "error": {
-      "badCredentials": "Wrong email address or password.",
-      "tooManyAttempts": "Too many attempts. Try again in a few minutes.",
-      "popupClosed": "The sign-in window closed before finishing.",
-      "network": "Could not reach the server. Check your connection.",
-      "generic": "Sign-in failed. Try again."
-    }
+    "signOut": "Sign out"
   },
   "handoff": {
-    "connecting": "Connecting to your IDEM project…",
-    "failedHeading": "Link expired",
-    "failedBody": "This sign-in link is no longer valid. Sign in to continue."
+    "connecting": "Connecting to your IDEM account…",
+    "failedHeading": "No session found",
+    "failedBody": "Your IDEM session could not be confirmed. Sign in to continue."
   },
   "error": {
     "loadFailed": "Could not load"

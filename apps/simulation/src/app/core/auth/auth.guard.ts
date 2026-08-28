@@ -1,46 +1,31 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { CanActivateFn } from '@angular/router';
 
-import { environment } from '@env';
+import { isMockDataEnabled } from '../mock';
 
 import { AuthService } from './auth.service';
-import { FIREBASE_AUTH } from './firebase.providers';
-import { TokenService } from './token.service';
 
-async function resolveSession(): Promise<boolean> {
-  const auth = inject(AuthService);
-  const tokens = inject(TokenService);
-  await tokens.ready;
-  await auth.ready;
-  return auth.isAuthenticated();
-}
-
-/** Protects the authenticated product surface. */
+/**
+ * Protège la surface authentifiée.
+ *
+ * Il n'y a pas d'écran de connexion ici : sans session, l'utilisateur part sur
+ * le login du dashboard IDEM, qui le ramènera sur la page demandée.
+ */
 export const authGuard: CanActivateFn = async (_route, state) => {
-  const router = inject(Router);
-  const firebaseAvailable = inject(FIREBASE_AUTH) !== null;
-
-  // A checkout with no Firebase credentials can still browse the demo
-  // dataset; there is no identity to enforce against.
-  if (!firebaseAvailable && environment.useMockData) {
+  // Mode démonstration : aucune requête ne part vers l'API, il n'y a donc
+  // aucune identité à faire vérifier.
+  if (isMockDataEnabled()) {
     return true;
   }
 
-  if (await resolveSession()) {
+  // `inject` doit être appelé avant le premier `await` : passé celui-ci, le
+  // contexte d'injection de la garde n'existe plus.
+  const auth = inject(AuthService);
+
+  if (await auth.ensureLoaded()) {
     return true;
   }
 
-  return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
-};
-
-/** Keeps signed-in users out of the sign-in screen. */
-export const anonymousGuard: CanActivateFn = async (route) => {
-  const router = inject(Router);
-
-  if (await resolveSession()) {
-    const returnUrl = route.queryParamMap.get('returnUrl');
-    return router.parseUrl(returnUrl && returnUrl.startsWith('/') ? returnUrl : '/simulations');
-  }
-
-  return true;
+  auth.redirectToLogin(state.url);
+  return false;
 };
