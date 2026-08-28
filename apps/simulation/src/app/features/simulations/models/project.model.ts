@@ -1,23 +1,16 @@
-/**
- * Whether the engine knows something, can look it up, has to guess, or is
- * missing it outright. Drives the "what we know" step before any simulating
- * happens.
- */
 export type KnowledgeState = 'known' | 'researchable' | 'uncertain' | 'missing';
 
 export interface KnowledgeItem {
   id: string;
   label: string;
   state: KnowledgeState;
-  /** What the engine holds today, when it holds anything. */
   value?: string;
-  /** Why it is uncertain, or what would resolve it. */
   detail?: string;
-  /** Missing items the user can fill in before launching. */
+  /** Vrai si l'utilisateur peut combler le trou avant de lancer. */
   answerable?: boolean;
+  answer?: string;
 }
 
-/** The structured read of the project the whole simulation is built on. */
 export interface ProjectProfile {
   name: string;
   sector: string;
@@ -33,18 +26,35 @@ export interface ProjectProfile {
   teamSize?: string;
 }
 
-export interface ProjectUnderstanding {
-  profile: ProjectProfile;
-  items: KnowledgeItem[];
+/** Les seuls chiffres dont le moteur déterministe se sert. */
+export interface BusinessBaseline {
+  unitPrice: number;
+  unitVariableCost: number;
+  monthlyFixedCosts: number;
+  acquisitionCost: number;
+  initialMonthlyCustomers: number;
+  /** Fraction : 0.08 = +8 % par mois. */
+  monthlyGrowthRate: number;
+  /** Fraction entre 0 et 0.99. */
+  monthlyRetentionRate: number;
+  purchasesPerCustomerPerMonth: number;
+  startingCapital: number;
+  currency: string;
 }
 
-/** An IDEM project available as a simulation input. */
+export interface ProjectUnderstanding {
+  profile: ProjectProfile;
+  baseline: BusinessBaseline;
+  items: KnowledgeItem[];
+  narrative?: string;
+}
+
+/** Un projet IDEM utilisable comme entrée de simulation. */
 export interface LinkedProject {
   id: string;
   name: string;
   description: string;
   sector: string;
-  /** Deliverables IDEM already produced, used to preload the simulation. */
   availableAssets: string[];
   updatedAt: string;
 }

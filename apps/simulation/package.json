@@ -1,7 +1,7 @@
 {
   "name": "simulation",
   "version": "1.0.0",
-  "description": "IDEM Simulator \u2014 Angular 22 CSR app to stress-test a business project before launching it.",
+  "description": "IDEM Simulator — Angular 22 CSR app to stress-test a business project before launching it.",
   "scripts": {
     "ng": "ng",
     "env:dev": "node mynode.js",
@@ -30,6 +30,7 @@
   },
   "private": true,
   "dependencies": {
+    "@angular/cdk": "^22.0.0",
     "@angular/common": "^22.0.0",
     "@angular/compiler": "^22.0.0",
     "@angular/core": "^22.0.0",
@@ -39,9 +40,12 @@
     "@idem/shared-styles": "file:../../packages/shared-styles",
     "@ngx-translate/core": "^18.0.0",
     "@ngx-translate/http-loader": "^18.0.0",
+    "@primeuix/themes": "^3.0.0",
     "@tailwindcss/postcss": "^4.3.3",
     "firebase": "^12.0.0",
     "postcss": "^8.5.6",
+    "primeicons": "^7.0.0",
+    "primeng": "^22.1.0",
     "rxjs": "~7.8.0",
     "tailwindcss": "^4.3.3",
     "tslib": "^2.3.0"

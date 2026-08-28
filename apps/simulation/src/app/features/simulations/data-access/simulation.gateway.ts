@@ -2,6 +2,7 @@ import { Observable } from 'rxjs';
 
 import {
   CreateSimulationInput,
+  LabName,
   LinkedProject,
   ProjectUnderstanding,
   Simulation,
@@ -12,38 +13,43 @@ import {
 } from '../models';
 
 /**
- * Everything the UI needs from the simulation backend.
+ * Tout ce que l'interface attend du backend de simulation.
  *
- * Declared as an abstract class so it doubles as a DI token: the app binds
- * either the HTTP implementation or the demo one, and no page ever knows
- * which is in use.
+ * Déclarée en classe abstraite pour servir aussi de jeton d'injection : l'app
+ * fournit soit l'implémentation HTTP, soit celle de démonstration, et aucune
+ * page ne sait laquelle est active.
  */
 export abstract class SimulationGateway {
-  /** IDEM projects the signed-in user can simulate. */
+  /** Projets IDEM que l'utilisateur connecté peut simuler. */
   abstract listProjects(): Observable<LinkedProject[]>;
 
   /**
-   * Reads the project and returns what is known, researchable, uncertain or
-   * missing, before anything is simulated or billed.
+   * Lit le projet et renvoie ce qui est su, à chercher, incertain ou manquant.
+   * Rien n'est persisté ni facturé à cette étape.
    */
   abstract analyseProject(projectId: string): Observable<ProjectUnderstanding>;
 
-  /** Same, for a business plan uploaded by a user with no IDEM project. */
-  abstract analyseDocument(file: File): Observable<ProjectUnderstanding>;
+  /** Même sortie, à partir d'un business plan importé. */
+  abstract analyseDocument(projectId: string, file: File): Observable<ProjectUnderstanding>;
 
-  abstract getPricing(origin: SimulationOrigin): Observable<SimulationPricing>;
+  abstract getPricing(projectId: string, origin: SimulationOrigin): Observable<SimulationPricing>;
 
-  abstract listSimulations(): Observable<SimulationSummary[]>;
+  abstract listSimulations(projectId: string): Observable<SimulationSummary[]>;
 
-  abstract getSimulation(id: string): Observable<Simulation>;
+  abstract getSimulation(projectId: string, simulationId: string): Observable<Simulation>;
 
   abstract createSimulation(input: CreateSimulationInput): Observable<Simulation>;
 
-  /** Emits progress updates until the run reaches a terminal state. */
-  abstract watchSimulation(id: string): Observable<Simulation>;
+  /** Émet l'avancement jusqu'à ce que l'exécution atteigne un état terminal. */
+  abstract watchSimulation(projectId: string, simulationId: string): Observable<Simulation>;
 
-  abstract getReport(id: string): Observable<SimulationReport>;
+  abstract getReport(projectId: string, simulationId: string): Observable<SimulationReport>;
 
-  /** Buys the full report for a run that was bought without it. */
-  abstract purchaseReport(id: string): Observable<Simulation>;
+  /** Génère le rapport complet d'une exécution achetée sans lui. */
+  abstract generateReport(projectId: string, simulationId: string): Observable<SimulationReport>;
+
+  /** Lance une analyse complémentaire et renvoie la simulation enrichie. */
+  abstract runLab(projectId: string, simulationId: string, lab: LabName): Observable<Simulation>;
+
+  abstract deleteSimulation(projectId: string, simulationId: string): Observable<void>;
 }

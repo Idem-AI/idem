@@ -1,22 +1,33 @@
 import { Evidence } from './evidence.model';
 
 /**
- * How much a factor can move the outcome.
- *
- * `unknown` is a first-class tier on purpose: a factor the engine could not
- * pin down is information, not something to hide.
+ * `unknown` est un niveau à part entière : un facteur que le moteur n'a pas su
+ * cerner est une information, pas quelque chose à masquer.
  */
 export type FactorTier = 'critical' | 'important' | 'secondary' | 'unknown';
+
+/** Le levier du modèle sur lequel un facteur agit. */
+export type FactorLever =
+  | 'price'
+  | 'variableCost'
+  | 'fixedCost'
+  | 'acquisitionCost'
+  | 'growth'
+  | 'retention'
+  | 'frequency'
+  | 'capital'
+  | 'none';
 
 export interface Factor {
   id: string;
   name: string;
-  /** Grouping used in the report, e.g. "Marché", "Coûts", "Réglementation". */
   category: string;
   tier: FactorTier;
-  /** Relative influence on the simulated outcome, 0-100. */
+  /** Influence relative sur le résultat simulé, 0-100. */
   impact: number;
   description: string;
+  lever: FactorLever;
+  leverElasticity?: number;
   evidence?: Evidence;
 }
 

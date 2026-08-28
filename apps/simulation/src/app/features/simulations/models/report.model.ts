@@ -1,17 +1,17 @@
 import { ConfidenceLevel, Evidence } from './evidence.model';
-import { Factor } from './factor.model';
+import { Factor, FactorLever } from './factor.model';
 import { ProjectProfile } from './project.model';
 import { Scenario } from './scenario.model';
 import { Robustness, Verdict } from './simulation.model';
 
-/** One row of the simulated financial trajectory. */
 export interface FinancialPoint {
-  /** Month index from launch, 1-based. */
+  /** Mois depuis le lancement, à partir de 1. */
   month: number;
+  activeCustomers: number;
   revenue: number;
   costs: number;
   cashflow: number;
-  /** Cumulative cash, which is what runway is read from. */
+  /** Trésorerie cumulée, d'où se lit l'autonomie. */
   cash: number;
 }
 
@@ -22,27 +22,28 @@ export interface FinancialSummary {
   capitalRequired: number;
   runwayMonths: number | null;
   grossMargin: number;
+  revenueYear1: number;
+  revenueYear3: number;
   points: FinancialPoint[];
 }
 
 /**
- * Answers "what actually changes the outcome": the delta in viability for a
- * given move on a single factor, holding everything else steady.
+ * Ce qu'un mouvement change réellement sur l'indice, tous les autres leviers
+ * restant constants.
  */
 export interface SensitivityEntry {
   factorId: string;
   factorName: string;
-  /** The move being tested, e.g. "+10 % de rétention". */
+  lever: FactorLever;
   change: string;
-  /** Points of viability index gained or lost. */
+  /** Points de viabilité gagnés ou perdus. */
   viabilityDelta: number;
 }
 
-/** A threshold the model has to clear for the scenarios to hold. */
+/** Un seuil que le modèle doit franchir pour que les scénarios tiennent. */
 export interface ViabilityCondition {
   id: string;
   label: string;
-  /** Formatted threshold including comparator and unit, e.g. "< 4 500 FCFA". */
   threshold: string;
   currentValue?: string;
   met: boolean | null;
@@ -74,8 +75,7 @@ export interface SimulationReport {
   sensitivity: SensitivityEntry[];
   conditions: ViabilityCondition[];
   recommendations: Recommendation[];
-  /** Assumptions and sourced values the whole report rests on. */
   evidence: Evidence[];
-  /** What still has to be checked against the real market. */
+  /** Ce qu'il reste à confronter au marché réel. */
   validationNeeded: string[];
 }
