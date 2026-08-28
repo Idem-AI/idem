@@ -3,7 +3,13 @@
     [heading]="'list.heading' | translate"
     [description]="'list.description' | translate"
   >
-    <a actions routerLink="/simulations/new" class="sim-btn sim-btn-primary">
+    @if (project(); as current) {
+      <p breadcrumb class="mb-1 flex items-center gap-1.5 text-meta text-ink-subtle">
+        <i class="pi pi-folder text-[0.7rem]" aria-hidden="true"></i>
+        {{ current.name }}
+      </p>
+    }
+    <a actions routerLink="/simulations/new" class="inner-button">
       <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <path d="M12 5v14M5 12h14" stroke-linecap="round" />
       </svg>
@@ -14,15 +20,15 @@
   @if (isLoading()) {
     <sim-skeleton-list [count]="3" [label]="'list.loading' | translate" />
   } @else if (error()) {
-    <div class="sim-panel-flat p-6" role="alert">
+    <div class="glass-card p-6" role="alert">
       <p class="text-sm font-medium text-ink">{{ 'error.loadFailed' | translate }}</p>
       <p class="mt-1 text-meta text-ink-muted">{{ error() }}</p>
-      <button type="button" class="sim-btn sim-btn-secondary sim-btn-sm mt-3" (click)="reload()">
+      <button type="button" class="outer-button button-sm mt-3" (click)="reload()">
         {{ 'action.retry' | translate }}
       </button>
     </div>
   } @else if (isEmpty()) {
-    <div class="sim-panel-flat">
+    <div class="glass-card">
       <sim-empty-state
         [heading]="'list.empty.heading' | translate"
         [body]="'list.empty.body' | translate"
@@ -30,7 +36,7 @@
         <svg icon viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
           <path d="M4 19V9m5 10V5m5 14v-7m5 7V8" stroke-linecap="round" />
         </svg>
-        <a routerLink="/simulations/new" class="sim-btn sim-btn-primary">
+        <a routerLink="/simulations/new" class="inner-button">
           {{ 'list.empty.action' | translate }}
         </a>
       </sim-empty-state>
@@ -42,7 +48,7 @@
         @for (simulation of running(); track simulation.id) {
           <a
             [routerLink]="routeFor(simulation)"
-            class="sim-panel-flat flex items-center gap-4 p-4 transition-colors hover:border-line-strong"
+            class="glass-card flex items-center gap-4 p-4 transition-colors hover:border-line-strong"
           >
             <span class="size-4 shrink-0 animate-spin rounded-full border-2 border-line border-t-brand" aria-hidden="true"></span>
             <div class="min-w-0 flex-1">
@@ -62,7 +68,7 @@
       @for (simulation of finished(); track simulation.id) {
         <a
           [routerLink]="routeFor(simulation)"
-          class="sim-panel-flat flex flex-wrap items-center gap-x-4 gap-y-3 p-4 transition-colors hover:border-line-strong"
+          class="glass-card flex flex-wrap items-center gap-x-4 gap-y-3 p-4 transition-colors hover:border-line-strong"
         >
           @if (simulation.viabilityIndex !== undefined) {
             <span

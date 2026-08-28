@@ -15,7 +15,7 @@ import { LanguageService, SupportedLanguage } from '../../../core/i18n/language.
   template: `
     <button
       type="button"
-      class="sim-btn sim-btn-ghost sim-btn-sm uppercase"
+      class="button-ghost button-sm uppercase"
       [attr.aria-expanded]="open()"
       aria-haspopup="menu"
       [attr.aria-label]="'language.change' | translate"
@@ -31,7 +31,7 @@ import { LanguageService, SupportedLanguage } from '../../../core/i18n/language.
     @if (open()) {
       <div
         role="menu"
-        class="sim-rise absolute right-0 top-full z-40 mt-1 w-36 overflow-hidden rounded-xl border border-line bg-panel-raised shadow-raised"
+        class="rise absolute right-0 top-full z-40 mt-1 w-36 overflow-hidden rounded-xl border border-line bg-panel-raised shadow-raised"
       >
         @for (language of languages; track language) {
           <button

@@ -14,7 +14,7 @@ import { ThemeService } from '../../../core/theme/theme.service';
   template: `
     <button
       type="button"
-      class="sim-btn sim-btn-ghost sim-btn-sm"
+      class="button-ghost button-sm"
       [attr.aria-label]="
         (theme() === 'dark' ? 'theme.switchToLight' : 'theme.switchToDark') | translate
       "

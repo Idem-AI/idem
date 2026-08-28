@@ -1,45 +1,94 @@
 <div class="min-h-dvh">
-  <header
-    class="sticky top-0 z-30 border-b border-line bg-canvas/85 backdrop-blur supports-[backdrop-filter]:bg-canvas/70"
-  >
-    <div class="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4 sm:px-6">
-      <a routerLink="/simulations" class="flex items-center gap-2.5">
-        <span
-          class="grid size-7 place-items-center rounded-lg bg-brand text-brand-ink"
-          aria-hidden="true"
-        >
-          <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 19V9m5 10V5m5 14v-7m5 7V8" stroke-linecap="round" />
-          </svg>
-        </span>
-        <span class="text-sm font-semibold tracking-tight text-ink">IDEM Simulator</span>
-      </a>
+  <!-- Barre supérieure -->
+  <header class="glass fixed inset-x-0 top-0 z-40 h-16 border-b border-line">
+    <div class="flex h-full items-center gap-2 px-3 sm:px-4">
+      <button
+        type="button"
+        class="button-ghost button-sm button-icon-only md:hidden"
+        [attr.aria-label]="'nav.openMenu' | translate"
+        [attr.aria-expanded]="drawerOpen()"
+        (click)="drawerOpen.set(!drawerOpen())"
+      >
+        <i class="pi pi-bars" aria-hidden="true"></i>
+      </button>
 
-      <nav class="ml-4 hidden items-center gap-1 sm:flex" [attr.aria-label]="'nav.main' | translate">
-        <a
-          routerLink="/simulations"
-          routerLinkActive="text-ink bg-panel-sunken"
-          [routerLinkActiveOptions]="{ exact: true }"
-          class="rounded-lg px-3 py-1.5 text-sm font-medium text-ink-muted transition-colors hover:text-ink"
+      <button
+        type="button"
+        class="button-ghost button-sm button-icon-only hidden md:inline-flex"
+        [attr.aria-label]="'nav.toggleSidebar' | translate"
+        [attr.aria-pressed]="collapsed()"
+        (click)="toggleCollapsed()"
+      >
+        <i class="pi pi-bars" aria-hidden="true"></i>
+      </button>
+
+      <!-- Sélecteur de projet : tout le produit est porté par un projet IDEM. -->
+      <div class="relative ml-1 min-w-0">
+        <button
+          type="button"
+          class="flex min-w-0 max-w-[15rem] items-center gap-2.5 rounded-xl border border-line bg-panel-raised px-3 py-2 text-label text-ink transition-colors hover:border-line-strong sm:max-w-xs"
+          [attr.aria-expanded]="projectMenuOpen()"
+          aria-haspopup="listbox"
+          (click)="projectMenuOpen.set(!projectMenuOpen())"
         >
-          {{ 'nav.simulations' | translate }}
-        </a>
+          <span class="size-2 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+          <span class="truncate font-medium">
+            {{ activeProject()?.name || ('project.select' | translate) }}
+          </span>
+          <i
+            class="pi pi-chevron-down shrink-0 text-[0.7rem] text-ink-subtle transition-transform"
+            [class.rotate-180]="projectMenuOpen()"
+            aria-hidden="true"
+          ></i>
+        </button>
+
+        @if (projectMenuOpen()) {
+          <div
+            role="listbox"
+            [attr.aria-label]="'project.select' | translate"
+            class="rise absolute left-0 top-full z-50 mt-1.5 max-h-80 w-72 overflow-y-auto rounded-xl border border-line bg-panel-raised p-1 shadow-raised"
+          >
+            @for (project of projects(); track project.id) {
+              <button
+                type="button"
+                role="option"
+                [attr.aria-selected]="activeProject()?.id === project.id"
+                class="flex w-full items-start gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-panel-sunken"
+                (click)="chooseProject(project)"
+              >
+                <i
+                  class="pi mt-0.5 text-xs"
+                  [class.pi-check]="activeProject()?.id === project.id"
+                  [class.pi-folder]="activeProject()?.id !== project.id"
+                  [class.text-primary]="activeProject()?.id === project.id"
+                  [class.text-ink-subtle]="activeProject()?.id !== project.id"
+                  aria-hidden="true"
+                ></i>
+                <span class="min-w-0">
+                  <span class="block truncate text-label font-medium text-ink">{{ project.name }}</span>
+                  <span class="block truncate text-meta text-ink-subtle">{{ project.sector }}</span>
+                </span>
+              </button>
+            } @empty {
+              <p class="px-3 py-4 text-meta text-ink-subtle">{{ 'project.none' | translate }}</p>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="ml-auto flex items-center gap-1.5">
         <a
           [href]="dashboardUrl"
-          class="rounded-lg px-3 py-1.5 text-sm font-medium text-ink-muted transition-colors hover:text-ink"
+          class="button-ghost button-sm hidden lg:inline-flex"
         >
+          <i class="pi pi-arrow-up-right text-xs" aria-hidden="true"></i>
           {{ 'nav.backToIdem' | translate }}
         </a>
-      </nav>
 
-      <div class="ml-auto flex items-center gap-1">
-        <sim-theme-toggle />
-        <sim-language-menu />
-
-        <div class="relative ml-1">
+        <div class="relative">
           <button
             type="button"
-            class="grid size-8 place-items-center rounded-full border border-line bg-panel-raised text-meta font-semibold text-ink-muted transition-colors hover:text-ink"
+            class="grid size-9 place-items-center overflow-hidden rounded-full border border-line bg-panel-raised text-meta font-semibold text-ink-muted transition-colors hover:text-ink"
             [attr.aria-expanded]="menuOpen()"
             aria-haspopup="menu"
             [attr.aria-label]="'nav.account' | translate"
@@ -49,7 +98,7 @@
               <img
                 [src]="user()!.photoURL"
                 alt=""
-                class="size-8 rounded-full object-cover"
+                class="size-9 object-cover"
                 referrerpolicy="no-referrer"
               />
             } @else {
@@ -60,10 +109,10 @@
           @if (menuOpen()) {
             <div
               role="menu"
-              class="sim-rise absolute right-0 top-full z-40 mt-1 w-60 overflow-hidden rounded-xl border border-line bg-panel-raised shadow-raised"
+              class="rise absolute right-0 top-full z-50 mt-1.5 w-64 overflow-hidden rounded-xl border border-line bg-panel-raised shadow-raised"
             >
               <div class="border-b border-line px-3 py-2.5">
-                <p class="truncate text-sm font-medium text-ink">
+                <p class="truncate text-label font-medium text-ink">
                   {{ user()?.displayName || ('nav.account' | translate) }}
                 </p>
                 @if (user()?.email) {
@@ -73,14 +122,14 @@
               <a
                 [href]="dashboardUrl"
                 role="menuitem"
-                class="block px-3 py-2 text-sm text-ink-muted transition-colors hover:bg-panel-sunken hover:text-ink"
+                class="block px-3 py-2.5 text-label text-ink-muted transition-colors hover:bg-panel-sunken hover:text-ink"
               >
                 {{ 'nav.backToIdem' | translate }}
               </a>
               <button
                 type="button"
                 role="menuitem"
-                class="block w-full px-3 py-2 text-left text-sm text-ink-muted transition-colors hover:bg-panel-sunken hover:text-ink"
+                class="block w-full px-3 py-2.5 text-left text-label text-ink-muted transition-colors hover:bg-panel-sunken hover:text-ink"
                 (click)="signOut()"
               >
                 {{ 'auth.signOut' | translate }}
@@ -92,7 +141,38 @@
     </div>
   </header>
 
-  <main id="sim-main" class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-10">
-    <router-outlet />
-  </main>
+  <!-- Colonne de navigation -->
+  <aside
+    class="glass fixed bottom-0 left-0 top-16 z-30 hidden border-r border-line transition-[width] duration-300 md:block"
+    [class.w-64]="!collapsed()"
+    [class.w-20]="collapsed()"
+  >
+    <sim-sidebar [simulationId]="simulationId()" [collapsed]="collapsed()" />
+  </aside>
+
+  <!-- Tiroir mobile -->
+  @if (drawerOpen()) {
+    <div class="fixed inset-0 z-50 md:hidden">
+      <button
+        type="button"
+        class="absolute inset-0 h-full w-full bg-black/60 backdrop-blur-sm"
+        [attr.aria-label]="'nav.closeMenu' | translate"
+        (click)="drawerOpen.set(false)"
+      ></button>
+      <div class="glass absolute bottom-0 left-0 top-0 w-72 border-r border-line shadow-raised">
+        <sim-sidebar [simulationId]="simulationId()" [inDrawer]="true" (navigate)="drawerOpen.set(false)" />
+      </div>
+    </div>
+  }
+
+  <div
+    class="pt-16 transition-[margin] duration-300"
+    [class.md:ml-64]="!collapsed()"
+    [class.md:ml-20]="collapsed()"
+  >
+    <main id="sim-main" class="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
+      <router-outlet />
+    </main>
+  </div>
+
 </div>

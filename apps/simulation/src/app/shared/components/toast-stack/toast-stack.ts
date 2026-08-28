@@ -11,7 +11,7 @@ import { ToastService } from '../../../core/ui/toast.service';
     <div class="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex flex-col items-center gap-2 p-4">
       @for (toast of toasts(); track toast.id) {
         <div
-          class="sim-rise pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-xl border p-3 shadow-raised"
+          class="rise pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-xl border p-3 shadow-raised"
           [class]="toneClass(toast.tone)"
           role="status"
           aria-live="polite"
@@ -25,7 +25,7 @@ import { ToastService } from '../../../core/ui/toast.service';
           </div>
           <button
             type="button"
-            class="sim-btn sim-btn-ghost sim-btn-sm -my-1 -mr-1"
+            class="button-ghost button-sm -my-1 -mr-1"
             [attr.aria-label]="'action.dismiss' | translate"
             (click)="dismiss(toast.id)"
           >

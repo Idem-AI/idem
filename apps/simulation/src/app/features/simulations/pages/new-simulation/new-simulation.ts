@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -10,7 +10,6 @@ import { PageHeader } from '../../../../shared/components/page-header/page-heade
 import { SimulationGateway, SimulationStore } from '../../data-access';
 import {
   KnowledgeItem,
-  LinkedProject,
   ProjectUnderstanding,
   SimulationOrigin,
   SimulationPlan,
@@ -46,8 +45,8 @@ export class NewSimulation {
   protected readonly step = signal<Step>('source');
   protected readonly origin = signal<SimulationOrigin>('idem-project');
 
-  protected readonly projects = signal<readonly LinkedProject[]>([]);
-  protected readonly projectsLoading = signal(true);
+  protected readonly projects = this.store.projects;
+  protected readonly projectsLoading = computed(() => this.store.projectsStatus() === 'loading');
   protected readonly selectedProjectId = signal<string | null>(null);
   protected readonly selectedFile = signal<File | null>(null);
 
@@ -107,24 +106,26 @@ export class NewSimulation {
   );
 
   constructor() {
-    void this.loadProjects();
-  }
-
-  private async loadProjects(): Promise<void> {
-    try {
-      const projects = await firstValueFrom(this.gateway.listProjects());
-      this.projects.set(projects);
-
-      // Arriving from the dashboard's "Simuler mon entreprise" button.
-      const preselected = this.route.snapshot.queryParamMap.get('projectId');
-      if (preselected && projects.some((project) => project.id === preselected)) {
-        this.selectedProjectId.set(preselected);
-      }
-    } catch {
-      this.projects.set([]);
-    } finally {
-      this.projectsLoading.set(false);
-    }
+    // La liste des projets est déjà chargée par la coquille ; on se contente
+    // de choisir la sélection de départ dès qu'elle arrive.
+    effect(() => {
+      const projects = this.projects();
+      untracked(() => {
+        if (this.selectedProjectId() || !projects.length) {
+          return;
+        }
+        // Arrivée depuis le bouton « Simuler mon entreprise » du dashboard.
+        const requested = this.route.snapshot.queryParamMap.get('projectId');
+        const preselected =
+          (requested && projects.some((project) => project.id === requested) && requested) ||
+          this.store.projectId();
+        this.selectedProjectId.set(
+          preselected && projects.some((project) => project.id === preselected)
+            ? preselected
+            : projects[0].id,
+        );
+      });
+    });
   }
 
   protected chooseOrigin(origin: SimulationOrigin): void {
@@ -145,11 +146,14 @@ export class NewSimulation {
     this.step.set('analysis');
     try {
       const projectId = this.selectedProjectId();
+      if (!projectId) {
+        throw new Error(this.translate.instant('newRun.noProject') as string);
+      }
       const file = this.selectedFile();
       const understanding =
-        this.origin() === 'idem-project' && projectId
+        this.origin() === 'idem-project'
           ? await firstValueFrom(this.gateway.analyseProject(projectId))
-          : await firstValueFrom(this.gateway.analyseDocument(file as File));
+          : await firstValueFrom(this.gateway.analyseDocument(projectId, file as File));
       this.understanding.set(understanding);
     } catch (error) {
       this.step.set('source');
@@ -171,8 +175,12 @@ export class NewSimulation {
     if (this.pricing()) {
       return;
     }
+    const projectId = this.selectedProjectId();
+    if (!projectId) {
+      return;
+    }
     try {
-      const pricing = await firstValueFrom(this.gateway.getPricing(this.origin()));
+      const pricing = await firstValueFrom(this.gateway.getPricing(projectId, this.origin()));
       this.pricing.set(pricing);
       this.selectedTier.set(
         pricing.plans.find((plan) => plan.recommended)?.tier ?? pricing.plans[0].tier,
@@ -186,12 +194,19 @@ export class NewSimulation {
   }
 
   protected async launch(): Promise<void> {
+    const projectId = this.selectedProjectId();
+    if (!projectId) {
+      return;
+    }
     this.launching.set(true);
     try {
+      // Le projet choisi ici devient le projet actif : tous les écrans de
+      // l'exécution en dépendent.
+      this.store.selectProject(projectId);
       const simulation = await this.store.create({
         name: this.runName(),
         origin: this.origin(),
-        projectId: this.selectedProjectId() ?? undefined,
+        projectId,
         documentName: this.selectedFile()?.name,
         tier: this.selectedTier(),
         answers: this.answers(),

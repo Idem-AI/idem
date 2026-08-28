@@ -1,0 +1,43 @@
+<div class="flex flex-col gap-8">
+  <section class="flex flex-col gap-4">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h2 class="text-h2 font-semibold text-ink">{{ 'scenarios.heading' | translate }}</h2>
+        <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+          {{ 'scenarios.body' | translate }}
+        </p>
+      </div>
+      @if (survivalRate() !== null) {
+        <p class="rounded-xl border border-line bg-panel-sunken px-4 py-2.5 text-meta text-ink-muted">
+          {{ 'scenarios.survival' | translate: { percent: survivalRate() } }}
+        </p>
+      }
+    </div>
+
+    <div class="glass-card p-5">
+      <sim-scenario-table
+        [scenarios]="combinations()"
+        [caption]="'scenarios.heading' | translate"
+      />
+    </div>
+  </section>
+
+  @if (stressTests().length) {
+    <section class="flex flex-col gap-4">
+      <div>
+        <h2 class="text-h2 font-semibold text-ink">{{ 'scenarios.stress' | translate }}</h2>
+        <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+          {{ 'scenarios.stressBody' | translate }}
+        </p>
+      </div>
+      <div class="glass-card p-5">
+        <sim-scenario-table
+          [scenarios]="stressTests()"
+          [caption]="'scenarios.stress' | translate"
+        />
+      </div>
+    </section>
+  }
+
+  <sim-disclaimer-note />
+</div>

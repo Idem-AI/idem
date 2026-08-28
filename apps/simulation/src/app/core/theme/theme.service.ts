@@ -7,10 +7,10 @@ export type ResolvedTheme = 'dark' | 'light';
 const STORAGE_KEY = 'idem_simulation_theme';
 
 /**
- * Dark/light theming for the whole app.
+ * Thème clair/sombre de toute l'application.
  *
- * Nothing here knows about colours: it flips `data-theme` on the root element
- * and the token layer in styles.css does the rest.
+ * Rien ici ne connaît de couleur : le service pose `.dark` / `.light` sur la
+ * racine, et le design system fournit les deux palettes.
  */
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
@@ -35,7 +35,13 @@ export class ThemeService {
     }
 
     effect(() => {
-      this.document.documentElement.dataset['theme'] = this.theme();
+      const theme = this.theme();
+      const root = this.document.documentElement;
+      // Le design system bascule sur les classes `.dark` / `.light` ;
+      // `data-theme` ne sert qu'au sélecteur sombre de PrimeNG.
+      root.dataset['theme'] = theme;
+      root.classList.toggle('dark', theme === 'dark');
+      root.classList.toggle('light', theme === 'light');
     });
   }
 

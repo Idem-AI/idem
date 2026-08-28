@@ -11,7 +11,32 @@
     "main": "Main navigation",
     "simulations": "Simulations",
     "backToIdem": "Back to IDEM",
-    "account": "Account"
+    "account": "Account",
+    "new": "New simulation",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "toggleSidebar": "Collapse or expand navigation",
+    "overview": "Overview",
+    "understanding": "Understanding",
+    "factors": "Factors",
+    "scenarios": "Scenarios",
+    "financials": "Financials",
+    "report": "Report",
+    "compare": "Comparison",
+    "group": {
+      "analysis": "Analysis",
+      "labs": "Labs",
+      "deliverables": "Deliverables"
+    },
+    "lab": {
+      "redTeam": "Attack the project",
+      "customers": "Customer simulator",
+      "investors": "Investor simulator",
+      "blackSwan": "Black swans",
+      "universes": "Parallel universes",
+      "timeMachine": "Time machine",
+      "experiments": "Experiments to run"
+    }
   },
   "theme": {
     "switchToLight": "Switch to light theme",
@@ -107,7 +132,8 @@
     "launch": "Start the simulation",
     "launching": "Starting…",
     "launchFailed": "Could not start the simulation",
-    "pricingFailed": "Could not load pricing"
+    "pricingFailed": "Could not load pricing",
+    "noProject": "Pick a project first."
   },
   "tier": {
     "run": "Simulation",
@@ -141,7 +167,9 @@
     "title": "Simulation running",
     "description": "The run continues if you close this page. You will be taken to the results as soon as they are ready.",
     "failed": "The simulation stopped",
-    "failedBody": "Nothing is charged for a run that does not finish. Start it again from the list."
+    "failedBody": "Nothing is charged for a run that does not finish. Start it again from the list.",
+    "body": "The analysis runs several agents and takes a few minutes. You can close this screen — the run continues.",
+    "inProgress": "Running — {{percent}}%"
   },
   "knowledge": {
     "known": "What we know",
@@ -233,7 +261,9 @@
   "severity": {
     "critical": "Critical",
     "high": "High",
-    "moderate": "Moderate"
+    "moderate": "Moderate",
+    "important": "Important",
+    "secondary": "Secondary"
   },
   "impact": {
     "low": "Low",
@@ -257,7 +287,8 @@
     "holdsNo": "No",
     "never": "Never reached",
     "monthN": "Month {{month}}",
-    "monthsN": "{{months}} months"
+    "monthsN": "{{months}} months",
+    "notComputed": "Not computed"
   },
   "scenarioKind": {
     "baseline": "Baseline",
@@ -352,5 +383,193 @@
     "heading": "Page not found",
     "body": "This link does not match any page in the simulator.",
     "action": "Back to simulations"
+  },
+  "project": {
+    "select": "Choose a project",
+    "none": "No project available"
+  },
+  "origin": {
+    "idem-project": "IDEM project",
+    "imported-document": "Imported document"
+  },
+  "overview": {
+    "atAGlance": "At a glance",
+    "nextSteps": "What's next"
+  },
+  "understanding": {
+    "profile": "What the engine understood",
+    "baseline": "The numbers it kept",
+    "baselineBody": "These are the only values the deterministic engine uses. Everything else exists to establish them or to move them.",
+    "knowledge": "What is known, and what is not",
+    "knowledgeBody": "All four states are shown together: an assumption dressed as data would distort everything that follows.",
+    "evidence": "Sources",
+    "evidenceBody": "Every value carries where it came from and how confident the engine is in it.",
+    "pending": "The project analysis is not available yet."
+  },
+  "baseline": {
+    "unitPrice": "Unit price",
+    "unitVariableCost": "Unit variable cost",
+    "monthlyFixedCosts": "Monthly fixed costs",
+    "acquisitionCost": "Customer acquisition cost",
+    "startingCapital": "Starting capital",
+    "initialMonthlyCustomers": "New customers / month",
+    "monthlyGrowthRate": "Monthly growth",
+    "monthlyRetentionRate": "Monthly retention",
+    "purchasesPerCustomerPerMonth": "Purchases / customer / month"
+  },
+  "factors": {
+    "heading": "Discovered factors",
+    "body": "{{total}} factors identified for this sector. The list is not fixed — it follows the project being analysed.",
+    "filter": "Filter by tier",
+    "all": "All",
+    "empty": "No factor at this tier.",
+    "noEvidence": "No source attached: this factor remains an assumption made by the engine."
+  },
+  "lever": {
+    "price": "Price",
+    "variableCost": "Variable cost",
+    "fixedCost": "Fixed costs",
+    "acquisitionCost": "Acquisition",
+    "growth": "Growth",
+    "retention": "Retention",
+    "frequency": "Purchase frequency",
+    "capital": "Capital",
+    "none": "No direct lever"
+  },
+  "scenarios": {
+    "heading": "Combinations tested",
+    "body": "Each scenario moves several factors at once: it is the combination that breaks a model, rarely a single factor.",
+    "stress": "Stress tests",
+    "stressBody": "The question here is not “how likely” but “at what point does it break”.",
+    "survival": "The model holds in {{percent}}% of scenarios"
+  },
+  "financials": {
+    "heading": "Financial trajectory",
+    "body": "A deterministic three-year projection, reproducible: same inputs, same numbers.",
+    "trajectory": "Cumulative cash",
+    "breakEven": "Break-even",
+    "runway": "Runway",
+    "burn": "Monthly burn",
+    "capital": "Capital required",
+    "margin": "Gross margin",
+    "revenueYear1": "Year 1 revenue",
+    "revenueYear3": "Year 3 revenue",
+    "never": "never reached",
+    "beyondHorizon": "beyond the horizon",
+    "monthUnit": "th month",
+    "monthsUnit": "months",
+    "sensitivity": "Sensitivity",
+    "sensitivityBody": "What a single move changes on the index, every other lever held constant.",
+    "conditions": "Viability conditions",
+    "conditionsBody": "The thresholds the model has to clear for the scenarios to hold.",
+    "pending": "Financial results are not available yet."
+  },
+  "condition": {
+    "met": "Met",
+    "unmet": "Not met",
+    "unknown": "Unknown"
+  },
+  "lab": {
+    "launch": "Run this analysis",
+    "rerun": "Run again",
+    "running": "Running",
+    "runningBody": "Several agents are working on this analysis. It takes one to two minutes.",
+    "notRun": "This analysis has not been run yet. It builds on the simulation results rather than replacing them.",
+    "needsRun": "This analysis needs a completed simulation.",
+    "done": "Analysis available",
+    "redTeam": {
+      "heading": "Attack my business",
+      "body": "Six roles look for where the project breaks. The point is not reassurance, it is finding what was not planned for.",
+      "total": "Weaknesses found",
+      "filter": "Filter by role",
+      "allRoles": "All roles",
+      "attack": "The attack",
+      "exposure": "What makes it possible",
+      "mitigation": "What closes it"
+    },
+    "customers": {
+      "heading": "Customer simulator",
+      "body": "A panel of synthetic customers reacts to your offer and your price. These are constructed profiles, not real people.",
+      "panelSize": "Profiles simulated",
+      "segments": "Segments",
+      "optimalPrice": "Most profitable price",
+      "curve": "Revenue by price",
+      "curveLabel": "Estimated revenue as a function of price",
+      "price": "Price",
+      "conversion": "Conversion",
+      "buyers": "Buyers",
+      "revenue": "Estimated revenue",
+      "budget": "Budget",
+      "willingness": "Willingness to pay",
+      "sensitivity": "Price sensitivity",
+      "frequency": "Purchases / year"
+    },
+    "investors": {
+      "heading": "Investor simulator",
+      "body": "The case put in front of four profiles. What matters here are the objections — they are coming either way.",
+      "readiness": "Funding readiness",
+      "prepare": "To prepare before the first meeting",
+      "secondMeeting": "Would take a second meeting",
+      "noSecondMeeting": "Would not follow up"
+    },
+    "blackSwan": {
+      "heading": "Black swans",
+      "body": "Rare but possible shocks, replayed through the same engine as the scenarios.",
+      "absorption": "Shocks absorbed",
+      "absorptionHint": "Share of shocks the model survives without running out of cash.",
+      "lowestCash": "Lowest cash"
+    },
+    "universes": {
+      "heading": "Parallel universes",
+      "body": "The same project under other business models, run through the same scenarios.",
+      "best": "Best universe"
+    },
+    "timeMachine": {
+      "heading": "Time machine",
+      "body": "The project projected over five years, one trajectory per scenario, with the point where they diverge."
+    },
+    "experiments": {
+      "heading": "Experiments to run",
+      "body": "What to go and check in the real world to turn assumptions into data.",
+      "method": "How to run it",
+      "signal": "What the result would settle",
+      "cost": "Cost",
+      "duration": "Duration",
+      "days": "{{days}} days",
+      "uncertaintyDrop": "Uncertainty removed",
+      "startHere": "Start here"
+    }
+  },
+  "redTeamRole": {
+    "competitor": "Competitor",
+    "skeptical-customer": "Sceptical customer",
+    "investor": "Investor",
+    "regulator": "Regulator",
+    "cfo": "CFO",
+    "operations": "Operations"
+  },
+  "investorProfile": {
+    "growth": "Growth fund",
+    "impact": "Impact investor",
+    "technology": "Technology fund",
+    "regional": "Regional investor"
+  },
+  "likelihood": {
+    "rare": "Rare",
+    "unlikely": "Unlikely",
+    "plausible": "Plausible"
+  },
+  "timeline": {
+    "revenue": "Revenue",
+    "costs": "Costs",
+    "cash": "Cash",
+    "customers": "Active customers",
+    "divergesAt": "Diverges from year {{year}}",
+    "noDivergence": "No marked divergence over the horizon"
+  },
+  "cost": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High"
   }
 }

@@ -41,7 +41,7 @@ interface PlottedPoint {
               [attr.x2]="width - padding.right"
               [attr.y1]="tick.y"
               [attr.y2]="tick.y"
-              stroke="var(--sim-line)"
+              stroke="var(--glass-border)"
               stroke-width="1"
               [attr.stroke-opacity]="tick.value === 0 ? 1 : 0.45"
             />
@@ -58,11 +58,11 @@ interface PlottedPoint {
         }
 
         <!-- Area under the curve, kept faint so the line stays the mark. -->
-        <path [attr.d]="areaPath()" fill="var(--sim-brand)" fill-opacity="0.1" />
+        <path [attr.d]="areaPath()" fill="var(--color-primary)" fill-opacity="0.1" />
         <path
           [attr.d]="linePath()"
           fill="none"
-          stroke="var(--sim-brand)"
+          stroke="var(--color-primary)"
           stroke-width="2"
           stroke-linejoin="round"
           stroke-linecap="round"
@@ -74,7 +74,7 @@ interface PlottedPoint {
             [attr.x2]="x"
             [attr.y1]="padding.top"
             [attr.y2]="height - padding.bottom"
-            stroke="var(--sim-verdict-go)"
+            stroke="var(--color-success)"
             stroke-width="1.5"
             stroke-dasharray="3 3"
           />
@@ -106,15 +106,15 @@ interface PlottedPoint {
             [attr.x2]="active.x"
             [attr.y1]="padding.top"
             [attr.y2]="height - padding.bottom"
-            stroke="var(--sim-line-strong)"
+            stroke="var(--glass-border-strong)"
             stroke-width="1"
           />
           <circle
             [attr.cx]="active.x"
             [attr.cy]="active.y"
             r="4"
-            fill="var(--sim-brand)"
-            stroke="var(--sim-panel)"
+            fill="var(--color-primary)"
+            stroke="var(--color-surface-1)"
             stroke-width="2"
           />
         }

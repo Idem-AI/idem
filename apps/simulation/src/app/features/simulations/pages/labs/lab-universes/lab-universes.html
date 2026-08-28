@@ -1,0 +1,61 @@
+<sim-lab-panel
+  lab="universes"
+  [heading]="'lab.universes.heading' | translate"
+  [body]="'lab.universes.body' | translate"
+>
+  @if (report(); as report) {
+    <div class="flex flex-col gap-5">
+      <p class="rounded-xl border border-line bg-panel-sunken p-4 text-sm leading-relaxed text-ink-muted">
+        {{ report.narrative }}
+      </p>
+
+      <ul class="grid gap-3 lg:grid-cols-2">
+        @for (universe of report.universes; track universe.id) {
+          <li
+            class="glass-card p-5"
+            [class.border-primary]="universe.id === report.bestUniverseId"
+          >
+            <div class="flex flex-wrap items-baseline justify-between gap-3">
+              <h3 class="text-sm font-semibold text-ink">{{ universe.name }}</h3>
+              @if (universe.id === report.bestUniverseId) {
+                <span
+                  class="rounded-full bg-primary px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide text-brand-ink"
+                >
+                  {{ 'lab.universes.best' | translate }}
+                </span>
+              }
+            </div>
+            <p class="mt-0.5 text-meta text-ink-subtle">{{ universe.businessModel }}</p>
+            <p class="mt-2.5 max-w-[60ch] text-sm leading-relaxed text-ink-muted">{{ universe.rationale }}</p>
+
+            @if (universe.outcome; as outcome) {
+              <dl class="mt-3 grid grid-cols-3 gap-3 border-t border-line pt-3">
+                <div>
+                  <dt class="text-meta text-ink-subtle">{{ 'scenario.viability' | translate }}</dt>
+                  <dd class="text-sm font-semibold tabular-nums text-ink">{{ outcome.viability }}</dd>
+                </div>
+                <div>
+                  <dt class="text-meta text-ink-subtle">{{ 'scenario.breakEven' | translate }}</dt>
+                  <dd class="text-sm tabular-nums text-ink-muted">
+                    {{
+                      outcome.breakEvenMonth === null
+                        ? ('scenario.never' | translate)
+                        : ('scenario.monthN' | translate: { month: outcome.breakEvenMonth })
+                    }}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-meta text-ink-subtle">{{ 'result.robustness' | translate }}</dt>
+                  <dd class="text-sm text-ink-muted">
+                    {{ universe.robustness ? ('robustness.' + universe.robustness | translate) : '—' }}
+                  </dd>
+                </div>
+              </dl>
+              <p class="mt-2.5 text-meta leading-relaxed text-ink-muted">{{ outcome.narrative }}</p>
+            }
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</sim-lab-panel>
