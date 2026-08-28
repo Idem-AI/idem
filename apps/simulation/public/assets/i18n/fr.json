@@ -571,5 +571,14 @@
     "low": "Faible",
     "medium": "Moyen",
     "high": "Élevé"
+  },
+  "mock": {
+    "toggle": "Données de démonstration",
+    "on": "Activées — rien n'est envoyé à l'API",
+    "off": "Désactivées — l'application appelle l'API",
+    "reset": "Réinitialiser le jeu de démonstration",
+    "badge": "Démo",
+    "badgeHint": "Les chiffres affichés viennent d'un jeu de démonstration, pas de l'API.",
+    "useBuildDefault": "Revenir au réglage du .env"
   }
 }
