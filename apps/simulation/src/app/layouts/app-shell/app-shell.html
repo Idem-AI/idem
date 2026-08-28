@@ -1,0 +1,98 @@
+<div class="min-h-dvh">
+  <header
+    class="sticky top-0 z-30 border-b border-line bg-canvas/85 backdrop-blur supports-[backdrop-filter]:bg-canvas/70"
+  >
+    <div class="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4 sm:px-6">
+      <a routerLink="/simulations" class="flex items-center gap-2.5">
+        <span
+          class="grid size-7 place-items-center rounded-lg bg-brand text-brand-ink"
+          aria-hidden="true"
+        >
+          <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19V9m5 10V5m5 14v-7m5 7V8" stroke-linecap="round" />
+          </svg>
+        </span>
+        <span class="text-sm font-semibold tracking-tight text-ink">IDEM Simulator</span>
+      </a>
+
+      <nav class="ml-4 hidden items-center gap-1 sm:flex" [attr.aria-label]="'nav.main' | translate">
+        <a
+          routerLink="/simulations"
+          routerLinkActive="text-ink bg-panel-sunken"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="rounded-lg px-3 py-1.5 text-sm font-medium text-ink-muted transition-colors hover:text-ink"
+        >
+          {{ 'nav.simulations' | translate }}
+        </a>
+        <a
+          [href]="dashboardUrl"
+          class="rounded-lg px-3 py-1.5 text-sm font-medium text-ink-muted transition-colors hover:text-ink"
+        >
+          {{ 'nav.backToIdem' | translate }}
+        </a>
+      </nav>
+
+      <div class="ml-auto flex items-center gap-1">
+        <sim-theme-toggle />
+        <sim-language-menu />
+
+        <div class="relative ml-1">
+          <button
+            type="button"
+            class="grid size-8 place-items-center rounded-full border border-line bg-panel-raised text-meta font-semibold text-ink-muted transition-colors hover:text-ink"
+            [attr.aria-expanded]="menuOpen()"
+            aria-haspopup="menu"
+            [attr.aria-label]="'nav.account' | translate"
+            (click)="menuOpen.set(!menuOpen())"
+          >
+            @if (user()?.photoURL) {
+              <img
+                [src]="user()!.photoURL"
+                alt=""
+                class="size-8 rounded-full object-cover"
+                referrerpolicy="no-referrer"
+              />
+            } @else {
+              {{ initials() }}
+            }
+          </button>
+
+          @if (menuOpen()) {
+            <div
+              role="menu"
+              class="sim-rise absolute right-0 top-full z-40 mt-1 w-60 overflow-hidden rounded-xl border border-line bg-panel-raised shadow-raised"
+            >
+              <div class="border-b border-line px-3 py-2.5">
+                <p class="truncate text-sm font-medium text-ink">
+                  {{ user()?.displayName || ('nav.account' | translate) }}
+                </p>
+                @if (user()?.email) {
+                  <p class="truncate text-meta text-ink-subtle">{{ user()!.email }}</p>
+                }
+              </div>
+              <a
+                [href]="dashboardUrl"
+                role="menuitem"
+                class="block px-3 py-2 text-sm text-ink-muted transition-colors hover:bg-panel-sunken hover:text-ink"
+              >
+                {{ 'nav.backToIdem' | translate }}
+              </a>
+              <button
+                type="button"
+                role="menuitem"
+                class="block w-full px-3 py-2 text-left text-sm text-ink-muted transition-colors hover:bg-panel-sunken hover:text-ink"
+                (click)="signOut()"
+              >
+                {{ 'auth.signOut' | translate }}
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="sim-main" class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-10">
+    <router-outlet />
+  </main>
+</div>

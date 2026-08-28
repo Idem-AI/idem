@@ -1,0 +1,40 @@
+/* ============================================================================
+   IDEM SIMULATOR — landing page
+   ============================================================================ */
+
+:host {
+  display: block;
+}
+
+/* The scenario fan draws itself once, left to right, so the divergence reads
+   as something that happens rather than something that was always there. */
+.fan path {
+  stroke-dasharray: 640;
+  stroke-dashoffset: 640;
+  animation: fan-draw 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.fan g:first-of-type path:nth-child(1) { animation-delay: 0.05s; }
+.fan g:first-of-type path:nth-child(2) { animation-delay: 0.12s; }
+.fan g:first-of-type path:nth-child(3) { animation-delay: 0.19s; }
+.fan g:first-of-type path:nth-child(4) { animation-delay: 0.26s; }
+.fan g:first-of-type path:nth-child(5) { animation-delay: 0.33s; }
+.fan g:first-of-type path:nth-child(6) { animation-delay: 0.4s; }
+.fan g:last-of-type path:nth-child(1) { animation-delay: 0.5s; }
+.fan g:last-of-type path:nth-child(2) { animation-delay: 0.58s; }
+.fan g:last-of-type path:nth-child(3) { animation-delay: 0.66s; }
+.fan > path { animation-delay: 0.78s; }
+
+@keyframes fan-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* The fan is content, not decoration: it must be fully drawn either way. */
+@media (prefers-reduced-motion: reduce) {
+  .fan path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}

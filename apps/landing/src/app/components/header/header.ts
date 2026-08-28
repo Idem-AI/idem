@@ -99,6 +99,7 @@ export class Header implements OnInit {
         { label: $localize`:@@header.menu.pricing:Pricing`, route: '/pricing' },
         { label: 'IDEV', route: '/idev' },
         { label: 'iDeploy', route: '/ideploy' },
+        { label: 'IDEM Simulator', route: '/simulation' },
       ],
     },
     {

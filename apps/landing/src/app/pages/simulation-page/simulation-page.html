@@ -1,0 +1,454 @@
+<div class="relative min-h-screen overflow-hidden">
+  <!-- Ambient light, kept behind everything -->
+  <div class="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+    <div class="absolute -left-40 -top-52 h-[520px] w-[520px] rounded-full bg-linear-to-br from-primary to-accent opacity-[0.12] blur-[130px]"></div>
+    <div class="absolute -bottom-52 -right-40 h-[440px] w-[440px] rounded-full bg-linear-to-tr from-accent to-secondary opacity-[0.1] blur-[130px]"></div>
+  </div>
+
+  <div class="relative z-10">
+    <!-- =================================================== HERO -->
+    <section class="pt-32 lg:pt-40">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6">
+        <div class="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16">
+          <div>
+            <div class="mb-7 flex items-center gap-2 text-sm text-white/45">
+              <a routerLink="/home" class="transition-colors hover:text-white" i18n="@@simulation.breadcrumb.idem">Idem</a>
+              <span aria-hidden="true">/</span>
+              <span class="font-medium text-accent-500">IDEM Simulator</span>
+            </div>
+
+            <h1 class="text-4xl font-bold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-6xl" i18n="@@simulation.hero.title">
+              Test your business<br />before you <span class="i-underline">launch</span> it
+            </h1>
+
+            <p class="mt-7 max-w-xl text-lg leading-relaxed text-white/60" i18n="@@simulation.hero.description">
+              An idea can look excellent on paper and still fail once it meets the market. IDEM looks for the factors that can genuinely influence your business, simulates several possible futures, and shows you where your model breaks.
+            </p>
+
+            <div class="mt-9 flex flex-col gap-4 sm:flex-row sm:items-center">
+              <a [href]="simulationUrl" class="inner-button rounded-xl px-8 py-4 text-lg font-semibold">
+                <span i18n="@@simulation.hero.cta">Run a simulation</span>
+              </a>
+              <a href="#how" class="outer-button rounded-xl px-8 py-4 text-lg font-semibold">
+                <span i18n="@@simulation.hero.secondaryCta">See how it works</span>
+              </a>
+            </div>
+
+            <p class="mt-6 max-w-md text-sm leading-relaxed text-white/40" i18n="@@simulation.hero.note">
+              Import your business plan, or start from a project you already built in IDEM.
+            </p>
+          </div>
+
+          <!-- The product, drawn: one project, many trajectories, most of
+               them failing. -->
+          <figure class="relative">
+            <svg viewBox="0 0 480 268" class="w-full" role="img" aria-labelledby="fan-title fan-desc">
+              <title id="fan-title" i18n="@@simulation.fan.title">Fan of simulated trajectories</title>
+              <desc id="fan-desc" i18n="@@simulation.fan.desc">
+                From a single project, the engine lets many trajectories diverge. A minority stay above the viability threshold; most fall below it.
+              </desc>
+
+              <!-- Viability threshold -->
+              <line x1="30" y1="150" x2="466" y2="150" stroke="rgba(255,255,255,0.22)" stroke-width="1" stroke-dasharray="4 5" />
+              <text x="466" y="143" text-anchor="end" fill="rgba(255,255,255,0.45)" style="font-size: 10px; letter-spacing: 0.06em" i18n="@@simulation.fan.threshold">
+                VIABILITY THRESHOLD
+              </text>
+
+              <g class="fan" fill="none" stroke-linecap="round">
+                <!-- Trajectories that break the model -->
+                <g stroke="#f4735d" stroke-opacity="0.5" stroke-width="1.5">
+                  <path d="M30 150 C 170 154, 300 190, 452 244" />
+                  <path d="M30 150 C 170 152, 300 182, 452 226" />
+                  <path d="M30 150 C 170 156, 300 176, 452 208" />
+                  <path d="M30 150 C 170 150, 300 170, 452 192" />
+                  <path d="M30 150 C 170 148, 300 162, 452 176" />
+                  <path d="M30 150 C 170 152, 300 158, 452 162" />
+                </g>
+
+                <!-- Trajectories where it holds -->
+                <g stroke="#22d3ee" stroke-opacity="0.85" stroke-width="1.8">
+                  <path d="M30 150 C 170 146, 300 132, 452 118" />
+                  <path d="M30 150 C 170 144, 300 118, 452 92" />
+                  <path d="M30 150 C 170 142, 300 104, 452 64" />
+                </g>
+
+                <!-- The reference scenario -->
+                <path d="M30 150 C 170 148, 300 126, 452 104" stroke="#1447e6" stroke-width="3" />
+              </g>
+
+              <circle cx="30" cy="150" r="5" fill="#1447e6" />
+              <circle cx="30" cy="150" r="10" fill="none" stroke="#1447e6" stroke-opacity="0.35" stroke-width="1.5" />
+              <text x="16" y="176" fill="rgba(255,255,255,0.5)" style="font-size: 10px; letter-spacing: 0.06em" i18n="@@simulation.fan.origin">
+                YOUR PROJECT
+              </text>
+            </svg>
+
+            <figcaption class="mt-4 text-sm leading-relaxed text-white/40" i18n="@@simulation.fan.caption">
+              Each trajectory is a different combination of factors. What matters is not the best one, it is how many of them break the model.
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================== FACTOR WALL -->
+    <section class="py-28 lg:py-36">
+      <div class="mx-auto max-w-5xl px-4 sm:px-6">
+        <h2 class="max-w-3xl text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.wall.title">
+          A business does not run on five variables
+        </h2>
+        <p class="mt-5 max-w-2xl text-lg leading-relaxed text-white/55" i18n="@@simulation.wall.body">
+          It runs on dozens, sometimes hundreds of factors, and they are never quite the same from one project to the next.
+        </p>
+
+        <ul class="mt-12 flex flex-wrap gap-x-3 gap-y-2.5" aria-label="Example factors" i18n-aria-label="@@simulation.wall.listLabel">
+          @for (factor of factorWall; track factor) {
+            <li class="rounded-full border border-white/10 px-3.5 py-1.5 text-sm text-white/45 transition-colors hover:border-accent-500/40 hover:text-white/80">
+              {{ factor }}
+            </li>
+          }
+          <li class="rounded-full px-3.5 py-1.5 text-sm text-white/25" i18n="@@simulation.wall.more">and many more, depending on your sector</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- =================================================== HOW IT WORKS -->
+    <section id="how" class="scroll-mt-24 border-y border-white/[0.07] py-28 lg:py-36">
+      <div class="mx-auto max-w-5xl px-4 sm:px-6">
+        <h2 class="max-w-3xl text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.how.title">
+          What IDEM does when you start a simulation
+        </h2>
+        <p class="mt-5 max-w-2xl text-lg leading-relaxed text-white/55" i18n="@@simulation.how.body">
+          This is not a conversation with an AI. It is a five-stage analysis.
+        </p>
+
+        <ol class="mt-14 flex flex-col">
+          @for (step of pipeline; track step.id; let i = $index; let last = $last) {
+            <li class="relative flex gap-6 pb-10 last:pb-0 sm:gap-8">
+              @if (!last) {
+                <span class="absolute left-[1.4375rem] top-12 bottom-0 w-px bg-linear-to-b from-accent-500/40 to-white/5" aria-hidden="true"></span>
+              }
+              <span class="relative z-10 grid size-12 shrink-0 place-items-center rounded-xl border border-white/10 bg-[#0b0f16] font-mono text-sm font-bold text-accent-500">
+                {{ i + 1 }}
+              </span>
+              <div class="pt-2">
+                <h3 class="text-xl font-semibold text-white">{{ step.title }}</h3>
+                <p class="mt-2 max-w-2xl leading-relaxed text-white/55">{{ step.body }}</p>
+              </div>
+            </li>
+          }
+        </ol>
+      </div>
+    </section>
+
+    <!-- =================================================== SECTOR FACTORS -->
+    <section class="py-28 lg:py-36">
+      <div class="mx-auto max-w-5xl px-4 sm:px-6">
+        <h2 class="max-w-3xl text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.sectors.title">
+          Factors depend on the business, not on a template
+        </h2>
+        <p class="mt-5 max-w-2xl text-lg leading-relaxed text-white/55" i18n="@@simulation.sectors.body">
+          Two businesses, two worlds. A fixed list of twenty variables applied to everyone would describe neither of them properly.
+        </p>
+
+        <div class="mt-14 grid gap-6 sm:grid-cols-2">
+          @for (column of sectorFactors; track column.sector) {
+            <div class="glass-card rounded-2xl border border-white/10 p-7">
+              <h3 class="text-lg font-semibold text-white">{{ column.sector }}</h3>
+              <p class="mt-1 text-sm text-white/40">{{ column.note }}</p>
+              <ul class="mt-6 flex flex-col gap-2.5">
+                @for (factor of column.factors; track factor) {
+                  <li class="flex items-center gap-2.5 text-white/60">
+                    <span class="size-1 shrink-0 rounded-full bg-accent-500" aria-hidden="true"></span>
+                    {{ factor }}
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================== STRESS TESTS -->
+    <section class="border-y border-white/[0.07] py-28 lg:py-36">
+      <div class="mx-auto max-w-5xl px-4 sm:px-6">
+        <h2 class="max-w-3xl text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.stress.title">
+          The point is not to reassure you. It is to find where the model breaks.
+        </h2>
+        <p class="mt-5 max-w-2xl text-lg leading-relaxed text-white/55" i18n="@@simulation.stress.body">
+          IDEM deliberately puts your business through hard situations, then tells you which ones it cannot take.
+        </p>
+
+        <ul class="mt-14 flex flex-col divide-y divide-white/[0.07] border-y border-white/[0.07]">
+          @for (question of stressTests; track question) {
+            <li class="flex items-start gap-5 py-6">
+              <svg viewBox="0 0 24 24" class="mt-1 size-5 shrink-0 text-accent-500" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                <path d="M12 3v3m0 12v3m9-9h-3M6 12H3m13.5-6.5-2 2m-5 5-2 2m0-9 2 2m5 5 2 2" stroke-linecap="round" />
+              </svg>
+              <p class="text-lg leading-relaxed text-white/75">{{ question }}</p>
+            </li>
+          }
+        </ul>
+
+        <p class="mt-10 max-w-2xl text-lg leading-relaxed text-white/55" i18n="@@simulation.stress.closing">
+          If the conditions are genuinely bad, IDEM answers NO-GO. And it explains why.
+        </p>
+      </div>
+    </section>
+
+    <!-- =================================================== THE READOUT -->
+    <section class="py-28 lg:py-36">
+      <div class="mx-auto max-w-5xl px-4 sm:px-6">
+        <div class="grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
+          <div>
+            <h2 class="text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.readout.title">
+              An index, never on its own
+            </h2>
+            <p class="mt-5 text-lg leading-relaxed text-white/55" i18n="@@simulation.readout.body">
+              An index of 72 backed by solid data and an index of 72 riddled with uncertainty do not mean the same thing. IDEM always shows both together.
+            </p>
+
+            <dl class="mt-10 flex flex-col gap-6">
+              <div>
+                <dt class="font-semibold text-white" i18n="@@simulation.readout.robustness.term">Robustness</dt>
+                <dd class="mt-1 leading-relaxed text-white/50" i18n="@@simulation.readout.robustness.def">
+                  How well the model keeps holding as the factors deteriorate.
+                </dd>
+              </div>
+              <div>
+                <dt class="font-semibold text-white" i18n="@@simulation.readout.confidence.term">Confidence level</dt>
+                <dd class="mt-1 leading-relaxed text-white/50" i18n="@@simulation.readout.confidence.def">
+                  The quality of the data the analysis rests on, assumptions included.
+                </dd>
+              </div>
+              <div>
+                <dt class="font-semibold text-white" i18n="@@simulation.readout.uncertainties.term">Main uncertainties</dt>
+                <dd class="mt-1 leading-relaxed text-white/50" i18n="@@simulation.readout.uncertainties.def">
+                  What the simulation could not establish, and what still has to be checked on the ground.
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          <!-- A real readout, not a marketing metric tile -->
+          <div class="glass-card rounded-2xl border border-white/10 p-7">
+            <p class="text-sm text-white/40" i18n="@@simulation.readout.card.label">Simulated viability index</p>
+
+            <div class="mt-4 flex items-end gap-4">
+              <span class="text-6xl font-bold leading-none text-white">72</span>
+              <span class="pb-2 text-xl text-white/30">/ 100</span>
+            </div>
+
+            <div class="mt-6 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.07]">
+              <div class="h-full rounded-full bg-accent-500" style="width: 72%"></div>
+            </div>
+
+            <dl class="mt-7 grid grid-cols-2 gap-5 border-t border-white/[0.07] pt-6">
+              <div>
+                <dt class="text-sm text-white/40" i18n="@@simulation.readout.card.robustness">Robustness</dt>
+                <dd class="mt-0.5 font-semibold text-white" i18n="@@simulation.readout.card.robustnessValue">Medium to high</dd>
+              </div>
+              <div>
+                <dt class="text-sm text-white/40" i18n="@@simulation.readout.card.confidence">Confidence</dt>
+                <dd class="mt-0.5 font-semibold text-white" i18n="@@simulation.readout.card.confidenceValue">Medium</dd>
+              </div>
+            </dl>
+
+            <div class="mt-6 border-t border-white/[0.07] pt-6">
+              <p class="text-sm text-white/40" i18n="@@simulation.readout.card.uncertainties">Main uncertainties</p>
+              <ul class="mt-3 flex flex-wrap gap-2">
+                <li class="rounded-full border border-white/10 px-3 py-1 text-sm text-white/55" i18n="@@simulation.readout.card.u1">conversion rate</li>
+                <li class="rounded-full border border-white/10 px-3 py-1 text-sm text-white/55" i18n="@@simulation.readout.card.u2">real acquisition cost</li>
+                <li class="rounded-full border border-white/10 px-3 py-1 text-sm text-white/55" i18n="@@simulation.readout.card.u3">competitor response</li>
+              </ul>
+            </div>
+
+            <p class="mt-6 border-t border-white/[0.07] pt-5 text-sm leading-relaxed text-white/35" i18n="@@simulation.readout.card.caveat">
+              This index measures how robust the project is across the scenarios that were run. It is not a prediction of success.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================== EVIDENCE -->
+    <section class="border-y border-white/[0.07] py-28 lg:py-36">
+      <div class="mx-auto max-w-5xl px-4 sm:px-6">
+        <h2 class="max-w-3xl text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.evidence.title">
+          Every figure says where it came from
+        </h2>
+        <p class="mt-5 max-w-2xl text-lg leading-relaxed text-white/55" i18n="@@simulation.evidence.body">
+          Observed data, a derived estimate and an assumption are not worth the same. Blurring them would give a false impression of precision.
+        </p>
+
+        <div class="mt-14 grid gap-x-10 gap-y-8 sm:grid-cols-3">
+          <div>
+            <p class="font-mono text-sm uppercase tracking-widest text-accent-500" i18n="@@simulation.evidence.data.label">Data</p>
+            <p class="mt-3 leading-relaxed text-white/55" i18n="@@simulation.evidence.data.body">
+              An observed, published figure with its source and its date. Fuel prices, urban density, exchange rates.
+            </p>
+          </div>
+          <div>
+            <p class="font-mono text-sm uppercase tracking-widest text-white/60" i18n="@@simulation.evidence.estimate.label">Estimate</p>
+            <p class="mt-3 leading-relaxed text-white/55" i18n="@@simulation.evidence.estimate.body">
+              A value derived from comparable data, when nothing direct exists for your market.
+            </p>
+          </div>
+          <div>
+            <p class="font-mono text-sm uppercase tracking-widest text-white/40" i18n="@@simulation.evidence.assumption.label">Assumption</p>
+            <p class="mt-3 leading-relaxed text-white/55" i18n="@@simulation.evidence.assumption.body">
+              A deliberate choice by the engine, flagged as such, because no reliable data was available.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================== REPORT -->
+    <section class="py-28 lg:py-36">
+      <div class="mx-auto max-w-5xl px-4 sm:px-6">
+        <div class="grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
+          <div>
+            <h2 class="text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.report.title">
+              The report answers one question
+            </h2>
+            <p class="mt-5 text-lg leading-relaxed text-white/55" i18n="@@simulation.report.body">
+              What could make this project succeed or fail, and what should I change?
+            </p>
+            <p class="mt-5 leading-relaxed text-white/45" i18n="@@simulation.report.note">
+              Not "improve your marketing". Rather: acquisition cost is the model's main weakness, test an organic channel before raising the ad budget. Expected impact high, priority critical, confidence medium.
+            </p>
+          </div>
+
+          <ol class="flex flex-col divide-y divide-white/[0.07] border-y border-white/[0.07]">
+            @for (section of reportSections; track section; let i = $index) {
+              <li class="flex items-baseline gap-4 py-3.5">
+                <span class="font-mono text-sm text-white/25">{{ i + 1 < 10 ? '0' : '' }}{{ i + 1 }}</span>
+                <span class="text-white/70">{{ section }}</span>
+              </li>
+            }
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================== THE LOOP -->
+    <section class="border-y border-white/[0.07] py-28 lg:py-36">
+      <div class="mx-auto max-w-5xl px-4 sm:px-6">
+        <h2 class="max-w-3xl text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.loop.title">
+          A simulation is not an endpoint
+        </h2>
+        <p class="mt-5 max-w-2xl text-lg leading-relaxed text-white/55" i18n="@@simulation.loop.body">
+          Change your price, your target customer or your funding in IDEM, run it again, and compare the two versions. What moves is not your chance of succeeding: it is how much strain your model takes.
+        </p>
+
+        <div class="mt-14 flex flex-wrap items-center gap-x-3 gap-y-4">
+          @for (item of loopSteps; track item; let last = $last) {
+            <span class="rounded-full border border-white/10 px-5 py-2.5 text-white/70">{{ item }}</span>
+            @if (!last) {
+              <svg viewBox="0 0 24 24" class="size-4 shrink-0 text-white/25" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M5 12h14m0 0-5-5m5 5-5 5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            }
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================== TWO WAYS IN -->
+    <section class="py-28 lg:py-36">
+      <div class="mx-auto max-w-5xl px-4 sm:px-6">
+        <h2 class="max-w-3xl text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.entry.title">
+          Two ways to start
+        </h2>
+
+        <div class="mt-12 grid gap-6 sm:grid-cols-2">
+          <div class="glass-card rounded-2xl border border-white/10 p-7">
+            <h3 class="text-xl font-semibold text-white" i18n="@@simulation.entry.project.title">From an IDEM project</h3>
+            <p class="mt-3 leading-relaxed text-white/55" i18n="@@simulation.entry.project.body">
+              Business plan, market analysis, financial forecasts and business model are already there. The engine has less to ask for, and you pay less.
+            </p>
+            <a [href]="dashboardUrl" class="mt-6 inline-flex items-center gap-2 font-semibold text-accent-500 transition-colors hover:text-white">
+              <span i18n="@@simulation.entry.project.cta">Open my dashboard</span>
+              <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M5 12h14m0 0-5-5m5 5-5 5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </a>
+          </div>
+
+          <div class="glass-card rounded-2xl border border-white/10 p-7">
+            <h3 class="text-xl font-semibold text-white" i18n="@@simulation.entry.import.title">By importing your business plan</h3>
+            <p class="mt-3 leading-relaxed text-white/55" i18n="@@simulation.entry.import.body">
+              PDF, DOCX or plain text. IDEM extracts the activity, market, target customer, prices and costs, then lets you fill in the gaps before you start.
+            </p>
+            <a [href]="simulationUrl" class="mt-6 inline-flex items-center gap-2 font-semibold text-accent-500 transition-colors hover:text-white">
+              <span i18n="@@simulation.entry.import.cta">Import a business plan</span>
+              <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M5 12h14m0 0-5-5m5 5-5 5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <h3 class="mt-20 text-2xl font-bold text-white" i18n="@@simulation.offers.title">What you are buying</h3>
+        <p class="mt-4 max-w-2xl leading-relaxed text-white/50" i18n="@@simulation.offers.body">
+          Simulation is billed separately from the rest of IDEM: it spends external research, several agents and compute. The amount is shown and confirmed before anything starts.
+        </p>
+
+        <ul class="mt-10 grid gap-5 sm:grid-cols-3">
+          @for (offer of offers; track offer.id) {
+            <li
+              class="rounded-2xl border p-6"
+              [class]="offer.highlight ? 'border-accent-500/40 bg-accent-500/[0.06]' : 'border-white/10'"
+            >
+              <p class="font-semibold text-white">{{ offer.name }}</p>
+              <p class="mt-2.5 text-sm leading-relaxed text-white/50">{{ offer.body }}</p>
+            </li>
+          }
+        </ul>
+      </div>
+    </section>
+
+    <!-- =================================================== HONESTY -->
+    <section class="border-t border-white/[0.07] py-28 lg:py-36">
+      <div class="mx-auto max-w-3xl px-4 sm:px-6">
+        <h2 class="text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.honesty.title">
+          What IDEM Simulator does not promise you
+        </h2>
+
+        <div class="mt-10 space-y-6 text-lg leading-relaxed text-white/60">
+          <p i18n="@@simulation.honesty.p1">
+            The results are estimates based on the data, assumptions and scenarios available at the time of analysis.
+          </p>
+          <p i18n="@@simulation.honesty.p2">
+            A high index guarantees neither viability, nor profitability, nor the long-term survival of your business. A low index does not mean the project is impossible: it means that, in the scenarios that were run, some factors carry significant risk.
+          </p>
+          <p i18n="@@simulation.honesty.p3">
+            It is a decision-support tool. Not a prediction, not a guarantee.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================== CTA -->
+    <section class="pb-32 lg:pb-40">
+      <div class="mx-auto max-w-3xl px-4 text-center sm:px-6">
+        <h2 class="text-3xl font-bold leading-tight text-white lg:text-4xl" i18n="@@simulation.cta.title">
+          Put your project under strain
+        </h2>
+        <p class="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-white/55" i18n="@@simulation.cta.body">
+          Before you commit your time and your money, find out under what conditions your business can work and what could make it fail.
+        </p>
+        <div class="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <a [href]="simulationUrl" class="inner-button rounded-xl px-8 py-4 text-lg font-semibold">
+            <span i18n="@@simulation.cta.primary">Run a simulation</span>
+          </a>
+          <a routerLink="/pricing" class="outer-button rounded-xl px-8 py-4 text-lg font-semibold">
+            <span i18n="@@simulation.cta.secondary">See IDEM pricing</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>

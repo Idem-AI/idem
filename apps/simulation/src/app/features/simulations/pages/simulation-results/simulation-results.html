@@ -1,0 +1,243 @@
+@if (simulation(); as run) {
+  @if (run.result; as result) {
+    <div class="flex flex-col gap-8">
+      <header class="flex flex-col gap-4 border-b border-line pb-5">
+        <a
+          routerLink="/simulations"
+          class="inline-flex w-fit items-center gap-1.5 text-meta text-ink-subtle transition-colors hover:text-ink-muted"
+        >
+          <svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          {{ 'nav.simulations' | translate }}
+        </a>
+
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-3">
+              <h1 class="text-h1 font-semibold text-ink">{{ run.name }}</h1>
+              <sim-verdict-badge [verdict]="result.verdict" />
+            </div>
+            <p class="mt-1 text-meta text-ink-subtle">
+              {{ 'tier.' + run.tier | translate }}
+              @if (run.revision > 1) {
+                · {{ 'list.revision' | translate: { revision: run.revision } }}
+              }
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            @if (run.previousRunId) {
+              <a
+                [routerLink]="['/simulations', run.id, 'compare']"
+                class="sim-btn sim-btn-secondary"
+              >
+                {{ 'results.compare' | translate }}
+              </a>
+            }
+            @if (run.hasReport) {
+              <a [routerLink]="['/simulations', run.id, 'report']" class="sim-btn sim-btn-primary">
+                {{ 'results.openReport' | translate }}
+              </a>
+            } @else {
+              <button
+                type="button"
+                class="sim-btn sim-btn-primary"
+                [disabled]="buying()"
+                (click)="buyReport()"
+              >
+                {{ (buying() ? 'results.unlocking' : 'results.getReport') | translate }}
+              </button>
+            }
+          </div>
+        </div>
+      </header>
+
+      <!-- Verdict ------------------------------------------------------- -->
+      <section class="grid gap-8 lg:grid-cols-[minmax(0,17rem)_minmax(0,1fr)] lg:items-start">
+        <div class="sim-panel-flat p-5">
+          <h2 class="mb-4 text-label font-semibold text-ink-muted">
+            {{ 'result.index' | translate }}
+          </h2>
+          <sim-viability-gauge
+            [value]="result.viabilityIndex"
+            [robustness]="result.robustness"
+            [confidence]="result.confidence"
+            [rangeMin]="scenarioRange()?.min ?? null"
+            [rangeMax]="scenarioRange()?.max ?? null"
+            [label]="'result.gaugeLabel' | translate: { value: result.viabilityIndex }"
+          />
+          <p class="mt-4 border-t border-line pt-3 text-meta leading-relaxed text-ink-subtle">
+            {{ 'result.indexMeaning' | translate }}
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-5">
+          <div>
+            <h2 class="text-h2 font-semibold text-ink">{{ 'verdict.' + result.verdict | translate }}</h2>
+            <p class="mt-2 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+              {{ result.verdictRationale }}
+            </p>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <h3 class="mb-2 text-label font-semibold text-ink-muted">
+                {{ 'result.strengths' | translate }}
+              </h3>
+              <ul class="flex flex-col gap-1.5">
+                @for (item of result.strengths; track item) {
+                  <li class="flex items-start gap-2 text-sm leading-relaxed text-ink-muted">
+                    <span class="mt-2 size-1 shrink-0 rounded-full bg-verdict-go" aria-hidden="true"></span>
+                    {{ item }}
+                  </li>
+                }
+              </ul>
+            </div>
+            <div>
+              <h3 class="mb-2 text-label font-semibold text-ink-muted">
+                {{ 'result.weaknesses' | translate }}
+              </h3>
+              <ul class="flex flex-col gap-1.5">
+                @for (item of result.weaknesses; track item) {
+                  <li class="flex items-start gap-2 text-sm leading-relaxed text-ink-muted">
+                    <span class="mt-2 size-1 shrink-0 rounded-full bg-verdict-stop" aria-hidden="true"></span>
+                    {{ item }}
+                  </li>
+                }
+              </ul>
+            </div>
+          </div>
+
+          <div class="rounded-xl border border-line bg-panel-sunken p-4">
+            <h3 class="text-label font-semibold text-ink">{{ 'result.uncertainties' | translate }}</h3>
+            <p class="mt-0.5 text-meta leading-relaxed text-ink-subtle">
+              {{ 'result.uncertaintiesHint' | translate }}
+            </p>
+            <ul class="mt-2.5 flex flex-wrap gap-1.5">
+              @for (item of result.keyUncertainties; track item) {
+                <li class="rounded-full border border-line px-2.5 py-1 text-meta text-ink-muted">
+                  {{ item }}
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Factors -------------------------------------------------------- -->
+      <section class="flex flex-col gap-4">
+        <div>
+          <h2 class="text-h2 font-semibold text-ink">{{ 'result.factors' | translate }}</h2>
+          <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+            {{ 'result.factorsBody' | translate: { total: result.factorSummary.total } }}
+          </p>
+        </div>
+
+        <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4">
+          @for (entry of tierCounts(); track entry.tier) {
+            <div class="bg-panel p-4">
+              <dt class="text-meta text-ink-subtle">{{ 'factorTier.' + entry.tier | translate }}</dt>
+              <dd class="mt-0.5 text-h2 font-semibold tabular-nums text-ink">{{ entry.count }}</dd>
+            </div>
+          }
+        </dl>
+
+        <div class="sim-panel-flat p-5">
+          <h3 class="mb-3 text-label font-semibold text-ink-muted">
+            {{ 'result.criticalFactors' | translate }}
+          </h3>
+          <sim-factor-impact-list [factors]="result.criticalFactors" [showDescription]="true" />
+        </div>
+      </section>
+
+      <!-- Scenarios ------------------------------------------------------ -->
+      <section class="flex flex-col gap-4">
+        <div>
+          <h2 class="text-h2 font-semibold text-ink">{{ 'result.scenarios' | translate }}</h2>
+          <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+            {{
+              'result.scenariosBody'
+                | translate: { total: result.scenarios.length, broken: brokenScenarios() }
+            }}
+          </p>
+        </div>
+        <div class="sim-panel-flat p-5">
+          <sim-scenario-table
+            [scenarios]="result.scenarios"
+            [caption]="'result.scenarios' | translate"
+          />
+        </div>
+      </section>
+
+      <!-- Risks ---------------------------------------------------------- -->
+      @if (result.risks.length) {
+        <section class="flex flex-col gap-4">
+          <h2 class="text-h2 font-semibold text-ink">{{ 'result.risks' | translate }}</h2>
+          <ul class="flex flex-col divide-y divide-line overflow-hidden rounded-xl border border-line bg-panel">
+            @for (risk of result.risks; track risk.id) {
+              <li class="p-4">
+                <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <h3 class="text-sm font-semibold text-ink">{{ risk.title }}</h3>
+                  <span
+                    class="text-[0.6875rem] font-semibold uppercase tracking-wide"
+                    [class]="
+                      risk.severity === 'critical'
+                        ? 'text-verdict-stop'
+                        : risk.severity === 'high'
+                          ? 'text-verdict-warn'
+                          : 'text-ink-subtle'
+                    "
+                  >
+                    {{ 'severity.' + risk.severity | translate }}
+                  </span>
+                </div>
+                <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+                  {{ risk.description }}
+                </p>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      <!-- Report upsell --------------------------------------------------- -->
+      @if (!run.hasReport) {
+        <section class="rounded-xl border border-brand/40 bg-brand-soft/30 p-5">
+          <h2 class="text-h3 font-semibold text-ink">{{ 'results.upsell.heading' | translate }}</h2>
+          <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+            {{ 'results.upsell.body' | translate }}
+          </p>
+          <button
+            type="button"
+            class="sim-btn sim-btn-primary mt-4"
+            [disabled]="buying()"
+            (click)="buyReport()"
+          >
+            {{ (buying() ? 'results.unlocking' : 'results.getReport') | translate }}
+          </button>
+        </section>
+      }
+
+      <sim-disclaimer-note />
+    </div>
+  } @else {
+    <div class="sim-panel-flat p-6">
+      <p class="text-sm text-ink-muted">{{ 'results.notReady' | translate }}</p>
+      <a [routerLink]="['/simulations', run.id]" class="sim-btn sim-btn-secondary sim-btn-sm mt-3">
+        {{ 'results.followRun' | translate }}
+      </a>
+    </div>
+  }
+} @else if (status() === 'error') {
+  <div class="sim-panel-flat p-6" role="alert">
+    <p class="text-sm font-medium text-ink">{{ 'error.loadFailed' | translate }}</p>
+    <p class="mt-1 text-meta text-ink-muted">{{ error() }}</p>
+  </div>
+} @else {
+  <div class="flex flex-col gap-4">
+    <div class="sim-skeleton h-10 w-1/3 rounded-lg"></div>
+    <div class="sim-skeleton h-64 rounded-xl"></div>
+    <div class="sim-skeleton h-48 rounded-xl"></div>
+  </div>
+}
