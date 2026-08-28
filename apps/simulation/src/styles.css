@@ -1,0 +1,372 @@
+/* ==========================================================================
+   IDEM Simulator — global styles
+   Built on top of the shared IDEM design system. The design system is
+   dark-only by design, so this file adds a semantic token layer that can be
+   swapped at runtime to render the exact same components in light mode.
+   ========================================================================== */
+
+@import 'tailwindcss';
+@import '@idem/shared-styles/styles.css';
+
+/* --------------------------------------------------------------------------
+   Semantic runtime tokens
+   Every component styles itself through these, never through raw dark values.
+   Swapping `data-theme` on <html> is therefore the only thing a theme change
+   has to do.
+   -------------------------------------------------------------------------- */
+
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --sim-canvas: #06080d;
+  --sim-canvas-grid: rgba(255, 255, 255, 0.03);
+  --sim-panel: oklch(0.19 0.014 264);
+  --sim-panel-raised: oklch(0.23 0.016 264);
+  --sim-panel-sunken: oklch(0.15 0.012 264);
+
+  --sim-line: oklch(0.32 0.014 264);
+  --sim-line-strong: oklch(0.44 0.018 264);
+
+  --sim-ink: oklch(0.97 0.003 264);
+  --sim-ink-muted: oklch(0.78 0.008 264);
+  --sim-ink-subtle: oklch(0.63 0.01 264);
+
+  --sim-brand: oklch(0.62 0.17 264);
+  --sim-brand-hover: oklch(0.68 0.16 264);
+  --sim-brand-ink: oklch(0.99 0 0);
+  --sim-brand-soft: oklch(0.28 0.07 264);
+
+  --sim-accent: oklch(0.8 0.13 208);
+
+  --sim-verdict-go: oklch(0.75 0.16 155);
+  --sim-verdict-warn: oklch(0.82 0.15 85);
+  --sim-verdict-stop: oklch(0.68 0.19 25);
+  --sim-verdict-info: oklch(0.76 0.11 240);
+
+  --sim-shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.32);
+  --sim-shadow-raised: 0 2px 4px rgba(0, 0, 0, 0.5), 0 16px 40px rgba(0, 0, 0, 0.42);
+  --sim-skeleton: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklch, var(--sim-ink) 8%, transparent),
+    transparent
+  );
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  /* Off-white tinted toward the IDEM blue, never toward warm/cream. */
+  --sim-canvas: oklch(0.985 0.004 264);
+  --sim-canvas-grid: rgba(20, 30, 60, 0.045);
+  --sim-panel: oklch(1 0 0);
+  --sim-panel-raised: oklch(1 0 0);
+  --sim-panel-sunken: oklch(0.965 0.006 264);
+
+  --sim-line: oklch(0.9 0.01 264);
+  --sim-line-strong: oklch(0.8 0.016 264);
+
+  --sim-ink: oklch(0.24 0.025 264);
+  --sim-ink-muted: oklch(0.46 0.02 264);
+  --sim-ink-subtle: oklch(0.58 0.016 264);
+
+  --sim-brand: oklch(0.48 0.19 264);
+  --sim-brand-hover: oklch(0.42 0.19 264);
+  --sim-brand-ink: oklch(0.99 0 0);
+  --sim-brand-soft: oklch(0.94 0.03 264);
+
+  --sim-accent: oklch(0.52 0.11 208);
+
+  --sim-verdict-go: oklch(0.48 0.14 155);
+  --sim-verdict-warn: oklch(0.55 0.14 70);
+  --sim-verdict-stop: oklch(0.52 0.2 25);
+  --sim-verdict-info: oklch(0.5 0.13 240);
+
+  --sim-shadow-panel: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.06);
+  --sim-shadow-raised: 0 2px 4px rgba(15, 23, 42, 0.08), 0 16px 40px rgba(15, 23, 42, 0.1);
+  --sim-skeleton: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklch, var(--sim-ink) 7%, transparent),
+    transparent
+  );
+}
+
+/* --------------------------------------------------------------------------
+   Tailwind bindings
+   `@theme inline` keeps the var() reference in the generated utility, so the
+   utilities follow the active theme instead of being frozen at build time.
+   -------------------------------------------------------------------------- */
+
+@theme inline {
+  --color-canvas: var(--sim-canvas);
+  --color-panel: var(--sim-panel);
+  --color-panel-raised: var(--sim-panel-raised);
+  --color-panel-sunken: var(--sim-panel-sunken);
+
+  --color-line: var(--sim-line);
+  --color-line-strong: var(--sim-line-strong);
+
+  --color-ink: var(--sim-ink);
+  --color-ink-muted: var(--sim-ink-muted);
+  --color-ink-subtle: var(--sim-ink-subtle);
+
+  --color-brand: var(--sim-brand);
+  --color-brand-hover: var(--sim-brand-hover);
+  --color-brand-ink: var(--sim-brand-ink);
+  --color-brand-soft: var(--sim-brand-soft);
+  --color-accent-cyan: var(--sim-accent);
+
+  --color-verdict-go: var(--sim-verdict-go);
+  --color-verdict-warn: var(--sim-verdict-warn);
+  --color-verdict-stop: var(--sim-verdict-stop);
+  --color-verdict-info: var(--sim-verdict-info);
+
+  --shadow-panel: var(--sim-shadow-panel);
+  --shadow-raised: var(--sim-shadow-raised);
+
+  /* Product UI: fixed rem scale, ~1.2 ratio. No fluid headings in a tool. */
+  --text-h1: 1.75rem;
+  --text-h1--line-height: 2.125rem;
+  --text-h1--letter-spacing: -0.02em;
+  --text-h2: 1.375rem;
+  --text-h2--line-height: 1.75rem;
+  --text-h2--letter-spacing: -0.015em;
+  --text-h3: 1.0625rem;
+  --text-h3--line-height: 1.5rem;
+  --text-label: 0.8125rem;
+  --text-label--line-height: 1.125rem;
+  --text-meta: 0.75rem;
+  --text-meta--line-height: 1.0625rem;
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* --------------------------------------------------------------------------
+   Base
+   The design system hard-codes a dark page background; re-point it at the
+   themed tokens so light mode is a real theme and not a patch.
+   -------------------------------------------------------------------------- */
+
+html {
+  color-scheme: inherit;
+}
+
+body {
+  background-color: var(--sim-canvas);
+  background-size: 56px 56px;
+  background-image:
+    linear-gradient(to right, var(--sim-canvas-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--sim-canvas-grid) 1px, transparent 1px);
+  color: var(--sim-ink);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* Visible, themed focus ring on every focusable element. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--sim-brand);
+  outline-offset: 2px;
+  border-radius: 0.35rem;
+}
+
+::selection {
+  background: color-mix(in oklch, var(--sim-brand) 35%, transparent);
+  color: var(--sim-ink);
+}
+
+/* --------------------------------------------------------------------------
+   Component primitives
+   Shared vocabulary so a button or a panel is identical on every screen.
+   -------------------------------------------------------------------------- */
+
+@utility sim-panel {
+  background-color: var(--sim-panel);
+  border: 1px solid var(--sim-line);
+  border-radius: 0.875rem;
+  box-shadow: var(--sim-shadow-panel);
+}
+
+@utility sim-panel-flat {
+  background-color: var(--sim-panel);
+  border: 1px solid var(--sim-line);
+  border-radius: 0.875rem;
+}
+
+@utility sim-divider {
+  border: 0;
+  border-top: 1px solid var(--sim-line);
+}
+
+.sim-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.625rem;
+  border: 1px solid transparent;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 180ms var(--ease-out-quint),
+    border-color 180ms var(--ease-out-quint),
+    color 180ms var(--ease-out-quint),
+    opacity 180ms var(--ease-out-quint);
+}
+
+.sim-btn:disabled,
+.sim-btn[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.sim-btn-primary {
+  background-color: var(--sim-brand);
+  color: var(--sim-brand-ink);
+}
+
+.sim-btn-primary:hover:not(:disabled) {
+  background-color: var(--sim-brand-hover);
+}
+
+.sim-btn-secondary {
+  background-color: var(--sim-panel-raised);
+  border-color: var(--sim-line);
+  color: var(--sim-ink);
+}
+
+.sim-btn-secondary:hover:not(:disabled) {
+  border-color: var(--sim-line-strong);
+  background-color: color-mix(in oklch, var(--sim-panel-raised) 80%, var(--sim-ink) 6%);
+}
+
+.sim-btn-ghost {
+  background-color: transparent;
+  color: var(--sim-ink-muted);
+}
+
+.sim-btn-ghost:hover:not(:disabled) {
+  background-color: var(--sim-panel-sunken);
+  color: var(--sim-ink);
+}
+
+.sim-btn-lg {
+  padding: 0.75rem 1.25rem;
+  font-size: 0.9375rem;
+}
+
+.sim-btn-sm {
+  padding: 0.3125rem 0.625rem;
+  font-size: 0.8125rem;
+}
+
+.sim-field {
+  width: 100%;
+  background-color: var(--sim-panel-sunken);
+  border: 1px solid var(--sim-line);
+  border-radius: 0.625rem;
+  padding: 0.5625rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--sim-ink);
+  transition:
+    border-color 180ms var(--ease-out-quint),
+    background-color 180ms var(--ease-out-quint);
+}
+
+.sim-field::placeholder {
+  color: var(--sim-ink-subtle);
+}
+
+.sim-field:hover:not(:disabled) {
+  border-color: var(--sim-line-strong);
+}
+
+.sim-field:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sim-field[aria-invalid='true'] {
+  border-color: var(--sim-verdict-stop);
+}
+
+/* --------------------------------------------------------------------------
+   Motion
+   -------------------------------------------------------------------------- */
+
+@keyframes sim-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.sim-skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--sim-panel-sunken);
+  border-radius: 0.5rem;
+}
+
+.sim-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: var(--sim-skeleton);
+  animation: sim-shimmer 1.4s infinite;
+}
+
+@keyframes sim-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.sim-rise {
+  animation: sim-rise 260ms var(--ease-out-quint) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .sim-skeleton::after {
+    display: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Scrollbar — themed, but keeps native behaviour and sizing.
+   -------------------------------------------------------------------------- */
+
+* {
+  scrollbar-color: var(--sim-line-strong) transparent;
+  scrollbar-width: thin;
+}

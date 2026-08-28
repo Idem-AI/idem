@@ -1,3 +1,4 @@
+import { DOCUMENT } from '@angular/common';
 import { Injectable, inject, LOCALE_ID } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { environment } from '../../../environments/environment';
@@ -14,6 +15,13 @@ export class SeoService {
   private readonly title = inject(Title);
   private readonly meta = inject(Meta);
   private readonly localeId = inject(LOCALE_ID);
+  /**
+   * Injected rather than global: these tags have to be written during
+   * prerendering too, where there is no ambient `document`. Reaching for the
+   * global threw on the server, so canonical and hreflang never made it into
+   * the static HTML — which is exactly where crawlers read them.
+   */
+  private readonly document = inject(DOCUMENT);
   public readonly domain = environment.services.domain;
 
   /**
@@ -54,16 +62,16 @@ export class SeoService {
    */
   setCanonicalUrl(path = ''): void {
     const currentLocale = this.getCurrentLocale();
-    const linkElement: HTMLLinkElement | null = document.querySelector('link[rel="canonical"]');
+    const linkElement = this.document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     const canonicalUrl = `${this.domain}/${currentLocale}${path}`;
 
     if (linkElement) {
       linkElement.href = canonicalUrl;
     } else {
-      const newLinkElement = document.createElement('link');
+      const newLinkElement = this.document.createElement('link');
       newLinkElement.setAttribute('rel', 'canonical');
       newLinkElement.setAttribute('href', canonicalUrl);
-      document.head.appendChild(newLinkElement);
+      this.document.head.appendChild(newLinkElement);
     }
   }
 
@@ -73,24 +81,24 @@ export class SeoService {
    */
   setHreflangLinks(path = ''): void {
     // Remove existing hreflang links
-    const existingLinks = document.querySelectorAll('link[rel="alternate"][hreflang]');
+    const existingLinks = this.document.querySelectorAll('link[rel="alternate"][hreflang]');
     existingLinks.forEach((link) => link.remove());
 
     // Add hreflang links for each supported locale
     this.supportedLocales.forEach((locale) => {
-      const link = document.createElement('link');
+      const link = this.document.createElement('link');
       link.setAttribute('rel', 'alternate');
       link.setAttribute('hreflang', locale);
       link.setAttribute('href', `${this.domain}/${locale}${path}`);
-      document.head.appendChild(link);
+      this.document.head.appendChild(link);
     });
 
     // Add x-default hreflang (points to English as default)
-    const defaultLink = document.createElement('link');
+    const defaultLink = this.document.createElement('link');
     defaultLink.setAttribute('rel', 'alternate');
     defaultLink.setAttribute('hreflang', 'x-default');
     defaultLink.setAttribute('href', `${this.domain}/en${path}`);
-    document.head.appendChild(defaultLink);
+    this.document.head.appendChild(defaultLink);
   }
 
   /**

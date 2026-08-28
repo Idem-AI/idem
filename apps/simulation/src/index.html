@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <title>IDEM Simulator</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Application IDEM Simulator : mettez votre projet à l'épreuve avant de le lancer."
+    />
+    <!-- Authenticated product surface. The public, indexable page for this
+         product lives on the IDEM landing site at /simulation. -->
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#06080d" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f6f7fb" media="(prefers-color-scheme: light)" />
+
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Jura is the IDEM brand face. Requested here as well as from the shared
+         design system so it starts downloading before the CSS is parsed. -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Jura:wght@300;400;500;600;700&display=swap"
+    />
+
+    <script>
+      // Resolve the theme before first paint so the app never flashes the
+      // wrong background. Mirrors ThemeService's storage key and resolution.
+      (function () {
+        try {
+          var stored = localStorage.getItem('idem_simulation_theme');
+          var theme =
+            stored === 'light' || stored === 'dark'
+              ? stored
+              : window.matchMedia('(prefers-color-scheme: light)').matches
+                ? 'light'
+                : 'dark';
+          document.documentElement.dataset.theme = theme;
+        } catch (e) {
+          document.documentElement.dataset.theme = 'dark';
+        }
+        try {
+          var lang = localStorage.getItem('idem_simulation_language');
+          if (lang === 'fr' || lang === 'en') document.documentElement.lang = lang;
+        } catch (e) {
+          /* storage unavailable: keep the markup default */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <sim-root></sim-root>
+  </body>
+</html>

@@ -1,0 +1,356 @@
+{
+  "a11y": {
+    "skipToContent": "Aller au contenu"
+  },
+  "action": {
+    "back": "Retour",
+    "retry": "Réessayer",
+    "dismiss": "Fermer"
+  },
+  "nav": {
+    "main": "Navigation principale",
+    "simulations": "Simulations",
+    "backToIdem": "Retour à IDEM",
+    "account": "Compte"
+  },
+  "theme": {
+    "switchToLight": "Passer en thème clair",
+    "switchToDark": "Passer en thème sombre"
+  },
+  "language": {
+    "change": "Changer de langue",
+    "fr": "Français",
+    "en": "English"
+  },
+  "auth": {
+    "heading": "Connexion",
+    "subheading": "Votre compte IDEM ouvre le simulateur. Aucun compte séparé à créer.",
+    "signIn": "Se connecter",
+    "signingIn": "Connexion…",
+    "signOut": "Se déconnecter",
+    "continueWithGoogle": "Continuer avec Google",
+    "continueWithGithub": "Continuer avec GitHub",
+    "or": "ou",
+    "email": "Adresse e-mail",
+    "password": "Mot de passe",
+    "sharedAccountNote": "Le simulateur utilise l'authentification IDEM. Pas encore de compte ?",
+    "error": {
+      "badCredentials": "Adresse e-mail ou mot de passe incorrect.",
+      "tooManyAttempts": "Trop de tentatives. Réessayez dans quelques minutes.",
+      "popupClosed": "La fenêtre de connexion a été fermée avant la fin.",
+      "network": "Connexion au serveur impossible. Vérifiez votre réseau.",
+      "generic": "La connexion a échoué. Réessayez."
+    }
+  },
+  "handoff": {
+    "connecting": "Connexion à votre projet IDEM…",
+    "failedHeading": "Lien expiré",
+    "failedBody": "Ce lien de connexion n'est plus valide. Connectez-vous pour continuer."
+  },
+  "error": {
+    "loadFailed": "Chargement impossible"
+  },
+  "status": {
+    "running": "En cours"
+  },
+  "list": {
+    "heading": "Simulations",
+    "description": "Chaque simulation met un projet à l'épreuve : elle cherche les facteurs qui peuvent l'influencer, teste des scénarios et identifie les points de rupture.",
+    "newRun": "Nouvelle simulation",
+    "loading": "Chargement des simulations",
+    "running": "En cours",
+    "completed": "Terminées",
+    "revision": "Version {{revision}}",
+    "reportAvailable": "Rapport",
+    "empty": {
+      "heading": "Aucune simulation pour le moment",
+      "body": "Sélectionnez un projet IDEM ou importez votre business plan. Le simulateur analyse d'abord ce qu'il sait de votre projet, avant toute facturation.",
+      "action": "Lancer une simulation"
+    }
+  },
+  "newRun": {
+    "title": "Nouvelle simulation",
+    "heading": "Nouvelle simulation",
+    "description": "Trois étapes : choisir le projet, valider ce que le moteur en sait, puis confirmer le niveau de simulation.",
+    "step": {
+      "source": "Projet",
+      "analysis": "Analyse",
+      "plan": "Niveau"
+    },
+    "source": {
+      "project": "Un projet IDEM",
+      "projectBody": "Le business plan, l'analyse de marché et les prévisions financières sont déjà disponibles. Tarif préférentiel.",
+      "import": "Mon business plan",
+      "importBody": "Importez un document existant. Le moteur en extrait l'activité, le marché, le modèle économique et les coûts.",
+      "noProjects": "Aucun projet IDEM disponible sur ce compte.",
+      "assets": "{{count}} livrables",
+      "dropFile": "Choisir un fichier",
+      "formats": "PDF, DOCX, Markdown ou texte"
+    },
+    "analyse": "Analyser le projet",
+    "analysing": "Lecture du projet en cours",
+    "analysingBody": "Le moteur construit une représentation structurée du projet avant de simuler quoi que ce soit.",
+    "analysisFailed": "L'analyse du projet a échoué",
+    "profile": "Profil du projet",
+    "knowledge": "Ce que le moteur sait",
+    "knowledgeBody": "Avant toute simulation, le moteur sépare ce qui est établi de ce qu'il doit rechercher, de ce qui reste incertain et de ce qui manque. Cette distinction conditionne le niveau de confiance des résultats.",
+    "fillGaps": "Compléter les informations manquantes",
+    "fillGapsBody": "Facultatif, mais chaque réponse réduit l'incertitude des scénarios.",
+    "optional": "Facultatif",
+    "continueToPlan": "Continuer",
+    "plan": {
+      "heading": "Niveau de simulation",
+      "body": "La simulation est facturée séparément du reste d'IDEM : elle mobilise des recherches externes, plusieurs agents et des calculs. Le montant est confirmé avant le lancement.",
+      "idemDiscount": "Tarif préférentiel appliqué : ce projet vient d'IDEM, le moteur a déjà accès à ses livrables.",
+      "recommended": "Recommandé"
+    },
+    "launch": "Lancer la simulation",
+    "launching": "Lancement…",
+    "launchFailed": "Le lancement a échoué",
+    "pricingFailed": "Impossible de charger les tarifs"
+  },
+  "tier": {
+    "run": "Simulation",
+    "report": "Rapport complet",
+    "pack": "Simulation + rapport"
+  },
+  "tierBody": {
+    "run": "Les scénarios, les facteurs déterminants et l'indice de viabilité.",
+    "report": "L'analyse détaillée et les recommandations, à partir d'une simulation déjà réalisée.",
+    "pack": "La simulation et son rapport complet, moins cher que les deux séparément."
+  },
+  "pricing": {
+    "includes": {
+      "scenarios": "Scénarios, stress tests et points de rupture",
+      "factors": "Facteurs identifiés et classés par impact",
+      "index": "Indice de viabilité, robustesse et niveau de confiance",
+      "report": "Rapport complet section par section",
+      "sensitivity": "Analyse de sensibilité et conditions de viabilité",
+      "recommendations": "Recommandations priorisées"
+    }
+  },
+  "stage": {
+    "understand": "Lecture du projet",
+    "discover-factors": "Découverte des facteurs",
+    "research": "Recherche des données externes",
+    "model": "Construction du modèle",
+    "simulate": "Exécution des scénarios",
+    "analyse": "Analyse des résultats"
+  },
+  "run": {
+    "title": "Simulation en cours",
+    "description": "La simulation continue même si vous fermez cette page. Vous serez redirigé dès que les résultats sont prêts.",
+    "failed": "La simulation s'est interrompue",
+    "failedBody": "Aucun montant n'est retenu pour une simulation qui n'aboutit pas. Relancez-la depuis la liste."
+  },
+  "knowledge": {
+    "known": "Ce que nous savons",
+    "researchable": "Ce qui doit être recherché",
+    "uncertain": "Ce qui est incertain",
+    "missing": "Ce qui manque"
+  },
+  "knowledgeHint": {
+    "known": "Informations fournies directement dans le projet.",
+    "researchable": "Données externes que le moteur va collecter pour rendre la simulation plus réaliste.",
+    "uncertain": "Aucune donnée suffisamment fiable n'existe. Le moteur travaille par hypothèse et le signale.",
+    "missing": "Paramètres qui peuvent fortement influencer les résultats et restent inconnus."
+  },
+  "profile": {
+    "sector": "Secteur",
+    "businessModel": "Modèle économique",
+    "product": "Produit",
+    "targetCustomer": "Clientèle visée",
+    "market": "Marché",
+    "location": "Localisation",
+    "pricePoint": "Prix",
+    "plannedFunding": "Financement prévu",
+    "teamSize": "Équipe"
+  },
+  "result": {
+    "index": "Indice de viabilité simulé",
+    "indexMeaning": "Cet indice mesure la robustesse du projet dans les scénarios étudiés. Il ne constitue pas une prédiction de réussite.",
+    "gaugeLabel": "Indice de viabilité simulé : {{value}} sur 100",
+    "robustness": "Robustesse",
+    "confidence": "Confiance",
+    "scenarioRange": "De {{min}} à {{max}} selon les scénarios",
+    "strengths": "Points forts",
+    "weaknesses": "Points faibles",
+    "uncertainties": "Principales incertitudes",
+    "uncertaintiesHint": "Un indice élevé assorti de fortes incertitudes ne vaut pas le même indice appuyé sur des données solides.",
+    "factors": "Facteurs analysés",
+    "factorsBody": "{{total}} facteurs ont été identifiés comme potentiellement pertinents pour ce projet, puis classés selon leur impact possible.",
+    "criticalFactors": "Facteurs critiques",
+    "scenarios": "Scénarios",
+    "scenariosBody": "{{total}} scénarios ont été exécutés. Le modèle ne tient pas dans {{broken}} d'entre eux.",
+    "risks": "Risques identifiés"
+  },
+  "results": {
+    "title": "Résultats",
+    "compare": "Comparer les versions",
+    "openReport": "Ouvrir le rapport",
+    "getReport": "Obtenir le rapport complet",
+    "unlocking": "Préparation…",
+    "reportFailed": "Le rapport n'a pas pu être généré",
+    "notReady": "Les résultats de cette simulation ne sont pas encore disponibles.",
+    "followRun": "Suivre la simulation",
+    "upsell": {
+      "heading": "Comprendre pourquoi ces scénarios apparaissent",
+      "body": "Le rapport complet détaille les hypothèses utilisées, l'analyse de sensibilité, les conditions nécessaires à la viabilité et les recommandations à appliquer en priorité."
+    }
+  },
+  "verdict": {
+    "go": "GO",
+    "go-with-conditions": "GO sous conditions",
+    "no-go": "NO-GO"
+  },
+  "robustness": {
+    "low": "Faible",
+    "medium": "Moyenne",
+    "high": "Élevée"
+  },
+  "confidence": {
+    "low": "Faible",
+    "medium": "Moyen",
+    "high": "Élevé"
+  },
+  "evidenceKind": {
+    "data": "Donnée",
+    "estimate": "Estimation",
+    "assumption": "Hypothèse"
+  },
+  "factorTier": {
+    "critical": "Critiques",
+    "important": "Importants",
+    "secondary": "Secondaires",
+    "unknown": "Incertains"
+  },
+  "factorTierHint": {
+    "critical": "Impact potentiel très élevé sur les résultats simulés.",
+    "important": "Impact significatif, sans être déterminant à lui seul.",
+    "secondary": "Impact limité dans les scénarios étudiés.",
+    "unknown": "Informations insuffisantes pour estimer l'impact de façon fiable."
+  },
+  "severity": {
+    "critical": "Critique",
+    "high": "Élevé",
+    "moderate": "Modéré"
+  },
+  "impact": {
+    "low": "Faible",
+    "medium": "Moyen",
+    "high": "Élevé"
+  },
+  "priority": {
+    "low": "Basse",
+    "medium": "Moyenne",
+    "high": "Haute",
+    "critical": "Critique"
+  },
+  "scenario": {
+    "name": "Scénario",
+    "kind": "Type",
+    "viability": "Indice",
+    "breakEven": "Point mort",
+    "runway": "Trésorerie",
+    "holds": "Le modèle tient",
+    "holdsYes": "Oui",
+    "holdsNo": "Non",
+    "never": "Jamais atteint",
+    "monthN": "Mois {{month}}",
+    "monthsN": "{{months}} mois"
+  },
+  "scenarioKind": {
+    "baseline": "Référence",
+    "favourable": "Favorable",
+    "adverse": "Défavorable",
+    "stress": "Stress test",
+    "extreme": "Extrême"
+  },
+  "report": {
+    "title": "Rapport",
+    "heading": "Rapport de simulation — {{name}}",
+    "generatedOn": "Généré le",
+    "print": "Imprimer",
+    "contents": "Sommaire",
+    "backToResults": "Retour aux résultats",
+    "unavailable": "Rapport indisponible",
+    "unavailableBody": "Ce rapport n'a pas encore été généré pour cette simulation.",
+    "section": {
+      "summary": "Résumé exécutif",
+      "profile": "Profil du projet",
+      "factors": "Facteurs analysés",
+      "scenarios": "Scénarios",
+      "financials": "Résultats financiers",
+      "sensitivity": "Analyse de sensibilité",
+      "conditions": "Conditions de viabilité",
+      "recommendations": "Recommandations",
+      "evidence": "Données et hypothèses",
+      "validation": "À valider dans le monde réel"
+    },
+    "factors": {
+      "body": "{{total}} facteurs ont été retenus comme potentiellement pertinents pour ce projet, puis classés selon leur impact possible sur les résultats."
+    },
+    "financials": {
+      "body": "Ces chiffres sont des projections issues des scénarios simulés, et non des prévisions garanties.",
+      "burnRate": "Consommation mensuelle",
+      "capitalRequired": "Capital nécessaire",
+      "breakEvenMonth": "Point mort",
+      "runway": "Autonomie",
+      "chartTitle": "Trésorerie cumulée",
+      "chartLabel": "Évolution de la trésorerie cumulée mois par mois",
+      "chartCaption": "Trésorerie cumulée en {{currency}}, scénario de référence",
+      "monthShort": "M{{month}}",
+      "breakEven": "Point mort"
+    },
+    "sensitivity": {
+      "body": "Ce que chaque variation change réellement sur l'indice de viabilité, tous les autres facteurs restant constants.",
+      "unit": "Écart exprimé en points d'indice de viabilité."
+    },
+    "conditions": {
+      "body": "La viabilité du modèle dépend des seuils suivants. {{unmet}} ne sont pas atteints aujourd'hui.",
+      "condition": "Condition",
+      "required": "Seuil requis",
+      "current": "Valeur actuelle",
+      "status": "État",
+      "met": "Atteint",
+      "unmet": "Non atteint",
+      "unknown": "Inconnu"
+    },
+    "recommendation": {
+      "impact": "Impact attendu",
+      "priority": "Priorité"
+    },
+    "evidence": {
+      "body": "Chaque valeur utilisée est identifiée comme donnée observée, estimation dérivée ou hypothèse, avec sa source lorsqu'elle existe."
+    },
+    "validation": {
+      "body": "La simulation réduit l'incertitude, elle ne la remplace pas. Ces points demandent une vérification sur le terrain."
+    }
+  },
+  "compare": {
+    "title": "Comparaison",
+    "heading": "Comparer deux versions",
+    "description": "Modifiez le projet, relancez la simulation, et mesurez ce qui change réellement.",
+    "previous": "Version {{revision}}",
+    "current": "Version {{revision}}",
+    "meaning": "Un indice plus élevé signifie que le modèle modifié résiste mieux aux scénarios étudiés. Il ne signifie pas que l'entreprise réussira.",
+    "flipped": "Scénarios dont l'issue a changé",
+    "nowHolds": "Le modèle tient désormais",
+    "nowBreaks": "Le modèle ne tient plus",
+    "noPrevious": "Cette simulation n'a pas de version antérieure à comparer.",
+    "relaunchHeading": "Relancer la simulation",
+    "relaunchBody": "Une nouvelle simulation reprend l'état actuel du projet et le confronte aux mêmes scénarios.",
+    "relaunch": "Relancer la simulation"
+  },
+  "disclaimer": {
+    "heading": "Important",
+    "body": "Les résultats de cette simulation sont des estimations fondées sur les données, hypothèses et scénarios disponibles au moment de l'analyse. Un score élevé ne garantit ni la viabilité, ni la rentabilité, ni la survie à long terme de votre entreprise.",
+    "bothWays": "À l'inverse, un score faible ne signifie pas que le projet est impossible. Ces résultats sont un outil d'aide à la décision, pas une prédiction.",
+    "short": "Estimations issues des scénarios simulés. Ni une garantie, ni une prédiction."
+  },
+  "notFound": {
+    "heading": "Page introuvable",
+    "body": "Ce lien ne correspond à aucune page du simulateur.",
+    "action": "Revenir aux simulations"
+  }
+}
