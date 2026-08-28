@@ -54,8 +54,27 @@ Every call to the simulation backend goes through the abstract
 - `HttpSimulationGateway` talks to `${API}/simulations`.
 - `DemoSimulationGateway` serves an in-memory dataset.
 
-`USE_MOCK_DATA` in `.env` picks between them. Nothing else in the app knows
-which one is active, so wiring the real API is a one-line environment change.
+Nothing else in the app knows which one is active, so wiring the real API is a
+one-line environment change.
+
+The active source is resolved once at startup, in this order:
+
+| Priority | Where | How |
+| --- | --- | --- |
+| 1 | URL | `?mock=on` / `?mock=off` — memorised, so a demo link stays a demo |
+| 2 | Browser | the **Données de démonstration** switch in the account menu |
+| 3 | Build | `USE_MOCK_DATA` in `.env`, the fallback |
+
+Levels 1 and 2 need no rebuild: the choice is stored in `localStorage`
+(`idem_simulation_mock_data`) and the app reloads itself to rebind the gateway.
+Whenever the demo dataset is serving, a **Démo** badge sits in the top bar so a
+screenshot can never be mistaken for real output.
+
+`DemoSimulationGateway` is a small in-memory backend, not a set of fixtures: it
+runs the six pipeline stages on a timer, keeps created runs, generated reports
+and executed labs in `localStorage` (`idem_simulation_demo_state`), and applies
+a latency to every call so loading and progress states actually get exercised.
+*Reset the demo dataset* in the same menu puts it back to its seeded state.
 
 The endpoints the HTTP gateway expects:
 

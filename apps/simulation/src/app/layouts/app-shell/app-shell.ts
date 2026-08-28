@@ -7,6 +7,7 @@ import { filter, map } from 'rxjs';
 import { environment } from '@env';
 
 import { AuthService } from '../../core/auth';
+import { MockDataService } from '../../core/mock';
 import { SimulationStore } from '../../features/simulations/data-access';
 import { LinkedProject } from '../../features/simulations/models';
 import { Sidebar } from '../sidebar/sidebar';
@@ -31,12 +32,17 @@ export class AppShell {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly store = inject(SimulationStore);
+  private readonly mock = inject(MockDataService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   protected readonly dashboardUrl = environment.services.dashboard.url;
   protected readonly user = this.auth.user;
   protected readonly projects = this.store.projects;
   protected readonly activeProject = this.store.project;
+
+  protected readonly mockEnabled = this.mock.enabled;
+  protected readonly mockToggleVisible = this.mock.visible;
+  protected readonly mockOverridden = this.mock.overridden;
 
   protected readonly menuOpen = signal(false);
   protected readonly projectMenuOpen = signal(false);
@@ -81,6 +87,20 @@ export class AppShell {
     this.projectMenuOpen.set(false);
     this.store.selectProject(project.id);
     void this.router.navigate(['/simulations']);
+  }
+
+  /** Bascule la source de données ; le service recharge l'application. */
+  protected toggleMock(): void {
+    this.mock.setEnabled(!this.mockEnabled());
+  }
+
+  protected resetDemoData(): void {
+    this.mock.resetDemoData();
+  }
+
+  /** Oublie le choix local et repasse sur la valeur de `USE_MOCK_DATA`. */
+  protected useBuildDefault(): void {
+    this.mock.useBuildDefault();
   }
 
   protected closeMenus(): void {

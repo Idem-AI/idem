@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Observable, concat, defer, delay, map, of, takeWhile, throwError, timer } from 'rxjs';
 
+import { DEMO_STATE_KEY } from '../../../core/mock';
+
 import {
   CreateSimulationInput,
   LabName,
@@ -31,21 +33,23 @@ const LATENCY_MS = 420;
 const STEP_MS = 1600;
 
 /**
- * Backend en mémoire, actif quand `environment.useMockData` est vrai.
+ * Backend en mémoire, actif quand le mode démonstration est retenu.
  *
  * Il existe pour que le produit soit développable, revu et démontré sans API
- * ni crédits LLM. Aucune persistance : un rechargement le remet à zéro.
+ * ni crédits LLM. L'état est conservé dans le navigateur : une exécution lancée
+ * en démo survit à un rechargement, comme elle le ferait côté serveur.
+ * `MockDataService.resetDemoData()` le remet à zéro.
  */
 @Injectable()
 export class DemoSimulationGateway extends SimulationGateway {
-  private simulations: Simulation[] = DEMO_SIMULATIONS.map((simulation) => ({ ...simulation }));
+  private simulations: Simulation[] = restoreState();
 
   override listProjects(): Observable<LinkedProject[]> {
     return of(DEMO_PROJECTS).pipe(delay(LATENCY_MS));
   }
 
   override analyseProject(projectId: string): Observable<ProjectUnderstanding> {
-    const understanding = DEMO_SIMULATIONS[0].understanding!;
+    const understanding = referenceFor(projectId).understanding!;
     const project = DEMO_PROJECTS.find((candidate) => candidate.id === projectId);
     return of({
       ...understanding,
@@ -53,8 +57,8 @@ export class DemoSimulationGateway extends SimulationGateway {
     }).pipe(delay(LATENCY_MS * 3));
   }
 
-  override analyseDocument(_projectId: string, file: File): Observable<ProjectUnderstanding> {
-    const understanding = DEMO_SIMULATIONS[0].understanding!;
+  override analyseDocument(projectId: string, file: File): Observable<ProjectUnderstanding> {
+    const understanding = referenceFor(projectId).understanding!;
     return of({
       ...understanding,
       profile: { ...understanding.profile, name: file.name.replace(/\.[^.]+$/, '') },
@@ -158,7 +162,7 @@ export class DemoSimulationGateway extends SimulationGateway {
         ],
       },
     };
-    this.simulations = [created, ...this.simulations];
+    this.commit([created, ...this.simulations]);
     return of(created).pipe(delay(LATENCY_MS));
   }
 
@@ -182,10 +186,12 @@ export class DemoSimulationGateway extends SimulationGateway {
   }
 
   override generateReport(projectId: string, simulationId: string): Observable<SimulationReport> {
-    this.simulations = this.simulations.map((simulation) =>
-      simulation.id === simulationId
-        ? { ...simulation, hasReport: true, report: { ...DEMO_REPORT, simulationId } }
-        : simulation
+    this.commit(
+      this.simulations.map((simulation) =>
+        simulation.id === simulationId
+          ? { ...simulation, hasReport: true, report: { ...DEMO_REPORT, simulationId } }
+          : simulation
+      )
     );
     return this.getReport(projectId, simulationId);
   }
@@ -205,10 +211,12 @@ export class DemoSimulationGateway extends SimulationGateway {
       experiments: DEMO_EXPERIMENTS,
     };
 
-    this.simulations = this.simulations.map((simulation) =>
-      simulation.id === simulationId
-        ? { ...simulation, labs: { ...simulation.labs, [lab]: payloads[lab] } }
-        : simulation
+    this.commit(
+      this.simulations.map((simulation) =>
+        simulation.id === simulationId
+          ? { ...simulation, labs: { ...simulation.labs, [lab]: payloads[lab] } }
+          : simulation
+      )
     );
 
     // Une analyse complémentaire mobilise plusieurs agents : la latence
@@ -217,18 +225,18 @@ export class DemoSimulationGateway extends SimulationGateway {
   }
 
   override deleteSimulation(_projectId: string, simulationId: string): Observable<void> {
-    this.simulations = this.simulations.filter((simulation) => simulation.id !== simulationId);
+    this.commit(this.simulations.filter((simulation) => simulation.id !== simulationId));
     return of(undefined).pipe(delay(LATENCY_MS));
   }
 
   private advance(simulationId: string, step: number, total: number): Simulation {
-    const reference = DEMO_SIMULATIONS[0];
     const index = this.simulations.findIndex((candidate) => candidate.id === simulationId);
     if (index === -1) {
       throw new Error(`Unknown simulation: ${simulationId}`);
     }
 
     const current = this.simulations[index];
+    const reference = referenceFor(current.projectId);
     const stages = current.progress.stages.map((stage, stageIndex) => ({
       ...stage,
       state:
@@ -255,9 +263,57 @@ export class DemoSimulationGateway extends SimulationGateway {
       hasReport: finished ? current.tier !== 'run' : false,
     };
 
-    this.simulations = this.simulations.map((simulation, i) => (i === index ? updated : simulation));
+    this.commit(this.simulations.map((simulation, i) => (i === index ? updated : simulation)));
     return updated;
   }
+
+  /** Toute mutation passe par ici, pour qu'aucune n'échappe à la persistance. */
+  private commit(simulations: Simulation[]): void {
+    this.simulations = simulations;
+    try {
+      localStorage.setItem(DEMO_STATE_KEY, JSON.stringify(simulations));
+    } catch {
+      // Stockage plein ou indisponible : la démo reste utilisable en mémoire.
+    }
+  }
+}
+
+/**
+ * Reprend l'état de démonstration laissé par la session précédente, ou repart
+ * du jeu de référence. Un état illisible est ignoré plutôt que de bloquer
+ * l'application sur un écran vide.
+ */
+function restoreState(): Simulation[] {
+  try {
+    const raw = localStorage.getItem(DEMO_STATE_KEY);
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length) {
+        return parsed as Simulation[];
+      }
+    }
+  } catch {
+    // On repart du jeu de référence.
+  }
+  return DEMO_SIMULATIONS.map((simulation) => ({ ...simulation }));
+}
+
+/**
+ * Le jeu de référence d'un projet.
+ *
+ * Un seul projet de démonstration porte un résultat complet et cohérent
+ * (facteurs, scénarios, finances et sensibilité se répondent). Les autres le
+ * réutilisent : inventer des chiffres par projet produirait un dossier qui se
+ * contredit, ce qui est pire qu'un dossier partagé.
+ */
+function referenceFor(projectId: string): Simulation {
+  return (
+    DEMO_SIMULATIONS.find(
+      (simulation) => simulation.projectId === projectId && simulation.result
+    ) ??
+    DEMO_SIMULATIONS.find((simulation) => simulation.result) ??
+    DEMO_SIMULATIONS[0]
+  );
 }
 
 function toSummary(simulation: Simulation): SimulationSummary {

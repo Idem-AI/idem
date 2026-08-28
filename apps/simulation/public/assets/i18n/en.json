@@ -571,5 +571,14 @@
     "low": "Low",
     "medium": "Medium",
     "high": "High"
+  },
+  "mock": {
+    "toggle": "Demo data",
+    "on": "On — nothing is sent to the API",
+    "off": "Off — the app calls the API",
+    "reset": "Reset the demo dataset",
+    "badge": "Demo",
+    "badgeHint": "The numbers on screen come from a demo dataset, not from the API.",
+    "useBuildDefault": "Back to the .env setting"
   }
 }
