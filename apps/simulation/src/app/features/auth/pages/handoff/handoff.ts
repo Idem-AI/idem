@@ -31,7 +31,7 @@ interface HandoffResponse {
       @if (failed()) {
         <h1 class="text-h2 font-semibold text-ink">{{ 'handoff.failedHeading' | translate }}</h1>
         <p class="text-sm leading-relaxed text-ink-muted">{{ 'handoff.failedBody' | translate }}</p>
-        <a routerLink="/login" class="sim-btn sim-btn-primary mt-1">{{ 'auth.signIn' | translate }}</a>
+        <a routerLink="/login" class="inner-button mt-1">{{ 'auth.signIn' | translate }}</a>
       } @else {
         <div class="size-6 animate-spin rounded-full border-2 border-line border-t-brand" aria-hidden="true"></div>
         <p class="text-sm text-ink-muted" role="status" aria-live="polite">

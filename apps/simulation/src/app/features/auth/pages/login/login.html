@@ -27,7 +27,7 @@
     <div class="flex flex-col gap-2">
       <button
         type="button"
-        class="sim-btn sim-btn-secondary sim-btn-lg w-full"
+        class="outer-button button-lg w-full"
         [disabled]="pending() !== null"
         (click)="signInWith('google')"
       >
@@ -42,7 +42,7 @@
 
       <button
         type="button"
-        class="sim-btn sim-btn-secondary sim-btn-lg w-full"
+        class="outer-button button-lg w-full"
         [disabled]="pending() !== null"
         (click)="signInWith('github')"
       >
@@ -68,7 +68,7 @@
           id="email"
           type="email"
           autocomplete="email"
-          class="sim-field"
+          class="field"
           formControlName="email"
           [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid"
         />
@@ -82,13 +82,13 @@
           id="password"
           type="password"
           autocomplete="current-password"
-          class="sim-field"
+          class="field"
           formControlName="password"
           [attr.aria-invalid]="form.controls.password.touched && form.controls.password.invalid"
         />
       </div>
 
-      <button type="submit" class="sim-btn sim-btn-primary sim-btn-lg mt-1 w-full" [disabled]="pending() !== null">
+      <button type="submit" class="inner-button button-lg mt-1 w-full" [disabled]="pending() !== null">
         @if (pending() === 'email') {
           {{ 'auth.signingIn' | translate }}
         } @else {

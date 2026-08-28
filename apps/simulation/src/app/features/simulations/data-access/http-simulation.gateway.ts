@@ -129,8 +129,8 @@ export class HttpSimulationGateway extends SimulationGateway {
  * l'écran de sélection affiche, et on déduit les livrables disponibles de la
  * présence des sections d'analyse.
  */
-function toLinkedProject(project: Record<string, any>): LinkedProject {
-  const analysis = project['analysisResultModel'] ?? {};
+function toLinkedProject(project: Record<string, unknown>): LinkedProject {
+  const analysis = (project['analysisResultModel'] ?? {}) as Record<string, unknown>;
   const assets: string[] = [];
   const deliverables: [string, string][] = [
     ['businessPlan', 'Business plan'],

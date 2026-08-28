@@ -75,11 +75,11 @@
       </div>
 
       @if (origin() === 'idem-project') {
-        <div class="sim-panel-flat overflow-hidden">
+        <div class="glass-card overflow-hidden">
           @if (projectsLoading()) {
             <div class="flex flex-col gap-2 p-4">
               @for (row of [1, 2, 3]; track row) {
-                <div class="sim-skeleton h-12 rounded-lg"></div>
+                <div class="skeleton h-12 rounded-lg"></div>
               }
             </div>
           } @else if (!projects().length) {
@@ -123,7 +123,7 @@
           }
         </div>
       } @else {
-        <div class="sim-panel-flat p-5">
+        <div class="glass-card p-5">
           <label
             for="business-plan"
             class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-line-strong p-8 text-center transition-colors hover:border-brand"
@@ -149,7 +149,7 @@
       <div class="flex justify-end">
         <button
           type="button"
-          class="sim-btn sim-btn-primary sim-btn-lg"
+          class="inner-button button-lg"
           [disabled]="!canAnalyse()"
           (click)="analyse()"
         >
@@ -163,7 +163,7 @@
   @if (step() === 'analysis') {
     <section class="flex flex-col gap-5">
       @if (analysing()) {
-        <div class="sim-panel-flat flex flex-col items-center gap-3 p-10 text-center">
+        <div class="glass-card flex flex-col items-center gap-3 p-10 text-center">
           <span class="size-5 animate-spin rounded-full border-2 border-line border-t-brand" aria-hidden="true"></span>
           <p class="text-sm font-medium text-ink" role="status" aria-live="polite">
             {{ 'newRun.analysing' | translate }}
@@ -173,7 +173,7 @@
           </p>
         </div>
       } @else if (understanding(); as reading) {
-        <div class="sim-panel-flat p-5">
+        <div class="glass-card p-5">
           <h2 class="text-h3 font-semibold text-ink">{{ 'newRun.profile' | translate }}</h2>
           <dl class="mt-3 grid gap-x-8 gap-y-2.5 sm:grid-cols-2">
             @for (row of profileRows(); track row.labelKey) {
@@ -194,7 +194,7 @@
           </div>
 
           @for (group of knowledgeGroups(); track group.state) {
-            <div class="sim-panel-flat p-4">
+            <div class="glass-card p-4">
               <h3 class="text-label font-semibold text-ink">
                 {{ 'knowledge.' + group.state | translate }}
                 <span class="ml-1 font-normal text-ink-subtle">({{ group.items.length }})</span>
@@ -224,7 +224,7 @@
         </div>
 
         @if (openQuestions().length) {
-          <div class="sim-panel-flat p-4">
+          <div class="glass-card p-4">
             <h3 class="text-label font-semibold text-ink">{{ 'newRun.fillGaps' | translate }}</h3>
             <p class="mt-0.5 max-w-[70ch] text-meta leading-relaxed text-ink-subtle">
               {{ 'newRun.fillGapsBody' | translate }}
@@ -238,7 +238,7 @@
                   <input
                     [id]="'gap-' + item.id"
                     type="text"
-                    class="sim-field"
+                    class="field"
                     [placeholder]="'newRun.optional' | translate"
                     (input)="setAnswer(item.id, $any($event.target).value)"
                   />
@@ -249,10 +249,10 @@
         }
 
         <div class="flex justify-between gap-3">
-          <button type="button" class="sim-btn sim-btn-ghost" (click)="back()">
+          <button type="button" class="button-ghost" (click)="back()">
             {{ 'action.back' | translate }}
           </button>
-          <button type="button" class="sim-btn sim-btn-primary sim-btn-lg" (click)="goToPlan()">
+          <button type="button" class="inner-button button-lg" (click)="goToPlan()">
             {{ 'newRun.continueToPlan' | translate }}
           </button>
         </div>
@@ -337,7 +337,7 @@
       } @else {
         <div class="flex flex-col gap-2">
           @for (row of [1, 2, 3]; track row) {
-            <div class="sim-skeleton h-24 rounded-xl"></div>
+            <div class="skeleton h-24 rounded-xl"></div>
           }
         </div>
       }
@@ -345,12 +345,12 @@
       <sim-disclaimer-note />
 
       <div class="flex justify-between gap-3">
-        <button type="button" class="sim-btn sim-btn-ghost" (click)="back()">
+        <button type="button" class="button-ghost" (click)="back()">
           {{ 'action.back' | translate }}
         </button>
         <button
           type="button"
-          class="sim-btn sim-btn-primary sim-btn-lg"
+          class="inner-button button-lg"
           [disabled]="launching() || !pricing()"
           (click)="launch()"
         >

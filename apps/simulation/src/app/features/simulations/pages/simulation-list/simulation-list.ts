@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
@@ -42,8 +42,15 @@ export class SimulationList {
     this.simulations().filter((simulation) => simulation.status !== 'running'),
   );
 
+  protected readonly project = this.store.project;
+
   constructor() {
-    void this.store.loadList();
+    // Le projet actif peut changer depuis la barre supérieure sans que la page
+    // soit recréée : on relit la liste à chaque changement.
+    effect(() => {
+      this.store.projectId();
+      untracked(() => this.store.loadList());
+    });
   }
 
   protected reload(): void {
@@ -55,8 +62,6 @@ export class SimulationList {
   }
 
   protected routeFor(simulation: SimulationSummary): string {
-    return simulation.status === 'running'
-      ? `/simulations/${simulation.id}`
-      : `/simulations/${simulation.id}/results`;
+    return `/simulations/${simulation.id}`;
   }
 }

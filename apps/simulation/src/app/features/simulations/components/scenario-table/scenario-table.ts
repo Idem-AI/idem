@@ -6,8 +6,8 @@ import { Scenario, ScenarioKind } from '../../models';
 const KIND_ORDER: ScenarioKind[] = ['baseline', 'favourable', 'adverse', 'stress', 'extreme'];
 
 /**
- * Scenarios as a table, not as cards: the reader is comparing numbers across
- * rows, and a grid of cards makes that comparison harder.
+ * Les scénarios en table, pas en cartes : on compare des nombres d'une ligne à
+ * l'autre, et une grille de cartes rend cette comparaison plus difficile.
  */
 @Component({
   selector: 'sim-scenario-table',
@@ -56,7 +56,7 @@ const KIND_ORDER: ScenarioKind[] = ['baseline', 'favourable', 'adverse', 'stress
                 </p>
 
                 @if (expanded() === scenario.id) {
-                  <div class="mt-2.5 rounded-lg border border-line bg-panel-sunken p-3">
+                  <div class="rise mt-2.5 rounded-lg border border-line bg-panel-sunken p-3">
                     @if (scenario.shifts.length) {
                       <ul class="mb-2 flex flex-col gap-1">
                         @for (shift of scenario.shifts; track shift.factorId + shift.label) {
@@ -67,39 +67,51 @@ const KIND_ORDER: ScenarioKind[] = ['baseline', 'favourable', 'adverse', 'stress
                         }
                       </ul>
                     }
-                    <p class="max-w-[65ch] text-meta leading-relaxed text-ink-muted">
-                      {{ scenario.outcome }}
-                    </p>
+                    @if (scenario.outcome; as outcome) {
+                      <p class="max-w-[65ch] text-meta leading-relaxed text-ink-muted">
+                        {{ outcome.narrative }}
+                      </p>
+                    }
                   </div>
                 }
               </td>
-              <td class="py-3 pr-4 text-ink-muted">{{ 'scenarioKind.' + scenario.kind | translate }}</td>
-              <td class="py-3 pr-4 text-right font-semibold tabular-nums text-ink">
-                {{ scenario.viability }}
+              <td class="py-3 pr-4 text-ink-muted">
+                {{ 'scenarioKind.' + scenario.kind | translate }}
               </td>
-              <td class="py-3 pr-4 text-right tabular-nums text-ink-muted">
-                {{
-                  scenario.breakEvenMonth === null
-                    ? ('scenario.never' | translate)
-                    : ('scenario.monthN' | translate: { month: scenario.breakEvenMonth })
-                }}
-              </td>
-              <td class="py-3 pr-4 text-right tabular-nums text-ink-muted">
-                {{
-                  scenario.runwayMonths === null
-                    ? '—'
-                    : ('scenario.monthsN' | translate: { months: scenario.runwayMonths })
-                }}
-              </td>
-              <td class="py-3">
-                <span
-                  class="inline-flex items-center gap-1.5 text-meta font-semibold"
-                  [class]="scenario.survives ? 'text-verdict-go' : 'text-verdict-stop'"
-                >
-                  <span class="size-1.5 rounded-full bg-current" aria-hidden="true"></span>
-                  {{ (scenario.survives ? 'scenario.holdsYes' : 'scenario.holdsNo') | translate }}
-                </span>
-              </td>
+
+              @if (scenario.outcome; as outcome) {
+                <td class="py-3 pr-4 text-right font-semibold tabular-nums text-ink">
+                  {{ outcome.viability }}
+                </td>
+                <td class="py-3 pr-4 text-right tabular-nums text-ink-muted">
+                  {{
+                    outcome.breakEvenMonth === null
+                      ? ('scenario.never' | translate)
+                      : ('scenario.monthN' | translate: { month: outcome.breakEvenMonth })
+                  }}
+                </td>
+                <td class="py-3 pr-4 text-right tabular-nums text-ink-muted">
+                  {{
+                    outcome.runwayMonths === null
+                      ? '—'
+                      : ('scenario.monthsN' | translate: { months: outcome.runwayMonths })
+                  }}
+                </td>
+                <td class="py-3">
+                  <span
+                    class="inline-flex items-center gap-1.5 text-meta font-semibold"
+                    [class.text-verdict-go]="outcome.survives"
+                    [class.text-verdict-stop]="!outcome.survives"
+                  >
+                    <span class="size-1.5 rounded-full bg-current" aria-hidden="true"></span>
+                    {{ (outcome.survives ? 'scenario.holdsYes' : 'scenario.holdsNo') | translate }}
+                  </span>
+                </td>
+              } @else {
+                <td class="py-3 pr-4 text-right text-ink-subtle" colspan="4">
+                  {{ 'scenario.notComputed' | translate }}
+                </td>
+              }
             </tr>
           }
         </tbody>
@@ -115,7 +127,9 @@ export class ScenarioTable {
 
   protected readonly sorted = computed(() =>
     [...this.scenarios()].sort(
-      (a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || b.viability - a.viability,
+      (a, b) =>
+        KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) ||
+        (b.outcome?.viability ?? 0) - (a.outcome?.viability ?? 0),
     ),
   );
 

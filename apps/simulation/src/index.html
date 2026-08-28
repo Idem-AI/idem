@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr" data-theme="dark">
+<html lang="fr" class="dark" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <title>IDEM Simulator</title>
@@ -39,8 +39,11 @@
                 ? 'light'
                 : 'dark';
           document.documentElement.dataset.theme = theme;
+          document.documentElement.classList.toggle('dark', theme === 'dark');
+          document.documentElement.classList.toggle('light', theme === 'light');
         } catch (e) {
           document.documentElement.dataset.theme = 'dark';
+          document.documentElement.classList.add('dark');
         }
         try {
           var lang = localStorage.getItem('idem_simulation_language');

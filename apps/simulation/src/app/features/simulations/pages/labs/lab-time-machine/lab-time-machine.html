@@ -1,0 +1,105 @@
+<sim-lab-panel
+  lab="timeMachine"
+  [heading]="'lab.timeMachine.heading' | translate"
+  [body]="'lab.timeMachine.body' | translate"
+>
+  @if (report(); as report) {
+    <div class="flex flex-col gap-5">
+      <div
+        class="flex flex-wrap gap-1.5"
+        role="tablist"
+        [attr.aria-label]="'lab.timeMachine.heading' | translate"
+      >
+        @for (timeline of report.timelines; track timeline.id) {
+          <button
+            type="button"
+            role="tab"
+            [attr.aria-selected]="selected()?.id === timeline.id"
+            class="rounded-full border px-3 py-1.5 text-meta font-medium transition-colors"
+            [class.border-line]="selected()?.id !== timeline.id"
+            [class.text-ink-muted]="selected()?.id !== timeline.id"
+            [class.border-transparent]="selected()?.id === timeline.id"
+            [class.bg-primary]="selected()?.id === timeline.id"
+            [class.text-brand-ink]="selected()?.id === timeline.id"
+            (click)="select(timeline.id)"
+          >
+            {{ timeline.name }}
+          </button>
+        }
+      </div>
+
+      @if (selected(); as timeline) {
+        <div class="glass-card p-5">
+          <div class="flex flex-wrap items-baseline justify-between gap-3">
+            <h3 class="text-h3 font-semibold text-ink">{{ timeline.name }}</h3>
+            <span class="text-meta text-ink-subtle">
+              {{ 'scenarioKind.' + timeline.kind | translate }}
+            </span>
+          </div>
+
+          <ol class="mt-5 flex flex-col">
+            @for (year of timeline.years; track year.year) {
+              <li class="relative flex gap-4 pb-6 last:pb-0">
+                <div class="flex flex-col items-center">
+                  <span
+                    class="grid size-8 shrink-0 place-items-center rounded-full border border-line bg-panel-sunken text-meta font-semibold tabular-nums text-ink"
+                  >
+                    {{ year.year }}
+                  </span>
+                  <span class="mt-1 w-px flex-1 bg-line" aria-hidden="true"></span>
+                </div>
+                <div class="min-w-0 flex-1 pt-1">
+                  @if (year.event) {
+                    <p class="text-sm font-medium text-ink">{{ year.event }}</p>
+                  }
+                  <dl class="mt-1 grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-4">
+                    <div>
+                      <dt class="text-meta text-ink-subtle">{{ 'timeline.revenue' | translate }}</dt>
+                      <dd class="text-sm tabular-nums text-ink-muted">
+                        {{ year.revenue.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) }}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt class="text-meta text-ink-subtle">{{ 'timeline.costs' | translate }}</dt>
+                      <dd class="text-sm tabular-nums text-ink-muted">
+                        {{ year.costs.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) }}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt class="text-meta text-ink-subtle">{{ 'timeline.cash' | translate }}</dt>
+                      <dd
+                        class="text-sm font-medium tabular-nums"
+                        [class.text-verdict-go]="year.cash >= 0"
+                        [class.text-verdict-stop]="year.cash < 0"
+                      >
+                        {{ year.cash.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) }}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt class="text-meta text-ink-subtle">{{ 'timeline.customers' | translate }}</dt>
+                      <dd class="text-sm tabular-nums text-ink-muted">
+                        {{ year.activeCustomers.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) }}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              </li>
+            }
+          </ol>
+
+          <div class="mt-2 border-t border-line pt-4">
+            <p class="text-meta text-ink-subtle">
+              {{
+                timeline.divergenceYear === null
+                  ? ('timeline.noDivergence' | translate)
+                  : ('timeline.divergesAt' | translate: { year: timeline.divergenceYear })
+              }}
+            </p>
+            <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">{{ timeline.divergence }}</p>
+            <p class="mt-2 max-w-[70ch] text-sm leading-relaxed text-ink">{{ timeline.endState }}</p>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</sim-lab-panel>

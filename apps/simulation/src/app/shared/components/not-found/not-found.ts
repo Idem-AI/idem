@@ -11,7 +11,7 @@ import { TranslatePipe } from '@ngx-translate/core';
       <p class="font-mono text-meta tracking-widest text-ink-subtle">404</p>
       <h1 class="text-h1 font-semibold text-ink">{{ 'notFound.heading' | translate }}</h1>
       <p class="text-sm leading-relaxed text-ink-muted">{{ 'notFound.body' | translate }}</p>
-      <a routerLink="/simulations" class="sim-btn sim-btn-primary mt-2">
+      <a routerLink="/simulations" class="inner-button mt-2">
         {{ 'notFound.action' | translate }}
       </a>
     </main>

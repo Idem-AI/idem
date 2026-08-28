@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
@@ -18,13 +18,11 @@ import { Simulation } from '../../models';
  */
 @Component({
   selector: 'sim-simulation-compare',
-  imports: [RouterLink, TranslatePipe, VerdictBadge, DisclaimerNote],
+  imports: [TranslatePipe, VerdictBadge, DisclaimerNote],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './simulation-compare.html',
 })
 export class SimulationCompare {
-  readonly id = input.required<string>();
-
   private readonly gateway = inject(SimulationGateway);
   private readonly store = inject(SimulationStore);
   private readonly router = inject(Router);
@@ -52,26 +50,29 @@ export class SimulationCompare {
     return after
       .map((scenario) => {
         const match = before.find((candidate) => candidate.id === scenario.id);
-        if (!match || match.survives === scenario.survives) {
+        const nowHolds = scenario.outcome?.survives;
+        const heldBefore = match?.outcome?.survives;
+        if (nowHolds === undefined || heldBefore === undefined || heldBefore === nowHolds) {
           return null;
         }
-        return { name: scenario.name, nowHolds: scenario.survives };
+        return { name: scenario.name, nowHolds };
       })
       .filter((entry): entry is { name: string; nowHolds: boolean } => entry !== null);
   });
 
   constructor() {
     effect(() => {
-      void this.load(this.id());
+      const simulation = this.current();
+      const projectId = this.store.projectId();
+      untracked(() => void this.load(projectId, simulation?.previousRunId));
     });
   }
 
-  private async load(id: string): Promise<void> {
+  private async load(projectId: string | null, previousRunId?: string): Promise<void> {
     this.loading.set(true);
-    const simulation = await this.store.loadOne(id);
-    if (simulation?.previousRunId) {
+    if (projectId && previousRunId) {
       try {
-        this.previous.set(await firstValueFrom(this.gateway.getSimulation(simulation.previousRunId)));
+        this.previous.set(await firstValueFrom(this.gateway.getSimulation(projectId, previousRunId)));
       } catch {
         this.previous.set(null);
       }

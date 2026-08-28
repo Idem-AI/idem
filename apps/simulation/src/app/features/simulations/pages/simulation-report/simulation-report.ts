@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
@@ -57,8 +57,6 @@ interface ReportRow {
   templateUrl: './simulation-report.html',
 })
 export class SimulationReportPage {
-  readonly id = input.required<string>();
-
   private readonly gateway = inject(SimulationGateway);
   private readonly store = inject(SimulationStore);
 
@@ -96,8 +94,10 @@ export class SimulationReportPage {
     if (!scenarios.length) {
       return null;
     }
-    const values = scenarios.map((scenario) => scenario.viability);
-    return { min: Math.min(...values), max: Math.max(...values) };
+    const values = scenarios
+      .map((scenario) => scenario.outcome?.viability)
+      .filter((value): value is number => typeof value === 'number');
+    return values.length ? { min: Math.min(...values), max: Math.max(...values) } : null;
   });
 
   protected readonly profileRows = computed<readonly ReportRow[]>(() => {
@@ -154,18 +154,30 @@ export class SimulationReportPage {
   );
 
   constructor() {
+    // Le rapport est déjà embarqué quand il a été généré ; sinon on le
+    // demande, ce qui distingue « pas acheté » de « pas encore chargé ».
     effect(() => {
-      const id = this.id();
-      void this.store.loadOne(id);
-      void this.load(id);
+      const run = this.simulation();
+      const projectId = this.store.projectId();
+      untracked(() => {
+        if (!run || !projectId) {
+          return;
+        }
+        if (run.report) {
+          this.report.set(run.report);
+          this.loading.set(false);
+          return;
+        }
+        void this.load(projectId, run.id);
+      });
     });
   }
 
-  private async load(id: string): Promise<void> {
+  private async load(projectId: string, id: string): Promise<void> {
     this.loading.set(true);
     this.failed.set(false);
     try {
-      this.report.set(await firstValueFrom(this.gateway.getReport(id)));
+      this.report.set(await firstValueFrom(this.gateway.getReport(projectId, id)));
     } catch {
       this.failed.set(true);
     } finally {

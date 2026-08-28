@@ -1,0 +1,98 @@
+<sim-lab-panel
+  lab="redTeam"
+  [heading]="'lab.redTeam.heading' | translate"
+  [body]="'lab.redTeam.body' | translate"
+>
+  @if (report(); as report) {
+    <div class="flex flex-col gap-5">
+      <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4">
+        <div class="bg-panel p-4">
+          <dt class="text-meta text-ink-subtle">{{ 'lab.redTeam.total' | translate }}</dt>
+          <dd class="mt-0.5 text-h2 font-semibold tabular-nums text-ink">{{ report.summary.total }}</dd>
+        </div>
+        <div class="bg-panel p-4">
+          <dt class="text-meta text-ink-subtle">{{ 'severity.critical' | translate }}</dt>
+          <dd class="mt-0.5 text-h2 font-semibold tabular-nums text-verdict-stop">
+            {{ report.summary.critical }}
+          </dd>
+        </div>
+        <div class="bg-panel p-4">
+          <dt class="text-meta text-ink-subtle">{{ 'severity.important' | translate }}</dt>
+          <dd class="mt-0.5 text-h2 font-semibold tabular-nums text-verdict-warn">
+            {{ report.summary.important }}
+          </dd>
+        </div>
+        <div class="bg-panel p-4">
+          <dt class="text-meta text-ink-subtle">{{ 'severity.secondary' | translate }}</dt>
+          <dd class="mt-0.5 text-h2 font-semibold tabular-nums text-ink-muted">
+            {{ report.summary.secondary }}
+          </dd>
+        </div>
+      </dl>
+
+      <p class="rounded-xl border border-line bg-panel-sunken p-4 text-sm leading-relaxed text-ink-muted">
+        {{ report.verdict }}
+      </p>
+
+      <div class="flex flex-wrap gap-1.5" role="group" [attr.aria-label]="'lab.redTeam.filter' | translate">
+        @for (item of roles; track item) {
+          <button
+            type="button"
+            class="rounded-full border px-3 py-1.5 text-meta font-medium transition-colors"
+            [class.border-line]="role() !== item"
+            [class.text-ink-muted]="role() !== item"
+            [class.border-transparent]="role() === item"
+            [class.bg-primary]="role() === item"
+            [class.text-brand-ink]="role() === item"
+            [attr.aria-pressed]="role() === item"
+            (click)="role.set(item)"
+          >
+            {{ (item === 'all' ? 'lab.redTeam.allRoles' : 'redTeamRole.' + item) | translate }}
+          </button>
+        }
+      </div>
+
+      <ul class="flex flex-col gap-3">
+        @for (item of visible(); track item.id) {
+          <li class="glass-card p-5">
+            <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h3 class="text-sm font-semibold text-ink">{{ item.title }}</h3>
+              <span
+                class="text-[0.6875rem] font-semibold uppercase tracking-wide"
+                [class.text-verdict-stop]="item.severity === 'critical'"
+                [class.text-verdict-warn]="item.severity === 'important'"
+                [class.text-ink-subtle]="item.severity === 'secondary'"
+              >
+                {{ 'severity.' + item.severity | translate }}
+              </span>
+              <span class="text-meta text-ink-subtle">
+                {{ 'redTeamRole.' + item.role | translate }}
+              </span>
+            </div>
+
+            <dl class="mt-3 flex flex-col gap-2.5">
+              <div>
+                <dt class="text-meta font-semibold text-ink-subtle">
+                  {{ 'lab.redTeam.attack' | translate }}
+                </dt>
+                <dd class="mt-0.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">{{ item.attack }}</dd>
+              </div>
+              <div>
+                <dt class="text-meta font-semibold text-ink-subtle">
+                  {{ 'lab.redTeam.exposure' | translate }}
+                </dt>
+                <dd class="mt-0.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">{{ item.exposure }}</dd>
+              </div>
+              <div>
+                <dt class="text-meta font-semibold text-ink-subtle">
+                  {{ 'lab.redTeam.mitigation' | translate }}
+                </dt>
+                <dd class="mt-0.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">{{ item.mitigation }}</dd>
+              </div>
+            </dl>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</sim-lab-panel>

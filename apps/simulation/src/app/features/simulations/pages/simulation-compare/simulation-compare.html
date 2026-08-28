@@ -1,16 +1,6 @@
 <div class="mx-auto flex max-w-3xl flex-col gap-7">
-  <a
-    [routerLink]="['/simulations', id(), 'results']"
-    class="inline-flex w-fit items-center gap-1.5 text-meta text-ink-subtle transition-colors hover:text-ink-muted"
-  >
-    <svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-      <path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round" />
-    </svg>
-    {{ 'report.backToResults' | translate }}
-  </a>
-
   @if (loading()) {
-    <div class="sim-skeleton h-56 rounded-xl"></div>
+    <div class="skeleton h-56 rounded-xl"></div>
   } @else if (current(); as after) {
     <div>
       <h1 class="text-h1 font-semibold text-ink">{{ 'compare.heading' | translate }}</h1>
@@ -21,7 +11,7 @@
 
     @if (previous(); as before) {
       <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center">
-        <div class="sim-panel-flat p-5">
+        <div class="glass-card p-5">
           <p class="text-meta text-ink-subtle">
             {{ 'compare.previous' | translate: { revision: before.revision } }}
           </p>
@@ -90,7 +80,7 @@
         </section>
       }
     } @else {
-      <div class="sim-panel-flat p-6">
+      <div class="glass-card p-6">
         <p class="text-sm text-ink-muted">{{ 'compare.noPrevious' | translate }}</p>
       </div>
     }
@@ -102,7 +92,7 @@
       </p>
       <button
         type="button"
-        class="sim-btn sim-btn-primary mt-4"
+        class="inner-button mt-4"
         [disabled]="relaunching()"
         (click)="relaunch()"
       >

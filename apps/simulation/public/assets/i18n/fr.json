@@ -11,7 +11,32 @@
     "main": "Navigation principale",
     "simulations": "Simulations",
     "backToIdem": "Retour à IDEM",
-    "account": "Compte"
+    "account": "Compte",
+    "new": "Nouvelle simulation",
+    "openMenu": "Ouvrir le menu",
+    "closeMenu": "Fermer le menu",
+    "toggleSidebar": "Replier ou déplier la navigation",
+    "overview": "Vue d'ensemble",
+    "understanding": "Compréhension",
+    "factors": "Facteurs",
+    "scenarios": "Scénarios",
+    "financials": "Finances",
+    "report": "Rapport",
+    "compare": "Comparaison",
+    "group": {
+      "analysis": "Analyse",
+      "labs": "Laboratoires",
+      "deliverables": "Livrables"
+    },
+    "lab": {
+      "redTeam": "Attaquer le projet",
+      "customers": "Simulateur de clients",
+      "investors": "Simulateur d'investisseurs",
+      "blackSwan": "Cygnes noirs",
+      "universes": "Univers parallèles",
+      "timeMachine": "Machine à remonter le temps",
+      "experiments": "Expériences à mener"
+    }
   },
   "theme": {
     "switchToLight": "Passer en thème clair",
@@ -107,7 +132,8 @@
     "launch": "Lancer la simulation",
     "launching": "Lancement…",
     "launchFailed": "Le lancement a échoué",
-    "pricingFailed": "Impossible de charger les tarifs"
+    "pricingFailed": "Impossible de charger les tarifs",
+    "noProject": "Choisissez d'abord un projet."
   },
   "tier": {
     "run": "Simulation",
@@ -141,7 +167,9 @@
     "title": "Simulation en cours",
     "description": "La simulation continue même si vous fermez cette page. Vous serez redirigé dès que les résultats sont prêts.",
     "failed": "La simulation s'est interrompue",
-    "failedBody": "Aucun montant n'est retenu pour une simulation qui n'aboutit pas. Relancez-la depuis la liste."
+    "failedBody": "Aucun montant n'est retenu pour une simulation qui n'aboutit pas. Relancez-la depuis la liste.",
+    "body": "L'analyse mobilise plusieurs agents et prend quelques minutes. Vous pouvez fermer cet écran : l'exécution continue.",
+    "inProgress": "En cours — {{percent}} %"
   },
   "knowledge": {
     "known": "Ce que nous savons",
@@ -233,7 +261,9 @@
   "severity": {
     "critical": "Critique",
     "high": "Élevé",
-    "moderate": "Modéré"
+    "moderate": "Modéré",
+    "important": "Important",
+    "secondary": "Secondaire"
   },
   "impact": {
     "low": "Faible",
@@ -257,7 +287,8 @@
     "holdsNo": "Non",
     "never": "Jamais atteint",
     "monthN": "Mois {{month}}",
-    "monthsN": "{{months}} mois"
+    "monthsN": "{{months}} mois",
+    "notComputed": "Non calculé"
   },
   "scenarioKind": {
     "baseline": "Référence",
@@ -352,5 +383,193 @@
     "heading": "Page introuvable",
     "body": "Ce lien ne correspond à aucune page du simulateur.",
     "action": "Revenir aux simulations"
+  },
+  "project": {
+    "select": "Choisir un projet",
+    "none": "Aucun projet disponible"
+  },
+  "origin": {
+    "idem-project": "Projet IDEM",
+    "imported-document": "Document importé"
+  },
+  "overview": {
+    "atAGlance": "En un coup d'œil",
+    "nextSteps": "La suite"
+  },
+  "understanding": {
+    "profile": "Ce que le moteur a compris",
+    "baseline": "Les chiffres retenus",
+    "baselineBody": "Ce sont les seules valeurs que le moteur déterministe utilise. Tout le reste sert à les établir ou à les faire varier.",
+    "knowledge": "Ce qui est su, et ce qui ne l'est pas",
+    "knowledgeBody": "Les quatre états sont montrés ensemble : une hypothèse présentée comme une donnée fausserait tout ce qui suit.",
+    "evidence": "Sources",
+    "evidenceBody": "Chaque valeur porte son origine et son niveau de confiance.",
+    "pending": "L'analyse du projet n'est pas encore disponible."
+  },
+  "baseline": {
+    "unitPrice": "Prix unitaire",
+    "unitVariableCost": "Coût variable unitaire",
+    "monthlyFixedCosts": "Charges fixes mensuelles",
+    "acquisitionCost": "Coût d'acquisition client",
+    "startingCapital": "Capital de départ",
+    "initialMonthlyCustomers": "Nouveaux clients / mois",
+    "monthlyGrowthRate": "Croissance mensuelle",
+    "monthlyRetentionRate": "Rétention mensuelle",
+    "purchasesPerCustomerPerMonth": "Achats / client / mois"
+  },
+  "factors": {
+    "heading": "Facteurs découverts",
+    "body": "{{total}} facteurs identifiés pour ce secteur. La liste n'est pas fixe : elle dépend du projet analysé.",
+    "filter": "Filtrer par niveau",
+    "all": "Tous",
+    "empty": "Aucun facteur à ce niveau.",
+    "noEvidence": "Aucune source rattachée : ce facteur reste une hypothèse du moteur."
+  },
+  "lever": {
+    "price": "Prix",
+    "variableCost": "Coût variable",
+    "fixedCost": "Charges fixes",
+    "acquisitionCost": "Acquisition",
+    "growth": "Croissance",
+    "retention": "Rétention",
+    "frequency": "Fréquence d'achat",
+    "capital": "Capital",
+    "none": "Aucun levier direct"
+  },
+  "scenarios": {
+    "heading": "Combinaisons testées",
+    "body": "Chaque scénario croise plusieurs facteurs à la fois : c'est la combinaison qui casse un modèle, rarement un facteur isolé.",
+    "stress": "Tests de résistance",
+    "stressBody": "Ici la question n'est pas « est-ce probable » mais « à partir de quand ça casse ».",
+    "survival": "Le modèle tient dans {{percent}} % des scénarios"
+  },
+  "financials": {
+    "heading": "Trajectoire financière",
+    "body": "Projection déterministe sur trois ans, reproductible : mêmes entrées, mêmes chiffres.",
+    "trajectory": "Trésorerie cumulée",
+    "breakEven": "Rentabilité",
+    "runway": "Autonomie",
+    "burn": "Consommation mensuelle",
+    "capital": "Capital nécessaire",
+    "margin": "Marge brute",
+    "revenueYear1": "CA année 1",
+    "revenueYear3": "CA année 3",
+    "never": "jamais atteinte",
+    "beyondHorizon": "au-delà de l'horizon",
+    "monthUnit": "e mois",
+    "monthsUnit": "mois",
+    "sensitivity": "Sensibilité",
+    "sensitivityBody": "Ce qu'un mouvement isolé change sur l'indice, tous les autres leviers restant constants.",
+    "conditions": "Conditions de viabilité",
+    "conditionsBody": "Les seuils que le modèle doit franchir pour que les scénarios tiennent.",
+    "pending": "Les résultats financiers ne sont pas encore disponibles."
+  },
+  "condition": {
+    "met": "Atteint",
+    "unmet": "Non atteint",
+    "unknown": "Inconnu"
+  },
+  "lab": {
+    "launch": "Lancer l'analyse",
+    "rerun": "Relancer",
+    "running": "En cours",
+    "runningBody": "Plusieurs agents travaillent sur cette analyse. Cela prend une à deux minutes.",
+    "notRun": "Cette analyse n'a pas encore été lancée. Elle s'appuie sur les résultats de la simulation et ne les remplace pas.",
+    "needsRun": "Cette analyse demande une simulation terminée.",
+    "done": "Analyse disponible",
+    "redTeam": {
+      "heading": "Attaquez mon business",
+      "body": "Six rôles cherchent où le projet casse. L'objectif n'est pas de rassurer, c'est de trouver ce qui n'a pas été prévu.",
+      "total": "Failles trouvées",
+      "filter": "Filtrer par rôle",
+      "allRoles": "Tous les rôles",
+      "attack": "L'attaque",
+      "exposure": "Ce qui la rend possible",
+      "mitigation": "Ce qui la referme"
+    },
+    "customers": {
+      "heading": "Simulateur de clients",
+      "body": "Un panel de clients synthétiques réagit à votre offre et à votre prix. Ce sont des profils construits, pas des personnes réelles.",
+      "panelSize": "Profils simulés",
+      "segments": "Segments",
+      "optimalPrice": "Prix le plus rentable",
+      "curve": "Revenu selon le prix",
+      "curveLabel": "Revenu estimé en fonction du prix pratiqué",
+      "price": "Prix",
+      "conversion": "Conversion",
+      "buyers": "Acheteurs",
+      "revenue": "Revenu estimé",
+      "budget": "Budget",
+      "willingness": "Disposition à payer",
+      "sensitivity": "Sensibilité au prix",
+      "frequency": "Achats / an"
+    },
+    "investors": {
+      "heading": "Simulateur d'investisseurs",
+      "body": "Le dossier passé devant quatre profils. Ce qui compte ici, ce sont les objections : elles arriveront de toute façon.",
+      "readiness": "Préparation au financement",
+      "prepare": "À préparer avant le premier rendez-vous",
+      "secondMeeting": "Reverrait le projet",
+      "noSecondMeeting": "Ne donnerait pas suite"
+    },
+    "blackSwan": {
+      "heading": "Cygnes noirs",
+      "body": "Des chocs rares mais possibles, rejoués dans le même moteur que les scénarios.",
+      "absorption": "Chocs absorbés",
+      "absorptionHint": "Part des chocs auxquels le modèle survit sans rupture de trésorerie.",
+      "lowestCash": "Trésorerie au plus bas"
+    },
+    "universes": {
+      "heading": "Univers parallèles",
+      "body": "Le même projet sous d'autres modèles économiques, passé dans les mêmes scénarios.",
+      "best": "Meilleur univers"
+    },
+    "timeMachine": {
+      "heading": "Machine à remonter le temps",
+      "body": "Le projet projeté sur cinq ans, une trajectoire par scénario, avec le moment où elles divergent."
+    },
+    "experiments": {
+      "heading": "Expériences à mener",
+      "body": "Ce qu'il faut aller vérifier dans le monde réel pour transformer les hypothèses en données.",
+      "method": "Comment faire",
+      "signal": "Ce que le résultat trancherait",
+      "cost": "Coût",
+      "duration": "Durée",
+      "days": "{{days}} jours",
+      "uncertaintyDrop": "Incertitude retirée",
+      "startHere": "Commencer par là"
+    }
+  },
+  "redTeamRole": {
+    "competitor": "Concurrent",
+    "skeptical-customer": "Client sceptique",
+    "investor": "Investisseur",
+    "regulator": "Régulateur",
+    "cfo": "Directeur financier",
+    "operations": "Opérations"
+  },
+  "investorProfile": {
+    "growth": "Fonds de croissance",
+    "impact": "Investisseur à impact",
+    "technology": "Fonds technologique",
+    "regional": "Investisseur régional"
+  },
+  "likelihood": {
+    "rare": "Rare",
+    "unlikely": "Peu probable",
+    "plausible": "Plausible"
+  },
+  "timeline": {
+    "revenue": "Revenu",
+    "costs": "Coûts",
+    "cash": "Trésorerie",
+    "customers": "Clients actifs",
+    "divergesAt": "Divergence à partir de l'année {{year}}",
+    "noDivergence": "Aucune divergence marquée sur l'horizon"
+  },
+  "cost": {
+    "low": "Faible",
+    "medium": "Moyen",
+    "high": "Élevé"
   }
 }

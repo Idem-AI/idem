@@ -23,7 +23,7 @@ const ARC_LENGTH = Math.PI * 80;
         <path
           d="M 20 100 A 80 80 0 0 1 180 100"
           fill="none"
-          stroke="var(--sim-panel-sunken)"
+          stroke="var(--color-surface-3)"
           stroke-width="14"
           stroke-linecap="round"
         />
@@ -31,7 +31,7 @@ const ARC_LENGTH = Math.PI * 80;
           <path
             d="M 20 100 A 80 80 0 0 1 180 100"
             fill="none"
-            stroke="var(--sim-brand)"
+            stroke="var(--color-primary)"
             stroke-opacity="0.22"
             stroke-width="14"
             [attr.stroke-dasharray]="bandDash()"
@@ -110,9 +110,9 @@ export class ViabilityGauge {
   protected readonly strokeColour = computed(() => {
     const value = this.value();
     if (value >= 65) {
-      return 'var(--sim-verdict-go)';
+      return 'var(--color-success)';
     }
-    return value >= 45 ? 'var(--sim-verdict-warn)' : 'var(--sim-verdict-stop)';
+    return value >= 45 ? 'var(--color-warning)' : 'var(--color-danger)';
   });
 }
 

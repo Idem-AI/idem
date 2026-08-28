@@ -1,0 +1,88 @@
+<div class="flex flex-col gap-5">
+  <div>
+    <h2 class="text-h2 font-semibold text-ink">{{ 'factors.heading' | translate }}</h2>
+    <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+      {{ 'factors.body' | translate: { total: counts()['all'] } }}
+    </p>
+  </div>
+
+  <div class="flex flex-wrap gap-1.5" role="group" [attr.aria-label]="'factors.filter' | translate">
+    @for (tier of filters; track tier) {
+      <button
+        type="button"
+        class="rounded-full border px-3 py-1.5 text-meta font-medium transition-colors"
+        [class.border-line]="filter() !== tier"
+        [class.text-ink-muted]="filter() !== tier"
+        [class.border-transparent]="filter() === tier"
+        [class.bg-primary]="filter() === tier"
+        [class.text-brand-ink]="filter() === tier"
+        [attr.aria-pressed]="filter() === tier"
+        (click)="filter.set(tier)"
+      >
+        {{ (tier === 'all' ? 'factors.all' : 'factorTier.' + tier) | translate }}
+        <span class="ml-1 tabular-nums opacity-70">{{ counts()[tier] }}</span>
+      </button>
+    }
+  </div>
+
+  <ul class="divide-y divide-line overflow-hidden rounded-xl border border-line bg-panel">
+    @for (factor of visible(); track factor.id) {
+      <li class="p-4">
+        <button
+          type="button"
+          class="flex w-full items-start justify-between gap-4 text-left"
+          [attr.aria-expanded]="expanded() === factor.id"
+          (click)="toggle(factor.id)"
+        >
+          <span class="min-w-0">
+            <span class="block text-sm font-medium text-ink">{{ factor.name }}</span>
+            <span class="mt-0.5 block text-meta text-ink-subtle">
+              {{ factor.category }} · {{ 'factorTier.' + factor.tier | translate }}
+              @if (factor.lever !== 'none') {
+                · {{ 'lever.' + factor.lever | translate }}
+              }
+            </span>
+          </span>
+          <span class="flex shrink-0 items-center gap-3">
+            <span class="text-sm font-semibold tabular-nums text-ink">{{ factor.impact }}</span>
+            <i
+              class="pi pi-chevron-down text-[0.7rem] text-ink-subtle transition-transform"
+              [class.rotate-180]="expanded() === factor.id"
+              aria-hidden="true"
+            ></i>
+          </span>
+        </button>
+
+        <div
+          class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-panel-sunken"
+          role="meter"
+          [attr.aria-valuenow]="factor.impact"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          [attr.aria-label]="factor.name"
+        >
+          <div
+            class="h-full rounded-full"
+            [class.bg-verdict-stop]="factor.tier === 'critical'"
+            [class.bg-primary]="factor.tier !== 'critical' && factor.tier !== 'unknown'"
+            [class.bg-ink-subtle]="factor.tier === 'unknown'"
+            [style.width.%]="factor.impact"
+          ></div>
+        </div>
+
+        @if (expanded() === factor.id) {
+          <div class="rise mt-3 flex flex-col gap-3">
+            <p class="max-w-[70ch] text-sm leading-relaxed text-ink-muted">{{ factor.description }}</p>
+            @if (factor.evidence; as evidence) {
+              <sim-evidence-chip [evidence]="evidence" />
+            } @else {
+              <p class="text-meta text-ink-subtle">{{ 'factors.noEvidence' | translate }}</p>
+            }
+          </div>
+        }
+      </li>
+    } @empty {
+      <li class="p-6 text-sm text-ink-muted">{{ 'factors.empty' | translate }}</li>
+    }
+  </ul>
+</div>
