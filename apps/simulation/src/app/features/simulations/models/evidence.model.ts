@@ -1,32 +1,33 @@
 /**
- * How confident the engine is in a value it used.
+ * Miroir du contrat exposé par `api/models/simulation.model.ts`.
  *
- * Kept separate from the value itself because the product's core promise is
- * that a reader can always tell a measurement from a guess.
+ * Les types sont dupliqués plutôt que partagés : c'est la convention du dépôt
+ * (le module Finance fait de même), et cela garde le front indépendant du
+ * cycle de build de l'API.
  */
+
 export type ConfidenceLevel = 'low' | 'medium' | 'high';
 
 /**
- * Where a number came from.
- *
- * - `data`       — an observed, sourced figure.
- * - `estimate`   — derived from comparable data.
- * - `assumption` — chosen by the engine because nothing better existed.
+ * D'où vient une valeur.
+ *  - `data`       : chiffre observé et sourcé.
+ *  - `estimate`   : dérivé de données comparables.
+ *  - `assumption` : choix assumé du moteur, faute de mieux.
  */
 export type EvidenceKind = 'data' | 'estimate' | 'assumption';
 
-/** A single value used by the simulation, with its provenance. */
 export interface Evidence {
   id: string;
   label: string;
-  /** Already formatted for display, including its unit. */
+  /** Déjà formatée pour l'affichage, unité comprise. */
   value: string;
+  numericValue?: number;
+  unit?: string;
   kind: EvidenceKind;
   confidence: ConfidenceLevel;
-  /** Publisher or derivation, e.g. "Prix à la pompe, MINEE". */
   source?: string;
   sourceUrl?: string;
-  /** ISO date of the underlying figure, not of the simulation. */
+  /** Date de la donnée sous-jacente, pas de la simulation. */
   asOf?: string;
   note?: string;
 }

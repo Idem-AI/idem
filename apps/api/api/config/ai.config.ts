@@ -141,6 +141,84 @@ export const AI_CONFIG = {
     } as FeatureAIConfig,
   },
 
+  // Simulation configurations
+  // La découverte des facteurs et la Red Team ont besoin de place: ce sont les
+  // deux étapes qui produisent des dizaines d'entrées structurées d'un coup.
+  simulation: {
+    default: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'simulation',
+      llmOptions: { temperature: 0.4, maxOutputTokens: 8192 },
+    } as FeatureAIConfig,
+    understanding: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'simulation_understanding',
+      llmOptions: { temperature: 0.2, maxOutputTokens: 8192 },
+    } as FeatureAIConfig,
+    factors: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'simulation_factors',
+      llmOptions: { temperature: 0.5, maxOutputTokens: 32768 },
+    } as FeatureAIConfig,
+    scenarios: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'simulation_scenarios',
+      llmOptions: { temperature: 0.5, maxOutputTokens: 16384 },
+    } as FeatureAIConfig,
+    analysis: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'simulation_analysis',
+      llmOptions: { temperature: 0.3, maxOutputTokens: 8192 },
+    } as FeatureAIConfig,
+    recommendations: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'simulation_recommendations',
+      llmOptions: { temperature: 0.4, maxOutputTokens: 8192 },
+    } as FeatureAIConfig,
+    redTeam: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'simulation_red_team',
+      llmOptions: { temperature: 0.7, maxOutputTokens: 32768 },
+    } as FeatureAIConfig,
+    customers: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'simulation_customers',
+      llmOptions: { temperature: 0.5, maxOutputTokens: 8192 },
+    } as FeatureAIConfig,
+    investors: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'simulation_investors',
+      llmOptions: { temperature: 0.6, maxOutputTokens: 8192 },
+    } as FeatureAIConfig,
+    blackSwan: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'simulation_black_swan',
+      llmOptions: { temperature: 0.8, maxOutputTokens: 12288 },
+    } as FeatureAIConfig,
+    universes: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'simulation_universes',
+      llmOptions: { temperature: 0.7, maxOutputTokens: 8192 },
+    } as FeatureAIConfig,
+    experiments: {
+      provider: LLMProvider.GEMINI,
+      modelName: 'gemini-3-flash-preview',
+      promptType: 'simulation_experiments',
+      llmOptions: { temperature: 0.5, maxOutputTokens: 8192 },
+    } as FeatureAIConfig,
+  },
+
   // Communication configurations
   communication: {
     default: {

@@ -1,15 +1,25 @@
-/**
- * Scenarios are not just optimistic/realistic/pessimistic: the engine
- * combines factor shifts, so a run can be a routine downside, a deliberate
- * stress test, or a rare compound shock.
- */
+import { FactorLever } from './factor.model';
+
 export type ScenarioKind = 'baseline' | 'favourable' | 'adverse' | 'stress' | 'extreme';
 
 export interface ScenarioShift {
   factorId: string;
   label: string;
-  /** Human-readable delta, e.g. "-30 %" or "+6 mois". */
+  lever: FactorLever;
+  /** Variation relative appliquée au levier : -0.3 = -30 %. */
+  magnitude: number;
   delta: string;
+}
+
+export interface ScenarioOutcome {
+  viability: number;
+  breakEvenMonth: number | null;
+  runwayMonths: number | null;
+  survives: boolean;
+  lowestCash: number;
+  revenueYear1: number;
+  revenueYear3: number;
+  narrative: string;
 }
 
 export interface Scenario {
@@ -18,12 +28,5 @@ export interface Scenario {
   kind: ScenarioKind;
   question: string;
   shifts: ScenarioShift[];
-  /** Simulated viability under this scenario, 0-100. */
-  viability: number;
-  /** Months to break-even, or null when the scenario never breaks even. */
-  breakEvenMonth: number | null;
-  runwayMonths: number | null;
-  /** Whether the model still holds together in this scenario. */
-  survives: boolean;
-  outcome: string;
+  outcome?: ScenarioOutcome;
 }

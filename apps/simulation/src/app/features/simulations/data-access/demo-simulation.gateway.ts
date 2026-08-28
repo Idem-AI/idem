@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
-import { Observable, concat, defer, of, throwError, timer } from 'rxjs';
-import { delay, map, takeWhile } from 'rxjs/operators';
+import { Observable, concat, defer, delay, map, of, takeWhile, throwError, timer } from 'rxjs';
 
 import {
   CreateSimulationInput,
+  LabName,
   LinkedProject,
   ProjectUnderstanding,
   Simulation,
@@ -12,18 +12,29 @@ import {
   SimulationReport,
   SimulationSummary,
 } from '../models';
-import { DEMO_PROJECTS, DEMO_REPORT, DEMO_SIMULATIONS } from './demo-data';
+import {
+  DEMO_BLACK_SWAN,
+  DEMO_CUSTOMERS,
+  DEMO_EXPERIMENTS,
+  DEMO_INVESTORS,
+  DEMO_PROJECTS,
+  DEMO_RED_TEAM,
+  DEMO_REPORT,
+  DEMO_SIMULATIONS,
+  DEMO_TIME_MACHINE,
+  DEMO_UNIVERSES,
+} from './demo-data';
 import { SimulationGateway } from './simulation.gateway';
 
 const LATENCY_MS = 420;
-/** How fast the demo run walks through the pipeline. */
+/** Cadence à laquelle la démo parcourt les étapes du pipeline. */
 const STEP_MS = 1600;
 
 /**
- * In-memory backend used when `environment.useMockData` is on.
+ * Backend en mémoire, actif quand `environment.useMockData` est vrai.
  *
- * It exists so the product can be built, reviewed and demoed before the
- * simulation API ships. It holds no persistence: a reload resets it.
+ * Il existe pour que le produit soit développable, revu et démontré sans API
+ * ni crédits LLM. Aucune persistance : un rechargement le remet à zéro.
  */
 @Injectable()
 export class DemoSimulationGateway extends SimulationGateway {
@@ -34,10 +45,7 @@ export class DemoSimulationGateway extends SimulationGateway {
   }
 
   override analyseProject(projectId: string): Observable<ProjectUnderstanding> {
-    const understanding = DEMO_SIMULATIONS[0].understanding;
-    if (!understanding) {
-      throw new Error('Demo dataset is missing its project analysis.');
-    }
+    const understanding = DEMO_SIMULATIONS[0].understanding!;
     const project = DEMO_PROJECTS.find((candidate) => candidate.id === projectId);
     return of({
       ...understanding,
@@ -45,21 +53,18 @@ export class DemoSimulationGateway extends SimulationGateway {
     }).pipe(delay(LATENCY_MS * 3));
   }
 
-  override analyseDocument(file: File): Observable<ProjectUnderstanding> {
-    const understanding = DEMO_SIMULATIONS[0].understanding;
-    if (!understanding) {
-      throw new Error('Demo dataset is missing its project analysis.');
-    }
+  override analyseDocument(_projectId: string, file: File): Observable<ProjectUnderstanding> {
+    const understanding = DEMO_SIMULATIONS[0].understanding!;
     return of({
       ...understanding,
-      profile: {
-        ...understanding.profile,
-        name: file.name.replace(/\.[^.]+$/, ''),
-      },
+      profile: { ...understanding.profile, name: file.name.replace(/\.[^.]+$/, '') },
     }).pipe(delay(LATENCY_MS * 4));
   }
 
-  override getPricing(origin: SimulationOrigin): Observable<SimulationPricing> {
+  override getPricing(
+    _projectId: string,
+    origin: SimulationOrigin
+  ): Observable<SimulationPricing> {
     const fromIdem = origin === 'idem-project';
     return of<SimulationPricing>({
       idemProjectDiscount: fromIdem,
@@ -69,7 +74,11 @@ export class DemoSimulationGateway extends SimulationGateway {
           price: fromIdem ? 9000 : 12_000,
           listPrice: fromIdem ? 12_000 : undefined,
           currency: 'FCFA',
-          includes: ['pricing.includes.scenarios', 'pricing.includes.factors', 'pricing.includes.index'],
+          includes: [
+            'pricing.includes.scenarios',
+            'pricing.includes.factors',
+            'pricing.includes.index',
+          ],
           recommended: false,
         },
         {
@@ -90,23 +99,31 @@ export class DemoSimulationGateway extends SimulationGateway {
           tier: 'report',
           price: fromIdem ? 14_000 : 18_000,
           currency: 'FCFA',
-          includes: ['pricing.includes.report', 'pricing.includes.sensitivity', 'pricing.includes.recommendations'],
+          includes: [
+            'pricing.includes.report',
+            'pricing.includes.sensitivity',
+            'pricing.includes.recommendations',
+          ],
           recommended: false,
         },
       ],
     }).pipe(delay(LATENCY_MS));
   }
 
-  override listSimulations(): Observable<SimulationSummary[]> {
-    return of(this.simulations.map(toSummary)).pipe(delay(LATENCY_MS));
+  override listSimulations(projectId: string): Observable<SimulationSummary[]> {
+    return of(
+      this.simulations
+        .filter((simulation) => simulation.projectId === projectId)
+        .map(toSummary)
+    ).pipe(delay(LATENCY_MS));
   }
 
-  override getSimulation(id: string): Observable<Simulation> {
+  override getSimulation(_projectId: string, simulationId: string): Observable<Simulation> {
     return defer(() => {
-      const simulation = this.simulations.find((candidate) => candidate.id === id);
+      const simulation = this.simulations.find((candidate) => candidate.id === simulationId);
       return simulation
         ? of({ ...simulation }).pipe(delay(LATENCY_MS))
-        : throwError(() => new Error(`Unknown simulation: ${id}`));
+        : throwError(() => new Error(`Unknown simulation: ${simulationId}`));
     });
   }
 
@@ -114,9 +131,9 @@ export class DemoSimulationGateway extends SimulationGateway {
     const now = new Date().toISOString();
     const created: Simulation = {
       id: `sim-${Date.now()}`,
+      projectId: input.projectId,
       name: input.name,
       origin: input.origin,
-      projectId: input.projectId,
       projectName: DEMO_PROJECTS.find((project) => project.id === input.projectId)?.name,
       documentName: input.documentName,
       tier: input.tier,
@@ -126,8 +143,11 @@ export class DemoSimulationGateway extends SimulationGateway {
       hasReport: false,
       previousRunId: input.previousRunId,
       revision: input.previousRunId ? 2 : 1,
+      factors: [],
+      evidence: [],
+      labs: {},
       progress: {
-        percent: 4,
+        percent: 0,
         stages: [
           { id: 'understand', state: 'active' },
           { id: 'discover-factors', state: 'pending' },
@@ -143,36 +163,69 @@ export class DemoSimulationGateway extends SimulationGateway {
   }
 
   /**
-   * Walks the run through its six stages, then swaps in the reference result
-   * so the results screen has something real to render.
+   * Fait avancer l'exécution étape par étape, puis substitue le résultat de
+   * référence pour que l'écran de résultats ait quelque chose de réel à rendre.
    */
-  override watchSimulation(id: string): Observable<Simulation> {
+  override watchSimulation(projectId: string, simulationId: string): Observable<Simulation> {
     const total = 6;
     const ticks = defer(() =>
       timer(STEP_MS, STEP_MS).pipe(
-        map((tick) => this.advance(id, Math.min(tick + 1, total), total)),
-        takeWhile((simulation) => simulation.status === 'running', true),
-      ),
+        map((tick) => this.advance(simulationId, Math.min(tick + 1, total), total)),
+        takeWhile((simulation) => simulation.status === 'running', true)
+      )
     );
-    return concat(this.getSimulation(id), ticks);
+    return concat(this.getSimulation(projectId, simulationId), ticks);
   }
 
-  override getReport(id: string): Observable<SimulationReport> {
-    return of({ ...DEMO_REPORT, simulationId: id }).pipe(delay(LATENCY_MS * 2));
+  override getReport(_projectId: string, simulationId: string): Observable<SimulationReport> {
+    return of({ ...DEMO_REPORT, simulationId }).pipe(delay(LATENCY_MS * 2));
   }
 
-  override purchaseReport(id: string): Observable<Simulation> {
+  override generateReport(projectId: string, simulationId: string): Observable<SimulationReport> {
     this.simulations = this.simulations.map((simulation) =>
-      simulation.id === id ? { ...simulation, hasReport: true, tier: 'pack' as const } : simulation,
+      simulation.id === simulationId
+        ? { ...simulation, hasReport: true, report: { ...DEMO_REPORT, simulationId } }
+        : simulation
     );
-    return this.getSimulation(id);
+    return this.getReport(projectId, simulationId);
   }
 
-  private advance(id: string, step: number, total: number): Simulation {
+  override runLab(
+    projectId: string,
+    simulationId: string,
+    lab: LabName
+  ): Observable<Simulation> {
+    const payloads: Record<LabName, unknown> = {
+      redTeam: DEMO_RED_TEAM,
+      customers: DEMO_CUSTOMERS,
+      investors: DEMO_INVESTORS,
+      blackSwan: DEMO_BLACK_SWAN,
+      universes: DEMO_UNIVERSES,
+      timeMachine: DEMO_TIME_MACHINE,
+      experiments: DEMO_EXPERIMENTS,
+    };
+
+    this.simulations = this.simulations.map((simulation) =>
+      simulation.id === simulationId
+        ? { ...simulation, labs: { ...simulation.labs, [lab]: payloads[lab] } }
+        : simulation
+    );
+
+    // Une analyse complémentaire mobilise plusieurs agents : la latence
+    // simulée le reflète, sinon l'écran de chargement n'est jamais testé.
+    return this.getSimulation(projectId, simulationId).pipe(delay(LATENCY_MS * 4));
+  }
+
+  override deleteSimulation(_projectId: string, simulationId: string): Observable<void> {
+    this.simulations = this.simulations.filter((simulation) => simulation.id !== simulationId);
+    return of(undefined).pipe(delay(LATENCY_MS));
+  }
+
+  private advance(simulationId: string, step: number, total: number): Simulation {
     const reference = DEMO_SIMULATIONS[0];
-    const index = this.simulations.findIndex((candidate) => candidate.id === id);
+    const index = this.simulations.findIndex((candidate) => candidate.id === simulationId);
     if (index === -1) {
-      throw new Error(`Unknown simulation: ${id}`);
+      throw new Error(`Unknown simulation: ${simulationId}`);
     }
 
     const current = this.simulations[index];
@@ -192,9 +245,13 @@ export class DemoSimulationGateway extends SimulationGateway {
       ...current,
       status: finished ? 'completed' : 'running',
       updatedAt: new Date().toISOString(),
+      completedAt: finished ? new Date().toISOString() : undefined,
       progress: { percent: Math.round((step / total) * 100), stages },
       understanding: current.understanding ?? reference.understanding,
+      factors: step >= 2 ? reference.factors : [],
+      evidence: step >= 3 ? reference.evidence : [],
       result: finished ? reference.result : undefined,
+      report: finished && current.tier !== 'run' ? { ...DEMO_REPORT, simulationId } : undefined,
       hasReport: finished ? current.tier !== 'run' : false,
     };
 
@@ -206,17 +263,18 @@ export class DemoSimulationGateway extends SimulationGateway {
 function toSummary(simulation: Simulation): SimulationSummary {
   return {
     id: simulation.id,
+    projectId: simulation.projectId,
     name: simulation.name,
     origin: simulation.origin,
     projectName: simulation.projectName,
     documentName: simulation.documentName,
     status: simulation.status,
     tier: simulation.tier,
-    createdAt: simulation.createdAt,
-    updatedAt: simulation.updatedAt,
     hasReport: simulation.hasReport,
     revision: simulation.revision,
     viabilityIndex: simulation.result?.viabilityIndex,
     verdict: simulation.result?.verdict,
+    createdAt: simulation.createdAt,
+    updatedAt: simulation.updatedAt,
   };
 }
