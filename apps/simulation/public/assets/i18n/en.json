@@ -95,7 +95,9 @@
       "noProjects": "No IDEM project is available on this account.",
       "assets": "{{count}} deliverables",
       "dropFile": "Choose a file",
-      "formats": "PDF, DOCX, Markdown or plain text"
+      "formats": "PDF, DOCX, Markdown or plain text",
+      "signInHeading": "Sign in to see your projects",
+      "signInBody": "Listing your IDEM projects needs your account. You can also import a business plan without one, and sign in when it is time to run the analysis."
     },
     "analyse": "Analyse the project",
     "analysing": "Reading the project",
@@ -557,13 +559,15 @@
     "medium": "Medium",
     "high": "High"
   },
-  "mock": {
-    "toggle": "Demo data",
-    "on": "On — nothing is sent to the API",
-    "off": "Off — the app calls the API",
-    "reset": "Reset the demo dataset",
-    "badge": "Demo",
-    "badgeHint": "The numbers on screen come from a demo dataset, not from the API.",
-    "useBuildDefault": "Back to the .env setting"
+  "signIn": {
+    "heading": "Sign in to continue",
+    "sharedAccount": "Your IDEM account opens the simulator, the dashboard and iDeploy. There is no separate account to create.",
+    "later": "Later",
+    "documentTooLarge": "Your document is too large to keep while you sign in — you will need to select it again when you come back.",
+    "reason": {
+      "projects": "Your IDEM projects belong to your account: sign in to find them here.",
+      "analyse": "The analysis runs on our servers, under your IDEM account. Sign in to start it — your document will be waiting here.",
+      "launch": "One last step: sign in to launch the simulation and keep its report."
+    }
   }
 }

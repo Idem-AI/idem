@@ -95,7 +95,9 @@
       "noProjects": "Aucun projet IDEM disponible sur ce compte.",
       "assets": "{{count}} livrables",
       "dropFile": "Choisir un fichier",
-      "formats": "PDF, DOCX, Markdown ou texte"
+      "formats": "PDF, DOCX, Markdown ou texte",
+      "signInHeading": "Connectez-vous pour voir vos projets",
+      "signInBody": "La liste de vos projets IDEM demande votre compte. Vous pouvez aussi importer un business plan sans compte, et vous connecter au moment de lancer l'analyse."
     },
     "analyse": "Analyser le projet",
     "analysing": "Lecture du projet en cours",
@@ -557,13 +559,15 @@
     "medium": "Moyen",
     "high": "Élevé"
   },
-  "mock": {
-    "toggle": "Données de démonstration",
-    "on": "Activées — rien n'est envoyé à l'API",
-    "off": "Désactivées — l'application appelle l'API",
-    "reset": "Réinitialiser le jeu de démonstration",
-    "badge": "Démo",
-    "badgeHint": "Les chiffres affichés viennent d'un jeu de démonstration, pas de l'API.",
-    "useBuildDefault": "Revenir au réglage du .env"
+  "signIn": {
+    "heading": "Connectez-vous pour continuer",
+    "sharedAccount": "Votre compte IDEM ouvre le simulateur, le dashboard et iDeploy. Il n'y a pas de compte séparé à créer.",
+    "later": "Plus tard",
+    "documentTooLarge": "Votre document est trop volumineux pour être conservé pendant la connexion : il faudra le sélectionner à nouveau au retour.",
+    "reason": {
+      "projects": "Vos projets IDEM sont rattachés à votre compte : connectez-vous pour les retrouver ici.",
+      "analyse": "L'analyse tourne sur nos serveurs, sous votre compte IDEM. Connectez-vous pour la lancer : votre document vous attendra ici.",
+      "launch": "Dernière étape : connectez-vous pour lancer la simulation et retrouver son rapport."
+    }
   }
 }

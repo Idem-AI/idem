@@ -118,21 +118,27 @@ const simulationRoutes: Routes = [
 
 export const routes: Routes = [
   {
+    // La coquille n'est pas gardée : la création d'une simulation se visite
+    // sans compte. Chaque écran qui dépend vraiment de l'identité porte la
+    // garde lui-même.
     path: '',
     loadComponent: () => import('./layouts/app-shell/app-shell').then((m) => m.AppShell),
-    canActivate: [authGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'simulations' },
       {
         path: 'simulations',
         pathMatch: 'full',
         title: 'nav.simulations',
+        canActivate: [authGuard],
         loadComponent: () =>
           import('./features/simulations/pages/simulation-list/simulation-list').then(
             (m) => m.SimulationList,
           ),
       },
       {
+        // Point d'entrée public : on choisit sa source et on téléverse son
+        // business plan sans compte ; la connexion est demandée à l'action
+        // qui en a besoin.
         path: 'simulations/new',
         title: 'nav.new',
         loadComponent: () =>
@@ -142,6 +148,7 @@ export const routes: Routes = [
       },
       {
         path: 'simulations/:id',
+        canActivate: [authGuard],
         loadComponent: () =>
           import('./features/simulations/pages/simulation-workspace/simulation-workspace').then(
             (m) => m.SimulationWorkspace,

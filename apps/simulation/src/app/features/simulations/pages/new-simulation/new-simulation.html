@@ -3,12 +3,14 @@
     [heading]="'newRun.heading' | translate"
     [description]="'newRun.description' | translate"
   >
-    <a breadcrumb routerLink="/simulations" class="mb-2 inline-flex items-center gap-1.5 text-meta text-ink-subtle transition-colors hover:text-ink-muted">
-      <svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round" />
-      </svg>
-      {{ 'nav.simulations' | translate }}
-    </a>
+    @if (authenticated()) {
+      <a breadcrumb routerLink="/simulations" class="mb-2 inline-flex items-center gap-1.5 text-meta text-ink-subtle transition-colors hover:text-ink-muted">
+        <svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        {{ 'nav.simulations' | translate }}
+      </a>
+    }
   </sim-page-header>
 
   <!-- Step indicator: three named steps, so the price step is never a surprise. -->
@@ -76,11 +78,27 @@
 
       @if (origin() === 'idem-project') {
         <div class="glass-card overflow-hidden">
-          @if (projectsLoading()) {
+          @if (sessionPending() || projectsLoading()) {
             <div class="flex flex-col gap-2 p-4">
               @for (row of [1, 2, 3]; track row) {
                 <div class="skeleton h-12 rounded-lg"></div>
               }
+            </div>
+          } @else if (!authenticated()) {
+            <div class="flex flex-col items-center gap-3 p-6 text-center">
+              <p class="text-sm font-medium text-ink">
+                {{ 'newRun.source.signInHeading' | translate }}
+              </p>
+              <p class="max-w-md text-meta leading-relaxed text-ink-muted">
+                {{ 'newRun.source.signInBody' | translate }}
+              </p>
+              <button
+                type="button"
+                class="inner-button mt-1"
+                (click)="askToSignIn('signIn.reason.projects')"
+              >
+                {{ 'auth.signIn' | translate }}
+              </button>
             </div>
           } @else if (!projects().length) {
             <p class="p-6 text-center text-sm text-ink-muted">
@@ -362,5 +380,14 @@
         </button>
       </div>
     </section>
+  }
+
+  @if (signInReason(); as reason) {
+    <sim-sign-in-dialog
+      [reason]="reason"
+      [warnDraftLoss]="draftAtRisk()"
+      (dismissed)="signInReason.set(null)"
+      (confirmed)="confirmSignIn()"
+    />
   }
 </div>

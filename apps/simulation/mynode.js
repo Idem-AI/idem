@@ -17,8 +17,6 @@ const envFileContent = `// ⚠️ FICHIER GÉNÉRÉ AUTOMATIQUEMENT - NE PAS MOD
 
 export const environment = {
   environment: '${isProduction ? 'prod' : 'dev'}',
-  /** Serve the built-in demo dataset instead of calling the simulation API. */
-  useMockData: ${process.env.USE_MOCK_DATA || (isProduction ? 'false' : 'true')},
   defaultLanguage: '${process.env.DEFAULT_LANGUAGE || 'fr'}',
   analytics: {
     enabled: ${process.env.ANALYTICS_ENABLED || (isProduction ? 'true' : 'false')},

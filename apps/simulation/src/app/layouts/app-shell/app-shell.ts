@@ -7,7 +7,6 @@ import { filter, map } from 'rxjs';
 import { environment } from '@env';
 
 import { AuthService } from '../../core/auth';
-import { MockDataService } from '../../core/mock';
 import { SimulationStore } from '../../features/simulations/data-access';
 import { LinkedProject } from '../../features/simulations/models';
 import { Sidebar } from '../sidebar/sidebar';
@@ -32,17 +31,13 @@ export class AppShell {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly store = inject(SimulationStore);
-  private readonly mock = inject(MockDataService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   protected readonly dashboardUrl = environment.services.dashboard.url;
   protected readonly user = this.auth.user;
+  protected readonly authenticated = this.auth.isAuthenticated;
   protected readonly projects = this.store.projects;
   protected readonly activeProject = this.store.project;
-
-  protected readonly mockEnabled = this.mock.enabled;
-  protected readonly mockToggleVisible = this.mock.visible;
-  protected readonly mockOverridden = this.mock.overridden;
 
   protected readonly menuOpen = signal(false);
   protected readonly projectMenuOpen = signal(false);
@@ -71,7 +66,14 @@ export class AppShell {
   });
 
   constructor() {
-    void this.store.loadProjects();
+    // La coquille sert aussi la page publique de création : les projets ne se
+    // chargent que s'il y a une identité derrière, sinon l'API répondrait 401
+    // à chaque visite anonyme.
+    void this.auth.ensureLoaded().then((user) => {
+      if (user) {
+        void this.store.loadProjects();
+      }
+    });
   }
 
   protected toggleCollapsed(): void {
@@ -89,20 +91,6 @@ export class AppShell {
     void this.router.navigate(['/simulations']);
   }
 
-  /** Bascule la source de données ; le service recharge l'application. */
-  protected toggleMock(): void {
-    this.mock.setEnabled(!this.mockEnabled());
-  }
-
-  protected resetDemoData(): void {
-    this.mock.resetDemoData();
-  }
-
-  /** Oublie le choix local et repasse sur la valeur de `USE_MOCK_DATA`. */
-  protected useBuildDefault(): void {
-    this.mock.useBuildDefault();
-  }
-
   protected closeMenus(): void {
     this.menuOpen.set(false);
     this.projectMenuOpen.set(false);
@@ -113,6 +101,12 @@ export class AppShell {
   protected async signOut(): Promise<void> {
     this.closeMenus();
     await this.auth.signOut();
+  }
+
+  /** Connexion depuis la coquille : on revient sur l'écran courant. */
+  protected signIn(): void {
+    this.closeMenus();
+    this.auth.redirectToLogin(this.router.url, { force: true });
   }
 
   protected onDocumentClick(event: MouseEvent): void {
