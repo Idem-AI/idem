@@ -118,9 +118,26 @@ const simulationRoutes: Routes = [
 
 export const routes: Routes = [
   {
-    // La coquille n'est pas gardée : la création d'une simulation se visite
-    // sans compte. Chaque écran qui dépend vraiment de l'identité porte la
-    // garde lui-même.
+    // Point d'entrée public, pleine largeur : on choisit sa source et on
+    // téléverse son business plan sans compte ; la connexion est demandée à
+    // l'action qui en a besoin. Hors de la coquille à colonne : c'est un écran
+    // d'accueil, pas une destination de l'espace de travail.
+    path: 'simulations/new',
+    title: 'nav.new',
+    loadComponent: () => import('./layouts/focus-shell/focus-shell').then((m) => m.FocusShell),
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./features/simulations/pages/new-simulation/new-simulation').then(
+            (m) => m.NewSimulation,
+          ),
+      },
+    ],
+  },
+  {
+    // Coquille de l'espace de travail : barre + colonne de navigation. Chaque
+    // écran qui dépend de l'identité porte la garde lui-même.
     path: '',
     loadComponent: () => import('./layouts/app-shell/app-shell').then((m) => m.AppShell),
     children: [
@@ -134,17 +151,6 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/simulations/pages/simulation-list/simulation-list').then(
             (m) => m.SimulationList,
-          ),
-      },
-      {
-        // Point d'entrée public : on choisit sa source et on téléverse son
-        // business plan sans compte ; la connexion est demandée à l'action
-        // qui en a besoin.
-        path: 'simulations/new',
-        title: 'nav.new',
-        loadComponent: () =>
-          import('./features/simulations/pages/new-simulation/new-simulation').then(
-            (m) => m.NewSimulation,
           ),
       },
       {

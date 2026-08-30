@@ -97,7 +97,8 @@
       "dropFile": "Choisir un fichier",
       "formats": "PDF, DOCX, Markdown ou texte",
       "signInHeading": "Connectez-vous pour voir vos projets",
-      "signInBody": "La liste de vos projets IDEM demande votre compte. Vous pouvez aussi importer un business plan sans compte, et vous connecter au moment de lancer l'analyse."
+      "signInBody": "La liste de vos projets IDEM demande votre compte. Vous pouvez aussi importer un business plan sans compte, et vous connecter au moment de lancer l'analyse.",
+      "replaceFile": "Cliquez pour remplacer le document"
     },
     "analyse": "Analyser le projet",
     "analysing": "Lecture du projet en cours",
@@ -120,7 +121,14 @@
     "launching": "Lancement…",
     "launchFailed": "Le lancement a échoué",
     "pricingFailed": "Impossible de charger les tarifs",
-    "noProject": "Choisissez d'abord un projet."
+    "noProject": "Choisissez d'abord un projet.",
+    "hero": {
+      "heading": "Mettez votre projet à l'épreuve avant de le lancer.",
+      "subheading": "Le moteur cherche les facteurs qui peuvent faire basculer votre activité, les met sous tension, et vous dit où votre modèle casse. Commencez par ce que vous avez déjà.",
+      "choose": "Choisir",
+      "selected": "Sélectionné",
+      "note": "Une simulation est un outil d'aide à la décision, jamais une prédiction. Chaque résultat est accompagné de son degré de confiance."
+    }
   },
   "tier": {
     "run": "Simulation",

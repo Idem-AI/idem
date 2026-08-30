@@ -1,46 +1,37 @@
-import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { filter, map } from 'rxjs';
 
-import { environment } from '@env';
-
 import { AuthService } from '../../core/auth';
 import { SimulationStore } from '../../features/simulations/data-access';
-import { LinkedProject } from '../../features/simulations/models';
 import { Sidebar } from '../sidebar/sidebar';
+import { Topbar } from '../topbar/topbar';
 
 const COLLAPSE_KEY = 'idem-sim-sidebar-collapsed';
+/** Doit suivre le point de rupture `md:` auquel la colonne apparaît. */
+const SIDEBAR_BREAKPOINT = '(min-width: 768px)';
 
 /**
  * Coquille de la surface authentifiée.
  *
- * Barre supérieure fixe pour le contexte (projet, compte), colonne de gauche
- * pour la navigation : le produit a une quinzaine de destinations, une barre
- * horizontale ne les tient plus.
+ * Barre supérieure pour l'identité et le contexte, colonne de gauche pour la
+ * navigation : le produit a une quinzaine de destinations, une barre
+ * horizontale ne les tient plus. L'écran d'accueil, lui, n'a pas de colonne —
+ * il utilise `FocusShell`.
  */
 @Component({
   selector: 'sim-app-shell',
-  imports: [RouterOutlet, TranslatePipe, Sidebar],
+  imports: [RouterOutlet, TranslatePipe, Sidebar, Topbar],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '(document:click)': 'onDocumentClick($event)', '(document:keydown.escape)': 'closeMenus()' },
   templateUrl: './app-shell.html',
 })
 export class AppShell {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly store = inject(SimulationStore);
-  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
-  protected readonly dashboardUrl = environment.services.dashboard.url;
-  protected readonly user = this.auth.user;
-  protected readonly authenticated = this.auth.isAuthenticated;
-  protected readonly projects = this.store.projects;
-  protected readonly activeProject = this.store.project;
-
-  protected readonly menuOpen = signal(false);
-  protected readonly projectMenuOpen = signal(false);
   protected readonly drawerOpen = signal(false);
   protected readonly collapsed = signal(readCollapsed());
 
@@ -58,17 +49,10 @@ export class AppShell {
     return segment && segment !== 'new' ? decodeURIComponent(segment) : null;
   });
 
-  protected readonly initials = computed(() => {
-    const user = this.user();
-    const source = user?.displayName || user?.email || '';
-    const parts = source.split(/[\s.@]+/).filter(Boolean);
-    return (parts[0]?.[0] ?? '?').concat(parts[1]?.[0] ?? '').toUpperCase();
-  });
-
   constructor() {
-    // La coquille sert aussi la page publique de création : les projets ne se
-    // chargent que s'il y a une identité derrière, sinon l'API répondrait 401
-    // à chaque visite anonyme.
+    // La coquille sert aussi des écrans publics : les projets ne se chargent
+    // que s'il y a une identité derrière, sinon l'API répondrait 401 à chaque
+    // visite anonyme.
     void this.auth.ensureLoaded().then((user) => {
       if (user) {
         void this.store.loadProjects();
@@ -76,47 +60,21 @@ export class AppShell {
     });
   }
 
-  protected toggleCollapsed(): void {
-    this.collapsed.update((value) => !value);
-    try {
-      localStorage.setItem(COLLAPSE_KEY, String(this.collapsed()));
-    } catch {
-      // Navigation privée : la préférence ne survit pas à la session.
-    }
-  }
-
-  protected chooseProject(project: LinkedProject): void {
-    this.projectMenuOpen.set(false);
-    this.store.selectProject(project.id);
-    void this.router.navigate(['/simulations']);
-  }
-
-  protected closeMenus(): void {
-    this.menuOpen.set(false);
-    this.projectMenuOpen.set(false);
-    this.drawerOpen.set(false);
-  }
-
-  /** La déconnexion vaut pour tout IDEM : `AuthService` renvoie au login central. */
-  protected async signOut(): Promise<void> {
-    this.closeMenus();
-    await this.auth.signOut();
-  }
-
-  /** Connexion depuis la coquille : on revient sur l'écran courant. */
-  protected signIn(): void {
-    this.closeMenus();
-    this.auth.redirectToLogin(this.router.url, { force: true });
-  }
-
-  protected onDocumentClick(event: MouseEvent): void {
-    if (!this.menuOpen() && !this.projectMenuOpen()) {
+  /**
+   * Un seul bouton pour la navigation : il replie la colonne là où elle
+   * existe, et ouvre le tiroir là où elle n'existe pas.
+   */
+  protected toggleNav(): void {
+    if (window.matchMedia(SIDEBAR_BREAKPOINT).matches) {
+      this.collapsed.update((value) => !value);
+      try {
+        localStorage.setItem(COLLAPSE_KEY, String(this.collapsed()));
+      } catch {
+        // Navigation privée : la préférence ne survit pas à la session.
+      }
       return;
     }
-    if (!this.host.nativeElement.contains(event.target as Node)) {
-      this.menuOpen.set(false);
-      this.projectMenuOpen.set(false);
-    }
+    this.drawerOpen.update((value) => !value);
   }
 }
 
