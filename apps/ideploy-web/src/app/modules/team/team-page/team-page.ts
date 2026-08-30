@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
+import { TeamInfo } from '../../../shared/models/ideploy.models';
 
 @Component({
   selector: 'app-team-page',
@@ -10,13 +11,33 @@ import { ApiService } from '../../../shared/services/api.service';
   template: `
     <h1 class="mb-6 text-2xl font-bold">{{ 'team.title' | translate }}</h1>
 
+    @if (error()) {
+      <p class="mb-4 text-sm" role="alert" style="color:var(--color-danger);">{{ error() }}</p>
+    }
+
+    <section class="box mb-6">
+      <h2 class="mb-3 font-semibold">{{ 'team.profile' | translate }}</h2>
+      <form class="flex flex-wrap gap-2" [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+        <input class="input flex-1" [placeholder]="'team.namePlaceholder' | translate" formControlName="name" />
+        <input class="input flex-1" [placeholder]="'team.descriptionPlaceholder' | translate" formControlName="description" />
+        <button class="button" type="submit" [disabled]="profileForm.invalid || savingProfile()">
+          {{ (savingProfile() ? 'team.saving' : 'team.save') | translate }}
+        </button>
+      </form>
+    </section>
+
     <section class="box mb-6">
       <h2 class="mb-3 font-semibold">{{ 'team.members' | translate }}</h2>
       @for (m of members(); track m.user_id) {
         <div class="mb-1 flex items-center gap-3 text-sm">
           <span class="font-semibold">{{ m.name }}</span>
           <span style="color: var(--color-text-secondary)">{{ m.email }}</span>
-          <span class="ml-auto">{{ m.role }}</span>
+          <select class="input ml-auto w-32 py-1 text-xs" [value]="m.role" (change)="changeRole(m, $event)">
+            <option value="member">{{ 'team.roleMember' | translate }}</option>
+            <option value="admin">{{ 'team.roleAdmin' | translate }}</option>
+            <option value="owner">{{ 'team.roleOwner' | translate }}</option>
+          </select>
+          <button class="text-xs text-red-400" (click)="removeMember(m)">{{ 'team.remove' | translate }}</button>
         </div>
       }
     </section>
@@ -44,9 +65,18 @@ import { ApiService } from '../../../shared/services/api.service';
 export class TeamPageComponent implements OnInit {
   private api = inject(ApiService);
   private fb = inject(FormBuilder);
+  private translate = inject(TranslateService);
 
   protected readonly members = signal<{ user_id: number; name: string; email: string; role: string }[]>([]);
   protected readonly invitations = signal<{ uuid: string; email: string; role: string; link: string }[]>([]);
+  protected readonly error = signal<string | null>(null);
+  protected readonly savingProfile = signal(false);
+
+  protected readonly profileForm = this.fb.nonNullable.group({
+    name: ['', Validators.required],
+    description: [''],
+  });
+
   protected readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     role: ['member', Validators.required],
@@ -54,11 +84,48 @@ export class TeamPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.api.getTeam().subscribe({
+      next: (t: TeamInfo) => this.profileForm.patchValue({ name: t.name, description: t.description ?? '' }),
+      error: (e) => this.report(e, 'team.loadError'),
+    });
+  }
+
+  private report(err: unknown, fallbackKey: string): void {
+    const message = (err as { error?: { error?: { message?: string } } })?.error?.error?.message;
+    this.error.set(message ?? this.translate.instant(fallbackKey));
   }
 
   private load(): void {
     this.api.listMembers().subscribe((m) => this.members.set(m));
     this.api.listInvitations().subscribe((i) => this.invitations.set(i));
+  }
+
+  protected saveProfile(): void {
+    if (this.profileForm.invalid) return;
+    this.savingProfile.set(true);
+    this.error.set(null);
+    this.api.updateTeam(this.profileForm.getRawValue()).subscribe({
+      next: () => this.savingProfile.set(false),
+      error: (e) => {
+        this.report(e, 'team.saveError');
+        this.savingProfile.set(false);
+      },
+    });
+  }
+
+  protected changeRole(member: { user_id: number; role: string }, event: Event): void {
+    const role = (event.target as HTMLSelectElement).value;
+    this.api.setMemberRole(member.user_id, role).subscribe({
+      next: () => (member.role = role),
+      error: (e) => this.report(e, 'team.roleError'),
+    });
+  }
+
+  protected removeMember(member: { user_id: number }): void {
+    this.api.removeMember(member.user_id).subscribe({
+      next: () => this.members.update((list) => list.filter((m) => m.user_id !== member.user_id)),
+      error: (e) => this.report(e, 'team.removeError'),
+    });
   }
 
   protected invite(): void {

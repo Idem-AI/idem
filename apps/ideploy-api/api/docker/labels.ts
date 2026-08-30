@@ -57,8 +57,6 @@ export interface CrowdSecBouncer {
   apiKey: string;
   /** Local API host, without scheme — the plugin adds it separately. */
   lapiHost: string;
-  /** How long a decision applies when CrowdSec does not say. */
-  banDurationSeconds: number;
   /** `http` unless the LAPI is behind TLS. */
   scheme?: 'http' | 'https';
 }
@@ -271,10 +269,20 @@ function crowdsecLabels(uuid: string, bouncer: CrowdSecBouncer): string[] {
     `${prefix}.CrowdsecLapiKey=${bouncer.apiKey}`,
     `${prefix}.CrowdsecLapiHost=${bouncer.lapiHost}`,
     `${prefix}.CrowdsecLapiScheme=${bouncer.scheme ?? 'http'}`,
-    // `live` queries the LAPI per request rather than caching a stream, so a ban
-    // takes effect immediately instead of at the next refresh.
+    // `live` queries the LAPI per request rather than following a periodic
+    // stream, so a *new* ban takes effect immediately rather than at the next
+    // refresh. It does not mean uncached, though: verified against a real
+    // deployment — the plugin still keeps its own short-lived answer per
+    // address even in live mode, and `DefaultDecisionSeconds` is that cache's
+    // TTL, not (despite the name suggesting otherwise) how long a ban itself
+    // lasts — CrowdSec's own decision already carries that. Reusing
+    // `banDurationSeconds` (often an hour) here meant *lifting* a ban stayed
+    // invisible to the proxy for up to that same hour: the decision was gone
+    // from the Local API, and the plugin kept answering from its stale cache
+    // regardless. A short, fixed TTL bounds how long a lifted ban can still
+    // look enforced, independent of how long an active one is meant to last.
     `${prefix}.CrowdsecMode=live`,
-    `${prefix}.DefaultDecisionSeconds=${bouncer.banDurationSeconds}`,
+    `${prefix}.DefaultDecisionSeconds=30`,
     `${prefix}.HttpTimeoutSeconds=10`,
     `${prefix}.UpdateIntervalSeconds=5`,
     `${prefix}.LogLevel=${BOUNCER_LOG_LEVEL}`,

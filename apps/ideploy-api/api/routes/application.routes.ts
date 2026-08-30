@@ -58,6 +58,17 @@ router.delete('/:uuid/volumes/persistent/:id', ctrl.deletePersistentVolume);
 // Ops
 router.get('/:uuid/status', ctrl.containerStatus);
 router.get('/:uuid/metrics', ctrl.metrics);
+
+/**
+ * @swagger
+ * /api/v1/applications/{uuid}/usage:
+ *   get:
+ *     summary: Per-container CPU, memory and network use, as numbers
+ *     description: A single snapshot — nothing records history, so this is not a time series.
+ *     tags: [Applications]
+ *     responses: { 200: { description: OK } }
+ */
+router.get('/:uuid/usage', ctrl.resourceUsage);
 router.post('/:uuid/exec', ctrl.exec);
 
 export default router;

@@ -424,7 +424,6 @@ describe('traefikLabels — firewall bouncer', () => {
   const bouncer = {
     apiKey: 'bouncer-key-abc',
     lapiHost: 'crowdsec:8080',
-    banDurationSeconds: 3600,
   };
   const withFirewall = { ...base, crowdsec: bouncer };
 
@@ -475,12 +474,23 @@ describe('traefikLabels — firewall bouncer', () => {
     expect(labels.some((l) => l.includes('.crowdseclapikey='))).toBe(false);
   });
 
-  it('passes the Local API address and the ban duration', () => {
+  it('passes the Local API address', () => {
     const labels = traefikLabels(withFirewall);
     const prefix = 'traefik.http.middlewares.crowdsec-app123.plugin.bouncer';
 
     expect(valueOf(labels, `${prefix}.CrowdsecLapiHost`)).toBe('crowdsec:8080');
-    expect(valueOf(labels, `${prefix}.DefaultDecisionSeconds`)).toBe('3600');
+  });
+
+  it('caches an answer only briefly, so a lifted ban does not stay enforced', () => {
+    // Verified against a real deployment: this plugin caches its own answer
+    // per address even in `live` mode. Reusing the *ban's* duration here
+    // (often an hour) as that cache's TTL meant lifting a ban stayed invisible
+    // to the proxy for up to that same hour, regardless of the Local API
+    // already reporting the address clear.
+    const labels = traefikLabels(withFirewall);
+    const prefix = 'traefik.http.middlewares.crowdsec-app123.plugin.bouncer';
+
+    expect(Number(valueOf(labels, `${prefix}.DefaultDecisionSeconds`))).toBeLessThanOrEqual(60);
   });
 
   it('queries the API per request so a ban takes effect at once', () => {
@@ -578,7 +588,7 @@ describe('traefikLabels — proxy-native protections', () => {
       geoBlock: { blockedCountries: ['RU'] },
       rateLimit: { averagePerSecond: 10 },
       concurrency: { maxInFlight: 25 },
-      crowdsec: { apiKey: 'k', lapiHost: 'crowdsec:8080', banDurationSeconds: 3600 },
+      crowdsec: { apiKey: 'k', lapiHost: 'crowdsec:8080' },
     });
     const chain = (valueOf(labels, 'traefik.http.routers.https-0-app123.middlewares') ?? '').split(',');
 

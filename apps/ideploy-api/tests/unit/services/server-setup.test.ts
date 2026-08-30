@@ -34,6 +34,7 @@ function healthyProbe(overrides: Record<string, string> = {}): string {
     DOCKER_VERSION: '27.1.1',
     COMPOSE_VERSION: 'v2.29.1',
     NETWORK: 'ideploy',
+    NIXPACKS_VERSION: '1.29.1',
     DISK_USED_PCT: '42',
     PROBE_DONE: '1',
     ...overrides,

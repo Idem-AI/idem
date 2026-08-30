@@ -37,9 +37,15 @@ async function processPipeline(job: Job<PipelineJobData>): Promise<void> {
   if (!server || !key) throw new Error('Server or key not found');
 
   const workdir = pipelineWorkdirFor(executionUuid);
+  // Which stage's job row is currently 'running', so a failure that never
+  // reaches that stage's own setJobStatus call (an SSH exception, not just a
+  // non-zero exit) still marks it 'failed' instead of leaving it 'running'
+  // forever — indistinguishable, in the UI, from a pipeline stuck mid-flight.
+  let currentStage: string | null = null;
 
   try {
     for (const stage of stages) {
+      currentStage = stage;
       await pipelineService.setJobStatus(executionId, stage, 'running');
       await log(`\n──► Stage: ${stage}`);
 
@@ -88,6 +94,10 @@ async function processPipeline(job: Job<PipelineJobData>): Promise<void> {
     const message = (err as Error).message;
     logger.error('Pipeline failed', { executionUuid, message });
     await log(`\n❌ Pipeline failed: ${message}`);
+    // The stage whose command actually threw (rather than exiting non-zero,
+    // which each stage already reports for itself) would otherwise still
+    // read 'running' forever — this closes it out with the same failure.
+    if (currentStage) await pipelineService.setJobStatus(executionId, currentStage, 'failed', message);
     await pipelineService.setExecutionStatus(executionId, 'failed');
     throw err;
   } finally {

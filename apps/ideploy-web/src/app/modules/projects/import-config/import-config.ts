@@ -54,9 +54,19 @@ interface Preset {
             <input id="teamName" name="teamName" class="input bg-opacity-50 cursor-not-allowed" [value]="teamName()" disabled />
           </div>
           <div>
-            <label class="mb-1 block text-sm font-semibold text-white/80" for="projectName">{{ 'projects.import.projectName' | translate }}</label>
+            <label class="mb-1 block text-sm font-semibold text-white/80" for="projectName">{{ 'projects.import.applicationName' | translate }}</label>
             <input id="projectName" name="projectName" class="input" [(ngModel)]="projectName" autocomplete="off" />
           </div>
+        </div>
+
+        <!-- Where this lands matters more than the build details below it —
+             asked right after naming the application, not buried under them. -->
+        <div class="mb-5 rounded-xl p-4 border" style="background:var(--color-surface-1);border-color:var(--color-surface-2);">
+          <app-workspace-choice-picker
+            [suggestedName]="projectName"
+            [lockedWorkspaceUuid]="lockedWorkspaceUuid()"
+            (choiceChange)="workspaceChoice.set($event)"
+          />
         </div>
 
         <div class="mb-4">
@@ -96,13 +106,6 @@ interface Preset {
           <label class="mb-1 block text-sm font-semibold text-white/80" for="rootDir">{{ 'projects.import.rootDirectory' | translate }}</label>
           <input id="rootDir" name="rootDir" class="input font-mono" [(ngModel)]="rootDir" placeholder="./" autocomplete="off" />
           <p class="mt-1 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.import.rootDirHint' | translate }}</p>
-        </div>
-
-        <div class="mb-5 rounded-xl p-4 border" style="background:var(--color-surface-1);border-color:var(--color-surface-2);">
-          <app-workspace-choice-picker
-            [suggestedName]="projectName"
-            (choiceChange)="workspaceChoice.set($event)"
-          />
         </div>
 
         <!-- Collapsibles -->
@@ -215,6 +218,8 @@ export class ImportConfigComponent implements OnInit {
   protected readonly buildMethod = signal<'docker' | 'buildless'>('buildless');
   /** Where this lands — an existing workspace, or a new one. Never implicit. */
   protected readonly workspaceChoice = signal<WorkspaceChoice | null>(null);
+  /** Set when arriving from a specific workspace's "+ Nouvelle ressource" link. */
+  protected readonly lockedWorkspaceUuid = signal<string | null>(null);
   protected readonly deploying = signal(false);
   protected readonly settingUpLocal = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -227,6 +232,8 @@ export class ImportConfigComponent implements OnInit {
   protected startCommand = '';
   protected portsExposes = '';
   private cloneUrl = '';
+  /** Which connected provider (if any) supplied this repo — decides whether `githubDetect` or `gitlabDetect` runs. Defaults to 'github' for a pasted URL, matching the previous behaviour. */
+  private provider: 'github' | 'gitlab' = 'github';
 
   protected readonly presets: Preset[] = [
     { label: 'Vite', icon: 'fa-solid fa-bolt', buildPack: 'nixpacks' },
@@ -246,12 +253,15 @@ export class ImportConfigComponent implements OnInit {
     this.branch.set(q.get('branch') || 'main');
     this.projectName = q.get('name') || 'app';
     this.cloneUrl = q.get('clone') || '';
+    this.provider = q.get('provider') === 'gitlab' ? 'gitlab' : 'github';
+    this.lockedWorkspaceUuid.set(q.get('workspace'));
     // Fallback preset from the repo language passed by the list…
     this.presetIndex.set(this.detectPreset(q.get('language') || ''));
     this.api.me().subscribe((m) => this.teamName.set(m.team?.name ?? 'My Team'));
     // …then refine by inspecting the repo's files (package.json / Dockerfile).
     if (repo.includes('/')) {
-      this.api.githubDetect(repo).subscribe({
+      const detect$ = this.provider === 'gitlab' ? this.api.gitlabDetect(repo) : this.api.githubDetect(repo);
+      detect$.subscribe({
         next: (d) => {
           const idx = this.presets.findIndex((p) => p.label === d.preset);
           if (idx >= 0) this.presetIndex.set(idx);

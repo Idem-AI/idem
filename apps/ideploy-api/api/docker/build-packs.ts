@@ -24,13 +24,6 @@ export const BUILD_PACKS: readonly BuildPack[] = [
   'dockercompose',
 ] as const;
 
-/**
- * Nixpacks runs from its published image rather than being installed on the
- * host: the fleet stays uniform, and a customer's server needs nothing beyond
- * Docker.
- */
-const NIXPACKS_IMAGE = process.env.NIXPACKS_IMAGE || 'ghcr.io/railwayapp/nixpacks:latest';
-
 /** Image serving a built static site. */
 const STATIC_IMAGE = 'nginx:alpine';
 
@@ -49,6 +42,8 @@ export interface BuildContext {
   /** Directory the build writes its output to (static packs). */
   publishDirectory?: string | null;
   port: number;
+  /** `KEY=value` — the operator's own build-time Variables, given to nixpacks so a build needing e.g. an API key has it. */
+  buildEnv?: string[];
 }
 
 export interface BuildStep {
@@ -130,9 +125,20 @@ function dockerfilePlan(context: BuildContext): BuildPlan {
 /**
  * Steps that let nixpacks work out how to build the project.
  *
+ * Nixpacks runs directly on the server, not through a `docker run` of some
+ * "nixpacks image" — there is no such thing as a general-purpose "run
+ * nixpacks in a container" image; `ghcr.io/railwayapp/nixpacks` (what this
+ * used to shell out to) is a Nix devshell base with no `nixpacks` binary in
+ * its PATH at all, so every single nixpacks build failed outright with
+ * `exec: "nixpacks": executable file not found`. Coolify's own deployment
+ * job runs `nixpacks plan`/`nixpacks build` as a plain installed command for
+ * the same reason. `server-setup.service.ts`'s provisioning step installs the
+ * real binary; this only ever assumes it is there and lets the readiness
+ * check (which verifies it) be the thing that says otherwise.
+ *
  * Nixpacks emits a Dockerfile rather than building directly, so the image is
- * produced by the host's own Docker — no socket is handed to the builder
- * container, which would give it control of the whole daemon.
+ * still produced by the host's own `docker build` — nixpacks itself never
+ * touches the Docker socket.
  */
 function nixpacksPlan(context: BuildContext): BuildPlan {
   const dir = buildDirectory(context);
@@ -142,7 +148,11 @@ function nixpacksPlan(context: BuildContext): BuildPlan {
     context.startCommand ? `NIXPACKS_START_CMD=${quote(context.startCommand)}` : '',
   ]
     .filter(Boolean)
-    .map((pair) => `-e ${pair}`)
+    .join(' ');
+  // The operator's own build-time Variables — a build needing an API key or
+  // similar to compile has it, the same way it would on any other platform.
+  const buildEnvFlags = (context.buildEnv ?? [])
+    .map((pair) => `--env ${quote(pair)}`)
     .join(' ');
 
   return {
@@ -153,8 +163,9 @@ function nixpacksPlan(context: BuildContext): BuildPlan {
       {
         label: 'Detecting the build plan (nixpacks)',
         command:
-          `cd ${quote(dir)} && docker run --rm -v ${quote(dir)}:/app -w /app ${env} ` +
-          `${NIXPACKS_IMAGE} nixpacks build . --out .`,
+          `cd ${quote(dir)} && ` +
+          `{ command -v nixpacks >/dev/null || { echo "nixpacks is not installed on this server — run its setup step." >&2; exit 1; }; } && ` +
+          `${env ? env + ' ' : ''}nixpacks build . --out .${buildEnvFlags ? ' ' + buildEnvFlags : ''}`,
       },
       {
         label: 'Building image',

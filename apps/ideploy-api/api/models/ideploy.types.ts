@@ -98,6 +98,11 @@ export interface ServiceRow {
   destination_type: string | null;
   /** The named Project ("frontend", "backend", …) this belongs to, if any. */
   project_id: number | null;
+  created_at?: Date | string | null;
+  updated_at?: Date | string | null;
+  /** Aggregated from `service_applications.status` — only present on `listServices()`,
+   *  which joins for it; not a column on `services` itself. */
+  status?: 'running' | 'exited' | 'partial' | 'unknown';
 }
 
 export interface ApplicationRow {
@@ -122,4 +127,7 @@ export interface ApplicationRow {
   publish_directory: string | null;
   /** The named Project ("frontend", "backend", …) this belongs to, if any. */
   project_id: number | null;
+  /** Only populated by `listApplications` — the workspace this application lives in. */
+  workspace_name?: string;
+  workspace_uuid?: string;
 }

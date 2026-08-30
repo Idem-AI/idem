@@ -246,6 +246,15 @@ export async function containerStatus(req: CustomRequest, res: Response): Promis
     fail(res, (err as Error).message || 'Failed to get status');
   }
 }
+/** Structured per-container usage for the insights screen. */
+export async function resourceUsage(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    ok(res, await appService.getResourceUsage(req.user!.currentTeamId!, String(req.params.uuid)));
+  } catch (err) {
+    respondWithError(res, err, 'Reading the resource usage');
+  }
+}
+
 export async function metrics(req: CustomRequest, res: Response): Promise<void> {
   try {
     ok(res, { metrics: await appService.getMetrics(req.user!.currentTeamId!, String(req.params.uuid)) });

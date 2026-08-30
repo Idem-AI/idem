@@ -5,6 +5,7 @@ import logger from '../config/logger';
 import * as service from '../services/service.service';
 import * as templates from '../services/templates.service';
 import { resolveWorkspaceDestination } from '../services/workspace.service';
+import { realtime } from '../services/realtime.service';
 
 export async function list(req: CustomRequest, res: Response): Promise<void> {
   try {
@@ -109,10 +110,17 @@ async function lifecycle(
   res: Response,
   action: 'start' | 'stop' | 'restart'
 ): Promise<void> {
+  const uuid = String(req.params.uuid);
   try {
-    ok(res, await service.lifecycle(req.user!.currentTeamId!, String(req.params.uuid), action));
+    ok(
+      res,
+      await service.lifecycle(req.user!.currentTeamId!, uuid, action, (chunk) =>
+        realtime.serviceLog(uuid, chunk)
+      )
+    );
   } catch (err) {
     logger.error(`service ${action} error`, { message: (err as Error).message });
+    void realtime.serviceLog(uuid, `\n❌ ${(err as Error).message || `Failed to ${action} service`}\n`);
     fail(res, (err as Error).message || `Failed to ${action} service`);
   }
 }
@@ -123,4 +131,11 @@ export const restart = (req: CustomRequest, res: Response) => lifecycle(req, res
 // ── Templates ─────────────────────────────────────────────
 export async function listTemplates(_req: CustomRequest, res: Response): Promise<void> {
   ok(res, templates.listTemplates());
+}
+
+/** A single template's detail (the "browse a service" page's Install screen). */
+export async function getTemplate(req: CustomRequest, res: Response): Promise<void> {
+  const t = templates.getTemplateSummary(String(req.params.name));
+  if (!t) return fail(res, `Unknown template: ${req.params.name}`, 404, 'NOT_FOUND');
+  ok(res, t);
 }
