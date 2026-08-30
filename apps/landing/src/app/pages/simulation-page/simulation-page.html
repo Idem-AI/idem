@@ -1,18 +1,18 @@
 <div class="relative overflow-hidden">
   <!-- Ambient light, kept behind everything -->
   <div class="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-    <div class="absolute -left-40 -top-52 h-[520px] w-[520px] rounded-full bg-linear-to-br from-primary to-accent-500 opacity-[0.16] blur-[130px] dark:opacity-[0.12]"></div>
-    <div class="absolute right-[-10rem] top-[18rem] h-[560px] w-[560px] rounded-full bg-linear-to-tr from-accent-500 to-primary opacity-[0.14] blur-[140px] dark:opacity-[0.1]"></div>
-    <div class="absolute -bottom-52 -right-40 h-[440px] w-[440px] rounded-full bg-linear-to-tr from-accent-500 to-secondary-500 opacity-[0.12] blur-[130px] dark:opacity-[0.1]"></div>
+    <div class="absolute -left-40 -top-52 h-[520px] w-[520px] rounded-full bg-linear-to-br from-primary to-accent-500 opacity-[0.08] blur-[130px] dark:opacity-[0.06]"></div>
+    <div class="absolute right-[-10rem] top-[18rem] h-[560px] w-[560px] rounded-full bg-linear-to-tr from-accent-500 to-primary opacity-[0.07] blur-[140px] dark:opacity-[0.05]"></div>
+    <div class="absolute -bottom-52 -right-40 h-[440px] w-[440px] rounded-full bg-linear-to-tr from-accent-500 to-secondary-500 opacity-[0.06] blur-[130px] dark:opacity-[0.05]"></div>
   </div>
 
   <div class="relative z-10">
     <!-- =================================================== HERO -->
     <section class="relative flex items-center pt-28 pb-20 sm:pt-32 lg:min-h-screen lg:pt-28 lg:pb-16">
       <div class="mx-auto w-full max-w-[90rem] px-2 sm:px-4 lg:px-8">
-        <div class="grid items-center gap-8 lg:grid-cols-12 lg:gap-8 xl:gap-12">
+        <div class="grid items-center gap-8 lg:grid-cols-12 lg:gap-2 xl:gap-4">
           <!-- ---------------------------------------- Hero copy -->
-          <div class="lg:col-span-7 xl:col-span-7">
+          <div class="lg:col-span-6 xl:col-span-6">
             <div class="mb-5 flex items-center gap-2 text-sm text-text-tertiary">
               <a routerLink="/home" class="transition-colors hover:text-text-primary" i18n="@@simulation.breadcrumb.idem">Idem</a>
               <span aria-hidden="true">/</span>
@@ -20,7 +20,7 @@
             </div>
 
             <h1 class="text-5xl font-bold leading-[1.03] tracking-tight text-balance text-text-primary sm:text-6xl lg:text-6xl xl:text-7xl 2xl:text-[5rem]" i18n="@@simulation.hero.title">
-              Test your business<br />before you <span class="i-underline">launch</span> it
+              Test your business before you <span class="i-underline">launch</span> it
             </h1>
 
             <p class="mt-6 max-w-lg text-lg leading-relaxed text-pretty text-text-secondary" i18n="@@simulation.hero.description">
@@ -40,7 +40,7 @@
 
           <!-- ---------------------------------------- The product, drawn:
                one project, many trajectories, most of them failing. -->
-          <div class="relative lg:col-span-5 xl:col-span-5">
+          <div class="relative lg:col-span-6 xl:col-span-6 lg:-ml-4 xl:-ml-8">
 
 
             <figure class="relative">
