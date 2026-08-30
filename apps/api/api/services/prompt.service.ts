@@ -16,7 +16,7 @@ import OpenAI from 'openai';
 import { userService } from './user.service';
 dotenv.config();
 
-import { LLMProvider, LLMOptions, AI_CONFIG } from '../config/ai.config';
+import { LLMProvider, LLMOptions, AI_CONFIG, TEXT_FALLBACK_MODELS } from '../config/ai.config';
 import {
   getProvider,
   providerSupports,
@@ -24,6 +24,7 @@ import {
 } from '../config/ai-providers.config';
 import { describeGeminiBackend, getGoogleGenAIClient } from '../config/google-genai.client';
 import { withGeminiFallback } from '../utils/gemini-fallback';
+import { describeError, isTransientNetworkError, sleep, withRetry } from '../utils/retry';
 import { getRequestLanguage } from '../utils/request-language';
 import { logAIEvent, previewValue } from '../utils/ai-trace.util';
 import {
@@ -49,6 +50,33 @@ export { LLMProvider, LLMOptions };
  */
 function supportsThinkingBudget(modelName: string): boolean {
   return /gemini-2\.5/i.test(modelName);
+}
+
+/**
+ * Pause entre deux modèles de la chaîne de repli, quand l'échec précédent était
+ * une panne réseau. Basculer de modèle ne répare pas une connexion absente: il
+ * faut aussi laisser passer quelques instants.
+ */
+const INTER_MODEL_DELAY_MS = 1000;
+
+/**
+ * Choisit un modèle de repli valide et différent du primaire.
+ *
+ * Le second repli était historiquement `gemini-2.0-flash` en dur — un modèle
+ * que Vertex ne sert plus (404 « Publisher model ... was not found »). Dès que
+ * le primaire valait `AI_CONFIG.fallback.textModel`, tout échec basculait donc
+ * sur un modèle inexistant: le repli était perdant par construction.
+ *
+ * Le repli est désormais dérivé de la chaîne déclarée en configuration, seule
+ * source de vérité sur les modèles réellement servis par le backend.
+ */
+function pickFallbackModel(modelName: string, fallbackModels?: string[]): string {
+  const chain = [
+    ...(fallbackModels ?? []),
+    ...TEXT_FALLBACK_MODELS,
+    AI_CONFIG.fallback.textModel,
+  ];
+  return chain.find((candidate) => candidate && candidate !== modelName) ?? AI_CONFIG.fallback.textModel;
 }
 
 export interface PromptConfig {
@@ -268,22 +296,15 @@ export class PromptService {
         lastMessageTurn.parts.push(filePart);
 
         // run prompt
-        const fallbackModel = AI_CONFIG.fallback.textModel;
-        const secondaryFallback = 'gemini-2.0-flash';
-        const effectiveFallbackModel = modelName === fallbackModel ? secondaryFallback : fallbackModel;
-
-        const result = await withGeminiFallback(
-          () => this.genAIClient.models.generateContent({
-            model: modelName,
-            contents: geminiContent,
-          }),
-          () => this.genAIClient.models.generateContent({
-            model: effectiveFallbackModel,
-            contents: geminiContent,
-          }),
-          modelName,
-          effectiveFallbackModel
-        );
+        //
+        // Aucun repli imbriqué ici. `runPrompt` — seul appelant de cette
+        // méthode — parcourt déjà `fallbackModels` en rejouant chaque modèle
+        // sur panne réseau. Un second repli à cet étage doublait le nombre
+        // d'appels et court-circuitait la chaîne déclarée en configuration.
+        const result = await this.genAIClient.models.generateContent({
+          model: modelName,
+          contents: geminiContent,
+        });
         // Relevé de consommation avant tout retour/erreur : l'appel a été
         // facturé par Google même si la réponse est inexploitable.
         if (usageSink) {
@@ -362,31 +383,14 @@ export class PromptService {
       );
     }
 
-    const fallbackModel = AI_CONFIG.fallback.textModel;
-    const secondaryFallback = 'gemini-2.0-flash';
-    const effectiveFallbackModel = modelName === fallbackModel ? secondaryFallback : fallbackModel;
-
+    // Un seul appel, un seul modèle: la résilience (réessai réseau puis bascule
+    // de modèle) est portée une fois pour toutes par `runPrompt`.
     const config = buildConfig(modelName);
-    const result = await withGeminiFallback(
-      () =>
-        this.genAIClient.models.generateContent({
-          model: modelName,
-          contents: geminiContent,
-          config,
-        }),
-      () =>
-        this.genAIClient.models.generateContent({
-          model: effectiveFallbackModel,
-          contents: geminiContent,
-          // Le cache est lié au modèle principal: on ne le réutilise pas sur le repli.
-          config: {
-            ...buildConfig(effectiveFallbackModel),
-            ...(cachedContent ? { cachedContent: undefined } : {}),
-          },
-        }),
-      modelName,
-      effectiveFallbackModel
-    );
+    const result = await this.genAIClient.models.generateContent({
+      model: modelName,
+      contents: geminiContent,
+      config,
+    });
     if (usageSink) {
       usageSink.usage = extractGeminiUsage(result);
       usageSink.modelUsed = modelName;
@@ -885,8 +889,28 @@ export class PromptService {
       logger.info(`Injected language directive (language=${effectiveLanguage}).`);
     }
 
-    const modelsToTry = [modelName, ...(request.fallbackModels || [])];
     const kind = getProvider(provider).kind;
+
+    // Filet de sécurité: une chaîne de repli absente est presque toujours un
+    // OUBLI, pas une décision. Une quinzaine de services recopient
+    // `provider`/`modelName`/`llmOptions` depuis ai.config.ts en laissant
+    // `fallbackModels` derrière eux — la feature déclarait bien un repli, il
+    // n'arrivait simplement jamais jusqu'ici (`fallbacks=0` dans les logs) et
+    // le moindre incident réseau faisait échouer la génération sans seconde
+    // chance. Le défaut est appliqué ICI, au seul point de passage, plutôt
+    // qu'ajouté à chaque appelant — où le prochain l'oublierait à son tour.
+    //
+    // Réservé à Gemini: `TEXT_FALLBACK_MODELS` ne contient que des modèles
+    // Google, les proposer à un fournisseur openai-compatible (GLM) donnerait
+    // une chaîne de noms inconnus de son API.
+    const declaredFallbacks = request.fallbackModels ?? [];
+    const effectiveFallbacks =
+      declaredFallbacks.length > 0 || kind !== 'gemini' ? declaredFallbacks : TEXT_FALLBACK_MODELS;
+
+    // Doublons écartés : `TEXT_FALLBACK_MODELS` commence par `gemini-2.5-flash`,
+    // qui est aussi le modèle primaire de plusieurs features — la chaîne rejouait
+    // alors le modèle qui venait d'échouer avant d'en essayer un autre.
+    const modelsToTry = [...new Set([modelName, ...effectiveFallbacks])];
 
     let result: string | undefined;
     let lastError: any;
@@ -894,51 +918,70 @@ export class PromptService {
     // sur les DEUX modèles, et les deux doivent apparaître dans le journal.
     const attempts: { model: string; sink: UsageSink; startedAt: number }[] = [];
 
+    /** Un appel, un modèle. Le choix de l'adaptateur ne dépend que du fournisseur. */
+    const callModel = async (model: string, sink: UsageSink): Promise<string> => {
+      switch (kind) {
+        case 'gemini':
+          return this._runGeminiPrompt(
+            model,
+            modifiedMessages,
+            llmOptions,
+            file,
+            request.cachedContent,
+            sink
+          );
+        case 'openai-compatible':
+          return this._runOpenAICompatiblePrompt(
+            provider,
+            model,
+            modifiedMessages,
+            llmOptions,
+            file,
+            sink
+          );
+        default:
+          const unsupportedProviderError = new Error(`Unsupported provider kind: ${kind}`);
+          logger.error(
+            `Unsupported provider kind encountered in runPrompt: ${unsupportedProviderError.message}`,
+            { provider, kind, stack: unsupportedProviderError.stack }
+          );
+          throw unsupportedProviderError;
+      }
+    };
+
     for (let i = 0; i < modelsToTry.length; i++) {
       const currentModel = modelsToTry[i];
+
+      // La panne précédente était réseau : changer de modèle n'y répond pas,
+      // c'est la connexion qui manquait. On laisse un instant s'écouler avant
+      // de repartir, sinon toute la chaîne s'épuise dans la même seconde.
+      if (i > 0 && isTransientNetworkError(lastError)) {
+        await sleep(INTER_MODEL_DELAY_MS);
+      }
+
       const sink: UsageSink = {};
       const attemptStartedAt = Date.now();
       attempts.push({ model: currentModel, sink, startedAt: attemptStartedAt });
       try {
-        switch (kind) {
-          case 'gemini':
-            result = await this._runGeminiPrompt(
-              currentModel,
-              modifiedMessages,
-              llmOptions,
-              file,
-              request.cachedContent,
-              sink
-            );
-            break;
-          case 'openai-compatible':
-            result = await this._runOpenAICompatiblePrompt(
-              provider,
-              currentModel,
-              modifiedMessages,
-              llmOptions,
-              file,
-              sink
-            );
-            break;
-          default:
-            const unsupportedProviderError = new Error(`Unsupported provider kind: ${kind}`);
-            logger.error(
-              `Unsupported provider kind encountered in runPrompt: ${unsupportedProviderError.message}`,
-              { provider, kind, stack: unsupportedProviderError.stack }
-            );
-            throw unsupportedProviderError;
-        }
-        
+        // Chaque modèle a droit à plusieurs essais AVANT qu'on ne bascule : un
+        // `fetch failed` est temporel, et le modèle suivant échouerait pareil
+        // s'il partait sur la même connexion défaillante. Seul le transitoire
+        // réseau est rejoué — une saturation (429/503) bascule immédiatement.
+        result = await withRetry(() => callModel(currentModel, sink), {
+          label: `${provider}/${currentModel}`,
+        });
+
         lastError = undefined;
         break; // Success, exit retry loop
       } catch (error: any) {
         lastError = error;
         if (i < modelsToTry.length - 1) {
-          logger.warn(`Model ${currentModel} failed, falling back to ${modelsToTry[i + 1]}... Error: ${error.message}`);
+          logger.warn(
+            `Model ${currentModel} failed, falling back to ${modelsToTry[i + 1]}... Error: ${describeError(error)}`
+          );
         } else {
           logger.error(
-            `Error in runPrompt for provider ${provider}, model ${currentModel} (exhausted fallbacks): ${error.message}`,
+            `Error in runPrompt for provider ${provider}, model ${currentModel} (exhausted fallbacks): ${describeError(error)}`,
             { stack: error.stack, details: error }
           );
         }
@@ -1088,8 +1131,7 @@ export class PromptService {
       toolConfig: { functionCallingConfig: { mode: FunctionCallingConfigMode.AUTO } },
     };
 
-    const fallbackModel = AI_CONFIG.fallback.textModel;
-    const effectiveFallbackModel = modelName === fallbackModel ? 'gemini-2.0-flash' : fallbackModel;
+    const effectiveFallbackModel = pickFallbackModel(modelName, request.fallbackModels);
 
     const loopStartedAt = Date.now();
     logAIEvent('ai.agentic_loop_start', {
