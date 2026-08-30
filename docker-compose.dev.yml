@@ -13,8 +13,11 @@ volumes:
   dev_mongodb_data:
   # Services node_modules volumes (pour éviter conflits avec host)
   dev_node_modules_api:
+  dev_node_modules_api_root:
   dev_node_modules_ideploy_api:
+  dev_node_modules_ideploy_api_root:
   dev_node_modules_ideploy_web:
+  dev_node_modules_ideploy_web_root:
   dev_node_modules_dashboard:
   dev_node_modules_landing:
   dev_node_modules_appgen:
@@ -154,13 +157,13 @@ services:
       DB_DATABASE: '${DB_DATABASE:-ideploy}'
       DB_USERNAME: '${DB_USERNAME:-ideploy}'
       DB_PASSWORD: '${DB_PASSWORD:-password}'
-      SONARQUBE_ADMIN_TOKEN: squ_dc0e5ea5635f3c4b1bdd46d37032485e2ade36f0
+      SONARQUBE_ADMIN_TOKEN: '${SONARQUBE_ADMIN_TOKEN}'
       REDIS_HOST: redis
       # IDEM API Configuration
       IDEM_API_URL: 'http://host.docker.internal:3001'
       # AI Configuration
       AI_PROVIDER: '${AI_PROVIDER:-gemini}'
-      GEMINI_API_KEY: '${GEMINI_API_KEY:-AIzaSyBLz8JVQU2qnf1NoVWQouJ3xnNkXrAfJg4}'
+      GEMINI_API_KEY: '${GEMINI_API_KEY}'
       OPENAI_API_KEY: '${OPENAI_API_KEY}'
       CLAUDE_API_KEY: '${CLAUDE_API_KEY}'
       # Session Configuration
@@ -258,8 +261,12 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3000
+      # IPv6 egress to Google's auth endpoints (googleapis.com) is blackholed
+      # in this environment: firebase-admin's verifyIdToken/verifySessionCookie
+      # calls hang ~12s then fail with 401/403. Force IPv4 DNS resolution.
+      NODE_OPTIONS: '--dns-result-order=ipv4first'
       CORS_ALLOWED_ORIGINS: 'http://localhost:4200,http://localhost:4201,http://localhost:4202,http://localhost:3003,http://localhost:3004,http://localhost:8000'
-      MONGODB_URI: 'mongodb://$${MONGODB_USERNAME}:$${MONGODB_PASSWORD}@mongodb:27017/$${MONGODB_DATABASE}?authSource=admin'
+      MONGODB_URI: 'mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@mongodb:27017/${MONGODB_DATABASE}?authSource=admin'
       # MinIO Configuration
       MINIO_ENDPOINT: 'minio'
       MINIO_PORT: '9000'
@@ -274,10 +281,23 @@ services:
       IDEPLOY_DB_DATABASE: coolify
       IDEPLOY_DB_USERNAME: coolify
       IDEPLOY_DB_PASSWORD: password
+    # IPv6 to these hosts is blackholed here. NODE_OPTIONS=--dns-result-order
+    # only fixes Node's own http(s)/dns.lookup path; firebase-admin's HTTP
+    # client (gaxios/undici) does its own IPv4/IPv6 racing that ignores it, so
+    # verifyIdToken/createSessionCookie calls to Google were taking ~8-12s and
+    # often losing the race → 401. Pin IPv4 directly to remove the AAAA choice.
+    extra_hosts:
+      - 'registry.npmjs.org:104.16.9.34'
+      - 'identitytoolkit.googleapis.com:172.217.113.4'
+      - 'securetoken.googleapis.com:172.217.114.4'
+      - 'www.googleapis.com:172.217.119.4'
+      - 'oauth2.googleapis.com:173.194.222.95'
+      - 'accounts.google.com:192.178.223.84'
     volumes:
       - ./apps/api:/app/apps/api:cached
       - ./packages:/app/packages:cached
       - dev_node_modules_api:/app/apps/api/node_modules
+      - dev_node_modules_api_root:/app/node_modules
     networks:
       - idem-dev
     depends_on:
@@ -310,7 +330,7 @@ services:
       IDEPLOY_DB_DATABASE: '${IDEPLOY_DB_DATABASE:-coolify}'
       IDEPLOY_DB_USERNAME: '${IDEPLOY_DB_USERNAME:-coolify}'
       IDEPLOY_DB_PASSWORD: '${IDEPLOY_DB_PASSWORD:-password}'
-      DATABASE_URL: 'postgresql://$${IDEPLOY_DB_USERNAME:-coolify}:$${IDEPLOY_DB_PASSWORD:-password}@postgres:5432/$${IDEPLOY_DB_DATABASE:-coolify}?schema=public'
+      DATABASE_URL: 'postgresql://${IDEPLOY_DB_USERNAME:-coolify}:${IDEPLOY_DB_PASSWORD:-password}@postgres:5432/${IDEPLOY_DB_DATABASE:-coolify}?schema=public'
       # MUST match apps/ideploy/.env APP_KEY to read encrypted columns
       APP_KEY: '${IDEPLOY_APP_KEY}'
       # Authentication is delegated to the central Idem API (session cookie → /auth/profile)
@@ -324,10 +344,18 @@ services:
       PUSHER_APP_ID: '${PUSHER_APP_ID:-ideploy}'
       PUSHER_APP_KEY: '${PUSHER_APP_KEY:-ideploy}'
       PUSHER_APP_SECRET: '${PUSHER_APP_SECRET:-ideploy-secret}'
+    # IPv6 to these CDNs is blackholed in this environment (connect() hangs
+    # ~90-120s then ETIMEDOUT). Pin to known-good IPv4 so `npm install` /
+    # `prisma generate` don't hang on every cold start. Remove once IPv6
+    # egress is fixed at the host/daemon level.
+    extra_hosts:
+      - 'registry.npmjs.org:104.16.9.34'
+      - 'binaries.prisma.sh:104.20.43.103'
     volumes:
       - ./apps/ideploy-api:/app/apps/ideploy-api:cached
       - ./packages:/app/packages:cached
       - dev_node_modules_ideploy_api:/app/apps/ideploy-api/node_modules
+      - dev_node_modules_ideploy_api_root:/app/node_modules
     networks:
       - idem-dev
     depends_on:
@@ -353,10 +381,15 @@ services:
       - '4202:4202'
     environment:
       NODE_ENV: development
+    # See ideploy-api's extra_hosts comment: IPv6 to registry.npmjs.org is
+    # blackholed here, causing npm install to hang. Pin to IPv4.
+    extra_hosts:
+      - 'registry.npmjs.org:104.16.9.34'
     volumes:
       - ./apps/ideploy-web:/app/apps/ideploy-web:cached
       - ./packages:/app/packages:cached
       - dev_node_modules_ideploy_web:/app/apps/ideploy-web/node_modules
+      - dev_node_modules_ideploy_web_root:/app/node_modules
     networks:
       - idem-dev
     depends_on:
@@ -383,6 +416,10 @@ services:
       NEXT_PUBLIC_FIREBASE_API_KEY: '${FIREBASE_API_KEY}'
       NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: '${FIREBASE_AUTH_DOMAIN}'
       NEXT_PUBLIC_FIREBASE_PROJECT_ID: '${FIREBASE_PROJECT_ID}'
+      # SSO redirect target for redirect=ideploy after login (mynode.js reads
+      # this into environment.services.ideploy.url). Points at the new
+      # ideploy-web (Angular) rewrite, not the old Laravel app on :8000.
+      SERVICES_IDEPLOY_URL: 'http://localhost:4202'
     volumes:
       - ./apps/main-dashboard:/app/apps/main-dashboard:cached
       - ./packages:/app/packages:cached
