@@ -82,11 +82,6 @@ jobs:
             # Build image
             echo "Building Docker image..."
             docker build -f Dockerfile/prod/Dockerfile.simulation -t $IMAGE_TAG .
-
-            # Login to GitHub Container Registry
-            echo "Logging in to GHCR..."
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
             # Push image
             echo "Pushing image to registry..."
             docker push $IMAGE_TAG
