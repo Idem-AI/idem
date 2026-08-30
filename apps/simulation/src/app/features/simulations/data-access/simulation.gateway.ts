@@ -19,6 +19,12 @@ import {
  * fournit soit l'implémentation HTTP, soit celle de démonstration, et aucune
  * page ne sait laquelle est active.
  */
+/** Un rapport rendu, prêt à être enregistré par le navigateur. */
+export interface ReportDownload {
+  blob: Blob;
+  fileName: string;
+}
+
 export abstract class SimulationGateway {
   /** Projets IDEM que l'utilisateur connecté peut simuler. */
   abstract listProjects(): Observable<LinkedProject[]>;
@@ -47,6 +53,13 @@ export abstract class SimulationGateway {
 
   /** Génère le rapport complet d'une exécution achetée sans lui. */
   abstract generateReport(projectId: string, simulationId: string): Observable<SimulationReport>;
+
+  /**
+   * Rend le rapport en PDF. Le document est composé par l'API, avec le template
+   * IDEM : impossible d'obtenir la même chose depuis l'impression navigateur,
+   * qui change de rendu d'un poste à l'autre.
+   */
+  abstract downloadReport(projectId: string, simulationId: string): Observable<ReportDownload>;
 
   /** Lance une analyse complémentaire et renvoie la simulation enrichie. */
   abstract runLab(projectId: string, simulationId: string, lab: LabName): Observable<Simulation>;

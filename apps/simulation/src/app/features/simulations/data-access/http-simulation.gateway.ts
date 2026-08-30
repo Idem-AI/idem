@@ -15,7 +15,7 @@ import {
   SimulationReport,
   SimulationSummary,
 } from '../models';
-import { SimulationGateway } from './simulation.gateway';
+import { ReportDownload, SimulationGateway } from './simulation.gateway';
 
 /** Le pipeline dure plusieurs minutes ; on interroge sans saturer l'API. */
 const POLL_INTERVAL_MS = 4000;
@@ -97,6 +97,23 @@ export class HttpSimulationGateway extends SimulationGateway {
     });
   }
 
+  override downloadReport(projectId: string, simulationId: string): Observable<ReportDownload> {
+    return this.http
+      .get(`${this.base(projectId)}/${simulationId}/report/pdf`, {
+        withCredentials: true,
+        responseType: 'blob',
+        observe: 'response',
+      })
+      .pipe(
+        map((response) => ({
+          blob: response.body as Blob,
+          // L'API nomme le fichier ; on retombe sur un nom neutre si l'en-tête
+          // n'a pas traversé (CORS, proxy).
+          fileName: fileNameFrom(response.headers.get('Content-Disposition')) ?? 'rapport-simulation.pdf',
+        })),
+      );
+  }
+
   override generateReport(projectId: string, simulationId: string): Observable<SimulationReport> {
     return this.http.post<SimulationReport>(
       `${this.base(projectId)}/${simulationId}/report`,
@@ -156,4 +173,13 @@ function toLinkedProject(project: Record<string, unknown>): LinkedProject {
     availableAssets: assets,
     updatedAt: String(project['updatedAt'] ?? project['createdAt'] ?? new Date().toISOString()),
   };
+}
+
+/** Extrait le nom de fichier d'un en-tête `Content-Disposition`. */
+function fileNameFrom(header: string | null): string | null {
+  if (!header) {
+    return null;
+  }
+  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(header);
+  return match ? decodeURIComponent(match[1]) : null;
 }

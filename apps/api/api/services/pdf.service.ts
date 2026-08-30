@@ -53,6 +53,12 @@ export interface PdfGenerationOptions {
     minFillRatio?: number;
     /** Espace max (mm) ajouté à un interligne de blocs pour combler (défaut 12). */
     maxGapAddMm?: number;
+    /**
+     * Plafond absolu (mm) d'un interligne (défaut 26). À abaisser pour un
+     * document très structuré, où un grand écart entre le chapeau et le
+     * tableau se lit comme un trou et non comme de la respiration.
+     */
+    maxGapAddHardMm?: number;
     /** Répartir le contenu équitablement entre les pages d'une section (défaut true). */
     balance?: boolean;
   };
@@ -744,6 +750,7 @@ export class PdfService {
             pageHeightMm: parseFloat(finalPageFormat.height),
             minFillRatio: pagination?.minFillRatio,
             maxGapAddMm: pagination?.maxGapAddMm,
+            maxGapAddHardMm: pagination?.maxGapAddHardMm,
             balance: pagination?.balance,
           }
         )) as FlowPaginationReport;
