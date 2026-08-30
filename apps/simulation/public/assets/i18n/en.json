@@ -296,7 +296,6 @@
     "title": "Report",
     "heading": "Simulation report — {{name}}",
     "generatedOn": "Generated on",
-    "print": "Print",
     "contents": "Contents",
     "backToResults": "Back to results",
     "unavailable": "Report unavailable",
@@ -351,7 +350,10 @@
     },
     "validation": {
       "body": "A simulation narrows uncertainty, it does not replace it. These points need checking against the real market."
-    }
+    },
+    "download": "Download the PDF",
+    "downloading": "Building the PDF…",
+    "downloadFailed": "The report could not be generated."
   },
   "compare": {
     "title": "Comparison",

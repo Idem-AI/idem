@@ -339,7 +339,7 @@ export const AI_CONFIG = {
       promptType: 'finance',
       llmOptions: {
         temperature: 0.2,
-        maxOutputTokens: 1024,
+        maxOutputTokens: 10024,
         thinkingBudget: 0,
       },
     } as FeatureAIConfig,

@@ -296,7 +296,6 @@
     "title": "Rapport",
     "heading": "Rapport de simulation — {{name}}",
     "generatedOn": "Généré le",
-    "print": "Imprimer",
     "contents": "Sommaire",
     "backToResults": "Retour aux résultats",
     "unavailable": "Rapport indisponible",
@@ -351,7 +350,10 @@
     },
     "validation": {
       "body": "La simulation réduit l'incertitude, elle ne la remplace pas. Ces points demandent une vérification sur le terrain."
-    }
+    },
+    "download": "Télécharger le PDF",
+    "downloading": "Composition du PDF…",
+    "downloadFailed": "Le rapport n'a pas pu être généré."
   },
   "compare": {
     "title": "Comparaison",

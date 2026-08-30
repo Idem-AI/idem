@@ -6,10 +6,12 @@
  */
 
 import { Response } from 'express';
+import * as fs from 'fs-extra';
 
 import logger from '../config/logger';
 import { CustomRequest } from '../interfaces/express.interface';
 import { SimulationOrigin, SimulationTier } from '../models/simulation.model';
+import { simulationPdfService } from '../services/Simulation/simulation-pdf.service';
 import { LabName, simulationService } from '../services/Simulation/simulation.service';
 
 const VALID_TIERS: SimulationTier[] = ['run', 'report', 'pack'];
@@ -278,6 +280,36 @@ export const getReportController = async (req: CustomRequest, res: Response): Pr
     res.status(200).json(simulation.report);
   } catch (error: any) {
     handleError(res, error, 'getReport');
+  }
+};
+
+/**
+ * Rend le rapport en PDF, composé côté serveur à partir du template IDEM.
+ * L'impression navigateur ne donnait ni la même mise en page ni les mêmes
+ * couleurs d'un poste à l'autre.
+ */
+export const downloadReportPdfController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const context = requireContext(req, res);
+  if (!context) return;
+
+  try {
+    const { filePath, fileName } = await simulationPdfService.generateReportPdf(
+      context.userId,
+      context.projectId,
+      req.params.simulationId as string
+    );
+
+    const buffer = await fs.readFile(filePath);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    // Le nom de fichier est lu par le navigateur du client, pas par le nôtre.
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+    res.send(buffer);
+  } catch (error: any) {
+    handleError(res, error, 'downloadReportPdf');
   }
 };
 
