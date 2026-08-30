@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-import { authGuard } from './core/auth';
+import { authGuard, entryRedirectGuard } from './core/auth';
 
 /** Écrans d'une exécution : chargés sous la coquille de contexte. */
 const simulationRoutes: Routes = [
@@ -124,7 +124,8 @@ export const routes: Routes = [
     path: '',
     loadComponent: () => import('./layouts/app-shell/app-shell').then((m) => m.AppShell),
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'simulations' },
+      // La destination dépend de la session : voir §entryRedirectGuard.
+      { path: '', pathMatch: 'full', canActivate: [entryRedirectGuard], children: [] },
       {
         path: 'simulations',
         pathMatch: 'full',
