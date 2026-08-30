@@ -17,6 +17,9 @@ export const createServerSchema = z.object({
   // defaults to root and so do we.
   user: z.string().trim().min(1).max(255).optional().default('root'),
   private_key_id: z.coerce.number().int().positive('A private key must be selected.'),
+  is_build_server: z.coerce.boolean().optional().default(false),
+  is_swarm_manager: z.coerce.boolean().optional().default(false),
+  is_swarm_worker: z.coerce.boolean().optional().default(false),
 });
 
 /**
@@ -46,6 +49,15 @@ router.delete('/:uuid', validate({ params: uuidParam }), ctrl.deleteServer);
 
 /**
  * @swagger
+ * /api/v1/servers/{uuid}/settings:
+ *   get: { summary: Get a server's own settings (wildcard domain, …), tags: [Servers], responses: { 200: { description: OK } } }
+ *   patch: { summary: Update a server's own settings, tags: [Servers], responses: { 200: { description: OK } } }
+ */
+router.get('/:uuid/settings', validate({ params: uuidParam }), ctrl.getServerSettings);
+router.patch('/:uuid/settings', validate({ params: uuidParam }), ctrl.updateServerSettings);
+
+/**
+ * @swagger
  * /api/v1/servers/{uuid}/validate:
  *   post: { summary: Run the full readiness check and report actionable diagnostics, tags: [Servers], responses: { 200: { description: OK } } }
  */
@@ -61,5 +73,41 @@ router.post('/:uuid/validate', validate({ params: uuidParam }), ctrl.validateSer
  *     responses: { 200: { description: OK } }
  */
 router.post('/:uuid/setup', validate({ params: uuidParam }), ctrl.setUpServer);
+
+/**
+ * @swagger
+ * /api/v1/servers/{uuid}/docker-cleanup:
+ *   post:
+ *     summary: Reclaim disk space (dangling images, stopped containers, unused build cache)
+ *     description: Named volumes are untouched unless prune_volumes is true.
+ *     tags: [Servers]
+ *     responses: { 200: { description: OK }, 404: { description: Server not found } }
+ */
+router.post(
+  '/:uuid/docker-cleanup',
+  validate({ params: uuidParam, body: z.object({ prune_volumes: z.boolean().optional() }) }),
+  ctrl.dockerCleanup
+);
+
+/**
+ * @swagger
+ * /api/v1/servers/{uuid}/resources:
+ *   get:
+ *     summary: Applications, databases and services deployed on this server
+ *     tags: [Servers]
+ *     responses: { 200: { description: OK }, 404: { description: Server not found } }
+ */
+router.get('/:uuid/resources', validate({ params: uuidParam }), ctrl.listServerResources);
+
+/**
+ * @swagger
+ * /api/v1/servers/{uuid}/health:
+ *   get:
+ *     summary: Probe liveness and disk headroom over SSH
+ *     description: Never fails on an unreachable host — `reachable:false` is a result, not an error.
+ *     tags: [Servers]
+ *     responses: { 200: { description: OK }, 404: { description: Server not found } }
+ */
+router.get('/:uuid/health', validate({ params: uuidParam }), ctrl.getServerHealth);
 
 export default router;

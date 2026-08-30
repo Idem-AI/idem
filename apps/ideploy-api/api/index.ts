@@ -8,8 +8,10 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+import http from 'http';
 import logger from './config/logger';
 import { createApp } from './app';
+import { registerTerminalGateway } from './ws/terminal.gateway';
 
 import { registerDeploymentWorker } from './jobs/deployment.worker';
 import { registerPipelineWorker } from './jobs/pipeline.worker';
@@ -41,7 +43,11 @@ async function bootstrap(): Promise<void> {
   await registerServerHealthScheduler();
   registerFirewallObservabilityWorker();
   await registerFirewallObservabilityScheduler();
-  app.listen(port, () => {
+  // An explicit http.Server so the terminal gateway can share this port: the
+  // WebSocket then has the same origin as the API, and the same session cookie.
+  const server = http.createServer(app);
+  registerTerminalGateway(server);
+  server.listen(port, () => {
     logger.info(`iDeploy API listening on port ${port}`);
   });
 }

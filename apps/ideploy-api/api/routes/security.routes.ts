@@ -72,4 +72,32 @@ router.get('/servers/:serverUuid/certificates', ctrl.listCerts);
 router.post('/servers/:serverUuid/certificates', ctrl.generateCert);
 router.delete('/servers/:serverUuid/certificates/:id', ctrl.deleteCert);
 
+// ── Personal access tokens (caller-scoped, not team-scoped) ───────────────
+/**
+ * @swagger
+ * /api/v1/security/api-tokens:
+ *   get:
+ *     summary: List the caller's personal access tokens
+ *     description: Token values are stored hashed and are never returned.
+ *     tags: [Security]
+ *     responses: { 200: { description: OK } }
+ *   post:
+ *     summary: Issue a personal access token
+ *     description: The plaintext token is returned once, in this response only.
+ *     tags: [Security]
+ *     responses: { 201: { description: Created }, 422: { description: Invalid name, ability or expiry } }
+ */
+router.get('/security/api-tokens', ctrl.listApiTokens);
+router.post('/security/api-tokens', ctrl.createApiToken);
+
+/**
+ * @swagger
+ * /api/v1/security/api-tokens/{id}:
+ *   delete:
+ *     summary: Revoke one of the caller's own tokens
+ *     tags: [Security]
+ *     responses: { 200: { description: OK }, 404: { description: Not found, or not the caller's } }
+ */
+router.delete('/security/api-tokens/:id', ctrl.revokeApiToken);
+
 export default router;

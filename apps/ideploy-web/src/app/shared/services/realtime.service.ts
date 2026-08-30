@@ -41,4 +41,37 @@ export class RealtimeService {
       this.client().unsubscribe(channelName);
     };
   }
+
+  /** Subscribe to a server's live setup-script output. Returns an unsubscribe fn. */
+  subscribeToServerProvision(serverUuid: string, onLog: (line: string) => void): () => void {
+    const channelName = `server-provision.${serverUuid}`;
+    const channel: Channel = this.client().subscribe(channelName);
+    channel.bind('log', (e: { line: string }) => onLog(e.line));
+    return () => {
+      channel.unbind_all();
+      this.client().unsubscribe(channelName);
+    };
+  }
+
+  /** Subscribe to a service's live start/stop/restart output. Returns an unsubscribe fn. */
+  subscribeToService(serviceUuid: string, onLog: (line: string) => void): () => void {
+    const channelName = `service.${serviceUuid}`;
+    const channel: Channel = this.client().subscribe(channelName);
+    channel.bind('log', (e: { line: string }) => onLog(e.line));
+    return () => {
+      channel.unbind_all();
+      this.client().unsubscribe(channelName);
+    };
+  }
+
+  /** Subscribe to a database's live start/stop/restart output. Returns an unsubscribe fn. */
+  subscribeToDatabase(databaseUuid: string, onLog: (line: string) => void): () => void {
+    const channelName = `database.${databaseUuid}`;
+    const channel: Channel = this.client().subscribe(channelName);
+    channel.bind('log', (e: { line: string }) => onLog(e.line));
+    return () => {
+      channel.unbind_all();
+      this.client().unsubscribe(channelName);
+    };
+  }
 }

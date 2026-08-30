@@ -14,6 +14,9 @@ router.use(authenticate, requireTeam);
 router.get('/', ctrl.list);
 router.post('/', ctrl.create);
 router.delete('/:uuid', ctrl.remove);
+// Ahead of `/:uuid` so the literal segment `for` is not read as a tag uuid.
+router.get('/for/:taggableType/:taggableId', ctrl.listForTaggable);
+
 router.post('/:uuid/attach', ctrl.attach);
 router.post('/:uuid/detach', ctrl.detach);
 

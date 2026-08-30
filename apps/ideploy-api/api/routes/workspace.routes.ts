@@ -94,6 +94,16 @@ router.delete('/:uuid', validate({ params: uuidParam }), ctrl.remove);
 
 /**
  * @swagger
+ * /api/v1/workspaces/{uuid}/resources:
+ *   get:
+ *     summary: Every application, database and service in this workspace
+ *     tags: [Workspaces]
+ *     responses: { 200: { description: OK }, 404: { description: Workspace not found } }
+ */
+router.get('/:uuid/resources', validate({ params: uuidParam }), ctrl.listResources);
+
+/**
+ * @swagger
  * /api/v1/workspaces/{uuid}/environments:
  *   post: { summary: Add an environment (staging, …), tags: [Workspaces], responses: { 201: { description: Created }, 409: { description: Name already used } } }
  */

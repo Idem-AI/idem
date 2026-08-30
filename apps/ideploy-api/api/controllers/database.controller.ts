@@ -7,6 +7,7 @@ import * as dbService from '../services/database.service';
 import * as backupService from '../services/db-backup.service';
 import { getDbType } from '../services/database-types';
 import { resolveWorkspaceDestination } from '../services/workspace.service';
+import { realtime } from '../services/realtime.service';
 
 export async function list(req: CustomRequest, res: Response): Promise<void> {
   try {
@@ -18,9 +19,16 @@ export async function list(req: CustomRequest, res: Response): Promise<void> {
   }
 }
 
+/**
+ * Returns the full detail: credentials and a ready connection string, not
+ * just the metadata `list` returns — this is a single-record, team-scoped
+ * fetch the operator is already looking at their own resource through, the
+ * same trust boundary `service.controller.ts::get` already returns
+ * `docker_compose_raw` (itself full of secrets) under.
+ */
 export async function get(req: CustomRequest, res: Response): Promise<void> {
   try {
-    const db = await dbService.getDatabase(
+    const db = await dbService.getDatabaseDetail(
       req.user!.currentTeamId!,
       String(req.params.type),
       String(req.params.uuid)
@@ -29,6 +37,31 @@ export async function get(req: CustomRequest, res: Response): Promise<void> {
     ok(res, db);
   } catch (err) {
     fail(res, 'Failed to fetch database');
+  }
+}
+
+/**
+ * Overwrite one or more credential fields (username/password/initial DB…).
+ * Only takes effect on the next start/restart — see
+ * `database.service.ts::updateCredentials` for why a running container isn't
+ * live-reconfigured.
+ */
+export async function updateCredentials(req: CustomRequest, res: Response): Promise<void> {
+  const updates = req.body ?? {};
+  if (typeof updates !== 'object' || Array.isArray(updates) || Object.keys(updates).length === 0) {
+    return fail(res, 'At least one credential field is required', 422, 'VALIDATION');
+  }
+  try {
+    const db = await dbService.updateCredentials(
+      req.user!.currentTeamId!,
+      String(req.params.type),
+      String(req.params.uuid),
+      updates
+    );
+    if (!db) return fail(res, 'Database not found', 404, 'NOT_FOUND');
+    ok(res, db);
+  } catch (err) {
+    respondWithError(res, err, 'Updating the database credentials');
   }
 }
 
@@ -88,18 +121,21 @@ async function lifecycle(
   res: Response,
   action: 'start' | 'stop' | 'restart'
 ): Promise<void> {
+  const uuid = String(req.params.uuid);
   try {
     ok(
       res,
       await dbService.lifecycle(
         req.user!.currentTeamId!,
         String(req.params.type),
-        String(req.params.uuid),
-        action
+        uuid,
+        action,
+        (chunk) => realtime.databaseLog(uuid, chunk)
       )
     );
   } catch (err) {
     logger.error(`db ${action} error`, { message: (err as Error).message });
+    void realtime.databaseLog(uuid, `\n❌ ${(err as Error).message || `Failed to ${action} database`}\n`);
     fail(res, (err as Error).message || `Failed to ${action} database`);
   }
 }

@@ -5,7 +5,7 @@
  */
 import { randomUUID } from 'crypto';
 import pool from '../config/db.config';
-import { assertDomainsAvailable } from './domain.service';
+import { assertDomainsAvailable, generateFqdn, getServerForDestination, subdomainSlug } from './domain.service';
 import { ApplicationRow } from '../models/ideploy.types';
 import * as serverService from './server.service';
 import { executeRemoteCommand } from '../ssh/ssh';
@@ -33,6 +33,8 @@ function mapApp(r: Record<string, unknown>): ApplicationRow {
     start_command: (r.start_command as string) ?? null,
     install_command: (r.install_command as string) ?? null,
     publish_directory: (r.publish_directory as string) ?? null,
+    workspace_name: (r.workspace_name as string) ?? undefined,
+    workspace_uuid: (r.workspace_uuid as string) ?? undefined,
   };
 }
 
@@ -87,7 +89,7 @@ export async function getApplicationById(id: number): Promise<ApplicationRow | n
 
 export async function listApplications(teamId: number, environmentId?: number): Promise<ApplicationRow[]> {
   const params: unknown[] = [teamId];
-  let sql = `SELECT a.* FROM applications a
+  let sql = `SELECT a.*, p.name AS workspace_name, p.uuid AS workspace_uuid FROM applications a
      JOIN environments e ON e.id = a.environment_id
      JOIN projects p ON p.id = e.project_id
      WHERE p.team_id = $1`;
@@ -144,6 +146,20 @@ export async function createApplication(
   }
 
   const uuid = randomUUID();
+
+  // No domain of its own means no HTTPS URL and no clean way to reach it — the
+  // previous fallback (`http://localhost:{port}`) only worked when the browser
+  // happened to be on the same machine as the server. Every application gets a
+  // working hostname the moment it deploys, the same guarantee the Laravel side
+  // gives via sslip.io.
+  let fqdn = dto.fqdn ?? null;
+  if (!fqdn && dto.destination_id) {
+    const server = await getServerForDestination(dto.destination_id);
+    if (server) {
+      fqdn = await generateFqdn(server.id, server.ip, subdomainSlug(dto.name, uuid));
+    }
+  }
+
   const { rows } = await pool.query(
     `INSERT INTO applications
        (uuid, name, description, git_repository, git_branch, git_commit_sha,
@@ -160,7 +176,7 @@ export async function createApplication(
       dto.git_branch ?? 'main',
       dto.build_pack ?? 'nixpacks',
       dto.ports_exposes ?? '3000',
-      dto.fqdn ?? null,
+      fqdn,
       dto.environment_id,
       dto.destination_id ?? null,
       dto.destination_type ?? null,
@@ -321,6 +337,89 @@ export async function getMetrics(teamId: number, uuid: string): Promise<string> 
     { noRetry: true }
   );
   return r.stdout.trim();
+}
+
+/** One container's resource use, as numbers rather than a formatted string. */
+export interface ContainerUsage {
+  name: string;
+  cpuPercent: number | null;
+  memoryUsedBytes: number | null;
+  memoryLimitBytes: number | null;
+  memoryPercent: number | null;
+  networkInBytes: number | null;
+  networkOutBytes: number | null;
+}
+
+/** `1.5GiB` / `937.2MB` / `0B` → bytes. Null when the field is unparseable. */
+function parseSize(value: string): number | null {
+  const match = /^([\d.]+)\s*([KMGTP]?i?B)$/i.exec(value.trim());
+  if (!match) return null;
+  const amount = Number(match[1]);
+  if (!Number.isFinite(amount)) return null;
+
+  // Docker mixes IEC (GiB) and SI (GB) in the same output, so both are handled.
+  const units: Record<string, number> = {
+    b: 1,
+    kb: 1e3, mb: 1e6, gb: 1e9, tb: 1e12, pb: 1e15,
+    kib: 1024, mib: 1024 ** 2, gib: 1024 ** 3, tib: 1024 ** 4, pib: 1024 ** 5,
+  };
+  const factor = units[match[2].toLowerCase()];
+  return factor ? Math.round(amount * factor) : null;
+}
+
+function parsePercent(value: string): number | null {
+  const n = Number(value.trim().replace('%', ''));
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Parse `docker stats` output into typed rows.
+ *
+ * Exported for its own sake: the format is fiddly enough (mixed IEC/SI units,
+ * `--` for a container that is starting) that it deserves unit tests without a
+ * server attached.
+ */
+export function parseDockerStats(stdout: string): ContainerUsage[] {
+  return stdout
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [name, cpu, memUsage, memPercent, netIo] = line.split('\t');
+      // `1.2GiB / 4GiB`
+      const [used, limit] = (memUsage ?? '').split('/').map((s) => s?.trim() ?? '');
+      // `1.4kB / 648B`
+      const [netIn, netOut] = (netIo ?? '').split('/').map((s) => s?.trim() ?? '');
+      return {
+        name: name ?? '',
+        cpuPercent: parsePercent(cpu ?? ''),
+        memoryUsedBytes: parseSize(used ?? ''),
+        memoryLimitBytes: parseSize(limit ?? ''),
+        memoryPercent: parsePercent(memPercent ?? ''),
+        networkInBytes: parseSize(netIn ?? ''),
+        networkOutBytes: parseSize(netOut ?? ''),
+      };
+    })
+    .filter((row) => row.name !== '');
+}
+
+/**
+ * Structured resource usage for the insights screen.
+ *
+ * A snapshot, not a time series: nothing in this schema records history, and
+ * inventing a chart out of one sample would be a graph of a single point
+ * pretending to be a trend. The screen polls if it wants movement.
+ */
+export async function getResourceUsage(teamId: number, uuid: string): Promise<ContainerUsage[]> {
+  const { server, key } = await resolveAppServer(teamId, uuid);
+  const r = await executeRemoteCommand(
+    server,
+    key,
+    `docker stats --no-stream --format '{{.Name}}\\t{{.CPUPerc}}\\t{{.MemUsage}}\\t{{.MemPerc}}\\t{{.NetIO}}' ` +
+      `$(docker ps --filter label=ideploy.applicationUuid=${uuid} -q)`,
+    { noRetry: true }
+  );
+  return parseDockerStats(r.stdout);
 }
 
 /** One-shot command execution inside the app's container (Execute Container Command). */

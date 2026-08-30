@@ -44,6 +44,18 @@ export const realtime = {
   /** Notify a status change for a resource within a team. */
   statusChanged: (teamId: number, payload: unknown): Promise<void> =>
     emit(`team.${teamId}`, 'status-changed', payload),
+  provisionChannel: (serverUuid: string): string => `server-provision.${serverUuid}`,
+  /** Append a chunk of live server-setup script output. */
+  provisionLog: (serverUuid: string, line: string): Promise<void> =>
+    emit(`server-provision.${serverUuid}`, 'log', { line, at: Date.now() }),
+  serviceChannel: (serviceUuid: string): string => `service.${serviceUuid}`,
+  /** Append a chunk of live output from a service start/stop/restart. */
+  serviceLog: (serviceUuid: string, line: string): Promise<void> =>
+    emit(`service.${serviceUuid}`, 'log', { line, at: Date.now() }),
+  databaseChannel: (databaseUuid: string): string => `database.${databaseUuid}`,
+  /** Append a chunk of live output from a database start/stop/restart. */
+  databaseLog: (databaseUuid: string, line: string): Promise<void> =>
+    emit(`database.${databaseUuid}`, 'log', { line, at: Date.now() }),
 };
 
 export default realtime;

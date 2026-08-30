@@ -1,8 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { Database, DatabaseType } from '../../../shared/models/ideploy.models';
+import { DB_ENGINES, dbEngine } from '../../../shared/utils/db-icon.util';
 import {
   WorkspaceTarget,
   WorkspaceTargetPickerComponent,
@@ -10,7 +13,7 @@ import {
 
 @Component({
   selector: 'app-databases-list',
-  imports: [ReactiveFormsModule, TranslateModule, WorkspaceTargetPickerComponent],
+  imports: [RouterLink, ReactiveFormsModule, TranslateModule, WorkspaceTargetPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h1 class="mb-6 text-2xl font-bold">{{ 'databases.title' | translate }}</h1>
@@ -25,10 +28,17 @@ import {
           <div class="space-y-3">
             @for (db of databases(); track db.uuid) {
               <div class="box flex items-center justify-between">
-                <div>
-                  <div class="font-semibold">{{ db.name }}</div>
-                  <div class="text-sm" style="color: var(--color-text-secondary)">
-                    {{ db.type }} · {{ db.image }} · {{ db.status }}
+                <div class="flex items-center gap-3">
+                  <div
+                    class="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg [&_svg]:h-6 [&_svg]:w-6"
+                    style="background:var(--color-surface-2);"
+                    [innerHTML]="iconHtml(db.type)"
+                  ></div>
+                  <div>
+                    <a class="font-semibold hover:underline" [routerLink]="['/databases', db.type, db.uuid]">{{ db.name }}</a>
+                    <div class="text-sm" style="color: var(--color-text-secondary)">
+                      {{ db.type }} · {{ db.image }} · {{ db.status }}
+                    </div>
                   </div>
                 </div>
                 <div class="flex gap-2">
@@ -43,48 +53,58 @@ import {
         }
       </div>
 
-      <form class="box space-y-3" [formGroup]="form" (ngSubmit)="create()">
+      <div class="box space-y-4">
         <h2 class="font-semibold">{{ 'databases.newDatabase' | translate }}</h2>
+
         <div>
-          <label class="mb-1 block text-sm">{{ 'databases.type' | translate }}</label>
-          <select class="input" formControlName="type">
-            @for (t of types; track t) {
-              <option [value]="t">{{ t }}</option>
+          <label class="mb-2 block text-sm">{{ 'databases.chooseEngine' | translate }}</label>
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            @for (engine of engines; track engine.type) {
+              <button
+                type="button"
+                class="flex flex-col items-center gap-2 rounded-xl p-3 text-center transition-colors"
+                [style.border]="form.controls.type.value === engine.type ? '1px solid ' + engine.color : '1px solid var(--color-surface-2)'"
+                [style.background]="form.controls.type.value === engine.type ? 'color-mix(in srgb, ' + engine.color + ' 12%, transparent)' : 'var(--color-surface-1)'"
+                (click)="form.controls.type.setValue(engine.type)"
+              >
+                <div class="flex h-10 w-10 items-center justify-center [&_svg]:h-7 [&_svg]:w-7" [innerHTML]="iconHtml(engine.type)"></div>
+                <span class="text-xs font-semibold">{{ engine.name }}</span>
+              </button>
             }
-          </select>
-        </div>
-        <div>
-          <label class="mb-1 block text-sm">{{ 'databases.name' | translate }}</label>
-          <input class="input" formControlName="name" />
+          </div>
+          <p class="mt-2 text-xs" style="color: var(--color-text-secondary)">{{ dbEngine(form.controls.type.value).description }}</p>
         </div>
 
-        <app-workspace-target-picker (targetChange)="target.set($event)" />
+        <form class="space-y-3" [formGroup]="form" (ngSubmit)="create()">
+          <div>
+            <label class="mb-1 block text-sm">{{ 'databases.name' | translate }}</label>
+            <input class="input" formControlName="name" />
+          </div>
 
-        @if (error()) {
-          <p class="text-sm text-red-400">{{ error() }}</p>
-        }
-        <button class="button" type="submit" [disabled]="form.invalid || !target() || saving()">
-          {{ (saving() ? 'databases.creating' : 'databases.createDatabase') | translate }}
-        </button>
-      </form>
+          <app-workspace-target-picker (targetChange)="target.set($event)" />
+
+          @if (error()) {
+            <p class="text-sm text-red-400">{{ error() }}</p>
+          }
+          <button class="button" type="submit" [disabled]="form.invalid || !target() || saving()">
+            {{ (saving() ? 'databases.creating' : 'databases.createDatabase') | translate }}
+          </button>
+        </form>
+      </div>
     </div>
   `,
 })
 export class DatabasesListComponent implements OnInit {
   private api = inject(ApiService);
+  private router = inject(Router);
   private fb = inject(FormBuilder);
   private translate = inject(TranslateService);
+  private sanitizer = inject(DomSanitizer);
 
-  protected readonly types: DatabaseType[] = [
-    'postgresql',
-    'mysql',
-    'mariadb',
-    'mongodb',
-    'redis',
-    'keydb',
-    'dragonfly',
-    'clickhouse',
-  ];
+  protected readonly engines = DB_ENGINES;
+  protected readonly dbEngine = dbEngine;
+
+  private readonly iconCache = new Map<DatabaseType, SafeHtml>();
 
   protected readonly databases = signal<Database[]>([]);
   protected readonly loading = signal(true);
@@ -99,6 +119,16 @@ export class DatabasesListComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+  }
+
+  /** Trusted markup — hand-authored SVGs in `db-icon.util.ts`, never user input. */
+  protected iconHtml(type: DatabaseType): SafeHtml {
+    let html = this.iconCache.get(type);
+    if (!html) {
+      html = this.sanitizer.bypassSecurityTrustHtml(dbEngine(type).svg);
+      this.iconCache.set(type, html);
+    }
+    return html;
   }
 
   private load(): void {
@@ -125,11 +155,13 @@ export class DatabasesListComponent implements OnInit {
         project_name: target.project_name,
       })
       .subscribe({
-        next: () => {
-          this.form.reset({ type: 'postgresql', name: '' });
-          this.target.set(null);
+        // Straight to the resource that was just created, not back to a list
+        // it now silently sits in — that's the page with the Start button and
+        // the live console, and it's what the "was this created?" question
+        // actually needs an answer from.
+        next: (db) => {
           this.saving.set(false);
-          this.load();
+          this.router.navigate(['/databases', db.type, db.uuid]);
         },
         error: (e) => {
           this.error.set(e?.error?.error?.message ?? this.translate.instant('databases.createError'));

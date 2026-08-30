@@ -26,6 +26,8 @@
     "@ngx-translate/http-loader": "^17.0.0",
     "@primeng/themes": "^20.0.0",
     "@tailwindcss/postcss": "^4.1.16",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
     "laravel-echo": "^2.1.5",
     "postcss": "^8.5.6",
     "primeicons": "^7.0.0",
