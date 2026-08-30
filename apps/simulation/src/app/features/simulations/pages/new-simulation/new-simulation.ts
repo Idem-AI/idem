@@ -54,6 +54,12 @@ export class NewSimulation {
   protected readonly step = signal<Step>('source');
   protected readonly origin = signal<SimulationOrigin>('idem-project');
 
+  /**
+   * Vrai une fois la source choisie. Rien n'est présélectionné : l'accueil
+   * pose une question, et n'affiche la suite qu'une fois qu'on y a répondu.
+   */
+  protected readonly sourceChosen = signal(false);
+
   protected readonly authenticated = this.auth.isAuthenticated;
   /** Vrai tant que la session n'a pas été tranchée : ni connecté, ni anonyme. */
   protected readonly sessionPending = computed(() => this.auth.status() === 'initialising');
@@ -77,9 +83,12 @@ export class NewSimulation {
     this.projects().find((project) => project.id === this.selectedProjectId()) ?? null,
   );
 
-  protected readonly canAnalyse = computed(() =>
-    this.origin() === 'idem-project' ? !!this.selectedProjectId() : !!this.selectedFile(),
-  );
+  protected readonly canAnalyse = computed(() => {
+    if (!this.sourceChosen()) {
+      return false;
+    }
+    return this.origin() === 'idem-project' ? !!this.selectedProjectId() : !!this.selectedFile();
+  });
 
   /** Grouped so the four states read as four different kinds of claim. */
   protected readonly knowledgeGroups = computed(() => {
@@ -153,6 +162,7 @@ export class NewSimulation {
 
   protected chooseOrigin(origin: SimulationOrigin): void {
     this.origin.set(origin);
+    this.sourceChosen.set(true);
     // Lister ses projets IDEM demande l'identité : autant le dire au moment du
     // choix plutôt que de laisser l'utilisateur devant une liste vide.
     if (origin === 'idem-project') {
@@ -307,6 +317,7 @@ export class NewSimulation {
       return;
     }
     this.origin.set(draft.origin);
+    this.sourceChosen.set(true);
     if (draft.projectId) {
       this.selectedProjectId.set(draft.projectId);
     }

@@ -1,385 +1,664 @@
-<div class="mx-auto flex max-w-4xl flex-col gap-7">
-  <sim-page-header
-    [heading]="'newRun.heading' | translate"
-    [description]="'newRun.description' | translate"
-  >
-    @if (authenticated()) {
-      <a breadcrumb routerLink="/simulations" class="mb-2 inline-flex items-center gap-1.5 text-meta text-ink-subtle transition-colors hover:text-ink-muted">
-        <svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-        {{ 'nav.simulations' | translate }}
-      </a>
-    }
-  </sim-page-header>
-
-  <!-- Step indicator: three named steps, so the price step is never a surprise. -->
-  <ol class="flex items-center gap-2 text-meta">
-    @for (entry of steps; track entry.id; let last = $last) {
-      <li class="flex items-center gap-2">
-        <span
-          class="grid size-5 place-items-center rounded-full text-[0.6875rem] font-bold"
-          [class]="
-            step() === entry.id
-              ? 'bg-brand text-brand-ink'
-              : 'border border-line bg-panel-sunken text-ink-subtle'
-          "
-        >
-          {{ entry.index }}
-        </span>
-        <span [class]="step() === entry.id ? 'font-semibold text-ink' : 'text-ink-subtle'">
-          {{ 'newRun.step.' + entry.id | translate }}
-        </span>
-        @if (!last) {
-          <span class="mx-1 h-px w-6 bg-line" aria-hidden="true"></span>
-        }
-      </li>
-    }
-  </ol>
-
-  <!-- ------------------------------------------------------------------ -->
+<div class="relative isolate">
+  <!-- ============================================================================
+       Accueil : la première chose qu'un visiteur voit du produit. Deux portes
+       d'entrée, beaucoup de vide autour, une seule source de lumière — et la
+       colonne de navigation retirée (voir `FocusShell`), qui n'aurait proposé que
+       des destinations inaccessibles sans exécution ouverte.
+       ============================================================================ -->
   @if (step() === 'source') {
-    <section class="flex flex-col gap-4">
-      <div class="grid gap-3 sm:grid-cols-2">
+    <div
+      aria-hidden="true"
+      class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[34rem] overflow-hidden"
+    >
+      <div
+        class="absolute left-1/2 top-[-17rem] size-[46rem] -translate-x-1/2 rounded-full bg-primary/8 blur-[130px]"
+      ></div>
+      <div
+        class="absolute left-[62%] top-[-6rem] size-[22rem] rounded-full bg-accent/5 blur-[120px]"
+      ></div>
+    </div>
+
+    <section
+      class="mx-auto flex max-w-5xl flex-col items-center px-4 pb-24 pt-14 text-center sm:px-6 lg:pt-24"
+    >
+      <h1
+        class="rise max-w-3xl text-[clamp(2rem,5.2vw,3.5rem)] font-semibold leading-[1.08] tracking-tight text-ink"
+      >
+        {{ 'newRun.hero.heading' | translate }}
+      </h1>
+
+      <p class="rise mt-5 max-w-2xl text-base leading-relaxed text-ink-muted sm:text-lg">
+        {{ 'newRun.hero.subheading' | translate }}
+      </p>
+
+      <!-- Les deux sources possibles. Jamais une troisième. -->
+      <div class="mt-12 grid w-full gap-4 sm:grid-cols-2">
         <button
           type="button"
-          class="rounded-xl border p-4 text-left transition-colors"
+          class="rise-stagger group relative overflow-hidden rounded-2xl border p-6 text-left transition-[transform,border-color,background-color] duration-200"
+          style="--i: 1"
           [class]="
-            origin() === 'idem-project'
-              ? 'border-brand bg-brand-soft/40'
-              : 'border-line bg-panel hover:border-line-strong'
+            sourceChosen() && origin() === 'idem-project'
+              ? 'border-brand bg-brand-soft/10'
+              : 'border-line bg-panel hover:-translate-y-0.5 hover:border-line-strong'
           "
           [attr.aria-pressed]="origin() === 'idem-project'"
           (click)="chooseOrigin('idem-project')"
         >
-          <p class="text-sm font-semibold text-ink">{{ 'newRun.source.project' | translate }}</p>
-          <p class="mt-1 text-meta leading-relaxed text-ink-muted">
+          <!-- Un projet IDEM porte déjà son business plan et ses prévisions :
+               l'analyse part de plus loin, et coûte moins cher. -->
+          <span
+            class="absolute right-4 top-4 rounded-full bg-primary px-2.5 py-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-brand-ink"
+          >
+            {{ 'newRun.plan.recommended' | translate }}
+          </span>
+
+          <svg viewBox="0 0 96 72" class="h-[4.5rem] w-24 text-ink" fill="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="simIllustProject" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="var(--color-primary)" />
+                <stop offset="100%" stop-color="var(--color-accent-500)" />
+              </linearGradient>
+            </defs>
+            <rect
+              x="6"
+              y="10"
+              width="46"
+              height="54"
+              rx="6"
+              stroke="currentColor"
+              stroke-opacity=".3"
+              stroke-width="1.5"
+            />
+            <path
+              d="M6 16a6 6 0 0 1 6-6h34a6 6 0 0 1 6 6v8H6v-8Z"
+              fill="url(#simIllustProject)"
+              fill-opacity=".16"
+            />
+            <path
+              d="M14 36h22M14 44h28M14 52h15"
+              stroke="currentColor"
+              stroke-opacity=".38"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+            <path
+              d="m62 24 15 8m0 0-7 16m7-16-15-8"
+              stroke="url(#simIllustProject)"
+              stroke-width="1.5"
+              stroke-opacity=".7"
+            />
+            <path
+              d="m62 24 8 24"
+              stroke="url(#simIllustProject)"
+              stroke-width="1.5"
+              stroke-opacity=".7"
+            />
+            <circle cx="62" cy="24" r="5" fill="url(#simIllustProject)" />
+            <circle
+              cx="77"
+              cy="32"
+              r="4"
+              stroke="currentColor"
+              stroke-opacity=".45"
+              stroke-width="1.5"
+            />
+            <circle
+              cx="70"
+              cy="48"
+              r="4"
+              stroke="currentColor"
+              stroke-opacity=".45"
+              stroke-width="1.5"
+            />
+          </svg>
+
+          <p class="mt-5 text-h3 font-semibold text-ink">
+            {{ 'newRun.source.project' | translate }}
+          </p>
+          <p class="mt-1.5 text-sm leading-relaxed text-ink-muted">
             {{ 'newRun.source.projectBody' | translate }}
           </p>
+          <span
+            class="mt-4 inline-flex items-center gap-1.5 text-meta font-medium transition-colors"
+            [class]="
+              sourceChosen() && origin() === 'idem-project' ? 'text-brand' : 'text-ink-subtle'
+            "
+          >
+            @if (sourceChosen() && origin() === 'idem-project') {
+              <i class="pi pi-check-circle text-[0.8rem]" aria-hidden="true"></i>
+              {{ 'newRun.hero.selected' | translate }}
+            } @else {
+              {{ 'newRun.hero.choose' | translate }}
+              <i
+                class="pi pi-arrow-right text-[0.7rem] transition-transform group-hover:translate-x-0.5"
+                aria-hidden="true"
+              ></i>
+            }
+          </span>
         </button>
 
         <button
           type="button"
-          class="rounded-xl border p-4 text-left transition-colors"
+          class="rise-stagger group relative overflow-hidden rounded-2xl border p-6 text-left transition-[transform,border-color,background-color] duration-200"
+          style="--i: 2"
           [class]="
-            origin() === 'imported-document'
-              ? 'border-brand bg-brand-soft/40'
-              : 'border-line bg-panel hover:border-line-strong'
+            sourceChosen() && origin() === 'imported-document'
+              ? 'border-brand bg-brand-soft/10'
+              : 'border-line bg-panel hover:-translate-y-0.5 hover:border-line-strong'
           "
           [attr.aria-pressed]="origin() === 'imported-document'"
           (click)="chooseOrigin('imported-document')"
         >
-          <p class="text-sm font-semibold text-ink">{{ 'newRun.source.import' | translate }}</p>
-          <p class="mt-1 text-meta leading-relaxed text-ink-muted">
+          <svg viewBox="0 0 96 72" class="h-[4.5rem] w-24 text-ink" fill="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="simIllustImport" x1="0" y1="1" x2="1" y2="0">
+                <stop offset="0%" stop-color="var(--color-primary)" />
+                <stop offset="100%" stop-color="var(--color-accent-500)" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M18 62c6 4 14 6 24 6s18-2 24-6"
+              stroke="currentColor"
+              stroke-opacity=".2"
+              stroke-width="1.5"
+              stroke-linecap="round"
+            />
+            <path
+              d="M28 6h22l14 14v40a4 4 0 0 1-4 4H28a4 4 0 0 1-4-4V10a4 4 0 0 1 4-4Z"
+              stroke="currentColor"
+              stroke-opacity=".3"
+              stroke-width="1.5"
+            />
+            <path
+              d="M50 6v14h14"
+              stroke="currentColor"
+              stroke-opacity=".3"
+              stroke-width="1.5"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M33 46h14M33 54h22"
+              stroke="currentColor"
+              stroke-opacity=".38"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+            <path
+              d="M44 38V24m0 0-6 6m6-6 6 6"
+              stroke="url(#simIllustImport)"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <circle cx="76" cy="20" r="2" fill="url(#simIllustImport)" />
+            <circle cx="84" cy="30" r="1.5" fill="url(#simIllustImport)" fill-opacity=".6" />
+          </svg>
+
+          <p class="mt-5 text-h3 font-semibold text-ink">
+            {{ 'newRun.source.import' | translate }}
+          </p>
+          <p class="mt-1.5 text-sm leading-relaxed text-ink-muted">
             {{ 'newRun.source.importBody' | translate }}
           </p>
+          <span
+            class="mt-4 inline-flex items-center gap-1.5 text-meta font-medium transition-colors"
+            [class]="
+              sourceChosen() && origin() === 'imported-document' ? 'text-brand' : 'text-ink-subtle'
+            "
+          >
+            @if (sourceChosen() && origin() === 'imported-document') {
+              <i class="pi pi-check-circle text-[0.8rem]" aria-hidden="true"></i>
+              {{ 'newRun.hero.selected' | translate }}
+            } @else {
+              {{ 'newRun.hero.choose' | translate }}
+              <i
+                class="pi pi-arrow-right text-[0.7rem] transition-transform group-hover:translate-x-0.5"
+                aria-hidden="true"
+              ></i>
+            }
+          </span>
         </button>
       </div>
 
-      @if (origin() === 'idem-project') {
-        <div class="glass-card overflow-hidden">
-          @if (sessionPending() || projectsLoading()) {
-            <div class="flex flex-col gap-2 p-4">
-              @for (row of [1, 2, 3]; track row) {
-                <div class="skeleton h-12 rounded-lg"></div>
-              }
-            </div>
-          } @else if (!authenticated()) {
-            <div class="flex flex-col items-center gap-3 p-6 text-center">
-              <p class="text-sm font-medium text-ink">
-                {{ 'newRun.source.signInHeading' | translate }}
-              </p>
-              <p class="max-w-md text-meta leading-relaxed text-ink-muted">
-                {{ 'newRun.source.signInBody' | translate }}
-              </p>
-              <button
-                type="button"
-                class="inner-button mt-1"
-                (click)="askToSignIn('signIn.reason.projects')"
-              >
-                {{ 'auth.signIn' | translate }}
-              </button>
-            </div>
-          } @else if (!projects().length) {
-            <p class="p-6 text-center text-sm text-ink-muted">
-              {{ 'newRun.source.noProjects' | translate }}
-            </p>
-          } @else {
-            <ul role="radiogroup" [attr.aria-label]="'newRun.source.project' | translate">
-              @for (project of projects(); track project.id) {
-                <li class="border-b border-line last:border-0">
+      <!-- Ce que la source choisie demande : la liste des projets, ou le document. -->
+      @if (sourceChosen()) {
+        <div class="rise mt-5 w-full text-left">
+          @if (origin() === 'idem-project') {
+            <div class="glass-card overflow-hidden rounded-2xl">
+              @if (sessionPending() || projectsLoading()) {
+                <div class="flex flex-col gap-2 p-4">
+                  @for (row of [1, 2, 3]; track row) {
+                    <div class="skeleton h-12 rounded-lg"></div>
+                  }
+                </div>
+              } @else if (!authenticated()) {
+                <div class="flex flex-col items-center gap-3 p-8 text-center">
+                  <p class="text-sm font-medium text-ink">
+                    {{ 'newRun.source.signInHeading' | translate }}
+                  </p>
+                  <p class="max-w-md text-meta leading-relaxed text-ink-muted">
+                    {{ 'newRun.source.signInBody' | translate }}
+                  </p>
                   <button
                     type="button"
-                    role="radio"
-                    [attr.aria-checked]="selectedProjectId() === project.id"
-                    class="flex w-full items-start gap-3 p-4 text-left transition-colors hover:bg-panel-sunken"
-                    (click)="selectedProjectId.set(project.id)"
+                    class="inner-button button-sm mt-1"
+                    (click)="askToSignIn('signIn.reason.projects')"
                   >
-                    <span
-                      class="mt-1 grid size-4 shrink-0 place-items-center rounded-full border"
-                      [class]="selectedProjectId() === project.id ? 'border-brand' : 'border-line-strong'"
-                      aria-hidden="true"
-                    >
-                      @if (selectedProjectId() === project.id) {
-                        <span class="size-2 rounded-full bg-brand"></span>
-                      }
-                    </span>
-                    <span class="min-w-0 flex-1">
-                      <span class="block text-sm font-medium text-ink">{{ project.name }}</span>
-                      <span class="mt-0.5 block text-meta leading-relaxed text-ink-muted">
-                        {{ project.description }}
-                      </span>
-                      <span class="mt-1.5 block text-meta text-ink-subtle">
-                        {{ 'newRun.source.assets' | translate: { count: project.availableAssets.length } }}
-                        · {{ project.availableAssets.join(' · ') }}
-                      </span>
-                    </span>
+                    {{ 'auth.signIn' | translate }}
                   </button>
-                </li>
+                </div>
+              } @else if (!projects().length) {
+                <p class="p-8 text-center text-sm text-ink-muted">
+                  {{ 'newRun.source.noProjects' | translate }}
+                </p>
+              } @else {
+                <ul role="radiogroup" [attr.aria-label]="'newRun.source.project' | translate">
+                  @for (project of projects(); track project.id) {
+                    <li class="border-b border-line last:border-0">
+                      <button
+                        type="button"
+                        role="radio"
+                        [attr.aria-checked]="selectedProjectId() === project.id"
+                        class="flex w-full items-start gap-3 p-4 text-left transition-colors hover:bg-panel-sunken"
+                        (click)="selectedProjectId.set(project.id)"
+                      >
+                        <span
+                          class="mt-1 grid size-4 shrink-0 place-items-center rounded-full border"
+                          [class]="
+                            selectedProjectId() === project.id
+                              ? 'border-brand'
+                              : 'border-line-strong'
+                          "
+                          aria-hidden="true"
+                        >
+                          @if (selectedProjectId() === project.id) {
+                            <span class="size-2 rounded-full bg-brand"></span>
+                          }
+                        </span>
+                        <span class="min-w-0 flex-1">
+                          <span class="block text-sm font-medium text-ink">{{ project.name }}</span>
+                          <span class="mt-0.5 block text-meta leading-relaxed text-ink-muted">
+                            {{ project.description }}
+                          </span>
+                          <span class="mt-1.5 block text-meta text-ink-subtle">
+                            {{
+                              'newRun.source.assets'
+                                | translate: { count: project.availableAssets.length }
+                            }}
+                            · {{ project.availableAssets.join(' · ') }}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  }
+                </ul>
               }
-            </ul>
+            </div>
+          } @else {
+            <div class="glass-card rounded-2xl p-5">
+              <label
+                for="business-plan"
+                class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center transition-colors"
+                [class]="
+                  selectedFile()
+                    ? 'border-brand bg-brand-soft/5'
+                    : 'border-line-strong hover:border-brand'
+                "
+              >
+                @if (selectedFile(); as file) {
+                  <span
+                    class="grid size-10 place-items-center rounded-full bg-brand-soft/15 text-brand"
+                    aria-hidden="true"
+                  >
+                    <i class="pi pi-check text-base"></i>
+                  </span>
+                  <span class="text-sm font-medium text-ink">{{ file.name }}</span>
+                  <span class="text-meta text-ink-subtle">{{
+                    'newRun.source.replaceFile' | translate
+                  }}</span>
+                } @else {
+                  <svg
+                    viewBox="0 0 24 24"
+                    class="size-7 text-ink-subtle"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M12 16V4m0 0L8 8m4-4 4 4M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  <span class="text-sm font-medium text-ink">
+                    {{ 'newRun.source.dropFile' | translate }}
+                  </span>
+                  <span class="text-meta text-ink-subtle">{{
+                    'newRun.source.formats' | translate
+                  }}</span>
+                }
+              </label>
+              <input
+                id="business-plan"
+                type="file"
+                class="sr-only"
+                accept=".pdf,.docx,.doc,.md,.txt"
+                (change)="onFileSelected($event)"
+              />
+            </div>
           }
         </div>
-      } @else {
-        <div class="glass-card p-5">
-          <label
-            for="business-plan"
-            class="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-line-strong p-8 text-center transition-colors hover:border-brand"
-          >
-            <svg viewBox="0 0 24 24" class="size-6 text-ink-subtle" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-              <path d="M12 16V4m0 0L8 8m4-4 4 4M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            <span class="text-sm font-medium text-ink">
-              {{ selectedFile()?.name ?? ('newRun.source.dropFile' | translate) }}
-            </span>
-            <span class="text-meta text-ink-subtle">{{ 'newRun.source.formats' | translate }}</span>
-          </label>
-          <input
-            id="business-plan"
-            type="file"
-            class="sr-only"
-            accept=".pdf,.docx,.doc,.md,.txt"
-            (change)="onFileSelected($event)"
-          />
-        </div>
-      }
 
-      <div class="flex justify-end">
         <button
           type="button"
-          class="inner-button button-lg"
+          class="inner-button button-lg rise mt-8 px-8"
           [disabled]="!canAnalyse()"
           (click)="analyse()"
         >
           {{ 'newRun.analyse' | translate }}
+          <i class="pi pi-arrow-right text-[0.7rem]" aria-hidden="true"></i>
         </button>
-      </div>
+      }
+
+      <p class="mt-12 max-w-md text-meta leading-relaxed text-ink-subtle">
+        {{ 'newRun.hero.note' | translate }}
+      </p>
     </section>
   }
 
-  <!-- ------------------------------------------------------------------ -->
-  @if (step() === 'analysis') {
-    <section class="flex flex-col gap-5">
-      @if (analysing()) {
-        <div class="glass-card flex flex-col items-center gap-3 p-10 text-center">
-          <span class="size-5 animate-spin rounded-full border-2 border-line border-t-brand" aria-hidden="true"></span>
-          <p class="text-sm font-medium text-ink" role="status" aria-live="polite">
-            {{ 'newRun.analysing' | translate }}
-          </p>
-          <p class="max-w-md text-meta leading-relaxed text-ink-muted">
-            {{ 'newRun.analysingBody' | translate }}
-          </p>
-        </div>
-      } @else if (understanding(); as reading) {
-        <div class="glass-card p-5">
-          <h2 class="text-h3 font-semibold text-ink">{{ 'newRun.profile' | translate }}</h2>
-          <dl class="mt-3 grid gap-x-8 gap-y-2.5 sm:grid-cols-2">
-            @for (row of profileRows(); track row.labelKey) {
-              <div class="flex flex-col gap-0.5">
-                <dt class="text-meta text-ink-subtle">{{ row.labelKey | translate }}</dt>
-                <dd class="text-sm text-ink">{{ row.value }}</dd>
-              </div>
+  @if (step() !== 'source') {
+    <div class="mx-auto flex max-w-4xl flex-col gap-7 px-4 py-8 sm:px-6 lg:py-10">
+      <sim-page-header
+        [heading]="'newRun.heading' | translate"
+        [description]="'newRun.description' | translate"
+      >
+        @if (authenticated()) {
+          <a
+            breadcrumb
+            routerLink="/simulations"
+            class="mb-2 inline-flex items-center gap-1.5 text-meta text-ink-subtle transition-colors hover:text-ink-muted"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              class="size-3.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            {{ 'nav.simulations' | translate }}
+          </a>
+        }
+      </sim-page-header>
+
+      <!-- Trois étapes nommées, pour que le prix ne soit jamais une surprise. -->
+      <ol class="flex items-center gap-2 text-meta">
+        @for (entry of steps; track entry.id; let last = $last) {
+          <li class="flex items-center gap-2">
+            <span
+              class="grid size-5 place-items-center rounded-full text-[0.6875rem] font-bold"
+              [class]="
+                step() === entry.id
+                  ? 'bg-brand text-brand-ink'
+                  : 'border border-line bg-panel-sunken text-ink-subtle'
+              "
+            >
+              {{ entry.index }}
+            </span>
+            <span [class]="step() === entry.id ? 'font-semibold text-ink' : 'text-ink-subtle'">
+              {{ 'newRun.step.' + entry.id | translate }}
+            </span>
+            @if (!last) {
+              <span class="mx-1 h-px w-6 bg-line" aria-hidden="true"></span>
             }
-          </dl>
-        </div>
+          </li>
+        }
+      </ol>
 
-        <div class="flex flex-col gap-4">
-          <div>
-            <h2 class="text-h3 font-semibold text-ink">{{ 'newRun.knowledge' | translate }}</h2>
-            <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
-              {{ 'newRun.knowledgeBody' | translate }}
-            </p>
-          </div>
-
-          @for (group of knowledgeGroups(); track group.state) {
-            <div class="glass-card p-4">
-              <h3 class="text-label font-semibold text-ink">
-                {{ 'knowledge.' + group.state | translate }}
-                <span class="ml-1 font-normal text-ink-subtle">({{ group.items.length }})</span>
-              </h3>
-              <p class="mt-0.5 text-meta leading-relaxed text-ink-subtle">
-                {{ 'knowledgeHint.' + group.state | translate }}
+      <!-- ------------------------------------------------------------------ -->
+      @if (step() === 'analysis') {
+        <section class="flex flex-col gap-5">
+          @if (analysing()) {
+            <div class="glass-card flex flex-col items-center gap-3 p-10 text-center">
+              <span
+                class="size-5 animate-spin rounded-full border-2 border-line border-t-brand"
+                aria-hidden="true"
+              ></span>
+              <p class="text-sm font-medium text-ink" role="status" aria-live="polite">
+                {{ 'newRun.analysing' | translate }}
               </p>
-              <ul class="mt-3 flex flex-col divide-y divide-line">
-                @for (item of group.items; track item.id) {
-                  <li class="py-2.5 first:pt-0 last:pb-0">
-                    <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                      <span class="text-sm text-ink">{{ item.label }}</span>
-                      @if (item.value) {
-                        <span class="text-sm font-medium tabular-nums text-ink-muted">{{ item.value }}</span>
-                      }
-                    </div>
-                    @if (item.detail) {
-                      <p class="mt-1 max-w-[70ch] text-meta leading-relaxed text-ink-subtle">
-                        {{ item.detail }}
-                      </p>
-                    }
-                  </li>
-                }
-              </ul>
+              <p class="max-w-md text-meta leading-relaxed text-ink-muted">
+                {{ 'newRun.analysingBody' | translate }}
+              </p>
             </div>
-          }
-        </div>
+          } @else if (understanding(); as reading) {
+            <div class="glass-card p-5">
+              <h2 class="text-h3 font-semibold text-ink">{{ 'newRun.profile' | translate }}</h2>
+              <dl class="mt-3 grid gap-x-8 gap-y-2.5 sm:grid-cols-2">
+                @for (row of profileRows(); track row.labelKey) {
+                  <div class="flex flex-col gap-0.5">
+                    <dt class="text-meta text-ink-subtle">{{ row.labelKey | translate }}</dt>
+                    <dd class="text-sm text-ink">{{ row.value }}</dd>
+                  </div>
+                }
+              </dl>
+            </div>
 
-        @if (openQuestions().length) {
-          <div class="glass-card p-4">
-            <h3 class="text-label font-semibold text-ink">{{ 'newRun.fillGaps' | translate }}</h3>
-            <p class="mt-0.5 max-w-[70ch] text-meta leading-relaxed text-ink-subtle">
-              {{ 'newRun.fillGapsBody' | translate }}
-            </p>
-            <div class="mt-3 flex flex-col gap-3">
-              @for (item of openQuestions(); track item.id) {
-                <div>
-                  <label [for]="'gap-' + item.id" class="mb-1.5 block text-label text-ink-muted">
-                    {{ item.label }}
-                  </label>
-                  <input
-                    [id]="'gap-' + item.id"
-                    type="text"
-                    class="field"
-                    [placeholder]="'newRun.optional' | translate"
-                    (input)="setAnswer(item.id, $any($event.target).value)"
-                  />
+            <div class="flex flex-col gap-4">
+              <div>
+                <h2 class="text-h3 font-semibold text-ink">{{ 'newRun.knowledge' | translate }}</h2>
+                <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+                  {{ 'newRun.knowledgeBody' | translate }}
+                </p>
+              </div>
+
+              @for (group of knowledgeGroups(); track group.state) {
+                <div class="glass-card p-4">
+                  <h3 class="text-label font-semibold text-ink">
+                    {{ 'knowledge.' + group.state | translate }}
+                    <span class="ml-1 font-normal text-ink-subtle">({{ group.items.length }})</span>
+                  </h3>
+                  <p class="mt-0.5 text-meta leading-relaxed text-ink-subtle">
+                    {{ 'knowledgeHint.' + group.state | translate }}
+                  </p>
+                  <ul class="mt-3 flex flex-col divide-y divide-line">
+                    @for (item of group.items; track item.id) {
+                      <li class="py-2.5 first:pt-0 last:pb-0">
+                        <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                          <span class="text-sm text-ink">{{ item.label }}</span>
+                          @if (item.value) {
+                            <span class="text-sm font-medium tabular-nums text-ink-muted">{{
+                              item.value
+                            }}</span>
+                          }
+                        </div>
+                        @if (item.detail) {
+                          <p class="mt-1 max-w-[70ch] text-meta leading-relaxed text-ink-subtle">
+                            {{ item.detail }}
+                          </p>
+                        }
+                      </li>
+                    }
+                  </ul>
                 </div>
               }
             </div>
-          </div>
-        }
 
-        <div class="flex justify-between gap-3">
-          <button type="button" class="button-ghost" (click)="back()">
-            {{ 'action.back' | translate }}
-          </button>
-          <button type="button" class="inner-button button-lg" (click)="goToPlan()">
-            {{ 'newRun.continueToPlan' | translate }}
-          </button>
-        </div>
+            @if (openQuestions().length) {
+              <div class="glass-card p-4">
+                <h3 class="text-label font-semibold text-ink">
+                  {{ 'newRun.fillGaps' | translate }}
+                </h3>
+                <p class="mt-0.5 max-w-[70ch] text-meta leading-relaxed text-ink-subtle">
+                  {{ 'newRun.fillGapsBody' | translate }}
+                </p>
+                <div class="mt-3 flex flex-col gap-3">
+                  @for (item of openQuestions(); track item.id) {
+                    <div>
+                      <label
+                        [for]="'gap-' + item.id"
+                        class="mb-1.5 block text-label text-ink-muted"
+                      >
+                        {{ item.label }}
+                      </label>
+                      <input
+                        [id]="'gap-' + item.id"
+                        type="text"
+                        class="field"
+                        [placeholder]="'newRun.optional' | translate"
+                        (input)="setAnswer(item.id, $any($event.target).value)"
+                      />
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="flex justify-between gap-3">
+              <button type="button" class="button-ghost" (click)="back()">
+                {{ 'action.back' | translate }}
+              </button>
+              <button type="button" class="inner-button button-lg" (click)="goToPlan()">
+                {{ 'newRun.continueToPlan' | translate }}
+              </button>
+            </div>
+          }
+        </section>
       }
-    </section>
-  }
 
-  <!-- ------------------------------------------------------------------ -->
-  @if (step() === 'plan') {
-    <section class="flex flex-col gap-5">
-      <div>
-        <h2 class="text-h3 font-semibold text-ink">{{ 'newRun.plan.heading' | translate }}</h2>
-        <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
-          {{ 'newRun.plan.body' | translate }}
-        </p>
-      </div>
+      <!-- ------------------------------------------------------------------ -->
+      @if (step() === 'plan') {
+        <section class="flex flex-col gap-5">
+          <div>
+            <h2 class="text-h3 font-semibold text-ink">{{ 'newRun.plan.heading' | translate }}</h2>
+            <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+              {{ 'newRun.plan.body' | translate }}
+            </p>
+          </div>
 
-      @if (pricing(); as offer) {
-        @if (offer.idemProjectDiscount) {
-          <p class="rounded-lg border border-line bg-panel-sunken px-3 py-2 text-meta text-ink-muted">
-            {{ 'newRun.plan.idemDiscount' | translate }}
-          </p>
-        }
+          @if (pricing(); as offer) {
+            @if (offer.idemProjectDiscount) {
+              <p
+                class="rounded-lg border border-line bg-panel-sunken px-3 py-2 text-meta text-ink-muted"
+              >
+                {{ 'newRun.plan.idemDiscount' | translate }}
+              </p>
+            }
 
-        <div role="radiogroup" [attr.aria-label]="'newRun.plan.heading' | translate" class="flex flex-col gap-2">
-          @for (plan of offer.plans; track plan.tier) {
+            <div
+              role="radiogroup"
+              [attr.aria-label]="'newRun.plan.heading' | translate"
+              class="flex flex-col gap-2"
+            >
+              @for (plan of offer.plans; track plan.tier) {
+                <button
+                  type="button"
+                  role="radio"
+                  [attr.aria-checked]="selectedTier() === plan.tier"
+                  class="flex flex-wrap items-start gap-x-4 gap-y-2 rounded-xl border p-4 text-left transition-colors"
+                  [class]="
+                    selectedTier() === plan.tier
+                      ? 'border-brand bg-brand-soft/40'
+                      : 'border-line bg-panel hover:border-line-strong'
+                  "
+                  (click)="selectedTier.set(plan.tier)"
+                >
+                  <span
+                    class="mt-1 grid size-4 shrink-0 place-items-center rounded-full border"
+                    [class]="selectedTier() === plan.tier ? 'border-brand' : 'border-line-strong'"
+                    aria-hidden="true"
+                  >
+                    @if (selectedTier() === plan.tier) {
+                      <span class="size-2 rounded-full bg-brand"></span>
+                    }
+                  </span>
+
+                  <span class="min-w-0 flex-1">
+                    <span class="flex flex-wrap items-center gap-2">
+                      <span class="text-sm font-semibold text-ink">{{
+                        'tier.' + plan.tier | translate
+                      }}</span>
+                      @if (plan.recommended) {
+                        <span
+                          class="rounded border border-brand/50 px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide text-brand"
+                        >
+                          {{ 'newRun.plan.recommended' | translate }}
+                        </span>
+                      }
+                    </span>
+                    <span class="mt-0.5 block text-meta leading-relaxed text-ink-muted">
+                      {{ 'tierBody.' + plan.tier | translate }}
+                    </span>
+                    <ul class="mt-2 flex flex-col gap-1">
+                      @for (line of plan.includes; track line) {
+                        <li class="flex items-start gap-1.5 text-meta text-ink-muted">
+                          <svg
+                            viewBox="0 0 24 24"
+                            class="mt-0.5 size-3.5 shrink-0 text-brand"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2.4"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="m5 13 4 4L19 7"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            />
+                          </svg>
+                          {{ line | translate }}
+                        </li>
+                      }
+                    </ul>
+                  </span>
+
+                  <span class="shrink-0 text-right">
+                    <span class="block text-base font-bold tabular-nums text-ink">{{
+                      planPrice(plan)
+                    }}</span>
+                    @if (planListPrice(plan); as listPrice) {
+                      <span class="block text-meta tabular-nums text-ink-subtle line-through">{{
+                        listPrice
+                      }}</span>
+                    }
+                  </span>
+                </button>
+              }
+            </div>
+          } @else {
+            <div class="flex flex-col gap-2">
+              @for (row of [1, 2, 3]; track row) {
+                <div class="skeleton h-24 rounded-xl"></div>
+              }
+            </div>
+          }
+
+          <sim-disclaimer-note />
+
+          <div class="flex justify-between gap-3">
+            <button type="button" class="button-ghost" (click)="back()">
+              {{ 'action.back' | translate }}
+            </button>
             <button
               type="button"
-              role="radio"
-              [attr.aria-checked]="selectedTier() === plan.tier"
-              class="flex flex-wrap items-start gap-x-4 gap-y-2 rounded-xl border p-4 text-left transition-colors"
-              [class]="
-                selectedTier() === plan.tier
-                  ? 'border-brand bg-brand-soft/40'
-                  : 'border-line bg-panel hover:border-line-strong'
-              "
-              (click)="selectedTier.set(plan.tier)"
+              class="inner-button button-lg"
+              [disabled]="launching() || !pricing()"
+              (click)="launch()"
             >
-              <span
-                class="mt-1 grid size-4 shrink-0 place-items-center rounded-full border"
-                [class]="selectedTier() === plan.tier ? 'border-brand' : 'border-line-strong'"
-                aria-hidden="true"
-              >
-                @if (selectedTier() === plan.tier) {
-                  <span class="size-2 rounded-full bg-brand"></span>
-                }
-              </span>
-
-              <span class="min-w-0 flex-1">
-                <span class="flex flex-wrap items-center gap-2">
-                  <span class="text-sm font-semibold text-ink">{{ 'tier.' + plan.tier | translate }}</span>
-                  @if (plan.recommended) {
-                    <span class="rounded border border-brand/50 px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide text-brand">
-                      {{ 'newRun.plan.recommended' | translate }}
-                    </span>
-                  }
-                </span>
-                <span class="mt-0.5 block text-meta leading-relaxed text-ink-muted">
-                  {{ 'tierBody.' + plan.tier | translate }}
-                </span>
-                <ul class="mt-2 flex flex-col gap-1">
-                  @for (line of plan.includes; track line) {
-                    <li class="flex items-start gap-1.5 text-meta text-ink-muted">
-                      <svg viewBox="0 0 24 24" class="mt-0.5 size-3.5 shrink-0 text-brand" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
-                        <path d="m5 13 4 4L19 7" stroke-linecap="round" stroke-linejoin="round" />
-                      </svg>
-                      {{ line | translate }}
-                    </li>
-                  }
-                </ul>
-              </span>
-
-              <span class="shrink-0 text-right">
-                <span class="block text-base font-bold tabular-nums text-ink">{{ planPrice(plan) }}</span>
-                @if (planListPrice(plan); as listPrice) {
-                  <span class="block text-meta tabular-nums text-ink-subtle line-through">{{ listPrice }}</span>
-                }
-              </span>
+              @if (launching()) {
+                {{ 'newRun.launching' | translate }}
+              } @else {
+                {{ 'newRun.launch' | translate }}
+              }
             </button>
-          }
-        </div>
-      } @else {
-        <div class="flex flex-col gap-2">
-          @for (row of [1, 2, 3]; track row) {
-            <div class="skeleton h-24 rounded-xl"></div>
-          }
-        </div>
+          </div>
+        </section>
       }
-
-      <sim-disclaimer-note />
-
-      <div class="flex justify-between gap-3">
-        <button type="button" class="button-ghost" (click)="back()">
-          {{ 'action.back' | translate }}
-        </button>
-        <button
-          type="button"
-          class="inner-button button-lg"
-          [disabled]="launching() || !pricing()"
-          (click)="launch()"
-        >
-          @if (launching()) {
-            {{ 'newRun.launching' | translate }}
-          } @else {
-            {{ 'newRun.launch' | translate }}
-          }
-        </button>
-      </div>
-    </section>
+    </div>
   }
 
   @if (signInReason(); as reason) {
