@@ -24,10 +24,10 @@ npm start          # http://localhost:4203
 `npm start` regenerates `src/environments/environment.ts` from `.env` via
 `mynode.js`, the same convention as the other IDEM front-ends.
 
-With `USE_MOCK_DATA=true` in `.env`, the app runs on its built-in demo dataset
-and asks for no session at all. Set it to `false` to exercise the real API,
-which means signing in on the IDEM dashboard first — there is no sign-in screen
-here.
+`/simulations/new` opens without an account. Everything else talks to the IDEM
+API and needs a session, which is obtained on the IDEM dashboard
+(`SERVICES_DASHBOARD_URL`) — there is no sign-in screen here. Both apps must be
+running for that round trip to work.
 
 ## Architecture
 
@@ -105,7 +105,29 @@ The same pattern as `apps/ideploy-web`, in three pieces:
 | --- | --- |
 | `authInterceptor` | Adds `withCredentials` + `Accept-Language` to every API call. Nothing else — no bearer token. |
 | `AuthService` | `GET /auth/profile` to read the identity, `POST /auth/logout` to end it, `redirectToLogin()` to hand the user over. |
-| `authGuard` | Guards the authenticated surface: no session → straight to the central login. |
+| `authGuard` | Guards the screens that genuinely need an identity: no session → straight to the central login. |
+
+#### Where the session is actually required
+
+The guard sits on the routes, not on the shell. `/simulations/new` is public:
+picking a source and uploading a business plan needs no account, and the ask
+comes at the first action that does — the exact moment it can be justified to
+the user.
+
+| Moment | What happens without a session |
+| --- | --- |
+| Opening `/simulations/new` | Nothing. The page renders, both options are offered. |
+| Choosing **an IDEM project** | `SignInDialog` opens: the project list belongs to the account. The panel below keeps a sign-in card so closing the dialog is not a dead end. |
+| Choosing **my business plan** | Nothing. The file is selected and held locally. |
+| **Analyse** / **Launch** | `SignInDialog` opens: these run on the server, under the account. |
+| Any other screen | `authGuard` redirects to the central login. |
+
+Leaving for the login means leaving the page, so the source step is stashed in
+`sessionStorage` first (`new-run-draft.ts`) — origin, chosen project, and the
+uploaded document itself as a data URL. The user comes back to their document
+still in place; the draft is consumed on restore. Above
+`MAX_STASHED_FILE_BYTES` the file is not stashed and the dialog says so
+plainly, rather than letting it vanish.
 
 The round trip when a signed-out user opens a page here:
 
@@ -137,8 +159,6 @@ through it rather than straight to the requested page because the cookie can
 take a moment to become readable after a redirect chain — the callback retries
 a few times instead of letting the guard conclude there is no session.
 
-In demo mode (`USE_MOCK_DATA` / `?mock=on`) the guard lets everything through:
-no request reaches the API, so there is no identity to enforce.
 
 ### Theming
 
