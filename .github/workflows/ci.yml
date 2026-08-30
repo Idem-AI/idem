@@ -2,7 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
   workflow_dispatch:
 
 permissions:
@@ -10,7 +12,7 @@ permissions:
   packages: write
 
 env:
-  NODE_VERSION: '20.x'
+  NODE_VERSION: '24.x'
   REGISTRY: ghcr.io
   REGISTRY_USERNAME: ${{ github.actor }}
 
@@ -25,6 +27,7 @@ jobs:
       api: ${{ steps.filter.outputs.api }}
       landing: ${{ steps.filter.outputs.landing }}
       main-dashboard: ${{ steps.filter.outputs.main-dashboard }}
+      simulation: ${{ steps.filter.outputs.simulation }}
       chart: ${{ steps.filter.outputs.chart }}
       appgen: ${{ steps.filter.outputs.appgen }}
       packages: ${{ steps.filter.outputs.packages }}
@@ -47,6 +50,9 @@ jobs:
             main-dashboard:
               - 'apps/main-dashboard/**'
               - 'packages/**'
+            simulation:
+              - 'apps/simulation/**'
+              - 'packages/**'
             chart:
               - 'apps/chart/**'
             appgen:
@@ -68,6 +74,7 @@ jobs:
       needs.detect-changes.outputs.api == 'true' ||
       needs.detect-changes.outputs.landing == 'true' ||
       needs.detect-changes.outputs.main-dashboard == 'true' ||
+      needs.detect-changes.outputs.simulation == 'true' ||
       needs.detect-changes.outputs.chart == 'true' ||
       needs.detect-changes.outputs.appgen == 'true' ||
       needs.detect-changes.outputs.packages == 'true'
@@ -91,6 +98,8 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      # Non-bloquant : la dette de lint/format existante est trop importante
+      # pour être corrigée d'un coup. À rendre bloquant une fois le repo propre.
       - name: Run Prettier format check
         run: npm run format:check
         continue-on-error: true
@@ -98,6 +107,44 @@ jobs:
       - name: Run ESLint
         run: npm run lint:all
         continue-on-error: true
+
+      # ---- Build / typecheck : BLOQUANT ----
+      # C'est ce qui aurait empêché l'incident du 2026-08-30 (DesignSeed
+      # incomplet mergé sur main, détecté seulement pendant le build de
+      # déploiement en production). Un `npm run build` qui échoue met le job
+      # en échec et bloque le merge/déploiement.
+      - name: Build shared packages
+        if: |
+          needs.detect-changes.outputs.packages == 'true' ||
+          needs.detect-changes.outputs.api == 'true' ||
+          needs.detect-changes.outputs.landing == 'true' ||
+          needs.detect-changes.outputs.main-dashboard == 'true' ||
+          needs.detect-changes.outputs.appgen == 'true'
+        run: npm run build:shared && npm run build:shared-auth
+
+      - name: Build API (typecheck)
+        if: needs.detect-changes.outputs.api == 'true'
+        run: npm run build:api
+
+      - name: Build Landing
+        if: needs.detect-changes.outputs.landing == 'true'
+        run: npm run build:landing
+
+      - name: Build Main Dashboard
+        if: needs.detect-changes.outputs.main-dashboard == 'true'
+        run: npm run build:dashboard
+
+      - name: Build Simulation
+        if: needs.detect-changes.outputs.simulation == 'true'
+        run: npm run build:simulation
+
+      - name: Enable pnpm (for Chart)
+        if: needs.detect-changes.outputs.chart == 'true'
+        run: corepack enable pnpm
+
+      - name: Build Chart
+        if: needs.detect-changes.outputs.chart == 'true'
+        run: npm run build:chart
 
   # ==========================
   # Summary
@@ -116,6 +163,7 @@ jobs:
           echo "- **API**: ${{ needs.detect-changes.outputs.api == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Landing Page**: ${{ needs.detect-changes.outputs.landing == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Main Dashboard**: ${{ needs.detect-changes.outputs.main-dashboard == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Simulation**: ${{ needs.detect-changes.outputs.simulation == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Chart**: ${{ needs.detect-changes.outputs.chart == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **AppGen**: ${{ needs.detect-changes.outputs.appgen == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Packages**: ${{ needs.detect-changes.outputs.packages == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY

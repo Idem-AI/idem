@@ -1805,6 +1805,10 @@ export class CommunicationService extends GenericService {
       layoutTension: pick(layoutTensions),
       // Extra entropy: random odd number for spacing/sizing decisions
       spacingMultiplier: crypto.randomInt(5) * 2 + 3, // 3,5,7,9,11
+      imagePosition: pick(imagePositions),
+      readingDirection: pick(readingDirections),
+      graphicAccent: pick(graphicAccents),
+      contentDensity: pick(contentDensities),
     };
   }
 }
