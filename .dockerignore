@@ -1,0 +1,41 @@
+# Contexte de build pour les Dockerfiles à la racine (Dockerfile/prod/*, Dockerfile/dev/*).
+# Chaque image ne COPY que les apps/packages dont elle a besoin ; tout le reste
+# n'a pas à transiter vers le daemon Docker à chaque build.
+
+# Contrôle de version
+.git
+.github
+
+# Dépendances : réinstallées dans chaque image, jamais copiées depuis l'hôte
+**/node_modules
+
+# Artefacts de build : régénérés à chaque image, ne jamais copier de dist figé
+**/dist
+**/.angular
+**/coverage
+**/.next
+**/.turbo
+**/build
+
+# Variantes d'env locales avec de vraies valeurs : seul le `.env` racine est
+# explicitement COPY par les Dockerfiles (voir COPY .env ...). Les fichiers
+# .env.example restent inclus (aucun secret dedans, utile pour référence).
+.env.local
+.env.*.local
+.env.dev
+.env.development
+
+# IDE / OS
+.vscode
+.idea
+**/.DS_Store
+
+# Données volumineuses propres à ideploy (dépôts clonés par les utilisateurs,
+# vendor PHP, éditeur Monaco vendorisé) : aucune image root-context n'en a besoin.
+apps/ideploy/storage
+apps/ideploy/vendor
+apps/ideploy/public/js/monaco-editor-*
+
+# Docs
+docs
+**/*.md
