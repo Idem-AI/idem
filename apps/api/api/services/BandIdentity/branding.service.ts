@@ -278,6 +278,10 @@ export class BrandingService extends GenericService {
   private static readonly LOGO_LLM_CONFIG = {
     provider: AI_CONFIG.branding.logo.provider,
     modelName: AI_CONFIG.branding.logo.modelName,
+    // Sans cette ligne la chaîne de repli déclarée dans ai.config.ts
+    // n'atteignait jamais runPrompt (`fallbacks=0` dans les logs) : le
+    // seul repli restant était celui codé en dur côté PromptService.
+    fallbackModels: AI_CONFIG.branding.logo.fallbackModels,
     llmOptions: {
       ...AI_CONFIG.branding.logo.llmOptions,
     },
@@ -287,6 +291,10 @@ export class BrandingService extends GenericService {
   private static readonly COLORS_LLM_CONFIG = {
     provider: AI_CONFIG.branding.colors.provider,
     modelName: AI_CONFIG.branding.colors.modelName,
+    // Sans cette ligne la chaîne de repli déclarée dans ai.config.ts
+    // n'atteignait jamais runPrompt (`fallbacks=0` dans les logs) : le
+    // seul repli restant était celui codé en dur côté PromptService.
+    fallbackModels: AI_CONFIG.branding.colors.fallbackModels,
     llmOptions: {
       ...AI_CONFIG.branding.colors.llmOptions,
     },
@@ -296,6 +304,10 @@ export class BrandingService extends GenericService {
   private static readonly TYPOGRAPHY_LLM_CONFIG = {
     provider: AI_CONFIG.branding.typography.provider,
     modelName: AI_CONFIG.branding.typography.modelName,
+    // Sans cette ligne la chaîne de repli déclarée dans ai.config.ts
+    // n'atteignait jamais runPrompt (`fallbacks=0` dans les logs) : le
+    // seul repli restant était celui codé en dur côté PromptService.
+    fallbackModels: AI_CONFIG.branding.typography.fallbackModels,
     llmOptions: {
       ...AI_CONFIG.branding.typography.llmOptions,
     },

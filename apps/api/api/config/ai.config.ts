@@ -590,7 +590,10 @@ export const AI_CONFIG = {
       imageModel: 'gemini-3.1-flash-image',
       imageFallbackModel: 'gemini-3-pro-image',
       visionModel: 'gemini-2.5-flash',
-      visionFallbackModel: 'gemini-2.0-flash',
+      // `gemini-2.0-flash` a été retiré ici : Vertex ne le sert plus (404
+      // « Publisher model ... was not found »), le repli vision était donc
+      // garanti perdant et l'analyse retombait sur `fallbackAnalysis`.
+      visionFallbackModel: 'gemini-3-flash-preview',
       /**
        * Budget du scan de vision. Le JSON d'analyse tient en ~150 tokens, mais
        * le modèle est « thinking » : à 256 tokens le raisonnement épuisait le

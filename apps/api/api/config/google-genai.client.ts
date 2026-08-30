@@ -6,6 +6,7 @@ import {
   resetGeminiBackend,
 } from './ai-providers.config';
 import logger from './logger';
+import { installFetchDiagnostics } from '../utils/fetch-diagnostics';
 
 /**
  * Fabrique unique du client Gemini.
@@ -35,6 +36,11 @@ export function getGoogleGenAIClient(): GoogleGenAI {
   if (client) {
     return client;
   }
+
+  // Le SDK écrase `error.cause` avant de propager un échec réseau : sans cette
+  // sonde, un « fetch failed » reste indiscernable d'un DNS mort, d'un refus de
+  // connexion ou d'un délai d'établissement dépassé.
+  installFetchDiagnostics();
 
   const backend = getGeminiBackend();
 
