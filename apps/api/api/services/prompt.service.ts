@@ -1808,11 +1808,18 @@ function extractCitationSupports(text: string, sourceCount: number): GroundedSup
   return supports;
 }
 
-/** Résultats demandés par requête : quatre recherches × cinq suffisent au brief. */
-const SEARCH_RESULTS_PER_QUERY = 5;
+/**
+ * Résultats demandés par requête. Descendu de 5 à 4 : le dossier envoyé au
+ * modèle rétrécit d'autant, et c'est lui qui pèse sur la latence de la
+ * synthèse — pas la recherche elle-même, qui tient en trois secondes.
+ */
+const SEARCH_RESULTS_PER_QUERY = 4;
 
-/** Au-delà, on multiplierait le coût sans élargir la couverture. */
-const MAX_SEARCH_QUERIES = 4;
+/**
+ * Requêtes par section. Descendu de 4 à 3 : au-delà, les résultats se
+ * recoupent et l'on paie une recherche de plus pour la même information.
+ */
+const MAX_SEARCH_QUERIES = 3;
 
 /**
  * Tire de vraies requêtes de recherche d'un brief de recherche.
