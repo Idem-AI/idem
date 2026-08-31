@@ -15,10 +15,7 @@ class PromptController {
         return;
       }
       const messages = requestBody.messages;
-      // Le corps de requête vient du client : il ne doit pas pouvoir s'exempter
-      // lui-même du plafond MAX_OUTPUT_TOKENS. Ce drapeau est réservé aux
-      // appels internes dont le budget est fixé dans ai.config.ts.
-      const { bypassOutputTokenCap: _ignored, ...config } = requestBody;
+      const config = requestBody;
 
       // Pass the runPrompt function from the service to tryGenerateFullJSON
       const jsonResponse = await promptService.runPrompt(config, messages);
@@ -43,12 +40,13 @@ class PromptController {
       const messages = [
         {
           role: 'system' as const,
-          content: `Tu es un expert en rédaction de projets entrepreneuriaux et en ingénierie de prompt.
-Ton rôle est d'améliorer, d'enrichir et de rendre plus claire la description de projet fournie par l'utilisateur (environ 2 à 4 phrases).
-Règles strictes :
-- Conserve l'idée originale et le domaine souhaité par l'utilisateur.
-- Rends le texte inspirant, structuré, professionnel et précis.
-- Ne renvoie AUCUN commentaire, AUCUN titre, AUCUNE formule de politesse. Renvoie UNIQUEMENT la description améliorée.`,
+          content: `You are an expert in writing up entrepreneurial projects and in prompt engineering.
+Your job is to improve, enrich and clarify the project description supplied by the user (about 2 to 4 sentences).
+Strict rules:
+- Preserve the original idea and the domain the user chose.
+- Make the text inspiring, structured, professional and precise.
+- Write it in the SAME LANGUAGE as the user's description.
+- Return NO comment, NO title, NO pleasantry. Return ONLY the improved description.`,
         },
         {
           role: 'user' as const,
@@ -86,16 +84,17 @@ Règles strictes :
       const messages = [
         {
           role: 'system' as const,
-          content: `Tu es un générateur d'idées de projets entrepreneuriaux innovants et à fort impact axés sur l'Afrique.
-Génère UNE seule idée de projet concrète et réaliste répondant à une vraie problématique en Afrique (par exemple en agritech, mobile money/fintech, électricité solaire hors réseau, santé/télémédecine, edtech, logistique locale, ou valorisation des produits locaux).
-Règles strictes :
-- La description doit être concise (2 à 3 phrases maximum).
-- Elle doit cibler un problème réel en Afrique et proposer une solution technologique ou sociale innovante.
-- Ne renvoie AUCUN titre, AUCUN commentaire, AUCUNE formule de politesse. Renvoie UNIQUEMENT la description du projet.`,
+          content: `You generate innovative, high-impact entrepreneurial project ideas focused on Africa.
+Produce ONE concrete, realistic project idea addressing a real African problem (for example in agritech, mobile money / fintech, off-grid solar power, health and telemedicine, edtech, local logistics, or adding value to local produce).
+Strict rules:
+- The description must be concise (2 to 3 sentences maximum).
+- It must target a real African problem and propose an innovative technological or social solution.
+- Write it IN FRENCH.
+- Return NO title, NO comment, NO pleasantry. Return ONLY the project description.`,
         },
         {
           role: 'user' as const,
-          content: `Propose-moi une idée de projet innovante pour l'Afrique.`,
+          content: `Propose one innovative project idea for Africa.`,
         },
       ];
 

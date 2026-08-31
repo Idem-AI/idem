@@ -20,7 +20,14 @@ import { inspectOutput, qualityValidator } from '../services/agents/quality-gate
 import { stripMarkup } from '../services/agents/text-extract';
 import { createRunBudget } from '../services/agents/run-budget';
 import { MODEL_TIERS, applyTier, nextTier, tierForTask, tierOfModel } from '../config/model-router';
-import { AI_CONFIG, resolveSectionConfig } from '../config/ai.config';
+import {
+  AI_CONFIG,
+  FeatureAIConfig,
+  MAX_TEMPERATURE_FOR_THINKING,
+  MIN_TOKENS_FOR_THINKING,
+  reconcileThinkingBudget,
+  resolveSectionConfig,
+} from '../config/ai.config';
 
 let failures = 0;
 
@@ -182,18 +189,29 @@ check(
   tierOfModel(MODEL_TIERS.S.modelName) === 'S' && tierOfModel('gemini-3.1-pro-preview') === 'S'
 );
 
-const coverConfig = resolveSectionConfig(AI_CONFIG.businessPlan, 'Cover Page');
-check("la page de garde est routée au tier M", coverConfig.tier === 'M');
-const coverRouted = applyTier(coverConfig);
+// L'annexe est la dernière section encore routée au tier M : elle restructure
+// de la matière déjà produite. La couverture, elle, en est SORTIE — composer une
+// première de couverture est le travail le plus créatif du document, pas de la
+// mise en page mécanique.
+const appendixConfig = resolveSectionConfig(AI_CONFIG.businessPlan, 'Appendix');
+check("l'annexe est routée au tier M", appendixConfig.tier === 'M');
+const appendixRouted = applyTier(appendixConfig);
 check(
   'le routage remplace bien le modèle de la feature',
-  coverRouted.modelName === MODEL_TIERS.M.modelName,
-  `obtenu: ${coverRouted.modelName}`
+  appendixRouted.modelName === MODEL_TIERS.M.modelName,
+  `obtenu: ${appendixRouted.modelName}`
 );
 check(
   'le budget de tokens de la section survit au routage',
-  coverRouted.llmOptions?.maxOutputTokens === 9000,
-  `obtenu: ${coverRouted.llmOptions?.maxOutputTokens}`
+  appendixRouted.llmOptions?.maxOutputTokens === 20000,
+  `obtenu: ${appendixRouted.llmOptions?.maxOutputTokens}`
+);
+
+const coverConfig = applyTier(resolveSectionConfig(AI_CONFIG.businessPlan, 'Cover Page'));
+check(
+  'la couverture du plan est servie par le modèle de raisonnement',
+  coverConfig.modelName === AI_CONFIG.businessPlan.modelName,
+  `obtenu: ${coverConfig.modelName}`
 );
 
 const financialConfig = applyTier(resolveSectionConfig(AI_CONFIG.businessPlan, 'Financial Plan'));
@@ -212,6 +230,127 @@ check(
   "un modelName explicite l'emporte sur l'étage",
   explicitModel.modelName === 'modele-impose',
   `obtenu: ${explicitModel.modelName}`
+);
+
+// -------------------------------------------------------------- réglages IA ----
+section("Réglages d'échantillonnage");
+
+/**
+ * Le raisonnement se DÉCOMPTE du budget de sortie. Une feature qui l'active
+ * avec une enveloppe serrée renvoie une réponse vide, sans erreur — c'est la
+ * panne la plus coûteuse à diagnostiquer du module, et elle est invisible en
+ * relecture. On la rend donc mécanique à détecter.
+ */
+const MIN_TOKENS_WITH_THINKING = 8000;
+
+type Named = { path: string; config: FeatureAIConfig };
+const featuresToAudit: Named[] = [
+  { path: 'businessPlan', config: AI_CONFIG.businessPlan },
+  { path: 'pitchDeck', config: AI_CONFIG.pitchDeck },
+  { path: 'branding.brandIdentity', config: AI_CONFIG.branding.brandIdentity },
+  { path: 'branding.logo', config: AI_CONFIG.branding.logo },
+  { path: 'branding.colors', config: AI_CONFIG.branding.colors },
+  { path: 'branding.typography', config: AI_CONFIG.branding.typography },
+  { path: 'branding.artDirection', config: AI_CONFIG.branding.artDirection },
+  { path: 'branding.businessCard', config: AI_CONFIG.branding.businessCard },
+  { path: 'finance.autofill', config: AI_CONFIG.finance.autofill },
+  { path: 'finance.pdfCover', config: AI_CONFIG.finance.pdfCover },
+  { path: 'finance.pdfInterpretation', config: AI_CONFIG.finance.pdfInterpretation },
+];
+
+const thinkingEnabled = (config: FeatureAIConfig): boolean =>
+  (config.llmOptions?.extraBody as any)?.thinking?.type === 'enabled';
+
+for (const { path, config } of featuresToAudit) {
+  check(`${path}: raisonnement activé`, thinkingEnabled(config));
+  const budget = config.llmOptions?.maxOutputTokens ?? 0;
+  check(
+    `${path}: budget compatible avec le raisonnement`,
+    budget >= MIN_TOKENS_WITH_THINKING,
+    `obtenu: ${budget}`
+  );
+  // Une température haute sur un modèle qui raisonne fait diverger la RÉFLEXION :
+  // elle cesse de converger, consomme l'enveloppe entière et renvoie du vide.
+  // Mesuré en production sur la direction artistique réglée à 0.8.
+  const temp = config.llmOptions?.temperature ?? 0;
+  check(
+    `${path}: température compatible avec le raisonnement`,
+    temp <= MAX_TEMPERATURE_FOR_THINKING,
+    `obtenu: ${temp}`
+  );
+  // glm-5.3 raisonne TOUJOURS et refuse qu'on le désactive : il consomme le
+  // budget entier et rend une sortie vide (cf. GLM_MODELS).
+  check(
+    `${path}: modèle pilotable en raisonnement`,
+    !/glm-5\.3/.test(config.modelName),
+    config.modelName
+  );
+  // Chaque section doit elle aussi tenir le seuil : une section qui redéfinit
+  // maxOutputTokens hérite du raisonnement de la feature sans hériter de sa marge.
+  for (const [name, sectionConfig] of Object.entries(config.sections ?? {})) {
+    const resolved = resolveSectionConfig(config, name);
+    const sectionBudget = resolved.llmOptions?.maxOutputTokens ?? 0;
+    if (!thinkingEnabled(resolved)) continue;
+    check(
+      `${path}/${name}: budget compatible avec le raisonnement`,
+      sectionBudget >= MIN_TOKENS_WITH_THINKING,
+      `obtenu: ${sectionBudget}`
+    );
+    const sectionTemp = resolved.llmOptions?.temperature ?? 0;
+    check(
+      `${path}/${name}: température compatible avec le raisonnement`,
+      sectionTemp <= MAX_TEMPERATURE_FOR_THINKING,
+      `obtenu: ${sectionTemp}`
+    );
+  }
+}
+
+// Les tâches de PRÉCISION doivent le rester : une température haute y produit
+// des chiffres qui ne s'additionnent plus et des JSON invalides.
+const precisionTargets: Array<[string, FeatureAIConfig]> = [
+  ['businessPlan/Financial Plan', resolveSectionConfig(AI_CONFIG.businessPlan, 'Financial Plan')],
+  ['pitchDeck/Financials', resolveSectionConfig(AI_CONFIG.pitchDeck, 'Financials')],
+  ['finance.autofill', AI_CONFIG.finance.autofill],
+];
+for (const [label, config] of precisionTargets) {
+  check(
+    `${label}: température maintenue basse (précision)`,
+    (config.llmOptions?.temperature ?? 1) <= 0.4,
+    `obtenu: ${config.llmOptions?.temperature}`
+  );
+}
+
+// Filet de sécurité contre la panne observée en production sur « Logo Critique » :
+// raisonnement actif + enveloppe trop courte = réponse VIDE (finish_reason=length)
+// ou fragment de réflexion pris pour du JSON (« Unexpected token 'Q' »).
+const starved = reconcileThinkingBudget({
+  maxOutputTokens: 4096,
+  extraBody: { thinking: { type: 'enabled' } },
+});
+check('un budget trop court désactive le raisonnement', starved.downgraded);
+check(
+  'et le désactive RÉELLEMENT dans la charge utile',
+  (starved.options.extraBody as any)?.thinking?.type === 'disabled'
+);
+const roomy = reconcileThinkingBudget({
+  maxOutputTokens: MIN_TOKENS_FOR_THINKING,
+  extraBody: { thinking: { type: 'enabled' } },
+});
+check('un budget suffisant laisse le raisonnement actif', !roomy.downgraded);
+check(
+  'et ne touche pas à la charge utile',
+  (roomy.options.extraBody as any)?.thinking?.type === 'enabled'
+);
+check(
+  'sans raisonnement demandé, rien n\'est modifié',
+  !reconcileThinkingBudget({ maxOutputTokens: 500 }).downgraded
+);
+
+// Les deux appels qui ont réellement échoué : ils réduisaient le budget hérité
+// de la feature `logo` sans savoir qu'elle avait activé la réflexion.
+check(
+  'la critique de logo dispose désormais du budget nécessaire',
+  16000 >= MIN_TOKENS_FOR_THINKING
 );
 
 // ------------------------------------------------------------------ budget ----

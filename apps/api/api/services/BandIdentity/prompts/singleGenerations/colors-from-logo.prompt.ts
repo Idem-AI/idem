@@ -44,8 +44,8 @@ Primary and secondary values in all 3 palettes MUST be exactly "{{PRIMARY_FROM_L
 </output_format>
 `;
 
-export const TYPOGRAPHY_FROM_LOGO_PROMPT = `<role>Senior brand typography expert</role>
-<objective>Generate 3 Google Fonts typography sets that complement the logo's visual style and project identity.</objective>
+export const TYPOGRAPHY_FROM_LOGO_PROMPT = `<role>Senior brand typographer</role>
+<objective>Propose 3 typography systems that complement the logo's visual style and the project identity. Output: strict JSON.</objective>
 
 <context>
 PROJECT DESCRIPTION: {{PROJECT_DESCRIPTION}}
@@ -54,14 +54,35 @@ STYLE SUGGESTION: {{STYLE_HINT}}
 </context>
 
 <matching_rules>
-- Vivid logo -> geometric sans (Space Grotesk, Manrope, Sora, Outfit, Plus Jakarta Sans).
-- Deep/corporate -> refined serif + sans body (Fraunces or Playfair Display + humanist sans).
-- Organic/soft -> rounded humanist (DM Sans, Nunito Sans, Albert Sans).
-- Heading weight matches the logo's weight.
-- primaryFont: headings, carries personality.
-- secondaryFont: body text, highly readable at 14-16px (Inter, Source Sans 3, Open Sans, etc.).
-- Max 2 families per set. No dated fonts (Lobster, Pacifico, Comfortaa). All must be on Google Fonts.
+- Read the logo first: its letterforms, its weight, its geometry. The text family must extend that language, not fight it.
+- Vivid, geometric logo -> a geometric or grotesque display (Archivo, Chivo, Syne, Sora).
+- Deep, institutional logo -> a refined serif display plus a humanist sans for text (Fraunces or Playfair Display + IBM Plex Sans).
+- Organic, soft logo -> a humanist display with open curves (Bricolage Grotesque, Epilogue, Young Serif).
+- Condensed or stencil logo -> a condensed display (Bebas Neue, Big Shoulders Display, Anton).
+- The display weight matches the visual weight of the logo.
+- primaryFont carries the personality; secondaryFont must stay readable at 14-16px.
+- WEIGHT RANGE: the display family must offer at least three weights far apart. Typographic hierarchy is what replaces decoration.
+- Two families per set, both on Google Fonts, exact family names.
 </matching_rules>
+
+<banned_fonts>
+Never propose these — they are the typefaces that make a brand read as machine-generated:
+Inter, Roboto, Open Sans, Lato, Montserrat, Poppins, Nunito, Raleway, Ubuntu, Oswald, Space Grotesk, Arial, Helvetica.
+Also banned as dated: Lobster, Pacifico, Comfortaa, Bangers, Righteous.
+</banned_fonts>
+
+<curated_register>
+- Editorial / press: Playfair Display, Instrument Serif, Fraunces, Newsreader, Young Serif, Gloock, Literata + text: Source Serif 4, Crimson Pro, Lora, Spectral.
+- Swiss / objective / institutional: Archivo, Schibsted Grotesk, Hanken Grotesk, Libre Franklin, Public Sans + text: IBM Plex Sans, Work Sans, Karla.
+- Bold / expressive / cultural: Anton, Bebas Neue, Archivo Black, Syne, Big Shoulders Display + text: Work Sans, Figtree, Karla.
+- Technical / precise: Chivo, Sora, Unbounded, Geist + text: IBM Plex Sans, Instrument Sans, Public Sans.
+- Warm / craft / hospitality: Fraunces, Young Serif, Bitter, Zilla Slab, DM Serif Display + text: Karla, Asap, Figtree.
+- Human / accessible: Bricolage Grotesque, Epilogue, Lexend, Onest + text: Atkinson Hyperlegible, Figtree, Hanken Grotesk.
+</curated_register>
+
+<diversity_rules>
+The 3 sets must belong to 3 DIFFERENT registers. All three must work with the logo; they must not be variations of one another.
+</diversity_rules>
 
 <output_format>
 Return STRICT JSON only.
@@ -69,12 +90,13 @@ Return STRICT JSON only.
   "typography": [
     {
       "id": "typography-set-1",
-      "name": "Descriptive French Name",
+      "name": "a short descriptive French name",
       "url": "typography/[url-slug]",
-      "primaryFont": "...",
-      "secondaryFont": "..."
+      "primaryFont": "exact Google Fonts family name",
+      "secondaryFont": "exact Google Fonts family name",
+      "rationale": "one sentence, in French: how this pairing extends the logo"
     }
-    // ... 2 more sets
+    // ... 2 more sets, in different registers
   ]
 }
 </output_format>

@@ -401,8 +401,8 @@ businessPlanRoutes.delete(
  */
 // Middleware pour augmenter le timeout pour la génération PDF
 const pdfTimeout = (req: any, res: any, next: any) => {
-  req.setTimeout(180000); // 3 minutes
-  res.setTimeout(180000); // 3 minutes
+  req.setTimeout(900000); // 15 min — le raisonnement triple la durée d'un appel
+  res.setTimeout(900000);
   next();
 };
 

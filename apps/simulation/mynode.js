@@ -31,7 +31,7 @@ export const environment = {
   services: {
     domain: '${process.env.SERVICES_DOMAIN || 'https://idem.africa'}',
     self: {
-      url: '${process.env.SERVICES_SIMULATION_URL || (isProduction ? 'https://simulation.idem.africa' : 'http://localhost:4203')}',
+      url: '${process.env.SERVICES_SIMULATION_URL || (isProduction ? 'https://simulator.idem.africa' : 'http://localhost:4203')}',
     },
     api: {
       url: '${process.env.SERVICES_API_URL || process.env.API_URL || (isProduction ? 'https://api.idem.africa' : 'http://localhost:3001')}',

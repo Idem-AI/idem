@@ -9,6 +9,13 @@ export const TYPOGRAPHY_SECTION_PROMPT = `<role>World-class typographer and edit
 - Character study: individual glyphs with technical annotations.
 </concept_ideas>
 
+<craft_bar>
+- The page must be a SPECIMEN: the typefaces are shown at large scale, not merely described. The primary typeface name, set in the primary typeface at a very large size, is the dominant element.
+- The type scale is DEMONSTRATED: show the levels stacked at their real size, not listed in a table of values.
+- No filler text: the samples use the brand's actual vocabulary.
+- Do NOT produce the "two cards side by side, one per typeface" page: that is the default layout. Treat the page as a typographic comparison, with deliberately unequal sizes.
+</craft_bar>
+
 <page_content>
 1. Section title: "Système Typographique".
 2. Primary Typeface: Name displayed in the font itself at large scale, weights (Regular, Medium, Bold, Black), sample text ("Aa Bb Cc 0123..."), and usage rule (titres, en-têtes).

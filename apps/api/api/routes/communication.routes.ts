@@ -26,8 +26,8 @@ const resource = 'communication';
 
 /** La retouche IA d'un visuel (HTML complet) dépasse le timeout par défaut. */
 const extendedTimeout = (req: any, res: any, next: any) => {
-  req.setTimeout(180000);
-  res.setTimeout(180000);
+  req.setTimeout(900000); // 15 min — le raisonnement triple la durée d'un appel
+  res.setTimeout(900000);
   next();
 };
 

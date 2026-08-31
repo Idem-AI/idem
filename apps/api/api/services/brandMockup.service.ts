@@ -8,19 +8,102 @@ import {
 } from './BandIdentity/mockupAnalyzer.service';
 import { MOCKUP_CONFIG } from '../config/mockup.config';
 import { AI_CONFIG } from '../config/ai.config';
-import { generateImage, isGlmConfigured } from './glm-media.service';
+import { analyzeImage, generateImage, isGlmConfigured } from './glm-media.service';
+import { ArtDirectionModel } from '../models/art-direction.model';
+import {
+  buildImageNegativePrompt,
+  buildImageStyleModifier,
+} from '../utils/art-direction.util';
+import { parseLlmJson } from '../utils/llm-json.util';
 
 /**
- * Largeur du logo incrusté, en fraction de la largeur de la scène. Assez pour
- * se lire sur un mockup, assez peu pour rester crédible sur le support.
+ * Fraction de la ZONE DE MARQUAGE réellement couverte par le logo. Un logo qui
+ * remplit sa zone jusqu'aux bords trahit le montage : un vrai marquage garde
+ * une marge autour de lui.
  */
-const LOGO_WIDTH_RATIO = 0.22;
-import { withGeminiFallback } from '../utils/gemini-fallback';
+const LOGO_ZONE_COVERAGE = 0.72;
 
+/**
+ * Opacité de l'encre. En dessous de 1, la matière du support — grain du papier,
+ * fibres du tissu, reflet du plastique — transparaît à travers le logo. C'est
+ * ce détail qui sépare une impression d'un autocollant collé après coup.
+ */
+const LOGO_OPACITY = 0.9;
+
+/**
+ * Adoucissement optique du logo, en sigma de flou pour 2000 px de largeur de
+ * PHOTO. La netteté d'une image tient à l'optique qui l'a prise, pas à la
+ * taille du marquage : c'est donc la scène, et non le logo, qui donne l'échelle.
+ * Sans ce micro-flou, un logo vectoriel parfaitement net flotte au-dessus d'une
+ * photo qui, elle, ne l'est jamais tout à fait.
+ */
+const LOGO_SOFTEN_PER_2000PX = 0.8;
+
+/**
+ * Seuil de luminance (0–255) au-dessus duquel l'encre est tenue pour CLAIRE.
+ * Il décide du mode de fusion, donc de la lisibilité du logo sur le support.
+ */
+const INK_LIGHT_THRESHOLD = 140;
+
+/** En deçà, la zone rendue par la vision est trop petite pour être crédible. */
+const MIN_ZONE_RATIO = 0.06;
+
+/** En deçà, on ne fait pas confiance à la lecture de la vision. */
+const MIN_ZONE_CONFIDENCE = 0.35;
+
+/**
+ * Zone de repli, utilisée quand la vision ne rend rien d'exploitable.
+ *
+ * Le prompt de scène demande une zone de marquage large et proche du centre :
+ * ce repli parie sur cette consigne. Il reste moins bon qu'une lecture réelle,
+ * d'où sa journalisation — mais il compose une encre, pas une vignette collée.
+ */
+const DEFAULT_ZONE: BrandingZone = {
+  x: 0.32,
+  y: 0.34,
+  width: 0.36,
+  height: 0.26,
+  surface: 'light',
+  rotation: 0,
+  confidence: 0,
+};
+
+/** URLs des déclinaisons du logo, par fond de destination. */
+export interface MockupLogoVariants {
+  /** Logo destiné à un fond CLAIR (encre foncée). */
+  light?: string;
+  /** Logo destiné à un fond SOMBRE (encre claire). */
+  dark?: string;
+  /** Déclinaison monochrome, dernier repli. */
+  monochrome?: string;
+}
+
+/** Les deux encres, déjà téléchargées et prêtes à composer. */
+interface LoadedLogoSet {
+  /** À poser sur une surface claire. */
+  light: Buffer;
+  /** À poser sur une surface sombre. */
+  dark: Buffer;
+}
+
+/**
+ * Zone de marquage repérée sur la scène, en coordonnées normalisées (0–1).
+ * C'est le contrat de sortie de la passe de vision.
+ */
+interface BrandingZone {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  /** Ton de la surface : décide de l'encre et du mode de fusion. */
+  surface: 'light' | 'dark';
+  /** Inclinaison apparente de la surface, en degrés, sens horaire. */
+  rotation: number;
+  confidence: number;
+}
 
 export interface MockupGenerationRequest {
-  logoImageBase64: string | null;
-  logoMimeType: string;
+  logos: LoadedLogoSet;
   brandColors: {
     primary: string;
     secondary: string;
@@ -30,6 +113,13 @@ export interface MockupGenerationRequest {
   projectDescription: string;
   selectedSupport: SelectedMockupSupport;
   pdfFormat?: string;
+  /**
+   * Direction artistique de la marque. Elle pilote la LUMIÈRE, la matière et
+   * l'étalonnage de la photo — pas le sujet, imposé par le support. Sans elle,
+   * les mises en situation sortaient dans le rendu « photo de stock » par
+   * défaut du modèle, sans lien avec le reste de la charte.
+   */
+  artDirection?: ArtDirectionModel | null;
 }
 
 export interface MockupGenerationResult {
@@ -63,7 +153,9 @@ export class GeminiMockupService {
     projectDescription: string,
     userId: string,
     projectId: string,
-    pdfFormat?: string
+    pdfFormat?: string,
+    artDirection?: ArtDirectionModel | null,
+    logoVariants?: MockupLogoVariants
   ): Promise<MockupGenerationResult[]> {
     const startTime = Date.now();
 
@@ -103,10 +195,10 @@ export class GeminiMockupService {
         })),
       });
 
-      // Étape 2: Télécharger le logo comme image base64 pour l'envoyer à Gemini
-      const convertedLogo = await this.urlToBase64(logoUrl);
-      const logoImageBase64 = convertedLogo.base64;
-      let logoMimeType = convertedLogo.mimeType;
+      // Étape 2: Charger les DEUX encres (fond clair / fond sombre). Le choix
+      // se fait ensuite scène par scène, selon le ton de la surface repérée :
+      // une encre foncée sur un support sombre serait illisible.
+      const logos = await this.loadLogoSet(logoUrl, logoVariants);
 
       // Étape 3: Génération de tous les mockups séquentiellement avec les supports sélectionnés
       // (Pour éviter les erreurs 429 RESOURCE_EXHAUSTED liées aux quotas stricts d'Imagen)
@@ -119,13 +211,13 @@ export class GeminiMockupService {
       for (const selectedSupport of selectedSupports) {
         const mockup = await this.generateMockup(
           {
-            logoImageBase64,
-            logoMimeType,
+            logos,
             brandColors,
             brandName,
             projectDescription,
             selectedSupport,
             pdfFormat,
+            artDirection,
           },
           userId,
           projectId,
@@ -167,8 +259,12 @@ export class GeminiMockupService {
   }
 
   /**
-   * Génère un mockup individuel avec Gemini Image en envoyant le logo comme image
-   * Utilise le support sélectionné par l'analyseur pour créer un prompt dynamique
+   * Génère un mockup individuel : une scène nue, puis le vrai logo imprimé
+   * dessus.
+   *
+   * Toute erreur remonte. Un mockup dégradé — scène sans logo, logo posé au
+   * jugé — n'a pas sa place dans une charte : mieux vaut une page en moins
+   * qu'une page qui décrédibilise le document.
    */
   private async generateMockup(
     request: MockupGenerationRequest,
@@ -184,15 +280,12 @@ export class GeminiMockupService {
         supportType: request.selectedSupport.supportType,
         supportName: request.selectedSupport.supportName,
         brandName: request.brandName,
-        hasLogoImage: !!request.logoImageBase64,
-        logoBase64Length: request.logoImageBase64?.length || 0,
         mockupIndex: request.selectedSupport.mockupIndex,
         priority: request.selectedSupport.priority,
         projectId,
         userId,
       });
 
-      // Vérifier que l'API key Gemini est configurée
       if (!isGlmConfigured()) {
         logger.error(`[MOCKUP][${mockupName}] GLM_API_KEY absente - cannot generate mockup images`, {
           mockupName,
@@ -201,11 +294,7 @@ export class GeminiMockupService {
         throw new Error('GLM_API_KEY is not configured. Cannot generate mockup images.');
       }
 
-      console.log(
-        `[MOCKUP] ✅ GLM ready — generating scene for mockup ${request.selectedSupport.mockupIndex}`
-      );
-
-      // La scène est produite SANS logo, puis le vrai logo y est incrusté.
+      // La scène est produite SANS logo, puis le vrai logo y est imprimé.
       //
       // L'API d'image de Z.ai ne prend pas d'image en entrée : lui décrire le
       // logo l'aurait fait en dessiner un approchant — inacceptable sur un
@@ -213,12 +302,10 @@ export class GeminiMockupService {
       // pixel près, ce qu'aucune génération conditionnée ne garantissait.
       const scenePrompt = this.buildScenePrompt(request);
 
-      logger.info(`[MOCKUP][${mockupName}] Generating scene with ${AI_CONFIG.branding.brandMockup.imageModel}`, {
-        mockupName,
-        mockupIndex: request.selectedSupport.mockupIndex,
-        hasLogo: !!request.logoImageBase64,
-        projectId,
-      });
+      logger.info(
+        `[MOCKUP][${mockupName}] Generating blank scene with ${AI_CONFIG.branding.brandMockup.imageModel}`,
+        { mockupName, mockupIndex: request.selectedSupport.mockupIndex, projectId }
+      );
 
       const scene = await generateImage(scenePrompt, {
         model: AI_CONFIG.branding.brandMockup.imageModel,
@@ -226,25 +313,22 @@ export class GeminiMockupService {
         tag: mockupName,
       });
 
-      let imageBuffer: Buffer = scene.buffer;
-      const imageMimeType = scene.mimeType;
+      // Où poser le logo ? La question ne se tranche pas depuis le prompt : la
+      // scène est produite librement, et seule sa lecture dit où se trouve la
+      // surface imprimable. Sans cette passe, l'incrustation retombait au
+      // centre géométrique de l'image, souvent à côté du support.
+      const zone = await this.locateBrandingZone(scene.buffer, mockupName);
 
-      if (request.logoImageBase64) {
-        imageBuffer = await this.compositeLogo(
-          scene.buffer,
-          Buffer.from(request.logoImageBase64, 'base64'),
-          mockupName
-        );
-      }
+      const imageBuffer = await this.printLogo(scene.buffer, request.logos, zone, mockupName);
 
       console.log(
         `[MOCKUP] ✅ Mockup composed for ${request.selectedSupport.mockupIndex} (${Math.round(imageBuffer.length / 1024)}KB) — now uploading to Firebase Storage bucket...`
       );
 
-      // Déterminer l'extension du fichier selon le mime type
-      const fileExtension =
-        imageMimeType.includes('jpeg') || imageMimeType.includes('jpg') ? 'jpg' : 'png';
-      const fileName = `${mockupName}-${Date.now()}.${fileExtension}`;
+      // `printLogo` rend toujours du PNG : la transparence du logo doit survivre
+      // à la composition, et le JPEG l'aurait aplatie.
+      const imageMimeType = 'image/png';
+      const fileName = `${mockupName}-${Date.now()}.png`;
       const folderPath = `projects/${projectId}/Mockups`;
 
       logger.info(`[MOCKUP][${mockupName}] Uploading mockup image to Firebase Storage...`, {
@@ -252,7 +336,6 @@ export class GeminiMockupService {
         fileName,
         folderPath,
         imageSizeKB: `${Math.round(imageBuffer.length / 1024)}KB`,
-        imageMimeType,
         projectId,
       });
 
@@ -303,7 +386,8 @@ export class GeminiMockupService {
         userId,
       });
 
-      // Ne PAS retourner de placeholder - propager l'erreur pour que le service appelant sache que la génération a échoué
+      // Ne PAS retourner de placeholder - propager l'erreur pour que le service
+      // appelant sache que la génération a échoué et n'affiche aucune page.
       console.error(
         `[MOCKUP] ❌ Mockup ${request.selectedSupport.mockupIndex} generation FAILED: ${error.message}`
       );
@@ -312,84 +396,338 @@ export class GeminiMockupService {
   }
 
   /**
-   * Construit le contenu multimodal (texte + image du logo) pour Gemini
-   * Utilise le nouveau système de prompts dynamiques basé sur le support sélectionné
-   */
-  /**
-   * Décrit la scène du mockup, sans logo.
+   * Décrit la scène du mockup : le support NU, avec sa zone de marquage libre.
    *
-   * On reprend le prompt dynamique existant — il connaît le support, la marque
-   * et les couleurs — et on lui retire le logo pour le remplacer par une zone
-   * libre au centre, où l'incrustation viendra se poser.
+   * On reprend le prompt dynamique — il connaît le support, la marque et les
+   * couleurs. C'est lui qui porte désormais la règle du support vierge : la
+   * consigne était auparavant ajoutée ici, en contradiction avec le bloc
+   * « écris le nom de la marque » que le prompt envoyait juste au-dessus.
    */
   private buildScenePrompt(request: MockupGenerationRequest): string {
     const { brandName, brandColors, projectDescription, selectedSupport } = request;
 
-    const base = MOCKUP_GENERATION_PROMPT.buildDynamicPrompt({
+    return MOCKUP_GENERATION_PROMPT.buildDynamicPrompt({
       brandName,
       brandColors,
       projectDescription,
-      // Le logo n'est pas dessiné par le modèle : il est incrusté ensuite.
-      hasLogo: false,
       selectedSupport,
       pdfFormat: request.pdfFormat,
+      artDirectionModifier: buildImageStyleModifier(request.artDirection),
+      artDirectionNegative: buildImageNegativePrompt(request.artDirection),
+      artDirectionName: request.artDirection?.styleName,
     });
-
-    return [
-      base,
-      '',
-      'CRITICAL: Do NOT draw any logo, wordmark, brand name, letter or symbol on the product.',
-      'Leave the CENTER of the product surface visually clean and uncluttered —',
-      'flat, evenly lit, free of text, patterns, seams or reflections — so that the real',
-      'brand logo can be composited there afterwards. Render only the support, the scene',
-      'and the lighting.',
-    ].join('\n');
   }
 
   /**
-   * Incruste le logo au centre de la scène.
+   * Lit la scène et rend la zone où le logo doit être imprimé.
    *
-   * Le logo est ramené à une fraction de la largeur, puis posé au centre — là
-   * où le prompt a demandé de laisser la surface libre. `sharp` conserve la
-   * transparence du PNG, le logo se pose donc sans cadre.
+   * Une seule requête de vision par mockup, sur le petit modèle : c'est le prix
+   * à payer pour ne plus poser le logo à l'aveugle. Toute réponse douteuse
+   * (zone hors cadre, minuscule, peu sûre) est refusée au profit du repli — un
+   * mauvais emplacement se voit immédiatement sur le livrable.
    */
-  private async compositeLogo(
-    scene: Buffer,
-    logo: Buffer,
-    mockupName: string
-  ): Promise<Buffer> {
+  private async locateBrandingZone(scene: Buffer, mockupName: string): Promise<BrandingZone> {
+    const config = AI_CONFIG.branding.brandMockup;
+
     try {
-      const { width, height } = await sharp(scene).metadata();
-      if (!width || !height) {
-        return scene;
+      const raw = await analyzeImage(
+        scene.toString('base64'),
+        'image/png',
+        MOCKUP_GENERATION_PROMPT.brandingZoneVision,
+        {
+          model: config.visionModel,
+          fallbackModel: config.visionFallbackModel,
+          maxOutputTokens: config.visionMaxOutputTokens,
+          temperature: 0,
+        }
+      );
+
+      const zone = this.parseBrandingZone(raw);
+      if (zone) {
+        logger.info(`[MOCKUP][${mockupName}] Branding zone located`, {
+          mockupName,
+          zone,
+        });
+        return zone;
       }
 
-      const logoWidth = Math.round(width * LOGO_WIDTH_RATIO);
-      const resizedLogo = await sharp(logo)
-        .resize({ width: logoWidth, fit: 'inside', withoutEnlargement: false })
+      logger.warn(
+        `[MOCKUP][${mockupName}] Vision returned no usable branding zone — falling back to the centre area`,
+        { preview: raw.slice(0, 200) }
+      );
+    } catch (error: any) {
+      logger.warn(
+        `[MOCKUP][${mockupName}] Branding zone detection failed (${error?.message}) — falling back to the centre area`
+      );
+    }
+
+    return DEFAULT_ZONE;
+  }
+
+  /** Valide le JSON de la vision. Rend `null` dès qu'une valeur est inexploitable. */
+  private parseBrandingZone(raw: string): BrandingZone | null {
+    const parsed = parseLlmJson<Record<string, unknown>>(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+
+    const num = (value: unknown): number | null =>
+      typeof value === 'number' && Number.isFinite(value) ? value : null;
+
+    const x = num(parsed.x);
+    const y = num(parsed.y);
+    const width = num(parsed.width);
+    const height = num(parsed.height);
+    const confidence = num(parsed.confidence) ?? 0;
+
+    if (x === null || y === null || width === null || height === null) return null;
+    if (confidence < MIN_ZONE_CONFIDENCE) return null;
+    if (width < MIN_ZONE_RATIO || height < MIN_ZONE_RATIO) return null;
+    if (x < 0 || y < 0 || x >= 1 || y >= 1) return null;
+
+    // Une zone qui déborde du cadre est le symptôme d'une lecture approximative,
+    // mais un débordement de quelques pour cent reste récupérable : on la borne.
+    const clampedWidth = Math.min(width, 1 - x);
+    const clampedHeight = Math.min(height, 1 - y);
+    if (clampedWidth < MIN_ZONE_RATIO || clampedHeight < MIN_ZONE_RATIO) return null;
+
+    const rotation = num(parsed.rotation) ?? 0;
+
+    return {
+      x,
+      y,
+      width: clampedWidth,
+      height: clampedHeight,
+      surface: parsed.surface === 'dark' ? 'dark' : 'light',
+      // Au-delà, la surface est trop inclinée pour qu'une simple rotation la
+      // suive : on préfère un logo droit à un logo penché dans le mauvais sens.
+      rotation: Math.max(-45, Math.min(45, rotation)),
+      confidence,
+    };
+  }
+
+  /**
+   * Imprime le logo dans la zone repérée.
+   *
+   * Quatre gestes, qui font toute la différence entre une impression et une
+   * vignette collée :
+   *  1. l'encre est choisie selon le ton de la surface (foncée sur clair, claire
+   *     sur sombre) — sinon le logo disparaît ou bave ;
+   *  2. le logo est détouré de ses marges transparentes puis mis à l'échelle de
+   *     la ZONE, pas de l'image : il tient sur le support, pas au milieu du cadre ;
+   *  3. il suit l'inclinaison apparente de la surface ;
+   *  4. il est fusionné en `multiply` (encre sombre) ou `screen` (encre claire),
+   *     de sorte que les plis, la trame et les ombres du support MODULENT le
+   *     logo. C'est cette modulation que l'œil lit comme « imprimé ».
+   */
+  private async printLogo(
+    scene: Buffer,
+    logos: LoadedLogoSet,
+    zone: BrandingZone,
+    mockupName: string
+  ): Promise<Buffer> {
+    const { width, height } = await sharp(scene).metadata();
+    if (!width || !height) {
+      throw new Error('Generated scene has no readable dimensions');
+    }
+
+    const source = zone.surface === 'dark' ? logos.dark : logos.light;
+
+    // 1. Détourage : un PNG de logo porte souvent une large marge transparente.
+    // Sans ce détourage, la mise à l'échelle dimensionne le VIDE, et la marque
+    // sort deux fois trop petite dans sa zone.
+    let mark = await this.trimTransparentMargins(source);
+
+    // 2. Mise à l'échelle dans la zone.
+    const boxWidth = Math.max(1, Math.round(width * zone.width * LOGO_ZONE_COVERAGE));
+    const boxHeight = Math.max(1, Math.round(height * zone.height * LOGO_ZONE_COVERAGE));
+    mark = await sharp(mark)
+      .resize({
+        width: boxWidth,
+        height: boxHeight,
+        fit: 'inside',
+        kernel: 'lanczos3',
+        withoutEnlargement: false,
+      })
+      .png()
+      .toBuffer();
+
+    // 3. Inclinaison de la surface.
+    if (Math.abs(zone.rotation) >= 1) {
+      mark = await sharp(mark)
+        .rotate(zone.rotation, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
         .png()
         .toBuffer();
+    }
 
-      const logoMeta = await sharp(resizedLogo).metadata();
-      const left = Math.round((width - (logoMeta.width ?? logoWidth)) / 2);
-      const top = Math.round((height - (logoMeta.height ?? logoWidth)) / 2);
+    // Clarté de l'encre, mesurée AVANT que l'opacité ne la délave : c'est elle,
+    // croisée avec le ton de la surface, qui décide du mode de fusion.
+    const inkLuminance = await this.measureInkLuminance(mark);
 
-      return await sharp(scene)
-        .composite([{ input: resizedLogo, left: Math.max(0, left), top: Math.max(0, top) }])
+    mark = await this.applyOpacity(mark, LOGO_OPACITY);
+
+    // Micro-flou, à l'échelle de la PHOTO : c'est son optique qui décide de la
+    // netteté du marquage. En deçà de 0.3, sharp refuse le flou — et à cette
+    // taille il ne se verrait de toute façon pas.
+    const sigma = (width / 2000) * LOGO_SOFTEN_PER_2000PX;
+    if (sigma >= 0.3) {
+      mark = await sharp(mark).blur(sigma).png().toBuffer();
+    }
+
+    const markMeta = await sharp(mark).metadata();
+    const markWidth = markMeta.width ?? boxWidth;
+    const markHeight = markMeta.height ?? boxHeight;
+
+    const centerX = (zone.x + zone.width / 2) * width;
+    const centerY = (zone.y + zone.height / 2) * height;
+    const left = Math.max(0, Math.min(width - markWidth, Math.round(centerX - markWidth / 2)));
+    const top = Math.max(0, Math.min(height - markHeight, Math.round(centerY - markHeight / 2)));
+
+    // 4. Fusion. `multiply` fait mordre une encre SOMBRE dans une surface
+    // CLAIRE, `screen` une encre CLAIRE dans une surface SOMBRE : dans les deux
+    // cas les plis, la trame et les ombres du support modulent le logo, et
+    // c'est cette modulation que l'œil lit comme « imprimé ».
+    //
+    // Hors de ces deux accords, la fusion détruirait la marque — une encre
+    // sombre passée en `screen` sur un support sombre disparaît. La marque n'a
+    // alors pas la déclinaison qu'il aurait fallu : on la pose simplement, ce
+    // qui reste lisible, et on le signale.
+    const inkIsLight = inkLuminance !== null && inkLuminance > INK_LIGHT_THRESHOLD;
+    const inkMatchesSurface = zone.surface === 'dark' ? inkIsLight : !inkIsLight;
+    const blend: 'multiply' | 'screen' | 'over' =
+      !markMeta.hasAlpha || !inkMatchesSurface
+        ? 'over'
+        : zone.surface === 'dark'
+          ? 'screen'
+          : 'multiply';
+
+    if (!inkMatchesSurface) {
+      logger.warn(
+        `[MOCKUP][${mockupName}] No logo variation contrasts with a ${zone.surface} surface — the mark is laid flat instead of printed`,
+        { inkLuminance }
+      );
+    }
+
+    logger.info(`[MOCKUP][${mockupName}] Printing logo on the located zone`, {
+      mockupName,
+      scene: `${width}x${height}`,
+      mark: `${markWidth}x${markHeight}`,
+      position: { left, top },
+      surface: zone.surface,
+      rotation: zone.rotation,
+      inkLuminance,
+      blend,
+    });
+
+    return await sharp(scene)
+      .composite([{ input: mark, left, top, blend }])
+      .png()
+      .toBuffer();
+  }
+
+  /**
+   * Luminance moyenne de l'encre, sur les seuls pixels OPAQUES.
+   *
+   * Une moyenne prise sur toute l'image compterait les pixels transparents,
+   * noirs dans le tampon brut : n'importe quel logo passerait alors pour sombre,
+   * et un logo blanc serait fusionné comme une encre noire.
+   */
+  private async measureInkLuminance(mark: Buffer): Promise<number | null> {
+    try {
+      const { data, info } = await sharp(mark)
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+
+      let sum = 0;
+      let weight = 0;
+      for (let i = 0; i + 3 < data.length; i += info.channels) {
+        const alpha = data[i + 3] / 255;
+        if (alpha < 0.5) continue;
+        sum += (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) * alpha;
+        weight += alpha;
+      }
+
+      return weight > 0 ? sum / weight : null;
+    } catch (error: any) {
+      logger.warn(`[MOCKUP] Ink luminance unreadable: ${error?.message}`);
+      return null;
+    }
+  }
+
+  /** Retire les marges transparentes autour du logo. */
+  private async trimTransparentMargins(logo: Buffer): Promise<Buffer> {
+    try {
+      return await sharp(logo)
+        .ensureAlpha()
+        .trim({ background: { r: 0, g: 0, b: 0, alpha: 0 }, threshold: 0 })
         .png()
         .toBuffer();
     } catch (error: any) {
-      // Un mockup sans logo reste exploitable ; pas de mockup du tout, non.
-      logger.warn(`[MOCKUP][${mockupName}] Logo compositing failed: ${error?.message}`);
-      return scene;
+      // `trim` échoue sur une image uniforme (logo sans marge, ou entièrement
+      // transparent) : l'original fait alors parfaitement l'affaire.
+      logger.debug(`[MOCKUP] Logo trim skipped: ${error?.message}`);
+      return logo;
     }
   }
 
   /**
-   * Génère un seul mockup (méthode publique pour usage externe)
-   * Flow: SVG→PNG conversion → Gemini image generation → Firebase Storage upload → return URL
-   * Gemini décide lui-même la scène de mockup en fonction du contexte du projet
+   * Applique une opacité uniforme au logo.
+   *
+   * `composite` de sharp n'expose pas d'opacité : on multiplie la couche alpha
+   * par un pixel gris répété en `dest-in`, qui est la façon canonique de le
+   * faire avec libvips.
    */
+  private async applyOpacity(image: Buffer, opacity: number): Promise<Buffer> {
+    if (opacity >= 1) return image;
+
+    return await sharp(image)
+      .ensureAlpha()
+      .composite([
+        {
+          input: Buffer.from([255, 255, 255, Math.round(255 * opacity)]),
+          raw: { width: 1, height: 1, channels: 4 },
+          tile: true,
+          blend: 'dest-in',
+        },
+      ])
+      .png()
+      .toBuffer();
+  }
+
+  /**
+   * Charge les deux encres du logo.
+   *
+   * Le logo principal sert de repli aux deux : une marque sans déclinaison
+   * reste imprimable, elle est simplement moins bien contrastée sur les fonds
+   * qui ne lui vont pas. En revanche, un logo principal illisible est une
+   * erreur fatale — sans encre, il n'y a pas de mockup.
+   */
+  private async loadLogoSet(
+    primaryUrl: string,
+    variants?: MockupLogoVariants
+  ): Promise<LoadedLogoSet> {
+    const primary = await this.urlToBuffer(primaryUrl);
+
+    const optional = async (url?: string): Promise<Buffer> => {
+      if (!url || url === primaryUrl) return primary;
+      try {
+        return await this.urlToBuffer(url);
+      } catch (error: any) {
+        logger.warn(`[MOCKUP] Logo variation unavailable (${error?.message}) — using the primary`);
+        return primary;
+      }
+    };
+
+    return {
+      light: await optional(variants?.light),
+      dark: await optional(variants?.dark ?? variants?.monochrome),
+    };
+  }
+
+  /** Rend les octets PNG d'un logo, quelle que soit la forme de sa source. */
+  private async urlToBuffer(url: string): Promise<Buffer> {
+    const { base64 } = await this.urlToBase64(url);
+    return Buffer.from(base64, 'base64');
+  }
 
   async urlToBase64(url: string) {
     try {

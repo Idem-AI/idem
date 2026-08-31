@@ -103,7 +103,7 @@ export interface AgentRunInput {
   /** Fichiers de contexte additionnels transmis au fournisseur. */
   contextFilePaths?: string[];
   skipQuotaCheck?: boolean;
-  /** Autorise le dépassement du plafond global de tokens de sortie (appels internes). */
+  /** Exempte cet agent du plafond global de tokens de sortie. */
   bypassOutputTokenCap?: boolean;
 }
 

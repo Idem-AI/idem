@@ -1,35 +1,72 @@
 import { SelectedMockupSupport } from '../mockupAnalyzer.service';
 
 /**
- * Système de prompts dynamiques pour la génération de mockups photoréalistes
+ * Les deux prompts de la mise en situation de marque, et une seule idée : le
+ * modèle d'image ne dessine JAMAIS le logo.
+ *
+ * Il photographie un support NU en réservant une zone de marquage ; le vrai
+ * logo y est incrusté ensuite par composition (cf. `brandMockup.service.ts`).
+ * Décrire le logo au modèle lui faisait dessiner un logo approchant — sur un
+ * livrable de marque, où le logo doit être exact au pixel près, c'est
+ * inacceptable.
+ *
+ * Le second prompt est celui de la vision : il relit la scène produite pour
+ * dire OÙ poser le logo. Sans lui, l'incrustation retombait au centre
+ * géométrique de l'image, c'est-à-dire à côté du support une fois sur deux.
  */
-
 export const MOCKUP_GENERATION_PROMPT = {
-  logoInstructions: (brandName: string) => ({
-    withLogo: `<logo_rules>
-- Une image du logo exact de cette marque est fournie.
-- Étudier attentivement chaque détail de l'image du logo fournie et le reproduire EXACTEMENT dans la scène.
-- Respecter toutes les formes, couleurs, typographie et proportions originelles.
-- Placer le logo de manière visible et lisible sur le support. Ne pas modifier ou traduire le texte du logo.
-- Choisir une taille équilibrée (ni invisible ni écrasante).
-</logo_rules>`,
+  /**
+   * Consigne de vision : localiser la zone de marquage sur la scène générée.
+   *
+   * La réponse attendue est un JSON minuscule (une zone normalisée + le ton de
+   * la surface + son inclinaison), parce que c'est exactement ce dont la
+   * composition a besoin : où, à quelle taille, quelle encre, quel angle.
+   */
+  brandingZoneVision: `You are given a photograph of an UNBRANDED product staged for a brand mockup.
+Locate the ONE area where the brand logo should be printed: the flat, evenly lit,
+unobstructed part of the product that faces the camera, and where a real logo
+would actually go on this kind of support.
 
-    withoutLogo: `<logo_rules>
-- Aucune image de logo n'est fournie.
-- Afficher le nom de marque "${brandName}" dans un style typographique propre et professionnel avec les couleurs de la marque.
-</logo_rules>`,
-  }),
+Answer with ONE JSON object and nothing else — no prose, no markdown fence:
+{"x":0.34,"y":0.28,"width":0.30,"height":0.18,"surface":"light","rotation":-3,"confidence":0.86}
+
+- x, y: top-left corner of that area, as fractions of image width and height (0-1).
+- width, height: its size, as fractions of image width and height (0-1).
+- surface: "light" if that area is bright, so dark ink reads on it; "dark" if that
+  area is dark, so light ink reads on it.
+- rotation: apparent tilt of that area in degrees, positive clockwise, between -45
+  and 45. Use 0 when it faces the camera squarely.
+- confidence: 0-1, how sure you are that this is the right place to print.
+
+Rules:
+- The area must be INSIDE the product. Never on the background, never on a prop.
+- Keep it to the part that is genuinely flat and unobstructed: exclude seams, folds,
+  buttons, handles, straps, curved edges and strong specular highlights.
+- If the product offers no usable printing area, answer exactly {"confidence":0}.`,
 
   buildDynamicPrompt: (params: {
     brandName: string;
     brandColors: { primary: string; secondary: string; accent: string };
     projectDescription: string;
-    hasLogo: boolean;
     selectedSupport: SelectedMockupSupport;
     pdfFormat?: string;
+    /** Fragment de rendu issu de la direction artistique (anglais, rendu uniquement). */
+    artDirectionModifier?: string;
+    /** Prompt négatif du style retenu. */
+    artDirectionNegative?: string;
+    /** Nom lisible du style, pour situer la consigne. */
+    artDirectionName?: string;
   }) => {
-    const { brandName, brandColors, projectDescription, hasLogo, selectedSupport, pdfFormat } =
-      params;
+    const {
+      brandName,
+      brandColors,
+      projectDescription,
+      selectedSupport,
+      pdfFormat,
+      artDirectionModifier,
+      artDirectionNegative,
+      artDirectionName,
+    } = params;
 
     const formatSpecs =
       pdfFormat === 'A4_PORTRAIT'
@@ -38,81 +75,109 @@ export const MOCKUP_GENERATION_PROMPT = {
             dimensions: '210mm × 297mm',
             aspectRatio: '1:1.414 (A4 portrait)',
             imageSize: '2480px × 3508px',
-            description: 'Format vertical. L\'image DOIT être verticale.',
-            criticalInstructions: 'CRITIQUE: Orientation PORTRAIT obligatoire. Ratio 1:1.414. Cadrage vertical serré pour remplir toute la hauteur.',
+            description: 'Vertical format. The image MUST be vertical.',
+            criticalInstructions:
+              'CRITICAL: PORTRAIT orientation is mandatory. Ratio 1:1.414. Tight vertical framing so the subject fills the full height.',
           }
         : {
-            orientation: 'PAYSAGE (HORIZONTAL)',
+            orientation: 'LANDSCAPE (HORIZONTAL)',
             dimensions: '297mm × 167mm',
-            aspectRatio: '16:9 (paysage)',
+            aspectRatio: '16:9 (landscape)',
             imageSize: '2480px × 1395px',
-            description: 'Format horizontal. L\'image DOIT être horizontale.',
-            criticalInstructions: 'CRITIQUE: Orientation PAYSAGE obligatoire. Ratio 16:9. Cadrage horizontal large pour remplir toute la largeur.',
+            description: 'Horizontal format. The image MUST be horizontal.',
+            criticalInstructions:
+              'CRITICAL: LANDSCAPE orientation is mandatory. Ratio 16:9. Wide horizontal framing so the subject fills the full width.',
           };
 
-    const logoInstruction = hasLogo
-      ? MOCKUP_GENERATION_PROMPT.logoInstructions(brandName).withLogo
-      : MOCKUP_GENERATION_PROMPT.logoInstructions(brandName).withoutLogo;
-
-    const supportExamples = selectedSupport.examples
-      .map((ex, idx) => `  - ${ex}`)
-      .join('\n');
+    const supportExamples = selectedSupport.examples.map((ex) => `  - ${ex}`).join('\n');
 
     const priorityText =
       selectedSupport.priority === 'primary'
-        ? 'SUPPORT PRINCIPAL (le plus iconique pour cette marque)'
-        : 'SUPPORT COMPLÉMENTAIRE (secondaire mais pertinent)';
+        ? 'PRIMARY SUPPORT (the most iconic one for this brand)'
+        : 'SECONDARY SUPPORT (complementary but relevant)';
 
-    return `<role>Photographe commercial d'élite et directeur artistique spécialisé dans la mise en scène de marques.</role>
-<objective>Créer une photographie de mockup photoréaliste et professionnelle de haute qualité.</objective>
+    return `<role>Elite commercial photographer and art director specialised in staging brands.</role>
+<objective>Create one photorealistic, high-end professional mockup photograph of a BLANK, UNBRANDED support, ready to receive a printed logo.</objective>
 
 <brand_context>
-- Nom: "${brandName}"
-- Industrie: ${selectedSupport.industryContext}
-- Couleurs: Primaire ${brandColors.primary}, Secondaire ${brandColors.secondary}, Accent ${brandColors.accent}
+- Name: "${brandName}"
+- Industry: ${selectedSupport.industryContext}
+- Colours: primary ${brandColors.primary}, secondary ${brandColors.secondary}, accent ${brandColors.accent}
 - Description: ${projectDescription}
 </brand_context>
 
 <mockup_mission>
 Mockup index: #${selectedSupport.mockupIndex}
 Priority: ${priorityText}
-Support Name: ${selectedSupport.supportName}
+Support name: ${selectedSupport.supportName}
 
-${logoInstruction}
-
-Exemples de supports à créer :
+Supports to create, as examples:
 ${supportExamples}
 
-Mise en scène :
+Staging:
 ${selectedSupport.context}
 </mockup_mission>
 
-<photographic_rules>
-1. RÉALISME PHOTOGRAPHIQUE ABSOLU: Vraie photographie commerciale (pas d'illustration numérique, pas de rendu 3D artificiel). Grain subtil, imperfections naturelles.
-2. ÉCLAIRAGE: Éclairage studio ou lumière naturelle réaliste, ombres douces, reflets sur verre/métal/plastique.
-3. COMPOSITION: Règle des tiers, profondeur de champ cinématographique (arrière-plan flouté). Le support brandé est le héros clairement visible.
-4. TEXTURES: Fibres de tissu visibles, grain de papier, brillance métallique, usure naturelle légère.
-5. COULEURS: Intégration subtile et harmonieuse des couleurs de marque (${brandColors.primary}, ${brandColors.secondary}, ${brandColors.accent}) dans la scène.
-6. CONTEXTE: Environnement cohérent (${selectedSupport.industryContext}). Pas de distraction visuelle.
+<blank_support_rule>
+The support carries NO branding at all: no logo, no monogram, no wordmark, no brand
+name, no initial, no slogan, no printed pattern, no label, no sticker, no legible
+text of any kind on it. The real logo is composited onto this photograph afterwards
+at pixel accuracy — anything you draw in its place collides with it and ruins the
+image.
+
+Instead, RESERVE one printing area on the support, and stage the shot around it:
+- It sits where the brand mark genuinely goes on this kind of support (chest of a
+  garment, front face of a box, door panel of a vehicle, front of a card…).
+- It is flat and unbroken: no seam, fold, button, zip, strap, handle or curved edge
+  crossing it.
+- It faces the camera as squarely as the staging allows.
+- It is evenly lit: no hard specular highlight, no cast shadow, no reflection over it.
+- It is one plain uniform tone, chosen so a logo reads clearly on it.
+- It is large and unmistakable — roughly a third of the frame — and near the centre.
+
+Everything AROUND that area stays a full photograph: material, texture, wear,
+depth of field, real environment.
+</blank_support_rule>
+
+${
+      artDirectionModifier
+        ? `<art_direction>
+This brand has a settled art direction${artDirectionName ? `: ${artDirectionName}` : ''}. It decides the RENDER of this photograph — light, material, grading, framing — and overrides the generic photographic settings below wherever they diverge. The subject, however, stays the support being shown.
+Expected render (apply literally): ${artDirectionModifier}
+${artDirectionNegative ? `Keep out of the image: ${artDirectionNegative}` : ''}
+This photograph will be seen next to the brand's other supports: it must carry the SAME light and the SAME grading as they do.
+</art_direction>
+
+`
+        : ''
+    }<photographic_rules>
+1. ABSOLUTE PHOTOGRAPHIC REALISM: a real commercial photograph (no digital illustration, no artificial 3D render). Subtle grain, natural imperfections.
+2. LIGHTING: realistic studio or natural light, soft shadows, reflections on glass, metal or plastic — but the printing area stays evenly lit.
+3. COMPOSITION: rule of thirds, cinematic depth of field (blurred background). The support is the hero, sharp, and clearly visible.
+4. TEXTURES: visible fabric fibres, paper grain, metallic sheen, slight natural wear.
+5. COLOUR: subtle, harmonious integration of the brand colours (${brandColors.primary}, ${brandColors.secondary}, ${brandColors.accent}) into the scene and the material of the support.
+6. CONTEXT: a coherent environment (${selectedSupport.industryContext}). No visual distraction.
 </photographic_rules>
 
 <format_rules>
 - Orientation: ${formatSpecs.orientation}
 - Dimensions: ${formatSpecs.dimensions}
 - Ratio: ${formatSpecs.aspectRatio}
-- Résolution: ${formatSpecs.imageSize}
-- Règle: ${formatSpecs.description}
+- Resolution: ${formatSpecs.imageSize}
+- Rule: ${formatSpecs.description}
 - ${formatSpecs.criticalInstructions}
-- L'image doit couvrir 100% de la hauteur et de la largeur (FULL-PAGE, pas de bordures blanches).
+- The image must cover 100% of the height and width (FULL-PAGE, no white borders).
 </format_rules>
 
 <forbidden>
-- Mockup générique / cliché.
-- Rendu 3D artificiel.
-- Logo différent du logo fourni.
-- Surcharger la scène.
+- ANY logo, wordmark, brand name, monogram, initial or readable text printed on the support. The support is blank.
+- The generic mockup cliché: "a business card lying at an angle on a white marble desk next to a green plant" is THE default render of every generator. Compose something else.
+- Artificial, plastic, over-lit 3D renders.
+- An overloaded scene: one hero support, one context, nothing else.
+- Watermarks, distorted text, generation artefacts, oversaturated HDR.
+${artDirectionNegative ? `- ${artDirectionNegative}` : ''}
 </forbidden>
 
-GÉNÉRER UNIQUEMENT L'IMAGE PHOTORÉALISTE. AUCUNE RÉPONSE TEXTUELLE.`;
+GENERATE THE PHOTOREALISTIC IMAGE ONLY. NO TEXT RESPONSE.`;
   },
 };

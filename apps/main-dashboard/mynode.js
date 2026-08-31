@@ -47,7 +47,7 @@ export const environment = {
       apiToken: '${process.env.IDEPLOY_API_TOKEN || ''}',
     },
     simulation: {
-      url: '${process.env.SERVICES_SIMULATION_URL || (isProduction ? 'https://simulation.idem.africa' : 'http://localhost:4203')}',
+      url: '${process.env.SERVICES_SIMULATION_URL || (isProduction ? 'https://simulator.idem.africa' : 'http://localhost:4203')}',
     },
     webgen: {
       url: '${process.env.SERVICES_WEBGEN_URL || process.env.WEBGEN_URL || (isProduction ? 'https://webgen.idem.africa' : 'http://localhost:3003')}',

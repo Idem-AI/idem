@@ -38,6 +38,8 @@
  * This is the ONLY payload sent to downstream steps so we never re-send
  * a full business plan.
  */
+import { ArtDirectionModel } from './art-direction.model';
+
 export interface CommunicationContext {
   brandName: string;
   businessType: string;
@@ -73,6 +75,13 @@ export interface CommunicationContext {
       };
     };
   };
+  /**
+   * Direction artistique de la marque, recopiée ici pour que la composition des
+   * visuels n'ait pas à recharger le projet. C'est elle qui borne l'espace de
+   * tirage de la graine de design : sans elle, deux visuels de la même marque
+   * pouvaient sortir dans deux univers graphiques sans rapport.
+   */
+  artDirection?: ArtDirectionModel;
   extractedAt: Date;
 }
 

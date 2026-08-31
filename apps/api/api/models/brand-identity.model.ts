@@ -1,3 +1,4 @@
+import { ArtDirectionModel } from './art-direction.model';
 import { LogoModel, LogoPreferences } from './logo.model';
 import { SectionModel } from './section.model';
 
@@ -45,6 +46,9 @@ import { SectionModel } from './section.model';
  *         logoPreferences:
  *           type: object
  *           nullable: true
+ *         artDirection:
+ *           $ref: '#/components/schemas/ArtDirectionModel'
+ *           nullable: true
  *       required:
  *         - logo
  *         - generatedLogos
@@ -66,6 +70,13 @@ export interface BrandIdentityModel {
   generatedTypography: TypographyModel[];
   sections: SectionModel[];
   logoPreferences?: LogoPreferences;
+  /**
+   * Parti pris visuel de la marque, décidé une fois puis imposé à TOUTES les
+   * générations (charte, visuels, business plan, deck, mockups, site). Sans
+   * lui, chaque module réinventait sa propre grammaire et deux livrables du
+   * même projet ne se ressemblaient pas. Cf. models/art-direction.model.ts.
+   */
+  artDirection?: ArtDirectionModel;
   pdfFormat?: string; // Format PDF choisi (A4_PORTRAIT ou SLIDE_16_9)
 }
 

@@ -1,6 +1,10 @@
 /**
  * Prompts du module Simulation.
  *
+ * Rédigés en anglais comme tous les prompts du projet ; les TEXTES produits pour
+ * l'utilisateur restent en français, ce qui est une consigne du prompt et non sa
+ * langue.
+ *
  * Deux règles traversent tout le fichier:
  *  1. Le modèle répond en JSON strict, sans texte autour — le parseur est
  *     tolérant mais pas devin.
@@ -9,37 +13,37 @@
  *     en donnée casse la crédibilité de tout le rapport.
  */
 
-export const SIMULATION_SYSTEM_PROMPT = `Tu es le moteur d'analyse d'IDEM Simulation.
+export const SIMULATION_SYSTEM_PROMPT = `You are the analysis engine of IDEM Simulation.
 
-Ton rôle n'est pas d'encourager l'entrepreneur. Il est de mettre son projet à l'épreuve.
+Your job is not to encourage the founder. It is to put their project to the test.
 
-Règles absolues :
-- Tu réponds UNIQUEMENT avec du JSON valide. Aucun texte avant ou après, aucun bloc markdown.
-- Tu ne prédis jamais le succès ou l'échec. Tu décris ce qui se passe dans les scénarios étudiés.
-- Tu distingues systématiquement :
-  * "data" : un chiffre observé et publiable, avec sa source et sa date.
-  * "estimate" : une valeur dérivée de données comparables.
-  * "assumption" : un choix que tu assumes faute de donnée fiable.
-  Ne présente JAMAIS une hypothèse comme une donnée.
-- Tu es direct. Si le modèle est fragile, tu le dis et tu expliques pourquoi.
-- Tu raisonnes dans le contexte réel du marché indiqué (pays, ville, secteur),
-  pas dans un marché occidental générique.
-- Tu écris les textes destinés à l'utilisateur en français.`;
+Absolute rules:
+- You answer with VALID JSON ONLY. No text before or after, no markdown fence.
+- You never predict success or failure. You describe what happens in the scenarios under study.
+- You always distinguish:
+  * "data": an observed, publishable figure, with its source and its date.
+  * "estimate": a value derived from comparable data.
+  * "assumption": a choice you own because no reliable data exists.
+  NEVER present an assumption as data.
+- You are direct. If the model is fragile, you say so and explain why.
+- You reason inside the real context of the stated market (country, city, sector),
+  not inside a generic Western market.
+- You write every user-facing text IN FRENCH.`;
 
 /** Étape 1 — construire une représentation structurée du projet. */
-export const PROJECT_UNDERSTANDING_PROMPT = `Analyse le projet fourni et produis une représentation structurée exploitable par un moteur de simulation.
+export const PROJECT_UNDERSTANDING_PROMPT = `Analyse the supplied project and produce a structured representation a simulation engine can work with.
 
-Tu dois séparer quatre choses :
-- ce que le projet dit explicitement (state: "known")
-- ce qu'il faut aller chercher à l'extérieur (state: "researchable")
-- ce pour quoi aucune donnée fiable n'existe (state: "uncertain")
-- ce qui manque et que seul l'entrepreneur peut fournir (state: "missing", answerable: true)
+Separate four things:
+- what the project states explicitly (state: "known")
+- what has to be researched externally (state: "researchable")
+- what no reliable data exists for (state: "uncertain")
+- what is missing and only the founder can supply (state: "missing", answerable: true)
 
-Tu dois AUSSI produire une baseline numérique. Si une valeur n'est pas dans le projet,
-estime-la à partir du secteur et du pays, et signale-la comme incertaine dans "items".
-Toutes les valeurs monétaires sont dans la devise du projet.
+You must ALSO produce a numeric baseline. When a value is absent from the project,
+estimate it from the sector and the country, and flag it as uncertain in "items".
+Every monetary value is expressed in the project's currency.
 
-Réponds avec ce JSON exact :
+Answer with exactly this JSON:
 {
   "profile": {
     "name": "", "sector": "", "businessModel": "", "product": "",
@@ -62,41 +66,40 @@ Réponds avec ce JSON exact :
     { "id": "k-1", "label": "", "state": "known|researchable|uncertain|missing",
       "value": "", "detail": "", "answerable": false }
   ],
-  "narrative": "2 à 3 phrases décrivant ce que tu as compris du projet."
+  "narrative": "2 to 3 sentences, IN FRENCH, describing what you understood of the project."
 }
 
-Contraintes sur la baseline :
-- monthlyGrowthRate et monthlyRetentionRate sont des fractions (0.08 = 8 %).
-- monthlyRetentionRate est strictement entre 0 et 0.99.
-- Aucune valeur ne doit être nulle si le projet permet de l'estimer.
-- 8 à 16 items, couvrant marché, prix, coûts, acquisition, rétention, financement, réglementation.`;
+Baseline constraints:
+- monthlyGrowthRate and monthlyRetentionRate are fractions (0.08 = 8%).
+- monthlyRetentionRate is strictly between 0 and 0.99.
+- No value may be zero when the project allows it to be estimated.
+- 8 to 16 items, covering market, price, costs, acquisition, retention, funding, regulation.`;
 
 /** Étape 2 — le moteur de découverte des facteurs. */
-export const FACTOR_DISCOVERY_PROMPT = `Identifie les facteurs susceptibles d'influencer CE projet précis.
+export const FACTOR_DISCOVERY_PROMPT = `Identify the factors that could influence THIS specific project.
 
-C'est le cœur du produit : il ne doit surtout pas s'agir d'une liste générique de 20 variables
-appliquée à toutes les entreprises. Une entreprise de livraison urbaine et une exploitation
-agricole n'ont presque aucun facteur en commun. Pars du secteur, du pays, de la ville, de la
-clientèle et du modèle économique.
+This is the heart of the product: it must not be a generic list of 20 variables applied to every
+company. An urban delivery business and a farm share almost no factors. Start from the sector,
+the country, the city, the customer base and the business model.
 
-Pour chaque facteur, indique le levier du modèle sur lequel il agit :
-- "price"            : il déplace le prix encaissé
-- "variableCost"     : il déplace le coût par transaction
-- "fixedCost"        : il déplace les charges fixes
-- "acquisitionCost"  : il déplace le coût d'acquisition client
-- "growth"           : il déplace le rythme d'acquisition
-- "retention"        : il déplace la rétention
-- "frequency"        : il déplace la fréquence d'achat
-- "capital"          : il déplace le capital disponible
-- "none"             : facteur réel mais non simulable numériquement
+For each factor, state which lever of the model it acts on:
+- "price"            : it moves the price collected
+- "variableCost"     : it moves the cost per transaction
+- "fixedCost"        : it moves the fixed costs
+- "acquisitionCost"  : it moves the customer acquisition cost
+- "growth"           : it moves the acquisition pace
+- "retention"        : it moves retention
+- "frequency"        : it moves purchase frequency
+- "capital"          : it moves the available capital
+- "none"             : a real factor that cannot be simulated numerically
 
-Classement :
-- "critical"  : impact potentiel très élevé
-- "important" : impact significatif
-- "secondary" : impact limité
-- "unknown"   : impact potentiellement fort mais non estimable faute de données
+Ranking:
+- "critical"  : very high potential impact
+- "important" : significant impact
+- "secondary" : limited impact
+- "unknown"   : potentially strong impact but not estimable for lack of data
 
-Réponds avec ce JSON exact :
+Answer with exactly this JSON:
 {
   "factors": [
     {
@@ -105,56 +108,56 @@ Réponds avec ce JSON exact :
       "category": "",
       "tier": "critical|important|secondary|unknown",
       "impact": 0,
-      "description": "1 à 2 phrases expliquant par quel mécanisme ce facteur agit sur CE projet",
+      "description": "1 to 2 sentences, IN FRENCH, explaining the mechanism by which this factor acts on THIS project",
       "lever": "price|variableCost|fixedCost|acquisitionCost|growth|retention|frequency|capital|none",
       "leverElasticity": 0.5,
       "evidence": {
         "id": "e-1",
         "label": "",
-        "value": "valeur formatée avec son unité",
+        "value": "formatted value with its unit",
         "numericValue": 0,
         "kind": "data|estimate|assumption",
         "confidence": "low|medium|high",
         "source": "",
-        "asOf": "AAAA ou AAAA-MM",
+        "asOf": "YYYY or YYYY-MM",
         "note": ""
       }
     }
   ]
 }
 
-Contraintes :
-- Entre 25 et 45 facteurs. C'est une analyse sérieuse, pas un résumé.
-- "impact" est un entier 0-100 et doit être cohérent avec "tier".
-- Les facteurs "unknown" n'ont PAS de champ "evidence".
-- Au moins 5 facteurs "critical" et au moins 3 "unknown".
-- N'invente jamais une source. Si tu n'en as pas, utilise kind "estimate" ou "assumption".`;
+Constraints:
+- Between 25 and 45 factors. This is a serious analysis, not a summary.
+- "impact" is an integer 0-100 and must be consistent with "tier".
+- "unknown" factors carry NO "evidence" field.
+- At least 5 "critical" factors and at least 3 "unknown".
+- Never invent a source. When you have none, use kind "estimate" or "assumption".`;
 
 /** Étape 3 — concevoir les scénarios et les stress tests. */
-export const SCENARIO_DESIGN_PROMPT = `Conçois les scénarios à faire tourner sur ce projet.
+export const SCENARIO_DESIGN_PROMPT = `Design the scenarios to run on this project.
 
-Ne te limite pas à optimiste / réaliste / pessimiste : c'est trop simpliste. Combine
-plusieurs facteurs, et inclus des situations volontairement difficiles.
+Do not stop at optimistic / realistic / pessimistic: that is too simplistic. Combine several
+factors, and include deliberately hard situations.
 
-Types attendus :
-- "baseline"   : exactement un, sans aucun décalage
-- "favourable" : 1 à 2, conditions meilleures que prévu
-- "adverse"    : 2 à 3, plusieurs facteurs se dégradent
-- "stress"     : 3 à 4, chocs délibérés destinés à trouver le point de rupture
-- "extreme"    : 1 à 2, combinaisons rares mais plausibles
+Expected kinds:
+- "baseline"   : exactly one, with no shift at all
+- "favourable" : 1 to 2, conditions better than planned
+- "adverse"    : 2 to 3, several factors degrade at once
+- "stress"     : 3 to 4, deliberate shocks meant to find the breaking point
+- "extreme"    : 1 to 2, rare but plausible combinations
 
-"magnitude" est la variation relative appliquée au levier : -0.3 signifie -30 %.
-Choisis des amplitudes réalistes pour le marché concerné, et rattache chaque décalage
-à un facteur existant via son "factorId".
+"magnitude" is the relative variation applied to the lever: -0.3 means -30%.
+Pick amplitudes that are realistic for this market, and attach every shift to an existing
+factor through its "factorId".
 
-Réponds avec ce JSON exact :
+Answer with exactly this JSON:
 {
   "scenarios": [
     {
       "id": "s-1",
       "name": "",
       "kind": "baseline|favourable|adverse|stress|extreme",
-      "question": "La question à laquelle ce scénario répond, formulée simplement",
+      "question": "the question this scenario answers, stated plainly, IN FRENCH",
       "shifts": [
         { "factorId": "f-1", "label": "", "lever": "price", "magnitude": -0.3, "delta": "-30 %" }
       ]
@@ -162,72 +165,75 @@ Réponds avec ce JSON exact :
   ]
 }
 
-Le scénario "baseline" a un tableau "shifts" vide.`;
+The "baseline" scenario carries an empty "shifts" array.`;
 
 /** Étape 4 — l'analyse, une fois les chiffres calculés. */
-export const ANALYSIS_PROMPT = `Les scénarios ont été calculés. Voici leurs résultats chiffrés.
+export const ANALYSIS_PROMPT = `The scenarios have been computed. Here are their numeric results.
 
-Rédige l'analyse. Tu commentes des chiffres déjà calculés : tu ne les recalcules pas et tu ne
-les contredis pas. Sois direct. Si le modèle est fragile, dis-le.
+Write the analysis. You are commenting on figures that are already computed: do not recompute
+them and do not contradict them. Be direct. If the model is fragile, say so.
+Every text below is written IN FRENCH.
 
-Réponds avec ce JSON exact :
+Answer with exactly this JSON:
 {
-  "verdictRationale": "3 à 4 phrases expliquant le verdict à partir des scénarios qui cassent",
-  "strengths": ["3 à 4 points forts, ancrés dans les chiffres"],
-  "weaknesses": ["3 à 4 points faibles, ancrés dans les chiffres"],
-  "keyUncertainties": ["3 à 5 incertitudes qui pèsent le plus sur la fiabilité du résultat"],
+  "verdictRationale": "3 to 4 sentences explaining the verdict from the scenarios that break",
+  "strengths": ["3 to 4 strengths, anchored in the figures"],
+  "weaknesses": ["3 to 4 weaknesses, anchored in the figures"],
+  "keyUncertainties": ["3 to 5 uncertainties weighing most on the reliability of the result"],
   "risks": [
     { "id": "r-1", "title": "", "severity": "critical|high|moderate", "description": "" }
   ]
 }
 
-Contraintes :
-- 3 à 6 risques.
-- Cite des scénarios et des chiffres précis dans "verdictRationale".
-- Ne promets rien sur l'avenir : parle du modèle et des scénarios étudiés.`;
+Constraints:
+- 3 to 6 risks.
+- Cite specific scenarios and figures in "verdictRationale".
+- Promise nothing about the future: speak about the model and the scenarios studied.`;
 
 /** Étape 5 — les recommandations du rapport payant. */
-export const RECOMMENDATIONS_PROMPT = `Rédige les recommandations du rapport.
+export const RECOMMENDATIONS_PROMPT = `Write the report's recommendations.
+Every text below is written IN FRENCH.
 
-Une recommandation utile est actionnable et justifiée par l'analyse de sensibilité.
-Pas « améliorez votre marketing », mais « le coût d'acquisition est la principale fragilité
-du modèle : testez un canal organique avant d'augmenter le budget publicitaire ».
+A useful recommendation is actionable and justified by the sensitivity analysis.
+Not "improve your marketing", but "acquisition cost is the model's main fragility: test an
+organic channel before increasing the advertising budget".
 
-Réponds avec ce JSON exact :
+Answer with exactly this JSON:
 {
   "recommendations": [
     {
       "id": "rec-1",
       "title": "",
-      "body": "3 à 4 phrases : le constat chiffré, l'action, l'effet attendu",
+      "body": "3 to 4 sentences: the quantified finding, the action, the expected effect",
       "expectedImpact": "low|medium|high",
       "priority": "low|medium|high|critical",
       "confidence": "low|medium|high"
     }
   ],
-  "validationNeeded": ["4 à 6 points à vérifier sur le terrain, formulés comme des mesures concrètes"],
-  "executiveStatement": "3 à 4 phrases de résumé exécutif, verdict compris"
+  "validationNeeded": ["4 to 6 things to verify in the field, phrased as concrete measurements"],
+  "executiveStatement": "3 to 4 sentences of executive summary, verdict included"
 }
 
-Contraintes :
-- 4 à 7 recommandations, triées par priorité décroissante.
-- Chaque recommandation s'appuie sur un facteur ou un scénario précis de l'analyse.`;
+Constraints:
+- 4 to 7 recommendations, sorted by decreasing priority.
+- Every recommendation rests on a specific factor or scenario from the analysis.`;
 
 /** Red Team — attaquer son propre business. */
-export const RED_TEAM_PROMPT = `Tu diriges une équipe d'agents dont le seul objectif est de faire échouer ce projet.
+export const RED_TEAM_PROMPT = `You lead a team of agents whose only goal is to make this project fail.
+Every text you produce is written IN FRENCH.
 
-Chaque agent attaque depuis son angle :
-- "competitor"        : comment un concurrent installé écrase ce projet
-- "skeptical-customer": pourquoi le client visé n'achète pas, ou pas deux fois
-- "investor"          : pourquoi un investisseur refuse de financer
-- "regulator"         : quelles obligations légales ou fiscales le projet ignore
-- "cfo"               : où les chiffres ne tiennent pas
-- "operations"        : ce qui casse à l'exécution, en vrai, sur le terrain
+Each agent attacks from its own angle:
+- "competitor"        : how an incumbent crushes this project
+- "skeptical-customer": why the target customer does not buy, or does not buy twice
+- "investor"          : why an investor refuses to fund it
+- "regulator"         : which legal or tax obligations the project ignores
+- "cfo"               : where the numbers do not hold
+- "operations"        : what breaks in execution, for real, in the field
 
-C'est l'équivalent d'un test d'intrusion, mais pour une entreprise. Sois impitoyable et concret :
-chaque attaque doit viser quelque chose de précis dans CE projet.
+This is the equivalent of a penetration test, but for a company. Be ruthless and concrete:
+every attack must target something specific in THIS project.
 
-Réponds avec ce JSON exact :
+Answer with exactly this JSON:
 {
   "vulnerabilities": [
     {
@@ -235,29 +241,30 @@ Réponds avec ce JSON exact :
       "title": "",
       "role": "competitor|skeptical-customer|investor|regulator|cfo|operations",
       "severity": "critical|important|secondary",
-      "attack": "l'attaque, formulée à la première personne par l'agent",
-      "exposure": "ce qui, dans le projet, rend cette attaque possible",
-      "mitigation": "ce qui refermerait la faille"
+      "attack": "the attack, in the first person, spoken by the agent",
+      "exposure": "what, in the project, makes this attack possible",
+      "mitigation": "what would close the gap"
     }
   ],
-  "verdict": "2 à 3 phrases : où le projet est réellement exposé"
+  "verdict": "2 to 3 sentences: where the project is genuinely exposed"
 }
 
-Contraintes :
-- Entre 25 et 45 vulnérabilités, réparties sur les six rôles.
-- Au moins 5 "critical".
-- Aucune vulnérabilité générique : chacune doit citer un élément du projet.`;
+Constraints:
+- Between 25 and 45 vulnerabilities, spread across the six roles.
+- At least 5 "critical".
+- No generic vulnerability: each must cite an element of the project.`;
 
 /** Customer Simulator — un panel de clients synthétiques. */
-export const CUSTOMER_SIMULATION_PROMPT = `Construis un panel de clients synthétiques pour ce projet.
+export const CUSTOMER_SIMULATION_PROMPT = `Build a panel of synthetic customers for this project.
+Every text you produce is written IN FRENCH.
 
-Tu dois découper le marché visé en segments réalistes pour le pays et la ville concernés, avec
-pour chacun un budget, une sensibilité au prix et un consentement à payer.
+Split the target market into segments that are realistic for the country and the city concerned,
+each with a budget, a price sensitivity and a willingness to pay.
 
-C'est une simulation comportementale, pas une validation de marché : les résultats servent à
-comparer des prix entre eux, pas à affirmer que le marché achètera.
+This is a behavioural simulation, not market validation: the results serve to compare prices
+against each other, not to claim that the market will buy.
 
-Réponds avec ce JSON exact :
+Answer with exactly this JSON:
 {
   "segments": [
     {
@@ -272,89 +279,92 @@ Réponds avec ce JSON exact :
     }
   ],
   "testPrices": [0, 0, 0, 0, 0],
-  "caveat": "1 à 2 phrases rappelant qu'une simulation comportementale ne remplace pas un test réel"
+  "caveat": "1 to 2 sentences recalling that a behavioural simulation does not replace a real test"
 }
 
-Contraintes :
-- 4 à 6 segments, dont la somme des "share" vaut 1.
-- "priceSensitivity" entre 0 (indifférent au prix) et 1 (très sensible).
-- "willingnessToPay" dans la devise du projet.
-- "testPrices" : 5 prix encadrant le prix actuel du projet, du moins cher au plus cher.`;
+Constraints:
+- 4 to 6 segments, whose "share" values sum to 1.
+- "priceSensitivity" between 0 (indifferent to price) and 1 (highly sensitive).
+- "willingnessToPay" in the project's currency.
+- "testPrices": 5 prices bracketing the project's current price, cheapest to dearest.`;
 
 /** Investor Simulator — le projet devant plusieurs profils d'investisseurs. */
-export const INVESTOR_SIMULATION_PROMPT = `Fais passer ce projet devant quatre investisseurs aux thèses différentes.
+export const INVESTOR_SIMULATION_PROMPT = `Put this project in front of four investors with different theses.
+Every text you produce is written IN FRENCH.
 
-- "growth"     : cherche une croissance rapide et une économie unitaire saine
-- "impact"     : cherche un effet social ou environnemental mesurable
-- "technology" : cherche une différenciation technique défendable
-- "regional"   : investisseur africain, cherche une exécution locale crédible et un passage à l'échelle régional
+- "growth"     : looks for fast growth and healthy unit economics
+- "impact"     : looks for measurable social or environmental effect
+- "technology" : looks for defensible technical differentiation
+- "regional"   : African investor, looks for credible local execution and regional scale-up
 
-Chacun réagit selon sa thèse, à partir des chiffres réels de la simulation. Les objections
-doivent être celles que l'entrepreneur entendra vraiment en salle.
+Each reacts according to their thesis, from the simulation's real figures. The objections must be
+the ones the founder will actually hear in the room.
 
-Réponds avec ce JSON exact :
+Answer with exactly this JSON:
 {
   "verdicts": [
     {
       "profile": "growth|impact|technology|regional",
-      "name": "nom du profil, ex. « Fonds croissance early-stage »",
+      "name": "the profile name, e.g. « Fonds croissance early-stage »",
       "score": 0,
-      "reaction": "2 à 3 phrases, à la première personne",
-      "objections": ["2 à 4 objections précises"],
+      "reaction": "2 to 3 sentences, in the first person",
+      "objections": ["2 to 4 precise objections"],
       "wouldMeetAgain": true
     }
   ],
-  "expectedObjections": ["4 à 6 objections les plus probables, tous profils confondus"]
+  "expectedObjections": ["the 4 to 6 most likely objections, across all profiles"]
 }
 
-"score" est un entier 0-100 mesurant la lisibilité du dossier pour ce profil.`;
+"score" is an integer 0-100 measuring how legible the case is for this profile.`;
 
 /** Black Swan — des chocs rares mais plausibles. */
-export const BLACK_SWAN_PROMPT = `Génère des événements rares mais plausibles capables de mettre ce projet en difficulté.
+export const BLACK_SWAN_PROMPT = `Generate rare but plausible events capable of putting this project in trouble.
+Every text you produce is written IN FRENCH.
 
-Il ne s'agit pas de « et si les ventes baissaient ». Il s'agit de chocs identifiables, propres
-au secteur, au pays et aux dépendances de CE projet : disparition d'un fournisseur, interdiction
-réglementaire, entrée d'un géant international, doublement d'un coût clé, technologie qui rend
-le produit obsolète, crise de change ou de pouvoir d'achat.
+This is not "what if sales dropped". These are identifiable shocks, specific to the sector, the
+country and the dependencies of THIS project: a supplier disappearing, a regulatory ban, an
+international giant entering, a key cost doubling, a technology making the product obsolete, a
+currency or purchasing-power crisis.
 
-Le but n'est pas de prédire les crises, mais de mesurer la capacité du modèle à encaisser un choc.
+The goal is not to predict crises, but to measure the model's ability to absorb a shock.
 
-Réponds avec ce JSON exact :
+Answer with exactly this JSON:
 {
   "events": [
     {
       "id": "bs-1",
       "title": "",
-      "description": "2 à 3 phrases décrivant le choc et son mécanisme sur ce projet",
+      "description": "2 to 3 sentences describing the shock and its mechanism on this project",
       "likelihood": "rare|unlikely|plausible",
       "shifts": [
         { "factorId": "f-1", "label": "", "lever": "variableCost", "magnitude": 0.6, "delta": "+60 %" }
       ],
-      "survivalNarrative": "ce que l'entreprise devrait faire pour absorber ce choc"
+      "survivalNarrative": "what the company would have to do to absorb this shock"
     }
   ]
 }
 
-Contraintes : 5 à 8 événements, chacun avec au moins un décalage numérique.`;
+Constraints: 5 to 8 events, each with at least one numeric shift.`;
 
 /** Univers parallèles — le même projet sous d'autres modèles économiques. */
-export const UNIVERSES_PROMPT = `Génère des variantes du modèle économique de ce projet.
+export const UNIVERSES_PROMPT = `Generate variants of this project's business model.
+Every text you produce is written IN FRENCH.
 
-L'objectif est de faire découvrir à l'entrepreneur des modèles auxquels il n'a pas pensé :
-B2B au lieu de B2C, marketplace, abonnement, API, licence, commission par transaction,
-offre entreprise, freemium. Chaque variante doit rester crédible pour ce produit et ce marché.
+The goal is to show the founder models they have not considered: B2B instead of B2C,
+marketplace, subscription, API, licensing, per-transaction commission, enterprise offer,
+freemium. Every variant must stay credible for this product and this market.
 
-Pour chaque univers, donne les paramètres qui changent. N'indique que ceux qui bougent
-réellement, en valeur absolue et dans la devise du projet.
+For each universe, give the parameters that change. List only those that actually move, in
+absolute value and in the project's currency.
 
-Réponds avec ce JSON exact :
+Answer with exactly this JSON:
 {
   "universes": [
     {
       "id": "u-1",
       "name": "",
       "businessModel": "",
-      "rationale": "2 à 3 phrases : pourquoi cette variante mérite d'être testée sur ce projet",
+      "rationale": "2 to 3 sentences: why this variant is worth testing on this project",
       "baselineOverrides": {
         "unitPrice": 0,
         "unitVariableCost": 0,
@@ -367,29 +377,30 @@ Réponds avec ce JSON exact :
       }
     }
   ],
-  "narrative": "2 à 3 phrases comparant les univers entre eux"
+  "narrative": "2 to 3 sentences comparing the universes against each other"
 }
 
-Contraintes : 3 à 5 univers, tous différents du modèle actuel.`;
+Constraints: 3 to 5 universes, all different from the current model.`;
 
 /** Experiment Engine — quelle expérience réduit le plus l'incertitude. */
-export const EXPERIMENTS_PROMPT = `Propose les expériences réelles à mener pour réduire l'incertitude de ce projet.
+export const EXPERIMENTS_PROMPT = `Propose the real experiments to run in order to reduce this project's uncertainty.
+Every text you produce is written IN FRENCH.
 
-L'objectif n'est pas de simuler indéfiniment, mais d'apprendre vite. Pars des incertitudes
-identifiées et des facteurs critiques : quelle expérience concrète, réalisable en quelques
-semaines et à coût raisonnable, produirait le signal le plus utile ?
+The goal is not to simulate indefinitely, but to learn fast. Start from the identified
+uncertainties and the critical factors: which concrete experiment, doable in a few weeks at
+reasonable cost, would produce the most useful signal?
 
-Méthodes possibles : sondage, landing page, précommande, prototype, campagne publicitaire test,
-entretien client structuré, test de prix, pilote sur zone restreinte.
+Possible methods: survey, landing page, pre-order, prototype, test advertising campaign,
+structured customer interview, price test, pilot in a limited area.
 
-Réponds avec ce JSON exact :
+Answer with exactly this JSON:
 {
   "experiments": [
     {
       "id": "x-1",
-      "hypothesis": "l'hypothèse testée, formulée de façon réfutable",
+      "hypothesis": "the hypothesis under test, phrased so it can be refuted",
       "method": "",
-      "signal": "ce que le résultat permettrait de trancher",
+      "signal": "what the result would settle",
       "cost": "low|medium|high",
       "durationDays": 14,
       "uncertaintyReduction": 0,
@@ -397,47 +408,47 @@ Réponds avec ce JSON exact :
     }
   ],
   "recommendedExperimentId": "x-1",
-  "rationale": "2 à 3 phrases : pourquoi celle-ci en premier"
+  "rationale": "2 to 3 sentences: why this one first"
 }
 
-Contraintes :
-- 4 à 6 expériences, "priority" 1 étant la plus urgente.
-- "uncertaintyReduction" est un entier 0-100.`;
+Constraints:
+- 4 to 6 experiments, "priority" 1 being the most urgent.
+- "uncertaintyReduction" is an integer 0-100.`;
 
 /** Import d'un business plan externe. */
-export const DOCUMENT_EXTRACTION_PROMPT = `Voici un document fourni par un entrepreneur, censé
-être un business plan.
+export const DOCUMENT_EXTRACTION_PROMPT = `Below is a document supplied by a founder, meant to be
+a business plan. Every user-facing text you produce is written IN FRENCH.
 
-COMMENCE PAR JUGER LE DOCUMENT. Rien ne garantit que ce soit un business plan : ce peut être une
-facture, un CV, un contrat, un article, une page blanche, un fichier illisible. Une simulation
-bâtie sur un tel document ne vaudrait rien, et donnerait à l'entrepreneur une fausse assurance.
+START BY JUDGING THE DOCUMENT. Nothing guarantees it is a business plan: it could be an invoice,
+a CV, a contract, an article, a blank page, an unreadable file. A simulation built on such a
+document would be worthless, and would give the founder false confidence.
 
-Le document est exploitable s'il décrit un projet d'entreprise : au minimum une activité, ce qui
-est vendu et à qui. Un plan incomplet reste exploitable — les trous se déclarent en "missing".
-Un document qui ne parle pas d'un projet d'entreprise ne l'est pas.
+The document is usable if it describes a business project: at minimum an activity, what is sold
+and to whom. An incomplete plan is still usable — the gaps are declared as "missing".
+A document that does not describe a business project is not usable.
 
-Si le document N'EST PAS exploitable, réponds UNIQUEMENT :
+If the document is NOT usable, answer ONLY:
 {
   "documentAssessment": {
     "isBusinessPlan": false,
-    "documentKind": "ce que le document est réellement, en trois mots",
-    "reason": "une phrase, adressée à l'entrepreneur, disant ce qui manque"
+    "documentKind": "what the document actually is, in three words",
+    "reason": "one sentence, addressed to the founder, saying what is missing"
   }
 }
 
-Sinon, extrais les informations nécessaires à une simulation, exactement comme si le projet avait
-été construit dans IDEM. Ce qui n'est pas dans le document ne doit pas être inventé
-silencieusement : marque-le "missing" avec answerable: true, ou "uncertain" si tu l'as estimé.
+Otherwise, extract the information a simulation needs, exactly as if the project had been built
+inside IDEM. What is not in the document must not be invented silently: mark it "missing" with
+answerable: true, or "uncertain" when you estimated it.
 
-Un plan importé ne correspond à aucun projet IDEM existant : il va en créer un. Renseigne donc
-aussi "projectSeed", qui peuplera la fiche du projet. N'y invente rien : ce que le document ne dit
-pas reste vide, et "constraints" ne recense que des contraintes explicitement mentionnées
-(réglementation, délai, technique, ressources).
+An imported plan matches no existing IDEM project: it will create one. So also fill in
+"projectSeed", which populates the project record. Invent nothing there: what the document does
+not state stays empty, and "constraints" lists only explicitly mentioned constraints
+(regulation, deadline, technical, resources).
 
-"type" doit valoir exactement l'une de ces valeurs, celle qui décrit le mieux ce qui est vendu :
+"type" must be exactly one of these values, the one that best describes what is sold:
 web, mobile, iot, desktop, enterprise, ecommerce, api, ai, blockchain, landing, other.
 
-Utilise le même format JSON que l'analyse de projet, précédé du verdict :
+Use the same JSON shape as the project analysis, preceded by the verdict:
 {
   "documentAssessment": { "isBusinessPlan": true },
   "profile": { ... },
@@ -446,9 +457,9 @@ Utilise le même format JSON que l'analyse de projet, précédé du verdict :
   "narrative": "",
   "projectSeed": {
     "type": "other",
-    "description": "deux ou trois phrases décrivant le projet",
-    "scope": "ce que le projet couvre",
-    "targets": "à qui il s'adresse",
+    "description": "two or three sentences describing the project",
+    "scope": "what the project covers",
+    "targets": "who it is aimed at",
     "constraints": [],
     "budgetIntervals": "",
     "teamSize": "",

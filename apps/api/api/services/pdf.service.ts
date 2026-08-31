@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
 import logger from '../config/logger';
+import { brandFontLinks } from '../utils/google-fonts.util';
 import { SectionModel } from '../models/section.model';
 import { TypographyModel } from '../models/brand-identity.model';
 import { cacheService } from './cache.service';
@@ -871,15 +872,15 @@ export class PdfService {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${title} - ${projectName}</title>
-        ${typography?.url ? `<link href="${typography.url}" rel="stylesheet">` : ''}
+        ${brandFontLinks(typography)}
         <script>
           // Configuration optimisée des scripts avec typographie du projet
           function setupScripts() {
             const primaryFont = ${
-              typography?.primaryFont ? `'${typography.primaryFont}'` : "'Inter'"
+              typography?.primaryFont ? `'${typography.primaryFont}'` : "'Archivo'"
             };
             const secondaryFont = ${
-              typography?.secondaryFont ? `'${typography.secondaryFont}'` : "'Inter'"
+              typography?.secondaryFont ? `'${typography.secondaryFont}'` : "'IBM Plex Sans'"
             };
 
             if (typeof window.tailwind !== 'undefined') {
@@ -922,19 +923,19 @@ export class PdfService {
 
           body {
             font-family: ${
-              typography?.primaryFont ? `'${typography.primaryFont}'` : "'Inter'"
+              typography?.primaryFont ? `'${typography.primaryFont}'` : "'Archivo'"
             }, system-ui, sans-serif;
           }
 
           h1, h2, h3, h4, h5, h6 {
             font-family: ${
-              typography?.primaryFont ? `'${typography.primaryFont}'` : "'Inter'"
+              typography?.primaryFont ? `'${typography.primaryFont}'` : "'Archivo'"
             }, system-ui, sans-serif;
           }
 
           p, div, span, li, td, th {
             font-family: ${
-              typography?.secondaryFont ? `'${typography.secondaryFont}'` : "'Inter'"
+              typography?.secondaryFont ? `'${typography.secondaryFont}'` : "'IBM Plex Sans'"
             }, system-ui, sans-serif;
           }
 

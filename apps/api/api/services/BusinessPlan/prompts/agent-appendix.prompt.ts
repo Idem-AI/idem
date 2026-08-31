@@ -1,4 +1,4 @@
-import { bpPageFormat } from './_shared.prompt';
+import { BP_BRAND_RULES, bpPageFormat } from './_shared.prompt';
 
 export const AGENT_APPENDIX_PROMPT = `<role>Senior business documentation specialist</role>
 <objective>Create an Appendix section containing relevant supporting data and documentation.</objective>
@@ -23,6 +23,8 @@ Select 4-5 relevant sections to display:
 </chart_requirements>
 
 ${bpPageFormat('2')}
+
+${BP_BRAND_RULES}
 
 <technical_rules>
 - Output ONLY raw HTML + Tailwind CSS utilities in a single minified line.

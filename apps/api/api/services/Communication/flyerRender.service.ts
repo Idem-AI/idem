@@ -22,6 +22,7 @@ import puppeteer, { Browser, Page } from 'puppeteer';
 import sharp from 'sharp';
 import logger from '../../config/logger';
 import { StorageService } from '../storage.service';
+import { brandFontLinks } from '../../utils/google-fonts.util';
 import { FlyerFormat } from '../../models/communication.model';
 
 /** Déclinaisons de logo disponibles pour la marque, par famille et polarité. */
@@ -633,20 +634,18 @@ export class FlyerRenderService {
     dims: FlyerSize,
     typography?: { url?: string; primaryFont?: string; secondaryFont?: string }
   ): string {
-    const fontUrl = typography?.url || 'https://fonts.googleapis.com/css2?family=Jura:wght@300;400;500;600;700&display=swap';
-    // Clean up Google Font URL if necessary (ensure it has &display=swap)
-    const finalFontUrl = fontUrl.includes('display=swap') ? fontUrl : `${fontUrl}&display=swap`;
-    const fontPrimary = typography?.primaryFont || 'Jura';
-    const fontSecondary = typography?.secondaryFont || 'Jura';
+    // `typography.url` est un slug, pas une feuille de style : la construire à
+    // partir des familles, sinon le visuel sort dans la police système.
+    const fontLinks = brandFontLinks(typography);
+    const fontPrimary = typography?.primaryFont || 'Archivo';
+    const fontSecondary = typography?.secondaryFont || 'IBM Plex Sans';
 
     return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=${dims.width},initial-scale=1">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="${finalFontUrl}" rel="stylesheet">
+${fontLinks}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/primeicons@7.0.0/primeicons.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>

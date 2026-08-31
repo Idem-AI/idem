@@ -103,29 +103,29 @@ export function inspectOutput(
     issues.push({ code, message, severity });
 
   if (text.length === 0) {
-    add('empty', 'Sortie vide.');
+    add('empty', 'Empty output.');
     return finalize(issues);
   }
 
   if (text.length < minChars) {
-    add('too_short', `Sortie anormalement courte (${text.length} caractères, minimum ${minChars}).`);
+    add('too_short', `Abnormally short output (${text.length} characters, minimum ${minChars}).`);
   }
 
   // Clôture de bloc de code laissée dans la sortie: casse le rendu HTML et le PDF.
   if (/```/.test(text)) {
-    add('code_fence', 'La sortie contient une clôture de bloc de code (```) non nettoyée.');
+    add('code_fence', 'The output contains an uncleaned code fence (```).');
   }
 
   for (const pattern of PROMPT_LEAK_PATTERNS) {
     if (pattern.test(text)) {
-      add('prompt_leak', "La sortie répète des instructions d'orchestration internes.");
+      add('prompt_leak', 'The output repeats internal orchestration instructions.');
       break;
     }
   }
 
   for (const pattern of META_TALK_PATTERNS) {
     if (pattern.test(text)) {
-      add('meta_talk', 'La sortie commente la tâche au lieu de ne contenir que le livrable.');
+      add('meta_talk', 'The output comments on the task instead of containing the deliverable only.');
       break;
     }
   }
@@ -133,7 +133,7 @@ export function inspectOutput(
   if (expectation.forbidPlaceholders !== false) {
     for (const { pattern, label } of PLACEHOLDER_PATTERNS) {
       if (pattern.test(text)) {
-        add('placeholder', `Marqueur de gabarit non rempli détecté (${label}).`);
+        add('placeholder', `Unfilled template placeholder detected (${label}).`);
         break;
       }
     }
@@ -144,7 +144,7 @@ export function inspectOutput(
   } else if (format === 'json') {
     inspectJson(text, add);
   } else if (/[a-zA-Z]<[a-z]+[^>]*$/.test(text)) {
-    add('truncated', 'La sortie se termine sur une balise incomplète (réponse tronquée).');
+    add('truncated', 'The output ends on an incomplete tag (truncated response).');
   }
 
   if (expectation.currency) {
@@ -166,13 +166,13 @@ export function inspectOutput(
 
 function inspectHtml(text: string, add: (c: string, m: string, s?: IssueSeverity) => void): void {
   if (!/<[a-z][^>]*>/i.test(text)) {
-    add('not_html', 'Aucune balise HTML alors que du HTML était attendu.');
+    add('not_html', 'No HTML tag at all, while HTML was expected.');
     return;
   }
 
   // Balise ouverte non refermée en fin de flux = troncature nette.
   if (/<[^>]*$/.test(text)) {
-    add('truncated', 'La sortie se termine au milieu d\'une balise (réponse tronquée).');
+    add('truncated', 'The output ends in the middle of a tag (truncated response).');
   }
 
   // Les sections embarquent du Chart.js : une balise écrite dans une chaîne JS
@@ -203,7 +203,7 @@ function inspectJson(text: string, add: (c: string, m: string, s?: IssueSeverity
   try {
     JSON.parse(stripped);
   } catch (error: any) {
-    add('invalid_json', `JSON invalide: ${error?.message ?? 'analyse impossible'}.`);
+    add('invalid_json', `Invalid JSON: ${error?.message ?? 'could not be parsed'}.`);
   }
 }
 
