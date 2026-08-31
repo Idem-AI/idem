@@ -30,6 +30,10 @@ import { storageService } from '../storage.service';
 import { buildLogoBlock, collectLogoUrls } from '../../utils/brand-context.util';
 import { buildArtDirectionBlock } from '../../utils/art-direction.util';
 import { ANTI_SLOP_BLOCK } from '../design/antiSlop.prompt';
+import {
+  EDITORIAL_RESTRAINT_BLOCK,
+  RESTRAINT_SELF_REVIEW_BLOCK,
+} from '../design/editorialRestraint.prompt';
 import { lintHtml, repairHtml } from '../design/slopLint.service';
 import { buildDesignSeed, describeSeed } from '../design/designSeed';
 import { ensureProjectArtDirection } from '../design/artDirection.provider';
@@ -684,6 +688,8 @@ export class BusinessPlanService extends GenericService {
         ? `<composition_seed>\nEvery section of this plan shares the composition seed below: it is what makes them belong to the same document.\n${describeSeed(seed)}\n</composition_seed>`
         : '',
       ANTI_SLOP_BLOCK,
+      EDITORIAL_RESTRAINT_BLOCK,
+      RESTRAINT_SELF_REVIEW_BLOCK,
     ]
       .filter(Boolean)
       .join('\n\n');

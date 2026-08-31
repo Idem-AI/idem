@@ -28,10 +28,11 @@ export function bpPageFormat(pages: string): string {
 </page_format>
 
 <content_volume>
-- Target for this section: ${pages} FULL A4 page(s).
+- Indicative target for this section: ${pages} A4 page(s). It is a TARGET, not a quota.
 ${PAGE_BUDGET}
-- FILL THE PAGES: keep writing until the target is reached, so the last page is at least 85% full. A half-empty page is a defect.
-- Never pad with filler sentences: add depth instead — figures, local examples, hypotheses, risks, timelines, comparisons.
+- Reach it with SUBSTANCE: figures, local examples, stated hypotheses, risks, timelines, comparisons, named sources.
+- If the substance runs out before the target, STOP. A section two thirds full of real content beats a full section padded with sentences that say nothing — and padding is exactly what makes a generated document recognisable.
+- Never write a sentence that restates its heading, announces what the section will say, or would survive a change of company name.
 </content_volume>`;
 }
 
@@ -47,7 +48,10 @@ ${PAGE_BUDGET}
 export const BP_BRAND_RULES = `<brand_compliance>
 - The art direction and the charter supplied in BRAND CONTEXT are not indicative: colours, typefaces and visual grammar come from them, and there is nothing to invent.
 - No hex value outside the palette. Tints come from opacity, never from a hue shift.
-- Two typefaces, the charter ones, applied as style="font-family: '[FontName]', sans-serif".
+- Two typefaces, the charter ones. Prefer the classes font-primary (headings) and font-secondary (running text): the renderer binds them to the real brand families, whereas a hand-written font-family only works if the name is spelled exactly right. A literal style="font-family: '[FontName]', sans-serif" stays acceptable when the exact charter name is used.
+- HIERARCHY REPLACES DECORATION. It is built on two contrasts, and they are what make a page read without a single ornament:
+  * WEIGHT: a light weight (200/300) against a heavy one (700/800) inside the same family. Never build a whole page on one weight.
+  * SIZE: at least a 3x jump between the section title and the running text, and a real gap between every level. Three levels minimum, never two elements of similar size competing.
 - The LOGO must appear in this section: small, in the same place as in the other sections (header or footer), in the declension that contrasts with the actual background. Follow the <logo> block in BRAND CONTEXT to the letter — exact URL, never invented.
 - This section belongs to a document: same rules, same border radius, same treatment of headings and tables as the others. Spectacular gestures are reserved for the cover.
 </brand_compliance>`

@@ -21,8 +21,9 @@ CRITICAL — read the BRAND CONTEXT block at the end of this prompt and apply it
 - ACCENT COLOR → use bg-[ACCENT COLOR], text-[ACCENT COLOR] for highlights, accents, chart emphasis.
 - BACKGROUND COLOR → use bg-[BACKGROUND COLOR] for slide backgrounds and card backgrounds.
 - TEXT COLOR → use text-[TEXT COLOR] for body text and descriptions.
-- PRIMARY FONT → apply via style="font-family: [PRIMARY FONT]" on the outermost slide container.
-- SECONDARY FONT → use style="font-family: [SECONDARY FONT]" for body text / descriptions.
+- PRIMARY FONT → prefer the class font-primary on headings; the renderer binds it to the real brand family. style="font-family: [PRIMARY FONT]" on the outermost slide container also works when the exact name is used.
+- SECONDARY FONT → class font-secondary for body text and descriptions.
+- HIERARCHY REPLACES DECORATION, and it rests on two contrasts: a light weight (200/300) against a heavy one (700/800) in the same family, and at least a 3x size jump between the slide title and the body. A slide built on one weight and two close sizes needs coloured blocks to be readable — that is the defect, not the fix.
 - Brand logo: MANDATORY on every slide. The <logo> block in BRAND CONTEXT lists the ready-to-use URLs and the rule for picking the right declension. Follow it literally — copy the exact URL, never invent one, never paste raw SVG. Render as <img src="THE_EXACT_URL" class="h-8 w-auto object-contain" alt="logo" /> in the SAME corner on every slide, so the deck reads as one document. Ink and background must sit in opposite luminance families: a light-ink logo on a light slide erases the signature.
 - The ART DIRECTION block in BRAND CONTEXT governs the grid, the border radius, the rules, the shadows and the image treatment of this deck. Where it contradicts a default habit below (rounded cards, soft borders), the art direction wins.
 - ALL colors on the slide MUST come from the brand palette above. Do NOT invent colors, use generic blue/red/green, or use Tailwind default palette (blue-500, gray-800, etc.).

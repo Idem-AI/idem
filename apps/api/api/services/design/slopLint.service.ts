@@ -320,6 +320,42 @@ export function lintHtml(html: string, options: SlopLintOptions = {}): SlopLintR
   }
 
   // ── Niveau 1 ────────────────────────────────────────────────────────────
+  // ── Décoration sans fonction ────────────────────────────────────────────
+  // Ces trois règles mesurent le défaut que le prompt de retenue éditoriale
+  // demande d'éviter. Le demander ne suffit pas : sur douze pages, il en reste
+  // toujours, et l'accumulation est précisément ce qui rend un document
+  // « chargé pour rien ».
+  const iconCount = countOf(/class=["'][^"']*\bpi\s+pi-/g);
+  add(
+    'icon-overload',
+    'warning',
+    `Icônes en surnombre (${iconCount}) : une icône par puce ou par titre est un tic de gabarit.`,
+    'N\'en garder que celles qui encodent une distinction que le texte ne porte pas (trois au maximum).',
+    iconCount > 4 ? iconCount : 0
+  );
+
+  add(
+    'decorative-shape',
+    'warning',
+    'Forme décorative posée pour remplir (cercle flouté, blob, halo en position absolue).',
+    'Supprimer. Sur un document, la hiérarchie typographique et le blanc structurent la page ; une forme qui ne porte aucune information la charge.',
+    countOf(/absolute[^"']*\b(blur-|rounded-full)[^"']*["']/g) +
+      countOf(/rounded-full[^"']*\bblur-/g)
+  );
+
+  // Une pastille colorée sans chiffre ni date ne transporte rien : c'est
+  // l'ornement le plus fréquent des sorties générées.
+  const emptyBadges = (source.match(/<span[^>]*class=["'][^"']*(rounded-full|rounded-md)[^"']*bg-[^"']*["'][^>]*>([^<]{1,28})<\/span>/g) || []).filter(
+    (tag) => !/\d/.test(tag.replace(/<[^>]+>/g, ''))
+  ).length;
+  add(
+    'empty-badge',
+    'warning',
+    'Pastille ou étiquette colorée sans donnée (ni chiffre, ni date, ni statut).',
+    'Supprimer la pastille et laisser le texte, ou y mettre la donnée qu\'elle est censée porter.',
+    emptyBadges
+  );
+
   add(
     'side-stripe',
     'warning',

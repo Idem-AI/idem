@@ -133,6 +133,64 @@ Trois filets de sécurité en aval :
 | Pitch deck | Les URLs réelles sont protégées du remplacement par photo de stock ; `logo-missing` est journalisé |
 | Site généré | Le linter de `we-dev-next` échoue si aucune déclinaison n'est référencée |
 
+## Les polices de la marque
+
+Elles ne se chargeaient **nulle part**. `TypographyModel.url` ne contient pas une
+feuille de style mais un slug (`typography/systeme-premium`) — c'est ce que
+l'agent produit et ce que le front utilise comme identifiant. Or les quatre
+moteurs de rendu serveur l'injectaient tel quel dans un `<link rel="stylesheet">` :
+le lien ne chargeait rien, le `font-family` retombait sur la police système, et
+**tous** les livrables sortaient dans une typographie qui n'était pas celle de la
+charte, sans la moindre erreur.
+
+`utils/google-fonts.util.ts` construit désormais l'URL au moment du rendu, à
+partir des familles. Deux `<link>` par famille, délibérément : l'un sans
+spécification de graisse (toujours valide, garantit le chargement), l'autre avec
+la plage complète 100→900 (permet le contraste de graisse). Une requête unique
+combinant les deux familles ferait échouer les DEUX dès qu'une graisse manque à
+l'une d'elles.
+
+Le catalogue de polices proposé par l'agent a été refait dans la foulée : le
+premier jeu était **codé en dur** sur « Exo 2 / Roboto », donc identique pour tous
+les projets, et Roboto figure dans la liste anti-générique. Les repli de dernier
+recours sont passés de `Inter` / `Montserrat` à `Archivo` / `IBM Plex Sans`.
+
+## La retenue éditoriale
+
+`services/design/editorialRestraint.prompt.ts` traite une pathologie
+**différente** de l'anti-slop, et les deux peuvent coexister : une page peut être
+parfaitement hors des clichés et rester illisible parce qu'elle est saturée
+d'ornements et de phrases creuses.
+
+La cause est identifiable : un modèle à qui l'on demande de « remplir une page »
+remplit — une carte, une icône, une pastille, une phrase de transition, parce que
+produire du volume est plus facile que produire de la matière. Le remède n'est pas
+de demander « moins » (un adjectif de plus) mais d'imposer un **critère** : le
+test de soustraction. Retirer l'élément ; si le lecteur ne perd ni information, ni
+hiérarchie, ni chemin de lecture, il ne doit pas exister.
+
+Deux conséquences concrètes :
+
+- le quota de pages du business plan (« remplir à 85 %, une page à moitié vide est
+  un défaut ») **produisait** le remplissage qu'on reprochait au rendu. Il est
+  devenu une cible indicative : moins de pages vaut mieux que du bourrage ;
+- le linter mesure maintenant l'accumulation — `icon-overload`,
+  `decorative-shape`, `empty-badge` — parce que la demander dans le prompt ne
+  suffit pas à l'échelle d'un document de douze pages.
+
+## Le vocabulaire de composants
+
+Chaque style porte un `tailwindRecipe` : les six primitives d'un document (page,
+titre de section, texte courant, filet, bloc de données, légende) en classes
+Tailwind exactes, plus les appariements typographiques qui le servent.
+
+C'est la réponse à un défaut précis : sans primitives données, le modèle invente à
+chaque bloc une carte, un badge, un liseré — et c'est ce bricolage accumulé qui
+produit la décoration inutile. Une bibliothèque de composants tierce ferait
+l'inverse de ce qu'on cherche (elle impose SON look à toutes les marques) ; des
+recettes par style donnent le même bénéfice — assembler au lieu d'inventer — sans
+uniformiser.
+
 ## Ce que touche la direction artistique
 
 | Module | Ce qu'il reçoit |

@@ -41,6 +41,10 @@ import {
   resolveStyle,
 } from '../design/artDirection.catalog';
 import { ANTI_SLOP_BLOCK, SELF_REVIEW_BLOCK } from '../design/antiSlop.prompt';
+import {
+  EDITORIAL_RESTRAINT_BLOCK,
+  RESTRAINT_SELF_REVIEW_BLOCK,
+} from '../design/editorialRestraint.prompt';
 import { buildDesignSeed, describeSeed } from '../design/designSeed';
 import { lintHtml, repairHtml } from '../design/slopLint.service';
 import { buildArtDirectionBlock } from '../../utils/art-direction.util';
@@ -784,7 +788,13 @@ export class BrandingService extends GenericService {
       artDirectionBlock,
       `<composition_seed>\nThis brand book is composed on the seed below. It holds for EVERY page: it is what makes them belong to the same document.\n${describeSeed(brandSeed)}\n</composition_seed>`,
       ANTI_SLOP_BLOCK,
+      // Deux pathologies distinctes : l'anti-slop retire les tics du corpus,
+      // la retenue éditoriale retire ce qui ne sert à rien. Une page peut être
+      // parfaitement originale et rester illisible parce qu'elle est saturée
+      // d'ornements et de phrases creuses.
+      EDITORIAL_RESTRAINT_BLOCK,
       SELF_REVIEW_BLOCK,
+      RESTRAINT_SELF_REVIEW_BLOCK,
     ]
       .filter(Boolean)
       .join('\n\n');
