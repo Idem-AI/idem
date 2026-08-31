@@ -41,11 +41,11 @@ export interface ModelCredentials {
  */
 const defaultModelConfigs: ModelConfig[] = [
   {
-    modelName: 'GLM 5.3',
-    modelKey: 'glm-5.3',
+    modelName: 'GLM 5.2',
+    modelKey: 'glm-5.2',
     useImage: false,
     provider: 'glm',
-    description: 'GLM 5.3 — génération de code et appels d\'outils',
+    description: 'GLM 5.2 — génération de code et appels d\'outils',
     functionCall: true,
     temperature: 0.7,
     topP: 0.95,

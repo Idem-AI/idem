@@ -51,13 +51,33 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string): 
 
   // GLM (Z.ai) — endpoint OpenAI-compatible, donc le même client. Le
   // raisonnement est coupé : il se décompte du budget de sortie, et sur une
-  // génération de code longue il le mangerait avant le code lui-même.
+  // génération de code longue il le mangerait avant le code lui-même. Laissé
+  // actif, Z.ai n'émet que des deltas `reasoning_content`, un champ hors norme
+  // OpenAI que le SDK ne mappe pas en texte : le flux reste ouvert sans jamais
+  // rien produire, et l'interface tourne indéfiniment sans erreur.
+  //
+  // `thinking` ne passe pas par `providerOptions` : le provider OpenAI du SDK
+  // ne recopie qu'une liste fermée de champs (max_completion_tokens, store,
+  // metadata, prediction, reasoning_effort) et jette tout le reste en silence.
+  // On l'injecte donc dans le corps via un `fetch` intermédiaire.
   if (provider === 'glm') {
     const glm = createOpenAI({
       apiKey,
       baseURL,
+      fetch: async (input, init) => {
+        if (typeof init?.body === 'string') {
+          try {
+            const body = JSON.parse(init.body);
+            body.thinking = { type: 'disabled' };
+            init = { ...init, body: JSON.stringify(body) };
+          } catch {
+            // Corps non-JSON : rien à injecter, on relaie tel quel.
+          }
+        }
+        return fetch(input, init);
+      },
     });
-    initOptions = { providerOptions: { openai: { thinking: { type: 'disabled' } } } };
+    initOptions = {};
     return glm(model) as LanguageModel;
   }
 
