@@ -261,9 +261,11 @@ export class NewSimulation {
         // fichier, pas dans une notification qui disparaît.
         this.documentError.set(rejection);
       } else {
+        // Panne côté service : le message de l'API est déjà écrit pour
+        // l'utilisateur, on ne le double pas d'un détail technique.
         this.toasts.error(
           this.translate.instant('newRun.analysisFailed') as string,
-          error instanceof Error ? error.message : undefined,
+          serverMessage(error) ?? undefined,
         );
       }
     } finally {
@@ -427,6 +429,14 @@ function documentRejection(error: unknown): string | null {
   if (status !== 415 && status !== 422) {
     return null;
   }
-  const message = (error as { error?: { message?: string } })?.error?.message;
-  return message ?? null;
+  return serverMessage(error);
+}
+
+/**
+ * Le message rédigé par l'API. Elle en écrit un pour tout ce que
+ * l'utilisateur peut comprendre — document refusé, service indisponible — et
+ * garde le détail technique dans ses journaux.
+ */
+function serverMessage(error: unknown): string | null {
+  return (error as { error?: { message?: string } })?.error?.message ?? null;
 }
