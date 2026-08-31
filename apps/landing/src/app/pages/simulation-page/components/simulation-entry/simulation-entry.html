@@ -1,0 +1,78 @@
+<section class="py-24 lg:py-32">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6">
+    <h2 class="max-w-3xl text-3xl font-bold leading-tight text-balance text-text-primary sm:text-4xl lg:text-5xl" i18n="@@simulation.entry.title">
+      Two ways to start
+    </h2>
+
+    <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:gap-8">
+      <div class="glass-card flex flex-col overflow-hidden rounded-3xl">
+        <div class="relative h-44 shrink-0 border-b border-[var(--glass-border-subtle)]">
+          <img
+            ngSrc="/assets/images/home/bp_showcase.webp"
+            fill
+            sizes="(max-width: 640px) 100vw, 45vw"
+            i18n-alt="@@simulation.entry.project.imageAlt"
+            alt="Deliverables already generated inside an IDEM project"
+            class="object-cover object-top"
+          />
+          <div class="absolute inset-0 bg-linear-to-t from-[var(--glass-bg-darker)] to-transparent" aria-hidden="true"></div>
+        </div>
+        <div class="flex flex-1 flex-col p-6 sm:p-7">
+          <h3 class="text-xl font-semibold text-text-primary" i18n="@@simulation.entry.project.title">From an IDEM project</h3>
+          <p class="mt-3 flex-1 leading-relaxed text-text-secondary" i18n="@@simulation.entry.project.body">
+            Business plan, market analysis, financial forecasts and business model are already there. The engine has less to ask for, and you pay less.
+          </p>
+          <a [href]="dashboardUrl" class="mt-6 inline-flex items-center gap-2 font-semibold text-accent-700 transition-colors hover:text-text-primary dark:text-accent-500">
+            <span i18n="@@simulation.entry.project.cta">Open my dashboard</span>
+            <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M5 12h14m0 0-5-5m5 5-5 5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="glass-card flex flex-col overflow-hidden rounded-3xl">
+        <div class="relative h-44 shrink-0 border-b border-[var(--glass-border-subtle)]">
+          <img
+            ngSrc="/assets/images/overview/businessplan.webp"
+            fill
+            sizes="(max-width: 640px) 100vw, 45vw"
+            i18n-alt="@@simulation.entry.import.imageAlt"
+            alt="An existing business plan being read by IDEM"
+            class="object-cover object-top"
+          />
+          <div class="absolute inset-0 bg-linear-to-t from-[var(--glass-bg-darker)] to-transparent" aria-hidden="true"></div>
+        </div>
+        <div class="flex flex-1 flex-col p-6 sm:p-7">
+          <h3 class="text-xl font-semibold text-text-primary" i18n="@@simulation.entry.import.title">By importing your business plan</h3>
+          <p class="mt-3 flex-1 leading-relaxed text-text-secondary" i18n="@@simulation.entry.import.body">
+            PDF, DOCX or plain text. IDEM extracts the activity, market, target customer, prices and costs, then lets you fill in the gaps before you start.
+          </p>
+          <a [href]="simulationUrl" class="mt-6 inline-flex items-center gap-2 font-semibold text-accent-700 transition-colors hover:text-text-primary dark:text-accent-500">
+            <span i18n="@@simulation.entry.import.cta">Import a business plan</span>
+            <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M5 12h14m0 0-5-5m5 5-5 5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="mt-20 text-2xl font-bold text-text-primary sm:text-3xl" i18n="@@simulation.offers.title">What you are buying</h3>
+    <p class="mt-4 max-w-2xl leading-relaxed text-text-secondary" i18n="@@simulation.offers.body">
+      Simulation is billed separately from the rest of IDEM: it spends external research, several agents and compute. The amount is shown and confirmed before anything starts.
+    </p>
+
+    <ul class="mt-10 grid gap-5 sm:grid-cols-3">
+      @for (offer of offers; track offer.id) {
+        <li
+          class="rounded-2xl border p-6"
+          [class]="offer.highlight ? 'border-accent-500/50 bg-accent-500/[0.08]' : 'border-[var(--glass-border)] bg-[var(--glass-bg-subtle)]'"
+        >
+          <p class="font-semibold text-text-primary">{{ offer.name }}</p>
+          <p class="mt-2.5 text-sm leading-relaxed text-text-secondary">{{ offer.body }}</p>
+        </li>
+      }
+    </ul>
+  </div>
+</section>

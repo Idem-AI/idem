@@ -2411,6 +2411,39 @@
       },
       "foot": {
         "note": "Aucune donnée inventée · {{queries}} recherches"
+      },
+      "elapsed": "Temps écoulé",
+      "reassurance": {
+        "planning": {
+          "0": "Nous répartissons le travail entre nos assistants : recherche, rédaction, vérification.",
+          "1": "Chaque section aura son chercheur dédié avant d'être rédigée.",
+          "2": "Nous lisons votre projet pour savoir quelles données chercher."
+        },
+        "searching": {
+          "0": "Nos assistants interrogent le web pour trouver des chiffres réels sur votre marché.",
+          "1": "Chaque donnée trouvée est conservée avec le lien de sa source.",
+          "2": "Nous cherchons des données récentes et situées sur votre zone géographique."
+        },
+        "writing": {
+          "0": "Nous rédigeons la section à partir des données trouvées, sans rien inventer.",
+          "1": "Les chiffres sont repris tels quels, avec leur année et leur périmètre.",
+          "2": "Une section bien documentée demande quelques instants d'écriture."
+        },
+        "verifying": {
+          "0": "Nous relisons chaque affirmation chiffrée pour la rattacher à sa source.",
+          "1": "Une donnée sans source ne reste pas dans votre document.",
+          "2": "La vérification est ce qui distingue un document fiable d'un texte plausible."
+        },
+        "finalizing": {
+          "0": "Nous assemblons les sections et mettons votre document en forme.",
+          "1": "Encore quelques instants : nous ordonnons les chiffres et les tableaux.",
+          "2": "Dernière relecture avant de vous rendre la main."
+        },
+        "done": {
+          "0": "Votre document est prêt, chaque chiffre renvoie à sa source.",
+          "1": "Vous pouvez maintenant relire et ajuster ce qui vous semble utile.",
+          "2": "Tout est enregistré : vous retrouverez ce document dans votre projet."
+        }
       }
     },
     "documentEditor": {

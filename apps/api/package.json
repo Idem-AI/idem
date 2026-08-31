@@ -50,6 +50,7 @@
     "nodemailer": "^7.0.10",
     "openai": "^4.95.1",
     "opentype.js": "^2.0.0",
+    "pdfjs-dist": "^4.8.69",
     "pg": "^8.13.3",
     "potrace": "^2.1.8",
     "prom-client": "^15.1.3",

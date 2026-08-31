@@ -13,17 +13,15 @@
  *    and its fallback model live in ai.config.ts (`communication.imageSourcing`).
  */
 import axios from 'axios';
-import { GoogleGenAI } from '@google/genai';
 import logger from '../../config/logger';
 import { StorageService } from '../storage.service';
 import { AI_CONFIG } from '../../config/ai.config';
-import { withGeminiFallback } from '../../utils/gemini-fallback';
 import {
   FlyerImageAnalysis,
   FlyerImageAttribution,
   FlyerImageSource,
 } from '../../models/communication.model';
-import { getGoogleGenAIClient, isGeminiConfigured } from '../../config/google-genai.client';
+import { analyzeImage, generateImage, isGlmConfigured } from '../glm-media.service';
 
 export interface SourcedImage {
   url: string;
@@ -44,11 +42,12 @@ export interface ImageBrief {
 // de `AI_CONFIG.fallback` (le repli texte global), qui n'a rien à voir avec ce
 // que fait ce service.
 const IMAGE_SOURCING_CONFIG = AI_CONFIG.communication.imageSourcing;
-const GEMINI_IMAGE_MODEL = IMAGE_SOURCING_CONFIG.imageModel;
-const GEMINI_IMAGE_FALLBACK_MODEL = IMAGE_SOURCING_CONFIG.imageFallbackModel;
-const GEMINI_VISION_MODEL = IMAGE_SOURCING_CONFIG.visionModel; // fast + cheap for vision-only
-const GEMINI_VISION_FALLBACK_MODEL = IMAGE_SOURCING_CONFIG.visionFallbackModel;
+const GLM_IMAGE_MODEL = IMAGE_SOURCING_CONFIG.imageModel;
+const GLM_IMAGE_FALLBACK_MODEL = IMAGE_SOURCING_CONFIG.imageFallbackModel;
+const GLM_VISION_MODEL = IMAGE_SOURCING_CONFIG.visionModel;
+const GLM_VISION_FALLBACK_MODEL = IMAGE_SOURCING_CONFIG.visionFallbackModel;
 const VISION_MAX_OUTPUT_TOKENS = IMAGE_SOURCING_CONFIG.visionMaxOutputTokens;
+
 
 const PEXELS_ENDPOINT = 'https://api.pexels.com/v1/search';
 
@@ -66,16 +65,9 @@ Rules: subject<=80 chars describing "${searchQuery}", mood=1-3 adjectives, domin
 
 export class ImageSourcingService {
   private readonly storage = new StorageService();
-  private _geminiAI?: GoogleGenAI;
 
   constructor() {}
 
-  private get geminiAI(): GoogleGenAI {
-    if (!this._geminiAI) {
-      this._geminiAI = getGoogleGenAIClient();
-    }
-    return this._geminiAI;
-  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // PUBLIC ENTRY POINT
@@ -170,80 +162,33 @@ export class ImageSourcingService {
     brief: ImageBrief,
     opts: { userId: string; projectId: string; tag: string }
   ): Promise<SourcedImage> {
-    logger.info(`[ImageSourcing] Generating and analyzing with Gemini`, { tag: opts.tag });
+    logger.info(`[ImageSourcing] Generating with ${GLM_IMAGE_MODEL}`, { tag: opts.tag });
     const start = Date.now();
-    const fallbackImageModel = GEMINI_IMAGE_FALLBACK_MODEL;
-    const response = await withGeminiFallback(
-      () => this.geminiAI.models.generateContent({
-        model: GEMINI_IMAGE_MODEL,
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: brief.generationPrompt },
-              { text: COMBINED_INSTRUCTION(brief.searchQuery) },
-            ],
-          },
-        ],
-        config: {
-          responseModalities: ['TEXT', 'IMAGE'],
-          candidateCount: 1,
-        },
-      }),
-      () => this.geminiAI.models.generateContent({
-        model: fallbackImageModel,
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: brief.generationPrompt },
-              { text: COMBINED_INSTRUCTION(brief.searchQuery) },
-            ],
-          },
-        ],
-        config: {
-          responseModalities: ['TEXT', 'IMAGE'],
-          candidateCount: 1,
-        },
-      }),
-      GEMINI_IMAGE_MODEL,
-      fallbackImageModel
-    );
 
-    logger.info(`[ImageSourcing] Gemini generation complete`, {
+    // Z.ai sépare ce que Gemini faisait d'un bloc : l'image vient d'un
+    // endpoint dédié, l'analyse d'un appel de vision. Deux allers-retours au
+    // lieu d'un, mais l'analyse porte alors sur l'image réellement produite.
+    const generated = await generateImage(brief.generationPrompt, {
+      model: GLM_IMAGE_MODEL,
+      fallbackModel: GLM_IMAGE_FALLBACK_MODEL,
+      tag: opts.tag,
+    });
+    const buffer = generated.buffer;
+    const mimeType = generated.mimeType;
+
+    logger.info(`[ImageSourcing] Generation complete`, {
       tag: opts.tag,
       durationMs: Date.now() - start,
+      bytes: buffer.length,
     });
 
-    const parts = (response.candidates?.[0]?.content?.parts || []) as any[];
-
-    // ── Extract image bytes ───────────────────────────────────────────────
-    let buffer: Buffer | null = null;
-    let mimeType = 'image/png';
-    let analysisText = '';
-
-    for (const part of parts) {
-      if (!buffer && part.inlineData?.data) {
-        buffer = Buffer.from(part.inlineData.data, 'base64');
-        mimeType = part.inlineData.mimeType || 'image/png';
-      }
-      if (part.text) {
-        analysisText += part.text;
-      }
-    }
-
-    if (!buffer) throw new Error('Gemini did not return an image');
-
-    // ── Upload (upload + analysis run concurrently) ───────────────────────
-    const ext = mimeType.includes('jpeg') ? 'jpg' : 'png';
-    const fileName = `flyer-bg-${opts.tag}-${Date.now()}.${ext}`;
+    const fileName = `flyer-bg-${opts.tag}-${Date.now()}.png`;
     const folderPath = `users/${opts.userId}/projects/${opts.projectId}/communication/flyer-images`;
 
-    // Parse analysis from the text part returned alongside the image.
-    // Upload and parse run in parallel — neither depends on the other.
+    // Téléversement et analyse ne dépendent pas l'un de l'autre.
     const [upload, analysis] = await Promise.all([
       this.storage.uploadFile(buffer, fileName, folderPath, mimeType),
-      Promise.resolve(this.parseAnalysisJson(analysisText)),
+      this.analyzeImageFromBase64(buffer.toString('base64'), mimeType, brief.searchQuery),
     ]);
 
     logger.info(`[ImageSourcing] AI-generated image sourced`, {
@@ -254,7 +199,7 @@ export class ImageSourcingService {
     return {
       url: upload.downloadURL,
       source: 'generated',
-      attribution: { provider: 'gemini', author: GEMINI_IMAGE_MODEL },
+      attribution: { provider: 'glm', author: generated.model },
       analysis,
     };
   }
@@ -275,7 +220,7 @@ export class ImageSourcingService {
     imageUrl: string,
     searchQuery: string
   ): Promise<FlyerImageAnalysis> {
-    if (!isGeminiConfigured()) return this.fallbackAnalysis();
+    if (!isGlmConfigured()) return this.fallbackAnalysis();
 
     const fetched = await axios.get<ArrayBuffer>(imageUrl, {
       responseType: 'arraybuffer',
@@ -295,58 +240,26 @@ export class ImageSourcingService {
     mimeType: string,
     searchQuery: string
   ): Promise<FlyerImageAnalysis> {
-    // Un repli identique au modèle principal ne sert à rien (Google sature par
-    // MODÈLE) : on retombe alors sur le repli texte global.
-    const effectiveFallback =
-      GEMINI_VISION_FALLBACK_MODEL === GEMINI_VISION_MODEL
-        ? AI_CONFIG.fallback.textModel
-        : GEMINI_VISION_FALLBACK_MODEL;
+    if (!isGlmConfigured()) return this.fallbackAnalysis();
 
-    const response = await withGeminiFallback(
-      () => this.geminiAI.models.generateContent({
-        model: GEMINI_VISION_MODEL,
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { inlineData: { mimeType, data: base64 } },
-              { text: `Brief context: "${searchQuery}". ${VISION_INSTRUCTION}` },
-            ],
-          },
-        ],
-        config: {
-          responseModalities: ['TEXT'],
-          candidateCount: 1,
+    try {
+      const raw = await analyzeImage(
+        base64,
+        mimeType,
+        `Brief context: "${searchQuery}". ${VISION_INSTRUCTION}`,
+        {
+          model: GLM_VISION_MODEL,
+          fallbackModel: GLM_VISION_FALLBACK_MODEL,
           maxOutputTokens: VISION_MAX_OUTPUT_TOKENS,
-        },
-      }),
-      () => this.geminiAI.models.generateContent({
-        model: effectiveFallback,
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { inlineData: { mimeType, data: base64 } },
-              { text: `Brief context: "${searchQuery}". ${VISION_INSTRUCTION}` },
-            ],
-          },
-        ],
-        config: {
-          responseModalities: ['TEXT'],
-          candidateCount: 1,
-          maxOutputTokens: VISION_MAX_OUTPUT_TOKENS,
-        },
-      }),
-      GEMINI_VISION_MODEL,
-      effectiveFallback
-    );
-
-    const text = (response.candidates?.[0]?.content?.parts || [])
-      .map((p: any) => p.text || '')
-      .join('')
-      .trim();
-
-    return this.parseAnalysisJson(text);
+        }
+      );
+      return this.parseAnalysisJson(raw);
+    } catch (error: any) {
+      // Une analyse manquée ne doit pas emporter le visuel : on compose alors
+      // sur une lecture neutre.
+      logger.warn(`[ImageSourcing] Vision unavailable: ${error?.message}`);
+      return this.fallbackAnalysis();
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────

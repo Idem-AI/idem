@@ -1,0 +1,99 @@
+<section class="relative flex items-center pt-28 pb-20 sm:pt-32 lg:min-h-screen lg:pt-28 lg:pb-16">
+  <div class="mx-auto w-full max-w-[90rem] px-2 sm:px-4 lg:px-8">
+    <div class="grid items-center gap-8 lg:grid-cols-12 lg:gap-2 xl:gap-4">
+      <!-- ---------------------------------------- Hero copy -->
+      <div class="lg:col-span-6 xl:col-span-6">
+        <div class="mb-5 flex items-center gap-2 text-sm text-text-tertiary">
+          <a routerLink="/home" class="transition-colors hover:text-text-primary" i18n="@@simulation.breadcrumb.idem">Idem</a>
+          <span aria-hidden="true">/</span>
+          <span class="font-medium text-accent-700 dark:text-accent-500">IDEM Simulator</span>
+        </div>
+
+        <h1 class="text-5xl font-bold leading-[1.03] tracking-tight text-balance text-text-primary sm:text-6xl lg:text-6xl xl:text-7xl 2xl:text-[5rem]" i18n="@@simulation.hero.title">
+          Test your business before you <span class="i-underline">launch</span> it
+        </h1>
+
+        <p class="mt-6 max-w-lg text-lg leading-relaxed text-pretty text-text-secondary" i18n="@@simulation.hero.description">
+          An idea can look excellent on paper and still fail once it meets the market. IDEM looks for the factors that can genuinely influence your business, simulates several possible futures, and shows you where your model breaks.
+        </p>
+
+        <div class="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
+          <a [href]="simulationUrl" class="inner-button rounded-xl px-8 py-4 text-center text-lg font-semibold">
+            <span i18n="@@simulation.hero.cta">Run a simulation</span>
+          </a>
+          <a href="#how" class="outer-button rounded-xl px-8 py-4 text-center text-lg font-semibold">
+            <span i18n="@@simulation.hero.secondaryCta">See how it works</span>
+          </a>
+        </div>
+
+      </div>
+
+      <!-- ---------------------------------------- The product, drawn:
+           one project, many trajectories, most of them failing. -->
+      <div class="relative lg:col-span-6 xl:col-span-6 lg:-ml-4 xl:-ml-8">
+
+
+        <figure class="relative">
+          <svg viewBox="0 0 820 560" class="w-full" role="img" aria-labelledby="fan-title fan-desc">
+            <title id="fan-title" i18n="@@simulation.fan.title">Fan of simulated trajectories</title>
+            <desc id="fan-desc" i18n="@@simulation.fan.desc">
+              From a single project, the engine lets many trajectories diverge. A minority stay above the viability threshold; most fall below it.
+            </desc>
+
+            <!-- Depth gridlines -->
+            <g class="fan-grid" stroke-width="1" aria-hidden="true">
+              <line x1="150" y1="140" x2="790" y2="140" />
+              <line x1="150" y1="230" x2="790" y2="230" />
+              <line x1="150" y1="410" x2="790" y2="410" />
+              <line x1="150" y1="500" x2="790" y2="500" />
+            </g>
+
+            <!-- Viability threshold -->
+            <line class="fan-threshold" x1="150" y1="320" x2="790" y2="320" stroke-width="1.5" stroke-dasharray="5 6" />
+            <text class="fan-label" x="790" y="308" text-anchor="end" i18n="@@simulation.fan.threshold">
+              VIABILITY THRESHOLD
+            </text>
+
+            <g class="fan" fill="none" stroke-linecap="round">
+              <!-- Trajectories that break the model -->
+              <g class="fan-break" stroke-width="2">
+                <path pathLength="1" d="M150 320 C 340 328, 560 400, 786 512" />
+                <path pathLength="1" d="M150 320 C 340 324, 560 384, 786 476" />
+                <path pathLength="1" d="M150 320 C 340 332, 560 372, 786 442" />
+                <path pathLength="1" d="M150 320 C 340 320, 560 360, 786 408" />
+                <path pathLength="1" d="M150 320 C 340 316, 560 344, 786 376" />
+                <path pathLength="1" d="M150 320 C 340 324, 560 336, 786 350" />
+              </g>
+
+              <!-- Trajectories where it holds -->
+              <g class="fan-hold" stroke-width="2.4">
+                <path pathLength="1" d="M150 320 C 340 312, 560 282, 786 252" />
+                <path pathLength="1" d="M150 320 C 340 308, 560 252, 786 184" />
+                <path pathLength="1" d="M150 320 C 340 302, 560 212, 786 104" />
+              </g>
+
+              <!-- The reference scenario -->
+              <path class="fan-ref" pathLength="1" d="M150 320 C 340 316, 560 272, 786 218" stroke-width="4" />
+            </g>
+
+            <!-- Endpoints -->
+            <g class="fan-dot-hold" aria-hidden="true">
+              <circle cx="786" cy="252" r="4" />
+              <circle cx="786" cy="184" r="4" />
+              <circle cx="786" cy="104" r="4" />
+            </g>
+            <circle class="fan-dot-ref" cx="786" cy="218" r="6" aria-hidden="true" />
+
+            <!-- Origin -->
+            <circle class="fan-origin-ring" cx="150" cy="320" r="15" fill="none" stroke-width="2" aria-hidden="true" />
+            <circle class="fan-origin" cx="150" cy="320" r="7" aria-hidden="true" />
+            <text class="fan-label" x="150" y="390" text-anchor="middle" i18n="@@simulation.fan.origin">
+              YOUR PROJECT
+            </text>
+          </svg>
+
+        </figure>
+      </div>
+    </div>
+  </div>
+</section>

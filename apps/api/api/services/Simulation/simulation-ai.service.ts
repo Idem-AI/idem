@@ -14,6 +14,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { AI_CONFIG } from '../../config/ai.config';
 import logger from '../../config/logger';
+import { cacheService } from '../cache.service';
+import { UnusableDocumentError, prepareDocument } from './document-intake';
 import { ProjectModel } from '../../models/project.model';
 import {
   BlackSwanEvent,
@@ -26,6 +28,8 @@ import {
   Experiment,
   Factor,
   FactorLever,
+  IDEM_PROJECT_TYPES,
+  ImportedProjectSeed,
   FactorTier,
   InvestorProfile,
   InvestorVerdict,
@@ -149,19 +153,63 @@ export class SimulationAIService {
   }
 
   /** Même sortie, à partir d'un business plan importé au lieu d'un projet IDEM. */
+  /**
+   * Lit un business plan importé.
+   *
+   * Le document ne part jamais entier au modèle : `prepareDocument` le refuse
+   * s'il n'a rien d'un business plan — sans dépenser un seul jeton — puis n'en
+   * garde que les passages porteurs d'information. Le résultat est mis en
+   * cache sur l'empreinte du document : réimporter le même fichier ne coûte
+   * plus rien.
+   */
   async understandDocument(
     documentText: string,
     documentName: string,
     userId: string
   ): Promise<ProjectUnderstanding> {
-    const truncated = documentText.slice(0, 120_000);
+    const brief = prepareDocument(documentText, documentName);
+    logger.info(
+      `Document intake for "${documentName}": ${brief.originalChars} → ${brief.briefChars} chars ` +
+        `(${Math.round((1 - brief.briefChars / brief.originalChars) * 100)}% économisés), ` +
+        `familles: ${brief.families.join(', ')}`
+    );
+
+    const cacheKey = `simulation:document:${brief.digest}`;
+    const cached = await cacheService.get<ProjectUnderstanding>(cacheKey, {
+      prefix: 'ai',
+      ttl: 86_400 * 7,
+    });
+    if (cached) {
+      logger.info(`Document understanding served from cache for "${documentName}"`);
+      return cached;
+    }
+
     const raw = await this.run(
       'understanding',
       DOCUMENT_EXTRACTION_PROMPT,
-      `NOM DU DOCUMENT: ${documentName}\n\n--- CONTENU ---\n${truncated}`,
+      `NOM DU DOCUMENT: ${documentName}\n\n--- EXTRAIT DU DOCUMENT ---\n${brief.text}`,
       userId
     );
-    return this.normalizeUnderstanding(this.parseJSON(raw), documentName);
+
+    const parsed = this.parseJSON(raw);
+    const assessment = parsed.documentAssessment as
+      | { isBusinessPlan?: boolean; documentKind?: string; reason?: string }
+      | undefined;
+
+    // Les comptages laissent passer un document bien écrit mais hors sujet :
+    // simuler dessus produirait un rapport crédible et faux.
+    if (assessment && assessment.isBusinessPlan === false) {
+      const kind = assessment.documentKind ? ` (${assessment.documentKind})` : '';
+      throw new UnusableDocumentError(
+        `« ${documentName} » ne ressemble pas à un business plan${kind}. ${
+          assessment.reason ?? "Il n'y décrit ni activité, ni offre, ni clientèle."
+        }`
+      );
+    }
+
+    const understanding = this.normalizeUnderstanding(parsed, documentName);
+    await cacheService.set(cacheKey, understanding, { prefix: 'ai', ttl: 86_400 * 7 });
+    return understanding;
   }
 
   // ===================================================================
@@ -586,6 +634,31 @@ ${scenarios
       baseline: this.normalizeBaseline(parsed.baseline, profile.currency),
       items,
       narrative: str(parsed.narrative) || undefined,
+      projectSeed: this.normalizeProjectSeed(parsed.projectSeed, profile),
+    };
+  }
+
+  /**
+   * La fiche projet n'a pas les mêmes champs que le profil de simulation : le
+   * modèle les remplit dans le même appel, et on retombe sur le profil pour ce
+   * qu'il n'a pas su donner. Un type inconnu devient `other` plutôt que de
+   * faire échouer la création.
+   */
+  private normalizeProjectSeed(raw: any, profile: ProjectProfile): ImportedProjectSeed {
+    const source = raw ?? {};
+    return {
+      type: pick(source.type, IDEM_PROJECT_TYPES, 'other'),
+      description: str(source.description) || profile.product || profile.businessModel,
+      scope: str(source.scope) || profile.sector || undefined,
+      targets: str(source.targets) || profile.targetCustomer || undefined,
+      constraints: toArray(source.constraints)
+        .map((entry: any) => str(entry))
+        .filter((entry: string) => entry.length > 0)
+        .slice(0, 12),
+      budgetIntervals: str(source.budgetIntervals) || profile.plannedFunding || undefined,
+      teamSize: str(source.teamSize) || profile.teamSize || undefined,
+      city: str(source.city) || profile.location || undefined,
+      country: str(source.country) || profile.country || undefined,
     };
   }
 

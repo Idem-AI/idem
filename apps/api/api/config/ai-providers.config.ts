@@ -16,7 +16,7 @@
  *                           même API.
  */
 
-import { LLMProvider, FeatureAIConfig } from './ai.config';
+import { LLMProvider, FeatureAIConfig, GLM_MODELS } from './ai.config';
 
 export type ProviderKind = 'gemini' | 'openai-compatible';
 
@@ -230,28 +230,31 @@ export const AI_PROVIDERS: Record<LLMProvider, ProviderDefinition> = {
     capabilities: { ...ALL_CAPABILITIES },
   },
 
-  // GLM-5.2 (Zhipu / Z.ai) — API OpenAI-compatible. Modèle open-weight (MIT),
-  // fort en rédaction et en agentique. Pas de génération d'image ni de grounding
-  // Google Search : ces cas restent sur Gemini via les garde-fous de capacité.
+  // GLM (Zhipu / Z.ai) — le fournisseur de la plateforme. API
+  // OpenAI-compatible pour le texte, endpoints dédiés pour la recherche web et
+  // la génération d'image (cf. GLM_ENDPOINTS).
   [LLMProvider.GLM]: {
     kind: 'openai-compatible',
     apiKeyEnv: 'GLM_API_KEY',
     // ⚠️ Endpoint OpenAI-compatible de Z.ai = `/api/paas/v4` (et NON `/api/openai/v1`,
     // qui renvoie un faux HTTP 200 `{code:500, msg:"404 NOT_FOUND"}`).
     baseUrl: process.env.GLM_API_URL || 'https://api.z.ai/api/paas/v4',
-    fallbackModel: 'glm-4.6',
-    // Désactive le raisonnement par défaut : nos budgets de tokens sont calibrés
-    // pour Gemini (non-raisonnant) et le "thinking" de GLM les épuise, produisant
-    // un content vide. Retirer ceci si on veut activer le raisonnement (en
-    // augmentant alors maxOutputTokens en conséquence).
+    fallbackModel: GLM_MODELS.writing,
+    // Raisonnement coupé PAR DÉFAUT : il se décompte du budget de sortie, et
+    // sur une réponse courte il le consommait entièrement — la réponse
+    // revenait vide. L'étage S le rallume explicitement, avec le budget qui va
+    // avec (cf. model-router.ts).
     extraBody: { thinking: { type: 'disabled' } },
     capabilities: {
       tools: true,
-      grounding: false,
+      // Recherche web par l'endpoint `/web_search` de Z.ai, et non par un
+      // outil intégré au modèle : c'est un appel à part, avec ses sources.
+      grounding: true,
       streaming: true,
+      // Z.ai n'expose pas de cache de contexte serveur.
       contextCache: false,
-      vision: false,
-      imageGeneration: false,
+      vision: true,
+      imageGeneration: true,
     },
   },
 
@@ -298,6 +301,28 @@ export const AI_PROVIDERS: Record<LLMProvider, ProviderDefinition> = {
   // },
   // ─────────────────────────────────────────────────────────────────────────
 };
+
+/**
+ * Endpoints Z.ai qui ne relèvent pas du contrat OpenAI : la recherche web et
+ * la génération d'image ont leurs propres routes, avec leurs propres corps de
+ * requête. Le client OpenAI ne sait pas les appeler — on passe par HTTP.
+ */
+export const GLM_ENDPOINTS = {
+  get base(): string {
+    return process.env.GLM_API_URL || 'https://api.z.ai/api/paas/v4';
+  },
+  get webSearch(): string {
+    return `${GLM_ENDPOINTS.base}/web_search`;
+  },
+  get images(): string {
+    return `${GLM_ENDPOINTS.base}/images/generations`;
+  },
+};
+
+/** Clé Z.ai, ou `undefined` si le fournisseur n'est pas configuré. */
+export function getGlmApiKey(): string | undefined {
+  return process.env.GLM_API_KEY || undefined;
+}
 
 /** Retourne la définition d'un fournisseur (throw si inconnu). */
 export function getProvider(provider: LLMProvider): ProviderDefinition {

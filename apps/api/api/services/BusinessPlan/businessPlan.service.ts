@@ -601,31 +601,26 @@ export class BusinessPlanService extends GenericService {
           `Comportements d'achat, pouvoir d'achat et taux d'adoption pour ces segments${geo}`,
         ],
       },
-      {
-        name: 'Products & Services',
-        instructions: AGENT_PRODUCTS_SERVICES_PROMPT,
-        needsResearch: true,
-        researchBriefs: [
-          `Concurrents directs et indirects, leurs offres et positionnements tarifaires${geo}. Contexte: ${ctx}`,
-          `Fourchettes de prix pratiquées sur ce type de produit/service${geo}`,
-        ],
-      },
-      {
-        name: 'Marketing & Sales',
-        instructions: AGENT_MARKETING_SALES_PROMPT,
-        needsResearch: true,
-        researchBriefs: [
-          `Canaux d'acquisition performants et coûts d'acquisition client (CAC) de référence dans ce secteur${geo}`,
-          `Benchmarks de conversion, de rétention et de budget marketing pour ce type d'activité${geo}`,
-        ],
-      },
+      // Cette section décrit l'offre du porteur de projet : elle est déjà dans
+      // le projet. Les prix pratiqués par la concurrence, eux, sont utiles —
+      // ils ont rejoint le plan financier, qui est la section qui s'en sert.
+      { name: 'Products & Services', instructions: AGENT_PRODUCTS_SERVICES_PROMPT, needsResearch: false },
+      // Les CAC et taux de conversion « de référence » par secteur et par pays
+      // ne se trouvent pas sous forme de données sourcées : la recherche
+      // ramenait des articles génériques, et la section est de toute façon une
+      // stratégie déduite du projet.
+      { name: 'Marketing & Sales', instructions: AGENT_MARKETING_SALES_PROMPT, needsResearch: false },
       {
         name: 'Financial Plan',
         instructions: AGENT_FINANCIAL_PLAN_PROMPT + financeContext,
         needsResearch: true,
         researchBriefs: [
           `Marges brutes et structures de coûts de référence du secteur${geo}. Contexte: ${ctx}`,
-          `Multiples de valorisation et benchmarks de rentabilité pour ce type d'entreprise${geo}`,
+          // Reprise de « Produits & Services » : c'est ici que les prix du
+          // marché servent réellement. Les multiples de valorisation qu'on
+          // cherchait avant n'ont pas leur place dans un plan à ce stade, et le
+          // module Finance fournit déjà les chiffres du projet.
+          `Fourchettes de prix pratiquées par les concurrents sur ce type d'offre${geo}`,
         ],
       },
       { name: 'Goal Planning', instructions: AGENT_GOAL_PLANNING_PROMPT, needsResearch: false },

@@ -405,16 +405,54 @@ Contraintes :
 - "uncertaintyReduction" est un entier 0-100.`;
 
 /** Import d'un business plan externe. */
-export const DOCUMENT_EXTRACTION_PROMPT = `Voici le contenu d'un business plan fourni par un entrepreneur.
+export const DOCUMENT_EXTRACTION_PROMPT = `Voici un document fourni par un entrepreneur, censé
+être un business plan.
 
-Extrais-en les informations nécessaires à une simulation, exactement comme si le projet avait
+COMMENCE PAR JUGER LE DOCUMENT. Rien ne garantit que ce soit un business plan : ce peut être une
+facture, un CV, un contrat, un article, une page blanche, un fichier illisible. Une simulation
+bâtie sur un tel document ne vaudrait rien, et donnerait à l'entrepreneur une fausse assurance.
+
+Le document est exploitable s'il décrit un projet d'entreprise : au minimum une activité, ce qui
+est vendu et à qui. Un plan incomplet reste exploitable — les trous se déclarent en "missing".
+Un document qui ne parle pas d'un projet d'entreprise ne l'est pas.
+
+Si le document N'EST PAS exploitable, réponds UNIQUEMENT :
+{
+  "documentAssessment": {
+    "isBusinessPlan": false,
+    "documentKind": "ce que le document est réellement, en trois mots",
+    "reason": "une phrase, adressée à l'entrepreneur, disant ce qui manque"
+  }
+}
+
+Sinon, extrais les informations nécessaires à une simulation, exactement comme si le projet avait
 été construit dans IDEM. Ce qui n'est pas dans le document ne doit pas être inventé
 silencieusement : marque-le "missing" avec answerable: true, ou "uncertain" si tu l'as estimé.
 
-Utilise le même format JSON que l'analyse de projet :
+Un plan importé ne correspond à aucun projet IDEM existant : il va en créer un. Renseigne donc
+aussi "projectSeed", qui peuplera la fiche du projet. N'y invente rien : ce que le document ne dit
+pas reste vide, et "constraints" ne recense que des contraintes explicitement mentionnées
+(réglementation, délai, technique, ressources).
+
+"type" doit valoir exactement l'une de ces valeurs, celle qui décrit le mieux ce qui est vendu :
+web, mobile, iot, desktop, enterprise, ecommerce, api, ai, blockchain, landing, other.
+
+Utilise le même format JSON que l'analyse de projet, précédé du verdict :
 {
+  "documentAssessment": { "isBusinessPlan": true },
   "profile": { ... },
   "baseline": { ... },
   "items": [ ... ],
-  "narrative": ""
+  "narrative": "",
+  "projectSeed": {
+    "type": "other",
+    "description": "deux ou trois phrases décrivant le projet",
+    "scope": "ce que le projet couvre",
+    "targets": "à qui il s'adresse",
+    "constraints": [],
+    "budgetIntervals": "",
+    "teamSize": "",
+    "city": "",
+    "country": ""
+  }
 }`;

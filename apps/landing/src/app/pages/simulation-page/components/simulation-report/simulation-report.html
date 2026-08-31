@@ -1,0 +1,42 @@
+<section class="py-24 lg:py-32">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6">
+    <div class="max-w-3xl">
+      <h2 class="text-3xl font-bold leading-tight text-balance text-text-primary sm:text-4xl lg:text-5xl" i18n="@@simulation.report.title">
+        The report answers one question
+      </h2>
+      <p class="mt-5 text-lg leading-relaxed text-pretty text-text-secondary" i18n="@@simulation.report.body">
+        What could make this project succeed or fail, and what should I change?
+      </p>
+      <p class="mt-5 leading-relaxed text-text-tertiary" i18n="@@simulation.report.note">
+        Not "improve your marketing". Rather: acquisition cost is the model's main weakness, test an organic channel before raising the ad budget. Expected impact high, priority critical, confidence medium.
+      </p>
+    </div>
+
+    <div class="mt-14 grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start lg:gap-16">
+      <ol class="flex flex-col divide-y divide-[var(--glass-border-subtle)] border-y border-[var(--glass-border-subtle)]">
+        @for (section of reportSections; track section; let i = $index) {
+          <li class="flex items-baseline gap-4 py-3.5">
+            <span class="font-mono text-sm text-accent-700/70 dark:text-accent-500/70">{{ i + 1 < 10 ? '0' : '' }}{{ i + 1 }}</span>
+            <span class="text-text-secondary">{{ section }}</span>
+          </li>
+        }
+      </ol>
+
+      <figure>
+        <div class="relative aspect-[16/10] overflow-hidden rounded-3xl border border-[var(--glass-border)] shadow-[var(--glass-shadow-lg)]">
+          <img
+            ngSrc="/assets/images/overview/financial-report.webp"
+            fill
+            sizes="(max-width: 1024px) 100vw, 55vw"
+            i18n-alt="@@simulation.report.image.alt"
+            alt="A simulation report opened in IDEM, showing the financial summary and its indicators"
+            class="object-cover"
+          />
+        </div>
+        <figcaption class="mt-4 text-sm leading-relaxed text-text-tertiary" i18n="@@simulation.report.caption">
+          The report is delivered inside your project, next to the deliverables it was built from.
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>

@@ -11,6 +11,9 @@ import { DisclaimerNote } from '../../../../shared/components/disclaimer-note/di
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { SimulationGateway, SimulationStore } from '../../data-access';
 import { canStashFile, saveDraft, takeDraft } from './new-run-draft';
+
+/** Les seuls formats acceptés par l'API : PDF, Word et Markdown. */
+const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.md', '.markdown'];
 import {
   KnowledgeItem,
   ProjectUnderstanding,
@@ -67,9 +70,22 @@ export class NewSimulation {
   protected readonly signInReason = signal<string | null>(null);
 
   protected readonly projects = this.store.projects;
-  protected readonly projectsLoading = computed(() => this.store.projectsStatus() === 'loading');
+  /**
+   * Vrai tant que la liste n'a pas été rendue : `idle` signifie « pas encore
+   * demandée », ce qui n'est pas la même chose qu'un compte sans projet.
+   */
+  protected readonly projectsPending = computed(() => {
+    const status = this.store.projectsStatus();
+    return status === 'idle' || status === 'loading';
+  });
   protected readonly selectedProjectId = signal<string | null>(null);
   protected readonly selectedFile = signal<File | null>(null);
+  /**
+   * Refus du document, en clair. L'API dit pourquoi — format non géré, fichier
+   * illisible, ou document qui n'est pas un business plan — et ce motif reste
+   * sous la zone de dépôt, là où l'utilisateur agit.
+   */
+  protected readonly documentError = signal<string | null>(null);
 
   protected readonly understanding = signal<ProjectUnderstanding | null>(null);
   protected readonly analysing = signal(false);
@@ -133,17 +149,18 @@ export class NewSimulation {
   protected readonly draftAtRisk = computed(() => !canStashFile(this.selectedFile()));
 
   constructor() {
-    // Page publique : aucune garde n'a résolu la session avant d'arriver ici.
-    void this.auth.ensureLoaded();
+    // Page publique, hors de la coquille de l'espace de travail : personne
+    // n'a résolu la session ni chargé les projets avant d'arriver ici.
+    void this.loadProjects();
     // Retour du login : on reprend la source choisie avant le départ.
     void this.restoreDraft();
 
-    // La liste des projets est déjà chargée par la coquille ; on se contente
-    // de choisir la sélection de départ dès qu'elle arrive.
+    // On choisit la sélection de départ dès que la liste arrive.
     effect(() => {
       const projects = this.projects();
       untracked(() => {
-        if (this.selectedProjectId() || !projects.length) {
+        // Un plan importé ne se rattache à aucun projet : rien à présélectionner.
+        if (this.origin() !== 'idem-project' || this.selectedProjectId() || !projects.length) {
           return;
         }
         // Arrivée depuis le bouton « Simuler mon entreprise » du dashboard.
@@ -191,7 +208,18 @@ export class NewSimulation {
 
   protected onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.selectedFile.set(input.files?.[0] ?? null);
+    const file = input.files?.[0] ?? null;
+    this.documentError.set(null);
+
+    // Le format est vérifié avant l'envoi : inutile de faire monter un fichier
+    // de plusieurs mégaoctets pour se le voir refuser.
+    if (file && !ACCEPTED_EXTENSIONS.some((extension) => file.name.toLowerCase().endsWith(extension))) {
+      this.selectedFile.set(null);
+      this.documentError.set(this.translate.instant('newRun.source.unsupportedFormat') as string);
+      return;
+    }
+
+    this.selectedFile.set(file);
   }
 
   protected async analyse(): Promise<void> {
@@ -205,24 +233,41 @@ export class NewSimulation {
     }
 
     this.analysing.set(true);
+    this.documentError.set(null);
     this.step.set('analysis');
     try {
-      const projectId = this.selectedProjectId();
-      if (!projectId) {
-        throw new Error(this.translate.instant('newRun.noProject') as string);
+      let understanding: ProjectUnderstanding;
+
+      if (this.origin() === 'idem-project') {
+        const projectId = this.selectedProjectId();
+        if (!projectId) {
+          throw new Error(this.translate.instant('newRun.noProject') as string);
+        }
+        understanding = await firstValueFrom(this.gateway.analyseProject(projectId));
+      } else {
+        // Un business plan importé ne dépend d'aucun projet : celui-ci sera
+        // créé au lancement, à partir de ce que cette lecture livre.
+        understanding = await firstValueFrom(
+          this.gateway.analyseDocument(this.selectedFile() as File),
+        );
       }
-      const file = this.selectedFile();
-      const understanding =
-        this.origin() === 'idem-project'
-          ? await firstValueFrom(this.gateway.analyseProject(projectId))
-          : await firstValueFrom(this.gateway.analyseDocument(projectId, file as File));
+
       this.understanding.set(understanding);
     } catch (error) {
       this.step.set('source');
-      this.toasts.error(
-        this.translate.instant('newRun.analysisFailed') as string,
-        error instanceof Error ? error.message : undefined,
-      );
+      const rejection = documentRejection(error);
+      if (rejection) {
+        // Le document est en cause : le motif s'affiche là où l'on choisit le
+        // fichier, pas dans une notification qui disparaît.
+        this.documentError.set(rejection);
+      } else {
+        // Panne côté service : le message de l'API est déjà écrit pour
+        // l'utilisateur, on ne le double pas d'un détail technique.
+        this.toasts.error(
+          this.translate.instant('newRun.analysisFailed') as string,
+          serverMessage(error) ?? undefined,
+        );
+      }
     } finally {
       this.analysing.set(false);
     }
@@ -237,12 +282,15 @@ export class NewSimulation {
     if (this.pricing()) {
       return;
     }
+    const fromProject = this.origin() === 'idem-project';
     const projectId = this.selectedProjectId();
-    if (!projectId) {
+    if (fromProject && !projectId) {
       return;
     }
     try {
-      const pricing = await firstValueFrom(this.gateway.getPricing(projectId, this.origin()));
+      const pricing = await firstValueFrom(
+        this.gateway.getPricing(this.origin(), fromProject ? (projectId as string) : undefined),
+      );
       this.pricing.set(pricing);
       this.selectedTier.set(
         pricing.plans.find((plan) => plan.recommended)?.tier ?? pricing.plans[0].tier,
@@ -259,23 +307,35 @@ export class NewSimulation {
     if (await this.requireSignIn('signIn.reason.launch')) {
       return;
     }
+    const understanding = this.understanding();
+    const fromProject = this.origin() === 'idem-project';
     const projectId = this.selectedProjectId();
-    if (!projectId) {
+    if ((fromProject && !projectId) || !understanding) {
       return;
     }
+
     this.launching.set(true);
     try {
-      // Le projet choisi ici devient le projet actif : tous les écrans de
-      // l'exécution en dépendent.
-      this.store.selectProject(projectId);
-      const simulation = await this.store.create({
-        name: this.runName(),
-        origin: this.origin(),
-        projectId,
-        documentName: this.selectedFile()?.name,
-        tier: this.selectedTier(),
-        answers: this.answers(),
-      });
+      const simulation = fromProject
+        ? await this.store.create({
+            name: this.runName(),
+            origin: 'idem-project',
+            // Le projet choisi ici devient le projet actif : tous les écrans
+            // de l'exécution en dépendent.
+            projectId: this.selectProjectAndReturn(projectId as string),
+            tier: this.selectedTier(),
+            answers: this.answers(),
+          })
+        : // Le plan importé n'a pas de projet : l'API crée celui que le
+          // document décrit, puis simule dessus.
+          await this.store.createFromDocument({
+            name: this.runName(),
+            tier: this.selectedTier(),
+            documentName: this.selectedFile()?.name,
+            answers: this.answers(),
+            understanding,
+          });
+
       await this.router.navigate(['/simulations', simulation.id]);
     } catch (error) {
       this.toasts.error(
@@ -311,6 +371,13 @@ export class NewSimulation {
     return true;
   }
 
+  /** Les projets IDEM appartiennent au compte : rien à charger sans session. */
+  private async loadProjects(): Promise<void> {
+    if (await this.auth.ensureLoaded()) {
+      await this.store.loadProjects();
+    }
+  }
+
   private async restoreDraft(): Promise<void> {
     const draft = await takeDraft();
     if (!draft) {
@@ -326,12 +393,50 @@ export class NewSimulation {
     }
   }
 
+  /** Sélectionne le projet et le rend, pour rester lisible dans l'appel. */
+  private selectProjectAndReturn(projectId: string): string {
+    this.store.selectProject(projectId);
+    return projectId;
+  }
+
   private runName(): string {
-    const project = this.selectedProject();
-    if (project) {
-      return project.name;
+    if (this.origin() === 'idem-project') {
+      const project = this.selectedProject();
+      if (project) {
+        return project.name;
+      }
+    }
+    // Import : le nom vient de ce que le document a livré, c'est aussi celui
+    // que portera le projet IDEM créé.
+    const extracted = this.understanding()?.profile.name?.trim();
+    if (extracted) {
+      return extracted;
     }
     const file = this.selectedFile();
     return file ? file.name.replace(/\.[^.]+$/, '') : (this.translate.instant('newRun.title') as string);
   }
+}
+
+/**
+ * Motif de refus d'un document, quand l'API en donne un.
+ *
+ * 415 : format non pris en charge. 422 : fichier illisible, ou document qui
+ * n'est pas un business plan. Dans les deux cas le message est écrit pour
+ * l'utilisateur et se suffit à lui-même.
+ */
+function documentRejection(error: unknown): string | null {
+  const status = (error as { status?: number })?.status;
+  if (status !== 415 && status !== 422) {
+    return null;
+  }
+  return serverMessage(error);
+}
+
+/**
+ * Le message rédigé par l'API. Elle en écrit un pour tout ce que
+ * l'utilisateur peut comprendre — document refusé, service indisponible — et
+ * garde le détail technique dans ses journaux.
+ */
+function serverMessage(error: unknown): string | null {
+  return (error as { error?: { message?: string } })?.error?.message ?? null;
 }

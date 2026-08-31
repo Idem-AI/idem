@@ -1,0 +1,51 @@
+<section id="how" class="scroll-mt-20 border-y border-[var(--glass-border-subtle)] py-24 lg:py-32">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6">
+    <div class="max-w-3xl">
+      <h2 class="text-3xl font-bold leading-tight text-balance text-text-primary sm:text-4xl lg:text-5xl" i18n="@@simulation.how.title">
+        What IDEM does when you start a simulation
+      </h2>
+      <p class="mt-5 text-lg leading-relaxed text-pretty text-text-secondary" i18n="@@simulation.how.body">
+        This is not a conversation with an AI. It is a five-stage analysis.
+      </p>
+    </div>
+
+    <div class="mt-14 grid gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16">
+      <ol class="flex flex-col">
+        @for (step of pipeline; track step.id; let i = $index; let last = $last) {
+          <li class="relative flex gap-6 pb-10 last:pb-0 sm:gap-8">
+            @if (!last) {
+              <span class="absolute left-[1.4375rem] top-12 bottom-0 w-px bg-linear-to-b from-accent-500/50 to-transparent" aria-hidden="true"></span>
+            }
+            <span class="relative z-10 grid size-12 shrink-0 place-items-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg-medium)] font-mono text-sm font-bold text-accent-700 dark:text-accent-500">
+              {{ i + 1 }}
+            </span>
+            <div class="pt-2">
+              <h3 class="text-xl font-semibold text-text-primary">{{ step.title }}</h3>
+              <p class="mt-2 max-w-2xl leading-relaxed text-text-secondary">{{ step.body }}</p>
+            </div>
+          </li>
+        }
+      </ol>
+
+      <div class="lg:sticky lg:top-24 lg:self-start">
+        <figure class="relative h-[18rem] overflow-hidden rounded-3xl border border-[var(--glass-border)] sm:h-[22rem] lg:h-[26rem]">
+          <img
+            ngSrc="/assets/images/architecture-page/ai-network.webp"
+            fill
+            sizes="(max-width: 1024px) 100vw, 40vw"
+            i18n-alt="@@simulation.how.image.alt"
+            alt="Network of agents researching and cross-checking a project"
+            class="object-cover"
+          />
+          <div class="absolute inset-0 bg-linear-to-t from-black/85 via-black/30 to-transparent" aria-hidden="true"></div>
+          <figcaption class="absolute inset-x-0 bottom-0 p-6">
+            <p class="font-mono text-xs uppercase tracking-[0.2em] text-accent-300" i18n="@@simulation.how.card.label">Under the hood</p>
+            <p class="mt-2 text-base leading-relaxed text-white/90" i18n="@@simulation.how.card.body">
+              Several agents work in parallel: one reads the project, others research external data, another combines them into scenarios.
+            </p>
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </div>
+</section>

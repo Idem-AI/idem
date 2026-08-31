@@ -42,11 +42,45 @@ export interface BusinessBaseline {
   currency: string;
 }
 
+/** Types de projet reconnus par IDEM. */
+export type IdemProjectType =
+  | 'web'
+  | 'mobile'
+  | 'iot'
+  | 'desktop'
+  | 'enterprise'
+  | 'ecommerce'
+  | 'api'
+  | 'ai'
+  | 'blockchain'
+  | 'landing'
+  | 'other';
+
+/**
+ * De quoi créer le projet IDEM que décrit un business plan importé.
+ *
+ * L'application ne fait que la transporter : elle est produite par la lecture
+ * du document et renvoyée telle quelle au lancement, où l'API crée le projet.
+ */
+export interface ImportedProjectSeed {
+  type: IdemProjectType;
+  description: string;
+  scope?: string;
+  targets?: string;
+  constraints: string[];
+  budgetIntervals?: string;
+  teamSize?: string;
+  city?: string;
+  country?: string;
+}
+
 export interface ProjectUnderstanding {
   profile: ProjectProfile;
   baseline: BusinessBaseline;
   items: KnowledgeItem[];
   narrative?: string;
+  /** Renseignée pour un business plan importé, absente sinon. */
+  projectSeed?: ImportedProjectSeed;
 }
 
 /** Un projet IDEM utilisable comme entrée de simulation. */

@@ -1,4 +1,3 @@
-import { GoogleGenAI, Content, Part } from '@google/genai';
 import logger from '../config/logger';
 import { StorageService } from './storage.service';
 import sharp from 'sharp';
@@ -9,8 +8,14 @@ import {
 } from './BandIdentity/mockupAnalyzer.service';
 import { MOCKUP_CONFIG } from '../config/mockup.config';
 import { AI_CONFIG } from '../config/ai.config';
+import { generateImage, isGlmConfigured } from './glm-media.service';
+
+/**
+ * Largeur du logo incrusté, en fraction de la largeur de la scène. Assez pour
+ * se lire sur un mockup, assez peu pour rester crédible sur le support.
+ */
+const LOGO_WIDTH_RATIO = 0.22;
 import { withGeminiFallback } from '../utils/gemini-fallback';
-import { describeGeminiBackend, getGoogleGenAIClient, isGeminiConfigured } from '../config/google-genai.client';
 
 
 export interface MockupGenerationRequest {
@@ -40,19 +45,12 @@ export interface MockupGenerationResult {
 }
 
 export class GeminiMockupService {
-  private _geminiAI?: GoogleGenAI;
   private readonly storageService: StorageService;
 
   constructor() {
     this.storageService = new StorageService();
   }
 
-  private get geminiAI(): GoogleGenAI {
-    if (!this._geminiAI) {
-      this._geminiAI = getGoogleGenAIClient();
-    }
-    return this._geminiAI;
-  }
   /**
    * Génère les mockups pour un projet (nombre configurable via MOCKUP_CONFIG)
    * L'IA analyse le projet et choisit automatiquement les supports adaptés
@@ -195,134 +193,52 @@ export class GeminiMockupService {
       });
 
       // Vérifier que l'API key Gemini est configurée
-      if (!isGeminiConfigured()) {
-        logger.error(
-          `[MOCKUP][${mockupName}] Backend Gemini non configuré (${describeGeminiBackend()}) - cannot generate mockup images`,
-          {
-            mockupName,
-            projectId,
-          }
-        );
-        console.error(`[MOCKUP] ❌ Backend Gemini non configuré (${describeGeminiBackend()}).`);
-        throw new Error(
-          `Backend Gemini non configuré (${describeGeminiBackend()}). Cannot generate mockup images.`
-        );
-      }
-
-      console.log(
-        `[MOCKUP] ✅ ${describeGeminiBackend()} — proceeding with real image generation for mockup ${request.selectedSupport.mockupIndex}`
-      );
-
-      // Construire le contenu multimodal (texte + image du logo)
-      const contents = this.buildMultimodalContent(request);
-
-      logger.info(`[MOCKUP][${mockupName}] Multimodal content built for Gemini`, {
-        mockupName,
-        hasImagePart: !!request.logoImageBase64,
-        projectId,
-      });
-
-      // Générer l'image avec Gemini
-      logger.info(
-        `[MOCKUP][${mockupName}] Calling Gemini Image API (gemini-3.1-flash-image)`,
-        {
+      if (!isGlmConfigured()) {
+        logger.error(`[MOCKUP][${mockupName}] GLM_API_KEY absente - cannot generate mockup images`, {
           mockupName,
-          model: AI_CONFIG.branding.brandMockup.imageModel,
-          mockupIndex: request.selectedSupport.mockupIndex,
-          projectId,
-        }
-      );
-
-      const primaryImageModel = AI_CONFIG.branding.brandMockup.imageModel;
-      const fallbackImageModel = AI_CONFIG.fallback.imageModel;
-
-      const response = await withGeminiFallback(
-        () => this.geminiAI.models.generateContent({
-          model: primaryImageModel,
-          contents: contents,
-          config: {
-            responseModalities: ['TEXT', 'IMAGE'],
-            candidateCount: 1,
-          },
-        }),
-        () => this.geminiAI.models.generateContent({
-          model: fallbackImageModel,
-          contents: contents,
-          config: {
-            responseModalities: ['TEXT', 'IMAGE'],
-            candidateCount: 1,
-          },
-        }),
-        primaryImageModel,
-        fallbackImageModel
-      );
-
-      logger.info(`[MOCKUP][${mockupName}] Gemini API response received`, {
-        mockupName,
-        hasCandidates: !!(response.candidates && response.candidates.length > 0),
-        candidatesCount: response.candidates?.length || 0,
-        projectId,
-      });
-
-      // Extraire l'image générée
-      let imageBuffer: Buffer | null = null;
-      let imageMimeType = 'image/png';
-
-      if (
-        response.candidates &&
-        response.candidates[0] &&
-        response.candidates[0].content &&
-        response.candidates[0].content.parts
-      ) {
-        logger.info(`[MOCKUP][${mockupName}] Gemini response parts analysis`, {
-          mockupName,
-          partsCount: response.candidates[0].content.parts.length,
-          partTypes: response.candidates[0].content.parts.map((p: any) => ({
-            hasText: !!p.text,
-            hasInlineData: !!p.inlineData,
-            mimeType: p.inlineData?.mimeType || 'none',
-            dataLength: p.inlineData?.data?.length || 0,
-          })),
           projectId,
         });
-
-        for (const part of response.candidates[0].content.parts) {
-          if (part.inlineData && part.inlineData.data) {
-            const imageData = part.inlineData.data;
-            imageBuffer = Buffer.from(imageData, 'base64');
-            imageMimeType = part.inlineData.mimeType || 'image/png';
-
-            logger.info(`[MOCKUP][${mockupName}] Image data extracted from Gemini response`, {
-              mockupName,
-              imageSize: imageBuffer.length,
-              imageSizeKB: `${Math.round(imageBuffer.length / 1024)}KB`,
-              imageMimeType,
-              projectId,
-            });
-            break;
-          }
-        }
-      } else {
-        logger.error(
-          `[MOCKUP][${mockupName}] Gemini response structure unexpected - NO IMAGE DATA`,
-          {
-            mockupName,
-            hasCandidates: !!response.candidates,
-            candidatesLength: response.candidates?.length,
-            hasContent: !!response.candidates?.[0]?.content,
-            hasParts: !!response.candidates?.[0]?.content?.parts,
-            finishReason: response.candidates?.[0]?.finishReason,
-            projectId,
-          }
-        );
-      }
-
-      if (!imageBuffer) {
-        throw new Error('No image generated by Gemini - response did not contain image data');
+        throw new Error('GLM_API_KEY is not configured. Cannot generate mockup images.');
       }
 
       console.log(
-        `[MOCKUP] ✅ Gemini image generated for mockup ${request.selectedSupport.mockupIndex} (${Math.round(imageBuffer.length / 1024)}KB) — now uploading to Firebase Storage bucket...`
+        `[MOCKUP] ✅ GLM ready — generating scene for mockup ${request.selectedSupport.mockupIndex}`
+      );
+
+      // La scène est produite SANS logo, puis le vrai logo y est incrusté.
+      //
+      // L'API d'image de Z.ai ne prend pas d'image en entrée : lui décrire le
+      // logo l'aurait fait en dessiner un approchant — inacceptable sur un
+      // livrable de marque. Composer l'image nous-mêmes donne un logo exact au
+      // pixel près, ce qu'aucune génération conditionnée ne garantissait.
+      const scenePrompt = this.buildScenePrompt(request);
+
+      logger.info(`[MOCKUP][${mockupName}] Generating scene with ${AI_CONFIG.branding.brandMockup.imageModel}`, {
+        mockupName,
+        mockupIndex: request.selectedSupport.mockupIndex,
+        hasLogo: !!request.logoImageBase64,
+        projectId,
+      });
+
+      const scene = await generateImage(scenePrompt, {
+        model: AI_CONFIG.branding.brandMockup.imageModel,
+        fallbackModel: AI_CONFIG.fallback.imageModel,
+        tag: mockupName,
+      });
+
+      let imageBuffer: Buffer = scene.buffer;
+      const imageMimeType = scene.mimeType;
+
+      if (request.logoImageBase64) {
+        imageBuffer = await this.compositeLogo(
+          scene.buffer,
+          Buffer.from(request.logoImageBase64, 'base64'),
+          mockupName
+        );
+      }
+
+      console.log(
+        `[MOCKUP] ✅ Mockup composed for ${request.selectedSupport.mockupIndex} (${Math.round(imageBuffer.length / 1024)}KB) — now uploading to Firebase Storage bucket...`
       );
 
       // Déterminer l'extension du fichier selon le mime type
@@ -399,47 +315,74 @@ export class GeminiMockupService {
    * Construit le contenu multimodal (texte + image du logo) pour Gemini
    * Utilise le nouveau système de prompts dynamiques basé sur le support sélectionné
    */
-  private buildMultimodalContent(request: MockupGenerationRequest): Content[] {
-    const {
-      brandName,
-      brandColors,
-      projectDescription,
-      logoImageBase64,
-      logoMimeType,
-      selectedSupport,
-    } = request;
+  /**
+   * Décrit la scène du mockup, sans logo.
+   *
+   * On reprend le prompt dynamique existant — il connaît le support, la marque
+   * et les couleurs — et on lui retire le logo pour le remplacer par une zone
+   * libre au centre, où l'incrustation viendra se poser.
+   */
+  private buildScenePrompt(request: MockupGenerationRequest): string {
+    const { brandName, brandColors, projectDescription, selectedSupport } = request;
 
-    // Utiliser le nouveau prompt dynamique qui s'adapte au support sélectionné
-    const textPrompt = MOCKUP_GENERATION_PROMPT.buildDynamicPrompt({
+    const base = MOCKUP_GENERATION_PROMPT.buildDynamicPrompt({
       brandName,
       brandColors,
       projectDescription,
-      hasLogo: !!logoImageBase64,
+      // Le logo n'est pas dessiné par le modèle : il est incrusté ensuite.
+      hasLogo: false,
       selectedSupport,
       pdfFormat: request.pdfFormat,
     });
 
-    const parts: Part[] = [];
-
-    // Ajouter l'image du logo si disponible
-    if (logoImageBase64) {
-      parts.push({
-        inlineData: {
-          mimeType: logoMimeType,
-          data: logoImageBase64,
-        },
-      });
-    }
-
-    // Ajouter le texte du prompt
-    parts.push({ text: textPrompt });
-
     return [
-      {
-        role: 'user',
-        parts: parts,
-      },
-    ];
+      base,
+      '',
+      'CRITICAL: Do NOT draw any logo, wordmark, brand name, letter or symbol on the product.',
+      'Leave the CENTER of the product surface visually clean and uncluttered —',
+      'flat, evenly lit, free of text, patterns, seams or reflections — so that the real',
+      'brand logo can be composited there afterwards. Render only the support, the scene',
+      'and the lighting.',
+    ].join('\n');
+  }
+
+  /**
+   * Incruste le logo au centre de la scène.
+   *
+   * Le logo est ramené à une fraction de la largeur, puis posé au centre — là
+   * où le prompt a demandé de laisser la surface libre. `sharp` conserve la
+   * transparence du PNG, le logo se pose donc sans cadre.
+   */
+  private async compositeLogo(
+    scene: Buffer,
+    logo: Buffer,
+    mockupName: string
+  ): Promise<Buffer> {
+    try {
+      const { width, height } = await sharp(scene).metadata();
+      if (!width || !height) {
+        return scene;
+      }
+
+      const logoWidth = Math.round(width * LOGO_WIDTH_RATIO);
+      const resizedLogo = await sharp(logo)
+        .resize({ width: logoWidth, fit: 'inside', withoutEnlargement: false })
+        .png()
+        .toBuffer();
+
+      const logoMeta = await sharp(resizedLogo).metadata();
+      const left = Math.round((width - (logoMeta.width ?? logoWidth)) / 2);
+      const top = Math.round((height - (logoMeta.height ?? logoWidth)) / 2);
+
+      return await sharp(scene)
+        .composite([{ input: resizedLogo, left: Math.max(0, left), top: Math.max(0, top) }])
+        .png()
+        .toBuffer();
+    } catch (error: any) {
+      // Un mockup sans logo reste exploitable ; pas de mockup du tout, non.
+      logger.warn(`[MOCKUP][${mockupName}] Logo compositing failed: ${error?.message}`);
+      return scene;
+    }
   }
 
   /**

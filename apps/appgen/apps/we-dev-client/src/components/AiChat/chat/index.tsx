@@ -81,6 +81,8 @@ const API_BASE = process.env.REACT_APP_BASE_URL;
 console.log(API_BASE, 'API_BASE');
 
 enum ModelTypes {
+  /** Le seul modèle ouvert aujourd'hui ; les autres restent déclarés mais non proposés. */
+  Glm53 = 'glm-5.3',
   Gemini35Flash = 'gemini-3.5-flash',
   Gemini3Flash = 'gemini-3-flash-preview',
   Claude37sonnet = 'claude-3-7-sonnet-20250219',
@@ -135,22 +137,16 @@ async function fetchModelConfig(): Promise<IModelOption[]> {
     return configs.map(convertModelConfigToOption);
   } catch (error) {
     console.error('Error fetching model config:', error);
-    // Fallback vers la configuration par défaut
+    // Repli hors ligne : le même modèle que le serveur, et lui seul. Proposer
+    // ici des modèles fermés reviendrait à les laisser choisir pour rien.
     return [
       {
-        value: ModelTypes.Gemini35Flash,
-        label: 'Gemini 3.5 Flash',
-        useImage: true,
+        value: ModelTypes.Glm53,
+        label: 'GLM 5.3',
+        useImage: false,
         from: 'default',
         quota: 2,
-        functionCall: true,
-      },
-      {
-        value: ModelTypes.Gemini3Flash,
-        label: 'Gemini 3 Flash',
-        useImage: true,
-        from: 'default',
-        quota: 2,
+        provider: 'glm',
         functionCall: true,
       },
     ];
@@ -165,10 +161,12 @@ async function fetchDefaultModel(): Promise<string> {
       throw new Error('Failed to fetch default model');
     }
     const data = await response.json();
-    return data.defaultModel || ModelTypes.Gemini35Flash;
+    // L'API répond `{ modelKey }` : lire `defaultModel` renvoyait toujours
+    // `undefined`, et le défaut retombait donc en silence sur le repli.
+    return data.modelKey || ModelTypes.Glm53;
   } catch (error) {
     console.error('Error fetching default model:', error);
-    return ModelTypes.Gemini35Flash;
+    return ModelTypes.Glm53;
   }
 }
 
