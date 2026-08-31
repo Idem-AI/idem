@@ -42,12 +42,13 @@ export interface VerificationOutcome {
   report: QualityReport;
 }
 
-const REPAIR_SYSTEM_PROMPT = `Tu es un réparateur de sortie. On te donne un contenu généré et la liste EXACTE de ses défauts.
-Règles absolues:
-- Tu renvoies UNIQUEMENT le contenu corrigé, rien d'autre: pas d'explication, pas de préambule, pas de bloc de code.
-- Tu corriges UNIQUEMENT les défauts listés. Tout le reste doit rester identique, mot pour mot.
-- Si un contenu est tronqué, tu le complètes dans le même style et la même structure, sans réécrire l'existant.
-- Tu ne changes jamais les chiffres, les noms propres, les couleurs ni les URLs présents.`;
+const REPAIR_SYSTEM_PROMPT = `You repair generated output. You are given a piece of generated content and the EXACT list of its defects.
+Absolute rules:
+- Return ONLY the corrected content, nothing else: no explanation, no preamble, no code fence.
+- Fix ONLY the listed defects. Everything else stays identical, word for word.
+- If the content is truncated, complete it in the same style and structure, without rewriting what is already there.
+- Keep the content in its ORIGINAL LANGUAGE.
+- Never change the figures, proper nouns, colours or URLs present.`;
 
 /**
  * Nettoyages qu'aucun modèle ne devrait avoir à faire: on les applique en code.
@@ -129,10 +130,10 @@ export async function verifySection(
   const issueList = stillBroken.blocking.map((i) => `- ${i.message}`).join('\n');
   const prompt = `SECTION: ${ctx.sectionName}
 
-DÉFAUTS À CORRIGER:
+DEFECTS TO FIX:
 ${issueList}
 
-CONTENU À CORRIGER:
+CONTENT TO FIX:
 ${base}`;
 
   try {

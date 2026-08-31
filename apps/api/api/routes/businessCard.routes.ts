@@ -18,8 +18,8 @@ const resourceName = 'business-cards';
 
 /** Génération IA et rendu Chromium dépassent le timeout par défaut. */
 const extendedTimeout = (req: any, res: any, next: any) => {
-  req.setTimeout(180000);
-  res.setTimeout(180000);
+  req.setTimeout(900000); // 15 min — le raisonnement triple la durée d'un appel
+  res.setTimeout(900000);
   next();
 };
 

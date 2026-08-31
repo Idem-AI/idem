@@ -28,9 +28,9 @@ export const LOGO_VARIATION_CRITIQUE_PROMPT = `<role>Uncompromising brand system
 
 <remarks_rules>
 - Maximum 4 remarks, ordered by severity, citing the concrete element and color concerned.
-- "issue": en FRANÇAIS, une phrase claire (affichée à l'utilisateur).
+- "issue": in FRENCH, one clear sentence (it is shown to the user).
 - "fix": in ENGLISH, an exact color remapping instruction (e.g. "#1a1a1a fills must become #ffffff"), because the reviser can ONLY remap colors — geometry is frozen.
-- "summary": une phrase en FRANÇAIS.
+- "summary": one sentence in FRENCH.
 </remarks_rules>
 
 <output_format>
@@ -38,9 +38,9 @@ Output ONLY valid JSON. No markdown fences, no prose.
 {
   "verdict": "pass" | "fail",
   "score": <0-100>,
-  "summary": "<une phrase en français>",
+  "summary": "<one sentence, in French>",
   "remarks": [
-    { "criterion": "<checklist item>", "issue": "<français>", "fix": "<English color remap instruction>" }
+    { "criterion": "<checklist item>", "issue": "<French>", "fix": "<English color remap instruction>" }
   ]
 }
 </output_format>

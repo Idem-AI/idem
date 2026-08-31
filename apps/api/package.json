@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "check:agents": "ts-node --transpile-only api/scripts/checkAgentPipeline.ts",
+    "check:design": "ts-node --transpile-only api/scripts/checkDesignSystem.ts",
     "check:retry": "ts-node --transpile-only api/scripts/verifyRetry.ts",
     "check:models": "ts-node --transpile-only api/scripts/verifyFallbackChain.ts",
     "dev": "nodemon api/index.ts",

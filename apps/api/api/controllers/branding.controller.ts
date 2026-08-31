@@ -1102,3 +1102,68 @@ export const editLogoController = async (req: CustomRequest, res: Response): Pro
     });
   }
 };
+
+/**
+ * Direction artistique du projet.
+ *
+ * GET la renvoie (en la générant si elle n'existe pas encore), POST en propose
+ * une AUTRE — le style déjà retenu est explicitement écarté du catalogue, sans
+ * quoi le brief étant inchangé, le modèle reproposerait le même.
+ */
+export const getArtDirectionController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId } = req.params;
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    const project = await projectService.getUserProjectById(userId, projectId);
+    if (!project) {
+      res.status(404).json({ message: 'Project not found' });
+      return;
+    }
+    const direction = await brandingService.ensureArtDirection(userId, projectId, project);
+    if (!direction) {
+      res.status(404).json({ message: 'No branding available for this project' });
+      return;
+    }
+    res.status(200).json(direction);
+  } catch (error) {
+    logger.error(`Error in getArtDirectionController - ProjectId: ${projectId}`, {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    res.status(500).json({ message: 'Error resolving art direction' });
+  }
+};
+
+export const regenerateArtDirectionController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId } = req.params;
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    const direction = await brandingService.regenerateArtDirection(userId, projectId);
+    if (!direction) {
+      res.status(404).json({ message: 'Project or branding not found' });
+      return;
+    }
+    logger.info(`Art direction regenerated - ProjectId: ${projectId}`, {
+      styleId: direction.styleId,
+    });
+    res.status(200).json(direction);
+  } catch (error) {
+    logger.error(`Error in regenerateArtDirectionController - ProjectId: ${projectId}`, {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    res.status(500).json({ message: 'Error regenerating art direction' });
+  }
+};

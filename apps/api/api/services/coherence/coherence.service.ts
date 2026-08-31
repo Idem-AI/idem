@@ -36,26 +36,26 @@ const SECTION_CONTEXT_MAX_CHARS = 7_000;
 /** Code MongoDB pour une violation de contrainte unique (course gagnée par un autre audit/apply concurrent). */
 const MONGO_DUPLICATE_KEY_ERROR = 11000;
 
-const COHERENCE_SYSTEM_PROMPT = `Tu es un auditeur de cohérence pour la plateforme IDEM.
-On te donne deux artefacts d'un même projet d'entreprise et le contrat de cohérence qui les lie.
-Ta mission: détecter les incohérences RÉELLES et importantes (contradictions de fond, données manquantes d'un côté alors que l'autre les définit). Ignore les différences de formulation ou de niveau de détail.
+const COHERENCE_SYSTEM_PROMPT = `You are a coherence auditor for the IDEM platform.
+You are given two artefacts of the same business project and the coherence contract that binds them.
+Your mission: detect REAL and significant inconsistencies (substantive contradictions, data missing on one side while the other defines it). Ignore differences of wording or of level of detail.
 
-Réponds UNIQUEMENT avec un objet JSON valide, sans markdown, au format:
+Answer with a VALID JSON object ONLY, no markdown, in this shape:
 {
   "coherent": boolean,
-  "analysis": "diagnostic en 2-4 phrases, en français",
+  "analysis": "a 2-4 sentence diagnosis, written IN FRENCH",
   "issues": [
     {
-      "description": "l'incohérence constatée",
-      "targetSection": "la section à corriger",
-      "suggestedAction": "l'action concrète recommandée"
+      "description": "the inconsistency observed, IN FRENCH",
+      "targetSection": "the section to fix",
+      "suggestedAction": "the concrete recommended action, IN FRENCH"
     }
   ],
   "financeAutofillRecommended": boolean
 }
 
-"financeAutofillRecommended" = true si la section finance est vide ou très incomplète alors que le business plan définit un modèle économique exploitable — DANS CE CAS, mets-le à true MÊME SI tu réponds coherent=true avec issues=[] (une finance vide n'est pas "incohérente" en soi, mais reste une action recommandée: ce champ est indépendant de "coherent").
-Si les deux artefacts sont cohérents et qu'il n'y a rien à recommander (ou si l'un des deux est trop vide pour juger sans rapport avec l'autre), renvoie coherent=true, issues=[], financeAutofillRecommended=false.`;
+"financeAutofillRecommended" = true when the finance section is empty or very incomplete while the business plan defines a usable economic model — IN THAT CASE set it to true EVEN IF you answer coherent=true with issues=[] (an empty finance module is not "incoherent" in itself, but it is still a recommended action: this field is independent of "coherent").
+If the two artefacts are coherent and there is nothing to recommend (or if one of them is too empty to judge against the other), return coherent=true, issues=[], financeAutofillRecommended=false.`;
 
 export class CoherenceService {
   private readonly projectRepository: IRepository<ProjectModel>;
@@ -148,7 +148,7 @@ export class CoherenceService {
       {
         role: 'user',
         content: [
-          `CONTRAT DE COHÉRENCE (règle "${rule.id}"):`,
+          `COHERENCE CONTRACT (rule "${rule.id}"):`,
           rule.contract,
           '',
           `=== SECTION "${keyA}" ===`,

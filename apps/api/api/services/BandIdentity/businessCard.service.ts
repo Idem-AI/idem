@@ -21,6 +21,7 @@ import { sanitizeSectionHtml } from '../../utils/sanitize-section-html';
 import { interpolateBusinessCard } from '../../utils/business-card-template';
 import { SupportedLanguage } from '../../utils/request-language';
 import { buildBusinessCardPrompt } from './prompts/business-card-generation.prompt';
+import { buildArtDirectionBlock } from '../../utils/art-direction.util';
 import { businessCardRenderService } from './businessCardRender.service';
 
 /** Réponse attendue du modèle. */
@@ -116,11 +117,14 @@ export class BusinessCardService extends GenericService {
         text: branding?.colors?.colors?.text || '#111827',
       },
       typography: {
-        primaryFont: branding?.typography?.primaryFont || 'Inter',
-        secondaryFont: branding?.typography?.secondaryFont || 'Inter',
+        primaryFont: branding?.typography?.primaryFont || 'Archivo',
+        secondaryFont: branding?.typography?.secondaryFont || 'IBM Plex Sans',
       },
       logos: this.collectLogoUrls(branding),
       styleBrief: options.styleBrief?.trim() || undefined,
+      // La carte est tenue à côté du logo : c'est le support où un écart avec
+      // la direction artistique de la marque se voit le plus.
+      artDirectionBlock: buildArtDirectionBlock(branding?.artDirection, { medium: 'poster' }),
     });
 
     const config: PromptConfig = {
@@ -131,10 +135,6 @@ export class BusinessCardService extends GenericService {
       userId,
       promptType: 'branding_business_card',
       language: options.language,
-      // Deux faces de HTML complètes : un plafond global (MAX_OUTPUT_TOKENS)
-      // tronquerait la réponse en plein milieu du markup et la rendrait
-      // inexploitable. Le budget de ai.config.ts fait foi ici.
-      bypassOutputTokenCap: true,
     };
     const messages: AIChatMessage[] = [{ role: 'user', content: prompt }];
 

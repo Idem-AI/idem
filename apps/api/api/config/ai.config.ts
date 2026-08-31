@@ -205,6 +205,126 @@ export const TEXT_FALLBACK_MODELS = [
   'glm-4.5-flash',
 ];
 
+/**
+ * Profils d'échantillonnage — priorité QUALITÉ, la latence est assumée.
+ *
+ * « Qualité » n'est pas un curseur unique, et c'est l'erreur qu'on ne veut pas
+ * refaire : monter la température partout dégrade autant qu'elle améliore. Deux
+ * régimes s'opposent, et une génération relève toujours de l'un ou de l'autre.
+ *
+ *   DIVERGENCE — concept, direction artistique, composition, rédaction.
+ *     Le modèle doit s'écarter de la réponse moyenne. Température et top-p
+ *     hauts : c'est là que la créativité se joue.
+ *
+ *   PRÉCISION — coordonnées SVG, schémas JSON, tableaux de chiffres.
+ *     La bonne réponse est unique. Une température haute y produit une
+ *     géométrie fausse, un JSON cassé, des chiffres incohérents : elle FAIT
+ *     BAISSER la qualité. On la garde donc basse, délibérément.
+ *
+ * Le levier qui sert les DEUX régimes est ailleurs : le RAISONNEMENT. Il est
+ * coupé par défaut chez le fournisseur (cf. ai-providers.config.ts) parce qu'il
+ * triple la latence et qu'il se décompte du budget de sortie. Le rallumer est
+ * exactement ce qu'on achète en acceptant d'attendre — à condition de doubler
+ * le budget de sortie en même temps, sinon la réflexion le consomme et la
+ * réponse revient vide. C'est la panne documentée en tête de GLM_MODELS.
+ *
+ * ⚠️ `topK` n'est PAS transmis à GLM : l'API OpenAI-compatible ne l'expose pas
+ * (cf. prompt.service, « Pas de topK dans l'API OpenAI »). Il n'est conservé
+ * ici que pour un éventuel retour sur Gemini natif, où il est appliqué. Ne pas
+ * compter dessus pour régler la diversité sur la plateforme actuelle : c'est
+ * `topP` qui travaille.
+ */
+
+/**
+ * Budget de sortie en dessous duquel le raisonnement ne laisse plus de place à
+ * la réponse.
+ *
+ * Les tokens de réflexion se décomptent de `max_tokens`. Sous ce seuil, le
+ * modèle réfléchit jusqu'à épuisement et renvoie `finish_reason=length` avec un
+ * contenu VIDE — pas une erreur, pas une troncature visible : rien. Le repli
+ * hérite du même réglage et échoue pareil, si bien que toute la chaîne tombe.
+ *
+ * Observé en production sur « Logo Critique » : 4 096 tokens hérités d'un
+ * appelant qui les avait fixés à une époque où le raisonnement était coupé.
+ */
+export const MIN_TOKENS_FOR_THINKING = 8000;
+
+/** Exporté pour la vérification de configuration (`npm run check:agents`). */
+export const MAX_TEMPERATURE_FOR_THINKING = 0.65;
+
+/**
+ * Filet de sécurité : rend impossible la combinaison « raisonnement actif +
+ * budget trop court ».
+ *
+ * Le choix de COUPER le raisonnement plutôt que de gonfler le budget est
+ * délibéré. Un appelant qui fixe 4 096 tokens exprime une intention — il attend
+ * un petit JSON, pas une dissertation. Gonfler son budget changerait son coût
+ * sans son accord et ne garantirait toujours rien ; couper la réflexion lui rend
+ * exactement ce qu'il demandait, en un seul appel. La qualité perdue est
+ * signalée, elle n'est pas silencieuse.
+ *
+ * Appliqué au point de passage unique (`PromptService.runPrompt`) plutôt qu'à
+ * chaque appelant, où le prochain l'oublierait — comme pour la chaîne de repli.
+ */
+export function reconcileThinkingBudget(options: LLMOptions): {
+  options: LLMOptions;
+  downgraded: boolean;
+} {
+  const thinking = (options.extraBody as any)?.thinking;
+  const budget = options.maxOutputTokens;
+  if (thinking?.type !== 'enabled' || !budget || budget >= MIN_TOKENS_FOR_THINKING) {
+    return { options, downgraded: false };
+  }
+  return {
+    options: {
+      ...options,
+      extraBody: { ...options.extraBody, thinking: { type: 'disabled' } },
+    },
+    downgraded: true,
+  };
+}
+
+/** Raisonnement GLM activé — écrase le `thinking: disabled` du fournisseur. */
+const THINKING_ON = { thinking: { type: 'enabled' } } as const;
+
+/**
+ * ⚠️ PLAFOND DE TEMPÉRATURE SUR UN MODÈLE QUI RAISONNE.
+ *
+ * Erreur commise puis mesurée en production : avec le raisonnement actif, la
+ * température ne s'applique pas qu'à la réponse, elle s'applique AUSSI aux
+ * tokens de réflexion. À 0.85, la réflexion part en digression, n'atteint jamais
+ * sa conclusion, et consomme l'enveloppe entière — 24 000 tokens brûlés en 97
+ * secondes pour une réponse VIDE (finish_reason=length). Augmenter le budget
+ * n'y change rien : une réflexion qui ne converge pas remplira n'importe quelle
+ * enveloppe.
+ *
+ * La divergence vient donc du RAISONNEMENT et des contraintes du prompt (le
+ * catalogue de styles, la graine de composition, les interdits), pas d'un
+ * échantillonnage chaud. Au-delà de ~0.65 sur un modèle « thinking », on
+ * n'achète plus de créativité, on achète de l'incohérence — puis du vide.
+ */
+const MAX_TEMPERATURE_WITH_THINKING = 0.65;
+
+/**
+ * Divergence : concept de marque, direction artistique, couverture, accroche.
+ * C'est le réglage le plus chaud qu'un modèle raisonnant supporte sans que sa
+ * réflexion cesse de converger.
+ */
+const SAMPLING_DIVERGENT = { temperature: 0.65, topP: 0.95, topK: 64 };
+
+/**
+ * Composition sous contrainte : une page de charte, une slide, une section de
+ * plan. Le modèle compose librement mais dans une grille, une palette et une
+ * typographie imposées.
+ */
+const SAMPLING_COMPOSITION = { temperature: 0.55, topP: 0.92, topK: 50 };
+
+/**
+ * Précision : géométrie, JSON de schéma, chiffres. La créativité n'y est que de
+ * la variance, et la variance y est un défaut.
+ */
+const SAMPLING_PRECISION = { temperature: 0.25, topP: 0.85, topK: 30 };
+
 export const AI_CONFIG = {
   // Global / default settings
   default: {
@@ -265,30 +385,38 @@ export const AI_CONFIG = {
     modelName: GLM_MODELS.reasoning,
     fallbackModels: TEXT_FALLBACK_MODELS,
     llmOptions: {
-      maxOutputTokens: 14000,
-      temperature: 0.55,
-      topP: 0.92,
-      topK: 40,
+      // Raisonnement activé : une section de plan est un arbitrage (quel angle,
+      // quelles hypothèses, quelles preuves), pas une reformulation. Le budget
+      // double en conséquence — la réflexion s'y décompte.
+      ...SAMPLING_COMPOSITION,
+      extraBody: { ...THINKING_ON },
+      maxOutputTokens: 28000,
     },
     sections: {
-      // Page de garde : peu de contenu, mais la mise en page doit être soignée.
-      // `tier: 'M'` — c'est de la mise en page à partir d'éléments déjà connus
-      // (nom, marque, couleurs) : le modèle de raisonnement n'y apporte rien.
-      'Cover Page': { tier: 'M', llmOptions: { maxOutputTokens: 9000, temperature: 0.6 } },
-      // Synthèse : c'est la section la plus lue, elle doit être dense et juste.
-      'Company Summary': { llmOptions: { maxOutputTokens: 16000, temperature: 0.5 } },
+      // Page de garde : c'est la première page qu'un investisseur ouvre. Elle
+      // sort de l'étage M — la composition d'une couverture est le travail le
+      // plus créatif du document, pas de la mise en page mécanique.
+      'Cover Page': {
+        llmOptions: { ...SAMPLING_DIVERGENT, maxOutputTokens: 18000 },
+      },
+      // Synthèse : la section la plus lue, elle doit être dense et juste.
+      'Company Summary': { llmOptions: { maxOutputTokens: 30000, temperature: 0.55 } },
       // Sections nourries par la recherche : beaucoup de matière à structurer.
-      Opportunity: { llmOptions: { maxOutputTokens: 20000, temperature: 0.5 } },
-      'Target Audience': { llmOptions: { maxOutputTokens: 18000, temperature: 0.55 } },
-      'Products & Services': { llmOptions: { maxOutputTokens: 18000, temperature: 0.55 } },
-      'Marketing & Sales': { llmOptions: { maxOutputTokens: 18000, temperature: 0.6 } },
+      Opportunity: { llmOptions: { maxOutputTokens: 36000, temperature: 0.5 } },
+      'Target Audience': { llmOptions: { maxOutputTokens: 32000, temperature: 0.55 } },
+      'Products & Services': { llmOptions: { maxOutputTokens: 32000, temperature: 0.55 } },
+      'Marketing & Sales': { llmOptions: { maxOutputTokens: 32000, temperature: 0.6 } },
       // Section la plus lourde : tableaux chiffrés, hypothèses, projections.
-      // Température basse : on veut des chiffres cohérents, pas de la créativité.
-      'Financial Plan': { llmOptions: { maxOutputTokens: 24000, temperature: 0.3, topP: 0.85 } },
+      // PRÉCISION assumée : monter la température ici produit des chiffres qui
+      // ne s'additionnent plus. Le gain de qualité vient du raisonnement et du
+      // budget, pas de l'échantillonnage.
+      'Financial Plan': {
+        llmOptions: { ...SAMPLING_PRECISION, maxOutputTokens: 44000 },
+      },
       // Jalons et annexes : restructuration de matière déjà produite en amont
       // (elles reçoivent les digests des sections dont elles dépendent).
-      'Goal Planning': { tier: 'M', llmOptions: { maxOutputTokens: 14000, temperature: 0.5 } },
-      Appendix: { tier: 'M', llmOptions: { maxOutputTokens: 12000, temperature: 0.45 } },
+      'Goal Planning': { llmOptions: { maxOutputTokens: 24000, temperature: 0.5 } },
+      Appendix: { tier: 'M', llmOptions: { maxOutputTokens: 20000, temperature: 0.5 } },
     },
   } as FeatureAIConfig,
 
@@ -300,29 +428,31 @@ export const AI_CONFIG = {
     modelName: GLM_MODELS.reasoning,
     fallbackModels: TEXT_FALLBACK_MODELS,
     llmOptions: {
-      maxOutputTokens: 12000,
+      // Onze slides qui doivent se distinguer les unes des autres : c'est le
+      // livrable où la convergence vers une même mise en page se voit le plus.
+      ...SAMPLING_COMPOSITION,
       temperature: 0.6,
-      topP: 0.92,
-      topK: 40,
+      extraBody: { ...THINKING_ON },
+      maxOutputTokens: 24000,
     },
     sections: {
-      // Slide d'ouverture : c'est la première impression, on lui laisse de la
-      // marge — mais le travail est de la composition, pas du raisonnement.
-      Cover: { tier: 'M', llmOptions: { maxOutputTokens: 12000, temperature: 0.7 } },
-      Problem: { llmOptions: { maxOutputTokens: 12000, temperature: 0.62 } },
-      Solution: { llmOptions: { maxOutputTokens: 13000, temperature: 0.62 } },
-      // Chiffres de marché : structure dense (TAM/SAM/SOM), créativité inutile.
-      Market: { llmOptions: { maxOutputTokens: 15000, temperature: 0.4, topP: 0.88 } },
-      Product: { llmOptions: { maxOutputTokens: 14000, temperature: 0.6 } },
-      'Business Model': { llmOptions: { maxOutputTokens: 14000, temperature: 0.45 } },
-      Traction: { llmOptions: { maxOutputTokens: 12000, temperature: 0.45 } },
+      // Slide d'ouverture : la première impression du deck. Sortie de l'étage M
+      // pour la même raison que la couverture du plan — c'est de la création.
+      Cover: { llmOptions: { ...SAMPLING_DIVERGENT, maxOutputTokens: 22000 } },
+      Problem: { llmOptions: { maxOutputTokens: 22000, temperature: 0.62 } },
+      Solution: { llmOptions: { maxOutputTokens: 24000, temperature: 0.62 } },
+      // Chiffres de marché : structure dense (TAM/SAM/SOM), la divergence n'y
+      // apporte rien et fait dériver les ordres de grandeur.
+      Market: { llmOptions: { ...SAMPLING_PRECISION, maxOutputTokens: 28000, temperature: 0.35 } },
+      Product: { llmOptions: { maxOutputTokens: 26000, temperature: 0.6 } },
+      'Business Model': { llmOptions: { maxOutputTokens: 26000, temperature: 0.55 } },
+      Traction: { llmOptions: { maxOutputTokens: 22000, temperature: 0.55 } },
       // Tableau comparatif : beaucoup de cellules pour peu de mots.
-      Competition: { llmOptions: { maxOutputTokens: 15000, temperature: 0.45 } },
-      // Trombinoscope : mise en page de données fournies, aucun arbitrage.
-      Team: { tier: 'M', llmOptions: { maxOutputTokens: 11000, temperature: 0.55 } },
+      Competition: { llmOptions: { maxOutputTokens: 28000, temperature: 0.55 } },
+      Team: { llmOptions: { maxOutputTokens: 20000, temperature: 0.6 } },
       // Projections chiffrées : le slide le plus dense du deck.
-      Financials: { llmOptions: { maxOutputTokens: 18000, temperature: 0.3, topP: 0.85 } },
-      Ask: { llmOptions: { maxOutputTokens: 11000, temperature: 0.45 } },
+      Financials: { llmOptions: { ...SAMPLING_PRECISION, maxOutputTokens: 32000 } },
+      Ask: { llmOptions: { maxOutputTokens: 20000, temperature: 0.6 } },
     },
   } as FeatureAIConfig,
 
@@ -367,14 +497,29 @@ export const AI_CONFIG = {
 
   // Finance configurations
   finance: {
+    /**
+     * Prévisions financières.
+     *
+     * PRÉCISION, pas divergence : trente-six mois de séries chiffrées qui
+     * doivent s'additionner, respecter des taux réels et rester cohérentes
+     * entre elles. Monter la température y produirait des chiffres plausibles
+     * pris un par un et faux pris ensemble.
+     *
+     * La qualité vient donc d'ailleurs : le modèle de raisonnement (estimer un
+     * coût unitaire pour un secteur et un pays donnés EST un raisonnement) et
+     * un budget de sortie qui laisse la place à la réflexion sans amputer les
+     * tableaux.
+     */
     autofill: {
       provider: LLMProvider.GLM,
-      modelName: GLM_MODELS.writing,
+      modelName: GLM_MODELS.reasoning,
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'finance',
       llmOptions: {
-        temperature: 0.4,
-        maxOutputTokens: 18192,
+        ...SAMPLING_PRECISION,
+        temperature: 0.35,
+        extraBody: { ...THINKING_ON },
+        maxOutputTokens: 48000,
       },
     } as FeatureAIConfig,
     // Détection d'intention : de la classification. Aucun raisonnement à payer,
@@ -391,24 +536,34 @@ export const AI_CONFIG = {
         thinkingBudget: 0,
       },
     } as FeatureAIConfig,
+    // Couverture du rapport financier : une page pleine, c'est de la création.
+    // 2000 tokens ne suffisaient pas à produire une page A4 en HTML+Tailwind ;
+    // avec le raisonnement actif, ils ne suffisaient plus du tout.
     pdfCover: {
       provider: LLMProvider.GLM,
-      modelName: GLM_MODELS.writing,
+      modelName: GLM_MODELS.reasoning,
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'finance-cover-generation',
       llmOptions: {
-        temperature: 0.7,
-        maxOutputTokens: 2000,
+        ...SAMPLING_DIVERGENT,
+        extraBody: { ...THINKING_ON },
+        maxOutputTokens: 20000,
       },
     } as FeatureAIConfig,
+    // Lecture commentée des indicateurs : le seul endroit du module finance où
+    // l'on rédige. ⚠️ Le budget est passé de 1500 à 12000 : à 1500, activer le
+    // raisonnement aurait consommé l'intégralité de l'enveloppe et renvoyé une
+    // interprétation VIDE — la panne exacte décrite en tête de GLM_MODELS.
     pdfInterpretation: {
       provider: LLMProvider.GLM,
-      modelName: GLM_MODELS.writing,
+      modelName: GLM_MODELS.reasoning,
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'finance-pdf-interpretation',
       llmOptions: {
-        temperature: 0.5,
-        maxOutputTokens: 1500,
+        temperature: 0.6,
+        topP: 0.93,
+        extraBody: { ...THINKING_ON },
+        maxOutputTokens: 12000,
       },
     } as FeatureAIConfig,
   },
@@ -666,26 +821,38 @@ export const AI_CONFIG = {
       modelName: GLM_MODELS.reasoning,
       fallbackModels: TEXT_FALLBACK_MODELS,
       llmOptions: {
-        maxOutputTokens: 12000,
-        temperature: 0.35,
-        topP: 0.9,
-        topK: 40,
+        // Le défaut le plus visible de la charte était sa monotonie : douze
+        // pages composées sur la même grille. Une température de 0.35 en était
+        // la cause directe — à ce niveau, le modèle reproduit la mise en page
+        // la plus probable, page après page.
+        ...SAMPLING_COMPOSITION,
+        extraBody: { ...THINKING_ON },
+        maxOutputTokens: 28000,
       },
       // Sections de la charte graphique (clés = `stepName` de branding.service.ts).
       // Celles qui portent du SVG demandent bien plus de budget que celles qui
       // ne produisent que de la mise en page : un SVG tronqué est inutilisable.
       sections: {
-        'Brand Header': { llmOptions: { maxOutputTokens: 24000, temperature: 0.4 } },
-        // Rendu du logo principal en HTML/SVG : la pièce maîtresse de la page.
-        'Logo Principal': { llmOptions: { maxOutputTokens: 20000, temperature: 0.3 } },
-        'Logo Variation Fond Clair': { llmOptions: { maxOutputTokens: 16000, temperature: 0.28 } },
-        'Logo Variation Fond Sombre': { llmOptions: { maxOutputTokens: 16000, temperature: 0.28 } },
-        'Logo Variation Monochrome': { llmOptions: { maxOutputTokens: 16000, temperature: 0.28 } },
+        // Couverture de la charte : la page la plus libre du document.
+        'Brand Header': { llmOptions: { ...SAMPLING_DIVERGENT, maxOutputTokens: 40000 } },
+        // Pages logo : elles PRÉSENTENT un logo déjà dessiné, elles ne le
+        // redessinent pas. La composition peut donc diverger sans risque pour
+        // la géométrie, qui est importée telle quelle.
+        'Logo Principal': { llmOptions: { maxOutputTokens: 36000, temperature: 0.6 } },
+        'Logo Variation Fond Clair': { llmOptions: { maxOutputTokens: 30000, temperature: 0.6 } },
+        'Logo Variation Fond Sombre': { llmOptions: { maxOutputTokens: 30000, temperature: 0.6 } },
+        'Logo Variation Monochrome': { llmOptions: { maxOutputTokens: 30000, temperature: 0.6 } },
         // Règles d'usage : du texte structuré, peu de balisage.
-        'Logo Bonnes Pratiques': { llmOptions: { maxOutputTokens: 24000, temperature: 0.4 } },
-        // Nuanciers et spécimens typographiques : beaucoup de petites cellules.
-        'Color Palette': { llmOptions: { maxOutputTokens: 14000, temperature: 0.25 } },
-        Typography: { llmOptions: { maxOutputTokens: 14000, temperature: 0.3 } },
+        'Logo Bonnes Pratiques': { llmOptions: { maxOutputTokens: 36000, temperature: 0.55 } },
+        // Nuanciers et spécimens : les VALEURS y sont exactes (hex, tailles),
+        // la mise en page reste libre. On garde donc une divergence moyenne
+        // plutôt que la précision — la page palette générique venait d'un 0.25.
+        'Color Palette': { llmOptions: { maxOutputTokens: 26000, temperature: 0.6 } },
+        Typography: { llmOptions: { maxOutputTokens: 26000, temperature: 0.62 } },
+        // Page de direction artistique : elle doit DÉMONTRER le style en
+        // construisant ses propres blocs de démonstration en CSS. C'est la page
+        // la plus inventive de la charte après la couverture.
+        'Direction Artistique': { llmOptions: { maxOutputTokens: 36000, temperature: 0.62 } },
       },
     } as FeatureAIConfig,
     logo: {
@@ -693,39 +860,96 @@ export const AI_CONFIG = {
       modelName: GLM_MODELS.reasoning,
       fallbackModels: TEXT_FALLBACK_MODELS,
       llmOptions: {
-        // ⚠️ NE PAS RÉDUIRE. Le modèle peut raisonner avant de répondre :
-        // les tokens de raisonnement sont décomptés de maxOutputTokens. Un SVG de
-        // logo complet (types name/initial = paths de letterforms) pèse déjà 2–4k
-        // tokens ; raisonnement + SVG sous un budget trop court (ex: 4000) tronque
-        // la réponse → JSON cassé → "no usable SVG". Valeur large validée = 24000.
-        maxOutputTokens: 24000,
-        temperature: 0.28,
-        topP: 0.9,
-        topK: 40,
+        // ⚠️ NE PAS RÉDUIRE. Les tokens de raisonnement sont décomptés de
+        // maxOutputTokens. Un SVG de logo complet (types name/initial = paths de
+        // letterforms) pèse déjà 2–4k tokens ; raisonnement + SVG sous un budget
+        // trop court tronque la réponse → JSON cassé → "no usable SVG".
+        // Le raisonnement étant désormais ACTIF, le budget est doublé.
+        maxOutputTokens: 48000,
+        // Le raisonnement est ici le vrai levier de qualité, pas la température.
+        // Le prompt exige une construction PARAMÉTRIQUE (« calculer chaque
+        // sommet, jamais à main levée ») : sans réflexion, le modèle ne calcule
+        // pas, il approxime — d'où des symétries fausses au demi-point près.
+        extraBody: { ...THINKING_ON },
+        // Relevée de 0.28 à 0.5 : à 0.28 le modèle proposait l'archétype le plus
+        // probable pour le secteur, c'est-à-dire le logo que tout le monde a.
+        // La géométrie reste protégée par la construction paramétrique et par la
+        // boucle critique → révision, pas par une température basse.
+        temperature: 0.45,
+        topP: 0.93,
+        topK: 50,
       },
     } as FeatureAIConfig,
+    /**
+     * Palettes.
+     *
+     * Une température de 0.05 sur le petit modèle produisait toujours la même
+     * réponse : le bleu de confiance, le vert de croissance, le violet
+     * d'innovation. C'est mécaniquement la palette moyenne du secteur — donc la
+     * palette de tous les concurrents. Le prompt encadre déjà les contraintes
+     * dures (contrastes WCAG, rôles, 60/30/10) : la divergence peut donc monter
+     * sans produire de palette inutilisable.
+     */
     colors: {
       provider: LLMProvider.GLM,
-      modelName: GLM_MODELS.mechanical,
-      // La liste était vide : une saturation du modèle faisait échouer l'étape
-      // sans seconde chance, alors que le repli ne coûte rien tant qu'il ne sert pas.
+      modelName: GLM_MODELS.reasoning,
       fallbackModels: TEXT_FALLBACK_MODELS,
       llmOptions: {
-        temperature: 0.05,
-        topP: 0.8,
-        topK: 20,
+        temperature: 0.6,
+        topP: 0.95,
+        topK: 50,
+        extraBody: { ...THINKING_ON },
+        // Trois palettes complètes + justifications, raisonnement compris.
+        maxOutputTokens: 12000,
       },
     } as FeatureAIConfig,
+    /**
+     * Appariements typographiques.
+     *
+     * La police est le levier le plus rapide pour qu'une marque cesse de
+     * ressembler à toutes les autres, et le petit modèle à 0.3 ramenait
+     * invariablement les familles les plus employées du web. Le prompt bannit
+     * désormais ces familles et impose trois registres différents : il faut un
+     * modèle capable d'arbitrer entre eux, et de la divergence pour ne pas
+     * reproposer le même appariement à chaque projet.
+     */
     typography: {
       provider: LLMProvider.GLM,
-      modelName: GLM_MODELS.mechanical,
-      // La liste était vide : une saturation du modèle faisait échouer l'étape
-      // sans seconde chance, alors que le repli ne coûte rien tant qu'il ne sert pas.
+      modelName: GLM_MODELS.reasoning,
       fallbackModels: TEXT_FALLBACK_MODELS,
       llmOptions: {
-        temperature: 0.3,
-        topP: 0.8,
-        topK: 20,
+        temperature: 0.6,
+        topP: 0.95,
+        topK: 50,
+        extraBody: { ...THINKING_ON },
+        maxOutputTokens: 12000,
+      },
+    } as FeatureAIConfig,
+    /**
+     * Direction artistique : l'arbitrage visuel dont dépendent tous les autres
+     * livrables.
+     *
+     * La température était basse pour éviter des directions « poétiques et
+     * inapplicables ». Le remède s'est révélé être ailleurs : c'est le CATALOGUE
+     * qui garantit l'applicabilité (le styleId est validé, la fiche de style
+     * fournit les règles opérables), pas la température. À 0.3, le modèle
+     * retenait simplement le style le plus attendu pour le secteur — et c'est
+     * exactement ce qu'on cherche à éviter, puisque cette décision se propage
+     * ensuite à la charte, aux visuels, au plan, au deck et au site.
+     *
+     * Divergence haute + raisonnement : un choix osé mais argumenté, et des
+     * consignes qui restent exécutables parce que le catalogue les borne.
+     */
+    artDirection: {
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.reasoning,
+      fallbackModels: TEXT_FALLBACK_MODELS,
+      llmOptions: {
+        ...SAMPLING_DIVERGENT,
+        extraBody: { ...THINKING_ON },
+        // Le raisonnement se décompte du budget : un JSON de direction tronqué
+        // est inutilisable, et il n'y a pas de repli à ce niveau.
+        maxOutputTokens: 24000,
       },
     } as FeatureAIConfig,
     logoAnalysis: {
@@ -748,17 +972,27 @@ export const AI_CONFIG = {
       modelName: GLM_MODELS.reasoning,
       fallbackModels: TEXT_FALLBACK_MODELS,
       llmOptions: {
-        maxOutputTokens: 24000,
-        temperature: 0.45,
-        topP: 0.9,
-        topK: 40,
+        ...SAMPLING_COMPOSITION,
+        extraBody: { ...THINKING_ON },
+        maxOutputTokens: 40000,
       },
     } as FeatureAIConfig,
-    mockupHtml: {
-      modelName: GLM_MODELS.writing,
-    },
+    /**
+     * Mise en situation de marque. Deux modèles, deux rôles distincts :
+     * l'un PHOTOGRAPHIE le support nu, l'autre LIT la photo pour dire où le
+     * logo doit être imprimé. Sans cette seconde lecture, le logo retombait au
+     * centre géométrique de l'image, souvent à côté du support.
+     */
     brandMockup: {
       imageModel: GLM_MODELS.image,
+      visionModel: GLM_MODELS.vision,
+      // Repli vision : le modèle gratuit de la même famille, la saturation
+      // étant par modèle (cf. imageSourcing).
+      visionFallbackModel: 'glm-4.6v-flash',
+      // Le JSON de zone tient en ~60 tokens, mais le modèle est « thinking » :
+      // son raisonnement se décompte du même budget et une réponse vide ferait
+      // retomber la composition sur son repli, donc sur un placement à l'aveugle.
+      visionMaxOutputTokens: 1500,
     },
   },
 };

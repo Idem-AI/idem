@@ -22,17 +22,6 @@ import { getSocialConnector } from '../Connectors/social-providers.config';
 import { AssistedShare } from '../Connectors/social-connector.interface';
 import { cacheService } from '../cache.service';
 
-interface DesignSeed {
-  archetype: string;
-  colorStrategy: string;
-  typographyMood: string;
-  layoutTension: string;
-  spacingMultiplier: number;
-  imagePosition: string;
-  readingDirection: string;
-  graphicAccent: string;
-  contentDensity: string;
-}
 import { GenericService } from '../common/generic.service';
 import { AIChatMessage, PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG, FeatureAIConfig } from '../../config/ai.config';
@@ -53,6 +42,16 @@ import {
   FORMAT_DIMENSIONS,
 } from './flyerRender.service';
 import { summarizeLogoForPrompt } from '../../utils/logo-context.util';
+import { brandFontsHref } from '../../utils/google-fonts.util';
+import {
+  buildArtDirectionBlock,
+  buildImageNegativePrompt,
+  buildImageStyleModifier,
+} from '../../utils/art-direction.util';
+import { ANTI_SLOP_BLOCK } from '../design/antiSlop.prompt';
+import { DesignSeed, buildDesignSeed, describeSeed } from '../design/designSeed';
+import { ensureProjectArtDirection } from '../design/artDirection.provider';
+import { lintHtml, repairHtml } from '../design/slopLint.service';
 import { sanitizeSectionHtml } from '../../utils/sanitize-section-html';
 import { markRevisionAsAI } from '../../utils/revision-context.util';
 import { withAiUsage } from '../../utils/ai-usage-context.util';
@@ -317,6 +316,14 @@ export class CommunicationService extends GenericService {
             }
           : undefined,
       },
+      // Recopiée dans le contexte pour que la composition d'un visuel n'ait pas
+      // à recharger le projet — et pour que le hash de contexte change quand la
+      // direction artistique change, ce qui invalide les visuels devenus
+      // incohérents avec la marque.
+      // Provisionnée si la charte n'a pas encore été générée : le module est
+      // utilisable seul, et un visuel sans parti pris est exactement le défaut
+      // qu'on corrige.
+      artDirection: await ensureProjectArtDirection(this.promptService, userId, projectId, project),
       extractedAt: new Date(),
     };
 
@@ -607,7 +614,7 @@ export class CommunicationService extends GenericService {
     }
 
     // ---- Step 5c: composition (copy + HTML coherent with the image) --------
-    const seed = this.generateDesignSeed();
+    const seed = this.generateDesignSeed(context);
     const intent = this.inferVisualIntent(content);
     // Un SEUL passage de substitution, piloté par une table exhaustive : les
     // remplacements en cascade laissaient passer des marqueurs non résolus
@@ -665,12 +672,7 @@ export class CommunicationService extends GenericService {
     ];
 
     const raw = await this.promptService.runPrompt(
-      promptConfigFor(AI_CONFIG.communication.flyer, userId, {
-        // Budget délibéré (cf. ai.config.ts) : le raisonnement de direction
-        // artistique est décompté de maxOutputTokens, et un HTML tronqué ne
-        // produit aucun visuel. Le plafond global reste actif ailleurs.
-        bypassOutputTokenCap: true,
-      }),
+      promptConfigFor(AI_CONFIG.communication.flyer, userId),
       messages
     );
     const parsed = this.safeJson<Partial<Flyer>>(raw) ?? {};
@@ -679,6 +681,13 @@ export class CommunicationService extends GenericService {
       typeof parsed.html === 'string'
         ? this.enforceBrandTypography(this.stripCtaButtons(parsed.html), context)
         : this.fallbackFlyerHtml(content, context, format, sourced?.url);
+    html = this.ensureLogoPresence(html, context, format);
+    html = this.applyDesignLint(
+      html,
+      context,
+      `visuel/${format}`,
+      sourced?.analysis.dominantColors || []
+    );
 
     // Note: We no longer need the post-processing regex replace for {{IMAGE_URL}} 
     // because we correctly populate the system prompt now. The AI will see 
@@ -1194,6 +1203,7 @@ export class CommunicationService extends GenericService {
       imageContext: flyer.imageAnalysis
         ? `${flyer.imageAnalysis.subject} (${flyer.imageAnalysis.mood}, ${flyer.imageAnalysis.luminance})`
         : undefined,
+      artDirectionBlock: buildArtDirectionBlock(context.artDirection, { medium: 'poster' }),
     });
 
     const raw = await withAiUsage(
@@ -1202,10 +1212,6 @@ export class CommunicationService extends GenericService {
         this.promptService.runPrompt(
           promptConfigFor(AI_CONFIG.communication.flyer, userId, {
             language,
-            // Même arbitrage qu'à la composition : le raisonnement de direction
-            // artistique se décompte de maxOutputTokens, et un HTML tronqué ne
-            // produit aucun visuel.
-            bypassOutputTokenCap: true,
           }),
           [{ role: 'user', content: prompt }]
         )
@@ -1215,9 +1221,18 @@ export class CommunicationService extends GenericService {
     // dans une chaîne JSON se perd tout entier sur une seule guillemet mal
     // échappée, et l'édition n'a rien d'autre à renvoyer que le HTML.
     const edited = sanitizeSectionHtml(
-      this.enforceBrandTypography(
-        this.stripCtaButtons(this.promptService.getCleanAIText(raw)),
-        context
+      this.applyDesignLint(
+        this.ensureLogoPresence(
+          this.enforceBrandTypography(
+            this.stripCtaButtons(this.promptService.getCleanAIText(raw)),
+            context
+          ),
+          context,
+          flyer.format
+        ),
+        context,
+        `visuel-edite/${flyer.format}`,
+        flyer.imageAnalysis?.dominantColors || []
       )
     );
     if (!edited || !edited.startsWith('<')) {
@@ -1326,6 +1341,10 @@ export class CommunicationService extends GenericService {
           targets: project.targets,
           colors: project.analysisResultModel?.branding?.colors?.colors,
           typo: project.analysisResultModel?.branding?.typography,
+          // Changer de direction artistique doit invalider le contexte : sans
+          // cela, les visuels continuaient d'être composés sur l'ancien parti
+          // pris pendant deux heures.
+          artDirection: project.analysisResultModel?.branding?.artDirection?.styleId,
           logo: logoFingerprint,
         })
       )
@@ -1392,11 +1411,15 @@ export class CommunicationService extends GenericService {
       BRAND_ACCENT: branding.accent || branding.primary,
       BRAND_BACKGROUND: branding.background || '#ffffff',
       BRAND_TEXT: branding.text || '#0f172a',
-      BRAND_PRIMARY_FONT: branding.primaryFont || 'Montserrat',
-      BRAND_SECONDARY_FONT: branding.secondaryFont || branding.primaryFont || 'Montserrat',
-      BRAND_FONT_URL:
-        branding.fontUrl ||
-        'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap',
+      BRAND_PRIMARY_FONT: branding.primaryFont || 'Archivo',
+      BRAND_SECONDARY_FONT: branding.secondaryFont || branding.primaryFont || 'IBM Plex Sans',
+      // `branding.fontUrl` vient de `typography.url`, qui est un slug : le
+      // transmettre tel quel faisait recopier au modèle un <link> mort, et le
+      // visuel sortait dans la police système. On construit l'URL réelle.
+      BRAND_FONT_URL: brandFontsHref(
+        { url: branding.fontUrl, primaryFont: branding.primaryFont, secondaryFont: branding.secondaryFont },
+        'https://fonts.googleapis.com/css2?family=Archivo:wght@100..900&display=swap'
+      ),
 
       LOGO_PRIMARY: primaryLogo || '(no logo available)',
       LOGO_WITHTEXT_LIGHT: pickLogo(logos?.withText?.light),
@@ -1411,6 +1434,20 @@ export class CommunicationService extends GenericService {
 
       format,
       VISUAL_INTENT: intent,
+
+      // La direction artistique et la graine sont DÉVELOPPÉES en consignes.
+      // Transmettre {"archetype":"D"} revenait à ne rien transmettre : le
+      // modèle ignore ce que « D » recouvre, et composait au jugé.
+      ART_DIRECTION:
+        buildArtDirectionBlock(context.artDirection, { medium: 'poster' }) ||
+        '(no art direction defined for this brand — compose from the charter alone)',
+      SEED_DIRECTIVES: describeSeed(seed),
+      ANTI_SLOP: ANTI_SLOP_BLOCK,
+      // Traitement d'image de la marque, à appliquer à la photo de fond.
+      AD_IMAGE_TREATMENT:
+        buildImageStyleModifier(context.artDirection) ||
+        'no mandated treatment — stay consistent with the charter',
+
       DESIGN_SEED: JSON.stringify(seed, null, 2),
       'DESIGN_SEED.archetype': seed.archetype,
       'DESIGN_SEED.colorStrategy': seed.colorStrategy,
@@ -1627,6 +1664,125 @@ export class CommunicationService extends GenericService {
    * n'est pas identifiable sans moteur de rendu — il faudrait comparer les
    * styles calculés — et reste couverte par le seul prompt.
    */
+  /**
+   * Toutes les URLs de déclinaisons connues pour la marque, dédoublonnées.
+   */
+  private knownLogoUrls(context: CommunicationContext): string[] {
+    const logos = context.branding.logoUrls;
+    if (!logos) return [];
+    const raw = [
+      logos.primary,
+      logos.withText?.light,
+      logos.withText?.dark,
+      logos.withText?.mono,
+      logos.iconOnly?.light,
+      logos.iconOnly?.dark,
+      logos.iconOnly?.mono,
+    ].filter((u): u is string => typeof u === 'string' && u.trim().length > 0);
+    return [...new Set(raw)];
+  }
+
+  /**
+   * Garantit qu'un logo RÉEL figure dans le HTML du visuel.
+   *
+   * Le prompt l'exige déjà, et le rendu sait ensuite corriger sa taille et sa
+   * polarité — mais uniquement s'il y a quelque chose à corriger. Deux échecs
+   * silencieux restaient possibles : le modèle omet le logo, ou il écrit une
+   * URL inventée (un chemin symbolique du type « BRAND.logoUrls.primary », ou
+   * une URL plausible qui n'existe pas). Dans les deux cas le visuel sortait
+   * sans signature, et aucune mesure au rendu ne pouvait le rattraper.
+   *
+   * On corrige donc en amont, sur la chaîne HTML — qui est aussi ce que
+   * l'éditeur WYSIWYG affichera.
+   */
+  private ensureLogoPresence(
+    html: string,
+    context: CommunicationContext,
+    format: FlyerFormat
+  ): string {
+    const urls = this.knownLogoUrls(context);
+    if (!urls.length || !html) return html;
+
+    const stripQuery = (value: string) => value.split('?')[0];
+    const known = urls.map(stripQuery);
+    if (known.some((url) => html.includes(url))) return html;
+
+    // Déclinaison par défaut : la version « avec texte » sur fond clair, ou le
+    // logo primaire. La polarité définitive est arbitrée au rendu, par mesure
+    // du contraste réel sous le logo.
+    const fallbackUrl =
+      context.branding.logoUrls?.withText?.light || context.branding.logoUrls?.primary || urls[0];
+    const minWidth = minLogoWidthFor(format);
+    const brand = this.escapeHtml(context.brandName || 'la marque');
+
+    // 1. Une balise <img> se présente comme le logo mais pointe ailleurs :
+    //    c'est l'URL inventée. On la corrige plutôt que d'ajouter un doublon.
+    const looksLikeLogo = /<img\b[^>]*(?:alt=["'][^"']*logo|class=["'][^"']*logo|src=["'][^"']*logo)[^>]*>/i;
+    const match = html.match(looksLikeLogo);
+    if (match) {
+      const repaired = match[0].replace(/src=["'][^"']*["']/i, `src="${fallbackUrl}"`);
+      logger.warn('[Communication] URL de logo invalide remplacée par une déclinaison réelle', {
+        format,
+      });
+      return html.replace(match[0], repaired);
+    }
+
+    // 2. Aucun logo du tout : on en pose un, dans un angle, à la taille
+    //    minimale lisible. Une signature imparfaitement placée vaut mieux qu'un
+    //    visuel de marque anonyme — et l'utilisateur peut la déplacer dans
+    //    l'éditeur.
+    const badge = `<img src="${fallbackUrl}" alt="logo ${brand}" class="absolute" style="left:5%;bottom:5%;width:${minWidth}px;height:auto;opacity:1;" />`;
+    const lastClose = html.lastIndexOf('</div>');
+    logger.warn('[Communication] Aucun logo dans le visuel généré : signature ajoutée', {
+      format,
+      minWidth,
+    });
+    return lastClose === -1
+      ? `${html}${badge}`
+      : `${html.slice(0, lastClose)}${badge}${html.slice(lastClose)}`;
+  }
+
+  /**
+   * Passe déterministe anti-générique sur le HTML d'un visuel.
+   *
+   * Corrige ce qui a une bonne réponse unique (couleur hors charte, police
+   * écrite en dur, titre en dégradé, image sans alt), journalise le reste. Ne
+   * recompose jamais : la mise en page reste celle que le modèle a produite.
+   */
+  private applyDesignLint(
+    html: string,
+    context: CommunicationContext,
+    label: string,
+    /**
+     * Teintes dominantes de la photo. Elles sont LÉGITIMES sur un visuel (elles
+     * pilotent le duotone, le voile, le filtre) : sans cette liste, la
+     * correction les ramènerait à la couleur de charte la plus proche et
+     * détruirait les stratégies IMAGE_EXTRACTED et SPLIT_COMPLEMENTARY.
+     */
+    imageColors: string[] = []
+  ): string {
+    if (!html) return html;
+    const options = {
+      palette: {
+        primary: context.branding.primary,
+        secondary: context.branding.secondary,
+        accent: context.branding.accent,
+        background: context.branding.background,
+        text: context.branding.text,
+      },
+      fonts: [context.branding.primaryFont, context.branding.secondaryFont].filter(
+        (f): f is string => !!f
+      ),
+      extraAllowedColors: imageColors,
+      expectedLogoUrls: this.knownLogoUrls(context),
+      styleId: context.artDirection?.styleId,
+      label,
+    };
+    const repaired = repairHtml(html, options).html;
+    lintHtml(repaired, options);
+    return repaired;
+  }
+
   private stripCtaButtons(html: string): string {
     if (!html) return html;
     const cleaned = html
@@ -1656,8 +1812,27 @@ export class CommunicationService extends GenericService {
       format === 'banner' ? 'landscape' : format === 'square' ? 'square' : 'portrait';
 
     try {
+      // Le brief d'image décide de 70 % de la surface du visuel : il doit
+      // connaître la direction artistique, sans quoi il ramène la photo de
+      // banque d'images par défaut, étrangère au reste de la marque.
+      const imageryDirection = context.artDirection
+        ? [
+            `Medium: ${context.artDirection.imagery?.medium || 'photography'}`,
+            `Brand subjects: ${context.artDirection.imagery?.subjects || ''}`,
+            `Treatment: ${context.artDirection.imagery?.treatment || ''}`,
+            `Lighting: ${context.artDirection.imagery?.lighting || ''}`,
+            `Framing: ${context.artDirection.imagery?.framing || ''}`,
+            `Render modifier (English, reuse it in generationPrompt): ${buildImageStyleModifier(context.artDirection)}`,
+          ]
+            .filter((line) => line.split(':').slice(1).join(':').trim())
+            .join('\n')
+        : 'No art direction defined: pick a restrained image, consistent with the charter, and avoid generic illustration imagery.';
+
       const messages: AIChatMessage[] = [
-        { role: 'system', content: AGENT_IMAGE_BRIEF_PROMPT },
+        {
+          role: 'system',
+          content: AGENT_IMAGE_BRIEF_PROMPT.replace('{{AD_IMAGERY}}', imageryDirection),
+        },
         {
           role: 'user',
           content: JSON.stringify({
@@ -1688,6 +1863,15 @@ export class CommunicationService extends GenericService {
         generationPrompt:
           (parsed.generationPrompt && parsed.generationPrompt.trim()) ||
           this.fallbackGenerationPrompt(content, context),
+        // Prompt négatif : celui décidé par l'agent, complété par celui du style
+        // retenu. Les deux visent la même chose — écarter les tics de rendu qui
+        // signent une image générée.
+        negativePrompt: [
+          (parsed as any).negativePrompt,
+          buildImageNegativePrompt(context.artDirection),
+        ]
+          .filter(Boolean)
+          .join(', '),
         preferGenerated: !!parsed.preferGenerated,
         orientation: (parsed.orientation as ImageBrief['orientation']) || orientation,
       };
@@ -1696,6 +1880,7 @@ export class CommunicationService extends GenericService {
       return {
         searchQuery: this.fallbackSearchQuery(content, context),
         generationPrompt: this.fallbackGenerationPrompt(content, context),
+        negativePrompt: buildImageNegativePrompt(context.artDirection),
         orientation,
       };
     }
@@ -1706,12 +1891,23 @@ export class CommunicationService extends GenericService {
     return base.replace(/[^a-zA-Z0-9 ]+/g, '').slice(0, 60) || context.businessType || 'business';
   }
 
+  /**
+   * Repli quand l'agent de brief échoue.
+   *
+   * Il porte le style de la marque plutôt qu'un « photorealistic editorial »
+   * générique : un repli qui ignore la direction artistique produit exactement
+   * l'image que le module cherche à éviter, et il sert justement dans les cas
+   * dégradés, où personne ne repasse derrière.
+   */
   private fallbackGenerationPrompt(content: ContentIdea, context: CommunicationContext): string {
+    const style = buildImageStyleModifier(context.artDirection);
     return (
-      `Photorealistic editorial photograph for a ${context.businessType} brand. ` +
+      `Photograph for a ${context.businessType} brand. ` +
       `Subject relates to: ${content.title}. ` +
-      `Mood: ${context.tone}. Soft natural lighting, clean composition with negative ` +
-      `space for overlay text. No on-image typography, no logos, no watermarks.`
+      `Mood: ${context.tone}. ` +
+      (style ? `Render: ${style}. ` : 'Soft natural lighting, restrained color grading. ') +
+      `Clean composition with generous negative space in the upper third for overlay text. ` +
+      `No on-image typography, no logos, no watermarks, no staged corporate stock scene.`
     );
   }
 
@@ -1725,90 +1921,18 @@ export class CommunicationService extends GenericService {
   }
 
   /**
-   * Generates a deterministic design "seed" that forces archetype diversity.
+   * Graine de composition d'un visuel.
+   *
+   * Le tirage était libre : deux visuels de la même marque pouvaient sortir en
+   * « néon sur fond noir » puis en « luxe minimal », sans parenté. Il est
+   * désormais borné par le style de la direction artistique (cf.
+   * design/designSeed.ts) — la variété d'un post à l'autre reste entière, mais
+   * à l'intérieur de l'univers de la marque.
+   *
+   * Aucune clé d'entropie n'est passée : deux visuels générés pour la même
+   * marque DOIVENT différer entre eux, contrairement aux pages d'un document.
    */
-  private generateDesignSeed(): DesignSeed {
-    const archetypes = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
-    const colorStrategies = [
-      'MONOCHROME_ACCENT', // One dominant color + one vivid accent only
-      'SPLIT_COMPLEMENTARY', // Brand color + its two split-complementary image tones
-      'DUOTONE', // Two colors only: brand primary + near-black or near-white
-      'IMAGE_EXTRACTED', // Pull 2 dominant colors FROM the image analysis
-      'INVERSE', // Invert expected luminance logic (dark on light image, etc.)
-      'BRAND_FULL', // Use full brand palette including secondary/accent
-    ];
-    const typographyMoods = [
-      'CONDENSED_TOWER', // Very tall narrow letters, stacked vertically
-      'WIDE_WHISPER', // Ultra-wide tracking on a small word, massive presence
-      'WEIGHT_CLASH', // Extra-bold headline + ultra-thin subheadline
-      'SINGLE_LETTER_ANCHOR', // One giant letter (drop cap style) as visual anchor
-      'ALL_LOWERCASE_INTIMATE', // Deliberate lowercase for warmth/intimacy
-      'ROTATED_AXIS', // Key word rotated 90° or -15° to break the grid
-      'OUTLINE_FILLED_MIX', // Some words outlined, some filled
-      'STAGGERED_INDENT', // Each line indented progressively (staircase effect)
-    ];
-    const layoutTensions = [
-      'TEXT_ESCAPES_BOUNDS', // Headline partially bleeds outside the container
-      'DIAGONAL_FLOW', // Main axis is 30–45° diagonal, not horizontal/vertical
-      'RULE_HEAVY', // Thick horizontal/vertical rules divide the space
-      'NEGATIVE_SPACE_HERO', // 60%+ of canvas is intentionally empty
-      'CORNER_ANCHOR', // All key elements pinned to one corner, rest is empty
-      'FULL_BLEED_EDGE', // Image or color block touches ALL four edges
-      'FRAME_WITHIN_FRAME', // Thin inset border creates inner frame
-      'COLLAGE_LAYER', // 3+ layered elements at varying opacities
-    ];
-    const imagePositions = [
-      'TOP_LEFT', // Image anchored to the top-left quadrant
-      'TOP_RIGHT', // Image anchored to the top-right quadrant
-      'BOTTOM_LEFT', // Image anchored to the bottom-left quadrant
-      'BOTTOM_RIGHT', // Image anchored to the bottom-right quadrant
-      'CENTER_BLEED', // Image centered, bleeding outward
-      'LEFT_STRIP', // Image as a vertical strip on the left third
-      'RIGHT_STRIP', // Image as a vertical strip on the right third
-      'TOP_BAND', // Image as a horizontal band across the top
-      'BOTTOM_BAND', // Image as a horizontal band across the bottom
-      'DIAGONAL_SLICE', // Image placed along a diagonal axis
-    ];
-    const readingDirections = [
-      'TOP_DOWN', // Eye flow from top to bottom, classic editorial
-      'BOTTOM_UP', // Key info at bottom, eye travels upward
-      'LEFT_TO_RIGHT', // Western reading: headline left, image right
-      'RIGHT_TO_LEFT', // Reverse: image left, headline right
-      'CENTER_OUT', // Focal point at center, details radiate outward
-      'CORNER_DIAGONAL', // Eye follows a diagonal from one corner to the opposite
-    ];
-    const graphicAccents = [
-      'GEOMETRIC_SHAPE', // A bold circle, triangle, or polygon as a decorative element
-      'THICK_UNDERLINE', // A heavy underline or overline on the headline (8-12px)
-      'DOT_CLUSTER', // Small decorative dots/circles scattered in negative space
-      'OVERSIZED_PUNCTUATION', // A giant quotation mark, ampersand, or slash as decor
-      'GRADIENT_WASH', // A subtle gradient wash over one zone of the canvas
-      'NONE', // No added accent — let typography and image carry the design
-      'BORDER_ACCENT', // Thick partial border on 1-2 sides only
-      'PATTERN_STRIP', // A thin strip of repeating geometric pattern
-    ];
-    const contentDensities = [
-      'MINIMAL', // Only headline + image + brand mark. Almost no body text.
-      'BALANCED', // Headline, short body, CTA. Standard density.
-      'EDITORIAL', // More text: headline, subheadline, body paragraph, fine print.
-      'TYPE_HEAVY', // Text IS the design. Large blocks of typographic content.
-    ];
-
-    // Use a CSPRNG so two visuals generated within the same second still differ
-    // (the old Date.now()-based pick produced near-identical seeds in bursts).
-    const pick = <T>(arr: T[]): T => arr[crypto.randomInt(arr.length)];
-
-    return {
-      archetype: pick(archetypes),
-      colorStrategy: pick(colorStrategies),
-      typographyMood: pick(typographyMoods),
-      layoutTension: pick(layoutTensions),
-      // Extra entropy: random odd number for spacing/sizing decisions
-      spacingMultiplier: crypto.randomInt(5) * 2 + 3, // 3,5,7,9,11
-      imagePosition: pick(imagePositions),
-      readingDirection: pick(readingDirections),
-      graphicAccent: pick(graphicAccents),
-      contentDensity: pick(contentDensities),
-    };
+  private generateDesignSeed(context: CommunicationContext): DesignSeed {
+    return buildDesignSeed(context.artDirection?.styleId);
   }
 }

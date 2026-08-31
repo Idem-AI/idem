@@ -65,9 +65,9 @@ Score each criterion mentally, then aggregate:
 
 <remarks_rules>
 - Maximum 4 remarks, ordered by severity. Only real, observable defects — cite the actual element (shape, letter, coordinate) concerned.
-- "issue": ce qui ne va pas, en FRANÇAIS, une phrase claire et concrète (affichée à l'utilisateur).
+- "issue": what is wrong, written in FRENCH, one clear and concrete sentence (it is shown to the user).
 - "fix": precise instruction in ENGLISH for the designer who will revise the SVG (coordinates, values, operations — actionable, not vague).
-- "summary": une phrase en FRANÇAIS qui résume le verdict pour l'utilisateur.
+- "summary": one sentence in FRENCH summarising the verdict for the user.
 </remarks_rules>
 
 <output_format>
@@ -75,9 +75,9 @@ Output ONLY valid JSON. No markdown fences, no prose.
 {
   "verdict": "pass" | "fail",
   "score": <0-100>,
-  "summary": "<une phrase en français>",
+  "summary": "<one sentence, in French>",
   "remarks": [
-    { "criterion": "<checklist item name>", "issue": "<français, pour l'utilisateur>", "fix": "<English, for the reviser>" }
+    { "criterion": "<checklist item name>", "issue": "<French, for the user>", "fix": "<English, for the reviser>" }
   ]
 }
 </output_format>

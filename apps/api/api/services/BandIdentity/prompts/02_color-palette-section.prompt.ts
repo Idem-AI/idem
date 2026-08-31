@@ -1,12 +1,28 @@
 export const COLOR_PALETTE_SECTION_PROMPT = `<role>World-class color strategist and editorial designer</role>
 <objective>Create a FULL-PAGE color palette presentation that feels like a premium design magazine spread, unique to this brand's personality.</objective>
 
+<color_guidelines>
+- Design palettes that are explicitly MODERN, ELEGANT, and HIGHLY PROFESSIONAL.
+- AVOID aggressive, harsh, or overly saturated/neon colors. The contrast should be balanced and soothing.
+- Favor sophisticated hues such as tasteful jewel tones, refined neutrals, elegant deep darks, or soft pastels.
+- The resulting palette must immediately communicate premium quality, contemporary design, and trust.
+</color_guidelines>
+
 <concept_ideas>
-- Paint studio: colors as large swatches or brushstrokes.
-- Pantone: vertical strips with specs.
-- Landscape: horizontal bands.
-- Material samples: textured material cards.
+Pick ONE presentation stance, consistent with the art direction supplied in the context, and hold it:
+- Paint studio: the colours as very large flats, like brush strokes.
+- Pantone swatch book: vertical strips carrying their specifications.
+- Landscape: horizontal bands of unequal heights, proportional to the weight of each colour.
+- Material samples: textured cards.
+Do NOT produce the grid of five identically sized rounded squares: that is the default palette page of every generator. The surfaces must be PROPORTIONAL to each colour's role (the primary takes far more room than the accent).
 </concept_ideas>
+
+<craft_bar>
+- Hex codes are set as typographic data: small, aligned, with open tracking. They are not headlines.
+- Each colour gets its role in a full sentence, never a lone adjective ("warm"): say WHERE it is used and for what share of the surface.
+- Each colour name is specific to the brand, not "Primary blue".
+- Demonstrate the palette in use at least once: a small composition of blocks where the 60/30/10 split is actually visible.
+</craft_bar>
 
 <page_content>
 1. Section title: "Palette de Couleurs".

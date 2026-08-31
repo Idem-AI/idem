@@ -38,6 +38,16 @@ Typography — these two families only, no third font, no system fallback writte
 Every text node must carry font-primary or font-secondary. Never write font-['Anything'], font-sans, font-serif or an inline font-family: the render harness binds font-primary/font-secondary to the brand fonts, anything else silently falls back and breaks the charter.
 </brand_charter>
 
+{{ART_DIRECTION}}
+
+<composition_seed>
+This composition is driven by the seed below. It was drawn WITHIN the space allowed by the art direction, so it cannot contradict it, and it is not negotiable. Every line is an instruction to execute, not a suggestion.
+{{SEED_DIRECTIVES}}
+The seed changes with every visual: that is what stops two posts of the same brand from looking alike. Do not fall back on "full-bleed photo + headline bottom-left + logo bottom-left", whatever the habit.
+</composition_seed>
+
+{{ANTI_SLOP}}
+
 <visual_intent>
 Intent of this visual: {{VISUAL_INTENT}}
 The intent shapes the TONE and the MESSAGE, never the presence of a button (there is none — see the hard rule):
@@ -132,6 +142,8 @@ Aim for a piece a client would pay for. If a choice feels safe or familiar, push
 
 <image_integration>
 Image URL: {{IMAGE_URL}}
+Image treatment mandated by the art direction (translate it into CSS: filters, overlays, duotone, cropping): {{AD_IMAGE_TREATMENT}}
+Every image of this brand shares this treatment. One raw photograph among treated visuals breaks the direction.
 Use at least TWO techniques:
 - Crop: image bleeds off 1-2 edges.
 - Overlay: brand-color div at 30-40% opacity, mix-blend-mode: multiply.
@@ -220,6 +232,8 @@ Ensure all are TRUE:
 - Absolute positioning only (no flex/grid).
 - Logo: exactly ONE real logo URL from <logos>; ink and background are in OPPOSITE luminance families (dark ink on a light zone, light ink on a dark zone); size/placement varied.
 - Anti-sameness: this design must NOT default to "photo full-bleed + headline bottom-left + logo bottom-left". Commit fully to the seed archetype so two visuals never look alike.
+- Art direction honoured: the signature compositional gesture is visible, the border radius and the treatment of rules and shadows are the style's own, and the image carries the mandated treatment.
+- No level 0 tell (purple gradient, gradient headline, three identical blocks, off-charter typeface, unprescribed glassmorphism).
 </seed_compliance_checklist>
 
 <output_format>

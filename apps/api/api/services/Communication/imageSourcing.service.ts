@@ -33,6 +33,13 @@ export interface SourcedImage {
 export interface ImageBrief {
   searchQuery: string;
   generationPrompt: string;
+  /**
+   * Ce qui ne doit PAS apparaître dans l'image. L'endpoint d'image de Z.ai
+   * n'expose pas de champ dédié : la consigne est concaténée au prompt, ce que
+   * les modèles de diffusion interprètent correctement. Sans elle, le rendu
+   * retombe sur les tics du corpus (filigranes, texte déformé, HDR saturé).
+   */
+  negativePrompt?: string;
   preferGenerated?: boolean;
   orientation?: 'portrait' | 'landscape' | 'square';
 }
@@ -168,7 +175,12 @@ export class ImageSourcingService {
     // Z.ai sépare ce que Gemini faisait d'un bloc : l'image vient d'un
     // endpoint dédié, l'analyse d'un appel de vision. Deux allers-retours au
     // lieu d'un, mais l'analyse porte alors sur l'image réellement produite.
-    const generated = await generateImage(brief.generationPrompt, {
+    const negative = (brief.negativePrompt || '').trim();
+    const prompt = negative
+      ? `${brief.generationPrompt}\n\nAvoid entirely: ${negative}.`
+      : brief.generationPrompt;
+
+    const generated = await generateImage(prompt, {
       model: GLM_IMAGE_MODEL,
       fallbackModel: GLM_IMAGE_FALLBACK_MODEL,
       tag: opts.tag,

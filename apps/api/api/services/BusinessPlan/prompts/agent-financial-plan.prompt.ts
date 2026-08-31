@@ -1,4 +1,4 @@
-import { bpPageFormat } from './_shared.prompt';
+import { BP_BRAND_RULES, bpPageFormat } from './_shared.prompt';
 
 export const AGENT_FINANCIAL_PLAN_PROMPT = `<role>Senior financial analyst</role>
 <objective>Create a Financial Plan section detailing projections, cost structure, and break-even analysis.</objective>
@@ -22,6 +22,8 @@ export const AGENT_FINANCIAL_PLAN_PROMPT = `<role>Senior financial analyst</role
 </chart_requirements>
 
 ${bpPageFormat('3')}
+
+${BP_BRAND_RULES}
 
 <technical_rules>
 - Output ONLY raw HTML + Tailwind CSS utilities in a single minified line.

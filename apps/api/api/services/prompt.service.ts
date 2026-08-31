@@ -22,7 +22,9 @@ import {
   LLMOptions,
   AI_CONFIG,
   GLM_MODELS,
+  MIN_TOKENS_FOR_THINKING,
   TEXT_FALLBACK_MODELS,
+  reconcileThinkingBudget,
 } from '../config/ai.config';
 import {
   GLM_ENDPOINTS,
@@ -113,16 +115,7 @@ export interface PromptConfig {
    * variable dans les messages (économie d'input tokens).
    */
   cachedContent?: string;
-  /**
-   * Exempte cet appel du plafond global MAX_OUTPUT_TOKENS.
-   *
-   * Réservé aux appels INTERNES dont le budget de ai.config.ts est un choix
-   * délibéré (SVG de logo, HTML de carte de visite…) : une réponse tronquée y
-   * est inexploitable, donc plafonner revient à casser la fonctionnalité. Le
-   * plafond reste actif pour l'endpoint public /prompt, dont le corps de
-   * requête est fourni par le client — `promptController` retire d'ailleurs ce
-   * drapeau de la charge utile entrante.
-   */
+  /** Exempte cet appel du plafond global MAX_OUTPUT_TOKENS. */
   bypassOutputTokenCap?: boolean;
 }
 
@@ -147,7 +140,7 @@ export interface PromptRequest {
   fallbackModels?: string[];
   language?: string;
   cachedContent?: string;
-  /** Voir PromptConfig.bypassOutputTokenCap — jamais accepté depuis le client. */
+  /** Exempte cet appel du plafond global MAX_OUTPUT_TOKENS. */
   bypassOutputTokenCap?: boolean;
 }
 
@@ -546,7 +539,10 @@ export class PromptService {
         }
       }
 
-      const doCreate = (model: string) =>
+      const thinkingRequested =
+        ((llmOptions.extraBody as any) ?? (def.extraBody as any))?.thinking?.type === 'enabled';
+
+      const doCreate = (model: string, forceNoThinking = false) =>
         client.chat.completions.create({
           model,
           messages: openaiMessages,
@@ -555,10 +551,17 @@ export class PromptService {
           // le raisonnement GLM sur la génération de logo). La feature l'emporte.
           ...(def.extraBody ?? {}),
           ...(llmOptions.extraBody ?? {}),
+          ...(forceNoThinking ? { thinking: { type: 'disabled' } } : {}),
         } as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming);
+
+      /** Réponse vide alors que le budget a été épuisé — signature du raisonnement qui déborde. */
+      const starvedByThinking = (candidate: any): boolean =>
+        !candidate?.choices?.[0]?.message?.content &&
+        candidate?.choices?.[0]?.finish_reason === 'length';
 
       // Repli optionnel propre au fournisseur (ex: glm-5.2 → glm-4.6).
       let response;
+      let usedModel = modelName;
       try {
         response = await doCreate(modelName);
       } catch (primaryError: any) {
@@ -566,10 +569,28 @@ export class PromptService {
           logger.warn(
             `${provider} model "${modelName}" failed (${primaryError.message || primaryError}). Retrying with "${def.fallbackModel}"...`
           );
+          usedModel = def.fallbackModel;
           response = await doCreate(def.fallbackModel);
         } else {
           throw primaryError;
         }
+      }
+
+      // Auto-réparation : le modèle a raisonné jusqu'à épuiser l'enveloppe et n'a
+      // rien écrit. Changer de MODÈLE ne sert à rien — le repli hérite du même
+      // réglage et échoue à l'identique, ce qu'on a observé en production. Ce
+      // qu'il faut retirer, c'est le raisonnement, sur le même modèle.
+      //
+      // Le cas survient même avec un budget confortable : sur un modèle
+      // « thinking », une température haute rend la réflexion elle-même diffuse,
+      // et elle consomme 24 000 tokens sans converger. Le budget minimal ne
+      // suffit donc pas à s'en prémunir, il faut ce rattrapage.
+      if (thinkingRequested && starvedByThinking(response)) {
+        logger.warn(
+          `${provider}/${usedModel} : raisonnement épuisé sans réponse (finish_reason=length). ` +
+            `Nouvelle tentative sur le même modèle, raisonnement désactivé.`
+        );
+        response = await doCreate(usedModel, true);
       }
 
       // Relevé de consommation avant les contrôles de validité : une enveloppe
@@ -909,6 +930,21 @@ export class PromptService {
 
     const kind = getProvider(provider).kind;
 
+    // Raisonnement et budget de sortie doivent être cohérents, sinon la réponse
+    // revient vide sans erreur (cf. reconcileThinkingBudget). Arbitré ICI, au
+    // seul point de passage : une quinzaine de services recopient des
+    // `llmOptions` depuis ai.config.ts en réduisant le budget pour leur propre
+    // usage, sans savoir que la feature a activé la réflexion.
+    const reconciled = reconcileThinkingBudget(llmOptions);
+    if (reconciled.downgraded) {
+      logger.warn(
+        `Raisonnement désactivé pour ce${promptType ? ` '${promptType}'` : 't appel'} : ` +
+          `budget de ${llmOptions.maxOutputTokens} tokens insuffisant (minimum ${MIN_TOKENS_FOR_THINKING}). ` +
+          `La réflexion aurait consommé toute l'enveloppe et renvoyé une réponse vide.`
+      );
+    }
+    const effectiveLlmOptions = reconciled.options;
+
     // Filet de sécurité: une chaîne de repli absente est presque toujours un
     // OUBLI, pas une décision. Une quinzaine de services recopient
     // `provider`/`modelName`/`llmOptions` depuis ai.config.ts en laissant
@@ -943,7 +979,7 @@ export class PromptService {
           return this._runGeminiPrompt(
             model,
             modifiedMessages,
-            llmOptions,
+            effectiveLlmOptions,
             file,
             request.cachedContent,
             sink
@@ -953,7 +989,7 @@ export class PromptService {
             provider,
             model,
             modifiedMessages,
-            llmOptions,
+            effectiveLlmOptions,
             file,
             sink
           );
@@ -1423,11 +1459,11 @@ export class PromptService {
       {
         role: 'system',
         content:
-          "Tu réponds UNIQUEMENT à partir des résultats de recherche ci-dessous. " +
-          "N'avance aucun chiffre, aucun fait, aucune date qui n'y figure pas. " +
-          "Chaque affirmation tirée d'une source porte sa référence entre crochets, " +
-          'sous la forme [s0], [s1]… correspondant aux résultats numérotés.' +
-          `\n\n--- RÉSULTATS DE RECHERCHE ---\n${dossier}`,
+          'You answer ONLY from the search results below. ' +
+          'State no figure, no fact and no date that is not in them. ' +
+          'Every claim taken from a source carries its reference in brackets, ' +
+          'as [s0], [s1]… matching the numbered results.' +
+          `\n\n--- SEARCH RESULTS ---\n${dossier}`,
       },
       ...messages.filter((m) => m.role !== 'system'),
     ];
