@@ -67,7 +67,14 @@ export class NewSimulation {
   protected readonly signInReason = signal<string | null>(null);
 
   protected readonly projects = this.store.projects;
-  protected readonly projectsLoading = computed(() => this.store.projectsStatus() === 'loading');
+  /**
+   * Vrai tant que la liste n'a pas été rendue : `idle` signifie « pas encore
+   * demandée », ce qui n'est pas la même chose qu'un compte sans projet.
+   */
+  protected readonly projectsPending = computed(() => {
+    const status = this.store.projectsStatus();
+    return status === 'idle' || status === 'loading';
+  });
   protected readonly selectedProjectId = signal<string | null>(null);
   protected readonly selectedFile = signal<File | null>(null);
 
@@ -133,13 +140,13 @@ export class NewSimulation {
   protected readonly draftAtRisk = computed(() => !canStashFile(this.selectedFile()));
 
   constructor() {
-    // Page publique : aucune garde n'a résolu la session avant d'arriver ici.
-    void this.auth.ensureLoaded();
+    // Page publique, hors de la coquille de l'espace de travail : personne
+    // n'a résolu la session ni chargé les projets avant d'arriver ici.
+    void this.loadProjects();
     // Retour du login : on reprend la source choisie avant le départ.
     void this.restoreDraft();
 
-    // La liste des projets est déjà chargée par la coquille ; on se contente
-    // de choisir la sélection de départ dès qu'elle arrive.
+    // On choisit la sélection de départ dès que la liste arrive.
     effect(() => {
       const projects = this.projects();
       untracked(() => {
@@ -309,6 +316,13 @@ export class NewSimulation {
     }
     this.signInReason.set(reason);
     return true;
+  }
+
+  /** Les projets IDEM appartiennent au compte : rien à charger sans session. */
+  private async loadProjects(): Promise<void> {
+    if (await this.auth.ensureLoaded()) {
+      await this.store.loadProjects();
+    }
   }
 
   private async restoreDraft(): Promise<void> {
