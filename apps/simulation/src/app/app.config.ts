@@ -10,7 +10,6 @@ import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from 
 import { TitleStrategy } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
-import { providePrimeNG } from 'primeng/config';
 
 import { environment } from '@env';
 
@@ -19,7 +18,6 @@ import { LanguageService } from './core/i18n/language.service';
 import { TranslatedTitleStrategy } from './core/seo/title.strategy';
 import { ThemeService } from './core/theme/theme.service';
 import { provideSimulationBackend } from './features/simulations/data-access';
-import { MyPreset } from './my-preset';
 import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
@@ -33,16 +31,6 @@ export const appConfig: ApplicationConfig = {
     ),
     provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
     provideSimulationBackend(),
-    providePrimeNG({
-      theme: {
-        preset: MyPreset,
-        options: {
-          // PrimeNG suit l'attribut posé par ThemeService, au lieu de sa
-          // détection système : sinon le toggle et les composants divergent.
-          darkModeSelector: '[data-theme="dark"]',
-        },
-      },
-    }),
     provideTranslateService({
       loader: provideTranslateHttpLoader({ prefix: '/assets/i18n/', suffix: '.json' }),
       fallbackLang: environment.defaultLanguage,
