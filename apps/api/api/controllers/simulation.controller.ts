@@ -11,6 +11,10 @@ import * as fs from 'fs-extra';
 import logger from '../config/logger';
 import { CustomRequest } from '../interfaces/express.interface';
 import { SimulationOrigin, SimulationTier } from '../models/simulation.model';
+import {
+  UnusableDocumentError,
+  isAcceptedDocument,
+} from '../services/Simulation/document-intake';
 import { simulationPdfService } from '../services/Simulation/simulation-pdf.service';
 import { LabName, simulationService } from '../services/Simulation/simulation.service';
 
@@ -48,6 +52,15 @@ function requireContext(
 /** Un service qui ne trouve rien renvoie 404, pas 500. */
 function handleError(res: Response, error: any, operation: string): void {
   const message: string = error?.message || 'Unexpected error';
+
+  // Document refusé : c'est un retour attendu, adressé à l'utilisateur, et
+  // pas un incident à faire remonter dans les journaux d'erreur.
+  if (error instanceof UnusableDocumentError) {
+    logger.info(`${operation} rejected the document: ${message}`);
+    res.status(422).json({ message });
+    return;
+  }
+
   logger.error(`${operation} failed: ${message}`, { stack: error?.stack });
 
   if (message.includes('not found')) {
@@ -137,6 +150,96 @@ export const deleteSimulationController = async (
  * Lecture du projet avant facturation. C'est ce que l'utilisateur voit à
  * l'étape « ce que le moteur sait », avant de confirmer le prix.
  */
+/**
+ * Lit un business plan importé, sans projet.
+ *
+ * Un plan importé ne se rattache à aucun projet existant : celui-ci ne sera
+ * créé qu'au lancement, à partir de ce que cette lecture aura livré.
+ */
+export const analyseImportedDocumentController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  if (!userId) {
+    res.status(401).json({ message: 'User not authenticated' });
+    return;
+  }
+
+  const uploaded = (req as any).file as
+    | { originalname: string; mimetype: string; buffer: Buffer }
+    | undefined;
+  const documentText: string | undefined = req.body?.documentText;
+
+  // Multer écarte silencieusement un format non géré : sans ce garde-fou, la
+  // requête continuerait sans document et l'utilisateur ne saurait pas pourquoi.
+  if (!uploaded && !documentText) {
+    res.status(415).json({
+      message:
+        "Format non pris en charge. Importez votre business plan en texte (.txt), Markdown (.md) ou JSON (.json).",
+    });
+    return;
+  }
+
+  if (uploaded && !isAcceptedDocument(uploaded.originalname, uploaded.mimetype)) {
+    res.status(415).json({
+      message:
+        "Format non pris en charge. Importez votre business plan en texte (.txt), Markdown (.md) ou JSON (.json).",
+    });
+    return;
+  }
+
+  try {
+    const understanding = await simulationService.analyseDocument(
+      userId,
+      uploaded ? uploaded.buffer.toString('utf8') : (documentText as string),
+      uploaded?.originalname || req.body?.documentName || 'business-plan'
+    );
+    res.status(200).json(understanding);
+  } catch (error: any) {
+    handleError(res, error, 'analyseImportedDocument');
+  }
+};
+
+/**
+ * Crée le projet IDEM décrit par le business plan importé, puis lance la
+ * simulation dessus.
+ */
+export const createSimulationFromDocumentController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  if (!userId) {
+    res.status(401).json({ message: 'User not authenticated' });
+    return;
+  }
+
+  const { name, tier, documentName, answers, understanding } = req.body ?? {};
+
+  if (!VALID_TIERS.includes(tier)) {
+    res.status(400).json({ message: `tier must be one of: ${VALID_TIERS.join(', ')}` });
+    return;
+  }
+  if (!understanding?.profile) {
+    res.status(400).json({ message: 'understanding is required to create the project' });
+    return;
+  }
+
+  try {
+    const simulation = await simulationService.createSimulationFromDocument(userId, {
+      name,
+      tier,
+      documentName,
+      answers,
+      understanding,
+    });
+    res.status(202).json(simulation);
+  } catch (error: any) {
+    handleError(res, error, 'createSimulationFromDocument');
+  }
+};
+
 export const analyseProjectController = async (
   req: CustomRequest,
   res: Response

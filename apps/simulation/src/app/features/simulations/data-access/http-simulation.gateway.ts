@@ -15,7 +15,11 @@ import {
   SimulationReport,
   SimulationSummary,
 } from '../models';
-import { ReportDownload, SimulationGateway } from './simulation.gateway';
+import {
+  CreateFromDocumentInput,
+  ReportDownload,
+  SimulationGateway,
+} from './simulation.gateway';
 
 /** Le pipeline dure plusieurs minutes ; on interroge sans saturer l'API. */
 const POLL_INTERVAL_MS = 4000;
@@ -28,6 +32,9 @@ const POLL_INTERVAL_MS = 4000;
 export class HttpSimulationGateway extends SimulationGateway {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.services.api.url;
+
+  /** Routes du parcours « business plan importé », sans projet. */
+  private readonly importBase = `${this.apiUrl}/project/simulations/import`;
 
   private base(projectId: string): string {
     return `${this.apiUrl}/project/simulations/${projectId}`;
@@ -47,19 +54,23 @@ export class HttpSimulationGateway extends SimulationGateway {
     );
   }
 
-  override analyseDocument(projectId: string, file: File): Observable<ProjectUnderstanding> {
+  override analyseDocument(file: File): Observable<ProjectUnderstanding> {
     const body = new FormData();
     body.append('document', file);
-    return this.http.post<ProjectUnderstanding>(`${this.base(projectId)}/analysis`, body, {
+    // Sans projet : le plan importé n'en a pas encore. L'API refuse ici un
+    // format non géré (415) ou un document qui n'est pas un business plan
+    // (422), avec un message destiné à l'utilisateur.
+    return this.http.post<ProjectUnderstanding>(`${this.importBase}/analysis`, body, {
       withCredentials: true,
     });
   }
 
   override getPricing(
-    projectId: string,
-    origin: SimulationOrigin
+    origin: SimulationOrigin,
+    projectId?: string
   ): Observable<SimulationPricing> {
-    return this.http.get<SimulationPricing>(`${this.base(projectId)}/pricing`, {
+    const url = projectId ? `${this.base(projectId)}/pricing` : `${this.importBase}/pricing`;
+    return this.http.get<SimulationPricing>(url, {
       params: { origin },
       withCredentials: true,
     });
@@ -78,6 +89,12 @@ export class HttpSimulationGateway extends SimulationGateway {
   override createSimulation(input: CreateSimulationInput): Observable<Simulation> {
     const { projectId, ...body } = input;
     return this.http.post<Simulation>(this.base(projectId), body, { withCredentials: true });
+  }
+
+  override createFromDocument(input: CreateFromDocumentInput): Observable<Simulation> {
+    return this.http.post<Simulation>(`${this.importBase}/run`, input, {
+      withCredentials: true,
+    });
   }
 
   override watchSimulation(projectId: string, simulationId: string): Observable<Simulation> {

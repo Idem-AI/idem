@@ -10,7 +10,7 @@ import {
   SimulationReport,
   SimulationSummary,
 } from '../models';
-import { SimulationGateway } from './simulation.gateway';
+import { CreateFromDocumentInput, SimulationGateway } from './simulation.gateway';
 
 type LoadState = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -169,6 +169,19 @@ export class SimulationStore {
 
   async create(input: CreateSimulationInput): Promise<Simulation> {
     const simulation = await firstValueFrom(this.gateway.createSimulation(input));
+    this.adopt(simulation);
+    this.listItems.update((items) => [toSummary(simulation), ...items]);
+    return simulation;
+  }
+
+  /**
+   * Business plan importé : l'API crée d'abord le projet IDEM que le document
+   * décrit. Le projet actif suit, sinon les écrans de l'exécution chercheraient
+   * leurs ressources dans un projet qui n'est pas le sien.
+   */
+  async createFromDocument(input: CreateFromDocumentInput): Promise<Simulation> {
+    const simulation = await firstValueFrom(this.gateway.createFromDocument(input));
+    this.selectProject(simulation.projectId);
     this.adopt(simulation);
     this.listItems.update((items) => [toSummary(simulation), ...items]);
     return simulation;

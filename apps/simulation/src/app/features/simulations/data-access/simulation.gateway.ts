@@ -2,6 +2,7 @@ import { Observable } from 'rxjs';
 
 import {
   CreateSimulationInput,
+  SimulationTier,
   LabName,
   LinkedProject,
   ProjectUnderstanding,
@@ -19,6 +20,15 @@ import {
  * fournit soit l'implémentation HTTP, soit celle de démonstration, et aucune
  * page ne sait laquelle est active.
  */
+/** Lancement d'une simulation à partir d'un business plan importé. */
+export interface CreateFromDocumentInput {
+  name?: string;
+  tier: SimulationTier;
+  documentName?: string;
+  answers?: Record<string, string>;
+  understanding: ProjectUnderstanding;
+}
+
 /** Un rapport rendu, prêt à être enregistré par le navigateur. */
 export interface ReportDownload {
   blob: Blob;
@@ -35,16 +45,31 @@ export abstract class SimulationGateway {
    */
   abstract analyseProject(projectId: string): Observable<ProjectUnderstanding>;
 
-  /** Même sortie, à partir d'un business plan importé. */
-  abstract analyseDocument(projectId: string, file: File): Observable<ProjectUnderstanding>;
+  /**
+   * Même sortie, à partir d'un business plan importé.
+   *
+   * Sans projet : un plan importé ne se rattache à rien. Le projet IDEM qu'il
+   * décrit n'est créé qu'au lancement, par `createFromDocument`.
+   */
+  abstract analyseDocument(file: File): Observable<ProjectUnderstanding>;
 
-  abstract getPricing(projectId: string, origin: SimulationOrigin): Observable<SimulationPricing>;
+  abstract getPricing(
+    origin: SimulationOrigin,
+    projectId?: string,
+  ): Observable<SimulationPricing>;
 
   abstract listSimulations(projectId: string): Observable<SimulationSummary[]>;
 
   abstract getSimulation(projectId: string, simulationId: string): Observable<Simulation>;
 
   abstract createSimulation(input: CreateSimulationInput): Observable<Simulation>;
+
+  /**
+   * Crée le projet IDEM décrit par le business plan importé, puis lance la
+   * simulation dessus. La compréhension déjà établie est renvoyée telle
+   * quelle : le document n'est pas relu.
+   */
+  abstract createFromDocument(input: CreateFromDocumentInput): Observable<Simulation>;
 
   /** Émet l'avancement jusqu'à ce que l'exécution atteigne un état terminal. */
   abstract watchSimulation(projectId: string, simulationId: string): Observable<Simulation>;
