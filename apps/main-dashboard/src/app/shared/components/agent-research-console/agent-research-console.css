@@ -2,14 +2,23 @@
   display: block;
 }
 
-/* Conteneur = carte "verre" du design system (comme .glass-card). */
+/* ============================================================================
+   Console de génération
+
+   L'opération dure plusieurs minutes. L'écran doit donc répondre à trois
+   questions, dans cet ordre : qu'est-ce qui se passe, où en est-on, sur quoi
+   repose le document. Tout le reste — journal d'événements, statuts d'agents,
+   requêtes techniques — a été retiré : c'était de la matière pour un
+   développeur, pas pour quelqu'un qui attend son business plan.
+   ============================================================================ */
+
 .rc {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-4);
-  max-width: 42rem;
+  gap: var(--spacing-5);
+  max-width: 34rem;
   margin: 0 auto;
-  padding: clamp(var(--spacing-4), 3vw, var(--spacing-6));
+  padding: clamp(var(--spacing-5), 4vw, var(--spacing-7));
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
@@ -19,391 +28,358 @@
   color: var(--color-text-primary);
 }
 
-/* ---------- En-tête ---------- */
-.rc__head {
+/* ---------- 1. La scène ---------- */
+
+.rc__stage {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-4);
+  gap: var(--spacing-3);
+  text-align: center;
 }
 
-.rc__live {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-1);
-  padding: 0.15rem var(--spacing-2) 0.15rem 0.45rem;
-  margin-bottom: var(--spacing-2);
-  border-radius: var(--radius-full);
-  background: color-mix(in oklch, var(--color-success) 14%, transparent);
-  color: var(--color-success);
-  font-size: var(--font-size-xs, 0.75rem);
-  font-weight: var(--font-weight-bold, 700);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-.rc__live-dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: var(--radius-full);
-  background: var(--color-success);
-  box-shadow: 0 0 8px var(--color-success);
-  animation: rc-blink 1.6s ease-in-out infinite;
+.rc__art {
+  width: min(13rem, 55%);
+  height: auto;
+  color: var(--color-text-primary);
 }
 
 .rc__title {
   margin: 0;
-  font-size: clamp(1.1rem, 2.3vw, 1.4rem);
+  font-size: var(--font-size-xl, 1.25rem);
   font-weight: var(--font-weight-bold, 700);
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-  text-wrap: balance;
+  line-height: 1.3;
 }
 
-.rc__count {
-  flex: none;
-  font-size: 1.5rem;
-  font-weight: var(--font-weight-bold, 700);
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-.rc__count i {
-  font-style: normal;
-  font-size: 0.9rem;
-  color: var(--color-text-tertiary);
+.rc__note {
+  max-width: 34ch;
+  margin: 0;
+  font-size: var(--font-size-sm, 0.875rem);
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+  /* Le texte change toutes les huit secondes : le fondu évite le clignotement. */
+  animation: rc-fade 600ms ease-out;
 }
 
-/* ---------- Frise de chapitres ---------- */
-.rc__chapters {
+/* ---------- 2. La progression ---------- */
+
+.rc__progress {
   display: flex;
-  gap: var(--spacing-1);
+  flex-direction: column;
+  gap: var(--spacing-2);
 }
 
-.rc__seg {
-  flex: 1;
+.rc__bar {
   height: 0.4rem;
   border-radius: var(--radius-full);
-  background: var(--glass-bg-subtle);
-  transition: background 0.4s var(--ease-out, ease);
-}
-.rc__seg[data-state='done'] {
-  background: var(--color-success);
-}
-.rc__seg[data-state='current'] {
-  background: var(--gradient-primary);
-  box-shadow: 0 0 10px var(--color-primary-glow-subtle);
-  animation: rc-seg 1.6s ease-in-out infinite;
-}
-
-/* ---------- En ce moment ---------- */
-.rc__now {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
-  padding: var(--spacing-3) var(--spacing-4);
-  border-radius: var(--radius-2xl);
-  border: 1px solid var(--glass-border);
-  background: var(--glass-bg-light);
-}
-
-.rc__now-icon {
-  position: relative;
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 2.6rem;
-  height: 2.6rem;
-  border-radius: var(--radius-xl);
-  background: var(--gradient-primary);
-  color: #fff;
-  font-size: 1.05rem;
-  box-shadow: 0 0 14px var(--color-primary-glow-subtle);
-}
-.rc__now[data-role='writer'] .rc__now-icon {
-  background: var(--gradient-accent);
-  box-shadow: 0 0 14px var(--color-accent-glow-subtle);
-}
-.rc__now[data-role='verifier'] .rc__now-icon,
-.rc__now[data-mode='done'] .rc__now-icon {
-  background: var(--color-success);
-  box-shadow: 0 0 14px color-mix(in oklch, var(--color-success) 45%, transparent);
-}
-
-.rc__bars {
-  position: absolute;
-  right: 0.24rem;
-  bottom: 0.24rem;
-  display: flex;
-  align-items: flex-end;
-  gap: 0.08rem;
-  height: 0.6rem;
-}
-.rc__bars i {
-  width: 0.13rem;
-  height: 40%;
-  border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.9);
-  animation: rc-eq 1s ease-in-out infinite;
-}
-.rc__bars i:nth-child(2) { animation-delay: 0.15s; }
-.rc__bars i:nth-child(3) { animation-delay: 0.3s; }
-.rc__bars i:nth-child(4) { animation-delay: 0.45s; }
-
-.rc__now-text {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-.rc__now-line {
-  font-size: 0.92rem;
-  color: var(--color-text-primary);
-}
-.rc__now-line b {
-  font-weight: var(--font-weight-bold, 700);
-}
-.rc__now-query {
-  font-size: 0.82rem;
-  color: var(--color-accent);
-  font-weight: var(--font-weight-semibold, 600);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Aperçu du texte en cours de rédaction (streaming). */
-.rc__now-draft {
-  font-size: 0.8rem;
-  line-height: 1.35;
-  color: var(--color-text-secondary);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  background: color-mix(in oklch, var(--color-text-primary) 10%, transparent);
   overflow: hidden;
 }
 
-.rc__caret {
-  display: inline-block;
-  width: 0.5ch;
-  height: 1em;
-  margin-left: 1px;
-  vertical-align: -0.15em;
-  background: var(--color-info);
-  animation: rc-caret 1s steps(1) infinite;
-}
-
-@keyframes rc-caret {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
-
-/* ---------- Flux de découvertes (cœur) ---------- */
-.rc__feed {
-  list-style: none;
-  margin: 0;
-  padding: var(--spacing-2);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
-  min-height: 15rem;
-  max-height: 24rem;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-2xl);
-  background: var(--glass-bg-subtle);
-}
-
-.rc__item {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--spacing-2);
-  align-items: start;
-  padding: var(--spacing-2) var(--spacing-3);
-  border-radius: var(--radius-xl);
-  background: var(--glass-bg-light);
-  border: 1px solid transparent;
-  animation: rc-in 0.4s var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
-}
-.rc__item[data-tone='finding'] {
-  border-color: var(--color-primary-glow-subtle);
-  box-shadow: 0 0 12px var(--color-primary-glow-subtle);
-}
-.rc__item[data-tone='source'] {
-  border-color: var(--color-accent-glow-subtle);
-}
-.rc__item[data-tone='query'] {
-  background: transparent;
-}
-
-.rc__item-icon {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 1.7rem;
-  height: 1.7rem;
-  border-radius: var(--radius-lg);
-  font-size: 0.78rem;
-  background: var(--glass-bg-subtle);
-  color: var(--color-text-secondary);
-}
-.rc__item[data-tone='finding'] .rc__item-icon {
-  background: var(--color-primary-glow-subtle);
-  color: var(--color-primary);
-}
-.rc__item[data-tone='source'] .rc__item-icon {
-  background: var(--color-accent-glow-subtle);
-  color: var(--color-accent);
-}
-.rc__item[data-tone='verify'] .rc__item-icon {
-  background: color-mix(in oklch, var(--color-success) 22%, transparent);
-  color: var(--color-success);
-}
-
-.rc__item-body {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.12rem;
-}
-.rc__item-lead {
-  font-size: 0.65rem;
-  font-weight: var(--font-weight-bold, 700);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-text-tertiary);
-}
-.rc__item[data-tone='finding'] .rc__item-lead {
-  color: var(--color-primary);
-}
-.rc__item[data-tone='source'] .rc__item-lead {
-  color: var(--color-accent);
-}
-.rc__item[data-tone='verify'] .rc__item-lead {
-  color: var(--color-success);
-}
-
-.rc__item-text {
-  font-size: 0.88rem;
-  line-height: 1.35;
-  color: var(--color-text-primary);
-  overflow-wrap: anywhere;
-}
-.rc__item[data-tone='query'] .rc__item-text {
-  color: var(--color-text-secondary);
-  font-style: italic;
-}
-.rc__item[data-tone='finding'] .rc__item-text {
-  font-weight: var(--font-weight-semibold, 600);
-}
-
-.rc__item-link {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--spacing-1);
-  color: var(--color-accent);
-  text-decoration: none;
-}
-.rc__item-link:hover .rc__item-text {
-  text-decoration: underline;
-}
-.rc__item-link .rc__item-text {
-  color: var(--color-accent);
-}
-.rc__item-domain {
-  font-size: 0.74rem;
-  color: var(--color-text-secondary);
-}
-.rc__item-link .pi-external-link {
-  font-size: 0.66rem;
-  color: var(--color-text-tertiary);
-}
-
-.rc__feed-empty {
-  margin: auto;
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  padding: var(--spacing-4);
-  font-size: 0.85rem;
-  color: var(--color-text-secondary);
-}
-.rc__spin {
-  width: 1rem;
-  height: 1rem;
+.rc__bar-fill {
+  display: block;
+  height: 100%;
   border-radius: var(--radius-full);
-  border: 2px solid var(--color-primary-glow-subtle);
-  border-top-color: var(--color-primary);
-  animation: rc-spin 0.8s linear infinite;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-accent-500));
+  transition: width 600ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* ---------- Pied ---------- */
-.rc__foot {
+.rc__progress-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-3);
-  flex-wrap: wrap;
-  padding: var(--spacing-1) 0.15rem 0;
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-text-secondary);
 }
-.rc__foot-badge {
+
+.rc__elapsed {
   display: inline-flex;
   align-items: center;
-  gap: var(--spacing-1);
-  font-size: 0.85rem;
-  font-weight: var(--font-weight-bold, 700);
-  color: var(--color-success);
-}
-.rc__foot-note {
-  font-size: 0.8rem;
-  color: var(--color-text-secondary);
+  gap: 0.35rem;
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- Focus visible ---------- */
-.rc__item-link:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-  border-radius: var(--radius-md);
+/* ---------- 3. L'étape en cours ---------- */
+
+.rc__current {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--glass-bg-subtle);
 }
 
-/* ---------- Motion ---------- */
-@keyframes rc-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+.rc__pulse {
+  flex-shrink: 0;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-top: 0.4rem;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  box-shadow: 0 0 0 0 color-mix(in oklch, var(--color-primary) 55%, transparent);
+  animation: rc-pulse 1.8s ease-out infinite;
 }
-@keyframes rc-seg {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+.rc__pulse--still {
+  background: var(--color-success);
+  animation: none;
 }
-@keyframes rc-eq {
-  0%, 100% { height: 35%; }
-  50% { height: 100%; }
+
+.rc__current-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
 }
+
+.rc__current-title {
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.rc__current-action {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-text-secondary);
+}
+
+/* Le détail — extrait rédigé ou requête en cours — reste discret : c'est un
+   signe de vie, pas une information à lire. */
+.rc__current-detail {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 0.2rem;
+  font-size: var(--font-size-xs, 0.75rem);
+  line-height: 1.5;
+  color: var(--color-text-tertiary, var(--color-text-secondary));
+}
+
+.rc__caret {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.9em;
+  margin-left: 0.15rem;
+  vertical-align: text-bottom;
+  background: var(--color-primary);
+  animation: rc-blink 1s steps(2) infinite;
+}
+
+/* ---------- 4. Les sources ---------- */
+
+.rc__sources {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.rc__sources-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: var(--font-weight-semibold, 600);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-success);
+}
+
+.rc__source-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 15rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.rc__source {
+  animation: rc-slide-in 320ms ease-out;
+}
+
+.rc__source-link {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: background-color 160ms ease;
+}
+
+.rc__source-link:hover {
+  background: var(--glass-bg-subtle);
+}
+
+/* Le titre de la source se lit comme du texte ; c'est le lien qui porte la
+   couleur d'accent, et lui seul. */
+.rc__source-title {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--font-size-sm, 0.875rem);
+  line-height: 1.4;
+  color: var(--color-text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rc__source-domain {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-primary);
+}
+
+.rc__source-link:hover .rc__source-domain {
+  text-decoration: underline;
+}
+
+/* ---------- Attente et pied ---------- */
+
+.rc__waiting {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin: 0;
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-text-secondary);
+}
+
+.rc__spin {
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 2px solid var(--glass-border);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-full);
+  animation: rc-spin 0.9s linear infinite;
+}
+
+.rc__foot {
+  padding-top: var(--spacing-3);
+  border-top: 1px solid var(--glass-border);
+  font-size: var(--font-size-xs, 0.75rem);
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+/* ============================================================================
+   Animations de la scène — elles suivent le rôle actif, elles ne tournent
+   jamais d'elles-mêmes.
+   ============================================================================ */
+
+.rc__scene {
+  opacity: 0;
+  transition: opacity 420ms ease;
+}
+
+.rc__stage[data-scene='searching'] .rc__scene--searching,
+.rc__stage[data-scene='writing'] .rc__scene--writing,
+.rc__stage[data-scene='verifying'] .rc__scene--verifying,
+.rc__stage[data-scene='planning'] .rc__scene--planning,
+.rc__stage[data-scene='finalizing'] .rc__scene--planning,
+.rc__stage[data-scene='done'] .rc__scene--done {
+  opacity: 1;
+}
+
+/* Les lignes du document se remplissent l'une après l'autre : le travail avance. */
+.rc__line {
+  transform-origin: left center;
+  animation: rc-fill 2.4s ease-in-out infinite;
+}
+.rc__line--2 { animation-delay: 0.3s; }
+.rc__line--3 { animation-delay: 0.6s; }
+.rc__line--4 { animation-delay: 0.9s; }
+
+.rc__stage[data-scene='done'] .rc__line {
+  animation: none;
+  transform: none;
+  stroke-opacity: 0.5;
+}
+
+.rc__stage[data-scene='searching'] .rc__scene--searching > circle:first-of-type,
+.rc__stage[data-scene='searching'] .rc__scene--searching > path {
+  animation: rc-sweep 3.2s ease-in-out infinite;
+}
+
+.rc__dot { animation: rc-pop 2.4s ease-in-out infinite; }
+.rc__dot--2 { animation-delay: 0.5s; }
+.rc__dot--3 { animation-delay: 1s; }
+
+.rc__stage[data-scene='writing'] .rc__scene--writing {
+  animation: rc-write 2.8s ease-in-out infinite;
+}
+
+.rc__orbit {
+  transform-origin: 100px 60px;
+  animation: rc-spin 9s linear infinite;
+}
+
+@keyframes rc-fill {
+  0%, 100% { transform: scaleX(0.55); opacity: 0.45; }
+  50% { transform: scaleX(1); opacity: 1; }
+}
+
+@keyframes rc-sweep {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(10px); }
+}
+
+@keyframes rc-pop {
+  0%, 100% { opacity: 0.25; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes rc-write {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-6px, 5px); }
+}
+
 @keyframes rc-spin {
   to { transform: rotate(360deg); }
 }
-@keyframes rc-in {
-  from { opacity: 0; transform: translateY(-0.4rem) scale(0.99); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+
+@keyframes rc-fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
 }
 
+@keyframes rc-slide-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes rc-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--color-primary) 55%, transparent); }
+  70% { box-shadow: 0 0 0 0.5rem transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@keyframes rc-blink {
+  50% { opacity: 0; }
+}
+
+/* Une animation permanente n'a rien d'agréable pour qui la subit. */
 @media (prefers-reduced-motion: reduce) {
-  .rc__live-dot,
-  .rc__seg[data-state='current'],
-  .rc__bars i,
-  .rc__item,
+  .rc__line,
+  .rc__dot,
+  .rc__orbit,
+  .rc__note,
+  .rc__source,
+  .rc__pulse,
+  .rc__caret,
   .rc__spin,
-  .rc__caret {
+  .rc__stage[data-scene='searching'] .rc__scene--searching > circle:first-of-type,
+  .rc__stage[data-scene='searching'] .rc__scene--searching > path,
+  .rc__stage[data-scene='writing'] .rc__scene--writing {
     animation: none;
-  }
-  .rc__bars i {
-    height: 65%;
-  }
-  .rc__caret {
-    opacity: 1;
   }
 }
