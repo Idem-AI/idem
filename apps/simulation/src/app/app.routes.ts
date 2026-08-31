@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-import { authGuard } from './core/auth';
+import { authGuard, entryRedirectGuard } from './core/auth';
 
 /** Écrans d'une exécution : chargés sous la coquille de contexte. */
 const simulationRoutes: Routes = [
@@ -118,30 +118,44 @@ const simulationRoutes: Routes = [
 
 export const routes: Routes = [
   {
+    // Point d'entrée public, pleine largeur : on choisit sa source et on
+    // téléverse son business plan sans compte ; la connexion est demandée à
+    // l'action qui en a besoin. Hors de la coquille à colonne : c'est un écran
+    // d'accueil, pas une destination de l'espace de travail.
+    path: 'simulations/new',
+    title: 'nav.new',
+    loadComponent: () => import('./layouts/focus-shell/focus-shell').then((m) => m.FocusShell),
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./features/simulations/pages/new-simulation/new-simulation').then(
+            (m) => m.NewSimulation,
+          ),
+      },
+    ],
+  },
+  {
+    // Coquille de l'espace de travail : barre + colonne de navigation. Chaque
+    // écran qui dépend de l'identité porte la garde lui-même.
     path: '',
     loadComponent: () => import('./layouts/app-shell/app-shell').then((m) => m.AppShell),
-    canActivate: [authGuard],
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'simulations' },
+      // La destination dépend de la session : voir §entryRedirectGuard.
+      { path: '', pathMatch: 'full', canActivate: [entryRedirectGuard], children: [] },
       {
         path: 'simulations',
         pathMatch: 'full',
         title: 'nav.simulations',
+        canActivate: [authGuard],
         loadComponent: () =>
           import('./features/simulations/pages/simulation-list/simulation-list').then(
             (m) => m.SimulationList,
           ),
       },
       {
-        path: 'simulations/new',
-        title: 'nav.new',
-        loadComponent: () =>
-          import('./features/simulations/pages/new-simulation/new-simulation').then(
-            (m) => m.NewSimulation,
-          ),
-      },
-      {
         path: 'simulations/:id',
+        canActivate: [authGuard],
         loadComponent: () =>
           import('./features/simulations/pages/simulation-workspace/simulation-workspace').then(
             (m) => m.SimulationWorkspace,

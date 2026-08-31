@@ -7,6 +7,7 @@ import {
   deleteSimulationController,
   generateReportController,
   getPricingController,
+  downloadReportPdfController,
   getReportController,
   getSimulationController,
   listSimulationsController,
@@ -210,6 +211,31 @@ simulationRoutes.post(
   checkPolicyAcceptance,
   checkQuota,
   generateReportController
+);
+
+/**
+ * @openapi
+ * /project/simulations/{projectId}/{simulationId}/report/pdf:
+ *   get:
+ *     tags: [Simulation]
+ *     summary: Download the simulation report as a PDF
+ *     description: >
+ *       Renders the generated report with the fixed IDEM template (Jura, brand
+ *       colours, motif) and streams it as a PDF. Composed server-side so the
+ *       document is identical whatever the reader's browser.
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       '200':
+ *         description: The report, as application/pdf
+ *         content:
+ *           application/pdf:
+ *             schema: { type: string, format: binary }
+ *       '404': { description: The simulation has no report yet }
+ */
+simulationRoutes.get(
+  `/${resource}/:projectId/:simulationId/report/pdf`,
+  authenticate,
+  downloadReportPdfController
 );
 
 /**

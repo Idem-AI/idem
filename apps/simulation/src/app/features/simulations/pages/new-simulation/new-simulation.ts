@@ -4,10 +4,13 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
+import { AuthService } from '../../../../core/auth';
 import { ToastService } from '../../../../core/ui/toast.service';
+import { SignInDialog } from '../../../auth/components/sign-in-dialog/sign-in-dialog';
 import { DisclaimerNote } from '../../../../shared/components/disclaimer-note/disclaimer-note';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { SimulationGateway, SimulationStore } from '../../data-access';
+import { canStashFile, saveDraft, takeDraft } from './new-run-draft';
 import {
   KnowledgeItem,
   ProjectUnderstanding,
@@ -27,10 +30,15 @@ const KNOWLEDGE_ORDER: KnowledgeItem['state'][] = ['known', 'researchable', 'unc
  *
  * Analysis deliberately comes before payment. The user sees the gaps in their
  * own project before spending anything.
+ *
+ * C'est aussi la seule page publique du produit : on choisit sa source, et on
+ * téléverse son business plan, sans compte. La connexion n'est demandée qu'à
+ * l'action qui en a réellement besoin — lister ses projets IDEM, ou lancer
+ * l'analyse — et le brouillon est mis de côté le temps de l'aller-retour.
  */
 @Component({
   selector: 'sim-new-simulation',
-  imports: [FormsModule, RouterLink, TranslatePipe, PageHeader, DisclaimerNote],
+  imports: [FormsModule, RouterLink, TranslatePipe, PageHeader, DisclaimerNote, SignInDialog],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './new-simulation.html',
 })
@@ -40,10 +48,23 @@ export class NewSimulation {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly toasts = inject(ToastService);
+  private readonly auth = inject(AuthService);
   private readonly translate = inject(TranslateService);
 
   protected readonly step = signal<Step>('source');
   protected readonly origin = signal<SimulationOrigin>('idem-project');
+
+  /**
+   * Vrai une fois la source choisie. Rien n'est présélectionné : l'accueil
+   * pose une question, et n'affiche la suite qu'une fois qu'on y a répondu.
+   */
+  protected readonly sourceChosen = signal(false);
+
+  protected readonly authenticated = this.auth.isAuthenticated;
+  /** Vrai tant que la session n'a pas été tranchée : ni connecté, ni anonyme. */
+  protected readonly sessionPending = computed(() => this.auth.status() === 'initialising');
+  /** Clé expliquant pourquoi la connexion est demandée ; null = pas de dialogue. */
+  protected readonly signInReason = signal<string | null>(null);
 
   protected readonly projects = this.store.projects;
   protected readonly projectsLoading = computed(() => this.store.projectsStatus() === 'loading');
@@ -62,9 +83,12 @@ export class NewSimulation {
     this.projects().find((project) => project.id === this.selectedProjectId()) ?? null,
   );
 
-  protected readonly canAnalyse = computed(() =>
-    this.origin() === 'idem-project' ? !!this.selectedProjectId() : !!this.selectedFile(),
-  );
+  protected readonly canAnalyse = computed(() => {
+    if (!this.sourceChosen()) {
+      return false;
+    }
+    return this.origin() === 'idem-project' ? !!this.selectedProjectId() : !!this.selectedFile();
+  });
 
   /** Grouped so the four states read as four different kinds of claim. */
   protected readonly knowledgeGroups = computed(() => {
@@ -105,7 +129,15 @@ export class NewSimulation {
     (this.understanding()?.items ?? []).filter((item) => item.answerable),
   );
 
+  /** Le document ne tiendra pas dans le brouillon : l'utilisateur est prévenu. */
+  protected readonly draftAtRisk = computed(() => !canStashFile(this.selectedFile()));
+
   constructor() {
+    // Page publique : aucune garde n'a résolu la session avant d'arriver ici.
+    void this.auth.ensureLoaded();
+    // Retour du login : on reprend la source choisie avant le départ.
+    void this.restoreDraft();
+
     // La liste des projets est déjà chargée par la coquille ; on se contente
     // de choisir la sélection de départ dès qu'elle arrive.
     effect(() => {
@@ -130,6 +162,31 @@ export class NewSimulation {
 
   protected chooseOrigin(origin: SimulationOrigin): void {
     this.origin.set(origin);
+    this.sourceChosen.set(true);
+    // Lister ses projets IDEM demande l'identité : autant le dire au moment du
+    // choix plutôt que de laisser l'utilisateur devant une liste vide.
+    if (origin === 'idem-project') {
+      void this.requireSignIn('signIn.reason.projects');
+    }
+  }
+
+  /** Ouvre le dialogue depuis l'encart de la liste de projets. */
+  protected askToSignIn(reason: string): void {
+    this.signInReason.set(reason);
+  }
+
+  /**
+   * Départ vers le login. Le brouillon part d'abord au stockage de session :
+   * la connexion quitte la page, et le business plan téléversé ne doit pas
+   * partir avec elle.
+   */
+  protected async confirmSignIn(): Promise<void> {
+    await saveDraft({
+      origin: this.origin(),
+      projectId: this.selectedProjectId(),
+      file: this.selectedFile(),
+    });
+    this.auth.redirectToLogin('/simulations/new', { force: true });
   }
 
   protected onFileSelected(event: Event): void {
@@ -139,6 +196,11 @@ export class NewSimulation {
 
   protected async analyse(): Promise<void> {
     if (!this.canAnalyse()) {
+      return;
+    }
+    // Première action qui touche l'API : c'est ici que le compte devient
+    // nécessaire, pas avant.
+    if (await this.requireSignIn('signIn.reason.analyse')) {
       return;
     }
 
@@ -194,6 +256,9 @@ export class NewSimulation {
   }
 
   protected async launch(): Promise<void> {
+    if (await this.requireSignIn('signIn.reason.launch')) {
+      return;
+    }
     const projectId = this.selectedProjectId();
     if (!projectId) {
       return;
@@ -232,6 +297,33 @@ export class NewSimulation {
 
   protected planListPrice(plan: SimulationPlan): string | null {
     return plan.listPrice ? `${plan.listPrice.toLocaleString('fr-FR')} ${plan.currency}` : null;
+  }
+
+  /**
+   * Ouvre le dialogue de connexion si l'identité manque. Rend vrai quand
+   * l'action appelante doit s'arrêter là.
+   */
+  private async requireSignIn(reason: string): Promise<boolean> {
+    if (await this.auth.ensureLoaded()) {
+      return false;
+    }
+    this.signInReason.set(reason);
+    return true;
+  }
+
+  private async restoreDraft(): Promise<void> {
+    const draft = await takeDraft();
+    if (!draft) {
+      return;
+    }
+    this.origin.set(draft.origin);
+    this.sourceChosen.set(true);
+    if (draft.projectId) {
+      this.selectedProjectId.set(draft.projectId);
+    }
+    if (draft.file) {
+      this.selectedFile.set(draft.file);
+    }
   }
 
   private runName(): string {

@@ -95,7 +95,10 @@
       "noProjects": "Aucun projet IDEM disponible sur ce compte.",
       "assets": "{{count}} livrables",
       "dropFile": "Choisir un fichier",
-      "formats": "PDF, DOCX, Markdown ou texte"
+      "formats": "PDF, DOCX, Markdown ou texte",
+      "signInHeading": "Connectez-vous pour voir vos projets",
+      "signInBody": "La liste de vos projets IDEM demande votre compte. Vous pouvez aussi importer un business plan sans compte, et vous connecter au moment de lancer l'analyse.",
+      "replaceFile": "Cliquez pour remplacer le document"
     },
     "analyse": "Analyser le projet",
     "analysing": "Lecture du projet en cours",
@@ -118,7 +121,14 @@
     "launching": "Lancement…",
     "launchFailed": "Le lancement a échoué",
     "pricingFailed": "Impossible de charger les tarifs",
-    "noProject": "Choisissez d'abord un projet."
+    "noProject": "Choisissez d'abord un projet.",
+    "hero": {
+      "heading": "Mettez votre projet à l'épreuve avant de le lancer.",
+      "subheading": "Le moteur cherche les facteurs qui peuvent faire basculer votre activité, les met sous tension, et vous dit où votre modèle casse. Commencez par ce que vous avez déjà.",
+      "choose": "Choisir",
+      "selected": "Sélectionné",
+      "note": "Une simulation est un outil d'aide à la décision, jamais une prédiction. Chaque résultat est accompagné de son degré de confiance."
+    }
   },
   "tier": {
     "run": "Simulation",
@@ -286,7 +296,6 @@
     "title": "Rapport",
     "heading": "Rapport de simulation — {{name}}",
     "generatedOn": "Généré le",
-    "print": "Imprimer",
     "contents": "Sommaire",
     "backToResults": "Retour aux résultats",
     "unavailable": "Rapport indisponible",
@@ -341,7 +350,10 @@
     },
     "validation": {
       "body": "La simulation réduit l'incertitude, elle ne la remplace pas. Ces points demandent une vérification sur le terrain."
-    }
+    },
+    "download": "Télécharger le PDF",
+    "downloading": "Composition du PDF…",
+    "downloadFailed": "Le rapport n'a pas pu être généré."
   },
   "compare": {
     "title": "Comparaison",
@@ -557,13 +569,15 @@
     "medium": "Moyen",
     "high": "Élevé"
   },
-  "mock": {
-    "toggle": "Données de démonstration",
-    "on": "Activées — rien n'est envoyé à l'API",
-    "off": "Désactivées — l'application appelle l'API",
-    "reset": "Réinitialiser le jeu de démonstration",
-    "badge": "Démo",
-    "badgeHint": "Les chiffres affichés viennent d'un jeu de démonstration, pas de l'API.",
-    "useBuildDefault": "Revenir au réglage du .env"
+  "signIn": {
+    "heading": "Connectez-vous pour continuer",
+    "sharedAccount": "Votre compte IDEM ouvre le simulateur, le dashboard et iDeploy. Il n'y a pas de compte séparé à créer.",
+    "later": "Plus tard",
+    "documentTooLarge": "Votre document est trop volumineux pour être conservé pendant la connexion : il faudra le sélectionner à nouveau au retour.",
+    "reason": {
+      "projects": "Vos projets IDEM sont rattachés à votre compte : connectez-vous pour les retrouver ici.",
+      "analyse": "L'analyse tourne sur nos serveurs, sous votre compte IDEM. Connectez-vous pour la lancer : votre document vous attendra ici.",
+      "launch": "Dernière étape : connectez-vous pour lancer la simulation et retrouver son rapport."
+    }
   }
 }

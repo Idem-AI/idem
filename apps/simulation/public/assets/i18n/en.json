@@ -95,7 +95,10 @@
       "noProjects": "No IDEM project is available on this account.",
       "assets": "{{count}} deliverables",
       "dropFile": "Choose a file",
-      "formats": "PDF, DOCX, Markdown or plain text"
+      "formats": "PDF, DOCX, Markdown or plain text",
+      "signInHeading": "Sign in to see your projects",
+      "signInBody": "Listing your IDEM projects needs your account. You can also import a business plan without one, and sign in when it is time to run the analysis.",
+      "replaceFile": "Click to replace the document"
     },
     "analyse": "Analyse the project",
     "analysing": "Reading the project",
@@ -118,7 +121,14 @@
     "launching": "Starting…",
     "launchFailed": "Could not start the simulation",
     "pricingFailed": "Could not load pricing",
-    "noProject": "Pick a project first."
+    "noProject": "Pick a project first.",
+    "hero": {
+      "heading": "Put your project under strain before you launch it.",
+      "subheading": "The engine looks for the factors that can tip your business over, stress-tests them, and tells you where your model breaks. Start from what you already have.",
+      "choose": "Choose",
+      "selected": "Selected",
+      "note": "A simulation is a decision-support tool, never a prediction. Every result comes with how confident the engine is."
+    }
   },
   "tier": {
     "run": "Simulation",
@@ -286,7 +296,6 @@
     "title": "Report",
     "heading": "Simulation report — {{name}}",
     "generatedOn": "Generated on",
-    "print": "Print",
     "contents": "Contents",
     "backToResults": "Back to results",
     "unavailable": "Report unavailable",
@@ -341,7 +350,10 @@
     },
     "validation": {
       "body": "A simulation narrows uncertainty, it does not replace it. These points need checking against the real market."
-    }
+    },
+    "download": "Download the PDF",
+    "downloading": "Building the PDF…",
+    "downloadFailed": "The report could not be generated."
   },
   "compare": {
     "title": "Comparison",
@@ -557,13 +569,15 @@
     "medium": "Medium",
     "high": "High"
   },
-  "mock": {
-    "toggle": "Demo data",
-    "on": "On — nothing is sent to the API",
-    "off": "Off — the app calls the API",
-    "reset": "Reset the demo dataset",
-    "badge": "Demo",
-    "badgeHint": "The numbers on screen come from a demo dataset, not from the API.",
-    "useBuildDefault": "Back to the .env setting"
+  "signIn": {
+    "heading": "Sign in to continue",
+    "sharedAccount": "Your IDEM account opens the simulator, the dashboard and iDeploy. There is no separate account to create.",
+    "later": "Later",
+    "documentTooLarge": "Your document is too large to keep while you sign in — you will need to select it again when you come back.",
+    "reason": {
+      "projects": "Your IDEM projects belong to your account: sign in to find them here.",
+      "analyse": "The analysis runs on our servers, under your IDEM account. Sign in to start it — your document will be waiting here.",
+      "launch": "One last step: sign in to launch the simulation and keep its report."
+    }
   }
 }

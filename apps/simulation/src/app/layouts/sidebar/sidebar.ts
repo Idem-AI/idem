@@ -1,4 +1,3 @@
-import { NgOptimizedImage } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -10,15 +9,15 @@ import {
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { ThemeService } from '../../core/theme/theme.service';
 import { SimulationStore } from '../../features/simulations/data-access';
 import { LabName } from '../../features/simulations/models';
-import { LanguageMenu } from '../../shared/components/language-menu/language-menu';
-import { ThemeToggle } from '../../shared/components/theme-toggle/theme-toggle';
 import { NavItem, WORKSPACE_NAV, simulationNav } from '../nav/nav.model';
 
 /**
  * Navigation permanente de l'espace de travail.
+ *
+ * Ni marque ni réglages : la barre supérieure les porte pour toutes les
+ * coquilles, y compris celles qui n'ont pas de colonne.
  *
  * Deux niveaux seulement : ce qui existe toujours (les exécutions), et ce que
  * l'exécution ouverte rend accessible. Les laboratoires portent une pastille
@@ -26,13 +25,12 @@ import { NavItem, WORKSPACE_NAV, simulationNav } from '../nav/nav.model';
  */
 @Component({
   selector: 'sim-sidebar',
-  imports: [RouterLink, RouterLinkActive, TranslatePipe, NgOptimizedImage, ThemeToggle, LanguageMenu],
+  imports: [RouterLink, RouterLinkActive, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './sidebar.html',
 })
 export class Sidebar {
   private readonly store = inject(SimulationStore);
-  private readonly themeService = inject(ThemeService);
 
   /** Identifiant de l'exécution ouverte, extrait de l'URL par la coquille. */
   readonly simulationId = input<string | null>(null);
@@ -43,8 +41,6 @@ export class Sidebar {
   readonly navigate = output<void>();
 
   protected readonly workspaceNav = WORKSPACE_NAV;
-  /** Le logo est blanc : il doit être inversé sur fond clair. */
-  protected readonly onLightTheme = computed(() => this.themeService.theme() === 'light');
   protected readonly labs = this.store.labs;
   protected readonly runningLab = this.store.runningLab;
 

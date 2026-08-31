@@ -351,7 +351,8 @@
       "errors": {
         "projectNotFound": "L'ID de projet '{{cookieId}}' du cookie est introuvable. Utilisation du premier projet à la place.",
         "initialProjectNotFound": "L'ID de projet initial '{{initialCookieId}}' est introuvable. Navigation vers le tableau de bord global."
-      }
+      },
+      "simulations": "Simulations"
     },
     "sidebarGlobal": {
       "dashboard": "Tableau de bord",
@@ -2781,6 +2782,39 @@
       "done": "Traitement terminé",
       "hold": "Laissez cet onglet ouvert : la génération s'arrête si vous quittez la page.",
       "stopped": "Génération interrompue"
+    },
+    "simulations": {
+      "title": "Simulations",
+      "description": "Mettez ce projet à l'épreuve avant de le lancer : le moteur cherche les facteurs qui peuvent le faire basculer, les met sous tension, et vous dit où le modèle casse.",
+      "newRun": "Nouvelle simulation",
+      "latest": "Dernière exécution terminée",
+      "revision": "Révision n° {{number}}",
+      "hasReport": "rapport disponible",
+      "stats": {
+        "total": "Simulations",
+        "completed": "Terminées",
+        "running": "En cours",
+        "reports": "Rapports"
+      },
+      "status": {
+        "draft": "Brouillon",
+        "awaiting-confirmation": "À confirmer",
+        "running": "En cours",
+        "completed": "Terminée",
+        "failed": "Échouée"
+      },
+      "verdict": {
+        "go": "Go",
+        "go-with-conditions": "Go sous conditions",
+        "no-go": "No-go",
+        "unknown": "Sans verdict"
+      },
+      "empty": {
+        "title": "Ce projet n'a pas encore été simulé",
+        "body": "Une simulation confronte votre modèle à des scénarios défavorables et à des stress tests, puis vous dit à quelles conditions il tient. Vous partez de ce projet : le business plan et les prévisions financières déjà présents sont repris automatiquement.",
+        "cta": "Lancer une simulation",
+        "note": "Le simulateur s'ouvre dans un nouvel onglet, avec votre compte IDEM."
+      }
     }
   },
   "deployment": {
@@ -2876,7 +2910,8 @@
       "brandingEdit": "Édition de la charte graphique",
       "businessCards": "Cartes de visite",
       "businessCardsEdit": "Éditeur de carte de visite",
-      "flyerEdit": "Éditeur de visuel"
+      "flyerEdit": "Éditeur de visuel",
+      "simulations": "Simulations"
     }
   },
   "notFound": {
