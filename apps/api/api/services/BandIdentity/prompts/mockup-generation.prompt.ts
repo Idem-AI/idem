@@ -1,30 +1,53 @@
 import { SelectedMockupSupport } from '../mockupAnalyzer.service';
 
 /**
- * Système de prompts dynamiques pour la génération de mockups photoréalistes
+ * Les deux prompts de la mise en situation de marque, et une seule idée : le
+ * modèle d'image ne dessine JAMAIS le logo.
+ *
+ * Il photographie un support NU en réservant une zone de marquage ; le vrai
+ * logo y est incrusté ensuite par composition (cf. `brandMockup.service.ts`).
+ * Décrire le logo au modèle lui faisait dessiner un logo approchant — sur un
+ * livrable de marque, où le logo doit être exact au pixel près, c'est
+ * inacceptable.
+ *
+ * Le second prompt est celui de la vision : il relit la scène produite pour
+ * dire OÙ poser le logo. Sans lui, l'incrustation retombait au centre
+ * géométrique de l'image, c'est-à-dire à côté du support une fois sur deux.
  */
-
 export const MOCKUP_GENERATION_PROMPT = {
-  logoInstructions: (brandName: string) => ({
-    withLogo: `<logo_rules>
-- An image of this brand's exact logo is supplied.
-- Study every detail of the supplied logo image and reproduce it EXACTLY in the scene.
-- Preserve all original shapes, colours, typography and proportions.
-- Place the logo visibly and legibly on the support. Do not alter or translate the text inside the logo.
-- Choose a balanced size (neither invisible nor overwhelming).
-</logo_rules>`,
+  /**
+   * Consigne de vision : localiser la zone de marquage sur la scène générée.
+   *
+   * La réponse attendue est un JSON minuscule (une zone normalisée + le ton de
+   * la surface + son inclinaison), parce que c'est exactement ce dont la
+   * composition a besoin : où, à quelle taille, quelle encre, quel angle.
+   */
+  brandingZoneVision: `You are given a photograph of an UNBRANDED product staged for a brand mockup.
+Locate the ONE area where the brand logo should be printed: the flat, evenly lit,
+unobstructed part of the product that faces the camera, and where a real logo
+would actually go on this kind of support.
 
-    withoutLogo: `<logo_rules>
-- No logo image is supplied.
-- Set the brand name "${brandName}" in a clean, professional typographic style using the brand colours.
-</logo_rules>`,
-  }),
+Answer with ONE JSON object and nothing else — no prose, no markdown fence:
+{"x":0.34,"y":0.28,"width":0.30,"height":0.18,"surface":"light","rotation":-3,"confidence":0.86}
+
+- x, y: top-left corner of that area, as fractions of image width and height (0-1).
+- width, height: its size, as fractions of image width and height (0-1).
+- surface: "light" if that area is bright, so dark ink reads on it; "dark" if that
+  area is dark, so light ink reads on it.
+- rotation: apparent tilt of that area in degrees, positive clockwise, between -45
+  and 45. Use 0 when it faces the camera squarely.
+- confidence: 0-1, how sure you are that this is the right place to print.
+
+Rules:
+- The area must be INSIDE the product. Never on the background, never on a prop.
+- Keep it to the part that is genuinely flat and unobstructed: exclude seams, folds,
+  buttons, handles, straps, curved edges and strong specular highlights.
+- If the product offers no usable printing area, answer exactly {"confidence":0}.`,
 
   buildDynamicPrompt: (params: {
     brandName: string;
     brandColors: { primary: string; secondary: string; accent: string };
     projectDescription: string;
-    hasLogo: boolean;
     selectedSupport: SelectedMockupSupport;
     pdfFormat?: string;
     /** Fragment de rendu issu de la direction artistique (anglais, rendu uniquement). */
@@ -38,7 +61,6 @@ export const MOCKUP_GENERATION_PROMPT = {
       brandName,
       brandColors,
       projectDescription,
-      hasLogo,
       selectedSupport,
       pdfFormat,
       artDirectionModifier,
@@ -67,13 +89,7 @@ export const MOCKUP_GENERATION_PROMPT = {
               'CRITICAL: LANDSCAPE orientation is mandatory. Ratio 16:9. Wide horizontal framing so the subject fills the full width.',
           };
 
-    const logoInstruction = hasLogo
-      ? MOCKUP_GENERATION_PROMPT.logoInstructions(brandName).withLogo
-      : MOCKUP_GENERATION_PROMPT.logoInstructions(brandName).withoutLogo;
-
-    const supportExamples = selectedSupport.examples
-      .map((ex, idx) => `  - ${ex}`)
-      .join('\n');
+    const supportExamples = selectedSupport.examples.map((ex) => `  - ${ex}`).join('\n');
 
     const priorityText =
       selectedSupport.priority === 'primary'
@@ -81,7 +97,7 @@ export const MOCKUP_GENERATION_PROMPT = {
         : 'SECONDARY SUPPORT (complementary but relevant)';
 
     return `<role>Elite commercial photographer and art director specialised in staging brands.</role>
-<objective>Create one photorealistic, high-end professional mockup photograph.</objective>
+<objective>Create one photorealistic, high-end professional mockup photograph of a BLANK, UNBRANDED support, ready to receive a printed logo.</objective>
 
 <brand_context>
 - Name: "${brandName}"
@@ -95,14 +111,33 @@ Mockup index: #${selectedSupport.mockupIndex}
 Priority: ${priorityText}
 Support name: ${selectedSupport.supportName}
 
-${logoInstruction}
-
 Supports to create, as examples:
 ${supportExamples}
 
 Staging:
 ${selectedSupport.context}
 </mockup_mission>
+
+<blank_support_rule>
+The support carries NO branding at all: no logo, no monogram, no wordmark, no brand
+name, no initial, no slogan, no printed pattern, no label, no sticker, no legible
+text of any kind on it. The real logo is composited onto this photograph afterwards
+at pixel accuracy — anything you draw in its place collides with it and ruins the
+image.
+
+Instead, RESERVE one printing area on the support, and stage the shot around it:
+- It sits where the brand mark genuinely goes on this kind of support (chest of a
+  garment, front face of a box, door panel of a vehicle, front of a card…).
+- It is flat and unbroken: no seam, fold, button, zip, strap, handle or curved edge
+  crossing it.
+- It faces the camera as squarely as the staging allows.
+- It is evenly lit: no hard specular highlight, no cast shadow, no reflection over it.
+- It is one plain uniform tone, chosen so a logo reads clearly on it.
+- It is large and unmistakable — roughly a third of the frame — and near the centre.
+
+Everything AROUND that area stays a full photograph: material, texture, wear,
+depth of field, real environment.
+</blank_support_rule>
 
 ${
       artDirectionModifier
@@ -117,10 +152,10 @@ This photograph will be seen next to the brand's other supports: it must carry t
         : ''
     }<photographic_rules>
 1. ABSOLUTE PHOTOGRAPHIC REALISM: a real commercial photograph (no digital illustration, no artificial 3D render). Subtle grain, natural imperfections.
-2. LIGHTING: realistic studio or natural light, soft shadows, reflections on glass, metal or plastic.
-3. COMPOSITION: rule of thirds, cinematic depth of field (blurred background). The branded support is the hero and is clearly visible.
+2. LIGHTING: realistic studio or natural light, soft shadows, reflections on glass, metal or plastic — but the printing area stays evenly lit.
+3. COMPOSITION: rule of thirds, cinematic depth of field (blurred background). The support is the hero, sharp, and clearly visible.
 4. TEXTURES: visible fabric fibres, paper grain, metallic sheen, slight natural wear.
-5. COLOUR: subtle, harmonious integration of the brand colours (${brandColors.primary}, ${brandColors.secondary}, ${brandColors.accent}) into the scene.
+5. COLOUR: subtle, harmonious integration of the brand colours (${brandColors.primary}, ${brandColors.secondary}, ${brandColors.accent}) into the scene and the material of the support.
 6. CONTEXT: a coherent environment (${selectedSupport.industryContext}). No visual distraction.
 </photographic_rules>
 
@@ -135,9 +170,9 @@ This photograph will be seen next to the brand's other supports: it must carry t
 </format_rules>
 
 <forbidden>
+- ANY logo, wordmark, brand name, monogram, initial or readable text printed on the support. The support is blank.
 - The generic mockup cliché: "a business card lying at an angle on a white marble desk next to a green plant" is THE default render of every generator. Compose something else.
 - Artificial, plastic, over-lit 3D renders.
-- Any logo other than the one supplied.
 - An overloaded scene: one hero support, one context, nothing else.
 - Watermarks, distorted text, generation artefacts, oversaturated HDR.
 ${artDirectionNegative ? `- ${artDirectionNegative}` : ''}

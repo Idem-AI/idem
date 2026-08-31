@@ -55,7 +55,6 @@ import {
 } from './prompts/01_logo-system-section.prompt';
 import { COLOR_PALETTE_SECTION_PROMPT } from './prompts/02_color-palette-section.prompt';
 import { TYPOGRAPHY_SECTION_PROMPT } from './prompts/03_typography-section.prompt';
-import { MOCKUPS_SECTION_PROMPT, MOCKUPS_COUNT } from './prompts/06_mockups-section.prompt';
 import { BRAND_FOOTER_SECTION_PROMPT } from './prompts/07_brand-footer-section.prompt';
 import { MOCKUP_CONFIG } from '../../config/mockup.config';
 import { SectionModel } from '../../models/section.model';
@@ -96,9 +95,12 @@ import crypto from 'crypto';
 import { projectService } from '../project.service';
 import { LogoJsonToSvgService } from './logoJsonToSvg.service';
 import { SvgOptimizerService } from './svgOptimizer.service';
-import { geminiMockupService } from '../brandMockup.service';
+import {
+  geminiMockupService,
+  MockupGenerationResult,
+  MockupLogoVariants,
+} from '../brandMockup.service';
 import { StorageService } from '../storage.service';
-import { mockupHtmlGeneratorService } from './mockupHtmlGenerator.service';
 import { openAiUsageBatch, setAiUsageContext } from '../../utils/ai-usage-context.util';
 
 /** Verdict de l'agent critique sur un concept de logo */
@@ -801,8 +803,12 @@ export class BrandingService extends GenericService {
 
     // Generate cache key based on project content
     const branding = project.analysisResultModel?.branding;
+    // Description BRUTE du projet, avant l'empilement des directives de charte.
+    // La génération d'images la reprend telle quelle : les consignes HTML,
+    // la graine de composition et les interdits anti-slop ne la concernent pas.
+    const baseProjectDescription = this.extractProjectDescription(project);
     const projectDescription =
-      this.extractProjectDescription(project) +
+      baseProjectDescription +
       '\n\nHere is the project branding colors: ' +
       JSON.stringify(branding?.colors || {}) +
       '\n\nHere is the project branding typography: ' +
@@ -972,13 +978,27 @@ export class BrandingService extends GenericService {
         },
       ];
 
-      // Générer dynamiquement les steps mockups en fonction de MOCKUP_CONFIG.MOCKUP_COUNT
+      // Mises en situation. Ces pages ne sont pas RÉDIGÉES : elles portent une
+      // photographie du support, produite par le modèle d'image puis marquée du
+      // vrai logo. Les faire passer par le LLM revenait à payer une page HTML
+      // complète par mockup pour la jeter aussitôt — et, quand l'image
+      // manquait, à publier cette page de secours à la place du mockup. Elles
+      // sont donc fabriquées (`execute`), et absentes quand l'image manque.
       const mockupCount = MOCKUP_CONFIG.MOCKUP_COUNT;
+      const buildMockupPage = this.createMockupPageBuilder({
+        project,
+        userId,
+        projectId,
+        projectDescription: baseProjectDescription,
+        pdfFormat,
+        artDirection,
+      });
       for (let i = 1; i <= mockupCount; i++) {
         steps.push({
-          promptConstant: MOCKUPS_SECTION_PROMPT + projectDescription,
+          promptConstant: '',
           stepName: `Brand Mockup ${i}`,
           hasDependencies: false,
+          execute: () => buildMockupPage(i),
         });
       }
 
@@ -1033,150 +1053,19 @@ export class BrandingService extends GenericService {
               return;
             }
 
-            // Préparer la section finale (avec génération d'images pour les mockups)
+            // Préparer la section finale
             let finalSection: SectionModel;
 
-            // Gérer chaque mockup individuellement
+            // Les pages de mise en situation portent une photographie, pas de
+            // la prose : leur HTML est fabriqué ici (cf. `createMockupPageBuilder`)
+            // et n'a rien à faire passer au linter anti-générique.
             if (result.name.startsWith('Brand Mockup')) {
-              // Extraire le numéro du mockup (1, 2 ou 3)
-              const mockupNumber = parseInt(result.name.replace('Brand Mockup ', ''));
-              const mockupIndex = mockupNumber - 1; // Index 0-based
-
-              const mockupPipelineStart = Date.now();
-              logger.info('========================================');
-              logger.info(`[MOCKUP] BRAND MOCKUP ${mockupNumber} STEP TRIGGERED`);
-              logger.info('========================================');
-              logger.info(`[MOCKUP] Will now generate mockup ${mockupNumber}/3 via Gemini`, {
-                projectId,
-                userId,
-                projectName: project.name,
-                mockupNumber,
-              });
-
-              try {
-                // Extraire les informations nécessaires du projet
-                const branding = project.analysisResultModel?.branding;
-                if (!branding || !branding.logo || !branding.colors) {
-                  logger.error('❌ Missing branding information for mockup generation', {
-                    projectId,
-                    userId,
-                    hasLogo: !!branding?.logo,
-                    hasColors: !!branding?.colors,
-                  });
-                  throw new Error('Missing branding information');
-                }
-
-                // Prefer the hosted PNG URL (lighter for the image model);
-                // fall back to the svg field for legacy projects.
-                const logoUrl = branding.logo.assetUrls?.primary || branding.logo.svg;
-                const brandColors = {
-                  primary: branding.colors.colors.primary || '#000000',
-                  secondary: branding.colors.colors.secondary || '#666666',
-                  accent: branding.colors.colors.accent || '#999999',
-                };
-
-                const projectDescription = this.extractProjectDescription(project);
-                const projectContext = this.extractProjectContext(projectDescription);
-                const industry = projectContext.industry;
-
-                // Générer TOUS les mockups une seule fois (pour avoir les 3 supports sélectionnés)
-                // On cache le résultat pour éviter de régénérer à chaque step
-                const cacheKey = `mockups_${projectId}`;
-                let allMockups = (global as any)[cacheKey];
-
-                if (!allMockups) {
-                  logger.info('[MOCKUP] Generating all 3 mockups (first time)', { projectId });
-                  allMockups = await geminiMockupService.generateProjectMockups(
-                    logoUrl,
-                    brandColors,
-                    industry,
-                    project.name,
-                    projectDescription,
-                    userId,
-                    projectId,
-                    pdfFormat,
-                    // Les mises en situation appartiennent au même document que
-                    // les pages qui précèdent : sans la direction artistique
-                    // elles sortaient dans le rendu « photo de stock » par
-                    // défaut du modèle, étranger au reste de la charte.
-                    artDirection
-                  );
-                  (global as any)[cacheKey] = allMockups;
-                } else {
-                  logger.info(`[MOCKUP] Using cached mockups for mockup ${mockupNumber}`, {
-                    projectId,
-                  });
-                }
-
-                // Sélectionner uniquement le mockup correspondant à ce step
-                const mockup = allMockups[mockupIndex];
-                if (!mockup) {
-                  throw new Error(`Mockup ${mockupNumber} not found in generated mockups`);
-                }
-
-                const mockupResult = {
-                  url: mockup.mockupUrl,
-                  title: mockup.title || `${mockup.supportName}`,
-                  description:
-                    mockup.description || `${mockup.supportName} - Professional brand mockup`,
-                  supportType: mockup.supportType,
-                  priority: mockup.priority,
-                };
-
-                const mockupPipelineDuration = Date.now() - mockupPipelineStart;
-
-                logger.info(`[MOCKUP] SUCCESS - Mockup ${mockupNumber}/3 ready`, {
-                  projectId,
-                  duration: `${mockupPipelineDuration}ms`,
-                  supportType: mockupResult.supportType,
-                  title: mockupResult.title,
-                });
-
-                logger.info(`[MOCKUP] Mockup ${mockupNumber}: "${mockupResult.title}"`, {
-                  bucketUrl: mockupResult.url,
-                  description: mockupResult.description,
-                });
-                console.log(`[MOCKUP] Mockup ${mockupNumber} URL: ${mockupResult.url}`);
-
-                // Générer un HTML simple pour CE mockup (image pleine page uniquement)
-                logger.info(`[MOCKUP] Generating simple HTML for mockup ${mockupNumber}/3`, {
-                  projectId,
-                  mockupNumber,
-                  supportType: mockupResult.supportType,
-                });
-
-                // HTML simple : image pleine page sans description
-                const mockupHtml = `<div style="width:100%;height:100%;margin:0;padding:0;box-sizing:border-box;position:relative;overflow:hidden;">
-  <img src="${mockupResult.url}" alt="${mockupResult.title}" style="width:100%;height:100%;object-fit:cover;display:block;" />
-</div>`;
-
-                logger.info(`[MOCKUP] Simple HTML generated for mockup ${mockupNumber}`, {
-                  projectId,
-                  htmlLength: mockupHtml.length,
-                });
-
-                finalSection = {
-                  name: result.name,
-                  type: result.type,
-                  data: mockupHtml,
-                  summary: `Mockup ${mockupNumber}/3: ${mockupResult.title} (${mockupResult.supportType})`,
-                };
-              } catch (error: any) {
-                const mockupPipelineDuration = Date.now() - mockupPipelineStart;
-                logger.error('[MOCKUP] CRITICAL ERROR in mockup image generation pipeline', {
-                  error: error.message,
-                  stack: error.stack,
-                  projectId,
-                  duration: `${mockupPipelineDuration}ms`,
-                });
-                console.error(`[MOCKUP] ERROR: ${error.message}`);
-                finalSection = {
-                  name: result.name,
-                  type: result.type,
-                  data: result.data,
-                  summary: result.summary,
-                };
-              }
+              finalSection = {
+                name: result.name,
+                type: result.type,
+                data: result.data,
+                summary: result.summary,
+              };
             } else {
               // Passe déterministe anti-générique sur le HTML produit.
               //
@@ -4185,6 +4074,118 @@ ${LOGO_EDIT_PROMPT}`;
   }
 
   /**
+   * Fabrique les pages de mise en situation de la charte.
+   *
+   * Les N mockups sortent d'UN seul appel — l'analyseur choisit les supports
+   * ensemble, pour qu'ils ne se répètent pas — donc les N étapes partagent la
+   * même promesse : la première qui s'exécute la déclenche, les suivantes
+   * l'attendent. Ce mémo remplace le cache posé sur `global`, qui survivait au
+   * projet et resservait ses mockups à la charte suivante.
+   *
+   * Rend `null` quand l'image manque : une page de charte sans son visuel
+   * n'est pas une page, elle ne doit pas être affichée du tout.
+   */
+  private createMockupPageBuilder(params: {
+    project: ProjectModel;
+    userId: string;
+    projectId: string;
+    projectDescription: string;
+    pdfFormat?: string;
+    artDirection?: ArtDirectionModel | null;
+  }): (mockupNumber: number) => Promise<string | null> {
+    const { project, userId, projectId, projectDescription, pdfFormat, artDirection } = params;
+    let pending: Promise<MockupGenerationResult[]> | null = null;
+
+    const generateAll = (): Promise<MockupGenerationResult[]> => {
+      const branding = project.analysisResultModel?.branding;
+      if (!branding?.logo || !branding?.colors) {
+        return Promise.reject(new Error('Missing branding information (logo or colors)'));
+      }
+
+      // On préfère le PNG hébergé (plus léger pour la composition) ; le champ
+      // svg reste le repli des projets anciens.
+      const logoUrl = branding.logo.assetUrls?.primary || branding.logo.svg;
+      const logoVariants: MockupLogoVariants = {
+        light: branding.logo.assetUrls?.withText?.lightBackground,
+        dark: branding.logo.assetUrls?.withText?.darkBackground,
+        monochrome: branding.logo.assetUrls?.withText?.monochrome,
+      };
+
+      const brandColors = {
+        primary: branding.colors.colors.primary || '#000000',
+        secondary: branding.colors.colors.secondary || '#666666',
+        accent: branding.colors.colors.accent || '#999999',
+      };
+
+      const industry = this.extractProjectContext(projectDescription).industry;
+
+      logger.info('[MOCKUP] Generating every mockup for this brand book (single pass)', {
+        projectId,
+        industry,
+        mockupCount: MOCKUP_CONFIG.MOCKUP_COUNT,
+      });
+
+      return geminiMockupService.generateProjectMockups(
+        logoUrl,
+        brandColors,
+        industry,
+        project.name,
+        projectDescription,
+        userId,
+        projectId,
+        pdfFormat,
+        // Les mises en situation appartiennent au même document que les pages
+        // qui précèdent : sans la direction artistique elles sortaient dans le
+        // rendu « photo de stock » par défaut du modèle, étranger au reste de
+        // la charte.
+        artDirection,
+        logoVariants
+      );
+    };
+
+    return async (mockupNumber: number): Promise<string | null> => {
+      const startedAt = Date.now();
+      try {
+        if (!pending) {
+          pending = generateAll();
+        }
+
+        const mockups = await pending;
+        const mockup = mockups[mockupNumber - 1];
+
+        if (!mockup?.mockupUrl) {
+          logger.warn(`[MOCKUP] No image for mockup ${mockupNumber} — page skipped`, {
+            projectId,
+            generated: mockups.length,
+          });
+          return null;
+        }
+
+        logger.info(`[MOCKUP] ✅ Mockup ${mockupNumber} ready`, {
+          projectId,
+          bucketUrl: mockup.mockupUrl,
+          supportType: mockup.supportType,
+          duration: `${Date.now() - startedAt}ms`,
+        });
+
+        // La page est l'image, plein cadre. Tout habillage ajouté ici (titre,
+        // légende, dégradé) se superpose à une photographie déjà composée.
+        const alt = (mockup.title || mockup.supportName || 'Mockup').replace(/"/g, '&quot;');
+        return `<div style="width:100%;height:100%;margin:0;padding:0;box-sizing:border-box;position:relative;overflow:hidden;">
+  <img src="${mockup.mockupUrl}" alt="${alt}" style="width:100%;height:100%;object-fit:cover;display:block;" />
+</div>`;
+      } catch (error: any) {
+        logger.error(`[MOCKUP] Mockup ${mockupNumber} unavailable — page skipped`, {
+          error: error.message,
+          projectId,
+          duration: `${Date.now() - startedAt}ms`,
+        });
+        return null;
+      }
+    };
+  }
+
+  /**
    * Génère les mockups pour la charte graphique finale
    * Le nombre de mockups est configurable via MOCKUP_CONFIG
    * L'IA analyse le projet et choisit automatiquement les supports adaptés
@@ -4239,13 +4240,20 @@ ${LOGO_EDIT_PROMPT}`;
         timestamp: new Date().toISOString(),
       });
 
-      const logoUrl = branding.logo.svg;
+      // PNG hébergé d'abord : c'est lui qui sera incrusté sur le support, et un
+      // SVG inline oblige à une conversion supplémentaire à chaque mockup.
+      const logoUrl = branding.logo.assetUrls?.primary || branding.logo.svg;
+      const logoVariants: MockupLogoVariants = {
+        light: branding.logo.assetUrls?.withText?.lightBackground,
+        dark: branding.logo.assetUrls?.withText?.darkBackground,
+        monochrome: branding.logo.assetUrls?.withText?.monochrome,
+      };
 
       // Récupérer le format PDF depuis le projet (défaut: SLIDE_16_9)
       const pdfFormat = branding.pdfFormat || 'SLIDE_16_9';
 
-      // Générer les mockups avec le service Gemini (logo envoyé comme image)
-      // Le service analyse automatiquement le projet et sélectionne les supports adaptés
+      // Générer les mockups : le service choisit les supports, photographie
+      // chacun d'eux à vide, puis y imprime le vrai logo.
       const mockups = await geminiMockupService.generateProjectMockups(
         logoUrl,
         brandColors,
@@ -4254,7 +4262,9 @@ ${LOGO_EDIT_PROMPT}`;
         projectDescription,
         userId,
         projectId,
-        pdfFormat
+        pdfFormat,
+        null,
+        logoVariants
       );
 
       logger.info('✅ Mockups generated successfully for brand identity', {
