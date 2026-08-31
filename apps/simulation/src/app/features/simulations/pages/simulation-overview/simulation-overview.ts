@@ -6,7 +6,7 @@ import { ToastService } from '../../../../core/ui/toast.service';
 import { DisclaimerNote } from '../../../../shared/components/disclaimer-note/disclaimer-note';
 import { PipelineProgress } from '../../components/pipeline-progress/pipeline-progress';
 import { ViabilityGauge } from '../../components/viability-gauge/viability-gauge';
-import { SimulationStore } from '../../data-access';
+import { ReportDownloadService, SimulationStore } from '../../data-access';
 import { FactorTier } from '../../models';
 
 /**
@@ -21,6 +21,7 @@ import { FactorTier } from '../../models';
 })
 export class SimulationOverview {
   private readonly store = inject(SimulationStore);
+  private readonly reportDownload = inject(ReportDownloadService);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
   private readonly translate = inject(TranslateService);
@@ -28,6 +29,7 @@ export class SimulationOverview {
   protected readonly simulation = this.store.active;
   protected readonly isRunning = this.store.isRunning;
   protected readonly generating = signal(false);
+  protected readonly downloading = this.reportDownload.downloading;
 
   protected readonly result = computed(() => this.simulation()?.result ?? null);
 
@@ -54,6 +56,17 @@ export class SimulationOverview {
   protected readonly brokenScenarios = computed(
     () => (this.result()?.scenarios ?? []).filter((scenario) => scenario.outcome?.survives === false).length,
   );
+
+  /**
+   * Le PDF sans passer par l'écran du rapport : une fois le rapport acquis,
+   * c'est le fichier que l'on transmet, pas la page.
+   */
+  protected async downloadReport(): Promise<void> {
+    const run = this.simulation();
+    if (run?.hasReport) {
+      await this.reportDownload.download(run.projectId, run.id);
+    }
+  }
 
   protected async openReport(): Promise<void> {
     const run = this.simulation();

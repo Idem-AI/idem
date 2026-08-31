@@ -4,6 +4,8 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
+import { environment } from '@env';
+
 import { AuthService } from '../../../../core/auth';
 import { ToastService } from '../../../../core/ui/toast.service';
 import { SignInDialog } from '../../../auth/components/sign-in-dialog/sign-in-dialog';
@@ -90,6 +92,13 @@ export class NewSimulation {
   protected readonly understanding = signal<ProjectUnderstanding | null>(null);
   protected readonly analysing = signal(false);
   protected readonly answers = signal<Record<string, string>>({});
+
+  /**
+   * Bêta produit : les tarifs restent à l'écran, barrés, et l'exécution est
+   * annoncée gratuite. Le drapeau vient de l'environnement — `IS_BETA` — pour
+   * que la sortie de bêta soit un redéploiement, pas une modification de code.
+   */
+  protected readonly isBeta = environment.isBeta;
 
   protected readonly pricing = signal<SimulationPricing | null>(null);
   protected readonly selectedTier = signal<SimulationTier>('pack');

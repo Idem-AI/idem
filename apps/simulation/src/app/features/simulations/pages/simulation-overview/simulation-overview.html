@@ -132,6 +132,27 @@
                 | translate
             }}
           </button>
+          @if (run.hasReport) {
+            <!-- Le rapport acquis, c'est le PDF que l'on transmet : le proposer
+                 ici évite l'aller-retour par l'écran du rapport. -->
+            <button
+              type="button"
+              class="outer-button"
+              [disabled]="downloading()"
+              (click)="downloadReport()"
+            >
+              @if (downloading()) {
+                <span
+                  class="size-4 animate-spin rounded-full border-2 border-line border-t-brand"
+                  aria-hidden="true"
+                ></span>
+                {{ 'report.downloading' | translate }}
+              } @else {
+                <i class="pi pi-download" aria-hidden="true"></i>
+                {{ 'report.download' | translate }}
+              }
+            </button>
+          }
           <a [routerLink]="['/simulations', run.id, 'labs', 'red-team']" class="outer-button">
             <i class="pi pi-bolt" aria-hidden="true"></i>
             {{ 'nav.lab.redTeam' | translate }}

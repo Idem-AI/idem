@@ -15,7 +15,8 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { environment } from '@env';
 
 import { AuthService } from '../../core/auth';
-import { ThemeService } from '../../core/theme/theme.service';
+import { LanguageService, SupportedLanguage } from '../../core/i18n/language.service';
+import { ResolvedTheme, ThemeService } from '../../core/theme/theme.service';
 import { SimulationStore } from '../../features/simulations/data-access';
 import { LinkedProject } from '../../features/simulations/models';
 import { LanguageMenu } from '../../shared/components/language-menu/language-menu';
@@ -44,6 +45,7 @@ export class Topbar {
   private readonly store = inject(SimulationStore);
   private readonly router = inject(Router);
   private readonly themeService = inject(ThemeService);
+  private readonly languageService = inject(LanguageService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   /** Bouton de navigation : absent des écrans qui n'ont pas de colonne. */
@@ -60,8 +62,15 @@ export class Topbar {
   protected readonly projects = this.store.projects;
   protected readonly activeProject = this.store.project;
 
+  protected readonly theme = this.themeService.theme;
+  /** Deux états seulement, comme `ThemeToggle` : « système » reste le défaut
+      stocké, mais n'a pas d'affordance visible. */
+  protected readonly themes: readonly ResolvedTheme[] = ['light', 'dark'];
+  protected readonly language = this.languageService.language;
+  protected readonly languages = this.languageService.available;
+
   /** Le logo est blanc : il doit être inversé sur fond clair. */
-  protected readonly onLightTheme = computed(() => this.themeService.theme() === 'light');
+  protected readonly onLightTheme = computed(() => this.theme() === 'light');
 
   protected readonly accountMenuOpen = signal(false);
   protected readonly projectMenuOpen = signal(false);
@@ -72,6 +81,19 @@ export class Topbar {
     const parts = source.split(/[\s.@]+/).filter(Boolean);
     return (parts[0]?.[0] ?? '?').concat(parts[1]?.[0] ?? '').toUpperCase();
   });
+
+  /**
+   * Thème et langue depuis le menu du compte : sur mobile la barre n'a plus la
+   * place de porter leurs deux boutons, ils vivent donc ici. Le menu reste
+   * ouvert — le changement se voit à l'écran, le refermer le cacherait.
+   */
+  protected chooseTheme(theme: ResolvedTheme): void {
+    this.themeService.set(theme);
+  }
+
+  protected chooseLanguage(language: SupportedLanguage): void {
+    this.languageService.use(language);
+  }
 
   protected chooseProject(project: LinkedProject): void {
     this.projectMenuOpen.set(false);

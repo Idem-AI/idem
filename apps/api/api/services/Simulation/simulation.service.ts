@@ -226,6 +226,11 @@ export class SimulationService {
     return this.ai.understandDocument(documentText, documentName, userId);
   }
 
+  /**
+   * Seule source des tarifs de simulation : le front les affiche, il ne les
+   * calcule pas. Montants en FCFA, arrondis au demi-millier — la zone d'achat
+   * sans friction du marché visé se situe entre 2 500 et 10 000 F.
+   */
   getPricing(origin: SimulationOrigin): SimulationPricing {
     const fromIdem = origin === 'idem-project';
     return {
@@ -233,8 +238,8 @@ export class SimulationService {
       plans: [
         {
           tier: 'run',
-          price: fromIdem ? 9000 : 12_000,
-          listPrice: fromIdem ? 12_000 : undefined,
+          price: fromIdem ? 3000 : 4000,
+          listPrice: fromIdem ? 4000 : undefined,
           currency: 'FCFA',
           includes: [
             'pricing.includes.scenarios',
@@ -245,8 +250,8 @@ export class SimulationService {
         },
         {
           tier: 'pack',
-          price: fromIdem ? 19_000 : 25_000,
-          listPrice: fromIdem ? 25_000 : 32_000,
+          price: fromIdem ? 6500 : 8500,
+          listPrice: fromIdem ? 8500 : 10_500,
           currency: 'FCFA',
           includes: [
             'pricing.includes.scenarios',
@@ -259,7 +264,7 @@ export class SimulationService {
         },
         {
           tier: 'report',
-          price: fromIdem ? 14_000 : 18_000,
+          price: fromIdem ? 4500 : 6000,
           currency: 'FCFA',
           includes: [
             'pricing.includes.report',

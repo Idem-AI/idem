@@ -108,6 +108,14 @@ html[data-theme='light'] body {
     linear-gradient(to bottom, rgba(20, 30, 60, 0.045) 1px, transparent 1px);
 }
 
+/* Le design system substitue `idem-logo.png` à toute image nommée `logo_white`
+   en thème clair — un reliquat du dashboard, qui n'avait qu'un seul fichier de
+   marque. Ici les deux variantes sont choisies explicitement dans la barre, et
+   la substitution ne ferait qu'imposer une image d'un autre rapport d'aspect. */
+html.light img[src*='logo_white'] {
+  content: normal !important;
+}
+
 h1,
 h2,
 h3 {
