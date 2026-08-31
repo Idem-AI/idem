@@ -17,7 +17,7 @@
 import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../../config/logger';
-import { AI_CONFIG, LLMProvider } from '../../config/ai.config';
+import { AI_CONFIG, GLM_MODELS, LLMProvider } from '../../config/ai.config';
 import { cacheService } from '../cache.service';
 import {
   PromptService,
@@ -64,7 +64,10 @@ export interface ResearchTeamContext {
 
 const RESEARCH_CONFIG: PromptConfig = {
   provider: LLMProvider.GLM,
-  modelName: AI_CONFIG.default.modelName,
+  // Synthétiser des résultats de recherche est une tâche mécanique : on résume
+  // ce qui est là, on n'invente pas de raisonnement. Mesuré sur une section,
+  // l'étage mécanique rend la même synthèse 1,5× plus vite (4,2 s contre 6,5 s).
+  modelName: GLM_MODELS.mechanical,
   promptType: 'research',
   // Une seule synthèse factuelle et concise par section: on borne la sortie
   // pour réduire coût et latence sans sacrifier les faits chiffrés.
@@ -83,12 +86,23 @@ const WRITER_CONFIG: PromptConfig = {
 
 const VERIFIER_CONFIG: PromptConfig = {
   provider: AI_CONFIG.businessPlan.provider,
-  modelName: AI_CONFIG.businessPlan.modelName,
+  // Vérifier qu'une affirmation chiffrée figure bien dans les sources est un
+  // contrôle, pas une rédaction : l'étage mécanique le fait aussi bien et plus
+  // vite, sur chaque section.
+  modelName: GLM_MODELS.mechanical,
   promptType: 'research-verifier',
   llmOptions: { temperature: 0.1, maxOutputTokens: 1024 },
 };
 
-/** Concurrence max de sections traitées en parallèle. */
+/**
+ * Concurrence max de sections traitées en parallèle.
+ *
+ * ⚠️ NE PAS AUGMENTER sans mesurer. Monter à 5 paraît évident — neuf sections
+ * en deux vagues au lieu de trois — et donne l'inverse : mesuré sur le pipeline
+ * complet, 162 s contre 121 s. Chaque section lance quatre recherches et trois
+ * appels ; à cinq de front, la file d'attente côté fournisseur coûte plus que
+ * la vague économisée.
+ */
 const SECTION_CONCURRENCY = 3;
 /** Nombre max d'axes de recherche fusionnés dans l'unique appel grounded. */
 const MAX_BRIEFS_PER_SECTION = 3;

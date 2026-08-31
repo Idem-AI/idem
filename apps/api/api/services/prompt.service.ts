@@ -1521,6 +1521,15 @@ export class PromptService {
       return null;
     }
 
+    // Le cache de contexte est une notion Gemini : le demander pour un modèle
+    // d'un autre fournisseur envoie un nom inconnu à Google, qui répond par une
+    // erreur avalée plus bas. Un aller-retour perdu à chaque génération, sans
+    // trace lisible.
+    if (!modelName.startsWith('gemini')) {
+      logger.debug(`Context cache skipped: ${modelName} is not a Gemini model.`);
+      return null;
+    }
+
     // Le cache de contexte serveur est une fonctionnalité Gemini. Pour tout autre
     // modèle (ex: glm-5.2) on n'essaie même pas : l'appelant retombe sur l'inline.
     if (!modelName.startsWith('gemini')) {
