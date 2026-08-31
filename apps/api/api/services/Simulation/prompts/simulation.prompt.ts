@@ -429,11 +429,30 @@ Sinon, extrais les informations nécessaires à une simulation, exactement comme
 été construit dans IDEM. Ce qui n'est pas dans le document ne doit pas être inventé
 silencieusement : marque-le "missing" avec answerable: true, ou "uncertain" si tu l'as estimé.
 
+Un plan importé ne correspond à aucun projet IDEM existant : il va en créer un. Renseigne donc
+aussi "projectSeed", qui peuplera la fiche du projet. N'y invente rien : ce que le document ne dit
+pas reste vide, et "constraints" ne recense que des contraintes explicitement mentionnées
+(réglementation, délai, technique, ressources).
+
+"type" doit valoir exactement l'une de ces valeurs, celle qui décrit le mieux ce qui est vendu :
+web, mobile, iot, desktop, enterprise, ecommerce, api, ai, blockchain, landing, other.
+
 Utilise le même format JSON que l'analyse de projet, précédé du verdict :
 {
   "documentAssessment": { "isBusinessPlan": true },
   "profile": { ... },
   "baseline": { ... },
   "items": [ ... ],
-  "narrative": ""
+  "narrative": "",
+  "projectSeed": {
+    "type": "other",
+    "description": "deux ou trois phrases décrivant le projet",
+    "scope": "ce que le projet couvre",
+    "targets": "à qui il s'adresse",
+    "constraints": [],
+    "budgetIntervals": "",
+    "teamSize": "",
+    "city": "",
+    "country": ""
+  }
 }`;

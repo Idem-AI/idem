@@ -28,6 +28,8 @@ import {
   Experiment,
   Factor,
   FactorLever,
+  IDEM_PROJECT_TYPES,
+  ImportedProjectSeed,
   FactorTier,
   InvestorProfile,
   InvestorVerdict,
@@ -632,6 +634,31 @@ ${scenarios
       baseline: this.normalizeBaseline(parsed.baseline, profile.currency),
       items,
       narrative: str(parsed.narrative) || undefined,
+      projectSeed: this.normalizeProjectSeed(parsed.projectSeed, profile),
+    };
+  }
+
+  /**
+   * La fiche projet n'a pas les mêmes champs que le profil de simulation : le
+   * modèle les remplit dans le même appel, et on retombe sur le profil pour ce
+   * qu'il n'a pas su donner. Un type inconnu devient `other` plutôt que de
+   * faire échouer la création.
+   */
+  private normalizeProjectSeed(raw: any, profile: ProjectProfile): ImportedProjectSeed {
+    const source = raw ?? {};
+    return {
+      type: pick(source.type, IDEM_PROJECT_TYPES, 'other'),
+      description: str(source.description) || profile.product || profile.businessModel,
+      scope: str(source.scope) || profile.sector || undefined,
+      targets: str(source.targets) || profile.targetCustomer || undefined,
+      constraints: toArray(source.constraints)
+        .map((entry: any) => str(entry))
+        .filter((entry: string) => entry.length > 0)
+        .slice(0, 12),
+      budgetIntervals: str(source.budgetIntervals) || profile.plannedFunding || undefined,
+      teamSize: str(source.teamSize) || profile.teamSize || undefined,
+      city: str(source.city) || profile.location || undefined,
+      country: str(source.country) || profile.country || undefined,
     };
   }
 
