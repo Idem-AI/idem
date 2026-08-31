@@ -78,10 +78,12 @@ const WRITER_CONFIG: PromptConfig = {
   provider: AI_CONFIG.businessPlan.provider,
   modelName: AI_CONFIG.businessPlan.modelName,
   promptType: 'research-writer',
-  // Le rédacteur produit une PAGE A4 HTML riche (Tailwind + graphes Chart.js),
-  // pouvant s'étendre sur plusieurs pages : budget de sortie large, sinon le HTML
-  // est tronqué en plein milieu (section coupée / graphe cassé).
-  llmOptions: { maxOutputTokens: 16000, temperature: 0.55 },
+  // Le rédacteur produit une PAGE A4 HTML riche (Tailwind + graphes Chart.js) :
+  // le budget doit rester assez large pour que le HTML ne soit pas tronqué en
+  // plein milieu — une section coupée ou un graphe cassé ne se rattrape pas.
+  // Ramené de 16 000 à 10 000 : les sections observées tiennent largement
+  // dessous, et ce sont les tokens produits qui font la latence.
+  llmOptions: { maxOutputTokens: 10000, temperature: 0.55 },
 };
 
 const VERIFIER_CONFIG: PromptConfig = {
