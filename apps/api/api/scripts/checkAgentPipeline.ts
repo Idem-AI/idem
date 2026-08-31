@@ -20,7 +20,14 @@ import { inspectOutput, qualityValidator } from '../services/agents/quality-gate
 import { stripMarkup } from '../services/agents/text-extract';
 import { createRunBudget } from '../services/agents/run-budget';
 import { MODEL_TIERS, applyTier, nextTier, tierForTask, tierOfModel } from '../config/model-router';
-import { AI_CONFIG, FeatureAIConfig, resolveSectionConfig } from '../config/ai.config';
+import {
+  AI_CONFIG,
+  FeatureAIConfig,
+  MAX_TEMPERATURE_FOR_THINKING,
+  MIN_TOKENS_FOR_THINKING,
+  reconcileThinkingBudget,
+  resolveSectionConfig,
+} from '../config/ai.config';
 
 let failures = 0;
 
@@ -262,6 +269,15 @@ for (const { path, config } of featuresToAudit) {
     budget >= MIN_TOKENS_WITH_THINKING,
     `obtenu: ${budget}`
   );
+  // Une température haute sur un modèle qui raisonne fait diverger la RÉFLEXION :
+  // elle cesse de converger, consomme l'enveloppe entière et renvoie du vide.
+  // Mesuré en production sur la direction artistique réglée à 0.8.
+  const temp = config.llmOptions?.temperature ?? 0;
+  check(
+    `${path}: température compatible avec le raisonnement`,
+    temp <= MAX_TEMPERATURE_FOR_THINKING,
+    `obtenu: ${temp}`
+  );
   // glm-5.3 raisonne TOUJOURS et refuse qu'on le désactive : il consomme le
   // budget entier et rend une sortie vide (cf. GLM_MODELS).
   check(
@@ -280,6 +296,12 @@ for (const { path, config } of featuresToAudit) {
       sectionBudget >= MIN_TOKENS_WITH_THINKING,
       `obtenu: ${sectionBudget}`
     );
+    const sectionTemp = resolved.llmOptions?.temperature ?? 0;
+    check(
+      `${path}/${name}: température compatible avec le raisonnement`,
+      sectionTemp <= MAX_TEMPERATURE_FOR_THINKING,
+      `obtenu: ${sectionTemp}`
+    );
   }
 }
 
@@ -297,6 +319,39 @@ for (const [label, config] of precisionTargets) {
     `obtenu: ${config.llmOptions?.temperature}`
   );
 }
+
+// Filet de sécurité contre la panne observée en production sur « Logo Critique » :
+// raisonnement actif + enveloppe trop courte = réponse VIDE (finish_reason=length)
+// ou fragment de réflexion pris pour du JSON (« Unexpected token 'Q' »).
+const starved = reconcileThinkingBudget({
+  maxOutputTokens: 4096,
+  extraBody: { thinking: { type: 'enabled' } },
+});
+check('un budget trop court désactive le raisonnement', starved.downgraded);
+check(
+  'et le désactive RÉELLEMENT dans la charge utile',
+  (starved.options.extraBody as any)?.thinking?.type === 'disabled'
+);
+const roomy = reconcileThinkingBudget({
+  maxOutputTokens: MIN_TOKENS_FOR_THINKING,
+  extraBody: { thinking: { type: 'enabled' } },
+});
+check('un budget suffisant laisse le raisonnement actif', !roomy.downgraded);
+check(
+  'et ne touche pas à la charge utile',
+  (roomy.options.extraBody as any)?.thinking?.type === 'enabled'
+);
+check(
+  'sans raisonnement demandé, rien n\'est modifié',
+  !reconcileThinkingBudget({ maxOutputTokens: 500 }).downgraded
+);
+
+// Les deux appels qui ont réellement échoué : ils réduisaient le budget hérité
+// de la feature `logo` sans savoir qu'elle avait activé la réflexion.
+check(
+  'la critique de logo dispose désormais du budget nécessaire',
+  16000 >= MIN_TOKENS_FOR_THINKING
+);
 
 // ------------------------------------------------------------------ budget ----
 section('Budget de run');

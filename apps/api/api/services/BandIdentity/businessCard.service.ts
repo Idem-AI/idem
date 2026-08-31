@@ -135,10 +135,6 @@ export class BusinessCardService extends GenericService {
       userId,
       promptType: 'branding_business_card',
       language: options.language,
-      // Deux faces de HTML complètes : un plafond global (MAX_OUTPUT_TOKENS)
-      // tronquerait la réponse en plein milieu du markup et la rendrait
-      // inexploitable. Le budget de ai.config.ts fait foi ici.
-      bypassOutputTokenCap: true,
     };
     const messages: AIChatMessage[] = [{ role: 'user', content: prompt }];
 

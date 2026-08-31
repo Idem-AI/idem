@@ -393,7 +393,6 @@ export class GenericService {
         file: effectiveConfig.file,
         contextFilePaths: effectiveConfig.contextFilePaths,
         skipQuotaCheck: effectiveConfig.skipQuotaCheck,
-        bypassOutputTokenCap: effectiveConfig.bypassOutputTokenCap,
       }
     );
 

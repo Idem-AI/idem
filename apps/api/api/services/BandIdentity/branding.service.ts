@@ -1826,9 +1826,6 @@ export class BrandingService extends GenericService {
         fallbackModels: AI_CONFIG.branding.artDirection.fallbackModels,
         llmOptions: AI_CONFIG.branding.artDirection.llmOptions,
         userId,
-        // Le raisonnement du modèle se décompte de maxOutputTokens : un JSON de
-        // direction tronqué ne se rattrape pas côté parseur.
-        bypassOutputTokenCap: true,
       },
       [{ role: 'user', content: prompt }]
     );
@@ -2333,12 +2330,13 @@ export class BrandingService extends GenericService {
       {
         promptConstant: prompt,
         // ⚠️ Le modèle de la feature `logo` est un modèle "thinking" : ses tokens
-        // de raisonnement sont décomptés du budget. À 1200, la réponse était
-        // systématiquement tronquée (finishReason=MAX_TOKENS) → JSON illisible →
-        // la boucle qualité (critique + révision) ne s'exécutait jamais.
-        // Aligné sur la critique de déclinaisons, qui passe avec ce budget.
+        // de raisonnement sont décomptés du budget. À 1200, puis à 4096 une fois
+        // le raisonnement RÉELLEMENT activé, la réponse revenait vide
+        // (finish_reason=length, contenu nul) ou tronquée en plein milieu — d'où
+        // les « Unexpected token 'Q' » au parsing. La boucle qualité (critique →
+        // révision) ne s'exécutait alors jamais.
         stepName: 'Logo Critique',
-        maxOutputTokens: 4096,
+        maxOutputTokens: 16000,
         modelParser: (content) => {
           const parsed = parseLlmJson<Record<string, any>>(content);
           if (!parsed) {
@@ -2355,8 +2353,12 @@ export class BrandingService extends GenericService {
       ...BrandingService.LOGO_LLM_CONFIG,
       llmOptions: {
         ...BrandingService.LOGO_LLM_CONFIG.llmOptions,
+        // Évaluation, pas création : la température reste basse. Le budget, lui,
+        // doit couvrir le raisonnement EN PLUS du petit JSON de verdict — sous
+        // MIN_TOKENS_FOR_THINKING la réflexion consomme toute l'enveloppe et la
+        // réponse revient vide.
         temperature: 0.15,
-        maxOutputTokens: 4096,
+        maxOutputTokens: 16000,
       },
       skipQuotaCheck: true,
     });
@@ -2671,7 +2673,7 @@ export class BrandingService extends GenericService {
       {
         promptConstant: prompt,
         stepName: `${kind} Variation`,
-        maxOutputTokens: 4096,
+        maxOutputTokens: 16000,
         modelParser: (content) => {
           try {
             const parsed = safeParseJson(content);
@@ -2699,6 +2701,40 @@ export class BrandingService extends GenericService {
     });
     const svg = sectionResults[0].parsedData;
     return typeof svg === 'string' ? svg : undefined;
+  }
+
+  /**
+   * Déclinaison « fond clair » : le logo RETENU par l'utilisateur.
+   *
+   * Il n'y a rien à générer. Le concept validé à l'écran a été dessiné sur fond
+   * clair — c'est sa définition, et c'est exactement l'image que l'utilisateur a
+   * choisie. Le faire régénérer revenait à demander au modèle de reproduire un
+   * tracé qu'on possède déjà : au mieux à l'identique, pour deux appels IA et une
+   * critique inutiles ; au pire en le recolorant ou en le simplifiant, et
+   * l'utilisateur retrouvait alors une déclinaison « claire » qui n'était plus le
+   * logo qu'il avait approuvé.
+   *
+   * Renvoie le SVG résolu (la source peut être une URL MinIO), ou `undefined` si
+   * la résolution échoue — l'appelant retombe alors sur la génération.
+   */
+  private async lightBackgroundFromSelectedLogo(
+    logo: Pick<LogoModel, 'svg' | 'iconSvg'>
+  ): Promise<{ withText?: string; iconOnly?: string }> {
+    const resolve = async (value?: string): Promise<string | undefined> => {
+      if (!value || !value.trim()) return undefined;
+      try {
+        const svg = await resolveSvgContent(value);
+        return svg && svg.includes('<svg') ? svg : undefined;
+      } catch {
+        return undefined;
+      }
+    };
+
+    const withText = await resolve(logo.svg);
+    // Sans icône dédiée, le logo complet fait office d'icône — c'est déjà la
+    // convention du reste du pipeline (`iconSvg || svg`).
+    const iconOnly = (await resolve(logo.iconSvg)) ?? withText;
+    return { withText, iconOnly };
   }
 
   /**
@@ -2793,11 +2829,20 @@ export class BrandingService extends GenericService {
     };
     const iconStructure = { ...withTextStructure, svg: selectedLogo.iconSvg || selectedLogo.svg };
 
-    const existingWithText =
-      !forceRegenerate && selectedLogo.variations?.withText ? selectedLogo.variations.withText : {};
-    const existingIconOnly =
-      !forceRegenerate && selectedLogo.variations?.iconOnly ? selectedLogo.variations.iconOnly : {};
+    const existingWithText: Record<string, string | undefined> =
+      !forceRegenerate && selectedLogo.variations?.withText
+        ? { ...selectedLogo.variations.withText }
+        : {};
+    const existingIconOnly: Record<string, string | undefined> =
+      !forceRegenerate && selectedLogo.variations?.iconOnly
+        ? { ...selectedLogo.variations.iconOnly }
+        : {};
     const isRetry = selectedLogo.variations?.withText !== undefined || skipQuotaCheck;
+
+    // Même règle que la voie streamée : le fond clair EST le logo retenu.
+    const lightSource = await this.lightBackgroundFromSelectedLogo(selectedLogo);
+    if (lightSource.withText) existingWithText.lightBackground = lightSource.withText;
+    if (lightSource.iconOnly) existingIconOnly.lightBackground = lightSource.iconOnly;
 
     const kinds: LogoVariationKind[] = ['lightBackground', 'darkBackground', 'monochrome'];
 
@@ -2979,7 +3024,7 @@ export class BrandingService extends GenericService {
       {
         promptConstant: prompt,
         stepName: `Variation Critique ${variant}`,
-        maxOutputTokens: 4096,
+        maxOutputTokens: 16000,
         modelParser: (content) => {
           try {
             return safeParseJson(content);
@@ -2995,9 +3040,12 @@ export class BrandingService extends GenericService {
     const sectionResults = await this.processSteps(steps, project, {
       ...BrandingService.LOGO_LLM_CONFIG,
       llmOptions: {
+        // Même arbitrage que la critique du concept : évaluation à température
+        // basse, mais budget suffisant pour que le raisonnement ne dévore pas
+        // le JSON de verdict.
         ...BrandingService.LOGO_LLM_CONFIG.llmOptions,
         temperature: 0.15,
-        maxOutputTokens: 4096,
+        maxOutputTokens: 16000,
       },
       skipQuotaCheck: true,
     });
@@ -3155,11 +3203,24 @@ export class BrandingService extends GenericService {
       throw new Error('No selected logo found on project. Select a logo first.');
     }
 
-    const existingWithText =
-      !forceRegenerate && selectedLogo.variations?.withText ? selectedLogo.variations.withText : {};
-    const existingIconOnly =
-      !forceRegenerate && selectedLogo.variations?.iconOnly ? selectedLogo.variations.iconOnly : {};
+    const existingWithText: Record<string, string | undefined> =
+      !forceRegenerate && selectedLogo.variations?.withText
+        ? { ...selectedLogo.variations.withText }
+        : {};
+    const existingIconOnly: Record<string, string | undefined> =
+      !forceRegenerate && selectedLogo.variations?.iconOnly
+        ? { ...selectedLogo.variations.iconOnly }
+        : {};
     const isRetry = selectedLogo.variations?.withText !== undefined;
+
+    // Le fond clair n'est pas généré : c'est le logo retenu. On l'injecte dans
+    // l'existant, ce qui le fait traiter par le mécanisme de reprise déjà en
+    // place — il part au client en `variation_finalized` dès la première boucle,
+    // et seules les deux autres déclinaisons sont réellement produites.
+    // Vaut aussi en régénération forcée : il n'y a rien à régénérer.
+    const lightSource = await this.lightBackgroundFromSelectedLogo(selectedLogo);
+    if (lightSource.withText) existingWithText.lightBackground = lightSource.withText;
+    if (lightSource.iconOnly) existingIconOnly.lightBackground = lightSource.iconOnly;
 
     const kinds: LogoVariationKind[] = ['lightBackground', 'darkBackground', 'monochrome'];
     // results = jeu withText (streamé, héros avec le nom) ; iconResults = jeu icône.
@@ -3168,8 +3229,8 @@ export class BrandingService extends GenericService {
 
     // Réémettre l'existant (reprise), ne générer que le manquant
     for (const kind of kinds) {
-      const existingSvg = (existingWithText as Record<string, string | undefined>)[kind];
-      const existingIconSvg = (existingIconOnly as Record<string, string | undefined>)[kind];
+      const existingSvg = existingWithText[kind];
+      const existingIconSvg = existingIconOnly[kind];
       if (existingIconSvg) {
         iconResults[kind] = existingIconSvg;
       }
