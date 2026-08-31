@@ -38,7 +38,7 @@ export class ThemeService {
       const theme = this.theme();
       const root = this.document.documentElement;
       // Le design system bascule sur les classes `.dark` / `.light` ;
-      // `data-theme` ne sert qu'au sélecteur sombre de PrimeNG.
+      // `data-theme` est lu par les règles de `styles.css`.
       root.dataset['theme'] = theme;
       root.classList.toggle('dark', theme === 'dark');
       root.classList.toggle('light', theme === 'light');
