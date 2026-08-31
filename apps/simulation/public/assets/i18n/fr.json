@@ -120,7 +120,13 @@
       "heading": "Niveau de simulation",
       "body": "La simulation est facturée séparément du reste d'IDEM : elle mobilise des recherches externes, plusieurs agents et des calculs. Le montant est confirmé avant le lancement.",
       "idemDiscount": "Tarif préférentiel appliqué : ce projet vient d'IDEM, le moteur a déjà accès à ses livrables.",
-      "recommended": "Recommandé"
+      "recommended": "Recommandé",
+      "betaBadge": "Bêta",
+      "betaBody": "La simulation mobilise des recherches externes, plusieurs agents et des calculs. Pendant la bêta, IDEM en prend le coût à sa charge.",
+      "betaFreeLead": "Gratuit pendant la bêta.",
+      "betaNotice": "Quel que soit le niveau choisi, cette simulation ne vous sera pas facturée. Les tarifs indiqués s'appliqueront à la sortie de bêta.",
+      "free": "Gratuit",
+      "priceAfterBeta": "Tarif après la bêta :"
     },
     "launch": "Lancer la simulation",
     "launching": "Lancement…",
