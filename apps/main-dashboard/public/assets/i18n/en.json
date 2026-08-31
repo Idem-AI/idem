@@ -2408,6 +2408,39 @@
       },
       "foot": {
         "note": "Nothing made up · {{queries}} searches"
+      },
+      "elapsed": "Elapsed time",
+      "reassurance": {
+        "planning": {
+          "0": "We are splitting the work between our assistants: research, writing, verification.",
+          "1": "Every section gets its own researcher before it is written.",
+          "2": "We are reading your project to know which data to look for."
+        },
+        "searching": {
+          "0": "Our assistants are searching the web for real figures about your market.",
+          "1": "Every figure found is kept together with the link to its source.",
+          "2": "We look for recent data, specific to your geographic area."
+        },
+        "writing": {
+          "0": "We are writing the section from the data found — nothing is invented.",
+          "1": "Figures are carried over as they are, with their year and scope.",
+          "2": "A well-sourced section takes a moment to write."
+        },
+        "verifying": {
+          "0": "We are checking every figure against the source it came from.",
+          "1": "A figure without a source does not stay in your document.",
+          "2": "Verification is what separates a reliable document from a plausible text."
+        },
+        "finalizing": {
+          "0": "We are assembling the sections and laying out your document.",
+          "1": "Just a moment longer: we are ordering the figures and tables.",
+          "2": "One last pass before handing it back to you."
+        },
+        "done": {
+          "0": "Your document is ready, and every figure links back to its source.",
+          "1": "You can now read it through and adjust whatever you want.",
+          "2": "Everything is saved: you will find this document in your project."
+        }
       }
     },
     "documentEditor": {

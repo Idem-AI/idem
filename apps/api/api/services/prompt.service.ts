@@ -1380,15 +1380,28 @@ export class PromptService {
     const { modelName, llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
     const startedAt = Date.now();
 
-    const query = [...messages].reverse().find((m) => m.role === 'user')?.content ?? '';
-    logAIEvent('ai.grounded_research_start', { modelName, promptType: request.promptType });
+    // Le message de recherche est un brief entier — contexte projet, consignes,
+    // liste de points. L'envoyer tel quel à un moteur de recherche donnerait de
+    // mauvais résultats, et l'afficher à l'utilisateur lui montrerait nos
+    // instructions internes. On en tire donc de vraies requêtes courtes.
+    const brief = [...messages].reverse().find((m) => m.role === 'user')?.content ?? '';
+    const queries = buildSearchQueries(brief);
+    logAIEvent('ai.grounded_research_start', {
+      modelName,
+      promptType: request.promptType,
+      queryCount: queries.length,
+    });
 
-    const results = await this.searchWeb(query);
+    // Une recherche par point à couvrir, en parallèle : c'est ce que faisait le
+    // grounding de Google, et ce que la qualité des résultats demande.
+    const batches = await Promise.all(queries.map((q) => this.searchWeb(q, SEARCH_RESULTS_PER_QUERY)));
+    const results = dedupeByLink(batches.flat());
+
     if (results.length === 0) {
       // Sans source, une réponse « fondée » n'en serait pas une : mieux vaut
       // rendre un résultat vide que du texte inventé qui en aurait l'air.
       logger.warn('runGlmGroundedResearch: la recherche web n\'a rien renvoyé.');
-      return { text: '', queries: query ? [query] : [], sources: [], supports: [] };
+      return { text: '', queries, sources: [], supports: [] };
     }
 
     const sources: GroundedSourceRaw[] = results.map((result, index) => ({
@@ -1440,7 +1453,7 @@ export class PromptService {
       durationMs: Date.now() - startedAt,
       textLength: text.length,
       sourceCount: sources.length,
-      queryCount: 1,
+      queryCount: queries.length,
     });
 
     if (userId && !skipQuotaCheck) {
@@ -1451,7 +1464,7 @@ export class PromptService {
       }
     }
 
-    return { text, queries: query ? [query] : [], sources, supports };
+    return { text, queries, sources, supports };
   }
 
   /**
@@ -1784,4 +1797,60 @@ function extractCitationSupports(text: string, sourceCount: number): GroundedSup
   }
 
   return supports;
+}
+
+/** Résultats demandés par requête : quatre recherches × cinq suffisent au brief. */
+const SEARCH_RESULTS_PER_QUERY = 5;
+
+/** Au-delà, on multiplierait le coût sans élargir la couverture. */
+const MAX_SEARCH_QUERIES = 4;
+
+/**
+ * Tire de vraies requêtes de recherche d'un brief de recherche.
+ *
+ * Le brief mêle contexte projet, consignes internes et liste de points à
+ * couvrir. Un moteur de recherche n'en fait rien de bon, et l'utilisateur qui
+ * verrait passer « N'invente rien » dans l'interface se demanderait à qui on
+ * parle. On ne garde donc que les points à couvrir, un par requête, ancrés sur
+ * le pays quand le brief le mentionne.
+ */
+export function buildSearchQueries(brief: string): string[] {
+  const mission = /DONNÉES À TROUVER[^:]*:\s*([\s\S]*?)(?:\n\s*\n|$)/i.exec(brief)?.[1] ?? '';
+  const country = /Pays:\s*([^\n]+)/i.exec(brief)?.[1]?.trim();
+
+  const points = mission
+    .split('\n')
+    .map((line) => line.replace(/^\s*\d+[.)]\s*/, '').trim())
+    .filter((line) => line.length > 8);
+
+  const queries = points.slice(0, MAX_SEARCH_QUERIES).map((point) => {
+    const base = point.replace(/\s+/g, ' ').slice(0, 180);
+    // Le pays n'est ajouté que s'il manque : une requête qui le répète perd en
+    // précision.
+    return country && !base.toLowerCase().includes(country.toLowerCase())
+      ? `${base} ${country}`
+      : base;
+  });
+
+  if (queries.length > 0) {
+    return queries;
+  }
+
+  // Brief sans liste de points : on retombe sur sa première phrase utile.
+  const fallback = brief
+    .replace(/CONTEXTE PROJET:|DONNÉES À TROUVER[^:]*:/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 180);
+  return fallback ? [fallback] : [];
+}
+
+/** Une même page trouvée par deux requêtes ne compte qu'une fois. */
+function dedupeByLink<T extends { link: string }>(results: T[]): T[] {
+  const seen = new Set<string>();
+  return results.filter((result) => {
+    if (seen.has(result.link)) return false;
+    seen.add(result.link);
+    return true;
+  });
 }
