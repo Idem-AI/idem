@@ -49,7 +49,19 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string): 
     return openai(model) as LanguageModel;
   }
 
-  const availableProviders = ['gemini', 'google', 'deepseek', 'claude', 'openai'];
+  // GLM (Z.ai) — endpoint OpenAI-compatible, donc le même client. Le
+  // raisonnement est coupé : il se décompte du budget de sortie, et sur une
+  // génération de code longue il le mangerait avant le code lui-même.
+  if (provider === 'glm') {
+    const glm = createOpenAI({
+      apiKey,
+      baseURL,
+    });
+    initOptions = { providerOptions: { openai: { thinking: { type: 'disabled' } } } };
+    return glm(model) as LanguageModel;
+  }
+
+  const availableProviders = ['gemini', 'google', 'deepseek', 'claude', 'openai', 'glm'];
   throw new Error(
     `Provider "${provider}" not found for model: ${model}. Available providers: ${availableProviders.join(', ')}. Please check your AI_MODELS_CONFIG.`
   );
