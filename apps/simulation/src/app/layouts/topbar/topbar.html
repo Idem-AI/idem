@@ -18,12 +18,13 @@
 
     <!-- Marque : le logo IDEM, puis le nom du produit. -->
     <a routerLink="/" class="flex shrink-0 items-center gap-2.5 pl-1 pr-2" (click)="closeMenus()">
-      <!-- Deux fichiers plutôt qu'un filtre : le logo blanc filtré devenait
-           illisible sur fond clair. -->
+      <!-- Deux fichiers plutôt qu'un filtre : le mot « IDEM » est encré dans
+           l'image, un filtre ne peut pas le recolorer sans abîmer l'icône.
+           Chaque fichier est nommé d'après le fond qu'il vise. -->
       @if (onLightTheme()) {
         <img
-          ngSrc="/assets/icons/idem-logo.png"
-          width="1383"
+          ngSrc="/assets/icons/logo_white.png"
+          width="1252"
           height="512"
           priority
           alt="IDEM"
@@ -31,9 +32,9 @@
         />
       } @else {
         <img
-          ngSrc="/assets/icons/logo_white.png"
-          width="512"
-          height="262"
+          ngSrc="/assets/icons/logo_dark.png"
+          width="1252"
+          height="512"
           priority
           alt="IDEM"
           class="h-6 w-auto"
@@ -103,8 +104,13 @@
     }
 
     <div class="ml-auto flex items-center gap-1">
-      <sim-theme-toggle />
-      <sim-language-menu />
+      <!-- Connecté, ces deux réglages vivent dans le menu du compte sous `sm` :
+           la barre n'a la place que d'un seul groupe de boutons. Déconnecté, il
+           n'y a pas de menu où les mettre — ils restent donc visibles. -->
+      <div class="items-center gap-1" [class]="authenticated() ? 'hidden sm:flex' : 'flex'">
+        <sim-theme-toggle />
+        <sim-language-menu />
+      </div>
 
       <span class="mx-1 hidden h-5 w-px bg-line sm:block" aria-hidden="true"></span>
 
@@ -150,6 +156,65 @@
                   <p class="truncate text-meta text-ink-subtle">{{ user()!.email }}</p>
                 }
               </div>
+              <!-- Réglages repliés ici sous `sm`, où la barre ne les porte plus.
+                   Au-dessus, ils restent dans la barre : les répéter dans le
+                   menu donnerait deux commandes pour un même état. -->
+              <div role="none" class="border-b border-line px-3 py-2.5 sm:hidden">
+                <p class="mb-1.5 text-meta font-medium uppercase tracking-wide text-ink-subtle">
+                  {{ 'theme.label' | translate }}
+                </p>
+                <div
+                  role="group"
+                  [attr.aria-label]="'theme.label' | translate"
+                  class="flex gap-1 rounded-lg bg-panel-sunken p-1"
+                >
+                  @for (option of themes; track option) {
+                    <button
+                      type="button"
+                      role="menuitemradio"
+                      [attr.aria-checked]="theme() === option"
+                      class="flex-1 rounded-md px-2 py-1.5 text-center text-label transition-colors"
+                      [class]="
+                        theme() === option
+                          ? 'bg-panel-raised font-medium text-ink shadow-raised'
+                          : 'text-ink-muted hover:text-ink'
+                      "
+                      (click)="chooseTheme(option)"
+                    >
+                      {{ 'theme.' + option | translate }}
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <div role="none" class="border-b border-line px-3 py-2.5 sm:hidden">
+                <p class="mb-1.5 text-meta font-medium uppercase tracking-wide text-ink-subtle">
+                  {{ 'language.label' | translate }}
+                </p>
+                <div
+                  role="group"
+                  [attr.aria-label]="'language.label' | translate"
+                  class="flex gap-1 rounded-lg bg-panel-sunken p-1"
+                >
+                  @for (option of languages; track option) {
+                    <button
+                      type="button"
+                      role="menuitemradio"
+                      [attr.aria-checked]="language() === option"
+                      class="flex-1 rounded-md px-2 py-1.5 text-center text-label transition-colors"
+                      [class]="
+                        language() === option
+                          ? 'bg-panel-raised font-medium text-ink shadow-raised'
+                          : 'text-ink-muted hover:text-ink'
+                      "
+                      (click)="chooseLanguage(option)"
+                    >
+                      {{ 'language.' + option | translate }}
+                    </button>
+                  }
+                </div>
+              </div>
+
               <a
                 [href]="dashboardUrl"
                 role="menuitem"

@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { DisclaimerNote } from '../../../../shared/components/disclaimer-note/disclaimer-note';
@@ -12,8 +12,7 @@ import { ScenarioTable } from '../../components/scenario-table/scenario-table';
 import { SensitivityChart } from '../../components/sensitivity-chart/sensitivity-chart';
 import { VerdictBadge } from '../../components/verdict-badge/verdict-badge';
 import { ViabilityGauge } from '../../components/viability-gauge/viability-gauge';
-import { SimulationGateway, SimulationStore } from '../../data-access';
-import { ToastService } from '../../../../core/ui/toast.service';
+import { ReportDownloadService, SimulationGateway, SimulationStore } from '../../data-access';
 import { FactorTier, SimulationReport } from '../../models';
 
 interface ReportSection {
@@ -60,15 +59,13 @@ interface ReportRow {
 export class SimulationReportPage {
   private readonly gateway = inject(SimulationGateway);
   private readonly store = inject(SimulationStore);
-  private readonly toasts = inject(ToastService);
-  private readonly translate = inject(TranslateService);
+  private readonly reportDownload = inject(ReportDownloadService);
 
   protected readonly simulation = this.store.active;
   protected readonly report = signal<SimulationReport | null>(null);
   protected readonly loading = signal(true);
   protected readonly failed = signal(false);
-  /** Vrai pendant que l'API compose le PDF : le rendu prend quelques secondes. */
-  protected readonly downloading = signal(false);
+  protected readonly downloading = this.reportDownload.downloading;
 
   protected readonly sections: readonly ReportSection[] = [
     { id: 'summary', labelKey: 'report.section.summary' },
@@ -198,40 +195,10 @@ export class SimulationReportPage {
     return `${value.toLocaleString('fr-FR')} ${currency}`;
   }
 
-  /**
-   * Le PDF est composé par l'API, avec le template IDEM. L'impression
-   * navigateur donnait un document différent d'un poste à l'autre, sans la
-   * charte ni le motif — ce n'est pas ce qu'on transmet à un investisseur.
-   */
   protected async download(): Promise<void> {
     const simulation = this.simulation();
-    if (!simulation || this.downloading()) {
-      return;
-    }
-
-    this.downloading.set(true);
-    try {
-      const file = await firstValueFrom(
-        this.gateway.downloadReport(simulation.projectId, simulation.id),
-      );
-      saveFile(file.blob, file.fileName);
-    } catch (error) {
-      this.toasts.error(
-        this.translate.instant('report.downloadFailed') as string,
-        error instanceof Error ? error.message : undefined,
-      );
-    } finally {
-      this.downloading.set(false);
+    if (simulation) {
+      await this.reportDownload.download(simulation.projectId, simulation.id);
     }
   }
-}
-
-/** Remet le document au navigateur, qui l'enregistre sous le nom donné. */
-function saveFile(blob: Blob, fileName: string): void {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  link.click();
-  URL.revokeObjectURL(url);
 }

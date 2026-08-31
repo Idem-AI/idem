@@ -541,14 +541,37 @@
       @if (step() === 'plan') {
         <section class="flex flex-col gap-5">
           <div>
-            <h2 class="text-h3 font-semibold text-ink">{{ 'newRun.plan.heading' | translate }}</h2>
+            <div class="flex flex-wrap items-center gap-2">
+              <h2 class="text-h3 font-semibold text-ink">{{ 'newRun.plan.heading' | translate }}</h2>
+              @if (isBeta) {
+                <span
+                  class="rounded-full bg-verdict-go/15 px-2 py-0.5 text-[0.6875rem] font-bold uppercase tracking-wide text-verdict-go"
+                >
+                  {{ 'newRun.plan.betaBadge' | translate }}
+                </span>
+              }
+            </div>
             <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
-              {{ 'newRun.plan.body' | translate }}
+              {{ (isBeta ? 'newRun.plan.betaBody' : 'newRun.plan.body') | translate }}
             </p>
           </div>
 
+          @if (isBeta) {
+            <!-- Le prix barré seul est ambigu : ce bandeau dit une fois, en
+                 clair, pourquoi il l'est et jusqu'à quand. -->
+            <p
+              class="flex items-start gap-2.5 rounded-xl border border-verdict-go/40 bg-verdict-go/10 px-4 py-3 text-sm leading-relaxed text-ink"
+            >
+              <i class="pi pi-gift mt-0.5 shrink-0 text-verdict-go" aria-hidden="true"></i>
+              <span>
+                <strong class="font-semibold">{{ 'newRun.plan.betaFreeLead' | translate }}</strong>
+                {{ 'newRun.plan.betaNotice' | translate }}
+              </span>
+            </p>
+          }
+
           @if (pricing(); as offer) {
-            @if (offer.idemProjectDiscount) {
+            @if (offer.idemProjectDiscount && !isBeta) {
               <p
                 class="rounded-lg border border-line bg-panel-sunken px-3 py-2 text-meta text-ink-muted"
               >
@@ -624,13 +647,25 @@
                   </span>
 
                   <span class="shrink-0 text-right">
-                    <span class="block text-base font-bold tabular-nums text-ink">{{
-                      planPrice(plan)
-                    }}</span>
-                    @if (planListPrice(plan); as listPrice) {
-                      <span class="block text-meta tabular-nums text-ink-subtle line-through">{{
-                        listPrice
+                    @if (isBeta) {
+                      <!-- Le tarif reste lisible — il dit ce que vaut le niveau —
+                           mais c'est « Gratuit » qui porte le prix effectif. -->
+                      <span class="block text-base font-bold uppercase tracking-wide text-verdict-go">
+                        {{ 'newRun.plan.free' | translate }}
+                      </span>
+                      <s class="mt-0.5 block text-meta tabular-nums text-ink-subtle line-through">
+                        <span class="sr-only">{{ 'newRun.plan.priceAfterBeta' | translate }}</span>
+                        {{ planPrice(plan) }}
+                      </s>
+                    } @else {
+                      <span class="block text-base font-bold tabular-nums text-ink">{{
+                        planPrice(plan)
                       }}</span>
+                      @if (planListPrice(plan); as listPrice) {
+                        <span class="block text-meta tabular-nums text-ink-subtle line-through">{{
+                          listPrice
+                        }}</span>
+                      }
                     }
                   </span>
                 </button>

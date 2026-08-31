@@ -12,11 +12,18 @@ for (const p of envPaths) {
 
 const isProduction = process.env.NODE_ENV === 'production';
 
+// Bêta produit : les tarifs restent affichés mais barrés, et les exécutions
+// sont annoncées gratuites. Normalisé ici plutôt qu'interpolé brut — une
+// valeur autre que true/false produirait un environment.ts qui ne compile pas.
+const isBeta = "true";
+
 const envFileContent = `// ⚠️ FICHIER GÉNÉRÉ AUTOMATIQUEMENT - NE PAS MODIFIER MANUELLEMENT
 // Généré par mynode.js — pour modifier, éditez .env puis relancez: node mynode.js
 
 export const environment = {
   environment: '${isProduction ? 'prod' : 'dev'}',
+  /** Bêta produit : la tarification est affichée barrée, les runs sont gratuits. */
+  isBeta: ${isBeta},
   defaultLanguage: '${process.env.DEFAULT_LANGUAGE || 'fr'}',
   analytics: {
     enabled: ${process.env.ANALYTICS_ENABLED || (isProduction ? 'true' : 'false')},
