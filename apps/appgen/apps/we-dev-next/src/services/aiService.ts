@@ -3,7 +3,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createDeepSeek } from '@ai-sdk/deepseek';
 import { streamText, generateObject, LanguageModel, convertToCoreMessages } from 'ai';
 import { z } from 'zod';
-import { modelConfig, getDefaultModelKey } from '../config/modelConfig.js';
+import { modelConfig, getDefaultModelKey, resolveModelCredentials } from '../config/modelConfig.js';
 import { Messages, ToolInfo } from '../types/project.js';
 
 let initOptions = {};
@@ -51,13 +51,33 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string): 
 
   // GLM (Z.ai) — endpoint OpenAI-compatible, donc le même client. Le
   // raisonnement est coupé : il se décompte du budget de sortie, et sur une
-  // génération de code longue il le mangerait avant le code lui-même.
+  // génération de code longue il le mangerait avant le code lui-même. Laissé
+  // actif, Z.ai n'émet que des deltas `reasoning_content`, un champ hors norme
+  // OpenAI que le SDK ne mappe pas en texte : le flux reste ouvert sans jamais
+  // rien produire, et l'interface tourne indéfiniment sans erreur.
+  //
+  // `thinking` ne passe pas par `providerOptions` : le provider OpenAI du SDK
+  // ne recopie qu'une liste fermée de champs (max_completion_tokens, store,
+  // metadata, prediction, reasoning_effort) et jette tout le reste en silence.
+  // On l'injecte donc dans le corps via un `fetch` intermédiaire.
   if (provider === 'glm') {
     const glm = createOpenAI({
       apiKey,
       baseURL,
+      fetch: async (input, init) => {
+        if (typeof init?.body === 'string') {
+          try {
+            const body = JSON.parse(init.body);
+            body.thinking = { type: 'disabled' };
+            init = { ...init, body: JSON.stringify(body) };
+          } catch {
+            // Corps non-JSON : rien à injecter, on relaie tel quel.
+          }
+        }
+        return fetch(input, init);
+      },
     });
-    initOptions = { providerOptions: { openai: { thinking: { type: 'disabled' } } } };
+    initOptions = {};
     return glm(model) as LanguageModel;
   }
 
@@ -107,8 +127,12 @@ export function streamTextFn(messages: Messages, options?: StreamingOptions, mod
     throw new Error(`Model configuration not found for model: ${modelKey}`);
   }
 
-  const { apiKey = process.env.THIRD_API_KEY, apiUrl = process.env.THIRD_API_URL } = modelConf;
-  const model = getOpenAIModel(apiUrl || '', apiKey || '', modelKey || '') as LanguageModel;
+  // Les identifiants sont lus ici, pas à l'import du catalogue : `dotenv` ne
+  // s'exécute qu'après la phase d'import de server.ts. Un modèle sans clé
+  // échoue en nommant sa variable plutôt qu'en empruntant celle d'un autre
+  // fournisseur.
+  const { apiKey, apiUrl } = resolveModelCredentials(modelConf.modelKey);
+  const model = getOpenAIModel(apiUrl, apiKey, modelKey || '') as LanguageModel;
 
   // Every provider takes the system prompt out of band, so pull `system` roles
   // out of the message list rather than leaving them in the conversation. The
