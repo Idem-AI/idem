@@ -17,6 +17,8 @@ import {
   editLogoController,
   saveBrandingSectionsController,
   aiEditBrandingSectionController,
+  getArtDirectionController,
+  regenerateArtDirectionController,
 } from '../controllers/branding.controller';
 import { authenticate } from '../services/auth.service'; // Updated import path
 import { checkQuota } from '../middleware/quota.middleware';
@@ -852,4 +854,53 @@ brandingRoutes.post(
   extendedTimeout,
   checkQuota,
   editLogoController
+);
+
+/**
+ * @openapi
+ * /project/brandings/{projectId}/art-direction:
+ *   get:
+ *     tags: [Branding]
+ *     summary: Direction artistique du projet (générée si absente)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       '200':
+ *         description: Direction artistique
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ArtDirectionModel'
+ *       '404': { description: Projet ou charte introuvable }
+ *   post:
+ *     tags: [Branding]
+ *     summary: Propose une AUTRE direction artistique (le style courant est écarté)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       '200':
+ *         description: Nouvelle direction artistique
+ *       '404': { description: Projet ou charte introuvable }
+ */
+brandingRoutes.get(
+  `/${resourceName}/:projectId/art-direction`,
+  authenticate,
+  extendedTimeout,
+  getArtDirectionController
+);
+
+brandingRoutes.post(
+  `/${resourceName}/:projectId/art-direction`,
+  authenticate,
+  extendedTimeout,
+  checkQuota,
+  regenerateArtDirectionController
 );

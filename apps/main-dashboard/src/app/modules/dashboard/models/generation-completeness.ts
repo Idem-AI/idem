@@ -42,6 +42,10 @@ export const BRANDING_SECTION_NAMES = [
   'Logo Bonnes Pratiques',
   'Color Palette',
   'Typography',
+  // Page ajoutée après la typographie : elle décrit la grammaire qui assemble
+  // le logo, la palette et les polices, et que tous les autres livrables
+  // (visuels, business plan, deck, site) doivent respecter.
+  'Direction Artistique',
   'Brand Mockup 1',
   'Brand Mockup 2',
   'Brand Mockup 3',

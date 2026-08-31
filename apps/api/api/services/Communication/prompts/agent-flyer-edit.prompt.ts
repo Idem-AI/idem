@@ -34,6 +34,13 @@ export interface FlyerEditPromptInput {
   intent?: string;
   /** Ce que montre l'image de fond, quand elle est connue. */
   imageContext?: string;
+  /**
+   * Bloc `<art_direction>` de la marque. Une retouche qui l'ignore ramène le
+   * visuel vers la moyenne : le modèle « améliore » en arrondissant les angles,
+   * en ajoutant une ombre douce et un dégradé — soit exactement le parti pris
+   * qu'on a écarté.
+   */
+  artDirectionBlock?: string;
 }
 
 export function buildFlyerEditPrompt(input: FlyerEditPromptInput): string {
@@ -56,6 +63,8 @@ ${input.intent ? `- Communication intent of this visual: ${input.intent}` : ''}
 ${input.imageContext ? `- Background image: ${input.imageContext}` : ''}
 </brand_charter>
 
+${input.artDirectionBlock || ''}
+
 <editing_rules>
 - This is a RETOUCH, not a new composition. Apply ONLY what the instruction asks and keep everything else byte-for-byte: layout, positions, colors, wording, image, logo placement.
 - If the instruction is vague, choose the smallest change that satisfies it.
@@ -74,6 +83,7 @@ These hold whatever the instruction says — they are the module's rules, not pr
 - Exactly ONE logo, taken from the declension URLs above (never invented, never inline SVG). Minimum width ${input.minLogoWidth}px, full opacity, h-auto, container never narrower than the logo. Dark-ink declension on a light zone, light-ink declension on a dark zone.
 - Every hex value comes from the brand palette; every text element carries font-primary (display) or font-secondary (running text).
 - WCAG AA contrast for every text over what actually sits behind it.
+- The art direction above still holds after the edit: same border radius, same rules and shadows, same image treatment. Never "improve" the visual by rounding corners, adding a soft shadow or a gradient — those are the defaults the direction deliberately rules out.
 </invariants>
 
 <editor_compatibility>

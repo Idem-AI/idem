@@ -1,4 +1,4 @@
-import { bpPageFormat } from './_shared.prompt';
+import { BP_BRAND_RULES, bpPageFormat } from './_shared.prompt';
 
 export const AGENT_GOAL_PLANNING_PROMPT = `<role>Senior strategic planning consultant</role>
 <objective>Create a Goal Planning section detailing strategic objectives, implementation timeline, and KPIs.</objective>
@@ -21,6 +21,8 @@ export const AGENT_GOAL_PLANNING_PROMPT = `<role>Senior strategic planning consu
 </chart_requirements>
 
 ${bpPageFormat('2')}
+
+${BP_BRAND_RULES}
 
 <technical_rules>
 - Output ONLY raw HTML + Tailwind CSS utilities in a single minified line.

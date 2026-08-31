@@ -686,6 +686,11 @@ export const AI_CONFIG = {
         // Nuanciers et spécimens typographiques : beaucoup de petites cellules.
         'Color Palette': { llmOptions: { maxOutputTokens: 14000, temperature: 0.25 } },
         Typography: { llmOptions: { maxOutputTokens: 14000, temperature: 0.3 } },
+        // Page de direction artistique : elle doit DÉMONTRER le style, donc
+        // composer des blocs de démonstration en CSS — plus de balisage que
+        // les autres pages, et une température un peu plus haute pour que la
+        // page ne retombe pas sur la grille de la page palette.
+        'Direction Artistique': { llmOptions: { maxOutputTokens: 20000, temperature: 0.45 } },
       },
     } as FeatureAIConfig,
     logo: {
@@ -726,6 +731,27 @@ export const AI_CONFIG = {
         temperature: 0.3,
         topP: 0.8,
         topK: 20,
+      },
+    } as FeatureAIConfig,
+    /**
+     * Direction artistique : un arbitrage, pas une rédaction.
+     *
+     * Modèle de raisonnement et température BASSE assumée : on ne veut pas de
+     * créativité dans le CHOIX (le catalogue borne déjà l'espace), on veut un
+     * choix argumenté et des consignes exécutables. Une température haute
+     * produisait des directions poétiques et inapplicables.
+     */
+    artDirection: {
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.reasoning,
+      fallbackModels: TEXT_FALLBACK_MODELS,
+      llmOptions: {
+        // Le modèle raisonne avant de répondre et les tokens de raisonnement
+        // sont décomptés du budget : un JSON de direction tronqué est inutilisable.
+        maxOutputTokens: 8000,
+        temperature: 0.3,
+        topP: 0.9,
+        topK: 40,
       },
     } as FeatureAIConfig,
     logoAnalysis: {

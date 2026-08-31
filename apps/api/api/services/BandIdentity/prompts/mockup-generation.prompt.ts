@@ -27,9 +27,24 @@ export const MOCKUP_GENERATION_PROMPT = {
     hasLogo: boolean;
     selectedSupport: SelectedMockupSupport;
     pdfFormat?: string;
+    /** Fragment de rendu issu de la direction artistique (anglais, rendu uniquement). */
+    artDirectionModifier?: string;
+    /** Prompt négatif du style retenu. */
+    artDirectionNegative?: string;
+    /** Nom lisible du style, pour situer la consigne. */
+    artDirectionName?: string;
   }) => {
-    const { brandName, brandColors, projectDescription, hasLogo, selectedSupport, pdfFormat } =
-      params;
+    const {
+      brandName,
+      brandColors,
+      projectDescription,
+      hasLogo,
+      selectedSupport,
+      pdfFormat,
+      artDirectionModifier,
+      artDirectionNegative,
+      artDirectionName,
+    } = params;
 
     const formatSpecs =
       pdfFormat === 'A4_PORTRAIT'
@@ -87,7 +102,18 @@ Mise en scène :
 ${selectedSupport.context}
 </mockup_mission>
 
-<photographic_rules>
+${
+      artDirectionModifier
+        ? `<art_direction>
+La marque a une direction artistique arrêtée${artDirectionName ? ` : ${artDirectionName}` : ''}. Elle décide du RENDU de cette photographie — lumière, matière, étalonnage, cadrage — et prime sur les réglages photographiques génériques ci-dessous chaque fois qu'ils divergent. Le sujet, lui, reste le support à présenter.
+Rendu attendu (à appliquer littéralement) : ${artDirectionModifier}
+${artDirectionNegative ? `À proscrire dans l'image : ${artDirectionNegative}` : ''}
+Cette photo sera vue à côté des autres supports de la marque : elle doit avoir la MÊME lumière et le MÊME étalonnage qu'eux.
+</art_direction>
+
+`
+        : ''
+    }<photographic_rules>
 1. RÉALISME PHOTOGRAPHIQUE ABSOLU: Vraie photographie commerciale (pas d'illustration numérique, pas de rendu 3D artificiel). Grain subtil, imperfections naturelles.
 2. ÉCLAIRAGE: Éclairage studio ou lumière naturelle réaliste, ombres douces, reflets sur verre/métal/plastique.
 3. COMPOSITION: Règle des tiers, profondeur de champ cinématographique (arrière-plan flouté). Le support brandé est le héros clairement visible.
@@ -107,10 +133,12 @@ ${selectedSupport.context}
 </format_rules>
 
 <forbidden>
-- Mockup générique / cliché.
-- Rendu 3D artificiel.
+- Mockup générique / cliché : le mockup « carte de visite posée en biais sur un bureau en marbre blanc avec une plante verte » est LE rendu par défaut de tous les générateurs. Composer autre chose.
+- Rendu 3D artificiel, plastique, sur-éclairé.
 - Logo différent du logo fourni.
-- Surcharger la scène.
+- Surcharger la scène : un support héros, un contexte, rien d'autre.
+- Filigrane, texte déformé, artefacts de génération, sur-saturation HDR.
+${artDirectionNegative ? `- ${artDirectionNegative}` : ''}
 </forbidden>
 
 GÉNÉRER UNIQUEMENT L'IMAGE PHOTORÉALISTE. AUCUNE RÉPONSE TEXTUELLE.`;

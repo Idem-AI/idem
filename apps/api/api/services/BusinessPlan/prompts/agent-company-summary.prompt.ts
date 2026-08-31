@@ -1,4 +1,4 @@
-import { bpPageFormat } from './_shared.prompt';
+import { BP_BRAND_RULES, bpPageFormat } from './_shared.prompt';
 
 export const AGENT_COMPANY_SUMMARY_PROMPT = `<role>Senior business strategist and editorial designer</role>
 <objective>Create a custom Company Summary section representing the company's unique story, structure, and values.</objective>
@@ -23,6 +23,8 @@ export const AGENT_COMPANY_SUMMARY_PROMPT = `<role>Senior business strategist an
 </mandatory_content>
 
 ${bpPageFormat('2')}
+
+${BP_BRAND_RULES}
 
 <technical_rules>
 - Output ONLY raw HTML + Tailwind CSS utilities in a single minified line.

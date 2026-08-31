@@ -34,3 +34,20 @@ ${PAGE_BUDGET}
 - Never pad with filler sentences: add depth instead — figures, local examples, hypotheses, risks, timelines, comparisons.
 </content_volume>`;
 }
+
+/**
+ * Règles de marque communes à toutes les sections du plan.
+ *
+ * Elles vivaient dans le contexte de marque, en fin de prompt, où elles se
+ * lisaient comme de la documentation. Les remonter dans le corps du prompt de
+ * section change leur statut : ce sont des consignes de composition, pas des
+ * informations sur l'entreprise. C'est précisément ce qui manquait pour que le
+ * logo soit posé sur la page au lieu d'être seulement « connu ».
+ */
+export const BP_BRAND_RULES = `<brand_compliance>
+- La direction artistique et la charte fournies dans BRAND CONTEXT ne sont pas indicatives : couleurs, polices et grammaire visuelle en viennent, et il n'y a rien à inventer.
+- Aucune valeur hexadécimale hors palette. Les nuances se font en opacité, jamais en changeant de teinte.
+- Deux familles typographiques, celles de la charte, appliquées en style="font-family: '[NomPolice]', sans-serif".
+- Le LOGO doit apparaître sur cette section : petit, à la même place que sur les autres sections (en-tête ou pied), avec la déclinaison qui contraste avec le fond réel. Suivre le bloc <logo> de BRAND CONTEXT à la lettre — URL exacte, jamais inventée.
+- Cette section appartient à un document : mêmes filets, même rayon de bordure, même traitement des titres et des tableaux que les autres. Les gestes spectaculaires sont réservés à la couverture.
+</brand_compliance>`
