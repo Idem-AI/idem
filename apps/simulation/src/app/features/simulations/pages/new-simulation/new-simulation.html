@@ -214,7 +214,7 @@
         <div class="rise mt-5 w-full text-left">
           @if (origin() === 'idem-project') {
             <div class="glass-card overflow-hidden rounded-2xl">
-              @if (sessionPending() || projectsLoading()) {
+              @if (sessionPending()) {
                 <div class="flex flex-col gap-2 p-4">
                   @for (row of [1, 2, 3]; track row) {
                     <div class="skeleton h-12 rounded-lg"></div>
@@ -235,6 +235,12 @@
                   >
                     {{ 'auth.signIn' | translate }}
                   </button>
+                </div>
+              } @else if (projectsPending()) {
+                <div class="flex flex-col gap-2 p-4">
+                  @for (row of [1, 2, 3]; track row) {
+                    <div class="skeleton h-12 rounded-lg"></div>
+                  }
                 </div>
               } @else if (!projects().length) {
                 <p class="p-8 text-center text-sm text-ink-muted">
@@ -332,9 +338,22 @@
                 id="business-plan"
                 type="file"
                 class="sr-only"
-                accept=".pdf,.docx,.doc,.md,.txt"
+                accept=".pdf,.docx,.md,.markdown"
                 (change)="onFileSelected($event)"
               />
+
+              @if (documentError(); as message) {
+                <p
+                  role="alert"
+                  class="mt-3 flex items-start gap-2 rounded-xl border border-verdict-stop/40 bg-verdict-stop/10 px-3 py-2.5 text-meta leading-relaxed text-ink"
+                >
+                  <i
+                    class="pi pi-exclamation-circle mt-0.5 shrink-0 text-verdict-stop"
+                    aria-hidden="true"
+                  ></i>
+                  <span>{{ message }}</span>
+                </p>
+              }
             </div>
           }
         </div>

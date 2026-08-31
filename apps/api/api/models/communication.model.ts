@@ -230,7 +230,7 @@ export interface FlyerImageAttribution {
   /** Photographer or AI model. */
   author?: string;
   sourceUrl?: string;
-  provider: 'pexels' | 'unsplash' | 'gemini' | 'openai' | 'other';
+  provider: 'pexels' | 'unsplash' | 'gemini' | 'glm' | 'openai' | 'other';
 }
 
 export interface Flyer {

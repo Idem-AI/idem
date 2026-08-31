@@ -2,7 +2,9 @@ import { Router } from 'express';
 import multer from 'multer';
 
 import {
+  analyseImportedDocumentController,
   analyseProjectController,
+  createSimulationFromDocumentController,
   createSimulationController,
   deleteSimulationController,
   generateReportController,
@@ -14,6 +16,7 @@ import {
   runLabController,
 } from '../controllers/simulation.controller';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
+import { isAcceptedDocument } from '../services/Simulation/document-intake';
 import { checkQuota } from '../middleware/quota.middleware';
 import { authenticate } from '../services/auth.service';
 
@@ -21,14 +24,16 @@ export const simulationRoutes = Router();
 
 const resource = 'simulations';
 
-/** Import d'un business plan externe: texte uniquement, 10 Mo maximum. */
+/**
+ * Import d'un business plan : PDF, Word (.docx) ou Markdown, 20 Mo maximum —
+ * un PDF illustré dépasse vite les dix. Le tri fin se fait dans le contrôleur,
+ * qui sait répondre 415 ; ici on ne fait que barrer l'évident, car un fichier
+ * écarté par multer arrive sans le moindre motif.
+ */
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024, files: 1 },
-  fileFilter: (_req, file, cb) => {
-    const accepted = ['text/plain', 'text/markdown', 'application/json'];
-    cb(null, accepted.includes(file.mimetype));
-  },
+  limits: { fileSize: 20 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) => cb(null, isAcceptedDocument(file.originalname, file.mimetype)),
 });
 
 /**
@@ -49,6 +54,70 @@ const upload = multer({
  *       '401': { description: Not authenticated }
  *       '404': { description: Project not found }
  */
+/**
+ * @openapi
+ * /project/simulations/import/pricing:
+ *   get:
+ *     tags: [Simulation]
+ *     summary: Plans for an imported business plan (no project involved)
+ *     description: >
+ *       Same plans as the project-bound route, which ignores its projectId:
+ *       the price depends only on the origin. Declared separately so the
+ *       import flow never has to invent a project identifier.
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       '200': { description: The plans }
+ */
+simulationRoutes.get(`/${resource}/import/pricing`, authenticate, getPricingController);
+
+/**
+ * @openapi
+ * /project/simulations/import/analysis:
+ *   post:
+ *     tags: [Simulation]
+ *     summary: Read an imported business plan, without a project
+ *     description: >
+ *       An imported plan belongs to no existing project. The document is
+ *       filtered and condensed before any model call: a file that is not a
+ *       business plan is refused without spending a single token (422), and an
+ *       unsupported format is refused too (415). The IDEM project itself is
+ *       created later, at launch, from what this reading yields.
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       '200': { description: What the engine understood of the document }
+ *       '415': { description: Unsupported document format }
+ *       '422': { description: The document is not a usable business plan }
+ */
+simulationRoutes.post(
+  `/${resource}/import/analysis`,
+  authenticate,
+  upload.single('document'),
+  analyseImportedDocumentController
+);
+
+/**
+ * @openapi
+ * /project/simulations/import/run:
+ *   post:
+ *     tags: [Simulation]
+ *     summary: Create the IDEM project described by the plan, then simulate it
+ *     description: >
+ *       Creates a project from the extracted profile — name, description,
+ *       sector, target — and starts the simulation on it, seeded with the
+ *       understanding already produced so the document is not read twice.
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       '202': { description: The simulation, with its project created }
+ *       '400': { description: Missing tier or understanding }
+ */
+simulationRoutes.post(
+  `/${resource}/import/run`,
+  authenticate,
+  checkPolicyAcceptance,
+  checkQuota,
+  createSimulationFromDocumentController
+);
+
 simulationRoutes.get(`/${resource}/:projectId`, authenticate, listSimulationsController);
 
 /**

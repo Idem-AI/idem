@@ -16,6 +16,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import logger from '../../config/logger';
 import { ProjectModel } from '../../models/project.model';
+import { projectService } from '../project.service';
 import {
   BlackSwanEvent,
   BlackSwanReport,
@@ -81,6 +82,13 @@ export interface CreateSimulationInput {
   /** Réponses fournies par l'utilisateur aux trous signalés par l'analyse. */
   answers?: Record<string, string>;
   previousRunId?: string;
+  /**
+   * Compréhension déjà établie, pour un business plan importé : le pipeline la
+   * reprend telle quelle au lieu de relire le projet. Sans cela, tout ce que
+   * le document apportait serait perdu — le projet fraîchement créé ne
+   * contient que son nom et sa description.
+   */
+  understanding?: ProjectUnderstanding;
 }
 
 export class SimulationService {
@@ -300,7 +308,13 @@ export class SimulationService {
     await this.writeSimulations(userId, projectId, project, [simulation, ...simulations]);
 
     // Volontairement non attendu: le pipeline dure plusieurs minutes.
-    void this.runPipeline(userId, projectId, simulation.id, input.answers).catch((error) => {
+    void this.runPipeline(
+      userId,
+      projectId,
+      simulation.id,
+      input.answers,
+      input.understanding
+    ).catch((error) => {
       logger.error(`Simulation pipeline crashed for ${simulation.id}: ${error.message}`, {
         stack: error.stack,
       });
@@ -309,18 +323,91 @@ export class SimulationService {
     return simulation;
   }
 
+  /**
+   * Crée le projet IDEM que le business plan importé décrit, puis lance la
+   * simulation dessus.
+   *
+   * Un plan importé ne se rattache à rien : sans cette étape, la simulation
+   * s'accrochait au premier projet venu, et le rapport parlait d'un autre
+   * projet que celui du document. Le projet est créé avec ce que la lecture a
+   * livré — nom, description, secteur, cible — et l'utilisateur le retrouve
+   * ensuite dans IDEM comme n'importe quel autre.
+   */
+  async createSimulationFromDocument(
+    userId: string,
+    input: Omit<CreateSimulationInput, 'origin' | 'previousRunId'> & {
+      understanding: ProjectUnderstanding;
+    }
+  ): Promise<SimulationModel> {
+    const profile = input.understanding.profile;
+    // La graine vient de la même lecture du document : elle est taillée pour la
+    // fiche projet, là où le profil l'est pour la simulation.
+    const seed = input.understanding.projectSeed;
+    const name = (input.name || profile.name || 'Projet importé').trim();
+
+    const project = await projectService.createUserProject(userId, {
+      name,
+      description: seed?.description || profile.product || profile.businessModel || '',
+      type: seed?.type ?? 'other',
+      constraints: seed?.constraints ?? [],
+      teamSize: seed?.teamSize || profile.teamSize || '',
+      scope: seed?.scope || profile.sector || '',
+      targets: seed?.targets || profile.targetCustomer || '',
+      budgetIntervals: seed?.budgetIntervals || profile.plannedFunding,
+      currency: profile.currency,
+      selectedPhases: [],
+      // Aucun livrable IDEM n'existe encore : ils seront générés par leurs
+      // propres modules si l'utilisateur les demande.
+      analysisResultModel: {} as ProjectModel['analysisResultModel'],
+      deployments: [],
+      activeChatMessages: [],
+      project: null,
+      additionalInfos: {
+        email: '',
+        phone: '',
+        address: '',
+        city: seed?.city || profile.location || '',
+        country: seed?.country || profile.country || '',
+        zipCode: '',
+        teamMembers: [],
+      },
+    });
+
+    if (!project.id) {
+      throw new Error('Project creation did not return an identifier');
+    }
+
+    logger.info(
+      `Created project ${project.id} (${project.type}) from imported business plan for user ${userId}: ` +
+        `${seed?.constraints.length ?? 0} constraints, budget "${project.budgetIntervals ?? '—'}"`
+    );
+
+    return this.createSimulation(userId, project.id, {
+      name,
+      origin: 'imported-document',
+      tier: input.tier,
+      documentName: input.documentName,
+      answers: input.answers,
+      understanding: input.understanding,
+    });
+  }
+
   /** Les six étapes, de la lecture du projet à l'analyse des résultats. */
   private async runPipeline(
     userId: string,
     projectId: string,
     simulationId: string,
-    answers?: Record<string, string>
+    answers?: Record<string, string>,
+    seedUnderstanding?: ProjectUnderstanding
   ): Promise<void> {
     try {
       // --- 1. Comprendre le projet
       await this.setStage(userId, projectId, simulationId, 'understand', 'active');
-      const project = await this.loadProject(userId, projectId);
-      const understanding = await this.ai.understandProject(project, userId);
+      // Un business plan importé a déjà été lu : le relire coûterait un appel
+      // de plus et rendrait moins, le projet créé ne portant que l'essentiel.
+      const understanding =
+        seedUnderstanding ??
+        (await this.ai.understandProject(await this.loadProject(userId, projectId), userId));
 
       // Les réponses de l'utilisateur écrasent ce que le moteur avait deviné.
       if (answers) {

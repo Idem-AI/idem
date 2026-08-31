@@ -23,6 +23,7 @@
 
 import {
   FeatureAIConfig,
+  GLM_MODELS,
   LLMOptions,
   LLMProvider,
   ModelTier,
@@ -54,8 +55,8 @@ const ESCALATION: Record<ModelTier, ModelTier | undefined> = {
 
 export const MODEL_TIERS: Record<ModelTier, TierDefinition> = {
   XS: {
-    provider: LLMProvider.GEMINI,
-    modelName: process.env.IDEM_TIER_XS_MODEL || 'gemini-2.5-flash',
+    provider: LLMProvider.GLM,
+    modelName: process.env.IDEM_TIER_XS_MODEL || GLM_MODELS.mechanical,
     fallbackModels: TEXT_FALLBACK_MODELS,
     // Températures basses: ces tâches sont déterministes par nature, la
     // créativité n'y est qu'une source de variance.
@@ -69,18 +70,23 @@ export const MODEL_TIERS: Record<ModelTier, TierDefinition> = {
     purpose: 'mécanique (résumé, vérification, classification, extraction)',
   },
   M: {
-    provider: LLMProvider.GEMINI,
-    modelName: process.env.IDEM_TIER_M_MODEL || 'gemini-3-flash-preview',
+    provider: LLMProvider.GLM,
+    modelName: process.env.IDEM_TIER_M_MODEL || GLM_MODELS.writing,
     fallbackModels: TEXT_FALLBACK_MODELS,
     llmOptions: { temperature: 0.5 },
     purpose: 'rédaction et structuration de contenu',
   },
   S: {
-    provider: LLMProvider.GEMINI,
-    modelName: process.env.IDEM_TIER_S_MODEL || 'gemini-3.1-pro-preview',
+    provider: LLMProvider.GLM,
+    modelName: process.env.IDEM_TIER_S_MODEL || GLM_MODELS.reasoning,
     fallbackModels: TEXT_FALLBACK_MODELS,
-    llmOptions: { temperature: 0.5 },
-    purpose: 'raisonnement (stratégie, chiffres, création visuelle)',
+    // Raisonnement COUPÉ, comme aux autres étages (cf. `extraBody` du
+    // fournisseur). Il multipliait la latence par trois — une section passait
+    // de deux à neuf secondes — pour un gain que la production de contenu ne
+    // justifiait pas. Le budget de sortie reste large : un SVG complet ou un
+    // tableau financier dépasse facilement les enveloppes courtes.
+    llmOptions: { temperature: 0.5, maxOutputTokens: 16000 },
+    purpose: 'sections à forte valeur (stratégie, chiffres, création visuelle)',
   },
 };
 

@@ -12,12 +12,21 @@ import dotenv from 'dotenv';
 import * as fs from 'fs-extra';
 import logger from '../config/logger';
 import restrictionsService from './restrictions.service';
+import axios from 'axios';
 import OpenAI from 'openai';
 import { userService } from './user.service';
 dotenv.config();
 
-import { LLMProvider, LLMOptions, AI_CONFIG, TEXT_FALLBACK_MODELS } from '../config/ai.config';
 import {
+  LLMProvider,
+  LLMOptions,
+  AI_CONFIG,
+  GLM_MODELS,
+  TEXT_FALLBACK_MODELS,
+} from '../config/ai.config';
+import {
+  GLM_ENDPOINTS,
+  getGlmApiKey,
   getProvider,
   providerSupports,
   resolveGlobalOverride,
@@ -162,7 +171,16 @@ export interface GroundedSupport {
   sourceIndexes: number[];
 }
 
-/** Résultat d'un appel fondé (grounding Google Search). */
+/** Un résultat brut de l'endpoint `/web_search` de Z.ai. */
+interface GlmSearchResult {
+  title: string;
+  link: string;
+  content: string;
+  media?: string;
+  publish_date?: string;
+}
+
+/** Résultat d'un appel fondé (recherche web du fournisseur). */
 export interface GroundedResult {
   /** Texte produit par le modèle, appuyé sur les résultats de recherche. */
   text: string;
@@ -1248,15 +1266,19 @@ export class PromptService {
       throw new Error('Messages array cannot be empty.');
     }
 
-    // Le grounding (Google Search) est propre à Gemini. Si la config pointe un
-    // fournisseur incapable (ex: GLM), on retombe sur le modèle Gemini par défaut
-    // plutôt que d'envoyer un modèle inconnu au SDK Google.
+    // Chaque fournisseur fonde ses réponses à sa façon : Google par un outil
+    // intégré au modèle, Z.ai par un endpoint de recherche distinct. Les deux
+    // rendent le même contrat — du texte et de vraies sources.
     const groundingSupported = providerSupports(provider, 'grounding');
     const modelName = groundingSupported ? request.modelName : AI_CONFIG.default.modelName;
     if (!groundingSupported) {
       logger.warn(
-        `runGroundedResearch: le fournisseur ${provider} ne supporte pas le grounding — repli sur Gemini (${modelName}).`
+        `runGroundedResearch: le fournisseur ${provider} ne fonde pas ses réponses — repli sur ${modelName}.`
       );
+    }
+
+    if (provider === LLMProvider.GLM) {
+      return this.runGlmGroundedResearch({ ...request, modelName }, messages);
     }
 
     if (userId && !skipQuotaCheck) {
@@ -1340,6 +1362,147 @@ export class PromptService {
   }
 
   /**
+   * Recherche fondée via Z.ai — deux temps, là où Gemini n'en fait qu'un.
+   *
+   * L'endpoint `/web_search` interroge le web et rend des résultats déjà mis
+   * en forme pour un modèle ; on les passe ensuite en contexte à la génération,
+   * en imposant la citation par `[sN]`. C'est ce marquage qui permet de
+   * reconstituer l'association segments → sources que Google livre, lui, dans
+   * ses `groundingMetadata`.
+   *
+   * Aucune donnée n'est acceptée hors de ces résultats : c'est le même socle
+   * anti-invention, obtenu autrement.
+   */
+  private async runGlmGroundedResearch(
+    request: PromptConfig,
+    messages: AIChatMessage[]
+  ): Promise<GroundedResult> {
+    const { modelName, llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
+    const startedAt = Date.now();
+
+    // Le message de recherche est un brief entier — contexte projet, consignes,
+    // liste de points. L'envoyer tel quel à un moteur de recherche donnerait de
+    // mauvais résultats, et l'afficher à l'utilisateur lui montrerait nos
+    // instructions internes. On en tire donc de vraies requêtes courtes.
+    const brief = [...messages].reverse().find((m) => m.role === 'user')?.content ?? '';
+    const queries = buildSearchQueries(brief);
+    logAIEvent('ai.grounded_research_start', {
+      modelName,
+      promptType: request.promptType,
+      queryCount: queries.length,
+    });
+
+    // Une recherche par point à couvrir, en parallèle : c'est ce que faisait le
+    // grounding de Google, et ce que la qualité des résultats demande.
+    const batches = await Promise.all(queries.map((q) => this.searchWeb(q, SEARCH_RESULTS_PER_QUERY)));
+    const results = dedupeByLink(batches.flat());
+
+    if (results.length === 0) {
+      // Sans source, une réponse « fondée » n'en serait pas une : mieux vaut
+      // rendre un résultat vide que du texte inventé qui en aurait l'air.
+      logger.warn('runGlmGroundedResearch: la recherche web n\'a rien renvoyé.');
+      return { text: '', queries, sources: [], supports: [] };
+    }
+
+    const sources: GroundedSourceRaw[] = results.map((result, index) => ({
+      index,
+      title: result.title,
+      url: result.link,
+      domain: safeDomain(result.link),
+    }));
+
+    const dossier = sources
+      .map(
+        (source, index) =>
+          `[s${index}] ${source.title} — ${source.url}\n${results[index].content}`
+      )
+      .join('\n\n');
+
+    const grounded: AIChatMessage[] = [
+      ...messages.filter((m) => m.role === 'system'),
+      {
+        role: 'system',
+        content:
+          "Tu réponds UNIQUEMENT à partir des résultats de recherche ci-dessous. " +
+          "N'avance aucun chiffre, aucun fait, aucune date qui n'y figure pas. " +
+          "Chaque affirmation tirée d'une source porte sa référence entre crochets, " +
+          'sous la forme [s0], [s1]… correspondant aux résultats numérotés.' +
+          `\n\n--- RÉSULTATS DE RECHERCHE ---\n${dossier}`,
+      },
+      ...messages.filter((m) => m.role !== 'system'),
+    ];
+
+    const text = await this.runPrompt(
+      {
+        ...request,
+        provider: LLMProvider.GLM,
+        modelName,
+        llmOptions,
+        language,
+        userId,
+        // Le quota est décompté une fois, à la fin, comme le fait la voie Gemini.
+        skipQuotaCheck: true,
+      },
+      grounded
+    );
+
+    const supports = extractCitationSupports(text, sources.length);
+
+    logAIEvent('ai.grounded_research_end', {
+      modelName,
+      durationMs: Date.now() - startedAt,
+      textLength: text.length,
+      sourceCount: sources.length,
+      queryCount: queries.length,
+    });
+
+    if (userId && !skipQuotaCheck) {
+      try {
+        await userService.incrementUsage(userId, 1);
+      } catch (quotaError) {
+        logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
+      }
+    }
+
+    return { text, queries, sources, supports };
+  }
+
+  /**
+   * Appelle l'endpoint de recherche de Z.ai. Hors contrat OpenAI : c'est une
+   * requête HTTP à part, avec son propre corps.
+   */
+  private async searchWeb(query: string, count = 10): Promise<GlmSearchResult[]> {
+    const apiKey = getGlmApiKey();
+    if (!apiKey || !query.trim()) {
+      return [];
+    }
+
+    try {
+      const response = await axios.post<{ search_result?: GlmSearchResult[] }>(
+        GLM_ENDPOINTS.webSearch,
+        {
+          search_engine: GLM_MODELS.searchEngine,
+          search_query: query.slice(0, 1000),
+          count,
+        },
+        {
+          headers: { Authorization: `Bearer ${apiKey}` },
+          timeout: 30_000,
+        }
+      );
+
+      const results = (response.data?.search_result ?? []).filter(
+        (result) => result?.link && result?.content
+      );
+      logger.info(`Z.ai web search returned ${results.length} results for "${query.slice(0, 60)}"`);
+      return results;
+    } catch (error: any) {
+      logger.error(`Z.ai web search failed: ${error?.message}`, { status: error?.response?.status });
+      return [];
+    }
+  }
+
+  /**
    * Crée un cache de contexte Gemini (contenu partagé réutilisé sur plusieurs
    * appels). Best-effort: renvoie null si le caching échoue (contenu trop court,
    * modèle non supporté…), auquel cas l'appelant retombe sur l'envoi inline.
@@ -1355,6 +1518,15 @@ export class PromptService {
     // bas — un aller-retour perdu par génération, pour une cause invisible.
     if (!providerSupports(LLMProvider.GEMINI, 'contextCache')) {
       logger.debug(`Context cache unavailable on this backend — ${describeGeminiBackend()}.`);
+      return null;
+    }
+
+    // Le cache de contexte est une notion Gemini : le demander pour un modèle
+    // d'un autre fournisseur envoie un nom inconnu à Google, qui répond par une
+    // erreur avalée plus bas. Un aller-retour perdu à chaque génération, sans
+    // trace lisible.
+    if (!modelName.startsWith('gemini')) {
+      logger.debug(`Context cache skipped: ${modelName} is not a Gemini model.`);
       return null;
     }
 
@@ -1593,3 +1765,108 @@ export class PromptService {
 }
 
 export const promptService = new PromptService();
+
+/** Domaine d'une URL, ou `undefined` si elle est malformée. */
+function safeDomain(url: string): string | undefined {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Reconstitue l'association segments → sources à partir des marqueurs `[sN]`
+ * laissés par le modèle.
+ *
+ * Google livre cette carte dans ses métadonnées ; avec une recherche externe il
+ * faut la relire dans le texte. Chaque phrase portant au moins une référence
+ * devient un support, débarrassé de ses marqueurs.
+ */
+function extractCitationSupports(text: string, sourceCount: number): GroundedSupport[] {
+  if (!text || sourceCount === 0) {
+    return [];
+  }
+
+  const supports: GroundedSupport[] = [];
+  // Découpe à la phrase : c'est l'unité que porte une citation.
+  for (const sentence of text.split(/(?<=[.!?])\s+/)) {
+    const indexes = [...sentence.matchAll(/\[s(\d+)\]/g)]
+      .map((match) => Number.parseInt(match[1], 10))
+      .filter((index) => Number.isInteger(index) && index >= 0 && index < sourceCount);
+
+    if (indexes.length === 0) {
+      continue;
+    }
+
+    const cleaned = sentence.replace(/\s*\[s\d+\]/g, '').trim();
+    if (cleaned) {
+      supports.push({ text: cleaned, sourceIndexes: [...new Set(indexes)] });
+    }
+  }
+
+  return supports;
+}
+
+/**
+ * Résultats demandés par requête. Descendu de 5 à 4 : le dossier envoyé au
+ * modèle rétrécit d'autant, et c'est lui qui pèse sur la latence de la
+ * synthèse — pas la recherche elle-même, qui tient en trois secondes.
+ */
+const SEARCH_RESULTS_PER_QUERY = 4;
+
+/**
+ * Requêtes par section. Descendu de 4 à 3 : au-delà, les résultats se
+ * recoupent et l'on paie une recherche de plus pour la même information.
+ */
+const MAX_SEARCH_QUERIES = 3;
+
+/**
+ * Tire de vraies requêtes de recherche d'un brief de recherche.
+ *
+ * Le brief mêle contexte projet, consignes internes et liste de points à
+ * couvrir. Un moteur de recherche n'en fait rien de bon, et l'utilisateur qui
+ * verrait passer « N'invente rien » dans l'interface se demanderait à qui on
+ * parle. On ne garde donc que les points à couvrir, un par requête, ancrés sur
+ * le pays quand le brief le mentionne.
+ */
+export function buildSearchQueries(brief: string): string[] {
+  const mission = /DONNÉES À TROUVER[^:]*:\s*([\s\S]*?)(?:\n\s*\n|$)/i.exec(brief)?.[1] ?? '';
+  const country = /Pays:\s*([^\n]+)/i.exec(brief)?.[1]?.trim();
+
+  const points = mission
+    .split('\n')
+    .map((line) => line.replace(/^\s*\d+[.)]\s*/, '').trim())
+    .filter((line) => line.length > 8);
+
+  const queries = points.slice(0, MAX_SEARCH_QUERIES).map((point) => {
+    const base = point.replace(/\s+/g, ' ').slice(0, 180);
+    // Le pays n'est ajouté que s'il manque : une requête qui le répète perd en
+    // précision.
+    return country && !base.toLowerCase().includes(country.toLowerCase())
+      ? `${base} ${country}`
+      : base;
+  });
+
+  if (queries.length > 0) {
+    return queries;
+  }
+
+  // Brief sans liste de points : on retombe sur sa première phrase utile.
+  const fallback = brief
+    .replace(/CONTEXTE PROJET:|DONNÉES À TROUVER[^:]*:/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 180);
+  return fallback ? [fallback] : [];
+}
+
+/** Une même page trouvée par deux requêtes ne compte qu'une fois. */
+function dedupeByLink<T extends { link: string }>(results: T[]): T[] {
+  const seen = new Set<string>();
+  return results.filter((result) => {
+    if (seen.has(result.link)) return false;
+    seen.add(result.link);
+    return true;
+  });
+}

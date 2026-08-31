@@ -1,36 +1,18 @@
-import { GoogleGenAI } from '@google/genai';
-import {
-  describeGeminiBackend,
-  getGoogleGenAIClient,
-  isGeminiConfigured,
-} from '../../config/google-genai.client';
 import logger from '../../config/logger';
 import { MOCKUP_HTML_GENERATION_PROMPT } from './prompts/mockup-html-generation.prompt';
-import { AI_CONFIG } from '../../config/ai.config';
+import { AI_CONFIG, LLMProvider } from '../../config/ai.config';
+import { PromptService } from '../prompt.service';
 
 /**
- * Service pour générer le HTML d'affichage des mockups via Gemini AI
- * Génère un HTML professionnel et adapté au projet
+ * Génère le HTML d'affichage des mockups de marque.
+ *
+ * Passe par le `PromptService` comme tout le reste : le fournisseur, les
+ * replis et la comptabilité des tokens y vivent déjà, il n'y a aucune raison
+ * que ce service parle au modèle directement.
  */
 export class MockupHtmlGeneratorService {
-  // Migré de `@google/generative-ai` (SDK historique, sans support Vertex AI)
-  // vers `@google/genai` : c'était le dernier appel qui serait resté sur
-  // AI Studio après la bascule, donc facturé hors Google Cloud.
-  private _geminiAI?: GoogleGenAI;
+  private readonly promptService = new PromptService();
   private readonly MODEL_NAME = AI_CONFIG.branding.mockupHtml.modelName;
-
-  private get geminiAI(): GoogleGenAI {
-    if (!this._geminiAI) {
-      this._geminiAI = getGoogleGenAIClient();
-    }
-    return this._geminiAI;
-  }
-
-  constructor() {
-    if (!isGeminiConfigured()) {
-      throw new Error(`Backend Gemini non configuré (${describeGeminiBackend()}).`);
-    }
-  }
 
   /**
    * Génère le HTML d'affichage des mockups via Gemini AI
@@ -100,16 +82,20 @@ export class MockupHtmlGeneratorService {
           typography: params.typography,
         });
 
-        // Appeler Gemini pour générer le HTML de cette page
-        const result = await this.geminiAI.models.generateContent({
-          model: this.MODEL_NAME,
-          contents: prompt,
-          config: {
-            systemInstruction: MOCKUP_HTML_GENERATION_PROMPT.systemPrompt,
+        // Génération du HTML de cette page — via le choke point texte, qui
+        // porte le fournisseur, les replis et la comptabilité des tokens.
+        let generatedHtml = await this.promptService.runPrompt(
+          {
+            provider: LLMProvider.GLM,
+            modelName: this.MODEL_NAME,
+            promptType: 'branding_mockup_html',
+            userId,
           },
-        });
-
-        let generatedHtml = result.text ?? '';
+          [
+            { role: 'system', content: MOCKUP_HTML_GENERATION_PROMPT.systemPrompt },
+            { role: 'user', content: prompt },
+          ]
+        );
 
         // Nettoyer le HTML
         generatedHtml = this.cleanGeneratedHtml(generatedHtml);

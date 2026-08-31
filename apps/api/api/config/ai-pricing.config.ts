@@ -45,8 +45,28 @@ const PRICING: Record<string, ModelPricing> = {
   'deepseek-chat': { input: 0.27, output: 1.1 },
 
   // --- Z.ai / GLM ---
+  // GLM (Z.ai) — tarifs relevés sur docs.z.ai, août 2026, en $/M tokens.
+  'glm-5.3': { input: 1.4, output: 4.4 },
+  'glm-5.2': { input: 1.4, output: 4.4 },
+  'glm-5.1': { input: 1.4, output: 4.4 },
+  'glm-5.3-flash': { input: 0.075, output: 0.25 },
+  'glm-5': { input: 1, output: 3.2 },
+  'glm-4.7': { input: 0.6, output: 2.2 },
+  'glm-4.7-flashx': { input: 0.07, output: 0.4 },
+  'glm-4.7-flash': { input: 0, output: 0 },
   'glm-4.6': { input: 0.6, output: 2.2 },
+  'glm-4.5': { input: 0.6, output: 2.2 },
+  'glm-4.5-air': { input: 0.2, output: 1.1 },
+  'glm-4.5-flash': { input: 0, output: 0 },
   'glm-4': { input: 0.6, output: 2.2 },
+  // Vision et OCR.
+  'glm-4.6v': { input: 0.3, output: 0.9 },
+  'glm-4.6v-flashx': { input: 0.04, output: 0.4 },
+  'glm-4.6v-flash': { input: 0, output: 0 },
+  'glm-4.5v': { input: 0.6, output: 1.8 },
+  'glm-ocr': { input: 0.03, output: 0.03 },
+  'glm-image': { input: 0, output: 0 },
+  'cogview-4-250304': { input: 0, output: 0 },
   glm: { input: 0.6, output: 2.2 },
 };
 

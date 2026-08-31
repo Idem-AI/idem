@@ -14,81 +14,47 @@ interface ModelConfig {
   maxOutputTokens?: number;
 }
 
+/**
+ * Le catalogue exposé à l'interface.
+ *
+ * Un seul modèle : les autres ne sont pas encore ouverts, et les proposer dans
+ * la liste reviendrait à laisser choisir ce qui échouera ensuite. Ajouter une
+ * entrée ici suffit à la faire apparaître — c'est cette liste que sert
+ * `/api/model/config`, et sa première entrée qui devient le défaut.
+ */
 const defaultModelConfigs: ModelConfig[] = [
   {
-    modelName: 'gemini-3.5-flash',
-    modelKey: 'gemini-3.5-flash',
-    useImage: true,
-    provider: 'gemini',
-    description: 'Gemini 3.5 Flash model',
+    modelName: 'GLM 5.3',
+    modelKey: 'glm-5.3',
+    useImage: false,
+    provider: 'glm',
+    description: 'GLM 5.3 — génération de code et appels d\'outils',
     functionCall: true,
     temperature: 0.7,
     topP: 0.95,
-  },
-  {
-    modelName: 'gemini-3.6-flash',
-    modelKey: 'gemini-3.6-flash',
-    useImage: true,
-    provider: 'gemini',
-    description: 'Gemini 3.6 Flash model',
-    functionCall: true,
-    temperature: 0.7,
-    topP: 0.95,
-  },
-  {
-    modelName: 'gemini-3.1-pro-preview',
-    modelKey: 'gemini-3.1-pro-preview',
-    useImage: true,
-    provider: 'gemini',
-    description: 'Gemini 3 Pro model',
-    functionCall: true,
-    temperature: 0.7,
-    topP: 0.95,
-  },
-  {
-    modelName: 'gemini-3-flash-preview',
-    modelKey: 'gemini-3-flash-preview',
-    useImage: true,
-    provider: 'gemini',
-    description: 'Gemini 3 Flash model (faster)',
-    functionCall: true,
-    temperature: 0.7,
-    topP: 0.95,
+    // Z.ai sert un endpoint OpenAI-compatible ; les identifiants lui sont
+    // propres et ne passent donc pas par les THIRD_API_* génériques.
+    apiUrl: process.env.GLM_API_URL || 'https://api.z.ai/api/paas/v4',
+    apiKey: process.env.GLM_API_KEY,
   },
 ];
 
+/** Premier de la liste : le modèle proposé par défaut à l'ouverture. */
 export function getDefaultModelKey(): string {
-  const fallbackModel = defaultModelConfigs[0]?.modelKey;
-
-  return fallbackModel;
+  return defaultModelConfigs[0]?.modelKey;
 }
 
 /**
- * Ordre de repli quand un modèle Gemini renvoie 503 « this model is currently
- * experiencing high demand » : la requête est valide, c'est la capacité du
- * modèle qui manque, et les pools sont PAR MODÈLE — réessayer le même ne sert
- * à rien, il faut basculer. Ordre = qualité décroissante / disponibilité
- * croissante (aligné sur les chaînes de apps/api).
- */
-const GEMINI_FALLBACK_CHAIN = [
-  'gemini-3.6-flash',
-  'gemini-3.5-flash',
-  'gemini-3.1-pro-preview',
-  'gemini-3-flash-preview',
-];
-
-/**
- * Liste ordonnée des modèles à essayer pour une requête : celui demandé en
- * tête, puis la chaîne de repli. Les modèles absents de `modelConfig` sont
- * ignorés (impossible d'instancier un client sans leur configuration), et tout
- * modèle configuré hors chaîne est ajouté en dernier recours.
+ * Ordre de repli quand un modèle est indisponible. Avec un seul modèle ouvert,
+ * la chaîne se réduit à lui : la fonction reste en place pour que l'ajout d'un
+ * second modèle n'ait rien d'autre à changer.
  */
 export function getFallbackModelKeys(preferredKey?: string): string[] {
-  const configured = new Set(defaultModelConfigs.map(({ modelKey }) => modelKey));
-  const keys = preferredKey ? [preferredKey] : [];
+  const configured = defaultModelConfigs.map(({ modelKey }) => modelKey);
+  const keys = preferredKey && configured.includes(preferredKey) ? [preferredKey] : [];
 
-  for (const modelKey of [...GEMINI_FALLBACK_CHAIN, ...configured]) {
-    if (configured.has(modelKey) && !keys.includes(modelKey)) {
+  for (const modelKey of configured) {
+    if (!keys.includes(modelKey)) {
       keys.push(modelKey);
     }
   }

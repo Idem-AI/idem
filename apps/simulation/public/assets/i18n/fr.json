@@ -91,14 +91,15 @@
       "project": "Un projet IDEM",
       "projectBody": "Le business plan, l'analyse de marché et les prévisions financières sont déjà disponibles. Tarif préférentiel.",
       "import": "Mon business plan",
-      "importBody": "Importez un document existant. Le moteur en extrait l'activité, le marché, le modèle économique et les coûts.",
+      "importBody": "Importez votre business plan. Le moteur en extrait l'activité, le marché, le modèle économique et les coûts — et crée le projet IDEM correspondant.",
       "noProjects": "Aucun projet IDEM disponible sur ce compte.",
       "assets": "{{count}} livrables",
       "dropFile": "Choisir un fichier",
-      "formats": "PDF, DOCX, Markdown ou texte",
+      "formats": "PDF, Word (.docx) ou Markdown — 20 Mo maximum",
       "signInHeading": "Connectez-vous pour voir vos projets",
       "signInBody": "La liste de vos projets IDEM demande votre compte. Vous pouvez aussi importer un business plan sans compte, et vous connecter au moment de lancer l'analyse.",
-      "replaceFile": "Cliquez pour remplacer le document"
+      "replaceFile": "Cliquez pour remplacer le document",
+      "unsupportedFormat": "Format non pris en charge. Importez votre business plan en PDF, Word (.docx) ou Markdown (.md)."
     },
     "analyse": "Analyser le projet",
     "analysing": "Lecture du projet en cours",

@@ -1,0 +1,41 @@
+<section class="py-24 lg:py-32">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6">
+    <div class="grid items-center gap-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-16">
+      <figure class="relative order-2 h-[22rem] overflow-hidden rounded-3xl border border-[var(--glass-border)] sm:h-[26rem] lg:order-1 lg:h-[32rem]">
+        <img
+          ngSrc="/assets/images/features-component/entrepreneur-working.webp"
+          fill
+          sizes="(max-width: 1024px) 100vw, 40vw"
+          i18n-alt="@@simulation.wall.image.alt"
+          alt="An entrepreneur working through the many variables of her project"
+          class="object-cover"
+        />
+        <div class="absolute inset-0 bg-linear-to-t from-black/85 via-black/35 to-transparent" aria-hidden="true"></div>
+        <figcaption class="absolute inset-x-0 bottom-0 p-6 sm:p-8">
+          <p class="text-4xl font-bold leading-none text-white sm:text-5xl" i18n="@@simulation.wall.badge.value">60+</p>
+          <p class="mt-2 max-w-xs text-sm leading-relaxed text-white/80" i18n="@@simulation.wall.badge.label">
+            factors typically identified on a single project, before a single scenario is run.
+          </p>
+        </figcaption>
+      </figure>
+
+      <div class="order-1 lg:order-2">
+        <h2 class="max-w-3xl text-3xl font-bold leading-tight text-balance text-text-primary sm:text-4xl lg:text-5xl" i18n="@@simulation.wall.title">
+          A business does not run on five variables
+        </h2>
+        <p class="mt-5 max-w-2xl text-lg leading-relaxed text-pretty text-text-secondary" i18n="@@simulation.wall.body">
+          It runs on dozens, sometimes hundreds of factors, and they are never quite the same from one project to the next.
+        </p>
+
+        <ul class="mt-10 flex flex-wrap gap-x-3 gap-y-2.5" aria-label="Example factors" i18n-aria-label="@@simulation.wall.listLabel">
+          @for (factor of factorWall; track factor) {
+            <li class="rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] px-3.5 py-1.5 text-sm text-text-secondary transition-colors hover:border-accent-500/50 hover:text-text-primary">
+              {{ factor }}
+            </li>
+          }
+          <li class="rounded-full px-3.5 py-1.5 text-sm text-text-tertiary" i18n="@@simulation.wall.more">and many more, depending on your sector</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
