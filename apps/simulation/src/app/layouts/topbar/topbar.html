@@ -18,12 +18,13 @@
 
     <!-- Marque : le logo IDEM, puis le nom du produit. -->
     <a routerLink="/" class="flex shrink-0 items-center gap-2.5 pl-1 pr-2" (click)="closeMenus()">
-      <!-- Deux fichiers plutôt qu'un filtre : le logo blanc filtré devenait
-           illisible sur fond clair. -->
+      <!-- Deux fichiers plutôt qu'un filtre : le mot « IDEM » est encré dans
+           l'image, un filtre ne peut pas le recolorer sans abîmer l'icône.
+           Chaque fichier est nommé d'après le fond qu'il vise. -->
       @if (onLightTheme()) {
         <img
-          ngSrc="/assets/icons/idem-logo.png"
-          width="1383"
+          ngSrc="/assets/icons/logo_white.png"
+          width="1252"
           height="512"
           priority
           alt="IDEM"
@@ -31,17 +32,15 @@
         />
       } @else {
         <img
-          ngSrc="/assets/icons/logo_white.png"
-          width="512"
-          height="262"
+          ngSrc="/assets/icons/logo_dark.png"
+          width="1252"
+          height="512"
           priority
           alt="IDEM"
           class="h-6 w-auto"
         />
       }
-      <!-- Sous `sm`, le logo suffit à l'identité : le nom du produit prenait la
-           largeur dont le sélecteur de projet a besoin. -->
-      <span class="hidden text-label font-semibold tracking-tight text-ink sm:block">Simulator</span>
+      <span class="text-label font-semibold tracking-tight text-ink">Simulator</span>
     </a>
 
     @if (projectPickerVisible() && authenticated()) {
