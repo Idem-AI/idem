@@ -65,75 +65,76 @@ const READING_DIRECTIONS = [
  * condition pour que les livrables d'un même projet se ressemblent.
  */
 export const ARCHETYPE_CATALOG: Record<string, string> = {
-  A: "EDITORIAL SPLIT — l'image occupe 60-70% du cadre, un aplat plein tient le reste. Le titre déborde sur l'image. La coupe est irrégulière (inclinée de 5 à 15°), jamais une verticale.",
-  B: "FULL BLEED CINEMATIC — l'image couvre tout le cadre. Une forme géométrique semi-opaque ancre le titre. Sensation d'affiche.",
-  C: 'TYPOGRAPHIC DOMINANT — des mots démesurés, ajourés, occupent 40 à 60% du cadre. L\'image apparaît à travers les lettres (superposition, mix-blend-mode: multiply). Le reste au minimum.',
-  D: "SWISS BRUTALIST — grille modulaire stricte révélée par des filets épais (3-6px). Un nombre ou un label surdimensionné comme graphisme principal. Base monochrome + un accent vif. Image recadrée dans une forme géométrique.",
-  E: "LUXURY MINIMAL — espace négatif maximal (50 à 65%). L'image occupe au plus 35%, décalée vers un angle. Titre fin en capitales très espacées (0.3 à 0.5em). Un filet d'1px.",
-  F: "LAYERED DEPTH — la même image utilisée trois fois : pleine page à 8% d'opacité (fond), recadrée à 40% (plan médian), nette à 100% (premier plan, décalé). Le texte flotte entre les couches.",
-  G: 'NEWSPAPER GRID — bandeau de titre épais en haut. Contenu en 2 ou 3 colonnes séparées par des filets. Le titre court sur toute la largeur.',
-  H: "FRAGMENTED MOSAIC — l'image découpée en 3 à 5 fragments (div absolus, overflow-hidden, rotation ±3 à 8°). Les fragments se chevauchent. Le texte occupe les interstices.",
-  I: "NEON GLOW DARK — fond très sombre. Une couleur primaire à pleine intensité avec halo (text-shadow 0 0 10px, 30px, 60px). L'image reçoit un voile sombre à 50%.",
-  J: "ISOMETRIC FRAME — un cadre géométrique (hexagone, parallélogramme) contient l'image. Fond en aplat de marque. Le titre épouse le cadre.",
-  K: 'HALFTONE EDITORIAL — trame de points (radial-gradient) à 20% d\'opacité. Titre en slab-serif condensée. Trois couleurs maximum.',
-  L: "DATA POSTER — un nombre ou une statistique en très gros (30 à 40% du cadre) chevauchant l'image. Écriture infographique contemporaine.",
+  A: 'EDITORIAL SPLIT — the image bleeds across 60-70% of the frame, a solid flat holds the rest. The headline bleeds onto the image. The split is irregular (angled 5 to 15°), never a plain vertical.',
+  B: 'FULL BLEED CINEMATIC — the image covers the whole frame. A semi-opaque geometric shape anchors the headline. Poster feeling.',
+  C: 'TYPOGRAPHIC DOMINANT — oversized outlined words fill 40 to 60% of the frame. The image shows through the letters (layering, mix-blend-mode: multiply). Everything else kept to a minimum.',
+  D: 'SWISS BRUTALIST — a strict modular grid revealed by thick rules (3-6px). An oversized number or label as the primary graphic. Monochrome base plus one vivid accent. Image cropped into a geometric shape.',
+  E: 'LUXURY MINIMAL — maximum negative space (50 to 65%). The image occupies at most 35%, offset towards a corner. Thin uppercase headline with extreme letter-spacing (0.3 to 0.5em). One 1px hairline rule.',
+  F: 'LAYERED DEPTH — the same image used three times: full bleed at 8% opacity (background), cropped at 40% (mid ground), sharp at 100% (foreground, offset). Text floats between the layers.',
+  G: 'NEWSPAPER GRID — a heavy masthead bar across the top. Content below in 2 or 3 columns separated by rules. The headline spans the full width.',
+  H: 'FRAGMENTED MOSAIC — the image cut into 3 to 5 fragments (absolute divs, overflow-hidden, rotated ±3 to 8°). Fragments overlap. Text lives in the gaps.',
+  I: 'NEON GLOW DARK — a very dark canvas. One primary colour at full intensity with a glow (text-shadow 0 0 10px, 30px, 60px). The image carries a 50% dark overlay.',
+  J: 'ISOMETRIC FRAME — a geometric frame (hexagon, parallelogram) contains the image. Flat brand-colour ground. The headline follows the frame.',
+  K: 'HALFTONE EDITORIAL — a halftone dot overlay (radial-gradient) at 20% opacity. Condensed slab-serif headline. Three colours maximum.',
+  L: 'DATA POSTER — one number or statistic set very large (30 to 40% of the frame) overlapping the image. Contemporary infographic writing.',
 };
 
 export const COLOR_STRATEGY_CATALOG: Record<string, string> = {
   MONOCHROME_ACCENT:
-    'Quasi-noir + quasi-blanc + exactement un accent de la marque. Base en niveaux de gris.',
+    'Near-black + near-white + exactly one brand accent. Greyscale base.',
   SPLIT_COMPLEMENTARY:
-    "Primaire de la marque + deux teintes de l'image approximativement complémentaires adjacentes.",
-  DUOTONE: 'Deux couleurs seulement. Traiter l\'image en filter: sepia(1) hue-rotate(Xdeg) saturate(Y).',
+    'The brand primary plus two tones from the image, roughly split-complementary to it.',
+  DUOTONE:
+    'Two colours only. Treat the image with filter: sepia(1) hue-rotate(Xdeg) saturate(Y).',
   IMAGE_EXTRACTED:
-    "Deux ou trois teintes dominantes de l'image. La couleur de marque est réservée à un seul accent (un filet, un mot, la zone du logo).",
+    'Two or three dominant tones from the image. The brand colour is reserved for a single accent (a rule, a word, the logo zone).',
   INVERSE:
-    'Zone de contraste géométrique franche. Image sombre → bloc de texte clair ; image claire → bloc de texte sombre.',
-  BRAND_FULL: 'Primaire, secondaire et accent de la marque, chacune sur une zone distincte.',
+    'A hard geometric contrast zone. Dark image → light text block; light image → dark text block.',
+  BRAND_FULL: 'Brand primary, secondary and accent, each owning a distinct zone.',
 };
 
 export const TYPOGRAPHY_MOOD_CATALOG: Record<string, string> = {
-  CONDENSED_TOWER: 'Titre étroit et haut. Mots empilés verticalement, interlignage quasi nul.',
+  CONDENSED_TOWER: 'Tall narrow headline. Words stacked vertically with near-zero leading.',
   WIDE_WHISPER:
-    "Un mot-clé en petit corps (24px) mais avec un interlettrage de 0.6em qui court sur toute la largeur.",
-  WEIGHT_CLASH: 'Titre massif en black (140px+) contre un sous-titre très fin (20px) en dessous.',
+    'One key word at a small size (24px) but with 0.6em tracking, running the full width.',
+  WEIGHT_CLASH: 'Massive black headline (140px+) against a very thin subheadline (20px) below it.',
   SINGLE_LETTER_ANCHOR:
-    "Une lettre démesurée (300px+) en graphisme de fond, à 15-25% d'opacité.",
+    'One oversized letter (300px+) as a background graphic at 15-25% opacity.',
   ALL_LOWERCASE_INTIMATE:
-    'Tout en bas de casse. Titre à 72px, interlettrage serré. Aucune capitale.',
+    'Everything in lowercase. Headline at 72px with tight tracking. No capitals at all.',
   ROTATED_AXIS:
-    "Un texte-clé pivoté de 90° dans le sens antihoraire, courant du bas vers le haut le long d'un bord.",
-  OUTLINE_FILLED_MIX: 'Dans le titre, alternance de mots ajourés et de mots pleins.',
-  STAGGERED_INDENT: 'Indentation progressive en escalier des lignes du titre.',
+    'One key text rotated 90° counter-clockwise, running bottom-to-top along an edge.',
+  OUTLINE_FILLED_MIX: 'Within the headline, alternate outlined and solid words.',
+  STAGGERED_INDENT: 'Progressive staircase indentation of the headline lines.',
 };
 
 export const LAYOUT_TENSION_CATALOG: Record<string, string> = {
-  TEXT_ESCAPES_BOUNDS: 'Le titre déborde de son conteneur de 5 à 15% par marges négatives.',
-  DIAGONAL_FLOW: 'transform: rotate(10-20deg) sur un élément-clé. Tout le reste s\'aligne dessus.',
-  RULE_HEAVY: 'Au moins trois filets (2 à 6px) découpent le cadre.',
-  NEGATIVE_SPACE_HERO: '60% du cadre au moins reste vide. La zone occupée est très travaillée.',
-  CORNER_ANCHOR: 'Tous les éléments tirés vers un même angle. L\'angle opposé reste vide.',
-  FULL_BLEED_EDGE: 'Les zones de couleur ou d\'image touchent tous les bords. Aucune marge.',
-  FRAME_WITHIN_FRAME: 'Bordure intérieure (1-2px) en retrait de 20 à 30px du bord du cadre.',
-  COLLAGE_LAYER: 'Au moins quatre éléments absolus superposés, à des opacités variées.',
+  TEXT_ESCAPES_BOUNDS: 'The headline overflows its container by 5 to 15% through negative margins.',
+  DIAGONAL_FLOW: 'transform: rotate(10-20deg) on one key element. Everything else aligns to it.',
+  RULE_HEAVY: 'At least three rules (2 to 6px) divide the frame.',
+  NEGATIVE_SPACE_HERO: 'At least 60% of the frame stays empty. The occupied zone is highly refined.',
+  CORNER_ANCHOR: 'Every element pulled towards one corner. The opposite corner stays empty.',
+  FULL_BLEED_EDGE: 'Colour or image zones touch all four edges. No margins.',
+  FRAME_WITHIN_FRAME: 'An inset border (1-2px) set 20 to 30px inside the frame.',
+  COLLAGE_LAYER: 'At least four overlapping absolute elements at varying opacities.',
 };
 
 export const GRAPHIC_ACCENT_CATALOG: Record<string, string> = {
-  GEOMETRIC_SHAPE: 'Un cercle, un triangle ou un polygone franc comme élément décoratif.',
-  THICK_UNDERLINE: 'Un soulignement ou surlignement épais (8-12px) sur le titre.',
-  DOT_CLUSTER: 'De petits points dispersés dans l\'espace négatif.',
-  OVERSIZED_PUNCTUATION: 'Un guillemet, une esperluette ou une barre oblique démesurés en décor.',
-  GRADIENT_WASH: 'Un voile dégradé discret sur une seule zone du cadre.',
-  NONE: 'Aucun ajout : la typographie et l\'image portent seules la composition.',
-  BORDER_ACCENT: 'Bordure épaisse sur un ou deux côtés seulement.',
-  PATTERN_STRIP: 'Une bande fine de motif géométrique répété.',
+  GEOMETRIC_SHAPE: 'A bold circle, triangle or polygon as a decorative element.',
+  THICK_UNDERLINE: 'A heavy underline or overline on the headline (8-12px).',
+  DOT_CLUSTER: 'Small dots scattered through the negative space.',
+  OVERSIZED_PUNCTUATION: 'An oversized quotation mark, ampersand or slash used as decoration.',
+  GRADIENT_WASH: 'A discreet gradient wash over a single zone of the frame.',
+  NONE: 'Nothing added: typography and image carry the composition alone.',
+  BORDER_ACCENT: 'A thick border on one or two sides only.',
+  PATTERN_STRIP: 'A thin strip of repeating geometric pattern.',
 };
 
 export const CONTENT_DENSITY_CATALOG: Record<string, string> = {
-  MINIMAL: 'Titre + image + signature de marque. Presque aucun texte courant.',
-  BALANCED: 'Titre, texte court, informations factuelles. Densité standard.',
-  EDITORIAL: 'Titre, sous-titre, paragraphe, mentions. Plus de texte.',
-  TYPE_HEAVY: 'Le texte EST le graphisme. De grands blocs typographiques.',
+  MINIMAL: 'Headline + image + brand signature. Almost no running text.',
+  BALANCED: 'Headline, short copy, factual information. Standard density.',
+  EDITORIAL: 'Headline, subheadline, paragraph, fine print. More text.',
+  TYPE_HEAVY: 'Text IS the graphic design. Large typographic blocks.',
 };
 
 /**
@@ -201,16 +202,16 @@ export function buildDesignSeed(styleId?: string | null, entropyKey?: string): D
  */
 export function describeSeed(seed: DesignSeed): string {
   const line = (label: string, key: string, catalog: Record<string, string>) =>
-    `- ${label}: ${key} — ${catalog[key] || 'libre'}`;
+    `- ${label}: ${key} — ${catalog[key] || 'free'}`;
   return [
-    line('Archétype de mise en page', seed.archetype, ARCHETYPE_CATALOG),
-    line('Stratégie de couleur', seed.colorStrategy, COLOR_STRATEGY_CATALOG),
-    line('Humeur typographique', seed.typographyMood, TYPOGRAPHY_MOOD_CATALOG),
-    line('Tension spatiale', seed.layoutTension, LAYOUT_TENSION_CATALOG),
-    line('Accent graphique', seed.graphicAccent, GRAPHIC_ACCENT_CATALOG),
-    line('Densité de contenu', seed.contentDensity, CONTENT_DENSITY_CATALOG),
-    `- Rythme spatial: multiplier les unités d'espacement de base par ${seed.spacingMultiplier}.`,
-    `- Position de l'image: ${seed.imagePosition}.`,
-    `- Sens de lecture: ${seed.readingDirection}.`,
+    line('Layout archetype', seed.archetype, ARCHETYPE_CATALOG),
+    line('Colour strategy', seed.colorStrategy, COLOR_STRATEGY_CATALOG),
+    line('Typographic mood', seed.typographyMood, TYPOGRAPHY_MOOD_CATALOG),
+    line('Spatial tension', seed.layoutTension, LAYOUT_TENSION_CATALOG),
+    line('Graphic accent', seed.graphicAccent, GRAPHIC_ACCENT_CATALOG),
+    line('Content density', seed.contentDensity, CONTENT_DENSITY_CATALOG),
+    `- Spatial rhythm: multiply the base spacing unit by ${seed.spacingMultiplier}.`,
+    `- Image position: ${seed.imagePosition}.`,
+    `- Reading direction: ${seed.readingDirection}.`,
   ].join('\n');
 }

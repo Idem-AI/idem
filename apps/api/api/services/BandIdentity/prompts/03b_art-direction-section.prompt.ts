@@ -11,43 +11,43 @@
  * l'écart entre les deux se voit immédiatement.
  */
 
-export const ART_DIRECTION_SECTION_PROMPT = `<role>Directeur artistique rédigeant la page de direction artistique d'une charte graphique haut de gamme.</role>
-<objective>Composer UNE page pleine présentant la direction artistique de la marque : le parti pris, sa grammaire, et la démonstration visuelle de ce parti pris.</objective>
+export const ART_DIRECTION_SECTION_PROMPT = `<role>Art director writing the art-direction page of a high-end brand guidelines document.</role>
+<objective>Compose ONE full page presenting the brand's art direction: the stance, its grammar, and the visual demonstration of that stance.</objective>
 
 <critical_rule>
-Cette page doit ÊTRE ce qu'elle décrit. Le style annoncé dans le bloc <art_direction> ci-dessous doit être appliqué à la composition de la page elle-même : sa grille, son rayon de bordure, ses filets, son traitement de la couleur, son contraste typographique. Une page qui décrit le Design Suisse en cartes arrondies avec ombres portées se disqualifie seule.
+This page must BE what it describes. The style announced in the <art_direction> block below must be applied to the composition of the page itself: its grid, its border radius, its rules, its colour handling, its typographic contrast. A page that describes Swiss Design using rounded cards with drop shadows disqualifies itself.
 </critical_rule>
 
 <page_content>
-1. Titre de section : « Direction Artistique ».
-2. Le parti pris : le nom du style et sa formule courte, traités comme l'élément typographique dominant de la page.
-3. La justification : 2 à 3 phrases expliquant pourquoi ce parti pris pour cette marque.
-4. Le moodboard typographique : les mots-clés de la direction, composés comme un objet graphique (échelles contrastées, alignements travaillés), et NON comme une liste à puces.
-5. Les principes de composition : grille, densité, espace négatif, geste signature — 4 entrées courtes, chacune illustrée par une petite démonstration graphique construite en HTML/CSS (un fragment de grille, un rapport d'espace, une amorce de composition). Pas une icône, pas un émoji : une vraie démonstration en blocs.
-6. Le traitement de l'image : une phrase sur le médium, le traitement et la lumière, accompagnée de 2 rectangles de démonstration montrant le traitement appliqué (voile de couleur, duotone, recadrage) — construits en CSS, sans image externe.
-7. Une bande « À faire / À proscrire » : 3 + 3 entrées, courtes et impératives.
+1. Section title: "Direction Artistique".
+2. The stance: the style name and its short formula, treated as the dominant typographic element of the page.
+3. The rationale: 2 to 3 sentences explaining why this stance for this brand.
+4. The typographic moodboard: the direction's keywords, composed as a graphic object (contrasting scales, worked alignments) and NOT as a bulleted list.
+5. The composition principles: grid, density, negative space, signature gesture — 4 short entries, each illustrated by a small graphic demonstration built in HTML/CSS (a fragment of grid, a space ratio, the start of a composition). Not an icon, not an emoji: a real demonstration in blocks.
+6. The image treatment: one sentence on the medium, the treatment and the light, accompanied by 2 demonstration rectangles showing the treatment applied (colour overlay, duotone, crop) — built in CSS, with no external image.
+7. A "Do / Don't" band: 3 + 3 entries, short and imperative.
 </page_content>
 
 <craft_requirements>
-- Trois niveaux typographiques au minimum, séparés par des écarts francs. Le nom du style est le plus gros élément de la page après rien.
-- Aucune rangée de blocs identiques : les zones ont des tailles différentes parce que leur importance diffère.
-- La couleur ne sert qu'à hiérarchiser, jamais à décorer.
-- Les démonstrations graphiques sont construites en div/CSS (aplats, filets, dégradés si le style les autorise) : aucune image externe, aucun placeholder gris.
+- Three typographic levels minimum, separated by decisive jumps. The style name is the largest element on the page.
+- No row of identical blocks: zones have different sizes because their importance differs.
+- Colour is used to build hierarchy, never to decorate.
+- The graphic demonstrations are built from div/CSS (flats, rules, gradients where the style allows them): no external image, no grey placeholder.
 </craft_requirements>
 
 <page_format>
-- Conteneur externe : w-[297mm] h-[167mm] overflow-hidden relative (Landscape 16:9, hauteur EXACTE h-[167mm] — le contenu DOIT tenir dans cette page unique, sans débordement ni défilement. Si c'est trop long, raccourcir ou réduire le corps, jamais dépasser).
-- Padding interne de sécurité : p-[12mm].
+- Outermost container: w-[297mm] h-[167mm] overflow-hidden relative (Landscape 16:9, EXACT height h-[167mm] — the content MUST fit within this single page, with no overflow and no scroll. If it is too long, shorten it or reduce the body size; never exceed the page).
+- Internal safe padding: p-[12mm].
 </page_format>
 
 <technical_rules>
-- Sortie : UNIQUEMENT du HTML brut + classes Tailwind, sur une seule ligne minifiée.
-- PrimeIcons (pi pi-nom) préchargés, aucun CDN externe.
-- Couleurs : uniquement les valeurs hexadécimales de la charte (bg-[#hex], text-[#hex]).
-- Polices : uniquement les deux familles de la charte, via style="font-family: '[NomPolice]', sans-serif".
-- Tout le texte en français. Contraste WCAG AA.
-- Pas de CSS custom, pas de JS, pas de balise <style>.
-- Ne pas produire de bloc markdown (\`\`\`html) ni de préfixe « html ».
+- Output ONLY raw HTML + Tailwind CSS utilities in a single minified line.
+- PrimeIcons (pi pi-icon-name) are preloaded, no external CDN.
+- Colours: only the charter hex values (bg-[#hex], text-[#hex]).
+- Typefaces: only the two charter families, via style="font-family: '[FontName]', sans-serif".
+- All visible text in French. Ensure WCAG AA contrast.
+- No custom CSS, no JS, no <style> tag.
+- Do NOT output markdown code blocks (e.g. \`\`\`html) or prefix with "html".
 </technical_rules>
 
 <editor_compatibility>

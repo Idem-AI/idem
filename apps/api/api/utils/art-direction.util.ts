@@ -19,7 +19,7 @@ import {
 /** Rendu compact d'une liste, sans laisser de puce vide. */
 function bullets(items?: string[]): string {
   const clean = (items || []).map((i) => (i || '').trim()).filter(Boolean);
-  return clean.length ? clean.map((i) => `- ${i}`).join('\n') : '- (non spécifié)';
+  return clean.length ? clean.map((i) => `- ${i}`).join('\n') : '- (not specified)';
 }
 
 export interface ArtDirectionBlockOptions {
@@ -35,15 +35,15 @@ export interface ArtDirectionBlockOptions {
 
 const MEDIUM_NOTE: Record<string, string> = {
   poster:
-    "Support : AFFICHE. Une seule idée, lisible à deux mètres. La direction artistique s'exprime à plein — le geste de composition signature doit être visible immédiatement.",
+    'Medium: POSTER. One idea, readable from two metres away. The art direction expresses itself at full strength — the signature compositional gesture must be visible immediately.',
   document:
-    "Support : DOCUMENT paginé. La direction artistique s'exprime par la constance : même grille, même rayon de bordure, même traitement des filets et des images sur toutes les pages. Les gestes spectaculaires sont réservés à la couverture et aux ouvertures de section.",
+    'Medium: PAGINATED DOCUMENT. The art direction expresses itself through consistency: the same grid, the same border radius, the same treatment of rules and images on every page. Spectacular gestures are reserved for the cover and for section openers.',
   slide:
-    "Support : DIAPOSITIVE. Un message par écran. La direction artistique porte le fond, la structure et le traitement des images ; le contenu reste lisible de loin.",
+    'Medium: SLIDE. One message per screen. The art direction drives the ground, the structure and the image treatment; the content stays readable from a distance.',
   web:
-    "Support : INTERFACE WEB. La direction artistique fixe la grille, le rayon, les ombres, l'échelle typographique et le traitement des images. Elle ne dispense pas des règles d'accessibilité ni des états d'interaction.",
+    'Medium: WEB INTERFACE. The art direction sets the grid, the radius, the shadows, the type scale and the image treatment. It does not exempt you from accessibility rules or interaction states.',
   mockup:
-    "Support : MISE EN SITUATION PHOTORÉALISTE. La direction artistique pilote la lumière, la matière, le cadrage et l'étalonnage de la photo — pas le sujet, qui est imposé par le support à présenter.",
+    'Medium: PHOTOREALISTIC MOCKUP. The art direction drives the light, the material, the framing and the grading of the photograph — not the subject, which is imposed by the support being shown.',
 };
 
 /**
@@ -64,54 +64,54 @@ export function buildArtDirectionBlock(
   const sheet = options.includeStyleSheet === false ? '' : buildStyleSheet(style.id);
 
   return `<art_direction>
-La direction artistique de cette marque est FIXÉE. Elle n'est pas une suggestion et elle prime sur toute habitude de composition : deux livrables de cette marque doivent se reconnaître entre eux.
+This brand's art direction is SETTLED. It is not a suggestion and it overrides every composition habit: two deliverables of this brand must recognise each other.
 
-Direction retenue : ${ad.styleName || style.name} — « ${ad.tagline || style.essence} »
-Pourquoi ce parti pris pour cette marque : ${ad.rationale || style.essence}
-Mots-clés de moodboard : ${(ad.keywords || []).join(', ') || style.essence}
+Direction: ${ad.styleName || style.name} — "${ad.tagline || style.essence}"
+Why this stance for this brand: ${ad.rationale || style.essence}
+Moodboard keywords: ${(ad.keywords || []).join(', ') || style.essence}
 ${medium ? `\n${medium}\n` : ''}
 ${sheet ? `<style_sheet>\n${sheet}\n</style_sheet>\n` : ''}
 <composition>
-- Grille : ${ad.layout?.grid || style.layout}
-- Densité : ${ad.layout?.density || 'équilibrée'}
-- Espace négatif : ${ad.layout?.whitespace || 'marges généreuses et régulières'}
-- Geste de composition signature (doit être visible) : ${ad.layout?.signatureMove || 'un recadrage ou un débord assumé'}
+- Grid: ${ad.layout?.grid || style.layout}
+- Density: ${ad.layout?.density || 'balanced'}
+- Negative space: ${ad.layout?.whitespace || 'generous, even margins'}
+- Signature compositional gesture (must be visible): ${ad.layout?.signatureMove || 'a deliberate crop or bleed'}
 </composition>
 
 <color_usage>
-- Répartition : ${ad.color?.distribution || '60 / 30 / 10'}
-- Application : ${ad.color?.application || style.color}
-- Contraste recherché : ${ad.color?.contrast || 'franc, jamais timide'}
-Aucune couleur hors palette de la charte. Les nuances se font en opacité, jamais en changeant de teinte.
+- Distribution: ${ad.color?.distribution || '60 / 30 / 10'}
+- Application: ${ad.color?.application || style.color}
+- Contrast sought: ${ad.color?.contrast || 'decisive, never timid'}
+No colour outside the charter palette. Tints come from opacity, never from a hue shift.
 </color_usage>
 
 <typography_usage>
-- Contraste d'échelle : ${ad.typography?.scaleContrast || `rapport ${style.typeRatio} entre deux niveaux consécutifs, trois niveaux minimum`}
-- Casse et interlettrage : ${ad.typography?.caseAndTracking || style.typography}
-- Traitement particulier : ${ad.typography?.treatment || 'aucun effet qui ne serve la hiérarchie'}
-Seules les deux familles de la charte sont autorisées.
+- Scale contrast: ${ad.typography?.scaleContrast || `a ratio of ${style.typeRatio} between two consecutive levels, three levels minimum`}
+- Case and tracking: ${ad.typography?.caseAndTracking || style.typography}
+- Specific treatment: ${ad.typography?.treatment || 'no effect that does not serve the hierarchy'}
+Only the two charter typefaces are allowed.
 </typography_usage>
 
 <imagery>
-- Médium : ${ad.imagery?.medium || style.imagery}
-- Sujets : ${ad.imagery?.subjects || 'liés à l\'activité réelle de la marque'}
-- Traitement : ${ad.imagery?.treatment || style.imagery}
-- Lumière : ${ad.imagery?.lighting || 'cohérente sur tous les visuels de la marque'}
-- Cadrage : ${ad.imagery?.framing || 'constant d\'un visuel à l\'autre'}
-Toutes les images d'un même livrable partagent ce traitement : une photo non traitée au milieu de photos traitées ruine la direction.
+- Medium: ${ad.imagery?.medium || style.imagery}
+- Subjects: ${ad.imagery?.subjects || "the brand's actual activity"}
+- Treatment: ${ad.imagery?.treatment || style.imagery}
+- Lighting: ${ad.imagery?.lighting || 'consistent across every visual of the brand'}
+- Framing: ${ad.imagery?.framing || 'consistent from one visual to the next'}
+Every image in a given deliverable shares this treatment: one untreated photograph among treated ones destroys the direction.
 </imagery>
 
 <graphic_devices>
 ${bullets(ad.graphicDevices?.length ? ad.graphicDevices : [style.devices])}
-Rayon de bordure : ${style.radius}px, le même sur TOUS les éléments.
-Filets : ${style.borders}
-Ombres : ${style.shadows}
+Border radius: ${style.radius}px, the same on EVERY element.
+Rules: ${style.borders}
+Shadows: ${style.shadows}
 </graphic_devices>
 
 <art_direction_rules>
-À FAIRE :
+DO:
 ${bullets(ad.dos)}
-À NE PAS FAIRE :
+DO NOT:
 ${bullets(ad.donts?.length ? ad.donts : style.bans)}
 </art_direction_rules>
 </art_direction>`;
@@ -152,5 +152,5 @@ export function buildImageNegativePrompt(ad?: ArtDirectionModel | null): string 
 export function summarizeArtDirection(ad?: ArtDirectionModel | null): string {
   if (!ad || !ad.styleId) return '';
   const style = ART_DIRECTION_STYLES[ad.styleId];
-  return `${ad.styleName || style?.name || ad.styleId} — ${ad.tagline || style?.essence || ''} (mots-clés: ${(ad.keywords || []).slice(0, 6).join(', ')})`;
+  return `${ad.styleName || style?.name || ad.styleId} — ${ad.tagline || style?.essence || ''} (keywords: ${(ad.keywords || []).slice(0, 6).join(', ')})`;
 }

@@ -1,38 +1,38 @@
 export const MOCKUPS_COUNT = 2;
 
-export const MOCKUPS_SECTION_PROMPT = `<role>Directeur artistique spécialisé en mise en situation de marque.</role>
-<objective>Créer une page de secours (fallback) présentant les applications de la marque (mockups) sur des supports de communication professionnels adaptés à l'industrie du projet.</objective>
+export const MOCKUPS_SECTION_PROMPT = `<role>Art director specialised in staging brands on real-world supports.</role>
+<objective>Create a fallback page presenting the brand's applications (mockups) on professional communication supports relevant to the project's industry.</objective>
 
 <fallback_notice>
-Cette page est un fallback si la génération d'images photoréalistes échoue. Les vraies images de mockups seront générées séparément. Votre rôle est de préparer le layout avec descriptions textuelles.
+This page is a fallback used when photorealistic image generation fails. The real mockup images are produced separately. Your job here is to prepare the layout with textual descriptions.
 </fallback_notice>
 
 <industry_options>
-Sélectionner des supports pertinents selon l'industrie :
-- Textiles : T-shirt, polo, tablier.
-- Bureau/Papeterie : Carte de visite premium, papier à en-tête, carnet.
-- Packaging : Boîte produit, sachet, étiquette.
-- Signalétique : Enseigne, vitrine, véhicule brandé.
-- Digital : Écran laptop/mobile, interface web.
-- Événementiel : Stand, kakémono, goodies.
+Select supports relevant to the industry:
+- Textiles: t-shirt, polo, apron.
+- Office / stationery: premium business card, letterhead, notebook.
+- Packaging: product box, pouch, label.
+- Signage: shopfront sign, window, branded vehicle.
+- Digital: laptop or mobile screen, web interface.
+- Events: booth, roll-up banner, merchandise.
 </industry_options>
 
 <page_content>
-1. Titre de section adapté (ex: "Applications de Marque").
-2. Exactement \${MOCKUPS_COUNT} zones visuelles de mockups utilisant les couleurs de la marque (bg-[#hex]).
-3. Section "Principes d'Application" en bas (3 règles courtes).
+1. An apt section title (e.g. "Applications de Marque").
+2. Exactly \${MOCKUPS_COUNT} mockup zones using the brand colours (bg-[#hex]).
+3. An "Application principles" section at the bottom (3 short rules).
 </page_content>
 
 <page_format>
-- Conteneur : w-[297mm] h-[167mm] overflow-hidden relative (Landscape 16:9, h-[167mm], pas de min-h-screen).
-- Padding interne : p-[12mm].
+- Container: w-[297mm] h-[167mm] overflow-hidden relative (Landscape 16:9, h-[167mm], no min-h-screen).
+- Internal padding: p-[12mm].
 </page_format>
 
 <technical_rules>
-- Sortie : UNIQUEMENT du HTML brut + classes Tailwind CSS sur une seule ligne minifiée.
-- Pas de CSS custom, pas de JS.
-- Texte entièrement en français.
-- Ne pas ajouter de balises \`\`\`html ou de préfixes.
+- Output ONLY raw HTML + Tailwind CSS utility classes, in a single minified line.
+- No custom CSS, no JS.
+- All visible text in French.
+- Do NOT output markdown code blocks (e.g. \`\`\`html) or prefix with "html".
 </technical_rules>
 
 <editor_compatibility>

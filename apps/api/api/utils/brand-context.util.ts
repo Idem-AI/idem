@@ -103,33 +103,33 @@ export interface LogoBlockOptions {
  */
 export function buildLogoBlock(logo?: LogoModel | null, options?: LogoBlockOptions): string {
   const d = resolveLogoDeclensions(logo);
-  const placement = options?.placement || 'sur la couverture et en pied de chaque page';
-  const size = options?.size || 'assez grand pour être lu, jamais une vignette dans un coin';
+  const placement = options?.placement || 'on the cover and in the footer of every page';
+  const size = options?.size || 'large enough to be read, never a thumbnail in a corner';
 
   if (!d) {
     return `<logo>
-Cette marque n'a PAS de logo disponible. Ne pas en dessiner un, ne pas inventer d'URL, ne pas laisser d'emplacement vide : composer la signature de marque en TYPOGRAPHIE, avec le nom de la marque dans la police de titre de la charte.
+This brand has NO logo asset available. Do not draw one, do not invent a URL, do not leave an empty placeholder: set the brand signature TYPOGRAPHICALLY, with the brand name in the charter display typeface.
 </logo>`;
   }
 
   return `<logo>
-Le logo de la marque est fourni ci-dessous sous forme d'URLs d'images PRÊTES À L'EMPLOI. Il DOIT apparaître dans ce livrable : ${placement}.
+The brand logo is supplied below as READY-TO-USE image URLs. It MUST appear in this deliverable: ${placement}.
 
-Déclinaisons disponibles — chacune est nommée par la couleur de son ENCRE et par le fond auquel elle est destinée ; lire les deux avant de choisir :
-- Primaire (logo complet, par défaut) : ${d.primary}
-- Avec texte — encre SOMBRE, va SUR UN FOND CLAIR : ${d.withTextLight}
-- Avec texte — encre CLAIRE, va SUR UN FOND SOMBRE : ${d.withTextDark}
-- Avec texte — monochrome : ${d.withTextMono}
-- Icône seule — encre SOMBRE, sur fond clair : ${d.iconLight}
-- Icône seule — encre CLAIRE, sur fond sombre : ${d.iconDark}
-- Icône seule — monochrome (filigrane, motif, marque d'angle) : ${d.iconMono}
+Available declensions — each is named by the colour of its INK and by the background it is made for; read both before picking:
+- Primary (full logo, default): ${d.primary}
+- With text — DARK ink, goes ON A LIGHT background: ${d.withTextLight}
+- With text — LIGHT ink, goes ON A DARK background: ${d.withTextDark}
+- With text — monochrome: ${d.withTextMono}
+- Icon only — DARK ink, on a light background: ${d.iconLight}
+- Icon only — LIGHT ink, on a dark background: ${d.iconDark}
+- Icon only — monochrome (watermark, pattern, corner mark): ${d.iconMono}
 
-Règles d'emploi, non négociables :
-- Poser le logo comme <img src="URL_EXACTE" alt="logo ${logo?.name || 'de la marque'}" style="height:...;width:auto" />. Ne JAMAIS inventer d'URL, ne JAMAIS recopier de balisage SVG, ne JAMAIS écrire un chemin symbolique du type "branding.logo.url".
-- Choisir la déclinaison d'après la LUMINOSITÉ RÉELLE de la zone sur laquelle le logo est posé, pas d'après l'ambiance générale de la page. Zone claire → encre sombre. Zone sombre → encre claire. Une encre claire sur un fond clair fait disparaître la signature : c'est l'erreur la plus fréquente.
-- Si la zone sous le logo est chargée (photo, dégradé), déplacer le logo sur un aplat plutôt que d'espérer qu'il se lise.
-- Taille : ${size}. Conserver le rapport d'aspect (hauteur fixée, width:auto). Opacité pleine.
-- Réserver autour du logo un espace libre égal à la moitié de sa hauteur : aucun texte, aucun filet, aucun sujet d'image dans cette marge.
-- Ne jamais enfermer le logo dans une pastille pleine ni dans un bouton : c'est une signature.
+Usage rules, non negotiable:
+- Place the logo as <img src="EXACT_URL" alt="${logo?.name || 'brand'} logo" style="height:...;width:auto" />. NEVER invent a URL, NEVER paste raw SVG markup, NEVER write a symbolic path such as "branding.logo.url".
+- Pick the declension from the ACTUAL LUMINANCE of the zone the logo sits on, not from the overall mood of the page. Light zone → dark ink. Dark zone → light ink. Light ink on a light background makes the signature vanish: it is the single most frequent failure.
+- If the zone under the logo is busy (photo, gradient), move the logo onto a plain flat rather than hoping it will read.
+- Size: ${size}. Keep the aspect ratio (fixed height, width:auto). Full opacity.
+- Keep clear space around the logo equal to half its own height: no text, no rule, no image subject inside that margin.
+- Never enclose the logo in a filled pill or a button: it is a signature.
 </logo>`;
 }

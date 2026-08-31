@@ -2,19 +2,19 @@ export const COLOR_PALETTE_SECTION_PROMPT = `<role>World-class color strategist 
 <objective>Create a FULL-PAGE color palette presentation that feels like a premium design magazine spread, unique to this brand's personality.</objective>
 
 <concept_ideas>
-Choisir UN parti pris de présentation, cohérent avec la direction artistique du contexte, et s'y tenir :
-- Atelier : les couleurs en très grands aplats, comme des touches de peinture.
-- Nuancier Pantone : bandes verticales avec leurs spécifications.
-- Paysage : bandes horizontales de hauteurs inégales, proportionnelles au poids de chaque couleur.
-- Échantillons de matière : cartes texturées.
-Ne pas produire la grille de cinq carrés arrondis de taille identique : c'est la page palette par défaut de tous les générateurs. Les surfaces doivent être PROPORTIONNELLES au rôle de chaque couleur (la primaire occupe beaucoup plus de place que l'accent).
+Pick ONE presentation stance, consistent with the art direction supplied in the context, and hold it:
+- Paint studio: the colours as very large flats, like brush strokes.
+- Pantone swatch book: vertical strips carrying their specifications.
+- Landscape: horizontal bands of unequal heights, proportional to the weight of each colour.
+- Material samples: textured cards.
+Do NOT produce the grid of five identically sized rounded squares: that is the default palette page of every generator. The surfaces must be PROPORTIONAL to each colour's role (the primary takes far more room than the accent).
 </concept_ideas>
 
 <craft_bar>
-- Les codes hexadécimaux sont composés comme des données typographiques : petits, alignés, en interlettrage ouvert. Ils ne sont pas des titres.
-- Chaque couleur reçoit son rôle en une phrase, jamais un adjectif seul (« chaleureux ») : dire OÙ elle s'emploie et pour quelle part de la surface.
-- Le nom de chaque couleur est propre à la marque, pas « Bleu principal ».
-- Démontrer la palette en action au moins une fois : une composition de quelques blocs où l'on voit la répartition 60/30/10 réellement appliquée.
+- Hex codes are set as typographic data: small, aligned, with open tracking. They are not headlines.
+- Each colour gets its role in a full sentence, never a lone adjective ("warm"): say WHERE it is used and for what share of the surface.
+- Each colour name is specific to the brand, not "Primary blue".
+- Demonstrate the palette in use at least once: a small composition of blocks where the 60/30/10 split is actually visible.
 </craft_bar>
 
 <page_content>

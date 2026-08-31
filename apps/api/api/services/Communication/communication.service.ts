@@ -1444,13 +1444,13 @@ export class CommunicationService extends GenericService {
       // modèle ignore ce que « D » recouvre, et composait au jugé.
       ART_DIRECTION:
         buildArtDirectionBlock(context.artDirection, { medium: 'poster' }) ||
-        '(aucune direction artistique définie pour cette marque — composer selon la charte seule)',
+        '(no art direction defined for this brand — compose from the charter alone)',
       SEED_DIRECTIVES: describeSeed(seed),
       ANTI_SLOP: ANTI_SLOP_BLOCK,
       // Traitement d'image de la marque, à appliquer à la photo de fond.
       AD_IMAGE_TREATMENT:
         buildImageStyleModifier(context.artDirection) ||
-        'aucun traitement imposé — rester cohérent avec la charte',
+        'no mandated treatment — stay consistent with the charter',
 
       DESIGN_SEED: JSON.stringify(seed, null, 2),
       'DESIGN_SEED.archetype': seed.archetype,
@@ -1821,16 +1821,16 @@ export class CommunicationService extends GenericService {
       // banque d'images par défaut, étrangère au reste de la marque.
       const imageryDirection = context.artDirection
         ? [
-            `Médium : ${context.artDirection.imagery?.medium || 'photographie'}`,
-            `Sujets de la marque : ${context.artDirection.imagery?.subjects || ''}`,
-            `Traitement : ${context.artDirection.imagery?.treatment || ''}`,
-            `Lumière : ${context.artDirection.imagery?.lighting || ''}`,
-            `Cadrage : ${context.artDirection.imagery?.framing || ''}`,
-            `Rendu (anglais, à reprendre dans generationPrompt) : ${buildImageStyleModifier(context.artDirection)}`,
+            `Medium: ${context.artDirection.imagery?.medium || 'photography'}`,
+            `Brand subjects: ${context.artDirection.imagery?.subjects || ''}`,
+            `Treatment: ${context.artDirection.imagery?.treatment || ''}`,
+            `Lighting: ${context.artDirection.imagery?.lighting || ''}`,
+            `Framing: ${context.artDirection.imagery?.framing || ''}`,
+            `Render modifier (English, reuse it in generationPrompt): ${buildImageStyleModifier(context.artDirection)}`,
           ]
             .filter((line) => line.split(':').slice(1).join(':').trim())
             .join('\n')
-        : "Aucune direction artistique définie : choisir une image sobre, cohérente avec la charte, et éviter l'imagerie d'illustration générique.";
+        : 'No art direction defined: pick a restrained image, consistent with the charter, and avoid generic illustration imagery.';
 
       const messages: AIChatMessage[] = [
         {

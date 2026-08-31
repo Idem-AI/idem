@@ -2,27 +2,27 @@ export const BRAND_HEADER_SECTION_PROMPT = `<role>World-class editorial art dire
 <objective>Design a FULL-PAGE Landscape cover for a brand identity document that feels like a high-end magazine cover or gallery piece, unique to this brand.</objective>
 
 <concept_invention>
-1. Étudier le nom, le secteur, la description et les couleurs de la marque.
-2. Formuler une métaphore visuelle propre à CETTE marque, construite avec des aplats, des formes et de la typographie — jamais avec une illustration décorative posée au centre.
-3. Appliquer l'archétype de mise en page donné par la graine de composition (bloc <composition_seed> du contexte). Ne pas en choisir un autre.
-4. C'est la page où la direction artistique s'exprime le plus fort : le geste de composition signature doit y être immédiatement visible.
-5. N'utiliser QUE les couleurs de la charte (bg-[#hex], text-[#hex]).
+1. Study the brand name, the industry, the description and the colours.
+2. Formulate a visual metaphor specific to THIS brand, built from flats, shapes and typography — never from a decorative illustration dropped in the middle.
+3. Apply the layout archetype given by the composition seed (the <composition_seed> block in the context). Do not pick another one.
+4. This is the page where the art direction speaks loudest: the signature compositional gesture must be immediately visible.
+5. Use ONLY the charter colours (bg-[#hex], text-[#hex]).
 </concept_invention>
 
 <mandatory_elements>
-- Nom de la marque : l'élément dominant, et de loin.
-- Sous-titre : « Charte Graphique » ou un équivalent juste.
-- Date et version, intégrées avec soin (remplacer {{currentDate}} et {{brandName}}).
-- Le LOGO de la marque, dans la déclinaison qui contraste avec la zone où il est posé. C'est une charte graphique : la couverture sans le logo est un contresens.
-- Un élément graphique construit (aplat, filet, forme, traitement typographique) qui porte la métaphore.
+- Brand name: the dominant element, by a wide margin.
+- Subtitle: "Charte Graphique" or an accurate equivalent.
+- Date and version, carefully integrated (replace {{currentDate}} and {{brandName}}).
+- THE BRAND LOGO, in the declension that contrasts with the zone it sits on. This is a brand guidelines document: a cover without the logo is a contradiction.
+- A constructed graphic element (flat, rule, shape, typographic treatment) that carries the metaphor.
 </mandatory_elements>
 
 <craft_bar>
-- Trois niveaux typographiques minimum, avec des écarts d'échelle francs : le nom de la marque et la mention de version ne peuvent pas avoir des tailles voisines.
-- Un seul point focal. Si deux éléments se disputent l'attention, en réduire un.
-- L'espace vide est composé, pas résiduel : décider où il est et pourquoi.
-- Aucun dégradé décoratif, aucune ombre portée molle, aucune carte arrondie — sauf prescription explicite de la direction artistique.
-- Un geste délibéré (recadrage, débord, rotation, superposition) qu'un gabarit ne produirait jamais. C'est ce geste qui fait « dessiné » plutôt que « généré ».
+- Three typographic levels minimum, with decisive scale jumps: the brand name and the version line cannot be of similar size.
+- One focal point. If two elements compete for attention, shrink one.
+- Empty space is composed, not leftover: decide where it is and why.
+- No decorative gradient, no soft drop shadow, no rounded card — unless the art direction explicitly prescribes them.
+- One deliberate gesture (crop, bleed, rotation, overlap) that a template would never produce. That gesture is what makes the page read as designed rather than generated.
 </craft_bar>
 
 <page_format>
@@ -33,7 +33,7 @@ export const BRAND_HEADER_SECTION_PROMPT = `<role>World-class editorial art dire
 <technical_rules>
 - Output ONLY raw HTML + Tailwind CSS utilities in a single minified line.
 - PrimeIcons (pi pi-icon-name) are preloaded, no external CDN.
-- Ensure WCAG AA contrast compliance.
+- All visible text in French. Ensure WCAG AA contrast compliance.
 - No custom CSS, JS, or <style> tags.
 - Do NOT output markdown code blocks (e.g., \`\`\`html) or prefix with "html".
 </technical_rules>

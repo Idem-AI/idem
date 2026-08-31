@@ -24,44 +24,44 @@
  * incluent ce bloc incluent aussi la fiche de style, qui a le dernier mot.
  */
 export const ANTI_SLOP_BLOCK = `<anti_generic_rules>
-Ces interdits priment sur toute habitude de composition. Ils décrivent les réflexes qui font qu'un visuel est immédiatement identifié comme généré par une machine.
+These bans override every composition habit. They describe the reflexes that make a piece immediately recognisable as machine-made.
 
-NIVEAU 0 — rédhibitoires, un seul suffit à disqualifier le rendu :
-- Dégradé violet/indigo/fuchsia, ou dégradé « violet vers bleu ». Aucun dégradé qui n'est pas prescrit par la direction artistique.
-- Titre en dégradé (background-clip: text). Un titre est d'UNE couleur.
-- Inter, Roboto, Poppins, Montserrat, Open Sans, Lato, Arial, "system-ui", font-sans/serif/mono — sauf si c'est LA police de la charte. Aucune police écrite en dur.
-- Le triptyque « bandeau héros centré + trois cartes identiques + bouton ». Aucune rangée de 3 cartes au gabarit identique.
-- Glassmorphisme réflexe (backdrop-blur sur une surface blanche translucide) hors direction artistique qui le prescrit.
-- Une couleur qui n'est pas dans la palette de la charte (ni un de ses niveaux d'opacité).
+LEVEL 0 — disqualifying, a single one is enough to reject the output:
+- Purple / indigo / fuchsia gradient, or a "violet to blue" gradient. No gradient that the art direction did not prescribe.
+- Gradient headline (background-clip: text). A headline is ONE colour.
+- Inter, Roboto, Poppins, Montserrat, Open Sans, Lato, Arial, "system-ui", font-sans / font-serif / font-mono — unless it IS the charter typeface. Never a hard-coded font family.
+- The "centred hero band + three identical cards + button" skeleton. Never a row of cards sharing the same width, padding and shadow.
+- Reflexive glassmorphism (backdrop-blur over a translucent white surface) unless the art direction prescribes it.
+- Any colour outside the charter palette (or one of its opacity levels).
 
-NIVEAU 1 — signaux nets, à éliminer :
-- \`rounded-2xl shadow-lg\` posé sur tout. Le rayon et l'ombre viennent de la direction artistique et sont les MÊMES partout.
-- L'icône dans un carré arrondi coloré, répétée en grille.
-- Le surtitre minuscule en capitales espacées répété au-dessus de chaque bloc : un seul, ou aucun.
-- Les émojis en puces ou en icônes de section.
-- Le bouton bleu Tailwind par défaut, la flèche « → » soudée au libellé.
-- Le filet coloré sur le bord gauche d'une carte.
-- Le gris clair (text-gray-400) pour du texte courant.
-- Le contenu bouche-trou : « Lorem ipsum », « Fonctionnalité 1 », « Votre entreprise », une statistique inventée en gros chiffre sans source.
+LEVEL 1 — strong tells, remove them:
+- \`rounded-2xl shadow-lg\` applied to everything. The radius and the shadow come from the art direction and are the SAME everywhere.
+- The icon inside a coloured rounded square, repeated in a grid.
+- The tiny uppercase tracked eyebrow repeated above every block: keep one, or none.
+- Emoji used as bullets or as section icons.
+- The default Tailwind blue button, the "→" arrow welded to a label.
+- A coloured rule on the left edge of a card.
+- Light grey (text-gray-400) for running text.
+- Filler content: "Lorem ipsum", "Feature 1", "Your company", an invented statistic set large with no source.
 
-VOCABULAIRE INTERDIT dans les textes produits (français et anglais) :
-« révolutionnaire », « innovant » employé seul, « solution clé en main », « propulsez », « boostez », « libérez le potentiel », « à l'ère du numérique », « dans un monde en constante évolution », "elevate", "unlock", "seamless", "empower", "supercharge", "cutting-edge", "game-changing", "next-generation", "world-class".
-Écrire à la place ce que la marque FAIT, avec un nom concret et un verbe.
+BANNED VOCABULARY in the copy you write (French and English alike):
+"révolutionnaire", "innovant" used on its own, "solution clé en main", "propulsez", "boostez", "libérez le potentiel", "à l'ère du numérique", "dans un monde en constante évolution", "elevate", "unlock", "seamless", "empower", "supercharge", "cutting-edge", "game-changing", "next-generation", "world-class".
+Write what the brand actually DOES instead, with a concrete noun and a verb.
 
-NIVEAU 2 — finitions :
-- Espacements uniformes partout (gap-4 / p-6 sur tout) : la hiérarchie passe aussi par l'espace.
-- Alignements approximatifs : tout s'aligne sur la grille annoncée, ou délibérément contre elle.
+LEVEL 2 — finishing:
+- Uniform spacing everywhere (gap-4 / p-6 on everything): hierarchy is also expressed through space.
+- Loose alignment: everything snaps to the announced grid, or deliberately breaks it.
 </anti_generic_rules>
 
 <craft_bar>
-Le rendu est jugé comme une pièce imprimée, pas comme une page web. Avant d'écrire une seule balise :
-1. Décider LA chose qu'un lecteur doit retenir à deux mètres, puis dimensionner tout le reste par rapport à elle.
-2. Construire trois niveaux typographiques au minimum, séparés par des écarts francs (rapport d'échelle donné par la direction artistique). Jamais deux éléments de taille voisine qui se disputent l'attention.
-3. Aligner à l'œil, pas au pixel par défaut : sur le bord des lettres et des sujets, pas sur un padding hérité.
-4. Tenir un rythme spatial unique (marges, gouttières, décalages dérivés du multiplicateur de la graine), au lieu d'improviser élément par élément.
-5. Introduire UN accident délibéré — un recadrage, une rotation, un chevauchement, un débord — qu'un gabarit ne produirait jamais. C'est ce geste qui fait « dessiné » plutôt que « généré ».
-6. Retenue plutôt que décoration : aucun dégradé, halo, ombre ou forme qui ne fasse un vrai travail.
-7. Chaque texte lisible sur ce qui se trouve réellement derrière lui (WCAG AA), et rien d'important dans les 4 % au bord du cadre.
+The output is judged the way a printed piece is judged, not the way a web page is. Before writing a single tag:
+1. Decide the ONE thing a reader must retain from two metres away, then size everything else against it.
+2. Build at least three typographic levels, separated by decisive jumps (the scale ratio is given by the art direction). Never two elements of similar size competing for attention.
+3. Align optically, not to a default padding: to the edges of letterforms and of the subjects in the image.
+4. Hold a single spatial rhythm (margins, gutters and offsets derived from the seed multiplier) instead of improvising element by element.
+5. Introduce ONE deliberate accident — a crop, a rotation, an overlap, a bleed — that a template would never produce. That gesture is what makes the piece read as designed rather than generated.
+6. Restraint over decoration: no gradient, glow, shadow or shape unless it does real work.
+7. Every text legible on what actually sits behind it (WCAG AA), and nothing important in the outer 4% of the frame.
 </craft_bar>`;
 
 /**
@@ -70,11 +70,11 @@ Le rendu est jugé comme une pièce imprimée, pas comme une page web. Avant d'�
  * lui demande de « bien faire » en amont.
  */
 export const SELF_REVIEW_BLOCK = `<final_self_review>
-Relire sa propre sortie une fois, et corriger avant de répondre :
-1. Chercher chaque valeur hexadécimale : chacune doit figurer dans la palette de la charte. Remplacer les autres.
-2. Chercher chaque déclaration de police : seules les deux familles de la charte sont admises.
-3. Chercher les marqueurs de niveau 0 (dégradé violet, titre en dégradé, trois cartes identiques, héros centré, glassmorphisme non prescrit). En supprimer la cause, pas seulement l'apparence.
-4. Vérifier que la direction artistique est reconnaissable : un lecteur qui connaît la marque doit la reconnaître logo masqué.
-5. Vérifier la présence, la taille et le contraste du logo.
-6. Vérifier qu'aucun texte n'est coupé par le bord du cadre et que chaque texte passe le contraste AA.
+Re-read your own output once and fix it before answering:
+1. Find every hex value: each must belong to the charter palette. Replace the others.
+2. Find every font declaration: only the two charter families are allowed.
+3. Look for the level 0 tells (purple gradient, gradient headline, three identical cards, centred hero, unprescribed glassmorphism). Remove their CAUSE, not just their appearance.
+4. Check that the art direction is recognisable: someone who knows the brand must recognise it with the logo covered.
+5. Check the logo: present, large enough, contrasting with what sits behind it.
+6. Check that no text is clipped by the edge of the frame and that every text passes AA contrast.
 </final_self_review>`;

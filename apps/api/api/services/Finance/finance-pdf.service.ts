@@ -731,16 +731,16 @@ export class FinancePdfService {
     const messages: AIChatMessage[] = [
       {
         role: 'system',
-        content: `Tu es un analyste financier qui rédige des interprétations claires et actionnables
-pour un porteur de projet africain. Réponds en français, ton professionnel mais pédagogique.
-Structure ta réponse en 4 paragraphes:
-1) Bilan global de la rentabilité du projet
-2) Points forts identifiés
-3) Points de vigilance (trésorerie, point mort, charges, etc.)
-4) Recommandations actionnables
-NE renvoie PAS de markdown, juste du texte avec des sauts de ligne entre paragraphes.`,
+        content: `You are a financial analyst writing clear, actionable interpretations
+for an African founder. Answer IN FRENCH, in a professional but explanatory tone.
+Structure the answer in 4 paragraphs:
+1) Overall assessment of the project's profitability
+2) Identified strengths
+3) Watch-outs (cash position, break-even, charges, etc.)
+4) Actionable recommendations
+Do NOT return markdown, just text with line breaks between paragraphs.`,
       },
-      { role: 'user', content: `Indicateurs:\n${summary}\n\nRédige l'analyse.` },
+      { role: 'user', content: `Indicators:\n${summary}\n\nWrite the analysis.` },
     ];
 
     const config: PromptConfig = {

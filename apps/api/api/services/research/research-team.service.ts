@@ -403,17 +403,18 @@ export class ResearchTeamService {
       {
         role: 'system',
         content:
-          "Tu es un analyste de recherche rigoureux. Tu utilises la recherche web pour trouver des données FACTUELLES et RÉCENTES. " +
-          "Règle absolue: n'affirme AUCUN chiffre, statistique, part de marché, taille de marché, taux ou montant qui ne provienne PAS des résultats de recherche. " +
-          "Si une donnée est introuvable, dis-le explicitement plutôt que de l'estimer. Cite systématiquement les chiffres avec leur année et leur périmètre géographique.",
+          'You are a rigorous research analyst. You use web search to find FACTUAL and RECENT data. ' +
+          'Absolute rule: never state a figure, statistic, market share, market size, rate or amount that does NOT come from the search results. ' +
+          'When a data point cannot be found, say so explicitly rather than estimating it. Always cite figures with their year and their geographic scope. ' +
+          'Write your synthesis in the language of the project context.',
       },
       {
         role: 'user',
         content:
-          `CONTEXTE PROJET:\n${ctx.projectContext}\n\n` +
-          `DONNÉES À TROUVER (lance autant de recherches web que nécessaire pour couvrir chaque point):\n${mission}\n\n` +
-          "Fournis une synthèse factuelle et concise couvrant CHAQUE point (données chiffrées avec année + zone géographique). " +
-          "N'invente rien. Si tu ne trouves pas une donnée, indique 'Donnée non trouvée'.",
+          `PROJECT CONTEXT:\n${ctx.projectContext}\n\n` +
+          `DATA TO FIND (run as many web searches as needed to cover every point):\n${mission}\n\n` +
+          'Provide a factual, concise synthesis covering EVERY point (figures with their year and geographic scope). ' +
+          "Invent nothing. When a data point cannot be found, write 'Data not found'.",
       },
     ];
 
@@ -473,13 +474,13 @@ export class ResearchTeamService {
 
     const sourceList = this.renderSourceList(sources);
     const groundingRules = section.needsResearch
-      ? 'RÈGLES DE DONNÉES ET DE CITATION (STRICTES):\n' +
-        "- Chaque chiffre, statistique, taille/part de marché, taux ou montant affiché DOIT être suivi d'un marqueur de citation inline au format [sN] renvoyant à la liste des sources ci-dessous.\n" +
-        '- Les GRAPHIQUES (Chart.js) ne doivent tracer QUE des données réelles issues de la synthèse de recherche ou des données financières fournies. Ne trace JAMAIS un graphique à partir de chiffres inventés : si aucune série chiffrée fiable et sourcée n\'est disponible pour un graphe, remplace-le par un visuel qualitatif (schéma, liste, cartouche) plutôt qu\'un graphe inventé.\n' +
-        "- N'utilise QUE les faits présents dans la synthèse de recherche. Si une donnée manque, dis-le explicitement plutôt que d'estimer.\n" +
-        "- N'invente jamais d'identifiant de source : n'utilise que les [sN] listés.\n" +
-        "- N'ajoute PAS toi-même de liste « Sources » à la fin : elle est ajoutée automatiquement au document."
-      : "Cette section est qualitative (pas de recherche web) : n'invente pas de statistiques de marché ni de chiffres externes. Les éventuels graphiques ne doivent illustrer que des éléments internes au plan (jalons, échéancier, répartition d'objectifs), sans chiffres de marché inventés.";
+      ? 'DATA AND CITATION RULES (STRICT):\n' +
+        '- Every figure, statistic, market size or share, rate or amount shown MUST be followed by an inline citation marker of the form [sN] pointing at the source list below.\n' +
+        '- CHARTS (Chart.js) may plot ONLY real data taken from the research synthesis or from the supplied financial data. NEVER plot a chart from invented figures: when no reliable, sourced numeric series is available for a chart, replace it with a qualitative visual (diagram, list, callout) rather than an invented chart.\n' +
+        '- Use ONLY the facts present in the research synthesis. When a data point is missing, say so explicitly rather than estimating.\n' +
+        '- Never invent a source identifier: use only the [sN] listed.\n' +
+        '- Do NOT add a "Sources" list yourself at the end: it is appended to the document automatically.'
+      : 'This section is qualitative (no web research): do not invent market statistics or external figures. Any charts may only illustrate elements internal to the plan (milestones, timeline, objective breakdown), with no invented market figures.';
 
     // Le contexte projet/marque est déjà dans le cache partagé quand il est
     // actif → on ne le renvoie pas (économie d'input tokens).
@@ -489,10 +490,10 @@ export class ResearchTeamService {
       {
         role: 'system',
         content:
-          "Tu es un directeur artistique éditorial et rédacteur expert de business plans « investor-grade ». " +
-          'Tu produis des PAGES A4 en HTML + Tailwind CSS (mise en page soignée, graphes Chart.js), ' +
-          'en suivant À LA LETTRE les instructions de contenu et de mise en page fournies (structure, charts, format A4 multi-pages). ' +
-          'Tu écris dans la langue demandée, dans un style professionnel et concret. ' +
+          'You are an editorial art director and an expert writer of investor-grade business plans. ' +
+          'You produce A4 PAGES in HTML + Tailwind CSS (careful layout, Chart.js charts), ' +
+          'following the supplied content and layout instructions TO THE LETTER (structure, charts, multi-page A4 format). ' +
+          'You write in the requested language, in a professional and concrete style. ' +
           groundingRules,
       },
       {
@@ -610,22 +611,22 @@ export class ResearchTeamService {
       {
         role: 'system',
         content:
-          "Tu es un vérificateur qualité anti-hallucination. Tu reçois les phrases CHIFFRÉES d'une section et la liste des identifiants de sources autorisés. " +
-          "Ta mission: repérer toute donnée chiffrée (statistique, taille/part de marché, taux, montant, date) NON accompagnée d'une citation [sN] valide (id présent dans la liste autorisée). " +
-          "Réponds STRICTEMENT en JSON.",
+          'You are an anti-hallucination quality checker. You receive the QUANTIFIED sentences of a section and the list of allowed source identifiers. ' +
+          'Your mission: spot every quantified claim (statistic, market size or share, rate, amount, date) NOT accompanied by a valid [sN] citation (an id present in the allowed list). ' +
+          'Answer STRICTLY in JSON.',
       },
       {
         role: 'user',
         content:
-          `IDS DE SOURCES AUTORISÉS: [${allowedIds}]\n\n` +
-          `PHRASES CHIFFRÉES À VÉRIFIER:\n"""\n${numeric}\n"""\n\n` +
-          'Réponds avec ce schéma JSON exact:\n' +
+          `ALLOWED SOURCE IDS: [${allowedIds}]\n\n` +
+          `QUANTIFIED SENTENCES TO CHECK:\n"""\n${numeric}\n"""\n\n` +
+          'Answer with exactly this JSON schema:\n' +
           '{\n' +
-          '  "citedClaims": <nombre de données chiffrées correctement citées>,\n' +
-          '  "uncitedClaims": <nombre de données chiffrées sans citation valide>,\n' +
-          '  "issues": [{ "claim": "<extrait fautif>", "reason": "<pourquoi>", "severity": "info|warning|critical" }]\n' +
+          '  "citedClaims": <number of quantified claims correctly cited>,\n' +
+          '  "uncitedClaims": <number of quantified claims without a valid citation>,\n' +
+          '  "issues": [{ "claim": "<offending excerpt>", "reason": "<why>", "severity": "info|warning|critical" }]\n' +
           '}\n' +
-          'Une donnée chiffrée sans [sN] valide = severity "critical". Aucune donnée fautive → issues: [].',
+          'A quantified claim without a valid [sN] is severity "critical". No offending claim → issues: [].',
       },
     ];
 
@@ -734,7 +735,7 @@ export class ResearchTeamService {
 
   private buildResearchDigest(narratives: string[], sources: ResearchSource[]): string {
     if (narratives.length === 0) {
-      return 'Aucune donnée sourcée n\'a pu être collectée. Rédige la section sans avancer de chiffres non vérifiables.';
+      return 'No sourced data could be collected. Write the section without stating unverifiable figures.';
     }
     // Borne le digest transmis au rédacteur (économie de tokens en entrée).
     const joined = narratives.join('\n\n');

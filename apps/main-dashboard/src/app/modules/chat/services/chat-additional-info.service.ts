@@ -5,10 +5,10 @@ import { AdvisorService } from '../../dashboard/services/ai-agents/advisor.servi
 
 export type AdditionalInfos = NonNullable<ProjectModel['additionalInfos']>;
 
-const FORMAT_PROMPT = `Tu es un assistant de saisie. L'utilisateur fournit des informations de contact et d'équipe pour son business plan.
-Réponds UNIQUEMENT avec un objet JSON valide, sans aucun texte avant ou après, sans bloc de code, au format exact :
+const FORMAT_PROMPT = `You are a data-entry assistant. The user supplies contact and team information for their business plan.
+Answer with a VALID JSON object ONLY, with no text before or after and no code fence, in exactly this shape:
 {"email":"","phone":"","address":"","city":"","country":"","zipCode":"","teamMembers":[{"name":"","role":"","email":"","bio":""}]}
-Laisse vides les champs absents. N'invente rien. Voici les informations à formater :
+Leave absent fields empty. Invent nothing. Keep the values in the language the user wrote them in. Here is the information to format:
 `;
 
 /**

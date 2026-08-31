@@ -782,7 +782,7 @@ export class BrandingService extends GenericService {
     const brandSeed = buildDesignSeed(artDirection?.styleId, `branding:${projectId}`);
     const designDirectives = [
       artDirectionBlock,
-      `<composition_seed>\nCette charte est composée sur la graine suivante. Elle vaut pour TOUTES les pages : c'est ce qui les fait appartenir au même document.\n${describeSeed(brandSeed)}\n</composition_seed>`,
+      `<composition_seed>\nThis brand book is composed on the seed below. It holds for EVERY page: it is what makes them belong to the same document.\n${describeSeed(brandSeed)}\n</composition_seed>`,
       ANTI_SLOP_BLOCK,
       SELF_REVIEW_BLOCK,
     ]
@@ -911,7 +911,7 @@ export class BrandingService extends GenericService {
           promptConstant:
             LOGO_VARIATION_PAGE_PROMPT +
             `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo variation image: "${lightLogoUrl}"\n\n` +
-            '\nVariation type: Fond clair (Light Background)\nDisplay the logo variation for light backgrounds. Use a white or very light background.\n\n' +
+            '\nVariation type: Light Background\nDisplay the logo variation for light backgrounds. Use a white or very light background.\n\n' +
             projectDescription,
           stepName: 'Logo Variation Fond Clair',
           hasDependencies: false,
@@ -920,7 +920,7 @@ export class BrandingService extends GenericService {
           promptConstant:
             LOGO_VARIATION_PAGE_PROMPT +
             `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo variation image: "${darkLogoUrl}"\n\n` +
-            "\nVariation type: Fond sombre (Dark Background)\nDisplay the logo variation for dark backgrounds. Use the brand's dark color or a rich dark tone as the full-page background.\n\n" +
+            "\nVariation type: Dark Background\nDisplay the logo variation for dark backgrounds. Use the brand's dark color or a rich dark tone as the full-page background.\n\n" +
             projectDescription,
           stepName: 'Logo Variation Fond Sombre',
           hasDependencies: false,
