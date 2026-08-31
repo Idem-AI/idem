@@ -7,16 +7,16 @@ import { SelectedMockupSupport } from '../mockupAnalyzer.service';
 export const MOCKUP_GENERATION_PROMPT = {
   logoInstructions: (brandName: string) => ({
     withLogo: `<logo_rules>
-- Une image du logo exact de cette marque est fournie.
-- Étudier attentivement chaque détail de l'image du logo fournie et le reproduire EXACTEMENT dans la scène.
-- Respecter toutes les formes, couleurs, typographie et proportions originelles.
-- Placer le logo de manière visible et lisible sur le support. Ne pas modifier ou traduire le texte du logo.
-- Choisir une taille équilibrée (ni invisible ni écrasante).
+- An image of this brand's exact logo is supplied.
+- Study every detail of the supplied logo image and reproduce it EXACTLY in the scene.
+- Preserve all original shapes, colours, typography and proportions.
+- Place the logo visibly and legibly on the support. Do not alter or translate the text inside the logo.
+- Choose a balanced size (neither invisible nor overwhelming).
 </logo_rules>`,
 
     withoutLogo: `<logo_rules>
-- Aucune image de logo n'est fournie.
-- Afficher le nom de marque "${brandName}" dans un style typographique propre et professionnel avec les couleurs de la marque.
+- No logo image is supplied.
+- Set the brand name "${brandName}" in a clean, professional typographic style using the brand colours.
 </logo_rules>`,
   }),
 
@@ -53,16 +53,18 @@ export const MOCKUP_GENERATION_PROMPT = {
             dimensions: '210mm × 297mm',
             aspectRatio: '1:1.414 (A4 portrait)',
             imageSize: '2480px × 3508px',
-            description: 'Format vertical. L\'image DOIT être verticale.',
-            criticalInstructions: 'CRITIQUE: Orientation PORTRAIT obligatoire. Ratio 1:1.414. Cadrage vertical serré pour remplir toute la hauteur.',
+            description: 'Vertical format. The image MUST be vertical.',
+            criticalInstructions:
+              'CRITICAL: PORTRAIT orientation is mandatory. Ratio 1:1.414. Tight vertical framing so the subject fills the full height.',
           }
         : {
-            orientation: 'PAYSAGE (HORIZONTAL)',
+            orientation: 'LANDSCAPE (HORIZONTAL)',
             dimensions: '297mm × 167mm',
-            aspectRatio: '16:9 (paysage)',
+            aspectRatio: '16:9 (landscape)',
             imageSize: '2480px × 1395px',
-            description: 'Format horizontal. L\'image DOIT être horizontale.',
-            criticalInstructions: 'CRITIQUE: Orientation PAYSAGE obligatoire. Ratio 16:9. Cadrage horizontal large pour remplir toute la largeur.',
+            description: 'Horizontal format. The image MUST be horizontal.',
+            criticalInstructions:
+              'CRITICAL: LANDSCAPE orientation is mandatory. Ratio 16:9. Wide horizontal framing so the subject fills the full width.',
           };
 
     const logoInstruction = hasLogo
@@ -75,72 +77,72 @@ export const MOCKUP_GENERATION_PROMPT = {
 
     const priorityText =
       selectedSupport.priority === 'primary'
-        ? 'SUPPORT PRINCIPAL (le plus iconique pour cette marque)'
-        : 'SUPPORT COMPLÉMENTAIRE (secondaire mais pertinent)';
+        ? 'PRIMARY SUPPORT (the most iconic one for this brand)'
+        : 'SECONDARY SUPPORT (complementary but relevant)';
 
-    return `<role>Photographe commercial d'élite et directeur artistique spécialisé dans la mise en scène de marques.</role>
-<objective>Créer une photographie de mockup photoréaliste et professionnelle de haute qualité.</objective>
+    return `<role>Elite commercial photographer and art director specialised in staging brands.</role>
+<objective>Create one photorealistic, high-end professional mockup photograph.</objective>
 
 <brand_context>
-- Nom: "${brandName}"
-- Industrie: ${selectedSupport.industryContext}
-- Couleurs: Primaire ${brandColors.primary}, Secondaire ${brandColors.secondary}, Accent ${brandColors.accent}
+- Name: "${brandName}"
+- Industry: ${selectedSupport.industryContext}
+- Colours: primary ${brandColors.primary}, secondary ${brandColors.secondary}, accent ${brandColors.accent}
 - Description: ${projectDescription}
 </brand_context>
 
 <mockup_mission>
 Mockup index: #${selectedSupport.mockupIndex}
 Priority: ${priorityText}
-Support Name: ${selectedSupport.supportName}
+Support name: ${selectedSupport.supportName}
 
 ${logoInstruction}
 
-Exemples de supports à créer :
+Supports to create, as examples:
 ${supportExamples}
 
-Mise en scène :
+Staging:
 ${selectedSupport.context}
 </mockup_mission>
 
 ${
       artDirectionModifier
         ? `<art_direction>
-La marque a une direction artistique arrêtée${artDirectionName ? ` : ${artDirectionName}` : ''}. Elle décide du RENDU de cette photographie — lumière, matière, étalonnage, cadrage — et prime sur les réglages photographiques génériques ci-dessous chaque fois qu'ils divergent. Le sujet, lui, reste le support à présenter.
-Rendu attendu (à appliquer littéralement) : ${artDirectionModifier}
-${artDirectionNegative ? `À proscrire dans l'image : ${artDirectionNegative}` : ''}
-Cette photo sera vue à côté des autres supports de la marque : elle doit avoir la MÊME lumière et le MÊME étalonnage qu'eux.
+This brand has a settled art direction${artDirectionName ? `: ${artDirectionName}` : ''}. It decides the RENDER of this photograph — light, material, grading, framing — and overrides the generic photographic settings below wherever they diverge. The subject, however, stays the support being shown.
+Expected render (apply literally): ${artDirectionModifier}
+${artDirectionNegative ? `Keep out of the image: ${artDirectionNegative}` : ''}
+This photograph will be seen next to the brand's other supports: it must carry the SAME light and the SAME grading as they do.
 </art_direction>
 
 `
         : ''
     }<photographic_rules>
-1. RÉALISME PHOTOGRAPHIQUE ABSOLU: Vraie photographie commerciale (pas d'illustration numérique, pas de rendu 3D artificiel). Grain subtil, imperfections naturelles.
-2. ÉCLAIRAGE: Éclairage studio ou lumière naturelle réaliste, ombres douces, reflets sur verre/métal/plastique.
-3. COMPOSITION: Règle des tiers, profondeur de champ cinématographique (arrière-plan flouté). Le support brandé est le héros clairement visible.
-4. TEXTURES: Fibres de tissu visibles, grain de papier, brillance métallique, usure naturelle légère.
-5. COULEURS: Intégration subtile et harmonieuse des couleurs de marque (${brandColors.primary}, ${brandColors.secondary}, ${brandColors.accent}) dans la scène.
-6. CONTEXTE: Environnement cohérent (${selectedSupport.industryContext}). Pas de distraction visuelle.
+1. ABSOLUTE PHOTOGRAPHIC REALISM: a real commercial photograph (no digital illustration, no artificial 3D render). Subtle grain, natural imperfections.
+2. LIGHTING: realistic studio or natural light, soft shadows, reflections on glass, metal or plastic.
+3. COMPOSITION: rule of thirds, cinematic depth of field (blurred background). The branded support is the hero and is clearly visible.
+4. TEXTURES: visible fabric fibres, paper grain, metallic sheen, slight natural wear.
+5. COLOUR: subtle, harmonious integration of the brand colours (${brandColors.primary}, ${brandColors.secondary}, ${brandColors.accent}) into the scene.
+6. CONTEXT: a coherent environment (${selectedSupport.industryContext}). No visual distraction.
 </photographic_rules>
 
 <format_rules>
 - Orientation: ${formatSpecs.orientation}
 - Dimensions: ${formatSpecs.dimensions}
 - Ratio: ${formatSpecs.aspectRatio}
-- Résolution: ${formatSpecs.imageSize}
-- Règle: ${formatSpecs.description}
+- Resolution: ${formatSpecs.imageSize}
+- Rule: ${formatSpecs.description}
 - ${formatSpecs.criticalInstructions}
-- L'image doit couvrir 100% de la hauteur et de la largeur (FULL-PAGE, pas de bordures blanches).
+- The image must cover 100% of the height and width (FULL-PAGE, no white borders).
 </format_rules>
 
 <forbidden>
-- Mockup générique / cliché : le mockup « carte de visite posée en biais sur un bureau en marbre blanc avec une plante verte » est LE rendu par défaut de tous les générateurs. Composer autre chose.
-- Rendu 3D artificiel, plastique, sur-éclairé.
-- Logo différent du logo fourni.
-- Surcharger la scène : un support héros, un contexte, rien d'autre.
-- Filigrane, texte déformé, artefacts de génération, sur-saturation HDR.
+- The generic mockup cliché: "a business card lying at an angle on a white marble desk next to a green plant" is THE default render of every generator. Compose something else.
+- Artificial, plastic, over-lit 3D renders.
+- Any logo other than the one supplied.
+- An overloaded scene: one hero support, one context, nothing else.
+- Watermarks, distorted text, generation artefacts, oversaturated HDR.
 ${artDirectionNegative ? `- ${artDirectionNegative}` : ''}
 </forbidden>
 
-GÉNÉRER UNIQUEMENT L'IMAGE PHOTORÉALISTE. AUCUNE RÉPONSE TEXTUELLE.`;
+GENERATE THE PHOTOREALISTIC IMAGE ONLY. NO TEXT RESPONSE.`;
   },
 };

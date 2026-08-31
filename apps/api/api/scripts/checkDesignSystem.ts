@@ -102,7 +102,7 @@ const direction: ArtDirectionModel = {
 const block = buildArtDirectionBlock(direction, { medium: 'poster' });
 check('bloc produit une fiche de style', block.includes('<style_sheet>'));
 check('bloc porte le geste signature', block.includes('filet de 4px'));
-check('bloc porte le rayon de bordure du style', block.includes('Rayon de bordure'));
+check('bloc porte le rayon de bordure du style', block.includes('Border radius'));
 check('modificateur d\'image non vide', buildImageStyleModifier(direction).length > 20);
 check('prompt négatif non vide', buildImageNegativePrompt(direction).length > 20);
 // Sans direction, mieux vaut aucun bloc qu'un bloc de « non spécifié », qui
@@ -128,12 +128,12 @@ const logo = {
 } as LogoModel;
 const logoBlock = buildLogoBlock(logo, { placement: 'sur la couverture' });
 check('déclinaisons résolues', collectLogoUrls(logo).length >= 4);
-check('le bloc porte une OBLIGATION, pas seulement des URLs', logoBlock.includes('DOIT apparaître'));
-check('le bloc explique le choix encre/fond', logoBlock.includes('FOND CLAIR'));
+check('le bloc porte une OBLIGATION, pas seulement des URLs', logoBlock.includes('MUST appear'));
+check('le bloc explique le choix encre/fond', logoBlock.includes('LIGHT background'));
 check('déclinaison manquante → repli sur le primaire, jamais un trou',
   logoBlock.includes('logo-primary.png'));
 check('sans logo → consigne typographique explicite',
-  buildLogoBlock(null).includes("n'a PAS de logo"));
+  buildLogoBlock(null).includes('NO logo asset'));
 
 console.log('\n[5] Linter anti-générique');
 const palette = {

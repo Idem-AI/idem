@@ -1423,11 +1423,11 @@ export class PromptService {
       {
         role: 'system',
         content:
-          "Tu réponds UNIQUEMENT à partir des résultats de recherche ci-dessous. " +
-          "N'avance aucun chiffre, aucun fait, aucune date qui n'y figure pas. " +
-          "Chaque affirmation tirée d'une source porte sa référence entre crochets, " +
-          'sous la forme [s0], [s1]… correspondant aux résultats numérotés.' +
-          `\n\n--- RÉSULTATS DE RECHERCHE ---\n${dossier}`,
+          'You answer ONLY from the search results below. ' +
+          'State no figure, no fact and no date that is not in them. ' +
+          'Every claim taken from a source carries its reference in brackets, ' +
+          'as [s0], [s1]… matching the numbered results.' +
+          `\n\n--- SEARCH RESULTS ---\n${dossier}`,
       },
       ...messages.filter((m) => m.role !== 'system'),
     ];

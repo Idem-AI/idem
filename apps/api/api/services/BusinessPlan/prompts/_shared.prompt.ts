@@ -45,9 +45,9 @@ ${PAGE_BUDGET}
  * logo soit posé sur la page au lieu d'être seulement « connu ».
  */
 export const BP_BRAND_RULES = `<brand_compliance>
-- La direction artistique et la charte fournies dans BRAND CONTEXT ne sont pas indicatives : couleurs, polices et grammaire visuelle en viennent, et il n'y a rien à inventer.
-- Aucune valeur hexadécimale hors palette. Les nuances se font en opacité, jamais en changeant de teinte.
-- Deux familles typographiques, celles de la charte, appliquées en style="font-family: '[NomPolice]', sans-serif".
-- Le LOGO doit apparaître sur cette section : petit, à la même place que sur les autres sections (en-tête ou pied), avec la déclinaison qui contraste avec le fond réel. Suivre le bloc <logo> de BRAND CONTEXT à la lettre — URL exacte, jamais inventée.
-- Cette section appartient à un document : mêmes filets, même rayon de bordure, même traitement des titres et des tableaux que les autres. Les gestes spectaculaires sont réservés à la couverture.
+- The art direction and the charter supplied in BRAND CONTEXT are not indicative: colours, typefaces and visual grammar come from them, and there is nothing to invent.
+- No hex value outside the palette. Tints come from opacity, never from a hue shift.
+- Two typefaces, the charter ones, applied as style="font-family: '[FontName]', sans-serif".
+- The LOGO must appear in this section: small, in the same place as in the other sections (header or footer), in the declension that contrasts with the actual background. Follow the <logo> block in BRAND CONTEXT to the letter — exact URL, never invented.
+- This section belongs to a document: same rules, same border radius, same treatment of headings and tables as the others. Spectacular gestures are reserved for the cover.
 </brand_compliance>`

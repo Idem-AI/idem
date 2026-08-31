@@ -10,10 +10,10 @@ export const TYPOGRAPHY_SECTION_PROMPT = `<role>World-class typographer and edit
 </concept_ideas>
 
 <craft_bar>
-- La page doit être un SPÉCIMEN : les polices s'y montrent à grande échelle, pas seulement se décrivent. Le nom de la police primaire, composé dans la police primaire, à très grand corps, est l'élément dominant.
-- L'échelle typographique se DÉMONTRE : afficher les niveaux les uns sous les autres, à leur taille réelle, pas dans un tableau de valeurs.
-- Aucun texte de remplissage : les exemples utilisent le vocabulaire réel de la marque.
-- Ne pas produire la page « deux cartes côte à côte, une par police » : c'est la mise en page par défaut. Traiter la page comme une double comparaison typographique, avec des tailles délibérément inégales.
+- The page must be a SPECIMEN: the typefaces are shown at large scale, not merely described. The primary typeface name, set in the primary typeface at a very large size, is the dominant element.
+- The type scale is DEMONSTRATED: show the levels stacked at their real size, not listed in a table of values.
+- No filler text: the samples use the brand's actual vocabulary.
+- Do NOT produce the "two cards side by side, one per typeface" page: that is the default layout. Treat the page as a typographic comparison, with deliberately unequal sizes.
 </craft_bar>
 
 <page_content>

@@ -156,12 +156,12 @@ export class PitchDeckService extends GenericService {
       '',
       buildLogoBlock(logo, {
         placement:
-          "sur la diapositive de couverture (grand, comme signature) et dans le même angle de CHAQUE autre diapositive (petit, h-8 à h-10, toujours à la même place)",
-        size: 'couverture : 25 à 40% de la largeur ; diapositives courantes : hauteur h-8 à h-10',
+          'on the cover slide (large, as the signature) and in the SAME corner of every other slide (small, h-8 to h-10, always in the same place)',
+        size: 'cover: 25 to 40% of the width; running slides: h-8 to h-10 tall',
       }),
       buildArtDirectionBlock(artDirection, { medium: 'slide' }),
       artDirection
-        ? `<composition_seed>\nToutes les diapositives de ce deck partagent cette graine de composition.\n${describeSeed(deckSeed)}\n</composition_seed>`
+        ? `<composition_seed>\nEvery slide of this deck shares the composition seed below.\n${describeSeed(deckSeed)}\n</composition_seed>`
         : '',
       ANTI_SLOP_BLOCK,
     ]

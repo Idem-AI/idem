@@ -240,8 +240,8 @@ export function lintHtml(html: string, options: SlopLintOptions = {}): SlopLintR
     add(
       'purple-gradient',
       'error',
-      'Dégradé violet/indigo/fuchsia : le marqueur le plus reconnaissable d\'un rendu généré.',
-      'Remplacer par un aplat de la palette de la charte.',
+      'Purple / indigo / fuchsia gradient: the single most recognisable marker of a generated render.',
+      'Replace it with a flat colour from the charter palette.',
       countOf(/(from|via|to)-(purple|violet|indigo|fuchsia)-\d{2,3}/g) +
         countOf(/linear-gradient\([^)]*(#7c3aed|#8b5cf6|#6366f1|#a855f7)/gi)
     );
@@ -250,8 +250,8 @@ export function lintHtml(html: string, options: SlopLintOptions = {}): SlopLintR
   add(
     'gradient-text',
     'error',
-    'Titre en dégradé (bg-clip-text) : décoration sans intention.',
-    'Poser le titre en une seule couleur de la charte ; créer l\'emphase par la graisse ou la taille.',
+    'Gradient headline (bg-clip-text): decoration with no intent.',
+    'Set the headline in one charter colour; create emphasis through weight or size.',
     countOf(/bg-clip-text/g) + countOf(/background-clip:\s*text/g)
   );
 
@@ -266,8 +266,8 @@ export function lintHtml(html: string, options: SlopLintOptions = {}): SlopLintR
   add(
     'default-font',
     'error',
-    `Police par défaut hors charte détectée : ${strayFonts.join(', ')}.`,
-    'N\'utiliser que les deux familles de la charte, via les classes font-primary / font-secondary.',
+    `Off-charter default typeface detected: ${strayFonts.join(', ')}.`,
+    'Use only the two charter families, through the font-primary / font-secondary classes.',
     strayFonts.length,
     strayFonts.join(', ')
   );
@@ -275,8 +275,8 @@ export function lintHtml(html: string, options: SlopLintOptions = {}): SlopLintR
   add(
     'generic-font-class',
     'warning',
-    'Classe font-sans / font-serif / font-mono : le rendu retombe sur une police système.',
-    'Remplacer par font-primary (titres) ou font-secondary (texte courant).',
+    'font-sans / font-serif / font-mono class: the render falls back to a system typeface.',
+    'Replace it with font-primary (headings) or font-secondary (running text).',
     countOf(/\bfont-(sans|serif|mono)\b/g)
   );
 
@@ -292,8 +292,8 @@ export function lintHtml(html: string, options: SlopLintOptions = {}): SlopLintR
     add(
       'off-palette-color',
       'error',
-      `Couleurs hors charte : ${[...stray].slice(0, 8).join(', ')}.`,
-      'Ne conserver que les valeurs de la palette de la charte (les nuances se font par opacité, pas en changeant de teinte).',
+      `Off-charter colours: ${[...stray].slice(0, 8).join(', ')}.`,
+      'Keep only the charter palette values (tints come from opacity, not from a hue shift).',
       stray.size,
       [...stray].slice(0, 8).join(', ')
     );
@@ -303,8 +303,8 @@ export function lintHtml(html: string, options: SlopLintOptions = {}): SlopLintR
     add(
       'glassmorphism',
       'warning',
-      'Glassmorphisme réflexe (backdrop-blur sur une surface blanche translucide).',
-      'Utiliser une surface opaque de la palette ; réserver le flou aux couches réellement flottantes.',
+      'Reflexive glassmorphism (backdrop-blur over a translucent white surface).',
+      'Use an opaque surface from the palette; keep blur for genuinely floating layers only.',
       countOf(/backdrop-blur/g)
     );
   }
@@ -313,8 +313,8 @@ export function lintHtml(html: string, options: SlopLintOptions = {}): SlopLintR
     add(
       'rounded-shadow-everywhere',
       'warning',
-      'Le couple « rounded-2xl + shadow-lg » posé sur tout : gabarit générique.',
-      'Un seul rayon de bordure dans tout le livrable, celui de la direction artistique, et pas d\'ombre décorative.',
+      'The "rounded-2xl + shadow-lg" pair applied to everything: a generic template.',
+      'One border radius across the whole deliverable, the art direction one, and no decorative shadow.',
       Math.max(0, countOf(/rounded-(2xl|3xl)/g) - 2)
     );
   }
@@ -323,8 +323,8 @@ export function lintHtml(html: string, options: SlopLintOptions = {}): SlopLintR
   add(
     'side-stripe',
     'warning',
-    'Filet coloré sur un seul bord de carte : jamais un choix délibéré.',
-    'Bordure complète, fond teinté, ou aucun séparateur.',
+    'A coloured rule on a single card edge: never a deliberate choice.',
+    'Use a full border, a tinted background, or no separator at all.',
     countOf(/border-[lr]-(2|4|8)\b/g)
   );
 
@@ -332,24 +332,24 @@ export function lintHtml(html: string, options: SlopLintOptions = {}): SlopLintR
   add(
     'repeated-eyebrow',
     'warning',
-    'Surtitre minuscule en capitales espacées répété au-dessus de chaque bloc.',
-    'En garder un seul, comme élément de marque, et laisser les titres porter les sections.',
+    'The tiny uppercase tracked eyebrow repeated above every block.',
+    'Keep at most one, as a brand element, and let the headings carry the sections.',
     eyebrows >= 2 ? eyebrows : 0
   );
 
   add(
     'light-gray-body',
     'warning',
-    'Texte courant en gris clair : échoue au contraste AA et sort de la charte.',
-    'Utiliser la couleur texte de la charte, éventuellement à 70% d\'opacité pour le secondaire.',
+    'Light grey running text: it fails AA contrast and sits outside the charter.',
+    'Use the charter text colour, at 70% opacity for secondary text if needed.',
     countOf(/text-(gray|slate|zinc|neutral|stone)-(300|400|500)\b/g)
   );
 
   add(
     'stock-tailwind-color',
     'warning',
-    'Couleurs Tailwind d\'origine posées à côté de la palette de la marque.',
-    'N\'utiliser que les valeurs hexadécimales de la charte.',
+    'Stock Tailwind colours sitting next to the brand palette.',
+    'Use only the charter hex values.',
     countOf(/\b(bg|text|border)-(blue|indigo|purple|violet|emerald|teal|rose|amber|cyan)-(400|500|600|700)\b/g)
   );
 
@@ -357,8 +357,8 @@ export function lintHtml(html: string, options: SlopLintOptions = {}): SlopLintR
     add(
       'emoji',
       'warning',
-      'Émoji employé comme icône ou comme puce.',
-      'Utiliser une icône PrimeIcons, une forme dessinée, ou rien.',
+      'Emoji used as an icon or as a bullet.',
+      'Use a PrimeIcons icon, a drawn shape, or nothing.',
       EMOJI_RE.test(source) ? (source.match(new RegExp(EMOJI_RE, 'gu')) || []).length : 0
     );
   }
@@ -368,8 +368,8 @@ export function lintHtml(html: string, options: SlopLintOptions = {}): SlopLintR
   add(
     'buzzwords',
     'warning',
-    `Vocabulaire creux : ${foundBuzz.slice(0, 5).join(', ')}.`,
-    'Écrire ce que la marque fait, avec un nom concret et un verbe.',
+    `Empty marketing vocabulary: ${foundBuzz.slice(0, 5).join(', ')}.`,
+    'Write what the brand does, with a concrete noun and a verb.',
     foundBuzz.length,
     foundBuzz.slice(0, 5).join(', ')
   );
@@ -378,24 +378,24 @@ export function lintHtml(html: string, options: SlopLintOptions = {}): SlopLintR
   add(
     'placeholder-content',
     'error',
-    'Contenu bouche-trou laissé dans la sortie.',
-    'Écrire le contenu réel du projet.',
+    'Filler content left in the output.',
+    'Write the real content of the project.',
     placeholders.length
   );
 
   add(
     'img-without-alt',
     'warning',
-    'Image sans attribut alt.',
-    'Ajouter un alt descriptif, ou alt="" si l\'image est purement décorative.',
+    'Image without an alt attribute.',
+    'Add a descriptive alt, or alt="" when the image is purely decorative.',
     (source.match(/<img\b[^>]*>/g) || []).filter((tag) => !/\balt=/.test(tag)).length
   );
 
   add(
     'dead-link',
     'warning',
-    'Lien vers href="#".',
-    'Pointer vers une vraie destination, ou supprimer le lien.',
+    'Link pointing at href="#".',
+    'Point it at a real destination, or remove the link.',
     countOf(/href=["']#["']/g)
   );
 
@@ -407,8 +407,8 @@ export function lintHtml(html: string, options: SlopLintOptions = {}): SlopLintR
     violations.push({
       rule: 'logo-missing',
       severity: 'error',
-      message: 'Le logo de la marque était fourni mais n\'apparaît nulle part dans le rendu.',
-      fix: `Placer exactement une image de logo, avec une des URLs fournies : <img src="${(options.expectedLogoUrls || [])[0]}" alt="logo" />`,
+      message: 'The brand logo was supplied but appears nowhere in the render.',
+      fix: `Place exactly one logo image, using one of the supplied URLs: <img src="${(options.expectedLogoUrls || [])[0]}" alt="logo" />`,
       count: 1,
     });
   }
@@ -434,9 +434,9 @@ export function lintHtml(html: string, options: SlopLintOptions = {}): SlopLintR
 export function buildRepairPrompt(violations: SlopViolation[]): string {
   const lines = violations
     .slice(0, 12)
-    .map((v) => `- [${v.severity === 'error' ? 'BLOQUANT' : 'À corriger'}] ${v.message} → ${v.fix}`);
+    .map((v) => `- [${v.severity === 'error' ? 'BLOCKING' : 'To fix'}] ${v.message} → ${v.fix}`);
   return [
-    'Le rendu produit porte des marqueurs de génération automatique. Corriger les points suivants SANS recomposer la page (mêmes blocs, mêmes positions, même contenu rédactionnel) :',
+    'The render carries markers of automatic generation. Fix the following WITHOUT recomposing the page (same blocks, same positions, same copy):',
     ...lines,
   ].join('\n');
 }

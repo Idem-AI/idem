@@ -206,43 +206,43 @@ export class FinanceAIService {
    */
   buildMarketResearchSpec(project: ProjectModel): DeliverableSection[] {
     const country = project.additionalInfos?.country || '';
-    const geo = country ? ` (zone: ${country})` : '';
+    const geo = country ? ` (area: ${country})` : '';
     const ctx = `${project.name || ''} — ${project.description || ''}`.slice(0, 300);
     return [
       {
         name: 'Prix de marché',
         instructions:
-          'Synthèse des fourchettes de prix de vente constatées pour ce type de produit/service, avec année et zone.',
+          'Synthesis of the observed selling-price ranges for this kind of product or service, with year and area.',
         needsResearch: true,
         researchBriefs: [
-          `Prix de vente pratiqués et fourchettes tarifaires pour ce type d'offre${geo}. Contexte: ${ctx}`,
+          `Selling prices charged and price ranges for this kind of offering${geo}. Context: ${ctx}`,
         ],
       },
       {
         name: 'Structure de coûts',
         instructions:
-          'Synthèse des postes de coûts et marges de référence du secteur (coûts unitaires, charges variables/fixes).',
+          'Synthesis of the sector benchmark cost lines and margins (unit costs, variable and fixed charges).',
         needsResearch: true,
         researchBriefs: [
-          `Structure de coûts, coûts unitaires et marges brutes de référence du secteur${geo}. Contexte: ${ctx}`,
+          `Cost structure, unit costs and benchmark gross margins for the sector${geo}. Context: ${ctx}`,
         ],
       },
       {
         name: 'Fiscalité & charges sociales',
         instructions:
-          "Synthèse des taux d'imposition sur les sociétés, TVA et taux de charges sociales applicables.",
+          'Synthesis of the applicable corporate income tax rates, VAT and social charge rates.',
         needsResearch: true,
         researchBriefs: [
-          `Taux d'impôt sur les sociétés, TVA et charges sociales en vigueur${geo}`,
+          `Corporate income tax rates, VAT and social charges currently in force${geo}`,
         ],
       },
       {
         name: 'Croissance & adoption',
         instructions:
-          "Synthèse des taux de croissance du marché et rythmes d'adoption observés.",
+          'Synthesis of the observed market growth rates and adoption pace.',
         needsResearch: true,
         researchBriefs: [
-          `Taux de croissance annuel du marché et rythme d'adoption pour ce secteur${geo}. Contexte: ${ctx}`,
+          `Annual market growth rate and adoption pace for this sector${geo}. Context: ${ctx}`,
         ],
       },
     ];
@@ -266,7 +266,7 @@ export class FinanceAIService {
       },
       {
         role: 'system',
-        content: `CONTEXTE FINANCE (résumé):\n${this.summarizeFinanceForContext(currentFinance)}`,
+        content: `FINANCE CONTEXT (summary):\n${this.summarizeFinanceForContext(currentFinance)}`,
       },
       { role: 'user', content: userMessage },
     ];

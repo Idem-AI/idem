@@ -37,18 +37,18 @@ export interface ArtDirectionPromptInput {
 export function buildArtDirectionPrompt(input: ArtDirectionPromptInput): string {
   const excluded = (input.excludeStyleIds || []).filter(Boolean);
 
-  return `<role>Directeur artistique de studio de branding. Vous arbitrez le parti pris visuel d'une marque pour les trois prochaines années.</role>
-<objective>Choisir UN style dans le catalogue ci-dessous, puis l'adapter à cette marque en une direction artistique exécutable. Sortie : JSON strict.</objective>
+  return `<role>Art director in a branding studio. You are settling the visual stance of a brand for the next three years.</role>
+<objective>Pick ONE style from the catalogue below, then adapt it to this brand into an executable art direction. Output: strict JSON.</objective>
 
 <brand_brief>
-Marque : ${input.projectName}
-Description : ${input.projectDescription}
-Secteur : ${input.industry}
-Cible : ${input.targetAudience}
-Palette validée (intangible) : ${input.colorsJson}
-Typographie validée (intangible) : ${input.typographyJson}
-${input.logoConcept ? `Concept du logo : ${input.logoConcept}` : ''}
-${input.logoType ? `Type de logo : ${input.logoType}` : ''}
+Brand: ${input.projectName}
+Description: ${input.projectDescription}
+Industry: ${input.industry}
+Audience: ${input.targetAudience}
+Approved palette (fixed, do not change): ${input.colorsJson}
+Approved typography (fixed, do not change): ${input.typographyJson}
+${input.logoConcept ? `Logo concept: ${input.logoConcept}` : ''}
+${input.logoType ? `Logo type: ${input.logoType}` : ''}
 </brand_brief>
 
 <style_catalog>
@@ -56,65 +56,65 @@ ${buildStyleCatalogBrief()}
 </style_catalog>
 ${
   excluded.length
-    ? `\n<excluded_styles>\nCes styles ont déjà été proposés et sont écartés : ${excluded.join(', ')}. En choisir un autre.\n</excluded_styles>\n`
+    ? `\n<excluded_styles>\nThese styles have already been proposed and are ruled out: ${excluded.join(', ')}. Pick a different one.\n</excluded_styles>\n`
     : ''
 }
 <how_to_choose>
-1. Nommer, pour vous-même, ce que cette marque VEND réellement — pas son secteur, sa promesse (la confiance, la vitesse, la chaleur, la rigueur, le statut, l'accessibilité).
-2. Éliminer les styles qui contredisent cette promesse. Un cabinet d'audit ne peut pas être Y2K ; une marque de festival ne peut pas être Design Suisse.
-3. Parmi ceux qui restent, retenir celui qui rend la marque RECONNAISSABLE face à ses concurrents directs — pas celui qui la fait ressembler à la moyenne de son secteur.
-4. Vérifier la compatibilité avec la palette et la typographie déjà validées : un style à fond sombre imposé avec une palette entièrement claire est un mauvais choix, changez de style (la palette, elle, ne se change pas).
-5. Ne jamais retenir un style « parce qu'il est sûr ». Le minimalisme choisi par défaut, sans raison tenant à cette marque, est le pire des choix : c'est la moyenne déguisée en parti pris.
+1. Name, to yourself, what this brand actually SELLS — not its industry, its promise (trust, speed, warmth, rigour, status, accessibility).
+2. Eliminate the styles that contradict that promise. An audit firm cannot be Y2K; a festival brand cannot be Swiss Design.
+3. Among those left, keep the one that makes the brand RECOGNISABLE against its direct competitors — not the one that makes it look like the average of its sector.
+4. Check compatibility with the already-approved palette and typography: a style that mandates a dark ground paired with an entirely light palette is a bad pick, so change style (the palette itself never changes).
+5. Never keep a style "because it is safe". Minimalism chosen by default, with no reason specific to this brand, is the worst pick of all: it is the average wearing the costume of a stance.
 </how_to_choose>
 
 <what_makes_it_executable>
-La direction n'est utile que si elle décide à la place de celui qui composera ensuite. Chaque champ doit être une CONSIGNE, pas un adjectif.
-- « épuré et moderne » ne décide rien.
-- « une seule zone occupée par page, alignée sur une grille de 12 colonnes, 55 % du cadre laissé vide, un filet d'1px comme seul ornement » décide tout.
-Chaque champ doit pouvoir être exécuté par quelqu'un qui n'a pas lu le reste du document.
+The direction is only useful if it decides on behalf of whoever composes next. Every field must be an INSTRUCTION, not an adjective.
+- "clean and modern" decides nothing.
+- "one occupied zone per page, aligned to a 12-column grid, 55% of the frame left empty, a single 1px rule as the only ornament" decides everything.
+Each field must be executable by someone who has not read the rest of the document.
 </what_makes_it_executable>
 
 <constraints>
-- styleId DOIT être un identifiant du catalogue, à la lettre près.
-- La palette et la typographie fournies sont intangibles : la direction dit comment les EMPLOYER, jamais quoi changer.
-- imagePromptModifier est en ANGLAIS (il est concaténé à des prompts de modèles d'image) et décrit le RENDU uniquement — lumière, matière, grain, étalonnage, cadrage — jamais le sujet. 25 à 60 mots.
-- Tous les autres champs sont en FRANÇAIS.
-- dos et donts : 4 à 6 entrées chacun, à l'impératif, propres à CETTE marque (pas la recopie générique du style).
-- keywords : 5 à 8 mots de moodboard, concrets (une matière, une lumière, un objet), jamais des adjectifs de marque.
+- styleId MUST be an identifier from the catalogue, character for character.
+- The supplied palette and typography are fixed: the direction states how to USE them, never what to change.
+- imagePromptModifier is in ENGLISH (it is concatenated onto image-model prompts) and describes the RENDER only — light, material, grain, grading, framing — never the subject. 25 to 60 words.
+- Every other field is written in FRENCH (they are shown to the user in the brand book).
+- dos and donts: 4 to 6 entries each, imperative, specific to THIS brand (not a generic copy of the style sheet).
+- keywords: 5 to 8 moodboard words, concrete (a material, a light, an object), never brand adjectives.
 </constraints>
 
 <output_format>
-JSON strict, sans texte autour, sans balises de code.
+Strict JSON, no surrounding text, no code fences.
 {
-  "styleId": "identifiant exact du catalogue",
-  "styleName": "nom du style",
-  "tagline": "la direction en une formule de 8 mots maximum, propre à cette marque",
-  "rationale": "2 à 3 phrases : pourquoi ce style pour CETTE marque, et ce qu'il écarte",
+  "styleId": "exact identifier from the catalogue",
+  "styleName": "style name",
+  "tagline": "the direction as one formula of 8 words max, specific to this brand",
+  "rationale": "2 to 3 sentences: why this style for THIS brand, and what it rules out",
   "keywords": ["", "", "", "", ""],
   "layout": {
-    "grid": "système de grille précis (nombre de colonnes, gouttières, comportement des marges)",
-    "density": "airy | balanced | dense, plus une phrase d'application",
-    "whitespace": "part du cadre laissée vide et où elle se situe",
-    "signatureMove": "LE geste de composition qui doit être visible sur chaque livrable"
+    "grid": "precise grid system (column count, gutters, margin behaviour)",
+    "density": "airy | balanced | dense, plus one sentence on how it applies",
+    "whitespace": "how much of the frame stays empty and where it sits",
+    "signatureMove": "THE compositional gesture that must be visible on every deliverable"
   },
   "color": {
-    "distribution": "répartition chiffrée entre les couleurs de la charte",
-    "application": "où va chaque couleur (aplats, textes, filets, images)",
-    "contrast": "type de contraste recherché"
+    "distribution": "numeric split between the charter colours",
+    "application": "where each colour goes (flats, text, rules, images)",
+    "contrast": "the kind of contrast sought"
   },
   "typography": {
-    "scaleContrast": "rapport d'échelle entre niveaux et nombre de niveaux",
-    "caseAndTracking": "casse dominante et interlettrage, valeurs comprises",
-    "treatment": "traitement typographique particulier, ou 'aucun'"
+    "scaleContrast": "scale ratio between levels and number of levels",
+    "caseAndTracking": "dominant case and tracking, values included",
+    "treatment": "specific typographic treatment, or 'none'"
   },
   "imagery": {
     "medium": "photography | illustration | render-3d | collage | abstract | mixed",
-    "subjects": "ce que montrent les images de cette marque",
-    "treatment": "traitement appliqué à toute image (duotone, grain, recadrage, voile...)",
-    "lighting": "direction et qualité de lumière, constantes sur toute la marque",
-    "framing": "cadrage et point de vue dominants"
+    "subjects": "what this brand's images show",
+    "treatment": "treatment applied to every image (duotone, grain, crop, overlay...)",
+    "lighting": "direction and quality of light, constant across the brand",
+    "framing": "dominant framing and point of view"
   },
-  "graphicDevices": ["3 à 5 éléments graphiques récurrents, décrits assez précisément pour être redessinés"],
+  "graphicDevices": ["3 to 5 recurring graphic devices, described precisely enough to be redrawn"],
   "dos": ["", "", "", ""],
   "donts": ["", "", "", ""],
   "imagePromptModifier": "english render-only modifier, 25-60 words"

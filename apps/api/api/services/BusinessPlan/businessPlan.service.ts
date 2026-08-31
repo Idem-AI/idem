@@ -139,30 +139,30 @@ export class BusinessPlanService extends GenericService {
         const seuil = finance.computed.seuilRentabilite || [];
         const ft = finance.computed.fluxTresorerie || [];
         
-        summaryText.push('--- DONNÉES FINANCIÈRES RÉELLES DU MODULE FINANCE ---');
-        summaryText.push(`Devise: ${finance.meta?.currency || 'FCFA'}`);
-        
-        summaryText.push('Projections de Chiffre d\'Affaires et Résultat Net:');
+        summaryText.push('--- REAL FINANCIAL DATA FROM THE FINANCE MODULE ---');
+        summaryText.push(`Currency: ${finance.meta?.currency || 'FCFA'}`);
+
+        summaryText.push('Revenue and net income projections:');
         ce.forEach((y: any) => {
-          summaryText.push(`- Année ${y.year}: CA = ${y.chiffreAffaires} ${finance.meta?.currency || 'FCFA'}, Résultat Net = ${y.resultatNet} ${finance.meta?.currency || 'FCFA'}, Marge brute = ${y.margeBrute} ${finance.meta?.currency || 'FCFA'} (${y.tauxMargePct}%)`);
+          summaryText.push(`- Year ${y.year}: revenue = ${y.chiffreAffaires} ${finance.meta?.currency || 'FCFA'}, net income = ${y.resultatNet} ${finance.meta?.currency || 'FCFA'}, gross margin = ${y.margeBrute} ${finance.meta?.currency || 'FCFA'} (${y.tauxMargePct}%)`);
         });
-        
+
         if (seuil.length > 0) {
-          summaryText.push('Seuil de rentabilité (Break-even):');
+          summaryText.push('Break-even:');
           seuil.forEach((s: any) => {
-            summaryText.push(`- Année ${s.year}: Seuil = ${s.seuilRentabilite} ${finance.meta?.currency || 'FCFA'}, Point Mort = ${s.pointMortJours} jours`);
+            summaryText.push(`- Year ${s.year}: break-even = ${s.seuilRentabilite} ${finance.meta?.currency || 'FCFA'}, break-even point = ${s.pointMortJours} days`);
           });
         }
-        
+
         if (ft.length > 0) {
-          summaryText.push('Trésorerie de clôture:');
+          summaryText.push('Closing cash position:');
           ft.forEach((f: any) => {
-            summaryText.push(`- Année ${f.year}: Trésorerie clôture = ${f.tresorerieCloture} ${finance.meta?.currency || 'FCFA'}`);
+            summaryText.push(`- Year ${f.year}: closing cash = ${f.tresorerieCloture} ${finance.meta?.currency || 'FCFA'}`);
           });
         }
       } else {
-        summaryText.push('--- DONNÉES DU MODULE FINANCE (Non calculées) ---');
-        summaryText.push(`Produits: ${finance.products.map(p => `${p.name}: ${p.prices?.[0]} FCFA`).join(', ')}`);
+        summaryText.push('--- FINANCE MODULE DATA (not computed) ---');
+        summaryText.push(`Products: ${finance.products.map(p => `${p.name}: ${p.prices?.[0]} FCFA`).join(', ')}`);
       }
       financeContext = '\n\n' + summaryText.join('\n');
     }
@@ -584,7 +584,7 @@ export class BusinessPlanService extends GenericService {
     financeContext: string,
     country: string
   ): DeliverableSection[] {
-    const geo = country ? ` (marché prioritaire: ${country})` : '';
+    const geo = country ? ` (priority market: ${country})` : '';
     const ctx = projectDescription.slice(0, 400);
     return [
       { name: 'Cover Page', instructions: AGENT_COVER_PROMPT, needsResearch: false },
@@ -594,9 +594,9 @@ export class BusinessPlanService extends GenericService {
         instructions: AGENT_OPPORTUNITY_PROMPT,
         needsResearch: true,
         researchBriefs: [
-          `Taille du marché (TAM/SAM/SOM), taux de croissance annuel (CAGR) et projections récentes pour le secteur du projet${geo}. Contexte: ${ctx}`,
-          `Problème adressé: statistiques et études récentes chiffrant son ampleur${geo}`,
-          `Tendances récentes et facteurs réglementaires impactant ce marché${geo}`,
+          `Market size (TAM/SAM/SOM), annual growth rate (CAGR) and recent projections for the project's sector${geo}. Context: ${ctx}`,
+          `The problem addressed: recent statistics and studies quantifying its scale${geo}`,
+          `Recent trends and regulatory factors affecting this market${geo}`,
         ],
       },
       {
@@ -604,8 +604,8 @@ export class BusinessPlanService extends GenericService {
         instructions: AGENT_TARGET_AUDIENCE_PROMPT,
         needsResearch: true,
         researchBriefs: [
-          `Taille et démographie des segments de clientèle cibles${geo}. Contexte: ${ctx}`,
-          `Comportements d'achat, pouvoir d'achat et taux d'adoption pour ces segments${geo}`,
+          `Size and demographics of the target customer segments${geo}. Context: ${ctx}`,
+          `Purchasing behaviour, spending power and adoption rates for those segments${geo}`,
         ],
       },
       // Cette section décrit l'offre du porteur de projet : elle est déjà dans
@@ -622,12 +622,12 @@ export class BusinessPlanService extends GenericService {
         instructions: AGENT_FINANCIAL_PLAN_PROMPT + financeContext,
         needsResearch: true,
         researchBriefs: [
-          `Marges brutes et structures de coûts de référence du secteur${geo}. Contexte: ${ctx}`,
+          `Benchmark gross margins and cost structures for the sector${geo}. Context: ${ctx}`,
           // Reprise de « Produits & Services » : c'est ici que les prix du
           // marché servent réellement. Les multiples de valorisation qu'on
           // cherchait avant n'ont pas leur place dans un plan à ce stade, et le
           // module Finance fournit déjà les chiffres du projet.
-          `Fourchettes de prix pratiquées par les concurrents sur ce type d'offre${geo}`,
+          `Price ranges charged by competitors for this kind of offering${geo}`,
         ],
       },
       { name: 'Goal Planning', instructions: AGENT_GOAL_PLANNING_PROMPT, needsResearch: false },
@@ -676,12 +676,12 @@ export class BusinessPlanService extends GenericService {
       `Language: ${language}`,
       buildLogoBlock(branding?.logo, {
         placement:
-          "sur la page de couverture (élément de signature, grand) et en tête ou en pied de chaque page de section (petit, discret, toujours au même endroit)",
-        size: 'couverture : 40 à 70mm de large ; pages courantes : 12 à 18mm de haut',
+          'on the cover page (large, as the signature) and in the header or footer of every section page (small, discreet, always in the same place)',
+        size: 'cover: 40 to 70mm wide; running pages: 12 to 18mm tall',
       }),
       buildArtDirectionBlock(artDirection, { medium: 'document' }),
       artDirection
-        ? `<composition_seed>\nToutes les sections de ce plan partagent cette graine de composition : c'est ce qui les fait appartenir au même document.\n${describeSeed(seed)}\n</composition_seed>`
+        ? `<composition_seed>\nEvery section of this plan shares the composition seed below: it is what makes them belong to the same document.\n${describeSeed(seed)}\n</composition_seed>`
         : '',
       ANTI_SLOP_BLOCK,
     ]
@@ -721,17 +721,17 @@ export class BusinessPlanService extends GenericService {
     const summaryText: string[] = [];
     if (finance.computed) {
       const ce = finance.computed.compteExploitation || [];
-      summaryText.push('--- DONNÉES FINANCIÈRES RÉELLES DU MODULE FINANCE ---');
-      summaryText.push(`Devise: ${currency}`);
+      summaryText.push('--- REAL FINANCIAL DATA FROM THE FINANCE MODULE ---');
+      summaryText.push(`Currency: ${currency}`);
       ce.forEach((y: any) => {
         summaryText.push(
-          `- Année ${y.year}: CA = ${y.chiffreAffaires} ${currency}, Résultat Net = ${y.resultatNet} ${currency}, Marge brute = ${y.margeBrute} ${currency} (${y.tauxMargePct}%)`
+          `- Year ${y.year}: revenue = ${y.chiffreAffaires} ${currency}, net income = ${y.resultatNet} ${currency}, gross margin = ${y.margeBrute} ${currency} (${y.tauxMargePct}%)`
         );
       });
     } else {
-      summaryText.push('--- DONNÉES DU MODULE FINANCE (Non calculées) ---');
+      summaryText.push('--- FINANCE MODULE DATA (not computed) ---');
       summaryText.push(
-        `Produits: ${finance.products.map((p) => `${p.name}: ${p.prices?.[0]} ${currency}`).join(', ')}`
+        `Products: ${finance.products.map((p) => `${p.name}: ${p.prices?.[0]} ${currency}`).join(', ')}`
       );
     }
     return '\n\n' + summaryText.join('\n');
@@ -1020,30 +1020,30 @@ export class BusinessPlanService extends GenericService {
         const seuil = finance.computed.seuilRentabilite || [];
         const ft = finance.computed.fluxTresorerie || [];
         
-        summaryText.push('--- DONNÉES FINANCIÈRES RÉELLES DU MODULE FINANCE ---');
-        summaryText.push(`Devise: ${finance.meta?.currency || 'FCFA'}`);
+        summaryText.push('--- REAL FINANCIAL DATA FROM THE FINANCE MODULE ---');
+        summaryText.push(`Currency: ${finance.meta?.currency || 'FCFA'}`);
         
         summaryText.push('Projections de Chiffre d\'Affaires et Résultat Net:');
         ce.forEach((y: any) => {
-          summaryText.push(`- Année ${y.year}: CA = ${y.chiffreAffaires} ${finance.meta?.currency || 'FCFA'}, Résultat Net = ${y.resultatNet} ${finance.meta?.currency || 'FCFA'}, Marge brute = ${y.margeBrute} ${finance.meta?.currency || 'FCFA'} (${y.tauxMargePct}%)`);
+          summaryText.push(`- Year ${y.year}: revenue = ${y.chiffreAffaires} ${finance.meta?.currency || 'FCFA'}, net income = ${y.resultatNet} ${finance.meta?.currency || 'FCFA'}, gross margin = ${y.margeBrute} ${finance.meta?.currency || 'FCFA'} (${y.tauxMargePct}%)`);
         });
         
         if (seuil.length > 0) {
-          summaryText.push('Seuil de rentabilité (Break-even):');
+          summaryText.push('Break-even:');
           seuil.forEach((s: any) => {
-            summaryText.push(`- Année ${s.year}: Seuil = ${s.seuilRentabilite} ${finance.meta?.currency || 'FCFA'}, Point Mort = ${s.pointMortJours} jours`);
+            summaryText.push(`- Year ${s.year}: break-even = ${s.seuilRentabilite} ${finance.meta?.currency || 'FCFA'}, break-even point = ${s.pointMortJours} days`);
           });
         }
         
         if (ft.length > 0) {
-          summaryText.push('Trésorerie de clôture:');
+          summaryText.push('Closing cash position:');
           ft.forEach((f: any) => {
-            summaryText.push(`- Année ${f.year}: Trésorerie clôture = ${f.tresorerieCloture} ${finance.meta?.currency || 'FCFA'}`);
+            summaryText.push(`- Year ${f.year}: closing cash = ${f.tresorerieCloture} ${finance.meta?.currency || 'FCFA'}`);
           });
         }
       } else {
-        summaryText.push('--- DONNÉES DU MODULE FINANCE (Non calculées) ---');
-        summaryText.push(`Produits: ${finance.products.map(p => `${p.name}: ${p.prices?.[0]} FCFA`).join(', ')}`);
+        summaryText.push('--- FINANCE MODULE DATA (not computed) ---');
+        summaryText.push(`Products: ${finance.products.map(p => `${p.name}: ${p.prices?.[0]} FCFA`).join(', ')}`);
       }
       financeContext = '\n\n' + summaryText.join('\n');
     }
