@@ -672,12 +672,7 @@ export class CommunicationService extends GenericService {
     ];
 
     const raw = await this.promptService.runPrompt(
-      promptConfigFor(AI_CONFIG.communication.flyer, userId, {
-        // Budget délibéré (cf. ai.config.ts) : le raisonnement de direction
-        // artistique est décompté de maxOutputTokens, et un HTML tronqué ne
-        // produit aucun visuel. Le plafond global reste actif ailleurs.
-        bypassOutputTokenCap: true,
-      }),
+      promptConfigFor(AI_CONFIG.communication.flyer, userId),
       messages
     );
     const parsed = this.safeJson<Partial<Flyer>>(raw) ?? {};
@@ -1217,10 +1212,6 @@ export class CommunicationService extends GenericService {
         this.promptService.runPrompt(
           promptConfigFor(AI_CONFIG.communication.flyer, userId, {
             language,
-            // Même arbitrage qu'à la composition : le raisonnement de direction
-            // artistique se décompte de maxOutputTokens, et un HTML tronqué ne
-            // produit aucun visuel.
-            bypassOutputTokenCap: true,
           }),
           [{ role: 'user', content: prompt }]
         )

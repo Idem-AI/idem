@@ -283,6 +283,12 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
     this.currentStep.set(this.translate.instant('dashboard.logoVariations.progress.initializing'));
 
     const existingWithText = this.project()?.analysisResultModel?.branding?.logo?.variations?.withText || {};
+    // Le logo retenu EST la déclinaison « fond clair » : il a été dessiné pour ce
+    // fond et c'est l'image que l'utilisateur vient d'approuver. Le serveur ne la
+    // régénère plus, il la renvoie telle quelle — on l'affiche donc dès
+    // l'ouverture plutôt que de laisser cette carte en attente le temps que le
+    // flux s'établisse. Seules les deux autres se génèrent sous les yeux.
+    const selectedLogoSvg = this.project()?.analysisResultModel?.branding?.logo?.svg || null;
 
     this.variationSlots.set(
       (['lightBackground', 'darkBackground', 'monochrome'] as VariationKind[]).map((kind) => {
@@ -292,6 +298,14 @@ export class LogoVariationsComponent implements OnInit, OnDestroy {
             kind,
             status: 'final' as const,
             svg,
+            critique: null,
+          };
+        }
+        if (kind === 'lightBackground' && selectedLogoSvg) {
+          return {
+            kind,
+            status: 'final' as const,
+            svg: selectedLogoSvg,
             critique: null,
           };
         }

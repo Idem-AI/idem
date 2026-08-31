@@ -3,8 +3,6 @@ import logger from '../config/logger';
 export interface Restrictions {
   maxStyles: number;
   maxResolution: string;
-  /** Plafond global de tokens de sortie. 0 = aucun plafond (voir constructeur). */
-  maxOutputTokens: number;
   restrictedPrompts: string[];
 }
 
@@ -24,20 +22,9 @@ export class RestrictionsService {
     this.restrictions = {
       maxStyles: parseInt(process.env.MAX_STYLES || '3'),
       maxResolution: process.env.MAX_RESOLUTION || 'medium',
-      // ⚠️ Ce plafond est OPT-IN (0 = désactivé).
-      //
-      // Il valait 1000 par défaut, et s'appliquait à toute génération portant un
-      // `promptType` — écrasant silencieusement les budgets décidés par
-      // fonctionnalité dans ai.config.ts (carte de visite 24000, flyer 2000,
-      // moments 1200, interprétation PDF finance 1500…). Or 1000 tokens ne
-      // suffisent à produire ni un SVG, ni du HTML, ni un JSON structuré : la
-      // réponse était tronquée (finishReason=MAX_TOKENS) puis illisible au
-      // parsing. Le plafond ne s'active donc plus que si MAX_OUTPUT_TOKENS est
-      // explicitement défini dans l'environnement.
-      maxOutputTokens: parseInt(process.env.MAX_OUTPUT_TOKENS || '0'),
-      restrictedPrompts: (
-        process.env.RESTRICTED_PROMPTS || 'complex-branding,full-charter'
-      ).split(','),
+      restrictedPrompts: (process.env.RESTRICTED_PROMPTS || 'complex-branding,full-charter').split(
+        ','
+      ),
     };
 
     logger.info('RestrictionsService initialized:', this.restrictions);
@@ -68,24 +55,6 @@ export class RestrictionsService {
       ...params,
       ...(params?.llmOptions ? { llmOptions: { ...params.llmOptions } } : {}),
     };
-
-    // Limit output tokens — uniquement si un plafond global est configuré, que
-    // l'appel n'en est pas explicitement exempté (budget interne délibéré), et
-    // qu'il est réellement inférieur au budget demandé.
-    if (
-      this.restrictions.maxOutputTokens > 0 &&
-      !adjustedParams.bypassOutputTokenCap &&
-      adjustedParams.llmOptions?.maxOutputTokens
-    ) {
-      const requested = adjustedParams.llmOptions.maxOutputTokens;
-      const capped = Math.min(requested, this.restrictions.maxOutputTokens);
-      if (capped < requested) {
-        adjustedParams.llmOptions.maxOutputTokens = capped;
-        logger.warn(
-          `MAX_OUTPUT_TOKENS caps '${promptType}' from ${requested} to ${capped} — a truncated response may break HTML/SVG/JSON parsing.`
-        );
-      }
-    }
 
     // Limit styles if applicable
     if (adjustedParams.styles && Array.isArray(adjustedParams.styles)) {
