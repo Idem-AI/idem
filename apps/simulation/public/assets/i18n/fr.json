@@ -40,12 +40,16 @@
   },
   "theme": {
     "switchToLight": "Passer en thème clair",
-    "switchToDark": "Passer en thème sombre"
+    "switchToDark": "Passer en thème sombre",
+    "label": "Thème",
+    "light": "Clair",
+    "dark": "Sombre"
   },
   "language": {
     "change": "Changer de langue",
     "fr": "Français",
-    "en": "English"
+    "en": "English",
+    "label": "Langue"
   },
   "auth": {
     "signIn": "Se connecter",

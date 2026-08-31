@@ -40,12 +40,16 @@
   },
   "theme": {
     "switchToLight": "Switch to light theme",
-    "switchToDark": "Switch to dark theme"
+    "switchToDark": "Switch to dark theme",
+    "label": "Theme",
+    "light": "Light",
+    "dark": "Dark"
   },
   "language": {
     "change": "Change language",
     "fr": "Français",
-    "en": "English"
+    "en": "English",
+    "label": "Language"
   },
   "auth": {
     "signIn": "Sign in",
