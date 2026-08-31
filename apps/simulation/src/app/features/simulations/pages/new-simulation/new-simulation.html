@@ -214,7 +214,7 @@
         <div class="rise mt-5 w-full text-left">
           @if (origin() === 'idem-project') {
             <div class="glass-card overflow-hidden rounded-2xl">
-              @if (sessionPending() || projectsLoading()) {
+              @if (sessionPending()) {
                 <div class="flex flex-col gap-2 p-4">
                   @for (row of [1, 2, 3]; track row) {
                     <div class="skeleton h-12 rounded-lg"></div>
@@ -235,6 +235,12 @@
                   >
                     {{ 'auth.signIn' | translate }}
                   </button>
+                </div>
+              } @else if (projectsPending()) {
+                <div class="flex flex-col gap-2 p-4">
+                  @for (row of [1, 2, 3]; track row) {
+                    <div class="skeleton h-12 rounded-lg"></div>
+                  }
                 </div>
               } @else if (!projects().length) {
                 <p class="p-8 text-center text-sm text-ink-muted">
