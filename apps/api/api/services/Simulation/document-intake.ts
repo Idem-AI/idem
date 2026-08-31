@@ -21,13 +21,16 @@
 
 import * as crypto from 'crypto';
 
-/** Formats acceptés. Au-delà, il faudrait un extracteur (PDF, DOCX). */
-export const ACCEPTED_EXTENSIONS = ['.txt', '.md', '.markdown', '.json'] as const;
+/**
+ * Les trois formats dans lesquels un entrepreneur détient réellement son plan.
+ * L'extraction du texte vit dans `document-text.ts`.
+ */
+export const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.md', '.markdown'] as const;
 export const ACCEPTED_MIME_TYPES = [
-  'text/plain',
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'text/markdown',
   'text/x-markdown',
-  'application/json',
 ] as const;
 
 /** En deçà, il n'y a pas de quoi décrire une activité. */
@@ -218,7 +221,7 @@ export function prepareDocument(raw: string, documentName: string): DocumentBrie
   // document fait de répétitions serait déclaré illisible, ce qu'il n'est pas.
   if (raw.replace(/\s+/g, ' ').trim().length < MIN_READABLE_CHARS) {
     throw new UnusableDocumentError(
-      "Ce fichier est vide ou illisible. Exportez votre business plan en texte, Markdown ou JSON, puis réessayez.",
+      "Ce fichier est vide ou illisible. Exportez votre business plan en PDF, Word (.docx) ou Markdown, puis réessayez.",
     );
   }
 

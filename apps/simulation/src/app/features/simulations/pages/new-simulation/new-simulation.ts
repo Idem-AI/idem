@@ -12,8 +12,8 @@ import { PageHeader } from '../../../../shared/components/page-header/page-heade
 import { SimulationGateway, SimulationStore } from '../../data-access';
 import { canStashFile, saveDraft, takeDraft } from './new-run-draft';
 
-/** Extensions acceptées par l'API. Le reste demanderait un extracteur. */
-const ACCEPTED_EXTENSIONS = ['.txt', '.md', '.markdown', '.json'];
+/** Les seuls formats acceptés par l'API : PDF, Word et Markdown. */
+const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.md', '.markdown'];
 import {
   KnowledgeItem,
   ProjectUnderstanding,
