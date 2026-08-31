@@ -23,6 +23,7 @@
 
 import {
   FeatureAIConfig,
+  GLM_MODELS,
   LLMOptions,
   LLMProvider,
   ModelTier,
@@ -54,8 +55,8 @@ const ESCALATION: Record<ModelTier, ModelTier | undefined> = {
 
 export const MODEL_TIERS: Record<ModelTier, TierDefinition> = {
   XS: {
-    provider: LLMProvider.GEMINI,
-    modelName: process.env.IDEM_TIER_XS_MODEL || 'gemini-2.5-flash',
+    provider: LLMProvider.GLM,
+    modelName: process.env.IDEM_TIER_XS_MODEL || GLM_MODELS.mechanical,
     fallbackModels: TEXT_FALLBACK_MODELS,
     // Températures basses: ces tâches sont déterministes par nature, la
     // créativité n'y est qu'une source de variance.
@@ -69,17 +70,26 @@ export const MODEL_TIERS: Record<ModelTier, TierDefinition> = {
     purpose: 'mécanique (résumé, vérification, classification, extraction)',
   },
   M: {
-    provider: LLMProvider.GEMINI,
-    modelName: process.env.IDEM_TIER_M_MODEL || 'gemini-3-flash-preview',
+    provider: LLMProvider.GLM,
+    modelName: process.env.IDEM_TIER_M_MODEL || GLM_MODELS.writing,
     fallbackModels: TEXT_FALLBACK_MODELS,
     llmOptions: { temperature: 0.5 },
     purpose: 'rédaction et structuration de contenu',
   },
   S: {
-    provider: LLMProvider.GEMINI,
-    modelName: process.env.IDEM_TIER_S_MODEL || 'gemini-3.1-pro-preview',
+    provider: LLMProvider.GLM,
+    modelName: process.env.IDEM_TIER_S_MODEL || GLM_MODELS.reasoning,
     fallbackModels: TEXT_FALLBACK_MODELS,
-    llmOptions: { temperature: 0.5 },
+    // Seul étage où le raisonnement de GLM est rallumé : c'est sa raison
+    // d'être. Il est coupé ailleurs (cf. `extraBody` du fournisseur) parce
+    // qu'il se décompte du budget de sortie et vidait les réponses courtes.
+    // Le budget est relevé en conséquence : raisonner puis répondre ne tient
+    // pas dans l'enveloppe d'une réponse simple.
+    llmOptions: {
+      temperature: 0.5,
+      maxOutputTokens: 16000,
+      extraBody: { thinking: { type: 'enabled' } },
+    },
     purpose: 'raisonnement (stratégie, chiffres, création visuelle)',
   },
 };

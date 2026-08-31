@@ -12,12 +12,21 @@ import dotenv from 'dotenv';
 import * as fs from 'fs-extra';
 import logger from '../config/logger';
 import restrictionsService from './restrictions.service';
+import axios from 'axios';
 import OpenAI from 'openai';
 import { userService } from './user.service';
 dotenv.config();
 
-import { LLMProvider, LLMOptions, AI_CONFIG, TEXT_FALLBACK_MODELS } from '../config/ai.config';
 import {
+  LLMProvider,
+  LLMOptions,
+  AI_CONFIG,
+  GLM_MODELS,
+  TEXT_FALLBACK_MODELS,
+} from '../config/ai.config';
+import {
+  GLM_ENDPOINTS,
+  getGlmApiKey,
   getProvider,
   providerSupports,
   resolveGlobalOverride,
@@ -162,7 +171,16 @@ export interface GroundedSupport {
   sourceIndexes: number[];
 }
 
-/** Résultat d'un appel fondé (grounding Google Search). */
+/** Un résultat brut de l'endpoint `/web_search` de Z.ai. */
+interface GlmSearchResult {
+  title: string;
+  link: string;
+  content: string;
+  media?: string;
+  publish_date?: string;
+}
+
+/** Résultat d'un appel fondé (recherche web du fournisseur). */
 export interface GroundedResult {
   /** Texte produit par le modèle, appuyé sur les résultats de recherche. */
   text: string;
@@ -1248,15 +1266,19 @@ export class PromptService {
       throw new Error('Messages array cannot be empty.');
     }
 
-    // Le grounding (Google Search) est propre à Gemini. Si la config pointe un
-    // fournisseur incapable (ex: GLM), on retombe sur le modèle Gemini par défaut
-    // plutôt que d'envoyer un modèle inconnu au SDK Google.
+    // Chaque fournisseur fonde ses réponses à sa façon : Google par un outil
+    // intégré au modèle, Z.ai par un endpoint de recherche distinct. Les deux
+    // rendent le même contrat — du texte et de vraies sources.
     const groundingSupported = providerSupports(provider, 'grounding');
     const modelName = groundingSupported ? request.modelName : AI_CONFIG.default.modelName;
     if (!groundingSupported) {
       logger.warn(
-        `runGroundedResearch: le fournisseur ${provider} ne supporte pas le grounding — repli sur Gemini (${modelName}).`
+        `runGroundedResearch: le fournisseur ${provider} ne fonde pas ses réponses — repli sur ${modelName}.`
       );
+    }
+
+    if (provider === LLMProvider.GLM) {
+      return this.runGlmGroundedResearch({ ...request, modelName }, messages);
     }
 
     if (userId && !skipQuotaCheck) {
@@ -1337,6 +1359,134 @@ export class PromptService {
     }
 
     return { text, ...parsed };
+  }
+
+  /**
+   * Recherche fondée via Z.ai — deux temps, là où Gemini n'en fait qu'un.
+   *
+   * L'endpoint `/web_search` interroge le web et rend des résultats déjà mis
+   * en forme pour un modèle ; on les passe ensuite en contexte à la génération,
+   * en imposant la citation par `[sN]`. C'est ce marquage qui permet de
+   * reconstituer l'association segments → sources que Google livre, lui, dans
+   * ses `groundingMetadata`.
+   *
+   * Aucune donnée n'est acceptée hors de ces résultats : c'est le même socle
+   * anti-invention, obtenu autrement.
+   */
+  private async runGlmGroundedResearch(
+    request: PromptConfig,
+    messages: AIChatMessage[]
+  ): Promise<GroundedResult> {
+    const { modelName, llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
+    const startedAt = Date.now();
+
+    const query = [...messages].reverse().find((m) => m.role === 'user')?.content ?? '';
+    logAIEvent('ai.grounded_research_start', { modelName, promptType: request.promptType });
+
+    const results = await this.searchWeb(query);
+    if (results.length === 0) {
+      // Sans source, une réponse « fondée » n'en serait pas une : mieux vaut
+      // rendre un résultat vide que du texte inventé qui en aurait l'air.
+      logger.warn('runGlmGroundedResearch: la recherche web n\'a rien renvoyé.');
+      return { text: '', queries: query ? [query] : [], sources: [], supports: [] };
+    }
+
+    const sources: GroundedSourceRaw[] = results.map((result, index) => ({
+      index,
+      title: result.title,
+      url: result.link,
+      domain: safeDomain(result.link),
+    }));
+
+    const dossier = sources
+      .map(
+        (source, index) =>
+          `[s${index}] ${source.title} — ${source.url}\n${results[index].content}`
+      )
+      .join('\n\n');
+
+    const grounded: AIChatMessage[] = [
+      ...messages.filter((m) => m.role === 'system'),
+      {
+        role: 'system',
+        content:
+          "Tu réponds UNIQUEMENT à partir des résultats de recherche ci-dessous. " +
+          "N'avance aucun chiffre, aucun fait, aucune date qui n'y figure pas. " +
+          "Chaque affirmation tirée d'une source porte sa référence entre crochets, " +
+          'sous la forme [s0], [s1]… correspondant aux résultats numérotés.' +
+          `\n\n--- RÉSULTATS DE RECHERCHE ---\n${dossier}`,
+      },
+      ...messages.filter((m) => m.role !== 'system'),
+    ];
+
+    const text = await this.runPrompt(
+      {
+        ...request,
+        provider: LLMProvider.GLM,
+        modelName,
+        llmOptions,
+        language,
+        userId,
+        // Le quota est décompté une fois, à la fin, comme le fait la voie Gemini.
+        skipQuotaCheck: true,
+      },
+      grounded
+    );
+
+    const supports = extractCitationSupports(text, sources.length);
+
+    logAIEvent('ai.grounded_research_end', {
+      modelName,
+      durationMs: Date.now() - startedAt,
+      textLength: text.length,
+      sourceCount: sources.length,
+      queryCount: 1,
+    });
+
+    if (userId && !skipQuotaCheck) {
+      try {
+        await userService.incrementUsage(userId, 1);
+      } catch (quotaError) {
+        logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
+      }
+    }
+
+    return { text, queries: query ? [query] : [], sources, supports };
+  }
+
+  /**
+   * Appelle l'endpoint de recherche de Z.ai. Hors contrat OpenAI : c'est une
+   * requête HTTP à part, avec son propre corps.
+   */
+  private async searchWeb(query: string, count = 10): Promise<GlmSearchResult[]> {
+    const apiKey = getGlmApiKey();
+    if (!apiKey || !query.trim()) {
+      return [];
+    }
+
+    try {
+      const response = await axios.post<{ search_result?: GlmSearchResult[] }>(
+        GLM_ENDPOINTS.webSearch,
+        {
+          search_engine: GLM_MODELS.searchEngine,
+          search_query: query.slice(0, 1000),
+          count,
+        },
+        {
+          headers: { Authorization: `Bearer ${apiKey}` },
+          timeout: 30_000,
+        }
+      );
+
+      const results = (response.data?.search_result ?? []).filter(
+        (result) => result?.link && result?.content
+      );
+      logger.info(`Z.ai web search returned ${results.length} results for "${query.slice(0, 60)}"`);
+      return results;
+    } catch (error: any) {
+      logger.error(`Z.ai web search failed: ${error?.message}`, { status: error?.response?.status });
+      return [];
+    }
   }
 
   /**
@@ -1593,3 +1743,45 @@ export class PromptService {
 }
 
 export const promptService = new PromptService();
+
+/** Domaine d'une URL, ou `undefined` si elle est malformée. */
+function safeDomain(url: string): string | undefined {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Reconstitue l'association segments → sources à partir des marqueurs `[sN]`
+ * laissés par le modèle.
+ *
+ * Google livre cette carte dans ses métadonnées ; avec une recherche externe il
+ * faut la relire dans le texte. Chaque phrase portant au moins une référence
+ * devient un support, débarrassé de ses marqueurs.
+ */
+function extractCitationSupports(text: string, sourceCount: number): GroundedSupport[] {
+  if (!text || sourceCount === 0) {
+    return [];
+  }
+
+  const supports: GroundedSupport[] = [];
+  // Découpe à la phrase : c'est l'unité que porte une citation.
+  for (const sentence of text.split(/(?<=[.!?])\s+/)) {
+    const indexes = [...sentence.matchAll(/\[s(\d+)\]/g)]
+      .map((match) => Number.parseInt(match[1], 10))
+      .filter((index) => Number.isInteger(index) && index >= 0 && index < sourceCount);
+
+    if (indexes.length === 0) {
+      continue;
+    }
+
+    const cleaned = sentence.replace(/\s*\[s\d+\]/g, '').trim();
+    if (cleaned) {
+      supports.push({ text: cleaned, sourceIndexes: [...new Set(indexes)] });
+    }
+  }
+
+  return supports;
+}
