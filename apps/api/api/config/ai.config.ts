@@ -143,6 +143,42 @@ export function resolveSectionConfig(
 }
 
 /**
+ * Catalogue GLM (Zhipu / Z.ai) — la plateforme tourne entièrement dessus.
+ *
+ * Les identifiants sont ceux de l'API Z.ai (`https://api.z.ai/api/paas/v4`).
+ * Réunis ici pour qu'un changement de modèle soit une ligne, et non une
+ * fouille dans quarante configurations de features.
+ *
+ * Tarifs relevés sur docs.z.ai (août 2026), en dollars par million de tokens —
+ * ils justifient l'affectation par étage :
+ *
+ *   glm-4.7-flashx  0,07 / 0,40   mécanique  : résumer, classer, extraire
+ *   glm-4.7         0,60 / 2,20   rédaction  : le gros du volume
+ *   glm-5.2         1,40 / 4,40   raisonner  : stratégie, finance, SVG
+ *   glm-4.6v        0,30 / 0,90   vision     : lecture d'image
+ *   glm-ocr         0,03 / 0,03   OCR        : texte dans une image
+ *   glm-image       0,015 / image génération d'image
+ *   cogview-4       0,010 / image repli image
+ */
+export const GLM_MODELS = {
+  /** Tâches mécaniques : résumé, vérification, classification, extraction. */
+  mechanical: 'glm-4.7-flashx',
+  /** Rédaction : le défaut de la plateforme. */
+  writing: 'glm-4.7',
+  /** Raisonnement : stratégie, plan financier, concept de logo, SVG. */
+  reasoning: 'glm-5.2',
+  /** Compréhension d'image. */
+  vision: 'glm-4.6v',
+  /** Extraction de texte dans une image. */
+  ocr: 'glm-ocr',
+  /** Génération d'image, et son repli. */
+  image: 'glm-image',
+  imageFallback: 'cogview-4-250304',
+  /** Moteur de recherche web de Z.ai (endpoint `/web_search`). */
+  searchEngine: 'search-prime',
+} as const;
+
+/**
  * Chaîne de repli standard pour la génération de texte.
  *
  * Ordre = qualité décroissante / disponibilité croissante. Google renvoie 503
@@ -150,36 +186,38 @@ export function resolveSectionConfig(
  * Centralisée ici pour qu'une feature ne se retrouve pas sans repli par oubli.
  */
 export const TEXT_FALLBACK_MODELS = [
-  'gemini-2.5-flash',
-  'gemini-3-flash-preview',
-  'gemini-3.5-flash',
-  'gemini-3.6-flash',
-  'gemini-2.5-pro'
+  GLM_MODELS.writing,
+  GLM_MODELS.mechanical,
+  GLM_MODELS.reasoning,
+  // Derniers recours, gratuits et bridés : mieux vaut une réponse lente qu'une
+  // fonctionnalité indisponible.
+  'glm-4.7-flash',
+  'glm-4.5-flash',
 ];
 
 export const AI_CONFIG = {
   // Global / default settings
   default: {
-    provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3-flash-preview',
+    provider: LLMProvider.GLM,
+    modelName: GLM_MODELS.writing,
     fallbackModels: TEXT_FALLBACK_MODELS,
   } as FeatureAIConfig,
 
   // Fallback settings
   fallback: {
-    textModel: 'gemini-2.5-flash',
-    imageModel: 'gemini-2.5-flash-image',
+    textModel: GLM_MODELS.mechanical,
+    imageModel: GLM_MODELS.imageFallback,
   },
 
   // Onboarding service configurations
-  // gemini-2.5-flash : modèle rapide pour la génération des questions et le
-  // parsing des réponses lors de la création de projet (chat + formulaire).
+  // Étage mécanique : poser la question suivante et lire une réponse sont des
+  // tâches de forme, pas de fond (chat + formulaire de création de projet).
   // Raisonnement DÉSACTIVÉ des deux côtés : poser la question suivante et lire
   // une réponse sont des tâches de forme, pas de fond.
   onboarding: {
     default: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-2.5-flash',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.mechanical,
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'onboarding',
       llmOptions: {
@@ -189,8 +227,8 @@ export const AI_CONFIG = {
       },
     } as FeatureAIConfig,
     parseAnswer: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-2.5-flash',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.mechanical,
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'onboarding',
       llmOptions: {
@@ -213,8 +251,8 @@ export const AI_CONFIG = {
   // marge au raisonnement AVANT la rédaction. Ne pas rabaisser pour gagner du
   // temps : une section tronquée casse le parseur HTML et la section est perdue.
   businessPlan: {
-    provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3.1-pro-preview',
+    provider: LLMProvider.GLM,
+    modelName: GLM_MODELS.reasoning,
     fallbackModels: TEXT_FALLBACK_MODELS,
     llmOptions: {
       maxOutputTokens: 14000,
@@ -248,8 +286,8 @@ export const AI_CONFIG = {
   // Chaque slide est du HTML + Tailwind autonome. Budgets plus resserrés que le
   // business plan (un slide reste un slide), mais large devant le raisonnement.
   pitchDeck: {
-    provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3.1-pro-preview',
+    provider: LLMProvider.GLM,
+    modelName: GLM_MODELS.reasoning,
     fallbackModels: TEXT_FALLBACK_MODELS,
     llmOptions: {
       maxOutputTokens: 12000,
@@ -281,24 +319,24 @@ export const AI_CONFIG = {
   // Advisor service configuration
   // Function-calling requis : la boucle Context Engine tourne sur Gemini.
   advisor: {
-    provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3-flash-preview',
+    provider: LLMProvider.GLM,
+    modelName: GLM_MODELS.writing,
     fallbackModels: TEXT_FALLBACK_MODELS,
     promptType: 'advisor',
   } as FeatureAIConfig,
 
   // Legal Docs service configuration
   legalDocs: {
-    provider: LLMProvider.GEMINI,
-    modelName: 'gemini-3-flash-preview',
+    provider: LLMProvider.GLM,
+    modelName: GLM_MODELS.writing,
     fallbackModels: TEXT_FALLBACK_MODELS,
   } as FeatureAIConfig,
 
   // Deployment configurations
   deployment: {
     terraform: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.writing,
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'terraform_tfvars_generation',
       llmOptions: {
@@ -307,8 +345,8 @@ export const AI_CONFIG = {
       },
     } as FeatureAIConfig,
     chat: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.writing,
       fallbackModels: TEXT_FALLBACK_MODELS,
       llmOptions: {
         temperature: 0.7,
@@ -320,8 +358,8 @@ export const AI_CONFIG = {
   // Finance configurations
   finance: {
     autofill: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.writing,
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'finance',
       llmOptions: {
@@ -333,8 +371,8 @@ export const AI_CONFIG = {
     // et 1024 tokens redeviennent un budget de sortie plein plutôt qu'un budget
     // partagé avec la réflexion.
     intent: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-2.5-flash',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.mechanical,
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'finance',
       llmOptions: {
@@ -344,8 +382,8 @@ export const AI_CONFIG = {
       },
     } as FeatureAIConfig,
     pdfCover: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.writing,
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'finance-cover-generation',
       llmOptions: {
@@ -354,8 +392,8 @@ export const AI_CONFIG = {
       },
     } as FeatureAIConfig,
     pdfInterpretation: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.writing,
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'finance-pdf-interpretation',
       llmOptions: {
@@ -370,74 +408,74 @@ export const AI_CONFIG = {
   // deux étapes qui produisent des dizaines d'entrées structurées d'un coup.
   simulation: {
     default: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.writing,
       promptType: 'simulation',
       llmOptions: { temperature: 0.4, maxOutputTokens: 8192 },
     } as FeatureAIConfig,
     understanding: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.writing,
       promptType: 'simulation_understanding',
       llmOptions: { temperature: 0.2, maxOutputTokens: 8192 },
     } as FeatureAIConfig,
     factors: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.writing,
       promptType: 'simulation_factors',
       llmOptions: { temperature: 0.5, maxOutputTokens: 32768 },
     } as FeatureAIConfig,
     scenarios: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.writing,
       promptType: 'simulation_scenarios',
       llmOptions: { temperature: 0.5, maxOutputTokens: 16384 },
     } as FeatureAIConfig,
     analysis: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.writing,
       promptType: 'simulation_analysis',
       llmOptions: { temperature: 0.3, maxOutputTokens: 8192 },
     } as FeatureAIConfig,
     recommendations: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.writing,
       promptType: 'simulation_recommendations',
       llmOptions: { temperature: 0.4, maxOutputTokens: 8192 },
     } as FeatureAIConfig,
     redTeam: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.writing,
       promptType: 'simulation_red_team',
       llmOptions: { temperature: 0.7, maxOutputTokens: 32768 },
     } as FeatureAIConfig,
     customers: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.writing,
       promptType: 'simulation_customers',
       llmOptions: { temperature: 0.5, maxOutputTokens: 8192 },
     } as FeatureAIConfig,
     investors: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.writing,
       promptType: 'simulation_investors',
       llmOptions: { temperature: 0.6, maxOutputTokens: 8192 },
     } as FeatureAIConfig,
     blackSwan: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.writing,
       promptType: 'simulation_black_swan',
       llmOptions: { temperature: 0.8, maxOutputTokens: 12288 },
     } as FeatureAIConfig,
     universes: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.writing,
       promptType: 'simulation_universes',
       llmOptions: { temperature: 0.7, maxOutputTokens: 8192 },
     } as FeatureAIConfig,
     experiments: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.writing,
       promptType: 'simulation_experiments',
       llmOptions: { temperature: 0.5, maxOutputTokens: 8192 },
     } as FeatureAIConfig,
@@ -459,15 +497,15 @@ export const AI_CONFIG = {
   // second choix est perçue comme une panne du produit.
   communication: {
     default: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3.1-pro-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.reasoning,
       fallbackModels: TEXT_FALLBACK_MODELS,
     } as FeatureAIConfig,
     // Extraction du contexte de marque : lecture et reformulation d'un projet
     // existant, aucune création — modèle SANS raisonnement.
     context: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-2.5-flash',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.mechanical,
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'communication_context',
       llmOptions: {
@@ -479,8 +517,8 @@ export const AI_CONFIG = {
     // Signaux de tendance : restitution de ce que le modèle sait déjà d'un
     // secteur, en 3 à 5 lignes. De la mémoire, pas du raisonnement.
     trends: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-2.5-flash',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.mechanical,
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'communication_trends',
       llmOptions: {
@@ -492,8 +530,8 @@ export const AI_CONFIG = {
     // Stratégie éditoriale : c'est la matière dont dérivent le calendrier PUIS
     // les visuels. Une stratégie plate produit des visuels plats.
     strategy: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3.1-pro-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.reasoning,
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'communication_strategy',
       llmOptions: {
@@ -507,8 +545,8 @@ export const AI_CONFIG = {
     // volume de sortie ET l'exigence de non-répétition justifient le modèle de
     // raisonnement et une température haute.
     calendar: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3.1-pro-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.reasoning,
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'communication_calendar',
       llmOptions: {
@@ -524,8 +562,8 @@ export const AI_CONFIG = {
     // heuristique — donc des photos hors sujet. Modèle sans raisonnement,
     // budget confortable : l'appel redevient fiable ET moins cher.
     imageBrief: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-2.5-flash',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.mechanical,
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'communication_image_brief',
       llmOptions: {
@@ -541,8 +579,8 @@ export const AI_CONFIG = {
     // artistique (choix d'archétype, calage typographique, contrastes) pèse ici
     // plus lourd que le HTML lui-même.
     flyer: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3.1-pro-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.reasoning,
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'communication_flyer',
       llmOptions: {
@@ -558,8 +596,8 @@ export const AI_CONFIG = {
       },
     } as FeatureAIConfig,
     momentSuggestions: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.writing,
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'communication_moment_suggestions',
       llmOptions: {
@@ -570,8 +608,8 @@ export const AI_CONFIG = {
     // Contenu d'un moment : la légende est publiée telle quelle par
     // l'utilisateur — c'est de l'écriture, pas du remplissage de gabarit.
     moment: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3.1-pro-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.reasoning,
       fallbackModels: TEXT_FALLBACK_MODELS,
       promptType: 'communication_moment',
       llmOptions: {
@@ -587,13 +625,12 @@ export const AI_CONFIG = {
     // `AI_CONFIG.fallback` : ce module doit pouvoir changer de modèle image
     // sans embarquer le repli texte global, et l'inverse.
     imageSourcing: {
-      imageModel: 'gemini-3.1-flash-image',
-      imageFallbackModel: 'gemini-3-pro-image',
-      visionModel: 'gemini-2.5-flash',
-      // `gemini-2.0-flash` a été retiré ici : Vertex ne le sert plus (404
-      // « Publisher model ... was not found »), le repli vision était donc
-      // garanti perdant et l'analyse retombait sur `fallbackAnalysis`.
-      visionFallbackModel: 'gemini-3-flash-preview',
+      imageModel: GLM_MODELS.image,
+      imageFallbackModel: GLM_MODELS.imageFallback,
+      visionModel: GLM_MODELS.vision,
+      // Repli vision : le modèle gratuit de la même famille. Un repli identique
+      // au modèle principal ne servirait à rien, la saturation étant par modèle.
+      visionFallbackModel: 'glm-4.6v-flash',
       /**
        * Budget du scan de vision. Le JSON d'analyse tient en ~150 tokens, mais
        * le modèle est « thinking » : à 256 tokens le raisonnement épuisait le
@@ -615,8 +652,8 @@ export const AI_CONFIG = {
   //  - température basse : sorties déterministes et géométriquement exactes.
   branding: {
     brandIdentity: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3.1-pro-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.reasoning,
       fallbackModels: TEXT_FALLBACK_MODELS,
       llmOptions: {
         maxOutputTokens: 12000,
@@ -642,11 +679,11 @@ export const AI_CONFIG = {
       },
     } as FeatureAIConfig,
     logo: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3.1-pro-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.reasoning,
       fallbackModels: TEXT_FALLBACK_MODELS,
       llmOptions: {
-        // ⚠️ NE PAS RÉDUIRE. gemini-3-flash-preview est un modèle "thinking" :
+        // ⚠️ NE PAS RÉDUIRE. Le modèle peut raisonner avant de répondre :
         // les tokens de raisonnement sont décomptés de maxOutputTokens. Un SVG de
         // logo complet (types name/initial = paths de letterforms) pèse déjà 2–4k
         // tokens ; raisonnement + SVG sous un budget trop court (ex: 4000) tronque
@@ -658,8 +695,8 @@ export const AI_CONFIG = {
       },
     } as FeatureAIConfig,
     colors: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-2.5-flash',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.mechanical,
       // La liste était vide : une saturation du modèle faisait échouer l'étape
       // sans seconde chance, alors que le repli ne coûte rien tant qu'il ne sert pas.
       fallbackModels: TEXT_FALLBACK_MODELS,
@@ -670,8 +707,8 @@ export const AI_CONFIG = {
       },
     } as FeatureAIConfig,
     typography: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-2.5-flash',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.mechanical,
       // La liste était vide : une saturation du modèle faisait échouer l'étape
       // sans seconde chance, alors que le repli ne coûte rien tant qu'il ne sert pas.
       fallbackModels: TEXT_FALLBACK_MODELS,
@@ -682,8 +719,8 @@ export const AI_CONFIG = {
       },
     } as FeatureAIConfig,
     logoAnalysis: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3-flash-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.writing,
       fallbackModels: TEXT_FALLBACK_MODELS,
       llmOptions: {
         maxOutputTokens: 2000,
@@ -697,8 +734,8 @@ export const AI_CONFIG = {
     // court la réponse est tronquée en plein milieu du HTML et devient
     // illisible côté parseur.
     businessCard: {
-      provider: LLMProvider.GEMINI,
-      modelName: 'gemini-3.1-pro-preview',
+      provider: LLMProvider.GLM,
+      modelName: GLM_MODELS.reasoning,
       fallbackModels: TEXT_FALLBACK_MODELS,
       llmOptions: {
         maxOutputTokens: 24000,
@@ -708,10 +745,10 @@ export const AI_CONFIG = {
       },
     } as FeatureAIConfig,
     mockupHtml: {
-      modelName: 'gemini-3.5-flash',
+      modelName: GLM_MODELS.writing,
     },
     brandMockup: {
-      imageModel: 'gemini-2.5-flash-image',
+      imageModel: GLM_MODELS.image,
     },
   },
 };
