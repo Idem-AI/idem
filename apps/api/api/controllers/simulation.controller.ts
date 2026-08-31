@@ -53,6 +53,19 @@ function requireContext(
   return { userId, projectId };
 }
 
+/**
+ * Reconnaît un refus venu du fournisseur de modèle : compte suspendu, quota
+ * épuisé, service momentanément indisponible. On s'appuie sur les marqueurs du
+ * message et non sur le seul code HTTP, qu'un 403 de nos propres règles
+ * porterait aussi.
+ */
+function isProviderUnavailable(error: any): boolean {
+  const raw = `${error?.message ?? ''} ${JSON.stringify(error?.response ?? '')}`;
+  return /PERMISSION_DENIED|RESOURCE_EXHAUSTED|UNAVAILABLE|dunning|billing|quota|rate limit|overloaded/i.test(
+    raw
+  );
+}
+
 /** Un service qui ne trouve rien renvoie 404, pas 500. */
 function handleError(res: Response, error: any, operation: string): void {
   const message: string = error?.message || 'Unexpected error';
@@ -62,6 +75,21 @@ function handleError(res: Response, error: any, operation: string): void {
   if (error instanceof UnusableDocumentError) {
     logger.info(`${operation} rejected the document: ${message}`);
     res.status(422).json({ message });
+    return;
+  }
+
+  // Le fournisseur d'IA a refusé (facturation, quota, indisponibilité). Ce
+  // n'est ni la faute de l'utilisateur ni celle de sa requête : il doit
+  // réessayer plus tard, et le détail technique reste dans les journaux plutôt
+  // que d'être renvoyé au navigateur.
+  if (isProviderUnavailable(error)) {
+    logger.error(`${operation}: the AI provider refused the request: ${message}`, {
+      stack: error?.stack,
+    });
+    res.status(503).json({
+      message:
+        "Le service d'analyse est momentanément indisponible. Réessayez dans quelques minutes — rien ne vous a été facturé.",
+    });
     return;
   }
 
