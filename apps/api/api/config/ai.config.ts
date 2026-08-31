@@ -154,7 +154,7 @@ export function resolveSectionConfig(
  *
  *   glm-4.7-flashx  0,07 / 0,40   mécanique  : résumer, classer, extraire
  *   glm-4.7         0,60 / 2,20   rédaction  : le gros du volume
- *   glm-5.2         1,40 / 4,40   raisonner  : stratégie, finance, SVG
+ *   glm-5.2         1,40 / 4,40   haut de gamme : stratégie, finance, SVG
  *   glm-4.6v        0,30 / 0,90   vision     : lecture d'image
  *   glm-ocr         0,03 / 0,03   OCR        : texte dans une image
  *   glm-image       0,015 / image génération d'image
@@ -165,7 +165,17 @@ export const GLM_MODELS = {
   mechanical: 'glm-4.7-flashx',
   /** Rédaction : le défaut de la plateforme. */
   writing: 'glm-4.7',
-  /** Raisonnement : stratégie, plan financier, concept de logo, SVG. */
+  /**
+   * Le haut de gamme : stratégie, plan financier, concept de logo, SVG.
+   *
+   * ⚠️ NE PAS passer sur `glm-5.3` ni `glm-5.3-flash` : ces modèles raisonnent
+   * TOUJOURS et refusent `thinking: disabled` par un HTTP 400
+   * (« This model always engages in thinking and cannot be disabled »). Laissés
+   * à leur raisonnement, ils mettent une minute et rendent une sortie VIDE, le
+   * budget de tokens étant intégralement consommé par la réflexion.
+   * Mesuré sur une génération de SVG : 5.3 → 59 s et 0 caractère ;
+   * 5.2 sans raisonnement → 2,5 s et un SVG complet.
+   */
   reasoning: 'glm-5.2',
   /** Compréhension d'image. */
   vision: 'glm-4.6v',
