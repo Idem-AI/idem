@@ -21,6 +21,7 @@ import { sanitizeSectionHtml } from '../../utils/sanitize-section-html';
 import { interpolateBusinessCard } from '../../utils/business-card-template';
 import { SupportedLanguage } from '../../utils/request-language';
 import { buildBusinessCardPrompt } from './prompts/business-card-generation.prompt';
+import { buildArtDirectionBlock } from '../../utils/art-direction.util';
 import { businessCardRenderService } from './businessCardRender.service';
 
 /** Réponse attendue du modèle. */
@@ -121,6 +122,9 @@ export class BusinessCardService extends GenericService {
       },
       logos: this.collectLogoUrls(branding),
       styleBrief: options.styleBrief?.trim() || undefined,
+      // La carte est tenue à côté du logo : c'est le support où un écart avec
+      // la direction artistique de la marque se voit le plus.
+      artDirectionBlock: buildArtDirectionBlock(branding?.artDirection, { medium: 'poster' }),
     });
 
     const config: PromptConfig = {

@@ -32,6 +32,18 @@ import {
 } from './prompts/singleGenerations/logo-revision.prompt';
 
 import { BRAND_HEADER_SECTION_PROMPT } from './prompts/00_brand-header-section.prompt';
+import { ART_DIRECTION_SECTION_PROMPT } from './prompts/03b_art-direction-section.prompt';
+import { buildArtDirectionPrompt } from './prompts/singleGenerations/art-direction.prompt';
+import { ArtDirectionModel, ArtDirectionStyleId } from '../../models/art-direction.model';
+import {
+  ART_DIRECTION_STYLES,
+  ART_DIRECTION_STYLE_IDS,
+  resolveStyle,
+} from '../design/artDirection.catalog';
+import { ANTI_SLOP_BLOCK, SELF_REVIEW_BLOCK } from '../design/antiSlop.prompt';
+import { buildDesignSeed, describeSeed } from '../design/designSeed';
+import { lintHtml, repairHtml } from '../design/slopLint.service';
+import { buildArtDirectionBlock } from '../../utils/art-direction.util';
 import {
   LOGO_SYSTEM_SECTION_PROMPT,
   LOGO_VARIATION_PAGE_PROMPT,
@@ -756,6 +768,27 @@ export class BrandingService extends GenericService {
     // broken link (e.g. "https://brand-logo.svg"). Persists them for reuse.
     await this.ensureLogoAssetUrls(userId, projectId, project);
 
+    // La charte doit RESPECTER la direction artistique, donc celle-ci doit
+    // exister avant la première page. Décidée ici, elle est ensuite relue par
+    // tous les autres modules (visuels, business plan, deck, mockups, site) :
+    // c'est le point unique où le parti pris visuel du projet est arbitré.
+    const artDirection = await this.ensureArtDirection(userId, projectId, project);
+    const artDirectionBlock = buildArtDirectionBlock(artDirection, { medium: 'document' });
+
+    // Graine de composition DÉTERMINISTE, dérivée du projet : deux projets
+    // n'obtiennent pas la même charte, mais une charte régénérée garde sa mise
+    // en page. Le tirage est borné par le style retenu (cf. designSeed.ts), donc
+    // il ne peut pas contredire la direction artistique.
+    const brandSeed = buildDesignSeed(artDirection?.styleId, `branding:${projectId}`);
+    const designDirectives = [
+      artDirectionBlock,
+      `<composition_seed>\nCette charte est composée sur la graine suivante. Elle vaut pour TOUTES les pages : c'est ce qui les fait appartenir au même document.\n${describeSeed(brandSeed)}\n</composition_seed>`,
+      ANTI_SLOP_BLOCK,
+      SELF_REVIEW_BLOCK,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+
     // Generate cache key based on project content
     const branding = project.analysisResultModel?.branding;
     const projectDescription =
@@ -768,7 +801,11 @@ export class BrandingService extends GenericService {
       // raw SVG markup — an SVG runs thousands of tokens and this is appended to
       // every brand-book step.
       '\n\nHere is the project branding logo (hosted asset URLs — use as <img src>): ' +
-      JSON.stringify(summarizeLogoForPrompt(branding?.logo));
+      JSON.stringify(summarizeLogoForPrompt(branding?.logo)) +
+      // La direction artistique et les interdits anti-génériques accompagnent
+      // CHAQUE page : une charte dont seule la couverture respecte le parti pris
+      // n'est pas une charte.
+      (designDirectives ? `\n\n${designDirectives}` : '');
 
     const contentHash = crypto
       .createHash('sha256')
@@ -777,6 +814,10 @@ export class BrandingService extends GenericService {
           name: project.name,
           description: project.description,
           branding: project.analysisResultModel?.branding,
+          // Sans la graine et le style, une régénération après changement de
+          // direction artistique resservait la charte précédente depuis le cache.
+          artDirection: artDirection?.styleId,
+          brandSeed,
           projectDescription,
         })
       )
@@ -787,7 +828,8 @@ export class BrandingService extends GenericService {
 
     // The cached result may be an incomplete brand guide (it is updated after each
     // step), so only short-circuit on it when nothing needs to be (re)generated.
-    const expectedSectionCount = 8 + MOCKUP_CONFIG.MOCKUP_COUNT;
+    // 8 pages historiques + la page « Direction Artistique » + les mockups.
+    const expectedSectionCount = 9 + MOCKUP_CONFIG.MOCKUP_COUNT;
     const currentSections = project.analysisResultModel?.branding?.sections || [];
     const skipCacheRead =
       forceRegenerate ||
@@ -847,7 +889,13 @@ export class BrandingService extends GenericService {
       // Define branding steps
       const steps: IPromptStep[] = [
         {
-          promptConstant: BRAND_HEADER_SECTION_PROMPT + projectDescription,
+          // La couverture réclame désormais le logo : sans une URL nommée pour
+          // CETTE page, le modèle ne le pose pas — la table d'URLs du contexte
+          // se lit comme de la documentation, pas comme une consigne.
+          promptConstant:
+            BRAND_HEADER_SECTION_PROMPT +
+            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the brand logo image: "${lightLogoUrl}" (dark ink, for a light zone) or "${darkLogoUrl}" (light ink, for a dark zone). Pick the one that contrasts with the zone you place it on.\n\n` +
+            projectDescription,
           stepName: 'Brand Header',
           hasDependencies: false,
         },
@@ -902,6 +950,14 @@ export class BrandingService extends GenericService {
         {
           promptConstant: TYPOGRAPHY_SECTION_PROMPT + projectDescription,
           stepName: 'Typography',
+          hasDependencies: false,
+        },
+        // Placée après les ATOMES (logo, couleur, typographie) parce que son
+        // objet est la grammaire qui les assemble, et avant les mockups, qui en
+        // sont la première application.
+        {
+          promptConstant: ART_DIRECTION_SECTION_PROMPT + projectDescription,
+          stepName: 'Direction Artistique',
           hasDependencies: false,
         },
       ];
@@ -1028,7 +1084,12 @@ export class BrandingService extends GenericService {
                     projectDescription,
                     userId,
                     projectId,
-                    pdfFormat
+                    pdfFormat,
+                    // Les mises en situation appartiennent au même document que
+                    // les pages qui précèdent : sans la direction artistique
+                    // elles sortaient dans le rendu « photo de stock » par
+                    // défaut du modèle, étranger au reste de la charte.
+                    artDirection
                   );
                   (global as any)[cacheKey] = allMockups;
                 } else {
@@ -1107,11 +1168,42 @@ export class BrandingService extends GenericService {
                 };
               }
             } else {
-              // Traitement normal pour les autres sections
+              // Passe déterministe anti-générique sur le HTML produit.
+              //
+              // Le prompt demande déjà de ne pas sortir de la charte ; sur une
+              // douzaine de pages, il en reste toujours. Les fautes MÉCANIQUES
+              // (couleur hors palette, police écrite en dur, titre en dégradé,
+              // image sans alt) ont une bonne réponse unique : on les corrige
+              // ici sans dépenser un token. Ce qui relève du goût est seulement
+              // journalisé — le linter ne recompose jamais une page.
+              const rawHtml = typeof result.data === 'string' ? result.data : '';
+              let cleanedHtml = rawHtml;
+              if (rawHtml) {
+                const lintOptions = {
+                  palette: branding?.colors?.colors,
+                  fonts: [
+                    branding?.typography?.primaryFont,
+                    branding?.typography?.secondaryFont,
+                  ].filter((f): f is string => !!f),
+                  // Le contrôle de présence du logo ne vaut QUE pour les pages
+                  // censées en porter un. L'appliquer à la page palette ou à la
+                  // page typographie produirait une alerte à chaque génération,
+                  // et un linter qui crie tout le temps est un linter qu'on
+                  // n'écoute plus.
+                  expectedLogoUrls: /^(Brand Header|Logo )/.test(result.name)
+                    ? [logoUrl, lightLogoUrl, darkLogoUrl, monochromeLogoUrl].filter(Boolean)
+                    : [],
+                  styleId: artDirection?.styleId,
+                  label: `charte/${result.name}`,
+                };
+                cleanedHtml = repairHtml(rawHtml, lintOptions).html;
+                lintHtml(cleanedHtml, lintOptions);
+              }
+
               finalSection = {
                 name: result.name,
                 type: result.type,
-                data: result.data,
+                data: cleanedHtml || result.data,
                 summary: result.summary,
               };
             }
@@ -1135,6 +1227,11 @@ export class BrandingService extends GenericService {
               analysisResultModel: {
                 ...project.analysisResultModel,
                 branding: {
+                  // On repart de l'objet existant : cette écriture est faite à
+                  // CHAQUE section, et reconstruire la marque champ par champ
+                  // effaçait tout ce qui n'était pas listé — les préférences de
+                  // logo, puis la direction artistique.
+                  ...currentBranding,
                   sections: sections,
                   colors: currentBranding?.colors,
                   typography: currentBranding?.typography,
@@ -1601,6 +1698,197 @@ export class BrandingService extends GenericService {
       logger.error(`Error in updateProjectWithLogosAsync for project ${projectId}:`, error);
       // Ne pas faire échouer le processus principal
     }
+  }
+
+  // --------------------------------------------------------------------------
+  // Direction artistique
+  //
+  // Décidée UNE fois par marque, puis imposée à toutes les générations. Le
+  // module vivait sans : chaque prompt (charte, visuel, deck, plan, site)
+  // improvisait un parti pris, et deux livrables du même projet n'avaient
+  // aucune parenté visuelle. Ce n'est pas un problème de qualité de prompt mais
+  // d'absence d'arbitrage partagé — c'est ce que cette section apporte.
+  // --------------------------------------------------------------------------
+
+  /**
+   * Ramène une sortie de modèle à un {@link ArtDirectionModel} exploitable.
+   *
+   * Le champ qui compte vraiment est `styleId` : tout le reste (fiche de style,
+   * espace de tirage de la graine, prompt négatif des images) en dépend. Un
+   * identifiant inventé par le modèle casserait la chaîne en silence, donc on
+   * le valide contre le catalogue et on retombe sur un style plausible plutôt
+   * que de laisser passer une valeur inconnue.
+   */
+  private normalizeArtDirection(raw: any, fallbackStyleId: ArtDirectionStyleId = 'editorial'): ArtDirectionModel {
+    const requested = String(raw?.styleId || '').trim().toLowerCase();
+    const styleId = (ART_DIRECTION_STYLE_IDS as string[]).includes(requested)
+      ? (requested as ArtDirectionStyleId)
+      : fallbackStyleId;
+    const style = ART_DIRECTION_STYLES[styleId];
+
+    const list = (value: any, fallback: string[] = []): string[] => {
+      const arr = Array.isArray(value) ? value : [];
+      const clean = arr.map((v: any) => String(v || '').trim()).filter(Boolean);
+      return clean.length ? clean : fallback;
+    };
+    const str = (value: any, fallback: string): string => {
+      const v = String(value ?? '').trim();
+      return v || fallback;
+    };
+
+    return {
+      styleId,
+      styleName: str(raw?.styleName, style.name),
+      tagline: str(raw?.tagline, style.essence),
+      rationale: str(raw?.rationale, style.essence),
+      keywords: list(raw?.keywords, [style.name]),
+      layout: {
+        grid: str(raw?.layout?.grid, style.layout),
+        density: str(raw?.layout?.density, 'balanced'),
+        whitespace: str(raw?.layout?.whitespace, 'marges généreuses et régulières'),
+        signatureMove: str(raw?.layout?.signatureMove, style.devices),
+      },
+      color: {
+        distribution: str(raw?.color?.distribution, '60 / 30 / 10'),
+        application: str(raw?.color?.application, style.color),
+        contrast: str(raw?.color?.contrast, 'franc'),
+      },
+      typography: {
+        scaleContrast: str(
+          raw?.typography?.scaleContrast,
+          `rapport ${style.typeRatio} entre deux niveaux, trois niveaux minimum`
+        ),
+        caseAndTracking: str(raw?.typography?.caseAndTracking, style.typography),
+        treatment: str(raw?.typography?.treatment, 'aucun'),
+      },
+      imagery: {
+        medium: str(raw?.imagery?.medium, 'photography'),
+        subjects: str(raw?.imagery?.subjects, "l'activité réelle de la marque"),
+        treatment: str(raw?.imagery?.treatment, style.imagery),
+        lighting: str(raw?.imagery?.lighting, 'cohérente sur toute la marque'),
+        framing: str(raw?.imagery?.framing, 'constant'),
+      },
+      graphicDevices: list(raw?.graphicDevices, [style.devices]),
+      dos: list(raw?.dos, [style.layout]),
+      donts: list(raw?.donts, style.bans),
+      imagePromptModifier: str(raw?.imagePromptModifier, style.imagePromptModifier),
+      updatedAt: new Date(),
+    };
+  }
+
+  /**
+   * Produit la direction artistique du projet (sans la persister).
+   *
+   * `excludeStyleIds` sert la régénération : sans elle, un utilisateur qui
+   * demande « autre chose » reçoit deux fois la même proposition, le brief
+   * n'ayant pas changé.
+   */
+  async generateArtDirection(
+    userId: string,
+    project: ProjectModel,
+    excludeStyleIds: string[] = []
+  ): Promise<ArtDirectionModel> {
+    const projectDescription = this.extractProjectDescription(project);
+    const projectContext = this.extractProjectContext(projectDescription);
+    const branding = project.analysisResultModel?.branding;
+
+    const prompt = buildArtDirectionPrompt({
+      projectName: project.name || 'Marque',
+      projectDescription: projectDescription.slice(0, 4000),
+      industry: projectContext.industry,
+      targetAudience: projectContext.targetAudience,
+      colorsJson: JSON.stringify(branding?.colors?.colors || {}),
+      typographyJson: JSON.stringify({
+        primaryFont: branding?.typography?.primaryFont,
+        secondaryFont: branding?.typography?.secondaryFont,
+      }),
+      logoConcept: branding?.logo?.concept,
+      logoType: branding?.logo?.type,
+      excludeStyleIds,
+    });
+
+    setAiUsageContext({ feature: 'branding', element: 'art-direction' });
+
+    const raw = await this.promptService.runPrompt(
+      {
+        provider: AI_CONFIG.branding.artDirection.provider,
+        modelName: AI_CONFIG.branding.artDirection.modelName,
+        fallbackModels: AI_CONFIG.branding.artDirection.fallbackModels,
+        llmOptions: AI_CONFIG.branding.artDirection.llmOptions,
+        userId,
+        // Le raisonnement du modèle se décompte de maxOutputTokens : un JSON de
+        // direction tronqué ne se rattrape pas côté parseur.
+        bypassOutputTokenCap: true,
+      },
+      [{ role: 'user', content: prompt }]
+    );
+
+    const parsed = parseLlmJson<any>(raw);
+    const direction = this.normalizeArtDirection(parsed, 'editorial');
+    logger.info(`[ArtDirection] Direction retenue: ${direction.styleId} (${direction.styleName})`, {
+      projectId: project.id,
+      tagline: direction.tagline,
+    });
+    return direction;
+  }
+
+  /**
+   * Garantit que le projet porte une direction artistique, et la persiste.
+   *
+   * Appelée avant toute génération dépendant du parti pris visuel. Non
+   * bloquante : un échec laisse simplement le livrable sans bloc
+   * `<art_direction>` plutôt que d'interrompre la génération — le repli est
+   * dégradé, pas cassé.
+   */
+  async ensureArtDirection(
+    userId: string,
+    projectId: string,
+    project: ProjectModel,
+    opts: { force?: boolean; persist?: boolean } = {}
+  ): Promise<ArtDirectionModel | null> {
+    const branding = project.analysisResultModel?.branding;
+    if (!branding) return null;
+    if (!opts.force && branding.artDirection?.styleId) {
+      return branding.artDirection;
+    }
+
+    try {
+      const excluded = opts.force && branding.artDirection?.styleId ? [branding.artDirection.styleId] : [];
+      const direction = await this.generateArtDirection(userId, project, excluded);
+      direction.createdAt = branding.artDirection?.createdAt || new Date();
+
+      // Mutation en mémoire d'abord : la génération en cours doit utiliser la
+      // direction immédiatement, même si l'écriture en base échoue.
+      branding.artDirection = direction;
+
+      if (opts.persist !== false) {
+        const updated = {
+          ...project,
+          analysisResultModel: {
+            ...project.analysisResultModel,
+            branding: { ...branding, artDirection: direction },
+          },
+        };
+        await this.projectRepository.update(projectId, updated as any, `users/${userId}/projects`);
+        await cacheService
+          .set(`project_${userId}_${projectId}`, updated, { prefix: 'project', ttl: 3600 })
+          .catch((error) => logger.error('[ArtDirection] cache update failed', error));
+      }
+      return direction;
+    } catch (error) {
+      logger.error('[ArtDirection] génération impossible (poursuite sans direction)', error);
+      return branding.artDirection || null;
+    }
+  }
+
+  /**
+   * Régénère la direction artistique d'un projet et la persiste.
+   * Exposée à l'API : c'est le bouton « proposer une autre direction ».
+   */
+  async regenerateArtDirection(userId: string, projectId: string): Promise<ArtDirectionModel | null> {
+    const project = await this.getProject(projectId, userId);
+    if (!project) return null;
+    return this.ensureArtDirection(userId, projectId, project, { force: true, persist: true });
   }
 
   /**

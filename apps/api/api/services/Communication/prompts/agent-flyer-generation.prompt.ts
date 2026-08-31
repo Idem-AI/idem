@@ -38,6 +38,16 @@ Typography — these two families only, no third font, no system fallback writte
 Every text node must carry font-primary or font-secondary. Never write font-['Anything'], font-sans, font-serif or an inline font-family: the render harness binds font-primary/font-secondary to the brand fonts, anything else silently falls back and breaks the charter.
 </brand_charter>
 
+{{ART_DIRECTION}}
+
+<composition_seed>
+Cette composition est commandée par la graine ci-dessous. Elle a été tirée DANS l'espace autorisé par la direction artistique : elle ne peut donc pas la contredire, et elle n'est pas négociable. Chaque ligne est une consigne à exécuter, pas une suggestion.
+{{SEED_DIRECTIVES}}
+La graine change à chaque visuel : c'est ce qui empêche deux posts de la même marque de se ressembler. Ne pas retomber sur la mise en page « photo pleine page + titre en bas à gauche + logo en bas à gauche », quelle que soit l'habitude.
+</composition_seed>
+
+{{ANTI_SLOP}}
+
 <visual_intent>
 Intent of this visual: {{VISUAL_INTENT}}
 The intent shapes the TONE and the MESSAGE, never the presence of a button (there is none — see the hard rule):
@@ -132,6 +142,8 @@ Aim for a piece a client would pay for. If a choice feels safe or familiar, push
 
 <image_integration>
 Image URL: {{IMAGE_URL}}
+Traitement d'image imposé par la direction artistique (à traduire en CSS : filtres, voiles, duotone, recadrage) : {{AD_IMAGE_TREATMENT}}
+Toutes les images de cette marque partagent ce traitement. Une photo laissée brute au milieu de visuels traités casse la direction.
 Use at least TWO techniques:
 - Crop: image bleeds off 1-2 edges.
 - Overlay: brand-color div at 30-40% opacity, mix-blend-mode: multiply.
@@ -220,6 +232,8 @@ Ensure all are TRUE:
 - Absolute positioning only (no flex/grid).
 - Logo: exactly ONE real logo URL from <logos>; ink and background are in OPPOSITE luminance families (dark ink on a light zone, light ink on a dark zone); size/placement varied.
 - Anti-sameness: this design must NOT default to "photo full-bleed + headline bottom-left + logo bottom-left". Commit fully to the seed archetype so two visuals never look alike.
+- Direction artistique respectée : le geste de composition signature est visible, le rayon de bordure et le traitement des filets/ombres sont ceux du style, l'image porte le traitement imposé.
+- Aucun marqueur de niveau 0 (dégradé violet, titre en dégradé, trois blocs identiques, police hors charte, glassmorphisme non prescrit).
 </seed_compliance_checklist>
 
 <output_format>

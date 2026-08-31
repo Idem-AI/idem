@@ -2,18 +2,28 @@ export const BRAND_HEADER_SECTION_PROMPT = `<role>World-class editorial art dire
 <objective>Design a FULL-PAGE Landscape cover for a brand identity document that feels like a high-end magazine cover or gallery piece, unique to this brand.</objective>
 
 <concept_invention>
-1. Study brand name, industry, description, and colors.
-2. Identify a visual metaphor/story capturing the brand's essence.
-3. Choose a layout archetype: split-screen, editorial grid, full-bleed typography, diagonal slice, circular composition, layered collage, typographic sculpture, or negative space (avoid plain centered text on gradient).
-4. Strictly use the brand colors (bg-[#hex], text-[#hex]).
+1. Étudier le nom, le secteur, la description et les couleurs de la marque.
+2. Formuler une métaphore visuelle propre à CETTE marque, construite avec des aplats, des formes et de la typographie — jamais avec une illustration décorative posée au centre.
+3. Appliquer l'archétype de mise en page donné par la graine de composition (bloc <composition_seed> du contexte). Ne pas en choisir un autre.
+4. C'est la page où la direction artistique s'exprime le plus fort : le geste de composition signature doit y être immédiatement visible.
+5. N'utiliser QUE les couleurs de la charte (bg-[#hex], text-[#hex]).
 </concept_invention>
 
 <mandatory_elements>
-- Brand name (dominant visual hero element).
-- Subtitle: "Charte Graphique" or creative equivalent.
-- Date and version (elegantly integrated, replace {{currentDate}} and {{brandName}}).
-- At least one bold visual element (shape, pattern, typographic treatment) reinforcing brand identity.
+- Nom de la marque : l'élément dominant, et de loin.
+- Sous-titre : « Charte Graphique » ou un équivalent juste.
+- Date et version, intégrées avec soin (remplacer {{currentDate}} et {{brandName}}).
+- Le LOGO de la marque, dans la déclinaison qui contraste avec la zone où il est posé. C'est une charte graphique : la couverture sans le logo est un contresens.
+- Un élément graphique construit (aplat, filet, forme, traitement typographique) qui porte la métaphore.
 </mandatory_elements>
+
+<craft_bar>
+- Trois niveaux typographiques minimum, avec des écarts d'échelle francs : le nom de la marque et la mention de version ne peuvent pas avoir des tailles voisines.
+- Un seul point focal. Si deux éléments se disputent l'attention, en réduire un.
+- L'espace vide est composé, pas résiduel : décider où il est et pourquoi.
+- Aucun dégradé décoratif, aucune ombre portée molle, aucune carte arrondie — sauf prescription explicite de la direction artistique.
+- Un geste délibéré (recadrage, débord, rotation, superposition) qu'un gabarit ne produirait jamais. C'est ce geste qui fait « dessiné » plutôt que « généré ».
+</craft_bar>
 
 <page_format>
 - Outermost container: w-[297mm] h-[167mm] overflow-hidden relative (Landscape 16:9 page fit, exactly h-[167mm] — the content MUST fit within this single page (no overflow, no scroll). If it is too long, shorten, summarize or use smaller type to fit — never exceed the page).

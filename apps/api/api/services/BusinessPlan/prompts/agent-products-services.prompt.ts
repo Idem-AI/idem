@@ -1,4 +1,4 @@
-import { bpPageFormat } from './_shared.prompt';
+import { BP_BRAND_RULES, bpPageFormat } from './_shared.prompt';
 
 export const AGENT_PRODUCTS_SERVICES_PROMPT = `<role>Senior product strategist</role>
 <objective>Create a Products & Services section showcasing the company's specific offerings and pricing model.</objective>
@@ -21,6 +21,8 @@ export const AGENT_PRODUCTS_SERVICES_PROMPT = `<role>Senior product strategist</
 </chart_requirements>
 
 ${bpPageFormat('2')}
+
+${BP_BRAND_RULES}
 
 <technical_rules>
 - Output ONLY raw HTML + Tailwind CSS utilities in a single minified line.

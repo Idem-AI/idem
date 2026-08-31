@@ -23,11 +23,8 @@ CRITICAL — read the BRAND CONTEXT block at the end of this prompt and apply it
 - TEXT COLOR → use text-[TEXT COLOR] for body text and descriptions.
 - PRIMARY FONT → apply via style="font-family: [PRIMARY FONT]" on the outermost slide container.
 - SECONDARY FONT → use style="font-family: [SECONDARY FONT]" for body text / descriptions.
-- Brand logo: LOGO URLS in BRAND CONTEXT lists all available logo variants. Pick the right one based on your slide background:
-  • Light background slides → use "With text (light bg)" or "Primary (full logo)" URL.
-  • Dark background slides → use "With text (dark bg)" URL.
-  • Minimal/small usage → use "Icon only (light bg)" or "Icon only (dark bg)" URL.
-  Render as <img src="LOGO_URL" class="h-8 w-auto object-contain" alt="logo" /> at the top-left or top-right of each slide. If "No logo available", omit the logo entirely.
+- Brand logo: MANDATORY on every slide. The <logo> block in BRAND CONTEXT lists the ready-to-use URLs and the rule for picking the right declension. Follow it literally — copy the exact URL, never invent one, never paste raw SVG. Render as <img src="THE_EXACT_URL" class="h-8 w-auto object-contain" alt="logo" /> in the SAME corner on every slide, so the deck reads as one document. Ink and background must sit in opposite luminance families: a light-ink logo on a light slide erases the signature.
+- The ART DIRECTION block in BRAND CONTEXT governs the grid, the border radius, the rules, the shadows and the image treatment of this deck. Where it contradicts a default habit below (rounded cards, soft borders), the art direction wins.
 - ALL colors on the slide MUST come from the brand palette above. Do NOT invent colors, use generic blue/red/green, or use Tailwind default palette (blue-500, gray-800, etc.).
 </brand_enforcement>
 
@@ -35,11 +32,13 @@ CRITICAL — read the BRAND CONTEXT block at the end of this prompt and apply it
 - Investor-grade, world-class design. Slides must look like they were designed by a professional agency.
 - Strong visual hierarchy: one dominant element per slide (hero stat, title, chart), supported by secondary content.
 - Use generous whitespace and negative space. Avoid cramming content.
-- Card elements: rounded-xl, subtle borders (border border-[SECONDARY COLOR]/10), light fill (bg-[PRIMARY COLOR]/5 or bg-[SECONDARY COLOR]/5).
-- Typography: headlines → text-3xl or text-4xl font-bold; subtitles → text-lg font-medium; body → text-sm; labels → text-xs uppercase tracking-widest.
+- Card elements: the border radius, the rules and the shadows come from the ART DIRECTION block, and are IDENTICAL on every card of the deck. Absent an art direction, use a light fill (bg-[PRIMARY COLOR]/5) and a hairline border, never a soft drop shadow.
+- Typography: headlines → text-3xl or text-4xl font-bold; subtitles → text-lg font-medium; body → text-sm; labels → text-xs uppercase tracking-widest. Keep at least three levels with a real gap between them.
 - Numbers / KPIs: display in text-4xl or text-5xl font-bold tabular-nums for impact.
 - NO emojis. NO cheap icons. NO decorative clip-art. NO placeholder text like "lorem ipsum".
-- Use PrimeIcons (pi pi-check, pi pi-arrow-right, pi pi-chart-bar, etc.) very sparingly — only as small supporting icons, never as hero visuals.
+- Use PrimeIcons (pi pi-check, pi pi-arrow-right, pi pi-chart-bar, etc.) very sparingly — only as small supporting icons, never as hero visuals, and NEVER as an icon-in-a-rounded-square repeated in a grid.
+- Anti-generic, non negotiable: no purple/indigo gradient, no gradient headline (bg-clip-text), no row of three identically-sized cards, no centered hero stack, no reflexive glassmorphism, no hard-coded font family. These are the tells of a generated deck; an investor recognises them.
+- Vary the composition from one slide to the next: two consecutive slides may not use the same layout skeleton.
 </visual_quality>
 
 <images_and_visuals>

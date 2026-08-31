@@ -9,6 +9,11 @@ import {
 import { MOCKUP_CONFIG } from '../config/mockup.config';
 import { AI_CONFIG } from '../config/ai.config';
 import { generateImage, isGlmConfigured } from './glm-media.service';
+import { ArtDirectionModel } from '../models/art-direction.model';
+import {
+  buildImageNegativePrompt,
+  buildImageStyleModifier,
+} from '../utils/art-direction.util';
 
 /**
  * Largeur du logo incrusté, en fraction de la largeur de la scène. Assez pour
@@ -30,6 +35,13 @@ export interface MockupGenerationRequest {
   projectDescription: string;
   selectedSupport: SelectedMockupSupport;
   pdfFormat?: string;
+  /**
+   * Direction artistique de la marque. Elle pilote la LUMIÈRE, la matière et
+   * l'étalonnage de la photo — pas le sujet, imposé par le support. Sans elle,
+   * les mises en situation sortaient dans le rendu « photo de stock » par
+   * défaut du modèle, sans lien avec le reste de la charte.
+   */
+  artDirection?: ArtDirectionModel | null;
 }
 
 export interface MockupGenerationResult {
@@ -63,7 +75,8 @@ export class GeminiMockupService {
     projectDescription: string,
     userId: string,
     projectId: string,
-    pdfFormat?: string
+    pdfFormat?: string,
+    artDirection?: ArtDirectionModel | null
   ): Promise<MockupGenerationResult[]> {
     const startTime = Date.now();
 
@@ -126,6 +139,7 @@ export class GeminiMockupService {
             projectDescription,
             selectedSupport,
             pdfFormat,
+            artDirection,
           },
           userId,
           projectId,
@@ -333,6 +347,9 @@ export class GeminiMockupService {
       hasLogo: false,
       selectedSupport,
       pdfFormat: request.pdfFormat,
+      artDirectionModifier: buildImageStyleModifier(request.artDirection),
+      artDirectionNegative: buildImageNegativePrompt(request.artDirection),
+      artDirectionName: request.artDirection?.styleName,
     });
 
     return [

@@ -28,6 +28,12 @@ import { SLIDE_TEAM_PROMPT } from './prompts/slide-team.prompt';
 import { SLIDE_FINANCIALS_PROMPT } from './prompts/slide-financials.prompt';
 import { SLIDE_ASK_PROMPT } from './prompts/slide-ask.prompt';
 import { imageSourcingService } from '../Communication/imageSourcing.service';
+import { buildLogoBlock, collectLogoUrls } from '../../utils/brand-context.util';
+import { buildArtDirectionBlock } from '../../utils/art-direction.util';
+import { ANTI_SLOP_BLOCK } from '../design/antiSlop.prompt';
+import { lintHtml, repairHtml } from '../design/slopLint.service';
+import { buildDesignSeed, describeSeed } from '../design/designSeed';
+import { ensureProjectArtDirection } from '../design/artDirection.provider';
 
 export const PITCH_DECK_SLIDE_ORDER = [
   'Cover',
@@ -119,56 +125,26 @@ export class PitchDeckService extends GenericService {
     const primaryFont = typoModel?.primaryFont || 'Inter, sans-serif';
     const secondaryFont = typoModel?.secondaryFont || primaryFont;
 
-    // Helper to format logo SVGs or URLs into valid img src targets
-    const formatLogoUrl = (val?: string): string => {
-      if (!val) return '';
-      const trimmed = val.trim();
-      if (!trimmed) return '';
-      if (
-        trimmed.startsWith('http://') ||
-        trimmed.startsWith('https://') ||
-        trimmed.startsWith('data:')
-      ) {
-        return trimmed;
-      }
-      if (trimmed.startsWith('<svg') || trimmed.includes('<svg')) {
-        return `data:image/svg+xml;base64,${Buffer.from(trimmed).toString('base64')}`;
-      }
-      return trimmed;
-    };
-
-    // Build logo URLs block — prefer the hosted PNG URLs (assetUrls); fall back
-    // to the inline SVG (formatted as a Data URI) for legacy projects that were
-    // created before PNG assets were generated.
-    const assetUrls = logo?.assetUrls;
-    const logoLines: string[] = [];
-    const pushLogoLine = (label: string, url?: string, svgFallback?: string) => {
-      const value = url || (svgFallback ? formatLogoUrl(svgFallback) : '');
-      if (value) logoLines.push(`  ${label}: ${value}`);
-    };
-
-    pushLogoLine('Primary (full logo)', assetUrls?.primary, logo?.svg);
-    pushLogoLine('Icon only', assetUrls?.icon, logo?.iconSvg);
-
-    const wt = logo?.variations?.withText;
-    if (assetUrls?.withText || wt) {
-      pushLogoLine('With text (light bg)', assetUrls?.withText?.lightBackground, wt?.lightBackground);
-      pushLogoLine('With text (dark bg)', assetUrls?.withText?.darkBackground, wt?.darkBackground);
-      pushLogoLine('With text (mono)', assetUrls?.withText?.monochrome, wt?.monochrome);
-    }
-
-    const io = logo?.variations?.iconOnly;
-    if (assetUrls?.iconOnly || io) {
-      pushLogoLine('Icon only (light bg)', assetUrls?.iconOnly?.lightBackground, io?.lightBackground);
-      pushLogoLine('Icon only (dark bg)', assetUrls?.iconOnly?.darkBackground, io?.darkBackground);
-      pushLogoLine('Icon only (mono)', assetUrls?.iconOnly?.monochrome, io?.monochrome);
-    }
+    // Le bloc logo est désormais construit par l'utilitaire partagé avec le
+    // business plan et le site : mêmes déclinaisons, mêmes règles de choix selon
+    // le fond, et surtout la CONSIGNE de le poser sur la diapositive — la table
+    // d'URLs seule ne suffisait pas à le faire apparaître.
+    // Provisionnée si la charte n'a pas encore été générée : le deck peut être
+    // le premier livrable produit, et il doit alors faire naître le parti pris
+    // visuel plutôt que de s'en passer.
+    const artDirection = await ensureProjectArtDirection(
+      this.promptService,
+      userId,
+      projectId,
+      project
+    );
+    // Graine déterministe : deux decks de projets différents ne se ressemblent
+    // pas, mais les onze diapositives d'un même deck partagent leur grammaire.
+    const deckSeed = buildDesignSeed(artDirection?.styleId, `pitchdeck:${projectId}`);
 
     // Flat, explicit brand context — LLM uses bg-[#hex], text-[#hex] directly
     const brandContext = [
       `Brand Name: ${brandName}`,
-      `LOGO URLS (use <img src="URL"> — pick the right variant for the slide background):`,
-      ...(logoLines.length > 0 ? logoLines : ['  No logo available']),
       `PRIMARY COLOR: ${colorsObj.primary}`,
       `SECONDARY COLOR: ${colorsObj.secondary}`,
       `ACCENT COLOR: ${colorsObj.accent}`,
@@ -177,7 +153,22 @@ export class PitchDeckService extends GenericService {
       `PRIMARY FONT: ${primaryFont}`,
       `SECONDARY FONT: ${secondaryFont}`,
       `Language: fr`,
-    ].join('\n');
+      '',
+      buildLogoBlock(logo, {
+        placement:
+          "sur la diapositive de couverture (grand, comme signature) et dans le même angle de CHAQUE autre diapositive (petit, h-8 à h-10, toujours à la même place)",
+        size: 'couverture : 25 à 40% de la largeur ; diapositives courantes : hauteur h-8 à h-10',
+      }),
+      buildArtDirectionBlock(artDirection, { medium: 'slide' }),
+      artDirection
+        ? `<composition_seed>\nToutes les diapositives de ce deck partagent cette graine de composition.\n${describeSeed(deckSeed)}\n</composition_seed>`
+        : '',
+      ANTI_SLOP_BLOCK,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const knownLogoUrls = collectLogoUrls(logo);
 
     const steps: IPromptStep[] = [
       {
@@ -275,8 +266,26 @@ export class PitchDeckService extends GenericService {
               enrichedData,
               userId,
               projectId,
-              result.name
+              result.name,
+              knownLogoUrls
             );
+          }
+
+          // Passe déterministe anti-générique : couleurs hors charte, polices
+          // écrites en dur, titres en dégradé et images sans alt sont corrigés
+          // sans appel au modèle. Le reste (logo absent, mise en page
+          // générique) est journalisé — sur onze diapositives, il en reste
+          // toujours une qui déroge à la consigne du prompt.
+          if (typeof enrichedData === 'string' && enrichedData) {
+            const lintOptions = {
+              palette: colorsObj,
+              fonts: [primaryFont, secondaryFont].filter(Boolean),
+              expectedLogoUrls: knownLogoUrls,
+              styleId: artDirection?.styleId,
+              label: `deck/${result.name}`,
+            };
+            enrichedData = repairHtml(enrichedData, lintOptions).html;
+            lintHtml(enrichedData, lintOptions);
           }
 
           const section: SectionModel = {
@@ -353,8 +362,23 @@ export class PitchDeckService extends GenericService {
             enrichedData,
             userId,
             projectId,
-            r.name
+            r.name,
+            knownLogoUrls
           );
+        }
+        // Même passe déterministe que dans la branche streamée : les deux
+        // chemins produisent le même document, ils doivent subir les mêmes
+        // contrôles.
+        if (typeof enrichedData === 'string' && enrichedData) {
+          const lintOptions = {
+            palette: colorsObj,
+            fonts: [primaryFont, secondaryFont].filter(Boolean),
+            expectedLogoUrls: knownLogoUrls,
+            styleId: artDirection?.styleId,
+            label: `deck/${r.name}`,
+          };
+          enrichedData = repairHtml(enrichedData, lintOptions).html;
+          lintHtml(enrichedData, lintOptions);
         }
         return {
           name: r.name,
@@ -482,7 +506,9 @@ export class PitchDeckService extends GenericService {
     html: string,
     userId: string,
     projectId: string,
-    slideName: string
+    slideName: string,
+    /** URLs réelles des déclinaisons du logo : elles ne doivent jamais être remplacées. */
+    knownLogoUrls: string[] = []
   ): Promise<string> {
     if (!html || typeof html !== 'string') return html;
 
@@ -498,10 +524,15 @@ export class PitchDeckService extends GenericService {
       const attrsStr = match[1];
 
       // Explicitly protect logos and data URIs from being replaced by stock photos
+      // Le logo ne doit JAMAIS être remplacé par une photo de banque d'images.
+      // Le test portait sur la présence du mot « logo » dans les attributs, ce
+      // qui dépendait du bon vouloir du modèle ; on compare aussi aux URLs
+      // réelles des déclinaisons, qui, elles, ne mentent pas.
       const isLogo =
         /alt=["'][^"']*logo[^"']*["']/i.test(attrsStr) ||
         /class=["'][^"']*logo[^"']*["']/i.test(attrsStr) ||
-        /src=["'][^"']*logo[^"']*["']/i.test(attrsStr);
+        /src=["'][^"']*logo[^"']*["']/i.test(attrsStr) ||
+        knownLogoUrls.some((url: string) => attrsStr.includes(url.split('?')[0]));
 
       const hasExplicitQuery = /data-image-query=["']/i.test(attrsStr);
       const hasExplicitPrompt = /data-image-prompt=["']/i.test(attrsStr);

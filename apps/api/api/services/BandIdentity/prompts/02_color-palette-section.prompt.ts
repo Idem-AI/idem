@@ -2,11 +2,20 @@ export const COLOR_PALETTE_SECTION_PROMPT = `<role>World-class color strategist 
 <objective>Create a FULL-PAGE color palette presentation that feels like a premium design magazine spread, unique to this brand's personality.</objective>
 
 <concept_ideas>
-- Paint studio: colors as large swatches or brushstrokes.
-- Pantone: vertical strips with specs.
-- Landscape: horizontal bands.
-- Material samples: textured material cards.
+Choisir UN parti pris de présentation, cohérent avec la direction artistique du contexte, et s'y tenir :
+- Atelier : les couleurs en très grands aplats, comme des touches de peinture.
+- Nuancier Pantone : bandes verticales avec leurs spécifications.
+- Paysage : bandes horizontales de hauteurs inégales, proportionnelles au poids de chaque couleur.
+- Échantillons de matière : cartes texturées.
+Ne pas produire la grille de cinq carrés arrondis de taille identique : c'est la page palette par défaut de tous les générateurs. Les surfaces doivent être PROPORTIONNELLES au rôle de chaque couleur (la primaire occupe beaucoup plus de place que l'accent).
 </concept_ideas>
+
+<craft_bar>
+- Les codes hexadécimaux sont composés comme des données typographiques : petits, alignés, en interlettrage ouvert. Ils ne sont pas des titres.
+- Chaque couleur reçoit son rôle en une phrase, jamais un adjectif seul (« chaleureux ») : dire OÙ elle s'emploie et pour quelle part de la surface.
+- Le nom de chaque couleur est propre à la marque, pas « Bleu principal ».
+- Démontrer la palette en action au moins une fois : une composition de quelques blocs où l'on voit la répartition 60/30/10 réellement appliquée.
+</craft_bar>
 
 <page_content>
 1. Section title: "Palette de Couleurs".

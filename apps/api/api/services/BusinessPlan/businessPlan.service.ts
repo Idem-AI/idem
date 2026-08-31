@@ -27,7 +27,12 @@ import { AGENT_GOAL_PLANNING_PROMPT } from './prompts/agent-goal-planning.prompt
 import { AGENT_APPENDIX_PROMPT } from './prompts/agent-appendix.prompt';
 import { TeamMember } from '../../models/project.model';
 import { storageService } from '../storage.service';
-import { resolveLogoUrl } from '../../utils/logo-context.util';
+import { buildLogoBlock, collectLogoUrls } from '../../utils/brand-context.util';
+import { buildArtDirectionBlock } from '../../utils/art-direction.util';
+import { ANTI_SLOP_BLOCK } from '../design/antiSlop.prompt';
+import { lintHtml, repairHtml } from '../design/slopLint.service';
+import { buildDesignSeed, describeSeed } from '../design/designSeed';
+import { ensureProjectArtDirection } from '../design/artDirection.provider';
 import { researchTeamService } from '../research/research-team.service';
 import {
   DeliverableSection,
@@ -116,23 +121,13 @@ export class BusinessPlanService extends GenericService {
     logger.info(`Business plan cache miss, generating new content for projectId: ${projectId}`);
 
     // Extract branding information
-    const brandName = project.name || 'Startup';
-    const logoUrl = this.resolveLogoContextUrl(project);
-    const brandColors = project.analysisResultModel?.branding?.colors || {
-      primary: '#007bff',
-      secondary: '#6c757d',
-    };
-    const typography = project.analysisResultModel?.branding?.typography || {
-      primary: 'Arial, sans-serif',
-    };
     // Use the user's request language instead of a hard-coded 'fr' so the plan is
     // generated in the language selected in the UI (falls back to 'en').
     const language = getRequestLanguage() === 'fr' ? 'French' : 'English';
 
     // Create brand context for all agents
-    const brandContext = `Brand: ${brandName}\nLogo URL: ${logoUrl}\nBrand Colors: ${JSON.stringify(
-      brandColors
-    )}\nTypography: ${JSON.stringify(typography)}\nLanguage: ${language}`;
+    const brandContext = await this.buildBrandContext(userId, projectId, project, language);
+    const lintContext = this.buildLintContext(project);
 
     // Build finance context if finance module exists
     let financeContext = '';
@@ -270,11 +265,28 @@ export class BusinessPlanService extends GenericService {
               return;
             }
 
+            // Passe déterministe anti-générique : couleurs hors charte, polices
+            // écrites en dur, titres en dégradé et images sans alt sont corrigés
+            // sans appel au modèle. Le reste est journalisé — sur neuf sections,
+            // il en reste toujours une qui déroge à la consigne du prompt.
+            let sectionHtml = result.data;
+            if (typeof sectionHtml === 'string' && sectionHtml) {
+              const options = {
+                palette: lintContext.palette,
+                fonts: lintContext.fonts,
+                expectedLogoUrls: result.name === 'Cover Page' ? lintContext.logoUrls : [],
+                styleId: lintContext.styleId,
+                label: `business-plan/${result.name}`,
+              };
+              sectionHtml = repairHtml(sectionHtml, options).html;
+              lintHtml(sectionHtml, options);
+            }
+
             // Convert result to section model
             const section: SectionModel = {
               name: result.name,
               type: result.type,
-              data: result.data,
+              data: sectionHtml,
               summary: result.summary,
             };
 
@@ -453,13 +465,8 @@ export class BusinessPlanService extends GenericService {
       'Additional infos: ' +
       JSON.stringify(project.additionalInfos);
 
-    const brandName = project.name || 'Startup';
-    const brandColors = project.analysisResultModel?.branding?.colors || {};
-    const typography = project.analysisResultModel?.branding?.typography || {};
     const language = getRequestLanguage() === 'fr' ? 'French' : 'English';
-    const brandContext = `Brand: ${brandName}\nBrand Colors: ${JSON.stringify(
-      brandColors
-    )}\nTypography: ${JSON.stringify(typography)}\nLanguage: ${language}`;
+    const brandContext = await this.buildBrandContext(userId, projectId, project, language);
 
     const financeContext = this.buildFinanceContext(project);
     const currency = project.analysisResultModel?.finance?.meta?.currency;
@@ -629,11 +636,81 @@ export class BusinessPlanService extends GenericService {
   }
 
   /**
-   * URL du logo à injecter dans les prompts (URL PNG hébergée en priorité, sinon
-   * une URL legacy). Le SVG brut n'est jamais envoyé — cf. {@link resolveLogoUrl}.
+   * Contexte de marque transmis à CHAQUE agent du plan.
+   *
+   * Il portait auparavant une ligne « Logo URL: … » et rien d'autre : la donnée
+   * était là, la CONSIGNE de l'afficher manquait, et aucun agent ne posait le
+   * logo. Il porte désormais les déclinaisons prêtes à l'emploi, l'obligation de
+   * les utiliser, et la direction artistique de la marque — sans quoi chaque
+   * section réinventait sa propre mise en page.
    */
-  private resolveLogoContextUrl(project: ProjectModel): string {
-    return resolveLogoUrl(project.analysisResultModel?.branding?.logo);
+  private async buildBrandContext(
+    userId: string,
+    projectId: string,
+    project: ProjectModel,
+    language: string
+  ): Promise<string> {
+    const branding = project.analysisResultModel?.branding;
+    const brandName = project.name || 'Startup';
+    const brandColors = branding?.colors || { primary: '#007bff', secondary: '#6c757d' };
+    const typography = branding?.typography || { primary: 'Arial, sans-serif' };
+
+    // Provisionnée si la charte n'a pas encore été générée : le business plan
+    // peut être le premier livrable produit, et il doit alors faire naître le
+    // parti pris visuel plutôt que de s'en passer.
+    const artDirection = await ensureProjectArtDirection(
+      this.promptService,
+      userId,
+      projectId,
+      project
+    );
+    // Graine DÉTERMINISTE par projet : deux business plans ne se ressemblent
+    // pas, mais les sections d'un même plan partagent la même mise en page —
+    // c'est ce qui fait un document plutôt qu'une pile de pages.
+    const seed = buildDesignSeed(artDirection?.styleId, `businessplan:${project.id}`);
+
+    return [
+      `Brand: ${brandName}`,
+      `Brand Colors: ${JSON.stringify(brandColors)}`,
+      `Typography: ${JSON.stringify(typography)}`,
+      `Language: ${language}`,
+      buildLogoBlock(branding?.logo, {
+        placement:
+          "sur la page de couverture (élément de signature, grand) et en tête ou en pied de chaque page de section (petit, discret, toujours au même endroit)",
+        size: 'couverture : 40 à 70mm de large ; pages courantes : 12 à 18mm de haut',
+      }),
+      buildArtDirectionBlock(artDirection, { medium: 'document' }),
+      artDirection
+        ? `<composition_seed>\nToutes les sections de ce plan partagent cette graine de composition : c'est ce qui les fait appartenir au même document.\n${describeSeed(seed)}\n</composition_seed>`
+        : '',
+      ANTI_SLOP_BLOCK,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+  }
+
+  /**
+   * Réglages du contrôle anti-générique pour ce projet.
+   *
+   * Le logo n'est attendu que sur la couverture : l'exiger sur les neuf
+   * sections produirait une alerte à chaque page, et un linter qui crie tout le
+   * temps est un linter qu'on n'écoute plus.
+   */
+  private buildLintContext(project: ProjectModel): {
+    palette: any;
+    fonts: string[];
+    logoUrls: string[];
+    styleId?: string;
+  } {
+    const branding = project.analysisResultModel?.branding;
+    return {
+      palette: branding?.colors?.colors,
+      fonts: [branding?.typography?.primaryFont, branding?.typography?.secondaryFont].filter(
+        (f): f is string => !!f
+      ),
+      logoUrls: collectLogoUrls(branding?.logo),
+      styleId: branding?.artDirection?.styleId,
+    };
   }
 
   /** Construit le bloc de contexte financier réel (module Finance) pour les agents. */
@@ -929,20 +1006,9 @@ export class BusinessPlanService extends GenericService {
       'Additional infos: ' +
       JSON.stringify(project.additionalInfos);
 
-    const brandName = project.name || 'Startup';
-    const logoUrl = this.resolveLogoContextUrl(project);
-    const brandColors = project.analysisResultModel?.branding?.colors || {
-      primary: '#007bff',
-      secondary: '#6c757d',
-    };
-    const typography = project.analysisResultModel?.branding?.typography || {
-      primary: 'Arial, sans-serif',
-    };
     const language = (requestLanguage || getRequestLanguage()) === 'fr' ? 'French' : 'English';
 
-    const brandContext = `Brand: ${brandName}\nLogo URL: ${logoUrl}\nBrand Colors: ${JSON.stringify(
-      brandColors
-    )}\nTypography: ${JSON.stringify(typography)}\nLanguage: ${language}`;
+    const brandContext = await this.buildBrandContext(userId, projectId, project, language);
 
     // Build finance context
     let financeContext = '';
