@@ -75,6 +75,19 @@ export interface IPromptStep {
    * la grille déterministe et, si besoin, UNE passe de réparation bornée.
    */
   quality?: QualityExpectation;
+  /**
+   * Produit le contenu de l'étape SANS appeler le LLM.
+   *
+   * Certaines sections ne sont pas rédigées : elles sont fabriquées (une image
+   * générée, un gabarit rempli, un calcul). Les faire passer par le modèle
+   * revenait à payer un prompt complet pour une sortie systématiquement jetée
+   * — c'était le cas des pages de mise en situation de la charte.
+   *
+   * Rendre `null` signifie « pas de section » : l'étape est tenue pour faite,
+   * mais rien n'est persisté ni diffusé. C'est ce qui permet à un livrable
+   * d'omettre une page plutôt que d'en afficher une dégradée.
+   */
+  execute?: () => Promise<string | null>;
 }
 
 /**
@@ -244,12 +257,13 @@ export class GenericService {
 
     // Sans `requiresSteps`, l'étape hérite de tout ce qui précède : c'est le
     // comportement historique, conservé pour ne pas casser les flux existants.
-    const dependencies =
+    const dependencies = (
       step.requiresSteps && step.requiresSteps.length > 0
         ? (step.requiresSteps
             .map((name) => completedSteps.get(name))
             .filter(Boolean) as { name: string; content: string }[])
-        : Array.from(completedSteps.values());
+        : Array.from(completedSteps.values())
+    ).filter((d) => d.content.trim().length > 0);
 
     if (dependencies.length === 0) return '';
 
@@ -495,26 +509,37 @@ export class GenericService {
 
         logger.info(`Starting execution of step: ${step.stepName}`);
 
-        const dependencyContext = await this.buildStepContext(step, completedSteps, {
-          userId,
-          projectId: project.id,
-          budget,
-        });
+        // Une étape fabriquée court-circuite le modèle : ni contexte amont à
+        // construire, ni prompt à facturer.
+        const content = step.execute
+          ? await step.execute()
+          : await this.runStepAndAppend(step, project, {
+              userId,
+              promptType: promptType || step.stepName,
+              dependencyContext: await this.buildStepContext(step, completedSteps, {
+                userId,
+                projectId: project.id,
+                budget,
+              }),
+              promptConfig: effectivePromptConfig,
+              budget,
+            });
 
-        // Execute the current step with the built context
-        const content = await this.runStepAndAppend(step, project, {
-          userId,
-          promptType: promptType || step.stepName,
-          dependencyContext,
-          promptConfig: effectivePromptConfig,
-          budget,
-        });
-
-        // Store the content of this step for future steps
+        // Store the content of this step for future steps. Une étape sans
+        // contenu est enregistrée VIDE : elle est faite (les étapes qui en
+        // dépendent ne doivent pas attendre indéfiniment), mais elle n'entre
+        // dans aucun contexte et ne produit aucune section.
         completedSteps.set(step.stepName, {
           name: step.stepName,
-          content: content,
+          content: content ?? '',
         });
+
+        if (content === null) {
+          logger.info(`Step '${step.stepName}' produced no section — page skipped`);
+          runningSteps.delete(step.stepName);
+          await sendProgressUpdate();
+          return;
+        }
 
         let parsedData = null;
         if (step.modelParser) {
@@ -700,13 +725,14 @@ export class GenericService {
   ): Promise<ISectionResult[]> {
     const results: ISectionResult[] = [];
     const completedSteps = new Map<string, { name: string; content: string }>();
-    const stepPromises = new Map<string, Promise<ISectionResult>>();
+    // `null` : l'étape est faite mais ne produit pas de section (cf. `execute`).
+    const stepPromises = new Map<string, Promise<ISectionResult | null>>();
     const pendingSteps = [...steps];
 
     logger.info(`Starting processSteps for ${steps.length} steps in project ${project.id}`);
 
     // Helper function to execute a single step
-    const executeStep = async (step: IPromptStep): Promise<ISectionResult> => {
+    const executeStep = async (step: IPromptStep): Promise<ISectionResult | null> => {
       logger.info(`Starting execution of step: ${step.stepName}`);
 
       const hasDependencies = step.hasDependencies !== undefined ? step.hasDependencies : true;
@@ -719,34 +745,41 @@ export class GenericService {
           step.requiresSteps && step.requiresSteps.length > 0
             ? (step.requiresSteps
                 .map((stepName) => stepPromises.get(stepName))
-                .filter(Boolean) as Promise<ISectionResult>[])
+                .filter(Boolean) as Promise<ISectionResult | null>[])
             : Array.from(stepPromises.values());
         if (awaited.length > 0) {
           await Promise.all(awaited);
         }
       }
 
-      const dependencyContext = await this.buildStepContext(step, completedSteps, {
-        userId: userId ?? promptConfig?.userId,
-        projectId: project.id,
-        budget,
-      });
-
       try {
-        // Execute the step
-        const content = await this.runStepAndAppend(step, project, {
-          userId: userId ?? promptConfig?.userId,
-          promptType: promptType || step.stepName,
-          dependencyContext,
-          promptConfig,
-          budget,
-        });
+        // Une étape fabriquée (cf. `IPromptStep.execute`) ne passe pas par le
+        // modèle. Elle peut aussi ne rien produire : l'étape est alors tenue
+        // pour faite, sans section.
+        const content = step.execute
+          ? await step.execute()
+          : await this.runStepAndAppend(step, project, {
+              userId: userId ?? promptConfig?.userId,
+              promptType: promptType || step.stepName,
+              dependencyContext: await this.buildStepContext(step, completedSteps, {
+                userId: userId ?? promptConfig?.userId,
+                projectId: project.id,
+                budget,
+              }),
+              promptConfig,
+              budget,
+            });
 
         // Store the completed step
         completedSteps.set(step.stepName, {
           name: step.stepName,
-          content: content,
+          content: content ?? '',
         });
+
+        if (content === null) {
+          logger.info(`Step '${step.stepName}' produced no section — page skipped`);
+          return null;
+        }
 
         // Parse the result if parser is provided
         let parsedData = null;
@@ -848,7 +881,9 @@ export class GenericService {
 
     // Wait for all steps to complete
     logger.info(`Waiting for all ${stepPromises.size} steps to complete`);
-    const completedResults = await Promise.all(Array.from(stepPromises.values()));
+    const completedResults = (await Promise.all(Array.from(stepPromises.values()))).filter(
+      (result): result is ISectionResult => result !== null
+    );
 
     // Sort results to match the original step order
     const stepOrder = steps.map((step) => step.stepName);

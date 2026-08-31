@@ -977,11 +977,22 @@ export const AI_CONFIG = {
         maxOutputTokens: 40000,
       },
     } as FeatureAIConfig,
-    mockupHtml: {
-      modelName: GLM_MODELS.writing,
-    },
+    /**
+     * Mise en situation de marque. Deux modèles, deux rôles distincts :
+     * l'un PHOTOGRAPHIE le support nu, l'autre LIT la photo pour dire où le
+     * logo doit être imprimé. Sans cette seconde lecture, le logo retombait au
+     * centre géométrique de l'image, souvent à côté du support.
+     */
     brandMockup: {
       imageModel: GLM_MODELS.image,
+      visionModel: GLM_MODELS.vision,
+      // Repli vision : le modèle gratuit de la même famille, la saturation
+      // étant par modèle (cf. imageSourcing).
+      visionFallbackModel: 'glm-4.6v-flash',
+      // Le JSON de zone tient en ~60 tokens, mais le modèle est « thinking » :
+      // son raisonnement se décompte du même budget et une réponse vide ferait
+      // retomber la composition sur son repli, donc sur un placement à l'aveugle.
+      visionMaxOutputTokens: 1500,
     },
   },
 };

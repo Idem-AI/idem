@@ -1,6 +1,13 @@
 export const COLOR_PALETTE_SECTION_PROMPT = `<role>World-class color strategist and editorial designer</role>
 <objective>Create a FULL-PAGE color palette presentation that feels like a premium design magazine spread, unique to this brand's personality.</objective>
 
+<color_guidelines>
+- Design palettes that are explicitly MODERN, ELEGANT, and HIGHLY PROFESSIONAL.
+- AVOID aggressive, harsh, or overly saturated/neon colors. The contrast should be balanced and soothing.
+- Favor sophisticated hues such as tasteful jewel tones, refined neutrals, elegant deep darks, or soft pastels.
+- The resulting palette must immediately communicate premium quality, contemporary design, and trust.
+</color_guidelines>
+
 <concept_ideas>
 Pick ONE presentation stance, consistent with the art direction supplied in the context, and hold it:
 - Paint studio: the colours as very large flats, like brush strokes.
