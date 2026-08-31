@@ -117,8 +117,8 @@ export class BusinessCardService extends GenericService {
         text: branding?.colors?.colors?.text || '#111827',
       },
       typography: {
-        primaryFont: branding?.typography?.primaryFont || 'Inter',
-        secondaryFont: branding?.typography?.secondaryFont || 'Inter',
+        primaryFont: branding?.typography?.primaryFont || 'Archivo',
+        secondaryFont: branding?.typography?.secondaryFont || 'IBM Plex Sans',
       },
       logos: this.collectLogoUrls(branding),
       styleBrief: options.styleBrief?.trim() || undefined,

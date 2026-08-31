@@ -26,6 +26,15 @@ import {
   buildImageStyleModifier,
 } from '../utils/art-direction.util';
 import { buildLogoBlock, collectLogoUrls } from '../utils/brand-context.util';
+import {
+  brandFontLinks,
+  brandFontsHref,
+  buildGoogleFontLinks,
+} from '../utils/google-fonts.util';
+import {
+  EDITORIAL_RESTRAINT_BLOCK,
+  RESTRAINT_SELF_REVIEW_BLOCK,
+} from '../services/design/editorialRestraint.prompt';
 import { LogoModel } from '../models/logo.model';
 
 let failures = 0;
@@ -55,6 +64,32 @@ for (const id of ART_DIRECTION_STYLE_IDS) {
     style.seedSpace.contentDensities.includes(seed.contentDensity) &&
     style.seedSpace.graphicAccents.includes(seed.graphicAccent);
   check(`${id}: graine dans l'espace du style`, inSpace, JSON.stringify(seed));
+  // Le vocabulaire de composants est ce qui remplace l'invention de décoration :
+  // s'il manque une primitive, le modèle en rebricole une par bloc.
+  const recipe = style.tailwindRecipe || '';
+  check(
+    `${id}: vocabulaire de composants complet`,
+    ['page:', 'sectionTitle:', 'body:', 'rule:', 'kpi:', 'caption:'].every((k) => recipe.includes(k)),
+    recipe.slice(0, 60)
+  );
+  check(
+    `${id}: la fiche de style expose le vocabulaire`,
+    buildStyleSheet(id).includes('Component vocabulary')
+  );
+  check(
+    `${id}: appariements typographiques proposés`,
+    (style.typePairings || []).length >= 2
+  );
+  // Une police de la liste anti-générique dans le catalogue annulerait tout le
+  // reste : c'est le levier le plus rapide pour qu'une marque cesse d'être
+  // reconnaissable comme une sortie de machine.
+  check(
+    `${id}: aucun appariement ne repose sur une police bannie`,
+    !/\b(Inter|Roboto|Open Sans|Lato|Montserrat|Poppins|Space Grotesk|Arial|Helvetica)\b/.test(
+      (style.typePairings || []).join(' ')
+    ),
+    (style.typePairings || []).join(' · ')
+  );
   check(
     `${id}: fiche de style complète`,
     !!(style.name && style.imagePromptModifier && style.bans.length && style.typeRatio >= 1.25) &&
@@ -135,7 +170,33 @@ check('déclinaison manquante → repli sur le primaire, jamais un trou',
 check('sans logo → consigne typographique explicite',
   buildLogoBlock(null).includes('NO logo asset'));
 
-console.log('\n[5] Linter anti-générique');
+console.log('\n[5] Chargement des polices de marque');
+// LE bug qui faisait que toutes les générations sortaient dans une police
+// système : `typography.url` est un slug, pas une feuille de style, et les
+// quatre moteurs de rendu l'injectaient tel quel dans un <link>.
+const slugTypo = { url: 'typography/systeme-premium', primaryFont: 'Playfair Display', secondaryFont: 'Work Sans' };
+const links = brandFontLinks(slugTypo);
+check('un slug ne produit jamais un <link> mort', !links.includes('typography/systeme-premium'));
+check('les deux familles sont chargées', links.includes('Playfair+Display') && links.includes('Work+Sans'));
+check('le préchargement gstatic est présent', links.includes('fonts.gstatic.com'));
+check(
+  'chaque famille est demandée sans graisse ET avec la plage complète',
+  links.includes('family=Work+Sans&display=swap') && links.includes('Work+Sans:wght@100;200;300;400;500;600;700;800;900')
+);
+check(
+  'une URL réelle déjà stockée est honorée',
+  brandFontsHref({ url: 'https://fonts.googleapis.com/css2?family=Jura&display=swap' }) ===
+    'https://fonts.googleapis.com/css2?family=Jura&display=swap'
+);
+check('les piles système ne sont jamais demandées à Google', buildGoogleFontLinks(['Arial, sans-serif', 'system-ui']) === '');
+check('sans typographie, un repli non générique est servi', !brandFontsHref({}).includes('family=Roboto'));
+
+console.log('\n[6] Retenue éditoriale');
+check('le bloc impose le test de soustraction', EDITORIAL_RESTRAINT_BLOCK.includes('SUBTRACTION TEST'));
+check('le bloc interdit le remplissage au quota', EDITORIAL_RESTRAINT_BLOCK.includes('never a quota'));
+check('la relecture demande de SUPPRIMER', RESTRAINT_SELF_REVIEW_BLOCK.includes('DELETE'));
+
+console.log('\n[7] Linter anti-générique');
 const palette = {
   primary: '#1447e6',
   secondary: '#000060',
@@ -170,6 +231,27 @@ for (const rule of [
   check(`détecte ${rule}`, rules.has(rule));
 }
 check('produit une consigne de correction réinjectable', !!report.repairPrompt);
+
+// La décoration accumulée est le défaut que l'utilisateur voyait en premier :
+// le prompt la décourage, le linter doit la MESURER.
+const cluttered =
+  `<div class="absolute rounded-full blur-3xl bg-[#1447e6]/30"></div>` +
+  Array.from({ length: 6 }, (_, i) => `<i class="pi pi-check text-[#1447e6]"></i><p>Point ${i}</p>`).join('') +
+  `<span class="rounded-full bg-[#22d3ee] px-2">Innovant</span>` +
+  `<img src="https://cdn.example/logo-primary.png" alt="l" />`;
+const clutterRules = new Set(lintHtml(cluttered, options).violations.map((v) => v.rule));
+check('détecte les icônes en surnombre', clutterRules.has('icon-overload'));
+check('détecte la forme décorative de remplissage', clutterRules.has('decorative-shape'));
+check('détecte la pastille sans donnée', clutterRules.has('empty-badge'));
+// Le faux positif reste le pire défaut : une pastille qui PORTE une donnée est
+// un élément légitime, pas de la décoration.
+check(
+  'une pastille chiffrée n\'est pas signalée',
+  !lintHtml(
+    `<span class="rounded-full bg-[#22d3ee] px-2">+18%</span><img src="https://cdn.example/logo-primary.png" alt="l" />`,
+    options
+  ).violations.some((v) => v.rule === 'empty-badge')
+);
 
 const repaired = repairHtml(slop, options);
 check('répare la couleur hors charte', !/#8b5cf6/.test(repaired.html));

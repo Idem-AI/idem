@@ -20,6 +20,7 @@ import {
   BUSINESS_CARD_SIZE_MM,
 } from '../../models/businessCard.model';
 import { EMPTY_FIELD_CLEANUP } from '../../utils/business-card-template';
+import { brandFontLinks } from '../../utils/google-fonts.util';
 
 /** Résolution d'impression cible. */
 const PRINT_DPI = 300;
@@ -135,17 +136,15 @@ export class BusinessCardRenderService {
     size: { width: number; height: number },
     typography?: { url?: string; primaryFont?: string; secondaryFont?: string }
   ): string {
-    const fontUrl = typography?.url;
-    const primary = typography?.primaryFont || 'Inter';
+    const fontLinks = brandFontLinks(typography);
+    const primary = typography?.primaryFont || 'Archivo';
     const secondary = typography?.secondaryFont || primary;
 
     return `<!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-${fontUrl ? `<link href="${fontUrl}" rel="stylesheet">` : ''}
+${fontLinks}
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {

@@ -42,6 +42,7 @@ import {
   FORMAT_DIMENSIONS,
 } from './flyerRender.service';
 import { summarizeLogoForPrompt } from '../../utils/logo-context.util';
+import { brandFontsHref } from '../../utils/google-fonts.util';
 import {
   buildArtDirectionBlock,
   buildImageNegativePrompt,
@@ -1419,11 +1420,15 @@ export class CommunicationService extends GenericService {
       BRAND_ACCENT: branding.accent || branding.primary,
       BRAND_BACKGROUND: branding.background || '#ffffff',
       BRAND_TEXT: branding.text || '#0f172a',
-      BRAND_PRIMARY_FONT: branding.primaryFont || 'Montserrat',
-      BRAND_SECONDARY_FONT: branding.secondaryFont || branding.primaryFont || 'Montserrat',
-      BRAND_FONT_URL:
-        branding.fontUrl ||
-        'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap',
+      BRAND_PRIMARY_FONT: branding.primaryFont || 'Archivo',
+      BRAND_SECONDARY_FONT: branding.secondaryFont || branding.primaryFont || 'IBM Plex Sans',
+      // `branding.fontUrl` vient de `typography.url`, qui est un slug : le
+      // transmettre tel quel faisait recopier au modèle un <link> mort, et le
+      // visuel sortait dans la police système. On construit l'URL réelle.
+      BRAND_FONT_URL: brandFontsHref(
+        { url: branding.fontUrl, primaryFont: branding.primaryFont, secondaryFont: branding.secondaryFont },
+        'https://fonts.googleapis.com/css2?family=Archivo:wght@100..900&display=swap'
+      ),
 
       LOGO_PRIMARY: primaryLogo || '(no logo available)',
       LOGO_WITHTEXT_LIGHT: pickLogo(logos?.withText?.light),
