@@ -95,11 +95,11 @@
       "noProjects": "No IDEM project is available on this account.",
       "assets": "{{count}} deliverables",
       "dropFile": "Choose a file",
-      "formats": "Plain text, Markdown or JSON — 10 MB max",
+      "formats": "PDF, Word (.docx) or Markdown — 20 MB max",
       "signInHeading": "Sign in to see your projects",
       "signInBody": "Listing your IDEM projects needs your account. You can also import a business plan without one, and sign in when it is time to run the analysis.",
       "replaceFile": "Click to replace the document",
-      "unsupportedFormat": "Unsupported format. Export your business plan as plain text (.txt), Markdown (.md) or JSON (.json)."
+      "unsupportedFormat": "Unsupported format. Import your business plan as PDF, Word (.docx) or Markdown (.md)."
     },
     "analyse": "Analyse the project",
     "analysing": "Reading the project",

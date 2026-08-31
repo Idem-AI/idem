@@ -15,8 +15,12 @@ import {
   UnusableDocumentError,
   isAcceptedDocument,
 } from '../services/Simulation/document-intake';
+import { extractDocumentText } from '../services/Simulation/document-text';
 import { simulationPdfService } from '../services/Simulation/simulation-pdf.service';
 import { LabName, simulationService } from '../services/Simulation/simulation.service';
+
+const UNSUPPORTED_FORMAT_MESSAGE =
+  'Format non pris en charge. Importez votre business plan en PDF, Word (.docx) ou Markdown (.md).';
 
 const VALID_TIERS: SimulationTier[] = ['run', 'report', 'pack'];
 const VALID_ORIGINS: SimulationOrigin[] = ['idem-project', 'imported-document'];
@@ -174,27 +178,23 @@ export const analyseImportedDocumentController = async (
   // Multer écarte silencieusement un format non géré : sans ce garde-fou, la
   // requête continuerait sans document et l'utilisateur ne saurait pas pourquoi.
   if (!uploaded && !documentText) {
-    res.status(415).json({
-      message:
-        "Format non pris en charge. Importez votre business plan en texte (.txt), Markdown (.md) ou JSON (.json).",
-    });
+    res.status(415).json({ message: UNSUPPORTED_FORMAT_MESSAGE });
     return;
   }
 
   if (uploaded && !isAcceptedDocument(uploaded.originalname, uploaded.mimetype)) {
-    res.status(415).json({
-      message:
-        "Format non pris en charge. Importez votre business plan en texte (.txt), Markdown (.md) ou JSON (.json).",
-    });
+    res.status(415).json({ message: UNSUPPORTED_FORMAT_MESSAGE });
     return;
   }
 
   try {
-    const understanding = await simulationService.analyseDocument(
-      userId,
-      uploaded ? uploaded.buffer.toString('utf8') : (documentText as string),
-      uploaded?.originalname || req.body?.documentName || 'business-plan'
-    );
+    const documentName = uploaded?.originalname || req.body?.documentName || 'business-plan';
+    // PDF et DOCX passent par un extracteur ; le Markdown est déjà du texte.
+    const text = uploaded
+      ? await extractDocumentText(uploaded.buffer, uploaded.originalname, uploaded.mimetype)
+      : (documentText as string);
+
+    const understanding = await simulationService.analyseDocument(userId, text, documentName);
     res.status(200).json(understanding);
   } catch (error: any) {
     handleError(res, error, 'analyseImportedDocument');

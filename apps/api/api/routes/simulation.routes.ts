@@ -16,6 +16,7 @@ import {
   runLabController,
 } from '../controllers/simulation.controller';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
+import { isAcceptedDocument } from '../services/Simulation/document-intake';
 import { checkQuota } from '../middleware/quota.middleware';
 import { authenticate } from '../services/auth.service';
 
@@ -23,14 +24,16 @@ export const simulationRoutes = Router();
 
 const resource = 'simulations';
 
-/** Import d'un business plan externe: texte uniquement, 10 Mo maximum. */
+/**
+ * Import d'un business plan : PDF, Word (.docx) ou Markdown, 20 Mo maximum —
+ * un PDF illustré dépasse vite les dix. Le tri fin se fait dans le contrôleur,
+ * qui sait répondre 415 ; ici on ne fait que barrer l'évident, car un fichier
+ * écarté par multer arrive sans le moindre motif.
+ */
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024, files: 1 },
-  fileFilter: (_req, file, cb) => {
-    const accepted = ['text/plain', 'text/markdown', 'application/json'];
-    cb(null, accepted.includes(file.mimetype));
-  },
+  limits: { fileSize: 20 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) => cb(null, isAcceptedDocument(file.originalname, file.mimetype)),
 });
 
 /**
