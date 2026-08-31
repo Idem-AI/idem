@@ -80,17 +80,13 @@ export const MODEL_TIERS: Record<ModelTier, TierDefinition> = {
     provider: LLMProvider.GLM,
     modelName: process.env.IDEM_TIER_S_MODEL || GLM_MODELS.reasoning,
     fallbackModels: TEXT_FALLBACK_MODELS,
-    // Seul étage où le raisonnement de GLM est rallumé : c'est sa raison
-    // d'être. Il est coupé ailleurs (cf. `extraBody` du fournisseur) parce
-    // qu'il se décompte du budget de sortie et vidait les réponses courtes.
-    // Le budget est relevé en conséquence : raisonner puis répondre ne tient
-    // pas dans l'enveloppe d'une réponse simple.
-    llmOptions: {
-      temperature: 0.5,
-      maxOutputTokens: 16000,
-      extraBody: { thinking: { type: 'enabled' } },
-    },
-    purpose: 'raisonnement (stratégie, chiffres, création visuelle)',
+    // Raisonnement COUPÉ, comme aux autres étages (cf. `extraBody` du
+    // fournisseur). Il multipliait la latence par trois — une section passait
+    // de deux à neuf secondes — pour un gain que la production de contenu ne
+    // justifiait pas. Le budget de sortie reste large : un SVG complet ou un
+    // tableau financier dépasse facilement les enveloppes courtes.
+    llmOptions: { temperature: 0.5, maxOutputTokens: 16000 },
+    purpose: 'sections à forte valeur (stratégie, chiffres, création visuelle)',
   },
 };
 
