@@ -1,0 +1,177 @@
+<div class="p-8 max-w-7xl flex flex-col gap-8 min-h-full">
+  <!-- ══ EN-TÊTE ═══════════════════════════════════════ -->
+  <div class="glass-card p-6">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-text-primary">
+          {{ 'dashboard.simulations.title' | translate }}
+        </h1>
+        <p class="text-sm text-text-secondary mt-1 max-w-2xl">
+          {{ 'dashboard.simulations.description' | translate }}
+        </p>
+      </div>
+
+      @if (!isEmpty()) {
+        <button class="inner-button" (click)="openSimulator()">
+          <i class="pi pi-bolt"></i>
+          {{ 'dashboard.simulations.newRun' | translate }}
+        </button>
+      }
+    </div>
+
+    @if (!loading() && !isEmpty()) {
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+        @for (tile of statTiles(); track tile.labelKey) {
+          <div
+            class="flex flex-col p-4 bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] rounded-lg"
+          >
+            <span class="text-2xl font-bold text-text-primary">{{ tile.value }}</span>
+            <span class="text-xs text-text-secondary mt-1">{{ tile.labelKey | translate }}</span>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  @if (loading()) {
+    <!-- ══ CHARGEMENT ══════════════════════════════════ -->
+    <div class="flex flex-col gap-3">
+      @for (row of [1, 2, 3]; track row) {
+        <div
+          class="h-24 rounded-xl bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] animate-pulse"
+        ></div>
+      }
+    </div>
+  } @else if (isEmpty()) {
+    <!-- ══ AUCUNE SIMULATION ═══════════════════════════ -->
+    <div class="glass-card flex flex-col items-center text-center px-6 py-14">
+      <!-- Une trajectoire unique qui se divise en scénarios : c'est
+           exactement ce que fait une simulation. -->
+      <svg viewBox="0 0 240 140" class="w-56 h-32 text-text-primary" fill="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="simEmptyLine" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0%" stop-color="var(--color-primary)" />
+            <stop offset="100%" stop-color="var(--color-accent-500)" />
+          </linearGradient>
+        </defs>
+
+        <path
+          d="M16 124h208M16 124V16"
+          stroke="currentColor"
+          stroke-opacity=".18"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+
+        <path
+          d="M16 104C46 100 66 92 84 76"
+          stroke="url(#simEmptyLine)"
+          stroke-width="3"
+          stroke-linecap="round"
+        />
+        <path
+          d="M84 76c30-26 62-30 124-46"
+          stroke="url(#simEmptyLine)"
+          stroke-width="3"
+          stroke-linecap="round"
+        />
+        <path
+          d="M84 76c26 4 52 6 124 4"
+          stroke="currentColor"
+          stroke-opacity=".35"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-dasharray="7 7"
+        />
+        <path
+          d="M84 76c22 16 48 26 124 34"
+          stroke="currentColor"
+          stroke-opacity=".22"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-dasharray="7 7"
+        />
+
+        <circle cx="84" cy="76" r="7" fill="url(#simEmptyLine)" />
+        <circle cx="208" cy="30" r="4.5" fill="url(#simEmptyLine)" />
+        <circle cx="208" cy="80" r="4" fill="currentColor" fill-opacity=".35" />
+        <circle cx="208" cy="110" r="4" fill="currentColor" fill-opacity=".22" />
+      </svg>
+
+      <h2 class="text-xl font-bold text-text-primary mt-6">
+        {{ 'dashboard.simulations.empty.title' | translate }}
+      </h2>
+      <p class="text-sm text-text-secondary mt-2 max-w-lg leading-relaxed">
+        {{ 'dashboard.simulations.empty.body' | translate }}
+      </p>
+
+      <button class="inner-button mt-6" (click)="openSimulator()">
+        <i class="pi pi-bolt"></i>
+        {{ 'dashboard.simulations.empty.cta' | translate }}
+      </button>
+
+      <p class="text-xs text-text-secondary/70 mt-3">
+        {{ 'dashboard.simulations.empty.note' | translate }}
+      </p>
+    </div>
+  } @else {
+    <!-- ══ RÉCAPITULATIF ═══════════════════════════════ -->
+    @if (latestCompleted(); as latest) {
+      <div class="glass-card p-6">
+        <p class="text-xs uppercase tracking-wider text-text-secondary">
+          {{ 'dashboard.simulations.latest' | translate }}
+        </p>
+        <div class="flex flex-wrap items-center gap-6 mt-3">
+          <div>
+            <span class="text-4xl font-bold text-text-primary">{{ latest.viabilityIndex }}</span>
+            <span class="text-lg text-text-secondary">/100</span>
+          </div>
+          <span
+            class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-md border"
+            [class]="verdictClass(latest.verdict)"
+          >
+            {{ 'dashboard.simulations.verdict.' + (latest.verdict ?? 'unknown') | translate }}
+          </span>
+          <p class="text-sm text-text-secondary">
+            {{ latest.name }} · {{ latest.updatedAt | date: 'mediumDate' }}
+          </p>
+        </div>
+      </div>
+    }
+
+    <div class="flex flex-col gap-3">
+      @for (simulation of simulations(); track simulation.id) {
+        <button
+          type="button"
+          class="glass-card p-5 text-left transition-colors hover:border-[var(--glass-border-strong)]"
+          (click)="openSimulator(simulation.id)"
+        >
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="font-semibold text-text-primary truncate">{{ simulation.name }}</p>
+              <p class="text-xs text-text-secondary mt-1">
+                {{ 'dashboard.simulations.revision' | translate: { number: simulation.revision } }}
+                · {{ simulation.updatedAt | date: 'mediumDate' }}
+                @if (simulation.hasReport) {
+                  · {{ 'dashboard.simulations.hasReport' | translate }}
+                }
+              </p>
+            </div>
+
+            <div class="flex items-center gap-4 shrink-0">
+              @if (simulation.viabilityIndex !== undefined) {
+                <span class="text-lg font-bold text-text-primary">
+                  {{ simulation.viabilityIndex }}<span class="text-xs text-text-secondary">/100</span>
+                </span>
+              }
+              <span class="text-xs font-medium" [class]="statusClass(simulation.status)">
+                {{ 'dashboard.simulations.status.' + simulation.status | translate }}
+              </span>
+              <i class="pi pi-external-link text-xs text-text-secondary"></i>
+            </div>
+          </div>
+        </button>
+      }
+    </div>
+  }
+</div>

@@ -243,6 +243,13 @@ export class SidebarDashboard implements OnInit {
       isActive: false,
     },
     {
+      labelKey: 'dashboard.sidebar.simulations',
+      icon: 'pi pi-bolt',
+      route: 'project/simulations',
+      isActive: false,
+      isNew: true,
+    },
+    {
       labelKey: 'dashboard.sidebar.advisor',
       icon: 'pi pi-comments',
       route: 'project/advisor',
