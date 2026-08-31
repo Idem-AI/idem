@@ -254,6 +254,18 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
+    // Récapitulatif seulement : simuler appartient à `apps/simulation`, qui
+    // partage la même session IDEM.
+    path: 'project/simulations',
+    title: 'navigation.titles.simulations',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/simulations-overview/simulations-overview').then(
+        (m) => m.SimulationsOverview,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
     path: 'project/advisor',
     title: 'navigation.titles.advisor',
     loadComponent: () =>
