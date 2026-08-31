@@ -11,6 +11,9 @@ import { DisclaimerNote } from '../../../../shared/components/disclaimer-note/di
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { SimulationGateway, SimulationStore } from '../../data-access';
 import { canStashFile, saveDraft, takeDraft } from './new-run-draft';
+
+/** Extensions acceptées par l'API. Le reste demanderait un extracteur. */
+const ACCEPTED_EXTENSIONS = ['.txt', '.md', '.markdown', '.json'];
 import {
   KnowledgeItem,
   ProjectUnderstanding,
@@ -77,6 +80,12 @@ export class NewSimulation {
   });
   protected readonly selectedProjectId = signal<string | null>(null);
   protected readonly selectedFile = signal<File | null>(null);
+  /**
+   * Refus du document, en clair. L'API dit pourquoi — format non géré, fichier
+   * illisible, ou document qui n'est pas un business plan — et ce motif reste
+   * sous la zone de dépôt, là où l'utilisateur agit.
+   */
+  protected readonly documentError = signal<string | null>(null);
 
   protected readonly understanding = signal<ProjectUnderstanding | null>(null);
   protected readonly analysing = signal(false);
@@ -150,7 +159,8 @@ export class NewSimulation {
     effect(() => {
       const projects = this.projects();
       untracked(() => {
-        if (this.selectedProjectId() || !projects.length) {
+        // Un plan importé ne se rattache à aucun projet : rien à présélectionner.
+        if (this.origin() !== 'idem-project' || this.selectedProjectId() || !projects.length) {
           return;
         }
         // Arrivée depuis le bouton « Simuler mon entreprise » du dashboard.
@@ -198,7 +208,18 @@ export class NewSimulation {
 
   protected onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.selectedFile.set(input.files?.[0] ?? null);
+    const file = input.files?.[0] ?? null;
+    this.documentError.set(null);
+
+    // Le format est vérifié avant l'envoi : inutile de faire monter un fichier
+    // de plusieurs mégaoctets pour se le voir refuser.
+    if (file && !ACCEPTED_EXTENSIONS.some((extension) => file.name.toLowerCase().endsWith(extension))) {
+      this.selectedFile.set(null);
+      this.documentError.set(this.translate.instant('newRun.source.unsupportedFormat') as string);
+      return;
+    }
+
+    this.selectedFile.set(file);
   }
 
   protected async analyse(): Promise<void> {
@@ -212,24 +233,39 @@ export class NewSimulation {
     }
 
     this.analysing.set(true);
+    this.documentError.set(null);
     this.step.set('analysis');
     try {
-      const projectId = this.selectedProjectId();
-      if (!projectId) {
-        throw new Error(this.translate.instant('newRun.noProject') as string);
+      let understanding: ProjectUnderstanding;
+
+      if (this.origin() === 'idem-project') {
+        const projectId = this.selectedProjectId();
+        if (!projectId) {
+          throw new Error(this.translate.instant('newRun.noProject') as string);
+        }
+        understanding = await firstValueFrom(this.gateway.analyseProject(projectId));
+      } else {
+        // Un business plan importé ne dépend d'aucun projet : celui-ci sera
+        // créé au lancement, à partir de ce que cette lecture livre.
+        understanding = await firstValueFrom(
+          this.gateway.analyseDocument(this.selectedFile() as File),
+        );
       }
-      const file = this.selectedFile();
-      const understanding =
-        this.origin() === 'idem-project'
-          ? await firstValueFrom(this.gateway.analyseProject(projectId))
-          : await firstValueFrom(this.gateway.analyseDocument(projectId, file as File));
+
       this.understanding.set(understanding);
     } catch (error) {
       this.step.set('source');
-      this.toasts.error(
-        this.translate.instant('newRun.analysisFailed') as string,
-        error instanceof Error ? error.message : undefined,
-      );
+      const rejection = documentRejection(error);
+      if (rejection) {
+        // Le document est en cause : le motif s'affiche là où l'on choisit le
+        // fichier, pas dans une notification qui disparaît.
+        this.documentError.set(rejection);
+      } else {
+        this.toasts.error(
+          this.translate.instant('newRun.analysisFailed') as string,
+          error instanceof Error ? error.message : undefined,
+        );
+      }
     } finally {
       this.analysing.set(false);
     }
@@ -244,12 +280,15 @@ export class NewSimulation {
     if (this.pricing()) {
       return;
     }
+    const fromProject = this.origin() === 'idem-project';
     const projectId = this.selectedProjectId();
-    if (!projectId) {
+    if (fromProject && !projectId) {
       return;
     }
     try {
-      const pricing = await firstValueFrom(this.gateway.getPricing(projectId, this.origin()));
+      const pricing = await firstValueFrom(
+        this.gateway.getPricing(this.origin(), fromProject ? (projectId as string) : undefined),
+      );
       this.pricing.set(pricing);
       this.selectedTier.set(
         pricing.plans.find((plan) => plan.recommended)?.tier ?? pricing.plans[0].tier,
@@ -266,23 +305,35 @@ export class NewSimulation {
     if (await this.requireSignIn('signIn.reason.launch')) {
       return;
     }
+    const understanding = this.understanding();
+    const fromProject = this.origin() === 'idem-project';
     const projectId = this.selectedProjectId();
-    if (!projectId) {
+    if ((fromProject && !projectId) || !understanding) {
       return;
     }
+
     this.launching.set(true);
     try {
-      // Le projet choisi ici devient le projet actif : tous les écrans de
-      // l'exécution en dépendent.
-      this.store.selectProject(projectId);
-      const simulation = await this.store.create({
-        name: this.runName(),
-        origin: this.origin(),
-        projectId,
-        documentName: this.selectedFile()?.name,
-        tier: this.selectedTier(),
-        answers: this.answers(),
-      });
+      const simulation = fromProject
+        ? await this.store.create({
+            name: this.runName(),
+            origin: 'idem-project',
+            // Le projet choisi ici devient le projet actif : tous les écrans
+            // de l'exécution en dépendent.
+            projectId: this.selectProjectAndReturn(projectId as string),
+            tier: this.selectedTier(),
+            answers: this.answers(),
+          })
+        : // Le plan importé n'a pas de projet : l'API crée celui que le
+          // document décrit, puis simule dessus.
+          await this.store.createFromDocument({
+            name: this.runName(),
+            tier: this.selectedTier(),
+            documentName: this.selectedFile()?.name,
+            answers: this.answers(),
+            understanding,
+          });
+
       await this.router.navigate(['/simulations', simulation.id]);
     } catch (error) {
       this.toasts.error(
@@ -340,12 +391,42 @@ export class NewSimulation {
     }
   }
 
+  /** Sélectionne le projet et le rend, pour rester lisible dans l'appel. */
+  private selectProjectAndReturn(projectId: string): string {
+    this.store.selectProject(projectId);
+    return projectId;
+  }
+
   private runName(): string {
-    const project = this.selectedProject();
-    if (project) {
-      return project.name;
+    if (this.origin() === 'idem-project') {
+      const project = this.selectedProject();
+      if (project) {
+        return project.name;
+      }
+    }
+    // Import : le nom vient de ce que le document a livré, c'est aussi celui
+    // que portera le projet IDEM créé.
+    const extracted = this.understanding()?.profile.name?.trim();
+    if (extracted) {
+      return extracted;
     }
     const file = this.selectedFile();
     return file ? file.name.replace(/\.[^.]+$/, '') : (this.translate.instant('newRun.title') as string);
   }
+}
+
+/**
+ * Motif de refus d'un document, quand l'API en donne un.
+ *
+ * 415 : format non pris en charge. 422 : fichier illisible, ou document qui
+ * n'est pas un business plan. Dans les deux cas le message est écrit pour
+ * l'utilisateur et se suffit à lui-même.
+ */
+function documentRejection(error: unknown): string | null {
+  const status = (error as { status?: number })?.status;
+  if (status !== 415 && status !== 422) {
+    return null;
+  }
+  const message = (error as { error?: { message?: string } })?.error?.message;
+  return message ?? null;
 }
