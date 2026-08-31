@@ -261,8 +261,10 @@ export class ImageSourcingService {
 
   // ─────────────────────────────────────────────────────────────────────────
   // 3. VISION SCAN — stock images only (buffer OR URL accepted)
-  //    Uses gemini-2.0-flash (cheaper + faster than the preview model).
-  //    max_tokens capped at 256: the JSON schema fits in < 150 tokens.
+  //    Modèle et repli viennent de AI_CONFIG.communication.imageSourcing —
+  //    ne pas les redire ici, le commentaire dérivait de la configuration.
+  //    Budget: visionMaxOutputTokens (le schéma JSON tient en < 150 tokens,
+  //    mais le raisonnement est décompté du même budget).
   // ─────────────────────────────────────────────────────────────────────────
 
   /**

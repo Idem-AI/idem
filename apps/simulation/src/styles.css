@@ -189,6 +189,34 @@ p {
 }
 
 /* ----------------------------------------------------------------------------
+   Reprise de la main sur les sélecteurs d'éléments du design system
+
+   Le design system est importé hors de toute couche CSS, alors que les
+   utilitaires Tailwind vivent dans `@layer utilities` — et le non-couché
+   l'emporte toujours sur le couché, quelle que soit la spécificité. Un
+   `label { display: inline-block }` du design system gagne donc contre
+   `class="flex"`, ce qui casse silencieusement toute mise en page bâtie sur un
+   <label> (la zone de dépôt de document, par exemple). On rend la main aux
+   utilitaires, sans toucher au reste du style.
+
+   Même piège dans l'autre sens pour les classes `.inner-button` / `.button-*`
+   ci-dessous, qui posent `display: inline-flex` : ne jamais leur adjoindre
+   `hidden` ou `md:hidden`, l'utilitaire perdrait. Masquer l'élément parent.
+   ---------------------------------------------------------------------------- */
+
+label.flex {
+  display: flex;
+}
+
+label.block {
+  display: block;
+}
+
+label.grid {
+  display: grid;
+}
+
+/* ----------------------------------------------------------------------------
    Boutons
    Les boutons du design system sont en capitales : lisible pour un CTA de
    landing, illisible pour une barre d'outils. On garde le style et on rend la

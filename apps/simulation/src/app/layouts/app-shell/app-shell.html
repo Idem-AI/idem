@@ -1,210 +1,10 @@
 <div class="min-h-dvh">
-  <!-- Barre supérieure -->
-  <header class="glass fixed inset-x-0 top-0 z-40 h-16 border-b border-line">
-    <div class="flex h-full items-center gap-2 px-3 sm:px-4">
-      <button
-        type="button"
-        class="button-ghost button-sm button-icon-only md:hidden"
-        [attr.aria-label]="'nav.openMenu' | translate"
-        [attr.aria-expanded]="drawerOpen()"
-        (click)="drawerOpen.set(!drawerOpen())"
-      >
-        <i class="pi pi-bars" aria-hidden="true"></i>
-      </button>
-
-      <button
-        type="button"
-        class="button-ghost button-sm button-icon-only hidden md:inline-flex"
-        [attr.aria-label]="'nav.toggleSidebar' | translate"
-        [attr.aria-pressed]="collapsed()"
-        (click)="toggleCollapsed()"
-      >
-        <i class="pi pi-bars" aria-hidden="true"></i>
-      </button>
-
-      <!-- Sélecteur de projet : tout le produit est porté par un projet IDEM. -->
-      <div class="relative ml-1 min-w-0">
-        <button
-          type="button"
-          class="flex min-w-0 max-w-[15rem] items-center gap-2.5 rounded-xl border border-line bg-panel-raised px-3 py-2 text-label text-ink transition-colors hover:border-line-strong sm:max-w-xs"
-          [attr.aria-expanded]="projectMenuOpen()"
-          aria-haspopup="listbox"
-          (click)="projectMenuOpen.set(!projectMenuOpen())"
-        >
-          <span class="size-2 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
-          <span class="truncate font-medium">
-            {{ activeProject()?.name || ('project.select' | translate) }}
-          </span>
-          <i
-            class="pi pi-chevron-down shrink-0 text-[0.7rem] text-ink-subtle transition-transform"
-            [class.rotate-180]="projectMenuOpen()"
-            aria-hidden="true"
-          ></i>
-        </button>
-
-        @if (projectMenuOpen()) {
-          <div
-            role="listbox"
-            [attr.aria-label]="'project.select' | translate"
-            class="rise absolute left-0 top-full z-50 mt-1.5 max-h-80 w-72 overflow-y-auto rounded-xl border border-line bg-panel-raised p-1 shadow-raised"
-          >
-            @for (project of projects(); track project.id) {
-              <button
-                type="button"
-                role="option"
-                [attr.aria-selected]="activeProject()?.id === project.id"
-                class="flex w-full items-start gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-panel-sunken"
-                (click)="chooseProject(project)"
-              >
-                <i
-                  class="pi mt-0.5 text-xs"
-                  [class.pi-check]="activeProject()?.id === project.id"
-                  [class.pi-folder]="activeProject()?.id !== project.id"
-                  [class.text-primary]="activeProject()?.id === project.id"
-                  [class.text-ink-subtle]="activeProject()?.id !== project.id"
-                  aria-hidden="true"
-                ></i>
-                <span class="min-w-0">
-                  <span class="block truncate text-label font-medium text-ink">{{ project.name }}</span>
-                  <span class="block truncate text-meta text-ink-subtle">{{ project.sector }}</span>
-                </span>
-              </button>
-            } @empty {
-              <p class="px-3 py-4 text-meta text-ink-subtle">{{ 'project.none' | translate }}</p>
-            }
-          </div>
-        }
-      </div>
-
-      @if (mockEnabled()) {
-        <p
-          class="ml-2 hidden items-center gap-1.5 rounded-full border border-verdict-warn/50 px-2.5 py-1 text-meta font-medium text-verdict-warn sm:inline-flex"
-          [title]="'mock.badgeHint' | translate"
-        >
-          <i class="pi pi-database text-[0.7rem]" aria-hidden="true"></i>
-          {{ 'mock.badge' | translate }}
-        </p>
-      }
-
-      <div class="ml-auto flex items-center gap-1.5">
-        <a
-          [href]="dashboardUrl"
-          class="button-ghost button-sm hidden lg:inline-flex"
-        >
-          <i class="pi pi-arrow-up-right text-xs" aria-hidden="true"></i>
-          {{ 'nav.backToIdem' | translate }}
-        </a>
-
-        <div class="relative">
-          <button
-            type="button"
-            class="grid size-9 place-items-center overflow-hidden rounded-full border border-line bg-panel-raised text-meta font-semibold text-ink-muted transition-colors hover:text-ink"
-            [attr.aria-expanded]="menuOpen()"
-            aria-haspopup="menu"
-            [attr.aria-label]="'nav.account' | translate"
-            (click)="menuOpen.set(!menuOpen())"
-          >
-            @if (user()?.photoURL) {
-              <img
-                [src]="user()!.photoURL"
-                alt=""
-                class="size-9 object-cover"
-                referrerpolicy="no-referrer"
-              />
-            } @else {
-              {{ initials() }}
-            }
-          </button>
-
-          @if (menuOpen()) {
-            <div
-              role="menu"
-              class="rise absolute right-0 top-full z-50 mt-1.5 w-64 overflow-hidden rounded-xl border border-line bg-panel-raised shadow-raised"
-            >
-              <div class="border-b border-line px-3 py-2.5">
-                <p class="truncate text-label font-medium text-ink">
-                  {{ user()?.displayName || ('nav.account' | translate) }}
-                </p>
-                @if (user()?.email) {
-                  <p class="truncate text-meta text-ink-subtle">{{ user()!.email }}</p>
-                }
-              </div>
-              <a
-                [href]="dashboardUrl"
-                role="menuitem"
-                class="block px-3 py-2.5 text-label text-ink-muted transition-colors hover:bg-panel-sunken hover:text-ink"
-              >
-                {{ 'nav.backToIdem' | translate }}
-              </a>
-              <button
-                type="button"
-                role="menuitem"
-                class="block w-full px-3 py-2.5 text-left text-label text-ink-muted transition-colors hover:bg-panel-sunken hover:text-ink"
-                (click)="signOut()"
-              >
-                {{ 'auth.signOut' | translate }}
-              </button>
-
-              @if (mockToggleVisible()) {
-                <div class="border-t border-line p-3">
-                  <button
-                    type="button"
-                    role="menuitemcheckbox"
-                    [attr.aria-checked]="mockEnabled()"
-                    class="flex w-full items-start gap-3 text-left"
-                    (click)="toggleMock()"
-                  >
-                    <span
-                      class="mt-0.5 flex h-5 w-9 shrink-0 items-center rounded-full border border-line p-0.5 transition-colors"
-                      [class.bg-primary]="mockEnabled()"
-                      [class.bg-panel-sunken]="!mockEnabled()"
-                      aria-hidden="true"
-                    >
-                      <span
-                        class="size-3.5 rounded-full bg-ink transition-transform"
-                        [class.translate-x-4]="mockEnabled()"
-                      ></span>
-                    </span>
-                    <span class="min-w-0">
-                      <span class="block text-label font-medium text-ink">
-                        {{ 'mock.toggle' | translate }}
-                      </span>
-                      <span class="block text-meta leading-relaxed text-ink-subtle">
-                        {{ (mockEnabled() ? 'mock.on' : 'mock.off') | translate }}
-                      </span>
-                    </span>
-                  </button>
-
-                  <div class="mt-2 flex flex-col items-start gap-1">
-                    @if (mockEnabled()) {
-                      <button
-                        type="button"
-                        role="menuitem"
-                        class="text-meta text-ink-subtle underline-offset-4 transition-colors hover:text-ink-muted hover:underline"
-                        (click)="resetDemoData()"
-                      >
-                        {{ 'mock.reset' | translate }}
-                      </button>
-                    }
-                    @if (mockOverridden()) {
-                      <button
-                        type="button"
-                        role="menuitem"
-                        class="text-meta text-ink-subtle underline-offset-4 transition-colors hover:text-ink-muted hover:underline"
-                        (click)="useBuildDefault()"
-                      >
-                        {{ 'mock.useBuildDefault' | translate }}
-                      </button>
-                    }
-                  </div>
-                </div>
-              }
-            </div>
-          }
-        </div>
-      </div>
-    </div>
-  </header>
+  <sim-topbar
+    [navToggleVisible]="true"
+    [projectPickerVisible]="true"
+    [navCollapsed]="collapsed()"
+    (navToggle)="toggleNav()"
+  />
 
   <!-- Colonne de navigation -->
   <aside
@@ -225,7 +25,11 @@
         (click)="drawerOpen.set(false)"
       ></button>
       <div class="glass absolute bottom-0 left-0 top-0 w-72 border-r border-line shadow-raised">
-        <sim-sidebar [simulationId]="simulationId()" [inDrawer]="true" (navigate)="drawerOpen.set(false)" />
+        <sim-sidebar
+          [simulationId]="simulationId()"
+          [inDrawer]="true"
+          (navigate)="drawerOpen.set(false)"
+        />
       </div>
     </div>
   }
@@ -239,5 +43,4 @@
       <router-outlet />
     </main>
   </div>
-
 </div>

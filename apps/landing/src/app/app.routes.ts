@@ -45,7 +45,7 @@ export const routes: Routes = [
     data: { layout: 'public' },
   },
   {
-    path: 'simulation',
+    path: 'simulator',
     loadComponent: () =>
       import('./pages/simulation-page/simulation-page').then((m) => m.SimulationPage),
     data: { layout: 'public' },

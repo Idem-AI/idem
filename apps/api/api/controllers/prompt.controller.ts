@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
 import { PromptRequest, promptService } from '../services/prompt.service';
-import { LLMProvider } from '../config/ai.config';
+import { LLMProvider, TEXT_FALLBACK_MODELS } from '../config/ai.config';
 
 class PromptController {
   async handlePromptRequest(req: CustomRequest, res: Response): Promise<void> {
@@ -60,6 +60,7 @@ Règles strictes :
         {
           provider: LLMProvider.GEMINI,
           modelName: 'gemini-2.5-flash',
+          fallbackModels: TEXT_FALLBACK_MODELS,
           userId,
           language: req.language,
         },
@@ -100,6 +101,7 @@ Règles strictes :
         {
           provider: LLMProvider.GEMINI,
           modelName: 'gemini-2.5-flash',
+          fallbackModels: TEXT_FALLBACK_MODELS,
           userId,
           language: req.language,
         },

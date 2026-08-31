@@ -351,7 +351,8 @@
       "errors": {
         "projectNotFound": "Project ID '{{cookieId}}' from cookie not found. Using first project instead.",
         "initialProjectNotFound": "Initial project ID '{{initialCookieId}}' not found. Navigating to global dashboard."
-      }
+      },
+      "simulations": "Simulations"
     },
     "sidebarGlobal": {
       "dashboard": "Dashboard",
@@ -2778,6 +2779,39 @@
       "done": "Processing complete",
       "hold": "Keep this tab open: generation stops if you leave the page.",
       "stopped": "Generation interrupted"
+    },
+    "simulations": {
+      "title": "Simulations",
+      "description": "Put this project under strain before you launch it: the engine looks for the factors that can tip it over, stress-tests them, and tells you where the model breaks.",
+      "newRun": "New simulation",
+      "latest": "Latest completed run",
+      "revision": "Revision no. {{number}}",
+      "hasReport": "report available",
+      "stats": {
+        "total": "Simulations",
+        "completed": "Completed",
+        "running": "Running",
+        "reports": "Reports"
+      },
+      "status": {
+        "draft": "Draft",
+        "awaiting-confirmation": "To confirm",
+        "running": "Running",
+        "completed": "Completed",
+        "failed": "Failed"
+      },
+      "verdict": {
+        "go": "Go",
+        "go-with-conditions": "Go with conditions",
+        "no-go": "No-go",
+        "unknown": "No verdict"
+      },
+      "empty": {
+        "title": "This project has not been simulated yet",
+        "body": "A simulation puts your model through adverse scenarios and stress tests, then tells you on what conditions it holds. It starts from this project: the business plan and financial forecasts already here are picked up automatically.",
+        "cta": "Run a simulation",
+        "note": "The simulator opens in a new tab, with your IDEM account."
+      }
     }
   },
   "deployment": {
@@ -2918,7 +2952,8 @@
       "brandingEdit": "Brand Identity Editing",
       "businessCards": "Business cards",
       "businessCardsEdit": "Business card editor",
-      "flyerEdit": "Visual editor"
+      "flyerEdit": "Visual editor",
+      "simulations": "Simulations"
     }
   },
   "notFound": {
