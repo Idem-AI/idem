@@ -6,12 +6,29 @@ interface ModelConfig {
   description?: string;
   iconUrl?: string;
   provider?: string;
-  apiKey?: string;
-  apiUrl?: string;
   functionCall: boolean;
   temperature?: number;
   topP?: number;
   maxOutputTokens?: number;
+  // Les identifiants ne sont pas stockés ici : seulement le *nom* des variables
+  // qui les portent. Lire `process.env` au niveau module se ferait pendant la
+  // phase d'import, donc avant le `dotenv.config()` de server.ts, et figerait
+  // la clé à `undefined` pour toute la durée du process. La résolution est donc
+  // repoussée à l'appel, dans `resolveModelCredentials`.
+  apiKeyEnv?: string;
+  apiUrlEnv?: string;
+  defaultApiUrl?: string;
+}
+
+/** Ce que l'on sert à l'interface : le catalogue *sans* les identifiants. */
+export type PublicModelConfig = Omit<
+  ModelConfig,
+  'apiKeyEnv' | 'apiUrlEnv' | 'defaultApiUrl'
+>;
+
+export interface ModelCredentials {
+  apiKey: string;
+  apiUrl: string;
 }
 
 /**
@@ -34,8 +51,9 @@ const defaultModelConfigs: ModelConfig[] = [
     topP: 0.95,
     // Z.ai sert un endpoint OpenAI-compatible ; les identifiants lui sont
     // propres et ne passent donc pas par les THIRD_API_* génériques.
-    apiUrl: process.env.GLM_API_URL || 'https://api.z.ai/api/paas/v4',
-    apiKey: process.env.GLM_API_KEY,
+    apiKeyEnv: 'GLM_API_KEY',
+    apiUrlEnv: 'GLM_API_URL',
+    defaultApiUrl: 'https://api.z.ai/api/paas/v4',
   },
 ];
 
@@ -62,4 +80,50 @@ export function getFallbackModelKeys(preferredKey?: string): string[] {
   return keys;
 }
 
-export const modelConfig: ModelConfig[] = defaultModelConfigs;
+/** Une variable d'environnement vide vaut absente : `""` n'est pas une clé. */
+function readEnv(name?: string): string | undefined {
+  if (!name) return undefined;
+  const value = process.env[name]?.trim();
+  return value ? value : undefined;
+}
+
+/**
+ * Résout les identifiants d'un modèle, à l'appel et non à l'import.
+ *
+ * Un modèle qui déclare son propre `apiKeyEnv` ne retombe jamais sur les
+ * THIRD_API_* : envoyer la clé d'un autre fournisseur à Z.ai ne produit qu'un
+ * « Authentication Failed » opaque, très loin de la vraie cause. Mieux vaut
+ * échouer en nommant la variable à renseigner.
+ */
+export function resolveModelCredentials(modelKey: string): ModelCredentials {
+  const conf = defaultModelConfigs.find((item) => item.modelKey === modelKey);
+
+  if (!conf) {
+    throw new Error(`Model configuration not found for model: ${modelKey}`);
+  }
+
+  const apiUrl = readEnv(conf.apiUrlEnv) ?? conf.defaultApiUrl ?? readEnv('THIRD_API_URL') ?? '';
+  const apiKey = conf.apiKeyEnv
+    ? readEnv(conf.apiKeyEnv)
+    : readEnv('THIRD_API_KEY');
+
+  if (!apiKey) {
+    const varName = conf.apiKeyEnv ?? 'THIRD_API_KEY';
+    throw new Error(
+      `Aucune clé d'API pour le modèle « ${modelKey} » (fournisseur : ${conf.provider ?? 'third-party'}). ` +
+        `Renseignez ${varName} dans apps/we-dev-next/.env, puis redémarrez le serveur.`,
+    );
+  }
+
+  return { apiKey, apiUrl };
+}
+
+/**
+ * Le catalogue public. Sert `/api/model/config`, donc part vers le navigateur :
+ * il ne doit contenir aucun identifiant.
+ */
+export function getPublicModelConfig(): PublicModelConfig[] {
+  return defaultModelConfigs.map(({ apiKeyEnv, apiUrlEnv, defaultApiUrl, ...pub }) => pub);
+}
+
+export const modelConfig: PublicModelConfig[] = getPublicModelConfig();

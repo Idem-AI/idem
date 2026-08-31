@@ -3,7 +3,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createDeepSeek } from '@ai-sdk/deepseek';
 import { streamText, generateObject, LanguageModel, convertToCoreMessages } from 'ai';
 import { z } from 'zod';
-import { modelConfig, getDefaultModelKey } from '../config/modelConfig.js';
+import { modelConfig, getDefaultModelKey, resolveModelCredentials } from '../config/modelConfig.js';
 import { Messages, ToolInfo } from '../types/project.js';
 
 let initOptions = {};
@@ -107,8 +107,12 @@ export function streamTextFn(messages: Messages, options?: StreamingOptions, mod
     throw new Error(`Model configuration not found for model: ${modelKey}`);
   }
 
-  const { apiKey = process.env.THIRD_API_KEY, apiUrl = process.env.THIRD_API_URL } = modelConf;
-  const model = getOpenAIModel(apiUrl || '', apiKey || '', modelKey || '') as LanguageModel;
+  // Les identifiants sont lus ici, pas à l'import du catalogue : `dotenv` ne
+  // s'exécute qu'après la phase d'import de server.ts. Un modèle sans clé
+  // échoue en nommant sa variable plutôt qu'en empruntant celle d'un autre
+  // fournisseur.
+  const { apiKey, apiUrl } = resolveModelCredentials(modelConf.modelKey);
+  const model = getOpenAIModel(apiUrl, apiKey, modelKey || '') as LanguageModel;
 
   // Every provider takes the system prompt out of band, so pull `system` roles
   // out of the message list rather than leaving them in the conversation. The

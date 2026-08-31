@@ -1,5 +1,10 @@
+// En premier, avant tout autre import : les modules importés ci-dessous lisent
+// `process.env` au niveau module (catalogue de modèles, skills, screenshot),
+// et la phase d'import ESM s'exécute entièrement avant la première
+// instruction du corps. Un `dotenv.config()` placé plus bas arriverait donc
+// trop tard et laisserait ces lectures à `undefined`.
+import 'dotenv/config';
 import express, { Express, Request, Response } from 'express';
-import dotenv from 'dotenv';
 import morgan from 'morgan';
 import helmet from 'helmet';
 import { corsMiddleware } from './middleware/cors.js';
@@ -15,7 +20,6 @@ import assetsRouter from './routes/assets.js';
 import mcpRouter from './mcp/server.js';
 import { loadSkills } from './skills/registry.js';
 
-dotenv.config();
 
 // Read the catalog off disk once at boot rather than on the first generation,
 // so a malformed skill fails loudly at startup instead of mid-request.
