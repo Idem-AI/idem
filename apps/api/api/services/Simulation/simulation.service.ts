@@ -340,18 +340,20 @@ export class SimulationService {
     }
   ): Promise<SimulationModel> {
     const profile = input.understanding.profile;
+    // La graine vient de la même lecture du document : elle est taillée pour la
+    // fiche projet, là où le profil l'est pour la simulation.
+    const seed = input.understanding.projectSeed;
     const name = (input.name || profile.name || 'Projet importé').trim();
 
     const project = await projectService.createUserProject(userId, {
       name,
-      description: profile.product || profile.businessModel || '',
-      // Le type IDEM ne se déduit pas d'un secteur d'activité ; l'utilisateur
-      // le précisera s'il reprend ce projet dans les autres modules.
-      type: 'other',
-      constraints: [],
-      teamSize: profile.teamSize || '',
-      scope: profile.sector || '',
-      targets: profile.targetCustomer || '',
+      description: seed?.description || profile.product || profile.businessModel || '',
+      type: seed?.type ?? 'other',
+      constraints: seed?.constraints ?? [],
+      teamSize: seed?.teamSize || profile.teamSize || '',
+      scope: seed?.scope || profile.sector || '',
+      targets: seed?.targets || profile.targetCustomer || '',
+      budgetIntervals: seed?.budgetIntervals || profile.plannedFunding,
       currency: profile.currency,
       selectedPhases: [],
       // Aucun livrable IDEM n'existe encore : ils seront générés par leurs
@@ -364,8 +366,8 @@ export class SimulationService {
         email: '',
         phone: '',
         address: '',
-        city: profile.location || '',
-        country: profile.country || '',
+        city: seed?.city || profile.location || '',
+        country: seed?.country || profile.country || '',
         zipCode: '',
         teamMembers: [],
       },
@@ -376,7 +378,8 @@ export class SimulationService {
     }
 
     logger.info(
-      `Created project ${project.id} from imported business plan for user ${userId}`
+      `Created project ${project.id} (${project.type}) from imported business plan for user ${userId}: ` +
+        `${seed?.constraints.length ?? 0} constraints, budget "${project.budgetIntervals ?? '—'}"`
     );
 
     return this.createSimulation(userId, project.id, {

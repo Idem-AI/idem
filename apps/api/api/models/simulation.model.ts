@@ -118,12 +118,58 @@ export interface BusinessBaseline {
   currency: string;
 }
 
+/** Types de projet reconnus par IDEM, repris tels quels par la création. */
+export const IDEM_PROJECT_TYPES = [
+  'web',
+  'mobile',
+  'iot',
+  'desktop',
+  'enterprise',
+  'ecommerce',
+  'api',
+  'ai',
+  'blockchain',
+  'landing',
+  'other',
+] as const;
+
+export type IdemProjectType = (typeof IDEM_PROJECT_TYPES)[number];
+
+/**
+ * De quoi créer le projet IDEM que décrit un business plan importé.
+ *
+ * Le profil sert à simuler ; cette graine sert à peupler la fiche projet, qui
+ * n'a pas les mêmes champs. Elle est produite par la même lecture du document,
+ * donc sans appel supplémentaire au modèle.
+ */
+export interface ImportedProjectSeed {
+  type: IdemProjectType;
+  /** Description courte, telle qu'elle apparaîtra sur la fiche projet. */
+  description: string;
+  /** Périmètre : ce que le projet couvre, et ce qu'il ne couvre pas. */
+  scope?: string;
+  /** À qui le projet s'adresse. */
+  targets?: string;
+  /** Contraintes explicites du document : réglementaires, techniques, de délai. */
+  constraints: string[];
+  /** Budget annoncé, sous la forme trouvée dans le document. */
+  budgetIntervals?: string;
+  teamSize?: string;
+  city?: string;
+  country?: string;
+}
+
 export interface ProjectUnderstanding {
   profile: ProjectProfile;
   baseline: BusinessBaseline;
   items: KnowledgeItem[];
   /** Résumé en langage naturel de la lecture faite du projet. */
   narrative?: string;
+  /**
+   * Renseignée pour un business plan importé : le projet IDEM n'existe pas
+   * encore, il sera créé à partir de là.
+   */
+  projectSeed?: ImportedProjectSeed;
 }
 
 // =====================================================================
