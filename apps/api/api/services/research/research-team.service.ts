@@ -58,12 +58,12 @@ export interface ResearchTeamContext {
   userId: string;
   /** Devise, pour ancrer les données financières (optionnel). */
   currency?: string;
-  /** Nom d'un cache de contexte Gemini partagé (renseigné en interne par le run). */
+  /** Nom d'un cache de contexte partagé (renseigné en interne par le run). */
   sharedCache?: string;
 }
 
 const RESEARCH_CONFIG: PromptConfig = {
-  provider: LLMProvider.GEMINI,
+  provider: LLMProvider.GLM,
   modelName: AI_CONFIG.default.modelName,
   promptType: 'research',
   // Une seule synthèse factuelle et concise par section: on borne la sortie
