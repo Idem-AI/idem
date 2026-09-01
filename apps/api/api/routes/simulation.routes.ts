@@ -16,6 +16,7 @@ import {
   runLabController,
 } from '../controllers/simulation.controller';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
+import { requireSimulationConsent } from '../middleware/simulationConsent.middleware';
 import { isAcceptedDocument } from '../services/Simulation/document-intake';
 import { checkQuota } from '../middleware/quota.middleware';
 import { authenticate } from '../services/auth.service';
@@ -113,7 +114,9 @@ simulationRoutes.post(
 simulationRoutes.post(
   `/${resource}/import/run`,
   authenticate,
-  checkPolicyAcceptance,
+  // Le projet n'existe pas encore : l'accord se donne ici, pas sur une fiche
+  // qu'on n'a pas. La vérification par projet renvoyait un 400 sur ce parcours.
+  requireSimulationConsent,
   checkQuota,
   createSimulationFromDocumentController
 );
@@ -214,7 +217,9 @@ simulationRoutes.post(
 simulationRoutes.post(
   `/${resource}/:projectId`,
   authenticate,
-  checkPolicyAcceptance,
+  // Même depuis un projet IDEM déjà finalisé : une simulation confie le projet
+  // à plusieurs modèles, l'accord se redonne à chaque lancement.
+  requireSimulationConsent,
   checkQuota,
   createSimulationController
 );

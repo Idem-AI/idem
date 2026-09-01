@@ -19,6 +19,7 @@ const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.md', '.markdown'];
 import {
   KnowledgeState,
   ProjectUnderstanding,
+  SimulationConsent,
   SimulationOrigin,
   SimulationPlan,
   SimulationPricing,
@@ -102,6 +103,37 @@ export class NewSimulation {
   protected readonly pricing = signal<SimulationPricing | null>(null);
   protected readonly selectedTier = signal<SimulationTier>('pack');
   protected readonly launching = signal(false);
+
+  /**
+   * L'accord, redemandé à chaque lancement.
+   *
+   * Une simulation lit le projet — ou le business plan téléversé —, en crée le
+   * projet IDEM correspondant et confie un extrait à plusieurs moteurs d'IA.
+   * Ce n'est pas couvert par l'acceptation faite une fois à la création du
+   * compte : les cases repartent donc vides à chaque exécution, et l'API refuse
+   * le lancement sans elles.
+   */
+  protected readonly privacyAccepted = signal(false);
+  protected readonly simulationTermsAccepted = signal(false);
+  protected readonly betaAccepted = signal(false);
+
+  /** Les documents à cocher, dans l'ordre où ils se lisent. */
+  protected readonly consentDocuments: readonly {
+    key: 'privacy' | 'simulationTerms' | 'beta';
+    path: string;
+  }[] = [
+    { key: 'privacy', path: '/privacy-policy' },
+    { key: 'simulationTerms', path: '/simulation-terms' },
+    { key: 'beta', path: '/beta-policy' },
+  ];
+
+  /** Vrai quand tout ce qui est exigé est coché. La bêta ajoute sa politique. */
+  protected readonly consentComplete = computed(
+    () =>
+      this.privacyAccepted() &&
+      this.simulationTermsAccepted() &&
+      (!this.isBeta || this.betaAccepted()),
+  );
 
   protected readonly selectedProject = computed(() =>
     this.projects().find((project) => project.id === this.selectedProjectId()) ?? null,
@@ -341,9 +373,15 @@ export class NewSimulation {
     const understanding = this.understanding();
     const fromProject = this.origin() === 'idem-project';
     const projectId = this.selectedProjectId();
-    if ((fromProject && !projectId) || !understanding) {
+    if ((fromProject && !projectId) || !understanding || !this.consentComplete()) {
       return;
     }
+
+    const consent: SimulationConsent = {
+      privacyPolicyAccepted: this.privacyAccepted(),
+      simulationTermsAccepted: this.simulationTermsAccepted(),
+      betaPolicyAccepted: this.betaAccepted(),
+    };
 
     this.launching.set(true);
     try {
@@ -360,6 +398,7 @@ export class NewSimulation {
             // moteur relisait le projet au lancement : un second appel, dont
             // le résultat pouvait ne plus correspondre à l'écran approuvé.
             understanding,
+            consent,
           })
         : // Le plan importé n'a pas de projet : l'API crée celui que le
           // document décrit, puis simule dessus.
@@ -369,6 +408,7 @@ export class NewSimulation {
             documentName: this.selectedFile()?.name,
             answers: this.answers(),
             understanding,
+            consent,
           });
 
       await this.router.navigate(['/simulations', simulation.id]);
@@ -384,6 +424,19 @@ export class NewSimulation {
 
   protected back(): void {
     this.step.update((current) => (current === 'plan' ? 'analysis' : 'source'));
+  }
+
+  protected isConsentAccepted(key: 'privacy' | 'simulationTerms' | 'beta'): boolean {
+    return this.consentSignal(key)();
+  }
+
+  protected toggleConsent(key: 'privacy' | 'simulationTerms' | 'beta'): void {
+    this.consentSignal(key).update((accepted) => !accepted);
+  }
+
+  /** L'adresse du document, servi par le site public. */
+  protected legalUrl(path: string): string {
+    return `${environment.services.landing.url}${path}`;
   }
 
   protected planPrice(plan: SimulationPlan): string {
@@ -404,6 +457,14 @@ export class NewSimulation {
     }
     this.signInReason.set(reason);
     return true;
+  }
+
+  private consentSignal(key: 'privacy' | 'simulationTerms' | 'beta') {
+    return key === 'privacy'
+      ? this.privacyAccepted
+      : key === 'simulationTerms'
+        ? this.simulationTermsAccepted
+        : this.betaAccepted;
   }
 
   /** Les projets IDEM appartiennent au compte : rien à charger sans session. */

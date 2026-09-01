@@ -703,6 +703,30 @@ export interface SimulationLabs {
   experiments?: ExperimentPlan;
 }
 
+/**
+ * L'accord donné pour cette exécution-là.
+ *
+ * Une simulation lit un business plan, en tire un projet et le confie à
+ * plusieurs modèles : ce n'est pas une opération que l'on couvre une fois pour
+ * toutes au moment de l'inscription. L'accord est donc redemandé à chaque
+ * lancement, et conservé avec l'exécution qu'il autorise — horodaté, avec
+ * l'adresse et le navigateur d'où il vient, ce qui en fait une trace opposable
+ * plutôt qu'une case à cocher oubliée.
+ *
+ * `simulationTermsAccepted` porte sur les conditions d'utilisation propres à
+ * la simulation : ce qu'un indice de viabilité veut dire, ce qu'il ne dit pas,
+ * et ce qu'il advient du document importé.
+ */
+export interface SimulationConsent {
+  privacyPolicyAccepted: boolean;
+  simulationTermsAccepted: boolean;
+  /** Demandé tant que le produit est en bêta. */
+  betaPolicyAccepted: boolean;
+  acceptedAt: Date;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
 export interface SimulationModel {
   id: string;
   projectId: string;
@@ -729,6 +753,8 @@ export interface SimulationModel {
   revision: number;
   /** Message d'erreur quand `status` vaut `failed`. */
   failureReason?: string;
+  /** L'accord recueilli juste avant ce lancement. */
+  consent?: SimulationConsent;
   createdAt: Date;
   updatedAt: Date;
   completedAt?: Date;
@@ -821,6 +847,7 @@ export function createSimulation(params: {
   documentName?: string;
   previousRunId?: string;
   revision?: number;
+  consent?: SimulationConsent;
 }): SimulationModel {
   const now = new Date();
   return {
@@ -840,6 +867,7 @@ export function createSimulation(params: {
     hasReport: params.tier !== 'run',
     previousRunId: params.previousRunId,
     revision: params.revision ?? 1,
+    consent: params.consent,
     createdAt: now,
     updatedAt: now,
   };
