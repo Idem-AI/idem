@@ -64,6 +64,26 @@ export interface Evidence {
 /** Ce que le moteur sait, doit chercher, ignore, ou n'a pas. */
 export type KnowledgeState = 'known' | 'researchable' | 'uncertain' | 'missing';
 
+/**
+ * D'où vient une information — la question que « ce que le moteur sait » pose
+ * réellement.
+ *
+ * `document` et `project` sont les deux seules provenances qui autorisent
+ * l'état `known` : elles désignent un élément écrit noir sur blanc dans la
+ * source. `inferred` marque ce que le modèle a déduit ou estimé, et ne peut
+ * donc jamais être présenté comme su ; `external` ce qu'il faut aller
+ * chercher ; `answer` ce que le fondateur a comblé lui-même.
+ */
+export type KnowledgeSource = 'document' | 'project' | 'answer' | 'inferred' | 'external';
+
+export const KNOWLEDGE_SOURCES: readonly KnowledgeSource[] = [
+  'document',
+  'project',
+  'answer',
+  'inferred',
+  'external',
+];
+
 export interface KnowledgeItem {
   id: string;
   label: string;
@@ -71,10 +91,29 @@ export interface KnowledgeItem {
   value?: string;
   /** Pourquoi c'est incertain, ou ce qui permettrait de trancher. */
   detail?: string;
+  /**
+   * Provenance de la valeur. Sans elle, une estimation du modèle et une ligne
+   * du business plan se ressemblent à l'écran.
+   */
+  source?: KnowledgeSource;
   /** Vrai si l'utilisateur peut combler le trou lui-même avant de lancer. */
   answerable?: boolean;
   /** Réponse fournie par l'utilisateur à l'étape de préparation. */
   answer?: string;
+}
+
+/**
+ * Une information explicitement présente dans le business plan que la fiche
+ * IDEM n'a aucun champ pour recevoir.
+ *
+ * Sans ce réceptacle, tout ce qui sort du moule — un contrat déjà signé, une
+ * saisonnalité, une subvention obtenue, un partenaire de distribution — était
+ * lu puis jeté. Ces faits ne peuplent aucun formulaire mais changent la
+ * simulation : ils repartent donc dans le contexte de chaque étape.
+ */
+export interface DocumentFact {
+  label: string;
+  value: string;
 }
 
 export interface ProjectProfile {
@@ -146,6 +185,13 @@ export interface ImportedProjectSeed {
   type: IdemProjectType;
   /** Description courte, telle qu'elle apparaîtra sur la fiche projet. */
   description: string;
+  /**
+   * Description longue : l'activité, l'offre, le marché et le modèle
+   * économique en quelques paragraphes. C'est le champ que les autres modules
+   * IDEM lisent en priorité ; le laisser vide revenait à créer une fiche
+   * projet exsangue à partir d'un document de trente pages.
+   */
+  longDescription?: string;
   /** Périmètre : ce que le projet couvre, et ce qu'il ne couvre pas. */
   scope?: string;
   /** À qui le projet s'adresse. */
@@ -157,6 +203,17 @@ export interface ImportedProjectSeed {
   teamSize?: string;
   city?: string;
   country?: string;
+  /** Devise du document, quand elle y figure. */
+  currency?: string;
+  /** Coordonnées écrites dans le document, jamais devinées. */
+  contact?: {
+    email?: string;
+    phone?: string;
+    address?: string;
+    zipCode?: string;
+  };
+  /** Membres de l'équipe nommés dans le document, avec leur rôle. */
+  teamMembers?: { name: string; role: string; bio?: string }[];
 }
 
 export interface ProjectUnderstanding {
@@ -165,6 +222,11 @@ export interface ProjectUnderstanding {
   items: KnowledgeItem[];
   /** Résumé en langage naturel de la lecture faite du projet. */
   narrative?: string;
+  /**
+   * Ce que la source dit et qu'aucun champ IDEM n'accueille. Repart dans le
+   * contexte de toutes les étapes suivantes.
+   */
+  extras?: DocumentFact[];
   /**
    * Renseignée pour un business plan importé : le projet IDEM n'existe pas
    * encore, il sera créé à partir de là.

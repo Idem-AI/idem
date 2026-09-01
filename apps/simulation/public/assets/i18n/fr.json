@@ -181,13 +181,16 @@
     "known": "Ce que nous savons",
     "researchable": "Ce qui doit être recherché",
     "uncertain": "Ce qui est incertain",
-    "missing": "Ce qui manque"
+    "missing": "Ce qui manque",
+    "extras": "Autres informations relevées",
+    "extrasHint": "Ce que votre document précise et qu'aucune fiche standard ne prévoit. Rien n'est écarté : ces éléments partent au moteur avec le reste."
   },
   "knowledgeHint": {
-    "known": "Informations fournies directement dans le projet.",
-    "researchable": "Données externes que le moteur va collecter pour rendre la simulation plus réaliste.",
-    "uncertain": "Aucune donnée suffisamment fiable n'existe. Le moteur travaille par hypothèse et le signale.",
-    "missing": "Paramètres qui peuvent fortement influencer les résultats et restent inconnus."
+    "knownDocument": "Lu tel quel dans votre business plan. Rien n'est ajouté ici ; ce que le moteur a estimé se trouve plus bas.",
+    "knownProject": "Renseigné tel quel dans votre projet IDEM. Ce que le moteur a estimé se trouve plus bas.",
+    "researchable": "Chiffres publiés que le moteur ira chercher pour ancrer la simulation dans votre marché.",
+    "uncertain": "Estimé par le moteur, faute de valeur dans la source. Chaque ligne dit sur quoi repose l'estimation et ce qui permettrait de trancher.",
+    "missing": "Absent de la source, et susceptible de déplacer les résultats. Vous pouvez le renseigner vous-même."
   },
   "profile": {
     "sector": "Secteur",

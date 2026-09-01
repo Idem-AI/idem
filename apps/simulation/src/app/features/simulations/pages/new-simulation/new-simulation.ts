@@ -17,17 +17,16 @@ import { canStashFile, saveDraft, takeDraft } from './new-run-draft';
 /** Les seuls formats acceptés par l'API : PDF, Word et Markdown. */
 const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.md', '.markdown'];
 import {
-  KnowledgeItem,
+  KnowledgeState,
   ProjectUnderstanding,
   SimulationOrigin,
   SimulationPlan,
   SimulationPricing,
   SimulationTier,
+  groupKnowledge,
 } from '../../models';
 
 type Step = 'source' | 'analysis' | 'plan';
-
-const KNOWLEDGE_ORDER: KnowledgeItem['state'][] = ['known', 'researchable', 'uncertain', 'missing'];
 
 /**
  * The three things that must happen before a run is billed: pick the project,
@@ -115,14 +114,23 @@ export class NewSimulation {
     return this.origin() === 'idem-project' ? !!this.selectedProjectId() : !!this.selectedFile();
   });
 
-  /** Grouped so the four states read as four different kinds of claim. */
-  protected readonly knowledgeGroups = computed(() => {
-    const items = this.understanding()?.items ?? [];
-    return KNOWLEDGE_ORDER.map((state) => ({
-      state,
-      items: items.filter((item) => item.state === state),
-    })).filter((group) => group.items.length > 0);
-  });
+  /**
+   * Grouped so the four states read as four different kinds of claim.
+   *
+   * « Ce que nous savons » ne retient que ce qui est écrit dans la source : une
+   * estimation du moteur y voisinait avec une ligne du business plan, sans que
+   * rien ne les distingue à l'écran.
+   */
+  protected readonly knowledgeGroups = computed(() =>
+    groupKnowledge(this.understanding()?.items ?? []),
+  );
+
+  /**
+   * Ce que la source dit et qu'aucun champ du profil n'accueille — un contrat
+   * signé, une saisonnalité, une subvention. Affiché tel quel, et repris dans
+   * le contexte de la simulation.
+   */
+  protected readonly extras = computed(() => this.understanding()?.extras ?? []);
 
   /** Declared here rather than inline in the template so both stay typed. */
   protected readonly steps: readonly { id: Step; index: number }[] = [
@@ -282,6 +290,20 @@ export class NewSimulation {
     }
   }
 
+  /**
+   * L'intitulé de la catégorie « ce que nous savons » dépend de la source :
+   * pour un plan importé, la phrase doit nommer le document, sans quoi elle
+   * décrit une provenance que l'utilisateur n'a pas choisie.
+   */
+  protected knowledgeHintKey(state: KnowledgeState): string {
+    if (state === 'known') {
+      return this.origin() === 'imported-document'
+        ? 'knowledgeHint.knownDocument'
+        : 'knowledgeHint.knownProject';
+    }
+    return `knowledgeHint.${state}`;
+  }
+
   protected setAnswer(itemId: string, value: string): void {
     this.answers.update((current) => ({ ...current, [itemId]: value }));
   }
@@ -334,6 +356,10 @@ export class NewSimulation {
             projectId: this.selectProjectAndReturn(projectId as string),
             tier: this.selectedTier(),
             answers: this.answers(),
+            // La lecture que l'utilisateur vient de valider. Sans elle, le
+            // moteur relisait le projet au lancement : un second appel, dont
+            // le résultat pouvait ne plus correspondre à l'écran approuvé.
+            understanding,
           })
         : // Le plan importé n'a pas de projet : l'API crée celui que le
           // document décrit, puis simule dessus.

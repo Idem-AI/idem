@@ -128,4 +128,10 @@ export interface CreateSimulationInput {
   /** Réponses données aux trous signalés par l'analyse préalable. */
   answers?: Record<string, string>;
   previousRunId?: string;
+  /**
+   * La lecture validée à l'étape d'analyse. L'envoyer évite au moteur de
+   * relire le projet — un appel de plus — et garantit que la simulation part
+   * bien de ce que l'écran a montré.
+   */
+  understanding?: ProjectUnderstanding;
 }

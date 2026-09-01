@@ -3,9 +3,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 import { EvidenceChip } from '../../components/evidence-chip/evidence-chip';
 import { SimulationStore } from '../../data-access';
-import { KnowledgeState } from '../../models';
-
-const STATES: readonly KnowledgeState[] = ['known', 'researchable', 'uncertain', 'missing'];
+import { KnowledgeState, groupKnowledge } from '../../models';
 
 /**
  * Ce que le moteur a compris du projet, et surtout ce qu'il n'a pas compris.
@@ -64,11 +62,23 @@ export class SimulationUnderstanding {
     ];
   });
 
-  protected readonly groups = computed(() => {
-    const items = this.understanding()?.items ?? [];
-    return STATES.map((state) => ({
-      state,
-      items: items.filter((item) => item.state === state),
-    })).filter((group) => group.items.length > 0);
-  });
+  /**
+   * « Ce que nous savons » ne retient que ce que la source établit : une
+   * estimation du moteur affichée au même endroit qu'une ligne du business
+   * plan ferait passer l'une pour l'autre.
+   */
+  protected readonly groups = computed(() => groupKnowledge(this.understanding()?.items ?? []));
+
+  /** Ce que la source dit et qu'aucun champ du profil n'accueille. */
+  protected readonly extras = computed(() => this.understanding()?.extras ?? []);
+
+  /** La phrase de catégorie nomme la source réellement lue. */
+  protected knowledgeHintKey(state: KnowledgeState): string {
+    if (state === 'known') {
+      return this.simulation()?.origin === 'imported-document'
+        ? 'knowledgeHint.knownDocument'
+        : 'knowledgeHint.knownProject';
+    }
+    return `knowledgeHint.${state}`;
+  }
 }
