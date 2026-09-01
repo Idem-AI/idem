@@ -63,7 +63,7 @@ export class AdvisorService {
   private buildProjectContext(project: ProjectModel): string {
     return [
       `PROJET: ${project.name || '—'}`,
-      `DESCRIPTION: ${project.description || '—'}`,
+      `DESCRIPTION: ${project.longDescription || project.description || '—'}`,
       `TYPE: ${JSON.stringify(project.type || {})}`,
       `SCOPE: ${JSON.stringify(project.scope || {})}`,
       `CIBLE: ${JSON.stringify(project.targets || {})}`,

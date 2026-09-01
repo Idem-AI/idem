@@ -1244,7 +1244,7 @@ Please provide only the terraform.tfvars file content as output.`;
     let projectContext = `
       Project Name: ${project.name}
       Project ID: ${project.id}
-      Description: ${project.description}
+      Description: ${project.longDescription || project.description}
       Type: ${project.type}
       Constraints: ${project.constraints}
       Team Size: ${project.teamSize}

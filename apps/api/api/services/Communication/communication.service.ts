@@ -254,7 +254,7 @@ export class CommunicationService extends GenericService {
     const context: CommunicationContext = {
       brandName: parsed.brandName || project.name,
       businessType: parsed.businessType || project.type || 'business',
-      valueProposition: parsed.valueProposition || project.description || '',
+      valueProposition: parsed.valueProposition || project.longDescription || project.description || '',
       targetAudience: parsed.targetAudience || project.targets || '',
       objectives: Array.isArray(parsed.objectives) ? parsed.objectives! : [],
       tone: parsed.tone || 'clear, confident, helpful',
@@ -1294,7 +1294,7 @@ export class CommunicationService extends GenericService {
     // Intentionally SMALL — we do not send the full business plan.
     const parts = [
       `Project Name: ${project.name}`,
-      `Description: ${project.description}`,
+      `Description: ${project.longDescription || project.description}`,
       `Type: ${project.type}`,
       `Scope: ${project.scope}`,
       `Targets: ${project.targets}`,
@@ -1335,7 +1335,7 @@ export class CommunicationService extends GenericService {
       .update(
         JSON.stringify({
           name: project.name,
-          description: project.description,
+          description: project.longDescription || project.description,
           type: project.type,
           scope: project.scope,
           targets: project.targets,
