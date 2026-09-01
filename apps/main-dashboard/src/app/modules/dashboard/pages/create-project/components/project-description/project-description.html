@@ -27,7 +27,7 @@
     <div class="relative">
       <textarea
         id="projectDescription"
-        [(ngModel)]="project()!.description"
+        [(ngModel)]="project()!.longDescription"
         rows="3"
         class="w-full glass p-3 sm:p-4 text-[var(--color-light-text)] placeholder-text-tertiary text-sm sm:text-base resize-none outline-none transition-all duration-200 focus:border-primary border-2 min-h-[120px] sm:min-h-[140px]"
         [class.rounded-lg]="!hasContent()"

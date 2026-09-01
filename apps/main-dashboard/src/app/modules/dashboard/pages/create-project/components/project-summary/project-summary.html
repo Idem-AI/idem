@@ -43,12 +43,20 @@
               <h3 class="text-lg font-bold text-text-primary mt-0.5">{{ project().name }}</h3>
             </div>
 
-            @if (project().description) {
+            @if (project().description || project().longDescription) {
               <div class="space-y-1">
                 <span class="text-xs text-text-tertiary">Description</span>
-                <p class="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
-                  {{ project().description }}
-                </p>
+                @if (project().description && project().longDescription) {
+                  <!-- Both fields: show short description as summary -->
+                  <p class="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
+                    {{ project().description }}
+                  </p>
+                } @else {
+                  <!-- Legacy: only one description field -->
+                  <p class="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
+                    {{ project().description }}
+                  </p>
+                }
               </div>
             }
           </div>

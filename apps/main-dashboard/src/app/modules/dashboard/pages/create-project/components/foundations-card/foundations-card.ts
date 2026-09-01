@@ -29,17 +29,21 @@ export class FoundationsCardComponent {
   readonly continue = output<void>();
 
   protected readonly projectTypes: SelectElement[] = CreateProjectDatas.groupedProjectTypes;
-  protected readonly maxCharacters = environment.isBeta ? 500 : 2000;
+  protected readonly maxCharacters = environment.isBeta ? 10000 : 15000;
 
-  protected readonly description = computed(() => this.project().description ?? '');
+  // Use longDescription if set (new flow), fallback to description for backward compat.
+  protected readonly description = computed(
+    () => this.project().longDescription ?? this.project().description ?? '',
+  );
   protected readonly name = computed(() => this.project().name ?? '');
   protected readonly type = computed(() => this.project().type);
 
   protected readonly canContinue = computed(() => {
     const p = this.project();
+    const desc = (p.longDescription ?? p.description)?.trim();
     return (
-      !!p.description?.trim() &&
-      p.description.trim().length >= 10 &&
+      !!desc &&
+      desc.length >= 10 &&
       !!p.name?.trim() &&
       !!p.type &&
       !this.busy()
@@ -48,7 +52,7 @@ export class FoundationsCardComponent {
 
   protected onDescriptionChange(value: string): void {
     const trimmed = value.length > this.maxCharacters ? value.slice(0, this.maxCharacters) : value;
-    this.projectUpdate.emit({ description: trimmed });
+    this.projectUpdate.emit({ longDescription: trimmed });
   }
 
   protected onNameChange(value: string): void {

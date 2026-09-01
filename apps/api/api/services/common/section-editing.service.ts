@@ -114,10 +114,10 @@ export class SectionEditingService {
         .filter((s) => s.exists)
         .map((s) => `- ${s.section}: ${s.description}${s.lastChangeSummary ? ` (last change: ${s.lastChangeSummary})` : ''}`)
         .join('\n');
-      projectContext = `Project "${map.name}" (type: ${map.type}).\nDescription: ${project.description || 'N/A'}\nAvailable sections:\n${existing}`;
+      projectContext = `Project "${map.name}" (type: ${map.type}).\nDescription: ${project.longDescription || project.description || 'N/A'}\nAvailable sections:\n${existing}`;
     } catch (err: any) {
       logger.warn(`Context Engine unavailable for aiEditSection(${key}): ${err.message}`);
-      projectContext = `Project "${project.name}". Description: ${project.description || 'N/A'}`;
+      projectContext = `Project "${project.name}". Description: ${project.longDescription || project.description || 'N/A'}`;
     }
 
     const branding = analysis.branding as { colors?: unknown; typography?: unknown } | undefined;

@@ -131,7 +131,9 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
   /** En mode chat : Fondations tant que description/nom/type ou projet manquent. */
   protected readonly chatReadyForConversation = computed(() => {
     const p = this.project();
-    return !!p.id && !!p.description?.trim() && !!p.name?.trim() && !!p.type;
+    // Accept longDescription or legacy description for backward compatibility.
+    const hasDesc = !!(p.longDescription ?? p.description)?.trim();
+    return !!p.id && hasDesc && !!p.name?.trim() && !!p.type;
   });
 
   /** Données passées au composant conversationnel. */
@@ -141,7 +143,7 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
     const typeLabel = typeof t === 'string' ? t : (t?.name ?? '');
     const typeCode = typeof t === 'string' ? t : (t?.code ?? '');
     return {
-      description: p.description ?? '',
+      description: p.longDescription ?? p.description ?? '',
       name: p.name ?? '',
       type: typeCode,
       typeLabel,
@@ -271,10 +273,13 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
     this.appgenHandoff.set(handoff);
 
     // Pre-fill project from handoff data
+    // longDescription = the detailed description (new field); description = short description (step 1)
+    const prefilledDesc = description || handoff?.description || null;
     this.project.update((current) => ({
       ...current,
       name: name || handoff?.appName || current.name,
-      description: description || handoff?.description || current.description,
+      // If we have a description from AppGen, set it as longDescription (detailed prompt)
+      ...(prefilledDesc ? { longDescription: prefilledDesc } : {}),
     }));
   }
 
@@ -322,7 +327,9 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
 
     switch (step.id) {
       case 'description':
-        return !!project.description?.trim();
+        // longDescription is the detailed description entered in step 0;
+        // fallback to description for backward compatibility (older drafts).
+        return !!(project.longDescription ?? project.description)?.trim();
       case 'details':
         return (
           !!project.name?.trim() &&
@@ -467,14 +474,15 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
   }
 
   private async executeImprovePrompt(): Promise<void> {
-    const currentDesc = this.project().description?.trim();
+    // Use longDescription if available, fallback to description for backward compat.
+    const currentDesc = (this.project().longDescription ?? this.project().description)?.trim();
     if (!currentDesc || this.isImprovingPrompt()) return;
 
     try {
       this.isImprovingPrompt.set(true);
       const res = await this.projectService.improvePrompt(currentDesc).toPromise();
       if (res?.improvedPrompt) {
-        this.project.update((p) => ({ ...p, description: res.improvedPrompt }));
+        this.project.update((p) => ({ ...p, longDescription: res.improvedPrompt }));
         this.saveDraftProject();
       }
     } catch (error) {
@@ -491,7 +499,7 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
       this.isGeneratingLucky.set(true);
       const res = await this.projectService.generateFeelingLucky().toPromise();
       if (res?.idea) {
-        this.project.update((p) => ({ ...p, description: res.idea }));
+        this.project.update((p) => ({ ...p, longDescription: res.idea }));
         this.saveDraftProject();
       }
     } catch (error) {

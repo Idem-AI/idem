@@ -12,6 +12,9 @@
  *         description:
  *           type: string
  *           nullable: true
+ *         longDescription:
+ *           type: string
+ *           nullable: true
  *         type:
  *           type: string
  *           enum: [web, mobile, iot, desktop]
@@ -45,6 +48,7 @@
 export class UpdateProjectDto {
   name?: string;
   description?: string;
+  longDescription?: string;
   type?: 'web' | 'mobile' | 'iot' | 'desktop';
   constraints?: string[];
   teamSize?: string;

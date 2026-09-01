@@ -92,7 +92,7 @@ export class BusinessPlanService extends GenericService {
       .update(
         JSON.stringify({
           name: project.name,
-          description: project.description,
+          description: project.longDescription || project.description,
           branding: project.analysisResultModel?.branding,
           projectDescription,
         })
@@ -861,7 +861,7 @@ export class BusinessPlanService extends GenericService {
     const pdfPath = await this.pdfService.generatePdf({
       title: 'Business Plan',
       projectName: project.name || 'Projet Sans Nom',
-      projectDescription: project.description || '',
+      projectDescription: project.longDescription || project.description || '',
       sections: businessPlan.sections,
       // IMPORTANT: doit correspondre EXACTEMENT aux noms de sections générés
       // (avec les "&"), sinon les sections non reconnues sont rejetées en fin de

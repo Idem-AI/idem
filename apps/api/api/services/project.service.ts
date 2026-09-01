@@ -361,7 +361,7 @@ class ProjectService {
     const currency = project.currency || 'Non spécifiée';
     const targets = project.targets || 'Non spécifié';
     const type = project.type || 'Non spécifié';
-    const description = project.description || 'Non spécifiée';
+    const description = project.longDescription || project.description || 'Non spécifiée';
 
     const projectDescription = `
         Projet à analyser :
@@ -482,7 +482,7 @@ class ProjectService {
           let content = await fsExtra.readFile(fullPath, 'utf-8');
           // Basic placeholder replacements
           content = content.replace(/\{\{project\.name\}\}/g, project.name || '');
-          content = content.replace(/\{\{project\.description\}\}/g, project.description || '');
+          content = content.replace(/\{\{project\.description\}\}/g, (project.longDescription || project.description || ''));
           content = content.replace(/\{\{project\.type\}\}/g, project.type || '');
           // Add other simple fields from ProjectModel as needed
 

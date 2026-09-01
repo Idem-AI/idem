@@ -87,7 +87,7 @@ export class PitchDeckService extends GenericService {
       .update(
         JSON.stringify({
           name: project.name,
-          description: project.description,
+          description: project.longDescription || project.description,
           branding: project.analysisResultModel?.branding,
           projectDescription,
         })
@@ -484,7 +484,7 @@ export class PitchDeckService extends GenericService {
       const pdfPath = await this.pdfService.generatePdf({
         title: 'Pitch Deck',
         projectName: project.name || 'Project',
-        projectDescription: project.description || '',
+        projectDescription: project.longDescription || project.description || '',
         sections: pitchDeck.sections,
         sectionDisplayOrder: PITCH_DECK_SLIDE_ORDER,
         pageFormat: PAGE_FORMATS.SLIDE_16_9,
