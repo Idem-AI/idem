@@ -15,16 +15,48 @@
             [rangeMax]="scenarioRange()?.max ?? null"
             [label]="'result.gaugeLabel' | translate: { value: result.viabilityIndex }"
           />
-          <p class="mt-4 border-t border-line pt-3 text-meta leading-relaxed text-ink-subtle">
+          <!-- Le verdict est la lecture de l'indice et de la résistance
+               affichés au-dessus : il se lit ici, à leur suite. Dans un
+               encadré séparé, il énonçait un jugement détaché du chiffre qui
+               le fonde, et répétait la même information deux fois à l'écran. -->
+          <p class="mt-4 border-t border-line pt-3 text-h3 font-semibold" [class]="verdictColor()">
+            {{ 'verdict.' + result.verdict | translate }}
+          </p>
+          <p class="mt-1 text-meta leading-relaxed text-ink-muted">
+            {{ 'verdictMeaning.' + result.verdict | translate }}
+          </p>
+
+          <p class="mt-3 text-meta leading-relaxed text-ink-subtle">
             {{ 'result.indexMeaning' | translate }}
           </p>
+
+          @if (run.hasReport) {
+            <!-- Le PDF est ce que l'on transmet à une banque ou à un associé :
+                 sa place est sous le score qu'il documente, pas en bas de page
+                 parmi les destinations à visiter. -->
+            <button
+              type="button"
+              class="inner-button mt-4 w-full"
+              [disabled]="downloading()"
+              (click)="downloadReport()"
+            >
+              @if (downloading()) {
+                <span
+                  class="size-4 animate-spin rounded-full border-2 border-transparent border-t-current"
+                  aria-hidden="true"
+                ></span>
+                {{ 'report.downloading' | translate }}
+              } @else {
+                <i class="pi pi-download" aria-hidden="true"></i>
+                {{ 'report.downloadReport' | translate }}
+              }
+            </button>
+          }
         </div>
 
         <div class="flex flex-col gap-5">
           <div>
-            <h2 class="text-h2 font-semibold text-ink">
-              {{ 'verdict.' + result.verdict | translate }}
-            </h2>
+            <h2 class="text-h2 font-semibold text-ink">{{ 'overview.why' | translate }}</h2>
             <p class="mt-2 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
               {{ result.verdictRationale }}
             </p>
@@ -132,27 +164,6 @@
                 | translate
             }}
           </button>
-          @if (run.hasReport) {
-            <!-- Le rapport acquis, c'est le PDF que l'on transmet : le proposer
-                 ici évite l'aller-retour par l'écran du rapport. -->
-            <button
-              type="button"
-              class="outer-button"
-              [disabled]="downloading()"
-              (click)="downloadReport()"
-            >
-              @if (downloading()) {
-                <span
-                  class="size-4 animate-spin rounded-full border-2 border-line border-t-brand"
-                  aria-hidden="true"
-                ></span>
-                {{ 'report.downloading' | translate }}
-              } @else {
-                <i class="pi pi-download" aria-hidden="true"></i>
-                {{ 'report.download' | translate }}
-              }
-            </button>
-          }
           <a [routerLink]="['/simulations', run.id, 'labs', 'red-team']" class="outer-button">
             <i class="pi pi-bolt" aria-hidden="true"></i>
             {{ 'nav.lab.redTeam' | translate }}

@@ -11,12 +11,10 @@
 
       <div class="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div class="min-w-0">
-          <div class="flex flex-wrap items-center gap-2.5">
-            <h1 class="text-h1 font-semibold text-ink">{{ run.name }}</h1>
-            @if (result(); as res) {
-              <sim-verdict-badge [verdict]="res.verdict" />
-            }
-          </div>
+          <!-- Pas de verdict ici : l'écran de vue d'ensemble le porte, avec
+               l'indice dont il découle. Répété à côté du titre, il donnait un
+               jugement sans le chiffre qui le fonde. -->
+          <h1 class="text-h1 font-semibold text-ink">{{ run.name }}</h1>
           <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-meta text-ink-subtle">
             <span>{{ 'tier.' + run.tier | translate }}</span>
             <span aria-hidden="true">·</span>

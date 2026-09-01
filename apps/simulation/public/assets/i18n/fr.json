@@ -238,7 +238,9 @@
     "criticalFactors": "Facteurs critiques",
     "scenarios": "Scénarios",
     "scenariosBody": "{{total}} scénarios ont été exécutés. Le modèle ne tient pas dans {{broken}} d'entre eux.",
-    "risks": "Risques identifiés"
+    "risks": "Risques identifiés",
+    "shockResistance": "Résistance aux chocs",
+    "dataConfidence": "Fiabilité des données"
   },
   "results": {
     "title": "Résultats",
@@ -255,9 +257,9 @@
     }
   },
   "verdict": {
-    "go": "GO",
-    "go-with-conditions": "GO sous conditions",
-    "no-go": "NO-GO"
+    "go": "Le modèle tient",
+    "go-with-conditions": "Le modèle tient, sous conditions",
+    "no-go": "Le modèle ne tient pas"
   },
   "robustness": {
     "low": "Faible",
@@ -386,7 +388,8 @@
     },
     "download": "Télécharger le PDF",
     "downloading": "Composition du PDF…",
-    "downloadFailed": "Le rapport n'a pas pu être généré."
+    "downloadFailed": "Le rapport n'a pas pu être généré.",
+    "downloadReport": "Télécharger le rapport"
   },
   "compare": {
     "title": "Comparaison",
@@ -423,8 +426,9 @@
     "imported-document": "Document importé"
   },
   "overview": {
-    "atAGlance": "En un coup d'œil",
-    "nextSteps": "La suite"
+    "atAGlance": "Les facteurs qui pèsent sur ce projet",
+    "nextSteps": "La suite",
+    "why": "Pourquoi ce verdict"
   },
   "understanding": {
     "profile": "Ce que le moteur a compris",
@@ -624,5 +628,15 @@
     },
     "required": "Ces accords sont nécessaires pour lancer la simulation.",
     "confirm": "Accepter et lancer"
+  },
+  "verdictShort": {
+    "go": "Tient",
+    "go-with-conditions": "Tient sous conditions",
+    "no-go": "Ne tient pas"
+  },
+  "verdictMeaning": {
+    "go": "L'indice est élevé et le modèle résiste à la plupart des scénarios de tension étudiés.",
+    "go-with-conditions": "Le modèle casse dans une partie des scénarios de tension : sa tenue dépend de conditions à réunir.",
+    "no-go": "L'indice est bas et le modèle casse dans la plupart des scénarios de tension étudiés."
   }
 }

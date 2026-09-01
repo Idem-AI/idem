@@ -79,10 +79,15 @@ function pct(value: number): string {
   return Number.isFinite(value) ? `${Math.round(value * 100)} %` : '—';
 }
 
+/**
+ * « GO » et « NO-GO » sont du vocabulaire de comité d'investissement, et le
+ * lecteur de ce rapport est le fondateur. Le moteur ne dit d'ailleurs pas
+ * autre chose que ceci : le modèle résiste aux scénarios, ou il casse.
+ */
 const VERDICT_LABEL: Record<Verdict, string> = {
-  go: 'GO',
-  'go-with-conditions': 'GO SOUS CONDITIONS',
-  'no-go': 'NO-GO',
+  go: 'LE MODÈLE TIENT',
+  'go-with-conditions': 'LE MODÈLE TIENT, SOUS CONDITIONS',
+  'no-go': 'LE MODÈLE NE TIENT PAS',
 };
 
 const VERDICT_COLOR: Record<Verdict, string> = {
