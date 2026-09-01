@@ -27,7 +27,15 @@ import {
   groupKnowledge,
 } from '../../models';
 
-type Step = 'source' | 'analysis' | 'plan';
+/**
+ * Quatre étapes.
+ *
+ * `plan` choisit le niveau, `confirm` récapitule et recueille l'accord. Les
+ * séparer n'est pas cosmétique : l'accord de traitement de données ne se donne
+ * pas au même moment qu'un choix de tarif, et une case cochée en marge d'un
+ * comparatif de prix n'a rien d'un consentement éclairé.
+ */
+type Step = 'source' | 'analysis' | 'plan' | 'confirm';
 
 /**
  * The three things that must happen before a run is billed: pick the project,
@@ -169,6 +177,7 @@ export class NewSimulation {
     { id: 'source', index: 1 },
     { id: 'analysis', index: 2 },
     { id: 'plan', index: 3 },
+    { id: 'confirm', index: 4 },
   ];
 
   /** Profile rows, skipping whatever the analysis could not fill in. */
@@ -193,6 +202,61 @@ export class NewSimulation {
   protected readonly openQuestions = computed(() =>
     (this.understanding()?.items ?? []).filter((item) => item.answerable),
   );
+
+  /** Le plan retenu, pour que l'étape de confirmation parle de celui-là. */
+  protected readonly selectedPlan = computed<SimulationPlan | null>(
+    () => this.pricing()?.plans.find((plan) => plan.tier === this.selectedTier()) ?? null,
+  );
+
+  /**
+   * Ce sur quoi la simulation va tourner, en quelques lignes.
+   *
+   * La confirmation arrive après une lecture longue et un comparatif de
+   * tarifs : rappeler ici le projet évite de lancer une exécution sur un autre
+   * que celui qu'on croyait avoir choisi.
+   */
+  protected readonly recapRows = computed<readonly { labelKey: string; value: string }[]>(() => {
+    const profile = this.understanding()?.profile;
+    if (!profile) {
+      return [];
+    }
+    const location = [profile.location, profile.country].filter(Boolean).join(', ');
+    const rows: { labelKey: string; value: string | undefined }[] = [
+      { labelKey: 'profile.sector', value: profile.sector },
+      { labelKey: 'profile.businessModel', value: profile.businessModel },
+      { labelKey: 'profile.targetCustomer', value: profile.targetCustomer },
+      { labelKey: 'profile.location', value: location || undefined },
+    ];
+    return rows.filter((row): row is { labelKey: string; value: string } => !!row.value);
+  });
+
+  /** D'où part la simulation : un projet IDEM nommé, ou un document importé. */
+  protected readonly recapSource = computed(() =>
+    this.origin() === 'idem-project'
+      ? (this.selectedProject()?.name ?? '')
+      : (this.selectedFile()?.name ?? ''),
+  );
+
+  /**
+   * Sur quoi le moteur s'appuie, en trois nombres.
+   *
+   * L'écran d'analyse détaillait chaque élément ; ici seul le rapport de force
+   * compte — combien est établi, combien reste supposé. C'est ce qui donne sa
+   * portée au résultat qu'on s'apprête à payer.
+   */
+  protected readonly recapKnowledge = computed(() => {
+    const items = this.understanding()?.items ?? [];
+    const answers = this.answers();
+    return {
+      established: items.filter((item) => item.state === 'known').length,
+      researched: items.filter((item) => item.state === 'researchable').length,
+      assumed: items.filter((item) => item.state === 'uncertain' || item.state === 'missing').length,
+      answered: Object.values(answers).filter((answer) => answer.trim().length > 0).length,
+    };
+  });
+
+  /** Le projet IDEM sera créé par le lancement : autant l'annoncer avant. */
+  protected readonly createsProject = computed(() => this.origin() === 'imported-document');
 
   /** Le document ne tiendra pas dans le brouillon : l'utilisateur est prévenu. */
   protected readonly draftAtRisk = computed(() => !canStashFile(this.selectedFile()));
@@ -422,8 +486,30 @@ export class NewSimulation {
     }
   }
 
+  /**
+   * L'état d'une étape dans le fil : franchie, en cours, ou à venir.
+   *
+   * Avec quatre étapes, ne marquer que celle en cours ne suffit plus — rien ne
+   * distingue alors le chemin parcouru de ce qui reste, et la barre cesse
+   * d'être un repère.
+   */
+  protected stepState(id: Step): 'done' | 'current' | 'todo' {
+    const current = this.steps.findIndex((entry) => entry.id === this.step());
+    const target = this.steps.findIndex((entry) => entry.id === id);
+    return target === current ? 'current' : target < current ? 'done' : 'todo';
+  }
+
+  /** L'étape précédente, dans l'ordre déclaré. */
   protected back(): void {
-    this.step.update((current) => (current === 'plan' ? 'analysis' : 'source'));
+    this.step.update((current) => {
+      const index = this.steps.findIndex((entry) => entry.id === current);
+      return index > 0 ? this.steps[index - 1].id : 'source';
+    });
+  }
+
+  /** Dernière étape : ce qui va être lancé, et l'accord pour le lancer. */
+  protected goToConfirm(): void {
+    this.step.set('confirm');
   }
 
   protected isConsentAccepted(key: 'privacy' | 'simulationTerms' | 'beta'): boolean {
@@ -495,7 +581,13 @@ export class NewSimulation {
     return projectId;
   }
 
-  private runName(): string {
+  /**
+   * Le nom que portera l'exécution — et, pour un plan importé, le projet IDEM
+   * créé avec elle. Exposé en signal parce que l'étape de confirmation
+   * l'affiche : l'utilisateur doit lire ce nom avant de lancer, pas le
+   * découvrir après.
+   */
+  protected readonly runName = computed<string>(() => {
     if (this.origin() === 'idem-project') {
       const project = this.selectedProject();
       if (project) {
@@ -509,8 +601,10 @@ export class NewSimulation {
       return extracted;
     }
     const file = this.selectedFile();
-    return file ? file.name.replace(/\.[^.]+$/, '') : (this.translate.instant('newRun.title') as string);
-  }
+    return file
+      ? file.name.replace(/\.[^.]+$/, '')
+      : (this.translate.instant('newRun.title') as string);
+  });
 }
 
 /**

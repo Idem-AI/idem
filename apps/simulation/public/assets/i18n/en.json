@@ -86,11 +86,12 @@
   "newRun": {
     "title": "New simulation",
     "heading": "New simulation",
-    "description": "Three steps: choose the project, review what the engine knows about it, then confirm the simulation level.",
+    "description": "Four steps: pick the project, agree on what the engine knows about it, choose the simulation level, then confirm.",
     "step": {
       "source": "Project",
       "analysis": "Analysis",
-      "plan": "Level"
+      "plan": "Level",
+      "confirm": "Confirm"
     },
     "source": {
       "project": "An IDEM project",
@@ -127,7 +128,8 @@
       "betaFreeLead": "Free during the beta.",
       "betaNotice": "Whichever level you pick, this simulation will not be billed. The prices shown will apply once the beta ends.",
       "free": "Free",
-      "priceAfterBeta": "Price after the beta:"
+      "priceAfterBeta": "Price after the beta:",
+      "continue": "Choose this level"
     },
     "launch": "Start the simulation",
     "launching": "Starting…",
@@ -140,6 +142,22 @@
       "choose": "Choose",
       "selected": "Selected",
       "note": "A simulation is a decision-support tool, never a prediction. Every result comes with how confident the engine is."
+    },
+    "confirm": {
+      "heading": "Check before launching",
+      "body": "A run takes a few minutes and cannot be picked up midway. Here is what it will work on, and what it will hand back.",
+      "project": "What will be simulated",
+      "deliverable": "What you will receive",
+      "sourceProject": "IDEM project:",
+      "sourceDocument": "Business plan:",
+      "established": "established",
+      "researched": "to research",
+      "assumed": "estimated",
+      "answered": "{{count}} item(s) you filled in at the previous step.",
+      "createsProject": "The matching IDEM project will be created in your workspace, from what the document yielded.",
+      "duration": "A few minutes. The run continues if you close the page, and nothing is charged if it fails.",
+      "changeTier": "Change level",
+      "knowledge": "What the engine will work from:"
     }
   },
   "tier": {
