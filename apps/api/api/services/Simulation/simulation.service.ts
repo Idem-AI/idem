@@ -83,10 +83,15 @@ export interface CreateSimulationInput {
   answers?: Record<string, string>;
   previousRunId?: string;
   /**
-   * Compréhension déjà établie, pour un business plan importé : le pipeline la
-   * reprend telle quelle au lieu de relire le projet. Sans cela, tout ce que
-   * le document apportait serait perdu — le projet fraîchement créé ne
-   * contient que son nom et sa description.
+   * Compréhension déjà établie, telle que l'utilisateur l'a validée à l'écran
+   * avant de payer. Le pipeline la reprend au lieu de relire la source.
+   *
+   * Pour un business plan importé, elle est indispensable : sans elle, tout ce
+   * que le document apportait serait perdu, le projet fraîchement créé ne
+   * contenant que son nom et sa description. Pour un projet IDEM, elle évite
+   * de relire le même projet une seconde fois — et surtout évite que la
+   * simulation ne tourne sur une lecture différente de celle que l'écran
+   * d'analyse a montrée.
    */
   understanding?: ProjectUnderstanding;
 }
@@ -312,18 +317,24 @@ export class SimulationService {
 
     await this.writeSimulations(userId, projectId, project, [simulation, ...simulations]);
 
+    // La lecture validée à l'écran repasse par les bornes du moteur avant de
+    // servir : elle a transité par le navigateur.
+    const understanding = input.understanding
+      ? this.ai.sanitizeUnderstanding(
+          input.understanding,
+          project.name,
+          input.origin === 'imported-document' ? 'document' : 'project'
+        )
+      : undefined;
+
     // Volontairement non attendu: le pipeline dure plusieurs minutes.
-    void this.runPipeline(
-      userId,
-      projectId,
-      simulation.id,
-      input.answers,
-      input.understanding
-    ).catch((error) => {
-      logger.error(`Simulation pipeline crashed for ${simulation.id}: ${error.message}`, {
-        stack: error.stack,
-      });
-    });
+    void this.runPipeline(userId, projectId, simulation.id, input.answers, understanding).catch(
+      (error) => {
+        logger.error(`Simulation pipeline crashed for ${simulation.id}: ${error.message}`, {
+          stack: error.stack,
+        });
+      }
+    );
 
     return simulation;
   }
@@ -344,22 +355,34 @@ export class SimulationService {
       understanding: ProjectUnderstanding;
     }
   ): Promise<SimulationModel> {
-    const profile = input.understanding.profile;
+    // La lecture revient du navigateur : elle est remise en forme avant de
+    // peupler quoi que ce soit — un type de projet inconnu ou une liste sans
+    // fin ne doivent pas atteindre la fiche.
+    const understanding = this.ai.sanitizeUnderstanding(
+      input.understanding,
+      input.name || 'Projet importé',
+      'document'
+    );
+    const profile = understanding.profile;
     // La graine vient de la même lecture du document : elle est taillée pour la
     // fiche projet, là où le profil l'est pour la simulation.
-    const seed = input.understanding.projectSeed;
+    const seed = understanding.projectSeed;
     const name = (input.name || profile.name || 'Projet importé').trim();
 
     const project = await projectService.createUserProject(userId, {
       name,
       description: seed?.description || profile.product || profile.businessModel || '',
+      // La fiche projet doit se tenir seule une fois le document parti : c'est
+      // elle que liront le business plan, le branding et le reste d'IDEM. Sans
+      // description longue, ils repartaient de deux phrases.
+      longDescription: buildLongDescription(understanding),
       type: seed?.type ?? 'other',
       constraints: seed?.constraints ?? [],
       teamSize: seed?.teamSize || profile.teamSize || '',
       scope: seed?.scope || profile.sector || '',
       targets: seed?.targets || profile.targetCustomer || '',
       budgetIntervals: seed?.budgetIntervals || profile.plannedFunding,
-      currency: profile.currency,
+      currency: seed?.currency || profile.currency,
       selectedPhases: [],
       // Aucun livrable IDEM n'existe encore : ils seront générés par leurs
       // propres modules si l'utilisateur les demande.
@@ -368,13 +391,20 @@ export class SimulationService {
       activeChatMessages: [],
       project: null,
       additionalInfos: {
-        email: '',
-        phone: '',
-        address: '',
+        // Coordonnées et équipe ne sont reprises que si le document les
+        // écrivait : une fiche à moitié inventée serait pire que vide.
+        email: seed?.contact?.email || '',
+        phone: seed?.contact?.phone || '',
+        address: seed?.contact?.address || '',
         city: seed?.city || profile.location || '',
         country: seed?.country || profile.country || '',
-        zipCode: '',
-        teamMembers: [],
+        zipCode: seed?.contact?.zipCode || '',
+        teamMembers: (seed?.teamMembers ?? []).map((member) => ({
+          name: member.name,
+          role: member.role,
+          bio: member.bio ?? '',
+          email: '',
+        })),
       },
     });
 
@@ -384,7 +414,9 @@ export class SimulationService {
 
     logger.info(
       `Created project ${project.id} (${project.type}) from imported business plan for user ${userId}: ` +
-        `${seed?.constraints.length ?? 0} constraints, budget "${project.budgetIntervals ?? '—'}"`
+        `${project.longDescription?.length ?? 0} chars of long description, ` +
+        `${seed?.constraints.length ?? 0} constraints, ${seed?.teamMembers?.length ?? 0} team members, ` +
+        `${understanding.extras?.length ?? 0} extra facts, budget "${project.budgetIntervals ?? '—'}"`
     );
 
     return this.createSimulation(userId, project.id, {
@@ -393,7 +425,7 @@ export class SimulationService {
       tier: input.tier,
       documentName: input.documentName,
       answers: input.answers,
-      understanding: input.understanding,
+      understanding,
     });
   }
 
@@ -415,6 +447,8 @@ export class SimulationService {
         (await this.ai.understandProject(await this.loadProject(userId, projectId), userId));
 
       // Les réponses de l'utilisateur écrasent ce que le moteur avait deviné.
+      // La provenance passe à `answer` : c'est su, mais su parce que le
+      // fondateur l'a dit, ce qui ne se confond pas avec une ligne du document.
       if (answers) {
         for (const item of understanding.items) {
           const answer = answers[item.id];
@@ -422,6 +456,8 @@ export class SimulationService {
             item.answer = answer;
             item.state = 'known';
             item.value = answer;
+            item.source = 'answer';
+            item.detail = undefined;
           }
         }
       }
@@ -924,3 +960,47 @@ export class SimulationService {
 }
 
 export const simulationService = new SimulationService(new PromptService());
+
+
+/**
+ * Compose la description longue du projet créé à partir d'un business plan.
+ *
+ * Purement mécanique : le modèle a déjà tout lu, il serait absurde de le
+ * rappeler pour reformuler. On rassemble ce qu'il a rendu — le récit, ce que
+ * le document établit, et les particularités qui n'entrent dans aucun champ —
+ * pour que la fiche projet contienne le document, et non un résumé du résumé.
+ */
+function buildLongDescription(understanding: ProjectUnderstanding): string {
+  const sections: string[] = [];
+  const seed = understanding.projectSeed;
+
+  const opening = seed?.longDescription?.trim() || understanding.narrative?.trim();
+  if (opening) {
+    sections.push(opening);
+  }
+
+  const established = understanding.items.filter(
+    (item) => item.state === 'known' && item.value
+  );
+  if (established.length > 0) {
+    sections.push(
+      `Ce que le business plan établit :\n${established
+        .map((item) => `- ${item.label} : ${item.value}`)
+        .join('\n')}`
+    );
+  }
+
+  if (understanding.extras?.length) {
+    sections.push(
+      `Particularités du projet :\n${understanding.extras
+        .map((fact) => `- ${fact.label} : ${fact.value}`)
+        .join('\n')}`
+    );
+  }
+
+  if (seed?.constraints.length) {
+    sections.push(`Contraintes annoncées :\n${seed.constraints.map((c) => `- ${c}`).join('\n')}`);
+  }
+
+  return sections.join('\n\n');
+}

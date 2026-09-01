@@ -181,13 +181,16 @@
     "known": "What we know",
     "researchable": "What has to be researched",
     "uncertain": "What is uncertain",
-    "missing": "What is missing"
+    "missing": "What is missing",
+    "extras": "Other information picked up",
+    "extrasHint": "What your document states and no standard form has a field for. Nothing is dropped: these go to the engine with the rest."
   },
   "knowledgeHint": {
-    "known": "Information supplied directly in the project.",
-    "researchable": "External data the engine will collect to make the simulation more realistic.",
-    "uncertain": "No sufficiently reliable data exists. The engine works from an assumption and says so.",
-    "missing": "Parameters that can move the results substantially and remain unknown."
+    "knownDocument": "Read as it stands in your business plan. Nothing is added here; what the engine estimated sits further down.",
+    "knownProject": "Stated as it stands in your IDEM project. What the engine estimated sits further down.",
+    "researchable": "Published figures the engine will collect to anchor the simulation in your market.",
+    "uncertain": "Estimated by the engine, for want of a value in the source. Each line says what the estimate rests on and what would settle it.",
+    "missing": "Absent from the source, and liable to move the results. You can supply it yourself."
   },
   "profile": {
     "sector": "Sector",

@@ -341,7 +341,8 @@ export const createSimulationController = async (
   const context = requireContext(req, res);
   if (!context) return;
 
-  const { name, origin, tier, documentName, answers, previousRunId } = req.body ?? {};
+  const { name, origin, tier, documentName, answers, previousRunId, understanding } =
+    req.body ?? {};
 
   if (!VALID_TIERS.includes(tier)) {
     res.status(400).json({ message: `tier must be one of: ${VALID_TIERS.join(', ')}` });
@@ -363,6 +364,10 @@ export const createSimulationController = async (
         documentName,
         answers,
         previousRunId,
+        // La lecture que l'utilisateur a validée à l'écran. Sans elle, le
+        // pipeline relisait le projet une seconde fois : un appel de plus,
+        // pour une lecture qui pouvait différer de celle qui était affichée.
+        understanding: understanding?.profile ? understanding : undefined,
       }
     );
     res.status(202).json(simulation);

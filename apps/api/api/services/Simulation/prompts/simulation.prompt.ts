@@ -30,14 +30,26 @@ Absolute rules:
   not inside a generic Western market.
 - You write every user-facing text IN FRENCH.`;
 
-/** Étape 1 — construire une représentation structurée du projet. */
+/**
+ * Étape 1 — construire une représentation structurée du projet.
+ *
+ * Le champ `source` est ce qui donne son sens à l'écran « ce que le moteur
+ * sait » : sans lui, une estimation du modèle s'y affiche à côté d'une ligne
+ * réellement écrite dans le projet, et l'utilisateur ne peut plus les
+ * distinguer. La règle « known ⇒ écrit dans la source » est donc posée ici, et
+ * re-vérifiée à la normalisation.
+ */
 export const PROJECT_UNDERSTANDING_PROMPT = `Analyse the supplied project and produce a structured representation a simulation engine can work with.
 
-Separate four things:
-- what the project states explicitly (state: "known")
-- what has to be researched externally (state: "researchable")
-- what no reliable data exists for (state: "uncertain")
-- what is missing and only the founder can supply (state: "missing", answerable: true)
+Each item in "items" carries a state AND a source, and the two are bound together:
+- state "known"        ⇒ source "project". Written in the supplied project, word for word. NOTHING ELSE may be "known".
+- state "researchable" ⇒ source "external". A published figure you could look up.
+- state "uncertain"    ⇒ source "inferred". You estimated it; "detail" says on what basis and what would settle it.
+- state "missing"      ⇒ source "inferred", answerable: true. Only the founder can supply it.
+
+If you deduced a value rather than read it, it is "uncertain", never "known", however confident you are.
+"detail" is MANDATORY on every "uncertain" and "missing" item, and specific to that item: what
+exactly is not settled, and what single fact would settle it. Never a generic sentence.
 
 You must ALSO produce a numeric baseline. When a value is absent from the project,
 estimate it from the sector and the country, and flag it as uncertain in "items".
@@ -64,10 +76,19 @@ Answer with exactly this JSON:
   },
   "items": [
     { "id": "k-1", "label": "", "state": "known|researchable|uncertain|missing",
+      "source": "project|external|inferred",
       "value": "", "detail": "", "answerable": false }
+  ],
+  "extras": [
+    { "label": "", "value": "" }
   ],
   "narrative": "2 to 3 sentences, IN FRENCH, describing what you understood of the project."
 }
+
+"extras": facts stated in the project that none of the fields above can hold — a signed contract,
+a seasonality, an obtained grant, a distribution partner, an existing installed base. 0 to 8
+entries, each short, IN FRENCH, and quoting the project. Invent nothing: an empty array is a
+valid answer.
 
 Baseline constraints:
 - monthlyGrowthRate and monthlyRetentionRate are fractions (0.08 = 8%).
@@ -415,7 +436,13 @@ Constraints:
 - 4 to 6 experiments, "priority" 1 being the most urgent.
 - "uncertaintyReduction" is an integer 0-100.`;
 
-/** Import d'un business plan externe. */
+/**
+ * Import d'un business plan externe.
+ *
+ * Un seul appel doit rendre trois choses à la fois : le verdict sur le
+ * document, la compréhension nécessaire à la simulation, et la fiche du projet
+ * IDEM à créer. Les séparer coûterait trois lectures du même texte.
+ */
 export const DOCUMENT_EXTRACTION_PROMPT = `Below is a document supplied by a founder, meant to be
 a business plan. Every user-facing text you produce is written IN FRENCH.
 
@@ -436,34 +463,82 @@ If the document is NOT usable, answer ONLY:
   }
 }
 
-Otherwise, extract the information a simulation needs, exactly as if the project had been built
-inside IDEM. What is not in the document must not be invented silently: mark it "missing" with
-answerable: true, or "uncertain" when you estimated it.
+Otherwise, extract EVERYTHING the document actually states. This is the founder's only chance to
+carry their document into IDEM: whatever you leave out is lost.
+
+Each item in "items" carries a state AND a source, and the two are bound together:
+- state "known"        ⇒ source "document". Written in the document, word for word. NOTHING ELSE may be "known".
+- state "researchable" ⇒ source "external". A published figure you could look up.
+- state "uncertain"    ⇒ source "inferred". You estimated it; "detail" says on what basis and what would settle it.
+- state "missing"      ⇒ source "inferred", answerable: true. Absent from the document and only the founder can supply it.
+
+If you deduced a value rather than read it, it is "uncertain", never "known", however plausible.
+Set "value" on a "known" item to what the document says, in the document's own terms.
+"detail" is MANDATORY on every "uncertain" and "missing" item, and specific to that item: what
+exactly is not settled, and what single fact would settle it. Never a generic sentence.
 
 An imported plan matches no existing IDEM project: it will create one. So also fill in
 "projectSeed", which populates the project record. Invent nothing there: what the document does
 not state stays empty, and "constraints" lists only explicitly mentioned constraints
-(regulation, deadline, technical, resources).
+(regulation, deadline, technical, resources). "contact" and "teamMembers" carry only what is
+literally written — a founder's name, a role, an address, a phone number.
 
 "type" must be exactly one of these values, the one that best describes what is sold:
 web, mobile, iot, desktop, enterprise, ecommerce, api, ai, blockchain, landing, other.
 
-Use the same JSON shape as the project analysis, preceded by the verdict:
+Answer with exactly this JSON:
 {
   "documentAssessment": { "isBusinessPlan": true },
-  "profile": { ... },
-  "baseline": { ... },
-  "items": [ ... ],
-  "narrative": "",
+  "profile": {
+    "name": "", "sector": "", "businessModel": "", "product": "",
+    "targetCustomer": "", "market": "", "location": "", "country": "",
+    "currency": "", "pricePoint": "", "plannedFunding": "", "teamSize": ""
+  },
+  "baseline": {
+    "unitPrice": 0, "unitVariableCost": 0, "monthlyFixedCosts": 0, "acquisitionCost": 0,
+    "initialMonthlyCustomers": 0, "monthlyGrowthRate": 0.08, "monthlyRetentionRate": 0.75,
+    "purchasesPerCustomerPerMonth": 1, "startingCapital": 0, "currency": ""
+  },
+  "items": [
+    { "id": "k-1", "label": "", "state": "known|researchable|uncertain|missing",
+      "source": "document|external|inferred",
+      "value": "", "detail": "", "answerable": false }
+  ],
+  "extras": [
+    { "label": "", "value": "" }
+  ],
+  "narrative": "2 to 3 sentences describing what you understood of the project",
   "projectSeed": {
     "type": "other",
     "description": "two or three sentences describing the project",
+    "longDescription": "",
     "scope": "what the project covers",
     "targets": "who it is aimed at",
     "constraints": [],
     "budgetIntervals": "",
     "teamSize": "",
     "city": "",
-    "country": ""
+    "country": "",
+    "currency": "",
+    "contact": { "email": "", "phone": "", "address": "", "zipCode": "" },
+    "teamMembers": [{ "name": "", "role": "", "bio": "" }]
   }
-}`;
+}
+
+"longDescription": 3 to 5 paragraphs restating what the document says about the activity, the
+offer, the market, the customers, the business model, the finances and the roadmap. This is the
+project record other IDEM modules will read: it must stand on its own once the document is gone,
+and must contain nothing the document does not say.
+
+"extras": facts stated in the document that none of the fields above can hold — a signed
+contract, a seasonality, an obtained grant, a distribution partner, an existing installed base, a
+patent, an exclusivity. 0 to 8 entries, each short and quoting the document. These are the
+elements a generic form would have dropped, and they matter to the simulation. Invent nothing:
+an empty array is a valid answer.
+
+Baseline constraints:
+- monthlyGrowthRate and monthlyRetentionRate are fractions (0.08 = 8%).
+- monthlyRetentionRate is strictly between 0 and 0.99.
+- Where the document gives no figure, estimate from the sector and the country, and declare the
+  matching item as "uncertain".
+- 8 to 16 items, covering market, price, costs, acquisition, retention, funding, regulation.`;

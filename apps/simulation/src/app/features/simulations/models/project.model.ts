@@ -1,14 +1,34 @@
 export type KnowledgeState = 'known' | 'researchable' | 'uncertain' | 'missing';
 
+/**
+ * D'où vient une information.
+ *
+ * `document` et `project` désignent ce qui est écrit dans la source ; ce sont
+ * les deux seules provenances que l'API laisse porter l'état `known`. Le reste
+ * est déduit (`inferred`), à rechercher (`external`), ou fourni par
+ * l'utilisateur (`answer`).
+ */
+export type KnowledgeSource = 'document' | 'project' | 'answer' | 'inferred' | 'external';
+
 export interface KnowledgeItem {
   id: string;
   label: string;
   state: KnowledgeState;
   value?: string;
   detail?: string;
+  source?: KnowledgeSource;
   /** Vrai si l'utilisateur peut combler le trou avant de lancer. */
   answerable?: boolean;
   answer?: string;
+}
+
+/**
+ * Une information que la source donne et qu'aucun champ du profil n'accueille.
+ * Elle est affichée telle quelle et repart dans le contexte des simulations.
+ */
+export interface DocumentFact {
+  label: string;
+  value: string;
 }
 
 export interface ProjectProfile {
@@ -65,6 +85,8 @@ export type IdemProjectType =
 export interface ImportedProjectSeed {
   type: IdemProjectType;
   description: string;
+  /** Reprise développée de ce que le document dit, pour la fiche projet. */
+  longDescription?: string;
   scope?: string;
   targets?: string;
   constraints: string[];
@@ -72,6 +94,14 @@ export interface ImportedProjectSeed {
   teamSize?: string;
   city?: string;
   country?: string;
+  currency?: string;
+  contact?: {
+    email?: string;
+    phone?: string;
+    address?: string;
+    zipCode?: string;
+  };
+  teamMembers?: { name: string; role: string; bio?: string }[];
 }
 
 export interface ProjectUnderstanding {
@@ -79,6 +109,8 @@ export interface ProjectUnderstanding {
   baseline: BusinessBaseline;
   items: KnowledgeItem[];
   narrative?: string;
+  /** Ce que la source dit et qu'aucun champ standard ne porte. */
+  extras?: DocumentFact[];
   /** Renseignée pour un business plan importé, absente sinon. */
   projectSeed?: ImportedProjectSeed;
 }
@@ -91,4 +123,42 @@ export interface LinkedProject {
   sector: string;
   availableAssets: string[];
   updatedAt: string;
+}
+
+/** Les quatre états, dans l'ordre où ils se lisent. */
+const KNOWLEDGE_ORDER: readonly KnowledgeState[] = [
+  'known',
+  'researchable',
+  'uncertain',
+  'missing',
+];
+
+/** Provenances qui attestent d'une information écrite dans la source. */
+const SOURCED: readonly KnowledgeSource[] = ['document', 'project', 'answer'];
+
+export interface KnowledgeGroup {
+  state: KnowledgeState;
+  items: KnowledgeItem[];
+}
+
+/**
+ * Regroupe les éléments par état, en n'admettant sous « ce que nous savons »
+ * que ce qui vient réellement de la source.
+ *
+ * L'API applique déjà la règle en amont ; elle est reposée ici parce que les
+ * simulations déjà enregistrées, elles, ont été écrites avant. Sans provenance,
+ * on retombe sur la présence d'une valeur : une ligne sans valeur ni origine
+ * n'a rien d'une information sue.
+ */
+export function groupKnowledge(items: readonly KnowledgeItem[]): KnowledgeGroup[] {
+  return KNOWLEDGE_ORDER.map((state) => ({
+    state,
+    items: items.filter(
+      (item) => item.state === state && (state !== 'known' || isSourced(item)),
+    ),
+  })).filter((group) => group.items.length > 0);
+}
+
+function isSourced(item: KnowledgeItem): boolean {
+  return item.source ? SOURCED.includes(item.source) : Boolean(item.value);
 }
