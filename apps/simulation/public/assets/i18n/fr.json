@@ -86,11 +86,12 @@
   "newRun": {
     "title": "Nouvelle simulation",
     "heading": "Nouvelle simulation",
-    "description": "Trois étapes : choisir le projet, valider ce que le moteur en sait, puis confirmer le niveau de simulation.",
+    "description": "Quatre étapes : choisir le projet, valider ce que le moteur en sait, choisir le niveau de simulation, puis confirmer.",
     "step": {
       "source": "Projet",
       "analysis": "Analyse",
-      "plan": "Niveau"
+      "plan": "Niveau",
+      "confirm": "Confirmation"
     },
     "source": {
       "project": "Un projet IDEM",
@@ -127,7 +128,8 @@
       "betaFreeLead": "Gratuit pendant la bêta.",
       "betaNotice": "Quel que soit le niveau choisi, cette simulation ne vous sera pas facturée. Les tarifs indiqués s'appliqueront à la sortie de bêta.",
       "free": "Gratuit",
-      "priceAfterBeta": "Tarif après la bêta :"
+      "priceAfterBeta": "Tarif après la bêta :",
+      "continue": "Choisir ce niveau"
     },
     "launch": "Lancer la simulation",
     "launching": "Lancement…",
@@ -140,6 +142,22 @@
       "choose": "Choisir",
       "selected": "Sélectionné",
       "note": "Une simulation est un outil d'aide à la décision, jamais une prédiction. Chaque résultat est accompagné de son degré de confiance."
+    },
+    "confirm": {
+      "heading": "Vérifiez avant de lancer",
+      "body": "L'exécution dure quelques minutes et ne peut pas être reprise en cours de route. Voici ce sur quoi elle va travailler, et ce qu'elle vous rendra.",
+      "project": "Ce qui va être simulé",
+      "deliverable": "Ce que vous recevrez",
+      "sourceProject": "Projet IDEM :",
+      "sourceDocument": "Business plan :",
+      "established": "établis",
+      "researched": "à rechercher",
+      "assumed": "estimés",
+      "answered": "{{count}} information(s) que vous avez complétée(s) à l'étape précédente.",
+      "createsProject": "Le projet IDEM correspondant sera créé dans votre espace, à partir de ce que le document a livré.",
+      "duration": "Quelques minutes. L'exécution continue si vous fermez la page, et rien n'est retenu si elle échoue.",
+      "changeTier": "Changer de niveau",
+      "knowledge": "Ce sur quoi le moteur s'appuiera :"
     }
   },
   "tier": {
