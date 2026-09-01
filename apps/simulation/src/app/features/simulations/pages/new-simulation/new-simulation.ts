@@ -17,17 +17,25 @@ import { canStashFile, saveDraft, takeDraft } from './new-run-draft';
 /** Les seuls formats acceptés par l'API : PDF, Word et Markdown. */
 const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.md', '.markdown'];
 import {
-  KnowledgeItem,
+  KnowledgeState,
   ProjectUnderstanding,
+  SimulationConsent,
   SimulationOrigin,
   SimulationPlan,
   SimulationPricing,
   SimulationTier,
+  groupKnowledge,
 } from '../../models';
 
-type Step = 'source' | 'analysis' | 'plan';
-
-const KNOWLEDGE_ORDER: KnowledgeItem['state'][] = ['known', 'researchable', 'uncertain', 'missing'];
+/**
+ * Quatre étapes.
+ *
+ * `plan` choisit le niveau, `confirm` récapitule et recueille l'accord. Les
+ * séparer n'est pas cosmétique : l'accord de traitement de données ne se donne
+ * pas au même moment qu'un choix de tarif, et une case cochée en marge d'un
+ * comparatif de prix n'a rien d'un consentement éclairé.
+ */
+type Step = 'source' | 'analysis' | 'plan' | 'confirm';
 
 /**
  * The three things that must happen before a run is billed: pick the project,
@@ -104,6 +112,37 @@ export class NewSimulation {
   protected readonly selectedTier = signal<SimulationTier>('pack');
   protected readonly launching = signal(false);
 
+  /**
+   * L'accord, redemandé à chaque lancement.
+   *
+   * Une simulation lit le projet — ou le business plan téléversé —, en crée le
+   * projet IDEM correspondant et confie un extrait à plusieurs moteurs d'IA.
+   * Ce n'est pas couvert par l'acceptation faite une fois à la création du
+   * compte : les cases repartent donc vides à chaque exécution, et l'API refuse
+   * le lancement sans elles.
+   */
+  protected readonly privacyAccepted = signal(false);
+  protected readonly simulationTermsAccepted = signal(false);
+  protected readonly betaAccepted = signal(false);
+
+  /** Les documents à cocher, dans l'ordre où ils se lisent. */
+  protected readonly consentDocuments: readonly {
+    key: 'privacy' | 'simulationTerms' | 'beta';
+    path: string;
+  }[] = [
+    { key: 'privacy', path: '/privacy-policy' },
+    { key: 'simulationTerms', path: '/simulation-terms' },
+    { key: 'beta', path: '/beta-policy' },
+  ];
+
+  /** Vrai quand tout ce qui est exigé est coché. La bêta ajoute sa politique. */
+  protected readonly consentComplete = computed(
+    () =>
+      this.privacyAccepted() &&
+      this.simulationTermsAccepted() &&
+      (!this.isBeta || this.betaAccepted()),
+  );
+
   protected readonly selectedProject = computed(() =>
     this.projects().find((project) => project.id === this.selectedProjectId()) ?? null,
   );
@@ -115,20 +154,30 @@ export class NewSimulation {
     return this.origin() === 'idem-project' ? !!this.selectedProjectId() : !!this.selectedFile();
   });
 
-  /** Grouped so the four states read as four different kinds of claim. */
-  protected readonly knowledgeGroups = computed(() => {
-    const items = this.understanding()?.items ?? [];
-    return KNOWLEDGE_ORDER.map((state) => ({
-      state,
-      items: items.filter((item) => item.state === state),
-    })).filter((group) => group.items.length > 0);
-  });
+  /**
+   * Grouped so the four states read as four different kinds of claim.
+   *
+   * « Ce que nous savons » ne retient que ce qui est écrit dans la source : une
+   * estimation du moteur y voisinait avec une ligne du business plan, sans que
+   * rien ne les distingue à l'écran.
+   */
+  protected readonly knowledgeGroups = computed(() =>
+    groupKnowledge(this.understanding()?.items ?? []),
+  );
+
+  /**
+   * Ce que la source dit et qu'aucun champ du profil n'accueille — un contrat
+   * signé, une saisonnalité, une subvention. Affiché tel quel, et repris dans
+   * le contexte de la simulation.
+   */
+  protected readonly extras = computed(() => this.understanding()?.extras ?? []);
 
   /** Declared here rather than inline in the template so both stay typed. */
   protected readonly steps: readonly { id: Step; index: number }[] = [
     { id: 'source', index: 1 },
     { id: 'analysis', index: 2 },
     { id: 'plan', index: 3 },
+    { id: 'confirm', index: 4 },
   ];
 
   /** Profile rows, skipping whatever the analysis could not fill in. */
@@ -153,6 +202,61 @@ export class NewSimulation {
   protected readonly openQuestions = computed(() =>
     (this.understanding()?.items ?? []).filter((item) => item.answerable),
   );
+
+  /** Le plan retenu, pour que l'étape de confirmation parle de celui-là. */
+  protected readonly selectedPlan = computed<SimulationPlan | null>(
+    () => this.pricing()?.plans.find((plan) => plan.tier === this.selectedTier()) ?? null,
+  );
+
+  /**
+   * Ce sur quoi la simulation va tourner, en quelques lignes.
+   *
+   * La confirmation arrive après une lecture longue et un comparatif de
+   * tarifs : rappeler ici le projet évite de lancer une exécution sur un autre
+   * que celui qu'on croyait avoir choisi.
+   */
+  protected readonly recapRows = computed<readonly { labelKey: string; value: string }[]>(() => {
+    const profile = this.understanding()?.profile;
+    if (!profile) {
+      return [];
+    }
+    const location = [profile.location, profile.country].filter(Boolean).join(', ');
+    const rows: { labelKey: string; value: string | undefined }[] = [
+      { labelKey: 'profile.sector', value: profile.sector },
+      { labelKey: 'profile.businessModel', value: profile.businessModel },
+      { labelKey: 'profile.targetCustomer', value: profile.targetCustomer },
+      { labelKey: 'profile.location', value: location || undefined },
+    ];
+    return rows.filter((row): row is { labelKey: string; value: string } => !!row.value);
+  });
+
+  /** D'où part la simulation : un projet IDEM nommé, ou un document importé. */
+  protected readonly recapSource = computed(() =>
+    this.origin() === 'idem-project'
+      ? (this.selectedProject()?.name ?? '')
+      : (this.selectedFile()?.name ?? ''),
+  );
+
+  /**
+   * Sur quoi le moteur s'appuie, en trois nombres.
+   *
+   * L'écran d'analyse détaillait chaque élément ; ici seul le rapport de force
+   * compte — combien est établi, combien reste supposé. C'est ce qui donne sa
+   * portée au résultat qu'on s'apprête à payer.
+   */
+  protected readonly recapKnowledge = computed(() => {
+    const items = this.understanding()?.items ?? [];
+    const answers = this.answers();
+    return {
+      established: items.filter((item) => item.state === 'known').length,
+      researched: items.filter((item) => item.state === 'researchable').length,
+      assumed: items.filter((item) => item.state === 'uncertain' || item.state === 'missing').length,
+      answered: Object.values(answers).filter((answer) => answer.trim().length > 0).length,
+    };
+  });
+
+  /** Le projet IDEM sera créé par le lancement : autant l'annoncer avant. */
+  protected readonly createsProject = computed(() => this.origin() === 'imported-document');
 
   /** Le document ne tiendra pas dans le brouillon : l'utilisateur est prévenu. */
   protected readonly draftAtRisk = computed(() => !canStashFile(this.selectedFile()));
@@ -282,6 +386,20 @@ export class NewSimulation {
     }
   }
 
+  /**
+   * L'intitulé de la catégorie « ce que nous savons » dépend de la source :
+   * pour un plan importé, la phrase doit nommer le document, sans quoi elle
+   * décrit une provenance que l'utilisateur n'a pas choisie.
+   */
+  protected knowledgeHintKey(state: KnowledgeState): string {
+    if (state === 'known') {
+      return this.origin() === 'imported-document'
+        ? 'knowledgeHint.knownDocument'
+        : 'knowledgeHint.knownProject';
+    }
+    return `knowledgeHint.${state}`;
+  }
+
   protected setAnswer(itemId: string, value: string): void {
     this.answers.update((current) => ({ ...current, [itemId]: value }));
   }
@@ -319,9 +437,15 @@ export class NewSimulation {
     const understanding = this.understanding();
     const fromProject = this.origin() === 'idem-project';
     const projectId = this.selectedProjectId();
-    if ((fromProject && !projectId) || !understanding) {
+    if ((fromProject && !projectId) || !understanding || !this.consentComplete()) {
       return;
     }
+
+    const consent: SimulationConsent = {
+      privacyPolicyAccepted: this.privacyAccepted(),
+      simulationTermsAccepted: this.simulationTermsAccepted(),
+      betaPolicyAccepted: this.betaAccepted(),
+    };
 
     this.launching.set(true);
     try {
@@ -334,6 +458,11 @@ export class NewSimulation {
             projectId: this.selectProjectAndReturn(projectId as string),
             tier: this.selectedTier(),
             answers: this.answers(),
+            // La lecture que l'utilisateur vient de valider. Sans elle, le
+            // moteur relisait le projet au lancement : un second appel, dont
+            // le résultat pouvait ne plus correspondre à l'écran approuvé.
+            understanding,
+            consent,
           })
         : // Le plan importé n'a pas de projet : l'API crée celui que le
           // document décrit, puis simule dessus.
@@ -343,6 +472,7 @@ export class NewSimulation {
             documentName: this.selectedFile()?.name,
             answers: this.answers(),
             understanding,
+            consent,
           });
 
       await this.router.navigate(['/simulations', simulation.id]);
@@ -356,8 +486,43 @@ export class NewSimulation {
     }
   }
 
+  /**
+   * L'état d'une étape dans le fil : franchie, en cours, ou à venir.
+   *
+   * Avec quatre étapes, ne marquer que celle en cours ne suffit plus — rien ne
+   * distingue alors le chemin parcouru de ce qui reste, et la barre cesse
+   * d'être un repère.
+   */
+  protected stepState(id: Step): 'done' | 'current' | 'todo' {
+    const current = this.steps.findIndex((entry) => entry.id === this.step());
+    const target = this.steps.findIndex((entry) => entry.id === id);
+    return target === current ? 'current' : target < current ? 'done' : 'todo';
+  }
+
+  /** L'étape précédente, dans l'ordre déclaré. */
   protected back(): void {
-    this.step.update((current) => (current === 'plan' ? 'analysis' : 'source'));
+    this.step.update((current) => {
+      const index = this.steps.findIndex((entry) => entry.id === current);
+      return index > 0 ? this.steps[index - 1].id : 'source';
+    });
+  }
+
+  /** Dernière étape : ce qui va être lancé, et l'accord pour le lancer. */
+  protected goToConfirm(): void {
+    this.step.set('confirm');
+  }
+
+  protected isConsentAccepted(key: 'privacy' | 'simulationTerms' | 'beta'): boolean {
+    return this.consentSignal(key)();
+  }
+
+  protected toggleConsent(key: 'privacy' | 'simulationTerms' | 'beta'): void {
+    this.consentSignal(key).update((accepted) => !accepted);
+  }
+
+  /** L'adresse du document, servi par le site public. */
+  protected legalUrl(path: string): string {
+    return `${environment.services.landing.url}${path}`;
   }
 
   protected planPrice(plan: SimulationPlan): string {
@@ -378,6 +543,14 @@ export class NewSimulation {
     }
     this.signInReason.set(reason);
     return true;
+  }
+
+  private consentSignal(key: 'privacy' | 'simulationTerms' | 'beta') {
+    return key === 'privacy'
+      ? this.privacyAccepted
+      : key === 'simulationTerms'
+        ? this.simulationTermsAccepted
+        : this.betaAccepted;
   }
 
   /** Les projets IDEM appartiennent au compte : rien à charger sans session. */
@@ -408,7 +581,13 @@ export class NewSimulation {
     return projectId;
   }
 
-  private runName(): string {
+  /**
+   * Le nom que portera l'exécution — et, pour un plan importé, le projet IDEM
+   * créé avec elle. Exposé en signal parce que l'étape de confirmation
+   * l'affiche : l'utilisateur doit lire ce nom avant de lancer, pas le
+   * découvrir après.
+   */
+  protected readonly runName = computed<string>(() => {
     if (this.origin() === 'idem-project') {
       const project = this.selectedProject();
       if (project) {
@@ -422,8 +601,10 @@ export class NewSimulation {
       return extracted;
     }
     const file = this.selectedFile();
-    return file ? file.name.replace(/\.[^.]+$/, '') : (this.translate.instant('newRun.title') as string);
-  }
+    return file
+      ? file.name.replace(/\.[^.]+$/, '')
+      : (this.translate.instant('newRun.title') as string);
+  });
 }
 
 /**

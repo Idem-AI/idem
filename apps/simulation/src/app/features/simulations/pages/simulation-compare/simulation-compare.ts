@@ -5,9 +5,10 @@ import { firstValueFrom } from 'rxjs';
 
 import { ToastService } from '../../../../core/ui/toast.service';
 import { DisclaimerNote } from '../../../../shared/components/disclaimer-note/disclaimer-note';
+import { ConsentDialog } from '../../components/consent-dialog/consent-dialog';
 import { VerdictBadge } from '../../components/verdict-badge/verdict-badge';
 import { SimulationGateway, SimulationStore } from '../../data-access';
-import { Simulation } from '../../models';
+import { Simulation, SimulationConsent } from '../../models';
 
 /**
  * Two runs of the same project, side by side.
@@ -18,7 +19,7 @@ import { Simulation } from '../../models';
  */
 @Component({
   selector: 'sim-simulation-compare',
-  imports: [TranslatePipe, VerdictBadge, DisclaimerNote],
+  imports: [TranslatePipe, VerdictBadge, DisclaimerNote, ConsentDialog],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './simulation-compare.html',
 })
@@ -33,6 +34,12 @@ export class SimulationCompare {
   protected readonly previous = signal<Simulation | null>(null);
   protected readonly loading = signal(true);
   protected readonly relaunching = signal(false);
+  /**
+   * Vrai pendant que l'accord est demandé. Une relance est une exécution comme
+   * une autre : elle relit le projet et le confie aux moteurs d'IA, l'accord se
+   * redonne donc ici aussi.
+   */
+  protected readonly askingConsent = signal(false);
 
   protected readonly delta = computed(() => {
     const before = this.previous()?.result?.viabilityIndex;
@@ -82,9 +89,17 @@ export class SimulationCompare {
     this.loading.set(false);
   }
 
+  /** Ouvre la demande d'accord ; la relance part de sa confirmation. */
+  protected askToRelaunch(): void {
+    if (this.current()) {
+      this.askingConsent.set(true);
+    }
+  }
+
   /** Starts a fresh run from the current project state, chained to this one. */
-  protected async relaunch(): Promise<void> {
+  protected async relaunch(consent: SimulationConsent): Promise<void> {
     const simulation = this.current();
+    this.askingConsent.set(false);
     if (!simulation) {
       return;
     }
@@ -98,6 +113,7 @@ export class SimulationCompare {
         documentName: simulation.documentName,
         tier: simulation.tier,
         previousRunId: simulation.id,
+        consent,
       });
       await this.router.navigate(['/simulations', created.id]);
     } catch (error) {

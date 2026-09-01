@@ -10,6 +10,7 @@
  * corrompre le moteur en aval.
  */
 
+import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 
 import { AI_CONFIG } from '../../config/ai.config';
@@ -23,6 +24,7 @@ import {
   ConfidenceLevel,
   CustomerSegment,
   DEFAULT_BASELINE,
+  DocumentFact,
   Evidence,
   EvidenceKind,
   Experiment,
@@ -33,7 +35,9 @@ import {
   FactorTier,
   InvestorProfile,
   InvestorVerdict,
+  KNOWLEDGE_SOURCES,
   KnowledgeItem,
+  KnowledgeSource,
   KnowledgeState,
   ProjectProfile,
   ProjectUnderstanding,
@@ -133,6 +137,29 @@ const RED_TEAM_ROLES: RedTeamRole[] = [
 ];
 const INVESTOR_PROFILES: InvestorProfile[] = ['growth', 'impact', 'technology', 'regional'];
 
+// =====================================================================
+// MISE EN CACHE DES LECTURES
+// =====================================================================
+
+/**
+ * Version du schéma de compréhension.
+ *
+ * Les lectures sont mises en cache sur l'empreinte de la source, pas sur celle
+ * du prompt : sans ce numéro, un document analysé avant l'ajout d'un champ
+ * continuerait à ressortir du cache amputé de ce champ, pendant sept jours,
+ * sans qu'aucune trace n'explique pourquoi. Toute évolution de la forme
+ * attendue incrémente ce nombre.
+ */
+const UNDERSTANDING_SCHEMA_VERSION = 3;
+
+/** Ce que la lecture peut recevoir sans dépasser ce que le contexte supporte. */
+const MAX_EXTRAS = 8;
+const MAX_EXTRA_LABEL_CHARS = 60;
+const MAX_EXTRA_VALUE_CHARS = 180;
+
+/** Une lecture reste valable une semaine : au-delà, le projet a vécu. */
+const PROJECT_UNDERSTANDING_TTL_SECONDS = 86_400 * 7;
+
 export class SimulationAIService {
   constructor(private readonly promptService: PromptService) {
     logger.info('SimulationAIService initialized.');
@@ -142,14 +169,33 @@ export class SimulationAIService {
   // 1. COMPRÉHENSION DU PROJET
   // ===================================================================
 
+  /**
+   * Lit un projet IDEM.
+   *
+   * Le résultat est mis en cache sur l'empreinte de ce qui part réellement au
+   * modèle : revenir sur l'écran d'analyse, ou relancer une simulation sur un
+   * projet inchangé, ne redépense rien. La clé bouge dès que le projet bouge,
+   * puisqu'elle est calculée sur le texte envoyé et non sur l'identifiant.
+   */
   async understandProject(project: ProjectModel, userId: string): Promise<ProjectUnderstanding> {
-    const raw = await this.run(
-      'understanding',
-      PROJECT_UNDERSTANDING_PROMPT,
-      this.describeProject(project),
-      userId
-    );
-    return this.normalizeUnderstanding(this.parseJSON(raw), project.name);
+    const context = this.describeProject(project);
+    const cacheKey = `simulation:project:v${UNDERSTANDING_SCHEMA_VERSION}:${digestOf(context)}`;
+    const cached = await cacheService.get<ProjectUnderstanding>(cacheKey, {
+      prefix: 'ai',
+      ttl: PROJECT_UNDERSTANDING_TTL_SECONDS,
+    });
+    if (cached) {
+      logger.info(`Project understanding served from cache for "${project.name}"`);
+      return cached;
+    }
+
+    const raw = await this.run('understanding', PROJECT_UNDERSTANDING_PROMPT, context, userId);
+    const understanding = this.normalizeUnderstanding(this.parseJSON(raw), project.name, 'project');
+    await cacheService.set(cacheKey, understanding, {
+      prefix: 'ai',
+      ttl: PROJECT_UNDERSTANDING_TTL_SECONDS,
+    });
+    return understanding;
   }
 
   /** Même sortie, à partir d'un business plan importé au lieu d'un projet IDEM. */
@@ -174,10 +220,10 @@ export class SimulationAIService {
         `familles: ${brief.families.join(', ')}`
     );
 
-    const cacheKey = `simulation:document:${brief.digest}`;
+    const cacheKey = `simulation:document:v${UNDERSTANDING_SCHEMA_VERSION}:${brief.digest}`;
     const cached = await cacheService.get<ProjectUnderstanding>(cacheKey, {
       prefix: 'ai',
-      ttl: 86_400 * 7,
+      ttl: PROJECT_UNDERSTANDING_TTL_SECONDS,
     });
     if (cached) {
       logger.info(`Document understanding served from cache for "${documentName}"`);
@@ -207,9 +253,34 @@ export class SimulationAIService {
       );
     }
 
-    const understanding = this.normalizeUnderstanding(parsed, documentName);
-    await cacheService.set(cacheKey, understanding, { prefix: 'ai', ttl: 86_400 * 7 });
+    const understanding = this.normalizeUnderstanding(parsed, documentName, 'document');
+    logger.info(
+      `Document "${documentName}" read: ${understanding.items.length} éléments ` +
+        `(${understanding.items.filter((item) => item.state === 'known').length} lus dans le document), ` +
+        `${understanding.extras?.length ?? 0} informations hors fiche IDEM`
+    );
+    await cacheService.set(cacheKey, understanding, {
+      prefix: 'ai',
+      ttl: PROJECT_UNDERSTANDING_TTL_SECONDS,
+    });
     return understanding;
+  }
+
+  /**
+   * Remet en forme une compréhension qui revient du client.
+   *
+   * L'écran d'analyse renvoie au lancement la lecture que l'utilisateur a
+   * validée, ce qui évite de la refaire. Mais elle a fait l'aller-retour par
+   * le navigateur : elle repasse donc par les mêmes bornes que la sortie du
+   * modèle, faute de quoi une valeur arbitraire arriverait directement dans le
+   * moteur, qui divise et met en puissance ce qu'on lui donne.
+   */
+  sanitizeUnderstanding(
+    raw: ProjectUnderstanding,
+    fallbackName: string,
+    origin: Extract<KnowledgeSource, 'document' | 'project'>
+  ): ProjectUnderstanding {
+    return this.normalizeUnderstanding(raw, fallbackName, origin);
   }
 
   // ===================================================================
@@ -538,10 +609,14 @@ export class SimulationAIService {
     const analysis = (project as any).analysisResultModel ?? {};
     // On n'envoie que les livrables utiles à une simulation, et tronqués :
     // un projet IDEM complet dépasse largement la fenêtre de contexte.
+    //
+    // De l'identité de marque, seul le nom sert ici. Retomber sur l'objet
+    // entier revenait à envoyer un SVG de logo — quatre mille caractères de
+    // chemins vectoriels qui ne disent rien d'une viabilité.
     const deliverables = {
       businessPlan: truncate(analysis.businessPlan),
       finance: truncate(analysis.finance),
-      branding: truncate(analysis.branding?.brandName ?? analysis.branding),
+      branding: truncate(analysis.branding?.brandName, 120),
       marketAnalysis: truncate(analysis.marketAnalysis),
     };
 
@@ -561,17 +636,41 @@ LIVRABLES DISPONIBLES:
 ${JSON.stringify(deliverables, null, 2)}`;
   }
 
+  /**
+   * Le contexte commun à toutes les étapes qui suivent la lecture.
+   *
+   * Il part dans chaque appel du pipeline et de chaque laboratoire : ce qu'on
+   * y écrit est donc payé une dizaine de fois par exécution. D'où les paires
+   * `clé: valeur` plutôt qu'un JSON indenté — mêmes informations, accolades et
+   * indentation en moins — et les champs vides écartés au lieu d'être envoyés
+   * comme chaînes vides.
+   */
   private describeUnderstanding(understanding: ProjectUnderstanding): string {
-    return `PROFIL DU PROJET:
-${JSON.stringify(understanding.profile, null, 2)}
+    const blocks = [
+      `PROFIL DU PROJET:\n${compactEntries(understanding.profile)}`,
+      `PARAMÈTRES DU MODÈLE:\n${compactEntries(understanding.baseline)}`,
+      `ÉTAT DES CONNAISSANCES:\n${understanding.items
+        .map(
+          (item) =>
+            `- [${item.state}] ${item.label}${item.value ? `: ${item.value}` : ''}${
+              item.answer ? ` (réponse fournie: ${item.answer})` : ''
+            }`
+        )
+        .join('\n')}`,
+    ];
 
-PARAMÈTRES DU MODÈLE:
-${JSON.stringify(understanding.baseline, null, 2)}
+    // Ce que le document dit et qu'aucun champ ci-dessus ne porte. Sans ce
+    // bloc, un contrat déjà signé ou une saisonnalité disparaissaient entre la
+    // lecture et la simulation.
+    if (understanding.extras?.length) {
+      blocks.push(
+        `PARTICULARITÉS DE CE PROJET (à prendre en compte, elles ne rentrent dans aucun champ standard):\n${understanding.extras
+          .map((fact) => `- ${fact.label}: ${fact.value}`)
+          .join('\n')}`
+      );
+    }
 
-ÉTAT DES CONNAISSANCES:
-${understanding.items
-  .map((item) => `- [${item.state}] ${item.label}${item.value ? `: ${item.value}` : ''}${item.answer ? ` (réponse fournie: ${item.answer})` : ''}`)
-  .join('\n')}`;
+    return blocks.join('\n\n');
   }
 
   private describeFactors(factors: readonly Factor[]): string {
@@ -603,7 +702,17 @@ ${scenarios
   // NORMALISATION
   // ===================================================================
 
-  private normalizeUnderstanding(parsed: any, fallbackName: string): ProjectUnderstanding {
+  /**
+   * @param defaultSource Provenance des éléments que le modèle n'a pas
+   * qualifiés : `document` pour un business plan importé, `project` pour un
+   * projet IDEM. C'est ce qui permet ensuite de n'afficher, sous « ce que le
+   * moteur sait », que ce qui vient réellement de la source.
+   */
+  private normalizeUnderstanding(
+    parsed: any,
+    fallbackName: string,
+    defaultSource: Extract<KnowledgeSource, 'document' | 'project'>
+  ): ProjectUnderstanding {
     const profileRaw = parsed.profile ?? {};
     const profile: ProjectProfile = {
       name: str(profileRaw.name) || fallbackName,
@@ -620,22 +729,105 @@ ${scenarios
       teamSize: str(profileRaw.teamSize) || undefined,
     };
 
-    const items: KnowledgeItem[] = toArray(parsed.items).map((entry, index) => ({
-      id: str(entry.id) || `k-${index + 1}`,
-      label: str(entry.label),
-      state: pick(entry.state, KNOWLEDGE_STATES, 'uncertain'),
-      value: str(entry.value) || undefined,
-      detail: str(entry.detail) || undefined,
-      answerable: Boolean(entry.answerable),
-    }));
+    const items: KnowledgeItem[] = toArray(parsed.items).map((entry, index) =>
+      this.normalizeKnowledgeItem(entry, index, defaultSource)
+    );
 
     return {
       profile,
       baseline: this.normalizeBaseline(parsed.baseline, profile.currency),
       items,
       narrative: str(parsed.narrative) || undefined,
-      projectSeed: this.normalizeProjectSeed(parsed.projectSeed, profile),
+      extras: this.normalizeExtras(parsed.extras, profile),
+      // Un projet IDEM existe déjà : rien à en semer.
+      projectSeed:
+        defaultSource === 'document'
+          ? this.normalizeProjectSeed(parsed.projectSeed, profile)
+          : undefined,
     };
+  }
+
+  /**
+   * Un élément de connaissance, avec sa provenance rendue cohérente.
+   *
+   * Deux règles y sont appliquées, parce qu'un prompt ne suffit pas à les
+   * garantir :
+   *
+   *  1. `known` exige une provenance de source — le document ou le projet. Ce
+   *     que le modèle a déduit redescend en `uncertain`, quelle que soit sa
+   *     confiance : c'est exactement la confusion que l'écran doit éviter.
+   *  2. `uncertain` et `missing` portent toujours un motif. Sans lui, l'écran
+   *     retombait sur une phrase de catégorie, identique d'un projet à l'autre
+   *     et donc inutile.
+   */
+  private normalizeKnowledgeItem(
+    entry: any,
+    index: number,
+    defaultSource: Extract<KnowledgeSource, 'document' | 'project'>
+  ): KnowledgeItem {
+    let state = pick(entry.state, KNOWLEDGE_STATES, 'uncertain');
+    const value = str(entry.value) || undefined;
+    let source = pick(
+      entry.source,
+      KNOWLEDGE_SOURCES,
+      state === 'known' ? defaultSource : state === 'researchable' ? 'external' : 'inferred'
+    );
+
+    // Une provenance de source n'a de sens que pour ce qui est effectivement
+    // écrit : un élément à rechercher ou déduit ne peut pas en porter une.
+    if (state !== 'known' && (source === 'document' || source === 'project')) {
+      source = state === 'researchable' ? 'external' : 'inferred';
+    }
+    // Et l'inverse : « su » sans rien qui l'atteste est une estimation.
+    if (state === 'known' && (source === 'inferred' || source === 'external' || !value)) {
+      state = 'uncertain';
+      source = 'inferred';
+    }
+
+    const detail = str(entry.detail) || undefined;
+    return {
+      id: str(entry.id) || `k-${index + 1}`,
+      label: str(entry.label),
+      state,
+      source,
+      value,
+      detail: detail ?? fallbackDetail(state, str(entry.label)),
+      answerable: Boolean(entry.answerable) || state === 'missing',
+    };
+  }
+
+  /**
+   * Les informations que la source donne et qu'aucun champ IDEM n'accueille.
+   *
+   * Elles repartent dans le contexte de toutes les étapes suivantes, donc dans
+   * chaque appel : le plafond n'est pas une précaution de forme, c'est ce qui
+   * empêche une liste bavarde de renchérir toute l'exécution. Ce qui répète
+   * déjà le profil est écarté — le modèle le reçoit par ailleurs.
+   */
+  private normalizeExtras(raw: any, profile: ProjectProfile): DocumentFact[] | undefined {
+    const known = new Set(
+      Object.values(profile)
+        .filter((value): value is string => typeof value === 'string' && value.length > 0)
+        .map((value) => value.toLowerCase())
+    );
+
+    const facts: DocumentFact[] = [];
+    const seen = new Set<string>();
+
+    for (const entry of toArray(raw)) {
+      const label = str(entry?.label).slice(0, MAX_EXTRA_LABEL_CHARS);
+      const value = str(entry?.value).slice(0, MAX_EXTRA_VALUE_CHARS);
+      if (!label || !value) continue;
+
+      const key = `${label.toLowerCase()}|${value.toLowerCase()}`;
+      if (seen.has(key) || known.has(value.toLowerCase())) continue;
+
+      seen.add(key);
+      facts.push({ label, value });
+      if (facts.length >= MAX_EXTRAS) break;
+    }
+
+    return facts.length > 0 ? facts : undefined;
   }
 
   /**
@@ -646,9 +838,18 @@ ${scenarios
    */
   private normalizeProjectSeed(raw: any, profile: ProjectProfile): ImportedProjectSeed {
     const source = raw ?? {};
+    const contact = source.contact ?? {};
+    const seedContact = {
+      email: str(contact.email) || undefined,
+      phone: str(contact.phone) || undefined,
+      address: str(contact.address) || undefined,
+      zipCode: str(contact.zipCode) || undefined,
+    };
+
     return {
       type: pick(source.type, IDEM_PROJECT_TYPES, 'other'),
       description: str(source.description) || profile.product || profile.businessModel,
+      longDescription: str(source.longDescription) || undefined,
       scope: str(source.scope) || profile.sector || undefined,
       targets: str(source.targets) || profile.targetCustomer || undefined,
       constraints: toArray(source.constraints)
@@ -659,6 +860,17 @@ ${scenarios
       teamSize: str(source.teamSize) || profile.teamSize || undefined,
       city: str(source.city) || profile.location || undefined,
       country: str(source.country) || profile.country || undefined,
+      currency: str(source.currency) || profile.currency || undefined,
+      // Un objet de coordonnées entièrement vide ne vaut pas mieux qu'absent.
+      contact: Object.values(seedContact).some(Boolean) ? seedContact : undefined,
+      teamMembers: toArray(source.teamMembers)
+        .map((entry: any) => ({
+          name: str(entry?.name),
+          role: str(entry?.role),
+          bio: str(entry?.bio) || undefined,
+        }))
+        .filter((member) => member.name.length > 0)
+        .slice(0, 12),
     };
   }
 
@@ -892,6 +1104,44 @@ function normalizeShares(segments: CustomerSegment[]): CustomerSegment[] {
     return segments.map((segment) => ({ ...segment, share: equal }));
   }
   return segments.map((segment) => ({ ...segment, share: segment.share / total }));
+}
+
+/**
+ * Empreinte d'un contexte, pour la clé de cache. Le hachage porte sur ce qui
+ * part au modèle : un projet modifié produit un autre texte, donc une autre
+ * clé, sans qu'aucune invalidation n'ait à être écrite.
+ */
+function digestOf(context: string): string {
+  return crypto.createHash('sha256').update(context).digest('hex');
+}
+
+/**
+ * Paires `clé: valeur`, une par ligne, les champs vides écartés.
+ * Un JSON indenté dit la même chose pour près du double de jetons.
+ */
+function compactEntries(source: object): string {
+  return Object.entries(source)
+    .filter(([, value]) => value !== undefined && value !== null && value !== '')
+    .map(([key, value]) => `${key}: ${value}`)
+    .join('\n');
+}
+
+/**
+ * Motif de repli quand le modèle n'a pas dit pourquoi un élément lui échappe.
+ *
+ * Il nomme l'élément concerné plutôt que de décrire la catégorie : « le prix
+ * de vente n'est pas fixé par la source » se lit, « aucune donnée fiable
+ * n'existe » répété sous chaque ligne ne se lit plus.
+ */
+function fallbackDetail(state: KnowledgeState, label: string): string | undefined {
+  const subject = label ? `« ${label} »` : 'Cet élément';
+  if (state === 'uncertain') {
+    return `${subject} n'est fixé nulle part dans la source : le moteur retient une estimation et la signale.`;
+  }
+  if (state === 'missing') {
+    return `${subject} n'apparaît pas dans la source. Vous seul pouvez le renseigner.`;
+  }
+  return undefined;
 }
 
 function truncate(value: unknown, max = 4000): string {

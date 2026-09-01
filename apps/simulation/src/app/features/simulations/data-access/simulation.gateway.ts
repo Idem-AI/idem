@@ -7,6 +7,7 @@ import {
   LinkedProject,
   ProjectUnderstanding,
   Simulation,
+  SimulationConsent,
   SimulationOrigin,
   SimulationPricing,
   SimulationReport,
@@ -27,6 +28,8 @@ export interface CreateFromDocumentInput {
   documentName?: string;
   answers?: Record<string, string>;
   understanding: ProjectUnderstanding;
+  /** Sans lui, l'API refuse la création du projet et le lancement (403). */
+  consent: SimulationConsent;
 }
 
 /** Un rapport rendu, prêt à être enregistré par le navigateur. */
