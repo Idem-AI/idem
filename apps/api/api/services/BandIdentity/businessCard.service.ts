@@ -104,7 +104,7 @@ export class BusinessCardService extends GenericService {
 
     const prompt = buildBusinessCardPrompt({
       projectName: project.name || 'Brand',
-      projectDescription: project.description || '',
+      projectDescription: project.longDescription || project.description || '',
       industry: project.type || project.scope || 'general',
       orientation,
       width: orientation === 'landscape' ? 85 : 55,
@@ -372,7 +372,7 @@ export class BusinessCardService extends GenericService {
     const branding = (project.analysisResultModel as any)?.branding;
     const values: Record<string, string | undefined> = {
       companyName: project.name,
-      tagline: (project.description ?? '').split('.')[0],
+      tagline: (project.longDescription || (project.description ?? '')).split('.')[0],
     };
     for (const field of BUSINESS_CARD_FIELDS) {
       const value = (holder as unknown as Record<string, unknown>)[field];

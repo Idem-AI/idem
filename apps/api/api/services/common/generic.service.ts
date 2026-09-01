@@ -224,7 +224,7 @@ export class GenericService {
    */
   protected extractProjectDescription(project: ProjectModel): string {
     const projectName = project.name || 'Startup';
-    const projectDescription = project.description || '';
+    const projectDescription = project.longDescription || project.description || '';
     const projectType = project.type || '';
     const projectScope = project.scope || '';
     const projectTargets = project.targets || '';

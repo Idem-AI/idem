@@ -54,7 +54,8 @@ const ProjectSchema = new Schema<ProjectDocument>(
   {
     _id: { type: Schema.Types.Mixed },
     name: { type: String, required: true },
-    description: { type: String, required: true },
+    description: { type: String, required: true, maxlength: 200 },
+    longDescription: { type: String, maxlength: 15000 },
     type: {
       type: String,
       enum: [

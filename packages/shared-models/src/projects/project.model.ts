@@ -68,6 +68,7 @@ export interface ProjectModel {
   id?: string;
   name: string;
   description: string;
+  longDescription?: string;
   type: ProjectType;
   constraints: string[];
   teamSize: string;
@@ -108,6 +109,7 @@ export interface ProjectModel {
 export interface CreateProjectDTO {
   name: string;
   description: string;
+  longDescription?: string;
   type: ProjectType;
   constraints: string[];
   teamSize: string;
@@ -124,6 +126,7 @@ export interface CreateProjectDTO {
 export interface UpdateProjectDTO {
   name?: string;
   description?: string;
+  longDescription?: string;
   type?: ProjectType;
   constraints?: string[];
   teamSize?: string;

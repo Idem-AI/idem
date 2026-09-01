@@ -828,7 +828,7 @@ export class BrandingService extends GenericService {
       .update(
         JSON.stringify({
           name: project.name,
-          description: project.description,
+          description: project.longDescription || project.description,
           branding: project.analysisResultModel?.branding,
           // Sans la graine et le style, une régénération après changement de
           // direction artistique resservait la charte précédente depuis le cache.
@@ -3525,7 +3525,7 @@ export class BrandingService extends GenericService {
       const pdfPath = await this.pdfService.generatePdf({
         title: 'Branding',
         projectName: project.name || 'Projet Sans Nom',
-        projectDescription: project.description || '',
+        projectDescription: project.longDescription || project.description || '',
         sections: branding.sections,
         sectionDisplayOrder: [
           'Brand Header',
@@ -3842,7 +3842,7 @@ export class BrandingService extends GenericService {
     return `Logo Package - ${project.name}
 
 Project: ${project.name}
-Description: ${project.description || 'No description available'}
+Description: ${project.longDescription || project.description || 'No description available'}
 Format: ${extension.toUpperCase()}
 Files included: ${fileCount}
 Generated on: ${new Date().toISOString()}

@@ -547,7 +547,7 @@ export class SimulationAIService {
 
     return `PROJET IDEM
 Nom: ${project.name}
-Description: ${project.description}
+Description: ${project.longDescription || project.description}
 Type: ${project.type}
 Périmètre: ${project.scope}
 Cibles: ${project.targets}
