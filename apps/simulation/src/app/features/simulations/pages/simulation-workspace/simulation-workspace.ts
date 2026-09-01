@@ -1,8 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, input, untracked } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { VerdictBadge } from '../../components/verdict-badge/verdict-badge';
 import { SimulationStore } from '../../data-access';
 
 /**
@@ -14,7 +13,7 @@ import { SimulationStore } from '../../data-access';
  */
 @Component({
   selector: 'sim-simulation-workspace',
-  imports: [RouterOutlet, RouterLink, TranslatePipe, VerdictBadge],
+  imports: [RouterOutlet, RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './simulation-workspace.html',
 })
@@ -28,7 +27,6 @@ export class SimulationWorkspace {
   protected readonly error = this.store.error;
 
   protected readonly isRunning = this.store.isRunning;
-  protected readonly result = computed(() => this.simulation()?.result ?? null);
 
   constructor() {
     effect(() => {

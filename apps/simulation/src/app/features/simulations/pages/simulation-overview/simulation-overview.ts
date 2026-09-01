@@ -53,6 +53,25 @@ export class SimulationOverview {
       : [];
   });
 
+  /**
+   * La couleur du verdict, et rien d'autre.
+   *
+   * Le verdict se lit sous la jauge, comme la conclusion du chiffre qu'elle
+   * affiche — pas dans un encadré teinté à côté, qui aurait donné un jugement
+   * détaché de ce qui le fonde. La couleur ne porte jamais le sens seule : la
+   * phrase le dit, et se suffit en noir et blanc.
+   */
+  protected readonly verdictColor = computed(() => {
+    switch (this.result()?.verdict) {
+      case 'go':
+        return 'text-verdict-go';
+      case 'no-go':
+        return 'text-verdict-stop';
+      default:
+        return 'text-verdict-warn';
+    }
+  });
+
   protected readonly brokenScenarios = computed(
     () => (this.result()?.scenarios ?? []).filter((scenario) => scenario.outcome?.survives === false).length,
   );
