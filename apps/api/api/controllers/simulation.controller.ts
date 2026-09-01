@@ -261,6 +261,9 @@ export const createSimulationFromDocumentController = async (
       documentName,
       answers,
       understanding,
+      // Validé et horodaté par `requireSimulationConsent` : le corps de la
+      // requête n'est jamais repris tel quel.
+      consent: req.simulationConsent,
     });
     res.status(202).json(simulation);
   } catch (error: any) {
@@ -368,6 +371,7 @@ export const createSimulationController = async (
         // pipeline relisait le projet une seconde fois : un appel de plus,
         // pour une lecture qui pouvait différer de celle qui était affichée.
         understanding: understanding?.profile ? understanding : undefined,
+        consent: req.simulationConsent,
       }
     );
     res.status(202).json(simulation);

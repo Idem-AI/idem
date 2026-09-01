@@ -33,6 +33,7 @@ import {
   ProjectUnderstanding,
   RedTeamReport,
   Scenario,
+  SimulationConsent,
   SimulationModel,
   SimulationOrigin,
   SimulationPricing,
@@ -94,6 +95,11 @@ export interface CreateSimulationInput {
    * d'analyse a montrée.
    */
   understanding?: ProjectUnderstanding;
+  /**
+   * L'accord recueilli juste avant ce lancement, validé par
+   * `requireSimulationConsent`. Conservé avec l'exécution qu'il autorise.
+   */
+  consent?: SimulationConsent;
 }
 
 export class SimulationService {
@@ -144,6 +150,57 @@ export class SimulationService {
     );
     if (!updated) {
       throw new Error(`Failed to persist simulations for project ${projectId}`);
+    }
+  }
+
+  /**
+   * Reporte l'accord de l'exécution sur la fiche projet, quand elle n'en porte
+   * aucun.
+   *
+   * Les routes de rapport et de laboratoires vérifient l'acceptation au niveau
+   * du projet. Sans ce report, un projet créé depuis un business plan importé
+   * — qui n'a jamais connu l'écran de finalisation — voyait sa simulation
+   * aboutir puis chaque livrable suivant refusé.
+   *
+   * Une fiche déjà finalisée n'est pas touchée : son acceptation d'origine,
+   * avec sa date et son adresse, vaut mieux que celle d'aujourd'hui.
+   */
+  private async ensureProjectPolicyAcceptance(
+    userId: string,
+    projectId: string,
+    project: ProjectModel,
+    consent: SimulationConsent
+  ): Promise<void> {
+    if (project.policyAcceptance) {
+      return;
+    }
+
+    try {
+      await this.projectRepository.update(
+        projectId,
+        {
+          policyAcceptance: {
+            privacyPolicyAccepted: consent.privacyPolicyAccepted,
+            // Les conditions acceptées ici sont celles de la simulation :
+            // c'est l'acte qui a fait exister ce projet, ou le seul que
+            // l'utilisateur ait posé sur lui.
+            termsOfServiceAccepted: consent.simulationTermsAccepted,
+            betaPolicyAccepted: consent.betaPolicyAccepted,
+            marketingAccepted: false,
+            acceptedAt: consent.acceptedAt,
+            ipAddress: consent.ipAddress,
+            userAgent: consent.userAgent,
+          },
+        } as Partial<ProjectModel>,
+        this.collectionPath(userId)
+      );
+      logger.info(`Policy acceptance recorded on project ${projectId} from simulation consent`);
+    } catch (error: any) {
+      // L'exécution est déjà lancée : la faire échouer ici serait pire que de
+      // signaler le manque. Le refus se produirait au premier laboratoire.
+      logger.error(
+        `Failed to record policy acceptance on project ${projectId}: ${error.message}`
+      );
     }
   }
 
@@ -313,9 +370,19 @@ export class SimulationService {
       documentName: input.documentName,
       previousRunId: input.previousRunId,
       revision: previous ? previous.revision + 1 : 1,
+      consent: input.consent,
     });
 
     await this.writeSimulations(userId, projectId, project, [simulation, ...simulations]);
+
+    // Le rapport et les laboratoires qui suivront restent gardés par
+    // l'acceptation portée par la fiche projet. Un projet jamais finalisé —
+    // ou créé à l'instant depuis un business plan — n'en a aucune : l'accord
+    // donné pour cette exécution la constitue, plutôt que de laisser
+    // l'utilisateur devant un refus au premier laboratoire ouvert.
+    if (input.consent) {
+      await this.ensureProjectPolicyAcceptance(userId, projectId, project, input.consent);
+    }
 
     // La lecture validée à l'écran repasse par les bornes du moteur avant de
     // servir : elle a transité par le navigateur.
@@ -390,6 +457,19 @@ export class SimulationService {
       deployments: [],
       activeChatMessages: [],
       project: null,
+      // La fiche naît avec l'accord qui l'a fait naître : sans lui, le rapport
+      // et les laboratoires de sa propre simulation lui seraient refusés.
+      policyAcceptance: input.consent
+        ? {
+            privacyPolicyAccepted: input.consent.privacyPolicyAccepted,
+            termsOfServiceAccepted: input.consent.simulationTermsAccepted,
+            betaPolicyAccepted: input.consent.betaPolicyAccepted,
+            marketingAccepted: false,
+            acceptedAt: input.consent.acceptedAt,
+            ipAddress: input.consent.ipAddress,
+            userAgent: input.consent.userAgent,
+          }
+        : undefined,
       additionalInfos: {
         // Coordonnées et équipe ne sont reprises que si le document les
         // écrivait : une fiche à moitié inventée serait pire que vide.
@@ -426,6 +506,7 @@ export class SimulationService {
       documentName: input.documentName,
       answers: input.answers,
       understanding,
+      consent: input.consent,
     });
   }
 

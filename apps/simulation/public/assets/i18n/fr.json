@@ -5,7 +5,8 @@
   "action": {
     "back": "Retour",
     "retry": "Réessayer",
-    "dismiss": "Fermer"
+    "dismiss": "Fermer",
+    "cancel": "Annuler"
   },
   "nav": {
     "main": "Navigation principale",
@@ -593,5 +594,17 @@
       "analyse": "L'analyse tourne sur nos serveurs, sous votre compte IDEM. Connectez-vous pour la lancer : votre document vous attendra ici.",
       "launch": "Dernière étape : connectez-vous pour lancer la simulation et retrouver son rapport."
     }
+  },
+  "consent": {
+    "heading": "Votre accord avant le lancement",
+    "body": "Cette exécution lit votre projet, en crée la fiche IDEM lorsqu'il s'agit d'un business plan importé, et en confie un extrait à des moteurs d'intelligence artificielle. Votre accord est demandé à chaque lancement, et conservé avec l'exécution qu'il autorise.",
+    "iAccept": "J'accepte",
+    "document": {
+      "privacy": "la politique de confidentialité",
+      "simulationTerms": "les conditions d'utilisation de la simulation",
+      "beta": "la politique bêta"
+    },
+    "required": "Ces accords sont nécessaires pour lancer la simulation.",
+    "confirm": "Accepter et lancer"
   }
 }

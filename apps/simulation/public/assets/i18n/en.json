@@ -5,7 +5,8 @@
   "action": {
     "back": "Back",
     "retry": "Try again",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "cancel": "Cancel"
   },
   "nav": {
     "main": "Main navigation",
@@ -593,5 +594,17 @@
       "analyse": "The analysis runs on our servers, under your IDEM account. Sign in to start it — your document will be waiting here.",
       "launch": "One last step: sign in to launch the simulation and keep its report."
     }
+  },
+  "consent": {
+    "heading": "Your agreement before launching",
+    "body": "This run reads your project, creates its IDEM record when it comes from an imported business plan, and sends an extract of it to artificial intelligence engines. Your agreement is asked at every launch, and kept with the run it authorises.",
+    "iAccept": "I accept",
+    "document": {
+      "privacy": "the privacy policy",
+      "simulationTerms": "the simulation terms of use",
+      "beta": "the beta policy"
+    },
+    "required": "These agreements are required to launch the simulation.",
+    "confirm": "Accept and launch"
   }
 }

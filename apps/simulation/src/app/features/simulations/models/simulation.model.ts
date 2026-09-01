@@ -119,6 +119,21 @@ export interface SimulationSummary {
   updatedAt: string;
 }
 
+/**
+ * L'accord donné pour cette exécution.
+ *
+ * Une simulation lit le projet, en tire un modèle et le confie à plusieurs
+ * moteurs d'IA : l'accord est redemandé à chaque lancement, y compris depuis
+ * un projet IDEM déjà finalisé, et l'API le conserve avec l'exécution qu'il
+ * autorise.
+ */
+export interface SimulationConsent {
+  privacyPolicyAccepted: boolean;
+  simulationTermsAccepted: boolean;
+  /** Demandé tant que le produit est en bêta. */
+  betaPolicyAccepted: boolean;
+}
+
 export interface CreateSimulationInput {
   name: string;
   origin: SimulationOrigin;
@@ -134,4 +149,6 @@ export interface CreateSimulationInput {
    * bien de ce que l'écran a montré.
    */
   understanding?: ProjectUnderstanding;
+  /** Sans lui, l'API refuse le lancement (403). */
+  consent: SimulationConsent;
 }
