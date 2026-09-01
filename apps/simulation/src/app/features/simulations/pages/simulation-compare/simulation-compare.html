@@ -94,7 +94,7 @@
         type="button"
         class="inner-button mt-4"
         [disabled]="relaunching()"
-        (click)="relaunch()"
+        (click)="askToRelaunch()"
       >
         {{ (relaunching() ? 'newRun.launching' : 'compare.relaunch') | translate }}
       </button>
@@ -103,3 +103,10 @@
     <sim-disclaimer-note />
   }
 </div>
+
+@if (askingConsent()) {
+  <sim-consent-dialog
+    (dismissed)="askingConsent.set(false)"
+    (accepted)="relaunch($event)"
+  />
+}

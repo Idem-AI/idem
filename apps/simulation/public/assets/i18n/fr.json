@@ -5,7 +5,8 @@
   "action": {
     "back": "Retour",
     "retry": "Réessayer",
-    "dismiss": "Fermer"
+    "dismiss": "Fermer",
+    "cancel": "Annuler"
   },
   "nav": {
     "main": "Navigation principale",
@@ -85,11 +86,12 @@
   "newRun": {
     "title": "Nouvelle simulation",
     "heading": "Nouvelle simulation",
-    "description": "Trois étapes : choisir le projet, valider ce que le moteur en sait, puis confirmer le niveau de simulation.",
+    "description": "Quatre étapes : choisir le projet, valider ce que le moteur en sait, choisir le niveau de simulation, puis confirmer.",
     "step": {
       "source": "Projet",
       "analysis": "Analyse",
-      "plan": "Niveau"
+      "plan": "Niveau",
+      "confirm": "Confirmation"
     },
     "source": {
       "project": "Un projet IDEM",
@@ -126,7 +128,8 @@
       "betaFreeLead": "Gratuit pendant la bêta.",
       "betaNotice": "Quel que soit le niveau choisi, cette simulation ne vous sera pas facturée. Les tarifs indiqués s'appliqueront à la sortie de bêta.",
       "free": "Gratuit",
-      "priceAfterBeta": "Tarif après la bêta :"
+      "priceAfterBeta": "Tarif après la bêta :",
+      "continue": "Choisir ce niveau"
     },
     "launch": "Lancer la simulation",
     "launching": "Lancement…",
@@ -139,6 +142,22 @@
       "choose": "Choisir",
       "selected": "Sélectionné",
       "note": "Une simulation est un outil d'aide à la décision, jamais une prédiction. Chaque résultat est accompagné de son degré de confiance."
+    },
+    "confirm": {
+      "heading": "Vérifiez avant de lancer",
+      "body": "L'exécution dure quelques minutes et ne peut pas être reprise en cours de route. Voici ce sur quoi elle va travailler, et ce qu'elle vous rendra.",
+      "project": "Ce qui va être simulé",
+      "deliverable": "Ce que vous recevrez",
+      "sourceProject": "Projet IDEM :",
+      "sourceDocument": "Business plan :",
+      "established": "établis",
+      "researched": "à rechercher",
+      "assumed": "estimés",
+      "answered": "{{count}} information(s) que vous avez complétée(s) à l'étape précédente.",
+      "createsProject": "Le projet IDEM correspondant sera créé dans votre espace, à partir de ce que le document a livré.",
+      "duration": "Quelques minutes. L'exécution continue si vous fermez la page, et rien n'est retenu si elle échoue.",
+      "changeTier": "Changer de niveau",
+      "knowledge": "Ce sur quoi le moteur s'appuiera :"
     }
   },
   "tier": {
@@ -181,13 +200,16 @@
     "known": "Ce que nous savons",
     "researchable": "Ce qui doit être recherché",
     "uncertain": "Ce qui est incertain",
-    "missing": "Ce qui manque"
+    "missing": "Ce qui manque",
+    "extras": "Autres informations relevées",
+    "extrasHint": "Ce que votre document précise et qu'aucune fiche standard ne prévoit. Rien n'est écarté : ces éléments partent au moteur avec le reste."
   },
   "knowledgeHint": {
-    "known": "Informations fournies directement dans le projet.",
-    "researchable": "Données externes que le moteur va collecter pour rendre la simulation plus réaliste.",
-    "uncertain": "Aucune donnée suffisamment fiable n'existe. Le moteur travaille par hypothèse et le signale.",
-    "missing": "Paramètres qui peuvent fortement influencer les résultats et restent inconnus."
+    "knownDocument": "Lu tel quel dans votre business plan. Rien n'est ajouté ici ; ce que le moteur a estimé se trouve plus bas.",
+    "knownProject": "Renseigné tel quel dans votre projet IDEM. Ce que le moteur a estimé se trouve plus bas.",
+    "researchable": "Chiffres publiés que le moteur ira chercher pour ancrer la simulation dans votre marché.",
+    "uncertain": "Estimé par le moteur, faute de valeur dans la source. Chaque ligne dit sur quoi repose l'estimation et ce qui permettrait de trancher.",
+    "missing": "Absent de la source, et susceptible de déplacer les résultats. Vous pouvez le renseigner vous-même."
   },
   "profile": {
     "sector": "Secteur",
@@ -590,5 +612,17 @@
       "analyse": "L'analyse tourne sur nos serveurs, sous votre compte IDEM. Connectez-vous pour la lancer : votre document vous attendra ici.",
       "launch": "Dernière étape : connectez-vous pour lancer la simulation et retrouver son rapport."
     }
+  },
+  "consent": {
+    "heading": "Votre accord avant le lancement",
+    "body": "Cette exécution lit votre projet, en crée la fiche IDEM lorsqu'il s'agit d'un business plan importé, et en confie un extrait à des moteurs d'intelligence artificielle. Votre accord est demandé à chaque lancement, et conservé avec l'exécution qu'il autorise.",
+    "iAccept": "J'accepte",
+    "document": {
+      "privacy": "la politique de confidentialité",
+      "simulationTerms": "les conditions d'utilisation de la simulation",
+      "beta": "la politique bêta"
+    },
+    "required": "Ces accords sont nécessaires pour lancer la simulation.",
+    "confirm": "Accepter et lancer"
   }
 }

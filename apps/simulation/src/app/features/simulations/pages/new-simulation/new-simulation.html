@@ -402,25 +402,55 @@
         }
       </sim-page-header>
 
-      <!-- Trois étapes nommées, pour que le prix ne soit jamais une surprise. -->
-      <ol class="flex items-center gap-2 text-meta">
+      <!-- Quatre étapes nommées, pour que ni le prix ni l'accord demandé ne
+           soient une surprise. Le chemin parcouru se distingue de ce qui
+           reste : sur quatre étapes, la seule étape courante ne suffit plus à
+           se repérer. -->
+      <ol class="flex flex-wrap items-center gap-x-2 gap-y-2 text-meta">
         @for (entry of steps; track entry.id; let last = $last) {
           <li class="flex items-center gap-2">
             <span
-              class="grid size-5 place-items-center rounded-full text-[0.6875rem] font-bold"
+              class="grid size-5 place-items-center rounded-full text-[0.6875rem] font-bold transition-colors"
               [class]="
-                step() === entry.id
+                stepState(entry.id) === 'current'
                   ? 'bg-brand text-brand-ink'
-                  : 'border border-line bg-panel-sunken text-ink-subtle'
+                  : stepState(entry.id) === 'done'
+                    ? 'bg-brand-soft/25 text-brand'
+                    : 'border border-line bg-panel-sunken text-ink-subtle'
               "
             >
-              {{ entry.index }}
+              @if (stepState(entry.id) === 'done') {
+                <svg
+                  viewBox="0 0 24 24"
+                  class="size-3"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="3.4"
+                  aria-hidden="true"
+                >
+                  <path d="m5 13 4 4L19 7" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              } @else {
+                {{ entry.index }}
+              }
             </span>
-            <span [class]="step() === entry.id ? 'font-semibold text-ink' : 'text-ink-subtle'">
+            <span
+              [class]="
+                stepState(entry.id) === 'current'
+                  ? 'font-semibold text-ink'
+                  : stepState(entry.id) === 'done'
+                    ? 'text-ink-muted'
+                    : 'text-ink-subtle'
+              "
+            >
               {{ 'newRun.step.' + entry.id | translate }}
             </span>
             @if (!last) {
-              <span class="mx-1 h-px w-6 bg-line" aria-hidden="true"></span>
+              <span
+                class="mx-1 h-px w-6"
+                [class]="stepState(entry.id) === 'done' ? 'bg-brand-soft/50' : 'bg-line'"
+                aria-hidden="true"
+              ></span>
             }
           </li>
         }
@@ -470,7 +500,7 @@
                     <span class="ml-1 font-normal text-ink-subtle">({{ group.items.length }})</span>
                   </h3>
                   <p class="mt-0.5 text-meta leading-relaxed text-ink-subtle">
-                    {{ 'knowledgeHint.' + group.state | translate }}
+                    {{ knowledgeHintKey(group.state) | translate }}
                   </p>
                   <ul class="mt-3 flex flex-col divide-y divide-line">
                     @for (item of group.items; track item.id) {
@@ -488,6 +518,26 @@
                             {{ item.detail }}
                           </p>
                         }
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (extras().length) {
+                <div class="glass-card p-4">
+                  <h3 class="text-label font-semibold text-ink">
+                    {{ 'knowledge.extras' | translate }}
+                    <span class="ml-1 font-normal text-ink-subtle">({{ extras().length }})</span>
+                  </h3>
+                  <p class="mt-0.5 max-w-[70ch] text-meta leading-relaxed text-ink-subtle">
+                    {{ 'knowledge.extrasHint' | translate }}
+                  </p>
+                  <ul class="mt-3 flex flex-col divide-y divide-line">
+                    @for (fact of extras(); track fact.label + fact.value) {
+                      <li class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5 first:pt-0 last:pb-0">
+                        <span class="text-sm text-ink">{{ fact.label }}</span>
+                        <span class="text-sm font-medium text-ink-muted">{{ fact.value }}</span>
                       </li>
                     }
                   </ul>
@@ -538,11 +588,14 @@
       }
 
       <!-- ------------------------------------------------------------------ -->
+      <!-- Le choix du niveau. Trois cartes de front plutôt qu'une liste : ce
+           qui distingue les niveaux, c'est ce qu'ils contiennent, et cela ne se
+           compare qu'en les mettant côte à côte. -->
       @if (step() === 'plan') {
-        <section class="flex flex-col gap-5">
+        <section class="flex flex-col gap-6">
           <div>
             <div class="flex flex-wrap items-center gap-2">
-              <h2 class="text-h3 font-semibold text-ink">{{ 'newRun.plan.heading' | translate }}</h2>
+              <h2 class="text-h2 font-semibold text-ink">{{ 'newRun.plan.heading' | translate }}</h2>
               @if (isBeta) {
                 <span
                   class="rounded-full bg-verdict-go/15 px-2 py-0.5 text-[0.6875rem] font-bold uppercase tracking-wide text-verdict-go"
@@ -551,7 +604,7 @@
                 </span>
               }
             </div>
-            <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+            <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
               {{ (isBeta ? 'newRun.plan.betaBody' : 'newRun.plan.body') | translate }}
             </p>
           </div>
@@ -582,102 +635,364 @@
             <div
               role="radiogroup"
               [attr.aria-label]="'newRun.plan.heading' | translate"
-              class="flex flex-col gap-2"
+              class="grid gap-4 md:grid-cols-3"
             >
-              @for (plan of offer.plans; track plan.tier) {
+              @for (plan of offer.plans; track plan.tier; let i = $index) {
                 <button
                   type="button"
                   role="radio"
                   [attr.aria-checked]="selectedTier() === plan.tier"
-                  class="flex flex-wrap items-start gap-x-4 gap-y-2 rounded-xl border p-4 text-left transition-colors"
+                  class="rise-stagger group relative flex flex-col rounded-2xl border p-5 text-left transition-[transform,border-color,box-shadow] duration-200"
+                  [style.--i]="i + 1"
                   [class]="
                     selectedTier() === plan.tier
-                      ? 'border-brand bg-brand-soft/40'
-                      : 'border-line bg-panel hover:border-line-strong'
+                      ? 'border-brand bg-brand-soft/10 shadow-raised'
+                      : 'border-line bg-panel hover:-translate-y-0.5 hover:border-line-strong'
                   "
                   (click)="selectedTier.set(plan.tier)"
                 >
+                  @if (plan.recommended) {
+                    <span
+                      class="absolute -top-2.5 left-5 rounded-full bg-primary px-2.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide text-brand-ink"
+                    >
+                      {{ 'newRun.plan.recommended' | translate }}
+                    </span>
+                  }
+
+                  <!-- Coche de sélection : la bordure seule se voit mal en
+                       thème clair, et se perd sur trois cartes. -->
                   <span
-                    class="mt-1 grid size-4 shrink-0 place-items-center rounded-full border"
-                    [class]="selectedTier() === plan.tier ? 'border-brand' : 'border-line-strong'"
+                    class="absolute right-4 top-4 grid size-5 place-items-center rounded-full border transition-colors"
+                    [class]="
+                      selectedTier() === plan.tier
+                        ? 'border-brand bg-brand text-brand-ink'
+                        : 'border-line-strong text-transparent'
+                    "
                     aria-hidden="true"
                   >
-                    @if (selectedTier() === plan.tier) {
-                      <span class="size-2 rounded-full bg-brand"></span>
+                    <svg viewBox="0 0 24 24" class="size-3" fill="none" stroke="currentColor" stroke-width="3.2">
+                      <path d="m5 13 4 4L19 7" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </span>
+
+                  <!-- Chaque niveau porte son illustration : le lecteur
+                       distingue les cartes avant même d'avoir lu le titre. -->
+                  <span class="block">
+                    @switch (plan.tier) {
+                      @case ('run') {
+                        <svg viewBox="0 0 96 72" class="h-16 w-24 text-ink" fill="none" aria-hidden="true">
+                          <defs>
+                            <linearGradient id="simTierRun" x1="0" y1="1" x2="1" y2="0">
+                              <stop offset="0%" stop-color="var(--color-primary)" />
+                              <stop offset="100%" stop-color="var(--color-accent-500)" />
+                            </linearGradient>
+                          </defs>
+                          <path d="M10 62V12" stroke="currentColor" stroke-opacity=".28" stroke-width="1.5" stroke-linecap="round" />
+                          <path d="M10 62h74" stroke="currentColor" stroke-opacity=".28" stroke-width="1.5" stroke-linecap="round" />
+                          <path d="M10 54c14 0 22-4 32-14s24-18 42-22" stroke="url(#simTierRun)" stroke-width="2.5" stroke-linecap="round" />
+                          <path d="M10 54c14 2 24 2 34 6s26 2 40-4" stroke="currentColor" stroke-opacity=".45" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 4" />
+                          <path d="M10 54c12 6 22 8 32 6s26-10 42-12" stroke="currentColor" stroke-opacity=".28" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 4" />
+                          <circle cx="10" cy="54" r="3.5" fill="url(#simTierRun)" />
+                        </svg>
+                      }
+                      @case ('report') {
+                        <svg viewBox="0 0 96 72" class="h-16 w-24 text-ink" fill="none" aria-hidden="true">
+                          <defs>
+                            <linearGradient id="simTierReport" x1="0" y1="0" x2="1" y2="1">
+                              <stop offset="0%" stop-color="var(--color-primary)" />
+                              <stop offset="100%" stop-color="var(--color-accent-500)" />
+                            </linearGradient>
+                          </defs>
+                          <rect x="20" y="6" width="56" height="60" rx="6" stroke="currentColor" stroke-opacity=".3" stroke-width="1.5" />
+                          <path d="M20 12a6 6 0 0 1 6-6h44a6 6 0 0 1 6 6v7H20v-7Z" fill="url(#simTierReport)" fill-opacity=".18" />
+                          <path d="M29 29h22M29 37h38M29 45h30" stroke="currentColor" stroke-opacity=".38" stroke-width="2" stroke-linecap="round" />
+                          <rect x="29" y="52" width="6" height="8" rx="1.5" fill="url(#simTierReport)" fill-opacity=".85" />
+                          <rect x="39" y="48" width="6" height="12" rx="1.5" fill="url(#simTierReport)" fill-opacity=".6" />
+                          <rect x="49" y="54" width="6" height="6" rx="1.5" fill="url(#simTierReport)" fill-opacity=".4" />
+                        </svg>
+                      }
+                      @default {
+                        <svg viewBox="0 0 96 72" class="h-16 w-24 text-ink" fill="none" aria-hidden="true">
+                          <defs>
+                            <linearGradient id="simTierPack" x1="0" y1="0" x2="1" y2="1">
+                              <stop offset="0%" stop-color="var(--color-primary)" />
+                              <stop offset="100%" stop-color="var(--color-accent-500)" />
+                            </linearGradient>
+                          </defs>
+                          <rect x="34" y="4" width="52" height="56" rx="6" stroke="currentColor" stroke-opacity=".22" stroke-width="1.5" />
+                          <rect x="14" y="14" width="52" height="54" rx="6" fill="var(--color-surface-2)" stroke="currentColor" stroke-opacity=".3" stroke-width="1.5" />
+                          <path d="M14 20a6 6 0 0 1 6-6h40a6 6 0 0 1 6 6v6H14v-6Z" fill="url(#simTierPack)" fill-opacity=".18" />
+                          <path d="M22 52c8 0 12-3 18-10s12-11 20-13" stroke="url(#simTierPack)" stroke-width="2.5" stroke-linecap="round" />
+                          <path d="M22 36h16M22 44h24" stroke="currentColor" stroke-opacity=".34" stroke-width="2" stroke-linecap="round" />
+                          <circle cx="22" cy="52" r="3" fill="url(#simTierPack)" />
+                        </svg>
+                      }
                     }
                   </span>
 
-                  <span class="min-w-0 flex-1">
-                    <span class="flex flex-wrap items-center gap-2">
-                      <span class="text-sm font-semibold text-ink">{{
-                        'tier.' + plan.tier | translate
-                      }}</span>
-                      @if (plan.recommended) {
-                        <span
-                          class="rounded border border-brand/50 px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide text-brand"
-                        >
-                          {{ 'newRun.plan.recommended' | translate }}
-                        </span>
-                      }
-                    </span>
-                    <span class="mt-0.5 block text-meta leading-relaxed text-ink-muted">
-                      {{ 'tierBody.' + plan.tier | translate }}
-                    </span>
-                    <ul class="mt-2 flex flex-col gap-1">
-                      @for (line of plan.includes; track line) {
-                        <li class="flex items-start gap-1.5 text-meta text-ink-muted">
-                          <svg
-                            viewBox="0 0 24 24"
-                            class="mt-0.5 size-3.5 shrink-0 text-brand"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2.4"
-                            aria-hidden="true"
-                          >
-                            <path
-                              d="m5 13 4 4L19 7"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                            />
-                          </svg>
-                          {{ line | translate }}
-                        </li>
-                      }
-                    </ul>
-                  </span>
+                  <h3 class="mt-3 text-h3 font-semibold text-ink">
+                    {{ 'tier.' + plan.tier | translate }}
+                  </h3>
+                  <p class="mt-1 text-meta leading-relaxed text-ink-muted">
+                    {{ 'tierBody.' + plan.tier | translate }}
+                  </p>
 
-                  <span class="shrink-0 text-right">
+                  <!-- Le prix, détaché du texte : c'est l'information que l'œil
+                       vient chercher sur une carte de tarif. -->
+                  <p class="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                     @if (isBeta) {
-                      <!-- Le tarif reste lisible — il dit ce que vaut le niveau —
-                           mais c'est « Gratuit » qui porte le prix effectif. -->
-                      <span class="block text-base font-bold uppercase tracking-wide text-verdict-go">
+                      <span class="text-h2 font-bold uppercase tracking-wide text-verdict-go">
                         {{ 'newRun.plan.free' | translate }}
                       </span>
-                      <s class="mt-0.5 block text-meta tabular-nums text-ink-subtle line-through">
+                      <s class="text-meta tabular-nums text-ink-subtle">
                         <span class="sr-only">{{ 'newRun.plan.priceAfterBeta' | translate }}</span>
                         {{ planPrice(plan) }}
                       </s>
                     } @else {
-                      <span class="block text-base font-bold tabular-nums text-ink">{{
-                        planPrice(plan)
-                      }}</span>
+                      <span class="text-h2 font-bold tabular-nums text-ink">{{ planPrice(plan) }}</span>
                       @if (planListPrice(plan); as listPrice) {
-                        <span class="block text-meta tabular-nums text-ink-subtle line-through">{{
-                          listPrice
-                        }}</span>
+                        <s class="text-meta tabular-nums text-ink-subtle">{{ listPrice }}</s>
                       }
                     }
-                  </span>
+                  </p>
+
+                  <ul class="mt-4 flex flex-col gap-1.5 border-t border-line pt-4">
+                    @for (line of plan.includes; track line) {
+                      <li class="flex items-start gap-2 text-meta leading-relaxed text-ink-muted">
+                        <svg
+                          viewBox="0 0 24 24"
+                          class="mt-0.5 size-3.5 shrink-0 text-brand"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2.6"
+                          aria-hidden="true"
+                        >
+                          <path d="m5 13 4 4L19 7" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        {{ line | translate }}
+                      </li>
+                    }
+                  </ul>
                 </button>
               }
             </div>
           } @else {
-            <div class="flex flex-col gap-2">
+            <div class="grid gap-4 md:grid-cols-3">
               @for (row of [1, 2, 3]; track row) {
-                <div class="skeleton h-24 rounded-xl"></div>
+                <div class="skeleton h-72 rounded-2xl"></div>
               }
             </div>
           }
+
+          <div class="flex justify-between gap-3">
+            <button type="button" class="button-ghost" (click)="back()">
+              {{ 'action.back' | translate }}
+            </button>
+            <button
+              type="button"
+              class="inner-button button-lg"
+              [disabled]="!pricing()"
+              (click)="goToConfirm()"
+            >
+              {{ 'newRun.plan.continue' | translate }}
+            </button>
+          </div>
+        </section>
+      }
+
+      <!-- ------------------------------------------------------------------ -->
+      <!-- Confirmation. L'accord de traitement des données a son écran à lui :
+           coché en marge d'un comparatif de tarifs, il n'aurait été qu'une case
+           de plus entre deux prix. -->
+      @if (step() === 'confirm') {
+        <section class="flex flex-col gap-5">
+          <div>
+            <h2 class="text-h2 font-semibold text-ink">
+              {{ 'newRun.confirm.heading' | translate }}
+            </h2>
+            <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+              {{ 'newRun.confirm.body' | translate }}
+            </p>
+          </div>
+
+          <div class="grid gap-4 lg:grid-cols-2">
+            <!-- Ce qui part en simulation. -->
+            <div class="glass-card flex flex-col p-5">
+              <h3 class="text-label font-semibold text-ink">
+                {{ 'newRun.confirm.project' | translate }}
+              </h3>
+
+              <p class="mt-2 text-h3 font-semibold text-ink">{{ runName() }}</p>
+              @if (recapSource(); as source) {
+                <p class="mt-1 flex flex-wrap items-center gap-1.5 text-meta text-ink-subtle">
+                  <i
+                    class="pi text-[0.75rem]"
+                    [class]="createsProject() ? 'pi-file' : 'pi-folder'"
+                    aria-hidden="true"
+                  ></i>
+                  {{
+                    (createsProject()
+                      ? 'newRun.confirm.sourceDocument'
+                      : 'newRun.confirm.sourceProject'
+                    ) | translate
+                  }}
+                  <span class="text-ink-muted">{{ source }}</span>
+                </p>
+              }
+
+              @if (recapRows().length) {
+                <dl class="mt-4 flex flex-col gap-2 border-t border-line pt-4">
+                  @for (row of recapRows(); track row.labelKey) {
+                    <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5">
+                      <dt class="text-meta text-ink-subtle">{{ row.labelKey | translate }}</dt>
+                      <dd class="text-meta text-ink">{{ row.value }}</dd>
+                    </div>
+                  }
+                </dl>
+              }
+
+              <!-- Le rapport de force entre ce qui est établi et ce qui est
+                   supposé : c'est lui qui donne sa portée au résultat. -->
+              @if (recapKnowledge(); as knowledge) {
+                <p class="mt-4 text-meta text-ink-subtle">
+                  {{ 'newRun.confirm.knowledge' | translate }}
+                </p>
+                <div class="mt-1.5 grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-line bg-line">
+                  <div class="bg-panel px-3 py-2.5 text-center">
+                    <p class="text-h3 font-semibold tabular-nums text-ink">{{ knowledge.established }}</p>
+                    <p class="mt-0.5 text-[0.6875rem] leading-tight text-ink-subtle">
+                      {{ 'newRun.confirm.established' | translate }}
+                    </p>
+                  </div>
+                  <div class="bg-panel px-3 py-2.5 text-center">
+                    <p class="text-h3 font-semibold tabular-nums text-ink">{{ knowledge.researched }}</p>
+                    <p class="mt-0.5 text-[0.6875rem] leading-tight text-ink-subtle">
+                      {{ 'newRun.confirm.researched' | translate }}
+                    </p>
+                  </div>
+                  <div class="bg-panel px-3 py-2.5 text-center">
+                    <p class="text-h3 font-semibold tabular-nums text-ink">{{ knowledge.assumed }}</p>
+                    <p class="mt-0.5 text-[0.6875rem] leading-tight text-ink-subtle">
+                      {{ 'newRun.confirm.assumed' | translate }}
+                    </p>
+                  </div>
+                </div>
+
+                @if (knowledge.answered) {
+                  <p class="mt-2 text-meta leading-relaxed text-ink-subtle">
+                    {{
+                      'newRun.confirm.answered' | translate: { count: knowledge.answered }
+                    }}
+                  </p>
+                }
+              }
+
+              @if (createsProject()) {
+                <p
+                  class="mt-4 flex items-start gap-2 rounded-lg border border-line bg-panel-sunken px-3 py-2 text-meta leading-relaxed text-ink-muted"
+                >
+                  <i class="pi pi-plus-circle mt-0.5 shrink-0 text-brand text-[0.75rem]" aria-hidden="true"></i>
+                  {{ 'newRun.confirm.createsProject' | translate }}
+                </p>
+              }
+            </div>
+
+            <!-- Ce qui revient, et quand. -->
+            <div class="glass-card flex flex-col p-5">
+              <h3 class="text-label font-semibold text-ink">
+                {{ 'newRun.confirm.deliverable' | translate }}
+              </h3>
+
+              @if (selectedPlan(); as plan) {
+                <p class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <span class="text-h3 font-semibold text-ink">{{ 'tier.' + plan.tier | translate }}</span>
+                  @if (isBeta) {
+                    <span class="text-label font-bold uppercase tracking-wide text-verdict-go">
+                      {{ 'newRun.plan.free' | translate }}
+                    </span>
+                    <s class="text-meta tabular-nums text-ink-subtle">{{ planPrice(plan) }}</s>
+                  } @else {
+                    <span class="text-label font-semibold tabular-nums text-ink">{{ planPrice(plan) }}</span>
+                  }
+                </p>
+
+                <ul class="mt-4 flex flex-col gap-1.5 border-t border-line pt-4">
+                  @for (line of plan.includes; track line) {
+                    <li class="flex items-start gap-2 text-meta leading-relaxed text-ink-muted">
+                      <svg
+                        viewBox="0 0 24 24"
+                        class="mt-0.5 size-3.5 shrink-0 text-brand"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.6"
+                        aria-hidden="true"
+                      >
+                        <path d="m5 13 4 4L19 7" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                      {{ line | translate }}
+                    </li>
+                  }
+                </ul>
+
+                <p class="mt-4 flex items-start gap-2 text-meta leading-relaxed text-ink-subtle">
+                  <i class="pi pi-clock mt-0.5 shrink-0 text-[0.75rem]" aria-hidden="true"></i>
+                  {{ 'newRun.confirm.duration' | translate }}
+                </p>
+              }
+
+              <!-- `mt-auto` : les deux cartes ont la même hauteur, et sans
+                   cela ce bouton flottait au milieu du vide de la plus courte. -->
+              <button
+                type="button"
+                class="button-ghost button-sm mt-auto self-start pt-4"
+                (click)="step.set('plan')"
+              >
+                {{ 'newRun.confirm.changeTier' | translate }}
+              </button>
+            </div>
+          </div>
+
+          <!-- L'accord, redemandé à chaque exécution : elle lit le projet, en
+               crée un dans IDEM le cas échéant, et en confie un extrait à
+               plusieurs moteurs d'IA. -->
+          <div class="glass-card p-5">
+            <h3 class="text-label font-semibold text-ink">{{ 'consent.heading' | translate }}</h3>
+            <p class="mt-1 max-w-[70ch] text-meta leading-relaxed text-ink-subtle">
+              {{ 'consent.body' | translate }}
+            </p>
+
+            <div class="mt-4 flex flex-col gap-2.5">
+              @for (document of consentDocuments; track document.key) {
+                @if (document.key !== 'beta' || isBeta) {
+                  <label class="flex items-start gap-2.5 text-sm">
+                    <input
+                      type="checkbox"
+                      class="mt-0.5 size-4 shrink-0 cursor-pointer accent-brand"
+                      [checked]="isConsentAccepted(document.key)"
+                      (change)="toggleConsent(document.key)"
+                    />
+                    <span class="leading-snug text-ink-muted">
+                      {{ 'consent.iAccept' | translate }}
+                      <a
+                        [href]="legalUrl(document.path)"
+                        target="_blank"
+                        rel="noopener"
+                        class="font-medium text-brand underline underline-offset-2"
+                      >
+                        {{ 'consent.document.' + document.key | translate }}
+                      </a>
+                    </span>
+                  </label>
+                }
+              }
+            </div>
+
+            @if (!consentComplete()) {
+              <p class="mt-3 text-meta leading-relaxed text-ink-subtle" role="status">
+                {{ 'consent.required' | translate }}
+              </p>
+            }
+          </div>
 
           <sim-disclaimer-note />
 
@@ -688,7 +1003,7 @@
             <button
               type="button"
               class="inner-button button-lg"
-              [disabled]="launching() || !pricing()"
+              [disabled]="launching() || !consentComplete()"
               (click)="launch()"
             >
               @if (launching()) {

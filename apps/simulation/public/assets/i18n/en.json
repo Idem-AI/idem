@@ -5,7 +5,8 @@
   "action": {
     "back": "Back",
     "retry": "Try again",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "cancel": "Cancel"
   },
   "nav": {
     "main": "Main navigation",
@@ -85,11 +86,12 @@
   "newRun": {
     "title": "New simulation",
     "heading": "New simulation",
-    "description": "Three steps: choose the project, review what the engine knows about it, then confirm the simulation level.",
+    "description": "Four steps: pick the project, agree on what the engine knows about it, choose the simulation level, then confirm.",
     "step": {
       "source": "Project",
       "analysis": "Analysis",
-      "plan": "Level"
+      "plan": "Level",
+      "confirm": "Confirm"
     },
     "source": {
       "project": "An IDEM project",
@@ -126,7 +128,8 @@
       "betaFreeLead": "Free during the beta.",
       "betaNotice": "Whichever level you pick, this simulation will not be billed. The prices shown will apply once the beta ends.",
       "free": "Free",
-      "priceAfterBeta": "Price after the beta:"
+      "priceAfterBeta": "Price after the beta:",
+      "continue": "Choose this level"
     },
     "launch": "Start the simulation",
     "launching": "Starting…",
@@ -139,6 +142,22 @@
       "choose": "Choose",
       "selected": "Selected",
       "note": "A simulation is a decision-support tool, never a prediction. Every result comes with how confident the engine is."
+    },
+    "confirm": {
+      "heading": "Check before launching",
+      "body": "A run takes a few minutes and cannot be picked up midway. Here is what it will work on, and what it will hand back.",
+      "project": "What will be simulated",
+      "deliverable": "What you will receive",
+      "sourceProject": "IDEM project:",
+      "sourceDocument": "Business plan:",
+      "established": "established",
+      "researched": "to research",
+      "assumed": "estimated",
+      "answered": "{{count}} item(s) you filled in at the previous step.",
+      "createsProject": "The matching IDEM project will be created in your workspace, from what the document yielded.",
+      "duration": "A few minutes. The run continues if you close the page, and nothing is charged if it fails.",
+      "changeTier": "Change level",
+      "knowledge": "What the engine will work from:"
     }
   },
   "tier": {
@@ -181,13 +200,16 @@
     "known": "What we know",
     "researchable": "What has to be researched",
     "uncertain": "What is uncertain",
-    "missing": "What is missing"
+    "missing": "What is missing",
+    "extras": "Other information picked up",
+    "extrasHint": "What your document states and no standard form has a field for. Nothing is dropped: these go to the engine with the rest."
   },
   "knowledgeHint": {
-    "known": "Information supplied directly in the project.",
-    "researchable": "External data the engine will collect to make the simulation more realistic.",
-    "uncertain": "No sufficiently reliable data exists. The engine works from an assumption and says so.",
-    "missing": "Parameters that can move the results substantially and remain unknown."
+    "knownDocument": "Read as it stands in your business plan. Nothing is added here; what the engine estimated sits further down.",
+    "knownProject": "Stated as it stands in your IDEM project. What the engine estimated sits further down.",
+    "researchable": "Published figures the engine will collect to anchor the simulation in your market.",
+    "uncertain": "Estimated by the engine, for want of a value in the source. Each line says what the estimate rests on and what would settle it.",
+    "missing": "Absent from the source, and liable to move the results. You can supply it yourself."
   },
   "profile": {
     "sector": "Sector",
@@ -590,5 +612,17 @@
       "analyse": "The analysis runs on our servers, under your IDEM account. Sign in to start it — your document will be waiting here.",
       "launch": "One last step: sign in to launch the simulation and keep its report."
     }
+  },
+  "consent": {
+    "heading": "Your agreement before launching",
+    "body": "This run reads your project, creates its IDEM record when it comes from an imported business plan, and sends an extract of it to artificial intelligence engines. Your agreement is asked at every launch, and kept with the run it authorises.",
+    "iAccept": "I accept",
+    "document": {
+      "privacy": "the privacy policy",
+      "simulationTerms": "the simulation terms of use",
+      "beta": "the beta policy"
+    },
+    "required": "These agreements are required to launch the simulation.",
+    "confirm": "Accept and launch"
   }
 }
