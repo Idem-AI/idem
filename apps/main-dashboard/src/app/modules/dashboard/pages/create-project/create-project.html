@@ -111,7 +111,7 @@
         [class.content-standard]="!fromAppGen()"
       >
         <app-mode-choice
-          [projectDescription]="project().description"
+          [projectDescription]="project().longDescription ?? project().description"
           (selectMode)="onModeSelected($event)"
           (back)="onBackFromModeChoice()"
         ></app-mode-choice>

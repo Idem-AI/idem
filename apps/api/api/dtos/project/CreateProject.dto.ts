@@ -16,6 +16,10 @@
  *           type: string
  *           description: A brief description of the project.
  *           example: This project aims to solve world hunger.
+ *         longDescription:
+ *           type: string
+ *           description: A detailed description of the project.
+ *           example: This project aims to solve world hunger by...
  *         userId:
  *           type: string
  *           description: The ID of the user creating the project. (Usually injected by auth middleware)
@@ -30,6 +34,7 @@
 export class CreateProjectDto {
   name!: string;
   description!: string;
+  longDescription?: string;
   userId?: string; // Optional here as it's often injected by middleware
   tags?: string[];
 }

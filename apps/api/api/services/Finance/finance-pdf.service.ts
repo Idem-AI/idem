@@ -91,7 +91,7 @@ export class FinancePdfService {
     return this.pdfService.generatePdf({
       title: 'Rapport financier',
       projectName: companyName,
-      projectDescription: project.description || '',
+      projectDescription: project.longDescription || project.description || '',
       sections,
       footerText: `Rapport financier — ${companyName} — Généré par Idem`,
       typography: typography,
@@ -149,7 +149,7 @@ export class FinancePdfService {
     const companyName = project.name || 'Projet';
 
     // Generate cache key for this project's cover
-    const contentHash = (project.description || '') + (logoSvg || '') + JSON.stringify(p);
+    const contentHash = (project.longDescription || project.description || '') + (logoSvg || '') + JSON.stringify(p);
     const hashHex = crypto.createHash('sha256').update(contentHash).digest('hex');
     const cacheKey = cacheService.generateAIKey('finance-pdf-cover', project.id!, hashHex);
     
@@ -162,7 +162,7 @@ export class FinancePdfService {
     const summary = [
       `Projet: ${companyName}`,
       `Type: ${project.type}`,
-      `Description: ${project.description || ''}`,
+      `Description: ${project.longDescription || project.description || ''}`,
     ].join('\n');
 
     const brandContext = `Brand Name: ${companyName}\nBrand Colors: ${JSON.stringify(p)}`;

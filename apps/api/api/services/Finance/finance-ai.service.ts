@@ -207,7 +207,7 @@ export class FinanceAIService {
   buildMarketResearchSpec(project: ProjectModel): DeliverableSection[] {
     const country = project.additionalInfos?.country || '';
     const geo = country ? ` (area: ${country})` : '';
-    const ctx = `${project.name || ''} — ${project.description || ''}`.slice(0, 300);
+    const ctx = `${project.name || ''} — ${project.longDescription || project.description || ''}`.slice(0, 300);
     return [
       {
         name: 'Prix de marché',
@@ -262,7 +262,7 @@ export class FinanceAIService {
       { role: 'system', content: FINANCE_CHAT_INTENT_PROMPT },
       {
         role: 'system',
-        content: `CONTEXTE PROJET:\nNom: ${project.name}\nDescription: ${project.description}\nType: ${project.type}`,
+        content: `CONTEXTE PROJET:\nNom: ${project.name}\nDescription: ${project.longDescription || project.description}\nType: ${project.type}`,
       },
       {
         role: 'system',
@@ -463,7 +463,7 @@ export class FinanceAIService {
   private summarizeProjectForContext(project: ProjectModel): string {
     return [
       `Nom: ${project.name || '—'}`,
-      `Description: ${project.description || '—'}`,
+      `Description: ${project.longDescription || project.description || '—'}`,
       `Type: ${project.type || '—'}`,
       `Cible: ${project.targets || '—'}`,
       `Scope: ${project.scope || '—'}`,
