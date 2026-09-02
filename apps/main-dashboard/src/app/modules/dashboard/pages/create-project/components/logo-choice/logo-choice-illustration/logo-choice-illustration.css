@@ -1,0 +1,104 @@
+:host {
+  display: block;
+}
+
+/* Même palette que les illustrations des modes d'interface : les deux séries
+   doivent se lire comme une seule famille graphique. */
+.logo-illu {
+  --illu-primary: var(--color-primary, #1447e6);
+  --illu-ink: var(--color-text-primary, #0f172a);
+  --illu-frame: var(--glass-border, rgba(15, 23, 42, 0.1));
+  --illu-surface: var(--glass-bg-subtle, rgba(255, 255, 255, 0.35));
+}
+
+.illu-frame {
+  fill: none;
+  stroke: var(--illu-frame);
+}
+
+.illu-fill-primary {
+  fill: var(--illu-primary);
+}
+
+.illu-fill-surface {
+  fill: var(--illu-surface);
+  stroke: var(--illu-frame);
+  stroke-width: 1;
+}
+
+/* La proposition retenue : fond teinté et bordure pleine. */
+.illu-fill-selected {
+  fill: color-mix(in oklch, var(--illu-primary) 10%, transparent);
+  stroke: var(--illu-primary);
+}
+
+.illu-dropzone {
+  fill: none;
+  stroke: var(--illu-primary);
+  opacity: 0.55;
+}
+
+.illu-ring-primary {
+  fill: none;
+  stroke: var(--illu-primary);
+}
+
+.illu-ring-muted {
+  fill: none;
+  stroke: var(--illu-ink);
+  opacity: 0.3;
+}
+
+.illu-stroke-inverse {
+  stroke: #ffffff;
+  fill: none;
+}
+
+.illu-bar-soft {
+  fill: var(--illu-ink);
+  opacity: 0.4;
+}
+
+.illu-bar-faint {
+  fill: var(--illu-ink);
+  opacity: 0.18;
+}
+
+/* Animations discrètes : elles suggèrent la génération sans distraire. */
+.illu-spark {
+  animation: illuPulse 2.4s ease-in-out infinite;
+  transform-origin: 276px 39px;
+}
+
+.illu-pulse {
+  animation: illuFade 2.4s ease-in-out infinite;
+}
+
+@keyframes illuPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes illuFade {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .illu-spark,
+  .illu-pulse {
+    animation: none;
+  }
+}

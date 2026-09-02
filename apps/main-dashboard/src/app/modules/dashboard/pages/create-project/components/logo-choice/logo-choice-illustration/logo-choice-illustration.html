@@ -1,0 +1,119 @@
+@if (kind() === 'import') {
+  <!-- Import : un fichier déposé dans une zone, et les formats acceptés -->
+  <svg
+    viewBox="0 0 320 200"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    class="w-full h-full logo-illu"
+    role="img"
+    aria-hidden="true"
+  >
+    <rect x="0.5" y="0.5" width="319" height="199" rx="16" class="illu-frame" />
+
+    <!-- Zone de dépôt -->
+    <rect
+      x="44"
+      y="30"
+      width="232"
+      height="104"
+      rx="16"
+      class="illu-dropzone"
+      stroke-width="2"
+      stroke-dasharray="8 8"
+    />
+
+    <!-- Le logo importé : deux formes abstraites, pas une marque réelle -->
+    <circle cx="139" cy="82" r="19" class="illu-fill-primary" />
+    <rect
+      x="158"
+      y="63"
+      width="38"
+      height="38"
+      rx="10"
+      class="illu-ring-primary"
+      stroke-width="3"
+    />
+
+    <!-- Badge d'import, à cheval sur le coin de la zone -->
+    <circle cx="266" cy="42" r="18" class="illu-fill-primary" />
+    <path
+      d="M266 50 v-15 m0 0 l-6 6 m6 -6 l6 6"
+      class="illu-stroke-inverse"
+      stroke-width="2.6"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+
+    <!-- Formats acceptés -->
+    <rect x="66" y="154" width="56" height="22" rx="11" class="illu-fill-surface" />
+    <rect x="80" y="162" width="28" height="6" rx="3" class="illu-bar-soft" />
+
+    <rect x="132" y="154" width="56" height="22" rx="11" class="illu-fill-surface" />
+    <rect x="146" y="162" width="28" height="6" rx="3" class="illu-bar-soft" />
+
+    <rect x="198" y="154" width="56" height="22" rx="11" class="illu-fill-surface" />
+    <rect x="212" y="162" width="28" height="6" rx="3" class="illu-bar-soft" />
+  </svg>
+} @else {
+  <!-- Génération IA : une demande, plusieurs propositions, une retenue -->
+  <svg
+    viewBox="0 0 320 200"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    class="w-full h-full logo-illu"
+    role="img"
+    aria-hidden="true"
+  >
+    <rect x="0.5" y="0.5" width="319" height="199" rx="16" class="illu-frame" />
+
+    <!-- La demande -->
+    <rect x="36" y="26" width="216" height="26" rx="13" class="illu-fill-surface" />
+    <rect x="50" y="36" width="104" height="7" rx="3.5" class="illu-bar-soft" />
+    <path
+      d="M276 24 l4.5 11 l11 4.5 l-11 4.5 l-4.5 11 l-4.5 -11 l-11 -4.5 l11 -4.5 z"
+      class="illu-fill-primary illu-spark"
+    />
+
+    <!-- Trois propositions -->
+    <rect x="36" y="70" width="72" height="76" rx="12" class="illu-fill-surface" />
+    <circle cx="72" cy="100" r="13" class="illu-ring-muted" stroke-width="3" />
+    <rect x="58" y="124" width="28" height="6" rx="3" class="illu-bar-faint" />
+
+    <!-- Celle qui est retenue -->
+    <rect
+      x="124"
+      y="70"
+      width="72"
+      height="76"
+      rx="12"
+      class="illu-fill-selected"
+      stroke-width="2.5"
+    />
+    <path d="M160 87 l14 24 h-28 z" class="illu-fill-primary" />
+    <circle cx="160" cy="87" r="6" class="illu-fill-primary" />
+    <rect x="146" y="124" width="28" height="6" rx="3" class="illu-bar-soft" />
+    <circle cx="190" cy="76" r="11" class="illu-fill-primary" />
+    <path
+      d="M185.5 76 l3.5 3.5 L195 73"
+      class="illu-stroke-inverse"
+      stroke-width="2.4"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+
+    <rect x="212" y="70" width="72" height="76" rx="12" class="illu-fill-surface" />
+    <rect
+      x="235"
+      y="87"
+      width="26"
+      height="26"
+      rx="7"
+      class="illu-ring-muted"
+      stroke-width="3"
+    />
+    <rect x="234" y="124" width="28" height="6" rx="3" class="illu-bar-faint" />
+
+    <!-- Régénérer -->
+    <rect x="124" y="162" width="72" height="18" rx="9" class="illu-fill-primary illu-pulse" />
+  </svg>
+}

@@ -13,7 +13,8 @@
         "title": "Créer avec l'IA",
         "description": "Laissez notre IA générer des concepts de logo uniques et sur-mesure basés sur l'identité de votre projet.",
         "badge": "Recommandé",
-        "button": "Générer avec l'IA"
+        "button": "Générer avec l'IA",
+        "vectorBadge": "Génération vectorielle"
       },
       "backToChoice": "Retour aux options",
       "continueWithLogo": "Continuer avec ce logo",
