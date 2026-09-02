@@ -1,0 +1,171 @@
+<section class="min-h-dvh w-full flex flex-col items-center px-4 py-8 sm:py-12">
+  <!-- En-tête : progression + sortie -->
+  <div class="w-full max-w-2xl flex items-center justify-between gap-4 mb-10">
+    <div class="flex items-center gap-1.5">
+      @for (question of questions; track question.id; let i = $index) {
+        <span
+          class="h-1.5 rounded-full transition-all duration-300"
+          [class.w-8]="i === stepIndex()"
+          [class.w-4]="i !== stepIndex()"
+          [class.bg-primary]="i <= stepIndex()"
+          [class.bg-surface-3]="i > stepIndex()"
+        ></span>
+      }
+      <span
+        class="h-1.5 rounded-full transition-all duration-300"
+        [class.w-8]="isResultStep()"
+        [class.w-4]="!isResultStep()"
+        [class.bg-primary]="isResultStep()"
+        [class.bg-surface-3]="!isResultStep()"
+      ></span>
+    </div>
+
+    @if (!isResultStep()) {
+      <button
+        type="button"
+        (click)="skipSurvey()"
+        class="text-xs font-medium text-text-tertiary hover:text-text-primary transition-colors duration-200"
+      >
+        {{ 'onboarding.survey.skip' | translate }}
+      </button>
+    }
+  </div>
+
+  @if (!isResultStep()) {
+    <!-- ═══ QUESTION ═══ -->
+    <div class="w-full max-w-2xl animate-stepIn">
+      <p class="text-xs font-semibold uppercase tracking-widest text-primary mb-3">
+        {{ 'onboarding.survey.stepCounter' | translate: { current: stepIndex() + 1, total: questions.length } }}
+      </p>
+      <h1 class="text-2xl sm:text-3xl font-bold text-text-primary leading-tight mb-2">
+        {{ currentQuestion()!.labelKey | translate }}
+      </h1>
+      <p class="text-sm text-text-tertiary mb-8">
+        {{ 'onboarding.survey.oneClick' | translate }}
+      </p>
+
+      <div class="flex flex-col gap-3">
+        @for (option of currentQuestion()!.options; track option.value) {
+          <button
+            type="button"
+            (click)="selectOption(option)"
+            class="group w-full flex items-center gap-4 p-4 sm:p-5 rounded-2xl border text-left transition-all duration-200 hover:border-primary hover:bg-primary/5 hover:translate-x-1"
+            [ngClass]="
+              currentAnswer() === option.value
+                ? 'bg-primary/10 border-primary'
+                : 'border-[var(--glass-border)] bg-[var(--glass-bg-subtle)]'
+            "
+          >
+            <span
+              class="w-11 h-11 shrink-0 rounded-xl flex items-center justify-center bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-all duration-200"
+            >
+              <i class="text-base" [ngClass]="option.icon"></i>
+            </span>
+            <span class="flex-1 min-w-0">
+              <span class="block text-base font-semibold text-text-primary">
+                {{ option.labelKey | translate }}
+              </span>
+              <span class="block text-[13px] text-text-tertiary leading-snug mt-0.5">
+                {{ option.hintKey | translate }}
+              </span>
+            </span>
+            <i
+              class="pi pi-arrow-right text-xs text-text-tertiary group-hover:text-primary group-hover:translate-x-1 transition-all duration-200"
+            ></i>
+          </button>
+        }
+      </div>
+
+      @if (stepIndex() > 0) {
+        <button
+          type="button"
+          (click)="goBack()"
+          class="mt-8 inline-flex items-center gap-2 text-xs font-medium text-text-tertiary hover:text-text-primary transition-colors duration-200"
+        >
+          <i class="pi pi-arrow-left text-[10px]"></i>
+          {{ 'common.previous' | translate }}
+        </button>
+      }
+    </div>
+  } @else {
+    <!-- ═══ RÉSULTAT : mode recommandé, modifiable ═══ -->
+    <div class="w-full max-w-3xl animate-stepIn">
+      <div class="text-center mb-8">
+        <span
+          class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-bold uppercase tracking-wider mb-4"
+        >
+          <i class="pi pi-sparkles text-[10px]"></i>
+          {{ 'onboarding.survey.result.badge' | translate }}
+        </span>
+        <h1 class="text-2xl sm:text-3xl font-bold text-text-primary leading-tight mb-3">
+          {{ 'onboarding.survey.result.title' | translate }}
+        </h1>
+        <p class="text-sm text-text-tertiary max-w-xl mx-auto leading-relaxed">
+          {{ reasonKey() | translate }}
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        @for (card of modeCards; track card.mode) {
+          <button
+            type="button"
+            (click)="chooseMode(card.mode)"
+            class="relative flex flex-col rounded-2xl border p-4 text-left transition-all duration-200 hover:border-primary/60"
+            [ngClass]="
+              selectedMode() === card.mode
+                ? 'border-primary bg-primary/5 shadow-xl shadow-primary/10'
+                : 'border-[var(--glass-border)] bg-[var(--glass-bg-subtle)]'
+            "
+          >
+            @if (card.mode === recommendedMode()) {
+              <span
+                class="absolute -top-2.5 left-4 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide rounded-full bg-primary text-white shadow-lg"
+              >
+                {{ 'onboarding.survey.result.recommended' | translate }}
+              </span>
+            }
+
+            <div class="h-24 mb-3 rounded-xl overflow-hidden">
+              <app-mode-illustration [mode]="card.mode" />
+            </div>
+
+            <span class="flex items-center gap-2 mb-1">
+              <i class="text-sm text-primary" [ngClass]="card.icon"></i>
+              <span class="text-sm font-bold text-text-primary">
+                {{ card.labelKey | translate }}
+              </span>
+              @if (selectedMode() === card.mode) {
+                <i class="pi pi-check-circle text-xs text-primary ml-auto"></i>
+              }
+            </span>
+            <span class="text-[12px] text-text-tertiary leading-snug">
+              {{ card.descriptionKey | translate }}
+            </span>
+          </button>
+        }
+      </div>
+
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <button
+          type="button"
+          (click)="start()"
+          class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl inner-button text-sm font-semibold"
+        >
+          {{ 'onboarding.survey.result.start' | translate }}
+          <i class="pi pi-arrow-right text-xs"></i>
+        </button>
+        <button
+          type="button"
+          (click)="goBack()"
+          class="w-full sm:w-auto px-6 py-3.5 rounded-xl border border-[var(--glass-border)] text-text-secondary hover:text-text-primary hover:bg-[var(--glass-bg-light)] text-sm font-medium transition-all duration-200"
+        >
+          {{ 'onboarding.survey.result.review' | translate }}
+        </button>
+      </div>
+
+      <p class="text-center text-[11px] text-text-tertiary mt-6">
+        {{ 'onboarding.survey.result.changeable' | translate }}
+      </p>
+    </div>
+  }
+</section>

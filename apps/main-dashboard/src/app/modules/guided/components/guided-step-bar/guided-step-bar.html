@@ -1,0 +1,41 @@
+@if (isVisible()) {
+  <div
+    class="flex items-center gap-3 px-3 sm:px-4 py-2 rounded-xl border border-primary/30 bg-primary/5 mb-4"
+  >
+    <span
+      class="w-7 h-7 shrink-0 rounded-lg bg-primary/15 text-primary flex items-center justify-center"
+    >
+      <i class="pi pi-compass text-xs"></i>
+    </span>
+
+    <div class="flex-1 min-w-0">
+      <p class="text-[11px] font-bold uppercase tracking-wider text-primary leading-none">
+        {{ 'guided.bar.label' | translate }}
+      </p>
+      <p class="text-xs text-text-secondary truncate mt-0.5">
+        @if (currentStep(); as step) {
+          {{ 'guided.bar.stepPrefix' | translate: { index: step.index + 1, total: totalCount() } }}
+          · {{ 'guided.steps.' + step.id + '.title' | translate }}
+        } @else {
+          {{ 'guided.bar.allDone' | translate }}
+        }
+      </p>
+    </div>
+
+    <div class="hidden sm:block w-24 h-1.5 rounded-full bg-[var(--glass-bg-subtle)] overflow-hidden">
+      <div
+        class="h-full rounded-full bg-primary transition-all duration-500"
+        [style.width.%]="progress()"
+      ></div>
+    </div>
+
+    <button
+      type="button"
+      (click)="backToJourney()"
+      class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition-all duration-200"
+    >
+      <i class="pi pi-arrow-left text-[10px]"></i>
+      <span class="hidden sm:inline">{{ 'guided.bar.back' | translate }}</span>
+    </button>
+  </div>
+}

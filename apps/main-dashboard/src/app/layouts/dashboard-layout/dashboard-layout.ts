@@ -2,11 +2,12 @@ import { Component, signal, inject, HostListener } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { SidebarDashboard } from '../../modules/dashboard/components/sidebar-dashboard/sidebar-dashboard';
+import { GuidedStepBarComponent } from '../../modules/guided/components/guided-step-bar/guided-step-bar';
 
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [RouterOutlet, SidebarDashboard, CommonModule],
+  imports: [RouterOutlet, SidebarDashboard, CommonModule, GuidedStepBarComponent],
   templateUrl: './dashboard-layout.html',
   styleUrl: './dashboard-layout.css',
 })

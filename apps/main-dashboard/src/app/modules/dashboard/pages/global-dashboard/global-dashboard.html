@@ -18,6 +18,30 @@
           </div>
         </section>
 
+        <!-- Reprise du parcours assisté (mode Assisté uniquement) -->
+        @if (showGuidedResume()) {
+          <button
+            type="button"
+            (click)="resumeGuidedJourney()"
+            class="w-full flex items-center gap-4 p-4 rounded-2xl border border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200 text-left"
+          >
+            <span
+              class="w-11 h-11 shrink-0 rounded-xl bg-primary/15 text-primary flex items-center justify-center"
+            >
+              <i class="pi pi-compass"></i>
+            </span>
+            <span class="flex-1 min-w-0">
+              <span class="block text-sm font-semibold text-text-primary">
+                {{ 'guided.resume.title' | translate }}
+              </span>
+              <span class="block text-xs text-text-tertiary mt-0.5">
+                {{ 'guided.resume.subtitle' | translate }}
+              </span>
+            </span>
+            <i class="pi pi-arrow-right text-xs text-primary shrink-0"></i>
+          </button>
+        }
+
         <!-- Recent Projects -->
         <section class="space-y-4">
           <div class="flex items-center justify-between">

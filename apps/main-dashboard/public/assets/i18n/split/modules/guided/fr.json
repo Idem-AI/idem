@@ -1,0 +1,84 @@
+{
+  "guided": {
+    "loading": "Nous préparons votre parcours…",
+    "empty": {
+      "title": "Commençons par votre projet",
+      "subtitle": "Décrivez votre idée en quelques lignes. C'est la seule chose dont IDEM a besoin pour construire tout le reste avec vous.",
+      "cta": "Créer mon projet"
+    },
+    "header": {
+      "title": "Votre parcours — {{project}}",
+      "progress": "{{done}} / {{total}} étapes terminées",
+      "allDone": "Toutes les étapes sont terminées. Félicitations !",
+      "refresh": "Actualiser"
+    },
+    "badges": {
+      "current": "À faire maintenant",
+      "optional": "Facultatif"
+    },
+    "status": {
+      "done": "Terminé",
+      "locked": "Se débloque quand l'étape précédente est terminée",
+      "skipped": "Étape passée",
+      "duration": "Environ {{minutes}} min"
+    },
+    "actions": {
+      "start": "Commencer",
+      "review": "Revoir",
+      "skip": "Passer cette étape",
+      "resume": "Reprendre cette étape",
+      "requiredHint": "Cette étape est nécessaire : les suivantes s'appuient dessus."
+    },
+    "bar": {
+      "label": "Parcours assisté",
+      "allDone": "Toutes les étapes sont terminées",
+      "back": "Retour au parcours",
+      "stepPrefix": "Étape {{index}} sur {{total}}"
+    },
+    "resume": {
+      "title": "Reprendre mon parcours assisté",
+      "subtitle": "Retrouvez l'étape en cours et continuez là où vous vous êtes arrêté."
+    },
+    "footer": {
+      "freedom": "Vous n'êtes pas enfermé : le tableau de bord complet reste accessible à tout moment.",
+      "openAdvanced": "Ouvrir le tableau de bord"
+    },
+    "steps": {
+      "project": {
+        "title": "Définir votre projet",
+        "why": "Tout part de là : ce que vous vendez, à qui, et où. IDEM s'en sert pour produire tout le reste.",
+        "outcome": "Vous obtenez la fiche de votre projet, réutilisée par tous vos documents."
+      },
+      "branding": {
+        "title": "Créer votre identité visuelle",
+        "why": "Un logo, des couleurs, une typographie : c'est ce qui rend votre activité reconnaissable et crédible dès le premier contact.",
+        "outcome": "Vous obtenez un logo, une palette, une typographie et votre charte en PDF."
+      },
+      "businessPlan": {
+        "title": "Rédiger votre business plan",
+        "why": "Le document qu'on vous demandera à la banque, dans un concours ou devant un partenaire. Il met vos idées à plat.",
+        "outcome": "Vous obtenez un business plan complet, prêt à présenter et à télécharger."
+      },
+      "finance": {
+        "title": "Chiffrer votre activité",
+        "why": "Combien ça coûte, combien ça rapporte, à partir de quand. Sans ces chiffres, aucun financement n'est possible.",
+        "outcome": "Vous obtenez votre prévisionnel, votre compte d'exploitation et votre trésorerie."
+      },
+      "pitchDeck": {
+        "title": "Préparer votre pitch",
+        "why": "La version courte de votre projet, celle qui tient en dix minutes devant un investisseur ou un partenaire.",
+        "outcome": "Vous obtenez une présentation prête à projeter."
+      },
+      "legalDocs": {
+        "title": "Mettre vos documents en règle",
+        "why": "Statuts, contrats, conditions générales : les documents qui protègent votre activité et rassurent vos clients.",
+        "outcome": "Vous obtenez vos documents juridiques, adaptés à votre activité."
+      },
+      "communication": {
+        "title": "Faire connaître votre activité",
+        "why": "Une fois les bases posées, il faut aller chercher les clients. On construit votre plan de communication.",
+        "outcome": "Vous obtenez une stratégie, un calendrier de publications et vos premiers visuels."
+      }
+    }
+  }
+}

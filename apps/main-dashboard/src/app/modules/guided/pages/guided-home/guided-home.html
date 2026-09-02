@@ -1,0 +1,245 @@
+<section class="w-full max-w-2xl mx-auto px-4 py-8 sm:py-10">
+  @if (isLoading()) {
+    <div class="flex flex-col items-center justify-center py-24 gap-4">
+      <app-loader />
+      <p class="text-sm text-text-tertiary">{{ 'guided.loading' | translate }}</p>
+    </div>
+  } @else if (!hasProject()) {
+    <!-- ═══ AUCUN PROJET : la première étape est de le créer ═══ -->
+    <div class="text-center py-12 animate-guidedIn">
+      <div
+        class="w-16 h-16 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center"
+      >
+        <i class="pi pi-flag text-2xl text-primary"></i>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-text-primary mb-3">
+        {{ 'guided.empty.title' | translate }}
+      </h1>
+      <p class="text-sm text-text-tertiary max-w-md mx-auto leading-relaxed mb-8">
+        {{ 'guided.empty.subtitle' | translate }}
+      </p>
+      <button
+        type="button"
+        (click)="createProject()"
+        class="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl inner-button text-sm font-semibold"
+      >
+        {{ 'guided.empty.cta' | translate }}
+        <i class="pi pi-arrow-right text-xs"></i>
+      </button>
+    </div>
+  } @else {
+    <!-- ═══ EN-TÊTE : où j'en suis ═══ -->
+    <header class="mb-8 animate-guidedIn">
+      <div class="flex items-start justify-between gap-4 mb-5">
+        <div class="min-w-0">
+          <h1 class="text-xl sm:text-2xl font-bold text-text-primary leading-tight">
+            {{ 'guided.header.title' | translate: { project: project()!.name } }}
+          </h1>
+          <p class="text-sm text-text-tertiary mt-1">
+            @if (isComplete()) {
+              {{ 'guided.header.allDone' | translate }}
+            } @else {
+              {{
+                'guided.header.progress'
+                  | translate: { done: completedCount(), total: totalCount() }
+              }}
+            }
+          </p>
+        </div>
+        <button
+          type="button"
+          (click)="refresh()"
+          class="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg border border-[var(--glass-border)] text-text-tertiary hover:text-primary hover:border-primary/40 transition-all duration-200"
+          [title]="'guided.header.refresh' | translate"
+        >
+          <i class="pi pi-refresh text-xs"></i>
+        </button>
+      </div>
+
+      <div class="h-2 w-full rounded-full bg-[var(--glass-bg-subtle)] overflow-hidden">
+        <div
+          class="h-full rounded-full bg-primary transition-all duration-500"
+          [style.width.%]="progress()"
+        ></div>
+      </div>
+    </header>
+
+    <!-- ═══ LE PARCOURS ═══ -->
+    <ol class="flex flex-col gap-2.5">
+      @for (step of steps(); track step.id) {
+        <li>
+          <div
+            class="rounded-2xl border transition-all duration-200"
+            [ngClass]="{
+              'border-primary bg-primary/5 shadow-xl shadow-primary/10': step.status === 'current',
+              'border-[var(--glass-border)] bg-[var(--glass-bg-subtle)]': step.status === 'done',
+              'border-[var(--glass-border-subtle)] bg-transparent opacity-60':
+                step.status === 'locked',
+              'border-dashed border-[var(--glass-border-medium)] bg-transparent':
+                step.status === 'skipped'
+            }"
+          >
+            <!-- Ligne de l'étape (cliquable sauf si verrouillée) -->
+            <button
+              type="button"
+              (click)="toggleStep(step)"
+              [disabled]="step.status === 'locked'"
+              class="w-full flex items-center gap-3.5 p-4 text-left"
+              [class.cursor-default]="step.status === 'locked'"
+            >
+              <!-- Pastille de statut -->
+              <span
+                class="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200"
+                [ngClass]="{
+                  'bg-primary text-white': step.status === 'done',
+                  'bg-primary/15 text-primary ring-4 ring-primary/10': step.status === 'current',
+                  'bg-[var(--glass-bg-subtle)] text-text-tertiary': step.status === 'locked',
+                  'border border-dashed border-[var(--glass-border-medium)] text-text-tertiary':
+                    step.status === 'skipped'
+                }"
+              >
+                @switch (step.status) {
+                  @case ('done') {
+                    <i class="pi pi-check text-xs"></i>
+                  }
+                  @case ('locked') {
+                    <i class="pi pi-lock text-xs"></i>
+                  }
+                  @case ('skipped') {
+                    <i class="pi pi-minus text-xs"></i>
+                  }
+                  @default {
+                    {{ step.index + 1 }}
+                  }
+                }
+              </span>
+
+              <span class="flex-1 min-w-0">
+                <span class="flex items-center gap-2 flex-wrap">
+                  <span
+                    class="text-[15px] font-semibold"
+                    [class.text-text-primary]="step.status !== 'locked'"
+                    [class.text-text-tertiary]="step.status === 'locked'"
+                  >
+                    {{ 'guided.steps.' + step.id + '.title' | translate }}
+                  </span>
+                  @if (step.status === 'current') {
+                    <span
+                      class="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide rounded-full bg-primary text-white"
+                    >
+                      {{ 'guided.badges.current' | translate }}
+                    </span>
+                  }
+                  @if (!step.required && step.status !== 'done') {
+                    <span class="text-[10px] font-medium text-text-tertiary">
+                      {{ 'guided.badges.optional' | translate }}
+                    </span>
+                  }
+                </span>
+                <span class="block text-xs text-text-tertiary mt-0.5">
+                  @switch (step.status) {
+                    @case ('done') {
+                      {{ 'guided.status.done' | translate }}
+                    }
+                    @case ('locked') {
+                      {{ 'guided.status.locked' | translate }}
+                    }
+                    @case ('skipped') {
+                      {{ 'guided.status.skipped' | translate }}
+                    }
+                    @default {
+                      {{ 'guided.status.duration' | translate: { minutes: step.estimatedMinutes } }}
+                    }
+                  }
+                </span>
+              </span>
+
+              @if (step.status !== 'locked') {
+                <i
+                  class="pi pi-chevron-down text-[10px] text-text-tertiary transition-transform duration-200 shrink-0"
+                  [class.rotate-180]="isExpanded(step)"
+                ></i>
+              }
+            </button>
+
+            <!-- Détail de l'étape -->
+            @if (isExpanded(step) && step.status !== 'locked') {
+              <div class="px-4 pb-4 pl-[68px] animate-guidedIn">
+                <p class="text-sm text-text-secondary leading-relaxed mb-2">
+                  {{ 'guided.steps.' + step.id + '.why' | translate }}
+                </p>
+                <p class="text-xs text-text-tertiary leading-relaxed mb-4">
+                  <i class="pi pi-gift text-[10px] mr-1.5 text-primary"></i>
+                  {{ 'guided.steps.' + step.id + '.outcome' | translate }}
+                </p>
+
+                <div class="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    (click)="openStep(step)"
+                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
+                    [ngClass]="
+                      step.status === 'done'
+                        ? 'border border-[var(--glass-border-medium)] text-text-primary hover:bg-[var(--glass-bg-light)]'
+                        : 'inner-button'
+                    "
+                  >
+                    @if (step.status === 'done') {
+                      <i class="pi pi-eye text-xs"></i>
+                      {{ 'guided.actions.review' | translate }}
+                    } @else {
+                      {{ 'guided.actions.start' | translate }}
+                      <i class="pi pi-arrow-right text-xs"></i>
+                    }
+                  </button>
+
+                  @if (step.status === 'skipped') {
+                    <button
+                      type="button"
+                      (click)="resumeStep(step, $event)"
+                      class="px-4 py-2.5 rounded-xl text-xs font-medium text-text-tertiary hover:text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-200"
+                    >
+                      {{ 'guided.actions.resume' | translate }}
+                    </button>
+                  } @else if (!step.required && step.status !== 'done') {
+                    <button
+                      type="button"
+                      (click)="skipStep(step, $event)"
+                      class="px-4 py-2.5 rounded-xl text-xs font-medium text-text-tertiary hover:text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-200"
+                    >
+                      {{ 'guided.actions.skip' | translate }}
+                    </button>
+                  }
+                </div>
+
+                @if (step.required && step.status === 'current') {
+                  <p class="text-[11px] text-text-tertiary mt-3 flex items-start gap-1.5">
+                    <i class="pi pi-info-circle text-[10px] mt-0.5"></i>
+                    <span>{{ 'guided.actions.requiredHint' | translate }}</span>
+                  </p>
+                }
+              </div>
+            }
+          </div>
+        </li>
+      }
+    </ol>
+
+    <!-- ═══ SORTIE : toujours visible, jamais un piège ═══ -->
+    <footer
+      class="mt-8 pt-6 border-t border-[var(--glass-border)] flex flex-col sm:flex-row items-center justify-between gap-3"
+    >
+      <p class="text-xs text-text-tertiary text-center sm:text-left">
+        {{ 'guided.footer.freedom' | translate }}
+      </p>
+      <button
+        type="button"
+        (click)="switchToAdvanced()"
+        class="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--glass-border)] text-text-secondary hover:text-text-primary hover:bg-[var(--glass-bg-light)] text-xs font-medium transition-all duration-200"
+      >
+        <i class="pi pi-th-large text-[11px]"></i>
+        {{ 'guided.footer.openAdvanced' | translate }}
+      </button>
+    </footer>
+  }
+</section>

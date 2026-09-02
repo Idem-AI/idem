@@ -47,14 +47,8 @@
             {{ 'chat.header.exportAll' | translate }}
           </button>
         }
-        <button
-          type="button"
-          (click)="switchToAdvanced()"
-          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[var(--glass-bg-subtle)] hover:bg-[var(--glass-bg-light)] border border-[var(--glass-border)] text-text-secondary text-xs font-semibold transition-all duration-200"
-        >
-          <i class="pi pi-table text-[11px]"></i>
-          <span class="hidden sm:inline">{{ 'chat.header.advancedMode' | translate }}</span>
-        </button>
+        <!-- Changer de mode : commande libellée, à la même place dans les trois modes -->
+        <app-mode-switcher [current]="'chat'" [alignRight]="true" />
       </div>
     </header>
 

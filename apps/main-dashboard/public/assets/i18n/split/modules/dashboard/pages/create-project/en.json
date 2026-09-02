@@ -26,31 +26,6 @@
       "modeChat": "Conversation",
       "modeForm": "Form",
       "switchToForm": "Switch to form",
-      "modeChoice": {
-        "badge": "Onboarding Mode",
-        "title": "How would you like to proceed?",
-        "subtitle": "Your description is saved. Choose the experience that best fits your workflow to complete your project setup.",
-        "backToDescription": "Edit description",
-        "form": {
-          "title": "Classic Form",
-          "tag": "Step-by-step input",
-          "description": "Fill out a structured step-by-step form to configure the technical and functional details of your project.",
-          "feature1": "Clear and fast overview",
-          "feature2": "Structured & guided fields",
-          "feature3": "Direct control over all parameters",
-          "button": "Continue with Form"
-        },
-        "chat": {
-          "title": "Interactive Chat Interface",
-          "badge": "Recommended",
-          "tag": "AI Assisted",
-          "description": "A simple and easy-to-use chat interface to guide you and unlock all IDEM features effortlessly.",
-          "feature1": "Smart and personalized AI assistance",
-          "feature2": "Easy access to all IDEM features",
-          "feature3": "Smooth, dynamic & interactive experience",
-          "button": "Start with Chat"
-        }
-      },
       "foundations": {
         "title": "Let's talk about your project",
         "subtitle": "A few basics to start — the AI handles the rest in conversation.",
@@ -60,6 +35,37 @@
         "namePlaceholder": "e.g. ArtisanHub",
         "typeLabel": "Project type",
         "continue": "Continue"
+      },
+      "guidedHint": "After creation, IDEM will guide you step by step.",
+      "modeChoice": {
+        "badge": "Support mode",
+        "title": "How would you like to be supported?",
+        "subtitle": "Your description is saved. Pick the way of working that suits you — you can change it at any time.",
+        "backToDescription": "Edit the description",
+        "recommended": "Recommended",
+        "personalized": "Recommendation based on your answers",
+        "switchLater": "Whichever you pick, you can switch modes at any time from the menu at the top of the screen.",
+        "guided": {
+          "title": "Guided mode",
+          "tag": "Step by step",
+          "description": "IDEM guides you in order: one step at a time, and the next unlocks once the previous one is done.",
+          "forWho": "For you if you are starting out and do not know where to begin.",
+          "button": "Guide me"
+        },
+        "chat": {
+          "title": "Chat mode",
+          "tag": "Conversation",
+          "description": "Describe what you need in plain language: IDEM generates it and answers you.",
+          "forWho": "For you if you would rather ask than search.",
+          "button": "Chat with IDEM"
+        },
+        "form": {
+          "title": "Dashboard",
+          "tag": "Full access",
+          "description": "A structured form, then the full workspace: every module freely available, in whatever order you like.",
+          "forWho": "For you if you already know what you are looking for.",
+          "button": "Open the dashboard"
+        }
       }
     }
   }

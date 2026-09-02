@@ -37,7 +37,7 @@ import {
 } from '../../../../shared/models/quota.model';
 import { LanguageSelectorComponent } from 'apps/main-dashboard/src/app/shared/components/language-selector/language-selector';
 import { ThemeToggleComponent } from 'apps/main-dashboard/src/app/shared/components/theme-toggle/theme-toggle';
-import { ModeToggleComponent } from '../../../chat/components/mode-toggle/mode-toggle';
+import { ModeSwitcherComponent } from '../../../../shared/components/mode-switcher/mode-switcher';
 
 @Component({
   selector: 'app-sidebar-dashboard',
@@ -53,7 +53,7 @@ import { ModeToggleComponent } from '../../../chat/components/mode-toggle/mode-t
     TranslateModule,
     LanguageSelectorComponent,
     ThemeToggleComponent,
-    ModeToggleComponent,
+    ModeSwitcherComponent,
   ],
   animations: [
     trigger('slideInOut', [

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, publicGuard } from './guards/auth.guard';
+import { surveyGuard } from './guards/survey.guard';
 
 export const routes: Routes = [
   // Redirect root to console
@@ -27,7 +28,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/global-dashboard/global-dashboard').then(
         (m) => m.GlobalDashboard,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard],
     data: { layout: 'empty' },
   },
   {
@@ -42,6 +43,32 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/projects-list/projects-list').then((m) => m.ProjectsList),
     canActivate: [authGuard],
     data: { layout: 'global' },
+  },
+
+  // ============================================
+  // ONBOARDING (layout: 'empty')
+  // ============================================
+  {
+    path: 'welcome',
+    title: 'navigation.titles.welcome',
+    loadComponent: () =>
+      import('./modules/onboarding/pages/welcome-survey/welcome-survey').then(
+        (m) => m.WelcomeSurveyPage,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'empty' },
+  },
+
+  // ============================================
+  // GUIDED MODE ROUTES (layout: 'guided')
+  // ============================================
+  {
+    path: 'guided',
+    title: 'navigation.titles.guided',
+    loadComponent: () =>
+      import('./modules/guided/pages/guided-home/guided-home').then((m) => m.GuidedHomePage),
+    canActivate: [authGuard],
+    data: { layout: 'guided' },
   },
 
   // ============================================
