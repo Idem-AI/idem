@@ -40,8 +40,8 @@ function matchesPath(path: string, prefixes: readonly string[]): boolean {
  *
  * L'ordre suit la logique de création d'entreprise : on sait d'abord ce qu'on
  * vend et à qui, on se donne une identité, on écrit le plan, on chiffre, on
- * sécurise juridiquement, on construit sa vitrine, on la met en ligne, puis on
- * va chercher les clients.
+ * construit sa vitrine, on la met en ligne, on va chercher les clients — et on
+ * finit par le juridique, qui se rédige une fois l'activité stabilisée.
  */
 export const GUIDED_STEPS: readonly GuidedStepDefinition[] = [
   {
@@ -113,19 +113,6 @@ export const GUIDED_STEPS: readonly GuidedStepDefinition[] = [
     isDone: (project) => hasSections(project?.analysisResultModel?.pitchDeck?.sections),
   },
   {
-    id: 'legalDocs',
-    icon: 'pi pi-file-edit',
-    route: '/project/legal-docs',
-    paths: ['/project/legal-docs'],
-    navLabelKey: 'dashboard.sidebar.legalDocs',
-    required: false,
-    estimatedMinutes: 10,
-    isDone: (project) => {
-      const documents = project?.analysisResultModel?.legalDocs?.documents;
-      return Array.isArray(documents) && documents.some((d: { data?: string }) => !!d?.data);
-    },
-  },
-  {
     id: 'development',
     icon: 'pi pi-code',
     route: '/project/development',
@@ -159,6 +146,19 @@ export const GUIDED_STEPS: readonly GuidedStepDefinition[] = [
     required: false,
     estimatedMinutes: 15,
     isDone: (_project, external) => external.hasCommunication,
+  },
+  {
+    id: 'legalDocs',
+    icon: 'pi pi-file-edit',
+    route: '/project/legal-docs',
+    paths: ['/project/legal-docs'],
+    navLabelKey: 'dashboard.sidebar.legalDocs',
+    required: false,
+    estimatedMinutes: 10,
+    isDone: (project) => {
+      const documents = project?.analysisResultModel?.legalDocs?.documents;
+      return Array.isArray(documents) && documents.some((d: { data?: string }) => !!d?.data);
+    },
   },
 ];
 

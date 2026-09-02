@@ -1,12 +1,12 @@
 <section
-  class="flex flex-col min-h-[60vh] items-center justify-center text-text-primary w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-10 animate-fadeIn"
+  class="flex flex-col min-h-[70vh] items-center justify-center text-text-primary w-full px-5 sm:px-6 lg:px-8 py-8 sm:py-12 animate-fadeIn"
 >
   <!-- Retour -->
-  <div class="w-full max-w-5xl mb-6 flex justify-start">
+  <div class="w-full max-w-6xl mb-8 flex justify-start">
     <button
       type="button"
       (click)="onBack()"
-      class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-text-tertiary hover:text-text-primary hover:bg-[var(--glass-bg-subtle)] border border-transparent hover:border-[var(--glass-border)] transition-all duration-200 cursor-pointer"
+      class="inline-flex items-center gap-2 px-4 py-2.5 -ml-4 rounded-xl text-sm font-semibold text-text-tertiary hover:text-text-primary hover:bg-[var(--glass-bg-subtle)] transition-all duration-200 cursor-pointer"
     >
       <i class="pi pi-arrow-left text-xs"></i>
       <span>{{ 'dashboard.createProject.modeChoice.backToDescription' | translate }}</span>
@@ -14,85 +14,95 @@
   </div>
 
   <!-- Titre -->
-  <div class="text-center mb-8 sm:mb-10 max-w-2xl">
-    <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-text-primary leading-tight mb-3">
+  <div class="text-center mb-12 sm:mb-14 max-w-2xl">
+    <span
+      class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-[0.15em] mb-6"
+    >
+      <i class="pi pi-compass text-[11px]"></i>
+      {{ 'dashboard.createProject.modeChoice.badge' | translate }}
+    </span>
+    <h1
+      class="text-3xl sm:text-4xl lg:text-[2.75rem] font-bold text-text-primary leading-[1.15] tracking-tight mb-5"
+    >
       {{ 'dashboard.createProject.modeChoice.title' | translate }}
     </h1>
-    <p class="text-sm sm:text-base text-text-tertiary leading-relaxed">
+    <p class="text-base sm:text-lg text-text-tertiary leading-relaxed">
       {{ 'dashboard.createProject.modeChoice.subtitle' | translate }}
     </p>
     @if (isPersonalized()) {
-      <p class="mt-3 inline-flex items-center gap-1.5 text-xs text-primary font-medium">
-        <i class="pi pi-sparkles text-[10px]"></i>
+      <p class="mt-5 inline-flex items-center gap-2 text-sm text-primary font-semibold">
+        <i class="pi pi-sparkles text-[11px]"></i>
         {{ 'dashboard.createProject.modeChoice.personalized' | translate }}
       </p>
     }
   </div>
 
   <!-- Les trois modes -->
-  <div class="w-full max-w-5xl mx-auto pt-4">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 items-stretch">
+  <div class="w-full max-w-6xl mx-auto">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-7 items-stretch">
       @for (card of cards; track card.mode) {
         <div
           (click)="onSelect(card.mode)"
-          class="group relative rounded-2xl border glass p-5 transition-all duration-300 hover:scale-[1.01] hover:shadow-xl flex flex-col justify-between cursor-pointer"
+          class="mode-card group relative rounded-3xl border-2 glass p-6 sm:p-7 flex flex-col cursor-pointer"
           [ngClass]="
             card.mode === recommendedMode()
-              ? 'border-2 border-primary/60 hover:border-primary shadow-lg shadow-primary/10'
+              ? 'border-primary shadow-2xl shadow-primary/15'
               : 'border-[var(--glass-border)] hover:border-primary/50'
           "
         >
           @if (card.mode === recommendedMode()) {
-            <div
-              class="absolute -top-3 right-5 z-20 inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold uppercase tracking-wide rounded-full bg-primary text-white shadow-xl"
+            <span
+              class="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap z-20 inline-flex items-center gap-1.5 px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-full bg-primary text-white shadow-lg shadow-primary/30"
             >
               <i class="pi pi-sparkles text-[10px]"></i>
               <span>{{ 'dashboard.createProject.modeChoice.recommended' | translate }}</span>
-            </div>
+            </span>
           }
 
-          <div>
-            <!-- Illustration SVG : suit le thème, pas une capture figée -->
-            <div
-              class="w-full h-40 sm:h-44 rounded-xl overflow-hidden mb-5 bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)]"
-            >
-              <app-mode-illustration [mode]="card.uiMode" />
-            </div>
-
-            <div class="flex items-center gap-2 mb-2">
-              <i class="text-sm text-primary" [ngClass]="card.icon"></i>
-              <h2
-                class="text-lg font-bold text-text-primary group-hover:text-primary transition-colors"
-              >
-                {{ 'dashboard.createProject.modeChoice.' + card.i18nKey + '.title' | translate }}
-              </h2>
-            </div>
-
-            <p class="text-xs font-medium text-text-tertiary uppercase tracking-wide mb-3">
-              {{ 'dashboard.createProject.modeChoice.' + card.i18nKey + '.tag' | translate }}
-            </p>
-
-            <p class="text-sm text-text-tertiary leading-relaxed mb-5">
-              {{
-                'dashboard.createProject.modeChoice.' + card.i18nKey + '.description' | translate
-              }}
-            </p>
-
-            <p class="text-xs text-text-secondary leading-relaxed mb-5 flex items-start gap-2">
-              <i class="pi pi-user text-[10px] mt-0.5 text-primary"></i>
-              <span>
-                {{ 'dashboard.createProject.modeChoice.' + card.i18nKey + '.forWho' | translate }}
-              </span>
-            </p>
+          <!-- Illustration SVG : suit le thème, pas une capture figée -->
+          <div
+            class="w-full h-44 sm:h-48 rounded-2xl overflow-hidden mb-6 bg-[var(--color-surface-1)] border border-[var(--glass-border)]"
+          >
+            <app-mode-illustration [mode]="card.uiMode" />
           </div>
+
+          <div class="flex items-center gap-3 mb-2">
+            <span
+              class="w-10 h-10 shrink-0 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-200"
+            >
+              <i class="text-base" [ngClass]="card.icon"></i>
+            </span>
+            <h2 class="text-xl sm:text-2xl font-bold text-text-primary leading-tight">
+              {{ 'dashboard.createProject.modeChoice.' + card.i18nKey + '.title' | translate }}
+            </h2>
+          </div>
+
+          <p
+            class="text-xs font-bold text-text-tertiary uppercase tracking-[0.12em] mb-4 pl-[52px]"
+          >
+            {{ 'dashboard.createProject.modeChoice.' + card.i18nKey + '.tag' | translate }}
+          </p>
+
+          <p class="text-[15px] text-text-secondary leading-relaxed mb-5">
+            {{ 'dashboard.createProject.modeChoice.' + card.i18nKey + '.description' | translate }}
+          </p>
+
+          <p
+            class="text-sm text-text-tertiary leading-relaxed mb-7 flex items-start gap-2.5 pt-5 border-t border-[var(--glass-border)] mt-auto"
+          >
+            <i class="pi pi-user text-[11px] mt-1 text-primary shrink-0"></i>
+            <span>
+              {{ 'dashboard.createProject.modeChoice.' + card.i18nKey + '.forWho' | translate }}
+            </span>
+          </p>
 
           <button
             type="button"
-            class="w-full py-3 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200"
+            class="w-full py-3.5 px-5 rounded-2xl text-[15px] font-semibold flex items-center justify-center gap-2.5 transition-all duration-200"
             [ngClass]="
               card.mode === recommendedMode()
-                ? 'bg-primary text-white shadow-lg shadow-primary/20 group-hover:bg-primary/90'
-                : 'border border-[var(--glass-border-medium)] bg-[var(--color-surface-2)] text-text-primary group-hover:bg-primary group-hover:text-white group-hover:border-primary'
+                ? 'bg-primary text-white shadow-lg shadow-primary/25 group-hover:bg-primary/90'
+                : 'border-2 border-[var(--glass-border-medium)] bg-[var(--color-surface-2)] text-text-primary group-hover:bg-primary group-hover:text-white group-hover:border-primary'
             "
           >
             <span>
@@ -104,8 +114,10 @@
       }
     </div>
 
-    <p class="text-center text-xs text-text-tertiary mt-8">
-      <i class="pi pi-info-circle text-[10px] mr-1.5"></i>
+    <p
+      class="text-center text-sm text-text-tertiary mt-10 flex items-center justify-center gap-2"
+    >
+      <i class="pi pi-info-circle text-xs"></i>
       {{ 'dashboard.createProject.modeChoice.switchLater' | translate }}
     </p>
   </div>

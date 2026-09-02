@@ -16,6 +16,7 @@ import {
 } from '@angular/fire/auth';
 import { from, Observable, firstValueFrom } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { OnboardingSurveyService } from '../../../shared/services/onboarding-survey.service';
 
 @Injectable({
   providedIn: 'root',
@@ -26,6 +27,7 @@ export class AuthService {
   private http = inject(HttpClient);
   private tokenService = inject(forwardRef(() => TokenService));
   private cookieService = inject(CookieService);
+  private onboardingSurvey = inject(OnboardingSurveyService);
   private apiUrl = `${environment.services.api.url}/auth`;
   private readonly CURRENT_USER_COOKIE = 'currentUser';
   private readonly SESSION_ACTIVE_COOKIE = 'idem_session_active';
@@ -183,6 +185,9 @@ export class AuthService {
         this.cookieService.remove(this.CURRENT_USER_COOKIE);
         // Clear global session sentinel
         this.cookieService.set(this.SESSION_ACTIVE_COOKIE, '0', 30);
+        // Le profil d'accueil est propre au compte : il ne doit pas survivre
+        // à une déconnexion et fausser le sondage du compte suivant.
+        this.onboardingSurvey.reset();
         sessionStorage.clear();
 
         // Try to notify backend, but don't block logout if it fails
@@ -197,6 +202,7 @@ export class AuthService {
         // Clear local state even if Firebase signOut fails
         this.tokenService.clearToken();
         this.cookieService.remove(this.CURRENT_USER_COOKIE);
+        this.onboardingSurvey.reset();
         sessionStorage.clear();
       });
 

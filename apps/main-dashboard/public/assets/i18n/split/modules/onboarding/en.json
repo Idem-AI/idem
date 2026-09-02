@@ -1,7 +1,6 @@
 {
   "onboarding": {
     "survey": {
-      "skip": "Skip",
       "oneClick": "One click is enough.",
       "stepCounter": "Question {{current}} of {{total}}",
       "questions": {
@@ -85,8 +84,11 @@
         "recommended": "Recommended",
         "start": "Get started",
         "review": "Review my answers",
-        "changeable": "You can switch modes at any time from the menu at the top of the screen."
-      }
+        "changeable": "You can switch modes at any time from the menu at the top of the screen.",
+        "saving": "Saving…",
+        "saveError": "Your answers could not be saved. Check your connection and try again."
+      },
+      "duration": "Under a minute"
     }
   }
 }

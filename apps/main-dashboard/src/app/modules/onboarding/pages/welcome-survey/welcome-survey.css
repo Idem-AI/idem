@@ -1,20 +1,45 @@
-@keyframes stepIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+:host {
+  display: block;
 }
 
-.animate-stepIn {
-  animation: stepIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+/* Les cartes réagissent au survol par un léger soulèvement : assez pour se
+   sentir cliquables, assez discret pour rester sobre. */
+.survey-option {
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.survey-option:hover {
+  transform: translateY(-2px);
+}
+
+.survey-option:active {
+  transform: translateY(0);
+}
+
+.mode-card {
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mode-card:hover {
+  transform: translateY(-4px);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-stepIn {
-    animation: none;
+  .survey-option,
+  .mode-card {
+    transition: none;
+  }
+
+  .survey-option:hover,
+  .mode-card:hover {
+    transform: none;
   }
 }

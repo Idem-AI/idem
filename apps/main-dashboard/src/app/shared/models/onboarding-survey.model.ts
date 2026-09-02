@@ -156,15 +156,3 @@ export interface ModeRecommendation {
   /** Score par mode, utile pour l'affichage debug / analytics */
   scores: Record<UiMode, number>;
 }
-
-/** État persisté du sondage. */
-export interface OnboardingSurveyState {
-  version: 1;
-  answers: SurveyAnswers;
-  /** L'utilisateur a répondu à toutes les questions */
-  completed: boolean;
-  /** L'utilisateur a explicitement passé le sondage */
-  skipped: boolean;
-  recommendedMode: UiMode | null;
-  updatedAt: string;
-}

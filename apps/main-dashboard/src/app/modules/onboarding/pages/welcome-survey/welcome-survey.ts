@@ -1,6 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { OnboardingSurveyService } from '../../../../shared/services/onboarding-survey.service';
 import { UiModeService, MODE_HOME_ROUTE } from '../../../../shared/services/ui-mode.service';
@@ -37,11 +37,12 @@ const MODE_CARDS: readonly ModeCard[] = [
 ];
 
 /**
- * Sondage d'accueil affiché une seule fois, juste après l'inscription.
+ * Sondage d'accueil : quatre questions, une par écran, répondues en un clic.
  *
- * Quatre questions, une par écran, répondues en un clic : à la fin, IDEM
- * recommande le mode d'interface le plus adapté — que l'utilisateur reste
- * libre de changer, ici comme plus tard.
+ * Il est obligatoire — pour les nouvelles inscriptions comme pour les comptes
+ * antérieurs à la fonctionnalité — parce que c'est lui qui détermine
+ * l'interface proposée. Les réponses partent sur le compte, pas dans le
+ * navigateur : elles suivent l'utilisateur d'un appareil à l'autre.
  */
 @Component({
   selector: 'app-welcome-survey',
@@ -51,10 +52,11 @@ const MODE_CARDS: readonly ModeCard[] = [
   styleUrl: './welcome-survey.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class WelcomeSurveyPage {
+export class WelcomeSurveyPage implements OnInit {
   private readonly survey = inject(OnboardingSurveyService);
   private readonly uiMode = inject(UiModeService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly questions = this.survey.questions;
   protected readonly modeCards = MODE_CARDS;
@@ -64,16 +66,25 @@ export class WelcomeSurveyPage {
   /** Mode retenu sur l'écran final (initialisé sur la recommandation). */
   protected readonly chosenMode = signal<UiMode | null>(null);
 
+  protected readonly isSaving = this.survey.isSaving;
+  protected readonly saveError = this.survey.saveError;
+  protected readonly answers = this.survey.answers;
+
+  /** Page d'où l'utilisateur a été redirigé, à rejoindre une fois le sondage passé. */
+  private returnUrl: string | null = null;
+
   protected readonly isResultStep = computed(() => this.stepIndex() >= this.questions.length);
 
   protected readonly currentQuestion = computed<SurveyQuestion | null>(
     () => this.questions[this.stepIndex()] ?? null,
   );
 
-  protected readonly answers = this.survey.answers;
+  protected readonly progressPercent = computed(() =>
+    Math.round((this.stepIndex() / this.questions.length) * 100),
+  );
 
   protected readonly recommendedMode = computed<UiMode>(
-    () => this.survey.recommendation()?.mode ?? 'guided',
+    () => this.survey.recommendedMode() ?? 'guided',
   );
 
   protected readonly reasonKey = computed(
@@ -90,6 +101,10 @@ export class WelcomeSurveyPage {
     return question ? this.answers()[question.id] : undefined;
   });
 
+  ngOnInit(): void {
+    this.returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+  }
+
   // ───────────────────────────────────────────────────────── navigation
 
   protected selectOption(option: SurveyOption): void {
@@ -97,13 +112,8 @@ export class WelcomeSurveyPage {
     if (!question) return;
 
     this.survey.setAnswer(question.id, option.value);
-
     // Enchaînement immédiat : un clic = une question de plus.
-    const next = this.stepIndex() + 1;
-    if (next >= this.questions.length) {
-      this.survey.complete();
-    }
-    this.stepIndex.set(next);
+    this.stepIndex.set(this.stepIndex() + 1);
   }
 
   protected goBack(): void {
@@ -115,17 +125,19 @@ export class WelcomeSurveyPage {
     this.chosenMode.set(mode);
   }
 
-  /** Applique le mode retenu et amène l'utilisateur dans son espace. */
-  protected start(): void {
+  /**
+   * Enregistre le profil sur le compte puis ouvre l'espace de travail.
+   * En cas d'échec, on reste sur l'écran : le message d'erreur invite à
+   * réessayer plutôt que de laisser croire que c'est enregistré.
+   */
+  protected async start(): Promise<void> {
     const mode = this.selectedMode();
+    const saved = await this.survey.complete(mode);
+    if (!saved) return;
+
     this.uiMode.setMode(mode);
     // Pas encore de projet : le mode Avancé démarre depuis la console.
-    this.router.navigateByUrl(mode === 'advanced' ? '/console' : MODE_HOME_ROUTE[mode]);
-  }
-
-  /** L'utilisateur passe le sondage : on ne le lui reproposera plus. */
-  protected skipSurvey(): void {
-    this.survey.skip();
-    this.router.navigateByUrl('/console');
+    const destination = mode === 'advanced' ? '/console' : MODE_HOME_ROUTE[mode];
+    this.router.navigateByUrl(this.returnUrl ?? destination);
   }
 }

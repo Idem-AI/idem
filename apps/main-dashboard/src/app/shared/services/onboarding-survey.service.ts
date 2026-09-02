@@ -1,15 +1,15 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { AuthService } from '../../modules/auth/services/auth.service';
+import { firstValueFrom } from 'rxjs';
+import { OnboardingProfile } from '@idem/shared-models';
+import { environment } from '../../../environments/environment';
 import { UiMode } from '../../modules/chat/models/chat.model';
 import {
   ModeRecommendation,
-  OnboardingSurveyState,
   SURVEY_QUESTIONS,
   SurveyAnswers,
   SurveyQuestionId,
 } from '../models/onboarding-survey.model';
-
-const STORAGE_PREFIX = 'idem_profile_survey_v1';
 
 /** Poids de chaque réponse par mode. Une réponse absente ne compte pour rien. */
 const SCORING: Record<SurveyQuestionId, Record<string, Partial<Record<UiMode, number>>>> = {
@@ -38,90 +38,158 @@ const SCORING: Record<SurveyQuestionId, Record<string, Partial<Record<UiMode, nu
 /** Départage les ex æquo : on privilégie l'accompagnement le plus fort. */
 const TIE_BREAK_ORDER: UiMode[] = ['guided', 'chat', 'advanced'];
 
-const EMPTY_STATE: OnboardingSurveyState = {
-  version: 1,
-  answers: {},
-  completed: false,
-  skipped: false,
-  recommendedMode: null,
-  updatedAt: '',
-};
-
 /**
- * Sondage d'accueil : stockage des réponses et calcul du mode recommandé.
+ * Sondage d'accueil : réponses, mode recommandé, persistance sur le compte.
  *
- * Les réponses sont conservées par utilisateur (clé suffixée par l'uid) afin
- * que deux comptes sur le même navigateur ne se marchent pas dessus.
+ * Le profil vit en base, pas dans le navigateur : il suit l'utilisateur d'un
+ * appareil à l'autre, et son absence identifie sans ambiguïté les comptes
+ * créés avant la fonctionnalité — qui doivent répondre au sondage avant de
+ * continuer à utiliser IDEM.
  */
 @Injectable({ providedIn: 'root' })
 export class OnboardingSurveyService {
-  private readonly authService = inject(AuthService);
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = `${environment.services.api.url}/auth/onboarding-profile`;
 
   readonly questions = SURVEY_QUESTIONS;
 
-  private readonly state = signal<OnboardingSurveyState>(this.read());
+  /** Profil enregistré ; `null` = sondage jamais rempli. */
+  private readonly profile = signal<OnboardingProfile | null>(null);
+  /** Le profil a été récupéré au moins une fois depuis le serveur. */
+  private readonly loaded = signal(false);
+  /** Réponses en cours de saisie, avant enregistrement. */
+  private readonly draft = signal<SurveyAnswers>({});
+  private inFlight: Promise<OnboardingProfile | null> | null = null;
 
-  readonly answers = computed<SurveyAnswers>(() => this.state().answers);
-  /** Le sondage a été répondu ou explicitement passé : ne plus le proposer. */
-  readonly isSettled = computed(() => this.state().completed || this.state().skipped);
-  readonly isCompleted = computed(() => this.state().completed);
-  /** Nombre de questions répondues (pour la barre de progression). */
+  readonly isSaving = signal(false);
+  readonly saveError = signal<string | null>(null);
+
+  /** Réponses à afficher : le brouillon prime, sinon celles enregistrées. */
+  readonly answers = computed<SurveyAnswers>(() => {
+    const draft = this.draft();
+    if (Object.values(draft).some(Boolean)) return draft;
+    return (this.profile()?.answers ?? {}) as SurveyAnswers;
+  });
+
+  /** Le sondage a été rempli : l'utilisateur peut accéder à IDEM. */
+  readonly isCompleted = computed(() => !!this.profile());
+
+  /** Nombre de questions répondues (barre de progression). */
   readonly answeredCount = computed(
-    () => this.questions.filter((q) => !!this.state().answers[q.id]).length,
+    () => this.questions.filter((q) => !!this.answers()[q.id]).length,
   );
 
+  readonly allAnswered = computed(() => this.answeredCount() === this.questions.length);
+
   /**
-   * Mode recommandé. `null` tant qu'aucune réponse n'a été donnée : les écrans
-   * de choix retombent alors sur leur recommandation par défaut.
+   * Mode recommandé d'après les réponses connues. `null` tant que rien n'a
+   * été répondu ni enregistré : les écrans de choix retombent alors sur leur
+   * recommandation par défaut.
    */
   readonly recommendation = computed<ModeRecommendation | null>(() => {
-    const answers = this.state().answers;
+    const answers = this.answers();
     if (!Object.values(answers).some(Boolean)) return null;
     return this.score(answers);
   });
 
   readonly recommendedMode = computed<UiMode | null>(() => this.recommendation()?.mode ?? null);
 
-  // ───────────────────────────────────────────────────────── actions
+  /** Mode retenu par l'utilisateur lors du sondage, s'il l'a déjà passé. */
+  readonly selectedMode = computed<UiMode | null>(
+    () => (this.profile()?.selectedMode as UiMode | undefined) ?? null,
+  );
 
-  /** Enregistre la réponse d'une question et persiste immédiatement. */
-  setAnswer(questionId: SurveyQuestionId, value: string): void {
-    this.update((current) => ({
-      ...current,
-      answers: { ...current.answers, [questionId]: value } as SurveyAnswers,
-    }));
+  // ───────────────────────────────────────────────────────── chargement
+
+  /**
+   * Récupère le profil depuis le compte. Le résultat est mémorisé pour la
+   * session ; les appels concurrents partagent la même requête.
+   */
+  async load(force = false): Promise<OnboardingProfile | null> {
+    if (this.loaded() && !force) return this.profile();
+    if (this.inFlight && !force) return this.inFlight;
+
+    this.inFlight = firstValueFrom(
+      this.http.get<{ profile: OnboardingProfile | null }>(this.apiUrl, {
+        withCredentials: true,
+      }),
+    )
+      .then((response) => {
+        const profile = response?.profile ?? null;
+        this.profile.set(profile);
+        this.loaded.set(true);
+        return profile;
+      })
+      .catch((error) => {
+        console.error('OnboardingSurvey: could not load the profile', error);
+        // On ne bloque pas l'utilisateur sur une panne réseau : le garde
+        // laissera passer plutôt que d'enfermer un compte déjà complété.
+        this.loaded.set(false);
+        return null;
+      })
+      .finally(() => {
+        this.inFlight = null;
+      });
+
+    return this.inFlight;
   }
 
-  /** Clôture le sondage en figeant le mode recommandé. */
-  complete(): ModeRecommendation {
-    const recommendation = this.score(this.state().answers);
-    this.update((current) => ({
-      ...current,
-      completed: true,
-      skipped: false,
-      recommendedMode: recommendation.mode,
-    }));
-    return recommendation;
+  /** Le profil a-t-il pu être récupéré ? (distingue « pas rempli » de « hors ligne ») */
+  isLoaded(): boolean {
+    return this.loaded();
   }
 
-  /** L'utilisateur passe le sondage : on ne le lui reproposera plus. */
-  skip(): void {
-    this.update((current) => ({ ...current, skipped: true }));
-  }
-
-  /** Repart de zéro (utile depuis le profil pour refaire le sondage). */
+  /** Repart de zéro (changement de compte). */
   reset(): void {
-    this.state.set({ ...EMPTY_STATE });
-    try {
-      localStorage.removeItem(this.storageKey());
-    } catch {
-      // ignore
-    }
+    this.profile.set(null);
+    this.draft.set({});
+    this.loaded.set(false);
+    this.inFlight = null;
+    this.saveError.set(null);
   }
 
-  /** Recharge l'état depuis le stockage (après un changement de compte). */
-  reload(): void {
-    this.state.set(this.read());
+  // ───────────────────────────────────────────────────────── saisie
+
+  /** Enregistre localement la réponse d'une question. */
+  setAnswer(questionId: SurveyQuestionId, value: string): void {
+    this.draft.update((current) => ({ ...current, [questionId]: value }) as SurveyAnswers);
+  }
+
+  /**
+   * Clôture le sondage : les quatre réponses partent sur le compte.
+   * Résout `false` si l'enregistrement a échoué — l'écran reste alors ouvert
+   * plutôt que de laisser croire que c'est fait.
+   */
+  async complete(selectedMode: UiMode): Promise<boolean> {
+    const answers = this.answers();
+    if (!this.allAnswered() || this.isSaving()) return false;
+
+    this.isSaving.set(true);
+    this.saveError.set(null);
+
+    try {
+      const response = await firstValueFrom(
+        this.http.put<{ profile: OnboardingProfile }>(
+          this.apiUrl,
+          {
+            answers,
+            recommendedMode: this.score(answers).mode,
+            selectedMode,
+          },
+          { withCredentials: true },
+        ),
+      );
+      this.profile.set(response?.profile ?? null);
+      this.loaded.set(true);
+      this.draft.set({});
+      return !!response?.profile;
+    } catch (error) {
+      console.error('OnboardingSurvey: could not save the profile', error);
+      this.saveError.set('onboarding.survey.result.saveError');
+      return false;
+    } finally {
+      this.isSaving.set(false);
+    }
   }
 
   // ───────────────────────────────────────────────────────── scoring
@@ -145,34 +213,5 @@ export class OnboardingSurveyService {
     );
 
     return { mode: best, reasonKey: `onboarding.survey.reasons.${best}`, scores };
-  }
-
-  // ───────────────────────────────────────────────────────── persistance
-
-  private storageKey(): string {
-    const uid = this.authService.getCurrentUser()?.uid;
-    return uid ? `${STORAGE_PREFIX}_${uid}` : STORAGE_PREFIX;
-  }
-
-  private read(): OnboardingSurveyState {
-    try {
-      const raw = localStorage.getItem(this.storageKey());
-      if (!raw) return { ...EMPTY_STATE };
-      const parsed = JSON.parse(raw) as OnboardingSurveyState;
-      if (parsed?.version !== 1) return { ...EMPTY_STATE };
-      return { ...EMPTY_STATE, ...parsed, answers: parsed.answers ?? {} };
-    } catch {
-      return { ...EMPTY_STATE };
-    }
-  }
-
-  private update(patch: (current: OnboardingSurveyState) => OnboardingSurveyState): void {
-    const next = { ...patch(this.state()), updatedAt: new Date().toISOString() };
-    this.state.set(next);
-    try {
-      localStorage.setItem(this.storageKey(), JSON.stringify(next));
-    } catch {
-      // Stockage indisponible : le sondage reste valable pour la session
-    }
   }
 }
