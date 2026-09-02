@@ -3,20 +3,26 @@ import { CanActivateFn, Router } from '@angular/router';
 import { OnboardingSurveyService } from '../shared/services/onboarding-survey.service';
 
 /**
- * Redirige vers le sondage d'accueil tant que l'utilisateur n'y a pas répondu
- * (ou ne l'a pas explicitement passé).
+ * Le sondage d'accueil est un préalable à l'usage d'IDEM.
  *
- * Il est posé sur `/console`, la destination commune de toutes les entrées
- * (login e-mail, popup Google/GitHub, retour de redirection mobile) : peu
- * importe le chemin d'arrivée, le sondage n'est proposé qu'une seule fois.
+ * Posé sur toutes les routes authentifiées, ce garde couvre aussi bien les
+ * nouvelles inscriptions que les comptes créés avant la fonctionnalité :
+ * ceux-là n'ont pas de profil en base et sont donc invités à répondre à leur
+ * prochaine ouverture.
+ *
+ * Une panne réseau ne doit jamais enfermer quelqu'un dehors : si le profil
+ * n'a pas pu être lu, on laisse passer et on redemandera plus tard.
  */
-export const surveyGuard: CanActivateFn = () => {
+export const surveyGuard: CanActivateFn = async (_route, state) => {
   const survey = inject(OnboardingSurveyService);
   const router = inject(Router);
 
-  // L'état est stocké par uid : on le relit à l'entrée pour couvrir le cas
-  // d'un changement de compte sur le même navigateur.
-  survey.reload();
+  await survey.load();
 
-  return survey.isSettled() ? true : router.createUrlTree(['/welcome']);
+  if (survey.isCompleted()) return true;
+  if (!survey.isLoaded()) return true;
+
+  return router.createUrlTree(['/welcome'], {
+    queryParams: state.url && state.url !== '/console' ? { returnUrl: state.url } : {},
+  });
 };

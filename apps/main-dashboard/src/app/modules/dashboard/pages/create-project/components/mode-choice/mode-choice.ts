@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  input,
+  output,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { ModeIllustrationComponent } from '../../../../../../shared/components/mode-illustration/mode-illustration';
@@ -35,7 +43,7 @@ const MODE_CARDS: readonly ModeCard[] = [
   styleUrl: './mode-choice.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ModeChoiceComponent {
+export class ModeChoiceComponent implements OnInit {
   private readonly survey = inject(OnboardingSurveyService);
 
   readonly projectDescription = input<string>('');
@@ -45,19 +53,29 @@ export class ModeChoiceComponent {
   protected readonly cards = MODE_CARDS;
 
   /**
-   * Mode mis en avant. Il vient du sondage d'accueil quand il a été rempli ;
-   * sinon on recommande l'accompagnement le plus fort, puisque le produit
-   * s'adresse d'abord à ceux qui ne savent pas par où commencer.
+   * Mode mis en avant. On privilégie celui que l'utilisateur a retenu à
+   * l'inscription — c'est sa préférence explicite — puis la recommandation
+   * calculée. Sans profil, on met en avant l'accompagnement le plus fort :
+   * le produit s'adresse d'abord à ceux qui ne savent pas par où commencer.
    */
   protected readonly recommendedMode = computed<CreateMode>(() => {
-    const recommended = this.survey.recommendedMode();
-    if (recommended === 'chat') return 'chat';
-    if (recommended === 'advanced') return 'form';
+    const preferred = this.survey.selectedMode() ?? this.survey.recommendedMode();
+    if (preferred === 'chat') return 'chat';
+    if (preferred === 'advanced') return 'form';
     return 'guided';
   });
 
-  /** La recommandation vient-elle des réponses de l'utilisateur ? */
-  protected readonly isPersonalized = computed(() => this.survey.recommendedMode() !== null);
+  /** La mise en avant s'appuie-t-elle sur les réponses de l'utilisateur ? */
+  protected readonly isPersonalized = computed(
+    () => this.survey.selectedMode() !== null || this.survey.recommendedMode() !== null,
+  );
+
+  ngOnInit(): void {
+    // La création de projet est accessible sans être connecté : le profil peut
+    // ne pas encore avoir été chargé. Un échec (401 hors session) retombe
+    // simplement sur la recommandation par défaut.
+    void this.survey.load();
+  }
 
   protected onSelect(mode: CreateMode): void {
     this.selectMode.emit(mode);

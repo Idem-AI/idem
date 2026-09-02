@@ -42,7 +42,7 @@ export const routes: Routes = [
     title: 'navigation.titles.projects',
     loadComponent: () =>
       import('./modules/dashboard/pages/projects-list/projects-list').then((m) => m.ProjectsList),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard],
     data: { layout: 'global' },
   },
 
@@ -68,7 +68,7 @@ export const routes: Routes = [
     title: 'navigation.titles.guided',
     loadComponent: () =>
       import('./modules/guided/pages/guided-home/guided-home').then((m) => m.GuidedHomePage),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard],
     data: { layout: 'guided' },
   },
 
@@ -80,7 +80,7 @@ export const routes: Routes = [
     title: 'navigation.titles.chat',
     loadComponent: () =>
       import('./modules/chat/pages/chat-home/chat-home').then((m) => m.ChatHomePage),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard],
     data: { layout: 'chat' },
   },
   {
@@ -88,7 +88,7 @@ export const routes: Routes = [
     title: 'navigation.titles.chatNew',
     loadComponent: () =>
       import('./modules/chat/pages/chat-home/chat-home').then((m) => m.ChatHomePage),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard],
     data: { layout: 'chat', onboarding: true },
   },
 
@@ -100,7 +100,7 @@ export const routes: Routes = [
     title: 'navigation.titles.dashboard',
     loadComponent: () =>
       import('./modules/dashboard/pages/dashboard/dashboard').then((m) => m.DashboardComponent),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -110,7 +110,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/show-branding/show-branding').then(
         (m) => m.ShowBrandingComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -120,7 +120,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/complete-branding/complete-branding').then(
         (m) => m.CompleteBrandingPage,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'empty' },
   },
   {
@@ -130,7 +130,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/business-cards/business-cards').then(
         (m) => m.BusinessCardsPage,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -140,7 +140,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/document-editor/document-editor').then(
         (m) => m.DocumentEditorComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'empty', documentType: 'business-card' },
   },
   {
@@ -150,7 +150,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/show-branding/components/branding-display/branding-display').then(
         (m) => m.BrandingDisplayComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -160,7 +160,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/show-branding/branding-generation/branding-generation-page').then(
         (m) => m.BrandingGenerationPage,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -170,7 +170,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/create-project/components/logo-variations/logo-variations').then(
         (m) => m.LogoVariationsComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -180,7 +180,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/create-project/components/color-selection/color-selection').then(
         (m) => m.ColorSelectionComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -190,7 +190,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/create-project/components/typography-selection/typography-selection').then(
         (m) => m.TypographySelectionComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -200,7 +200,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/show-business-plan/show-business-plan').then(
         (m) => m.ShowBusinessPlan,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -210,7 +210,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/show-business-plan/business-plan-generation/business-plan-generation-page').then(
         (m) => m.BusinessPlanGenerationPage,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -220,7 +220,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/document-editor/document-editor').then(
         (m) => m.DocumentEditorComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'empty', documentType: 'business-plan' },
   },
   {
@@ -230,7 +230,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/document-editor/document-editor').then(
         (m) => m.DocumentEditorComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'empty', documentType: 'pitch-deck' },
   },
   {
@@ -240,7 +240,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/document-editor/document-editor').then(
         (m) => m.DocumentEditorComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'empty', documentType: 'branding' },
   },
   {
@@ -250,7 +250,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/document-editor/document-editor').then(
         (m) => m.DocumentEditorComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'empty', documentType: 'flyer' },
   },
   {
@@ -260,7 +260,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/show-communication/show-communication').then(
         (m) => m.ShowCommunication,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -270,7 +270,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/show-pitch-deck/show-pitch-deck').then(
         (m) => m.ShowPitchDeck,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -278,7 +278,7 @@ export const routes: Routes = [
     title: 'navigation.titles.legalDocs',
     loadComponent: () =>
       import('./modules/dashboard/pages/legal-docs/legal-docs').then((m) => m.LegalDocsPage),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -290,7 +290,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/simulations-overview/simulations-overview').then(
         (m) => m.SimulationsOverview,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -298,7 +298,7 @@ export const routes: Routes = [
     title: 'navigation.titles.advisor',
     loadComponent: () =>
       import('./modules/dashboard/pages/advisor/advisor').then((m) => m.AdvisorPage),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -308,7 +308,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/show-diagrams/show-diagrams').then(
         (m) => m.ShowDiagramsComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -318,7 +318,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/show-diagrams/diagram-generation/diagram-generation-page').then(
         (m) => m.DiagramGenerationPage,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -326,7 +326,7 @@ export const routes: Routes = [
     title: 'navigation.titles.tests',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-tests/show-tests').then((m) => m.ShowTestsComponent),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -336,7 +336,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/development/create-development/create-development').then(
         (m) => m.CreateDevelopmentComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -346,7 +346,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/development/show-development/show-development').then(
         (m) => m.ShowDevelopment,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -356,7 +356,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/ideploy-overview/ideploy-overview').then(
         (m) => m.IDeployOverview,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -366,7 +366,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/deployment/create-deployment/create-deployment').then(
         (m) => m.CreateDeployment,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -376,7 +376,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/deployment/deployment-list/deployment-list').then(
         (m) => m.DeploymentList,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -386,7 +386,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/deployment/deployment-details/deployment-details').then(
         (m) => m.DeploymentDetails,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
 
@@ -395,7 +395,7 @@ export const routes: Routes = [
     title: 'navigation.titles.profilePage',
     loadComponent: () =>
       import('./modules/dashboard/pages/profile/profile').then((m) => m.ProfileComponent),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
 
@@ -409,7 +409,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-overview/finance-overview').then(
         (m) => m.FinanceOverviewComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -419,7 +419,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'products' },
   },
   {
@@ -429,7 +429,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'salesObjectives' },
   },
   {
@@ -439,7 +439,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'variableCharges' },
   },
   {
@@ -449,7 +449,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'fixedCharges' },
   },
   {
@@ -459,7 +459,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'taxesParams' },
   },
   {
@@ -469,7 +469,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'revenueParams' },
   },
   {
@@ -479,7 +479,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'investments' },
   },
   {
@@ -489,7 +489,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'amortization' },
   },
   {
@@ -499,7 +499,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'financing' },
   },
   {
@@ -509,7 +509,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'ratiosParams' },
   },
   {
@@ -519,7 +519,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'compteExploitation' },
   },
   {
@@ -529,7 +529,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'bilan' },
   },
   {
@@ -539,7 +539,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'fluxTresorerie' },
   },
   {
@@ -549,7 +549,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, guidedAccessGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'ratios' },
   },
 

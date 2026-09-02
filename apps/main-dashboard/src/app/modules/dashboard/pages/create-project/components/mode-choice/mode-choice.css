@@ -13,8 +13,35 @@
   animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Léger soulèvement au survol : la carte se signale comme cliquable sans
+   recourir à un effet tape-à-l'œil. */
+.mode-card {
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mode-card:hover {
+  transform: translateY(-6px);
+}
+
 /* Light mode background overrides if needed */
 :host-context(.light-theme) .glass {
   background: rgba(255, 255, 255, 0.7);
   border-color: rgba(226, 232, 240, 0.8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fadeIn {
+    animation: none;
+  }
+
+  .mode-card {
+    transition: none;
+  }
+
+  .mode-card:hover {
+    transform: none;
+  }
 }

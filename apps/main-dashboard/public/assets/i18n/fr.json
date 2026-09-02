@@ -3441,7 +3441,6 @@
   },
   "onboarding": {
     "survey": {
-      "skip": "Passer",
       "oneClick": "Un clic suffit.",
       "stepCounter": "Question {{current}} sur {{total}}",
       "questions": {
@@ -3525,8 +3524,11 @@
         "recommended": "Conseillé",
         "start": "Commencer",
         "review": "Revoir mes réponses",
-        "changeable": "Vous pourrez changer de mode à tout moment depuis le menu en haut de l’écran."
-      }
+        "changeable": "Vous pourrez changer de mode à tout moment depuis le menu en haut de l’écran.",
+        "saving": "Enregistrement…",
+        "saveError": "Vos réponses n'ont pas pu être enregistrées. Vérifiez votre connexion et réessayez."
+      },
+      "duration": "Moins d'une minute"
     }
   },
   "guided": {
