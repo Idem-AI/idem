@@ -42,6 +42,7 @@
       <!-- Desktop Project Selector -->
       <div class="hidden md:block ml-6 relative project-selector">
         <button
+          data-tour="project-selector"
           (click)="toggleProjectSelector()"
           class="flex items-center gap-3 px-4 py-2 glass-card hover:bg-[var(--glass-bg-light)] transition-all duration-200 min-w-[200px] justify-between"
         >
@@ -185,7 +186,7 @@
   </button>
 
   <!-- Navigation Menu -->
-  <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+  <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto" data-tour="dashboard-nav">
     @for (item of displayedNavItems(); track item.route) {
       <div>
         <!-- Parent item: a link if no children, a button if has children -->

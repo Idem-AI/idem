@@ -20,7 +20,6 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { AnalyticsService } from '../../../../shared/services/analytics.service';
 import { UiModeService } from '../../../../shared/services/ui-mode.service';
-import { TourService } from '../../../../shared/services/tour.service';
 
 @Component({
   selector: 'app-global-dashboard',
@@ -39,7 +38,6 @@ export class GlobalDashboard implements OnInit {
   private readonly notificationService = inject(NotificationService);
   private readonly analyticsService = inject(AnalyticsService);
   private readonly uiModeService = inject(UiModeService);
-  private readonly tour = inject(TourService);
 
   // Signals
   protected readonly projects = signal<ProjectModel[]>([]);
@@ -69,11 +67,6 @@ export class GlobalDashboard implements OnInit {
 
   ngOnInit() {
     this.loadDashboardData();
-    // La console est la page d'accueil du mode Avancé : c'est là qu'on
-    // présente les lieux. Les autres modes ont leur propre visite.
-    if (this.uiModeService.mode() === 'advanced') {
-      this.tour.maybeStart('advanced');
-    }
   }
 
   /** Retour au parcours assisté depuis la console. */

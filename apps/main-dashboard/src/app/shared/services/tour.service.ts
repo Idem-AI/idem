@@ -52,8 +52,8 @@ export class TourService {
       default:
         return [
           { key: 'welcome' },
-          { key: 'create', target: '[data-tour="create-project"]', placement: 'right' },
-          { key: 'projects', target: '[data-tour="projects"]', placement: 'top' },
+          { key: 'project', target: '[data-tour="project-selector"]', placement: 'bottom' },
+          { key: 'nav', target: '[data-tour="dashboard-nav"]', placement: 'right' },
           { key: 'switch', target: '[data-tour="mode-switcher"]', placement: 'bottom' },
           { key: 'done', celebrate: true },
         ];
