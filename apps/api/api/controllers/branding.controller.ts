@@ -21,7 +21,7 @@ export const saveBrandingSectionsController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   try {
     if (!userId) { res.status(401).json({ message: 'User not authenticated' }); return; }
     if (!projectId) { res.status(400).json({ message: 'Project ID is required' }); return; }
@@ -181,7 +181,7 @@ export const generateLogoConceptsController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
   logger.info(
     `generateLogoConceptsController called - UserId: ${userId}, ProjectId: ${projectId}`
@@ -255,7 +255,7 @@ export const generateLogoConceptsStreamController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
   logger.info(
     `generateLogoConceptsStreamController called - UserId: ${userId}, ProjectId: ${projectId}`
@@ -377,7 +377,7 @@ export const cancelLogoConceptsController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
   try {
     if (!userId) {
@@ -409,7 +409,7 @@ export const generateLogoVariationsStreamController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
   logger.info(
     `generateLogoVariationsStreamController called - UserId: ${userId}, ProjectId: ${projectId}`
@@ -536,7 +536,7 @@ export const generateLogoVariationsController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const { selectedLogo } = req.body;
   const userId = req.user?.uid;
   logger.info(
@@ -613,7 +613,7 @@ export const getBrandingsByProjectController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
   logger.info(
     `getBrandingsByProjectController called - UserId: ${userId}, ProjectId: ${projectId}`
@@ -685,7 +685,7 @@ export const updateBrandingController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
   logger.info(`updateBrandingController called - UserId: ${userId}, ProjectId: ${projectId}`, {
     body: req.body,
@@ -731,7 +731,7 @@ export const deleteBrandingController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
   logger.info(`deleteBrandingController called - UserId: ${userId}, ProjectId: ${projectId}`);
   try {
@@ -773,7 +773,7 @@ export const generateBrandingStreamingController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const { format } = req.query;
   const userId = req.user?.uid;
   const pdfFormat = (format as string) || 'SLIDE_16_9';
@@ -896,7 +896,7 @@ export const generateBrandingPdfController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
   logger.info(`generateBrandingPdfController called - UserId: ${userId}, ProjectId: ${projectId}`);
 
@@ -1045,7 +1045,7 @@ export const generateLogosZipController = async (
  * Contrôleur pour éditer un logo existant avec AI
  */
 export const editLogoController = async (req: CustomRequest, res: Response): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const { logosvg, modificationPrompt } = req.body;
   const userId = req.user?.uid;
 
@@ -1115,7 +1115,7 @@ export const getArtDirectionController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   try {
     if (!userId) {
       res.status(401).json({ message: 'User not authenticated' });
