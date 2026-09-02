@@ -1070,7 +1070,8 @@
         "title": "Create with AI",
         "description": "Let our AI generate unique custom logo concepts based on your project's identity.",
         "badge": "Recommended",
-        "button": "Generate with AI"
+        "button": "Generate with AI",
+        "vectorBadge": "Vector generation"
       },
       "backToChoice": "Back to options",
       "continueWithLogo": "Continue with this logo",
