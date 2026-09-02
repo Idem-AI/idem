@@ -6,7 +6,7 @@ function Header() {
   const { isDarkMode } = useThemeStore();
 
   return (
-    <header className="min-h-12 flex items-center px-4 h-12 glass border-b bg-white dark:bg-gray-900">
+    <header data-tour="appgen-header" className="min-h-12 flex items-center px-4 h-12 glass border-b bg-white dark:bg-gray-900">
       <div className="flex-1">
         <ProjectTitle />
       </div>

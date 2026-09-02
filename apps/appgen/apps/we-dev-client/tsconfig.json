@@ -24,6 +24,9 @@
       ],
       "@/*": [
         "./src/*"
+      ],
+      "@idem/shared-tour": [
+        "../../../../packages/shared-tour/src"
       ]
     }
   },

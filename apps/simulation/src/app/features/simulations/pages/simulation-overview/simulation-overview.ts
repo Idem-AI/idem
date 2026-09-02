@@ -1,8 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import { ToastService } from '../../../../core/ui/toast.service';
+import { TourService } from '../../../../core/ui/tour.service';
 import { DisclaimerNote } from '../../../../shared/components/disclaimer-note/disclaimer-note';
 import { PipelineProgress } from '../../components/pipeline-progress/pipeline-progress';
 import { ViabilityGauge } from '../../components/viability-gauge/viability-gauge';
@@ -19,12 +27,19 @@ import { FactorTier } from '../../models';
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './simulation-overview.html',
 })
-export class SimulationOverview {
+export class SimulationOverview implements OnInit {
   private readonly store = inject(SimulationStore);
   private readonly reportDownload = inject(ReportDownloadService);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
   private readonly translate = inject(TranslateService);
+  private readonly tour = inject(TourService);
+
+  ngOnInit(): void {
+    // L'aperçu est la porte d'entrée du simulateur : c'est ici qu'on
+    // présente les lieux, la première fois seulement.
+    this.tour.maybeStart();
+  }
 
   protected readonly simulation = this.store.active;
   protected readonly isRunning = this.store.isRunning;
