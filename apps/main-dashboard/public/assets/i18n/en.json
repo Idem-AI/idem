@@ -3736,15 +3736,7 @@
     "advanced": {
       "welcome": {
         "title": "Welcome! Shall we look around?",
-        "body": "Thirty seconds to find your bearings on the dashboard."
-      },
-      "create": {
-        "title": "Start a project",
-        "body": "Everything starts here. Describe your idea in a few lines: IDEM derives the brand, the business plan, the numbers and the rest."
-      },
-      "projects": {
-        "title": "Your projects",
-        "body": "They are waiting here. One click opens the project’s full workspace."
+        "body": "Thirty seconds to find your bearings in your workspace."
       },
       "switch": {
         "title": "Switch modes whenever you like",
@@ -3753,6 +3745,14 @@
       "done": {
         "title": "You are all set!",
         "body": "Over to you. The dashboard hides nothing: every module is reachable from the left-hand menu."
+      },
+      "project": {
+        "title": "The open project",
+        "body": "This selector shows which project you are working on. Everything on screen relates to it — and you can switch from here."
+      },
+      "nav": {
+        "title": "All your tools",
+        "body": "Brand, business plan, finance, legal, website, deployment: each module has its page. Nothing is locked — take them in whatever order suits you."
       }
     }
   }

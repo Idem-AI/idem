@@ -8,6 +8,7 @@ import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loa
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
 import { MODE_HOME_ROUTE, UiModeService } from '../../../../shared/services/ui-mode.service';
+import { TourService } from '../../../../shared/services/tour.service';
 import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
 
 @Component({
@@ -32,6 +33,7 @@ export class DashboardComponent implements OnInit {
   protected readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);
   private readonly uiModeService = inject(UiModeService);
+  private readonly tour = inject(TourService);
 
   readonly project = signal<ProjectModel | null>(null);
   readonly isLoading = signal<boolean>(true);
@@ -77,9 +79,16 @@ export class DashboardComponent implements OnInit {
     // Le mode Chat a sa propre vue du projet : on y renvoie l'utilisateur.
     // Le mode Assisté, lui, garde accès à cette page — la barre de parcours
     // affichée au-dessus ramène au parcours en un clic.
-    if (this.uiModeService.mode() === 'chat') {
+    const mode = this.uiModeService.mode();
+    if (mode === 'chat') {
       this.router.navigateByUrl(MODE_HOME_ROUTE.chat);
       return;
+    }
+
+    // Le tableau de bord projet est le vrai lieu de travail du mode Avancé :
+    // c'est ici qu'on présente les outils, pas sur la liste des projets.
+    if (mode === 'advanced') {
+      this.tour.maybeStart('advanced');
     }
 
     this.isLoading.set(true);

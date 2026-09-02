@@ -63,15 +63,7 @@
     "advanced": {
       "welcome": {
         "title": "Bienvenue ! On fait le tour ?",
-        "body": "Trente secondes pour repérer l’essentiel du tableau de bord."
-      },
-      "create": {
-        "title": "Démarrer un projet",
-        "body": "Tout part d'ici. Décrivez votre idée en quelques lignes : IDEM en tire la marque, le business plan, les chiffres et le reste."
-      },
-      "projects": {
-        "title": "Vos projets",
-        "body": "Ils vous attendent ici. Un clic ouvre l’espace de travail complet du projet."
+        "body": "Trente secondes pour repérer l’essentiel de votre espace de travail."
       },
       "switch": {
         "title": "Changer de mode, quand vous voulez",
@@ -80,6 +72,14 @@
       "done": {
         "title": "Vous êtes prêt !",
         "body": "À vous de jouer. Le tableau de bord ne cache rien : chaque module est accessible depuis le menu de gauche."
+      },
+      "project": {
+        "title": "Le projet ouvert",
+        "body": "Ce sélecteur indique sur quel projet vous travaillez. Tout ce que vous voyez à l'écran s'y rapporte — et vous pouvez en changer d'ici."
+      },
+      "nav": {
+        "title": "Tous vos outils",
+        "body": "Marque, business plan, finances, juridique, site, déploiement : chaque module a sa page. Rien n'est verrouillé, prenez-les dans l'ordre qui vous arrange."
       }
     }
   }
