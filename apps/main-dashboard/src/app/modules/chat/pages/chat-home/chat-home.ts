@@ -25,6 +25,7 @@ import { ProjectModel } from '@idem/shared-models';
 
 import { Loader } from '../../../../shared/components/loader/loader';
 import { UiModeService } from '../../../../shared/services/ui-mode.service';
+import { TourService } from '../../../../shared/services/tour.service';
 import { GenerationService } from '../../../../shared/services/generation.service';
 import {
   SSEGenerationState,
@@ -132,6 +133,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
   private readonly uiMode = inject(UiModeService);
+  private readonly tour = inject(TourService);
   private readonly advisor = inject(AdvisorService);
   private readonly intents = inject(ChatIntentService);
   private readonly onboarding = inject(ChatOnboardingService);
@@ -268,6 +270,9 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
 
     await this.enterProjectMode(this.session.activeProjectId()!);
     this.isInitializing.set(false);
+
+    // Le fil est en place : on peut présenter les lieux sans pointer le vide.
+    void this.tour.maybeStart('chat');
   }
 
   ngAfterViewChecked(): void {

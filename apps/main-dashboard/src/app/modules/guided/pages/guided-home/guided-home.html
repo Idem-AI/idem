@@ -29,7 +29,7 @@
     </div>
   } @else {
     <!-- ═══ EN-TÊTE : où j'en suis ═══ -->
-    <header class="mb-8 animate-guidedIn">
+    <header class="mb-8 animate-guidedIn" data-tour="guided-progress">
       <div class="flex items-start justify-between gap-4 mb-5">
         <div class="min-w-0">
           <h1 class="text-xl sm:text-2xl font-bold text-text-primary leading-tight">
@@ -65,10 +65,11 @@
     </header>
 
     <!-- ═══ LE PARCOURS ═══ -->
-    <ol class="flex flex-col gap-2.5">
+    <ol class="flex flex-col gap-2.5" data-tour="guided-steps">
       @for (step of steps(); track step.id) {
         <li>
           <div
+            [attr.data-tour]="step.status === 'current' ? 'guided-current' : null"
             class="rounded-2xl border transition-all duration-200"
             [ngClass]="{
               'border-primary bg-primary/5 shadow-xl shadow-primary/10': step.status === 'current',

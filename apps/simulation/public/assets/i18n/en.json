@@ -638,5 +638,41 @@
     "go": "The index is high and the model withstands most of the stress scenarios that were run.",
     "go-with-conditions": "The model breaks in some of the stress scenarios: whether it holds depends on conditions being met.",
     "no-go": "The index is low and the model breaks in most of the stress scenarios that were run."
+  },
+  "tour": {
+    "common": {
+      "next": "Next",
+      "back": "Back",
+      "skip": "Skip",
+      "finish": "Let's go!",
+      "stepOf": "Step {current} of {total}",
+      "dialogLabel": "Guided tour"
+    },
+    "steps": {
+      "welcome": {
+        "title": "Welcome to the simulator! Shall we look around?",
+        "body": "A few seconds to understand what you are looking at."
+      },
+      "nav": {
+        "title": "Your screens",
+        "body": "Overview, factors, scenarios, comparison: each screen digs into one aspect of the simulation. Always start with the overview."
+      },
+      "glance": {
+        "title": "The verdict at a glance",
+        "body": "The gist of the result, without the detail: enough to decide whether it is worth going further."
+      },
+      "risks": {
+        "title": "Identified risks",
+        "body": "What could make the project fail, ranked by severity. Read this before celebrating good numbers."
+      },
+      "next": {
+        "title": "What now?",
+        "body": "The concrete moves that follow the verdict: dig into a factor, stress-test the scenario, compare."
+      },
+      "done": {
+        "title": "You are all set!",
+        "body": "A simulation is a costed hypothesis, not a prediction. It is up to you to put it to the test."
+      }
+    }
   }
 }

@@ -470,5 +470,37 @@
     "layers": "图层",
     "layersHint": "光标下堆叠的元素 — 选择要编辑的一个。",
     "layersLoading": "正在加载页面结构…"
+  },
+  "tour": {
+    "common": {
+      "next": "Next",
+      "back": "Back",
+      "skip": "Skip",
+      "finish": "Let's go!",
+      "stepOf": "Step {current} of {total}",
+      "dialogLabel": "Guided tour"
+    },
+    "steps": {
+      "welcome": {
+        "title": "Welcome to AppGen! Shall we look around?",
+        "body": "A few seconds to find your bearings. Nothing to memorise — it all stays in sight."
+      },
+      "chat": {
+        "title": "Describe what you want",
+        "body": "Write your idea in plain language: \"an online shop with a cart and checkout\". AppGen writes the code."
+      },
+      "preview": {
+        "title": "The result, live",
+        "body": "Your application is built right here, in front of you. Switch between the code and the preview at any time."
+      },
+      "header": {
+        "title": "Your settings",
+        "body": "Model, language, theme and account: it all lives in this bar."
+      },
+      "done": {
+        "title": "You are all set!",
+        "body": "Make your first request. If the result is off, ask again differently — that is the point."
+      }
+    }
   }
 }

@@ -44,7 +44,7 @@ const EditorPreviewTabs: React.FC = () => {
   };
 
   return (
-    <div className="m-1.5 flex-1 relative flex flex-col">
+    <div data-tour="appgen-preview" className="m-1.5 flex-1 relative flex flex-col">
       <div className="flex h-10 gap-0.5 bg-[#f3f3f3] dark:bg-[#1a1a1a] pl-0 pt-1 rounded-t-lg justify-between border-b border-[#e4e4e4] dark:border-[#333]">
         <div className="flex-1 flex">
           <TabButton

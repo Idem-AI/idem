@@ -517,6 +517,67 @@ class UserService {
     return profile;
   }
 
+  /**
+   * Visites guidées déjà vues par ce compte.
+   *
+   * Les deux emplacements sont fusionnés : le champ de compte, et l'ancien
+   * champ logé dans le profil d'accueil, le temps que les comptes existants
+   * basculent.
+   */
+  async getToursSeen(userId: string): Promise<string[]> {
+    const user = await this.userRepository.findById(userId, 'users');
+    const legacy = user?.onboardingProfile?.toursSeen ?? [];
+    return [...new Set([...(user?.toursSeen ?? []), ...legacy])];
+  }
+
+  /**
+   * Mémorise qu'une visite guidée a été vue.
+   *
+   * L'appel est idempotent, et le document utilisateur est créé au besoin :
+   * les applications satellites (iDeploy, simulateur, AppGen) ont des
+   * utilisateurs qui n'ont jamais rempli le sondage d'accueil du tableau de
+   * bord, et leur didacticiel doit tout de même être mémorisé.
+   */
+  async markTourSeen(userId: string, tourId: string): Promise<string[]> {
+    const seen = await this.getToursSeen(userId);
+    if (seen.includes(tourId)) return seen;
+
+    const toursSeen = [...seen, tourId];
+    const user = await this.userRepository.findById(userId, 'users');
+
+    if (!user) {
+      logger.info(`User ${userId} has no record yet, creating it before storing the tour`);
+      const userRecord = await admin.auth().getUser(userId);
+      await this.userRepository.create(
+        {
+          uid: userId,
+          email: userRecord.email || '',
+          displayName: userRecord.displayName || '',
+          photoURL: userRecord.photoURL || '',
+          subscription: 'free',
+          lastLogin: new Date(),
+          quota: {
+            dailyUsage: 0,
+            weeklyUsage: 0,
+            dailyLimit: this.quotaLimits.dailyLimit,
+            weeklyLimit: this.quotaLimits.weeklyLimit,
+            lastResetDaily: new Date().toISOString().split('T')[0],
+            lastResetWeekly: this.getWeekStart(new Date()).toISOString().split('T')[0],
+          },
+          roles: ['user'],
+          toursSeen,
+        },
+        'users',
+        userId
+      );
+    } else {
+      await this.userRepository.update(userId, { toursSeen }, 'users');
+    }
+
+    logger.info(`Tour ${tourId} marked as seen for user ${userId}`);
+    return toursSeen;
+  }
+
   async getUserEmail(userId: string): Promise<string | undefined> {
     const user = await this.userRepository.findById(userId, 'users');
     return user?.email;

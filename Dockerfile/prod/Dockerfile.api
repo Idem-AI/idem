@@ -50,6 +50,7 @@ RUN npm run build
 
 # Production stage
 FROM node:20-alpine AS production
+ARG BUILD_ENV
 
 # Install security updates and runtime dependencies
 RUN apk update && apk upgrade && \

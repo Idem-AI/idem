@@ -1,0 +1,18 @@
+{
+  "name": "@idem/shared-tour",
+  "version": "1.0.0",
+  "description": "Framework-agnostic guided tour engine shared by every Idem application",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
+  },
+  "keywords": ["idem", "tour", "onboarding", "shared"],
+  "author": "Idem Team",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}

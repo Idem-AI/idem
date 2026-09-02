@@ -89,6 +89,8 @@ export default defineConfig(async ({ mode, command }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src'),
+        // Moteur de visite guidée partagé par toutes les applications Idem.
+        '@idem/shared-tour': path.resolve(__dirname, '../../../../packages/shared-tour/src'),
         '@sketch-hq/sketch-file-format-ts': '@sketch-hq/sketch-file-format-ts',
         'ag-psd': 'ag-psd',
       },
