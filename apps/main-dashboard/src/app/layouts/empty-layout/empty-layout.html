@@ -23,7 +23,10 @@
     </div>
 
     <!-- Right section -->
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-3 sm:gap-4">
+      <!-- Sélecteur de mode : présent partout, pour qu'on sache qu'on peut changer -->
+      <app-mode-switcher [alignRight]="true" />
+
       <!-- Language Selector -->
       <app-language-selector direction="down" align="right" />
       <app-theme-toggle />

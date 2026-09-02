@@ -180,6 +180,7 @@
         }
         <div class="flex items-end gap-3">
           <textarea
+          data-tour="chat-composer"
             [ngModel]="draft()"
             (ngModelChange)="updateDraft($event)"
             (keydown)="handleKeydown($event)"

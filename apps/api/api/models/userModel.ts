@@ -67,6 +67,8 @@ export interface OnboardingProfile {
   /** Mode réellement retenu par l'utilisateur (il peut contredire la reco) */
   selectedMode: OnboardingUiMode;
   completedAt: Date | string;
+  /** @deprecated Remplacé par `UserModel.toursSeen` ; lu pour compatibilité. */
+  toursSeen?: string[];
 }
 
 export interface UserModel {
@@ -81,6 +83,14 @@ export interface UserModel {
   roles: string[];
   githubIntegration?: GitHubIntegration;
   refreshTokens?: RefreshTokenData[];
+  /**
+   * Visites guidées déjà vues, toutes applications confondues
+   * (`main-dashboard:guided`, `ideploy-web:main`…).
+   *
+   * Stocké sur le compte et non dans le navigateur : changer de machine ou
+   * de navigateur ne doit pas rejouer un didacticiel déjà suivi.
+   */
+  toursSeen?: string[];
   policyAcceptance?: PolicyAcceptanceStatus;
   /** Sondage d'accueil ; absent = compte antérieur à la fonctionnalité */
   onboardingProfile?: OnboardingProfile;

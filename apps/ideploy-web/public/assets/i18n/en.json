@@ -561,5 +561,41 @@
     "existingHint": "Deployed into the workspace you pick — it will share that workspace's server and network.",
     "namePlaceholder": "Workspace name",
     "newHint": "A new workspace, dedicated to this. You can add more to it later."
+  },
+  "tour": {
+    "common": {
+      "next": "Next",
+      "back": "Back",
+      "skip": "Skip",
+      "finish": "Let's go!",
+      "stepOf": "Step {current} of {total}",
+      "dialogLabel": "Guided tour"
+    },
+    "steps": {
+      "welcome": {
+        "title": "Welcome to iDeploy! Shall we look around?",
+        "body": "A few seconds to find your bearings. Nothing to memorise — it all stays in sight."
+      },
+      "team": {
+        "title": "Your team",
+        "body": "Everything you deploy belongs to this team. The people you invite get access alongside you."
+      },
+      "nav": {
+        "title": "Your servers",
+        "body": "Start by connecting a machine: it is what will run your applications. One is enough to get going."
+      },
+      "apps": {
+        "title": "Your applications",
+        "body": "Once the server is in place, add an application from a Git repository or a template. iDeploy handles the rest."
+      },
+      "plan": {
+        "title": "Your plan",
+        "body": "It sets how many servers and applications you get. The counter is there so nothing surprises you."
+      },
+      "done": {
+        "title": "You are all set!",
+        "body": "Connect a server and deploy your first application. The left-hand menu hides nothing."
+      }
+    }
   }
 }

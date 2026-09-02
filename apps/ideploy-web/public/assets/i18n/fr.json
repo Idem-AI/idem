@@ -561,5 +561,41 @@
     "existingHint": "Déployé dans le workspace choisi — il partagera son serveur et son réseau.",
     "namePlaceholder": "Nom du workspace",
     "newHint": "Un nouveau workspace, dédié à ceci. Vous pourrez y ajouter d’autres ressources plus tard."
+  },
+  "tour": {
+    "common": {
+      "next": "Suivant",
+      "back": "Retour",
+      "skip": "Passer",
+      "finish": "C'est parti !",
+      "stepOf": "Étape {current} sur {total}",
+      "dialogLabel": "Visite guidée"
+    },
+    "steps": {
+      "welcome": {
+        "title": "Bienvenue sur iDeploy ! On fait le tour ?",
+        "body": "Quelques secondes pour repérer l'essentiel. Rien à retenir : tout reste sous les yeux."
+      },
+      "team": {
+        "title": "Votre équipe",
+        "body": "Tout ce que vous déployez appartient à cette équipe. Les membres que vous invitez y accèdent avec vous."
+      },
+      "nav": {
+        "title": "Vos serveurs",
+        "body": "Commencez par connecter une machine : c'est elle qui fera tourner vos applications. Une seule suffit pour démarrer."
+      },
+      "apps": {
+        "title": "Vos applications",
+        "body": "Une fois le serveur en place, ajoutez une application depuis un dépôt Git ou un modèle. iDeploy s'occupe du reste."
+      },
+      "plan": {
+        "title": "Votre formule",
+        "body": "Elle fixe le nombre de serveurs et d'applications. Le compteur est là pour éviter les surprises."
+      },
+      "done": {
+        "title": "Vous êtes prêt !",
+        "body": "Connectez un serveur et déployez votre première application. Le menu de gauche ne cache rien."
+      }
+    }
   }
 }

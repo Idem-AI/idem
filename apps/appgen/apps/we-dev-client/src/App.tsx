@@ -19,6 +19,7 @@ import useAppGenContextStore from './stores/appgenContextSlice';
 import { consumePendingContext } from './hooks/useAuth';
 import { getCurrentUser } from './api/persistence/db';
 import { AuthSync } from './components/Auth/AuthSync';
+import { useTour } from './hooks/useTour';
 
 const PENDING_PROMPT_KEY = 'appgen_pending_prompt';
 
@@ -32,6 +33,9 @@ function App() {
   const { initDraft, setPendingIntent, updateDraftMetadata } = useAppGenContextStore();
 
   const [view, setView] = useState<AppView>('loading');
+
+  // Visite guidée de première utilisation, une fois la vue principale montée.
+  useTour(view === 'chat');
 
   useEffect(() => {
     // URL params take priority — preserve all existing workflows

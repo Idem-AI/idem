@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { UiModeService } from '../../../../shared/services/ui-mode.service';
+import { TourService } from '../../../../shared/services/tour.service';
 import { Loader } from '../../../../shared/components/loader/loader';
 import { GuidedJourneyService } from '../../services/guided-journey.service';
 import { GuidedStep } from '../../models/guided-journey.model';
@@ -25,6 +26,7 @@ import { GuidedStep } from '../../models/guided-journey.model';
 export class GuidedHomePage implements OnInit {
   protected readonly journey = inject(GuidedJourneyService);
   private readonly uiMode = inject(UiModeService);
+  private readonly tour = inject(TourService);
   private readonly router = inject(Router);
 
   protected readonly isLoading = signal(true);
@@ -43,7 +45,7 @@ export class GuidedHomePage implements OnInit {
   ngOnInit(): void {
     // Le mode Assisté est le contexte courant dès qu'on ouvre cette page.
     this.uiMode.setMode('guided');
-    void this.refresh();
+    void this.refresh().then(() => this.tour.maybeStart('guided'));
   }
 
   /** Recharge le projet et recalcule le parcours (au retour d'une étape). */

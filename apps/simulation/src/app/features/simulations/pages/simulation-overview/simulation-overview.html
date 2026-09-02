@@ -108,7 +108,7 @@
       </section>
 
       <!-- Repères --------------------------------------------------------- -->
-      <section>
+      <section data-tour="sim-glance">
         <h2 class="mb-3 text-h2 font-semibold text-ink">{{ 'overview.atAGlance' | translate }}</h2>
         <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4">
           @for (entry of tierCounts(); track entry.tier) {
@@ -128,7 +128,7 @@
 
       <!-- Risques --------------------------------------------------------- -->
       @if (result.risks.length) {
-        <section class="flex flex-col gap-3">
+        <section class="flex flex-col gap-3" data-tour="sim-risks">
           <h2 class="text-h2 font-semibold text-ink">{{ 'result.risks' | translate }}</h2>
           <ul class="divide-y divide-line overflow-hidden rounded-xl border border-line bg-panel">
             @for (risk of result.risks; track risk.id) {
@@ -154,7 +154,7 @@
       }
 
       <!-- Suite ----------------------------------------------------------- -->
-      <section class="flex flex-col gap-3">
+      <section class="flex flex-col gap-3" data-tour="sim-next">
         <h2 class="text-h2 font-semibold text-ink">{{ 'overview.nextSteps' | translate }}</h2>
         <div class="flex flex-wrap gap-2">
           <button type="button" class="inner-button" [disabled]="generating()" (click)="openReport()">

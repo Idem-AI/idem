@@ -513,5 +513,37 @@
     "layers": "Calques",
     "layersHint": "Éléments empilés sous votre clic — choisissez celui à éditer.",
     "layersLoading": "Chargement de l'arborescence…"
+  },
+  "tour": {
+    "common": {
+      "next": "Suivant",
+      "back": "Retour",
+      "skip": "Passer",
+      "finish": "C'est parti !",
+      "stepOf": "Étape {current} sur {total}",
+      "dialogLabel": "Visite guidée"
+    },
+    "steps": {
+      "welcome": {
+        "title": "Bienvenue sur AppGen ! On fait le tour ?",
+        "body": "Quelques secondes pour repérer l'essentiel. Rien à retenir : tout reste sous les yeux."
+      },
+      "chat": {
+        "title": "Décrivez ce que vous voulez",
+        "body": "Écrivez votre idée en langage courant : « une boutique en ligne avec panier et paiement ». AppGen écrit le code."
+      },
+      "preview": {
+        "title": "Le résultat, en direct",
+        "body": "Votre application se construit ici, sous vos yeux. Basculez entre le code et l’aperçu à tout moment."
+      },
+      "header": {
+        "title": "Vos réglages",
+        "body": "Modèle, langue, thème et compte : tout se règle depuis cette barre."
+      },
+      "done": {
+        "title": "Vous êtes prêt !",
+        "body": "Lancez une première demande. Si le résultat ne convient pas, redemandez autrement — c’est fait pour."
+      }
+    }
   }
 }

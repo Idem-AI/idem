@@ -50,6 +50,7 @@ interface NavSection {
             </div>
           }
           <a routerLink="/subscription"
+             data-tour="ideploy-plan"
              class="flex items-center gap-1.5 px-2.5 py-1 rounded-md hover:opacity-80"
              style="background:color-mix(in srgb, var(--color-primary-500) 12%, transparent);color:var(--color-primary-400);border:1px solid color-mix(in srgb, var(--color-primary-500) 28%, transparent);">
             <i class="fa-solid fa-star text-[10px]"></i>
@@ -101,7 +102,7 @@ interface NavSection {
 
     <div class="fixed top-16 bottom-0 left-0 z-40 w-64 flex flex-col">
       <nav class="flex flex-col flex-1 sidebar-scroll sidebar-shell overflow-y-auto">
-        <div style="padding:16px 12px; border-bottom:1px solid var(--glass-border-subtle);">
+        <div data-tour="ideploy-team" style="padding:16px 12px; border-bottom:1px solid var(--glass-border-subtle);">
           <div class="flex items-center gap-2 px-1">
             <i class="fa-solid fa-users-rectangle" style="color:var(--color-primary-400);"></i>
             <span class="text-sm font-semibold text-white">{{ me()?.team?.name ?? ('shell.myTeam' | translate) }}</span>
@@ -115,6 +116,7 @@ interface NavSection {
             @for (item of section.items; track item.path) {
               <li>
                 <a class="sbi" [routerLink]="item.path" routerLinkActive="active"
+                   [attr.data-tour]="'ideploy-nav-' + item.path.slice(1)"
                    [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }">
                   <i class="sbi-icon" [class]="item.icon"></i>
                   <span>{{ item.label | translate }}</span>
