@@ -73,6 +73,18 @@ export class UiModeService {
   }
 
   /**
+   * Fin d'une génération ou d'un workflow.
+   *
+   * En mode Assisté on ramène au parcours : l'utilisateur voit son étape se
+   * cocher et découvre la suivante, au lieu d'être laissé sur une page de
+   * résultat sans savoir quoi faire ensuite. Les autres modes gardent leur
+   * destination habituelle.
+   */
+  completeStep(defaultRoute: string): void {
+    this.router.navigateByUrl(this.mode() === 'guided' ? MODE_HOME_ROUTE.guided : defaultRoute);
+  }
+
+  /**
    * "Ouvrir dans l'éditeur" depuis une carte de livrable.
    * Depuis le mode Assisté on n'abandonne pas le parcours : on ouvre la page
    * en gardant le mode courant, seul le mode Chat repasse en Avancé.

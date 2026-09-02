@@ -78,7 +78,29 @@
         "title": "Faire connaître votre activité",
         "why": "Une fois les bases posées, il faut aller chercher les clients. On construit votre plan de communication.",
         "outcome": "Vous obtenez une stratégie, un calendrier de publications et vos premiers visuels."
+      },
+      "development": {
+        "title": "Créer votre site internet",
+        "why": "Votre vitrine en ligne : c'est là qu'on vous trouve, qu'on comprend ce que vous vendez et qu'on vous contacte.",
+        "outcome": "Vous obtenez le code de votre site ou de votre application, prêt à être mis en ligne."
+      },
+      "deployment": {
+        "title": "Mettre votre site en ligne",
+        "why": "Un site qui n'est pas en ligne ne sert à rien. On l'installe sur un hébergement et on lui donne son adresse.",
+        "outcome": "Vous obtenez un site accessible publiquement, à son adresse."
       }
+    },
+    "nav": {
+      "lockedHint": "Cette section s'ouvrira quand vous en serez là dans le parcours."
+    },
+    "lock": {
+      "title": "Une étape à la fois",
+      "messageKnown": "En mode Assisté, « {{section}} » s'ouvrira quand vous en serez là. On termine d'abord ce qui est en cours : chaque étape sert à la suivante.",
+      "messageUnknown": "En mode Assisté, cette section n'est pas encore accessible. On termine d'abord l'étape en cours : chaque étape sert à la suivante.",
+      "currentLabel": "Votre étape en cours",
+      "goToCurrent": "Aller à mon étape en cours",
+      "stayOnJourney": "Revenir à mon parcours",
+      "switchToAdvanced": "Ou passer en mode Tableau de bord pour tout ouvrir"
     }
   }
 }

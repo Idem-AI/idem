@@ -78,7 +78,29 @@
         "title": "Get your business known",
         "why": "Once the foundations are set, you need customers. We build your communication plan.",
         "outcome": "You get a strategy, a publishing calendar and your first visuals."
+      },
+      "development": {
+        "title": "Build your website",
+        "why": "Your storefront online: this is where people find you, understand what you sell and get in touch.",
+        "outcome": "You get the code for your site or app, ready to go live."
+      },
+      "deployment": {
+        "title": "Put your site online",
+        "why": "A site that is not online is no use. We install it on a host and give it its address.",
+        "outcome": "You get a publicly reachable site, at its own address."
       }
+    },
+    "nav": {
+      "lockedHint": "This section opens once you reach it in the journey."
+    },
+    "lock": {
+      "title": "One step at a time",
+      "messageKnown": "In Guided mode, \"{{section}}\" opens once you reach it. Let us finish the current step first: each one feeds the next.",
+      "messageUnknown": "In Guided mode this section is not open yet. Let us finish the current step first: each one feeds the next.",
+      "currentLabel": "Your current step",
+      "goToCurrent": "Go to my current step",
+      "stayOnJourney": "Back to my journey",
+      "switchToAdvanced": "Or switch to Dashboard mode to open everything"
     }
   }
 }

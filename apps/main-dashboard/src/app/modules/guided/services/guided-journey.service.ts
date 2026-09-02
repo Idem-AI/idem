@@ -3,9 +3,12 @@ import { firstValueFrom } from 'rxjs';
 import { ProjectModel } from '@idem/shared-models';
 import { FinanceService } from '../../dashboard/services/finance.service';
 import { CommunicationService } from '../../dashboard/services/ai-agents/communication.service';
+import { DeploymentService } from '../../dashboard/services/deployment.service';
 import { ProjectService } from '../../dashboard/services/project.service';
 import { CookieService } from '../../../shared/services/cookie.service';
 import {
+  GUIDED_ALWAYS_ALLOWED_PATHS,
+  GuidedBlockedAttempt,
   GuidedExternalState,
   GuidedJourneyState,
   GuidedStep,
@@ -15,7 +18,11 @@ import {
 
 const STORAGE_PREFIX = 'idem_guided_journey_v1';
 
-const EMPTY_EXTERNAL: GuidedExternalState = { hasFinance: false, hasCommunication: false };
+const EMPTY_EXTERNAL: GuidedExternalState = {
+  hasFinance: false,
+  hasCommunication: false,
+  hasDeployment: false,
+};
 
 /** Le projet contient-il une valeur exploitable pour ce chemin ? */
 function hasSections(sections: unknown): boolean {
@@ -23,20 +30,28 @@ function hasSections(sections: unknown): boolean {
   return sections.some((s: { data?: unknown; summary?: string }) => !!s?.data || !!s?.summary);
 }
 
+/** L'URL demandée tombe-t-elle sous l'un de ces préfixes ? */
+function matchesPath(path: string, prefixes: readonly string[]): boolean {
+  return prefixes.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+}
+
 /**
  * Les étapes du parcours, dans l'ordre imposé.
  *
  * L'ordre suit la logique de création d'entreprise : on sait d'abord ce qu'on
- * vend et à qui, on se donne une identité, on écrit le plan, on chiffre, puis
- * on va chercher des partenaires et des clients.
+ * vend et à qui, on se donne une identité, on écrit le plan, on chiffre, on
+ * sécurise juridiquement, on construit sa vitrine, on la met en ligne, puis on
+ * va chercher les clients.
  */
 export const GUIDED_STEPS: readonly GuidedStepDefinition[] = [
   {
     id: 'project',
-    icon: 'pi pi-flag',
+    icon: 'pi pi-home',
     // Une fois créé, le projet se relit depuis sa page d'accueil ; tant qu'il
     // n'existe pas, la page du parcours renvoie vers la création.
     route: '/project/dashboard',
+    paths: ['/project/dashboard'],
+    navLabelKey: 'dashboard.sidebar.projectHome',
     required: true,
     estimatedMinutes: 5,
     isDone: (project) =>
@@ -53,6 +68,8 @@ export const GUIDED_STEPS: readonly GuidedStepDefinition[] = [
     // est le bon point d'entrée tant que la marque n'existe pas ; la page de
     // génération, elle, produit la charte une fois ces choix faits.
     generateRoute: '/project/complete-branding',
+    paths: ['/project/branding', '/project/complete-branding', '/project/business-cards'],
+    navLabelKey: 'dashboard.sidebar.branding',
     required: true,
     estimatedMinutes: 10,
     isDone: (project) => {
@@ -69,6 +86,8 @@ export const GUIDED_STEPS: readonly GuidedStepDefinition[] = [
     icon: 'pi pi-calendar',
     route: '/project/business-plan',
     generateRoute: '/project/business-plan/generate',
+    paths: ['/project/business-plan'],
+    navLabelKey: 'dashboard.sidebar.businessPlan',
     required: true,
     estimatedMinutes: 15,
     isDone: (project) => hasSections(project?.analysisResultModel?.businessPlan?.sections),
@@ -77,6 +96,8 @@ export const GUIDED_STEPS: readonly GuidedStepDefinition[] = [
     id: 'finance',
     icon: 'pi pi-chart-pie',
     route: '/project/finance',
+    paths: ['/project/finance', '/project/simulations'],
+    navLabelKey: 'dashboard.sidebar.finance',
     required: false,
     estimatedMinutes: 20,
     isDone: (_project, external) => external.hasFinance,
@@ -85,6 +106,8 @@ export const GUIDED_STEPS: readonly GuidedStepDefinition[] = [
     id: 'pitchDeck',
     icon: 'pi pi-desktop',
     route: '/project/pitch-deck',
+    paths: ['/project/pitch-deck'],
+    navLabelKey: 'dashboard.sidebar.pitchDeck',
     required: false,
     estimatedMinutes: 10,
     isDone: (project) => hasSections(project?.analysisResultModel?.pitchDeck?.sections),
@@ -93,6 +116,8 @@ export const GUIDED_STEPS: readonly GuidedStepDefinition[] = [
     id: 'legalDocs',
     icon: 'pi pi-file-edit',
     route: '/project/legal-docs',
+    paths: ['/project/legal-docs'],
+    navLabelKey: 'dashboard.sidebar.legalDocs',
     required: false,
     estimatedMinutes: 10,
     isDone: (project) => {
@@ -101,9 +126,36 @@ export const GUIDED_STEPS: readonly GuidedStepDefinition[] = [
     },
   },
   {
+    id: 'development',
+    icon: 'pi pi-code',
+    route: '/project/development',
+    generateRoute: '/project/development/create',
+    paths: ['/project/development', '/project/diagrams', '/project/tests'],
+    navLabelKey: 'dashboard.sidebar.development',
+    required: false,
+    estimatedMinutes: 25,
+    isDone: (project) => {
+      const configs = project?.analysisResultModel?.development?.configs;
+      return !!(configs?.mode || configs?.generationType);
+    },
+  },
+  {
+    id: 'deployment',
+    icon: 'pi pi-send',
+    route: '/project/ideploy',
+    generateRoute: '/project/deployments/create',
+    paths: ['/project/ideploy', '/project/deployments'],
+    navLabelKey: 'dashboard.sidebar.deployment',
+    required: false,
+    estimatedMinutes: 20,
+    isDone: (_project, external) => external.hasDeployment,
+  },
+  {
     id: 'communication',
     icon: 'pi pi-megaphone',
     route: '/project/communication',
+    paths: ['/project/communication'],
+    navLabelKey: 'dashboard.sidebar.communication',
     required: false,
     estimatedMinutes: 15,
     isDone: (_project, external) => external.hasCommunication,
@@ -116,12 +168,14 @@ export const GUIDED_STEPS: readonly GuidedStepDefinition[] = [
  * Il ne génère rien lui-même : il calcule l'état d'avancement à partir du
  * projet et renvoie l'utilisateur vers les écrans existants du mode Avancé,
  * une étape à la fois. Tout ce qui n'est pas encore atteignable reste
- * verrouillé — c'est la garantie qu'un débutant ne se perd pas.
+ * verrouillé — dans la sidebar comme dans la barre d'adresse — c'est la
+ * garantie qu'un débutant ne se perd pas.
  */
 @Injectable({ providedIn: 'root' })
 export class GuidedJourneyService {
   private readonly financeService = inject(FinanceService);
   private readonly communicationService = inject(CommunicationService);
+  private readonly deploymentService = inject(DeploymentService);
   private readonly projectService = inject(ProjectService);
   private readonly cookieService = inject(CookieService);
 
@@ -129,9 +183,12 @@ export class GuidedJourneyService {
 
   /** Projet courant, alimenté par la page du mode Assisté. */
   readonly project = signal<ProjectModel | null>(null);
-  /** Modules vivant derrière leur propre endpoint (finance, communication). */
+  /** Modules vivant derrière leur propre endpoint (finance, communication…). */
   readonly external = signal<GuidedExternalState>({ ...EMPTY_EXTERNAL });
   private readonly journey = signal<GuidedJourneyState>(this.emptyState());
+
+  /** Dernière tentative d'accès refusée, consommée par la modale de blocage. */
+  readonly blockedAttempt = signal<GuidedBlockedAttempt | null>(null);
 
   /** Étapes enrichies de leur statut, dans l'ordre du parcours. */
   readonly steps = computed<GuidedStep[]>(() => {
@@ -186,6 +243,46 @@ export class GuidedJourneyService {
 
   readonly isJourneyComplete = computed(() => this.currentStep() === null);
 
+  // ───────────────────────────────────────────────────────── accès
+
+  /**
+   * Pages ouvertes : celles des étapes terminées — ce qui est produit reste
+   * consultable — et celles de l'étape en cours.
+   */
+  readonly unlockedPaths = computed<string[]>(() =>
+    this.steps()
+      .filter((step) => step.status === 'done' || step.status === 'current')
+      .flatMap((step) => step.paths),
+  );
+
+  /** L'URL demandée est-elle accessible dans l'état actuel du parcours ? */
+  isRouteAllowed(url: string): boolean {
+    const path = this.normalize(url);
+    if (matchesPath(path, GUIDED_ALWAYS_ALLOWED_PATHS)) return true;
+    return matchesPath(path, this.unlockedPaths());
+  }
+
+  /** Étape qui ouvrira cette page, pour expliquer le refus à l'utilisateur. */
+  stepForRoute(url: string): GuidedStep | null {
+    const path = this.normalize(url);
+    return this.steps().find((step) => matchesPath(path, step.paths)) ?? null;
+  }
+
+  /** Signale une tentative refusée : la modale de blocage s'ouvre. */
+  reportBlocked(url: string): void {
+    this.blockedAttempt.set({ url, at: Date.now() });
+  }
+
+  dismissBlocked(): void {
+    this.blockedAttempt.set(null);
+  }
+
+  private normalize(url: string): string {
+    const path = url.split('?')[0].split('#')[0];
+    const trimmed = path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path;
+    return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  }
+
   // ───────────────────────────────────────────────────────── chargement
 
   /**
@@ -202,11 +299,12 @@ export class GuidedJourneyService {
       return;
     }
 
-    const [hasFinance, hasCommunication] = await Promise.all([
+    const [hasFinance, hasCommunication, hasDeployment] = await Promise.all([
       this.probeFinance(project.id),
       this.probeCommunication(project.id),
+      this.probeDeployment(project.id),
     ]);
-    this.external.set({ hasFinance, hasCommunication });
+    this.external.set({ hasFinance, hasCommunication, hasDeployment });
   }
 
   /**
@@ -246,6 +344,17 @@ export class GuidedJourneyService {
         this.communicationService.getCommunication(projectId),
       );
       return !!communication?.strategy || (communication?.publications?.length ?? 0) > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  private async probeDeployment(projectId: string): Promise<boolean> {
+    try {
+      const deployments = await firstValueFrom(
+        this.deploymentService.getProjectDeployments(projectId),
+      );
+      return (deployments?.length ?? 0) > 0;
     } catch {
       return false;
     }

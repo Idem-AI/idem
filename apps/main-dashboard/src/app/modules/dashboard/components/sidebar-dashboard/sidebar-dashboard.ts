@@ -38,6 +38,8 @@ import {
 import { LanguageSelectorComponent } from 'apps/main-dashboard/src/app/shared/components/language-selector/language-selector';
 import { ThemeToggleComponent } from 'apps/main-dashboard/src/app/shared/components/theme-toggle/theme-toggle';
 import { ModeSwitcherComponent } from '../../../../shared/components/mode-switcher/mode-switcher';
+import { UiModeService } from '../../../../shared/services/ui-mode.service';
+import { GuidedJourneyService } from '../../../guided/services/guided-journey.service';
 
 @Component({
   selector: 'app-sidebar-dashboard',
@@ -118,6 +120,8 @@ export class SidebarDashboard implements OnInit {
   private readonly quotaService = inject(QuotaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly translate = inject(TranslateService);
+  private readonly uiModeService = inject(UiModeService);
+  private readonly journey = inject(GuidedJourneyService);
 
   // Navigation items
   protected readonly navigationItems = signal<
@@ -275,6 +279,58 @@ export class SidebarDashboard implements OnInit {
     },
   ]);
 
+  // ─────────────────────────────────────────── Navigation du mode Assisté
+
+  protected readonly isGuidedMode = computed(() => this.uiModeService.mode() === 'guided');
+
+  /**
+   * Le menu complet reste affiché en mode Assisté, mais tout ce que le
+   * parcours n'a pas encore ouvert apparaît grisé et cadenassé : on voit où
+   * l'on va sans pouvoir y sauter. Les étapes déjà produites, elles,
+   * redeviennent cliquables — ce qui est fait reste consultable.
+   */
+  protected readonly displayedNavItems = computed(() => {
+    const guided = this.isGuidedMode();
+    return this.navigationItems().map((item) => {
+      const locked = guided && !this.journey.isRouteAllowed(`/${item.route}`);
+      return {
+        ...item,
+        locked,
+        // Un groupe verrouillé ne se déplie pas : ses sous-pages sont fermées aussi.
+        isExpanded: locked ? false : item.isExpanded,
+      };
+    });
+  });
+
+  /**
+   * Clic sur une entrée verrouillée : on bloque la navigation et on explique.
+   * Le `routerLink` est déjà neutralisé, ceci couvre le clic milieu / Entrée.
+   */
+  protected onNavItemClick(item: { route: string; locked: boolean }, event: Event): void {
+    if (!item.locked) return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.journey.reportBlocked(`/${item.route}`);
+  }
+
+  /** Un groupe verrouillé (Finances) ouvre la modale au lieu de se déplier. */
+  protected onNavGroupClick(item: { route: string; locked: boolean }, event: Event): void {
+    if (item.locked) {
+      this.onNavItemClick(item, event);
+      return;
+    }
+    this.toggleExpand(item);
+  }
+
+  /** Version mobile : même verrou, plus la fermeture du tiroir. */
+  protected onMobileNavItemClick(item: { route: string; locked: boolean }, event: Event): void {
+    if (item.locked) {
+      this.onNavItemClick(item, event);
+      return;
+    }
+    this.toggleMobileDrawer();
+  }
+
   /** Toggle d'expansion d'un item parent (Finances) */
   toggleExpand(item: { route: string }): void {
     const items = this.navigationItems();
@@ -369,6 +425,12 @@ export class SidebarDashboard implements OnInit {
   ngOnInit() {
     this.initializeMenu();
     this.loadProjects();
+
+    // La sidebar du mode Assisté est dessinée à partir du parcours : il doit
+    // connaître le projet actif pour savoir ce qui est ouvert.
+    if (this.isGuidedMode()) {
+      void this.journey.loadFromCookie();
+    }
   }
 
   /**

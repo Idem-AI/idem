@@ -13,6 +13,8 @@ export type GuidedStepId =
   | 'finance'
   | 'pitchDeck'
   | 'legalDocs'
+  | 'development'
+  | 'deployment'
   | 'communication';
 
 /**
@@ -30,16 +32,24 @@ export type GuidedStepStatus = 'done' | 'current' | 'locked' | 'skipped';
 export interface GuidedExternalState {
   hasFinance: boolean;
   hasCommunication: boolean;
+  hasDeployment: boolean;
 }
 
 export interface GuidedStepDefinition {
   id: GuidedStepId;
-  /** Icône PrimeIcons affichée dans la pastille de l'étape */
+  /** Icône PrimeIcons affichée dans la pastille de l'étape et dans la sidebar */
   icon: string;
   /** Page à ouvrir pour travailler l'étape */
   route: string;
   /** Page de génération quand rien n'existe encore (sinon `route`) */
   generateRoute?: string;
+  /**
+   * Préfixes d'URL que cette étape ouvre. Tant que l'étape est verrouillée,
+   * ces pages sont inaccessibles — y compris en tapant l'adresse à la main.
+   */
+  paths: string[];
+  /** Clé i18n du libellé court, réutilisée par la sidebar du mode Assisté */
+  navLabelKey: string;
   /**
    * Étape obligatoire : elle ne peut pas être passée. C'est ce qui « contraint »
    * le débutant à poser les fondations avant d'aller plus loin.
@@ -65,4 +75,33 @@ export interface GuidedJourneyState {
   /** Étapes facultatives volontairement passées */
   skipped: GuidedStepId[];
   updatedAt: string;
+}
+
+/**
+ * Pages accessibles quelles que soient les étapes franchies : elles ne font
+ * partie d'aucun livrable et couperaient l'utilisateur de son compte si on
+ * les verrouillait.
+ */
+export const GUIDED_ALWAYS_ALLOWED_PATHS: readonly string[] = [
+  '/guided',
+  // Le conseiller est une aide, pas un livrable : le verrouiller reviendrait à
+  // fermer la porte au moment où le débutant en a le plus besoin.
+  '/project/advisor',
+  '/console',
+  '/dashboard',
+  '/projects',
+  '/create-project',
+  '/project/profile',
+  '/settings',
+  '/welcome',
+  '/login',
+  '/not-found',
+];
+
+/** Tentative d'accès refusée par le parcours, affichée dans une modale. */
+export interface GuidedBlockedAttempt {
+  /** URL demandée */
+  url: string;
+  /** Horodatage, pour rouvrir la modale sur deux tentatives identiques */
+  at: number;
 }
