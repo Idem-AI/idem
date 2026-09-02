@@ -65,6 +65,7 @@
     "shared/errors",
     "shared/modes",
     "shared/navigation",
+    "shared/tour",
     "shared/validation"
   ]
 }

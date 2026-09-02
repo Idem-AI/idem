@@ -142,3 +142,31 @@ export const saveOnboardingProfileController = async (
     res.status(500).json({ message: 'Could not save the onboarding profile.' });
   }
 };
+
+
+/** Marque une visite guidée comme vue pour l'utilisateur connecté. */
+export const markTourSeenController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  if (!userId) {
+    res.status(401).json({ message: 'Unauthenticated.' });
+    return;
+  }
+
+  const tourId = typeof req.body?.tourId === 'string' ? req.body.tourId.trim() : '';
+  // Identifiant contraint : il vient de l'application, pas de l'utilisateur.
+  if (!tourId || tourId.length > 64 || !/^[a-z0-9:_-]+$/i.test(tourId)) {
+    res.status(400).json({ message: 'A valid tourId is required.' });
+    return;
+  }
+
+  try {
+    const toursSeen = await userService.markTourSeen(userId, tourId);
+    res.status(200).json({ toursSeen });
+  } catch (error: any) {
+    logger.error('Error marking tour as seen:', { userId, tourId, errorMessage: error.message });
+    res.status(500).json({ message: 'Could not record the tour.' });
+  }
+};

@@ -517,6 +517,35 @@ class UserService {
     return profile;
   }
 
+  /**
+   * Mémorise qu'une visite guidée a été vue.
+   *
+   * On n'écrase pas le profil : seul le tableau `toursSeen` est complété, et
+   * l'appel est idempotent — revoir la même visite ne crée pas de doublon.
+   * Sans profil (sondage jamais rempli), il n'y a rien à marquer.
+   */
+  async markTourSeen(userId: string, tourId: string): Promise<string[]> {
+    const user = await this.userRepository.findById(userId, 'users');
+    const profile = user?.onboardingProfile;
+
+    if (!profile) {
+      logger.warn(`markTourSeen ignored: user ${userId} has no onboarding profile yet`);
+      return [];
+    }
+
+    const seen = profile.toursSeen ?? [];
+    if (seen.includes(tourId)) return seen;
+
+    const toursSeen = [...seen, tourId];
+    await this.userRepository.update(
+      userId,
+      { onboardingProfile: { ...profile, toursSeen } },
+      'users'
+    );
+    logger.info(`Tour ${tourId} marked as seen for user ${userId}`);
+    return toursSeen;
+  }
+
   async getUserEmail(userId: string): Promise<string | undefined> {
     const user = await this.userRepository.findById(userId, 'users');
     return user?.email;

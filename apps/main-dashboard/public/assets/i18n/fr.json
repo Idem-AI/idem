@@ -3637,5 +3637,89 @@
       "stayOnJourney": "Revenir à mon parcours",
       "switchToAdvanced": "Ou passer en mode Tableau de bord pour tout ouvrir"
     }
+  },
+  "tour": {
+    "common": {
+      "next": "Suivant",
+      "back": "Retour",
+      "skip": "Passer",
+      "finish": "C'est parti !",
+      "stepOf": "Étape {current} sur {total}",
+      "dialogLabel": "Visite guidée d'IDEM"
+    },
+    "guided": {
+      "welcome": {
+        "title": "Bienvenue ! On fait le tour ?",
+        "body": "Trente secondes pour repérer l'essentiel. Rien à retenir par cœur : tout reste visible à l'écran."
+      },
+      "progress": {
+        "title": "Votre avancement",
+        "body": "Vous voyez ici où vous en êtes : ce qui est fait, ce qui reste. La barre se remplit toute seule à mesure que vos documents sortent."
+      },
+      "steps": {
+        "title": "Votre parcours, dans l’ordre",
+        "body": "Neuf étapes, de l'idée à la mise en ligne. Les suivantes restent fermées tant que la précédente n'est pas bouclée — c'est voulu : une chose à la fois, et on n'oublie rien."
+      },
+      "current": {
+        "title": "L’étape du moment",
+        "body": "La seule qui vous demande quelque chose. Cliquez sur « Commencer » : IDEM vous emmène au bon endroit, puis vous ramène ici."
+      },
+      "switch": {
+        "title": "Changer de mode, quand vous voulez",
+        "body": "Ce bouton bascule entre l'accompagnement pas à pas, le chat et le tableau de bord complet. Votre projet et vos documents ne bougent pas d'un poil."
+      },
+      "done": {
+        "title": "Vous êtes prêt !",
+        "body": "Il ne reste qu'à commencer. Et si vous vous sentez à l'étroit, le sélecteur de mode est votre porte de sortie."
+      }
+    },
+    "chat": {
+      "welcome": {
+        "title": "Bienvenue ! On fait le tour ?",
+        "body": "Quelques secondes pour repérer l’essentiel du mode Chat."
+      },
+      "composer": {
+        "title": "Dites ce dont vous avez besoin",
+        "body": "Écrivez comme à un conseiller : « fais-moi un business plan », « propose-moi des couleurs ». IDEM comprend et produit le document."
+      },
+      "conversations": {
+        "title": "Vos échanges, rangés",
+        "body": "Chaque conversation est classée par thème — marque, finances, juridique. Vous retrouvez d'un coup d'œil ce que vous avez déjà demandé."
+      },
+      "export": {
+        "title": "Tout récupérer",
+        "body": "Ce bouton télécharge en une fois tous les documents produits pour ce projet, en PDF."
+      },
+      "switch": {
+        "title": "Changer de mode, quand vous voulez",
+        "body": "Ce bouton bascule entre l'accompagnement pas à pas, le chat et le tableau de bord complet. Votre projet et vos documents ne bougent pas d'un poil."
+      },
+      "done": {
+        "title": "Vous êtes prêt !",
+        "body": "Posez votre première question, IDEM s’occupe du reste."
+      }
+    },
+    "advanced": {
+      "welcome": {
+        "title": "Bienvenue ! On fait le tour ?",
+        "body": "Trente secondes pour repérer l’essentiel du tableau de bord."
+      },
+      "create": {
+        "title": "Démarrer un projet",
+        "body": "Tout part d'ici. Décrivez votre idée en quelques lignes : IDEM en tire la marque, le business plan, les chiffres et le reste."
+      },
+      "projects": {
+        "title": "Vos projets",
+        "body": "Ils vous attendent ici. Un clic ouvre l’espace de travail complet du projet."
+      },
+      "switch": {
+        "title": "Changer de mode, quand vous voulez",
+        "body": "Ce bouton bascule entre l'accompagnement pas à pas, le chat et le tableau de bord complet. Votre projet et vos documents ne bougent pas d'un poil."
+      },
+      "done": {
+        "title": "Vous êtes prêt !",
+        "body": "À vous de jouer. Le tableau de bord ne cache rien : chaque module est accessible depuis le menu de gauche."
+      }
+    }
   }
 }
