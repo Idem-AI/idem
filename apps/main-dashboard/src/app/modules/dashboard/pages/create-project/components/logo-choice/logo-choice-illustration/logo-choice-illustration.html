@@ -1,5 +1,5 @@
 @if (kind() === 'import') {
-  <!-- Import : un fichier déposé dans une zone, et les formats acceptés -->
+  <!-- Import : un fichier image qu'on dépose, et les formats acceptés -->
   <svg
     viewBox="0 0 320 200"
     fill="none"
@@ -12,50 +12,54 @@
 
     <!-- Zone de dépôt -->
     <rect
-      x="44"
-      y="30"
-      width="232"
-      height="104"
+      x="62"
+      y="26"
+      width="200"
+      height="110"
       rx="16"
       class="illu-dropzone"
       stroke-width="2"
       stroke-dasharray="8 8"
     />
 
-    <!-- Le logo importé : deux formes abstraites, pas une marque réelle -->
-    <circle cx="139" cy="82" r="19" class="illu-fill-primary" />
-    <rect
-      x="158"
-      y="63"
-      width="38"
-      height="38"
-      rx="10"
-      class="illu-ring-primary"
-      stroke-width="3"
-    />
-
-    <!-- Badge d'import, à cheval sur le coin de la zone -->
-    <circle cx="266" cy="42" r="18" class="illu-fill-primary" />
+    <!-- Le fichier : une feuille à coin corné -->
     <path
-      d="M266 50 v-15 m0 0 l-6 6 m6 -6 l6 6"
+      d="M132 34 h44 l20 20 v60 a8 8 0 0 1 -8 8 h-56 a8 8 0 0 1 -8 -8 v-72 a8 8 0 0 1 8 -8 z"
+      class="illu-fill-card"
+    />
+    <path d="M176 34 l20 20 h-20 z" class="illu-fold" />
+
+    <!-- Glyphe « image » : soleil et montagnes, lu partout -->
+    <rect x="136" y="50" width="48" height="40" rx="6" class="illu-ring-muted" stroke-width="2" />
+    <circle cx="149" cy="62" r="4.5" class="illu-fill-primary" />
+    <path d="M139 88 L152 70 L161 80 L168 73 L181 88 Z" class="illu-fill-primary" />
+
+    <!-- Nom du fichier -->
+    <rect x="136" y="98" width="42" height="5" rx="2.5" class="illu-bar-soft" />
+    <rect x="136" y="108" width="26" height="5" rx="2.5" class="illu-bar-faint" />
+
+    <!-- Pastille d'envoi -->
+    <circle cx="196" cy="114" r="17" class="illu-fill-primary" />
+    <path
+      d="M196 122 v-16 m-6 6 l6 -6 l6 6"
       class="illu-stroke-inverse"
       stroke-width="2.6"
       stroke-linecap="round"
       stroke-linejoin="round"
     />
 
-    <!-- Formats acceptés -->
-    <rect x="66" y="154" width="56" height="22" rx="11" class="illu-fill-surface" />
-    <rect x="80" y="162" width="28" height="6" rx="3" class="illu-bar-soft" />
+    <!-- Formats acceptés, écrits en toutes lettres -->
+    <rect x="52" y="152" width="64" height="26" rx="13" class="illu-fill-surface" />
+    <text x="84" y="169" text-anchor="middle" class="illu-chip-text">SVG</text>
 
-    <rect x="132" y="154" width="56" height="22" rx="11" class="illu-fill-surface" />
-    <rect x="146" y="162" width="28" height="6" rx="3" class="illu-bar-soft" />
+    <rect x="128" y="152" width="64" height="26" rx="13" class="illu-fill-surface" />
+    <text x="160" y="169" text-anchor="middle" class="illu-chip-text">PNG</text>
 
-    <rect x="198" y="154" width="56" height="22" rx="11" class="illu-fill-surface" />
-    <rect x="212" y="162" width="28" height="6" rx="3" class="illu-bar-soft" />
+    <rect x="204" y="152" width="64" height="26" rx="13" class="illu-fill-surface" />
+    <text x="236" y="169" text-anchor="middle" class="illu-chip-text">JPG</text>
   </svg>
 } @else {
-  <!-- Génération IA : une demande, plusieurs propositions, une retenue -->
+  <!-- Génération IA : une baguette produit plusieurs logos, un est retenu -->
   <svg
     viewBox="0 0 320 200"
     fill="none"
@@ -66,54 +70,64 @@
   >
     <rect x="0.5" y="0.5" width="319" height="199" rx="16" class="illu-frame" />
 
-    <!-- La demande -->
-    <rect x="36" y="26" width="216" height="26" rx="13" class="illu-fill-surface" />
-    <rect x="50" y="36" width="104" height="7" rx="3.5" class="illu-bar-soft" />
+    <!-- La baguette pointe vers la proposition retenue -->
     <path
-      d="M276 24 l4.5 11 l11 4.5 l-11 4.5 l-4.5 11 l-4.5 -11 l-11 -4.5 l11 -4.5 z"
+      d="M124 16 L153 45"
+      class="illu-wand"
+      stroke-width="7"
+      stroke-linecap="round"
+    />
+    <path
+      d="M160 42 L163.5 50.5 L172 54 L163.5 57.5 L160 66 L156.5 57.5 L148 54 L156.5 50.5 Z"
       class="illu-fill-primary illu-spark"
     />
+    <path
+      d="M180 24 L182 29 L187 31 L182 33 L180 38 L178 33 L173 31 L178 29 Z"
+      class="illu-fill-primary illu-spark-sm"
+    />
+    <path
+      d="M114 40 L116 45 L121 47 L116 49 L114 54 L112 49 L107 47 L112 45 Z"
+      class="illu-fill-primary illu-spark-sm illu-spark-delay"
+    />
 
-    <!-- Trois propositions -->
-    <rect x="36" y="70" width="72" height="76" rx="12" class="illu-fill-surface" />
-    <circle cx="72" cy="100" r="13" class="illu-ring-muted" stroke-width="3" />
-    <rect x="58" y="124" width="28" height="6" rx="3" class="illu-bar-faint" />
+    <!-- Proposition 1 : une marque géométrique -->
+    <rect x="32" y="70" width="76" height="88" rx="12" class="illu-fill-surface" />
+    <polygon
+      points="90,104 80,121.3 60,121.3 50,104 60,86.7 80,86.7"
+      class="illu-ring-muted"
+      stroke-width="3"
+    />
+    <rect x="56" y="136" width="28" height="6" rx="3" class="illu-bar-faint" />
 
-    <!-- Celle qui est retenue -->
+    <!-- Proposition 2 : retenue -->
     <rect
-      x="124"
+      x="122"
       y="70"
-      width="72"
-      height="76"
+      width="76"
+      height="88"
       rx="12"
       class="illu-fill-selected"
       stroke-width="2.5"
     />
-    <path d="M160 87 l14 24 h-28 z" class="illu-fill-primary" />
-    <circle cx="160" cy="87" r="6" class="illu-fill-primary" />
-    <rect x="146" y="124" width="28" height="6" rx="3" class="illu-bar-soft" />
-    <circle cx="190" cy="76" r="11" class="illu-fill-primary" />
+    <rect x="140" y="84" width="40" height="40" rx="10" class="illu-fill-primary" />
+    <text x="160" y="112" text-anchor="middle" class="illu-monogram">A</text>
+    <rect x="146" y="136" width="28" height="6" rx="3" class="illu-bar-soft" />
+    <circle cx="190" cy="78" r="12" class="illu-fill-primary" />
     <path
-      d="M185.5 76 l3.5 3.5 L195 73"
+      d="M185 78 l3.5 3.5 L195 74"
       class="illu-stroke-inverse"
       stroke-width="2.4"
       stroke-linecap="round"
       stroke-linejoin="round"
     />
 
-    <rect x="212" y="70" width="72" height="76" rx="12" class="illu-fill-surface" />
-    <rect
-      x="235"
-      y="87"
-      width="26"
-      height="26"
-      rx="7"
+    <!-- Proposition 3 : une marque organique -->
+    <rect x="212" y="70" width="76" height="88" rx="12" class="illu-fill-surface" />
+    <path
+      d="M250 84 c10 14 18 20 18 30 a18 18 0 0 1 -36 0 c0 -10 8 -16 18 -30 z"
       class="illu-ring-muted"
       stroke-width="3"
     />
-    <rect x="234" y="124" width="28" height="6" rx="3" class="illu-bar-faint" />
-
-    <!-- Régénérer -->
-    <rect x="124" y="162" width="72" height="18" rx="9" class="illu-fill-primary illu-pulse" />
+    <rect x="236" y="136" width="28" height="6" rx="3" class="illu-bar-faint" />
   </svg>
 }

@@ -8,7 +8,9 @@
   --illu-primary: var(--color-primary, #1447e6);
   --illu-ink: var(--color-text-primary, #0f172a);
   --illu-frame: var(--glass-border, rgba(15, 23, 42, 0.1));
-  --illu-surface: var(--glass-bg-subtle, rgba(255, 255, 255, 0.35));
+  /* surface-2 plutôt que glass-bg-subtle : ce dernier est presque transparent
+     en thème sombre, et les conteneurs s'effaçaient sur le fond. */
+  --illu-surface: var(--color-surface-2, rgba(255, 255, 255, 0.6));
 }
 
 .illu-frame {
