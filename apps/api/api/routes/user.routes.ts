@@ -1,5 +1,10 @@
 import { Router } from 'express';
-import { profileController } from '../controllers/user.controller';
+import {
+  getOnboardingProfileController,
+  profileController,
+  saveOnboardingProfileController,
+} from '../controllers/user.controller';
+import { authenticate } from '../services/auth.service';
 import { authRoutes } from './auth.routes';
 
 export const userRoutes = Router();
@@ -45,3 +50,39 @@ export const userRoutes = Router();
  *         description: Internal server error.
  */
 userRoutes.get('/profile', profileController);
+
+/**
+ * @openapi
+ * /auth/onboarding-profile:
+ *   get:
+ *     tags:
+ *       - Authentication
+ *     summary: Get the authenticated user's onboarding survey profile
+ *     description: >
+ *       Returns the four survey answers and the resulting interface mode.
+ *       `profile` is null when the survey has never been completed — which is
+ *       the case for every account created before the feature shipped.
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       '200':
+ *         description: Profile retrieved (may be null).
+ *       '401':
+ *         description: Unauthenticated.
+ *   put:
+ *     tags:
+ *       - Authentication
+ *     summary: Save the onboarding survey answers
+ *     description: All four answers are required; partial profiles are rejected.
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       '200':
+ *         description: Profile saved.
+ *       '400':
+ *         description: Missing or invalid answers.
+ *       '401':
+ *         description: Unauthenticated.
+ */
+userRoutes.get('/onboarding-profile', authenticate, getOnboardingProfileController);
+userRoutes.put('/onboarding-profile', authenticate, saveOnboardingProfileController);

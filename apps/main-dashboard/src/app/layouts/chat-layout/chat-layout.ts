@@ -2,9 +2,9 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ChatSidebarComponent } from '../../modules/chat/components/chat-sidebar/chat-sidebar';
+import { ModeSwitcherComponent } from '../../shared/components/mode-switcher/mode-switcher';
 import { ChatSessionService } from '../../modules/chat/services/chat-session.service';
 import { ChatDeliverablesService } from '../../modules/chat/services/chat-deliverables.service';
-import { UiModeService } from '../../shared/services/ui-mode.service';
 import { NotificationService } from '../../shared/services/notification.service';
 
 /**
@@ -15,7 +15,7 @@ import { NotificationService } from '../../shared/services/notification.service'
 @Component({
   selector: 'app-chat-layout',
   standalone: true,
-  imports: [CommonModule, TranslateModule, ChatSidebarComponent],
+  imports: [CommonModule, TranslateModule, ChatSidebarComponent, ModeSwitcherComponent],
   templateUrl: './chat-layout.html',
   styleUrl: './chat-layout.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,7 +23,6 @@ import { NotificationService } from '../../shared/services/notification.service'
 export class ChatLayoutComponent {
   protected readonly session = inject(ChatSessionService);
   private readonly deliverables = inject(ChatDeliverablesService);
-  private readonly uiModeService = inject(UiModeService);
   private readonly notification = inject(NotificationService);
   private readonly translate = inject(TranslateService);
 
@@ -45,11 +44,6 @@ export class ChatLayoutComponent {
 
   protected onSidebarCollapsedChange(collapsed: boolean): void {
     this.isSidebarCollapsed.set(collapsed);
-  }
-
-  protected switchToAdvanced(): void {
-    const target = this.session.activeProjectId() ? '/project/dashboard' : '/console';
-    this.uiModeService.switchToAdvanced(target);
   }
 
   /** Tout exporter : télécharge les PDF disponibles du projet actif. */

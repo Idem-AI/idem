@@ -341,7 +341,8 @@
         "profile": "Profil",
         "globalDashboard": "Tableau de bord global",
         "settings": "Paramètres",
-        "logout": "Déconnexion"
+        "logout": "Déconnexion",
+        "allProjects": "Tous les projets"
       },
       "poweredBy": "Propulsé par",
       "mobile": {
@@ -507,15 +508,18 @@
       "steps": {
         "type": {
           "title": "Choisissez le type de logo",
-          "subtitle": "Sélectionnez un type de logo"
+          "subtitle": "Ce choix oriente toutes les propositions que l'IA vous fera ensuite.",
+          "label": "Type"
         },
         "mode": {
           "title": "Comment créer votre logo ?",
-          "subtitle": "Génération par IA ou description personnalisée"
+          "subtitle": "Génération par IA ou description personnalisée",
+          "label": "Création"
         },
         "description": {
           "title": "Décrivez votre logo",
-          "subtitle": "Dites-nous ce que vous voulez"
+          "subtitle": "Dites-nous ce que vous voulez",
+          "label": "Description"
         }
       },
       "types": {
@@ -1017,31 +1021,6 @@
       "modeChat": "Conversation",
       "modeForm": "Formulaire",
       "switchToForm": "Passer au formulaire",
-      "modeChoice": {
-        "badge": "Mode d'accompagnement",
-        "title": "Comment souhaitez-vous continuer ?",
-        "subtitle": "Votre description est enregistrée. Choisissez l'expérience qui vous convient le mieux pour finaliser la création de votre projet.",
-        "backToDescription": "Modifier la description",
-        "form": {
-          "title": "Formulaire classique",
-          "tag": "Saisie étape par étape",
-          "description": "Remplissez un formulaire structuré étape par étape pour renseigner les détails techniques et fonctionnels de votre projet.",
-          "feature1": "Vue d'ensemble claire et rapide",
-          "feature2": "Champs structurés et guidés",
-          "feature3": "Contrôle direct sur chaque paramètre",
-          "button": "Continuer avec le formulaire"
-        },
-        "chat": {
-          "title": "Interface Chat interactive",
-          "badge": "Recommandé",
-          "tag": "IA Assistée",
-          "description": "Une interface de chat simple et facile à prendre en main pour vous guider et utiliser toutes les fonctionnalités d'IDEM.",
-          "feature1": "Accompagnement IA intelligent et personnalisé",
-          "feature2": "Accès simple à toutes les fonctionnalités IDEM",
-          "feature3": "Expérience fluide, dynamique et interactive",
-          "button": "Démarrer avec le Chat"
-        }
-      },
       "foundations": {
         "title": "Parlons de votre projet",
         "subtitle": "Quelques bases pour démarrer — l'IA s'occupe du reste en conversation.",
@@ -1051,6 +1030,37 @@
         "namePlaceholder": "Ex. ArtisanHub",
         "typeLabel": "Type de projet",
         "continue": "Continuer"
+      },
+      "guidedHint": "Après la création, IDEM vous guidera étape par étape.",
+      "modeChoice": {
+        "badge": "Mode d'accompagnement",
+        "title": "Comment souhaitez-vous être accompagné ?",
+        "subtitle": "Votre description est enregistrée. Choisissez la façon de travailler qui vous ressemble — vous pourrez en changer à tout moment.",
+        "backToDescription": "Modifier la description",
+        "recommended": "Conseillé",
+        "personalized": "Recommandation basée sur vos réponses",
+        "switchLater": "Quel que soit votre choix, vous pourrez changer de mode à tout moment depuis le menu en haut de l’écran.",
+        "guided": {
+          "title": "Mode Assisté",
+          "tag": "Étape par étape",
+          "description": "IDEM vous guide dans l'ordre : une seule étape à la fois, la suivante se débloque quand la précédente est terminée.",
+          "forWho": "Pour vous si vous débutez et ne savez pas par où commencer.",
+          "button": "Être guidé"
+        },
+        "chat": {
+          "title": "Mode Chat",
+          "tag": "Conversation",
+          "description": "Vous décrivez ce dont vous avez besoin en langage courant, IDEM le génère et vous répond.",
+          "forWho": "Pour vous si vous préférez demander plutôt que chercher.",
+          "button": "Discuter avec IDEM"
+        },
+        "form": {
+          "title": "Tableau de bord",
+          "tag": "Accès complet",
+          "description": "Un formulaire structuré, puis l'espace complet : tous les modules accessibles librement, dans l'ordre que vous voulez.",
+          "forWho": "Pour vous si vous savez déjà ce que vous cherchez.",
+          "button": "Ouvrir le tableau de bord"
+        }
       }
     },
     "logoChoice": {
@@ -2944,7 +2954,9 @@
       "businessCards": "Cartes de visite",
       "businessCardsEdit": "Éditeur de carte de visite",
       "flyerEdit": "Éditeur de visuel",
-      "simulations": "Simulations"
+      "simulations": "Simulations",
+      "welcome": "Bienvenue",
+      "guided": "Parcours assisté"
     }
   },
   "notFound": {
@@ -3403,6 +3415,227 @@
         "start": "Lancer un déploiement",
         "list": "Voir mes déploiements"
       }
+    }
+  },
+  "modes": {
+    "guided": {
+      "name": "Assisté",
+      "short": "On avance ensemble, une étape à la fois",
+      "long": "IDEM vous dit quoi faire, dans quel ordre, et le fait avec vous. Idéal quand on ne sait pas par où commencer."
+    },
+    "chat": {
+      "name": "Chat",
+      "short": "Vous demandez, IDEM produit",
+      "long": "Une conversation, comme avec un conseiller. Vous décrivez ce dont vous avez besoin, IDEM le génère."
+    },
+    "advanced": {
+      "name": "Tableau de bord",
+      "short": "Tous les outils, accessibles librement",
+      "long": "L'espace complet : chaque module est accessible directement, dans l'ordre que vous voulez."
+    },
+    "switcher": {
+      "label": "Mode",
+      "aria": "Changer de mode d'interface",
+      "tooltip": "Changer de mode d'interface",
+      "panelTitle": "Choisissez votre façon de travailler",
+      "recommended": "Conseillé",
+      "footer": "Vous pouvez changer de mode à tout moment. Votre projet et vos documents restent identiques."
+    }
+  },
+  "onboarding": {
+    "survey": {
+      "oneClick": "Un clic suffit.",
+      "stepCounter": "Question {{current}} sur {{total}}",
+      "questions": {
+        "stage": {
+          "label": "Où en êtes-vous aujourd'hui ?",
+          "options": {
+            "idea": {
+              "label": "J'ai une idée",
+              "hint": "Rien n'est encore lancé"
+            },
+            "starting": {
+              "label": "Je démarre",
+              "hint": "Les premières démarches sont en cours"
+            },
+            "running": {
+              "label": "Mon activité tourne",
+              "hint": "J'ai déjà des clients"
+            }
+          }
+        },
+        "clarity": {
+          "label": "Savez-vous par où commencer ?",
+          "options": {
+            "lost": {
+              "label": "Pas du tout",
+              "hint": "Dites-moi quoi faire en premier"
+            },
+            "partial": {
+              "label": "Un peu",
+              "hint": "J'ai des idées, mais j'ai besoin d'aide"
+            },
+            "clear": {
+              "label": "Oui, très bien",
+              "hint": "Je sais exactement ce qu'il me faut"
+            }
+          }
+        },
+        "workStyle": {
+          "label": "Comment préférez-vous avancer ?",
+          "options": {
+            "stepByStep": {
+              "label": "Étape par étape",
+              "hint": "Une seule chose à faire à la fois"
+            },
+            "conversation": {
+              "label": "En discutant",
+              "hint": "Je demande, on me répond"
+            },
+            "autonomy": {
+              "label": "En autonomie",
+              "hint": "Donnez-moi tous les outils"
+            }
+          }
+        },
+        "comfort": {
+          "label": "Votre aisance avec les outils numériques ?",
+          "options": {
+            "beginner": {
+              "label": "Débutant",
+              "hint": "Je préfère qu'on me montre"
+            },
+            "intermediate": {
+              "label": "À l’aise",
+              "hint": "Je me débrouille bien"
+            },
+            "expert": {
+              "label": "Expert",
+              "hint": "Les interfaces complexes ne me font pas peur"
+            }
+          }
+        }
+      },
+      "reasons": {
+        "guided": "Vous préférez avancer pas à pas : le mode Assisté vous dit quoi faire en premier et ne débloque la suite qu’une fois chaque étape terminée.",
+        "chat": "Vous préférez échanger : le mode Chat vous laisse demander ce dont vous avez besoin, en langage courant.",
+        "advanced": "Vous savez où vous allez : le Tableau de bord vous donne accès à tous les outils, sans détour."
+      },
+      "result": {
+        "badge": "Votre profil",
+        "title": "Voici le mode que nous vous conseillons",
+        "recommended": "Conseillé",
+        "start": "Commencer",
+        "review": "Revoir mes réponses",
+        "changeable": "Vous pourrez changer de mode à tout moment depuis le menu en haut de l’écran.",
+        "saving": "Enregistrement…",
+        "saveError": "Vos réponses n'ont pas pu être enregistrées. Vérifiez votre connexion et réessayez."
+      },
+      "duration": "Moins d'une minute"
+    }
+  },
+  "guided": {
+    "loading": "Nous préparons votre parcours…",
+    "empty": {
+      "title": "Commençons par votre projet",
+      "subtitle": "Décrivez votre idée en quelques lignes. C'est la seule chose dont IDEM a besoin pour construire tout le reste avec vous.",
+      "cta": "Créer mon projet"
+    },
+    "header": {
+      "title": "Votre parcours — {{project}}",
+      "progress": "{{done}} / {{total}} étapes terminées",
+      "allDone": "Toutes les étapes sont terminées. Félicitations !",
+      "refresh": "Actualiser"
+    },
+    "badges": {
+      "current": "À faire maintenant",
+      "optional": "Facultatif"
+    },
+    "status": {
+      "done": "Terminé",
+      "locked": "Se débloque quand l'étape précédente est terminée",
+      "skipped": "Étape passée",
+      "duration": "Environ {{minutes}} min"
+    },
+    "actions": {
+      "start": "Commencer",
+      "review": "Revoir",
+      "skip": "Passer cette étape",
+      "resume": "Reprendre cette étape",
+      "requiredHint": "Cette étape est nécessaire : les suivantes s'appuient dessus."
+    },
+    "bar": {
+      "label": "Parcours assisté",
+      "allDone": "Toutes les étapes sont terminées",
+      "back": "Retour au parcours",
+      "stepPrefix": "Étape {{index}} sur {{total}}"
+    },
+    "resume": {
+      "title": "Reprendre mon parcours assisté",
+      "subtitle": "Retrouvez l'étape en cours et continuez là où vous vous êtes arrêté."
+    },
+    "footer": {
+      "freedom": "Vous n'êtes pas enfermé : le tableau de bord complet reste accessible à tout moment.",
+      "openAdvanced": "Ouvrir le tableau de bord"
+    },
+    "steps": {
+      "project": {
+        "title": "Définir votre projet",
+        "why": "Tout part de là : ce que vous vendez, à qui, et où. IDEM s'en sert pour produire tout le reste.",
+        "outcome": "Vous obtenez la fiche de votre projet, réutilisée par tous vos documents."
+      },
+      "branding": {
+        "title": "Créer votre identité visuelle",
+        "why": "Un logo, des couleurs, une typographie : c'est ce qui rend votre activité reconnaissable et crédible dès le premier contact.",
+        "outcome": "Vous obtenez un logo, une palette, une typographie et votre charte en PDF."
+      },
+      "businessPlan": {
+        "title": "Rédiger votre business plan",
+        "why": "Le document qu'on vous demandera à la banque, dans un concours ou devant un partenaire. Il met vos idées à plat.",
+        "outcome": "Vous obtenez un business plan complet, prêt à présenter et à télécharger."
+      },
+      "finance": {
+        "title": "Chiffrer votre activité",
+        "why": "Combien ça coûte, combien ça rapporte, à partir de quand. Sans ces chiffres, aucun financement n'est possible.",
+        "outcome": "Vous obtenez votre prévisionnel, votre compte d'exploitation et votre trésorerie."
+      },
+      "pitchDeck": {
+        "title": "Préparer votre pitch",
+        "why": "La version courte de votre projet, celle qui tient en dix minutes devant un investisseur ou un partenaire.",
+        "outcome": "Vous obtenez une présentation prête à projeter."
+      },
+      "legalDocs": {
+        "title": "Mettre vos documents en règle",
+        "why": "Statuts, contrats, conditions générales : les documents qui protègent votre activité et rassurent vos clients.",
+        "outcome": "Vous obtenez vos documents juridiques, adaptés à votre activité."
+      },
+      "communication": {
+        "title": "Faire connaître votre activité",
+        "why": "Une fois les bases posées, il faut aller chercher les clients. On construit votre plan de communication.",
+        "outcome": "Vous obtenez une stratégie, un calendrier de publications et vos premiers visuels."
+      },
+      "development": {
+        "title": "Créer votre site internet",
+        "why": "Votre vitrine en ligne : c'est là qu'on vous trouve, qu'on comprend ce que vous vendez et qu'on vous contacte.",
+        "outcome": "Vous obtenez le code de votre site ou de votre application, prêt à être mis en ligne."
+      },
+      "deployment": {
+        "title": "Mettre votre site en ligne",
+        "why": "Un site qui n'est pas en ligne ne sert à rien. On l'installe sur un hébergement et on lui donne son adresse.",
+        "outcome": "Vous obtenez un site accessible publiquement, à son adresse."
+      }
+    },
+    "nav": {
+      "lockedHint": "Cette section s'ouvrira quand vous en serez là dans le parcours."
+    },
+    "lock": {
+      "title": "Une étape à la fois",
+      "messageKnown": "En mode Assisté, « {{section}} » s'ouvrira quand vous en serez là. On termine d'abord ce qui est en cours : chaque étape sert à la suivante.",
+      "messageUnknown": "En mode Assisté, cette section n'est pas encore accessible. On termine d'abord l'étape en cours : chaque étape sert à la suivante.",
+      "currentLabel": "Votre étape en cours",
+      "goToCurrent": "Aller à mon étape en cours",
+      "stayOnJourney": "Revenir à mon parcours",
+      "switchToAdvanced": "Ou passer en mode Tableau de bord pour tout ouvrir"
     }
   }
 }

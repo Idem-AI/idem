@@ -341,7 +341,8 @@
         "profile": "Profile",
         "globalDashboard": "Global Dashboard",
         "settings": "Settings",
-        "logout": "Logout"
+        "logout": "Logout",
+        "allProjects": "All projects"
       },
       "poweredBy": "Powered by",
       "mobile": {
@@ -507,15 +508,18 @@
       "steps": {
         "type": {
           "title": "Choose Logo Type",
-          "subtitle": "Select one logo type"
+          "subtitle": "This choice shapes every logo the AI will propose next.",
+          "label": "Type"
         },
         "mode": {
           "title": "How to create your logo?",
-          "subtitle": "AI generation or custom description"
+          "subtitle": "AI generation or custom description",
+          "label": "Creation"
         },
         "description": {
           "title": "Describe Your Logo",
-          "subtitle": "Tell us what you want"
+          "subtitle": "Tell us what you want",
+          "label": "Description"
         }
       },
       "types": {
@@ -1014,31 +1018,6 @@
       "modeChat": "Conversation",
       "modeForm": "Form",
       "switchToForm": "Switch to form",
-      "modeChoice": {
-        "badge": "Onboarding Mode",
-        "title": "How would you like to proceed?",
-        "subtitle": "Your description is saved. Choose the experience that best fits your workflow to complete your project setup.",
-        "backToDescription": "Edit description",
-        "form": {
-          "title": "Classic Form",
-          "tag": "Step-by-step input",
-          "description": "Fill out a structured step-by-step form to configure the technical and functional details of your project.",
-          "feature1": "Clear and fast overview",
-          "feature2": "Structured & guided fields",
-          "feature3": "Direct control over all parameters",
-          "button": "Continue with Form"
-        },
-        "chat": {
-          "title": "Interactive Chat Interface",
-          "badge": "Recommended",
-          "tag": "AI Assisted",
-          "description": "A simple and easy-to-use chat interface to guide you and unlock all IDEM features effortlessly.",
-          "feature1": "Smart and personalized AI assistance",
-          "feature2": "Easy access to all IDEM features",
-          "feature3": "Smooth, dynamic & interactive experience",
-          "button": "Start with Chat"
-        }
-      },
       "foundations": {
         "title": "Let's talk about your project",
         "subtitle": "A few basics to start — the AI handles the rest in conversation.",
@@ -1048,6 +1027,37 @@
         "namePlaceholder": "e.g. ArtisanHub",
         "typeLabel": "Project type",
         "continue": "Continue"
+      },
+      "guidedHint": "After creation, IDEM will guide you step by step.",
+      "modeChoice": {
+        "badge": "Support mode",
+        "title": "How would you like to be supported?",
+        "subtitle": "Your description is saved. Pick the way of working that suits you — you can change it at any time.",
+        "backToDescription": "Edit the description",
+        "recommended": "Recommended",
+        "personalized": "Recommendation based on your answers",
+        "switchLater": "Whichever you pick, you can switch modes at any time from the menu at the top of the screen.",
+        "guided": {
+          "title": "Guided mode",
+          "tag": "Step by step",
+          "description": "IDEM guides you in order: one step at a time, and the next unlocks once the previous one is done.",
+          "forWho": "For you if you are starting out and do not know where to begin.",
+          "button": "Guide me"
+        },
+        "chat": {
+          "title": "Chat mode",
+          "tag": "Conversation",
+          "description": "Describe what you need in plain language: IDEM generates it and answers you.",
+          "forWho": "For you if you would rather ask than search.",
+          "button": "Chat with IDEM"
+        },
+        "form": {
+          "title": "Dashboard",
+          "tag": "Full access",
+          "description": "A structured form, then the full workspace: every module freely available, in whatever order you like.",
+          "forWho": "For you if you already know what you are looking for.",
+          "button": "Open the dashboard"
+        }
       }
     },
     "logoChoice": {
@@ -2986,7 +2996,9 @@
       "businessCards": "Business cards",
       "businessCardsEdit": "Business card editor",
       "flyerEdit": "Visual editor",
-      "simulations": "Simulations"
+      "simulations": "Simulations",
+      "welcome": "Welcome",
+      "guided": "Guided journey"
     }
   },
   "notFound": {
@@ -3437,6 +3449,227 @@
         "start": "Start a deployment",
         "list": "View my deployments"
       }
+    }
+  },
+  "modes": {
+    "guided": {
+      "name": "Guided",
+      "short": "We move forward together, one step at a time",
+      "long": "IDEM tells you what to do, in what order, and does it with you. Ideal when you don't know where to start."
+    },
+    "chat": {
+      "name": "Chat",
+      "short": "You ask, IDEM delivers",
+      "long": "A conversation, like talking to an adviser. Describe what you need and IDEM generates it."
+    },
+    "advanced": {
+      "name": "Dashboard",
+      "short": "Every tool, freely available",
+      "long": "The full workspace: every module is directly accessible, in whatever order you like."
+    },
+    "switcher": {
+      "label": "Mode",
+      "aria": "Change interface mode",
+      "tooltip": "Change interface mode",
+      "panelTitle": "Choose how you want to work",
+      "recommended": "Recommended",
+      "footer": "You can switch modes at any time. Your project and documents stay exactly the same."
+    }
+  },
+  "onboarding": {
+    "survey": {
+      "oneClick": "One click is enough.",
+      "stepCounter": "Question {{current}} of {{total}}",
+      "questions": {
+        "stage": {
+          "label": "Where are you today?",
+          "options": {
+            "idea": {
+              "label": "I have an idea",
+              "hint": "Nothing has started yet"
+            },
+            "starting": {
+              "label": "I am getting started",
+              "hint": "First steps are under way"
+            },
+            "running": {
+              "label": "My business is running",
+              "hint": "I already have customers"
+            }
+          }
+        },
+        "clarity": {
+          "label": "Do you know where to start?",
+          "options": {
+            "lost": {
+              "label": "Not at all",
+              "hint": "Tell me what to do first"
+            },
+            "partial": {
+              "label": "A little",
+              "hint": "I have ideas but I need help"
+            },
+            "clear": {
+              "label": "Yes, very clearly",
+              "hint": "I know exactly what I need"
+            }
+          }
+        },
+        "workStyle": {
+          "label": "How do you prefer to move forward?",
+          "options": {
+            "stepByStep": {
+              "label": "Step by step",
+              "hint": "One thing to do at a time"
+            },
+            "conversation": {
+              "label": "By talking it through",
+              "hint": "I ask, I get answers"
+            },
+            "autonomy": {
+              "label": "On my own",
+              "hint": "Just give me all the tools"
+            }
+          }
+        },
+        "comfort": {
+          "label": "How comfortable are you with digital tools?",
+          "options": {
+            "beginner": {
+              "label": "Beginner",
+              "hint": "I would rather be shown"
+            },
+            "intermediate": {
+              "label": "Comfortable",
+              "hint": "I manage well enough"
+            },
+            "expert": {
+              "label": "Expert",
+              "hint": "Complex interfaces do not scare me"
+            }
+          }
+        }
+      },
+      "reasons": {
+        "guided": "You would rather move step by step: Guided mode tells you what comes first and unlocks the rest only once each step is done.",
+        "chat": "You would rather talk it through: Chat mode lets you ask for what you need in plain language.",
+        "advanced": "You know where you are going: the Dashboard gives you direct access to every tool."
+      },
+      "result": {
+        "badge": "Your profile",
+        "title": "Here is the mode we recommend",
+        "recommended": "Recommended",
+        "start": "Get started",
+        "review": "Review my answers",
+        "changeable": "You can switch modes at any time from the menu at the top of the screen.",
+        "saving": "Saving…",
+        "saveError": "Your answers could not be saved. Check your connection and try again."
+      },
+      "duration": "Under a minute"
+    }
+  },
+  "guided": {
+    "loading": "Preparing your journey…",
+    "empty": {
+      "title": "Let us start with your project",
+      "subtitle": "Describe your idea in a few lines. That is all IDEM needs to build everything else with you.",
+      "cta": "Create my project"
+    },
+    "header": {
+      "title": "Your journey — {{project}}",
+      "progress": "{{done}} / {{total}} steps completed",
+      "allDone": "Every step is complete. Well done!",
+      "refresh": "Refresh"
+    },
+    "badges": {
+      "current": "Do this now",
+      "optional": "Optional"
+    },
+    "status": {
+      "done": "Completed",
+      "locked": "Unlocks once the previous step is complete",
+      "skipped": "Step skipped",
+      "duration": "About {{minutes}} min"
+    },
+    "actions": {
+      "start": "Start",
+      "review": "Review",
+      "skip": "Skip this step",
+      "resume": "Resume this step",
+      "requiredHint": "This step is required: the following ones build on it."
+    },
+    "bar": {
+      "label": "Guided journey",
+      "allDone": "Every step is complete",
+      "back": "Back to journey",
+      "stepPrefix": "Step {{index}} of {{total}}"
+    },
+    "resume": {
+      "title": "Resume my guided journey",
+      "subtitle": "Pick up the current step and carry on where you left off."
+    },
+    "footer": {
+      "freedom": "You are not locked in: the full dashboard stays available at any time.",
+      "openAdvanced": "Open the dashboard"
+    },
+    "steps": {
+      "project": {
+        "title": "Define your project",
+        "why": "Everything starts here: what you sell, to whom, and where. IDEM uses it to produce everything else.",
+        "outcome": "You get your project profile, reused across every document."
+      },
+      "branding": {
+        "title": "Create your visual identity",
+        "why": "A logo, colours and typography: this is what makes your business recognisable and credible from the first contact.",
+        "outcome": "You get a logo, a palette, a typeface and your brand guidelines as a PDF."
+      },
+      "businessPlan": {
+        "title": "Write your business plan",
+        "why": "The document a bank, a competition or a partner will ask for. It lays out your thinking.",
+        "outcome": "You get a complete business plan, ready to present and download."
+      },
+      "finance": {
+        "title": "Put numbers on your business",
+        "why": "What it costs, what it brings in, and from when. Without these numbers, no funding is possible.",
+        "outcome": "You get your forecast, your income statement and your cash flow."
+      },
+      "pitchDeck": {
+        "title": "Prepare your pitch",
+        "why": "The short version of your project — the one that fits in ten minutes in front of an investor or a partner.",
+        "outcome": "You get a deck ready to present."
+      },
+      "legalDocs": {
+        "title": "Get your paperwork in order",
+        "why": "Articles, contracts, terms and conditions: the documents that protect your business and reassure your customers.",
+        "outcome": "You get your legal documents, tailored to your activity."
+      },
+      "communication": {
+        "title": "Get your business known",
+        "why": "Once the foundations are set, you need customers. We build your communication plan.",
+        "outcome": "You get a strategy, a publishing calendar and your first visuals."
+      },
+      "development": {
+        "title": "Build your website",
+        "why": "Your storefront online: this is where people find you, understand what you sell and get in touch.",
+        "outcome": "You get the code for your site or app, ready to go live."
+      },
+      "deployment": {
+        "title": "Put your site online",
+        "why": "A site that is not online is no use. We install it on a host and give it its address.",
+        "outcome": "You get a publicly reachable site, at its own address."
+      }
+    },
+    "nav": {
+      "lockedHint": "This section opens once you reach it in the journey."
+    },
+    "lock": {
+      "title": "One step at a time",
+      "messageKnown": "In Guided mode, \"{{section}}\" opens once you reach it. Let us finish the current step first: each one feeds the next.",
+      "messageUnknown": "In Guided mode this section is not open yet. Let us finish the current step first: each one feeds the next.",
+      "currentLabel": "Your current step",
+      "goToCurrent": "Go to my current step",
+      "stayOnJourney": "Back to my journey",
+      "switchToAdvanced": "Or switch to Dashboard mode to open everything"
     }
   }
 }

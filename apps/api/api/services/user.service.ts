@@ -1,6 +1,6 @@
 import { admin } from '..';
 import logger from '../config/logger';
-import { QuotaData, UserModel } from '../models/userModel';
+import { OnboardingProfile, QuotaData, UserModel } from '../models/userModel';
 import { IRepository } from '../repository/IRepository';
 import { RepositoryFactory } from '../repository/RepositoryFactory';
 
@@ -454,6 +454,67 @@ class UserService {
     const day = d.getDay();
     const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
     return new Date(d.setDate(diff));
+  }
+
+  // ─────────────────────────────────────────── Sondage d'accueil
+
+  /**
+   * Profil d'accueil de l'utilisateur.
+   * `null` signifie « sondage jamais rempli » : c'est le cas de tous les
+   * comptes créés avant la fonctionnalité, et c'est ce qui déclenche le
+   * sondage à leur prochaine ouverture d'IDEM.
+   */
+  async getOnboardingProfile(userId: string): Promise<OnboardingProfile | null> {
+    const user = await this.userRepository.findById(userId, 'users');
+    return user?.onboardingProfile ?? null;
+  }
+
+  /**
+   * Enregistre les réponses du sondage sur le compte.
+   * Le document utilisateur est créé au besoin : un compte peut exister côté
+   * Firebase Auth sans avoir encore de ligne en base.
+   */
+  async saveOnboardingProfile(
+    userId: string,
+    profile: OnboardingProfile
+  ): Promise<OnboardingProfile> {
+    const user = await this.userRepository.findById(userId, 'users');
+
+    if (!user) {
+      logger.info(`User ${userId} has no record yet, creating it before saving the survey`);
+      const userRecord = await admin.auth().getUser(userId);
+      await this.userRepository.create(
+        {
+          uid: userId,
+          email: userRecord.email || '',
+          displayName: userRecord.displayName || '',
+          photoURL: userRecord.photoURL || '',
+          subscription: 'free',
+          lastLogin: new Date(),
+          quota: {
+            dailyUsage: 0,
+            weeklyUsage: 0,
+            dailyLimit: this.quotaLimits.dailyLimit,
+            weeklyLimit: this.quotaLimits.weeklyLimit,
+            lastResetDaily: new Date().toISOString().split('T')[0],
+            lastResetWeekly: this.getWeekStart(new Date()).toISOString().split('T')[0],
+          },
+          roles: ['user'],
+          onboardingProfile: profile,
+        },
+        'users',
+        userId
+      );
+      logger.info(`Onboarding survey stored with the new user record ${userId}`);
+      return profile;
+    }
+
+    await this.userRepository.update(userId, { onboardingProfile: profile }, 'users');
+    logger.info(`Onboarding survey stored for user ${userId}`, {
+      recommendedMode: profile.recommendedMode,
+      selectedMode: profile.selectedMode,
+    });
+    return profile;
   }
 
   async getUserEmail(userId: string): Promise<string | undefined> {

@@ -3,11 +3,13 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LogoType, LogoPreferencesModel } from '../../../../models/logo.model';
+import { LogoTypeSampleComponent } from './logo-type-sample/logo-type-sample';
+import { LogoModeSampleComponent } from './logo-mode-sample/logo-mode-sample';
 
 @Component({
   selector: 'app-logo-preferences',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule],
+  imports: [CommonModule, FormsModule, TranslateModule, LogoTypeSampleComponent, LogoModeSampleComponent],
   templateUrl: './logo-preferences.html',
   styleUrl: './logo-preferences.css',
 })
@@ -69,25 +71,45 @@ export class LogoPreferences {
     'dashboard.logoPreferences.modes.custom.features.unique',
   ];
 
-  // Logo type options
+  /**
+   * Exemples de marques connues, affichés en vignettes.
+   *
+   * `onDark` signale les logos monochromes blancs, qui réclament une pastille
+   * sombre pour rester lisibles. `imgClass` règle la taille au cas par cas :
+   * les SVG sont dessinés dans un canevas carré (viewBox 0 0 24 24) et se
+   * posent donc en carré, tandis que les PNG portent leur vrai rapport et se
+   * calent sur la hauteur pour ne pas manger toute la ligne.
+   */
   protected readonly logoTypes = [
     {
       type: 'icon' as LogoType,
       titleKey: 'dashboard.logoPreferences.types.icon.title',
       descriptionKey: 'dashboard.logoPreferences.types.icon.description',
-      exampleKey: 'dashboard.logoPreferences.types.icon.example',
+      examples: [
+        { src: '/assets/images/brands/apple.svg', alt: 'Apple', onDark: true, imgClass: 'h-10 w-10 object-contain' },
+        { src: '/assets/images/brands/nike.svg', alt: 'Nike', onDark: true, imgClass: 'h-10 w-10 object-contain' },
+        { src: '/assets/images/brands/x.svg', alt: 'X', onDark: true, imgClass: 'h-10 w-10 object-contain' },
+      ],
     },
     {
       type: 'name' as LogoType,
       titleKey: 'dashboard.logoPreferences.types.name.title',
       descriptionKey: 'dashboard.logoPreferences.types.name.description',
-      exampleKey: 'dashboard.logoPreferences.types.name.example',
+      examples: [
+        { src: '/assets/images/brands/google.png', alt: 'Google', onDark: false, imgClass: 'h-6 w-auto max-w-[72px] object-contain' },
+        { src: '/assets/images/brands/cocacola.svg', alt: 'Coca-Cola', onDark: false, imgClass: 'h-10 w-10 object-contain' },
+        { src: '/assets/images/brands/fedex.svg', alt: 'FedEx', onDark: false, imgClass: 'h-10 w-10 object-contain' },
+      ],
     },
     {
       type: 'initial' as LogoType,
       titleKey: 'dashboard.logoPreferences.types.initial.title',
       descriptionKey: 'dashboard.logoPreferences.types.initial.description',
-      exampleKey: 'dashboard.logoPreferences.types.initial.example',
+      examples: [
+        { src: '/assets/images/brands/ibm.png', alt: 'IBM', onDark: false, imgClass: 'h-6 w-auto max-w-[72px] object-contain' },
+        { src: '/assets/images/brands/hp.svg', alt: 'HP', onDark: false, imgClass: 'h-10 w-10 object-contain' },
+        { src: '/assets/images/brands/cnn.svg', alt: 'CNN', onDark: false, imgClass: 'h-10 w-10 object-contain' },
+      ],
     },
   ];
 

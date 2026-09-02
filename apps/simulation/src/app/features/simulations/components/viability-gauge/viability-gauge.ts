@@ -62,13 +62,13 @@ const ARC_LENGTH = Math.PI * 80;
 
       <figcaption class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-meta">
         <span class="text-ink-subtle">
-          {{ 'result.robustness' | translate }}
+          {{ 'result.shockResistance' | translate }}
           <span class="ml-1 font-semibold text-ink-muted">
             {{ 'robustness.' + robustness() | translate }}
           </span>
         </span>
         <span class="text-ink-subtle">
-          {{ 'result.confidence' | translate }}
+          {{ 'result.dataConfidence' | translate }}
           <span class="ml-1 font-semibold text-ink-muted">
             {{ 'confidence.' + confidence() | translate }}
           </span>

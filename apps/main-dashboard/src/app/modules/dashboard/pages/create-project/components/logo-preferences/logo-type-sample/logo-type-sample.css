@@ -1,0 +1,45 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+/* Même palette que les autres illustrations du produit. */
+.logo-sample {
+  --sample-primary: var(--color-primary, #1447e6);
+  --sample-ink: var(--color-text-primary, #0f172a);
+  --sample-frame: var(--glass-border, rgba(15, 23, 42, 0.1));
+  --sample-surface: var(--color-surface-2, rgba(255, 255, 255, 0.6));
+}
+
+.sample-canvas {
+  fill: var(--sample-surface);
+  stroke: var(--sample-frame);
+  stroke-width: 1;
+}
+
+.sample-mark {
+  fill: var(--sample-primary);
+}
+
+/* Le contre-poinçon du symbole : il évite la tache pleine et donne du relief. */
+.sample-counter {
+  fill: var(--sample-surface);
+}
+
+.sample-wordmark {
+  fill: var(--sample-ink);
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.sample-monogram {
+  fill: #ffffff;
+  font-size: 40px;
+  font-weight: 700;
+}
+
+/* Le filet sous le nom : un rappel discret de mise en page, pas un séparateur. */
+.sample-rule {
+  fill: var(--sample-primary);
+}

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@ang
 import { Router } from '@angular/router';
 import { CookieService } from '../../../../../shared/services/cookie.service';
 import { BusinessPlanGenerationComponent } from '../components/business-plan-generation/business-plan-generation';
+import { UiModeService } from '../../../../../shared/services/ui-mode.service';
 
 @Component({
   selector: 'app-business-plan-generation-page',
@@ -49,6 +50,7 @@ export class BusinessPlanGenerationPage implements OnInit {
   // Injected services
   private readonly cookieService = inject(CookieService);
   private readonly router = inject(Router);
+  private readonly uiMode = inject(UiModeService);
 
   // Signals for state management
   protected readonly projectId = signal<string | null>(null);
@@ -69,8 +71,8 @@ export class BusinessPlanGenerationPage implements OnInit {
   protected onBusinessPlanGenerated(businessPlan: any): void {
     console.log('Business plan generation completed, redirecting to display:', businessPlan);
 
-    // Redirect to the business plan display page
-    this.router.navigate(['/project/business-plan']);
+    // En mode Assisté, retour au parcours : l'étape se coche et la suivante s'ouvre.
+    this.uiMode.completeStep('/project/business-plan');
   }
 
   /**

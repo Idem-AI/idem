@@ -103,7 +103,9 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
 
   /** Indique si la page actuelle est la page de synthèse / validation des politiques (où le changement de mode doit être masqué) */
   protected readonly isSummaryPage = computed(
-    () => (this.mode() === 'form' && this.currentStepIndex() === 2) || (this.mode() === 'chat' && this.isChatRecapActive()),
+    () =>
+      (this.mode() !== 'chat' && this.currentStepIndex() === 2) ||
+      (this.mode() === 'chat' && this.isChatRecapActive()),
   );
 
   /** Vue conversationnelle active (chat + au-delà de l'étape description et hors écran de choix de mode). */
@@ -160,12 +162,24 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
   private readMode(): CreateMode {
     try {
       const saved = localStorage.getItem(CREATE_MODE_KEY);
-      if (saved === 'chat' || saved === 'form') {
+      if (saved === 'chat' || saved === 'form' || saved === 'guided') {
         return saved;
       }
-      return this.uiModeService.mode() === 'chat' ? 'chat' : 'form';
+      return this.uiModeToCreateMode();
     } catch {
       return 'form';
+    }
+  }
+
+  /** Traduit le mode d'interface global en mode de création. */
+  private uiModeToCreateMode(): CreateMode {
+    switch (this.uiModeService.mode()) {
+      case 'chat':
+        return 'chat';
+      case 'guided':
+        return 'guided';
+      default:
+        return 'form';
     }
   }
 
@@ -176,12 +190,11 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
     } catch {
       // ignore
     }
-    // Synchronise avec le UiModeService global pour que le dashboard ouvre par défaut le bon mode
-    if (mode === 'chat') {
-      this.uiModeService.setMode('chat');
-    } else {
-      this.uiModeService.setMode('advanced');
-    }
+    // Synchronise avec le UiModeService global pour que l'après-création ouvre
+    // le bon mode (parcours assisté, chat ou tableau de bord).
+    this.uiModeService.setMode(
+      mode === 'chat' ? 'chat' : mode === 'guided' ? 'guided' : 'advanced',
+    );
   }
 
   // Step configuration
@@ -577,7 +590,19 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
    */
   protected async finalizeProject(): Promise<void> {
     this.cookieService.set('projectId', this.project().id!);
-    this.router.navigate(['/project/dashboard']);
+    this.router.navigateByUrl(this.postCreationRoute());
+  }
+
+  /** Où atterrir une fois le projet créé, selon le mode d'accompagnement choisi. */
+  private postCreationRoute(): string {
+    switch (this.uiModeService.mode()) {
+      case 'guided':
+        return '/guided';
+      case 'chat':
+        return '/chat';
+      default:
+        return '/project/dashboard';
+    }
   }
 
   // ─────────────────────────────────────────────── Mode conversation (chat)
@@ -602,12 +627,8 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
   protected onConversationCreated(projectId: string): void {
     this.cookieService.set('projectId', projectId);
     this.cookieService.remove('draftProject');
-    // Retour dans le contexte d'origine : chat si l'utilisateur est en mode chat
-    if (this.uiModeService.mode() === 'chat') {
-      this.router.navigate(['/chat']);
-    } else {
-      this.router.navigate(['/project/dashboard']);
-    }
+    // Retour dans le contexte d'origine (assisté, chat ou tableau de bord)
+    this.router.navigateByUrl(this.postCreationRoute());
   }
 
   /**

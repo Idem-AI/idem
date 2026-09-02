@@ -1,0 +1,75 @@
+@if (kind() === 'ai') {
+  <!-- IA : un geste, plusieurs concepts d'un coup -->
+  <svg
+    viewBox="0 0 268 120"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    class="w-full h-full mode-sample is-ai"
+    role="img"
+    aria-hidden="true"
+  >
+    <!-- Étincelles : ce qui se produit tout seul -->
+    <path
+      d="M134 14 L138 26 L150 30 L138 34 L134 46 L130 34 L118 30 L130 26 Z"
+      class="sample-accent sample-spark"
+    />
+    <path
+      d="M92 24 L94 30 L100 32 L94 34 L92 40 L90 34 L84 32 L90 30 Z"
+      class="sample-accent sample-spark-sm"
+    />
+    <path
+      d="M178 22 L180 28 L186 30 L180 32 L178 38 L176 32 L170 30 L176 28 Z"
+      class="sample-accent sample-spark-sm sample-delay"
+    />
+
+    <!-- Trois concepts proposés d'emblée -->
+    <circle cx="66" cy="80" r="19" class="sample-outline" stroke-width="3" />
+    <path
+      d="M134 56 c13 15 21 22 21 32 a21 21 0 0 1 -42 0 c0 -10 8 -17 21 -32 z"
+      class="sample-accent"
+    />
+    <circle cx="134" cy="90" r="7" class="sample-counter" />
+    <polygon
+      points="221,61 234,68.5 234,83.5 221,91 208,83.5 208,68.5"
+      class="sample-outline"
+      stroke-width="3"
+    />
+  </svg>
+} @else {
+  <!-- Sur mesure : un texte écrit produit une forme précise -->
+  <svg
+    viewBox="0 0 268 120"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    class="w-full h-full mode-sample is-custom"
+    role="img"
+    aria-hidden="true"
+  >
+    <!-- Ce que vous écrivez -->
+    <rect x="20" y="26" width="108" height="70" rx="10" class="sample-brief" />
+    <rect x="32" y="40" width="66" height="6" rx="3" class="sample-line-strong" />
+    <rect x="32" y="54" width="84" height="6" rx="3" class="sample-line" />
+    <rect x="32" y="68" width="48" height="6" rx="3" class="sample-line" />
+    <rect x="84" y="66" width="3" height="11" rx="1.5" class="sample-accent sample-caret" />
+
+    <!-- Ce qui en sort -->
+    <path
+      d="M144 61 h28"
+      class="sample-outline"
+      stroke-width="2.5"
+      stroke-linecap="round"
+    />
+    <path
+      d="M166 55 l7 6 l-7 6"
+      class="sample-outline"
+      stroke-width="2.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M216 36 c13 15 21 22 21 32 a21 21 0 0 1 -42 0 c0 -10 8 -17 21 -32 z"
+      class="sample-accent"
+    />
+    <circle cx="216" cy="70" r="7" class="sample-counter" />
+  </svg>
+}

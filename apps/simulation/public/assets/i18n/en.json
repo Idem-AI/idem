@@ -238,7 +238,9 @@
     "criticalFactors": "Critical factors",
     "scenarios": "Scenarios",
     "scenariosBody": "{{total}} scenarios were run. The model does not hold in {{broken}} of them.",
-    "risks": "Risks found"
+    "risks": "Risks found",
+    "shockResistance": "Resistance to shocks",
+    "dataConfidence": "Data reliability"
   },
   "results": {
     "title": "Results",
@@ -255,9 +257,9 @@
     }
   },
   "verdict": {
-    "go": "GO",
-    "go-with-conditions": "GO with conditions",
-    "no-go": "NO-GO"
+    "go": "The model holds",
+    "go-with-conditions": "The model holds, under conditions",
+    "no-go": "The model does not hold"
   },
   "robustness": {
     "low": "Low",
@@ -386,7 +388,8 @@
     },
     "download": "Download the PDF",
     "downloading": "Building the PDF…",
-    "downloadFailed": "The report could not be generated."
+    "downloadFailed": "The report could not be generated.",
+    "downloadReport": "Download the report"
   },
   "compare": {
     "title": "Comparison",
@@ -423,8 +426,9 @@
     "imported-document": "Imported document"
   },
   "overview": {
-    "atAGlance": "At a glance",
-    "nextSteps": "What's next"
+    "atAGlance": "The factors that weigh on this project",
+    "nextSteps": "What's next",
+    "why": "Why this verdict"
   },
   "understanding": {
     "profile": "What the engine understood",
@@ -624,5 +628,15 @@
     },
     "required": "These agreements are required to launch the simulation.",
     "confirm": "Accept and launch"
+  },
+  "verdictShort": {
+    "go": "Holds",
+    "go-with-conditions": "Holds under conditions",
+    "no-go": "Does not hold"
+  },
+  "verdictMeaning": {
+    "go": "The index is high and the model withstands most of the stress scenarios that were run.",
+    "go-with-conditions": "The model breaks in some of the stress scenarios: whether it holds depends on conditions being met.",
+    "no-go": "The index is low and the model breaks in most of the stress scenarios that were run."
   }
 }

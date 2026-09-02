@@ -1,0 +1,71 @@
+:host {
+  display: block;
+}
+
+/* Les cartes réagissent au survol par un léger soulèvement : assez pour se
+   sentir cliquables, assez discret pour rester sobre. */
+.survey-option {
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.survey-option:hover {
+  transform: translateY(-2px);
+}
+
+.survey-option:active {
+  transform: translateY(0);
+}
+
+.mode-card {
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mode-card:hover {
+  transform: translateY(-4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .survey-option,
+  .mode-card {
+    transition: none;
+  }
+
+  .survey-option:hover,
+  .mode-card:hover {
+    transform: none;
+  }
+}
+
+/* Pastille d'icône : couleurs pilotées ici plutôt qu'en classes Tailwind.
+   La feuille partagée définit `.text-primary` hors de tout `@layer`, et une
+   règle non-layered l'emporte sur n'importe quelle utilitaire Tailwind — donc
+   `group-hover:text-white` n'atteignait jamais l'icône, qui restait bleue sur
+   fond bleu. Le CSS de composant est lui aussi non-layered : l'état survolé
+   et l'état sélectionné s'appliquent sans lutte de spécificité. */
+.option-icon {
+  background-color: color-mix(in oklch, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.survey-option:hover .option-icon,
+.option-icon.is-selected {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .option-icon {
+    transition: none;
+  }
+}

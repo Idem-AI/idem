@@ -1,0 +1,80 @@
+@if (attempt()) {
+  <div
+    class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-lockFade"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="'guided.lock.title' | translate"
+    (click)="close()"
+  >
+    <div
+      class="w-full max-w-md rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-intense)] backdrop-blur-xl shadow-2xl p-6 animate-lockIn"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+        <i class="pi pi-lock text-lg text-primary"></i>
+      </div>
+
+      <h2 class="text-lg font-bold text-text-primary mb-2">
+        {{ 'guided.lock.title' | translate }}
+      </h2>
+
+      <p class="text-sm text-text-tertiary leading-relaxed mb-4">
+        @if (blockedStep(); as step) {
+          {{
+            'guided.lock.messageKnown'
+              | translate: { section: step.navLabelKey | translate }
+          }}
+        } @else {
+          {{ 'guided.lock.messageUnknown' | translate }}
+        }
+      </p>
+
+      @if (currentStep(); as step) {
+        <div
+          class="flex items-center gap-3 p-3 rounded-xl border border-primary/30 bg-primary/5 mb-5"
+        >
+          <span
+            class="w-9 h-9 shrink-0 rounded-lg bg-primary/15 text-primary flex items-center justify-center"
+          >
+            <i class="text-sm" [ngClass]="step.icon"></i>
+          </span>
+          <span class="min-w-0">
+            <span class="block text-[10px] font-bold uppercase tracking-wider text-primary">
+              {{ 'guided.lock.currentLabel' | translate }}
+            </span>
+            <span class="block text-sm font-semibold text-text-primary truncate">
+              {{ 'guided.steps.' + step.id + '.title' | translate }}
+            </span>
+          </span>
+        </div>
+      }
+
+      <div class="flex flex-col gap-2">
+        <button
+          type="button"
+          (click)="goToCurrentStep()"
+          class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl inner-button text-sm font-semibold"
+        >
+          {{ 'guided.lock.goToCurrent' | translate }}
+          <i class="pi pi-arrow-right text-xs"></i>
+        </button>
+
+        <button
+          type="button"
+          (click)="close()"
+          class="w-full px-5 py-2.5 rounded-xl border border-[var(--glass-border)] text-text-secondary hover:text-text-primary hover:bg-[var(--glass-bg-light)] text-sm font-medium transition-all duration-200"
+        >
+          {{ 'guided.lock.stayOnJourney' | translate }}
+        </button>
+
+        <button
+          type="button"
+          (click)="switchToAdvanced()"
+          class="w-full px-5 py-2 text-xs font-medium text-text-tertiary hover:text-text-primary transition-colors duration-200"
+        >
+          {{ 'guided.lock.switchToAdvanced' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

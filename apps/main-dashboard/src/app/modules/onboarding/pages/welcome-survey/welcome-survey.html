@@ -1,0 +1,200 @@
+<section class="min-h-dvh w-full flex flex-col items-center px-5 sm:px-6 py-10 sm:py-16">
+  @if (!isResultStep()) {
+    <!-- ═══════════════════ QUESTION ═══════════════════ -->
+    <div class="w-full max-w-2xl">
+      <!-- Progression -->
+      <div class="mb-10 sm:mb-14">
+        <div class="flex items-baseline justify-between mb-3">
+          <span class="text-sm font-bold uppercase tracking-[0.15em] text-primary">
+            {{
+              'onboarding.survey.stepCounter'
+                | translate: { current: stepIndex() + 1, total: questions.length }
+            }}
+          </span>
+          <span class="text-sm font-medium text-text-tertiary">
+            {{ 'onboarding.survey.duration' | translate }}
+          </span>
+        </div>
+        <div class="h-1.5 w-full rounded-full bg-[var(--glass-bg-subtle)] overflow-hidden">
+          <div
+            class="h-full rounded-full bg-primary transition-all duration-500 ease-out"
+            [style.width.%]="progressPercent()"
+          ></div>
+        </div>
+      </div>
+
+      <!-- Question -->
+      <h1
+        class="text-3xl sm:text-4xl lg:text-[2.75rem] font-bold text-text-primary leading-[1.15] tracking-tight mb-4"
+      >
+        {{ currentQuestion()!.labelKey | translate }}
+      </h1>
+      <p class="text-base sm:text-lg text-text-tertiary leading-relaxed mb-10 sm:mb-12">
+        {{ 'onboarding.survey.oneClick' | translate }}
+      </p>
+
+      <!-- Réponses -->
+      <div class="flex flex-col gap-4">
+        @for (option of currentQuestion()!.options; track option.value) {
+          <button
+            type="button"
+            (click)="selectOption(option)"
+            class="survey-option group w-full flex items-center gap-5 p-5 sm:p-6 rounded-2xl border-2 text-left"
+            [ngClass]="
+              currentAnswer() === option.value
+                ? 'border-primary bg-primary/8 shadow-xl shadow-primary/10'
+                : 'border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] hover:border-primary/60 hover:bg-primary/5'
+            "
+          >
+            <span
+              class="option-icon w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-2xl flex items-center justify-center"
+              [class.is-selected]="currentAnswer() === option.value"
+            >
+              <i class="text-xl sm:text-2xl" [ngClass]="option.icon"></i>
+            </span>
+
+            <span class="flex-1 min-w-0">
+              <span class="block text-lg sm:text-xl font-semibold text-text-primary leading-snug">
+                {{ option.labelKey | translate }}
+              </span>
+              <span class="block text-sm sm:text-[15px] text-text-tertiary leading-snug mt-1">
+                {{ option.hintKey | translate }}
+              </span>
+            </span>
+
+            <i
+              class="pi pi-arrow-right text-sm shrink-0 transition-all duration-200"
+              [ngClass]="
+                currentAnswer() === option.value
+                  ? 'text-primary'
+                  : 'text-text-tertiary/50 group-hover:text-primary group-hover:translate-x-1'
+              "
+            ></i>
+          </button>
+        }
+      </div>
+
+      @if (stepIndex() > 0) {
+        <button
+          type="button"
+          (click)="goBack()"
+          class="mt-10 inline-flex items-center gap-2 px-4 py-2.5 -ml-4 rounded-xl text-sm font-semibold text-text-tertiary hover:text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-200"
+        >
+          <i class="pi pi-arrow-left text-xs"></i>
+          {{ 'common.previous' | translate }}
+        </button>
+      }
+    </div>
+  } @else {
+    <!-- ═══════════════════ RÉSULTAT ═══════════════════ -->
+    <div class="w-full max-w-5xl">
+      <div class="text-center max-w-2xl mx-auto mb-12 sm:mb-14">
+        <span
+          class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-[0.15em] mb-6"
+        >
+          <i class="pi pi-sparkles text-[11px]"></i>
+          {{ 'onboarding.survey.result.badge' | translate }}
+        </span>
+        <h1
+          class="text-3xl sm:text-4xl lg:text-[2.75rem] font-bold text-text-primary leading-[1.15] tracking-tight mb-5"
+        >
+          {{ 'onboarding.survey.result.title' | translate }}
+        </h1>
+        <p class="text-base sm:text-lg text-text-tertiary leading-relaxed">
+          {{ reasonKey() | translate }}
+        </p>
+      </div>
+
+      <!-- Les trois modes -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 mb-12">
+        @for (card of modeCards; track card.mode) {
+          <button
+            type="button"
+            (click)="chooseMode(card.mode)"
+            class="mode-card relative flex flex-col rounded-3xl border-2 p-6 text-left"
+            [ngClass]="
+              selectedMode() === card.mode
+                ? 'border-primary bg-primary/8 shadow-2xl shadow-primary/15'
+                : 'border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] hover:border-primary/50'
+            "
+          >
+            @if (card.mode === recommendedMode()) {
+              <span
+                class="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-full bg-primary text-white shadow-lg shadow-primary/30"
+              >
+                {{ 'onboarding.survey.result.recommended' | translate }}
+              </span>
+            }
+
+            <div
+              class="h-36 sm:h-40 mb-6 rounded-2xl overflow-hidden border border-[var(--glass-border)] bg-[var(--color-surface-1)]"
+            >
+              <app-mode-illustration [mode]="card.mode" />
+            </div>
+
+            <div class="flex items-center gap-2.5 mb-2.5">
+              <span
+                class="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center transition-colors duration-200"
+                [ngClass]="
+                  selectedMode() === card.mode
+                    ? 'bg-primary text-white'
+                    : 'bg-primary/10 text-primary'
+                "
+              >
+                <i class="text-sm" [ngClass]="card.icon"></i>
+              </span>
+              <span class="text-xl font-bold text-text-primary">
+                {{ card.labelKey | translate }}
+              </span>
+              @if (selectedMode() === card.mode) {
+                <i class="pi pi-check-circle text-base text-primary ml-auto"></i>
+              }
+            </div>
+
+            <span class="text-sm sm:text-[15px] text-text-tertiary leading-relaxed">
+              {{ card.descriptionKey | translate }}
+            </span>
+          </button>
+        }
+      </div>
+
+      @if (saveError()) {
+        <p
+          class="max-w-xl mx-auto mb-5 flex items-start gap-2.5 p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-sm text-red-400"
+        >
+          <i class="pi pi-exclamation-triangle text-xs mt-0.5"></i>
+          <span>{{ saveError()! | translate }}</span>
+        </p>
+      }
+
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <button
+          type="button"
+          (click)="start()"
+          [disabled]="isSaving()"
+          class="w-full sm:w-auto min-w-[240px] inline-flex items-center justify-center gap-2.5 px-10 py-4 rounded-2xl inner-button text-base font-semibold disabled:opacity-60 disabled:cursor-wait"
+        >
+          @if (isSaving()) {
+            <i class="pi pi-spinner pi-spin text-sm"></i>
+            {{ 'onboarding.survey.result.saving' | translate }}
+          } @else {
+            {{ 'onboarding.survey.result.start' | translate }}
+            <i class="pi pi-arrow-right text-sm"></i>
+          }
+        </button>
+        <button
+          type="button"
+          (click)="goBack()"
+          [disabled]="isSaving()"
+          class="w-full sm:w-auto px-8 py-4 rounded-2xl border-2 border-[var(--glass-border)] text-text-secondary hover:text-text-primary hover:border-[var(--glass-border-strong)] hover:bg-[var(--glass-bg-light)] text-base font-medium transition-all duration-200 disabled:opacity-50"
+        >
+          {{ 'onboarding.survey.result.review' | translate }}
+        </button>
+      </div>
+
+      <p class="text-center text-sm text-text-tertiary mt-8">
+        {{ 'onboarding.survey.result.changeable' | translate }}
+      </p>
+    </div>
+  }
+</section>

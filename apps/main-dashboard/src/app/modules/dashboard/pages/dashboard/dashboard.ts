@@ -7,7 +7,7 @@ import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
-import { UiModeService } from '../../../../shared/services/ui-mode.service';
+import { MODE_HOME_ROUTE, UiModeService } from '../../../../shared/services/ui-mode.service';
 import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
 
 @Component({
@@ -74,9 +74,11 @@ export class DashboardComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Si l'utilisateur est en mode chat, on le redirige par défaut vers l'interface de chat
+    // Le mode Chat a sa propre vue du projet : on y renvoie l'utilisateur.
+    // Le mode Assisté, lui, garde accès à cette page — la barre de parcours
+    // affichée au-dessus ramène au parcours en un clic.
     if (this.uiModeService.mode() === 'chat') {
-      this.router.navigate(['/chat']);
+      this.router.navigateByUrl(MODE_HOME_ROUTE.chat);
       return;
     }
 
