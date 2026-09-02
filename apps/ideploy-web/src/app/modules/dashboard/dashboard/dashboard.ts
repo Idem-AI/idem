@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 import { ApiService } from '../../../shared/services/api.service';
+import { TourService } from '../../../shared/services/tour.service';
 import { Workspace, Server, ServiceTemplate } from '../../../shared/models/ideploy.models';
 
 interface DeployRow {
@@ -257,6 +258,7 @@ export class DashboardComponent implements OnInit {
   private api = inject(ApiService);
   private router = inject(Router);
   private translate = inject(TranslateService);
+  private tour = inject(TourService);
 
   protected readonly projects = signal<Workspace[]>([]);
   protected readonly servers = signal<Server[]>([]);
@@ -311,6 +313,10 @@ export class DashboardComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    // Le tableau de bord est la porte d'entrée d'iDeploy : c'est ici qu'on
+    // présente les lieux, la première fois seulement.
+    this.tour.maybeStart();
+
     forkJoin({
       projects: this.api.listWorkspaces(),
       servers: this.api.listServers(),

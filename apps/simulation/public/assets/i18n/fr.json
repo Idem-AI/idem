@@ -638,5 +638,41 @@
     "go": "L'indice est élevé et le modèle résiste à la plupart des scénarios de tension étudiés.",
     "go-with-conditions": "Le modèle casse dans une partie des scénarios de tension : sa tenue dépend de conditions à réunir.",
     "no-go": "L'indice est bas et le modèle casse dans la plupart des scénarios de tension étudiés."
+  },
+  "tour": {
+    "common": {
+      "next": "Suivant",
+      "back": "Retour",
+      "skip": "Passer",
+      "finish": "C'est parti !",
+      "stepOf": "Étape {current} sur {total}",
+      "dialogLabel": "Visite guidée"
+    },
+    "steps": {
+      "welcome": {
+        "title": "Bienvenue dans le simulateur ! On fait le tour ?",
+        "body": "Quelques secondes pour comprendre ce que vous avez sous les yeux."
+      },
+      "nav": {
+        "title": "Vos écrans",
+        "body": "Aperçu, facteurs, scénarios, comparaison : chaque écran creuse un aspect de la simulation. On commence toujours par l'aperçu."
+      },
+      "glance": {
+        "title": "Le verdict en un coup d’œil",
+        "body": "L'essentiel du résultat, sans le détail : de quoi décider s'il vaut la peine d'aller plus loin."
+      },
+      "risks": {
+        "title": "Les risques identifiés",
+        "body": "Ce qui pourrait faire échouer le projet, classé par gravité. À lire avant de se réjouir des bons chiffres."
+      },
+      "next": {
+        "title": "Et maintenant ?",
+        "body": "Les actions concrètes qui suivent le verdict : creuser un facteur, éprouver le scénario, comparer."
+      },
+      "done": {
+        "title": "Vous êtes prêt !",
+        "body": "Une simulation est une hypothèse chiffrée, pas une prédiction. À vous de la mettre à l’épreuve."
+      }
+    }
   }
 }

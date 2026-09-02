@@ -17,7 +17,8 @@
     "target": "ES2022",
     "module": "ES2022",
     "paths": {
-      "@idem/shared-styles": ["../../packages/shared-styles"]
+      "@idem/shared-styles": ["../../packages/shared-styles"],
+      "@idem/shared-tour": ["../../packages/shared-tour/src"]
     }
   },
   "angularCompilerOptions": {

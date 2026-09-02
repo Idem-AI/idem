@@ -20,6 +20,7 @@
       "@shared/*": ["./src/app/shared/*"],
       "@features/*": ["./src/app/features/*"],
       "@layouts/*": ["./src/app/layouts/*"],
+      "@idem/shared-tour": ["../../packages/shared-tour/src"],
       "@env": ["./src/environments/environment"]
     }
   },
