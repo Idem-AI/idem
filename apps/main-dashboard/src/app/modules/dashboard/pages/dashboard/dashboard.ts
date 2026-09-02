@@ -88,7 +88,7 @@ export class DashboardComponent implements OnInit {
     // Le tableau de bord projet est le vrai lieu de travail du mode Avancé :
     // c'est ici qu'on présente les outils, pas sur la liste des projets.
     if (mode === 'advanced') {
-      this.tour.maybeStart('advanced');
+      void this.tour.maybeStart('advanced');
     }
 
     this.isLoading.set(true);

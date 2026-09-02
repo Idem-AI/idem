@@ -518,30 +518,62 @@ class UserService {
   }
 
   /**
+   * Visites guidées déjà vues par ce compte.
+   *
+   * Les deux emplacements sont fusionnés : le champ de compte, et l'ancien
+   * champ logé dans le profil d'accueil, le temps que les comptes existants
+   * basculent.
+   */
+  async getToursSeen(userId: string): Promise<string[]> {
+    const user = await this.userRepository.findById(userId, 'users');
+    const legacy = user?.onboardingProfile?.toursSeen ?? [];
+    return [...new Set([...(user?.toursSeen ?? []), ...legacy])];
+  }
+
+  /**
    * Mémorise qu'une visite guidée a été vue.
    *
-   * On n'écrase pas le profil : seul le tableau `toursSeen` est complété, et
-   * l'appel est idempotent — revoir la même visite ne crée pas de doublon.
-   * Sans profil (sondage jamais rempli), il n'y a rien à marquer.
+   * L'appel est idempotent, et le document utilisateur est créé au besoin :
+   * les applications satellites (iDeploy, simulateur, AppGen) ont des
+   * utilisateurs qui n'ont jamais rempli le sondage d'accueil du tableau de
+   * bord, et leur didacticiel doit tout de même être mémorisé.
    */
   async markTourSeen(userId: string, tourId: string): Promise<string[]> {
-    const user = await this.userRepository.findById(userId, 'users');
-    const profile = user?.onboardingProfile;
-
-    if (!profile) {
-      logger.warn(`markTourSeen ignored: user ${userId} has no onboarding profile yet`);
-      return [];
-    }
-
-    const seen = profile.toursSeen ?? [];
+    const seen = await this.getToursSeen(userId);
     if (seen.includes(tourId)) return seen;
 
     const toursSeen = [...seen, tourId];
-    await this.userRepository.update(
-      userId,
-      { onboardingProfile: { ...profile, toursSeen } },
-      'users'
-    );
+    const user = await this.userRepository.findById(userId, 'users');
+
+    if (!user) {
+      logger.info(`User ${userId} has no record yet, creating it before storing the tour`);
+      const userRecord = await admin.auth().getUser(userId);
+      await this.userRepository.create(
+        {
+          uid: userId,
+          email: userRecord.email || '',
+          displayName: userRecord.displayName || '',
+          photoURL: userRecord.photoURL || '',
+          subscription: 'free',
+          lastLogin: new Date(),
+          quota: {
+            dailyUsage: 0,
+            weeklyUsage: 0,
+            dailyLimit: this.quotaLimits.dailyLimit,
+            weeklyLimit: this.quotaLimits.weeklyLimit,
+            lastResetDaily: new Date().toISOString().split('T')[0],
+            lastResetWeekly: this.getWeekStart(new Date()).toISOString().split('T')[0],
+          },
+          roles: ['user'],
+          toursSeen,
+        },
+        'users',
+        userId
+      );
+    } else {
+      await this.userRepository.update(userId, { toursSeen }, 'users');
+    }
+
     logger.info(`Tour ${tourId} marked as seen for user ${userId}`);
     return toursSeen;
   }

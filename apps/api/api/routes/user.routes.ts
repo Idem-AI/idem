@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   getOnboardingProfileController,
+  getToursSeenController,
   markTourSeenController,
   profileController,
   saveOnboardingProfileController,
@@ -90,7 +91,21 @@ userRoutes.put('/onboarding-profile', authenticate, saveOnboardingProfileControl
 
 /**
  * @openapi
- * /auth/onboarding-profile/tour:
+ * /auth/tours:
+ *   get:
+ *     tags:
+ *       - Authentication
+ *     summary: List the guided tours this account has already seen
+ *     description: >
+ *       Stored on the account rather than in the browser, so switching machine
+ *       or browser does not replay a tutorial the user has already followed.
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       '200':
+ *         description: The list of seen tour identifiers.
+ *       '401':
+ *         description: Unauthenticated.
  *   post:
  *     tags:
  *       - Authentication
@@ -105,4 +120,5 @@ userRoutes.put('/onboarding-profile', authenticate, saveOnboardingProfileControl
  *       '401':
  *         description: Unauthenticated.
  */
-userRoutes.post('/onboarding-profile/tour', authenticate, markTourSeenController);
+userRoutes.get('/tours', authenticate, getToursSeenController);
+userRoutes.post('/tours', authenticate, markTourSeenController);

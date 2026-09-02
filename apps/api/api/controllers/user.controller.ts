@@ -144,6 +144,25 @@ export const saveOnboardingProfileController = async (
 };
 
 
+/** Visites guidées déjà vues par l'utilisateur connecté. */
+export const getToursSeenController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  if (!userId) {
+    res.status(401).json({ message: 'Unauthenticated.' });
+    return;
+  }
+
+  try {
+    res.status(200).json({ toursSeen: await userService.getToursSeen(userId) });
+  } catch (error: any) {
+    logger.error('Error fetching seen tours:', { userId, errorMessage: error.message });
+    res.status(500).json({ message: 'Could not fetch the tours.' });
+  }
+};
+
 /** Marque une visite guidée comme vue pour l'utilisateur connecté. */
 export const markTourSeenController = async (
   req: CustomRequest,

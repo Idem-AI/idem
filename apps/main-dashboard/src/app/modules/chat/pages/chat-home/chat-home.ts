@@ -272,7 +272,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     this.isInitializing.set(false);
 
     // Le fil est en place : on peut présenter les lieux sans pointer le vide.
-    this.tour.maybeStart('chat');
+    void this.tour.maybeStart('chat');
   }
 
   ngAfterViewChecked(): void {

@@ -14,13 +14,24 @@ export const TOUR_STYLES = `
   font-family: inherit;
 }
 
-/* Le trou de lumière : l'ombre portée assombrit tout le reste de l'écran. */
+/*
+ * Le trou de lumière.
+ *
+ * La zone visée n'est **pas** filtrée : elle doit s'afficher exactement comme
+ * l'application l'a dessinée, sinon le texte perd son contraste et devient
+ * moins lisible que le reste — l'inverse du but recherché. C'est le voile
+ * alentour, volontairement dense, qui crée la mise en avant.
+ */
 .idem-tour-spotlight {
   position: absolute;
   border-radius: 14px;
+  /* Pas de color-mix() ici : une valeur non comprise invaliderait toute la
+     déclaration, et le voile disparaîtrait avec elle. On s'en tient à var()
+     avec repli, universellement supporté. */
   box-shadow:
-    0 0 0 9999px rgba(2, 6, 23, 0.68),
-    0 0 0 3px var(--color-primary, #1447e6);
+    0 0 0 9999px rgba(2, 6, 23, 0.86),
+    0 0 0 2px var(--color-primary, #1447e6),
+    0 0 26px 0 var(--color-primary, #1447e6);
   transition:
     top 0.35s cubic-bezier(0.16, 1, 0.3, 1),
     left 0.35s cubic-bezier(0.16, 1, 0.3, 1),
@@ -31,7 +42,7 @@ export const TOUR_STYLES = `
 
 /* Sans cible, on assombrit l'écran entier sans découpe. */
 .idem-tour-spotlight.is-centered {
-  box-shadow: 0 0 0 9999px rgba(2, 6, 23, 0.68);
+  box-shadow: 0 0 0 9999px rgba(2, 6, 23, 0.86);
   border-radius: 0;
 }
 
