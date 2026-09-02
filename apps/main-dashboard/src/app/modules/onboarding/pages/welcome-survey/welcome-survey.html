@@ -47,12 +47,8 @@
             "
           >
             <span
-              class="w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-2xl flex items-center justify-center transition-all duration-200"
-              [ngClass]="
-                currentAnswer() === option.value
-                  ? 'bg-primary text-white'
-                  : 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white'
-              "
+              class="option-icon w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-2xl flex items-center justify-center"
+              [class.is-selected]="currentAnswer() === option.value"
             >
               <i class="text-xl sm:text-2xl" [ngClass]="option.icon"></i>
             </span>

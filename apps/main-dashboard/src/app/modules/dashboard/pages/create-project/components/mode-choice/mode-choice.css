@@ -45,3 +45,28 @@
     transform: none;
   }
 }
+
+/* Pastille d'icône : couleurs pilotées ici plutôt qu'en classes Tailwind.
+   La feuille partagée définit `.text-primary` hors de tout `@layer`, et une
+   règle non-layered l'emporte sur n'importe quelle utilitaire Tailwind — donc
+   `group-hover:text-white` n'atteignait jamais l'icône, qui restait bleue sur
+   fond bleu. Le CSS de composant est lui aussi non-layered : l'état survolé
+   et l'état sélectionné s'appliquent sans lutte de spécificité. */
+.card-icon {
+  background-color: color-mix(in oklch, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.mode-card:hover .card-icon {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-icon {
+    transition: none;
+  }
+}
