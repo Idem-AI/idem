@@ -14,6 +14,7 @@ import { filter, startWith, map, distinctUntilChanged, takeUntil } from 'rxjs/op
 import { DashboardLayoutComponent } from './layouts/dashboard-layout/dashboard-layout';
 import { ChatLayoutComponent } from './layouts/chat-layout/chat-layout';
 import { GuidedLayoutComponent } from './layouts/guided-layout/guided-layout';
+import { GuidedLockModalComponent } from './modules/guided/components/guided-lock-modal/guided-lock-modal';
 
 @Component({
   selector: 'app-root',
@@ -26,6 +27,7 @@ import { GuidedLayoutComponent } from './layouts/guided-layout/guided-layout';
     DashboardLayoutComponent,
     ChatLayoutComponent,
     GuidedLayoutComponent,
+    GuidedLockModalComponent,
     AsyncPipe,
   ],
   templateUrl: './app.html',
