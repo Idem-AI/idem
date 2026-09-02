@@ -19,7 +19,9 @@
       "@idem/shared-auth-client": ["../../packages/shared-auth-client/src"],
       "@idem/shared-auth-client/*": ["../../packages/shared-auth-client/src/*"],
       "@idem/shared-styles": ["../../packages/shared-styles"],
-      "@idem/shared-styles/*": ["../../packages/shared-styles/*"]
+      "@idem/shared-styles/*": ["../../packages/shared-styles/*"],
+      "@idem/shared-tour": ["../../packages/shared-tour/src"],
+      "@idem/shared-tour/*": ["../../packages/shared-tour/src/*"]
     }
   },
   "angularCompilerOptions": {

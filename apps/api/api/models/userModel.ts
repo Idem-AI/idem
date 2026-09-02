@@ -67,6 +67,8 @@ export interface OnboardingProfile {
   /** Mode réellement retenu par l'utilisateur (il peut contredire la reco) */
   selectedMode: OnboardingUiMode;
   completedAt: Date | string;
+  /** Visites guidées déjà vues, par identifiant (`main-dashboard:guided`…) */
+  toursSeen?: string[];
 }
 
 export interface UserModel {

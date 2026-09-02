@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   getOnboardingProfileController,
+  markTourSeenController,
   profileController,
   saveOnboardingProfileController,
 } from '../controllers/user.controller';
@@ -86,3 +87,22 @@ userRoutes.get('/profile', profileController);
  */
 userRoutes.get('/onboarding-profile', authenticate, getOnboardingProfileController);
 userRoutes.put('/onboarding-profile', authenticate, saveOnboardingProfileController);
+
+/**
+ * @openapi
+ * /auth/onboarding-profile/tour:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Record that a guided tour has been seen
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       '200':
+ *         description: Tour recorded; returns the updated list.
+ *       '400':
+ *         description: Missing or invalid tourId.
+ *       '401':
+ *         description: Unauthenticated.
+ */
+userRoutes.post('/onboarding-profile/tour', authenticate, markTourSeenController);

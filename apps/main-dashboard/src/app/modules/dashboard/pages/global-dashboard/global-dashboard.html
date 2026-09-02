@@ -55,6 +55,7 @@
           >
             <!-- Create Project Card -->
             <button
+              data-tour="create-project"
               (click)="openCreateProject()"
               class="h-[200px] sm:h-[220px] lg:h-[240px] flex flex-col justify-center items-center text-center border-2 border-dashed border-secondary/50 rounded-xl glass hover:bg-[var(--glass-bg-light)] hover:shadow-[0_0_20px_-5px_var(--color-primary)] hover:scale-[1.01] transition-all duration-300 p-4 hover:cursor-pointer group"
             >
@@ -81,7 +82,7 @@
         </section>
 
         <!-- All Projects -->
-        <section class="space-y-4 sm:space-y-6">
+        <section class="space-y-4 sm:space-y-6" data-tour="projects">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h2 class="text-xl sm:text-2xl font-semibold text-primary">
               {{ 'dashboard.globalDashboard.sections.allProjects' | translate }}

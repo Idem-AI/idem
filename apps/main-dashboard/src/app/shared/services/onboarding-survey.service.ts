@@ -99,6 +99,34 @@ export class OnboardingSurveyService {
     () => (this.profile()?.selectedMode as UiMode | undefined) ?? null,
   );
 
+  /** Visites guidées déjà vues par ce compte. */
+  readonly toursSeen = computed<string[]>(() => this.profile()?.toursSeen ?? []);
+
+  /**
+   * Mémorise une visite guidée sur le compte.
+   * L'état local est mis à jour avant l'aller-retour réseau : la visite ne
+   * doit pas se relancer si l'appel traîne, et un échec ne la fait pas
+   * réapparaître pendant la session.
+   */
+  async markTourSeen(tourId: string): Promise<void> {
+    const profile = this.profile();
+    if (!profile || profile.toursSeen?.includes(tourId)) return;
+
+    this.profile.set({ ...profile, toursSeen: [...(profile.toursSeen ?? []), tourId] });
+
+    try {
+      await firstValueFrom(
+        this.http.post<{ toursSeen: string[] }>(
+          `${this.apiUrl}/tour`,
+          { tourId },
+          { withCredentials: true },
+        ),
+      );
+    } catch (error) {
+      console.error('OnboardingSurvey: could not record the tour', error);
+    }
+  }
+
   // ───────────────────────────────────────────────────────── chargement
 
   /**

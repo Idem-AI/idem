@@ -1,0 +1,86 @@
+{
+  "tour": {
+    "common": {
+      "next": "Next",
+      "back": "Back",
+      "skip": "Skip",
+      "finish": "Let's go!",
+      "stepOf": "Step {current} of {total}",
+      "dialogLabel": "IDEM guided tour"
+    },
+    "guided": {
+      "welcome": {
+        "title": "Welcome! Shall we look around?",
+        "body": "Thirty seconds to find your bearings. Nothing to memorise — it all stays on screen."
+      },
+      "progress": {
+        "title": "Your progress",
+        "body": "This is where you stand: what is done, what is left. The bar fills itself as your documents come out."
+      },
+      "steps": {
+        "title": "Your journey, in order",
+        "body": "Nine steps, from the idea to going live. The next ones stay closed until the current one is done — on purpose: one thing at a time, and nothing forgotten."
+      },
+      "current": {
+        "title": "Your current step",
+        "body": "The only one asking anything of you. Hit \"Start\" and IDEM takes you to the right place, then brings you back here."
+      },
+      "switch": {
+        "title": "Switch modes whenever you like",
+        "body": "This button moves you between step-by-step guidance, chat and the full dashboard. Your project and documents stay exactly as they are."
+      },
+      "done": {
+        "title": "You are all set!",
+        "body": "All that is left is to begin. And if it ever feels too narrow, the mode switcher is your way out."
+      }
+    },
+    "chat": {
+      "welcome": {
+        "title": "Welcome! Shall we look around?",
+        "body": "A few seconds to find your bearings in Chat mode."
+      },
+      "composer": {
+        "title": "Just say what you need",
+        "body": "Write as you would to an adviser: \"draft me a business plan\", \"suggest some colours\". IDEM understands and produces the document."
+      },
+      "conversations": {
+        "title": "Your conversations, sorted",
+        "body": "Each one is filed by topic — brand, finance, legal. You can see at a glance what you have already asked for."
+      },
+      "export": {
+        "title": "Take everything with you",
+        "body": "This button downloads every document produced for this project at once, as PDFs."
+      },
+      "switch": {
+        "title": "Switch modes whenever you like",
+        "body": "This button moves you between step-by-step guidance, chat and the full dashboard. Your project and documents stay exactly as they are."
+      },
+      "done": {
+        "title": "You are all set!",
+        "body": "Ask your first question — IDEM handles the rest."
+      }
+    },
+    "advanced": {
+      "welcome": {
+        "title": "Welcome! Shall we look around?",
+        "body": "Thirty seconds to find your bearings on the dashboard."
+      },
+      "create": {
+        "title": "Start a project",
+        "body": "Everything starts here. Describe your idea in a few lines: IDEM derives the brand, the business plan, the numbers and the rest."
+      },
+      "projects": {
+        "title": "Your projects",
+        "body": "They are waiting here. One click opens the project’s full workspace."
+      },
+      "switch": {
+        "title": "Switch modes whenever you like",
+        "body": "This button moves you between step-by-step guidance, chat and the full dashboard. Your project and documents stay exactly as they are."
+      },
+      "done": {
+        "title": "You are all set!",
+        "body": "Over to you. The dashboard hides nothing: every module is reachable from the left-hand menu."
+      }
+    }
+  }
+}
