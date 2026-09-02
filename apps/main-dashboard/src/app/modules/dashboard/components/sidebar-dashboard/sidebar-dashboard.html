@@ -82,7 +82,10 @@
     </div>
 
     <!-- Right section -->
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-3 sm:gap-4">
+      <!-- Sélecteur de mode : libellé et visible en permanence -->
+      <app-mode-switcher [current]="'advanced'" [alignRight]="true" />
+
       @if (user()) {
         <!-- Quota Display - Desktop only -->
         <div>
@@ -294,14 +297,14 @@
   <!-- Sidebar Footer -->
   <div class="p-4 border-t border-[var(--glass-border)] space-y-3">
     @if (!isSidebarCollapsed()) {
-      <app-mode-toggle [current]="'advanced'" />
+      <app-mode-switcher [current]="'advanced'" [dropUp]="true" />
       <div class="z-50">
         <app-language-selector />
         <app-theme-toggle />
       </div>
     } @else {
       <div class="flex flex-col items-center gap-3">
-        <app-mode-toggle [current]="'advanced'" [collapsed]="true" />
+        <app-mode-switcher [current]="'advanced'" [compact]="true" />
         <div class="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
           <i class="pi pi-globe text-primary text-sm"></i>
         </div>
@@ -345,8 +348,8 @@
 
       <!-- Content -->
       <div class="flex-1 overflow-y-auto p-4 space-y-6">
-        <!-- Mode Chat / Avancé -->
-        <app-mode-toggle [current]="'advanced'" />
+        <!-- Sélecteur de mode d'interface -->
+        <app-mode-switcher [current]="'advanced'" />
 
         <!-- Mobile Quota Display -->
         @if (user()) {

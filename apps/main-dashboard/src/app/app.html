@@ -15,6 +15,10 @@
     <app-chat-layout>
       <router-outlet></router-outlet>
     </app-chat-layout>
+  } @else if (layout === 'guided') {
+    <app-guided-layout>
+      <router-outlet (activate)="resetPosition()"></router-outlet>
+    </app-guided-layout>
   }
 }
 

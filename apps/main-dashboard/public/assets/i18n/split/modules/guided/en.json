@@ -1,0 +1,84 @@
+{
+  "guided": {
+    "loading": "Preparing your journey…",
+    "empty": {
+      "title": "Let us start with your project",
+      "subtitle": "Describe your idea in a few lines. That is all IDEM needs to build everything else with you.",
+      "cta": "Create my project"
+    },
+    "header": {
+      "title": "Your journey — {{project}}",
+      "progress": "{{done}} / {{total}} steps completed",
+      "allDone": "Every step is complete. Well done!",
+      "refresh": "Refresh"
+    },
+    "badges": {
+      "current": "Do this now",
+      "optional": "Optional"
+    },
+    "status": {
+      "done": "Completed",
+      "locked": "Unlocks once the previous step is complete",
+      "skipped": "Step skipped",
+      "duration": "About {{minutes}} min"
+    },
+    "actions": {
+      "start": "Start",
+      "review": "Review",
+      "skip": "Skip this step",
+      "resume": "Resume this step",
+      "requiredHint": "This step is required: the following ones build on it."
+    },
+    "bar": {
+      "label": "Guided journey",
+      "allDone": "Every step is complete",
+      "back": "Back to journey",
+      "stepPrefix": "Step {{index}} of {{total}}"
+    },
+    "resume": {
+      "title": "Resume my guided journey",
+      "subtitle": "Pick up the current step and carry on where you left off."
+    },
+    "footer": {
+      "freedom": "You are not locked in: the full dashboard stays available at any time.",
+      "openAdvanced": "Open the dashboard"
+    },
+    "steps": {
+      "project": {
+        "title": "Define your project",
+        "why": "Everything starts here: what you sell, to whom, and where. IDEM uses it to produce everything else.",
+        "outcome": "You get your project profile, reused across every document."
+      },
+      "branding": {
+        "title": "Create your visual identity",
+        "why": "A logo, colours and typography: this is what makes your business recognisable and credible from the first contact.",
+        "outcome": "You get a logo, a palette, a typeface and your brand guidelines as a PDF."
+      },
+      "businessPlan": {
+        "title": "Write your business plan",
+        "why": "The document a bank, a competition or a partner will ask for. It lays out your thinking.",
+        "outcome": "You get a complete business plan, ready to present and download."
+      },
+      "finance": {
+        "title": "Put numbers on your business",
+        "why": "What it costs, what it brings in, and from when. Without these numbers, no funding is possible.",
+        "outcome": "You get your forecast, your income statement and your cash flow."
+      },
+      "pitchDeck": {
+        "title": "Prepare your pitch",
+        "why": "The short version of your project — the one that fits in ten minutes in front of an investor or a partner.",
+        "outcome": "You get a deck ready to present."
+      },
+      "legalDocs": {
+        "title": "Get your paperwork in order",
+        "why": "Articles, contracts, terms and conditions: the documents that protect your business and reassure your customers.",
+        "outcome": "You get your legal documents, tailored to your activity."
+      },
+      "communication": {
+        "title": "Get your business known",
+        "why": "Once the foundations are set, you need customers. We build your communication plan.",
+        "outcome": "You get a strategy, a publishing calendar and your first visuals."
+      }
+    }
+  }
+}

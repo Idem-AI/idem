@@ -61,44 +61,70 @@
       </div>
     }
 
-    <!-- Mode toggle (masqué sur la page de synthèse / validation des politiques / choix du mode) -->
+    <!-- Sélecteur de mode d'accompagnement (masqué sur la synthèse et l'écran de choix) -->
     @if (!isSummaryPage() && !showModeChoice()) {
       <div
         class="fixed-toggle-container"
         [class.toggle-with-banner]="fromAppGen()"
         [class.toggle-standard]="!fromAppGen()"
       >
-        <div
-          class="flex items-center p-1 rounded-xl bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] text-xs font-medium backdrop-blur"
-          role="group"
-          [attr.aria-label]="'dashboard.createProject.modeLabel' | translate"
-        >
-          <button
-            type="button"
-            (click)="setMode('chat')"
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
-            [class.bg-primary]="mode() === 'chat'"
-            [class.text-white]="mode() === 'chat'"
-            [class.shadow-lg]="mode() === 'chat'"
-            [class.text-text-tertiary]="mode() !== 'chat'"
-            [class.hover:text-text-primary]="mode() !== 'chat'"
+        <div class="flex flex-col items-end gap-1.5">
+          <div
+            class="flex items-center p-1 rounded-xl bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] text-xs font-medium backdrop-blur"
+            role="group"
+            [attr.aria-label]="'dashboard.createProject.modeLabel' | translate"
           >
-            <i class="pi pi-comments text-[11px]"></i>
-            <span>{{ 'dashboard.createProject.modeChat' | translate }}</span>
-          </button>
-          <button
-            type="button"
-            (click)="setMode('form')"
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
-            [class.bg-primary]="mode() === 'form'"
-            [class.text-white]="mode() === 'form'"
-            [class.shadow-lg]="mode() === 'form'"
-            [class.text-text-tertiary]="mode() !== 'form'"
-            [class.hover:text-text-primary]="mode() !== 'form'"
-          >
-            <i class="pi pi-list text-[11px]"></i>
-            <span>{{ 'dashboard.createProject.modeForm' | translate }}</span>
-          </button>
+            <button
+              type="button"
+              (click)="setMode('guided')"
+              [attr.aria-pressed]="mode() === 'guided'"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
+              [ngClass]="
+                mode() === 'guided'
+                  ? 'bg-primary text-white shadow-lg'
+                  : 'text-text-tertiary hover:text-text-primary'
+              "
+            >
+              <i class="pi pi-compass text-[11px]"></i>
+              <span>{{ 'modes.guided.name' | translate }}</span>
+            </button>
+            <button
+              type="button"
+              (click)="setMode('chat')"
+              [attr.aria-pressed]="mode() === 'chat'"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
+              [ngClass]="
+                mode() === 'chat'
+                  ? 'bg-primary text-white shadow-lg'
+                  : 'text-text-tertiary hover:text-text-primary'
+              "
+            >
+              <i class="pi pi-comments text-[11px]"></i>
+              <span>{{ 'modes.chat.name' | translate }}</span>
+            </button>
+            <button
+              type="button"
+              (click)="setMode('form')"
+              [attr.aria-pressed]="mode() === 'form'"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
+              [ngClass]="
+                mode() === 'form'
+                  ? 'bg-primary text-white shadow-lg'
+                  : 'text-text-tertiary hover:text-text-primary'
+              "
+            >
+              <i class="pi pi-th-large text-[11px]"></i>
+              <span>{{ 'modes.advanced.name' | translate }}</span>
+            </button>
+          </div>
+
+          @if (mode() === 'guided') {
+            <p
+              class="text-[10px] text-text-tertiary bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] rounded-lg px-2.5 py-1 backdrop-blur max-w-[280px] text-right"
+            >
+              {{ 'dashboard.createProject.guidedHint' | translate }}
+            </p>
+          }
         </div>
       </div>
     }

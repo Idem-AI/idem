@@ -55,12 +55,15 @@
     "modules/dashboard/pages/show-tests",
     "modules/dashboard/pages/team-details-global",
     "modules/dashboard/pages/team-details-project",
+    "modules/guided",
+    "modules/onboarding",
     "modules/projects",
     "modules/teams",
     "shared/common",
     "shared/components/not-found",
     "shared/components/pdf-viewer",
     "shared/errors",
+    "shared/modes",
     "shared/navigation",
     "shared/validation"
   ]

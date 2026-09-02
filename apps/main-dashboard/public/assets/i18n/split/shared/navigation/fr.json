@@ -58,7 +58,9 @@
       "notFound": "Page non trouvée",
       "businessCards": "Cartes de visite",
       "businessCardsEdit": "Éditeur de carte de visite",
-      "flyerEdit": "Éditeur de visuel"
+      "flyerEdit": "Éditeur de visuel",
+      "welcome": "Bienvenue",
+      "guided": "Parcours assisté"
     }
   }
 }

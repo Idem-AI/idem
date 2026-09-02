@@ -1,0 +1,84 @@
+<div class="min-h-dvh flex flex-col">
+  <header
+    class="sticky top-0 z-50 glass border-b border-[var(--glass-border)] px-3 py-2.5 lg:px-6"
+  >
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-3">
+      <a routerLink="/console" class="flex items-center gap-2 shrink-0">
+        <img
+          src="/assets/icons/logo_white.png"
+          [alt]="'dashboard.sidebar.logoAlt' | translate"
+          class="w-[50px] sm:w-[104px] h-auto invert hue-rotate-180 dark:invert-0 dark:hue-rotate-0"
+        />
+        <app-beta-badge />
+      </a>
+
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Le sélecteur de mode reste la commande la plus visible de l'en-tête -->
+        <app-mode-switcher [current]="'guided'" [alignRight]="true" />
+
+        <div class="hidden sm:flex items-center gap-1">
+          <app-language-selector direction="down" align="right" />
+          <app-theme-toggle />
+        </div>
+
+        @if (user()) {
+          <div class="relative">
+            <button
+              type="button"
+              (click)="toggleUserMenu()"
+              class="flex items-center p-0.5 rounded-full hover:bg-[var(--glass-bg-light)] transition-all duration-200"
+            >
+              <img
+                [src]="user()!.photoURL"
+                [alt]="'dashboard.sidebar.userAvatarAlt' | translate"
+                class="w-8 h-8 rounded-full border border-[var(--glass-border-medium)]"
+              />
+            </button>
+
+            @if (isUserMenuOpen()) {
+              <div
+                class="absolute right-0 mt-2 w-56 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg-intense)] backdrop-blur-xl shadow-2xl z-50 py-2"
+              >
+                <div class="px-4 py-2 border-b border-[var(--glass-border)]">
+                  <p class="text-text-primary text-sm font-medium truncate">
+                    {{ user()!.displayName }}
+                  </p>
+                  <p class="text-text-tertiary text-xs truncate">{{ user()!.email }}</p>
+                </div>
+                <button
+                  type="button"
+                  (click)="navigateTo('/project/profile')"
+                  class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-200"
+                >
+                  <i class="pi pi-user text-primary text-xs"></i>
+                  <span>{{ 'dashboard.sidebar.userMenu.profile' | translate }}</span>
+                </button>
+                <button
+                  type="button"
+                  (click)="navigateTo('/projects')"
+                  class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-200"
+                >
+                  <i class="pi pi-folder text-secondary text-xs"></i>
+                  <span>{{ 'dashboard.sidebar.userMenu.allProjects' | translate }}</span>
+                </button>
+                <hr class="border-[var(--glass-border)] my-1.5" />
+                <button
+                  type="button"
+                  (click)="logout()"
+                  class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-all duration-200"
+                >
+                  <i class="pi pi-sign-out text-xs"></i>
+                  <span>{{ 'dashboard.sidebar.userMenu.logout' | translate }}</span>
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1">
+    <ng-content></ng-content>
+  </main>
+</div>
