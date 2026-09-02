@@ -1,6 +1,6 @@
 <section class="flex flex-col items-center justify-top w-full">
   <!-- Step Indicator -->
-  <div class="w-full max-w-2xl mx-auto mb-4 sm:mb-8">
+  <div class="w-full max-w-2xl mx-auto mb-8 sm:mb-12">
     <div class="relative flex items-center justify-between">
       <div
         class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-[var(--glass-bg-subtle)] rounded-full z-0"
@@ -37,7 +37,7 @@
               'text-text-tertiary': !isStepCompleted(step.key) && currentStep() !== step.key,
             }"
           >
-            {{ 'dashboard.logoPreferences.steps.' + step.key + '.title' | translate }}
+            {{ 'dashboard.logoPreferences.steps.' + step.key + '.label' | translate }}
           </span>
         </div>
       }
@@ -49,13 +49,13 @@
   <!-- ═══════════════════════════════════════════ -->
   @if (currentStep() === 'type') {
     <div class="w-full max-w-6xl mx-auto animate-fade-in">
-      <div class="text-center mb-4 sm:mb-6">
+      <div class="text-center mb-8 sm:mb-10">
         <h1
-          class="text-xl sm:text-3xl md:text-4xl font-bold text-text-primary mb-2 sm:mb-3 tracking-tight"
+          class="text-2xl sm:text-3xl md:text-4xl font-bold text-text-primary mb-3 tracking-tight"
         >
           {{ 'dashboard.logoPreferences.steps.type.title' | translate }}
         </h1>
-        <p class="text-text-tertiary text-sm sm:text-lg max-w-2xl mx-auto font-light">
+        <p class="text-text-tertiary text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
           {{ 'dashboard.logoPreferences.steps.type.subtitle' | translate }}
         </p>
       </div>
@@ -64,7 +64,7 @@
         @for (option of logoTypes; track option.type) {
           <div
             (click)="selectType(option.type)"
-            class="group relative flex flex-col h-full rounded-2xl cursor-pointer transition-all duration-400 overflow-hidden hover:-translate-y-1"
+            class="group relative flex flex-col h-full rounded-2xl cursor-pointer transition-all duration-300 overflow-hidden hover:-translate-y-1"
             [ngClass]="{
               'ring-2 ring-primary shadow-xl shadow-primary/20 bg-[var(--glass-bg-darker)] border border-primary/30':
                 selectedType() === option.type,
@@ -72,108 +72,9 @@
                 selectedType() !== option.type,
             }"
           >
-            <!-- Logo Showcase Area -->
-            <div class="relative h-32 sm:h-40 w-full overflow-hidden bg-[var(--glass-bg-medium)]">
-              <div class="absolute inset-0 flex items-center justify-center p-5">
-                <!-- Icon-Based Logos: Apple, X, Nike -->
-                @if (option.type === 'icon') {
-                  <div class="grid grid-cols-3 gap-4 w-full max-w-[280px]">
-                    <div
-                      class="aspect-square rounded-2xl bg-black flex items-center justify-center p-3 shadow-lg group-hover:scale-105 transition-transform duration-500"
-                    >
-                      <img
-                        src="/assets/images/brands/apple.svg"
-                        alt="Apple"
-                        class="w-9 h-9 object-contain"
-                      />
-                    </div>
-                    <div
-                      class="aspect-square rounded-2xl bg-black flex items-center justify-center p-3 shadow-lg group-hover:scale-105 transition-transform duration-500 delay-75"
-                    >
-                      <img
-                        src="/assets/images/brands/x.svg"
-                        alt="X"
-                        class="w-9 h-9 object-contain"
-                      />
-                    </div>
-                    <div
-                      class="aspect-square rounded-2xl bg-white flex items-center justify-center p-3 shadow-lg group-hover:scale-105 transition-transform duration-500 delay-100"
-                    >
-                      <img
-                        src="/assets/images/brands/nike.svg"
-                        alt="Nike"
-                        class="w-9 h-9 object-contain invert"
-                      />
-                    </div>
-                  </div>
-                }
-
-                <!-- Name-Based Logos: Google, Coca-Cola, FedEx -->
-                @if (option.type === 'name') {
-                  <div class="flex flex-col gap-4 w-full px-4">
-                    <div
-                      class="h-14 rounded-2xl bg-white flex items-center justify-center px-6 shadow-lg group-hover:scale-105 transition-transform duration-500"
-                    >
-                      <img
-                        src="/assets/images/brands/google.png"
-                        alt="Google"
-                        class="h-7 object-contain"
-                      />
-                    </div>
-                    <div
-                      class="h-14 rounded-2xl bg-[#ED1C16] flex items-center justify-center px-6 shadow-lg group-hover:scale-105 transition-transform duration-500 delay-75"
-                    >
-                      <img
-                        src="/assets/images/brands/cocacola.svg"
-                        alt="Coca-Cola"
-                        class="h-20 object-contain brightness-0 invert"
-                      />
-                    </div>
-                    <div
-                      class="h-14 rounded-2xl bg-white flex items-center justify-center px-6 shadow-lg group-hover:scale-105 transition-transform duration-500 delay-100"
-                    >
-                      <img
-                        src="/assets/images/brands/fedex.svg"
-                        alt="FedEx"
-                        class="h-20 object-contain"
-                      />
-                    </div>
-                  </div>
-                }
-
-                <!-- Initial-Based Logos: IBM, HP, CNN -->
-                @if (option.type === 'initial') {
-                  <div class="flex flex-col gap-4 w-full px-4">
-                    <div
-                      class="h-14 rounded-2xl bg-white flex items-center justify-center px-6 shadow-lg group-hover:scale-105 transition-transform duration-500"
-                    >
-                      <img
-                        src="/assets/images/brands/ibm.png"
-                        alt="IBM"
-                        class="h-8 object-contain"
-                      />
-                    </div>
-                    <div
-                      class="h-14 rounded-2xl bg-[#0096D6] flex items-center justify-center px-6 shadow-lg group-hover:scale-105 transition-transform duration-500 delay-75"
-                    >
-                      <img
-                        src="/assets/images/brands/hp.svg"
-                        alt="HP"
-                        class="h-8 object-contain brightness-0 invert"
-                      />
-                    </div>
-                    <div
-                      class="h-14 rounded-2xl bg-[#CC0000] flex items-center justify-center px-6 shadow-lg group-hover:scale-105 transition-transform duration-500 delay-100"
-                    >
-                      <img
-                        src="/assets/images/brands/cnn.svg"
-                        alt="CNN"
-                        class="h-20 object-contain brightness-0 invert"
-                      />
-                    </div>
-                  </div>
-                }
-              </div>
+            <!-- Exemple du type : la même marque fictive, traitée de trois façons -->
+            <div class="relative h-44 sm:h-52 w-full overflow-hidden bg-[var(--color-surface-1)] p-4">
+              <app-logo-type-sample [type]="option.type" />
 
               <!-- Selected badge -->
               @if (selectedType() === option.type) {
@@ -198,20 +99,34 @@
             </div>
 
             <!-- Card Content -->
-            <div class="p-3 sm:p-4 flex-1 flex flex-col">
-              <h3 class="text-base sm:text-lg font-bold text-text-primary mb-1">
+            <div class="p-5 sm:p-6 flex-1 flex flex-col">
+              <h3 class="text-xl sm:text-2xl font-bold text-text-primary mb-2.5">
                 {{ option.titleKey | translate }}
               </h3>
-              <p class="text-xs sm:text-sm text-text-tertiary leading-relaxed mb-2 sm:mb-3 flex-1">
+              <p class="text-[15px] sm:text-base text-text-tertiary leading-relaxed mb-5 flex-1">
                 {{ option.descriptionKey | translate }}
               </p>
-              <div class="pt-2 border-t border-[var(--glass-border-subtle)] flex items-center gap-2">
-                <span class="text-xs text-text-tertiary uppercase tracking-wider font-medium">
+              <div class="pt-4 border-t border-[var(--glass-border-subtle)]">
+                <span
+                  class="block text-[11px] text-text-tertiary uppercase tracking-[0.12em] font-bold mb-2.5"
+                >
                   {{ 'dashboard.logoPreferences.types.examplesLabel' | translate }}
                 </span>
-                <span class="text-xs text-text-secondary font-medium">
-                  {{ option.exampleKey | translate }}
-                </span>
+                <div class="flex items-center gap-2 flex-wrap">
+                  @for (example of option.examples; track example.src) {
+                    <span
+                      class="h-14 px-3 rounded-xl flex items-center justify-center border shrink-0"
+                      [ngClass]="
+                        example.onDark
+                          ? 'bg-slate-900 border-slate-700'
+                          : 'bg-white border-slate-200'
+                      "
+                      [title]="example.alt"
+                    >
+                      <img [src]="example.src" [alt]="example.alt" [ngClass]="example.imgClass" />
+                    </span>
+                  }
+                </div>
               </div>
             </div>
           </div>
@@ -248,13 +163,13 @@
   <!-- ═══════════════════════════════════════════ -->
   @if (currentStep() === 'mode') {
     <div class="w-full max-w-4xl mx-auto animate-fade-in">
-      <div class="text-center mb-6 sm:mb-8">
+      <div class="text-center mb-8 sm:mb-10">
         <h1
-          class="text-xl sm:text-3xl md:text-4xl font-bold text-text-primary mb-2 sm:mb-3 tracking-tight"
+          class="text-2xl sm:text-3xl md:text-4xl font-bold text-text-primary mb-3 tracking-tight"
         >
           {{ 'dashboard.logoPreferences.steps.mode.title' | translate }}
         </h1>
-        <p class="text-text-tertiary text-sm sm:text-lg max-w-xl mx-auto font-light">
+        <p class="text-text-tertiary text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
           {{ 'dashboard.logoPreferences.steps.mode.subtitle' | translate }}
         </p>
       </div>
@@ -263,7 +178,7 @@
         <!-- AI Generation Card -->
         <div
           (click)="selectGenerationMode('ai')"
-          class="group relative flex flex-col rounded-2xl cursor-pointer transition-all duration-400 overflow-hidden hover:-translate-y-1"
+          class="group relative flex flex-col rounded-2xl cursor-pointer transition-all duration-300 hover:-translate-y-1"
           [ngClass]="{
             'ring-2 ring-primary shadow-xl shadow-primary/20 bg-[var(--glass-bg-darker)] border border-primary/30':
               generationMode() === 'ai',
@@ -271,17 +186,18 @@
               generationMode() !== 'ai',
           }"
         >
-          <!-- Showcase Area -->
-          <div class="relative h-32 sm:h-40 w-full overflow-hidden bg-[var(--glass-bg-medium)] border-b border-[var(--glass-border-subtle)] flex items-center justify-center">
-            <!-- Subtle glow background -->
-            <div class="absolute w-20 h-20 bg-primary/10 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500"></div>
-            
-            <!-- Minimalist Sparkles Icon -->
-            <svg class="relative w-12 h-12 text-primary transition-transform duration-500 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.813 15.904L9 21L8.188 15.904L3 15L8.188 14.096L9 9L9.813 14.096L15 15L9.813 15.904Z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.071 4.929L18.5 8L17.929 4.929L15 4.357L17.929 3.786L18.5 0.714L19.071 3.786L22 4.357L19.071 4.929Z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.071 4.929L5.5 8L4.929 4.929L2 4.357L4.929 3.786L5.5 0.714L6.071 3.786L9 4.357L6.071 4.929Z" />
-            </svg>
+          <!-- Badge recommandé, posé sur la bordure haute -->
+          <div
+            class="absolute -top-3.5 right-6 z-20 inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-bold rounded-full bg-primary text-white border border-blue-300/40 shadow-xl"
+          >
+            <i class="pi pi-sparkles text-[11px]"></i>
+            <span>{{ 'dashboard.logoPreferences.modes.ai.badge' | translate }}</span>
+          </div>
+          <!-- Illustration : plusieurs concepts naissent d'un seul geste -->
+          <div
+            class="relative h-40 sm:h-48 w-full overflow-hidden rounded-t-2xl bg-[var(--color-surface-1)] border-b border-[var(--glass-border-subtle)] p-4"
+          >
+            <app-logo-mode-sample [kind]="'ai'" />
 
             <!-- Selected badge -->
             @if (generationMode() === 'ai') {
@@ -294,27 +210,20 @@
           </div>
 
           <!-- Card Content -->
-          <div class="p-4 sm:p-5 flex-1 flex flex-col justify-between">
+          <div class="p-5 sm:p-6 flex-1 flex flex-col justify-between">
             <div>
-              <div class="flex items-center justify-between gap-2 mb-2">
-                <h3 class="text-base sm:text-lg font-bold text-text-primary">
-                  {{ 'dashboard.logoPreferences.modes.ai.title' | translate }}
-                </h3>
-                <span
-                  class="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-primary/15 text-primary border border-primary/20 rounded-full"
-                >
-                  {{ 'dashboard.logoPreferences.modes.ai.badge' | translate }}
-                </span>
-              </div>
-              <p class="text-xs sm:text-sm text-text-tertiary leading-relaxed mb-4">
+              <h3 class="text-xl sm:text-2xl font-bold text-text-primary mb-2.5">
+                {{ 'dashboard.logoPreferences.modes.ai.title' | translate }}
+              </h3>
+              <p class="text-[15px] sm:text-base text-text-tertiary leading-relaxed mb-5">
                 {{ 'dashboard.logoPreferences.modes.ai.description' | translate }}
               </p>
             </div>
 
             <!-- Features list -->
-            <div class="pt-3 border-t border-[var(--glass-border-subtle)] flex flex-col gap-2">
+            <div class="pt-4 border-t border-[var(--glass-border-subtle)] flex flex-col gap-2.5">
               @for (feature of aiFeatures; track feature) {
-                <div class="flex items-center gap-2.5 text-xs sm:text-sm text-text-secondary">
+                <div class="flex items-center gap-2.5 text-[15px] text-text-secondary">
                   <svg class="w-4 h-4 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
@@ -328,7 +237,7 @@
         <!-- Custom Description Card -->
         <div
           (click)="selectGenerationMode('custom')"
-          class="group relative flex flex-col rounded-2xl cursor-pointer transition-all duration-400 overflow-hidden hover:-translate-y-1"
+          class="group relative flex flex-col rounded-2xl cursor-pointer transition-all duration-300 overflow-hidden hover:-translate-y-1"
           [ngClass]="{
             'ring-2 ring-secondary shadow-xl shadow-secondary/20 bg-[var(--glass-bg-darker)] border border-secondary/30':
               generationMode() === 'custom',
@@ -336,15 +245,11 @@
               generationMode() !== 'custom',
           }"
         >
-          <!-- Showcase Area -->
-          <div class="relative h-32 sm:h-40 w-full overflow-hidden bg-[var(--glass-bg-medium)] border-b border-[var(--glass-border-subtle)] flex items-center justify-center">
-            <!-- Subtle glow background -->
-            <div class="absolute w-20 h-20 bg-secondary/10 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500"></div>
-            
-            <!-- Minimalist Pencil/Edit Icon -->
-            <svg class="relative w-12 h-12 text-secondary transition-transform duration-500 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
+          <!-- Illustration : un texte écrit produit une forme précise -->
+          <div
+            class="relative h-40 sm:h-48 w-full overflow-hidden rounded-t-2xl bg-[var(--color-surface-1)] border-b border-[var(--glass-border-subtle)] p-4"
+          >
+            <app-logo-mode-sample [kind]="'custom'" />
 
             <!-- Selected badge -->
             @if (generationMode() === 'custom') {
@@ -357,22 +262,20 @@
           </div>
 
           <!-- Card Content -->
-          <div class="p-4 sm:p-5 flex-1 flex flex-col justify-between">
+          <div class="p-5 sm:p-6 flex-1 flex flex-col justify-between">
             <div>
-              <div class="flex items-center justify-between gap-2 mb-2">
-                <h3 class="text-base sm:text-lg font-bold text-text-primary">
-                  {{ 'dashboard.logoPreferences.modes.custom.title' | translate }}
-                </h3>
-              </div>
-              <p class="text-xs sm:text-sm text-text-tertiary leading-relaxed mb-4">
+              <h3 class="text-xl sm:text-2xl font-bold text-text-primary mb-2.5">
+                {{ 'dashboard.logoPreferences.modes.custom.title' | translate }}
+              </h3>
+              <p class="text-[15px] sm:text-base text-text-tertiary leading-relaxed mb-5">
                 {{ 'dashboard.logoPreferences.modes.custom.description' | translate }}
               </p>
             </div>
 
             <!-- Features list -->
-            <div class="pt-3 border-t border-[var(--glass-border-subtle)] flex flex-col gap-2">
+            <div class="pt-4 border-t border-[var(--glass-border-subtle)] flex flex-col gap-2.5">
               @for (feature of customFeatures; track feature) {
-                <div class="flex items-center gap-2.5 text-xs sm:text-sm text-text-secondary">
+                <div class="flex items-center gap-2.5 text-[15px] text-text-secondary">
                   <svg class="w-4 h-4 text-secondary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>

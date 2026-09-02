@@ -58,7 +58,9 @@
       "notFound": "Page Not Found",
       "businessCards": "Business cards",
       "businessCardsEdit": "Business card editor",
-      "flyerEdit": "Visual editor"
+      "flyerEdit": "Visual editor",
+      "welcome": "Welcome",
+      "guided": "Guided journey"
     }
   }
 }

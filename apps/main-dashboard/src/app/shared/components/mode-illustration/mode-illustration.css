@@ -1,0 +1,148 @@
+:host {
+  display: block;
+}
+
+/* Palette dérivée du thème : les illustrations suivent clair/sombre et la
+   couleur primaire du produit. */
+.mode-illu {
+  --illu-primary: var(--color-primary, #1447e6);
+  --illu-ink: var(--color-text-primary, #0f172a);
+  --illu-frame: var(--glass-border, rgba(15, 23, 42, 0.1));
+  /* surface-2 plutôt que glass-bg-subtle : ce dernier est presque transparent
+     en thème sombre, et les conteneurs s'effaçaient sur le fond. */
+  --illu-surface: var(--color-surface-2, rgba(255, 255, 255, 0.6));
+}
+
+.illu-frame {
+  fill: none;
+  stroke: var(--illu-frame);
+}
+
+.illu-fill-primary {
+  fill: var(--illu-primary);
+}
+
+.illu-fill-surface {
+  fill: var(--illu-surface);
+  stroke: var(--illu-frame);
+  stroke-width: 1;
+}
+
+.illu-fill-muted {
+  fill: var(--illu-ink);
+  opacity: 0.28;
+}
+
+.illu-ring-primary {
+  fill: none;
+  stroke: var(--illu-primary);
+}
+
+.illu-ring-muted {
+  fill: none;
+  stroke: var(--illu-ink);
+  opacity: 0.3;
+}
+
+.illu-stroke-muted {
+  stroke: var(--illu-ink);
+  opacity: 0.22;
+  fill: none;
+}
+
+.illu-stroke-inverse {
+  stroke: #ffffff;
+  fill: none;
+}
+
+.illu-path-done {
+  stroke: var(--illu-primary);
+}
+
+.illu-path-todo {
+  stroke: var(--illu-ink);
+  opacity: 0.3;
+}
+
+.illu-halo {
+  fill: var(--illu-primary);
+  opacity: 0.12;
+}
+
+.illu-bar-strong {
+  fill: var(--illu-ink);
+  opacity: 0.75;
+}
+
+.illu-bar-soft {
+  fill: var(--illu-ink);
+  opacity: 0.4;
+}
+
+.illu-bar-faint {
+  fill: var(--illu-ink);
+  opacity: 0.18;
+}
+
+.illu-bar-inverse {
+  fill: #ffffff;
+  opacity: 0.95;
+}
+
+.illu-bar-inverse-soft {
+  fill: #ffffff;
+  opacity: 0.65;
+}
+
+/* Animations discrètes : elles suggèrent « ça avance », sans distraire.
+   Coupées dès que l'utilisateur demande moins de mouvement. */
+.illu-dot-1,
+.illu-dot-2,
+.illu-dot-3 {
+  animation: illuBlink 1.4s ease-in-out infinite;
+}
+
+.illu-dot-2 {
+  animation-delay: 0.2s;
+}
+
+.illu-dot-3 {
+  animation-delay: 0.4s;
+}
+
+.illu-spark {
+  animation: illuPulse 2.4s ease-in-out infinite;
+  transform-origin: 266px 132px;
+}
+
+@keyframes illuBlink {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+@keyframes illuPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .illu-dot-1,
+  .illu-dot-2,
+  .illu-dot-3,
+  .illu-spark {
+    animation: none;
+  }
+}

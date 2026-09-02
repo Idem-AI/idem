@@ -13,6 +13,8 @@ import { Observable, Subject } from 'rxjs';
 import { filter, startWith, map, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { DashboardLayoutComponent } from './layouts/dashboard-layout/dashboard-layout';
 import { ChatLayoutComponent } from './layouts/chat-layout/chat-layout';
+import { GuidedLayoutComponent } from './layouts/guided-layout/guided-layout';
+import { GuidedLockModalComponent } from './modules/guided/components/guided-lock-modal/guided-lock-modal';
 
 @Component({
   selector: 'app-root',
@@ -24,6 +26,8 @@ import { ChatLayoutComponent } from './layouts/chat-layout/chat-layout';
     QuotaWarningComponent,
     DashboardLayoutComponent,
     ChatLayoutComponent,
+    GuidedLayoutComponent,
+    GuidedLockModalComponent,
     AsyncPipe,
   ],
   templateUrl: './app.html',
@@ -48,7 +52,7 @@ export class App implements OnInit {
 
   /** Layout courant selon la route active */
   protected readonly currentLayout$: Observable<
-    'public' | 'dashboard' | 'global' | 'empty' | 'chat'
+    'public' | 'dashboard' | 'global' | 'empty' | 'chat' | 'guided'
   > = this.router.events.pipe(
     filter((event) => event instanceof NavigationEnd),
     startWith(null),
@@ -63,7 +67,8 @@ export class App implements OnInit {
           | 'dashboard'
           | 'global'
           | 'empty'
-          | 'chat') || 'public'
+          | 'chat'
+          | 'guided') || 'public'
       );
     }),
     distinctUntilChanged(),

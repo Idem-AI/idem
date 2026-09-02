@@ -19,6 +19,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { AnalyticsService } from '../../../../shared/services/analytics.service';
+import { UiModeService } from '../../../../shared/services/ui-mode.service';
 
 @Component({
   selector: 'app-global-dashboard',
@@ -36,6 +37,7 @@ export class GlobalDashboard implements OnInit {
   private readonly translate = inject(TranslateService);
   private readonly notificationService = inject(NotificationService);
   private readonly analyticsService = inject(AnalyticsService);
+  private readonly uiModeService = inject(UiModeService);
 
   // Signals
   protected readonly projects = signal<ProjectModel[]>([]);
@@ -58,8 +60,18 @@ export class GlobalDashboard implements OnInit {
       .slice(0, 3);
   });
 
+  /** Rappel du parcours : seulement en mode Assisté et si un projet existe. */
+  protected readonly showGuidedResume = computed(
+    () => this.uiModeService.mode() === 'guided' && this.projects().length > 0,
+  );
+
   ngOnInit() {
     this.loadDashboardData();
+  }
+
+  /** Retour au parcours assisté depuis la console. */
+  protected resumeGuidedJourney(): void {
+    this.router.navigate(['/guided']);
   }
 
   /**

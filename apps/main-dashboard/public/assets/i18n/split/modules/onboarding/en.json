@@ -1,0 +1,94 @@
+{
+  "onboarding": {
+    "survey": {
+      "oneClick": "One click is enough.",
+      "stepCounter": "Question {{current}} of {{total}}",
+      "questions": {
+        "stage": {
+          "label": "Where are you today?",
+          "options": {
+            "idea": {
+              "label": "I have an idea",
+              "hint": "Nothing has started yet"
+            },
+            "starting": {
+              "label": "I am getting started",
+              "hint": "First steps are under way"
+            },
+            "running": {
+              "label": "My business is running",
+              "hint": "I already have customers"
+            }
+          }
+        },
+        "clarity": {
+          "label": "Do you know where to start?",
+          "options": {
+            "lost": {
+              "label": "Not at all",
+              "hint": "Tell me what to do first"
+            },
+            "partial": {
+              "label": "A little",
+              "hint": "I have ideas but I need help"
+            },
+            "clear": {
+              "label": "Yes, very clearly",
+              "hint": "I know exactly what I need"
+            }
+          }
+        },
+        "workStyle": {
+          "label": "How do you prefer to move forward?",
+          "options": {
+            "stepByStep": {
+              "label": "Step by step",
+              "hint": "One thing to do at a time"
+            },
+            "conversation": {
+              "label": "By talking it through",
+              "hint": "I ask, I get answers"
+            },
+            "autonomy": {
+              "label": "On my own",
+              "hint": "Just give me all the tools"
+            }
+          }
+        },
+        "comfort": {
+          "label": "How comfortable are you with digital tools?",
+          "options": {
+            "beginner": {
+              "label": "Beginner",
+              "hint": "I would rather be shown"
+            },
+            "intermediate": {
+              "label": "Comfortable",
+              "hint": "I manage well enough"
+            },
+            "expert": {
+              "label": "Expert",
+              "hint": "Complex interfaces do not scare me"
+            }
+          }
+        }
+      },
+      "reasons": {
+        "guided": "You would rather move step by step: Guided mode tells you what comes first and unlocks the rest only once each step is done.",
+        "chat": "You would rather talk it through: Chat mode lets you ask for what you need in plain language.",
+        "advanced": "You know where you are going: the Dashboard gives you direct access to every tool."
+      },
+      "result": {
+        "badge": "Your profile",
+        "title": "Here is the mode we recommend",
+        "recommended": "Recommended",
+        "start": "Get started",
+        "review": "Review my answers",
+        "changeable": "You can switch modes at any time from the menu at the top of the screen.",
+        "saving": "Saving…",
+        "saveError": "Your answers could not be saved. Check your connection and try again."
+      },
+      "duration": "Under a minute"
+    }
+  }
+}

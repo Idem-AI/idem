@@ -5,8 +5,13 @@
 import { ColorModel, TypographyModel } from '../../dashboard/models/brand-identity.model';
 import { LogoModel } from '../../dashboard/models/logo.model';
 
-/** Mode d'interface : 'advanced' = dashboard classique, 'chat' = interface conversationnelle */
-export type UiMode = 'advanced' | 'chat';
+/**
+ * Mode d'interface :
+ * - 'advanced' : dashboard classique, tous les outils accessibles librement
+ * - 'chat'     : interface conversationnelle
+ * - 'guided'   : mode assisté, parcours ordonné étape par étape (débutants)
+ */
+export type UiMode = 'advanced' | 'chat' | 'guided';
 
 /** Catégories de rangement intelligent des conversations dans la sidebar */
 export type ChatConversationCategory =

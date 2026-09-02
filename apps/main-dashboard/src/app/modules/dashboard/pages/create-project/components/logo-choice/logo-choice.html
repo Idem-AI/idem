@@ -30,17 +30,9 @@
           class="group relative rounded-2xl border border-[var(--glass-border)] glass p-6 transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 hover:scale-[1.01] hover:shadow-xl flex flex-col justify-between cursor-pointer"
         >
           <div>
-            <!-- Representative Pro Image -->
-            <div class="w-full h-48 sm:h-56 rounded-xl overflow-hidden mb-6 bg-slate-900/50 border border-[var(--glass-border)] flex items-center justify-center relative">
-              <img
-                src="assets/images/logo-choice-import.png"
-                alt="J'ai déjà un logo"
-                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div class="absolute bottom-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-md border border-white/10 text-[11px] font-medium text-white/90 shadow-sm">
-                <i class="pi pi-file text-[10px] text-blue-400"></i>
-                <span>SVG · PNG · JPG</span>
-              </div>
+            <!-- Illustration SVG : suit le thème, pas une capture figée -->
+            <div class="w-full h-48 sm:h-56 rounded-xl overflow-hidden mb-6 bg-[var(--color-surface-1)] border border-[var(--glass-border)]">
+              <app-logo-choice-illustration [kind]="'import'" />
             </div>
 
             <!-- Tag & Title -->
@@ -81,17 +73,9 @@
           </div>
 
           <div>
-            <!-- Representative Pro Image -->
-            <div class="w-full h-48 sm:h-56 rounded-xl overflow-hidden mb-6 bg-slate-900/50 border border-primary/30 flex items-center justify-center relative">
-              <img
-                src="assets/images/logo-choice-ai.png"
-                alt="Créer avec l'IA"
-                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div class="absolute bottom-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-md border border-white/10 text-[11px] font-medium text-white/90 shadow-sm">
-                <i class="pi pi-bolt text-[10px] text-amber-400"></i>
-                <span>Génération Vectorielle</span>
-              </div>
+            <!-- Illustration SVG : suit le thème, pas une capture figée -->
+            <div class="w-full h-48 sm:h-56 rounded-xl overflow-hidden mb-6 bg-[var(--color-surface-1)] border border-primary/30">
+              <app-logo-choice-illustration [kind]="'ai'" />
             </div>
 
             <!-- Tag & Title -->

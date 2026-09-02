@@ -1,0 +1,94 @@
+{
+  "onboarding": {
+    "survey": {
+      "oneClick": "Un clic suffit.",
+      "stepCounter": "Question {{current}} sur {{total}}",
+      "questions": {
+        "stage": {
+          "label": "Où en êtes-vous aujourd'hui ?",
+          "options": {
+            "idea": {
+              "label": "J'ai une idée",
+              "hint": "Rien n'est encore lancé"
+            },
+            "starting": {
+              "label": "Je démarre",
+              "hint": "Les premières démarches sont en cours"
+            },
+            "running": {
+              "label": "Mon activité tourne",
+              "hint": "J'ai déjà des clients"
+            }
+          }
+        },
+        "clarity": {
+          "label": "Savez-vous par où commencer ?",
+          "options": {
+            "lost": {
+              "label": "Pas du tout",
+              "hint": "Dites-moi quoi faire en premier"
+            },
+            "partial": {
+              "label": "Un peu",
+              "hint": "J'ai des idées, mais j'ai besoin d'aide"
+            },
+            "clear": {
+              "label": "Oui, très bien",
+              "hint": "Je sais exactement ce qu'il me faut"
+            }
+          }
+        },
+        "workStyle": {
+          "label": "Comment préférez-vous avancer ?",
+          "options": {
+            "stepByStep": {
+              "label": "Étape par étape",
+              "hint": "Une seule chose à faire à la fois"
+            },
+            "conversation": {
+              "label": "En discutant",
+              "hint": "Je demande, on me répond"
+            },
+            "autonomy": {
+              "label": "En autonomie",
+              "hint": "Donnez-moi tous les outils"
+            }
+          }
+        },
+        "comfort": {
+          "label": "Votre aisance avec les outils numériques ?",
+          "options": {
+            "beginner": {
+              "label": "Débutant",
+              "hint": "Je préfère qu'on me montre"
+            },
+            "intermediate": {
+              "label": "À l’aise",
+              "hint": "Je me débrouille bien"
+            },
+            "expert": {
+              "label": "Expert",
+              "hint": "Les interfaces complexes ne me font pas peur"
+            }
+          }
+        }
+      },
+      "reasons": {
+        "guided": "Vous préférez avancer pas à pas : le mode Assisté vous dit quoi faire en premier et ne débloque la suite qu’une fois chaque étape terminée.",
+        "chat": "Vous préférez échanger : le mode Chat vous laisse demander ce dont vous avez besoin, en langage courant.",
+        "advanced": "Vous savez où vous allez : le Tableau de bord vous donne accès à tous les outils, sans détour."
+      },
+      "result": {
+        "badge": "Votre profil",
+        "title": "Voici le mode que nous vous conseillons",
+        "recommended": "Conseillé",
+        "start": "Commencer",
+        "review": "Revoir mes réponses",
+        "changeable": "Vous pourrez changer de mode à tout moment depuis le menu en haut de l’écran.",
+        "saving": "Enregistrement…",
+        "saveError": "Vos réponses n'ont pas pu être enregistrées. Vérifiez votre connexion et réessayez."
+      },
+      "duration": "Moins d'une minute"
+    }
+  }
+}

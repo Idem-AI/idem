@@ -26,7 +26,8 @@
         "profile": "Profile",
         "globalDashboard": "Global Dashboard",
         "settings": "Settings",
-        "logout": "Logout"
+        "logout": "Logout",
+        "allProjects": "All projects"
       },
       "poweredBy": "Powered by",
       "mobile": {

@@ -26,7 +26,8 @@
         "profile": "Profil",
         "globalDashboard": "Tableau de bord global",
         "settings": "Paramètres",
-        "logout": "Déconnexion"
+        "logout": "Déconnexion",
+        "allProjects": "Tous les projets"
       },
       "poweredBy": "Propulsé par",
       "mobile": {

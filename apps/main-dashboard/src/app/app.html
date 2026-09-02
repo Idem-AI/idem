@@ -15,8 +15,15 @@
     <app-chat-layout>
       <router-outlet></router-outlet>
     </app-chat-layout>
+  } @else if (layout === 'guided') {
+    <app-guided-layout>
+      <router-outlet (activate)="resetPosition()"></router-outlet>
+    </app-guided-layout>
   }
 }
+
+<!-- Modale de blocage du mode Assisté (page hors parcours) -->
+<app-guided-lock-modal />
 
 <!-- Conteneur de notifications global -->
 <app-notification-container></app-notification-container>

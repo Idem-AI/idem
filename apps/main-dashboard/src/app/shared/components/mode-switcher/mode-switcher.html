@@ -1,0 +1,103 @@
+<div class="relative inline-block text-left">
+  <!-- Déclencheur : libellé explicite, jamais une icône seule (sauf sidebar repliée) -->
+  <button
+    type="button"
+    (click)="toggle()"
+    [attr.aria-expanded]="isOpen()"
+    aria-haspopup="listbox"
+    [attr.aria-label]="'modes.switcher.aria' | translate"
+    [title]="'modes.switcher.tooltip' | translate"
+    class="flex items-center gap-2 rounded-xl border border-[var(--glass-border-medium)] bg-[var(--glass-bg-subtle)] hover:bg-[var(--glass-bg-light)] hover:border-primary/40 text-text-primary transition-all duration-200"
+    [class.px-3]="!compact()"
+    [class.py-2]="!compact()"
+    [class.w-9]="compact()"
+    [class.h-9]="compact()"
+    [class.justify-center]="compact()"
+  >
+    <i class="text-primary text-sm" [ngClass]="activeOption().icon"></i>
+
+    @if (!compact()) {
+      <span class="flex flex-col items-start leading-tight min-w-0">
+        <span class="text-[9px] font-bold uppercase tracking-widest text-text-tertiary">
+          {{ 'modes.switcher.label' | translate }}
+        </span>
+        <span class="text-xs font-semibold truncate">
+          {{ activeOption().labelKey | translate }}
+        </span>
+      </span>
+      <i
+        class="pi pi-chevron-down text-[10px] text-text-tertiary transition-transform duration-200"
+        [class.rotate-180]="isOpen()"
+      ></i>
+    }
+  </button>
+
+  <!-- Panneau : chaque mode décrit en une ligne, le mode actif est coché -->
+  @if (isOpen()) {
+    <div
+      role="listbox"
+      class="absolute z-[60] w-72 max-w-[calc(100vw-2rem)] rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-intense)] backdrop-blur-xl shadow-2xl p-1.5 animate-modeSwitcherIn"
+      [class.right-0]="alignRight()"
+      [class.left-0]="!alignRight()"
+      [class.bottom-full]="compact() || dropUp()"
+      [class.mb-2]="compact() || dropUp()"
+      [class.mt-2]="!compact() && !dropUp()"
+    >
+      <p class="px-3 pt-2 pb-2 text-[10px] font-bold uppercase tracking-widest text-text-tertiary">
+        {{ 'modes.switcher.panelTitle' | translate }}
+      </p>
+
+      @for (option of options; track option.mode) {
+        <button
+          type="button"
+          role="option"
+          [attr.aria-selected]="option.mode === activeMode()"
+          (click)="select(option.mode)"
+          class="w-full flex items-start gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150"
+          [ngClass]="
+            option.mode === activeMode()
+              ? 'bg-primary text-white shadow-lg shadow-primary/20'
+              : 'hover:bg-[var(--glass-bg-light)] border border-transparent hover:border-[var(--glass-border)]'
+          "
+        >
+          <i
+            class="mt-0.5 text-sm shrink-0"
+            [ngClass]="[option.icon, option.mode === activeMode() ? 'text-white' : 'text-primary']"
+          ></i>
+
+          <span class="flex-1 min-w-0">
+            <span class="flex items-center gap-2">
+              <span
+                class="text-sm font-semibold"
+                [ngClass]="option.mode === activeMode() ? 'text-white' : 'text-text-primary'"
+              >
+                {{ option.labelKey | translate }}
+              </span>
+              @if (option.mode === recommendedMode() && option.mode !== activeMode()) {
+                <span
+                  class="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide rounded-md bg-secondary/15 text-secondary border border-secondary/30"
+                >
+                  {{ 'modes.switcher.recommended' | translate }}
+                </span>
+              }
+            </span>
+            <span
+              class="block text-[11px] leading-snug mt-0.5"
+              [ngClass]="option.mode === activeMode() ? 'text-white/85' : 'text-text-tertiary'"
+            >
+              {{ option.descriptionKey | translate }}
+            </span>
+          </span>
+
+          @if (option.mode === activeMode()) {
+            <i class="pi pi-check text-xs text-white mt-1 shrink-0"></i>
+          }
+        </button>
+      }
+
+      <p class="px-3 pt-2 pb-2 text-[10px] text-text-tertiary border-t border-[var(--glass-border)] mt-1.5">
+        {{ 'modes.switcher.footer' | translate }}
+      </p>
+    </div>
+  }
+</div>

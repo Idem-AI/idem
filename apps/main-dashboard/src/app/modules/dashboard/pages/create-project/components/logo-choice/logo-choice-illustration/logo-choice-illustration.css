@@ -1,0 +1,142 @@
+:host {
+  display: block;
+}
+
+/* Même palette que les illustrations des modes d'interface : les deux séries
+   doivent se lire comme une seule famille graphique. */
+.logo-illu {
+  --illu-primary: var(--color-primary, #1447e6);
+  --illu-ink: var(--color-text-primary, #0f172a);
+  --illu-frame: var(--glass-border, rgba(15, 23, 42, 0.1));
+  /* surface-2 plutôt que glass-bg-subtle : ce dernier est presque transparent
+     en thème sombre, et les conteneurs s'effaçaient sur le fond. */
+  --illu-surface: var(--color-surface-2, rgba(255, 255, 255, 0.6));
+  --illu-card: var(--color-surface-2, rgba(255, 255, 255, 0.6));
+}
+
+.illu-frame {
+  fill: none;
+  stroke: var(--illu-frame);
+}
+
+.illu-fill-primary {
+  fill: var(--illu-primary);
+}
+
+.illu-fill-surface {
+  fill: var(--illu-surface);
+  stroke: var(--illu-frame);
+  stroke-width: 1;
+}
+
+/* La feuille de fichier : plus opaque que les cartes, pour se détacher de la
+   zone de dépôt sur laquelle elle repose. */
+.illu-fill-card {
+  fill: var(--illu-card);
+  stroke: var(--illu-frame);
+  stroke-width: 1.5;
+}
+
+/* Le coin corné, légèrement plus sombre que la feuille. */
+.illu-fold {
+  fill: var(--illu-ink);
+  opacity: 0.12;
+}
+
+/* La proposition retenue : fond teinté et bordure pleine. */
+.illu-fill-selected {
+  fill: color-mix(in oklch, var(--illu-primary) 10%, transparent);
+  stroke: var(--illu-primary);
+}
+
+.illu-dropzone {
+  fill: none;
+  stroke: var(--illu-primary);
+  opacity: 0.5;
+}
+
+.illu-wand {
+  stroke: var(--illu-ink);
+  opacity: 0.55;
+  fill: none;
+}
+
+.illu-ring-muted {
+  fill: none;
+  stroke: var(--illu-ink);
+  opacity: 0.3;
+}
+
+.illu-stroke-inverse {
+  stroke: #ffffff;
+  fill: none;
+}
+
+.illu-bar-soft {
+  fill: var(--illu-ink);
+  opacity: 0.4;
+}
+
+.illu-bar-faint {
+  fill: var(--illu-ink);
+  opacity: 0.18;
+}
+
+/* Texte intégré à l'illustration : noms de formats et monogramme. Ils ne sont
+   pas traduits — ce sont des noms propres et une lettre d'exemple. */
+.illu-chip-text {
+  fill: var(--illu-ink);
+  opacity: 0.55;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.illu-monogram {
+  fill: #ffffff;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* Animations discrètes : elles suggèrent la génération sans distraire. */
+.illu-spark {
+  animation: illuPulse 2.4s ease-in-out infinite;
+  transform-origin: 160px 54px;
+}
+
+.illu-spark-sm {
+  animation: illuFade 2.4s ease-in-out infinite;
+}
+
+.illu-spark-delay {
+  animation-delay: 0.8s;
+}
+
+@keyframes illuPulse {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes illuFade {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .illu-spark,
+  .illu-spark-sm {
+    animation: none;
+  }
+}

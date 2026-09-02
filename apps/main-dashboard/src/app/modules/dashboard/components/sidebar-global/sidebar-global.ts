@@ -25,7 +25,7 @@ import {
   BetaRestrictions,
   QuotaStatus,
 } from '../../../../shared/models/quota.model';
-import { ModeToggleComponent } from '../../../chat/components/mode-toggle/mode-toggle';
+import { ModeSwitcherComponent } from '../../../../shared/components/mode-switcher/mode-switcher';
 
 @Component({
   selector: 'app-sidebar-global',
@@ -38,7 +38,7 @@ import { ModeToggleComponent } from '../../../chat/components/mode-toggle/mode-t
     BetaBadgeComponent,
     QuotaDisplayComponent,
     TranslateModule,
-    ModeToggleComponent,
+    ModeSwitcherComponent,
   ],
   animations: [
     trigger('slideInOut', [

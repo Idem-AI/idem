@@ -82,7 +82,10 @@
     </div>
 
     <!-- Right section -->
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-3 sm:gap-4">
+      <!-- Sélecteur de mode : libellé et visible en permanence -->
+      <app-mode-switcher [current]="'advanced'" [alignRight]="true" />
+
       @if (user()) {
         <!-- Quota Display - Desktop only -->
         <div>
@@ -183,36 +186,47 @@
 
   <!-- Navigation Menu -->
   <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-    @for (item of navigationItems(); track item.route) {
+    @for (item of displayedNavItems(); track item.route) {
       <div>
         <!-- Parent item: a link if no children, a button if has children -->
         @if (item.children && item.children.length > 0) {
           <button
             type="button"
-            (click)="toggleExpand(item)"
+            (click)="onNavGroupClick(item, $event)"
+            [attr.aria-disabled]="item.locked ? 'true' : null"
+            [title]="item.locked ? ('guided.nav.lockedHint' | translate) : ''"
             class="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden"
-            [ngClass]="{
-              'bg-primary/15 text-primary border border-primary/30': item.isActive,
-              'text-text-secondary hover:bg-primary hover:text-white': !item.isActive,
-              'justify-center': isSidebarCollapsed(),
-            }"
+            [ngClass]="
+              item.locked
+                ? 'text-text-tertiary opacity-40 cursor-not-allowed'
+                : item.isActive
+                  ? 'bg-primary/15 text-primary border border-primary/30'
+                  : 'text-text-secondary hover:bg-primary hover:text-white'
+            "
+            [class.justify-center]="isSidebarCollapsed()"
           >
             <div class="shrink-0 relative">
               <i [class]="item.icon" class="text-lg"></i>
             </div>
             @if (!isSidebarCollapsed()) {
               <span class="font-medium flex-1 text-left">{{ item.labelKey | translate }}</span>
-              @if (item.isNew) {
-                <span
-                  class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/30"
-                >
-                  {{ 'common.new' | translate }}
-                </span>
+              @if (item.locked) {
+                <i class="pi pi-lock text-[11px]"></i>
+              } @else {
+                @if (item.isNew) {
+                  <span
+                    class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/30"
+                  >
+                    {{ 'common.new' | translate }}
+                  </span>
+                }
+                <i
+                  class="pi pi-chevron-down text-xs transition-transform duration-200"
+                  [class.rotate-180]="item.isExpanded"
+                ></i>
               }
-              <i
-                class="pi pi-chevron-down text-xs transition-transform duration-200"
-                [class.rotate-180]="item.isExpanded"
-              ></i>
+            } @else if (item.locked) {
+              <i class="pi pi-lock absolute top-1 right-1 text-[9px]"></i>
             } @else if (item.isNew) {
               <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary"></span>
             }
@@ -237,37 +251,47 @@
           }
         } @else {
           <a
-            [routerLink]="item.route"
+            [routerLink]="item.locked ? null : item.route"
+            (click)="onNavItemClick(item, $event)"
+            [attr.aria-disabled]="item.locked ? 'true' : null"
+            [title]="item.locked ? ('guided.nav.lockedHint' | translate) : ''"
             class="flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden"
-            [ngClass]="{
-              'bg-primary text-white shadow-lg shadow-primary/30': item.isActive,
-              'text-text-secondary hover:bg-primary hover:text-white hover:shadow-lg hover:shadow-primary/30':
-                !item.isActive,
-              'justify-center': isSidebarCollapsed(),
-            }"
+            [ngClass]="
+              item.locked
+                ? 'text-text-tertiary opacity-40 cursor-not-allowed'
+                : item.isActive
+                  ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                  : 'text-text-secondary hover:bg-primary hover:text-white hover:shadow-lg hover:shadow-primary/30'
+            "
+            [class.justify-center]="isSidebarCollapsed()"
           >
-            @if (item.isActive) {
+            @if (item.isActive && !item.locked) {
               <div class="absolute left-0 top-0 bottom-0 w-1 bg-white rounded-r-full"></div>
             }
             <div class="shrink-0 relative">
               <i [class]="item.icon" class="text-lg transition-all duration-200"></i>
-              @if (item.isActive) {
+              @if (item.isActive && !item.locked) {
                 <div class="absolute inset-0 bg-primary/20 rounded-lg -z-10 animate-pulse"></div>
               }
             </div>
             @if (!isSidebarCollapsed()) {
               <span
-                class="font-medium transition-all duration-200 group-hover:translate-x-1 flex-1"
+                class="font-medium transition-all duration-200 flex-1"
+                [ngClass]="item.locked ? '' : 'group-hover:translate-x-1'"
               >
                 {{ item.labelKey | translate }}
               </span>
-              @if (item.isNew) {
+              @if (item.locked) {
+                <i class="pi pi-lock text-[11px] shrink-0"></i>
+              } @else if (item.isNew) {
                 <span
                   class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/30"
                 >
                   {{ 'common.new' | translate }}
                 </span>
               }
+            } @else if (item.locked) {
+              <i class="pi pi-lock absolute top-1 right-1 text-[9px]"></i>
             } @else if (item.isNew) {
               <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary"></span>
             }
@@ -294,14 +318,14 @@
   <!-- Sidebar Footer -->
   <div class="p-4 border-t border-[var(--glass-border)] space-y-3">
     @if (!isSidebarCollapsed()) {
-      <app-mode-toggle [current]="'advanced'" />
+      <app-mode-switcher [current]="'advanced'" [dropUp]="true" />
       <div class="z-50">
         <app-language-selector />
         <app-theme-toggle />
       </div>
     } @else {
       <div class="flex flex-col items-center gap-3">
-        <app-mode-toggle [current]="'advanced'" [collapsed]="true" />
+        <app-mode-switcher [current]="'advanced'" [compact]="true" />
         <div class="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
           <i class="pi pi-globe text-primary text-sm"></i>
         </div>
@@ -345,8 +369,8 @@
 
       <!-- Content -->
       <div class="flex-1 overflow-y-auto p-4 space-y-6">
-        <!-- Mode Chat / Avancé -->
-        <app-mode-toggle [current]="'advanced'" />
+        <!-- Sélecteur de mode d'interface -->
+        <app-mode-switcher [current]="'advanced'" />
 
         <!-- Mobile Quota Display -->
         @if (user()) {
@@ -393,30 +417,38 @@
             {{ 'dashboard.sidebar.mobile.navigation' | translate }}
           </h3>
           <nav class="space-y-2">
-            @for (item of navigationItems(); track item.route) {
+            @for (item of displayedNavItems(); track item.route) {
               @if (item.children && item.children.length > 0) {
                 <button
                   type="button"
-                  (click)="toggleExpand(item)"
+                  (click)="onNavGroupClick(item, $event)"
+                  [attr.aria-disabled]="item.locked ? 'true' : null"
                   class="w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 text-left"
-                  [ngClass]="{
-                    'bg-primary/15 text-primary border border-primary/30': item.isActive,
-                    'text-text-secondary hover:text-text-primary hover:bg-[var(--glass-bg-light)]': !item.isActive,
-                  }"
+                  [ngClass]="
+                    item.locked
+                      ? 'text-text-tertiary opacity-40 cursor-not-allowed'
+                      : item.isActive
+                        ? 'bg-primary/15 text-primary border border-primary/30'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-[var(--glass-bg-light)]'
+                  "
                 >
                   <i [class]="item.icon" class="text-lg"></i>
                   <span class="font-medium flex-1">{{ item.labelKey | translate }}</span>
-                  @if (item.isNew) {
-                    <span
-                      class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/30"
-                    >
-                      {{ 'common.new' | translate }}
-                    </span>
+                  @if (item.locked) {
+                    <i class="pi pi-lock text-[11px]"></i>
+                  } @else {
+                    @if (item.isNew) {
+                      <span
+                        class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/30"
+                      >
+                        {{ 'common.new' | translate }}
+                      </span>
+                    }
+                    <i
+                      class="pi pi-chevron-down text-xs transition-transform"
+                      [class.rotate-180]="item.isExpanded"
+                    ></i>
                   }
-                  <i
-                    class="pi pi-chevron-down text-xs transition-transform"
-                    [class.rotate-180]="item.isExpanded"
-                  ></i>
                 </button>
                 @if (item.isExpanded) {
                   <div class="ml-3 pl-3 border-l border-[var(--glass-border)] space-y-1">
@@ -438,17 +470,23 @@
                 }
               } @else {
                 <a
-                  [routerLink]="item.route"
-                  (click)="toggleMobileDrawer()"
+                  [routerLink]="item.locked ? null : item.route"
+                  (click)="onMobileNavItemClick(item, $event)"
+                  [attr.aria-disabled]="item.locked ? 'true' : null"
                   class="flex items-center gap-3 p-3 rounded-xl transition-all duration-200"
-                  [ngClass]="{
-                    'bg-primary text-white': item.isActive,
-                    'text-text-secondary hover:text-text-primary hover:bg-[var(--glass-bg-light)]': !item.isActive,
-                  }"
+                  [ngClass]="
+                    item.locked
+                      ? 'text-text-tertiary opacity-40 cursor-not-allowed'
+                      : item.isActive
+                        ? 'bg-primary text-white'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-[var(--glass-bg-light)]'
+                  "
                 >
                   <i [class]="item.icon" class="text-lg"></i>
                   <span class="font-medium flex-1">{{ item.labelKey | translate }}</span>
-                  @if (item.isNew) {
+                  @if (item.locked) {
+                    <i class="pi pi-lock text-[11px]"></i>
+                  } @else if (item.isNew) {
                     <span
                       class="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-primary/15 text-primary border border-primary/30"
                     >

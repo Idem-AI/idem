@@ -5,7 +5,7 @@ import { CookieService } from '../../../../shared/services/cookie.service';
 import { TranslateModule } from '@ngx-translate/core';
 import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
 
-import { UiModeService } from '../../../../shared/services/ui-mode.service';
+import { MODE_HOME_ROUTE, UiModeService } from '../../../../shared/services/ui-mode.service';
 
 @Component({
   selector: 'app-project-card',
@@ -88,11 +88,9 @@ export class ProjectCard {
 
   cardClick(id: string) {
     this.cookieService.set('projectId', id);
-    if (this.uiModeService.mode() === 'chat') {
-      this.router.navigate(['/chat']);
-    } else {
-      this.router.navigate(['/project/dashboard']);
-    }
+    // Chaque mode a sa page d'accueil : on ouvre le projet là où l'utilisateur
+    // a l'habitude de travailler.
+    this.router.navigateByUrl(MODE_HOME_ROUTE[this.uiModeService.mode()]);
   }
 
   onDelete(event: MouseEvent) {

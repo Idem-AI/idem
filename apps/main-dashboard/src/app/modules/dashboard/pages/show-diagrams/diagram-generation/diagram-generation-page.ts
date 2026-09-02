@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { CookieService } from '../../../../../shared/services/cookie.service';
 import { DiagramGeneration } from './diagram-generation/diagram-generation';
 import { DiagramModel } from '../../../models/diagram.model';
+import { UiModeService } from '../../../../../shared/services/ui-mode.service';
 
 @Component({
   selector: 'app-diagram-generation-page',
@@ -50,6 +51,7 @@ import { DiagramModel } from '../../../models/diagram.model';
 })
 export class DiagramGenerationPage implements OnInit {
   private readonly router = inject(Router);
+  private readonly uiMode = inject(UiModeService);
   private readonly cookieService = inject(CookieService);
 
   protected readonly projectId = signal<string | null>(null);
@@ -71,8 +73,8 @@ export class DiagramGenerationPage implements OnInit {
   protected onDiagramGenerated(diagram: DiagramModel): void {
     console.log('Diagram generation completed, redirecting to display:', diagram);
 
-    // Redirect to the diagrams display page
-    this.router.navigate(['/project/diagrams']);
+    // En mode Assisté, retour au parcours : l'étape se coche et la suivante s'ouvre.
+    this.uiMode.completeStep('/project/diagrams');
   }
 
   /**

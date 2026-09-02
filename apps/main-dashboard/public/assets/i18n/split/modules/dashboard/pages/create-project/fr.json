@@ -26,31 +26,6 @@
       "modeChat": "Conversation",
       "modeForm": "Formulaire",
       "switchToForm": "Passer au formulaire",
-      "modeChoice": {
-        "badge": "Mode d'accompagnement",
-        "title": "Comment souhaitez-vous continuer ?",
-        "subtitle": "Votre description est enregistrée. Choisissez l'expérience qui vous convient le mieux pour finaliser la création de votre projet.",
-        "backToDescription": "Modifier la description",
-        "form": {
-          "title": "Formulaire classique",
-          "tag": "Saisie étape par étape",
-          "description": "Remplissez un formulaire structuré étape par étape pour renseigner les détails techniques et fonctionnels de votre projet.",
-          "feature1": "Vue d'ensemble claire et rapide",
-          "feature2": "Champs structurés et guidés",
-          "feature3": "Contrôle direct sur chaque paramètre",
-          "button": "Continuer avec le formulaire"
-        },
-        "chat": {
-          "title": "Interface Chat interactive",
-          "badge": "Recommandé",
-          "tag": "IA Assistée",
-          "description": "Une interface de chat simple et facile à prendre en main pour vous guider et utiliser toutes les fonctionnalités d'IDEM.",
-          "feature1": "Accompagnement IA intelligent et personnalisé",
-          "feature2": "Accès simple à toutes les fonctionnalités IDEM",
-          "feature3": "Expérience fluide, dynamique et interactive",
-          "button": "Démarrer avec le Chat"
-        }
-      },
       "foundations": {
         "title": "Parlons de votre projet",
         "subtitle": "Quelques bases pour démarrer — l'IA s'occupe du reste en conversation.",
@@ -60,6 +35,37 @@
         "namePlaceholder": "Ex. ArtisanHub",
         "typeLabel": "Type de projet",
         "continue": "Continuer"
+      },
+      "guidedHint": "Après la création, IDEM vous guidera étape par étape.",
+      "modeChoice": {
+        "badge": "Mode d'accompagnement",
+        "title": "Comment souhaitez-vous être accompagné ?",
+        "subtitle": "Votre description est enregistrée. Choisissez la façon de travailler qui vous ressemble — vous pourrez en changer à tout moment.",
+        "backToDescription": "Modifier la description",
+        "recommended": "Conseillé",
+        "personalized": "Recommandation basée sur vos réponses",
+        "switchLater": "Quel que soit votre choix, vous pourrez changer de mode à tout moment depuis le menu en haut de l’écran.",
+        "guided": {
+          "title": "Mode Assisté",
+          "tag": "Étape par étape",
+          "description": "IDEM vous guide dans l'ordre : une seule étape à la fois, la suivante se débloque quand la précédente est terminée.",
+          "forWho": "Pour vous si vous débutez et ne savez pas par où commencer.",
+          "button": "Être guidé"
+        },
+        "chat": {
+          "title": "Mode Chat",
+          "tag": "Conversation",
+          "description": "Vous décrivez ce dont vous avez besoin en langage courant, IDEM le génère et vous répond.",
+          "forWho": "Pour vous si vous préférez demander plutôt que chercher.",
+          "button": "Discuter avec IDEM"
+        },
+        "form": {
+          "title": "Tableau de bord",
+          "tag": "Accès complet",
+          "description": "Un formulaire structuré, puis l'espace complet : tous les modules accessibles librement, dans l'ordre que vous voulez.",
+          "forWho": "Pour vous si vous savez déjà ce que vous cherchez.",
+          "button": "Ouvrir le tableau de bord"
+        }
       }
     }
   }
