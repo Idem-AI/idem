@@ -358,13 +358,32 @@ class Tour implements TourHandle {
     this.doc.removeEventListener('keydown', this.onKeydown);
     this.root.remove();
 
+    if (activeTour === this) activeTour = null;
     this.options.onFinish?.(completed);
   }
 }
 
+/**
+ * Visite en cours, s'il y en a une.
+ *
+ * Deux visites simultanées ne veulent rien dire : l'écran afficherait deux
+ * bulles et deux projecteurs concurrents. L'invariant est tenu ici, au plus
+ * près du DOM, plutôt que dans chaque application — un composant monté deux
+ * fois ou un effet rejoué suffit sinon à en déclencher une seconde.
+ */
+let activeTour: Tour | null = null;
+
 /** Lance une visite guidée et rend la main immédiatement. */
 export function startTour(options: TourOptions): TourHandle {
+  activeTour?.stop();
+
   const tour = new Tour(options);
+  activeTour = tour;
   tour.start();
   return tour;
+}
+
+/** Y a-t-il une visite à l'écran ? */
+export function isTourActive(): boolean {
+  return activeTour !== null;
 }

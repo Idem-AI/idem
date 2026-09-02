@@ -38,7 +38,7 @@ export class SimulationOverview implements OnInit {
   ngOnInit(): void {
     // L'aperçu est la porte d'entrée du simulateur : c'est ici qu'on
     // présente les lieux, la première fois seulement.
-    this.tour.maybeStart();
+    void this.tour.maybeStart();
   }
 
   protected readonly simulation = this.store.active;
