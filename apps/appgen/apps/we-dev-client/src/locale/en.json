@@ -14,7 +14,10 @@
     "please_login": "Please sign in to view your quota",
     "format": "Format",
     "formatting": "Formatting...",
-    "retry": "Retry"
+    "retry": "Retry",
+    "back": "Back",
+    "collapse": "Collapse",
+    "expand": "Expand"
   },
   "chat": {
     "urlInput": {
@@ -230,7 +233,13 @@
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
     "zoomReset": "Actual size",
-    "openExternal": "Open in a tab"
+    "openExternal": "Open in a tab",
+    "run": "Run",
+    "running": "Starting…",
+    "runHint": "Installs dependencies, then starts the dev server",
+    "restart": "Restart",
+    "noserverTitle": "Nothing to show yet",
+    "runFailed": "The project could not start. Open the terminal for details."
   },
   "editor": {
     "editor": "Editor",
@@ -277,7 +286,11 @@
     "modePlanHint": "Reads the project and answers, never edits code",
     "modeBuildHint": "Writes and edits the project's code",
     "creditsTitle": "{{used}} of {{total}} credits used",
-    "moreActions": "More actions"
+    "moreActions": "More actions",
+    "account": "Your account",
+    "plan": "{{plan}} plan",
+    "idemDashboard": "Idem dashboard",
+    "signOut": "Sign out"
   },
   "explorer": {
     "clear_all": "Clear All",
@@ -467,7 +480,9 @@
     "login_required": "Login required",
     "connect_idem_title": "Connect to an Idem project",
     "connect_idem_subtitle": "Create or associate with an existing project",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "live": "Live",
+    "open_pipeline": "Open iDeploy"
   },
   "editMode": {
     "hint": "Click to select · click again to go deeper · Shift-click multi · dbl-click edit · drag reorder · Del delete",
@@ -681,5 +696,39 @@
     "emptyTitle": "Nothing to analyse yet",
     "emptyBody": "Checks run from the first generation onwards.",
     "error": "The analysis could not complete. Try again shortly."
+  },
+  "codeLoad": {
+    "failedTitle": "Your code could not be retrieved",
+    "failedBody": "This project's code is saved, but fetching it failed. This is usually temporary.",
+    "retry": "Try again",
+    "continue": "Continue without it"
+  },
+  "help": {
+    "title": "Getting started with iCode",
+    "subtitle": "Describe what you want, iCode writes the application. Here is what you can do next.",
+    "sections": {
+      "chat": {
+        "title": "Describe, then refine",
+        "body": "Write your request in plain language. Every exchange updates the code and saves a restore point, available from the ⋯ menu."
+      },
+      "modes": {
+        "title": "Plan or Build",
+        "body": "Build edits the code. Plan never does: it reads your files and logs to answer \"why is this failing\" without rewriting anything."
+      },
+      "toolbar": {
+        "title": "Edit from the preview",
+        "body": "The floating toolbar offers four tools: navigate, select an element to ask the AI about it, fix text by clicking into it (no credits used), or sketch the change you want."
+      },
+      "theme": {
+        "title": "Theme and checks",
+        "body": "The Theme tab shows the palette computed for your project with measured contrast. The Checks tab flags design and security issues before you publish."
+      },
+      "publish": {
+        "title": "Publish",
+        "body": "The Publish button puts your app online. The code stays standard React: download it or push it to GitHub from the ⋯ menu."
+      }
+    },
+    "tour": "Replay the guided tour",
+    "gotIt": "Got it"
   }
 }

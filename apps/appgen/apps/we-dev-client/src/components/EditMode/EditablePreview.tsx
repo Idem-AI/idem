@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { getContainerInstance, onServerReady } from '../WeIde/services';
 import { useFileStore } from '../WeIde/stores/fileStore';
+import useTerminalStore from '@/stores/terminalSlice';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import {
@@ -23,8 +24,8 @@ import {
   Minus,
   Plus,
   ExternalLink,
-  Monitor,
   MessageSquarePlus,
+  Play,
 } from 'lucide-react';
 import {
   IDEM_SOURCE,
@@ -36,6 +37,8 @@ import {
   type TreeNode,
 } from './idemProtocol';
 import { EditToolbar } from './EditToolbar';
+import Button from '@/components/ui/Button';
+import { EmptyPreviewIllustration } from '@/components/ui/Illustrations';
 import { DrawAnnotation, type Annotation } from './DrawAnnotation';
 import {
   editText,
@@ -112,8 +115,46 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
   const [layersOpen, setLayersOpen] = useState(true);
   const [agentReady, setAgentReady] = useState(false);
   const [size, setSize] = useState<WindowSize>(WINDOW_SIZES[0]);
+  const { getTerminal, newTerminal } = useTerminalStore();
   const [toolMode, setToolMode] = useState<EditToolMode>('off');
   const [zoom, setZoom] = useState(1);
+  const [running, setRunning] = useState(false);
+
+  /**
+   * Démarrage manuel du projet.
+   *
+   * L'installation et le lancement partent normalement tout seuls à la fin
+   * d'une génération, mais cette chaîne peut échouer sans bruit : une
+   * dépendance qui ne s'installe pas, un port déjà pris, un artefact sans
+   * action `start`. L'utilisateur se retrouve alors devant un aperçu vide sans
+   * moyen de relancer autrement qu'en ouvrant un terminal.
+   */
+  const runProject = useCallback(async () => {
+    if (running) return;
+    setRunning(true);
+    try {
+      const terminal = getTerminal(0) ?? (await new Promise<any>((resolve) => {
+        newTerminal(() => resolve(getTerminal(0)));
+      }));
+
+      if (!terminal) {
+        toast.error(t('preview.runFailed'));
+        return;
+      }
+
+      await terminal.executeCommand('npm install');
+      // `npm run dev` ne rend pas la main : on ne l'attend pas, c'est
+      // `onServerReady` qui signalera que l'aperçu peut s'afficher.
+      void terminal.executeCommand('npm run dev');
+    } catch (error) {
+      console.error('[preview] démarrage impossible', error);
+      toast.error(t('preview.runFailed'));
+    } finally {
+      // Le bouton se réarme dès que la commande est lancée ; l'état réel du
+      // serveur est porté par la présence de l'URL, pas par ce drapeau.
+      setTimeout(() => setRunning(false), 1500);
+    }
+  }, [running, getTerminal, newTerminal, t]);
 
   /**
    * L'instrumentation réécrit des fichiers du projet et fait redémarrer le
@@ -568,6 +609,17 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
             <RefreshCw size={14} />
           </button>
 
+          <button
+            type="button"
+            onClick={runProject}
+            disabled={running}
+            className="h-7 px-2 flex items-center gap-1.5 rounded-md text-xs text-text-tertiary hover:text-text-primary hover:bg-surface-3 disabled:opacity-50 transition-colors"
+            title={t('preview.runHint')}
+          >
+            <Play size={13} />
+            {running ? t('preview.running') : url ? t('preview.restart') : t('preview.run')}
+          </button>
+
           <div className="flex-1 min-w-0 h-7 px-3 flex items-center rounded-md bg-surface-2 border border-[var(--glass-border)]">
             <span className="text-xs text-text-secondary truncate" data-mono>
               {displayUrl}
@@ -635,10 +687,24 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
               />
             </div>
           ) : (
-            <div className="flex-1 h-full flex flex-col items-center justify-center gap-2 text-center">
-              <Monitor className="w-8 h-8 text-text-disabled" />
-              <p className="text-sm text-text-tertiary">{t('preview.noserver')}</p>
-              <p className="text-xs text-text-disabled max-w-xs">{t('preview.noserverHint')}</p>
+            <div className="flex-1 h-full flex flex-col items-center justify-center gap-3 text-center px-6">
+              <EmptyPreviewIllustration size={96} />
+              <p className="text-sm font-medium text-text-secondary">
+                {t('preview.noserverTitle')}
+              </p>
+              <p className="text-xs text-text-tertiary max-w-xs text-pretty">
+                {t('preview.noserverHint')}
+              </p>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={runProject}
+                loading={running}
+                icon={<Play className="w-4 h-4" />}
+                className="mt-1"
+              >
+                {t('preview.run')}
+              </Button>
             </div>
           )}
 
@@ -688,14 +754,15 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
               propriétés connues, le prompt couvre tout le reste. */}
           {onAskAboutSelection && (
             <div className="shrink-0 p-3 border-b border-[var(--glass-border)]">
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={askAboutSelection}
-                className="w-full h-9 flex items-center justify-center gap-2 rounded-lg bg-primary text-white text-sm font-medium hover:brightness-110 transition"
+                className="w-full"
+                icon={<MessageSquarePlus size={15} />}
               >
-                <MessageSquarePlus size={15} />
                 {t('editMode.askAI')}
-              </button>
+              </Button>
             </div>
           )}
 

@@ -4,12 +4,12 @@ import {
   ShieldCheck,
   ShieldAlert,
   Sparkles,
-  AlertTriangle,
   Check,
   RefreshCw,
   Wrench,
 } from 'lucide-react';
 import { useFileStore } from '../WeIde/stores/fileStore';
+import Button from '@/components/ui/Button';
 
 /* ------------------------------------------------------------------ */
 /* Types miroirs des rapports serveur                                  */
@@ -136,15 +136,16 @@ export function ChecksPanel({ onRepair }: ChecksPanelProps) {
             <h2 className="text-lg font-semibold text-text-primary">{t('checks.title')}</h2>
             <p className="mt-1 text-sm text-text-secondary max-w-prose">{t('checks.subtitle')}</p>
           </div>
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={run}
             disabled={status === 'running'}
-            className="h-9 px-3 shrink-0 flex items-center gap-1.5 rounded-lg border border-[var(--glass-border)] text-sm text-text-secondary hover:text-text-primary hover:bg-surface-2 disabled:opacity-50 transition-colors"
+            className="shrink-0"
+            icon={<RefreshCw className={`w-4 h-4 ${status === 'running' ? 'animate-spin' : ''}`} />}
           >
-            <RefreshCw className={`w-4 h-4 ${status === 'running' ? 'animate-spin' : ''}`} />
             {t('checks.rerun')}
-          </button>
+          </Button>
         </header>
 
         {/* -------- Sécurité en premier : c'est ce qui bloque la publication -------- */}
@@ -279,14 +280,15 @@ function Group({
           </p>
         </div>
         {action && (
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            size="sm"
             onClick={action.onClick}
-            className="h-8 px-3 shrink-0 flex items-center gap-1.5 rounded-lg bg-primary text-white text-xs font-medium hover:brightness-110 transition"
+            className="shrink-0"
+            icon={<Wrench className="w-3.5 h-3.5" />}
           >
-            <Wrench className="w-3.5 h-3.5" />
             {action.label}
-          </button>
+          </Button>
         )}
       </div>
 

@@ -1,7 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { Modal } from 'antd';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { Copy, Check, ExternalLink } from 'lucide-react';
+import Button, { ButtonLink } from '@/components/ui/Button';
+import {
+  PublishQuickIllustration,
+  PublishPipelineIllustration,
+} from '@/components/ui/Illustrations';
 import useAppGenContextStore from '@/stores/appgenContextSlice';
 import useUserStore from '@/stores/userSlice';
 import { redirectToLogin } from '@/hooks/useAuth';
@@ -12,6 +18,8 @@ interface DeployModalProps {
   open: boolean;
   onClose: () => void;
   onNetlifyDeploy: () => void;
+  /** Adresse du site déjà en ligne, quand il y en a une. */
+  liveUrl?: string | null;
 }
 
 const IDEPLOY_URL = process.env.REACT_APP_IDEPLOY_URL || 'http://localhost:8000';
@@ -20,9 +28,23 @@ const API_BASE = process.env.REACT_APP_IDEM_API_BASE_URL || 'http://localhost:30
 
 const HANDOFF_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
-export function DeployModal({ open, onClose, onNetlifyDeploy }: DeployModalProps) {
+export function DeployModal({ open, onClose, onNetlifyDeploy, liveUrl }: DeployModalProps) {
   const { t } = useTranslation();
   const [isHandingOff, setIsHandingOff] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const copyLiveUrl = useCallback(async () => {
+    if (!liveUrl) return;
+    try {
+      await navigator.clipboard.writeText(liveUrl);
+      setCopied(true);
+      // L'état revient de lui-même : un bouton qui reste « Copié » ne dit plus
+      // rien au clic suivant.
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error(t('header.error'));
+    }
+  }, [liveUrl, t]);
   const [currentUser, setCurrentUser] = useState<UserModel | null>(null);
   const { getHandoffPayload } = useAppGenContextStore();
   const { token } = useUserStore();
@@ -119,17 +141,19 @@ export function DeployModal({ open, onClose, onNetlifyDeploy }: DeployModalProps
     window.location.href = `${DASHBOARD_URL}/create-project?from=appgen&name=${encodedName}&description=${encodedDesc}`;
   };
 
+
   return (
     <Modal
       open={open}
       onCancel={onClose}
       footer={null}
-      width={620}
+      width={640}
+      centered
       styles={{
         content: {
-          backgroundColor: 'var(--color-bg-light)',
+          backgroundColor: 'var(--idem-surface-1)',
           padding: 0,
-          borderRadius: 20,
+          borderRadius: 16,
           border: '1px solid var(--glass-border)',
         },
         body: { padding: 0 },
@@ -137,186 +161,165 @@ export function DeployModal({ open, onClose, onNetlifyDeploy }: DeployModalProps
       }}
     >
       <div className="p-6">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-900 flex items-center justify-center">
-            <svg
-              className="w-7 h-7 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 12l2 2 4-4"
+        <header className="mb-5">
+          <h3 className="text-lg font-semibold text-text-primary">{t('deployModal.title')}</h3>
+          <p className="mt-1 text-sm text-text-secondary">{t('deployModal.subtitle')}</p>
+        </header>
+
+        {/* Site déjà en ligne. C'est la première chose à voir quand on revient
+            republier : l'adresse actuelle, ouvrable et copiable, plutôt qu'une
+            information perdue dans une modale de succès déjà refermée. */}
+        {liveUrl && (
+          <section className="mb-5 rounded-xl border border-success/30 bg-success/8 p-4">
+            <div className="flex items-center gap-2 mb-2.5">
+              <span className="w-2 h-2 rounded-full bg-success" aria-hidden />
+              <span className="text-xs font-medium text-success">{t('deployModal.live')}</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <code
+                className="flex-1 min-w-0 truncate px-3 h-9 flex items-center rounded-lg bg-surface-2 border border-[var(--glass-border)] text-xs text-text-secondary"
+                data-mono
+                title={liveUrl}
+              >
+                {liveUrl.replace(/^https?:\/\//, '')}
+              </code>
+
+              <Button
+                variant="icon"
+                onClick={copyLiveUrl}
+                title={copied ? t('header.copied_link') : t('header.copy')}
+                aria-label={t('header.copy')}
+                icon={
+                  copied ? (
+                    <Check className="w-4 h-4 text-success" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )
+                }
               />
-            </svg>
-          </div>
-          <h3 className="text-xl font-bold text-text-primary mb-1">{t('deployModal.title')}</h3>
-          <p className="text-sm text-text-tertiary">{t('deployModal.subtitle')}</p>
-        </div>
+              <ButtonLink
+                variant="icon"
+                href={liveUrl}
+                target="_blank"
+                rel="noreferrer"
+                title={t('preview.openExternal')}
+                aria-label={t('preview.openExternal')}
+                icon={<ExternalLink className="w-4 h-4" />}
+              />
+            </div>
+          </section>
+        )}
 
-        {/* Options */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-          {/* Publication rapide. Le transport est Netlify aujourd'hui et deviendra
-              iDeploy ; c'est une information d'implémentation, pas une décision que
-              l'utilisateur a à prendre, donc elle ne remonte pas dans le libellé. */}
-          <button
+        <div className="grid gap-3 sm:grid-cols-2">
+          <OptionCard
+            illustration={<PublishQuickIllustration size={86} />}
+            title={t('deployModal.quick_deploy_title')}
+            subtitle={t('deployModal.quick_deploy_subtitle')}
+            description={t('deployModal.quick_deploy_desc')}
+            tags={[t('deployModal.tag_instant'), t('deployModal.tag_ssl'), t('deployModal.tag_cdn')]}
             onClick={handleNetlify}
-            className="group relative rounded-2xl bg-gray-50 dark:bg-gradient-to-br dark:from-[#1e2535] dark:to-[#1a1f2e] border border-[var(--glass-border)]/10 p-5 text-left hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <div className="flex items-start gap-3 mb-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center flex-shrink-0">
-                <svg
-                  className="w-4 h-4 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h4 className="font-semibold text-text-primary group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-sm">
-                  {t('deployModal.quick_deploy_title')}
-                </h4>
-                <span className="text-xs text-gray-500">{t('deployModal.quick_deploy_subtitle')}</span>
-              </div>
-            </div>
-            <p className="text-xs text-text-tertiary leading-relaxed mb-3">
-              {t('deployModal.quick_deploy_desc')}
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 rounded-md">
-                {t('deployModal.tag_instant')}
-              </span>
-              <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 rounded-md">
-                {t('deployModal.tag_ssl')}
-              </span>
-              <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 rounded-md">
-                {t('deployModal.tag_cdn')}
-              </span>
-            </div>
-          </button>
+            primary
+            cta={liveUrl ? t('header.redeploy') : t('header.deploy')}
+          />
 
-          {/* iDeploy */}
-          <button
+          <OptionCard
+            illustration={<PublishPipelineIllustration size={86} />}
+            title={t('deployModal.idem_deploy_title')}
+            subtitle={t('deployModal.idem_deploy_subtitle')}
+            description={t('deployModal.idem_deploy_desc')}
+            tags={[t('deployModal.tag_auto_project'), t('deployModal.tag_prefilled')]}
             onClick={handleIdemDeploy}
-            disabled={isHandingOff}
-            className="group relative rounded-2xl bg-gray-50 dark:bg-gradient-to-br dark:from-[#1e2535] dark:to-[#1a1f2e] border border-[var(--glass-border)]/10 p-5 text-left hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
-          >
-            {isHandingOff && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl z-10">
-                <div className="animate-spin rounded-full h-6 w-6 border-2 border-purple-500/30 border-t-purple-500" />
-              </div>
-            )}
-            <div className="flex items-start gap-3 mb-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-purple-900 flex items-center justify-center flex-shrink-0">
-                <svg
-                  className="w-4 h-4 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h4 className="font-semibold text-text-primary group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors text-sm">
-                  {t('deployModal.idem_deploy_title')}
-                </h4>
-                <span className="text-xs text-gray-500">{t('deployModal.idem_deploy_subtitle')}</span>
-              </div>
-            </div>
-            <p className="text-xs text-text-tertiary leading-relaxed mb-3">
-              {t('deployModal.idem_deploy_desc')}
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              <span className="px-2 py-0.5 text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 rounded-md">
-                {t('deployModal.tag_auto_project')}
-              </span>
-              <span className="px-2 py-0.5 text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 rounded-md">
-                {t('deployModal.tag_prefilled')}
-              </span>
-            </div>
-            {!currentUser && (
-              <div className="mt-3 flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                  />
-                </svg>
-                <span>{t('deployModal.login_required')}</span>
-              </div>
-            )}
-          </button>
+            loading={isHandingOff}
+            cta={currentUser ? t('deployModal.open_pipeline') : t('deployModal.login_required')}
+          />
         </div>
 
-        {/* Connect to project */}
-        <div className="border-t border-[var(--glass-border)]/5 pt-4">
+        <div className="mt-5 pt-4 border-t border-[var(--glass-border)] flex items-center justify-between gap-3">
           <button
+            type="button"
             onClick={handleConnectProject}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-gray-100 hover:bg-surface-3/5 dark:hover:bg-white/10 border border-gray-200 hover:border-[var(--glass-border)]/5 dark:hover:border-white/10 transition-all duration-200 group"
+            className="text-left min-w-0"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-surface-3/10 flex items-center justify-center">
-                <svg
-                  className="w-4 h-4 text-text-tertiary"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                  />
-                </svg>
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-medium text-text-primary">{t('deployModal.connect_idem_title')}</p>
-                <p className="text-xs text-gray-500">{t('deployModal.connect_idem_subtitle')}</p>
-              </div>
-            </div>
-            <svg
-              className="w-4 h-4 text-gray-500 group-hover:text-text-secondary transition-colors"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+            <span className="block text-sm text-text-secondary hover:text-text-primary transition-colors truncate">
+              {t('deployModal.connect_idem_title')}
+            </span>
+            <span className="block text-xs text-text-tertiary truncate">
+              {t('deployModal.connect_idem_subtitle')}
+            </span>
           </button>
-        </div>
 
-        {/* Cancel */}
-        <div className="flex justify-center mt-4">
-          <button
-            onClick={onClose}
-            className="px-5 py-2 text-sm text-gray-500 hover:text-text-secondary dark:hover:text-gray-200 transition-colors"
-          >
+          <Button variant="ghost" size="sm" onClick={onClose}>
             {t('deployModal.cancel')}
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>
   );
 }
 
-export default DeployModal;
+/**
+ * Une voie de publication.
+ *
+ * L'illustration porte la différence entre les deux options avant que le texte
+ * ne soit lu : d'un côté l'application part telle quelle vers le web, de
+ * l'autre elle traverse une chaîne de déploiement pour atterrir sur une
+ * infrastructure que l'on possède.
+ */
+function OptionCard({
+  illustration,
+  title,
+  subtitle,
+  description,
+  tags,
+  onClick,
+  cta,
+  primary,
+  loading,
+}: {
+  illustration: React.ReactNode;
+  title: string;
+  subtitle: string;
+  description: string;
+  tags: string[];
+  onClick: () => void;
+  cta: string;
+  primary?: boolean;
+  loading?: boolean;
+}) {
+  return (
+    <article className="flex flex-col rounded-xl border border-[var(--glass-border)] bg-surface-2 overflow-hidden">
+      <div className="grid place-items-center py-4 bg-surface-3/40">{illustration}</div>
+
+      <div className="flex-1 flex flex-col gap-2 p-4">
+        <div>
+          <h4 className="text-sm font-semibold text-text-primary">{title}</h4>
+          <p className="text-xs text-text-tertiary">{subtitle}</p>
+        </div>
+
+        <p className="text-xs text-text-secondary leading-relaxed text-pretty">{description}</p>
+
+        <div className="flex flex-wrap gap-1.5">
+          {tags.map((tag) => (
+            <span
+              key={tag}
+              className="px-2 py-0.5 rounded-md bg-surface-3 text-[11px] text-text-tertiary"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+
+        <Button
+          variant={primary ? 'primary' : 'secondary'}
+          size="sm"
+          onClick={onClick}
+          loading={loading}
+          className="mt-2 w-full"
+        >
+          {cta}
+        </Button>
+      </div>
+    </article>
+  );
+}

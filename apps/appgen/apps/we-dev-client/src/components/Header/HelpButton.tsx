@@ -1,81 +1,115 @@
-import React, { useState } from "react";
-import { ProjectTutorial } from "../Onboarding/ProjectTutorial";
-import { useUrlData } from "../../hooks/useUrlData";
-import { getProjectById } from "../../api/persistence/db";
-import { Modal } from "antd";
-import { ProjectModel } from "@/api/persistence/models/project.model";
+import { useState } from 'react';
+import { Modal } from 'antd';
+import { useTranslation } from 'react-i18next';
+import {
+  HelpCircle,
+  MessageSquare,
+  Compass,
+  MousePointerClick,
+  Palette,
+  Rocket,
+} from 'lucide-react';
+import Button from '@/components/ui/Button';
+import { HelpIllustration } from '@/components/ui/Illustrations';
+import { restartTour } from '@/hooks/useTour';
 
+/**
+ * Aide.
+ *
+ * L'ancien contenu était un assistant en cinq étapes, en anglais, recoloré aux
+ * couleurs de la charte du projet généré — donc illisible selon les projets — et
+ * qui ne s'ouvrait pas du tout hors d'un projet Idem : le bouton « ? » ne
+ * faisait alors rien.
+ *
+ * Ce panneau décrit le produit tel qu'il est, dans la langue de l'interface, et
+ * s'ouvre toujours.
+ */
 export function HelpButton() {
-  const [showTutorial, setShowTutorial] = useState(false);
-  const [projectData, setProjectData] = useState<ProjectModel | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const { projectId } = useUrlData({ append: () => {} });
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
 
-  const handleHelpClick = async () => {
-    if (projectId) {
-      setIsLoading(true);
-      try {
-        const project = await getProjectById(projectId);
-        setProjectData(project);
-        setShowTutorial(true);
-      } catch (error) {
-        console.error("Error loading project for tutorial:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
-
-  const handleCloseTutorial = () => {
-    setShowTutorial(false);
-    setProjectData(null);
-  };
+  const sections = [
+    { key: 'chat', icon: <MessageSquare className="w-4 h-4" /> },
+    { key: 'modes', icon: <Compass className="w-4 h-4" /> },
+    { key: 'toolbar', icon: <MousePointerClick className="w-4 h-4" /> },
+    { key: 'theme', icon: <Palette className="w-4 h-4" /> },
+    { key: 'publish', icon: <Rocket className="w-4 h-4" /> },
+  ] as const;
 
   return (
     <>
-      <button
-        onClick={handleHelpClick}
-        disabled={isLoading}
-        className="p-2 rounded-lg hover:bg-surface-2 text-text-tertiary hover:text-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        title="Show Tutorial"
-      >
-        {isLoading ? (
-          <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-        ) : (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        )}
-      </button>
+      <Button
+        variant="icon"
+        onClick={() => setOpen(true)}
+        title={t('help.title')}
+        aria-label={t('help.title')}
+        icon={<HelpCircle className="w-4 h-4" />}
+      />
 
       <Modal
-        open={showTutorial}
-        onCancel={handleCloseTutorial}
+        open={open}
+        onCancel={() => setOpen(false)}
         footer={null}
-        width={800}
+        width={620}
         centered
-        className="tutorial-modal"
-        styles={{
-          content: { 
-            backgroundColor: "var(--color-bg-light)",
-            padding: 0
-          },
-          header: { 
-            display: "none" 
-          },
-        }}
         destroyOnClose
+        styles={{
+          content: {
+            backgroundColor: 'var(--idem-surface-1)',
+            padding: 0,
+            borderRadius: 16,
+            border: '1px solid var(--glass-border)',
+          },
+          body: { padding: 0 },
+          header: { display: 'none' },
+        }}
       >
-        {projectData && (
-          <ProjectTutorial
-            projectData={projectData}
-            onClose={handleCloseTutorial}
-          />
-        )}
+        <div className="p-6">
+          <div className="flex items-start gap-5 mb-5">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-lg font-semibold text-text-primary">{t('help.title')}</h3>
+              <p className="mt-1 text-sm text-text-secondary text-pretty">{t('help.subtitle')}</p>
+            </div>
+            <HelpIllustration size={72} className="hidden sm:block shrink-0" />
+          </div>
+
+          <dl className="space-y-3.5">
+            {sections.map(({ key, icon }) => (
+              <div key={key} className="flex gap-3">
+                <span className="shrink-0 w-8 h-8 grid place-items-center rounded-lg bg-primary/12 text-primary">
+                  {icon}
+                </span>
+                <div className="min-w-0">
+                  <dt className="text-sm font-medium text-text-primary">
+                    {t(`help.sections.${key}.title`)}
+                  </dt>
+                  <dd className="mt-0.5 text-[13px] text-text-secondary leading-relaxed text-pretty">
+                    {t(`help.sections.${key}.body`)}
+                  </dd>
+                </div>
+              </div>
+            ))}
+          </dl>
+
+          <div className="mt-6 pt-4 border-t border-[var(--glass-border)] flex items-center justify-between gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setOpen(false);
+                restartTour();
+              }}
+            >
+              {t('help.tour')}
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => setOpen(false)}>
+              {t('help.gotIt')}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </>
   );
 }
+
+export default HelpButton;

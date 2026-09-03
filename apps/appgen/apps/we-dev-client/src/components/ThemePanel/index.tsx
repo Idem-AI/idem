@@ -7,6 +7,7 @@ import {
   type ForgeOverrides,
   type ForgeResponse,
 } from '@/api/design';
+import Button from '@/components/ui/Button';
 
 interface ThemePanelProps {
   projectData?: unknown;
@@ -87,13 +88,9 @@ export function ThemePanel({ projectData, onApply }: ThemePanelProps) {
         <div className="max-w-sm space-y-3">
           <AlertTriangle className="w-7 h-7 mx-auto text-warning" />
           <p className="text-sm text-text-secondary">{t('theme.error')}</p>
-          <button
-            type="button"
-            onClick={() => load(overrides)}
-            className="h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium hover:brightness-110 transition"
-          >
+          <Button variant="primary" size="sm" onClick={() => load(overrides)}>
             {t('common.retry')}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -113,24 +110,24 @@ export function ThemePanel({ projectData, onApply }: ThemePanelProps) {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {hasOverrides && (
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={reset}
-                className="h-9 px-3 flex items-center gap-1.5 rounded-lg border border-[var(--glass-border)] text-sm text-text-secondary hover:text-text-primary hover:bg-surface-2 transition-colors"
+                icon={<RotateCcw className="w-4 h-4" />}
               >
-                <RotateCcw className="w-4 h-4" />
                 {t('theme.reset')}
-              </button>
+              </Button>
             )}
             {onApply && (
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => onApply(system, brief)}
-                className="h-9 px-4 flex items-center gap-1.5 rounded-lg bg-primary text-white text-sm font-medium hover:brightness-110 active:brightness-95 transition"
+                icon={<Sparkles className="w-4 h-4" />}
               >
-                <Sparkles className="w-4 h-4" />
                 {t('theme.apply')}
-              </button>
+              </Button>
             )}
           </div>
         </header>

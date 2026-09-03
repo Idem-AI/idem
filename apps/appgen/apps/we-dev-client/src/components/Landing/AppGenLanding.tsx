@@ -6,6 +6,7 @@ import type { UserModel } from '@/api/persistence/userModel';
 import { UserProfile } from '../Header/UserProfile';
 import { redirectToLogin } from '@/hooks/useAuth';
 import { Brand } from '@/components/Brand';
+import Button, { ButtonLink } from '@/components/ui/Button';
 import { AppGenPricing } from './AppGenPricing';
 
 const PENDING_PROMPT_KEY = 'appgen_pending_prompt';
@@ -71,13 +72,13 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
           {currentUser ? (
             <UserProfile user={currentUser} />
           ) : (
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => (window.location.href = `${DASHBOARD_URL}/login?from=appgen`)}
-              className="h-9 px-4 rounded-lg border border-[var(--glass-border-medium)] text-sm text-text-primary hover:bg-surface-2 transition-colors"
             >
               Se connecter
-            </button>
+            </Button>
           )}
         </div>
       </nav>
@@ -111,15 +112,15 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
             />
             <div className="flex items-center justify-between gap-3 px-5 pb-4">
               <span className="text-xs text-text-disabled">Entrée pour lancer</span>
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => handleStart()}
                 disabled={!inputValue.trim()}
-                className="h-10 px-5 flex items-center gap-2 rounded-lg bg-primary text-white text-sm font-medium hover:brightness-110 active:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
                 Générer
                 <ArrowRight className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -156,14 +157,10 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
                 Vous écrivez ce que vous voulez construire, iCode choisit une direction visuelle
                 propre à votre projet et génère l'application. Rien à configurer.
               </p>
-              <button
-                type="button"
-                onClick={() => handleStart()}
-                className="mt-5 h-9 px-4 inline-flex items-center gap-1.5 rounded-lg bg-primary text-white text-sm font-medium hover:brightness-110 transition"
-              >
+              <Button variant="primary" size="sm" onClick={() => handleStart()} className="mt-5">
                 Commencer ici
                 <ArrowRight className="w-4 h-4" />
-              </button>
+              </Button>
             </article>
 
             <article className="p-6 rounded-2xl border border-[var(--glass-border)] bg-surface-1">
@@ -173,13 +170,15 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
                 déjà produit sur votre projet alimente la génération. Le code sort aligné sur votre
                 marque, pas sur une palette générique.
               </p>
-              <a
+              <ButtonLink
+                variant="secondary"
+                size="sm"
                 href={`${DASHBOARD_URL}/projects`}
-                className="mt-5 h-9 px-4 inline-flex items-center gap-1.5 rounded-lg border border-[var(--glass-border-medium)] text-sm text-text-primary hover:bg-surface-2 transition-colors"
+                className="mt-5"
               >
                 Ouvrir mes projets
                 <ArrowRight className="w-4 h-4" />
-              </a>
+              </ButtonLink>
             </article>
           </div>
         </div>
@@ -227,14 +226,10 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
           <p className="mt-3 text-text-secondary">
             La génération est gratuite pour commencer. Aucune carte bancaire.
           </p>
-          <button
-            type="button"
-            onClick={() => handleStart()}
-            className="mt-7 h-11 px-6 inline-flex items-center gap-2 rounded-lg bg-primary text-white font-medium hover:brightness-110 active:brightness-95 transition"
-          >
+          <Button variant="primary" size="md" onClick={() => handleStart()} className="mt-7">
             Ouvrir iCode
             <ArrowRight className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       </section>
 

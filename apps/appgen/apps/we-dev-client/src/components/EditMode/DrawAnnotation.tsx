@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pencil, ArrowUpRight, Square, Circle, Eraser, Send, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import Button from '@/components/ui/Button';
 
 export type AnnotationShape = 'free' | 'arrow' | 'rect' | 'ellipse';
 
@@ -222,15 +223,15 @@ export function DrawAnnotation({
             placeholder={t('draw.placeholder')}
             className="flex-1 h-9 px-3 rounded-lg bg-surface-2 border border-[var(--glass-border)] text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-primary"
           />
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            size="sm"
             onClick={submit}
             disabled={!strokes.length}
-            className="h-9 px-3 flex items-center gap-1.5 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 transition"
+            icon={<Send className="w-4 h-4" />}
           >
-            <Send className="w-4 h-4" />
             {t('draw.send')}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

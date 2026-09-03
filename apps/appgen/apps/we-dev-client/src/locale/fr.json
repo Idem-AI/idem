@@ -14,7 +14,10 @@
     "please_login": "Veuillez vous connecter pour consulter votre quota",
     "format": "Formater",
     "formatting": "Formatage en cours...",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "back": "Retour",
+    "collapse": "Replier",
+    "expand": "Déplier"
   },
   "chat": {
     "urlInput": {
@@ -230,7 +233,13 @@
     "zoomIn": "Agrandir",
     "zoomOut": "Réduire",
     "zoomReset": "Taille réelle",
-    "openExternal": "Ouvrir dans un onglet"
+    "openExternal": "Ouvrir dans un onglet",
+    "run": "Exécuter",
+    "running": "Démarrage…",
+    "runHint": "Installe les dépendances puis démarre le serveur de développement",
+    "restart": "Redémarrer",
+    "noserverTitle": "Rien à afficher pour l'instant",
+    "runFailed": "Le démarrage a échoué. Ouvrez le terminal pour voir le détail."
   },
   "editor": {
     "editor": "Éditeur",
@@ -277,7 +286,11 @@
     "modePlanHint": "Lit le projet et répond, sans jamais modifier le code",
     "modeBuildHint": "Écrit et modifie le code du projet",
     "creditsTitle": "{{used}} crédits utilisés sur {{total}}",
-    "moreActions": "Autres actions"
+    "moreActions": "Autres actions",
+    "account": "Votre compte",
+    "plan": "Plan {{plan}}",
+    "idemDashboard": "Tableau de bord Idem",
+    "signOut": "Se déconnecter"
   },
   "explorer": {
     "clear_all": "Tout effacer",
@@ -467,7 +480,9 @@
     "login_required": "Connexion requise",
     "connect_idem_title": "Connecter à un projet Idem",
     "connect_idem_subtitle": "Créer ou associer à un projet existant",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "live": "En ligne",
+    "open_pipeline": "Ouvrir iDeploy"
   },
   "editMode": {
     "hint": "Clic pour sélectionner · recliquer pour l'élément en dessous · Maj+clic multi · double-clic éditer · glisser réordonner · Suppr supprimer",
@@ -681,5 +696,39 @@
     "emptyTitle": "Rien à analyser pour l'instant",
     "emptyBody": "Les contrôles se lancent dès la première génération.",
     "error": "L'analyse n'a pas pu aboutir. Réessayez dans un instant."
+  },
+  "codeLoad": {
+    "failedTitle": "Votre code n'a pas pu être récupéré",
+    "failedBody": "Le code de ce projet est bien enregistré, mais la récupération a échoué. C'est en général passager.",
+    "retry": "Réessayer",
+    "continue": "Continuer sans"
+  },
+  "help": {
+    "title": "Prendre iCode en main",
+    "subtitle": "Décrivez ce que vous voulez, iCode écrit l'application. Voici ce que vous pouvez faire ensuite.",
+    "sections": {
+      "chat": {
+        "title": "Décrire, puis affiner",
+        "body": "Écrivez votre demande en langage courant. Chaque échange met à jour le code et dépose un point de restauration, accessible depuis le menu ⋯."
+      },
+      "modes": {
+        "title": "Plan ou Build",
+        "body": "Build modifie le code. Plan ne le modifie jamais : il lit vos fichiers et vos journaux pour répondre à « pourquoi ça plante » sans rien réécrire."
+      },
+      "toolbar": {
+        "title": "Modifier depuis l'aperçu",
+        "body": "La barre flottante sur l'aperçu propose quatre outils : naviguer, sélectionner un élément pour en parler à l'IA, corriger un texte au clic (sans consommer de crédit), ou dessiner ce que vous voulez changer."
+      },
+      "theme": {
+        "title": "Thème et contrôles",
+        "body": "L'onglet Thème montre la palette calculée pour votre projet avec ses contrastes mesurés. L'onglet Contrôles signale les problèmes de design et de sécurité avant publication."
+      },
+      "publish": {
+        "title": "Publier",
+        "body": "Le bouton Publier met votre application en ligne. Le code reste du React standard : vous pouvez le télécharger ou l'envoyer sur GitHub depuis le menu ⋯."
+      }
+    },
+    "tour": "Revoir la visite guidée",
+    "gotIt": "J'ai compris"
   }
 }

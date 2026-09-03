@@ -14,8 +14,18 @@ import { DeployModal } from '../DeployModal/DeployModal';
 import useAppGenContextStore from '@/stores/appgenContextSlice';
 import { UserProfile } from './UserProfile';
 import type { UserModel } from '@/api/persistence/userModel';
-import { Rocket, Loader2, MoreHorizontal, Download, Github } from 'lucide-react';
+import {
+  Rocket,
+  MoreHorizontal,
+  Download,
+  Github,
+  History,
+  ChevronRight,
+  ChevronLeft,
+} from 'lucide-react';
 import Popover from '@/components/ui/Popover';
+import Button from '@/components/ui/Button';
+import { VersionList } from './VersionHistory';
 import {
   loadDeployment,
   persistDeployment,
@@ -265,78 +275,34 @@ export function HeaderActions() {
     <div className="flex items-center gap-1.5">
       {mode === ChatMode.Builder && (
         <>
-          {/* État de publication. Tant que rien n'est en ligne, rien ne
-              s'affiche ; dès qu'il y a une URL, elle est atteignable ici plutôt
-              qu'enfouie dans une modale de succès déjà refermée. */}
-          {deployment?.url && (
-            <a
-              href={deployment.url}
-              target="_blank"
-              rel="noreferrer"
-              className="h-8 px-2.5 hidden md:flex items-center gap-1.5 rounded-lg text-xs text-success hover:bg-surface-2 transition-colors max-w-[180px]"
-              title={deployment.url}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-success shrink-0" aria-hidden />
-              <span className="truncate">{deployment.url.replace(/^https?:\/\//, '')}</span>
-            </a>
-          )}
-
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            size="sm"
             onClick={handleDeployClick}
-            disabled={isDeploying}
-            className="h-8 px-3 flex items-center gap-1.5 rounded-lg bg-primary text-white text-[13px] font-medium hover:brightness-110 active:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed transition"
+            loading={isDeploying}
+            icon={<Rocket className="w-4 h-4" />}
           >
-            {isDeploying ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Rocket className="w-3.5 h-3.5" />
-            )}
-            <span>
-              {isDeploying
-                ? t('header.deploying')
-                : deployment
-                  ? t('header.redeploy')
-                  : t('header.deploy')}
-            </span>
-          </button>
+            {isDeploying
+              ? t('header.deploying')
+              : deployment
+                ? t('header.redeploy')
+                : t('header.deploy')}
+          </Button>
 
           <Popover
             label={t('header.moreActions')}
-            className="w-56"
+            className="w-72"
             trigger={(triggerProps) => (
-              <button
-                type="button"
+              <Button
                 {...triggerProps}
+                variant="icon"
                 title={t('header.moreActions')}
                 aria-label={t('header.moreActions')}
-                className="w-8 h-8 grid place-items-center rounded-lg text-text-tertiary hover:text-text-primary hover:bg-surface-2 transition-colors"
-              >
-                <MoreHorizontal className="w-4 h-4" />
-              </button>
+                icon={<MoreHorizontal className="w-4 h-4" />}
+              />
             )}
           >
-            {(close) => (
-              <div className="py-1">
-                <MenuItem
-                  icon={<Download className="w-4 h-4" />}
-                  label={t('header.download')}
-                  onClick={() => {
-                    handleDownload();
-                    close();
-                  }}
-                />
-                <MenuItem
-                  icon={<Github className="w-4 h-4" />}
-                  label={isSendingToGitHub ? t('header.github.sending') : t('header.github.send')}
-                  disabled={isSendingToGitHub}
-                  onClick={() => {
-                    handleSendToGitHub();
-                    close();
-                  }}
-                />
-              </div>
-            )}
+            {(close) => <ActionsMenu close={close} onDownload={handleDownload} onGitHub={handleSendToGitHub} sendingToGitHub={isSendingToGitHub} />}
           </Popover>
         </>
       )}
@@ -348,6 +314,7 @@ export function HeaderActions() {
         open={showDeployChoiceModal}
         onClose={() => setShowDeployChoiceModal(false)}
         onNetlifyDeploy={publishToNetlify}
+        liveUrl={deployment?.url ?? null}
       />
 
       {showModal && (
@@ -477,11 +444,13 @@ function MenuItem({
   label,
   onClick,
   disabled,
+  trailing,
 }: {
   icon: React.ReactNode;
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  trailing?: React.ReactNode;
 }) {
   return (
     <button
@@ -491,7 +460,74 @@ function MenuItem({
       className="w-full h-9 px-3 flex items-center gap-2.5 text-[13px] text-text-secondary hover:text-text-primary hover:bg-surface-2 disabled:opacity-40 disabled:hover:bg-transparent transition-colors text-left"
     >
       {icon}
-      {label}
+      <span className="flex-1">{label}</span>
+      {trailing}
     </button>
+  );
+}
+
+function ActionsMenu({
+  close,
+  onDownload,
+  onGitHub,
+  sendingToGitHub,
+}: {
+  close: () => void;
+  onDownload: () => void;
+  onGitHub: () => void;
+  sendingToGitHub: boolean;
+}) {
+  const { t } = useTranslation();
+  const [page, setPage] = useState<'menu' | 'versions'>('menu');
+
+  if (page === 'versions') {
+    return (
+      <div>
+        <div className="flex items-center gap-2 px-2 py-2 border-b border-[var(--glass-border)]">
+          <button
+            type="button"
+            onClick={() => setPage('menu')}
+            aria-label={t('common.back')}
+            className="w-7 h-7 grid place-items-center rounded-md text-text-tertiary hover:text-text-primary hover:bg-surface-2 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-text-primary">{t('versions.title')}</p>
+            <p className="text-[11px] text-text-tertiary">{t('versions.hint')}</p>
+          </div>
+        </div>
+        <VersionList onDone={close} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-1">
+      <MenuItem
+        icon={<History className="w-4 h-4" />}
+        label={t('versions.title')}
+        onClick={() => setPage('versions')}
+        trailing={<ChevronRight className="w-4 h-4 text-text-disabled" />}
+      />
+      <div className="my-1 h-px bg-[var(--glass-border)]" />
+      <MenuItem
+        icon={<Download className="w-4 h-4" />}
+        label={t('header.download')}
+        onClick={() => {
+          onDownload();
+          close();
+        }}
+      />
+      <MenuItem
+        icon={<Github className="w-4 h-4" />}
+        label={sendingToGitHub ? t('header.github.sending') : t('header.github.send')}
+        disabled={sendingToGitHub}
+        onClick={() => {
+          onGitHub();
+          close();
+        }}
+      />
+    </div>
   );
 }
