@@ -141,6 +141,7 @@
       "subheading": "Le moteur cherche les facteurs qui peuvent faire basculer votre activité, les met sous tension, et vous dit où votre modèle casse. Commencez par ce que vous avez déjà.",
       "choose": "Choisir",
       "selected": "Sélectionné",
+      "trustedBy": "Ils nous font confiance",
       "note": "Une simulation est un outil d'aide à la décision, jamais une prédiction. Chaque résultat est accompagné de son degré de confiance."
     },
     "confirm": {

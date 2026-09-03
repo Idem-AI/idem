@@ -373,6 +373,10 @@
         {{ 'newRun.hero.note' | translate }}
       </p>
     </section>
+
+    <!-- Les communautés qui nous accompagnent : seulement sur l'écran
+         d'accueil, pas au milieu du formulaire. -->
+    <idem-trusted-by [label]="'newRun.hero.trustedBy' | translate" />
   }
 
   @if (step() !== 'source') {

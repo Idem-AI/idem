@@ -748,14 +748,18 @@
       "placeholder": "A dashboard to track deliveries in Dakar…",
       "hint": "Press Enter to start",
       "cta": "Generate",
-      "tryLabel": "Or start from an example"
+      "titleLead": "Describe your idea,",
+      "titleAccent": "iCode writes the app",
+      "placeholders": [
+        "Ask iCode for a savings-circle manager…",
+        "Ask iCode for a delivery tracking dashboard…",
+        "Ask iCode for a landing page for a fintech startup…",
+        "Ask iCode for a marketplace between freelancers and companies…",
+        "Ask iCode for a booking space for a hair salon…"
+      ],
+      "scroll": "Explore"
     },
-    "examples": {
-      "tontine": "A savings-circle manager for a neighbourhood association",
-      "delivery": "A delivery tracking dashboard for an online shop",
-      "fintech": "A landing page for a fintech startup",
-      "marketplace": "A marketplace between freelancers and companies"
-    },
+    "trustedBy": "Trusted by",
     "entries": {
       "title": "Two ways to start",
       "lede": "One sentence is enough. And if your project is already analysed on Idem, iCode starts from what exists.",
@@ -918,5 +922,25 @@
         ]
       }
     }
+  },
+  "composer": {
+    "label": "Describe the app to build",
+    "attach": "Attach an image, a PDF or a Markdown file",
+    "dictate": "Dictate",
+    "stopDictation": "Stop dictation",
+    "dictationUnsupported": "Dictation is not supported in this browser.",
+    "dictationFailed": "Dictation stopped unexpectedly.",
+    "submit": "Generate",
+    "removeFile": "Remove {{name}}",
+    "tooLarge": "{{name}} is larger than 10 MB.",
+    "attachmentsFailed": "Attachments could not be forwarded; generation starts without them."
+  },
+  "signIn": {
+    "title": "One account, then we start",
+    "body": "Your request is saved. Sign in and the generation picks up exactly where you left it.",
+    "savedPrompt": "Your request",
+    "cta": "Sign in",
+    "later": "Later",
+    "free": "Creating an account is free and takes under a minute."
   }
 }

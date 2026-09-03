@@ -90,9 +90,18 @@ export default defineConfig(async ({ mode, command }) => {
         '@': path.resolve(__dirname, 'src'),
         // Moteur de visite guidée partagé par toutes les applications Idem.
         '@idem/shared-tour': path.resolve(__dirname, '../../../../packages/shared-tour/src'),
+        // Bandeau « Ils nous font confiance », partagé par les landing pages.
+        '@idem/shared-trusted-by': path.resolve(
+          __dirname,
+          '../../../../packages/shared-trusted-by/src',
+        ),
         '@sketch-hq/sketch-file-format-ts': '@sketch-hq/sketch-file-format-ts',
         'ag-psd': 'ag-psd',
       },
+      // Les paquets partagés vivent hors de `node_modules` : sans cette ligne,
+      // leur `import ... from 'react'` remonterait au React hissé à la racine
+      // du monorepo et l'application se retrouverait avec deux copies.
+      dedupe: ['react', 'react-dom'],
     },
 
     optimizeDeps: {

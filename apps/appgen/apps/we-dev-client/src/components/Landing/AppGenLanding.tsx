@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, ChevronDown } from 'lucide-react';
 import useAppGenContextStore from '@/stores/appgenContextSlice';
 import { getCurrentUser } from '@/api/persistence/db';
+import { uploadImage } from '@/api/chat';
+import useChatStore from '@/stores/chatSlice';
+import { toast } from 'react-toastify';
 import type { UserModel } from '@/api/persistence/userModel';
 import { UserProfile } from '../Header/UserProfile';
 import { redirectToLogin } from '@/hooks/useAuth';
@@ -10,6 +13,8 @@ import { Brand } from '@/components/Brand';
 import Button, { ButtonLink } from '@/components/ui/Button';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import LanguageToggle from '@/components/ui/LanguageToggle';
+import PromptComposer, { type ComposerAttachment } from '@/components/ui/PromptComposer';
+import { SignInPrompt } from './SignInPrompt';
 import {
   ProductMockIllustration,
   ArtDirectionIllustration,
@@ -18,12 +23,10 @@ import {
   PublishPipelineIllustration,
 } from '@/components/ui/Illustrations';
 import { AppGenPricing } from './AppGenPricing';
+import { TrustedBy } from '@idem/shared-trusted-by/react';
 
 const PENDING_PROMPT_KEY = 'appgen_pending_prompt';
 const DASHBOARD_URL = process.env.REACT_APP_IDEM_MAIN_APP_URL || 'http://localhost:4200';
-
-/** Clés d'exemples ; les textes vivent dans les fichiers de langue. */
-const EXAMPLE_KEYS = ['tontine', 'delivery', 'fintech', 'marketplace'] as const;
 
 interface AppGenLandingProps {
   onStart: (prompt?: string) => void;
@@ -47,37 +50,79 @@ interface AppGenLandingProps {
 export function AppGenLanding({ onStart }: AppGenLandingProps) {
   const { t } = useTranslation();
   const [inputValue, setInputValue] = useState('');
+  const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
   const [currentUser, setCurrentUser] = useState<UserModel | null>(null);
+  const [signInOpen, setSignInOpen] = useState(false);
   const { initDraft } = useAppGenContextStore();
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     getCurrentUser().then(setCurrentUser);
   }, []);
 
-  const handleStart = (prompt?: string) => {
-    const finalPrompt = prompt || inputValue.trim() || undefined;
+  // Les invites défilent dans le champ. `returnObjects` rend la clé elle-même
+  // quand elle manque : le garde-fou évite d'afficher un identifiant brut.
+  const rawPlaceholders = t('landing.hero.placeholders', { returnObjects: true });
+  const placeholders = Array.isArray(rawPlaceholders) ? (rawPlaceholders as string[]) : [];
+
+  /**
+   * Transmet les pièces jointes à la conversation.
+   *
+   * Les images rejoignent le store du chat, qui les envoie au modèle. Les
+   * fichiers texte sont lus ici et joints à la demande : leur contenu est
+   * exploitable tel quel comme contexte, contrairement à un nom de fichier.
+   */
+  const forwardAttachments = async (prompt: string | undefined) => {
+    if (!attachments.length) return prompt;
+
+    const images = attachments.filter((item) => item.kind === 'image');
+    const documents = attachments.filter((item) => item.kind === 'document');
+
+    if (images.length) {
+      const uploaded = await Promise.all(
+        images.map(async (item) => ({
+          id: item.id,
+          file: item.file,
+          url: await uploadImage(item.file),
+          localUrl: item.preview ?? '',
+          status: 'done' as const,
+        }))
+      );
+      useChatStore.getState().addImages(uploaded);
+    }
+
+    if (!documents.length) return prompt;
+
+    const contents = await Promise.all(
+      documents.map(async (item) => `--- ${item.file.name} ---\n${await item.file.text()}`)
+    );
+
+    return [prompt, ...contents].filter(Boolean).join('\n\n');
+  };
+
+  const handleStart = async (prompt?: string) => {
+    const typed = prompt || inputValue.trim() || undefined;
+
     if (!currentUser) {
-      if (finalPrompt) localStorage.setItem(PENDING_PROMPT_KEY, finalPrompt);
-      redirectToLogin('generate');
+      // La demande est mise de côté avant toute chose : c'est elle qui sera
+      // rejouée après la connexion, et la modale s'appuie dessus pour montrer
+      // qu'elle n'est pas perdue.
+      if (typed) localStorage.setItem(PENDING_PROMPT_KEY, typed);
+      setSignInOpen(true);
       return;
     }
+
+    let finalPrompt = typed;
+    try {
+      finalPrompt = await forwardAttachments(typed);
+    } catch (error) {
+      // Une pièce jointe illisible ne doit pas empêcher de lancer la
+      // génération : on part avec la demande écrite.
+      console.warn('[landing] pièces jointes non transmises', error);
+      toast.error(t('composer.attachmentsFailed'));
+    }
+
     initDraft();
     onStart(finalPrompt);
-  };
-
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      if (inputValue.trim()) handleStart();
-    }
-  };
-
-  /** Un exemple ne part pas seul : il remplit le champ et rend la main, pour
-   *  qu'on puisse l'ajuster avant de lancer. */
-  const useExample = (text: string) => {
-    setInputValue(text);
-    textareaRef.current?.focus();
   };
 
   return (
@@ -112,75 +157,56 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
       </nav>
 
       {/* ---------------- Hero ---------------- */}
-      <section className="relative px-4 pt-32 pb-16 sm:pt-40">
-        {/* Halo discret derrière le champ : il désigne le point d'entrée sans
-            devenir un décor. */}
+      {/* Pleine hauteur : la page s'ouvre sur une seule chose à faire — écrire
+          la phrase. Le motif de marque donne la matière du fond, comme sur les
+          autres surfaces Idem. */}
+      <section className="relative min-h-screen flex flex-col justify-center px-4 pt-24 pb-20 motif-surface">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-24 mx-auto h-72 w-[min(680px,90%)] rounded-full bg-primary/10 blur-3xl"
+          className="pointer-events-none absolute inset-x-0 top-1/4 mx-auto h-80 w-[min(720px,92%)] rounded-full bg-primary/10 blur-3xl"
         />
 
-        <div className="relative max-w-3xl mx-auto text-center">
-          <h1 className="text-[clamp(2.25rem,6vw,3.75rem)] font-bold leading-[1.06] tracking-[-0.03em] text-balance">
-            {t('landing.hero.title1')}
-            <br />
-            <span className="text-primary">{t('landing.hero.title2')}</span>
+        <div className="relative w-full max-w-3xl mx-auto text-center">
+          <h1 className="text-[clamp(2.25rem,6.5vw,4rem)] font-bold leading-[1.08] tracking-[-0.03em] text-balance">
+            {t('landing.hero.titleLead')}{' '}
+            <span className="i-underline">{t('landing.hero.titleAccent')}</span>
           </h1>
 
-          <p className="mt-5 mx-auto max-w-xl text-base sm:text-lg text-text-secondary text-pretty">
+          <p className="mt-7 mx-auto max-w-xl text-base sm:text-lg text-text-secondary text-pretty">
             {t('landing.hero.lede')}
           </p>
 
-          <div className="mt-9 rounded-2xl border border-[var(--glass-border-medium)] bg-surface-1 shadow-[var(--glass-shadow-lg)] overflow-hidden text-left focus-within:border-primary transition-colors">
-            <label htmlFor="idea" className="sr-only">
-              {t('landing.hero.placeholder')}
-            </label>
-            <textarea
-              id="idea"
-              ref={textareaRef}
-              value={inputValue}
-              onChange={(event) => setInputValue(event.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={t('landing.hero.placeholder')}
-              rows={3}
-              className="w-full bg-transparent text-text-primary placeholder:text-text-disabled text-base p-5 resize-none focus:outline-none"
-            />
-            <div className="flex items-center justify-between gap-3 px-4 pb-4">
-              <span className="text-xs text-text-disabled">{t('landing.hero.hint')}</span>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => handleStart()}
-                disabled={!inputValue.trim()}
-                icon={<Sparkles className="w-4 h-4" />}
-              >
-                {t('landing.hero.cta')}
-              </Button>
-            </div>
-          </div>
-
-          <p className="mt-6 text-xs text-text-disabled">{t('landing.hero.tryLabel')}</p>
-          <div className="mt-3 flex flex-wrap justify-center gap-2">
-            {EXAMPLE_KEYS.map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => useExample(t(`landing.examples.${key}`))}
-                className="text-[13px] text-text-tertiary hover:text-text-primary border border-[var(--glass-border)] hover:border-primary/50 rounded-full px-3.5 py-1.5 transition-colors"
-              >
-                {t(`landing.examples.${key}`)}
-              </button>
-            ))}
-          </div>
+          <PromptComposer
+            className="mt-10 text-left"
+            value={inputValue}
+            onChange={setInputValue}
+            onSubmit={() => handleStart()}
+            placeholders={placeholders}
+            attachments={attachments}
+            onAttachmentsChange={setAttachments}
+          />
         </div>
 
-        {/* Maquette du produit : ce qu'on obtient après avoir écrit la phrase. */}
-        <div className="relative mt-16 max-w-5xl mx-auto">
-          <div className="rounded-2xl border border-[var(--glass-border)] bg-surface-1 p-3 sm:p-5 shadow-[var(--glass-shadow-xl)]">
-            <ProductMockIllustration />
-          </div>
+        {/* Repère de défilement : la pleine hauteur cache ce qui suit, il faut
+            dire qu'il y a une suite. */}
+        <a
+          href="#how"
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-xs text-text-disabled hover:text-text-secondary transition-colors"
+        >
+          {t('landing.hero.scroll')}
+          <ChevronDown className="w-4 h-4 animate-bounce" />
+        </a>
+      </section>
+
+      {/* ---------------- Le produit ---------------- */}
+      <section className="px-4 pb-20">
+        <div className="max-w-5xl mx-auto rounded-2xl border border-[var(--glass-border)] bg-surface-1 p-3 sm:p-5 shadow-[var(--glass-shadow-xl)]">
+          <ProductMockIllustration />
         </div>
       </section>
+
+      {/* ---------------- Ils nous font confiance ---------------- */}
+      <TrustedBy label={t('landing.trustedBy')} />
 
       {/* ---------------- Deux points d'entrée ---------------- */}
       <section id="how" className="px-4 py-20 border-t border-[var(--glass-border-subtle)]">
@@ -268,6 +294,13 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
           </div>
         </div>
       </section>
+
+      <SignInPrompt
+        open={signInOpen}
+        prompt={inputValue.trim() || undefined}
+        onClose={() => setSignInOpen(false)}
+        onSignIn={() => redirectToLogin('generate')}
+      />
 
       <footer className="px-4 py-10 border-t border-[var(--glass-border-subtle)]">
         <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4">

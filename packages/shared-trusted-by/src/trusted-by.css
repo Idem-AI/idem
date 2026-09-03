@@ -1,0 +1,159 @@
+/*
+ * Bandeau « Ils nous font confiance » — feuille de style unique, partagée par
+ * les rendus Angular, React et Blade.
+ *
+ * La piste est rendue deux fois côte à côte et translatée de -100 % : la
+ * seconde copie prend le relais au moment exact où la première sort du cadre,
+ * d'où la boucle sans couture. Seule la première est lisible par les
+ * technologies d'assistance ; la seconde porte `aria-hidden`.
+ *
+ * Les couleurs viennent des variables du design system partagé
+ * (`@idem/shared-styles`), avec des valeurs de repli pour rester correct dans
+ * une application qui ne les définit pas.
+ */
+
+.idem-trusted-by {
+  display: block;
+  width: 100%;
+  position: relative;
+  z-index: 10;
+  padding: 1.5rem 0;
+  border-top: 1px solid var(--glass-border-subtle, rgba(128, 128, 128, 0.15));
+  background: transparent;
+}
+
+.idem-trusted-by__label {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: 80rem;
+  margin: 0 auto 1.5rem;
+  padding: 0 1.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary, rgba(128, 128, 128, 0.75));
+}
+
+.idem-trusted-by__label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--glass-border-subtle, rgba(128, 128, 128, 0.15));
+}
+
+.idem-trusted-by__viewport {
+  display: flex;
+  width: 100%;
+  margin: 0 auto;
+  overflow: hidden;
+  user-select: none;
+  -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+}
+
+.idem-trusted-by__track {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-around;
+  min-width: 100%;
+  gap: 5rem;
+  padding-right: 5rem;
+  animation: idem-trusted-by-scroll 60s linear infinite;
+}
+
+.idem-trusted-by__viewport:hover .idem-trusted-by__track,
+.idem-trusted-by__viewport:focus-within .idem-trusted-by__track {
+  animation-play-state: paused;
+}
+
+@keyframes idem-trusted-by-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+.idem-trusted-by__link {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 160px;
+}
+
+.idem-trusted-by__logo {
+  height: 3rem;
+  width: auto;
+  object-fit: contain;
+  opacity: 0.85;
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease,
+    filter 0.4s ease;
+}
+
+@media (min-width: 768px) {
+  .idem-trusted-by__logo {
+    height: 3.5rem;
+  }
+}
+
+.idem-trusted-by__logo:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/*
+ * Thème sombre : les logos sont dessinés pour un fond clair, on les inverse.
+ * Deux conventions coexistent dans le parc — la classe `.dark` (landing,
+ * iDeploy web, iCode) et l'attribut `data-theme` (iDeploy, Laravel) — et une
+ * règle invalide annulerait tout le sélecteur : chacune a donc sa règle.
+ */
+.dark .idem-trusted-by__logo {
+  filter: invert(1) grayscale(100%) brightness(1.5);
+  opacity: 0.6;
+}
+
+.dark .idem-trusted-by__logo:hover {
+  filter: grayscale(0%) brightness(1);
+  opacity: 1;
+}
+
+[data-theme='dark'] .idem-trusted-by__logo {
+  filter: invert(1) grayscale(100%) brightness(1.5);
+  opacity: 0.6;
+}
+
+[data-theme='dark'] .idem-trusted-by__logo:hover {
+  filter: grayscale(0%) brightness(1);
+  opacity: 1;
+}
+
+/*
+ * « Réduire les animations » : le bandeau devient une bande défilable à la
+ * main, et la copie décorative disparaît pour ne pas doubler les logos.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .idem-trusted-by__viewport {
+    overflow-x: auto;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .idem-trusted-by__track {
+    animation: none;
+  }
+
+  .idem-trusted-by__track[aria-hidden='true'] {
+    display: none;
+  }
+
+  .idem-trusted-by__logo:hover {
+    transform: none;
+  }
+}
