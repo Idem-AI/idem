@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { ArrowRight, Palette, Contrast, ShieldCheck, MousePointerClick } from 'lucide-react';
 import useAppGenContextStore from '@/stores/appgenContextSlice';
 import { getCurrentUser } from '@/api/persistence/db';
 import type { UserModel } from '@/api/persistence/userModel';
 import { UserProfile } from '../Header/UserProfile';
 import { redirectToLogin } from '@/hooks/useAuth';
+import { Brand } from '@/components/Brand';
 import { AppGenPricing } from './AppGenPricing';
 
 const PENDING_PROMPT_KEY = 'appgen_pending_prompt';
@@ -14,14 +15,15 @@ interface AppGenLandingProps {
 }
 
 const EXAMPLE_PROMPTS = [
-  'Une application de gestion de tontines pour les communautés africaines',
-  'Un dashboard de suivi des livraisons pour un e-commerce à Dakar',
-  'Une landing page pour une startup fintech à Lagos',
-  'Une plateforme de mise en relation entre freelances et entreprises à Abidjan',
+  'Une application de gestion de tontines pour une association de quartier',
+  'Un tableau de bord de suivi des livraisons pour un e-commerce à Dakar',
+  'Un site vitrine pour une startup fintech à Lagos',
+  'Une place de marché entre freelances et entreprises à Abidjan',
 ];
 
+const DASHBOARD_URL = process.env.REACT_APP_IDEM_MAIN_APP_URL || 'http://localhost:4200';
+
 export function AppGenLanding({ onStart }: AppGenLandingProps) {
-  const { t } = useTranslation();
   const [inputValue, setInputValue] = useState('');
   const [currentUser, setCurrentUser] = useState<UserModel | null>(null);
   const { initDraft } = useAppGenContextStore();
@@ -33,10 +35,7 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
   const handleStart = (prompt?: string) => {
     const finalPrompt = prompt || inputValue.trim() || undefined;
     if (!currentUser) {
-      // Save prompt so we can restore it after login redirect
-      if (finalPrompt) {
-        localStorage.setItem(PENDING_PROMPT_KEY, finalPrompt);
-      }
+      if (finalPrompt) localStorage.setItem(PENDING_PROMPT_KEY, finalPrompt);
       redirectToLogin('generate');
       return;
     }
@@ -44,273 +43,234 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
     onStart(finalPrompt);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
       if (inputValue.trim()) handleStart();
     }
   };
 
   return (
-    <div className="dark min-h-screen bg-transparent text-white">
-      {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center">
-              <img
-                src="/assets/idev-logo.png"
-                alt="IDEV Logo"
-                className="w-[120px] h-auto object-contain"
-              />
-            </div>
-          </div>
-          <div className="hidden md:flex items-center gap-8">
-            <a
-              href="#showcase"
-              className="text-sm font-semibold text-white/70 hover:text-white transition-colors"
-            >
-              Showcase
+    <div className="dark min-h-screen bg-bg-darker text-text-primary">
+      <nav className="fixed top-0 inset-x-0 z-50 px-6 py-3.5 bg-bg-darker/85 backdrop-blur-xl border-b border-[var(--glass-border-subtle)]">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-6">
+          <Brand size="md" variant="dark" />
+
+          <div className="hidden md:flex items-center gap-7">
+            <a href="#how" className="text-sm text-text-secondary hover:text-text-primary transition-colors">
+              Comment ça marche
             </a>
-            <a
-              href="#how-it-works"
-              className="text-sm font-semibold text-white/70 hover:text-white transition-colors"
-            >
-              How it works
+            <a href="#craft" className="text-sm text-text-secondary hover:text-text-primary transition-colors">
+              Ce qui change
             </a>
-            <a
-              href="#pricing"
-              className="text-sm font-semibold text-white/70 hover:text-white transition-colors"
-            >
-              Pricing
+            <a href="#pricing" className="text-sm text-text-secondary hover:text-text-primary transition-colors">
+              Tarifs
             </a>
           </div>
-          <div>
-            {currentUser ? (
-              <UserProfile user={currentUser} />
-            ) : (
-              <button
-                onClick={() =>
-                  (window.location.href = `${process.env.REACT_APP_IDEM_MAIN_APP_URL || 'http://localhost:4200'}/login?from=appgen`)
-                }
-                className="outer-button button-sm"
-              >
-                Sign in
-              </button>
-            )}
-          </div>
+
+          {currentUser ? (
+            <UserProfile user={currentUser} />
+          ) : (
+            <button
+              type="button"
+              onClick={() => (window.location.href = `${DASHBOARD_URL}/login?from=appgen`)}
+              className="h-9 px-4 rounded-lg border border-[var(--glass-border-medium)] text-sm text-text-primary hover:bg-surface-2 transition-colors"
+            >
+              Se connecter
+            </button>
+          )}
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center px-4 pt-20">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full bg-primary/10 blur-3xl" />
-        </div>
-
-        <div className="relative max-w-4xl mx-auto text-center">
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-gray-100 to-gray-400 bg-clip-text text-transparent leading-tight">
-            Build apps with AI
+      {/* ---------------- Hero ---------------- */}
+      <section className="px-4 pt-36 pb-24">
+        <div className="max-w-3xl mx-auto">
+          <h1 className="text-[clamp(2.5rem,6vw,4.25rem)] font-bold leading-[1.05] tracking-[-0.03em] text-balance">
+            Décrivez votre idée.
+            <br />
+            iCode écrit l'application.
           </h1>
-          <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
-            Describe your idea, IDEV generates production-ready code in seconds
+          <p className="mt-6 text-lg text-text-secondary max-w-xl text-pretty">
+            Du code React lisible, un aperçu qui tourne pendant que vous parlez, et une édition au
+            clic directement sur la page. Vous partez d'une phrase, ou d'un projet déjà analysé sur
+            Idem.
           </p>
 
-          {/* Input */}
-          <div className="max-w-3xl mx-auto mb-8">
-            <div className="glass-card rounded-2xl border border-white/10 overflow-hidden">
-              <textarea
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="A dashboard for tracking deliveries in Dakar..."
-                rows={3}
-                className="w-full bg-transparent text-white placeholder-gray-500 text-lg p-6 resize-none focus:outline-none"
-              />
-              <div className="flex items-center justify-between px-6 pb-4">
-                <span className="text-sm text-gray-600">Press Enter to start</span>
-                <button
-                  onClick={() => handleStart()}
-                  disabled={!inputValue.trim()}
-                  className="inner-button button-lg flex items-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 10V3L4 14h7v7l9-11h-7z"
-                    />
-                  </svg>
-                  Generate
-                </button>
-              </div>
+          <div className="mt-10 rounded-2xl border border-[var(--glass-border-medium)] bg-surface-1 overflow-hidden focus-within:border-primary transition-colors">
+            <label htmlFor="idea" className="sr-only">
+              Décrivez l'application à construire
+            </label>
+            <textarea
+              id="idea"
+              value={inputValue}
+              onChange={(event) => setInputValue(event.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Un tableau de bord pour suivre les livraisons à Dakar…"
+              rows={3}
+              className="w-full bg-transparent text-text-primary placeholder:text-text-disabled text-base p-5 resize-none focus:outline-none"
+            />
+            <div className="flex items-center justify-between gap-3 px-5 pb-4">
+              <span className="text-xs text-text-disabled">Entrée pour lancer</span>
+              <button
+                type="button"
+                onClick={() => handleStart()}
+                disabled={!inputValue.trim()}
+                className="h-10 px-5 flex items-center gap-2 rounded-lg bg-primary text-white text-sm font-medium hover:brightness-110 active:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              >
+                Générer
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
-          {/* Example prompts */}
-          <div className="max-w-3xl mx-auto">
-            <p className="text-sm text-gray-500 mb-4">Try these examples</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {EXAMPLE_PROMPTS.map((prompt, i) => (
-                <button
-                  key={i}
-                  onClick={() => handleStart(prompt)}
-                  className="text-left text-sm text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 hover:border-primary/20 rounded-xl px-5 py-4 transition-all"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {EXAMPLE_PROMPTS.map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                onClick={() => handleStart(prompt)}
+                className="text-left text-[13px] text-text-tertiary hover:text-text-primary border border-[var(--glass-border)] hover:border-[var(--glass-border-strong)] rounded-full px-3.5 py-1.5 transition-colors"
+              >
+                {prompt}
+              </button>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Showcase Section - Unique diagonal layout */}
-      <section id="showcase" className="py-32 px-4 overflow-hidden">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">See it in action</h2>
-            <p className="text-xl text-gray-400">From idea to deployment in minutes</p>
-          </div>
-
-          {/* Diagonal showcase */}
-          <div className="relative">
-            {/* Large featured image */}
-            <div className="mb-12 glass-card rounded-3xl border border-white/10 overflow-hidden group">
-              <div className="aspect-[21/9] bg-gradient-to-br from-primary/20 via-purple-500/20 to-blue-500/20 relative">
-                <img
-                  src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1400&h=600&fit=crop"
-                  alt="AI-generated dashboard"
-                  className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-8">
-                  <h3 className="text-2xl font-bold mb-2">AI-powered dashboards</h3>
-                  <p className="text-gray-300">
-                    Beautiful analytics generated from your data structure
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Diagonal grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="glass-card rounded-2xl border border-white/10 overflow-hidden group md:translate-y-0">
-                <div className="aspect-[4/3] bg-gradient-to-br from-blue-500/20 to-cyan-500/20 relative">
-                  <img
-                    src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&h=450&fit=crop"
-                    alt="Business tools"
-                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-                  />
-                </div>
-                <div className="p-5">
-                  <h3 className="text-lg font-semibold mb-2">Business tools</h3>
-                  <p className="text-sm text-gray-400">CRM, inventory, management systems</p>
-                </div>
-              </div>
-
-              <div className="glass-card rounded-2xl border border-white/10 overflow-hidden group md:-translate-y-8">
-                <div className="aspect-[4/3] bg-gradient-to-br from-green-500/20 to-emerald-500/20 relative">
-                  <img
-                    src="https://images.unsplash.com/photo-1551434678-e076c223a692?w=600&h=450&fit=crop"
-                    alt="Team collaboration"
-                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-                  />
-                </div>
-                <div className="p-5">
-                  <h3 className="text-lg font-semibold mb-2">Collaboration</h3>
-                  <p className="text-sm text-gray-400">Team workspaces and projects</p>
-                </div>
-              </div>
-
-              <div className="glass-card rounded-2xl border border-white/10 overflow-hidden group md:translate-y-0">
-                <div className="aspect-[4/3] bg-gradient-to-br from-orange-500/20 to-red-500/20 relative">
-                  <img
-                    src="https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?w=600&h=450&fit=crop"
-                    alt="Mobile responsive"
-                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-                  />
-                </div>
-                <div className="p-5">
-                  <h3 className="text-lg font-semibold mb-2">Mobile-first</h3>
-                  <p className="text-sm text-gray-400">Responsive on all devices</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How it works Section */}
-      <section id="how-it-works" className="py-32 px-4 bg-white/[0.02]">
+      {/* ---------------- Deux points d'entrée ---------------- */}
+      <section id="how" className="px-4 py-24 border-t border-[var(--glass-border-subtle)]">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">How it works</h2>
-            <p className="text-xl text-gray-400">Three simple steps to your app</p>
-          </div>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-[-0.02em] text-balance">
+            Deux façons de commencer
+          </h2>
+          <p className="mt-3 text-text-secondary max-w-2xl text-pretty">
+            Une idée en une phrase suffit. Mais si votre projet est déjà analysé sur Idem, iCode
+            part de ce qui existe : la charte, les diagrammes, la configuration technique.
+          </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-6 bg-primary/20 border-2 border-primary/40 rounded-2xl flex items-center justify-center">
-                <span className="text-2xl font-bold text-primary">1</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Describe your idea</h3>
-              <p className="text-gray-400">Tell IDEV what you want to build in plain language</p>
-            </div>
+          <div className="mt-10 grid gap-5 md:grid-cols-2">
+            <article className="p-6 rounded-2xl border border-[var(--glass-border)] bg-surface-1">
+              <h3 className="text-lg font-semibold">Depuis une phrase</h3>
+              <p className="mt-2 text-sm text-text-secondary text-pretty">
+                Vous écrivez ce que vous voulez construire, iCode choisit une direction visuelle
+                propre à votre projet et génère l'application. Rien à configurer.
+              </p>
+              <button
+                type="button"
+                onClick={() => handleStart()}
+                className="mt-5 h-9 px-4 inline-flex items-center gap-1.5 rounded-lg bg-primary text-white text-sm font-medium hover:brightness-110 transition"
+              >
+                Commencer ici
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </article>
 
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-6 bg-purple-500/20 border-2 border-purple-500/40 rounded-2xl flex items-center justify-center">
-                <span className="text-2xl font-bold text-purple-400">2</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-3">AI generates code</h3>
-              <p className="text-gray-400">Production-ready code with modern frameworks</p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-6 bg-green-500/20 border-2 border-green-500/40 rounded-2xl flex items-center justify-center">
-                <span className="text-2xl font-bold text-green-400">3</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Deploy instantly</h3>
-              <p className="text-gray-400">One-click deployment to Netlify or EPLOY</p>
-            </div>
+            <article className="p-6 rounded-2xl border border-[var(--glass-border)] bg-surface-1">
+              <h3 className="text-lg font-semibold">Depuis un projet Idem</h3>
+              <p className="mt-2 text-sm text-text-secondary text-pretty">
+                Business plan, charte graphique, diagrammes, choix techniques : tout ce qu'Idem a
+                déjà produit sur votre projet alimente la génération. Le code sort aligné sur votre
+                marque, pas sur une palette générique.
+              </p>
+              <a
+                href={`${DASHBOARD_URL}/projects`}
+                className="mt-5 h-9 px-4 inline-flex items-center gap-1.5 rounded-lg border border-[var(--glass-border-medium)] text-sm text-text-primary hover:bg-surface-2 transition-colors"
+              >
+                Ouvrir mes projets
+                <ArrowRight className="w-4 h-4" />
+              </a>
+            </article>
           </div>
         </div>
       </section>
 
-      {/* Pricing Section */}
+      {/* ---------------- Ce qui distingue ---------------- */}
+      <section id="craft" className="px-4 py-24 border-t border-[var(--glass-border-subtle)]">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-[-0.02em] text-balance">
+            Ce que la plupart des générateurs ne font pas
+          </h2>
+
+          <dl className="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2">
+            <Feature
+              icon={<Palette className="w-5 h-5" />}
+              title="Deux projets ne se ressemblent jamais"
+              body="Chaque projet tire une direction artistique dans un catalogue de styles mutuellement exclusifs. Pas de dégradé violet par défaut, pas de grille de trois cartes systématique."
+            />
+            <Feature
+              icon={<Contrast className="w-5 h-5" />}
+              title="Les contrastes sont calculés, pas espérés"
+              body="La palette est forgée en OKLCH et vérifiée avant d'être envoyée au modèle. Le texte courant atteint 4,5:1 parce que c'est mesuré, pas parce que le modèle a bien voulu."
+            />
+            <Feature
+              icon={<MousePointerClick className="w-5 h-5" />}
+              title="On corrige au clic, pas au prompt"
+              body="Cliquez un texte dans l'aperçu et corrigez-le : l'écriture va directement dans le code source. Aucun modèle appelé, aucun crédit consommé."
+            />
+            <Feature
+              icon={<ShieldCheck className="w-5 h-5" />}
+              title="Le déploiement reste chez vous"
+              body="Publication via iDeploy, l'infrastructure de l'écosystème Idem. Le code généré est du React standard : il vous appartient et se reprend ailleurs."
+            />
+          </dl>
+        </div>
+      </section>
+
       <AppGenPricing onGetStarted={() => handleStart()} />
 
-      {/* CTA Section */}
-      <section className="py-32 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">Start building today</h2>
-          <p className="text-xl text-gray-400 mb-8">Generating is free — no credit card required</p>
+      <section className="px-4 py-24 border-t border-[var(--glass-border-subtle)]">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-[-0.02em] text-balance">
+            Écrivez la première phrase
+          </h2>
+          <p className="mt-3 text-text-secondary">
+            La génération est gratuite pour commencer. Aucune carte bancaire.
+          </p>
           <button
-            onClick={() =>
-              (window.location.href = `${process.env.REACT_APP_IDEM_MAIN_APP_URL || 'http://localhost:4200'}/login?from=appgen`)
-            }
-            className="inner-button button-lg flex items-center gap-2"
+            type="button"
+            onClick={() => handleStart()}
+            className="mt-7 h-11 px-6 inline-flex items-center gap-2 rounded-lg bg-primary text-white font-medium hover:brightness-110 active:brightness-95 transition"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 10V3L4 14h7v7l9-11h-7z"
-              />
-            </svg>
-            Get started
+            Ouvrir iCode
+            <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 px-4 border-t border-white/5">
-        <div className="max-w-7xl mx-auto text-center text-gray-500 text-sm">
-          <p>Powered by Idem</p>
+      <footer className="px-4 py-10 border-t border-[var(--glass-border-subtle)]">
+        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4">
+          <Brand size="sm" variant="dark" />
+          <p className="text-sm text-text-tertiary">
+            iCode fait partie de l'écosystème{' '}
+            <a href="https://idem.africa" className="text-text-secondary hover:text-text-primary underline underline-offset-4">
+              Idem
+            </a>
+          </p>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function Feature({
+  icon,
+  title,
+  body,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="flex gap-4">
+      <span className="shrink-0 w-10 h-10 grid place-items-center rounded-lg bg-primary/12 text-primary">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <dt className="font-semibold text-text-primary text-balance">{title}</dt>
+        <dd className="mt-1.5 text-sm text-text-secondary text-pretty">{body}</dd>
+      </div>
     </div>
   );
 }

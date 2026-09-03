@@ -9,7 +9,23 @@ import { FileExplorer } from "./components/IDEContent/FileExplorer"
 import { Search } from "./components/IDEContent/Search"
 import { TeamExample } from "../Role"
 
-export default function WeIde() {
+/**
+ * Niveau de détail de l'éditeur.
+ *
+ * `minimal` — arborescence des fichiers et éditeur, rien d'autre. C'est la vue
+ * par défaut : un profil non technique qui ouvre « Code » veut lire ce que l'IA
+ * a écrit, pas hériter d'un IDE avec barre d'activité, recherche plein texte et
+ * terminal ouvert.
+ * `full` — l'atelier complet, pour qui sait s'en servir. Le choix est mémorisé.
+ */
+export type IdeDetail = "minimal" | "full";
+
+interface WeIdeProps {
+  detail?: IdeDetail;
+}
+
+export default function WeIde({ detail = "minimal" }: WeIdeProps) {
+  const isFull = detail === "full";
   const [activeTab, setActiveTab] = useState("");
   const [showTerminal, setShowTerminal] = useState(true);
   const [openTabs, setOpenTabs] = useState<string[]>([]);
@@ -63,22 +79,18 @@ export default function WeIde() {
     setActiveTab("");
   };
 
+  const terminalVisible = isFull && showTerminal;
+
   return (
-    <div
-      style={{
-        borderRadius: "8px",
-        borderTopRightRadius: "0px",
-        borderTopLeftRadius: "0px",
-      }}
-      className="h-full w-full bg-white dark:bg-[#18181a] text-[#333] dark:text-gray-300 flex overflow-hidden border border-[#e4e4e4] dark:border-[#333]"
-    >
-      {/* Activity Bar (Icon Bar) */}
-      <ActivityBar
-        activeView={activeView}
-        onViewChange={setActiveView}
-        onToggleTerminal={() => setShowTerminal(!showTerminal)}
-        showTerminal={showTerminal}
-      />
+    <div className="h-full w-full bg-surface-1 text-text-primary flex overflow-hidden">
+      {isFull && (
+        <ActivityBar
+          activeView={activeView}
+          onViewChange={setActiveView}
+          onToggleTerminal={() => setShowTerminal(!showTerminal)}
+          showTerminal={showTerminal}
+        />
+      )}
 
 
       <PanelGroup direction="horizontal">
@@ -87,17 +99,16 @@ export default function WeIde() {
           defaultSize={25}
           minSize={16}
           maxSize={30}
-          className="flex-shrink-0 border-r border-[#e4e4e4] dark:border-[#333]"
+          className="shrink-0 border-r border-[var(--glass-border)]"
         >
-          {activeView === "files" ? (
-            <FileExplorer onFileSelect={handleFileSelect} />
-          ) : (
+          {isFull && activeView === "search" ? (
             <Search onFileSelect={handleFileSelect} />
+          ) : (
+            <FileExplorer onFileSelect={handleFileSelect} />
           )}
         </Panel>
 
-        {/* File List Drag Handle */}
-        <PanelResizeHandle className="w-[1px] bg-[#e6e6e6] hover:bg-[#e8e8e8] dark:hover:bg-[#404040] transition-colors cursor-col-resize" />
+        <PanelResizeHandle className="w-px bg-[var(--glass-border)] hover:bg-primary transition-colors cursor-col-resize" />
       
         {/* Coding Area and Terminal */}
         <Panel className="min-w-0 ml-[-1px]">
@@ -111,38 +122,34 @@ export default function WeIde() {
                 onTabClose={handleTabClose}
                 onCloseAll={handleCloseAll}
               />
-              <div className="flex-1 overflow-hidden bg-[#ffffff] dark:bg-[#18181a]">
+              <div className="flex-1 overflow-hidden bg-surface-1">
                 {activeTab && (
                   <Editor fileName={activeTab} initialLine={currentLine} />
                 )}
               </div>
             </Panel>
 
-            {/* 终端区域 */}
-       
+            {/* Terminal — mode complet uniquement. */}
+            {isFull && (
               <>
-                {/* 上下拖动区域 */}
                 <PanelResizeHandle
-                  style={{ display: showTerminal ? "flex" : "none" }}
-                  className="h-1 hover:bg-[#e8e8e8] dark:hover:bg-[#404040] transition-colors cursor-row-resize"
+                  style={{ display: terminalVisible ? "flex" : "none" }}
+                  className="h-px bg-[var(--glass-border)] hover:bg-primary transition-colors cursor-row-resize"
                 />
-
-                {/* 创建 承载终端 的容器 */}
                 <Panel
                   defaultSize={30}
                   minSize={10}
                   maxSize={80}
                   style={{
-                    display: showTerminal ? "flex" : "none",
+                    display: terminalVisible ? "flex" : "none",
                     flexDirection: "column",
                   }}
-                  className="bg-[#f6f6f6] dark:bg-[#1e1e1e] border-t border-[#e4e4e4] dark:border-[#333]"
+                  className="bg-surface-2 border-t border-[var(--glass-border)]"
                 >
-                  {/* 终端icon + 终端本体 */}
                   <Terminal />
                 </Panel>
               </>
-          
+            )}
           </PanelGroup>
         </Panel>
       </PanelGroup>

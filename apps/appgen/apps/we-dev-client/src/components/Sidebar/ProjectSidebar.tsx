@@ -122,17 +122,17 @@ export function ProjectSidebar({
       />
 
       {/* Sidebar */}
-      <div className="absolute left-0 top-0 h-full w-96 bg-white dark:bg-gray-900 shadow-xl border-r border-gray-200 dark:border-gray-700">
+      <div className="absolute left-0 top-0 h-full w-96 bg-surface-1 shadow-xl border-r border-[var(--glass-border)]">
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="p-4 border-b border-[var(--glass-border)]">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h2 className="text-lg font-semibold text-text-primary">
                 Project Chats
               </h2>
               <button
                 onClick={onClose}
-                className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"
+                className="p-1 rounded-md hover:bg-surface-2 text-text-tertiary"
               >
                 <svg
                   className="w-5 h-5"
@@ -186,7 +186,7 @@ export function ProjectSidebar({
 
                 {/* Chat Sections */}
                 <div className="space-y-3">
-                  <h4 className="font-medium text-gray-900 dark:text-white">
+                  <h4 className="font-medium text-text-primary">
                     Available Chats
                   </h4>
 
@@ -196,7 +196,7 @@ export function ProjectSidebar({
                       className={`rounded-lg p-4 cursor-pointer transition-all duration-200 border-2 ${
                         activeChatType === ChatType.APPLICATION
                           ? "bg-blue-100 dark:bg-blue-900/30 border-blue-500 dark:border-blue-400"
-                          : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          : "bg-surface-2 border-[var(--glass-border)] hover:bg-surface-2"
                       }`}
                       onClick={() => onChatSelect(ChatType.APPLICATION)}
                     >
@@ -218,10 +218,10 @@ export function ProjectSidebar({
                             </svg>
                           </div>
                           <div>
-                            <h5 className="font-medium text-gray-900 dark:text-white">
+                            <h5 className="font-medium text-text-primary">
                               Application
                             </h5>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                            <p className="text-xs text-text-tertiary">
                               {landingPageConfig ===
                               LandingPageConfig.INTEGRATED
                                 ? "App + Landing Page"
@@ -266,7 +266,7 @@ export function ProjectSidebar({
                       className={`rounded-lg p-4 cursor-pointer transition-all duration-200 border-2 ${
                         activeChatType === ChatType.LANDING_PAGE
                           ? "bg-green-100 dark:bg-green-900/30 border-green-500 dark:border-green-400"
-                          : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          : "bg-surface-2 border-[var(--glass-border)] hover:bg-surface-2"
                       }`}
                       onClick={() => onChatSelect(ChatType.LANDING_PAGE)}
                     >
@@ -288,10 +288,10 @@ export function ProjectSidebar({
                             </svg>
                           </div>
                           <div>
-                            <h5 className="font-medium text-gray-900 dark:text-white">
+                            <h5 className="font-medium text-text-primary">
                               Landing Page
                             </h5>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                            <p className="text-xs text-text-tertiary">
                               Separate landing page
                             </p>
                           </div>
@@ -330,7 +330,7 @@ export function ProjectSidebar({
               </div>
             ) : (
               <div className="text-center py-8">
-                <div className="text-gray-500 dark:text-gray-400">
+                <div className="text-text-tertiary">
                   <svg
                     className="w-12 h-12 mx-auto mb-4"
                     fill="none"

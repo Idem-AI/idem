@@ -13,7 +13,8 @@
     "close": "Fermer",
     "please_login": "Veuillez vous connecter pour consulter votre quota",
     "format": "Formater",
-    "formatting": "Formatage en cours..."
+    "formatting": "Formatage en cours...",
+    "retry": "Réessayer"
   },
   "chat": {
     "urlInput": {
@@ -224,7 +225,12 @@
   },
   "preview": {
     "noserver": "Aucun serveur en cours d'exécution",
-    "wxminiPreview": "Ouvrir les outils de développement WeChat Mini Program pour l'aperçu"
+    "wxminiPreview": "Ouvrir les outils de développement WeChat Mini Program pour l'aperçu",
+    "noserverHint": "Le serveur de développement démarre dès la première génération. Décrivez ce que vous voulez construire dans la conversation.",
+    "zoomIn": "Agrandir",
+    "zoomOut": "Réduire",
+    "zoomReset": "Taille réelle",
+    "openExternal": "Ouvrir dans un onglet"
   },
   "editor": {
     "editor": "Éditeur",
@@ -236,13 +242,13 @@
   },
   "header": {
     "download": "Télécharger le code",
-    "deploy": "Déployer",
-    "deploying": "Déploiement en cours...",
-    "deploySuccess": "Déploiement réussi !",
-    "deployToCloud": "Votre projet a été déployé avec succès dans le cloud",
-    "redeploy": "Redéployer",
-    "redeploySuccess": "Mise à jour réussie !",
-    "redeployToCloud": "Votre application en ligne a été mise à jour, le lien reste le même",
+    "deploy": "Publier",
+    "deploying": "Publication…",
+    "deploySuccess": "Application publiée",
+    "deployToCloud": "Votre application est en ligne sur iDeploy",
+    "redeploy": "Republier",
+    "redeploySuccess": "Application mise à jour",
+    "redeployToCloud": "Votre application en ligne a été mise à jour ; le lien ne change pas",
     "accessLink": "Lien d'accès :",
     "copy": "Copier",
     "close": "Fermer",
@@ -264,7 +270,14 @@
       "open_directory": "Échec de l'ouverture du répertoire",
       "deploy_failed": "Échec du déploiement, veuillez réessayer plus tard",
       "deploy_failed_with_msg": "Échec du déploiement : {{message}}"
-    }
+    },
+    "modeLabel": "Mode de travail",
+    "modePlan": "Plan",
+    "modeBuild": "Build",
+    "modePlanHint": "Lit le projet et répond, sans jamais modifier le code",
+    "modeBuildHint": "Écrit et modifie le code du projet",
+    "creditsTitle": "{{used}} crédits utilisés sur {{total}}",
+    "moreActions": "Autres actions"
   },
   "explorer": {
     "clear_all": "Tout effacer",
@@ -436,19 +449,19 @@
     }
   },
   "deployModal": {
-    "title": "Déployer votre application",
-    "subtitle": "Choisissez comment vous souhaitez déployer",
-    "no_generation": "Aucune génération disponible à déployer",
+    "title": "Publier votre application",
+    "subtitle": "Choisissez comment la mettre en ligne",
+    "no_generation": "Aucune génération à publier pour l'instant",
     "default_app_name": "Mon Application",
-    "quick_deploy_title": "Déploiement rapide",
-    "quick_deploy_subtitle": "Netlify · Sans compte requis",
-    "quick_deploy_desc": "Déployez instantanément avec CDN global et SSL automatique.",
+    "quick_deploy_title": "Publication rapide",
+    "quick_deploy_subtitle": "iDeploy · Aucun compte supplémentaire",
+    "quick_deploy_desc": "Votre application est en ligne en quelques secondes, avec HTTPS et diffusion mondiale.",
     "tag_instant": "Instantané",
     "tag_ssl": "SSL auto",
     "tag_cdn": "CDN global",
-    "idem_deploy_title": "Déploiement avec Idem",
-    "idem_deploy_subtitle": "iDeploy · Projet auto-configuré",
-    "idem_deploy_desc": "Votre application est transférée vers iDeploy avec toutes les métadonnées. Prête à déployer.",
+    "idem_deploy_title": "Pipeline iDeploy",
+    "idem_deploy_subtitle": "Projet configuré automatiquement",
+    "idem_deploy_desc": "Votre application part vers iDeploy avec ses métadonnées, prête à être déployée sur votre infrastructure.",
     "tag_auto_project": "Projet auto",
     "tag_prefilled": "Données pré-remplies",
     "login_required": "Connexion requise",
@@ -512,7 +525,11 @@
     "opacity": "Opacité",
     "layers": "Calques",
     "layersHint": "Éléments empilés sous votre clic — choisissez celui à éditer.",
-    "layersLoading": "Chargement de l'arborescence…"
+    "layersLoading": "Chargement de l'arborescence…",
+    "askAI": "Demander à l'IA",
+    "selectionPrompt": "À propos de {{count}} élément(s) sélectionné(s) dans l'aperçu :",
+    "annotationPrompt": "Annotation dessinée sur l'aperçu (zone {{zone}}) : {{note}}",
+    "annotationPromptEmpty": "Annotation dessinée sur l'aperçu, zone {{zone}}. Applique le changement indiqué par le tracé."
   },
   "tour": {
     "common": {
@@ -545,5 +562,124 @@
         "body": "Lancez une première demande. Si le résultat ne convient pas, redemandez autrement — c’est fait pour."
       }
     }
+  },
+  "workspace": {
+    "viewSwitcher": "Vues de l'espace de travail",
+    "chat": "Conversation",
+    "app": "Application",
+    "preview": "Aperçu",
+    "code": "Code",
+    "theme": "Thème",
+    "api": "API",
+    "expandChat": "Afficher la conversation",
+    "collapseChat": "Replier la conversation",
+    "ideMinimal": "Vue simple",
+    "ideFull": "Vue complète",
+    "ideMinimalHint": "Revenir aux fichiers et à l'éditeur seuls",
+    "ideFullHint": "Ajouter la recherche, le terminal et la barre d'activité",
+    "checks": "Contrôles"
+  },
+  "editToolbar": {
+    "label": "Outils d'édition de l'aperçu",
+    "navigate": "Naviguer",
+    "navigateHint": "Utiliser l'application normalement",
+    "select": "Sélectionner",
+    "selectHint": "Cliquer un élément pour l'ajuster ou en parler à l'IA",
+    "text": "Texte",
+    "textHint": "Cliquer dans un texte pour le corriger",
+    "draw": "Dessiner",
+    "drawHint": "Tracer une indication sur la page",
+    "move": "Déplacer la barre",
+    "minimize": "Replier la barre",
+    "expand": "Déplier la barre",
+    "textFree": "L'édition de texte écrit directement dans le code : aucun crédit consommé."
+  },
+  "draw": {
+    "free": "Main levée",
+    "arrow": "Flèche",
+    "rect": "Rectangle",
+    "ellipse": "Ellipse",
+    "clear": "Effacer les tracés",
+    "placeholder": "Que faut-il changer ici ?",
+    "send": "Envoyer"
+  },
+  "theme": {
+    "title": "Thème du projet",
+    "subtitleBrand": "Calculé à partir de la charte du projet : palette vérifiée en contraste, typographie et rythme.",
+    "subtitleSeeded": "Calculé à partir d'une graine propre au projet : deux projets ne reçoivent jamais la même direction.",
+    "reset": "Rétablir",
+    "apply": "Appliquer au code",
+    "applyPrompt": "Applique ce système de design au projet (direction : {{direction}}). Respecte les couleurs, la typographie et le rythme ci-dessous.",
+    "direction": "Direction artistique",
+    "directionHint": "Ce qui rend la page reconnaissable : surface, rayons, cadence des sections.",
+    "colors": "Couleurs",
+    "colorsHint": "Rampes générées en OKLCH à partir de la couleur de marque.",
+    "brandColor": "Couleur de marque",
+    "fromBrand": "Reprise de la charte du projet",
+    "brandRamp": "Rampe de marque",
+    "neutralRamp": "Rampe neutre",
+    "accent": "Accent",
+    "secondary": "Secondaire",
+    "surface": "Surface",
+    "surfaceRaised": "Surface élevée",
+    "ink": "Texte",
+    "inkMuted": "Texte atténué",
+    "contrast": "Contrastes vérifiés",
+    "contrastHint": "Mesurés, pas estimés. Le seuil WCAG AA pour le texte courant est de 4,5:1.",
+    "bodyOnSurface": "Texte sur surface",
+    "mutedOnSurface": "Texte atténué sur surface",
+    "inkOnAccent": "Texte sur accent",
+    "typography": "Typographie",
+    "typographyHint": "Appariement affichage / texte courant, et échelle qui en découle.",
+    "briefLabel": "Voir le brief envoyé au modèle",
+    "error": "Le système de design n'a pas pu être calculé.",
+    "dark": "Fond sombre",
+    "light": "Fond clair"
+  },
+  "versions": {
+    "title": "Historique des versions",
+    "short": "Versions",
+    "hint": "Un point de restauration est déposé à chaque génération.",
+    "emptyTitle": "Aucune version enregistrée",
+    "emptyBody": "La première génération créera un point de retour.",
+    "current": "Actuelle",
+    "restore": "Restaurer",
+    "remove": "Supprimer",
+    "restored": "Version restaurée",
+    "restoreFailed": "La restauration a échoué",
+    "beforeRestore": "Avant restauration"
+  },
+  "chatWorkspace": {
+    "readyToGenerate": "Prêt à générer votre application",
+    "startHint": "Lancez la génération pour obtenir le code de votre application",
+    "generateNow": "Générer maintenant",
+    "inProgress": "Génération en cours",
+    "inProgressBody": "Votre application est en cours de génération. Un instant…",
+    "complete": "Génération terminée",
+    "completeBody": "Votre application est générée et prête à être publiée.",
+    "loadFailed": "Chargement du projet impossible",
+    "retry": "Réessayer"
+  },
+  "checks": {
+    "title": "Contrôles du projet",
+    "subtitle": "Deux passes déterministes sur le code généré. Aucune n'appelle de modèle : elles sont gratuites et rejouables à volonté.",
+    "rerun": "Relancer",
+    "pending": "Analyse en cours…",
+    "security": "Sécurité",
+    "securityClean": "Rien à signaler avant publication.",
+    "securityCount": "{{critical}} critique(s), {{high}} élevée(s), {{medium}} moyenne(s)",
+    "fixSecurity": "Corriger",
+    "design": "Design",
+    "designClean": "Aucun signe de génération générique.",
+    "designCount": "{{errors}} erreur(s), {{warnings}} avertissement(s)",
+    "fixDesign": "Corriger",
+    "severity": {
+      "critical": "critique",
+      "high": "élevée",
+      "medium": "moyenne"
+    },
+    "emptyTitle": "Rien à analyser pour l'instant",
+    "emptyBody": "Les contrôles se lancent dès la première génération.",
+    "error": "L'analyse n'a pas pu aboutir. Réessayez dans un instant."
   }
 }

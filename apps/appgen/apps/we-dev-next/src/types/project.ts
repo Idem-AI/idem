@@ -155,4 +155,16 @@ export interface ChatRequest {
    * message so the transcript stays clean while the model gets the full list.
    */
   qualityRepair?: string;
+  /**
+   * Instantané de l'espace de travail, envoyé en mode Plan uniquement.
+   *
+   * Le code vit dans le WebContainer du navigateur, pas sur le serveur : sans
+   * cet instantané, les outils de lecture n'auraient rien à lire. Il n'est pas
+   * envoyé en mode Build, où l'historique des artefacts porte déjà les
+   * fichiers.
+   */
+  workspace?: {
+    files: Record<string, string>;
+    logs?: string[];
+  };
 }

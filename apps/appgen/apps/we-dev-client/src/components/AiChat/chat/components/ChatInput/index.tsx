@@ -1,6 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { FileIcon, MessageSquare, Code2 } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { toast } from "react-toastify";
 import { uploadImage } from "@/api/chat";
 import classNames from "classnames";
 import { useFileStore } from "../../../../WeIde/stores/fileStore";
@@ -17,6 +17,7 @@ import useThemeStore from "@/stores/themeSlice";
 import { v4 as uuidv4 } from "uuid";
 import OptimizedPromptWord from "./OptimizedPromptWord";
 import useUserStore from "@/stores/userSlice";
+import { eventEmitter } from "../../../utils/EventEmitter";
 // import type { ModelOption } from './UploadButtons';
 
 export enum ChatMode {
@@ -69,6 +70,19 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
   >([]);
   const { mode: chatMode, setMode } = useChatModeStore();
   const { isDarkMode } = useThemeStore();
+
+  // Quand l'espace de travail préremplit la saisie, le curseur doit y être :
+  // sans ce focus, l'utilisateur voit son contexte apparaître et doit aller
+  // cliquer dans le champ pour continuer sa phrase.
+  useEffect(() => {
+    const unsubscribe = eventEmitter.on('chat:focusInput', () => {
+      const node = textareaRef.current;
+      if (!node) return;
+      node.focus();
+      node.setSelectionRange(node.value.length, node.value.length);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const getFileOptions = () => {
     return Object.entries(files).map(([path]) => ({
@@ -376,7 +390,7 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
 
   return (
     <div className="px-1 py-2 ">
-      <div className="max-w-[640px] w-full mx-auto bg-[#fff] dark:bg-[#18181a]">
+      <div className="max-w-[640px] w-full mx-auto bg-surface-1">
         <ErrorDisplay
           errors={errors}
           onAttemptFix={async (error, index) => {
@@ -396,7 +410,7 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
         <OptimizedPromptWord input={input} setInput={setInput}></OptimizedPromptWord>
         </div>
 
-        <div className="relative bg-white dark:bg-[#1a1a1c] rounded-lg border border-gray-200 dark:border-gray-600/30">
+        <div className="relative bg-surface-1 rounded-lg border border-[var(--glass-border)]/30">
           <div
             className={classNames(
               "relative",
@@ -420,7 +434,7 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
                     : t(modePlaceholders[ChatMode.Builder])
                 )}
                 className={classNames(
-                  "w-full p-4 bg-transparent text-gray-900 dark:text-gray-100 focus:outline-none resize-none text-sm",
+                  "w-full p-4 bg-transparent text-text-primary focus:outline-none resize-none text-sm",
                   "placeholder-gray-500 dark:placeholder-gray-400",
                   "hover:bg-gray-50/50 dark:hover:bg-white/[0.03]",
                   "focus:bg-gray-50/80 dark:focus:bg-white/[0.05]",
@@ -469,7 +483,7 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
                   width: "200px",
                 }}
               >
-                <div className="bg-white dark:bg-[#1c1c1c] rounded-md border border-gray-200 dark:border-gray-600/30 shadow-lg overflow-hidden">
+                <div className="bg-surface-1 rounded-md border border-[var(--glass-border)]/30 shadow-lg overflow-hidden">
                   <div className="max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600/50 scrollbar-track-transparent">
                     {filteredMentionOptions.map((option, index) => (
                       <div
@@ -503,7 +517,7 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
             )}
 
 
-            <div className="flex items-center justify-between px-2 py-2 border-t border-gray-200 dark:border-gray-600/30">
+            <div className="flex items-center justify-between px-2 py-2 border-t border-[var(--glass-border)]/30">
               <div className="flex items-center">
                 <UploadButtons
                   isLoading={isLoading}
@@ -521,7 +535,7 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
                 <button
                   className={classNames(
                     "p-2 rounded-md transition-colors",
-                    "hover:bg-gray-100 dark:hover:bg-gray-700/30",
+                    "hover:bg-surface-2/30",
                     "group relative"
                   )}
                   onClick={() => {

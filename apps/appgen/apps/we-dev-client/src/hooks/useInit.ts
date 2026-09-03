@@ -125,11 +125,12 @@ const useInit = (): { isDarkMode: boolean } => {
   }, []);
 
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    // Les deux classes sont explicites : `@idem/shared-styles` définit ses
+    // jetons sur `:root, .light` et les rebascule sur `.dark`. Poser seulement
+    // `dark` laisserait `light` en place après une bascule et figerait les
+    // variables sur les valeurs claires.
+    document.documentElement.classList.toggle('dark', isDarkMode);
+    document.documentElement.classList.toggle('light', !isDarkMode);
 
     const mql = window.matchMedia('(prefers-color-scheme: dark)');
     // Theme priority: shared cross-app cookie (idem_theme) > localStorage > system.

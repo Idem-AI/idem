@@ -45,15 +45,15 @@ const CustomModal = ({
         style={{ isolation: "isolate" }}
       >
         <div className="flex min-h-full items-center justify-center p-6">
-          <div className="relative w-full max-w-4xl transform rounded-xl bg-white dark:bg-gray-800 shadow-2xl transition-all">
+          <div className="relative w-full max-w-4xl transform rounded-xl bg-surface-1 shadow-2xl transition-all">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/80 dark:border-gray-700/80">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+              <h3 className="text-base font-semibold text-text-primary">
                 {title}
               </h3>
               <button
                 onClick={onCancel}
-                className="rounded-md p-1 text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400"
+                className="rounded-md p-1 text-gray-400 hover:text-text-tertiary dark:hover:text-gray-400"
               >
                 <svg
                   className="h-5 w-5"
@@ -81,10 +81,10 @@ const CustomModal = ({
                 onClick={onCancel}
                 className={classNames(
                   "px-4 py-2 text-sm font-medium rounded-lg",
-                  "text-gray-700 dark:text-gray-300",
-                  "bg-white dark:bg-gray-800",
-                  "border border-gray-300 dark:border-gray-600",
-                  "hover:bg-gray-50 dark:hover:bg-gray-700/50",
+                  "text-text-secondary",
+                  "bg-surface-1",
+                  "border border-[var(--glass-border)]",
+                  "hover:bg-surface-2/50",
                   "focus:outline-none focus:ring-2 focus:ring-purple-500/50",
                   "transition duration-150 ease-in-out"
                 )}
@@ -372,11 +372,11 @@ const JsonEditor = forwardRef<
       ref={editorRef}
       className={classNames(
         "rounded-lg overflow-hidden",
-        "border border-gray-200 dark:border-gray-700",
+        "border border-[var(--glass-border)]",
         "focus-within:ring-2 focus-within:ring-purple-500/50",
         "transition duration-200 ease-in-out",
         "mb-4",
-        "bg-white dark:bg-gray-900"
+        "bg-surface-1"
       )}
       onFocus={onFocus}
       onWheel={(e) => e.stopPropagation()}
@@ -521,11 +521,11 @@ const PopupContainer: React.FC<Props> = ({ resolve }) => {
             disabled={isFormatting}
             className={classNames(
               "px-3 py-1.5 text-sm font-medium rounded-lg",
-              "text-gray-700 dark:text-gray-300",
-              "bg-white dark:bg-gray-800",
-              "border border-gray-300 dark:border-gray-600",
+              "text-text-secondary",
+              "bg-surface-1",
+              "border border-[var(--glass-border)]",
               !isFormatting
-                ? "hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                ? "hover:bg-surface-2/50"
                 : "opacity-70 cursor-not-allowed",
               "focus:outline-none focus:ring-2 focus:ring-purple-500/50",
               "transition duration-150 ease-in-out",
@@ -571,7 +571,7 @@ const PopupContainer: React.FC<Props> = ({ resolve }) => {
                 />
               </svg>
             </div>
-            <p className="ml-3 text-sm text-gray-600 dark:text-gray-400">
+            <p className="ml-3 text-sm text-text-tertiary">
               {t("settings.mcp.jsonModeHint")}
             </p>
           </div>

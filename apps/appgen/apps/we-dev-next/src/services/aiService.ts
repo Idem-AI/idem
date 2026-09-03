@@ -110,6 +110,13 @@ export async function generateObjectFn(messages: Messages) {
 export interface StreamingOptions {
   tools?: Record<string, any>;
   toolCallStreaming?: boolean;
+  /**
+   * Nombre de tours d'outils autorisés avant que le modèle doive conclure.
+   * Sans cela le SDK s'arrête au premier appel d'outil et rend un message vide :
+   * le mode Plan a besoin d'enchaîner « lister → chercher → lire » avant de
+   * pouvoir répondre.
+   */
+  maxSteps?: number;
   onError?: (error: any) => void;
   onFinish?: (response: any) => Promise<void>;
 }

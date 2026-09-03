@@ -55,7 +55,7 @@ export function SizeSelector({
     <div className="relative">
       <button
         ref={btnRef}
-        className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#2c2c2c] text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 flex items-center gap-1.5"
+        className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-surface-2 text-text-tertiary hover:text-text-primary flex items-center gap-1.5"
         onClick={() => setOpen((o) => !o)}
         title={value.name}
         aria-label={value.name}
@@ -68,7 +68,7 @@ export function SizeSelector({
           <>
             <div className="fixed inset-0 z-[99998]" onClick={() => setOpen(false)} />
             <div
-              className="fixed z-[99999] min-w-[220px] bg-white dark:bg-[#1a1a1a] rounded-xl shadow-2xl border border-[#E5E7EB] dark:border-[rgba(255,255,255,0.12)] overflow-hidden py-1"
+              className="fixed z-[99999] min-w-[220px] bg-surface-2 rounded-xl shadow-2xl border border-[var(--glass-border)] overflow-hidden py-1"
               style={{ top: pos.top, left: pos.left }}
             >
               {WINDOW_SIZES.map((size) => {
@@ -77,10 +77,10 @@ export function SizeSelector({
                 return (
                   <button
                     key={size.name}
-                    className={`w-full px-4 py-2.5 text-left text-sm whitespace-nowrap flex items-center gap-3 group hover:bg-[#F5EEFF] dark:hover:bg-[#2c2c2c] ${
+                    className={`w-full px-4 py-2.5 text-left text-sm whitespace-nowrap flex items-center gap-3 group hover:bg-primary/10 dark:hover:bg-surface-2 ${
                       activeItem
-                        ? 'text-[#6D28D9] dark:text-[#a78bfa]'
-                        : 'text-[#111827] dark:text-gray-300'
+                        ? 'text-primary'
+                        : 'text-text-primary dark:text-gray-300'
                     }`}
                     onClick={() => {
                       onChange(size);
@@ -90,7 +90,7 @@ export function SizeSelector({
                     <SIcon size={18} />
                     <div className="flex flex-col">
                       <span className="font-medium">{size.name}</span>
-                      <span className="text-xs text-[#6B7280] dark:text-gray-500">
+                      <span className="text-xs text-text-tertiary dark:text-gray-500">
                         {size.width} × {size.height}
                       </span>
                     </div>
