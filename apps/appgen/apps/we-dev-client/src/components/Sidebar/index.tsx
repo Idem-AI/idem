@@ -156,7 +156,7 @@ export function Sidebar({
 
   const openUserCenter = () => {
     // Version web - ouvrir directement l'URL dans un nouvel onglet
-    const url = "https://idem appgen.ai/user";
+    const url = `${process.env.REACT_APP_IDEM_MAIN_APP_URL || 'https://idem.africa'}/account`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
   const renderUserSection = () => {
@@ -164,7 +164,7 @@ export function Sidebar({
     if (currentUser) {
       return (
         <div
-          className="p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5"
+          className="p-3 cursor-pointer hover:bg-surface-2/5"
           onClick={() => openSettings(TAB_KEYS.Quota)}
         >
           <div className="flex items-center gap-2">
@@ -187,16 +187,16 @@ export function Sidebar({
               {!currentUser.photoURL && getInitials(currentUser.displayName || currentUser.email || "?")}
             </div>
             <div className="flex-1">
-              <div className="text-gray-900 dark:text-white text-[14px] font-medium">
+              <div className="text-text-primary text-[14px] font-medium">
                 {currentUser.displayName || currentUser.email}
               </div>
-              <div className="text-[13px] text-gray-500 dark:text-gray-400 translate uppercase">
+              <div className="text-[13px] text-text-tertiary translate uppercase">
                 {`${currentUser.subscription} plan`}
               </div>
             </div>
             <button
               onClick={handleLogout}
-              className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+              className="text-gray-500 hover:text-text-primary dark:hover:text-white"
             >
               <svg
                 className="w-[16px] h-[16px]"
@@ -220,7 +220,7 @@ export function Sidebar({
     else if (isAuthenticated) {
       return (
         <div
-          className="p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5"
+          className="p-3 cursor-pointer hover:bg-surface-2/5"
           onClick={() => openSettings(TAB_KEYS.Quota)}
         >
           <div className="flex items-center gap-2">
@@ -243,16 +243,16 @@ export function Sidebar({
               {!storeUser?.avatar && getInitials(storeUser?.username || "?")}
             </div>
             <div className="flex-1">
-              <div className="text-gray-900 dark:text-white text-[14px] font-medium">
+              <div className="text-text-primary text-[14px] font-medium">
                 {storeUser?.username}
               </div>
-              <div className="text-[13px] text-gray-500 dark:text-gray-400 translate uppercase">
+              <div className="text-[13px] text-text-tertiary translate uppercase">
                 {`${storeUser?.userQuota?.tierType} plan`}
               </div>
             </div>
             <button
               onClick={handleLogout}
-              className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+              className="text-gray-500 hover:text-text-primary dark:hover:text-white"
             >
               <svg
                 className="w-[16px] h-[16px]"
@@ -275,7 +275,7 @@ export function Sidebar({
     // Not authenticated case
     return (
       <div
-        className="p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5"
+        className="p-3 cursor-pointer hover:bg-surface-2/5"
         onClick={() => {
           openLoginModal();
         }}
@@ -285,10 +285,10 @@ export function Sidebar({
             ?
           </div>
           <div className="flex-1">
-            <div className="text-gray-900 dark:text-white text-[14px] font-medium">
+            <div className="text-text-primary text-[14px] font-medium">
               {t("login.title")}
             </div>
-            <div className="text-[13px] text-gray-500 dark:text-gray-400 translate">
+            <div className="text-[13px] text-text-tertiary translate">
               {t("login.click_to_login")}
             </div>
           </div>
@@ -314,7 +314,7 @@ export function Sidebar({
       >
         {/* Logo */}
         <div className="p-3">
-          <h1 className="text-gray-900 dark:text-white text-[14px] font-medium">
+          <h1 className="text-text-primary text-[14px] font-medium">
             Idem Appgen
           </h1>
         </div>
@@ -322,7 +322,7 @@ export function Sidebar({
         {/* New Chat Button */}
         <button
           onClick={() => eventEmitter.emit("chat:select", "")}
-          className="mx-3 my-2 p-2 flex items-center gap-2 text-purple-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors text-[14px]"
+          className="mx-3 my-2 p-2 flex items-center gap-2 text-purple-600 dark:text-blue-400 hover:bg-surface-2/5 rounded-lg transition-colors text-[14px]"
         >
           <svg
             className="w-[16px] h-[16px]"
@@ -347,7 +347,7 @@ export function Sidebar({
             placeholder={t("sidebar.search")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-gray-100 dark:bg-[#2C2C2C] text-gray-900 dark:text-white rounded-lg px-3 py-1.5 outline-none text-[14px] border border-gray-200 dark:border-gray-700"
+            className="w-full bg-gray-100 dark:bg-surface-2 text-text-primary rounded-lg px-3 py-1.5 outline-none text-[14px] border border-[var(--glass-border)]"
           />
         </div>
 
@@ -357,7 +357,7 @@ export function Sidebar({
             <div
               key={chat.uuid}
               onClick={() => eventEmitter.emit("chat:select", chat.uuid)}
-              className="group flex items-center w-full text-left px-2 py-1.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded text-[14px] cursor-pointer"
+              className="group flex items-center w-full text-left px-2 py-1.5 text-text-secondary hover:bg-surface-2/5 rounded text-[14px] cursor-pointer"
             >
               <span className="flex-1 truncate">
                 {chat.title || "New Chat"}
@@ -367,7 +367,7 @@ export function Sidebar({
                   e.stopPropagation();
                   deleteChat(chat.uuid, e);
                 }}
-                className="hidden text-gray-500 group-hover:block dark:text-gray-400 hover:text-gray-700 dark:hover:text-white"
+                className="hidden text-gray-500 group-hover:block dark:text-gray-400 hover:text-text-secondary"
               >
                 <svg
                   className="w-4 h-4"
@@ -388,12 +388,12 @@ export function Sidebar({
         </div>
 
         {/* Bottom Section */}
-        <div className="mt-auto border-t border-gray-200 dark:border-[#333333]">
+        <div className="mt-auto border-t border-gray-200 dark:border-[var(--glass-border)]">
           {/* Settings and Help */}
-          <div className="border-b border-gray-200 dark:border-[#333333]">
+          <div className="border-b border-gray-200 dark:border-[var(--glass-border)]">
             <button
               onClick={() => openSettings("General")}
-              className="flex items-center w-full gap-2 px-3 py-2 text-left text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+              className="flex items-center w-full gap-2 px-3 py-2 text-left text-text-primary hover:bg-surface-2/5"
             >
               <svg
                 className="w-[16px] h-[16px]"
@@ -421,7 +421,7 @@ export function Sidebar({
               onClick={() => {
                 openUserCenter();
               }}
-              className="flex items-center w-full gap-2 px-3 py-2 text-left text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+              className="flex items-center w-full gap-2 px-3 py-2 text-left text-text-primary hover:bg-surface-2/5"
             >
               <svg
                 className="w-[16px] h-[16px]"

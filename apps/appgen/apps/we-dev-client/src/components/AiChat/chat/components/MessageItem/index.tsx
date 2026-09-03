@@ -269,23 +269,23 @@ export const CodeBlock = memo(
         <style>{codeStyles}</style>
         <div className="my-1">
           <div className="glass-card overflow-hidden group">
-            <div className="flex items-center justify-between px-2 py-0.5 border-b border-[#E1E4E8] dark:border-[#333] bg-[#F6F8FA] dark:bg-[#2d2d2d]">
+            <div className="flex items-center justify-between px-2 py-0.5 border-b border-[var(--glass-border)] bg-surface-2">
               <div className="flex items-center gap-2.5">
                 {filePath ? (
                   <div className="flex items-center gap-2">
                     <svg
-                      className="w-4 h-4 text-[#6e7681] dark:text-gray-400"
+                      className="w-4 h-4 text-text-tertiary dark:text-gray-400"
                       viewBox="0 0 16 16"
                       fill="currentColor"
                     >
                       <path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 9 4.25V1.5Zm6.75.062V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z" />
                     </svg>
-                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    <span className="text-xs font-medium text-text-tertiary">
                       {filePath}
                     </span>
                   </div>
                 ) : language ? (
-                  <div className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  <div className="text-xs font-medium text-text-tertiary">
                     {language}
                   </div>
                 ) : null}
@@ -295,7 +295,7 @@ export const CodeBlock = memo(
                 {isJson && (
                   <button
                     onClick={() => setIsExpanded(!isExpanded)}
-                    className="flex items-center justify-center w-6 h-6 p-1 text-gray-500 transition-opacity opacity-0 group-hover:opacity-100 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                    className="flex items-center justify-center w-6 h-6 p-1 text-gray-500 transition-opacity opacity-0 group-hover:opacity-100 hover:text-text-secondary dark:hover:text-gray-300"
                     title={isExpanded ? "折叠" : "展开"}
                   >
                     <svg
@@ -315,7 +315,7 @@ export const CodeBlock = memo(
                 )}
                 <button
                   onClick={handleCopy}
-                  className="flex items-center justify-center w-6 h-6 p-1 text-gray-500 transition-opacity opacity-0 group-hover:opacity-100 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                  className="flex items-center justify-center w-6 h-6 p-1 text-gray-500 transition-opacity opacity-0 group-hover:opacity-100 hover:text-text-secondary dark:hover:text-gray-300"
                 >
                   {copied ? (
                     <svg
@@ -346,7 +346,7 @@ export const CodeBlock = memo(
                 </button>
               </div>
             </div>
-            <div className="overflow-hidden bg-[#FAFBFC] dark:bg-[#1E1E1E]">
+            <div className="overflow-hidden bg-surface-1">
               <div
                 className={`overflow-x-auto scrollbar-none px-3 py-1 ${
                   isDarkMode ? "hljs-dark" : "hljs-light"
@@ -357,7 +357,7 @@ export const CodeBlock = memo(
                 }`}>
                   <code
                     dangerouslySetInnerHTML={{ __html: highlightedCode }}
-                    className={`language-${language || "plaintext"} text-xs text-[#1A1A1A] dark:text-[#D4D4D4]`}
+                    className={`language-${language || "plaintext"} text-xs text-text-primary`}
                   />
                 </pre>
                 {/* JSON 内容折叠时显示渐变遮罩 */}
@@ -482,21 +482,21 @@ const ToolInvocationCard = ({
   return (
     <div className="flex flex-col gap-2 mb-4">
       {/* MCP 工具使用提示 */}
-      <div className="text-xs text-gray-500 dark:text-gray-400">
+      <div className="text-xs text-text-tertiary">
         {toolName?.[1]} {t('chat.buttons.mcp_tools')}: {toolName?.[2]}
       </div>
       
-      <div className="relative rounded-lg border dark:border-gray-700 bg-gray-50 dark:bg-[#1e1e1e] overflow-hidden">
-        <div className="flex items-center gap-2 px-3 py-2 border-b dark:border-gray-700 bg-white dark:bg-[#2d2d2d]">
+      <div className="relative rounded-lg border dark:border-gray-700 bg-gray-50 dark:bg-surface-1 overflow-hidden">
+        <div className="flex items-center gap-2 px-3 py-2 border-b dark:border-gray-700 bg-surface-2">
           <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
           </svg>
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <span className="text-sm font-medium text-text-secondary">
             {toolName?.[2] || t('settings.mcp.title')}
           </span>
         </div>
         <div className="p-3">
-          <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300 font-mono">
+          <pre className="whitespace-pre-wrap text-sm text-text-secondary font-mono">
             {JSON.stringify(toolInvocation?.args, null, 2)}
           </pre>
         </div>
@@ -567,13 +567,13 @@ export const MessageItem: React.FC<MessageItemProps> = ({
     : "bg-gray-100 dark:bg-[rgba(45,45,45)]";
   return (
     <div className="group relative">
-      <div className="flex flex-col gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+      <div className="flex flex-col gap-2 px-2 py-1.5 rounded-lg hover:bg-surface-2/[0.02] transition-colors">
         <div className="flex items-start gap-2">
           <div
             className={classNames(
-              "w-6 h-6 rounded-full flex items-center justify-center text-xs border border-gray-200 dark:border-gray-700/50 overflow-hidden",
+              "w-6 h-6 rounded-full flex items-center justify-center text-xs border border-[var(--glass-border)]/50 overflow-hidden",
               avatarColor,
-              isUser ? "text-white" : "text-gray-700 dark:text-gray-300"
+              isUser ? "text-white" : "text-text-secondary"
             )}
           >
             {isUser ? (
@@ -600,7 +600,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
               />
             ) : (
               <div className="flex flex-col gap-1">
-                <div className="leading-relaxed prose-sm prose text-gray-900 dark:text-gray-100 dark:prose-invert max-w-none">
+                <div className="leading-relaxed prose-sm prose text-text-primary dark:prose-invert max-w-none">
                   {/* 修改工具调用卡片的渲染 */}
                   {message.parts?.map((part, index) => {
                     if (part.type === "tool-invocation") {
@@ -628,7 +628,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                         if (isInline) {
                           return (
                             <code
-                              className="font-mono text-sm px-1.5 py-0.5 rounded bg-gray-50 dark:bg-[#282828] text-gray-800 dark:text-gray-300"
+                              className="font-mono text-sm px-1.5 py-0.5 rounded bg-gray-50 dark:bg-surface-2 text-text-secondary"
                               {...props}
                             >
                               {children}
@@ -672,7 +672,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                       },
                       li({ children }) {
                         return (
-                          <li className="text-gray-700 dark:text-gray-300">
+                          <li className="text-text-secondary">
                             {children}
                           </li>
                         );
@@ -757,14 +757,14 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                       },
                       tbody({ children }) {
                         return (
-                          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                          <tbody className="divide-y divide-[var(--glass-border)]">
                             {children}
                           </tbody>
                         );
                       },
                       tr({ children }) {
                         return (
-                          <tr className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                          <tr className="hover:bg-surface-2/50">
                             {children}
                           </tr>
                         );
@@ -778,7 +778,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                       },
                       td({ children }) {
                         return (
-                          <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 border dark:border-gray-700">
+                          <td className="px-4 py-2 text-sm text-text-secondary border dark:border-gray-700">
                             {children}
                           </td>
                         );
@@ -817,7 +817,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           <div className="flex items-center justify-end ">
             <button
               onClick={handleCopyMessage}
-              className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-surface-2"
             >
               {copied ? (
                 <svg
@@ -835,7 +835,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                 </svg>
               ) : (
                 <svg
-                  className="w-4 h-4 text-gray-500 dark:text-gray-400"
+                  className="w-4 h-4 text-text-tertiary"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -851,11 +851,11 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                 onClick={() => {
                   handleRetry?.()
                 }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-surface-2"
                 title="重试"
               >
                 <svg
-                  className="w-4 h-4 text-gray-500 dark:text-gray-400"
+                  className="w-4 h-4 text-text-tertiary"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"

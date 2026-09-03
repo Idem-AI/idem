@@ -4,9 +4,9 @@ import useChatModeStore from './stores/chatModeSlice';
 import { GlobalLimitModal } from './components/UserModal';
 import Header from './components/Header';
 import AiChat from './components/AiChat';
-import EditorPreviewTabs from './components/EditorPreviewTabs';
+import Workspace from './components/Workspace';
+import { WorkspaceShell } from './components/Workspace/WorkspaceShell';
 import './utils/i18';
-import classNames from 'classnames';
 import { ChatMode } from './types/chat';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -15,11 +15,13 @@ import useInit from './hooks/useInit';
 import { Loading } from './components/loading';
 import TopViewContainer from './components/TopView';
 import { AppGenLanding } from './components/Landing/AppGenLanding';
+import { BrandMark } from './components/Brand';
 import useAppGenContextStore from './stores/appgenContextSlice';
 import { consumePendingContext } from './hooks/useAuth';
 import { getCurrentUser } from './api/persistence/db';
 import { AuthSync } from './components/Auth/AuthSync';
 import { useTour } from './hooks/useTour';
+import { eventEmitter } from './components/AiChat/utils/EventEmitter';
 
 const PENDING_PROMPT_KEY = 'appgen_pending_prompt';
 
@@ -29,7 +31,7 @@ type AppView = 'loading' | 'landing' | 'chat';
 function App() {
   const { mode, initOpen } = useChatModeStore();
   const { openLoginModal, isAuthenticated } = useUserStore();
-  const { isDarkMode } = useInit();
+  useInit();
   const { initDraft, setPendingIntent, updateDraftMetadata } = useAppGenContextStore();
 
   const [view, setView] = useState<AppView>('loading');
@@ -97,18 +99,10 @@ function App() {
   // Minimal loading screen while checking auth
   if (view === 'loading') {
     return (
-      <div
-        className={classNames('h-screen w-screen flex items-center justify-center bg-[#111]', {
-          dark: isDarkMode,
-        })}
-      >
-        <div className="flex flex-col items-center gap-4">
-          <img
-            src={isDarkMode ? "/assets/icons/logo_white.png" : "/assets/icons/idem-logo.png"}
-            alt="logo"
-            className="w-12 h-auto animate-pulse"
-          />
-          <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+      <div className="h-screen w-screen flex items-center justify-center bg-bg-darker">
+        <div className="flex flex-col items-center gap-5">
+          <BrandMark size={56} className="animate-pulse" />
+          <div className="w-5 h-5 border-2 border-[var(--glass-border-strong)] border-t-primary rounded-full animate-spin" />
         </div>
       </div>
     );
@@ -117,7 +111,7 @@ function App() {
   // Landing page — non-authenticated entry point
   if (view === 'landing') {
     return (
-      <div className={classNames({ dark: isDarkMode })}>
+      <div>
         <AppGenLanding onStart={handleLandingStart} />
         <ToastContainer
           position="top-center"
@@ -134,16 +128,15 @@ function App() {
     <TopViewContainer>
       <AuthSync />
       <GlobalLimitModal onLogin={openLoginModal} />
-      <div
-        className={classNames('h-screen w-screen flex flex-col', {
-          dark: isDarkMode,
-        })}
-      >
+      <div className="h-screen w-screen flex flex-col overflow-hidden bg-bg-darker">
         <Header />
-        <div className="flex flex-row w-full h-full max-h-[calc(100%-48px)] bg-white dark:bg-[#111]">
-          <AiChat />
-          {mode === ChatMode.Builder && !initOpen && <EditorPreviewTabs />}
-        </div>
+        <WorkspaceShell
+          hasWorkspace={mode === ChatMode.Builder && !initOpen}
+          chat={<AiChat />}
+          workspace={
+            <Workspace onSendToChat={(text) => eventEmitter.emit('chat:prefill', text)} />
+          }
+        />
       </div>
       <UpdateTip />
       <ToastContainer

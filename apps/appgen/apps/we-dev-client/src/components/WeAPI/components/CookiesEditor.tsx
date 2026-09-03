@@ -1,6 +1,6 @@
 import React from 'react';
 import { Input, Button, Space } from 'antd';
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { Plus, Trash2 } from 'lucide-react';
 import { KeyValuePair } from '../types';
 
 interface CookiesEditorProps {
@@ -33,7 +33,7 @@ function CookiesEditor({ cookies, onUpdate }: CookiesEditorProps): JSX.Element {
                     />
                     <Button
                         type="text"
-                        icon={<DeleteOutlined />}
+                        icon={<Trash2 size={14} />}
                         onClick={() => {
                             const newCookies = cookies.filter((_, i) => i !== index);
                             onUpdate(newCookies);
@@ -44,7 +44,7 @@ function CookiesEditor({ cookies, onUpdate }: CookiesEditorProps): JSX.Element {
             <Button
                 type="dashed"
                 onClick={() => onUpdate([...cookies, { key: '', value: '' }])}
-                icon={<PlusOutlined />}
+                icon={<Plus size={14} />}
             >
                 Add Cookie
             </Button>

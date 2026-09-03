@@ -31,10 +31,10 @@ export function ProjectTitle() {
           size={32}
         />
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+          <div className="text-sm font-medium text-text-primary truncate">
             {projectData?.name || 'Project'}
           </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">Generation Workspace</div>
+          <div className="text-xs text-text-tertiary">Generation Workspace</div>
         </div>
         <div className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
           Active Project
@@ -48,10 +48,10 @@ export function ProjectTitle() {
     <div className="relative flex items-center px-2 py-1">
       <button
         onClick={() => setHistoryOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-lg px-3 py-1.5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors group"
+        className="flex items-center gap-2 rounded-lg px-3 py-1.5 hover:bg-surface-2/10 transition-colors group"
       >
         <svg
-          className="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors"
+          className="w-4 h-4 text-text-tertiary group-hover:text-text-primary transition-colors"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -64,10 +64,10 @@ export function ProjectTitle() {
           />
         </svg>
         <div className="text-left">
-          <div className="text-sm font-medium text-gray-800 dark:text-white truncate max-w-[160px]">
+          <div className="text-sm font-medium text-text-secondary truncate max-w-[160px]">
             {activeSession?.title || 'Nouvelle conversation'}
           </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">
+          <div className="text-xs text-text-tertiary">
             {sessions.length > 0
               ? `${sessions.length} chat${sessions.length > 1 ? 's' : ''}`
               : 'Historique vide'}

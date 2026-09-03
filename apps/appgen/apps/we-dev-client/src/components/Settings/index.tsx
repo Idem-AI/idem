@@ -161,7 +161,7 @@ export function Settings({
         `}
       >
         {/* Sidebar */}
-        <div className="w-56 border-r border-gray-200 dark:border-[#333333] p-3">
+        <div className="w-56 border-r border-gray-200 dark:border-[var(--glass-border)] p-3">
           <div className="space-y-2">
             {tabs.map((tab) => (
               <button
@@ -172,8 +172,8 @@ export function Settings({
                   transition-colors text-[14px]
                   ${
                     activeTab === tab.id
-                      ? "bg-gray-100 dark:bg-[#333333] text-gray-900 dark:text-white"
-                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#2A2A2A] hover:text-gray-900 dark:hover:text-white"
+                      ? "bg-gray-100 dark:bg-surface-3 text-text-primary"
+                      : "text-text-tertiary hover:bg-surface-3 hover:text-text-primary"
                   }
                 `}
               >
@@ -194,7 +194,7 @@ export function Settings({
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute text-gray-400 transition-colors top-3 right-3 hover:text-gray-900 dark:hover:text-white"
+          className="absolute text-gray-400 transition-colors top-3 right-3 hover:text-text-primary"
           aria-label={t("common.close")}
         >
           <svg

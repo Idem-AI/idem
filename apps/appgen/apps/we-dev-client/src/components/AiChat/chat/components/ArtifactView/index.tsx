@@ -202,7 +202,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
     <div className="space-y-3">
       {/* 显示 boltArtifact 之前的文本内容 */}
       {preArtifactContent && (
-        <div className="text-gray-900 dark:text-gray-100 leading-relaxed prose dark:prose-invert prose-sm max-w-none">
+        <div className="text-text-primary leading-relaxed prose dark:prose-invert prose-sm max-w-none">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
@@ -213,7 +213,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
                 if (isInline) {
                   return (
                     <code
-                      className="font-mono text-sm px-1.5 py-0.5 rounded bg-gray-50 dark:bg-[#282828] text-gray-800 dark:text-gray-300"
+                      className="font-mono text-sm px-1.5 py-0.5 rounded bg-gray-50 dark:bg-surface-2 text-text-secondary"
                       {...props}
                     >
                       {children}
@@ -248,7 +248,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
                 return <ol className="pl-4 mb-2 space-y-1 list-decimal">{children}</ol>;
               },
               li({ children }) {
-                return <li className="text-gray-700 dark:text-gray-300">{children}</li>;
+                return <li className="text-text-secondary">{children}</li>;
               },
               a({ children, href }) {
                 return (
@@ -319,13 +319,13 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
               },
               tbody({ children }) {
                 return (
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  <tbody className="divide-y divide-[var(--glass-border)]">
                     {children}
                   </tbody>
                 );
               },
               tr({ children }) {
-                return <tr className="hover:bg-gray-50 dark:hover:bg-gray-800/50">{children}</tr>;
+                return <tr className="hover:bg-surface-2/50">{children}</tr>;
               },
               th({ children }) {
                 return (
@@ -336,7 +336,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
               },
               td({ children }) {
                 return (
-                  <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 border dark:border-gray-700">
+                  <td className="px-4 py-2 text-sm text-text-secondary border dark:border-gray-700">
                     {children}
                   </td>
                 );
@@ -349,13 +349,13 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
       )}
 
       {/* 任务列表卡片 */}
-      <div className="bg-white dark:bg-[#1a1a1c] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700/50">
+      <div className="bg-surface-1 rounded-lg overflow-hidden border border-[var(--glass-border)]/50">
         <div
-          className="border-b border-gray-200 dark:border-gray-700/50 px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-[#28292b] transition-colors group"
+          className="border-b border-[var(--glass-border)]/50 px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-surface-1 transition-colors group"
           onClick={() => setIsExpanded(!isExpanded)}
         >
           <div className="flex items-center gap-2">
-            <h3 className="text-gray-700 dark:text-gray-200 font-medium text-sm">{title}</h3>
+            <h3 className="text-text-secondary font-medium text-sm">{title}</h3>
           </div>
           <div className="flex items-center gap-2">
             {/* 只在所有任务都完成时显示 Restore 按钮 */}
@@ -365,7 +365,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
                   e.stopPropagation();
                   tasks.forEach((task) => handleRestoreFile(task.text));
                 }}
-                className="invisible group-hover:visible text-xs px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 dark:bg-[#333] dark:hover:bg-[#444] text-gray-700 dark:text-gray-300 transition-all flex items-center gap-1 flex-shrink-0"
+                className="invisible group-hover:visible text-xs px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 dark:bg-surface-3 dark:hover:bg-surface-3 text-text-secondary transition-all flex items-center gap-1 flex-shrink-0"
               >
                 <svg
                   className="w-3 h-3"
@@ -391,7 +391,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
             {tasks.map((task, i) => (
               <div
                 key={i}
-                className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-[#28292b] group/item transition-colors"
+                className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-surface-1 group/item transition-colors"
               >
                 <div className="flex-shrink-0">
                   {task.status === 'done' && (
@@ -410,8 +410,8 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
                     }}
                     className={`text-sm ${
                       task.status === 'done'
-                        ? 'text-gray-700 dark:text-gray-300'
-                        : 'text-gray-500 dark:text-gray-400'
+                        ? 'text-text-secondary'
+                        : 'text-text-tertiary'
                     } hover:underline cursor-pointer truncate`}
                   >
                     {task.text}
@@ -422,7 +422,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
                         e.stopPropagation();
                         handleRestoreFile(task.text);
                       }}
-                      className="invisible group-hover/item:visible text-xs px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 dark:bg-[#333] dark:hover:bg-[#444] text-gray-700 dark:text-gray-300 transition-all flex items-center gap-1 flex-shrink-0 ml-2"
+                      className="invisible group-hover/item:visible text-xs px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 dark:bg-surface-3 dark:hover:bg-surface-3 text-text-secondary transition-all flex items-center gap-1 flex-shrink-0 ml-2"
                     >
                       <svg
                         className="w-3 h-3"
@@ -444,14 +444,14 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
 
         {/* NPM 命令区域 */}
         {isExpanded && npmCommands.length > 0 && (
-          <div className="border-t border-gray-200 dark:border-gray-700/50">
+          <div className="border-t border-[var(--glass-border)]/50">
             {npmCommands.map((cmd, index) => (
               <div
                 key={cmd.type}
                 className={classNames(
-                  'bg-gray-50 dark:bg-[#232426] px-3 py-2 font-mono text-sm flex items-center gap-1.5 justify-between group/npm',
+                  'bg-gray-50 dark:bg-surface-2 px-3 py-2 font-mono text-sm flex items-center gap-1.5 justify-between group/npm',
                   index !== npmCommands.length - 1 &&
-                    'border-b border-gray-200 dark:border-gray-700/50'
+                    'border-b border-[var(--glass-border)]/50'
                 )}
               >
                 <div className="flex items-center justify-between w-full">
@@ -486,15 +486,15 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
                       <div className="flex w-full gap-1.5">
                         <>
                           <span className="text-green-600 dark:text-[#7ee787]">npm</span>
-                          <span className="text-gray-600 dark:text-gray-400">install</span>
+                          <span className="text-text-tertiary">install</span>
                         </>
                         <button
                           className={classNames(
                             'text-xs px-1.5 py-0.5 rounded transition-all flex items-center gap-1 flex-shrink-0 ml-24',
                             {
-                              'invisible group-hover/npm:visible bg-gray-100 hover:bg-gray-200 dark:bg-[#333] dark:hover:bg-[#444] text-gray-700 dark:text-gray-300':
+                              'invisible group-hover/npm:visible bg-gray-100 hover:bg-gray-200 dark:bg-surface-3 dark:hover:bg-surface-3 text-text-secondary':
                                 !commandStatus[cmd.command],
-                              'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed':
+                              'bg-surface-3 text-text-tertiary cursor-not-allowed':
                                 commandStatus[cmd.command] === 'completed',
                               'bg-blue-100 dark:bg-blue-600 text-blue-700 dark:text-white cursor-wait':
                                 commandStatus[cmd.command] === 'running',
@@ -552,16 +552,16 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
                       <div className="flex w-full gap-1.5">
                         <>
                           <span className="text-green-600 dark:text-[#7ee787]">npm</span>
-                          <span className="text-gray-600 dark:text-gray-400">run</span>
+                          <span className="text-text-tertiary">run</span>
                           <span className="text-[#79c0ff]">dev</span>
                         </>
                         <button
                           className={classNames(
                             'text-xs px-1.5 py-0.5 rounded transition-all flex items-center gap-1 flex-shrink-0 ml-24',
                             {
-                              'invisible group-hover/npm:visible bg-gray-100 hover:bg-gray-200 dark:bg-[#333] dark:hover:bg-[#444] text-gray-700 dark:text-gray-300':
+                              'invisible group-hover/npm:visible bg-gray-100 hover:bg-gray-200 dark:bg-surface-3 dark:hover:bg-surface-3 text-text-secondary':
                                 !commandStatus[cmd.command],
-                              'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed':
+                              'bg-surface-3 text-text-tertiary cursor-not-allowed':
                                 commandStatus[cmd.command] === 'completed',
                               'bg-blue-100 dark:bg-blue-600 text-blue-700 dark:text-white cursor-wait':
                                 commandStatus[cmd.command] === 'running',
@@ -602,12 +602,12 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({
 
       {/* 显示 boltArtifact 结尾后的文本内容 */}
       {postArtifactContent && (
-        <div className="text-gray-900 dark:text-gray-100 leading-relaxed prose dark:prose-invert prose-sm max-w-none ">
+        <div className="text-text-primary leading-relaxed prose dark:prose-invert prose-sm max-w-none ">
           <ReactMarkdown
             components={{
               blockquote({ children }) {
                 return (
-                  <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 my-2 text-sm text-gray-600 dark:text-gray-400">
+                  <blockquote className="border-l-4 border-[var(--glass-border)] pl-4 my-2 text-sm text-text-tertiary">
                     {children}
                   </blockquote>
                 );

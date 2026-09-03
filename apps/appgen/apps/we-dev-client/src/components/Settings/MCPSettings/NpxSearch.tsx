@@ -71,7 +71,7 @@ const NpxSearch: FC = () => {
         <SettingGroup theme={isDarkMode ? 'dark' : 'light'}>
             <SettingTitle>{t('settings.mcp.npx_list.title')}</SettingTitle>
             <SettingDivider />
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-sm text-text-tertiary mb-4">
                 {t('settings.mcp.npx_list.desc')}
             </p>
 
@@ -85,8 +85,8 @@ const NpxSearch: FC = () => {
                         placeholder={t('settings.mcp.npx_list.scope_placeholder')}
                         className={classNames(
                             "flex-1 px-3 py-2 text-sm rounded-lg",
-                            "bg-white dark:bg-gray-900",
-                            "border border-gray-300 dark:border-gray-600",
+                            "bg-surface-1",
+                            "border border-[var(--glass-border)]",
                             "focus:outline-none focus:ring-2 focus:ring-purple-500/50",
                             "placeholder-gray-400 dark:placeholder-gray-500",
                             "transition duration-200"
@@ -121,19 +121,19 @@ const NpxSearch: FC = () => {
 
                 <div className="flex flex-wrap gap-2 mt-2">
                     <button 
-                        className="px-3 py-1 text-xs font-medium rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 transition-colors"
+                        className="px-3 py-1 text-xs font-medium rounded-lg bg-gray-100 hover:bg-surface-3 dark:hover:bg-gray-700 text-text-secondary transition-colors"
                         onClick={() => handleMarketClick('@mcpmarket')}
                     >
                         @mcpmarket
                     </button>
                     <button 
-                        className="px-3 py-1 text-xs font-medium rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 transition-colors"
+                        className="px-3 py-1 text-xs font-medium rounded-lg bg-gray-100 hover:bg-surface-3 dark:hover:bg-gray-700 text-text-secondary transition-colors"
                         onClick={() => handleMarketClick('@modelcontextprotocol')}
                     >
                         @modelcontextprotocol
                     </button>
                     <button 
-                        className="px-3 py-1 text-xs font-medium rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 transition-colors"
+                        className="px-3 py-1 text-xs font-medium rounded-lg bg-gray-100 hover:bg-surface-3 dark:hover:bg-gray-700 text-text-secondary transition-colors"
                         onClick={() => handleMarketClick('@gongrzhe')}
                     >
                         @gongzhe
@@ -145,36 +145,36 @@ const NpxSearch: FC = () => {
                         <div className="animate-spin rounded-full h-8 w-8 border-2 border-purple-500 border-t-transparent" />
                     </div>
                 ) : searchResults.length > 0 ? (
-                    <div className="overflow-x-auto overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700">
-                        <table className="w-full table-fixed border-collapse bg-white dark:bg-gray-800">
+                    <div className="overflow-x-auto overflow-y-auto rounded-lg border border-[var(--glass-border)]">
+                        <table className="w-full table-fixed border-collapse bg-surface-1">
                             <thead>
-                                <tr className="border-b border-gray-200 dark:border-gray-700">
-                                    <th className="px-2 py-2 text-left text-sm font-medium text-gray-900 dark:text-gray-100 w-[20%]">
+                                <tr className="border-b border-[var(--glass-border)]">
+                                    <th className="px-2 py-2 text-left text-sm font-medium text-text-primary w-[20%]">
                                         {t('settings.mcp.npx_list.package_name')}
                                     </th>
-                                    <th className="px-2 py-2 text-left text-sm font-medium text-gray-900 dark:text-gray-100 w-[50%]">
+                                    <th className="px-2 py-2 text-left text-sm font-medium text-text-primary w-[50%]">
                                         {t('settings.mcp.npx_list.description')}
                                     </th>
-                                    <th className="px-2 py-2 text-left text-sm font-medium text-gray-900 dark:text-gray-100 w-[15%]">
+                                    <th className="px-2 py-2 text-left text-sm font-medium text-text-primary w-[15%]">
                                         {t('settings.mcp.npx_list.version')}
                                     </th>
-                                    <th className="px-2 py-2 text-center text-sm font-medium text-gray-900 dark:text-gray-100 w-[15%]">
+                                    <th className="px-2 py-2 text-center text-sm font-medium text-text-primary w-[15%]">
                                         {t('settings.mcp.npx_list.actions')}
                                     </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {searchResults.map((result) => (
-                                    <tr key={result.name} className="border-b border-gray-200 dark:border-gray-700">
-                                        <td className="px-2 py-2 text-sm text-gray-900 dark:text-gray-100 break-words">
+                                    <tr key={result.name} className="border-b border-[var(--glass-border)]">
+                                        <td className="px-2 py-2 text-sm text-text-primary break-words">
                                             {result.name}
                                         </td>
                                         <td className="px-2 py-2">
                                             <div className="space-y-1">
-                                                <p className="text-sm text-gray-900 dark:text-gray-100 line-clamp-2" title={result.description}>
+                                                <p className="text-sm text-text-primary line-clamp-2" title={result.description}>
                                                     {result.description}
                                                 </p>
-                                                <p className="text-sm text-gray-500 dark:text-gray-400 truncate" title={`${t('settings.mcp.npx_list.usage')}: ${result.usage}`}>
+                                                <p className="text-sm text-text-tertiary truncate" title={`${t('settings.mcp.npx_list.usage')}: ${result.usage}`}>
                                                     {t('settings.mcp.npx_list.usage')}: {result.usage}
                                                 </p>
                                                 <a
@@ -188,7 +188,7 @@ const NpxSearch: FC = () => {
                                                 </a>
                                             </div>
                                         </td>
-                                        <td className="px-2 py-2 text-sm text-gray-900 dark:text-gray-100 break-words">
+                                        <td className="px-2 py-2 text-sm text-text-primary break-words">
                                             {result.version}
                                         </td>
                                         <td className="px-2 py-2 text-center">

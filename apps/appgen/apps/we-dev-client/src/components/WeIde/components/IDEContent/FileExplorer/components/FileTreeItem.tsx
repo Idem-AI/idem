@@ -97,8 +97,8 @@ export function FileTreeItem({
           "h-[24px] px-1.5 my-[1px]",
           "group relative select-none",
           isSelected 
-            ? "bg-[#e4e6f1] dark:bg-[#37373d] text-[#333] dark:text-white" 
-            : "hover:bg-[#f0f0f0] dark:hover:bg-[#2d2d2d]/70 text-[#444444] dark:text-gray-300"
+            ? "bg-surface-3 text-text-tertiary dark:text-white" 
+            : "hover:bg-surface-2 dark:hover:bg-surface-2/70 text-text-secondary dark:text-gray-300"
         )}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
@@ -111,9 +111,9 @@ export function FileTreeItem({
           {item.type === "folder" && (
             <span className="w-4 h-4 flex items-center justify-center">
               {expanded ? (
-                <ChevronDown className="w-3.5 h-3.5 text-[#424242] dark:text-gray-400 transition-transform duration-200" />
+                <ChevronDown className="w-3.5 h-3.5 text-text-secondary dark:text-gray-400 transition-transform duration-200" />
               ) : (
-                <ChevronRight className="w-3.5 h-3.5 text-[#424242] dark:text-gray-400 transition-transform duration-200" />
+                <ChevronRight className="w-3.5 h-3.5 text-text-secondary dark:text-gray-400 transition-transform duration-200" />
               )}
             </span>
           )}

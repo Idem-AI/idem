@@ -1,6 +1,6 @@
 import React from 'react';
 import { Radio, Input, Button, Upload, Space, Select } from 'antd';
-import { DeleteOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
+import { Plus, Trash2, Upload as UploadIcon } from 'lucide-react';
 import { BodyType, RequestBody, FormDataItem } from '../types';
 
 const { TextArea } = Input;
@@ -64,7 +64,7 @@ function BodyEditor({ bodyType = 'none', body = {}, onUpdate }: BodyEditorProps)
             }}
             showUploadList={false}
           >
-            <Button icon={<UploadOutlined />}>
+            <Button icon={<UploadIcon size={14} />}>
               {item.fileName || 'Select File'}
             </Button>
           </Upload>
@@ -82,7 +82,7 @@ function BodyEditor({ bodyType = 'none', body = {}, onUpdate }: BodyEditorProps)
         )}
         <Button
           type="text"
-          icon={<DeleteOutlined />}
+          icon={<Trash2 size={14} />}
           onClick={() => {
             const newFormData = (body.formData || []).filter((_, i) => i !== index);
             handleBodyChange(newFormData);
@@ -123,7 +123,7 @@ function BodyEditor({ bodyType = 'none', body = {}, onUpdate }: BodyEditorProps)
                 value: '',
                 type: 'text'
               }])}
-              icon={<PlusOutlined />}
+              icon={<Plus size={14} />}
               style={{ width: '100%' }}
             >
               Add Field

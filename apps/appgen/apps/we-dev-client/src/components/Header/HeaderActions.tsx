@@ -14,6 +14,8 @@ import { DeployModal } from '../DeployModal/DeployModal';
 import useAppGenContextStore from '@/stores/appgenContextSlice';
 import { UserProfile } from './UserProfile';
 import type { UserModel } from '@/api/persistence/userModel';
+import { Rocket, Loader2, MoreHorizontal, Download, Github } from 'lucide-react';
+import Popover from '@/components/ui/Popover';
 import {
   loadDeployment,
   persistDeployment,
@@ -260,58 +262,35 @@ export function HeaderActions() {
   };
 
   return (
-    <div className="flex items-center gap-2">
-      {currentUser && <UserProfile user={currentUser} />}
-      <HelpButton />
+    <div className="flex items-center gap-1.5">
       {mode === ChatMode.Builder && (
-        <div className="flex items-center gap-2">
+        <>
+          {/* État de publication. Tant que rien n'est en ligne, rien ne
+              s'affiche ; dès qu'il y a une URL, elle est atteignable ici plutôt
+              qu'enfouie dans une modale de succès déjà refermée. */}
+          {deployment?.url && (
+            <a
+              href={deployment.url}
+              target="_blank"
+              rel="noreferrer"
+              className="h-8 px-2.5 hidden md:flex items-center gap-1.5 rounded-lg text-xs text-success hover:bg-surface-2 transition-colors max-w-[180px]"
+              title={deployment.url}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-success shrink-0" aria-hidden />
+              <span className="truncate">{deployment.url.replace(/^https?:\/\//, '')}</span>
+            </a>
+          )}
+
           <button
-            onClick={handleDownload}
-            className="outer-button flex items-center gap-1.5 text-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-              />
-            </svg>
-            <span>{t('header.download')}</span>
-          </button>
-          <button
+            type="button"
             onClick={handleDeployClick}
             disabled={isDeploying}
-            className={`flex items-center gap-1.5 text-sm ${
-              isDeploying ? 'outer-button opacity-75 cursor-not-allowed' : 'inner-button'
-            }`}
+            className="h-8 px-3 flex items-center gap-1.5 rounded-lg bg-primary text-white text-[13px] font-medium hover:brightness-110 active:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed transition"
           >
             {isDeploying ? (
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                />
-              </svg>
+              <Rocket className="w-3.5 h-3.5" />
             )}
             <span>
               {isDeploying
@@ -321,45 +300,50 @@ export function HeaderActions() {
                   : t('header.deploy')}
             </span>
           </button>
-          <button
-            onClick={handleSendToGitHub}
-            disabled={isSendingToGitHub}
-            className={`flex items-center gap-1.5 text-sm ${
-              isSendingToGitHub ? 'outer-button opacity-75 cursor-not-allowed' : 'outer-button'
-            }`}
-          >
-            {isSendingToGitHub ? (
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path
-                  fillRule="evenodd"
-                  d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            )}
-            <span>{isSendingToGitHub ? t('header.github.sending') : t('header.github.send')}</span>
-          </button>
 
-          {/* Directory opening option disabled in web mode */}
-        </div>
+          <Popover
+            label={t('header.moreActions')}
+            className="w-56"
+            trigger={(triggerProps) => (
+              <button
+                type="button"
+                {...triggerProps}
+                title={t('header.moreActions')}
+                aria-label={t('header.moreActions')}
+                className="w-8 h-8 grid place-items-center rounded-lg text-text-tertiary hover:text-text-primary hover:bg-surface-2 transition-colors"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+            )}
+          >
+            {(close) => (
+              <div className="py-1">
+                <MenuItem
+                  icon={<Download className="w-4 h-4" />}
+                  label={t('header.download')}
+                  onClick={() => {
+                    handleDownload();
+                    close();
+                  }}
+                />
+                <MenuItem
+                  icon={<Github className="w-4 h-4" />}
+                  label={isSendingToGitHub ? t('header.github.sending') : t('header.github.send')}
+                  disabled={isSendingToGitHub}
+                  onClick={() => {
+                    handleSendToGitHub();
+                    close();
+                  }}
+                />
+              </div>
+            )}
+          </Popover>
+        </>
       )}
+
+      <HelpButton />
+      {currentUser && <UserProfile user={currentUser} />}
+
       <DeployModal
         open={showDeployChoiceModal}
         onClose={() => setShowDeployChoiceModal(false)}
@@ -391,26 +375,26 @@ export function HeaderActions() {
                 d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <h3 className="text-xl font-semibold text-text-primary">
               {isRedeploy ? t('header.redeploySuccess') : t('header.deploySuccess')}
             </h3>
-            <p className="text-gray-600 dark:text-gray-300 mt-2">
+            <p className="text-text-tertiary mt-2">
               {isRedeploy ? t('header.redeployToCloud') : t('header.deployToCloud')}
             </p>
           </div>
 
-          <div className="bg-gray-100 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-6">
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">{t('header.accessLink')}</p>
+          <div className="bg-surface-2/50 border border-[var(--glass-border)] rounded-lg p-4 mb-6">
+            <p className="text-sm text-text-tertiary mb-2">{t('header.accessLink')}</p>
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={deployUrl}
                 readOnly
-                className="flex-1 p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none"
+                className="flex-1 p-2 text-sm border border-[var(--glass-border)] rounded-lg bg-surface-1 text-text-primary focus:border-blue-500 focus:outline-none"
               />
               <button
                 onClick={copyToClipboard}
-                className="px-3 py-2 bg-gray-200 text-gray-900 hover:bg-gray-300 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500 rounded-lg transition-colors flex items-center gap-1"
+                className="px-3 py-2 bg-gray-200 text-gray-900 hover:bg-surface-3 dark:text-white dark:hover:bg-gray-500 rounded-lg transition-colors flex items-center gap-1"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -471,19 +455,43 @@ export function HeaderActions() {
           }}
         >
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('header.deploy_modal.title')}</h3>
+            <h3 className="text-lg font-semibold text-text-primary mb-4">{t('header.deploy_modal.title')}</h3>
             <div className="flex justify-center items-center h-32">
               <div className="relative">
                 <div className="animate-spin rounded-full h-16 w-16 border-2 border-blue-500/30 border-t-blue-500"></div>
                 <div className="absolute inset-0 rounded-full animate-pulse bg-blue-500/10 backdrop-blur-sm"></div>
               </div>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+            <p className="text-sm text-text-tertiary mt-4">
               {t('header.deploy_modal.loading_text')}
             </p>
           </div>
         </Modal>
       )}
     </div>
+  );
+}
+
+function MenuItem({
+  icon,
+  label,
+  onClick,
+  disabled,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full h-9 px-3 flex items-center gap-2.5 text-[13px] text-text-secondary hover:text-text-primary hover:bg-surface-2 disabled:opacity-40 disabled:hover:bg-transparent transition-colors text-left"
+    >
+      {icon}
+      {label}
+    </button>
   );
 }

@@ -76,11 +76,10 @@ export default defineConfig(async ({ mode, command }) => {
       allowedHosts: ['appgen.idem.africa', 'appgen.idem-ai.com'], // domaine autorisé
     },
 
-    css: {
-      postcss: {
-        plugins: [require('tailwindcss'), require('autoprefixer')],
-      },
-    },
+    // La chaîne PostCSS est déclarée dans `postcss.config.mjs`. La redéclarer
+    // ici créait une seconde source de vérité : c'est elle qui chargeait encore
+    // `tailwindcss` en direct après la migration v4, où le plugin PostCSS vit
+    // dans `@tailwindcss/postcss`.
 
     define: {
       'process.env': env,

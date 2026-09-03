@@ -1,32 +1,61 @@
-@import url("https://fonts.googleapis.com/css2?family=Jura:wght@300..700&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Raleway:ital,wght@0,100..900;1,100..900&display=swap");
+/* ============================================================================
+   iCode — feuille de style racine
+   ----------------------------------------------------------------------------
+   Une seule source de vérité pour le design : `@idem/shared-styles`.
+   Ce fichier ne redéfinit AUCUN jeton ni composant du design system ; il ne
+   porte que ce qui est propre au builder (antd, CodeMirror, xterm, scrollbars,
+   densité outil). Toute couleur ajoutée ici est un bug — elle appartient au
+   paquet partagé.
+   ============================================================================ */
 
-@layer tailwind-base, antd;
+@import 'tailwindcss';
+@import '@idem/shared-styles/styles.css';
+@import 'tw-animate-css';
 
-@layer tailwind-base {
-  @tailwind base;
+/* Tailwind 4 détecte le contenu depuis l'emplacement de ce fichier ; on
+   l'explicite pour que `index.html` et `src/` soient scannés sans ambiguïté. */
+@source './index.html';
+@source './src/**/*.{ts,tsx,js,jsx}';
+
+/* Le thème est piloté par la classe `.dark` posée sur <html> (ThemeService
+   partagé + cookie `idem_theme`), pas par `prefers-color-scheme`. Sans cette
+   déclaration, Tailwind 4 câblerait `dark:` sur la préférence système et
+   ignorerait la bascule de l'application. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Compat Tailwind 3 → 4 : en v4 la couleur de bordure par défaut est
+   `currentColor`, en v3 c'était `gray-200`. 73 éléments du builder utilisent
+   `border` sans couleur explicite ; on restitue le comportement v3 plutôt que
+   de les repeindre un par un. */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--glass-border, currentColor);
+  }
 }
-@tailwind components;
-@tailwind utilities;
 
-* {
-  font-family: "Jura", sans-serif;
-  font-optical-sizing: auto;
-  font-weight: normal;
-  font-style: normal;
-  scroll-behavior: smooth;
-  /* Firefox */
-  scrollbar-width: none;
-  /* IE 10+ */
-  -ms-overflow-style: none;
-}
+/* antd injecte ses propres règles avec une spécificité élevée : la couche
+   explicite garantit que les utilitaires Tailwind gagnent malgré tout. */
+@layer antd;
 
-/* Webkit (Chrome, Safari, Edge) */
-*::-webkit-scrollbar {
-  display: none;
+/* ============================================================================
+   DENSITÉ « OUTIL »
+   Le builder n'est pas une landing : rayons plus courts, base typographique
+   plus petite. La landing (AppGenLanding) conserve sa générosité via ses
+   propres classes.
+   ============================================================================ */
+
+:root {
+  --radius: 0.5rem;
 }
 
 html {
-  background-color: #06080d;
+  /* U2 — le fond suit le thème. Auparavant `#06080d` en dur, ce qui laissait
+     la page noire même en mode clair. */
+  background-color: var(--color-bg-darker);
 }
 
 body {
@@ -37,26 +66,114 @@ body {
   background-color: transparent;
 }
 
-body::before {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: -1;
-  background-image: url('/assets/images/motif.png');
-  background-repeat: repeat;
-  background-position: top left;
-  pointer-events: none;
-  opacity: 0.3;
+/* ============================================================================
+   TYPOGRAPHIE — Jura pour l'interface, mono pour le code
+   `@idem/shared-styles` applique Jura et un `letter-spacing: -0.07em` sur `*`.
+   Sur du code, ce crénage serré et une police à chasse variable rendent
+   l'alignement illisible : on rétablit la mono partout où du code s'affiche.
+   ============================================================================ */
+
+code,
+kbd,
+samp,
+pre,
+.cm-editor,
+.cm-editor *,
+.xterm,
+.xterm *,
+[class*='language-'],
+[data-mono] {
+  font-family: var(--font-mono);
+  letter-spacing: normal;
+  font-optical-sizing: auto;
 }
 
-.dark body::before,
-html.dark body::before {
-  filter: invert(1);
-  opacity: 0.35;
+/* ============================================================================
+   SCROLLBARS — U9
+   L'ancienne règle masquait *toutes* les scrollbars du produit
+   (`*::-webkit-scrollbar { display: none }`), supprimant toute affordance de
+   défilement. On les rend fines et discrètes plutôt qu'invisibles ; les rares
+   zones qui doivent rester nues utilisent `.scrollbar-none`.
+   ============================================================================ */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--glass-border-strong) transparent;
 }
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--glass-border-strong);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--idem-text-tertiary);
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================================================
+   ACCESSIBILITÉ — U8
+   Un anneau de focus unique, visible sur les deux thèmes, appliqué seulement
+   au focus clavier pour ne pas parasiter la souris.
+   ============================================================================ */
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================================================
+   CURSEURS DE SAISIE
+   ============================================================================ */
+
+input,
+textarea,
+[contenteditable='true'] {
+  caret-color: var(--idem-text-primary);
+}
+
+/* ============================================================================
+   SURCHARGES antd
+   antd est encore utilisé pour les modales et quelques formulaires (WeAPI,
+   Settings). Ces règles recentrent ses modales ; le reste de son thème est
+   piloté par le ConfigProvider côté React.
+   ============================================================================ */
 
 .ant-modal {
   top: unset;
@@ -69,347 +186,7 @@ html.dark body::before {
   align-items: center;
 }
 
-.p-select{
+/* Le portail de sélection doit passer au-dessus des panneaux redimensionnables. */
+.p-select {
   z-index: 999;
-}
-
-/* Modern Theme Configuration */
-:root {
-  --color-primary: #1447e6;
-  --color-secondary: #d11ec0;
-  --color-primary-glow: #1449e6a8;
-  --color-secondary-glow: #d11ec0a8;
-  --color-accent: #22d3ee;
-  --color-accent-glow: rgba(34, 211, 238, 0.6);
-
-  --color-bg-dark: #06080d;
-  /* Theme-aware surface color: light by default, overridden in .dark */
-  --color-bg-light: #ffffff;
-
-  --color-light-text: #111827;
-  --color-success: #219653;
-  --color-danger: #d34053;
-  --color-warning: #ffa70b;
-
-  --font-size-title: 5.4rem;
-  --font-size-title-mobile: 1.4rem;
-  --font-size-subtitle: 1.7rem;
-  --font-size-light-text: 1rem;
-
-  --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-bg-darker: rgba(245, 246, 248, 0.8);
-  --glass-border: rgba(0, 0, 0, 0.08);
-  --glass-shadow: 0 4px 16px 0 rgba(15, 23, 42, 0.04);
-  --glass-blur: 12px;
-
-  /* Button shadows */
-  --button-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
-  --button-shadow-hover: 0 6px 16px rgba(20, 71, 230, 0.1);
-
-  /* Original shadcn variables */
-  --background: 224 71.4% 4.1%;
-  --foreground: 210 20% 98%;
-  --card: 224 71.4% 4.1%;
-  --card-foreground: 210 20% 98%;
-  --popover: 224 71.4% 4.1%;
-  --popover-foreground: 210 20% 98%;
-  --primary: 262.1 83.3% 57.8%;
-  --primary-foreground: 210 20% 98%;
-  --secondary: 220 14.3% 95.9%;
-  --secondary-foreground: 220.9 39.3% 11%;
-  --muted: 220 14.3% 95.9%;
-  --muted-foreground: 220 8.9% 46.1%;
-  --accent: 220 14.3% 95.9%;
-  --accent-foreground: 220.9 39.3% 11%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 20% 98%;
-  --border: 220 13% 91%;
-  --input: 220 13% 91%;
-  --ring: 262.1 83.3% 57.8%;
-  --radius: 0.5rem;
-  --chart-1: 12 76% 61%;
-  --chart-2: 173 58% 39%;
-  --chart-3: 197 37% 24%;
-  --chart-4: 43 74% 66%;
-  --chart-5: 27 87% 67%;
-}
-
-.dark {
-  --color-bg-light: #0f141b;
-  --color-light-text: #f5f5f5;
-
-  --glass-bg: rgba(15, 20, 27, 0.7);
-  --glass-bg-darker: rgba(20, 20, 30, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-
-  /* Button shadows dark mode override */
-  --button-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  --button-shadow-hover: 0 6px 16px rgba(60, 164, 250, 0.2);
-
-  --background: 224 71.4% 4.1%;
-  --foreground: 210 20% 98%;
-  --card: 224 71.4% 4.1%;
-  --card-foreground: 210 20% 98%;
-  --popover: 224 71.4% 4.1%;
-  --popover-foreground: 210 20% 98%;
-  --primary: 263.4 70% 50.4%;
-  --primary-foreground: 210 20% 98%;
-  --secondary: 215 27.9% 16.9%;
-  --secondary-foreground: 210 20% 98%;
-  --muted: 215 27.9% 16.9%;
-  --muted-foreground: 217.9 10.6% 64.9%;
-  --accent: 215 27.9% 16.9%;
-  --accent-foreground: 210 20% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 20% 98%;
-  --border: 215 27.9% 16.9%;
-  --input: 215 27.9% 16.9%;
-  --ring: 263.4 70% 50.4%;
-  --chart-1: 220 70% 50%;
-  --chart-2: 160 60% 45%;
-  --chart-3: 30 80% 55%;
-  --chart-4: 280 65% 60%;
-  --chart-5: 340 75% 55%;
-}
-
-/* Glass Effect Utilities */
-.glass {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  box-shadow: var(--glass-shadow);
-}
-
-.glass-dark {
-  background: var(--glass-bg-darker);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  box-shadow: var(--glass-shadow);
-}
-
-.glass-card {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
-  border-radius: 20px;
-  box-shadow: var(--glass-shadow);
-  transition: all 0.3s ease;
-}
-
-.glass-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px 0 rgba(15, 23, 42, 0.05);
-}
-
-.dark .glass-card:hover {
-  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
-}
-
-/* Glow Effects */
-.glow-primary {
-  box-shadow: 0 0 15px var(--color-primary-glow);
-}
-
-.glow-secondary {
-  box-shadow: 0 0 15px var(--color-secondary-glow);
-}
-
-.glow-accent {
-  box-shadow: 0 0 15px var(--color-accent-glow);
-}
-
-.text-glow-primary {
-  text-shadow: 0 0 10px var(--color-primary-glow);
-}
-
-.text-glow-secondary {
-  text-shadow: 0 0 10px var(--color-secondary-glow);
-}
-
-/* Enhanced Buttons */
-.outer-button {
-  border: 1px solid var(--glass-border);
-  background: rgba(0, 0, 0, 0.04);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
-  color: #111827;
-  cursor: pointer;
-  border-radius: 10px;
-  box-shadow: var(--button-shadow);
-  text-transform: uppercase;
-  font-weight: 500;
-  font-size: 1rem;
-  letter-spacing: 0.5px;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-}
-
-.dark .outer-button {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.inner-button {
-  background: linear-gradient(
-    135deg,
-    var(--color-primary),
-    var(--color-primary-glow)
-  );
-  background-size: 200% 100%;
-  animation: gradient-shift 3s ease infinite;
-  color: white;
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
-  cursor: pointer;
-  border-radius: 10px;
-  box-shadow: var(--button-shadow);
-  text-transform: uppercase;
-  font-weight: 500;
-  font-size: 1rem;
-  letter-spacing: 0.5px;
-  border: none;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.outer-button:disabled,
-.inner-button:disabled {
-  background: linear-gradient(135deg, rgb(156, 163, 175), rgb(156, 163, 175));
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.outer-button:disabled:hover,
-.inner-button:disabled:hover {
-  background: linear-gradient(135deg, rgb(156, 163, 175), rgb(156, 163, 175));
-}
-
-.outer-button::before,
-.inner-button::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
-  transition: left 0.7s;
-}
-
-.outer-button:hover::before,
-.inner-button:hover::before {
-  left: 100%;
-}
-
-.outer-button:hover,
-.inner-button:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--button-shadow-hover);
-  cursor: pointer;
-}
-
-@keyframes gradient-shift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-/* Form Elements */
-.input {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
-  color: var(--color-light-text);
-  font-size: 1rem;
-  width: 100%;
-  margin-top: 0.25rem;
-  display: block;
-  padding: 0.8rem 1rem;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  outline: none;
-}
-
-.input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--color-primary-glow);
-}
-
-/* Scroll Animation Classes */
-.reveal {
-  opacity: 0;
-  transform: translateY(30px);
-  transition: all 1s ease;
-}
-
-.reveal.active {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.reveal-delay-1 {
-  transition-delay: 0.2s;
-}
-
-.reveal-delay-2 {
-  transition-delay: 0.4s;
-}
-
-.reveal-delay-3 {
-  transition-delay: 0.6s;
-}
-
-/* Background Elements */
-.bg-gradient-glow {
-  position: relative;
-}
-
-.bg-gradient-glow::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    circle at center,
-    var(--color-primary-glow) 0%,
-    transparent 70%
-  );
-  opacity: 0.3;
-}
-
-.container {
-  background: rgba(15, 20, 27, 0.7);
-}
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-  html {
-    @apply bg-background;
-  }
-  body {
-    @apply text-foreground bg-transparent;
-  }
 }

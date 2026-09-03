@@ -13,7 +13,8 @@
     "close": "Close",
     "please_login": "Please sign in to view your quota",
     "format": "Format",
-    "formatting": "Formatting..."
+    "formatting": "Formatting...",
+    "retry": "Retry"
   },
   "chat": {
     "urlInput": {
@@ -224,7 +225,12 @@
   },
   "preview": {
     "noserver": "No server running",
-    "wxminiPreview": "Open WeChat Mini Program Developer Tools for preview"
+    "wxminiPreview": "Open WeChat Mini Program Developer Tools for preview",
+    "noserverHint": "The dev server starts with your first generation. Describe what you want to build in the chat.",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "zoomReset": "Actual size",
+    "openExternal": "Open in a tab"
   },
   "editor": {
     "editor": "Editor",
@@ -236,13 +242,13 @@
   },
   "header": {
     "download": "Download Code",
-    "deploy": "Deploy",
-    "deploying": "Deploying...",
-    "deploySuccess": "Deployment Successful!",
-    "deployToCloud": "Your project has been successfully deployed to the cloud",
-    "redeploy": "Redeploy",
-    "redeploySuccess": "Update Successful!",
-    "redeployToCloud": "Your live app has been updated, the link stays the same",
+    "deploy": "Publish",
+    "deploying": "Publishing…",
+    "deploySuccess": "Application published",
+    "deployToCloud": "Your application is live on iDeploy",
+    "redeploy": "Republish",
+    "redeploySuccess": "Application updated",
+    "redeployToCloud": "Your live application was updated; the link stays the same",
     "accessLink": "Access Link:",
     "copy": "Copy",
     "close": "Close",
@@ -264,7 +270,14 @@
       "open_directory": "Failed to open directory",
       "deploy_failed": "Deployment failed, please try again later",
       "deploy_failed_with_msg": "Deployment failed: {{message}}"
-    }
+    },
+    "modeLabel": "Working mode",
+    "modePlan": "Plan",
+    "modeBuild": "Build",
+    "modePlanHint": "Reads the project and answers, never edits code",
+    "modeBuildHint": "Writes and edits the project's code",
+    "creditsTitle": "{{used}} of {{total}} credits used",
+    "moreActions": "More actions"
   },
   "explorer": {
     "clear_all": "Clear All",
@@ -436,19 +449,19 @@
     }
   },
   "deployModal": {
-    "title": "Deploy your application",
-    "subtitle": "Choose how you want to deploy",
-    "no_generation": "No generation available to deploy",
+    "title": "Publish your application",
+    "subtitle": "Choose how to put it online",
+    "no_generation": "Nothing generated to publish yet",
     "default_app_name": "My Application",
-    "quick_deploy_title": "Quick Deploy",
-    "quick_deploy_subtitle": "Netlify · No account required",
-    "quick_deploy_desc": "Instantly deploy with global CDN and automatic SSL.",
+    "quick_deploy_title": "Quick publish",
+    "quick_deploy_subtitle": "iDeploy · No extra account",
+    "quick_deploy_desc": "Your app goes live in seconds, with HTTPS and global delivery.",
     "tag_instant": "Instant",
     "tag_ssl": "Auto SSL",
     "tag_cdn": "Global CDN",
-    "idem_deploy_title": "Deploy with Idem",
-    "idem_deploy_subtitle": "iDeploy · Auto-configured project",
-    "idem_deploy_desc": "Your application is transferred to iDeploy with all metadata. Ready to deploy.",
+    "idem_deploy_title": "iDeploy pipeline",
+    "idem_deploy_subtitle": "Project configured automatically",
+    "idem_deploy_desc": "Your app moves to iDeploy with its metadata, ready to deploy on your own infrastructure.",
     "tag_auto_project": "Auto project",
     "tag_prefilled": "Prefilled data",
     "login_required": "Login required",
@@ -512,7 +525,11 @@
     "opacity": "Opacity",
     "layers": "Layers",
     "layersHint": "Elements stacked under your click — pick the one to edit.",
-    "layersLoading": "Loading page tree…"
+    "layersLoading": "Loading page tree…",
+    "askAI": "Ask the AI",
+    "selectionPrompt": "About {{count}} element(s) selected in the preview:",
+    "annotationPrompt": "Annotation drawn on the preview (area {{zone}}): {{note}}",
+    "annotationPromptEmpty": "Annotation drawn on the preview, area {{zone}}. Apply the change the sketch indicates."
   },
   "tour": {
     "common": {
@@ -545,5 +562,124 @@
         "body": "Make your first request. If the result is off, ask again differently — that is the point."
       }
     }
+  },
+  "workspace": {
+    "viewSwitcher": "Workspace views",
+    "chat": "Chat",
+    "app": "App",
+    "preview": "Preview",
+    "code": "Code",
+    "theme": "Theme",
+    "api": "API",
+    "expandChat": "Show chat",
+    "collapseChat": "Collapse chat",
+    "ideMinimal": "Simple view",
+    "ideFull": "Full view",
+    "ideMinimalHint": "Back to files and editor only",
+    "ideFullHint": "Add search, terminal and activity bar",
+    "checks": "Checks"
+  },
+  "editToolbar": {
+    "label": "Preview editing tools",
+    "navigate": "Navigate",
+    "navigateHint": "Use the app normally",
+    "select": "Select",
+    "selectHint": "Click an element to adjust it or ask the AI about it",
+    "text": "Text",
+    "textHint": "Click into any text to fix it",
+    "draw": "Draw",
+    "drawHint": "Sketch what you want changed",
+    "move": "Move toolbar",
+    "minimize": "Collapse toolbar",
+    "expand": "Expand toolbar",
+    "textFree": "Text editing writes straight to the code: no credits used."
+  },
+  "draw": {
+    "free": "Freehand",
+    "arrow": "Arrow",
+    "rect": "Rectangle",
+    "ellipse": "Ellipse",
+    "clear": "Clear strokes",
+    "placeholder": "What should change here?",
+    "send": "Send"
+  },
+  "theme": {
+    "title": "Project theme",
+    "subtitleBrand": "Computed from the project's brand guidelines: contrast-verified palette, typography and rhythm.",
+    "subtitleSeeded": "Computed from a project-specific seed: no two projects get the same direction.",
+    "reset": "Reset",
+    "apply": "Apply to code",
+    "applyPrompt": "Apply this design system to the project (direction: {{direction}}). Follow the colors, typography and rhythm below.",
+    "direction": "Art direction",
+    "directionHint": "What makes the page recognisable: surface, radii, section cadence.",
+    "colors": "Colors",
+    "colorsHint": "Ramps generated in OKLCH from the brand color.",
+    "brandColor": "Brand color",
+    "fromBrand": "Taken from the project's brand",
+    "brandRamp": "Brand ramp",
+    "neutralRamp": "Neutral ramp",
+    "accent": "Accent",
+    "secondary": "Secondary",
+    "surface": "Surface",
+    "surfaceRaised": "Raised surface",
+    "ink": "Text",
+    "inkMuted": "Muted text",
+    "contrast": "Verified contrast",
+    "contrastHint": "Measured, not estimated. WCAG AA for body text is 4.5:1.",
+    "bodyOnSurface": "Text on surface",
+    "mutedOnSurface": "Muted text on surface",
+    "inkOnAccent": "Text on accent",
+    "typography": "Typography",
+    "typographyHint": "Display / body pairing, and the scale that follows from it.",
+    "briefLabel": "See the brief sent to the model",
+    "error": "The design system could not be computed.",
+    "dark": "Dark surface",
+    "light": "Light surface"
+  },
+  "versions": {
+    "title": "Version history",
+    "short": "Versions",
+    "hint": "A restore point is saved on every generation.",
+    "emptyTitle": "No versions yet",
+    "emptyBody": "Your first generation will create a restore point.",
+    "current": "Current",
+    "restore": "Restore",
+    "remove": "Delete",
+    "restored": "Version restored",
+    "restoreFailed": "Restore failed",
+    "beforeRestore": "Before restore"
+  },
+  "chatWorkspace": {
+    "readyToGenerate": "Ready to generate your application",
+    "startHint": "Start the generation to get your application's code",
+    "generateNow": "Generate now",
+    "inProgress": "Generating",
+    "inProgressBody": "Your application is being generated. One moment…",
+    "complete": "Generation complete",
+    "completeBody": "Your application is generated and ready to publish.",
+    "loadFailed": "Could not load the project",
+    "retry": "Try again"
+  },
+  "checks": {
+    "title": "Project checks",
+    "subtitle": "Two deterministic passes over the generated code. Neither calls a model: they are free and can be re-run at will.",
+    "rerun": "Re-run",
+    "pending": "Analysing…",
+    "security": "Security",
+    "securityClean": "Nothing to flag before publishing.",
+    "securityCount": "{{critical}} critical, {{high}} high, {{medium}} medium",
+    "fixSecurity": "Fix",
+    "design": "Design",
+    "designClean": "No signs of generic generation.",
+    "designCount": "{{errors}} error(s), {{warnings}} warning(s)",
+    "fixDesign": "Fix",
+    "severity": {
+      "critical": "critical",
+      "high": "high",
+      "medium": "medium"
+    },
+    "emptyTitle": "Nothing to analyse yet",
+    "emptyBody": "Checks run from the first generation onwards.",
+    "error": "The analysis could not complete. Try again shortly."
   }
 }

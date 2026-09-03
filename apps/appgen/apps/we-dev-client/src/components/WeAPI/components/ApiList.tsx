@@ -1,15 +1,6 @@
 import React, { useState, useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { Tree, Button, Tooltip, Upload, message, Modal, Form, Input, Select } from 'antd';
-import { 
-  DownloadOutlined, 
-  UploadOutlined, 
-  FolderOutlined,
-  ApiOutlined,
-  PlusOutlined,
-  FolderAddOutlined,
-  DeleteOutlined,
-  EditOutlined
-} from '@ant-design/icons';
+import { Download, Folder, FolderPlus, Pencil, Plug, Plus, Trash2, Upload as UploadIcon } from 'lucide-react';
 import { DataNode } from 'antd/es/tree';
 import type { TreeProps } from 'antd/es/tree';
 import { ApiItem, FolderItem } from '../types';
@@ -107,9 +98,9 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
             overflow: 'hidden'
           }}>
             {item.type === 'folder' ? (
-              <FolderOutlined style={{ fontSize: '16px', color: '#666' }} />
+              <Folder style={{ fontSize: '16px', color: '#666' }} />
             ) : (
-              <ApiOutlined style={{ fontSize: '16px', color: '#666' }} />
+              <Plug style={{ fontSize: '16px', color: '#666' }} />
             )}
             <Tooltip title={item.name}>
               <span style={{ 
@@ -152,7 +143,7 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
             <Button
               type="text"
               size="small"
-              icon={<EditOutlined style={{ fontSize: '14px' }} />}
+              icon={<Pencil style={{ fontSize: '14px' }} />}
               onClick={(e) => {
                 e.stopPropagation();
                 handleEdit(item);
@@ -162,7 +153,7 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
               type="text"
               size="small"
               danger
-              icon={<DeleteOutlined style={{ fontSize: '14px' }} />}
+              icon={<Trash2 style={{ fontSize: '14px' }} />}
               onClick={(e) => handleDelete(item, e)}
             />
           </div>
@@ -412,19 +403,19 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
 
   return (
     <div 
-      className="h-full flex flex-col border-r border-gray-200 dark:bg-[#131315] relative" 
+      className="h-full flex flex-col border-r border-[var(--glass-border)] bg-surface-1 relative" 
       style={{ width: `${width}px` }}
     >
-      <div className="p-4 border-b border-gray-200 dark:border-[#1a1a1c]">
+      <div className="p-4 border-b border-gray-200 dark:border-[var(--glass-border)]">
         <div className="flex gap-2 flex-wrap">
-          <Button icon={<PlusOutlined />} onClick={handleAddApi}>
+          <Button icon={<Plus size={14} />} onClick={handleAddApi}>
             {t('weapi.add_api')}
           </Button>
-          <Button icon={<FolderAddOutlined />} onClick={handleAddFolder}>
+          <Button icon={<FolderPlus size={14} />} onClick={handleAddFolder}>
             {t('weapi.add_folder')}
           </Button>
           <Tooltip title={t('weapi.export')}>
-            <Button icon={<DownloadOutlined />} onClick={handleExport} />
+            <Button icon={<Download size={14} />} onClick={handleExport} />
           </Tooltip>
           <Upload
             showUploadList={false}
@@ -432,7 +423,7 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
             accept=".json"
           >
             <Tooltip title={t('weapi.import')}>
-              <Button icon={<UploadOutlined />} />
+              <Button icon={<UploadIcon size={14} />} />
             </Tooltip>
           </Upload>
         </div>
@@ -507,7 +498,7 @@ const ApiList = forwardRef<ApiListRef, ApiListProps>((props, ref) => {
       </Modal>
 
       <div
-        className="absolute top-0 -right-1 w-2.5 h-full cursor-col-resize z-10 dark:bg-[#1a1a1c] hover:bg-gray-100/50 active:bg-gray-200/50 dark:hover:bg-gray-800/50 dark:active:bg-gray-700/50"
+        className="absolute top-0 -right-1 w-2.5 h-full cursor-col-resize z-10 dark:bg-surface-1 hover:bg-gray-100/50 active:bg-gray-200/50 dark:hover:bg-gray-800/50 dark:active:bg-gray-700/50"
         onMouseDown={handleMouseDown}
       />
     </div>

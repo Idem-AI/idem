@@ -4,7 +4,7 @@ import { Layout, Button, message, ConfigProvider, theme } from "antd";
 import ApiList from "./components/ApiList";
 import RequestEditor from "./components/RequestEditor";
 import ResponseViewer from "./components/ResponseViewer";
-import { EditOutlined } from "@ant-design/icons";
+import { Pencil } from 'lucide-react';
 import { ApiItem, ApiCollection, ApiResponse, FolderItem } from "./types";
 import useThemeStore from "@/stores/themeSlice";
 import { useTranslation } from "react-i18next";
@@ -213,7 +213,7 @@ export default function WeAPI(): React.ReactElement {
   };
 
   return (
-    <div className="dark:border-[3px] border-[2px]  h-full dark:border-[#1a1a1a]">
+    <div className="dark:border-[3px] border-[2px]  h-full dark:border-[var(--glass-border)]">
       <ConfigProvider
         theme={{
           algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
@@ -237,7 +237,7 @@ export default function WeAPI(): React.ReactElement {
           <div className="flex-1 p-6 overflow-auto">
             {selectedApi && (
               <>
-                <div className="flex justify-between items-center mb-5 bg-gray-50 dark:bg-[#1a1a1c] p-4 rounded-lg">
+                <div className="flex justify-between items-center mb-5 bg-gray-50 dark:bg-surface-1 p-4 rounded-lg">
                   <div className="flex items-center gap-4">
                     <div>
                       <span
@@ -258,7 +258,7 @@ export default function WeAPI(): React.ReactElement {
                   </div>
                   <div className="flex gap-2">
                     <Button
-                      icon={<EditOutlined />}
+                      icon={<Pencil size={14} />}
                       onClick={() => handleEdit(selectedApi)}
                     >
                       {t("weapi.edit")}

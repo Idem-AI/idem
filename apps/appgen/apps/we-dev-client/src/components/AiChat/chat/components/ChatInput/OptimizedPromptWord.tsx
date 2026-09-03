@@ -54,7 +54,7 @@ const PromptEnhanced = (props: PromptEnhancedProps) => {
     <div className="relative">
       {isOpen ? (
         <div
-          className={`absolute left-0 bottom-full mb-2 w-96 bg-white/80 dark:bg-[#1a1a1c] backdrop-blur-md rounded-lg shadow-xl p-4 border border-gray-200/50 dark:border-gray-700/50 transition-all duration-200 ease-in-out transform origin-bottom
+          className={`absolute left-0 bottom-full mb-2 w-96 bg-white/80 dark:bg-surface-1 backdrop-blur-md rounded-lg shadow-xl p-4 border border-gray-200/50 dark:border-gray-700/50 transition-all duration-200 ease-in-out transform origin-bottom
           ${
             isOpen
               ? "opacity-100 translate-y-0 scale-100"
@@ -62,7 +62,7 @@ const PromptEnhanced = (props: PromptEnhancedProps) => {
           }`}
           ref={popoverRef}
         >
-          <h3 className="text-sm font-medium mb-2 text-gray-700 dark:text-gray-200">
+          <h3 className="text-sm font-medium mb-2 text-text-secondary">
             {t("chat.optimizePrompt.title")}
           </h3>
           <textarea
@@ -79,7 +79,7 @@ const PromptEnhanced = (props: PromptEnhancedProps) => {
           />
           <div className="flex justify-end gap-2 mt-3">
             <button
-              className="px-2.5 py-1.5 text-xs text-gray-600 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100 transition-colors duration-200"
+              className="px-2.5 py-1.5 text-xs text-gray-600 hover:text-text-secondary dark:hover:text-gray-100 transition-colors duration-200"
               onClick={() => setIsOpen(false)}
               disabled={isLoading}
             >

@@ -43,15 +43,15 @@ export const OpenDirectoryButton: React.FC = () => {
     <Tooltip
       title={
         <div className="text-xs">
-          <div className="font-medium mb-1 text-[#333] dark:text-white">
+          <div className="font-medium mb-1 text-text-tertiary dark:text-white">
             {t("header.open_directory")}
           </div>
-          <div className="text-[#666] dark:text-gray-300">
+          <div className="text-text-secondary">
             {t("header.open_directory_tips")}
           </div>
         </div>
       }
-      overlayClassName="bg-white dark:bg-[#1a1a1c] border border-[#e5e5e5] dark:border-[#454545] shadow-lg"
+      overlayClassName="bg-surface-1 border border-[var(--glass-border)] shadow-lg"
       overlayInnerStyle={{
         padding: "8px 12px",
         borderRadius: "6px",
@@ -63,9 +63,9 @@ export const OpenDirectoryButton: React.FC = () => {
           onClick={handleOpenDirectory}
           icon={"open"}
           label={t("header.open_directory")}
-          className="text-[#424242] dark:text-gray-300 hover:text-[#000] dark:hover:text-white
-            bg-white dark:bg-[#333333] hover:bg-[#f5f5f5] dark:hover:bg-[#404040]
-            border border-[#e5e5e5] dark:border-[#252525]
+          className="text-text-secondary dark:text-gray-300 hover:text-text-primary
+            bg-surface-3 hover:bg-surface-2 dark:hover:bg-surface-3
+            border border-[var(--glass-border)]
             shadow-sm hover:shadow transition-all"
         />
       </div>

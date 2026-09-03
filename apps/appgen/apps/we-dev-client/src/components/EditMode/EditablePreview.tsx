@@ -10,7 +10,6 @@ import {
   Type,
   Image as ImageIcon,
   Link as LinkIcon,
-  MousePointerClick,
   Trash2,
   RefreshCw,
   Upload,
@@ -18,20 +17,26 @@ import {
   LayoutGrid,
   Move,
   Ruler,
-  Undo2,
-  Redo2,
   Layers,
   ChevronRight,
   ChevronDown,
+  Minus,
+  Plus,
+  ExternalLink,
+  Monitor,
+  MessageSquarePlus,
 } from 'lucide-react';
 import {
   IDEM_SOURCE,
   decodeIdemId,
   isAgentMessage,
+  type EditToolMode,
   type SelectedElementInfo,
   type ParentToAgentMessage,
   type TreeNode,
 } from './idemProtocol';
+import { EditToolbar } from './EditToolbar';
+import { DrawAnnotation, type Annotation } from './DrawAnnotation';
 import {
   editText,
   editImageSrc,
@@ -45,7 +50,28 @@ import { buildInjectPlan, buildRemovePlan, type InstrumentationPlan } from './in
 import { SizeSelector, viewportStyle, WINDOW_SIZES, type WindowSize } from './ResponsiveViewport';
 
 interface EditablePreviewProps {
-  active: boolean;
+  /**
+   * Remonte la sélection courante vers la conversation (P1.4). Reçoit un
+   * contexte structuré — fichier source, offset, sélecteur, styles calculés —
+   * pour que le modèle modifie l'élément désigné sans avoir à le deviner.
+   */
+  onAskAboutSelection?: (context: SelectionContext) => void;
+}
+
+/** Ce que l'aperçu sait d'une sélection, sous une forme utilisable par le chat. */
+export interface SelectionContext {
+  count: number;
+  elements: Array<{
+    tag: string;
+    kind: string;
+    text: string;
+    className: string;
+    filePath: string;
+    /** Offset du `<` de la balise ouvrante dans le fichier source. */
+    start: number;
+  }>;
+  /** Présent quand la demande vient du mode dessin plutôt que d'une sélection. */
+  annotation?: Annotation;
 }
 
 /** Un changement de fichier réversible (pour l'historique undo/redo). */
@@ -76,7 +102,7 @@ function extractBgUrl(v: string | undefined): string {
 }
 const cval = (info: SelectedElementInfo | null, key: string) => info?.computed?.[key];
 
-const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
+const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }) => {
   const { t } = useTranslation();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [url, setUrl] = useState('');
@@ -86,6 +112,16 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
   const [layersOpen, setLayersOpen] = useState(true);
   const [agentReady, setAgentReady] = useState(false);
   const [size, setSize] = useState<WindowSize>(WINDOW_SIZES[0]);
+  const [toolMode, setToolMode] = useState<EditToolMode>('off');
+  const [zoom, setZoom] = useState(1);
+
+  /**
+   * L'instrumentation réécrit des fichiers du projet et fait redémarrer le
+   * serveur de dev : on ne la pose donc qu'à la première entrée dans un mode
+   * d'édition, et on la retire au retour en navigation. Basculer entre
+   * sélection, texte et dessin ne coûte qu'un message à l'agent.
+   */
+  const editing = toolMode !== 'off';
 
   const { updateContent, addFile, deleteFile, getContent } = useFileStore();
 
@@ -95,6 +131,12 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
   const selectedIdsRef = useRef<string[]>([]);
   selectedIdsRef.current = selected.map((e) => e.id);
   const injectedRef = useRef(false);
+
+  // Le gestionnaire de messages est enregistré une fois ; sans cette référence
+  // il capturerait le mode du premier rendu et l'agent recevrait toujours
+  // « select » au moment de son AGENT_READY.
+  const toolModeRef = useRef<EditToolMode>(toolMode);
+  toolModeRef.current = toolMode;
 
   // Historique undo/redo. Chaque entrée = un lot de changements de fichiers
   // (un edit simple touche 1 fichier ; un edit multi peut en toucher plusieurs).
@@ -147,7 +189,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
     redoStackRef.current = [];
     bumpHist();
 
-    if (active) {
+    if (editing) {
       const plan = buildInjectPlan(useFileStore.getState().files);
       if (!plan.ok) {
         toast.error(t('editMode.injectFailed', { reason: plan.reason ?? '' }));
@@ -164,7 +206,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
       applyPlan(buildRemovePlan(useFileStore.getState().files));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active]);
+  }, [editing]);
 
   /* -------- Historique (undo / redo) -------- */
   const commit = useCallback(
@@ -199,7 +241,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
 
   /* -------- Raccourcis clavier côté parent (focus hors iframe) -------- */
   useEffect(() => {
-    if (!active) return;
+    if (!editing) return;
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;
       const k = e.key.toLowerCase();
@@ -213,7 +255,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [active, undo, redo]);
+  }, [editing, undo, redo]);
 
   /* -------- Application d'un résultat (mono-élément) -------- */
   const applyResult = useCallback(
@@ -272,6 +314,18 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
     [applyBatch, t]
   );
 
+  /* -------- Propagation du mode à l'agent -------- */
+  useEffect(() => {
+    if (!agentReady) return;
+    sendToAgent({
+      source: IDEM_SOURCE,
+      type: 'ENABLE_EDIT',
+      enabled: toolMode !== 'off' && toolMode !== 'draw',
+      mode: toolMode,
+    });
+    if (toolMode === 'off') setSelected([]);
+  }, [toolMode, agentReady, sendToAgent]);
+
   /* -------- Messages de l'agent -------- */
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -280,7 +334,14 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
       switch (msg.type) {
         case 'AGENT_READY':
           setAgentReady(true);
-          sendToAgent({ source: IDEM_SOURCE, type: 'ENABLE_EDIT', enabled: true });
+          sendToAgent({
+            source: IDEM_SOURCE,
+            type: 'ENABLE_EDIT',
+            // `draw` dessine côté parent : l'agent doit rester inerte pour ne
+            // pas intercepter les clics du canvas d'annotation.
+            enabled: toolModeRef.current !== 'off' && toolModeRef.current !== 'draw',
+            mode: toolModeRef.current,
+          });
           sendToAgent({ source: IDEM_SOURCE, type: 'REQUEST_TREE' });
           if (selectedIdsRef.current.length)
             sendToAgent({ source: IDEM_SOURCE, type: 'SET_SELECTION', ids: selectedIdsRef.current });
@@ -451,123 +512,195 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
     onUpload: uploadImage,
   };
 
+
+  /* -------- Annotation dessinée (P2.5) -------- */
+  const handleAnnotation = useCallback(
+    (annotation: Annotation) => {
+      setToolMode('off');
+      onAskAboutSelection?.({
+        count: 0,
+        elements: [],
+        annotation,
+      });
+    },
+    [onAskAboutSelection]
+  );
+
+  /* -------- Remontée de la sélection vers la conversation (P1.4) -------- */
+  const askAboutSelection = useCallback(() => {
+    if (!selected.length) return;
+    onAskAboutSelection?.({
+      count: selected.length,
+      elements: selected.flatMap((element) => {
+        const ref = decodeIdemId(element.id);
+        if (!ref) return [];
+        return [
+          {
+            tag: element.tag,
+            kind: element.kind,
+            text: element.text.slice(0, 160),
+            className: element.className,
+            filePath: ref.filePath,
+            start: ref.start,
+          },
+        ];
+      }),
+    });
+  }, [selected, onAskAboutSelection]);
+
+  const displayUrl = url || t('preview.noserver');
+  const showInspector = toolMode === 'select' && selected.length > 0;
+
   return (
-    <div className="w-full h-full flex overflow-hidden bg-white dark:bg-[#1e1e1e]">
-      <div className="flex-1 relative flex flex-col overflow-hidden">
-        <div className="h-10 flex items-center gap-2 px-3 bg-[#f3f3f3] dark:bg-[#1a1a1a] border-b border-[#e4e4e4] dark:border-[#333]">
-          <div className="flex items-center gap-1.5 text-xs text-[#6D28D9] dark:text-[#a78bfa] min-w-0">
-            <MousePointerClick size={14} className="shrink-0" />
-            <span className="truncate">{t('editMode.hint')}</span>
-          </div>
-          <div className="flex-1" />
+    <div className="w-full h-full flex overflow-hidden bg-surface-1">
+      <div className="flex-1 relative flex flex-col overflow-hidden min-w-0">
+        {/* Barre du navigateur : ce que l'utilisateur regarde, et les
+            commandes qui s'y rapportent. Les modes d'édition, eux, vivent
+            dans la barre flottante posée sur la page. */}
+        <div className="h-10 shrink-0 flex items-center gap-2 px-2 border-b border-[var(--glass-border)] bg-surface-1">
           <button
-            onClick={undo}
-            disabled={!canUndo}
-            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#2c2c2c] text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:hover:bg-transparent"
-            title={`${t('editMode.undo')} (Ctrl+Z)`}
-            aria-label={t('editMode.undo')}
-          >
-            <Undo2 size={15} />
-          </button>
-          <button
-            onClick={redo}
-            disabled={!canRedo}
-            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#2c2c2c] text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:hover:bg-transparent"
-            title={`${t('editMode.redo')} (Ctrl+Y)`}
-            aria-label={t('editMode.redo')}
-          >
-            <Redo2 size={15} />
-          </button>
-          <div className="w-px h-5 bg-gray-300 dark:bg-[#3a3a3a] mx-1" />
-          <SizeSelector value={size} onChange={setSize} />
-          <button
+            type="button"
             onClick={handleRefresh}
-            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-[#2c2c2c] text-gray-600 dark:text-gray-400"
+            className="w-7 h-7 grid place-items-center rounded-md text-text-tertiary hover:text-text-primary hover:bg-surface-3 transition-colors"
             title={t('editMode.refresh')}
             aria-label={t('editMode.refresh')}
           >
-            <RefreshCw size={15} />
+            <RefreshCw size={14} />
           </button>
+
+          <div className="flex-1 min-w-0 h-7 px-3 flex items-center rounded-md bg-surface-2 border border-[var(--glass-border)]">
+            <span className="text-xs text-text-secondary truncate" data-mono>
+              {displayUrl}
+            </span>
+          </div>
+
+          <SizeSelector value={size} onChange={setSize} />
+
+          <div className="flex items-center rounded-md bg-surface-2 border border-[var(--glass-border)]">
+            <button
+              type="button"
+              onClick={() => setZoom((z) => Math.max(0.4, Number((z - 0.1).toFixed(2))))}
+              className="w-7 h-7 grid place-items-center text-text-tertiary hover:text-text-primary"
+              title={t('preview.zoomOut')}
+              aria-label={t('preview.zoomOut')}
+            >
+              <Minus size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoom(1)}
+              className="px-1.5 h-7 text-[11px] text-text-secondary hover:text-text-primary tabular-nums"
+              title={t('preview.zoomReset')}
+            >
+              {Math.round(zoom * 100)}%
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoom((z) => Math.min(2, Number((z + 0.1).toFixed(2))))}
+              className="w-7 h-7 grid place-items-center text-text-tertiary hover:text-text-primary"
+              title={t('preview.zoomIn')}
+              aria-label={t('preview.zoomIn')}
+            >
+              <Plus size={13} />
+            </button>
+          </div>
+
+          {url && (
+            <a
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              className="w-7 h-7 grid place-items-center rounded-md text-text-tertiary hover:text-text-primary hover:bg-surface-3 transition-colors"
+              title={t('preview.openExternal')}
+              aria-label={t('preview.openExternal')}
+            >
+              <ExternalLink size={14} />
+            </a>
+          )}
         </div>
-        <div className="flex-1 overflow-auto flex items-start justify-center bg-[#ececec] dark:bg-[#141414] p-3">
+
+        {/* Surface d'aperçu */}
+        <div className="flex-1 relative overflow-auto bg-bg-dark p-3 flex items-start justify-center">
           {url ? (
             <div
-              className="bg-white shadow-xl rounded-md overflow-hidden shrink-0"
-              style={viewportStyle(size)}
+              className="bg-white shadow-[var(--glass-shadow-xl)] rounded-lg overflow-hidden shrink-0 origin-top transition-transform"
+              style={{ ...viewportStyle(size), transform: `scale(${zoom})` }}
             >
               <iframe
                 ref={iframeRef}
                 src={url}
                 className="w-full h-full border-none bg-white block"
-                title="editable-preview"
+                title="preview"
                 sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads"
               />
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-gray-500">{t('preview.noserver')}</div>
+            <div className="flex-1 h-full flex flex-col items-center justify-center gap-2 text-center">
+              <Monitor className="w-8 h-8 text-text-disabled" />
+              <p className="text-sm text-text-tertiary">{t('preview.noserver')}</p>
+              <p className="text-xs text-text-disabled max-w-xs">{t('preview.noserverHint')}</p>
             </div>
           )}
-          {active && url && !agentReady && (
-            <div className="absolute top-12 right-4 text-[11px] px-2 py-1 rounded bg-black/60 text-white">
+
+          {toolMode === 'draw' && url && (
+            <DrawAnnotation onSubmit={handleAnnotation} onCancel={() => setToolMode('off')} />
+          )}
+
+          {editing && url && !agentReady && toolMode !== 'draw' && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 text-[11px] px-2.5 py-1 rounded-full glass text-text-secondary">
               {t('editMode.loadingAgent')}
             </div>
+          )}
+
+          {url && (
+            <EditToolbar
+              mode={toolMode}
+              onModeChange={setToolMode}
+              onUndo={undo}
+              onRedo={redo}
+              canUndo={canUndo}
+              canRedo={canRedo}
+              ready={toolMode === 'draw' || agentReady || !editing}
+            />
           )}
         </div>
       </div>
 
-      <aside className="w-72 shrink-0 border-l border-[#e4e4e4] dark:border-[#333] bg-[#fafafa] dark:bg-[#232323] flex flex-col overflow-hidden">
-        {/* Navigateur de calques (arborescence pliable), toujours visible */}
-        <div className="shrink-0 border-b border-[#e4e4e4] dark:border-[#333]">
-          <button
-            className="w-full flex items-center gap-1.5 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2c2c2c]"
-            onClick={() => setLayersOpen((o) => !o)}
-          >
-            {layersOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-            <Layers size={14} />
-            {t('editMode.layers')}
-            {tree.length > 0 && (
-              <span className="ml-auto text-[10px] font-normal text-gray-400 normal-case">
-                {tree.length}
-              </span>
-            )}
-          </button>
-          {layersOpen && (
-            <div className="max-h-[38vh] overflow-auto px-1 pb-2">
-              {tree.length > 0 ? (
-                <LayersTree
-                  nodes={tree}
-                  depth={0}
-                  selectedId={multi ? null : primary?.id ?? null}
-                  expanded={expanded}
-                  onToggle={toggleExpand}
-                  onSelect={selectLayer}
-                />
-              ) : (
-                <p className="px-3 py-2 text-[11px] text-gray-400">{t('editMode.layersLoading')}</p>
-              )}
+      {/* Inspecteur : n'apparaît qu'en mode sélection, avec quelque chose de
+          sélectionné. Un panneau vide en permanence prenait 288 px pour ne
+          rien dire. */}
+      {showInspector && (
+        <aside className="w-72 shrink-0 border-l border-[var(--glass-border)] bg-surface-2 flex flex-col overflow-hidden">
+          <div className="shrink-0 flex items-center justify-between gap-2 px-3 h-10 border-b border-[var(--glass-border)]">
+            <span className="text-xs font-medium px-2 py-0.5 rounded bg-primary text-white uppercase truncate">
+              {multi ? t('editMode.multiSelected', { count: selected.length }) : primary?.kind}
+            </span>
+            <button
+              type="button"
+              className="text-xs text-text-tertiary hover:text-text-primary shrink-0"
+              onClick={deselect}
+            >
+              {t('editMode.deselect')}
+            </button>
+          </div>
+
+          {/* Passer la main au modèle : les réglages du panneau couvrent les
+              propriétés connues, le prompt couvre tout le reste. */}
+          {onAskAboutSelection && (
+            <div className="shrink-0 p-3 border-b border-[var(--glass-border)]">
+              <button
+                type="button"
+                onClick={askAboutSelection}
+                className="w-full h-9 flex items-center justify-center gap-2 rounded-lg bg-primary text-white text-sm font-medium hover:brightness-110 transition"
+              >
+                <MessageSquarePlus size={15} />
+                {t('editMode.askAI')}
+              </button>
             </div>
           )}
-        </div>
 
-        {/* Contrôles de l'élément sélectionné (scrollable) */}
-        <div className="flex-1 overflow-y-auto">
-          {selected.length === 0 ? (
-            <div className="p-4 text-sm text-gray-500 dark:text-gray-400">
-              {t('editMode.noSelection')}
-              <p className="mt-2 text-[11px] text-gray-400">{t('editMode.multiHint')}</p>
-            </div>
-          ) : (
+          <div className="flex-1 overflow-y-auto">
             <div className="p-3 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium px-2 py-0.5 rounded bg-[#6D28D9] text-white uppercase">
-                  {multi ? t('editMode.multiSelected', { count: selected.length }) : primary?.kind}
-                </span>
-                <button className="text-xs text-gray-500 hover:text-[#6D28D9]" onClick={deselect}>
-                  {t('editMode.deselect')}
-                </button>
-              </div>
-
               {multi ? (
                 <MultiControls onStyle={applyStyle} />
               ) : (
@@ -575,7 +708,8 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
               )}
 
               <button
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded border border-red-300 dark:border-red-900/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 text-sm font-medium"
+                type="button"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-danger/40 text-danger hover:bg-danger/10 text-sm font-medium transition-colors"
                 onClick={() => deleteIds(selected.map((e) => e.id))}
               >
                 <Trash2 size={14} />
@@ -583,13 +717,52 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ active }) => {
                   ? t('editMode.deleteSelection', { count: selected.length })
                   : t('editMode.delete')}
               </button>
-              <p className="text-[11px] text-gray-400 -mt-2">{t('editMode.deleteHint')}</p>
+              <p className="text-[11px] text-text-disabled -mt-2">{t('editMode.deleteHint')}</p>
             </div>
-          )}
-        </div>
-      </aside>
+          </div>
+
+          {/* Navigateur de calques, replié par défaut : utile pour atteindre un
+              conteneur parent difficile à cliquer, inutile le reste du temps. */}
+          <div className="shrink-0 border-t border-[var(--glass-border)]">
+            <button
+              type="button"
+              className="w-full flex items-center gap-1.5 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-text-secondary hover:bg-surface-3"
+              onClick={() => setLayersOpen((o) => !o)}
+              aria-expanded={layersOpen}
+            >
+              {layersOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              <Layers size={14} />
+              {t('editMode.layers')}
+              {tree.length > 0 && (
+                <span className="ml-auto text-[10px] font-normal text-text-disabled normal-case">
+                  {tree.length}
+                </span>
+              )}
+            </button>
+            {layersOpen && (
+              <div className="max-h-[32vh] overflow-auto px-1 pb-2">
+                {tree.length > 0 ? (
+                  <LayersTree
+                    nodes={tree}
+                    depth={0}
+                    selectedId={multi ? null : primary?.id ?? null}
+                    expanded={expanded}
+                    onToggle={toggleExpand}
+                    onSelect={selectLayer}
+                  />
+                ) : (
+                  <p className="px-3 py-2 text-[11px] text-text-disabled">
+                    {t('editMode.layersLoading')}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </aside>
+      )}
     </div>
   );
+
 };
 
 /* ================================================================== */
@@ -704,8 +877,8 @@ const LayersTree: React.FC<{
           <div
             className={`flex items-center rounded text-xs ${
               active
-                ? 'bg-[#6D28D9] text-white'
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2c2c2c]'
+                ? 'bg-primary text-white'
+                : 'text-text-tertiary hover:bg-gray-100 dark:hover:bg-surface-2'
             }`}
             style={{ paddingLeft: depth * 12 }}
           >
@@ -757,7 +930,7 @@ const TextContent: React.FC<{ info: SelectedElementInfo; onText: (t: string) => 
         key={info.id}
         defaultValue={info.text}
         rows={3}
-        className="w-full text-sm rounded border border-gray-300 dark:border-[#444] bg-white dark:bg-[#2c2c2c] p-2 text-gray-800 dark:text-gray-100 resize-y"
+        className="w-full text-sm rounded border border-gray-300 dark:border-[var(--glass-border)] bg-surface-2 p-2 text-text-secondary resize-y"
         onBlur={(e) => {
           if (e.target.value !== info.text) onText(e.target.value);
         }}
@@ -779,7 +952,7 @@ const ImageSection: React.FC<{
   return (
     <Section icon={<ImageIcon size={14} />} title={t('editMode.image')}>
       {info.src && (
-        <div className="mb-2 rounded border border-gray-200 dark:border-[#444] overflow-hidden bg-[repeating-conic-gradient(#eee_0_25%,#fff_0_50%)] bg-[length:16px_16px]">
+        <div className="mb-2 rounded border border-gray-200 dark:border-[var(--glass-border)] overflow-hidden bg-[repeating-conic-gradient(#eee_0_25%,#fff_0_50%)] bg-[length:16px_16px]">
           <img src={info.src} alt="" className="max-h-28 w-full object-contain" />
         </div>
       )}
@@ -790,14 +963,14 @@ const ImageSection: React.FC<{
           type="text"
           defaultValue={info.src}
           placeholder="https://…"
-          className="flex-1 min-w-0 text-sm rounded border border-gray-300 dark:border-[#444] bg-white dark:bg-[#2c2c2c] p-2 text-gray-800 dark:text-gray-100"
+          className="flex-1 min-w-0 text-sm rounded border border-gray-300 dark:border-[var(--glass-border)] bg-surface-2 p-2 text-text-secondary"
           onKeyDown={(e) => {
             const el = e.target as HTMLInputElement;
             if (e.key === 'Enter' && el.value && el.value !== info.src) onImageUrl(el.value);
           }}
         />
         <button
-          className="px-2 rounded bg-[#6D28D9] text-white text-xs hover:bg-[#5b21b6]"
+          className="px-2 rounded bg-primary text-white text-xs hover:bg-primary"
           onClick={() => {
             const el = document.getElementById(inputId) as HTMLInputElement | null;
             if (el && el.value && el.value !== info.src) onImageUrl(el.value);
@@ -806,7 +979,7 @@ const ImageSection: React.FC<{
           {t('editMode.apply')}
         </button>
       </div>
-      <label className="mt-2 flex items-center justify-center gap-2 px-3 py-2 rounded border border-dashed border-gray-300 dark:border-[#555] text-sm text-gray-600 dark:text-gray-300 cursor-pointer hover:border-[#6D28D9] hover:text-[#6D28D9]">
+      <label className="mt-2 flex items-center justify-center gap-2 px-3 py-2 rounded border border-dashed border-gray-300 dark:border-[var(--glass-border)] text-sm text-text-tertiary cursor-pointer hover:border-[var(--glass-border)] hover:text-primary">
         <Upload size={14} />
         {t('editMode.upload')}
         <input
@@ -851,7 +1024,7 @@ const LinkSection: React.FC<{
   return (
     <Section icon={<LinkIcon size={14} />} title={t('editMode.link')}>
       <AttrInput info={info} name="href" onAttr={onAttr} placeholder="https://… or /page" />
-      <label className="flex items-center gap-2 mt-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+      <label className="flex items-center gap-2 mt-2 text-sm text-text-tertiary cursor-pointer">
         <input
           type="checkbox"
           checked={newTab}
@@ -980,12 +1153,12 @@ const BackgroundSection: React.FC<{
           fallback="#ffffff"
         />
         {allowImage && (
-          <div className="space-y-2 pt-1 border-t border-gray-200 dark:border-[#3a3a3a]">
-            <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+          <div className="space-y-2 pt-1 border-t border-gray-200 dark:border-[var(--glass-border)]">
+            <span className="text-[11px] font-medium text-text-tertiary uppercase tracking-wide">
               {t('editMode.bgImage')}
             </span>
             {bg && (
-              <div className="rounded border border-gray-200 dark:border-[#444] overflow-hidden bg-[repeating-conic-gradient(#eee_0_25%,#fff_0_50%)] bg-[length:16px_16px]">
+              <div className="rounded border border-gray-200 dark:border-[var(--glass-border)] overflow-hidden bg-[repeating-conic-gradient(#eee_0_25%,#fff_0_50%)] bg-[length:16px_16px]">
                 <img src={bg} alt="" className="max-h-24 w-full object-contain" />
               </div>
             )}
@@ -996,13 +1169,13 @@ const BackgroundSection: React.FC<{
                 type="text"
                 defaultValue={bg}
                 placeholder="https://…"
-                className="flex-1 min-w-0 text-sm rounded border border-gray-300 dark:border-[#444] bg-white dark:bg-[#2c2c2c] p-2 text-gray-800 dark:text-gray-100"
+                className="flex-1 min-w-0 text-sm rounded border border-gray-300 dark:border-[var(--glass-border)] bg-surface-2 p-2 text-text-secondary"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') applyBg((e.target as HTMLInputElement).value);
                 }}
               />
               <button
-                className="px-2 rounded bg-[#6D28D9] text-white text-xs hover:bg-[#5b21b6]"
+                className="px-2 rounded bg-primary text-white text-xs hover:bg-primary"
                 onClick={() => {
                   const el = document.getElementById(inputId) as HTMLInputElement | null;
                   if (el) applyBg(el.value);
@@ -1013,7 +1186,7 @@ const BackgroundSection: React.FC<{
             </div>
             <div className="flex gap-1.5">
               {onUpload && (
-                <label className="flex-1 flex items-center justify-center gap-2 px-2 py-1.5 rounded border border-dashed border-gray-300 dark:border-[#555] text-xs text-gray-600 dark:text-gray-300 cursor-pointer hover:border-[#6D28D9] hover:text-[#6D28D9]">
+                <label className="flex-1 flex items-center justify-center gap-2 px-2 py-1.5 rounded border border-dashed border-gray-300 dark:border-[var(--glass-border)] text-xs text-text-tertiary cursor-pointer hover:border-[var(--glass-border)] hover:text-primary">
                   <Upload size={13} />
                   {t('editMode.upload')}
                   <input
@@ -1030,7 +1203,7 @@ const BackgroundSection: React.FC<{
               )}
               {info?.hasBackgroundImage && (
                 <button
-                  className="px-2 py-1.5 rounded border border-gray-300 dark:border-[#555] text-xs text-gray-600 dark:text-gray-300 hover:border-red-400 hover:text-red-500"
+                  className="px-2 py-1.5 rounded border border-gray-300 dark:border-[var(--glass-border)] text-xs text-text-tertiary hover:border-red-400 hover:text-red-500"
                   onClick={() => onStyle('backgroundImage', 'none')}
                 >
                   {t('editMode.removeBgImage')}
@@ -1112,7 +1285,7 @@ const PxRow: React.FC<{
         type="number"
         defaultValue={info ? toPx(cval(info, cvKey ?? cssProp)) : undefined}
         placeholder="—"
-        className="w-20 text-sm rounded border border-gray-300 dark:border-[#444] bg-white dark:bg-[#2c2c2c] p-1 text-gray-800 dark:text-gray-100"
+        className="w-20 text-sm rounded border border-gray-300 dark:border-[var(--glass-border)] bg-surface-2 p-1 text-text-secondary"
         onBlur={(e) => {
           if (e.target.value !== '') onStyle(cssProp, `${e.target.value}px`);
         }}
@@ -1157,7 +1330,7 @@ const SelectRow: React.FC<{
       <select
         key={`${cssProp}-${info?.id ?? 'multi'}`}
         defaultValue={info ? cval(info, cssProp) : undefined}
-        className="text-sm rounded border border-gray-300 dark:border-[#444] bg-white dark:bg-[#2c2c2c] p-1 text-gray-800 dark:text-gray-100 max-w-[8rem]"
+        className="text-sm rounded border border-gray-300 dark:border-[var(--glass-border)] bg-surface-2 p-1 text-text-secondary max-w-[8rem]"
         onChange={(e) => onStyle(cssProp, e.target.value)}
       >
         {options.map((o) => {
@@ -1187,7 +1360,7 @@ const AlignRow: React.FC<{ onStyle: (p: string, v: string) => void }> = ({ onSty
         ).map(([value, Icon]) => (
           <button
             key={value}
-            className="p-1.5 rounded border border-gray-300 dark:border-[#444] hover:bg-[#F5EEFF] dark:hover:bg-[#2c2c2c] text-gray-700 dark:text-gray-200"
+            className="p-1.5 rounded border border-gray-300 dark:border-[var(--glass-border)] hover:bg-primary/10 dark:hover:bg-surface-2 text-text-secondary"
             onClick={() => onStyle('textAlign', value)}
             aria-label={value}
           >
@@ -1212,7 +1385,7 @@ const AttrRow: React.FC<{
         key={`${name}-${info.id}`}
         type="text"
         defaultValue={info.attrs[name] ?? ''}
-        className="w-36 text-sm rounded border border-gray-300 dark:border-[#444] bg-white dark:bg-[#2c2c2c] p-1 text-gray-800 dark:text-gray-100"
+        className="w-36 text-sm rounded border border-gray-300 dark:border-[var(--glass-border)] bg-surface-2 p-1 text-text-secondary"
         onBlur={(e) => {
           if (e.target.value !== (info.attrs[name] ?? '')) onAttr(name, e.target.value);
         }}
@@ -1232,7 +1405,7 @@ const AttrInput: React.FC<{
     type="text"
     defaultValue={info.attrs[name] ?? ''}
     placeholder={placeholder}
-    className="w-full text-sm rounded border border-gray-300 dark:border-[#444] bg-white dark:bg-[#2c2c2c] p-2 text-gray-800 dark:text-gray-100"
+    className="w-full text-sm rounded border border-gray-300 dark:border-[var(--glass-border)] bg-surface-2 p-2 text-text-secondary"
     onBlur={(e) => {
       if (e.target.value !== (info.attrs[name] ?? '')) onAttr(name, e.target.value);
     }}
@@ -1247,7 +1420,7 @@ const Section: React.FC<{ title: string; icon?: React.ReactNode; children: React
   children,
 }) => (
   <section>
-    <h3 className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2 uppercase tracking-wide">
+    <h3 className="flex items-center gap-1.5 text-xs font-semibold text-text-tertiary mb-2 uppercase tracking-wide">
       {icon}
       {title}
     </h3>
@@ -1257,7 +1430,7 @@ const Section: React.FC<{ title: string; icon?: React.ReactNode; children: React
 
 const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div className="flex items-center justify-between gap-2">
-    <span className="text-sm text-gray-600 dark:text-gray-300">{label}</span>
+    <span className="text-sm text-text-tertiary">{label}</span>
     {children}
   </div>
 );
