@@ -170,3 +170,125 @@ export function HelpIllustration({ className = '', size = 88 }: IllustrationProp
     </svg>
   );
 }
+
+/* ==================================================================
+   Illustrations de la page d'accueil
+   ================================================================== */
+
+/**
+ * Maquette du produit : la coquille du builder, conversation à gauche et
+ * aperçu à droite, avec la barre d'outils flottante.
+ *
+ * Une capture d'écran vieillirait à chaque évolution de l'interface et ne
+ * saurait pas suivre le thème ; ce schéma dit la même chose — voilà à quoi
+ * ressemble l'outil — et reste juste.
+ */
+export function ProductMockIllustration({ className = '' }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 640 380"
+      className={`w-full h-auto text-text-tertiary ${className}`}
+      role="img"
+      aria-hidden
+    >
+      {/* Fenêtre */}
+      <rect x="8" y="8" width="624" height="364" rx="14" {...stroke} />
+      <path d="M8 44h624" {...stroke} />
+      <circle cx="30" cy="26" r="4" fill="currentColor" opacity=".45" />
+      <circle cx="46" cy="26" r="4" fill="currentColor" opacity=".3" />
+      <circle cx="62" cy="26" r="4" fill="currentColor" opacity=".3" />
+      <rect x="88" y="20" width="54" height="12" rx="6" className="text-primary" {...stroke} />
+      <rect x="470" y="19" width="62" height="14" rx="7" fill="currentColor" opacity=".12" />
+      <rect x="472" y="21" width="28" height="10" rx="5" fill="var(--color-primary)" opacity=".75" />
+      <rect x="546" y="19" width="52" height="14" rx="7" fill="var(--color-primary)" opacity=".9" />
+      <circle cx="614" cy="26" r="8" {...stroke} />
+
+      {/* Conversation */}
+      <path d="M212 44v328" {...stroke} />
+      <rect x="32" y="70" width="120" height="9" rx="4.5" fill="currentColor" opacity=".28" />
+      <rect x="32" y="88" width="152" height="9" rx="4.5" fill="currentColor" opacity=".16" />
+      <rect x="72" y="118" width="112" height="9" rx="4.5" fill="var(--color-primary)" opacity=".5" />
+      <rect x="32" y="150" width="140" height="9" rx="4.5" fill="currentColor" opacity=".16" />
+      <rect x="32" y="168" width="96" height="9" rx="4.5" fill="currentColor" opacity=".16" />
+      <rect x="32" y="326" width="152" height="30" rx="10" {...stroke} className="text-primary" />
+      <path d="M164 341h10" {...stroke} className="text-primary" />
+
+      {/* Aperçu */}
+      <rect x="236" y="66" width="376" height="230" rx="10" {...stroke} opacity=".7" />
+      <path d="M236 92h376" {...stroke} opacity=".7" />
+      <rect x="256" y="116" width="150" height="86" rx="8" fill="currentColor" opacity=".14" />
+      <rect x="424" y="116" width="168" height="12" rx="6" fill="currentColor" opacity=".22" />
+      <rect x="424" y="140" width="130" height="12" rx="6" fill="currentColor" opacity=".14" />
+      <rect x="424" y="170" width="86" height="24" rx="8" fill="var(--color-primary)" opacity=".85" />
+      <rect x="256" y="224" width="336" height="10" rx="5" fill="currentColor" opacity=".12" />
+      <rect x="256" y="246" width="248" height="10" rx="5" fill="currentColor" opacity=".12" />
+
+      {/* Barre d'outils flottante */}
+      <rect
+        x="316"
+        y="316"
+        width="216"
+        height="34"
+        rx="12"
+        fill="var(--idem-surface-1)"
+        {...stroke}
+      />
+      <circle cx="344" cy="333" r="5" fill="var(--color-primary)" />
+      <path d="M372 327v12M400 327v12M428 327v12" {...stroke} opacity=".4" />
+      <path d="M452 329l8 8M460 329l-8 8" {...stroke} opacity=".4" />
+      <path d="M486 327h20" {...stroke} opacity=".4" />
+    </svg>
+  );
+}
+
+/** Chaque projet reçoit une direction visuelle distincte. */
+export function ArtDirectionIllustration({ size = 76 }: IllustrationProps) {
+  return (
+    <svg viewBox="0 0 96 76" style={{ height: size }} className="text-text-tertiary" role="img" aria-hidden>
+      {/* Trois mises en page franchement différentes, pas trois variantes */}
+      <rect x="4" y="8" width="26" height="60" rx="2" {...stroke} />
+      <path d="M9 18h16M9 26h12" {...stroke} />
+      <rect x="9" y="36" width="16" height="24" rx="1" fill="currentColor" opacity=".18" />
+
+      <rect x="35" y="8" width="26" height="60" rx="9" {...stroke} className="text-primary" />
+      <circle cx="48" cy="26" r="8" {...stroke} className="text-primary" />
+      <path d="M40 44h16M40 52h10" {...stroke} className="text-primary" />
+
+      <rect x="66" y="8" width="26" height="60" rx="0" {...stroke} />
+      <rect x="66" y="8" width="26" height="22" fill="currentColor" opacity=".22" />
+      <path d="M71 40h16M71 48h16M71 56h8" {...stroke} />
+    </svg>
+  );
+}
+
+/** Le contraste est mesuré, pas espéré. */
+export function ContrastIllustration({ size = 76 }: IllustrationProps) {
+  return (
+    <svg viewBox="0 0 96 76" style={{ height: size }} className="text-text-tertiary" role="img" aria-hidden>
+      <circle cx="30" cy="30" r="20" {...stroke} />
+      <path d="M30 10a20 20 0 010 40z" fill="currentColor" opacity=".8" />
+      <rect x="58" y="16" width="34" height="10" rx="5" fill="currentColor" opacity=".2" />
+      <rect x="58" y="32" width="24" height="10" rx="5" fill="currentColor" opacity=".2" />
+      {/* Le verdict chiffré : c'est lui qui fait la différence */}
+      <rect x="14" y="58" width="68" height="14" rx="7" className="text-success" {...stroke} />
+      <path d="M24 65l4 4 7-8" {...stroke} className="text-success" />
+      <path d="M42 65h30" {...stroke} className="text-success" opacity=".6" />
+    </svg>
+  );
+}
+
+/** On corrige au clic, dans l'aperçu. */
+export function VisualEditIllustration({ size = 76 }: IllustrationProps) {
+  return (
+    <svg viewBox="0 0 96 76" style={{ height: size }} className="text-text-tertiary" role="img" aria-hidden>
+      <rect x="6" y="8" width="84" height="46" rx="5" {...stroke} />
+      <rect x="16" y="20" width="40" height="8" rx="4" fill="currentColor" opacity=".22" />
+      {/* Élément sélectionné */}
+      <rect x="16" y="34" width="46" height="12" rx="3" {...stroke} className="text-primary" strokeDasharray="3 2" />
+      <rect x="16" y="37" width="30" height="6" rx="3" fill="var(--color-primary)" opacity=".55" />
+      {/* Curseur */}
+      <path d="M56 44l14 16-5 1-3 8-6-14z" fill="currentColor" />
+      <path d="M28 64h40" {...stroke} opacity=".35" />
+    </svg>
+  );
+}

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { ArrowRight, Palette, Contrast, ShieldCheck, MousePointerClick } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import useAppGenContextStore from '@/stores/appgenContextSlice';
 import { getCurrentUser } from '@/api/persistence/db';
 import type { UserModel } from '@/api/persistence/userModel';
@@ -7,30 +8,51 @@ import { UserProfile } from '../Header/UserProfile';
 import { redirectToLogin } from '@/hooks/useAuth';
 import { Brand } from '@/components/Brand';
 import Button, { ButtonLink } from '@/components/ui/Button';
+import ThemeToggle from '@/components/ui/ThemeToggle';
+import LanguageToggle from '@/components/ui/LanguageToggle';
+import {
+  ProductMockIllustration,
+  ArtDirectionIllustration,
+  ContrastIllustration,
+  VisualEditIllustration,
+  PublishPipelineIllustration,
+} from '@/components/ui/Illustrations';
 import { AppGenPricing } from './AppGenPricing';
 
 const PENDING_PROMPT_KEY = 'appgen_pending_prompt';
+const DASHBOARD_URL = process.env.REACT_APP_IDEM_MAIN_APP_URL || 'http://localhost:4200';
+
+/** Clés d'exemples ; les textes vivent dans les fichiers de langue. */
+const EXAMPLE_KEYS = ['tontine', 'delivery', 'fintech', 'marketplace'] as const;
 
 interface AppGenLandingProps {
   onStart: (prompt?: string) => void;
 }
 
-const EXAMPLE_PROMPTS = [
-  'Une application de gestion de tontines pour une association de quartier',
-  'Un tableau de bord de suivi des livraisons pour un e-commerce à Dakar',
-  'Un site vitrine pour une startup fintech à Lagos',
-  'Une place de marché entre freelances et entreprises à Abidjan',
-];
-
-const DASHBOARD_URL = process.env.REACT_APP_IDEM_MAIN_APP_URL || 'http://localhost:4200';
-
+/**
+ * Page d'accueil d'iCode.
+ *
+ * Trois corrections par rapport à la version précédente :
+ *
+ * 1. **Le thème n'est plus forcé.** La page s'ouvrait dans un conteneur
+ *    `.dark` codé en dur, si bien qu'un compte réglé en clair basculait en
+ *    sombre en passant du builder à l'accueil. Le thème vient maintenant de
+ *    `<html>`, comme partout ailleurs, et la bascule écrit dans le cookie
+ *    partagé entre applications.
+ * 2. **Tous les textes passent par l'i18n.** Ils étaient en français dans le
+ *    code, ce qui rendait la page monolingue quelle que soit la langue choisie.
+ * 3. **Le produit se montre.** Une maquette de l'interface remplace les photos
+ *    de bureaux, et chaque argument porte une illustration de son mécanisme.
+ */
 export function AppGenLanding({ onStart }: AppGenLandingProps) {
+  const { t } = useTranslation();
   const [inputValue, setInputValue] = useState('');
   const [currentUser, setCurrentUser] = useState<UserModel | null>(null);
   const { initDraft } = useAppGenContextStore();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    getCurrentUser().then((user) => setCurrentUser(user));
+    getCurrentUser().then(setCurrentUser);
   }, []);
 
   const handleStart = (prompt?: string) => {
@@ -51,132 +73,147 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
     }
   };
 
+  /** Un exemple ne part pas seul : il remplit le champ et rend la main, pour
+   *  qu'on puisse l'ajuster avant de lancer. */
+  const useExample = (text: string) => {
+    setInputValue(text);
+    textareaRef.current?.focus();
+  };
+
   return (
-    <div className="dark min-h-screen bg-bg-darker text-text-primary">
-      <nav className="fixed top-0 inset-x-0 z-50 px-6 py-3.5 bg-bg-darker/85 backdrop-blur-xl border-b border-[var(--glass-border-subtle)]">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-6">
-          <Brand size="md" variant="dark" />
+    <div className="min-h-screen bg-bg-darker text-text-primary">
+      {/* ---------------- Navigation ---------------- */}
+      <nav className="fixed top-0 inset-x-0 z-50 px-4 sm:px-6 py-3 bg-bg-darker/85 backdrop-blur-xl border-b border-[var(--glass-border-subtle)]">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+          <Brand size="md" />
 
           <div className="hidden md:flex items-center gap-7">
-            <a href="#how" className="text-sm text-text-secondary hover:text-text-primary transition-colors">
-              Comment ça marche
-            </a>
-            <a href="#craft" className="text-sm text-text-secondary hover:text-text-primary transition-colors">
-              Ce qui change
-            </a>
-            <a href="#pricing" className="text-sm text-text-secondary hover:text-text-primary transition-colors">
-              Tarifs
-            </a>
+            <NavLink href="#how">{t('landing.nav.how')}</NavLink>
+            <NavLink href="#craft">{t('landing.nav.craft')}</NavLink>
+            <NavLink href="#pricing">{t('landing.nav.pricing')}</NavLink>
           </div>
 
-          {currentUser ? (
-            <UserProfile user={currentUser} />
-          ) : (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => (window.location.href = `${DASHBOARD_URL}/login?from=appgen`)}
-            >
-              Se connecter
-            </Button>
-          )}
+          <div className="flex items-center gap-1.5">
+            <LanguageToggle className="hidden sm:flex" />
+            <ThemeToggle />
+            {currentUser ? (
+              <UserProfile user={currentUser} />
+            ) : (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => (window.location.href = `${DASHBOARD_URL}/login?from=appgen`)}
+              >
+                {t('landing.nav.signIn')}
+              </Button>
+            )}
+          </div>
         </div>
       </nav>
 
       {/* ---------------- Hero ---------------- */}
-      <section className="px-4 pt-36 pb-24">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-[clamp(2.5rem,6vw,4.25rem)] font-bold leading-[1.05] tracking-[-0.03em] text-balance">
-            Décrivez votre idée.
+      <section className="relative px-4 pt-32 pb-16 sm:pt-40">
+        {/* Halo discret derrière le champ : il désigne le point d'entrée sans
+            devenir un décor. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-24 mx-auto h-72 w-[min(680px,90%)] rounded-full bg-primary/10 blur-3xl"
+        />
+
+        <div className="relative max-w-3xl mx-auto text-center">
+          <h1 className="text-[clamp(2.25rem,6vw,3.75rem)] font-bold leading-[1.06] tracking-[-0.03em] text-balance">
+            {t('landing.hero.title1')}
             <br />
-            iCode écrit l'application.
+            <span className="text-primary">{t('landing.hero.title2')}</span>
           </h1>
-          <p className="mt-6 text-lg text-text-secondary max-w-xl text-pretty">
-            Du code React lisible, un aperçu qui tourne pendant que vous parlez, et une édition au
-            clic directement sur la page. Vous partez d'une phrase, ou d'un projet déjà analysé sur
-            Idem.
+
+          <p className="mt-5 mx-auto max-w-xl text-base sm:text-lg text-text-secondary text-pretty">
+            {t('landing.hero.lede')}
           </p>
 
-          <div className="mt-10 rounded-2xl border border-[var(--glass-border-medium)] bg-surface-1 overflow-hidden focus-within:border-primary transition-colors">
+          <div className="mt-9 rounded-2xl border border-[var(--glass-border-medium)] bg-surface-1 shadow-[var(--glass-shadow-lg)] overflow-hidden text-left focus-within:border-primary transition-colors">
             <label htmlFor="idea" className="sr-only">
-              Décrivez l'application à construire
+              {t('landing.hero.placeholder')}
             </label>
             <textarea
               id="idea"
+              ref={textareaRef}
               value={inputValue}
               onChange={(event) => setInputValue(event.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Un tableau de bord pour suivre les livraisons à Dakar…"
+              placeholder={t('landing.hero.placeholder')}
               rows={3}
               className="w-full bg-transparent text-text-primary placeholder:text-text-disabled text-base p-5 resize-none focus:outline-none"
             />
-            <div className="flex items-center justify-between gap-3 px-5 pb-4">
-              <span className="text-xs text-text-disabled">Entrée pour lancer</span>
+            <div className="flex items-center justify-between gap-3 px-4 pb-4">
+              <span className="text-xs text-text-disabled">{t('landing.hero.hint')}</span>
               <Button
                 variant="primary"
                 size="sm"
                 onClick={() => handleStart()}
                 disabled={!inputValue.trim()}
+                icon={<Sparkles className="w-4 h-4" />}
               >
-                Générer
-                <ArrowRight className="w-4 h-4" />
+                {t('landing.hero.cta')}
               </Button>
             </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-2">
-            {EXAMPLE_PROMPTS.map((prompt) => (
+          <p className="mt-6 text-xs text-text-disabled">{t('landing.hero.tryLabel')}</p>
+          <div className="mt-3 flex flex-wrap justify-center gap-2">
+            {EXAMPLE_KEYS.map((key) => (
               <button
-                key={prompt}
+                key={key}
                 type="button"
-                onClick={() => handleStart(prompt)}
-                className="text-left text-[13px] text-text-tertiary hover:text-text-primary border border-[var(--glass-border)] hover:border-[var(--glass-border-strong)] rounded-full px-3.5 py-1.5 transition-colors"
+                onClick={() => useExample(t(`landing.examples.${key}`))}
+                className="text-[13px] text-text-tertiary hover:text-text-primary border border-[var(--glass-border)] hover:border-primary/50 rounded-full px-3.5 py-1.5 transition-colors"
               >
-                {prompt}
+                {t(`landing.examples.${key}`)}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Maquette du produit : ce qu'on obtient après avoir écrit la phrase. */}
+        <div className="relative mt-16 max-w-5xl mx-auto">
+          <div className="rounded-2xl border border-[var(--glass-border)] bg-surface-1 p-3 sm:p-5 shadow-[var(--glass-shadow-xl)]">
+            <ProductMockIllustration />
           </div>
         </div>
       </section>
 
       {/* ---------------- Deux points d'entrée ---------------- */}
-      <section id="how" className="px-4 py-24 border-t border-[var(--glass-border-subtle)]">
+      <section id="how" className="px-4 py-20 border-t border-[var(--glass-border-subtle)]">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-[-0.02em] text-balance">
-            Deux façons de commencer
-          </h2>
-          <p className="mt-3 text-text-secondary max-w-2xl text-pretty">
-            Une idée en une phrase suffit. Mais si votre projet est déjà analysé sur Idem, iCode
-            part de ce qui existe : la charte, les diagrammes, la configuration technique.
-          </p>
+          <SectionHead title={t('landing.entries.title')} lede={t('landing.entries.lede')} />
 
           <div className="mt-10 grid gap-5 md:grid-cols-2">
-            <article className="p-6 rounded-2xl border border-[var(--glass-border)] bg-surface-1">
-              <h3 className="text-lg font-semibold">Depuis une phrase</h3>
-              <p className="mt-2 text-sm text-text-secondary text-pretty">
-                Vous écrivez ce que vous voulez construire, iCode choisit une direction visuelle
-                propre à votre projet et génère l'application. Rien à configurer.
+            <article className="flex flex-col p-6 rounded-2xl border border-[var(--glass-border)] bg-surface-1">
+              <h3 className="text-lg font-semibold">{t('landing.entries.prompt.title')}</h3>
+              <p className="mt-2 flex-1 text-sm text-text-secondary text-pretty">
+                {t('landing.entries.prompt.body')}
               </p>
-              <Button variant="primary" size="sm" onClick={() => handleStart()} className="mt-5">
-                Commencer ici
+              <Button variant="primary" size="sm" onClick={() => handleStart()} className="mt-5 self-start">
+                {t('landing.entries.prompt.cta')}
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </article>
 
-            <article className="p-6 rounded-2xl border border-[var(--glass-border)] bg-surface-1">
-              <h3 className="text-lg font-semibold">Depuis un projet Idem</h3>
-              <p className="mt-2 text-sm text-text-secondary text-pretty">
-                Business plan, charte graphique, diagrammes, choix techniques : tout ce qu'Idem a
-                déjà produit sur votre projet alimente la génération. Le code sort aligné sur votre
-                marque, pas sur une palette générique.
+            <article className="flex flex-col p-6 rounded-2xl border border-[var(--glass-border)] bg-surface-1">
+              <div className="mb-3 grid place-items-center">
+                <PublishPipelineIllustration size={72} />
+              </div>
+              <h3 className="text-lg font-semibold">{t('landing.entries.project.title')}</h3>
+              <p className="mt-2 flex-1 text-sm text-text-secondary text-pretty">
+                {t('landing.entries.project.body')}
               </p>
               <ButtonLink
                 variant="secondary"
                 size="sm"
                 href={`${DASHBOARD_URL}/projects`}
-                className="mt-5"
+                className="mt-5 self-start"
               >
-                Ouvrir mes projets
+                {t('landing.entries.project.cta')}
                 <ArrowRight className="w-4 h-4" />
               </ButtonLink>
             </article>
@@ -185,60 +222,62 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
       </section>
 
       {/* ---------------- Ce qui distingue ---------------- */}
-      <section id="craft" className="px-4 py-24 border-t border-[var(--glass-border-subtle)]">
+      <section id="craft" className="px-4 py-20 border-t border-[var(--glass-border-subtle)]">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-[-0.02em] text-balance">
-            Ce que la plupart des générateurs ne font pas
-          </h2>
+          <SectionHead title={t('landing.craft.title')} lede={t('landing.craft.lede')} />
 
-          <dl className="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2">
+          <div className="mt-10 grid gap-x-8 gap-y-10 sm:grid-cols-2">
             <Feature
-              icon={<Palette className="w-5 h-5" />}
-              title="Deux projets ne se ressemblent jamais"
-              body="Chaque projet tire une direction artistique dans un catalogue de styles mutuellement exclusifs. Pas de dégradé violet par défaut, pas de grille de trois cartes systématique."
+              illustration={<ArtDirectionIllustration />}
+              title={t('landing.craft.direction.title')}
+              body={t('landing.craft.direction.body')}
             />
             <Feature
-              icon={<Contrast className="w-5 h-5" />}
-              title="Les contrastes sont calculés, pas espérés"
-              body="La palette est forgée en OKLCH et vérifiée avant d'être envoyée au modèle. Le texte courant atteint 4,5:1 parce que c'est mesuré, pas parce que le modèle a bien voulu."
+              illustration={<ContrastIllustration />}
+              title={t('landing.craft.contrast.title')}
+              body={t('landing.craft.contrast.body')}
             />
             <Feature
-              icon={<MousePointerClick className="w-5 h-5" />}
-              title="On corrige au clic, pas au prompt"
-              body="Cliquez un texte dans l'aperçu et corrigez-le : l'écriture va directement dans le code source. Aucun modèle appelé, aucun crédit consommé."
+              illustration={<VisualEditIllustration />}
+              title={t('landing.craft.visual.title')}
+              body={t('landing.craft.visual.body')}
             />
             <Feature
-              icon={<ShieldCheck className="w-5 h-5" />}
-              title="Le déploiement reste chez vous"
-              body="Publication via iDeploy, l'infrastructure de l'écosystème Idem. Le code généré est du React standard : il vous appartient et se reprend ailleurs."
+              illustration={<PublishPipelineIllustration size={76} />}
+              title={t('landing.craft.sovereign.title')}
+              body={t('landing.craft.sovereign.body')}
             />
-          </dl>
+          </div>
         </div>
       </section>
 
       <AppGenPricing onGetStarted={() => handleStart()} />
 
-      <section className="px-4 py-24 border-t border-[var(--glass-border-subtle)]">
-        <div className="max-w-3xl mx-auto">
+      {/* ---------------- Appel final ---------------- */}
+      <section className="px-4 py-20 border-t border-[var(--glass-border-subtle)]">
+        <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold tracking-[-0.02em] text-balance">
-            Écrivez la première phrase
+            {t('landing.cta.title')}
           </h2>
-          <p className="mt-3 text-text-secondary">
-            La génération est gratuite pour commencer. Aucune carte bancaire.
-          </p>
-          <Button variant="primary" size="md" onClick={() => handleStart()} className="mt-7">
-            Ouvrir iCode
-            <ArrowRight className="w-4 h-4" />
-          </Button>
+          <p className="mt-3 text-text-secondary">{t('landing.cta.lede')}</p>
+          <div className="mt-7 flex justify-center">
+            <Button variant="primary" size="md" onClick={() => handleStart()}>
+              {t('landing.cta.button')}
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </section>
 
       <footer className="px-4 py-10 border-t border-[var(--glass-border-subtle)]">
         <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4">
-          <Brand size="sm" variant="dark" />
+          <Brand size="sm" />
           <p className="text-sm text-text-tertiary">
-            iCode fait partie de l'écosystème{' '}
-            <a href="https://idem.africa" className="text-text-secondary hover:text-text-primary underline underline-offset-4">
+            {t('landing.footer.tagline')}{' '}
+            <a
+              href="https://idem.africa"
+              className="text-text-secondary hover:text-text-primary underline underline-offset-4"
+            >
               Idem
             </a>
           </p>
@@ -248,24 +287,42 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
   );
 }
 
+/* ------------------------------------------------------------------ */
+
+function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      className="text-sm text-text-secondary hover:text-text-primary transition-colors"
+    >
+      {children}
+    </a>
+  );
+}
+
+function SectionHead({ title, lede }: { title: string; lede: string }) {
+  return (
+    <div className="max-w-2xl">
+      <h2 className="text-3xl md:text-4xl font-bold tracking-[-0.02em] text-balance">{title}</h2>
+      <p className="mt-3 text-text-secondary text-pretty">{lede}</p>
+    </div>
+  );
+}
+
 function Feature({
-  icon,
+  illustration,
   title,
   body,
 }: {
-  icon: React.ReactNode;
+  illustration: React.ReactNode;
   title: string;
   body: string;
 }) {
   return (
-    <div className="flex gap-4">
-      <span className="shrink-0 w-10 h-10 grid place-items-center rounded-lg bg-primary/12 text-primary">
-        {icon}
-      </span>
-      <div className="min-w-0">
-        <dt className="font-semibold text-text-primary text-balance">{title}</dt>
-        <dd className="mt-1.5 text-sm text-text-secondary text-pretty">{body}</dd>
-      </div>
+    <div>
+      <div className="mb-4 h-20 flex items-center">{illustration}</div>
+      <h3 className="font-semibold text-text-primary text-balance">{title}</h3>
+      <p className="mt-2 text-sm text-text-secondary text-pretty">{body}</p>
     </div>
   );
 }
