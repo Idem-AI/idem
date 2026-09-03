@@ -169,6 +169,69 @@ textarea,
 }
 
 /* ============================================================================
+   MOTIF DE MARQUE
+   `@idem/shared-styles` pose le motif Idem sur `body::before`, en position
+   fixe et derrière tout. Dans le builder il ne se voit jamais : chaque panneau
+   peint sa propre surface opaque par-dessus.
+
+   Cette classe le réintroduit *dans* une surface donnée. Elle est posée sur
+   l'espace de travail seulement — la conversation reste unie, parce qu'un fond
+   texturé derrière un long fil de texte fatigue la lecture, alors qu'il donne
+   de la matière derrière un aperçu ou un panneau de réglages.
+
+   `isolation: isolate` crée le contexte d'empilement : le pseudo-élément en
+   `z-index: -1` se place au-dessus du fond de l'élément et sous son contenu.
+   ============================================================================ */
+
+.motif-surface {
+  position: relative;
+  isolation: isolate;
+}
+
+.motif-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: url('/assets/images/motif.png');
+  background-repeat: repeat;
+  background-position: top left;
+  opacity: 0.16;
+  pointer-events: none;
+}
+
+/* Le motif est dessiné en sombre : sur fond sombre il faut l'inverser, et
+   l'affaiblir — un motif clair sur fond noir ressort beaucoup plus. */
+.dark .motif-surface::before {
+  filter: invert(1);
+  opacity: 0.1;
+}
+
+/* Les panneaux posés dans une surface à motif ne repeignent pas leur fond,
+   sinon ils le recouvriraient. */
+.motif-surface .motif-pass-through {
+  background-color: transparent;
+}
+
+/* ============================================================================
+   REPLI DE LA CONVERSATION
+   `react-resizable-panels` écrit `flex-grow` en style inline. Animer cette
+   propriété en permanence rendrait le glissement de la poignée mou et en
+   retard sur le curseur ; la transition n'est donc active que le temps d'un
+   repli ou d'un dépliage commandé au bouton.
+   ============================================================================ */
+
+[data-panel-group][data-icode-animating='true'] > [data-panel] {
+  transition: flex-grow 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-panel-group][data-icode-animating='true'] > [data-panel] {
+    transition: none;
+  }
+}
+
+/* ============================================================================
    SURCHARGES antd
    antd est encore utilisé pour les modales et quelques formulaires (WeAPI,
    Settings). Ces règles recentrent ses modales ; le reste de son thème est

@@ -99,7 +99,7 @@ export function ThemePanel({ projectData, onApply }: ThemePanelProps) {
   const { system, catalog, brief } = data;
 
   return (
-    <div className="h-full overflow-y-auto bg-surface-1">
+    <div className="h-full overflow-y-auto motif-pass-through">
       <div className="mx-auto max-w-4xl p-5 space-y-7">
         <header className="flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -394,7 +394,7 @@ function ContrastRow({
  *  contenu la remplit. Un rond qui tourne au centre n'apprend rien. */
 function ThemeSkeleton() {
   return (
-    <div className="h-full overflow-hidden bg-surface-1">
+    <div className="h-full overflow-hidden motif-pass-through">
       <div className="mx-auto max-w-4xl p-5 space-y-7 animate-pulse">
         <div className="space-y-2">
           <div className="h-5 w-40 rounded bg-surface-3" />

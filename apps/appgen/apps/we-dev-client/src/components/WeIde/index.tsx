@@ -82,7 +82,7 @@ export default function WeIde({ detail = "minimal" }: WeIdeProps) {
   const terminalVisible = isFull && showTerminal;
 
   return (
-    <div className="h-full w-full bg-surface-1 text-text-primary flex overflow-hidden">
+    <div className="h-full w-full motif-pass-through text-text-primary flex overflow-hidden">
       {isFull && (
         <ActivityBar
           activeView={activeView}
