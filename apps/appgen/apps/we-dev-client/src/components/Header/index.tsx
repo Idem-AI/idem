@@ -1,11 +1,8 @@
 import { ProjectTitle } from './ProjectTitle';
 import { HeaderActions } from './HeaderActions';
 import { ModeToggle } from './ModeToggle';
-import { VersionHistory } from './VersionHistory';
 import { CreditsBadge } from './CreditsBadge';
 import { Brand } from '@/components/Brand';
-import useChatModeStore from '@/stores/chatModeSlice';
-import { ChatMode } from '@/types/chat';
 
 /**
  * En-tête du builder.
@@ -14,14 +11,13 @@ import { ChatMode } from '@/types/chat';
  * nommer le projet, et cacher les actions derrière deux boutons. Elle ne disait
  * ni comment on travaille, ni ce qu'on a consommé, ni où en est la publication.
  *
- * Elle porte désormais l'état de la session, de gauche à droite : qui on est,
- * sur quoi on travaille, comment (Plan / Build), d'où l'on peut revenir, ce
- * qu'il reste, et où ça part.
+ * Elle porte désormais l'état de la session, de gauche à droite : la marque,
+ * le projet en cours, le mode de travail (Plan / Build), les crédits restants
+ * et la publication. Tout le reste — historique des versions, export, GitHub —
+ * vit dans le menu d'actions, parce que ce sont des gestes ponctuels et non
+ * des informations à garder sous les yeux.
  */
 function Header() {
-  const { mode, initOpen } = useChatModeStore();
-  const showBuildTools = mode === ChatMode.Builder && !initOpen;
-
   return (
     <header
       data-tour="appgen-header"
@@ -40,16 +36,7 @@ function Header() {
       <div className="shrink-0 flex items-center gap-2">
         <ModeToggle />
 
-        {showBuildTools && (
-          <>
-            <div className="w-px h-6 bg-[var(--glass-border)]" aria-hidden />
-            <VersionHistory />
-          </>
-        )}
-
         <CreditsBadge />
-
-        <div className="w-px h-6 bg-[var(--glass-border)]" aria-hidden />
 
         <HeaderActions />
       </div>

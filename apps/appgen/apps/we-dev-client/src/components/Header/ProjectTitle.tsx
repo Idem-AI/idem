@@ -24,20 +24,18 @@ export function ProjectTitle() {
   // Project mode: show project info
   if (projectId) {
     return (
-      <div className="flex items-center space-x-3 px-3 py-2">
+      <div className="flex items-center gap-2.5 px-1 py-1">
         <ProjectLogo
           logo={projectData?.analysisResultModel?.branding?.logo}
           name={projectData?.name}
           size={32}
         />
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0">
+          {/* Le nom du projet suffit : « Generation Workspace » et l'étiquette
+              « Active Project » décrivaient l'écran où l'on se trouve déjà. */}
           <div className="text-sm font-medium text-text-primary truncate">
             {projectData?.name || 'Project'}
           </div>
-          <div className="text-xs text-text-tertiary">Generation Workspace</div>
-        </div>
-        <div className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
-          Active Project
         </div>
       </div>
     );

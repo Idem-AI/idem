@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { History, RotateCcw, Trash2, FilePlus2, FileMinus2, FileEdit } from 'lucide-react';
+import { RotateCcw, Trash2, FilePlus2, FileMinus2, FileEdit } from 'lucide-react';
 import { toast } from 'react-toastify';
-import Popover from '@/components/ui/Popover';
 import useVersionHistory, { diffSnapshots, type Snapshot } from '@/stores/versionHistory';
 import { useFileStore } from '@/components/WeIde/stores/fileStore';
 
 /**
- * Historique de versions.
+ * Liste des points de restauration.
  *
- * Chaque tour de génération dépose un point de restauration. Sans lui, revenir
- * en arrière veut dire redemander l'inverse au modèle et espérer retomber sur
- * l'état d'avant, ce qui n'arrive presque jamais.
+ * Rendue à l'intérieur du menu d'actions plutôt que depuis son propre bouton
+ * dans la barre : restaurer une version est un geste rare, au même titre
+ * qu'exporter le code ou pousser sur GitHub, pas une information à garder
+ * affichée en permanence.
  */
-export function VersionHistory() {
+export function VersionList({ onDone }: { onDone?: () => void }) {
   const { t } = useTranslation();
   const { snapshots, load, remove } = useVersionHistory();
   const { files, setFiles } = useFileStore();
@@ -23,7 +23,7 @@ export function VersionHistory() {
     load();
   }, [load]);
 
-  const restore = async (snapshot: Snapshot, close: () => void) => {
+  const restore = async (snapshot: Snapshot) => {
     setRestoring(snapshot.id);
     try {
       // L'état courant devient lui-même un point de retour : restaurer ne doit
@@ -33,7 +33,7 @@ export function VersionHistory() {
         .capture(t('versions.beforeRestore'), useFileStore.getState().files);
       await setFiles(snapshot.files);
       toast.success(t('versions.restored'));
-      close();
+      onDone?.();
     } catch (error) {
       console.error('[versions] restauration impossible', error);
       toast.error(t('versions.restoreFailed'));
@@ -42,55 +42,29 @@ export function VersionHistory() {
     }
   };
 
-  return (
-    <Popover
-      label={t('versions.title')}
-      className="w-[340px]"
-      trigger={(props) => (
-        <button
-          type="button"
-          {...props}
-          title={t('versions.title')}
-          className="h-8 px-2.5 flex items-center gap-1.5 rounded-lg text-xs text-text-tertiary hover:text-text-primary hover:bg-surface-2 transition-colors"
-        >
-          <History className="w-4 h-4" />
-          <span className="hidden xl:inline">{t('versions.short')}</span>
-          {snapshots.length > 0 && (
-            <span className="tabular-nums text-text-disabled">{snapshots.length}</span>
-          )}
-        </button>
-      )}
-    >
-      {(close) => (
-        <div className="max-h-[70vh] flex flex-col">
-          <div className="px-3 py-2.5 border-b border-[var(--glass-border)]">
-            <h3 className="text-sm font-medium text-text-primary">{t('versions.title')}</h3>
-            <p className="text-xs text-text-tertiary mt-0.5">{t('versions.hint')}</p>
-          </div>
+  if (snapshots.length === 0) {
+    return (
+      <div className="px-4 py-6 text-center">
+        <p className="text-sm text-text-secondary">{t('versions.emptyTitle')}</p>
+        <p className="text-xs text-text-tertiary mt-1">{t('versions.emptyBody')}</p>
+      </div>
+    );
+  }
 
-          {snapshots.length === 0 ? (
-            <div className="px-3 py-6 text-center">
-              <p className="text-sm text-text-secondary">{t('versions.emptyTitle')}</p>
-              <p className="text-xs text-text-tertiary mt-1">{t('versions.emptyBody')}</p>
-            </div>
-          ) : (
-            <ul className="flex-1 overflow-y-auto py-1">
-              {snapshots.map((snapshot, index) => (
-                <SnapshotRow
-                  key={snapshot.id}
-                  snapshot={snapshot}
-                  previous={snapshots[index + 1]}
-                  current={index === 0 ? files : undefined}
-                  busy={restoring === snapshot.id}
-                  onRestore={() => restore(snapshot, close)}
-                  onRemove={() => remove(snapshot.id)}
-                />
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-    </Popover>
+  return (
+    <ul className="max-h-[52vh] overflow-y-auto py-1">
+      {snapshots.map((snapshot, index) => (
+        <SnapshotRow
+          key={snapshot.id}
+          snapshot={snapshot}
+          previous={snapshots[index + 1]}
+          current={index === 0 ? files : undefined}
+          busy={restoring === snapshot.id}
+          onRestore={() => restore(snapshot)}
+          onRemove={() => remove(snapshot.id)}
+        />
+      ))}
+    </ul>
   );
 }
 
@@ -193,4 +167,4 @@ function SnapshotRow({
   );
 }
 
-export default VersionHistory;
+export default VersionList;

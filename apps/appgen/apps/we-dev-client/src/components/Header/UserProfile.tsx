@@ -1,117 +1,125 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { LayoutGrid, LogOut, Coins } from 'lucide-react';
 import type { UserModel } from '../../api/persistence/userModel';
 import useUserStore from '@/stores/userSlice';
+import Popover from '@/components/ui/Popover';
 
 interface UserProfileProps {
   user: UserModel;
 }
 
+const PLAN_LABEL: Record<string, string> = {
+  free: 'Free',
+  pro: 'Pro',
+  promax: 'Pro Max',
+  enterprise: 'Enterprise',
+};
+
+/**
+ * Identité de l'utilisateur dans l'en-tête.
+ *
+ * Seule la photo est visible. Le nom, l'adresse et le plan étaient répétés dans
+ * la barre *et* dans le menu ; la barre n'a que quelques centaines de pixels à
+ * distribuer entre le nom du projet, le mode de travail et la publication, et
+ * l'identité de la personne connectée est la dernière information dont elle a
+ * besoin en permanence — elle sait qui elle est.
+ */
 export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const { logout } = useUserStore();
+  const { t } = useTranslation();
+  const { logout, user: storeUser } = useUserStore();
 
   const mainAppUrl = process.env.REACT_APP_IDEM_MAIN_APP_URL || 'http://localhost:4200';
+  const displayName = user.displayName || user.email;
 
-  const getInitials = (name: string) =>
-    name
-      ?.split(' ')
-      .map((w) => w[0])
+  const initials =
+    displayName
+      ?.split(/[\s@.]+/)
+      .filter(Boolean)
+      .map((word) => word[0])
       .join('')
       .toUpperCase()
       .slice(0, 2) || '?';
 
-  const displayName = user.displayName || user.email;
-  const initials = getInitials(user.displayName || user.email);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
+  // Le plan vient du quota quand il est chargé (source vivante), sinon du
+  // profil : les deux existent, et n'être d'accord qu'à moitié serait pire que
+  // de n'en afficher qu'un.
+  const tier = storeUser?.userQuota?.tierType ?? user.subscription;
+  const planLabel = PLAN_LABEL[String(tier).toLowerCase()] ?? String(tier);
+  const quota = storeUser?.userQuota;
 
   const handleLogout = () => {
     logout();
-    setOpen(false);
     window.location.reload();
   };
 
   return (
-    <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-surface-2/10 transition-colors"
-      >
-        <div
-          className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0 ${user.photoURL ? '' : 'bg-purple-500'}`}
-          style={
-            user.photoURL
-              ? { backgroundImage: `url(${user.photoURL})`, backgroundSize: 'cover' }
-              : undefined
-          }
+    <Popover
+      label={t('header.account')}
+      className="w-64"
+      trigger={(props) => (
+        <button
+          {...props}
+          type="button"
+          title={displayName}
+          aria-label={t('header.account')}
+          className="w-8 h-8 rounded-full overflow-hidden shrink-0 grid place-items-center text-[11px] font-semibold text-white bg-primary ring-1 ring-[var(--glass-border)] hover:ring-primary transition-shadow"
         >
-          {!user.photoURL && initials}
-        </div>
-        <div className="hidden md:block text-left">
-          <div className="text-[13px] font-medium text-text-primary truncate max-w-[100px]">
-            {displayName}
-          </div>
-          <div className="text-[11px] text-text-tertiary uppercase">{user.subscription}</div>
-        </div>
-        <svg
-          className="w-3 h-3 text-text-tertiary hidden md:block"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
+          {user.photoURL ? (
+            <img
+              src={user.photoURL}
+              alt=""
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            initials
+          )}
+        </button>
+      )}
+    >
+      {(close) => (
+        <div>
+          <div className="px-4 py-3 border-b border-[var(--glass-border)]">
+            <p className="text-sm font-semibold text-text-primary truncate">{displayName}</p>
+            <p className="text-xs text-text-tertiary truncate">{user.email}</p>
 
-      {open && (
-        <div className="absolute right-0 mt-1 w-52 bg-surface-1 border border-[var(--glass-border)]/10 rounded-xl shadow-xl z-50 overflow-hidden">
-          <div className="px-4 py-3 border-b border-[var(--glass-border)]/10">
-            <div className="text-sm font-semibold text-text-primary truncate">{displayName}</div>
-            <div className="text-xs text-text-tertiary truncate">{user.email}</div>
+            <div className="mt-2.5 flex items-center justify-between gap-2">
+              <span className="px-2 py-0.5 rounded-md bg-primary/12 text-primary text-[11px] font-medium">
+                {t('header.plan', { plan: planLabel })}
+              </span>
+              {quota?.quotaTotal ? (
+                <span className="flex items-center gap-1 text-[11px] text-text-tertiary tabular-nums">
+                  <Coins className="w-3 h-3" />
+                  {Math.max(0, quota.quotaTotal - (quota.usedQuota ?? 0))}
+                </span>
+              ) : null}
+            </div>
           </div>
+
           <a
             href={`${mainAppUrl}/console`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2.5 text-sm text-text-secondary hover:bg-surface-2/10 hover:text-text-primary transition-colors"
-            onClick={() => setOpen(false)}
+            onClick={close}
+            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-text-secondary hover:bg-surface-2 hover:text-text-primary transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-              />
-            </svg>
-            Dashboard Idem
+            <LayoutGrid className="w-4 h-4" />
+            {t('header.idemDashboard')}
           </a>
+
           <button
+            type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-surface-2/10 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-danger hover:bg-danger/10 transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-              />
-            </svg>
-            Se déconnecter
+            <LogOut className="w-4 h-4" />
+            {t('header.signOut')}
           </button>
         </div>
       )}
-    </div>
+    </Popover>
   );
 };
+
+export default UserProfile;

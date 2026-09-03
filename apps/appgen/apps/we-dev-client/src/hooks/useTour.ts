@@ -84,8 +84,42 @@ async function markSeen(): Promise<void> {
   }
 }
 
+type Translate = (key: string) => string;
+
+/** Construction des étapes et démarrage. Partagé entre le lancement
+ *  automatique de première visite et le rejeu manuel depuis l'aide. */
+function launchTour(t: Translate, onFinish: () => void): TourHandle {
+  return startTour({
+    id: TOUR_ID,
+    steps: STEPS.map(({ key, ...rest }) => ({
+      ...rest,
+      title: t(`tour.steps.${key}.title`),
+      body: t(`tour.steps.${key}.body`),
+    })),
+    labels: {
+      next: t('tour.common.next'),
+      back: t('tour.common.back'),
+      skip: t('tour.common.skip'),
+      finish: t('tour.common.finish'),
+      stepOf: t('tour.common.stepOf'),
+      dialogLabel: t('tour.common.dialogLabel'),
+    },
+    onFinish,
+  });
+}
+
+/** Canal du rejeu manuel. Le hook détient la fonction de traduction et le
+ *  cycle de vie de la visite : plutôt que de les dupliquer côté aide, on lui
+ *  demande de relancer. */
+const REPLAY_EVENT = 'icode:tour:replay';
+
+/** Rejoue la visite, quel que soit l'endroit d'où on la demande. */
+export function restartTour(): void {
+  window.dispatchEvent(new CustomEvent(REPLAY_EVENT));
+}
+
 /**
- * Visite guidée de première utilisation d'AppGen.
+ * Visite guidée de première utilisation d'iCode.
  *
  * Elle s'appuie sur le moteur partagé `@idem/shared-tour`, commun à toutes les
  * applications Idem, et mémorise son passage sur le **compte** : changer de
@@ -119,26 +153,10 @@ export function useTour(enabled: boolean): void {
 
       // Laisse la page se peindre : les positions se mesurent sur du réel.
       timer = window.setTimeout(() => {
-        handle.current = startTour({
-          id: TOUR_ID,
-          steps: STEPS.map(({ key, ...rest }) => ({
-            ...rest,
-            title: t(`tour.steps.${key}.title`),
-            body: t(`tour.steps.${key}.body`),
-          })),
-          labels: {
-            next: t('tour.common.next'),
-            back: t('tour.common.back'),
-            skip: t('tour.common.skip'),
-            finish: t('tour.common.finish'),
-            stepOf: t('tour.common.stepOf'),
-            dialogLabel: t('tour.common.dialogLabel'),
-          },
-          onFinish: () => {
-            handle.current = null;
-            // Vue jusqu'au bout ou passée : dans les deux cas on ne la repropose pas.
-            void markSeen();
-          },
+        handle.current = launchTour(t, () => {
+          handle.current = null;
+          // Vue jusqu'au bout ou passée : dans les deux cas on ne la repropose pas.
+          void markSeen();
         });
       }, START_DELAY_MS);
     })();
@@ -150,5 +168,19 @@ export function useTour(enabled: boolean): void {
       handle.current = null;
       started.current = false;
     };
+  }, [enabled, t]);
+
+  // Rejeu manuel depuis l'aide : la visite se relance même quand elle a déjà
+  // été vue, sans toucher à la mémoire du compte.
+  useEffect(() => {
+    if (!enabled) return;
+    const replay = () => {
+      handle.current?.stop();
+      handle.current = launchTour(t, () => {
+        handle.current = null;
+      });
+    };
+    window.addEventListener(REPLAY_EVENT, replay);
+    return () => window.removeEventListener(REPLAY_EVENT, replay);
   }, [enabled, t]);
 }

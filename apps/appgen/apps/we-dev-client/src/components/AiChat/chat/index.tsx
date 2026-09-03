@@ -22,6 +22,7 @@ import useTerminalStore from '@/stores/terminalSlice';
 import { checkExecList, checkFinish } from '../utils/checkFinish';
 import { runQualityPass } from '../utils/qualityPass';
 import useVersionHistory from '@/stores/versionHistory';
+import CodeLoadError from '@/components/CodeLoadError';
 import { useUrlData } from '@/hooks/useUrlData';
 import {
   getProjectById,
@@ -454,6 +455,10 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const [isGenerationComplete, setIsGenerationComplete] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [projectLoadError, setProjectLoadError] = useState<string | null>(null);
+  // Échec de récupération du code déjà enregistré pour ce projet. Distinct de
+  // `projectLoadError` : le projet existe, seul son code n'a pas pu être lu.
+  const [codeLoadFailed, setCodeLoadFailed] = useState(false);
+  const [retryingCodeLoad, setRetryingCodeLoad] = useState(false);
 
   const [mcpTools, setMcpTools] = useState<MCPTool[]>([]);
   useEffect(() => {
@@ -825,17 +830,13 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
             console.log('No generation found, showing start button for:', project.name);
           }
 
-          // Vérifier et charger le code existant depuis Firebase Storage
+          // Récupération du code déjà enregistré pour ce projet.
           try {
-            console.log('Checking for existing code in Firebase Storage for project:', projectId);
+            console.log('[code] recherche du code enregistré pour', projectId);
             const existingCode = await getProjectCodeFromFirebase(projectId);
 
             if (existingCode && Object.keys(existingCode).length > 0) {
-              console.log(
-                'Found existing code in Firebase Storage, loading into workspace:',
-                Object.keys(existingCode).length,
-                'files'
-              );
+              console.log('[code] chargé :', Object.keys(existingCode).length, 'fichiers');
 
               // Charger le code dans l'espace de travail
               setFiles(existingCode);
@@ -864,15 +865,14 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                 ]);
               }
 
-              toast.success(
-                `Code existant chargé depuis Firebase Storage (${Object.keys(existingCode).length} fichiers)`
-              );
             } else {
-              console.log('No existing code found in Firebase Storage for project:', projectId);
+              console.log('[code] aucun code enregistré pour', projectId);
             }
           } catch (error) {
-            console.error('Error loading existing code from Firebase Storage:', error);
-            // Ne pas afficher d'erreur à l'utilisateur car ce n'est pas critique
+            console.error('Error loading existing code from object storage:', error);
+            // L'espace de travail s'ouvrirait vide sans que rien ne l'explique :
+            // c'est le seul cas où le stockage mérite d'être mentionné.
+            setCodeLoadFailed(true);
           }
         } else {
           console.warn('Project not found with ID:', projectId);
@@ -947,11 +947,6 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
       await pushProjectCode(projectId, generatedFiles);
 
-      toast.success(
-        t('chat.success.firebase_save_success', {
-          count: Object.keys(generatedFiles).length,
-        })
-      );
     } catch (error) {
       console.error('Error saving code to object storage:', error);
       toast.error(t('chat.errors.firebase_save_failed'));
@@ -1299,6 +1294,16 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     setProjectLoadError(null);
   };
 
+  const retryCodeLoad = () => {
+    setRetryingCodeLoad(true);
+    setCodeLoadFailed(false);
+    setIsProjectLoaded(false);
+    setProjectLoadError(null);
+    // Le drapeau se lève au prochain rendu : `loadProjectData` est déclenché
+    // par l'effet qui observe `isProjectLoaded`.
+    setTimeout(() => setRetryingCodeLoad(false), 1200);
+  };
+
   const showJsx = useMemo(() => {
     // Show error state if project failed to load
     if (projectLoadError) {
@@ -1551,6 +1556,13 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       onDrop={handleDrop}
     >
       {showJsx}
+
+      <CodeLoadError
+        open={codeLoadFailed}
+        retrying={retryingCodeLoad}
+        onRetry={retryCodeLoad}
+        onDismiss={() => setCodeLoadFailed(false)}
+      />
 
       {/* Tutorial Modal */}
       {showTutorial && projectData && (

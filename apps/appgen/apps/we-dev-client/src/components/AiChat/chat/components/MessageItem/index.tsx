@@ -244,8 +244,10 @@ export const CodeBlock = memo(
     children: string;
   }) => {
     const [copied, setCopied] = useState(false);
-    const [isExpanded, setIsExpanded] = useState(true); // 添加展开/折叠状态
+    // État de repli du bloc JSON.
+    const [isExpanded, setIsExpanded] = useState(true);
     const { isDarkMode } = useThemeStore();
+    const { t } = useTranslation();
 
     const highlightedCode = useMemo(() => {
       return customHighlight(children, language);
@@ -296,7 +298,7 @@ export const CodeBlock = memo(
                   <button
                     onClick={() => setIsExpanded(!isExpanded)}
                     className="flex items-center justify-center w-6 h-6 p-1 text-gray-500 transition-opacity opacity-0 group-hover:opacity-100 hover:text-text-secondary dark:hover:text-gray-300"
-                    title={isExpanded ? "折叠" : "展开"}
+                    title={isExpanded ? t('common.collapse') : t('common.expand')}
                   >
                     <svg
                       className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
@@ -473,7 +475,7 @@ const ToolInvocationCard = ({
 
     } catch (error) {
       message.error(t('settings.mcp.addError'));
-      console.error('工具调用错误:', error);
+      console.error('[tool] appel en échec :', error);
     } finally {
       setIsLoading(false);
     }
@@ -546,6 +548,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   onUpdateMessage,
 }) => {
   const { user } = useUserStore();
+  const { t } = useTranslation();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [copied, setCopied] = useState(false);
@@ -557,7 +560,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error("复制失败:", err);
+      console.error('[clipboard] copie impossible :', err);
     }
   }, [message.parts]);
 
@@ -852,7 +855,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                   handleRetry?.()
                 }}
                 className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-surface-2"
-                title="重试"
+                title={t('common.retry')}
               >
                 <svg
                   className="w-4 h-4 text-text-tertiary"
