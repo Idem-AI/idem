@@ -141,10 +141,29 @@ pre,
    au focus clavier pour ne pas parasiter la souris.
    ============================================================================ */
 
-:focus-visible {
+/* L'anneau ne s'applique QU'AUX éléments qui n'ont pas déjà leur propre marque
+   de focus : boutons, liens, onglets, éléments rendus focusables.
+   Les champs de saisie en sont exclus, et ce n'est pas un détail — la
+   spécification veut qu'un champ de texte corresponde à `:focus-visible` même
+   au clic souris. Sans cette exclusion, cliquer dans un champ dessinait un
+   contour bleu de 2 px à 2 px de distance, par-dessus le focus discret du
+   design system : exactement la « bordure par défaut » que l'on cherchait à
+   supprimer. */
+:focus-visible:not(input):not(textarea):not(select):not([contenteditable='true']) {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* Les champs gardent le focus défini par `@idem/shared-styles` : bordure qui
+   passe au bleu, pas de contour natif par-dessus. */
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  outline: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -249,6 +268,45 @@ textarea,
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+/* antd dessine ses propres champs en CSS-in-JS, injecté à l'exécution : ses
+   règles ne passent donc pas par Tailwind et gagnent la cascade. Sans ces
+   surcharges, les formulaires des Réglages et de WeAPI gardaient l'anneau bleu
+   d'antd au focus, alors que le reste du produit ne l'a plus. */
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-input-number,
+.ant-select .ant-select-selector,
+.ant-picker {
+  background-color: var(--idem-field-bg) !important;
+  border-color: var(--glass-border) !important;
+  color: var(--idem-text-primary) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: none !important;
+}
+
+.ant-input:hover,
+.ant-input-affix-wrapper:hover,
+.ant-input-number:hover,
+.ant-select:not(.ant-select-disabled):hover .ant-select-selector,
+.ant-picker:hover {
+  border-color: var(--glass-border-medium) !important;
+  box-shadow: none !important;
+}
+
+.ant-input:focus,
+.ant-input-focused,
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused,
+.ant-input-number-focused,
+.ant-select-focused .ant-select-selector,
+.ant-picker-focused {
+  border-color: color-mix(in oklch, var(--color-primary) 65%, var(--glass-border-strong)) !important;
+  background-color: var(--idem-field-bg-focus) !important;
+  /* Même souffle que les champs natifs, jamais l'anneau de 2 px d'antd. */
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--color-primary) 10%, transparent) !important;
+  outline: none !important;
 }
 
 /* Le portail de sélection doit passer au-dessus des panneaux redimensionnables. */
