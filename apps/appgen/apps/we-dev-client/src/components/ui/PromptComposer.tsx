@@ -199,7 +199,7 @@ export function PromptComposer({
 
   return (
     <div
-      className={`rounded-2xl border border-[var(--glass-border-medium)] bg-surface-1 shadow-[var(--glass-shadow-lg)] transition-colors focus-within:border-primary ${className}`}
+      className={`rounded-[22px] border border-[var(--glass-border)] bg-surface-1 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-[border-color,box-shadow] duration-200 focus-within:border-[color-mix(in_oklch,var(--color-primary)_55%,var(--glass-border-strong))] focus-within:shadow-[0_2px_12px_rgba(0,0,0,0.06)] ${className}`}
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => {
         event.preventDefault();
@@ -207,7 +207,7 @@ export function PromptComposer({
       }}
     >
       {attachments.length > 0 && (
-        <ul className="flex flex-wrap gap-2 px-4 pt-4">
+        <ul className="flex flex-wrap gap-2 px-5 pt-5">
           {attachments.map((item) => (
             <li
               key={item.id}
@@ -245,7 +245,7 @@ export function PromptComposer({
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={handleKeyDown}
           rows={2}
-          className="w-full bg-transparent text-text-primary text-base leading-relaxed px-4 pt-4 pb-2 resize-none focus:outline-none"
+          className="w-full bg-transparent text-text-primary text-[15px] leading-relaxed px-5 pt-5 pb-2 resize-none focus:outline-none"
         />
 
         {/* Invite en filigrane : un vrai `placeholder` ne peut pas s'animer,
@@ -253,7 +253,7 @@ export function PromptComposer({
         {!value && placeholders.length > 0 && (
           <p
             aria-hidden
-            className={`pointer-events-none absolute left-4 top-4 right-4 text-base leading-relaxed text-text-disabled transition-opacity duration-250 ${
+            className={`pointer-events-none absolute left-5 top-5 right-5 text-[15px] leading-relaxed text-text-disabled transition-opacity duration-300 ${
               fading ? 'opacity-0' : 'opacity-100'
             }`}
           >
@@ -262,7 +262,7 @@ export function PromptComposer({
         )}
       </div>
 
-      <div className="flex items-center gap-1.5 px-3 pb-3">
+      <div className="flex items-center gap-1 px-3 pb-3">
         <input
           ref={fileRef}
           type="file"
@@ -298,9 +298,9 @@ export function PromptComposer({
           disabled={!canSubmit}
           aria-label={t('composer.submit')}
           title={t('composer.submit')}
-          className="w-9 h-9 grid place-items-center rounded-full bg-primary text-white transition disabled:opacity-30 disabled:cursor-not-allowed enabled:hover:brightness-110 enabled:active:scale-95"
+          className="w-8 h-8 grid place-items-center rounded-full bg-primary text-white transition-opacity disabled:opacity-25 disabled:cursor-not-allowed enabled:hover:opacity-90"
         >
-          <ArrowUp className="w-4 h-4" />
+          <ArrowUp className="w-[18px] h-[18px]" />
         </button>
       </div>
     </div>
@@ -325,10 +325,10 @@ function IconAction({
       title={label}
       aria-label={label}
       aria-pressed={active}
-      className={`w-9 h-9 grid place-items-center rounded-full transition-colors ${
+      className={`w-8 h-8 grid place-items-center rounded-full transition-colors ${
         active
-          ? 'bg-danger/15 text-danger'
-          : 'text-text-tertiary hover:text-text-primary hover:bg-surface-2'
+          ? 'bg-danger/12 text-danger'
+          : 'text-text-disabled hover:text-text-secondary hover:bg-surface-2'
       }`}
     >
       {icon}

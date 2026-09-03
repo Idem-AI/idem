@@ -18,7 +18,6 @@ import { SignInPrompt } from './SignInPrompt';
 import {
   ProductMockIllustration,
   ArtDirectionIllustration,
-  ContrastIllustration,
   VisualEditIllustration,
   PublishPipelineIllustration,
 } from '@/components/ui/Illustrations';
@@ -128,8 +127,8 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
   return (
     <div className="min-h-screen bg-bg-darker text-text-primary">
       {/* ---------------- Navigation ---------------- */}
-      <nav className="fixed top-0 inset-x-0 z-50 px-4 sm:px-6 py-3 bg-bg-darker/85 backdrop-blur-xl border-b border-[var(--glass-border-subtle)]">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+      <nav className="fixed top-0 inset-x-0 z-50 px-6 py-3.5 bg-bg-darker/80 backdrop-blur-xl">
+        <div className="max-w-[62rem] mx-auto flex items-center justify-between gap-4">
           <Brand size="md" />
 
           <div className="hidden md:flex items-center gap-7">
@@ -157,27 +156,23 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
       </nav>
 
       {/* ---------------- Hero ---------------- */}
-      {/* Pleine hauteur : la page s'ouvre sur une seule chose à faire — écrire
-          la phrase. Le motif de marque donne la matière du fond, comme sur les
-          autres surfaces Idem. */}
-      <section className="relative min-h-screen flex flex-col justify-center px-4 pt-24 pb-20 motif-surface">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-1/4 mx-auto h-80 w-[min(720px,92%)] rounded-full bg-primary/10 blur-3xl"
-        />
-
-        <div className="relative w-full max-w-3xl mx-auto text-center">
-          <h1 className="text-[clamp(2.25rem,6.5vw,4rem)] font-bold leading-[1.08] tracking-[-0.03em] text-balance">
+      {/* Pleine hauteur, rien d'autre à l'écran que la phrase à écrire.
+          Aucune décoration : le halo en dégradé qui traînait derrière le champ
+          était un ornement sans fonction, et c'est précisément le marqueur des
+          pages générées à la chaîne. Le motif de marque suffit à porter le fond. */}
+      <section className="min-h-screen flex flex-col justify-center px-6 pt-28 pb-24 motif-surface">
+        <div className="w-full max-w-[46rem] mx-auto text-center">
+          <h1 className="text-[clamp(2.5rem,7vw,4.5rem)] font-semibold leading-[1.02] tracking-[-0.045em] text-balance">
             {t('landing.hero.titleLead')}{' '}
             <span className="i-underline">{t('landing.hero.titleAccent')}</span>
           </h1>
 
-          <p className="mt-7 mx-auto max-w-xl text-base sm:text-lg text-text-secondary text-pretty">
+          <p className="mt-8 mx-auto max-w-lg text-[17px] leading-relaxed text-text-tertiary text-pretty">
             {t('landing.hero.lede')}
           </p>
 
           <PromptComposer
-            className="mt-10 text-left"
+            className="mt-11 text-left"
             value={inputValue}
             onChange={setInputValue}
             onSubmit={() => handleStart()}
@@ -185,22 +180,25 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
             attachments={attachments}
             onAttachmentsChange={setAttachments}
           />
+
+          <p className="mt-5 text-[13px] text-text-disabled">{t('landing.cta.lede')}</p>
         </div>
 
-        {/* Repère de défilement : la pleine hauteur cache ce qui suit, il faut
-            dire qu'il y a une suite. */}
         <a
           href="#how"
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-xs text-text-disabled hover:text-text-secondary transition-colors"
+          className="mt-20 mx-auto flex flex-col items-center gap-1.5 text-[11px] uppercase tracking-[0.16em] text-text-disabled hover:text-text-secondary transition-colors"
         >
           {t('landing.hero.scroll')}
-          <ChevronDown className="w-4 h-4 animate-bounce" />
+          <ChevronDown className="w-3.5 h-3.5" />
         </a>
       </section>
 
-      {/* ---------------- Le produit ---------------- */}
-      <section className="px-4 pb-20">
-        <div className="max-w-5xl mx-auto rounded-2xl border border-[var(--glass-border)] bg-surface-1 p-3 sm:p-5 shadow-[var(--glass-shadow-xl)]">
+      {/* ---------------- L'atelier ---------------- */}
+      {/* Sans cadre ni carte : la maquette se pose sur la page. Un liseré et une
+          ombre auraient fait « capture d'écran encadrée », ce qui l'éloigne au
+          lieu de la montrer. */}
+      <section className="px-6 pb-28">
+        <div className="max-w-[62rem] mx-auto">
           <ProductMockIllustration />
         </div>
       </section>
@@ -209,67 +207,116 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
       <TrustedBy label={t('landing.trustedBy')} />
 
       {/* ---------------- Deux points d'entrée ---------------- */}
-      <section id="how" className="px-4 py-20 border-t border-[var(--glass-border-subtle)]">
-        <div className="max-w-5xl mx-auto">
-          <SectionHead title={t('landing.entries.title')} lede={t('landing.entries.lede')} />
+      {/* Deux colonnes de largeurs inégales, séparées par un filet vertical.
+          Aucune carte : la hiérarchie vient de la largeur et du poids du texte,
+          pas d'un rectangle bordé autour de chaque idée. */}
+      <section id="how" className="px-6 py-28">
+        <div className="max-w-[62rem] mx-auto">
+          <h2 className="max-w-xl text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-tight tracking-[-0.03em] text-balance">
+            {t('landing.entries.title')}
+          </h2>
+          <p className="mt-4 max-w-xl text-text-tertiary text-pretty">
+            {t('landing.entries.lede')}
+          </p>
 
-          <div className="mt-10 grid gap-5 md:grid-cols-2">
-            <article className="flex flex-col p-6 rounded-2xl border border-[var(--glass-border)] bg-surface-1">
-              <h3 className="text-lg font-semibold">{t('landing.entries.prompt.title')}</h3>
-              <p className="mt-2 flex-1 text-sm text-text-secondary text-pretty">
+          <div className="mt-14 grid gap-12 lg:grid-cols-12 lg:gap-0">
+            <div className="lg:col-span-6 lg:pr-14">
+              <h3 className="text-xl font-semibold text-balance">
+                {t('landing.entries.prompt.title')}
+              </h3>
+              <p className="mt-3 text-[15px] leading-relaxed text-text-tertiary text-pretty">
                 {t('landing.entries.prompt.body')}
               </p>
-              <Button variant="primary" size="sm" onClick={() => handleStart()} className="mt-5 self-start">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleStart()}
+                className="mt-6"
+              >
                 {t('landing.entries.prompt.cta')}
                 <ArrowRight className="w-4 h-4" />
               </Button>
-            </article>
+            </div>
 
-            <article className="flex flex-col p-6 rounded-2xl border border-[var(--glass-border)] bg-surface-1">
-              <div className="mb-3 grid place-items-center">
-                <PublishPipelineIllustration size={72} />
-              </div>
-              <h3 className="text-lg font-semibold">{t('landing.entries.project.title')}</h3>
-              <p className="mt-2 flex-1 text-sm text-text-secondary text-pretty">
+            <div className="hidden lg:block lg:col-span-1 justify-self-center w-px bg-[var(--glass-border-subtle)]" />
+
+            <div className="lg:col-span-5 lg:pl-2">
+              <h3 className="text-xl font-semibold text-balance">
+                {t('landing.entries.project.title')}
+              </h3>
+              <p className="mt-3 text-[15px] leading-relaxed text-text-tertiary text-pretty">
                 {t('landing.entries.project.body')}
               </p>
               <ButtonLink
                 variant="secondary"
                 size="sm"
                 href={`${DASHBOARD_URL}/projects`}
-                className="mt-5 self-start"
+                className="mt-6"
               >
                 {t('landing.entries.project.cta')}
-                <ArrowRight className="w-4 h-4" />
               </ButtonLink>
-            </article>
+            </div>
           </div>
+
+          <p className="mt-14 text-[13px] text-text-disabled">
+            {t('landing.entries.converge')}
+          </p>
         </div>
       </section>
 
       {/* ---------------- Ce qui distingue ---------------- */}
-      <section id="craft" className="px-4 py-20 border-t border-[var(--glass-border-subtle)]">
-        <div className="max-w-5xl mx-auto">
-          <SectionHead title={t('landing.craft.title')} lede={t('landing.craft.lede')} />
+      {/* Lignes pleine largeur qui alternent de côté, séparées par de l'air
+          plutôt que par des bordures. */}
+      <section id="craft" className="px-6 py-28">
+        <div className="max-w-[62rem] mx-auto">
+          <h2 className="max-w-xl text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-tight tracking-[-0.03em] text-balance">
+            {t('landing.craft.title')}
+          </h2>
 
-          <div className="mt-10 grid gap-x-8 gap-y-10 sm:grid-cols-2">
-            <Feature
-              illustration={<ArtDirectionIllustration />}
+          <div className="mt-20 space-y-24">
+            <CraftRow
+              visual={<ArtDirectionIllustration size={112} />}
               title={t('landing.craft.direction.title')}
               body={t('landing.craft.direction.body')}
             />
-            <Feature
-              illustration={<ContrastIllustration />}
+
+            {/* Le contraste est le seul argument chiffrable : il porte un
+                relevé réel plutôt qu'une image de plus. */}
+            <CraftRow
+              flip
+              visual={
+                <div className="w-full max-w-[230px]">
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-text-disabled">
+                    {t('landing.craft.contrastBadge')}
+                  </p>
+                  <p className="mt-3 flex items-baseline gap-2.5">
+                    <span className="text-[2.75rem] font-semibold tabular-nums leading-none text-success">
+                      7.4
+                    </span>
+                    <span className="text-lg text-text-disabled">:1</span>
+                    <span className="ml-auto text-[11px] font-semibold text-success">AA</span>
+                  </p>
+                  <div className="mt-4 h-px bg-[var(--glass-border)]">
+                    <div className="h-px w-[82%] bg-success" />
+                  </div>
+                  <p className="mt-3 text-[12px] text-text-disabled">
+                    {t('landing.craft.contrastNote')}
+                  </p>
+                </div>
+              }
               title={t('landing.craft.contrast.title')}
               body={t('landing.craft.contrast.body')}
             />
-            <Feature
-              illustration={<VisualEditIllustration />}
+
+            <CraftRow
+              visual={<VisualEditIllustration size={112} />}
               title={t('landing.craft.visual.title')}
               body={t('landing.craft.visual.body')}
             />
-            <Feature
-              illustration={<PublishPipelineIllustration size={76} />}
+
+            <CraftRow
+              flip
+              visual={<PublishPipelineIllustration size={112} />}
               title={t('landing.craft.sovereign.title')}
               body={t('landing.craft.sovereign.body')}
             />
@@ -280,13 +327,12 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
       <AppGenPricing onGetStarted={() => handleStart()} />
 
       {/* ---------------- Appel final ---------------- */}
-      <section className="px-4 py-20 border-t border-[var(--glass-border-subtle)]">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-[-0.02em] text-balance">
+      <section className="px-6 py-32">
+        <div className="max-w-[46rem] mx-auto text-center">
+          <h2 className="text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-tight tracking-[-0.03em] text-balance">
             {t('landing.cta.title')}
           </h2>
-          <p className="mt-3 text-text-secondary">{t('landing.cta.lede')}</p>
-          <div className="mt-7 flex justify-center">
+          <div className="mt-9 flex justify-center">
             <Button variant="primary" size="md" onClick={() => handleStart()}>
               {t('landing.cta.button')}
               <ArrowRight className="w-4 h-4" />
@@ -302,8 +348,8 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
         onSignIn={() => redirectToLogin('generate')}
       />
 
-      <footer className="px-4 py-10 border-t border-[var(--glass-border-subtle)]">
-        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      <footer className="px-6 py-12 border-t border-[var(--glass-border-subtle)]">
+        <div className="max-w-[62rem] mx-auto flex flex-wrap items-center justify-between gap-4">
           <Brand size="sm" />
           <p className="text-sm text-text-tertiary">
             {t('landing.footer.tagline')}{' '}
@@ -333,29 +379,41 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   );
 }
 
-function SectionHead({ title, lede }: { title: string; lede: string }) {
-  return (
-    <div className="max-w-2xl">
-      <h2 className="text-3xl md:text-4xl font-bold tracking-[-0.02em] text-balance">{title}</h2>
-      <p className="mt-3 text-text-secondary text-pretty">{lede}</p>
-    </div>
-  );
-}
-
-function Feature({
-  illustration,
+/**
+ * Une ligne d'argument.
+ *
+ * `flip` inverse l'ordre visuel sans toucher à l'ordre du DOM : la lecture
+ * reste « titre puis texte » pour un lecteur d'écran, alors que l'œil voit
+ * l'illustration changer de côté d'une ligne à l'autre.
+ */
+function CraftRow({
+  visual,
   title,
   body,
+  flip,
 }: {
-  illustration: React.ReactNode;
+  visual: React.ReactNode;
   title: string;
   body: string;
+  flip?: boolean;
 }) {
   return (
-    <div>
-      <div className="mb-4 h-20 flex items-center">{illustration}</div>
-      <h3 className="font-semibold text-text-primary text-balance">{title}</h3>
-      <p className="mt-2 text-sm text-text-secondary text-pretty">{body}</p>
+    <div className="grid gap-8 md:grid-cols-12 md:items-center md:gap-12">
+      <div
+        className={`md:col-span-4 flex ${
+          flip ? 'md:order-2 md:justify-end' : 'md:justify-start'
+        }`}
+      >
+        {visual}
+      </div>
+      <div className={`md:col-span-8 ${flip ? 'md:order-1' : ''}`}>
+        <h3 className="text-[1.35rem] font-semibold leading-snug tracking-[-0.02em] text-balance">
+          {title}
+        </h3>
+        <p className="mt-4 max-w-[58ch] text-[15px] leading-[1.7] text-text-tertiary text-pretty">
+          {body}
+        </p>
+      </div>
     </div>
   );
 }

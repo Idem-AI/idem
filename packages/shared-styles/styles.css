@@ -113,6 +113,17 @@ html.dark body::before {
   /* Form-control placeholders */
   --idem-placeholder: rgba(15, 23, 42, 0.4);
   --idem-placeholder-focus: rgba(15, 23, 42, 0.6);
+
+  /* Titres. En thème clair ils portent le bleu de marque plutôt que le noir :
+     le noir sur fond clair est neutre, la couleur secondaire signe la page.
+     En thème sombre ce bleu profond deviendrait illisible, d'où la bascule. */
+  --idem-heading: var(--color-secondary-500);
+
+  /* Champs de saisie : légèrement en retrait de leur surface au repos, plus
+     clairs au focus. Deux jetons plutôt qu'une valeur en dur, parce que
+     « s'éclaircir » va dans des directions opposées selon le thème. */
+  --idem-field-bg: var(--idem-surface-2);
+  --idem-field-bg-focus: var(--idem-surface-1);
 }
 
 .dark {
@@ -157,6 +168,13 @@ html.dark body::before {
 
   --idem-placeholder: rgba(255, 255, 255, 0.4);
   --idem-placeholder-focus: rgba(255, 255, 255, 0.6);
+
+  /* Sur fond sombre, un titre reprend la couleur de texte principale : le bleu
+     secondaire (#000060) y serait presque invisible. */
+  --idem-heading: var(--idem-text-primary);
+
+  --idem-field-bg: var(--idem-surface-2);
+  --idem-field-bg-focus: var(--idem-surface-3);
 
   /* Restore deep standard shadows for dark mode */
   --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -430,6 +448,9 @@ html.dark body::before {
   /* Bug fix: --color-light-text was referenced across the design system but
      never defined; alias it to the primary text token. */
   --color-light-text: var(--idem-text-primary);
+
+  /* `text-heading` suit le thème comme les titres eux-mêmes. */
+  --color-heading: var(--idem-heading);
 }
 
 /* ============================================================================
@@ -795,6 +816,32 @@ button:disabled {
   }
 }
 
+/* ============================================================================
+   TITRES
+   Une seule règle d'élément : c'est un défaut, que n'importe quelle classe
+   utilitaire (`text-text-primary`, `text-white`…) surcharge sans effort.
+   ============================================================================ */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--idem-heading);
+}
+
+/* Un titre posé sur une surface de marque ou sur une image hérite du contexte :
+   lui imposer le bleu secondaire le rendrait illisible. */
+[data-on-brand] h1,
+[data-on-brand] h2,
+[data-on-brand] h3,
+[data-on-brand] h4,
+[data-on-brand] h5,
+[data-on-brand] h6 {
+  color: inherit;
+}
+
 /* Form Elements - Native HTML Elements */
 
 /* Input (text, email, password, number, url, tel, date, etc.) */
@@ -810,17 +857,20 @@ input[type='datetime-local'],
 input[type='month'],
 input[type='week'],
 input[type='search'] {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
+  background: var(--idem-field-bg);
   border: 1px solid var(--glass-border);
-  color: var(--color-light-text);
+  color: var(--idem-text-primary);
   font-size: var(--font-size-base);
   width: 100%;
   display: block;
   padding: var(--spacing-3) var(--spacing-4);
-  border-radius: var(--radius-lg);
-  transition: all var(--duration-200) var(--ease-out);
+  border-radius: var(--radius-xl);
+  /* Pas de `all` : animer la disposition sur chaque frappe fait vibrer les
+     formulaires. Seules la bordure, l'ombre et le fond bougent. */
+  transition:
+    border-color var(--duration-150) var(--ease-out),
+    box-shadow var(--duration-150) var(--ease-out),
+    background-color var(--duration-150) var(--ease-out);
   outline: none;
   font-family: inherit;
 }
@@ -849,7 +899,6 @@ input[type='month']:hover,
 input[type='week']:hover,
 input[type='search']:hover {
   border-color: var(--glass-border-medium);
-  background: var(--glass-bg-light);
 }
 
 input[type='text']:focus,
@@ -864,12 +913,14 @@ input[type='datetime-local']:focus,
 input[type='month']:focus,
 input[type='week']:focus,
 input[type='search']:focus {
-  border-color: var(--color-primary);
-  background: var(--glass-bg-medium);
-  box-shadow:
-    0 0 0 3px var(--color-primary-glow),
-    0 4px 12px color-mix(in srgb, var(--color-accent-500) 15%, transparent);
-  transform: translateY(-1px);
+  border-color: color-mix(in oklch, var(--color-primary) 65%, var(--glass-border-strong));
+  background: var(--idem-field-bg-focus);
+  /* Pas d'anneau. Un halo de 3 px autour d'un champ est le réflexe des
+     frameworks de 2015 : il épaissit visuellement la bordure de six pixels et
+     donne cet aspect « formulaire administratif ».
+     Ici la bordure passe simplement au bleu et le champ se détache d'un
+     souffle. La couleur seule porte l'état, ce qui laisse la forme intacte. */
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--color-primary) 10%, transparent);
 }
 
 input[type='text']:focus::placeholder,
@@ -910,21 +961,24 @@ input[type='search'] {
 
 /* Textarea */
 textarea {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
+  background: var(--idem-field-bg);
   border: 1px solid var(--glass-border);
-  color: var(--color-light-text);
+  color: var(--idem-text-primary);
   font-size: var(--font-size-base);
   width: 100%;
   display: block;
   padding: var(--spacing-3) var(--spacing-4);
-  border-radius: var(--radius-lg);
-  transition: all var(--duration-200) var(--ease-out);
+  border-radius: var(--radius-xl);
+  /* Pas de `all` : animer la disposition sur chaque frappe fait vibrer les
+     formulaires. Seules la bordure, l'ombre et le fond bougent. */
+  transition:
+    border-color var(--duration-150) var(--ease-out),
+    box-shadow var(--duration-150) var(--ease-out),
+    background-color var(--duration-150) var(--ease-out);
   outline: none;
+  font-family: inherit;
   resize: vertical;
   min-height: 120px;
-  font-family: inherit;
 }
 
 textarea::placeholder {
@@ -934,15 +988,17 @@ textarea::placeholder {
 
 textarea:hover {
   border-color: var(--glass-border-medium);
-  background: var(--glass-bg-light);
 }
 
 textarea:focus {
-  border-color: var(--color-primary);
-  background: var(--glass-bg-medium);
-  box-shadow:
-    0 0 0 3px var(--color-primary-glow),
-    0 4px 12px color-mix(in srgb, var(--color-accent-500) 15%, transparent);
+  border-color: color-mix(in oklch, var(--color-primary) 65%, var(--glass-border-strong));
+  background: var(--idem-field-bg-focus);
+  /* Pas d'anneau. Un halo de 3 px autour d'un champ est le réflexe des
+     frameworks de 2015 : il épaissit visuellement la bordure de six pixels et
+     donne cet aspect « formulaire administratif ».
+     Ici la bordure passe simplement au bleu et le champ se détache d'un
+     souffle. La couleur seule porte l'état, ce qui laisse la forme intacte. */
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--color-primary) 10%, transparent);
 }
 
 textarea:focus::placeholder {
@@ -957,21 +1013,24 @@ textarea:disabled {
 
 /* Select */
 select {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
+  background: var(--idem-field-bg);
   border: 1px solid var(--glass-border);
-  color: var(--color-light-text);
+  color: var(--idem-text-primary);
   font-size: var(--font-size-base);
   width: 100%;
   display: block;
   padding: var(--spacing-3) var(--spacing-10) var(--spacing-3) var(--spacing-4);
-  border-radius: var(--radius-lg);
-  transition: all var(--duration-200) var(--ease-out);
+  border-radius: var(--radius-xl);
+  /* Pas de `all` : animer la disposition sur chaque frappe fait vibrer les
+     formulaires. Seules la bordure, l'ombre et le fond bougent. */
+  transition:
+    border-color var(--duration-150) var(--ease-out),
+    box-shadow var(--duration-150) var(--ease-out),
+    background-color var(--duration-150) var(--ease-out);
   outline: none;
+  font-family: inherit;
   cursor: pointer;
   appearance: none;
-  font-family: inherit;
   background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2322D3EE' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right var(--spacing-4) center;
@@ -979,15 +1038,12 @@ select {
 
 select:hover {
   border-color: var(--glass-border-medium);
-  background-color: var(--glass-bg-light);
 }
 
 select:focus {
-  border-color: var(--color-primary);
-  background-color: var(--glass-bg-medium);
-  box-shadow:
-    0 0 0 3px var(--color-primary-glow),
-    0 4px 12px color-mix(in srgb, var(--color-accent-500) 15%, transparent);
+  border-color: color-mix(in oklch, var(--color-primary) 65%, var(--glass-border-strong));
+  background-color: var(--idem-field-bg-focus);
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--color-primary) 10%, transparent);
 }
 
 select:disabled {
@@ -1026,7 +1082,7 @@ input[type='checkbox']:hover {
 input[type='checkbox']:checked {
   background: var(--color-primary);
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-glow);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--color-primary) 22%, transparent);
 }
 
 input[type='checkbox']:checked::after {
@@ -1043,7 +1099,7 @@ input[type='checkbox']:checked::after {
 
 input[type='checkbox']:focus {
   outline: none;
-  box-shadow: 0 0 0 3px var(--color-primary-glow);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--color-primary) 22%, transparent);
 }
 
 input[type='checkbox']:disabled {
@@ -1074,7 +1130,7 @@ input[type='radio']:hover {
 input[type='radio']:checked {
   border-color: var(--color-primary);
   background: var(--glass-bg-medium);
-  box-shadow: 0 0 0 3px var(--color-primary-glow);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--color-primary) 22%, transparent);
 }
 
 input[type='radio']:checked::after {
@@ -1091,7 +1147,7 @@ input[type='radio']:checked::after {
 
 input[type='radio']:focus {
   outline: none;
-  box-shadow: 0 0 0 3px var(--color-primary-glow);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--color-primary) 22%, transparent);
 }
 
 input[type='radio']:disabled {
