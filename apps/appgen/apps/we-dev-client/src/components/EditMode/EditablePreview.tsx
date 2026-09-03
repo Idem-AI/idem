@@ -593,12 +593,12 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
   const showInspector = toolMode === 'select' && selected.length > 0;
 
   return (
-    <div className="w-full h-full flex overflow-hidden bg-surface-1">
+    <div className="w-full h-full flex overflow-hidden motif-pass-through">
       <div className="flex-1 relative flex flex-col overflow-hidden min-w-0">
         {/* Barre du navigateur : ce que l'utilisateur regarde, et les
             commandes qui s'y rapportent. Les modes d'édition, eux, vivent
             dans la barre flottante posée sur la page. */}
-        <div className="h-10 shrink-0 flex items-center gap-2 px-2 border-b border-[var(--glass-border)] bg-surface-1">
+        <div className="h-10 shrink-0 flex items-center gap-2 px-2 border-b border-[var(--glass-border)] motif-pass-through">
           <button
             type="button"
             onClick={handleRefresh}
@@ -672,7 +672,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
         </div>
 
         {/* Surface d'aperçu */}
-        <div className="flex-1 relative overflow-auto bg-bg-dark p-3 flex items-start justify-center">
+        <div className="flex-1 relative overflow-auto bg-bg-dark/55 p-3 flex items-start justify-center">
           {url ? (
             <div
               className="bg-white shadow-[var(--glass-shadow-xl)] rounded-lg overflow-hidden shrink-0 origin-top transition-transform"

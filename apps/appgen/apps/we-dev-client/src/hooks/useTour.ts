@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { startTour, type TourHandle, type TourStep } from '@idem/shared-tour';
+import { TOUR_ILLUSTRATIONS } from '@/components/ui/tourIllustrations';
 
 /** Identifiant de la visite : préfixé par l'app, comme sur les autres produits Idem. */
 const TOUR_ID = 'appgen:main';
@@ -95,6 +96,7 @@ function launchTour(t: Translate, onFinish: () => void): TourHandle {
       ...rest,
       title: t(`tour.steps.${key}.title`),
       body: t(`tour.steps.${key}.body`),
+      illustration: TOUR_ILLUSTRATIONS[key],
     })),
     labels: {
       next: t('tour.common.next'),

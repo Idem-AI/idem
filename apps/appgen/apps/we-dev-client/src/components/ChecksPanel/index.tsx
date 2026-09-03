@@ -129,7 +129,7 @@ export function ChecksPanel({ onRepair }: ChecksPanelProps) {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-surface-1">
+    <div className="h-full overflow-y-auto motif-pass-through">
       <div className="mx-auto max-w-3xl p-5 space-y-6">
         <header className="flex items-start justify-between gap-4">
           <div>
@@ -365,7 +365,7 @@ function EmptyState({
   body: string;
 }) {
   return (
-    <div className="h-full grid place-items-center p-6 bg-surface-1">
+    <div className="h-full grid place-items-center p-6 motif-pass-through">
       <div className="max-w-xs text-center space-y-2">
         {icon}
         <p className="text-sm text-text-secondary">{title}</p>
