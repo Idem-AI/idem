@@ -649,7 +649,9 @@
     "briefLabel": "Voir le brief envoyé au modèle",
     "error": "Le système de design n'a pas pu être calculé.",
     "dark": "Fond sombre",
-    "light": "Fond clair"
+    "light": "Fond clair",
+    "switchToLight": "Passer en thème clair",
+    "switchToDark": "Passer en thème sombre"
   },
   "versions": {
     "title": "Historique des versions",
@@ -730,5 +732,191 @@
     },
     "tour": "Revoir la visite guidée",
     "gotIt": "J'ai compris"
+  },
+  "landing": {
+    "nav": {
+      "how": "Comment ça marche",
+      "craft": "Ce qui change",
+      "pricing": "Tarifs",
+      "signIn": "Se connecter",
+      "open": "Ouvrir iCode"
+    },
+    "hero": {
+      "title1": "Décrivez votre idée.",
+      "title2": "iCode écrit l'application.",
+      "lede": "Du code React lisible, un aperçu qui tourne pendant que vous parlez, et une édition au clic directement sur la page.",
+      "placeholder": "Un tableau de bord pour suivre les livraisons à Dakar…",
+      "hint": "Entrée pour lancer",
+      "cta": "Générer",
+      "tryLabel": "Ou partez d'un exemple"
+    },
+    "examples": {
+      "tontine": "Une application de gestion de tontines pour une association de quartier",
+      "delivery": "Un tableau de bord de suivi des livraisons pour un e-commerce",
+      "fintech": "Un site vitrine pour une startup fintech",
+      "marketplace": "Une place de marché entre freelances et entreprises"
+    },
+    "entries": {
+      "title": "Deux façons de commencer",
+      "lede": "Une phrase suffit. Et si votre projet est déjà analysé sur Idem, iCode part de ce qui existe.",
+      "prompt": {
+        "title": "Depuis une phrase",
+        "body": "Vous écrivez ce que vous voulez construire. iCode choisit une direction visuelle propre à votre projet et génère l'application. Rien à configurer.",
+        "cta": "Commencer ici"
+      },
+      "project": {
+        "title": "Depuis un projet Idem",
+        "body": "Business plan, charte graphique, diagrammes, choix techniques : tout ce qu'Idem a déjà produit alimente la génération. Le code sort aligné sur votre marque.",
+        "cta": "Ouvrir mes projets"
+      }
+    },
+    "craft": {
+      "title": "Ce que la plupart des générateurs ne font pas",
+      "lede": "Quatre décisions d'ingénierie, pas des promesses.",
+      "direction": {
+        "title": "Deux projets ne se ressemblent jamais",
+        "body": "Chaque projet tire une direction artistique dans un catalogue de styles mutuellement exclusifs. Pas de dégradé violet par défaut, pas de grille de trois cartes systématique."
+      },
+      "contrast": {
+        "title": "Les contrastes sont calculés, pas espérés",
+        "body": "La palette est forgée en OKLCH et vérifiée avant d'être envoyée au modèle. Le texte courant atteint 4,5:1 parce que c'est mesuré."
+      },
+      "visual": {
+        "title": "On corrige au clic, pas au prompt",
+        "body": "Cliquez un texte dans l'aperçu et corrigez-le : l'écriture va directement dans le code source. Aucun modèle appelé, aucun crédit consommé."
+      },
+      "sovereign": {
+        "title": "Le déploiement reste chez vous",
+        "body": "Publication via iDeploy, l'infrastructure de l'écosystème Idem. Le code généré est du React standard : il vous appartient et se reprend ailleurs."
+      }
+    },
+    "cta": {
+      "title": "Écrivez la première phrase",
+      "lede": "La génération est gratuite pour commencer. Aucune carte bancaire.",
+      "button": "Ouvrir iCode"
+    },
+    "footer": {
+      "tagline": "iCode fait partie de l'écosystème"
+    },
+    "pricing": {
+      "title": "Générer est gratuit. Posséder ne coûte presque rien.",
+      "lede": "Décrivez votre idée et regardez votre application tourner dans le navigateur, gratuitement. Vous ne payez que pour la posséder — en FCFA, par Mobile Money.",
+      "perMonth": "/mois",
+      "popular": "Le plus choisi",
+      "annual": "Facturation annuelle : 2 mois offerts (-16 %) — réglable par Mobile Money en 1 ou 3 fois.",
+      "pass": {
+        "badge": "Le cœur du modèle",
+        "name": "Pass Projet",
+        "price": "999 F",
+        "once": "— une fois par projet (~1,7 $)",
+        "body": "La première génération est entièrement gratuite et l'aperçu est illimité. Quand votre application fonctionne et que vous voulez la garder — la télécharger, la pousser, la déployer — débloquez-la pour moins qu'un repas au restaurant.",
+        "features": [
+          "Modifications par IA débloquées (30 crédits inclus)",
+          "Téléchargement du code illimité (ZIP)",
+          "Envoi vers GitHub illimité",
+          "Déploiement sur iDeploy débloqué",
+          "Projet privé, badge retirable"
+        ]
+      },
+      "plans": {
+        "discovery": {
+          "name": "Découverte",
+          "price": "0 F",
+          "usd": "gratuit pour toujours",
+          "tagline": "Générez des applications complètes et voyez-les tourner, sans payer.",
+          "cta": "Commencer gratuitement",
+          "features": [
+            "3 générations complètes par jour",
+            "Aperçu illimité dans le navigateur",
+            "Pass Projet à 999 F par projet",
+            "Entraide communautaire"
+          ]
+        },
+        "starter": {
+          "name": "Starter",
+          "price": "2 999 F",
+          "usd": "~5,2 $/mois",
+          "tagline": "7 fois moins cher par crédit que Lovable Pro.",
+          "cta": "Choisir Starter",
+          "features": [
+            "Générations initiales illimitées",
+            "Pass Projet inclus sur tous les projets",
+            "150 crédits/mois, report sur 2 mois",
+            "Import de projets existants",
+            "Support standard"
+          ]
+        },
+        "pro": {
+          "name": "Pro",
+          "price": "9 999 F",
+          "usd": "~17 $/mois",
+          "tagline": "Pour qui livre chaque semaine.",
+          "cta": "Passer en Pro",
+          "features": [
+            "Tout Starter",
+            "550 crédits/mois",
+            "Modèles premium pour les actions complexes",
+            "Support prioritaire"
+          ]
+        },
+        "studio": {
+          "name": "Studio",
+          "price": "24 999 F",
+          "usd": "~43 $/mois",
+          "tagline": "Pour les agences qui construisent pour leurs clients.",
+          "cta": "Passer en Studio",
+          "features": [
+            "Tout Pro",
+            "1 500 crédits/mois",
+            "5 sièges",
+            "Accès à l'API",
+            "Marque blanche pour agences",
+            "Support dédié"
+          ]
+        }
+      },
+      "passes": {
+        "title": "Pass à la journée",
+        "lede": "Comme un forfait data : vous ne payez que les jours où vous construisez.",
+        "items": [
+          {
+            "name": "Pass 24 h",
+            "price": "500 F",
+            "note": "25 crédits — « je teste mon idée ce soir »"
+          },
+          {
+            "name": "Pass 7 jours",
+            "price": "1 499 F",
+            "note": "90 crédits — « je prépare la démo de vendredi »"
+          }
+        ]
+      },
+      "recharges": {
+        "title": "Recharges de crédits",
+        "lede": "Sans engagement, valables 12 mois, moins chères à mesure qu'on monte.",
+        "items": [
+          {
+            "name": "Boost",
+            "price": "500 F",
+            "credits": "25 crédits"
+          },
+          {
+            "name": "Standard",
+            "price": "999 F",
+            "credits": "55 crédits"
+          },
+          {
+            "name": "Growth",
+            "price": "2 499 F",
+            "credits": "145 crédits"
+          },
+          {
+            "name": "Power",
+            "price": "4 999 F",
+            "credits": "320 crédits"
+          }
+        ]
+      }
+    }
   }
 }

@@ -718,7 +718,11 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
             </div>
           )}
 
-          {url && (
+          {/* En mode dessin, le calque d'annotation porte ses propres
+              commandes et occupe le bas de l'aperçu. Garder la barre visible
+              par-dessus ferait deux jeux de boutons superposés au même
+              endroit ; elle revient dès qu'on quitte le mode. */}
+          {url && toolMode !== 'draw' && (
             <EditToolbar
               mode={toolMode}
               onModeChange={setToolMode}
@@ -726,7 +730,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
               onRedo={redo}
               canUndo={canUndo}
               canRedo={canRedo}
-              ready={toolMode === 'draw' || agentReady || !editing}
+              ready={agentReady || !editing}
             />
           )}
         </div>

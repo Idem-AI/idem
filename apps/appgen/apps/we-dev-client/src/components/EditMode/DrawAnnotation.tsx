@@ -158,7 +158,10 @@ export function DrawAnnotation({
   ];
 
   return (
-    <div ref={hostRef} className="absolute inset-0 z-20">
+    // z-40 : au-dessus de la barre d'outils flottante (z-30). Les deux
+    // occupent le bas de l'aperçu et la barre est déplaçable, donc aucune
+    // position ne les met à l'abri l'une de l'autre — seul l'ordre compte.
+    <div ref={hostRef} className="absolute inset-0 z-40">
       <canvas
         ref={canvasRef}
         className="absolute inset-0 cursor-crosshair touch-none"

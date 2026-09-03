@@ -1,238 +1,179 @@
-interface Plan {
-  name: string;
-  price: string;
-  usd: string;
-  tagline: string;
-  features: string[];
-  popular?: boolean;
-  cta: string;
-}
+import { useTranslation } from 'react-i18next';
+import { Check } from 'lucide-react';
+import Button from '@/components/ui/Button';
 
-const PLANS: Plan[] = [
-  {
-    name: 'Discovery',
-    price: '0 F',
-    usd: 'free forever',
-    tagline: 'Generate complete apps and watch them run, free.',
-    features: [
-      '3 complete generations per day',
-      'Unlimited browser preview',
-      'Project Pass at 999 F per project',
-      'Community support',
-    ],
-    cta: 'Start free',
-  },
-  {
-    name: 'Starter',
-    price: '2 999 F',
-    usd: '~$5.2/month',
-    tagline: '7× cheaper per credit than Lovable Pro.',
-    features: [
-      'Unlimited initial generations',
-      'Project Pass included on all projects',
-      '150 credits/month, 2-month rollover',
-      'Import existing projects',
-      'Standard support',
-    ],
-    popular: true,
-    cta: 'Get started',
-  },
-  {
-    name: 'Pro',
-    price: '9 999 F',
-    usd: '~$17/month',
-    tagline: 'For builders shipping every week.',
-    features: [
-      'Everything in Starter',
-      '550 credits/month',
-      'Premium AI models for complex actions',
-      'Priority support',
-    ],
-    cta: 'Go Pro',
-  },
-  {
-    name: 'Studio',
-    price: '24 999 F',
-    usd: '~$43/month',
-    tagline: 'For agencies building for their clients.',
-    features: [
-      'Everything in Pro',
-      '1,500 credits/month',
-      '5 seats',
-      'API access',
-      'White-label for agencies',
-      'Dedicated support',
-    ],
-    cta: 'Scale up',
-  },
-];
-
-const PASS_FEATURES = [
-  'AI modifications unlocked (30 credits included)',
-  'Unlimited code download (ZIP)',
-  'Unlimited GitHub push',
-  'Deployment on iDeploy unlocked',
-  'Private project + removable badge',
-];
-
-const RECHARGES = [
-  { name: 'Boost', price: '500 F', credits: '25 credits' },
-  { name: 'Standard', price: '999 F', credits: '55 credits' },
-  { name: 'Growth', price: '2 499 F', credits: '145 credits' },
-  { name: 'Power', price: '4 999 F', credits: '320 credits' },
-];
-
-const PASSES = [
-  { name: '24h Pass', price: '500 F', note: '25 credits — "I\'m testing my idea tonight"' },
-  { name: '7-day Pass', price: '1 499 F', note: '90 credits — "I\'m prepping Friday\'s demo"' },
-];
+/** Ordre d'affichage des offres ; les textes vivent dans les fichiers de langue. */
+const PLAN_KEYS = ['discovery', 'starter', 'pro', 'studio'] as const;
+const POPULAR_PLAN = 'starter';
 
 interface AppGenPricingProps {
   onGetStarted: () => void;
 }
 
+interface PassItem {
+  name: string;
+  price: string;
+  note: string;
+}
+
+interface RechargeItem {
+  name: string;
+  price: string;
+  credits: string;
+}
+
+/**
+ * Tarifs.
+ *
+ * La section était écrite en anglais dans le code et peinte pour un fond sombre
+ * (`text-gray-400`, `bg-white/5`) : illisible dès que le thème passait au
+ * clair, et monolingue quelle que soit la langue choisie. Tout passe désormais
+ * par l'i18n et par les jetons du design system.
+ */
 export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
+  const { t } = useTranslation();
+
+  // `returnObjects` rend un tableau quand la clé existe, et la clé elle-même
+  // sinon. Sans ce garde-fou, une clé manquante ferait planter la page au lieu
+  // de la rendre incomplète.
+  const list = <T,>(key: string): T[] => {
+    const value = t(key, { returnObjects: true });
+    return Array.isArray(value) ? (value as T[]) : [];
+  };
+
+  const passFeatures = list<string>('landing.pricing.pass.features');
+  const passes = list<PassItem>('landing.pricing.passes.items');
+  const recharges = list<RechargeItem>('landing.pricing.recharges.items');
+
   return (
-    <section id="pricing" className="py-32 px-4 bg-white/[0.02]">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Generating is free. Owning costs almost nothing.
+    <section id="pricing" className="px-4 py-20 border-t border-[var(--glass-border-subtle)]">
+      <div className="max-w-6xl mx-auto">
+        <div className="max-w-2xl">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-[-0.02em] text-balance">
+            {t('landing.pricing.title')}
           </h2>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-            Describe your idea and watch your app run in the browser for free. Pay only when you
-            want to own it — in FCFA, by Mobile Money.
-          </p>
+          <p className="mt-3 text-text-secondary text-pretty">{t('landing.pricing.lede')}</p>
         </div>
 
-        {/* Project Pass highlight */}
-        <div className="glass-card rounded-2xl border-2 border-primary/60 p-8 lg:p-10 mb-12 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+        {/* Le Pass Projet porte le modèle économique : il précède les
+            abonnements plutôt que de se perdre au milieu d'eux. */}
+        <div className="mt-10 grid gap-8 lg:grid-cols-2 items-center rounded-2xl border border-primary/40 bg-primary/[0.04] p-6 sm:p-8">
           <div>
-            <div className="inline-block px-3 py-1 bg-primary/90 rounded-full text-xs font-bold text-white mb-4">
-              The heart of the model
-            </div>
-            <h3 className="text-2xl md:text-3xl font-bold mb-3">
-              Project Pass <span className="text-primary ml-2">999 F</span>{' '}
-              <span className="text-gray-500 text-base font-normal">— once per project (~$1.7)</span>
+            <span className="inline-block px-2.5 py-1 rounded-full bg-primary text-white text-[11px] font-semibold">
+              {t('landing.pricing.pass.badge')}
+            </span>
+            <h3 className="mt-4 text-2xl font-bold text-balance">
+              {t('landing.pricing.pass.name')}{' '}
+              <span className="text-primary">{t('landing.pricing.pass.price')}</span>{' '}
+              <span className="text-base font-normal text-text-tertiary">
+                {t('landing.pricing.pass.once')}
+              </span>
             </h3>
-            <p className="text-gray-400 leading-relaxed">
-              The initial generation is 100% free and the preview is unlimited. When your app works
-              and you want it — download it, push it, deploy it — unlock it for less than a
-              restaurant meal.
+            <p className="mt-3 text-sm text-text-secondary leading-relaxed text-pretty">
+              {t('landing.pricing.pass.body')}
             </p>
           </div>
-          <ul className="space-y-3">
-            {PASS_FEATURES.map((feature) => (
-              <li key={feature} className="flex items-start gap-3 text-sm text-gray-300">
-                <svg
-                  className="w-4 h-4 text-primary mt-0.5 shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span>{feature}</span>
-              </li>
+
+          <ul className="space-y-2.5">
+            {passFeatures.map((feature) => (
+              <FeatureLine key={feature}>{feature}</FeatureLine>
             ))}
           </ul>
         </div>
 
-        {/* Plans */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          {PLANS.map((plan) => (
-            <div
-              key={plan.name}
-              className={
-                plan.popular
-                  ? 'glass-card p-6 rounded-2xl border-2 border-primary relative flex flex-col'
-                  : 'glass-card p-6 rounded-2xl border border-white/10 relative flex flex-col'
-              }
-            >
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary rounded-full text-xs font-bold text-white">
-                  Most popular
-                </div>
-              )}
-              <h3 className="text-lg font-bold mb-2">{plan.name}</h3>
-              <div className="mb-1">
-                <span className="text-3xl font-bold text-primary">{plan.price}</span>
-                <span className="text-gray-500 text-sm">/month</span>
-              </div>
-              <div className="text-xs text-gray-500 mb-3">{plan.usd}</div>
-              <p className="text-sm text-gray-400 mb-5">{plan.tagline}</p>
-              <ul className="space-y-2.5 mb-6 grow">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2 text-sm text-gray-300">
-                    <svg
-                      className="w-4 h-4 text-primary mt-0.5 shrink-0"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-              <button
-                onClick={onGetStarted}
-                className={
-                  plan.popular
-                    ? 'inner-button w-full py-3 text-sm text-center'
-                    : 'outer-button w-full py-3 text-sm text-center'
-                }
-              >
-                {plan.cta}
-              </button>
-            </div>
-          ))}
-        </div>
-        <p className="text-center text-sm text-gray-500 mb-16">
-          Annual billing: 2 months free (-16%) — payable by Mobile Money in 1 or 3 installments.
-        </p>
+        {/* Abonnements */}
+        <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {PLAN_KEYS.map((key) => {
+            const popular = key === POPULAR_PLAN;
+            const features = list<string>(`landing.pricing.plans.${key}.features`);
 
-        {/* Telecom passes + recharges */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="glass-card rounded-2xl border border-white/10 p-8">
-            <h3 className="text-xl font-bold mb-2">Telecom-style passes</h3>
-            <p className="text-sm text-gray-400 mb-6">
-              Like a data plan: pay only for the days you build.
+            return (
+              <article
+                key={key}
+                className={`relative flex flex-col rounded-2xl p-6 border bg-surface-1 ${
+                  popular ? 'border-primary' : 'border-[var(--glass-border)]'
+                }`}
+              >
+                {popular && (
+                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-primary text-white text-[11px] font-semibold whitespace-nowrap">
+                    {t('landing.pricing.popular')}
+                  </span>
+                )}
+
+                <h3 className="text-base font-bold">{t(`landing.pricing.plans.${key}.name`)}</h3>
+
+                <p className="mt-2">
+                  <span className="text-3xl font-bold text-primary">
+                    {t(`landing.pricing.plans.${key}.price`)}
+                  </span>
+                  <span className="text-sm text-text-tertiary">
+                    {t('landing.pricing.perMonth')}
+                  </span>
+                </p>
+                <p className="text-xs text-text-disabled">
+                  {t(`landing.pricing.plans.${key}.usd`)}
+                </p>
+
+                <p className="mt-3 text-sm text-text-secondary text-pretty">
+                  {t(`landing.pricing.plans.${key}.tagline`)}
+                </p>
+
+                <ul className="mt-5 mb-6 grow space-y-2.5">
+                  {features.map((feature) => (
+                    <FeatureLine key={feature}>{feature}</FeatureLine>
+                  ))}
+                </ul>
+
+                <Button
+                  variant={popular ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={onGetStarted}
+                  className="w-full"
+                >
+                  {t(`landing.pricing.plans.${key}.cta`)}
+                </Button>
+              </article>
+            );
+          })}
+        </div>
+
+        <p className="mt-5 text-sm text-text-tertiary">{t('landing.pricing.annual')}</p>
+
+        {/* Achats ponctuels */}
+        <div className="mt-12 grid gap-5 lg:grid-cols-2">
+          <div className="rounded-2xl border border-[var(--glass-border)] bg-surface-1 p-6 sm:p-8">
+            <h3 className="text-lg font-bold">{t('landing.pricing.passes.title')}</h3>
+            <p className="mt-1.5 text-sm text-text-secondary text-pretty">
+              {t('landing.pricing.passes.lede')}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {PASSES.map((pass) => (
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              {passes.map((pass) => (
                 <div
                   key={pass.name}
-                  className="bg-white/5 border border-white/5 rounded-xl p-5 text-center"
+                  className="rounded-xl border border-[var(--glass-border)] bg-surface-2 p-5 text-center"
                 >
-                  <div className="font-bold mb-1">{pass.name}</div>
-                  <div className="text-2xl font-bold text-primary mb-2">{pass.price}</div>
-                  <div className="text-xs text-gray-500">{pass.note}</div>
+                  <p className="font-semibold">{pass.name}</p>
+                  <p className="mt-1 text-2xl font-bold text-primary">{pass.price}</p>
+                  <p className="mt-1.5 text-xs text-text-tertiary text-pretty">{pass.note}</p>
                 </div>
               ))}
             </div>
           </div>
-          <div className="glass-card rounded-2xl border border-white/10 p-8">
-            <h3 className="text-xl font-bold mb-2">Credit recharges</h3>
-            <p className="text-sm text-gray-400 mb-6">
-              No commitment, valid 12 months, cheaper as you go up.
+
+          <div className="rounded-2xl border border-[var(--glass-border)] bg-surface-1 p-6 sm:p-8">
+            <h3 className="text-lg font-bold">{t('landing.pricing.recharges.title')}</h3>
+            <p className="mt-1.5 text-sm text-text-secondary text-pretty">
+              {t('landing.pricing.recharges.lede')}
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {RECHARGES.map((recharge) => (
+            <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {recharges.map((recharge) => (
                 <div
                   key={recharge.name}
-                  className="bg-white/5 border border-white/5 rounded-xl p-4 text-center"
+                  className="rounded-xl border border-[var(--glass-border)] bg-surface-2 p-4 text-center"
                 >
-                  <div className="text-xs text-gray-400 mb-1">{recharge.name}</div>
-                  <div className="text-lg font-bold text-primary">{recharge.price}</div>
-                  <div className="text-xs text-gray-500">{recharge.credits}</div>
+                  <p className="text-xs text-text-tertiary">{recharge.name}</p>
+                  <p className="mt-0.5 text-lg font-bold text-primary">{recharge.price}</p>
+                  <p className="text-xs text-text-disabled">{recharge.credits}</p>
                 </div>
               ))}
             </div>
@@ -240,6 +181,15 @@ export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
         </div>
       </div>
     </section>
+  );
+}
+
+function FeatureLine({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="flex items-start gap-2.5 text-sm text-text-secondary">
+      <Check className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
+      <span className="text-pretty">{children}</span>
+    </li>
   );
 }
 
