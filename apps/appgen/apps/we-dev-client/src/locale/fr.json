@@ -772,7 +772,9 @@
         "title": "Depuis un projet Idem",
         "body": "Business plan, charte graphique, diagrammes, choix techniques : tout ce qu'Idem a déjà produit alimente la génération. Le code sort aligné sur votre marque.",
         "cta": "Ouvrir mes projets"
-      }
+      },
+      "converge": "Les deux mènent au même atelier",
+      "or": "ou"
     },
     "craft": {
       "title": "Ce que la plupart des générateurs ne font pas",
@@ -792,7 +794,9 @@
       "sovereign": {
         "title": "Le déploiement reste chez vous",
         "body": "Publication via iDeploy, l'infrastructure de l'écosystème Idem. Le code généré est du React standard : il vous appartient et se reprend ailleurs."
-      }
+      },
+      "contrastBadge": "Texte courant sur surface",
+      "contrastNote": "Vérifié avant chaque génération"
     },
     "cta": {
       "title": "Écrivez la première phrase",

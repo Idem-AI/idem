@@ -196,15 +196,17 @@ textarea,
   background-image: url('/assets/images/motif.png');
   background-repeat: repeat;
   background-position: top left;
-  opacity: 0.16;
+  /* Mêmes valeurs que `body::before` dans @idem/shared-styles : le motif doit
+     avoir exactement la même présence d'une application Idem à l'autre. */
+  opacity: 0.3;
   pointer-events: none;
 }
 
-/* Le motif est dessiné en sombre : sur fond sombre il faut l'inverser, et
-   l'affaiblir — un motif clair sur fond noir ressort beaucoup plus. */
+/* Le motif est dessiné en sombre : sur fond sombre il s'inverse, comme dans le
+   paquet partagé. */
 .dark .motif-surface::before {
   filter: invert(1);
-  opacity: 0.1;
+  opacity: 0.35;
 }
 
 /* Les panneaux posés dans une surface à motif ne repeignent pas leur fond,

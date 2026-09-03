@@ -46,23 +46,23 @@ export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
   const recharges = list<RechargeItem>('landing.pricing.recharges.items');
 
   return (
-    <section id="pricing" className="px-4 py-20 border-t border-[var(--glass-border-subtle)]">
-      <div className="max-w-6xl mx-auto">
-        <div className="max-w-2xl">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-[-0.02em] text-balance">
+    <section id="pricing" className="px-6 py-28">
+      <div className="max-w-[62rem] mx-auto">
+        <div className="max-w-xl">
+          <h2 className="text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-tight tracking-[-0.03em] text-balance">
             {t('landing.pricing.title')}
           </h2>
-          <p className="mt-3 text-text-secondary text-pretty">{t('landing.pricing.lede')}</p>
+          <p className="mt-4 text-text-tertiary text-pretty">{t('landing.pricing.lede')}</p>
         </div>
 
         {/* Le Pass Projet porte le modèle économique : il précède les
             abonnements plutôt que de se perdre au milieu d'eux. */}
-        <div className="mt-10 grid gap-8 lg:grid-cols-2 items-center rounded-2xl border border-primary/40 bg-primary/[0.04] p-6 sm:p-8">
+        <div className="mt-14 grid gap-10 lg:grid-cols-2 items-center rounded-3xl border border-primary/30 p-7 sm:p-10">
           <div>
             <span className="inline-block px-2.5 py-1 rounded-full bg-primary text-white text-[11px] font-semibold">
               {t('landing.pricing.pass.badge')}
             </span>
-            <h3 className="mt-4 text-2xl font-bold text-balance">
+            <h3 className="mt-5 text-2xl font-semibold tracking-[-0.02em] text-balance">
               {t('landing.pricing.pass.name')}{' '}
               <span className="text-primary">{t('landing.pricing.pass.price')}</span>{' '}
               <span className="text-base font-normal text-text-tertiary">
@@ -90,8 +90,10 @@ export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
             return (
               <article
                 key={key}
-                className={`relative flex flex-col rounded-2xl p-6 border bg-surface-1 ${
-                  popular ? 'border-primary' : 'border-[var(--glass-border)]'
+                className={`relative flex flex-col rounded-2xl p-6 ${
+                  popular
+                    ? 'border border-primary/50 bg-surface-1'
+                    : 'border border-transparent'
                 }`}
               >
                 {popular && (
@@ -100,10 +102,10 @@ export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
                   </span>
                 )}
 
-                <h3 className="text-base font-bold">{t(`landing.pricing.plans.${key}.name`)}</h3>
+                <h3 className="text-[15px] font-semibold">{t(`landing.pricing.plans.${key}.name`)}</h3>
 
                 <p className="mt-2">
-                  <span className="text-3xl font-bold text-primary">
+                  <span className="text-3xl font-semibold tabular-nums text-primary">
                     {t(`landing.pricing.plans.${key}.price`)}
                   </span>
                   <span className="text-sm text-text-tertiary">
@@ -141,8 +143,8 @@ export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
 
         {/* Achats ponctuels */}
         <div className="mt-12 grid gap-5 lg:grid-cols-2">
-          <div className="rounded-2xl border border-[var(--glass-border)] bg-surface-1 p-6 sm:p-8">
-            <h3 className="text-lg font-bold">{t('landing.pricing.passes.title')}</h3>
+          <div className="rounded-2xl border border-[var(--glass-border-subtle)] p-6 sm:p-8">
+            <h3 className="text-lg font-semibold">{t('landing.pricing.passes.title')}</h3>
             <p className="mt-1.5 text-sm text-text-secondary text-pretty">
               {t('landing.pricing.passes.lede')}
             </p>
@@ -150,7 +152,7 @@ export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
               {passes.map((pass) => (
                 <div
                   key={pass.name}
-                  className="rounded-xl border border-[var(--glass-border)] bg-surface-2 p-5 text-center"
+                  className="rounded-xl bg-surface-2 p-5 text-center"
                 >
                   <p className="font-semibold">{pass.name}</p>
                   <p className="mt-1 text-2xl font-bold text-primary">{pass.price}</p>
@@ -160,8 +162,8 @@ export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[var(--glass-border)] bg-surface-1 p-6 sm:p-8">
-            <h3 className="text-lg font-bold">{t('landing.pricing.recharges.title')}</h3>
+          <div className="rounded-2xl border border-[var(--glass-border-subtle)] p-6 sm:p-8">
+            <h3 className="text-lg font-semibold">{t('landing.pricing.recharges.title')}</h3>
             <p className="mt-1.5 text-sm text-text-secondary text-pretty">
               {t('landing.pricing.recharges.lede')}
             </p>
@@ -169,7 +171,7 @@ export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
               {recharges.map((recharge) => (
                 <div
                   key={recharge.name}
-                  className="rounded-xl border border-[var(--glass-border)] bg-surface-2 p-4 text-center"
+                  className="rounded-xl bg-surface-2 p-4 text-center"
                 >
                   <p className="text-xs text-text-tertiary">{recharge.name}</p>
                   <p className="mt-0.5 text-lg font-bold text-primary">{recharge.price}</p>
