@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@ang
 import { Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslateModule } from '@ngx-translate/core';
+import { TrustedByComponent } from '@idem/shared-trusted-by/angular';
 import { AuthService } from '../../../shared/services/auth.service';
 import { environment } from '../../../../environments/environment';
 
@@ -14,7 +15,7 @@ import { environment } from '../../../../environments/environment';
  */
 @Component({
   selector: 'app-landing',
-  imports: [RouterLink, TranslateModule],
+  imports: [RouterLink, TranslateModule, TrustedByComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="relative min-h-screen text-text-primary overflow-hidden" style="font-family: 'Jura', sans-serif;">
@@ -105,6 +106,9 @@ import { environment } from '../../../../environments/environment';
             }
           </div>
         </section>
+
+        <!-- ===== ILS NOUS FONT CONFIANCE ===== -->
+        <idem-trusted-by [label]="'landing.trustedBy' | translate" />
 
         <!-- ===== SHOWCASE ===== -->
         <section id="showcase" class="py-32 px-6 relative z-10 border-t border-[var(--glass-border-subtle)] mt-16 bg-transparent">

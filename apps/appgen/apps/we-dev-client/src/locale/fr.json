@@ -748,14 +748,18 @@
       "placeholder": "Un tableau de bord pour suivre les livraisons à Dakar…",
       "hint": "Entrée pour lancer",
       "cta": "Générer",
-      "tryLabel": "Ou partez d'un exemple"
+      "titleLead": "Décrivez votre idée,",
+      "titleAccent": "iCode écrit l'application",
+      "placeholders": [
+        "Demandez à iCode une application de gestion de tontines…",
+        "Demandez à iCode un tableau de bord de suivi des livraisons…",
+        "Demandez à iCode un site vitrine pour une startup fintech…",
+        "Demandez à iCode une place de marché entre freelances et entreprises…",
+        "Demandez à iCode un espace de réservation pour un salon de coiffure…"
+      ],
+      "scroll": "Découvrir"
     },
-    "examples": {
-      "tontine": "Une application de gestion de tontines pour une association de quartier",
-      "delivery": "Un tableau de bord de suivi des livraisons pour un e-commerce",
-      "fintech": "Un site vitrine pour une startup fintech",
-      "marketplace": "Une place de marché entre freelances et entreprises"
-    },
+    "trustedBy": "Ils nous font confiance",
     "entries": {
       "title": "Deux façons de commencer",
       "lede": "Une phrase suffit. Et si votre projet est déjà analysé sur Idem, iCode part de ce qui existe.",
@@ -918,5 +922,25 @@
         ]
       }
     }
+  },
+  "composer": {
+    "label": "Décrivez l'application à construire",
+    "attach": "Joindre une image, un PDF ou un fichier Markdown",
+    "dictate": "Dicter",
+    "stopDictation": "Arrêter la dictée",
+    "dictationUnsupported": "La dictée n'est pas prise en charge par ce navigateur.",
+    "dictationFailed": "La dictée s'est interrompue.",
+    "submit": "Générer",
+    "removeFile": "Retirer {{name}}",
+    "tooLarge": "{{name}} dépasse 10 Mo.",
+    "attachmentsFailed": "Les pièces jointes n'ont pas pu être transmises ; la génération part sans elles."
+  },
+  "signIn": {
+    "title": "Un compte, et on démarre",
+    "body": "Votre demande est conservée. Connectez-vous et la génération reprend exactement où vous l'avez laissée.",
+    "savedPrompt": "Votre demande",
+    "cta": "Se connecter",
+    "later": "Plus tard",
+    "free": "La création de compte est gratuite et prend moins d'une minute."
   }
 }

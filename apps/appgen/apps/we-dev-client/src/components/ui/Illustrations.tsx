@@ -292,3 +292,40 @@ export function VisualEditIllustration({ size = 76 }: IllustrationProps) {
     </svg>
   );
 }
+
+/**
+ * Connexion requise : l'idée est écrite, il manque un compte pour la garder.
+ *
+ * L'illustration montre ce qui est en jeu — le travail déjà saisi d'un côté,
+ * le compte de l'autre — plutôt qu'un cadenas générique qui ne dirait que
+ * « interdit ».
+ */
+export function SignInIllustration({ className = '', size = 108 }: IllustrationProps) {
+  return (
+    <svg
+      viewBox="0 0 160 108"
+      style={{ height: size }}
+      className={`text-text-tertiary ${className}`}
+      role="img"
+      aria-hidden
+    >
+      {/* La demande déjà écrite */}
+      <rect x="10" y="26" width="62" height="44" rx="8" {...stroke} />
+      <rect x="20" y="38" width="34" height="5" rx="2.5" fill="currentColor" opacity=".35" />
+      <rect x="20" y="49" width="42" height="5" rx="2.5" fill="currentColor" opacity=".2" />
+      <rect x="20" y="58" width="22" height="5" rx="2.5" fill="currentColor" opacity=".2" />
+
+      {/* Le pont vers le compte */}
+      <path d="M80 48h18" {...stroke} strokeDasharray="4 4" className="text-primary" />
+      <path d="M92 43l6 5-6 5" {...stroke} className="text-primary" />
+
+      {/* Le compte : un profil, pas un cadenas */}
+      <circle cx="128" cy="40" r="12" {...stroke} className="text-primary" />
+      <circle cx="128" cy="36" r="4.5" {...stroke} className="text-primary" />
+      <path d="M120 47a9 9 0 0116 0" {...stroke} className="text-primary" />
+      <rect x="106" y="62" width="44" height="26" rx="7" {...stroke} className="text-primary" />
+      <path d="M116 75h24" {...stroke} className="text-primary" opacity=".6" />
+      <path d="M116 81h14" {...stroke} className="text-primary" opacity=".4" />
+    </svg>
+  );
+}

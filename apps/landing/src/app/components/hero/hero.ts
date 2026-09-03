@@ -2,7 +2,7 @@ import { Component, signal, inject, OnInit, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { SeoService } from '../../shared/services/seo.service';
 import { environment } from '../../../environments/environment';
-import { TrustedByComponent } from '../trusted-by/trusted-by';
+import { TrustedByComponent } from '@idem/shared-trusted-by/angular';
 
 @Component({
   selector: 'app-hero',

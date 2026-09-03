@@ -1,0 +1,56 @@
+{
+  "$comment": "Source unique des partenaires « Ils nous font confiance ». Modifiez ce fichier, puis lancez `npm run sync:trusted-by` à la racine pour propager données et logos dans le dossier public de chaque application.",
+  "assetsBasePath": "/assets/images/trust-by",
+  "partners": [
+    {
+      "name": "GDG Douala",
+      "logo": "gdg-douala.png",
+      "url": "https://gdg.community.dev/gdg-douala/"
+    },
+    {
+      "name": ".NET Cameroun",
+      "logo": "dotnet-cameroun.png",
+      "url": "https://dotnet.cm"
+    },
+    {
+      "name": "AWS User Group Douala",
+      "logo": "aws-user-group-douala.png",
+      "url": "https://www.meetup.com/awsugdouala/"
+    },
+    {
+      "name": "Orange S.A.",
+      "logo": "orange.svg",
+      "url": "https://www.orange.com"
+    },
+    {
+      "name": "10000 Codeurs",
+      "logo": "10000codeurs.png",
+      "url": "https://10000codeurs.com"
+    },
+    {
+      "name": "DevGirls",
+      "logo": "devgirls.png",
+      "url": "https://www.devgirls.org/home"
+    },
+    {
+      "name": "AWS User Group Yaoundé",
+      "logo": "aws-user-group-yaounde.png",
+      "url": "https://www.meetup.com/aws-user-group-yaounde/"
+    },
+    {
+      "name": "OSS Cameroun",
+      "logo": "oss-cameroun.png",
+      "url": "https://osscameroon.com"
+    },
+    {
+      "name": "Rhopen Labs",
+      "logo": "rhopen-labs.png",
+      "url": "https://rhopenlabs.africa"
+    },
+    {
+      "name": "RAVISA",
+      "logo": "ravisa.png",
+      "url": "https://ravisa.org/index.html"
+    }
+  ]
+}
