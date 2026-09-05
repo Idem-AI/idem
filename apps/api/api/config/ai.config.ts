@@ -319,8 +319,33 @@ export function reconcileThinkingBudget(options: LLMOptions): {
   temperatureClamped?: number;
 } {
   const thinking = (options.extraBody as any)?.thinking;
-  const thinkingEnabled = thinking?.type === 'enabled';
+  let thinkingEnabled = thinking?.type === 'enabled';
   const budget = options.maxOutputTokens;
+
+  // ── UNE INTENTION, TOUS LES DIALECTES ────────────────────────────────────
+  //
+  // `thinkingBudget: 0` et `extraBody.thinking: disabled` disent la MÊME chose,
+  // chacun dans le dialecte d'un fournisseur. Les laisser vivre séparément a un
+  // défaut mesuré : une feature qui coupe le raisonnement pour Gemini
+  // (`thinkingBudget: 0`) continuait de l'activer sur un fournisseur
+  // openai-compatible si son `extraBody` disait l'inverse — et inversement.
+  //
+  // Le budget nul est la volonté la plus explicite : il l'emporte, et l'on
+  // réécrit l'autre dialecte pour qu'il dise la même chose. La coupure devient
+  // alors indépendante du fournisseur en service, ce qui est la seule façon
+  // qu'elle survive à une bascule.
+  if (options.thinkingBudget === 0 && thinkingEnabled) {
+    return {
+      options: {
+        ...options,
+        extraBody: { ...options.extraBody, thinking: { type: 'disabled' } },
+      },
+      downgraded: false,
+    };
+  }
+  if (options.thinkingBudget === 0) {
+    thinkingEnabled = false;
+  }
 
   // ① Raisonnement actif + budget trop court ⇒ on coupe le raisonnement.
   if (thinkingEnabled && budget && budget < MIN_TOKENS_FOR_THINKING) {
@@ -1027,9 +1052,17 @@ export const AI_CONFIG = {
         temperature: 0.6,
         topP: 0.95,
         topK: 50,
-        extraBody: { ...THINKING_ON },
-        // Trois palettes complètes + justifications, raisonnement compris.
-        maxOutputTokens: 12000,
+        // RAISONNEMENT COUPÉ — le code a repris la décision qu'il servait.
+        //
+        // Il était là pour échapper à la palette moyenne du secteur (« le bleu
+        // de confiance, le vert de croissance »). Cette échappée vient
+        // désormais de `buildPaletteConstraint` : 648 régions chromatiques
+        // tirées par projet, dans lesquelles le modèle choisit. Le tirage est
+        // déterministe et ne dépend d'aucun modèle ; réfléchir en plus ne
+        // rapporte plus rien et se décompte du budget de sortie.
+        thinkingBudget: 0,
+        // Trois palettes complètes + justifications, sans réflexion à financer.
+        maxOutputTokens: 6000,
       },
     } as FeatureAIConfig,
     /**
@@ -1050,8 +1083,13 @@ export const AI_CONFIG = {
         temperature: 0.6,
         topP: 0.95,
         topK: 50,
-        extraBody: { ...THINKING_ON },
-        maxOutputTokens: 12000,
+        // RAISONNEMENT COUPÉ, même raison que la palette : le REGISTRE
+        // typographique est tiré par `buildTypographyConstraint`, et c'est lui
+        // qui empêche de reproposer l'appariement le plus vu du web. Le modèle
+        // choisit les familles à l'intérieur du registre — un arbitrage, pas
+        // une délibération.
+        thinkingBudget: 0,
+        maxOutputTokens: 6000,
       },
     } as FeatureAIConfig,
     /**
@@ -1130,3 +1168,54 @@ export const AI_CONFIG = {
     },
   },
 };
+
+
+/**
+ * Budget de sortie d'une section rendue par gabarit.
+ *
+ * Une page A4 pleine porte 550 à 700 mots utiles, soit ~900 tokens ; le contenu
+ * structuré qui les transporte tient largement sous 6 000, blocs et libellés
+ * compris. Le reste de l'ancien budget servait à écrire du balisage — la partie
+ * que le rendu produit désormais gratuitement, et instantanément.
+ */
+export const TEMPLATE_OUTPUT_TOKENS = Number(
+  process.env.IDEM_TEMPLATE_OUTPUT_TOKENS ?? 6000
+);
+
+/**
+ * Réglages imposés à toute étape rendue par GABARIT.
+ *
+ * ── POURQUOI LE RAISONNEMENT EST COUPÉ ICI ──────────────────────────────────
+ *
+ * Le raisonnement se justifiait par ce qu'on demandait au modèle : arbitrer une
+ * mise en page, tenir une charte, décider d'un angle. Le code a repris les
+ * trois — le gabarit compose, le linter tient la charte, l'étape de plan décide
+ * l'angle. Il ne reste à ce prompt qu'à ÉCRIRE ce qui a déjà été décidé, et
+ * réfléchir pour écrire ne rapporte rien : cela se décompte du budget de sortie
+ * et se paie en latence, deux fois.
+ *
+ * ── POURQUOI ICI, ET PAS DANS LES CONFIGURATIONS ────────────────────────────
+ *
+ * Trois features sont MIXTES : leurs sections passent par le gabarit, mais leur
+ * couverture reste en composition libre — et là, le modèle compose vraiment.
+ * Couper au niveau de la feature dégraderait donc exactement les pages qui
+ * n'ont aucun filet. Couper sur le CHEMIN sépare les deux sans arbitrage
+ * manuel, vaut pour toute section templatée à venir, et ne peut pas être
+ * oublié en ajoutant une feature.
+ *
+ * ── POURQUOI LES DEUX DIALECTES ─────────────────────────────────────────────
+ *
+ * `thinkingBudget` pour Gemini, `extraBody.thinking` pour les fournisseurs
+ * openai-compatible. Une coupure qui ne parle qu'un dialecte ne survit pas à
+ * une bascule de fournisseur — c'est-à-dire au seul moment où elle compte.
+ */
+export function templatedLlmOptions(base?: LLMOptions): Partial<LLMOptions> {
+  return {
+    // Le gabarit change la NATURE de la sortie : ~2 500 tokens de contenu
+    // structuré au lieu de ~10 000 de balisage.
+    maxOutputTokens: TEMPLATE_OUTPUT_TOKENS,
+    jsonMode: true,
+    thinkingBudget: 0,
+    extraBody: { ...base?.extraBody, thinking: { type: 'disabled' } },
+  };
+}

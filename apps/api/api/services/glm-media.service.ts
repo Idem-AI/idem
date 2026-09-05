@@ -82,7 +82,7 @@ export function isGeminiMediaAvailable(): boolean {
  * `IDEM_MEDIA_PROVIDER` pour le cas inverse — garder l'image sur GLM alors que
  * le texte a basculé.
  */
-function mediaProvider(): 'glm' | 'gemini' {
+export function mediaProvider(): 'glm' | 'gemini' {
   const forced = (process.env.IDEM_MEDIA_PROVIDER ?? '').toUpperCase();
   if (forced === 'GEMINI' && isGeminiConfigured()) return 'gemini';
   if (forced === 'GLM' && getGlmApiKey()) return 'glm';

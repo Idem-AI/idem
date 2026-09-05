@@ -18,6 +18,7 @@ import {
 } from '../services/agents/deliverable-graph';
 import { inspectOutput, qualityValidator } from '../services/agents/quality-gate';
 import { stripMarkup } from '../services/agents/text-extract';
+import { templatedLlmOptions } from '../config/ai.config';
 import { createRunBudget } from '../services/agents/run-budget';
 import { MODEL_TIERS, applyTier, nextTier, tierForTask, tierOfModel } from '../config/model-router';
 import {
@@ -261,9 +262,92 @@ const featuresToAudit: Named[] = [
 const thinkingEnabled = (config: FeatureAIConfig): boolean =>
   (config.llmOptions?.extraBody as any)?.thinking?.type === 'enabled';
 
+/**
+ * OÙ LE RAISONNEMENT SE JUSTIFIE ENCORE.
+ *
+ * La règle n'est pas « raisonner est bien ». Elle est : **le raisonnement se
+ * justifie là où le CODE n'a pas repris la décision.** Partout où il l'a
+ * reprise, réfléchir ne change plus la sortie — mais se décompte du budget et
+ * se paie en latence.
+ *
+ * Ce que le code a repris, et qui n'a donc plus à être délibéré :
+ *   · la mise en page          → le gabarit compose (`sectionRenderer`)
+ *   · la conformité de charte  → le linter la tient (`slopLint`)
+ *   · la structure d'une page  → l'étape de plan la décide (M5 ①)
+ *   · l'unicité chromatique    → 648 régions tirées (`buildPaletteConstraint`)
+ *   · l'unicité typographique  → les registres tirés
+ *
+ * Ce qui reste, et pourquoi :
+ *   · `branding.logo`          → géométrie SVG paramétrique : sans réflexion,
+ *                                le modèle n'énumère pas ses contraintes, il
+ *                                les approxime — et le tracé s'en voit
+ *   · `finance.autofill`       → 36 mois de séries qui doivent s'additionner ;
+ *                                aucun code ne peut inventer les hypothèses
+ *   · `branding.artDirection`  → un arbitrage par projet, qui se propage à
+ *                                tout le reste : coût négligeable, portée
+ *                                maximale
+ *   · `branding.businessCard`  → composition libre, hors gabarit
+ *   · `finance.pdfCover`       → idem
+ *   · `finance.pdfInterpretation` → lecture commentée de chiffres réels
+ *
+ * Cette liste est le point de vérité. La modifier est une décision, pas un
+ * réglage : y ajouter une entrée, c'est affirmer que le code ne saurait pas
+ * faire ; en retirer une, c'est affirmer qu'il le fait déjà.
+ */
+const TEMPLATED_MIXED = new Set([
+  'businessPlan',        // 8 sections sous gabarit + 1 couverture libre
+  'pitchDeck',           // 10 slides sous gabarit + 1 couverture libre
+  'branding.brandIdentity', // 3 pages sous gabarit + 9 pages libres
+]);
+
+const THINKING_JUSTIFIED = new Set([
+  'branding.logo',
+  'branding.artDirection',
+  'branding.businessCard',
+  'finance.autofill',
+  'finance.pdfCover',
+  'finance.pdfInterpretation',
+]);
+
 for (const { path, config } of featuresToAudit) {
-  check(`${path}: raisonnement activé`, thinkingEnabled(config));
   const budget = config.llmOptions?.maxOutputTokens ?? 0;
+
+  if (TEMPLATED_MIXED.has(path)) {
+    // Feature MIXTE : ses sections passent par le gabarit, sa couverture non.
+    // Couper au niveau de la feature dégraderait la couverture — la seule page
+    // qui compose encore vraiment. La coupure est donc posée sur le CHEMIN
+    // templaté, et c'est elle qu'on vérifie ici, par son comportement.
+    const templated = templatedLlmOptions(config.llmOptions);
+    check(
+      `${path}: raisonnement coupé sur le chemin gabarit`,
+      templated.thinkingBudget === 0 &&
+        (templated.extraBody as any)?.thinking?.type === 'disabled',
+      `budget=${templated.thinkingBudget} extraBody=${(templated.extraBody as any)?.thinking?.type}`
+    );
+    // La couverture, elle, garde le raisonnement — et doit donc garder la marge
+    // de sortie qui va avec, sans quoi la réflexion consomme l'enveloppe et la
+    // page revient vide.
+    check(
+      `${path}: la couverture garde raisonnement et marge`,
+      thinkingEnabled(config) && budget >= MIN_TOKENS_WITH_THINKING,
+      `raisonnement=${thinkingEnabled(config)} budget=${budget}`
+    );
+    continue;
+  }
+
+  if (!THINKING_JUSTIFIED.has(path)) {
+    // Le code a repris la décision : le raisonnement doit être coupé, et coupé
+    // dans les DEUX dialectes — sinon la coupure ne survit pas à une bascule de
+    // fournisseur, ce qui est le seul moment où elle compte vraiment.
+    check(
+      `${path}: raisonnement coupé (le code a repris la décision)`,
+      !thinkingEnabled(config) && config.llmOptions?.thinkingBudget === 0,
+      `extraBody=${(config.llmOptions?.extraBody as any)?.thinking?.type ?? 'absent'} budget=${config.llmOptions?.thinkingBudget ?? 'absent'}`
+    );
+    continue;
+  }
+
+  check(`${path}: raisonnement activé`, thinkingEnabled(config));
   check(
     `${path}: budget compatible avec le raisonnement`,
     budget >= MIN_TOKENS_WITH_THINKING,
