@@ -15,7 +15,7 @@ import { AI_CONFIG, FeatureAIConfig, resolveSectionConfig } from '../../config/a
 import { applyTier } from '../../config/model-router';
 
 import logger from '../../config/logger';
-import { RunBudget, createRunBudget, runAgent } from '../agents/agent-runtime';
+import { RunBudget, createRunBudget, runAgent, runAgentPrompt } from '../agents/agent-runtime';
 import { buildDependencyContext } from '../agents/section-digest.service';
 import { QualityExpectation, inspectOutput, qualityValidator } from '../agents/quality-gate';
 import { SlopLintOptions, lintHtml } from '../design/slopLint.service';
@@ -25,6 +25,11 @@ import { CONTEXT_TOOL_DECLARATIONS, createContextToolExecutor } from '../context
 import { DocumentDesignSystem } from '../design/documentDesignSystem';
 import { SectionSeed } from '../design/designSeed';
 import { Block, normalizeSectionContent } from '../design/sectionContent';
+import {
+  SECTION_PLAN_CONTRACT,
+  describeSectionPlan,
+  normalizeSectionPlan,
+} from '../design/sectionPlan';
 import { RenderOptions, renderSection } from '../design/sectionRenderer';
 import {
   SECTION_CONTENT_CONTRACT,
@@ -43,6 +48,16 @@ export interface SectionTemplate {
   /** Volume visé, en blocs. Ex : '6 to 8'. */
   volume: string;
   render?: RenderOptions;
+  /**
+   * Prompt à employer À LA PLACE de `promptConstant` en mode gabarit.
+   *
+   * Les deux coexistent volontairement sur l'étape : `promptConstant` garde le
+   * prompt d'origine, qui décrit une composition HTML, et reste le REPLI quand
+   * `IDEM_SECTION_TEMPLATE=off`. Écraser `promptConstant` par le brief aurait
+   * rendu l'interrupteur dangereux — la section aurait alors reçu un contrat
+   * JSON sans rendu pour le consommer, donc du JSON brut affiché comme page.
+   */
+  contentBrief?: string;
   /**
    * Blocs posés par le SERVICE, à partir des données réelles du projet, avant
    * ceux que le modèle produit.
@@ -172,7 +187,10 @@ export function withSectionConfigs(
   return steps.map((step) => ({
     ...step,
     aiConfig: step.aiConfig ?? applyTier(resolveSectionConfig(feature, step.stepName)),
-    stablePrefix: step.stablePrefix ?? stablePrefix,
+    // Le préfixe COURT (sans les règles de composition) n'a de sens que sous
+    // gabarit : coupé, la section retombe sur le prompt HTML d'origine et a de
+    // nouveau besoin de ces règles.
+    stablePrefix: (TEMPLATES_ENABLED ? step.stablePrefix : undefined) ?? stablePrefix,
     template: TEMPLATES_ENABLED ? step.template : undefined,
   }));
 }
@@ -274,6 +292,15 @@ const TEMPLATE_OUTPUT_TOKENS = Number(process.env.IDEM_TEMPLATE_OUTPUT_TOKENS ??
  * côte à côte sur un même projet — c'est la mesure qui décide, pas l'opinion.
  */
 const TEMPLATES_ENABLED = (process.env.IDEM_SECTION_TEMPLATE ?? '').toLowerCase() !== 'off';
+
+/**
+ * Étape de PLAN avant l'écriture (cf. `sectionPlan.ts`).
+ *
+ * `IDEM_SECTION_PLAN=off` la coupe : la section est alors écrite d'un seul
+ * appel, comme avant. Sert à mesurer ce que le découpage apporte réellement,
+ * sur un même projet et un même modèle.
+ */
+const PLANNING_ENABLED = (process.env.IDEM_SECTION_PLAN ?? '').toLowerCase() !== 'off';
 
 /**
  * Intervalle minimal entre deux annonces de progression d'une même section.
@@ -499,6 +526,66 @@ export class GenericService {
         `outils=${useTools ? 'oui' : 'non'})`
     );
 
+    // ── ÉTAPE ① — LE PLAN ────────────────────────────────────────────────────
+    //
+    // Même après que le rendu lui a retiré la composition, une section demande
+    // encore DEUX choses d'un coup au modèle : décider quoi dire, et l'écrire.
+    // Un petit modèle tient trois ou quatre exigences simultanées puis décroche
+    // en silence — en comblant. On sépare donc les deux : ici on décide, à
+    // l'étape ② on remplit.
+    //
+    // Le plan est vérifié SANS modèle (nombre de points, types de blocs
+    // existants) : son échec est détecté avant que la page ne soit écrite, là
+    // où le rattraper coûte quelques centaines de tokens au lieu d'une section.
+    let planDirective = '';
+    if (step.template && PLANNING_ENABLED) {
+      try {
+        const planned = await runAgentPrompt(
+          {
+            role: 'section-planner',
+            task: 'extract',
+            systemPrompt: SECTION_PLAN_CONTRACT,
+            promptType: 'section-plan',
+            // Une charpente tient en quelques centaines de tokens. Un budget
+            // large n'y ajouterait que de la prose.
+            llmOptions: { maxOutputTokens: 1200, temperature: 0.3, jsonMode: true },
+            validate: (text: string) =>
+              normalizeSectionPlan(parseLlmJson(text))
+                ? { ok: true }
+                : { ok: false, reason: 'plan illisible ou trop court' },
+          },
+          [
+            step.template.contentBrief ?? step.promptConstant,
+            dependencyContext ? `SECTIONS ALREADY WRITTEN:\n${dependencyContext}` : '',
+          ]
+            .filter(Boolean)
+            .join('\n\n'),
+          {
+            userId,
+            projectId: project.id,
+            element: `plan:${step.stepName}`,
+            budget,
+            language: language ?? effectiveConfig.language,
+            skipQuotaCheck: true,
+          }
+        );
+
+        const plan = normalizeSectionPlan(parseLlmJson(planned.text));
+        if (plan) {
+          planDirective = describeSectionPlan(plan);
+          logger.info(
+            `Section '${step.stepName}' : plan retenu (${plan.points.length} points, ` +
+              `blocs ${plan.blocks.join('/')}, tier=${planned.tier})`
+          );
+        }
+      } catch (error: any) {
+        // Un plan absent n'empêche pas d'écrire : on retombe sur l'appel unique.
+        logger.warn(
+          `Section '${step.stepName}' : planification impossible (${error?.message}) — écriture directe.`
+        );
+      }
+    }
+
     const messages: AIChatMessage[] = [];
 
     // ① PRÉFIXE STABLE — byte-identique pour toutes les sections du livrable.
@@ -540,10 +627,18 @@ export class GenericService {
       role: 'user',
       content: step.template
         ? [
-            step.promptConstant,
+            // Le brief de contenu quand la feature en fournit un ; sinon le
+            // prompt d'origine, que le contrat de sortie réoriente vers du JSON.
+            step.template.contentBrief ?? step.promptConstant,
+            // La charpente décidée à l'étape ①. Elle transforme une tâche
+            // ouverte en remplissage : c'est là que l'invention de structure —
+            // donc le comblement — disparaît.
+            planDirective,
             sectionVolumeDirective(step.template.volume),
             SECTION_CONTENT_CONTRACT,
-          ].join('\n\n')
+          ]
+            .filter(Boolean)
+            .join('\n\n')
         : step.promptConstant,
     });
 

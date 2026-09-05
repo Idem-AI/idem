@@ -236,14 +236,17 @@ export class PitchDeckService extends GenericService {
      * et le rendu resserre son échelle — un débordement ici n'est pas
      * rattrapable en aval, contrairement au business plan.
      */
-    const slide = (stepName: string): IPromptStep => {
+    const slide = (fallbackPrompt: string, stepName: string): IPromptStep => {
       slideIndex += 1;
       return {
         stepName,
-        // Le brief ne porte QUE le contenu attendu : la mise en page est au rendu.
-        promptConstant: SLIDE_BRIEFS[stepName] ?? '',
+        // Prompt d'origine : le repli quand le gabarit est coupé.
+        promptConstant: fallbackPrompt,
         stablePrefix: templatedPrefix,
         template: {
+          // Sous gabarit, le brief ne porte QUE le contenu : la mise en page
+          // est au rendu.
+          contentBrief: SLIDE_BRIEFS[stepName] ?? fallbackPrompt,
           designSystem,
           seed: seedFor(stepName),
           volume: '3 to 5',
@@ -268,16 +271,16 @@ export class PitchDeckService extends GenericService {
 
     const steps: IPromptStep[] = [
       freeformSlide(SLIDE_COVER_PROMPT, 'Cover'),
-      slide('Problem'),
-      slide('Solution'),
-      slide('Market'),
-      slide('Product'),
-      slide('Business Model'),
-      slide('Traction'),
-      slide('Competition'),
-      slide('Team'),
-      slide('Financials'),
-      slide('Ask'),
+      slide(SLIDE_PROBLEM_PROMPT, 'Problem'),
+      slide(SLIDE_SOLUTION_PROMPT, 'Solution'),
+      slide(SLIDE_MARKET_PROMPT, 'Market'),
+      slide(SLIDE_PRODUCT_PROMPT, 'Product'),
+      slide(SLIDE_BUSINESS_MODEL_PROMPT, 'Business Model'),
+      slide(SLIDE_TRACTION_PROMPT, 'Traction'),
+      slide(SLIDE_COMPETITION_PROMPT, 'Competition'),
+      slide(SLIDE_TEAM_PROMPT, 'Team'),
+      slide(SLIDE_FINANCIALS_PROMPT, 'Financials'),
+      slide(SLIDE_ASK_PROMPT, 'Ask'),
     ];
 
     // Chaque slide reçoit son propre budget de tokens et sa température
