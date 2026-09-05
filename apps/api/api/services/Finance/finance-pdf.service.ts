@@ -34,6 +34,7 @@ import { AI_CONFIG } from '../../config/ai.config';
 import { cacheService } from '../cache.service';
 import * as crypto from 'crypto';
 import { AGENT_FINANCE_COVER_PROMPT } from './prompts/agent-finance-cover.prompt';
+import { resolveLogoDeclensions } from '../../utils/brand-context.util';
 
 interface BrandPalette {
   primary: string;
@@ -72,7 +73,6 @@ export class FinancePdfService {
 
     const palette = this.extractPalette(project);
     const typography = this.extractTypography(project);
-    const logoSvg = this.extractLogoSvg(project);
     const companyName = project.name || 'Projet';
     
     // La couverture est CONSTRUITE, pas générée : élément fixe, aucun jugement
@@ -82,7 +82,7 @@ export class FinancePdfService {
     const coverSection = this.buildCoverSection(
       companyName,
       designSystem,
-      logoSvg,
+      project,
       project.id ?? projectId
     );
     const interpretation = await this.generateInterpretation(project, finance);
@@ -187,12 +187,61 @@ export class FinancePdfService {
     };
   }
 
-  private extractLogoSvg(project: ProjectModel): string | null {
-    let svg = project.analysisResultModel?.branding?.logo?.svg || null;
-    if (svg) {
-      svg = svg.replace(/```(xml|svg)?/gi, '').replace(/```/g, '').trim();
+  /**
+   * Produit le balisage HTML du logo pour la couverture.
+   *
+   * Gère à la fois :
+   * 1. Les déclinaisons d'images hébergées (URLs MinIO / Cloud Storage / bucket dans
+   *    `assetUrls` ou `variations`, adaptées au fond clair ou sombre).
+   * 2. Une URL directe dans `logo.svg` (MinIO stocke souvent l'URL du fichier).
+   * 3. Un SVG inline brut (`<svg ...>`).
+   *
+   * Évite ainsi d'injecter une simple URL de bucket sous forme de texte sur la page.
+   */
+  private buildCoverLogoHtml(
+    project: ProjectModel,
+    ds: DocumentDesignSystem,
+    companyName: string
+  ): string {
+    const branding = project.analysisResultModel?.branding;
+    const logo = branding?.logo;
+    if (!logo) return '';
+
+    // 1. Déclinaisons résolues (assetUrls, variations, URLs de bucket)
+    const declensions = resolveLogoDeclensions(logo as any);
+    const resolvedUrl = declensions
+      ? (ds.dark
+          ? (declensions.withTextDark || declensions.primary)
+          : (declensions.withTextLight || declensions.primary))
+      : null;
+
+    // 2. URL de bucket directe dans logo.svg ou déclinaison
+    let candidateUrl = resolvedUrl;
+    if (!candidateUrl && typeof logo.svg === 'string') {
+      const trimmed = logo.svg.trim();
+      if (/^(https?:\/\/|data:)/i.test(trimmed)) {
+        candidateUrl = trimmed;
+      }
     }
-    return svg;
+
+    if (candidateUrl) {
+      return `<div style="width:56mm;max-height:26mm;margin-bottom:${ds.spacing * 2}px;display:flex;align-items:center;">` +
+        `<img src="${this.esc(candidateUrl)}" alt="${this.esc(companyName)} logo" style="max-width:56mm;max-height:26mm;width:auto;height:auto;object-fit:contain;display:block;" />` +
+        `</div>`;
+    }
+
+    // 3. SVG inline brut (<svg ...>)
+    let rawSvg = typeof logo.svg === 'string' ? logo.svg : null;
+    if (rawSvg) {
+      rawSvg = rawSvg.replace(/```(xml|svg)?/gi, '').replace(/```/g, '').trim();
+      if (rawSvg.includes('<svg')) {
+        return `<div style="width:56mm;max-height:26mm;margin-bottom:${ds.spacing * 2}px;">` +
+          rawSvg.replace('<svg ', '<svg style="max-width:100%;max-height:26mm;width:auto;height:auto;display:block;" ') +
+          `</div>`;
+      }
+    }
+
+    return '';
   }
 
   private fmt(value: number): string {
@@ -238,7 +287,7 @@ export class FinancePdfService {
   private buildCoverSection(
     companyName: string,
     ds: DocumentDesignSystem,
-    logoSvg: string | null,
+    project: ProjectModel,
     projectId: string
   ): SectionModel {
     const today = new Date().toLocaleDateString('fr-FR', {
@@ -255,9 +304,7 @@ export class FinancePdfService {
     const bandAtTop = rand() > 0.5;
     const titleLow = rand() > 0.5;
 
-    const logoHtml = logoSvg
-      ? `<div style="width:56mm;max-height:26mm;margin-bottom:${ds.spacing * 2}px;">${logoSvg.replace('<svg ', '<svg style="width:100%;height:auto;display:block;" ')}</div>`
-      : '';
+    const logoHtml = this.buildCoverLogoHtml(project, ds, companyName);
 
     // La bande porte la couleur de marque en aplat : c'est le seul grand geste
     // de la page, et il suffit.

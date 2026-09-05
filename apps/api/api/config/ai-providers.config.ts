@@ -190,6 +190,15 @@ export function buildGeminiThinkingConfig(
   // Budget négatif = « laisse le modèle décider » : on ne transmet rien.
   if (thinkingBudget < 0) return {};
 
+  // ── LES MODÈLES D'IMAGE N'ONT PAS DE RÉFLEXION ─────────────────────────────
+  //
+  // Ils REFUSENT la consigne au lieu de l'ignorer : `gemini-3.1-flash-image`
+  // répond « Thinking level LOW is not supported for this model » en 400. Le
+  // dialecte de réflexion n'a donc pas seulement un effet nul sur eux, il rend
+  // l'appel impossible — et l'erreur arrive loin de sa cause, au moment de
+  // produire une image.
+  if (/-image\b/i.test(modelName)) return {};
+
   if (/gemini-2\.5/i.test(modelName)) {
     return { thinkingConfig: { thinkingBudget } };
   }
@@ -418,7 +427,7 @@ export const AI_PROVIDERS: Record<LLMProvider, ProviderDefinition> = {
       // Génération d'image. `flash-lite-image` est le plus rapide des trois
       // testés (~3,5 s contre 11,8 s pour `flash-image`) pour une qualité
       // équivalente sur des mises en situation de produit.
-      image: process.env.IDEM_GEMINI_IMAGE_MODEL || 'gemini-3.1-flash-lite-image',
+      image: process.env.IDEM_GEMINI_IMAGE_MODEL || 'gemini-3.1-flash-image',
     },
     // Repli entre modèles GOOGLE : la saturation est par modèle, mais un nom
     // hors catalogue est un 404, pas un repli. Seuls des modèles VÉRIFIÉS
