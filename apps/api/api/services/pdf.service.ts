@@ -837,6 +837,21 @@ export class PdfService {
       return sections; // Return sections in their original order if no specific order is specified
     }
 
+    // Une section absente de l'ordre d'affichage est repoussée en FIN de
+    // document — après la page de clôture. Elle est bien là, mais personne ne
+    // l'y cherche, et le symptôme observé est « la section n'est pas générée ».
+    // Un simple pluriel dans la liste a suffi à envoyer trois pages de mockups
+    // derrière le pied de charte. On le dit désormais.
+    const unordered = sections
+      .map((section) => section.name)
+      .filter((name) => name && !sectionDisplayOrder.includes(name));
+    if (unordered.length > 0) {
+      logger.warn(
+        `PDF : ${unordered.length} section(s) absente(s) de sectionDisplayOrder, ` +
+          `donc reléguée(s) en fin de document : ${unordered.join(', ')}`
+      );
+    }
+
     return sections.sort((a, b) => {
       const indexA = sectionDisplayOrder.indexOf(a.name);
       const indexB = sectionDisplayOrder.indexOf(b.name);
@@ -1010,6 +1025,15 @@ export class PdfService {
           .section {
             display: block;
             width: ${format.width};
+            /* "height" EXPLICITE, en plus de min/max qui valent déjà la même
+               valeur. Ce n'est pas une redondance : en CSS, une hauteur en
+               POURCENTAGE ne se résout que contre un parent de hauteur
+               DÉCLARÉE. Avec min-height/max-height seuls, la hauteur reste
+               "auto", et tout enfant en "height:100%" retombe sur "auto".
+               C'est ce qui écrasait les pages pleine cadre — une mise en
+               situation de charte est une image en "height:100%", qui se
+               retrouvait dimensionnée par son contenu au lieu de la page. */
+            height: ${format.height};
             min-height: ${format.height};
             max-height: ${format.height};
             overflow: hidden;

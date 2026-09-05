@@ -183,7 +183,10 @@ function safeParseJson(content: string): any {
   if (!content) return null;
   let cleaned = content.trim();
   // Strip markdown code fences (```json ... ``` or ``` ...)
-  cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  cleaned = cleaned
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/, '')
+    .trim();
   // Find JSON structure { ... } or [ ... ]
   const firstBrace = cleaned.indexOf('{');
   const firstBracket = cleaned.indexOf('[');
@@ -235,9 +238,7 @@ function safeParseJson(content: string): any {
       error: e instanceof Error ? e.message : e,
       snippet: cleaned.slice(0, 300),
     });
-    throw new Error(
-      `safeParseJson failed: ${e instanceof Error ? e.message : 'unknown error'}`
-    );
+    throw new Error(`safeParseJson failed: ${e instanceof Error ? e.message : 'unknown error'}`);
   }
 }
 
@@ -286,7 +287,9 @@ export class BrandingService extends GenericService {
     );
     if (state) {
       state.cancelled = true;
-      logger.info(`Logo variations generation cancelled - UserId: ${userId}, ProjectId: ${projectId}`);
+      logger.info(
+        `Logo variations generation cancelled - UserId: ${userId}, ProjectId: ${projectId}`
+      );
       return true;
     }
     return false;
@@ -865,9 +868,7 @@ export class BrandingService extends GenericService {
     const expectedSectionCount = 9 + MOCKUP_CONFIG.MOCKUP_COUNT;
     const currentSections = project.analysisResultModel?.branding?.sections || [];
     const skipCacheRead =
-      forceRegenerate ||
-      targetSections.length > 0 ||
-      currentSections.length < expectedSectionCount;
+      forceRegenerate || targetSections.length > 0 || currentSections.length < expectedSectionCount;
 
     if (!skipCacheRead) {
       const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
@@ -910,8 +911,9 @@ export class BrandingService extends GenericService {
 
       const logoUrl = toImgSrc(assetUrls?.primary || logo?.svg);
       const lightLogoUrl =
-        toImgSrc(assetUrls?.withText?.lightBackground || logoVariations?.withText?.lightBackground) ||
-        logoUrl;
+        toImgSrc(
+          assetUrls?.withText?.lightBackground || logoVariations?.withText?.lightBackground
+        ) || logoUrl;
       const darkLogoUrl =
         toImgSrc(assetUrls?.withText?.darkBackground || logoVariations?.withText?.darkBackground) ||
         logoUrl;
@@ -1080,7 +1082,12 @@ export class BrandingService extends GenericService {
             },
           ].filter((specimen) => Boolean(specimen.family));
           return specimens.length
-            ? [{ kind: 'typeSpecimen', specimens: specimens as { family: string; role: string; sample: string }[] }]
+            ? [
+                {
+                  kind: 'typeSpecimen',
+                  specimens: specimens as { family: string; role: string; sample: string }[],
+                },
+              ]
             : undefined;
         }
 
@@ -1104,11 +1111,7 @@ export class BrandingService extends GenericService {
        * la page de direction artistique — qui doit démontrer le style en le
        * construisant, ce qu'aucun gabarit ne peut faire à sa place.
        */
-      const TEMPLATED_PAGES = new Set([
-        'Color Palette',
-        'Typography',
-        'Logo Bonnes Pratiques',
-      ]);
+      const TEMPLATED_PAGES = new Set(['Color Palette', 'Typography', 'Logo Bonnes Pratiques']);
 
       const usedArchetypes = new Set<string>();
       let pageIndex = 0;
@@ -1506,7 +1509,8 @@ export class BrandingService extends GenericService {
         ...existingProject,
         analysisResultModel: {
           ...existingProject.analysisResultModel,
-          branding: existingProject.analysisResultModel?.branding || BrandIdentityBuilder.createEmpty(),
+          branding:
+            existingProject.analysisResultModel?.branding || BrandIdentityBuilder.createEmpty(),
         },
       };
     } else {
@@ -1660,11 +1664,7 @@ export class BrandingService extends GenericService {
       config.modelName = modelNameOverride;
     }
 
-    const sectionResults = await this.processSteps(
-      steps,
-      project,
-      config
-    );
+    const sectionResults = await this.processSteps(steps, project, config);
     const logoResult = sectionResults[0];
     const logoData = logoResult.parsedData;
 
@@ -1778,8 +1778,13 @@ export class BrandingService extends GenericService {
    * le valide contre le catalogue et on retombe sur un style plausible plutôt
    * que de laisser passer une valeur inconnue.
    */
-  private normalizeArtDirection(raw: any, fallbackStyleId: ArtDirectionStyleId = 'editorial'): ArtDirectionModel {
-    const requested = String(raw?.styleId || '').trim().toLowerCase();
+  private normalizeArtDirection(
+    raw: any,
+    fallbackStyleId: ArtDirectionStyleId = 'editorial'
+  ): ArtDirectionModel {
+    const requested = String(raw?.styleId || '')
+      .trim()
+      .toLowerCase();
     const styleId = (ART_DIRECTION_STYLE_IDS as string[]).includes(requested)
       ? (requested as ArtDirectionStyleId)
       : fallbackStyleId;
@@ -1909,7 +1914,8 @@ export class BrandingService extends GenericService {
     }
 
     try {
-      const excluded = opts.force && branding.artDirection?.styleId ? [branding.artDirection.styleId] : [];
+      const excluded =
+        opts.force && branding.artDirection?.styleId ? [branding.artDirection.styleId] : [];
       const direction = await this.generateArtDirection(userId, project, excluded);
       direction.createdAt = branding.artDirection?.createdAt || new Date();
 
@@ -1941,7 +1947,10 @@ export class BrandingService extends GenericService {
    * Régénère la direction artistique d'un projet et la persiste.
    * Exposée à l'API : c'est le bouton « proposer une autre direction ».
    */
-  async regenerateArtDirection(userId: string, projectId: string): Promise<ArtDirectionModel | null> {
+  async regenerateArtDirection(
+    userId: string,
+    projectId: string
+  ): Promise<ArtDirectionModel | null> {
     const project = await this.getProject(projectId, userId);
     if (!project) return null;
     return this.ensureArtDirection(userId, projectId, project, { force: true, persist: true });
@@ -1997,7 +2006,10 @@ export class BrandingService extends GenericService {
         if (svgUrls.variations) logo.variations = svgUrls.variations;
         logger.info(`ensureLogoAssetUrls: externalized inline SVGs to MinIO`, { projectId });
       } catch (svgUploadError) {
-        logger.warn(`ensureLogoAssetUrls: SVG externalization failed (continuing with inline)`, svgUploadError);
+        logger.warn(
+          `ensureLogoAssetUrls: SVG externalization failed (continuing with inline)`,
+          svgUploadError
+        );
       }
 
       const assetUrls = await this.storageService.uploadProjectLogoAssets(logo, userId, projectId);
@@ -2240,11 +2252,14 @@ export class BrandingService extends GenericService {
     }
 
     // Load existing generated logos unless forcing a regeneration from scratch
-    const existingLogos = (!forceRegenerate && branding?.generatedLogos) ? branding.generatedLogos : [];
+    const existingLogos =
+      !forceRegenerate && branding?.generatedLogos ? branding.generatedLogos : [];
     const existingLogosCount = existingLogos.length;
 
     if (existingLogosCount >= 3) {
-      logger.info(`Logos already complete (${existingLogosCount}/3) for projectId: ${projectId}. Skipping.`);
+      logger.info(
+        `Logos already complete (${existingLogosCount}/3) for projectId: ${projectId}. Skipping.`
+      );
       return { logos: existingLogos };
     }
 
@@ -2272,12 +2287,16 @@ export class BrandingService extends GenericService {
     // Créer promesses pour génération AI pure en parallèle pour les concepts restants
     const modelsToTry = [
       AI_CONFIG.branding.logo.modelName,
-      ...(AI_CONFIG.branding.logo.fallbackModels || [])
+      ...(AI_CONFIG.branding.logo.fallbackModels || []),
     ];
     let failedIndexes = Array.from({ length: logosToGenerateCount }, (_, i) => i);
     const rawLogos: LogoModel[] = [];
 
-    for (let modelIndex = 0; modelIndex < modelsToTry.length && failedIndexes.length > 0; modelIndex++) {
+    for (
+      let modelIndex = 0;
+      modelIndex < modelsToTry.length && failedIndexes.length > 0;
+      modelIndex++
+    ) {
       const currentModel = modelsToTry[modelIndex];
       const isFallback = modelIndex > 0;
 
@@ -2290,7 +2309,14 @@ export class BrandingService extends GenericService {
       const retryPromises = failedIndexes.map(async (index) => {
         return {
           index,
-          result: await this.generateRawLogoConcept(optimizedPrompt, project, index + existingLogosCount, preferences, isRetry, currentModel)
+          result: await this.generateRawLogoConcept(
+            optimizedPrompt,
+            project,
+            index + existingLogosCount,
+            preferences,
+            isRetry,
+            currentModel
+          ),
         };
       });
 
@@ -2302,7 +2328,10 @@ export class BrandingService extends GenericService {
         if (result.status === 'fulfilled') {
           rawLogos.push(result.value.result);
         } else {
-          logger.error(`Logo concept ${originalIndex + existingLogosCount + 1} generation failed with model ${currentModel}:`, result.reason);
+          logger.error(
+            `Logo concept ${originalIndex + existingLogosCount + 1} generation failed with model ${currentModel}:`,
+            result.reason
+          );
           stillFailed.push(originalIndex);
         }
       });
@@ -2374,9 +2403,10 @@ export class BrandingService extends GenericService {
     // L'envoyer au critique coûtait un aller-retour complet (10 à 20 s, un appel
     // facturé) pour un verdict qu'une expression régulière rend gratuitement —
     // et le critique répondait parfois « pass » sur un SVG cassé.
-    const paletteHexes = (project.analysisResultModel?.branding?.colors?.colors
-      ? Object.values(project.analysisResultModel.branding.colors.colors)
-      : []
+    const paletteHexes = (
+      project.analysisResultModel?.branding?.colors?.colors
+        ? Object.values(project.analysisResultModel.branding.colors.colors)
+        : []
     ).filter((value): value is string => typeof value === 'string');
 
     const mechanical = inspectSvg(logo.iconSvg || logo.svg || '', { palette: paletteHexes });
@@ -2640,20 +2670,22 @@ export class BrandingService extends GenericService {
 
     const modelsToTry = [
       AI_CONFIG.branding.logo.modelName,
-      ...(AI_CONFIG.branding.logo.fallbackModels || [])
+      ...(AI_CONFIG.branding.logo.fallbackModels || []),
     ];
 
     const processConcept = async (offset: number): Promise<LogoModel | null> => {
       const index = existingLogos.length + offset;
-      
+
       for (let modelIndex = 0; modelIndex < modelsToTry.length; modelIndex++) {
         const currentModel = modelsToTry[modelIndex];
         try {
           if (cancelState.cancelled) {
-            if (modelIndex === 0) await streamCallback({ type: 'concept_cancelled', conceptIndex: index });
+            if (modelIndex === 0)
+              await streamCallback({ type: 'concept_cancelled', conceptIndex: index });
             return null;
           }
-          if (modelIndex === 0) await streamCallback({ type: 'concept_started', conceptIndex: index });
+          if (modelIndex === 0)
+            await streamCallback({ type: 'concept_started', conceptIndex: index });
 
           let logo = await this.generateRawLogoConcept(
             optimizedPrompt,
@@ -2697,7 +2729,10 @@ export class BrandingService extends GenericService {
           await streamCallback({ type: 'concept_finalized', conceptIndex: index, logo });
           return logo;
         } catch (error: any) {
-          logger.error(`Streamed logo concept ${index + 1} failed with model ${currentModel}:`, error);
+          logger.error(
+            `Streamed logo concept ${index + 1} failed with model ${currentModel}:`,
+            error
+          );
           if (modelIndex === modelsToTry.length - 1) {
             try {
               await streamCallback({
@@ -2710,7 +2745,9 @@ export class BrandingService extends GenericService {
             }
             return null;
           } else {
-            logger.warn(`Streamed logo concept ${index + 1} falling back to ${modelsToTry[modelIndex + 1]}...`);
+            logger.warn(
+              `Streamed logo concept ${index + 1} falling back to ${modelsToTry[modelIndex + 1]}...`
+            );
           }
         }
       }
@@ -2757,8 +2794,7 @@ export class BrandingService extends GenericService {
             const container = parsed?.variation ?? parsed;
             // Le SVG peut être sous la clé du fond ({ lightBackground: svg }) ou
             // directement une chaîne. On valide qu'un vrai <svg> est présent.
-            const svg =
-              typeof container === 'string' ? container : container?.[kind];
+            const svg = typeof container === 'string' ? container : container?.[kind];
             if (typeof svg !== 'string' || !svg.includes('<svg')) {
               throw new Error('no usable SVG in variation response');
             }
@@ -2846,9 +2882,7 @@ export class BrandingService extends GenericService {
           const composed = await logoLockupService.recompose(iconSvg, lockup, backgrounds[kind]);
           return [kind, composed ?? undefined] as const;
         } catch (error) {
-          logger.warn(
-            `Lockup recomposition failed for ${kind}: ${(error as Error).message}`
-          );
+          logger.warn(`Lockup recomposition failed for ${kind}: ${(error as Error).message}`);
           return [kind, undefined] as const;
         }
       })
@@ -3000,7 +3034,9 @@ export class BrandingService extends GenericService {
       if (svgUrls.variations) variationUrls = svgUrls.variations as typeof optimizedVariations;
       logger.info(`Logo SVGs (primary + variations) uploaded to MinIO`, { projectId });
     } catch (uploadError: any) {
-      logger.error(`Logo SVG upload failed after variation generation (keeping inline): ${uploadError.message}`);
+      logger.error(
+        `Logo SVG upload failed after variation generation (keeping inline): ${uploadError.message}`
+      );
     }
 
     // Update project with hosted URLs for logo SVGs
@@ -3320,7 +3356,10 @@ export class BrandingService extends GenericService {
     if (missingKinds.length === 0) {
       return {
         variations: { withText: { ...results }, iconOnly: { ...iconResults } },
-        logo: { svg: selectedLogo.svg, ...(selectedLogo.iconSvg ? { iconSvg: selectedLogo.iconSvg } : {}) },
+        logo: {
+          svg: selectedLogo.svg,
+          ...(selectedLogo.iconSvg ? { iconSvg: selectedLogo.iconSvg } : {}),
+        },
       };
     }
 
@@ -3417,7 +3456,13 @@ export class BrandingService extends GenericService {
           let critique: LogoCritiqueResult | null = null;
           try {
             // Style 'withText' : la critique EXIGE la présence du nom de marque.
-            critique = await this.critiqueLogoVariation(originalSvg, svg, kind, project, 'withText');
+            critique = await this.critiqueLogoVariation(
+              originalSvg,
+              svg,
+              kind,
+              project,
+              'withText'
+            );
           } catch (error) {
             logger.warn(`Variation critique failed for ${kind}, keeping as-is`);
           }
@@ -3433,8 +3478,7 @@ export class BrandingService extends GenericService {
                     svg,
                     variant: kind,
                     background: VARIATION_BACKGROUNDS[kind],
-                    issue:
-                      critique.remarks.map((r) => r.fix).join('; ') || critique.summary,
+                    issue: critique.remarks.map((r) => r.fix).join('; ') || critique.summary,
                   },
                   project
                 );
@@ -3705,9 +3749,7 @@ export class BrandingService extends GenericService {
         ? PAGE_FORMATS[branding.pdfFormat as keyof typeof PAGE_FORMATS]
         : PAGE_FORMATS.SLIDE_16_9;
 
-      logger.info(
-        `Generating PDF with format: ${branding?.pdfFormat || 'SLIDE_16_9'}`
-      );
+      logger.info(`Generating PDF with format: ${branding?.pdfFormat || 'SLIDE_16_9'}`);
 
       // Utiliser le PdfService pour générer le PDF avec le format choisi
       const pdfPath = await this.pdfService.generatePdf({
@@ -3724,7 +3766,21 @@ export class BrandingService extends GenericService {
           'Logo Bonnes Pratiques',
           'Color Palette',
           'Typography',
-          'Brand Mockups',
+          // ── LES NOMS DOIVENT CORRESPONDRE EXACTEMENT ────────────────────
+          //
+          // Cette liste portait « Brand Mockups » au pluriel, alors que les
+          // pages générées s'appellent « Brand Mockup 1 », « 2 », « 3 ». Aucune
+          // ne correspondait donc, et le tri repoussait les trois pages APRÈS
+          // le pied de charte — présentes dans le PDF, mais tout à la fin, là
+          // où personne ne les cherche. Vu de l'interface, les sections étaient
+          // « générées » et les mockups « absents » : les deux étaient vrais.
+          //
+          // Les noms sont maintenant DÉRIVÉS du même compteur que les étapes :
+          // changer `MOCKUP_COUNT` ne peut plus désaccorder les deux listes.
+          ...Array.from(
+            { length: MOCKUP_CONFIG.MOCKUP_COUNT },
+            (_, index) => `Brand Mockup ${index + 1}`
+          ),
           'Brand Footer',
         ],
         footerText: 'Generated by Idem',
@@ -4552,7 +4608,8 @@ ${LOGO_EDIT_PROMPT}`;
         ...existingProject,
         analysisResultModel: {
           ...existingProject.analysisResultModel,
-          branding: existingProject.analysisResultModel?.branding || BrandIdentityBuilder.createEmpty(),
+          branding:
+            existingProject.analysisResultModel?.branding || BrandIdentityBuilder.createEmpty(),
         },
       };
     } else {

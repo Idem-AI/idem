@@ -30,6 +30,7 @@
             "styles": [
               "src/styles.css"
             ],
+            "preserveSymlinks": true,
             "polyfills": []
           },
           "configurations": {
@@ -64,6 +65,9 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "prebundle": false
+          },
           "configurations": {
             "production": {
               "buildTarget": "simulation:build:production"

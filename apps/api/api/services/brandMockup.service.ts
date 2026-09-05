@@ -7,7 +7,8 @@ import {
   SelectedMockupSupport,
 } from './BandIdentity/mockupAnalyzer.service';
 import { MOCKUP_CONFIG } from '../config/mockup.config';
-import { AI_CONFIG } from '../config/ai.config';
+import { AI_CONFIG, LLMProvider } from '../config/ai.config';
+import { modelForRole } from '../config/ai-providers.config';
 import {
   analyzeImage,
   generateImage,
@@ -23,7 +24,22 @@ import { getGoogleGenAIClient } from '../config/google-genai.client';
  * réel sur un support en perspective demande plus de soin qu'une photo de
  * produit nue, et c'est le seul endroit du produit où l'écart se voit.
  */
-const GEMINI_MOCKUP_MODEL = process.env.IDEM_GEMINI_MOCKUP_MODEL || 'gemini-3.1-flash-image';
+/**
+ * Modèle d'image des mises en situation.
+ *
+ * Résolu depuis la TABLE DES RÔLES plutôt que fixé ici. Deux modèles d'image
+ * coexistaient — celui-ci et celui déclaré pour le rôle `image` — et rien ne
+ * les tenait d'accord : une surcharge `AI_OVERRIDES` sur le rôle image n'aurait
+ * eu aucun effet sur les mockups, qui sont pourtant le principal usage d'image
+ * de la plateforme.
+ *
+ * `IDEM_GEMINI_MOCKUP_MODEL` reste accepté pour épingler un modèle sur les
+ * seuls mockups, sans toucher au reste.
+ */
+const GEMINI_MOCKUP_MODEL =
+  process.env.IDEM_GEMINI_MOCKUP_MODEL ||
+  modelForRole(LLMProvider.GEMINI, 'image') ||
+  'gemini-3.1-flash-image';
 import { ArtDirectionModel } from '../models/art-direction.model';
 import {
   buildImageNegativePrompt,
