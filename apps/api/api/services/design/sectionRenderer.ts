@@ -874,6 +874,13 @@ function renderLogoDisplay(
     neutral: ds.colors.neutral['200'],
   };
 
+  // Une SEULE déclinaison veut la place : c'est une page de présentation, le
+  // logo en est le sujet. Trois déclinaisons veulent la comparaison : elles se
+  // partagent la largeur et se regardent côte à côte. La hauteur suit, sans
+  // quoi un logo présenté seul occuperait un timbre-poste au milieu d'une page
+  // blanche — ce que produisaient les anciennes pages libres.
+  const showcase = block.variants.length === 1;
+
   const cells = block.variants
     .map(
       (variant) => `<div${style({ flex: '1 1 0', 'min-width': '0' })}>
@@ -881,7 +888,7 @@ function renderLogoDisplay(
         'background-color': grounds[variant.background] ?? grounds.neutral,
         border: `1px solid ${ds.colors.rule}`,
         'border-radius': `${ds.radius}px`,
-        height: '32mm',
+        height: showcase ? '78mm' : '32mm',
         display: 'flex',
         'align-items': 'center',
         'justify-content': 'center',

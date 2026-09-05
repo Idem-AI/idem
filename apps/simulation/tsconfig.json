@@ -15,20 +15,18 @@
     "target": "ES2022",
     "module": "preserve",
     "moduleResolution": "bundler",
+    // `src/app/shared/trusted-by` est un lien vers `packages/shared-trusted-by`.
+    // Sans cette option, TypeScript résoudrait le chemin réel et le
+    // `import ... from '@angular/core'` du composant partagé remonterait au
+    // Angular 20 hissé à la racine du monorepo, pas au 22 de cette app.
+    "preserveSymlinks": true,
     "lib": ["ES2022", "dom"],
     "paths": {
       "@core/*": ["./src/app/core/*"],
       "@shared/*": ["./src/app/shared/*"],
       "@features/*": ["./src/app/features/*"],
       "@layouts/*": ["./src/app/layouts/*"],
-      // Les paquets partagés vivent hors de `node_modules` : leur
-      // `import ... from '@angular/core'` remonterait sinon jusqu'au Angular 20
-      // hissé à la racine du monorepo, alors que cette application est en
-      // Angular 22 — deux copies du framework, et des types incompatibles.
-      "@angular/*": ["./node_modules/@angular/*"],
       "@idem/shared-tour": ["../../packages/shared-tour/src"],
-      "@idem/shared-trusted-by": ["../../packages/shared-trusted-by/src"],
-      "@idem/shared-trusted-by/*": ["../../packages/shared-trusted-by/src/*"],
       "@env": ["./src/environments/environment"]
     }
   },

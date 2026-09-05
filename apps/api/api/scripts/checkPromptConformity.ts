@@ -32,6 +32,7 @@
 import { BP_SECTION_BRIEFS } from '../services/BusinessPlan/prompts/section-briefs.prompt';
 import { SLIDE_BRIEFS } from '../services/PitchDeck/prompts/slide-briefs.prompt';
 import { CHARTER_PAGE_BRIEFS } from '../services/BandIdentity/prompts/page-briefs.prompt';
+import { MOCKUP_GENERATION_PROMPT } from '../services/BandIdentity/prompts/mockup-generation.prompt';
 import { SECTION_CONTENT_CONTRACT } from '../services/design/sectionContent.prompt';
 import { ANTI_SLOP_BLOCK, CONTENT_RULES_BLOCK } from '../services/design/antiSlop.prompt';
 import {
@@ -258,6 +259,77 @@ console.log('\n5. Le repli reste cohérent quand le gabarit est coupé');
     briefNames.size > 0,
     'vérifié par construction : `templated()` reçoit le prompt de repli en argument'
   );
+}
+
+// ── DEUX ORDRES CONTRADICTOIRES ─────────────────────────────────────────────
+//
+// Ce défaut est apparu TROIS FOIS dans des endroits sans rapport : la couverture
+// du business plan (« produis du HTML » + « produis du JSON »), les sections de
+// recherche, et les mises en situation (« support VIERGE, aucun logo » + « pose
+// le logo joint »). À chaque fois le modèle suivait la consigne la plus longue
+// et la plus répétée, et à chaque fois le symptôme observé était tout autre :
+// page perdue, page en JSON brut, mockup sans logo.
+//
+// La leçon est mécanique : quand un prompt est PARTAGÉ entre deux chemins qui
+// n'attendent pas la même sortie, il faut deux textes, pas une rustine ajoutée
+// en aval. On le vérifie ici.
+console.log('\n  Consignes contradictoires');
+
+{
+  const support: any = {
+    supportType: 't', supportName: 'n', context: 'c', industryContext: 'i',
+    mockupIndex: 1, priority: 1, examples: ['a'],
+  };
+  const base: any = {
+    brandName: 'X',
+    brandColors: { primary: '#111111', secondary: '#222222', accent: '#333333' },
+    projectDescription: 'd',
+    selectedSupport: support,
+  };
+
+  const blank = MOCKUP_GENERATION_PROMPT.buildDynamicPrompt({ ...base, logoMode: 'blank' });
+  const attached = MOCKUP_GENERATION_PROMPT.buildDynamicPrompt({ ...base, logoMode: 'attached' });
+
+  const demandsBare = (text: string) => /NO branding at all/.test(text);
+  const forbidsLogo = (text: string) => /ANY logo, wordmark/.test(text);
+  const asksPlacement = (text: string) => /THE ATTACHED IMAGE IS THE BRAND LOGO/.test(text);
+
+  check('mockup « blank » : exige un support vierge', demandsBare(blank) && forbidsLogo(blank));
+  check('mockup « blank » : ne demande PAS de poser un logo', !asksPlacement(blank));
+  check('mockup « attached » : demande de poser le logo joint', asksPlacement(attached));
+  check(
+    "mockup « attached » : n'exige plus un support vierge",
+    !demandsBare(attached) && !forbidsLogo(attached),
+    'un support vierge ET un logo posé sont incompatibles'
+  );
+}
+
+// ── LA CHARTE : CE QUI EST RENDU PAR LE CODE ────────────────────────────────
+//
+// Sept pages sur neuf passent désormais par le gabarit. Les quatre pages de
+// logo l'ont rejoint après un livrable réel où, laissées libres, elles ont
+// produit des références administratives inventées et un débordement de texte.
+console.log('\n  Charte : couverture du gabarit');
+
+{
+  const templated = [
+    'Color Palette', 'Typography', 'Logo Bonnes Pratiques',
+    'Logo Principal', 'Logo Variation Fond Clair',
+    'Logo Variation Fond Sombre', 'Logo Variation Monochrome',
+  ];
+  for (const page of templated) {
+    check(`« ${page} » dispose d'un brief de contenu`, Boolean(CHARTER_PAGE_BRIEFS[page]));
+  }
+  // Le garde-fou anti-décorum, posé une fois pour tous les livrables.
+  for (const [label, pattern] of [
+    ['références inventées', /reference codes/i],
+    ['chiffres non calculés', /NUMBERS NOBODY COMPUTED/],
+    ['ornement en guise de précision', /ORNAMENT POSING AS PRECISION/],
+    ['grandiloquence', /INFLATED NAMING/],
+    ['densité : une idée par page', /A page carries ONE idea/],
+  ] as Array<[string, RegExp]>) {
+    check(`anti-générique : ${label}`, pattern.test(ANTI_SLOP_BLOCK));
+  }
 }
 
 console.log('');

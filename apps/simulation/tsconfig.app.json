@@ -10,7 +10,6 @@
   "files": ["src/main.ts"],
   "include": [
     "src/**/*.d.ts",
-    "../../packages/shared-trusted-by/src/angular/**/*.ts",
     "../../packages/shared-tour/src/**/*.ts"
   ]
 }

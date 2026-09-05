@@ -35,11 +35,20 @@ import { getGoogleGenAIClient } from '../config/google-genai.client';
  *
  * `IDEM_GEMINI_MOCKUP_MODEL` reste accepté pour épingler un modèle sur les
  * seuls mockups, sans toucher au reste.
+ *
+ * Résolu À L'APPEL, jamais à l'import. `modelForRole` interroge le registre,
+ * qui résout au passage le backend Gemini et le MÉMORISE. Fixer ce modèle dans
+ * une constante de module figeait donc le backend avant que `loadSecrets()`
+ * n'ait chargé `.env.secret` : la clé AI Studio arrivait trop tard, et toute
+ * génération échouait ensuite sur « GEMINI_API_KEY est absente ».
  */
-const GEMINI_MOCKUP_MODEL =
-  process.env.IDEM_GEMINI_MOCKUP_MODEL ||
-  modelForRole(LLMProvider.GEMINI, 'image') ||
-  'gemini-3.1-flash-image';
+function geminiMockupModel(): string {
+  return (
+    process.env.IDEM_GEMINI_MOCKUP_MODEL ||
+    modelForRole(LLMProvider.GEMINI, 'image') ||
+    'gemini-3.1-flash-image'
+  );
+}
 import { ArtDirectionModel } from '../models/art-direction.model';
 import {
   buildImageNegativePrompt,
@@ -474,17 +483,21 @@ export class GeminiMockupService {
     // le logo, il adapte le placement ; la déclinaison, elle, reste notre choix.
     const logo = request.logos.dark ?? request.logos.light;
 
-    const prompt = this.buildScenePrompt(request);
+    // Le prompt est demandé en mode « logo joint ». Auparavant, on envoyait le
+    // prompt de support VIERGE puis on ajoutait une phrase demandant de poser le
+    // logo : le modèle lisait trois interdictions contre une consigne, et
+    // rendait le support nu. C'était la cause des mises en situation sans logo.
+    const prompt = this.buildScenePrompt(request, logo ? 'attached' : 'blank');
 
     logger.info(`[MOCKUP][${mockupName}] Génération multimodale Gemini`, {
       mockupName,
-      model: GEMINI_MOCKUP_MODEL,
+      model: geminiMockupModel(),
       logoBytes: logo?.length ?? 0,
       projectId,
     });
 
     const response: any = await getGoogleGenAIClient().models.generateContent({
-      model: GEMINI_MOCKUP_MODEL,
+      model: geminiMockupModel(),
       contents: [
         {
           role: 'user',
@@ -493,17 +506,10 @@ export class GeminiMockupService {
             ...(logo
               ? [{ inlineData: { mimeType: 'image/png', data: logo.toString('base64') } }]
               : []),
-            {
-              text:
-                `${prompt}\n\n` +
-                (logo
-                  ? 'THE ATTACHED IMAGE IS THE BRAND LOGO. Reproduce it EXACTLY as supplied — ' +
-                    'same shapes, same colours, same proportions. Do not redraw it, do not ' +
-                    'restyle it, do not add or remove any element of it. Place it on the ' +
-                    'printable surface of the support, at a realistic size, following the ' +
-                    'perspective and the lighting of the scene.'
-                  : 'No logo is supplied: produce the support BARE, with no mark on it.'),
-            },
+            // La consigne de placement vit maintenant DANS le prompt
+            // (`logo_placement_rule`), au même niveau que le reste : elle n'est
+            // plus une rustine ajoutée après un texte qui dit le contraire.
+            { text: prompt },
           ],
         },
       ],
@@ -515,7 +521,7 @@ export class GeminiMockupService {
 
     if (!inline?.data) {
       throw new Error(
-        `${GEMINI_MOCKUP_MODEL} n'a renvoyé aucune image pour ${mockupName} ` +
+        `${geminiMockupModel()} n'a renvoyé aucune image pour ${mockupName} ` +
           `(${parts.length} partie(s), texte seul)`
       );
     }
@@ -549,10 +555,14 @@ export class GeminiMockupService {
     };
   }
 
-  private buildScenePrompt(request: MockupGenerationRequest): string {
+  private buildScenePrompt(
+    request: MockupGenerationRequest,
+    logoMode: 'blank' | 'attached' = 'blank'
+  ): string {
     const { brandName, brandColors, projectDescription, selectedSupport } = request;
 
     return MOCKUP_GENERATION_PROMPT.buildDynamicPrompt({
+      logoMode,
       brandName,
       brandColors,
       projectDescription,

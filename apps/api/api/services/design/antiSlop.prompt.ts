@@ -40,6 +40,11 @@ DISQUALIFYING — a single one is enough to reject the output:
 - The "centred hero band + three identical cards + button" skeleton. Never a row of cards sharing the same width, padding and shadow: if three things genuinely differ, express the difference.
 - Filler content: "Lorem ipsum", "Feature 1", "Your company", an invented statistic set large with no source.
 - A sentence that would survive a change of company name. It says nothing; cut it or replace it with a fact.
+- FABRICATED APPARATUS: reference codes ("RÉF. DOC-ID-2026/09"), version numbers, "STATUT: VALIDÉ", "DIFFUSION RESTREINTE", classification labels, edition dates, GPS coordinates, page numbers you invented. You were given none of these. Each is a small forgery, and together they make a document that looks official and is not.
+- NUMBERS NOBODY COMPUTED: CMYK breakdowns, RGB triplets, contrast ratios, luminance thresholds, "ÉCHELLE 1:1", percentages of anything. Use a figure ONLY if it was handed to you — a measurement invented to look rigorous is the opposite of rigour.
+- ORNAMENT POSING AS PRECISION: crop marks, corner crosses, "+" registration symbols, technical frames drawn around empty space, dotted lines that measure nothing.
+- INFLATED NAMING: "le logo", not "l'identifiant maître"; "bleu", not "BLEU MOBILITÉ SOUVERAIN". Grandiloquence reads as insecurity.
+- SATURATION. A page carries ONE idea. Before adding a block, ask what it tells the reader that the page does not already tell them; if the answer is "it fills the corner", leave the corner empty. Empty space is not a defect to correct — it is what makes the one thing on the page readable.
 
 BANNED VOCABULARY in the copy you write (French and English alike):
 "révolutionnaire", "innovant" used on its own, "solution clé en main", "propulsez", "boostez", "libérez le potentiel", "à l'ère du numérique", "dans un monde en constante évolution", "elevate", "unlock", "seamless", "empower", "supercharge", "cutting-edge", "game-changing", "next-generation", "world-class".
