@@ -756,12 +756,30 @@ export class GenericService {
             `(archétype ${step.template.seed.archetype}, ${parsed.blocks.length} blocs, ${content.length} car.)`
         );
       } else {
-        // Le contrôle de l'agent a déjà tenté une escalade : si l'on arrive ici,
-        // c'est que même l'étage supérieur n'a pas rendu de contenu lisible. On
-        // renvoie la sortie brute plutôt que rien — l'appelant la traitera comme
-        // une section en échec.
+        // ── LA SORTIE BRUTE NE DEVIENT JAMAIS UNE PAGE ────────────────────
+        //
+        // Ce bloc conservait auparavant `content` tel quel, « plutôt que rien ».
+        // C'était une erreur de jugement, et elle s'est vue : des pages de
+        // business plan livrées en JSON brut, accolades et noms de champs
+        // compris, dans un document destiné à des investisseurs.
+        //
+        // « Plutôt que rien » supposait qu'une page dégradée valait mieux qu'une
+        // page absente. C'est faux quand la dégradation est du code source : une
+        // section manquante est une lacune, une page de JSON est un défaut de
+        // fabrication visible par le lecteur, et il juge tout le document
+        // dessus.
+        //
+        // On lève donc. L'appelant enregistre la section dans `failedSteps`,
+        // émet `section_failed` et poursuit : le livrable est incomplet et le
+        // dit, au lieu d'être abîmé sans le dire.
+        const head = content.slice(0, 160).replace(/\s+/g, ' ');
         logger.error(
-          `Section '${step.stepName}' : contenu illisible après escalade, sortie brute conservée.`
+          `Section '${step.stepName}' : contenu illisible après escalade et après ` +
+            `réparation de troncature. Section abandonnée plutôt que livrée en brut. ` +
+            `Début de la sortie : ${head}`
+        );
+        throw new Error(
+          `contenu structuré illisible (ni JSON valide, ni tronqué récupérable)`
         );
       }
     }

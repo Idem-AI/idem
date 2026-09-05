@@ -11,6 +11,16 @@ export const SLIDE_COVER_PROMPT = `
 - A striking hero image that conveys the project's industry/vision via <img data-image-query="..." data-image-prompt="..." ... />
 </mandatory_content>
 
+<never_on_a_cover>
+NO FIGURES: no revenue, no growth rate, no funding ask, no valuation, no
+traction metric — no currency amount and no percentage. No KPI strip, no chart.
+
+A cover slide states who this is and what they do. It is the slide most often
+screenshotted and forwarded, and a figure printed on it travels as a promise
+stripped of the assumptions that qualify it. The numbers land on the slides that
+establish them, where the reader meets them with their basis.
+</never_on_a_cover>
+
 <layout>
 Choose ONE layout — execute with precision:
 1. Split 60/40: Left side bg-[BACKGROUND COLOR] with brand name, tagline, and logo stacked vertically with generous spacing. Right side is an image container (overflow-hidden rounded-2xl) filling the remaining space with a gradient overlay using SECONDARY COLOR for text legibility.

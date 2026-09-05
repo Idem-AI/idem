@@ -724,9 +724,33 @@ export class PdfService {
         { timeout: 3000 } // Réduit de 15s à 3s
       );
 
-      // setContent réécrit le document : le runtime doit être (ré)injecté ici.
-      // (C'est lui qui relance la génération des utilitaires Tailwind — voir
-      // waitTailwind : `tailwind.refresh()` n'existe pas dans le build CDN.)
+      // ── RÉINJECTION APRÈS setContent ────────────────────────────────────
+      //
+      // `setContent` REMPLACE le document : tout ce qui a été injecté dans la
+      // page vierge — Tailwind, Chart.js — disparaît avec lui. Les scripts
+      // posés à la création de la page (`createOptimizedPage`) ne survivent
+      // donc pas jusqu'au rendu.
+      //
+      // La conséquence était silencieuse et coûteuse : `window.Chart` étant
+      // absent, aucun `<canvas>` ne recevait d'instance, `waitCharts` cessait
+      // d'attendre au bout du délai, et `rasterizeCharts` transformait des
+      // canvas VIDES en images vides. Un graphique demandé, produit et payé
+      // arrivait blanc dans le PDF — sans erreur nulle part.
+      //
+      // On réinjecte donc ici, avant le runtime qui les attend. Le contenu
+      // vient du cache mémoire : la relecture disque n'a pas lieu.
+      const tailwindAfter = PdfService.resourcesCache.get('tailwind');
+      if (tailwindAfter) {
+        await page.addScriptTag({ content: tailwindAfter });
+      }
+      const chartjsAfter = PdfService.resourcesCache.get('chartjs');
+      if (chartjsAfter) {
+        await page.addScriptTag({ content: chartjsAfter });
+      }
+
+      // Le runtime de pagination vient EN DERNIER : c'est lui qui attend les
+      // polices, les images et les graphiques, donc tout ce qu'il attend doit
+      // déjà être en place.
       await page.addScriptTag({ content: FLOW_PAGINATION_RUNTIME });
 
       // Attente déterministe : utilitaires Tailwind générés, polices chargées,
@@ -737,7 +761,7 @@ export class PdfService {
         { tailwindTimeout: 6000, imageTimeout: 8000, chartTimeout: 6000 }
       );
       logger.info(
-        `Render ready for ${projectName}: tailwind=${ready?.tailwind}, charts=${ready?.charts}, rasterized=${ready?.rasterized}`
+        `Render ready for ${projectName}: tailwind=${ready?.tailwind}, graphiques construits=${ready?.built}, charts=${ready?.charts}, rasterized=${ready?.rasterized}`
       );
 
       // Document flexible : on reconstruit le flux continu en pages A4 exactes.

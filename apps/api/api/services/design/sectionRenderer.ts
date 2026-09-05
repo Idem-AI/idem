@@ -31,6 +31,7 @@
  */
 
 import { contrastRatio } from './color';
+import { buildGoogleFontLinks } from '../../utils/google-fonts.util';
 import { DocumentDesignSystem } from './documentDesignSystem';
 import { SectionSeed } from './designSeed';
 import logger from '../../config/logger';
@@ -611,7 +612,118 @@ ${block.series
     ? `<div${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted, 'margin-bottom': '4px' })}>${esc(block.unit)}</div>`
     : '';
 
-  return `<div${atomic}>${unit}${plot}${axis}${legend}${key}</div>`;
+  // ── LE GRAPHIQUE RÉEL, PAR CHART.JS ────────────────────────────────────────
+  //
+  // Ce qui précède (`plot`, `axis`, `legend`) reste, mais comme REPLI. Il est
+  // dessiné par le serveur, donc toujours juste, mais il ne sait faire que des
+  // barres et une polyline : parts d'un tout, comparaisons croisées et profils
+  // arrivaient tous en barres verticales, et le graphique cessait de porter le
+  // sens qu'on lui demandait.
+  //
+  // Chart.js est déjà chargé dans le pipeline d'impression. Le canvas porte sa
+  // configuration en attribut ; le runtime la construit après le chargement de
+  // la bibliothèque (cf. `buildCharts`), puis masque le repli. Là où Chart.js
+  // n'existe pas — un éditeur, une prévisualisation, un export brut — le repli
+  // reste visible et la page ne perd rien.
+  //
+  // Les deux occupent la MÊME boîte, de hauteur fixe : le paginateur mesure
+  // donc la même chose dans les deux cas, et une page ne se recompose pas selon
+  // qu'un script a tourné ou non.
+  const boxHeight = plotHeight + 30 + (block.series.length > 1 ? 24 : 0);
+  const config = buildChartConfig(block, ctx);
+  const canvas = `<canvas data-idem-chart="${esc(JSON.stringify(config))}"${style({
+    position: 'absolute',
+    inset: '0',
+    width: '100%',
+    height: '100%',
+  })} role="img" aria-label="${esc(block.readingKey || 'Graphique')}"></canvas>`;
+
+  return `<div${atomic}>${unit}<div${style({ position: 'relative', height: `${boxHeight}px` })}>${canvas}<div data-chart-fallback>${plot}${axis}${legend}</div></div>${key}</div>`;
+}
+
+/**
+ * Traduit un bloc `chart` en configuration Chart.js, aux couleurs du document.
+ *
+ * Le modèle choisit le TYPE d'après ce que la donnée signifie ; tout le reste —
+ * couleurs, polices, grille, axes, légende — est décidé ici. C'est la même
+ * répartition que partout ailleurs dans le gabarit : le modèle dit quoi
+ * montrer, le code décide à quoi cela ressemble. Un graphique ne peut donc pas
+ * sortir de la charte, quel que soit le modèle qui l'a demandé.
+ */
+function buildChartConfig(block: Extract<Block, { kind: 'chart' }>, ctx: Ctx): unknown {
+  const { ds, roles } = ctx;
+  // Assez de teintes pour un camembert sans répétition visible, toutes tirées
+  // de la rampe de marque : la variété reste dans la charte.
+  const palette = [
+    roles.highlight,
+    ds.colors.primary,
+    ds.colors.secondary,
+    ds.colors.brand['400'],
+    ds.colors.brand['700'],
+    ds.colors.neutral['400'],
+    ds.colors.brand['300'],
+    ds.colors.neutral['600'],
+  ];
+
+  const type = block.chartType;
+  const circular = type === 'pie' || type === 'doughnut';
+  const baseType =
+    circular ? type : type === 'line' || type === 'area' ? 'line' : type === 'radar' ? 'radar' : 'bar';
+
+  const datasets = block.series.map((serie, index) => {
+    const color = palette[index % palette.length];
+    return {
+      label: serie.name,
+      data: serie.data,
+      // Sur un camembert, la couleur distingue les PARTS ; ailleurs, les séries.
+      backgroundColor: circular
+        ? block.labels.map((_, position) => palette[position % palette.length])
+        : type === 'area' || type === 'radar'
+          ? `${color}33`
+          : color,
+      borderColor: color,
+      borderWidth: baseType === 'bar' ? 0 : 2,
+      fill: type === 'area' || type === 'radar',
+      tension: type === 'area' || type === 'line' ? 0.3 : 0,
+      pointRadius: 2,
+    };
+  });
+
+  const stacked = type === 'stacked';
+  const font = { family: `'${ds.fonts.body}', ${BODY_FALLBACK}`, size: ds.typeScale.xs };
+  const grid = { color: ds.colors.rule, drawBorder: false };
+  const ticks = { color: ds.colors.inkMuted, font };
+
+  return {
+    type: baseType,
+    data: { labels: block.labels, datasets },
+    options: {
+      indexAxis: type === 'horizontalBar' ? 'y' : 'x',
+      plugins: {
+        // Une légende à une seule entrée n'informe personne et vole de la
+        // hauteur à la zone de tracé.
+        legend: {
+          display: datasets.length > 1 || circular,
+          position: circular ? 'right' : 'top',
+          labels: { color: ds.colors.ink, font, boxWidth: 10, boxHeight: 10 },
+        },
+        tooltip: { enabled: false },
+      },
+      // Un camembert et un radar n'ont pas d'axes cartésiens : leur en donner
+      // ferait apparaître une grille orpheline derrière le tracé.
+      scales: circular
+        ? {}
+        : type === 'radar'
+          ? { r: { grid, ticks, angleLines: { color: ds.colors.rule } } }
+          : {
+              x: { stacked, grid: { display: false }, ticks },
+              // L'axe des valeurs part de zéro : ne pas le faire exagère
+              // visuellement des écarts faibles, ce qui est le mensonge
+              // graphique le plus courant dans un document d'affaires.
+              y: { stacked, beginAtZero: true, grid, ticks },
+            },
+    },
+  };
 }
 
 function renderQuote(block: Extract<Block, { kind: 'quote' }>, ctx: Ctx): string {
@@ -895,17 +1007,91 @@ interface PageChrome {
 
 type ArchetypeRenderer = (content: SectionContent, ctx: Ctx) => PageChrome;
 
+/**
+ * Mots qui ne doivent JAMAIS rester seuls sur une ligne.
+ *
+ * Une esperluette ou une préposition isolée en bout de ligne est une faute de
+ * composition connue (« orpheline ») : l'œil la lit comme un mot à part entière
+ * et la ligne suivante paraît commencer au milieu d'une idée. Sur un titre de
+ * couverture, elle occupe une ligne entière pour un seul caractère.
+ */
+const ORPHAN_WORDS = /^(?:&|et|de|du|des|la|le|les|à|au|aux|and|of|the|for|to|in|on)$/i;
+
+/**
+ * Ajuste la taille d'un titre à ce qu'il DIT.
+ *
+ * ── LE DÉFAUT QUE CECI CORRIGE ──────────────────────────────────────────────
+ *
+ * La taille venait de l'humeur typographique seule, sans jamais regarder le
+ * texte. Un titre de cinq mots recevait donc la taille d'un titre de deux, et
+ * occupait cinq lignes — la moitié de la page avant la première phrase utile.
+ * Observé en production : « Goal Planning & Operational Milestones » sur cinq
+ * lignes, « Appendix: Operational & Financial Records » sur cinq également.
+ *
+ * ── LA RÈGLE ────────────────────────────────────────────────────────────────
+ *
+ * Deux contraintes, la plus sévère l'emporte :
+ *
+ *  1. le MOT LE PLUS LONG doit tenir sur une ligne. Un titre dont un seul mot
+ *     déborde casse à chaque mot — c'est ce qui produisait l'escalier ;
+ *  2. le titre ENTIER doit tenir en trois lignes au plus.
+ *
+ * La largeur de référence est prudente (la moitié de la zone utile) : plusieurs
+ * archétypes posent le titre dans une colonne, et se tromper vers le bas donne
+ * un titre un peu petit, se tromper vers le haut donne l'escalier.
+ *
+ * La borne basse à 62 % empêche l'autre excès : un titre très long réduit sans
+ * limite cesserait d'être un titre.
+ */
+function fitTitleSize(title: string, base: number, landscape: boolean): number {
+  const words = title.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return base;
+
+  // Largeur utile supposée, en px. Une capitale de labeur mesure ~0,52 em dans
+  // un display ; on prend 0,55 pour rester du côté prudent.
+  const columnPx = landscape ? 430 : 320;
+  const advance = 0.55;
+
+  const longest = Math.max(...words.map((w) => w.length));
+  const byLongestWord = columnPx / (longest * advance);
+
+  const totalChars = title.trim().length;
+  const byThreeLines = (columnPx * 3) / (totalChars * advance);
+
+  const fitted = Math.min(base, byLongestWord, byThreeLines);
+  return Math.round(Math.max(base * 0.62, fitted));
+}
+
 /** Titre, rendu selon l'humeur typographique en vigueur. */
 function renderTitle(content: SectionContent, ctx: Ctx, color: string): string {
   const { type, ds } = ctx;
-  const text = ctx.type.stacked
-    ? esc(content.title).replace(/\s+/g, '<br>')
-    : esc(content.title);
+  const title = content.title.trim();
+  const words = title.split(/\s+/).filter(Boolean);
+
+  // EMPILEMENT — un mot par ligne. C'est un vrai parti pris éditorial, mais il
+  // ne vaut que sur un titre COURT : appliqué à cinq mots il ne compose plus, il
+  // empile, et mange la page. On le réserve donc aux titres de deux ou trois
+  // mots courts, et on retombe sur le flux normal au-delà — où le navigateur
+  // coupe aux bons endroits, ce qu'il fait mieux qu'une règle fixe.
+  const stackable =
+    ctx.type.stacked && words.length <= 3 && Math.max(...words.map((w) => w.length), 0) <= 12;
+
+  const text = stackable
+    ? words.map((w) => esc(w)).join('<br>')
+    : // Hors empilement, on soude les orphelines au mot qui précède : une
+      // esperluette seule sur sa ligne est une faute de composition, et c'est
+      // exactement ce que produisait « Products & Service Infrastructure ».
+      words
+        .map((word, i) =>
+          i > 0 && ORPHAN_WORDS.test(word) ? `\u00A0${esc(word)}` : `${i > 0 ? ' ' : ''}${esc(word)}`
+        )
+        .join('')
+        .trim();
 
   return `<h1${style({
     margin: 0,
     'font-family': `'${ds.fonts.display}', ${DISPLAY_FALLBACK}`,
-    'font-size': `${type.titleSize}px`,
+    'font-size': `${fitTitleSize(title, type.titleSize, ctx.landscape)}px`,
     'font-weight': type.weight,
     'text-transform': type.transform,
     'letter-spacing': type.tracking,
@@ -1100,6 +1286,41 @@ const DEFAULT_ARCHETYPE = 'A';
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
+ * Liens de chargement des polices de la CHARTE.
+ *
+ * ── LE DÉFAUT QUE CECI CORRIGE ──────────────────────────────────────────────
+ *
+ * Le rendu écrivait `font-family: 'Playfair Display', serif` sans que rien, nulle
+ * part, ne charge jamais Playfair Display. Chrome faisait alors ce qu'il doit :
+ * il tombait sur le `serif` générique. Résultat, la typographie de la charte
+ * était nommée dans le CSS et absente de la page — et TOUS les projets sortaient
+ * dans le même Times et le même Helvetica, quelle que soit la charte décidée.
+ *
+ * C'était l'écart le plus visible entre ce que la plateforme promet (« la charte
+ * est respectée ») et ce qu'elle livrait, et il ne se voyait pas dans le code :
+ * la déclaration CSS était juste, seul le chargement manquait.
+ *
+ * ── PLACEMENT ───────────────────────────────────────────────────────────────
+ *
+ * Les `<link>` sont émis AVANT la racine, jamais à l'intérieur. Le paginateur
+ * prend les enfants directs de la racine pour des blocs de contenu : un `<link>`
+ * parmi eux serait compté comme un bloc de hauteur nulle et fausserait la
+ * mesure. Dehors, il n'existe que pour le chargement.
+ *
+ * Émis par section plutôt qu'une fois par document : une section rendue reste
+ * ainsi autonome — même page dans le PDF, dans l'éditeur et dans une
+ * prévisualisation. Le navigateur dédoublonne les href identiques, le coût est
+ * donc celui d'une seule requête pour tout le livrable.
+ *
+ * `buildGoogleFontLinks` ignore de lui-même les piles système (`serif`,
+ * `sans-serif`, Georgia…) : une charte qui n'a pas encore de police n'émet rien.
+ */
+function fontLinks(ds: DocumentDesignSystem): string {
+  const links = buildGoogleFontLinks([ds.fonts.display, ds.fonts.body]);
+  return links ? `${links}\n` : '';
+}
+
+/**
  * Rend une page complète.
  *
  * Ne lève jamais : un contenu partiel produit une page partielle, jamais une
@@ -1232,7 +1453,7 @@ export function renderSection(
           'align-items': 'start',
         })}>${blocks.join('\n')}</div>`;
 
-    return `<div${style({ ...rootStyle, display: 'flex', 'flex-direction': 'column' })}>
+    return `${fontLinks(ctx.ds)}<div${style({ ...rootStyle, display: 'flex', 'flex-direction': 'column' })}>
 ${chrome.backdrop ?? ''}
 <div${style({ flex: '1 1 auto', 'min-height': 0 })}>
 ${body}
@@ -1253,7 +1474,7 @@ ${footer}
   // Le retrait de la tension est donc porté par le PADDING de la racine, jamais
   // par un conteneur interne. Le décor de fond est en `position:absolute`, donc
   // hors flux : le paginateur le préserve comme décoration de page.
-  return `<div${style(rootStyle)}>
+  return `${fontLinks(ctx.ds)}<div${style(rootStyle)}>
 ${chrome.backdrop ?? ''}
 ${chrome.header}
 ${blocks.join('\n')}

@@ -46,7 +46,25 @@ export type Block =
    */
   | {
       kind: 'chart';
-      chartType: 'bar' | 'stacked' | 'line';
+      /**
+       * Le type dit ce que la donnée EST, pas ce qui est joli.
+       *
+       * Le catalogue n'en offrait que trois, sans dire quand employer lequel :
+       * tout arrivait en barres, y compris des parts d'un tout et des
+       * évolutions dans le temps. Le lecteur y perdait le sens que le graphique
+       * était censé porter. Cf. `CHART_GUIDE` dans sectionContent.prompt.ts,
+       * qui associe chaque type à la question à laquelle il répond.
+       */
+      chartType:
+        | 'bar'
+        | 'groupedBar'
+        | 'stacked'
+        | 'horizontalBar'
+        | 'line'
+        | 'area'
+        | 'pie'
+        | 'doughnut'
+        | 'radar';
       labels: string[];
       series: { name: string; data: number[] }[];
       readingKey: string;
@@ -110,6 +128,30 @@ export interface SectionContent {
  * volontairement absents : ils portent des valeurs exactes issues du projet, et
  * les accepter du modèle rouvrirait précisément la porte qu'on ferme.
  */
+/** Types de graphiques acceptés. Doit rester aligné sur `CHART_GUIDE`. */
+export type ChartKind =
+  | 'bar'
+  | 'groupedBar'
+  | 'stacked'
+  | 'horizontalBar'
+  | 'line'
+  | 'area'
+  | 'pie'
+  | 'doughnut'
+  | 'radar';
+
+export const CHART_TYPES: ReadonlySet<string> = new Set<ChartKind>([
+  'bar',
+  'groupedBar',
+  'stacked',
+  'horizontalBar',
+  'line',
+  'area',
+  'pie',
+  'doughnut',
+  'radar',
+]);
+
 const BLOCK_KINDS = new Set([
   'prose',
   'cards',
@@ -241,10 +283,16 @@ function normalizeBlock(raw: unknown): Block | null {
       const hasSignal = aligned.some((entry) => entry.data.some((value) => value !== 0));
       if (!hasSignal) return null;
 
+      // Le type annoncé est retenu s'il existe ; sinon on ne devine pas au
+      // hasard, on déduit de la FORME de la donnée — c'est le code qui décide,
+      // et il décide juste : plusieurs séries dans le temps appellent une
+      // ligne, une série unique appelle des barres.
+      const declared = CHART_TYPES.has(chartType) ? (chartType as ChartKind) : null;
+      const fallbackType: ChartKind = aligned.length > 1 ? 'groupedBar' : 'bar';
+
       return {
         kind: 'chart',
-        chartType:
-          chartType === 'stacked' || chartType === 'line' ? (chartType as 'stacked' | 'line') : 'bar',
+        chartType: declared ?? fallbackType,
         labels,
         series: aligned,
         readingKey: asText(block.readingKey),

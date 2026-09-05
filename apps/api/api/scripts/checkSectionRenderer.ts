@@ -17,7 +17,9 @@
  *   open logs/render-preview.html
  */
 
-import { mkdirSync, writeFileSync } from 'fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'fs';
+
+import { parseLlmJson } from '../utils/llm-json.util';
 import { dirname, resolve } from 'path';
 
 import { ART_DIRECTION_STYLE_IDS } from '../services/design/artDirection.catalog';
@@ -36,6 +38,18 @@ import {
 } from '../services/design/sectionRenderer';
 import { lintHtml } from '../services/design/slopLint.service';
 import { inspectOutput } from '../services/agents/quality-gate';
+
+/**
+ * Retire les `<link>` de polices d'un rendu, comme le fait le paginateur.
+ *
+ * Modéliser ici ce que le runtime fait vraiment est le point : le harnais ne
+ * doit pas vérifier une structure PLUS stricte que celle qui est exigée en
+ * production, sinon il refuse des rendus corrects et finit par être désactivé.
+ */
+function stripFontLinks(html: string): string {
+  return html.replace(/<link\b[^>]*>\s*/g, '');
+}
+
 
 let failures = 0;
 
@@ -274,7 +288,12 @@ console.log('\nCompatibilité du paginateur (portrait, multi-pages)');
   // est enveloppé, il ne voit qu'un bloc géant, insécable, et une section de
   // plus d'une page est réduite à l'échelle ou rognée.
   const html = renderSection(CONTENT, ds, base, { brandName: 'Café des Hauts' });
-  const root = html.trim();
+  // Le rendu émet d'abord les `<link>` de chargement des polices. Le paginateur
+  // les ignore — il ne retient que les enfants dont le `display` calculé n'est
+  // pas `none`, et la feuille de style utilisateur pose `link { display: none }`
+  // — mais l'analyse textuelle ci-dessous, elle, doit les écarter explicitement,
+  // sans quoi elle prendrait un `<link>` pour la racine de la page.
+  const root = stripFontLinks(html).trim();
   const inner = root.slice(root.indexOf('>') + 1, root.lastIndexOf('</div>'));
   // Compte les éléments de PREMIER niveau du corps de la racine.
   let depth = 0;
@@ -293,13 +312,13 @@ console.log('\nCompatibilité du paginateur (portrait, multi-pages)');
   );
 
   // Le décor doit rester hors flux, sinon il compte comme un bloc.
-  const withBackdrop = renderSection(CONTENT, ds, { ...base, archetype: 'J' }, {});
+  const withBackdrop = stripFontLinks(renderSection(CONTENT, ds, { ...base, archetype: 'J' }, {}));
   check('le décor de fond est hors flux (position absolue)',
     /position:absolute/.test(withBackdrop));
 
   // Le retrait de l'archétype doit être sur la racine : c'est `insetsOf(root)`
   // que le paginateur lit pour calculer la capacité d'une page.
-  const inset = renderSection(CONTENT, ds, { ...base, archetype: 'E' }, {});
+  const inset = stripFontLinks(renderSection(CONTENT, ds, { ...base, archetype: 'E' }, {}));
   const rootTag = inset.slice(0, inset.indexOf('>'));
   check('le retrait de l\'archétype est porté par le padding de la racine',
     /padding:[^;"]*mm[^;"]*mm/.test(rootTag), rootTag.match(/padding:[^;"]*/)?.[0] ?? 'absent');
@@ -584,6 +603,98 @@ ${group('Pages spécimens — produites entièrement par le code', specimens)}
   console.log(`\n     Aperçu écrit : ${target}`);
   console.log(`     ${portrait.length} portraits + ${landscape.length} paysages + ${specimens.length} pages spécimens.`);
   console.log('     À ouvrir dans un navigateur pour juger ce qu\'aucune assertion ne juge.');
+}
+
+
+// ── DÉFAUTS CONSTATÉS SUR UN LIVRABLE RÉEL ─────────────────────────────────
+//
+// Chacune de ces vérifications répond à un défaut observé sur un business plan
+// livré, pas à une crainte. Elles sont écrites après coup, ce qui est le seul
+// moment où l'on sait ce qu'il fallait vérifier.
+console.log('\n  Défauts observés sur un business plan livré');
+
+{
+  const dsx = buildDocumentDesignSystem(CHARTER, { styleId: 'editorial' } as any,
+    buildDocumentSeed('editorial', 'businessplan:demo'));
+  const sx = () => buildSectionSeed('editorial', 'bp:demo', 'S');
+
+  // 1. LE JSON TRONQUÉ EST RÉCUPÉRÉ. Trois pages sont sorties en JSON brut parce
+  //    que la réponse avait été coupée par le budget et que rien ne la refermait.
+  const truncated =
+    '{"kicker":"K","title":"T","lede":"L","blocks":[' +
+    '{"kind":"prose","paragraphs":["Un paragraphe complet."]},' +
+    '{"kind":"table","headers":["A","B"],"rows":[["1","2"]],"caption":"C"},' +
+    '{"kind":"cards","items":[{"title":"Titre coupe","body":"corps inach';
+  const salvaged = normalizeSectionContent(parseLlmJson(truncated));
+  check('un contenu TRONQUÉ est récupéré au dernier bloc complet',
+    salvaged !== null && salvaged.blocks.length === 2,
+    salvaged ? `${salvaged.blocks.length} bloc(s)` : 'perdu');
+
+  // 2. LES POLICES DE LA CHARTE SONT CHARGÉES. Elles étaient nommées dans le CSS
+  //    et jamais chargées : tous les projets sortaient dans le même serif.
+  const withFonts = renderSection(CONTENT, dsx, sx(), {});
+  check('les polices de la charte sont réellement chargées',
+    /fonts\.googleapis\.com\/css2\?family=/.test(withFonts),
+    withFonts.includes('<link') ? 'liens présents' : 'AUCUN lien');
+  check('les liens de police précèdent la racine (invisibles du paginateur)',
+    withFonts.indexOf('<link') >= 0 && withFonts.indexOf('<link') < withFonts.indexOf('<div'));
+
+  // 3. LE TYPE DE GRAPHIQUE EST HONORÉ. Tout sortait en barres, y compris les
+  //    parts d'un tout et les évolutions dans le temps.
+  const chartOf = (kind: string) => renderSection(
+    { kicker: 'K', title: 'T', lede: 'L', blocks: [{ kind: 'chart', chartType: kind,
+      labels: ['A', 'B'], series: [{ name: 'S', data: [1, 2] }], readingKey: 'R' }] } as any,
+    dsx, sx(), {}).replace(/&quot;/g, '"');
+  const expectations: Array<[string, string]> = [
+    ['line', '"type":"line"'], ['area', '"fill":true'], ['pie', '"type":"pie"'],
+    ['doughnut', '"type":"doughnut"'], ['radar', '"type":"radar"'],
+    ['stacked', '"stacked":true'], ['horizontalBar', '"indexAxis":"y"'],
+  ];
+  for (const [kind, expected] of expectations) {
+    check(`graphique « ${kind} » : configuration Chart.js conforme`,
+      chartOf(kind).includes(expected), expected);
+  }
+  check('un repli statique subsiste sous le canvas (éditeurs sans Chart.js)',
+    /data-chart-fallback/.test(chartOf('pie')));
+
+  // 4. LES TITRES NE FONT PLUS L'ESCALIER. « Goal Planning & Operational
+  //    Milestones » occupait cinq lignes, soit la moitié de la page.
+  for (const long of ['Goal Planning & Operational Milestones',
+                      'Appendix: Operational & Financial Records']) {
+    let stacked = false;
+    for (const archetype of ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']) {
+      const html = renderSection({ kicker: 'K', title: long, lede: 'L',
+        blocks: [{ kind: 'prose', paragraphs: ['x'] }] } as any,
+        dsx, { ...sx(), archetype } as any, {});
+      const h1 = /<h1[^>]*>([^]*?)<[/]h1>/.exec(html);
+      if (h1 && h1[1].indexOf('<br>') >= 0) stacked = true;
+    }
+    check(`« ${long.slice(0, 26)}… » n'est jamais empilé mot à mot`, !stacked);
+  }
+
+  // 5. LA SORTIE BRUTE NE REDEVIENT JAMAIS UNE PAGE. C'est la règle la plus
+  //    stricte du rendu, et elle ne se vérifie pas depuis une valeur de retour :
+  //    elle vit dans deux chemins de service qui doivent LEVER plutôt que
+  //    renvoyer ce qu'ils n'ont pas su lire. On garde donc les deux endroits par
+  //    leur source — c'est une vérification de non-régression sur une ligne
+  //    précise qui a été retirée, pas un contrôle de style.
+  const guarded: Array<[string, string]> = [
+    ['generic.service.ts', '../services/common/generic.service.ts'],
+    ['research-team.service.ts', '../services/research/research-team.service.ts'],
+  ];
+  for (const [label, rel] of guarded) {
+    const src = readFileSync(resolve(__dirname, rel), 'utf-8');
+    // Le repli fautif renvoyait/conservait `content` quand l'analyse échouait.
+    const hasRawFallback = /sortie brute conservée|repli sur la sortie brute/.test(src);
+    check(`${label} : la sortie illisible n'est jamais conservée`, !hasRawFallback);
+    check(`${label} : la sortie illisible fait LEVER`,
+      /jamais une page|jamais UNE PAGE/i.test(src) && /throw new Error/.test(src));
+  }
+
+  const orphan = renderSection({ kicker: 'K', title: 'Products & Service Infrastructure',
+    lede: 'L', blocks: [{ kind: 'prose', paragraphs: ['x'] }] } as any, dsx, sx(), {});
+  check('une esperluette ne reste jamais seule en bout de ligne',
+    orphan.indexOf('\u00A0') >= 0);
 }
 
 console.log('');

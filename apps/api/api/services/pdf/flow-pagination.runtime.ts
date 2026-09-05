@@ -136,6 +136,57 @@ export const FLOW_PAGINATION_RUNTIME = `
     });
   }
 
+  /**
+   * Construit les graphiques déclarés par le GABARIT.
+   *
+   * Le rendu serveur pose sur chaque "<canvas>" un attribut "data-idem-chart"
+   * qui porte la configuration Chart.js complète, palette du document comprise.
+   * C'est ici qu'elle devient un graphique.
+   *
+   * ── POURQUOI PAS UN <script> PAR GRAPHIQUE ─────────────────────────────────
+   *
+   * Un script inline s'exécute au moment où "setContent" analyse le document —
+   * or Chart.js n'est injecté qu'APRÈS. Il ne trouverait donc jamais
+   * "window.Chart". Le faire ici, dans le runtime injecté après la
+   * bibliothèque, supprime la course : quand cette fonction tourne, Chart.js
+   * est là.
+   *
+   * Accessoirement, la page reste sans script exécutable — elle survit donc aux
+   * éditeurs et aux prévisualisations qui les retirent, où le repli statique
+   * posé sous le canvas prend le relais.
+   */
+  function buildCharts() {
+    if (!window.Chart) { return 0; }
+    var list = [].slice.call(document.querySelectorAll('canvas[data-idem-chart]'));
+    var built = 0;
+    for (var i = 0; i < list.length; i++) {
+      var canvas = list[i];
+      if (window.Chart.getChart && window.Chart.getChart(canvas)) { continue; }
+      var cfg = null;
+      try { cfg = JSON.parse(canvas.getAttribute('data-idem-chart')); } catch (e) { cfg = null; }
+      if (!cfg) { canvas.setAttribute('data-idem-nochart', '1'); continue; }
+      // Aucune animation : on imprime, il n'y a personne pour la voir, et elle
+      // ferait rasteriser une image à mi-parcours.
+      cfg.options = cfg.options || {};
+      cfg.options.animation = false;
+      cfg.options.responsive = true;
+      cfg.options.maintainAspectRatio = false;
+      try {
+        new window.Chart(canvas, cfg);
+        built++;
+        // Le graphique est là : le repli statique n'a plus lieu d'être. On le
+        // masque sans le retirer du flux, pour que la hauteur mesurée par le
+        // paginateur reste EXACTEMENT celle qu'il a mesurée avant.
+        var host = canvas.parentNode;
+        var fallback = host ? host.querySelector('[data-chart-fallback]') : null;
+        if (fallback) { fallback.style.visibility = 'hidden'; }
+      } catch (e) {
+        canvas.setAttribute('data-idem-nochart', '1');
+      }
+    }
+    return built;
+  }
+
   /** Re-renders every chart once the final layout is known (no animation). */
   function refreshCharts() {
     if (!window.Chart || !window.Chart.getChart) { return 0; }
@@ -1146,10 +1197,14 @@ export const FLOW_PAGINATION_RUNTIME = `
   window.__idemFlow = {
     prepare: function (opts) {
       opts = opts || {};
-      var out = { tailwind: false, charts: 0, rasterized: 0 };
+      var out = { tailwind: false, built: 0, charts: 0, rasterized: 0 };
       return waitTailwind(opts.tailwindTimeout || 6000)
         .then(function (ok) { out.tailwind = ok; return waitFonts(); })
         .then(function () { return waitImages(opts.imageTimeout || 8000); })
+        // Les graphiques du gabarit sont construits ICI, après Chart.js et
+        // avant l'attente qui les compte : sans cela, "waitCharts" attendrait
+        // des instances que personne n'a créées.
+        .then(function () { out.built = buildCharts(); return frames(); })
         .then(function () { return waitCharts(opts.chartTimeout || 6000); })
         .then(function () { return frames(); })
         .then(function () { out.charts = refreshCharts(); return frames(); })
