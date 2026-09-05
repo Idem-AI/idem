@@ -110,6 +110,21 @@ export interface DeliverableSection {
    * des instructions + du contexte projet).
    */
   researchBriefs?: string[];
+  /**
+   * Section composée LIBREMENT, hors gabarit.
+   *
+   * Certaines pages ne sont pas des sections de contenu : une couverture est une
+   * composition pleine page, à hauteur fixe, que le paginateur ne redécoupe pas
+   * et dont la mise en page EST le propos. Lui appliquer le gabarit reviendrait
+   * à en faire une page de contenu comme une autre.
+   *
+   * Sans ce drapeau, ces pages recevaient DEUX consignes contradictoires : leurs
+   * propres instructions (« produis du HTML »), puis le contrat de contenu
+   * structuré (« produis du JSON »). Le modèle suivait l'une ou l'autre, et
+   * quand il suivait la première, l'analyse échouait — la page était alors
+   * publiée telle quelle, par accident, ou perdue.
+   */
+  freeform?: boolean;
 }
 
 // ---------------------------------------------------------------------------

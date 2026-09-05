@@ -679,6 +679,9 @@ export class BusinessPlanService extends GenericService {
       sectionsToGenerate,
       {
         projectContext: projectDescription,
+        // Identité stable pour le cache des recherches : une régénération du
+        // même projet doit RÉUTILISER les faits déjà collectés.
+        projectId,
         brandContext,
         language,
         userId,
@@ -716,7 +719,10 @@ export class BusinessPlanService extends GenericService {
     const geo = country ? ` (priority market: ${country})` : '';
     const ctx = projectDescription.slice(0, 400);
     return [
-      { name: 'Cover Page', instructions: AGENT_COVER_PROMPT, needsResearch: false },
+      // La couverture est une composition PLEINE PAGE, à hauteur fixe (cf.
+      // `fixedPageSections`) : elle ne passe pas par le gabarit, sinon elle
+      // deviendrait une page de contenu comme les huit autres.
+      { name: 'Cover Page', instructions: AGENT_COVER_PROMPT, needsResearch: false, freeform: true },
       { name: 'Company Summary', instructions: AGENT_COMPANY_SUMMARY_PROMPT, needsResearch: false },
       {
         name: 'Opportunity',

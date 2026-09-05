@@ -61,6 +61,14 @@ interface BriefResult {
 export interface ResearchTeamContext {
   /** Contexte projet compact (nom, description, cible, pays…). */
   projectContext: string;
+  /**
+   * Identité STABLE du projet, pour le cache des recherches.
+   *
+   * Distincte de `projectContext`, qui est du texte destiné au modèle et peut
+   * changer pour des raisons de sérialisation. Une clé de cache doit changer
+   * quand les faits à chercher changent, jamais autrement.
+   */
+  projectId?: string;
   /** Contexte de marque optionnel (couleurs, langue…). */
   brandContext?: string;
   /** Langue de sortie ('French' | 'English'). */
@@ -152,8 +160,42 @@ const VERIFIER_CONFIG: PromptConfig = {
 const SECTION_CONCURRENCY = 3;
 /** Nombre max d'axes de recherche fusionnés dans l'unique appel grounded. */
 const MAX_BRIEFS_PER_SECTION = 3;
-/** Durée de vie du cache des recherches (reprise/régénération sans re-chercher). */
-const RESEARCH_CACHE_TTL = 7200;
+/**
+ * Durée de vie du CACHE DE CONTEXTE du fournisseur (Gemini).
+ *
+ * Court par nature : il s'agit d'un cache facturé côté modèle, qui n'a de sens
+ * que pendant le run qui l'a créé et ses reprises immédiates.
+ */
+const CONTEXT_CACHE_TTL = 7200;
+
+/**
+ * Durée de vie du CACHE DES RECHERCHES — ce que le web a réellement répondu.
+ *
+ * ── POURQUOI C'EST LONG, ET POURQUOI CE N'EST PAS LA MÊME CHOSE ─────────────
+ *
+ * Les deux durées partageaient la même constante de deux heures. C'était une
+ * confusion coûteuse : un cache de contexte fournisseur et un corpus de faits
+ * collectés sur le web n'ont ni le même usage ni la même péremption. Deux
+ * heures après, régénérer un business plan relançait quatre recherches par
+ * section — la partie la plus lente du livrable, refaite pour rien.
+ *
+ * Or la recherche est le seul poste qui ne dépend pas de nous : appels réseau,
+ * latence du moteur, quotas. Le rédacteur, lui, retravaille à chaque fois — ce
+ * qui est voulu, puisque le contenu doit suivre le projet.
+ *
+ * Sept jours : assez long pour que toute une phase d'itération sur la mise en
+ * page réutilise les mêmes faits, assez court pour qu'une donnée de marché ne
+ * vieillisse pas dans un document qu'on présentera. Réutiliser les mêmes
+ * sources d'une génération à l'autre a un second effet, non recherché mais
+ * bienvenu : le document devient reproductible, et deux exports du même projet
+ * citent les mêmes références.
+ *
+ * La clé porte le projet, la langue, la section et les axes de recherche : elle
+ * change d'elle-même dès que l'un d'eux change, ce qui relance la recherche
+ * exactement quand il le faut. Modifier la description du projet suffit donc à
+ * forcer une collecte fraîche, sans purge manuelle.
+ */
+const RESEARCH_CACHE_TTL = Number(process.env.IDEM_RESEARCH_CACHE_TTL ?? 7 * 24 * 3600);
 /** Borne de la synthèse de recherche transmise au rédacteur. */
 const MAX_DIGEST_CHARS = 4000;
 
@@ -190,7 +232,7 @@ export class ResearchTeamService {
     const cacheName = await this.promptService.createContextCache(
       WRITER_CONFIG.modelName,
       sharedContextText,
-      RESEARCH_CACHE_TTL
+      CONTEXT_CACHE_TTL
     );
     const runCtx: ResearchTeamContext = { ...ctx, sharedCache: cacheName ?? undefined };
 
@@ -292,13 +334,18 @@ export class ResearchTeamService {
         );
       }
 
-      const finalizedHtml = this.renderResearchedSection(
-        finalData,
-        sources,
-        ctx,
-        section.name,
-        sectionIndex + 1
-      );
+      // Une section LIBRE est déjà une page : elle ne passe pas par le gabarit,
+      // qui la recomposerait en page de contenu et lui ferait perdre ce qui la
+      // définit — une composition pleine page à hauteur fixe.
+      const finalizedHtml = section.freeform
+        ? finalData
+        : this.renderResearchedSection(
+            finalData,
+            sources,
+            ctx,
+            section.name,
+            sectionIndex + 1
+          );
       const result: ResearchedSection = {
         name: section.name,
         data: finalizedHtml,
@@ -357,7 +404,18 @@ export class ResearchTeamService {
       prefix: 'ai',
       ttl: RESEARCH_CACHE_TTL,
     });
+    if (!cached) {
+      logger.info(
+        `ResearchTeam « ${section.name} » : aucune recherche en cache (clé ${cacheKey}), collecte web.`
+      );
+    }
     if (cached && Array.isArray(cached.sources)) {
+      // Tracé explicitement : sans cette ligne, personne ne peut dire si le
+      // cache sert réellement, et une régénération lente reste inexplicable.
+      logger.info(
+        `ResearchTeam « ${section.name} » : recherche RÉUTILISÉE du cache ` +
+          `(${cached.sources.length} source(s), aucun appel web).`
+      );
       await this.emitAgent(emit, runId, 'researcher', agentId, section.name, {
         kind: 'agent_status',
         status: 'searching',
@@ -432,6 +490,10 @@ export class ResearchTeamService {
     const narratives = result.narrative.trim() ? [result.narrative.trim()] : [];
     const digest = this.buildResearchDigest(narratives, globalSources);
     const payload = { sources: globalSources, digest };
+    logger.info(
+      `ResearchTeam : ${globalSources.length} source(s) collectée(s) et mises en cache ` +
+        `pour ${Math.round(RESEARCH_CACHE_TTL / 3600)} h.`
+    );
     await cacheService.set(cacheKey, payload, { prefix: 'ai', ttl: RESEARCH_CACHE_TTL });
     return payload;
   }
@@ -492,14 +554,40 @@ export class ResearchTeamService {
   }
 
   /** Clé de cache stable pour la recherche d'une section. */
+  /**
+   * Clé du cache des recherches.
+   *
+   * ── CE QUI DOIT LA FAIRE CHANGER, ET CE QUI NE DOIT PAS ────────────────────
+   *
+   * Elle reposait sur `ctx.projectContext` — un bloc de texte libre incluant
+   * `JSON.stringify(additionalInfos)`. Deux relevés du même projet observés en
+   * cache portaient des empreintes DIFFÉRENTES : la clé bougeait sans que les
+   * faits à chercher aient bougé, et chaque régénération relançait donc la
+   * partie la plus lente du livrable. Un blob de texte est une mauvaise
+   * identité : il change pour des raisons de sérialisation, pas de contenu.
+   *
+   * La clé porte désormais l'identité STABLE du projet, la langue, la section
+   * et les axes de recherche normalisés. Les axes contiennent déjà un extrait de
+   * la description : modifier le projet les modifie, ce qui relance la collecte
+   * — exactement quand il le faut, et seulement alors.
+   *
+   * Les axes sont normalisés (espaces réduits, casse ignorée) pour qu'une
+   * différence de mise en forme ne se prenne pas pour une différence de sens.
+   */
   private researchCacheKey(
     ctx: ResearchTeamContext,
     sectionName: string,
     briefs: string[]
   ): string {
+    // `documentKey` vaut « businessplan:<projectId> » : il porte l'identité du
+    // projet quand `projectId` n'est pas fourni explicitement.
+    const identity = ctx.projectId ?? ctx.documentKey ?? ctx.projectContext.slice(0, 200);
+    const normalized = briefs
+      .map((brief) => brief.replace(/\s+/g, ' ').trim().toLowerCase())
+      .join('||');
     const hash = crypto
       .createHash('sha256')
-      .update(`${ctx.projectContext}|${ctx.language}|${sectionName}|${briefs.join('||')}`)
+      .update(`${identity}|${ctx.language}|${sectionName}|${normalized}`)
       .digest('hex')
       .slice(0, 20);
     return cacheService.generateAIKey('research', ctx.userId, sectionName.replace(/\s+/g, '-'), hash);
@@ -556,7 +644,11 @@ export class ResearchTeamService {
             ? `\n--- SYNTHÈSE DE RECHERCHE (faits réels collectés — SEULE source de chiffres autorisée) ---\n${researchDigest}\n` +
               `\n--- SOURCES DISPONIBLES (utilise ces ids pour les citations [sN]) ---\n${sourceList}\n`
             : '') +
-          `\n${sectionVolumeDirective('7 to 9')}\n\n${SECTION_CONTENT_CONTRACT}`,
+          // Une section LIBRE ne reçoit ni le contrat de contenu structuré, ni
+          // la directive de volume : ses propres instructions décrivent déjà ce
+          // qu'elle doit produire, et y ajouter un second format contradictoire
+          // est la façon la plus sûre de n'obtenir ni l'un ni l'autre.
+          (section.freeform ? '' : `\n${sectionVolumeDirective('7 to 9')}\n\n${SECTION_CONTENT_CONTRACT}`),
       },
     ];
 
@@ -581,6 +673,14 @@ export class ResearchTeamService {
           ...WRITER_CONFIG,
           userId: ctx.userId,
           language: ctx.language,
+          // Une section LIBRE produit du HTML, pas un objet : lui imposer le
+          // mode JSON garantirait l'inverse de ce qu'on lui demande. Le budget
+          // reste large pour la même raison qu'ailleurs — une page composée qui
+          // se coupe en plein milieu ne se rattrape pas.
+          llmOptions: {
+            ...WRITER_CONFIG.llmOptions,
+            ...(section.freeform ? { jsonMode: false } : {}),
+          },
           ...(ctx.sharedCache ? { cachedContent: ctx.sharedCache } : {}),
         },
         messages,
