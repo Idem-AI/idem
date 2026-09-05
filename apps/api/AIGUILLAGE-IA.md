@@ -92,6 +92,43 @@ famille 2.5   thinkingConfig: { thinkingBudget: 0 }
 GLM           extraBody: { thinking: { type: 'disabled' } }
 ```
 
+### Où le raisonnement est COUPÉ, et pourquoi
+
+Le raisonnement n'est pas une qualité en soi : c'est un achat. Il se justifie là
+où le **code n'a pas repris la décision** — partout ailleurs, il ne change plus
+la sortie, mais se décompte de `maxOutputTokens` et se paie en latence.
+
+Ce que le code a repris, et qui n'a donc plus à être délibéré :
+
+| Décision | Reprise par | Effet |
+|---|---|---|
+| la mise en page | le gabarit (`sectionRenderer`) | 21 pages sur 24 |
+| la conformité de charte | le linter (`slopLint`) | toutes |
+| la structure d'une page | l'étape de plan (M5 ①) | toutes les sections |
+| l'unicité chromatique | 648 régions tirées | `branding.colors` |
+| l'unicité typographique | les registres tirés | `branding.typography` |
+
+Ce qui le garde : `branding.logo` (géométrie SVG paramétrique — sans réflexion le
+modèle approxime au lieu d'énumérer), `finance.autofill` (36 mois de séries qui
+doivent s'additionner), `branding.artDirection` (un arbitrage par projet, qui se
+propage partout), et les **pages laissées en composition libre** — les trois
+couvertures et les neuf pages de charte hors gabarit, où le modèle compose
+vraiment.
+
+**Mesuré sur une génération complète : 34 appels raisonnaient, il en reste 11
+(68 % coupés).** Sur `gemini-3.6-flash`, chaque appel coupé économise les 461
+tokens de réflexion mesurés plus haut, soit ~9 700 tokens par génération — et
+le temps de les produire.
+
+La coupure des sections sous gabarit est posée sur le CHEMIN
+(`templatedLlmOptions`, dans `config/ai.config.ts`), pas dans les configurations :
+les trois features concernées sont mixtes — sections templatées d'un côté,
+couverture libre de l'autre — et couper au niveau de la feature dégraderait
+justement la page qui n'a aucun filet. Elle émet les **deux dialectes**, faute
+de quoi elle ne survivrait pas à une bascule de fournisseur.
+
+---
+
 Envoyer le mauvais dialecte n'est pas bénin : `thinkingBudget: 0` sur un 3.x
 renvoie `400 INVALID_ARGUMENT`, et `thinkingLevel: 'minimal'` sur un `pro`
 renvoie `400 — not supported for this model`.

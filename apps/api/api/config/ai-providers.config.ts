@@ -95,6 +95,20 @@ export interface ProviderDefinition {
   /** Modèle de repli propre au fournisseur (optionnel). */
   fallbackModel?: string;
   /**
+   * Appels simultanés que ce fournisseur supporte AVANT que la file d'attente
+   * ne coûte plus que la vague économisée.
+   *
+   * C'est une propriété du FOURNISSEUR, pas de la plateforme : elle dépend de
+   * ses quotas et de sa capacité, qui n'ont aucune raison d'être les mêmes
+   * d'un fournisseur à l'autre. La valeur mesurée sur Z.ai (3) était figée en
+   * dur dans l'ordonnanceur, donc appliquée à Gemini sans que personne ne
+   * l'ait mesurée.
+   *
+   * Surchargeable par `IDEM_MAX_PARALLEL_STEPS`, qui sert à balayer les
+   * valeurs et retenir la meilleure — c'est ainsi qu'elle a été trouvée.
+   */
+  concurrency?: number;
+  /**
    * Modèle servant chaque RÔLE chez ce fournisseur.
    *
    * C'est la table de traduction : elle permet de basculer la plateforme d'un
@@ -133,28 +147,40 @@ export interface ProviderDefinition {
 }
 
 /**
- * Traduit « pas de raisonnement » dans le dialecte du modèle Gemini appelé.
+ * Traduit « pas de raisonnement » dans le dialecte du modèle appelé.
  *
- * Une seule intention côté configuration — `thinkingBudget: 0`, posé par
- * l'étage XS et par toute génération mécanique — et TROIS contrats côté Google,
- * vérifiés par appel réel :
+ * Une seule intention côté configuration — `thinkingBudget: 0`, posé par l'étage
+ * XS et par toute génération mécanique — et autant de contrats que de familles.
  *
- *   famille 2.5   `thinkingConfig: { thinkingBudget: 0 }`        ✔
- *   3.x flash     `thinkingConfig: { thinkingLevel: 'minimal' }` ✔
- *                 (`thinkingBudget: 0` → 400 INVALID_ARGUMENT)
- *   3.x pro       `thinkingConfig: { thinkingLevel: 'low' }`     ✔
- *                 (`minimal` → 400 « not supported for this model »,
- *                  `thinkingBudget: 0` → 400 « only works in thinking mode »)
+ * ⚠️ MESURE, PAS DÉDUCTION. Le niveau accepté ne se devine ni du nom du modèle
+ * ni de sa génération. Relevé par appel réel (`AI_PROBE=1 npm run check:provider`
+ * et la sonde de niveaux) :
  *
- * Pourquoi cela compte, et pas seulement pour le prix : les tokens de réflexion
- * se décomptent de `maxOutputTokens`. Mesuré sur `gemini-3.6-flash` avec un
- * budget de 8 tokens, la réflexion en consomme 5 et la réponse revient VIDE —
- * pas une erreur, pas une troncature visible : rien. C'est la panne que
- * `MIN_TOKENS_FOR_THINKING` documente pour GLM, à l'identique.
+ *   modèle                  minimal   low            défaut
+ *   gemini-3.8-flash        REFUSÉ    0 token        90 tokens
+ *   gemini-3.7-flash        REFUSÉ    0 token        59 tokens
+ *   gemini-3.6-flash        0 token   67 tokens     116 tokens
+ *   gemini-3.5-flash        0 token  100 tokens      84 tokens
+ *   gemini-3.5-flash-lite   0 token   0 token         0 token
+ *   gemini-3.1-flash-lite   0 token  153 tokens       0 token
+ *   gemini-3.1-pro-preview  REFUSÉ   90 tokens      122 tokens  ← plancher réel
+ *   famille 2.5             thinkingBudget: 0 (autre contrat)
  *
- * Un modèle inconnu ne reçoit AUCUN réglage : ignorer une consigne d'économie
- * est bénin, envoyer un argument que le modèle refuse casse la génération.
+ * Deux enseignements contre-intuitifs :
+ *  · `low` n'est pas « un peu de réflexion » — sur 3.7 et 3.8 il en donne ZÉRO,
+ *    alors que `minimal` y est refusé ;
+ *  · `minimal` n'est pas universel : l'envoyer à un modèle qui le refuse rend un
+ *    400 INVALID_ARGUMENT, donc une génération perdue.
+ *
+ * Le défaut est donc `low`, ACCEPTÉ PARTOUT. `minimal` n'est employé que sur les
+ * modèles où il est à la fois accepté et meilleur. Un modèle inconnu reçoit
+ * `low` : se tromper de niveau coûte un peu de réflexion, se tromper de contrat
+ * coûte la génération.
  */
+
+/** Modèles où `minimal` est accepté ET meilleur que `low`. Mesuré, pas déduit. */
+const MINIMAL_THINKING_MODELS = /gemini-3\.(5|6)-flash|gemini-3\.1-flash-lite/i;
+
 export function buildGeminiThinkingConfig(
   modelName: string,
   thinkingBudget: number | undefined
@@ -169,11 +195,13 @@ export function buildGeminiThinkingConfig(
   }
 
   if (/gemini-3/i.test(modelName)) {
-    // Seul `0` exprime « coupe le raisonnement ». Un budget positif sur un 3.x
-    // n'a pas d'équivalent : on laisse le modèle à son réglage par défaut.
+    // Un budget positif sur un 3.x n'a pas d'équivalent : on laisse le défaut.
     if (thinkingBudget > 0) return {};
-    // `pro` refuse `minimal` ; `low` est son plancher.
-    return { thinkingConfig: { thinkingLevel: /pro/i.test(modelName) ? 'low' : 'minimal' } };
+    return {
+      thinkingConfig: {
+        thinkingLevel: MINIMAL_THINKING_MODELS.test(modelName) ? 'minimal' : 'low',
+      },
+    };
   }
 
   return {};
@@ -182,23 +210,21 @@ export function buildGeminiThinkingConfig(
 /**
  * Le modèle sait-il RÉELLEMENT ne pas raisonner ?
  *
- * C'est la question qui compte pour l'étage mécanique : un digest, un plan ou
- * une vérification tiennent en un millier de tokens, et si la réflexion se
- * décompte du même budget, la réponse revient vide.
+ * Question décisive pour l'étage mécanique : un digest, un plan ou une
+ * vérification tiennent en un millier de tokens, et si la réflexion se décompte
+ * du même budget, la réponse revient vide.
  *
- * Distingue trois cas, vérifiés par appel réel :
- *   · 2.5           — budget nul accepté                       → oui
- *   · 3.x flash     — `thinkingLevel: 'minimal'`, 0 token pensé → oui
- *   · 3.x pro       — plancher `low`, ~90 tokens pensés         → NON
+ * Seuls les modèles « pro » ne le savent pas : leur plancher mesuré reste à ~90
+ * tokens de réflexion, et l'API le dit explicitement (« only works in thinking
+ * mode »). Tous les `flash` atteignent zéro, à condition d'employer le bon
+ * niveau — ce dont `buildGeminiThinkingConfig` se charge.
  */
 export function canSuppressThinking(modelName: string): boolean {
   if (/gemini-2\.5/i.test(modelName)) return true;
   if (/gemini-3/i.test(modelName)) return !/pro/i.test(modelName);
-  // Fournisseurs openai-compatible : le raisonnement se coupe par `extraBody`,
-  // pas par ce chemin. On répond « oui » pour ne pas déclencher d'alerte à tort.
+  // Fournisseurs openai-compatible : le raisonnement se coupe par `extraBody`.
   return !/^gemini/i.test(modelName);
 }
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Backend Gemini — LE SEUL BLOC À MODIFIER pour changer d'infrastructure.
@@ -343,16 +369,16 @@ export const AI_PROVIDERS: Record<LLMProvider, ProviderDefinition> = {
     // repassé sur `ai-studio`.
     apiKeyEnv: 'GEMINI_API_KEY',
     /**
-     * Famille 2.5, volontairement.
+     * Gemini tolère plus d'appels de front que Z.ai : ses modèles `flash`
+     * répondent en moins d'une seconde et la capacité n'est pas le facteur
+     * limitant — le QUOTA l'est. Six réduit le nombre de vagues sans allonger la
+     * file ; sur l'offre gratuite c'est le quota qui tranchera, et l'attente sur
+     * 429 s'en charge.
      *
-     * C'est la seule dont le code implémente déjà le contrat de raisonnement :
-     * `thinkingBudget` en tokens, `0` pour le couper (cf. `supportsThinkingBudget`
-     * dans prompt.service). Les modèles 3.x pilotent leur réflexion par
-     * `thinkingLevel` et refusent un budget nul — l'étage XS, dont c'est la
-     * définition même, se remettrait alors à payer du raisonnement en silence.
-     *
-     * Passer en 3.x demande donc d'étendre `supportsThinkingBudget` d'abord.
+     * ⚠️ À MESURER avant de monter davantage : `ResearchTeamService` a relevé
+     * l'inverse de l'intuition sur Z.ai (162 s à 5 contre 121 s à 3).
      */
+    concurrency: Number(process.env.IDEM_GEMINI_CONCURRENCY ?? 6),
     models: {
       // ⚠️ FAMILLE 3.x — la 2.5 est RETIRÉE aux nouveaux comptes.
       //
@@ -376,7 +402,17 @@ export const AI_PROVIDERS: Record<LLMProvider, ProviderDefinition> = {
       // 1 024 tokens reviendrait VIDE.
       mechanical: process.env.IDEM_GEMINI_MECHANICAL_MODEL || 'gemini-3.5-flash-lite',
       writing: process.env.IDEM_GEMINI_WRITING_MODEL || 'gemini-3.6-flash',
-      reasoning: process.env.IDEM_GEMINI_REASONING_MODEL || 'gemini-3.1-pro-preview',
+      // FLASH, PAS PRO — choix de VITESSE, assumé.
+      //
+      // `gemini-3.1-pro-preview` mettait 2,5 s pour rendre huit tokens, et il
+      // REFUSE de ne pas raisonner (« only works in thinking mode ») : son
+      // plancher est `low`, soit ~350 tokens de réflexion facturés et attendus
+      // sur chaque appel, y compris ceux qui n'en tirent rien.
+      //
+      // `gemini-3.8-flash` est le plus capable des flash et accepte
+      // `thinkingLevel: 'minimal'`. Il garde donc un étage distinct de la
+      // rédaction tout en restant pilotable — ce que `pro` n'était pas.
+      reasoning: process.env.IDEM_GEMINI_REASONING_MODEL || 'gemini-3.8-flash',
       vision: process.env.IDEM_GEMINI_VISION_MODEL || 'gemini-3.6-flash',
       ocr: process.env.IDEM_GEMINI_OCR_MODEL || 'gemini-3.6-flash',
       // Génération d'image. `flash-lite-image` est le plus rapide des trois
@@ -401,6 +437,12 @@ export const AI_PROVIDERS: Record<LLMProvider, ProviderDefinition> = {
     // qui renvoie un faux HTTP 200 `{code:500, msg:"404 NOT_FOUND"}`).
     baseUrl: process.env.GLM_API_URL || 'https://api.z.ai/api/paas/v4',
     fallbackModel: GLM_MODELS.writing,
+    /**
+     * Mesuré sur le pipeline complet : 121 s à 3 appels de front, 162 s à 5.
+     * Au-delà de trois, la file d'attente de Z.ai coûte plus que la vague
+     * économisée. Ne pas augmenter sans refaire la mesure.
+     */
+    concurrency: Number(process.env.IDEM_GLM_CONCURRENCY ?? 3),
     models: {
       mechanical: GLM_MODELS.mechanical,
       writing: GLM_MODELS.writing,
@@ -613,4 +655,26 @@ export function resolveGlobalOverride<T extends Pick<FeatureAIConfig, 'provider'
   }
 
   return { ...config, provider: overrideProvider, modelName: translated };
+}
+
+/**
+ * Appels simultanés autorisés, pour le fournisseur RÉELLEMENT en service.
+ *
+ * Résolu à l'exécution plutôt que figé : après une bascule, l'ordonnanceur doit
+ * suivre la capacité du nouveau fournisseur, pas garder celle mesurée sur
+ * l'ancien. `IDEM_MAX_PARALLEL_STEPS` reste prioritaire — c'est la variable qui
+ * sert à balayer les valeurs pour trouver la bonne.
+ */
+export function resolveConcurrency(): number {
+  const forced = Number(process.env.IDEM_MAX_PARALLEL_STEPS);
+  if (Number.isFinite(forced) && forced >= 1) return Math.floor(forced);
+
+  const active = process.env.AI_DEFAULT_PROVIDER as LLMProvider | undefined;
+  const definition =
+    active && AI_PROVIDERS[active] ? AI_PROVIDERS[active] : AI_PROVIDERS[LLMProvider.GLM];
+  const declared = definition.concurrency;
+
+  return Number.isFinite(declared) && (declared as number) >= 1
+    ? Math.floor(declared as number)
+    : 3;
 }

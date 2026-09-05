@@ -11,8 +11,15 @@ import { ProjectModel } from '../../models/project.model';
 import { SectionModel } from '../../models/section.model';
 import { ProjectSectionKey } from '../../models/revision.model';
 // File operations have been removed - using in-memory context
-import { AI_CONFIG, FeatureAIConfig, resolveSectionConfig } from '../../config/ai.config';
+import {
+  AI_CONFIG,
+  FeatureAIConfig,
+  resolveSectionConfig,
+  TEMPLATE_OUTPUT_TOKENS,
+  templatedLlmOptions,
+} from '../../config/ai.config';
 import { applyTier } from '../../config/model-router';
+import { resolveConcurrency } from '../../config/ai-providers.config';
 
 import logger from '../../config/logger';
 import { RunBudget, createRunBudget, runAgent, runAgentPrompt } from '../agents/agent-runtime';
@@ -262,27 +269,17 @@ export function estimateRunBudget(steps: IPromptStep[]): number {
  *
  * ⚠️ NE PAS AUGMENTER sans mesurer. `ResearchTeamService` a fait l'expérience et
  * l'a documentée : monter de 3 à 5 paraît évident — moins de vagues — et donne
- * l'inverse, 162 s contre 121 s sur le pipeline complet. Au-delà de trois, la
- * file d'attente côté fournisseur coûte plus cher que la vague économisée.
+ * l'inverse, 162 s contre 121 s sur le pipeline complet. Au-delà d'un certain
+ * point, la file d'attente côté fournisseur coûte plus cher que la vague
+ * économisée.
  *
- * Cette mesure valait pour l'ordonnanceur de la recherche ; elle n'avait jamais
- * été appliquée à l'ordonnanceur GÉNÉRIQUE, qui lançait toutes les étapes prêtes
- * d'un coup — soit cinq à neuf appels simultanés sur un business plan.
- *
- * Configurable pour être re-mesurable : c'est un réglage d'infrastructure, pas
- * une constante de conception.
+ * Mais ce point DÉPEND DU FOURNISSEUR : la valeur mesurée sur Z.ai n'a aucune
+ * raison de valoir pour Gemini, dont les modèles `flash` répondent en moins
+ * d'une seconde. Elle est donc déclarée à côté du modèle
+ * (`ai-providers.config.ts`) et résolue à l'exécution, pour suivre la bascule.
  */
-const MAX_PARALLEL_STEPS = Math.max(1, Number(process.env.IDEM_MAX_PARALLEL_STEPS ?? 3));
+const maxParallelSteps = (): number => resolveConcurrency();
 
-/**
- * Budget de sortie d'une section rendue par gabarit.
- *
- * Une page A4 pleine porte 550 à 700 mots utiles, soit ~900 tokens ; le contenu
- * structuré qui les transporte tient largement sous 6 000, blocs et libellés
- * compris. Le reste de l'ancien budget servait à écrire du balisage — la partie
- * que le rendu produit désormais gratuitement, et instantanément.
- */
-const TEMPLATE_OUTPUT_TOKENS = Number(process.env.IDEM_TEMPLATE_OUTPUT_TOKENS ?? 6000);
 
 /**
  * Interrupteur global du rendu par gabarit.
@@ -301,6 +298,27 @@ const TEMPLATES_ENABLED = (process.env.IDEM_SECTION_TEMPLATE ?? '').toLowerCase(
  * sur un même projet et un même modèle.
  */
 const PLANNING_ENABLED = (process.env.IDEM_SECTION_PLAN ?? '').toLowerCase() !== 'off';
+
+/**
+ * En dessous de ce volume, on n'AJOUTE PAS d'étape de plan.
+ *
+ * Le plan sépare « décider quoi dire » de « l'écrire », ce qui empêche un petit
+ * modèle de combler quand il manque de matière. Mais sur une page qui ne porte
+ * que deux ou trois blocs — un spécimen de charte, un slide — il n'y a
+ * pratiquement rien à planifier : l'aller-retour coûte alors une seconde ou deux
+ * par page sans rien prévenir.
+ *
+ * Le seuil est exprimé en BLOCS parce que c'est l'unité du brief. Les pages de
+ * business plan (7 à 10 blocs) le franchissent, les pages de charte (2 à 3) et
+ * les slides (3 à 4) non.
+ */
+const PLAN_MIN_BLOCKS = Number(process.env.IDEM_PLAN_MIN_BLOCKS ?? 5);
+
+/** Nombre de blocs visé par une étape, lu depuis sa consigne de volume. */
+function targetBlockCount(volume: string): number {
+  const numbers = (volume.match(/\d+/g) ?? []).map(Number);
+  return numbers.length > 0 ? Math.max(...numbers) : 0;
+}
 
 /**
  * Intervalle minimal entre deux annonces de progression d'une même section.
@@ -538,7 +556,11 @@ export class GenericService {
     // existants) : son échec est détecté avant que la page ne soit écrite, là
     // où le rattraper coûte quelques centaines de tokens au lieu d'une section.
     let planDirective = '';
-    if (step.template && PLANNING_ENABLED) {
+    const worthPlanning =
+      step.template !== undefined &&
+      targetBlockCount(step.template.volume) >= PLAN_MIN_BLOCKS;
+
+    if (step.template && PLANNING_ENABLED && worthPlanning) {
       try {
         const planned = await runAgentPrompt(
           {
@@ -658,9 +680,7 @@ export class GenericService {
             // contenu structuré au lieu de ~10 000 de balisage. Conserver un
             // budget de 28 000 n'apporterait rien et laisserait le raisonnement
             // s'étendre sans objet — or c'est la sortie qui fait la latence.
-            ...(step.template
-              ? { maxOutputTokens: TEMPLATE_OUTPUT_TOKENS, jsonMode: true }
-              : {}),
+            ...(step.template ? templatedLlmOptions(effectiveConfig.llmOptions) : {}),
           },
           // Sans épinglage explicite, la section part à l'étage de sa TÂCHE
           // (`draft` → M) et n'escalade que si la grille qualité échoue. C'est
@@ -1002,7 +1022,7 @@ export class GenericService {
       // Les étapes non lancées ce tour-ci restent en attente et repartiront au
       // tour suivant, dès qu'un créneau se libère.
       for (const step of readySteps) {
-        if (stepPromises.size >= MAX_PARALLEL_STEPS) break;
+        if (stepPromises.size >= maxParallelSteps()) break;
         const stepPromise = executeStep(step);
         stepPromises.set(step.stepName, stepPromise);
 
@@ -1265,7 +1285,7 @@ export class GenericService {
       // pas servir de compteur de créneaux.
       let launched = 0;
       for (const step of readySteps) {
-        if (running.size >= MAX_PARALLEL_STEPS) break;
+        if (running.size >= maxParallelSteps()) break;
         if (stepPromises.has(step.stepName)) continue;
 
         logger.info(`Launching step: ${step.stepName}`);
