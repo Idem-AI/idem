@@ -255,7 +255,6 @@ const featuresToAudit: Named[] = [
   { path: 'branding.artDirection', config: AI_CONFIG.branding.artDirection },
   { path: 'branding.businessCard', config: AI_CONFIG.branding.businessCard },
   { path: 'finance.autofill', config: AI_CONFIG.finance.autofill },
-  { path: 'finance.pdfCover', config: AI_CONFIG.finance.pdfCover },
   { path: 'finance.pdfInterpretation', config: AI_CONFIG.finance.pdfInterpretation },
 ];
 
@@ -305,7 +304,6 @@ const THINKING_JUSTIFIED = new Set([
   'branding.artDirection',
   'branding.businessCard',
   'finance.autofill',
-  'finance.pdfCover',
   'finance.pdfInterpretation',
 ]);
 

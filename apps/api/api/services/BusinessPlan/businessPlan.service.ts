@@ -66,6 +66,10 @@ export const BUSINESS_PLAN_SECTION_NAMES = [
   'Financial Plan',
   'Goal Planning',
   'Appendix',
+  // Bibliographie du livrable, en DERNIER. Elle doit figurer ici : le PDF
+  // rejette en fin de document toute section absente de cette liste, et une
+  // page construite mais jamais affichée est le pire des deux mondes.
+  'Ressources',
 ];
 
 export class BusinessPlanService extends GenericService {
@@ -682,6 +686,9 @@ export class BusinessPlanService extends GenericService {
         // Identité stable pour le cache des recherches : une régénération du
         // même projet doit RÉUTILISER les faits déjà collectés.
         projectId,
+        // Bibliographie rassemblée en fin de document plutôt qu'en pied de
+        // chaque section — construite par le code, sans appel de modèle.
+        resourcesSectionName: 'Ressources',
         brandContext,
         language,
         userId,
@@ -1005,6 +1012,12 @@ export class BusinessPlanService extends GenericService {
       // PLUSIEURS pages A4 (contenu détaillé, graphes, sources), sans qu'un bloc
       // soit coupé entre deux pages. Sans ceci, chaque section est rognée à 1 page.
       multiPage: true,
+      // Empêcher les très grands espaces vides (stretching excessif) après les graphiques
+      pagination: {
+        maxGapAddMm: 3,
+        maxGapAddHardMm: 8,
+        balance: false,
+      },
       // La couverture est une composition pleine page : elle est rendue telle
       // quelle, jamais redécoupée ni étirée par le paginateur.
       fixedPageSections: ['Cover Page'],

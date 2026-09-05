@@ -670,21 +670,10 @@ export const AI_CONFIG = {
     // Couverture du rapport financier : une page pleine, c'est de la création.
     // 2000 tokens ne suffisaient pas à produire une page A4 en HTML+Tailwind ;
     // avec le raisonnement actif, ils ne suffisaient plus du tout.
-    pdfCover: {
-      provider: LLMProvider.GLM,
-      modelName: GLM_MODELS.reasoning,
-      fallbackModels: TEXT_FALLBACK_MODELS,
-      promptType: 'finance-cover-generation',
-      llmOptions: {
-        ...SAMPLING_DIVERGENT,
-        extraBody: { ...THINKING_ON },
-        maxOutputTokens: 20000,
-      },
-    } as FeatureAIConfig,
-    // Lecture commentée des indicateurs : le seul endroit du module finance où
-    // l'on rédige. ⚠️ Le budget est passé de 1500 à 12000 : à 1500, activer le
-    // raisonnement aurait consommé l'intégralité de l'enveloppe et renvoyé une
-    // interprétation VIDE — la panne exacte décrite en tête de GLM_MODELS.
+    // `pdfCover` a été RETIRÉE : la couverture du rapport financier est
+    // désormais construite par le code (`finance-pdf.service.ts`). C'était un
+    // élément fixe — un titre, un nom, une date, un logo — que rien n'obligeait
+    // à faire écrire par un modèle, et qui ne garantissait pas la charte.
     pdfInterpretation: {
       provider: LLMProvider.GLM,
       modelName: GLM_MODELS.reasoning,

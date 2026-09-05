@@ -691,6 +691,65 @@ console.log('\n  Défauts observés sur un business plan livré');
       /jamais une page|jamais UNE PAGE/i.test(src) && /throw new Error/.test(src));
   }
 
+
+  // 6. LA CHARTE EST LUE AU BON ENDROIT. Le rapport financier lisait
+  //    `branding.colors.primary` alors que la forme réelle est
+  //    `colors.colors.primary` : le champ était toujours absent, tout retombait
+  //    sur la palette par défaut d'IDEM, et aucun projet n'a jamais vu sa
+  //    charte dans ce livrable.
+  {
+    const real = {
+      colors: { colors: { primary: '#2D7D5A', secondary: '#F0F7F4', accent: '#FFD700',
+        background: '#F9FBFB', text: '#0B1220' } },
+      typography: { primaryFont: 'Playfair Display', secondaryFont: 'Inter' },
+    } as any;
+    const dsReal = buildDocumentDesignSystem(real, null, buildDocumentSeed(undefined, 'x'));
+    check('la charte est lue à la bonne profondeur (colors.colors.*)',
+      dsReal.colors.primary === '#2D7D5A' && dsReal.colors.accent === '#FFD700',
+      `${dsReal.colors.primary} / ${dsReal.colors.accent}`);
+    check('les polices de la charte sont celles retenues',
+      dsReal.fonts.display === 'Playfair Display' && dsReal.fonts.body === 'Inter',
+      `${dsReal.fonts.display} / ${dsReal.fonts.body}`);
+    // Une charte MAL formée doit retomber sur le défaut, pas planter — mais
+    // elle ne doit surtout pas se confondre avec une charte valide.
+    const dsWrong = buildDocumentDesignSystem({ colors: { primary: '#2D7D5A' } } as any, null,
+      buildDocumentSeed(undefined, 'x'));
+    check('une charte mal formée ne se fait pas passer pour valide',
+      dsWrong.colors.primary !== '#2D7D5A');
+  }
+
+  // 7. LA PAGE « RESSOURCES ». Les sources étaient listées en pied de chaque
+  //    section — neuf bibliographies dispersées, aucune consultable.
+  {
+    const resources = renderSection({
+      kicker: 'Références', title: 'Ressources', lede: 'Sources vérifiées.',
+      blocks: [
+        { kind: 'sources', label: 'Opportunity', items: [
+          { index: 1, title: 'trade.gov', url: 'https://trade.gov/x', domain: 'trade.gov',
+            description: 'Rapport sectoriel.' }] },
+        { kind: 'sources', label: 'Financial Plan', items: [
+          { index: 1, title: 'worldbank.org', url: 'https://worldbank.org/z', domain: 'worldbank.org' }] },
+      ],
+    } as any, dsx, sx(), {});
+    check('les sources portent des liens cliquables',
+      (resources.match(/<a href="https:/g) ?? []).length === 2);
+    check('les sources sont groupées par section d\'origine',
+      resources.includes('Opportunity') && resources.includes('Financial Plan'));
+    check('la description d\'une source est rendue',
+      resources.includes('Rapport sectoriel.'));
+    // Les numéros doivent rester ceux CITÉS dans le texte : deux groupes
+    // repartent donc à 1, sinon les exposants déjà posés deviennent faux.
+    check('la numérotation reste celle des appels de note (par section)',
+      (resources.match(/>1\.</g) ?? []).length === 2);
+  }
+
+  // 8. LES SOURCES NE SONT PLUS EN PIED DE SECTION.
+  {
+    const src = readFileSync(resolve(__dirname, '../services/research/research-team.service.ts'), 'utf-8');
+    check('research-team : aucune liste de sources ajoutée par section',
+      !/blocks\.push\(\{\s*kind: 'sources'/.test(src));
+  }
+
   const orphan = renderSection({ kicker: 'K', title: 'Products & Service Infrastructure',
     lede: 'L', blocks: [{ kind: 'prose', paragraphs: ['x'] }] } as any, dsx, sx(), {});
   check('une esperluette ne reste jamais seule en bout de ligne',
