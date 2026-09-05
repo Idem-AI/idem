@@ -26,6 +26,20 @@ export const AGENT_COVER_PROMPT = `<role>Editorial art director. You are composi
 - A constructed graphic element (flat, rule, shape, typographic treatment) carrying the metaphor.
 </mandatory_elements>
 
+<never_on_a_cover>
+NO FIGURES. No revenue, no net income, no growth rate, no share capital, no
+margin, no valuation, no funding ask — no currency amount of any kind, and no
+percentage.
+
+This is not a matter of taste. A cover states WHO this is and WHAT they do; it
+is the one page that gets photographed, forwarded and shown out of context, and
+a projection printed on it travels as a promise with none of the assumptions
+that qualify it. The numbers belong in the sections that establish them, where
+the reader meets them with their basis.
+
+Also absent: KPI blocks, metric rows, charts, and any "key figures" strip.
+</never_on_a_cover>
+
 <craft_bar>
 - Three typographic levels minimum, with decisive scale jumps. The company name and the version line cannot be of similar size.
 - One focal point. If two elements compete for attention, shrink one.
@@ -61,6 +75,7 @@ Re-read your output once before answering:
 2. Does every hex value belong to the charter palette?
 3. Is the art direction's compositional gesture visible?
 4. Does any text exceed 297mm or break the 15mm safe margin?
+5. Is there ANY currency amount, percentage or metric on the page? If so, remove it and recompose — a cover carries no figures.
 </final_self_review>
 
 <project_context>

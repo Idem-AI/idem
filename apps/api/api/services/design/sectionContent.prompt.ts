@@ -42,10 +42,27 @@ Available block types — pick what the SUBSTANCE calls for, never a fixed recip
     most — the renderer gives it a different form. Do NOT emit three
     interchangeable cards.
 
-{"kind":"chart","chartType":"bar"|"stacked"|"line","labels":["2025","2026"],
+{"kind":"chart","chartType":"line","labels":["2025","2026"],
  "series":[{"name":"Revenue","data":[120,180]}],"unit":"MFCFA",
  "readingKey":"what the reader should CONCLUDE, not what the chart displays"}
     Numbers only, no formatting. The renderer draws it.
+
+    CHOOSE chartType FROM THE QUESTION THE DATA ANSWERS. Picking "bar" every
+    time is the single most common failure here: a share of a whole drawn as
+    bars, or a trend drawn as bars, loses the meaning the chart existed for.
+
+      line          how one thing moves over TIME (3+ periods)
+      area          same, when the accumulated volume matters as much as the trend
+      bar           comparing ONE measure across a few named items
+      groupedBar    comparing 2-3 measures across the same items, side by side
+      stacked       how a total BREAKS DOWN, period by period
+      horizontalBar ranking items — use it whenever labels are long
+      pie           parts of ONE whole, 3 to 6 slices, summing to 100%
+      doughnut      same as pie, when one central figure carries the message
+      radar         one or two profiles compared across 4-6 criteria
+
+    Never pie or doughnut for anything that is not a share of one whole, and
+    never more than 6 slices — beyond that no reader distinguishes them.
 
 {"kind":"timeline","steps":[{"date":"T1 2026","title":"…","body":"…"}]}
 {"kind":"quote","text":"…","attribution":"…"}

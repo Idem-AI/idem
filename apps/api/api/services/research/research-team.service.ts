@@ -104,12 +104,30 @@ const WRITER_CONFIG: PromptConfig = {
   provider: AI_CONFIG.businessPlan.provider,
   modelName: AI_CONFIG.businessPlan.modelName,
   promptType: 'research-writer',
-  // Le rédacteur produit une PAGE A4 HTML riche (Tailwind + graphes Chart.js) :
-  // le budget doit rester assez large pour que le HTML ne soit pas tronqué en
-  // plein milieu — une section coupée ou un graphe cassé ne se rattrape pas.
-  // Ramené de 16 000 à 10 000 : les sections observées tiennent largement
-  // dessous, et ce sont les tokens produits qui font la latence.
-  llmOptions: { maxOutputTokens: 10000, temperature: 0.55 },
+  // Le rédacteur produit désormais du CONTENU STRUCTURÉ (`SectionContent`), pas
+  // du HTML : c'est le gabarit qui compose la page. Trois conséquences, et
+  // c'est ici qu'elles se règlent.
+  //
+  //  · RAISONNEMENT COUPÉ. Il servait à arbitrer une mise en page et à tenir la
+  //    charte ; le gabarit et le linter ont repris les deux. Ce qui restait
+  //    n'était plus de la réflexion utile mais du budget consommé — et les
+  //    tokens de réflexion se décomptent de `maxOutputTokens`. C'est ce qui
+  //    tronquait les sections : celles issues de la recherche sont les plus
+  //    longues du livrable, donc les premières à toucher le plafond. Trois
+  //    pages d'un business plan livré sont ainsi sorties en JSON brut.
+  //  · MODE JSON. La sortie est un objet ; l'exiger évite le préambule en prose
+  //    que certains modèles ajoutent et qui fait échouer l'analyse.
+  //  · BUDGET INCHANGÉ à 10 000, volontairement large. La réflexion ne le
+  //    grignote plus, le contenu réel tient sous 3 000, et la marge restante ne
+  //    coûte rien : ce sont les tokens PRODUITS qui font la latence, pas le
+  //    plafond autorisé. Cette marge est ce qui rend la troncature improbable.
+  llmOptions: {
+    maxOutputTokens: 10000,
+    temperature: 0.55,
+    thinkingBudget: 0,
+    jsonMode: true,
+    extraBody: { thinking: { type: 'disabled' } },
+  },
 };
 
 const VERIFIER_CONFIG: PromptConfig = {
@@ -828,10 +846,27 @@ export class ResearchTeamService {
     const parsed = normalizeSectionContent(parseLlmJson(content));
 
     if (!parsed) {
+      // ── LA SORTIE BRUTE NE DEVIENT JAMAIS UNE PAGE ──────────────────────
+      //
+      // Ce repli renvoyait `content` tel quel. Les sections issues de la
+      // recherche sont les plus longues du livrable — beaucoup de contexte,
+      // beaucoup de citations — donc les premières à dépasser le budget de
+      // sortie : ce sont elles qu'on retrouvait imprimées en JSON brut au
+      // milieu d'un business plan.
+      //
+      // On lève. La section rejoint `failedSteps` chez l'appelant, qui
+      // l'annonce ; le document est alors incomplet et le dit, plutôt
+      // qu'abîmé sans le dire. Cf. le garde-fou jumeau dans
+      // `generic.service.ts` — les deux chemins de rendu doivent tenir la
+      // même règle, sans quoi la garantie ne vaut rien.
+      const head = content.slice(0, 160).replace(/\s+/g, ' ');
       logger.error(
-        `ResearchTeam « ${sectionName} » : contenu illisible, repli sur la sortie brute.`
+        `ResearchTeam « ${sectionName} » : contenu illisible même après réparation ` +
+          `de troncature. Section abandonnée plutôt que livrée en brut. Début : ${head}`
       );
-      return content;
+      throw new Error(
+        `section de recherche « ${sectionName} » : contenu structuré illisible`
+      );
     }
 
     // Les références viennent des URLs RÉELLES du moteur, jamais du modèle.
