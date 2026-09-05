@@ -29,11 +29,14 @@ import {
 } from '../config/ai.config';
 import {
   GLM_ENDPOINTS,
+  buildGeminiThinkingConfig,
+  canSuppressThinking,
   getGlmApiKey,
   getProvider,
   providerSupports,
   resolveGlobalOverride,
 } from '../config/ai-providers.config';
+import { applyAiOverride } from '../config/ai-overrides.config';
 import { describeGeminiBackend, getGoogleGenAIClient } from '../config/google-genai.client';
 import { withGeminiFallback } from '../utils/gemini-fallback';
 import { describeError, isTransientNetworkError, sleep, withRetry } from '../utils/retry';
@@ -50,26 +53,40 @@ import { aiUsageService } from './ai-usage.service';
 export { LLMProvider, LLMOptions };
 
 /**
- * Le modèle accepte-t-il `thinkingConfig.thinkingBudget` ?
- *
- * Google pilote le raisonnement différemment selon la génération: la famille
- * 2.5 prend un budget en tokens (0 = désactivé), les modèles 3.x un niveau
- * (`thinkingLevel`) dont le minimum n'est pas « aucun ». Envoyer un budget nul
- * à un 3.x fait donc échouer la requête — et comme un appel peut basculer sur
- * un repli d'une autre famille, la question se pose modèle par modèle, pas une
- * fois pour toutes. Un modèle inconnu est traité comme non supporté: ignorer un
- * réglage d'économie est bénin, casser la génération ne l'est pas.
- */
-function supportsThinkingBudget(modelName: string): boolean {
-  return /gemini-2\.5/i.test(modelName);
-}
-
-/**
  * Pause entre deux modèles de la chaîne de repli, quand l'échec précédent était
  * une panne réseau. Basculer de modèle ne répare pas une connexion absente: il
  * faut aussi laisser passer quelques instants.
  */
 const INTER_MODEL_DELAY_MS = 1000;
+
+/**
+ * Résout le couple (fournisseur, modèle) réellement appelé.
+ *
+ * Trois niveaux, du plus général au plus précis, et le plus précis l'emporte :
+ *   1. ce que la feature déclare      (`ai.config.ts`)
+ *   2. `AI_DEFAULT_PROVIDER`          — bascule globale, traduite par RÔLE
+ *   3. `AI_OVERRIDES`                 — surcharge ciblée, par `promptType`
+ *
+ * Regroupé ici pour que les quatre points d'entrée du service (prompt, outils,
+ * flux, recherche fondée) appliquent exactement la même règle. Une divergence
+ * entre eux se manifesterait par une génération qui part sur un fournisseur
+ * différent des autres, sans que rien ne le dise.
+ */
+function resolveRouting<T extends PromptConfig>(request: T): T {
+  const switched = resolveGlobalOverride(request);
+  const { config, applied } = applyAiOverride(switched, request.promptType);
+
+  if (applied) {
+    logger.info(`Aiguillage: surcharge "${applied}" (promptType=${request.promptType ?? '—'})`);
+  } else if (switched.provider !== request.provider || switched.modelName !== request.modelName) {
+    logger.info(
+      `Aiguillage: bascule globale ${request.provider}/${request.modelName} → ` +
+        `${switched.provider}/${switched.modelName}`
+    );
+  }
+
+  return config as T;
+}
 
 /**
  * Le mode JSON doit-il être demandé au fournisseur pour cet appel ?
@@ -441,9 +458,7 @@ export class PromptService {
       ...(llmOptions.temperature !== undefined && { temperature: llmOptions.temperature }),
       ...(llmOptions.topP && { topP: llmOptions.topP }),
       ...(llmOptions.topK && { topK: llmOptions.topK }),
-      ...(llmOptions.thinkingBudget !== undefined && supportsThinkingBudget(model)
-        ? { thinkingConfig: { thinkingBudget: llmOptions.thinkingBudget } }
-        : {}),
+      ...buildGeminiThinkingConfig(model, llmOptions.thinkingBudget),
       // Sortie JSON contrainte — équivalent Gemini de `response_format` côté
       // OpenAI. Sans cette ligne, `jsonMode` n'aurait d'effet que sur un
       // fournisseur, et la garantie de format dépendrait de qui sert le modèle :
@@ -452,10 +467,14 @@ export class PromptService {
       ...(cachedContent && { cachedContent }),
     });
 
-    if (llmOptions.thinkingBudget !== undefined && !supportsThinkingBudget(modelName)) {
-      logger.info(
-        `thinkingBudget=${llmOptions.thinkingBudget} ignoré pour "${modelName}" : réglage propre à la ` +
-          `famille Gemini 2.5. Épingler un modèle 2.5 dans ai.config.ts pour le rendre effectif.`
+    if (
+      llmOptions.thinkingBudget === 0 &&
+      !canSuppressThinking(modelName)
+    ) {
+      logger.warn(
+        `Raisonnement NON coupé pour "${modelName}" : ce modèle n'expose aucun réglage connu. ` +
+          `Les tokens de réflexion se décompteront de maxOutputTokens ` +
+          `(${llmOptions.maxOutputTokens ?? 'défaut'}) — une réponse vide est possible sur un budget serré.`
       );
     }
 
@@ -913,7 +932,7 @@ export class PromptService {
     // Interrupteur global optionnel (AI_DEFAULT_PROVIDER / AI_DEFAULT_MODEL) :
     // permet de faire tourner idem entièrement sur un autre fournisseur sans
     // toucher aux configs par fonctionnalité. Sans variable d'env → no-op.
-    const { provider, modelName } = resolveGlobalOverride(request);
+    const { provider, modelName } = resolveRouting(request);
     const {
       llmOptions = {},
       file,
@@ -1052,7 +1071,12 @@ export class PromptService {
     // `kind === 'gemini'` et appliquait `TEXT_FALLBACK_MODELS`, devenue
     // entre-temps 100 % GLM: il servait des noms GLM à Vertex et laissait GLM
     // sans repli. Cf. ai-providers.config.ts.
-    const declaredFallbacks = request.fallbackModels ?? [];
+    // Une bascule de fournisseur invalide les replis DÉCLARÉS : ils nomment des
+    // modèles de l'ancien fournisseur, que le nouveau ne connaît pas. Les
+    // envoyer quand même produirait une cascade de 404 à l'endroit précis où le
+    // filet devait servir.
+    const providerSwitched = provider !== request.provider;
+    const declaredFallbacks = providerSwitched ? [] : (request.fallbackModels ?? []);
     const effectiveFallbacks =
       declaredFallbacks.length > 0
         ? declaredFallbacks
@@ -1191,7 +1215,7 @@ export class PromptService {
     executeTool: (name: string, args: Record<string, unknown>) => Promise<unknown>,
     options: { maxToolTurns?: number } = {}
   ): Promise<string> {
-    const { provider, modelName } = resolveGlobalOverride(request);
+    const { provider, modelName } = resolveRouting(request);
     const { llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
 
     if (!messages || messages.length === 0) {
@@ -1387,7 +1411,12 @@ export class PromptService {
     request: PromptConfig,
     messages: AIChatMessage[]
   ): Promise<GroundedResult> {
-    const { provider, llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
+    // Même interrupteur global que les autres points d'entrée : sans lui, une
+    // bascule de fournisseur laissait la recherche fondée sur l'ancien — donc
+    // sur un endpoint dont la clé n'est plus configurée.
+    const { provider, modelName: overriddenModel } = resolveRouting(request);
+    const { llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
+    request = { ...request, provider, modelName: overriddenModel };
 
     if (!messages || messages.length === 0) {
       throw new Error('Messages array cannot be empty.');
@@ -1397,7 +1426,7 @@ export class PromptService {
     // intégré au modèle, Z.ai par un endpoint de recherche distinct. Les deux
     // rendent le même contrat — du texte et de vraies sources.
     const groundingSupported = providerSupports(provider, 'grounding');
-    const modelName = groundingSupported ? request.modelName : AI_CONFIG.default.modelName;
+    const modelName = groundingSupported ? overriddenModel : AI_CONFIG.default.modelName;
     if (!groundingSupported) {
       logger.warn(
         `runGroundedResearch: le fournisseur ${provider} ne fonde pas ses réponses — repli sur ${modelName}.`
@@ -1698,7 +1727,7 @@ export class PromptService {
     messages: AIChatMessage[],
     onDelta: (cumulativeText: string) => void
   ): Promise<string> {
-    const { provider, modelName } = resolveGlobalOverride(request);
+    const { provider, modelName } = resolveRouting(request);
     const {
       llmOptions = {},
       userId,
