@@ -1123,11 +1123,12 @@ export class BrandingService extends GenericService {
         );
 
         if (TEMPLATED_PAGES.has(step.stepName)) {
-          // Le prompt d'origine décrit une mise en page que le rendu produit
-          // désormais : on lui substitue le brief de CONTENU. Le préfixe stable
-          // (contexte projet, charte, direction artistique) reste, lui, en place.
-          step.promptConstant = CHARTER_PAGE_BRIEFS[step.stepName] ?? step.promptConstant;
           step.template = {
+            // Le prompt d'origine décrit une mise en page que le rendu produit
+            // désormais : sous gabarit, c'est le brief de CONTENU qui part.
+            // `promptConstant` reste intact — il est le repli quand le gabarit
+            // est coupé, où la page doit de nouveau produire du HTML.
+            contentBrief: CHARTER_PAGE_BRIEFS[step.stepName],
             designSystem: charterDesignSystem,
             seed,
             // Une page de charte porte un spécimen et ses règles d'usage : peu

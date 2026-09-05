@@ -444,6 +444,11 @@ export class PromptService {
       ...(llmOptions.thinkingBudget !== undefined && supportsThinkingBudget(model)
         ? { thinkingConfig: { thinkingBudget: llmOptions.thinkingBudget } }
         : {}),
+      // Sortie JSON contrainte — équivalent Gemini de `response_format` côté
+      // OpenAI. Sans cette ligne, `jsonMode` n'aurait d'effet que sur un
+      // fournisseur, et la garantie de format dépendrait de qui sert le modèle :
+      // exactement ce que le dispositif cherche à supprimer.
+      ...(llmOptions.jsonMode ? { responseMimeType: 'application/json' } : {}),
       ...(cachedContent && { cachedContent }),
     });
 

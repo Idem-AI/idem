@@ -26,6 +26,7 @@ import { AGENT_FINANCIAL_PLAN_PROMPT } from './prompts/agent-financial-plan.prom
 import { AGENT_GOAL_PLANNING_PROMPT } from './prompts/agent-goal-planning.prompt';
 import { AGENT_APPENDIX_PROMPT } from './prompts/agent-appendix.prompt';
 import { BP_SECTION_EXAMPLE } from './prompts/section-example.prompt';
+import { BP_SECTION_BRIEFS } from './prompts/section-briefs.prompt';
 import { TeamMember } from '../../models/project.model';
 import { storageService } from '../storage.service';
 import { buildLogoBlock, collectLogoUrls } from '../../utils/brand-context.util';
@@ -247,17 +248,26 @@ export class BusinessPlanService extends GenericService {
        * distinct de celui de ses voisines.
        */
       const templated = (
-        prompt: string,
+        fallbackPrompt: string,
         stepName: string,
         volume: string,
         extra = ''
       ): IPromptStep => {
         sectionIndex += 1;
         return {
-          promptConstant: `${prompt}${extra}`,
+          // Le prompt d'ORIGINE reste ici : il est le repli quand le gabarit est
+          // coupé (`IDEM_SECTION_TEMPLATE=off`), auquel cas la section doit de
+          // nouveau produire du HTML.
+          promptConstant: `${fallbackPrompt}${extra}`,
           stepName,
           stablePrefix: templatedPrefix,
           template: {
+            // Sous gabarit, c'est le brief de CONTENU qui part. Le prompt
+            // d'origine consacrait les trois quarts de son volume à une
+            // composition que le rendu produit désormais (format de page,
+            // Tailwind, Chart.js, compatibilité éditeur) : une consigne inerte
+            // n'est pas neutre, elle prend la place de celles qui comptent.
+            contentBrief: `${BP_SECTION_BRIEFS[stepName] ?? fallbackPrompt}${extra}`,
             designSystem,
             seed: buildSectionSeed(
               artDirection?.styleId,
