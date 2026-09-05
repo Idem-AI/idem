@@ -18,6 +18,16 @@ import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../../config/logger';
 import { AI_CONFIG, GLM_MODELS, LLMProvider } from '../../config/ai.config';
+import {
+  SECTION_CONTENT_CONTRACT,
+  sectionVolumeDirective,
+} from '../design/sectionContent.prompt';
+import { normalizeSectionContent } from '../design/sectionContent';
+import { renderSection } from '../design/sectionRenderer';
+import { buildDocumentSeed, buildSectionSeed } from '../design/designSeed';
+import { BrandCharter, buildDocumentDesignSystem } from '../design/documentDesignSystem';
+import { ArtDirectionModel } from '../../models/art-direction.model';
+import { parseLlmJson } from '../../utils/llm-json.util';
 import { cacheService } from '../cache.service';
 import {
   PromptService,
@@ -60,6 +70,22 @@ export interface ResearchTeamContext {
   currency?: string;
   /** Nom d'un cache de contexte partagé (renseigné en interne par le run). */
   sharedCache?: string;
+
+  // ── Ce dont le RENDU a besoin ──────────────────────────────────────────────
+  // Une section issue de la recherche est une section du document : elle doit
+  // partager sa charte, sa direction artistique et sa graine. Sans ces champs,
+  // elle retomberait sur des valeurs par défaut et le document aurait deux
+  // identités visuelles.
+  /** Charte du projet (palette, typographie). */
+  charter?: BrandCharter;
+  /** Direction artistique retenue pour le projet. */
+  artDirection?: ArtDirectionModel | null;
+  /** Clé du livrable, pour la graine — ex. `businessplan:<projectId>`. */
+  documentKey?: string;
+  /** Archétypes déjà attribués : partagé par le run pour éviter les répétitions. */
+  usedArchetypes?: Set<string>;
+  logoUrl?: string;
+  brandName?: string;
 }
 
 const RESEARCH_CONFIG: PromptConfig = {
@@ -156,7 +182,7 @@ export class ResearchTeamService {
     for (let i = 0; i < sections.length; i += SECTION_CONCURRENCY) {
       const batch = sections.slice(i, i + SECTION_CONCURRENCY);
       const settled = await Promise.all(
-        batch.map((section) => this.runSection(runId, section, runCtx, emit))
+        batch.map((section) => this.runSection(runId, section, runCtx, emit, sections.indexOf(section)))
       );
       for (const section of settled) {
         results.push(section);
@@ -217,7 +243,9 @@ export class ResearchTeamService {
     runId: string,
     section: DeliverableSection,
     ctx: ResearchTeamContext,
-    emit: ResearchEmit
+    emit: ResearchEmit,
+    /** Rang de la section dans le livrable — certains archétypes en font un élément graphique. */
+    sectionIndex: number
   ): Promise<ResearchedSection> {
     try {
       let sources: ResearchSource[] = [];
@@ -246,7 +274,13 @@ export class ResearchTeamService {
         );
       }
 
-      const finalizedHtml = this.finalizeSectionHtml(finalData, sources, ctx.language);
+      const finalizedHtml = this.renderResearchedSection(
+        finalData,
+        sources,
+        ctx,
+        section.name,
+        sectionIndex + 1
+      );
       const result: ResearchedSection = {
         name: section.name,
         data: finalizedHtml,
@@ -475,12 +509,12 @@ export class ResearchTeamService {
     const sourceList = this.renderSourceList(sources);
     const groundingRules = section.needsResearch
       ? 'DATA AND CITATION RULES (STRICT):\n' +
-        '- Every figure, statistic, market size or share, rate or amount shown MUST be followed by an inline citation marker of the form [sN] pointing at the source list below.\n' +
-        '- CHARTS (Chart.js) may plot ONLY real data taken from the research synthesis or from the supplied financial data. NEVER plot a chart from invented figures: when no reliable, sourced numeric series is available for a chart, replace it with a qualitative visual (diagram, list, callout) rather than an invented chart.\n' +
+        '- Every figure, statistic, market size or share, rate or amount MUST carry an inline citation marker of the form [sN], pointing at the numbered source list below. Write it in the text itself: "2,3 Md FCFA [s0]".\n' +
+        '- A "chart" block may carry ONLY real numbers taken from the research synthesis or the supplied financial data. When no sourced series exists, use a "table", a "metrics" row or prose instead — never an invented chart.\n' +
         '- Use ONLY the facts present in the research synthesis. When a data point is missing, say so explicitly rather than estimating.\n' +
         '- Never invent a source identifier: use only the [sN] listed.\n' +
-        '- Do NOT add a "Sources" list yourself at the end: it is appended to the document automatically.'
-      : 'This section is qualitative (no web research): do not invent market statistics or external figures. Any charts may only illustrate elements internal to the plan (milestones, timeline, objective breakdown), with no invented market figures.';
+        '- Do NOT emit a "sources" block: the reference list is attached from the real URLs, which you do not have.'
+      : 'This section is qualitative (no web research): do not invent market statistics or external figures. A "chart" block may only plot elements internal to the plan (milestones, objective breakdown), never invented market figures.';
 
     // Le contexte projet/marque est déjà dans le cache partagé quand il est
     // actif → on ne le renvoie pas (économie d'input tokens).
@@ -490,10 +524,8 @@ export class ResearchTeamService {
       {
         role: 'system',
         content:
-          'You are an editorial art director and an expert writer of investor-grade business plans. ' +
-          'You produce A4 PAGES in HTML + Tailwind CSS (careful layout, Chart.js charts), ' +
-          'following the supplied content and layout instructions TO THE LETTER (structure, charts, multi-page A4 format). ' +
-          'You write in the requested language, in a professional and concrete style. ' +
+          'You write one section of an investor-grade business plan, from verified facts. ' +
+          'You write in the requested language, in a professional and concrete style.\n\n' +
           groundingRules,
       },
       {
@@ -506,8 +538,7 @@ export class ResearchTeamService {
             ? `\n--- SYNTHÈSE DE RECHERCHE (faits réels collectés — SEULE source de chiffres autorisée) ---\n${researchDigest}\n` +
               `\n--- SOURCES DISPONIBLES (utilise ces ids pour les citations [sN]) ---\n${sourceList}\n`
             : '') +
-          `\nProduis UNIQUEMENT le HTML (Tailwind) de la section « ${section.name} », en respectant le format A4 (la page peut s'étendre sur plusieurs pages A4 si le contenu est riche). ` +
-          'Pas de bloc de code markdown, pas de préfixe « html », pas d\'explication : uniquement le HTML de la section.',
+          `\n${sectionVolumeDirective('7 to 9')}\n\n${SECTION_CONTENT_CONTRACT}`,
       },
     ];
 
@@ -590,7 +621,10 @@ export class ResearchTeamService {
     // IMPORTANT: le draft est du HTML → on ne vérifie que le TEXTE VISIBLE
     // (les classes Tailwind `w-[210mm]`, couleurs `#2563eb` et scripts Chart.js
     // regorgent de nombres qui ne sont PAS des données à sourcer).
-    const numeric = this.extractNumericSentences(this.htmlToVisibleText(draft));
+    // Le brouillon est désormais du CONTENU structuré, pas du HTML : le texte
+    // visible s'en extrait par les valeurs de chaînes, sans passer par un
+    // dépouillement de balises.
+    const numeric = this.extractNumericSentences(visibleTextOf(draft));
     if (!numeric) {
       const verdict: VerificationVerdict = {
         passed: true,
@@ -768,63 +802,74 @@ export class ResearchTeamService {
    *  2. ajoute un bloc « Sources » déterministe (généré côté serveur à partir de
    *     `sources`, donc TOUJOURS présent dans le document et jamais halluciné).
    */
-  private finalizeSectionHtml(
+  /**
+   * Rend la section AU FORMAT DU DOCUMENT.
+   *
+   * Une section issue de la recherche n'est pas une page à part : c'est une
+   * section du business plan, qui doit avoir la même grille, la même palette et
+   * la même typographie que les huit autres. Le seul écart admis est la
+   * présence d'appels de note et d'une liste de références.
+   *
+   * Le rédacteur produit donc du CONTENU structuré, comme partout ailleurs, et
+   * le gabarit fabrique la page. Auparavant il rendait son propre HTML, ce qui
+   * donnait un document à deux mises en page — et des pages qu'aucun contrôle
+   * ne couvrait, réduites à l'échelle par le paginateur quand un bloc dépassait.
+   *
+   * Le repli est conservé : si le contenu est illisible, on rend le texte brut
+   * plutôt que de perdre la section.
+   */
+  private renderResearchedSection(
     content: string,
     sources: ResearchSource[],
-    language: string
+    ctx: ResearchTeamContext,
+    sectionName: string,
+    index: number
   ): string {
-    const validIds = new Set(sources.map((s) => s.id.toLowerCase()));
-    // [sN] → exposant cliquable-like ; garde le mapping numéro ↔ liste des sources.
-    let html = content.replace(/\[s(\d+)\]/gi, (_m, n: string) => {
-      if (!validIds.has(`s${n}`.toLowerCase())) return '';
-      return `<sup class="align-super text-[9px] font-semibold text-[#2563eb]">${n}</sup>`;
-    });
+    const parsed = normalizeSectionContent(parseLlmJson(content));
 
-    if (sources.length === 0) return html.trim();
-    return `${html.trim()}\n${this.renderSourcesHtml(sources, language)}`;
-  }
+    if (!parsed) {
+      logger.error(
+        `ResearchTeam « ${sectionName} » : contenu illisible, repli sur la sortie brute.`
+      );
+      return content;
+    }
 
-  /**
-   * Bloc « Sources » en HTML, volontairement « sanitizer-safe » : pas de titre
-   * markdown `#### Sources`, pas de marqueur `[sN]`, pas d'ancre de redirection
-   * grounding — tous supprimés par {@link sanitizeSectionHtml} avant le PDF.
-   * Le numéro affiché correspond au N des exposants [sN] du corps.
-   */
-  private renderSourcesHtml(sources: ResearchSource[], language: string): string {
-    const title = language.toLowerCase().startsWith('fr') ? 'Sources' : 'Sources';
-    const items = sources
-      .map((s) => {
-        const n = s.id.replace(/^s/i, '');
-        const domain = s.domain
-          ? ` <span class="text-gray-400">— ${this.escapeHtml(s.domain)}</span>`
-          : '';
-        return (
-          `<li class="mb-1"><span class="font-semibold text-gray-700">${this.escapeHtml(n)}.</span> ` +
-          `<span class="text-gray-600">${this.escapeHtml(s.title)}</span>${domain}</li>`
-        );
-      })
-      .join('');
-    return (
-      '<div class="w-[210mm] px-[12mm] pb-[12mm] pt-6 mt-6 border-t border-gray-200 break-inside-avoid" ' +
-      'style="break-inside:avoid;page-break-inside:avoid;">' +
-      `<h3 class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-2">${title}</h3>` +
-      `<ol class="list-none text-[10px] leading-snug">${items}</ol></div>`
+    // Les références viennent des URLs RÉELLES du moteur, jamais du modèle.
+    const blocks = [...parsed.blocks];
+    if (sources.length > 0) {
+      blocks.push({
+        kind: 'sources',
+        items: sources.map((source, position) => ({
+          index: Number.parseInt(source.id.replace(/^s/i, ''), 10) || position,
+          title: source.title,
+          url: source.url,
+          // ⚠️ Jamais l'hôte de l'URL : le grounding Google renvoie un
+          // redirecteur (`vertexaisearch.cloud.google.com`) que personne ne
+          // reconnaît et qui ne dit rien de l'éditeur. Le domaine réel est
+          // fourni à part par le moteur ; en son absence, on n'affiche rien.
+          domain: source.domain,
+        })),
+      });
+    }
+
+    const artDirection = ctx.artDirection ?? null;
+    const documentKey = ctx.documentKey ?? 'research';
+    const documentSeed = buildDocumentSeed(artDirection?.styleId, documentKey);
+    const designSystem = buildDocumentDesignSystem(ctx.charter, artDirection, documentSeed);
+    const seed = buildSectionSeed(
+      artDirection?.styleId,
+      documentKey,
+      sectionName,
+      ctx.usedArchetypes ?? new Set()
     );
+
+    return renderSection({ ...parsed, blocks }, designSystem, seed, {
+      logoUrl: ctx.logoUrl,
+      brandName: ctx.brandName,
+      index,
+    });
   }
 
-  /** Texte visible d'un HTML (sans <script>/<style>/balises) pour la vérification. */
-  private htmlToVisibleText(html: string): string {
-    return html
-      .replace(/<script\b[\s\S]*?<\/script>/gi, ' ')
-      .replace(/<style\b[\s\S]*?<\/style>/gi, ' ')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/&nbsp;/gi, ' ')
-      .replace(/&amp;/gi, '&')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
-  /** Échappe le texte injecté dans le HTML des sources. */
   private escapeHtml(text: string): string {
     return text
       .replace(/&/g, '&amp;')
@@ -904,3 +949,29 @@ export class ResearchTeamService {
 }
 
 export const researchTeamService = new ResearchTeamService(promptService);
+
+/**
+ * Texte visible d'une sortie de rédacteur.
+ *
+ * Le rédacteur produit du JSON de contenu : le texte vit dans les valeurs de
+ * chaînes. On les concatène, ce qui suffit au vérificateur — qui cherche des
+ * phrases chiffrées, pas une mise en page.
+ *
+ * Repli sur un dépouillement de balises quand la sortie n'est pas du JSON
+ * (repli du rendu, ancien format en cache).
+ */
+function visibleTextOf(raw: string): string {
+  try {
+    const parsed = JSON.parse(raw.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim());
+    const parts: string[] = [];
+    const walk = (node: unknown): void => {
+      if (typeof node === 'string') parts.push(node);
+      else if (Array.isArray(node)) node.forEach(walk);
+      else if (node && typeof node === 'object') Object.values(node).forEach(walk);
+    };
+    walk(parsed);
+    return parts.join(' ');
+  } catch {
+    return raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+}

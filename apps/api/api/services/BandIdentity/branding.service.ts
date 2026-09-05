@@ -1131,9 +1131,11 @@ export class BrandingService extends GenericService {
             contentBrief: CHARTER_PAGE_BRIEFS[step.stepName],
             designSystem: charterDesignSystem,
             seed,
-            // Une page de charte porte un spécimen et ses règles d'usage : peu
-            // de blocs, et le spécimen en occupe déjà un.
-            volume: '3 to 4',
+            // Une page de charte est ROGNÉE (une section = une page) : elle
+            // porte l'équivalent de 0,55 page A4, dont 0,15 déjà pris par le
+            // spécimen injecté. Deux à trois blocs, pas davantage — au-delà, le
+            // rendu les écarte et le travail est payé pour rien.
+            volume: '2 to 3',
             prependBlocks: specimensFor(step.stepName),
             render: {
               logoUrl,

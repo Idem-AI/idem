@@ -33,7 +33,8 @@
 import { contrastRatio } from './color';
 import { DocumentDesignSystem } from './documentDesignSystem';
 import { SectionSeed } from './designSeed';
-import { Block, SectionContent } from './sectionContent';
+import logger from '../../config/logger';
+import { Block, SectionContent, estimateBlockWeight } from './sectionContent';
 
 export interface RenderOptions {
   /** URL du logo à poser sur la page. Absent ⇒ aucune marque n'est inventée. */
@@ -116,6 +117,33 @@ function esc(value: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+/**
+ * Échappe un texte ET convertit ses marqueurs de citation `[sN]` en appels de
+ * note.
+ *
+ * L'ordre compte : on échappe d'abord (le texte vient du modèle), puis on
+ * reconnaît les marqueurs — les crochets ne font pas partie des caractères
+ * échappés, donc ils survivent intacts. Faire l'inverse laisserait passer du
+ * balisage.
+ *
+ * Les marqueurs sont posés par le modèle et pointent vers le bloc `sources`,
+ * lui-même injecté par le service à partir des URLs réelles. Un marqueur qui
+ * dépasse le nombre de sources est SUPPRIMÉ plutôt que rendu : un appel de note
+ * qui ne mène nulle part décrédibilise ceux qui mènent quelque part.
+ */
+function escCited(value: string, sourceCount: number): string {
+  const escaped = esc(value);
+  if (sourceCount === 0) {
+    // Pas de sources : les marqueurs sont du bruit, on les retire.
+    return escaped.replace(/\s*\[s\d+\]/g, '');
+  }
+  return escaped.replace(/\s*\[s(\d+)\]/g, (whole, raw) => {
+    const index = Number.parseInt(raw, 10);
+    if (!Number.isInteger(index) || index < 0 || index >= sourceCount) return '';
+    return `<sup data-citation="${index}">${index + 1}</sup>`;
+  });
 }
 
 /** Attribut de style : les valeurs sont produites ici, jamais par le modèle. */
@@ -320,6 +348,8 @@ interface Ctx {
   options: RenderOptions;
   /** Le format est-il en paysage ? Les archétypes s'y composent en colonnes. */
   landscape: boolean;
+  /** Nombre de sources disponibles — borne les appels de note. */
+  sourceCount: number;
 }
 
 /** Bloc insécable : le paginateur ne le coupera pas en deux pages. */
@@ -335,7 +365,7 @@ function renderProse(block: Extract<Block, { kind: 'prose' }>, ctx: Ctx): string
           'font-size': `${ds.typeScale.base}px`,
           'line-height': 1.55,
           color: ds.colors.ink,
-        })}>${esc(paragraph)}</p>`
+        })}>${escCited(paragraph, ctx.sourceCount)}</p>`
     )
     .join('');
 }
@@ -368,7 +398,7 @@ function renderCards(block: Extract<Block, { kind: 'cards' }>, ctx: Ctx): string
         'margin-bottom': `${ds.spacing * 0.5}px`,
         'line-height': 1.2,
       })}>${esc(item.title)}</div>
-  <div${style({ 'font-size': `${ds.typeScale.sm}px`, 'line-height': 1.5, opacity: strong ? 0.92 : 0.85 })}>${esc(item.body)}</div>
+  <div${style({ 'font-size': `${ds.typeScale.sm}px`, 'line-height': 1.5, opacity: strong ? 0.92 : 0.85 })}>${escCited(item.body, ctx.sourceCount)}</div>
 </div>`;
     })
     .join('');
@@ -412,7 +442,7 @@ function renderTable(block: Extract<Block, { kind: 'table' }>, ctx: Ctx): string
                 'font-size': `${ds.typeScale.sm}px`,
                 color: ds.colors.ink,
                 'border-bottom': `1px solid ${ds.colors.rule}`,
-              })}>${esc(cell)}</td>`
+              })}>${escCited(cell, ctx.sourceCount)}</td>`
           )
           .join('')}</tr>`
     )
@@ -635,7 +665,7 @@ function renderAssumption(block: Extract<Block, { kind: 'assumption' }>, ctx: Ct
     color: ds.colors.ink,
   })}${atomic}>
   <span${style({ 'font-weight': 700, 'text-transform': 'uppercase', 'letter-spacing': '0.08em', 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted })}>Hypothèse</span>
-  <div${style({ 'margin-top': '4px', 'line-height': 1.45 })}>${esc(block.statement)}</div>
+  <div${style({ 'margin-top': '4px', 'line-height': 1.45 })}>${escCited(block.statement, ctx.sourceCount)}</div>
   ${block.basis ? `<div${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted, 'margin-top': '2px' })}>Base : ${esc(block.basis)}</div>` : ''}
 </div>`;
 }
@@ -755,6 +785,45 @@ function renderLogoDisplay(
   return `<div${style({ display: 'flex', gap: `${ds.spacing}px` })}${atomic}>${cells}</div>`;
 }
 
+/**
+ * Références numérotées, en pied de section.
+ *
+ * Compactes et discrètes : ce sont des preuves, pas du contenu. Le domaine est
+ * affiché quand il est CONNU — jamais l'hôte de l'URL, qui pour une recherche
+ * Google est un redirecteur technique (`vertexaisearch.cloud.google.com`) que
+ * personne ne reconnaît et qui ne dit rien de l'éditeur.
+ */
+function renderSources(block: Extract<Block, { kind: 'sources' }>, ctx: Ctx): string {
+  const { ds } = ctx;
+  const items = block.items
+    .map(
+      (item) => `<li${style({
+        'font-size': `${ds.typeScale.xs}px`,
+        color: ds.colors.inkMuted,
+        'line-height': 1.5,
+        'margin-bottom': '2px',
+      })}><span${style({ 'font-weight': 700, color: ctx.roles.highlight })}>${item.index + 1}.</span> ${esc(item.title)}${
+        item.domain ? ` — ${esc(item.domain)}` : ''
+      }</li>`
+    )
+    .join('');
+
+  return `<div${style({
+    'border-top': `1px solid ${ds.colors.rule}`,
+    'padding-top': `${ds.spacing * 0.6}px`,
+  })}${atomic}>
+  <div${style({
+    'font-size': `${ds.typeScale.xs}px`,
+    'text-transform': 'uppercase',
+    'letter-spacing': '0.12em',
+    'font-weight': 700,
+    color: ds.colors.inkMuted,
+    'margin-bottom': '4px',
+  })}>Sources</div>
+  <ol${style({ margin: 0, padding: 0, 'list-style': 'none' })}>${items}</ol>
+</div>`;
+}
+
 function renderBlock(block: Block, ctx: Ctx): string {
   switch (block.kind) {
     case 'prose':
@@ -779,6 +848,8 @@ function renderBlock(block: Block, ctx: Ctx): string {
       return renderTypeSpecimen(block, ctx);
     case 'logoDisplay':
       return renderLogoDisplay(block, ctx);
+    case 'sources':
+      return renderSources(block, ctx);
     default:
       return '';
   }
@@ -1054,6 +1125,8 @@ export function renderSection(
     seed,
     options,
     landscape,
+    sourceCount:
+      content.blocks.find((block) => block.kind === 'sources')?.items.length ?? 0,
   };
 
   const renderer = ARCHETYPE_RENDERERS[seed.archetype] ?? ARCHETYPE_RENDERERS[DEFAULT_ARCHETYPE];
@@ -1066,7 +1139,22 @@ export function renderSection(
         ? `border-top:1px solid ${ctx.ds.colors.rule};padding-top:${ctx.ds.spacing * ctx.tension.gap}px;`
         : '';
 
-  const blocks = content.blocks
+  // ── AJUSTEMENT À LA PAGE ROGNÉE ──────────────────────────────────────────
+  //
+  // Sur `multiPage: false`, la page a une hauteur FIXE et `overflow: hidden` :
+  // ce qui dépasse est coupé, souvent en pleine phrase, et le lecteur voit un
+  // paragraphe amputé sans savoir qu'il l'est. C'est le pire des deux mondes —
+  // le contenu est produit, payé, puis masqué.
+  //
+  // Le paginateur ne peut rien y faire (il ne tourne pas sur ces formats), et le
+  // modèle ne sait pas mesurer une page. C'est donc au rendu de décider ce qui
+  // tient — et de le DIRE, pour qu'un livrable systématiquement tronqué se voie
+  // dans les journaux au lieu de se découvrir à l'impression.
+  const blockList = cramped
+    ? fitToPage(content.blocks, page, ctx.ds, Boolean(content.lede))
+    : content.blocks;
+
+  const blocks = blockList
     .map((block, index) => {
       const html = renderBlock(block, ctx);
       if (!html) return '';
@@ -1171,6 +1259,92 @@ ${chrome.header}
 ${blocks.join('\n')}
 ${footer}
 </div>`;
+}
+
+/**
+ * Retient les blocs qui TIENNENT sur une page à hauteur fixe.
+ *
+ * La mesure est une estimation — il n'y a pas de moteur de rendu côté serveur —
+ * mais elle est déterministe et volontairement PRUDENTE : mieux vaut une page
+ * un peu creuse qu'une page coupée en pleine phrase.
+ *
+ * L'unité est la « page A4 portrait » (cf. `estimateBlockWeight`). La capacité
+ * d'un autre format s'en déduit par sa surface utile, corrigée du resserrement
+ * typographique appliqué aux pages rognées.
+ *
+ * Un bloc de prose trop long n'est pas jeté : il est TRONQUÉ à ses premiers
+ * paragraphes. Perdre un paragraphe est un moindre mal ; perdre le tableau qui
+ * le suivait ne l'est pas.
+ */
+function fitToPage(
+  blocks: Block[],
+  page: PageFormat,
+  ds: DocumentDesignSystem,
+  hasLede: boolean
+): Block[] {
+  const mm = (value: string): number => Number.parseFloat(value.replace('mm', '')) || 0;
+
+  // Surface utile du format, rapportée à celle d'une A4 portrait (186 × 273 mm).
+  const pad = mm(page.padding);
+  const usable = (mm(page.width) - 2 * pad) * (mm(page.minHeight) - 2 * pad);
+  const a4Usable = (210 - 24) * (297 - 24);
+  // `tighten()` réduit corps et rythme d'environ 15 % : autant de matière en plus.
+  const capacityRatio = (usable / a4Usable) * 1.15;
+
+  // L'en-tête et le pied occupent la page avant le premier bloc.
+  const chrome = 0.16 + (hasLede ? 0.05 : 0);
+  // Marge de sûreté : l'estimation ignore les retours à la ligne, la casse et
+  // les polices réelles. 10 % de réserve évitent le débordement d'un cheveu.
+  const budget = Math.max(0.2, capacityRatio * 0.9 - chrome);
+
+  const kept: Block[] = [];
+  let used = 0;
+
+  for (const block of blocks) {
+    const weight = estimateBlockWeight(block);
+
+    if (used + weight <= budget) {
+      kept.push(block);
+      used += weight;
+      continue;
+    }
+
+    // Le bloc ne tient pas entier. De la prose peut être raccourcie ; le reste
+    // est indivisible — un demi-tableau ne veut rien dire.
+    if (block.kind === 'prose') {
+      const remaining = budget - used;
+      if (remaining > 0.06) {
+        const paragraphs: string[] = [];
+        let taken = 0;
+        for (const paragraph of block.paragraphs) {
+          const cost = paragraph.length / 3600;
+          if (taken + cost > remaining) break;
+          paragraphs.push(paragraph);
+          taken += cost;
+        }
+        if (paragraphs.length > 0) {
+          kept.push({ kind: 'prose', paragraphs });
+          used += taken;
+        }
+      }
+    }
+
+    // Une fois le budget atteint, on ne cherche pas un bloc plus petit plus
+    // loin : l'ordre des blocs porte le raisonnement de la page, le rompre
+    // produirait une page cohérente en surface et absurde à la lecture.
+    break;
+  }
+
+  const dropped = blocks.length - kept.length;
+  if (dropped > 0) {
+    logger.warn(
+      `Page rognée : ${dropped} bloc(s) sur ${blocks.length} écarté(s) faute de place ` +
+        `(budget ${budget.toFixed(2)} page, format ${page.width}×${page.minHeight}). ` +
+        `Réduire le volume demandé dans le brief si cela se répète.`
+    );
+  }
+
+  return kept.length > 0 ? kept : blocks.slice(0, 1);
 }
 
 /**

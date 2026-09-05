@@ -12,7 +12,13 @@
 
 import axios from 'axios';
 
-import { GLM_ENDPOINTS, getGlmApiKey } from '../config/ai-providers.config';
+import {
+  GLM_ENDPOINTS,
+  buildGeminiThinkingConfig,
+  getGlmApiKey,
+  isGeminiConfigured,
+} from '../config/ai-providers.config';
+import { getGoogleGenAIClient } from '../config/google-genai.client';
 import { AI_CONFIG, GLM_MODELS } from '../config/ai.config';
 import logger from '../config/logger';
 
@@ -39,9 +45,121 @@ export interface AnalyzeImageOptions {
   temperature?: number;
 }
 
-/** Vrai si le fournisseur est configuré ; sinon rien n'est tenté. */
+/**
+ * Un fournisseur d'image ou de vision est-il disponible ?
+ *
+ * Le nom historique (`isGlmConfigured`) est conservé : une quinzaine
+ * d'appelants l'utilisent comme garde, et le renommer masquerait le vrai
+ * changement — ce n'est plus « GLM est-il là », c'est « quelqu'un peut-il
+ * produire une image ».
+ *
+ * Sans cette extension, une bascule vers Gemini supprimait silencieusement les
+ * mises en situation de la charte et les visuels de communication : les pages
+ * étaient simplement absentes, sans que rien n'explique pourquoi.
+ */
 export function isGlmConfigured(): boolean {
-  return Boolean(getGlmApiKey());
+  return Boolean(getGlmApiKey()) || isGeminiMediaAvailable();
+}
+
+/** Gemini sert-il l'image et la vision sur ce déploiement ? */
+export function isGeminiMediaAvailable(): boolean {
+  return isGeminiConfigured();
+}
+
+/**
+ * Quel fournisseur sert le média ?
+ *
+ * ⚠️ LA BASCULE GLOBALE VAUT AUSSI POUR L'IMAGE.
+ *
+ * Se contenter de « GLM si sa clé existe » a un défaut mesuré : une clé PRÉSENTE
+ * n'est pas une clé qui a des crédits. Après une bascule du texte vers Gemini,
+ * l'image restait sur GLM, recevait un 429 à chaque appel, et les mises en
+ * situation de la charte disparaissaient du document — silencieusement, puisque
+ * l'appelant traite l'échec comme « pas d'image, page omise ».
+ *
+ * `AI_DEFAULT_PROVIDER` décide donc ici comme ailleurs : texte, image et vision
+ * changent de fournisseur ensemble. Une surcharge ciblée reste possible par
+ * `IDEM_MEDIA_PROVIDER` pour le cas inverse — garder l'image sur GLM alors que
+ * le texte a basculé.
+ */
+function mediaProvider(): 'glm' | 'gemini' {
+  const forced = (process.env.IDEM_MEDIA_PROVIDER ?? '').toUpperCase();
+  if (forced === 'GEMINI' && isGeminiConfigured()) return 'gemini';
+  if (forced === 'GLM' && getGlmApiKey()) return 'glm';
+
+  const globalProvider = (process.env.AI_DEFAULT_PROVIDER ?? '').toUpperCase();
+  if (globalProvider === 'GEMINI' && isGeminiConfigured()) return 'gemini';
+  if (globalProvider === 'GLM' && getGlmApiKey()) return 'glm';
+
+  return getGlmApiKey() ? 'glm' : 'gemini';
+}
+
+/** Modèle image de Gemini. `flash-lite` est le plus rapide (~3,5 s mesurés). */
+const GEMINI_IMAGE_MODEL = process.env.IDEM_GEMINI_IMAGE_MODEL || 'gemini-3.1-flash-lite-image';
+/** Modèle de vision — le modèle de rédaction lit les images nativement. */
+const GEMINI_VISION_MODEL = process.env.IDEM_GEMINI_VISION_MODEL || 'gemini-3.6-flash';
+
+/** Génération d'image par Gemini : l'image arrive en `inlineData`. */
+async function generateImageWithGemini(
+  prompt: string,
+  tag?: string
+): Promise<GeneratedImage> {
+  const startedAt = Date.now();
+  const result: any = await getGoogleGenAIClient().models.generateContent({
+    model: GEMINI_IMAGE_MODEL,
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    // Sans cette modalité le modèle répond en TEXTE — il décrit l'image au lieu
+    // de la produire, et l'appel réussit en ne rendant rien d'utilisable.
+    config: { responseModalities: ['IMAGE'] },
+  });
+
+  const parts = result?.candidates?.[0]?.content?.parts ?? [];
+  const inline = parts.find((part: any) => part?.inlineData?.data)?.inlineData;
+
+  if (!inline?.data) {
+    throw new Error(`${GEMINI_IMAGE_MODEL} n'a renvoyé aucune image`);
+  }
+
+  logger.info(
+    `Image générée par ${GEMINI_IMAGE_MODEL} en ${Date.now() - startedAt} ms${tag ? ` (${tag})` : ''}`
+  );
+
+  return {
+    buffer: Buffer.from(inline.data, 'base64'),
+    mimeType: inline.mimeType ?? 'image/jpeg',
+    model: GEMINI_IMAGE_MODEL,
+  };
+}
+
+/** Lecture d'image par Gemini : le modèle accepte l'image en entrée nativement. */
+async function analyzeImageWithGemini(
+  base64: string,
+  mimeType: string,
+  instruction: string,
+  options: AnalyzeImageOptions
+): Promise<string> {
+  const result: any = await getGoogleGenAIClient().models.generateContent({
+    model: GEMINI_VISION_MODEL,
+    contents: [
+      {
+        role: 'user',
+        parts: [{ inlineData: { mimeType, data: base64 } }, { text: instruction }],
+      },
+    ],
+    config: {
+      maxOutputTokens: options.maxOutputTokens ?? 1500,
+      temperature: options.temperature ?? 0.2,
+      // Le raisonnement se décompte du budget : sur une lecture d'image à
+      // 1 500 tokens, il suffit à vider la réponse.
+      ...buildGeminiThinkingConfig(GEMINI_VISION_MODEL, 0),
+    },
+  });
+
+  const text = result?.text ?? '';
+  if (!text.trim()) {
+    throw new Error(`${GEMINI_VISION_MODEL} n'a renvoyé aucune analyse`);
+  }
+  return text;
 }
 
 /**
@@ -54,6 +172,10 @@ export async function generateImage(
   prompt: string,
   options: GenerateImageOptions = {},
 ): Promise<GeneratedImage> {
+  if (mediaProvider() === 'gemini') {
+    return generateImageWithGemini(prompt, options.tag);
+  }
+
   const apiKey = requireKey();
   const model = options.model ?? GLM_MODELS.image;
   const fallbackModel = options.fallbackModel ?? GLM_MODELS.imageFallback;
@@ -108,6 +230,10 @@ export async function analyzeImage(
   instruction: string,
   options: AnalyzeImageOptions = {},
 ): Promise<string> {
+  if (mediaProvider() === 'gemini') {
+    return analyzeImageWithGemini(base64, mimeType, instruction, options);
+  }
+
   const apiKey = requireKey();
   const model = options.model ?? GLM_MODELS.vision;
   const fallbackModel = options.fallbackModel ?? VISION_FALLBACK_MODEL;

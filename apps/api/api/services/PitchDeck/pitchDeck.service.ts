@@ -249,7 +249,7 @@ export class PitchDeckService extends GenericService {
           contentBrief: SLIDE_BRIEFS[stepName] ?? fallbackPrompt,
           designSystem,
           seed: seedFor(stepName),
-          volume: '3 to 5',
+          volume: '3 to 4',
           render: {
             ...renderOptions,
             index: slideIndex,

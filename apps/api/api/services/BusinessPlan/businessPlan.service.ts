@@ -670,9 +670,28 @@ export class BusinessPlanService extends GenericService {
       }
     };
 
+    // Le moteur de recherche reçoit la CHARTE du projet : ses sections sont des
+    // sections du document, pas des pages à part. Sans ces champs elles
+    // retomberaient sur un design system par défaut et le plan aurait deux
+    // identités visuelles — ce qu'il avait.
+    const researchArtDirection = project.analysisResultModel?.branding?.artDirection;
     await researchTeamService.runResearchTeam(
       sectionsToGenerate,
-      { projectContext: projectDescription, brandContext, language, userId, currency },
+      {
+        projectContext: projectDescription,
+        brandContext,
+        language,
+        userId,
+        currency,
+        charter: project.analysisResultModel?.branding,
+        artDirection: researchArtDirection,
+        documentKey: `businessplan:${projectId}`,
+        // Partagé par tout le run : deux sections voisines ne peuvent pas tirer
+        // le même archétype.
+        usedArchetypes: new Set<string>(),
+        logoUrl: collectLogoUrls(project.analysisResultModel?.branding?.logo)[0],
+        brandName: project.name,
+      },
       emit,
       persistSection
     );

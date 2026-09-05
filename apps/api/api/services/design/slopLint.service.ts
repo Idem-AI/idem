@@ -707,7 +707,23 @@ export function repairHtmlExtended(
     if (out !== before) applied.push('empty-badge');
   }
 
-  // 11. Emoji employé comme icône ou comme puce.
+  // 11. IMAGE NON RÉSOLUE.
+  //
+  //     Les prompts de couverture demandent `<img data-image-query="…"
+  //     data-image-prompt="…">`, qu'un service d'images est censé remplacer par
+  //     une URL réelle. Quand ce service est indisponible — clé absente, quota
+  //     épuisé — la balise reste telle quelle et le navigateur affiche un cadre
+  //     vide portant le texte alternatif. Sur une couverture, c'est le premier
+  //     élément que voit le lecteur.
+  //
+  //     Une image absente vaut mieux qu'une image cassée : on retire la balise.
+  {
+    const before = out;
+    out = out.replace(/<img\b(?![^>]*\bsrc\s*=\s*["']?(?:https?:|data:))[^>]*>/gi, '');
+    if (out !== before) applied.push('unresolved-image');
+  }
+
+  // 12. Emoji employé comme icône ou comme puce.
   if (!isExempt('emoji', options.styleId)) {
     const before = out;
     out = out.replace(new RegExp(EMOJI_RE, 'gu'), '').replace(/[ \t]{2,}/g, ' ');

@@ -39,7 +39,13 @@ import {
 import { applyAiOverride } from '../config/ai-overrides.config';
 import { describeGeminiBackend, getGoogleGenAIClient } from '../config/google-genai.client';
 import { withGeminiFallback } from '../utils/gemini-fallback';
-import { describeError, isTransientNetworkError, sleep, withRetry } from '../utils/retry';
+import {
+  describeError,
+  isRateLimited,
+  isTransientNetworkError,
+  sleep,
+  withRetry,
+} from '../utils/retry';
 import { getRequestLanguage } from '../utils/request-language';
 import { logAIEvent, previewValue } from '../utils/ai-trace.util';
 import {
@@ -58,6 +64,23 @@ export { LLMProvider, LLMOptions };
  * faut aussi laisser passer quelques instants.
  */
 const INTER_MODEL_DELAY_MS = 1000;
+
+/**
+ * Hôtes qui ne sont PAS des éditeurs : ce sont des redirecteurs de moteur de
+ * recherche. Leur nom ne doit jamais apparaître comme source d'un fait.
+ */
+const REDIRECT_HOSTS = [
+  'vertexaisearch.cloud.google.com',
+  'grounding-api-redirect.googleapis.com',
+  'googleusercontent.com',
+];
+
+/**
+ * Attente avant le repli suivant quand le QUOTA est saturé, multipliée par le
+ * rang du repli. Volontairement plus longue que le délai réseau : une fenêtre
+ * de quota se rouvre à la minute, pas à la seconde.
+ */
+const RATE_LIMIT_DELAY_MS = Number(process.env.LLM_RATE_LIMIT_DELAY_MS ?? 4000);
 
 /**
  * Résout le couple (fournisseur, modèle) réellement appelé.
@@ -1134,6 +1157,20 @@ export class PromptService {
         await sleep(INTER_MODEL_DELAY_MS);
       }
 
+      // QUOTA saturé : sur une offre gratuite, il est partagé par le projet
+      // entier, pas par modèle. Basculer immédiatement épuise la chaîne en
+      // quelques millisecondes et perd la génération, là où quelques secondes
+      // d'attente l'auraient sauvée. L'attente croît avec le rang du repli.
+      if (i > 0 && isRateLimited(lastError)) {
+        const wait = RATE_LIMIT_DELAY_MS * i;
+        logger.warn(
+          `Quota saturé sur ${modelsToTry[i - 1]} — attente de ${wait} ms avant ` +
+            `${currentModel}. Sur une offre gratuite le quota est partagé : basculer ` +
+            `sans attendre ne fait qu'épuiser la chaîne.`
+        );
+        await sleep(wait);
+      }
+
       const sink: UsageSink = {};
       const attemptStartedAt = Date.now();
       attempts.push({ model: currentModel, sink, startedAt: attemptStartedAt });
@@ -1837,10 +1874,22 @@ export class PromptService {
     chunks.forEach((chunk, index) => {
       const web = chunk.web;
       if (web?.uri) {
+        // ⚠️ NE PAS déduire le domaine de l'URL quand celle-ci est un
+        // REDIRECTEUR.
+        //
+        // Le grounding Google ne renvoie pas l'URL de l'éditeur : il renvoie un
+        // lien de redirection vers `vertexaisearch.cloud.google.com`. En déduire
+        // l'hôte affichait ce domaine technique en guise de source — un lecteur
+        // y voyait « vertexaisearch.cloud.google.com » là où il attendait le nom
+        // du média, et le doute portait alors sur tout le document.
+        //
+        // Google fournit le vrai domaine à part (`web.domain`). En son absence,
+        // mieux vaut n'afficher AUCUN domaine que le mauvais.
         let domain = web.domain;
         if (!domain) {
           try {
-            domain = new URL(web.uri).hostname.replace(/^www\./, '');
+            const host = new URL(web.uri).hostname.replace(/^www\./, '');
+            domain = REDIRECT_HOSTS.some((redirect) => host.endsWith(redirect)) ? undefined : host;
           } catch {
             domain = undefined;
           }
