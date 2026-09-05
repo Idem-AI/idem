@@ -30,7 +30,7 @@ import { TeamMember } from '../../models/project.model';
 import { storageService } from '../storage.service';
 import { buildLogoBlock, collectLogoUrls } from '../../utils/brand-context.util';
 import { buildArtDirectionBlock } from '../../utils/art-direction.util';
-import { ANTI_SLOP_BLOCK } from '../design/antiSlop.prompt';
+import { ANTI_SLOP_BLOCK, CONTENT_RULES_BLOCK } from '../design/antiSlop.prompt';
 import {
   EDITORIAL_RESTRAINT_BLOCK,
   RESTRAINT_SELF_REVIEW_BLOCK,
@@ -197,6 +197,25 @@ export class BusinessPlanService extends GenericService {
         BP_SECTION_EXAMPLE,
       ].join('\n\n');
 
+      // PRÉFIXE DU MODE GABARIT — plus court, et c'est le point.
+      //
+      // Le préfixe complet porte ~3 000 tokens de règles de COMPOSITION (fiche
+      // de style, invariants de mise en page, anti-générique, retenue
+      // éditoriale). Pour une section rendue par gabarit, elles sont inertes :
+      // le code compose. Les laisser coûterait des tokens, mais surtout de
+      // l'attention — un petit modèle honore une dizaine de contraintes, et
+      // celles qui comptent ici sont celles qui portent sur le TEXTE.
+      //
+      // Les deux préfixes restent stables chacun de leur côté : le cache de
+      // préfixe s'accroche donc aux deux familles, et la plus grosse (8
+      // sections) est désormais la plus courte.
+      const templatedPrefix = [
+        projectDescription,
+        `BRAND FACTS:\nBrand: ${project.name ?? ''}\nLanguage: ${language}`,
+        CONTENT_RULES_BLOCK,
+        BP_SECTION_EXAMPLE,
+      ].join('\n\n');
+
       // Chaque section reçoit sa PROPRE graine de composition, tirée sans
       // répétition dans l'espace autorisé par le style. C'est ce qui empêche
       // neuf pages de partager le même archétype sans pour autant les rendre
@@ -237,6 +256,7 @@ export class BusinessPlanService extends GenericService {
         return {
           promptConstant: `${prompt}${extra}`,
           stepName,
+          stablePrefix: templatedPrefix,
           template: {
             designSystem,
             seed: buildSectionSeed(

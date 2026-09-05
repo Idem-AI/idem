@@ -54,6 +54,13 @@ import {
   describePaletteConstraint,
   describeSectionSeed,
 } from '../design/designSeed';
+import {
+  buildDocumentDesignSystem,
+  derivedPalette,
+  describeDesignSystem,
+} from '../design/documentDesignSystem';
+import { Block } from '../design/sectionContent';
+import { CHARTER_PAGE_BRIEFS } from './prompts/page-briefs.prompt';
 import { enforceDesignRules } from '../design/slopLint.service';
 import { inspectSvg } from '../design/svgGate';
 import { logAIEvent } from '../../utils/ai-trace.util';
@@ -1022,15 +1029,124 @@ export class BrandingService extends GenericService {
       //
       // Les pages FABRIQUÉES (mockups, `execute`) sont exclues : elles ne
       // passent pas par le modèle, leur donner une graine n'aurait aucun effet.
+      // DESIGN SYSTEM de la charte : calculé une fois, partagé par ses pages.
+      const charterDesignSystem = buildDocumentDesignSystem(
+        project.analysisResultModel?.branding,
+        artDirection,
+        brandSeed
+      );
+      logger.info(`[BRANDING] Design system: ${describeDesignSystem(charterDesignSystem)}`);
+
+      // Format réel de la charte : c'est lui qui décide portrait ou paysage.
+      const charterPage = {
+        width: chosenFormat.width,
+        minHeight: chosenFormat.height,
+        padding: chosenFormat.orientation === 'landscape' ? '14mm' : '12mm',
+        orientation: chosenFormat.orientation,
+      };
+
+      /**
+       * Blocs SPÉCIMENS de la charte, posés par le code à partir des données du
+       * projet. Ce sont exactement les pages où un modèle se trompe le plus :
+       * recopier six chiffres hexadécimaux, nommer une police, choisir le fond
+       * qui contraste. Aucune de ces trois choses n'a besoin de lui.
+       */
+      const specimensFor = (stepName: string): Block[] | undefined => {
+        const palette = project.analysisResultModel?.branding?.colors?.colors;
+        const typography = project.analysisResultModel?.branding?.typography;
+
+        if (stepName === 'Color Palette' && palette) {
+          const items = [
+            { hex: palette.primary, name: 'Primaire', role: 'Identité, titres, aplats' },
+            { hex: palette.secondary, name: 'Secondaire', role: 'Support, zones calmes' },
+            { hex: palette.accent, name: 'Accent', role: 'Chiffres, appels, filets' },
+            { hex: palette.background, name: 'Fond', role: 'Surface de page' },
+            { hex: palette.text, name: 'Encre', role: 'Texte courant' },
+          ].filter((item) => typeof item.hex === 'string' && /^#/.test(item.hex));
+          return items.length ? [{ kind: 'swatches', items }] : undefined;
+        }
+
+        if (stepName === 'Typography' && typography) {
+          const specimens = [
+            {
+              family: typography.primaryFont,
+              role: 'Titres',
+              sample: project.name || 'Titre de section',
+            },
+            {
+              family: typography.secondaryFont,
+              role: 'Texte courant',
+              sample: 'La typographie porte la voix de la marque avant les mots.',
+            },
+          ].filter((specimen) => Boolean(specimen.family));
+          return specimens.length
+            ? [{ kind: 'typeSpecimen', specimens: specimens as { family: string; role: string; sample: string }[] }]
+            : undefined;
+        }
+
+        if (stepName === 'Logo Bonnes Pratiques') {
+          const variants = [
+            { url: lightLogoUrl, label: 'Sur fond clair', background: 'light' as const },
+            { url: darkLogoUrl, label: 'Sur fond sombre', background: 'dark' as const },
+            { url: monochromeLogoUrl, label: 'Monochrome', background: 'neutral' as const },
+          ].filter((variant) => Boolean(variant.url));
+          return variants.length ? [{ kind: 'logoDisplay', variants }] : undefined;
+        }
+
+        return undefined;
+      };
+
+      /**
+       * Pages de la charte RENDUES PAR GABARIT.
+       *
+       * Les pages laissées libres sont celles dont la composition EST le
+       * livrable : la couverture, les pages qui PRÉSENTENT un logo en grand, et
+       * la page de direction artistique — qui doit démontrer le style en le
+       * construisant, ce qu'aucun gabarit ne peut faire à sa place.
+       */
+      const TEMPLATED_PAGES = new Set([
+        'Color Palette',
+        'Typography',
+        'Logo Bonnes Pratiques',
+      ]);
+
       const usedArchetypes = new Set<string>();
+      let pageIndex = 0;
       for (const step of steps) {
         if (step.execute) continue;
+        pageIndex += 1;
         const seed = buildSectionSeed(
           artDirection?.styleId,
           `branding:${projectId}`,
           step.stepName,
           usedArchetypes
         );
+
+        if (TEMPLATED_PAGES.has(step.stepName)) {
+          // Le prompt d'origine décrit une mise en page que le rendu produit
+          // désormais : on lui substitue le brief de CONTENU. Le préfixe stable
+          // (contexte projet, charte, direction artistique) reste, lui, en place.
+          step.promptConstant = CHARTER_PAGE_BRIEFS[step.stepName] ?? step.promptConstant;
+          step.template = {
+            designSystem: charterDesignSystem,
+            seed,
+            // Une page de charte porte un spécimen et ses règles d'usage : peu
+            // de blocs, et le spécimen en occupe déjà un.
+            volume: '3 to 4',
+            prependBlocks: specimensFor(step.stepName),
+            render: {
+              logoUrl,
+              brandName: project.name,
+              index: pageIndex,
+              page: charterPage,
+              // La charte est en `multiPage: false` : une page = une section, et
+              // ce qui dépasse est rogné.
+              multiPage: false,
+            },
+          };
+          continue;
+        }
+
         step.promptConstant += `\n\n<composition_for_this_page>\n${describeSectionSeed(seed)}\n</composition_for_this_page>`;
       }
 
@@ -1126,6 +1242,10 @@ export class BrandingService extends GenericService {
                     ? [logoUrl, lightLogoUrl, darkLogoUrl, monochromeLogoUrl].filter(Boolean)
                     : [],
                   styleId: artDirection?.styleId,
+                  // Les teintes des rampes DÉRIVENT de la charte : sans cette
+                  // déclaration, le linter prendrait le design system calculé
+                  // pour une palette inventée.
+                  extraAllowedColors: derivedPalette(charterDesignSystem),
                   label: `charte/${result.name}`,
                 };
                 cleanedHtml = enforceDesignRules(rawHtml, lintOptions).html;

@@ -55,7 +55,28 @@ export type Block =
   | { kind: 'quote'; text: string; attribution?: string }
   | { kind: 'timeline'; steps: { date: string; title: string; body: string }[] }
   /** Hypothèse explicite : ce que le plan suppose, et sur quoi. */
-  | { kind: 'assumption'; statement: string; basis: string };
+  | { kind: 'assumption'; statement: string; basis: string }
+  // ── Blocs SPÉCIMENS ────────────────────────────────────────────────────────
+  // Ceux-ci ne sont JAMAIS produits par le modèle : ils sont injectés par le
+  // service à partir des données réelles du projet (cf. `prependBlocks`).
+  //
+  // C'est l'expression la plus nette de la doctrine. Une page de nuancier
+  // demande des valeurs hexadécimales EXACTES ; les faire écrire à un modèle,
+  // c'est accepter qu'une charte affiche une couleur qui n'est pas celle de la
+  // marque — le défaut le plus grave possible sur ce livrable, et le plus
+  // fréquent, parce qu'un modèle recopie mal six chiffres hexadécimaux.
+  /** Nuancier. Le contraste de chaque teinte est CALCULÉ, pas annoncé. */
+  | { kind: 'swatches'; items: { hex: string; name: string; role?: string }[] }
+  /** Spécimen typographique, rendu dans la vraie police. */
+  | {
+      kind: 'typeSpecimen';
+      specimens: { family: string; role: string; sample: string }[];
+    }
+  /** Déclinaisons du logo, chacune sur le fond qui la met en valeur. */
+  | {
+      kind: 'logoDisplay';
+      variants: { url: string; label: string; background: 'light' | 'dark' | 'neutral' }[];
+    };
 
 export interface SectionContent {
   /** Sur-titre court. Le gabarit décide s'il l'affiche — un kicker par page suffit. */
@@ -66,6 +87,13 @@ export interface SectionContent {
   blocks: Block[];
 }
 
+/**
+ * Types de blocs que le MODÈLE peut produire.
+ *
+ * Les blocs spécimens (`swatches`, `typeSpecimen`, `logoDisplay`) en sont
+ * volontairement absents : ils portent des valeurs exactes issues du projet, et
+ * les accepter du modèle rouvrirait précisément la porte qu'on ferme.
+ */
 const BLOCK_KINDS = new Set([
   'prose',
   'cards',
@@ -249,6 +277,12 @@ export function estimateBlockWeight(block: Block): number {
       return block.steps.length * 0.13;
     case 'assumption':
       return 0.1;
+    case 'swatches':
+      return 0.3;
+    case 'typeSpecimen':
+      return block.specimens.length * 0.18;
+    case 'logoDisplay':
+      return 0.35;
     default:
       return 0.1;
   }

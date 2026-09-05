@@ -29,7 +29,11 @@ import {
   describeDesignSystem,
 } from '../services/design/documentDesignSystem';
 import { normalizeSectionContent, SectionContent } from '../services/design/sectionContent';
-import { IMPLEMENTED_ARCHETYPES, renderSection } from '../services/design/sectionRenderer';
+import {
+  IMPLEMENTED_ARCHETYPES,
+  LANDSCAPE_SLIDE,
+  renderSection,
+} from '../services/design/sectionRenderer';
 import { lintHtml } from '../services/design/slopLint.service';
 import { inspectOutput } from '../services/agents/quality-gate';
 
@@ -260,6 +264,150 @@ console.log('\nArchétypes');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+console.log('\nCompatibilité du paginateur (portrait, multi-pages)');
+{
+  const seed = buildDocumentSeed('editorial', 'businessplan:demo');
+  const ds = buildDocumentDesignSystem(CHARTER, { styleId: 'editorial' } as any, seed);
+  const base = buildSectionSeed('editorial', 'businessplan:demo', 'Opportunity', new Set());
+
+  // Le paginateur prend les ENFANTS DIRECTS de la racine pour blocs : si le flux
+  // est enveloppé, il ne voit qu'un bloc géant, insécable, et une section de
+  // plus d'une page est réduite à l'échelle ou rognée.
+  const html = renderSection(CONTENT, ds, base, { brandName: 'Café des Hauts' });
+  const root = html.trim();
+  const inner = root.slice(root.indexOf('>') + 1, root.lastIndexOf('</div>'));
+  // Compte les éléments de PREMIER niveau du corps de la racine.
+  let depth = 0;
+  let topLevel = 0;
+  for (const match of inner.matchAll(/<(\/?)div\b/g)) {
+    if (match[1] === '/') depth -= 1;
+    else {
+      if (depth === 0) topLevel += 1;
+      depth += 1;
+    }
+  }
+  check(
+    'les blocs sont des enfants DIRECTS de la racine',
+    topLevel >= CONTENT.blocks.length,
+    `${topLevel} enfants de premier niveau pour ${CONTENT.blocks.length} blocs + en-tête + pied`
+  );
+
+  // Le décor doit rester hors flux, sinon il compte comme un bloc.
+  const withBackdrop = renderSection(CONTENT, ds, { ...base, archetype: 'J' }, {});
+  check('le décor de fond est hors flux (position absolue)',
+    /position:absolute/.test(withBackdrop));
+
+  // Le retrait de l'archétype doit être sur la racine : c'est `insetsOf(root)`
+  // que le paginateur lit pour calculer la capacité d'une page.
+  const inset = renderSection(CONTENT, ds, { ...base, archetype: 'E' }, {});
+  const rootTag = inset.slice(0, inset.indexOf('>'));
+  check('le retrait de l\'archétype est porté par le padding de la racine',
+    /padding:[^;"]*mm[^;"]*mm/.test(rootTag), rootTag.match(/padding:[^;"]*/)?.[0] ?? 'absent');
+
+  // Aucune colonne CSS sur la racine : `column-count` casserait la mesure en
+  // lignes du paginateur.
+  check('aucune colonne CSS sur la racine en portrait', !/column-count/.test(html));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+console.log('\nPaysage (16:9, page rognée)');
+{
+  const seed = buildDocumentSeed('futuristic', 'pitchdeck:demo');
+  const ds = buildDocumentDesignSystem(CHARTER, { styleId: 'futuristic' } as any, seed);
+  const base = buildSectionSeed('futuristic', 'pitchdeck:demo', 'Market', new Set());
+
+  // Un slide porte moins de matière qu'une page A4 : le contenu d'exemple est
+  // tronqué pour rester réaliste.
+  const slideContent = { ...CONTENT, blocks: CONTENT.blocks.slice(0, 4) };
+
+  const slides = IMPLEMENTED_ARCHETYPES.map((archetype) =>
+    renderSection(slideContent, ds, { ...base, archetype }, {
+      page: LANDSCAPE_SLIDE,
+      multiPage: false,
+      brandName: 'Café des Hauts',
+    })
+  );
+
+  check('chaque archétype produit un slide distinct',
+    new Set(slides).size === slides.length);
+
+  check('le format 16:9 est appliqué',
+    slides.every((html) => html.includes('width:297mm') && html.includes('167mm')));
+
+  // Sur une page ROGNÉE, la hauteur est FIXE : sans cela le contenu déborderait
+  // silencieusement au lieu d'être visiblement coupé.
+  check('la hauteur est fixée et le débordement masqué',
+    slides.every((html) => /height:167mm/.test(html) && /overflow:hidden/.test(html)));
+
+  // La composition doit exploiter la largeur : un flux vertical sur un 16:9
+  // laisse une bande vide à droite.
+  check('la composition utilise des colonnes',
+    slides.every((html) => /grid-template-columns/.test(html)));
+
+  const lintFailures = slides.filter(
+    (html) =>
+      lintHtml(html, {
+        palette: CHARTER.colors.colors,
+        extraAllowedColors: derivedPalette(ds),
+        fonts: [CHARTER.typography.primaryFont, CHARTER.typography.secondaryFont],
+        styleId: 'futuristic',
+      }).errorCount > 0
+  );
+  check('aucun slide ne viole la charte', lintFailures.length === 0);
+
+  // L'échelle resserrée doit rester lisible.
+  check('l\'échelle resserrée reste lisible (≥ 9px)',
+    !/font-size:[0-8]px/.test(slides.join('')));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+console.log('\nBlocs spécimens (charte)');
+{
+  const seed = buildDocumentSeed('editorial', 'branding:demo');
+  const ds = buildDocumentDesignSystem(CHARTER, { styleId: 'editorial' } as any, seed);
+  const base = buildSectionSeed('editorial', 'branding:demo', 'Color Palette', new Set());
+  const palette = CHARTER.colors.colors;
+
+  // Un spécimen ne vient JAMAIS du modèle : la normalisation doit le refuser.
+  const fromModel = normalizeSectionContent({
+    title: 'Palette',
+    blocks: [
+      { kind: 'swatches', items: [{ hex: '#BADA55', name: 'Inventée' }] },
+      { kind: 'prose', paragraphs: ['une règle'] },
+    ],
+  });
+  check(
+    'un bloc spécimen produit par le MODÈLE est refusé',
+    fromModel?.blocks.length === 1 && fromModel.blocks[0].kind === 'prose'
+  );
+
+  const html = renderSection(
+    {
+      title: 'La palette',
+      blocks: [
+        { kind: 'swatches', items: [
+          { hex: palette.primary, name: 'Primaire', role: 'Surfaces' },
+          { hex: palette.accent, name: 'Accent', role: 'Emphase' }] },
+        { kind: 'typeSpecimen', specimens: [
+          { family: CHARTER.typography.primaryFont, role: 'Titres', sample: 'Café des Hauts' }] },
+        { kind: 'logoDisplay', variants: [
+          { url: 'https://example.test/logo.svg', label: 'Sur fond clair', background: 'light' }] },
+      ],
+    },
+    ds,
+    base,
+    { page: LANDSCAPE_SLIDE, multiPage: false, brandName: 'Café des Hauts' }
+  );
+
+  check('les valeurs hexadécimales du nuancier sont EXACTES',
+    html.includes(palette.primary.toUpperCase()) && html.includes(palette.accent.toUpperCase()));
+  check('le contraste de chaque teinte est affiché', /contraste \d/.test(html));
+  check('le spécimen est rendu dans la vraie police',
+    html.includes(`'${CHARTER.typography.primaryFont}'`));
+  check('la déclinaison du logo porte un alt', /<img[^>]*alt="Sur fond clair"/.test(html));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 console.log('\nUnicité du rendu');
 {
   // Deux projets, deux chartes, deux styles : les pages doivent différer sur
@@ -282,32 +430,127 @@ console.log('\nUnicité du rendu');
   const ds = buildDocumentDesignSystem(CHARTER, { styleId: 'editorial' } as any, seed);
   const base = buildSectionSeed('editorial', 'businessplan:demo', 'Opportunity', new Set());
 
-  const pages = IMPLEMENTED_ARCHETYPES.map((archetype) => {
-    const html = renderSection(CONTENT, ds, { ...base, archetype }, {
-      brandName: 'Café des Hauts',
-      index: 3,
-    });
-    return `<figure style="margin:0 0 32px"><figcaption style="font:600 13px/1.4 system-ui;color:#555;margin-bottom:8px">Archétype ${archetype}</figcaption>${html}</figure>`;
-  });
+  const section = (label: string, html: string) =>
+    `<figure style="margin:0"><figcaption style="font:600 13px/1.4 system-ui;color:#555;margin-bottom:8px">${label}</figcaption>${html}</figure>`;
+
+  // 1. Les douze archétypes en PORTRAIT (business plan).
+  const portrait = IMPLEMENTED_ARCHETYPES.map((archetype) =>
+    section(
+      `Portrait A4 — archétype ${archetype}`,
+      renderSection(CONTENT, ds, { ...base, archetype }, {
+        brandName: 'Café des Hauts',
+        index: 3,
+      })
+    )
+  );
+
+  // 2. Les douze archétypes en PAYSAGE (deck, charte).
+  const slideSeed = buildDocumentSeed('futuristic', 'pitchdeck:demo');
+  const slideDs = buildDocumentDesignSystem(CHARTER, { styleId: 'futuristic' } as any, slideSeed);
+  const slideBase = buildSectionSeed('futuristic', 'pitchdeck:demo', 'Market', new Set());
+  const slideContent = { ...CONTENT, blocks: CONTENT.blocks.slice(0, 4) };
+
+  const landscape = IMPLEMENTED_ARCHETYPES.map((archetype) =>
+    section(
+      `Paysage 16:9 — archétype ${archetype}`,
+      renderSection(slideContent, slideDs, { ...slideBase, archetype }, {
+        page: LANDSCAPE_SLIDE,
+        multiPage: false,
+        brandName: 'Café des Hauts',
+      })
+    )
+  );
+
+  // 3. Les pages SPÉCIMENS de la charte : nuancier, typographie, logo. Ce sont
+  //    celles où un modèle se trompe le plus, et elles sont ici entièrement
+  //    produites par le code.
+  const palette = CHARTER.colors.colors;
+  const specimenPages = [
+    {
+      label: 'Charte — nuancier (valeurs exactes, contrastes calculés)',
+      content: {
+        kicker: 'Couleur',
+        title: 'La palette',
+        lede: 'Cinq valeurs, un rôle chacune. Les teintes viennent de l\'opacité, jamais d\'un décalage de teinte.',
+        blocks: [
+          {
+            kind: 'swatches' as const,
+            items: [
+              { hex: palette.primary, name: 'Primaire', role: 'Identité, titres, aplats' },
+              { hex: palette.secondary, name: 'Secondaire', role: 'Support, zones calmes' },
+              { hex: palette.accent, name: 'Accent', role: 'Chiffres, appels, filets' },
+              { hex: palette.background, name: 'Fond', role: 'Surface de page' },
+              { hex: palette.text, name: 'Encre', role: 'Texte courant' },
+            ],
+          },
+          {
+            kind: 'prose' as const,
+            paragraphs: [
+              'La primaire tient les surfaces et les titres. L\'accent ne sert qu\'à ce qui doit être lu en premier : un chiffre, un filet, un appel. Une page qui accentue tout n\'accentue rien.',
+            ],
+          },
+        ],
+      },
+    },
+    {
+      label: 'Charte — typographie (spécimens dans la vraie police)',
+      content: {
+        kicker: 'Typographie',
+        title: 'Deux familles, trois registres',
+        blocks: [
+          {
+            kind: 'typeSpecimen' as const,
+            specimens: [
+              { family: CHARTER.typography.primaryFont, role: 'Titres', sample: 'Café des Hauts' },
+              {
+                family: CHARTER.typography.secondaryFont,
+                role: 'Texte courant',
+                sample: 'La typographie porte la voix de la marque avant les mots.',
+              },
+            ],
+          },
+        ],
+      },
+    },
+  ];
+
+  const specimens = specimenPages.map((page, index) =>
+    section(
+      page.label,
+      renderSection(
+        page.content as any,
+        ds,
+        buildSectionSeed('editorial', 'branding:demo', page.label, new Set()),
+        { page: LANDSCAPE_SLIDE, multiPage: false, brandName: 'Café des Hauts', index: index + 1 }
+      )
+    )
+  );
 
   const fonts = [CHARTER.typography.primaryFont, CHARTER.typography.secondaryFont]
     .map((family) => `family=${family.replace(/ /g, '+')}:wght@300;400;500;700;800;900`)
     .join('&');
 
+  const group = (title: string, items: string[]) =>
+    `<h2 style="font:700 20px/1.3 system-ui;color:#222;width:100%;margin:40px 0 4px">${title}</h2>
+     <div style="display:flex;flex-wrap:wrap;gap:32px;justify-content:center;width:100%">${items.join('')}</div>`;
+
   const preview = `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8">
-<title>Aperçu — 12 archétypes</title>
+<title>Aperçu — rendu par gabarit</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?${fonts}&display=swap">
-<style>body{margin:0;padding:32px;background:#e8e8e8;display:flex;flex-wrap:wrap;gap:32px;justify-content:center}</style>
+<style>body{margin:0;padding:32px;background:#e8e8e8;display:flex;flex-wrap:wrap;gap:0;justify-content:center;font-family:system-ui}</style>
 </head><body>
-${pages.join('\n')}
+${group('Portrait A4 — business plan (paginé)', portrait)}
+${group('Paysage 16:9 — pitch deck et charte (une page, rognée)', landscape)}
+${group('Pages spécimens — produites entièrement par le code', specimens)}
 </body></html>`;
 
   const target = resolve(__dirname, '../../logs/render-preview.html');
   mkdirSync(dirname(target), { recursive: true });
   writeFileSync(target, preview, 'utf-8');
   console.log(`\n     Aperçu écrit : ${target}`);
+  console.log(`     ${portrait.length} portraits + ${landscape.length} paysages + ${specimens.length} pages spécimens.`);
   console.log('     À ouvrir dans un navigateur pour juger ce qu\'aucune assertion ne juge.');
 }
 

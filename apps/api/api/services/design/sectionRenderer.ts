@@ -30,6 +30,7 @@
  * rend correctement partout.
  */
 
+import { contrastRatio } from './color';
 import { DocumentDesignSystem } from './documentDesignSystem';
 import { SectionSeed } from './designSeed';
 import { Block, SectionContent } from './sectionContent';
@@ -42,14 +43,66 @@ export interface RenderOptions {
   /** Numéro de section, utilisé par les archétypes qui en font un élément graphique. */
   index?: number;
   /** Format de page. Le défaut est l'A4 portrait du business plan. */
-  page?: { width: string; minHeight: string; padding: string };
+  page?: PageFormat;
+  /**
+   * La page peut-elle s'étendre sur PLUSIEURS pages ?
+   *
+   * `true`  (business plan) : le paginateur mesure le flux et le redécoupe. La
+   *          hauteur est un minimum, la matière peut déborder sans dommage.
+   * `false` (deck, charte)  : une section = EXACTEMENT une page, et ce qui
+   *          dépasse est ROGNÉ. Le rendu resserre alors le rythme et l'échelle,
+   *          parce qu'un débordement n'est pas rattrapable en aval.
+   */
+  multiPage?: boolean;
 }
 
-const A4: Required<RenderOptions>['page'] = {
+export interface PageFormat {
+  width: string;
+  minHeight: string;
+  padding: string;
+  orientation: 'portrait' | 'landscape';
+}
+
+export const PORTRAIT_A4: PageFormat = {
   width: '210mm',
   minHeight: '297mm',
   padding: '12mm',
+  orientation: 'portrait',
 };
+
+/** Diapositive 16:9 — le format du pitch deck et de la charte. */
+export const LANDSCAPE_SLIDE: PageFormat = {
+  width: '297mm',
+  minHeight: '167mm',
+  padding: '14mm',
+  orientation: 'landscape',
+};
+
+export const LANDSCAPE_A4: PageFormat = {
+  width: '297mm',
+  minHeight: '210mm',
+  padding: '14mm',
+  orientation: 'landscape',
+};
+
+const A4 = PORTRAIT_A4;
+
+/**
+ * Piles de repli typographiques.
+ *
+ * Volontairement GÉNÉRIQUES. Nommer une famille concrète (Georgia, Helvetica
+ * Neue, Arial) ferait remonter le linter de charte, qui les compte parmi les
+ * polices « par défaut » — et il aurait raison : sur une page où la police de
+ * charte ne charge pas, tomber sur Georgia est un accident, pas une décision.
+ *
+ * Le pipeline PDF pose par ailleurs ses propres règles d'élément
+ * (`h1..h6 { font-family: PRIMARY }`, `p, div, td { font-family: SECONDARY }`).
+ * Elles ont une spécificité inférieure aux styles inline posés ici, donc le
+ * rendu garde la main — mais les deux désignent les mêmes familles, ce qui
+ * évite qu'une page rendue diffère selon qu'elle passe ou non par le PDF.
+ */
+const DISPLAY_FALLBACK = 'serif';
+const BODY_FALLBACK = 'sans-serif';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Échappement. Tout texte venu du modèle traverse cette fonction : c'est la
@@ -265,6 +318,8 @@ interface Ctx {
   tension: Tension;
   seed: SectionSeed;
   options: RenderOptions;
+  /** Le format est-il en paysage ? Les archétypes s'y composent en colonnes. */
+  landscape: boolean;
 }
 
 /** Bloc insécable : le paginateur ne le coupera pas en deux pages. */
@@ -585,6 +640,121 @@ function renderAssumption(block: Extract<Block, { kind: 'assumption' }>, ctx: Ct
 </div>`;
 }
 
+/**
+ * Nuancier. Le CONTRASTE de chaque teinte sur l'encre du document est CALCULÉ et
+ * affiché — c'est l'information qu'une charte doit porter et que personne
+ * n'écrit à la main correctement.
+ */
+function renderSwatches(block: Extract<Block, { kind: 'swatches' }>, ctx: Ctx): string {
+  const { ds } = ctx;
+  const cells = block.items
+    .map((item) => {
+      // Encre lisible SUR la teinte : calculée, jamais devinée.
+      const onSwatch = contrastRatio('#ffffff', item.hex) >= 4.5 ? '#ffffff' : '#000000';
+      const ratio = Math.round(contrastRatio(onSwatch, item.hex) * 10) / 10;
+      return `<div${style({ flex: '1 1 0', 'min-width': '0' })}>
+  <div${style({
+        'background-color': item.hex,
+        color: onSwatch,
+        height: '26mm',
+        'border-radius': `${ds.radius}px`,
+        display: 'flex',
+        'align-items': 'flex-end',
+        padding: `${ds.spacing * 0.6}px`,
+        'font-size': `${ds.typeScale.xs}px`,
+        'font-weight': 700,
+        border: `1px solid ${ds.colors.rule}`,
+      })}>${esc(item.hex.toUpperCase())}</div>
+  <div${style({ 'font-size': `${ds.typeScale.sm}px`, 'font-weight': 600, 'margin-top': '4px', color: ds.colors.ink })}>${esc(item.name)}</div>
+  ${item.role ? `<div${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted })}>${esc(item.role)}</div>` : ''}
+  <div${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted })}>contraste ${ratio}:1</div>
+</div>`;
+    })
+    .join('');
+
+  return `<div${style({ display: 'flex', gap: `${ds.spacing}px` })}${atomic}>${cells}</div>`;
+}
+
+/** Spécimen typographique, rendu DANS la police réelle. */
+function renderTypeSpecimen(
+  block: Extract<Block, { kind: 'typeSpecimen' }>,
+  ctx: Ctx
+): string {
+  const { ds } = ctx;
+  return block.specimens
+    .map(
+      (specimen) => `<div${style({
+        'padding-bottom': `${ds.spacing}px`,
+        'margin-bottom': `${ds.spacing}px`,
+        'border-bottom': `1px solid ${ds.colors.rule}`,
+      })}${atomic}>
+  <div${style({
+        'font-size': `${ds.typeScale.xs}px`,
+        'text-transform': 'uppercase',
+        'letter-spacing': '0.12em',
+        color: ctx.roles.highlight,
+        'font-weight': 700,
+      })}>${esc(specimen.role)} — ${esc(specimen.family)}</div>
+  <div${style({
+        'font-family': `'${specimen.family}', ${DISPLAY_FALLBACK}`,
+        'font-size': `${ds.typeScale['2xl']}px`,
+        'line-height': 1.1,
+        color: ds.colors.ink,
+        'margin-top': '4px',
+      })}>${esc(specimen.sample)}</div>
+  <div${style({
+        'font-family': `'${specimen.family}', ${BODY_FALLBACK}`,
+        'font-size': `${ds.typeScale.sm}px`,
+        color: ds.colors.inkMuted,
+        'margin-top': '4px',
+        'letter-spacing': '0.02em',
+      })}>ABCDEFGHIJKLMNOPQRSTUVWXYZ &nbsp; abcdefghijklmnopqrstuvwxyz &nbsp; 0123456789</div>
+</div>`
+    )
+    .join('');
+}
+
+/**
+ * Déclinaisons du logo, chacune sur le fond qui la met en valeur.
+ *
+ * Le fond est déduit du LABEL de la déclinaison, pas laissé au jugement : poser
+ * un logo à encre claire sur un fond clair est l'erreur la plus commune d'une
+ * charte générée, et elle est purement mécanique.
+ */
+function renderLogoDisplay(
+  block: Extract<Block, { kind: 'logoDisplay' }>,
+  ctx: Ctx
+): string {
+  const { ds } = ctx;
+  const grounds = {
+    light: ds.colors.neutral['50'],
+    dark: ds.colors.neutral['950'],
+    neutral: ds.colors.neutral['200'],
+  };
+
+  const cells = block.variants
+    .map(
+      (variant) => `<div${style({ flex: '1 1 0', 'min-width': '0' })}>
+  <div${style({
+        'background-color': grounds[variant.background] ?? grounds.neutral,
+        border: `1px solid ${ds.colors.rule}`,
+        'border-radius': `${ds.radius}px`,
+        height: '32mm',
+        display: 'flex',
+        'align-items': 'center',
+        'justify-content': 'center',
+        padding: `${ds.spacing}px`,
+      })}>
+    <img src="${esc(variant.url)}" alt="${esc(variant.label)}"${style({ 'max-height': '100%', 'max-width': '100%', width: 'auto', height: 'auto' })}>
+  </div>
+  <div${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted, 'margin-top': '4px' })}>${esc(variant.label)}</div>
+</div>`
+    )
+    .join('');
+
+  return `<div${style({ display: 'flex', gap: `${ds.spacing}px` })}${atomic}>${cells}</div>`;
+}
+
 function renderBlock(block: Block, ctx: Ctx): string {
   switch (block.kind) {
     case 'prose':
@@ -603,6 +773,12 @@ function renderBlock(block: Block, ctx: Ctx): string {
       return renderTimeline(block, ctx);
     case 'assumption':
       return renderAssumption(block, ctx);
+    case 'swatches':
+      return renderSwatches(block, ctx);
+    case 'typeSpecimen':
+      return renderTypeSpecimen(block, ctx);
+    case 'logoDisplay':
+      return renderLogoDisplay(block, ctx);
     default:
       return '';
   }
@@ -620,10 +796,30 @@ function renderBlock(block: Block, ctx: Ctx): string {
 interface PageChrome {
   /** En-tête de la page, déjà rendu. */
   header: string;
-  /** Déclarations appliquées au conteneur du flux de blocs. */
-  flow: Record<string, string | number | undefined>;
+  /**
+   * Retrait latéral supplémentaire, en mm, propre à l'archétype.
+   *
+   * Posé sur le PADDING DE LA RACINE, jamais sur un conteneur interne : c'est
+   * `insetsOf(root)` que le paginateur lit pour calculer la capacité d'une page.
+   * Un retrait porté par un wrapper lui serait invisible, et il planifierait des
+   * pages trop pleines.
+   */
+  rootInsetMm?: number;
   /** Élément graphique de fond, posé derrière le contenu. */
   backdrop?: string;
+  /**
+   * Grammaire de l'archétype EN PAYSAGE.
+   *
+   * Un format 16:9 ne se compose pas comme une A4 : empiler un titre puis un
+   * flux vertical y laisse une bande vide à droite et fait déborder par le bas —
+   * or le débordement y est ROGNÉ, pas paginé.
+   *
+   *   `side`    — titre dans une colonne, contenu dans l'autre. La grammaire
+   *               naturelle de la diapositive.
+   *   `stacked` — titre pleine largeur, contenu sur deux colonnes dessous. Pour
+   *               les archétypes dont l'identité EST le bandeau ou le cadre.
+   */
+  landscape?: 'side' | 'stacked';
 }
 
 type ArchetypeRenderer = (content: SectionContent, ctx: Ctx) => PageChrome;
@@ -637,7 +833,7 @@ function renderTitle(content: SectionContent, ctx: Ctx, color: string): string {
 
   return `<h1${style({
     margin: 0,
-    'font-family': `'${ds.fonts.display}', serif`,
+    'font-family': `'${ds.fonts.display}', ${DISPLAY_FALLBACK}`,
     'font-size': `${type.titleSize}px`,
     'font-weight': type.weight,
     'text-transform': type.transform,
@@ -678,7 +874,7 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   <div>${renderKicker(content, ctx, ctx.roles.highlight)}${renderTitle(content, ctx, ctx.roles.heading)}${renderLede(content, ctx, ctx.ds.colors.inkMuted)}</div>
   <div${style({ 'background-color': ctx.roles.band, height: '100%', 'min-height': '28mm', 'border-radius': `${ctx.ds.radius}px` })}></div>
 </div>`,
-    flow: {},
+    landscape: 'side',
   }),
 
   // B — BANDEAU PLEIN : le titre est posé sur une bande de couleur pleine largeur.
@@ -689,7 +885,7 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
       margin: `-${A4.padding} -${A4.padding} ${ctx.ds.spacing * 2}px`,
       padding: `${ctx.ds.spacing * 2.5}px ${A4.padding}`,
     })}>${renderKicker(content, ctx, ctx.roles.onBand)}${renderTitle(content, ctx, ctx.roles.onBand)}${renderLede(content, ctx, ctx.roles.onBand)}</div>`,
-    flow: {},
+    landscape: 'stacked',
   }),
 
   // C — TYPOGRAPHIE DOMINANTE : le titre occupe le tiers supérieur, rien d'autre.
@@ -698,7 +894,7 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   ${renderKicker(content, ctx, ctx.roles.highlight)}
   <h1${style({
       margin: 0,
-      'font-family': `'${ctx.ds.fonts.display}', serif`,
+      'font-family': `'${ctx.ds.fonts.display}', ${DISPLAY_FALLBACK}`,
       'font-size': `${Math.round(ctx.type.titleSize * 1.35)}px`,
       'font-weight': 800,
       'line-height': 0.95,
@@ -707,7 +903,7 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
     })}>${esc(content.title)}</h1>
   ${renderLede(content, ctx, ctx.ds.colors.inkMuted)}
 </div>`,
-    flow: {},
+    landscape: 'side',
   }),
 
   // D — SUISSE BRUTALISTE : grille stricte, filets épais, numéro surdimensionné.
@@ -716,7 +912,7 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   <div${style({ 'font-size': `${ctx.ds.typeScale['3xl']}px`, 'font-weight': 900, 'line-height': 0.85, color: ctx.roles.highlight })}>${String(ctx.options.index ?? 1).padStart(2, '0')}</div>
   <div>${renderKicker(content, ctx, ctx.ds.colors.inkMuted)}${renderTitle(content, ctx, ctx.roles.heading)}${renderLede(content, ctx, ctx.ds.colors.inkMuted)}</div>
 </div>`,
-    flow: {},
+    landscape: 'stacked',
   }),
 
   // E — MINIMAL DE LUXE : vide maximal, titre discret en haut à gauche.
@@ -725,7 +921,7 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   ${renderKicker(content, ctx, ctx.ds.colors.inkMuted)}
   <h1${style({
       margin: 0,
-      'font-family': `'${ctx.ds.fonts.display}', serif`,
+      'font-family': `'${ctx.ds.fonts.display}', ${DISPLAY_FALLBACK}`,
       'font-size': `${ctx.ds.typeScale.xl}px`,
       'font-weight': 400,
       'text-transform': 'uppercase',
@@ -736,7 +932,8 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   <div${style({ width: '18mm', height: '1px', 'background-color': ctx.roles.highlight, margin: `${ctx.ds.spacing * 1.5}px 0` })}></div>
   ${renderLede(content, ctx, ctx.ds.colors.inkMuted)}
 </div>`,
-    flow: { 'padding-left': '14mm', 'padding-right': '14mm' },
+    rootInsetMm: 14,
+    landscape: 'side',
   }),
 
   // F — PROFONDEUR EN COUCHES : un panneau teinté décalé passe derrière le titre.
@@ -745,7 +942,7 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   <div${style({ position: 'absolute', top: 0, left: '-6mm', width: '60mm', height: '26mm', 'background-color': ctx.roles.panel, 'border-radius': `${ctx.ds.radius}px` })}></div>
   <div${style({ position: 'relative' })}>${renderKicker(content, ctx, ctx.roles.highlight)}${renderTitle(content, ctx, ctx.roles.heading)}${renderLede(content, ctx, ctx.ds.colors.inkMuted)}</div>
 </div>`,
-    flow: {},
+    landscape: 'stacked',
   }),
 
   // G — GRILLE DE JOURNAL : bandeau de titre lourd, flux sur deux colonnes.
@@ -754,7 +951,7 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   <div>${renderTitle(content, ctx, ctx.roles.heading)}</div>
   <div${style({ 'font-size': `${ctx.ds.typeScale.xs}px`, 'text-transform': 'uppercase', 'letter-spacing': '0.14em', color: ctx.ds.colors.inkMuted, 'white-space': 'nowrap' })}>${esc(content.kicker ?? '')}</div>
 </div>${renderLede(content, ctx, ctx.ds.colors.inkMuted)}`,
-    flow: { 'column-count': 2, 'column-gap': `${ctx.ds.spacing * 2}px` },
+    landscape: 'stacked',
   }),
 
   // H — MOSAÏQUE : en-tête décalé, blocs légèrement désalignés.
@@ -764,7 +961,7 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   ${renderTitle(content, ctx, ctx.roles.heading)}
   ${renderLede(content, ctx, ctx.ds.colors.inkMuted)}
 </div>`,
-    flow: {},
+    landscape: 'side',
   }),
 
   // I — SOMBRE LUMINEUX : fond profond, titre porté par l'accent.
@@ -774,7 +971,7 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   ${renderTitle(content, ctx, ctx.roles.highlight)}
   ${renderLede(content, ctx, ctx.ds.colors.ink)}
 </div>`,
-    flow: {},
+    landscape: 'stacked',
     backdrop: `<div${style({ position: 'absolute', top: 0, right: 0, width: '70mm', height: '70mm', 'background-color': ctx.roles.highlight, opacity: 0.08, 'border-radius': '50%', transform: 'translate(30%, -30%)' })}></div>`,
   }),
 
@@ -785,7 +982,7 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   ${renderTitle(content, ctx, ctx.roles.heading)}
   <div${style({ width: '24mm', height: '2px', 'background-color': ctx.roles.highlight, margin: `${ctx.ds.spacing}px auto 0` })}></div>
 </div>`,
-    flow: {},
+    landscape: 'stacked',
     backdrop: `<div${style({ position: 'absolute', inset: '6mm', border: `1px solid ${ctx.ds.colors.rule}`, 'border-radius': `${ctx.ds.radius}px`, 'pointer-events': 'none' })}></div>`,
   }),
 
@@ -803,7 +1000,7 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
     })}></div>
   ${renderLede(content, ctx, ctx.ds.colors.inkMuted)}
 </div>`,
-    flow: {},
+    landscape: 'stacked',
   }),
 
   // L — AFFICHE DE DONNÉES : le premier chiffre de la page devient le héros.
@@ -821,7 +1018,7 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   ${renderTitle(content, ctx, ctx.roles.heading)}
   ${renderLede(content, ctx, ctx.ds.colors.inkMuted)}
 </div>`,
-      flow: {},
+      landscape: 'side',
     };
   },
 };
@@ -844,14 +1041,19 @@ export function renderSection(
   seed: SectionSeed,
   options: RenderOptions = {}
 ): string {
-  const page = options.page ?? A4;
+  const page = options.page ?? PORTRAIT_A4;
+  const landscape = page.orientation === 'landscape';
+  // Une page ROGNÉE ne pardonne pas le débordement : on resserre le rythme.
+  const cramped = options.multiPage === false;
+
   const ctx: Ctx = {
-    ds,
+    ds: cramped ? tighten(ds) : ds,
     roles: resolveColorRoles(ds, seed.colorStrategy),
-    type: resolveTypeTreatment(ds, seed.typographyMood),
+    type: resolveTypeTreatment(cramped ? tighten(ds) : ds, seed.typographyMood),
     tension: resolveTension(seed.layoutTension),
     seed,
     options,
+    landscape,
   };
 
   const renderer = ARCHETYPE_RENDERERS[seed.archetype] ?? ARCHETYPE_RENDERERS[DEFAULT_ARCHETYPE];
@@ -859,9 +1061,9 @@ export function renderSection(
 
   const separator =
     ctx.tension.separator === 'thick'
-      ? `border-top:3px solid ${ds.colors.rule};padding-top:${ds.spacing * ctx.tension.gap}px;`
+      ? `border-top:3px solid ${ctx.ds.colors.rule};padding-top:${ctx.ds.spacing * ctx.tension.gap}px;`
       : ctx.tension.separator === 'hairline'
-        ? `border-top:1px solid ${ds.colors.rule};padding-top:${ds.spacing * ctx.tension.gap}px;`
+        ? `border-top:1px solid ${ctx.ds.colors.rule};padding-top:${ctx.ds.spacing * ctx.tension.gap}px;`
         : '';
 
   const blocks = content.blocks
@@ -871,17 +1073,17 @@ export function renderSection(
       const spacing =
         index === 0
           ? ''
-          : `margin-top:${Math.round(ds.spacing * ctx.tension.gap * 1.5)}px;${separator}`;
+          : `margin-top:${Math.round(ctx.ds.spacing * ctx.tension.gap * (cramped ? 0.9 : 1.5))}px;${separator}`;
       // `break-inside` n'est PAS posé ici : c'est le paginateur qui décide où
       // couper, et les blocs qui ne doivent jamais l'être portent déjà
       // `data-keep-together`.
       return spacing ? `<div style="${spacing}">${html}</div>` : `<div>${html}</div>`;
     })
-    .join('');
+    .filter(Boolean);
 
   const logo = options.logoUrl
     ? `<img src="${esc(options.logoUrl)}" alt="${esc(options.brandName ? `${options.brandName} — logo` : 'Logo')}"${style({
-        height: '9mm',
+        height: landscape ? '8mm' : '9mm',
         width: 'auto',
         display: 'block',
       })}>`
@@ -891,34 +1093,110 @@ export function renderSection(
     display: 'flex',
     'align-items': 'center',
     'justify-content': 'space-between',
-    'margin-top': `${ds.spacing * 2}px`,
-    'padding-top': `${ds.spacing}px`,
-    'border-top': `1px solid ${ds.colors.rule}`,
-    'font-size': `${ds.typeScale.xs}px`,
-    color: ds.colors.inkMuted,
+    'margin-top': `${ctx.ds.spacing * (cramped ? 1.2 : 2)}px`,
+    'padding-top': `${ctx.ds.spacing * 0.75}px`,
+    'border-top': `1px solid ${ctx.ds.colors.rule}`,
+    'font-size': `${ctx.ds.typeScale.xs}px`,
+    color: ctx.ds.colors.inkMuted,
   })}${atomic}>
   ${logo || `<span>${esc(options.brandName ?? '')}</span>`}
   <span>${esc(content.title)}</span>
 </div>`;
 
-  return `<div${style({
+  // Retraits cumulés (tension + archétype), portés par la racine pour rester
+  // visibles du paginateur.
+  const sideInset = ctx.tension.inset + (chrome.rootInsetMm ?? 0);
+  const insetPadding = sideInset
+    ? `${page.padding} ${Number(page.padding.replace('mm', '')) + sideInset}mm`
+    : page.padding;
+
+  const rootStyle = {
     width: page.width,
     'min-height': page.minHeight,
-    padding: page.padding,
+    ...(cramped ? { height: page.minHeight, overflow: 'hidden' } : {}),
+    padding: insetPadding,
     position: 'relative',
     'box-sizing': 'border-box',
     'background-color': ctx.roles.ground,
-    color: ds.colors.ink,
-    'font-family': `'${ds.fonts.body}', sans-serif`,
-    'font-size': `${ds.typeScale.base}px`,
-  })}>
+    color: ctx.ds.colors.ink,
+    'font-family': `'${ctx.ds.fonts.body}', ${BODY_FALLBACK}`,
+    'font-size': `${ctx.ds.typeScale.base}px`,
+  };
+
+  // ── PAYSAGE ──────────────────────────────────────────────────────────────
+  // Le paginateur ne tourne PAS sur ces formats (`multiPage: false` : chaque
+  // section est exactement une page, et ce qui dépasse est rogné). Le rendu a
+  // donc les mains libres pour composer en colonnes — ce qu'un 16:9 réclame :
+  // empiler un titre puis un flux vertical y laisse une bande vide à droite et
+  // fait déborder par le bas.
+  if (landscape) {
+    const sideBySide = (chrome.landscape ?? 'side') === 'side';
+    const body = sideBySide
+      ? `<div${style({ display: 'grid', 'grid-template-columns': '5fr 7fr', gap: `${ctx.ds.spacing * 2}px`, 'align-items': 'start' })}>
+  <div>${chrome.header}</div>
+  <div>${blocks.join('\n')}</div>
+</div>`
+      : `${chrome.header}
+<div${style({
+          display: 'grid',
+          'grid-template-columns': 'repeat(2, minmax(0, 1fr))',
+          gap: `${ctx.ds.spacing * 1.5}px`,
+          'align-items': 'start',
+        })}>${blocks.join('\n')}</div>`;
+
+    return `<div${style({ ...rootStyle, display: 'flex', 'flex-direction': 'column' })}>
 ${chrome.backdrop ?? ''}
-<div${style({ position: 'relative', ...chrome.flow, 'padding-left': ctx.tension.inset ? `${ctx.tension.inset}mm` : undefined, 'padding-right': ctx.tension.inset ? `${ctx.tension.inset}mm` : undefined })}>
-${chrome.header}
-${blocks}
+<div${style({ flex: '1 1 auto', 'min-height': 0 })}>
+${body}
 </div>
 ${footer}
 </div>`;
+  }
+
+  // ── PORTRAIT ─────────────────────────────────────────────────────────────
+  // ⚠️ STRUCTURE PLATE, ET C'EST UN CONTRAT, PAS UN STYLE.
+  //
+  // Le paginateur prend les ENFANTS DIRECTS de cette racine pour blocs
+  // (`flow-pagination.runtime`, `paginateSection`) : il les mesure, les regroupe
+  // en pages, et clone la racine pour chacune. Envelopper le flux dans un
+  // conteneur intermédiaire lui présenterait UN seul bloc géant, insécable —
+  // une section de plus d'une page serait alors réduite à l'échelle ou rognée.
+  //
+  // Le retrait de la tension est donc porté par le PADDING de la racine, jamais
+  // par un conteneur interne. Le décor de fond est en `position:absolute`, donc
+  // hors flux : le paginateur le préserve comme décoration de page.
+  return `<div${style(rootStyle)}>
+${chrome.backdrop ?? ''}
+${chrome.header}
+${blocks.join('\n')}
+${footer}
+</div>`;
+}
+
+/**
+ * Resserre le design system pour une page ROGNÉE (deck, charte).
+ *
+ * Sur un format où le débordement n'est pas rattrapable, le rythme et l'échelle
+ * doivent laisser de la marge. On ne change ni la palette, ni les contrastes,
+ * ni le rayon : seulement ce qui occupe de la place.
+ */
+function tighten(ds: DocumentDesignSystem): DocumentDesignSystem {
+  const scale = ds.typeScale;
+  const shrink = (value: number) => Math.max(9, Math.round(value * 0.82));
+  return {
+    ...ds,
+    spacing: Math.max(4, Math.round(ds.spacing * 0.7)),
+    typeScale: {
+      xs: Math.max(9, scale.xs),
+      sm: Math.max(10, scale.sm),
+      base: Math.max(11, Math.round(scale.base * 0.88)),
+      lg: shrink(scale.lg),
+      xl: shrink(scale.xl),
+      '2xl': shrink(scale['2xl']),
+      '3xl': shrink(scale['3xl']),
+      '4xl': shrink(scale['4xl']),
+    },
+  };
 }
 
 /** Liste des archétypes réellement implémentés — sert aux vérifications. */
