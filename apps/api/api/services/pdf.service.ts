@@ -9,7 +9,11 @@ import { SectionModel } from '../models/section.model';
 import { TypographyModel } from '../models/brand-identity.model';
 import { cacheService } from './cache.service';
 import { sanitizeSectionHtml } from '../utils/sanitize-section-html';
-import { FLOW_PAGINATION_RUNTIME, FlowPaginationReport } from './pdf/flow-pagination.runtime';
+import {
+  FLOW_PAGINATION_RUNTIME,
+  FixedPageFitReport,
+  FlowPaginationReport,
+} from './pdf/flow-pagination.runtime';
 import axios from 'axios';
 
 export interface PageFormat {
@@ -797,6 +801,31 @@ export class PdfService {
             )
           );
         report.warnings.forEach((w) => logger.warn(`Flow pagination warning: ${w}`));
+      } else {
+        // ── PAGES À HAUTEUR FIXE (deck, charte) ────────────────────────────
+        //
+        // Une section EST une page ici, et ce qui dépassait était rogné en
+        // silence — au milieu d'une phrase, sans que rien ne le signale. Le
+        // rendu écarte déjà ce qu'il PRÉVOIT de ne pas faire tenir, mais sa
+        // prévision n'a pas de moteur de rendu derrière elle. Ici, si.
+        const fit = (await page.evaluate(() =>
+          (window as any).__idemFlow.fitFixed({})
+        )) as FixedPageFitReport;
+
+        if (fit.fitted.length > 0) {
+          logger.info(
+            `Fixed pages fitted for ${projectName}: ${fit.fitted.length}/${fit.pages} page(s) réduite(s) ` +
+              `(min ${Math.min(...fit.fitted.map((f) => f.scale)).toFixed(2)}×)`
+          );
+          fit.fitted
+            .filter((f) => f.floored)
+            .forEach((f) =>
+              logger.warn(
+                `Page "${f.name || '?'}" déborde de ${f.overflowMm} mm et reste rognée au plancher ` +
+                  `(${f.scale}×) — le brief demande plus que la page ne porte.`
+              )
+            );
+        }
       }
 
       // Créer un fichier temporaire pour le PDF
@@ -1094,7 +1123,7 @@ export class PdfService {
 
       if (!multiPage) {
         htmlContent += `
-        <div class="section">
+        <div class="section" data-section-name="${escapeAttr(section.name || '')}">
             <div class="data-content">${sectionData}</div>
         </div>
       `;

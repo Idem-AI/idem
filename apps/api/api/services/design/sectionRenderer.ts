@@ -80,6 +80,14 @@ export const LANDSCAPE_SLIDE: PageFormat = {
   orientation: 'landscape',
 };
 
+/**
+ * Disposition d'une page, telle que l'archétype la choisit.
+ *
+ * Elle ne décide pas que du rendu : elle décide de la PLACE offerte aux blocs,
+ * donc de ce qui tient sur une page rognée (cf. `fitToPage`).
+ */
+export type PageLayout = 'portrait' | 'side' | 'stacked';
+
 export const LANDSCAPE_A4: PageFormat = {
   width: '297mm',
   minHeight: '210mm',
@@ -1165,12 +1173,18 @@ function renderLede(content: SectionContent, ctx: Ctx, color: string): string {
 }
 
 const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
-  // A — SPLIT ÉDITORIAL : l'en-tête se partage en deux, un panneau plein tient
-  // un tiers de la largeur.
+  // A — SPLIT ÉDITORIAL : le titre tient les deux tiers de la largeur, le tiers
+  // restant est laissé VIDE.
+  //
+  // Il portait un panneau de couleur pleine hauteur. C'était l'exemple type de
+  // ce que `EDITORIAL_RESTRAINT_BLOCK` interdit au modèle deux fichiers plus
+  // loin — « une forme posée pour remplir » — et le demander au modèle tout en
+  // le produisant en code n'était pas tenable. Ce qui fait le travail ici, c'est
+  // la GRILLE : elle raccourcit la justification du titre. Le vide qui reste
+  // n'est pas un défaut à combler, c'est ce qui rend le titre lisible.
   A: (content, ctx) => ({
     header: `<div${style({ display: 'grid', 'grid-template-columns': '2fr 1fr', gap: `${ctx.ds.spacing * 2}px`, 'align-items': 'end', 'margin-bottom': `${ctx.ds.spacing * 2}px` })}>
   <div>${renderKicker(content, ctx, ctx.roles.highlight)}${renderTitle(content, ctx, ctx.roles.heading)}${renderLede(content, ctx, ctx.ds.colors.inkMuted)}</div>
-  <div${style({ 'background-color': ctx.roles.band, height: '100%', 'min-height': '28mm', 'border-radius': `${ctx.ds.radius}px` })}></div>
 </div>`,
     landscape: 'side',
   }),
@@ -1269,8 +1283,11 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   ${renderTitle(content, ctx, ctx.roles.highlight)}
   ${renderLede(content, ctx, ctx.ds.colors.ink)}
 </div>`,
+    // Pas de fond décoratif : l'archétype tient à son FOND SOMBRE et à son titre
+    // d'accent, pas au disque flou qu'il posait dans l'angle. Une « blob » est
+    // nommément interdite au modèle par le bloc de retenue éditoriale ; la
+    // produire en code revenait à lui reprocher ce que la plateforme faisait.
     landscape: 'stacked',
-    backdrop: `<div${style({ position: 'absolute', top: 0, right: 0, width: '70mm', height: '70mm', 'background-color': ctx.roles.highlight, opacity: 0.08, 'border-radius': '50%', transform: 'translate(30%, -30%)' })}></div>`,
   }),
 
   // J — CADRE : la page entière est encadrée d'un filet, le titre s'y inscrit.
@@ -1284,17 +1301,21 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
     backdrop: `<div${style({ position: 'absolute', inset: '6mm', border: `1px solid ${ctx.ds.colors.rule}`, 'border-radius': `${ctx.ds.radius}px`, 'pointer-events': 'none' })}></div>`,
   }),
 
-  // K — ÉDITORIAL TRAMÉ : bande texturée sous le titre.
+  // K — ÉDITORIAL RÉGLÉ : un filet épais sépare le titre de son chapô.
+  //
+  // C'était une bande de POINTS de 6 mm. Elle ne mesurait rien, ne séparait rien
+  // que le blanc ne séparait déjà, et tombait sous l'interdit « dots placed to
+  // liven up ». Un filet, lui, est l'un des trois ornements qu'une page
+  // éditoriale admet — il marque une rupture de niveau, et il en fait la preuve.
   K: (content, ctx) => ({
     header: `<div${style({ 'margin-bottom': `${ctx.ds.spacing * 2}px` })}>
   ${renderKicker(content, ctx, ctx.roles.highlight)}
   ${renderTitle(content, ctx, ctx.roles.heading)}
   <div${style({
-      height: '6mm',
+      width: '32mm',
+      height: '3px',
       'margin-top': `${ctx.ds.spacing}px`,
-      'background-image': `radial-gradient(${ctx.roles.highlight} 1px, transparent 1px)`,
-      'background-size': '6px 6px',
-      opacity: 0.5,
+      'background-color': ctx.roles.highlight,
     })}></div>
   ${renderLede(content, ctx, ctx.ds.colors.inkMuted)}
 </div>`,
@@ -1413,7 +1434,13 @@ export function renderSection(
   // tient — et de le DIRE, pour qu'un livrable systématiquement tronqué se voie
   // dans les journaux au lieu de se découvrir à l'impression.
   const blockList = cramped
-    ? fitToPage(content.blocks, page, ctx.ds, Boolean(content.lede))
+    ? fitToPage(
+        content.blocks,
+        page,
+        ctx.ds,
+        Boolean(content.lede),
+        landscape ? ((chrome.landscape ?? 'side') as PageLayout) : 'portrait'
+      )
     : content.blocks;
 
   const blocks = blockList
@@ -1542,7 +1569,8 @@ function fitToPage(
   blocks: Block[],
   page: PageFormat,
   ds: DocumentDesignSystem,
-  hasLede: boolean
+  hasLede: boolean,
+  layout: PageLayout = 'portrait'
 ): Block[] {
   const mm = (value: string): number => Number.parseFloat(value.replace('mm', '')) || 0;
 
@@ -1553,11 +1581,35 @@ function fitToPage(
   // `tighten()` réduit corps et rythme d'environ 15 % : autant de matière en plus.
   const capacityRatio = (usable / a4Usable) * 1.15;
 
-  // L'en-tête et le pied occupent la page avant le premier bloc.
-  const chrome = 0.16 + (hasLede ? 0.05 : 0);
+  // ── LA PLACE RÉELLEMENT OFFERTE AUX BLOCS DÉPEND DE LA DISPOSITION ────────
+  //
+  // Un seul budget était calculé pour les trois dispositions, à partir de la
+  // surface de la page. C'est juste en portrait, où les blocs occupent toute la
+  // largeur sous l'en-tête. Ça ne l'est dans AUCUN des deux cas paysage, qui
+  // sont pourtant les seuls formats rognés de la plateforme (deck et charte) :
+  //
+  //   `side`    — l'en-tête prend la colonne de GAUCHE, les blocs n'ont que les
+  //               7/12 de la largeur. La surface disponible était donc
+  //               surestimée de près de moitié : le contenu débordait, et une
+  //               page à `overflow: hidden` le coupe en pleine phrase.
+  //   `stacked` — l'en-tête est au-dessus, mais les blocs sont en DEUX colonnes.
+  //               La surface est la bonne ; c'est le retrait d'en-tête qui était
+  //               calibré sur une A4, donc sous-évalué sur une page deux fois
+  //               moins haute.
+  //
+  // Mesuré dans les journaux avant correction : « 1 bloc sur 4 écarté » sur des
+  // slides, jusqu'à « 21 sur 24 » sur une page libre.
+  const footer = 0.05;
+  const heading = (layout === 'portrait' ? 0.16 : 0.17) + (hasLede ? 0.05 : 0);
+
+  // `side` : l'en-tête ne consomme pas de HAUTEUR, il consomme de la LARGEUR —
+  // les 5/12 de la grille. On retire donc la colonne, pas le bandeau.
+  const area = layout === 'side' ? capacityRatio * (7 / 12) : capacityRatio;
+  const chrome = layout === 'side' ? footer : heading + footer;
+
   // Marge de sûreté : l'estimation ignore les retours à la ligne, la casse et
   // les polices réelles. 10 % de réserve évitent le débordement d'un cheveu.
-  const budget = Math.max(0.2, capacityRatio * 0.9 - chrome);
+  const budget = Math.max(0.2, area * 0.9 - chrome);
 
   const kept: Block[] = [];
   let used = 0;
@@ -1601,8 +1653,8 @@ function fitToPage(
   if (dropped > 0) {
     logger.warn(
       `Page rognée : ${dropped} bloc(s) sur ${blocks.length} écarté(s) faute de place ` +
-        `(budget ${budget.toFixed(2)} page, format ${page.width}×${page.minHeight}). ` +
-        `Réduire le volume demandé dans le brief si cela se répète.`
+        `(budget ${budget.toFixed(2)} page, format ${page.width}×${page.minHeight}, ` +
+        `disposition ${layout}). Réduire le volume demandé dans le brief si cela se répète.`
     );
   }
 

@@ -1314,34 +1314,47 @@ export class BrandingService extends GenericService {
 
             // Prepare the updated project data
             const currentBranding = project.analysisResultModel?.branding;
+            /**
+             * Écriture CIBLÉE sur la seule branche `branding`, par chemin pointé.
+             *
+             * `project` est lu UNE fois avant la boucle, et cette écriture est
+             * rejouée à chaque section. Réécrire `analysisResultModel` en entier
+             * depuis cet instantané reposait donc les branches VOISINES dans
+             * l'état qu'elles avaient au démarrage de la charte : une simulation
+             * qui se terminait pendant la génération voyait son rapport écrit
+             * puis effacé quelques millisecondes plus tard, sans la moindre
+             * erreur — la mise à jour réussissait, elle ramenait simplement le
+             * passé.
+             *
+             * Un chemin pointé n'écrit que ce que cette méthode produit ; les
+             * branches voisines restent celles de la base.
+             */
             const updatedProjectData = {
-              ...project,
-              analysisResultModel: {
-                ...project.analysisResultModel,
-                branding: {
-                  // On repart de l'objet existant : cette écriture est faite à
-                  // CHAQUE section, et reconstruire la marque champ par champ
-                  // effaçait tout ce qui n'était pas listé — les préférences de
-                  // logo, puis la direction artistique.
-                  ...currentBranding,
-                  sections: sections,
-                  colors: currentBranding?.colors,
-                  typography: currentBranding?.typography,
-                  logo: currentBranding?.logo,
-                  generatedLogos: currentBranding?.generatedLogos || [],
-                  generatedColors: currentBranding?.generatedColors || [],
-                  generatedTypography: currentBranding?.generatedTypography || [],
-                  pdfFormat: pdfFormat, // Stocker le format PDF choisi
-                  createdAt: currentBranding?.createdAt || new Date(),
-                  updatedAt: new Date(),
-                },
+              'analysisResultModel.branding': {
+                // On repart de l'objet existant : cette écriture est faite à
+                // CHAQUE section, et reconstruire la marque champ par champ
+                // effaçait tout ce qui n'était pas listé — les préférences de
+                // logo, puis la direction artistique.
+                ...currentBranding,
+                sections: sections,
+                colors: currentBranding?.colors,
+                typography: currentBranding?.typography,
+                logo: currentBranding?.logo,
+                generatedLogos: currentBranding?.generatedLogos || [],
+                generatedColors: currentBranding?.generatedColors || [],
+                generatedTypography: currentBranding?.generatedTypography || [],
+                pdfFormat: pdfFormat, // Stocker le format PDF choisi
+                createdAt: currentBranding?.createdAt || new Date(),
+                updatedAt: new Date(),
               },
             };
 
             // Update the project in the database
             const updatedProject = await this.projectRepository.update(
               projectId,
-              updatedProjectData,
+              // Chemin pointé : hors du type `Partial<ProjectModel>`, mais c'est
+              // exactement ce que `$set` attend pour ne toucher qu'une branche.
+              updatedProjectData as any,
               `users/${userId}/projects`
             );
 

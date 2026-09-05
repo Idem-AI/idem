@@ -484,6 +484,19 @@ export const AI_CONFIG = {
   businessPlan: {
     provider: LLMProvider.GLM,
     modelName: GLM_MODELS.reasoning,
+    /**
+     * ÉTAGE DE DÉPART DES SECTIONS, y compris celles rendues par GABARIT.
+     *
+     * `modelName` ci-dessus ne sert qu'aux sections ÉPINGLÉES (les pages en
+     * composition libre). Une section sous gabarit est dépinglée d'office par
+     * `generic.service.ts`, et partait donc à l'étage de sa TÂCHE — `draft` → M,
+     * l'étage de rédaction. C'est le bon défaut pour le volume courant ; ce ne
+     * l'est pas pour les trois livrables qu'un investisseur lit.
+     *
+     * Déclarer l'étage ici le rend explicite et PORTABLE : sur Gemini il se traduit
+     * par le rôle `reasoning`, donc par `IDEM_GEMINI_REASONING_MODEL`.
+     */
+    tier: 'S',
     // ⚠️ ÉPINGLAGE TRANSITOIRE — à retirer section par section.
     //
     // Le routeur sait désormais partir à l'étage bas et escalader sur échec du
@@ -541,6 +554,19 @@ export const AI_CONFIG = {
   pitchDeck: {
     provider: LLMProvider.GLM,
     modelName: GLM_MODELS.reasoning,
+    /**
+     * ÉTAGE DE DÉPART DES SECTIONS, y compris celles rendues par GABARIT.
+     *
+     * `modelName` ci-dessus ne sert qu'aux sections ÉPINGLÉES (les pages en
+     * composition libre). Une section sous gabarit est dépinglée d'office par
+     * `generic.service.ts`, et partait donc à l'étage de sa TÂCHE — `draft` → M,
+     * l'étage de rédaction. C'est le bon défaut pour le volume courant ; ce ne
+     * l'est pas pour les trois livrables qu'un investisseur lit.
+     *
+     * Déclarer l'étage ici le rend explicite et PORTABLE : sur Gemini il se traduit
+     * par le rôle `reasoning`, donc par `IDEM_GEMINI_REASONING_MODEL`.
+     */
+    tier: 'S',
     // ⚠️ ÉPINGLAGE TRANSITOIRE — à retirer section par section.
     //
     // Le routeur sait désormais partir à l'étage bas et escalader sur échec du
@@ -944,6 +970,19 @@ export const AI_CONFIG = {
     brandIdentity: {
       provider: LLMProvider.GLM,
       modelName: GLM_MODELS.reasoning,
+      /**
+       * ÉTAGE DE DÉPART DES SECTIONS, y compris celles rendues par GABARIT.
+       *
+       * `modelName` ci-dessus ne sert qu'aux sections ÉPINGLÉES (les pages en
+       * composition libre). Une section sous gabarit est dépinglée d'office par
+       * `generic.service.ts`, et partait donc à l'étage de sa TÂCHE — `draft` → M,
+       * l'étage de rédaction. C'est le bon défaut pour le volume courant ; ce ne
+       * l'est pas pour les trois livrables qu'un investisseur lit.
+       *
+       * Déclarer l'étage ici le rend explicite et PORTABLE : sur Gemini il se traduit
+       * par le rôle `reasoning`, donc par `IDEM_GEMINI_REASONING_MODEL`.
+       */
+      tier: 'S',
       // ⚠️ ÉPINGLAGE TRANSITOIRE — à retirer section par section.
       //
       // Le routeur sait désormais partir à l'étage bas et escalader sur échec du
@@ -1035,7 +1074,16 @@ export const AI_CONFIG = {
      */
     colors: {
       provider: LLMProvider.GLM,
-      modelName: GLM_MODELS.reasoning,
+      // ÉTAGE DE RÉDACTION, et non de raisonnement — conséquence directe du
+      // `thinkingBudget: 0` ci-dessous.
+      //
+      // Le modèle de raisonnement de Gemini est un `pro`, et un `pro` REFUSE de
+      // ne pas raisonner : son plancher est `thinkingLevel: 'low'`, soit ~350
+      // tokens prélevés sur les 6 000 du budget de sortie, pour une réflexion
+      // dont cette configuration a justement établi qu'elle n'apportait plus
+      // rien. Rester sur l'étage haut reviendrait à payer une délibération que
+      // le code a reprise, et à rapprocher la sortie du vide.
+      modelName: GLM_MODELS.writing,
       fallbackModels: TEXT_FALLBACK_MODELS,
       llmOptions: {
         temperature: 0.6,
@@ -1066,7 +1114,16 @@ export const AI_CONFIG = {
      */
     typography: {
       provider: LLMProvider.GLM,
-      modelName: GLM_MODELS.reasoning,
+      // ÉTAGE DE RÉDACTION, et non de raisonnement — conséquence directe du
+      // `thinkingBudget: 0` ci-dessous.
+      //
+      // Le modèle de raisonnement de Gemini est un `pro`, et un `pro` REFUSE de
+      // ne pas raisonner : son plancher est `thinkingLevel: 'low'`, soit ~350
+      // tokens prélevés sur les 6 000 du budget de sortie, pour une réflexion
+      // dont cette configuration a justement établi qu'elle n'apportait plus
+      // rien. Rester sur l'étage haut reviendrait à payer une délibération que
+      // le code a reprise, et à rapprocher la sortie du vide.
+      modelName: GLM_MODELS.writing,
       fallbackModels: TEXT_FALLBACK_MODELS,
       llmOptions: {
         temperature: 0.6,

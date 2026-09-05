@@ -60,6 +60,24 @@ export interface FlowPaginationSectionReport {
   fixed: boolean;
 }
 
+/** Une page à hauteur FIXE qu'il a fallu réduire pour qu'elle tienne. */
+export interface FixedPageFit {
+  /** Nom de la section, quand le conteneur le porte. */
+  name: string;
+  /** Facteur appliqué (1 = la page tenait déjà). */
+  scale: number;
+  /** Débordement mesuré AVANT réduction, en mm. */
+  overflowMm: number;
+  /** `true` si le plancher a été atteint : la page reste rognée. */
+  floored: boolean;
+}
+
+export interface FixedPageFitReport {
+  pages: number;
+  /** Uniquement les pages qui débordaient. */
+  fitted: FixedPageFit[];
+}
+
 export interface FlowPaginationReport {
   totalPages: number;
   sections: FlowPaginationSectionReport[];
@@ -1194,7 +1212,82 @@ export const FLOW_PAGINATION_RUNTIME = `
    * Public API
    * ===================================================================== */
 
+  /* =====================================================================
+   * 8. Fixed-height pages: fit instead of clip
+   *
+   * The deck and the brand charter are rendered as ".section" pages with an
+   * explicit height and overflow:hidden — one section IS one page, and the
+   * paginator does not run on them. Anything taller than the page was simply
+   * cut, mid-sentence, with no trace: the content was produced, paid for, and
+   * hidden. The renderer already drops what it PREDICTS will not fit
+   * (sectionRenderer.fitToPage), but that prediction has no layout engine
+   * behind it — the last few millimetres always escape it.
+   *
+   * Here we are inside the browser, so we measure. A page that overflows is
+   * scaled down just enough to fit; a page that fits is left strictly alone.
+   * The floor is deliberate: below it, reducing further would trade a visible
+   * cut for unreadable type, which is not a better outcome — the page stays
+   * clipped and it is REPORTED, so a systematically overflowing brief shows up
+   * in the logs instead of being discovered on paper.
+   * ===================================================================== */
+
+  var FIT_FLOOR = 0.72;
+
+  function fitFixedPages(options) {
+    var opts = options || {};
+    var floor = opts.floor == null ? FIT_FLOOR : opts.floor;
+    var report = { pages: 0, fitted: [] };
+    var sections = [].slice.call(document.querySelectorAll('.section'));
+
+    for (var i = 0; i < sections.length; i++) {
+      var section = sections[i];
+      var host = section.querySelector('.data-content') || section;
+      var root = null;
+      for (var c = 0; c < host.children.length; c++) {
+        if (host.children[c].nodeType === 1) { root = host.children[c]; break; }
+      }
+      if (!root) { continue; }
+      report.pages++;
+
+      var avail = section.clientHeight;
+      if (!avail) { continue; }
+
+      // The root clips its own content, so its scrollHeight is the only honest
+      // measure of what it actually holds. Reading it does not need the clip
+      // lifted, but a child with a percentage height does — it resolves against
+      // a height we are about to change.
+      var previous = root.style.overflow;
+      root.style.overflow = 'visible';
+      var needed = Math.max(root.scrollHeight, root.getBoundingClientRect().height);
+      root.style.overflow = previous;
+
+      if (needed <= avail + 1) { continue; }
+
+      var exact = avail / needed;
+      var scale = Math.max(floor, exact);
+
+      root.style.transformOrigin = 'top left';
+      root.style.transform = 'scale(' + scale + ')';
+      // The root keeps covering the page once scaled: it is widened and
+      // heightened by exactly the inverse factor.
+      root.style.width = (100 / scale) + '%';
+      root.style.height = (avail / scale) + 'px';
+      root.style.minHeight = '0';
+
+      report.fitted.push({
+        name: section.getAttribute('data-section-name') || '',
+        scale: Math.round(scale * 1000) / 1000,
+        overflowMm: Math.round(((needed - avail) / MM) * 10) / 10,
+        floored: scale > exact
+      });
+    }
+
+    return report;
+  }
+
   window.__idemFlow = {
+    fitFixed: fitFixedPages,
+
     prepare: function (opts) {
       opts = opts || {};
       var out = { tailwind: false, built: 0, charts: 0, rasterized: 0 };

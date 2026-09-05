@@ -69,8 +69,12 @@ Available block types — pick what the SUBSTANCE calls for, never a fixed recip
 {"kind":"assumption","statement":"what the plan assumes","basis":"what it rests on"}
 
 RULES:
-- 6 to 10 blocks. Vary the types: a page made only of prose is a wall, a page
-  made only of cards is a catalogue.
+- The number of blocks is given in <volume>. It is a CEILING as much as a target:
+  never exceed it. The renderer measures what fits on the page and DISCARDS the
+  surplus, so an extra block is content written, paid for, and thrown away — and
+  the reader never sees it. When hesitating between two blocks, emit one.
+- Vary the types: a page made only of prose is a wall, a page made only of cards
+  is a catalogue.
 - Every figure carries a unit and a period. A figure without a source is noise.
 - No sentence that would survive a change of company name.
 - Never announce ("in this section we will…"), state.
@@ -85,14 +89,24 @@ RULES:
  * découpe le flux. Lui demander « 2 à 3 pages » l'amenait à remplir : à compter
  * des mots plutôt qu'à porter des faits. Compter des blocs le ramène à la
  * matière.
+ *
+ * ⚠️ C'est la SEULE consigne de volume du prompt. Le contrat de sortie en portait
+ * une seconde (« 6 to 10 blocks ») qui la contredisait sur les formats rognés —
+ * le deck demande 3 à 4 blocs, la charte 2 à 3 — et un modèle départage deux
+ * nombres contradictoires en produisant entre les deux. Le rendu écartait ensuite
+ * le surplus faute de place : mesuré en production, 1 bloc sur 4 sur un slide, et
+ * jusqu'à 21 sur 24 sur une page libre. Ne pas réintroduire de nombre ailleurs.
  */
 export function sectionVolumeDirective(blocks: string): string {
   return `<volume>
-Target: ${blocks} blocks for this section. It is a TARGET, not a quota.
-Reach it with SUBSTANCE — figures, local examples, stated hypotheses, risks,
-timelines, named sources. If the substance runs out before the target, STOP: a
-short section carrying real content beats a full one padded with sentences that
-say nothing, and padding is exactly what makes a document recognisable as
-generated.
+Produce ${blocks} blocks for this section. This is what the page HOLDS — the
+renderer discards whatever does not fit, so going over does not add content, it
+loses it.
+Reach the count with SUBSTANCE — figures, local examples, stated hypotheses,
+risks, timelines, named sources. If the substance runs out first, STOP: a short
+section carrying real content beats a full one padded with sentences that say
+nothing, and padding is exactly what makes a document recognisable as generated.
+Keep each block SHORT: a prose block is one or two paragraphs, not five; a table
+is the rows that carry the comparison, not every row you can think of.
 </volume>`;
 }
