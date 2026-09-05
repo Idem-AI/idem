@@ -17,7 +17,8 @@
     "secrets:rotate": "bash scripts/rotate-secret.sh",
     "secrets:purge-history": "bash scripts/purge-env-from-history.sh",
     "check:uniqueness": "ts-node --transpile-only api/scripts/checkUniqueness.ts",
-    "check:all": "npm run check:agents && npm run check:design && npm run check:uniqueness"
+    "check:all": "npm run check:agents && npm run check:design && npm run check:uniqueness && npm run check:render",
+    "check:render": "ts-node --transpile-only api/scripts/checkSectionRenderer.ts"
   },
   "author": "arolleaguekeng",
   "license": "MIT",
