@@ -16,7 +16,7 @@
  *                           même API.
  */
 
-import { LLMProvider, FeatureAIConfig, GLM_MODELS } from './ai.config';
+import { LLMProvider, FeatureAIConfig, GLM_MODELS, TEXT_FALLBACK_MODELS } from './ai.config';
 
 export type ProviderKind = 'gemini' | 'openai-compatible';
 
@@ -72,6 +72,22 @@ export interface ProviderDefinition {
   defaultHeaders?: Record<string, string>;
   /** Modèle de repli propre au fournisseur (optionnel). */
   fallbackModel?: string;
+  /**
+   * Chaîne de repli appliquée aux appels de CE fournisseur qui n'en déclarent
+   * aucune. C'est une propriété du FOURNISSEUR, jamais d'une famille de modèles.
+   *
+   * Le garde-fou vivait auparavant dans `prompt.service.ts` sous la forme
+   * « si le fournisseur est Gemini, appliquer TEXT_FALLBACK_MODELS ». La
+   * migration vers GLM a rempli cette constante de modèles GLM sans toucher à
+   * la condition, si bien que le filet faisait l'inverse de ce qu'il annonçait :
+   * les appels Gemini recevaient une chaîne de noms que Vertex ne connaît pas
+   * (404 garantis, latence perdue, cause réelle masquée) et les appels GLM
+   * n'avaient plus aucun repli — un 429 perdait l'étape.
+   *
+   * Déclaré ici, le repli suit le fournisseur : une prochaine bascule ne
+   * pourra plus le désaligner.
+   */
+  defaultFallbackModels?: string[];
   /** Backend résolu (fournisseurs `gemini` uniquement). Rempli par `getProvider`. */
   backend?: GeminiBackend;
   /**
@@ -227,6 +243,9 @@ export const AI_PROVIDERS: Record<LLMProvider, ProviderDefinition> = {
     // compte de service). `apiKeyEnv` ne sert donc que si `GEMINI_BACKEND` est
     // repassé sur `ai-studio`.
     apiKeyEnv: 'GEMINI_API_KEY',
+    // Repli entre modèles GOOGLE : la saturation Vertex est par modèle, mais un
+    // nom hors catalogue Google est un 404, pas un repli.
+    defaultFallbackModels: ['gemini-2.5-flash', 'gemini-2.5-pro'],
     capabilities: { ...ALL_CAPABILITIES },
   },
 
@@ -240,6 +259,10 @@ export const AI_PROVIDERS: Record<LLMProvider, ProviderDefinition> = {
     // qui renvoie un faux HTTP 200 `{code:500, msg:"404 NOT_FOUND"}`).
     baseUrl: process.env.GLM_API_URL || 'https://api.z.ai/api/paas/v4',
     fallbackModel: GLM_MODELS.writing,
+    // Le fournisseur de la plateforme : c'est lui qui doit porter le filet.
+    // Une quinzaine de configurations (tout le module Simulation, l'audit de
+    // cohérence) ne déclarent aucun repli et étaient donc mono-coup.
+    defaultFallbackModels: TEXT_FALLBACK_MODELS,
     // Raisonnement coupé PAR DÉFAUT : il se décompte du budget de sortie, et
     // sur une réponse courte il le consommait entièrement — la réponse
     // revenait vide. L'étage S le rallume explicitement, avec le budget qui va

@@ -7,50 +7,47 @@
  * définition d'un générateur probabiliste — et c'est exactement ce qui fait
  * qu'un livrable « sent l'IA ».
  *
- * La parade tient en deux temps, et les deux sont indispensables :
- *   1. des CONTRAINTES NÉGATIVES explicites (ce bloc), qui retirent les défauts
- *      que le modèle comblerait tout seul ;
- *   2. des CONTRAINTES POSITIVES différentes d'un projet à l'autre (la direction
- *      artistique + la graine de composition), qui donnent un ancrage à la place.
+ * ⚠️ RÉPARTITION DES RÔLES — lire avant d'ajouter une règle ici.
  *
- * Ce bloc est vérifié après coup par `slopLint.ts` : ce qui est écrit ici est
- * mesuré sur le HTML produit, pas seulement demandé.
+ * Ce bloc a longtemps porté une soixantaine d'interdits. C'est trop : un modèle
+ * applique de façon fiable une dizaine de contraintes dures et ignore
+ * SILENCIEUSEMENT les autres, et le phénomène s'aggrave à mesure que le modèle
+ * rapetisse — or la plateforme doit tourner sur de petits modèles.
+ *
+ * Or la moitié de ces interdits sont DÉTECTABLES APRÈS COUP par du code, et
+ * `slopLint.service.ts` les détecte déjà : dégradé violet, titre en dégradé,
+ * police par défaut, couleur hors palette, couleurs Tailwind de stock, texte en
+ * gris clair, sur-titre répété, emoji, pastille vide, rayons et ombres
+ * hétérogènes, logo absent, `alt` manquant. Ils sont désormais CORRIGÉS en
+ * code (`repairHtml` + `repairHtmlExtended`), donc garantis quel que soit le
+ * modèle — au lieu d'être demandés à chaque page et obtenus une fois sur deux.
+ *
+ * Ne subsistent ici que les règles qu'aucune expression régulière ne peut
+ * juger : la hiérarchie, l'ancrage du propos, le vocabulaire, l'intention de
+ * composition. Ajouter une règle mécanique dans ce bloc, c'est reprendre au
+ * code un travail qu'il fait mieux — et diluer celles qui restent.
  */
 
 /**
- * Interdits universels. Ils valent quelle que soit la direction artistique —
- * sauf quand celle-ci les revendique explicitement (le glassmorphisme est
- * interdit… sauf si le style retenu EST le glassmorphisme). Les prompts qui
- * incluent ce bloc incluent aussi la fiche de style, qui a le dernier mot.
+ * Interdits que seul le modèle peut respecter, parce qu'ils portent sur le
+ * SENS et non sur la forme. La fiche de style a le dernier mot quand une
+ * direction artistique revendique explicitement l'un d'eux.
  */
 export const ANTI_SLOP_BLOCK = `<anti_generic_rules>
-These bans override every composition habit. They describe the reflexes that make a piece immediately recognisable as machine-made.
+These bans describe the reflexes that make a piece immediately recognisable as machine-made. They are about JUDGEMENT — the mechanical ones (colours, fonts, radii, shadows, emoji, eyebrows) are enforced by the renderer and you do not need to police them.
 
-LEVEL 0 — disqualifying, a single one is enough to reject the output:
-- Purple / indigo / fuchsia gradient, or a "violet to blue" gradient. No gradient that the art direction did not prescribe.
-- Gradient headline (background-clip: text). A headline is ONE colour.
-- Inter, Roboto, Poppins, Montserrat, Open Sans, Lato, Arial, "system-ui", font-sans / font-serif / font-mono — unless it IS the charter typeface. Never a hard-coded font family.
-- The "centred hero band + three identical cards + button" skeleton. Never a row of cards sharing the same width, padding and shadow.
-- Reflexive glassmorphism (backdrop-blur over a translucent white surface) unless the art direction prescribes it.
-- Any colour outside the charter palette (or one of its opacity levels).
-
-LEVEL 1 — strong tells, remove them:
-- \`rounded-2xl shadow-lg\` applied to everything. The radius and the shadow come from the art direction and are the SAME everywhere.
-- The icon inside a coloured rounded square, repeated in a grid.
-- The tiny uppercase tracked eyebrow repeated above every block: keep one, or none.
-- Emoji used as bullets or as section icons.
-- The default Tailwind blue button, the "→" arrow welded to a label.
-- A coloured rule on the left edge of a card.
-- Light grey (text-gray-400) for running text.
+DISQUALIFYING — a single one is enough to reject the output:
+- The "centred hero band + three identical cards + button" skeleton. Never a row of cards sharing the same width, padding and shadow: if three things genuinely differ, express the difference.
 - Filler content: "Lorem ipsum", "Feature 1", "Your company", an invented statistic set large with no source.
+- A sentence that would survive a change of company name. It says nothing; cut it or replace it with a fact.
 
 BANNED VOCABULARY in the copy you write (French and English alike):
 "révolutionnaire", "innovant" used on its own, "solution clé en main", "propulsez", "boostez", "libérez le potentiel", "à l'ère du numérique", "dans un monde en constante évolution", "elevate", "unlock", "seamless", "empower", "supercharge", "cutting-edge", "game-changing", "next-generation", "world-class".
 Write what the brand actually DOES instead, with a concrete noun and a verb.
 
-LEVEL 2 — finishing:
-- Uniform spacing everywhere (gap-4 / p-6 on everything): hierarchy is also expressed through space.
-- Loose alignment: everything snaps to the announced grid, or deliberately breaks it.
+COMPOSITION:
+- Hierarchy is expressed through SPACE as well as size: uniform spacing everywhere (gap-4 / p-6 on everything) flattens the page.
+- Everything snaps to the announced grid, or deliberately breaks it. Loose alignment reads as carelessness.
 </anti_generic_rules>
 
 <craft_bar>
@@ -68,13 +65,16 @@ The output is judged the way a printed piece is judged, not the way a web page i
  * Auto-relecture finale. Un modèle corrige beaucoup mieux ce qu'il vient
  * d'écrire quand on lui donne une grille de relecture explicite que quand on
  * lui demande de « bien faire » en amont.
+ *
+ * Réduite aux points que le linter ne sait pas juger : demander au modèle de
+ * relire ses valeurs hexadécimales une par une lui coûtait des tokens de sortie
+ * pour un contrôle que `repairHtml` fait sans erreur et sans variance.
  */
 export const SELF_REVIEW_BLOCK = `<final_self_review>
 Re-read your own output once and fix it before answering:
-1. Find every hex value: each must belong to the charter palette. Replace the others.
-2. Find every font declaration: only the two charter families are allowed.
-3. Look for the level 0 tells (purple gradient, gradient headline, three identical cards, centred hero, unprescribed glassmorphism). Remove their CAUSE, not just their appearance.
-4. Check that the art direction is recognisable: someone who knows the brand must recognise it with the logo covered.
-5. Check the logo: present, large enough, contrasting with what sits behind it.
-6. Check that no text is clipped by the edge of the frame and that every text passes AA contrast.
+1. Is the art direction recognisable? Someone who knows the brand must recognise it with the logo covered.
+2. Is there a real hierarchy — three levels, decisive jumps — or two elements competing at the same size?
+3. Is there one deliberate compositional gesture, or is this a template with the content swapped?
+4. Does every claim carry a figure, a place or an actor? Cut the sentences that do not.
+5. Is any text clipped by the edge of the frame?
 </final_self_review>`;

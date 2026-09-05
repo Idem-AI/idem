@@ -193,8 +193,8 @@ Active format: {{format}}
 </format_dimensions>
 
 <technical_rules>
-- Raw HTML + Tailwind classes only. Single unbroken line, no newlines inside html string.
-- FONTS: Include Google Fonts <link> tag at start of html string. Must include: {{BRAND_FONT_URL}}
+- Raw HTML + Tailwind classes only, inside the <html> block. Line breaks are allowed and welcome.
+- FONTS: Include the Google Fonts <link> tag at the start of the markup. Must include: {{BRAND_FONT_URL}}
 - Every text element carries font-primary (display) or font-secondary (running text) — see <brand_charter>.
 - Colors: palette hex values only, exactly as written in <brand_charter>.
 - Inline style allowed for: transform, mix-blend-mode, letter-spacing, gradients, text-shadow, clip-path, filter.
@@ -209,18 +209,18 @@ Active format: {{format}}
 </technical_rules>
 
 <final_self_review>
-Before emitting the JSON, re-read your own html string once and fix it if needed:
+Before answering, re-read your own markup once and fix it if needed:
 1. Scan for <button>, role="button", and for any small element combining a background color (or border) with 1–5 words. If one exists, DELETE it — do not restyle it, delete it. The composition must still hold without it.
 2. Find your logo <img>: is its width at least {{LOGO_MIN_WIDTH}}px, is it at full opacity, is its container wide enough? Fix it before anything else.
 2b. Name out loud, to yourself, the colour of the zone directly BEHIND that logo. Light zone -> the URL must be the DARK-ink one; dark zone -> the LIGHT-ink one. If they disagree, change the URL (or move the logo).
-3. Grep your own html for every hex value and every font declaration: each must appear in <brand_charter>. Replace any stray one.
+3. Check every hex value and every font declaration against <brand_charter>. Replace any stray one.
 4. Check the seed compliance checklist below, item by item.
 5. Check that no text is clipped by the canvas edges and that every text passes AA contrast over what sits behind it.
 </final_self_review>
 
 <seed_compliance_checklist>
 Ensure all are TRUE:
-- ZERO button / CTA / pill / badge in the html (the non-negotiable one).
+- ZERO button / CTA / pill / badge in the markup (the non-negotiable one).
 - Logo width >= {{LOGO_MIN_WIDTH}}px, full opacity, unconstrained container, clear space respected.
 - Every hex value is a {{BRAND_NAME}} palette color; every text carries font-primary or font-secondary.
 - archetype {{DESIGN_SEED.archetype}} implemented.
@@ -237,7 +237,9 @@ Ensure all are TRUE:
 </seed_compliance_checklist>
 
 <output_format>
-Respond in strict JSON:
+Answer in EXACTLY two blocks, in this order, with nothing before, between or after them.
+
+<meta>
 {
   "concept": "concept explanation <= 280 chars",
   "layoutNotes": "layout details <= 400 chars",
@@ -247,10 +249,22 @@ Respond in strict JSON:
     "subheadline": "subheadline text <= 90 chars (optional, empty string if none)",
     "body": "body text <= 220 chars"
   },
-  "logoUsed": "the exact logo URL you placed in the html",
-  "html": "single-line HTML string"
+  "logoUsed": "the exact logo URL you placed in the markup"
 }
+</meta>
+<html>
+…the markup, raw and UNESCAPED. Write it exactly as it must render: real double
+quotes around attributes, no backslashes, no \n sequences. It may span several
+lines — readability costs nothing here.
+</html>
+
 There is no "cta" field: this visual has no call-to-action.
-Strictly NO markdown fences or text outside the JSON.
+No markdown fences, no commentary outside the two blocks.
+
+WHY THE MARKUP IS NOT IN THE JSON: a full page of Tailwind carries hundreds of
+double quotes. Escaping every one of them inside a JSON string is where these
+generations used to break — a single missed backslash lost the whole visual, and
+the escaping itself cost 10 to 15% more tokens. The <html> block removes the
+problem instead of asking you to be careful.
 </output_format>
 `;

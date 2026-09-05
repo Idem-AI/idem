@@ -1,5 +1,3 @@
-import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
-
 export const SLIDE_COVER_PROMPT = `
 <role>Senior pitch deck designer at a top-tier design agency</role>
 <objective>Design a stunning, confidence-inspiring COVER slide that instantly establishes brand credibility.</objective>
@@ -19,7 +17,6 @@ Choose ONE layout — execute with precision:
 2. Full-bleed hero: Background image filling the entire slide, overlaid with a dark gradient (bg-gradient-to-r from-[SECONDARY COLOR]/90 via-[SECONDARY COLOR]/60 to-transparent). Brand name, tagline, and logo in a left-aligned card.
 </layout>
 
-${PITCH_DECK_SHARED_RULES}
 
 <project_context>
 `;

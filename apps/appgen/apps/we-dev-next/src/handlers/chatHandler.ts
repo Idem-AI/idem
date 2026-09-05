@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Messages, ToolInfo } from '../types/project.js';
 import { StreamingOptions } from '../services/aiService.js';
 import { CONTINUE_PROMPT, getLanguageDirective } from '../config/prompts.js';
-import { deductUserTokens, estimateTokens } from '../utils/tokens.js';
+import { reportUsage } from '../utils/tokens.js';
 import SwitchableStream from '../utils/switchableStream.js';
 import { tool } from 'ai';
 import { jsonSchemaToZodSchema } from '../utils/json2zod.js';
@@ -87,13 +87,18 @@ export async function handleChatMode(
       console.error(`[chat] stream error (logid ${uuidv4()}):`, msg || error);
     },
     onFinish: async (response) => {
-      const { text: content, finishReason } = response;
+      const { text: content, finishReason, usage } = response;
+
+      reportUsage({
+        model,
+        mode: 'plan',
+        promptTokens: usage?.promptTokens,
+        completionTokens: usage?.completionTokens,
+        finishReason,
+        userId,
+      });
 
       if (finishReason !== 'length') {
-        const tokens = estimateTokens(content);
-        if (userId) {
-          await deductUserTokens(userId, tokens);
-        }
         return stream.close();
       }
 

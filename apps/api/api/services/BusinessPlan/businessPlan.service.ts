@@ -25,6 +25,7 @@ import { AGENT_MARKETING_SALES_PROMPT } from './prompts/agent-marketing-sales.pr
 import { AGENT_FINANCIAL_PLAN_PROMPT } from './prompts/agent-financial-plan.prompt';
 import { AGENT_GOAL_PLANNING_PROMPT } from './prompts/agent-goal-planning.prompt';
 import { AGENT_APPENDIX_PROMPT } from './prompts/agent-appendix.prompt';
+import { BP_SECTION_EXAMPLE } from './prompts/section-example.prompt';
 import { TeamMember } from '../../models/project.model';
 import { storageService } from '../storage.service';
 import { buildLogoBlock, collectLogoUrls } from '../../utils/brand-context.util';
@@ -34,8 +35,13 @@ import {
   EDITORIAL_RESTRAINT_BLOCK,
   RESTRAINT_SELF_REVIEW_BLOCK,
 } from '../design/editorialRestraint.prompt';
-import { lintHtml, repairHtml } from '../design/slopLint.service';
-import { buildDesignSeed, describeSeed } from '../design/designSeed';
+import { enforceDesignRules } from '../design/slopLint.service';
+import {
+  buildDocumentSeed,
+  buildSectionSeed,
+  describeDocumentSeed,
+  describeSectionSeed,
+} from '../design/designSeed';
 import { ensureProjectArtDirection } from '../design/artDirection.provider';
 import { researchTeamService } from '../research/research-team.service';
 import {
@@ -176,43 +182,48 @@ export class BusinessPlanService extends GenericService {
       // dans BUSINESS_PLAN_GRAPH (services/agents/deliverable-graph.ts), au même
       // endroit que celles du deck, validées (cycles, noms inconnus) et
       // documentées avec leur coût en latence.
+      // PRÉFIXE STABLE — identique aux neuf sections, émis UNE fois en tête de
+      // chaque appel. Il portait auparavant la FIN de chaque `promptConstant`,
+      // derrière la partie variable : ~3 400 tokens repayés neuf fois, et aucun
+      // début de prompt jamais répété — donc aucun cache de préfixe possible.
+      const stablePrefix = [
+        projectDescription,
+        `BRAND CONTEXT:\n${brandContext}`,
+        BP_SECTION_EXAMPLE,
+      ].join('\n\n');
+
+      // Chaque section reçoit sa PROPRE graine de composition, tirée sans
+      // répétition dans l'espace autorisé par le style. C'est ce qui empêche
+      // neuf pages de partager le même archétype sans pour autant les rendre
+      // étrangères les unes aux autres : les invariants (couleur, typographie,
+      // rythme) restent dans le préfixe stable ci-dessus.
+      const usedArchetypes = new Set<string>();
+      const sectionSeed = (stepName: string): string => {
+        const seed = buildSectionSeed(
+          project.analysisResultModel?.branding?.artDirection?.styleId,
+          `businessplan:${project.id}`,
+          stepName,
+          usedArchetypes
+        );
+        return `<composition_for_this_page>\n${describeSectionSeed(seed)}\n</composition_for_this_page>`;
+      };
+
+      const section = (prompt: string, stepName: string, extra = ''): IPromptStep => ({
+        // Le prompt de section ne porte plus QUE ce qui lui est propre.
+        promptConstant: `${prompt}${extra}\n\n${sectionSeed(stepName)}`,
+        stepName,
+      });
+
       const steps: IPromptStep[] = [
-        {
-          promptConstant: `${projectDescription}\n${AGENT_COVER_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: 'Cover Page',
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_COMPANY_SUMMARY_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: 'Company Summary',
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_OPPORTUNITY_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: 'Opportunity',
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_TARGET_AUDIENCE_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: 'Target Audience',
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_PRODUCTS_SERVICES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: 'Products & Services',
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_MARKETING_SALES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: 'Marketing & Sales',
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}${financeContext}`,
-          stepName: 'Financial Plan',
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_GOAL_PLANNING_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: 'Goal Planning',
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_APPENDIX_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: 'Appendix',
-        },
+        section(AGENT_COVER_PROMPT, 'Cover Page'),
+        section(AGENT_COMPANY_SUMMARY_PROMPT, 'Company Summary'),
+        section(AGENT_OPPORTUNITY_PROMPT, 'Opportunity'),
+        section(AGENT_TARGET_AUDIENCE_PROMPT, 'Target Audience'),
+        section(AGENT_PRODUCTS_SERVICES_PROMPT, 'Products & Services'),
+        section(AGENT_MARKETING_SALES_PROMPT, 'Marketing & Sales'),
+        section(AGENT_FINANCIAL_PLAN_PROMPT, 'Financial Plan', financeContext),
+        section(AGENT_GOAL_PLANNING_PROMPT, 'Goal Planning'),
+        section(AGENT_APPENDIX_PROMPT, 'Appendix'),
       ];
 
       // Chaque section produit une page HTML : la grille déterministe attrape
@@ -231,7 +242,8 @@ export class BusinessPlanService extends GenericService {
         AI_CONFIG.businessPlan,
         steps,
         BUSINESS_PLAN_GRAPH,
-        sectionQuality
+        sectionQuality,
+        stablePrefix
       );
 
       const promptConfig: PromptConfig = {
@@ -282,8 +294,10 @@ export class BusinessPlanService extends GenericService {
                 styleId: lintContext.styleId,
                 label: `business-plan/${result.name}`,
               };
-              sectionHtml = repairHtml(sectionHtml, options).html;
-              lintHtml(sectionHtml, options);
+              // Réparation déterministe PUIS constat de ce qui résiste. Le verdict
+              // du linter était auparavant calculé puis jeté : les 20 règles de
+              // charte étaient détectées, journalisées, et jamais appliquées.
+              sectionHtml = enforceDesignRules(sectionHtml, options).html;
             }
 
             // Convert result to section model
@@ -668,10 +682,12 @@ export class BusinessPlanService extends GenericService {
       projectId,
       project
     );
-    // Graine DÉTERMINISTE par projet : deux business plans ne se ressemblent
-    // pas, mais les sections d'un même plan partagent la même mise en page —
-    // c'est ce qui fait un document plutôt qu'une pile de pages.
-    const seed = buildDesignSeed(artDirection?.styleId, `businessplan:${project.id}`);
+    // INVARIANTS du document seulement : stratégie de couleur, humeur
+    // typographique, rythme spatial, accent graphique. L'archétype de mise en
+    // page, la tension et la densité sont tirés PAR SECTION (cf.
+    // `buildSectionSeed`) — une graine unique pour neuf pages ne laissait que
+    // deux issues : neuf pages identiques, ou un document incohérent.
+    const documentSeed = buildDocumentSeed(artDirection?.styleId, `businessplan:${project.id}`);
 
     return [
       `Brand: ${brandName}`,
@@ -685,7 +701,7 @@ export class BusinessPlanService extends GenericService {
       }),
       buildArtDirectionBlock(artDirection, { medium: 'document' }),
       artDirection
-        ? `<composition_seed>\nEvery section of this plan shares the composition seed below: it is what makes them belong to the same document.\n${describeSeed(seed)}\n</composition_seed>`
+        ? `<composition_invariants>\n${describeDocumentSeed(documentSeed)}\n</composition_invariants>`
         : '',
       ANTI_SLOP_BLOCK,
       EDITORIAL_RESTRAINT_BLOCK,

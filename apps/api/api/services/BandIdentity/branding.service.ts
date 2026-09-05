@@ -45,8 +45,18 @@ import {
   EDITORIAL_RESTRAINT_BLOCK,
   RESTRAINT_SELF_REVIEW_BLOCK,
 } from '../design/editorialRestraint.prompt';
-import { buildDesignSeed, describeSeed } from '../design/designSeed';
-import { lintHtml, repairHtml } from '../design/slopLint.service';
+import {
+  buildDocumentSeed,
+  buildPaletteConstraint,
+  buildSectionSeed,
+  buildTypographyConstraint,
+  describeDocumentSeed,
+  describePaletteConstraint,
+  describeSectionSeed,
+} from '../design/designSeed';
+import { enforceDesignRules } from '../design/slopLint.service';
+import { inspectSvg } from '../design/svgGate';
+import { logAIEvent } from '../../utils/ai-trace.util';
 import { buildArtDirectionBlock } from '../../utils/art-direction.util';
 import {
   LOGO_SYSTEM_SECTION_PROMPT,
@@ -785,10 +795,10 @@ export class BrandingService extends GenericService {
     // n'obtiennent pas la même charte, mais une charte régénérée garde sa mise
     // en page. Le tirage est borné par le style retenu (cf. designSeed.ts), donc
     // il ne peut pas contredire la direction artistique.
-    const brandSeed = buildDesignSeed(artDirection?.styleId, `branding:${projectId}`);
+    const brandSeed = buildDocumentSeed(artDirection?.styleId, `branding:${projectId}`);
     const designDirectives = [
       artDirectionBlock,
-      `<composition_seed>\nThis brand book is composed on the seed below. It holds for EVERY page: it is what makes them belong to the same document.\n${describeSeed(brandSeed)}\n</composition_seed>`,
+      `<composition_invariants>\n${describeDocumentSeed(brandSeed)}\n</composition_invariants>`,
       ANTI_SLOP_BLOCK,
       // Deux pathologies distinctes : l'anti-slop retire les tics du corpus,
       // la retenue éditoriale retire ce qui ne sert à rien. Une page peut être
@@ -910,16 +920,14 @@ export class BrandingService extends GenericService {
           // se lit comme de la documentation, pas comme une consigne.
           promptConstant:
             BRAND_HEADER_SECTION_PROMPT +
-            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the brand logo image: "${lightLogoUrl}" (dark ink, for a light zone) or "${darkLogoUrl}" (light ink, for a dark zone). Pick the one that contrasts with the zone you place it on.\n\n` +
-            projectDescription,
+            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the brand logo image: "${lightLogoUrl}" (dark ink, for a light zone) or "${darkLogoUrl}" (light ink, for a dark zone). Pick the one that contrasts with the zone you place it on.\n\n`,
           stepName: 'Brand Header',
           hasDependencies: false,
         },
         {
           promptConstant:
             LOGO_SYSTEM_SECTION_PROMPT +
-            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the primary logo image: "${logoUrl}"\n\n` +
-            projectDescription,
+            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the primary logo image: "${logoUrl}"\n\n`,
           stepName: 'Logo Principal',
           hasDependencies: false,
         },
@@ -927,8 +935,7 @@ export class BrandingService extends GenericService {
           promptConstant:
             LOGO_VARIATION_PAGE_PROMPT +
             `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo variation image: "${lightLogoUrl}"\n\n` +
-            '\nVariation type: Light Background\nDisplay the logo variation for light backgrounds. Use a white or very light background.\n\n' +
-            projectDescription,
+            '\nVariation type: Light Background\nDisplay the logo variation for light backgrounds. Use a white or very light background.\n\n',
           stepName: 'Logo Variation Fond Clair',
           hasDependencies: false,
         },
@@ -936,8 +943,7 @@ export class BrandingService extends GenericService {
           promptConstant:
             LOGO_VARIATION_PAGE_PROMPT +
             `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo variation image: "${darkLogoUrl}"\n\n` +
-            "\nVariation type: Dark Background\nDisplay the logo variation for dark backgrounds. Use the brand's dark color or a rich dark tone as the full-page background.\n\n" +
-            projectDescription,
+            "\nVariation type: Dark Background\nDisplay the logo variation for dark backgrounds. Use the brand's dark color or a rich dark tone as the full-page background.\n\n",
           stepName: 'Logo Variation Fond Sombre',
           hasDependencies: false,
         },
@@ -945,26 +951,24 @@ export class BrandingService extends GenericService {
           promptConstant:
             LOGO_VARIATION_PAGE_PROMPT +
             `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo variation image: "${monochromeLogoUrl}"\n\n` +
-            '\nVariation type: Monochrome\nDisplay the monochrome logo variation on a neutral gray background.\n\n' +
-            projectDescription,
+            '\nVariation type: Monochrome\nDisplay the monochrome logo variation on a neutral gray background.\n\n',
           stepName: 'Logo Variation Monochrome',
           hasDependencies: false,
         },
         {
           promptConstant:
             LOGO_BEST_PRACTICES_PAGE_PROMPT +
-            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo image in visual examples: "${logoUrl}"\n\n` +
-            projectDescription,
+            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo image in visual examples: "${logoUrl}"\n\n`,
           stepName: 'Logo Bonnes Pratiques',
           hasDependencies: false,
         },
         {
-          promptConstant: COLOR_PALETTE_SECTION_PROMPT + projectDescription,
+          promptConstant: COLOR_PALETTE_SECTION_PROMPT,
           stepName: 'Color Palette',
           hasDependencies: false,
         },
         {
-          promptConstant: TYPOGRAPHY_SECTION_PROMPT + projectDescription,
+          promptConstant: TYPOGRAPHY_SECTION_PROMPT,
           stepName: 'Typography',
           hasDependencies: false,
         },
@@ -972,7 +976,7 @@ export class BrandingService extends GenericService {
         // objet est la grammaire qui les assemble, et avant les mockups, qui en
         // sont la première application.
         {
-          promptConstant: ART_DIRECTION_SECTION_PROMPT + projectDescription,
+          promptConstant: ART_DIRECTION_SECTION_PROMPT,
           stepName: 'Direction Artistique',
           hasDependencies: false,
         },
@@ -1010,6 +1014,26 @@ export class BrandingService extends GenericService {
         step.promptConstant = this.applyPageFormatToPrompt(step.promptConstant, chosenFormat);
       }
 
+      // Un archétype de composition PAR PAGE, tiré sans répétition dans l'espace
+      // du style. Douze pages qui partagent leur archétype sont douze fois la
+      // même page — or c'est précisément le reproche fait à la charte avant que
+      // la graine n'existe. Les invariants (couleur, typographie, rythme,
+      // accent) restent, eux, dans le préfixe stable.
+      //
+      // Les pages FABRIQUÉES (mockups, `execute`) sont exclues : elles ne
+      // passent pas par le modèle, leur donner une graine n'aurait aucun effet.
+      const usedArchetypes = new Set<string>();
+      for (const step of steps) {
+        if (step.execute) continue;
+        const seed = buildSectionSeed(
+          artDirection?.styleId,
+          `branding:${projectId}`,
+          step.stepName,
+          usedArchetypes
+        );
+        step.promptConstant += `\n\n<composition_for_this_page>\n${describeSectionSeed(seed)}\n</composition_for_this_page>`;
+      }
+
       logger.info(`[BRANDING] Generated ${mockupCount} mockup steps dynamically`, {
         projectId,
         mockupCount,
@@ -1037,7 +1061,16 @@ export class BrandingService extends GenericService {
 
       // Chaque section de la charte reçoit ses propres réglages
       // (voir AI_CONFIG.branding.brandIdentity.sections).
-      const configuredSteps = withSectionConfigs(AI_CONFIG.branding.brandIdentity, steps);
+      // PRÉFIXE STABLE — la description du projet ET toutes les directives de
+      // charte (direction artistique, invariants de composition, anti-slop,
+      // retenue éditoriale) étaient concaténées à la FIN de chacune des douze
+      // pages. Émises une fois en tête, elles deviennent le seul début de prompt
+      // identique d'une page à l'autre, donc le seul candidat au cache.
+      const configuredSteps = withSectionConfigs(
+        AI_CONFIG.branding.brandIdentity,
+        steps,
+        projectDescription
+      );
 
       // Process steps one by one with streaming if callback provided
       if (streamCallback) {
@@ -1095,8 +1128,7 @@ export class BrandingService extends GenericService {
                   styleId: artDirection?.styleId,
                   label: `charte/${result.name}`,
                 };
-                cleanedHtml = repairHtml(rawHtml, lintOptions).html;
-                lintHtml(cleanedHtml, lintOptions);
+                cleanedHtml = enforceDesignRules(rawHtml, lintOptions).html;
               }
 
               finalSection = {
@@ -1233,10 +1265,12 @@ export class BrandingService extends GenericService {
 
     const steps: IPromptStep[] = [
       {
-        promptConstant: COLORS_GENERATION_PROMPT.replace(
-          '{{PROJECT_DESCRIPTION}}',
-          projectDescription
-        ),
+        promptConstant:
+          COLORS_GENERATION_PROMPT.replace('{{PROJECT_DESCRIPTION}}', projectDescription) +
+          // La région chromatique est tirée par le CODE, pas laissée à
+          // l'échantillonnage : c'est ce qui empêche deux marques d'un même
+          // secteur de recevoir la même palette, y compris sur un petit modèle.
+          `\n\n${describePaletteConstraint(buildPaletteConstraint(project.id!))}`,
         stepName: 'Colors Generation',
         modelParser: (content) => {
           // Use safeParseJson to handle markdown fences, truncated JSON,
@@ -1281,7 +1315,10 @@ export class BrandingService extends GenericService {
 
     const steps: IPromptStep[] = [
       {
-        promptConstant: projectDescription + TYPOGRAPHY_GENERATION_PROMPT,
+        promptConstant:
+          projectDescription +
+          TYPOGRAPHY_GENERATION_PROMPT +
+          `\n\n${buildTypographyConstraint(project.id!)}`,
         stepName: 'Typography Generation',
         modelParser: (content) => {
           const parsed = safeParseJson(content);
@@ -2209,6 +2246,34 @@ export class BrandingService extends GenericService {
       fonts: logo.fonts,
       svg: isComposedLockup ? logo.iconSvg : logo.svg,
     });
+    // GRILLE DÉTERMINISTE D'ABORD. Un SVG tronqué, sans viewBox, à texte vivant
+    // ou saturé de tracés est rejetable sans modèle : le défaut est factuel.
+    // L'envoyer au critique coûtait un aller-retour complet (10 à 20 s, un appel
+    // facturé) pour un verdict qu'une expression régulière rend gratuitement —
+    // et le critique répondait parfois « pass » sur un SVG cassé.
+    const paletteHexes = (project.analysisResultModel?.branding?.colors?.colors
+      ? Object.values(project.analysisResultModel.branding.colors.colors)
+      : []
+    ).filter((value): value is string => typeof value === 'string');
+
+    const mechanical = inspectSvg(logo.iconSvg || logo.svg || '', { palette: paletteHexes });
+    if (!mechanical.ok) {
+      logger.warn(
+        `Logo "${logo.name ?? 'sans nom'}" : défauts mécaniques détectés sans appel modèle — ${mechanical.summary}`
+      );
+      logAIEvent('logo.svg_gate_failed', {
+        projectId: project.id,
+        defects: mechanical.defects.map((defect) => defect.code),
+      });
+      // Verdict rendu SANS payer le critique : la révision part directement des
+      // défauts constatés, qui sont exactement ceux qu'il faut corriger.
+      return {
+        verdict: 'fail',
+        issues: mechanical.defects.map((defect) => defect.message),
+        suggestions: [],
+      } as unknown as LogoCritiqueResult;
+    }
+
     const brandName = this.resolveBrandName(project);
     const prompt = LOGO_CRITIQUE_PROMPT.replace('{{LOGO_JSON}}', logoJson)
       .replace(/\{\{BRAND_NAME\}\}/g, brandName)

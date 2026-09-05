@@ -17,7 +17,8 @@ import { applyTier } from '../../config/model-router';
 import logger from '../../config/logger';
 import { RunBudget, createRunBudget, runAgent } from '../agents/agent-runtime';
 import { buildDependencyContext } from '../agents/section-digest.service';
-import { QualityExpectation, qualityValidator } from '../agents/quality-gate';
+import { QualityExpectation, inspectOutput, qualityValidator } from '../agents/quality-gate';
+import { SlopLintOptions, lintHtml } from '../design/slopLint.service';
 import { verifySection } from '../agents/section-verifier.service';
 import { DeliverableGraph, graphDepth, validateGraph } from '../agents/deliverable-graph';
 import { CONTEXT_TOOL_DECLARATIONS, createContextToolExecutor } from '../context-engine/context-tools';
@@ -59,6 +60,21 @@ export interface IPromptStep {
   aiConfig?: FeatureAIConfig;
   /** Voir `StepContextMode`. Défaut : `digest` si l'étape a des dépendances. */
   contextMode?: StepContextMode;
+  /**
+   * Préfixe IDENTIQUE à toutes les étapes du livrable — contexte de marque,
+   * direction artistique, invariants de composition, règles anti-générique,
+   * exemple canonique.
+   *
+   * Il est émis en TÊTE des messages, avant tout ce qui varie. C'est la seule
+   * disposition qui rende un cache de préfixe possible : jusqu'ici ce contexte
+   * était concaténé à la FIN de chaque `promptConstant`, derrière la partie
+   * variable, si bien que les ~3 400 tokens communs aux neuf sections étaient
+   * repayés neuf fois et qu'aucun préfixe ne se répétait jamais.
+   *
+   * Posé par `withGraph` / `withSectionConfigs`, donc partagé par référence :
+   * il n'est pas dupliqué en mémoire.
+   */
+  stablePrefix?: string;
   /**
    * Autorise l'étape à interroger elle-même le Context Engine (branding,
    * finance, historique…) via le function-calling, au lieu de recevoir ces
@@ -102,11 +118,13 @@ export interface IPromptStep {
  */
 export function withSectionConfigs(
   feature: FeatureAIConfig,
-  steps: IPromptStep[]
+  steps: IPromptStep[],
+  stablePrefix?: string
 ): IPromptStep[] {
   return steps.map((step) => ({
     ...step,
     aiConfig: step.aiConfig ?? applyTier(resolveSectionConfig(feature, step.stepName)),
+    stablePrefix: step.stablePrefix ?? stablePrefix,
   }));
 }
 
@@ -122,7 +140,9 @@ export function withGraph(
   feature: FeatureAIConfig,
   steps: IPromptStep[],
   graph: DeliverableGraph,
-  quality?: QualityExpectation
+  quality?: QualityExpectation,
+  /** Contexte commun à toutes les étapes — cf. `IPromptStep.stablePrefix`. */
+  stablePrefix?: string
 ): IPromptStep[] {
   const stepNames = steps.map((step) => step.stepName);
   validateGraph(graph, stepNames);
@@ -151,7 +171,7 @@ export function withGraph(
     } as IPromptStep;
   });
 
-  return withSectionConfigs(feature, wired);
+  return withSectionConfigs(feature, wired, stablePrefix);
 }
 
 /**
@@ -170,6 +190,63 @@ export function estimateRunBudget(steps: IPromptStep[]): number {
   return Math.max(50_000, perStep * 3);
 }
 
+/**
+ * Étapes lancées de front sur un même livrable.
+ *
+ * ⚠️ NE PAS AUGMENTER sans mesurer. `ResearchTeamService` a fait l'expérience et
+ * l'a documentée : monter de 3 à 5 paraît évident — moins de vagues — et donne
+ * l'inverse, 162 s contre 121 s sur le pipeline complet. Au-delà de trois, la
+ * file d'attente côté fournisseur coûte plus cher que la vague économisée.
+ *
+ * Cette mesure valait pour l'ordonnanceur de la recherche ; elle n'avait jamais
+ * été appliquée à l'ordonnanceur GÉNÉRIQUE, qui lançait toutes les étapes prêtes
+ * d'un coup — soit cinq à neuf appels simultanés sur un business plan.
+ *
+ * Configurable pour être re-mesurable : c'est un réglage d'infrastructure, pas
+ * une constante de conception.
+ */
+const MAX_PARALLEL_STEPS = Math.max(1, Number(process.env.IDEM_MAX_PARALLEL_STEPS ?? 3));
+
+/**
+ * Intervalle minimal entre deux annonces de progression d'une même section.
+ *
+ * Le modèle produit des dizaines de tokens par seconde ; relayer chacun d'eux
+ * jusqu'au client coûterait plus en sérialisation SSE que le confort gagné.
+ * 400 ms suffisent à donner l'impression d'un texte qui s'écrit.
+ */
+const DELTA_THROTTLE_MS = 400;
+
+/** Limite la fréquence des annonces, en laissant toujours passer la dernière. */
+function throttleDelta(emit: (partial: string) => void): (partial: string) => void {
+  let lastAt = 0;
+  return (partial: string) => {
+    const now = Date.now();
+    if (now - lastAt < DELTA_THROTTLE_MS) return;
+    lastAt = now;
+    emit(partial);
+  };
+}
+
+/**
+ * Note une sortie de section — plus BAS est meilleur.
+ *
+ * Le juge est du CODE : la grille qualité (troncature, balises, gabarits non
+ * remplis) et le linter de charte. Un juge IA coûterait un appel de plus et
+ * apporterait sa propre variance ; celui-ci ne coûte rien et ne varie pas.
+ *
+ * Pondération : un défaut BLOQUANT (section inutilisable) pèse bien plus qu'une
+ * violation de charte, elle-même plus qu'un avertissement.
+ */
+export function scoreSection(
+  text: string,
+  expectation: QualityExpectation,
+  lintOptions: SlopLintOptions = {}
+): number {
+  const gate = inspectOutput(text, expectation);
+  const slop = lintHtml(text, lintOptions);
+  return gate.blocking.length * 10 + slop.errorCount * 3 + slop.warningCount;
+}
+
 /** Ce dont une étape a besoin en plus de sa propre déclaration pour s'exécuter. */
 export interface StepRunOptions {
   userId?: string;
@@ -180,6 +257,11 @@ export interface StepRunOptions {
   /** Plafond de consommation partagé par toutes les étapes du même livrable. */
   budget?: RunBudget;
   language?: string;
+  /**
+   * Diffuse la section au fil de sa génération. Voir `AgentRunInput.onDelta` :
+   * c'est un APERÇU, remplacé par le contenu validé en fin d'étape.
+   */
+  onDelta?: (payload: { stepName: string; partial: string }) => void;
 }
 
 // Define interface for section result
@@ -314,7 +396,7 @@ export class GenericService {
     project: ProjectModel,
     options: StepRunOptions = {}
   ): Promise<string> {
-    const { userId, promptType, dependencyContext = '', budget, language } = options;
+    const { userId, promptType, dependencyContext = '', budget, language, onDelta } = options;
     const promptConfig: PromptConfig = options.promptConfig ?? {
       provider: AI_CONFIG.default.provider,
       modelName: AI_CONFIG.default.modelName,
@@ -351,6 +433,15 @@ export class GenericService {
 
     const messages: AIChatMessage[] = [];
 
+    // ① PRÉFIXE STABLE — byte-identique pour toutes les sections du livrable.
+    //    Il DOIT venir en premier : c'est la seule partie du prompt qui puisse
+    //    être servie depuis un cache de préfixe, et un cache ne s'accroche qu'à
+    //    un début de message inchangé. Tout ce qui varie vient après.
+    if (step.stablePrefix) {
+      messages.push({ role: 'system', content: step.stablePrefix });
+    }
+
+    // ② à partir d'ici, tout varie d'une section à l'autre.
     if (dependencyContext) {
       // Le contexte amont est un RÉSUMÉ : il faut le dire au modèle, sinon il
       // tente de le prolonger ou de le recopier au lieu de s'y conformer.
@@ -387,6 +478,10 @@ export class GenericService {
           modelName: effectiveConfig.modelName,
           fallbackModels: effectiveConfig.fallbackModels,
           llmOptions: effectiveConfig.llmOptions,
+          // Sans épinglage explicite, la section part à l'étage de sa TÂCHE
+          // (`draft` → M) et n'escalade que si la grille qualité échoue. C'est
+          // ce qui fait enfin travailler le routeur sur le volume principal.
+          pinModel: step.aiConfig?.pinModel,
         },
         promptType: effectiveConfig.promptType ?? step.stepName,
         tools: useTools ? CONTEXT_TOOL_DECLARATIONS : undefined,
@@ -407,6 +502,9 @@ export class GenericService {
         file: effectiveConfig.file,
         contextFilePaths: effectiveConfig.contextFilePaths,
         skipQuotaCheck: effectiveConfig.skipQuotaCheck,
+        // Étranglé : un événement par token saturerait le canal SSE et
+        // coûterait plus en sérialisation qu'il ne rapporte en confort.
+        onDelta: onDelta ? throttleDelta((partial) => onDelta({ stepName: step.stepName, partial })) : undefined,
       }
     );
 
@@ -523,6 +621,23 @@ export class GenericService {
               }),
               promptConfig: effectivePromptConfig,
               budget,
+              // Aperçu au fil de l'eau. La section attendait jusqu'ici d'être
+              // ENTIÈREMENT produite avant d'apparaître : une à trois minutes
+              // devant un indicateur d'activité, alors que le premier
+              // paragraphe est disponible en quelques secondes.
+              //
+              // C'est bien un APERÇU : il n'a passé ni la grille qualité ni la
+              // réparation. L'événement `section` qui suit porte, lui, le
+              // contenu validé et remplace ce qui a été affiché.
+              onDelta: ({ stepName, partial }) => {
+                void stepCallback({
+                  name: 'section_delta',
+                  type: 'event',
+                  data: partial,
+                  summary: `Streaming ${stepName}`,
+                  parsedData: { status: 'streaming', stepName, chars: partial.length },
+                }).catch(() => undefined);
+              },
             });
 
         // Store the content of this step for future steps. Une étape sans
@@ -612,8 +727,11 @@ export class GenericService {
           areDependenciesSatisfied(step)
       );
 
-      // Start execution of ready steps
+      // Start execution of ready steps, dans la limite du plafond de concurrence.
+      // Les étapes non lancées ce tour-ci restent en attente et repartiront au
+      // tour suivant, dès qu'un créneau se libère.
       for (const step of readySteps) {
+        if (stepPromises.size >= MAX_PARALLEL_STEPS) break;
         const stepPromise = executeStep(step);
         stepPromises.set(step.stepName, stepPromise);
 
@@ -727,6 +845,8 @@ export class GenericService {
     const completedSteps = new Map<string, { name: string; content: string }>();
     // `null` : l'étape est faite mais ne produit pas de section (cf. `execute`).
     const stepPromises = new Map<string, Promise<ISectionResult | null>>();
+    /** Étapes réellement en vol — sert de compteur de créneaux. */
+    const running = new Set<string>();
     const pendingSteps = [...steps];
 
     logger.info(`Starting processSteps for ${steps.length} steps in project ${project.id}`);
@@ -851,28 +971,36 @@ export class GenericService {
         return true;
       });
 
-      // Start execution of ready steps
+      // Start execution of ready steps, sous le même plafond de concurrence que
+      // la voie streamée (cf. MAX_PARALLEL_STEPS). `running` suit les étapes
+      // RÉELLEMENT en vol : `stepPromises` conserve aussi les promesses déjà
+      // résolues (elles servent au rassemblement final), donc sa taille ne peut
+      // pas servir de compteur de créneaux.
+      let launched = 0;
       for (const step of readySteps) {
-        if (!stepPromises.has(step.stepName)) {
-          logger.info(`Launching step: ${step.stepName}`);
-          const promise = executeStep(step);
-          stepPromises.set(step.stepName, promise);
+        if (running.size >= MAX_PARALLEL_STEPS) break;
+        if (stepPromises.has(step.stepName)) continue;
 
-          // Remove from pending
-          const index = pendingSteps.indexOf(step);
-          if (index > -1) {
-            pendingSteps.splice(index, 1);
-          }
+        logger.info(`Launching step: ${step.stepName}`);
+        running.add(step.stepName);
+        const promise = executeStep(step).finally(() => running.delete(step.stepName));
+        stepPromises.set(step.stepName, promise);
+        launched += 1;
+
+        // Remove from pending
+        const index = pendingSteps.indexOf(step);
+        if (index > -1) {
+          pendingSteps.splice(index, 1);
         }
       }
 
-      // If no steps can be started and there are still pending steps,
-      // wait for at least one to complete
-      if (readySteps.length === 0 && pendingSteps.length > 0) {
-        if (stepPromises.size > 0) {
+      // Rien n'a pu démarrer ce tour-ci — soit les dépendances ne sont pas
+      // satisfaites, soit le plafond est atteint. Dans les deux cas il faut
+      // ATTENDRE qu'une étape se termine, sinon la boucle tourne à vide.
+      if (launched === 0 && pendingSteps.length > 0) {
+        if (running.size > 0) {
           await Promise.race(Array.from(stepPromises.values()));
         } else {
-          // This shouldn't happen, but prevent infinite loop
           logger.error('No steps can be started and no steps are running. Breaking loop.');
           break;
         }
