@@ -74,28 +74,40 @@ const PRICING: Record<string, ModelPricing> = {
 const DEFAULT_PRICING: ModelPricing = { input: 0.5, output: 2 };
 
 /**
- * Remise sur les tokens d'entrée servis depuis le cache de préfixe du
- * fournisseur, exprimée en FRACTION du tarif d'entrée plein (0.2 = 20 % du prix).
+ * Remise sur les tokens d'entrée servis depuis le cache de préfixe de Z.ai,
+ * exprimée en FRACTION du tarif d'entrée plein.
  *
- * Volontairement NON RENSEIGNÉE par défaut. Les entrées GLM de la table
- * ci-dessus n'ont pas de `cachedInput` parce que le tarif de Z.ai n'a pas été
- * confirmé : inscrire un chiffre inventé ferait SOUS-ESTIMER le coût réel de la
- * plateforme, ce qui est pire que de le surestimer. Sans valeur, `computeCost`
- * facture les tokens cachés au tarif plein — prudent et faux dans le bon sens.
+ * Le cache de Z.ai est IMPLICITE : il « identifie intelligemment le contenu de
+ * contexte répété sans configuration manuelle » et se déclenche « automatiquement
+ * sur la similarité du contenu » (docs.z.ai/guides/capabilities/cache). Aucun
+ * appel d'API à faire — c'est l'ordre du prompt qui décide, d'où le préfixe
+ * stable posé en tête des générations par sections.
  *
- * ⚠️ À renseigner APRÈS vérification sur docs.z.ai :
+ * ⚠️ DEUX CHIFFRES CIRCULENT, et l'écart est important :
  *
- *     GLM_CACHED_INPUT_RATIO=0.2      (exemple, si la remise est de 80 %)
+ *   · la documentation officielle annonce « généralement 50 % du prix standard » ;
+ *   · plusieurs revendeurs relèvent 0,26 $/M sur glm-5.2 contre 1,40 $/M plein,
+ *     soit ~18,6 %.
  *
- * Tant que cette variable est absente, le volume de tokens cachés reste mesuré
- * (`AiUsageEvent.cachedInputTokens`) — l'efficacité du cache est donc observable
- * même quand son économie ne l'est pas encore.
+ * On retient le chiffre OFFICIEL et CONSERVATEUR (50 %). Un tarif de cache
+ * surestimé fait surestimer le coût de la plateforme ; un tarif sous-estimé le
+ * fait sous-estimer, et c'est la seule des deux erreurs qui se paie. Le jour où
+ * la facture Z.ai confirme les 18,6 %, une variable suffit :
+ *
+ *     GLM_CACHED_INPUT_RATIO=0.186
+ *
+ * Le VOLUME de tokens cachés est mesuré indépendamment de ce réglage
+ * (`AiUsageEvent.cachedInputTokens`, métrique `ai_tokens_total{kind="cached"}`) :
+ * l'efficacité du cache est donc observable même si son tarif exact ne l'est pas.
  */
+const GLM_DEFAULT_CACHED_INPUT_RATIO = 0.5;
+
 function glmCachedInputRate(fullInputRate: number): number | undefined {
   const raw = process.env.GLM_CACHED_INPUT_RATIO;
-  if (!raw) return undefined;
-  const ratio = Number(raw);
-  if (!Number.isFinite(ratio) || ratio < 0 || ratio > 1) return undefined;
+  const ratio = raw === undefined ? GLM_DEFAULT_CACHED_INPUT_RATIO : Number(raw);
+  if (!Number.isFinite(ratio) || ratio < 0 || ratio > 1) {
+    return round(fullInputRate * GLM_DEFAULT_CACHED_INPUT_RATIO);
+  }
   return round(fullInputRate * ratio);
 }
 

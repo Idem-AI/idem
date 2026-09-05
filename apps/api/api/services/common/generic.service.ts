@@ -22,6 +22,28 @@ import { SlopLintOptions, lintHtml } from '../design/slopLint.service';
 import { verifySection } from '../agents/section-verifier.service';
 import { DeliverableGraph, graphDepth, validateGraph } from '../agents/deliverable-graph';
 import { CONTEXT_TOOL_DECLARATIONS, createContextToolExecutor } from '../context-engine/context-tools';
+import { DocumentDesignSystem } from '../design/documentDesignSystem';
+import { SectionSeed } from '../design/designSeed';
+import { normalizeSectionContent } from '../design/sectionContent';
+import { RenderOptions, renderSection } from '../design/sectionRenderer';
+import {
+  SECTION_CONTENT_CONTRACT,
+  sectionVolumeDirective,
+} from '../design/sectionContent.prompt';
+import { parseLlmJson } from '../../utils/llm-json.util';
+
+/**
+ * Tout ce dont le rendu d'une section a besoin. Porté par l'étape parce que la
+ * graine est PROPRE À LA PAGE (l'archétype varie d'une page à l'autre) alors que
+ * le design system est commun au document.
+ */
+export interface SectionTemplate {
+  designSystem: DocumentDesignSystem;
+  seed: SectionSeed;
+  /** Volume visé, en blocs. Ex : '6 to 8'. */
+  volume: string;
+  render?: RenderOptions;
+}
 
 /**
  * Comment une étape reçoit ce que les étapes amont ont produit.
@@ -60,6 +82,19 @@ export interface IPromptStep {
   aiConfig?: FeatureAIConfig;
   /** Voir `StepContextMode`. Défaut : `digest` si l'étape a des dépendances. */
   contextMode?: StepContextMode;
+  /**
+   * Rendu par GABARIT : le modèle produit un `SectionContent` (contenu
+   * structuré) et le serveur produit le HTML.
+   *
+   * Absent ⇒ comportement historique, le modèle écrit le HTML lui-même. La
+   * bascule se fait donc section par section, ce qui permet de la valider page
+   * par page au lieu de tout basculer d'un coup.
+   *
+   * Quand il est présent, l'étape reçoit le contrat de sortie JSON à la place
+   * des consignes de composition, et sa sortie traverse
+   * `normalizeSectionContent` puis `renderSection`.
+   */
+  template?: SectionTemplate;
   /**
    * Préfixe IDENTIQUE à toutes les étapes du livrable — contexte de marque,
    * direction artistique, invariants de composition, règles anti-générique,
@@ -125,6 +160,7 @@ export function withSectionConfigs(
     ...step,
     aiConfig: step.aiConfig ?? applyTier(resolveSectionConfig(feature, step.stepName)),
     stablePrefix: step.stablePrefix ?? stablePrefix,
+    template: TEMPLATES_ENABLED ? step.template : undefined,
   }));
 }
 
@@ -206,6 +242,25 @@ export function estimateRunBudget(steps: IPromptStep[]): number {
  * une constante de conception.
  */
 const MAX_PARALLEL_STEPS = Math.max(1, Number(process.env.IDEM_MAX_PARALLEL_STEPS ?? 3));
+
+/**
+ * Budget de sortie d'une section rendue par gabarit.
+ *
+ * Une page A4 pleine porte 550 à 700 mots utiles, soit ~900 tokens ; le contenu
+ * structuré qui les transporte tient largement sous 6 000, blocs et libellés
+ * compris. Le reste de l'ancien budget servait à écrire du balisage — la partie
+ * que le rendu produit désormais gratuitement, et instantanément.
+ */
+const TEMPLATE_OUTPUT_TOKENS = Number(process.env.IDEM_TEMPLATE_OUTPUT_TOKENS ?? 6000);
+
+/**
+ * Interrupteur global du rendu par gabarit.
+ *
+ * `IDEM_SECTION_TEMPLATE=off` fait retomber TOUTES les sections sur la
+ * génération HTML libre, sans redéploiement. Sert à comparer les deux rendus
+ * côte à côte sur un même projet — c'est la mesure qui décide, pas l'opinion.
+ */
+const TEMPLATES_ENABLED = (process.env.IDEM_SECTION_TEMPLATE ?? '').toLowerCase() !== 'off';
 
 /**
  * Intervalle minimal entre deux annonces de progression d'une même section.
@@ -465,7 +520,19 @@ export class GenericService {
       });
     }
 
-    messages.push({ role: 'user', content: step.promptConstant });
+    // MODE GABARIT : on remplace les consignes de composition par le contrat de
+    // sortie. Le modèle ne compose plus, il écrit — et ce qu'il écrit est
+    // structuré, donc vérifiable et infalsifiable dans sa forme.
+    messages.push({
+      role: 'user',
+      content: step.template
+        ? [
+            step.promptConstant,
+            sectionVolumeDirective(step.template.volume),
+            SECTION_CONTENT_CONTRACT,
+          ].join('\n\n')
+        : step.promptConstant,
+    });
 
     const result = await runAgent(
       {
@@ -477,17 +544,45 @@ export class GenericService {
           provider: effectiveConfig.provider,
           modelName: effectiveConfig.modelName,
           fallbackModels: effectiveConfig.fallbackModels,
-          llmOptions: effectiveConfig.llmOptions,
+          llmOptions: {
+            ...effectiveConfig.llmOptions,
+            // Le gabarit change la NATURE de la sortie : ~2 500 tokens de
+            // contenu structuré au lieu de ~10 000 de balisage. Conserver un
+            // budget de 28 000 n'apporterait rien et laisserait le raisonnement
+            // s'étendre sans objet — or c'est la sortie qui fait la latence.
+            ...(step.template
+              ? { maxOutputTokens: TEMPLATE_OUTPUT_TOKENS, jsonMode: true }
+              : {}),
+          },
           // Sans épinglage explicite, la section part à l'étage de sa TÂCHE
           // (`draft` → M) et n'escalade que si la grille qualité échoue. C'est
           // ce qui fait enfin travailler le routeur sur le volume principal.
-          pinModel: step.aiConfig?.pinModel,
+          //
+          // Une section rendue par GABARIT est dépinglée d'office : l'épinglage
+          // transitoire existait parce que l'escalade ne détecte pas « la page
+          // est plate » tant que la composition est demandée au modèle. Sous
+          // gabarit, la composition ne lui est plus demandée — la condition de
+          // retrait écrite dans ai.config.ts est donc remplie, section par
+          // section, au fur et à mesure de la bascule.
+          pinModel: step.template ? false : step.aiConfig?.pinModel,
         },
         promptType: effectiveConfig.promptType ?? step.stepName,
         tools: useTools ? CONTEXT_TOOL_DECLARATIONS : undefined,
         toolExecutor: useTools ? createContextToolExecutor(userId!, project.id!) : undefined,
         maxToolTurns: 4,
-        validate: step.quality ? qualityValidator(step.quality) : undefined,
+        // En mode gabarit, la sortie attendue est un CONTENU structuré : le
+        // contrôle porte donc sur sa lisibilité, pas sur du balisage qui
+        // n'existe plus. Le balisage, lui, est garanti par le rendu.
+        validate: step.template
+          ? (text: string) => {
+              const parsed = normalizeSectionContent(parseLlmJson(text));
+              return parsed
+                ? { ok: true }
+                : { ok: false, reason: 'contenu de section illisible ou vide' };
+            }
+          : step.quality
+            ? qualityValidator(step.quality)
+            : undefined,
       },
       {
         messages,
@@ -509,6 +604,33 @@ export class GenericService {
     );
 
     let content = result.text;
+
+    // RENDU. Le modèle a produit du contenu ; la page est fabriquée ici, avec la
+    // palette, la grille, la typographie, les contrastes et le logo du document.
+    // Rien de tout cela ne dépend plus de ce que le modèle a bien voulu suivre.
+    if (step.template) {
+      const parsed = normalizeSectionContent(parseLlmJson(content));
+      if (parsed) {
+        content = renderSection(
+          parsed,
+          step.template.designSystem,
+          step.template.seed,
+          step.template.render ?? {}
+        );
+        logger.info(
+          `Section '${step.stepName}' rendue par gabarit ` +
+            `(archétype ${step.template.seed.archetype}, ${parsed.blocks.length} blocs, ${content.length} car.)`
+        );
+      } else {
+        // Le contrôle de l'agent a déjà tenté une escalade : si l'on arrive ici,
+        // c'est que même l'étage supérieur n'a pas rendu de contenu lisible. On
+        // renvoie la sortie brute plutôt que rien — l'appelant la traitera comme
+        // une section en échec.
+        logger.error(
+          `Section '${step.stepName}' : contenu illisible après escalade, sortie brute conservée.`
+        );
+      }
+    }
 
     // Contrôle + réparation bornée. `verifySection` sort immédiatement si la
     // grille déterministe ne trouve rien : le cas nominal ne coûte rien.

@@ -42,6 +42,11 @@ import {
   describeDocumentSeed,
   describeSectionSeed,
 } from '../design/designSeed';
+import {
+  buildDocumentDesignSystem,
+  derivedPalette,
+  describeDesignSystem,
+} from '../design/documentDesignSystem';
 import { ensureProjectArtDirection } from '../design/artDirection.provider';
 import { researchTeamService } from '../research/research-team.service';
 import {
@@ -197,33 +202,86 @@ export class BusinessPlanService extends GenericService {
       // neuf pages de partager le même archétype sans pour autant les rendre
       // étrangères les unes aux autres : les invariants (couleur, typographie,
       // rythme) restent dans le préfixe stable ci-dessus.
+      const artDirection = project.analysisResultModel?.branding?.artDirection;
+      const documentSeed = buildDocumentSeed(artDirection?.styleId, `businessplan:${project.id}`);
+
+      // DESIGN SYSTEM CALCULÉ pour ce document : rampes, encres contrastées,
+      // échelle typographique, rayon, rythme. Une fois par livrable — les neuf
+      // pages le partagent, ce qui est très exactement ce qui en fait un
+      // document.
+      const designSystem = buildDocumentDesignSystem(
+        project.analysisResultModel?.branding,
+        artDirection,
+        documentSeed
+      );
+      logger.info(`[BP] Design system: ${describeDesignSystem(designSystem)}`);
+
+      const logoUrls = collectLogoUrls(project.analysisResultModel?.branding?.logo);
+      const renderOptions = { logoUrl: logoUrls[0], brandName: project.name };
+
       const usedArchetypes = new Set<string>();
-      const sectionSeed = (stepName: string): string => {
+      let sectionIndex = 0;
+
+      /**
+       * Une section RENDUE PAR GABARIT : le modèle produit du contenu, le code
+       * produit la page. Sa graine lui donne son archétype de mise en page,
+       * distinct de celui de ses voisines.
+       */
+      const templated = (
+        prompt: string,
+        stepName: string,
+        volume: string,
+        extra = ''
+      ): IPromptStep => {
+        sectionIndex += 1;
+        return {
+          promptConstant: `${prompt}${extra}`,
+          stepName,
+          template: {
+            designSystem,
+            seed: buildSectionSeed(
+              artDirection?.styleId,
+              `businessplan:${project.id}`,
+              stepName,
+              usedArchetypes
+            ),
+            volume,
+            render: { ...renderOptions, index: sectionIndex },
+          },
+        };
+      };
+
+      /**
+       * Une section en génération LIBRE : le modèle compose lui-même.
+       *
+       * Réservée aux pages dont la composition EST le livrable. La couverture
+       * est la première page qu'un investisseur ouvre : c'est le seul endroit du
+       * plan où l'on préfère le plafond de qualité au plancher.
+       */
+      const freeform = (prompt: string, stepName: string): IPromptStep => {
+        sectionIndex += 1;
         const seed = buildSectionSeed(
-          project.analysisResultModel?.branding?.artDirection?.styleId,
+          artDirection?.styleId,
           `businessplan:${project.id}`,
           stepName,
           usedArchetypes
         );
-        return `<composition_for_this_page>\n${describeSectionSeed(seed)}\n</composition_for_this_page>`;
+        return {
+          promptConstant: `${prompt}\n\n<composition_for_this_page>\n${describeSectionSeed(seed)}\n</composition_for_this_page>`,
+          stepName,
+        };
       };
 
-      const section = (prompt: string, stepName: string, extra = ''): IPromptStep => ({
-        // Le prompt de section ne porte plus QUE ce qui lui est propre.
-        promptConstant: `${prompt}${extra}\n\n${sectionSeed(stepName)}`,
-        stepName,
-      });
-
       const steps: IPromptStep[] = [
-        section(AGENT_COVER_PROMPT, 'Cover Page'),
-        section(AGENT_COMPANY_SUMMARY_PROMPT, 'Company Summary'),
-        section(AGENT_OPPORTUNITY_PROMPT, 'Opportunity'),
-        section(AGENT_TARGET_AUDIENCE_PROMPT, 'Target Audience'),
-        section(AGENT_PRODUCTS_SERVICES_PROMPT, 'Products & Services'),
-        section(AGENT_MARKETING_SALES_PROMPT, 'Marketing & Sales'),
-        section(AGENT_FINANCIAL_PLAN_PROMPT, 'Financial Plan', financeContext),
-        section(AGENT_GOAL_PLANNING_PROMPT, 'Goal Planning'),
-        section(AGENT_APPENDIX_PROMPT, 'Appendix'),
+        freeform(AGENT_COVER_PROMPT, 'Cover Page'),
+        templated(AGENT_COMPANY_SUMMARY_PROMPT, 'Company Summary', '7 to 9'),
+        templated(AGENT_OPPORTUNITY_PROMPT, 'Opportunity', '8 to 10'),
+        templated(AGENT_TARGET_AUDIENCE_PROMPT, 'Target Audience', '7 to 9'),
+        templated(AGENT_PRODUCTS_SERVICES_PROMPT, 'Products & Services', '7 to 9'),
+        templated(AGENT_MARKETING_SALES_PROMPT, 'Marketing & Sales', '7 to 9'),
+        templated(AGENT_FINANCIAL_PLAN_PROMPT, 'Financial Plan', '8 to 10', financeContext),
+        templated(AGENT_GOAL_PLANNING_PROMPT, 'Goal Planning', '6 to 8'),
+        templated(AGENT_APPENDIX_PROMPT, 'Appendix', '5 to 7'),
       ];
 
       // Chaque section produit une page HTML : la grille déterministe attrape
@@ -289,6 +347,10 @@ export class BusinessPlanService extends GenericService {
             if (typeof sectionHtml === 'string' && sectionHtml) {
               const options = {
                 palette: lintContext.palette,
+                // Les teintes des rampes DÉRIVENT de la charte : sans cette
+                // déclaration, le linter prendrait le design system calculé pour
+                // une palette inventée et « corrigerait » ses propres nuances.
+                extraAllowedColors: derivedPalette(designSystem),
                 fonts: lintContext.fonts,
                 expectedLogoUrls: result.name === 'Cover Page' ? lintContext.logoUrls : [],
                 styleId: lintContext.styleId,
