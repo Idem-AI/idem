@@ -3,20 +3,30 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createDeepSeek } from '@ai-sdk/deepseek';
 import { streamText, generateObject, LanguageModel, convertToCoreMessages } from 'ai';
 import { z } from 'zod';
-import { modelConfig, getDefaultModelKey, resolveModelCredentials } from '../config/modelConfig.js';
+import {
+  allModelConfigs,
+  getDefaultModelKey,
+  resolveModelCredentials,
+} from '../config/modelConfig.js';
 import { Messages, ToolInfo } from '../types/project.js';
 
-let initOptions = {};
+/**
+ * Le catalogue COMPLET, repli compris. `modelConfig` est la liste publique
+ * (filtrée) servie à l'interface : chercher dedans ferait échouer la résolution
+ * du modèle de repli, qui n'y figure volontairement pas.
+ */
+function findModelConfig(modelKey: string) {
+  return allModelConfigs.find((item) => item.modelKey === modelKey);
+}
 
 export function getOpenAIModel(baseURL: string, apiKey: string, model: string): LanguageModel {
-  const provider = modelConfig.find((item) => item.modelKey === model)?.provider;
+  const provider = findModelConfig(model)?.provider;
 
   if (provider === 'gemini' || provider === 'google') {
     const gemini = createGoogleGenerativeAI({
       apiKey,
       baseURL,
     });
-    initOptions = {};
     return gemini(model) as LanguageModel;
   }
 
@@ -25,7 +35,6 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string): 
       apiKey,
       baseURL,
     });
-    initOptions = {};
     return deepseek(model) as LanguageModel;
   }
 
@@ -34,9 +43,6 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string): 
       apiKey,
       baseURL,
     });
-    initOptions = {
-      maxTokens: provider.indexOf('claude-3-7-sonnet') > -1 ? 128000 : 8192,
-    };
     return openai(model) as LanguageModel;
   }
 
@@ -45,7 +51,6 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string): 
       apiKey,
       baseURL,
     });
-    initOptions = {};
     return openai(model) as LanguageModel;
   }
 
@@ -77,7 +82,6 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string): 
         return fetch(input, init);
       },
     });
-    initOptions = {};
     return glm(model) as LanguageModel;
   }
 
@@ -87,24 +91,49 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string): 
   );
 }
 
-const defaultModel = getOpenAIModel(
-  process.env.THIRD_API_URL || '',
-  process.env.THIRD_API_KEY || '',
-  getDefaultModelKey()
-) as LanguageModel;
 
-export async function generateObjectFn(messages: Messages) {
-  return generateObject({
-    model: getOpenAIModel(
-      process.env.THIRD_API_URL || '',
-      process.env.THIRD_API_KEY || '',
-      getDefaultModelKey()
-    ) as LanguageModel,
+/**
+ * Sélectionne les fichiers qu'une demande concerne réellement.
+ *
+ * On envoie l'ARBRE et la DEMANDE, jamais la conversation : la version
+ * précédente recopiait tout l'historique — c'est-à-dire précisément le contexte
+ * qu'elle devait réduire — et le prompt était de surcroît rédigé en chinois,
+ * hérité du dépôt amont, dans une langue qui n'est ni celle du produit, ni celle
+ * de l'utilisateur, ni celle du reste du prompt.
+ */
+export async function selectRelevantFiles(
+  filesPath: string[],
+  request: string
+): Promise<string[]> {
+  const modelKey = getDefaultModelKey();
+  const { apiKey, apiUrl } = resolveModelCredentials(modelKey);
+
+  const { object } = await generateObject({
+    model: getOpenAIModel(apiUrl, apiKey, modelKey),
     schema: z.object({
-      files: z.array(z.string()),
+      files: z
+        .array(z.string())
+        .describe('Paths that must be read or modified to satisfy the request'),
     }),
-    messages: convertToCoreMessages(messages),
+    messages: [
+      {
+        role: 'user',
+        content: [
+          'Project file tree:',
+          filesPath.join('\n'),
+          '',
+          'User request:',
+          // Une demande très longue n'aide pas au tri : ses premiers milliers de
+          // caractères portent l'intention, le reste est du détail d'exécution.
+          request.slice(0, 4000),
+          '',
+          'Return ONLY the paths needed to satisfy this request. Do not return the whole tree.',
+        ].join('\n'),
+      },
+    ],
   });
+
+  return object.files;
 }
 
 export interface StreamingOptions {
@@ -128,7 +157,7 @@ export interface StreamingOptions {
 const DEBUG_PROMPTS = process.env.DEBUG_PROMPTS === 'true';
 
 export function streamTextFn(messages: Messages, options?: StreamingOptions, modelKey?: string) {
-  const modelConf = modelConfig.find((item) => item.modelKey === modelKey);
+  const modelConf = findModelConfig(modelKey ?? '');
 
   if (!modelConf) {
     throw new Error(`Model configuration not found for model: ${modelKey}`);
@@ -193,11 +222,10 @@ export function streamTextFn(messages: Messages, options?: StreamingOptions, mod
   const maxRetries = Number(process.env.AI_MAX_RETRIES ?? 1);
 
   const streamConfig: any = {
-    model: model || defaultModel,
+    model,
     messages: convertToCoreMessages(newMessages),
     maxRetries: Number.isFinite(maxRetries) ? maxRetries : 1,
     ...generationConfig,
-    ...initOptions,
     ...options,
   };
 

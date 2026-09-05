@@ -15,7 +15,9 @@
     "vercel-build": "tsc",
     "secrets:upload": "bash scripts/upload-secrets.sh",
     "secrets:rotate": "bash scripts/rotate-secret.sh",
-    "secrets:purge-history": "bash scripts/purge-env-from-history.sh"
+    "secrets:purge-history": "bash scripts/purge-env-from-history.sh",
+    "check:uniqueness": "ts-node --transpile-only api/scripts/checkUniqueness.ts",
+    "check:all": "npm run check:agents && npm run check:design && npm run check:uniqueness"
   },
   "author": "arolleaguekeng",
   "license": "MIT",

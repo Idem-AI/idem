@@ -41,6 +41,30 @@ export interface LLMOptions {
    * `thinkingBudget: 0` doit épingler un modèle 2.5 pour que ce soit effectif.
    */
   thinkingBudget?: number;
+  /**
+   * Exige du FOURNISSEUR une sortie JSON syntaxiquement valide
+   * (`response_format: { type: 'json_object' }`).
+   *
+   * Jusqu'ici le format n'était porté que par le prompt, et la validité
+   * rattrapée après coup par quatre fonctions de réparation heuristique
+   * (`utils/llm-json.util.ts` : clôtures de bloc, caractères de contrôle dans
+   * les chaînes, virgules traînantes). Quand la réparation échoue, ce n'est pas
+   * un défaut mineur : c'est la génération ENTIÈRE qui est perdue.
+   *
+   * C'est le mode d'échec nº1 d'un petit modèle. Un grand modèle produit du JSON
+   * valide par habitude ; un petit oublie une virgule, ajoute un commentaire, ou
+   * préfixe par « Voici le JSON demandé ». Le fournisseur, lui, contraint le
+   * décodage — le format cesse d'être une consigne pour devenir une garantie.
+   *
+   * ⚠️ Ne PAS activer sur une sortie qui transporte du HTML : là, la bonne
+   * réponse est de sortir du JSON (délimiteurs `<html>…</html>`), pas d'y entrer
+   * plus fort — l'échappement d'une longue chaîne est lui-même une source
+   * d'échec, et il coûte 10 à 15 % de tokens.
+   *
+   * Le prompt doit continuer à décrire la FORME attendue : `json_object`
+   * garantit un JSON valide, pas le bon schéma.
+   */
+  jsonMode?: boolean;
 }
 
 /**
@@ -65,6 +89,8 @@ export interface SectionAIConfig {
   llmOptions?: LLMOptions;
   promptType?: string;
   fallbackModels?: string[];
+  /** Voir `FeatureAIConfig.pinModel`. */
+  pinModel?: boolean;
   /**
    * Route cette section vers un étage de modèle plutôt que vers le modèle de la
    * feature. Sert à ne pas payer le tarif « raisonnement » pour une section dont
@@ -84,6 +110,23 @@ export interface FeatureAIConfig {
   fallbackModels?: string[];
   /** Étage par défaut de la feature — même sémantique que sur une section. */
   tier?: ModelTier;
+  /**
+   * `true` : le modèle déclaré est un PLANCHER, on ne tente jamais plus bas.
+   *
+   * Le routeur annonce « on tente au plus bas, on n'escalade que si le contrôle
+   * ÉCHOUE ». Dans les faits, il ne le faisait pas : `agent-runtime` respecte
+   * le `baseConfig` de la feature au premier essai, et toutes les générations
+   * par sections en fournissent un. Le volume principal partait donc
+   * systématiquement au tarif haut, et l'étage n'entrait en jeu qu'en escalade —
+   * exactement l'inverse de l'intention.
+   *
+   * Le défaut est désormais `false` : on part à l'étage de la tâche et on
+   * escalade sur échec du contrôle qualité. L'épinglage reste disponible pour
+   * les sorties dont l'échec n'est PAS détectable automatiquement — un SVG de
+   * logo géométriquement faux passe toutes les grilles, seul un modèle capable
+   * de construction paramétrique l'évite.
+   */
+  pinModel?: boolean;
   /**
    * Réglages par section, indexés par le `stepName` EXACT de la section.
    *
@@ -121,6 +164,9 @@ export function resolveSectionConfig(
     modelName: section.modelName ?? feature.modelName,
     promptType: section.promptType ?? feature.promptType,
     fallbackModels: section.fallbackModels ?? feature.fallbackModels,
+    // Une section qui déclare son propre `modelName` l'a choisi explicitement :
+    // elle est donc épinglée de fait, sinon le routeur écraserait sa décision.
+    pinModel: section.pinModel ?? (section.modelName ? true : feature.pinModel),
     // L'étage n'est PAS résolu ici (ce fichier ne connaît pas le routeur) : il
     // est propagé tel quel, `applyTier` le traduit en modèle au moment de l'appel.
     // Un `modelName` déclaré sur la section est une décision explicite : elle
@@ -269,19 +315,44 @@ export const MAX_TEMPERATURE_FOR_THINKING = 0.65;
 export function reconcileThinkingBudget(options: LLMOptions): {
   options: LLMOptions;
   downgraded: boolean;
+  /** Température écrêtée parce que le raisonnement est actif (cf. plus bas). */
+  temperatureClamped?: number;
 } {
   const thinking = (options.extraBody as any)?.thinking;
+  const thinkingEnabled = thinking?.type === 'enabled';
   const budget = options.maxOutputTokens;
-  if (thinking?.type !== 'enabled' || !budget || budget >= MIN_TOKENS_FOR_THINKING) {
-    return { options, downgraded: false };
+
+  // ① Raisonnement actif + budget trop court ⇒ on coupe le raisonnement.
+  if (thinkingEnabled && budget && budget < MIN_TOKENS_FOR_THINKING) {
+    return {
+      options: {
+        ...options,
+        extraBody: { ...options.extraBody, thinking: { type: 'disabled' } },
+      },
+      downgraded: true,
+    };
   }
-  return {
-    options: {
-      ...options,
-      extraBody: { ...options.extraBody, thinking: { type: 'disabled' } },
-    },
-    downgraded: true,
-  };
+
+  // ② Raisonnement actif + température trop haute ⇒ on écrête la température.
+  //
+  // Ce plafond était DOCUMENTÉ sans être appliqué : seule une vérification
+  // manuelle (`npm run check:agents`) le contrôlait, donc une config ajoutée
+  // entre deux exécutions du script passait. Or la panne qu'il évite est
+  // silencieuse et coûteuse — une réflexion qui diverge remplit l'enveloppe
+  // entière et renvoie un contenu VIDE.
+  if (
+    thinkingEnabled &&
+    options.temperature !== undefined &&
+    options.temperature > MAX_TEMPERATURE_FOR_THINKING
+  ) {
+    return {
+      options: { ...options, temperature: MAX_TEMPERATURE_FOR_THINKING },
+      downgraded: false,
+      temperatureClamped: options.temperature,
+    };
+  }
+
+  return { options, downgraded: false };
 }
 
 /** Raisonnement GLM activé — écrase le `thinking: disabled` du fournisseur. */
@@ -302,15 +373,18 @@ const THINKING_ON = { thinking: { type: 'enabled' } } as const;
  * catalogue de styles, la graine de composition, les interdits), pas d'un
  * échantillonnage chaud. Au-delà de ~0.65 sur un modèle « thinking », on
  * n'achète plus de créativité, on achète de l'incohérence — puis du vide.
+ *
+ * Ce plafond est désormais APPLIQUÉ, et pas seulement écrit : cf. l'étape ②
+ * de `reconcileThinkingBudget`, exécutée au point de passage unique.
  */
-const MAX_TEMPERATURE_WITH_THINKING = 0.65;
+const MAX_TEMPERATURE_WITH_THINKING = MAX_TEMPERATURE_FOR_THINKING;
 
 /**
  * Divergence : concept de marque, direction artistique, couverture, accroche.
  * C'est le réglage le plus chaud qu'un modèle raisonnant supporte sans que sa
  * réflexion cesse de converger.
  */
-const SAMPLING_DIVERGENT = { temperature: 0.65, topP: 0.95, topK: 64 };
+const SAMPLING_DIVERGENT = { temperature: MAX_TEMPERATURE_WITH_THINKING, topP: 0.95, topK: 64 };
 
 /**
  * Composition sous contrainte : une page de charte, une slide, une section de
@@ -368,6 +442,8 @@ export const AI_CONFIG = {
         // décidait de réfléchir. Sans raisonnement, 256 suffisent largement.
         maxOutputTokens: 256,
         thinkingBudget: 0,
+        // Sortie JSON garantie par le fournisseur, pas espérée du prompt.
+        jsonMode: true,
       },
     } as FeatureAIConfig,
   },
@@ -383,6 +459,20 @@ export const AI_CONFIG = {
   businessPlan: {
     provider: LLMProvider.GLM,
     modelName: GLM_MODELS.reasoning,
+    // ⚠️ ÉPINGLAGE TRANSITOIRE — à retirer section par section.
+    //
+    // Le routeur sait désormais partir à l'étage bas et escalader sur échec du
+    // contrôle (cf. `pinModel`). Mais l'escalade ne rattrape que ce que la
+    // grille DÉTECTE : troncature, balises déséquilibrées, gabarit non rempli.
+    // Elle ne détecte pas « la page est plate ». Tant que la composition est
+    // demandée au modèle en HTML libre, descendre d'étage échangerait donc du
+    // coût contre de la qualité sans filet.
+    //
+    // Le retrait se fait quand le rendu par gabarit couvre la section : à ce
+    // moment la grille, la palette, la typographie et le balisage sont garantis
+    // par le code, et le modèle ne fournit plus que le contenu — une tâche que
+    // l'étage bas remplit. Retirer cette ligne AVANT est une régression.
+    pinModel: true,
     fallbackModels: TEXT_FALLBACK_MODELS,
     llmOptions: {
       // Raisonnement activé : une section de plan est un arbitrage (quel angle,
@@ -426,6 +516,20 @@ export const AI_CONFIG = {
   pitchDeck: {
     provider: LLMProvider.GLM,
     modelName: GLM_MODELS.reasoning,
+    // ⚠️ ÉPINGLAGE TRANSITOIRE — à retirer section par section.
+    //
+    // Le routeur sait désormais partir à l'étage bas et escalader sur échec du
+    // contrôle (cf. `pinModel`). Mais l'escalade ne rattrape que ce que la
+    // grille DÉTECTE : troncature, balises déséquilibrées, gabarit non rempli.
+    // Elle ne détecte pas « la page est plate ». Tant que la composition est
+    // demandée au modèle en HTML libre, descendre d'étage échangerait donc du
+    // coût contre de la qualité sans filet.
+    //
+    // Le retrait se fait quand le rendu par gabarit couvre la section : à ce
+    // moment la grille, la palette, la typographie et le balisage sont garantis
+    // par le code, et le modèle ne fournit plus que le contenu — une tâche que
+    // l'étage bas remplit. Retirer cette ligne AVANT est une régression.
+    pinModel: true,
     fallbackModels: TEXT_FALLBACK_MODELS,
     llmOptions: {
       // Onze slides qui doivent se distinguer les unes des autres : c'est le
@@ -532,8 +636,10 @@ export const AI_CONFIG = {
       promptType: 'finance',
       llmOptions: {
         temperature: 0.2,
-        maxOutputTokens: 10024,
+        maxOutputTokens: 1024,
         thinkingBudget: 0,
+        // Sortie JSON garantie par le fournisseur, pas espérée du prompt.
+        jsonMode: true,
       },
     } as FeatureAIConfig,
     // Couverture du rapport financier : une page pleine, c'est de la création.
@@ -576,73 +682,73 @@ export const AI_CONFIG = {
       provider: LLMProvider.GLM,
       modelName: GLM_MODELS.writing,
       promptType: 'simulation',
-      llmOptions: { temperature: 0.4, maxOutputTokens: 8192 },
+      llmOptions: { temperature: 0.4, maxOutputTokens: 8192, jsonMode: true },
     } as FeatureAIConfig,
     understanding: {
       provider: LLMProvider.GLM,
       modelName: GLM_MODELS.writing,
       promptType: 'simulation_understanding',
-      llmOptions: { temperature: 0.2, maxOutputTokens: 8192 },
+      llmOptions: { temperature: 0.2, maxOutputTokens: 8192, jsonMode: true },
     } as FeatureAIConfig,
     factors: {
       provider: LLMProvider.GLM,
       modelName: GLM_MODELS.writing,
       promptType: 'simulation_factors',
-      llmOptions: { temperature: 0.5, maxOutputTokens: 32768 },
+      llmOptions: { temperature: 0.5, maxOutputTokens: 32768, jsonMode: true },
     } as FeatureAIConfig,
     scenarios: {
       provider: LLMProvider.GLM,
       modelName: GLM_MODELS.writing,
       promptType: 'simulation_scenarios',
-      llmOptions: { temperature: 0.5, maxOutputTokens: 16384 },
+      llmOptions: { temperature: 0.5, maxOutputTokens: 16384, jsonMode: true },
     } as FeatureAIConfig,
     analysis: {
       provider: LLMProvider.GLM,
       modelName: GLM_MODELS.writing,
       promptType: 'simulation_analysis',
-      llmOptions: { temperature: 0.3, maxOutputTokens: 8192 },
+      llmOptions: { temperature: 0.3, maxOutputTokens: 8192, jsonMode: true },
     } as FeatureAIConfig,
     recommendations: {
       provider: LLMProvider.GLM,
       modelName: GLM_MODELS.writing,
       promptType: 'simulation_recommendations',
-      llmOptions: { temperature: 0.4, maxOutputTokens: 8192 },
+      llmOptions: { temperature: 0.4, maxOutputTokens: 8192, jsonMode: true },
     } as FeatureAIConfig,
     redTeam: {
       provider: LLMProvider.GLM,
       modelName: GLM_MODELS.writing,
       promptType: 'simulation_red_team',
-      llmOptions: { temperature: 0.7, maxOutputTokens: 32768 },
+      llmOptions: { temperature: 0.7, maxOutputTokens: 32768, jsonMode: true },
     } as FeatureAIConfig,
     customers: {
       provider: LLMProvider.GLM,
       modelName: GLM_MODELS.writing,
       promptType: 'simulation_customers',
-      llmOptions: { temperature: 0.5, maxOutputTokens: 8192 },
+      llmOptions: { temperature: 0.5, maxOutputTokens: 8192, jsonMode: true },
     } as FeatureAIConfig,
     investors: {
       provider: LLMProvider.GLM,
       modelName: GLM_MODELS.writing,
       promptType: 'simulation_investors',
-      llmOptions: { temperature: 0.6, maxOutputTokens: 8192 },
+      llmOptions: { temperature: 0.6, maxOutputTokens: 8192, jsonMode: true },
     } as FeatureAIConfig,
     blackSwan: {
       provider: LLMProvider.GLM,
       modelName: GLM_MODELS.writing,
       promptType: 'simulation_black_swan',
-      llmOptions: { temperature: 0.8, maxOutputTokens: 12288 },
+      llmOptions: { temperature: 0.8, maxOutputTokens: 12288, jsonMode: true },
     } as FeatureAIConfig,
     universes: {
       provider: LLMProvider.GLM,
       modelName: GLM_MODELS.writing,
       promptType: 'simulation_universes',
-      llmOptions: { temperature: 0.7, maxOutputTokens: 8192 },
+      llmOptions: { temperature: 0.7, maxOutputTokens: 8192, jsonMode: true },
     } as FeatureAIConfig,
     experiments: {
       provider: LLMProvider.GLM,
       modelName: GLM_MODELS.writing,
       promptType: 'simulation_experiments',
-      llmOptions: { temperature: 0.5, maxOutputTokens: 8192 },
+      llmOptions: { temperature: 0.5, maxOutputTokens: 8192, jsonMode: true },
     } as FeatureAIConfig,
   },
 
@@ -677,6 +783,8 @@ export const AI_CONFIG = {
         maxOutputTokens: 2500,
         temperature: 0.2,
         thinkingBudget: 0,
+        // Sortie JSON garantie par le fournisseur, pas espérée du prompt.
+        jsonMode: true,
       },
     } as FeatureAIConfig,
     // Signaux de tendance : restitution de ce que le modèle sait déjà d'un
@@ -690,6 +798,7 @@ export const AI_CONFIG = {
         maxOutputTokens: 2000,
         temperature: 0.5,
         thinkingBudget: 0,
+        jsonMode: true,
       },
     } as FeatureAIConfig,
     // Stratégie éditoriale : c'est la matière dont dérivent le calendrier PUIS
@@ -735,6 +844,8 @@ export const AI_CONFIG = {
         maxOutputTokens: 1200,
         temperature: 0.7,
         thinkingBudget: 0,
+        // Sortie JSON garantie par le fournisseur, pas espérée du prompt.
+        jsonMode: true,
       },
     } as FeatureAIConfig,
     // Composition du visuel — la tâche la plus exigeante du module : le modèle
@@ -819,6 +930,20 @@ export const AI_CONFIG = {
     brandIdentity: {
       provider: LLMProvider.GLM,
       modelName: GLM_MODELS.reasoning,
+      // ⚠️ ÉPINGLAGE TRANSITOIRE — à retirer section par section.
+      //
+      // Le routeur sait désormais partir à l'étage bas et escalader sur échec du
+      // contrôle (cf. `pinModel`). Mais l'escalade ne rattrape que ce que la
+      // grille DÉTECTE : troncature, balises déséquilibrées, gabarit non rempli.
+      // Elle ne détecte pas « la page est plate ». Tant que la composition est
+      // demandée au modèle en HTML libre, descendre d'étage échangerait donc du
+      // coût contre de la qualité sans filet.
+      //
+      // Le retrait se fait quand le rendu par gabarit couvre la section : à ce
+      // moment la grille, la palette, la typographie et le balisage sont garantis
+      // par le code, et le modèle ne fournit plus que le contenu — une tâche que
+      // l'étage bas remplit. Retirer cette ligne AVANT est une régression.
+      pinModel: true,
       fallbackModels: TEXT_FALLBACK_MODELS,
       llmOptions: {
         // Le défaut le plus visible de la charte était sa monotonie : douze
@@ -879,6 +1004,10 @@ export const AI_CONFIG = {
         topP: 0.93,
         topK: 50,
       },
+      // Épinglé : un SVG géométriquement faux ou une direction artistique
+      // inapplicable passent tous les contrôles automatiques. Sans détection,
+      // pas d'escalade — donc pas de filet si l'on part trop bas.
+      pinModel: true,
     } as FeatureAIConfig,
     /**
      * Palettes.
@@ -951,6 +1080,10 @@ export const AI_CONFIG = {
         // est inutilisable, et il n'y a pas de repli à ce niveau.
         maxOutputTokens: 24000,
       },
+      // Épinglé : un SVG géométriquement faux ou une direction artistique
+      // inapplicable passent tous les contrôles automatiques. Sans détection,
+      // pas d'escalade — donc pas de filet si l'on part trop bas.
+      pinModel: true,
     } as FeatureAIConfig,
     logoAnalysis: {
       provider: LLMProvider.GLM,
@@ -959,6 +1092,7 @@ export const AI_CONFIG = {
       llmOptions: {
         maxOutputTokens: 2000,
         temperature: 0.2,
+        jsonMode: true,
       },
     } as FeatureAIConfig,
     // Template de carte de visite : deux faces HTML complètes + concept.

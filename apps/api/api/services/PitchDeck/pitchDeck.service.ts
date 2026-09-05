@@ -16,6 +16,7 @@ import { SectionModel } from '../../models/section.model';
 import { PAGE_FORMATS, PdfService } from '../pdf.service';
 import { cacheService } from '../cache.service';
 
+import { PITCH_DECK_SHARED_RULES } from './prompts/_shared.prompt';
 import { SLIDE_COVER_PROMPT } from './prompts/slide-cover.prompt';
 import { SLIDE_PROBLEM_PROMPT } from './prompts/slide-problem.prompt';
 import { SLIDE_SOLUTION_PROMPT } from './prompts/slide-solution.prompt';
@@ -35,8 +36,13 @@ import {
   EDITORIAL_RESTRAINT_BLOCK,
   RESTRAINT_SELF_REVIEW_BLOCK,
 } from '../design/editorialRestraint.prompt';
-import { lintHtml, repairHtml } from '../design/slopLint.service';
-import { buildDesignSeed, describeSeed } from '../design/designSeed';
+import { enforceDesignRules } from '../design/slopLint.service';
+import {
+  buildDocumentSeed,
+  buildSectionSeed,
+  describeDocumentSeed,
+  describeSectionSeed,
+} from '../design/designSeed';
 import { ensureProjectArtDirection } from '../design/artDirection.provider';
 
 export const PITCH_DECK_SLIDE_ORDER = [
@@ -142,9 +148,10 @@ export class PitchDeckService extends GenericService {
       projectId,
       project
     );
-    // Graine déterministe : deux decks de projets différents ne se ressemblent
-    // pas, mais les onze diapositives d'un même deck partagent leur grammaire.
-    const deckSeed = buildDesignSeed(artDirection?.styleId, `pitchdeck:${projectId}`);
+    // INVARIANTS du deck : couleur, typographie, rythme, accent graphique.
+    // L'archétype de composition est tiré PAR SLIDE (cf. `buildSectionSeed`) :
+    // onze slides qui partagent leur archétype sont onze fois la même slide.
+    const deckSeed = buildDocumentSeed(artDirection?.styleId, `pitchdeck:${projectId}`);
 
     // Flat, explicit brand context — LLM uses bg-[#hex], text-[#hex] directly
     const brandContext = [
@@ -165,7 +172,7 @@ export class PitchDeckService extends GenericService {
       }),
       buildArtDirectionBlock(artDirection, { medium: 'slide' }),
       artDirection
-        ? `<composition_seed>\nEvery slide of this deck shares the composition seed below.\n${describeSeed(deckSeed)}\n</composition_seed>`
+        ? `<composition_invariants>\n${describeDocumentSeed(deckSeed)}\n</composition_invariants>`
         : '',
       ANTI_SLOP_BLOCK,
       EDITORIAL_RESTRAINT_BLOCK,
@@ -176,51 +183,46 @@ export class PitchDeckService extends GenericService {
 
     const knownLogoUrls = collectLogoUrls(logo);
 
+    // PRÉFIXE STABLE — identique aux onze slides, émis UNE fois en tête. Il
+    // portait auparavant la fin de chaque `promptConstant`, derrière la partie
+    // variable : le contexte de marque ET les 1 888 tokens de règles partagées
+    // étaient repayés onze fois, sans qu'aucun début de prompt se répète.
+    const stablePrefix = [
+      projectDescription,
+      `BRAND CONTEXT:\n${brandContext}`,
+      // Les règles communes aux onze slides vivaient AU MILIEU de chacun des
+      // onze prompts (1 888 tokens × 11) : ni mutualisables, ni cacheables.
+      PITCH_DECK_SHARED_RULES,
+    ].join('\n\n');
+
+    // Un archétype de composition par slide, tiré sans répétition dans l'espace
+    // autorisé par le style. Les invariants restent dans le préfixe ci-dessus.
+    const usedArchetypes = new Set<string>();
+    const slide = (prompt: string, stepName: string): IPromptStep => {
+      const seed = buildSectionSeed(
+        artDirection?.styleId,
+        `pitchdeck:${projectId}`,
+        stepName,
+        usedArchetypes
+      );
+      return {
+        stepName,
+        promptConstant: `${prompt}\n\n<composition_for_this_slide>\n${describeSectionSeed(seed)}\n</composition_for_this_slide>`,
+      };
+    };
+
     const steps: IPromptStep[] = [
-      {
-        stepName: 'Cover',
-        promptConstant: `${projectDescription}\n${SLIDE_COVER_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-      },
-      {
-        stepName: 'Problem',
-        promptConstant: `${projectDescription}\n${SLIDE_PROBLEM_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-      },
-      {
-        stepName: 'Solution',
-        promptConstant: `${projectDescription}\n${SLIDE_SOLUTION_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-      },
-      {
-        stepName: 'Market',
-        promptConstant: `${projectDescription}\n${SLIDE_MARKET_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-      },
-      {
-        stepName: 'Product',
-        promptConstant: `${projectDescription}\n${SLIDE_PRODUCT_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-      },
-      {
-        stepName: 'Business Model',
-        promptConstant: `${projectDescription}\n${SLIDE_BUSINESS_MODEL_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-      },
-      {
-        stepName: 'Traction',
-        promptConstant: `${projectDescription}\n${SLIDE_TRACTION_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-      },
-      {
-        stepName: 'Competition',
-        promptConstant: `${projectDescription}\n${SLIDE_COMPETITION_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-      },
-      {
-        stepName: 'Team',
-        promptConstant: `${projectDescription}\n${SLIDE_TEAM_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-      },
-      {
-        stepName: 'Financials',
-        promptConstant: `${projectDescription}\n${SLIDE_FINANCIALS_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-      },
-      {
-        stepName: 'Ask',
-        promptConstant: `${projectDescription}\n${SLIDE_ASK_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-      },
+      slide(SLIDE_COVER_PROMPT, 'Cover'),
+      slide(SLIDE_PROBLEM_PROMPT, 'Problem'),
+      slide(SLIDE_SOLUTION_PROMPT, 'Solution'),
+      slide(SLIDE_MARKET_PROMPT, 'Market'),
+      slide(SLIDE_PRODUCT_PROMPT, 'Product'),
+      slide(SLIDE_BUSINESS_MODEL_PROMPT, 'Business Model'),
+      slide(SLIDE_TRACTION_PROMPT, 'Traction'),
+      slide(SLIDE_COMPETITION_PROMPT, 'Competition'),
+      slide(SLIDE_TEAM_PROMPT, 'Team'),
+      slide(SLIDE_FINANCIALS_PROMPT, 'Financials'),
+      slide(SLIDE_ASK_PROMPT, 'Ask'),
     ];
 
     // Chaque slide reçoit son propre budget de tokens et sa température
@@ -234,7 +236,13 @@ export class PitchDeckService extends GenericService {
       currency: project.analysisResultModel?.finance?.meta?.currency,
     };
 
-    const configuredSteps = withGraph(AI_CONFIG.pitchDeck, steps, PITCH_DECK_GRAPH, slideQuality);
+    const configuredSteps = withGraph(
+      AI_CONFIG.pitchDeck,
+      steps,
+      PITCH_DECK_GRAPH,
+      slideQuality,
+      stablePrefix
+    );
 
     const promptConfig: PromptConfig = {
       provider: AI_CONFIG.pitchDeck.provider,
@@ -290,8 +298,7 @@ export class PitchDeckService extends GenericService {
               styleId: artDirection?.styleId,
               label: `deck/${result.name}`,
             };
-            enrichedData = repairHtml(enrichedData, lintOptions).html;
-            lintHtml(enrichedData, lintOptions);
+            enrichedData = enforceDesignRules(enrichedData, lintOptions).html;
           }
 
           const section: SectionModel = {
@@ -383,8 +390,7 @@ export class PitchDeckService extends GenericService {
             styleId: artDirection?.styleId,
             label: `deck/${r.name}`,
           };
-          enrichedData = repairHtml(enrichedData, lintOptions).html;
-          lintHtml(enrichedData, lintOptions);
+          enrichedData = enforceDesignRules(enrichedData, lintOptions).html;
         }
         return {
           name: r.name,

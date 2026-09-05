@@ -175,20 +175,31 @@ export class RestrictionsService {
   }
 
   /**
-   * Apply prompt modifications if needed
+   * Point d'extension pour une modification transverse de prompt. Aujourd'hui :
+   * AUCUNE. Le prompt part tel que la feature l'a écrit.
+   *
+   * ⚠️ NE PAS y remettre de consignes de style ou de volume.
+   *
+   * Ce point injectait auparavant, en TÊTE de chaque message `user` et `system`
+   * de CHAQUE appel de la plateforme :
+   *
+   *     - Keep responses concise and focused
+   *     - Limit creative variations to essential options
+   *     - Prioritize speed over extensive detail
+   *
+   * C'est-à-dire l'exact contraire de ce que `ai.config.ts` construit sur huit
+   * cents lignes : budgets de 28 000 à 48 000 tokens, températures relevées pour
+   * échapper à la mise en page la plus probable, blocs anti-générique. Un modèle
+   * arbitre entre consignes contradictoires en suivant la plus courte, la plus
+   * impérative et la plus proche du début — c'était exactement le profil de ce
+   * bloc, et le phénomène s'aggrave à mesure que le modèle rapetisse.
+   *
+   * Le volume se pilote par `maxOutputTokens` et par les blocs `<content_volume>`
+   * des prompts de section, pas par une consigne globale qui ignore la nature du
+   * livrable.
    */
   applyPromptModifications(originalPrompt: string): string {
-    // Add standard instructions to prompts
-    const instructions = `
-SYSTEM INSTRUCTIONS:
-- Keep responses concise and focused
-- Limit creative variations to essential options
-- Prioritize speed over extensive detail
-- Use efficient, token-conscious language
-
-`;
-
-    return instructions + originalPrompt;
+    return originalPrompt;
   }
 }
 

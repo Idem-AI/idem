@@ -25,9 +25,16 @@ export function parseMessage(content: string): ParsedMessage {
         }
       }
 
+      // L'artefact complet est remplacé par un accusé compact : les fichiers
+      // sont désormais portés par le contexte projet, les réécrire dans
+      // l'historique doublerait leur coût à chaque tour.
+      //
+      // Le libellé était en chinois (hérité du dépôt amont) : du bruit dans une
+      // troisième langue, au milieu d'un prompt anglais, pour un produit
+      // francophone. Un petit modèle y est nettement plus sensible qu'un grand.
       const newContent = content.replace(
         artifactRegex,
-        `已经修改好了的目录${JSON.stringify(Object.keys(files))}`
+        `[files already written: ${JSON.stringify(Object.keys(files))}]`
       );
       return {
         content: newContent.trim(),

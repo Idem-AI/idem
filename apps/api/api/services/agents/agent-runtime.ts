@@ -57,13 +57,22 @@ export interface AgentDefinition {
   /** Force un étage précis, court-circuitant `task`. */
   tier?: ModelTier;
   /**
-   * Modèle imposé par la feature appelante (ex: le business plan tourne sur un
-   * modèle « pro » par choix produit assumé). Quand il est fourni, c'est LUI qui
-   * sert au premier essai : le routeur ne redescend jamais une décision prise
-   * explicitement en configuration. L'étage n'est alors utilisé que pour savoir
-   * d'où escalader si le contrôle de sortie échoue.
+   * Réglages de la feature appelante.
+   *
+   * Le MODÈLE qu'ils portent n'est retenu au premier essai que si la feature
+   * l'a explicitement épinglé (`pinModel: true`). Sinon on part à l'étage de la
+   * tâche et on escalade si le contrôle échoue — ce que le routeur a toujours
+   * annoncé faire, et qu'un `baseConfig` systématique empêchait : toutes les
+   * générations par sections en fournissent un, si bien que l'étage bas n'était
+   * jamais tenté sur le volume principal.
+   *
+   * Les réglages FINS (budget de tokens, température, raisonnement) sont
+   * conservés dans les deux cas : seul le modèle change.
    */
-  baseConfig?: Pick<FeatureAIConfig, 'provider' | 'modelName' | 'fallbackModels' | 'llmOptions'>;
+  baseConfig?: Pick<
+    FeatureAIConfig,
+    'provider' | 'modelName' | 'fallbackModels' | 'llmOptions' | 'pinModel'
+  >;
   systemPrompt?: string;
   /** Réglages fins (budget de tokens d'une section lourde, température). */
   llmOptions?: LLMOptions;
@@ -85,6 +94,28 @@ export interface AgentDefinition {
    * réseau), rejouer sans outils plutôt que de perdre la génération.
    */
   fallbackWithoutTools?: boolean;
+  /**
+   * Nombre de tirages menés EN PARALLÈLE, dont on retient le meilleur au sens
+   * de `score`. `1` (défaut) = comportement normal.
+   *
+   * Quand le modèle est petit et bon marché, la variance devient une ressource :
+   * trois tirages à l'étage mécanique coûtent moins qu'un seul appel à l'étage
+   * raisonnement, et l'on CHOISIT au lieu de subir la première réponse. Menés en
+   * parallèle, ils ne coûtent pas de latence — d'où le plafond de concurrence,
+   * qu'ils consomment comme n'importe quel appel.
+   *
+   * ⚠️ À réserver aux sorties à forte variance et à fort enjeu visuel
+   * (couverture, slide d'ouverture, visuel). Partout où le rendu est déterministe,
+   * le tirage multiple ne rapporte rien et triple la facture.
+   *
+   * Ce n'est PAS un juge IA : le score vient du code, sans variance ni facture.
+   */
+  samples?: number;
+  /**
+   * Note une sortie — plus BAS est meilleur. Sans score, `samples` est ignoré :
+   * choisir au hasard parmi trois ne vaut pas mieux que de prendre la première.
+   */
+  score?: (text: string) => number;
 }
 
 export interface AgentRunInput {
@@ -105,6 +136,21 @@ export interface AgentRunInput {
   skipQuotaCheck?: boolean;
   /** Exempte cet agent du plafond global de tokens de sortie. */
   bypassOutputTokenCap?: boolean;
+  /**
+   * Diffuse le texte au fil de la génération (texte CUMULÉ à chaque appel).
+   *
+   * Sert la latence PERÇUE, qui est celle que l'utilisateur mesure : le premier
+   * caractère arrive en quelques secondes au lieu d'une à trois minutes. Le
+   * temps total ne change pas.
+   *
+   * ⚠️ Le contenu diffusé n'est PAS le contenu final : il n'a encore passé ni
+   * la grille qualité, ni l'éventuelle réparation, ni l'escalade. L'appelant
+   * doit le traiter comme un aperçu et remplacer par la valeur de retour.
+   *
+   * Ignoré quand l'agent utilise des outils : une boucle agentique n'a pas de
+   * flux linéaire à diffuser.
+   */
+  onDelta?: (cumulativeText: string) => void;
 }
 
 export interface AgentRunResult {
@@ -128,9 +174,15 @@ export async function runAgent(
   input: AgentRunInput
 ): Promise<AgentRunResult> {
   const startedAt = Date.now();
+  // Étage de départ. Un `baseConfig` NON épinglé ne dicte plus l'étage : sa
+  // seule fonction est alors de fournir les réglages fins et le repli.
+  // `tierOfModel` reste utilisé pour un modèle épinglé, afin de savoir d'où
+  // escalader si son contrôle échoue.
   const startTier =
     agent.tier ??
-    (agent.baseConfig ? tierOfModel(agent.baseConfig.modelName) : tierForTask(agent.task));
+    (agent.baseConfig?.pinModel
+      ? tierOfModel(agent.baseConfig.modelName)
+      : tierForTask(agent.task));
   const canEscalate = agent.escalate ?? Boolean(agent.validate);
 
   if (input.budget?.exhausted) {
@@ -164,13 +216,41 @@ export async function runAgent(
     attempts += 1;
     const config = buildPromptConfig(agent, tier, input, tier !== startTier);
 
+    // Tirage multiple si l'agent le demande ET sait noter le résultat. Le flux
+    // est alors coupé : diffuser un candidat qu'on va peut-être écarter
+    // afficherait un texte puis le remplacerait par un autre.
+    const samples = agent.score && (agent.samples ?? 1) > 1 ? agent.samples! : 1;
+
     text = await withAiUsage(
       {
         userId: input.userId,
         projectId: input.projectId,
         element: input.element,
       },
-      () => callModel(agent, config, messages)
+      async () => {
+        if (samples === 1) {
+          // Le flux n'est proposé qu'au PREMIER essai : après une escalade, le
+          // client a déjà reçu un aperçu et le remplacement doit être net.
+          return callModel(agent, config, messages, attempts === 1 ? input.onDelta : undefined);
+        }
+
+        const candidates = await Promise.all(
+          Array.from({ length: samples }, () => callModel(agent, config, messages))
+        );
+        const scored = candidates
+          .map((candidate) => ({ candidate, score: agent.score!(candidate) }))
+          .sort((a, b) => a.score - b.score);
+
+        logAIEvent('agent.best_of_n', {
+          role: agent.role,
+          samples,
+          scores: scored.map((entry) => entry.score),
+          projectId: input.projectId,
+          element: input.element,
+        });
+
+        return scored[0].candidate;
+      }
     );
 
     const turnTokens = promptTokens + estimateTokens(text);
@@ -244,11 +324,13 @@ function buildPromptConfig(
   input: AgentRunInput,
   escalated: boolean
 ): PromptConfig {
-  // Premier essai avec un modèle imposé : on respecte la configuration métier.
-  // Après escalade, c'est le routeur qui décide du modèle, mais les réglages
-  // fins de la section (budget de tokens, température) restent ceux d'origine.
+  // Le modèle de la feature ne prime qu'à deux conditions : elle l'a épinglé,
+  // et l'on n'a pas encore escaladé. Sinon c'est le routeur qui décide — c'est
+  // la seule façon que le volume principal soit servi à l'étage bas, avec la
+  // qualité de l'étage haut là où le contrôle prouve qu'elle est nécessaire.
+  const pinned = agent.baseConfig?.pinModel === true;
   const resolved =
-    agent.baseConfig && !escalated
+    agent.baseConfig && pinned && !escalated
       ? {
           provider: agent.baseConfig.provider,
           modelName: agent.baseConfig.modelName,
@@ -256,6 +338,11 @@ function buildPromptConfig(
           llmOptions: { ...agent.baseConfig.llmOptions, ...agent.llmOptions },
         }
       : tierConfig(tier, {
+          // Fournisseur, modèle et chaîne de repli viennent de l'étage EN BLOC :
+          // ils forment un triplet cohérent. Panacher le fournisseur d'une
+          // feature avec le modèle d'un étage enverrait un nom GLM à Vertex, ou
+          // l'inverse — la panne même que corrige le repli par fournisseur.
+          // Seuls les réglages fins de la section survivent au routage.
           llmOptions: { ...agent.baseConfig?.llmOptions, ...agent.llmOptions },
           promptType: agent.promptType,
         });
@@ -279,7 +366,8 @@ function buildPromptConfig(
 async function callModel(
   agent: AgentDefinition,
   config: PromptConfig,
-  messages: AIChatMessage[]
+  messages: AIChatMessage[],
+  onDelta?: (cumulativeText: string) => void
 ): Promise<string> {
   const hasTools = Boolean(agent.tools?.length && agent.toolExecutor);
 
@@ -302,6 +390,10 @@ async function callModel(
     }
   }
 
-  const raw = await promptService.runPrompt(config, messages);
+  // `runPromptStream` retombe seul sur le mode non streamé si le fournisseur ne
+  // sait pas diffuser ou si le flux échoue : le chemin nominal reste identique.
+  const raw = onDelta
+    ? await promptService.runPromptStream(config, messages, onDelta)
+    : await promptService.runPrompt(config, messages);
   return promptService.getCleanAIText(raw);
 }

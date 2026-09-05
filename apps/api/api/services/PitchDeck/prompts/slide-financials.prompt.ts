@@ -1,5 +1,3 @@
-import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
-
 export const SLIDE_FINANCIALS_PROMPT = `
 <role>Senior pitch deck designer at a top-tier design agency</role>
 <objective>Design the FINANCIALS slide — show a credible 3-year financial outlook with a Chart.js bar chart in brand colors.</objective>
@@ -17,7 +15,6 @@ export const SLIDE_FINANCIALS_PROMPT = `
 - Left 45%: financial summary table/grid + financial highlight card (bg-[PRIMARY COLOR]/5 rounded-xl p-4). Right 55%: Chart.js bar chart container (height: 220px).
 </layout>
 
-${PITCH_DECK_SHARED_RULES}
 
 <project_context>
 `;

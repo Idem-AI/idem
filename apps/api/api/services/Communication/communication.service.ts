@@ -51,7 +51,7 @@ import {
 import { ANTI_SLOP_BLOCK } from '../design/antiSlop.prompt';
 import { DesignSeed, buildDesignSeed, describeSeed } from '../design/designSeed';
 import { ensureProjectArtDirection } from '../design/artDirection.provider';
-import { lintHtml, repairHtml } from '../design/slopLint.service';
+import { enforceDesignRules } from '../design/slopLint.service';
 import { sanitizeSectionHtml } from '../../utils/sanitize-section-html';
 import { markRevisionAsAI } from '../../utils/revision-context.util';
 import { withAiUsage } from '../../utils/ai-usage-context.util';
@@ -614,7 +614,7 @@ export class CommunicationService extends GenericService {
     }
 
     // ---- Step 5c: composition (copy + HTML coherent with the image) --------
-    const seed = this.generateDesignSeed(context);
+    const seed = this.generateDesignSeed(context, `flyer:${projectId}:${contentId}:${format}`);
     const intent = this.inferVisualIntent(content);
     // Un SEUL passage de substitution, piloté par une table exhaustive : les
     // remplacements en cascade laissaient passer des marqueurs non résolus
@@ -675,10 +675,14 @@ export class CommunicationService extends GenericService {
       promptConfigFor(AI_CONFIG.communication.flyer, userId),
       messages
     );
-    const parsed = this.safeJson<Partial<Flyer>>(raw) ?? {};
+    // Le balisage voyage désormais dans un bloc <html>, pas dans une chaîne
+    // JSON : une page de Tailwind porte des centaines de guillemets doubles, et
+    // c'est leur échappement qui perdait la génération entière. Les métadonnées
+    // (concept, texte marketing) restent en JSON — elles n'ont pas ce problème.
+    const parsed = this.parseFlyerResponse(raw);
 
     let html =
-      typeof parsed.html === 'string'
+      typeof parsed.html === 'string' && parsed.html.trim().length > 0
         ? this.enforceBrandTypography(this.stripCtaButtons(parsed.html), context)
         : this.fallbackFlyerHtml(content, context, format, sourced?.url);
     html = this.ensureLogoPresence(html, context, format);
@@ -1511,6 +1515,28 @@ export class CommunicationService extends GenericService {
     return `signals:${bucket}`;
   }
 
+  /**
+   * Lit la réponse du compositeur de visuel : un bloc <meta> JSON et un bloc
+   * <html> brut.
+   *
+   * Le repli sur l'ancien contrat (tout en JSON, balisage échappé) est
+   * volontaire et durable : les réponses en cache ont été produites sous
+   * l'ancien format, et un modèle de repli peut très bien répondre à l'ancienne.
+   * Aucune des deux formes ne doit perdre un visuel.
+   */
+  private parseFlyerResponse(raw: string): Partial<Flyer> {
+    const htmlBlock = raw.match(/<html>([\s\S]*?)<\/html>/i);
+    const metaBlock = raw.match(/<meta>([\s\S]*?)<\/meta>/i);
+
+    if (htmlBlock) {
+      const meta = metaBlock ? (this.safeJson<Partial<Flyer>>(metaBlock[1]) ?? {}) : {};
+      return { ...meta, html: htmlBlock[1].trim() };
+    }
+
+    // Ancien contrat : tout dans un objet JSON.
+    return this.safeJson<Partial<Flyer>>(raw) ?? {};
+  }
+
   private safeJson<T>(raw: string): T | null {
     if (!raw) return null;
     const cleaned = raw
@@ -1778,9 +1804,9 @@ export class CommunicationService extends GenericService {
       styleId: context.artDirection?.styleId,
       label,
     };
-    const repaired = repairHtml(html, options).html;
-    lintHtml(repaired, options);
-    return repaired;
+    // Réparation déterministe (deux passes) PUIS constat de ce qui résiste.
+    // Le verdict du linter était auparavant calculé puis jeté.
+    return enforceDesignRules(html, options).html;
   }
 
   private stripCtaButtons(html: string): string {
@@ -1929,10 +1955,20 @@ export class CommunicationService extends GenericService {
    * design/designSeed.ts) — la variété d'un post à l'autre reste entière, mais
    * à l'intérieur de l'univers de la marque.
    *
-   * Aucune clé d'entropie n'est passée : deux visuels générés pour la même
-   * marque DOIVENT différer entre eux, contrairement aux pages d'un document.
+   * La clé d'entropie est l'IDENTITÉ DU VISUEL, pas l'horloge : deux visuels
+   * d'une même marque diffèrent bien entre eux (clés différentes), mais LE MÊME
+   * visuel regénéré retrouve sa composition.
+   *
+   * Sans clé, le tirage était aléatoire à chaque appel — donc non reproductible.
+   * Le cache Redis (`generateAIKey`) n'inclut pas la graine : la version servie
+   * pouvait donc ne plus correspondre à celle qui avait été composée, et un
+   * simple rafraîchissement changeait la mise en page sous les yeux de
+   * l'utilisateur.
    */
-  private generateDesignSeed(context: CommunicationContext): DesignSeed {
-    return buildDesignSeed(context.artDirection?.styleId);
+  private generateDesignSeed(
+    context: CommunicationContext,
+    entropyKey?: string
+  ): DesignSeed {
+    return buildDesignSeed(context.artDirection?.styleId, entropyKey);
   }
 }

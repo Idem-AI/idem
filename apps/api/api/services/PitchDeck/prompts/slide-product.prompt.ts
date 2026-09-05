@@ -1,5 +1,3 @@
-import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
-
 export const SLIDE_PRODUCT_PROMPT = `
 <role>Senior pitch deck designer at a top-tier design agency</role>
 <objective>Design the PRODUCT / HOW IT WORKS slide — explain the workflow in clear steps with a polished product visual.</objective>
@@ -16,7 +14,6 @@ export const SLIDE_PRODUCT_PROMPT = `
 - Step timeline: badges aligned vertically with connecting line, labels to the right of each badge.
 </layout>
 
-${PITCH_DECK_SHARED_RULES}
 
 <project_context>
 `;

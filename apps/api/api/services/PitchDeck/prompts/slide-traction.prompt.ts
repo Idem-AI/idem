@@ -1,5 +1,3 @@
-import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
-
 export const SLIDE_TRACTION_PROMPT = `
 <role>Senior pitch deck designer at a top-tier design agency</role>
 <objective>Design the TRACTION slide — demonstrate momentum with impactful KPIs and a Chart.js growth chart.</objective>
@@ -16,7 +14,6 @@ export const SLIDE_TRACTION_PROMPT = `
 - Top row: 3-4 KPI cards in a horizontal flex row. Middle: Chart.js chart container (height: 180px). Bottom: compact horizontal roadmap timeline.
 </layout>
 
-${PITCH_DECK_SHARED_RULES}
 
 <project_context>
 `;

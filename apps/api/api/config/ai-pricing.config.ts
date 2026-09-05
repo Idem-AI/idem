@@ -73,6 +73,32 @@ const PRICING: Record<string, ModelPricing> = {
 /** Tarif appliqué à un modèle inconnu — volontairement non nul pour rester visible. */
 const DEFAULT_PRICING: ModelPricing = { input: 0.5, output: 2 };
 
+/**
+ * Remise sur les tokens d'entrée servis depuis le cache de préfixe du
+ * fournisseur, exprimée en FRACTION du tarif d'entrée plein (0.2 = 20 % du prix).
+ *
+ * Volontairement NON RENSEIGNÉE par défaut. Les entrées GLM de la table
+ * ci-dessus n'ont pas de `cachedInput` parce que le tarif de Z.ai n'a pas été
+ * confirmé : inscrire un chiffre inventé ferait SOUS-ESTIMER le coût réel de la
+ * plateforme, ce qui est pire que de le surestimer. Sans valeur, `computeCost`
+ * facture les tokens cachés au tarif plein — prudent et faux dans le bon sens.
+ *
+ * ⚠️ À renseigner APRÈS vérification sur docs.z.ai :
+ *
+ *     GLM_CACHED_INPUT_RATIO=0.2      (exemple, si la remise est de 80 %)
+ *
+ * Tant que cette variable est absente, le volume de tokens cachés reste mesuré
+ * (`AiUsageEvent.cachedInputTokens`) — l'efficacité du cache est donc observable
+ * même quand son économie ne l'est pas encore.
+ */
+function glmCachedInputRate(fullInputRate: number): number | undefined {
+  const raw = process.env.GLM_CACHED_INPUT_RATIO;
+  if (!raw) return undefined;
+  const ratio = Number(raw);
+  if (!Number.isFinite(ratio) || ratio < 0 || ratio > 1) return undefined;
+  return round(fullInputRate * ratio);
+}
+
 let overrides: Record<string, ModelPricing> | null = null;
 
 /**
@@ -114,7 +140,17 @@ export function getModelPricing(modelName: string): ModelPricing {
     if (!best || key.length > best.key.length) best = { key, pricing };
   }
 
-  return best?.pricing ?? DEFAULT_PRICING;
+  const pricing = best?.pricing ?? DEFAULT_PRICING;
+
+  // Remise de cache GLM : appliquée seulement si l'exploitant l'a confirmée et
+  // renseignée (cf. `glmCachedInputRate`). Une surcharge explicite dans
+  // `AI_PRICING_OVERRIDES` reste prioritaire.
+  if (normalized.startsWith('glm') && pricing.cachedInput === undefined) {
+    const cachedInput = glmCachedInputRate(pricing.input);
+    if (cachedInput !== undefined) return { ...pricing, cachedInput };
+  }
+
+  return pricing;
 }
 
 /** Vrai si le modèle est inconnu de la table (le coût affiché est alors approximatif). */

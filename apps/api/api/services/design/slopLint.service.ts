@@ -546,3 +546,248 @@ export function repairHtml(html: string, options: SlopLintOptions = {}): SlopRep
 
   return { html: out, applied };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Réparations déterministes ÉTENDUES.
+//
+// Principe inchangé, périmètre élargi : on ne répare en code que ce qui a une
+// réponse UNIQUE et vérifiable. Chaque règle traitée ici est une règle que le
+// modèle n'a plus besoin de réussir — ce qui est la seule façon d'obtenir un
+// rendu professionnel d'un petit modèle, dont on sait qu'il applique une
+// dizaine de contraintes et ignore silencieusement les autres.
+//
+// Ce qui reste au modèle : `buzzwords`, `placeholder-content`, `icon-overload`,
+// `decorative-shape`, `glassmorphism`, `dead-link`. Ce sont des jugements de
+// contenu ou de composition, pas des substitutions.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Couleur de charte à substituer selon le RÔLE de la classe Tailwind.
+ *
+ * Choisir par rôle plutôt que par proximité chromatique : un `bg-blue-500`
+ * inventé n'a pas à devenir « le bleu de charte le plus proche », il a à
+ * devenir la couleur que la charte prévoit pour un fond.
+ */
+function paletteColorForRole(
+  role: 'bg' | 'text' | 'border',
+  palette?: BrandPalette
+): string | null {
+  if (!palette) return null;
+  if (role === 'text') return palette.text ?? palette.primary ?? null;
+  return palette.primary ?? palette.accent ?? null;
+}
+
+/** Rayon caractéristique du style, en classe Tailwind arbitraire. */
+function radiusClassFor(styleId?: string): string {
+  // Table volontairement locale : importer le catalogue complet des directions
+  // artistiques ici créerait un cycle (le catalogue n'a pas besoin du linter,
+  // et le linter ne doit pas dépendre de 68 Ko de fiches de style).
+  const RADII: Record<string, number> = {
+    swiss: 0,
+    minimalism: 2,
+    editorial: 2,
+    victorian: 0,
+    graffiti: 0,
+    retro: 4,
+    y2k: 12,
+    clay: 16,
+    glassmorphism: 16,
+    futuristic: 4,
+    cyberpunk: 0,
+    surreal: 8,
+    bohemian: 8,
+    aurora: 12,
+    handwritten: 6,
+    maximalism: 8,
+  };
+  const radius = RADII[styleId ?? ''] ?? 4;
+  return radius === 0 ? 'rounded-none' : `rounded-[${radius}px]`;
+}
+
+/**
+ * Corrections déterministes de second niveau.
+ *
+ * Appelée par `enforceDesignRules` juste après `repairHtml`, sur ce que la
+ * première passe n'a pas su traiter.
+ */
+export function repairHtmlExtended(
+  html: string,
+  options: SlopLintOptions = {}
+): SlopRepairResult {
+  let out = html || '';
+  const applied: string[] = [];
+
+  // 5. Dégradé violet / indigo / fuchsia — la marque nº1 d'un rendu généré, et
+  //    une ERREUR bloquante que rien ne réparait jusqu'ici.
+  if (!isExempt('gradient-decorative', options.styleId)) {
+    const flat = paletteColorForRole('bg', options.palette);
+    if (flat) {
+      const before = out;
+      out = out
+        // La classe de direction n'a plus d'objet une fois les arrêts retirés.
+        .replace(/\bbg-gradient-to-[a-z]{1,2}\b/g, `bg-[${flat}]`)
+        .replace(/\b(?:from|via|to)-(?:purple|violet|indigo|fuchsia)-\d{2,3}\b/g, '')
+        .replace(
+          /linear-gradient\([^)]*(?:#7c3aed|#8b5cf6|#6366f1|#a855f7)[^)]*\)/gi,
+          flat
+        );
+      if (out !== before) applied.push('purple-gradient');
+    }
+  }
+
+  // 6. Couleurs Tailwind de stock posées à côté de la palette de marque.
+  {
+    const before = out;
+    out = out.replace(
+      /\b(bg|text|border)-(?:blue|indigo|purple|violet|emerald|teal|rose|amber|cyan)-(?:400|500|600|700)\b/g,
+      (whole, role: 'bg' | 'text' | 'border') => {
+        const hex = paletteColorForRole(role, options.palette);
+        return hex ? `${role}-[${hex}]` : whole;
+      }
+    );
+    if (out !== before) applied.push('stock-tailwind-color');
+  }
+
+  // 7. Texte courant en gris clair : échoue le contraste AA. La charte prévoit
+  //    une couleur de texte ; le secondaire se fait à l'opacité, pas au gris.
+  {
+    const ink = options.palette?.text;
+    if (ink) {
+      const before = out;
+      out = out.replace(
+        /\btext-(?:gray|slate|zinc|neutral|stone)-(?:300|400|500)\b/g,
+        `text-[${ink}]/70`
+      );
+      if (out !== before) applied.push('light-gray-body');
+    }
+  }
+
+  // 8. Sur-titre en capitales tracées répété à chaque bloc. Un kicker choisi est
+  //    une voix ; un kicker sur chaque section est une grammaire générée. On
+  //    garde le PREMIER et on neutralise les suivants.
+  {
+    let seen = 0;
+    const before = out;
+    out = out.replace(/class=(["'])([^"']*)\1/g, (whole, quote: string, classes: string) => {
+      if (!/\buppercase\b/.test(classes) || !/\btracking-(wide|wider|widest)\b/.test(classes)) {
+        return whole;
+      }
+      seen += 1;
+      if (seen === 1) return whole;
+      const cleaned = classes
+        .replace(/\buppercase\b/g, '')
+        .replace(/\btracking-(wide|wider|widest)\b/g, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+      return `class=${quote}${cleaned}${quote}`;
+    });
+    if (out !== before) applied.push('repeated-eyebrow');
+  }
+
+  // 9. Rayons hétérogènes → le rayon du style, partout. « Un seul rayon sur tout
+  //    le livrable » est une règle de charte que le code applique mieux qu'un
+  //    prompt.
+  if (!isExempt('heavy-radius', options.styleId)) {
+    const before = out;
+    const target = radiusClassFor(options.styleId);
+    out = out.replace(/\brounded-(?:sm|md|lg|xl|2xl|3xl)\b/g, target);
+    // L'ombre décorative n'est jamais une décision : elle vient du gabarit par
+    // défaut. `shadow-inner` est conservée (elle a un rôle de profondeur).
+    out = out.replace(/\bshadow-(?:sm|md|lg|xl|2xl)\b/g, '');
+    if (out !== before) applied.push('rounded-shadow-everywhere');
+  }
+
+  // 10. Pastille colorée sans donnée : on retire l'habillage, on garde le texte.
+  {
+    const before = out;
+    out = out.replace(
+      /<span[^>]*class=["'][^"']*(?:rounded-full|rounded-md)[^"']*bg-[^"']*["'][^>]*>([^<]{1,28})<\/span>/g,
+      (whole, inner: string) => (/\d/.test(inner) ? whole : inner)
+    );
+    if (out !== before) applied.push('empty-badge');
+  }
+
+  // 11. Emoji employé comme icône ou comme puce.
+  if (!isExempt('emoji', options.styleId)) {
+    const before = out;
+    out = out.replace(new RegExp(EMOJI_RE, 'gu'), '').replace(/[ \t]{2,}/g, ' ');
+    if (out !== before) applied.push('emoji');
+  }
+
+  // Nettoyage des attributs de classe laissés avec des espaces doubles ou vides
+  // par les substitutions ci-dessus.
+  out = out
+    .replace(/class=(["'])\s*\1/g, '')
+    .replace(/class=(["'])([^"']*)\1/g, (_whole, quote: string, classes: string) =>
+      `class=${quote}${classes.replace(/\s{2,}/g, ' ').trim()}${quote}`
+    );
+
+  if (applied.length && options.label) {
+    logger.info(`[SlopLint] ${options.label}: corrections étendues appliquées`, { applied });
+  }
+
+  return { html: out, applied };
+}
+
+export interface DesignEnforcementResult {
+  /** Le HTML après les deux passes de réparation déterministe. */
+  html: string;
+  /** État APRÈS réparation — c'est lui qui dit ce qu'il reste à traiter. */
+  report: SlopLintReport;
+  /** Règles effectivement corrigées par le code. */
+  applied: string[];
+  /**
+   * Vrai s'il subsiste des défauts qu'aucune règle déterministe ne sait
+   * corriger. L'appelant décide alors : passe de réparation modèle, drapeau,
+   * ou livraison en l'état.
+   */
+  needsModelRepair: boolean;
+}
+
+/**
+ * Point d'entrée UNIQUE du contrôle de charte sur une sortie HTML.
+ *
+ * Remplace la séquence `repairHtml(...)` puis `lintHtml(...)` recopiée dans les
+ * quatre pipelines — où la valeur de retour du lint était systématiquement
+ * IGNORÉE. Les violations étaient donc détectées, journalisées, puis
+ * abandonnées : la boucle de qualité la plus rentable de la plateforme ne se
+ * refermait jamais.
+ *
+ * L'ordre est celui du coût croissant, comme pour la quality gate :
+ *   1. réparation déterministe de base   (couleurs, polices, alt, dégradé texte)
+ *   2. réparation déterministe étendue   (11 règles de plus)
+ *   3. constat de ce qui résiste         → `needsModelRepair`
+ *
+ * Rien ici n'appelle un modèle : le contrôle est gratuit, seul l'éventuel
+ * rattrapage en aval coûte des tokens.
+ */
+export function enforceDesignRules(
+  html: string,
+  options: SlopLintOptions = {}
+): DesignEnforcementResult {
+  const base = repairHtml(html, options);
+  const extended = repairHtmlExtended(base.html, options);
+  const applied = [...base.applied, ...extended.applied];
+  const report = lintHtml(extended.html, options);
+
+  if (report.errorCount > 0 || report.warningCount > 0) {
+    logger.warn(`[SlopLint] ${options.label ?? 'sortie'}: défauts persistants après réparation`, {
+      errors: report.errorCount,
+      warnings: report.warningCount,
+      rules: report.violations.map((violation) => `${violation.rule}×${violation.count}`),
+      repaired: applied,
+    });
+  } else if (applied.length > 0) {
+    logger.info(`[SlopLint] ${options.label ?? 'sortie'}: conforme après réparation`, { applied });
+  }
+
+  return {
+    html: extended.html,
+    report,
+    applied,
+    // Seules les ERREURS justifient de payer un modèle. Les avertissements sont
+    // signalés et livrés : « une section imparfaite affichée vaut mieux qu'une
+    // section coûteuse jamais livrée ».
+    needsModelRepair: report.errorCount > 0,
+  };
+}

@@ -1,5 +1,3 @@
-import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
-
 export const SLIDE_BUSINESS_MODEL_PROMPT = `
 <role>Senior pitch deck designer at a top-tier design agency</role>
 <objective>Design the BUSINESS MODEL slide — explain monetization clearly with pricing tiers and unit economics.</objective>
@@ -17,7 +15,6 @@ export const SLIDE_BUSINESS_MODEL_PROMPT = `
 - Top: headline + revenue stream explanation. Middle: pricing tier cards in a horizontal row (flex gap-4). Bottom: unit economics KPI blocks in a row.
 </layout>
 
-${PITCH_DECK_SHARED_RULES}
 
 <project_context>
 `;
