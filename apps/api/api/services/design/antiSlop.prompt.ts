@@ -78,3 +78,27 @@ Re-read your own output once and fix it before answering:
 4. Does every claim carry a figure, a place or an actor? Cut the sentences that do not.
 5. Is any text clipped by the edge of the frame?
 </final_self_review>`;
+
+/**
+ * Les règles qui portent sur le TEXTE, et sur lui seul.
+ *
+ * Destinées aux sections rendues par gabarit : là, tout ce qui concerne la
+ * composition (grille, cartes identiques, espacement, alignement) est produit
+ * par le code, et le rappeler au modèle occuperait son attention sans effet.
+ *
+ * Ne restent que les règles qu'aucun rendu ne peut appliquer à sa place :
+ * le vocabulaire, l'ancrage, et le test qui les résume.
+ */
+export const CONTENT_RULES_BLOCK = `<writing_rules>
+BANNED VOCABULARY (French and English alike):
+"révolutionnaire", "innovant" used on its own, "solution clé en main", "propulsez", "boostez", "libérez le potentiel", "à l'ère du numérique", "dans un monde en constante évolution", "elevate", "unlock", "seamless", "empower", "supercharge", "cutting-edge", "game-changing", "next-generation", "world-class".
+Write what the brand actually DOES instead, with a concrete noun and a verb.
+
+BANNED CONTENT:
+- Filler: "Lorem ipsum", "Feature 1", "Your company", an invented statistic with no source.
+- Any sentence that would survive a change of company name. It says nothing: cut it, or replace it with a fact.
+- Announcing instead of stating ("in this section we will…").
+
+THE TEST for every sentence you write: could it appear, unchanged, in a
+competitor's document? If yes, it is padding.
+</writing_rules>`;

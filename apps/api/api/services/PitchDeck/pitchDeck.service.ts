@@ -17,6 +17,7 @@ import { PAGE_FORMATS, PdfService } from '../pdf.service';
 import { cacheService } from '../cache.service';
 
 import { PITCH_DECK_SHARED_RULES } from './prompts/_shared.prompt';
+import { SLIDE_BRIEFS } from './prompts/slide-briefs.prompt';
 import { SLIDE_COVER_PROMPT } from './prompts/slide-cover.prompt';
 import { SLIDE_PROBLEM_PROMPT } from './prompts/slide-problem.prompt';
 import { SLIDE_SOLUTION_PROMPT } from './prompts/slide-solution.prompt';
@@ -31,7 +32,7 @@ import { SLIDE_ASK_PROMPT } from './prompts/slide-ask.prompt';
 import { imageSourcingService } from '../Communication/imageSourcing.service';
 import { buildLogoBlock, collectLogoUrls } from '../../utils/brand-context.util';
 import { buildArtDirectionBlock } from '../../utils/art-direction.util';
-import { ANTI_SLOP_BLOCK } from '../design/antiSlop.prompt';
+import { ANTI_SLOP_BLOCK, CONTENT_RULES_BLOCK } from '../design/antiSlop.prompt';
 import {
   EDITORIAL_RESTRAINT_BLOCK,
   RESTRAINT_SELF_REVIEW_BLOCK,
@@ -43,6 +44,12 @@ import {
   describeDocumentSeed,
   describeSectionSeed,
 } from '../design/designSeed';
+import {
+  buildDocumentDesignSystem,
+  derivedPalette,
+  describeDesignSystem,
+} from '../design/documentDesignSystem';
+import { LANDSCAPE_SLIDE } from '../design/sectionRenderer';
 import { ensureProjectArtDirection } from '../design/artDirection.provider';
 
 export const PITCH_DECK_SLIDE_ORDER = [
@@ -195,34 +202,82 @@ export class PitchDeckService extends GenericService {
       PITCH_DECK_SHARED_RULES,
     ].join('\n\n');
 
+    // Préfixe du MODE GABARIT : sans les règles de composition, que le rendu
+    // applique désormais. Cf. le commentaire équivalent du business plan.
+    const templatedPrefix = [
+      projectDescription,
+      `BRAND FACTS:\nBrand: ${brandName}`,
+      CONTENT_RULES_BLOCK,
+    ].join('\n\n');
+
+    // DESIGN SYSTEM du deck : calculé une fois, partagé par les onze slides.
+    const designSystem = buildDocumentDesignSystem(
+      project.analysisResultModel?.branding,
+      artDirection,
+      deckSeed
+    );
+    logger.info(`[DECK] Design system: ${describeDesignSystem(designSystem)}`);
+
+    const renderOptions = { logoUrl: knownLogoUrls[0], brandName: project.name };
+
     // Un archétype de composition par slide, tiré sans répétition dans l'espace
     // autorisé par le style. Les invariants restent dans le préfixe ci-dessus.
     const usedArchetypes = new Set<string>();
-    const slide = (prompt: string, stepName: string): IPromptStep => {
-      const seed = buildSectionSeed(
-        artDirection?.styleId,
-        `pitchdeck:${projectId}`,
-        stepName,
-        usedArchetypes
-      );
+    let slideIndex = 0;
+
+    const seedFor = (stepName: string) =>
+      buildSectionSeed(artDirection?.styleId, `pitchdeck:${projectId}`, stepName, usedArchetypes);
+
+    /**
+     * Slide RENDU PAR GABARIT.
+     *
+     * ⚠️ Le deck est en `multiPage: false` : un slide = EXACTEMENT une page, et
+     * ce qui dépasse est ROGNÉ, pas paginé. Le volume est donc bas (3 à 5 blocs)
+     * et le rendu resserre son échelle — un débordement ici n'est pas
+     * rattrapable en aval, contrairement au business plan.
+     */
+    const slide = (stepName: string): IPromptStep => {
+      slideIndex += 1;
       return {
         stepName,
-        promptConstant: `${prompt}\n\n<composition_for_this_slide>\n${describeSectionSeed(seed)}\n</composition_for_this_slide>`,
+        // Le brief ne porte QUE le contenu attendu : la mise en page est au rendu.
+        promptConstant: SLIDE_BRIEFS[stepName] ?? '',
+        stablePrefix: templatedPrefix,
+        template: {
+          designSystem,
+          seed: seedFor(stepName),
+          volume: '3 to 5',
+          render: {
+            ...renderOptions,
+            index: slideIndex,
+            page: LANDSCAPE_SLIDE,
+            multiPage: false,
+          },
+        },
+      };
+    };
+
+    /** Slide en génération LIBRE : la couverture, où la composition EST le livrable. */
+    const freeformSlide = (prompt: string, stepName: string): IPromptStep => {
+      slideIndex += 1;
+      return {
+        stepName,
+        promptConstant: `${prompt}\n\n<composition_for_this_slide>\n${describeSectionSeed(seedFor(stepName))}\n</composition_for_this_slide>`,
       };
     };
 
     const steps: IPromptStep[] = [
-      slide(SLIDE_COVER_PROMPT, 'Cover'),
-      slide(SLIDE_PROBLEM_PROMPT, 'Problem'),
-      slide(SLIDE_SOLUTION_PROMPT, 'Solution'),
-      slide(SLIDE_MARKET_PROMPT, 'Market'),
-      slide(SLIDE_PRODUCT_PROMPT, 'Product'),
-      slide(SLIDE_BUSINESS_MODEL_PROMPT, 'Business Model'),
-      slide(SLIDE_TRACTION_PROMPT, 'Traction'),
-      slide(SLIDE_COMPETITION_PROMPT, 'Competition'),
-      slide(SLIDE_TEAM_PROMPT, 'Team'),
-      slide(SLIDE_FINANCIALS_PROMPT, 'Financials'),
-      slide(SLIDE_ASK_PROMPT, 'Ask'),
+      freeformSlide(SLIDE_COVER_PROMPT, 'Cover'),
+      slide('Problem'),
+      slide('Solution'),
+      slide('Market'),
+      slide('Product'),
+      slide('Business Model'),
+      slide('Traction'),
+      slide('Competition'),
+      slide('Team'),
+      slide('Financials'),
+      slide('Ask'),
     ];
 
     // Chaque slide reçoit son propre budget de tokens et sa température
@@ -293,6 +348,10 @@ export class PitchDeckService extends GenericService {
           if (typeof enrichedData === 'string' && enrichedData) {
             const lintOptions = {
               palette: colorsObj,
+              // Les teintes des rampes DÉRIVENT de la charte : sans cette
+              // déclaration, le linter prendrait le design system calculé pour
+              // une palette inventée.
+              extraAllowedColors: derivedPalette(designSystem),
               fonts: [primaryFont, secondaryFont].filter(Boolean),
               expectedLogoUrls: knownLogoUrls,
               styleId: artDirection?.styleId,
@@ -385,6 +444,7 @@ export class PitchDeckService extends GenericService {
         if (typeof enrichedData === 'string' && enrichedData) {
           const lintOptions = {
             palette: colorsObj,
+            extraAllowedColors: derivedPalette(designSystem),
             fonts: [primaryFont, secondaryFont].filter(Boolean),
             expectedLogoUrls: knownLogoUrls,
             styleId: artDirection?.styleId,

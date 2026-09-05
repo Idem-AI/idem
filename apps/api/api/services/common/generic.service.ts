@@ -24,7 +24,7 @@ import { DeliverableGraph, graphDepth, validateGraph } from '../agents/deliverab
 import { CONTEXT_TOOL_DECLARATIONS, createContextToolExecutor } from '../context-engine/context-tools';
 import { DocumentDesignSystem } from '../design/documentDesignSystem';
 import { SectionSeed } from '../design/designSeed';
-import { normalizeSectionContent } from '../design/sectionContent';
+import { Block, normalizeSectionContent } from '../design/sectionContent';
 import { RenderOptions, renderSection } from '../design/sectionRenderer';
 import {
   SECTION_CONTENT_CONTRACT,
@@ -43,6 +43,19 @@ export interface SectionTemplate {
   /** Volume visé, en blocs. Ex : '6 to 8'. */
   volume: string;
   render?: RenderOptions;
+  /**
+   * Blocs posés par le SERVICE, à partir des données réelles du projet, avant
+   * ceux que le modèle produit.
+   *
+   * C'est ainsi qu'une page de nuancier reçoit les vraies valeurs hexadécimales
+   * de la charte, une page de typographie les vraies familles, une page de logo
+   * les vraies URLs. Ces valeurs ne passent JAMAIS par le modèle : lui demander
+   * de recopier six chiffres hexadécimaux, c'est accepter qu'une charte affiche
+   * une couleur qui n'est pas celle de la marque.
+   *
+   * Le modèle garde ce qu'il sait faire : écrire les règles d'usage autour.
+   */
+  prependBlocks?: Block[];
 }
 
 /**
@@ -611,8 +624,14 @@ export class GenericService {
     if (step.template) {
       const parsed = normalizeSectionContent(parseLlmJson(content));
       if (parsed) {
+        // Les blocs SPÉCIMENS viennent du projet, pas du modèle : ils sont
+        // posés en tête, avant ce que le modèle a écrit autour d'eux.
+        const withSpecimens = step.template.prependBlocks?.length
+          ? { ...parsed, blocks: [...step.template.prependBlocks, ...parsed.blocks] }
+          : parsed;
+
         content = renderSection(
-          parsed,
+          withSpecimens,
           step.template.designSystem,
           step.template.seed,
           step.template.render ?? {}
