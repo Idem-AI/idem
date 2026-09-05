@@ -42,12 +42,73 @@ that does not fit is CUT. Two or three blocks, and they must be SHORT.
   not why the studio decided it.
 
 Prefer a "cards" block of short rules or a compact "table" over prose. A wall of
-running text on a guidelines page is the defect this document exists to prevent.`;
+running text on a guidelines page is the defect this document exists to prevent.
+
+WHAT NEVER GOES ON THESE PAGES — every item below was observed on a delivered
+brand book, and each one makes the document look manufactured rather than
+designed:
+
+- Invented document metadata: reference codes ("RÉF. ID-01", "SM-ID-02B"),
+  version numbers, "STATUT: VALIDÉ", "DIFFUSION RESTREINTE", "SYSTÈME FERMÉ",
+  edition dates, GPS coordinates, page numbers. You have not been given any of
+  these, so every one of them would be fabricated — and a fabricated reference
+  number on a real document is worse than no reference at all.
+- Numbers nobody computed: CMYK breakdowns, RGB triplets, contrast ratios,
+  luminance percentages, "ÉCHELLE 1:1". State a rule, never a measurement you
+  were not handed.
+- Ornament posing as precision: crop marks, corner crosses, "+" registration
+  symbols, technical frames around nothing.
+- The company's business data — share capital, shareholding, revenue targets.
+  A brand book governs the mark, not the balance sheet.
+- Inflated naming: a colour is "Bleu" or "Bleu métallique", never "BLEU
+  MOBILITÉ SOUVERAIN"; a logo is "le logo", never "l'identifiant maître".
+
+Write the way a designer briefs another designer: plainly, and only about the
+mark.`;
 
 const brief = (objective: string, mustCover: string): string =>
   `${CHARTER_FRAME}\n\n<objective>${objective}</objective>\n\n<must_cover>\n${mustCover}\n</must_cover>`;
 
 export const CHARTER_PAGE_BRIEFS: Record<string, string> = {
+  'Logo Principal': brief(
+    'Say what the mark is for and where it goes. The logo itself is already placed.',
+    `- What the mark stands for, in ONE sentence. Not its history, not a metaphor
+  about speed or movement — what a reader must understand to use it correctly.
+- The primary background it is designed for, and why that one.
+- The single rule that protects it: the clear space, expressed as a proportion
+  of its own height.
+Two blocks maximum: one "cards" block of 2-3 rules, optionally one "prose" block
+of a SINGLE short paragraph. Nothing else fits on this page.`
+  ),
+
+  'Logo Variation Fond Clair': brief(
+    'Say when this declension is the right one.',
+    `- Which supports it belongs on, named concretely (printed matter, signage,
+  correspondence) — not categories like "premium institutional supports".
+- The background range it holds up on, as a rule a designer can apply.
+- What replaces it when that range is left.
+One "cards" block of 2-3 rules. No prose paragraph.`
+  ),
+
+  'Logo Variation Fond Sombre': brief(
+    'Say when this declension is the right one.',
+    `- Which supports and contexts it belongs on, named concretely.
+- The threshold that triggers it rather than the light version — a contrast
+  rule, not a taste.
+- The one treatment that destroys it on a dark ground.
+One "cards" block of 2-3 rules. No prose paragraph.`
+  ),
+
+  'Logo Variation Monochrome': brief(
+    'Say when colour must be given up.',
+    `- The production contexts that require it: single-colour printing,
+  engraving, embroidery, fax-grade reproduction.
+- The rule for choosing the ink against the support.
+- What is forbidden: reintroducing a second colour, adding an outline, using it
+  where the colour version would work.
+One "cards" block of 2-3 rules. No prose paragraph.`
+  ),
+
   'Color Palette': brief(
     'Say how the palette is used, not what it contains — the swatches say that.',
     `- The distribution rule: which colour holds the surfaces, which one the

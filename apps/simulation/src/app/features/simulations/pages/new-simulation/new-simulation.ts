@@ -4,7 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
-import { TrustedByComponent } from '@idem/shared-trusted-by/angular';
+import { TrustedByComponent } from '@shared/trusted-by/src/angular';
 
 import { environment } from '@env';
 

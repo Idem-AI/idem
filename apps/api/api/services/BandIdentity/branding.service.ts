@@ -1091,6 +1091,30 @@ export class BrandingService extends GenericService {
             : undefined;
         }
 
+        // ── LES PAGES QUI PRÉSENTENT UN LOGO ────────────────────────────
+        //
+        // Elles étaient laissées libres, au motif que leur composition ÉTAIT le
+        // livrable. Le rendu observé a démenti ce raisonnement : ces pages sont
+        // sorties couvertes de références inventées (« RÉF. ID-01 », « STATUT :
+        // VALIDÉ », « DIFFUSION CONTRÔLÉE »), de valeurs CMJN et de rapports de
+        // contraste que personne n'a calculés, de croix décoratives dans les
+        // angles — et l'une d'elles a débordé, son texte coupé en bas de page.
+        //
+        // Or présenter un logo sur son fond est précisément ce que le gabarit
+        // sait faire, et faire mieux : le fond est tiré du design system, donc
+        // le contraste est vrai ; la boîte a une hauteur, donc rien ne déborde ;
+        // et le modèle n'écrit plus que la règle d'usage, ce qu'il sait faire.
+        const singleVariant: Record<string, { url?: string; label: string; background: 'light' | 'dark' | 'neutral' }> = {
+          'Logo Principal': { url: logoUrl, label: 'Signe principal', background: 'light' },
+          'Logo Variation Fond Clair': { url: lightLogoUrl, label: 'Sur fond clair', background: 'light' },
+          'Logo Variation Fond Sombre': { url: darkLogoUrl, label: 'Sur fond sombre', background: 'dark' },
+          'Logo Variation Monochrome': { url: monochromeLogoUrl, label: 'Monochrome', background: 'neutral' },
+        };
+        const single = singleVariant[stepName];
+        if (single?.url) {
+          return [{ kind: 'logoDisplay', variants: [{ url: single.url, label: single.label, background: single.background }] }];
+        }
+
         if (stepName === 'Logo Bonnes Pratiques') {
           const variants = [
             { url: lightLogoUrl, label: 'Sur fond clair', background: 'light' as const },
@@ -1111,7 +1135,18 @@ export class BrandingService extends GenericService {
        * la page de direction artistique — qui doit démontrer le style en le
        * construisant, ce qu'aucun gabarit ne peut faire à sa place.
        */
-      const TEMPLATED_PAGES = new Set(['Color Palette', 'Typography', 'Logo Bonnes Pratiques']);
+      const TEMPLATED_PAGES = new Set([
+        'Color Palette',
+        'Typography',
+        'Logo Bonnes Pratiques',
+        // Les quatre pages de présentation du logo REJOIGNENT le gabarit. Cf.
+        // `specimensFor` : laissées libres, elles produisaient des références
+        // administratives inventées et, sur la page monochrome, un débordement.
+        'Logo Principal',
+        'Logo Variation Fond Clair',
+        'Logo Variation Fond Sombre',
+        'Logo Variation Monochrome',
+      ]);
 
       const usedArchetypes = new Set<string>();
       let pageIndex = 0;

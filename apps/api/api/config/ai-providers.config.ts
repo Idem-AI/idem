@@ -309,7 +309,13 @@ export function getGeminiBackend(): GeminiBackend {
   return geminiBackend;
 }
 
-/** Réinitialise le backend mémorisé. Réservé aux tests. */
+/**
+ * Réinitialise le backend mémorisé.
+ *
+ * Appelé par `loadSecrets()` une fois l'environnement complet, pour que toute
+ * résolution faite trop tôt (au moment des imports, `.env.secret` pas encore
+ * lu) soit refaite plutôt que figée. Également utilisé par les tests.
+ */
 export function resetGeminiBackend(): void {
   geminiBackend = undefined;
 }
