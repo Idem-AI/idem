@@ -76,6 +76,22 @@ export type Block =
   | {
       kind: 'logoDisplay';
       variants: { url: string; label: string; background: 'light' | 'dark' | 'neutral' }[];
+    }
+  /**
+   * Références numérotées d'une section appuyée sur une recherche web.
+   *
+   * Injecté par le service à partir des sources RÉELLES retournées par le
+   * moteur — jamais écrit par le modèle, qui inventerait des URLs. Le modèle,
+   * lui, pose des marqueurs `[s0]`, `[s1]`… dans son texte ; le rendu les
+   * transforme en appels de note.
+   *
+   * C'est ce qui permet à une section sourcée d'être une SECTION DU DOCUMENT,
+   * au même format que les autres, plutôt qu'une page à part avec sa propre
+   * mise en page et sa propre liste de sources en bas.
+   */
+  | {
+      kind: 'sources';
+      items: { index: number; title: string; url: string; domain?: string }[];
     };
 
 export interface SectionContent {
@@ -210,17 +226,27 @@ function normalizeBlock(raw: unknown): Block | null {
         .filter((entry) => entry.data.length > 0);
       if (labels.length === 0 || series.length === 0) return null;
       const chartType = asText(block.chartType);
+      // Séries recalibrées sur les libellés : une barre sans étiquette ne se
+      // dessine pas, et une étiquette sans valeur laisse un trou.
+      const aligned = series.map((entry) => ({
+        name: entry.name,
+        data: labels.map((_, index) => entry.data[index] ?? 0),
+      }));
+
+      // ⚠️ Un graphique dont toutes les valeurs valent zéro se rend comme un
+      // CADRE VIDE — un grand blanc au milieu de la page, avec sa légende et sa
+      // clé de lecture pour seuls habitants. C'est pire que pas de graphique du
+      // tout, et c'est exactement ce que produit un modèle qui a annoncé une
+      // série sans savoir la remplir. On écarte le bloc.
+      const hasSignal = aligned.some((entry) => entry.data.some((value) => value !== 0));
+      if (!hasSignal) return null;
+
       return {
         kind: 'chart',
         chartType:
           chartType === 'stacked' || chartType === 'line' ? (chartType as 'stacked' | 'line') : 'bar',
         labels,
-        // Séries recalibrées sur les libellés : une barre sans étiquette ne se
-        // dessine pas, et une étiquette sans valeur laisse un trou.
-        series: series.map((entry) => ({
-          name: entry.name,
-          data: labels.map((_, index) => entry.data[index] ?? 0),
-        })),
+        series: aligned,
         readingKey: asText(block.readingKey),
         unit: asText(block.unit) || undefined,
       };
@@ -254,36 +280,76 @@ function normalizeBlock(raw: unknown): Block | null {
 }
 
 /**
- * Volume approximatif d'une page A4, en « poids de bloc ».
+ * Poids d'un bloc, exprimé en FRACTION D'UNE PAGE A4 PORTRAIT.
  *
- * Sert à dire au modèle combien de matière produire sans lui demander de compter
- * des pixels — et au rendu à savoir s'il a de quoi remplir sa mise en page.
+ * Sert à deux choses : dire au modèle combien de matière produire, et décider ce
+ * qui tient sur une page à hauteur fixe (`fitToPage`).
+ *
+ * ⚠️ L'unité de référence est celle des prompts de section : « une page A4
+ * pleine porte 550 à 700 mots de texte courant ». À ~5,5 caractères par mot,
+ * cela fait environ 3 600 caractères — pas 700. La calibration précédente
+ * surestimait la prose d'un facteur cinq, ce qui faisait écarter tout le texte
+ * d'une page rognée pour n'y laisser que les blocs graphiques.
+ *
+ * Les autres poids sont estimés en HAUTEUR OCCUPÉE sur une A4 utile
+ * (186 × 273 mm), et volontairement un peu généreux : sous-estimer produit une
+ * page coupée, surestimer produit une page un peu creuse.
  */
+
+/** Caractères de texte courant que porte une page A4 pleine. */
+const CHARS_PER_PAGE = 3600;
+
 export function estimateBlockWeight(block: Block): number {
   switch (block.kind) {
     case 'prose':
-      return block.paragraphs.join(' ').length / 700;
+      return block.paragraphs.join(' ').length / CHARS_PER_PAGE;
+
     case 'cards':
-      return block.items.length * 0.16;
+      // Une carte occupe une hauteur plancher, plus ce que son texte ajoute.
+      return block.items.reduce(
+        (total, item) =>
+          total + 0.05 + (item.title.length + item.body.length) / (CHARS_PER_PAGE * 2),
+        0
+      );
+
     case 'table':
-      return 0.2 + block.rows.length * 0.05;
+      // En-tête + lignes. Une ligne fait environ 8 mm sur 273 mm utiles.
+      return 0.05 + block.rows.length * 0.03;
+
     case 'metrics':
-      return 0.22;
+      return 0.12;
+
     case 'chart':
-      return 0.42;
-    case 'quote':
-      return 0.14;
-    case 'timeline':
-      return block.steps.length * 0.13;
-    case 'assumption':
-      return 0.1;
-    case 'swatches':
+      // Tracé (150 px) + axe + légende + clé de lecture.
       return 0.3;
+
+    case 'quote':
+      return 0.06 + block.text.length / (CHARS_PER_PAGE * 2);
+
+    case 'timeline':
+      return block.steps.reduce(
+        (total, step) => total + 0.05 + step.body.length / (CHARS_PER_PAGE * 2),
+        0
+      );
+
+    case 'assumption':
+      return 0.06;
+
+    case 'swatches':
+      // Bande de 26 mm plus ses trois lignes de légende.
+      return 0.15;
+
     case 'typeSpecimen':
-      return block.specimens.length * 0.18;
+      return block.specimens.length * 0.14;
+
     case 'logoDisplay':
-      return 0.35;
+      return 0.16;
+
+    case 'sources':
+      // Deux lignes par référence, en petit corps.
+      return 0.03 + block.items.length * 0.018;
+
     default:
-      return 0.1;
+      return 0.08;
   }
 }

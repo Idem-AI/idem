@@ -200,3 +200,32 @@ function nextDelay(
   const jitter = 1 + (Math.random() * 2 - 1) * jitterRatio;
   return Math.max(0, Math.round(exponential * jitter));
 }
+
+/**
+ * L'erreur est-elle une SATURATION DE QUOTA (429, « rate limit », « quota ») ?
+ *
+ * À distinguer soigneusement d'une saturation de capacité (503 « high demand »),
+ * que la chaîne de repli traite en changeant de modèle.
+ *
+ * Sur une offre payante, le quota est par modèle : basculer suffit. Sur une
+ * offre GRATUITE, il est partagé par le projet entier — basculer ne fait
+ * qu'épuiser la chaîne plus vite, et la génération échoue alors qu'une attente
+ * de quelques secondes l'aurait sauvée. C'est le cas observé : un business plan
+ * s'arrêtait à sa troisième section, les six suivantes tombant l'une après
+ * l'autre sur le même mur.
+ */
+export function isRateLimited(error: any): boolean {
+  let current: any = error;
+  let depth = 0;
+  let text = '';
+
+  while (current && depth < 5) {
+    const status = current.status ?? current.statusCode ?? current.code;
+    if (status === 429 || String(status) === '429') return true;
+    text += ` ${current.message || String(current)}`;
+    current = current.cause;
+    depth += 1;
+  }
+
+  return /\b429\b|rate.?limit|quota.?exceeded|resource.?exhausted|too many requests/i.test(text);
+}

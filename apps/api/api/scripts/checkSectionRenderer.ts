@@ -358,6 +358,38 @@ console.log('\nPaysage (16:9, page rognée)');
   // L'échelle resserrée doit rester lisible.
   check('l\'échelle resserrée reste lisible (≥ 9px)',
     !/font-size:[0-8]px/.test(slides.join('')));
+
+  // ── AJUSTEMENT À LA PAGE ────────────────────────────────────────────────
+  // Sur un format rogné, ce qui dépasse est COUPÉ, souvent en pleine phrase.
+  // Le rendu doit donc écarter les blocs qui ne tiennent pas — visiblement,
+  // pas silencieusement.
+  const overloaded = {
+    ...CONTENT,
+    blocks: [...CONTENT.blocks, ...CONTENT.blocks, ...CONTENT.blocks],
+  };
+  const fitted = renderSection(overloaded as any, ds, base, {
+    page: LANDSCAPE_SLIDE,
+    multiPage: false,
+    brandName: 'Café des Hauts',
+  });
+  const full = renderSection(overloaded as any, ds, base, { brandName: 'Café des Hauts' });
+
+  check(
+    'une page rognée écarte le surplus au lieu de le laisser couper',
+    fitted.length < full.length * 0.6,
+    `${Math.round(fitted.length / 4)} tok rognée contre ${Math.round(full.length / 4)} tok paginée`
+  );
+
+  // …et le poids retenu doit rester sous la capacité du format.
+  const kept = (fitted.match(/data-keep-together/g) || []).length;
+  check('la page rognée ne retient qu\'une poignée de blocs', kept <= 6, `${kept} blocs insécables`);
+
+  // Le format PAGINÉ, lui, ne doit RIEN écarter : le paginateur s'en charge.
+  check(
+    'un format paginé conserve tout le contenu',
+    full.includes('Bafoussam') && full.includes('2,3 Md FCFA'),
+    'du contenu a été écarté alors que la pagination pouvait l\'absorber'
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

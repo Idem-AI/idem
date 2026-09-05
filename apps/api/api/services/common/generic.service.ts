@@ -798,6 +798,8 @@ export class GenericService {
     )
   ): Promise<void> {
     const completedSteps: Map<string, { name: string; content: string }> = new Map();
+    /** Sections tombées, avec leur cause. Rapportées à la fin plutôt qu'ignorées. */
+    const failedSteps: Map<string, string> = new Map();
     const runningSteps: Set<string> = new Set();
     const stepPromises: Map<string, Promise<void>> = new Map();
 
@@ -923,10 +925,43 @@ export class GenericService {
         await stepCallback(sectionResult);
 
         logger.info(`Completed execution of step: ${step.stepName}`);
-      } catch (error) {
+      } catch (error: any) {
         runningSteps.delete(step.stepName);
         logger.error(`Error executing step ${step.stepName}:`, error);
-        throw error;
+
+        // ⚠️ UNE SECTION QUI ÉCHOUE NE FAIT PLUS AVORTER LE LIVRABLE.
+        //
+        // La propagation de l'erreur ici tuait la génération entière : un
+        // business plan de neuf sections s'arrêtait à la troisième, et
+        // l'utilisateur recevait un document tronqué SANS savoir pourquoi. Or la
+        // cause est presque toujours locale et transitoire — une saturation du
+        // fournisseur sur une section, pas une panne du livrable.
+        //
+        // La section est donc marquée FAITE mais VIDE : les étapes qui en
+        // dépendent cessent de l'attendre (sinon l'ordonnanceur boucle), elle
+        // n'entre dans aucun contexte, et rien n'est persisté pour elle. Le
+        // document sort incomplet et le dit, au lieu d'être amputé en silence.
+        completedSteps.set(step.stepName, { name: step.stepName, content: '' });
+        failedSteps.set(step.stepName, error?.message ?? String(error));
+
+        try {
+          await stepCallback({
+            name: 'section_failed',
+            type: 'event',
+            data: step.stepName,
+            summary: `Section "${step.stepName}" en échec`,
+            parsedData: {
+              status: 'failed',
+              stepName: step.stepName,
+              message: error?.message ?? String(error),
+            },
+          });
+        } catch {
+          // Le client a peut-être fermé la connexion : ne pas transformer un
+          // échec de section en échec de flux.
+        }
+
+        await sendProgressUpdate();
       }
     };
 
@@ -1040,6 +1075,13 @@ export class GenericService {
     }
 
     // Send final completion message to frontend
+    if (failedSteps.size > 0) {
+      logger.error(
+        `Livrable incomplet : ${failedSteps.size} section(s) en échec — ` +
+          [...failedSteps.entries()].map(([name, why]) => `${name} (${why})`).join(' | ')
+      );
+    }
+
     const completionResult: ISectionResult = {
       name: 'completion',
       type: 'event',
@@ -1047,8 +1089,14 @@ export class GenericService {
       summary: `All steps completed successfully for project ${project.id}`,
       parsedData: {
         status: 'completed',
-        message: 'All generation steps have been completed successfully',
+        message:
+          failedSteps.size > 0
+            ? `${steps.length - failedSteps.size}/${steps.length} sections générées — ${failedSteps.size} en échec`
+            : 'All generation steps have been completed successfully',
         totalSteps: steps.length,
+        // Le client doit pouvoir proposer une régénération CIBLÉE : sans cette
+        // liste, un document incomplet oblige à tout refaire.
+        failedSteps: [...failedSteps.entries()].map(([name, reason]) => ({ name, reason })),
         completedSteps: Array.from(completedSteps.keys()),
         projectId: project.id,
         timestamp: new Date().toISOString(),
@@ -1165,9 +1213,12 @@ export class GenericService {
 
         logger.info(`Completed execution of step: ${step.stepName}`);
         return result;
-      } catch (error) {
+      } catch (error: any) {
+        // Même règle que la voie streamée : une section qui tombe est signalée,
+        // elle n'emporte pas le livrable. Cf. le commentaire long plus haut.
         logger.error(`Error executing step ${step.stepName}:`, error);
-        throw error;
+        completedSteps.set(step.stepName, { name: step.stepName, content: '' });
+        return null;
       }
     };
 

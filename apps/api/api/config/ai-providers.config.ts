@@ -379,12 +379,10 @@ export const AI_PROVIDERS: Record<LLMProvider, ProviderDefinition> = {
       reasoning: process.env.IDEM_GEMINI_REASONING_MODEL || 'gemini-3.1-pro-preview',
       vision: process.env.IDEM_GEMINI_VISION_MODEL || 'gemini-3.6-flash',
       ocr: process.env.IDEM_GEMINI_OCR_MODEL || 'gemini-3.6-flash',
-      // `image` n'est PAS déclaré : la génération d'image passe uniquement par
-      // les endpoints Z.ai (`glm-media.service`), gardés par `isGlmConfigured`.
-      // Déclarer ici un modèle jamais appelé donnerait une fausse assurance.
-      ...(process.env.IDEM_GEMINI_IMAGE_MODEL
-        ? { image: process.env.IDEM_GEMINI_IMAGE_MODEL }
-        : {}),
+      // Génération d'image. `flash-lite-image` est le plus rapide des trois
+      // testés (~3,5 s contre 11,8 s pour `flash-image`) pour une qualité
+      // équivalente sur des mises en situation de produit.
+      image: process.env.IDEM_GEMINI_IMAGE_MODEL || 'gemini-3.1-flash-lite-image',
     },
     // Repli entre modèles GOOGLE : la saturation est par modèle, mais un nom
     // hors catalogue est un 404, pas un repli. Seuls des modèles VÉRIFIÉS
