@@ -21,6 +21,28 @@ import { LLMProvider, FeatureAIConfig, GLM_MODELS, TEXT_FALLBACK_MODELS } from '
 export type ProviderKind = 'gemini' | 'openai-compatible';
 
 /**
+ * RÔLE d'un modèle, indépendamment du fournisseur qui le sert.
+ *
+ * C'est la clé de la portabilité. Une feature déclare `GLM_MODELS.reasoning` ;
+ * ce qui compte n'est pas le nom, c'est le rôle — « le modèle qui raisonne ».
+ * Changer de fournisseur devient alors une traduction de rôles, et non une
+ * réécriture de quarante configurations.
+ *
+ * Sans cette table, l'interrupteur global `AI_DEFAULT_PROVIDER` changeait le
+ * fournisseur SANS traduire le nom du modèle : Gemini recevait « glm-4.7 » et
+ * répondait 404. Il fallait alors fixer `AI_DEFAULT_MODEL`, ce qui écrasait
+ * TOUS les étages avec un seul modèle — le routeur XS/M/S disparaissait au
+ * moment précis où l'on voulait le tester.
+ */
+export type ModelRole =
+  | 'mechanical'
+  | 'writing'
+  | 'reasoning'
+  | 'vision'
+  | 'image'
+  | 'ocr';
+
+/**
  * Ce qu'un fournisseur sait faire. Sert de garde-fou : on n'aiguille jamais une
  * fonctionnalité vers un fournisseur incapable de la servir (ex: grounding
  * Google Search reste propre à Gemini).
@@ -73,6 +95,15 @@ export interface ProviderDefinition {
   /** Modèle de repli propre au fournisseur (optionnel). */
   fallbackModel?: string;
   /**
+   * Modèle servant chaque RÔLE chez ce fournisseur.
+   *
+   * C'est la table de traduction : elle permet de basculer la plateforme d'un
+   * fournisseur à l'autre en gardant le routage par étage et les choix
+   * par-feature. Chaque entrée est surchargeable par variable d'environnement
+   * (`IDEM_<PROVIDER>_<ROLE>_MODEL`), pour ajuster sans redéploiement.
+   */
+  models?: Partial<Record<ModelRole, string>>;
+  /**
    * Chaîne de repli appliquée aux appels de CE fournisseur qui n'en déclarent
    * aucune. C'est une propriété du FOURNISSEUR, jamais d'une famille de modèles.
    *
@@ -100,6 +131,74 @@ export interface ProviderDefinition {
   extraBody?: Record<string, unknown>;
   capabilities: ProviderCapabilities;
 }
+
+/**
+ * Traduit « pas de raisonnement » dans le dialecte du modèle Gemini appelé.
+ *
+ * Une seule intention côté configuration — `thinkingBudget: 0`, posé par
+ * l'étage XS et par toute génération mécanique — et TROIS contrats côté Google,
+ * vérifiés par appel réel :
+ *
+ *   famille 2.5   `thinkingConfig: { thinkingBudget: 0 }`        ✔
+ *   3.x flash     `thinkingConfig: { thinkingLevel: 'minimal' }` ✔
+ *                 (`thinkingBudget: 0` → 400 INVALID_ARGUMENT)
+ *   3.x pro       `thinkingConfig: { thinkingLevel: 'low' }`     ✔
+ *                 (`minimal` → 400 « not supported for this model »,
+ *                  `thinkingBudget: 0` → 400 « only works in thinking mode »)
+ *
+ * Pourquoi cela compte, et pas seulement pour le prix : les tokens de réflexion
+ * se décomptent de `maxOutputTokens`. Mesuré sur `gemini-3.6-flash` avec un
+ * budget de 8 tokens, la réflexion en consomme 5 et la réponse revient VIDE —
+ * pas une erreur, pas une troncature visible : rien. C'est la panne que
+ * `MIN_TOKENS_FOR_THINKING` documente pour GLM, à l'identique.
+ *
+ * Un modèle inconnu ne reçoit AUCUN réglage : ignorer une consigne d'économie
+ * est bénin, envoyer un argument que le modèle refuse casse la génération.
+ */
+export function buildGeminiThinkingConfig(
+  modelName: string,
+  thinkingBudget: number | undefined
+): Record<string, unknown> {
+  if (thinkingBudget === undefined) return {};
+
+  // Budget négatif = « laisse le modèle décider » : on ne transmet rien.
+  if (thinkingBudget < 0) return {};
+
+  if (/gemini-2\.5/i.test(modelName)) {
+    return { thinkingConfig: { thinkingBudget } };
+  }
+
+  if (/gemini-3/i.test(modelName)) {
+    // Seul `0` exprime « coupe le raisonnement ». Un budget positif sur un 3.x
+    // n'a pas d'équivalent : on laisse le modèle à son réglage par défaut.
+    if (thinkingBudget > 0) return {};
+    // `pro` refuse `minimal` ; `low` est son plancher.
+    return { thinkingConfig: { thinkingLevel: /pro/i.test(modelName) ? 'low' : 'minimal' } };
+  }
+
+  return {};
+}
+
+/**
+ * Le modèle sait-il RÉELLEMENT ne pas raisonner ?
+ *
+ * C'est la question qui compte pour l'étage mécanique : un digest, un plan ou
+ * une vérification tiennent en un millier de tokens, et si la réflexion se
+ * décompte du même budget, la réponse revient vide.
+ *
+ * Distingue trois cas, vérifiés par appel réel :
+ *   · 2.5           — budget nul accepté                       → oui
+ *   · 3.x flash     — `thinkingLevel: 'minimal'`, 0 token pensé → oui
+ *   · 3.x pro       — plancher `low`, ~90 tokens pensés         → NON
+ */
+export function canSuppressThinking(modelName: string): boolean {
+  if (/gemini-2\.5/i.test(modelName)) return true;
+  if (/gemini-3/i.test(modelName)) return !/pro/i.test(modelName);
+  // Fournisseurs openai-compatible : le raisonnement se coupe par `extraBody`,
+  // pas par ce chemin. On répond « oui » pour ne pas déclencher d'alerte à tort.
+  return !/^gemini/i.test(modelName);
+}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Backend Gemini — LE SEUL BLOC À MODIFIER pour changer d'infrastructure.
@@ -243,9 +342,54 @@ export const AI_PROVIDERS: Record<LLMProvider, ProviderDefinition> = {
     // compte de service). `apiKeyEnv` ne sert donc que si `GEMINI_BACKEND` est
     // repassé sur `ai-studio`.
     apiKeyEnv: 'GEMINI_API_KEY',
-    // Repli entre modèles GOOGLE : la saturation Vertex est par modèle, mais un
-    // nom hors catalogue Google est un 404, pas un repli.
-    defaultFallbackModels: ['gemini-2.5-flash', 'gemini-2.5-pro'],
+    /**
+     * Famille 2.5, volontairement.
+     *
+     * C'est la seule dont le code implémente déjà le contrat de raisonnement :
+     * `thinkingBudget` en tokens, `0` pour le couper (cf. `supportsThinkingBudget`
+     * dans prompt.service). Les modèles 3.x pilotent leur réflexion par
+     * `thinkingLevel` et refusent un budget nul — l'étage XS, dont c'est la
+     * définition même, se remettrait alors à payer du raisonnement en silence.
+     *
+     * Passer en 3.x demande donc d'étendre `supportsThinkingBudget` d'abord.
+     */
+    models: {
+      // ⚠️ FAMILLE 3.x — la 2.5 est RETIRÉE aux nouveaux comptes.
+      //
+      // Vérifié par appel réel (`AI_PROBE=1 npm run check:provider`) :
+      // `gemini-2.5-flash` et `gemini-2.5-pro` répondent tous deux 404
+      // « no longer available to new users », en renvoyant vers les 3.x.
+      //
+      // Le choix de chaque rôle tient au RAISONNEMENT, pas à la puissance :
+      //
+      //   · `flash-lite` ne raisonne pas par défaut — mesuré, il répond même
+      //     sur un budget de 8 tokens. C'est le seul profil qui convienne à
+      //     l'étage mécanique, dont les appels tiennent en 1 024 tokens ;
+      //   · `flash` accepte `thinkingLevel: 'minimal'`, donc le raisonnement y
+      //     reste coupable à la demande ;
+      //   · `pro` REFUSE de ne pas raisonner (« only works in thinking mode »),
+      //     son plancher est `low`. Il ne convient qu'aux rôles où la réflexion
+      //     est justement ce qu'on achète.
+      //
+      // Ne pas remonter `mechanical` sur un `pro` ou un `flash` non-lite : les
+      // tokens de réflexion se décomptent du budget de sortie, et un digest à
+      // 1 024 tokens reviendrait VIDE.
+      mechanical: process.env.IDEM_GEMINI_MECHANICAL_MODEL || 'gemini-3.5-flash-lite',
+      writing: process.env.IDEM_GEMINI_WRITING_MODEL || 'gemini-3.6-flash',
+      reasoning: process.env.IDEM_GEMINI_REASONING_MODEL || 'gemini-3.1-pro-preview',
+      vision: process.env.IDEM_GEMINI_VISION_MODEL || 'gemini-3.6-flash',
+      ocr: process.env.IDEM_GEMINI_OCR_MODEL || 'gemini-3.6-flash',
+      // `image` n'est PAS déclaré : la génération d'image passe uniquement par
+      // les endpoints Z.ai (`glm-media.service`), gardés par `isGlmConfigured`.
+      // Déclarer ici un modèle jamais appelé donnerait une fausse assurance.
+      ...(process.env.IDEM_GEMINI_IMAGE_MODEL
+        ? { image: process.env.IDEM_GEMINI_IMAGE_MODEL }
+        : {}),
+    },
+    // Repli entre modèles GOOGLE : la saturation est par modèle, mais un nom
+    // hors catalogue est un 404, pas un repli. Seuls des modèles VÉRIFIÉS
+    // disponibles ont leur place ici — d'où la sonde `AI_PROBE=1`.
+    defaultFallbackModels: ['gemini-3.6-flash', 'gemini-3.5-flash-lite'],
     capabilities: { ...ALL_CAPABILITIES },
   },
 
@@ -259,6 +403,14 @@ export const AI_PROVIDERS: Record<LLMProvider, ProviderDefinition> = {
     // qui renvoie un faux HTTP 200 `{code:500, msg:"404 NOT_FOUND"}`).
     baseUrl: process.env.GLM_API_URL || 'https://api.z.ai/api/paas/v4',
     fallbackModel: GLM_MODELS.writing,
+    models: {
+      mechanical: GLM_MODELS.mechanical,
+      writing: GLM_MODELS.writing,
+      reasoning: GLM_MODELS.reasoning,
+      vision: GLM_MODELS.vision,
+      image: GLM_MODELS.image,
+      ocr: GLM_MODELS.ocr,
+    },
     // Le fournisseur de la plateforme : c'est lui qui doit porter le filet.
     // Une quinzaine de configurations (tout le module Simulation, l'audit de
     // cohérence) ne déclarent aucun repli et étaient donc mono-coup.
@@ -386,6 +538,55 @@ export function providerSupports(
  *
  * Sans variable d'env, renvoie la config inchangée (comportement par défaut).
  */
+/**
+ * Rôle d'un modèle, quel que soit le fournisseur qui le déclare.
+ *
+ * Recherche inverse dans les tables `models` du registre. Un modèle inconnu est
+ * traité comme `writing` : c'est l'étage de rédaction, le défaut le moins
+ * surprenant — mieux vaut router une génération inconnue vers le milieu de gamme
+ * que vers le haut (coûteux) ou le bas (dégradé).
+ */
+export function roleOfModel(modelName: string): ModelRole {
+  const needle = (modelName || '').toLowerCase();
+
+  for (const definition of Object.values(AI_PROVIDERS)) {
+    for (const [role, name] of Object.entries(definition.models ?? {})) {
+      if (name && name.toLowerCase() === needle) return role as ModelRole;
+    }
+  }
+
+  // Modèles hors table (replis gratuits, variantes datées) : on les rattache au
+  // rôle que leur nom suggère, plutôt que de les envoyer tous en rédaction.
+  if (/pro\b/.test(needle)) return 'reasoning';
+  if (/lite|flashx|flash-lite/.test(needle)) return 'mechanical';
+  if (/vision|-v\b|4\.6v/.test(needle)) return 'vision';
+  if (/image|cogview/.test(needle)) return 'image';
+  if (/ocr/.test(needle)) return 'ocr';
+  return 'writing';
+}
+
+/** Modèle servant un rôle chez un fournisseur, ou `undefined` s'il n'en a pas. */
+export function modelForRole(provider: LLMProvider, role: ModelRole): string | undefined {
+  return getProvider(provider).models?.[role];
+}
+
+/**
+ * Interrupteur global (test A/B, bascule de fournisseur).
+ *
+ * Si `AI_DEFAULT_PROVIDER` est défini, TOUTE configuration passant par le choke
+ * point texte est réaiguillée vers ce fournisseur — et son modèle est TRADUIT
+ * par RÔLE, pas remplacé par un modèle unique.
+ *
+ * C'est ce qui distingue une bascule utilisable d'une bascule cosmétique : une
+ * section de business plan déclarée sur le modèle de raisonnement reste sur le
+ * modèle de raisonnement du nouveau fournisseur, un digest reste mécanique, et
+ * le routeur XS/M/S continue de travailler. `AI_DEFAULT_MODEL` reste disponible
+ * pour forcer un modèle unique — utile pour isoler un problème, à ne pas
+ * employer pour un test de qualité, puisqu'il supprime précisément ce qu'on veut
+ * observer.
+ *
+ * Sans variable d'env, renvoie la config inchangée.
+ */
 export function resolveGlobalOverride<T extends Pick<FeatureAIConfig, 'provider' | 'modelName'>>(
   config: T
 ): T {
@@ -393,10 +594,25 @@ export function resolveGlobalOverride<T extends Pick<FeatureAIConfig, 'provider'
   if (!overrideProvider || !AI_PROVIDERS[overrideProvider]) {
     return config;
   }
-  const overrideModel = process.env.AI_DEFAULT_MODEL;
-  return {
-    ...config,
-    provider: overrideProvider,
-    ...(overrideModel ? { modelName: overrideModel } : {}),
-  };
+  if (overrideProvider === config.provider) {
+    return config;
+  }
+
+  // Modèle unique forcé : échappatoire explicite, jamais le chemin nominal.
+  const forcedModel = process.env.AI_DEFAULT_MODEL;
+  if (forcedModel) {
+    return { ...config, provider: overrideProvider, modelName: forcedModel };
+  }
+
+  const role = roleOfModel(config.modelName);
+  const translated = modelForRole(overrideProvider, role);
+
+  if (!translated) {
+    // Le fournisseur cible ne sert pas ce rôle : on ne bascule PAS. Envoyer un
+    // nom qu'il ne connaît pas produirait un 404 là où l'appel d'origine
+    // aurait abouti.
+    return config;
+  }
+
+  return { ...config, provider: overrideProvider, modelName: translated };
 }
