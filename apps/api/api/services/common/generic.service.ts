@@ -667,6 +667,19 @@ export class GenericService {
     const result = await runAgent(
       {
         role: 'section-writer',
+        /**
+         * Étage de DÉPART déclaré par la feature ou la section (`tier` dans
+         * `ai.config.ts`).
+         *
+         * Sans lui, l'étage déclaré n'avait d'effet nulle part sous gabarit : une
+         * section templatée est dépinglée d'office plus bas (`pinModel: false`),
+         * et un `baseConfig` non épinglé ne dicte pas l'étage — la section
+         * repartait donc systématiquement à l'étage de sa TÂCHE (`draft` → M),
+         * quoi qu'ait déclaré la feature. C'est le bon défaut pour le volume
+         * courant, et le mauvais pour les livrables qui déclarent explicitement
+         * partir plus haut (plan, charte, deck).
+         */
+        tier: step.aiConfig?.tier,
         // La tâche ne sert que de défaut : `baseConfig` impose le modèle réel
         // choisi par la feature/section, l'étage n'entre en jeu qu'en escalade.
         task: 'draft',

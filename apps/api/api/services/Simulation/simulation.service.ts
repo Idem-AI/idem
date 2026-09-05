@@ -133,19 +133,23 @@ export class SimulationService {
     return Array.isArray(stored) ? (stored as SimulationModel[]) : [];
   }
 
+  /**
+   * Écrit les simulations, et RIEN d'autre.
+   *
+   * Le chemin pointé est ce qui rend l'écriture sûre : une simulation dure
+   * plusieurs minutes pendant lesquelles la charte, le business plan ou le
+   * pitch deck écrivent sur le même document. Reposer `analysisResultModel`
+   * en entier depuis l'instantané lu ici remettrait leurs branches dans
+   * l'état qu'elles avaient au début de cette étape.
+   */
   private async writeSimulations(
     userId: string,
     projectId: string,
-    project: ProjectModel,
     simulations: SimulationModel[]
   ): Promise<void> {
-    const analysisResultModel = {
-      ...((project as any).analysisResultModel || {}),
-      simulations,
-    };
     const updated = await this.projectRepository.update(
       projectId,
-      { analysisResultModel } as any,
+      { 'analysisResultModel.simulations': simulations } as any,
       this.collectionPath(userId)
     );
     if (!updated) {
@@ -229,7 +233,7 @@ export class SimulationService {
     simulation.updatedAt = new Date();
     simulations[index] = simulation;
 
-    await this.writeSimulations(userId, projectId, project, simulations);
+    await this.writeSimulations(userId, projectId, simulations);
     return simulation;
   }
 
@@ -262,7 +266,7 @@ export class SimulationService {
     const simulations = this.readSimulations(project);
     const remaining = simulations.filter((s) => s.id !== simulationId);
     if (remaining.length === simulations.length) return false;
-    await this.writeSimulations(userId, projectId, project, remaining);
+    await this.writeSimulations(userId, projectId, remaining);
     return true;
   }
 
@@ -373,7 +377,7 @@ export class SimulationService {
       consent: input.consent,
     });
 
-    await this.writeSimulations(userId, projectId, project, [simulation, ...simulations]);
+    await this.writeSimulations(userId, projectId, [simulation, ...simulations]);
 
     // Le rapport et les laboratoires qui suivront restent gardés par
     // l'acceptation portée par la fiche projet. Un projet jamais finalisé —
@@ -770,6 +774,46 @@ export class SimulationService {
     });
 
     return report;
+  }
+
+  /**
+   * Renvoie le rapport, en le produisant s'il manque alors que le forfait
+   * l'inclut.
+   *
+   * `hasReport` vaut vrai dès la création pour tout forfait au-dessus de
+   * `run` : il dit ce qui est DÛ, pas ce qui existe. Les écrans de rapport et
+   * de téléchargement s'y fiaient pour ne plus rien demander, si bien qu'une
+   * génération enchaînée qui n'aboutissait pas — écrasée par une écriture
+   * concurrente, interrompue par un redémarrage — laissait la simulation dans
+   * un état sans issue : le forfait était payé, le bouton présent, et chaque
+   * appel répondait « pas encore de rapport » sans jamais proposer de le
+   * produire.
+   *
+   * Produire ici ne facture rien de plus : pour ces forfaits le rapport est
+   * déjà compris, et le pipeline l'enchaîne de lui-même en fin d'exécution.
+   * Renvoie `null` quand le rapport reste à acheter (`run`) ou quand
+   * l'exécution n'a pas de quoi le composer.
+   */
+  async ensureReport(
+    userId: string,
+    projectId: string,
+    simulationId: string
+  ): Promise<SimulationReport | null> {
+    const simulation = await this.getSimulation(userId, projectId, simulationId);
+    if (!simulation) {
+      throw new Error(`Simulation not found: ${simulationId}`);
+    }
+    if (simulation.report) {
+      return simulation.report;
+    }
+    if (simulation.tier === 'run' || !simulation.result || !simulation.understanding) {
+      return null;
+    }
+
+    logger.info(
+      `Rapport manquant sur ${simulationId} (forfait ${simulation.tier}) — génération à la demande`
+    );
+    return this.generateReport(userId, projectId, simulationId);
   }
 
   // ===================================================================

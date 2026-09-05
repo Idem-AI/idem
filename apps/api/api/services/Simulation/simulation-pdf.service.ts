@@ -55,11 +55,14 @@ export class SimulationPdfService {
     if (!simulation) {
       throw new Error(`Simulation not found: ${simulationId}`);
     }
-    if (!simulation.report) {
+
+    // Le rapport est composé à la demande s'il manque alors que le forfait
+    // l'inclut : sans cela une simulation payée dont la génération enchaînée
+    // n'a pas abouti n'avait plus aucun moyen de livrer son document.
+    const report = await simulationService.ensureReport(userId, projectId, simulationId);
+    if (!report) {
       throw new Error('This simulation has not produced a report yet');
     }
-
-    const report = simulation.report;
     const assets = await this.loadAssets();
     const chrome = {
       motifDataUri: assets.motif,

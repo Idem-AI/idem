@@ -57,9 +57,46 @@ de valider si l'une d'elles atterrirait sur un modèle que Gemini ne sert pas.
 |---|---|---|
 | `mechanical` (XS) | `gemini-3.5-flash-lite` | digests, plans, vérifications, réparations |
 | `writing` (M) | `gemini-3.6-flash` | rédaction, le gros du volume |
-| `reasoning` (S) | `gemini-3.1-pro-preview` | stratégie, finance, logo, direction artistique |
+| `reasoning` (S) | `gemini-3.1-pro-preview` | **business plan, charte, pitch deck**, finance, logo, direction artistique |
 | `vision` | `gemini-3.6-flash` | lecture d'image |
 | `image` | — | non servi (voir plus bas) |
+
+⚠️ Le rôle `reasoning` est sur `pro` **par le `.env`**, pas par le code : le défaut
+de `ai-providers.config.ts` reste `gemini-3.8-flash`, retenu pour la vitesse. La
+ligne qui décide est
+
+```bash
+IDEM_GEMINI_REASONING_MODEL=gemini-3.1-pro-preview
+```
+
+et la commenter suffit à revenir au `flash`.
+
+### Ce qui part réellement sur le modèle de raisonnement
+
+Déclarer `modelName: GLM_MODELS.reasoning` sur une feature ne suffisait pas, et
+c'est contre-intuitif : une section rendue par GABARIT est **dépinglée d'office**
+(`generic.service.ts`, `pinModel: step.template ? false : …`), et un `baseConfig`
+non épinglé ne dicte pas l'étage. Ces sections repartaient donc toujours à
+l'étage de leur TÂCHE — `draft` → M, la rédaction — quoi qu'ait déclaré la
+feature. Or le gabarit couvre 21 pages sur 24 : le modèle déclaré ne servait
+qu'aux trois couvertures.
+
+L'étage de départ est désormais déclaré, et transmis :
+
+| Où | Quoi |
+|---|---|
+| `ai.config.ts` | `tier: 'S'` sur `businessPlan`, `pitchDeck`, `branding.brandIdentity` |
+| `generic.service.ts` | `tier: step.aiConfig?.tier` passé à `runAgent` |
+
+Un étage reste PORTABLE là où un nom de modèle ne l'est pas : sur GLM il vaut
+`glm-5.2`, sur Gemini il se traduit par le rôle `reasoning`.
+
+À l'inverse, `branding.colors` et `branding.typography` sont **descendues** à
+l'étage de rédaction. Elles coupent le raisonnement (`thinkingBudget: 0`, le code
+ayant repris la décision qu'il servait), et un `pro` refuse de ne pas raisonner :
+il aurait prélevé ~350 tokens de réflexion sur leurs 6 000 de budget, pour une
+délibération devenue sans objet. `npm run check:provider` refuse cette
+combinaison.
 
 **La famille 2.5 est retirée aux nouveaux comptes.** Vérifié par appel réel :
 `gemini-2.5-flash` et `gemini-2.5-pro` répondent tous deux `404 — no longer
