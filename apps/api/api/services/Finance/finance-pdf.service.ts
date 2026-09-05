@@ -8,6 +8,11 @@
  */
 
 import logger from '../../config/logger';
+import { buildDocumentSeed } from '../design/designSeed';
+import {
+  buildDocumentDesignSystem,
+  DocumentDesignSystem,
+} from '../design/documentDesignSystem';
 import { PdfService } from '../pdf.service';
 import { SectionModel } from '../../models/section.model';
 import { financeService } from './finance.service';
@@ -70,10 +75,17 @@ export class FinancePdfService {
     const logoSvg = this.extractLogoSvg(project);
     const companyName = project.name || 'Projet';
     
-    const [interpretation, coverSection] = await Promise.all([
-      this.generateInterpretation(project, finance),
-      this.generateAICover(project, finance, palette, logoSvg)
-    ]);
+    // La couverture est CONSTRUITE, pas générée : élément fixe, aucun jugement
+    // à porter. Un appel de modèle et son attente disparaissent du chemin
+    // critique — le rapport ne dépend plus que de l'interprétation.
+    const designSystem = this.designSystemOf(project);
+    const coverSection = this.buildCoverSection(
+      companyName,
+      designSystem,
+      logoSvg,
+      project.id ?? projectId
+    );
+    const interpretation = await this.generateInterpretation(project, finance);
 
     // Construit les sections HTML
     const sections: SectionModel[] = [
@@ -102,20 +114,77 @@ export class FinancePdfService {
   // Brand & utilities
   // -----------------------------------------------------------------
 
+  /**
+   * Palette du rapport, DÉRIVÉE du design system du projet.
+   *
+   * ── LE DÉFAUT QUE CECI CORRIGE ─────────────────────────────────────────────
+   *
+   * L'ancienne version lisait `branding.colors.primary`. Or la forme réelle est
+   * `ColorModel { colors: { primary, secondary, … } }` : les couleurs vivent un
+   * niveau plus bas. Le champ était donc TOUJOURS `undefined`, chaque `||`
+   * retombait sur `IDEM_DEFAULT_PALETTE`, et le rapport financier sortait
+   * depuis toujours aux couleurs d'IDEM — jamais à celles du projet.
+   *
+   * Rien ne le signalait : le rapport était joliment coloré, simplement pas avec
+   * la bonne charte. C'est la panne la plus discrète de cette base — un chemin
+   * d'accès faux se lit comme une valeur absente, et une valeur absente se
+   * remplace poliment par un défaut.
+   *
+   * ── POURQUOI PASSER PAR LE DESIGN SYSTEM ───────────────────────────────────
+   *
+   * Lire au bon endroit aurait suffi à corriger le symptôme. On fait plus : le
+   * rapport emprunte désormais le MÊME design system que le business plan, le
+   * deck et la charte. Il hérite donc de ce qui y a été construit — encres dont
+   * le contraste est calculé et non espéré, rampes dérivées de la marque, et
+   * surtout la DIRECTION ARTISTIQUE, qui n'existait nulle part ici (aucune
+   * occurrence dans le fichier avant ce changement).
+   *
+   * Conséquence concrète : deux livrables du même projet cessent d'avoir deux
+   * identités visuelles, ce qui était le cas et se voyait.
+   */
   private extractPalette(project: ProjectModel): BrandPalette {
-    const colors: any = project.analysisResultModel?.branding?.colors;
-    if (!colors) return IDEM_DEFAULT_PALETTE;
+    const ds = this.designSystemOf(project);
     return {
-      primary: colors.primary || IDEM_DEFAULT_PALETTE.primary,
-      secondary: colors.secondary || IDEM_DEFAULT_PALETTE.secondary,
-      accent: colors.accent || IDEM_DEFAULT_PALETTE.accent,
-      background: colors.background || IDEM_DEFAULT_PALETTE.background,
-      text: colors.text || IDEM_DEFAULT_PALETTE.text,
+      primary: ds.colors.primary,
+      secondary: ds.colors.secondary,
+      accent: ds.colors.accent,
+      background: ds.colors.surface,
+      // L'encre est CALCULÉE contre le fond retenu : sur un rapport financier,
+      // un texte de charte trop clair sur son propre fond rend des colonnes de
+      // chiffres illisibles, ce qu'aucune relecture de palette ne montre.
+      text: ds.colors.ink,
     };
   }
 
+  /**
+   * Design system du projet, calculé une fois par rapport.
+   *
+   * La graine est dérivée du projet : deux rapports du même projet sont
+   * identiques, deux projets différents ne le sont pas.
+   */
+  private designSystemOf(project: ProjectModel): DocumentDesignSystem {
+    const branding = project.analysisResultModel?.branding;
+    const artDirection = branding?.artDirection;
+    const seed = buildDocumentSeed(artDirection?.styleId, `finance:${project.id ?? 'projet'}`);
+    return buildDocumentDesignSystem(branding, artDirection, seed);
+  }
+
+  /**
+   * Typographie transmise au shell PDF, qui en émet les `<link>` de chargement.
+   *
+   * On renvoie les polices RÉSOLUES par le design system, pas celles de la
+   * charte brute : ce sont elles que le CSS du rapport nomme. Transmettre les
+   * unes et écrire les autres chargerait une police pour en afficher une autre —
+   * exactement le genre d'écart qui rend un livrable « presque » conforme.
+   */
   private extractTypography(project: ProjectModel): TypographyModel | undefined {
-    return project.analysisResultModel?.branding?.typography;
+    const ds = this.designSystemOf(project);
+    const source = project.analysisResultModel?.branding?.typography;
+    return {
+      ...(source ?? ({ id: '', name: '', url: '' } as TypographyModel)),
+      primaryFont: ds.fonts.display,
+      secondaryFont: ds.fonts.body,
+    };
   }
 
   private extractLogoSvg(project: ProjectModel): string | null {
@@ -140,148 +209,88 @@ export class FinancePdfService {
   // Section builders (chaque section retourne un SectionModel)
   // -----------------------------------------------------------------
 
-  private async generateAICover(project: ProjectModel, finance: FinanceModel, p: BrandPalette, logoSvg: string | null): Promise<SectionModel> {
+  /**
+   * Couverture du rapport financier — construite par le CODE.
+   *
+   * ── POURQUOI PLUS D'IA ICI ─────────────────────────────────────────────────
+   *
+   * Une couverture de rapport financier est un élément FIXE : un titre, un nom
+   * d'entreprise, une date, un logo. Rien n'y demande de jugement. La faire
+   * écrire par un modèle coûtait des tokens et de la latence pour un résultat
+   * que le code produit à l'identique — et sans jamais garantir la charte, ce
+   * qui était précisément le reproche.
+   *
+   * ── CE QUI A CHANGÉ DANS LA COMPOSITION ────────────────────────────────────
+   *
+   * L'ancienne version empilait trois à cinq disques flous (`blur(120px)`) sous
+   * une carte translucide bordée de blanc. C'est le vocabulaire visuel par
+   * défaut des générateurs, et il contredit frontalement la direction
+   * artistique de ce projet, qui prescrit des aplats nets, des filets d'1px et
+   * aucune ombre portée. La direction artistique n'était d'ailleurs lue nulle
+   * part dans ce fichier.
+   *
+   * La composition vient maintenant du design system : aplats, filet, échelle
+   * typographique, rayon hérité du style. La variation d'un projet à l'autre
+   * reste déterministe, mais elle porte sur la MISE EN PAGE (position de la
+   * bande, alignement) et non sur des effets — donc elle ne peut pas sortir de
+   * la charte.
+   */
+  private buildCoverSection(
+    companyName: string,
+    ds: DocumentDesignSystem,
+    logoSvg: string | null,
+    projectId: string
+  ): SectionModel {
     const today = new Date().toLocaleDateString('fr-FR', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     });
-    const companyName = project.name || 'Projet';
 
-    // Generate cache key for this project's cover
-    const contentHash = (project.longDescription || project.description || '') + (logoSvg || '') + JSON.stringify(p);
-    const hashHex = crypto.createHash('sha256').update(contentHash).digest('hex');
-    const cacheKey = cacheService.generateAIKey('finance-pdf-cover', project.id!, hashHex);
-    
-    // Check cache first
-    const cachedCoverHtml = await cacheService.get<string>(cacheKey, { prefix: 'ai', ttl: 86400 * 7 });
-    if (cachedCoverHtml) {
-      return { name: 'Couverture', type: 'cover', data: cachedCoverHtml, summary: '' };
-    }
+    const rand = this.getSeededRandom(projectId || companyName);
+    // Deux décisions de mise en page seulement, tirées de la graine : la bande
+    // colorée est en haut ou en bas, et le bloc de titre est haut ou bas de
+    // page. Quatre compositions, toutes tenables — on ne tire pas au sort ce
+    // qui pourrait être laid.
+    const bandAtTop = rand() > 0.5;
+    const titleLow = rand() > 0.5;
 
-    const summary = [
-      `Projet: ${companyName}`,
-      `Type: ${project.type}`,
-      `Description: ${project.longDescription || project.description || ''}`,
-    ].join('\n');
+    const logoHtml = logoSvg
+      ? `<div style="width:56mm;max-height:26mm;margin-bottom:${ds.spacing * 2}px;">${logoSvg.replace('<svg ', '<svg style="width:100%;height:auto;display:block;" ')}</div>`
+      : '';
 
-    const brandContext = `Brand Name: ${companyName}\nBrand Colors: ${JSON.stringify(p)}`;
+    // La bande porte la couleur de marque en aplat : c'est le seul grand geste
+    // de la page, et il suffit.
+    const band = `<div style="position:absolute;left:0;right:0;${bandAtTop ? 'top:0' : 'bottom:0'};height:34mm;background-color:${ds.colors.primary};"></div>`;
 
-    const promptText = `${summary}\n${AGENT_FINANCE_COVER_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`;
-
-    const messages: AIChatMessage[] = [
-      { role: 'user', content: promptText }
-    ];
-
-    const config: PromptConfig = {
-      provider: AI_CONFIG.finance.pdfCover.provider,
-      modelName: AI_CONFIG.finance.pdfCover.modelName,
-      promptType: AI_CONFIG.finance.pdfCover.promptType,
-      llmOptions: {
-        ...AI_CONFIG.finance.pdfCover.llmOptions,
-      },
-    };
-
-    try {
-      let html = await this.promptService.runPrompt(config, messages);
-      html = this.promptService.getCleanAIText(html).trim();
-
-      // Ensure no markdown block
-      html = html.replace(/^```(html)?/i, '').replace(/```$/i, '').trim();
-
-      // Replace placeholders
-      html = html.replace(/{{companyName}}/g, this.esc(companyName));
-      html = html.replace(/{{currentDate}}/g, today);
-      
-      if (logoSvg) {
-        const responsiveSvg = logoSvg.replace('<svg ', '<svg style="width:100%; height:100%;" ');
-        const logoHtml = `<div style="max-width: 250px; max-height: 250px; display: flex; justify-content: center; align-items: center; margin-bottom: 2rem; z-index: 50; position: relative;">${responsiveSvg}</div>`;
-        html = html.replace(/{{logoSvg}}/g, logoHtml);
-      } else {
-        html = html.replace(/{{logoSvg}}/g, ''); // Remove placeholder if no logo
-      }
-
-      // Cache the generated cover html
-      await cacheService.set(cacheKey, html, { prefix: 'ai', ttl: 86400 * 7 }); // Cache for 7 days
-
-      return { name: 'Couverture', type: 'cover', data: html, summary: '' };
-    } catch (err: any) {
-      logger.warn(`FinancePdf.generateAICover failed: ${err?.message}`);
-      // Fallback to the programmatic cover if AI fails
-      return this.buildFallbackCoverSection(companyName, p, logoSvg, project.id!);
-    }
-  }
-
-  private buildFallbackCoverSection(companyName: string, p: BrandPalette, logoSvg: string | null, projectId: string): SectionModel {
-    const today = new Date().toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-    
-    let logoHtml = '';
-    if (logoSvg) {
-      let responsiveSvg = logoSvg.replace('<svg ', '<svg style="width:100%; height:100%;" ');
-      logoHtml = `<div style="width: 180px; height: 180px; display: flex; justify-content: center; align-items: center; margin-bottom: 2rem;">
-        ${responsiveSvg}
-      </div>`;
-    }
-
-    // Deterministic random for this project to make it unique
-    const rand = this.getSeededRandom(projectId);
-    
-    // Generate 3 to 5 random blobs
-    const blobCount = 3 + Math.floor(rand() * 3);
-    let blobsHtml = '';
-    const colors = [p.primary, p.secondary, p.accent];
-    for (let i = 0; i < blobCount; i++) {
-      const size = 400 + rand() * 500; // 400 to 900px
-      const top = -20 + rand() * 100; // -20% to 80%
-      const left = -20 + rand() * 100; // -20% to 80%
-      const color = colors[i % colors.length];
-      const opacity = 0.15 + rand() * 0.25; // 0.15 to 0.40
-      blobsHtml += `<div style="position: absolute; width: ${size}px; height: ${size}px; top: ${top}%; left: ${left}%; background-color: ${color}; border-radius: 50%; filter: blur(120px); opacity: ${opacity}; z-index: 1; pointer-events: none;"></div>`;
-    }
-
-    const isLightBackground = p.background.toUpperCase() === '#FFFFFF' || p.background.toUpperCase() === '#FFF' || p.background.toUpperCase() === '#F8FAFC';
-    const cardBg = isLightBackground ? 'rgba(255, 255, 255, 0.65)' : 'rgba(255, 255, 255, 0.05)';
-    const cardBorder = isLightBackground ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.1)';
-    const cardShadow = isLightBackground ? '0 25px 50px -12px rgba(0, 0, 0, 0.1)' : '0 25px 50px -12px rgba(0, 0, 0, 0.25)';
+    // Le nom est ajusté à sa longueur : un nom long ne doit pas casser en
+    // escalier, défaut déjà corrigé sur les autres livrables.
+    const nameSize = Math.round(
+      Math.max(ds.typeScale.xl, Math.min(ds.typeScale["4xl"], 1400 / Math.max(companyName.length, 8)))
+    );
 
     const html = `
-    <div style="width: 210mm; height: 297mm; position: relative; overflow: hidden; background-color: ${isLightBackground ? '#F1F5F9' : p.background}; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: 'primary', sans-serif;">
-      <!-- Dynamic Mesh Gradient Blobs -->
-      ${blobsHtml}
-
-      <!-- Glassmorphism Card -->
-      <div style="position: relative; z-index: 10; width: 85%; max-width: 800px; background: ${cardBg}; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid ${cardBorder}; border-radius: 32px; padding: 64px; box-shadow: ${cardShadow}; display: flex; flex-direction: column; align-items: center; text-align: center;">
-        
+    <div style="width:210mm;height:297mm;position:relative;overflow:hidden;box-sizing:border-box;background-color:${ds.colors.surface};color:${ds.colors.ink};font-family:'${ds.fonts.body}', sans-serif;padding:28mm 24mm;display:flex;flex-direction:column;justify-content:${titleLow ? 'flex-end' : 'flex-start'};">
+      ${band}
+      <div style="position:relative;z-index:1;">
         ${logoHtml}
-
-        <div style="text-transform: uppercase; letter-spacing: 0.4em; font-size: 14px; font-weight: 700; color: ${p.primary}; margin-bottom: 24px; font-family: 'secondary', sans-serif;">
-          Rapport Financier Stratégique
+        <div style="text-transform:uppercase;letter-spacing:0.28em;font-size:${ds.typeScale.xs}px;font-weight:700;color:${ds.colors.primary};margin-bottom:${ds.spacing * 1.5}px;">
+          Rapport financier
         </div>
-        
-        <h1 style="font-size: 64px; font-weight: 900; margin: 0 0 32px 0; color: ${p.text}; line-height: 1.1; letter-spacing: -0.02em;">
+        <h1 style="margin:0;font-family:'${ds.fonts.display}', serif;font-size:${nameSize}px;line-height:1.05;font-weight:700;color:${ds.colors.ink};">
           ${this.esc(companyName)}
         </h1>
-        
-        <div style="width: 120px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, ${p.primary}, ${p.secondary}); margin-bottom: 40px;"></div>
-
-        <p style="font-size: 20px; color: ${p.text}; opacity: 0.8; max-width: 600px; line-height: 1.6; margin: 0; font-family: 'secondary', sans-serif; font-weight: 300;">
-          Prévisions financières, compte d'exploitation et analyse de rentabilité sur 3 ans
+        <div style="margin-top:${ds.spacing * 2}px;border-top:2px solid ${ds.colors.primary};width:46mm;"></div>
+        <p style="margin:${ds.spacing * 1.5}px 0 0;font-size:${ds.typeScale.base}px;color:${ds.colors.inkMuted};max-width:120mm;line-height:1.55;">
+          États financiers prévisionnels, seuil de rentabilité et ratios de gestion.
         </p>
       </div>
-
-      <!-- Footer elements -->
-      <div style="position: absolute; bottom: 48px; left: 48px; color: ${p.text}; opacity: 0.5; font-size: 14px; font-family: 'secondary', sans-serif; z-index: 10;">
-        Généré le ${today}
-      </div>
-      <div style="position: absolute; bottom: 48px; right: 48px; color: ${p.text}; opacity: 0.5; font-size: 14px; font-family: 'secondary', sans-serif; z-index: 10; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;">
-        Document Confidentiel
+      <div style="position:absolute;left:24mm;right:24mm;${bandAtTop ? 'bottom:16mm' : 'top:16mm'};z-index:1;display:flex;justify-content:space-between;font-size:${ds.typeScale.xs}px;color:${ds.colors.inkMuted};text-transform:uppercase;letter-spacing:0.12em;">
+        <span>${this.esc(today)}</span>
+        <span>Idem</span>
       </div>
     </div>`;
-    
+
     return { name: 'Couverture', type: 'cover', data: html, summary: '' };
   }
 

@@ -109,7 +109,26 @@ export type Block =
    */
   | {
       kind: 'sources';
-      items: { index: number; title: string; url: string; domain?: string }[];
+      /**
+       * Section d'origine, quand la page « Ressources » regroupe plusieurs
+       * listes. Les numéros restent ceux CITÉS dans cette section-là : c'est ce
+       * qui permet au lecteur de retrouver l'exposant qu'il vient de lire.
+       */
+      label?: string;
+      items: {
+        index: number;
+        title: string;
+        url: string;
+        domain?: string;
+        /**
+         * À quoi cette source a servi, en une phrase.
+         *
+         * Une bibliographie qui n'aligne que des titres oblige le lecteur à
+         * ouvrir chaque lien pour savoir lequel l'intéresse. Dire ce que la
+         * source apporte est ce qui la rend consultable.
+         */
+        description?: string;
+      }[];
     };
 
 export interface SectionContent {

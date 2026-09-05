@@ -907,31 +907,65 @@ function renderLogoDisplay(
  */
 function renderSources(block: Extract<Block, { kind: 'sources' }>, ctx: Ctx): string {
   const { ds } = ctx;
+
   const items = block.items
-    .map(
-      (item) => `<li${style({
-        'font-size': `${ds.typeScale.xs}px`,
-        color: ds.colors.inkMuted,
+    .map((item) => {
+      // Le lien est posé sur le TITRE, jamais sur l'URL brute : une URL de
+      // grounding fait trois lignes et ne dit rien de l'éditeur.
+      const label = esc(item.title || item.domain || 'Source');
+      const anchor = item.url
+        ? `<a href="${esc(item.url)}"${style({
+            color: ctx.roles.highlight,
+            'text-decoration': 'none',
+            'font-weight': 600,
+          })}>${label}</a>`
+        : `<span${style({ 'font-weight': 600, color: ds.colors.ink })}>${label}</span>`;
+
+      const domain = item.domain
+        ? `<span${style({ color: ds.colors.inkMuted })}> — ${esc(item.domain)}</span>`
+        : '';
+
+      const description = item.description
+        ? `<div${style({
+            'font-size': `${ds.typeScale.xs}px`,
+            color: ds.colors.inkMuted,
+            'line-height': 1.5,
+            'margin-top': '2px',
+          })}>${esc(item.description)}</div>`
+        : '';
+
+      return `<li${style({
+        'font-size': `${ds.typeScale.sm}px`,
+        color: ds.colors.ink,
         'line-height': 1.5,
-        'margin-bottom': '2px',
-      })}><span${style({ 'font-weight': 700, color: ctx.roles.highlight })}>${item.index + 1}.</span> ${esc(item.title)}${
-        item.domain ? ` — ${esc(item.domain)}` : ''
-      }</li>`
-    )
+        'margin-bottom': `${ds.spacing * 0.75}px`,
+        display: 'flex',
+        gap: `${ds.spacing * 0.6}px`,
+        'align-items': 'baseline',
+      })}><span${style({
+        'font-weight': 700,
+        color: ctx.roles.highlight,
+        'min-width': '22px',
+        'font-variant-numeric': 'tabular-nums',
+      })}>${item.index}.</span><span>${anchor}${domain}${description}</span></li>`;
+    })
     .join('');
 
-  return `<div${style({
-    'border-top': `1px solid ${ds.colors.rule}`,
-    'padding-top': `${ds.spacing * 0.6}px`,
-  })}${atomic}>
-  <div${style({
-    'font-size': `${ds.typeScale.xs}px`,
-    'text-transform': 'uppercase',
-    'letter-spacing': '0.12em',
-    'font-weight': 700,
-    color: ds.colors.inkMuted,
-    'margin-bottom': '4px',
-  })}>Sources</div>
+  const heading = block.label
+    ? `<div${style({
+        'font-size': `${ds.typeScale.xs}px`,
+        'text-transform': 'uppercase',
+        'letter-spacing': '0.12em',
+        'font-weight': 700,
+        color: ctx.roles.highlight,
+        'margin-bottom': `${ds.spacing * 0.5}px`,
+        'padding-bottom': `${ds.spacing * 0.3}px`,
+        'border-bottom': `1px solid ${ds.colors.rule}`,
+      })}>${esc(block.label)}</div>`
+    : '';
+
+  return `<div${atomic}>
+  ${heading}
   <ol${style({ margin: 0, padding: 0, 'list-style': 'none' })}>${items}</ol>
 </div>`;
 }

@@ -22,7 +22,7 @@ import {
   SECTION_CONTENT_CONTRACT,
   sectionVolumeDirective,
 } from '../design/sectionContent.prompt';
-import { normalizeSectionContent } from '../design/sectionContent';
+import { normalizeSectionContent, Block, SectionContent } from '../design/sectionContent';
 import { renderSection } from '../design/sectionRenderer';
 import { buildDocumentSeed, buildSectionSeed } from '../design/designSeed';
 import { BrandCharter, buildDocumentDesignSystem } from '../design/documentDesignSystem';
@@ -69,6 +69,14 @@ export interface ResearchTeamContext {
    * quand les faits à chercher changent, jamais autrement.
    */
   projectId?: string;
+  /**
+   * Nom de la page de bibliographie à ajouter en fin de livrable.
+   *
+   * Renseigné, l'équipe rassemble toutes les sources vérifiées sur une page
+   * finale, groupées par section. Absent, aucune page n'est ajoutée — un deck
+   * ne veut pas de bibliographie.
+   */
+  resourcesSectionName?: string;
   /** Contexte de marque optionnel (couleurs, langue…). */
   brandContext?: string;
   /** Langue de sortie ('French' | 'English'). */
@@ -237,6 +245,9 @@ export class ResearchTeamService {
     const runCtx: ResearchTeamContext = { ...ctx, sharedCache: cacheName ?? undefined };
 
     const results: ResearchedSection[] = [];
+    // Sources retenues par section, dans l'ordre de citation : c'est cette
+    // table qui alimente la page « Ressources » en fin de livrable.
+    const sourcesBySection: Array<{ section: string; sources: ResearchSource[] }> = [];
     try {
     // Exécution par vagues avec concurrence limitée.
     for (let i = 0; i < sections.length; i += SECTION_CONCURRENCY) {
@@ -246,6 +257,9 @@ export class ResearchTeamService {
       );
       for (const section of settled) {
         results.push(section);
+        if (section.sources.length > 0) {
+          sourcesBySection.push({ section: section.name, sources: section.sources });
+        }
         if (persistSection) {
           try {
             await persistSection(section);
@@ -270,6 +284,25 @@ export class ResearchTeamService {
         message: 'Livrable finalisé et vérifié',
       }),
     });
+    // PAGE « RESSOURCES » — construite par le code, aucun appel de modèle.
+    // Elle est ajoutée en dernier pour disposer des sources de TOUTES les
+    // sections, y compris celles traitées dans la dernière vague.
+    if (ctx.resourcesSectionName && sourcesBySection.length > 0) {
+      const resources = this.buildResourcesSection(
+        ctx.resourcesSectionName,
+        sourcesBySection,
+        runCtx
+      );
+      results.push(resources);
+      if (persistSection) {
+        try {
+          await persistSection(resources);
+        } catch (error) {
+          logger.warn(`ResearchTeam : page « ${ctx.resourcesSectionName} » non persistée: ${error}`);
+        }
+      }
+    }
+
     await this.safeEmit(emit, {
       type: 'run_completed',
       sectionCount: results.length,
@@ -921,6 +954,95 @@ export class ResearchTeamService {
    *     `sources`, donc TOUJOURS présent dans le document et jamais halluciné).
    */
   /**
+   * Page de bibliographie du livrable — rendue par le GABARIT, sans IA.
+   *
+   * ── POURQUOI UNE PAGE, ET NON NEUF PIEDS DE SECTION ────────────────────────
+   *
+   * Une liste de sources en fin de chaque section n'est consultable ni par
+   * celui qui veut vérifier — il ne sait pas dans quelle section chercher — ni
+   * par celui qui ne veut pas vérifier, qui la subit à chaque page. Rassemblées,
+   * elles deviennent ce qu'elles auraient dû être : une bibliographie.
+   *
+   * ── POURQUOI GROUPÉES PAR SECTION ──────────────────────────────────────────
+   *
+   * Les exposants posés dans le texte (¹ ² ³) numérotent les sources DE LEUR
+   * SECTION. Une liste unique renumérotée globalement rendrait donc faux chaque
+   * appel de note déjà écrit, et il faudrait réécrire le HTML rendu pour les
+   * remettre d'accord — une réécriture fragile, sur une sortie déjà validée.
+   * Grouper par section préserve la correspondance sans toucher à rien.
+   *
+   * ── LA DESCRIPTION ─────────────────────────────────────────────────────────
+   *
+   * Elle vient de l'extrait renvoyé par le moteur, pas d'un modèle : c'est ce
+   * que la source dit réellement. Faute d'extrait, on indique ce à quoi elle a
+   * servi — vrai, utile, et gratuit. On n'invente jamais de résumé.
+   */
+  private buildResourcesSection(
+    sectionName: string,
+    grouped: Array<{ section: string; sources: ResearchSource[] }>,
+    ctx: ResearchTeamContext
+  ): ResearchedSection {
+    const total = grouped.reduce((sum, group) => sum + group.sources.length, 0);
+
+    const blocks: Block[] = grouped.map((group) => ({
+      kind: 'sources' as const,
+      label: group.section,
+      items: group.sources.map((source, position) => ({
+        // Le numéro CITÉ dans la section, pour que l'exposant se retrouve.
+        index: Number.parseInt(source.id.replace(/^s/i, ''), 10) || position + 1,
+        title: source.title,
+        url: source.url,
+        // ⚠️ Jamais l'hôte de l'URL : le grounding Google renvoie un
+        // redirecteur (`vertexaisearch.cloud.google.com`) que personne ne
+        // reconnaît et qui ne dit rien de l'éditeur.
+        domain: source.domain,
+        description: this.describeSource(source, group.section),
+      })),
+    }));
+
+    const french = (ctx.language ?? 'French').toLowerCase().startsWith('fr');
+    const content: SectionContent = {
+      kicker: french ? 'Références' : 'References',
+      title: sectionName,
+      lede: french
+        ? `${total} source${total > 1 ? 's' : ''} consultée${total > 1 ? 's' : ''} et vérifiée${total > 1 ? 's' : ''}. Les numéros renvoient aux appels de note de chaque section.`
+        : `${total} source${total > 1 ? 's' : ''} consulted and verified. Numbers match the note markers in each section.`,
+      blocks,
+    };
+
+    const artDirection = ctx.artDirection ?? null;
+    const documentKey = ctx.documentKey ?? 'research';
+    const documentSeed = buildDocumentSeed(artDirection?.styleId, documentKey);
+    const designSystem = buildDocumentDesignSystem(ctx.charter, artDirection, documentSeed);
+    const seed = buildSectionSeed(artDirection?.styleId, documentKey, sectionName, ctx.usedArchetypes);
+
+    const html = renderSection(content, designSystem, seed, {
+      logoUrl: ctx.logoUrl,
+      brandName: ctx.brandName,
+    });
+
+    logger.info(
+      `ResearchTeam : page « ${sectionName} » construite (${total} source(s), ${grouped.length} section(s), aucun appel de modèle).`
+    );
+
+    return {
+      name: sectionName,
+      data: html,
+      summary: `${sectionName} — ${total} source(s)`,
+      sources: grouped.flatMap((group) => group.sources),
+    };
+  }
+
+  /** Une phrase disant ce que la source apporte. Jamais inventée. */
+  private describeSource(source: ResearchSource, sectionName: string): string | undefined {
+    const snippet = source.snippet?.replace(/\s+/g, ' ').trim();
+    if (snippet && snippet.length > 20) {
+      return snippet.length > 180 ? `${snippet.slice(0, 177)}…` : snippet;
+    }
+    return `Consultée pour la section « ${sectionName} ».`;
+  }
+
+  /**
    * Rend la section AU FORMAT DU DOCUMENT.
    *
    * Une section issue de la recherche n'est pas une page à part : c'est une
@@ -969,23 +1091,19 @@ export class ResearchTeamService {
       );
     }
 
-    // Les références viennent des URLs RÉELLES du moteur, jamais du modèle.
+    // ── LES SOURCES NE SONT PLUS EN PIED DE SECTION ──────────────────────
+    //
+    // Chaque section se terminait par sa propre liste. Sur un livrable de neuf
+    // sections, cela fait neuf bibliographies dispersées, dont aucune n'est
+    // consultable : le lecteur qui veut vérifier une affirmation ne sait pas où
+    // chercher, et le lecteur qui ne veut rien vérifier les subit à chaque
+    // page.
+    //
+    // Elles sont désormais rassemblées sur une page « Ressources » en fin de
+    // document, groupées par section et numérotées comme dans le texte — voir
+    // `buildResourcesSection`. Les exposants déjà posés restent donc justes,
+    // sans qu'aucun HTML rendu n'ait à être réécrit.
     const blocks = [...parsed.blocks];
-    if (sources.length > 0) {
-      blocks.push({
-        kind: 'sources',
-        items: sources.map((source, position) => ({
-          index: Number.parseInt(source.id.replace(/^s/i, ''), 10) || position,
-          title: source.title,
-          url: source.url,
-          // ⚠️ Jamais l'hôte de l'URL : le grounding Google renvoie un
-          // redirecteur (`vertexaisearch.cloud.google.com`) que personne ne
-          // reconnaît et qui ne dit rien de l'éditeur. Le domaine réel est
-          // fourni à part par le moteur ; en son absence, on n'affiche rien.
-          domain: source.domain,
-        })),
-      });
-    }
 
     const artDirection = ctx.artDirection ?? null;
     const documentKey = ctx.documentKey ?? 'research';
