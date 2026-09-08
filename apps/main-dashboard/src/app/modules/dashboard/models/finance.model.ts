@@ -349,14 +349,23 @@ export interface FinanceComputed {
 }
 
 /**
- * Calendrier comptable SYSCOHADA : l'exercice court du 1er janvier au 31
- * décembre, quelle que soit la date de démarrage effectif de l'activité.
+ * Calendrier comptable du projet.
+ *
+ * La règle applicable dépend du PAYS : l'année civile est obligatoire dans les
+ * dix-sept États de l'OHADA, tandis que le Nigeria, le Kenya, l'Afrique du Sud
+ * ou l'Égypte laissent la société arrêter sa date de clôture. Le serveur résout
+ * la juridiction et contraint le mois de clôture quand la loi l'impose ; ce
+ * modèle ne porte que les dates.
  */
 export interface FiscalCalendar {
-  /** Année civile de l'exercice 1. */
+  /** Année civile où s'ouvre l'exercice 1. */
   firstYear: number;
-  /** Mois de démarrage effectif (1 = janvier). */
+  /** Mois de démarrage effectif de l'activité dans l'exercice 1. */
   activityStartMonth: number;
+  /** Mois de clôture de l'exercice (1 = janvier … 12 = décembre). */
+  fiscalYearEndMonth: number;
+  /** Juridiction comptable retenue, résolue côté serveur depuis le pays. */
+  jurisdictionId?: string;
 }
 
 export interface FinanceModel {

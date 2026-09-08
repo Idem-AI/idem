@@ -73,18 +73,34 @@ export class FinanceSectionStubComponent implements OnInit {
   });
 
   /**
-   * Le calendrier comptable SYSCOHADA : l'exercice court du 1er janvier au 31
-   * décembre, quelle que soit la date de démarrage. Un exercice ne se nomme
-   * donc jamais « An 1 » ni « 2026-2027 » dans un document remis à une banque —
-   * il porte son année civile, et l'interface le montre déjà à la saisie.
+   * Le calendrier comptable du projet.
+   *
+   * Un exercice ne se nomme jamais « An 1 » dans un document remis à une banque :
+   * il porte ses années civiles, et l'interface le montre dès la saisie. Le
+   * FORMAT du libellé dépend de la juridiction — une clôture au 31 décembre
+   * donne « 2026 », toute autre clôture donne « 2026-2027 », parce que
+   * l'exercice couvre alors réellement deux années civiles.
    */
   protected readonly fiscalCalendar = computed(
-    () => this.finance()?.fiscalCalendar ?? { firstYear: new Date().getFullYear(), activityStartMonth: 1 },
+    () =>
+      this.finance()?.fiscalCalendar ?? {
+        firstYear: new Date().getFullYear(),
+        activityStartMonth: 1,
+        fiscalYearEndMonth: 12,
+      },
+  );
+
+  /** Le serveur ramène la clôture à décembre là où la loi l'impose. */
+  protected readonly calendarYearEnforced = computed(
+    () => this.fiscalCalendar().fiscalYearEndMonth === 12,
   );
 
   protected readonly yearLabels = computed(() => {
     const first = this.fiscalCalendar().firstYear || new Date().getFullYear();
-    return Array.from({ length: this.projectionYears() }, (_, i) => String(first + i));
+    const endMonth = this.fiscalCalendar().fiscalYearEndMonth ?? 12;
+    return Array.from({ length: this.projectionYears() }, (_, i) =>
+      endMonth === 12 ? String(first + i) : `${first + i}-${first + i + 1}`,
+    );
   });
 
   /** Mois d'exploitation réels du premier exercice — il est souvent tronqué. */

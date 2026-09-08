@@ -17,7 +17,12 @@ import {
   FinanceModel,
   FinanceComputed,
   firstYearActiveMonths,
+  fiscalYearPeriod,
 } from '../../models/finance.model';
+import {
+  AccountingJurisdiction,
+  fiscalYearStatement,
+} from '../common/accounting-jurisdiction';
 import { INITIAL_OPERATING_MONTHS } from './finance-statements.service';
 import {
   ReportChrome,
@@ -53,7 +58,11 @@ const yearHeaders = (labels: string[]): string[] => labels.map((label) => `Exerc
 // 01 · SYNTHÈSE
 // =====================================================================
 
-export function summarySection(c: ReportChrome, finance: FinanceModel): string {
+export function summarySection(
+  c: ReportChrome,
+  finance: FinanceModel,
+  jurisdiction: AccountingJurisdiction
+): string {
   const k = finance.computed as FinanceComputed;
   const ce = k.compteExploitation;
   const labels = k.fiscalYearLabels;
@@ -91,8 +100,9 @@ export function summarySection(c: ReportChrome, finance: FinanceModel): string {
       c,
       1,
       'Synthèse financière',
-      `Prévisions établies sur ${ce.length} exercices, du 1ᵉʳ janvier au 31 décembre de chaque ` +
-        `année conformément au SYSCOHADA. Tous les montants sont exprimés en ${c.currency}.`
+      `Prévisions établies sur ${ce.length} exercices, ${fiscalYearPeriod(finance.fiscalCalendar, 0)} ` +
+        `pour le premier. ${jurisdiction.frameworkLabel} · ${jurisdiction.country}. ` +
+        `Tous les montants sont exprimés en ${c.currency}.`
     )}
 
     ${heroBlock}
@@ -501,7 +511,11 @@ export function investmentsSection(c: ReportChrome, finance: FinanceModel): stri
 // 06 · BESOIN EN FONDS DE ROULEMENT
 // =====================================================================
 
-export function bfrSection(c: ReportChrome, finance: FinanceModel): string {
+export function bfrSection(
+  c: ReportChrome,
+  finance: FinanceModel,
+  jurisdiction: AccountingJurisdiction
+): string {
   const k = finance.computed as FinanceComputed;
   const labels = k.fiscalYearLabels;
   const pc = k.projectCost;
@@ -554,7 +568,7 @@ export function bfrSection(c: ReportChrome, finance: FinanceModel): string {
         `puisqu'ils figurent déjà au stock initial — auxquels s'ajoutent les charges de structure ` +
         `courant avant l'ouverture.`,
       `Activité démarrée en ${startMonth}, soit ${activeMonths} mois d'exploitation sur le premier ` +
-        `exercice comptable ${labels[0]}, qui court du 1ᵉʳ janvier au 31 décembre.`
+        `exercice comptable ${labels[0]}, ${fiscalYearPeriod(finance.fiscalCalendar, 0)}.`
     )}
   `
   );
@@ -1084,7 +1098,11 @@ export function analysisSection(c: ReportChrome, paragraphs: string[]): string {
 // 14 · MÉTHODE ET HYPOTHÈSES
 // =====================================================================
 
-export function methodSection(c: ReportChrome, finance: FinanceModel): string {
+export function methodSection(
+  c: ReportChrome,
+  finance: FinanceModel,
+  jurisdiction: AccountingJurisdiction
+): string {
   const k = finance.computed as FinanceComputed;
   const labels = k.fiscalYearLabels;
   const startMonth = MONTH_NAMES[Math.min(11, Math.max(0, (finance.fiscalCalendar?.activityStartMonth ?? 1) - 1))];
@@ -1107,17 +1125,42 @@ export function methodSection(c: ReportChrome, finance: FinanceModel): string {
       c,
       ['Convention', 'Valeur retenue'],
       [
-        ['Référentiel comptable', 'SYSCOHADA révisé — Acte uniforme OHADA'],
-        ['Durée de l’exercice', 'Du 1ᵉʳ janvier au 31 décembre'],
+        ['Juridiction retenue', jurisdiction.country],
+        ['Référentiel comptable', jurisdiction.frameworkLabel],
+        ['Base réglementaire', jurisdiction.fiscalYearBasis],
+        ['Durée de l’exercice', fiscalYearPeriod(finance.fiscalCalendar, 0)],
         ['Premier exercice', `Exercice ${labels[0]}`],
-        ['Démarrage effectif de l’activité', `${startMonth} ${labels[0]}`],
+        ['Démarrage effectif de l’activité', `${startMonth}`],
         ['Mois d’exploitation au premier exercice', `${activeMonths} mois sur 12`],
         ['Horizon de projection', `${labels.length} exercices (${labels[0]} — ${labels[labels.length - 1]})`],
         ['Devise', c.currency],
       ],
       { aligns: ['l', 'l'] }
     )}
-    ${caption(c, "L'exercice comptable est calé sur l'année civile quelle que soit la date de démarrage : le premier exercice est donc un exercice tronqué, et ses agrégats ne sont pas comparables à ceux d'une année pleine.")}
+    ${caption(c, fiscalYearStatement(jurisdiction, finance.fiscalCalendar?.fiscalYearEndMonth ?? 12))}
+    ${
+      activeMonths < 12
+        ? caption(c, `Le premier exercice ne porte que ${activeMonths} mois d'exploitation : c'est un exercice tronqué, et ses agrégats ne sont pas comparables à ceux d'une année pleine.`)
+        : ''
+    }
+    ${
+      jurisdiction.defaultCorporateTaxRatePct !== undefined && jurisdiction.taxAsOf
+        ? caption(c, `Le taux d'impôt sur les sociétés proposé par défaut (${pct(jurisdiction.defaultCorporateTaxRatePct, 0)}) reflète le régime de droit commun de ${jurisdiction.country} à ${jurisdiction.taxAsOf}. Il est indicatif : un régime sectoriel, une zone franche ou une loi de finances récente peuvent le modifier, et il doit être confirmé.`)
+        : ''
+    }
+
+    ${
+      jurisdiction.framework === 'unknown'
+        ? warningBlock(
+            c,
+            'Juridiction comptable non déterminée',
+            "Le pays du projet n'est pas renseigné ou n'est pas couvert par le référentiel interne. " +
+              "Le rapport applique par défaut un exercice calé sur l'année civile, sans garantie de " +
+              'conformité locale. Renseignez le pays du projet pour que le référentiel applicable et ' +
+              "la règle d'exercice soient établis.",
+          )
+        : ''
+    }
 
     ${subTitle(c, 'Paramètres du modèle')}
     ${table(

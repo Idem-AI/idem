@@ -155,7 +155,10 @@ export class BusinessPlanService extends GenericService {
     // trois copies légèrement divergentes, à faire recopier des chiffres au
     // modèle. Les tableaux sont maintenant POSÉS par le service ; ce résumé ne
     // sert plus qu'à ce que les autres sections ne contredisent pas le module.
-    const financeContext = buildFinanceNarrative(project.analysisResultModel?.finance);
+    const financeContext = buildFinanceNarrative(
+      project.analysisResultModel?.finance,
+      project.additionalInfos?.country
+    );
 
     try {
       // Les dépendances entre sections ne sont PLUS déclarées ici : elles vivent
@@ -294,7 +297,10 @@ export class BusinessPlanService extends GenericService {
           'Financial Plan',
           '8 to 10',
           financeContext,
-          buildFinanceBlocks(project.analysisResultModel?.finance)
+          buildFinanceBlocks(
+            project.analysisResultModel?.finance,
+            project.additionalInfos?.country
+          )
         ),
         templated(AGENT_GOAL_PLANNING_PROMPT, 'Goal Planning', '6 to 8'),
         templated(AGENT_APPENDIX_PROMPT, 'Appendix', '5 to 7'),
@@ -843,7 +849,10 @@ export class BusinessPlanService extends GenericService {
 
   /** Contexte financier réel (module Finance) pour les agents — point unique. */
   private buildFinanceContext(project: ProjectModel): string {
-    return buildFinanceNarrative(project.analysisResultModel?.finance);
+    return buildFinanceNarrative(
+      project.analysisResultModel?.finance,
+      project.additionalInfos?.country
+    );
   }
 
   async getBusinessPlansByProjectId(
@@ -1125,7 +1134,10 @@ export class BusinessPlanService extends GenericService {
 
     const brandContext = await this.buildBrandContext(userId, projectId, project, language);
 
-    const financeContext = buildFinanceNarrative(project.analysisResultModel?.finance);
+    const financeContext = buildFinanceNarrative(
+      project.analysisResultModel?.finance,
+      project.additionalInfos?.country
+    );
 
     const step: IPromptStep = {
       promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}${financeContext}`,
