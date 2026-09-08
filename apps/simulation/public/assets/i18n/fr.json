@@ -346,7 +346,8 @@
       "conditions": "Conditions de viabilité",
       "recommendations": "Recommandations",
       "evidence": "Données et hypothèses",
-      "validation": "À valider dans le monde réel"
+      "validation": "À valider dans le monde réel",
+      "issues": "Problèmes et réponses"
     },
     "factors": {
       "body": "{{total}} facteurs ont été retenus comme potentiellement pertinents pour ce projet, puis classés selon leur impact possible sur les résultats."
@@ -390,7 +391,15 @@
     "download": "Télécharger le PDF",
     "downloading": "Composition du PDF…",
     "downloadFailed": "Le rapport n'a pas pu être généré.",
-    "downloadReport": "Télécharger le rapport"
+    "downloadReport": "Télécharger le rapport",
+    "issues": {
+      "body": "Chaque problème relevé par l'analyse porte, juste dessous, l'action qui y répond. Classés par gravité décroissante.",
+      "response": "Réponse",
+      "noResponse": "Aucune réponse dégagée par l'analyse : ce point reste ouvert et doit être arbitré.",
+      "otherActions": "Autres actions prioritaires",
+      "otherActionsBody": "Elles ne répondent à aucun des problèmes ci-dessus en particulier : elles renforcent le modèle dans son ensemble.",
+      "empty": "L'analyse n'a relevé aucun problème dans les scénarios testés."
+    }
   },
   "compare": {
     "title": "Comparaison",

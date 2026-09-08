@@ -346,7 +346,8 @@
       "conditions": "Viability conditions",
       "recommendations": "Recommendations",
       "evidence": "Data and assumptions",
-      "validation": "To validate in the real world"
+      "validation": "To validate in the real world",
+      "issues": "Problems and responses"
     },
     "factors": {
       "body": "{{total}} factors were kept as potentially relevant to this project, then ranked by the impact they can have on the results."
@@ -390,7 +391,15 @@
     "download": "Download the PDF",
     "downloading": "Building the PDF…",
     "downloadFailed": "The report could not be generated.",
-    "downloadReport": "Download the report"
+    "downloadReport": "Download the report",
+    "issues": {
+      "body": "Every problem the analysis found carries, right below it, the action that answers it. Ordered by decreasing severity.",
+      "response": "Response",
+      "noResponse": "The analysis found no response to this one: it stays open and has to be decided.",
+      "otherActions": "Other priority actions",
+      "otherActionsBody": "These answer none of the problems above in particular: they strengthen the model as a whole.",
+      "empty": "The analysis found no problem in the scenarios tested."
+    }
   },
   "compare": {
     "title": "Comparison",

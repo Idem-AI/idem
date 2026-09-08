@@ -23,6 +23,8 @@ import { AGENT_TARGET_AUDIENCE_PROMPT } from './prompts/agent-target-audience.pr
 import { AGENT_PRODUCTS_SERVICES_PROMPT } from './prompts/agent-products-services.prompt';
 import { AGENT_MARKETING_SALES_PROMPT } from './prompts/agent-marketing-sales.prompt';
 import { AGENT_FINANCIAL_PLAN_PROMPT } from './prompts/agent-financial-plan.prompt';
+import { buildFinanceBlocks, buildFinanceNarrative } from '../Finance/finance-blocks';
+import { Block } from '../design/sectionContent';
 import { AGENT_GOAL_PLANNING_PROMPT } from './prompts/agent-goal-planning.prompt';
 import { AGENT_APPENDIX_PROMPT } from './prompts/agent-appendix.prompt';
 import { BP_SECTION_EXAMPLE } from './prompts/section-example.prompt';
@@ -149,43 +151,11 @@ export class BusinessPlanService extends GenericService {
     const brandContext = await this.buildBrandContext(userId, projectId, project, language);
     const lintContext = this.buildLintContext(project);
 
-    // Build finance context if finance module exists
-    let financeContext = '';
-    if (project.analysisResultModel?.finance) {
-      const finance = project.analysisResultModel.finance;
-      const summaryText = [];
-      if (finance.computed) {
-        const ce = finance.computed.compteExploitation || [];
-        const seuil = finance.computed.seuilRentabilite || [];
-        const ft = finance.computed.fluxTresorerie || [];
-        
-        summaryText.push('--- REAL FINANCIAL DATA FROM THE FINANCE MODULE ---');
-        summaryText.push(`Currency: ${finance.meta?.currency || 'FCFA'}`);
-
-        summaryText.push('Revenue and net income projections:');
-        ce.forEach((y: any) => {
-          summaryText.push(`- Year ${y.year}: revenue = ${y.chiffreAffaires} ${finance.meta?.currency || 'FCFA'}, net income = ${y.resultatNet} ${finance.meta?.currency || 'FCFA'}, gross margin = ${y.margeBrute} ${finance.meta?.currency || 'FCFA'} (${y.tauxMargePct}%)`);
-        });
-
-        if (seuil.length > 0) {
-          summaryText.push('Break-even:');
-          seuil.forEach((s: any) => {
-            summaryText.push(`- Year ${s.year}: break-even = ${s.seuilRentabilite} ${finance.meta?.currency || 'FCFA'}, break-even point = ${s.pointMortJours} days`);
-          });
-        }
-
-        if (ft.length > 0) {
-          summaryText.push('Closing cash position:');
-          ft.forEach((f: any) => {
-            summaryText.push(`- Year ${f.year}: closing cash = ${f.tresorerieCloture} ${finance.meta?.currency || 'FCFA'}`);
-          });
-        }
-      } else {
-        summaryText.push('--- FINANCE MODULE DATA (not computed) ---');
-        summaryText.push(`Products: ${finance.products.map(p => `${p.name}: ${p.prices?.[0]} FCFA`).join(', ')}`);
-      }
-      financeContext = '\n\n' + summaryText.join('\n');
-    }
+    // Le contexte financier vient d'un point unique : ce texte servait, dans
+    // trois copies légèrement divergentes, à faire recopier des chiffres au
+    // modèle. Les tableaux sont maintenant POSÉS par le service ; ce résumé ne
+    // sert plus qu'à ce que les autres sections ne contredisent pas le module.
+    const financeContext = buildFinanceNarrative(project.analysisResultModel?.finance);
 
     try {
       // Les dépendances entre sections ne sont PLUS déclarées ici : elles vivent
@@ -255,7 +225,8 @@ export class BusinessPlanService extends GenericService {
         fallbackPrompt: string,
         stepName: string,
         volume: string,
-        extra = ''
+        extra = '',
+        prependBlocks?: Block[]
       ): IPromptStep => {
         sectionIndex += 1;
         return {
@@ -281,6 +252,11 @@ export class BusinessPlanService extends GenericService {
             ),
             volume,
             render: { ...renderOptions, index: sectionIndex },
+            // Les tableaux financiers viennent du module Finance, pas du
+            // modèle : un chiffre recopié dans un contexte de plusieurs
+            // milliers de mots est un chiffre altéré, et c'est le défaut qu'un
+            // lecteur de plan repère en premier.
+            prependBlocks,
           },
         };
       };
@@ -313,7 +289,13 @@ export class BusinessPlanService extends GenericService {
         templated(AGENT_TARGET_AUDIENCE_PROMPT, 'Target Audience', '7 to 9'),
         templated(AGENT_PRODUCTS_SERVICES_PROMPT, 'Products & Services', '7 to 9'),
         templated(AGENT_MARKETING_SALES_PROMPT, 'Marketing & Sales', '7 to 9'),
-        templated(AGENT_FINANCIAL_PLAN_PROMPT, 'Financial Plan', '8 to 10', financeContext),
+        templated(
+          AGENT_FINANCIAL_PLAN_PROMPT,
+          'Financial Plan',
+          '8 to 10',
+          financeContext,
+          buildFinanceBlocks(project.analysisResultModel?.finance)
+        ),
         templated(AGENT_GOAL_PLANNING_PROMPT, 'Goal Planning', '6 to 8'),
         templated(AGENT_APPENDIX_PROMPT, 'Appendix', '5 to 7'),
       ];
@@ -859,28 +841,9 @@ export class BusinessPlanService extends GenericService {
     };
   }
 
-  /** Construit le bloc de contexte financier réel (module Finance) pour les agents. */
+  /** Contexte financier réel (module Finance) pour les agents — point unique. */
   private buildFinanceContext(project: ProjectModel): string {
-    if (!project.analysisResultModel?.finance) return '';
-    const finance = project.analysisResultModel.finance;
-    const currency = finance.meta?.currency || 'FCFA';
-    const summaryText: string[] = [];
-    if (finance.computed) {
-      const ce = finance.computed.compteExploitation || [];
-      summaryText.push('--- REAL FINANCIAL DATA FROM THE FINANCE MODULE ---');
-      summaryText.push(`Currency: ${currency}`);
-      ce.forEach((y: any) => {
-        summaryText.push(
-          `- Year ${y.year}: revenue = ${y.chiffreAffaires} ${currency}, net income = ${y.resultatNet} ${currency}, gross margin = ${y.margeBrute} ${currency} (${y.tauxMargePct}%)`
-        );
-      });
-    } else {
-      summaryText.push('--- FINANCE MODULE DATA (not computed) ---');
-      summaryText.push(
-        `Products: ${finance.products.map((p) => `${p.name}: ${p.prices?.[0]} ${currency}`).join(', ')}`
-      );
-    }
-    return '\n\n' + summaryText.join('\n');
+    return buildFinanceNarrative(project.analysisResultModel?.finance);
   }
 
   async getBusinessPlansByProjectId(
@@ -1162,43 +1125,7 @@ export class BusinessPlanService extends GenericService {
 
     const brandContext = await this.buildBrandContext(userId, projectId, project, language);
 
-    // Build finance context
-    let financeContext = '';
-    if (project.analysisResultModel?.finance) {
-      const finance = project.analysisResultModel.finance;
-      const summaryText = [];
-      if (finance.computed) {
-        const ce = finance.computed.compteExploitation || [];
-        const seuil = finance.computed.seuilRentabilite || [];
-        const ft = finance.computed.fluxTresorerie || [];
-        
-        summaryText.push('--- REAL FINANCIAL DATA FROM THE FINANCE MODULE ---');
-        summaryText.push(`Currency: ${finance.meta?.currency || 'FCFA'}`);
-        
-        summaryText.push('Projections de Chiffre d\'Affaires et Résultat Net:');
-        ce.forEach((y: any) => {
-          summaryText.push(`- Year ${y.year}: revenue = ${y.chiffreAffaires} ${finance.meta?.currency || 'FCFA'}, net income = ${y.resultatNet} ${finance.meta?.currency || 'FCFA'}, gross margin = ${y.margeBrute} ${finance.meta?.currency || 'FCFA'} (${y.tauxMargePct}%)`);
-        });
-        
-        if (seuil.length > 0) {
-          summaryText.push('Break-even:');
-          seuil.forEach((s: any) => {
-            summaryText.push(`- Year ${s.year}: break-even = ${s.seuilRentabilite} ${finance.meta?.currency || 'FCFA'}, break-even point = ${s.pointMortJours} days`);
-          });
-        }
-        
-        if (ft.length > 0) {
-          summaryText.push('Closing cash position:');
-          ft.forEach((f: any) => {
-            summaryText.push(`- Year ${f.year}: closing cash = ${f.tresorerieCloture} ${finance.meta?.currency || 'FCFA'}`);
-          });
-        }
-      } else {
-        summaryText.push('--- FINANCE MODULE DATA (not computed) ---');
-        summaryText.push(`Products: ${finance.products.map(p => `${p.name}: ${p.prices?.[0]} FCFA`).join(', ')}`);
-      }
-      financeContext = '\n\n' + summaryText.join('\n');
-    }
+    const financeContext = buildFinanceNarrative(project.analysisResultModel?.finance);
 
     const step: IPromptStep = {
       promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}${financeContext}`,

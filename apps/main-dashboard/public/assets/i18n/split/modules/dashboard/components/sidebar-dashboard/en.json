@@ -37,7 +37,8 @@
       "errors": {
         "projectNotFound": "Project ID '{{cookieId}}' from cookie not found. Using first project instead.",
         "initialProjectNotFound": "Initial project ID '{{initialCookieId}}' not found. Navigating to global dashboard."
-      }
+      },
+      "simulations": "Simulations"
     }
   }
 }

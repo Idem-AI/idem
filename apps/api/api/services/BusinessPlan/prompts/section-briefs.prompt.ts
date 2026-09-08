@@ -107,20 +107,42 @@ positioning, one "assumption" block for the acquisition cost hypothesis.`
 
   'Financial Plan': brief(
     'Project soberly. A model that cannot be reconstructed is not read.',
-    `1. The headline figures of the model: revenue, margin, result at year three.
-2. Revenue model: streams, prices, volumes.
-3. A three-year projection, year by year.
-4. Cost structure: variable and fixed, separated.
-5. Break-even: when, and at what volume.
-6. Funding required, and what it is spent on.
-7. The financial risks, and what would absorb them.
+    `THE TABLES ARE ALREADY THERE. When the finance module is filled, this section
+opens with blocks the SERVER built from the real model: headline figures, the
+projection chart, the profit and loss, the project cost, the funding plan and
+the return indicators. You are writing AROUND them. Do not restate a table that
+is already on the page, and never retype a figure — quote at most the two or
+three that carry your argument.
 
-⚠️ Where the FINANCE MODULE supplies real data, use it VERBATIM — same figures,
+What you must add, in this order:
+
+1. What the model rests on: revenue streams, prices, volumes, and why those
+   volumes are reachable in THIS market.
+2. The cost structure read as a structure: what is variable, what is fixed, and
+   what happens to the result when volume moves.
+3. The break-even, stated as a business fact — how many units, how many months,
+   which month of which calendar year.
+4. THE FUNDING REQUEST. Say the amount, what it buys, and how it is repaid. If
+   the finance module reports a funding need, that number opens this paragraph.
+   A plan a bank reads without finding this paragraph is a plan a bank declines.
+5. The financial risks, each with what would absorb it — a covenant, a reserve,
+   a cost that can be cut, a contract that can be renegotiated.
+
+⚠️ ACCOUNTING CALENDAR (SYSCOHADA / OHADA, mandatory in Cameroon and the whole
+zone). The fiscal year runs from 1 JANUARY TO 31 DECEMBER, whatever the month
+the activity actually starts. Name every year as a single calendar year —
+"exercice 2026" — and NEVER as a span such as "2026-2027". Where the activity
+starts mid-year, say so plainly: the first fiscal year is a SHORT year and its
+figures are not comparable to a full one.
+
+⚠️ Where the FINANCE MODULE supplies real data, it is the truth. Same figures,
 same currency, same years. Contradicting it is the single defect a reader
-notices first.`,
-    `One "chart" (stacked or line) for the projection, one "table" for the yearly
-figures, one "metrics" row for break-even and runway, two or three "assumption"
-blocks for the drivers of the model.`
+notices first — and the server-built tables above make any contradiction visible
+on the same page.`,
+    `Mostly "prose". Add one "assumption" block per driver you rely on (volumes,
+price, collection delay, cost of the loan). A "timeline" is welcome for the
+funding drawdown and repayment. Do NOT add a projection chart, a profit and loss
+table, a project cost table or a funding table: the server already placed them.`
   ),
 
   'Goal Planning': brief(

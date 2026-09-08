@@ -18,7 +18,6 @@
         }
       },
       "buttons": {
-        "edit": "Éditer",
         "backToOverview": "Retour à l'aperçu",
         "backToProjects": "Retour aux projets",
         "getCharter": "Obtenir la charte graphique",
@@ -27,6 +26,7 @@
         "generate": "Générer l'identité de marque",
         "viewIdentity": "Voir mon identité visuelle",
         "generateIdentity": "Générer mon identité visuelle",
+        "edit": "Éditer",
         "editIdentity": "Éditer",
         "downloadLogos": "Télécharger toutes les déclinaisons"
       },

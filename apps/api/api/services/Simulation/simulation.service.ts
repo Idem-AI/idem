@@ -744,7 +744,8 @@ export class SimulationService {
       factors,
       result.scenarios,
       sensitivitySummary,
-      userId
+      userId,
+      result.risks
     );
 
     const report: SimulationReport = {
@@ -763,6 +764,7 @@ export class SimulationService {
       financials: result.financials,
       sensitivity: result.sensitivity,
       conditions: result.conditions,
+      risks: result.risks,
       recommendations: output.recommendations,
       evidence: simulation.evidence,
       validationNeeded: output.validationNeeded,
@@ -804,6 +806,13 @@ export class SimulationService {
       throw new Error(`Simulation not found: ${simulationId}`);
     }
     if (simulation.report) {
+      // Les rapports produits avant le regroupement « problèmes et réponses »
+      // ne portent pas leurs risques : on les reprend du résultat, qui les a
+      // toujours eus. Sans cela, un rapport ancien s'ouvrirait sur un chapitre
+      // vide plutôt que sur ses problèmes.
+      if (!simulation.report.risks?.length && simulation.result?.risks?.length) {
+        return { ...simulation.report, risks: simulation.result.risks };
+      }
       return simulation.report;
     }
     if (simulation.tier === 'run' || !simulation.result || !simulation.understanding) {

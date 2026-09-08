@@ -378,25 +378,43 @@ export class SimulationAIService {
     factors: readonly Factor[],
     scenarios: readonly Scenario[],
     sensitivitySummary: string,
-    userId: string
+    userId: string,
+    risks: readonly Risk[] = []
   ): Promise<RecommendationOutput> {
+    // Les risques partent AVEC leur identifiant : c'est ce qui permet au modèle
+    // d'apparier chaque réponse à son problème, et au rapport de les imprimer
+    // ensemble plutôt que dans deux chapitres séparés.
+    const riskList = risks.length
+      ? `\n\nRISQUES IDENTIFIÉS (apparier chaque recommandation à l'un d'eux) :\n${risks
+          .map((risk) => `- ${risk.id} [${risk.severity}] ${risk.title} : ${risk.description}`)
+          .join('\n')}`
+      : '';
+
     const raw = await this.run(
       'recommendations',
       RECOMMENDATIONS_PROMPT,
-      `${this.describeUnderstanding(understanding)}\n\n${this.describeFactors(factors)}\n\n${this.describeScenarioResults(scenarios)}\n\nANALYSE DE SENSIBILITÉ:\n${sensitivitySummary}`,
+      `${this.describeUnderstanding(understanding)}\n\n${this.describeFactors(factors)}\n\n${this.describeScenarioResults(scenarios)}\n\nANALYSE DE SENSIBILITÉ:\n${sensitivitySummary}${riskList}`,
       userId
     );
     const parsed = this.parseJSON(raw);
 
+    // Un identifiant de risque inventé casserait l'appariement en silence : on
+    // ne retient que ceux qui existent réellement.
+    const knownRiskIds = new Set(risks.map((risk) => risk.id));
+
     return {
-      recommendations: toArray(parsed.recommendations).map((entry, index) => ({
-        id: str(entry.id) || `rec-${index + 1}`,
-        title: str(entry.title),
-        body: str(entry.body),
-        expectedImpact: pick(entry.expectedImpact, ['low', 'medium', 'high'] as const, 'medium'),
-        priority: pick(entry.priority, ['low', 'medium', 'high', 'critical'] as const, 'medium'),
-        confidence: pick(entry.confidence, CONFIDENCE_LEVELS, 'medium'),
-      })),
+      recommendations: toArray(parsed.recommendations).map((entry, index) => {
+        const addressed = str(entry.addressesRiskId);
+        return {
+          id: str(entry.id) || `rec-${index + 1}`,
+          title: str(entry.title),
+          body: str(entry.body),
+          expectedImpact: pick(entry.expectedImpact, ['low', 'medium', 'high'] as const, 'medium'),
+          priority: pick(entry.priority, ['low', 'medium', 'high', 'critical'] as const, 'medium'),
+          confidence: pick(entry.confidence, CONFIDENCE_LEVELS, 'medium'),
+          addressesRiskId: knownRiskIds.has(addressed) ? addressed : undefined,
+        };
+      }),
       validationNeeded: toStringArray(parsed.validationNeeded),
       executiveStatement: str(parsed.executiveStatement),
     };

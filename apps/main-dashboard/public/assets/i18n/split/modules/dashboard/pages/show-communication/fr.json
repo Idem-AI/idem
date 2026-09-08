@@ -82,7 +82,6 @@
         "format": "Format",
         "generate": "Générer le visuel",
         "regenerate": "Régénérer",
-        "edit": "Modifier",
         "download": "Télécharger le PNG",
         "close": "Fermer",
         "generating": "Recherche d'image, analyse et composition du visuel…",
@@ -102,7 +101,8 @@
         "subheadline": "Sous-titre",
         "body": "Corps du texte",
         "cta": "Appel à l'action",
-        "logoUsed": "Déclinaison de logo utilisée"
+        "logoUsed": "Déclinaison de logo utilisée",
+        "edit": "Modifier"
       },
       "moments": {
         "eyebrow": "Moments ponctuels",

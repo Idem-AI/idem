@@ -14,6 +14,17 @@ export const FINANCE_AUTOFILL_SYSTEM_PROMPT = `<role>Chartered accountant and fi
 - Format: STRICT JSON only. No markdown (no \`\`\`), no comments.
 - Justifications: explain every significant value (one sentence max) in "aiSuggestions". Use 0 plus a justification when a line is not relevant.
 - Every text you emit (product names, charge labels, job titles, justifications) is written IN FRENCH: it is displayed as-is in the user's financial plan.
+- ACCOUNTING CALENDAR (SYSCOHADA, mandatory): the fiscal year runs from 1 JANUARY
+  to 31 DECEMBER. Month index 0 of every 36-month array is JANUARY of the first
+  fiscal year — not the month the business opens. When the activity starts later
+  in the year, leave the preceding months at 0 for sales and variable charges;
+  fixed charges that already run (rent, a founder's salary) stay non-zero.
+  Never name a fiscal year as a span such as "2026-2027".
+- AN INVESTMENT PLAN IS NOT OPTIONAL. Value actuelle nette, taux de rentabilité
+  interne and payback all divide by the initial outlay: with an empty investment
+  table they are computed against zero and come out absurdly flattering. Always
+  produce the investments the activity actually requires, and a funding plan
+  that faces them.
 </constraints>`;
 
 export const FINANCE_AUTOFILL_GLOBAL_PROMPT = `<objective>Produce a complete, coherent 36-month financial model.</objective>
@@ -73,8 +84,11 @@ export const FINANCE_AUTOFILL_GLOBAL_PROMPT = `<objective>Produce a complete, co
 <rules>
 - 1 to 5 products maximum. A progressive sales curve.
 - Salaries: 2 to 6 positions.
-- Investments: concentrated in M1.
-- Balanced funding: equity 30-50%, debt 30-50%, other 10-20%.
+- Investments: concentrated in the first months of activity, and NEVER empty —
+  every activity needs equipment, fit-out or at least incorporation costs.
+- Balanced funding: equity 30-50%, debt 30-50%, other 10-20%. The funding total
+  may legitimately fall short of the project cost: the gap is the amount the
+  founder will request, and it is a result, not an error to hide.
 - Variable-charge categories: achatsMarchandises, matieresPremieres, transportSurAchats, sousTraitance, publiciteRelationsPubliques, fraisTelecommunications, fraisBancaires, fraisFormation, autresChargesExternes.
 - Fixed-charge categories: locations, primesAssurances, entretienReparation, cotisations, formationProfessionnelle, autresImpotsDirects, perteChange.
 - Investment categories: mobilier, materielOutillageIndustriel, logiciels, fraisConstitution, amenagementBureaux, materielTransport.

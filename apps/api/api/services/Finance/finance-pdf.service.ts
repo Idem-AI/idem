@@ -1,10 +1,16 @@
 /**
- * FinancePdfService — génère un rapport financier PDF complet à partir du
- * FinanceModel d'un projet, en s'appuyant sur le PdfService existant
- * (Puppeteer + HTML/Tailwind).
+ * FinancePdfService — assemble le rapport financier PDF d'un projet.
  *
- * Le rapport adopte la charte graphique du projet si disponible, sinon le
- * design system IDEM par défaut.
+ * Le service ne compose plus : il ORCHESTRE. La grammaire visuelle vit dans
+ * `finance-report.template`, les chapitres dans `finance-report.sections`, et
+ * les chiffres viennent tous de `finance.computed` — aucun n'est recalculé ici.
+ *
+ * Le rapport suit l'ordre de lecture d'un analyste crédit et comporte
+ * désormais les chapitres qui manquaient : modèle de revenus détaillé,
+ * structure de coûts poste par poste, fiscalité au barème, tableau des
+ * investissements, besoin en fonds de roulement, plan de financement et
+ * MONTANT SOLLICITÉ, flux O.E.C. détaillés, actualisation ligne à ligne et
+ * valorisation. Les exercices sont calés sur l'année civile (SYSCOHADA).
  */
 
 import logger from '../../config/logger';
@@ -19,14 +25,24 @@ import { financeService } from './finance.service';
 import { financeAIService } from './finance-ai.service';
 import { ProjectModel } from '../../models/project.model';
 import { RepositoryFactory } from '../../repository/RepositoryFactory';
+import { FinanceModel } from '../../models/finance.model';
+import { buildChrome } from './finance-report.template';
 import {
-  FinanceComputed,
-  FinanceModel,
-  CompteExploitationRow,
-  BilanRow,
-  FluxTresorerieRow,
-  SeuilRentabiliteRow,
-} from '../../models/finance.model';
+  analysisSection,
+  bfrSection,
+  bilanSection,
+  breakEvenSection,
+  cashflowSection,
+  costStructureSection,
+  exploitationSection,
+  fundingSection,
+  investmentsSection,
+  methodSection,
+  ratiosSection,
+  revenueSection,
+  summarySection,
+  taxesSection,
+} from './finance-report.sections';
 import { TypographyModel } from '../../models/brand-identity.model';
 import { AIChatMessage, LLMProvider, PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
@@ -36,21 +52,21 @@ import * as crypto from 'crypto';
 import { AGENT_FINANCE_COVER_PROMPT } from './prompts/agent-finance-cover.prompt';
 import { resolveLogoDeclensions } from '../../utils/brand-context.util';
 
-interface BrandPalette {
-  primary: string;
-  secondary: string;
-  accent: string;
-  background: string;
-  text: string;
+
+/** Doit correspondre à `fixedPageSections` : la couverture n'est jamais paginée. */
+const COVER_SECTION_NAME = 'Couverture';
+
+function section(name: string, html: string): SectionModel {
+  return { name, type: 'finance-report', data: html, summary: '' };
 }
 
-const IDEM_DEFAULT_PALETTE: BrandPalette = {
-  primary: '#7C5CFC',
-  secondary: '#3B82F6',
-  accent: '#10B981',
-  background: '#0F141B',
-  text: '#FFFFFF',
-};
+/** Découpe l'analyse rédigée en paragraphes, en écartant les lignes vides. */
+function splitParagraphs(text: string): string[] {
+  return String(text || '')
+    .split(/\n{1,}/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
 
 export class FinancePdfService {
   private readonly pdfService = new PdfService();
@@ -71,7 +87,6 @@ export class FinancePdfService {
       );
     }
 
-    const palette = this.extractPalette(project);
     const typography = this.extractTypography(project);
     const companyName = project.name || 'Projet';
     
@@ -87,17 +102,37 @@ export class FinancePdfService {
     );
     const interpretation = await this.generateInterpretation(project, finance);
 
-    // Construit les sections HTML
+    // ── L'ORDRE DE LECTURE D'UN ANALYSTE CRÉDIT ─────────────────────────────
+    //
+    // Ce que l'affaire rapporte, ce qu'elle coûte, ce qu'elle doit à l'État, ce
+    // qu'elle immobilise, ce qu'il faut apporter pour la lancer — puis les états
+    // de synthèse, puis seulement les indicateurs de rentabilité. Les chapitres
+    // 02 à 07 n'existaient pas : le rapport passait du chiffre d'affaires au
+    // compte d'exploitation sans jamais dire ce que le projet coûtait ni ce
+    // qu'il demandait.
+    const chrome = buildChrome(
+      designSystem,
+      finance.meta?.currency || 'FCFA',
+      companyName,
+      this.buildCoverLogoHtml(project, designSystem, companyName)
+    );
+
     const sections: SectionModel[] = [
       coverSection,
-      this.buildSummarySection(finance, palette),
-      this.buildProductsSection(finance, palette),
-      this.buildExploitationSection(finance.computed.compteExploitation, palette),
-      this.buildBilanSection(finance.computed.bilan, palette),
-      this.buildCashflowSection(finance.computed.fluxTresorerie, palette),
-      this.buildSeuilSection(finance.computed.seuilRentabilite, palette),
-      this.buildRatiosSection(finance, palette),
-      this.buildInterpretationSection(interpretation, palette),
+      section('Synthèse', summarySection(chrome, finance)),
+      section('Modèle de revenus', revenueSection(chrome, finance)),
+      section('Structure de coûts', costStructureSection(chrome, finance)),
+      section('Fiscalité', taxesSection(chrome, finance)),
+      section('Investissements', investmentsSection(chrome, finance)),
+      section('Fonds de roulement', bfrSection(chrome, finance)),
+      section('Plan de financement', fundingSection(chrome, finance)),
+      section("Compte d'exploitation", exploitationSection(chrome, finance)),
+      section('Bilan', bilanSection(chrome, finance)),
+      section('Trésorerie', cashflowSection(chrome, finance)),
+      section('Seuil de rentabilité', breakEvenSection(chrome, finance)),
+      section('Rentabilité', ratiosSection(chrome, finance)),
+      section('Analyse', analysisSection(chrome, splitParagraphs(interpretation))),
+      section('Méthode', methodSection(chrome, finance)),
     ];
 
     return this.pdfService.generatePdf({
@@ -105,6 +140,14 @@ export class FinancePdfService {
       projectName: companyName,
       projectDescription: project.longDescription || project.description || '',
       sections,
+      // Les tableaux d'un rapport financier sont longs par nature. Sans
+      // paginateur de flux, tout ce qui dépassait la première page était
+      // simplement rogné — un compte d'exploitation amputé de son résultat net.
+      multiPage: true,
+      fixedPageSections: [COVER_SECTION_NAME],
+      // Un rapport aussi tabulaire se distend mal : mieux vaut une page qui
+      // s'arrête qu'une page aux interlignes creusés.
+      pagination: { maxGapAddMm: 2, maxGapAddHardMm: 4, minFillRatio: 0.2 },
       footerText: `Rapport financier — ${companyName} — Généré par Idem`,
       typography: typography,
     });
@@ -113,48 +156,6 @@ export class FinancePdfService {
   // -----------------------------------------------------------------
   // Brand & utilities
   // -----------------------------------------------------------------
-
-  /**
-   * Palette du rapport, DÉRIVÉE du design system du projet.
-   *
-   * ── LE DÉFAUT QUE CECI CORRIGE ─────────────────────────────────────────────
-   *
-   * L'ancienne version lisait `branding.colors.primary`. Or la forme réelle est
-   * `ColorModel { colors: { primary, secondary, … } }` : les couleurs vivent un
-   * niveau plus bas. Le champ était donc TOUJOURS `undefined`, chaque `||`
-   * retombait sur `IDEM_DEFAULT_PALETTE`, et le rapport financier sortait
-   * depuis toujours aux couleurs d'IDEM — jamais à celles du projet.
-   *
-   * Rien ne le signalait : le rapport était joliment coloré, simplement pas avec
-   * la bonne charte. C'est la panne la plus discrète de cette base — un chemin
-   * d'accès faux se lit comme une valeur absente, et une valeur absente se
-   * remplace poliment par un défaut.
-   *
-   * ── POURQUOI PASSER PAR LE DESIGN SYSTEM ───────────────────────────────────
-   *
-   * Lire au bon endroit aurait suffi à corriger le symptôme. On fait plus : le
-   * rapport emprunte désormais le MÊME design system que le business plan, le
-   * deck et la charte. Il hérite donc de ce qui y a été construit — encres dont
-   * le contraste est calculé et non espéré, rampes dérivées de la marque, et
-   * surtout la DIRECTION ARTISTIQUE, qui n'existait nulle part ici (aucune
-   * occurrence dans le fichier avant ce changement).
-   *
-   * Conséquence concrète : deux livrables du même projet cessent d'avoir deux
-   * identités visuelles, ce qui était le cas et se voyait.
-   */
-  private extractPalette(project: ProjectModel): BrandPalette {
-    const ds = this.designSystemOf(project);
-    return {
-      primary: ds.colors.primary,
-      secondary: ds.colors.secondary,
-      accent: ds.colors.accent,
-      background: ds.colors.surface,
-      // L'encre est CALCULÉE contre le fond retenu : sur un rapport financier,
-      // un texte de charte trop clair sur son propre fond rend des colonnes de
-      // chiffres illisibles, ce qu'aucune relecture de palette ne montre.
-      text: ds.colors.ink,
-    };
-  }
 
   /**
    * Design system du projet, calculé une fois par rapport.
@@ -244,16 +245,6 @@ export class FinancePdfService {
     return '';
   }
 
-  private fmt(value: number): string {
-    if (!Number.isFinite(value)) return '—';
-    const rounded = Math.round(value);
-    return rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' FCFA';
-  }
-
-  private pct(value: number): string {
-    return Number.isFinite(value) ? `${value.toFixed(1)} %` : '—';
-  }
-
   // -----------------------------------------------------------------
   // Section builders (chaque section retourne un SectionModel)
   // -----------------------------------------------------------------
@@ -338,7 +329,7 @@ export class FinancePdfService {
       </div>
     </div>`;
 
-    return { name: 'Couverture', type: 'cover', data: html, summary: '' };
+    return { name: COVER_SECTION_NAME, type: 'cover', data: html, summary: '' };
   }
 
   private getSeededRandom(seed: string): () => number {
@@ -353,415 +344,6 @@ export class FinancePdfService {
     };
   }
 
-  private buildSummarySection(finance: FinanceModel, p: BrandPalette): SectionModel {
-    const c = finance.computed!;
-    const ce0 = c.compteExploitation[0];
-    const ce2 = c.compteExploitation[2];
-    const flux1 = c.fluxTresorerie[0];
-    const seuil1 = c.seuilRentabilite[0];
-    const ratios = c.ratios;
-
-    const kpi = (label: string, value: string, color = p.primary) => `
-      <div style="background:#F8FAFC;border-left:4px solid ${color};padding:14px 16px;border-radius:6px;">
-        <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">${label}</div>
-        <div style="font-size:20px;font-weight:700;color:#0F172A;margin-top:6px;">${value}</div>
-      </div>`;
-
-    const html = `<div style="padding:32px;font-family:'Helvetica Neue',Arial,sans-serif;color:#0F172A;">
-      <h2 style="font-size:32px;font-weight:800;margin:0 0 4px;color:${p.primary};">Synthèse financière</h2>
-      <p style="color:#64748B;margin:0 0 32px;">Indicateurs clés des 3 premières années d'exploitation</p>
-
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px;">
-        ${kpi('CA An 1', this.fmt(ce0?.chiffreAffaires || 0))}
-        ${kpi('Résultat net An 3', this.fmt(ce2?.resultatNet || 0), ce2?.resultatNet >= 0 ? p.accent : '#EF4444')}
-        ${kpi('Marge brute An 1', this.pct(ce0?.tauxMargePct || 0))}
-        ${kpi('Trésorerie clôture An 1', this.fmt(flux1?.tresorerieCloture || 0), flux1?.tresorerieCloture >= 0 ? p.accent : '#EF4444')}
-        ${kpi('Point mort', `${Math.round(seuil1?.pointMortJours || 0)} jours`)}
-        ${kpi('BFR', this.fmt(c.bfr.monthlyBfr[c.bfr.monthlyBfr.length - 1] || 0))}
-        ${kpi('Coût total du projet', this.fmt(c.financing.coutTotalProjet))}
-        ${kpi('TRI', this.pct(ratios.tri), p.accent)}
-        ${kpi('VAN', this.fmt(ratios.van), ratios.van >= 0 ? p.accent : '#EF4444')}
-      </div>
-
-      <div style="margin-bottom: 28px; width: 100%; height: 250px;">
-        <canvas id="caChart"></canvas>
-      </div>
-      <script>
-        new Chart(document.getElementById('caChart'), {
-          type: 'bar',
-          data: {
-            labels: ['An 1', 'An 2', 'An 3'],
-            datasets: [
-              { label: "Chiffre d'affaires", data: [${c.compteExploitation.map(r => r.chiffreAffaires).join(',')}], backgroundColor: '${p.primary}' },
-              { label: 'Résultat net', data: [${c.compteExploitation.map(r => r.resultatNet).join(',')}], backgroundColor: '${p.accent}' }
-            ]
-          },
-          options: { responsive: true, maintainAspectRatio: false, animation: false }
-        });
-      </script>
-
-      <h3 style="font-size:18px;font-weight:700;margin:24px 0 12px;color:${p.primary};">Évolution sur 3 ans</h3>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;">
-        <thead>
-          <tr style="background:${p.primary};color:#fff;">
-            <th style="padding:10px;text-align:left;">Année</th>
-            <th style="padding:10px;text-align:right;">Chiffre d'affaires</th>
-            <th style="padding:10px;text-align:right;">Marge brute</th>
-            <th style="padding:10px;text-align:right;">EBE</th>
-            <th style="padding:10px;text-align:right;">Résultat net</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${c.compteExploitation
-            .map(
-              (row, i) => `
-            <tr style="border-bottom:1px solid #E2E8F0;background:${i % 2 ? '#F8FAFC' : '#FFFFFF'};">
-              <td style="padding:10px;font-weight:600;">An ${row.year}</td>
-              <td style="padding:10px;text-align:right;">${this.fmt(row.chiffreAffaires)}</td>
-              <td style="padding:10px;text-align:right;">${this.fmt(row.margeBrute)}</td>
-              <td style="padding:10px;text-align:right;">${this.fmt(row.ebe)}</td>
-              <td style="padding:10px;text-align:right;font-weight:600;color:${row.resultatNet >= 0 ? p.accent : '#EF4444'};">${this.fmt(row.resultatNet)}</td>
-            </tr>`,
-            )
-            .join('')}
-        </tbody>
-      </table>
-    </div>`;
-    return { name: 'Synthèse financière', type: 'finance-summary', data: html, summary: '' };
-  }
-
-  private buildProductsSection(finance: FinanceModel, p: BrandPalette): SectionModel {
-    const rows = finance.products
-      .map(
-        (prod, i) => `
-        <tr style="border-bottom:1px solid #E2E8F0;background:${i % 2 ? '#F8FAFC' : '#FFFFFF'};">
-          <td style="padding:10px;font-weight:600;">${this.esc(prod.name)}</td>
-          <td style="padding:10px;text-align:right;">${this.fmt(prod.prices?.[0] || 0)}</td>
-          <td style="padding:10px;text-align:right;">${this.fmt(prod.prices?.[1] || 0)}</td>
-          <td style="padding:10px;text-align:right;">${this.fmt(prod.prices?.[2] || 0)}</td>
-          <td style="padding:10px;text-align:right;color:#64748B;">${this.fmt(prod.unitCosts?.[0] || 0)}</td>
-        </tr>`,
-      )
-      .join('');
-
-    const html = `<div style="padding:32px;font-family:'Helvetica Neue',Arial,sans-serif;color:#0F172A;">
-      <h2 style="font-size:32px;font-weight:800;margin:0 0 4px;color:${p.primary};">Produits & Prix</h2>
-      <p style="color:#64748B;margin:0 0 28px;">Catalogue commercial sur 3 ans</p>
-      ${
-        finance.products.length === 0
-          ? '<p style="color:#94A3B8;font-style:italic;">Aucun produit défini.</p>'
-          : `<table style="width:100%;border-collapse:collapse;font-size:13px;">
-              <thead>
-                <tr style="background:${p.primary};color:#fff;">
-                  <th style="padding:10px;text-align:left;">Produit</th>
-                  <th style="padding:10px;text-align:right;">Prix An 1</th>
-                  <th style="padding:10px;text-align:right;">Prix An 2</th>
-                  <th style="padding:10px;text-align:right;">Prix An 3</th>
-                  <th style="padding:10px;text-align:right;">Coût unitaire An 1</th>
-                </tr>
-              </thead>
-              <tbody>${rows}</tbody>
-            </table>`
-      }
-    </div>`;
-    return { name: 'Produits & Prix', type: 'finance-products', data: html, summary: '' };
-  }
-
-  private buildExploitationSection(rows: CompteExploitationRow[], p: BrandPalette): SectionModel {
-    const lines = [
-      { label: 'Chiffre d\'affaires', key: 'chiffreAffaires' },
-      { label: 'Charges variables', key: 'chargesVariables' },
-      { label: 'Marge brute', key: 'margeBrute', bold: true },
-      { label: 'Charges fixes', key: 'chargesFixes' },
-      { label: 'Rémunérations', key: 'remunerations' },
-      { label: 'Impôts & taxes', key: 'impotsTaxes' },
-      { label: 'EBE', key: 'ebe', bold: true },
-      { label: 'Dotations amortissements', key: 'dotationsAmortissements' },
-      { label: 'Résultat exploitation', key: 'resultatExploitation' },
-      { label: 'Charges financières', key: 'chargesFinancieres' },
-      { label: 'Résultat avant impôt', key: 'resultatAvantImpot' },
-      { label: 'IS', key: 'is' },
-      { label: 'Résultat net', key: 'resultatNet', bold: true, highlight: true },
-    ];
-
-    const html = `<div style="padding:32px;font-family:'Helvetica Neue',Arial,sans-serif;color:#0F172A;">
-      <h2 style="font-size:32px;font-weight:800;margin:0 0 4px;color:${p.primary};">Compte d'exploitation prévisionnel</h2>
-      <p style="color:#64748B;margin:0 0 28px;">Cascade des résultats sur ${rows.length} ans</p>
-
-      <div style="margin-bottom: 28px; width: 100%; height: 250px; display: flex; justify-content: center;">
-        <canvas id="chargesChart"></canvas>
-      </div>
-      <script>
-        new Chart(document.getElementById('chargesChart'), {
-          type: 'doughnut',
-          data: {
-            labels: ['Charges Variables (An 1)', 'Charges Fixes (An 1)', 'Rémunérations (An 1)', 'Impôts & Taxes (An 1)'],
-            datasets: [{
-              data: [${rows[0]?.chargesVariables || 0}, ${rows[0]?.chargesFixes || 0}, ${rows[0]?.remunerations || 0}, ${rows[0]?.impotsTaxes || 0}],
-              backgroundColor: ['${p.primary}', '${p.secondary}', '${p.accent}', '#F59E0B']
-            }]
-          },
-          options: { 
-            responsive: true, 
-            maintainAspectRatio: false, 
-            animation: false,
-            plugins: {
-              legend: { position: 'right' }
-            }
-          }
-        });
-      </script>
-      <table style="width:100%;border-collapse:collapse;font-size:12px;">
-        <thead>
-          <tr style="background:${p.primary};color:#fff;">
-            <th style="padding:10px;text-align:left;">Poste</th>
-            ${rows.map((r) => `<th style="padding:10px;text-align:right;">An ${r.year}</th>`).join('')}
-          </tr>
-        </thead>
-        <tbody>
-          ${lines
-            .map(
-              (line, i) => `
-            <tr style="border-bottom:1px solid #E2E8F0;background:${
-              line.highlight ? `${p.accent}15` : i % 2 ? '#F8FAFC' : '#FFFFFF'
-            };">
-              <td style="padding:9px;${line.bold ? 'font-weight:700;' : ''}">${line.label}</td>
-              ${rows
-                .map((r) => {
-                  const v = (r as any)[line.key] || 0;
-                  return `<td style="padding:9px;text-align:right;${line.bold ? 'font-weight:700;' : ''}">${this.fmt(v)}</td>`;
-                })
-                .join('')}
-            </tr>`,
-            )
-            .join('')}
-        </tbody>
-      </table>
-    </div>`;
-    return { name: 'Compte d\'exploitation', type: 'finance-exploitation', data: html, summary: '' };
-  }
-
-  private buildBilanSection(rows: BilanRow[], p: BrandPalette): SectionModel {
-    const html = `<div style="padding:32px;font-family:'Helvetica Neue',Arial,sans-serif;color:#0F172A;">
-      <h2 style="font-size:32px;font-weight:800;margin:0 0 4px;color:${p.primary};">Bilan prévisionnel</h2>
-      <p style="color:#64748B;margin:0 0 28px;">Actif et passif simplifiés sur ${rows.length} ans</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
-        <div>
-          <h3 style="font-size:14px;font-weight:700;color:${p.primary};text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid ${p.primary};padding-bottom:6px;">Actif</h3>
-          <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:8px;">
-            ${this.bilanRowsHtml(rows, [
-              ['Trésorerie', 'tresorerie'],
-              ['Créances clients', 'creancesClients'],
-              ['Stocks', 'stocks'],
-              ['Total actifs circulants', 'totalActifsCirculants'],
-              ['Immobilisations brutes', 'immobilisationsBrutes'],
-              ['Amortissements cumulés', 'amortissementsCumules'],
-              ['VNC', 'vnc'],
-              ['Total actif', 'totalActif'],
-            ], p, ['Total actif'])}
-          </table>
-        </div>
-        <div>
-          <h3 style="font-size:14px;font-weight:700;color:${p.primary};text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid ${p.primary};padding-bottom:6px;">Passif</h3>
-          <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:8px;">
-            ${this.bilanRowsHtml(rows, [
-              ['Dettes fournisseurs', 'dettesFournisseurs'],
-              ['Dettes fiscales/sociales', 'dettesFiscalesSociales'],
-              ['Emprunts', 'emprunts'],
-              ['Total dettes', 'totalDettes'],
-              ['Capital social', 'capitalSocial'],
-              ['Report à nouveau', 'reportANouveau'],
-              ['Résultat de l\'exercice', 'resultatExercice'],
-              ['Fonds propres', 'fondsPropres'],
-              ['Total passif', 'totalPassif'],
-            ], p, ['Total passif'])}
-          </table>
-        </div>
-      </div>
-    </div>`;
-    return { name: 'Bilan prévisionnel', type: 'finance-bilan', data: html, summary: '' };
-  }
-
-  private bilanRowsHtml(
-    rows: BilanRow[],
-    fields: Array<[string, keyof BilanRow]>,
-    p: BrandPalette,
-    boldLabels: string[],
-  ): string {
-    return `
-      <thead>
-        <tr style="background:${p.primary}15;">
-          <th style="padding:6px;text-align:left;font-size:10px;text-transform:uppercase;">Poste</th>
-          ${rows.map((r) => `<th style="padding:6px;text-align:right;font-size:10px;">An ${r.year}</th>`).join('')}
-        </tr>
-      </thead>
-      <tbody>
-        ${fields
-          .map(
-            ([label, key], i) => `
-          <tr style="border-bottom:1px solid #E2E8F0;${boldLabels.includes(label) ? 'font-weight:700;background:#F1F5F9;' : i % 2 ? 'background:#F8FAFC;' : ''}">
-            <td style="padding:6px;">${label}</td>
-            ${rows
-              .map((r) => `<td style="padding:6px;text-align:right;">${this.fmt((r as any)[key] || 0)}</td>`)
-              .join('')}
-          </tr>`,
-          )
-          .join('')}
-      </tbody>`;
-  }
-
-  private buildCashflowSection(rows: FluxTresorerieRow[], p: BrandPalette): SectionModel {
-    const html = `<div style="padding:32px;font-family:'Helvetica Neue',Arial,sans-serif;color:#0F172A;">
-      <h2 style="font-size:32px;font-weight:800;margin:0 0 4px;color:${p.primary};">Flux de trésorerie</h2>
-      <p style="color:#64748B;margin:0 0 28px;">Méthode OEC sur ${rows.length} ans</p>
-
-      <div style="margin-bottom: 28px; width: 100%; height: 250px;">
-        <canvas id="cashflowChart"></canvas>
-      </div>
-      <script>
-        new Chart(document.getElementById('cashflowChart'), {
-          type: 'line',
-          data: {
-            labels: ['An 1', 'An 2', 'An 3'],
-            datasets: [
-              { 
-                label: 'Trésorerie clôture', 
-                data: [${rows.map(r => r.tresorerieCloture).join(',')}], 
-                borderColor: '${p.primary}',
-                backgroundColor: '${p.primary}33',
-                fill: true,
-                tension: 0.4
-              }
-            ]
-          },
-          options: { responsive: true, maintainAspectRatio: false, animation: false }
-        });
-      </script>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;">
-        <thead>
-          <tr style="background:${p.primary};color:#fff;">
-            <th style="padding:10px;text-align:left;">Flux</th>
-            ${rows.map((r) => `<th style="padding:10px;text-align:right;">An ${r.year}</th>`).join('')}
-          </tr>
-        </thead>
-        <tbody>
-          ${[
-            ['Flux exploitation', 'fluxExploitation'],
-            ['Flux investissement', 'fluxInvestissement'],
-            ['Flux financement', 'fluxFinancement'],
-            ['Variation trésorerie', 'variationTresorerie'],
-            ['Trésorerie ouverture', 'tresorerieOuverture'],
-            ['Trésorerie clôture', 'tresorerieCloture'],
-          ]
-            .map(
-              ([label, key], i) => `
-            <tr style="border-bottom:1px solid #E2E8F0;background:${
-              label === 'Trésorerie clôture' ? `${p.accent}15` : i % 2 ? '#F8FAFC' : '#FFFFFF'
-            };${label === 'Trésorerie clôture' ? 'font-weight:700;' : ''}">
-              <td style="padding:9px;">${label}</td>
-              ${rows
-                .map((r) => {
-                  const v = (r as any)[key as string] || 0;
-                  const color =
-                    label === 'Trésorerie clôture' && v < 0 ? '#EF4444' : 'inherit';
-                  return `<td style="padding:9px;text-align:right;color:${color};">${this.fmt(v)}</td>`;
-                })
-                .join('')}
-            </tr>`,
-            )
-            .join('')}
-        </tbody>
-      </table>
-    </div>`;
-    return { name: 'Flux de trésorerie', type: 'finance-cashflow', data: html, summary: '' };
-  }
-
-  private buildSeuilSection(rows: SeuilRentabiliteRow[], p: BrandPalette): SectionModel {
-    const html = `<div style="padding:32px;font-family:'Helvetica Neue',Arial,sans-serif;color:#0F172A;">
-      <h2 style="font-size:32px;font-weight:800;margin:0 0 4px;color:${p.primary};">Seuil de rentabilité & Point mort</h2>
-      <p style="color:#64748B;margin:0 0 28px;">Niveau de CA à atteindre pour couvrir les charges</p>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;">
-        <thead>
-          <tr style="background:${p.primary};color:#fff;">
-            <th style="padding:10px;text-align:left;">Année</th>
-            <th style="padding:10px;text-align:right;">Charges fixes</th>
-            <th style="padding:10px;text-align:right;">Taux marge CV</th>
-            <th style="padding:10px;text-align:right;">Seuil rentabilité</th>
-            <th style="padding:10px;text-align:right;">Point mort (jours)</th>
-            <th style="padding:10px;text-align:right;">% du CA</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows
-            .map(
-              (r, i) => `
-            <tr style="border-bottom:1px solid #E2E8F0;background:${i % 2 ? '#F8FAFC' : '#FFFFFF'};">
-              <td style="padding:10px;font-weight:600;">An ${r.year}</td>
-              <td style="padding:10px;text-align:right;">${this.fmt(r.chargesFixes)}</td>
-              <td style="padding:10px;text-align:right;">${this.pct(r.tauxMargeCoutsVariablesPct)}</td>
-              <td style="padding:10px;text-align:right;font-weight:600;">${this.fmt(r.seuilRentabilite)}</td>
-              <td style="padding:10px;text-align:right;">${Math.round(r.pointMortJours)}</td>
-              <td style="padding:10px;text-align:right;">${this.pct(r.partSeuilDansCAPct)}</td>
-            </tr>`,
-            )
-            .join('')}
-        </tbody>
-      </table>
-    </div>`;
-    return { name: 'Seuil de rentabilité', type: 'finance-seuil', data: html, summary: '' };
-  }
-
-  private buildRatiosSection(finance: FinanceModel, p: BrandPalette): SectionModel {
-    const r = finance.computed!.ratios;
-    const card = (title: string, value: string, hint: string, color: string) => `
-      <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-top:4px solid ${color};padding:18px;border-radius:8px;">
-        <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:1px;font-weight:600;">${title}</div>
-        <div style="font-size:28px;font-weight:800;color:#0F172A;margin:8px 0 4px;">${value}</div>
-        <div style="font-size:11px;color:#94A3B8;">${hint}</div>
-      </div>`;
-    const html = `<div style="padding:32px;font-family:'Helvetica Neue',Arial,sans-serif;color:#0F172A;">
-      <h2 style="font-size:32px;font-weight:800;margin:0 0 4px;color:${p.primary};">Ratios & Indicateurs financiers</h2>
-      <p style="color:#64748B;margin:0 0 28px;">Évaluation de la rentabilité et de la création de valeur</p>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px;">
-        ${card('VAN', this.fmt(r.van), 'Valeur Actuelle Nette (taux ' + finance.ratiosParams.vanDiscountRatePct + ' %)', r.van >= 0 ? p.accent : '#EF4444')}
-        ${card('TRI', this.pct(r.tri), 'Taux de Rendement Interne', p.primary)}
-        ${card('DRCI', `${r.drci.toFixed(2)} ans`, 'Délai de Récupération du Capital Investi', p.secondary)}
-        ${card('Indice profitabilité', r.indiceProfitabilite.toFixed(2), 'IP > 1 → projet créateur de valeur', r.indiceProfitabilite >= 1 ? p.accent : '#EF4444')}
-      </div>
-
-      <h3 style="font-size:16px;font-weight:700;color:${p.primary};margin:24px 0 12px;">Évaluation DCF</h3>
-      <div style="background:#F8FAFC;border:1px solid #E2E8F0;padding:16px;border-radius:6px;">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
-          <div><strong>Flux normatif:</strong> ${this.fmt(r.dcf.fluxNormatif)}</div>
-          <div><strong>Valeur terminale actualisée:</strong> ${this.fmt(r.dcf.valeurTerminale)}</div>
-          <div><strong>CMPC:</strong> ${this.pct(finance.ratiosParams.cmpcPct)}</div>
-          <div><strong>Croissance à l'infini:</strong> ${this.pct(finance.ratiosParams.perpetualGrowthRatePct)}</div>
-        </div>
-        <div style="margin-top:14px;padding-top:14px;border-top:2px solid ${p.primary};">
-          <div style="font-size:13px;color:#64748B;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Valeur totale de l'entreprise</div>
-          <div style="font-size:24px;font-weight:800;color:${p.primary};margin-top:4px;">${this.fmt(r.dcf.valeurTotaleEntreprise)}</div>
-        </div>
-      </div>
-    </div>`;
-    return { name: 'Ratios & Indicateurs', type: 'finance-ratios', data: html, summary: '' };
-  }
-
-  private buildInterpretationSection(text: string, p: BrandPalette): SectionModel {
-    const paragraphs = text
-      .split(/\n+/)
-      .filter((s) => s.trim())
-      .map((s) => `<p style="margin:0 0 12px;line-height:1.6;color:#334155;">${this.esc(s)}</p>`)
-      .join('');
-    const html = `<div style="padding:32px;font-family:'Helvetica Neue',Arial,sans-serif;color:#0F172A;">
-      <h2 style="font-size:32px;font-weight:800;margin:0 0 4px;color:${p.primary};">Analyse & Recommandations</h2>
-      <p style="color:#64748B;margin:0 0 28px;">Interprétation des indicateurs et points de vigilance identifiés par l'IA</p>
-      <div style="background:#F8FAFC;border-left:4px solid ${p.primary};padding:24px;border-radius:6px;">
-        ${paragraphs || '<p style="color:#94A3B8;">Aucune analyse disponible pour le moment.</p>'}
-      </div>
-    </div>`;
-    return { name: 'Analyse & Recommandations', type: 'finance-interpretation', data: html, summary: '' };
-  }
-
   // -----------------------------------------------------------------
   // AI interpretation
   // -----------------------------------------------------------------
@@ -772,31 +354,60 @@ export class FinancePdfService {
   ): Promise<string> {
     const c = finance.computed!;
     const ce = c.compteExploitation;
+    const currency = finance.meta?.currency || 'FCFA';
+    const labels = c.fiscalYearLabels;
+    const fp = c.fundingPlan;
+    const r = c.ratios;
+
+    // Le contexte porte désormais ce qui décide de la lecture d'un dossier :
+    // le coût du projet, le besoin de financement et la sincérité des
+    // indicateurs. Sans eux, l'analyse commentait une rentabilité hors sol.
     const summary = [
       `Projet: ${project.name}`,
       `Type: ${project.type}`,
-      `CA An 1/2/3: ${ce[0]?.chiffreAffaires} / ${ce[1]?.chiffreAffaires} / ${ce[2]?.chiffreAffaires} FCFA`,
-      `Résultat net An 1/2/3: ${ce[0]?.resultatNet} / ${ce[1]?.resultatNet} / ${ce[2]?.resultatNet} FCFA`,
-      `Marge brute An 1: ${ce[0]?.tauxMargePct?.toFixed(1)}%`,
-      `Point mort An 1: ${c.seuilRentabilite[0]?.pointMortJours?.toFixed(0)} jours`,
-      `Trésorerie clôture An 1: ${c.fluxTresorerie[0]?.tresorerieCloture} FCFA`,
-      `TRI: ${c.ratios.tri.toFixed(1)}%, VAN: ${c.ratios.van.toFixed(0)} FCFA`,
-      `Coût total projet: ${c.financing.coutTotalProjet} FCFA`,
+      `Devise: ${currency}`,
+      `Exercices (année civile, SYSCOHADA): ${labels.join(', ')}`,
+      ...ce.map(
+        (row, y) =>
+          `Exercice ${labels[y]}: CA ${Math.round(row.chiffreAffaires)}, marge sur coûts variables ${row.tauxMargePct.toFixed(1)}%, EBE ${Math.round(row.ebe)}, résultat net ${Math.round(row.resultatNet)}`
+      ),
+      `Point mort exercice 1: ${c.seuilRentabilite[0]?.pointMortJours?.toFixed(0)} jours`,
+      `Trésorerie de clôture par exercice: ${c.cashFlowOec.map((row) => Math.round(row.tresorerieCloture)).join(' / ')}`,
+      `Investissements: ${Math.round(c.projectCost.totalInvestissements)}`,
+      `Besoin en fonds de roulement de démarrage: ${Math.round(c.projectCost.besoinFondsRoulement)}`,
+      `Coût total du projet: ${Math.round(fp.coutTotalProjet)}`,
+      `Ressources mobilisées: ${Math.round(fp.totalFinancement)} (fonds propres ${Math.round(fp.totalEquity)}, dettes ${Math.round(fp.totalDebt)})`,
+      `BESOIN DE FINANCEMENT (montant sollicité): ${Math.round(fp.besoinDeFinancement)}`,
+      `Taux d'endettement: ${fp.tauxEndettementPct.toFixed(1)}%`,
+      r.significant
+        ? `VAN ${Math.round(r.van)}, TRI ${r.tri.toFixed(1)}%, délai de récupération ${r.drci.toFixed(2)} ans, indice de profitabilité ${r.indiceProfitabilite.toFixed(2)}`
+        : `VAN / TRI / indice de profitabilité NON SIGNIFICATIFS: ${r.significanceNote}`,
     ].join('\n');
 
     const messages: AIChatMessage[] = [
       {
         role: 'system',
-        content: `You are a financial analyst writing clear, actionable interpretations
-for an African founder. Answer IN FRENCH, in a professional but explanatory tone.
-Structure the answer in 4 paragraphs:
-1) Overall assessment of the project's profitability
-2) Identified strengths
-3) Watch-outs (cash position, break-even, charges, etc.)
-4) Actionable recommendations
-Do NOT return markdown, just text with line breaks between paragraphs.`,
+        content: `You are a credit analyst writing the reading note of a financial
+projection for a Cameroonian SME. Answer IN FRENCH, professional and direct.
+
+Four paragraphs, in this order:
+1) What the projection establishes: profitability, its level, and what carries it.
+2) What holds up: the strengths, each anchored in a figure supplied below.
+3) What must be secured: cash position, break-even, cost concentration, debt load.
+   Name the figure that worries you and say why.
+4) What to do next, in order of priority, each action tied to a figure.
+
+Rules:
+- Never contradict a figure supplied below, and never invent one.
+- If the indicators are marked NON SIGNIFICATIFS, say so plainly in paragraph 1
+  and do not comment on the VAN or the TRI as if they meant something.
+- If there is a funding need, name the amount in paragraph 1: it is what the
+  reader is looking for.
+- Fiscal years run 1 January to 31 December (SYSCOHADA). Never write a
+  hyphenated year span such as "2026-2027".
+- Plain text only, no markdown, one blank line between paragraphs.`,
       },
-      { role: 'user', content: `Indicators:\n${summary}\n\nWrite the analysis.` },
+      { role: 'user', content: `Indicateurs:\n${summary}\n\nRédige la note de lecture.` },
     ];
 
     const config: PromptConfig = {

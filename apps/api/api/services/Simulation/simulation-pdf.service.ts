@@ -24,7 +24,7 @@ import {
   financialsSection,
   leversSection,
   profileSection,
-  recommendationsSection,
+  issuesSection,
   scenariosSection,
   summarySection,
 } from './simulation-report.template';
@@ -78,9 +78,17 @@ export class SimulationPdfService {
       section('Scénarios', scenariosSection(chrome, report.scenarios, report.financials.currency)),
       section('Trajectoire financière', financialsSection(chrome, report.financials)),
       section('Leviers', leversSection(chrome, report.sensitivity, report.conditions)),
+      // Un seul chapitre : chaque problème imprime la réponse qui le traite.
+      // Les séparer obligeait le lecteur à faire l'appariement lui-même, trente
+      // pages plus loin — ce que personne ne fait.
       section(
-        'Recommandations',
-        recommendationsSection(chrome, report.recommendations, report.validationNeeded),
+        'Problèmes et réponses',
+        issuesSection(
+          chrome,
+          report.risks ?? [],
+          report.recommendations,
+          report.validationNeeded,
+        ),
       ),
       section('Sources', evidenceSection(chrome, report.evidence)),
     ];

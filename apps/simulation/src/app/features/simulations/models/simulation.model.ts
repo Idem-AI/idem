@@ -2,7 +2,14 @@ import { ConfidenceLevel, Evidence } from './evidence.model';
 import { Factor, FactorSummary } from './factor.model';
 import { SimulationLabs } from './labs.model';
 import { ProjectUnderstanding } from './project.model';
-import { FinancialSummary, SensitivityEntry, SimulationReport, ViabilityCondition } from './report.model';
+import {
+  FinancialSummary,
+  Risk,
+  SensitivityEntry,
+  SimulationReport,
+  ViabilityCondition,
+} from './report.model';
+
 import { Scenario } from './scenario.model';
 
 export type SimulationOrigin = 'idem-project' | 'imported-document';
@@ -47,13 +54,6 @@ export interface PipelineStage {
 export interface SimulationProgress {
   percent: number;
   stages: PipelineStage[];
-}
-
-export interface Risk {
-  id: string;
-  title: string;
-  severity: 'critical' | 'high' | 'moderate';
-  description: string;
 }
 
 export interface SimulationResult {

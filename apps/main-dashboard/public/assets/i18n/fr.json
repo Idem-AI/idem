@@ -286,7 +286,8 @@
         "exploitation": "Compte d'exploitation",
         "bilan": "Bilan prévisionnel",
         "cashflow": "Flux de trésorerie",
-        "ratios": "Ratios & Indicateurs"
+        "ratios": "Ratios & Indicateurs",
+        "fiscalCalendar": "Calendrier comptable"
       },
       "status": {
         "empty": "Vide",
@@ -2956,7 +2957,8 @@
       "flyerEdit": "Éditeur de visuel",
       "simulations": "Simulations",
       "welcome": "Bienvenue",
-      "guided": "Parcours assisté"
+      "guided": "Parcours assisté",
+      "financeCalendar": "Calendrier comptable"
     }
   },
   "notFound": {
