@@ -28,6 +28,7 @@ import {
   Verdict,
   ViabilityCondition,
 } from '../../models/simulation.model';
+import { VIABILITY_CEILING } from './simulation-engine.service';
 
 // ---------------------------------------------------------------------------
 // Charte
@@ -339,6 +340,11 @@ export function summarySection(c: Chrome, report: SimulationReport): string {
         <span style="font-size:8.5pt;color:${IDEM.inkMuted}">robustesse ${LEVEL_LABEL[s.robustness]} · confiance ${LEVEL_LABEL[s.confidence]}</span>
       </div>
       <p style="font-size:10pt;line-height:1.65;color:${IDEM.ink}">${esc(s.statement)}</p>
+      <p style="margin-top:3mm;padding-top:3mm;border-top:0.2mm solid ${IDEM.line};font-size:8pt;line-height:1.55;color:${IDEM.inkSubtle}">
+        L'indice est plafonné à ${VIABILITY_CEILING} sur 100. Le moteur évalue un modèle sous des
+        scénarios choisis, à partir d'hypothèses dont une part reste à vérifier sur le terrain :
+        un score parfait affirmerait qu'il ne reste rien à confronter au réel.
+      </p>
     </div>
 
     ${grid([
@@ -746,7 +752,9 @@ export function evidenceSection(c: Chrome, evidence: Evidence[]): string {
         Une simulation met un modèle à l'épreuve dans les scénarios testés. Elle ne prédit pas
         l'avenir de l'entreprise et ne remplace ni une étude de marché, ni un avis comptable ou
         juridique. Les valeurs marquées « hypothèse » sont des choix assumés du moteur, à
-        confronter au terrain avant toute décision d'engagement.
+        confronter au terrain avant toute décision d'engagement. C'est pour la même raison que
+        l'indice de viabilité est plafonné à ${VIABILITY_CEILING} sur 100 : l'échelle réserve
+        ce qu'aucune estimation ne peut établir.
       </p>
     </div>
   `,

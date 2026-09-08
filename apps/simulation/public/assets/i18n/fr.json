@@ -241,7 +241,8 @@
     "scenariosBody": "{{total}} scénarios ont été exécutés. Le modèle ne tient pas dans {{broken}} d'entre eux.",
     "risks": "Risques identifiés",
     "shockResistance": "Résistance aux chocs",
-    "dataConfidence": "Fiabilité des données"
+    "dataConfidence": "Fiabilité des données",
+    "indexCeiling": "Indice plafonné à {{ceiling}} sur 100 : une simulation évalue un modèle sous des scénarios choisis, jamais une certitude."
   },
   "results": {
     "title": "Résultats",

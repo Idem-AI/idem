@@ -12,6 +12,12 @@ const ARC_LENGTH = Math.PI * 80;
  * The band behind the value is the spread of the index across the scenarios
  * that were run. It is the point of the component: 68 with a wide band and 68
  * with a narrow one are not the same result, and a bare number hides that.
+ *
+ * The arc never fills completely, and that is deliberate: the engine caps the
+ * index below 100 (see VIABILITY_CEILING on the server). A gauge that could
+ * reach its own end would invite the reading the cap exists to prevent — that
+ * an estimate can be complete. The remaining sliver is named in the caption
+ * rather than left as a puzzle.
  */
 @Component({
   selector: 'sim-viability-gauge',
@@ -80,10 +86,22 @@ const ARC_LENGTH = Math.PI * 80;
           {{ 'result.scenarioRange' | translate: { min: rangeMin(), max: rangeMax() } }}
         </p>
       }
+
+      <p class="max-w-[42ch] text-center text-meta text-ink-subtle">
+        {{ 'result.indexCeiling' | translate: { ceiling: ceiling } }}
+      </p>
     </figure>
   `,
 })
 export class ViabilityGauge {
+  /**
+   * Plafond de l'échelle. Dupliqué du moteur à dessein : le front n'importe pas
+   * le serveur, et une valeur affichée doit rester lisible même si la
+   * dépendance disparaît. Elle ne sert qu'au libellé — jamais à recalculer un
+   * score, que le serveur seul produit.
+   */
+  protected readonly ceiling = 97;
+
   readonly value = input.required<number>();
   readonly robustness = input.required<Robustness>();
   readonly confidence = input.required<ConfidenceLevel>();

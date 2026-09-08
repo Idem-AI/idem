@@ -241,7 +241,8 @@
     "scenariosBody": "{{total}} scenarios were run. The model does not hold in {{broken}} of them.",
     "risks": "Risks found",
     "shockResistance": "Resistance to shocks",
-    "dataConfidence": "Data reliability"
+    "dataConfidence": "Data reliability",
+    "indexCeiling": "Index capped at {{ceiling}} out of 100: a simulation grades a model under chosen scenarios, never a certainty."
   },
   "results": {
     "title": "Results",

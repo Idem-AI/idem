@@ -28,6 +28,29 @@ import {
   Verdict,
 } from '../../models/simulation.model';
 
+/**
+ * PLAFOND DE L'INDICE DE VIABILITÉ.
+ *
+ * L'indice ne peut pas atteindre 100, et ce n'est pas une précaution
+ * cosmétique : le moteur ne mesure pas une entreprise, il mesure un MODÈLE
+ * d'entreprise sous des scénarios choisis. Ce modèle repose sur des
+ * hypothèses — un prix, un taux de rétention, un coût d'acquisition — que
+ * l'analyse elle-même classe pour partie en « non cernées ». Un score de 100
+ * affirmerait qu'il ne reste rien à vérifier, ce qui est faux par construction
+ * de l'outil, et c'est exactement la lecture qu'un fondateur en ferait.
+ *
+ * Le plafond est appliqué par MISE À L'ÉCHELLE et non par écrêtage : un simple
+ * `Math.min(97, index)` ferait s'égaliser à 97 tous les modèles au-dessus, et
+ * deux projets réellement différents afficheraient le même score. La
+ * transformation linéaire préserve l'ordre et les écarts — elle dit seulement
+ * qu'un modèle parfait sur les quatre dimensions vaut 97, pas 100.
+ *
+ * Le plafond s'applique au POINT UNIQUE où l'indice est produit : il vaut donc
+ * pour le scénario de référence, chacun des scénarios, les univers comparés et
+ * les écarts de sensibilité, sans qu'aucun appelant ait à s'en souvenir.
+ */
+export const VIABILITY_CEILING = 97;
+
 // =====================================================================
 // PROJECTION
 // =====================================================================
@@ -193,11 +216,14 @@ export function computeViability(
         ? 100
         : 0;
 
-  const index =
+  const rawIndex =
     unitEconomics * 0.3 + profitability * 0.25 + survival * 0.3 + scale * 0.15;
 
+  // Le plafond ramène l'échelle sous 100 : voir VIABILITY_CEILING.
+  const index = clamp(rawIndex, 0, 100) * (VIABILITY_CEILING / 100);
+
   return {
-    index: Math.round(clamp(index, 0, 100)),
+    index: Math.round(index),
     unitEconomics: Math.round(unitEconomics),
     profitability: Math.round(profitability),
     survival: Math.round(survival),
@@ -539,10 +565,20 @@ type EvidenceWeightKey = 'data' | 'estimate' | 'assumption';
  * Verdict. GO exige à la fois un bon score et une bonne tenue: un modèle qui
  * casse dans la moitié des scénarios ne reçoit jamais un GO sec, quel que soit
  * son indice.
+ *
+ * Les seuils sont exprimés en PROPORTION de l'échelle, pas en points absolus :
+ * l'indice étant plafonné (cf. VIABILITY_CEILING), un seuil écrit « 70 » aurait
+ * silencieusement durci le verdict d'environ trois points le jour où le plafond
+ * a été posé. Un projet à la limite serait passé de « go » à
+ * « go-with-conditions » sans qu'aucune règle métier n'ait changé.
  */
+const verdictThreshold = (share: number): number => share * VIABILITY_CEILING;
+
 export function computeVerdict(index: number, robustness: Robustness): Verdict {
-  if (index >= 70 && robustness === 'high') return 'go';
-  if (index < 40 || robustness === 'low') return index < 30 ? 'no-go' : 'go-with-conditions';
+  if (index >= verdictThreshold(0.7) && robustness === 'high') return 'go';
+  if (index < verdictThreshold(0.4) || robustness === 'low') {
+    return index < verdictThreshold(0.3) ? 'no-go' : 'go-with-conditions';
+  }
   return 'go-with-conditions';
 }
 

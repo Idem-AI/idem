@@ -50,6 +50,7 @@ import {
   BusinessUniverse,
   Vulnerability,
 } from '../../models/simulation.model';
+import { VIABILITY_CEILING } from './simulation-engine.service';
 import { AIChatMessage, PromptConfig, PromptService } from '../prompt.service';
 import {
   ANALYSIS_PROMPT,
@@ -501,7 +502,11 @@ export class SimulationAIService {
       verdicts: toArray(parsed.verdicts).map((entry) => ({
         profile: pick(entry.profile, INVESTOR_PROFILES, 'growth'),
         name: str(entry.name),
-        score: Math.round(clamp(num(entry.score, 50), 0, 100)),
+        // Même règle que l'indice de viabilité : une note produite par un
+        // investisseur SIMULÉ reste une estimation, et 100 sur 100 affirmerait
+        // un dossier sans objection — ce que le laboratoire vient précisément
+        // de contredire en listant les objections attendues.
+        score: Math.round(clamp(num(entry.score, 50), 0, VIABILITY_CEILING)),
         reaction: str(entry.reaction),
         objections: toStringArray(entry.objections),
         wouldMeetAgain: Boolean(entry.wouldMeetAgain),
