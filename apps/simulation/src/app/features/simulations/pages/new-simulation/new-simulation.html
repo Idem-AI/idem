@@ -247,8 +247,8 @@
                   {{ 'newRun.source.noProjects' | translate }}
                 </p>
               } @else {
-                <ul role="radiogroup" [attr.aria-label]="'newRun.source.project' | translate">
-                  @for (project of projects(); track project.id) {
+                <ul role="radiogroup" [attr.aria-label]="'newRun.source.project' | translate" class="max-h-80 overflow-y-auto">
+                  @for (project of sortedProjects(); track project.id) {
                     <li class="border-b border-line last:border-0">
                       <button
                         type="button"

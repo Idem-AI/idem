@@ -157,6 +157,24 @@ export class NewSimulation {
     this.projects().find((project) => project.id === this.selectedProjectId()) ?? null,
   );
 
+  /**
+   * Projets triés du plus récent au plus ancien.
+   * Si un projet est sélectionné, il apparaît toujours en tête de liste,
+   * même s'il n'est pas le plus récent.
+   */
+  protected readonly sortedProjects = computed(() => {
+    const selectedId = this.selectedProjectId();
+    return [...this.projects()].sort((a, b) => {
+      // Le projet sélectionné remonte toujours en premier.
+      if (selectedId) {
+        if (a.id === selectedId) return -1;
+        if (b.id === selectedId) return 1;
+      }
+      // Tri par date de mise à jour décroissante (plus récent en premier).
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+  });
+
   protected readonly canAnalyse = computed(() => {
     if (!this.sourceChosen()) {
       return false;
