@@ -22,9 +22,6 @@
       "selectTypography": "Select Typography",
       "businessPlan": "Business Plan",
       "businessPlanGenerate": "Business Plan Generation",
-      "businessPlanEdit": "Business Plan Editing",
-      "pitchDeckEdit": "Pitch Deck Editing",
-      "brandingEdit": "Brand Identity Editing",
       "communication": "Communication",
       "pitchDeck": "Pitch Deck",
       "legalDocs": "Legal Documents",
@@ -56,11 +53,16 @@
       "financeRatios": "Finance Ratios",
       "createProject": "Create Project",
       "notFound": "Page Not Found",
+      "businessPlanEdit": "Business Plan Editing",
+      "pitchDeckEdit": "Pitch Deck Editing",
+      "brandingEdit": "Brand Identity Editing",
       "businessCards": "Business cards",
       "businessCardsEdit": "Business card editor",
       "flyerEdit": "Visual editor",
+      "simulations": "Simulations",
       "welcome": "Welcome",
-      "guided": "Guided journey"
+      "guided": "Guided journey",
+      "financeCalendar": "Accounting calendar"
     }
   }
 }

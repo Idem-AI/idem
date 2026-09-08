@@ -27,10 +27,23 @@ type SectionKey =
   | 'taxesParams'
   | 'investments'
   | 'financing'
-  | 'ratiosParams';
+  | 'ratiosParams'
+  | 'fiscalCalendar';
 
 /** Mapping section input -> clé de completionStatus dans le modèle */
-const SECTION_TO_COMPLETION: Record<SectionKey, keyof FinanceModel['meta']['completionStatus']> = {
+/**
+ * Sections qui NE PORTENT PAS d'état de complétion.
+ *
+ * Le calendrier comptable est toujours renseigné — à défaut, l'année civile en
+ * cours. Le rattacher à l'état d'une autre section marquerait celle-ci comme
+ * complétée dès qu'on ajuste une convention, ce qui fausserait le parcours.
+ */
+const SECTIONS_WITHOUT_COMPLETION: readonly SectionKey[] = ['fiscalCalendar'];
+
+const SECTION_TO_COMPLETION: Record<
+  Exclude<SectionKey, 'fiscalCalendar'>,
+  keyof FinanceModel['meta']['completionStatus']
+> = {
   products: 'products',
   salesObjectives: 'salesObjectives',
   revenueParams: 'revenue',
@@ -81,6 +94,10 @@ export class FinanceService {
       ...base,
       ...stored,
       projectId,
+      // Le calendrier SYSCOHADA est arrivé après les premiers modèles stockés :
+      // un modèle enregistré avant lui n'en porte aucun, et sans ce repli tous
+      // les libellés d'exercice seraient vides.
+      fiscalCalendar: { ...base.fiscalCalendar, ...(stored.fiscalCalendar || {}) },
       revenueParams: { ...base.revenueParams, ...(stored.revenueParams || {}) },
       variableCharges: { ...base.variableCharges, ...(stored.variableCharges || {}) },
       fixedCharges: { ...base.fixedCharges, ...(stored.fixedCharges || {}) },
@@ -258,8 +275,10 @@ export class FinanceService {
     const finance = ctx.finance;
     (finance as any)[section] = payload;
     // Mise à jour automatique du statut de complétion correspondant
-    const completionKey = SECTION_TO_COMPLETION[section];
-    finance.meta.completionStatus[completionKey] = this.computeSectionStatus(finance, section);
+    if (!SECTIONS_WITHOUT_COMPLETION.includes(section)) {
+      const completionKey = SECTION_TO_COMPLETION[section as Exclude<SectionKey, 'fiscalCalendar'>];
+      finance.meta.completionStatus[completionKey] = this.computeSectionStatus(finance, section);
+    }
     return this.saveFinance(userId, projectId, ctx.project, finance);
   }
 

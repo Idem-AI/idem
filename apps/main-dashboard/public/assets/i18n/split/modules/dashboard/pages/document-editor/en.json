@@ -4,12 +4,6 @@
       "businessPlan": {
         "title": "Business plan editor"
       },
-      "pitchDeck": {
-        "title": "Pitch deck editor"
-      },
-      "branding": {
-        "title": "Brand identity editor"
-      },
       "canvasLabel": "Document preview",
       "inspector": "Properties",
       "loading": "Loading document…",
@@ -72,13 +66,6 @@
         "removeSeries": "Remove series",
         "value": "Value"
       },
-      "attrs": {
-        "heading": "Attributes",
-        "name": "Name",
-        "value": "Value",
-        "add": "Add",
-        "remove": "Remove attribute"
-      },
       "ai": {
         "title": "AI editing",
         "placeholder": "Describe the change you want for this section…",
@@ -96,6 +83,19 @@
           "title": "Could not load",
           "subtitle": "The document failed to load. Try again from the page you opened it from."
         }
+      },
+      "attrs": {
+        "heading": "Attributes",
+        "name": "Name",
+        "value": "Value",
+        "add": "Add",
+        "remove": "Remove attribute"
+      },
+      "pitchDeck": {
+        "title": "Pitch deck editor"
+      },
+      "branding": {
+        "title": "Brand identity editor"
       },
       "businessCard": {
         "title": "Business card editor"

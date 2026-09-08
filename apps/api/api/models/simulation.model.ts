@@ -414,6 +414,22 @@ export interface Recommendation {
   expectedImpact: 'low' | 'medium' | 'high';
   priority: 'low' | 'medium' | 'high' | 'critical';
   confidence: ConfidenceLevel;
+  /**
+   * Le risque auquel cette recommandation RÉPOND.
+   *
+   * ── POURQUOI CE LIEN EXISTE ─────────────────────────────────────────────
+   *
+   * Le rapport présentait les problèmes dans un chapitre et les réponses dans
+   * un autre, séparés par une trentaine de pages. Un lecteur qui vient de lire
+   * « la marge ne tient pas sous un choc de prix » doit alors retenir le
+   * problème, poursuivre, et faire lui-même l'appariement à l'arrivée — ce que
+   * personne ne fait. Un problème et sa réponse se lisent ensemble ou ne se
+   * lisent pas.
+   *
+   * Absent quand l'action ne répond à aucun risque identifié en particulier :
+   * elle est alors rendue à la suite, dans le même chapitre.
+   */
+  addressesRiskId?: string;
 }
 
 // =====================================================================
@@ -645,6 +661,12 @@ export interface SimulationReport {
   financials: FinancialSummary;
   sensitivity: SensitivityEntry[];
   conditions: ViabilityCondition[];
+  /**
+   * Les problèmes identifiés. Ils vivent dans le RAPPORT et plus seulement dans
+   * le résultat : le chapitre qui les présente imprime chaque problème avec la
+   * recommandation qui y répond, et ne peut donc pas se contenter des unes.
+   */
+  risks: Risk[];
   recommendations: Recommendation[];
   /** Hypothèses et valeurs sourcées sur lesquelles repose tout le rapport. */
   evidence: Evidence[];

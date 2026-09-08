@@ -19,6 +19,7 @@ import {
   Factor,
   FinancialSummary,
   Recommendation,
+  Risk,
   Robustness,
   Scenario,
   SensitivityEntry,
@@ -579,40 +580,129 @@ export function leversSection(
   );
 }
 
-export function recommendationsSection(
+/** Gravité d'un problème — le mot porte le sens, la couleur ne fait que l'appuyer. */
+const SEVERITY_LABEL: Record<Risk['severity'], string> = {
+  critical: 'Critique',
+  high: 'Élevé',
+  moderate: 'Modéré',
+};
+
+const SEVERITY_COLOR: Record<Risk['severity'], string> = {
+  critical: IDEM.stop,
+  high: IDEM.warn,
+  moderate: IDEM.inkMuted,
+};
+
+/**
+ * PROBLÈMES ET RÉPONSES — un seul chapitre.
+ *
+ * ── CE QUE CE REGROUPEMENT CORRIGE ──────────────────────────────────────────
+ *
+ * Le rapport comptait deux chapitres : les risques d'un côté, les
+ * recommandations de l'autre, séparés par une trentaine de pages. Le lecteur
+ * qui venait de lire « la marge ne tient pas sous un choc de prix » devait
+ * retenir le problème, poursuivre sa lecture, et refaire lui-même
+ * l'appariement à l'arrivée. Personne ne le fait — et le rapport se lisait donc
+ * comme une liste d'inquiétudes suivie d'une liste de conseils, sans que rien
+ * ne dise lequel répondait à laquelle.
+ *
+ * Chaque problème porte désormais sa réponse, immédiatement dessous. Les
+ * actions qui ne répondent à aucun problème identifié suivent, à part et
+ * annoncées comme telles : les fondre dans le lot ferait croire à une réponse
+ * là où il n'y a qu'une initiative.
+ */
+export function issuesSection(
   c: Chrome,
+  risks: Risk[],
   recommendations: Recommendation[],
   validationNeeded: string[],
 ): string {
-  const ranked = [...recommendations].sort(
-    (a, b) =>
-      ['low', 'medium', 'high', 'critical'].indexOf(b.priority) -
-      ['low', 'medium', 'high', 'critical'].indexOf(a.priority),
-  );
+  const severityRank = (severity: Risk['severity']) =>
+    ['moderate', 'high', 'critical'].indexOf(severity);
+  const priorityRank = (priority: Recommendation['priority']) =>
+    ['low', 'medium', 'high', 'critical'].indexOf(priority);
 
-  const cards = ranked
-    .map(
-      (item, index) => `
-      <div style="display:flex;gap:4mm;padding:4.5mm 0;border-bottom:0.25mm solid ${IDEM.line}">
-        <p style="font-family:${MONO};font-size:11pt;color:${IDEM.primary};min-width:8mm">${String(index + 1).padStart(2, '0')}</p>
-        <div style="flex:1">
-          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:3mm">
-            <p style="font-size:10.5pt;font-weight:600">${esc(item.title)}</p>
-            ${tag(PRIORITY_LABEL[item.priority], item.priority === 'critical' ? IDEM.stop : IDEM.inkMuted)}
-          </div>
-          <p style="margin-top:1.5mm;font-size:9pt;line-height:1.6;color:${IDEM.inkMuted}">${esc(item.body)}</p>
-          <p style="margin-top:1.5mm;font-size:8pt;color:${IDEM.inkSubtle}">Impact attendu ${LEVEL_LABEL[item.expectedImpact]} · confiance ${LEVEL_LABEL[item.confidence]}</p>
+  const orderedRisks = [...risks].sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
+  const byRisk = new Map<string, Recommendation[]>();
+  const unpaired: Recommendation[] = [];
+
+  for (const recommendation of recommendations) {
+    const target = recommendation.addressesRiskId;
+    if (target && risks.some((risk) => risk.id === target)) {
+      const bucket = byRisk.get(target) ?? [];
+      bucket.push(recommendation);
+      byRisk.set(target, bucket);
+    } else {
+      unpaired.push(recommendation);
+    }
+  }
+
+  /** La réponse, posée sous le problème qu'elle traite. */
+  const response = (item: Recommendation): string => `
+    <div style="margin-top:3mm;border-left:0.8mm solid ${IDEM.primary};padding:0 0 0 4mm">
+      <p style="font-size:7.5pt;letter-spacing:.1em;text-transform:uppercase;color:${IDEM.primary};font-weight:600">Réponse</p>
+      <p style="margin-top:1.2mm;font-size:9.5pt;font-weight:600;color:${IDEM.ink}">${esc(item.title)}</p>
+      <p style="margin-top:1.2mm;font-size:9pt;line-height:1.6;color:${IDEM.inkMuted}">${esc(item.body)}</p>
+      <p style="margin-top:1.2mm;font-size:8pt;color:${IDEM.inkSubtle}">
+        Priorité ${esc(PRIORITY_LABEL[item.priority].toLowerCase())} · impact attendu ${LEVEL_LABEL[item.expectedImpact]} · confiance ${LEVEL_LABEL[item.confidence]}
+      </p>
+    </div>`;
+
+  const cards = orderedRisks
+    .map((risk, index) => {
+      const answers = byRisk.get(risk.id) ?? [];
+      return `
+      <div data-keep-together style="border:0.3mm solid ${IDEM.line};border-left:1.2mm solid ${SEVERITY_COLOR[risk.severity]};border-radius:2.5mm;padding:5mm;background:${IDEM.surface};margin-bottom:4mm">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:4mm">
+          <p style="font-size:10.5pt;font-weight:600;color:${IDEM.ink}">
+            <span style="font-family:${MONO};color:${IDEM.inkSubtle};margin-right:2.5mm">${String(index + 1).padStart(2, '0')}</span>${esc(risk.title)}
+          </p>
+          ${tag(SEVERITY_LABEL[risk.severity], SEVERITY_COLOR[risk.severity])}
         </div>
-      </div>`,
-    )
+        <p style="margin-top:2mm;font-size:9pt;line-height:1.6;color:${IDEM.inkMuted}">${esc(risk.description)}</p>
+        ${
+          answers.length
+            ? answers.map(response).join('')
+            : `<p style="margin-top:3mm;font-size:8.5pt;line-height:1.55;color:${IDEM.warn}">Aucune réponse dégagée par l'analyse : ce point reste ouvert et doit être arbitré.</p>`
+        }
+      </div>`;
+    })
     .join('');
+
+  const extras = unpaired.length
+    ? `<h3 style="font-size:11pt;font-weight:600;margin:7mm 0 3mm">Autres actions prioritaires</h3>
+       <p style="font-size:8.5pt;line-height:1.55;color:${IDEM.inkSubtle};margin-bottom:3mm">
+         Elles ne répondent à aucun des problèmes ci-dessus en particulier : elles renforcent le modèle dans son ensemble.
+       </p>
+       ${[...unpaired]
+         .sort((a, b) => priorityRank(b.priority) - priorityRank(a.priority))
+         .map(
+           (item) => `
+         <div data-keep-together style="display:flex;gap:4mm;padding:4mm 0;border-bottom:0.25mm solid ${IDEM.line}">
+           <div style="flex:1">
+             <div style="display:flex;align-items:baseline;justify-content:space-between;gap:3mm">
+               <p style="font-size:10pt;font-weight:600">${esc(item.title)}</p>
+               ${tag(PRIORITY_LABEL[item.priority], item.priority === 'critical' ? IDEM.stop : IDEM.inkMuted)}
+             </div>
+             <p style="margin-top:1.5mm;font-size:9pt;line-height:1.6;color:${IDEM.inkMuted}">${esc(item.body)}</p>
+             <p style="margin-top:1.5mm;font-size:8pt;color:${IDEM.inkSubtle}">Impact attendu ${LEVEL_LABEL[item.expectedImpact]} · confiance ${LEVEL_LABEL[item.confidence]}</p>
+           </div>
+         </div>`,
+         )
+         .join('')}`
+    : '';
 
   return page(
     c,
-    'Recommandations',
+    'Problèmes et réponses',
     `
-    ${sectionTitle(7, 'Recommandations', "Par ordre de priorité. Chacune porte l'impact attendu et le niveau de confiance du moteur.")}
-    ${cards}
+    ${sectionTitle(
+      7,
+      'Problèmes et réponses',
+      "Chaque problème relevé par l'analyse porte, juste dessous, l'action qui y répond. Classés par gravité décroissante.",
+    )}
+    ${cards || `<p style="font-size:9.5pt;color:${IDEM.inkMuted}">L'analyse n'a relevé aucun problème dans les scénarios testés.</p>`}
+    ${extras}
 
     ${
       validationNeeded.length

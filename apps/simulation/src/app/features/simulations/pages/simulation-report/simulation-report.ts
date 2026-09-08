@@ -13,7 +13,7 @@ import { SensitivityChart } from '../../components/sensitivity-chart/sensitivity
 import { VerdictBadge } from '../../components/verdict-badge/verdict-badge';
 import { ViabilityGauge } from '../../components/viability-gauge/viability-gauge';
 import { ReportDownloadService, SimulationGateway, SimulationStore } from '../../data-access';
-import { FactorTier, SimulationReport } from '../../models';
+import { FactorTier, Recommendation, Risk, SimulationReport } from '../../models';
 
 interface ReportSection {
   id: string;
@@ -75,10 +75,49 @@ export class SimulationReportPage {
     { id: 'financials', labelKey: 'report.section.financials' },
     { id: 'sensitivity', labelKey: 'report.section.sensitivity' },
     { id: 'conditions', labelKey: 'report.section.conditions' },
-    { id: 'recommendations', labelKey: 'report.section.recommendations' },
+    { id: 'issues', labelKey: 'report.section.issues' },
     { id: 'evidence', labelKey: 'report.section.evidence' },
     { id: 'validation', labelKey: 'report.section.validation' },
   ];
+
+  /**
+   * Les problèmes, chacun avec les actions qui y répondent.
+   *
+   * Le rapport listait les risques dans un chapitre et les recommandations dans
+   * un autre : le lecteur devait retenir un problème, faire défiler, et refaire
+   * l'appariement lui-même. Il se fait ici, une fois, au bon endroit.
+   */
+  protected readonly issues = computed<
+    readonly { risk: Risk; responses: readonly Recommendation[] }[]
+  >(() => {
+    const report = this.report();
+    if (!report) return [];
+    const rank = (severity: Risk['severity']) =>
+      ['moderate', 'high', 'critical'].indexOf(severity);
+    return [...(report.risks ?? [])]
+      .sort((a, b) => rank(b.severity) - rank(a.severity))
+      .map((risk) => ({
+        risk,
+        responses: (report.recommendations ?? []).filter(
+          (recommendation) => recommendation.addressesRiskId === risk.id,
+        ),
+      }));
+  });
+
+  /** Les actions qui ne répondent à aucun problème identifié. */
+  protected readonly unpairedRecommendations = computed<readonly Recommendation[]>(() => {
+    const report = this.report();
+    if (!report) return [];
+    const known = new Set((report.risks ?? []).map((risk) => risk.id));
+    const rank = (priority: Recommendation['priority']) =>
+      ['low', 'medium', 'high', 'critical'].indexOf(priority);
+    return (report.recommendations ?? [])
+      .filter(
+        (recommendation) =>
+          !recommendation.addressesRiskId || !known.has(recommendation.addressesRiskId),
+      )
+      .sort((a, b) => rank(b.priority) - rank(a.priority));
+  });
 
   protected readonly factorGroups = computed<
     readonly { tier: FactorTier; count: number; factors: SimulationReport['factors'] }[]

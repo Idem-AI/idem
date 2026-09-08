@@ -117,6 +117,7 @@ const ALLOWED_SECTIONS = [
   'investments',
   'financing',
   'ratiosParams',
+  'fiscalCalendar',
 ] as const;
 type AllowedSection = (typeof ALLOWED_SECTIONS)[number];
 

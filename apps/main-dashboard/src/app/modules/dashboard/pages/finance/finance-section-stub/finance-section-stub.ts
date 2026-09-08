@@ -72,9 +72,30 @@ export class FinanceSectionStubComponent implements OnInit {
     return Array.from({ length: 12 }, (_, i) => start + i);
   });
 
+  /**
+   * Le calendrier comptable SYSCOHADA : l'exercice court du 1er janvier au 31
+   * décembre, quelle que soit la date de démarrage. Un exercice ne se nomme
+   * donc jamais « An 1 » ni « 2026-2027 » dans un document remis à une banque —
+   * il porte son année civile, et l'interface le montre déjà à la saisie.
+   */
+  protected readonly fiscalCalendar = computed(
+    () => this.finance()?.fiscalCalendar ?? { firstYear: new Date().getFullYear(), activityStartMonth: 1 },
+  );
+
   protected readonly yearLabels = computed(() => {
-    return Array.from({ length: this.projectionYears() }, (_, i) => `An ${i + 1}`);
+    const first = this.fiscalCalendar().firstYear || new Date().getFullYear();
+    return Array.from({ length: this.projectionYears() }, (_, i) => String(first + i));
   });
+
+  /** Mois d'exploitation réels du premier exercice — il est souvent tronqué. */
+  protected readonly firstYearActiveMonths = computed(
+    () => 13 - Math.min(12, Math.max(1, this.fiscalCalendar().activityStartMonth || 1)),
+  );
+
+  protected readonly monthNames = [
+    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
+  ];
 
   // ----- Products -----
   protected readonly products = computed(() => this.finance()?.products || []);
@@ -325,6 +346,7 @@ export class FinanceSectionStubComponent implements OnInit {
       case 'investments': return f.investments;
       case 'financing': return f.financing;
       case 'ratiosParams': return f.ratiosParams;
+      case 'fiscalCalendar': return f.fiscalCalendar;
       default: return undefined;
     }
   }

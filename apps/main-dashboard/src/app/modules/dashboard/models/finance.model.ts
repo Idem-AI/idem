@@ -183,6 +183,14 @@ export interface RatiosParams {
   dividendDistributionRatePct: number;
   perpetualGrowthRatePct: number;
   cmpcPct: number;
+  /** Recalculer le CMPC depuis la structure de financement réelle. */
+  cmpcAuto?: boolean;
+  /** Coût des fonds propres attendu par les associés, en %. */
+  costOfEquityPct?: number;
+  /** Coût de la dette, en %. Absent : déduit des emprunts inscrits au plan. */
+  costOfDebtPct?: number;
+  /** Nombre de parts sociales émises. Défaut 100. */
+  numberOfShares?: number;
 }
 
 export interface FinanceMetadata {
@@ -340,10 +348,22 @@ export interface FinanceComputed {
   ratios: RatiosComputed;
 }
 
+/**
+ * Calendrier comptable SYSCOHADA : l'exercice court du 1er janvier au 31
+ * décembre, quelle que soit la date de démarrage effectif de l'activité.
+ */
+export interface FiscalCalendar {
+  /** Année civile de l'exercice 1. */
+  firstYear: number;
+  /** Mois de démarrage effectif (1 = janvier). */
+  activityStartMonth: number;
+}
+
 export interface FinanceModel {
   id?: string;
   projectId: string;
   projectionYears: number;
+  fiscalCalendar: FiscalCalendar;
   products: ProductPricing[];
   salesObjectives: SalesObjective[];
   revenueParams: RevenueParams;
@@ -392,12 +412,13 @@ export type FinanceSectionKey =
   | 'taxesParams'
   | 'investments'
   | 'financing'
-  | 'ratiosParams';
+  | 'ratiosParams'
+  | 'fiscalCalendar';
 
 /** Métadonnées de navigation pour les sections du module Finance */
 export interface FinanceSectionDescriptor {
   /** Clé technique (utilisée pour completionStatus et update) */
-  key: keyof FinanceMetadata['completionStatus'] | 'overview' | 'amortization' | 'compteExploitation' | 'bilan' | 'fluxTresorerie' | 'ratios' | 'revenueParams' | 'taxesParams' | 'ratiosParams' | 'fixedCharges';
+  key: keyof FinanceMetadata['completionStatus'] | 'overview' | 'amortization' | 'compteExploitation' | 'bilan' | 'fluxTresorerie' | 'ratios' | 'revenueParams' | 'taxesParams' | 'ratiosParams' | 'fixedCharges' | 'fiscalCalendar';
   /** Route Angular (relative au préfixe /project/finance) */
   route: string;
   /** Clé i18n du libellé */
@@ -410,6 +431,7 @@ export interface FinanceSectionDescriptor {
 
 export const FINANCE_SECTIONS: FinanceSectionDescriptor[] = [
   { key: 'overview', route: '', labelKey: 'dashboard.finance.sections.overview', icon: 'pi pi-chart-pie', editable: false },
+  { key: 'fiscalCalendar', route: 'calendar', labelKey: 'dashboard.finance.sections.fiscalCalendar', icon: 'pi pi-calendar', editable: true },
   { key: 'products', route: 'products', labelKey: 'dashboard.finance.sections.products', icon: 'pi pi-tag', editable: true },
   { key: 'salesObjectives', route: 'sales', labelKey: 'dashboard.finance.sections.sales', icon: 'pi pi-shopping-cart', editable: true },
   { key: 'revenueParams', route: 'revenue', labelKey: 'dashboard.finance.sections.revenue', icon: 'pi pi-calculator', editable: true },

@@ -220,34 +220,108 @@
         </div>
       </section>
 
-      <!-- 08 Recommendations ---------------------------------------------- -->
-      <section id="recommendations" class="scroll-mt-20">
+      <!-- 08 Problems and their responses --------------------------------- -->
+      <!--
+        Un seul chapitre. Les risques et les recommandations vivaient dans deux
+        sections séparées : le lecteur devait retenir un problème, faire défiler
+        jusqu'aux recommandations, et refaire l'appariement lui-même. Personne
+        ne le fait. Chaque problème porte donc sa réponse, immédiatement dessous.
+      -->
+      <section id="issues" class="scroll-mt-20">
         <p class="mb-1 font-mono text-meta text-ink-subtle">{{ sectionNumber(7) }}</p>
-        <h2 class="text-h2 font-semibold text-ink">{{ 'report.section.recommendations' | translate }}</h2>
-        <ol class="mt-4 flex flex-col divide-y divide-line overflow-hidden rounded-xl border border-line bg-panel">
-          @for (recommendation of doc.recommendations; track recommendation.id) {
-            <li class="p-5">
-              <h3 class="text-sm font-semibold text-ink">{{ recommendation.title }}</h3>
-              <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
-                {{ recommendation.body }}
-              </p>
-              <dl class="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-meta">
-                <div class="flex gap-1.5">
-                  <dt class="text-ink-subtle">{{ 'report.recommendation.impact' | translate }}</dt>
-                  <dd class="font-semibold text-ink-muted">{{ 'impact.' + recommendation.expectedImpact | translate }}</dd>
+        <h2 class="text-h2 font-semibold text-ink">{{ 'report.section.issues' | translate }}</h2>
+        <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+          {{ 'report.issues.body' | translate }}
+        </p>
+
+        @if (issues().length) {
+          <ol class="mt-4 flex flex-col gap-3">
+            @for (issue of issues(); track issue.risk.id) {
+              <li class="rounded-xl border border-line bg-panel p-5">
+                <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <h3 class="text-sm font-semibold text-ink">{{ issue.risk.title }}</h3>
+                  <span
+                    class="text-[0.6875rem] font-semibold uppercase tracking-wide"
+                    [class.text-verdict-stop]="issue.risk.severity === 'critical'"
+                    [class.text-verdict-warn]="issue.risk.severity === 'high'"
+                    [class.text-ink-subtle]="issue.risk.severity === 'moderate'"
+                  >
+                    {{ 'severity.' + issue.risk.severity | translate }}
+                  </span>
                 </div>
-                <div class="flex gap-1.5">
-                  <dt class="text-ink-subtle">{{ 'report.recommendation.priority' | translate }}</dt>
-                  <dd class="font-semibold text-ink-muted">{{ 'priority.' + recommendation.priority | translate }}</dd>
-                </div>
-                <div class="flex gap-1.5">
-                  <dt class="text-ink-subtle">{{ 'result.confidence' | translate }}</dt>
-                  <dd class="font-semibold text-ink-muted">{{ 'confidence.' + recommendation.confidence | translate }}</dd>
-                </div>
-              </dl>
-            </li>
-          }
-        </ol>
+                <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+                  {{ issue.risk.description }}
+                </p>
+
+                @for (response of issue.responses; track response.id) {
+                  <div class="mt-4 border-l-2 border-accent pl-4">
+                    <p class="text-[0.6875rem] font-semibold uppercase tracking-wide text-accent">
+                      {{ 'report.issues.response' | translate }}
+                    </p>
+                    <h4 class="mt-1 text-sm font-semibold text-ink">{{ response.title }}</h4>
+                    <p class="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+                      {{ response.body }}
+                    </p>
+                    <dl class="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-meta">
+                      <div class="flex gap-1.5">
+                        <dt class="text-ink-subtle">{{ 'report.recommendation.priority' | translate }}</dt>
+                        <dd class="font-semibold text-ink-muted">{{ 'priority.' + response.priority | translate }}</dd>
+                      </div>
+                      <div class="flex gap-1.5">
+                        <dt class="text-ink-subtle">{{ 'report.recommendation.impact' | translate }}</dt>
+                        <dd class="font-semibold text-ink-muted">{{ 'impact.' + response.expectedImpact | translate }}</dd>
+                      </div>
+                      <div class="flex gap-1.5">
+                        <dt class="text-ink-subtle">{{ 'result.confidence' | translate }}</dt>
+                        <dd class="font-semibold text-ink-muted">{{ 'confidence.' + response.confidence | translate }}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                }
+                @if (!issue.responses.length) {
+                  <p class="mt-3 max-w-[70ch] text-meta leading-relaxed text-verdict-warn">
+                    {{ 'report.issues.noResponse' | translate }}
+                  </p>
+                }
+              </li>
+            }
+          </ol>
+        } @else {
+          <p class="mt-4 text-sm text-ink-muted">{{ 'report.issues.empty' | translate }}</p>
+        }
+
+        @if (unpairedRecommendations().length) {
+          <h3 class="mt-8 text-sm font-semibold text-ink">
+            {{ 'report.issues.otherActions' | translate }}
+          </h3>
+          <p class="mt-1 max-w-[70ch] text-meta leading-relaxed text-ink-subtle">
+            {{ 'report.issues.otherActionsBody' | translate }}
+          </p>
+          <ol class="mt-3 flex flex-col divide-y divide-line overflow-hidden rounded-xl border border-line bg-panel">
+            @for (recommendation of unpairedRecommendations(); track recommendation.id) {
+              <li class="p-5">
+                <h4 class="text-sm font-semibold text-ink">{{ recommendation.title }}</h4>
+                <p class="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-ink-muted">
+                  {{ recommendation.body }}
+                </p>
+                <dl class="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-meta">
+                  <div class="flex gap-1.5">
+                    <dt class="text-ink-subtle">{{ 'report.recommendation.priority' | translate }}</dt>
+                    <dd class="font-semibold text-ink-muted">{{ 'priority.' + recommendation.priority | translate }}</dd>
+                  </div>
+                  <div class="flex gap-1.5">
+                    <dt class="text-ink-subtle">{{ 'report.recommendation.impact' | translate }}</dt>
+                    <dd class="font-semibold text-ink-muted">{{ 'impact.' + recommendation.expectedImpact | translate }}</dd>
+                  </div>
+                  <div class="flex gap-1.5">
+                    <dt class="text-ink-subtle">{{ 'result.confidence' | translate }}</dt>
+                    <dd class="font-semibold text-ink-muted">{{ 'confidence.' + recommendation.confidence | translate }}</dd>
+                  </div>
+                </dl>
+              </li>
+            }
+          </ol>
+        }
       </section>
 
       <!-- 09 Evidence ------------------------------------------------------ -->
