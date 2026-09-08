@@ -380,6 +380,29 @@ export const createSimulationController = async (
   }
 };
 
+/**
+ * Reprend une simulation qui a échoué ou qui est restée bloquée.
+ * Rejette la requête (409) si la simulation est déjà complétée.
+ */
+export const resumeSimulationController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const context = requireContext(req, res);
+  if (!context) return;
+
+  try {
+    const simulation = await simulationService.resumeSimulation(
+      context.userId,
+      context.projectId,
+      req.params.simulationId as string
+    );
+    res.status(202).json(simulation);
+  } catch (error: any) {
+    handleError(res, error, 'resumeSimulation');
+  }
+};
+
 export const generateReportController = async (
   req: CustomRequest,
   res: Response

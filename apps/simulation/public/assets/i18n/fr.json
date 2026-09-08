@@ -194,8 +194,12 @@
     "description": "La simulation continue même si vous fermez cette page. Vous serez redirigé dès que les résultats sont prêts.",
     "failed": "La simulation s'est interrompue",
     "failedBody": "Aucun montant n'est retenu pour une simulation qui n'aboutit pas. Relancez-la depuis la liste.",
-    "body": "L'analyse mobilise plusieurs agents et prend quelques minutes. Vous pouvez fermer cet écran : l'exécution continue.",
-    "inProgress": "En cours — {{percent}} %"
+    "resumeHint": "L'analyse peut être reprise depuis l'étape où elle s'est arrêtée. Vos données déjà acquises sont conservées.",
+    "resume": "Reprendre la simulation",
+    "resuming": "Reprise en cours…",
+    "resumeFailed": "La reprise a échoué",
+    "body": "L'analyse mobilise plusieurs agents et prend quelques minutes. Vous pouvez fermer cet écran : l'exécution continue.",
+    "inProgress": "En cours — {{percent}} %"
   },
   "knowledge": {
     "known": "Ce que nous savons",
