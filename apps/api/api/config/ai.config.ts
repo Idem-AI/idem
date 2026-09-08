@@ -738,9 +738,13 @@ export const AI_CONFIG = {
     } as FeatureAIConfig,
     scenarios: {
       provider: LLMProvider.GLM,
-      modelName: GLM_MODELS.writing,
+      // glm-4.7 (writing) tronque le JSON de scénarios vers 6 500 caractères :
+      // son plafond de sortie effectif est inférieur à sa limite déclarée.
+      // glm-5.2 (reasoning) supporte des outputs structurés plus longs et produit
+      // un JSON plus discipliné, ce qui évite la troncature silencieuse.
+      modelName: GLM_MODELS.reasoning,
       promptType: 'simulation_scenarios',
-      llmOptions: { temperature: 0.5, maxOutputTokens: 16384, jsonMode: true },
+      llmOptions: { temperature: 0.5, maxOutputTokens: 8192, jsonMode: true },
     } as FeatureAIConfig,
     analysis: {
       provider: LLMProvider.GLM,

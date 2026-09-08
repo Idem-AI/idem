@@ -44,6 +44,7 @@ export class SimulationOverview implements OnInit {
   protected readonly simulation = this.store.active;
   protected readonly isRunning = this.store.isRunning;
   protected readonly generating = signal(false);
+  protected readonly resuming = signal(false);
   protected readonly downloading = this.reportDownload.downloading;
 
   protected readonly result = computed(() => this.simulation()?.result ?? null);
@@ -150,6 +151,26 @@ export class SimulationOverview implements OnInit {
       );
     } finally {
       this.generating.set(false);
+    }
+  }
+
+  /**
+   * Reprend une simulation bloquée ou échouée depuis son dernier checkpoint.
+   * Le pipeline repart de l'étape suivant la dernière terminée.
+   */
+  protected async resume(): Promise<void> {
+    const run = this.simulation();
+    if (!run || this.resuming()) return;
+    this.resuming.set(true);
+    try {
+      await this.store.resume(run.id);
+    } catch (error) {
+      this.toasts.error(
+        this.translate.instant('run.resumeFailed') as string,
+        error instanceof Error ? error.message : undefined,
+      );
+    } finally {
+      this.resuming.set(false);
     }
   }
 }

@@ -207,11 +207,31 @@
         <sim-pipeline-progress [progress]="run.progress" />
       </div>
       @if (run.status === 'failed') {
-        <div class="rounded-xl border border-verdict-stop/40 bg-panel-sunken p-4" role="alert">
-          <p class="text-label font-semibold text-ink">{{ 'run.failed' | translate }}</p>
-          <p class="mt-1 text-meta text-ink-muted">{{ run.failureReason }}</p>
+        <!-- Simulation échouée — proposition de reprise -->
+        <div class="rounded-xl border border-verdict-stop/40 bg-panel-sunken p-5 flex flex-col gap-4" role="alert">
+          <div>
+            <p class="text-label font-semibold text-ink">{{ 'run.failed' | translate }}</p>
+            @if (run.failureReason) {
+              <p class="mt-1 text-meta text-ink-muted font-mono break-all">{{ run.failureReason }}</p>
+            }
+          </div>
+          <p class="text-sm text-ink-muted">{{ 'run.resumeHint' | translate }}</p>
+          <button
+            id="btn-resume-simulation"
+            type="button"
+            class="inner-button w-fit"
+            [disabled]="resuming()"
+            (click)="resume()"
+          >
+            @if (resuming()) {
+              <span class="animate-pulse">{{ 'run.resuming' | translate }}</span>
+            } @else {
+              {{ 'run.resume' | translate }}
+            }
+          </button>
         </div>
       } @else {
+        <!-- En cours d'exécution -->
         <p class="max-w-[70ch] text-sm leading-relaxed text-ink-muted">
           {{ 'run.body' | translate }}
         </p>

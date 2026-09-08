@@ -1029,6 +1029,10 @@ ${scenarios
    * Les modèles enveloppent régulièrement leur JSON dans un bloc markdown ou
    * l'accompagnent d'une phrase, malgré la consigne. On récupère le premier
    * objet équilibré plutôt que d'échouer sur du bruit.
+   *
+   * En cas de troncature (le modèle atteint sa limite de sortie au milieu du
+   * JSON), on tente de réparer la chaîne en fermant les structures ouvertes,
+   * puis de sauver les entrées de tableau déjà complètes.
    */
   private parseJSON(raw: string): any {
     const cleaned = raw
@@ -1036,20 +1040,34 @@ ${scenarios
       .replace(/```\s*$/i, '')
       .trim();
 
+    // Tentative 1 : JSON valide directement.
     try {
       return JSON.parse(cleaned);
-    } catch {
-      const extracted = extractFirstJsonObject(cleaned);
-      if (extracted) {
-        try {
-          return JSON.parse(extracted);
-        } catch (error: any) {
-          logger.error(`SimulationAI: JSON extraction failed — ${error.message}`);
-        }
+    } catch { /* continue */ }
+
+    // Tentative 2 : extraction du premier objet équilibré (bruit autour du JSON).
+    const extracted = extractFirstJsonObject(cleaned);
+    if (extracted) {
+      try {
+        return JSON.parse(extracted);
+      } catch (error: any) {
+        logger.error(`SimulationAI: JSON extraction failed — ${error.message}`);
       }
-      logger.error(`SimulationAI: unparseable model output (${cleaned.slice(0, 400)}…)`);
-      throw new Error('The analysis engine returned an unreadable response.');
     }
+
+    // Tentative 3 : JSON tronqué — on tente de réparer en fermant les structures
+    // ouvertes. Utile quand le modèle atteint sa limite de sortie en plein objet.
+    const repaired = repairTruncatedJson(cleaned);
+    if (repaired) {
+      try {
+        const result = JSON.parse(repaired);
+        logger.warn('SimulationAI: truncated JSON repaired — some entries may be missing');
+        return result;
+      } catch { /* continue */ }
+    }
+
+    logger.error(`SimulationAI: unparseable model output (${cleaned.slice(0, 400)}…)`);
+    throw new Error('The analysis engine returned an unreadable response.');
   }
 }
 
@@ -1089,6 +1107,48 @@ function extractFirstJsonObject(text: string): string | null {
     }
   }
   return null;
+}
+
+/**
+ * Tente de réparer un JSON tronqué en fermant les structures ouvertes.
+ *
+ * Stratégie : on supprime l'entrée de tableau incomplète (celle où le modèle
+ * s'est arrêté), puis on referme le tableau et l'objet racine.
+ * On ne tente pas de reconstruire des valeurs inventoriées : mieux vaut
+ * perdre la dernière entrée que d'introduire des données corrompues.
+ */
+function repairTruncatedJson(text: string): string | null {
+  const start = text.indexOf('{');
+  if (start === -1) return null;
+
+  // On cherche la dernière virgule précédant un objet incomplet dans un tableau.
+  // Heuristique : trouver le dernier '}' présent et fermer à partir de là.
+  const lastClose = text.lastIndexOf('}');
+  if (lastClose === -1) return null;
+
+  // On s'arrête après le dernier objet complet, puis on referme le tableau
+  // et l'objet racine.
+  const truncated = text.slice(start, lastClose + 1);
+
+  // Décompte des crochets et accolades non fermés.
+  let braces = 0;
+  let brackets = 0;
+  let inString = false;
+  let escaped = false;
+  for (const char of truncated) {
+    if (escaped) { escaped = false; continue; }
+    if (char === '\\') { escaped = true; continue; }
+    if (char === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (char === '{') braces++;
+    else if (char === '}') braces--;
+    else if (char === '[') brackets++;
+    else if (char === ']') brackets--;
+  }
+
+  if (braces < 0 || brackets < 0) return null;
+
+  return truncated + ']'.repeat(brackets) + '}'.repeat(braces);
 }
 
 function toArray(value: unknown): any[] {

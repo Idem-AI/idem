@@ -514,92 +514,186 @@ export class SimulationService {
     });
   }
 
+  /**
+   * Données acquises lors d'une exécution précédente, disponibles pour
+   * reprendre depuis un point de contrôle sans relancer les étapes déjà faites.
+   */
+  private resumeContext(
+    simulation: SimulationModel
+  ): { startFrom: PipelineStageId; understanding?: ProjectUnderstanding; factors?: Factor[]; evidence?: Evidence[] } {
+    const stages = simulation.progress.stages;
+
+    // Première étape non marquée `done` — c'est là qu'on repart.
+    const firstPending = stages.find((s) => s.state !== 'done');
+    const startFrom: PipelineStageId = firstPending?.id ?? 'understand';
+
+    return {
+      startFrom,
+      understanding: simulation.understanding,
+      factors: simulation.factors?.length ? simulation.factors : undefined,
+      evidence: simulation.evidence?.length ? simulation.evidence : undefined,
+    };
+  }
+
+  /**
+   * Reprend une simulation interrompue (statut `failed` ou `running` bloquée).
+   *
+   * Identifie la première étape non terminée depuis les données persistées et
+   * repart de là sans re-débiter le quota ni redemander le consentement.
+   * Répond immédiatement : le pipeline continue en arrière-plan.
+   */
+  async resumeSimulation(
+    userId: string,
+    projectId: string,
+    simulationId: string
+  ): Promise<SimulationModel> {
+    const simulation = await this.getSimulation(userId, projectId, simulationId);
+    if (!simulation) {
+      throw new Error(`Simulation not found: ${simulationId}`);
+    }
+    if (simulation.status === 'completed') {
+      throw Object.assign(new Error('This simulation has already completed.'), { status: 409 });
+    }
+
+    const { startFrom, understanding, factors, evidence } = this.resumeContext(simulation);
+
+    logger.info(
+      `Resuming simulation ${simulationId} from stage "${startFrom}" ` +
+        `(understanding: ${!!understanding}, factors: ${factors?.length ?? 0}, evidence: ${evidence?.length ?? 0})`
+    );
+
+    // Remet la simulation en état courant : on efface l'erreur et on marque
+    // l'étape de reprise comme pending pour qu'elle reparte proprement.
+    const resumed = await this.mutate(userId, projectId, simulationId, (sim) => {
+      sim.status = 'running';
+      sim.failureReason = undefined;
+      // Réinitialise l'étape qui avait échoué (active → pending) et celles
+      // qui n'ont pas encore tourné, sans toucher aux étapes déjà done.
+      for (const stage of sim.progress.stages) {
+        if (stage.state === 'active' || stage.state === 'failed') {
+          stage.state = 'pending';
+        }
+      }
+    });
+
+    // Relance le pipeline en arrière-plan depuis le checkpoint.
+    void this.runPipeline(
+      userId,
+      projectId,
+      simulationId,
+      undefined, // les réponses sont déjà intégrées dans l'understanding persisté
+      undefined, // seedUnderstanding passé via resumeFrom
+      { startFrom, understanding, factors, evidence }
+    ).catch((error) => {
+      logger.error(`Resumed simulation pipeline crashed for ${simulationId}: ${error.message}`, {
+        stack: error.stack,
+      });
+    });
+
+    return resumed;
+  }
+
   /** Les six étapes, de la lecture du projet à l'analyse des résultats. */
   private async runPipeline(
     userId: string,
     projectId: string,
     simulationId: string,
     answers?: Record<string, string>,
-    seedUnderstanding?: ProjectUnderstanding
+    seedUnderstanding?: ProjectUnderstanding,
+    resume?: {
+      startFrom: PipelineStageId;
+      understanding?: ProjectUnderstanding;
+      factors?: Factor[];
+      evidence?: Evidence[];
+    }
   ): Promise<void> {
+    const skip = (stage: PipelineStageId): boolean => {
+      if (!resume) return false;
+      const order: PipelineStageId[] = [
+        'understand', 'discover-factors', 'research', 'model', 'simulate', 'analyse',
+      ];
+      return order.indexOf(stage) < order.indexOf(resume.startFrom);
+    };
+
     try {
       // --- 1. Comprendre le projet
-      await this.setStage(userId, projectId, simulationId, 'understand', 'active');
-      // Un business plan importé a déjà été lu : le relire coûterait un appel
-      // de plus et rendrait moins, le projet créé ne portant que l'essentiel.
-      const understanding =
-        seedUnderstanding ??
-        (await this.ai.understandProject(await this.loadProject(userId, projectId), userId));
+      let understanding: ProjectUnderstanding;
+      if (skip('understand') && resume?.understanding) {
+        understanding = resume.understanding;
+        logger.info(`Simulation ${simulationId}: skipping 'understand' (already done)`);
+      } else {
+        await this.setStage(userId, projectId, simulationId, 'understand', 'active');
+        // Un business plan importé a déjà été lu : le relire coûterait un appel
+        // de plus et rendrait moins, le projet créé ne portant que l'essentiel.
+        understanding =
+          seedUnderstanding ??
+          (resume?.understanding) ??
+          (await this.ai.understandProject(await this.loadProject(userId, projectId), userId));
 
-      // Les réponses de l'utilisateur écrasent ce que le moteur avait deviné.
-      // La provenance passe à `answer` : c'est su, mais su parce que le
-      // fondateur l'a dit, ce qui ne se confond pas avec une ligne du document.
-      if (answers) {
-        for (const item of understanding.items) {
-          const answer = answers[item.id];
-          if (answer) {
-            item.answer = answer;
-            item.state = 'known';
-            item.value = answer;
-            item.source = 'answer';
-            item.detail = undefined;
+        // Les réponses de l'utilisateur écrasent ce que le moteur avait deviné.
+        if (answers) {
+          for (const item of understanding.items) {
+            const answer = answers[item.id];
+            if (answer) {
+              item.answer = answer;
+              item.state = 'known';
+              item.value = answer;
+              item.source = 'answer';
+              item.detail = undefined;
+            }
           }
         }
+
+        await this.mutate(userId, projectId, simulationId, (simulation) => {
+          simulation.understanding = understanding;
+        });
+        await this.setStage(
+          userId, projectId, simulationId, 'understand', 'done',
+          `${understanding.items.length} éléments identifiés`
+        );
       }
 
-      await this.mutate(userId, projectId, simulationId, (simulation) => {
-        simulation.understanding = understanding;
-      });
-      await this.setStage(
-        userId,
-        projectId,
-        simulationId,
-        'understand',
-        'done',
-        `${understanding.items.length} éléments identifiés`
-      );
-
       // --- 2. Découvrir les facteurs
-      await this.setStage(userId, projectId, simulationId, 'discover-factors', 'active');
-      const factors = await this.ai.discoverFactors(understanding, userId);
-      await this.mutate(userId, projectId, simulationId, (simulation) => {
-        simulation.factors = factors;
-      });
-      await this.setStage(
-        userId,
-        projectId,
-        simulationId,
-        'discover-factors',
-        'done',
-        `${factors.length} facteurs identifiés`
-      );
+      let factors: Factor[];
+      if (skip('discover-factors') && resume?.factors?.length) {
+        factors = resume.factors;
+        logger.info(`Simulation ${simulationId}: skipping 'discover-factors' (already done)`);
+      } else {
+        await this.setStage(userId, projectId, simulationId, 'discover-factors', 'active');
+        factors = await this.ai.discoverFactors(understanding, userId);
+        await this.mutate(userId, projectId, simulationId, (simulation) => {
+          simulation.factors = factors;
+        });
+        await this.setStage(
+          userId, projectId, simulationId, 'discover-factors', 'done',
+          `${factors.length} facteurs identifiés`
+        );
+      }
 
       // --- 3. Rassembler les données externes
-      await this.setStage(userId, projectId, simulationId, 'research', 'active');
-      const evidence: Evidence[] = factors
-        .map((factor) => factor.evidence)
-        .filter((item): item is Evidence => Boolean(item));
-      await this.mutate(userId, projectId, simulationId, (simulation) => {
-        simulation.evidence = evidence;
-      });
-      await this.setStage(
-        userId,
-        projectId,
-        simulationId,
-        'research',
-        'done',
-        `${evidence.length} valeurs sourcées`
-      );
+      let evidence: Evidence[];
+      if (skip('research') && resume?.evidence?.length) {
+        evidence = resume.evidence;
+        logger.info(`Simulation ${simulationId}: skipping 'research' (already done)`);
+      } else {
+        await this.setStage(userId, projectId, simulationId, 'research', 'active');
+        evidence = factors
+          .map((factor) => factor.evidence)
+          .filter((item): item is Evidence => Boolean(item));
+        await this.mutate(userId, projectId, simulationId, (simulation) => {
+          simulation.evidence = evidence;
+        });
+        await this.setStage(
+          userId, projectId, simulationId, 'research', 'done',
+          `${evidence.length} valeurs sourcées`
+        );
+      }
 
       // --- 4. Construire les scénarios
       await this.setStage(userId, projectId, simulationId, 'model', 'active');
       const scenarios = await this.ai.designScenarios(understanding, factors, userId);
       await this.setStage(
-        userId,
-        projectId,
-        simulationId,
-        'model',
-        'done',
+        userId, projectId, simulationId, 'model', 'done',
         `${scenarios.length} scénarios construits`
       );
 
@@ -611,11 +705,7 @@ export class SimulationService {
       }
       const stressCount = scenarios.filter((s) => s.kind === 'stress' || s.kind === 'extreme').length;
       await this.setStage(
-        userId,
-        projectId,
-        simulationId,
-        'simulate',
-        'done',
+        userId, projectId, simulationId, 'simulate', 'done',
         `${scenarios.length} scénarios exécutés, dont ${stressCount} stress tests`
       );
 

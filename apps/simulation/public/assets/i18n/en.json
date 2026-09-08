@@ -194,6 +194,10 @@
     "description": "The run continues if you close this page. You will be taken to the results as soon as they are ready.",
     "failed": "The simulation stopped",
     "failedBody": "Nothing is charged for a run that does not finish. Start it again from the list.",
+    "resumeHint": "The analysis can be resumed from the stage where it stopped. Your data already acquired is preserved.",
+    "resume": "Resume simulation",
+    "resuming": "Resuming…",
+    "resumeFailed": "Could not resume the simulation",
     "body": "The analysis runs several agents and takes a few minutes. You can close this screen — the run continues.",
     "inProgress": "Running — {{percent}}%"
   },

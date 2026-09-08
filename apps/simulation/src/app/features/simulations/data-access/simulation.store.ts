@@ -199,6 +199,27 @@ export class SimulationStore {
     }
   }
 
+  /**
+   * Reprend une simulation échouée ou bloquée.
+   * Le pipeline repart depuis le dernier checkpoint persisté.
+   * Le watcher est relancé automatiquement pour suivre la progression.
+   */
+  async resume(simulationId: string): Promise<void> {
+    const projectId = this.activeProject();
+    if (!projectId) return;
+    this.failure.set(null);
+    try {
+      const simulation = await firstValueFrom(
+        this.gateway.resumeSimulation(projectId, simulationId)
+      );
+      this.adopt(simulation);
+      // Relance le polling jusqu'à l'état terminal.
+      this.watch(simulationId, projectId);
+    } catch (error) {
+      this.failure.set(messageOf(error));
+    }
+  }
+
   // -------------------------------------------------------------------
   // Rapport et laboratoires
   // -------------------------------------------------------------------
