@@ -23,7 +23,15 @@
  */
 
 import { Block } from '../design/sectionContent';
-import { FinanceComputed, FinanceModel } from '../../models/finance.model';
+import {
+  FinanceComputed,
+  FinanceModel,
+  fiscalYearPeriod,
+} from '../../models/finance.model';
+import {
+  AccountingJurisdiction,
+  resolveJurisdiction,
+} from '../common/accounting-jurisdiction';
 
 const fmt = (value: number): string => {
   if (!Number.isFinite(value)) return '—';
@@ -49,11 +57,15 @@ const short = (value: number, currency: string): string => {
  * vaut une section entièrement rédigée qu'une section ouverte par des tableaux
  * de zéros.
  */
-export function buildFinanceBlocks(finance: FinanceModel | undefined): Block[] {
+export function buildFinanceBlocks(
+  finance: FinanceModel | undefined,
+  country?: string
+): Block[] {
   const k = finance?.computed as FinanceComputed | undefined;
   if (!finance || !k || !k.compteExploitation?.length) return [];
 
   const currency = finance.meta?.currency || 'FCFA';
+  const jurisdiction: AccountingJurisdiction = resolveJurisdiction(country);
   const labels = k.fiscalYearLabels ?? k.compteExploitation.map((row) => String(row.year));
   const ce = k.compteExploitation;
   const fp = k.fundingPlan;
@@ -68,7 +80,7 @@ export function buildFinanceBlocks(finance: FinanceModel | undefined): Block[] {
       {
         value: short(ce[0].chiffreAffaires, currency),
         label: `Chiffre d'affaires ${labels[0]}`,
-        note: `Exercice du 1er janvier au 31 décembre ${labels[0]}`,
+        note: `Exercice ${fiscalYearPeriod(finance.fiscalCalendar, 0)}`,
       },
       {
         value: short(ce[0].resultatNet, currency),
@@ -124,7 +136,7 @@ export function buildFinanceBlocks(finance: FinanceModel | undefined): Block[] {
       ['Impôt sur les sociétés', ...ce.map((row) => fmt(-row.is))],
       ['Résultat net', ...ce.map((row) => fmt(row.resultatNet))],
     ],
-    caption: `Compte d'exploitation prévisionnel, en ${currency}. Exercices calés sur l'année civile conformément au SYSCOHADA.`,
+    caption: `Compte d'exploitation prévisionnel, en ${currency}. ${jurisdiction.frameworkLabel}${jurisdiction.framework === 'unknown' ? '' : ` · ${jurisdiction.country}`}.`,
   });
 
   // ── 4. Le coût du projet ─────────────────────────────────────────────────
@@ -271,7 +283,10 @@ export function buildFinanceBlocks(finance: FinanceModel | undefined): Block[] {
  * Il ne sert plus à faire recopier des tableaux — les blocs s'en chargent —
  * mais à ce que les autres sections du plan ne contredisent pas les chiffres.
  */
-export function buildFinanceNarrative(finance: FinanceModel | undefined): string {
+export function buildFinanceNarrative(
+  finance: FinanceModel | undefined,
+  country?: string
+): string {
   const k = finance?.computed as FinanceComputed | undefined;
   if (!finance || !k || !k.compteExploitation?.length) {
     if (!finance) return '';
@@ -282,14 +297,19 @@ export function buildFinanceNarrative(finance: FinanceModel | undefined): string
   }
 
   const currency = finance.meta?.currency || 'FCFA';
+  const jurisdiction = resolveJurisdiction(country);
   const labels = k.fiscalYearLabels;
   const fp = k.fundingPlan;
 
   const lines = [
     '--- REAL FINANCIAL DATA FROM THE FINANCE MODULE ---',
     `Currency: ${currency}`,
-    `Fiscal years run 1 January to 31 December (SYSCOHADA). Year labels: ${labels.join(', ')}.`,
-    `NEVER write a hyphenated fiscal year such as "${labels[0]}-${labels[1] ?? ''}".`,
+    `Accounting jurisdiction: ${jurisdiction.country} — ${jurisdiction.frameworkLabel}.`,
+    `Fiscal year: ${fiscalYearPeriod(finance.fiscalCalendar, 0)}.`,
+    `Year labels to use VERBATIM: ${labels.join(', ')}.`,
+    labels[0]?.includes('-')
+      ? 'These labels span two calendar years because the accounting year does not follow the calendar year here. That is correct — keep them as they are.'
+      : 'These labels are single calendar years. Never turn one into a span such as "2026-2027".',
     '',
     'Profit and loss:',
     ...k.compteExploitation.map(

@@ -29,46 +29,106 @@ import { SectionSource } from './section.model';
 // =====================================================================
 
 /**
- * CALENDRIER COMPTABLE — norme SYSCOHADA / OHADA.
+ * CALENDRIER COMPTABLE — dépendant de la JURIDICTION du projet.
  *
- * L'exercice court OBLIGATOIREMENT du 1er janvier au 31 décembre, quelle que
- * soit la date de démarrage effectif de l'activité. Un plan qui annonce un
- * « exercice 2026-2027 » est irrecevable pour un banquier camerounais : ce
- * n'est pas une préférence de présentation, c'est l'article 7 de l'Acte
- * uniforme relatif au droit comptable.
+ * ── CE QUE CE MODÈLE A CESSÉ DE SUPPOSER ────────────────────────────────────
  *
- * Conséquence sur le modèle : l'index 0 des tableaux mensuels est TOUJOURS
- * janvier de `firstYear`. Une activité qui démarre en septembre porte donc huit
- * mois à zéro dans son premier exercice — c'est la réalité que le premier
- * exercice doit montrer, et non une année pleine déguisée.
+ * Il imposait le SYSCOHADA à tout le monde : exercice obligatoirement calé sur
+ * l'année civile. C'est exact dans les dix-sept États de l'OHADA, et faux
+ * ailleurs — au Nigeria, au Kenya, en Afrique du Sud ou en Égypte, la société
+ * arrête librement sa date de clôture, et un exercice « 2026-2027 » y est la
+ * façon NORMALE de nommer un exercice à cheval sur deux années civiles.
+ * Le module interdisait donc, au nom de la conformité, la seule écriture
+ * correcte dans une bonne part du continent.
+ *
+ * La règle applicable vit maintenant dans `services/common/accounting-
+ * jurisdiction`, déduite du pays du projet. Ce modèle ne porte plus que les
+ * DATES ; c'est la juridiction qui dit si elles sont libres ou contraintes.
+ *
+ * Conséquence inchangée sur les tableaux : l'index 0 des tableaux mensuels est
+ * le PREMIER MOIS DE L'EXERCICE 1. Une activité qui démarre plus tard dans
+ * l'exercice porte donc des mois à zéro en tête — c'est la réalité que le
+ * premier exercice doit montrer, et non une année pleine déguisée.
  */
 export interface FiscalCalendar {
-  /** Année civile de l'exercice 1. */
+  /**
+   * Année civile où s'ouvre l'exercice 1.
+   *
+   * Pour un exercice à cheval (clôture au 30 juin, par exemple), c'est l'année
+   * du 1er jour de l'exercice : un exercice du 1er juillet 2026 au 30 juin 2027
+   * porte `firstYear = 2026` et se nomme « 2026-2027 ».
+   */
   firstYear: number;
   /**
-   * Mois de démarrage effectif de l'activité (1 = janvier … 12 = décembre).
-   * Sert à qualifier l'exercice 1 d'exercice tronqué et à le dire au lecteur.
+   * Mois de démarrage effectif de l'activité DANS l'exercice 1
+   * (1 = premier mois de l'exercice). Sert à qualifier l'exercice 1
+   * d'exercice tronqué et à le dire au lecteur.
    */
   activityStartMonth: number;
+  /**
+   * Mois de CLÔTURE de l'exercice (1 = janvier … 12 = décembre). Vaut 12 dans
+   * les juridictions qui imposent ou privilégient l'année civile ; librement
+   * arrêté là où la loi le permet.
+   */
+  fiscalYearEndMonth: number;
+  /**
+   * Identifiant de la juridiction retenue (cf. `accounting-jurisdiction`).
+   * Conservé sur le modèle pour que le rapport cite le référentiel appliqué au
+   * moment du calcul, et non celui du pays courant si le projet déménage.
+   */
+  jurisdictionId?: string;
 }
 
 export const FINANCE_PROJECTION_MONTHS = 36;
 export const FINANCE_PROJECTION_YEARS = 7; // certains tableaux vont jusqu'à 7 ans
 export const FINANCE_MAX_PRODUCTS = 20;
 
-/** Calendrier par défaut : exercice 1 = année civile en cours, activité en janvier. */
+/** Calendrier par défaut : exercice 1 = année civile en cours, clôture au 31 décembre. */
 export const defaultFiscalCalendar = (): FiscalCalendar => ({
   firstYear: new Date().getFullYear(),
   activityStartMonth: 1,
+  fiscalYearEndMonth: 12,
 });
 
 /**
- * Libellés d'exercice, en années CIVILES. Le seul endroit du code qui nomme un
- * exercice — pour qu'aucun rapport ne puisse écrire « 2026-2027 ».
+ * Libellés d'exercice — le SEUL endroit du code qui nomme un exercice.
+ *
+ * Une clôture au 31 décembre donne « 2026 ». Une clôture à toute autre date
+ * donne « 2026-2027 », parce que l'exercice couvre alors réellement deux années
+ * civiles : la forme que le module bannissait est ici la seule juste.
+ * Concentrer la règle en un point est ce qui permet de la corriger d'un seul
+ * geste quand un projet change de juridiction.
  */
 export function fiscalYearLabels(calendar: FiscalCalendar, years: number): string[] {
   const first = calendar?.firstYear || new Date().getFullYear();
-  return Array.from({ length: years }, (_, index) => String(first + index));
+  const endMonth = calendar?.fiscalYearEndMonth ?? 12;
+  return Array.from({ length: years }, (_, index) => {
+    const start = first + index;
+    return endMonth === 12 ? String(start) : `${start}-${start + 1}`;
+  });
+}
+
+/**
+ * Période couverte par un exercice, en toutes lettres.
+ * Ex. « du 1er janvier au 31 décembre 2026 », « du 1er juillet 2026 au 30 juin 2027 ».
+ */
+export function fiscalYearPeriod(calendar: FiscalCalendar, index: number): string {
+  const MONTHS = [
+    'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+    'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+  ];
+  const LAST_DAY = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  const first = (calendar?.firstYear || new Date().getFullYear()) + index;
+  const endMonth = calendar?.fiscalYearEndMonth ?? 12;
+
+  if (endMonth === 12) {
+    return `du 1ᵉʳ janvier au 31 décembre ${first}`;
+  }
+  const startMonthIndex = endMonth % 12;
+  return (
+    `du 1ᵉʳ ${MONTHS[startMonthIndex]} ${first} ` +
+    `au ${LAST_DAY[endMonth - 1]} ${MONTHS[endMonth - 1]} ${first + 1}`
+  );
 }
 
 /** Nombre de mois d'activité réels dans l'exercice 1 (1 à 12). */

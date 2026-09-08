@@ -10,6 +10,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../../config/logger';
+import { resolveJurisdiction } from '../common/accounting-jurisdiction';
 import { AIChatMessage, LLMProvider, PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
 
@@ -470,6 +471,32 @@ export class FinanceAIService {
       `Taille équipe: ${project.teamSize || '—'}`,
       `Budget: ${project.budgetIntervals || '—'}`,
       `Pays: ${project.additionalInfos?.country || '—'}`,
+      // La juridiction décide du référentiel, de la règle d'exercice, de la
+      // devise et du taux d'IS de droit commun. Sans elle, le modèle transposait
+      // le régime camerounais à un projet nigérian ou marocain.
+      ...(() => {
+        const j = resolveJurisdiction(project.additionalInfos?.country);
+        if (j.framework === 'unknown') {
+          return [
+            'Juridiction comptable: non déterminée — ne présumez aucun référentiel, ' +
+              "aucune règle d'exercice et aucun taux d'imposition.",
+          ];
+        }
+        return [
+          `Juridiction comptable: ${j.country} — ${j.frameworkLabel}`,
+          `Règle d'exercice: ${
+            j.fiscalYearRule === 'calendar-mandatory'
+              ? "année civile obligatoire (1er janvier au 31 décembre)"
+              : j.fiscalYearRule === 'calendar-default'
+                ? 'année civile par défaut, dérogation possible'
+                : 'date de clôture librement arrêtée par la société'
+          }`,
+          `Devise: ${j.currency}`,
+          ...(j.defaultCorporateTaxRatePct !== undefined
+            ? [`Impôt sur les sociétés (droit commun, ${j.taxAsOf}, indicatif): ${j.defaultCorporateTaxRatePct} %`]
+            : []),
+        ];
+      })(),
     ].join('\n');
   }
 

@@ -58,6 +58,8 @@ export interface ReportChrome {
   ds: DocumentDesignSystem;
   currency: string;
   projectName: string;
+  /** Référentiel comptable appliqué, cité en pied de chaque page. */
+  frameworkLabel: string;
   logoHtml: string;
   /** Teinte des marques, déjà ramenée dans la bande lisible. */
   mark: string;
@@ -130,13 +132,15 @@ export function buildChrome(
   ds: DocumentDesignSystem,
   currency: string,
   projectName: string,
-  logoHtml: string
+  logoHtml: string,
+  frameworkLabel: string
 ): ReportChrome {
   const { mark, markSoft } = pickMarkPair(ds);
   return {
     ds,
     currency,
     projectName,
+    frameworkLabel,
     logoHtml,
     mark,
     markSoft,
@@ -528,7 +532,7 @@ export function page(c: ReportChrome, sectionName: string, body: string): string
         <span style="font-size:${ds.typeScale.xs}px;letter-spacing:.12em;text-transform:uppercase;color:${c.inkSubtle}">${esc(sectionName)}</span>
       </div>
       <div style="position:absolute;bottom:9mm;left:18mm;right:18mm;display:flex;align-items:flex-end;justify-content:space-between;border-top:0.2mm solid ${c.rule};padding-top:2.5mm">
-        <span style="font-size:${ds.typeScale.xs}px;color:${c.inkSubtle}">Prévisions financières · exercices calés sur l'année civile (SYSCOHADA)</span>
+        <span style="font-size:${ds.typeScale.xs}px;color:${c.inkSubtle}">Prévisions financières · ${esc(c.frameworkLabel)}</span>
         <span style="font-size:${ds.typeScale.xs}px;color:${c.inkSubtle}">Montants en ${esc(c.currency)}</span>
       </div>
       ${body}

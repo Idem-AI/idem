@@ -10,7 +10,8 @@
  * structure de coûts poste par poste, fiscalité au barème, tableau des
  * investissements, besoin en fonds de roulement, plan de financement et
  * MONTANT SOLLICITÉ, flux O.E.C. détaillés, actualisation ligne à ligne et
- * valorisation. Les exercices sont calés sur l'année civile (SYSCOHADA).
+ * valorisation. Le calendrier des exercices suit la JURIDICTION du pays du
+ * projet (cf. services/common/accounting-jurisdiction), et non une zone supposée.
  */
 
 import logger from '../../config/logger';
@@ -26,6 +27,7 @@ import { financeAIService } from './finance-ai.service';
 import { ProjectModel } from '../../models/project.model';
 import { RepositoryFactory } from '../../repository/RepositoryFactory';
 import { FinanceModel } from '../../models/finance.model';
+import { resolveJurisdiction } from '../common/accounting-jurisdiction';
 import { buildChrome } from './finance-report.template';
 import {
   analysisSection,
@@ -94,13 +96,16 @@ export class FinancePdfService {
     // à porter. Un appel de modèle et son attente disparaissent du chemin
     // critique — le rapport ne dépend plus que de l'interprétation.
     const designSystem = this.designSystemOf(project);
+    // La juridiction comptable vient du PAYS du projet : le rapport cite le
+    // référentiel réellement applicable, et non celui d'une zone supposée.
+    const jurisdiction = resolveJurisdiction(project.additionalInfos?.country);
     const coverSection = this.buildCoverSection(
       companyName,
       designSystem,
       project,
       project.id ?? projectId
     );
-    const interpretation = await this.generateInterpretation(project, finance);
+    const interpretation = await this.generateInterpretation(project, finance, jurisdiction);
 
     // ── L'ORDRE DE LECTURE D'UN ANALYSTE CRÉDIT ─────────────────────────────
     //
@@ -114,17 +119,18 @@ export class FinancePdfService {
       designSystem,
       finance.meta?.currency || 'FCFA',
       companyName,
-      this.buildCoverLogoHtml(project, designSystem, companyName)
+      this.buildCoverLogoHtml(project, designSystem, companyName),
+      jurisdiction.frameworkLabel
     );
 
     const sections: SectionModel[] = [
       coverSection,
-      section('Synthèse', summarySection(chrome, finance)),
+      section('Synthèse', summarySection(chrome, finance, jurisdiction)),
       section('Modèle de revenus', revenueSection(chrome, finance)),
       section('Structure de coûts', costStructureSection(chrome, finance)),
       section('Fiscalité', taxesSection(chrome, finance)),
       section('Investissements', investmentsSection(chrome, finance)),
-      section('Fonds de roulement', bfrSection(chrome, finance)),
+      section('Fonds de roulement', bfrSection(chrome, finance, jurisdiction)),
       section('Plan de financement', fundingSection(chrome, finance)),
       section("Compte d'exploitation", exploitationSection(chrome, finance)),
       section('Bilan', bilanSection(chrome, finance)),
@@ -132,7 +138,7 @@ export class FinancePdfService {
       section('Seuil de rentabilité', breakEvenSection(chrome, finance)),
       section('Rentabilité', ratiosSection(chrome, finance)),
       section('Analyse', analysisSection(chrome, splitParagraphs(interpretation))),
-      section('Méthode', methodSection(chrome, finance)),
+      section('Méthode', methodSection(chrome, finance, jurisdiction)),
     ];
 
     return this.pdfService.generatePdf({
@@ -351,6 +357,7 @@ export class FinancePdfService {
   private async generateInterpretation(
     project: ProjectModel,
     finance: FinanceModel,
+    jurisdiction: ReturnType<typeof resolveJurisdiction>,
   ): Promise<string> {
     const c = finance.computed!;
     const ce = c.compteExploitation;
@@ -366,7 +373,8 @@ export class FinancePdfService {
       `Projet: ${project.name}`,
       `Type: ${project.type}`,
       `Devise: ${currency}`,
-      `Exercices (année civile, SYSCOHADA): ${labels.join(', ')}`,
+      `Juridiction comptable: ${jurisdiction.country} — ${jurisdiction.frameworkLabel}`,
+      `Exercices: ${labels.join(', ')} (${jurisdiction.fiscalYearRule === 'free-choice' ? 'date de clôture libre' : 'année civile'})`,
       ...ce.map(
         (row, y) =>
           `Exercice ${labels[y]}: CA ${Math.round(row.chiffreAffaires)}, marge sur coûts variables ${row.tauxMargePct.toFixed(1)}%, EBE ${Math.round(row.ebe)}, résultat net ${Math.round(row.resultatNet)}`
@@ -403,8 +411,10 @@ Rules:
   and do not comment on the VAN or the TRI as if they meant something.
 - If there is a funding need, name the amount in paragraph 1: it is what the
   reader is looking for.
-- Fiscal years run 1 January to 31 December (SYSCOHADA). Never write a
-  hyphenated year span such as "2026-2027".
+- Name fiscal years EXACTLY as they are given above. Where a label spans two
+  calendar years ("2026-2027"), that is correct: the accounting year does not
+  follow the calendar year in this jurisdiction. Where it is a single year, never
+  turn it into a span.
 - Plain text only, no markdown, one blank line between paragraphs.`,
       },
       { role: 'user', content: `Indicateurs:\n${summary}\n\nRédige la note de lecture.` },

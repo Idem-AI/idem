@@ -263,7 +263,8 @@ const FINANCIERES = 'financieres';
  * Premier mois d'EXPLOITATION, et non premier mois du plan.
  *
  * Une activité qui démarre en septembre porte huit mois vides en tête de son
- * premier exercice — c'est ce qu'impose le calage SYSCOHADA sur l'année civile.
+ * premier exercice — c'est ce que produit le calage de l'exercice imposé ou
+ * choisi par la juridiction du projet.
  * Compter le fonds de roulement sur les mois 1 à 3 revenait alors à le calculer
  * sur une période où l'entreprise n'achète ni ne vend : un stock initial nul et
  * des frais de démarrage amputés de tout leur variable.

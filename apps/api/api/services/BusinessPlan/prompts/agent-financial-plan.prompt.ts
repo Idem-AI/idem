@@ -22,10 +22,14 @@ export const AGENT_FINANCIAL_PLAN_PROMPT = `<role>Senior financial analyst</role
 </mandatory_content>
 
 <accounting_calendar>
-SYSCOHADA / OHADA applies. The fiscal year runs from 1 JANUARY TO 31 DECEMBER,
-whatever the month the activity starts. Name each year as ONE calendar year
-("exercice 2026"); never as a span ("2026-2027"). When the activity starts
-mid-year, state that the first fiscal year is a short year.
+The accounting framework and the fiscal-year rule depend on the project's
+COUNTRY; both are supplied in the finance context below. SYSCOHADA imposes a
+calendar year across the seventeen OHADA states; Nigeria, Kenya, South Africa
+and Egypt let the company choose its closing date, and there a fiscal year
+legitimately spans two calendar years.
+
+Never assume a framework. Reuse the year labels exactly as supplied. When the
+activity starts after the fiscal year opens, state that the first year is short.
 </accounting_calendar>
 
 <chart_requirements>

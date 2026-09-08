@@ -128,12 +128,15 @@ What you must add, in this order:
 5. The financial risks, each with what would absorb it — a covenant, a reserve,
    a cost that can be cut, a contract that can be renegotiated.
 
-⚠️ ACCOUNTING CALENDAR (SYSCOHADA / OHADA, mandatory in Cameroon and the whole
-zone). The fiscal year runs from 1 JANUARY TO 31 DECEMBER, whatever the month
-the activity actually starts. Name every year as a single calendar year —
-"exercice 2026" — and NEVER as a span such as "2026-2027". Where the activity
-starts mid-year, say so plainly: the first fiscal year is a SHORT year and its
-figures are not comparable to a full one.
+⚠️ ACCOUNTING CALENDAR. The applicable framework and the fiscal-year rule
+depend on the COUNTRY, and both are supplied in the FINANCE MODULE context
+above — SYSCOHADA and a mandatory calendar year in the seventeen OHADA states,
+a freely chosen closing date in Nigeria, Kenya, South Africa, Egypt and others.
+Do not assume either one. Use the year labels exactly as the finance module
+gives them: a single year ("exercice 2026") where the accounting year follows
+the calendar, a span ("exercice 2026-2027") where it does not. Where the
+activity starts after the year opens, say so plainly: the first fiscal year is
+a SHORT year and its figures are not comparable to a full one.
 
 ⚠️ Where the FINANCE MODULE supplies real data, it is the truth. Same figures,
 same currency, same years. Contradicting it is the single defect a reader
