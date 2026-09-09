@@ -21,6 +21,8 @@ import useChatModeStore from '../../../stores/chatModeSlice';
 import useTerminalStore from '@/stores/terminalSlice';
 import { checkExecList, checkFinish } from '../utils/checkFinish';
 import { runQualityPass } from '../utils/qualityPass';
+import useVersionHistory from '@/stores/versionHistory';
+import CodeLoadError from '@/components/CodeLoadError';
 import { useUrlData } from '@/hooks/useUrlData';
 import {
   getProjectById,
@@ -453,6 +455,10 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const [isGenerationComplete, setIsGenerationComplete] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [projectLoadError, setProjectLoadError] = useState<string | null>(null);
+  // Échec de récupération du code déjà enregistré pour ce projet. Distinct de
+  // `projectLoadError` : le projet existe, seul son code n'a pas pu être lu.
+  const [codeLoadFailed, setCodeLoadFailed] = useState(false);
+  const [retryingCodeLoad, setRetryingCodeLoad] = useState(false);
 
   const [mcpTools, setMcpTools] = useState<MCPTool[]>([]);
   useEffect(() => {
@@ -528,6 +534,19 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         }),
       // Send projectData to server if available (client has auth, server doesn't)
       ...(projectData && { projectData }),
+      // Instantané de l'espace de travail : uniquement en mode Plan, où le
+      // modèle dispose d'outils de lecture. En mode Build, les fichiers
+      // voyagent déjà dans l'historique des artefacts — les envoyer deux fois
+      // doublerait le coût de chaque génération pour rien.
+      ...(mode === ChatMode.Chat && {
+        workspace: {
+          files: useFileStore.getState().files,
+          logs: useFileStore
+            .getState()
+            .errors.map((error: { message?: string }) => error?.message ?? String(error))
+            .filter(Boolean),
+        },
+      }),
     },
     id: chatUuid,
     onResponse: async (response) => {
@@ -633,6 +652,22 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       setCheckCount((checkCount) => checkCount + 1);
 
       // Persist the generation: code goes to the bucket (incrementally, only
+      // Point de restauration : l'état des fichiers juste après ce tour, étiqueté
+      // par la demande qui l'a produit. Sans cela, revenir en arrière veut dire
+      // redemander l'inverse au modèle et espérer retomber dessus.
+      try {
+        const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user');
+        await useVersionHistory
+          .getState()
+          .capture(
+            lastUserMessage?.content?.slice(0, 120) || t('versions.beforeRestore'),
+            useFileStore.getState().files
+          );
+      } catch (error) {
+        // L'historique est un confort : son échec ne doit rien interrompre.
+        console.warn('[versions] instantané non enregistré', error);
+      }
+
       // the files that changed), the conversation goes to the database.
       if (projectId && projectData) {
         const finalMessages = [...messages, message];
@@ -731,6 +766,19 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     return () => unsubscribe();
   }, [isLoading, append]);
 
+  // Contexte poussé depuis l'espace de travail : sélection d'un élément,
+  // annotation dessinée, thème à appliquer. On préremplit la saisie au lieu
+  // d'envoyer directement — l'utilisateur a désigné *quoi*, il lui reste à dire
+  // *quoi en faire*.
+  useEffect(() => {
+    const unsubscribe = eventEmitter.on('chat:prefill', (text: string) => {
+      if (!text) return;
+      setInput((current: string) => (current ? `${current}\n${text}` : text));
+      eventEmitter.emit('chat:focusInput');
+    });
+    return () => unsubscribe();
+  }, [setInput]);
+
   // Get status and type from URL data (projectId already obtained above)
   const { status, type } = useUrlData({ append });
   const { setLoading } = useLoading();
@@ -782,17 +830,13 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
             console.log('No generation found, showing start button for:', project.name);
           }
 
-          // Vérifier et charger le code existant depuis Firebase Storage
+          // Récupération du code déjà enregistré pour ce projet.
           try {
-            console.log('Checking for existing code in Firebase Storage for project:', projectId);
+            console.log('[code] recherche du code enregistré pour', projectId);
             const existingCode = await getProjectCodeFromFirebase(projectId);
 
             if (existingCode && Object.keys(existingCode).length > 0) {
-              console.log(
-                'Found existing code in Firebase Storage, loading into workspace:',
-                Object.keys(existingCode).length,
-                'files'
-              );
+              console.log('[code] chargé :', Object.keys(existingCode).length, 'fichiers');
 
               // Charger le code dans l'espace de travail
               setFiles(existingCode);
@@ -821,15 +865,14 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                 ]);
               }
 
-              toast.success(
-                `Code existant chargé depuis Firebase Storage (${Object.keys(existingCode).length} fichiers)`
-              );
             } else {
-              console.log('No existing code found in Firebase Storage for project:', projectId);
+              console.log('[code] aucun code enregistré pour', projectId);
             }
           } catch (error) {
-            console.error('Error loading existing code from Firebase Storage:', error);
-            // Ne pas afficher d'erreur à l'utilisateur car ce n'est pas critique
+            console.error('Error loading existing code from object storage:', error);
+            // L'espace de travail s'ouvrirait vide sans que rien ne l'explique :
+            // c'est le seul cas où le stockage mérite d'être mentionné.
+            setCodeLoadFailed(true);
           }
         } else {
           console.warn('Project not found with ID:', projectId);
@@ -904,11 +947,6 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
       await pushProjectCode(projectId, generatedFiles);
 
-      toast.success(
-        t('chat.success.firebase_save_success', {
-          count: Object.keys(generatedFiles).length,
-        })
-      );
     } catch (error) {
       console.error('Error saving code to object storage:', error);
       toast.error(t('chat.errors.firebase_save_failed'));
@@ -1256,6 +1294,16 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     setProjectLoadError(null);
   };
 
+  const retryCodeLoad = () => {
+    setRetryingCodeLoad(true);
+    setCodeLoadFailed(false);
+    setIsProjectLoaded(false);
+    setProjectLoadError(null);
+    // Le drapeau se lève au prochain rendu : `loadProjectData` est déclenché
+    // par l'effet qui observe `isProjectLoaded`.
+    setTimeout(() => setRetryingCodeLoad(false), 1200);
+  };
+
   const showJsx = useMemo(() => {
     // Show error state if project failed to load
     if (projectLoadError) {
@@ -1294,7 +1342,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                     d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                   />
                 </svg>
-                Try Again
+                {t('chatWorkspace.retry')}
               </button>
             </div>
           </div>
@@ -1318,17 +1366,17 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                   size={64}
                   className="mx-auto mb-3"
                 />
-                <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">
+                <h2 className="text-2xl font-bold mb-2 text-text-primary">
                   {projectData.name}
                 </h2>
-                <p className="mb-4 text-gray-600 dark:text-gray-300">
-                  {projectData.description || 'Ready to generate your application'}
+                <p className="mb-4 text-text-tertiary">
+                  {projectData.description || t('chatWorkspace.readyToGenerate')}
                 </p>
               </div>
               {showStartButton ? (
                 <div className="text-center">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    Click the button below to start generating your application code
+                  <p className="text-sm text-text-tertiary mb-4">
+                    {t('chatWorkspace.startHint')}
                   </p>
                   <button
                     onClick={handleStartGeneration}
@@ -1342,7 +1390,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                         d="M13 10V3L4 14h7v7l9-11h-7z"
                       />
                     </svg>
-                    Generate Now
+                    {t('chatWorkspace.generateNow')}
                   </button>
                 </div>
               ) : hasGeneration && !isGenerationComplete ? (
@@ -1369,12 +1417,12 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                         ></path>
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      Generation in Progress
+                    <h3 className="text-lg font-semibold text-text-primary">
+                      {t('chatWorkspace.inProgress')}
                     </h3>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Your application is being generated. Please wait...
+                  <p className="text-sm text-text-tertiary">
+                    {t('chatWorkspace.inProgressBody')}
                   </p>
                 </div>
               ) : isGenerationComplete ? (
@@ -1395,12 +1443,12 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                         />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      Generation Complete
+                    <h3 className="text-lg font-semibold text-text-primary">
+                      {t('chatWorkspace.complete')}
                     </h3>
                   </div>
-                  <p className="text-sm mb-4 text-gray-600 dark:text-gray-300">
-                    Your application has been successfully generated and is ready for export.
+                  <p className="text-sm mb-4 text-text-tertiary">
+                    {t('chatWorkspace.completeBody')}
                   </p>
                 </div>
               ) : null}
@@ -1434,8 +1482,8 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
           {isLoading && (
             <div className="group" key="loading-indicator">
-              <div className="flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
-                <div className="w-6 h-6 rounded-md bg-gray-100 dark:bg-[rgba(45,45,45)] text-gray-500 dark:text-gray-400 flex items-center justify-center text-xs border border-gray-200 dark:border-gray-700/50">
+              <div className="flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-surface-2/[0.02] transition-colors">
+                <div className="w-6 h-6 rounded-md bg-gray-100 dark:bg-[rgba(45,45,45)] text-text-tertiary flex items-center justify-center text-xs border border-[var(--glass-border)]/50">
                   <svg
                     className="w-4 h-4 animate-spin"
                     viewBox="0 0 24 24"
@@ -1459,13 +1507,13 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <div className="w-24 h-4 rounded bg-gray-200 dark:bg-gray-700/50 animate-pulse" />
-                    <div className="w-32 h-4 rounded bg-gray-200 dark:bg-gray-700/50 animate-pulse" />
-                    <div className="w-16 h-4 rounded bg-gray-200 dark:bg-gray-700/50 animate-pulse" />
+                    <div className="w-24 h-4 rounded bg-surface-3/50 animate-pulse" />
+                    <div className="w-32 h-4 rounded bg-surface-3/50 animate-pulse" />
+                    <div className="w-16 h-4 rounded bg-surface-3/50 animate-pulse" />
                   </div>
                   <div className="mt-2 space-y-2">
-                    <div className="w-full h-3 rounded bg-gray-200 dark:bg-gray-700/50 animate-pulse" />
-                    <div className="w-4/5 h-3 rounded bg-gray-200 dark:bg-gray-700/50 animate-pulse" />
+                    <div className="w-full h-3 rounded bg-surface-3/50 animate-pulse" />
+                    <div className="w-4/5 h-3 rounded bg-surface-3/50 animate-pulse" />
                   </div>
                 </div>
               </div>
@@ -1503,11 +1551,18 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
   return (
     <div
-      className="flex h-full flex-col dark:bg-[#18181a] max-w-full"
+      className="flex h-full flex-col dark:bg-surface-1 max-w-full"
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
       {showJsx}
+
+      <CodeLoadError
+        open={codeLoadFailed}
+        retrying={retryingCodeLoad}
+        onRetry={retryCodeLoad}
+        onDismiss={() => setCodeLoadFailed(false)}
+      />
 
       {/* Tutorial Modal */}
       {showTutorial && projectData && (

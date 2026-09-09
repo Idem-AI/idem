@@ -7,8 +7,48 @@ import {
   SelectedMockupSupport,
 } from './BandIdentity/mockupAnalyzer.service';
 import { MOCKUP_CONFIG } from '../config/mockup.config';
-import { AI_CONFIG } from '../config/ai.config';
-import { analyzeImage, generateImage, isGlmConfigured } from './glm-media.service';
+import { AI_CONFIG, LLMProvider } from '../config/ai.config';
+import { modelForRole } from '../config/ai-providers.config';
+import {
+  analyzeImage,
+  generateImage,
+  isGlmConfigured,
+  mediaProvider,
+} from './glm-media.service';
+import { getGoogleGenAIClient } from '../config/google-genai.client';
+
+/**
+ * Modèle image de Gemini pour les mises en situation.
+ *
+ * `flash-image` plutôt que `flash-lite-image` ici : la composition d'un logo
+ * réel sur un support en perspective demande plus de soin qu'une photo de
+ * produit nue, et c'est le seul endroit du produit où l'écart se voit.
+ */
+/**
+ * Modèle d'image des mises en situation.
+ *
+ * Résolu depuis la TABLE DES RÔLES plutôt que fixé ici. Deux modèles d'image
+ * coexistaient — celui-ci et celui déclaré pour le rôle `image` — et rien ne
+ * les tenait d'accord : une surcharge `AI_OVERRIDES` sur le rôle image n'aurait
+ * eu aucun effet sur les mockups, qui sont pourtant le principal usage d'image
+ * de la plateforme.
+ *
+ * `IDEM_GEMINI_MOCKUP_MODEL` reste accepté pour épingler un modèle sur les
+ * seuls mockups, sans toucher au reste.
+ *
+ * Résolu À L'APPEL, jamais à l'import. `modelForRole` interroge le registre,
+ * qui résout au passage le backend Gemini et le MÉMORISE. Fixer ce modèle dans
+ * une constante de module figeait donc le backend avant que `loadSecrets()`
+ * n'ait chargé `.env.secret` : la clé AI Studio arrivait trop tard, et toute
+ * génération échouait ensuite sur « GEMINI_API_KEY est absente ».
+ */
+function geminiMockupModel(): string {
+  return (
+    process.env.IDEM_GEMINI_MOCKUP_MODEL ||
+    modelForRole(LLMProvider.GEMINI, 'image') ||
+    'gemini-3.1-flash-image'
+  );
+}
 import { ArtDirectionModel } from '../models/art-direction.model';
 import {
   buildImageNegativePrompt,
@@ -294,12 +334,23 @@ export class GeminiMockupService {
         throw new Error('GLM_API_KEY is not configured. Cannot generate mockup images.');
       }
 
-      // La scène est produite SANS logo, puis le vrai logo y est imprimé.
+      // ── DEUX CHEMINS, selon ce que le fournisseur d'image sait faire ──────
       //
-      // L'API d'image de Z.ai ne prend pas d'image en entrée : lui décrire le
-      // logo l'aurait fait en dessiner un approchant — inacceptable sur un
-      // livrable de marque. Composer l'image nous-mêmes donne un logo exact au
-      // pixel près, ce qu'aucune génération conditionnée ne garantissait.
+      // GEMINI accepte une IMAGE EN ENTRÉE. On lui donne donc le logo réel avec
+      // la consigne, et il compose la mise en situation en une seule passe. Ce
+      // chemin est celui qui existait avant la migration vers Z.ai ; il est
+      // rétabli ici parce qu'il est à la fois meilleur et plus rapide :
+      // UN appel au lieu de trois (scène, vision, incrustation), et un logo posé
+      // par le modèle qui voit la scène qu'il vient de produire.
+      //
+      // Z.ai ne prend pas d'image en entrée. Lui décrire le logo l'aurait fait
+      // en dessiner un approchant — inacceptable sur un livrable de marque. D'où
+      // la scène vide, la lecture de la surface imprimable, puis l'incrustation
+      // du vrai logo au pixel près.
+      if (mediaProvider() === 'gemini') {
+        return this.generateWithGemini(request, mockupName, projectId, userId);
+      }
+
       const scenePrompt = this.buildScenePrompt(request);
 
       logger.info(
@@ -403,10 +454,115 @@ export class GeminiMockupService {
    * consigne était auparavant ajoutée ici, en contradiction avec le bloc
    * « écris le nom de la marque » que le prompt envoyait juste au-dessus.
    */
-  private buildScenePrompt(request: MockupGenerationRequest): string {
+  /**
+   * Mise en situation par GEMINI — génération multimodale, en une passe.
+   *
+   * Le logo réel part EN ENTRÉE, à côté de la consigne. Le modèle compose donc
+   * la scène en sachant ce qu'il doit y imprimer, au lieu de produire une scène
+   * vide qu'il faut ensuite lire puis retoucher.
+   *
+   * C'est la logique qui existait avant la migration vers Z.ai, rétablie parce
+   * qu'elle est meilleure ET plus rapide : UN appel au lieu de trois (scène,
+   * lecture de la zone, incrustation), soit environ quatre secondes contre une
+   * quinzaine — et un logo posé par celui qui voit la scène.
+   *
+   * ⚠️ `responseModalities` doit contenir `IMAGE`. Sans cette ligne le modèle
+   * répond en TEXTE : il DÉCRIT la mise en situation au lieu de la produire, et
+   * l'appel réussit en ne rendant rien d'utilisable.
+   */
+  private async generateWithGemini(
+    request: MockupGenerationRequest,
+    mockupName: string,
+    projectId: string,
+    userId: string
+  ): Promise<MockupGenerationResult> {
+    const startedAt = Date.now();
+
+    // Sur une mise en situation, le support est le plus souvent clair : c'est la
+    // déclinaison sombre du logo qui contraste. Le modèle recevant la scène ET
+    // le logo, il adapte le placement ; la déclinaison, elle, reste notre choix.
+    const logo = request.logos.dark ?? request.logos.light;
+
+    // Le prompt est demandé en mode « logo joint ». Auparavant, on envoyait le
+    // prompt de support VIERGE puis on ajoutait une phrase demandant de poser le
+    // logo : le modèle lisait trois interdictions contre une consigne, et
+    // rendait le support nu. C'était la cause des mises en situation sans logo.
+    const prompt = this.buildScenePrompt(request, logo ? 'attached' : 'blank');
+
+    logger.info(`[MOCKUP][${mockupName}] Génération multimodale Gemini`, {
+      mockupName,
+      model: geminiMockupModel(),
+      logoBytes: logo?.length ?? 0,
+      projectId,
+    });
+
+    const response: any = await getGoogleGenAIClient().models.generateContent({
+      model: geminiMockupModel(),
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            // L'image d'abord : le modèle la lit comme la référence à respecter.
+            ...(logo
+              ? [{ inlineData: { mimeType: 'image/png', data: logo.toString('base64') } }]
+              : []),
+            // La consigne de placement vit maintenant DANS le prompt
+            // (`logo_placement_rule`), au même niveau que le reste : elle n'est
+            // plus une rustine ajoutée après un texte qui dit le contraire.
+            { text: prompt },
+          ],
+        },
+      ],
+      config: { responseModalities: ['TEXT', 'IMAGE'], candidateCount: 1 },
+    });
+
+    const parts = response?.candidates?.[0]?.content?.parts ?? [];
+    const inline = parts.find((part: any) => part?.inlineData?.data)?.inlineData;
+
+    if (!inline?.data) {
+      throw new Error(
+        `${geminiMockupModel()} n'a renvoyé aucune image pour ${mockupName} ` +
+          `(${parts.length} partie(s), texte seul)`
+      );
+    }
+
+    const imageBuffer = Buffer.from(inline.data, 'base64');
+    const mimeType = inline.mimeType ?? 'image/png';
+    const extension = mimeType.includes('jpeg') ? 'jpg' : 'png';
+
+    logger.info(
+      `[MOCKUP][${mockupName}] Image composée en ${Date.now() - startedAt} ms ` +
+        `(${Math.round(imageBuffer.length / 1024)} ko)`
+    );
+
+    const uploadResult = await this.storageService.uploadFile(
+      imageBuffer,
+      `${mockupName}-${Date.now()}.${extension}`,
+      `projects/${projectId}/Mockups`,
+      mimeType
+    );
+
+    return {
+      mockupUrl: uploadResult.downloadURL,
+      templateId: mockupName,
+      mockupType: request.selectedSupport.supportType,
+      supportType: request.selectedSupport.supportType,
+      supportName: request.selectedSupport.supportName,
+      title: request.selectedSupport.supportName,
+      description: `${request.selectedSupport.supportName} - ${request.selectedSupport.context}`,
+      mockupIndex: request.selectedSupport.mockupIndex,
+      priority: request.selectedSupport.priority,
+    };
+  }
+
+  private buildScenePrompt(
+    request: MockupGenerationRequest,
+    logoMode: 'blank' | 'attached' = 'blank'
+  ): string {
     const { brandName, brandColors, projectDescription, selectedSupport } = request;
 
     return MOCKUP_GENERATION_PROMPT.buildDynamicPrompt({
+      logoMode,
       brandName,
       brandColors,
       projectDescription,

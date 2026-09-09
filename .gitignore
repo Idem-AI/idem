@@ -113,3 +113,6 @@ apps/chart/vite.config.js.timestamp-1776724487404-1ec21a1d67413.mjs
 apps/api/firebase-key.json
 
 docs/business-plan
+
+# Sorties des harnais de contrôle (PDF rendus, pages rasterisées)
+apps/api/tmp/

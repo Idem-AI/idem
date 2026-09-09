@@ -15,6 +15,18 @@ import useAppGenContextStore from '@/stores/appgenContextSlice';
 import { UserProfile } from './UserProfile';
 import type { UserModel } from '@/api/persistence/userModel';
 import {
+  Rocket,
+  MoreHorizontal,
+  Download,
+  Github,
+  History,
+  ChevronRight,
+  ChevronLeft,
+} from 'lucide-react';
+import Popover from '@/components/ui/Popover';
+import Button from '@/components/ui/Button';
+import { VersionList } from './VersionHistory';
+import {
   loadDeployment,
   persistDeployment,
   type AppDeployment,
@@ -260,110 +272,49 @@ export function HeaderActions() {
   };
 
   return (
-    <div className="flex items-center gap-2">
-      {currentUser && <UserProfile user={currentUser} />}
-      <HelpButton />
+    <div className="flex items-center gap-1.5">
       {mode === ChatMode.Builder && (
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleDownload}
-            className="outer-button flex items-center gap-1.5 text-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-              />
-            </svg>
-            <span>{t('header.download')}</span>
-          </button>
-          <button
+        <>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={handleDeployClick}
-            disabled={isDeploying}
-            className={`flex items-center gap-1.5 text-sm ${
-              isDeploying ? 'outer-button opacity-75 cursor-not-allowed' : 'inner-button'
-            }`}
+            loading={isDeploying}
+            icon={<Rocket className="w-4 h-4" />}
           >
-            {isDeploying ? (
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                />
-              </svg>
-            )}
-            <span>
-              {isDeploying
-                ? t('header.deploying')
-                : deployment
-                  ? t('header.redeploy')
-                  : t('header.deploy')}
-            </span>
-          </button>
-          <button
-            onClick={handleSendToGitHub}
-            disabled={isSendingToGitHub}
-            className={`flex items-center gap-1.5 text-sm ${
-              isSendingToGitHub ? 'outer-button opacity-75 cursor-not-allowed' : 'outer-button'
-            }`}
-          >
-            {isSendingToGitHub ? (
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path
-                  fillRule="evenodd"
-                  d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            )}
-            <span>{isSendingToGitHub ? t('header.github.sending') : t('header.github.send')}</span>
-          </button>
+            {isDeploying
+              ? t('header.deploying')
+              : deployment
+                ? t('header.redeploy')
+                : t('header.deploy')}
+          </Button>
 
-          {/* Directory opening option disabled in web mode */}
-        </div>
+          <Popover
+            label={t('header.moreActions')}
+            className="w-72"
+            trigger={(triggerProps) => (
+              <Button
+                {...triggerProps}
+                variant="icon"
+                title={t('header.moreActions')}
+                aria-label={t('header.moreActions')}
+                icon={<MoreHorizontal className="w-4 h-4" />}
+              />
+            )}
+          >
+            {(close) => <ActionsMenu close={close} onDownload={handleDownload} onGitHub={handleSendToGitHub} sendingToGitHub={isSendingToGitHub} />}
+          </Popover>
+        </>
       )}
+
+      <HelpButton />
+      {currentUser && <UserProfile user={currentUser} />}
+
       <DeployModal
         open={showDeployChoiceModal}
         onClose={() => setShowDeployChoiceModal(false)}
         onNetlifyDeploy={publishToNetlify}
+        liveUrl={deployment?.url ?? null}
       />
 
       {showModal && (
@@ -391,26 +342,26 @@ export function HeaderActions() {
                 d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <h3 className="text-xl font-semibold text-text-primary">
               {isRedeploy ? t('header.redeploySuccess') : t('header.deploySuccess')}
             </h3>
-            <p className="text-gray-600 dark:text-gray-300 mt-2">
+            <p className="text-text-tertiary mt-2">
               {isRedeploy ? t('header.redeployToCloud') : t('header.deployToCloud')}
             </p>
           </div>
 
-          <div className="bg-gray-100 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-6">
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">{t('header.accessLink')}</p>
+          <div className="bg-surface-2/50 border border-[var(--glass-border)] rounded-lg p-4 mb-6">
+            <p className="text-sm text-text-tertiary mb-2">{t('header.accessLink')}</p>
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={deployUrl}
                 readOnly
-                className="flex-1 p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none"
+                className="flex-1 p-2 text-sm border border-[var(--glass-border)] rounded-lg bg-surface-1 text-text-primary focus:border-blue-500 focus:outline-none"
               />
               <button
                 onClick={copyToClipboard}
-                className="px-3 py-2 bg-gray-200 text-gray-900 hover:bg-gray-300 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500 rounded-lg transition-colors flex items-center gap-1"
+                className="px-3 py-2 bg-gray-200 text-gray-900 hover:bg-surface-3 dark:text-white dark:hover:bg-gray-500 rounded-lg transition-colors flex items-center gap-1"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -471,19 +422,112 @@ export function HeaderActions() {
           }}
         >
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('header.deploy_modal.title')}</h3>
+            <h3 className="text-lg font-semibold text-text-primary mb-4">{t('header.deploy_modal.title')}</h3>
             <div className="flex justify-center items-center h-32">
               <div className="relative">
                 <div className="animate-spin rounded-full h-16 w-16 border-2 border-blue-500/30 border-t-blue-500"></div>
                 <div className="absolute inset-0 rounded-full animate-pulse bg-blue-500/10 backdrop-blur-sm"></div>
               </div>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+            <p className="text-sm text-text-tertiary mt-4">
               {t('header.deploy_modal.loading_text')}
             </p>
           </div>
         </Modal>
       )}
+    </div>
+  );
+}
+
+function MenuItem({
+  icon,
+  label,
+  onClick,
+  disabled,
+  trailing,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  trailing?: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full h-9 px-3 flex items-center gap-2.5 text-[13px] text-text-secondary hover:text-text-primary hover:bg-surface-2 disabled:opacity-40 disabled:hover:bg-transparent transition-colors text-left"
+    >
+      {icon}
+      <span className="flex-1">{label}</span>
+      {trailing}
+    </button>
+  );
+}
+
+function ActionsMenu({
+  close,
+  onDownload,
+  onGitHub,
+  sendingToGitHub,
+}: {
+  close: () => void;
+  onDownload: () => void;
+  onGitHub: () => void;
+  sendingToGitHub: boolean;
+}) {
+  const { t } = useTranslation();
+  const [page, setPage] = useState<'menu' | 'versions'>('menu');
+
+  if (page === 'versions') {
+    return (
+      <div>
+        <div className="flex items-center gap-2 px-2 py-2 border-b border-[var(--glass-border)]">
+          <button
+            type="button"
+            onClick={() => setPage('menu')}
+            aria-label={t('common.back')}
+            className="w-7 h-7 grid place-items-center rounded-md text-text-tertiary hover:text-text-primary hover:bg-surface-2 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-text-primary">{t('versions.title')}</p>
+            <p className="text-[11px] text-text-tertiary">{t('versions.hint')}</p>
+          </div>
+        </div>
+        <VersionList onDone={close} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-1">
+      <MenuItem
+        icon={<History className="w-4 h-4" />}
+        label={t('versions.title')}
+        onClick={() => setPage('versions')}
+        trailing={<ChevronRight className="w-4 h-4 text-text-disabled" />}
+      />
+      <div className="my-1 h-px bg-[var(--glass-border)]" />
+      <MenuItem
+        icon={<Download className="w-4 h-4" />}
+        label={t('header.download')}
+        onClick={() => {
+          onDownload();
+          close();
+        }}
+      />
+      <MenuItem
+        icon={<Github className="w-4 h-4" />}
+        label={sendingToGitHub ? t('header.github.sending') : t('header.github.send')}
+        disabled={sendingToGitHub}
+        onClick={() => {
+          onGitHub();
+          close();
+        }}
+      />
     </div>
   );
 }

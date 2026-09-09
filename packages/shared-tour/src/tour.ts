@@ -156,6 +156,14 @@ class Tour implements TourHandle {
     counterEl.className = 'idem-tour-counter';
     counterEl.textContent = counter;
 
+    let illustrationEl: HTMLElement | null = null;
+    if (step.illustration) {
+      illustrationEl = this.doc.createElement('div');
+      illustrationEl.className = 'idem-tour-illustration';
+      illustrationEl.setAttribute('aria-hidden', 'true');
+      illustrationEl.innerHTML = step.illustration;
+    }
+
     const titleEl = this.doc.createElement('h2');
     titleEl.className = 'idem-tour-title';
     titleEl.textContent = step.title;
@@ -181,7 +189,7 @@ class Tour implements TourHandle {
     if (!isLast) {
       const skip = this.doc.createElement('button');
       skip.type = 'button';
-      skip.className = 'idem-tour-btn idem-tour-btn--quiet';
+      skip.className = 'idem-tour-btn idem-tour-btn--quiet button-ghost button-sm';
       skip.textContent = labels.skip;
       skip.addEventListener('click', () => this.finish(false));
       actions.appendChild(skip);
@@ -190,7 +198,7 @@ class Tour implements TourHandle {
     if (this.index > 0) {
       const back = this.doc.createElement('button');
       back.type = 'button';
-      back.className = 'idem-tour-btn idem-tour-btn--ghost';
+      back.className = 'idem-tour-btn idem-tour-btn--ghost outer-button button-sm';
       back.textContent = labels.back;
       back.addEventListener('click', () => this.back());
       actions.appendChild(back);
@@ -198,12 +206,15 @@ class Tour implements TourHandle {
 
     const next = this.doc.createElement('button');
     next.type = 'button';
-    next.className = 'idem-tour-btn idem-tour-btn--primary';
+    next.className = 'idem-tour-btn idem-tour-btn--primary inner-button button-sm';
     next.textContent = isLast ? labels.finish : labels.next;
     next.addEventListener('click', () => this.next());
     actions.appendChild(next);
 
     foot.append(dots, actions);
+    if (illustrationEl) {
+      this.card.append(illustrationEl);
+    }
     this.card.append(counterEl, titleEl, bodyEl, foot);
     next.focus({ preventScroll: true });
   }

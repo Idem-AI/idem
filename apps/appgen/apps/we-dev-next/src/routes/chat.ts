@@ -36,6 +36,7 @@ router.post('/', async (req: Request, res: Response) => {
       projectData,
       language,
       qualityRepair,
+      workspace,
     } = req.body as ChatRequest;
 
     // User UI language (from the client) so the AI generates content in the right
@@ -121,7 +122,7 @@ router.post('/', async (req: Request, res: Response) => {
     if (mode === ChatMode.Chat) {
       console.log('  Delegating to handleChatMode');
       ChatLogger.info('HANDLER', 'Delegating to handleChatMode');
-      result = await handleChatMode(messages, model, userId, tools, resolvedLanguage);
+      result = await handleChatMode(messages, model, userId, tools, resolvedLanguage, workspace);
     } else {
       console.log('  Delegating to handleBuilderMode');
       ChatLogger.info('HANDLER', 'Delegating to handleBuilderMode');

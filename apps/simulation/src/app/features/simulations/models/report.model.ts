@@ -56,6 +56,22 @@ export interface Recommendation {
   expectedImpact: 'low' | 'medium' | 'high';
   priority: 'low' | 'medium' | 'high' | 'critical';
   confidence: ConfidenceLevel;
+  /** Le problème auquel cette action répond. Absent : action générale. */
+  addressesRiskId?: string;
+}
+
+/**
+ * Un problème relevé par l'analyse.
+ *
+ * Défini ICI et non dans `simulation.model` : le rapport le porte désormais
+ * lui aussi, et `simulation.model` importe déjà ce fichier — l'inverse
+ * créerait un cycle.
+ */
+export interface Risk {
+  id: string;
+  title: string;
+  severity: 'critical' | 'high' | 'moderate';
+  description: string;
 }
 
 export interface SimulationReport {
@@ -74,6 +90,8 @@ export interface SimulationReport {
   financials: FinancialSummary;
   sensitivity: SensitivityEntry[];
   conditions: ViabilityCondition[];
+  /** Les problèmes, rendus avec leur réponse dans un chapitre unique. */
+  risks: Risk[];
   recommendations: Recommendation[];
   evidence: Evidence[];
   /** Ce qu'il reste à confronter au marché réel. */

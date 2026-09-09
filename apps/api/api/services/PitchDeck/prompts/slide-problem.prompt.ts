@@ -1,5 +1,3 @@
-import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
-
 export const SLIDE_PROBLEM_PROMPT = `
 <role>Senior pitch deck designer at a top-tier design agency</role>
 <objective>Design the PROBLEM slide — make the audience feel the pain. Emotionally compelling, data-backed, visually striking.</objective>
@@ -17,7 +15,6 @@ export const SLIDE_PROBLEM_PROMPT = `
 - Split layout: Left 55% with headline, 3 pain points stacked vertically, and bold stat card (bg-[PRIMARY COLOR]/5 rounded-xl p-6). Right 45% with image container (overflow-hidden rounded-2xl, full height).
 </layout>
 
-${PITCH_DECK_SHARED_RULES}
 
 <project_context>
 `;

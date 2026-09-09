@@ -286,7 +286,8 @@
         "exploitation": "P&L Statement",
         "bilan": "Balance Sheet",
         "cashflow": "Cash Flow",
-        "ratios": "Ratios & KPIs"
+        "ratios": "Ratios & KPIs",
+        "fiscalCalendar": "Accounting calendar"
       },
       "status": {
         "empty": "Empty",
@@ -2998,7 +2999,8 @@
       "flyerEdit": "Visual editor",
       "simulations": "Simulations",
       "welcome": "Welcome",
-      "guided": "Guided journey"
+      "guided": "Guided journey",
+      "financeCalendar": "Accounting calendar"
     }
   },
   "notFound": {

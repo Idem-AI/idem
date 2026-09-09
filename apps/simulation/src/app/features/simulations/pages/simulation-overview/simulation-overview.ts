@@ -15,7 +15,7 @@ import { DisclaimerNote } from '../../../../shared/components/disclaimer-note/di
 import { PipelineProgress } from '../../components/pipeline-progress/pipeline-progress';
 import { ViabilityGauge } from '../../components/viability-gauge/viability-gauge';
 import { ReportDownloadService, SimulationStore } from '../../data-access';
-import { FactorTier } from '../../models';
+import { FactorTier, Recommendation, Risk } from '../../models';
 
 /**
  * Ce que l'exécution achète : le jugement, et assez du raisonnement pour
@@ -44,11 +44,37 @@ export class SimulationOverview implements OnInit {
   protected readonly simulation = this.store.active;
   protected readonly isRunning = this.store.isRunning;
   protected readonly generating = signal(false);
+  protected readonly resuming = signal(false);
   protected readonly downloading = this.reportDownload.downloading;
 
   protected readonly result = computed(() => this.simulation()?.result ?? null);
 
   /** Dispersion de l'indice à travers les scénarios, tracée en bande. */
+  /**
+   * Les problèmes, chacun avec la réponse qui le traite.
+   *
+   * Les recommandations vivent dans le rapport (forfait payant) : tant qu'il
+   * n'a pas été produit, la liste reste celle des problèmes seuls. Dès qu'il
+   * existe, la réponse se lit SOUS son problème plutôt que dans un autre écran.
+   */
+  protected readonly issues = computed<
+    readonly { risk: Risk; responses: readonly Recommendation[] }[]
+  >(() => {
+    const result = this.result();
+    if (!result) return [];
+    const recommendations = this.simulation()?.report?.recommendations ?? [];
+    const rank = (severity: Risk['severity']) =>
+      ['moderate', 'high', 'critical'].indexOf(severity);
+    return [...result.risks]
+      .sort((a, b) => rank(b.severity) - rank(a.severity))
+      .map((risk) => ({
+        risk,
+        responses: recommendations.filter(
+          (recommendation) => recommendation.addressesRiskId === risk.id,
+        ),
+      }));
+  });
+
   protected readonly scenarioRange = computed(() => {
     const values = (this.result()?.scenarios ?? [])
       .map((scenario) => scenario.outcome?.viability)
@@ -125,6 +151,26 @@ export class SimulationOverview implements OnInit {
       );
     } finally {
       this.generating.set(false);
+    }
+  }
+
+  /**
+   * Reprend une simulation bloquée ou échouée depuis son dernier checkpoint.
+   * Le pipeline repart de l'étape suivant la dernière terminée.
+   */
+  protected async resume(): Promise<void> {
+    const run = this.simulation();
+    if (!run || this.resuming()) return;
+    this.resuming.set(true);
+    try {
+      await this.store.resume(run.id);
+    } catch (error) {
+      this.toasts.error(
+        this.translate.instant('run.resumeFailed') as string,
+        error instanceof Error ? error.message : undefined,
+      );
+    } finally {
+      this.resuming.set(false);
     }
   }
 }

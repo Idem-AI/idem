@@ -22,6 +22,21 @@ import { QualityExpectation, QualityReport, inspectOutput, qualityValidator } fr
 /** Au-delà, réparer coûte plus cher que de laisser passer: on se contente du drapeau. */
 const MAX_REPAIR_CHARS = 60_000;
 
+/**
+ * Longueur de la queue transmise au continuateur. Assez pour faire le raccord
+ * (balises ouvertes, phrase en cours, style), pas assez pour qu'on repaie la
+ * section. C'est tout l'intérêt du chemin.
+ */
+const TAIL_CHARS = 3_000;
+
+const CONTINUE_SYSTEM_PROMPT = `You continue a truncated fragment. You are given only its ENDING.
+Absolute rules:
+- Emit ONLY the missing tail, starting exactly where the excerpt stops — mid-word if that is where it stops.
+- Never repeat anything from the excerpt, never restate what precedes.
+- Close every tag left open, in the right order.
+- Keep the same language, the same tone and the same markup conventions as the excerpt.
+- No explanation, no preamble, no code fence.`;
+
 export interface VerificationContext {
   userId?: string;
   projectId?: string;
@@ -125,6 +140,70 @@ export async function verifySection(
       )}) — livrée avec drapeau.`
     );
     return flag(base, stillBroken, cleaned !== content);
+  }
+
+  // Palier 3a — TRONCATURE SEULE : on continue, on ne réécrit pas.
+  //
+  // C'est le défaut le plus fréquent, et la réparation générique y répondait de
+  // la pire façon : réémettre l'intégralité de la section (jusqu'à 15 000 tokens)
+  // à l'étage bas. Cela coûte une génération complète de plus ET dégrade le
+  // texte déjà correct, puisqu'un plus petit modèle le réécrit.
+  //
+  // Une troncature ne se répare pas en réécrivant : elle se répare en
+  // CONTINUANT. Le modèle ne reçoit que la fin du fragment — de quoi faire le
+  // raccord — et produit la queue manquante, au MÊME étage que l'auteur pour
+  // qu'il n'y ait aucune rupture de niveau au milieu de la page.
+  const truncationOnly =
+    stillBroken.blocking.length > 0 &&
+    stillBroken.blocking.every((i) => i.code === 'truncated' || i.code === 'unbalanced_html');
+
+  if (truncationOnly) {
+    try {
+      const continuation = await runAgentPrompt(
+        {
+          role: 'section-continue',
+          task: 'draft',
+          systemPrompt: CONTINUE_SYSTEM_PROMPT,
+          promptType: 'quality-continue',
+          llmOptions: { maxOutputTokens: 8000, temperature: 0.3 },
+        },
+        `SECTION: ${ctx.sectionName}\n\nEXCERPT ENDING (truncated — continue from exactly here):\n${base.slice(-TAIL_CHARS)}`,
+        {
+          userId: ctx.userId,
+          projectId: ctx.projectId,
+          element: ctx.sectionName,
+          budget: ctx.budget,
+          language: ctx.language,
+        }
+      );
+
+      const merged = `${base}${continuation.text}`;
+      const mergedReport = inspectOutput(merged, expectation);
+      if (mergedReport.ok) {
+        logAIEvent('quality.repaired_by_continuation', {
+          projectId: ctx.projectId,
+          section: ctx.sectionName,
+          addedChars: continuation.text.length,
+          // La comparaison qui justifie ce chemin : la réécriture complète aurait
+          // coûté la longueur ENTIÈRE de la section.
+          rewriteCharsAvoided: base.length,
+        });
+        return {
+          content: merged,
+          repaired: true,
+          repairedByModel: true,
+          flagged: false,
+          report: mergedReport,
+        };
+      }
+      logger.warn(
+        `Section "${ctx.sectionName}": continuation insuffisante — repli sur la réparation complète.`
+      );
+    } catch (error: any) {
+      logger.warn(
+        `Section "${ctx.sectionName}": continuation impossible (${error?.message}) — repli sur la réparation complète.`
+      );
+    }
   }
 
   const issueList = stillBroken.blocking.map((i) => `- ${i.message}`).join('\n');

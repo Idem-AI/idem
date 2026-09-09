@@ -8,12 +8,18 @@
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
     "isolatedModules": true,
+    "resolveJsonModule": true,
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "importHelpers": true,
     "target": "ES2022",
     "module": "preserve",
     "moduleResolution": "bundler",
+    // `src/app/shared/trusted-by` est un lien vers `packages/shared-trusted-by`.
+    // Sans cette option, TypeScript résoudrait le chemin réel et le
+    // `import ... from '@angular/core'` du composant partagé remonterait au
+    // Angular 20 hissé à la racine du monorepo, pas au 22 de cette app.
+    "preserveSymlinks": true,
     "lib": ["ES2022", "dom"],
     "paths": {
       "@core/*": ["./src/app/core/*"],

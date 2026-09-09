@@ -18,6 +18,16 @@ import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../../config/logger';
 import { AI_CONFIG, GLM_MODELS, LLMProvider } from '../../config/ai.config';
+import {
+  SECTION_CONTENT_CONTRACT,
+  sectionVolumeDirective,
+} from '../design/sectionContent.prompt';
+import { normalizeSectionContent, Block, SectionContent } from '../design/sectionContent';
+import { renderSection } from '../design/sectionRenderer';
+import { buildDocumentSeed, buildSectionSeed } from '../design/designSeed';
+import { BrandCharter, buildDocumentDesignSystem } from '../design/documentDesignSystem';
+import { ArtDirectionModel } from '../../models/art-direction.model';
+import { parseLlmJson } from '../../utils/llm-json.util';
 import { cacheService } from '../cache.service';
 import {
   PromptService,
@@ -51,6 +61,22 @@ interface BriefResult {
 export interface ResearchTeamContext {
   /** Contexte projet compact (nom, description, cible, pays…). */
   projectContext: string;
+  /**
+   * Identité STABLE du projet, pour le cache des recherches.
+   *
+   * Distincte de `projectContext`, qui est du texte destiné au modèle et peut
+   * changer pour des raisons de sérialisation. Une clé de cache doit changer
+   * quand les faits à chercher changent, jamais autrement.
+   */
+  projectId?: string;
+  /**
+   * Nom de la page de bibliographie à ajouter en fin de livrable.
+   *
+   * Renseigné, l'équipe rassemble toutes les sources vérifiées sur une page
+   * finale, groupées par section. Absent, aucune page n'est ajoutée — un deck
+   * ne veut pas de bibliographie.
+   */
+  resourcesSectionName?: string;
   /** Contexte de marque optionnel (couleurs, langue…). */
   brandContext?: string;
   /** Langue de sortie ('French' | 'English'). */
@@ -60,6 +86,22 @@ export interface ResearchTeamContext {
   currency?: string;
   /** Nom d'un cache de contexte partagé (renseigné en interne par le run). */
   sharedCache?: string;
+
+  // ── Ce dont le RENDU a besoin ──────────────────────────────────────────────
+  // Une section issue de la recherche est une section du document : elle doit
+  // partager sa charte, sa direction artistique et sa graine. Sans ces champs,
+  // elle retomberait sur des valeurs par défaut et le document aurait deux
+  // identités visuelles.
+  /** Charte du projet (palette, typographie). */
+  charter?: BrandCharter;
+  /** Direction artistique retenue pour le projet. */
+  artDirection?: ArtDirectionModel | null;
+  /** Clé du livrable, pour la graine — ex. `businessplan:<projectId>`. */
+  documentKey?: string;
+  /** Archétypes déjà attribués : partagé par le run pour éviter les répétitions. */
+  usedArchetypes?: Set<string>;
+  logoUrl?: string;
+  brandName?: string;
 }
 
 const RESEARCH_CONFIG: PromptConfig = {
@@ -78,12 +120,30 @@ const WRITER_CONFIG: PromptConfig = {
   provider: AI_CONFIG.businessPlan.provider,
   modelName: AI_CONFIG.businessPlan.modelName,
   promptType: 'research-writer',
-  // Le rédacteur produit une PAGE A4 HTML riche (Tailwind + graphes Chart.js) :
-  // le budget doit rester assez large pour que le HTML ne soit pas tronqué en
-  // plein milieu — une section coupée ou un graphe cassé ne se rattrape pas.
-  // Ramené de 16 000 à 10 000 : les sections observées tiennent largement
-  // dessous, et ce sont les tokens produits qui font la latence.
-  llmOptions: { maxOutputTokens: 10000, temperature: 0.55 },
+  // Le rédacteur produit désormais du CONTENU STRUCTURÉ (`SectionContent`), pas
+  // du HTML : c'est le gabarit qui compose la page. Trois conséquences, et
+  // c'est ici qu'elles se règlent.
+  //
+  //  · RAISONNEMENT COUPÉ. Il servait à arbitrer une mise en page et à tenir la
+  //    charte ; le gabarit et le linter ont repris les deux. Ce qui restait
+  //    n'était plus de la réflexion utile mais du budget consommé — et les
+  //    tokens de réflexion se décomptent de `maxOutputTokens`. C'est ce qui
+  //    tronquait les sections : celles issues de la recherche sont les plus
+  //    longues du livrable, donc les premières à toucher le plafond. Trois
+  //    pages d'un business plan livré sont ainsi sorties en JSON brut.
+  //  · MODE JSON. La sortie est un objet ; l'exiger évite le préambule en prose
+  //    que certains modèles ajoutent et qui fait échouer l'analyse.
+  //  · BUDGET INCHANGÉ à 10 000, volontairement large. La réflexion ne le
+  //    grignote plus, le contenu réel tient sous 3 000, et la marge restante ne
+  //    coûte rien : ce sont les tokens PRODUITS qui font la latence, pas le
+  //    plafond autorisé. Cette marge est ce qui rend la troncature improbable.
+  llmOptions: {
+    maxOutputTokens: 10000,
+    temperature: 0.55,
+    thinkingBudget: 0,
+    jsonMode: true,
+    extraBody: { thinking: { type: 'disabled' } },
+  },
 };
 
 const VERIFIER_CONFIG: PromptConfig = {
@@ -108,8 +168,42 @@ const VERIFIER_CONFIG: PromptConfig = {
 const SECTION_CONCURRENCY = 3;
 /** Nombre max d'axes de recherche fusionnés dans l'unique appel grounded. */
 const MAX_BRIEFS_PER_SECTION = 3;
-/** Durée de vie du cache des recherches (reprise/régénération sans re-chercher). */
-const RESEARCH_CACHE_TTL = 7200;
+/**
+ * Durée de vie du CACHE DE CONTEXTE du fournisseur (Gemini).
+ *
+ * Court par nature : il s'agit d'un cache facturé côté modèle, qui n'a de sens
+ * que pendant le run qui l'a créé et ses reprises immédiates.
+ */
+const CONTEXT_CACHE_TTL = 7200;
+
+/**
+ * Durée de vie du CACHE DES RECHERCHES — ce que le web a réellement répondu.
+ *
+ * ── POURQUOI C'EST LONG, ET POURQUOI CE N'EST PAS LA MÊME CHOSE ─────────────
+ *
+ * Les deux durées partageaient la même constante de deux heures. C'était une
+ * confusion coûteuse : un cache de contexte fournisseur et un corpus de faits
+ * collectés sur le web n'ont ni le même usage ni la même péremption. Deux
+ * heures après, régénérer un business plan relançait quatre recherches par
+ * section — la partie la plus lente du livrable, refaite pour rien.
+ *
+ * Or la recherche est le seul poste qui ne dépend pas de nous : appels réseau,
+ * latence du moteur, quotas. Le rédacteur, lui, retravaille à chaque fois — ce
+ * qui est voulu, puisque le contenu doit suivre le projet.
+ *
+ * Sept jours : assez long pour que toute une phase d'itération sur la mise en
+ * page réutilise les mêmes faits, assez court pour qu'une donnée de marché ne
+ * vieillisse pas dans un document qu'on présentera. Réutiliser les mêmes
+ * sources d'une génération à l'autre a un second effet, non recherché mais
+ * bienvenu : le document devient reproductible, et deux exports du même projet
+ * citent les mêmes références.
+ *
+ * La clé porte le projet, la langue, la section et les axes de recherche : elle
+ * change d'elle-même dès que l'un d'eux change, ce qui relance la recherche
+ * exactement quand il le faut. Modifier la description du projet suffit donc à
+ * forcer une collecte fraîche, sans purge manuelle.
+ */
+const RESEARCH_CACHE_TTL = Number(process.env.IDEM_RESEARCH_CACHE_TTL ?? 7 * 24 * 3600);
 /** Borne de la synthèse de recherche transmise au rédacteur. */
 const MAX_DIGEST_CHARS = 4000;
 
@@ -146,20 +240,26 @@ export class ResearchTeamService {
     const cacheName = await this.promptService.createContextCache(
       WRITER_CONFIG.modelName,
       sharedContextText,
-      RESEARCH_CACHE_TTL
+      CONTEXT_CACHE_TTL
     );
     const runCtx: ResearchTeamContext = { ...ctx, sharedCache: cacheName ?? undefined };
 
     const results: ResearchedSection[] = [];
+    // Sources retenues par section, dans l'ordre de citation : c'est cette
+    // table qui alimente la page « Ressources » en fin de livrable.
+    const sourcesBySection: Array<{ section: string; sources: ResearchSource[] }> = [];
     try {
     // Exécution par vagues avec concurrence limitée.
     for (let i = 0; i < sections.length; i += SECTION_CONCURRENCY) {
       const batch = sections.slice(i, i + SECTION_CONCURRENCY);
       const settled = await Promise.all(
-        batch.map((section) => this.runSection(runId, section, runCtx, emit))
+        batch.map((section) => this.runSection(runId, section, runCtx, emit, sections.indexOf(section)))
       );
       for (const section of settled) {
         results.push(section);
+        if (section.sources.length > 0) {
+          sourcesBySection.push({ section: section.name, sources: section.sources });
+        }
         if (persistSection) {
           try {
             await persistSection(section);
@@ -184,6 +284,25 @@ export class ResearchTeamService {
         message: 'Livrable finalisé et vérifié',
       }),
     });
+    // PAGE « RESSOURCES » — construite par le code, aucun appel de modèle.
+    // Elle est ajoutée en dernier pour disposer des sources de TOUTES les
+    // sections, y compris celles traitées dans la dernière vague.
+    if (ctx.resourcesSectionName && sourcesBySection.length > 0) {
+      const resources = this.buildResourcesSection(
+        ctx.resourcesSectionName,
+        sourcesBySection,
+        runCtx
+      );
+      results.push(resources);
+      if (persistSection) {
+        try {
+          await persistSection(resources);
+        } catch (error) {
+          logger.warn(`ResearchTeam : page « ${ctx.resourcesSectionName} » non persistée: ${error}`);
+        }
+      }
+    }
+
     await this.safeEmit(emit, {
       type: 'run_completed',
       sectionCount: results.length,
@@ -217,7 +336,9 @@ export class ResearchTeamService {
     runId: string,
     section: DeliverableSection,
     ctx: ResearchTeamContext,
-    emit: ResearchEmit
+    emit: ResearchEmit,
+    /** Rang de la section dans le livrable — certains archétypes en font un élément graphique. */
+    sectionIndex: number
   ): Promise<ResearchedSection> {
     try {
       let sources: ResearchSource[] = [];
@@ -246,7 +367,18 @@ export class ResearchTeamService {
         );
       }
 
-      const finalizedHtml = this.finalizeSectionHtml(finalData, sources, ctx.language);
+      // Une section LIBRE est déjà une page : elle ne passe pas par le gabarit,
+      // qui la recomposerait en page de contenu et lui ferait perdre ce qui la
+      // définit — une composition pleine page à hauteur fixe.
+      const finalizedHtml = section.freeform
+        ? finalData
+        : this.renderResearchedSection(
+            finalData,
+            sources,
+            ctx,
+            section.name,
+            sectionIndex + 1
+          );
       const result: ResearchedSection = {
         name: section.name,
         data: finalizedHtml,
@@ -305,7 +437,18 @@ export class ResearchTeamService {
       prefix: 'ai',
       ttl: RESEARCH_CACHE_TTL,
     });
+    if (!cached) {
+      logger.info(
+        `ResearchTeam « ${section.name} » : aucune recherche en cache (clé ${cacheKey}), collecte web.`
+      );
+    }
     if (cached && Array.isArray(cached.sources)) {
+      // Tracé explicitement : sans cette ligne, personne ne peut dire si le
+      // cache sert réellement, et une régénération lente reste inexplicable.
+      logger.info(
+        `ResearchTeam « ${section.name} » : recherche RÉUTILISÉE du cache ` +
+          `(${cached.sources.length} source(s), aucun appel web).`
+      );
       await this.emitAgent(emit, runId, 'researcher', agentId, section.name, {
         kind: 'agent_status',
         status: 'searching',
@@ -380,6 +523,10 @@ export class ResearchTeamService {
     const narratives = result.narrative.trim() ? [result.narrative.trim()] : [];
     const digest = this.buildResearchDigest(narratives, globalSources);
     const payload = { sources: globalSources, digest };
+    logger.info(
+      `ResearchTeam : ${globalSources.length} source(s) collectée(s) et mises en cache ` +
+        `pour ${Math.round(RESEARCH_CACHE_TTL / 3600)} h.`
+    );
     await cacheService.set(cacheKey, payload, { prefix: 'ai', ttl: RESEARCH_CACHE_TTL });
     return payload;
   }
@@ -440,14 +587,40 @@ export class ResearchTeamService {
   }
 
   /** Clé de cache stable pour la recherche d'une section. */
+  /**
+   * Clé du cache des recherches.
+   *
+   * ── CE QUI DOIT LA FAIRE CHANGER, ET CE QUI NE DOIT PAS ────────────────────
+   *
+   * Elle reposait sur `ctx.projectContext` — un bloc de texte libre incluant
+   * `JSON.stringify(additionalInfos)`. Deux relevés du même projet observés en
+   * cache portaient des empreintes DIFFÉRENTES : la clé bougeait sans que les
+   * faits à chercher aient bougé, et chaque régénération relançait donc la
+   * partie la plus lente du livrable. Un blob de texte est une mauvaise
+   * identité : il change pour des raisons de sérialisation, pas de contenu.
+   *
+   * La clé porte désormais l'identité STABLE du projet, la langue, la section
+   * et les axes de recherche normalisés. Les axes contiennent déjà un extrait de
+   * la description : modifier le projet les modifie, ce qui relance la collecte
+   * — exactement quand il le faut, et seulement alors.
+   *
+   * Les axes sont normalisés (espaces réduits, casse ignorée) pour qu'une
+   * différence de mise en forme ne se prenne pas pour une différence de sens.
+   */
   private researchCacheKey(
     ctx: ResearchTeamContext,
     sectionName: string,
     briefs: string[]
   ): string {
+    // `documentKey` vaut « businessplan:<projectId> » : il porte l'identité du
+    // projet quand `projectId` n'est pas fourni explicitement.
+    const identity = ctx.projectId ?? ctx.documentKey ?? ctx.projectContext.slice(0, 200);
+    const normalized = briefs
+      .map((brief) => brief.replace(/\s+/g, ' ').trim().toLowerCase())
+      .join('||');
     const hash = crypto
       .createHash('sha256')
-      .update(`${ctx.projectContext}|${ctx.language}|${sectionName}|${briefs.join('||')}`)
+      .update(`${identity}|${ctx.language}|${sectionName}|${normalized}`)
       .digest('hex')
       .slice(0, 20);
     return cacheService.generateAIKey('research', ctx.userId, sectionName.replace(/\s+/g, '-'), hash);
@@ -475,12 +648,12 @@ export class ResearchTeamService {
     const sourceList = this.renderSourceList(sources);
     const groundingRules = section.needsResearch
       ? 'DATA AND CITATION RULES (STRICT):\n' +
-        '- Every figure, statistic, market size or share, rate or amount shown MUST be followed by an inline citation marker of the form [sN] pointing at the source list below.\n' +
-        '- CHARTS (Chart.js) may plot ONLY real data taken from the research synthesis or from the supplied financial data. NEVER plot a chart from invented figures: when no reliable, sourced numeric series is available for a chart, replace it with a qualitative visual (diagram, list, callout) rather than an invented chart.\n' +
+        '- Every figure, statistic, market size or share, rate or amount MUST carry an inline citation marker of the form [sN], pointing at the numbered source list below. Write it in the text itself: "2,3 Md FCFA [s0]".\n' +
+        '- A "chart" block may carry ONLY real numbers taken from the research synthesis or the supplied financial data. When no sourced series exists, use a "table", a "metrics" row or prose instead — never an invented chart.\n' +
         '- Use ONLY the facts present in the research synthesis. When a data point is missing, say so explicitly rather than estimating.\n' +
         '- Never invent a source identifier: use only the [sN] listed.\n' +
-        '- Do NOT add a "Sources" list yourself at the end: it is appended to the document automatically.'
-      : 'This section is qualitative (no web research): do not invent market statistics or external figures. Any charts may only illustrate elements internal to the plan (milestones, timeline, objective breakdown), with no invented market figures.';
+        '- Do NOT emit a "sources" block: the reference list is attached from the real URLs, which you do not have.'
+      : 'This section is qualitative (no web research): do not invent market statistics or external figures. A "chart" block may only plot elements internal to the plan (milestones, objective breakdown), never invented market figures.';
 
     // Le contexte projet/marque est déjà dans le cache partagé quand il est
     // actif → on ne le renvoie pas (économie d'input tokens).
@@ -490,10 +663,8 @@ export class ResearchTeamService {
       {
         role: 'system',
         content:
-          'You are an editorial art director and an expert writer of investor-grade business plans. ' +
-          'You produce A4 PAGES in HTML + Tailwind CSS (careful layout, Chart.js charts), ' +
-          'following the supplied content and layout instructions TO THE LETTER (structure, charts, multi-page A4 format). ' +
-          'You write in the requested language, in a professional and concrete style. ' +
+          'You write one section of an investor-grade business plan, from verified facts. ' +
+          'You write in the requested language, in a professional and concrete style.\n\n' +
           groundingRules,
       },
       {
@@ -506,8 +677,11 @@ export class ResearchTeamService {
             ? `\n--- SYNTHÈSE DE RECHERCHE (faits réels collectés — SEULE source de chiffres autorisée) ---\n${researchDigest}\n` +
               `\n--- SOURCES DISPONIBLES (utilise ces ids pour les citations [sN]) ---\n${sourceList}\n`
             : '') +
-          `\nProduis UNIQUEMENT le HTML (Tailwind) de la section « ${section.name} », en respectant le format A4 (la page peut s'étendre sur plusieurs pages A4 si le contenu est riche). ` +
-          'Pas de bloc de code markdown, pas de préfixe « html », pas d\'explication : uniquement le HTML de la section.',
+          // Une section LIBRE ne reçoit ni le contrat de contenu structuré, ni
+          // la directive de volume : ses propres instructions décrivent déjà ce
+          // qu'elle doit produire, et y ajouter un second format contradictoire
+          // est la façon la plus sûre de n'obtenir ni l'un ni l'autre.
+          (section.freeform ? '' : `\n${sectionVolumeDirective('7 to 9')}\n\n${SECTION_CONTENT_CONTRACT}`),
       },
     ];
 
@@ -532,6 +706,14 @@ export class ResearchTeamService {
           ...WRITER_CONFIG,
           userId: ctx.userId,
           language: ctx.language,
+          // Une section LIBRE produit du HTML, pas un objet : lui imposer le
+          // mode JSON garantirait l'inverse de ce qu'on lui demande. Le budget
+          // reste large pour la même raison qu'ailleurs — une page composée qui
+          // se coupe en plein milieu ne se rattrape pas.
+          llmOptions: {
+            ...WRITER_CONFIG.llmOptions,
+            ...(section.freeform ? { jsonMode: false } : {}),
+          },
           ...(ctx.sharedCache ? { cachedContent: ctx.sharedCache } : {}),
         },
         messages,
@@ -590,7 +772,10 @@ export class ResearchTeamService {
     // IMPORTANT: le draft est du HTML → on ne vérifie que le TEXTE VISIBLE
     // (les classes Tailwind `w-[210mm]`, couleurs `#2563eb` et scripts Chart.js
     // regorgent de nombres qui ne sont PAS des données à sourcer).
-    const numeric = this.extractNumericSentences(this.htmlToVisibleText(draft));
+    // Le brouillon est désormais du CONTENU structuré, pas du HTML : le texte
+    // visible s'en extrait par les valeurs de chaînes, sans passer par un
+    // dépouillement de balises.
+    const numeric = this.extractNumericSentences(visibleTextOf(draft));
     if (!numeric) {
       const verdict: VerificationVerdict = {
         passed: true,
@@ -768,63 +953,176 @@ export class ResearchTeamService {
    *  2. ajoute un bloc « Sources » déterministe (généré côté serveur à partir de
    *     `sources`, donc TOUJOURS présent dans le document et jamais halluciné).
    */
-  private finalizeSectionHtml(
-    content: string,
-    sources: ResearchSource[],
-    language: string
-  ): string {
-    const validIds = new Set(sources.map((s) => s.id.toLowerCase()));
-    // [sN] → exposant cliquable-like ; garde le mapping numéro ↔ liste des sources.
-    let html = content.replace(/\[s(\d+)\]/gi, (_m, n: string) => {
-      if (!validIds.has(`s${n}`.toLowerCase())) return '';
-      return `<sup class="align-super text-[9px] font-semibold text-[#2563eb]">${n}</sup>`;
+  /**
+   * Page de bibliographie du livrable — rendue par le GABARIT, sans IA.
+   *
+   * ── POURQUOI UNE PAGE, ET NON NEUF PIEDS DE SECTION ────────────────────────
+   *
+   * Une liste de sources en fin de chaque section n'est consultable ni par
+   * celui qui veut vérifier — il ne sait pas dans quelle section chercher — ni
+   * par celui qui ne veut pas vérifier, qui la subit à chaque page. Rassemblées,
+   * elles deviennent ce qu'elles auraient dû être : une bibliographie.
+   *
+   * ── POURQUOI GROUPÉES PAR SECTION ──────────────────────────────────────────
+   *
+   * Les exposants posés dans le texte (¹ ² ³) numérotent les sources DE LEUR
+   * SECTION. Une liste unique renumérotée globalement rendrait donc faux chaque
+   * appel de note déjà écrit, et il faudrait réécrire le HTML rendu pour les
+   * remettre d'accord — une réécriture fragile, sur une sortie déjà validée.
+   * Grouper par section préserve la correspondance sans toucher à rien.
+   *
+   * ── LA DESCRIPTION ─────────────────────────────────────────────────────────
+   *
+   * Elle vient de l'extrait renvoyé par le moteur, pas d'un modèle : c'est ce
+   * que la source dit réellement. Faute d'extrait, on indique ce à quoi elle a
+   * servi — vrai, utile, et gratuit. On n'invente jamais de résumé.
+   */
+  private buildResourcesSection(
+    sectionName: string,
+    grouped: Array<{ section: string; sources: ResearchSource[] }>,
+    ctx: ResearchTeamContext
+  ): ResearchedSection {
+    const total = grouped.reduce((sum, group) => sum + group.sources.length, 0);
+
+    const blocks: Block[] = grouped.map((group) => ({
+      kind: 'sources' as const,
+      label: group.section,
+      items: group.sources.map((source, position) => ({
+        // Le numéro CITÉ dans la section, pour que l'exposant se retrouve.
+        index: Number.parseInt(source.id.replace(/^s/i, ''), 10) || position + 1,
+        title: source.title,
+        url: source.url,
+        // ⚠️ Jamais l'hôte de l'URL : le grounding Google renvoie un
+        // redirecteur (`vertexaisearch.cloud.google.com`) que personne ne
+        // reconnaît et qui ne dit rien de l'éditeur.
+        domain: source.domain,
+        description: this.describeSource(source, group.section),
+      })),
+    }));
+
+    const french = (ctx.language ?? 'French').toLowerCase().startsWith('fr');
+    const content: SectionContent = {
+      kicker: french ? 'Références' : 'References',
+      title: sectionName,
+      lede: french
+        ? `${total} source${total > 1 ? 's' : ''} consultée${total > 1 ? 's' : ''} et vérifiée${total > 1 ? 's' : ''}. Les numéros renvoient aux appels de note de chaque section.`
+        : `${total} source${total > 1 ? 's' : ''} consulted and verified. Numbers match the note markers in each section.`,
+      blocks,
+    };
+
+    const artDirection = ctx.artDirection ?? null;
+    const documentKey = ctx.documentKey ?? 'research';
+    const documentSeed = buildDocumentSeed(artDirection?.styleId, documentKey);
+    const designSystem = buildDocumentDesignSystem(ctx.charter, artDirection, documentSeed);
+    const seed = buildSectionSeed(artDirection?.styleId, documentKey, sectionName, ctx.usedArchetypes);
+
+    const html = renderSection(content, designSystem, seed, {
+      logoUrl: ctx.logoUrl,
+      brandName: ctx.brandName,
     });
 
-    if (sources.length === 0) return html.trim();
-    return `${html.trim()}\n${this.renderSourcesHtml(sources, language)}`;
+    logger.info(
+      `ResearchTeam : page « ${sectionName} » construite (${total} source(s), ${grouped.length} section(s), aucun appel de modèle).`
+    );
+
+    return {
+      name: sectionName,
+      data: html,
+      summary: `${sectionName} — ${total} source(s)`,
+      sources: grouped.flatMap((group) => group.sources),
+    };
+  }
+
+  /** Une phrase disant ce que la source apporte. Jamais inventée. */
+  private describeSource(source: ResearchSource, sectionName: string): string | undefined {
+    const snippet = source.snippet?.replace(/\s+/g, ' ').trim();
+    if (snippet && snippet.length > 20) {
+      return snippet.length > 180 ? `${snippet.slice(0, 177)}…` : snippet;
+    }
+    return `Consultée pour la section « ${sectionName} ».`;
   }
 
   /**
-   * Bloc « Sources » en HTML, volontairement « sanitizer-safe » : pas de titre
-   * markdown `#### Sources`, pas de marqueur `[sN]`, pas d'ancre de redirection
-   * grounding — tous supprimés par {@link sanitizeSectionHtml} avant le PDF.
-   * Le numéro affiché correspond au N des exposants [sN] du corps.
+   * Rend la section AU FORMAT DU DOCUMENT.
+   *
+   * Une section issue de la recherche n'est pas une page à part : c'est une
+   * section du business plan, qui doit avoir la même grille, la même palette et
+   * la même typographie que les huit autres. Le seul écart admis est la
+   * présence d'appels de note et d'une liste de références.
+   *
+   * Le rédacteur produit donc du CONTENU structuré, comme partout ailleurs, et
+   * le gabarit fabrique la page. Auparavant il rendait son propre HTML, ce qui
+   * donnait un document à deux mises en page — et des pages qu'aucun contrôle
+   * ne couvrait, réduites à l'échelle par le paginateur quand un bloc dépassait.
+   *
+   * Le repli est conservé : si le contenu est illisible, on rend le texte brut
+   * plutôt que de perdre la section.
    */
-  private renderSourcesHtml(sources: ResearchSource[], language: string): string {
-    const title = language.toLowerCase().startsWith('fr') ? 'Sources' : 'Sources';
-    const items = sources
-      .map((s) => {
-        const n = s.id.replace(/^s/i, '');
-        const domain = s.domain
-          ? ` <span class="text-gray-400">— ${this.escapeHtml(s.domain)}</span>`
-          : '';
-        return (
-          `<li class="mb-1"><span class="font-semibold text-gray-700">${this.escapeHtml(n)}.</span> ` +
-          `<span class="text-gray-600">${this.escapeHtml(s.title)}</span>${domain}</li>`
-        );
-      })
-      .join('');
-    return (
-      '<div class="w-[210mm] px-[12mm] pb-[12mm] pt-6 mt-6 border-t border-gray-200 break-inside-avoid" ' +
-      'style="break-inside:avoid;page-break-inside:avoid;">' +
-      `<h3 class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-2">${title}</h3>` +
-      `<ol class="list-none text-[10px] leading-snug">${items}</ol></div>`
+  private renderResearchedSection(
+    content: string,
+    sources: ResearchSource[],
+    ctx: ResearchTeamContext,
+    sectionName: string,
+    index: number
+  ): string {
+    const parsed = normalizeSectionContent(parseLlmJson(content));
+
+    if (!parsed) {
+      // ── LA SORTIE BRUTE NE DEVIENT JAMAIS UNE PAGE ──────────────────────
+      //
+      // Ce repli renvoyait `content` tel quel. Les sections issues de la
+      // recherche sont les plus longues du livrable — beaucoup de contexte,
+      // beaucoup de citations — donc les premières à dépasser le budget de
+      // sortie : ce sont elles qu'on retrouvait imprimées en JSON brut au
+      // milieu d'un business plan.
+      //
+      // On lève. La section rejoint `failedSteps` chez l'appelant, qui
+      // l'annonce ; le document est alors incomplet et le dit, plutôt
+      // qu'abîmé sans le dire. Cf. le garde-fou jumeau dans
+      // `generic.service.ts` — les deux chemins de rendu doivent tenir la
+      // même règle, sans quoi la garantie ne vaut rien.
+      const head = content.slice(0, 160).replace(/\s+/g, ' ');
+      logger.error(
+        `ResearchTeam « ${sectionName} » : contenu illisible même après réparation ` +
+          `de troncature. Section abandonnée plutôt que livrée en brut. Début : ${head}`
+      );
+      throw new Error(
+        `section de recherche « ${sectionName} » : contenu structuré illisible`
+      );
+    }
+
+    // ── LES SOURCES NE SONT PLUS EN PIED DE SECTION ──────────────────────
+    //
+    // Chaque section se terminait par sa propre liste. Sur un livrable de neuf
+    // sections, cela fait neuf bibliographies dispersées, dont aucune n'est
+    // consultable : le lecteur qui veut vérifier une affirmation ne sait pas où
+    // chercher, et le lecteur qui ne veut rien vérifier les subit à chaque
+    // page.
+    //
+    // Elles sont désormais rassemblées sur une page « Ressources » en fin de
+    // document, groupées par section et numérotées comme dans le texte — voir
+    // `buildResourcesSection`. Les exposants déjà posés restent donc justes,
+    // sans qu'aucun HTML rendu n'ait à être réécrit.
+    const blocks = [...parsed.blocks];
+
+    const artDirection = ctx.artDirection ?? null;
+    const documentKey = ctx.documentKey ?? 'research';
+    const documentSeed = buildDocumentSeed(artDirection?.styleId, documentKey);
+    const designSystem = buildDocumentDesignSystem(ctx.charter, artDirection, documentSeed);
+    const seed = buildSectionSeed(
+      artDirection?.styleId,
+      documentKey,
+      sectionName,
+      ctx.usedArchetypes ?? new Set()
     );
+
+    return renderSection({ ...parsed, blocks }, designSystem, seed, {
+      logoUrl: ctx.logoUrl,
+      brandName: ctx.brandName,
+      index,
+    });
   }
 
-  /** Texte visible d'un HTML (sans <script>/<style>/balises) pour la vérification. */
-  private htmlToVisibleText(html: string): string {
-    return html
-      .replace(/<script\b[\s\S]*?<\/script>/gi, ' ')
-      .replace(/<style\b[\s\S]*?<\/style>/gi, ' ')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/&nbsp;/gi, ' ')
-      .replace(/&amp;/gi, '&')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
-  /** Échappe le texte injecté dans le HTML des sources. */
   private escapeHtml(text: string): string {
     return text
       .replace(/&/g, '&amp;')
@@ -904,3 +1202,29 @@ export class ResearchTeamService {
 }
 
 export const researchTeamService = new ResearchTeamService(promptService);
+
+/**
+ * Texte visible d'une sortie de rédacteur.
+ *
+ * Le rédacteur produit du JSON de contenu : le texte vit dans les valeurs de
+ * chaînes. On les concatène, ce qui suffit au vérificateur — qui cherche des
+ * phrases chiffrées, pas une mise en page.
+ *
+ * Repli sur un dépouillement de balises quand la sortie n'est pas du JSON
+ * (repli du rendu, ancien format en cache).
+ */
+function visibleTextOf(raw: string): string {
+  try {
+    const parsed = JSON.parse(raw.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim());
+    const parts: string[] = [];
+    const walk = (node: unknown): void => {
+      if (typeof node === 'string') parts.push(node);
+      else if (Array.isArray(node)) node.forEach(walk);
+      else if (node && typeof node === 'object') Object.values(node).forEach(walk);
+    };
+    walk(parsed);
+    return parts.join(' ');
+  } catch {
+    return raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+}

@@ -503,6 +503,16 @@ export const routes: Routes = [
     data: { layout: 'dashboard', sectionKey: 'financing' },
   },
   {
+    path: 'project/finance/calendar',
+    title: 'navigation.titles.financeCalendar',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    data: { layout: 'dashboard', sectionKey: 'fiscalCalendar' },
+  },
+  {
     path: 'project/finance/ratios-params',
     title: 'navigation.titles.financeRatiosParams',
     loadComponent: () =>

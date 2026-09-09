@@ -16,15 +16,6 @@
       "collapse": "Replier la barre latérale",
       "expand": "Déployer la barre latérale"
     },
-    "categories": {
-      "business": "Business",
-      "marketing": "Marketing",
-      "finance": "Finances",
-      "legal": "Juridique",
-      "branding": "Marque",
-      "tech": "Technique",
-      "general": "Général"
-    },
     "header": {
       "newProject": "Nouveau projet",
       "subtitle": "Mode Chat",
@@ -138,6 +129,173 @@
         "deployment": "Configurer le déploiement"
       }
     },
+    "recap": {
+      "subtitle": "Récapitulatif de votre projet",
+      "fields": {
+        "type": "Type",
+        "targets": "Cible",
+        "scope": "Portée",
+        "teamSize": "Équipe",
+        "budget": "Budget",
+        "currency": "Devise"
+      },
+      "policies": {
+        "accept": "J'accepte la",
+        "privacy": "politique de confidentialité",
+        "terms": "conditions d'utilisation",
+        "beta": "J'ai compris que la plateforme est en version bêta",
+        "marketing": "J'accepte de recevoir des communications marketing (optionnel)"
+      },
+      "actions": {
+        "restart": "Recommencer",
+        "confirm": "Créer le projet"
+      }
+    },
+    "onboarding": {
+      "welcome": "Bonjour ! 👋 Créons votre projet ensemble, étape par étape. Première question : **décrivez votre idée en quelques phrases.** Que voulez-vous construire, et pour résoudre quel problème ?",
+      "resume": "Content de vous revoir ! 👋 Reprenons la création de votre projet exactement là où vous vous étiez arrêté.",
+      "questions": {
+        "description": "Décrivez votre idée en quelques phrases : que voulez-vous construire, et pour résoudre quel problème ?",
+        "name": "Très bien ! Quel **nom** voulez-vous donner à votre projet ?",
+        "type": "Parfait. Quel **type de projet** est-ce ?",
+        "targets": "Qui est votre **public cible** principal ?",
+        "scope": "Quelle est la **portée géographique** visée ?",
+        "teamSize": "Combien de personnes composent votre **équipe** ?",
+        "budget": "Quelle est votre **fourchette de budget** ?",
+        "recap": "Voici le récapitulatif de votre projet. Vérifiez les informations, acceptez les politiques puis confirmez la création. ✨"
+      },
+      "confirmHint": "Utilisez la carte ci-dessus pour confirmer la création du projet, ou cliquez sur « Recommencer ».",
+      "success": "🎉 Votre projet **{{name}}** est créé ! Vous pouvez maintenant générer vos livrables, me poser des questions ou suivre votre avancement — tout se passe ici.",
+      "errors": {
+        "descriptionTooShort": "Pouvez-vous m'en dire un peu plus ? Quelques phrases suffisent pour bien démarrer.",
+        "nameRequired": "Il me faut un nom pour votre projet. Lequel choisissez-vous ?",
+        "createFailed": "La création du projet a échoué. Vérifiez votre connexion puis confirmez à nouveau.",
+        "planFailed": "Je n'ai pas pu préparer mes questions, mais on peut continuer directement vers le récapitulatif."
+      },
+      "actions": {
+        "skip": "Passer cette question",
+        "skipped": "(question passée)"
+      },
+      "options": {
+        "type": {
+          "enterprise": "Création d'entreprise",
+          "web": "Application web",
+          "mobile": "Application mobile",
+          "iot": "IoT",
+          "desktop": "Application desktop",
+          "api": "API / Backend",
+          "ai": "IA / ML",
+          "blockchain": "Blockchain",
+          "ecommerce": "Commerce / E-commerce",
+          "other": "Autres"
+        },
+        "targets": {
+          "business": "Entreprises",
+          "students": "Étudiants",
+          "general-public": "Grand public",
+          "government": "Administrations",
+          "healthcare": "Professionnels de santé"
+        },
+        "scope": {
+          "local": "Locale",
+          "departmental": "Départementale",
+          "regional": "Régionale",
+          "national": "Nationale",
+          "international": "Internationale"
+        },
+        "teamSize": {
+          "1": "Solo",
+          "2-5": "2 à 5 personnes",
+          "6-10": "6 à 10 personnes",
+          "10+": "Plus de 10 personnes"
+        },
+        "budget": {
+          "lt-5k": "Moins de 5 000 €",
+          "5k-20k": "5 000 € à 20 000 €",
+          "20k-50k": "20 000 € à 50 000 €",
+          "gt-50k": "Plus de 50 000 €"
+        }
+      },
+      "aiWelcome": "Parfait, {{name}} ! 🚀 J'ai bien noté votre idée. Laissez-moi vous poser quelques questions pour bien cadrer votre projet.",
+      "composerPlaceholder": "Écrivez votre réponse, ou choisissez une suggestion…",
+      "customType": "Très bien. Décrivez en quelques mots le type de votre projet :",
+      "aiWelcomeNoName": "Parfait ! 🚀 J'ai bien noté votre idée. Laissez-moi vous poser quelques questions simples pour bien cadrer votre projet.",
+      "customCurrency": "D'accord. Quelle devise souhaitez-vous utiliser ?"
+    },
+    "branding": {
+      "invite": "Passons maintenant à votre **identité de marque** (logo, couleurs, typographie). Voulez-vous la générer avec l'IA, ou importer votre propre logo ?",
+      "importRedirect": "Très bien — l'import de logo s'ouvre dans l'éditeur. Vous pourrez revenir au mode Chat ensuite.",
+      "laterOk": "Pas de souci, on pourra y revenir quand vous voulez. Dites simplement « complète mon identité de marque ».",
+      "generatingPalettes": "Je prépare des propositions de **couleurs et de typographies** adaptées à votre projet… ⏳",
+      "choosePalette": "Voici mes propositions de palettes. Laquelle vous ressemble le plus ?",
+      "chooseTypography": "Très bon choix ! 🎨 Maintenant, choisissez votre **typographie** :",
+      "chooseLogoType": "Parfait. Quel **style de logo** imaginez-vous ?",
+      "describeLogo": "Décrivez en quelques mots le logo que vous imaginez — formes, ambiance, symboles… (optionnel)",
+      "generatingLogos": "Je génère vos **concepts de logos**… Cela peut prendre une minute. ⏳",
+      "chooseLogo": "Voici vos concepts de logos. Lequel choisissez-vous ?",
+      "complete": "🎉 Votre **identité de marque est complète** ! Logo, déclinaisons, couleurs et typographie sont enregistrés. Prochaine étape : générer votre charte graphique.",
+      "alreadyComplete": "Votre identité de marque est déjà complète. La voici :",
+      "thisPalette": "Cette palette",
+      "thisTypography": "Cette typographie",
+      "thisLogo": "Ce logo",
+      "logoTypes": {
+        "icon": "Icône / symbole",
+        "name": "Nom stylisé",
+        "initial": "Initiales"
+      },
+      "chips": {
+        "ai": "Générer avec l'IA",
+        "import": "Importer mon logo",
+        "later": "Plus tard",
+        "retry": "Réessayer",
+        "complete": "Compléter mon identité de marque",
+        "skipDescription": "Passer",
+        "variationsEditor": "Variations du logo (éditeur)",
+        "downloadZip": "Télécharger mes logos (ZIP)",
+        "regenerate": "Régénérer la charte"
+      },
+      "cards": {
+        "colorsTitle": "Palettes de couleurs",
+        "colorsSubtitle": "Cliquez pour choisir votre palette",
+        "typographyTitle": "Typographies",
+        "typographySubtitle": "Cliquez pour choisir votre duo de polices",
+        "logosTitle": "Concepts de logos",
+        "logosSubtitle": "Cliquez pour choisir votre logo",
+        "typographySample": "Le vif renard brun saute par-dessus le chien."
+      },
+      "errors": {
+        "generation": "La génération a échoué. On réessaie ?",
+        "save": "Impossible d'enregistrer votre choix. Réessayez."
+      },
+      "generatingVariations": "Beau choix ! Je génère maintenant les **déclinaisons de votre logo** (fond clair, fond sombre, monochrome)… ⏳",
+      "zipStarted": "Le téléchargement de vos logos (ZIP) est lancé. 📦",
+      "zipUnavailable": "Le pack de logos n'est pas encore disponible.",
+      "charteExists": "Votre **charte graphique** a déjà été générée. ✨ Que voulez-vous en faire ?",
+      "format": {
+        "title": "Format de la charte graphique",
+        "subtitle": "Cliquez pour choisir le format du document",
+        "question": "Dans quel **format** voulez-vous votre charte graphique ?",
+        "portrait": "Portrait (A4)",
+        "landscape": "Paysage (16:9)",
+        "hint": "Choisissez un format pour continuer",
+        "cancel": "Annuler",
+        "cancelledOk": "Pas de souci, on annule. Dites-moi quand vous voudrez générer votre charte."
+      }
+    },
+    "banner": {
+      "title": "Complétez votre identité de marque",
+      "missing": "Il manque :",
+      "cta": "Compléter maintenant"
+    },
+    "categories": {
+      "business": "Business",
+      "marketing": "Marketing",
+      "finance": "Finances",
+      "legal": "Juridique",
+      "branding": "Marque",
+      "tech": "Technique",
+      "general": "Général"
+    },
     "bp": {
       "intro": "Très bien, rédigeons votre **business plan** ! Pour un résultat plus complet, je peux y intégrer vos informations de contact et d'équipe. Comment voulez-vous les fournir ?",
       "formIntro": "Remplissez ce mini-formulaire — seuls les champs renseignés seront utilisés :",
@@ -177,172 +335,42 @@
       "inProgress": "Génération de votre {{title}} en cours",
       "done": "✅ Votre {{title}} est prêt !",
       "failed": "❌ La génération de votre {{title}} a échoué.",
-      "cardRunning": "Génération de votre {{title}}",
-      "cardDone": "Votre {{title}} est prêt",
-      "cardError": "La génération de votre {{title}} a échoué",
-      "steps": "{{done}}/{{total}} étapes terminées",
       "retryHint": "Voulez-vous réessayer ?",
       "chips": {
         "retry": "Réessayer la génération"
-      }
+      },
+      "cardRunning": "Génération de votre {{title}}",
+      "cardDone": "Votre {{title}} est prêt",
+      "cardError": "La génération de votre {{title}} a échoué",
+      "steps": "{{done}}/{{total}} étapes terminées"
     },
-    "recap": {
-      "subtitle": "Récapitulatif de votre projet",
-      "fields": {
-        "type": "Type",
-        "targets": "Cible",
-        "scope": "Portée",
-        "teamSize": "Équipe",
-        "budget": "Budget",
-        "currency": "Devise"
+    "launcher": {
+      "title": "Que construisons-nous pour {{name}} ?",
+      "subtitle": "Choisissez un livrable à consulter ou à générer — ou écrivez votre demande ci-dessous.",
+      "hint": "Vous pouvez aussi tout simplement écrire ce dont vous avez besoin.",
+      "askShow": "Montre-moi mon {{title}}",
+      "askGenerate": "Générons mon {{title}}",
+      "features": {
+        "branding": "Logo, couleurs et typographie de votre marque.",
+        "businessPlan": "Le plan d'affaires complet de votre projet.",
+        "pitchDeck": "La présentation pour convaincre vos investisseurs.",
+        "finance": "Prévisions et tableaux financiers.",
+        "diagrams": "Schémas d'architecture et diagrammes techniques.",
+        "legalDocs": "Statuts, CGU, contrats et mentions légales.",
+        "communication": "Stratégie, calendrier éditorial et flyers.",
+        "development": "Génération de votre application ou site web.",
+        "deployment": "Déploiement de votre infrastructure et mise en ligne."
       },
-      "policies": {
-        "accept": "J'accepte la",
-        "privacy": "politique de confidentialité",
-        "terms": "conditions d'utilisation",
-        "beta": "J'ai compris que la plateforme est en version bêta",
-        "marketing": "J'accepte de recevoir des communications marketing (optionnel)"
+      "state": {
+        "ready": "Prêt",
+        "generate": "Générer",
+        "locked": "Verrouillé"
       },
-      "actions": {
-        "restart": "Recommencer",
-        "confirm": "Créer le projet"
-      }
-    },
-    "banner": {
-      "title": "Complétez votre identité de marque",
-      "missing": "Il manque :",
-      "cta": "Compléter maintenant"
-    },
-    "branding": {
-      "invite": "Passons maintenant à votre **identité de marque** (logo, couleurs, typographie). Voulez-vous la générer avec l'IA, ou importer votre propre logo ?",
-      "importRedirect": "Très bien — l'import de logo s'ouvre dans l'éditeur. Vous pourrez revenir au mode Chat ensuite.",
-      "laterOk": "Pas de souci, on pourra y revenir quand vous voulez. Dites simplement « complète mon identité de marque ».",
-      "generatingPalettes": "Je prépare des propositions de **couleurs et de typographies** adaptées à votre projet… ⏳",
-      "choosePalette": "Voici mes propositions de palettes. Laquelle vous ressemble le plus ?",
-      "chooseTypography": "Très bon choix ! 🎨 Maintenant, choisissez votre **typographie** :",
-      "chooseLogoType": "Parfait. Quel **style de logo** imaginez-vous ?",
-      "describeLogo": "Décrivez en quelques mots le logo que vous imaginez — formes, ambiance, symboles… (optionnel)",
-      "generatingLogos": "Je génère vos **concepts de logos**… Cela peut prendre une minute. ⏳",
-      "chooseLogo": "Voici vos concepts de logos. Lequel choisissez-vous ?",
-      "generatingVariations": "Beau choix ! Je génère maintenant les **déclinaisons de votre logo** (fond clair, fond sombre, monochrome)… ⏳",
-      "zipStarted": "Le téléchargement de vos logos (ZIP) est lancé. 📦",
-      "zipUnavailable": "Le pack de logos n'est pas encore disponible.",
-      "charteExists": "Votre **charte graphique** a déjà été générée. ✨ Que voulez-vous en faire ?",
-      "format": {
-        "title": "Format de la charte graphique",
-        "subtitle": "Cliquez pour choisir le format du document",
-        "question": "Dans quel **format** voulez-vous votre charte graphique ?",
-        "portrait": "Portrait (A4)",
-        "landscape": "Paysage (16:9)",
-        "hint": "Choisissez un format pour continuer",
-        "cancel": "Annuler",
-        "cancelledOk": "Pas de souci, on annule. Dites-moi quand vous voudrez générer votre charte."
+      "locked": {
+        "needsBranding": "Complétez d'abord votre identité de marque."
       },
-      "complete": "🎉 Votre **identité de marque est complète** ! Logo, déclinaisons, couleurs et typographie sont enregistrés. Prochaine étape : générer votre charte graphique.",
-      "alreadyComplete": "Votre identité de marque est déjà complète. La voici :",
-      "thisPalette": "Cette palette",
-      "thisTypography": "Cette typographie",
-      "thisLogo": "Ce logo",
-      "logoTypes": {
-        "icon": "Icône / symbole",
-        "name": "Nom stylisé",
-        "initial": "Initiales"
-      },
-      "chips": {
-        "ai": "Générer avec l'IA",
-        "import": "Importer mon logo",
-        "later": "Plus tard",
-        "retry": "Réessayer",
-        "complete": "Compléter mon identité de marque",
-        "skipDescription": "Passer",
-        "variationsEditor": "Variations du logo (éditeur)",
-        "downloadZip": "Télécharger mes logos (ZIP)",
-        "regenerate": "Régénérer la charte"
-      },
-      "cards": {
-        "colorsTitle": "Palettes de couleurs",
-        "colorsSubtitle": "Cliquez pour choisir votre palette",
-        "typographyTitle": "Typographies",
-        "typographySubtitle": "Cliquez pour choisir votre duo de polices",
-        "logosTitle": "Concepts de logos",
-        "logosSubtitle": "Cliquez pour choisir votre logo",
-        "typographySample": "Le vif renard brun saute par-dessus le chien."
-      },
-      "errors": {
-        "generation": "La génération a échoué. On réessaie ?",
-        "save": "Impossible d'enregistrer votre choix. Réessayez."
-      }
-    },
-    "onboarding": {
-      "welcome": "Bonjour ! 👋 Créons votre projet ensemble, étape par étape. Première question : **décrivez votre idée en quelques phrases.** Que voulez-vous construire, et pour résoudre quel problème ?",
-      "resume": "Content de vous revoir ! 👋 Reprenons la création de votre projet exactement là où vous vous étiez arrêté.",
-      "aiWelcome": "Parfait, {{name}} ! 🚀 J'ai bien noté votre idée. Laissez-moi vous poser quelques questions pour bien cadrer votre projet.",
-      "aiWelcomeNoName": "Parfait ! 🚀 J'ai bien noté votre idée. Laissez-moi vous poser quelques questions simples pour bien cadrer votre projet.",
-      "customType": "Très bien. Décrivez en quelques mots le type de votre projet :",
-      "customCurrency": "D'accord. Quelle devise souhaitez-vous utiliser ?",
-      "composerPlaceholder": "Écrivez votre réponse, ou choisissez une suggestion…",
-      "questions": {
-        "description": "Décrivez votre idée en quelques phrases : que voulez-vous construire, et pour résoudre quel problème ?",
-        "name": "Très bien ! Quel **nom** voulez-vous donner à votre projet ?",
-        "type": "Parfait. Quel **type de projet** est-ce ?",
-        "targets": "Qui est votre **public cible** principal ?",
-        "scope": "Quelle est la **portée géographique** visée ?",
-        "teamSize": "Combien de personnes composent votre **équipe** ?",
-        "budget": "Quelle est votre **fourchette de budget** ?",
-        "recap": "Voici le récapitulatif de votre projet. Vérifiez les informations, acceptez les politiques puis confirmez la création. ✨"
-      },
-      "confirmHint": "Utilisez la carte ci-dessus pour confirmer la création du projet, ou cliquez sur « Recommencer ».",
-      "success": "🎉 Votre projet **{{name}}** est créé ! Vous pouvez maintenant générer vos livrables, me poser des questions ou suivre votre avancement — tout se passe ici.",
-      "errors": {
-        "descriptionTooShort": "Pouvez-vous m'en dire un peu plus ? Quelques phrases suffisent pour bien démarrer.",
-        "nameRequired": "Il me faut un nom pour votre projet. Lequel choisissez-vous ?",
-        "createFailed": "La création du projet a échoué. Vérifiez votre connexion puis confirmez à nouveau.",
-        "planFailed": "Je n'ai pas pu préparer mes questions, mais on peut continuer directement vers le récapitulatif."
-      },
-      "actions": {
-        "skip": "Passer cette question",
-        "skipped": "(question passée)"
-      },
-      "options": {
-        "type": {
-          "enterprise": "Création d'entreprise",
-          "ecommerce": "Commerce / E-commerce",
-          "web": "Application web",
-          "mobile": "Application mobile",
-          "iot": "IoT",
-          "desktop": "Application desktop",
-          "api": "API / Backend",
-          "ai": "IA / ML",
-          "blockchain": "Blockchain",
-          "other": "Autres"
-        },
-        "targets": {
-          "business": "Entreprises",
-          "students": "Étudiants",
-          "general-public": "Grand public",
-          "government": "Administrations",
-          "healthcare": "Professionnels de santé"
-        },
-        "scope": {
-          "local": "Locale",
-          "departmental": "Départementale",
-          "regional": "Régionale",
-          "national": "Nationale",
-          "international": "Internationale"
-        },
-        "teamSize": {
-          "1": "Solo",
-          "2-5": "2 à 5 personnes",
-          "6-10": "6 à 10 personnes",
-          "10+": "Plus de 10 personnes"
-        },
-        "budget": {
-          "lt-5k": "Moins de 5 000 €",
-          "5k-20k": "5 000 € à 20 000 €",
-          "20k-50k": "20 000 € à 50 000 €",
-          "gt-50k": "Plus de 50 000 €"
-        }
-      }
+      "open": "Ouvrir",
+      "brandCalloutHint": "Logo, couleurs et typographie — la base de tous vos livrables."
     },
     "legal": {
       "intro": "Créons vos **documents juridiques**. Quel document voulez-vous générer ? (Pour des statuts précis — capital, associés — complétez le contexte dans l'éditeur.)",
@@ -387,34 +415,6 @@
         "start": "Lancer un déploiement",
         "list": "Voir mes déploiements"
       }
-    },
-    "launcher": {
-      "title": "Que construisons-nous pour {{name}} ?",
-      "subtitle": "Choisissez un livrable à consulter ou à générer — ou écrivez votre demande ci-dessous.",
-      "hint": "Vous pouvez aussi tout simplement écrire ce dont vous avez besoin.",
-      "askShow": "Montre-moi mon {{title}}",
-      "askGenerate": "Générons mon {{title}}",
-      "features": {
-        "branding": "Logo, couleurs et typographie de votre marque.",
-        "businessPlan": "Le plan d'affaires complet de votre projet.",
-        "pitchDeck": "La présentation pour convaincre vos investisseurs.",
-        "finance": "Prévisions et tableaux financiers.",
-        "diagrams": "Schémas d'architecture et diagrammes techniques.",
-        "legalDocs": "Statuts, CGU, contrats et mentions légales.",
-        "communication": "Stratégie, calendrier éditorial et flyers.",
-        "development": "Génération de votre application ou site web.",
-        "deployment": "Déploiement de votre infrastructure et mise en ligne."
-      },
-      "state": {
-        "ready": "Prêt",
-        "generate": "Générer",
-        "locked": "Verrouillé"
-      },
-      "locked": {
-        "needsBranding": "Complétez d'abord votre identité de marque."
-      },
-      "open": "Ouvrir",
-      "brandCalloutHint": "Logo, couleurs et typographie — la base de tous vos livrables."
     }
   }
 }

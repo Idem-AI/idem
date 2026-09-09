@@ -13,6 +13,7 @@ import {
   getReportController,
   getSimulationController,
   listSimulationsController,
+  resumeSimulationController,
   runLabController,
 } from '../controllers/simulation.controller';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
@@ -251,6 +252,28 @@ simulationRoutes.delete(
   `/${resource}/:projectId/:simulationId`,
   authenticate,
   deleteSimulationController
+);
+
+/**
+ * @openapi
+ * /project/simulations/{projectId}/{simulationId}/resume:
+ *   post:
+ *     tags: [Simulation]
+ *     summary: Resume an interrupted or failed simulation
+ *     description: >
+ *       Resumes a simulation that has failed or is stuck in `running` state.
+ *       The pipeline restarts from the last completed stage — no quota is
+ *       charged again and no consent is re-requested.
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       '202': { description: Simulation accepted and restarted }
+ *       '404': { description: Simulation not found }
+ *       '409': { description: Simulation already completed }
+ */
+simulationRoutes.post(
+  `/${resource}/:projectId/:simulationId/resume`,
+  authenticate,
+  resumeSimulationController
 );
 
 /**

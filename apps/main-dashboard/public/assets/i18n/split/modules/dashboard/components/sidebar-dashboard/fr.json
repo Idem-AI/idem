@@ -37,7 +37,8 @@
       "errors": {
         "projectNotFound": "L'ID de projet '{{cookieId}}' du cookie est introuvable. Utilisation du premier projet à la place.",
         "initialProjectNotFound": "L'ID de projet initial '{{initialCookieId}}' est introuvable. Navigation vers le tableau de bord global."
-      }
+      },
+      "simulations": "Simulations"
     }
   }
 }

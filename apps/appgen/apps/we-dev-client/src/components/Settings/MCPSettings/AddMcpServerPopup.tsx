@@ -33,15 +33,15 @@ const CustomModal = ({ children, title, open, onOk, onCancel, okText, cancelText
             <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" onClick={onCancel} />
             <div className="fixed inset-0 overflow-y-auto">
                 <div className="flex min-h-full items-center justify-center p-6">
-                    <div className="relative w-full max-w-2xl transform rounded-xl bg-white dark:bg-gray-800 shadow-2xl transition-all">
+                    <div className="relative w-full max-w-2xl transform rounded-xl bg-surface-1 shadow-2xl transition-all">
                         {/* Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/80 dark:border-gray-700/80">
-                            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                            <h3 className="text-base font-semibold text-text-primary">
                                 {title}
                             </h3>
                             <button
                                 onClick={onCancel}
-                                className="rounded-md p-1 text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400"
+                                className="rounded-md p-1 text-gray-400 hover:text-text-tertiary dark:hover:text-gray-400"
                             >
                                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -61,10 +61,10 @@ const CustomModal = ({ children, title, open, onOk, onCancel, okText, cancelText
                                 onClick={onCancel}
                                 className={classNames(
                                     "px-4 py-2 text-sm font-medium rounded-lg",
-                                    "text-gray-700 dark:text-gray-300",
-                                    "bg-white dark:bg-gray-800",
-                                    "border border-gray-300 dark:border-gray-600",
-                                    "hover:bg-gray-50 dark:hover:bg-gray-700/50",
+                                    "text-text-secondary",
+                                    "bg-surface-1",
+                                    "border border-[var(--glass-border)]",
+                                    "hover:bg-surface-2/50",
                                     "focus:outline-none focus:ring-2 focus:ring-purple-500/50",
                                     "transition duration-150 ease-in-out"
                                 )}
@@ -105,7 +105,7 @@ const CustomModal = ({ children, title, open, onOk, onCancel, okText, cancelText
 const FormField = ({ label, required, children, error, tooltip }) => (
     <div className="mb-4">
         <div className="flex items-center gap-2 mb-1.5">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium text-text-secondary">
                 {label}
                 {required && <span className="text-red-500 ml-1">*</span>}
             </label>
@@ -135,10 +135,10 @@ const Input = ({ value, onChange, placeholder, disabled, className = "" }) => (
         disabled={disabled}
         className={classNames(
             "w-full px-3 py-2 text-sm rounded-lg",
-            "bg-white dark:bg-gray-900",
-            "border border-gray-300 dark:border-gray-600",
+            "bg-surface-1",
+            "border border-[var(--glass-border)]",
             "focus:outline-none focus:ring-2 focus:ring-purple-500/50",
-            "disabled:bg-gray-100 dark:disabled:bg-gray-800",
+            "disabled:bg-surface-2",
             "disabled:cursor-not-allowed",
             "placeholder-gray-400 dark:placeholder-gray-500",
             "transition duration-200",
@@ -155,8 +155,8 @@ const TextArea = ({ value, onChange, placeholder, rows = 3, className = "" }) =>
         rows={rows}
         className={classNames(
             "w-full px-3 py-2 text-sm rounded-lg",
-            "bg-white dark:bg-gray-900",
-            "border border-gray-300 dark:border-gray-600",
+            "bg-surface-1",
+            "border border-[var(--glass-border)]",
             "focus:outline-none focus:ring-2 focus:ring-purple-500/50",
             "placeholder-gray-400 dark:placeholder-gray-500",
             "transition duration-200",
@@ -178,9 +178,9 @@ const RadioGroup = ({ value, onChange, options }) => (
                     value === option.value ? (
                         "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
                     ) : (
-                        "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                        "bg-surface-1 text-text-secondary hover:bg-surface-2"
                     ),
-                    "border border-gray-300 dark:border-gray-600"
+                    "border border-[var(--glass-border)]"
                 )}
             >
                 {option.label}
@@ -194,7 +194,7 @@ const Toggle = ({ checked, onChange }) => (
         onClick={() => onChange(!checked)}
         className={classNames(
             "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out",
-            checked ? "bg-purple-600" : "bg-gray-200 dark:bg-gray-700"
+            checked ? "bg-purple-600" : "bg-surface-3"
         )}
     >
         <span

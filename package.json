@@ -14,7 +14,8 @@
     "apps/simulation",
     "packages/shared-models",
     "packages/shared-auth-client",
-    "packages/shared-styles"
+    "packages/shared-styles",
+    "packages/shared-trusted-by"
   ],
   "scripts": {
     "postinstall": "husky install || true",
@@ -54,6 +55,8 @@
     "test:all": "npm run test --workspaces --if-present",
     "lint:all": "npm run lint --workspaces --if-present",
     "lint:fix": "npm run lint:fix --workspaces --if-present",
+    "sync:trusted-by": "node scripts/sync-trusted-by-assets.mjs",
+    "check:trusted-by": "node scripts/sync-trusted-by-assets.mjs --check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "clean": "npm run clean --workspaces --if-present"

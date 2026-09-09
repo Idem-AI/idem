@@ -60,6 +60,7 @@ import {
   computeRobustness,
   computeSensitivity,
   computeVerdict,
+  computeUnitEconomics,
   computeViability,
   computeViabilityConditions,
   projectBusiness,
@@ -133,19 +134,23 @@ export class SimulationService {
     return Array.isArray(stored) ? (stored as SimulationModel[]) : [];
   }
 
+  /**
+   * Écrit les simulations, et RIEN d'autre.
+   *
+   * Le chemin pointé est ce qui rend l'écriture sûre : une simulation dure
+   * plusieurs minutes pendant lesquelles la charte, le business plan ou le
+   * pitch deck écrivent sur le même document. Reposer `analysisResultModel`
+   * en entier depuis l'instantané lu ici remettrait leurs branches dans
+   * l'état qu'elles avaient au début de cette étape.
+   */
   private async writeSimulations(
     userId: string,
     projectId: string,
-    project: ProjectModel,
     simulations: SimulationModel[]
   ): Promise<void> {
-    const analysisResultModel = {
-      ...((project as any).analysisResultModel || {}),
-      simulations,
-    };
     const updated = await this.projectRepository.update(
       projectId,
-      { analysisResultModel } as any,
+      { 'analysisResultModel.simulations': simulations } as any,
       this.collectionPath(userId)
     );
     if (!updated) {
@@ -229,7 +234,7 @@ export class SimulationService {
     simulation.updatedAt = new Date();
     simulations[index] = simulation;
 
-    await this.writeSimulations(userId, projectId, project, simulations);
+    await this.writeSimulations(userId, projectId, simulations);
     return simulation;
   }
 
@@ -262,7 +267,7 @@ export class SimulationService {
     const simulations = this.readSimulations(project);
     const remaining = simulations.filter((s) => s.id !== simulationId);
     if (remaining.length === simulations.length) return false;
-    await this.writeSimulations(userId, projectId, project, remaining);
+    await this.writeSimulations(userId, projectId, remaining);
     return true;
   }
 
@@ -373,7 +378,7 @@ export class SimulationService {
       consent: input.consent,
     });
 
-    await this.writeSimulations(userId, projectId, project, [simulation, ...simulations]);
+    await this.writeSimulations(userId, projectId, [simulation, ...simulations]);
 
     // Le rapport et les laboratoires qui suivront restent gardés par
     // l'acceptation portée par la fiche projet. Un projet jamais finalisé —
@@ -510,92 +515,186 @@ export class SimulationService {
     });
   }
 
+  /**
+   * Données acquises lors d'une exécution précédente, disponibles pour
+   * reprendre depuis un point de contrôle sans relancer les étapes déjà faites.
+   */
+  private resumeContext(
+    simulation: SimulationModel
+  ): { startFrom: PipelineStageId; understanding?: ProjectUnderstanding; factors?: Factor[]; evidence?: Evidence[] } {
+    const stages = simulation.progress.stages;
+
+    // Première étape non marquée `done` — c'est là qu'on repart.
+    const firstPending = stages.find((s) => s.state !== 'done');
+    const startFrom: PipelineStageId = firstPending?.id ?? 'understand';
+
+    return {
+      startFrom,
+      understanding: simulation.understanding,
+      factors: simulation.factors?.length ? simulation.factors : undefined,
+      evidence: simulation.evidence?.length ? simulation.evidence : undefined,
+    };
+  }
+
+  /**
+   * Reprend une simulation interrompue (statut `failed` ou `running` bloquée).
+   *
+   * Identifie la première étape non terminée depuis les données persistées et
+   * repart de là sans re-débiter le quota ni redemander le consentement.
+   * Répond immédiatement : le pipeline continue en arrière-plan.
+   */
+  async resumeSimulation(
+    userId: string,
+    projectId: string,
+    simulationId: string
+  ): Promise<SimulationModel> {
+    const simulation = await this.getSimulation(userId, projectId, simulationId);
+    if (!simulation) {
+      throw new Error(`Simulation not found: ${simulationId}`);
+    }
+    if (simulation.status === 'completed') {
+      throw Object.assign(new Error('This simulation has already completed.'), { status: 409 });
+    }
+
+    const { startFrom, understanding, factors, evidence } = this.resumeContext(simulation);
+
+    logger.info(
+      `Resuming simulation ${simulationId} from stage "${startFrom}" ` +
+        `(understanding: ${!!understanding}, factors: ${factors?.length ?? 0}, evidence: ${evidence?.length ?? 0})`
+    );
+
+    // Remet la simulation en état courant : on efface l'erreur et on marque
+    // l'étape de reprise comme pending pour qu'elle reparte proprement.
+    const resumed = await this.mutate(userId, projectId, simulationId, (sim) => {
+      sim.status = 'running';
+      sim.failureReason = undefined;
+      // Réinitialise l'étape qui avait échoué (active → pending) et celles
+      // qui n'ont pas encore tourné, sans toucher aux étapes déjà done.
+      for (const stage of sim.progress.stages) {
+        if (stage.state === 'active' || stage.state === 'failed') {
+          stage.state = 'pending';
+        }
+      }
+    });
+
+    // Relance le pipeline en arrière-plan depuis le checkpoint.
+    void this.runPipeline(
+      userId,
+      projectId,
+      simulationId,
+      undefined, // les réponses sont déjà intégrées dans l'understanding persisté
+      undefined, // seedUnderstanding passé via resumeFrom
+      { startFrom, understanding, factors, evidence }
+    ).catch((error) => {
+      logger.error(`Resumed simulation pipeline crashed for ${simulationId}: ${error.message}`, {
+        stack: error.stack,
+      });
+    });
+
+    return resumed;
+  }
+
   /** Les six étapes, de la lecture du projet à l'analyse des résultats. */
   private async runPipeline(
     userId: string,
     projectId: string,
     simulationId: string,
     answers?: Record<string, string>,
-    seedUnderstanding?: ProjectUnderstanding
+    seedUnderstanding?: ProjectUnderstanding,
+    resume?: {
+      startFrom: PipelineStageId;
+      understanding?: ProjectUnderstanding;
+      factors?: Factor[];
+      evidence?: Evidence[];
+    }
   ): Promise<void> {
+    const skip = (stage: PipelineStageId): boolean => {
+      if (!resume) return false;
+      const order: PipelineStageId[] = [
+        'understand', 'discover-factors', 'research', 'model', 'simulate', 'analyse',
+      ];
+      return order.indexOf(stage) < order.indexOf(resume.startFrom);
+    };
+
     try {
       // --- 1. Comprendre le projet
-      await this.setStage(userId, projectId, simulationId, 'understand', 'active');
-      // Un business plan importé a déjà été lu : le relire coûterait un appel
-      // de plus et rendrait moins, le projet créé ne portant que l'essentiel.
-      const understanding =
-        seedUnderstanding ??
-        (await this.ai.understandProject(await this.loadProject(userId, projectId), userId));
+      let understanding: ProjectUnderstanding;
+      if (skip('understand') && resume?.understanding) {
+        understanding = resume.understanding;
+        logger.info(`Simulation ${simulationId}: skipping 'understand' (already done)`);
+      } else {
+        await this.setStage(userId, projectId, simulationId, 'understand', 'active');
+        // Un business plan importé a déjà été lu : le relire coûterait un appel
+        // de plus et rendrait moins, le projet créé ne portant que l'essentiel.
+        understanding =
+          seedUnderstanding ??
+          (resume?.understanding) ??
+          (await this.ai.understandProject(await this.loadProject(userId, projectId), userId));
 
-      // Les réponses de l'utilisateur écrasent ce que le moteur avait deviné.
-      // La provenance passe à `answer` : c'est su, mais su parce que le
-      // fondateur l'a dit, ce qui ne se confond pas avec une ligne du document.
-      if (answers) {
-        for (const item of understanding.items) {
-          const answer = answers[item.id];
-          if (answer) {
-            item.answer = answer;
-            item.state = 'known';
-            item.value = answer;
-            item.source = 'answer';
-            item.detail = undefined;
+        // Les réponses de l'utilisateur écrasent ce que le moteur avait deviné.
+        if (answers) {
+          for (const item of understanding.items) {
+            const answer = answers[item.id];
+            if (answer) {
+              item.answer = answer;
+              item.state = 'known';
+              item.value = answer;
+              item.source = 'answer';
+              item.detail = undefined;
+            }
           }
         }
+
+        await this.mutate(userId, projectId, simulationId, (simulation) => {
+          simulation.understanding = understanding;
+        });
+        await this.setStage(
+          userId, projectId, simulationId, 'understand', 'done',
+          `${understanding.items.length} éléments identifiés`
+        );
       }
 
-      await this.mutate(userId, projectId, simulationId, (simulation) => {
-        simulation.understanding = understanding;
-      });
-      await this.setStage(
-        userId,
-        projectId,
-        simulationId,
-        'understand',
-        'done',
-        `${understanding.items.length} éléments identifiés`
-      );
-
       // --- 2. Découvrir les facteurs
-      await this.setStage(userId, projectId, simulationId, 'discover-factors', 'active');
-      const factors = await this.ai.discoverFactors(understanding, userId);
-      await this.mutate(userId, projectId, simulationId, (simulation) => {
-        simulation.factors = factors;
-      });
-      await this.setStage(
-        userId,
-        projectId,
-        simulationId,
-        'discover-factors',
-        'done',
-        `${factors.length} facteurs identifiés`
-      );
+      let factors: Factor[];
+      if (skip('discover-factors') && resume?.factors?.length) {
+        factors = resume.factors;
+        logger.info(`Simulation ${simulationId}: skipping 'discover-factors' (already done)`);
+      } else {
+        await this.setStage(userId, projectId, simulationId, 'discover-factors', 'active');
+        factors = await this.ai.discoverFactors(understanding, userId);
+        await this.mutate(userId, projectId, simulationId, (simulation) => {
+          simulation.factors = factors;
+        });
+        await this.setStage(
+          userId, projectId, simulationId, 'discover-factors', 'done',
+          `${factors.length} facteurs identifiés`
+        );
+      }
 
       // --- 3. Rassembler les données externes
-      await this.setStage(userId, projectId, simulationId, 'research', 'active');
-      const evidence: Evidence[] = factors
-        .map((factor) => factor.evidence)
-        .filter((item): item is Evidence => Boolean(item));
-      await this.mutate(userId, projectId, simulationId, (simulation) => {
-        simulation.evidence = evidence;
-      });
-      await this.setStage(
-        userId,
-        projectId,
-        simulationId,
-        'research',
-        'done',
-        `${evidence.length} valeurs sourcées`
-      );
+      let evidence: Evidence[];
+      if (skip('research') && resume?.evidence?.length) {
+        evidence = resume.evidence;
+        logger.info(`Simulation ${simulationId}: skipping 'research' (already done)`);
+      } else {
+        await this.setStage(userId, projectId, simulationId, 'research', 'active');
+        evidence = factors
+          .map((factor) => factor.evidence)
+          .filter((item): item is Evidence => Boolean(item));
+        await this.mutate(userId, projectId, simulationId, (simulation) => {
+          simulation.evidence = evidence;
+        });
+        await this.setStage(
+          userId, projectId, simulationId, 'research', 'done',
+          `${evidence.length} valeurs sourcées`
+        );
+      }
 
       // --- 4. Construire les scénarios
       await this.setStage(userId, projectId, simulationId, 'model', 'active');
       const scenarios = await this.ai.designScenarios(understanding, factors, userId);
       await this.setStage(
-        userId,
-        projectId,
-        simulationId,
-        'model',
-        'done',
+        userId, projectId, simulationId, 'model', 'done',
         `${scenarios.length} scénarios construits`
       );
 
@@ -607,11 +706,7 @@ export class SimulationService {
       }
       const stressCount = scenarios.filter((s) => s.kind === 'stress' || s.kind === 'extreme').length;
       await this.setStage(
-        userId,
-        projectId,
-        simulationId,
-        'simulate',
-        'done',
+        userId, projectId, simulationId, 'simulate', 'done',
         `${scenarios.length} scénarios exécutés, dont ${stressCount} stress tests`
       );
 
@@ -683,6 +778,10 @@ export class SimulationService {
       financials: buildFinancialSummary(baseline, points),
       sensitivity,
       conditions,
+      // La décomposition et l'économie unitaire étaient calculées puis jetées :
+      // le rapport n'avait plus de quoi expliquer d'où sort le score.
+      viabilityBreakdown: viability,
+      unitEconomics: computeUnitEconomics(baseline),
     };
   }
 
@@ -728,7 +827,7 @@ export class SimulationService {
     if (!simulation.result || !simulation.understanding) {
       throw new Error('The simulation has not produced a result yet.');
     }
-    if (simulation.report) return simulation.report;
+    if (simulation.report) return this.completeReport(simulation);
 
     const { understanding, factors, result } = simulation;
     const sensitivitySummary = result.sensitivity
@@ -740,7 +839,8 @@ export class SimulationService {
       factors,
       result.scenarios,
       sensitivitySummary,
-      userId
+      userId,
+      result.risks
     );
 
     const report: SimulationReport = {
@@ -759,9 +859,14 @@ export class SimulationService {
       financials: result.financials,
       sensitivity: result.sensitivity,
       conditions: result.conditions,
+      risks: result.risks,
       recommendations: output.recommendations,
       evidence: simulation.evidence,
       validationNeeded: output.validationNeeded,
+      // Le rapport ARGUMENTE, l'exécution constate : tout ce que l'analyse a
+      // produit pour justifier son verdict voyage avec le document, sans quoi
+      // le PDF affirmait un score sans jamais dire d'où il sort.
+      ...reportAnalysis(result, understanding),
     };
 
     await this.mutate(userId, projectId, simulationId, (current) => {
@@ -770,6 +875,79 @@ export class SimulationService {
     });
 
     return report;
+  }
+
+  /**
+   * Renvoie le rapport, en le produisant s'il manque alors que le forfait
+   * l'inclut.
+   *
+   * `hasReport` vaut vrai dès la création pour tout forfait au-dessus de
+   * `run` : il dit ce qui est DÛ, pas ce qui existe. Les écrans de rapport et
+   * de téléchargement s'y fiaient pour ne plus rien demander, si bien qu'une
+   * génération enchaînée qui n'aboutissait pas — écrasée par une écriture
+   * concurrente, interrompue par un redémarrage — laissait la simulation dans
+   * un état sans issue : le forfait était payé, le bouton présent, et chaque
+   * appel répondait « pas encore de rapport » sans jamais proposer de le
+   * produire.
+   *
+   * Produire ici ne facture rien de plus : pour ces forfaits le rapport est
+   * déjà compris, et le pipeline l'enchaîne de lui-même en fin d'exécution.
+   * Renvoie `null` quand le rapport reste à acheter (`run`) ou quand
+   * l'exécution n'a pas de quoi le composer.
+   */
+  async ensureReport(
+    userId: string,
+    projectId: string,
+    simulationId: string
+  ): Promise<SimulationReport | null> {
+    const simulation = await this.getSimulation(userId, projectId, simulationId);
+    if (!simulation) {
+      throw new Error(`Simulation not found: ${simulationId}`);
+    }
+    if (simulation.report) {
+      return this.completeReport(simulation);
+    }
+    if (simulation.tier === 'run' || !simulation.result || !simulation.understanding) {
+      return null;
+    }
+
+    logger.info(
+      `Rapport manquant sur ${simulationId} (forfait ${simulation.tier}) — génération à la demande`
+    );
+    return this.generateReport(userId, projectId, simulationId);
+  }
+
+  /**
+   * Complète un rapport déjà en base avec ce que sa version n'y mettait pas.
+   *
+   * Un rapport est persisté une fois puis relu pendant des mois : chaque
+   * chapitre ajouté au document trouverait donc son champ vide sur tout ce qui
+   * a été produit avant lui. Les valeurs manquantes sont reprises du RÉSULTAT,
+   * qui les a toujours portées — c'est une recomposition, pas une invention, et
+   * elle ne coûte aucun appel au modèle.
+   *
+   * Rien n'est réécrit en base : le rapport stocké reste celui qui a été payé,
+   * seule sa lecture est complétée.
+   */
+  private completeReport(simulation: SimulationModel): SimulationReport {
+    const report = simulation.report!;
+    const result = simulation.result;
+    if (!result) return report;
+
+    const completed: SimulationReport = { ...report };
+    // Les risques d'abord : sans eux le chapitre des recommandations perd le
+    // problème auquel chaque action répond.
+    if (!completed.risks?.length && result.risks?.length) {
+      completed.risks = result.risks;
+    }
+    const analysis = reportAnalysis(result, simulation.understanding);
+    for (const [key, value] of Object.entries(analysis)) {
+      if (value === undefined) continue;
+      if ((completed as any)[key] === undefined) {
+        (completed as any)[key] = value;
+      }
+    }
+    return completed;
   }
 
   // ===================================================================
@@ -1042,6 +1220,41 @@ export class SimulationService {
 
 export const simulationService = new SimulationService(new PromptService());
 
+
+/**
+ * Ce que le RAPPORT reprend du résultat pour pouvoir s'expliquer.
+ *
+ * Un seul endroit, appelé à la composition comme à la relecture : sans cela,
+ * un champ ajouté au rapport aurait été rempli à la génération et absent des
+ * rapports déjà produits, ou l'inverse.
+ */
+function reportAnalysis(
+  result: SimulationResult,
+  understanding?: ProjectUnderstanding
+): Partial<SimulationReport> {
+  const baseline = understanding?.baseline;
+
+  // La décomposition et l'économie unitaire sont DÉTERMINISTES : quand une
+  // exécution ancienne ne les porte pas, les recalculer depuis la baseline
+  // coûte quelques multiplications et rend au rapport son chapitre le plus
+  // utile. Aucun appel au modèle, aucun chiffre inventé.
+  const viabilityBreakdown =
+    result.viabilityBreakdown ??
+    (baseline ? computeViability(baseline, projectBusiness(baseline)) : undefined);
+  const unitEconomics =
+    result.unitEconomics ?? (baseline ? computeUnitEconomics(baseline) : undefined);
+
+  return {
+    verdictRationale: result.verdictRationale,
+    strengths: result.strengths,
+    weaknesses: result.weaknesses,
+    keyUncertainties: result.keyUncertainties,
+    factorSummary: result.factorSummary,
+    viabilityBreakdown,
+    unitEconomics,
+    baseline,
+  };
+}
 
 /**
  * Compose la description longue du projet créé à partir d'un business plan.

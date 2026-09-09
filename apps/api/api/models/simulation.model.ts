@@ -388,6 +388,55 @@ export interface ViabilityCondition {
 }
 
 // =====================================================================
+// 6. DÉCOMPOSITION DE L'INDICE
+// =====================================================================
+
+/**
+ * Les quatre composantes de l'indice de viabilité, et leur pondération.
+ *
+ * L'indice était rendu comme un nombre nu : le fondateur lisait « 58 » sans
+ * pouvoir savoir laquelle des quatre questions le tirait vers le bas. Les
+ * composantes sont calculées séparément par le moteur ; les transporter jusqu'au
+ * rapport est ce qui transforme un score en diagnostic.
+ */
+export interface ViabilityBreakdown {
+  index: number;
+  /** La valeur d'un client couvre-t-elle son coût d'acquisition ? */
+  unitEconomics: number;
+  /** Le point mort tombe-t-il dans l'horizon, et à quelle distance ? */
+  profitability: number;
+  /** La trésorerie tient-elle jusque-là ? */
+  survival: number;
+  /** Le volume atteint justifie-t-il la structure de coûts ? */
+  scale: number;
+}
+
+/**
+ * Économie unitaire, telle que le moteur la calcule pour noter la première
+ * composante de l'indice.
+ *
+ * Ces quatre nombres — marge par transaction, durée de vie, valeur vie client,
+ * rapport à son coût d'acquisition — sont la moitié du diagnostic d'un modèle
+ * économique, et n'apparaissaient nulle part dans le rapport. Ils sont POSÉS par
+ * le code, à partir de la même formule que la notation : un rapport qui les
+ * afficherait autrement contredirait son propre score.
+ */
+export interface UnitEconomics {
+  /** Marge dégagée par transaction, avant charges fixes. */
+  grossMarginPerTransaction: number;
+  /** Part du prix qui reste après le coût variable (0..1). */
+  grossMarginRate: number;
+  /** Durée de vie moyenne d'un client, en mois, déduite de la rétention. */
+  expectedLifetimeMonths: number;
+  /** Marge totale attendue d'un client sur sa durée de vie. */
+  lifetimeValue: number;
+  /** Rapport valeur vie client / coût d'acquisition. Le seuil usuel est 3. */
+  ltvToCac: number;
+  /** Mois de marge nécessaires pour rembourser l'acquisition d'un client. */
+  paybackMonths: number | null;
+}
+
+// =====================================================================
 // 6. VERDICT
 // =====================================================================
 
@@ -414,6 +463,22 @@ export interface Recommendation {
   expectedImpact: 'low' | 'medium' | 'high';
   priority: 'low' | 'medium' | 'high' | 'critical';
   confidence: ConfidenceLevel;
+  /**
+   * Le risque auquel cette recommandation RÉPOND.
+   *
+   * ── POURQUOI CE LIEN EXISTE ─────────────────────────────────────────────
+   *
+   * Le rapport présentait les problèmes dans un chapitre et les réponses dans
+   * un autre, séparés par une trentaine de pages. Un lecteur qui vient de lire
+   * « la marge ne tient pas sous un choc de prix » doit alors retenir le
+   * problème, poursuivre, et faire lui-même l'appariement à l'arrivée — ce que
+   * personne ne fait. Un problème et sa réponse se lisent ensemble ou ne se
+   * lisent pas.
+   *
+   * Absent quand l'action ne répond à aucun risque identifié en particulier :
+   * elle est alors rendue à la suite, dans le même chapitre.
+   */
+  addressesRiskId?: string;
 }
 
 // =====================================================================
@@ -627,6 +692,13 @@ export interface SimulationResult {
   financials: FinancialSummary;
   sensitivity: SensitivityEntry[];
   conditions: ViabilityCondition[];
+  /**
+   * Les quatre composantes de l'indice. Optionnel : les exécutions antérieures
+   * à leur transport ne les portent pas.
+   */
+  viabilityBreakdown?: ViabilityBreakdown;
+  /** L'économie unitaire du modèle de référence, calculée par le moteur. */
+  unitEconomics?: UnitEconomics;
 }
 
 export interface SimulationReport {
@@ -645,11 +717,47 @@ export interface SimulationReport {
   financials: FinancialSummary;
   sensitivity: SensitivityEntry[];
   conditions: ViabilityCondition[];
+  /**
+   * Les problèmes identifiés. Ils vivent dans le RAPPORT et plus seulement dans
+   * le résultat : le chapitre qui les présente imprime chaque problème avec la
+   * recommandation qui y répond, et ne peut donc pas se contenter des unes.
+   */
+  risks: Risk[];
   recommendations: Recommendation[];
   /** Hypothèses et valeurs sourcées sur lesquelles repose tout le rapport. */
   evidence: Evidence[];
   /** Ce qu'il reste à confronter au marché réel. */
   validationNeeded: string[];
+
+  // -------------------------------------------------------------------
+  // CE QUE LE RÉSULTAT SAVAIT ET QUE LE RAPPORT JETAIT
+  //
+  // Le rapport ne reprenait du résultat que le score, le verdict et les
+  // tableaux. Le MOTIF du verdict, les forces, les faiblesses, les
+  // incertitudes et la décomposition de l'indice restaient dans l'exécution :
+  // le document remis au banquier affirmait donc un verdict sans jamais
+  // l'argumenter, et un score sans jamais dire ce qui le tirait vers le bas.
+  //
+  // Tous ces champs sont optionnels : les rapports déjà en base ne les portent
+  // pas, et `ensureReport` les recompose depuis le résultat à l'ouverture.
+  // -------------------------------------------------------------------
+
+  /** Pourquoi ce verdict, dans les mots de l'analyse. */
+  verdictRationale?: string;
+  /** Ce sur quoi le modèle s'appuie. */
+  strengths?: string[];
+  /** Ce qui le fragilise. */
+  weaknesses?: string[];
+  /** Ce que la simulation ne peut pas trancher. */
+  keyUncertainties?: string[];
+  /** Répartition des facteurs par niveau. */
+  factorSummary?: FactorSummary;
+  /** Les quatre composantes de l'indice et leur pondération. */
+  viabilityBreakdown?: ViabilityBreakdown;
+  /** L'économie unitaire calculée sur le modèle de référence. */
+  unitEconomics?: UnitEconomics;
+  /** Les paramètres chiffrés dont sort toute la projection. */
+  baseline?: BusinessBaseline;
 }
 
 // =====================================================================

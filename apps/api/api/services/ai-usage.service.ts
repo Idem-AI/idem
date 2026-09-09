@@ -10,6 +10,15 @@ import {
 import { AiUsageEvent } from '../schemas/aiUsage.schema';
 import { getAiUsageContext } from '../utils/ai-usage-context.util';
 import { getTraceContext } from '../utils/trace.util';
+import {
+  aiCallDuration,
+  aiCostUsdTotal,
+  aiOutcomeTotal,
+  aiTokensTotal,
+} from '../config/metrics';
+
+/** Étiquette `service` commune à toutes les métriques de ce processus. */
+const METRICS_SERVICE = 'idem-api';
 
 /**
  * Journalisation de la consommation IA.
@@ -116,6 +125,40 @@ class AiUsageService {
 
         day: dayKey(),
       });
+
+      // Exposition Prometheus. Même point d'alimentation que la base : un seul
+      // endroit à maintenir, et des séries qui ne peuvent pas diverger du
+      // journal. Toute erreur ici est avalée comme le reste de l'observabilité.
+      try {
+        const status = input.status ?? 'success';
+        const labels = {
+          provider: input.provider,
+          model: input.modelName,
+          service: METRICS_SERVICE,
+        };
+        if (input.durationMs !== undefined) {
+          aiCallDuration.observe(
+            { ...labels, prompt_type: input.promptType ?? 'unknown', status },
+            input.durationMs / 1000
+          );
+        }
+        aiTokensTotal.inc({ ...labels, kind: 'input' }, inputTokens);
+        aiTokensTotal.inc({ ...labels, kind: 'output' }, outputTokens);
+        if (cachedInputTokens > 0) {
+          aiTokensTotal.inc({ ...labels, kind: 'cached' }, cachedInputTokens);
+        }
+        aiCostUsdTotal.inc(
+          { ...labels, feature: event.feature ?? 'unknown' },
+          cost.totalCostUsd
+        );
+        aiOutcomeTotal.inc({
+          outcome: status === 'success' ? 'ok' : 'error',
+          prompt_type: input.promptType ?? 'unknown',
+          service: METRICS_SERVICE,
+        });
+      } catch (metricsError) {
+        logger.debug('Métriques IA non publiées', { error: (metricsError as Error)?.message });
+      }
 
       logger.info('ai.usage_recorded', {
         event: 'ai.usage_recorded',

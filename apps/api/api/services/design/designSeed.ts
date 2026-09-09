@@ -215,3 +215,225 @@ export function describeSeed(seed: DesignSeed): string {
     `- Reading direction: ${seed.readingDirection}.`,
   ].join('\n');
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Graine SCINDÉE — ce qui tient un document ensemble vs ce qui distingue ses pages.
+//
+// Une graine unique pour tout un livrable fige ses NEUF dimensions d'un coup, ce
+// qui ne laisse que deux issues, toutes deux mauvaises :
+//   - le modèle obéit  → neuf pages rigoureusement identiques (même archétype,
+//     même position d'image, même tension) ;
+//   - le modèle n'obéit pas → document incohérent.
+//
+// Un vrai document ne fonctionne pas ainsi. Certaines décisions sont
+// INVARIANTES d'une page à l'autre — c'est ce qui en fait un document — et
+// d'autres VARIENT — c'est ce qui empêche que ce soit un gabarit.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Dimensions constantes sur tout un livrable : l'identité visuelle du document. */
+export interface DocumentSeed {
+  colorStrategy: string;
+  typographyMood: string;
+  spacingMultiplier: number;
+  graphicAccent: string;
+}
+
+/** Graine complète d'une page : les invariants du document + ses propres variantes. */
+export interface SectionSeed extends DocumentSeed {
+  archetype: string;
+  layoutTension: string;
+  imagePosition: string;
+  readingDirection: string;
+  contentDensity: string;
+}
+
+/**
+ * Invariants d'un livrable. Deux livrables d'un même projet (charte, plan, deck)
+ * utilisent des clés différentes: ils se ressemblent par la CHARTE, pas par la
+ * composition.
+ */
+export function buildDocumentSeed(styleId: string | null | undefined, docKey: string): DocumentSeed {
+  const seed = buildDesignSeed(styleId, docKey);
+  return {
+    colorStrategy: seed.colorStrategy,
+    typographyMood: seed.typographyMood,
+    spacingMultiplier: seed.spacingMultiplier,
+    graphicAccent: seed.graphicAccent,
+  };
+}
+
+/**
+ * Graine d'une page, dérivée de celle du document.
+ *
+ * `usedArchetypes` porte les archétypes déjà attribués aux pages précédentes du
+ * MÊME livrable : la variation est ainsi FORCÉE, pas espérée. Sans cela, un
+ * tirage indépendant par page reproduit le même archétype environ une fois sur
+ * quatre sur un espace de douze, et la répétition se voit immédiatement quand
+ * elle tombe sur deux pages voisines.
+ *
+ * Quand tous les archétypes autorisés par le style ont servi, on rouvre le
+ * tirage complet : mieux vaut une répétition à la douzième page qu'une page
+ * sans archétype.
+ */
+export function buildSectionSeed(
+  styleId: string | null | undefined,
+  docKey: string,
+  sectionName: string,
+  usedArchetypes: Set<string> = new Set()
+): SectionSeed {
+  const style = resolveStyle(styleId);
+  const space = spaceOf(style);
+  const own = buildDesignSeed(styleId, `${docKey}:${sectionName}`);
+
+  const available = space.archetypes.filter((a) => !usedArchetypes.has(a));
+  const pool = available.length > 0 ? available : space.archetypes;
+  // Tirage déterministe DANS le sous-espace restant : la page garde une
+  // composition reproductible, mais différente de celle de ses voisines.
+  const digest = crypto.createHash('sha256').update(`${docKey}:${sectionName}:archetype`).digest();
+  const archetype = pool[digest.readUInt32BE(0) % pool.length];
+  usedArchetypes.add(archetype);
+
+  return {
+    ...buildDocumentSeed(styleId, docKey),
+    archetype,
+    layoutTension: own.layoutTension,
+    imagePosition: own.imagePosition,
+    readingDirection: own.readingDirection,
+    contentDensity: own.contentDensity,
+  };
+}
+
+/**
+ * Rend lisibles les INVARIANTS du document. Injecté une seule fois, dans le
+ * préfixe stable partagé par toutes les sections — donc payé une fois et
+ * candidat au cache de préfixe.
+ */
+export function describeDocumentSeed(seed: DocumentSeed): string {
+  const line = (label: string, key: string, catalog: Record<string, string>) =>
+    `- ${label}: ${key} — ${catalog[key] || 'free'}`;
+  return [
+    'These hold for EVERY page of this deliverable — they are what make it one document:',
+    line('Colour strategy', seed.colorStrategy, COLOR_STRATEGY_CATALOG),
+    line('Typographic mood', seed.typographyMood, TYPOGRAPHY_MOOD_CATALOG),
+    line('Graphic accent', seed.graphicAccent, GRAPHIC_ACCENT_CATALOG),
+    `- Spatial rhythm: multiply the base spacing unit by ${seed.spacingMultiplier}.`,
+  ].join('\n');
+}
+
+/**
+ * Rend lisibles les VARIANTES d'une page. Injecté dans le prompt de la section
+ * elle-même — c'est la seule partie de la graine qui change d'une page à l'autre.
+ */
+export function describeSectionSeed(seed: SectionSeed): string {
+  const line = (label: string, key: string, catalog: Record<string, string>) =>
+    `- ${label}: ${key} — ${catalog[key] || 'free'}`;
+  return [
+    'Specific to THIS page — it must not repeat the composition of the others:',
+    line('Layout archetype', seed.archetype, ARCHETYPE_CATALOG),
+    line('Spatial tension', seed.layoutTension, LAYOUT_TENSION_CATALOG),
+    line('Content density', seed.contentDensity, CONTENT_DENSITY_CATALOG),
+    `- Image position: ${seed.imagePosition}.`,
+    `- Reading direction: ${seed.readingDirection}.`,
+  ].join('\n');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Contrainte chromatique et typographique — l'unicité AVANT le modèle.
+//
+// La palette est la décision la plus structurante d'un projet : elle se propage
+// à la charte, au plan, au deck, aux visuels et au site. Elle était laissée
+// entièrement au modèle, avec la température comme seul anti-convergence.
+//
+// C'est un remède qui ne tient pas sur un petit modèle. Sa distribution est plus
+// piquée : à température égale il retombe plus souvent sur la réponse moyenne —
+// « le bleu de confiance, le vert de croissance, le violet d'innovation »,
+// c'est-à-dire la palette de tous les concurrents du secteur. Et monter la
+// température l'éloigne du mode en même temps que de la justesse.
+//
+// On tire donc la RÉGION, et le modèle décide DEDANS. Le jugement lui reste
+// entier — teinte exacte, rampes, affectation des rôles — mais deux marques du
+// même secteur ne peuvent plus atterrir sur le même bleu, parce qu'elles ne
+// tirent pas la même région.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Douze secteurs de teinte de 30°, couvrant le cercle chromatique. */
+const HUE_SECTORS = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
+
+const COLOR_SCHEMES = [
+  'analogous',
+  'complementary',
+  'split-complementary',
+  'triadic',
+  'monochromatic-warm',
+  'monochromatic-cool',
+];
+
+const SATURATION_REGIMES = ['muted', 'balanced', 'vivid'];
+
+const GROUND_REGIMES = ['light', 'dark', 'tinted'];
+
+export interface PaletteConstraint {
+  baseHue: number;
+  scheme: string;
+  saturation: string;
+  ground: string;
+}
+
+/**
+ * Région chromatique de CE projet. Déterministe : la même marque regénérée
+ * retrouve sa région, une autre marque en obtient une différente.
+ *
+ * `12 × 6 × 3 × 3 = 648` régions distinctes, avant même le choix du modèle à
+ * l'intérieur de la sienne.
+ */
+export function buildPaletteConstraint(projectId: string): PaletteConstraint {
+  const pick = makePicker(`palette:${projectId}`);
+  return {
+    baseHue: pick(HUE_SECTORS, 'hue'),
+    scheme: pick(COLOR_SCHEMES, 'scheme'),
+    saturation: pick(SATURATION_REGIMES, 'saturation'),
+    ground: pick(GROUND_REGIMES, 'ground'),
+  };
+}
+
+/** Bloc à injecter dans le prompt de génération de palette. */
+export function describePaletteConstraint(constraint: PaletteConstraint): string {
+  return `<palette_constraint>
+Base hue: between ${constraint.baseHue}° and ${constraint.baseHue + 30}° on the HSL wheel. This range is IMPOSED and non-negotiable.
+Harmony: ${constraint.scheme}.
+Saturation regime: ${constraint.saturation}.
+Ground: ${constraint.ground}.
+
+Inside that range you decide everything — the exact hue, the ramps, which colour takes which role, and how the WCAG contrasts are met. Do not step outside it.
+
+This constraint exists for one reason: two companies in the same sector must not end up with the same palette. The "obvious" colour for a sector is, by definition, the colour of every competitor.
+</palette_constraint>`;
+}
+
+/**
+ * Registres typographiques. Même principe que la palette : le prompt bannit déjà
+ * les familles les plus vues du web, mais un petit modèle rappelé à l'ordre
+ * propose simplement la famille suivante dans son classement interne. Tirer le
+ * REGISTRE déplace le problème hors de sa portée.
+ */
+const TYPE_REGISTERS = [
+  'a grotesque display paired with an editorial serif for running text',
+  'a slab serif display paired with a humanist sans for running text',
+  'a geometric sans display paired with a transitional serif for running text',
+  'a high-contrast didone display paired with a neo-grotesque for running text',
+  'a condensed display paired with a wide humanist sans for running text',
+  'a monospace-derived display paired with a classical serif for running text',
+  'a rounded sans display paired with a low-contrast slab for running text',
+  'an old-style serif display paired with a neutral grotesque for running text',
+];
+
+/** Registre typographique de CE projet, déterministe. */
+export function buildTypographyConstraint(projectId: string): string {
+  const pick = makePicker(`typography:${projectId}`);
+  const register = pick(TYPE_REGISTERS, 'register');
+  return `<typography_constraint>
+Register for this brand: ${register}. This pairing REGISTER is imposed.
+
+You choose the actual families inside it — that is where your judgement applies. The register exists so that two brands do not receive the same pairing simply because it is the most common answer for their sector.
+</typography_constraint>`;
+}

@@ -16,15 +16,6 @@
       "collapse": "Collapse sidebar",
       "expand": "Expand sidebar"
     },
-    "categories": {
-      "business": "Business",
-      "marketing": "Marketing",
-      "finance": "Finance",
-      "legal": "Legal",
-      "branding": "Brand",
-      "tech": "Tech",
-      "general": "General"
-    },
     "header": {
       "newProject": "New project",
       "subtitle": "Chat mode",
@@ -138,6 +129,173 @@
         "deployment": "Set up deployment"
       }
     },
+    "recap": {
+      "subtitle": "Your project summary",
+      "fields": {
+        "type": "Type",
+        "targets": "Audience",
+        "scope": "Scope",
+        "teamSize": "Team",
+        "budget": "Budget",
+        "currency": "Currency"
+      },
+      "policies": {
+        "accept": "I accept the",
+        "privacy": "privacy policy",
+        "terms": "terms of service",
+        "beta": "I understand the platform is in beta",
+        "marketing": "I agree to receive marketing communications (optional)"
+      },
+      "actions": {
+        "restart": "Start over",
+        "confirm": "Create project"
+      }
+    },
+    "onboarding": {
+      "welcome": "Hi! 👋 Let's create your project together, step by step. First question: **describe your idea in a few sentences.** What do you want to build, and what problem does it solve?",
+      "resume": "Welcome back! 👋 Let's pick up your project creation exactly where you left off.",
+      "questions": {
+        "description": "Describe your idea in a few sentences: what do you want to build, and what problem does it solve?",
+        "name": "Great! What **name** do you want to give your project?",
+        "type": "Perfect. What **type of project** is it?",
+        "targets": "Who is your main **target audience**?",
+        "scope": "What **geographic scope** are you aiming for?",
+        "teamSize": "How many people are on your **team**?",
+        "budget": "What is your **budget range**?",
+        "recap": "Here is your project summary. Review the information, accept the policies, then confirm the creation. ✨"
+      },
+      "confirmHint": "Use the card above to confirm the project creation, or click \"Start over\".",
+      "success": "🎉 Your project **{{name}}** has been created! You can now generate your deliverables, ask me questions, or track your progress — everything happens here.",
+      "errors": {
+        "descriptionTooShort": "Could you tell me a bit more? A few sentences are enough to get started.",
+        "nameRequired": "I need a name for your project. Which one do you choose?",
+        "createFailed": "Project creation failed. Check your connection and confirm again.",
+        "planFailed": "I couldn't prepare my questions, but we can go straight to the summary."
+      },
+      "actions": {
+        "skip": "Skip this question",
+        "skipped": "(question skipped)"
+      },
+      "options": {
+        "type": {
+          "enterprise": "Enterprise creation",
+          "web": "Web application",
+          "mobile": "Mobile application",
+          "iot": "IoT",
+          "desktop": "Desktop application",
+          "api": "API / Backend",
+          "ai": "AI / ML",
+          "blockchain": "Blockchain",
+          "ecommerce": "Commerce / E-commerce",
+          "other": "Other"
+        },
+        "targets": {
+          "business": "Companies",
+          "students": "Students",
+          "general-public": "General public",
+          "government": "Administrations",
+          "healthcare": "Healthcare professionals"
+        },
+        "scope": {
+          "local": "Local",
+          "departmental": "Departmental",
+          "regional": "Regional",
+          "national": "National",
+          "international": "International"
+        },
+        "teamSize": {
+          "1": "Solo",
+          "2-5": "2 to 5 people",
+          "6-10": "6 to 10 people",
+          "10+": "More than 10 people"
+        },
+        "budget": {
+          "lt-5k": "Under €5,000",
+          "5k-20k": "€5,000 to €20,000",
+          "20k-50k": "€20,000 to €50,000",
+          "gt-50k": "Over €50,000"
+        }
+      },
+      "aiWelcome": "Perfect, {{name}}! 🚀 I've got your idea. Let me ask a few questions to shape your project.",
+      "composerPlaceholder": "Type your answer, or pick a suggestion…",
+      "customType": "Great. Describe your project type in a few words:",
+      "aiWelcomeNoName": "Perfect! 🚀 I've got your idea. Let me ask a few simple questions to shape your project.",
+      "customCurrency": "Alright. Which currency would you like to use?"
+    },
+    "branding": {
+      "invite": "Now let's work on your **brand identity** (logo, colors, typography). Do you want to generate it with AI, or import your own logo?",
+      "importRedirect": "Alright — the logo import opens in the editor. You can come back to Chat mode afterwards.",
+      "laterOk": "No problem, we can come back to it anytime. Just say \"complete my brand identity\".",
+      "generatingPalettes": "I'm preparing **color and typography** proposals tailored to your project… ⏳",
+      "choosePalette": "Here are my palette proposals. Which one feels most like you?",
+      "chooseTypography": "Great choice! 🎨 Now pick your **typography**:",
+      "chooseLogoType": "Perfect. What **logo style** do you have in mind?",
+      "describeLogo": "Describe the logo you imagine in a few words — shapes, mood, symbols… (optional)",
+      "generatingLogos": "I'm generating your **logo concepts**… This can take a minute. ⏳",
+      "chooseLogo": "Here are your logo concepts. Which one do you choose?",
+      "complete": "🎉 Your **brand identity is complete**! Logo, variations, colors and typography are saved. Next step: generate your brand guidelines.",
+      "alreadyComplete": "Your brand identity is already complete. Here it is:",
+      "thisPalette": "This palette",
+      "thisTypography": "This typography",
+      "thisLogo": "This logo",
+      "logoTypes": {
+        "icon": "Icon / symbol",
+        "name": "Styled name",
+        "initial": "Initials"
+      },
+      "chips": {
+        "ai": "Generate with AI",
+        "import": "Import my logo",
+        "later": "Later",
+        "retry": "Retry",
+        "complete": "Complete my brand identity",
+        "skipDescription": "Skip",
+        "variationsEditor": "Logo variations (editor)",
+        "downloadZip": "Download my logos (ZIP)",
+        "regenerate": "Regenerate guidelines"
+      },
+      "cards": {
+        "colorsTitle": "Color palettes",
+        "colorsSubtitle": "Click to choose your palette",
+        "typographyTitle": "Typographies",
+        "typographySubtitle": "Click to choose your font pairing",
+        "logosTitle": "Logo concepts",
+        "logosSubtitle": "Click to choose your logo",
+        "typographySample": "The quick brown fox jumps over the lazy dog."
+      },
+      "errors": {
+        "generation": "Generation failed. Shall we retry?",
+        "save": "Could not save your choice. Please try again."
+      },
+      "generatingVariations": "Great pick! Now generating your **logo variations** (light background, dark background, monochrome)… ⏳",
+      "zipStarted": "Your logos (ZIP) download has started. 📦",
+      "zipUnavailable": "The logo pack is not available yet.",
+      "charteExists": "Your **brand guidelines** have already been generated. ✨ What would you like to do with them?",
+      "format": {
+        "title": "Brand guidelines format",
+        "subtitle": "Click to choose the document format",
+        "question": "In which **format** do you want your brand guidelines?",
+        "portrait": "Portrait (A4)",
+        "landscape": "Landscape (16:9)",
+        "hint": "Pick a format to continue",
+        "cancel": "Cancel",
+        "cancelledOk": "No problem, cancelled. Tell me whenever you want to generate your guidelines."
+      }
+    },
+    "banner": {
+      "title": "Complete your brand identity",
+      "missing": "Missing:",
+      "cta": "Complete now"
+    },
+    "categories": {
+      "business": "Business",
+      "marketing": "Marketing",
+      "finance": "Finance",
+      "legal": "Legal",
+      "branding": "Brand",
+      "tech": "Tech",
+      "general": "General"
+    },
     "bp": {
       "intro": "Great, let's write your **business plan**! For a more complete result, I can include your contact and team information. How would you like to provide it?",
       "formIntro": "Fill in this mini-form — only the fields you complete will be used:",
@@ -177,172 +335,42 @@
       "inProgress": "Generating your {{title}}",
       "done": "✅ Your {{title}} is ready!",
       "failed": "❌ Generating your {{title}} failed.",
-      "cardRunning": "Generating your {{title}}",
-      "cardDone": "Your {{title}} is ready",
-      "cardError": "Generating your {{title}} failed",
-      "steps": "{{done}}/{{total}} steps completed",
       "retryHint": "Would you like to retry?",
       "chips": {
         "retry": "Retry generation"
-      }
+      },
+      "cardRunning": "Generating your {{title}}",
+      "cardDone": "Your {{title}} is ready",
+      "cardError": "Generating your {{title}} failed",
+      "steps": "{{done}}/{{total}} steps completed"
     },
-    "recap": {
-      "subtitle": "Your project summary",
-      "fields": {
-        "type": "Type",
-        "targets": "Audience",
-        "scope": "Scope",
-        "teamSize": "Team",
-        "budget": "Budget",
-        "currency": "Currency"
+    "launcher": {
+      "title": "What are we building for {{name}}?",
+      "subtitle": "Pick a deliverable to view or generate — or just type your request below.",
+      "hint": "You can also simply type what you need.",
+      "askShow": "Show me my {{title}}",
+      "askGenerate": "Let's generate my {{title}}",
+      "features": {
+        "branding": "Your brand's logo, colors and typography.",
+        "businessPlan": "Your project's full business plan.",
+        "pitchDeck": "The deck to win over your investors.",
+        "finance": "Financial forecasts and tables.",
+        "diagrams": "Architecture and technical diagrams.",
+        "legalDocs": "Articles, terms, contracts and legal notices.",
+        "communication": "Strategy, editorial calendar and flyers.",
+        "development": "Generation of your app or website.",
+        "deployment": "Deploy your infrastructure and go live."
       },
-      "policies": {
-        "accept": "I accept the",
-        "privacy": "privacy policy",
-        "terms": "terms of service",
-        "beta": "I understand the platform is in beta",
-        "marketing": "I agree to receive marketing communications (optional)"
+      "state": {
+        "ready": "Ready",
+        "generate": "Generate",
+        "locked": "Locked"
       },
-      "actions": {
-        "restart": "Start over",
-        "confirm": "Create project"
-      }
-    },
-    "banner": {
-      "title": "Complete your brand identity",
-      "missing": "Missing:",
-      "cta": "Complete now"
-    },
-    "branding": {
-      "invite": "Now let's work on your **brand identity** (logo, colors, typography). Do you want to generate it with AI, or import your own logo?",
-      "importRedirect": "Alright — the logo import opens in the editor. You can come back to Chat mode afterwards.",
-      "laterOk": "No problem, we can come back to it anytime. Just say \"complete my brand identity\".",
-      "generatingPalettes": "I'm preparing **color and typography** proposals tailored to your project… ⏳",
-      "choosePalette": "Here are my palette proposals. Which one feels most like you?",
-      "chooseTypography": "Great choice! 🎨 Now pick your **typography**:",
-      "chooseLogoType": "Perfect. What **logo style** do you have in mind?",
-      "describeLogo": "Describe the logo you imagine in a few words — shapes, mood, symbols… (optional)",
-      "generatingLogos": "I'm generating your **logo concepts**… This can take a minute. ⏳",
-      "chooseLogo": "Here are your logo concepts. Which one do you choose?",
-      "generatingVariations": "Great pick! Now generating your **logo variations** (light background, dark background, monochrome)… ⏳",
-      "zipStarted": "Your logos (ZIP) download has started. 📦",
-      "zipUnavailable": "The logo pack is not available yet.",
-      "charteExists": "Your **brand guidelines** have already been generated. ✨ What would you like to do with them?",
-      "format": {
-        "title": "Brand guidelines format",
-        "subtitle": "Click to choose the document format",
-        "question": "In which **format** do you want your brand guidelines?",
-        "portrait": "Portrait (A4)",
-        "landscape": "Landscape (16:9)",
-        "hint": "Pick a format to continue",
-        "cancel": "Cancel",
-        "cancelledOk": "No problem, cancelled. Tell me whenever you want to generate your guidelines."
+      "locked": {
+        "needsBranding": "Complete your brand identity first."
       },
-      "complete": "🎉 Your **brand identity is complete**! Logo, variations, colors and typography are saved. Next step: generate your brand guidelines.",
-      "alreadyComplete": "Your brand identity is already complete. Here it is:",
-      "thisPalette": "This palette",
-      "thisTypography": "This typography",
-      "thisLogo": "This logo",
-      "logoTypes": {
-        "icon": "Icon / symbol",
-        "name": "Styled name",
-        "initial": "Initials"
-      },
-      "chips": {
-        "ai": "Generate with AI",
-        "import": "Import my logo",
-        "later": "Later",
-        "retry": "Retry",
-        "complete": "Complete my brand identity",
-        "skipDescription": "Skip",
-        "variationsEditor": "Logo variations (editor)",
-        "downloadZip": "Download my logos (ZIP)",
-        "regenerate": "Regenerate guidelines"
-      },
-      "cards": {
-        "colorsTitle": "Color palettes",
-        "colorsSubtitle": "Click to choose your palette",
-        "typographyTitle": "Typographies",
-        "typographySubtitle": "Click to choose your font pairing",
-        "logosTitle": "Logo concepts",
-        "logosSubtitle": "Click to choose your logo",
-        "typographySample": "The quick brown fox jumps over the lazy dog."
-      },
-      "errors": {
-        "generation": "Generation failed. Shall we retry?",
-        "save": "Could not save your choice. Please try again."
-      }
-    },
-    "onboarding": {
-      "welcome": "Hi! 👋 Let's create your project together, step by step. First question: **describe your idea in a few sentences.** What do you want to build, and what problem does it solve?",
-      "resume": "Welcome back! 👋 Let's pick up your project creation exactly where you left off.",
-      "aiWelcome": "Perfect, {{name}}! 🚀 I've got your idea. Let me ask a few questions to shape your project.",
-      "aiWelcomeNoName": "Perfect! 🚀 I've got your idea. Let me ask a few simple questions to shape your project.",
-      "customType": "Great. Describe your project type in a few words:",
-      "customCurrency": "Alright. Which currency would you like to use?",
-      "composerPlaceholder": "Type your answer, or pick a suggestion…",
-      "questions": {
-        "description": "Describe your idea in a few sentences: what do you want to build, and what problem does it solve?",
-        "name": "Great! What **name** do you want to give your project?",
-        "type": "Perfect. What **type of project** is it?",
-        "targets": "Who is your main **target audience**?",
-        "scope": "What **geographic scope** are you aiming for?",
-        "teamSize": "How many people are on your **team**?",
-        "budget": "What is your **budget range**?",
-        "recap": "Here is your project summary. Review the information, accept the policies, then confirm the creation. ✨"
-      },
-      "confirmHint": "Use the card above to confirm the project creation, or click \"Start over\".",
-      "success": "🎉 Your project **{{name}}** has been created! You can now generate your deliverables, ask me questions, or track your progress — everything happens here.",
-      "errors": {
-        "descriptionTooShort": "Could you tell me a bit more? A few sentences are enough to get started.",
-        "nameRequired": "I need a name for your project. Which one do you choose?",
-        "createFailed": "Project creation failed. Check your connection and confirm again.",
-        "planFailed": "I couldn't prepare my questions, but we can go straight to the summary."
-      },
-      "actions": {
-        "skip": "Skip this question",
-        "skipped": "(question skipped)"
-      },
-      "options": {
-        "type": {
-          "enterprise": "Enterprise creation",
-          "ecommerce": "Commerce / E-commerce",
-          "web": "Web application",
-          "mobile": "Mobile application",
-          "iot": "IoT",
-          "desktop": "Desktop application",
-          "api": "API / Backend",
-          "ai": "AI / ML",
-          "blockchain": "Blockchain",
-          "other": "Other"
-        },
-        "targets": {
-          "business": "Companies",
-          "students": "Students",
-          "general-public": "General public",
-          "government": "Administrations",
-          "healthcare": "Healthcare professionals"
-        },
-        "scope": {
-          "local": "Local",
-          "departmental": "Departmental",
-          "regional": "Regional",
-          "national": "National",
-          "international": "International"
-        },
-        "teamSize": {
-          "1": "Solo",
-          "2-5": "2 to 5 people",
-          "6-10": "6 to 10 people",
-          "10+": "More than 10 people"
-        },
-        "budget": {
-          "lt-5k": "Under €5,000",
-          "5k-20k": "€5,000 to €20,000",
-          "20k-50k": "€20,000 to €50,000",
-          "gt-50k": "Over €50,000"
-        }
-      }
+      "open": "Open",
+      "brandCalloutHint": "Logo, colors and typography — the base of every deliverable."
     },
     "legal": {
       "intro": "Let's create your **legal documents**. Which document would you like to generate? (For precise articles — capital, partners — fill in the context in the editor.)",
@@ -387,34 +415,6 @@
         "start": "Start a deployment",
         "list": "View my deployments"
       }
-    },
-    "launcher": {
-      "title": "What are we building for {{name}}?",
-      "subtitle": "Pick a deliverable to view or generate — or just type your request below.",
-      "hint": "You can also simply type what you need.",
-      "askShow": "Show me my {{title}}",
-      "askGenerate": "Let's generate my {{title}}",
-      "features": {
-        "branding": "Your brand's logo, colors and typography.",
-        "businessPlan": "Your project's full business plan.",
-        "pitchDeck": "The deck to win over your investors.",
-        "finance": "Financial forecasts and tables.",
-        "diagrams": "Architecture and technical diagrams.",
-        "legalDocs": "Articles, terms, contracts and legal notices.",
-        "communication": "Strategy, editorial calendar and flyers.",
-        "development": "Generation of your app or website.",
-        "deployment": "Deploy your infrastructure and go live."
-      },
-      "state": {
-        "ready": "Ready",
-        "generate": "Generate",
-        "locked": "Locked"
-      },
-      "locked": {
-        "needsBranding": "Complete your brand identity first."
-      },
-      "open": "Open",
-      "brandCalloutHint": "Logo, colors and typography — the base of every deliverable."
     }
   }
 }

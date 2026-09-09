@@ -45,8 +45,25 @@ import {
   EDITORIAL_RESTRAINT_BLOCK,
   RESTRAINT_SELF_REVIEW_BLOCK,
 } from '../design/editorialRestraint.prompt';
-import { buildDesignSeed, describeSeed } from '../design/designSeed';
-import { lintHtml, repairHtml } from '../design/slopLint.service';
+import {
+  buildDocumentSeed,
+  buildPaletteConstraint,
+  buildSectionSeed,
+  buildTypographyConstraint,
+  describeDocumentSeed,
+  describePaletteConstraint,
+  describeSectionSeed,
+} from '../design/designSeed';
+import {
+  buildDocumentDesignSystem,
+  derivedPalette,
+  describeDesignSystem,
+} from '../design/documentDesignSystem';
+import { Block } from '../design/sectionContent';
+import { CHARTER_PAGE_BRIEFS } from './prompts/page-briefs.prompt';
+import { enforceDesignRules } from '../design/slopLint.service';
+import { inspectSvg } from '../design/svgGate';
+import { logAIEvent } from '../../utils/ai-trace.util';
 import { buildArtDirectionBlock } from '../../utils/art-direction.util';
 import {
   LOGO_SYSTEM_SECTION_PROMPT,
@@ -166,7 +183,10 @@ function safeParseJson(content: string): any {
   if (!content) return null;
   let cleaned = content.trim();
   // Strip markdown code fences (```json ... ``` or ``` ...)
-  cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  cleaned = cleaned
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/, '')
+    .trim();
   // Find JSON structure { ... } or [ ... ]
   const firstBrace = cleaned.indexOf('{');
   const firstBracket = cleaned.indexOf('[');
@@ -218,9 +238,7 @@ function safeParseJson(content: string): any {
       error: e instanceof Error ? e.message : e,
       snippet: cleaned.slice(0, 300),
     });
-    throw new Error(
-      `safeParseJson failed: ${e instanceof Error ? e.message : 'unknown error'}`
-    );
+    throw new Error(`safeParseJson failed: ${e instanceof Error ? e.message : 'unknown error'}`);
   }
 }
 
@@ -269,7 +287,9 @@ export class BrandingService extends GenericService {
     );
     if (state) {
       state.cancelled = true;
-      logger.info(`Logo variations generation cancelled - UserId: ${userId}, ProjectId: ${projectId}`);
+      logger.info(
+        `Logo variations generation cancelled - UserId: ${userId}, ProjectId: ${projectId}`
+      );
       return true;
     }
     return false;
@@ -785,10 +805,10 @@ export class BrandingService extends GenericService {
     // n'obtiennent pas la même charte, mais une charte régénérée garde sa mise
     // en page. Le tirage est borné par le style retenu (cf. designSeed.ts), donc
     // il ne peut pas contredire la direction artistique.
-    const brandSeed = buildDesignSeed(artDirection?.styleId, `branding:${projectId}`);
+    const brandSeed = buildDocumentSeed(artDirection?.styleId, `branding:${projectId}`);
     const designDirectives = [
       artDirectionBlock,
-      `<composition_seed>\nThis brand book is composed on the seed below. It holds for EVERY page: it is what makes them belong to the same document.\n${describeSeed(brandSeed)}\n</composition_seed>`,
+      `<composition_invariants>\n${describeDocumentSeed(brandSeed)}\n</composition_invariants>`,
       ANTI_SLOP_BLOCK,
       // Deux pathologies distinctes : l'anti-slop retire les tics du corpus,
       // la retenue éditoriale retire ce qui ne sert à rien. Une page peut être
@@ -848,9 +868,7 @@ export class BrandingService extends GenericService {
     const expectedSectionCount = 9 + MOCKUP_CONFIG.MOCKUP_COUNT;
     const currentSections = project.analysisResultModel?.branding?.sections || [];
     const skipCacheRead =
-      forceRegenerate ||
-      targetSections.length > 0 ||
-      currentSections.length < expectedSectionCount;
+      forceRegenerate || targetSections.length > 0 || currentSections.length < expectedSectionCount;
 
     if (!skipCacheRead) {
       const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
@@ -893,8 +911,9 @@ export class BrandingService extends GenericService {
 
       const logoUrl = toImgSrc(assetUrls?.primary || logo?.svg);
       const lightLogoUrl =
-        toImgSrc(assetUrls?.withText?.lightBackground || logoVariations?.withText?.lightBackground) ||
-        logoUrl;
+        toImgSrc(
+          assetUrls?.withText?.lightBackground || logoVariations?.withText?.lightBackground
+        ) || logoUrl;
       const darkLogoUrl =
         toImgSrc(assetUrls?.withText?.darkBackground || logoVariations?.withText?.darkBackground) ||
         logoUrl;
@@ -910,16 +929,14 @@ export class BrandingService extends GenericService {
           // se lit comme de la documentation, pas comme une consigne.
           promptConstant:
             BRAND_HEADER_SECTION_PROMPT +
-            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the brand logo image: "${lightLogoUrl}" (dark ink, for a light zone) or "${darkLogoUrl}" (light ink, for a dark zone). Pick the one that contrasts with the zone you place it on.\n\n` +
-            projectDescription,
+            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the brand logo image: "${lightLogoUrl}" (dark ink, for a light zone) or "${darkLogoUrl}" (light ink, for a dark zone). Pick the one that contrasts with the zone you place it on.\n\n`,
           stepName: 'Brand Header',
           hasDependencies: false,
         },
         {
           promptConstant:
             LOGO_SYSTEM_SECTION_PROMPT +
-            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the primary logo image: "${logoUrl}"\n\n` +
-            projectDescription,
+            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the primary logo image: "${logoUrl}"\n\n`,
           stepName: 'Logo Principal',
           hasDependencies: false,
         },
@@ -927,8 +944,7 @@ export class BrandingService extends GenericService {
           promptConstant:
             LOGO_VARIATION_PAGE_PROMPT +
             `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo variation image: "${lightLogoUrl}"\n\n` +
-            '\nVariation type: Light Background\nDisplay the logo variation for light backgrounds. Use a white or very light background.\n\n' +
-            projectDescription,
+            '\nVariation type: Light Background\nDisplay the logo variation for light backgrounds. Use a white or very light background.\n\n',
           stepName: 'Logo Variation Fond Clair',
           hasDependencies: false,
         },
@@ -936,8 +952,7 @@ export class BrandingService extends GenericService {
           promptConstant:
             LOGO_VARIATION_PAGE_PROMPT +
             `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo variation image: "${darkLogoUrl}"\n\n` +
-            "\nVariation type: Dark Background\nDisplay the logo variation for dark backgrounds. Use the brand's dark color or a rich dark tone as the full-page background.\n\n" +
-            projectDescription,
+            "\nVariation type: Dark Background\nDisplay the logo variation for dark backgrounds. Use the brand's dark color or a rich dark tone as the full-page background.\n\n",
           stepName: 'Logo Variation Fond Sombre',
           hasDependencies: false,
         },
@@ -945,26 +960,24 @@ export class BrandingService extends GenericService {
           promptConstant:
             LOGO_VARIATION_PAGE_PROMPT +
             `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo variation image: "${monochromeLogoUrl}"\n\n` +
-            '\nVariation type: Monochrome\nDisplay the monochrome logo variation on a neutral gray background.\n\n' +
-            projectDescription,
+            '\nVariation type: Monochrome\nDisplay the monochrome logo variation on a neutral gray background.\n\n',
           stepName: 'Logo Variation Monochrome',
           hasDependencies: false,
         },
         {
           promptConstant:
             LOGO_BEST_PRACTICES_PAGE_PROMPT +
-            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo image in visual examples: "${logoUrl}"\n\n` +
-            projectDescription,
+            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo image in visual examples: "${logoUrl}"\n\n`,
           stepName: 'Logo Bonnes Pratiques',
           hasDependencies: false,
         },
         {
-          promptConstant: COLOR_PALETTE_SECTION_PROMPT + projectDescription,
+          promptConstant: COLOR_PALETTE_SECTION_PROMPT,
           stepName: 'Color Palette',
           hasDependencies: false,
         },
         {
-          promptConstant: TYPOGRAPHY_SECTION_PROMPT + projectDescription,
+          promptConstant: TYPOGRAPHY_SECTION_PROMPT,
           stepName: 'Typography',
           hasDependencies: false,
         },
@@ -972,7 +985,7 @@ export class BrandingService extends GenericService {
         // objet est la grammaire qui les assemble, et avant les mockups, qui en
         // sont la première application.
         {
-          promptConstant: ART_DIRECTION_SECTION_PROMPT + projectDescription,
+          promptConstant: ART_DIRECTION_SECTION_PROMPT,
           stepName: 'Direction Artistique',
           hasDependencies: false,
         },
@@ -1010,6 +1023,174 @@ export class BrandingService extends GenericService {
         step.promptConstant = this.applyPageFormatToPrompt(step.promptConstant, chosenFormat);
       }
 
+      // Un archétype de composition PAR PAGE, tiré sans répétition dans l'espace
+      // du style. Douze pages qui partagent leur archétype sont douze fois la
+      // même page — or c'est précisément le reproche fait à la charte avant que
+      // la graine n'existe. Les invariants (couleur, typographie, rythme,
+      // accent) restent, eux, dans le préfixe stable.
+      //
+      // Les pages FABRIQUÉES (mockups, `execute`) sont exclues : elles ne
+      // passent pas par le modèle, leur donner une graine n'aurait aucun effet.
+      // DESIGN SYSTEM de la charte : calculé une fois, partagé par ses pages.
+      const charterDesignSystem = buildDocumentDesignSystem(
+        project.analysisResultModel?.branding,
+        artDirection,
+        brandSeed
+      );
+      logger.info(`[BRANDING] Design system: ${describeDesignSystem(charterDesignSystem)}`);
+
+      // Format réel de la charte : c'est lui qui décide portrait ou paysage.
+      const charterPage = {
+        width: chosenFormat.width,
+        minHeight: chosenFormat.height,
+        padding: chosenFormat.orientation === 'landscape' ? '14mm' : '12mm',
+        orientation: chosenFormat.orientation,
+      };
+
+      /**
+       * Blocs SPÉCIMENS de la charte, posés par le code à partir des données du
+       * projet. Ce sont exactement les pages où un modèle se trompe le plus :
+       * recopier six chiffres hexadécimaux, nommer une police, choisir le fond
+       * qui contraste. Aucune de ces trois choses n'a besoin de lui.
+       */
+      const specimensFor = (stepName: string): Block[] | undefined => {
+        const palette = project.analysisResultModel?.branding?.colors?.colors;
+        const typography = project.analysisResultModel?.branding?.typography;
+
+        if (stepName === 'Color Palette' && palette) {
+          const items = [
+            { hex: palette.primary, name: 'Primaire', role: 'Identité, titres, aplats' },
+            { hex: palette.secondary, name: 'Secondaire', role: 'Support, zones calmes' },
+            { hex: palette.accent, name: 'Accent', role: 'Chiffres, appels, filets' },
+            { hex: palette.background, name: 'Fond', role: 'Surface de page' },
+            { hex: palette.text, name: 'Encre', role: 'Texte courant' },
+          ].filter((item) => typeof item.hex === 'string' && /^#/.test(item.hex));
+          return items.length ? [{ kind: 'swatches', items }] : undefined;
+        }
+
+        if (stepName === 'Typography' && typography) {
+          const specimens = [
+            {
+              family: typography.primaryFont,
+              role: 'Titres',
+              sample: project.name || 'Titre de section',
+            },
+            {
+              family: typography.secondaryFont,
+              role: 'Texte courant',
+              sample: 'La typographie porte la voix de la marque avant les mots.',
+            },
+          ].filter((specimen) => Boolean(specimen.family));
+          return specimens.length
+            ? [
+                {
+                  kind: 'typeSpecimen',
+                  specimens: specimens as { family: string; role: string; sample: string }[],
+                },
+              ]
+            : undefined;
+        }
+
+        // ── LES PAGES QUI PRÉSENTENT UN LOGO ────────────────────────────
+        //
+        // Elles étaient laissées libres, au motif que leur composition ÉTAIT le
+        // livrable. Le rendu observé a démenti ce raisonnement : ces pages sont
+        // sorties couvertes de références inventées (« RÉF. ID-01 », « STATUT :
+        // VALIDÉ », « DIFFUSION CONTRÔLÉE »), de valeurs CMJN et de rapports de
+        // contraste que personne n'a calculés, de croix décoratives dans les
+        // angles — et l'une d'elles a débordé, son texte coupé en bas de page.
+        //
+        // Or présenter un logo sur son fond est précisément ce que le gabarit
+        // sait faire, et faire mieux : le fond est tiré du design system, donc
+        // le contraste est vrai ; la boîte a une hauteur, donc rien ne déborde ;
+        // et le modèle n'écrit plus que la règle d'usage, ce qu'il sait faire.
+        const singleVariant: Record<string, { url?: string; label: string; background: 'light' | 'dark' | 'neutral' }> = {
+          'Logo Principal': { url: logoUrl, label: 'Signe principal', background: 'light' },
+          'Logo Variation Fond Clair': { url: lightLogoUrl, label: 'Sur fond clair', background: 'light' },
+          'Logo Variation Fond Sombre': { url: darkLogoUrl, label: 'Sur fond sombre', background: 'dark' },
+          'Logo Variation Monochrome': { url: monochromeLogoUrl, label: 'Monochrome', background: 'neutral' },
+        };
+        const single = singleVariant[stepName];
+        if (single?.url) {
+          return [{ kind: 'logoDisplay', variants: [{ url: single.url, label: single.label, background: single.background }] }];
+        }
+
+        if (stepName === 'Logo Bonnes Pratiques') {
+          const variants = [
+            { url: lightLogoUrl, label: 'Sur fond clair', background: 'light' as const },
+            { url: darkLogoUrl, label: 'Sur fond sombre', background: 'dark' as const },
+            { url: monochromeLogoUrl, label: 'Monochrome', background: 'neutral' as const },
+          ].filter((variant) => Boolean(variant.url));
+          return variants.length ? [{ kind: 'logoDisplay', variants }] : undefined;
+        }
+
+        return undefined;
+      };
+
+      /**
+       * Pages de la charte RENDUES PAR GABARIT.
+       *
+       * Les pages laissées libres sont celles dont la composition EST le
+       * livrable : la couverture, les pages qui PRÉSENTENT un logo en grand, et
+       * la page de direction artistique — qui doit démontrer le style en le
+       * construisant, ce qu'aucun gabarit ne peut faire à sa place.
+       */
+      const TEMPLATED_PAGES = new Set([
+        'Color Palette',
+        'Typography',
+        'Logo Bonnes Pratiques',
+        // Les quatre pages de présentation du logo REJOIGNENT le gabarit. Cf.
+        // `specimensFor` : laissées libres, elles produisaient des références
+        // administratives inventées et, sur la page monochrome, un débordement.
+        'Logo Principal',
+        'Logo Variation Fond Clair',
+        'Logo Variation Fond Sombre',
+        'Logo Variation Monochrome',
+      ]);
+
+      const usedArchetypes = new Set<string>();
+      let pageIndex = 0;
+      for (const step of steps) {
+        if (step.execute) continue;
+        pageIndex += 1;
+        const seed = buildSectionSeed(
+          artDirection?.styleId,
+          `branding:${projectId}`,
+          step.stepName,
+          usedArchetypes
+        );
+
+        if (TEMPLATED_PAGES.has(step.stepName)) {
+          step.template = {
+            // Le prompt d'origine décrit une mise en page que le rendu produit
+            // désormais : sous gabarit, c'est le brief de CONTENU qui part.
+            // `promptConstant` reste intact — il est le repli quand le gabarit
+            // est coupé, où la page doit de nouveau produire du HTML.
+            contentBrief: CHARTER_PAGE_BRIEFS[step.stepName],
+            designSystem: charterDesignSystem,
+            seed,
+            // Une page de charte est ROGNÉE (une section = une page) : elle
+            // porte l'équivalent de 0,55 page A4, dont 0,15 déjà pris par le
+            // spécimen injecté. Deux à trois blocs, pas davantage — au-delà, le
+            // rendu les écarte et le travail est payé pour rien.
+            volume: '2 to 3',
+            prependBlocks: specimensFor(step.stepName),
+            render: {
+              logoUrl,
+              brandName: project.name,
+              index: pageIndex,
+              page: charterPage,
+              // La charte est en `multiPage: false` : une page = une section, et
+              // ce qui dépasse est rogné.
+              multiPage: false,
+            },
+          };
+          continue;
+        }
+
+        step.promptConstant += `\n\n<composition_for_this_page>\n${describeSectionSeed(seed)}\n</composition_for_this_page>`;
+      }
+
       logger.info(`[BRANDING] Generated ${mockupCount} mockup steps dynamically`, {
         projectId,
         mockupCount,
@@ -1037,7 +1218,16 @@ export class BrandingService extends GenericService {
 
       // Chaque section de la charte reçoit ses propres réglages
       // (voir AI_CONFIG.branding.brandIdentity.sections).
-      const configuredSteps = withSectionConfigs(AI_CONFIG.branding.brandIdentity, steps);
+      // PRÉFIXE STABLE — la description du projet ET toutes les directives de
+      // charte (direction artistique, invariants de composition, anti-slop,
+      // retenue éditoriale) étaient concaténées à la FIN de chacune des douze
+      // pages. Émises une fois en tête, elles deviennent le seul début de prompt
+      // identique d'une page à l'autre, donc le seul candidat au cache.
+      const configuredSteps = withSectionConfigs(
+        AI_CONFIG.branding.brandIdentity,
+        steps,
+        projectDescription
+      );
 
       // Process steps one by one with streaming if callback provided
       if (streamCallback) {
@@ -1093,10 +1283,13 @@ export class BrandingService extends GenericService {
                     ? [logoUrl, lightLogoUrl, darkLogoUrl, monochromeLogoUrl].filter(Boolean)
                     : [],
                   styleId: artDirection?.styleId,
+                  // Les teintes des rampes DÉRIVENT de la charte : sans cette
+                  // déclaration, le linter prendrait le design system calculé
+                  // pour une palette inventée.
+                  extraAllowedColors: derivedPalette(charterDesignSystem),
                   label: `charte/${result.name}`,
                 };
-                cleanedHtml = repairHtml(rawHtml, lintOptions).html;
-                lintHtml(cleanedHtml, lintOptions);
+                cleanedHtml = enforceDesignRules(rawHtml, lintOptions).html;
               }
 
               finalSection = {
@@ -1121,34 +1314,47 @@ export class BrandingService extends GenericService {
 
             // Prepare the updated project data
             const currentBranding = project.analysisResultModel?.branding;
+            /**
+             * Écriture CIBLÉE sur la seule branche `branding`, par chemin pointé.
+             *
+             * `project` est lu UNE fois avant la boucle, et cette écriture est
+             * rejouée à chaque section. Réécrire `analysisResultModel` en entier
+             * depuis cet instantané reposait donc les branches VOISINES dans
+             * l'état qu'elles avaient au démarrage de la charte : une simulation
+             * qui se terminait pendant la génération voyait son rapport écrit
+             * puis effacé quelques millisecondes plus tard, sans la moindre
+             * erreur — la mise à jour réussissait, elle ramenait simplement le
+             * passé.
+             *
+             * Un chemin pointé n'écrit que ce que cette méthode produit ; les
+             * branches voisines restent celles de la base.
+             */
             const updatedProjectData = {
-              ...project,
-              analysisResultModel: {
-                ...project.analysisResultModel,
-                branding: {
-                  // On repart de l'objet existant : cette écriture est faite à
-                  // CHAQUE section, et reconstruire la marque champ par champ
-                  // effaçait tout ce qui n'était pas listé — les préférences de
-                  // logo, puis la direction artistique.
-                  ...currentBranding,
-                  sections: sections,
-                  colors: currentBranding?.colors,
-                  typography: currentBranding?.typography,
-                  logo: currentBranding?.logo,
-                  generatedLogos: currentBranding?.generatedLogos || [],
-                  generatedColors: currentBranding?.generatedColors || [],
-                  generatedTypography: currentBranding?.generatedTypography || [],
-                  pdfFormat: pdfFormat, // Stocker le format PDF choisi
-                  createdAt: currentBranding?.createdAt || new Date(),
-                  updatedAt: new Date(),
-                },
+              'analysisResultModel.branding': {
+                // On repart de l'objet existant : cette écriture est faite à
+                // CHAQUE section, et reconstruire la marque champ par champ
+                // effaçait tout ce qui n'était pas listé — les préférences de
+                // logo, puis la direction artistique.
+                ...currentBranding,
+                sections: sections,
+                colors: currentBranding?.colors,
+                typography: currentBranding?.typography,
+                logo: currentBranding?.logo,
+                generatedLogos: currentBranding?.generatedLogos || [],
+                generatedColors: currentBranding?.generatedColors || [],
+                generatedTypography: currentBranding?.generatedTypography || [],
+                pdfFormat: pdfFormat, // Stocker le format PDF choisi
+                createdAt: currentBranding?.createdAt || new Date(),
+                updatedAt: new Date(),
               },
             };
 
             // Update the project in the database
             const updatedProject = await this.projectRepository.update(
               projectId,
-              updatedProjectData,
+              // Chemin pointé : hors du type `Partial<ProjectModel>`, mais c'est
+              // exactement ce que `$set` attend pour ne toucher qu'une branche.
+              updatedProjectData as any,
               `users/${userId}/projects`
             );
 
@@ -1233,10 +1439,12 @@ export class BrandingService extends GenericService {
 
     const steps: IPromptStep[] = [
       {
-        promptConstant: COLORS_GENERATION_PROMPT.replace(
-          '{{PROJECT_DESCRIPTION}}',
-          projectDescription
-        ),
+        promptConstant:
+          COLORS_GENERATION_PROMPT.replace('{{PROJECT_DESCRIPTION}}', projectDescription) +
+          // La région chromatique est tirée par le CODE, pas laissée à
+          // l'échantillonnage : c'est ce qui empêche deux marques d'un même
+          // secteur de recevoir la même palette, y compris sur un petit modèle.
+          `\n\n${describePaletteConstraint(buildPaletteConstraint(project.id!))}`,
         stepName: 'Colors Generation',
         modelParser: (content) => {
           // Use safeParseJson to handle markdown fences, truncated JSON,
@@ -1281,7 +1489,10 @@ export class BrandingService extends GenericService {
 
     const steps: IPromptStep[] = [
       {
-        promptConstant: projectDescription + TYPOGRAPHY_GENERATION_PROMPT,
+        promptConstant:
+          projectDescription +
+          TYPOGRAPHY_GENERATION_PROMPT +
+          `\n\n${buildTypographyConstraint(project.id!)}`,
         stepName: 'Typography Generation',
         modelParser: (content) => {
           const parsed = safeParseJson(content);
@@ -1346,7 +1557,8 @@ export class BrandingService extends GenericService {
         ...existingProject,
         analysisResultModel: {
           ...existingProject.analysisResultModel,
-          branding: existingProject.analysisResultModel?.branding || BrandIdentityBuilder.createEmpty(),
+          branding:
+            existingProject.analysisResultModel?.branding || BrandIdentityBuilder.createEmpty(),
         },
       };
     } else {
@@ -1500,11 +1712,7 @@ export class BrandingService extends GenericService {
       config.modelName = modelNameOverride;
     }
 
-    const sectionResults = await this.processSteps(
-      steps,
-      project,
-      config
-    );
+    const sectionResults = await this.processSteps(steps, project, config);
     const logoResult = sectionResults[0];
     const logoData = logoResult.parsedData;
 
@@ -1618,8 +1826,13 @@ export class BrandingService extends GenericService {
    * le valide contre le catalogue et on retombe sur un style plausible plutôt
    * que de laisser passer une valeur inconnue.
    */
-  private normalizeArtDirection(raw: any, fallbackStyleId: ArtDirectionStyleId = 'editorial'): ArtDirectionModel {
-    const requested = String(raw?.styleId || '').trim().toLowerCase();
+  private normalizeArtDirection(
+    raw: any,
+    fallbackStyleId: ArtDirectionStyleId = 'editorial'
+  ): ArtDirectionModel {
+    const requested = String(raw?.styleId || '')
+      .trim()
+      .toLowerCase();
     const styleId = (ART_DIRECTION_STYLE_IDS as string[]).includes(requested)
       ? (requested as ArtDirectionStyleId)
       : fallbackStyleId;
@@ -1749,7 +1962,8 @@ export class BrandingService extends GenericService {
     }
 
     try {
-      const excluded = opts.force && branding.artDirection?.styleId ? [branding.artDirection.styleId] : [];
+      const excluded =
+        opts.force && branding.artDirection?.styleId ? [branding.artDirection.styleId] : [];
       const direction = await this.generateArtDirection(userId, project, excluded);
       direction.createdAt = branding.artDirection?.createdAt || new Date();
 
@@ -1781,7 +1995,10 @@ export class BrandingService extends GenericService {
    * Régénère la direction artistique d'un projet et la persiste.
    * Exposée à l'API : c'est le bouton « proposer une autre direction ».
    */
-  async regenerateArtDirection(userId: string, projectId: string): Promise<ArtDirectionModel | null> {
+  async regenerateArtDirection(
+    userId: string,
+    projectId: string
+  ): Promise<ArtDirectionModel | null> {
     const project = await this.getProject(projectId, userId);
     if (!project) return null;
     return this.ensureArtDirection(userId, projectId, project, { force: true, persist: true });
@@ -1837,7 +2054,10 @@ export class BrandingService extends GenericService {
         if (svgUrls.variations) logo.variations = svgUrls.variations;
         logger.info(`ensureLogoAssetUrls: externalized inline SVGs to MinIO`, { projectId });
       } catch (svgUploadError) {
-        logger.warn(`ensureLogoAssetUrls: SVG externalization failed (continuing with inline)`, svgUploadError);
+        logger.warn(
+          `ensureLogoAssetUrls: SVG externalization failed (continuing with inline)`,
+          svgUploadError
+        );
       }
 
       const assetUrls = await this.storageService.uploadProjectLogoAssets(logo, userId, projectId);
@@ -2080,11 +2300,14 @@ export class BrandingService extends GenericService {
     }
 
     // Load existing generated logos unless forcing a regeneration from scratch
-    const existingLogos = (!forceRegenerate && branding?.generatedLogos) ? branding.generatedLogos : [];
+    const existingLogos =
+      !forceRegenerate && branding?.generatedLogos ? branding.generatedLogos : [];
     const existingLogosCount = existingLogos.length;
 
     if (existingLogosCount >= 3) {
-      logger.info(`Logos already complete (${existingLogosCount}/3) for projectId: ${projectId}. Skipping.`);
+      logger.info(
+        `Logos already complete (${existingLogosCount}/3) for projectId: ${projectId}. Skipping.`
+      );
       return { logos: existingLogos };
     }
 
@@ -2112,12 +2335,16 @@ export class BrandingService extends GenericService {
     // Créer promesses pour génération AI pure en parallèle pour les concepts restants
     const modelsToTry = [
       AI_CONFIG.branding.logo.modelName,
-      ...(AI_CONFIG.branding.logo.fallbackModels || [])
+      ...(AI_CONFIG.branding.logo.fallbackModels || []),
     ];
     let failedIndexes = Array.from({ length: logosToGenerateCount }, (_, i) => i);
     const rawLogos: LogoModel[] = [];
 
-    for (let modelIndex = 0; modelIndex < modelsToTry.length && failedIndexes.length > 0; modelIndex++) {
+    for (
+      let modelIndex = 0;
+      modelIndex < modelsToTry.length && failedIndexes.length > 0;
+      modelIndex++
+    ) {
       const currentModel = modelsToTry[modelIndex];
       const isFallback = modelIndex > 0;
 
@@ -2130,7 +2357,14 @@ export class BrandingService extends GenericService {
       const retryPromises = failedIndexes.map(async (index) => {
         return {
           index,
-          result: await this.generateRawLogoConcept(optimizedPrompt, project, index + existingLogosCount, preferences, isRetry, currentModel)
+          result: await this.generateRawLogoConcept(
+            optimizedPrompt,
+            project,
+            index + existingLogosCount,
+            preferences,
+            isRetry,
+            currentModel
+          ),
         };
       });
 
@@ -2142,7 +2376,10 @@ export class BrandingService extends GenericService {
         if (result.status === 'fulfilled') {
           rawLogos.push(result.value.result);
         } else {
-          logger.error(`Logo concept ${originalIndex + existingLogosCount + 1} generation failed with model ${currentModel}:`, result.reason);
+          logger.error(
+            `Logo concept ${originalIndex + existingLogosCount + 1} generation failed with model ${currentModel}:`,
+            result.reason
+          );
           stillFailed.push(originalIndex);
         }
       });
@@ -2209,6 +2446,35 @@ export class BrandingService extends GenericService {
       fonts: logo.fonts,
       svg: isComposedLockup ? logo.iconSvg : logo.svg,
     });
+    // GRILLE DÉTERMINISTE D'ABORD. Un SVG tronqué, sans viewBox, à texte vivant
+    // ou saturé de tracés est rejetable sans modèle : le défaut est factuel.
+    // L'envoyer au critique coûtait un aller-retour complet (10 à 20 s, un appel
+    // facturé) pour un verdict qu'une expression régulière rend gratuitement —
+    // et le critique répondait parfois « pass » sur un SVG cassé.
+    const paletteHexes = (
+      project.analysisResultModel?.branding?.colors?.colors
+        ? Object.values(project.analysisResultModel.branding.colors.colors)
+        : []
+    ).filter((value): value is string => typeof value === 'string');
+
+    const mechanical = inspectSvg(logo.iconSvg || logo.svg || '', { palette: paletteHexes });
+    if (!mechanical.ok) {
+      logger.warn(
+        `Logo "${logo.name ?? 'sans nom'}" : défauts mécaniques détectés sans appel modèle — ${mechanical.summary}`
+      );
+      logAIEvent('logo.svg_gate_failed', {
+        projectId: project.id,
+        defects: mechanical.defects.map((defect) => defect.code),
+      });
+      // Verdict rendu SANS payer le critique : la révision part directement des
+      // défauts constatés, qui sont exactement ceux qu'il faut corriger.
+      return {
+        verdict: 'fail',
+        issues: mechanical.defects.map((defect) => defect.message),
+        suggestions: [],
+      } as unknown as LogoCritiqueResult;
+    }
+
     const brandName = this.resolveBrandName(project);
     const prompt = LOGO_CRITIQUE_PROMPT.replace('{{LOGO_JSON}}', logoJson)
       .replace(/\{\{BRAND_NAME\}\}/g, brandName)
@@ -2452,20 +2718,22 @@ export class BrandingService extends GenericService {
 
     const modelsToTry = [
       AI_CONFIG.branding.logo.modelName,
-      ...(AI_CONFIG.branding.logo.fallbackModels || [])
+      ...(AI_CONFIG.branding.logo.fallbackModels || []),
     ];
 
     const processConcept = async (offset: number): Promise<LogoModel | null> => {
       const index = existingLogos.length + offset;
-      
+
       for (let modelIndex = 0; modelIndex < modelsToTry.length; modelIndex++) {
         const currentModel = modelsToTry[modelIndex];
         try {
           if (cancelState.cancelled) {
-            if (modelIndex === 0) await streamCallback({ type: 'concept_cancelled', conceptIndex: index });
+            if (modelIndex === 0)
+              await streamCallback({ type: 'concept_cancelled', conceptIndex: index });
             return null;
           }
-          if (modelIndex === 0) await streamCallback({ type: 'concept_started', conceptIndex: index });
+          if (modelIndex === 0)
+            await streamCallback({ type: 'concept_started', conceptIndex: index });
 
           let logo = await this.generateRawLogoConcept(
             optimizedPrompt,
@@ -2509,7 +2777,10 @@ export class BrandingService extends GenericService {
           await streamCallback({ type: 'concept_finalized', conceptIndex: index, logo });
           return logo;
         } catch (error: any) {
-          logger.error(`Streamed logo concept ${index + 1} failed with model ${currentModel}:`, error);
+          logger.error(
+            `Streamed logo concept ${index + 1} failed with model ${currentModel}:`,
+            error
+          );
           if (modelIndex === modelsToTry.length - 1) {
             try {
               await streamCallback({
@@ -2522,7 +2793,9 @@ export class BrandingService extends GenericService {
             }
             return null;
           } else {
-            logger.warn(`Streamed logo concept ${index + 1} falling back to ${modelsToTry[modelIndex + 1]}...`);
+            logger.warn(
+              `Streamed logo concept ${index + 1} falling back to ${modelsToTry[modelIndex + 1]}...`
+            );
           }
         }
       }
@@ -2569,8 +2842,7 @@ export class BrandingService extends GenericService {
             const container = parsed?.variation ?? parsed;
             // Le SVG peut être sous la clé du fond ({ lightBackground: svg }) ou
             // directement une chaîne. On valide qu'un vrai <svg> est présent.
-            const svg =
-              typeof container === 'string' ? container : container?.[kind];
+            const svg = typeof container === 'string' ? container : container?.[kind];
             if (typeof svg !== 'string' || !svg.includes('<svg')) {
               throw new Error('no usable SVG in variation response');
             }
@@ -2658,9 +2930,7 @@ export class BrandingService extends GenericService {
           const composed = await logoLockupService.recompose(iconSvg, lockup, backgrounds[kind]);
           return [kind, composed ?? undefined] as const;
         } catch (error) {
-          logger.warn(
-            `Lockup recomposition failed for ${kind}: ${(error as Error).message}`
-          );
+          logger.warn(`Lockup recomposition failed for ${kind}: ${(error as Error).message}`);
           return [kind, undefined] as const;
         }
       })
@@ -2812,7 +3082,9 @@ export class BrandingService extends GenericService {
       if (svgUrls.variations) variationUrls = svgUrls.variations as typeof optimizedVariations;
       logger.info(`Logo SVGs (primary + variations) uploaded to MinIO`, { projectId });
     } catch (uploadError: any) {
-      logger.error(`Logo SVG upload failed after variation generation (keeping inline): ${uploadError.message}`);
+      logger.error(
+        `Logo SVG upload failed after variation generation (keeping inline): ${uploadError.message}`
+      );
     }
 
     // Update project with hosted URLs for logo SVGs
@@ -3132,7 +3404,10 @@ export class BrandingService extends GenericService {
     if (missingKinds.length === 0) {
       return {
         variations: { withText: { ...results }, iconOnly: { ...iconResults } },
-        logo: { svg: selectedLogo.svg, ...(selectedLogo.iconSvg ? { iconSvg: selectedLogo.iconSvg } : {}) },
+        logo: {
+          svg: selectedLogo.svg,
+          ...(selectedLogo.iconSvg ? { iconSvg: selectedLogo.iconSvg } : {}),
+        },
       };
     }
 
@@ -3229,7 +3504,13 @@ export class BrandingService extends GenericService {
           let critique: LogoCritiqueResult | null = null;
           try {
             // Style 'withText' : la critique EXIGE la présence du nom de marque.
-            critique = await this.critiqueLogoVariation(originalSvg, svg, kind, project, 'withText');
+            critique = await this.critiqueLogoVariation(
+              originalSvg,
+              svg,
+              kind,
+              project,
+              'withText'
+            );
           } catch (error) {
             logger.warn(`Variation critique failed for ${kind}, keeping as-is`);
           }
@@ -3245,8 +3526,7 @@ export class BrandingService extends GenericService {
                     svg,
                     variant: kind,
                     background: VARIATION_BACKGROUNDS[kind],
-                    issue:
-                      critique.remarks.map((r) => r.fix).join('; ') || critique.summary,
+                    issue: critique.remarks.map((r) => r.fix).join('; ') || critique.summary,
                   },
                   project
                 );
@@ -3517,9 +3797,7 @@ export class BrandingService extends GenericService {
         ? PAGE_FORMATS[branding.pdfFormat as keyof typeof PAGE_FORMATS]
         : PAGE_FORMATS.SLIDE_16_9;
 
-      logger.info(
-        `Generating PDF with format: ${branding?.pdfFormat || 'SLIDE_16_9'}`
-      );
+      logger.info(`Generating PDF with format: ${branding?.pdfFormat || 'SLIDE_16_9'}`);
 
       // Utiliser le PdfService pour générer le PDF avec le format choisi
       const pdfPath = await this.pdfService.generatePdf({
@@ -3536,7 +3814,21 @@ export class BrandingService extends GenericService {
           'Logo Bonnes Pratiques',
           'Color Palette',
           'Typography',
-          'Brand Mockups',
+          // ── LES NOMS DOIVENT CORRESPONDRE EXACTEMENT ────────────────────
+          //
+          // Cette liste portait « Brand Mockups » au pluriel, alors que les
+          // pages générées s'appellent « Brand Mockup 1 », « 2 », « 3 ». Aucune
+          // ne correspondait donc, et le tri repoussait les trois pages APRÈS
+          // le pied de charte — présentes dans le PDF, mais tout à la fin, là
+          // où personne ne les cherche. Vu de l'interface, les sections étaient
+          // « générées » et les mockups « absents » : les deux étaient vrais.
+          //
+          // Les noms sont maintenant DÉRIVÉS du même compteur que les étapes :
+          // changer `MOCKUP_COUNT` ne peut plus désaccorder les deux listes.
+          ...Array.from(
+            { length: MOCKUP_CONFIG.MOCKUP_COUNT },
+            (_, index) => `Brand Mockup ${index + 1}`
+          ),
           'Brand Footer',
         ],
         footerText: 'Generated by Idem',
@@ -4364,7 +4656,8 @@ ${LOGO_EDIT_PROMPT}`;
         ...existingProject,
         analysisResultModel: {
           ...existingProject.analysisResultModel,
-          branding: existingProject.analysisResultModel?.branding || BrandIdentityBuilder.createEmpty(),
+          branding:
+            existingProject.analysisResultModel?.branding || BrandIdentityBuilder.createEmpty(),
         },
       };
     } else {

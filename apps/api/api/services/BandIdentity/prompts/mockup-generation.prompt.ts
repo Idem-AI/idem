@@ -45,6 +45,13 @@ Rules:
 - If the product offers no usable printing area, answer exactly {"confidence":0}.`,
 
   buildDynamicPrompt: (params: {
+    /**
+     * `blank` : la scène sort VIERGE, le logo est incrusté après (fournisseurs
+     * sans image en entrée). `attached` : le logo est joint à l'appel et le
+     * modèle le pose lui-même. Le défaut est `blank`, qui était le seul
+     * comportement.
+     */
+    logoMode?: 'blank' | 'attached';
     brandName: string;
     brandColors: { primary: string; secondary: string; accent: string };
     projectDescription: string;
@@ -66,7 +73,25 @@ Rules:
       artDirectionModifier,
       artDirectionNegative,
       artDirectionName,
+      logoMode = 'blank',
     } = params;
+
+    // ── DEUX CHEMINS, DEUX CONSIGNES ─────────────────────────────────────────
+    //
+    // Ce prompt a été écrit pour un fournisseur qui n'accepte PAS d'image en
+    // entrée : la scène y sort vierge, et le vrai logo est incrusté ensuite au
+    // pixel près. D'où « BLANK, UNBRANDED », répété dans l'objectif, dans une
+    // règle dédiée et dans les interdits.
+    //
+    // Le chemin Gemini, lui, REÇOIT le logo en pièce jointe et doit le poser
+    // lui-même. Il recevait pourtant ce même prompt, suivi d'un « place le logo
+    // joint » ajouté à la fin. Le modèle lisait donc trois fois « aucun logo »
+    // et une fois « pose le logo » : il produisait un support nu, ce qui est
+    // exactement ce qu'on lui demandait le plus fort.
+    //
+    // Les deux modes sont donc rendus explicites ici, dans le fichier qui
+    // possède le texte, plutôt que rafistolés par une phrase ajoutée en aval.
+    const branded = logoMode === 'attached';
 
     const formatSpecs =
       pdfFormat === 'A4_PORTRAIT'
@@ -97,7 +122,11 @@ Rules:
         : 'SECONDARY SUPPORT (complementary but relevant)';
 
     return `<role>Elite commercial photographer and art director specialised in staging brands.</role>
-<objective>Create one photorealistic, high-end professional mockup photograph of a BLANK, UNBRANDED support, ready to receive a printed logo.</objective>
+<objective>Create one photorealistic, high-end professional mockup photograph of ${
+      branded
+        ? 'a support CARRYING THE ATTACHED BRAND LOGO, printed on it as it would really be produced'
+        : 'a BLANK, UNBRANDED support, ready to receive a printed logo'
+    }.</objective>
 
 <brand_context>
 - Name: "${brandName}"
@@ -118,7 +147,29 @@ Staging:
 ${selectedSupport.context}
 </mockup_mission>
 
-<blank_support_rule>
+${branded ? `<logo_placement_rule>
+THE ATTACHED IMAGE IS THE BRAND LOGO. It is printed on the support in this
+photograph — reproduce it EXACTLY as supplied: same shapes, same proportions,
+same colours, same spacing. Do not redraw it, restyle it, simplify it, add an
+outline, or invent any element of it. It is the one thing in the frame that must
+be literally correct.
+
+Print it where the mark genuinely goes on this kind of support (chest of a
+garment, front face of a box, door panel of a vehicle, front of a card…), on a
+surface that is:
+- flat and unbroken: no seam, fold, button, zip, strap or curved edge across it;
+- facing the camera as squarely as the staging allows;
+- evenly lit: no hard specular highlight, no cast shadow, no reflection over it;
+- one plain uniform tone, so the mark reads clearly.
+
+The logo follows the perspective and the lighting of the scene, at the size a
+real print would have — roughly a quarter of the support's visible face. It is
+the ONLY mark on the support: no second logo, no invented wordmark, no slogan,
+no legible text of any kind beside it.
+
+Everything AROUND it stays a full photograph: material, texture, wear, depth of
+field, real environment.
+</logo_placement_rule>` : `<blank_support_rule>
 The support carries NO branding at all: no logo, no monogram, no wordmark, no brand
 name, no initial, no slogan, no printed pattern, no label, no sticker, no legible
 text of any kind on it. The real logo is composited onto this photograph afterwards
@@ -137,7 +188,7 @@ Instead, RESERVE one printing area on the support, and stage the shot around it:
 
 Everything AROUND that area stays a full photograph: material, texture, wear,
 depth of field, real environment.
-</blank_support_rule>
+</blank_support_rule>`}
 
 ${
       artDirectionModifier
@@ -170,7 +221,11 @@ This photograph will be seen next to the brand's other supports: it must carry t
 </format_rules>
 
 <forbidden>
-- ANY logo, wordmark, brand name, monogram, initial or readable text printed on the support. The support is blank.
+${
+      branded
+        ? '- Any SECOND mark: an invented wordmark, a slogan, a made-up brand name, or readable text other than the supplied logo.'
+        : '- ANY logo, wordmark, brand name, monogram, initial or readable text printed on the support. The support is blank.'
+    }
 - The generic mockup cliché: "a business card lying at an angle on a white marble desk next to a green plant" is THE default render of every generator. Compose something else.
 - Artificial, plastic, over-lit 3D renders.
 - An overloaded scene: one hero support, one context, nothing else.

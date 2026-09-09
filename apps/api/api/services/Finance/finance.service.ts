@@ -12,10 +12,15 @@ import { ProjectModel } from '../../models/project.model';
 import {
   AISuggestion,
   createEmptyFinanceModel,
+  DEFAULT_TAXES_PARAMS,
   FinanceModel,
   SectionCompletionStatus,
 } from '../../models/finance.model';
 import { computeFinance } from './finance-calculator.service';
+import {
+  requiresCalendarYear,
+  resolveJurisdiction,
+} from '../common/accounting-jurisdiction';
 import logger from '../../config/logger';
 
 type SectionKey =
@@ -27,10 +32,23 @@ type SectionKey =
   | 'taxesParams'
   | 'investments'
   | 'financing'
-  | 'ratiosParams';
+  | 'ratiosParams'
+  | 'fiscalCalendar';
 
 /** Mapping section input -> clé de completionStatus dans le modèle */
-const SECTION_TO_COMPLETION: Record<SectionKey, keyof FinanceModel['meta']['completionStatus']> = {
+/**
+ * Sections qui NE PORTENT PAS d'état de complétion.
+ *
+ * Le calendrier comptable est toujours renseigné — à défaut, l'année civile en
+ * cours. Le rattacher à l'état d'une autre section marquerait celle-ci comme
+ * complétée dès qu'on ajuste une convention, ce qui fausserait le parcours.
+ */
+const SECTIONS_WITHOUT_COMPLETION: readonly SectionKey[] = ['fiscalCalendar'];
+
+const SECTION_TO_COMPLETION: Record<
+  Exclude<SectionKey, 'fiscalCalendar'>,
+  keyof FinanceModel['meta']['completionStatus']
+> = {
   products: 'products',
   salesObjectives: 'salesObjectives',
   revenueParams: 'revenue',
@@ -71,6 +89,7 @@ export class FinanceService {
     const finance: FinanceModel = existing
       ? this.ensureFinanceShape(existing, projectId)
       : createEmptyFinanceModel(projectId);
+    this.applyJurisdiction(project, finance);
     return { project, finance };
   }
 
@@ -81,6 +100,10 @@ export class FinanceService {
       ...base,
       ...stored,
       projectId,
+      // Le calendrier SYSCOHADA est arrivé après les premiers modèles stockés :
+      // un modèle enregistré avant lui n'en porte aucun, et sans ce repli tous
+      // les libellés d'exercice seraient vides.
+      fiscalCalendar: { ...base.fiscalCalendar, ...(stored.fiscalCalendar || {}) },
       revenueParams: { ...base.revenueParams, ...(stored.revenueParams || {}) },
       variableCharges: { ...base.variableCharges, ...(stored.variableCharges || {}) },
       fixedCharges: { ...base.fixedCharges, ...(stored.fixedCharges || {}) },
@@ -106,6 +129,52 @@ export class FinanceService {
       createdAt: stored.createdAt ? new Date(stored.createdAt) : base.createdAt,
       updatedAt: new Date(),
     };
+  }
+
+  /**
+   * Cale le modèle sur la juridiction comptable du pays du projet.
+   *
+   * ── POURQUOI CE N'EST PAS UNE SIMPLE VALEUR PAR DÉFAUT ──────────────────
+   *
+   * Là où la loi IMPOSE l'année civile — les dix-sept États de l'OHADA,
+   * l'Algérie, l'Angola, le Mozambique — une clôture au 30 juin n'est pas une
+   * préférence de l'utilisateur, c'est un document non conforme. Le mois de
+   * clôture y est donc ramené à décembre, sans négociation.
+   *
+   * Là où elle est libre — Nigeria, Kenya, Afrique du Sud, Égypte… — on ne
+   * touche à rien : le choix appartient à la société, et le rapport nommera
+   * l'exercice « 2026-2027 » si c'est ce que ce choix produit.
+   *
+   * La devise et le taux d'IS ne sont posés QU'À LA CRÉATION, quand le modèle
+   * porte encore ses valeurs d'usine : les écraser à chaque lecture reviendrait
+   * à défaire la saisie de l'utilisateur à chaque ouverture de page.
+   */
+  private applyJurisdiction(project: ProjectModel, finance: FinanceModel): void {
+    const jurisdiction = resolveJurisdiction(project.additionalInfos?.country);
+    const calendar = finance.fiscalCalendar;
+    const firstResolution = calendar.jurisdictionId !== jurisdiction.id;
+
+    calendar.jurisdictionId = jurisdiction.id;
+
+    if (requiresCalendarYear(jurisdiction) && calendar.fiscalYearEndMonth !== 12) {
+      logger.info(
+        `Finance ${finance.projectId} : clôture ramenée au 31 décembre — ` +
+          `${jurisdiction.country} impose l'année civile (${jurisdiction.frameworkLabel})`
+      );
+      calendar.fiscalYearEndMonth = 12;
+    }
+
+    if (!firstResolution) return;
+
+    // Valeurs d'usine seulement : une saisie utilisateur n'est jamais écrasée.
+    const untouchedCurrency = finance.meta.currency === 'XAF';
+    if (untouchedCurrency && jurisdiction.currency) {
+      finance.meta.currency = jurisdiction.currency;
+    }
+    const untouchedTaxRate = finance.taxesParams.isRatePct === DEFAULT_TAXES_PARAMS.isRatePct;
+    if (untouchedTaxRate && jurisdiction.defaultCorporateTaxRatePct !== undefined) {
+      finance.taxesParams.isRatePct = jurisdiction.defaultCorporateTaxRatePct;
+    }
   }
 
   /** Sauvegarde le modèle Finance dans le projet et déclenche le recalcul */
@@ -258,8 +327,10 @@ export class FinanceService {
     const finance = ctx.finance;
     (finance as any)[section] = payload;
     // Mise à jour automatique du statut de complétion correspondant
-    const completionKey = SECTION_TO_COMPLETION[section];
-    finance.meta.completionStatus[completionKey] = this.computeSectionStatus(finance, section);
+    if (!SECTIONS_WITHOUT_COMPLETION.includes(section)) {
+      const completionKey = SECTION_TO_COMPLETION[section as Exclude<SectionKey, 'fiscalCalendar'>];
+      finance.meta.completionStatus[completionKey] = this.computeSectionStatus(finance, section);
+    }
     return this.saveFinance(userId, projectId, ctx.project, finance);
   }
 
