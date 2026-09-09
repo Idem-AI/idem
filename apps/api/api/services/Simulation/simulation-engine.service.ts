@@ -24,9 +24,16 @@ import {
   SIMULATION_TIMELINE_YEARS,
   Timeline,
   TimelineYear,
+  UnitEconomics,
+  ViabilityBreakdown,
   ViabilityCondition,
   Verdict,
 } from '../../models/simulation.model';
+
+// Les deux types vivent désormais dans le modèle — le rapport les transporte,
+// il ne peut donc pas dépendre du service qui les calcule. Réexportés ici pour
+// que les appelants historiques du moteur ne changent pas d'import.
+export type { UnitEconomics, ViabilityBreakdown };
 
 /**
  * PLAFOND DE L'INDICE DE VIABILITÉ.
@@ -166,12 +173,53 @@ export function applyShifts(
  * quatre composantes sont volontairement séparées et pondérées explicitement,
  * pour que le rapport puisse dire lesquelles tirent le score vers le bas.
  */
-export interface ViabilityBreakdown {
-  index: number;
-  unitEconomics: number;
-  profitability: number;
-  survival: number;
-  scale: number;
+/**
+ * Pondération des quatre composantes. Exportée parce que le rapport l'AFFICHE :
+ * une décomposition sans ses poids laisse croire que les quatre questions
+ * comptent autant, alors que la survie pèse deux fois l'échelle.
+ */
+export const VIABILITY_WEIGHTS = {
+  unitEconomics: 0.3,
+  profitability: 0.25,
+  survival: 0.3,
+  scale: 0.15,
+} as const;
+
+/**
+ * Économie unitaire du modèle. C'est la formule qui NOTE la première composante
+ * de l'indice ; le rapport l'affiche telle quelle plutôt que de la recalculer
+ * de son côté, sous peine de contredire son propre score.
+ */
+export function computeUnitEconomics(baseline: BusinessBaseline): UnitEconomics {
+  const grossMarginPerTransaction = baseline.unitPrice - baseline.unitVariableCost;
+  const grossMarginRate =
+    baseline.unitPrice > 0 ? grossMarginPerTransaction / baseline.unitPrice : 0;
+  const churn = Math.max(1 - baseline.monthlyRetentionRate, 0.01);
+  const expectedLifetimeMonths = 1 / churn;
+  const monthlyMarginPerCustomer =
+    grossMarginPerTransaction * baseline.purchasesPerCustomerPerMonth;
+  const lifetimeValue = monthlyMarginPerCustomer * expectedLifetimeMonths;
+  const ltvToCac =
+    baseline.acquisitionCost > 0
+      ? lifetimeValue / baseline.acquisitionCost
+      : lifetimeValue > 0
+        ? 5
+        : 0;
+  // Un client qui ne dégage aucune marge ne rembourse jamais son acquisition :
+  // le « jamais » se dit avec null, pas avec un nombre géant.
+  const paybackMonths =
+    monthlyMarginPerCustomer > 0
+      ? Number((baseline.acquisitionCost / monthlyMarginPerCustomer).toFixed(1))
+      : null;
+
+  return {
+    grossMarginPerTransaction: round(grossMarginPerTransaction),
+    grossMarginRate: Number(grossMarginRate.toFixed(3)),
+    expectedLifetimeMonths: Number(expectedLifetimeMonths.toFixed(1)),
+    lifetimeValue: round(lifetimeValue),
+    ltvToCac: Number(ltvToCac.toFixed(2)),
+    paybackMonths,
+  };
 }
 
 export function computeViability(
@@ -179,17 +227,8 @@ export function computeViability(
   points: FinancialPoint[]
 ): ViabilityBreakdown {
   // --- 1. Économie unitaire: la valeur d'un client couvre-t-elle son coût ?
-  const grossMarginPerTransaction = baseline.unitPrice - baseline.unitVariableCost;
-  const churn = Math.max(1 - baseline.monthlyRetentionRate, 0.01);
-  const expectedLifetimeMonths = 1 / churn;
-  const lifetimeValue =
-    grossMarginPerTransaction *
-    baseline.purchasesPerCustomerPerMonth *
-    expectedLifetimeMonths;
-  const ltvToCac =
-    baseline.acquisitionCost > 0 ? lifetimeValue / baseline.acquisitionCost : lifetimeValue > 0 ? 5 : 0;
   // Le seuil usuel est 3; on sature à 5 pour ne pas récompenser l'aberrant.
-  const unitEconomics = clamp(ltvToCac / 5, 0, 1) * 100;
+  const unitEconomics = clamp(computeUnitEconomics(baseline).ltvToCac / 5, 0, 1) * 100;
 
   // --- 2. Rentabilité: le point mort tombe-t-il dans l'horizon, et quand ?
   const breakEvenMonth = findBreakEvenMonth(points);
@@ -217,7 +256,10 @@ export function computeViability(
         : 0;
 
   const rawIndex =
-    unitEconomics * 0.3 + profitability * 0.25 + survival * 0.3 + scale * 0.15;
+    unitEconomics * VIABILITY_WEIGHTS.unitEconomics +
+    profitability * VIABILITY_WEIGHTS.profitability +
+    survival * VIABILITY_WEIGHTS.survival +
+    scale * VIABILITY_WEIGHTS.scale;
 
   // Le plafond ramène l'échelle sous 100 : voir VIABILITY_CEILING.
   const index = clamp(rawIndex, 0, 100) * (VIABILITY_CEILING / 100);
