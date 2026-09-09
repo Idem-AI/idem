@@ -53,17 +53,19 @@ export class ShowBusinessPlan implements OnInit {
   protected readonly isBrandingComplete = signal<boolean>(false);
   protected readonly brandingMissingElements = signal<string[]>([]);
   protected readonly project = signal<ProjectModel | null>(null);
+  protected readonly underFilledSections = signal<string[]>([]);
 
   protected readonly completeness = computed(() =>
     analyzeGenerationCompleteness(
       BUSINESS_PLAN_SECTION_NAMES,
       this.project()?.analysisResultModel?.businessPlan?.sections,
+      this.underFilledSections(),
     ),
   );
 
   protected readonly isBusinessPlanIncomplete = computed(() => {
     const completeness = this.completeness();
-    return completeness.hasStarted && !completeness.isComplete;
+    return completeness.hasStarted && (!completeness.isComplete || this.underFilledSections().length > 0);
   });
 
   ngOnInit(): void {
@@ -113,8 +115,25 @@ export class ShowBusinessPlan implements OnInit {
    * If PDF exists, show display component, otherwise show generation component
    */
   private loadExistingBusinessPlan(projectId: string): void {
+    const fetchQuality = () => {
+      this.businessPlanService.getBusinessPlanPdfQuality(projectId).subscribe({
+        next: (quality) => {
+          const underfilled = (quality?.underFilledSections ?? []).map((s) => s.sectionName);
+          this.underFilledSections.set(underfilled);
+        },
+        error: () => {
+          // Quality info might not exist yet; ignore
+        },
+      });
+    };
+
+    fetchQuality();
+
     this.businessPlanService.downloadBusinessPlanPdf(projectId).subscribe({
       next: (pdfBlob: Blob) => {
+        // Re-fetch quality info in case the backend just generated a new PDF and persisted quality
+        fetchQuality();
+
         if (pdfBlob && pdfBlob.size > 0) {
           // PDF exists - create a mock BusinessPlanModel to pass to display component
           const businessPlanWithPdf: BusinessPlanModel = {

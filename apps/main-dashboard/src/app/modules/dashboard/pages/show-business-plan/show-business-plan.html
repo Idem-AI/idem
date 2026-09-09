@@ -17,11 +17,12 @@
     />
   } @else if (existingBusinessPlan()) {
     <!-- Completion status + per-section regeneration (also warns when the PDF
-         exists but was generated from an interrupted/incomplete run) -->
+         exists but was generated from an interrupted/incomplete run or has underfilled sections) -->
     @if (completeness().hasStarted) {
       <div class="max-w-6xl mx-auto">
         <app-generation-status-panel
           [completeness]="completeness()"
+          [warningSections]="underFilledSections()"
           sectionLabelPrefix="dashboard.generationPanel.sections.businessPlan."
           (resume)="generateBusinessPlan(false)"
           (regenerateAll)="generateBusinessPlan(true)"
@@ -74,6 +75,7 @@
         <div class="text-left">
           <app-generation-status-panel
             [completeness]="completeness()"
+            [warningSections]="underFilledSections()"
             sectionLabelPrefix="dashboard.generationPanel.sections.businessPlan."
             (resume)="generateBusinessPlan(false)"
             (regenerateAll)="generateBusinessPlan(true)"

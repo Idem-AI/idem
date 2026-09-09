@@ -23,6 +23,7 @@ import {
   sectionVolumeDirective,
 } from '../design/sectionContent.prompt';
 import { normalizeSectionContent, Block, SectionContent } from '../design/sectionContent';
+import { htmlToSectionContent, looksLikeHtmlPage } from '../design/htmlToSectionContent';
 import { renderSection } from '../design/sectionRenderer';
 import { buildDocumentSeed, buildSectionSeed } from '../design/designSeed';
 import { BrandCharter, buildDocumentDesignSystem } from '../design/documentDesignSystem';
@@ -721,13 +722,87 @@ export class ResearchTeamService {
       )
     );
 
+    // Une section sous gabarit DOIT repartir en contenu structuré. Quand elle
+    // ne l'est pas, on redemande — une fois, et sans streaming, le temps que le
+    // mode JSON s'applique de bout en bout. C'est la réparation la moins
+    // destructrice : elle conserve les citations, les tableaux et les séries de
+    // graphique que la récupération HTML, elle, ne saurait pas reconstituer.
+    const finalContent = section.freeform
+      ? content
+      : await this.ensureStructured(content, section, ctx, agentId, runId, emit);
+
     await this.emitAgent(emit, runId, 'writer', agentId, section.name, {
       kind: 'section_drafted',
       section: section.name,
-      wordCount: this.countWords(content),
+      wordCount: this.countWords(finalContent),
       sourceCount: sources.length,
     });
 
+    return finalContent;
+  }
+
+  /**
+   * Redemande le contenu structuré quand la première sortie n'en est pas.
+   *
+   * Renvoie la sortie d'origine si la reprise échoue : la récupération HTML du
+   * rendu prendra alors le relais. Aucune de ces deux étapes ne peut faire
+   * perdre la section — c'est tout leur objet.
+   */
+  private async ensureStructured(
+    content: string,
+    section: DeliverableSection,
+    ctx: ResearchTeamContext,
+    agentId: string,
+    runId: string,
+    emit: ResearchEmit
+  ): Promise<string> {
+    if (normalizeSectionContent(parseLlmJson(content))) return content;
+
+    logger.warn(
+      `ResearchTeam « ${section.name} » : première sortie non structurée — reprise en mode JSON.`
+    );
+    await this.emitAgent(emit, runId, 'writer', agentId, section.name, {
+      kind: 'agent_status',
+      status: 'writing',
+      message: `Reprise de « ${section.name} » au format attendu`,
+    });
+
+    try {
+      const repaired = this.promptService.getCleanAIText(
+        await this.promptService.runPrompt(
+          {
+            ...WRITER_CONFIG,
+            userId: ctx.userId,
+            language: ctx.language,
+            llmOptions: { ...WRITER_CONFIG.llmOptions, temperature: 0.2 },
+          },
+          [
+            {
+              role: 'system',
+              content:
+                'You convert an already-written business plan section into the required JSON object. ' +
+                'You keep EVERY fact, figure and [sN] citation marker exactly as written — this is a ' +
+                'reformatting task, not a rewriting one. You never add a fact that is not in the input.',
+            },
+            {
+              role: 'user',
+              content:
+                `SECTION ALREADY WRITTEN (to convert, not to rewrite):\n${content}\n\n` +
+                `${SECTION_CONTENT_CONTRACT}`,
+            },
+          ]
+        )
+      );
+      if (normalizeSectionContent(parseLlmJson(repaired))) {
+        logger.info(`ResearchTeam « ${section.name} » : reprise réussie, section structurée.`);
+        return repaired;
+      }
+      logger.warn(
+        `ResearchTeam « ${section.name} » : reprise infructueuse — récupération du texte au rendu.`
+      );
+    } catch (err: any) {
+      logger.warn(`ResearchTeam « ${section.name} » : reprise en erreur (${err.message}).`);
+    }
     return content;
   }
 
@@ -1043,6 +1118,33 @@ export class ResearchTeamService {
   }
 
   /**
+   * Dernier filet : récupérer le TEXTE d'une sortie qui n'est pas du JSON.
+   *
+   * Le rédacteur renvoie parfois la page HTML qu'il composait avant l'ère du
+   * gabarit. La consigne qui l'y poussait a été retirée et le mode JSON est
+   * désormais transmis au fournisseur, mais aucune correction en amont ne rend
+   * l'obéissance certaine — et le prix d'un manquement est une page « la
+   * génération a échoué » au milieu d'un document destiné à un banquier.
+   *
+   * On récupère donc le fond et on jette la forme. Le texte est réel, il a été
+   * payé, et le gabarit lui rend la mise en page du document. Rien n'est
+   * inventé au passage : ce qui n'est pas dans la sortie n'apparaît pas.
+   */
+  private salvage(content: string, sectionName: string): SectionContent | null {
+    if (!looksLikeHtmlPage(content)) return null;
+
+    const recovered = htmlToSectionContent(content, sectionName);
+    if (!recovered) return null;
+
+    logger.warn(
+      `ResearchTeam « ${sectionName} » : le rédacteur a renvoyé du HTML au lieu du ` +
+        `contenu structuré. Section RÉCUPÉRÉE (${recovered.blocks.length} bloc(s)) et ` +
+        `recomposée par le gabarit, plutôt que perdue.`
+    );
+    return normalizeSectionContent(recovered);
+  }
+
+  /**
    * Rend la section AU FORMAT DU DOCUMENT.
    *
    * Une section issue de la recherche n'est pas une page à part : c'est une
@@ -1055,8 +1157,8 @@ export class ResearchTeamService {
    * donnait un document à deux mises en page — et des pages qu'aucun contrôle
    * ne couvrait, réduites à l'échelle par le paginateur quand un bloc dépassait.
    *
-   * Le repli est conservé : si le contenu est illisible, on rend le texte brut
-   * plutôt que de perdre la section.
+   * Une sortie mal formatée ne coûte plus la section : `salvage` en récupère le
+   * texte. La page n'est abandonnée que s'il n'y a rien à écrire dessus.
    */
   private renderResearchedSection(
     content: string,
@@ -1065,7 +1167,7 @@ export class ResearchTeamService {
     sectionName: string,
     index: number
   ): string {
-    const parsed = normalizeSectionContent(parseLlmJson(content));
+    const parsed = normalizeSectionContent(parseLlmJson(content)) ?? this.salvage(content, sectionName);
 
     if (!parsed) {
       // ── LA SORTIE BRUTE NE DEVIENT JAMAIS UNE PAGE ──────────────────────
@@ -1076,15 +1178,14 @@ export class ResearchTeamService {
       // sortie : ce sont elles qu'on retrouvait imprimées en JSON brut au
       // milieu d'un business plan.
       //
-      // On lève. La section rejoint `failedSteps` chez l'appelant, qui
-      // l'annonce ; le document est alors incomplet et le dit, plutôt
-      // qu'abîmé sans le dire. Cf. le garde-fou jumeau dans
-      // `generic.service.ts` — les deux chemins de rendu doivent tenir la
-      // même règle, sans quoi la garantie ne vaut rien.
+      // On ne lève plus qu'ICI, quand la récupération elle-même n'a trouvé
+      // AUCUN texte : il n'y a alors rien à mettre sur la page, et l'annoncer
+      // vaut mieux que publier un cadre vide. Tout le reste — du HTML, du
+      // JSON tronqué, un préambule en prose — est désormais rattrapé.
       const head = content.slice(0, 160).replace(/\s+/g, ' ');
       logger.error(
-        `ResearchTeam « ${sectionName} » : contenu illisible même après réparation ` +
-          `de troncature. Section abandonnée plutôt que livrée en brut. Début : ${head}`
+        `ResearchTeam « ${sectionName} » : sortie vide de tout contenu exploitable, ` +
+          `même après récupération. Début : ${head}`
       );
       throw new Error(
         `section de recherche « ${sectionName} » : contenu structuré illisible`
