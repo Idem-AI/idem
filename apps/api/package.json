@@ -17,8 +17,9 @@
     "secrets:rotate": "bash scripts/rotate-secret.sh",
     "secrets:purge-history": "bash scripts/purge-env-from-history.sh",
     "check:uniqueness": "ts-node --transpile-only api/scripts/checkUniqueness.ts",
-    "check:all": "npm run check:agents && npm run check:design && npm run check:uniqueness && npm run check:render && npm run check:prompts && npm run check:provider && npm run check:jurisdictions",
+    "check:all": "npm run check:agents && npm run check:design && npm run check:uniqueness && npm run check:render && npm run check:fit && npm run check:prompts && npm run check:provider && npm run check:jurisdictions",
     "check:render": "ts-node --transpile-only api/scripts/checkSectionRenderer.ts",
+    "check:fit": "ts-node --transpile-only api/scripts/checkPageFit.ts",
     "check:prompts": "ts-node --transpile-only api/scripts/checkPromptConformity.ts",
     "check:provider": "ts-node --transpile-only api/scripts/checkProviderSwitch.ts",
     "check:jurisdictions": "ts-node --transpile-only api/scripts/checkJurisdictions.ts"
