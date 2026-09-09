@@ -73,6 +73,14 @@ export interface FixedPageFit {
 }
 
 export interface FixedPageFitReport {
+  /**
+   * Échelle UNIQUE appliquée à toutes les pages du document.
+   *
+   * C'est elle qui garantit qu'un titre de section a la même taille d'une page
+   * à l'autre. Une valeur inférieure à 1 dit que le brief demande plus que la
+   * page ne porte — sur TOUTES les pages, pas sur une seule.
+   */
+  documentScale?: number;
   pages: number;
   /** Uniquement les pages qui débordaient. */
   fitted: FixedPageFit[];
@@ -1233,19 +1241,72 @@ export const FLOW_PAGINATION_RUNTIME = `
 
   var FIT_FLOOR = 0.72;
 
+  /* The scale below which a page is NOT allowed to drag the whole document.
+   * Above it, every page shares one scale; below it, the offending page is
+   * scaled alone and reported. See the "one scale for the document" note. */
+  var UNIFORM_FLOOR = 0.86;
+
+  /* Scales are snapped to this step so that two documents whose worst pages
+   * differ by a hair do not end up with visibly different type sizes. */
+  var SCALE_STEP = 0.02;
+
+  /* Tags that are IN the DOM but paint nothing. */
+  var NON_RENDERED = { LINK: 1, SCRIPT: 1, STYLE: 1, META: 1, TITLE: 1, BASE: 1 };
+
+  /*
+   * The element that actually IS the page.
+   *
+   * ── THE DEFECT THIS FIXES ────────────────────────────────────────────────
+   *
+   * The first element child of .data-content was taken for the page. It is
+   * not: the renderer emits the charter's Google Fonts <link> tags BEFORE the
+   * page root, deliberately — a <link> among the paginator's flow children
+   * would be counted as a zero-height block and skew its measurements.
+   *
+   * So on every deck and every brand charter whose charter names real fonts —
+   * that is, on every one of them — this function measured a <link>. Its
+   * scrollHeight is 0, 0 never exceeds the page, and the function returned
+   * having done nothing. The last safety net against a clipped page was
+   * silently inert, which is exactly how a page came out cut mid-sentence
+   * with no warning anywhere.
+   */
+  function findPageRoot(host) {
+    for (var c = 0; c < host.children.length; c++) {
+      var child = host.children[c];
+      if (child.nodeType !== 1) { continue; }
+      if (NON_RENDERED[child.tagName]) { continue; }
+      return child;
+    }
+    return null;
+  }
+
   function fitFixedPages(options) {
     var opts = options || {};
     var floor = opts.floor == null ? FIT_FLOOR : opts.floor;
+    var uniformFloor = opts.uniformFloor == null ? UNIFORM_FLOOR : opts.uniformFloor;
     var report = { pages: 0, fitted: [] };
     var sections = [].slice.call(document.querySelectorAll('.section'));
 
+    /* ── PASS 1: MEASURE EVERY PAGE BEFORE TOUCHING ANY ──────────────────
+     *
+     * Scaling was decided page by page: a page that overflowed by 3 mm was
+     * reduced to 0.94, the next one left at 1.0. Every type size in the deck
+     * therefore depended on how much text that particular page happened to
+     * carry — the same "Section title" came out at 34 px on one slide and
+     * 32 px on the next, and the deck read as a set of unrelated pages.
+     *
+     * This is the documented failure mode of per-slide autofit in
+     * presentation software, and it is the one thing a brand charter cannot
+     * afford: the document whose subject IS consistency cannot be typeset
+     * inconsistently.
+     *
+     * So we measure everything first, then decide ONE scale for the document.
+     */
+    var pages = [];
     for (var i = 0; i < sections.length; i++) {
       var section = sections[i];
       var host = section.querySelector('.data-content') || section;
-      var root = null;
-      for (var c = 0; c < host.children.length; c++) {
-        if (host.children[c].nodeType === 1) { root = host.children[c]; break; }
-      }
+      var root = findPageRoot(host);
       if (!root) { continue; }
       report.pages++;
 
@@ -1261,27 +1322,60 @@ export const FLOW_PAGINATION_RUNTIME = `
       var needed = Math.max(root.scrollHeight, root.getBoundingClientRect().height);
       root.style.overflow = previous;
 
-      if (needed <= avail + 1) { continue; }
-
-      var exact = avail / needed;
-      var scale = Math.max(floor, exact);
-
-      root.style.transformOrigin = 'top left';
-      root.style.transform = 'scale(' + scale + ')';
-      // The root keeps covering the page once scaled: it is widened and
-      // heightened by exactly the inverse factor.
-      root.style.width = (100 / scale) + '%';
-      root.style.height = (avail / scale) + 'px';
-      root.style.minHeight = '0';
-
-      report.fitted.push({
-        name: section.getAttribute('data-section-name') || '',
-        scale: Math.round(scale * 1000) / 1000,
-        overflowMm: Math.round(((needed - avail) / MM) * 10) / 10,
-        floored: scale > exact
+      pages.push({
+        section: section,
+        root: root,
+        avail: avail,
+        needed: needed,
+        exact: needed > avail + 1 ? avail / needed : 1
       });
     }
 
+    /* ── THE DOCUMENT SCALE ──────────────────────────────────────────────
+     *
+     * The worst page decides — but only down to the uniform floor. A single page
+     * that overflows badly is a content problem on THAT page; making the
+     * other eleven pay for it would trade one bad page for a whole small
+     * deck. Below the floor, that page is scaled on its own and reported.
+     */
+    var worst = 1;
+    for (var p = 0; p < pages.length; p++) {
+      if (pages[p].exact < worst) { worst = pages[p].exact; }
+    }
+    var documentScale = Math.floor(Math.max(uniformFloor, worst) / SCALE_STEP) * SCALE_STEP;
+    if (documentScale > 1) { documentScale = 1; }
+
+    /* ── PASS 2: APPLY ───────────────────────────────────────────────────
+     *
+     * Every page gets the document scale, including the ones that fit: that
+     * is what makes the type identical from page to page. A page that still
+     * overflows at that scale — the outlier — goes down to its own value.
+     */
+    for (var q = 0; q < pages.length; q++) {
+      var page = pages[q];
+      var scale = page.exact < documentScale
+        ? Math.max(floor, page.exact)
+        : documentScale;
+
+      if (scale >= 1) { continue; }
+
+      page.root.style.transformOrigin = 'top left';
+      page.root.style.transform = 'scale(' + scale + ')';
+      // The root keeps covering the page once scaled: it is widened and
+      // heightened by exactly the inverse factor.
+      page.root.style.width = (100 / scale) + '%';
+      page.root.style.height = (page.avail / scale) + 'px';
+      page.root.style.minHeight = '0';
+
+      report.fitted.push({
+        name: page.section.getAttribute('data-section-name') || '',
+        scale: Math.round(scale * 1000) / 1000,
+        overflowMm: Math.round(((page.needed - page.avail) / MM) * 10) / 10,
+        floored: scale > page.exact
+      });
+    }
+
+    report.documentScale = Math.round(documentScale * 1000) / 1000;
     return report;
   }
 

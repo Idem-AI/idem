@@ -815,7 +815,8 @@ export class PdfService {
         if (fit.fitted.length > 0) {
           logger.info(
             `Fixed pages fitted for ${projectName}: ${fit.fitted.length}/${fit.pages} page(s) réduite(s) ` +
-              `(min ${Math.min(...fit.fitted.map((f) => f.scale)).toFixed(2)}×)`
+              `— échelle du document ${(fit.documentScale ?? 1).toFixed(2)}× ` +
+              `(la plus réduite ${Math.min(...fit.fitted.map((f) => f.scale)).toFixed(2)}×)`
           );
           fit.fitted
             .filter((f) => f.floored)

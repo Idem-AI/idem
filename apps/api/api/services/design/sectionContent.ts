@@ -420,3 +420,125 @@ export function estimateBlockWeight(block: Block): number {
       return 0.08;
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VOLUME DE CONTENU D'UNE PAGE À HAUTEUR FIXE
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Combien une diapositive porte, par nature de bloc.
+ *
+ * ── POURQUOI DES NOMBRES ET NON UNE CONSIGNE ────────────────────────────────
+ *
+ * Le volume était demandé au modèle, en toutes lettres : « volume : 2 to 3 [blocs] ».
+ * Une consigne de ce genre est respectée la plupart du temps et ignorée le
+ * reste du temps, et c'est le reste du temps qui produit le livrable dont
+ * l'utilisateur se plaint. Rien, en aval, ne bornait ensuite le nombre de
+ * phrases d'un paragraphe, de cartes d'une grille ou de lignes d'un tableau.
+ *
+ * Le rendu écartait alors des blocs entiers faute de place (`fitToPage`), ce qui
+ * est le pire arbitrage possible : la page perd une idée COMPLÈTE parce que la
+ * précédente en a dit trois fois trop.
+ *
+ * Borner ici coûte quelques phrases et sauve des blocs entiers.
+ *
+ * ── POURQUOI À LA PHRASE ────────────────────────────────────────────────────
+ *
+ * On ne coupe jamais au signe : un paragraphe amputé en plein milieu se voit,
+ * et se lit comme une panne. On retient des PHRASES ENTIÈRES tant que le budget
+ * le permet, et l'on garde toujours la première — c'est celle qui porte le
+ * constat.
+ */
+const FIXED_PAGE_LIMITS = {
+  /** Une page de charte porte une idée, pas un chapitre. */
+  proseParagraphs: 2,
+  /** Signes par paragraphe. Environ quatre lignes de mesure pleine. */
+  proseChars: 320,
+  /** Au-delà, les cartes deviennent des vignettes illisibles. */
+  cards: 4,
+  cardBodyChars: 150,
+  /** Quatre chiffres tiennent sur une rangée ; six s'écrasent. */
+  metrics: 4,
+  tableRows: 6,
+  timelineSteps: 4,
+  ledeChars: 170,
+} as const;
+
+/**
+ * Retient les premières phrases d'un texte tenant dans `maxChars`.
+ *
+ * La première phrase est TOUJOURS conservée, même longue : la tronquer
+ * reviendrait à publier une page sans son affirmation principale. Le texte
+ * revient inchangé s'il tient déjà — le cas courant, et celui qui ne doit rien
+ * coûter.
+ */
+function firstSentences(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+
+  // Fin de phrase : ponctuation forte suivie d'une espace. Les décimales
+  // (« 2,3 »), les abréviations courantes et les points de suspension ne la
+  // déclenchent donc pas.
+  const sentences = text.match(/[^.!?]+[.!?]+(?:\s|$)/g);
+  if (!sentences || sentences.length <= 1) return text;
+
+  let kept = sentences[0];
+  for (let i = 1; i < sentences.length; i++) {
+    if (kept.length + sentences[i].length > maxChars) break;
+    kept += sentences[i];
+  }
+  return kept.trim();
+}
+
+/**
+ * Ramène un contenu au volume qu'une page à HAUTEUR FIXE porte réellement.
+ *
+ * Appliqué aux seuls formats rognés — diapositive, charte. Un business plan
+ * paginé n'a pas de raison d'être condensé : le paginateur lui donne les pages
+ * dont il a besoin.
+ *
+ * Ne renvoie jamais un contenu vide : chaque bloc conserve au moins son premier
+ * élément.
+ */
+export function condenseForFixedPage(content: SectionContent): SectionContent {
+  const blocks = content.blocks.map((block): Block => {
+    switch (block.kind) {
+      case 'prose':
+        return {
+          kind: 'prose',
+          paragraphs: block.paragraphs
+            .slice(0, FIXED_PAGE_LIMITS.proseParagraphs)
+            .map((paragraph) => firstSentences(paragraph, FIXED_PAGE_LIMITS.proseChars)),
+        };
+
+      case 'cards':
+        return {
+          kind: 'cards',
+          items: block.items.slice(0, FIXED_PAGE_LIMITS.cards).map((item) => ({
+            ...item,
+            body: firstSentences(item.body, FIXED_PAGE_LIMITS.cardBodyChars),
+          })),
+        };
+
+      case 'metrics':
+        return { kind: 'metrics', items: block.items.slice(0, FIXED_PAGE_LIMITS.metrics) };
+
+      case 'table':
+        return { ...block, rows: block.rows.slice(0, FIXED_PAGE_LIMITS.tableRows) };
+
+      case 'timeline':
+        return { kind: 'timeline', steps: block.steps.slice(0, FIXED_PAGE_LIMITS.timelineSteps) };
+
+      default:
+        // Nuancier, spécimen typographique, déclinaisons de logo, graphique,
+        // citation, hypothèse, sources : leur volume est déjà celui de la
+        // donnée qu'ils portent. Rien à retirer sans retirer du sens.
+        return block;
+    }
+  });
+
+  return {
+    ...content,
+    lede: content.lede ? firstSentences(content.lede, FIXED_PAGE_LIMITS.ledeChars) : undefined,
+    blocks,
+  };
+}
