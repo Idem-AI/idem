@@ -268,7 +268,7 @@ const CHAPTERS = {
   scenarios: { index: 5, title: 'Scénarios et stress tests', question: 'Que devient le modèle quand les choses vont mal ?' },
   financials: { index: 6, title: 'Trajectoire financière', question: 'Combien faut-il réunir, et pour tenir jusqu’à quand ?' },
   levers: { index: 7, title: 'Leviers et conditions', question: 'Sur quoi agir, et quels seuils tenir ?' },
-  actions: { index: 8, title: 'Recommandations', question: 'Que faire, dans quel ordre, et pourquoi ?' },
+  actions: { index: 8, title: 'Problèmes et Recommandations', question: 'Que faire, dans quel ordre, et pourquoi ?' },
   evidence: { index: 9, title: 'Hypothèses, sources et portée', question: 'Sur quoi ces chiffres reposent-ils ?' },
 } as const;
 
@@ -283,13 +283,13 @@ function chapterTitle(chapter: Chapter, lead?: string): string {
   return `
     <div data-keep-together data-keep-with-next style="margin-bottom:7mm">
       <div style="display:flex;align-items:baseline;gap:3mm;padding-bottom:2.5mm;border-bottom:0.5mm solid ${IDEM.ink}">
-        <span style="font-family:${MONO};font-size:9pt;font-weight:500;color:${IDEM.primary}">${String(chapter.index).padStart(2, '0')}</span>
-        <h2 style="font-size:19pt;font-weight:600;color:${IDEM.ink};line-height:1.15;letter-spacing:-0.01em">${esc(chapter.title)}</h2>
+        <span style="font-family:${MONO};font-size:10pt;font-weight:500;color:${IDEM.primary}">${String(chapter.index).padStart(2, '0')}</span>
+        <h2 style="font-size:21pt;font-weight:600;color:${IDEM.ink};line-height:1.15;letter-spacing:-0.07em">${esc(chapter.title)}</h2>
       </div>
-      <p style="margin-top:2.5mm;font-size:9pt;color:${IDEM.inkSubtle}">${esc(chapter.question)}</p>
+      <p style="margin-top:2.5mm;font-size:10pt;color:${IDEM.inkSubtle}">${esc(chapter.question)}</p>
       ${
         lead
-          ? `<p style="margin-top:2.5mm;font-size:9.5pt;line-height:1.6;color:${IDEM.inkMuted};max-width:150mm">${esc(lead)}</p>`
+          ? `<p style="margin-top:2.5mm;font-size:10.5pt;line-height:1.6;color:${IDEM.inkMuted};max-width:150mm">${esc(lead)}</p>`
           : ''
       }
     </div>`;
@@ -299,8 +299,8 @@ function chapterTitle(chapter: Chapter, lead?: string): string {
 function heading(text: string, hint?: string): string {
   return `
     <div data-keep-together data-keep-with-next style="margin:8mm 0 3.5mm">
-      <h3 style="font-size:11.5pt;font-weight:600;color:${IDEM.ink}">${esc(text)}</h3>
-      ${hint ? `<p style="margin-top:1.2mm;font-size:8.5pt;line-height:1.5;color:${IDEM.inkSubtle}">${esc(hint)}</p>` : ''}
+      <h3 style="font-size:13pt;font-weight:600;color:${IDEM.ink};letter-spacing:-0.07em">${esc(text)}</h3>
+      ${hint ? `<p style="margin-top:1.2mm;font-size:9.5pt;line-height:1.5;color:${IDEM.inkSubtle}">${esc(hint)}</p>` : ''}
     </div>`;
 }
 
@@ -345,9 +345,9 @@ function state(text: string, color: string): string {
 function stat(label: string, value: string, reading?: string): string {
   return `
     <div data-keep-together style="border:0.25mm solid ${IDEM.line};border-radius:2mm;padding:4mm;background:${IDEM.surface}">
-      <p style="font-size:7pt;letter-spacing:.09em;text-transform:uppercase;color:${IDEM.inkSubtle}">${esc(label)}</p>
-      <p style="font-family:${MONO};font-size:13.5pt;font-weight:500;color:${IDEM.ink};margin-top:1.8mm;line-height:1.15">${esc(value)}</p>
-      ${reading ? `<p style="font-size:8pt;line-height:1.5;color:${IDEM.inkMuted};margin-top:1.8mm">${esc(reading)}</p>` : ''}
+      <p style="font-size:8pt;letter-spacing:.09em;text-transform:uppercase;color:${IDEM.inkSubtle}">${esc(label)}</p>
+      <p style="font-family:${MONO};font-size:15pt;font-weight:500;color:${IDEM.ink};margin-top:1.8mm;line-height:1.15">${esc(value)}</p>
+      ${reading ? `<p style="font-size:9pt;line-height:1.5;color:${IDEM.inkMuted};margin-top:1.8mm">${esc(reading)}</p>` : ''}
     </div>`;
 }
 
@@ -460,9 +460,14 @@ function chrome(c: Chrome, sectionName: string): string {
 /** Une section du rapport : décor fixe + flux paginable. */
 function page(c: Chrome, sectionName: string, body: string): string {
   return `
-    <div style="position:relative;width:210mm;min-height:297mm;background:${IDEM.surface};padding:26mm 18mm 20mm;font-family:'Jura',system-ui,sans-serif;color:${IDEM.ink}">
+    <div style="position:relative;width:210mm;min-height:297mm;background:${IDEM.surface};padding:26mm 18mm 20mm;font-family:'Jura',system-ui,sans-serif;color:${IDEM.ink};letter-spacing:-0.07em">
+      ${
+        c.motifDataUri
+          ? `<div style="position:absolute;top:0;left:0;width:100%;height:100%;background-image:url('${c.motifDataUri}');background-repeat:repeat;opacity:0.4;z-index:0;pointer-events:none"></div>`
+          : ''
+      }
       ${chrome(c, sectionName)}
-      ${body}
+      <div style="position:relative;z-index:1">${body}</div>
     </div>`;
 }
 
@@ -498,8 +503,8 @@ export function coverSection(
 
       <div style="position:relative">
         <p style="font-family:${MONO};font-size:9pt;letter-spacing:.14em;color:${IDEM.primary}">RAPPORT DE SIMULATION</p>
-        <h1 style="margin-top:4mm;font-size:34pt;font-weight:600;line-height:1.1;letter-spacing:-0.015em">${esc(report.profile.name)}</h1>
-        <p style="margin-top:5mm;font-size:11pt;line-height:1.6;color:${IDEM.inkMuted};max-width:140mm">${esc(report.profile.product)}</p>
+        <h1 style="margin-top:4mm;font-size:38pt;font-weight:600;line-height:1.1;letter-spacing:-0.07em">${esc(report.profile.name)}</h1>
+        <p style="margin-top:5mm;font-size:12pt;line-height:1.6;color:${IDEM.inkMuted};max-width:140mm">${esc(report.profile.product)}</p>
 
         <div style="margin-top:12mm;display:flex;align-items:center;gap:6mm">
           <div>
@@ -1576,7 +1581,7 @@ export function actionsSection(
 
   return page(
     c,
-    'Recommandations',
+    'Problèmes et Recommandations',
     `
     ${chapterTitle(
       CHAPTERS.actions,
