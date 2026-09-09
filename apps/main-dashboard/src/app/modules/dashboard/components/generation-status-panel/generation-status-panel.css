@@ -95,6 +95,11 @@
   background: rgb(234 179 8 / 0.06);
 }
 
+.section-row.is-underfilled {
+  border-color: rgb(249 115 22 / 0.3);
+  background: rgb(249 115 22 / 0.06);
+}
+
 .section-dot {
   width: 0.5rem;
   height: 0.5rem;
@@ -109,6 +114,10 @@
 
 .section-dot.is-empty {
   background: #eab308;
+}
+
+.section-dot.is-underfilled {
+  background: #f97316;
 }
 
 /* L'action reste discrète au repos et se révèle au survol/focus de la ligne :

@@ -32,6 +32,7 @@ import { CONTEXT_TOOL_DECLARATIONS, createContextToolExecutor } from '../context
 import { DocumentDesignSystem } from '../design/documentDesignSystem';
 import { SectionSeed } from '../design/designSeed';
 import { Block, normalizeSectionContent } from '../design/sectionContent';
+import { htmlToSectionContent, looksLikeHtmlPage } from '../design/htmlToSectionContent';
 import {
   SECTION_PLAN_CONTRACT,
   describeSectionPlan,
@@ -43,6 +44,25 @@ import {
   sectionVolumeDirective,
 } from '../design/sectionContent.prompt';
 import { parseLlmJson } from '../../utils/llm-json.util';
+
+/**
+ * Récupère le texte d'une section renvoyée EN HTML au lieu du contenu structuré.
+ *
+ * Un modèle qui retombe dans son ancien format a fait le travail de fond — les
+ * faits, les chiffres, les citations sont là — et s'est seulement trompé de
+ * contenant. Jeter la section pour cela revient à faire payer au lecteur une
+ * erreur de forme. On garde le fond, le gabarit refait la forme.
+ */
+function salvageHtmlSection(content: string, stepName: string) {
+  if (!looksLikeHtmlPage(content)) return null;
+  const recovered = htmlToSectionContent(content, stepName);
+  if (!recovered) return null;
+  logger.warn(
+    `Section '${stepName}' : sortie en HTML au lieu du contenu structuré. ` +
+      `RÉCUPÉRÉE (${recovered.blocks.length} bloc(s)) et recomposée par le gabarit.`
+  );
+  return normalizeSectionContent(recovered);
+}
 
 /**
  * Tout ce dont le rendu d'une section a besoin. Porté par l'étape parce que la
@@ -750,7 +770,13 @@ export class GenericService {
     // palette, la grille, la typographie, les contrastes et le logo du document.
     // Rien de tout cela ne dépend plus de ce que le modèle a bien voulu suivre.
     if (step.template) {
-      const parsed = normalizeSectionContent(parseLlmJson(content));
+      // La récupération HTML est le jumeau de celle de l'équipe de recherche
+      // (cf. `ResearchTeamService.salvage`). Les deux chemins de rendu doivent
+      // tenir la même règle : une sortie mal formatée coûte sa mise en page,
+      // jamais son contenu.
+      const parsed =
+        normalizeSectionContent(parseLlmJson(content)) ??
+        salvageHtmlSection(content, step.stepName);
       if (parsed) {
         // Les blocs SPÉCIMENS viennent du projet, pas du modèle : ils sont
         // posés en tête, avant ce que le modèle a écrit autour d'eux.
@@ -787,8 +813,8 @@ export class GenericService {
         // dit, au lieu d'être abîmé sans le dire.
         const head = content.slice(0, 160).replace(/\s+/g, ' ');
         logger.error(
-          `Section '${step.stepName}' : contenu illisible après escalade et après ` +
-            `réparation de troncature. Section abandonnée plutôt que livrée en brut. ` +
+          `Section '${step.stepName}' : sortie vide de tout contenu exploitable, même ` +
+            `après réparation de troncature et récupération du texte. ` +
             `Début de la sortie : ${head}`
         );
         throw new Error(
