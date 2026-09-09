@@ -51,7 +51,7 @@ export const BRANDING_SECTION_NAMES = [
   'Brand Mockup 3',
 ] as const;
 
-export type SectionCompletionStatus = 'complete' | 'missing' | 'empty';
+export type SectionCompletionStatus = 'complete' | 'missing' | 'empty' | 'underfilled';
 
 export interface SectionCompletionItem {
   name: string;
@@ -64,6 +64,8 @@ export interface GenerationCompleteness {
   missing: string[];
   /** Sections présentes mais sans contenu exploitable (génération interrompue). */
   empty: string[];
+  /** Sections présentes et remplies mais avec sous-remplissage PDF. */
+  underfilled: string[];
   completedCount: number;
   totalCount: number;
   isComplete: boolean;
@@ -81,8 +83,10 @@ const MIN_SECTION_CONTENT_LENGTH = 40;
 export function analyzeGenerationCompleteness(
   expectedNames: readonly string[],
   sections: ReadonlyArray<{ name: string; data?: unknown }> | null | undefined,
+  underfilledNames?: readonly string[],
 ): GenerationCompleteness {
   const bySectionName = new Map((sections ?? []).map((section) => [section.name, section]));
+  const underfilledSet = new Set(underfilledNames ?? []);
 
   const items: SectionCompletionItem[] = expectedNames.map((name) => {
     const section = bySectionName.get(name);
@@ -94,17 +98,25 @@ export function analyzeGenerationCompleteness(
       typeof data === 'string'
         ? data.trim().length >= MIN_SECTION_CONTENT_LENGTH
         : data != null;
-    return { name, status: hasContent ? 'complete' : 'empty' };
+    if (!hasContent) {
+      return { name, status: 'empty' };
+    }
+    if (underfilledSet.has(name)) {
+      return { name, status: 'underfilled' };
+    }
+    return { name, status: 'complete' };
   });
 
   const missing = items.filter((i) => i.status === 'missing').map((i) => i.name);
   const empty = items.filter((i) => i.status === 'empty').map((i) => i.name);
-  const completedCount = items.length - missing.length - empty.length;
+  const underfilled = items.filter((i) => i.status === 'underfilled').map((i) => i.name);
+  const completedCount = items.filter((i) => i.status === 'complete' || i.status === 'underfilled').length;
 
   return {
     items,
     missing,
     empty,
+    underfilled,
     completedCount,
     totalCount: expectedNames.length,
     isComplete: missing.length === 0 && empty.length === 0,

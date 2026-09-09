@@ -528,12 +528,12 @@ export const AI_CONFIG = {
         llmOptions: { ...SAMPLING_DIVERGENT, maxOutputTokens: 18000 },
       },
       // Synthèse : la section la plus lue, elle doit être dense et juste.
-      'Company Summary': { llmOptions: { maxOutputTokens: 30000, temperature: 0.55 } },
+      'Company Summary': { llmOptions: { maxOutputTokens: 44000, temperature: 0.55 } },
       // Sections nourries par la recherche : beaucoup de matière à structurer.
-      Opportunity: { llmOptions: { maxOutputTokens: 36000, temperature: 0.5 } },
-      'Target Audience': { llmOptions: { maxOutputTokens: 32000, temperature: 0.55 } },
-      'Products & Services': { llmOptions: { maxOutputTokens: 32000, temperature: 0.55 } },
-      'Marketing & Sales': { llmOptions: { maxOutputTokens: 32000, temperature: 0.6 } },
+      Opportunity: { llmOptions: { maxOutputTokens: 44000, temperature: 0.5 } },
+      'Target Audience': { llmOptions: { maxOutputTokens: 44000, temperature: 0.55 } },
+      'Products & Services': { llmOptions: { maxOutputTokens: 44000, temperature: 0.55 } },
+      'Marketing & Sales': { llmOptions: { maxOutputTokens: 44000, temperature: 0.6 } },
       // Section la plus lourde : tableaux chiffrés, hypothèses, projections.
       // PRÉCISION assumée : monter la température ici produit des chiffres qui
       // ne s'additionnent plus. Le gain de qualité vient du raisonnement et du
@@ -543,8 +543,8 @@ export const AI_CONFIG = {
       },
       // Jalons et annexes : restructuration de matière déjà produite en amont
       // (elles reçoivent les digests des sections dont elles dépendent).
-      'Goal Planning': { llmOptions: { maxOutputTokens: 24000, temperature: 0.5 } },
-      Appendix: { tier: 'M', llmOptions: { maxOutputTokens: 20000, temperature: 0.5 } },
+      'Goal Planning': { llmOptions: { maxOutputTokens: 44000, temperature: 0.5 } },
+      Appendix: { tier: 'M', llmOptions: { maxOutputTokens: 44000, temperature: 0.5 } },
     },
   } as FeatureAIConfig,
 

@@ -61,8 +61,46 @@ export const getBusinessPlansByProjectController = async (
 };
 
 /**
- * Contrôleur pour générer un PDF à partir des sections du business plan d'un projet
+ * Retourne la qualité PDF du dernier rendu (sections sous-remplies).
+ * Les sections dont le worstFill < 0.60 sont listées ; le frontend peut
+ * alors proposer un retry ciblé section par section.
  */
+export const getBusinessPlanPdfQualityController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId } = req.params;
+  logger.info(`getBusinessPlanPdfQualityController called - UserId: ${userId}, ProjectId: ${projectId}`);
+
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    if (!projectId) {
+      res.status(400).json({ message: 'Project ID is required' });
+      return;
+    }
+
+    const pdfQuality = await businessPlanService.getPdfQuality(userId, projectId as string);
+    if (!pdfQuality) {
+      // Aucun PDF encore généré ou aucun rapport disponible — réponse vide, pas une erreur.
+      res.status(200).json({ underFilledSections: [] });
+      return;
+    }
+
+    res.status(200).json(pdfQuality);
+  } catch (error: any) {
+    logger.error(
+      `Error in getBusinessPlanPdfQualityController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
+      { stack: error.stack }
+    );
+    res.status(500).json({ message: error.message || 'Failed to retrieve PDF quality' });
+  }
+};
+
+
 export const generateBusinessPlanPdfController = async (
   req: CustomRequest,
   res: Response
