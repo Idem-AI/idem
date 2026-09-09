@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { environment } from '../../../../../environments/environment';
-import { BusinessPlanModel } from '../../models/businessPlan.model';
+import { BusinessPlanModel, BusinessPlanPdfQuality } from '../../models/businessPlan.model';
 import { SSEService } from '../../../../shared/services/sse.service';
 import { SSEStepEvent, SSEConnectionConfig } from '../../../../shared/models/sse-step.model';
 
@@ -230,6 +230,21 @@ export class BusinessPlanService {
             (genericError as any).isRetryable = true;
             return genericError;
           });
+        }),
+      );
+  }
+
+  /**
+   * Get PDF quality metrics for a generated business plan.
+   * @param projectId Project ID
+   */
+  getBusinessPlanPdfQuality(projectId: string): Observable<BusinessPlanPdfQuality> {
+    return this.http
+      .get<BusinessPlanPdfQuality>(`${this.apiUrl}/pdf-quality/${projectId}`)
+      .pipe(
+        catchError((error) => {
+          console.error(`Error fetching PDF quality for project ${projectId}:`, error);
+          return throwError(() => error);
         }),
       );
   }

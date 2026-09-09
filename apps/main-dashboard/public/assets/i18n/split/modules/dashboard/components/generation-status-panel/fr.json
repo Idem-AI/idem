@@ -3,11 +3,14 @@
     "generationPanel": {
       "incompleteTitle": "Génération incomplète",
       "incompleteSubtitle": "La génération a été interrompue. Reprenez-la pour obtenir les sections manquantes.",
+      "warningTitle": "Avertissement de mise en page",
+      "warningSubtitle": "Certaines sections ont un volume sous-rempli dans le PDF. Vous pouvez les régénérer.",
       "completeTitle": "Génération terminée",
       "status": {
         "complete": "Générée",
         "missing": "Manquante",
-        "empty": "Incomplète"
+        "empty": "Incomplète",
+        "underfilled": "Volume sous-rempli"
       },
       "actions": {
         "resume": "Compléter la génération",

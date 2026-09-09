@@ -801,7 +801,7 @@ export class PdfService {
             `repaired=${report.sections.reduce((n, s) => n + s.repaired, 0)}`
         );
         report.sections
-          .filter((s) => !s.fixed && s.fills.some((f) => f < 0.6))
+          .filter((s) => isUnderfilledSection(s))
           .forEach((s) =>
             logger.warn(
               `Section "${s.name}" leaves an under-filled page (${s.fills
@@ -1316,4 +1316,29 @@ export class PdfService {
       return null;
     }
   }
+}
+
+/**
+ * Evaluates whether a section has a genuine layout under-fill quality issue.
+ *
+ * Rules:
+ * 1. For single-page sections (pages === 1): A fill >= 35% is considered a complete,
+ *    well-rendered single page. Only fills < 35% are flagged as underfilled.
+ * 2. For multi-page sections (pages > 1):
+ *    - The last page is where the section naturally finishes. Finishing fill on the last page
+ *      is expected and normal (unless the entire section average fill < 45%).
+ *    - An intermediate page (pages 1 to N-1) with fill < 50% indicates an unwanted layout gap.
+ */
+export function isUnderfilledSection(s: { pages: number; fills: number[]; fixed?: boolean }): boolean {
+  if (s.fixed || !s.fills || s.fills.length === 0) return false;
+
+  if (s.pages === 1) {
+    return s.fills[0] < 0.35;
+  }
+
+  const intermediatePages = s.fills.slice(0, s.pages - 1);
+  const hasIntermediateUnderfill = intermediatePages.some((f) => f < 0.50);
+  const avgFill = s.fills.reduce((a, b) => a + b, 0) / s.pages;
+
+  return hasIntermediateUnderfill || avgFill < 0.45;
 }

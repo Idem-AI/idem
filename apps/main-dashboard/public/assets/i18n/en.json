@@ -2247,11 +2247,14 @@
     "generationPanel": {
       "incompleteTitle": "Generation incomplete",
       "incompleteSubtitle": "Generation was interrupted. Resume it to get the missing sections.",
+      "warningTitle": "Layout warning",
+      "warningSubtitle": "Some sections have under-filled content in the PDF layout. You can regenerate them.",
       "completeTitle": "Generation complete",
       "status": {
         "complete": "Generated",
         "missing": "Missing",
-        "empty": "Incomplete"
+        "empty": "Incomplete",
+        "underfilled": "Under-filled"
       },
       "actions": {
         "resume": "Finish generation",

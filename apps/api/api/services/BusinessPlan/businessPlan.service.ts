@@ -3,7 +3,7 @@ import { AI_CONFIG } from '../../config/ai.config';
 
 import { ProjectModel } from '../../models/project.model';
 import logger from '../../config/logger';
-import { BusinessPlanModel } from '../../models/businessPlan.model';
+import { BusinessPlanModel, BusinessPlanPdfQuality } from '../../models/businessPlan.model';
 import {
   GenericService,
   IPromptStep,
@@ -12,7 +12,7 @@ import {
 } from '../common/generic.service';
 import { BUSINESS_PLAN_GRAPH } from '../agents/deliverable-graph';
 import { SectionModel } from '../../models/section.model';
-import { PdfService } from '../pdf.service';
+import { PdfService, isUnderfilledSection } from '../pdf.service';
 import { cacheService, CacheOptions } from '../cache.service';
 import { getRequestLanguage, SupportedLanguage } from '../../utils/request-language';
 import crypto from 'crypto';
@@ -29,6 +29,7 @@ import { AGENT_GOAL_PLANNING_PROMPT } from './prompts/agent-goal-planning.prompt
 import { AGENT_APPENDIX_PROMPT } from './prompts/agent-appendix.prompt';
 import { BP_SECTION_EXAMPLE } from './prompts/section-example.prompt';
 import { BP_SECTION_BRIEFS } from './prompts/section-briefs.prompt';
+import { buildBusinessPlanSpec } from './businessPlanSpec';
 import { TeamMember } from '../../models/project.model';
 import { storageService } from '../storage.service';
 import { buildLogoBlock, collectLogoUrls } from '../../utils/brand-context.util';
@@ -287,11 +288,14 @@ export class BusinessPlanService extends GenericService {
 
       const steps: IPromptStep[] = [
         freeform(AGENT_COVER_PROMPT, 'Cover Page'),
-        templated(AGENT_COMPANY_SUMMARY_PROMPT, 'Company Summary', '7 to 9'),
-        templated(AGENT_OPPORTUNITY_PROMPT, 'Opportunity', '8 to 10'),
+        // Volumes augmentés : ces sections produisaient systématiquement trop peu
+        // de contenu pour remplir le nombre de pages allouées (cf. warn
+        // "under-filled page" dans le rapport de pagination PDF).
+        templated(AGENT_COMPANY_SUMMARY_PROMPT, 'Company Summary', '9 to 12'),
+        templated(AGENT_OPPORTUNITY_PROMPT, 'Opportunity', '10 to 13'),
         templated(AGENT_TARGET_AUDIENCE_PROMPT, 'Target Audience', '7 to 9'),
         templated(AGENT_PRODUCTS_SERVICES_PROMPT, 'Products & Services', '7 to 9'),
-        templated(AGENT_MARKETING_SALES_PROMPT, 'Marketing & Sales', '7 to 9'),
+        templated(AGENT_MARKETING_SALES_PROMPT, 'Marketing & Sales', '9 to 12'),
         templated(
           AGENT_FINANCIAL_PLAN_PROMPT,
           'Financial Plan',
@@ -302,8 +306,8 @@ export class BusinessPlanService extends GenericService {
             project.additionalInfos?.country
           )
         ),
-        templated(AGENT_GOAL_PLANNING_PROMPT, 'Goal Planning', '6 to 8'),
-        templated(AGENT_APPENDIX_PROMPT, 'Appendix', '5 to 7'),
+        templated(AGENT_GOAL_PLANNING_PROMPT, 'Goal Planning', '8 to 11'),
+        templated(AGENT_APPENDIX_PROMPT, 'Appendix', '7 to 10'),
       ];
 
       // Chaque section produit une page HTML : la grille déterministe attrape
@@ -590,7 +594,7 @@ export class BusinessPlanService extends GenericService {
         : currentSections;
     const existingNames = new Set(existingSections.map((s) => s.name));
 
-    const fullSpec = this.buildBusinessPlanSpec(
+    const fullSpec = buildBusinessPlanSpec(
       projectDescription,
       financeContext,
       country
@@ -701,69 +705,6 @@ export class BusinessPlanService extends GenericService {
     return this.projectRepository.findById(projectId, `users/${userId}/projects`);
   }
 
-  /**
-   * Construit la spécification des 9 sections pour l'équipe de recherche.
-   * Les sections "marché/chiffrées" activent la recherche web sourcée; les
-   * sections qualitatives (Cover, résumé, objectifs, annexe) restent internes.
-   */
-  private buildBusinessPlanSpec(
-    projectDescription: string,
-    financeContext: string,
-    country: string
-  ): DeliverableSection[] {
-    const geo = country ? ` (priority market: ${country})` : '';
-    const ctx = projectDescription.slice(0, 400);
-    return [
-      // La couverture est une composition PLEINE PAGE, à hauteur fixe (cf.
-      // `fixedPageSections`) : elle ne passe pas par le gabarit, sinon elle
-      // deviendrait une page de contenu comme les huit autres.
-      { name: 'Cover Page', instructions: AGENT_COVER_PROMPT, needsResearch: false, freeform: true },
-      { name: 'Company Summary', instructions: AGENT_COMPANY_SUMMARY_PROMPT, needsResearch: false },
-      {
-        name: 'Opportunity',
-        instructions: AGENT_OPPORTUNITY_PROMPT,
-        needsResearch: true,
-        researchBriefs: [
-          `Market size (TAM/SAM/SOM), annual growth rate (CAGR) and recent projections for the project's sector${geo}. Context: ${ctx}`,
-          `The problem addressed: recent statistics and studies quantifying its scale${geo}`,
-          `Recent trends and regulatory factors affecting this market${geo}`,
-        ],
-      },
-      {
-        name: 'Target Audience',
-        instructions: AGENT_TARGET_AUDIENCE_PROMPT,
-        needsResearch: true,
-        researchBriefs: [
-          `Size and demographics of the target customer segments${geo}. Context: ${ctx}`,
-          `Purchasing behaviour, spending power and adoption rates for those segments${geo}`,
-        ],
-      },
-      // Cette section décrit l'offre du porteur de projet : elle est déjà dans
-      // le projet. Les prix pratiqués par la concurrence, eux, sont utiles —
-      // ils ont rejoint le plan financier, qui est la section qui s'en sert.
-      { name: 'Products & Services', instructions: AGENT_PRODUCTS_SERVICES_PROMPT, needsResearch: false },
-      // Les CAC et taux de conversion « de référence » par secteur et par pays
-      // ne se trouvent pas sous forme de données sourcées : la recherche
-      // ramenait des articles génériques, et la section est de toute façon une
-      // stratégie déduite du projet.
-      { name: 'Marketing & Sales', instructions: AGENT_MARKETING_SALES_PROMPT, needsResearch: false },
-      {
-        name: 'Financial Plan',
-        instructions: AGENT_FINANCIAL_PLAN_PROMPT + financeContext,
-        needsResearch: true,
-        researchBriefs: [
-          `Benchmark gross margins and cost structures for the sector${geo}. Context: ${ctx}`,
-          // Reprise de « Produits & Services » : c'est ici que les prix du
-          // marché servent réellement. Les multiples de valorisation qu'on
-          // cherchait avant n'ont pas leur place dans un plan à ce stade, et le
-          // module Finance fournit déjà les chiffres du projet.
-          `Price ranges charged by competitors for this kind of offering${geo}`,
-        ],
-      },
-      { name: 'Goal Planning', instructions: AGENT_GOAL_PLANNING_PROMPT, needsResearch: false },
-      { name: 'Appendix', instructions: AGENT_APPENDIX_PROMPT, needsResearch: false },
-    ];
-  }
 
   /**
    * Contexte de marque transmis à CHAQUE agent du plan.
@@ -969,6 +910,9 @@ export class BusinessPlanService extends GenericService {
 
     logger.info(`Business plan PDF cache miss, generating new PDF for projectId: ${projectId}`);
 
+    // Capturer le rapport de pagination pour détecter les pages sous-remplies.
+    let capturedPaginationReport: import('../pdf/flow-pagination.runtime').FlowPaginationReport | null = null;
+
     // Utiliser le PdfService pour générer le PDF
     const pdfPath = await this.pdfService.generatePdf({
       title: 'Business Plan',
@@ -993,7 +937,13 @@ export class BusinessPlanService extends GenericService {
       // La couverture est une composition pleine page : elle est rendue telle
       // quelle, jamais redécoupée ni étirée par le paginateur.
       fixedPageSections: ['Cover Page'],
+      onPaginationReport: (report) => {
+        capturedPaginationReport = report;
+      },
     });
+
+    // Persister la qualité PDF (sections sous-remplies) sur le projet.
+    await this.persistPdfQuality(userId, projectId, capturedPaginationReport);
 
     // Cache the PDF path for future requests
     await cacheService.set(pdfCacheKey, pdfPath, {
@@ -1102,6 +1052,82 @@ export class BusinessPlanService extends GenericService {
       project: savedProject,
       uploadedImages: Object.keys(uploadedImages).length > 0 ? uploadedImages : undefined,
     };
+  }
+
+  /**
+   * Retourne la qualité PDF du dernier rendu (sections sous-remplies).
+   * Lit directement le champ `pdfQuality` persisté sur le projet.
+   */
+  async getPdfQuality(
+    userId: string,
+    projectId: string
+  ): Promise<BusinessPlanPdfQuality | null> {
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    if (!project) return null;
+    return project.analysisResultModel?.businessPlan?.pdfQuality ?? null;
+  }
+
+  /**
+   * Construit le résumé de qualité PDF à partir du rapport de pagination et
+   * le persiste sur le projet (champ `businessPlan.pdfQuality`).
+   *
+   * Le seuil de 0.60 est cohérent avec le warn journalisé par `pdf.service.ts`
+   * (f < 0.6). Les sections dont TOUTES les pages sont bien remplies, ou les
+   * pages « fixées » (Cover Page), ne sont pas incluses.
+   */
+  private async persistPdfQuality(
+    userId: string,
+    projectId: string,
+    report: import('../pdf/flow-pagination.runtime').FlowPaginationReport | null
+  ): Promise<void> {
+    if (!report) return;
+
+    const underFilled = report.sections
+      .filter((s) => isUnderfilledSection(s))
+      .map((s) => ({
+        sectionName: s.name,
+        worstFill: Math.min(...s.fills),
+        pages: s.pages,
+      }));
+
+    const pdfQuality: BusinessPlanPdfQuality = {
+      generatedAt: new Date(),
+      underFilledSections: underFilled,
+    };
+
+    try {
+      const currentProject = await this.projectRepository.findById(
+        projectId,
+        `users/${userId}/projects`
+      );
+      if (!currentProject?.analysisResultModel?.businessPlan) return;
+
+      await this.projectRepository.update(
+        projectId,
+        {
+          ...currentProject,
+          analysisResultModel: {
+            ...currentProject.analysisResultModel,
+            businessPlan: {
+              ...currentProject.analysisResultModel.businessPlan,
+              pdfQuality,
+            },
+          },
+        },
+        `users/${userId}/projects`
+      );
+
+      if (underFilled.length > 0) {
+        logger.info(
+          `PDF quality persisted for project ${projectId}: ${underFilled.length} under-filled section(s): ` +
+            underFilled.map((s) => `${s.sectionName} (${Math.round(s.worstFill * 100)}%)`).join(', ')
+        );
+      } else {
+        logger.info(`PDF quality persisted for project ${projectId}: all pages well-filled.`);
+      }
+    } catch (err: any) {
+      logger.warn(`Could not persist PDF quality for project ${projectId}: ${err.message}`);
+    }
   }
 
   /**

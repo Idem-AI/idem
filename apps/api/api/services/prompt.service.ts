@@ -857,6 +857,14 @@ export class PromptService {
       ...(llmOptions.maxOutputTokens && { max_tokens: llmOptions.maxOutputTokens }),
       ...(llmOptions.temperature !== undefined && { temperature: llmOptions.temperature }),
       ...(llmOptions.topP !== undefined && { top_p: llmOptions.topP }),
+      // LE MODE JSON VAUT AUSSI EN FLUX. Il ne passait que par l'appel
+      // non-streamé : un `jsonMode: true` était donc accepté sans effet dès
+      // que l'appelant voulait un aperçu pendant la rédaction. C'est le cas du
+      // rédacteur de l'équipe de recherche — la seule garantie de format de
+      // ses sections tombait précisément là où le contenu est le plus long.
+      ...(jsonModeFor(llmOptions, openaiMessages)
+        ? { response_format: { type: 'json_object' as const } }
+        : {}),
     };
 
     const stream = await client.chat.completions.create({
@@ -1832,6 +1840,10 @@ export class PromptService {
       ...(llmOptions.maxOutputTokens && { maxOutputTokens: llmOptions.maxOutputTokens }),
       ...(llmOptions.temperature !== undefined && { temperature: llmOptions.temperature }),
       ...(llmOptions.topP && { topP: llmOptions.topP }),
+      // Pendant qu'on y est, le pendant Gemini du même oubli (cf. le flux
+      // openai-compatible ci-dessus) : `responseMimeType` n'était posé que sur
+      // le chemin non-streamé.
+      ...(llmOptions.jsonMode ? { responseMimeType: 'application/json' } : {}),
       ...(systemParts.length > 0 && { systemInstruction: systemParts.join('\n\n') }),
       ...(cachedContent && { cachedContent }),
     };

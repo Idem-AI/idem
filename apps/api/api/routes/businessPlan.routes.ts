@@ -5,6 +5,7 @@ import {
   deleteBusinessPlanController,
   generateBusinessPlanStreamingController,
   generateBusinessPlanPdfController,
+  getBusinessPlanPdfQualityController,
   setAdditionalInfoController,
   saveBusinessPlanSectionsController,
   aiEditBusinessPlanSectionController,
@@ -411,6 +412,17 @@ businessPlanRoutes.get(
   authenticate,
   pdfTimeout,
   generateBusinessPlanPdfController
+);
+
+/**
+ * GET /businessPlans/pdf-quality/:projectId
+ * Retourne les sections dont au moins une page est sous-remplie dans le dernier PDF généré.
+ * Utilisé par le frontend pour proposer un retry ciblé par section.
+ */
+businessPlanRoutes.get(
+  `/${resourceName}/pdf-quality/:projectId`,
+  authenticate,
+  getBusinessPlanPdfQualityController
 );
 
 // Set additional information for a business plan project (with team member images upload)

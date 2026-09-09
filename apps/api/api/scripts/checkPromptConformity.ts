@@ -41,6 +41,7 @@ import {
   normalizeSectionPlan,
 } from '../services/design/sectionPlan';
 import { AI_CONFIG, FeatureAIConfig } from '../config/ai.config';
+import { buildBusinessPlanSpec } from '../services/BusinessPlan/businessPlanSpec';
 
 let failures = 0;
 
@@ -301,6 +302,52 @@ console.log('\n  Consignes contradictoires');
     "mockup « attached » : n'exige plus un support vierge",
     !demandsBare(attached) && !forbidsLogo(attached),
     'un support vierge ET un logo posé sont incompatibles'
+  );
+}
+
+// ── L'ÉQUIPE DE RECHERCHE REÇOIT LE MÊME BRIEF QUE LE GABARIT ───────────────
+//
+// Quatrième occurrence du défaut décrit juste au-dessus, et la plus coûteuse :
+// `buildBusinessPlanSpec` passait au rédacteur les prompts `agent-*` d'origine,
+// dont les `<technical_rules>` exigent « raw HTML + Tailwind on a single
+// minified line ». Le contrat de contenu structuré était ajouté APRÈS, dans le
+// même message. Le modèle rendait du HTML, `parseLlmJson` échouait, et la
+// section était abandonnée : sur un plan livré, « Opportunity » et « Target
+// Audience » manquaient — les deux plus longues, donc les plus chères.
+//
+// La règle : sous gabarit, une section ne reçoit AUCUN marqueur de composition.
+// Seule la couverture (`freeform`) y échappe, parce qu'elle compose vraiment.
+console.log('\n  Équipe de recherche : consignes de section');
+
+{
+  const spec = buildBusinessPlanSpec('Une plateforme de X pour Y.', '', 'Cameroun');
+
+  check('la spécification couvre les neuf sections', spec.length === 9, `${spec.length} section(s)`);
+
+  for (const section of spec) {
+    if (section.freeform) {
+      // La couverture compose sa page : ses règles HTML sont à leur place.
+      check(`« ${section.name} » (libre) garde son prompt de composition`,
+        COMPOSITION_MARKERS.some(({ pattern }) => pattern.test(section.instructions)));
+      continue;
+    }
+    const found = COMPOSITION_MARKERS.filter(({ pattern }) => pattern.test(section.instructions));
+    check(
+      `« ${section.name} » ne décrit pas une composition`,
+      found.length === 0,
+      found.map(({ what }) => what).join(', ')
+    );
+  }
+
+  // Un brief manquant ferait retomber la section sur son prompt HTML sans que
+  // rien ne le signale : c'est exactement le repli que le contrôle ci-dessus
+  // attraperait, mais autant nommer la cause.
+  const templatedNames = spec.filter((s) => !s.freeform).map((s) => s.name);
+  const missing = templatedNames.filter((name) => !BP_SECTION_BRIEFS[name]);
+  check(
+    'chaque section sous gabarit dispose de son brief de contenu',
+    missing.length === 0,
+    missing.join(', ')
   );
 }
 
