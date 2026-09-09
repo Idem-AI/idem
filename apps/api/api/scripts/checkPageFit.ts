@@ -44,6 +44,7 @@ import { buildDocumentSeed, buildSectionSeed } from '../services/design/designSe
 import { buildDocumentDesignSystem } from '../services/design/documentDesignSystem';
 import { SectionContent } from '../services/design/sectionContent';
 import {
+  documentVariant,
   IMPLEMENTED_ARCHETYPES,
   LANDSCAPE_SLIDE,
   PORTRAIT_A4,
@@ -173,6 +174,39 @@ function buildPages(): PageProbe[] {
         index: 3,
       }),
     });
+  }
+
+  // ── LES TROIS PRÉSENTATIONS DU NUANCIER ─────────────────────────────────
+  //
+  // Elles sont tirées des invariants du document : pour les mesurer toutes,
+  // il faut donc plusieurs documents. On balaie des clés jusqu'à tenir les
+  // trois, et l'on VÉRIFIE qu'on les a — sans quoi ce harnais pourrait couvrir
+  // deux présentations sur trois sans que personne ne s'en aperçoive.
+  const seenVariants = new Set<number>();
+  for (let k = 0; k < 24 && seenVariants.size < 3; k++) {
+    const key = `fit:variant-${k}`;
+    const vSeed = buildSectionSeed('editorial', key, 'nuancier', new Set());
+    const variant = documentVariant(vSeed);
+    if (seenVariants.has(variant)) continue;
+    seenVariants.add(variant);
+    const vDs = buildDocumentDesignSystem(CHARTER, { styleId: 'editorial' } as never, buildDocumentSeed('editorial', key));
+    pages.push({
+      name: `16:9 nuancier — présentation ${variant}`,
+      width: LANDSCAPE_SLIDE.width,
+      height: LANDSCAPE_SLIDE.minHeight,
+      html: renderSection(SWATCH_PAGE, vDs, vSeed, {
+        page: LANDSCAPE_SLIDE,
+        multiPage: false,
+        brandName: 'Café des Hauts',
+        index: 2,
+      }),
+    });
+  }
+  if (seenVariants.size < 3) {
+    failures += 1;
+    console.error(
+      `  ✗ le harnais ne couvre que ${seenVariants.size} présentation(s) de nuancier sur 3`
+    );
   }
 
   // Les pages spécimens, sur trois archétypes différents : ce sont elles que

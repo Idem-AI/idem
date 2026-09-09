@@ -60,6 +60,7 @@ import {
   computeRobustness,
   computeSensitivity,
   computeVerdict,
+  computeUnitEconomics,
   computeViability,
   computeViabilityConditions,
   projectBusiness,
@@ -777,6 +778,10 @@ export class SimulationService {
       financials: buildFinancialSummary(baseline, points),
       sensitivity,
       conditions,
+      // La décomposition et l'économie unitaire étaient calculées puis jetées :
+      // le rapport n'avait plus de quoi expliquer d'où sort le score.
+      viabilityBreakdown: viability,
+      unitEconomics: computeUnitEconomics(baseline),
     };
   }
 
@@ -822,7 +827,7 @@ export class SimulationService {
     if (!simulation.result || !simulation.understanding) {
       throw new Error('The simulation has not produced a result yet.');
     }
-    if (simulation.report) return simulation.report;
+    if (simulation.report) return this.completeReport(simulation);
 
     const { understanding, factors, result } = simulation;
     const sensitivitySummary = result.sensitivity
@@ -858,6 +863,10 @@ export class SimulationService {
       recommendations: output.recommendations,
       evidence: simulation.evidence,
       validationNeeded: output.validationNeeded,
+      // Le rapport ARGUMENTE, l'exécution constate : tout ce que l'analyse a
+      // produit pour justifier son verdict voyage avec le document, sans quoi
+      // le PDF affirmait un score sans jamais dire d'où il sort.
+      ...reportAnalysis(result, understanding),
     };
 
     await this.mutate(userId, projectId, simulationId, (current) => {
@@ -896,14 +905,7 @@ export class SimulationService {
       throw new Error(`Simulation not found: ${simulationId}`);
     }
     if (simulation.report) {
-      // Les rapports produits avant le regroupement « problèmes et réponses »
-      // ne portent pas leurs risques : on les reprend du résultat, qui les a
-      // toujours eus. Sans cela, un rapport ancien s'ouvrirait sur un chapitre
-      // vide plutôt que sur ses problèmes.
-      if (!simulation.report.risks?.length && simulation.result?.risks?.length) {
-        return { ...simulation.report, risks: simulation.result.risks };
-      }
-      return simulation.report;
+      return this.completeReport(simulation);
     }
     if (simulation.tier === 'run' || !simulation.result || !simulation.understanding) {
       return null;
@@ -913,6 +915,39 @@ export class SimulationService {
       `Rapport manquant sur ${simulationId} (forfait ${simulation.tier}) — génération à la demande`
     );
     return this.generateReport(userId, projectId, simulationId);
+  }
+
+  /**
+   * Complète un rapport déjà en base avec ce que sa version n'y mettait pas.
+   *
+   * Un rapport est persisté une fois puis relu pendant des mois : chaque
+   * chapitre ajouté au document trouverait donc son champ vide sur tout ce qui
+   * a été produit avant lui. Les valeurs manquantes sont reprises du RÉSULTAT,
+   * qui les a toujours portées — c'est une recomposition, pas une invention, et
+   * elle ne coûte aucun appel au modèle.
+   *
+   * Rien n'est réécrit en base : le rapport stocké reste celui qui a été payé,
+   * seule sa lecture est complétée.
+   */
+  private completeReport(simulation: SimulationModel): SimulationReport {
+    const report = simulation.report!;
+    const result = simulation.result;
+    if (!result) return report;
+
+    const completed: SimulationReport = { ...report };
+    // Les risques d'abord : sans eux le chapitre des recommandations perd le
+    // problème auquel chaque action répond.
+    if (!completed.risks?.length && result.risks?.length) {
+      completed.risks = result.risks;
+    }
+    const analysis = reportAnalysis(result, simulation.understanding);
+    for (const [key, value] of Object.entries(analysis)) {
+      if (value === undefined) continue;
+      if ((completed as any)[key] === undefined) {
+        (completed as any)[key] = value;
+      }
+    }
+    return completed;
   }
 
   // ===================================================================
@@ -1185,6 +1220,41 @@ export class SimulationService {
 
 export const simulationService = new SimulationService(new PromptService());
 
+
+/**
+ * Ce que le RAPPORT reprend du résultat pour pouvoir s'expliquer.
+ *
+ * Un seul endroit, appelé à la composition comme à la relecture : sans cela,
+ * un champ ajouté au rapport aurait été rempli à la génération et absent des
+ * rapports déjà produits, ou l'inverse.
+ */
+function reportAnalysis(
+  result: SimulationResult,
+  understanding?: ProjectUnderstanding
+): Partial<SimulationReport> {
+  const baseline = understanding?.baseline;
+
+  // La décomposition et l'économie unitaire sont DÉTERMINISTES : quand une
+  // exécution ancienne ne les porte pas, les recalculer depuis la baseline
+  // coûte quelques multiplications et rend au rapport son chapitre le plus
+  // utile. Aucun appel au modèle, aucun chiffre inventé.
+  const viabilityBreakdown =
+    result.viabilityBreakdown ??
+    (baseline ? computeViability(baseline, projectBusiness(baseline)) : undefined);
+  const unitEconomics =
+    result.unitEconomics ?? (baseline ? computeUnitEconomics(baseline) : undefined);
+
+  return {
+    verdictRationale: result.verdictRationale,
+    strengths: result.strengths,
+    weaknesses: result.weaknesses,
+    keyUncertainties: result.keyUncertainties,
+    factorSummary: result.factorSummary,
+    viabilityBreakdown,
+    unitEconomics,
+    baseline,
+  };
+}
 
 /**
  * Compose la description longue du projet créé à partir d'un business plan.

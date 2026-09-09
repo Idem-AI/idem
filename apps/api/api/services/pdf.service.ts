@@ -75,6 +75,15 @@ export interface PdfGenerationOptions {
     left?: string;
   };
   typography?: TypographyModel;
+  /**
+   * Rapport de pagination, remis à l'appelant.
+   *
+   * Le paginateur mesure déjà tout ce qu'un contrôle de mise en page peut
+   * vouloir savoir — pages produites, remplissage, blocs découpés,
+   * avertissements — et le journalisait sans le rendre. Un harnais devait donc
+   * relire des logs, ou remesurer un DOM qui n'existe plus. Il le reçoit ici.
+   */
+  onPaginationReport?: (report: FlowPaginationReport) => void;
 }
 
 /** Échappe une valeur destinée à un attribut HTML entre guillemets doubles. */
@@ -801,6 +810,7 @@ export class PdfService {
             )
           );
         report.warnings.forEach((w) => logger.warn(`Flow pagination warning: ${w}`));
+        options.onPaginationReport?.(report);
       } else {
         // ── PAGES À HAUTEUR FIXE (deck, charte) ────────────────────────────
         //

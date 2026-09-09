@@ -96,7 +96,44 @@ export const LANDSCAPE_SLIDE: PageFormat = {
  * Elle ne décide pas que du rendu : elle décide de la PLACE offerte aux blocs,
  * donc de ce qui tient sur une page rognée (cf. `fitToPage`).
  */
-export type PageLayout = 'portrait' | 'side' | 'stacked';
+/**
+ * Les STRUCTURES d'une page en paysage.
+ *
+ * ── LE DÉFAUT QUE CECI CORRIGE ──────────────────────────────────────────────
+ *
+ * Il y en avait DEUX : `side` (titre à gauche, contenu à droite) et `stacked`
+ * (titre en haut, contenu dessous). Les douze archétypes s'y ramenaient tous,
+ * et ne différaient plus que par l'ornement de leur en-tête — un filet, un
+ * numéro, une bordure.
+ *
+ * Or un style de direction artistique ne tire que dans QUATRE OU CINQ
+ * archétypes. Mesuré sur le catalogue : deux styles — « minimalism » et
+ * « retro » — n'avaient accès qu'à des archétypes de la MÊME disposition. Une
+ * charte en style minimaliste sortait donc avec sept pages rigoureusement
+ * identiques de structure, ce que ni le tirage de la graine ni le contrôle
+ * d'unicité ne pouvaient voir : ils comptaient des dimensions que le rendu ne
+ * lisait pas.
+ *
+ * Six structures, réparties de sorte que CHAQUE style en atteigne au moins
+ * trois (moyenne 4,1 pour quatre à cinq archétypes). La vérification est
+ * automatique — cf. `check:uniqueness`, section « structures réellement
+ * rendues ».
+ */
+export type LandscapeLayout =
+  /** En-tête colonne gauche (5/12), contenu à droite (7/12). */
+  | 'side'
+  /** Contenu à gauche (7/12), en-tête colonne droite alignée à droite (5/12). */
+  | 'side-reverse'
+  /** En-tête pleine largeur, contenu dans la grille à douze colonnes dessous. */
+  | 'stacked'
+  /** En-tête en aplat saignant jusqu'aux bords, contenu dessous. */
+  | 'banner'
+  /** En-tête centré sur une mesure resserrée, contenu centré dessous. */
+  | 'centered'
+  /** En-tête dans le quart haut-gauche, contenu pleine largeur dessous. */
+  | 'corner';
+
+export type PageLayout = 'portrait' | LandscapeLayout;
 
 export const LANDSCAPE_A4: PageFormat = {
   width: '297mm',
@@ -381,6 +418,33 @@ interface Ctx {
    */
   padMm: number;
   /**
+   * Largeur, en px, offerte à l'EN-TÊTE par la structure de la page.
+   *
+   * `fitTitleSize` la prenait pour 430 px en dur, quelle que soit la structure.
+   * C'était à peu près juste pour une colonne des 5/12 et faux partout
+   * ailleurs — de moitié trop petit en pleine largeur, de moitié trop grand
+   * dans l'en-tête à deux colonnes de l'archétype « D ».
+   */
+  headerWidthPx: number;
+  /**
+   * Hauteur, en px, que le titre ne doit pas dépasser. Zéro = pas de borne.
+   *
+   * Sur une page PAGINÉE il n'y en a pas : le paginateur donne au document les
+   * pages qu'il lui faut. Sur une page à hauteur fixe, c'est ce qui empêche un
+   * titre de manger la page qu'il annonce.
+   */
+  titleHeightPx: number;
+  /**
+   * Présentation retenue pour les blocs qui en offrent plusieurs (0, 1 ou 2).
+   *
+   * Tirée des invariants du DOCUMENT — stratégie de couleur et accent
+   * graphique — et non de la page : les pages d'une même charte s'accordent
+   * entre elles, deux chartes ne se ressemblent pas. C'est la même règle que
+   * pour la palette et le registre typographique, qui sont eux aussi des
+   * propriétés du document et non de la page.
+   */
+  variant: number;
+  /**
    * Retrait TOTAL du bord de page au contenu, en mm : marge de page plus
    * retrait de la tension spatiale.
    *
@@ -410,6 +474,21 @@ interface Ctx {
 
 /** Millimètres en pixels CSS, à 96 ppp — la conversion du moteur de rendu. */
 const MM_TO_PX = 96 / 25.4;
+
+/**
+ * Présentation des blocs à variantes, tirée des INVARIANTS du document.
+ *
+ * Somme de codes de caractères plutôt qu'un hachage cryptographique : la valeur
+ * n'a besoin d'être ni imprévisible ni uniformément répartie, seulement
+ * DÉTERMINISTE et stable — deux appels sur le même document doivent rendre la
+ * même page, y compris après un redémarrage.
+ */
+export function documentVariant(seed: SectionSeed): number {
+  const key = `${seed.colorStrategy}:${seed.graphicAccent}`;
+  let sum = 0;
+  for (let i = 0; i < key.length; i++) sum += key.charCodeAt(i);
+  return sum % 3;
+}
 
 /** Bloc insécable : le paginateur ne le coupera pas en deux pages. */
 const atomic = ' data-keep-together';
@@ -902,27 +981,146 @@ function renderAssumption(block: Extract<Block, { kind: 'assumption' }>, ctx: Ct
  * affiché — c'est l'information qu'une charte doit porter et que personne
  * n'écrit à la main correctement.
  */
+/**
+ * Nuancier. Le CONTRASTE de chaque teinte sur l'encre du document est CALCULÉ
+ * et affiché — c'est l'information qu'une charte doit porter et que personne
+ * n'écrit à la main correctement.
+ *
+ * ── TROIS PRÉSENTATIONS, ET POURQUOI ────────────────────────────────────────
+ *
+ * Le nuancier est LA page d'une charte : celle qu'on ouvre en premier et celle
+ * qu'on rouvre ensuite. Elle sortait rigoureusement identique d'un projet à
+ * l'autre — même rangée de pastilles, même hauteur de 26 mm, mêmes légendes au
+ * même endroit — quelles que soient la marque, la direction artistique et la
+ * graine. Toute la variété du dispositif se jouait autour d'elle, jamais dedans.
+ *
+ * Trois présentations, choisies par la graine du DOCUMENT : les pages d'une
+ * même charte s'accordent entre elles, deux chartes ne se ressemblent pas.
+ *
+ *   `chips` — pastilles séparées, légendes dessous. La forme de référence.
+ *   `ramp`  — une seule bande continue, segments jointifs. Le nuancier se lit
+ *             comme une gamme plutôt que comme une collection.
+ *   `stack` — bandes horizontales empilées, nom à gauche, valeurs à droite.
+ *             La forme d'un tableau de spécification.
+ *
+ * Aucune n'est un ornement : chacune dit la même chose dans une syntaxe
+ * différente, et les trois portent les mêmes contrastes calculés.
+ */
 function renderSwatches(block: Extract<Block, { kind: 'swatches' }>, ctx: Ctx): string {
   const { ds } = ctx;
+  const gap = snap(ds.spacing);
 
+  /** Encre lisible SUR la teinte : calculée, jamais devinée. */
+  const inkOn = (hex: string): { ink: string; ratio: number } => {
+    const ink = contrastRatio('#ffffff', hex) >= 4.5 ? '#ffffff' : '#000000';
+    return { ink, ratio: Math.round(contrastRatio(ink, hex) * 10) / 10 };
+  };
+
+  // ── `ramp` : une bande continue ────────────────────────────────────────
+  if (ctx.variant === 1) {
+    const band = block.items
+      .map((item) => {
+        const { ink } = inkOn(item.hex);
+        // ── LA TEINTE QUI SE CONFOND AVEC LA PAGE ───────────────────────
+        //
+        // Une charte porte presque toujours sa couleur de FOND parmi ses
+        // valeurs — et cette valeur-là est, par définition, celle de la page.
+        // Dans une bande continue sans bordure, son segment disparaît : la
+        // bande paraît COUPÉE en deux, ce qui se lit comme un défaut
+        // d'impression et non comme une couleur.
+        //
+        // Un filet intérieur la rend visible sans élargir le segment — une
+        // bordure, elle, décalerait tous les suivants et romprait la
+        // continuité qui fait toute la forme.
+        const faint = contrastRatio(item.hex, ds.colors.surface) < 1.3;
+        return `<div${style({
+          'background-color': item.hex,
+          color: ink,
+          height: '34mm',
+          display: 'flex',
+          'align-items': 'flex-end',
+          padding: `${snap(ds.spacing * 0.6)}px`,
+          'font-size': `${ds.typeScale.xs}px`,
+          'font-weight': 700,
+          'box-shadow': faint ? `inset 0 0 0 1px ${ds.colors.rule}` : undefined,
+        })}>${esc(item.hex.toUpperCase())}</div>`;
+      })
+      .join('');
+
+    // Les légendes forment leur propre grille, calée sur la même partition que
+    // la bande : les deux rangées s'alignent colonne à colonne.
+    const legend = subgridRows(3, block.items.length, gap);
+    const labels = block.items
+      .map((item) => {
+        const { ratio } = inkOn(item.hex);
+        return `<div${style(legend.cell)}>
+  <div${style({ 'font-size': `${ds.typeScale.sm}px`, 'font-weight': 600, color: ds.colors.ink })}>${esc(item.name)}</div>
+  <div${style({ 'font-size': `${ds.typeScale.xs}px`, 'line-height': 1.35, color: ds.colors.inkMuted })}>${item.role ? esc(item.role) : ''}</div>
+  <div${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted })}>contraste ${ratio}:1</div>
+</div>`;
+      })
+      .join('');
+
+    return `<div${atomic}>
+  <div${style({
+      display: 'grid',
+      'grid-template-columns': `repeat(${block.items.length}, minmax(0, 1fr))`,
+      'border-radius': `${ds.radius}px`,
+      overflow: 'hidden',
+    })}>${band}</div>
+  <div${style({ ...legend.container, 'margin-top': `${gap}px` })}>${labels}</div>
+</div>`;
+  }
+
+  // ── `stack` : bandes horizontales, à la manière d'un tableau ───────────
+  if (ctx.variant === 2) {
+    const rows = block.items
+      .map((item) => {
+        const { ink, ratio } = inkOn(item.hex);
+        return `<div${style({
+          display: 'grid',
+          'grid-template-columns': '18mm 1fr auto',
+          'align-items': 'center',
+          gap: `${gap}px`,
+          'border-top': `1px solid ${ds.colors.rule}`,
+          padding: `${snap(ds.spacing * 0.75)}px 0`,
+        })}>
+  <div${style({
+          'background-color': item.hex,
+          color: ink,
+          height: '12mm',
+          'border-radius': `${ds.radius}px`,
+          border: `1px solid ${ds.colors.rule}`,
+        })}></div>
+  <div>
+    <div${style({ 'font-size': `${ds.typeScale.sm}px`, 'font-weight': 600, color: ds.colors.ink })}>${esc(item.name)}</div>
+    <div${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted })}>${item.role ? esc(item.role) : ''}</div>
+  </div>
+  <div${style({ 'text-align': 'right', 'white-space': 'nowrap' })}>
+    <div${style({ 'font-size': `${ds.typeScale.sm}px`, 'font-weight': 700, color: ds.colors.ink })}>${esc(item.hex.toUpperCase())}</div>
+    <div${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted })}>contraste ${ratio}:1</div>
+  </div>
+</div>`;
+      })
+      .join('');
+
+    return `<div${atomic}>${rows}</div>`;
+  }
+
+  // ── `chips` : la forme de référence ────────────────────────────────────
+  //
   // QUATRE BANDES : pastille, nom, rôle, contraste. En `flex`, le rôle
   // « Identité, titres, aplats » passait sur trois lignes quand « Surface de
   // page » en tenait deux, et la ligne « contraste » de chaque nuancier
-  // tombait à une hauteur différente. Sur la page qui EST le livrable — le
-  // nuancier d'une charte — c'était le désalignement le plus voyant.
-  const columns = block.items.length;
-  const gap = snap(ds.spacing);
-  const grid = subgridRows(4, columns, gap);
-
+  // tombait à une hauteur différente.
+  const grid = subgridRows(4, block.items.length, gap);
   const cells = block.items
     .map((item) => {
-      // Encre lisible SUR la teinte : calculée, jamais devinée.
-      const onSwatch = contrastRatio('#ffffff', item.hex) >= 4.5 ? '#ffffff' : '#000000';
-      const ratio = Math.round(contrastRatio(onSwatch, item.hex) * 10) / 10;
+      const { ink, ratio } = inkOn(item.hex);
       return `<div${style(grid.cell)}>
   <div${style({
         'background-color': item.hex,
-        color: onSwatch,
+        color: ink,
         height: '26mm',
         'border-radius': `${ds.radius}px`,
         display: 'flex',
@@ -1163,36 +1361,6 @@ interface PageChrome {
   rootInsetMm?: number;
   /** Élément graphique de fond, posé derrière le contenu. */
   backdrop?: string;
-  /**
-   * L'en-tête déborde-t-il jusqu'au bord de la page ?
-   *
-   * ── POURQUOI LA RÉPARTITION VERTICALE A BESOIN DE LE SAVOIR ─────────────
-   *
-   * Un bandeau saigne en posant une marge NÉGATIVE qui annule la marge de la
-   * page. Cela suppose qu'il soit posé en haut de cette page. Placé dans une
-   * zone centrée verticalement, sa marge négative le remonte par rapport à sa
-   * position CENTRÉE, pas par rapport au bord — et il s'arrête à quelques
-   * millimètres du haut, ce qui se lit comme un cadre mal calé plutôt que
-   * comme un aplat.
-   *
-   * Ces en-têtes sont donc posés HORS de la zone répartie, en haut de la page.
-   * Ce n'est pas une exception concédée : c'est la bonne composition — le
-   * titre tient le haut, le contenu respire dans ce qui reste, le pied ferme.
-   */
-  bleeds?: boolean;
-  /**
-   * Grammaire de l'archétype EN PAYSAGE.
-   *
-   * Un format 16:9 ne se compose pas comme une A4 : empiler un titre puis un
-   * flux vertical y laisse une bande vide à droite et fait déborder par le bas —
-   * or le débordement y est ROGNÉ, pas paginé.
-   *
-   *   `side`    — titre dans une colonne, contenu dans l'autre. La grammaire
-   *               naturelle de la diapositive.
-   *   `stacked` — titre pleine largeur, contenu sur deux colonnes dessous. Pour
-   *               les archétypes dont l'identité EST le bandeau ou le cadre.
-   */
-  landscape?: 'side' | 'stacked';
 }
 
 type ArchetypeRenderer = (content: SectionContent, ctx: Ctx) => PageChrome;
@@ -1236,15 +1404,23 @@ const ORPHAN_WORDS = /^(?:&|et|de|du|des|la|le|les|à|au|aux|and|of|the|for|to|i
 function fitTitleSize(
   title: string,
   base: number,
-  landscape: boolean,
-  trackingEm = 0
+  availablePx: number,
+  trackingEm = 0,
+  maxHeightPx = 0,
+  leading = 1.05
 ): number {
   const words = title.trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return base;
 
-  // Largeur utile supposée, en px. Une capitale de labeur mesure ~0,52 em dans
-  // un display ; on prend 0,55 pour rester du côté prudent.
-  const columnPx = landscape ? 430 : 320;
+  // Une capitale de labeur mesure ~0,52 em dans un display ; on prend 0,55 pour
+  // rester du côté prudent.
+  //
+  // La largeur, elle, n'est plus supposée : elle vient de la structure de la
+  // page (`ctx.headerWidthPx`). La valeur en dur de 430 px valait pour une
+  // colonne des 5/12 et pour elle seule ; sur `stacked` elle bridait le titre
+  // sans raison, sur l'en-tête à deux colonnes de « D » elle le laissait
+  // occuper les trois quarts de la page.
+  const columnPx = availablePx;
   // ── L'INTERLETTRAGE COMPTE DANS LA LARGEUR ──────────────────────────────
   //
   // L'avance était tenue pour constante, quelle que soit l'humeur
@@ -1264,8 +1440,38 @@ function fitTitleSize(
   const totalChars = title.trim().length;
   const byThreeLines = (columnPx * 3) / (totalChars * advance);
 
-  const fitted = Math.min(base, byLongestWord, byThreeLines);
-  return Math.round(Math.max(base * 0.62, fitted));
+  // ── LA TROISIÈME CONTRAINTE : LA HAUTEUR DE LA PAGE ─────────────────────
+  //
+  // Les deux règles ci-dessus bornent la LARGEUR. Elles suffisent sur une A4,
+  // où trois lignes de titre restent une fraction modeste de la page. Elles ne
+  // suffisent pas sur une diapositive : trois lignes composées à `4xl` y font
+  // les trois quarts de la hauteur, et le contenu passe sous le pied de page.
+  //
+  // C'est le défaut mesuré à l'ajout des structures empilées — en-têtes de 344
+  // à 387 px dans une zone de 500. Le rendre plus large ne le corrigeait pas :
+  // un titre à qui l'on donne plus de largeur grandit, et grandit en hauteur
+  // autant qu'en largeur.
+  //
+  // On borne donc aussi la hauteur, et l'on cherche la plus grande taille qui
+  // la respecte. La recherche est descendante et bornée : le nombre de lignes
+  // dépend de la taille, donc la contrainte ne se résout pas d'un trait.
+  const fitsHeight = (size: number): boolean => {
+    if (maxHeightPx <= 0) return true;
+    const perLine = Math.max(1, Math.floor(columnPx / (size * advance)));
+    const lines = Math.max(1, Math.ceil(totalChars / perLine));
+    return lines * size * leading <= maxHeightPx;
+  };
+
+  // Le plancher empêche l'autre excès : un titre réduit sans limite cesse
+  // d'être un titre. Il descend plus bas quand une borne de HAUTEUR est en
+  // vigueur — c'est-à-dire quand le titre partage la page avec le contenu
+  // qu'il annonce : là, une ligne de titre gagnée est une ligne de contenu
+  // sauvée, et l'arbitrage penche de l'autre côté.
+  const floor = base * (maxHeightPx > 0 ? 0.5 : 0.62);
+  let fitted = Math.min(base, byLongestWord, byThreeLines);
+  while (fitted > floor && !fitsHeight(fitted)) fitted -= 1;
+
+  return Math.round(Math.max(floor, fitted));
 }
 
 /**
@@ -1309,7 +1515,7 @@ function renderTitle(content: SectionContent, ctx: Ctx, color: string): string {
   return `<h1${style({
     margin: 0,
     'font-family': `'${ds.fonts.display}', ${DISPLAY_FALLBACK}`,
-    'font-size': `${fitTitleSize(title, type.titleSize, ctx.landscape, trackingEm(type.tracking))}px`,
+    'font-size': `${fitTitleSize(title, type.titleSize, ctx.headerWidthPx, trackingEm(type.tracking), ctx.titleHeightPx, type.leading)}px`,
     'font-weight': type.weight,
     'text-transform': type.transform,
     'letter-spacing': type.tracking,
@@ -1348,6 +1554,63 @@ function renderLede(content: SectionContent, ctx: Ctx, color: string): string {
   })}>${esc(content.lede)}</p>`;
 }
 
+/**
+ * Quelle STRUCTURE chaque archétype demande.
+ *
+ * ── POURQUOI UNE TABLE, ET NON UN CHAMP RENDU PAR L'ARCHÉTYPE ───────────────
+ *
+ * L'archétype la déclarait en même temps qu'il produisait son en-tête. Le rendu
+ * ne connaissait donc la structure qu'APRÈS avoir composé le titre — or c'est
+ * la structure qui dit quelle largeur ce titre aura. `fitTitleSize` travaillait
+ * en conséquence sur une largeur SUPPOSÉE (430 px, en dur), et se trompait
+ * d'autant que la structure s'en écartait.
+ *
+ * Mesuré avant correction : sur les dispositions `corner` et `centered`, les
+ * en-têtes occupaient 344 à 387 px d'une zone de 500 px — plus des trois quarts
+ * de la page pour un seul titre — et le contenu débordait sous le pied de page.
+ *
+ * Déclarée ici, la structure est connue AVANT que l'archétype ne compose quoi
+ * que ce soit. La table est par ailleurs lisible d'un coup d'oeil, ce qui est
+ * la condition pour vérifier qu'un style de direction artistique atteint bien
+ * trois structures distinctes (cf. `check:uniqueness`).
+ *
+ * Trois affectations sont IMPOSÉES par l'identité de l'archétype : « B » est un
+ * bandeau saignant, « G » une manchette de journal, « J » un cadre à titre
+ * centré. Les neuf autres ont été réparties par recherche, sous la contrainte
+ * que chaque style atteigne au moins trois structures distinctes.
+ */
+/**
+ * Part de la largeur utile qui revient à l'EN-TÊTE, par structure.
+ *
+ * Une seule source : elle sert à la fois à composer le titre (`fitTitleSize`)
+ * et à borner le conteneur qui l'accueille. Les deux tirés de la même valeur,
+ * ils ne peuvent plus se contredire — c'est exactement ce qui arrivait quand
+ * l'un lisait 62 % et l'autre « 34ch ».
+ */
+const HEADER_SHARE: Record<LandscapeLayout, number> = {
+  side: 5 / 12,
+  'side-reverse': 5 / 12,
+  stacked: 1,
+  banner: 1,
+  centered: 0.62,
+  corner: 0.5,
+};
+
+export const ARCHETYPE_LANDSCAPE: Record<string, LandscapeLayout> = {
+  A: 'side-reverse',
+  B: 'banner',
+  C: 'centered',
+  D: 'corner',
+  E: 'side',
+  F: 'side-reverse',
+  G: 'stacked',
+  H: 'side',
+  I: 'corner',
+  J: 'centered',
+  K: 'corner',
+  L: 'side',
+};
+
 const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   // A — SPLIT ÉDITORIAL : le titre tient les deux tiers de la largeur, le tiers
   // restant est laissé VIDE.
@@ -1362,7 +1625,6 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
     header: `<div${style({ display: 'grid', 'grid-template-columns': '2fr 1fr', gap: `${ctx.ds.spacing * 2}px`, 'align-items': 'end', 'margin-bottom': `${ctx.ds.spacing * 2}px` })}>
   <div>${renderKicker(content, ctx, ctx.roles.highlight)}${renderTitle(content, ctx, ctx.roles.heading)}${renderLede(content, ctx, ctx.ds.colors.inkMuted)}</div>
 </div>`,
-    landscape: 'side',
   }),
 
   // B — BANDEAU PLEIN : le titre est posé sur une bande de couleur pleine largeur.
@@ -1373,26 +1635,30 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
       margin: `-${ctx.padMm}mm -${ctx.bleedMm}mm ${snap(ctx.ds.spacing * 2)}px`,
       padding: `${snap(ctx.ds.spacing * 2.5)}px ${ctx.bleedMm}mm`,
     })}>${renderKicker(content, ctx, ctx.roles.onBand)}${renderTitle(content, ctx, ctx.roles.onBand)}${renderLede(content, ctx, ctx.roles.onBand)}</div>`,
-    bleeds: true,
-    landscape: 'stacked',
   }),
 
   // C — TYPOGRAPHIE DOMINANTE : le titre occupe le tiers supérieur, rien d'autre.
   C: (content, ctx) => ({
-    header: `<div${style({ 'margin-bottom': `${ctx.ds.spacing * 3}px`, 'padding-bottom': `${ctx.ds.spacing * 1.5}px`, 'border-bottom': `1px solid ${ctx.ds.colors.rule}` })}>
+    // Marge basse ramenée de trois à deux unités de rythme — la valeur commune
+    // aux autres archétypes. Trois unités PLUS le retrait sous le filet
+    // faisaient de cet en-tête le plus haut du catalogue, et la page débordait
+    // de 13,8 px sous son pied. La dominance typographique tient au titre et au
+    // filet qui le souligne, pas à l'écart qui suit.
+    header: `<div${style({ 'margin-bottom': `${snap(ctx.ds.spacing * 2)}px`, 'padding-bottom': `${snap(ctx.ds.spacing * 1.5)}px`, 'border-bottom': `1px solid ${ctx.ds.colors.rule}` })}>
   ${renderKicker(content, ctx, ctx.roles.highlight)}
-  <h1${style({
-      margin: 0,
-      'font-family': `'${ctx.ds.fonts.display}', ${DISPLAY_FALLBACK}`,
-      'font-size': `${Math.round(ctx.type.titleSize * 1.35)}px`,
-      'font-weight': 800,
-      'line-height': 0.95,
-      'letter-spacing': '-0.04em',
-      color: ctx.roles.heading,
-    })}>${esc(content.title)}</h1>
+  ${
+    // Le titre était composé ici à la main, à `titleSize × 1.35`, sans passer
+    // par `fitTitleSize` — donc sans jamais regarder combien de mots il porte
+    // ni quelle largeur l'attend. Centré sur une mesure resserrée, il
+    // débordait de 514 px, soit près de la moitié d'une diapositive.
+    //
+    // La dominance typographique de cet archétype ne tient pas au coefficient :
+    // elle tient à ce que la page ne porte QUE le titre, à ce que le filet le
+    // souligne, et à l'espace qu'il a devant lui. Elle survit à l'ajusteur.
+    renderTitle(content, ctx, ctx.roles.heading)
+  }
   ${renderLede(content, ctx, ctx.ds.colors.inkMuted)}
 </div>`,
-    landscape: 'side',
   }),
 
   // D — SUISSE BRUTALISTE : grille stricte, filets épais, numéro surdimensionné.
@@ -1401,7 +1667,6 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   <div${style({ 'font-size': `${ctx.ds.typeScale['3xl']}px`, 'font-weight': 900, 'line-height': 0.85, color: ctx.roles.highlight })}>${String(ctx.options.index ?? 1).padStart(2, '0')}</div>
   <div>${renderKicker(content, ctx, ctx.ds.colors.inkMuted)}${renderTitle(content, ctx, ctx.roles.heading)}${renderLede(content, ctx, ctx.ds.colors.inkMuted)}</div>
 </div>`,
-    landscape: 'stacked',
   }),
 
   // E — MINIMAL DE LUXE : vide maximal, titre discret en haut à gauche.
@@ -1422,7 +1687,6 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   ${renderLede(content, ctx, ctx.ds.colors.inkMuted)}
 </div>`,
     rootInsetMm: 14,
-    landscape: 'side',
   }),
 
   // F — PROFONDEUR EN COUCHES : un panneau teinté décalé passe derrière le titre.
@@ -1431,7 +1695,6 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   <div${style({ position: 'absolute', top: 0, left: '-6mm', width: '60mm', height: '26mm', 'background-color': ctx.roles.panel, 'border-radius': `${ctx.ds.radius}px` })}></div>
   <div${style({ position: 'relative' })}>${renderKicker(content, ctx, ctx.roles.highlight)}${renderTitle(content, ctx, ctx.roles.heading)}${renderLede(content, ctx, ctx.ds.colors.inkMuted)}</div>
 </div>`,
-    landscape: 'stacked',
   }),
 
   // G — GRILLE DE JOURNAL : bandeau de titre lourd, flux sur deux colonnes.
@@ -1440,7 +1703,6 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   <div>${renderTitle(content, ctx, ctx.roles.heading)}</div>
   <div${style({ 'font-size': `${ctx.ds.typeScale.xs}px`, 'text-transform': 'uppercase', 'letter-spacing': '0.14em', color: ctx.ds.colors.inkMuted, 'white-space': 'nowrap' })}>${esc(content.kicker ?? '')}</div>
 </div>${renderLede(content, ctx, ctx.ds.colors.inkMuted)}`,
-    landscape: 'stacked',
   }),
 
   // H — MOSAÏQUE : en-tête décalé, blocs légèrement désalignés.
@@ -1450,7 +1712,6 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   ${renderTitle(content, ctx, ctx.roles.heading)}
   ${renderLede(content, ctx, ctx.ds.colors.inkMuted)}
 </div>`,
-    landscape: 'side',
   }),
 
   // I — SOMBRE LUMINEUX : fond profond, titre porté par l'accent.
@@ -1464,7 +1725,6 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
     // d'accent, pas au disque flou qu'il posait dans l'angle. Une « blob » est
     // nommément interdite au modèle par le bloc de retenue éditoriale ; la
     // produire en code revenait à lui reprocher ce que la plateforme faisait.
-    landscape: 'stacked',
   }),
 
   // J — CADRE : la page entière est encadrée d'un filet, le titre s'y inscrit.
@@ -1474,7 +1734,6 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   ${renderTitle(content, ctx, ctx.roles.heading)}
   <div${style({ width: '24mm', height: '2px', 'background-color': ctx.roles.highlight, margin: `${ctx.ds.spacing}px auto 0` })}></div>
 </div>`,
-    landscape: 'stacked',
     backdrop: `<div${style({ position: 'absolute', inset: '6mm', border: `1px solid ${ctx.ds.colors.rule}`, 'border-radius': `${ctx.ds.radius}px`, 'pointer-events': 'none' })}></div>`,
   }),
 
@@ -1496,7 +1755,6 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
     })}></div>
   ${renderLede(content, ctx, ctx.ds.colors.inkMuted)}
 </div>`,
-    landscape: 'stacked',
   }),
 
   // L — AFFICHE DE DONNÉES : le premier chiffre de la page devient le héros.
@@ -1542,7 +1800,6 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   ${renderTitle(content, ctx, ctx.roles.heading)}
   ${renderLede(content, ctx, ctx.ds.colors.inkMuted)}
 </div>`,
-      landscape: 'side',
     };
   },
 };
@@ -1629,6 +1886,12 @@ export function renderSection(
       content.blocks.find((block) => block.kind === 'sources')?.items.length ?? 0,
     padMm: Number.parseFloat(page.padding),
     bleedMm: Number.parseFloat(page.padding) + resolveTension(seed.layoutTension).inset,
+    // Repli : la pleine largeur utile. Fixée juste après, une fois la
+    // structure connue.
+    headerWidthPx:
+      (Number.parseFloat(page.width) - 2 * Number.parseFloat(page.padding)) * MM_TO_PX,
+    titleHeightPx: 0,
+    variant: documentVariant(seed),
     // Repli : la largeur utile pleine page. Affinée juste après, une fois
     // l'archétype connu.
     contentWidthPx:
@@ -1636,6 +1899,58 @@ export function renderSection(
   };
 
   const renderer = ARCHETYPE_RENDERERS[seed.archetype] ?? ARCHETYPE_RENDERERS[DEFAULT_ARCHETYPE];
+
+  // ── LA STRUCTURE, PUIS SEULEMENT ENSUITE L'EN-TÊTE ───────────────────────
+  //
+  // La table dit la structure ; la direction de lecture peut la refléter ; la
+  // structure dit la largeur de l'en-tête ; l'en-tête s'y compose. L'ordre
+  // compte : composer d'abord et mesurer ensuite, c'était garantir que la
+  // mesure arrive trop tard.
+  const declared: LandscapeLayout =
+    ARCHETYPE_LANDSCAPE[seed.archetype] ?? ARCHETYPE_LANDSCAPE[DEFAULT_ARCHETYPE];
+  // `readingDirection` était tirée pour chaque page et lue par personne — le
+  // contrôle d'unicité la comptait pourtant comme un facteur six. Elle sert
+  // enfin : une page qui se lit de droite à gauche pose son en-tête à droite.
+  // Le reflet ne vaut que pour les dispositions latérales, seules à avoir un
+  // côté : refléter un bandeau ou un en-tête centré ne voudrait rien dire.
+  const mirrored =
+    seed.readingDirection === 'RIGHT_TO_LEFT' || seed.readingDirection === 'CORNER_DIAGONAL';
+  const layout: LandscapeLayout = !landscape
+    ? declared
+    : !mirrored
+      ? declared
+      : declared === 'side'
+        ? 'side-reverse'
+        : declared === 'side-reverse'
+          ? 'side'
+          : declared;
+
+  ctx.headerWidthPx = landscape
+    ? (ctx.contentWidthPx - 2 * ctx.tension.inset * MM_TO_PX) * HEADER_SHARE[layout]
+    : ctx.contentWidthPx;
+
+  // Part de la HAUTEUR que le titre peut prendre, par structure.
+  //
+  // Les deux dispositions latérales posent l'en-tête dans sa propre colonne :
+  // il n'y dispute la hauteur à personne, et un grand titre y est l'effet
+  // recherché. Les quatre dispositions empilées le posent AU-DESSUS des blocs,
+  // où chaque ligne de titre est une ligne de contenu en moins.
+  const TITLE_SHARE: Record<LandscapeLayout, number> = {
+    side: 0.45,
+    'side-reverse': 0.45,
+    stacked: 0.24,
+    banner: 0.24,
+    centered: 0.24,
+    corner: 0.24,
+  };
+  // La borne ne vaut que pour une page à hauteur FIXE. Un document paginé n'a
+  // pas de hauteur à répartir : le paginateur lui donne les pages qu'il faut.
+  ctx.titleHeightPx = cramped
+    ? (Number.parseFloat(page.minHeight) - 2 * Number.parseFloat(page.padding)) *
+      MM_TO_PX *
+      (landscape ? TITLE_SHARE[layout] : 0.3)
+    : 0;
+
   const chrome = renderer(content, ctx);
 
   // ── LA LARGEUR RÉELLEMENT OFFERTE AUX BLOCS ──────────────────────────────
@@ -1652,7 +1967,7 @@ export function renderSection(
   //     les blocs n'ont que les 7/12 restants, moins la gouttière.
   const insetMm = ctx.tension.inset + (chrome.rootInsetMm ?? 0);
   ctx.contentWidthPx -= 2 * insetMm * MM_TO_PX;
-  if (landscape && (chrome.landscape ?? 'side') === 'side') {
+  if (landscape && (layout === 'side' || layout === 'side-reverse')) {
     ctx.contentWidthPx = ctx.contentWidthPx * (7 / 12) - snap(ctx.ds.spacing * 2);
   }
   // Réserve : l'estimation d'une largeur de signe reste une estimation, et un
@@ -1684,7 +1999,9 @@ export function renderSection(
         page,
         ctx.ds,
         Boolean(content.lede),
-        landscape ? ((chrome.landscape ?? 'side') as PageLayout) : 'portrait'
+        // La structure RÉSOLUE, miroir de lecture compris : c'est elle qui
+        // sera rendue, donc elle seule qui dit la place disponible.
+        landscape ? layout : 'portrait'
       )
     : content.blocks;
 
@@ -1809,30 +2126,75 @@ export function renderSection(
   // empiler un titre puis un flux vertical y laisse une bande vide à droite et
   // fait déborder par le bas.
   if (landscape) {
-    const sideBySide = (chrome.landscape ?? 'side') === 'side';
-    const body = sideBySide
-      ? // `side` : l'en-tête tient la colonne de gauche, le contenu celle de
-        // droite. Les blocs y sont TOUS pleine largeur de leur colonne — elle
-        // ne fait déjà que les 7/12 de la page, la subdiviser encore rendrait
-        // un tableau ou un nuancier illisibles.
-        `<div${style({
-          display: 'grid',
-          'grid-template-columns': '5fr 7fr',
-          gap: `${snap(ctx.ds.spacing * 2)}px`,
-          'align-items': 'start',
-        })}>
-  <div>${chrome.header}</div>
-  <div>${blocks.join('\n')}</div>
-</div>`
-      : // `stacked` : l'en-tête est pleine largeur, le contenu se range dans la
-        // grille à douze colonnes sous lui.
-        `${chrome.header}
+    // Gouttière ENTRE LES DEUX COLONNES d'une disposition latérale.
+    //
+    // Les dispositions empilées n'en prennent pas : l'archétype pose déjà la
+    // marge basse de son en-tête, et en ajouter une seconde par-dessus doublait
+    // l'écart — assez pour faire déborder « C » de 30 px et « D » de 11 px sous
+    // le pied de page, ce que `check:fit` a signalé.
+    const gutter = snap(ctx.ds.spacing * 2);
+
+    /** Les deux colonnes d'une disposition latérale, dans l'ordre demandé. */
+    const columned = (headerFirst: boolean): string =>
+      `<div${style({
+        display: 'grid',
+        'grid-template-columns': headerFirst ? '5fr 7fr' : '7fr 5fr',
+        gap: `${gutter}px`,
+        'align-items': 'start',
+      })}>
+  ${
+    headerFirst
+      ? `<div>${chrome.header}</div>
+  <div>${blocks.join('\n')}</div>`
+      : `<div>${blocks.join('\n')}</div>
+  <div${style({ 'text-align': 'right' })}>${chrome.header}</div>`
+  }
+</div>`;
+
+    // Dans une colonne des 7/12, les blocs restent pleine largeur : la
+    // subdiviser encore rendrait un tableau ou un nuancier illisibles.
+    const body =
+      layout === 'side'
+        ? columned(true)
+        : layout === 'side-reverse'
+          ? columned(false)
+          : layout === 'centered'
+            ? // L'en-tête est centré sur une mesure resserrée ; le contenu
+              // garde la pleine largeur, faute de quoi un nuancier centré
+              // laisserait deux vides symétriques qui ne disent rien.
+              // La borne est un POURCENTAGE, et c'est la même part que celle
+              // annoncée à `fitTitleSize` (`HEADER_SHARE.centered`).
+              //
+              // Elle était exprimée en `ch`. L'unité se résout sur la police du
+              // conteneur — 14 px ici — et non sur celle du titre qu'elle
+              // borne : 34ch valaient 238 px au lieu des 630 px annoncés à
+              // l'ajusteur, qui composait donc un titre de 54 px pour deux
+              // lignes là où la page en imposait quatre.
+              `<div${style({
+                'text-align': 'center',
+                'max-width': `${Math.round(HEADER_SHARE.centered * 100)}%`,
+                margin: '0 auto',
+              })}>${chrome.header}</div>
+${blockGrid(gridded, 12)}`
+            : layout === 'corner'
+              ? // L'en-tête occupe le quart haut-gauche, le contenu prend
+                // toute la largeur dessous. Le coin haut-droit reste vide —
+                // c'est la tension `CORNER_ANCHOR`, enfin rendue.
+                // Six colonnes, pas cinq : le coin opposé reste franchement
+                // vide, et le titre cesse de casser à chaque mot. À 5/12,
+                // l'en-tête à deux colonnes de l'archétype « D » ne laissait
+                // que 332 px au titre, là où l'ajusteur en suppose 430.
+                `<div${style({ 'max-width': `${Math.round(HEADER_SHARE.corner * 100)}%` })}>${chrome.header}</div>
+${blockGrid(gridded, 12)}`
+              : // `stacked` : en-tête pleine largeur, contenu dans la grille.
+                `${chrome.header}
 ${blockGrid(gridded, 12)}`;
 
-    // Un en-tête qui SAIGNE reste en haut de la page, hors de la zone répartie :
-    // sa marge négative doit s'annuler contre la marge de page, ce qui suppose
-    // qu'il y soit collé. Seul le contenu se répartit alors dans ce qui reste.
-    if (chrome.bleeds && !sideBySide) {
+    // `banner` : l'en-tête est un aplat qui SAIGNE. Sa marge négative doit
+    // s'annuler contre la marge de page, ce qui suppose qu'il y soit collé —
+    // il reste donc hors de la zone répartie, et seul le contenu se répartit
+    // dans ce qui reste.
+    if (layout === 'banner') {
       return `${fontLinks(ctx.ds)}<div${style({ ...rootStyle, display: 'flex', 'flex-direction': 'column' })}>
 ${chrome.backdrop ?? ''}
 ${chrome.header}
@@ -1869,8 +2231,9 @@ ${footer}
   // diapositive, et le contrat de structure plate ne le concerne pas — c'est
   // le paginateur qu'il protège, et le paginateur ne tourne pas ici.
   if (cramped) {
-    const head = chrome.bleeds ? chrome.header : '';
-    const inside = chrome.bleeds ? '' : chrome.header;
+    const bleeds = layout === 'banner';
+    const head = bleeds ? chrome.header : '';
+    const inside = bleeds ? '' : chrome.header;
     return `${fontLinks(ctx.ds)}<div${style({ ...rootStyle, display: 'flex', 'flex-direction': 'column' })}>
 ${chrome.backdrop ?? ''}
 ${head}
@@ -1942,10 +2305,27 @@ function fitToPage(
   const footer = 0.05;
   const heading = (layout === 'portrait' ? 0.16 : 0.17) + (hasLede ? 0.05 : 0);
 
-  // `side` : l'en-tête ne consomme pas de HAUTEUR, il consomme de la LARGEUR —
-  // les 5/12 de la grille. On retire donc la colonne, pas le bandeau.
-  const area = layout === 'side' ? capacityRatio * (7 / 12) : capacityRatio;
-  const chrome = layout === 'side' ? footer : heading + footer;
+  // Les deux dispositions LATÉRALES ne consomment pas de HAUTEUR pour leur
+  // en-tête : il prend les 5/12 de la LARGEUR. On retire donc la colonne, pas
+  // le bandeau.
+  const lateral = layout === 'side' || layout === 'side-reverse';
+
+  // Les quatre dispositions EMPILÉES posent l'en-tête au-dessus des blocs, mais
+  // il n'y coûte pas la même hauteur partout : ce qui varie, c'est la largeur
+  // offerte au titre, donc le nombre de lignes qu'il occupe.
+  //
+  //   `stacked`, `banner` — le titre a les douze colonnes : deux lignes suffisent ;
+  //   `centered`          — borné à 34 signes, il en prend une de plus ;
+  //   `corner`            — cantonné aux 5/12, il en prend près du double.
+  //
+  // Ces coefficients ne sont pas une appréciation : ils ont été posés à partir
+  // des débordements MESURÉS par `check:fit` lors de l'ajout des structures
+  // (514 px pour `centered`, 8 à 53 px pour `corner`), puis vérifiés par lui.
+  const headingCost =
+    layout === 'centered' ? heading * 1.35 : layout === 'corner' ? heading * 1.5 : heading;
+
+  const area = lateral ? capacityRatio * (7 / 12) : capacityRatio;
+  const chrome = lateral ? footer : headingCost + footer;
 
   // Marge de sûreté : l'estimation ignore les retours à la ligne, la casse et
   // les polices réelles. 10 % de réserve évitent le débordement d'un cheveu.
@@ -1961,8 +2341,11 @@ function fitToPage(
   // Elle en écartait donc qui tenaient : mesuré sur le harnais de rendu,
   // « 2 blocs sur 4 écartés » sur chaque page de démonstration, et la page
   // sortait à la fois amputée et à moitié vide — le pire des deux résultats.
+  // Les quatre dispositions empilées rangent leurs blocs dans la grille à douze
+  // colonnes ; les latérales les posent pleine largeur d'une colonne des 7/12,
+  // où deux demi-blocs n'auraient plus de place pour respirer.
   const spans =
-    layout === 'stacked'
+    !lateral && layout !== 'portrait'
       ? packRow(blocks).map((entry) => entry.span)
       : blocks.map(() => 12 as const);
 

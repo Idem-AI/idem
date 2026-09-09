@@ -24,6 +24,7 @@ import {
   ART_DIRECTION_STYLE_IDS,
   ART_DIRECTION_STYLES,
 } from '../services/design/artDirection.catalog';
+import { ARCHETYPE_LANDSCAPE } from '../services/design/sectionRenderer';
 import {
   buildDocumentSeed,
   buildPaletteConstraint,
@@ -202,6 +203,18 @@ console.log('\nEspace de tirage');
   for (const styleId of ART_DIRECTION_STYLE_IDS) {
     const space = ART_DIRECTION_STYLES[styleId].seedSpace;
     if (!space) continue;
+    // ── CE QUI EST COMPTÉ EST CE QUI EST RENDU ───────────────────────────
+    //
+    // Le décompte incluait `imagePosition` (facteur 10) et `readingDirection`
+    // (facteur 6). Aucune des deux n'était lue par le rendu : elles étaient
+    // tirées, transmises au prompt, puis oubliées. Le « million de
+    // combinaisons » était donc soixante fois trop optimiste, et c'est
+    // précisément pourquoi ce contrôle passait au vert pendant que les chartes
+    // sortaient identiques.
+    //
+    // `readingDirection` reste comptée, mais pour ce qu'elle FAIT : elle
+    // reflète les deux dispositions latérales, soit un facteur deux — pas six.
+    // `imagePosition` n'est plus comptée du tout, faute de lecteur.
     const combos =
       (space.archetypes?.length ?? 1) *
       (space.colorStrategies?.length ?? 1) *
@@ -210,8 +223,7 @@ console.log('\nEspace de tirage');
       (space.contentDensities?.length ?? 1) *
       (space.graphicAccents?.length ?? 1) *
       5 * // spacingMultiplier
-      10 * // imagePosition
-      6; // readingDirection
+      2; // readingDirection — le reflet des dispositions latérales
     total += combos;
     if (combos < smallest) {
       smallest = combos;
@@ -225,8 +237,71 @@ console.log('\nEspace de tirage');
   // Le seuil protège contre une réduction d'espace passée inaperçue : retirer
   // des archétypes d'un `seedSpace` réduit l'unicité sans qu'aucun test ne le
   // signale autrement.
-  check('le style le plus contraint garde un espace suffisant', smallest >= 50_000);
-  check('l\'espace total reste au-dessus du million', total >= 1_000_000);
+  // Seuils divisés par trente, comme le décompte : ils portaient sur un espace
+  // soixante fois surévalué. Les abaisser n'affaiblit pas le contrôle — c'est
+  // le contraire, ils mesurent enfin quelque chose.
+  check('le style le plus contraint garde un espace suffisant', smallest >= 1_500);
+  check('l\'espace total reste au-dessus de cent mille', total >= 100_000);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+console.log('\nStructures réellement rendues');
+{
+  /*
+   * ── LE CONTRÔLE QUI MANQUAIT ────────────────────────────────────────────
+   *
+   * Tout ce qui précède mesure l'espace de TIRAGE. Rien ne mesurait ce que ce
+   * tirage produit à l'écran. Les deux avaient divergé sans bruit : douze
+   * archétypes se ramenaient à DEUX structures de page, et un style n'en tire
+   * que quatre ou cinq. Deux styles — « minimalism » et « retro » — n'avaient
+   * ainsi accès qu'à des archétypes de la même structure : toutes les pages de
+   * leurs chartes sortaient identiques, et aucun contrôle ne pouvait le dire.
+   *
+   * Celui-ci le dit. Il ne regarde pas le catalogue : il regarde la table que
+   * le rendu consulte réellement.
+   */
+  const MIN_STRUCTURES = 3;
+  let worst = Number.POSITIVE_INFINITY;
+  let worstStyle = '';
+  const offenders: string[] = [];
+
+  for (const styleId of ART_DIRECTION_STYLE_IDS) {
+    const pool = ART_DIRECTION_STYLES[styleId].seedSpace?.archetypes;
+    if (!pool || pool.length === 0) continue;
+    const structures = new Set(pool.map((a) => ARCHETYPE_LANDSCAPE[a]));
+    if (structures.size < worst) {
+      worst = structures.size;
+      worstStyle = styleId;
+    }
+    if (structures.size < MIN_STRUCTURES) {
+      offenders.push(`${styleId} (${structures.size} : ${[...structures].join(', ')})`);
+    }
+  }
+
+  const rendered = new Set(Object.values(ARCHETYPE_LANDSCAPE));
+  console.log(`     ${rendered.size} structures de page distinctes : ${[...rendered].sort().join(', ')}`);
+  console.log(`     style le plus pauvre : ${worstStyle} (${worst} structures)`);
+
+  check(
+    'le rendu propose au moins quatre structures de page',
+    rendered.size >= 4,
+    `${rendered.size} structures`
+  );
+  check(
+    `chaque style atteint ${MIN_STRUCTURES} structures distinctes`,
+    offenders.length === 0,
+    offenders.join(' · ')
+  );
+  check(
+    'chaque structure est atteignable par au moins un style',
+    [...rendered].every((layout) =>
+      ART_DIRECTION_STYLE_IDS.some((styleId) =>
+        (ART_DIRECTION_STYLES[styleId].seedSpace?.archetypes ?? []).some(
+          (a) => ARCHETYPE_LANDSCAPE[a] === layout
+        )
+      )
+    )
+  );
 }
 
 console.log('');
