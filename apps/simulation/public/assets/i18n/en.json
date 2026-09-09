@@ -141,6 +141,7 @@
       "subheading": "The engine looks for the factors that can tip your business over, stress-tests them, and tells you where your model breaks. Start from what you already have.",
       "choose": "Choose",
       "selected": "Selected",
+      "trustedBy": "Trusted by",
       "note": "A simulation is a decision-support tool, never a prediction. Every result comes with how confident the engine is."
     },
     "confirm": {
@@ -193,6 +194,10 @@
     "description": "The run continues if you close this page. You will be taken to the results as soon as they are ready.",
     "failed": "The simulation stopped",
     "failedBody": "Nothing is charged for a run that does not finish. Start it again from the list.",
+    "resumeHint": "The analysis can be resumed from the stage where it stopped. Your data already acquired is preserved.",
+    "resume": "Resume simulation",
+    "resuming": "Resuming…",
+    "resumeFailed": "Could not resume the simulation",
     "body": "The analysis runs several agents and takes a few minutes. You can close this screen — the run continues.",
     "inProgress": "Running — {{percent}}%"
   },
@@ -240,7 +245,8 @@
     "scenariosBody": "{{total}} scenarios were run. The model does not hold in {{broken}} of them.",
     "risks": "Risks found",
     "shockResistance": "Resistance to shocks",
-    "dataConfidence": "Data reliability"
+    "dataConfidence": "Data reliability",
+    "indexCeiling": "Index capped at {{ceiling}} out of 100: a simulation grades a model under chosen scenarios, never a certainty."
   },
   "results": {
     "title": "Results",
@@ -345,7 +351,8 @@
       "conditions": "Viability conditions",
       "recommendations": "Recommendations",
       "evidence": "Data and assumptions",
-      "validation": "To validate in the real world"
+      "validation": "To validate in the real world",
+      "issues": "Problems and responses"
     },
     "factors": {
       "body": "{{total}} factors were kept as potentially relevant to this project, then ranked by the impact they can have on the results."
@@ -389,7 +396,15 @@
     "download": "Download the PDF",
     "downloading": "Building the PDF…",
     "downloadFailed": "The report could not be generated.",
-    "downloadReport": "Download the report"
+    "downloadReport": "Download the report",
+    "issues": {
+      "body": "Every problem the analysis found carries, right below it, the action that answers it. Ordered by decreasing severity.",
+      "response": "Response",
+      "noResponse": "The analysis found no response to this one: it stays open and has to be decided.",
+      "otherActions": "Other priority actions",
+      "otherActionsBody": "These answer none of the problems above in particular: they strengthen the model as a whole.",
+      "empty": "The analysis found no problem in the scenarios tested."
+    }
   },
   "compare": {
     "title": "Comparison",

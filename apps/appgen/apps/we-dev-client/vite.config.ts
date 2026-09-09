@@ -76,11 +76,10 @@ export default defineConfig(async ({ mode, command }) => {
       allowedHosts: ['appgen.idem.africa', 'appgen.idem-ai.com'], // domaine autorisé
     },
 
-    css: {
-      postcss: {
-        plugins: [require('tailwindcss'), require('autoprefixer')],
-      },
-    },
+    // La chaîne PostCSS est déclarée dans `postcss.config.mjs`. La redéclarer
+    // ici créait une seconde source de vérité : c'est elle qui chargeait encore
+    // `tailwindcss` en direct après la migration v4, où le plugin PostCSS vit
+    // dans `@tailwindcss/postcss`.
 
     define: {
       'process.env': env,
@@ -91,9 +90,18 @@ export default defineConfig(async ({ mode, command }) => {
         '@': path.resolve(__dirname, 'src'),
         // Moteur de visite guidée partagé par toutes les applications Idem.
         '@idem/shared-tour': path.resolve(__dirname, '../../../../packages/shared-tour/src'),
+        // Bandeau « Ils nous font confiance », partagé par les landing pages.
+        '@idem/shared-trusted-by': path.resolve(
+          __dirname,
+          '../../../../packages/shared-trusted-by/src',
+        ),
         '@sketch-hq/sketch-file-format-ts': '@sketch-hq/sketch-file-format-ts',
         'ag-psd': 'ag-psd',
       },
+      // Les paquets partagés vivent hors de `node_modules` : sans cette ligne,
+      // leur `import ... from 'react'` remonterait au React hissé à la racine
+      // du monorepo et l'application se retrouverait avec deux copies.
+      dedupe: ['react', 'react-dom'],
     },
 
     optimizeDeps: {

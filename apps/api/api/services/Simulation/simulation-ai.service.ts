@@ -50,6 +50,7 @@ import {
   BusinessUniverse,
   Vulnerability,
 } from '../../models/simulation.model';
+import { VIABILITY_CEILING } from './simulation-engine.service';
 import { AIChatMessage, PromptConfig, PromptService } from '../prompt.service';
 import {
   ANALYSIS_PROMPT,
@@ -378,25 +379,43 @@ export class SimulationAIService {
     factors: readonly Factor[],
     scenarios: readonly Scenario[],
     sensitivitySummary: string,
-    userId: string
+    userId: string,
+    risks: readonly Risk[] = []
   ): Promise<RecommendationOutput> {
+    // Les risques partent AVEC leur identifiant : c'est ce qui permet au modèle
+    // d'apparier chaque réponse à son problème, et au rapport de les imprimer
+    // ensemble plutôt que dans deux chapitres séparés.
+    const riskList = risks.length
+      ? `\n\nRISQUES IDENTIFIÉS (apparier chaque recommandation à l'un d'eux) :\n${risks
+          .map((risk) => `- ${risk.id} [${risk.severity}] ${risk.title} : ${risk.description}`)
+          .join('\n')}`
+      : '';
+
     const raw = await this.run(
       'recommendations',
       RECOMMENDATIONS_PROMPT,
-      `${this.describeUnderstanding(understanding)}\n\n${this.describeFactors(factors)}\n\n${this.describeScenarioResults(scenarios)}\n\nANALYSE DE SENSIBILITÉ:\n${sensitivitySummary}`,
+      `${this.describeUnderstanding(understanding)}\n\n${this.describeFactors(factors)}\n\n${this.describeScenarioResults(scenarios)}\n\nANALYSE DE SENSIBILITÉ:\n${sensitivitySummary}${riskList}`,
       userId
     );
     const parsed = this.parseJSON(raw);
 
+    // Un identifiant de risque inventé casserait l'appariement en silence : on
+    // ne retient que ceux qui existent réellement.
+    const knownRiskIds = new Set(risks.map((risk) => risk.id));
+
     return {
-      recommendations: toArray(parsed.recommendations).map((entry, index) => ({
-        id: str(entry.id) || `rec-${index + 1}`,
-        title: str(entry.title),
-        body: str(entry.body),
-        expectedImpact: pick(entry.expectedImpact, ['low', 'medium', 'high'] as const, 'medium'),
-        priority: pick(entry.priority, ['low', 'medium', 'high', 'critical'] as const, 'medium'),
-        confidence: pick(entry.confidence, CONFIDENCE_LEVELS, 'medium'),
-      })),
+      recommendations: toArray(parsed.recommendations).map((entry, index) => {
+        const addressed = str(entry.addressesRiskId);
+        return {
+          id: str(entry.id) || `rec-${index + 1}`,
+          title: str(entry.title),
+          body: str(entry.body),
+          expectedImpact: pick(entry.expectedImpact, ['low', 'medium', 'high'] as const, 'medium'),
+          priority: pick(entry.priority, ['low', 'medium', 'high', 'critical'] as const, 'medium'),
+          confidence: pick(entry.confidence, CONFIDENCE_LEVELS, 'medium'),
+          addressesRiskId: knownRiskIds.has(addressed) ? addressed : undefined,
+        };
+      }),
       validationNeeded: toStringArray(parsed.validationNeeded),
       executiveStatement: str(parsed.executiveStatement),
     };
@@ -483,7 +502,11 @@ export class SimulationAIService {
       verdicts: toArray(parsed.verdicts).map((entry) => ({
         profile: pick(entry.profile, INVESTOR_PROFILES, 'growth'),
         name: str(entry.name),
-        score: Math.round(clamp(num(entry.score, 50), 0, 100)),
+        // Même règle que l'indice de viabilité : une note produite par un
+        // investisseur SIMULÉ reste une estimation, et 100 sur 100 affirmerait
+        // un dossier sans objection — ce que le laboratoire vient précisément
+        // de contredire en listant les objections attendues.
+        score: Math.round(clamp(num(entry.score, 50), 0, VIABILITY_CEILING)),
         reaction: str(entry.reaction),
         objections: toStringArray(entry.objections),
         wouldMeetAgain: Boolean(entry.wouldMeetAgain),
@@ -1006,6 +1029,10 @@ ${scenarios
    * Les modèles enveloppent régulièrement leur JSON dans un bloc markdown ou
    * l'accompagnent d'une phrase, malgré la consigne. On récupère le premier
    * objet équilibré plutôt que d'échouer sur du bruit.
+   *
+   * En cas de troncature (le modèle atteint sa limite de sortie au milieu du
+   * JSON), on tente de réparer la chaîne en fermant les structures ouvertes,
+   * puis de sauver les entrées de tableau déjà complètes.
    */
   private parseJSON(raw: string): any {
     const cleaned = raw
@@ -1013,20 +1040,34 @@ ${scenarios
       .replace(/```\s*$/i, '')
       .trim();
 
+    // Tentative 1 : JSON valide directement.
     try {
       return JSON.parse(cleaned);
-    } catch {
-      const extracted = extractFirstJsonObject(cleaned);
-      if (extracted) {
-        try {
-          return JSON.parse(extracted);
-        } catch (error: any) {
-          logger.error(`SimulationAI: JSON extraction failed — ${error.message}`);
-        }
+    } catch { /* continue */ }
+
+    // Tentative 2 : extraction du premier objet équilibré (bruit autour du JSON).
+    const extracted = extractFirstJsonObject(cleaned);
+    if (extracted) {
+      try {
+        return JSON.parse(extracted);
+      } catch (error: any) {
+        logger.error(`SimulationAI: JSON extraction failed — ${error.message}`);
       }
-      logger.error(`SimulationAI: unparseable model output (${cleaned.slice(0, 400)}…)`);
-      throw new Error('The analysis engine returned an unreadable response.');
     }
+
+    // Tentative 3 : JSON tronqué — on tente de réparer en fermant les structures
+    // ouvertes. Utile quand le modèle atteint sa limite de sortie en plein objet.
+    const repaired = repairTruncatedJson(cleaned);
+    if (repaired) {
+      try {
+        const result = JSON.parse(repaired);
+        logger.warn('SimulationAI: truncated JSON repaired — some entries may be missing');
+        return result;
+      } catch { /* continue */ }
+    }
+
+    logger.error(`SimulationAI: unparseable model output (${cleaned.slice(0, 400)}…)`);
+    throw new Error('The analysis engine returned an unreadable response.');
   }
 }
 
@@ -1066,6 +1107,48 @@ function extractFirstJsonObject(text: string): string | null {
     }
   }
   return null;
+}
+
+/**
+ * Tente de réparer un JSON tronqué en fermant les structures ouvertes.
+ *
+ * Stratégie : on supprime l'entrée de tableau incomplète (celle où le modèle
+ * s'est arrêté), puis on referme le tableau et l'objet racine.
+ * On ne tente pas de reconstruire des valeurs inventoriées : mieux vaut
+ * perdre la dernière entrée que d'introduire des données corrompues.
+ */
+function repairTruncatedJson(text: string): string | null {
+  const start = text.indexOf('{');
+  if (start === -1) return null;
+
+  // On cherche la dernière virgule précédant un objet incomplet dans un tableau.
+  // Heuristique : trouver le dernier '}' présent et fermer à partir de là.
+  const lastClose = text.lastIndexOf('}');
+  if (lastClose === -1) return null;
+
+  // On s'arrête après le dernier objet complet, puis on referme le tableau
+  // et l'objet racine.
+  const truncated = text.slice(start, lastClose + 1);
+
+  // Décompte des crochets et accolades non fermés.
+  let braces = 0;
+  let brackets = 0;
+  let inString = false;
+  let escaped = false;
+  for (const char of truncated) {
+    if (escaped) { escaped = false; continue; }
+    if (char === '\\') { escaped = true; continue; }
+    if (char === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (char === '{') braces++;
+    else if (char === '}') braces--;
+    else if (char === '[') brackets++;
+    else if (char === ']') brackets--;
+  }
+
+  if (braces < 0 || brackets < 0) return null;
+
+  return truncated + ']'.repeat(brackets) + '}'.repeat(braces);
 }
 
 function toArray(value: unknown): any[] {

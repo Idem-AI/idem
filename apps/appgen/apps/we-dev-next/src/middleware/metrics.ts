@@ -36,6 +36,31 @@ const activeConnections = new client.Gauge({
   registers: [register],
 });
 
+// ==================== MÉTRIQUES IA ====================
+//
+// Le module le plus consommateur de la plateforme n'avait AUCUNE mesure de son
+// coût : `deductUserTokens` était une fonction vide, et l'estimation maison
+// comptait chaque groupe d'espaces comme un token entier — surestimation lourde
+// sur du code indenté. On relève désormais les compteurs RÉELS du fournisseur,
+// exposés par le SDK dans `onFinish`.
+
+export const aiTokensTotal = new client.Counter({
+  name: 'ai_tokens_total',
+  help: 'Tokens consumed by model calls',
+  labelNames: ['model', 'kind', 'mode', 'service'] as const,
+  registers: [register],
+});
+
+export const aiGenerationsTotal = new client.Counter({
+  name: 'ai_generations_total',
+  help: 'Model generations, by finish reason',
+  labelNames: ['model', 'mode', 'finish_reason', 'service'] as const,
+  registers: [register],
+});
+
+/** Étiquette `service` commune à ce processus. */
+export const METRICS_SERVICE = 'idem-appgen';
+
 /**
  * Normalize route paths to prevent cardinality explosion.
  */

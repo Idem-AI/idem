@@ -30,7 +30,7 @@ class Queue {
       while (this.queue.length > 0) {
         const command = this.getNext();
         if (command) {
-          console.log('执行命令', command);
+          console.log('[exec]', command);
           await useTerminalStore.getState().getTerminal(0).executeCommand(command);
         }
       }
@@ -68,7 +68,7 @@ class List {
       const command = this.getCommand(i);
       const isRuned = this.getIsRun(i);
       if (command && command !== isRuned) {
-        console.log('执行命令', command);
+        console.log('[exec]', command);
         this.isRunArray[i] = command;
         queue.push(command);
       }

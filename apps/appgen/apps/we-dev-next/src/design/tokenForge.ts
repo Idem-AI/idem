@@ -216,7 +216,27 @@ function googleFontsHrefs(fonts: FontPairing): string[] {
     .map(([name, weights]) => href(name, weights));
 }
 
-export function forgeDesignSystem(projectData?: ProjectModel): DesignSystem {
+/**
+ * Réglages imposés par l'utilisateur depuis le panneau Thème.
+ *
+ * La forge reste déterministe : sans surcharge, une même graine de projet
+ * redonne exactement le même système. Une surcharge remplace *une* décision et
+ * laisse le reste de la chaîne se recalculer — les contrastes sont donc
+ * revérifiés, et l'utilisateur ne peut pas produire un thème illisible.
+ */
+export interface ForgeOverrides {
+  /** Couleur de marque, en hexadécimal. Ignorée si elle n'est pas analysable. */
+  brandColor?: string;
+  /** `id` d'une direction artistique du catalogue. */
+  directionId?: string;
+  /** Police d'affichage d'un appariement du catalogue. */
+  fontPairingDisplay?: string;
+}
+
+export function forgeDesignSystem(
+  projectData?: ProjectModel,
+  overrides?: ForgeOverrides
+): DesignSystem {
   const seedSource = projectData?.id || projectData?.name || 'idem-appgen';
   const seed = hashSeed(seedSource);
   const random = createRandom(seed);
@@ -251,15 +271,28 @@ export function forgeDesignSystem(projectData?: ProjectModel): DesignSystem {
     ? candidates
     : ART_DIRECTIONS.filter((direction) => direction.registers.includes(register));
 
-  const direction = pick(usable.length ? usable : ART_DIRECTIONS, random);
+  const forcedDirection = overrides?.directionId
+    ? ART_DIRECTIONS.find((candidate) => candidate.id === overrides.directionId)
+    : undefined;
+  const direction = forcedDirection ?? pick(usable.length ? usable : ART_DIRECTIONS, random);
 
-  const fonts = resolveFonts(projectData, random);
-  const brandColor = resolveBrandColor(projectData, random);
+  const forcedPairing = overrides?.fontPairingDisplay
+    ? FONT_PAIRINGS.find((pairing) => pairing.display === overrides.fontPairingDisplay)
+    : undefined;
+  const fonts = forcedPairing
+    ? { ...forcedPairing, fromBrand: false }
+    : resolveFonts(projectData, random);
+
+  const overriddenBrand =
+    overrides?.brandColor && hexToOklch(overrides.brandColor) ? overrides.brandColor : null;
+  const brandColor = overriddenBrand ?? resolveBrandColor(projectData, random);
   const brandOklch = hexToOklch(brandColor) ?? { l: 0.55, c: 0.16, h: 250 };
 
   const brand = buildRamp(brandColor);
   const neutral = buildNeutralRamp(brandOklch.h, direction.surface === 'dark' ? 0.014 : 0.008);
-  const accent = resolveAccentColor(projectData, brandColor, random);
+  const accent = overriddenBrand
+    ? rotateHue(brandColor, random() > 0.5 ? 150 : -140)
+    : resolveAccentColor(projectData, brandColor, random);
   const secondary = brandSecondary ?? rotateHue(brandColor, 28);
 
   const isDark = direction.surface === 'dark';

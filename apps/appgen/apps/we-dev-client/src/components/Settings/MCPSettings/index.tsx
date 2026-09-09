@@ -67,7 +67,7 @@ const MCPSettings: FC = () => {
                     <div className="flex items-center gap-2">
                         {t('settings.mcp.title')}
                         <button
-                            className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                            className="text-gray-400 hover:text-text-tertiary dark:hover:text-gray-300"
                             title={t('settings.mcp.config_description')}
                         >
                             <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -100,10 +100,10 @@ const MCPSettings: FC = () => {
                             onClick={() => EditMcpJsonPopup.show()}
                             className={classNames(
                                 "px-4 py-2 text-sm font-medium rounded-lg",
-                                "text-gray-700 dark:text-gray-300",
-                                "bg-white dark:bg-gray-800",
-                                "border border-gray-300 dark:border-gray-600",
-                                "hover:bg-gray-50 dark:hover:bg-gray-700",
+                                "text-text-secondary",
+                                "bg-surface-1",
+                                "border border-[var(--glass-border)]",
+                                "hover:bg-surface-2",
                                 "focus:outline-none focus:ring-2 focus:ring-purple-500/50",
                                 "transition-colors duration-200",
                                 "flex items-center gap-2"
@@ -117,23 +117,23 @@ const MCPSettings: FC = () => {
                     </HStack>
                 </div>
 
-                <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
-                    <table className="w-full border-collapse bg-white dark:bg-gray-800">
+                <div className="overflow-hidden rounded-lg border border-[var(--glass-border)]">
+                    <table className="w-full border-collapse bg-surface-1">
                         <thead>
-                            <tr className="border-b border-gray-200 dark:border-gray-700">
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 dark:text-gray-100 w-[160px]">
+                            <tr className="border-b border-[var(--glass-border)]">
+                                <th className="px-4 py-3 text-left text-sm font-medium text-text-primary w-[160px]">
                                     {t('settings.mcp.name')}
                                 </th>
-                                <th className="px-4 py-3 text-center text-sm font-medium text-gray-900 dark:text-gray-100 w-[70px]">
+                                <th className="px-4 py-3 text-center text-sm font-medium text-text-primary w-[70px]">
                                     {t('settings.mcp.type')}
                                 </th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 dark:text-gray-100">
+                                <th className="px-4 py-3 text-left text-sm font-medium text-text-primary">
                                     {t('settings.mcp.description')}
                                 </th>
-                                <th className="px-4 py-3 text-center text-sm font-medium text-gray-900 dark:text-gray-100 w-[80px]">
+                                <th className="px-4 py-3 text-center text-sm font-medium text-text-primary w-[80px]">
                                     {t('settings.mcp.active')}
                                 </th>
-                                <th className="px-4 py-3 text-center text-sm font-medium text-gray-900 dark:text-gray-100 w-[100px]">
+                                <th className="px-4 py-3 text-center text-sm font-medium text-text-primary w-[100px]">
                                     {t('settings.mcp.actions')}
                                 </th>
                             </tr>
@@ -141,7 +141,7 @@ const MCPSettings: FC = () => {
                         <tbody>
                             {mcpServers().length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-text-tertiary">
                                         {t('settings.mcp.noServers')}
                                     </td>
                                 </tr>
@@ -150,11 +150,11 @@ const MCPSettings: FC = () => {
                                     <tr 
                                         key={server.name}
                                         className={classNames(
-                                            "border-b border-gray-200 dark:border-gray-700",
-                                            !server.isActive && "bg-gray-50 dark:bg-gray-900/50 opacity-70"
+                                            "border-b border-[var(--glass-border)]",
+                                            !server.isActive && "bg-surface-2/50 opacity-70"
                                         )}
                                     >
-                                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 font-medium truncate">
+                                        <td className="px-4 py-3 text-sm text-text-primary font-medium truncate">
                                             {server.name}
                                         </td>
                                         <td className="px-4 py-3 text-center">
@@ -167,7 +167,7 @@ const MCPSettings: FC = () => {
                                                 {server.baseUrl ? 'SSE' : 'STDIO'}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                                        <td className="px-4 py-3 text-sm text-text-tertiary">
                                             <div className="line-clamp-2 break-all">
                                                 {server.description || (
                                                     <span className="italic">{t('common.description')}</span>
@@ -179,7 +179,7 @@ const MCPSettings: FC = () => {
                                                 onClick={() => handleToggleActive(server.name, !server.isActive)}
                                                 className={classNames(
                                                     "relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out",
-                                                    server.isActive ? "bg-purple-600" : "bg-gray-200 dark:bg-gray-700"
+                                                    server.isActive ? "bg-purple-600" : "bg-surface-3"
                                                 )}
                                                 disabled={loadingServer === server.name}
                                             >
@@ -196,7 +196,7 @@ const MCPSettings: FC = () => {
                                                         <svg 
                                                             className={classNames(
                                                                 "w-4 h-4 animate-spin", 
-                                                                server.isActive ? "text-white" : "text-gray-700 dark:text-gray-300"
+                                                                server.isActive ? "text-white" : "text-text-secondary"
                                                             )} 
                                                             xmlns="http://www.w3.org/2000/svg" 
                                                             fill="none" 

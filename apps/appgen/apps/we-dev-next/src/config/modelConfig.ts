@@ -18,6 +18,12 @@ interface ModelConfig {
   apiKeyEnv?: string;
   apiUrlEnv?: string;
   defaultApiUrl?: string;
+  /**
+   * Proposé dans le sélecteur de l'interface. `false` = présent dans la chaîne
+   * de repli mais jamais offert au choix : un modèle de secours n'est pas une
+   * option produit.
+   */
+  selectable?: boolean;
 }
 
 /** Ce que l'on sert à l'interface : le catalogue *sans* les identifiants. */
@@ -47,10 +53,46 @@ const defaultModelConfigs: ModelConfig[] = [
     provider: 'glm',
     description: 'GLM 5.2 — génération de code et appels d\'outils',
     functionCall: true,
-    temperature: 0.7,
-    topP: 0.95,
+    // ⚠️ RÉGIME DE PRÉCISION, PAS DE DIVERGENCE.
+    //
+    // La température était à 0.7 pour produire du React de production. Or du
+    // code relève de la précision : imports valides, JSX équilibré, hooks
+    // corrects — la bonne réponse est unique, et une température haute y produit
+    // des bugs, pas de la créativité. Le constat est déjà écrit côté API
+    // (ai.config.ts, « une température haute y produit une géométrie fausse, un
+    // JSON cassé […] elle FAIT BAISSER la qualité »).
+    //
+    // La créativité attendue ici est VISUELLE, et elle ne vient pas de
+    // l'échantillonnage : elle vient du design system calculé (tokenForge), de
+    // la direction artistique tirée par projet et des skills routés.
+    temperature: 0.35,
+    topP: 0.9,
+    // Était absent : le budget retombait sur le défaut du fournisseur, qui n'est
+    // pas garanti et peut tronquer une génération longue en plein artefact.
+    maxOutputTokens: 32000,
     // Z.ai sert un endpoint OpenAI-compatible ; les identifiants lui sont
     // propres et ne passent donc pas par les THIRD_API_* génériques.
+    apiKeyEnv: 'GLM_API_KEY',
+    apiUrlEnv: 'GLM_API_URL',
+    defaultApiUrl: 'https://api.z.ai/api/paas/v4',
+  },
+  {
+    // REPLI. La saturation est PAR MODÈLE chez Z.ai : sans second modèle, les
+    // 318 lignes de `resilientStream.ts` — détection du transitoire, bascule,
+    // message utilisateur — n'avaient nulle part où basculer, et toute panne du
+    // modèle principal devenait une panne du produit.
+    modelName: 'GLM 4.7',
+    modelKey: 'glm-4.7',
+    useImage: false,
+    provider: 'glm',
+    description: 'GLM 4.7 — repli lorsque GLM 5.2 est saturé',
+    functionCall: true,
+    temperature: 0.35,
+    topP: 0.9,
+    maxOutputTokens: 32000,
+    // Repli d'infrastructure, pas une option offerte à l'utilisateur : il
+    // n'apparaît pas dans le sélecteur de modèles.
+    selectable: false,
     apiKeyEnv: 'GLM_API_KEY',
     apiUrlEnv: 'GLM_API_URL',
     defaultApiUrl: 'https://api.z.ai/api/paas/v4',
@@ -61,6 +103,9 @@ const defaultModelConfigs: ModelConfig[] = [
 export function getDefaultModelKey(): string {
   return defaultModelConfigs[0]?.modelKey;
 }
+
+/** Le catalogue complet, repli inclus — usage interne (résolution, repli). */
+export const allModelConfigs: ModelConfig[] = defaultModelConfigs;
 
 /**
  * Ordre de repli quand un modèle est indisponible. Avec un seul modèle ouvert,
@@ -123,7 +168,9 @@ export function resolveModelCredentials(modelKey: string): ModelCredentials {
  * il ne doit contenir aucun identifiant.
  */
 export function getPublicModelConfig(): PublicModelConfig[] {
-  return defaultModelConfigs.map(({ apiKeyEnv, apiUrlEnv, defaultApiUrl, ...pub }) => pub);
+  return defaultModelConfigs
+    .filter((model) => model.selectable !== false)
+    .map(({ apiKeyEnv, apiUrlEnv, defaultApiUrl, ...pub }) => pub);
 }
 
 export const modelConfig: PublicModelConfig[] = getPublicModelConfig();

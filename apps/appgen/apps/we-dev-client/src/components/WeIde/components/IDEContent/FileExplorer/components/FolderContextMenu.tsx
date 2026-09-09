@@ -60,7 +60,7 @@ export function FolderContextMenu({
 
   return (
     <div
-      className="bg-[#18181a] border border-[#3c3c3c] rounded shadow-lg z-50"
+      className="bg-surface-1 border border-[var(--glass-border)] rounded shadow-lg z-50"
       style={{
         position: 'absolute',
         left: x,
@@ -68,7 +68,7 @@ export function FolderContextMenu({
       }}
     >
       {path && (
-        <div className="px-3 py-1.5 text-[13px] text-gray-400 border-b border-[#454545] flex items-center">
+        <div className="px-3 py-1.5 text-[13px] text-gray-400 border-b border-[var(--glass-border)] flex items-center">
           <Folder className="w-3.5 h-3.5 mr-1.5 text-[#dcb67a]" />
           {path.split('/').pop()}
         </div>
@@ -76,7 +76,7 @@ export function FolderContextMenu({
       {menuItems.map((item, index) => (
         <button
           key={index}
-          className="w-full px-3 py-1.5 text-[13px] text-left hover:bg-[#2d2d2d] flex items-center"
+          className="w-full px-3 py-1.5 text-[13px] text-left hover:bg-surface-2 flex items-center"
           onClick={item.onClick}
         >
           <item.icon className="w-3.5 h-3.5 mr-1.5" />

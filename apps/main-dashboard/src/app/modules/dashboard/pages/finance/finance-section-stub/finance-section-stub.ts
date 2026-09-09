@@ -72,9 +72,46 @@ export class FinanceSectionStubComponent implements OnInit {
     return Array.from({ length: 12 }, (_, i) => start + i);
   });
 
+  /**
+   * Le calendrier comptable du projet.
+   *
+   * Un exercice ne se nomme jamais « An 1 » dans un document remis à une banque :
+   * il porte ses années civiles, et l'interface le montre dès la saisie. Le
+   * FORMAT du libellé dépend de la juridiction — une clôture au 31 décembre
+   * donne « 2026 », toute autre clôture donne « 2026-2027 », parce que
+   * l'exercice couvre alors réellement deux années civiles.
+   */
+  protected readonly fiscalCalendar = computed(
+    () =>
+      this.finance()?.fiscalCalendar ?? {
+        firstYear: new Date().getFullYear(),
+        activityStartMonth: 1,
+        fiscalYearEndMonth: 12,
+      },
+  );
+
+  /** Le serveur ramène la clôture à décembre là où la loi l'impose. */
+  protected readonly calendarYearEnforced = computed(
+    () => this.fiscalCalendar().fiscalYearEndMonth === 12,
+  );
+
   protected readonly yearLabels = computed(() => {
-    return Array.from({ length: this.projectionYears() }, (_, i) => `An ${i + 1}`);
+    const first = this.fiscalCalendar().firstYear || new Date().getFullYear();
+    const endMonth = this.fiscalCalendar().fiscalYearEndMonth ?? 12;
+    return Array.from({ length: this.projectionYears() }, (_, i) =>
+      endMonth === 12 ? String(first + i) : `${first + i}-${first + i + 1}`,
+    );
   });
+
+  /** Mois d'exploitation réels du premier exercice — il est souvent tronqué. */
+  protected readonly firstYearActiveMonths = computed(
+    () => 13 - Math.min(12, Math.max(1, this.fiscalCalendar().activityStartMonth || 1)),
+  );
+
+  protected readonly monthNames = [
+    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
+  ];
 
   // ----- Products -----
   protected readonly products = computed(() => this.finance()?.products || []);
@@ -325,6 +362,7 @@ export class FinanceSectionStubComponent implements OnInit {
       case 'investments': return f.investments;
       case 'financing': return f.financing;
       case 'ratiosParams': return f.ratiosParams;
+      case 'fiscalCalendar': return f.fiscalCalendar;
       default: return undefined;
     }
   }

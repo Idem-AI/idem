@@ -73,6 +73,44 @@ const PRICING: Record<string, ModelPricing> = {
 /** Tarif appliqué à un modèle inconnu — volontairement non nul pour rester visible. */
 const DEFAULT_PRICING: ModelPricing = { input: 0.5, output: 2 };
 
+/**
+ * Remise sur les tokens d'entrée servis depuis le cache de préfixe de Z.ai,
+ * exprimée en FRACTION du tarif d'entrée plein.
+ *
+ * Le cache de Z.ai est IMPLICITE : il « identifie intelligemment le contenu de
+ * contexte répété sans configuration manuelle » et se déclenche « automatiquement
+ * sur la similarité du contenu » (docs.z.ai/guides/capabilities/cache). Aucun
+ * appel d'API à faire — c'est l'ordre du prompt qui décide, d'où le préfixe
+ * stable posé en tête des générations par sections.
+ *
+ * ⚠️ DEUX CHIFFRES CIRCULENT, et l'écart est important :
+ *
+ *   · la documentation officielle annonce « généralement 50 % du prix standard » ;
+ *   · plusieurs revendeurs relèvent 0,26 $/M sur glm-5.2 contre 1,40 $/M plein,
+ *     soit ~18,6 %.
+ *
+ * On retient le chiffre OFFICIEL et CONSERVATEUR (50 %). Un tarif de cache
+ * surestimé fait surestimer le coût de la plateforme ; un tarif sous-estimé le
+ * fait sous-estimer, et c'est la seule des deux erreurs qui se paie. Le jour où
+ * la facture Z.ai confirme les 18,6 %, une variable suffit :
+ *
+ *     GLM_CACHED_INPUT_RATIO=0.186
+ *
+ * Le VOLUME de tokens cachés est mesuré indépendamment de ce réglage
+ * (`AiUsageEvent.cachedInputTokens`, métrique `ai_tokens_total{kind="cached"}`) :
+ * l'efficacité du cache est donc observable même si son tarif exact ne l'est pas.
+ */
+const GLM_DEFAULT_CACHED_INPUT_RATIO = 0.5;
+
+function glmCachedInputRate(fullInputRate: number): number | undefined {
+  const raw = process.env.GLM_CACHED_INPUT_RATIO;
+  const ratio = raw === undefined ? GLM_DEFAULT_CACHED_INPUT_RATIO : Number(raw);
+  if (!Number.isFinite(ratio) || ratio < 0 || ratio > 1) {
+    return round(fullInputRate * GLM_DEFAULT_CACHED_INPUT_RATIO);
+  }
+  return round(fullInputRate * ratio);
+}
+
 let overrides: Record<string, ModelPricing> | null = null;
 
 /**
@@ -114,7 +152,17 @@ export function getModelPricing(modelName: string): ModelPricing {
     if (!best || key.length > best.key.length) best = { key, pricing };
   }
 
-  return best?.pricing ?? DEFAULT_PRICING;
+  const pricing = best?.pricing ?? DEFAULT_PRICING;
+
+  // Remise de cache GLM : appliquée seulement si l'exploitant l'a confirmée et
+  // renseignée (cf. `glmCachedInputRate`). Une surcharge explicite dans
+  // `AI_PRICING_OVERRIDES` reste prioritaire.
+  if (normalized.startsWith('glm') && pricing.cachedInput === undefined) {
+    const cachedInput = glmCachedInputRate(pricing.input);
+    if (cachedInput !== undefined) return { ...pricing, cachedInput };
+  }
+
+  return pricing;
 }
 
 /** Vrai si le modèle est inconnu de la table (le coût affiché est alors approximatif). */

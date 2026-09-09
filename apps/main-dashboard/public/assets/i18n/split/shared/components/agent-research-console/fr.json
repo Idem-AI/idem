@@ -1,18 +1,81 @@
 {
   "dashboard": {
     "researchConsole": {
+      "title": "Équipe de recherche IA",
+      "subtitle": "Vos agents collectent des données réelles et sourcées, en direct",
       "dialogTitle": "Génération sourcée par l'IA",
       "viewResults": "Voir mes prévisions",
+      "countersLabel": "Statistiques de la recherche",
+      "counters": {
+        "agents": "agents actifs",
+        "queries": "recherches",
+        "sources": "sources",
+        "sections": "sections"
+      },
+      "team": {
+        "title": "Équipe",
+        "empty": "En attente du démarrage des agents…"
+      },
+      "feed": {
+        "title": "Activité en direct",
+        "empty": "Aucune activité pour le moment",
+        "starting": "Démarrage de la recherche…"
+      },
+      "roles": {
+        "orchestrator": "Chef d'équipe",
+        "researcher": "Chercheur",
+        "writer": "Rédacteur",
+        "verifier": "Vérificateur"
+      },
+      "agentStatus": {
+        "queued": "En attente",
+        "planning": "Planification",
+        "searching": "Recherche web",
+        "reading": "Lecture",
+        "writing": "Rédaction",
+        "verifying": "Vérification",
+        "done": "Terminé",
+        "error": "Erreur"
+      },
+      "kinds": {
+        "agent_status": "Étape",
+        "search_query": "Recherche",
+        "source_found": "Source trouvée",
+        "finding": "Donnée clé",
+        "section_drafted": "Section rédigée",
+        "verification": "Vérifié",
+        "note": "Note"
+      },
+      "sources": {
+        "title": "Sources citées"
+      },
+      "sections": {
+        "title": "Vérification par section",
+        "cited": "cité(s)",
+        "uncited": "non sourcé(s)"
+      },
       "phase": {
         "businessPlan": {
-          "running": { "title": "Nous préparons votre business plan" },
-          "finalizing": { "title": "Presque terminé…" },
-          "done": { "title": "Votre business plan est prêt" }
+          "running": {
+            "title": "Nous préparons votre business plan"
+          },
+          "finalizing": {
+            "title": "Presque terminé…"
+          },
+          "done": {
+            "title": "Votre business plan est prêt"
+          }
         },
         "finance": {
-          "running": { "title": "Nous calons vos prévisions financières" },
-          "finalizing": { "title": "Presque terminé…" },
-          "done": { "title": "Vos prévisions sont prêtes" }
+          "running": {
+            "title": "Nous calons vos prévisions financières"
+          },
+          "finalizing": {
+            "title": "Presque terminé…"
+          },
+          "done": {
+            "title": "Vos prévisions sont prêtes"
+          }
         },
         "subtitle": {
           "running": "Nos assistants recherchent des données de marché réelles et vérifient chaque chiffre.",
@@ -22,19 +85,6 @@
       },
       "progress": {
         "sectionsProgress": "{{done}} sur {{total}} sections terminées"
-      },
-      "now": {
-        "live": "En direct",
-        "preparing": "Préparation",
-        "starting": "Nous analysons votre projet",
-        "almost": "Dernière ligne droite",
-        "finalizing": "Mise en forme de votre document",
-        "completed": "Terminé",
-        "done": "Toutes les sections sont prêtes"
-      },
-      "journey": {
-        "title": "Étapes",
-        "sources": "{{count}} source(s)"
       },
       "sectionStatus": {
         "done": "Terminé",
@@ -63,37 +113,54 @@
         "taxes": "Fiscalité et charges",
         "growth": "Croissance du marché"
       },
-      "feed": {
-        "empty": "Aucune activité pour le moment",
-        "starting": "Démarrage de la recherche…"
+      "now": {
+        "live": "En direct",
+        "preparing": "Préparation",
+        "starting": "Nous analysons votre projet",
+        "almost": "Dernière ligne droite",
+        "finalizing": "Mise en forme de votre document",
+        "completed": "Terminé",
+        "done": "Toutes les sections sont prêtes"
+      },
+      "journey": {
+        "title": "Étapes",
+        "sources": "{{count}} source(s)"
       },
       "foot": {
         "note": "Aucune donnée inventée · {{queries}} recherches"
       },
-      "roles": {
-        "orchestrator": "Chef d'équipe",
-        "researcher": "Chercheur",
-        "writer": "Rédacteur",
-        "verifier": "Vérificateur"
-      },
-      "agentStatus": {
-        "queued": "En attente",
-        "planning": "Planification",
-        "searching": "Recherche web",
-        "reading": "Lecture",
-        "writing": "Rédaction",
-        "verifying": "Vérification",
-        "done": "Terminé",
-        "error": "Erreur"
-      },
-      "kinds": {
-        "agent_status": "Étape",
-        "search_query": "Recherche",
-        "source_found": "Source trouvée",
-        "finding": "Donnée clé",
-        "section_drafted": "Section rédigée",
-        "verification": "Vérifié",
-        "note": "Note"
+      "elapsed": "Temps écoulé",
+      "reassurance": {
+        "planning": {
+          "0": "Nous répartissons le travail entre nos assistants : recherche, rédaction, vérification.",
+          "1": "Chaque section aura son chercheur dédié avant d'être rédigée.",
+          "2": "Nous lisons votre projet pour savoir quelles données chercher."
+        },
+        "searching": {
+          "0": "Nos assistants interrogent le web pour trouver des chiffres réels sur votre marché.",
+          "1": "Chaque donnée trouvée est conservée avec le lien de sa source.",
+          "2": "Nous cherchons des données récentes et situées sur votre zone géographique."
+        },
+        "writing": {
+          "0": "Nous rédigeons la section à partir des données trouvées, sans rien inventer.",
+          "1": "Les chiffres sont repris tels quels, avec leur année et leur périmètre.",
+          "2": "Une section bien documentée demande quelques instants d'écriture."
+        },
+        "verifying": {
+          "0": "Nous relisons chaque affirmation chiffrée pour la rattacher à sa source.",
+          "1": "Une donnée sans source ne reste pas dans votre document.",
+          "2": "La vérification est ce qui distingue un document fiable d'un texte plausible."
+        },
+        "finalizing": {
+          "0": "Nous assemblons les sections et mettons votre document en forme.",
+          "1": "Encore quelques instants : nous ordonnons les chiffres et les tableaux.",
+          "2": "Dernière relecture avant de vous rendre la main."
+        },
+        "done": {
+          "0": "Votre document est prêt, chaque chiffre renvoie à sa source.",
+          "1": "Vous pouvez maintenant relire et ajuster ce qui vous semble utile.",
+          "2": "Tout est enregistré : vous retrouverez ce document dans votre projet."
+        }
       }
     }
   }

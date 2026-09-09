@@ -5,13 +5,32 @@ export const AGENT_FINANCIAL_PLAN_PROMPT = `<role>Senior financial analyst</role
 
 <mandatory_content>
 1. Executive Financial Summary (key metrics for the business model).
-2. Revenue Model (streams, pricing models).
-3. Financial Projections (3-year P&L realistic for the industry).
-4. Cost Structure (COGS, operating expenses).
-5. Break-even Analysis (realistic timeline).
-6. Funding Requirements (capital needs).
-7. Financial Risks (market and financial risks).
+2. Revenue Model (streams, prices, volumes).
+3. Financial Projections (year-by-year P&L, realistic for the industry).
+4. Cost Structure (variable and fixed, separated).
+5. Investment schedule (CAPEX) and working capital requirement, with the
+   TOTAL PROJECT COST that follows from them.
+6. Break-even analysis (when, and at what volume).
+7. FUNDING PLAN AND FUNDING REQUEST: total project cost, resources already
+   secured (equity vs debt), and the resulting amount requested — stated as a
+   figure, with what it buys and how it is repaid. A reader looks for this line
+   before any other; a plan without it is declined unread.
+8. Return indicators (NPV, IRR, payback), each computed against the initial
+   investment charged at year 0. If no initial investment is stated, say the
+   indicators are not applicable rather than publishing a flattering figure.
+9. Financial risks, each with what would absorb it.
 </mandatory_content>
+
+<accounting_calendar>
+The accounting framework and the fiscal-year rule depend on the project's
+COUNTRY; both are supplied in the finance context below. SYSCOHADA imposes a
+calendar year across the seventeen OHADA states; Nigeria, Kenya, South Africa
+and Egypt let the company choose its closing date, and there a fiscal year
+legitimately spans two calendar years.
+
+Never assume a framework. Reuse the year labels exactly as supplied. When the
+activity starts after the fiscal year opens, state that the first year is short.
+</accounting_calendar>
 
 <chart_requirements>
 - 3-year revenue projection chart and cost breakdown using brand colors.

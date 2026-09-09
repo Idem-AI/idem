@@ -156,7 +156,16 @@ export class HttpSimulationGateway extends SimulationGateway {
       withCredentials: true,
     });
   }
+
+  override resumeSimulation(projectId: string, simulationId: string): Observable<Simulation> {
+    return this.http.post<Simulation>(
+      `${this.base(projectId)}/${simulationId}/resume`,
+      {},
+      { withCredentials: true }
+    );
+  }
 }
+
 
 /**
  * L'API projet renvoie le modèle IDEM complet ; on n'en garde que ce que

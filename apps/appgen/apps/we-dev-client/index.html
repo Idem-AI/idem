@@ -1,40 +1,66 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/idem.png" />
-    <link rel="apple-touch-icon" href="/assets/icons/idem.png" />
-    <title>IDEV — AI App Generator by Idem</title>
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/icons/icode-icon.png" />
+    <link rel="apple-touch-icon" href="/assets/icons/icode-icon.png" />
+    <meta name="theme-color" content="#1447e6" />
+    <title>iCode — Générateur d'applications par IA | Idem</title>
     <meta
       name="description"
-      content="Transformer votre idée en application fonctionnelle avec IDEV. Le générateur d'applications intelligent de l'écosystème Idem. Génération de code par IA, aperçu en temps réel et souveraineté numérique."
+      content="Décrivez votre idée, iCode écrit l'application. Génération de code par IA, aperçu en direct, édition visuelle et déploiement souverain avec iDeploy. Un produit de l'écosystème Idem."
     />
     <meta
       name="keywords"
-      content="IA, générateur d'application, Idem, IDEV, code generation, React, Next.js, digital sovereignty Africa, AI development service"
+      content="iCode, Idem, générateur d'application, IA, génération de code, React, aperçu en direct, édition visuelle, souveraineté numérique Afrique, iDeploy"
     />
     <meta name="author" content="Idem" />
     <meta name="robots" content="index,follow" />
     <meta name="googlebot" content="index,follow" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="IDEV — AI App Generator by Idem" />
+    <meta property="og:title" content="iCode — Générateur d'applications par IA" />
     <meta
       property="og:description"
-      content="Le générateur d'applications intelligent d'Idem. Transformez vos idées en code avec l'IA."
+      content="Décrivez votre idée, iCode écrit l'application. Aperçu en direct, édition visuelle, déploiement souverain."
     />
-    <meta property="og:site_name" content="Idem Ecosystem" />
+    <meta property="og:image" content="/assets/icode-logo-dark.png" />
+    <meta property="og:site_name" content="Idem" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="iCode — Générateur d'applications par IA" />
+    <meta
+      name="twitter:description"
+      content="Décrivez votre idée, iCode écrit l'application."
+    />
 
-    <!-- Structured Data - SoftwareApplication by Idem -->
+    <!-- Le thème est posé avant le premier rendu : sans cela, une page sombre
+         s'affiche en clair pendant une frame (flash blanc) le temps que React
+         monte et que `useInit` lise le cookie. -->
+    <script>
+      (function () {
+        try {
+          var cookie = document.cookie.match(/(?:^|;\s*)idem_theme=([^;]*)/);
+          var stored = cookie ? decodeURIComponent(cookie[1]) : localStorage.getItem('theme');
+          var isDark =
+            stored === 'dark' ||
+            ((!stored || stored === 'system') &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.add(isDark ? 'dark' : 'light');
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+
+    <!-- Structured Data - SoftwareApplication -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
-        "name": "IDEV",
-        "alternateName": "IDEV by Idem",
-        "description": "AI-powered application generator for the Idem ecosystem. Transform your idea into a fully functional web application.",
-        "url": "https://appgen.idem.africa",
+        "name": "iCode",
+        "alternateName": "iCode by Idem",
+        "description": "Générateur d'applications par IA de l'écosystème Idem. Décrivez votre idée ou partez d'un projet analysé, iCode écrit le code, vous l'éditez visuellement et le déployez.",
+        "url": "https://icode.idem.africa",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "Web",
         "author": {

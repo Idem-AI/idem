@@ -30,6 +30,7 @@
             "styles": [
               "src/styles.css"
             ],
+            "preserveSymlinks": true,
             "polyfills": []
           },
           "configurations": {

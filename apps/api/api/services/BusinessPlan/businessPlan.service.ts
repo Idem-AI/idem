@@ -23,19 +23,33 @@ import { AGENT_TARGET_AUDIENCE_PROMPT } from './prompts/agent-target-audience.pr
 import { AGENT_PRODUCTS_SERVICES_PROMPT } from './prompts/agent-products-services.prompt';
 import { AGENT_MARKETING_SALES_PROMPT } from './prompts/agent-marketing-sales.prompt';
 import { AGENT_FINANCIAL_PLAN_PROMPT } from './prompts/agent-financial-plan.prompt';
+import { buildFinanceBlocks, buildFinanceNarrative } from '../Finance/finance-blocks';
+import { Block } from '../design/sectionContent';
 import { AGENT_GOAL_PLANNING_PROMPT } from './prompts/agent-goal-planning.prompt';
 import { AGENT_APPENDIX_PROMPT } from './prompts/agent-appendix.prompt';
+import { BP_SECTION_EXAMPLE } from './prompts/section-example.prompt';
+import { BP_SECTION_BRIEFS } from './prompts/section-briefs.prompt';
 import { TeamMember } from '../../models/project.model';
 import { storageService } from '../storage.service';
 import { buildLogoBlock, collectLogoUrls } from '../../utils/brand-context.util';
 import { buildArtDirectionBlock } from '../../utils/art-direction.util';
-import { ANTI_SLOP_BLOCK } from '../design/antiSlop.prompt';
+import { ANTI_SLOP_BLOCK, CONTENT_RULES_BLOCK } from '../design/antiSlop.prompt';
 import {
   EDITORIAL_RESTRAINT_BLOCK,
   RESTRAINT_SELF_REVIEW_BLOCK,
 } from '../design/editorialRestraint.prompt';
-import { lintHtml, repairHtml } from '../design/slopLint.service';
-import { buildDesignSeed, describeSeed } from '../design/designSeed';
+import { enforceDesignRules } from '../design/slopLint.service';
+import {
+  buildDocumentSeed,
+  buildSectionSeed,
+  describeDocumentSeed,
+  describeSectionSeed,
+} from '../design/designSeed';
+import {
+  buildDocumentDesignSystem,
+  derivedPalette,
+  describeDesignSystem,
+} from '../design/documentDesignSystem';
 import { ensureProjectArtDirection } from '../design/artDirection.provider';
 import { researchTeamService } from '../research/research-team.service';
 import {
@@ -54,6 +68,10 @@ export const BUSINESS_PLAN_SECTION_NAMES = [
   'Financial Plan',
   'Goal Planning',
   'Appendix',
+  // Bibliographie du livrable, en DERNIER. Elle doit figurer ici : le PDF
+  // rejette en fin de document toute section absente de cette liste, et une
+  // page construite mais jamais affichée est le pire des deux mondes.
+  'Ressources',
 ];
 
 export class BusinessPlanService extends GenericService {
@@ -133,86 +151,159 @@ export class BusinessPlanService extends GenericService {
     const brandContext = await this.buildBrandContext(userId, projectId, project, language);
     const lintContext = this.buildLintContext(project);
 
-    // Build finance context if finance module exists
-    let financeContext = '';
-    if (project.analysisResultModel?.finance) {
-      const finance = project.analysisResultModel.finance;
-      const summaryText = [];
-      if (finance.computed) {
-        const ce = finance.computed.compteExploitation || [];
-        const seuil = finance.computed.seuilRentabilite || [];
-        const ft = finance.computed.fluxTresorerie || [];
-        
-        summaryText.push('--- REAL FINANCIAL DATA FROM THE FINANCE MODULE ---');
-        summaryText.push(`Currency: ${finance.meta?.currency || 'FCFA'}`);
-
-        summaryText.push('Revenue and net income projections:');
-        ce.forEach((y: any) => {
-          summaryText.push(`- Year ${y.year}: revenue = ${y.chiffreAffaires} ${finance.meta?.currency || 'FCFA'}, net income = ${y.resultatNet} ${finance.meta?.currency || 'FCFA'}, gross margin = ${y.margeBrute} ${finance.meta?.currency || 'FCFA'} (${y.tauxMargePct}%)`);
-        });
-
-        if (seuil.length > 0) {
-          summaryText.push('Break-even:');
-          seuil.forEach((s: any) => {
-            summaryText.push(`- Year ${s.year}: break-even = ${s.seuilRentabilite} ${finance.meta?.currency || 'FCFA'}, break-even point = ${s.pointMortJours} days`);
-          });
-        }
-
-        if (ft.length > 0) {
-          summaryText.push('Closing cash position:');
-          ft.forEach((f: any) => {
-            summaryText.push(`- Year ${f.year}: closing cash = ${f.tresorerieCloture} ${finance.meta?.currency || 'FCFA'}`);
-          });
-        }
-      } else {
-        summaryText.push('--- FINANCE MODULE DATA (not computed) ---');
-        summaryText.push(`Products: ${finance.products.map(p => `${p.name}: ${p.prices?.[0]} FCFA`).join(', ')}`);
-      }
-      financeContext = '\n\n' + summaryText.join('\n');
-    }
+    // Le contexte financier vient d'un point unique : ce texte servait, dans
+    // trois copies légèrement divergentes, à faire recopier des chiffres au
+    // modèle. Les tableaux sont maintenant POSÉS par le service ; ce résumé ne
+    // sert plus qu'à ce que les autres sections ne contredisent pas le module.
+    const financeContext = buildFinanceNarrative(
+      project.analysisResultModel?.finance,
+      project.additionalInfos?.country
+    );
 
     try {
       // Les dépendances entre sections ne sont PLUS déclarées ici : elles vivent
       // dans BUSINESS_PLAN_GRAPH (services/agents/deliverable-graph.ts), au même
       // endroit que celles du deck, validées (cycles, noms inconnus) et
       // documentées avec leur coût en latence.
+      // PRÉFIXE STABLE — identique aux neuf sections, émis UNE fois en tête de
+      // chaque appel. Il portait auparavant la FIN de chaque `promptConstant`,
+      // derrière la partie variable : ~3 400 tokens repayés neuf fois, et aucun
+      // début de prompt jamais répété — donc aucun cache de préfixe possible.
+      const stablePrefix = [
+        projectDescription,
+        `BRAND CONTEXT:\n${brandContext}`,
+        BP_SECTION_EXAMPLE,
+      ].join('\n\n');
+
+      // PRÉFIXE DU MODE GABARIT — plus court, et c'est le point.
+      //
+      // Le préfixe complet porte ~3 000 tokens de règles de COMPOSITION (fiche
+      // de style, invariants de mise en page, anti-générique, retenue
+      // éditoriale). Pour une section rendue par gabarit, elles sont inertes :
+      // le code compose. Les laisser coûterait des tokens, mais surtout de
+      // l'attention — un petit modèle honore une dizaine de contraintes, et
+      // celles qui comptent ici sont celles qui portent sur le TEXTE.
+      //
+      // Les deux préfixes restent stables chacun de leur côté : le cache de
+      // préfixe s'accroche donc aux deux familles, et la plus grosse (8
+      // sections) est désormais la plus courte.
+      const templatedPrefix = [
+        projectDescription,
+        `BRAND FACTS:\nBrand: ${project.name ?? ''}\nLanguage: ${language}`,
+        CONTENT_RULES_BLOCK,
+        BP_SECTION_EXAMPLE,
+      ].join('\n\n');
+
+      // Chaque section reçoit sa PROPRE graine de composition, tirée sans
+      // répétition dans l'espace autorisé par le style. C'est ce qui empêche
+      // neuf pages de partager le même archétype sans pour autant les rendre
+      // étrangères les unes aux autres : les invariants (couleur, typographie,
+      // rythme) restent dans le préfixe stable ci-dessus.
+      const artDirection = project.analysisResultModel?.branding?.artDirection;
+      const documentSeed = buildDocumentSeed(artDirection?.styleId, `businessplan:${project.id}`);
+
+      // DESIGN SYSTEM CALCULÉ pour ce document : rampes, encres contrastées,
+      // échelle typographique, rayon, rythme. Une fois par livrable — les neuf
+      // pages le partagent, ce qui est très exactement ce qui en fait un
+      // document.
+      const designSystem = buildDocumentDesignSystem(
+        project.analysisResultModel?.branding,
+        artDirection,
+        documentSeed
+      );
+      logger.info(`[BP] Design system: ${describeDesignSystem(designSystem)}`);
+
+      const logoUrls = collectLogoUrls(project.analysisResultModel?.branding?.logo);
+      const renderOptions = { logoUrl: logoUrls[0], brandName: project.name };
+
+      const usedArchetypes = new Set<string>();
+      let sectionIndex = 0;
+
+      /**
+       * Une section RENDUE PAR GABARIT : le modèle produit du contenu, le code
+       * produit la page. Sa graine lui donne son archétype de mise en page,
+       * distinct de celui de ses voisines.
+       */
+      const templated = (
+        fallbackPrompt: string,
+        stepName: string,
+        volume: string,
+        extra = '',
+        prependBlocks?: Block[]
+      ): IPromptStep => {
+        sectionIndex += 1;
+        return {
+          // Le prompt d'ORIGINE reste ici : il est le repli quand le gabarit est
+          // coupé (`IDEM_SECTION_TEMPLATE=off`), auquel cas la section doit de
+          // nouveau produire du HTML.
+          promptConstant: `${fallbackPrompt}${extra}`,
+          stepName,
+          stablePrefix: templatedPrefix,
+          template: {
+            // Sous gabarit, c'est le brief de CONTENU qui part. Le prompt
+            // d'origine consacrait les trois quarts de son volume à une
+            // composition que le rendu produit désormais (format de page,
+            // Tailwind, Chart.js, compatibilité éditeur) : une consigne inerte
+            // n'est pas neutre, elle prend la place de celles qui comptent.
+            contentBrief: `${BP_SECTION_BRIEFS[stepName] ?? fallbackPrompt}${extra}`,
+            designSystem,
+            seed: buildSectionSeed(
+              artDirection?.styleId,
+              `businessplan:${project.id}`,
+              stepName,
+              usedArchetypes
+            ),
+            volume,
+            render: { ...renderOptions, index: sectionIndex },
+            // Les tableaux financiers viennent du module Finance, pas du
+            // modèle : un chiffre recopié dans un contexte de plusieurs
+            // milliers de mots est un chiffre altéré, et c'est le défaut qu'un
+            // lecteur de plan repère en premier.
+            prependBlocks,
+          },
+        };
+      };
+
+      /**
+       * Une section en génération LIBRE : le modèle compose lui-même.
+       *
+       * Réservée aux pages dont la composition EST le livrable. La couverture
+       * est la première page qu'un investisseur ouvre : c'est le seul endroit du
+       * plan où l'on préfère le plafond de qualité au plancher.
+       */
+      const freeform = (prompt: string, stepName: string): IPromptStep => {
+        sectionIndex += 1;
+        const seed = buildSectionSeed(
+          artDirection?.styleId,
+          `businessplan:${project.id}`,
+          stepName,
+          usedArchetypes
+        );
+        return {
+          promptConstant: `${prompt}\n\n<composition_for_this_page>\n${describeSectionSeed(seed)}\n</composition_for_this_page>`,
+          stepName,
+        };
+      };
+
       const steps: IPromptStep[] = [
-        {
-          promptConstant: `${projectDescription}\n${AGENT_COVER_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: 'Cover Page',
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_COMPANY_SUMMARY_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: 'Company Summary',
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_OPPORTUNITY_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: 'Opportunity',
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_TARGET_AUDIENCE_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: 'Target Audience',
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_PRODUCTS_SERVICES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: 'Products & Services',
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_MARKETING_SALES_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: 'Marketing & Sales',
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}${financeContext}`,
-          stepName: 'Financial Plan',
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_GOAL_PLANNING_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: 'Goal Planning',
-        },
-        {
-          promptConstant: `${projectDescription}\n${AGENT_APPENDIX_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}`,
-          stepName: 'Appendix',
-        },
+        freeform(AGENT_COVER_PROMPT, 'Cover Page'),
+        templated(AGENT_COMPANY_SUMMARY_PROMPT, 'Company Summary', '7 to 9'),
+        templated(AGENT_OPPORTUNITY_PROMPT, 'Opportunity', '8 to 10'),
+        templated(AGENT_TARGET_AUDIENCE_PROMPT, 'Target Audience', '7 to 9'),
+        templated(AGENT_PRODUCTS_SERVICES_PROMPT, 'Products & Services', '7 to 9'),
+        templated(AGENT_MARKETING_SALES_PROMPT, 'Marketing & Sales', '7 to 9'),
+        templated(
+          AGENT_FINANCIAL_PLAN_PROMPT,
+          'Financial Plan',
+          '8 to 10',
+          financeContext,
+          buildFinanceBlocks(
+            project.analysisResultModel?.finance,
+            project.additionalInfos?.country
+          )
+        ),
+        templated(AGENT_GOAL_PLANNING_PROMPT, 'Goal Planning', '6 to 8'),
+        templated(AGENT_APPENDIX_PROMPT, 'Appendix', '5 to 7'),
       ];
 
       // Chaque section produit une page HTML : la grille déterministe attrape
@@ -231,7 +322,8 @@ export class BusinessPlanService extends GenericService {
         AI_CONFIG.businessPlan,
         steps,
         BUSINESS_PLAN_GRAPH,
-        sectionQuality
+        sectionQuality,
+        stablePrefix
       );
 
       const promptConfig: PromptConfig = {
@@ -277,13 +369,19 @@ export class BusinessPlanService extends GenericService {
             if (typeof sectionHtml === 'string' && sectionHtml) {
               const options = {
                 palette: lintContext.palette,
+                // Les teintes des rampes DÉRIVENT de la charte : sans cette
+                // déclaration, le linter prendrait le design system calculé pour
+                // une palette inventée et « corrigerait » ses propres nuances.
+                extraAllowedColors: derivedPalette(designSystem),
                 fonts: lintContext.fonts,
                 expectedLogoUrls: result.name === 'Cover Page' ? lintContext.logoUrls : [],
                 styleId: lintContext.styleId,
                 label: `business-plan/${result.name}`,
               };
-              sectionHtml = repairHtml(sectionHtml, options).html;
-              lintHtml(sectionHtml, options);
+              // Réparation déterministe PUIS constat de ce qui résiste. Le verdict
+              // du linter était auparavant calculé puis jeté : les 20 règles de
+              // charte étaient détectées, journalisées, et jamais appliquées.
+              sectionHtml = enforceDesignRules(sectionHtml, options).html;
             }
 
             // Convert result to section model
@@ -564,9 +662,34 @@ export class BusinessPlanService extends GenericService {
       }
     };
 
+    // Le moteur de recherche reçoit la CHARTE du projet : ses sections sont des
+    // sections du document, pas des pages à part. Sans ces champs elles
+    // retomberaient sur un design system par défaut et le plan aurait deux
+    // identités visuelles — ce qu'il avait.
+    const researchArtDirection = project.analysisResultModel?.branding?.artDirection;
     await researchTeamService.runResearchTeam(
       sectionsToGenerate,
-      { projectContext: projectDescription, brandContext, language, userId, currency },
+      {
+        projectContext: projectDescription,
+        // Identité stable pour le cache des recherches : une régénération du
+        // même projet doit RÉUTILISER les faits déjà collectés.
+        projectId,
+        // Bibliographie rassemblée en fin de document plutôt qu'en pied de
+        // chaque section — construite par le code, sans appel de modèle.
+        resourcesSectionName: 'Ressources',
+        brandContext,
+        language,
+        userId,
+        currency,
+        charter: project.analysisResultModel?.branding,
+        artDirection: researchArtDirection,
+        documentKey: `businessplan:${projectId}`,
+        // Partagé par tout le run : deux sections voisines ne peuvent pas tirer
+        // le même archétype.
+        usedArchetypes: new Set<string>(),
+        logoUrl: collectLogoUrls(project.analysisResultModel?.branding?.logo)[0],
+        brandName: project.name,
+      },
       emit,
       persistSection
     );
@@ -591,7 +714,10 @@ export class BusinessPlanService extends GenericService {
     const geo = country ? ` (priority market: ${country})` : '';
     const ctx = projectDescription.slice(0, 400);
     return [
-      { name: 'Cover Page', instructions: AGENT_COVER_PROMPT, needsResearch: false },
+      // La couverture est une composition PLEINE PAGE, à hauteur fixe (cf.
+      // `fixedPageSections`) : elle ne passe pas par le gabarit, sinon elle
+      // deviendrait une page de contenu comme les huit autres.
+      { name: 'Cover Page', instructions: AGENT_COVER_PROMPT, needsResearch: false, freeform: true },
       { name: 'Company Summary', instructions: AGENT_COMPANY_SUMMARY_PROMPT, needsResearch: false },
       {
         name: 'Opportunity',
@@ -668,10 +794,12 @@ export class BusinessPlanService extends GenericService {
       projectId,
       project
     );
-    // Graine DÉTERMINISTE par projet : deux business plans ne se ressemblent
-    // pas, mais les sections d'un même plan partagent la même mise en page —
-    // c'est ce qui fait un document plutôt qu'une pile de pages.
-    const seed = buildDesignSeed(artDirection?.styleId, `businessplan:${project.id}`);
+    // INVARIANTS du document seulement : stratégie de couleur, humeur
+    // typographique, rythme spatial, accent graphique. L'archétype de mise en
+    // page, la tension et la densité sont tirés PAR SECTION (cf.
+    // `buildSectionSeed`) — une graine unique pour neuf pages ne laissait que
+    // deux issues : neuf pages identiques, ou un document incohérent.
+    const documentSeed = buildDocumentSeed(artDirection?.styleId, `businessplan:${project.id}`);
 
     return [
       `Brand: ${brandName}`,
@@ -685,7 +813,7 @@ export class BusinessPlanService extends GenericService {
       }),
       buildArtDirectionBlock(artDirection, { medium: 'document' }),
       artDirection
-        ? `<composition_seed>\nEvery section of this plan shares the composition seed below: it is what makes them belong to the same document.\n${describeSeed(seed)}\n</composition_seed>`
+        ? `<composition_invariants>\n${describeDocumentSeed(documentSeed)}\n</composition_invariants>`
         : '',
       ANTI_SLOP_BLOCK,
       EDITORIAL_RESTRAINT_BLOCK,
@@ -719,28 +847,12 @@ export class BusinessPlanService extends GenericService {
     };
   }
 
-  /** Construit le bloc de contexte financier réel (module Finance) pour les agents. */
+  /** Contexte financier réel (module Finance) pour les agents — point unique. */
   private buildFinanceContext(project: ProjectModel): string {
-    if (!project.analysisResultModel?.finance) return '';
-    const finance = project.analysisResultModel.finance;
-    const currency = finance.meta?.currency || 'FCFA';
-    const summaryText: string[] = [];
-    if (finance.computed) {
-      const ce = finance.computed.compteExploitation || [];
-      summaryText.push('--- REAL FINANCIAL DATA FROM THE FINANCE MODULE ---');
-      summaryText.push(`Currency: ${currency}`);
-      ce.forEach((y: any) => {
-        summaryText.push(
-          `- Year ${y.year}: revenue = ${y.chiffreAffaires} ${currency}, net income = ${y.resultatNet} ${currency}, gross margin = ${y.margeBrute} ${currency} (${y.tauxMargePct}%)`
-        );
-      });
-    } else {
-      summaryText.push('--- FINANCE MODULE DATA (not computed) ---');
-      summaryText.push(
-        `Products: ${finance.products.map((p) => `${p.name}: ${p.prices?.[0]} ${currency}`).join(', ')}`
-      );
-    }
-    return '\n\n' + summaryText.join('\n');
+    return buildFinanceNarrative(
+      project.analysisResultModel?.finance,
+      project.additionalInfos?.country
+    );
   }
 
   async getBusinessPlansByProjectId(
@@ -872,6 +984,12 @@ export class BusinessPlanService extends GenericService {
       // PLUSIEURS pages A4 (contenu détaillé, graphes, sources), sans qu'un bloc
       // soit coupé entre deux pages. Sans ceci, chaque section est rognée à 1 page.
       multiPage: true,
+      // Empêcher les très grands espaces vides (stretching excessif) après les graphiques
+      pagination: {
+        maxGapAddMm: 3,
+        maxGapAddHardMm: 8,
+        balance: false,
+      },
       // La couverture est une composition pleine page : elle est rendue telle
       // quelle, jamais redécoupée ni étirée par le paginateur.
       fixedPageSections: ['Cover Page'],
@@ -1016,43 +1134,10 @@ export class BusinessPlanService extends GenericService {
 
     const brandContext = await this.buildBrandContext(userId, projectId, project, language);
 
-    // Build finance context
-    let financeContext = '';
-    if (project.analysisResultModel?.finance) {
-      const finance = project.analysisResultModel.finance;
-      const summaryText = [];
-      if (finance.computed) {
-        const ce = finance.computed.compteExploitation || [];
-        const seuil = finance.computed.seuilRentabilite || [];
-        const ft = finance.computed.fluxTresorerie || [];
-        
-        summaryText.push('--- REAL FINANCIAL DATA FROM THE FINANCE MODULE ---');
-        summaryText.push(`Currency: ${finance.meta?.currency || 'FCFA'}`);
-        
-        summaryText.push('Projections de Chiffre d\'Affaires et Résultat Net:');
-        ce.forEach((y: any) => {
-          summaryText.push(`- Year ${y.year}: revenue = ${y.chiffreAffaires} ${finance.meta?.currency || 'FCFA'}, net income = ${y.resultatNet} ${finance.meta?.currency || 'FCFA'}, gross margin = ${y.margeBrute} ${finance.meta?.currency || 'FCFA'} (${y.tauxMargePct}%)`);
-        });
-        
-        if (seuil.length > 0) {
-          summaryText.push('Break-even:');
-          seuil.forEach((s: any) => {
-            summaryText.push(`- Year ${s.year}: break-even = ${s.seuilRentabilite} ${finance.meta?.currency || 'FCFA'}, break-even point = ${s.pointMortJours} days`);
-          });
-        }
-        
-        if (ft.length > 0) {
-          summaryText.push('Closing cash position:');
-          ft.forEach((f: any) => {
-            summaryText.push(`- Year ${f.year}: closing cash = ${f.tresorerieCloture} ${finance.meta?.currency || 'FCFA'}`);
-          });
-        }
-      } else {
-        summaryText.push('--- FINANCE MODULE DATA (not computed) ---');
-        summaryText.push(`Products: ${finance.products.map(p => `${p.name}: ${p.prices?.[0]} FCFA`).join(', ')}`);
-      }
-      financeContext = '\n\n' + summaryText.join('\n');
-    }
+    const financeContext = buildFinanceNarrative(
+      project.analysisResultModel?.finance,
+      project.additionalInfos?.country
+    );
 
     const step: IPromptStep = {
       promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}${financeContext}`,

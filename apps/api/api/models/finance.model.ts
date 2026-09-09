@@ -28,9 +28,114 @@ import { SectionSource } from './section.model';
 // CONSTANTES
 // =====================================================================
 
+/**
+ * CALENDRIER COMPTABLE — dépendant de la JURIDICTION du projet.
+ *
+ * ── CE QUE CE MODÈLE A CESSÉ DE SUPPOSER ────────────────────────────────────
+ *
+ * Il imposait le SYSCOHADA à tout le monde : exercice obligatoirement calé sur
+ * l'année civile. C'est exact dans les dix-sept États de l'OHADA, et faux
+ * ailleurs — au Nigeria, au Kenya, en Afrique du Sud ou en Égypte, la société
+ * arrête librement sa date de clôture, et un exercice « 2026-2027 » y est la
+ * façon NORMALE de nommer un exercice à cheval sur deux années civiles.
+ * Le module interdisait donc, au nom de la conformité, la seule écriture
+ * correcte dans une bonne part du continent.
+ *
+ * La règle applicable vit maintenant dans `services/common/accounting-
+ * jurisdiction`, déduite du pays du projet. Ce modèle ne porte plus que les
+ * DATES ; c'est la juridiction qui dit si elles sont libres ou contraintes.
+ *
+ * Conséquence inchangée sur les tableaux : l'index 0 des tableaux mensuels est
+ * le PREMIER MOIS DE L'EXERCICE 1. Une activité qui démarre plus tard dans
+ * l'exercice porte donc des mois à zéro en tête — c'est la réalité que le
+ * premier exercice doit montrer, et non une année pleine déguisée.
+ */
+export interface FiscalCalendar {
+  /**
+   * Année civile où s'ouvre l'exercice 1.
+   *
+   * Pour un exercice à cheval (clôture au 30 juin, par exemple), c'est l'année
+   * du 1er jour de l'exercice : un exercice du 1er juillet 2026 au 30 juin 2027
+   * porte `firstYear = 2026` et se nomme « 2026-2027 ».
+   */
+  firstYear: number;
+  /**
+   * Mois de démarrage effectif de l'activité DANS l'exercice 1
+   * (1 = premier mois de l'exercice). Sert à qualifier l'exercice 1
+   * d'exercice tronqué et à le dire au lecteur.
+   */
+  activityStartMonth: number;
+  /**
+   * Mois de CLÔTURE de l'exercice (1 = janvier … 12 = décembre). Vaut 12 dans
+   * les juridictions qui imposent ou privilégient l'année civile ; librement
+   * arrêté là où la loi le permet.
+   */
+  fiscalYearEndMonth: number;
+  /**
+   * Identifiant de la juridiction retenue (cf. `accounting-jurisdiction`).
+   * Conservé sur le modèle pour que le rapport cite le référentiel appliqué au
+   * moment du calcul, et non celui du pays courant si le projet déménage.
+   */
+  jurisdictionId?: string;
+}
+
 export const FINANCE_PROJECTION_MONTHS = 36;
 export const FINANCE_PROJECTION_YEARS = 7; // certains tableaux vont jusqu'à 7 ans
 export const FINANCE_MAX_PRODUCTS = 20;
+
+/** Calendrier par défaut : exercice 1 = année civile en cours, clôture au 31 décembre. */
+export const defaultFiscalCalendar = (): FiscalCalendar => ({
+  firstYear: new Date().getFullYear(),
+  activityStartMonth: 1,
+  fiscalYearEndMonth: 12,
+});
+
+/**
+ * Libellés d'exercice — le SEUL endroit du code qui nomme un exercice.
+ *
+ * Une clôture au 31 décembre donne « 2026 ». Une clôture à toute autre date
+ * donne « 2026-2027 », parce que l'exercice couvre alors réellement deux années
+ * civiles : la forme que le module bannissait est ici la seule juste.
+ * Concentrer la règle en un point est ce qui permet de la corriger d'un seul
+ * geste quand un projet change de juridiction.
+ */
+export function fiscalYearLabels(calendar: FiscalCalendar, years: number): string[] {
+  const first = calendar?.firstYear || new Date().getFullYear();
+  const endMonth = calendar?.fiscalYearEndMonth ?? 12;
+  return Array.from({ length: years }, (_, index) => {
+    const start = first + index;
+    return endMonth === 12 ? String(start) : `${start}-${start + 1}`;
+  });
+}
+
+/**
+ * Période couverte par un exercice, en toutes lettres.
+ * Ex. « du 1er janvier au 31 décembre 2026 », « du 1er juillet 2026 au 30 juin 2027 ».
+ */
+export function fiscalYearPeriod(calendar: FiscalCalendar, index: number): string {
+  const MONTHS = [
+    'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+    'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+  ];
+  const LAST_DAY = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  const first = (calendar?.firstYear || new Date().getFullYear()) + index;
+  const endMonth = calendar?.fiscalYearEndMonth ?? 12;
+
+  if (endMonth === 12) {
+    return `du 1ᵉʳ janvier au 31 décembre ${first}`;
+  }
+  const startMonthIndex = endMonth % 12;
+  return (
+    `du 1ᵉʳ ${MONTHS[startMonthIndex]} ${first} ` +
+    `au ${LAST_DAY[endMonth - 1]} ${MONTHS[endMonth - 1]} ${first + 1}`
+  );
+}
+
+/** Nombre de mois d'activité réels dans l'exercice 1 (1 à 12). */
+export function firstYearActiveMonths(calendar: FiscalCalendar): number {
+  const start = Math.min(12, Math.max(1, calendar?.activityStartMonth || 1));
+  return 13 - start;
+}
 
 // =====================================================================
 // TYPES UTILITAIRES
@@ -348,8 +453,24 @@ export interface RatiosParams {
   dividendDistributionRatePct: number;
   /** Taux de croissance à l'infini pour DCF (défaut 2%) */
   perpetualGrowthRatePct: number;
-  /** Coût moyen pondéré du capital (CMPC/WACC) en % */
+  /**
+   * Coût moyen pondéré du capital (CMPC/WACC) en %.
+   *
+   * Saisi à la main OU recalculé à partir de la structure de financement quand
+   * `cmpcAuto` est vrai — auquel cas il est DÉDUIT et non plus supposé.
+   */
   cmpcPct: number;
+  /** Recalculer le CMPC depuis la structure de financement réelle. */
+  cmpcAuto?: boolean;
+  /** Coût des fonds propres attendu par les associés, en %. */
+  costOfEquityPct?: number;
+  /**
+   * Coût de la dette, en %. Absent ⇒ déduit du taux moyen pondéré des emprunts
+   * effectivement inscrits au plan de financement.
+   */
+  costOfDebtPct?: number;
+  /** Nombre d'actions/parts sociales émises. Défaut 100. */
+  numberOfShares?: number;
 }
 
 // =====================================================================
@@ -518,6 +639,35 @@ export interface RatiosComputed {
   tri: number;                // Taux de Rendement Interne (en %)
   drci: number;               // Délai de Récupération du Capital Investi (en années)
   indiceProfitabilite: number;
+  /** VAN / I0 — la variante demandée au cahier des charges, distincte de l'IP. */
+  indiceProfitabiliteVanSurI0: number;
+  /** Investissement initial effectivement imputé en année 0. */
+  investissementInitial: number;
+  /**
+   * ⚠️ FAUX SI ABSENT — VAN, TRI et IP n'ont de sens que si un investissement
+   * initial est imputé à l'année 0. Sans lui, la VAN vaut la somme actualisée
+   * des bénéfices et le TRI diverge : deux chiffres flatteurs et faux, exactement
+   * ce que ce drapeau empêche de publier sans réserve.
+   */
+  significant: boolean;
+  /** Raison de la non-significativité, à afficher telle quelle. */
+  significanceNote?: string;
+  /** Tableau d'actualisation complet, année 0 comprise. */
+  fluxActualisesDetail: DiscountedFlowRow[];
+  /** Année où le cumul des flux devient positif (null si jamais). */
+  drciAtteintAnnee: number | null;
+  /** CMPC retenu, et sa décomposition quand il est déduit. */
+  cmpc: {
+    valuePct: number;
+    source: 'saisi' | 'déduit';
+    costOfEquityPct: number;
+    costOfDebtPct: number;
+    equityWeightPct: number;
+    debtWeightPct: number;
+    taxRatePct: number;
+  };
+  /** Valorisation par action, exercice par exercice. */
+  valeurAction: ShareValueRow[];
   /** Évaluation DCF */
   dcf: {
     fluxActualises: YearlyArray;
@@ -527,6 +677,203 @@ export interface RatiosComputed {
   };
   /** Politique de distribution */
   dividendesAnnuels: YearlyArray;
+}
+
+// ---------------------------------------------------------------------------
+// SORTIES AJOUTÉES — les postes que le rapport devait montrer et ne montrait pas
+// ---------------------------------------------------------------------------
+
+/** 2. Structure de coûts, décomposée et totalisée. */
+export interface CostStructureComputed {
+  /** Charges variables par poste, agrégées à l'année. */
+  variableByLine: { id: string; label: string; category: string; yearly: YearlyArray }[];
+  /** Charges fixes par poste, hors salaires et charges assises dessus. */
+  fixedByLine: { id: string; label: string; category: string; yearly: YearlyArray }[];
+  /** Masse salariale brute par poste. */
+  salariesByLine: { id: string; position: string; yearly: YearlyArray }[];
+  totalVariable: YearlyArray;
+  totalFixed: YearlyArray;
+  totalSalaries: YearlyArray;
+  /** Charges sociales = taux × rémunérations. */
+  chargesSociales: YearlyArray;
+  /** Taxe unique sur les salaires. */
+  tus: YearlyArray;
+  /** Dette fournisseur = charges variables × taux de dette fournisseur. */
+  detteFournisseur: YearlyArray;
+  /** Charges externes = charges fixes hors rémunérations et impôts — base de la VA. */
+  chargesExternes: YearlyArray;
+}
+
+/** 3. Fiscalité — la patente détaillée tranche par tranche. */
+export interface PatenteBracketDetail {
+  /** Borne basse de la tranche (seuil). */
+  seuil: number;
+  /** Borne haute effectivement atteinte par le CA. */
+  plafond: number;
+  ratePct: number;
+  /** (plafond − seuil) × taux. */
+  montant: number;
+}
+
+export interface TaxesComputed {
+  /** Une entrée par exercice. */
+  rows: {
+    year: number;
+    /** Libellé d'exercice en année civile. */
+    label: string;
+    chiffreAffaires: number;
+    brackets: PatenteBracketDetail[];
+    patente: number;
+    taxeOccupation: number;
+    tus: number;
+    /** Patente + taxe d'occupation + TUS : ce qui entre en « impôts et taxes ». */
+    totalImpotsTaxes: number;
+    /** Impôt sur les sociétés, repris du compte d'exploitation. */
+    impotSocietes: number;
+  }[];
+  /** Droits d'enregistrement et frais assimilés, calculés une fois sur la base. */
+  droitsEnregistrement: {
+    base: number;
+    droitsEnregistrement: number;
+    centimesAdditionnels: number;
+    publiciteFonciere: number;
+    travauxCadastraux: number;
+    total: number;
+  };
+}
+
+/** 4 & 6. Coût du projet — le tableau des investissements qui manquait. */
+export interface InvestmentScheduleRow {
+  id: string;
+  label: string;
+  category: string;
+  amortGroup: AmortizationGroup;
+  /** Montant total engagé sur l'horizon. */
+  montant: number;
+  /** Mois d'engagement (1 = premier mois du plan), null si étalé. */
+  moisEngagement: number | null;
+  /** Durée d'amortissement en années (0 = non amortissable). */
+  dureeAmortissement: number;
+  tauxAmortissementPct: number;
+}
+
+export interface ProjectCostComputed {
+  rows: InvestmentScheduleRow[];
+  /** Sous-totaux par nature d'immobilisation. */
+  immobilisationsIncorporelles: number;
+  immobilisationsCorporelles: number;
+  immobilisationsFinancieres: number;
+  totalInvestissements: number;
+  /** Stock initial + frais de premier fonctionnement. */
+  stockInitial: number;
+  fraisPremierFonctionnement: number;
+  besoinFondsRoulement: number;
+  /** Investissements + BFR. */
+  coutTotalProjet: number;
+}
+
+/** 6. Schéma de financement et DEMANDE explicite. */
+export interface FundingSource {
+  key:
+    | 'apportCapital'
+    | 'compteCourantAssocies'
+    | 'autofinancement'
+    | 'subvention'
+    | 'cmt'
+    | 'creditBail'
+    | 'creditFournisseurs';
+  label: string;
+  /** 'equity' = haut de bilan apporté par les associés, 'debt' = à rembourser. */
+  nature: 'equity' | 'debt';
+  amount: number;
+  /** Part dans le total financé, en %. */
+  sharePct: number;
+  ratePct?: number;
+  durationLabel?: string;
+}
+
+export interface FundingPlanComputed {
+  sources: FundingSource[];
+  totalEquity: number;
+  totalDebt: number;
+  totalFinancement: number;
+  coutTotalProjet: number;
+  /**
+   * Coût total − financements déjà mobilisés.
+   *
+   * > 0 : c'est le MONTANT DEMANDÉ. C'est la ligne qu'un banquier cherche en
+   * premier, et son absence était le défaut le plus coûteux du document.
+   * < 0 : le plan est sur-financé, ce qui se dit aussi.
+   */
+  besoinDeFinancement: number;
+  /** Taux d'endettement = dettes / (dettes + fonds propres). */
+  tauxEndettementPct: number;
+  /** Couverture du coût du projet par les financements mobilisés, en %. */
+  couverturePct: number;
+  /** Affectation demandée : à quoi servent les fonds. */
+  affectation: { label: string; montant: number; sharePct: number }[];
+}
+
+/** 9. Flux de trésorerie, méthode O.E.C. détaillée. */
+export interface CashFlowOecRow {
+  year: number;
+  label: string;
+  resultatExploitation: number;
+  dotationsAmortissements: number;
+  /** RE + dotations. */
+  resultatBrutExploitation: number;
+  variationStocks: number;
+  variationCreances: number;
+  variationDettesExploitation: number;
+  /** RBE − ΔStocks − ΔCréances + ΔDettes. */
+  fluxNetExploitation: number;
+  fraisFinanciers: number;
+  produitsFinanciers: number;
+  impotSocietes: number;
+  /** A — flux généré par l'activité. */
+  fluxActivite: number;
+  acquisitionsImmobilisations: number;
+  cessionsImmobilisations: number;
+  /** B — flux lié à l'investissement. */
+  fluxInvestissement: number;
+  augmentationCapital: number;
+  emissionsEmprunts: number;
+  remboursementsEmprunts: number;
+  dividendesVerses: number;
+  subventions: number;
+  /** C — flux lié au financement. */
+  fluxFinancement: number;
+  /** A + B + C. */
+  variationTresorerie: number;
+  tresorerieOuverture: number;
+  tresorerieCloture: number;
+}
+
+/** 11. Le tableau d'actualisation, ligne à ligne — dont l'année 0. */
+export interface DiscountedFlowRow {
+  /** 0 = investissement initial, puis 1..N. */
+  year: number;
+  label: string;
+  /** Flux de trésorerie de la période (négatif en année 0). */
+  flux: number;
+  /** (1 + taux)^(−n). */
+  facteurActualisation: number;
+  fluxActualise: number;
+  /** Cumul des flux NON actualisés — sert au délai de récupération. */
+  cumulFlux: number;
+  cumulFluxActualise: number;
+}
+
+/** 11. Valorisation par action. */
+export interface ShareValueRow {
+  year: number;
+  label: string;
+  fondsPropres: number;
+  valeurAction: number;
+  /** Variation par rapport à l'exercice précédent, en %. */
+  croissanceActionPct: number | null;
+  dividendesADistribuer: number;
+  dividendeParAction: number;
 }
 
 export interface FinanceComputed {
@@ -539,6 +886,16 @@ export interface FinanceComputed {
   seuilRentabilite: SeuilRentabiliteRow[];
   fluxTresorerie: FluxTresorerieRow[];
   ratios: RatiosComputed;
+  // ── Sorties ajoutées ──────────────────────────────────────────────────────
+  /** Libellés d'exercice en années civiles (SYSCOHADA). */
+  fiscalYearLabels: string[];
+  costStructure: CostStructureComputed;
+  taxes: TaxesComputed;
+  projectCost: ProjectCostComputed;
+  fundingPlan: FundingPlanComputed;
+  cashFlowOec: CashFlowOecRow[];
+  /** Créances clients par exercice = CA × taux de créances. */
+  creancesClients: YearlyArray;
 }
 
 // =====================================================================
@@ -550,6 +907,8 @@ export interface FinanceModel {
   projectId: string;
   /** Horizon de projection en années (défaut 3, max 7) */
   projectionYears: number;
+  /** Calendrier comptable SYSCOHADA — exercices calés sur l'année civile. */
+  fiscalCalendar: FiscalCalendar;
   // Inputs
   products: ProductPricing[];
   salesObjectives: SalesObjective[];
@@ -598,6 +957,9 @@ export const DEFAULT_RATIOS_PARAMS: RatiosParams = {
   dividendDistributionRatePct: 30,
   perpetualGrowthRatePct: 2,
   cmpcPct: 10,
+  cmpcAuto: true,
+  costOfEquityPct: 15,
+  numberOfShares: 100,
 };
 
 export const DEFAULT_TAXES_PARAMS: TaxesParams = {
@@ -635,6 +997,7 @@ export function createEmptyFinanceModel(projectId: string, projectionYears = 3):
   return {
     projectId,
     projectionYears,
+    fiscalCalendar: defaultFiscalCalendar(),
     products: [],
     salesObjectives: [],
     revenueParams: { ...DEFAULT_REVENUE_PARAMS },

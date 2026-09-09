@@ -18,6 +18,17 @@ export interface TourStep {
   body: string;
   placement?: TourPlacement;
   /**
+   * Illustration de l'étape : balisage SVG inséré tel quel au-dessus du titre.
+   *
+   * Le paquet ne connaît aucun framework : il construit du DOM. L'application
+   * hôte fournit donc le SVG déjà sérialisé, et reste maîtresse de son style —
+   * `currentColor` et les jetons du design system y fonctionnent normalement.
+   *
+   * Le contenu est inséré via `innerHTML` : il vient du code de l'application,
+   * jamais d'une saisie utilisateur.
+   */
+  illustration?: string;
+  /**
    * Étape de célébration : la bulle s'orne d'une petite pluie de confettis.
    * Réservée à la dernière étape.
    */

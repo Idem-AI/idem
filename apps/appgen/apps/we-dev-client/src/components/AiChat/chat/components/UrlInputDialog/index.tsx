@@ -72,7 +72,7 @@ export const UrlInputDialog: React.FC<UrlInputDialogProps> = ({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Title */}
-          <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100 mb-4">
+          <h3 className="text-lg font-medium leading-6 text-text-primary mb-4">
             {t('chat.urlInput.title')}
           </h3>
 

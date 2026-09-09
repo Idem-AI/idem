@@ -19,6 +19,8 @@
       "milestones": {
         "brandIdentity": "Brand Identity",
         "businessPlan": "Business Plan",
+        "pitchDeck": "Pitch Deck",
+        "finance": "Financial Forecasts",
         "systemDesign": "Diagrams",
         "development": "Development",
         "launch": "Launch"
@@ -39,6 +41,16 @@
           "description": "Create a comprehensive business strategy and roadmap",
           "alt": "Business Plan"
         },
+        "pitchDeck": {
+          "title": "Pitch Deck",
+          "description": "Design an impactful pitch deck for investors and partners",
+          "alt": "Pitch Deck"
+        },
+        "finance": {
+          "title": "Financial Forecasts",
+          "description": "Build your financial model, projections, and plans",
+          "alt": "Financial Forecasts"
+        },
         "design": {
           "title": "Diagrams",
           "description": "Design your system architecture and technical specifications",
@@ -49,16 +61,16 @@
           "description": "Build and implement your project with modern technologies",
           "alt": "Development"
         },
-        "launch": {
-          "title": "Launch & Deploy",
-          "description": "Deploy your project and make it live for the world",
-          "alt": "Launch"
-        },
         "comingUp": "Coming Up",
         "almostThere": "Almost There",
         "finalStep": "Final Step",
         "startNow": "Start Now",
-        "nextStep": "Next Step"
+        "nextStep": "Next Step",
+        "launch": {
+          "title": "Launch & Deploy",
+          "description": "Deploy your project and make it live for the world",
+          "alt": "Launch"
+        }
       },
       "info": {
         "created": "Created",

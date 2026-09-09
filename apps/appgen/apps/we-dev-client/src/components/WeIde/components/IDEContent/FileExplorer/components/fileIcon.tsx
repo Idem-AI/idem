@@ -15,7 +15,7 @@ const FileIcon: React.FC<FileIconProps> = ({ fileName = "" }) => {
   const fileTypeList = fileName.split(".");
 
   if (fileTypeList.length === 1) {
-    return <Folder className="w-4 h-4 mr-1.5 text-[#94959f]" />;
+    return <Folder className="w-4 h-4 mr-1.5 text-text-tertiary" />;
   }
   const fileType = fileTypeList.pop();
 
@@ -24,45 +24,45 @@ const FileIcon: React.FC<FileIconProps> = ({ fileName = "" }) => {
       <img
         alt="md"
         src={MarkdownIcon}
-        className="w-3 h-3 mr-1.5 text-[#94959f]"
+        className="w-3 h-3 mr-1.5 text-text-tertiary"
       />
     );
   }
   if (fileType === "json") {
     return (
-      <span className="icon-[lets-icons--json] text-[#94959f] w-3 h-3 mr-1.5" />
+      <span className="icon-[lets-icons--json] text-text-tertiary w-3 h-3 mr-1.5" />
     );
   }
   if (fileType === "html") {
     return (
-      <span className="icon-[flowbite--html-solid] w-3 h-3 mr-1.5 text-[#94959f]" />
+      <span className="icon-[flowbite--html-solid] w-3 h-3 mr-1.5 text-text-tertiary" />
     );
   }
 
   if (fileType === "jsx") {
     return (
-      <span className="icon-[file-icons--jsx-alt] w-3 h-3 mr-1.5 text-[#94959f]" />
+      <span className="icon-[file-icons--jsx-alt] w-3 h-3 mr-1.5 text-text-tertiary" />
     );
   }
   if (fileType === "tsx") {
     return (
-      <span className="icon-[file-icons--tsx-alt] w-3 h-3 mr-1.5 text-[#94959f]" />
+      <span className="icon-[file-icons--tsx-alt] w-3 h-3 mr-1.5 text-text-tertiary" />
     );
   }
 
   if (fileType === "css") {
     return (
-      <span className="icon-[simple-icons--css] w-3 h-3 mr-1.5 text-[#94959f]" />
+      <span className="icon-[simple-icons--css] w-3 h-3 mr-1.5 text-text-tertiary" />
     );
   }
 
   if (fileType === "ts") {
     return (
-      <span className="icon-[devicon--typescript] w-3 h-3 mr-1.5 text-[#94959f]" />
+      <span className="icon-[devicon--typescript] w-3 h-3 mr-1.5 text-text-tertiary" />
     );
   }
 
-  return <span className="icon-[mdi--file] w-3 h-3 mr-1.5 text-[#94959f]" />;
+  return <span className="icon-[mdi--file] w-3 h-3 mr-1.5 text-text-tertiary" />;
 };
 
 export default FileIcon;

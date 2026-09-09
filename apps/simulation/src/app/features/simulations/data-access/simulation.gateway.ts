@@ -93,4 +93,10 @@ export abstract class SimulationGateway {
   abstract runLab(projectId: string, simulationId: string, lab: LabName): Observable<Simulation>;
 
   abstract deleteSimulation(projectId: string, simulationId: string): Observable<void>;
+
+  /**
+   * Reprend une simulation ayant échoué ou bloquée en `running`.
+   * Le pipeline repart depuis la dernière étape complétée.
+   */
+  abstract resumeSimulation(projectId: string, simulationId: string): Observable<Simulation>;
 }

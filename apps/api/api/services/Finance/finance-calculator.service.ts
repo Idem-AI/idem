@@ -11,6 +11,13 @@ import {
   AmortizationGroup,
   AmortizationRow,
   BfrComputed,
+  CashFlowOecRow,
+  CostStructureComputed,
+  FundingPlanComputed,
+  ProjectCostComputed,
+  ShareValueRow,
+  TaxesComputed,
+  fiscalYearLabels,
   BilanRow,
   CompteExploitationRow,
   FINANCE_PROJECTION_MONTHS,
@@ -29,6 +36,18 @@ import {
   zerosMonthly,
   zerosYearly,
 } from '../../models/finance.model';
+import {
+  computeCashFlowOec,
+  computeCmpc,
+  computeCostStructure,
+  computeDiscountedFlows,
+  computeFraisPremierFonctionnement,
+  computeFundingPlan,
+  computePatenteBrackets,
+  computeProjectCost,
+  computeShareValues,
+  computeTaxes,
+} from './finance-statements.service';
 
 // =====================================================================
 // HELPERS
@@ -141,17 +160,19 @@ export function computeSalariesMonthly(finance: FinanceModel): MonthlyArray {
 // 3. IMPÔTS ET TAXES — PATENTE
 // =====================================================================
 
-/** Calcule la patente annuelle à partir du CA selon les tranches progressives */
+/**
+ * Patente annuelle, barème PROGRESSIF PAR TRANCHE.
+ *
+ * Le calcul délègue à `computePatenteBrackets`, qui somme (plafond − seuil) ×
+ * taux sur chaque tranche franchie. La version précédente appliquait le taux de
+ * la seule tranche atteinte à la TOTALITÉ du chiffre d'affaires : sur un CA
+ * d'un milliard, cela doublait la patente. Un compte d'exploitation et un
+ * tableau fiscal qui ne calculent pas la même patente est le genre de
+ * contradiction qu'un lecteur repère immédiatement — d'où le point d'entrée
+ * unique.
+ */
 export function computePatente(ca: number, finance: FinanceModel): number {
-  const brackets = finance.taxesParams.patenteBrackets;
-  // On applique le taux de la tranche correspondante (taux progressif simple)
-  for (const bracket of brackets) {
-    if (ca <= bracket.caUpperBound) {
-      const computed = (ca * bracket.ratePct) / 100;
-      return Math.max(computed, bracket.minAmount || 0);
-    }
-  }
-  return 0;
+  return computePatenteBrackets(ca, finance).total;
 }
 
 /** Taxe d'occupation annuelle selon taille des locaux */
@@ -278,19 +299,44 @@ function emptySchedule(periods: number): LoanSchedule {
   };
 }
 
-/** Échéancier d'amortissement constant */
+/**
+ * ── LES ÉCHÉANCIERS SONT TOUJOURS MENSUELS ─────────────────────────────────
+ *
+ * Deux défauts se cachaient dans la version précédente, et le second n'était
+ * visible que dans le rapport imprimé :
+ *
+ *  1. une durée exprimée en ANNÉES produisait `duration × 12` périodes — donc
+ *     des périodes mensuelles — mais conservait le taux ANNUEL sur chacune.
+ *     Un emprunt de 300 M à 9,5 % sur 5 ans facturait ainsi 28,5 M d'intérêts
+ *     SOIXANTE fois : 1,42 Md d'intérêts sur un capital de 300 M ;
+ *  2. les consommateurs en aval (charges financières, remboursements, capital
+ *     restant dû) indexaient ce même tableau à l'ANNÉE quand l'unité de durée
+ *     valait `years` — ils lisaient donc la deuxième mensualité comme la
+ *     deuxième annuité.
+ *
+ * La cause commune est l'ambiguïté de l'unité. Elle est supprimée : un
+ * échéancier est mensuel, toujours, et le taux périodique est le taux annuel
+ * divisé par douze. Plus aucun appelant n'a d'unité à deviner.
+ */
+
+/** Nombre de mensualités d'un emprunt, quelle que soit l'unité saisie. */
+function scheduleMonths(p: LoanParams): number {
+  const duration = p.duration || 0;
+  return p.durationUnit === 'months' ? duration : duration * MONTHS_PER_YEAR;
+}
+
+/** Échéancier d'amortissement constant, mensualisé. */
 function constantAmortizationSchedule(p: LoanParams): LoanSchedule {
-  const periods = p.durationUnit === 'months' ? p.duration : p.duration * MONTHS_PER_YEAR;
+  const periods = scheduleMonths(p);
   if (periods <= 0 || p.amount <= 0) return emptySchedule(Math.max(periods, 1));
 
-  const rPerPeriod = p.durationUnit === 'months' ? p.ratePct / 100 / 12 : p.ratePct / 100;
-  const isMonthlyRate = p.durationUnit === 'months';
+  const rate = p.ratePct / 100 / MONTHS_PER_YEAR;
   const periodicAmort = p.amount / periods;
 
   const schedule = emptySchedule(periods);
   let remaining = p.amount;
   for (let i = 0; i < periods; i++) {
-    const interest = remaining * (isMonthlyRate ? rPerPeriod : rPerPeriod);
+    const interest = remaining * rate;
     schedule.capitalDu[i] = remaining;
     schedule.interets[i] = interest;
     schedule.amortissements[i] = periodicAmort;
@@ -301,13 +347,12 @@ function constantAmortizationSchedule(p: LoanParams): LoanSchedule {
   return schedule;
 }
 
-/** Échéancier d'annuité constante (formule de remboursement classique) */
+/** Échéancier d'annuité constante, mensualisé. */
 function constantAnnuitySchedule(p: LoanParams): LoanSchedule {
-  const isMonthly = p.durationUnit === 'months';
-  const periods = isMonthly ? p.duration : p.duration * MONTHS_PER_YEAR;
+  const periods = scheduleMonths(p);
   if (periods <= 0 || p.amount <= 0) return emptySchedule(Math.max(periods, 1));
 
-  const r = isMonthly ? p.ratePct / 100 / 12 : p.ratePct / 100;
+  const r = p.ratePct / 100 / MONTHS_PER_YEAR;
   const annuite = r === 0 ? p.amount / periods : (p.amount * r) / (1 - Math.pow(1 + r, -periods));
 
   const schedule = emptySchedule(periods);
@@ -333,18 +378,22 @@ export function computeLoanSchedule(p: LoanParams): LoanSchedule {
     : constantAnnuitySchedule(p);
 }
 
-/** Convertit un échéancier (mensuel ou annuel) en charges financières annuelles */
-function scheduleAnnualInterests(
-  schedule: LoanSchedule,
-  isMonthly: boolean,
-  years: number
-): YearlyArray {
+/**
+ * Agrège une série mensuelle d'échéancier en totaux par exercice.
+ * Employée pour les intérêts comme pour les amortissements de capital.
+ */
+export function scheduleToYearly(monthlySeries: number[], years: number): YearlyArray {
   const out = zerosYearly(years);
-  for (let i = 0; i < schedule.interets.length; i++) {
-    const yIdx = isMonthly ? Math.floor(i / MONTHS_PER_YEAR) : i;
-    if (yIdx < years) out[yIdx] += schedule.interets[i];
+  for (let i = 0; i < monthlySeries.length; i++) {
+    const y = Math.floor(i / MONTHS_PER_YEAR);
+    if (y < years) out[y] += monthlySeries[i] || 0;
   }
   return out;
+}
+
+/** Charges financières annuelles portées par un échéancier. */
+function scheduleAnnualInterests(schedule: LoanSchedule, years: number): YearlyArray {
+  return scheduleToYearly(schedule.interets, years);
 }
 
 // =====================================================================
@@ -371,9 +420,11 @@ export function computeBfr(finance: FinanceModel, revenue: RevenueComputed): Bfr
     monthlyBfr[m] = creancesClients + stocks - dettesFourn;
   }
 
-  // Frais de premier fonctionnement: somme des charges fixes du mois 1
-  const fixedMonthly = computeFixedChargesMonthly(finance);
-  const fraisPremierFonctionnement = fixedMonthly[0] || 0;
+  // Frais de premier fonctionnement : les charges d'exploitation de la période
+  // initiale, variables comprises (cf. INITIAL_OPERATING_MONTHS). Retenir le
+  // seul premier mois de charges fixes donnait un fonds de roulement dérisoire,
+  // donc un coût de projet sous-évalué, donc un besoin de financement invisible.
+  const fraisPremierFonctionnement = computeFraisPremierFonctionnement(finance);
 
   // Variation annuelle: BFR fin d'année N - BFR fin d'année N-1
   const variationAnnuelle = zerosYearly(finance.projectionYears);
@@ -391,13 +442,17 @@ export function computeBfr(finance: FinanceModel, revenue: RevenueComputed): Bfr
   return { monthlyBfr, fraisPremierFonctionnement, variationAnnuelle };
 }
 
-export function computeFinancing(finance: FinanceModel, bfr: BfrComputed): FinancingComputed {
-  const totalInvestissements = finance.investments.reduce(
-    (acc, inv) => acc + sum(inv.monthlyValues),
-    0
-  );
-  const totalBfr = Math.max(0, ...bfr.monthlyBfr) + bfr.fraisPremierFonctionnement;
-  const coutTotalProjet = totalInvestissements + totalBfr;
+export function computeFinancing(
+  finance: FinanceModel,
+  bfr: BfrComputed,
+  projectCost: ProjectCostComputed
+): FinancingComputed {
+  // Le coût du projet vient du TABLEAU DES INVESTISSEMENTS, pas d'un agrégat
+  // parallèle : c'est ce tableau que le rapport publie, et deux chemins de
+  // calcul finissent toujours par diverger.
+  const totalInvestissements = projectCost.totalInvestissements;
+  const totalBfr = projectCost.besoinFondsRoulement;
+  const coutTotalProjet = projectCost.coutTotalProjet;
 
   const f = finance.financing;
   const totalFinancement =
@@ -415,13 +470,8 @@ export function computeFinancing(finance: FinanceModel, bfr: BfrComputed): Finan
 
   const years = finance.projectionYears;
   const chargesFinancieresAnnuelles = zerosYearly(years);
-  const accumulators: Array<[LoanSchedule, boolean]> = [
-    [compteCourantSchedule, (f.compteCourantAssocies.durationUnit || 'years') === 'months'],
-    [cmtSchedule, (f.cmt.durationUnit || 'months') === 'months'],
-    [creditBailSchedule, (f.creditBail.durationUnit || 'years') === 'months'],
-  ];
-  for (const [sched, isMonthly] of accumulators) {
-    const annual = scheduleAnnualInterests(sched, isMonthly, years);
+  for (const sched of [compteCourantSchedule, cmtSchedule, creditBailSchedule]) {
+    const annual = scheduleAnnualInterests(sched, years);
     for (let y = 0; y < years; y++) chargesFinancieresAnnuelles[y] += annual[y];
   }
 
@@ -523,94 +573,23 @@ export function computeSeuilRentabilite(
     };
   });
 }
-
 // =====================================================================
-// 9. FLUX DE TRÉSORERIE (méthode OEC)
-// =====================================================================
-
-export function computeFluxTresorerie(
-  finance: FinanceModel,
-  compteExpl: CompteExploitationRow[],
-  amort: AmortizationComputed,
-  bfr: BfrComputed,
-  financing: FinancingComputed
-): FluxTresorerieRow[] {
-  const years = finance.projectionYears;
-  const investsYearly = monthlyToYearly(
-    finance.investments.reduce<MonthlyArray>(
-      (acc, inv) => addMonthly(acc, inv.monthlyValues),
-      zerosMonthly()
-    ),
-    years
-  );
-
-  const rows: FluxTresorerieRow[] = [];
-  // Trésorerie initiale = apports en année 0
-  let tresOuverture =
-    finance.financing.apportCapital +
-    finance.financing.subvention +
-    finance.financing.autofinancement;
-
-  for (let y = 0; y < years; y++) {
-    const cex = compteExpl[y];
-    const dotations = amort.totalAnnualDotations[y] || 0;
-    const varBfr = bfr.variationAnnuelle[y] || 0;
-    const fluxExpl = cex.resultatNet + dotations - varBfr;
-
-    const fluxInvest = -(investsYearly[y] || 0);
-
-    // Flux financement = nouveaux emprunts - remboursements - intérêts (déjà dans RE)
-    // Année 0: encaissements emprunts; années suivantes: remboursements
-    let fluxFinancement = 0;
-    if (y === 0) {
-      fluxFinancement =
-        finance.financing.cmt.amount +
-        finance.financing.creditBail.amount +
-        finance.financing.compteCourantAssocies.amount +
-        finance.financing.creditFournisseurs;
-    }
-    // Remboursement de capital annuel
-    const isMonth = (u?: 'months' | 'years') => u === 'months';
-    const annualAmort = (sched: LoanSchedule, monthly: boolean) => {
-      const out = zerosYearly(years);
-      for (let i = 0; i < sched.amortissements.length; i++) {
-        const yIdx = monthly ? Math.floor(i / MONTHS_PER_YEAR) : i;
-        if (yIdx < years) out[yIdx] += sched.amortissements[i];
-      }
-      return out;
-    };
-    const remb =
-      annualAmort(financing.cmtSchedule, isMonth(finance.financing.cmt.durationUnit))[y] +
-      annualAmort(financing.creditBailSchedule, isMonth(finance.financing.creditBail.durationUnit))[
-        y
-      ] +
-      annualAmort(
-        financing.compteCourantSchedule,
-        isMonth(finance.financing.compteCourantAssocies.durationUnit)
-      )[y];
-    fluxFinancement -= remb;
-
-    const variation = fluxExpl + fluxInvest + fluxFinancement;
-    const tresCloture = tresOuverture + variation;
-
-    rows.push({
-      year: y + 1,
-      fluxExploitation: fluxExpl,
-      fluxInvestissement: fluxInvest,
-      fluxFinancement,
-      variationTresorerie: variation,
-      tresorerieOuverture: tresOuverture,
-      tresorerieCloture: tresCloture,
-    });
-    tresOuverture = tresCloture;
-  }
-  return rows;
-}
-
-// =====================================================================
-// 10. BILAN PRÉVISIONNEL
+// 9. BILAN PRÉVISIONNEL
 // =====================================================================
 
+/**
+ * Bilan prévisionnel, la trésorerie servant de VARIABLE D'ÉQUILIBRAGE.
+ *
+ * L'ancienne version reprenait la trésorerie du tableau de flux et additionnait
+ * le passif de son côté : les deux totaux ne tombaient jamais juste, et un
+ * bilan qui ne s'équilibre pas est, pour un analyste, le signal qu'il faut
+ * cesser de lire. La trésorerie est donc déduite :
+ *
+ *   Trésorerie = Total passif − VNC − Créances clients − Stock
+ *
+ * Elle peut ressortir négative : c'est alors un découvert, et c'est une
+ * information — pas un défaut à masquer par un `Math.max(0, …)`.
+ */
 export function computeBilan(
   finance: FinanceModel,
   revenue: RevenueComputed,
@@ -618,7 +597,7 @@ export function computeBilan(
   amort: AmortizationComputed,
   bfr: BfrComputed,
   financing: FinancingComputed,
-  flux: FluxTresorerieRow[]
+  dividendes: YearlyArray
 ): BilanRow[] {
   const years = finance.projectionYears;
   const recRate = finance.revenueParams.clientReceivablesRatePct / 100;
@@ -627,12 +606,11 @@ export function computeBilan(
 
   const matieresMonthly = aggregateChargeLines(
     finance.variableCharges.lines.filter((l) =>
-      ['matieresPremieres', 'achatsMarchandises'].includes(l.category)
+      ['matieresPremieres', 'achatsMarchandises', 'achatsStockes'].includes(l.category)
     )
   );
   const variableMonthly = computeVariableChargesMonthly(finance);
 
-  // Cumul immobilisations brutes
   const investsYearly = monthlyToYearly(
     finance.investments.reduce<MonthlyArray>(
       (acc, inv) => addMonthly(acc, inv.monthlyValues),
@@ -640,6 +618,7 @@ export function computeBilan(
     ),
     years
   );
+
   let immoBrutesCum = 0;
   let reportANouveau = 0;
   const rows: BilanRow[] = [];
@@ -650,34 +629,27 @@ export function computeBilan(
 
     const creances = (revenue.monthlyTotal[lastMonth] || 0) * recRate;
     const stocks = (matieresMonthly[lastMonth] || 0) * safetyStockRate;
-    const tresorerie = flux[y]?.tresorerieCloture || 0;
-    const totalActifsCirc = creances + stocks + Math.max(tresorerie, 0);
 
     const amortCum = amort.rows.reduce((acc, r) => acc + (r.cumulative[y] || 0), 0);
     const vnc = Math.max(0, immoBrutesCum - amortCum);
-    const totalActif = totalActifsCirc + vnc;
 
     const dettesFourn = (variableMonthly[lastMonth] || 0) * supplierRate;
-    // Capital restant dû sur les emprunts en fin d'année
-    const remainingLoan = (sched: LoanSchedule, isMonthly: boolean): number => {
-      const idx = isMonthly ? (y + 1) * MONTHS_PER_YEAR - 1 : y;
+
+    // Capital restant dû à la clôture : la dernière mensualité de l'exercice,
+    // diminuée de l'amortissement qu'elle porte.
+    const remainingLoan = (sched: LoanSchedule): number => {
+      const idx = (y + 1) * MONTHS_PER_YEAR - 1;
       if (idx >= sched.capitalDu.length) return 0;
       return Math.max(0, sched.capitalDu[idx] - sched.amortissements[idx]);
     };
-    const isMonthly = (u?: 'months' | 'years') => u === 'months';
     const empruntsRestants =
-      remainingLoan(financing.cmtSchedule, isMonthly(finance.financing.cmt.durationUnit)) +
-      remainingLoan(
-        financing.creditBailSchedule,
-        isMonthly(finance.financing.creditBail.durationUnit)
-      );
-    const ccaRestant = remainingLoan(
-      financing.compteCourantSchedule,
-      isMonthly(finance.financing.compteCourantAssocies.durationUnit)
-    );
+      remainingLoan(financing.cmtSchedule) + remainingLoan(financing.creditBailSchedule);
+    const ccaRestant = remainingLoan(financing.compteCourantSchedule);
 
     const cex = compteExpl[y];
-    const dettesFiscalesSociales = cex.is + cex.impotsTaxes * 0.1; // approximation des dettes restantes
+    // Impôt sur les sociétés et impôts assis sur l'exercice, restant à décaisser
+    // à la clôture. L'IS d'un exercice se règle sur le suivant.
+    const dettesFiscalesSociales = cex.is + cex.impotsTaxes * 0.1;
     const totalDettes = dettesFourn + dettesFiscalesSociales + empruntsRestants;
 
     const resultatExo = cex.resultatNet;
@@ -685,9 +657,14 @@ export function computeBilan(
       finance.financing.apportCapital + reportANouveau + resultatExo + ccaRestant;
     const totalPassif = totalDettes + fondsPropres;
 
+    // ── L'ÉQUILIBRE ────────────────────────────────────────────────────────
+    const tresorerie = totalPassif - vnc - creances - stocks;
+    const totalActifsCirc = creances + stocks + tresorerie;
+    const totalActif = totalActifsCirc + vnc;
+
     rows.push({
       year: y + 1,
-      tresorerie: Math.max(tresorerie, 0),
+      tresorerie,
       creancesClients: creances,
       stocks,
       totalActifsCirculants: totalActifsCirc,
@@ -709,10 +686,33 @@ export function computeBilan(
       variationBfr: bfr.variationAnnuelle[y] || 0,
     });
 
-    // Report à nouveau = cumul des résultats nets (avant dividendes), simplifié
-    reportANouveau += resultatExo;
+    // Report à nouveau : cumul des résultats NETS DES DIVIDENDES distribués.
+    // Un cumul brut ferait apparaître en fonds propres des sommes déjà sorties.
+    reportANouveau += resultatExo - (dividendes[y] || 0);
   }
   return rows;
+}
+
+// =====================================================================
+// 10. FLUX DE TRÉSORERIE — vue condensée du tableau O.E.C.
+// =====================================================================
+
+/**
+ * Projection du tableau O.E.C. dans la forme condensée historique.
+ *
+ * Les deux tableaux ne peuvent plus diverger : il n'y a qu'un seul calcul de
+ * flux, et celui-ci n'en est qu'une lecture.
+ */
+export function computeFluxTresorerie(oec: CashFlowOecRow[]): FluxTresorerieRow[] {
+  return oec.map((row) => ({
+    year: row.year,
+    fluxExploitation: row.fluxActivite,
+    fluxInvestissement: row.fluxInvestissement,
+    fluxFinancement: row.fluxFinancement,
+    variationTresorerie: row.variationTresorerie,
+    tresorerieOuverture: row.tresorerieOuverture,
+    tresorerieCloture: row.tresorerieCloture,
+  }));
 }
 
 // =====================================================================
@@ -780,8 +780,13 @@ export function computeRatios(
   compteExpl: CompteExploitationRow[],
   amort: AmortizationComputed,
   financing: FinancingComputed,
-  bfr: BfrComputed
+  bfr: BfrComputed,
+  bilan: BilanRow[],
+  fundingPlan: FundingPlanComputed,
+  dividendes: YearlyArray
 ): RatiosComputed {
+  const labels = fiscalYearLabels(finance.fiscalCalendar, finance.projectionYears);
+
   // Flux de trésorerie disponibles annuels = RN + Dotations - Variation BFR
   const fluxCash = compteExpl.map(
     (c, y) => c.resultatNet + (amort.totalAnnualDotations[y] || 0) - (bfr.variationAnnuelle[y] || 0)
@@ -793,34 +798,60 @@ export function computeRatios(
   const tri = computeTRI(fluxCash, i0);
   const drci = computeDRCI(fluxCash, i0);
 
-  // Indice profitabilité = (VAN + I0) / I0
-  const indiceProfitabilite = i0 > 0 ? (van + i0) / i0 : 0;
+  // ── SINCÉRITÉ DU CALCUL ──────────────────────────────────────────────────
+  //
+  // VAN, TRI et indice de profitabilité n'ont de sens que si l'année 0 porte un
+  // décaissement. Quand le tableau des investissements est vide, I0 vaut zéro :
+  // la VAN devient la somme actualisée des bénéfices et le TRI diverge vers
+  // l'infini. Ces deux nombres restent CALCULÉS — mais ils partent marqués, et
+  // le rapport refuse de les présenter comme des indicateurs de rentabilité.
+  const significant = i0 > 0;
+  const significanceNote = significant
+    ? undefined
+    : "Aucun investissement initial n'est saisi : la VAN, le TRI et l'indice de " +
+      'profitabilité sont sans objet tant que le tableau des investissements et le ' +
+      'besoin en fonds de roulement ne sont pas renseignés.';
 
-  // DCF
-  const cmpc = finance.ratiosParams.cmpcPct / 100;
+  // Indice de profitabilité classique = valeur actuelle des flux / I0.
+  const indiceProfitabilite = i0 > 0 ? (van + i0) / i0 : 0;
+  // Variante du cahier des charges : VAN / I0.
+  const indiceProfitabiliteVanSurI0 = i0 > 0 ? van / i0 : 0;
+
+  const fluxActualisesDetail = computeDiscountedFlows(fluxCash, i0, discountRate, labels);
+  const drciAtteintAnnee =
+    fluxActualisesDetail.find((row) => row.year > 0 && row.cumulFlux >= 0)?.year ?? null;
+
+  // ── DCF ──────────────────────────────────────────────────────────────────
+  const cmpc = computeCmpc(finance, fundingPlan);
+  const cmpcRate = cmpc.valuePct / 100;
   const gInf = finance.ratiosParams.perpetualGrowthRatePct / 100;
-  const fluxActualises = fluxCash.map((f, t) => f / Math.pow(1 + cmpc, t + 1));
+  const fluxActualises = fluxCash.map((f, t) => f / Math.pow(1 + cmpcRate, t + 1));
   const fluxNormatif = fluxCash[fluxCash.length - 1] || 0;
-  const valeurTerminale = cmpc > gInf ? (fluxNormatif * (1 + gInf)) / (cmpc - gInf) : 0;
-  const valeurTerminaleActualisee = valeurTerminale / Math.pow(1 + cmpc, fluxCash.length);
+  const valeurTerminale = cmpcRate > gInf ? (fluxNormatif * (1 + gInf)) / (cmpcRate - gInf) : 0;
+  const valeurTerminaleActualisee = valeurTerminale / Math.pow(1 + cmpcRate, fluxCash.length);
   const valeurTotaleEntreprise =
     fluxActualises.reduce((a, b) => a + b, 0) + valeurTerminaleActualisee;
-
-  const dividendRate = finance.ratiosParams.dividendDistributionRatePct / 100;
-  const dividendesAnnuels = compteExpl.map((c) => Math.max(0, c.resultatNet) * dividendRate);
 
   return {
     van,
     tri,
     drci,
     indiceProfitabilite,
+    indiceProfitabiliteVanSurI0,
+    investissementInitial: i0,
+    significant,
+    significanceNote,
+    fluxActualisesDetail,
+    drciAtteintAnnee,
+    cmpc,
+    valeurAction: computeShareValues(finance, bilan, dividendes),
     dcf: {
       fluxActualises,
       fluxNormatif,
       valeurTerminale: valeurTerminaleActualisee,
       valeurTotaleEntreprise,
     },
-    dividendesAnnuels,
+    dividendesAnnuels: dividendes,
   };
 }
 
@@ -828,21 +859,34 @@ export function computeRatios(
 // ENTRÉE PRINCIPALE
 // =====================================================================
 
-/** Calcule l'ensemble des sorties financières d'un FinanceModel */
+/**
+ * Calcule l'ensemble des sorties financières d'un FinanceModel.
+ *
+ * L'ORDRE compte, et il est celui d'une clôture réelle : exploitation, puis
+ * dividendes, puis bilan (dont la trésorerie équilibre), puis flux de
+ * trésorerie déduits du bilan, puis seulement les indicateurs. Chaque étape ne
+ * lit que ce que la précédente a produit — c'est ce qui garantit qu'aucun
+ * tableau du rapport n'en contredit un autre.
+ */
 export function computeFinance(finance: FinanceModel): FinanceComputed {
+  const years = finance.projectionYears;
+  const labels = fiscalYearLabels(finance.fiscalCalendar, years);
+
   const revenue = computeRevenue(finance);
   const amortization = computeAmortization(finance);
   const bfr = computeBfr(finance, revenue);
-  const financing = computeFinancing(finance, bfr);
+  const projectCost = computeProjectCost(finance);
+  const financing = computeFinancing(finance, bfr, projectCost);
+  const fundingPlan = computeFundingPlan(finance, projectCost);
+
   const compteExploitation = computeCompteExploitation(finance, revenue, amortization, financing);
+  const costStructure = computeCostStructure(finance);
+  const taxes = computeTaxes(finance, compteExploitation, revenue.yearlyTotal, costStructure);
   const seuilRentabilite = computeSeuilRentabilite(compteExploitation);
-  const fluxTresorerie = computeFluxTresorerie(
-    finance,
-    compteExploitation,
-    amortization,
-    bfr,
-    financing
-  );
+
+  const dividendRate = finance.ratiosParams.dividendDistributionRatePct / 100;
+  const dividendes = compteExploitation.map((row) => Math.max(0, row.resultatNet) * dividendRate);
+
   const bilan = computeBilan(
     finance,
     revenue,
@@ -850,9 +894,32 @@ export function computeFinance(finance: FinanceModel): FinanceComputed {
     amortization,
     bfr,
     financing,
-    fluxTresorerie
+    dividendes
   );
-  const ratios = computeRatios(finance, compteExploitation, amortization, financing, bfr);
+
+  const cashFlowOec = computeCashFlowOec(
+    finance,
+    compteExploitation,
+    amortization,
+    bilan,
+    financing,
+    dividendes
+  );
+  const fluxTresorerie = computeFluxTresorerie(cashFlowOec);
+
+  const ratios = computeRatios(
+    finance,
+    compteExploitation,
+    amortization,
+    financing,
+    bfr,
+    bilan,
+    fundingPlan,
+    dividendes
+  );
+
+  const recRate = finance.revenueParams.clientReceivablesRatePct / 100;
+  const creancesClients = revenue.yearlyTotal.map((ca) => ca * recRate);
 
   return {
     revenue,
@@ -864,5 +931,12 @@ export function computeFinance(finance: FinanceModel): FinanceComputed {
     seuilRentabilite,
     fluxTresorerie,
     ratios,
+    fiscalYearLabels: labels,
+    costStructure,
+    taxes,
+    projectCost,
+    fundingPlan,
+    cashFlowOec,
+    creancesClients,
   };
 }

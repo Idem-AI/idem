@@ -380,6 +380,29 @@ export const createSimulationController = async (
   }
 };
 
+/**
+ * Reprend une simulation qui a échoué ou qui est restée bloquée.
+ * Rejette la requête (409) si la simulation est déjà complétée.
+ */
+export const resumeSimulationController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const context = requireContext(req, res);
+  if (!context) return;
+
+  try {
+    const simulation = await simulationService.resumeSimulation(
+      context.userId,
+      context.projectId,
+      req.params.simulationId as string
+    );
+    res.status(202).json(simulation);
+  } catch (error: any) {
+    handleError(res, error, 'resumeSimulation');
+  }
+};
+
 export const generateReportController = async (
   req: CustomRequest,
   res: Response
@@ -404,20 +427,18 @@ export const getReportController = async (req: CustomRequest, res: Response): Pr
   if (!context) return;
 
   try {
-    const simulation = await simulationService.getSimulation(
+    // Produit le rapport s'il manque alors que le forfait l'inclut : l'écran
+    // de rapport n'en redemande pas la génération quand `hasReport` est vrai.
+    const report = await simulationService.ensureReport(
       context.userId,
       context.projectId,
       req.params.simulationId as string
     );
-    if (!simulation) {
-      res.status(404).json({ message: 'Simulation not found' });
-      return;
-    }
-    if (!simulation.report) {
+    if (!report) {
       res.status(404).json({ message: 'Report has not been generated for this simulation' });
       return;
     }
-    res.status(200).json(simulation.report);
+    res.status(200).json(report);
   } catch (error: any) {
     handleError(res, error, 'getReport');
   }

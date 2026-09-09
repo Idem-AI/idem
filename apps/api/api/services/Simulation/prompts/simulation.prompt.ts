@@ -219,11 +219,22 @@ A useful recommendation is actionable and justified by the sensitivity analysis.
 Not "improve your marketing", but "acquisition cost is the model's main fragility: test an
 organic channel before increasing the advertising budget".
 
+EVERY RECOMMENDATION ANSWERS A PROBLEM, AND SAYS WHICH ONE.
+The risks identified by the analysis are listed at the end of the context, each with its
+id. Set "addressesRiskId" to the id of the risk your recommendation answers. The report
+prints the two together — a problem and its response are read side by side or not at all.
+Leave "addressesRiskId" null ONLY for an action that answers no identified risk in
+particular; those are printed after the paired ones.
+
+Cover EVERY critical and high risk: a problem stated with no response beside it reads as
+a problem nobody knows how to solve.
+
 Answer with exactly this JSON:
 {
   "recommendations": [
     {
       "id": "rec-1",
+      "addressesRiskId": "r-1",
       "title": "",
       "body": "3 to 4 sentences: the quantified finding, the action, the expected effect",
       "expectedImpact": "low|medium|high",
@@ -237,7 +248,8 @@ Answer with exactly this JSON:
 
 Constraints:
 - 4 to 7 recommendations, sorted by decreasing priority.
-- Every recommendation rests on a specific factor or scenario from the analysis.`;
+- Every recommendation rests on a specific factor or scenario from the analysis.
+- "addressesRiskId" is an id from the risk list, or null. Never invent one.`;
 
 /** Red Team — attaquer son propre business. */
 export const RED_TEAM_PROMPT = `You lead a team of agents whose only goal is to make this project fail.

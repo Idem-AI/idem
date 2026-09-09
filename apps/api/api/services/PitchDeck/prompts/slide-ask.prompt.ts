@@ -1,5 +1,3 @@
-import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
-
 export const SLIDE_ASK_PROMPT = `
 <role>Senior pitch deck designer at a top-tier design agency</role>
 <objective>Design the ASK / CLOSING slide — state the funding target, use of funds, and leave a confident, professional impression.</objective>
@@ -18,7 +16,6 @@ export const SLIDE_ASK_PROMPT = `
 - Split layout: Left 55% with headline, funding target, and use-of-funds bars. Right 45% with closing sentence, contact card (bg-[PRIMARY COLOR]/5 rounded-xl p-6), and logo.
 </layout>
 
-${PITCH_DECK_SHARED_RULES}
 
 <project_context>
 `;

@@ -82,7 +82,6 @@
         "format": "Format",
         "generate": "Generate visual",
         "regenerate": "Regenerate",
-        "edit": "Edit",
         "download": "Download PNG",
         "close": "Close",
         "generating": "Sourcing image, scanning, composing visual…",
@@ -102,7 +101,8 @@
         "subheadline": "Subheadline",
         "body": "Body",
         "cta": "Call to action",
-        "logoUsed": "Logo declension used"
+        "logoUsed": "Logo declension used",
+        "edit": "Edit"
       },
       "moments": {
         "eyebrow": "Timely moments",

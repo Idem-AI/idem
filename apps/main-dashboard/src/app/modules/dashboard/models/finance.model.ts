@@ -183,6 +183,14 @@ export interface RatiosParams {
   dividendDistributionRatePct: number;
   perpetualGrowthRatePct: number;
   cmpcPct: number;
+  /** Recalculer le CMPC depuis la structure de financement réelle. */
+  cmpcAuto?: boolean;
+  /** Coût des fonds propres attendu par les associés, en %. */
+  costOfEquityPct?: number;
+  /** Coût de la dette, en %. Absent : déduit des emprunts inscrits au plan. */
+  costOfDebtPct?: number;
+  /** Nombre de parts sociales émises. Défaut 100. */
+  numberOfShares?: number;
 }
 
 export interface FinanceMetadata {
@@ -340,10 +348,31 @@ export interface FinanceComputed {
   ratios: RatiosComputed;
 }
 
+/**
+ * Calendrier comptable du projet.
+ *
+ * La règle applicable dépend du PAYS : l'année civile est obligatoire dans les
+ * dix-sept États de l'OHADA, tandis que le Nigeria, le Kenya, l'Afrique du Sud
+ * ou l'Égypte laissent la société arrêter sa date de clôture. Le serveur résout
+ * la juridiction et contraint le mois de clôture quand la loi l'impose ; ce
+ * modèle ne porte que les dates.
+ */
+export interface FiscalCalendar {
+  /** Année civile où s'ouvre l'exercice 1. */
+  firstYear: number;
+  /** Mois de démarrage effectif de l'activité dans l'exercice 1. */
+  activityStartMonth: number;
+  /** Mois de clôture de l'exercice (1 = janvier … 12 = décembre). */
+  fiscalYearEndMonth: number;
+  /** Juridiction comptable retenue, résolue côté serveur depuis le pays. */
+  jurisdictionId?: string;
+}
+
 export interface FinanceModel {
   id?: string;
   projectId: string;
   projectionYears: number;
+  fiscalCalendar: FiscalCalendar;
   products: ProductPricing[];
   salesObjectives: SalesObjective[];
   revenueParams: RevenueParams;
@@ -392,12 +421,13 @@ export type FinanceSectionKey =
   | 'taxesParams'
   | 'investments'
   | 'financing'
-  | 'ratiosParams';
+  | 'ratiosParams'
+  | 'fiscalCalendar';
 
 /** Métadonnées de navigation pour les sections du module Finance */
 export interface FinanceSectionDescriptor {
   /** Clé technique (utilisée pour completionStatus et update) */
-  key: keyof FinanceMetadata['completionStatus'] | 'overview' | 'amortization' | 'compteExploitation' | 'bilan' | 'fluxTresorerie' | 'ratios' | 'revenueParams' | 'taxesParams' | 'ratiosParams' | 'fixedCharges';
+  key: keyof FinanceMetadata['completionStatus'] | 'overview' | 'amortization' | 'compteExploitation' | 'bilan' | 'fluxTresorerie' | 'ratios' | 'revenueParams' | 'taxesParams' | 'ratiosParams' | 'fixedCharges' | 'fiscalCalendar';
   /** Route Angular (relative au préfixe /project/finance) */
   route: string;
   /** Clé i18n du libellé */
@@ -410,6 +440,7 @@ export interface FinanceSectionDescriptor {
 
 export const FINANCE_SECTIONS: FinanceSectionDescriptor[] = [
   { key: 'overview', route: '', labelKey: 'dashboard.finance.sections.overview', icon: 'pi pi-chart-pie', editable: false },
+  { key: 'fiscalCalendar', route: 'calendar', labelKey: 'dashboard.finance.sections.fiscalCalendar', icon: 'pi pi-calendar', editable: true },
   { key: 'products', route: 'products', labelKey: 'dashboard.finance.sections.products', icon: 'pi pi-tag', editable: true },
   { key: 'salesObjectives', route: 'sales', labelKey: 'dashboard.finance.sections.sales', icon: 'pi pi-shopping-cart', editable: true },
   { key: 'revenueParams', route: 'revenue', labelKey: 'dashboard.finance.sections.revenue', icon: 'pi pi-calculator', editable: true },

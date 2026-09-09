@@ -137,43 +137,57 @@ export const TOUR_STYLES = `
   gap: 8px;
 }
 
+/* Les boutons de la visite portent les classes du design system Idem
+   ('inner-button', 'outer-button', 'button-ghost', 'button-sm'). Ce bloc ne
+   garde donc que ce qui relève de la disposition dans la bulle : aucune
+   couleur, aucun rayon, aucune typographie — sans quoi il gagnerait la cascade
+   sur le design system, injecté plus tôt dans le document. */
 .idem-tour-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Repli si l'hôte n'a pas chargé le design system : un bouton reste cliquable
+   et lisible plutôt que transparent. */
+.idem-tour-btn:not(.inner-button):not(.outer-button):not(.button-ghost) {
   font: inherit;
   font-size: 13px;
   font-weight: 600;
   border-radius: 10px;
   padding: 9px 16px;
   cursor: pointer;
-  white-space: nowrap;
-  border: 1px solid transparent;
-  transition: background-color 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
-}
-
-.idem-tour-btn--primary {
-  background: var(--color-primary, #1447e6);
-  color: #ffffff;
-}
-
-.idem-tour-btn--primary:hover { opacity: 0.9; }
-
-.idem-tour-btn--ghost {
+  border: 1px solid var(--glass-border, rgba(15, 23, 42, 0.12));
   background: transparent;
   color: inherit;
-  border-color: var(--glass-border, rgba(15, 23, 42, 0.12));
-}
-
-.idem-tour-btn--ghost:hover {
-  background: var(--glass-bg-subtle, rgba(15, 23, 42, 0.04));
 }
 
 .idem-tour-btn--quiet {
-  background: transparent;
-  color: inherit;
-  opacity: 0.55;
-  padding: 9px 10px;
+  opacity: 0.7;
 }
 
-.idem-tour-btn--quiet:hover { opacity: 1; }
+.idem-tour-btn--quiet:hover {
+  opacity: 1;
+}
+
+/* Illustration de l'étape : une bande en tête de bulle, sur un fond neutre qui
+   la détache du texte sans l'encadrer. */
+.idem-tour-illustration {
+  position: relative;
+  display: grid;
+  place-items: center;
+  margin: -20px -20px 16px;
+  padding: 18px 20px;
+  background: var(--glass-bg-subtle, rgba(15, 23, 42, 0.04));
+  border-bottom: 1px solid var(--glass-border, rgba(15, 23, 42, 0.1));
+  border-radius: 18px 18px 0 0;
+  color: var(--color-text-tertiary, rgba(15, 23, 42, 0.55));
+}
+
+.idem-tour-illustration svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
 
 .idem-tour-foot {
   position: relative;

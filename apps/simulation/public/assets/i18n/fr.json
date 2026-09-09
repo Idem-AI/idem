@@ -141,6 +141,7 @@
       "subheading": "Le moteur cherche les facteurs qui peuvent faire basculer votre activité, les met sous tension, et vous dit où votre modèle casse. Commencez par ce que vous avez déjà.",
       "choose": "Choisir",
       "selected": "Sélectionné",
+      "trustedBy": "Ils nous font confiance",
       "note": "Une simulation est un outil d'aide à la décision, jamais une prédiction. Chaque résultat est accompagné de son degré de confiance."
     },
     "confirm": {
@@ -193,8 +194,12 @@
     "description": "La simulation continue même si vous fermez cette page. Vous serez redirigé dès que les résultats sont prêts.",
     "failed": "La simulation s'est interrompue",
     "failedBody": "Aucun montant n'est retenu pour une simulation qui n'aboutit pas. Relancez-la depuis la liste.",
-    "body": "L'analyse mobilise plusieurs agents et prend quelques minutes. Vous pouvez fermer cet écran : l'exécution continue.",
-    "inProgress": "En cours — {{percent}} %"
+    "resumeHint": "L'analyse peut être reprise depuis l'étape où elle s'est arrêtée. Vos données déjà acquises sont conservées.",
+    "resume": "Reprendre la simulation",
+    "resuming": "Reprise en cours…",
+    "resumeFailed": "La reprise a échoué",
+    "body": "L'analyse mobilise plusieurs agents et prend quelques minutes. Vous pouvez fermer cet écran : l'exécution continue.",
+    "inProgress": "En cours — {{percent}} %"
   },
   "knowledge": {
     "known": "Ce que nous savons",
@@ -240,7 +245,8 @@
     "scenariosBody": "{{total}} scénarios ont été exécutés. Le modèle ne tient pas dans {{broken}} d'entre eux.",
     "risks": "Risques identifiés",
     "shockResistance": "Résistance aux chocs",
-    "dataConfidence": "Fiabilité des données"
+    "dataConfidence": "Fiabilité des données",
+    "indexCeiling": "Indice plafonné à {{ceiling}} sur 100 : une simulation évalue un modèle sous des scénarios choisis, jamais une certitude."
   },
   "results": {
     "title": "Résultats",
@@ -345,7 +351,8 @@
       "conditions": "Conditions de viabilité",
       "recommendations": "Recommandations",
       "evidence": "Données et hypothèses",
-      "validation": "À valider dans le monde réel"
+      "validation": "À valider dans le monde réel",
+      "issues": "Problèmes et réponses"
     },
     "factors": {
       "body": "{{total}} facteurs ont été retenus comme potentiellement pertinents pour ce projet, puis classés selon leur impact possible sur les résultats."
@@ -389,7 +396,15 @@
     "download": "Télécharger le PDF",
     "downloading": "Composition du PDF…",
     "downloadFailed": "Le rapport n'a pas pu être généré.",
-    "downloadReport": "Télécharger le rapport"
+    "downloadReport": "Télécharger le rapport",
+    "issues": {
+      "body": "Chaque problème relevé par l'analyse porte, juste dessous, l'action qui y répond. Classés par gravité décroissante.",
+      "response": "Réponse",
+      "noResponse": "Aucune réponse dégagée par l'analyse : ce point reste ouvert et doit être arbitré.",
+      "otherActions": "Autres actions prioritaires",
+      "otherActionsBody": "Elles ne répondent à aucun des problèmes ci-dessus en particulier : elles renforcent le modèle dans son ensemble.",
+      "empty": "L'analyse n'a relevé aucun problème dans les scénarios testés."
+    }
   },
   "compare": {
     "title": "Comparaison",

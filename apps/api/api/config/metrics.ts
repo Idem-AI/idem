@@ -72,5 +72,56 @@ export const dbOperationDuration = new client.Histogram({
   registers: [register],
 });
 
+// ==================== MÉTRIQUES IA ====================
+//
+// Les données existaient déjà (`AiUsageEvent` en base, `ai-trace.log`), mais pas
+// à un endroit où une alerte peut les lire. Quatre séries suffisent à piloter
+// les trois axes du produit — qualité, vitesse, coût — et elles sont toutes
+// alimentées depuis un point unique : `aiUsageService.record`.
+
+/** Latence d'un appel modèle. `tier` distingue XS/M/S, `status` succès/échec. */
+export const aiCallDuration = new client.Histogram({
+  name: 'ai_call_duration_seconds',
+  help: 'Duration of a model call in seconds',
+  labelNames: ['provider', 'model', 'prompt_type', 'status', 'service'] as const,
+  // Bornes larges : une classification tient en 1 s, une page HTML complète en
+  // dépasse 60. Un histogramme trop serré écraserait justement ce qu'on veut voir.
+  buckets: [0.5, 1, 2, 5, 10, 20, 40, 80, 160],
+  registers: [register],
+});
+
+/**
+ * Tokens consommés. `kind` vaut `input`, `output` ou `cached` — c'est ce
+ * dernier qui mesure l'efficacité du cache de préfixe, indépendamment de sa
+ * tarification.
+ */
+export const aiTokensTotal = new client.Counter({
+  name: 'ai_tokens_total',
+  help: 'Tokens consumed by model calls',
+  labelNames: ['provider', 'model', 'kind', 'service'] as const,
+  registers: [register],
+});
+
+/** Coût estimé, ventilé par fonctionnalité — le fil à tirer quand la facture monte. */
+export const aiCostUsdTotal = new client.Counter({
+  name: 'ai_cost_usd_total',
+  help: 'Estimated cost of model calls, in USD',
+  labelNames: ['provider', 'model', 'feature', 'service'] as const,
+  registers: [register],
+});
+
+/**
+ * Issue qualité d'un appel : `ok`, `error`, `escalated`, `repaired`, `flagged`,
+ * `fallback`. C'est la série qui dit si la baisse d'étage tient — une hausse
+ * de `escalated` après un dépinglage désigne exactement les sections où le
+ * rendu déterministe ne suffit pas encore.
+ */
+export const aiOutcomeTotal = new client.Counter({
+  name: 'ai_outcome_total',
+  help: 'Quality outcome of model calls',
+  labelNames: ['outcome', 'prompt_type', 'service'] as const,
+  registers: [register],
+});
+
 export { register };
 export default register;

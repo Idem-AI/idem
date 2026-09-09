@@ -38,23 +38,23 @@ export const UpdateTip: React.FC = () => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="relative w-[90%] max-w-md p-6 rounded-lg shadow-xl bg-white dark:bg-[#222]">
+      <div className="relative w-[90%] max-w-md p-6 rounded-lg shadow-xl bg-surface-1">
         <button
           onClick={() => setIsVisible(false)}
-          className="absolute top-3 right-3 text-2xl text-gray-600 dark:text-gray-300 hover:opacity-70 transition-opacity"
+          className="absolute top-3 right-3 text-2xl text-text-tertiary hover:opacity-70 transition-opacity"
         >
           ×
         </button>
 
-        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
+        <h2 className="text-xl font-semibold mb-4 text-text-secondary">
           {t('update.version_update')} {versionInfo.version}
         </h2>
 
-        <div className="mb-10 leading-relaxed text-gray-600 dark:text-gray-300 whitespace-pre-line">
+        <div className="mb-10 leading-relaxed text-text-tertiary whitespace-pre-line">
           {versionInfo.content}
         </div>
 
-        <div className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="text-sm text-text-tertiary">
           {t('update.release_date')}：{versionInfo.date}
         </div>
       </div>
