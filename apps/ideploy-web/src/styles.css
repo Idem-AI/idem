@@ -89,7 +89,7 @@
   display: flex; align-items: center; gap: 12px;
   padding: 10px 12px; border-radius: 12px;
   font-size: 14px; font-weight: 500; text-decoration: none;
-  font-family: 'Jura', sans-serif;
+  font-family: 'Vilevile', sans-serif;
   transition: all 0.18s ease; color: var(--color-text-secondary); width: 100%;
   position: relative; overflow: hidden;
 }
@@ -107,22 +107,22 @@
 }
 .sbi .sbi-icon { width: 18px; text-align: center; flex-shrink: 0; font-size: 14px; }
 .sbi-section {
-  font-size: 9px; font-weight: 700; letter-spacing: .12em;
+  font-size: 9px; font-weight: 700;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--color-text-tertiary) 55%, transparent);
   padding: 0 12px;
-  display: block; margin-bottom: 2px; font-family: 'Jura', sans-serif;
+  display: block; margin-bottom: 2px; font-family: 'Vilevile', sans-serif;
 }
 .sbi-disabled {
   display: flex; align-items: center; gap: 12px;
   padding: 10px 12px; border-radius: 12px;
-  font-size: 14px; font-weight: 500; font-family: 'Jura', sans-serif;
+  font-size: 14px; font-weight: 500; font-family: 'Vilevile', sans-serif;
   color: var(--color-text-disabled); width: 100%; cursor: not-allowed;
 }
 .sbi-badge-soon {
   /* Amber accent - intentionally theme-invariant (readable on both themes) */
   font-size: 9px; font-weight: 700; padding: 2px 7px;
-  border-radius: 5px; letter-spacing: .06em; text-transform: uppercase;
+  border-radius: 5px; text-transform: uppercase;
   background: rgba(251,191,36,.12); color: #fbbf24; border: 1px solid rgba(251,191,36,.28);
 }
 .sidebar-scroll { scrollbar-width: none; -ms-overflow-style: none; }
@@ -139,7 +139,7 @@
 }
 
 /* Headings (Coolify uses Playfair Display for section titles) */
-.heading-serif { font-family: 'Jura', sans-serif; }
+.heading-serif { font-family: 'Vilevile', sans-serif; }
 
 /* Dashboard glass cards */
 .db-glass {
@@ -186,5 +186,5 @@
 .status-badge {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 3px 10px; border-radius: 9999px;
-  font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
 }

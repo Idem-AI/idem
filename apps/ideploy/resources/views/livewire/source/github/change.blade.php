@@ -264,7 +264,7 @@
                                            align-self:flex-end;
                                            padding:12px 24px;
                                            background:#2563eb;color:#fff;
-                                           font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+                                           font-size:13px;font-weight:700;text-transform:uppercase;
                                            white-space:nowrap;border:none;border-radius:10px;cursor:pointer;
                                            box-shadow:0 4px 14px rgba(37,99,235,.28);
                                            transition:background .15s;"
@@ -282,7 +282,7 @@
                                            align-self:flex-end;
                                            padding:12px 24px;
                                            background:#2563eb;color:#fff;
-                                           font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+                                           font-size:13px;font-weight:700;text-transform:uppercase;
                                            white-space:nowrap;border:none;border-radius:10px;cursor:pointer;
                                            box-shadow:0 4px 14px rgba(37,99,235,.28);
                                            transition:background .15s;"

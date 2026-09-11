@@ -241,7 +241,7 @@
                 <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                   <h3 class="text-sm font-semibold text-ink">{{ issue.risk.title }}</h3>
                   <span
-                    class="text-[0.6875rem] font-semibold uppercase tracking-wide"
+                    class="text-[0.6875rem] font-semibold uppercase"
                     [class.text-verdict-stop]="issue.risk.severity === 'critical'"
                     [class.text-verdict-warn]="issue.risk.severity === 'high'"
                     [class.text-ink-subtle]="issue.risk.severity === 'moderate'"
@@ -255,7 +255,7 @@
 
                 @for (response of issue.responses; track response.id) {
                   <div class="mt-4 border-l-2 border-accent pl-4">
-                    <p class="text-[0.6875rem] font-semibold uppercase tracking-wide text-accent">
+                    <p class="text-[0.6875rem] font-semibold uppercase text-accent">
                       {{ 'report.issues.response' | translate }}
                     </p>
                     <h4 class="mt-1 text-sm font-semibold text-ink">{{ response.title }}</h4>
@@ -368,7 +368,7 @@
       class="sticky top-20 hidden lg:block print:hidden"
       [attr.aria-label]="'report.contents' | translate"
     >
-      <p class="mb-2 text-meta font-semibold uppercase tracking-wide text-ink-subtle">
+      <p class="mb-2 text-meta font-semibold uppercase text-ink-subtle">
         {{ 'report.contents' | translate }}
       </p>
       <ol class="flex flex-col gap-0.5">

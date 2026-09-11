@@ -282,7 +282,6 @@
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--color-text-primary);
-  letter-spacing: -0.015em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

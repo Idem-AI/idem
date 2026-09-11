@@ -51,7 +51,6 @@
 .fan-label {
   fill: var(--fan-label);
   font-size: 18px;
-  letter-spacing: 0.08em;
 }
 
 /* The chart keeps its viewBox but loses width on a phone, so the only way to

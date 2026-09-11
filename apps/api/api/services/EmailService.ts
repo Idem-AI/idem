@@ -35,7 +35,6 @@ export class EmailService {
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Nouveau Message de Contact - Idem AI</title>
-        <link href="https://fonts.googleapis.com/css2?family=Jura:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <style>
           * {
             margin: 0;
@@ -44,7 +43,11 @@ export class EmailService {
           }
 
           body {
-            font-family: 'Jura', sans-serif;
+            /* Vilevile chez qui l'a installée ; sinon une pile système. On
+               n'embarque pas la police : les messageries la retirent presque
+               toutes, et 30 Ko de base64 par message coûteraient plus qu'ils
+               ne rapportent. */
+            font-family: 'Vilevile', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
             color: #2d3748;
             background-color: #f7fafc;
@@ -305,7 +308,6 @@ Ce message a été envoyé automatiquement depuis le site web Idem AI.
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Confirmation de réception - Idem AI</title>
-        <link href="https://fonts.googleapis.com/css2?family=Jura:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <style>
           * {
             margin: 0;
@@ -314,7 +316,11 @@ Ce message a été envoyé automatiquement depuis le site web Idem AI.
           }
 
           body {
-            font-family: 'Jura', sans-serif;
+            /* Vilevile chez qui l'a installée ; sinon une pile système. On
+               n'embarque pas la police : les messageries la retirent presque
+               toutes, et 30 Ko de base64 par message coûteraient plus qu'ils
+               ne rapportent. */
+            font-family: 'Vilevile', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
             color: #2d3748;
             background-color: #f7fafc;

@@ -31,7 +31,7 @@
             }
           </div>
           <span
-            class="text-xs font-medium uppercase tracking-wider transition-colors duration-300 hidden sm:block"
+            class="text-xs font-medium uppercase transition-colors duration-300 hidden sm:block"
             [ngClass]="{
               'text-text-primary': currentStep() === step.key || isStepCompleted(step.key),
               'text-text-tertiary': !isStepCompleted(step.key) && currentStep() !== step.key,
@@ -51,7 +51,7 @@
     <div class="w-full max-w-6xl mx-auto animate-fade-in">
       <div class="text-center mb-8 sm:mb-10">
         <h1
-          class="text-2xl sm:text-3xl md:text-4xl font-bold text-text-primary mb-3 tracking-tight"
+          class="text-2xl sm:text-3xl md:text-4xl font-bold text-text-primary mb-3"
         >
           {{ 'dashboard.logoPreferences.steps.type.title' | translate }}
         </h1>
@@ -108,7 +108,7 @@
               </p>
               <div class="pt-4 border-t border-[var(--glass-border-subtle)]">
                 <span
-                  class="block text-[11px] text-text-tertiary uppercase tracking-[0.12em] font-bold mb-2.5"
+                  class="block text-[11px] text-text-tertiary uppercase font-bold mb-2.5"
                 >
                   {{ 'dashboard.logoPreferences.types.examplesLabel' | translate }}
                 </span>
@@ -165,7 +165,7 @@
     <div class="w-full max-w-4xl mx-auto animate-fade-in">
       <div class="text-center mb-8 sm:mb-10">
         <h1
-          class="text-2xl sm:text-3xl md:text-4xl font-bold text-text-primary mb-3 tracking-tight"
+          class="text-2xl sm:text-3xl md:text-4xl font-bold text-text-primary mb-3"
         >
           {{ 'dashboard.logoPreferences.steps.mode.title' | translate }}
         </h1>

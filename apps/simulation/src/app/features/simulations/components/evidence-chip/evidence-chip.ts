@@ -16,7 +16,7 @@ import { Evidence } from '../../models';
     <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
       <span class="text-sm font-semibold text-ink">{{ evidence().value }}</span>
       <span
-        class="inline-flex items-center rounded border px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide"
+        class="inline-flex items-center rounded border px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase"
         [class]="kindClasses()"
       >
         {{ 'evidenceKind.' + evidence().kind | translate }}

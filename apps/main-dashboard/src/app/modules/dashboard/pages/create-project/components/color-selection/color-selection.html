@@ -201,7 +201,7 @@
                 [title]="'dashboard.colorSelection.tooltips.primary' | translate"
               >
                 <span
-                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold text-text-secondary uppercase tracking-widest opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
+                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold text-text-secondary uppercase opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
                   >Primary</span
                 >
               </div>
@@ -211,7 +211,7 @@
                 [title]="'dashboard.colorSelection.tooltips.secondary' | translate"
               >
                 <span
-                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold text-text-secondary uppercase tracking-widest opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
+                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold text-text-secondary uppercase opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
                   >Secondary</span
                 >
               </div>
@@ -221,7 +221,7 @@
                 [title]="'dashboard.colorSelection.tooltips.accent' | translate"
               >
                 <span
-                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold text-text-secondary uppercase tracking-widest opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
+                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold text-text-secondary uppercase opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
                   >Accent</span
                 >
               </div>
@@ -230,7 +230,7 @@
                 [style.backgroundColor]="color.colors.background"
               >
                 <span
-                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold uppercase tracking-widest opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
+                  class="absolute bottom-2 left-1/2 -translate-x-1/2 text-[9px] font-bold uppercase opacity-0 group-hover/strip:opacity-100 transition-opacity whitespace-nowrap"
                   [style.color]="color.colors.text"
                   >Bg</span
                 >
@@ -241,7 +241,7 @@
             <div class="relative bg-[var(--color-bg-darker)] p-4 sm:p-5">
               <!-- Palette Name + Check -->
               <div class="flex items-center justify-between mb-4">
-                <h3 class="text-text-primary text-base font-bold tracking-tight">{{ color.name }}</h3>
+                <h3 class="text-text-primary text-base font-bold">{{ color.name }}</h3>
                 @if (selectedColorId() === color.id) {
                   <div
                     class="w-7 h-7 rounded-full flex items-center justify-center shadow-lg"
@@ -284,7 +284,7 @@
                       class="h-7 px-4 rounded-lg flex items-center justify-center"
                       [style.backgroundColor]="color.colors.primary"
                     >
-                      <span class="text-[10px] font-bold text-text-primary tracking-wide">Button</span>
+                      <span class="text-[10px] font-bold text-text-primary">Button</span>
                     </div>
                     <div
                       class="h-7 px-4 rounded-lg flex items-center justify-center border"
@@ -292,7 +292,7 @@
                       [style.backgroundColor]="color.colors.accent + '15'"
                     >
                       <span
-                        class="text-[10px] font-bold tracking-wide"
+                        class="text-[10px] font-bold"
                         [style.color]="color.colors.accent"
                         >Action</span
                       >

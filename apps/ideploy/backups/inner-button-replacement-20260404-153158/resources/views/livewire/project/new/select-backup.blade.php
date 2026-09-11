@@ -43,7 +43,7 @@
             </div>
             <div x-show="!loading" class="flex flex-col gap-4 py-4">
                 <h2 x-show="filteredGitBasedApplications.length > 0" class="text-xl font-bold text-white">Applications</h2>
-                <h4 x-show="filteredGitBasedApplications.length > 0" class="text-sm font-semibold text-gray-400 uppercase tracking-wide">Git Based</h4>
+                <h4 x-show="filteredGitBasedApplications.length > 0" class="text-sm font-semibold text-gray-400 uppercase">Git Based</h4>
                 <div x-show="filteredGitBasedApplications.length > 0"
                     class="grid justify-start grid-cols-1 gap-4 text-left xl:grid-cols-1">
                     <template x-for="application in filteredGitBasedApplications" :key="application.name">
@@ -62,7 +62,7 @@
                         </div>
                     </template>
                 </div>
-                <h4 x-show="filteredDockerBasedApplications.length > 0" class="text-sm font-semibold text-gray-400 uppercase tracking-wide">Docker Based</h4>
+                <h4 x-show="filteredDockerBasedApplications.length > 0" class="text-sm font-semibold text-gray-400 uppercase">Docker Based</h4>
                 <div x-show="filteredDockerBasedApplications.length > 0"
                     class="grid justify-start grid-cols-1 gap-4 text-left xl:grid-cols-3">
                     <template x-for="application in filteredDockerBasedApplications" :key="application.name">

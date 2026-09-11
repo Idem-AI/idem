@@ -152,7 +152,7 @@
                         {{-- Preview Deployments --}}
                         @if (data_get($application, 'previews', collect())->count() > 0)
                             <div class="pt-2 border-t border-gray-700">
-                                <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3 px-1">Preview Deployments</div>
+                                <div class="text-xs uppercase text-gray-500 font-semibold mb-3 px-1">Preview Deployments</div>
                                 @if (data_get($application, 'build_pack') === 'dockercompose')
                                     @foreach ($application->previews as $preview)
                                         @foreach (collect(json_decode($preview->docker_compose_domains)) as $fqdn)
@@ -210,7 +210,7 @@
                         {{-- Port Mappings --}}
                         @if (data_get($application, 'ports_mappings_array'))
                             <div class="pt-2 border-t border-gray-700">
-                                <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3 px-1">Port Mappings</div>
+                                <div class="text-xs uppercase text-gray-500 font-semibold mb-3 px-1">Port Mappings</div>
                                 @foreach ($application->ports_mappings_array as $port)
                                     @if ($application->destination->server->id === 0)
                                         <a target="_blank" href="http://localhost:{{ explode(':', $port)[0] }}"

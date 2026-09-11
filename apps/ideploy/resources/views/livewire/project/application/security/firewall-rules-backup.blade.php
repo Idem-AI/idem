@@ -38,12 +38,12 @@
             <table class="w-full">
                 <thead class="bg-[#0f1724] border-b border-gray-800">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Rule</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Conditions</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Action</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Matches</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Rule</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Conditions</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Action</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Matches</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Status</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-800">

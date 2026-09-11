@@ -18,7 +18,8 @@ if (process.env.FIREBASE_PRIVATE_KEY) {
   process.env.FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
 }
 
-import { AI_CONFIG, TEXT_FALLBACK_MODELS, LLMProvider } from '../config/ai.config';
+import { AI_CONFIG, FeatureAIConfig, TEXT_FALLBACK_MODELS, LLMProvider } from '../config/ai.config';
+import { getProvider } from '../config/ai-providers.config';
 import { MODEL_TIERS } from '../config/model-router';
 import { describeGeminiBackend, getGoogleGenAIClient } from '../config/google-genai.client';
 
@@ -46,6 +47,20 @@ function declaredTextModels(): string[] {
   return [...models].filter((m) => m.startsWith('gemini-') && !m.includes('image'));
 }
 
+/**
+ * La chaîne RÉELLEMENT essayée, résolue comme le fait `prompt.service.ts`.
+ *
+ * Une feature qui ne déclare rien n'est pas une feature sans repli : le défaut
+ * vient du FOURNISSEUR (`defaultFallbackModels`), appliqué au point de passage
+ * unique. Ce script lisait `config.fallbackModels` et concluait donc « aucun
+ * repli » sur les configurations qui s'en remettent — correctement — au
+ * fournisseur. Il vérifiait la RECOPIE, pas la résilience.
+ */
+function effectiveFallbacks(config: FeatureAIConfig): string[] {
+  const declared = config.fallbackModels ?? [];
+  return declared.length > 0 ? declared : (getProvider(config.provider).defaultFallbackModels ?? []);
+}
+
 (async () => {
   console.log(`\nBackend — ${describeGeminiBackend()}\n`);
   const ai = getGoogleGenAIClient();
@@ -61,13 +76,13 @@ function declaredTextModels(): string[] {
     }
   }
 
-  console.log('\nChaînes de repli déclarées');
+  console.log('\nChaînes de repli effectives');
   for (const [name, config] of [
     ['branding.colors', AI_CONFIG.branding.colors],
     ['branding.typography', AI_CONFIG.branding.typography],
     ['branding.logo', AI_CONFIG.branding.logo],
-  ] as const) {
-    const chain = [...new Set([config.modelName, ...(config.fallbackModels ?? [])])];
+  ] as [string, FeatureAIConfig][]) {
+    const chain = [...new Set([config.modelName, ...effectiveFallbacks(config)])];
     check(`${name} → ${chain.join(' → ')}`, chain.length > 1, 'aucun repli');
   }
 

@@ -19,7 +19,7 @@
 
     @if (!compact()) {
       <span class="flex flex-col items-start leading-tight min-w-0">
-        <span class="text-[9px] font-bold uppercase tracking-widest text-text-tertiary">
+        <span class="text-[9px] font-bold uppercase text-text-tertiary">
           {{ 'modes.switcher.label' | translate }}
         </span>
         <span class="text-xs font-semibold truncate">
@@ -44,7 +44,7 @@
       [class.mb-2]="compact() || dropUp()"
       [class.mt-2]="!compact() && !dropUp()"
     >
-      <p class="px-3 pt-2 pb-2 text-[10px] font-bold uppercase tracking-widest text-text-tertiary">
+      <p class="px-3 pt-2 pb-2 text-[10px] font-bold uppercase text-text-tertiary">
         {{ 'modes.switcher.panelTitle' | translate }}
       </p>
 
@@ -76,7 +76,7 @@
               </span>
               @if (option.mode === recommendedMode() && option.mode !== activeMode()) {
                 <span
-                  class="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide rounded-md bg-secondary/15 text-secondary border border-secondary/30"
+                  class="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded-md bg-secondary/15 text-secondary border border-secondary/30"
                 >
                   {{ 'modes.switcher.recommended' | translate }}
                 </span>

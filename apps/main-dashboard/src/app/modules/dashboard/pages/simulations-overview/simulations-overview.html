@@ -118,7 +118,7 @@
     <!-- ══ RÉCAPITULATIF ═══════════════════════════════ -->
     @if (latestCompleted(); as latest) {
       <div class="glass-card p-6">
-        <p class="text-xs uppercase tracking-wider text-text-secondary">
+        <p class="text-xs uppercase text-text-secondary">
           {{ 'dashboard.simulations.latest' | translate }}
         </p>
         <div class="flex flex-wrap items-center gap-6 mt-3">
@@ -127,7 +127,7 @@
             <span class="text-lg text-text-secondary">/100</span>
           </div>
           <span
-            class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-md border"
+            class="text-xs font-semibold uppercase px-2.5 py-1 rounded-md border"
             [class]="verdictClass(latest.verdict)"
           >
             {{ 'dashboard.simulations.verdict.' + (latest.verdict ?? 'unknown') | translate }}

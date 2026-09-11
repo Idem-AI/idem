@@ -3,7 +3,7 @@
  *
  * Fixe, et non généré: un rapport que l'on met entre les mains d'un banquier ou
  * d'un investisseur doit être identique d'une exécution à l'autre. Seules les
- * données changent. La charte est celle d'IDEM — Jura, le bleu #1447e6 —
+ * données changent. La charte est celle d'IDEM — Vilevile, le bleu #1447e6 —
  * appliquée sur une page claire, qui reste lisible à l'impression comme à
  * l'écran.
  *
@@ -84,9 +84,13 @@ export const IDEM = {
   stop: '#96162e',
 } as const;
 
-/** Jura est la police de marque IDEM ; JetBrains Mono porte les chiffres. */
+/**
+ * Seule la mono vient de Google : Vilevile, la police de marque, est fabriquée
+ * par IDEM et embarquée dans le document par `brand-font.util` — Google ne la
+ * connaît pas, un lien vers elle ne chargerait rien.
+ */
 export const IDEM_FONTS_URL =
-  'https://fonts.googleapis.com/css2?family=Jura:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap';
+  'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap';
 
 const MONO = "'JetBrains Mono', ui-monospace, monospace";
 
@@ -284,7 +288,7 @@ function chapterTitle(chapter: Chapter, lead?: string): string {
     <div data-keep-together data-keep-with-next style="margin-bottom:7mm">
       <div style="display:flex;align-items:baseline;gap:3mm;padding-bottom:2.5mm;border-bottom:0.5mm solid ${IDEM.ink}">
         <span style="font-family:${MONO};font-size:10pt;font-weight:500;color:${IDEM.primary}">${String(chapter.index).padStart(2, '0')}</span>
-        <h2 style="font-size:21pt;font-weight:600;color:${IDEM.ink};line-height:1.15;letter-spacing:-0.07em">${esc(chapter.title)}</h2>
+        <h2 style="font-size:21pt;font-weight:600;color:${IDEM.ink};line-height:1.15">${esc(chapter.title)}</h2>
       </div>
       <p style="margin-top:2.5mm;font-size:10pt;color:${IDEM.inkSubtle}">${esc(chapter.question)}</p>
       ${
@@ -299,7 +303,7 @@ function chapterTitle(chapter: Chapter, lead?: string): string {
 function heading(text: string, hint?: string): string {
   return `
     <div data-keep-together data-keep-with-next style="margin:8mm 0 3.5mm">
-      <h3 style="font-size:13pt;font-weight:600;color:${IDEM.ink};letter-spacing:-0.07em">${esc(text)}</h3>
+      <h3 style="font-size:13pt;font-weight:600;color:${IDEM.ink}">${esc(text)}</h3>
       ${hint ? `<p style="margin-top:1.2mm;font-size:9.5pt;line-height:1.5;color:${IDEM.inkSubtle}">${esc(hint)}</p>` : ''}
     </div>`;
 }
@@ -314,14 +318,14 @@ function heading(text: string, hint?: string): string {
 function readingNote(text: string): string {
   return `
     <div data-keep-together style="margin-top:4mm;border-left:0.6mm solid ${IDEM.primary};padding-left:4mm">
-      <p style="font-size:7.5pt;letter-spacing:.12em;text-transform:uppercase;color:${IDEM.primary};font-weight:600">Comment lire</p>
+      <p style="font-size:7.5pt; text-transform:uppercase; color:${IDEM.primary}; font-weight:600">Comment lire</p>
       <p style="margin-top:1.2mm;font-size:8.5pt;line-height:1.6;color:${IDEM.inkMuted};max-width:150mm">${text}</p>
     </div>`;
 }
 
 /** Étiquette pleine, réservée aux verdicts et aux priorités. */
 function pill(text: string, color: string): string {
-  return `<span style="display:inline-block;padding:1mm 2.6mm;border-radius:999px;background:${color};color:#fff;font-size:7.5pt;font-weight:600;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap">${esc(text)}</span>`;
+  return `<span style="display:inline-block; padding:1mm 2.6mm; border-radius:999px; background:${color}; color:#fff; font-size:7.5pt; font-weight:600; text-transform:uppercase; white-space:nowrap">${esc(text)}</span>`;
 }
 
 /** Étiquette discrète, pour les catégories et les provenances. */
@@ -345,7 +349,7 @@ function state(text: string, color: string): string {
 function stat(label: string, value: string, reading?: string): string {
   return `
     <div data-keep-together style="border:0.25mm solid ${IDEM.line};border-radius:2mm;padding:4mm;background:${IDEM.surface}">
-      <p style="font-size:8pt;letter-spacing:.09em;text-transform:uppercase;color:${IDEM.inkSubtle}">${esc(label)}</p>
+      <p style="font-size:8pt; text-transform:uppercase; color:${IDEM.inkSubtle}">${esc(label)}</p>
       <p style="font-family:${MONO};font-size:15pt;font-weight:500;color:${IDEM.ink};margin-top:1.8mm;line-height:1.15">${esc(value)}</p>
       ${reading ? `<p style="font-size:9pt;line-height:1.5;color:${IDEM.inkMuted};margin-top:1.8mm">${esc(reading)}</p>` : ''}
     </div>`;
@@ -370,7 +374,7 @@ function table(headers: string[], rows: string[][], aligns: ('l' | 'r')[] = []):
           ${headers
             .map(
               (h, i) =>
-                `<th style="text-align:${align(i)};padding:2.2mm 2mm;border-bottom:0.4mm solid ${IDEM.ink};font-size:7pt;letter-spacing:.09em;text-transform:uppercase;color:${IDEM.inkMuted};font-weight:600">${esc(h)}</th>`,
+                `<th style="text-align:${align(i)}; padding:2.2mm 2mm; border-bottom:0.4mm solid ${IDEM.ink}; font-size:7pt; text-transform:uppercase; color:${IDEM.inkMuted}; font-weight:600">${esc(h)}</th>`,
             )
             .join('')}
         </tr>
@@ -447,8 +451,8 @@ type Chrome = ReportChrome;
 function chrome(c: Chrome, sectionName: string): string {
   return `
     <div style="position:absolute;top:0;left:0;right:0;height:20mm;padding:9mm 18mm 0;display:flex;align-items:center;justify-content:space-between">
-      ${c.logoDataUri ? `<img src="${c.logoDataUri}" alt="IDEM" style="height:5mm;width:auto" />` : `<span style="font-size:9pt;font-weight:600;letter-spacing:.1em">IDEM</span>`}
-      <p style="font-size:7pt;letter-spacing:.14em;text-transform:uppercase;color:${IDEM.inkSubtle}">${esc(sectionName)}</p>
+      ${c.logoDataUri ? `<img src="${c.logoDataUri}" alt="IDEM" style="height:5mm; width:auto" />` : `<span style="font-size:9pt; font-weight:600;">IDEM</span>`}
+      <p style="font-size:7pt; text-transform:uppercase; color:${IDEM.inkSubtle}">${esc(sectionName)}</p>
     </div>
     <div style="position:absolute;top:16mm;left:18mm;right:18mm;height:0.2mm;background:${IDEM.line}"></div>
     <div style="position:absolute;bottom:0;left:0;right:0;height:14mm;padding:0 18mm 8mm;display:flex;align-items:flex-end;justify-content:space-between">
@@ -460,7 +464,7 @@ function chrome(c: Chrome, sectionName: string): string {
 /** Une section du rapport : décor fixe + flux paginable. */
 function page(c: Chrome, sectionName: string, body: string): string {
   return `
-    <div style="position:relative;width:210mm;min-height:297mm;background:${IDEM.surface};padding:26mm 18mm 20mm;font-family:'Jura',system-ui,sans-serif;color:${IDEM.ink};letter-spacing:-0.07em">
+    <div style="position:relative;width:210mm;min-height:297mm;background:${IDEM.surface};padding:26mm 18mm 20mm;font-family:'Vilevile',system-ui,sans-serif;color:${IDEM.ink}">
       ${
         c.motifDataUri
           ? `<div style="position:absolute;top:0;left:0;width:100%;height:100%;background-image:url('${c.motifDataUri}');background-repeat:repeat;opacity:0.4;z-index:0;pointer-events:none"></div>`
@@ -488,7 +492,7 @@ export function coverSection(
   });
 
   return `
-    <div style="position:relative;width:210mm;height:297mm;background:${IDEM.surface};padding:26mm 22mm;font-family:'Jura',system-ui,sans-serif;color:${IDEM.ink};display:flex;flex-direction:column;justify-content:space-between">
+    <div style="position:relative;width:210mm;height:297mm;background:${IDEM.surface};padding:26mm 22mm;font-family:'Vilevile',system-ui,sans-serif;color:${IDEM.ink};display:flex;flex-direction:column;justify-content:space-between">
       ${
         c.motifDataUri
           ? `<div style="position:absolute;inset:0;background-image:url('${c.motifDataUri}');background-repeat:repeat;background-size:140mm;opacity:0.10;pointer-events:none"></div>`
@@ -498,17 +502,17 @@ export function coverSection(
 
       <div style="position:relative">
         ${c.logoDataUri ? `<img src="${c.logoDataUri}" alt="IDEM" style="height:9mm;width:auto" />` : ''}
-        <p style="margin-top:2mm;font-size:9pt;letter-spacing:.22em;text-transform:uppercase;color:${IDEM.inkSubtle}">Simulator</p>
+        <p style="margin-top:2mm; font-size:9pt; text-transform:uppercase; color:${IDEM.inkSubtle}">Simulator</p>
       </div>
 
       <div style="position:relative">
-        <p style="font-family:${MONO};font-size:9pt;letter-spacing:.14em;color:${IDEM.primary}">RAPPORT DE SIMULATION</p>
-        <h1 style="margin-top:4mm;font-size:38pt;font-weight:600;line-height:1.1;letter-spacing:-0.07em">${esc(report.profile.name)}</h1>
+        <p style="font-family:${MONO}; font-size:9pt; color:${IDEM.primary}">RAPPORT DE SIMULATION</p>
+        <h1 style="margin-top:4mm;font-size:38pt;font-weight:600;line-height:1.1">${esc(report.profile.name)}</h1>
         <p style="margin-top:5mm;font-size:12pt;line-height:1.6;color:${IDEM.inkMuted};max-width:140mm">${esc(report.profile.product)}</p>
 
         <div style="margin-top:12mm;display:flex;align-items:center;gap:6mm">
           <div>
-            <p style="font-size:7pt;letter-spacing:.09em;text-transform:uppercase;color:${IDEM.inkSubtle}">Indice de viabilité</p>
+            <p style="font-size:7pt; text-transform:uppercase; color:${IDEM.inkSubtle}">Indice de viabilité</p>
             <p style="font-family:${MONO};font-size:44pt;font-weight:500;line-height:1;color:${IDEM.ink};margin-top:1mm">${summary.viabilityIndex}<span style="font-size:16pt;color:${IDEM.inkSubtle}">/${VIABILITY_CEILING}</span></p>
           </div>
           <div style="width:0.25mm;height:26mm;background:${IDEM.line}"></div>
@@ -530,7 +534,7 @@ export function coverSection(
           ]
             .map(
               ([label, value]) => `<div>
-                <p style="font-size:7pt;letter-spacing:.09em;text-transform:uppercase;color:${IDEM.inkSubtle}">${esc(label)}</p>
+                <p style="font-size:7pt; text-transform:uppercase; color:${IDEM.inkSubtle}">${esc(label)}</p>
                 <p style="margin-top:1mm;font-size:9pt;line-height:1.4;color:${IDEM.ink}">${esc(value)}</p>
               </div>`,
             )
@@ -1085,7 +1089,7 @@ export function scenariosSection(c: Chrome, scenarios: Scenario[], currency: str
         ${
           scenario.shifts.length
             ? `<div style="margin-top:3mm;padding-top:2.5mm;border-top:0.2mm solid ${IDEM.lineSoft}">
-                 <p style="font-size:7pt;letter-spacing:.09em;text-transform:uppercase;color:${IDEM.inkSubtle};margin-bottom:1.5mm">Ce qui change</p>
+                 <p style="font-size:7pt; text-transform:uppercase; color:${IDEM.inkSubtle}; margin-bottom:1.5mm">Ce qui change</p>
                  <div style="display:flex;flex-wrap:wrap;gap:2mm">
                    ${scenario.shifts
                      .map(
@@ -1108,7 +1112,7 @@ export function scenariosSection(c: Chrome, scenarios: Scenario[], currency: str
                 ]
                   .map(
                     ([label, value]) => `<div>
-                      <p style="font-size:7pt;letter-spacing:.07em;text-transform:uppercase;color:${IDEM.inkSubtle}">${esc(label)}</p>
+                      <p style="font-size:7pt; text-transform:uppercase; color:${IDEM.inkSubtle}">${esc(label)}</p>
                       <p style="font-family:${MONO};font-size:9pt;margin-top:0.8mm">${esc(value)}</p>
                     </div>`,
                   )
@@ -1538,7 +1542,7 @@ export function actionsSection(
         <p style="margin-top:2.5mm;font-size:9pt;line-height:1.65;color:${IDEM.inkMuted}">${esc(item.body)}</p>
 
         <div style="margin-top:3.5mm;border-left:0.6mm solid ${risk ? SEVERITY_COLOR[risk.severity] : IDEM.line};padding-left:4mm">
-          <p style="font-size:7pt;letter-spacing:.11em;text-transform:uppercase;color:${IDEM.inkSubtle};font-weight:600">Pourquoi</p>
+          <p style="font-size:7pt; text-transform:uppercase; color:${IDEM.inkSubtle}; font-weight:600">Pourquoi</p>
           ${
             risk
               ? `<p style="margin-top:1.2mm;font-size:9pt;font-weight:600;color:${IDEM.ink}">${esc(risk.title)} <span style="font-weight:500;font-size:8pt;color:${SEVERITY_COLOR[risk.severity]}">· problème ${esc(SEVERITY_LABEL[risk.severity].toLowerCase())}</span></p>

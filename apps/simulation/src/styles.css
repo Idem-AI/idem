@@ -235,7 +235,6 @@ label.grid {
 .outer-button,
 .button-ghost {
   text-transform: none;
-  letter-spacing: normal;
   display: inline-flex;
   align-items: center;
   justify-content: center;

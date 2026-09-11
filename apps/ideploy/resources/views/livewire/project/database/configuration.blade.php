@@ -20,7 +20,7 @@
             <nav class="sticky top-6 glass-card p-4">
                 {{-- Section: Configuration --}}
                 <div class="mb-5">
-                    <div class="text-xs uppercase tracking-widest text-blue-400 font-bold mb-3 px-1">
+                    <div class="text-xs uppercase text-blue-400 font-bold mb-3 px-1">
                         CONFIGURATION
                     </div>
 
@@ -60,7 +60,7 @@
 
                 {{-- Section: Deployment --}}
                 <div class="mb-5">
-                    <div class="text-xs uppercase tracking-widest text-purple-400 font-bold mb-3 px-1">
+                    <div class="text-xs uppercase text-purple-400 font-bold mb-3 px-1">
                         DEPLOYMENT
                     </div>
 
@@ -102,7 +102,7 @@
 
                 {{-- Section: Monitoring --}}
                 <div class="mb-5">
-                    <div class="text-xs uppercase tracking-widest text-green-400 font-bold mb-3 px-1">
+                    <div class="text-xs uppercase text-green-400 font-bold mb-3 px-1">
                         MONITORING
                     </div>
 
@@ -142,7 +142,7 @@
 
                 {{-- Section: Other --}}
                 <div>
-                    <div class="text-xs uppercase tracking-widest text-gray-400 font-bold mb-3 px-1">
+                    <div class="text-xs uppercase text-gray-400 font-bold mb-3 px-1">
                         OTHER
                     </div>
 

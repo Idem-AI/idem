@@ -317,7 +317,7 @@ simulationRoutes.post(
  *     tags: [Simulation]
  *     summary: Download the simulation report as a PDF
  *     description: >
- *       Renders the generated report with the fixed IDEM template (Jura, brand
+ *       Renders the generated report with the fixed IDEM template (Vilevile, brand
  *       colours, motif) and streams it as a PDF. Composed server-side so the
  *       document is identical whatever the reader's browser.
  *     security: [{ bearerAuth: [] }]

@@ -10,7 +10,7 @@
       class="mx-auto flex max-w-5xl flex-col items-center px-4 pb-24 pt-14 text-center sm:px-6 lg:pt-24"
     >
       <h1
-        class="rise max-w-3xl text-[clamp(2rem,5.2vw,3.5rem)] font-semibold leading-[1.08] tracking-tight text-ink"
+        class="rise max-w-3xl text-[clamp(2rem,5.2vw,3.5rem)] font-semibold leading-[1.08] text-ink"
       >
         {{ 'newRun.hero.heading' | translate }}
       </h1>
@@ -36,7 +36,7 @@
           <!-- Un projet IDEM porte déjà son business plan et ses prévisions :
                l'analyse part de plus loin, et coûte moins cher. -->
           <span
-            class="absolute right-4 top-4 rounded-full bg-primary px-2.5 py-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-brand-ink"
+            class="absolute right-4 top-4 rounded-full bg-primary px-2.5 py-1 text-[0.6875rem] font-semibold uppercase text-brand-ink"
           >
             {{ 'newRun.plan.recommended' | translate }}
           </span>
@@ -602,7 +602,7 @@
               <h2 class="text-h2 font-semibold text-ink">{{ 'newRun.plan.heading' | translate }}</h2>
               @if (isBeta) {
                 <span
-                  class="rounded-full bg-verdict-go/15 px-2 py-0.5 text-[0.6875rem] font-bold uppercase tracking-wide text-verdict-go"
+                  class="rounded-full bg-verdict-go/15 px-2 py-0.5 text-[0.6875rem] font-bold uppercase text-verdict-go"
                 >
                   {{ 'newRun.plan.betaBadge' | translate }}
                 </span>
@@ -657,7 +657,7 @@
                 >
                   @if (plan.recommended) {
                     <span
-                      class="absolute -top-2.5 left-5 rounded-full bg-primary px-2.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide text-brand-ink"
+                      class="absolute -top-2.5 left-5 rounded-full bg-primary px-2.5 py-0.5 text-[0.6875rem] font-semibold uppercase text-brand-ink"
                     >
                       {{ 'newRun.plan.recommended' | translate }}
                     </span>
@@ -745,7 +745,7 @@
                        vient chercher sur une carte de tarif. -->
                   <p class="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                     @if (isBeta) {
-                      <span class="text-h2 font-bold uppercase tracking-wide text-verdict-go">
+                      <span class="text-h2 font-bold uppercase text-verdict-go">
                         {{ 'newRun.plan.free' | translate }}
                       </span>
                       <s class="text-meta tabular-nums text-ink-subtle">
@@ -911,7 +911,7 @@
                 <p class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                   <span class="text-h3 font-semibold text-ink">{{ 'tier.' + plan.tier | translate }}</span>
                   @if (isBeta) {
-                    <span class="text-label font-bold uppercase tracking-wide text-verdict-go">
+                    <span class="text-label font-bold uppercase text-verdict-go">
                       {{ 'newRun.plan.free' | translate }}
                     </span>
                     <s class="text-meta tabular-nums text-ink-subtle">{{ planPrice(plan) }}</s>
