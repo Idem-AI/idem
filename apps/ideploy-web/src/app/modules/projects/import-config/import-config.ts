@@ -39,7 +39,7 @@ interface Preset {
 
         <!-- Imported source -->
         <div class="mb-6 rounded-xl p-4 border" style="background:var(--color-surface-1);border-color:var(--color-surface-2);">
-          <div class="text-xs font-semibold uppercase tracking-wider" style="color:var(--color-text-tertiary);">{{ 'projects.import.importingFromGit' | translate }}</div>
+          <div class="text-xs font-semibold uppercase" style="color:var(--color-text-tertiary);">{{ 'projects.import.importingFromGit' | translate }}</div>
           <div class="mt-2 flex items-center gap-2 text-sm font-semibold text-white/90">
             <i class="fa-brands fa-github text-lg"></i> {{ repo() }}
             <span class="font-mono text-xs px-2 py-0.5 rounded" style="background:var(--color-surface-2);color:var(--color-text-secondary);"><i class="fa-solid fa-code-branch mr-1"></i>{{ branch() }}</span>

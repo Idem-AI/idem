@@ -87,7 +87,6 @@ export const TOUR_STYLES = `
   position: relative;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-primary, #1447e6);
   margin: 0 0 10px;

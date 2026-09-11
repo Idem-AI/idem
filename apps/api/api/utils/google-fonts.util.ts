@@ -15,6 +15,8 @@
  * calcule l'URL au moment du rendu, à partir des familles réellement choisies.
  */
 
+import { brandFontFaceStyle, isSelfHostedFamily } from './brand-font.util';
+
 /** Familles à ne jamais demander à Google : ce sont des piles système. */
 const SYSTEM_STACKS = new Set([
   'sans-serif',
@@ -68,15 +70,22 @@ function familyParam(family: string): string {
  * panne silencieuse qu'on cherche à éliminer ici.
  */
 export function buildGoogleFontLinks(families: Array<string | undefined | null>): string {
-  const wanted = [...new Set(families.map(normalizeFontFamily).filter(Boolean))].filter(
-    (f) => !SYSTEM_STACKS.has(f.toLowerCase())
+  const requested = [...new Set(families.map(normalizeFontFamily).filter(Boolean))];
+
+  // Vilevile est fabriquée par IDEM : Google ne la connaît pas. On l'embarque
+  // depuis le paquet partagé plutôt que d'émettre un lien qui ne chargerait rien.
+  const selfHosted = requested.some(isSelfHostedFamily) ? brandFontFaceStyle() : '';
+
+  const wanted = requested.filter(
+    (f) => !SYSTEM_STACKS.has(f.toLowerCase()) && !isSelfHostedFamily(f)
   );
-  if (!wanted.length) return '';
+  if (!wanted.length) return selfHosted;
 
   const links = [
+    selfHosted,
     '<link rel="preconnect" href="https://fonts.googleapis.com">',
     '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
-  ];
+  ].filter(Boolean);
   for (const family of wanted) {
     const param = familyParam(family);
     links.push(
@@ -102,7 +111,7 @@ export function buildGoogleFontsHref(
   fallback = 'https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap'
 ): string {
   const wanted = [...new Set(families.map(normalizeFontFamily).filter(Boolean))].filter(
-    (f) => !SYSTEM_STACKS.has(f.toLowerCase())
+    (f) => !SYSTEM_STACKS.has(f.toLowerCase()) && !isSelfHostedFamily(f)
   );
   if (!wanted.length) return fallback;
   const params = wanted.map((f) => `family=${familyParam(f)}:wght@100;200;300;400;500;600;700;800;900`);

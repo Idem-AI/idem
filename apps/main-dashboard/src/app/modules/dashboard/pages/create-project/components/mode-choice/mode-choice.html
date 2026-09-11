@@ -16,13 +16,13 @@
   <!-- Titre -->
   <div class="text-center mb-12 sm:mb-14 max-w-2xl">
     <span
-      class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-[0.15em] mb-6"
+      class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase mb-6"
     >
       <i class="pi pi-compass text-[11px]"></i>
       {{ 'dashboard.createProject.modeChoice.badge' | translate }}
     </span>
     <h1
-      class="text-3xl sm:text-4xl lg:text-[2.75rem] font-bold text-text-primary leading-[1.15] tracking-tight mb-5"
+      class="text-3xl sm:text-4xl lg:text-[2.75rem] font-bold text-text-primary leading-[1.15] mb-5"
     >
       {{ 'dashboard.createProject.modeChoice.title' | translate }}
     </h1>
@@ -52,7 +52,7 @@
         >
           @if (card.mode === recommendedMode()) {
             <span
-              class="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap z-20 inline-flex items-center gap-1.5 px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-full bg-primary text-white shadow-lg shadow-primary/30"
+              class="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap z-20 inline-flex items-center gap-1.5 px-4 py-1.5 text-[11px] font-bold uppercase rounded-full bg-primary text-white shadow-lg shadow-primary/30"
             >
               <i class="pi pi-sparkles text-[10px]"></i>
               <span>{{ 'dashboard.createProject.modeChoice.recommended' | translate }}</span>
@@ -78,7 +78,7 @@
           </div>
 
           <p
-            class="text-xs font-bold text-text-tertiary uppercase tracking-[0.12em] mb-4 pl-[52px]"
+            class="text-xs font-bold text-text-tertiary uppercase mb-4 pl-[52px]"
           >
             {{ 'dashboard.createProject.modeChoice.' + card.i18nKey + '.tag' | translate }}
           </p>

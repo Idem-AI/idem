@@ -38,12 +38,12 @@
             <table class="w-full">
                 <thead class="bg-[#0f1724]">
                     <tr class="border-b border-gray-800">
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">RULE</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">CONDITIONS</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">ACTION</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">MATCHES</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">STATUS</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">ACTIONS</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">RULE</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">CONDITIONS</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">ACTION</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">MATCHES</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">STATUS</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase">ACTIONS</th>
                     </tr>
                 </thead>
                 <tbody>

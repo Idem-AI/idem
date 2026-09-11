@@ -49,8 +49,8 @@
  *   AI_OVERRIDES='{"section-digest":{"role":"mechanical"},"section-planner":{"role":"mechanical"}}'
  */
 
-import { LLMProvider } from './ai.config';
-import { AI_PROVIDERS, ModelRole, modelForRole, roleOfModel } from './ai-providers.config';
+import { LLMProvider, MODEL_ROLES, ModelRole } from './ai.config';
+import { AI_PROVIDERS, modelForRole, roleOfModel } from './ai-providers.config';
 
 export interface AiOverride {
   /** Fournisseur imposé pour cette génération. */
@@ -66,14 +66,12 @@ export interface AiOverride {
   role?: ModelRole;
 }
 
-const VALID_ROLES = new Set<string>([
-  'mechanical',
-  'writing',
-  'reasoning',
-  'vision',
-  'image',
-  'ocr',
-]);
+/**
+ * Rôles acceptés dans une surcharge — dérivés de la liste unique (`ai.config.ts`).
+ * Recopiés, ils devenaient faux au premier rôle ajouté, et la surcharge
+ * correspondante était rejetée en silence.
+ */
+const VALID_ROLES = new Set<string>(MODEL_ROLES);
 
 let parsed: Record<string, AiOverride> | null = null;
 
@@ -178,7 +176,7 @@ function normalizeOverride(value: unknown): AiOverride | null {
  * Sans entrée correspondante, renvoie la configuration inchangée.
  */
 export function applyAiOverride<
-  T extends { provider: LLMProvider; modelName: string },
+  T extends { provider: LLMProvider; modelName: string; role?: ModelRole },
 >(config: T, promptType?: string): { config: T; applied?: string } {
   const table = getAiOverrides();
   if (Object.keys(table).length === 0) return { config };
@@ -192,19 +190,25 @@ export function applyAiOverride<
   // `modelName` est explicite et l'emporte ; sinon le rôle est traduit chez le
   // fournisseur retenu ; sinon on garde le modèle courant.
   let modelName = config.modelName;
+  let role = config.role;
   if (override.modelName) {
     modelName = override.modelName;
+    // Un nom imposé n'a plus de rôle connu : le garder ferait retraduire vers
+    // le modèle que la surcharge visait justement à écarter.
+    role = undefined;
   } else if (override.role) {
+    role = override.role;
     modelName = modelForRole(provider, override.role) ?? config.modelName;
   } else if (override.provider && override.provider !== config.provider) {
     // Fournisseur changé sans modèle ni rôle précisé — le cas le plus courant :
-    // « ramène le logo sur GLM ». On traduit le modèle courant par son RÔLE,
+    // « ramène le logo sur GLM ». On traduit par le RÔLE porté par la config,
     // sinon on enverrait un nom que le nouveau fournisseur ne connaît pas.
-    modelName = modelForRole(provider, roleOfModel(config.modelName)) ?? config.modelName;
+    role = config.role ?? roleOfModel(config.modelName);
+    modelName = modelForRole(provider, role) ?? config.modelName;
   }
 
   return {
-    config: { ...config, provider, modelName },
+    config: { ...config, provider, modelName, role },
     applied: `${key} → ${provider}/${modelName}`,
   };
 }

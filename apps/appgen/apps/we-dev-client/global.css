@@ -67,10 +67,12 @@ body {
 }
 
 /* ============================================================================
-   TYPOGRAPHIE — Jura pour l'interface, mono pour le code
-   `@idem/shared-styles` applique Jura et un `letter-spacing: -0.07em` sur `*`.
-   Sur du code, ce crénage serré et une police à chasse variable rendent
-   l'alignement illisible : on rétablit la mono partout où du code s'affiche.
+   TYPOGRAPHIE — Vilevile pour l'interface, mono pour le code
+   `@idem/shared-styles` applique Vilevile, dont l'approche resserrée est
+   incorporée aux chasses. Sur du code, ce resserrement et une chasse variable
+   rendent l'alignement illisible : on bascule sur la mono partout où du code
+   s'affiche. Changer de famille suffit — l'approche part avec elle, puisqu'elle
+   vient de la police et non d'une règle CSS.
    ============================================================================ */
 
 code,
@@ -84,7 +86,6 @@ pre,
 [class*='language-'],
 [data-mono] {
   font-family: var(--font-mono);
-  letter-spacing: normal;
   font-optical-sizing: auto;
 }
 

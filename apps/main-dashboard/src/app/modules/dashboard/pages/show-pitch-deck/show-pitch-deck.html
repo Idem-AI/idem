@@ -35,7 +35,7 @@
             <div class="text-3xl font-bold text-text-primary tabular-nums">
               {{ completedCount() }} / {{ steps().length }}
             </div>
-            <div class="text-xs text-text-tertiary uppercase tracking-wider">
+            <div class="text-xs text-text-tertiary uppercase">
               {{ 'dashboard.showPitchDeck.generating.slides' | translate }}
             </div>
           </div>
@@ -91,7 +91,7 @@
                 {{ 'dashboard.showPitchDeck.slides.' + step.name | translate }}
               </span>
               @if (step.status === 'in-progress') {
-                <span class="text-xs text-primary uppercase tracking-wider">
+                <span class="text-xs text-primary uppercase">
                   {{ 'dashboard.showPitchDeck.status.inProgress' | translate }}
                 </span>
               }

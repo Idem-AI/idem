@@ -49,7 +49,7 @@ export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
     <section id="pricing" className="px-6 py-28">
       <div className="max-w-[62rem] mx-auto">
         <div className="max-w-xl">
-          <h2 className="text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-tight tracking-[-0.03em] text-balance">
+          <h2 className="text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-tight text-balance">
             {t('landing.pricing.title')}
           </h2>
           <p className="mt-4 text-text-tertiary text-pretty">{t('landing.pricing.lede')}</p>
@@ -62,7 +62,7 @@ export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
             <span className="inline-block px-2.5 py-1 rounded-full bg-primary text-white text-[11px] font-semibold">
               {t('landing.pricing.pass.badge')}
             </span>
-            <h3 className="mt-5 text-2xl font-semibold tracking-[-0.02em] text-balance">
+            <h3 className="mt-5 text-2xl font-semibold text-balance">
               {t('landing.pricing.pass.name')}{' '}
               <span className="text-primary">{t('landing.pricing.pass.price')}</span>{' '}
               <span className="text-base font-normal text-text-tertiary">

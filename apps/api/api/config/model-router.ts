@@ -16,25 +16,39 @@
  *   M  — rédaction   : le défaut, production de contenu.
  *   S  — raisonnement: stratégie, plan financier, concept de logo, SVG.
  *
- * Chaque étage est surchargeable par variable d'environnement (IDEM_TIER_*_MODEL)
- * pour permuter un modèle sans redéploiement de code, comme le fait déjà le
- * registre de fournisseurs.
+ * ── UN ÉTAGE EST UN RÔLE ────────────────────────────────────────────────────
+ *
+ * XS/M/S ne sont PAS une troisième famille de modèles : ce sont les rôles
+ * `mechanical`/`writing`/`reasoning` vus sous l'angle du COÛT et de l'escalade
+ * (cf. `TIER_ROLE`, ai.config.ts). Ce fichier portait auparavant sa propre table
+ * `MODEL_TIERS` — mêmes trois modèles réécrits à la main, plus un `provider:
+ * GLM` en dur et une chaîne de repli recopiée. Trois tables à tenir alignées, et
+ * rien pour signaler qu'elles avaient cessé de l'être.
+ *
+ * Les étages sont désormais RÉSOLUS depuis le registre des fournisseurs. Un
+ * changement de modèle se fait à un seul endroit (`ROLE_MODELS`), et chaque
+ * étage reste surchargeable par variable d'environnement (`IDEM_TIER_*_MODEL`)
+ * pour permuter sans redéploiement.
  */
 
 import {
+  DEFAULT_PROVIDER,
   FeatureAIConfig,
-  GLM_MODELS,
   LLMOptions,
   LLMProvider,
+  ModelRole,
   ModelTier,
-  TEXT_FALLBACK_MODELS,
+  TIER_ROLE,
 } from './ai.config';
+import { getProvider, modelForRole, roleOfModel } from './ai-providers.config';
 
 export type { ModelTier };
 
 export interface TierDefinition {
   provider: LLMProvider;
   modelName: string;
+  /** Le rôle dont cet étage est le nom. */
+  role: ModelRole;
   fallbackModels: string[];
   /** Réglages par défaut de l'étage (une section peut toujours les écraser). */
   llmOptions?: LLMOptions;
@@ -53,11 +67,22 @@ const ESCALATION: Record<ModelTier, ModelTier | undefined> = {
   S: undefined,
 };
 
-export const MODEL_TIERS: Record<ModelTier, TierDefinition> = {
+/** Traduction inverse — un rôle vers son étage. */
+const ROLE_TIER: Record<ModelRole, ModelTier> = {
+  mechanical: 'XS',
+  writing: 'M',
+  reasoning: 'S',
+  // Les rôles multimodaux n'ont pas d'étage propre : ils ne participent pas à
+  // l'escalade par le coût (on n'escalade pas d'un modèle de vision vers un
+  // modèle de raisonnement). Rattachés à M, l'étage neutre.
+  vision: 'M',
+  image: 'M',
+  ocr: 'M',
+};
+
+/** Réglages propres à chaque étage — la seule chose qu'un étage ajoute à un rôle. */
+const TIER_OPTIONS: Record<ModelTier, { llmOptions: LLMOptions; purpose: string }> = {
   XS: {
-    provider: LLMProvider.GLM,
-    modelName: process.env.IDEM_TIER_XS_MODEL || GLM_MODELS.mechanical,
-    fallbackModels: TEXT_FALLBACK_MODELS,
     // Températures basses: ces tâches sont déterministes par nature, la
     // créativité n'y est qu'une source de variance.
     //
@@ -70,16 +95,10 @@ export const MODEL_TIERS: Record<ModelTier, TierDefinition> = {
     purpose: 'mécanique (résumé, vérification, classification, extraction)',
   },
   M: {
-    provider: LLMProvider.GLM,
-    modelName: process.env.IDEM_TIER_M_MODEL || GLM_MODELS.writing,
-    fallbackModels: TEXT_FALLBACK_MODELS,
     llmOptions: { temperature: 0.5 },
     purpose: 'rédaction et structuration de contenu',
   },
   S: {
-    provider: LLMProvider.GLM,
-    modelName: process.env.IDEM_TIER_S_MODEL || GLM_MODELS.reasoning,
-    fallbackModels: TEXT_FALLBACK_MODELS,
     // Raisonnement COUPÉ, comme aux autres étages (cf. `extraBody` du
     // fournisseur). Il multipliait la latence par trois — une section passait
     // de deux à neuf secondes — pour un gain que la production de contenu ne
@@ -87,6 +106,55 @@ export const MODEL_TIERS: Record<ModelTier, TierDefinition> = {
     // tableau financier dépasse facilement les enveloppes courtes.
     llmOptions: { temperature: 0.5, maxOutputTokens: 16000 },
     purpose: 'sections à forte valeur (stratégie, chiffres, création visuelle)',
+  },
+};
+
+/** Modèle épinglé pour un étage, sans redéploiement. Échappatoire, pas le défaut. */
+const TIER_MODEL_ENV: Record<ModelTier, string> = {
+  XS: 'IDEM_TIER_XS_MODEL',
+  M: 'IDEM_TIER_M_MODEL',
+  S: 'IDEM_TIER_S_MODEL',
+};
+
+/**
+ * Définition d'un étage, résolue à l'APPEL.
+ *
+ * Paresseuse et non figée à l'import, pour la même raison que le backend Gemini:
+ * `loadSecrets()` complète l'environnement APRÈS le chargement des modules, si
+ * bien qu'une table constante lisait des variables encore vides.
+ */
+export function tierDefinition(tier: ModelTier): TierDefinition {
+  const role = TIER_ROLE[tier];
+  const provider = DEFAULT_PROVIDER;
+
+  return {
+    provider,
+    modelName: process.env[TIER_MODEL_ENV[tier]] || modelForRole(provider, role) || '',
+    role,
+    // Le repli appartient au FOURNISSEUR, jamais à l'étage : une chaîne de noms
+    // recopiée ici redeviendrait fausse à la première bascule.
+    fallbackModels: getProvider(provider).defaultFallbackModels ?? [],
+    ...TIER_OPTIONS[tier],
+  };
+}
+
+/**
+ * Les trois étages.
+ *
+ * Accesseurs plutôt que valeurs : chaque lecture résout l'étage à l'instant où
+ * on le demande, donc après le chargement des secrets et après tout changement
+ * de `IDEM_TIER_*_MODEL`. `Object.entries`/`values` déclenchent les accesseurs,
+ * les appelants existants n'ont rien à changer.
+ */
+export const MODEL_TIERS: Record<ModelTier, TierDefinition> = {
+  get XS() {
+    return tierDefinition('XS');
+  },
+  get M() {
+    return tierDefinition('M');
+  },
+  get S() {
+    return tierDefinition('S');
   },
 };
 
@@ -124,6 +192,17 @@ export function nextTier(tier: ModelTier): ModelTier | undefined {
   return ESCALATION[tier];
 }
 
+/** Fusionne deux jeux de réglages, `extraBody` compris (sinon il serait remplacé). */
+function mergeOptions(base?: LLMOptions, over?: LLMOptions): LLMOptions {
+  return {
+    ...base,
+    ...over,
+    ...(base?.extraBody || over?.extraBody
+      ? { extraBody: { ...base?.extraBody, ...over?.extraBody } }
+      : {}),
+  };
+}
+
 /**
  * Traduit un étage en `FeatureAIConfig` — le format que comprend déjà tout le
  * reste du code (resolveSectionConfig, GenericService, PromptService).
@@ -136,24 +215,16 @@ export function tierConfig(
   tier: ModelTier,
   overrides: Partial<FeatureAIConfig> = {}
 ): FeatureAIConfig {
-  const definition = MODEL_TIERS[tier];
+  const definition = tierDefinition(tier);
   return {
     provider: overrides.provider ?? definition.provider,
     modelName: overrides.modelName ?? definition.modelName,
+    // Le rôle voyage avec le modèle : c'est lui qui permettra à une bascule de
+    // fournisseur de traduire exactement, au lieu de redeviner l'intention.
+    role: overrides.modelName ? overrides.role : (overrides.role ?? definition.role),
     fallbackModels: overrides.fallbackModels ?? definition.fallbackModels,
     promptType: overrides.promptType,
-    llmOptions: {
-      ...definition.llmOptions,
-      ...overrides.llmOptions,
-      ...(definition.llmOptions?.extraBody || overrides.llmOptions?.extraBody
-        ? {
-            extraBody: {
-              ...definition.llmOptions?.extraBody,
-              ...overrides.llmOptions?.extraBody,
-            },
-          }
-        : {}),
-    },
+    llmOptions: mergeOptions(definition.llmOptions, overrides.llmOptions),
   };
 }
 
@@ -167,11 +238,12 @@ export function tierConfig(
 export function applyTier(config: FeatureAIConfig): FeatureAIConfig {
   if (!config.tier) return config;
 
-  const definition = MODEL_TIERS[config.tier];
+  const definition = tierDefinition(config.tier);
   return {
     ...config,
     provider: definition.provider,
     modelName: definition.modelName,
+    role: definition.role,
     fallbackModels: config.fallbackModels ?? definition.fallbackModels,
     llmOptions: { ...definition.llmOptions, ...config.llmOptions },
   };
@@ -182,13 +254,13 @@ export function applyTier(config: FeatureAIConfig): FeatureAIConfig {
  *
  * Sert au routage inverse: quand une feature impose déjà son modèle, on veut
  * quand même savoir de quel étage elle part pour pouvoir escalader depuis là.
- * Un modèle inconnu est considéré comme M (l'étage de rédaction par défaut).
+ *
+ * UNE SEULE recherche inverse, désormais. Ce fichier en avait une (exacte sur
+ * `MODEL_TIERS`, puis `/pro/` et `/lite/`) et le registre des fournisseurs une
+ * autre (`roleOfModel`) : deux jeux d'expressions régulières sur les mêmes noms
+ * de modèles, qui répondaient déjà différemment hors catalogue. Un étage étant
+ * un rôle, il suffit de traduire.
  */
 export function tierOfModel(modelName: string): ModelTier {
-  const entries = Object.entries(MODEL_TIERS) as [ModelTier, TierDefinition][];
-  const exact = entries.find(([, definition]) => definition.modelName === modelName);
-  if (exact) return exact[0];
-  if (/pro/i.test(modelName)) return 'S';
-  if (/lite/i.test(modelName)) return 'XS';
-  return 'M';
+  return ROLE_TIER[roleOfModel(modelName)];
 }

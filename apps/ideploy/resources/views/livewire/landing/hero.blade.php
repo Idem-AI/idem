@@ -53,7 +53,7 @@
     <div class="relative z-10 max-w-5xl mx-auto w-full flex flex-col items-center text-center px-4">
         <!-- Text content -->
         <div class="max-w-4xl mx-auto">
-            <h1 class="font-black leading-[1.05] mb-8 text-white break-words" style="font-size: clamp(3.8rem, 8vw, 7.5rem); letter-spacing: -0.04em; text-shadow: 0 0 40px rgba(0,0,0,0.5);">
+            <h1 class="font-black leading-[1.05] mb-8 text-white break-words" style="font-size: clamp(3.8rem, 8vw, 7.5rem); text-shadow: 0 0 40px rgba(0,0,0,0.5);">
                 Deploy apps,<br>
                 <span class="i-underline text-secondary">Not servers</span>
             </h1>

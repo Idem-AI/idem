@@ -16,31 +16,37 @@
  *                           même API.
  */
 
-import { LLMProvider, FeatureAIConfig, GLM_MODELS, TEXT_FALLBACK_MODELS } from './ai.config';
+import {
+  LLMProvider,
+  FeatureAIConfig,
+  GLM_MODELS,
+  ModelRole,
+  ROLE_MODELS,
+  TEXT_FALLBACK_MODELS,
+} from './ai.config';
 
 export type ProviderKind = 'gemini' | 'openai-compatible';
 
 /**
  * RÔLE d'un modèle, indépendamment du fournisseur qui le sert.
  *
- * C'est la clé de la portabilité. Une feature déclare `GLM_MODELS.reasoning` ;
- * ce qui compte n'est pas le nom, c'est le rôle — « le modèle qui raisonne ».
- * Changer de fournisseur devient alors une traduction de rôles, et non une
- * réécriture de quarante configurations.
+ * C'est la clé de la portabilité. Une feature déclare `role: 'reasoning'` ; ce
+ * qui compte n'est pas le nom du modèle, c'est ce qu'on attend de lui. Changer
+ * de fournisseur devient alors une traduction de rôles, et non une réécriture
+ * de quarante configurations.
  *
  * Sans cette table, l'interrupteur global `AI_DEFAULT_PROVIDER` changeait le
  * fournisseur SANS traduire le nom du modèle : Gemini recevait « glm-4.7 » et
  * répondait 404. Il fallait alors fixer `AI_DEFAULT_MODEL`, ce qui écrasait
  * TOUS les étages avec un seul modèle — le routeur XS/M/S disparaissait au
  * moment précis où l'on voulait le tester.
+ *
+ * DÉFINI dans `ai.config.ts`, la feuille du graphe d'imports, et réexporté ici
+ * pour les importateurs historiques. Le rôle sert des deux côtés — les features
+ * le déclarent, le registre le traduit — et une définition par côté est
+ * exactement le doublon qu'on vient de retirer.
  */
-export type ModelRole =
-  | 'mechanical'
-  | 'writing'
-  | 'reasoning'
-  | 'vision'
-  | 'image'
-  | 'ocr';
+export type { ModelRole };
 
 /**
  * Ce qu'un fournisseur sait faire. Sert de garde-fou : on n'aiguille jamais une
@@ -458,14 +464,10 @@ export const AI_PROVIDERS: Record<LLMProvider, ProviderDefinition> = {
      * économisée. Ne pas augmenter sans refaire la mesure.
      */
     concurrency: Number(process.env.IDEM_GLM_CONCURRENCY ?? 3),
-    models: {
-      mechanical: GLM_MODELS.mechanical,
-      writing: GLM_MODELS.writing,
-      reasoning: GLM_MODELS.reasoning,
-      vision: GLM_MODELS.vision,
-      image: GLM_MODELS.image,
-      ocr: GLM_MODELS.ocr,
-    },
+    // Recopiée nulle part : c'est `ROLE_MODELS` (ai.config.ts) qui affecte un
+    // modèle à chaque rôle, et l'usine `feature()` lit la même table. Une seule
+    // affectation, deux lecteurs — les deux ne peuvent plus diverger.
+    models: { ...ROLE_MODELS },
     // Le fournisseur de la plateforme : c'est lui qui doit porter le filet.
     // Une quinzaine de configurations (tout le module Simulation, l'audit de
     // cohérence) ne déclarent aucun repli et étaient donc mono-coup.
@@ -596,6 +598,12 @@ export function providerSupports(
 /**
  * Rôle d'un modèle, quel que soit le fournisseur qui le déclare.
  *
+ * ⚠️ REPLI, plus le chemin nominal. Une configuration issue de `feature()` ou
+ * du routeur PORTE son rôle : c'est celui-là qu'il faut lire. Cette fonction ne
+ * sert qu'aux modèles arrivés sans intention déclarée — un nom épinglé à la
+ * main, un repli gratuit, une variante datée — et elle devine, ce que des
+ * expressions régulières sur un nom de modèle font toujours imparfaitement.
+ *
  * Recherche inverse dans les tables `models` du registre. Un modèle inconnu est
  * traité comme `writing` : c'est l'étage de rédaction, le défaut le moins
  * surprenant — mieux vaut router une génération inconnue vers le milieu de gamme
@@ -642,9 +650,9 @@ export function modelForRole(provider: LLMProvider, role: ModelRole): string | u
  *
  * Sans variable d'env, renvoie la config inchangée.
  */
-export function resolveGlobalOverride<T extends Pick<FeatureAIConfig, 'provider' | 'modelName'>>(
-  config: T
-): T {
+export function resolveGlobalOverride<
+  T extends Pick<FeatureAIConfig, 'provider' | 'modelName'> & { role?: ModelRole },
+>(config: T): T {
   const overrideProvider = process.env.AI_DEFAULT_PROVIDER as LLMProvider | undefined;
   if (!overrideProvider || !AI_PROVIDERS[overrideProvider]) {
     return config;
@@ -656,10 +664,17 @@ export function resolveGlobalOverride<T extends Pick<FeatureAIConfig, 'provider'
   // Modèle unique forcé : échappatoire explicite, jamais le chemin nominal.
   const forcedModel = process.env.AI_DEFAULT_MODEL;
   if (forcedModel) {
-    return { ...config, provider: overrideProvider, modelName: forcedModel };
+    return { ...config, provider: overrideProvider, modelName: forcedModel, role: undefined };
   }
 
-  const role = roleOfModel(config.modelName);
+  // Le rôle DÉCLARÉ d'abord, l'inférence seulement à défaut.
+  //
+  // La config porte désormais l'intention qui a produit son modèle
+  // (`feature({ role })`, `applyTier`). La lire est exact ; la redéduire du nom
+  // du modèle ne l'est pas — `roleOfModel` retombe sur des expressions
+  // régulières dès qu'un modèle sort du catalogue (replis gratuits, variantes
+  // datées, modèle épinglé à la main), et se trompait alors d'étage en silence.
+  const role = config.role ?? roleOfModel(config.modelName);
   const translated = modelForRole(overrideProvider, role);
 
   if (!translated) {
@@ -669,7 +684,7 @@ export function resolveGlobalOverride<T extends Pick<FeatureAIConfig, 'provider'
     return config;
   }
 
-  return { ...config, provider: overrideProvider, modelName: translated };
+  return { ...config, provider: overrideProvider, modelName: translated, role };
 }
 
 /**

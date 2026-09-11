@@ -8,7 +8,7 @@
           <!-- Title & Subtitle Section -->
           <div class="space-y-8 text-center">
             <h1
-              class="text-5xl md:text-6xl font-bold text-text-primary leading-tight tracking-tight"
+              class="text-5xl md:text-6xl font-bold text-text-primary leading-tight"
               [style.fontFamily]="primaryStack()"
             >
               {{ previewText() }}
@@ -40,7 +40,7 @@
               "{{ 'dashboard.typographySelection.preview.quote' | translate }}"
             </blockquote>
             <cite
-              class="text-xs font-bold text-text-tertiary not-italic uppercase tracking-widest"
+              class="text-xs font-bold text-text-tertiary not-italic uppercase"
               [style.fontFamily]="primaryStack()"
             >
               — {{ 'dashboard.typographySelection.preview.author' | translate }}
@@ -54,7 +54,7 @@
         class="shrink-0 grid grid-cols-2 gap-px bg-[var(--glass-border)] border-t border-[var(--glass-border)]"
       >
         <div class="bg-[var(--color-surface-1)] px-5 py-3">
-          <div class="text-[10px] uppercase tracking-wider text-text-tertiary">
+          <div class="text-[10px] uppercase text-text-tertiary">
             {{ 'dashboard.typographySelection.preview.fontPrimary' | translate }}
           </div>
           <div class="text-sm text-text-primary truncate" [style.fontFamily]="primaryStack()">
@@ -62,7 +62,7 @@
           </div>
         </div>
         <div class="bg-[var(--color-surface-1)] px-5 py-3">
-          <div class="text-[10px] uppercase tracking-wider text-text-tertiary">
+          <div class="text-[10px] uppercase text-text-tertiary">
             {{ 'dashboard.typographySelection.preview.fontSecondary' | translate }}
           </div>
           <div class="text-sm text-text-primary truncate" [style.fontFamily]="secondaryStack()">

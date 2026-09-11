@@ -31,7 +31,7 @@
       <!-- Header Section -->
       <section class="mb-12 flex flex-col md:flex-row md:justify-between md:items-end gap-6">
         <div>
-          <h1 class="text-3xl md:text-4xl font-semibold text-[var(--idem-text-primary)] tracking-tight">
+          <h1 class="text-3xl md:text-4xl font-semibold text-[var(--idem-text-primary)]">
             {{ 'dashboard.createDevelopment.title' | translate }}
           </h1>
           <p class="text-[var(--idem-text-secondary)] mt-2">{{ 'dashboard.createDevelopment.subtitle' | translate }}</p>
@@ -52,7 +52,7 @@
       @if (currentStep() === 'mode-selection') {
         <section class="max-w-5xl mx-auto mt-12">
           <div class="text-center mb-12">
-            <h2 class="text-3xl font-bold text-[var(--idem-text-primary)] tracking-tight mb-3">{{ 'dashboard.createDevelopment.step1.title' | translate }}</h2>
+            <h2 class="text-3xl font-bold text-[var(--idem-text-primary)] mb-3">{{ 'dashboard.createDevelopment.step1.title' | translate }}</h2>
             <p class="text-lg text-[var(--idem-text-tertiary)]">{{ 'dashboard.createDevelopment.step1.subtitle' | translate }}</p>
           </div>
 
@@ -77,7 +77,7 @@
 
                 <div class="flex items-center justify-between mb-4">
                   <h3 class="text-2xl font-bold text-[var(--idem-text-primary)] group-hover:text-primary transition-colors">{{ 'dashboard.createDevelopment.landing.title' | translate }}</h3>
-                  <span class="text-xs font-semibold uppercase tracking-wider text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-1 rounded-full">{{ 'dashboard.createDevelopment.landing.status' | translate }}</span>
+                  <span class="text-xs font-semibold uppercase text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-1 rounded-full">{{ 'dashboard.createDevelopment.landing.status' | translate }}</span>
                 </div>
                 
                 <p class="text-[var(--idem-text-secondary)] mb-8 leading-relaxed flex-1">
@@ -110,7 +110,7 @@
                   <div class="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center">
                     <i class="pi pi-lock text-orange-400 text-sm"></i>
                   </div>
-                  <span class="text-sm font-bold text-white tracking-wide pr-2">{{ 'dashboard.createDevelopment.app.badgeTitle' | translate }}</span>
+                  <span class="text-sm font-bold text-white pr-2">{{ 'dashboard.createDevelopment.app.badgeTitle' | translate }}</span>
                 </div>
               </div>
 
@@ -147,7 +147,7 @@
       @if (currentStep() === 'generation-type') {
         <section class="max-w-6xl mx-auto mt-12">
           <div class="text-center mb-12">
-            <h2 class="text-3xl font-bold text-[var(--idem-text-primary)] tracking-tight mb-3">{{ 'dashboard.createDevelopment.step2.title' | translate }}</h2>
+            <h2 class="text-3xl font-bold text-[var(--idem-text-primary)] mb-3">{{ 'dashboard.createDevelopment.step2.title' | translate }}</h2>
             <p class="text-lg text-[var(--idem-text-tertiary)]">{{ 'dashboard.createDevelopment.step2.subtitle' | translate }}</p>
           </div>
 
@@ -241,13 +241,13 @@
         @if (selectedMode() === 'quick') {
           <section class="max-w-3xl mx-auto bg-[var(--idem-surface-1)] border border-[var(--glass-border-subtle)] rounded-2xl p-8 md:p-12 shadow-sm mt-12">
             <div class="text-center mb-10">
-              <h2 class="text-2xl font-medium text-[var(--idem-text-primary)] tracking-tight mb-2">{{ 'dashboard.createDevelopment.step3.title' | translate }}</h2>
+              <h2 class="text-2xl font-medium text-[var(--idem-text-primary)] mb-2">{{ 'dashboard.createDevelopment.step3.title' | translate }}</h2>
               <p class="text-[var(--idem-text-tertiary)]">{{ 'dashboard.createDevelopment.step3.subtitle' | translate }}</p>
             </div>
 
             <div class="grid md:grid-cols-2 gap-8 mb-12">
               <div>
-                <h3 class="text-sm uppercase tracking-widest text-[var(--idem-text-secondary)] mb-4">{{ 'dashboard.createDevelopment.step3.generationType' | translate }}</h3>
+                <h3 class="text-sm uppercase text-[var(--idem-text-secondary)] mb-4">{{ 'dashboard.createDevelopment.step3.generationType' | translate }}</h3>
                 <div class="flex items-center gap-3">
                   <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                     <i class="pi pi-check text-primary"></i>
@@ -257,7 +257,7 @@
               </div>
 
               <div>
-                <h3 class="text-sm uppercase tracking-widest text-[var(--idem-text-secondary)] mb-4">{{ 'dashboard.createDevelopment.step3.techStack' | translate }}</h3>
+                <h3 class="text-sm uppercase text-[var(--idem-text-secondary)] mb-4">{{ 'dashboard.createDevelopment.step3.techStack' | translate }}</h3>
                 <div class="space-y-3">
                   <div class="flex items-center gap-3">
                     <div class="w-6 h-6 rounded-full bg-green-500/10 flex items-center justify-center">
@@ -297,7 +297,7 @@
         @if (selectedMode() === 'advanced') {
           <section class="mt-8">
             <div class="mb-10 text-center">
-              <h2 class="text-2xl font-medium text-[var(--idem-text-primary)] tracking-tight mb-2">{{ 'dashboard.createDevelopment.step3.advancedTitle' | translate }}</h2>
+              <h2 class="text-2xl font-medium text-[var(--idem-text-primary)] mb-2">{{ 'dashboard.createDevelopment.step3.advancedTitle' | translate }}</h2>
               <p class="text-[var(--idem-text-tertiary)]">{{ 'dashboard.createDevelopment.step3.advancedSubtitle' | translate }}</p>
             </div>
 

@@ -119,15 +119,15 @@
                                 </svg>
                             </div>
                             @if($isDeploymentInProgress)
-                                <span class="px-4 py-2 bg-yellow-500/20 border border-yellow-500/40 rounded-full text-xs font-bold text-yellow-400 uppercase tracking-wider animate-pulse">
+                                <span class="px-4 py-2 bg-yellow-500/20 border border-yellow-500/40 rounded-full text-xs font-bold text-yellow-400 uppercase animate-pulse">
                                     BUILDING
                                 </span>
                             @elseif($isPipelineActive)
-                                <span class="px-4 py-2 bg-green-500/20 border border-green-500/40 rounded-full text-xs font-bold text-green-400 uppercase tracking-wider">
+                                <span class="px-4 py-2 bg-green-500/20 border border-green-500/40 rounded-full text-xs font-bold text-green-400 uppercase">
                                     ACTIVE
                                 </span>
                             @else
-                                <span class="px-4 py-2 bg-gray-500/20 border border-gray-500/40 rounded-full text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                <span class="px-4 py-2 bg-gray-500/20 border border-gray-500/40 rounded-full text-xs font-bold text-gray-400 uppercase">
                                     DISABLED
                                 </span>
                             @endif
@@ -195,15 +195,15 @@
                                 </svg>
                             </div>
                             @if($isAppStopped)
-                                <span class="px-4 py-2 bg-gray-500/20 border border-gray-500/40 rounded-full text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                <span class="px-4 py-2 bg-gray-500/20 border border-gray-500/40 rounded-full text-xs font-bold text-gray-400 uppercase">
                                     OFFLINE
                                 </span>
                             @elseif($activeRules > 0)
-                                <span class="px-4 py-2 bg-green-500/20 border border-green-500/40 rounded-full text-xs font-bold text-green-400 uppercase tracking-wider animate-pulse">
+                                <span class="px-4 py-2 bg-green-500/20 border border-green-500/40 rounded-full text-xs font-bold text-green-400 uppercase animate-pulse">
                                     PROTECTED
                                 </span>
                             @else
-                                <span class="px-4 py-2 bg-orange-500/20 border border-orange-500/40 rounded-full text-xs font-bold text-orange-400 uppercase tracking-wider">
+                                <span class="px-4 py-2 bg-orange-500/20 border border-orange-500/40 rounded-full text-xs font-bold text-orange-400 uppercase">
                                     NO PROTECTION
                                 </span>
                             @endif
@@ -269,11 +269,11 @@
                                 </svg>
                             </div>
                             @if($isAppStopped)
-                                <span class="px-4 py-2 bg-gray-500/20 border border-gray-500/40 rounded-full text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                <span class="px-4 py-2 bg-gray-500/20 border border-gray-500/40 rounded-full text-xs font-bold text-gray-400 uppercase">
                                     OFFLINE
                                 </span>
                             @else
-                                <span class="px-4 py-2 bg-blue-500/20 border border-blue-500/40 rounded-full text-xs font-bold text-blue-400 uppercase tracking-wider animate-pulse">
+                                <span class="px-4 py-2 bg-blue-500/20 border border-blue-500/40 rounded-full text-xs font-bold text-blue-400 uppercase animate-pulse">
                                     LIVE METRICS
                                 </span>
                             @endif
