@@ -1,7 +1,8 @@
 # Vilevile
 
 La police de marque IDEM. C'est [Jura](https://github.com/ossobuffo/jura) — SIL OFL 1.1 —
-retouchée sur quatre points, auto-hébergée, et exposée en CSS sous le nom `Vilevile`.
+retouchée sur cinq points, auto-hébergée, et exposée en CSS sous le nom `Vilevile`.
+Elle porte aussi les icônes du produit.
 
 La typographie servie vit dans `packages/shared-styles/fonts/` ; ce dossier-ci
 n'en contient que la fabrique.
@@ -11,8 +12,10 @@ n'en contient que la fabrique.
 | Fichier | Rôle |
 | --- | --- |
 | `fonts.css` | Les `@font-face`, **générés**. Importés par `../styles.css`. |
+| `icons.css` | Les classes `.pi-*`, **générées**. Importées par `../styles.css`. |
 | `vilevile-latin.woff2` | 31 Ko — chargé par défaut (français, anglais) |
 | `vilevile-latin-ext.woff2` | 34 Ko — chargé seulement si la page contient du latin étendu, une lettre africaine ou du grec |
+| `vilevile-icons.woff2` | 38 Ko — chargé seulement si la page affiche une icône |
 | `vilevile-var.ttf` | 155 Ko — **pas** servi au navigateur : maquettes (Figma, Illustrator), installation système |
 | `OFL.txt` | La licence. Elle doit voyager avec les `.woff2`. |
 
@@ -22,6 +25,9 @@ n'en contient que la fabrique.
 | --- | --- |
 | `build-fonts.py` | La fabrication. Les trois boutons de réglage sont en tête de fichier. |
 | `african.py` | La construction des lettres africaines |
+| `icons.py` | L'intégration des icônes PrimeIcons |
+| `restyle.py` | Le redessin des icônes dans la main d'IDEM |
+| `motifs.py` | Le répertoire de motifs qui a fixé la direction — **non branché** |
 | `specimen.py` | Le contrôle : épreuve composée avec HarfBuzz + mesures d'impact |
 | `src/Jura[wght].ttf` | La source amont, telle que publiée par Google Fonts |
 
@@ -82,7 +88,52 @@ moteur de documents d'`apps/api`, qui compose dans la police de CHAQUE projet.
 Effet de bord agréable : les polices d'icônes ligaturées ne sont plus resserrées au
 passage par le sélecteur universel.
 
-### 4. Elle sait écrire les langues camerounaises
+### 4. Elle porte les icônes
+
+Une police d'icônes est une police comme une autre : des dessins rangés dans la zone
+à usage privé d'Unicode. Rien n'obligeait à en charger une deuxième. Les 314 dessins
+de **PrimeIcons 7** sont donc dans Vilevile, à leurs codes d'origine.
+
+Le produit n'a plus qu'une famille. `font-family: 'Vilevile'` dessine le texte ET les
+icônes ; il n'y a plus de `@font-face` séparé, plus de `primeicons.woff2` à servir,
+plus de règle `!important` pour rattraper la famille dans les composants. Une icône
+hérite de la couleur et du corps de son texte comme n'importe quel caractère.
+
+**Et elles sont redessinées dans notre main.** Le vocabulaire graphique ouest-africain
+— tampons adinkra, bogolan, nsibidi — ne dessine pas au trait fin : il pose des masses.
+PrimeIcons est à l'opposé, un filet de 1,5 unité sur une boîte de 24. `restyle.py`
+applique donc à chaque icône une **dilatation morphologique par disque** : c'est
+exactement l'outil du tampon, la matrice qui mord le papier un peu au-delà de son bord.
+Le trait s'épaissit, les angles saillants s'arrondissent, la topologie reste intacte.
+
+Ce qui change, c'est la MAIN, pas le mot : une corbeille reste une corbeille. La lecture
+d'une icône est une convention, et la casser rendrait le produit inutilisable.
+
+**La mesure protège la structure.** Grossir referme les petites contreformes et soude
+les éléments voisins — trois points d'ellipse deviendraient une barre. Pour chaque
+icône, le grossissement part de `GROW_PX` et redescend tant que la dilatation change le
+nombre de taches d'encre ou le nombre de trous. Cinquante-deux icônes ont ainsi été
+servies moins épaisses, et le journal de fabrication les nomme.
+
+**Le code existant ne bouge pas.** `icons.css` reprend les classes de PrimeIcons à
+l'identique — seule la famille change — donc `<i class="pi pi-user"></i>` fonctionne
+tel quel, `.pi-fw` et `.pi-spin` compris.
+
+**Les logos de marques ne sont pas touchés.** GitHub, PayPal, Microsoft, TikTok et les
+vingt autres sont des marques déposées : leur dessin ne nous appartient pas, et toutes
+les chartes de marque interdisent de l'altérer. La liste est explicite dans
+`restyle.py`. Elles paraissent donc plus fines que le reste du jeu — c'est le prix, et
+il est juste.
+
+Les icônes partent dans leur propre tranche `unicode-range`. Une page qui n'en affiche
+aucune ne télécharge rien de plus qu'avant.
+
+**Ce que ça ne fait pas :** l'épaisseur des icônes ne suit pas l'axe de graisse. Les
+sources de PrimeIcons sont des contours pleins — le trait y est déjà vectorisé, il n'y
+a pas de `stroke-width` à faire varier. Une icône garde donc son épaisseur à côté d'un
+texte en Black. C'est la limite du jeu d'icônes, pas celle de la police.
+
+### 5. Elle sait écrire les langues camerounaises
 
 C'est la partie « typographie africaine », et c'est la seule qui n'enlève ni ne
 déplace rien : on n'ajoute que des caractères.
@@ -140,6 +191,7 @@ Les boutons de réglage sont en tête de `build-fonts.py` :
 | Réglage | Effet | Conséquence hors de ce dossier |
 | --- | --- | --- |
 | `DESIGN_FLOOR` | graisse générale | aucune |
+| `GROW_PX` (`icons.py`) | épaisseur des icônes | aucune |
 | `DESIGN_CEIL` | poids du Black | aucune ; plafonné par la mesure |
 | `TRACKING_EM` | approche | aucune, tant que le CSS n'en déclare pas |
 

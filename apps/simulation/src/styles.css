@@ -10,7 +10,6 @@
 /* Ordre d'import repris du dashboard IDEM. */
 @import '@idem/shared-styles/styles.css';
 @import 'tailwindcss';
-@import 'primeicons/primeicons.css';
 
 /* Alias attendus par le design system, comme dans le dashboard. */
 @theme {
