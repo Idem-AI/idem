@@ -19,6 +19,7 @@
  * possible to avoid the cold-start cost on every flyer generation.
  */
 import puppeteer, { Browser, Page } from 'puppeteer';
+import { brandIconStyle } from '../../utils/brand-font.util';
 import sharp from 'sharp';
 import logger from '../../config/logger';
 import { StorageService } from '../storage.service';
@@ -646,7 +647,7 @@ export class FlyerRenderService {
 <meta charset="utf-8">
 <meta name="viewport" content="width=${dims.width},initial-scale=1">
 ${fontLinks}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/primeicons@7.0.0/primeicons.css">
+${brandIconStyle()}
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {

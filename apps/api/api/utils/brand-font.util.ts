@@ -17,6 +17,12 @@
  * compris : refabriquer la police (`packages/shared-styles/tools/font`) suffit à
  * mettre les rendus serveur à jour, sans toucher à ce fichier.
  *
+ * Le bloc emporte aussi les classes d'icônes. Les dessins de PrimeIcons sont
+ * DANS Vilevile : un `<i class="pi pi-check">` se dessine donc sans rien
+ * charger de plus. Le pipeline injectait jusqu'ici la feuille de PrimeIcons,
+ * dont les `url()` relatives ne pouvaient pas se résoudre dans un document
+ * monté par `setContent` — les icônes ne sont jamais arrivées dans un PDF.
+ *
  * Le bloc publie aussi `--idem-font-tracking`, lu dans le `styles.css` du
  * paquet partagé. Vilevile porte son approche dans ses chasses : un
  * `letter-spacing` posé dans un gabarit s'AJOUTE à celle-ci au lieu de la
@@ -55,7 +61,13 @@ export function brandFontFaceStyle(): string {
         return `url(data:font/woff2;base64,${data})`;
       }
     );
-    cached = `<style>\n${css}\n:root { --idem-font-tracking: ${bakedTracking()}; }\n</style>`;
+    cached = [
+      "<style>",
+      css,
+      `:root { --idem-font-tracking: ${bakedTracking()}; }`,
+      iconStyles(fontsDir),
+      "</style>",
+    ].join("\n");
   } catch (error) {
     console.warn(
       '[brand-font] Vilevile introuvable dans @idem/shared-styles — les rendus ' +
@@ -65,6 +77,18 @@ export function brandFontFaceStyle(): string {
     cached = '';
   }
   return cached;
+}
+
+/**
+ * Les classes `.pi-*`, telles que le design system les publie. Elles pointent
+ * déjà sur Vilevile : il n'y a qu'à les recopier dans le document.
+ */
+function iconStyles(fontsDir: string): string {
+  try {
+    return readFileSync(join(fontsDir, 'icons.css'), 'utf8');
+  } catch {
+    return '';
+  }
 }
 
 /**
@@ -80,6 +104,36 @@ function bakedTracking(): string {
     /* on retombe sur la valeur de la police telle que fabriquée */
   }
   return '-0.09em';
+}
+
+let cachedIcons: string | null = null;
+
+/**
+ * Les icônes seules, pour un document composé dans une AUTRE police.
+ *
+ * Un visuel de communication est mis dans la typographie du projet, pas dans
+ * Vilevile — mais ses icônes viennent quand même de chez nous. On n'embarque
+ * alors que la tranche qui les porte, pas tout le latin.
+ */
+export function brandIconStyle(): string {
+  if (cachedIcons !== null) return cachedIcons;
+
+  try {
+    const cssPath = require.resolve('@idem/shared-styles/fonts/fonts.css');
+    const fontsDir = dirname(cssPath);
+    const faces = readFileSync(cssPath, 'utf8').match(/@font-face \{[^}]*\}/g) || [];
+    const iconFace = faces.find((face) => /-icons\.woff2/.test(face)) || '';
+    cachedIcons = [
+      '<style>',
+      iconFace.replace(/url\('\.\/([^']+)'\)/, (_m, file: string) =>
+        `url(data:font/woff2;base64,${readFileSync(join(fontsDir, file)).toString('base64')})`),
+      iconStyles(fontsDir),
+      '</style>',
+    ].join('\n');
+  } catch {
+    cachedIcons = '';
+  }
+  return cachedIcons;
 }
 
 /** Vrai si la famille demandée est servie depuis le paquet partagé. */

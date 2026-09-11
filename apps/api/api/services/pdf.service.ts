@@ -161,10 +161,6 @@ export class PdfService {
   private static async preloadResources(): Promise<void> {
     const resources = [
       {
-        key: 'primeicons',
-        path: path.join(process.cwd(), 'public', 'css', 'primeicons.css'),
-      },
-      {
         key: 'tailwind',
         path: path.join(process.cwd(), 'public', 'scripts', 'tailwind.js'),
       },
@@ -198,12 +194,13 @@ export class PdfService {
     // PNG rasterisés restent nets à l'impression (le layout reste en px CSS).
     await page.setViewport({ width: 1240, height: 1754, deviceScaleFactor: 2 });
 
-    // Injecter les ressources depuis le cache
-    const primeiconsContent = this.resourcesCache.get('primeicons');
-    if (primeiconsContent) {
-      await page.addStyleTag({ content: primeiconsContent });
-    }
-
+    // Injecter les ressources depuis le cache.
+    //
+    // Plus de feuille PrimeIcons ici : ses dessins sont dans Vilevile, et
+    // `brandFontLinks` les emporte avec la police, embarquée en base64. La
+    // feuille qu'on injectait pointait sur des `url()` relatives qu'un
+    // document monté par `setContent` ne peut pas résoudre — aucune icône
+    // n'est jamais arrivée dans un PDF par ce chemin.
     const tailwindContent = this.resourcesCache.get('tailwind');
     if (tailwindContent) {
       await page.addScriptTag({ content: tailwindContent });
