@@ -13,7 +13,7 @@ import { EditableSection } from '../../models/editor.types';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <nav class="p-3" [attr.aria-label]="'dashboard.documentEditor.layers.title' | translate">
-      <p class="px-2 pb-2 text-[0.7rem] font-semibold uppercase tracking-wide text-text-tertiary">
+      <p class="px-2 pb-2 text-[0.7rem] font-semibold uppercase text-text-tertiary">
         {{ 'dashboard.documentEditor.layers.pages' | translate }} ({{ sections().length }})
       </p>
       <ul class="space-y-1">

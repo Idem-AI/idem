@@ -56,7 +56,7 @@ export function SignInPrompt({ open, onClose, onSignIn, prompt }: SignInPromptPr
 
         {prompt && (
           <figure className="mt-4 px-3.5 py-3 rounded-xl border border-[var(--glass-border)] bg-surface-2 text-left">
-            <figcaption className="text-[11px] uppercase tracking-wide text-text-disabled">
+            <figcaption className="text-[11px] uppercase text-text-disabled">
               {t('signIn.savedPrompt')}
             </figcaption>
             <blockquote className="mt-1 text-sm text-text-secondary line-clamp-3">

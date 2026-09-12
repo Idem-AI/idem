@@ -4,7 +4,7 @@
 .ms-i {
     font-family:'Material Symbols Outlined';
     font-weight:normal; font-style:normal;
-    line-height:1; letter-spacing:normal; text-transform:none;
+    line-height:1; text-transform:none;
     display:inline-block; white-space:nowrap; direction:ltr;
     -webkit-font-smoothing:antialiased;
     font-variation-settings:'wght' 400;
@@ -57,7 +57,7 @@
     padding:.65rem 1.75rem; border-radius:8px;
     background:#2563eb; color:#fff;
     font-family:'Hanken Grotesk',sans-serif; font-size:14px; font-weight:700;
-    text-transform:uppercase; letter-spacing:.05em;
+    text-transform:uppercase;
     cursor:pointer; border:none; box-shadow:0 4px 14px rgba(37,99,235,.28); transition:background .15s,transform .1s;
 }
 .btn-p:hover { background:#1d4ed8; }
@@ -78,7 +78,7 @@
     cursor:pointer; border:none; transition:color .2s;
 }
 .btn-cancel:hover { color:#dae2fd; }
-.mono { font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.07em; font-weight:500; text-transform:uppercase; }
+.mono { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:500; text-transform:uppercase; }
 
 /* Close btn */
 .close-btn {

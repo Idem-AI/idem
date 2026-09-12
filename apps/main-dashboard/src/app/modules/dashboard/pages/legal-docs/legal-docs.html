@@ -171,7 +171,7 @@
           <!-- Divider between generated and add-more -->
           <div class="flex items-center gap-4 my-2">
             <div class="flex-1 h-px bg-[var(--glass-bg-subtle)]"></div>
-            <span class="text-xs uppercase tracking-wider text-text-tertiary">
+            <span class="text-xs uppercase text-text-tertiary">
               {{ 'dashboard.legalDocs.addMore' | translate }}
             </span>
             <div class="flex-1 h-px bg-[var(--glass-bg-subtle)]"></div>
@@ -256,7 +256,7 @@
           @for (group of ['company', 'contracts', 'customers', 'internal']; track group) {
             @if (groupedCatalog()[group]?.length) {
               <div class="mb-5">
-                <h3 class="text-xs uppercase tracking-wider text-text-tertiary mb-2">
+                <h3 class="text-xs uppercase text-text-tertiary mb-2">
                   {{ 'dashboard.legalDocs.groups.' + group | translate }}
                 </h3>
                 <div class="grid md:grid-cols-2 gap-3">

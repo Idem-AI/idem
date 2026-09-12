@@ -581,8 +581,8 @@ export function buildIframeDocument(
   multiPage = false,
   fitRoot = false,
 ): string {
-  const primary = ctx.primaryFont || 'Jura';
-  const secondary = ctx.secondaryFont || 'Jura';
+  const primary = ctx.primaryFont || 'Vilevile';
+  const secondary = ctx.secondaryFont || 'Vilevile';
   // Multi-page (BP) : conteneur racine passé en flux (min-h + overflow visible),
   // sans toucher aux classes internes. Sinon (pitch/charte) : HTML tel quel.
   const sectionsHtml = sections

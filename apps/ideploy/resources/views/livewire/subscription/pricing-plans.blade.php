@@ -33,24 +33,24 @@
                     </p>
                     <p class="flex items-baseline mt-6 gap-x-1">
                         <span x-show="selected === 'monthly'" x-cloak>
-                            <span class="text-4xl font-bold tracking-tight dark:text-white">$5</span>
+                            <span class="text-4xl font-bold dark:text-white">$5</span>
                             <span class="text-sm font-semibold leading-6 "> base price</span>
                         </span>
 
                         <span x-show="selected === 'yearly'" x-cloak>
-                            <span class="text-4xl font-bold tracking-tight dark:text-white">$4</span>
+                            <span class="text-4xl font-bold dark:text-white">$4</span>
                             <span class="text-sm font-semibold leading-6 "> base price</span>
                         </span>
                     </p>
                     <p class="flex items-baseline mb-4 gap-x-1">
                         <span x-show="selected === 'monthly'" x-cloak>
-                            <span class="text-base font-semibold tracking-tight dark:text-white">$3</span>
+                            <span class="text-base font-semibold dark:text-white">$3</span>
                             <span class="text-sm font-semibold leading-6 "> per additional servers <span
                                     class="font-normal dark:text-white">billed monthly (+VAT)</span></span>
                         </span>
 
                         <span x-show="selected === 'yearly'" x-cloak>
-                            <span class="text-base font-semibold tracking-tight dark:text-white">$2.7</span>
+                            <span class="text-base font-semibold dark:text-white">$2.7</span>
                             <span class="text-sm font-semibold leading-6 "> per additional servers <span
                                     class="font-normal dark:text-white">billed annually (+VAT)</span></span>
                         </span>

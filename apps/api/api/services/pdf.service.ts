@@ -737,6 +737,26 @@ export class PdfService {
         { timeout: 3000 } // Réduit de 15s à 3s
       );
 
+      // ── ATTENDRE LES POLICES ────────────────────────────────────────────
+      //
+      // `domcontentloaded` rend la main avant que les polices web soient
+      // décodées. Sans cette attente, l'impression partait pendant la course :
+      // le document sortait en Helvetica, sans la moindre erreur — c'est
+      // exactement ce qu'on constatait, aucune police de marque n'arrivait
+      // jamais dans le PDF. `document.fonts.ready` est déjà résolu quand il
+      // n'y a rien à charger, donc cela ne coûte rien aux rendus sans police.
+      await page
+        .evaluate(
+          () =>
+            new Promise<void>((resolve) => {
+              const done = () => resolve();
+              // Filet : une police injoignable ne doit pas bloquer le rendu.
+              setTimeout(done, 3000);
+              document.fonts.ready.then(done).catch(done);
+            })
+        )
+        .catch(() => undefined);
+
       // ── RÉINJECTION APRÈS setContent ────────────────────────────────────
       //
       // `setContent` REMPLACE le document : tout ce qui a été injecté dans la

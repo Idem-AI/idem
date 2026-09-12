@@ -4,6 +4,13 @@
 
 /* Note: Applications using this design system should import Tailwind CSS themselves */
 
+/* Vilevile — la police de marque IDEM, auto-hébergée (voir tools/font/README.md).
+   Elle est dérivée de Jura sur trois points : l'axe des graisses monte jusqu'à
+   900, donc `font-black` dessine un vrai Black au lieu d'un faux-gras ; toute
+   l'échelle est décalée vers le gras (ce que le CSS appelle 400 dessine un
+   Jura 542) ; et l'approche -0.09em est incorporée aux chasses. */
+@import './fonts/fonts.css';
+
 /* Dual theme (dark + light). The active theme is driven by the `.dark` / `.light`
    class on <html> (set by each app's ThemeService / boot script from the shared
    `idem_theme` cookie, defaulting to the browser's prefers-color-scheme). */
@@ -18,12 +25,17 @@ html.light {
   color-scheme: light;
 }
 
+/* PAS DE `letter-spacing` ICI, NI AILLEURS. L'approche (-0.09em) est
+   incorporée aux chasses de Vilevile : elle vient de la police, pas d'une règle
+   CSS. En reposer une quelque part s'ajouterait à celle de la police au lieu de
+   la remplacer. Pour changer l'approche du produit, un seul endroit :
+   `TRACKING_EM` dans tools/font/build-fonts.py, puis on refabrique.
+   `font-display` est un descripteur de @font-face, pas une propriété : il est
+   déclaré dans fonts/fonts.css. */
 * {
-  font-family: 'Jura', sans-serif;
+  font-family: 'Vilevile', sans-serif;
   font-optical-sizing: auto;
   scroll-behavior: smooth;
-  font-display: swap;
-  letter-spacing: -0.07em;
 }
 
 body {
@@ -247,8 +259,8 @@ html.dark body::before {
      -------------------------------------------------------------------------- */
 
   /* Font Families */
-  --font-sans: 'Jura', sans-serif;
-  --font-jura: 'Jura', sans-serif;
+  --font-sans: 'Vilevile', sans-serif;
+  --font-vilevile: 'Vilevile', sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
   /* Font Sizes - Fluid Typography Scale */
@@ -271,12 +283,38 @@ html.dark body::before {
   --font-size-title-mobile: 1.4rem;
   --font-size-subtitle: 1.7rem;
 
-  /* Font Weights */
+  /* Font Weights — Vilevile couvre 300 à 900 en continu (axe variable).
+     Toute valeur intermédiaire est dessinée, pas interpolée par le navigateur :
+     `font-weight: 660` est un poids réel. */
   --font-weight-light: 300;
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --font-weight-black: 900;
+
+  /* Approche — LE SEUL ENDROIT du dépôt où une valeur d'approche est écrite.
+
+     Vilevile porte -0.09em dans ses chasses, et plus rien dans le produit ne
+     pose d'approche : ni règle `letter-spacing`, ni utilitaire `tracking-*`.
+     Le texte la tient de la police, partout.
+
+     Les jetons ci-dessous ne servent donc plus à personne : ils restent en
+     garde-fou. `letter-spacing` s'AJOUTE à l'approche de la police au lieu de
+     la remplacer — un `tracking-widest` écrit 0.1em rendrait 0.01em à l'écran.
+     Exprimés relativement à ce que la police porte déjà, ils font que si
+     quelqu'un en emploie un un jour, il rendra ce qu'il annonce.
+
+     Pour changer l'approche du produit : `TRACKING_EM` dans
+     tools/font/build-fonts.py, puis la ligne ci-dessous, puis on refabrique. */
+  --idem-font-tracking: -0.09em;
+  --tracking-tighter: calc(-0.05em - var(--idem-font-tracking));
+  --tracking-tight: calc(-0.025em - var(--idem-font-tracking));
+  --tracking-normal: calc(0em - var(--idem-font-tracking));
+  --tracking-wide: calc(0.025em - var(--idem-font-tracking));
+  --tracking-wider: calc(0.05em - var(--idem-font-tracking));
+  --tracking-widest: calc(0.1em - var(--idem-font-tracking));
 
   /* Line Heights */
   --line-height-tight: 1.25;

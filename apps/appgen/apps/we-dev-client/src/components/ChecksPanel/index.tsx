@@ -320,7 +320,7 @@ function FindingRow({
     <li className="px-4 py-3">
       <div className="flex items-start gap-2.5">
         <span
-          className={`mt-0.5 shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide ${
+          className={`mt-0.5 shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium uppercase ${
             tone === 'danger'
               ? 'bg-danger/12 text-danger'
               : tone === 'warning'

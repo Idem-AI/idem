@@ -162,7 +162,7 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
           pages générées à la chaîne. Le motif de marque suffit à porter le fond. */}
       <section className="min-h-screen flex flex-col justify-center px-6 pt-28 pb-24 motif-surface">
         <div className="w-full max-w-[46rem] mx-auto text-center">
-          <h1 className="text-[clamp(2.5rem,7vw,4.5rem)] font-semibold leading-[1.02] tracking-[-0.045em] text-balance">
+          <h1 className="text-[clamp(2.5rem,7vw,4.5rem)] font-semibold leading-[1.02] text-balance">
             {t('landing.hero.titleLead')}{' '}
             <span className="i-underline">{t('landing.hero.titleAccent')}</span>
           </h1>
@@ -186,7 +186,7 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
 
         <a
           href="#how"
-          className="mt-20 mx-auto flex flex-col items-center gap-1.5 text-[11px] uppercase tracking-[0.16em] text-text-disabled hover:text-text-secondary transition-colors"
+          className="mt-20 mx-auto flex flex-col items-center gap-1.5 text-[11px] uppercase text-text-disabled hover:text-text-secondary transition-colors"
         >
           {t('landing.hero.scroll')}
           <ChevronDown className="w-3.5 h-3.5" />
@@ -212,7 +212,7 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
           pas d'un rectangle bordé autour de chaque idée. */}
       <section id="how" className="px-6 py-28">
         <div className="max-w-[62rem] mx-auto">
-          <h2 className="max-w-xl text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-tight tracking-[-0.03em] text-balance">
+          <h2 className="max-w-xl text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-tight text-balance">
             {t('landing.entries.title')}
           </h2>
           <p className="mt-4 max-w-xl text-text-tertiary text-pretty">
@@ -269,7 +269,7 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
           plutôt que par des bordures. */}
       <section id="craft" className="px-6 py-28">
         <div className="max-w-[62rem] mx-auto">
-          <h2 className="max-w-xl text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-tight tracking-[-0.03em] text-balance">
+          <h2 className="max-w-xl text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-tight text-balance">
             {t('landing.craft.title')}
           </h2>
 
@@ -286,7 +286,7 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
               flip
               visual={
                 <div className="w-full max-w-[230px]">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-text-disabled">
+                  <p className="text-[11px] uppercase text-text-disabled">
                     {t('landing.craft.contrastBadge')}
                   </p>
                   <p className="mt-3 flex items-baseline gap-2.5">
@@ -329,7 +329,7 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
       {/* ---------------- Appel final ---------------- */}
       <section className="px-6 py-32">
         <div className="max-w-[46rem] mx-auto text-center">
-          <h2 className="text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-tight tracking-[-0.03em] text-balance">
+          <h2 className="text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-tight text-balance">
             {t('landing.cta.title')}
           </h2>
           <div className="mt-9 flex justify-center">
@@ -407,7 +407,7 @@ function CraftRow({
         {visual}
       </div>
       <div className={`md:col-span-8 ${flip ? 'md:order-1' : ''}`}>
-        <h3 className="text-[1.35rem] font-semibold leading-snug tracking-[-0.02em] text-balance">
+        <h3 className="text-[1.35rem] font-semibold leading-snug text-balance">
           {title}
         </h3>
         <p className="mt-4 max-w-[58ch] text-[15px] leading-[1.7] text-text-tertiary text-pretty">

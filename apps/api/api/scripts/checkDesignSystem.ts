@@ -191,6 +191,13 @@ check(
 check('les piles système ne sont jamais demandées à Google', buildGoogleFontLinks(['Arial, sans-serif', 'system-ui']) === '');
 check('sans typographie, un repli non générique est servi', !brandFontsHref({}).includes('family=Roboto'));
 
+// Vilevile est fabriquée par IDEM : Google ne la connaît pas. La demander doit
+// produire la police embarquée, jamais un lien qui ne chargerait rien.
+const brand = buildGoogleFontLinks(['Vilevile']);
+check('la police de marque est embarquée, pas demandée à Google', !brand.includes('fonts.googleapis.com'));
+check('la police de marque arrive bien dans le document', brand.includes("font-family: 'Vilevile'"));
+check("l'approche de la police est publiée aux gabarits", brand.includes('--idem-font-tracking'));
+
 console.log('\n[6] Retenue éditoriale');
 check('le bloc impose le test de soustraction', EDITORIAL_RESTRAINT_BLOCK.includes('SUBTRACTION TEST'));
 check('le bloc interdit le remplissage au quota', EDITORIAL_RESTRAINT_BLOCK.includes('never a quota'));

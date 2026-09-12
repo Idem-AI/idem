@@ -40,7 +40,7 @@
       <!-- Toolbar for year-based sections -->
       @if (['salesObjectives', 'amortization', 'compteExploitation', 'bilan', 'fluxTresorerie'].includes(sectionKey())) {
         <div class="flex items-center gap-2 mb-6">
-          <span class="text-xs text-text-tertiary uppercase tracking-wider font-semibold mr-2">Année :</span>
+          <span class="text-xs text-text-tertiary uppercase font-semibold mr-2">Année :</span>
           <div class="year-tabs">
             @for (year of yearLabels(); track $index) {
               <button class="year-tab" [class.active]="selectedYear() === $index" (click)="selectYear($index)">
@@ -590,15 +590,15 @@
           <div class="grid md:grid-cols-3 gap-6">
             @if (computedData()?.ratios; as ratios) {
               <div class="glass p-5 rounded-xl text-center">
-                <div class="text-xs text-text-tertiary uppercase tracking-wide mb-2">Valeur Actuelle Nette (VAN)</div>
+                <div class="text-xs text-text-tertiary uppercase mb-2">Valeur Actuelle Nette (VAN)</div>
                 <div class="text-2xl font-bold text-text-primary">{{ formatCurrency(ratios.van) }}</div>
               </div>
               <div class="glass p-5 rounded-xl text-center">
-                <div class="text-xs text-text-tertiary uppercase tracking-wide mb-2">Taux de Rentabilité Interne (TRI)</div>
+                <div class="text-xs text-text-tertiary uppercase mb-2">Taux de Rentabilité Interne (TRI)</div>
                 <div class="text-2xl font-bold text-text-primary">{{ formatPercent(ratios.tri) }}</div>
               </div>
               <div class="glass p-5 rounded-xl text-center">
-                <div class="text-xs text-text-tertiary uppercase tracking-wide mb-2">Délai de Récupération (DRCI)</div>
+                <div class="text-xs text-text-tertiary uppercase mb-2">Délai de Récupération (DRCI)</div>
                 <div class="text-2xl font-bold text-text-primary">{{ ratios.drci }} ans</div>
               </div>
             }

@@ -58,7 +58,7 @@
 
           <!-- Project Info -->
           <div class="flex-grow space-y-1">
-              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-text-primary m-0 flex items-center gap-2">
+              <h1 class="text-2xl sm:text-3xl font-extrabold text-text-primary m-0 flex items-center gap-2">
                 {{ currentProject.name }}
               </h1>
             <p class="text-xs sm:text-sm leading-relaxed text-text-tertiary max-w-4xl m-0">
@@ -314,10 +314,10 @@
                   />
                 </svg>
                 <div class="absolute flex flex-col items-center justify-center">
-                  <span class="text-xl font-bold tracking-tight text-text-primary">
+                  <span class="text-xl font-bold text-text-primary">
                     {{ ((getCompletedSteps() / 6) * 100) | number:'1.0-0' }}%
                   </span>
-                  <span class="text-[8px] uppercase tracking-wider text-text-tertiary">Complete</span>
+                  <span class="text-[8px] uppercase text-text-tertiary">Complete</span>
                 </div>
               </div>
               

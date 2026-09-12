@@ -18,7 +18,7 @@ import { environment } from '../../../../environments/environment';
   imports: [RouterLink, TranslateModule, TrustedByComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="relative min-h-screen text-text-primary overflow-hidden" style="font-family: 'Jura', sans-serif;">
+    <div class="relative min-h-screen text-text-primary overflow-hidden" style="font-family: 'Vilevile', sans-serif;">
       <!-- Global glassmorphism accents -->
       <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
         <div class="absolute w-[1000px] h-[800px] rounded-full blur-[120px] opacity-20"
@@ -76,7 +76,7 @@ import { environment } from '../../../../environments/environment';
           <div class="relative z-10 max-w-5xl mx-auto w-full flex flex-col items-center text-center px-4">
             <div class="max-w-4xl mx-auto">
               <h1 class="font-black mb-8 text-text-primary break-words"
-                  style="font-size: clamp(3.8rem, 8vw, 7.5rem); line-height:1.05; letter-spacing: -0.04em; text-shadow: 0 0 40px rgba(0,0,0,0.5);">
+                  style="font-size: clamp(3.8rem, 8vw, 7.5rem); line-height:1.05;text-shadow: 0 0 40px rgba(0,0,0,0.5);">
                 {{ 'landing.heroTitleLine1' | translate }}<br /><span class="i-underline text-secondary">{{ 'landing.heroTitleAccent' | translate }}</span>
               </h1>
               <p class="text-[20px] md:text-[24px] text-text-secondary mb-12 max-w-2xl mx-auto font-medium leading-relaxed">
@@ -93,7 +93,7 @@ import { environment } from '../../../../environments/environment';
         <!-- ===== MARQUEE ===== -->
         <section class="py-12 px-6 border-y border-[var(--glass-border-subtle)] bg-transparent overflow-hidden">
           <div class="max-w-7xl mx-auto flex items-center mb-8">
-            <p class="text-text-tertiary text-sm font-bold uppercase tracking-widest px-4">{{ 'landing.supportedStacks' | translate }}</p>
+            <p class="text-text-tertiary text-sm font-bold uppercase px-4">{{ 'landing.supportedStacks' | translate }}</p>
             <div class="flex-1 h-px bg-[var(--glass-border-subtle)] ml-4"></div>
           </div>
           <div class="marquee-wrapper mx-auto max-w-7xl">
@@ -114,7 +114,7 @@ import { environment } from '../../../../environments/environment';
         <section id="showcase" class="py-32 px-6 relative z-10 border-t border-[var(--glass-border-subtle)] mt-16 bg-transparent">
           <div class="max-w-7xl mx-auto">
             <div class="mb-16">
-              <h1 class="text-4xl md:text-5xl font-black text-text-primary mb-6" style="letter-spacing:-0.04em;">
+              <h1 class="text-4xl md:text-5xl font-black text-text-primary mb-6">
                 {{ 'landing.showcaseTitle' | translate }} <span class="i-underline">{{ 'landing.showcaseTitleAccent' | translate }}</span>
               </h1>
               <p class="text-xl text-text-secondary max-w-2xl font-medium">{{ 'landing.showcaseSubtitle' | translate }}</p>
@@ -146,7 +146,7 @@ import { environment } from '../../../../environments/environment';
                 <div class="w-16 h-16 rounded-[1rem] bg-[var(--glass-bg-subtle)] flex items-center justify-center mb-8 border border-[var(--glass-border)] backdrop-blur-md">
                   <span class="text-2xl" style="color: var(--color-primary-500)">1</span>
                 </div>
-                <h1 class="text-5xl font-black text-text-primary mb-6 leading-tight" style="letter-spacing:-0.04em;">{{ 'landing.pillar1Title' | translate }} <span class="i-underline">{{ 'landing.pillar1TitleAccent' | translate }}</span>.<br />{{ 'landing.pillar1TitleRest' | translate }}</h1>
+                <h1 class="text-5xl font-black text-text-primary mb-6 leading-tight">{{ 'landing.pillar1Title' | translate }} <span class="i-underline">{{ 'landing.pillar1TitleAccent' | translate }}</span>.<br />{{ 'landing.pillar1TitleRest' | translate }}</h1>
                 <p class="text-xl text-text-secondary mb-8 font-medium leading-relaxed">{{ 'landing.pillar1Body' | translate }}</p>
                 <div class="flex flex-col gap-5 font-bold text-text-secondary">
                   <div class="glass-card flex items-center gap-4 p-4 rounded-xl border border-[var(--glass-border-subtle)] group">
@@ -186,7 +186,7 @@ import { environment } from '../../../../environments/environment';
                 <div class="w-16 h-16 rounded-[1rem] bg-[var(--glass-bg-subtle)] flex items-center justify-center mb-8 border border-[var(--glass-border)] backdrop-blur-md">
                   <span class="text-2xl" style="color: var(--color-accent-500)">2</span>
                 </div>
-                <h1 class="text-5xl font-black text-text-primary mb-6 leading-tight" style="letter-spacing:-0.04em;">{{ 'landing.pillar2Title' | translate }}<br />{{ 'landing.pillar2TitleMid' | translate }} <span class="i-underline">{{ 'landing.pillar2TitleAccent' | translate }}</span>.</h1>
+                <h1 class="text-5xl font-black text-text-primary mb-6 leading-tight">{{ 'landing.pillar2Title' | translate }}<br />{{ 'landing.pillar2TitleMid' | translate }} <span class="i-underline">{{ 'landing.pillar2TitleAccent' | translate }}</span>.</h1>
                 <p class="text-xl text-text-secondary mb-8 font-medium leading-relaxed">{{ 'landing.pillar2Body' | translate }}</p>
                 <div class="flex flex-col gap-5 font-bold text-text-secondary">
                   <div class="glass-card flex items-center gap-4 p-4 rounded-xl border border-[var(--glass-border-subtle)] group">
@@ -206,7 +206,7 @@ import { environment } from '../../../../environments/environment';
         <!-- ===== FEATURES ===== -->
         <section id="features" class="py-32 px-6 relative z-10">
           <div class="max-w-7xl mx-auto">
-            <h1 class="text-4xl md:text-5xl font-black text-text-primary text-center mb-16" style="letter-spacing:-0.04em;">{{ 'landing.featuresTitle' | translate }} <span class="i-underline">{{ 'landing.featuresTitleAccent' | translate }}</span>. <span class="text-text-tertiary">{{ 'landing.featuresTitleRest' | translate }}</span></h1>
+            <h1 class="text-4xl md:text-5xl font-black text-text-primary text-center mb-16">{{ 'landing.featuresTitle' | translate }} <span class="i-underline">{{ 'landing.featuresTitleAccent' | translate }}</span>. <span class="text-text-tertiary">{{ 'landing.featuresTitleRest' | translate }}</span></h1>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div class="glass-card hover:-translate-y-2 transition-all p-8 rounded-[2rem] border border-[var(--glass-border)] group">
                 <div class="w-12 h-12 rounded-[1rem] bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] flex items-center justify-center mb-6"><i class="fa-solid fa-cube text-xl text-primary-400"></i></div>
@@ -236,7 +236,7 @@ import { environment } from '../../../../environments/environment';
         <section class="py-24 px-6 border-y border-[var(--glass-border-subtle)] bg-transparent">
           <div class="max-w-4xl mx-auto text-center">
             <div class="text-[8rem] font-serif leading-none mt-4" style="color:#222;">"</div>
-            <h2 class="text-3xl md:text-5xl font-black text-white -mt-16 mb-12 leading-tight" style="letter-spacing:-0.03em;">
+            <h2 class="text-3xl md:text-5xl font-black text-white -mt-16 mb-12 leading-tight">
               {{ 'landing.testimonialQuote' | translate }}
             </h2>
             <div class="flex items-center justify-center gap-4">
@@ -252,14 +252,14 @@ import { environment } from '../../../../environments/environment';
         <!-- ===== ROLES ===== -->
         <section class="py-32 px-6 relative z-10">
           <div class="max-w-7xl mx-auto">
-            <h1 class="text-4xl md:text-5xl font-black text-white mb-16 text-center" style="letter-spacing:-0.04em;">{{ 'landing.rolesTitle' | translate }} <span class="i-underline">{{ 'landing.rolesTitleAccent' | translate }}</span></h1>
+            <h1 class="text-4xl md:text-5xl font-black text-white mb-16 text-center">{{ 'landing.rolesTitle' | translate }} <span class="i-underline">{{ 'landing.rolesTitleAccent' | translate }}</span></h1>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
               @for (role of roles; track role.title) {
                 <div class="glass-card hover:-translate-y-2 transition-transform p-10 rounded-[2rem] border border-[var(--glass-border)] text-center group relative overflow-hidden">
                   <div class="w-16 h-16 mx-auto rounded-2xl bg-[var(--glass-bg-subtle)] border border-[var(--glass-border)] flex items-center justify-center mb-6 transition-colors">
                     <i [class]="role.icon" class="text-2xl" [style.color]="role.color"></i>
                   </div>
-                  <div class="text-text-tertiary font-bold uppercase tracking-widest text-xs mb-4">{{ role.tag }}</div>
+                  <div class="text-text-tertiary font-bold uppercase text-xs mb-4">{{ role.tag }}</div>
                   <h3 class="text-2xl font-black text-white mb-4" [innerHTML]="role.title"></h3>
                   <p class="text-sm text-text-secondary font-medium mb-8">{{ role.body }}</p>
                   <div class="h-1 w-12 mx-auto rounded-full bg-[var(--glass-border-medium)] group-hover:w-24 transition-all"></div>
@@ -272,7 +272,7 @@ import { environment } from '../../../../environments/environment';
         <!-- ===== HOW IT WORKS ===== -->
         <section class="py-32 px-6 relative z-10 border-t border-[var(--glass-border-subtle)]">
           <div class="max-w-4xl mx-auto">
-            <h1 class="text-4xl md:text-5xl font-black text-text-primary text-center mb-16" style="letter-spacing:-0.04em;"><span class="i-underline">{{ 'landing.howItWorksTitleAccent' | translate }}</span> {{ 'landing.howItWorksTitle' | translate }}</h1>
+            <h1 class="text-4xl md:text-5xl font-black text-text-primary text-center mb-16"><span class="i-underline">{{ 'landing.howItWorksTitleAccent' | translate }}</span> {{ 'landing.howItWorksTitle' | translate }}</h1>
             <div class="glass-card relative p-8 md:p-16 rounded-[3rem] border border-[var(--glass-border)]">
               <div class="space-y-16">
                 <div class="flex flex-col md:flex-row items-center justify-between gap-8 group">
@@ -309,7 +309,7 @@ import { environment } from '../../../../environments/environment';
           <div class="max-w-4xl mx-auto rounded-[3rem] overflow-hidden relative">
             <div class="absolute inset-0 z-0" style="background: linear-gradient(to bottom right, rgba(37,99,235,0.2), black, rgba(34,211,238,0.2));"></div>
             <div class="glass-card relative z-10 p-16 md:p-24 border border-[var(--glass-border)] text-center" style="backdrop-filter: blur(48px);">
-              <h1 class="text-5xl md:text-6xl font-black text-white mb-6" style="letter-spacing:-0.04em;">{{ 'landing.ctaTitle' | translate }} <span class="i-underline">{{ 'landing.ctaTitleAccent' | translate }}</span></h1>
+              <h1 class="text-5xl md:text-6xl font-black text-white mb-6">{{ 'landing.ctaTitle' | translate }} <span class="i-underline">{{ 'landing.ctaTitleAccent' | translate }}</span></h1>
               <p class="text-xl text-text-secondary mb-12 max-w-xl mx-auto font-medium">{{ 'landing.ctaSubtitle' | translate }}</p>
               <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <a [href]="loginUrl" class="inner-button px-8 py-4 text-lg w-full sm:w-auto">{{ 'landing.getStartedFree' | translate }}</a>
@@ -327,7 +327,7 @@ import { environment } from '../../../../environments/environment';
               <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--color-primary-500)">
                 <i class="fa-solid fa-rocket text-xs text-white"></i>
               </div>
-              <span class="text-base font-black text-white tracking-tight">EPLOY</span>
+              <span class="text-base font-black text-white">EPLOY</span>
             </div>
             <p class="text-sm text-text-tertiary font-medium">{{ 'landing.footerCopyright' | translate: { year: year } }}</p>
             <div class="flex items-center gap-8">

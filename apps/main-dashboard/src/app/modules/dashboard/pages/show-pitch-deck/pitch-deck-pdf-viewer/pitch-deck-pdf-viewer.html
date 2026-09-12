@@ -17,7 +17,7 @@
     <!-- Thumbnails grid (en haut) -->
     <div class="glass-card p-4 mb-4">
       <div class="flex items-center justify-between mb-3">
-        <h3 class="text-xs uppercase tracking-wider text-text-tertiary">
+        <h3 class="text-xs uppercase text-text-tertiary">
           {{ 'dashboard.showPitchDeck.allSlides' | translate }}
         </h3>
         <span class="text-xs text-text-tertiary">{{ pages().length }} slides</span>
@@ -39,7 +39,7 @@
               <canvas #thumbCanvas class="block w-full h-auto"></canvas>
             </div>
             <div
-              class="absolute bottom-0 left-0 right-0 px-1.5 py-0.5 bg-black/70 text-white text-[9px] uppercase tracking-wider text-center truncate"
+              class="absolute bottom-0 left-0 right-0 px-1.5 py-0.5 bg-black/70 text-white text-[9px] uppercase text-center truncate"
             >
               {{ page.pageNumber }}
             </div>
@@ -52,7 +52,7 @@
     <div class="glass-card p-4">
       <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <div class="flex items-center gap-3">
-          <span class="text-xs text-text-tertiary uppercase tracking-wider">
+          <span class="text-xs text-text-tertiary uppercase">
             {{ 'dashboard.showPitchDeck.slide' | translate }}
             {{ activePage() }} / {{ pages().length }}
           </span>

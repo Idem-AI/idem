@@ -57,7 +57,7 @@ const ARC_LENGTH = Math.PI * 80;
           y="88"
           text-anchor="middle"
           class="fill-ink"
-          style="font-size: 34px; font-weight: 700; letter-spacing: -0.02em"
+          style="font-size: 34px; font-weight: 700;"
         >
           {{ value() }}
         </text>

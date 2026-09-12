@@ -35,7 +35,7 @@
         {{-- ── Header ── --}}
         <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:32px;">
             <div>
-                <h1 style="font-family:'Playfair Display',serif;font-size:44px;font-weight:700;line-height:1.2;letter-spacing:-.02em;color:#fff;margin:0 0 7px;">Projects</h1>
+                <h1 style="font-family:'Playfair Display',serif; font-size:44px; font-weight:700; line-height:1.2; color:#fff; margin:0 0 7px;">Projects</h1>
                 <p style="color:#c3c6d7;font-size:14px;line-height:1.55;max-width:480px;margin:0;">
                     Orchestrate your cloud infrastructure across multi-region deployments and edge nodes.
                 </p>
@@ -47,7 +47,7 @@
                 <x-slot:content>
                     <button id="pj-open-modal"
                             style="display:inline-flex;align-items:center;gap:8px;padding:10px 24px;border-radius:8px;
-                                   border:none;cursor:pointer;font-size:13px;font-weight:700;letter-spacing:.05em;
+                                   border:none;cursor:pointer;font-size:13px;font-weight:700;
                                    text-transform:uppercase;background:#2563eb;color:#fff;
                                    box-shadow:0 4px 14px rgba(37,99,235,.3);transition:background .15s,transform .1s;"
                             onmouseover="this.style.background='#1d4ed8';"
@@ -80,16 +80,16 @@
             <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(2,6,23,.88),transparent 55%);"></div>
             <div style="position:absolute;bottom:0;left:0;right:0;padding:16px 20px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:10px;">
                 <div>
-                    <span style="display:inline-block;padding:2px 8px;border-radius:4px;margin-bottom:5px;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:rgba(180,197,255,.18);color:#b4c5ff;border:1px solid rgba(180,197,255,.35);">Real-time Analytics</span>
+                    <span style="display:inline-block;padding:2px 8px;border-radius:4px;margin-bottom:5px;font-size:9px;font-weight:700;text-transform:uppercase;background:rgba(180,197,255,.18);color:#b4c5ff;border:1px solid rgba(180,197,255,.35);">Real-time Analytics</span>
                     <h3 style="font-family:'Playfair Display',serif;font-size:20px;font-weight:600;color:#fff;margin:0;">Infrastructure Overview</h3>
                 </div>
                 <div style="display:flex;gap:24px;">
                     <div style="text-align:right;">
-                        <p style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.1em;color:#b4c5ff;text-transform:uppercase;margin:0 0 2px;">Active Nodes</p>
+                        <p style="font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:500; color:#b4c5ff; text-transform:uppercase; margin:0 0 2px;">Active Nodes</p>
                         <p style="font-size:28px;font-weight:700;color:#fff;line-height:1;margin:0;">{{ $servers }}</p>
                     </div>
                     <div style="text-align:right;">
-                        <p style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.1em;color:#89ceff;text-transform:uppercase;margin:0 0 2px;">Projects</p>
+                        <p style="font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:500; color:#89ceff; text-transform:uppercase; margin:0 0 2px;">Projects</p>
                         <p style="font-size:28px;font-weight:700;color:#fff;line-height:1;margin:0;">{{ count($projects) }}</p>
                     </div>
                 </div>
@@ -155,7 +155,7 @@
                                 <div style="width:38px;height:38px;border-radius:.45rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#2d3449;border:1px solid rgba(67,70,85,.32);color:{{$v['color']}};">
                                     <span class="msi f" style="font-size:20px;">{{$v['ico']}}</span>
                                 </div>
-                                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:9999px;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:{{$sbg}};color:{{$stx}};border:1px solid {{$sbd}};">
+                                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:9999px;font-size:9px;font-weight:700;text-transform:uppercase;background:{{$sbg}};color:{{$stx}};border:1px solid {{$sbd}};">
                                     <span class="{{$pulse?'pp':''}}" style="width:5px;height:5px;border-radius:50%;background:{{$sdot}};flex-shrink:0;"></span>{{$st}}
                                 </span>
                             </div>
@@ -165,11 +165,11 @@
                             </p>
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;">
                                 <div class="pj-sbox" style="padding:8px 10px;">
-                                    <p style="font-size:8px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#8d919a;margin:0 0 2px;">Resources</p>
+                                    <p style="font-size:8px;font-weight:700;text-transform:uppercase;color:#8d919a;margin:0 0 2px;">Resources</p>
                                     <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#b4c5ff;margin:0;">{{$tot}} Instance{{$tot!==1?'s':''}}</p>
                                 </div>
                                 <div class="pj-sbox" style="padding:8px 10px;">
-                                    <p style="font-size:8px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#8d919a;margin:0 0 2px;">Deployments</p>
+                                    <p style="font-size:8px;font-weight:700;text-transform:uppercase;color:#8d919a;margin:0 0 2px;">Deployments</p>
                                     <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#89ceff;margin:0;">{{$act}} Active</p>
                                 </div>
                             </div>

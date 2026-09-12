@@ -10,7 +10,7 @@
                 <div class="max-w-6xl mx-auto text-center">
                     <div class="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full mb-6">
                         <div class="w-2 h-2 bg-primary rounded-full"></div>
-                        <span class="text-xs font-medium text-primary uppercase tracking-wider">Pricing Plans</span>
+                        <span class="text-xs font-medium text-primary uppercase">Pricing Plans</span>
                     </div>
                     
                     <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">

@@ -9,9 +9,9 @@
   --color-accent: var(--color-accent-500);
 }
 
-/* Force standard project font Jura globally */
+/* Force standard project font Vilevile globally */
 * {
-  font-family: 'Jura', sans-serif !important;
+  font-family: 'Vilevile', sans-serif !important;
 }
 
 /* Permit code segments, icons, and preformatted areas to keep their respective fonts */

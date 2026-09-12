@@ -94,7 +94,7 @@
                 class="relative p-5 border-2 rounded-xl cursor-pointer transition-all duration-200
                     border-primary/60 bg-primary/5 hover:bg-primary/8 hover:border-primary/80">
                 <div class="absolute top-4 right-4">
-                    <span class="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 rounded-full">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 rounded-full">
                         <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                         Recommandé
                     </span>
@@ -161,7 +161,7 @@
             @foreach($countries as $group)
                 <div>
                     <div class="flex items-center gap-3 mb-2.5">
-                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.12em]">{{ $group['label'] }}</span>
+                        <span class="text-[10px] font-bold text-gray-500 uppercase">{{ $group['label'] }}</span>
                         <div class="flex-1 h-px bg-gray-800"></div>
                     </div>
                     <div class="grid grid-cols-2 gap-1.5">
