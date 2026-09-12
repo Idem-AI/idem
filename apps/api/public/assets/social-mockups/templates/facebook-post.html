@@ -2,52 +2,41 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<!-- Mockup IDEM · Publication Facebook (fil mobile) · 400 × 572. Visuel 1:1 (flyer « square »). Largeur d'un téléphone : réduite sur la page, l'interface reste lisible. Emplacements : cf. ../README.md -->
+<!-- Mockup IDEM · Publication Facebook (fil mobile) · 400 × 564. Visuel 1:1 (flyer « square »). La publication seule : réduite sur la page, visuel et interface restent grands. Emplacements : cf. ../README.md -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 {{{fontLinks}}}
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{width:400px;height:572px;overflow:hidden;background:#f0f2f5;font-family:'Inter',Helvetica,Arial,sans-serif;color:#050505;padding:6px;-webkit-font-smoothing:antialiased}
+body{width:400px;height:564px;overflow:hidden;background:#fff;font-family:'Inter',Helvetica,Arial,sans-serif;color:#050505;-webkit-font-smoothing:antialiased}
 svg{display:block}
-.card{background:#fff;border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.14);overflow:hidden;height:560px}
-.head{height:54px;display:flex;gap:8px;align-items:center;padding:10px 12px 0}
-.av{width:36px;height:36px;border-radius:50%;overflow:hidden;flex:none;display:flex;align-items:center;justify-content:center}
+.head{height:62px;display:flex;gap:10px;align-items:center;padding:12px 14px 0}
+.av{width:40px;height:40px;border-radius:50%;overflow:hidden;flex:none;display:flex;align-items:center;justify-content:center}
 .av img{width:72%;height:72%;object-fit:contain}
 .who{min-width:0;flex:1}
-.name{font-size:13.5px;line-height:18px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.time{font-size:11.5px;line-height:15px;color:#65676b;display:flex;align-items:center;gap:4px}
-.text{height:52px;padding:8px 12px;font-size:13.5px;line-height:18px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
-.media{width:388px;height:388px;background:#e4e6eb;overflow:hidden}
+.name{font-size:15px;line-height:20px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.time{font-size:12.5px;line-height:16px;color:#65676b;display:flex;align-items:center;gap:4px}
+.text{height:56px;padding:8px 14px 10px;font-size:14.5px;line-height:19px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.media{width:400px;height:400px;background:#e4e6eb;overflow:hidden}
 .media img{width:100%;height:100%;object-fit:cover;display:block}
-.counts{height:30px;margin:0 12px;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#65676b;border-bottom:1px solid #ced0d4}
-.reacts{display:flex;align-items:center;gap:6px}
-.reacts span{display:flex}
-.reacts svg{margin-right:-4px;border:2px solid #fff;border-radius:50%}
-.actions{height:36px;display:flex;justify-content:space-around;align-items:center;padding:0 4px}
-.actions div{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#65676b}
+.actions{height:46px;display:flex;justify-content:space-around;align-items:center;padding:0 4px;border-top:1px solid #ced0d4}
+.actions div{display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:600;color:#65676b}
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="head">
-    <div class="av" style="background:{{avatarGround}}"><img src="{{avatarSrc}}" alt=""></div>
-    <div class="who">
-      <div class="name">{{brandName}}</div>
-      <div class="time">2h · <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#65676b" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.8 5.5 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.5-3.8-9S9.5 5.5 12 3z"/></svg></div>
-    </div>
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="#65676b"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+<div class="head">
+  <div class="av" style="background:{{avatarGround}}"><img src="{{avatarSrc}}" alt=""></div>
+  <div class="who">
+    <div class="name">{{brandName}}</div>
+    <div class="time">2h · <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#65676b" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.8 5.5 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.5-3.8-9S9.5 5.5 12 3z"/></svg></div>
   </div>
-  <div class="text">{{postText}}</div>
-  <div class="media"><img src="{{mediaSrc}}" alt=""></div>
-  <div class="counts">
-    <div class="reacts"><span><svg width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#0866ff"/><path d="M7 11h2v6H7zm3 6v-6l2.5-4c.8 0 1.3.6 1.1 1.4L13 10.5h3.3c.8 0 1.3.7 1.1 1.4l-1 3.8c-.2.8-.9 1.3-1.7 1.3z" fill="#fff"/></svg><svg width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#f33e58"/><path d="M12 17.5s-5-3-5-6.5a2.8 2.8 0 0 1 5-1.7 2.8 2.8 0 0 1 5 1.7c0 3.5-5 6.5-5 6.5z" fill="#fff"/></svg></span>1.2K</div>
-    <div>86 comments · 14 shares</div>
-  </div>
-  <div class="actions">
-    <div><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#65676b" stroke-width="1.8"><path d="M7 11v10H3V11zm0 0 4-8c1.7 0 2.5 1 2.5 2.5L13 9h6a2 2 0 0 1 2 2.3l-1.2 7.2A3 3 0 0 1 16.8 21H7" stroke-linejoin="round"/></svg>Like</div>
-    <div><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#65676b" stroke-width="1.8"><path d="M12 3c5 0 9 3.6 9 8s-4 8-9 8c-1.2 0-2.3-.2-3.4-.5L4 20l1.3-3.6A7.6 7.6 0 0 1 3 11c0-4.4 4-8 9-8z" stroke-linejoin="round"/></svg>Comment</div>
-    <div><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#65676b" stroke-width="1.8"><path d="M14 4v4C7 8 4 12 3 19c2.5-3.5 5.5-5 11-5v4l7-7z" stroke-linejoin="round"/></svg>Share</div>
-  </div>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="#65676b"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+</div>
+<div class="text">{{postText}}</div>
+<div class="media"><img src="{{mediaSrc}}" alt=""></div>
+<div class="actions">
+  <div><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#65676b" stroke-width="1.8"><path d="M7 11v10H3V11zm0 0 4-8c1.7 0 2.5 1 2.5 2.5L13 9h6a2 2 0 0 1 2 2.3l-1.2 7.2A3 3 0 0 1 16.8 21H7" stroke-linejoin="round"/></svg>Like</div>
+  <div><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#65676b" stroke-width="1.8"><path d="M12 3c5 0 9 3.6 9 8s-4 8-9 8c-1.2 0-2.3-.2-3.4-.5L4 20l1.3-3.6A7.6 7.6 0 0 1 3 11c0-4.4 4-8 9-8z" stroke-linejoin="round"/></svg>Comment</div>
+  <div><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#65676b" stroke-width="1.8"><path d="M14 4v4C7 8 4 12 3 19c2.5-3.5 5.5-5 11-5v4l7-7z" stroke-linejoin="round"/></svg>Share</div>
 </div>
 </body>
 </html>

@@ -2,56 +2,42 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<!-- Mockup IDEM · Publication Instagram (mobile) · 400 × 720. Visuel 4:5 (flyer « post »). Largeur d'un téléphone : réduite sur la page, l'interface reste lisible. Emplacements : cf. ../README.md -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Grand+Hotel&display=swap" rel="stylesheet">
+<!-- Mockup IDEM · Publication Instagram (mobile) · 400 × 654. Visuel 4:5 (flyer « post »). La publication seule, sans les barres de l'application : réduite sur la page, visuel et interface restent grands. Emplacements : cf. ../README.md -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 {{{fontLinks}}}
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{width:400px;height:720px;overflow:hidden;background:#fff;font-family:'Inter',system-ui,sans-serif;color:#000;-webkit-font-smoothing:antialiased}
+body{width:400px;height:654px;overflow:hidden;background:#fff;font-family:'Inter',system-ui,sans-serif;color:#000;-webkit-font-smoothing:antialiased}
 svg{display:block}
-.bar{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 12px}
-.word{font-family:'Grand Hotel',cursive;font-size:27px;line-height:1}
-.icons{display:flex;gap:18px}
-.phead{height:50px;display:flex;align-items:center;gap:9px;padding:0 10px}
-.ring{width:34px;height:34px;border-radius:50%;padding:2px;background:conic-gradient(#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5,#feda75);flex:none}
+.phead{height:56px;display:flex;align-items:center;gap:10px;padding:0 12px}
+.ring{width:38px;height:38px;border-radius:50%;padding:2px;background:conic-gradient(#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5,#feda75);flex:none}
 .ring>div{width:100%;height:100%;border-radius:50%;border:2px solid #fff;overflow:hidden;display:flex;align-items:center;justify-content:center}
 .ring img{width:70%;height:70%;object-fit:contain}
 .who{min-width:0;flex:1}
-.handle{font-size:13px;line-height:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sub{font-size:11px;line-height:14px;color:#262626;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.handle{font-size:15px;line-height:19px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub{font-size:12.5px;line-height:16px;color:#262626;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .media{width:400px;height:500px;background:#efefef;overflow:hidden}
 .media img{width:100%;height:100%;object-fit:cover;display:block}
-.act{height:42px;display:flex;align-items:center;padding:0 10px;gap:14px}
+.act{height:46px;display:flex;align-items:center;padding:0 12px;gap:16px}
 .act .end{margin-left:auto}
-.likes{height:17px;padding:0 12px;font-size:13px;line-height:17px;font-weight:600}
-.cap{height:37px;padding:3px 12px 0;font-size:13px;line-height:17px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.cap{height:52px;padding:2px 12px 0;font-size:14.5px;line-height:19px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 .cap b{font-weight:600}
 .tags{color:#00376b}
-.time{height:18px;padding:5px 12px 0;font-size:10px;line-height:13px;color:#737373;letter-spacing:.2px}
 </style>
 </head>
 <body>
-<div class="bar">
-  <div class="word">Instagram</div>
-  <div class="icons">
-    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z"/></svg>
-    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M12 2.5c5.4 0 9.5 3.9 9.5 9s-4.1 9-9.5 9c-1 0-2-.1-2.9-.4L5 21.5l.4-3.6A8.7 8.7 0 0 1 2.5 11.5c0-5.1 4.1-9 9.5-9z"/><path d="m7 14 3.5-3.5 2.5 2 4-3.5" stroke-linejoin="round"/></svg>
-  </div>
-</div>
 <div class="phead">
   <div class="ring"><div style="background:{{avatarGround}}"><img src="{{avatarSrc}}" alt=""></div></div>
   <div class="who"><div class="handle">{{handle}}</div><div class="sub">{{category}}</div></div>
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="#000"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="#000"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
 </div>
 <div class="media"><img src="{{mediaSrc}}" alt=""></div>
 <div class="act">
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z"/></svg>
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M20.7 17.1A9.5 9.5 0 1 0 17.2 20.6L22 22z" stroke-linejoin="round"/></svg>
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M22 3 9.2 10.1M22 3l-7 18-3.9-8.9L2 8.3z" stroke-linejoin="round"/></svg>
-  <svg class="end" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M20 21 12 13.5 4 21V3h16z" stroke-linejoin="round"/></svg>
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z"/></svg>
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M20.7 17.1A9.5 9.5 0 1 0 17.2 20.6L22 22z" stroke-linejoin="round"/></svg>
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M22 3 9.2 10.1M22 3l-7 18-3.9-8.9L2 8.3z" stroke-linejoin="round"/></svg>
+  <svg class="end" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M20 21 12 13.5 4 21V3h16z" stroke-linejoin="round"/></svg>
 </div>
-<div class="likes">1,284 likes</div>
 <div class="cap"><b>{{handle}}</b> {{caption}} <span class="tags">{{hashtags}}</span></div>
-<div class="time">2 HOURS AGO</div>
 </body>
 </html>

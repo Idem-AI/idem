@@ -78,10 +78,10 @@
       "id": "instagram-post",
       "network": "instagram",
       "kind": "post",
-      "label": "Publication Instagram",
+      "label": "Instagram",
       "file": "templates/instagram-post.html",
       "width": 400,
-      "height": 720,
+      "height": 654,
       "media": {
         "width": 400,
         "height": 500,
@@ -92,13 +92,13 @@
       "id": "linkedin-post",
       "network": "linkedin",
       "kind": "post",
-      "label": "Publication LinkedIn",
+      "label": "LinkedIn",
       "file": "templates/linkedin-post.html",
       "width": 400,
-      "height": 573,
+      "height": 566,
       "media": {
-        "width": 386,
-        "height": 386,
+        "width": 400,
+        "height": 400,
         "format": "square"
       }
     },
@@ -106,13 +106,13 @@
       "id": "facebook-post",
       "network": "facebook",
       "kind": "post",
-      "label": "Publication Facebook",
+      "label": "Facebook",
       "file": "templates/facebook-post.html",
       "width": 400,
-      "height": 572,
+      "height": 564,
       "media": {
-        "width": 388,
-        "height": 388,
+        "width": 400,
+        "height": 400,
         "format": "square"
       }
     },
@@ -120,13 +120,13 @@
       "id": "x-post",
       "network": "x",
       "kind": "post",
-      "label": "Publication X",
+      "label": "X",
       "file": "templates/x-post.html",
       "width": 440,
-      "height": 315,
+      "height": 319,
       "media": {
-        "width": 366,
-        "height": 192,
+        "width": 362,
+        "height": 190,
         "format": "banner"
       }
     }
