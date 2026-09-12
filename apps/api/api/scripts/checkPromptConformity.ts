@@ -413,14 +413,17 @@ console.log('\n  Équipe de recherche : consignes de section');
 
 // ── LA CHARTE : CE QUI EST RENDU PAR LE CODE ────────────────────────────────
 //
-// Sept pages sur neuf passent désormais par le gabarit. Les quatre pages de
+// Huit pages sur dix passent désormais par le gabarit. Les quatre pages de
 // logo l'ont rejoint après un livrable réel où, laissées libres, elles ont
-// produit des références administratives inventées et un débordement de texte.
+// produit des références administratives inventées et un débordement de texte ;
+// la page « Usage Couleurs & Typographie » est née du même constat, en
+// rassemblant les règles que les pages spécimen ne portent plus.
 console.log('\n  Charte : couverture du gabarit');
 
 {
   const templated = [
     'Color Palette', 'Typography', 'Logo Bonnes Pratiques',
+    'Usage Couleurs & Typographie',
     'Logo Principal', 'Logo Variation Fond Clair',
     'Logo Variation Fond Sombre', 'Logo Variation Monochrome',
   ];

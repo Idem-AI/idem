@@ -33,13 +33,17 @@ export const PITCH_DECK_SECTION_NAMES = [
   'Ask',
 ] as const;
 
+// L'ordre suit celui de la génération : la charte MONTRE d'abord (le signe, ses
+// déclinaisons, les couleurs, les polices, la direction artistique, puis les
+// supports réels), et RÈGLE ensuite, sur ses deux dernières pages. Les règles
+// d'usage étaient auparavant posées à côté de chaque spécimen, ce qui couvrait
+// de texte les pages dont la démonstration était tout l'objet.
 export const BRANDING_SECTION_NAMES = [
   'Brand Header',
   'Logo Principal',
   'Logo Variation Fond Clair',
   'Logo Variation Fond Sombre',
   'Logo Variation Monochrome',
-  'Logo Bonnes Pratiques',
   'Color Palette',
   'Typography',
   // Page ajoutée après la typographie : elle décrit la grammaire qui assemble
@@ -49,6 +53,9 @@ export const BRANDING_SECTION_NAMES = [
   'Brand Mockup 1',
   'Brand Mockup 2',
   'Brand Mockup 3',
+  // Les deux pages d'usage, en fin de charte.
+  'Logo Bonnes Pratiques',
+  'Usage Couleurs & Typographie',
 ] as const;
 
 export type SectionCompletionStatus = 'complete' | 'missing' | 'empty' | 'underfilled';

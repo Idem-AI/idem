@@ -1083,8 +1083,11 @@ export const AI_CONFIG = {
         'Logo Variation Fond Clair': { tokens: 30000, temperature: 0.6 },
         'Logo Variation Fond Sombre': { tokens: 30000, temperature: 0.6 },
         'Logo Variation Monochrome': { tokens: 30000, temperature: 0.6 },
-        // Règles d'usage : du texte structuré, peu de balisage.
+        // Les deux pages de RÈGLES, en fin de charte : du texte structuré, peu
+        // de balisage, et aucune invention à encourager — elles ferment le
+        // document là où les pages spécimen se contentent désormais de montrer.
         'Logo Bonnes Pratiques': { tokens: 36000, temperature: 0.55 },
+        'Usage Couleurs & Typographie': { tokens: 30000, temperature: 0.5 },
         // Nuanciers et spécimens : les VALEURS y sont exactes (hex, tailles),
         // la mise en page reste libre. On garde donc une divergence moyenne
         // plutôt que la précision — la page palette générique venait d'un 0.25.

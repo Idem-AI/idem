@@ -60,7 +60,7 @@ import {
   describeDesignSystem,
 } from '../design/documentDesignSystem';
 import { Block } from '../design/sectionContent';
-import { CHARTER_PAGE_BRIEFS } from './prompts/page-briefs.prompt';
+import { CHARTER_PAGE_BRIEFS, CHARTER_PAGE_VOLUMES } from './prompts/page-briefs.prompt';
 import { enforceDesignRules } from '../design/slopLint.service';
 import { inspectSvg } from '../design/svgGate';
 import { logAIEvent } from '../../utils/ai-trace.util';
@@ -72,6 +72,7 @@ import {
 } from './prompts/01_logo-system-section.prompt';
 import { COLOR_PALETTE_SECTION_PROMPT } from './prompts/02_color-palette-section.prompt';
 import { TYPOGRAPHY_SECTION_PROMPT } from './prompts/03_typography-section.prompt';
+import { USAGE_GUIDELINES_SECTION_PROMPT } from './prompts/04_usage-guidelines-section.prompt';
 import { BRAND_FOOTER_SECTION_PROMPT } from './prompts/07_brand-footer-section.prompt';
 import { MOCKUP_CONFIG } from '../../config/mockup.config';
 import { SectionModel } from '../../models/section.model';
@@ -864,8 +865,9 @@ export class BrandingService extends GenericService {
 
     // The cached result may be an incomplete brand guide (it is updated after each
     // step), so only short-circuit on it when nothing needs to be (re)generated.
-    // 8 pages historiques + la page « Direction Artistique » + les mockups.
-    const expectedSectionCount = 9 + MOCKUP_CONFIG.MOCKUP_COUNT;
+    // 8 pages historiques + « Direction Artistique » + la seconde page d'usage
+    // (couleurs & typographie) + les mockups.
+    const expectedSectionCount = 10 + MOCKUP_CONFIG.MOCKUP_COUNT;
     const currentSections = project.analysisResultModel?.branding?.sections || [];
     const skipCacheRead =
       forceRegenerate || targetSections.length > 0 || currentSections.length < expectedSectionCount;
@@ -965,13 +967,6 @@ export class BrandingService extends GenericService {
           hasDependencies: false,
         },
         {
-          promptConstant:
-            LOGO_BEST_PRACTICES_PAGE_PROMPT +
-            `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo image in visual examples: "${logoUrl}"\n\n`,
-          stepName: 'Logo Bonnes Pratiques',
-          hasDependencies: false,
-        },
-        {
           promptConstant: COLOR_PALETTE_SECTION_PROMPT,
           stepName: 'Color Palette',
           hasDependencies: false,
@@ -1014,6 +1009,34 @@ export class BrandingService extends GenericService {
           execute: () => buildMockupPage(i),
         });
       }
+
+      // ── LES DEUX PAGES D'USAGE, EN FIN DE CHARTE ──────────────────────────
+      //
+      // Les règles d'emploi étaient posées à côté de chaque spécimen : la
+      // déclinaison sur fond sombre commentée sous la déclinaison, la règle de
+      // répartition sous le nuancier, l'échelle typographique sous les polices.
+      // Le document y perdait deux fois. Les pages qui devaient MONTRER étaient
+      // à moitié couvertes de texte ; et les règles, éparpillées sur huit
+      // pages, n'étaient consultables nulle part — un designer qui cherche la
+      // taille minimale du logo ne sait pas sur laquelle des quatre pages de
+      // logo elle se trouve.
+      //
+      // Elles sont donc regroupées ici, après les mises en situation : la
+      // charte MONTRE d'abord (signe, déclinaisons, couleurs, polices, puis les
+      // supports réels), et RÈGLE ensuite. C'est l'ordre dans lequel on la
+      // feuillette, et celui dans lequel on y revient.
+      steps.push({
+        promptConstant:
+          LOGO_BEST_PRACTICES_PAGE_PROMPT +
+          `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the logo image in visual examples: "${logoUrl}"\n\n`,
+        stepName: 'Logo Bonnes Pratiques',
+        hasDependencies: false,
+      });
+      steps.push({
+        promptConstant: USAGE_GUIDELINES_SECTION_PROMPT,
+        stepName: 'Usage Couleurs & Typographie',
+        hasDependencies: false,
+      });
 
       // Adapter les prompts au FORMAT DE PAGE CHOISI (les prompts sont écrits en
       // 16:9 par défaut). No-op si le format choisi est déjà SLIDE_16_9.
@@ -1139,6 +1162,7 @@ export class BrandingService extends GenericService {
         'Color Palette',
         'Typography',
         'Logo Bonnes Pratiques',
+        'Usage Couleurs & Typographie',
         // Les quatre pages de présentation du logo REJOIGNENT le gabarit. Cf.
         // `specimensFor` : laissées libres, elles produisaient des références
         // administratives inventées et, sur la page monochrome, un débordement.
@@ -1171,9 +1195,15 @@ export class BrandingService extends GenericService {
             seed,
             // Une page de charte est ROGNÉE (une section = une page) : elle
             // porte l'équivalent de 0,55 page A4, dont 0,15 déjà pris par le
-            // spécimen injecté. Deux à trois blocs, pas davantage — au-delà, le
-            // rendu les écarte et le travail est payé pour rien.
-            volume: '2 to 3',
+            // spécimen injecté — au-delà, le rendu écarte le surplus et le
+            // travail est payé pour rien.
+            //
+            // Le volume est désormais PROPRE À LA PAGE (cf.
+            // `CHARTER_PAGE_VOLUMES`) : une page qui montre n'a qu'un bloc à
+            // écrire, parce que sa matière est le spécimen et non le texte.
+            // Le chiffre unique d'avant est précisément ce qui remplissait les
+            // pages de démonstration de commentaires que personne ne lit.
+            volume: CHARTER_PAGE_VOLUMES[step.stepName] ?? '1',
             prependBlocks: specimensFor(step.stepName),
             render: {
               logoUrl,
@@ -3806,14 +3836,19 @@ export class BrandingService extends GenericService {
         projectDescription: project.longDescription || project.description || '',
         sections: branding.sections,
         sectionDisplayOrder: [
+          // L'ordre du PDF est celui de la génération : la charte MONTRE
+          // d'abord (signe, déclinaisons, couleurs, polices, direction, puis
+          // les supports réels), et RÈGLE ensuite, sur ses deux dernières
+          // pages. « Direction Artistique » manquait à cette liste : la page
+          // existait, mais le tri la repoussait derrière les mockups.
           'Brand Header',
           'Logo Principal',
           'Logo Variation Fond Clair',
           'Logo Variation Fond Sombre',
           'Logo Variation Monochrome',
-          'Logo Bonnes Pratiques',
           'Color Palette',
           'Typography',
+          'Direction Artistique',
           // ── LES NOMS DOIVENT CORRESPONDRE EXACTEMENT ────────────────────
           //
           // Cette liste portait « Brand Mockups » au pluriel, alors que les
@@ -3829,6 +3864,8 @@ export class BrandingService extends GenericService {
             { length: MOCKUP_CONFIG.MOCKUP_COUNT },
             (_, index) => `Brand Mockup ${index + 1}`
           ),
+          'Logo Bonnes Pratiques',
+          'Usage Couleurs & Typographie',
           'Brand Footer',
         ],
         footerText: 'Generated by Idem',
