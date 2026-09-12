@@ -17,11 +17,17 @@ export const TYPOGRAPHY_SECTION_PROMPT = `<role>World-class typographer and edit
 </craft_bar>
 
 <page_content>
+THIS PAGE SHOWS. It is a SPECIMEN, not a description: the rules of use are
+grouped on a dedicated page at the end of the document.
+
 1. Section title: "Système Typographique".
-2. Primary Typeface: Name displayed in the font itself at large scale, weights (Regular, Medium, Bold, Black), sample text ("Aa Bb Cc 0123..."), and usage rule (titres, en-têtes).
-3. Secondary Typeface: Name in font itself, weights (Light, Regular, Medium), sample text showing readability, and usage rule (corps de texte).
-4. Type scale hierarchy: H1 -> H4, Body, Caption.
-5. Pairing rationale: 1-2 sentences in French.
+2. Primary typeface: its name set IN the typeface itself, at large scale, with
+   its weights and a sample ("Aa Bb Cc 0123"). Its role in two words: "Titres".
+3. Secondary typeface: same treatment, role in two words: "Texte courant".
+4. The scale, DEMONSTRATED: H1 to Caption stacked at their real size.
+
+FORBIDDEN: a pairing rationale, a paragraph, a readability comment, a table of
+point sizes, any sentence that is not itself a type sample.
 </page_content>
 
 <page_format>

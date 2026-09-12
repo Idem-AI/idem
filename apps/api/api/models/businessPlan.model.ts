@@ -1,4 +1,5 @@
 import { SectionModel } from './section.model';
+import { BusinessPlanStructure } from './businessPlanStructure.model';
 
 /** Qualité de mise en page PDF d'une section (remplissage de page). */
 export interface SectionPdfQuality {
@@ -34,6 +35,13 @@ export interface BusinessPlanPdfQuality {
  */
 export interface BusinessPlanModel {
   sections: SectionModel[];
+  /**
+   * Structure retenue pour ce plan (modèle bancaire, investisseur, composition
+   * libre…). Absente sur les plans générés avant l'introduction des structures :
+   * `resolveStructure` retombe alors sur le modèle par défaut, qui EST la
+   * structure historique en neuf sections.
+   */
+  structure?: BusinessPlanStructure;
   /**
    * Qualité PDF de la dernière génération : sections sous-remplies.
    * Absent si le PDF n'a pas encore été généré ou si toutes les pages sont bien remplies.

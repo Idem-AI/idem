@@ -77,6 +77,17 @@ export const ARCHETYPE_CATALOG: Record<string, string> = {
   J: 'ISOMETRIC FRAME — a geometric frame (hexagon, parallelogram) contains the image. Flat brand-colour ground. The headline follows the frame.',
   K: 'HALFTONE EDITORIAL — a halftone dot overlay (radial-gradient) at 20% opacity. Condensed slab-serif headline. Three colours maximum.',
   L: 'DATA POSTER — one number or statistic set very large (30 to 40% of the frame) overlapping the image. Contemporary infographic writing.',
+  // ── LES SIX AJOUTÉS ──────────────────────────────────────────────────────
+  //
+  // Les descriptions doivent dire ce que le RENDU produit, sinon une page libre
+  // et une page de gabarit tirant le même archétype ne se ressembleraient pas —
+  // et c'est précisément ce que la graine existe pour garantir.
+  M: 'VERTICAL RAIL — a flat colour band bleeds down the whole left edge (about a tenth of the width). The title runs ALONG it, rotated 90° and reading bottom-to-top. Everything else lives to the right of the band. No other element is rotated.',
+  N: 'TWO COLUMNS — a compact header across the top, sitting on a 2px rule, then the content flowing in TWO equal columns. Magazine density: the page is full, and the columns are what makes it readable.',
+  O: 'FOOTED TITLE — the content occupies the top of the frame and the title CLOSES the page, set against a thick rule at the bottom with an oversized section number beside it. The page shows first and names last.',
+  P: 'FRAMED PLATE — a 2px frame is drawn 9mm inside the edges and everything sits within it. The title is INSCRIBED on the frame itself, small, in wide-tracked capitals, like the engraved caption of an atlas plate.',
+  Q: 'NUMBERED RAIL — the same bleeding left band as M, but it carries the section NUMBER very large at the top and the title small, rotated, at the bottom. Indexed rather than monumental.',
+  R: 'CENTRED MASTHEAD — a centred title over a full-width hairline, then the content in two equal columns. The register of a collection, not of a magazine.',
 };
 
 export const COLOR_STRATEGY_CATALOG: Record<string, string> = {

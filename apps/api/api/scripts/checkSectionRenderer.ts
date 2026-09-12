@@ -214,8 +214,12 @@ console.log('\nDesign system calculé');
 // ─────────────────────────────────────────────────────────────────────────────
 console.log('\nArchétypes');
 {
-  check('les douze archétypes du catalogue sont implémentés',
-    IMPLEMENTED_ARCHETYPES.length === 12,
+  // Dix-huit : les douze d'origine, plus les six qui portent les structures
+  // ajoutées (rail, deux colonnes, titre en pied, planche encadrée). Le nombre
+  // est vérifié pour qu'un archétype tiré par une graine ne puisse jamais être
+  // déclaré sans être rendu — il retomberait silencieusement sur « A ».
+  check('les dix-huit archétypes du catalogue sont implémentés',
+    IMPLEMENTED_ARCHETYPES.length === 18,
     `${IMPLEMENTED_ARCHETYPES.length} implémenté(s)`);
 
   const seed = buildDocumentSeed('editorial', 'businessplan:demo');
@@ -662,7 +666,7 @@ console.log('\n  Défauts observés sur un business plan livré');
   for (const long of ['Goal Planning & Operational Milestones',
                       'Appendix: Operational & Financial Records']) {
     let stacked = false;
-    for (const archetype of ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']) {
+    for (const archetype of IMPLEMENTED_ARCHETYPES) {
       const html = renderSection({ kicker: 'K', title: long, lede: 'L',
         blocks: [{ kind: 'prose', paragraphs: ['x'] }] } as any,
         dsx, { ...sx(), archetype } as any, {});

@@ -156,6 +156,13 @@ export interface ChatMessageModel {
   generation?: GenerationProgressData;
   /** Choix du format de la charte graphique (portrait / paysage) */
   formatChoice?: boolean;
+  /**
+   * Choix de la structure du business plan (dossier bancaire, plan
+   * investisseur, subvention…). Posé AVANT les informations complémentaires :
+   * c'est la table des matières qu'un financeur regarde en premier, et elle
+   * décide des sections générées.
+   */
+  bpStructureChoice?: boolean;
 }
 
 /** Étapes de l'onboarding conversationnel */

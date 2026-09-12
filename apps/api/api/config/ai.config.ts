@@ -780,6 +780,44 @@ export const AI_CONFIG = {
       // (elles reçoivent les digests des sections dont elles dépendent).
       'Goal Planning': { tokens: 44000, temperature: 0.5 },
       Appendix: { tier: 'M', tokens: 44000, temperature: 0.5 },
+
+      // ── Sections apportées par les STRUCTURES de plan ───────────────────
+      // Un plan bancaire, un plan investisseur et un dossier de subvention ne
+      // portent pas les mêmes sections. Sans réglage ici elles retomberaient
+      // sur le budget de la feature (28 000) : suffisant pour une page courte,
+      // trop juste pour une section nourrie par la recherche, qui se tronque
+      // alors en fin de rédaction — et une section tronquée est perdue.
+      'Executive Summary': { tokens: 44000, temperature: 0.5 },
+      'One-Page Summary': { tier: 'M', tokens: 24000, temperature: 0.5 },
+      'Mission & Vision': { tier: 'M', tokens: 28000, temperature: 0.6 },
+      'Promoter Profile': { tier: 'M', tokens: 28000, temperature: 0.5 },
+      'Management & Team': { tokens: 36000, temperature: 0.55 },
+      'Legal & Regulatory Framework': { sampling: 'precision', tokens: 36000 },
+      'Problem Statement': { tokens: 36000, temperature: 0.5 },
+      'Market Analysis': { tokens: 44000, temperature: 0.5 },
+      'Competitive Analysis': { tokens: 44000, temperature: 0.5 },
+      Solution: { tokens: 36000, temperature: 0.6 },
+      'Unique Value Proposition': { tier: 'M', tokens: 24000, temperature: 0.6 },
+      'Unfair Advantage': { tier: 'M', tokens: 24000, temperature: 0.55 },
+      // Économie unitaire : des chiffres qui doivent s'additionner.
+      'Business Model': { sampling: 'precision', tokens: 44000 },
+      'Strategy & Key Milestones': { tokens: 44000, temperature: 0.5 },
+      'Go-to-Market Strategy': { tokens: 36000, temperature: 0.55 },
+      'Traction & Proof Points': { tier: 'M', tokens: 28000, temperature: 0.45 },
+      'Partnerships & Ecosystem': { tier: 'M', tokens: 28000, temperature: 0.5 },
+      'Operational Plan': { tokens: 44000, temperature: 0.5 },
+      'Resources & Assets': { tier: 'M', tokens: 28000, temperature: 0.45 },
+      'Key Metrics & KPIs': { sampling: 'precision', tokens: 28000 },
+      'Risk Analysis & Mitigation': { tokens: 36000, temperature: 0.5 },
+      // Montant demandé, échéancier, garanties : les trois sections qu'un
+      // comité de crédit recoupe avec le plan financier. Aucune latitude.
+      'Funding Request & Use of Funds': { sampling: 'precision', tokens: 36000 },
+      'Guarantees & Collateral': { sampling: 'precision', tokens: 28000 },
+      'Exit Strategy & Investor Returns': { sampling: 'precision', tokens: 28000 },
+      'Theory of Change': { tokens: 36000, temperature: 0.5 },
+      'Social & Economic Impact': { tokens: 36000, temperature: 0.5 },
+      'Monitoring & Evaluation': { sampling: 'precision', tokens: 28000 },
+      'Sustainability Plan': { tokens: 28000, temperature: 0.5 },
     },
   }),
 
@@ -1042,16 +1080,29 @@ export const AI_CONFIG = {
         // redessinent pas. La composition peut donc diverger sans risque pour
         // la géométrie, qui est importée telle quelle.
         'Logo Principal': { tokens: 36000, temperature: 0.6 },
+        // L'icône seule. Page de comparaison : trois fonds, une légende.
+        Logomark: { tokens: 26000, temperature: 0.6 },
         'Logo Variation Fond Clair': { tokens: 30000, temperature: 0.6 },
         'Logo Variation Fond Sombre': { tokens: 30000, temperature: 0.6 },
         'Logo Variation Monochrome': { tokens: 30000, temperature: 0.6 },
-        // Règles d'usage : du texte structuré, peu de balisage.
+        // Les deux pages de RÈGLES, en fin de charte : du texte structuré, peu
+        // de balisage, et aucune invention à encourager — elles ferment le
+        // document là où les pages spécimen se contentent désormais de montrer.
         'Logo Bonnes Pratiques': { tokens: 36000, temperature: 0.55 },
+        'Usage Couleurs & Typographie': { tokens: 30000, temperature: 0.5 },
         // Nuanciers et spécimens : les VALEURS y sont exactes (hex, tailles),
         // la mise en page reste libre. On garde donc une divergence moyenne
         // plutôt que la précision — la page palette générique venait d'un 0.25.
         'Color Palette': { tokens: 26000, temperature: 0.6 },
         Typography: { tokens: 26000, temperature: 0.62 },
+        // Pages dont le SPÉCIMEN est entièrement fabriqué par le code :
+        // l'échelle typographique, les motifs, les créations et les bannières
+        // sociales. Le modèle n'y écrit qu'un titre et deux légendes — leur
+        // donner le budget d'une page libre reviendrait à payer pour du vide.
+        'Typeface Hierarchy': { tokens: 20000, temperature: 0.55 },
+        'Graphic Patterns': { tokens: 20000, temperature: 0.6 },
+        'Social Media Creatives': { tokens: 20000, temperature: 0.6 },
+        'Social Media Page Banners': { tokens: 20000, temperature: 0.55 },
         // Page de direction artistique : elle doit DÉMONTRER le style en
         // construisant ses propres blocs de démonstration en CSS. C'est la page
         // la plus inventive de la charte après la couverture.

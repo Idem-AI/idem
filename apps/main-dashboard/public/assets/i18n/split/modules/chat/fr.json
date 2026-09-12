@@ -308,6 +308,22 @@
         "skipInfos": "Générer sans ces infos",
         "generateNow": "C'est bon, lance la génération",
         "fixForm": "Corriger via le formulaire"
+      },
+      "structure": {
+        "title": "Structure du plan",
+        "subtitle": "Elle décide des sections générées et de leur ordre.",
+        "question": "Avant d'écrire : quelle structure votre interlocuteur attend-il ? Beaucoup de banques et de fonds imposent leur table des matières.",
+        "hint": "Choisissez une structure pour continuer.",
+        "showOutline": "Voir le sommaire",
+        "customise": "Composer mon sommaire",
+        "customiseOk": "La composition d'un sommaire se fait dans l'atelier : on y ajoute, retire et réordonne les sections une par une.",
+        "cancel": "Plus tard",
+        "cancelledOk": "Entendu. Le plan suivra la structure standard si vous le lancez tel quel.",
+        "saveFailed": "L'enregistrement de la structure a échoué. Choisissez à nouveau.",
+        "loadFailed": "Impossible de charger les structures disponibles.",
+        "chips": {
+          "openAtelier": "Ouvrir l'atelier"
+        }
       }
     },
     "infoForm": {

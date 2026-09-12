@@ -96,6 +96,69 @@ export type Block =
       variants: { url: string; label: string; background: 'light' | 'dark' | 'neutral' }[];
     }
   /**
+   * Échelle typographique, DÉMONTRÉE plutôt que décrite.
+   *
+   * Le niveau ne porte pas sa taille en pixels : il porte le DEGRÉ de l'échelle
+   * du document (`xs`…`4xl`), et le rendu le compose à la taille que ce degré
+   * vaut dans CE document. Une page de hiérarchie qui annoncerait « H1 — 48 px »
+   * pendant que le document compose ses titres à 34 px dirait le faux sur le
+   * seul sujet dont elle traite.
+   */
+  | {
+      kind: 'typeScale';
+      levels: {
+        label: string;
+        family: string;
+        step: 'xs' | 'sm' | 'base' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
+        weight: number;
+        sample: string;
+        usage?: string;
+      }[];
+    }
+  /**
+   * Motifs graphiques de la marque, dessinés en CSS depuis sa palette.
+   *
+   * Le bloc ne porte AUCUN CSS : il nomme un motif du répertoire et ses deux
+   * encres. Laisser passer une chaîne de `background-image` reviendrait à
+   * rouvrir la porte que les blocs spécimens ferment — un modèle y glisserait
+   * une couleur qui n'est pas celle de la marque, et un motif est justement ce
+   * qu'on décline ensuite sur tous les supports.
+   */
+  | {
+      kind: 'patternGrid';
+      patterns: {
+        name: string;
+        motif: 'stripes' | 'grid' | 'dots' | 'chevron' | 'arcs' | 'checker';
+        ink: string;
+        ground: string;
+        note?: string;
+      }[];
+    }
+  /** Créations pour les réseaux sociaux, composées à la charte, au format carré. */
+  | {
+      kind: 'socialPosts';
+      posts: {
+        platform: string;
+        headline: string;
+        kicker?: string;
+        ground: 'primary' | 'accent' | 'dark' | 'light';
+        logoUrl?: string;
+      }[];
+    }
+  /** Bannières de profil, au ratio réel de chaque réseau. */
+  | {
+      kind: 'socialBanners';
+      banners: {
+        platform: string;
+        /** Ratio réel du réseau, ex. « 1584 × 396 ». Affiché tel quel. */
+        ratio: string;
+        headline: string;
+        tagline?: string;
+        ground: 'primary' | 'accent' | 'dark' | 'light';
+        logoUrl?: string;
+      }[];
+    }
+  /**
    * Références numérotées d'une section appuyée sur une recherche web.
    *
    * Injecté par le service à partir des sources RÉELLES retournées par le
@@ -411,6 +474,30 @@ export function estimateBlockWeight(block: Block): number {
 
     case 'logoDisplay':
       return 0.16;
+
+    case 'typeScale':
+      // Chaque niveau est composé à sa taille RÉELLE : son poids suit le degré.
+      return block.levels.reduce(
+        (total, level) =>
+          total +
+          0.03 +
+          ({ xs: 0.012, sm: 0.014, base: 0.016, lg: 0.02, xl: 0.028, '2xl': 0.04, '3xl': 0.055, '4xl': 0.075 }[
+            level.step
+          ] ?? 0.02),
+        0
+      );
+
+    case 'patternGrid':
+      // Une rangée de tuiles de 34 mm, plus leurs légendes.
+      return 0.18;
+
+    case 'socialPosts':
+      // Trois carrés côte à côte : une bande de 40 mm environ.
+      return 0.22;
+
+    case 'socialBanners':
+      // Des bandeaux très larges et bas, empilés.
+      return 0.08 + block.banners.length * 0.07;
 
     case 'sources':
       // Deux lignes par référence, en petit corps.

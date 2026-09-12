@@ -113,6 +113,17 @@
                   <app-generation-progress-card [data]="generation" />
                 }
 
+                <!-- Choix de la structure du business plan -->
+                @if (msg.bpStructureChoice) {
+                  <app-bp-structure-card
+                    [selected]="msg.selectedOptionId ?? null"
+                    [disabled]="isGenerating()"
+                    (picked)="onBpStructurePicked(msg.id, $event)"
+                    (customiseRequested)="onBpStructureCustomise(msg.id)"
+                    (cancelled)="onBpStructureCancelled(msg.id)"
+                  />
+                }
+
                 <!-- Choix du format de la charte graphique -->
                 @if (msg.formatChoice) {
                   <app-format-choice-card
@@ -199,9 +210,16 @@
               !draft().trim() ||
               pendingAssistant() ||
               isCreatingProject() ||
-              awaitingFormatChoice()
+              awaitingFormatChoice() ||
+              awaitingBpStructure()
             "
-            [title]="awaitingFormatChoice() ? ('chat.branding.format.hint' | translate) : ''"
+            [title]="
+              awaitingBpStructure()
+                ? ('chat.bp.structure.hint' | translate)
+                : awaitingFormatChoice()
+                  ? ('chat.branding.format.hint' | translate)
+                  : ''
+            "
             (click)="send()"
           >
             {{ 'chat.composer.send' | translate }}

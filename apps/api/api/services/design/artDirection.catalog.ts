@@ -135,7 +135,7 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
       'page: \'p-[14mm] bg-[BACKGROUND]\' — margins equal on all four sides. sectionTitle: \'font-primary text-[34px] font-medium tracking-[-0.01em] text-[TEXT]\'. eyebrow: \'font-secondary text-[10px] uppercase tracking-[0.28em] text-[TEXT]/50\' — one per page at most. body: \'font-secondary text-[11px] leading-[1.7] text-[TEXT]/85 max-w-[62ch]\'. rule: \'h-px w-full bg-[TEXT]/12\' — the ONLY separator. dataBlock: a borderless table, \'text-[10px] leading-[2]\', column heads in \'uppercase tracking-[0.16em] text-[TEXT]/45\', one hairline under the head row. kpi: number in \'font-primary text-[56px] leading-none\', label under it in \'text-[10px] uppercase tracking-[0.2em] text-[TEXT]/50\'. caption: \'text-[9px] text-[TEXT]/45\'. emphasis: one word or one rule in PRIMARY, once per page. Never a card, never a shadow, never a filled block.',
     typePairings: ['Archivo + IBM Plex Sans', 'Hanken Grotesk + Work Sans', 'Schibsted Grotesk + Karla'],
     seedSpace: {
-      archetypes: ['A', 'C', 'E', 'L'],
+      archetypes: ['A', 'C', 'E', 'L', 'M', 'O', 'P'],
       colorStrategies: ['MONOCHROME_ACCENT', 'DUOTONE', 'INVERSE'],
       typographyMoods: ['WIDE_WHISPER', 'WEIGHT_CLASH', 'ALL_LOWERCASE_INTIMATE', 'STAGGERED_INDENT'],
       layoutTensions: ['NEGATIVE_SPACE_HERO', 'CORNER_ANCHOR', 'FRAME_WITHIN_FRAME'],
@@ -179,7 +179,7 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
       'page: \'p-[10mm] bg-[BACKGROUND]\' with full-bleed colour bands escaping the padding. sectionTitle: \'font-primary text-[64px] font-black leading-[0.9] uppercase text-[BACKGROUND] bg-[PRIMARY] px-3 inline-block\'. body: \'font-secondary text-[11px] leading-[1.55] text-[TEXT]\' in 2 columns. rule: \'h-[6px] bg-[TEXT]\'. dataBlock: table with \'border-2 border-[TEXT]\' and alternating \'bg-[ACCENT]/15\' rows. kpi: number in \'font-primary text-[96px] leading-none text-[ACCENT]\' overlapping a colour band. caption: \'text-[9px] uppercase tracking-[0.2em]\'. emphasis: a full colour band behind the block. One zone of rest per page, mandatory.',
     typePairings: ['Anton + Work Sans', 'Archivo Black + Figtree', 'Syne + Karla'],
     seedSpace: {
-      archetypes: ['B', 'C', 'F', 'G', 'H'],
+      archetypes: ['B', 'C', 'F', 'G', 'H', 'N', 'Q'],
       colorStrategies: ['BRAND_FULL', 'SPLIT_COMPLEMENTARY', 'IMAGE_EXTRACTED'],
       typographyMoods: ['CONDENSED_TOWER', 'OUTLINE_FILLED_MIX', 'SINGLE_LETTER_ANCHOR', 'ROTATED_AXIS'],
       layoutTensions: ['COLLAGE_LAYER', 'TEXT_ESCAPES_BOUNDS', 'FULL_BLEED_EDGE', 'DIAGONAL_FLOW'],
@@ -223,7 +223,7 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
       'page: \'p-[14mm] bg-[TEXT] text-[BACKGROUND]\' — dark ground throughout. sectionTitle: \'font-primary text-[38px] font-semibold tracking-[-0.02em] text-[BACKGROUND]\'. eyebrow: \'font-secondary text-[9px] uppercase tracking-[0.36em] text-[PRIMARY]\'. body: \'font-secondary text-[11px] leading-[1.7] text-[BACKGROUND]/75\'. rule: \'h-px w-full bg-[PRIMARY]/40\'. dataBlock: table with \'border-b border-[BACKGROUND]/12\', numbers in \'tabular-nums text-[PRIMARY]\'. kpi: \'font-primary text-[64px] leading-none text-[BACKGROUND]\' with the unit in \'text-[PRIMARY] text-[18px]\'. caption: \'text-[9px] text-[BACKGROUND]/45\'. emphasis: a 1px PRIMARY edge, never a filled block. No glow on text below 24px.',
     typePairings: ['Chivo + IBM Plex Sans', 'Sora + Instrument Sans', 'Unbounded + Public Sans'],
     seedSpace: {
-      archetypes: ['B', 'F', 'I', 'J', 'L'],
+      archetypes: ['B', 'F', 'I', 'J', 'L', 'M', 'O'],
       colorStrategies: ['MONOCHROME_ACCENT', 'DUOTONE', 'INVERSE'],
       typographyMoods: ['CONDENSED_TOWER', 'WIDE_WHISPER', 'WEIGHT_CLASH', 'ROTATED_AXIS'],
       layoutTensions: ['DIAGONAL_FLOW', 'FULL_BLEED_EDGE', 'RULE_HEAVY', 'NEGATIVE_SPACE_HERO'],
@@ -268,7 +268,7 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
       'page: \'p-[14mm] bg-[BACKGROUND] rounded-[16px]\'. sectionTitle: \'font-primary text-[36px] font-bold text-[PRIMARY]\'. body: \'font-secondary text-[11px] leading-[1.65] text-[TEXT]/85\'. rule: \'h-[3px] w-16 bg-[ACCENT] rounded-full\'. dataBlock: rows separated by \'bg-[PRIMARY]/6 rounded-[16px] px-4 py-3\' — a single radius across the document. kpi: number in \'font-primary text-[52px] text-[PRIMARY]\' inside a flat \'bg-[PRIMARY]/8 rounded-[16px] p-5\'. caption: \'text-[9px] text-[TEXT]/55\'. emphasis: a flat colour fill, never a gradient, never a blurred shadow. Illustrated scenes are drawn in div/CSS shapes, never mixed with photography.',
     typePairings: ['Bricolage Grotesque + Figtree', 'Epilogue + Hanken Grotesk', 'Onest + Atkinson Hyperlegible'],
     seedSpace: {
-      archetypes: ['A', 'C', 'J', 'L'],
+      archetypes: ['A', 'C', 'J', 'L', 'N', 'O', 'P'],
       colorStrategies: ['BRAND_FULL', 'MONOCHROME_ACCENT'],
       typographyMoods: ['WEIGHT_CLASH', 'ALL_LOWERCASE_INTIMATE', 'STAGGERED_INDENT'],
       layoutTensions: ['CORNER_ANCHOR', 'FULL_BLEED_EDGE', 'NEGATIVE_SPACE_HERO'],
@@ -311,7 +311,7 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
       'page: \'p-[12mm] bg-[BACKGROUND]\'. sectionTitle: words at mixed sizes, \'font-primary\' with alternating \'text-[40px]\' and \'text-[64px]\', some on \'bg-[ACCENT] px-2\', rotated by \'rotate-[-2deg]\'. body: \'font-secondary text-[11px] leading-[1.6] text-[TEXT]\' inside irregular columns. rule: a torn strip, \'h-[8px] bg-[TEXT]\'. dataBlock: table laid on a \'bg-[BACKGROUND] shadow-[3px_3px_0_rgba(0,0,0,0.25)] rotate-[0.6deg]\' paper. kpi: a cut-out number, \'font-primary text-[80px] bg-[PRIMARY] text-[BACKGROUND] px-3 inline-block rotate-[-3deg]\'. caption: \'text-[9px] italic\'. emphasis: a hand-cut highlight behind the word.',
     typePairings: ['Instrument Serif + Work Sans', 'Young Serif + Karla', 'Archivo Black + Spectral'],
     seedSpace: {
-      archetypes: ['C', 'F', 'H', 'K'],
+      archetypes: ['C', 'F', 'H', 'K', 'M', 'N', 'O'],
       colorStrategies: ['DUOTONE', 'IMAGE_EXTRACTED', 'MONOCHROME_ACCENT'],
       typographyMoods: ['OUTLINE_FILLED_MIX', 'STAGGERED_INDENT', 'SINGLE_LETTER_ANCHOR', 'ROTATED_AXIS'],
       layoutTensions: ['COLLAGE_LAYER', 'TEXT_ESCAPES_BOUNDS', 'DIAGONAL_FLOW'],
@@ -354,7 +354,7 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
       'page: \'p-[14mm] bg-[BACKGROUND]\' with a \'rounded-[24px] border-[3px] border-[TEXT] p-[10mm]\' inner cartouche. sectionTitle: \'font-primary text-[42px] font-bold uppercase tracking-[0.02em] text-[PRIMARY]\'. body: \'font-secondary text-[11px] leading-[1.65] text-[TEXT]\'. rule: two stacked rules, \'h-[3px] bg-[TEXT]\' over \'h-px bg-[TEXT] mt-1\'. dataBlock: table inside a rounded cartouche, head row in \'bg-[PRIMARY] text-[BACKGROUND] uppercase tracking-[0.14em]\'. kpi: number in \'font-primary text-[64px]\' with a hard offset shadow \'text-shadow:4px 4px 0 ACCENT\'. caption: \'text-[9px] uppercase tracking-[0.2em]\'. emphasis: a badge with a real value in it, never an empty one.',
     typePairings: ['Bitter + Karla', 'Zilla Slab + Work Sans', 'DM Serif Display + Asap'],
     seedSpace: {
-      archetypes: ['B', 'G', 'J', 'K'],
+      archetypes: ['B', 'G', 'J', 'K', 'N', 'O', 'P'],
       colorStrategies: ['BRAND_FULL', 'DUOTONE', 'MONOCHROME_ACCENT'],
       typographyMoods: ['CONDENSED_TOWER', 'WEIGHT_CLASH', 'OUTLINE_FILLED_MIX'],
       layoutTensions: ['FRAME_WITHIN_FRAME', 'FULL_BLEED_EDGE', 'CORNER_ANCHOR'],
@@ -397,7 +397,7 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
       'page: \'p-[13mm] bg-[TEXT] text-[BACKGROUND]\'. sectionTitle: \'font-primary text-[40px] font-bold uppercase tracking-[0.04em] text-[BACKGROUND]\'. eyebrow: monospaced feel, \'text-[9px] uppercase tracking-[0.4em] text-[ACCENT]\'. body: \'font-secondary text-[11px] leading-[1.6] text-[BACKGROUND]/70\'. rule: \'h-px bg-[ACCENT]/50\' with cut corners on frames. dataBlock: \'border border-[BACKGROUND]/15\' table, numbers \'tabular-nums text-[ACCENT]\'. kpi: \'font-primary text-[72px] text-[ACCENT]\' with a halo only above 40px. caption: \'text-[9px] text-[BACKGROUND]/40\'. emphasis: an opaque block of ACCENT behind three words. Large black areas are mandatory: without them the neon reads as noise.',
     typePairings: ['Chivo + IBM Plex Sans', 'Archivo + Public Sans', 'Sora + Instrument Sans'],
     seedSpace: {
-      archetypes: ['B', 'F', 'I', 'L'],
+      archetypes: ['B', 'F', 'I', 'L', 'M', 'O', 'Q'],
       colorStrategies: ['MONOCHROME_ACCENT', 'DUOTONE', 'INVERSE'],
       typographyMoods: ['CONDENSED_TOWER', 'ROTATED_AXIS', 'OUTLINE_FILLED_MIX', 'WEIGHT_CLASH'],
       layoutTensions: ['FULL_BLEED_EDGE', 'DIAGONAL_FLOW', 'COLLAGE_LAYER', 'RULE_HEAVY'],
@@ -439,7 +439,7 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
       'page: \'p-[12mm] bg-[BACKGROUND] border-[6px] border-[TEXT]\'. sectionTitle: \'font-primary text-[54px] font-black uppercase text-[TEXT]\' with a \'bg-[ACCENT] px-3\' highlight on one word. body: \'font-secondary text-[11px] leading-[1.55] text-[TEXT]\'. rule: \'h-[5px] bg-[TEXT]\'. dataBlock: table with \'border-[3px] border-[TEXT]\' and a head row in \'bg-[PRIMARY] text-[BACKGROUND]\'. kpi: \'font-primary text-[96px] leading-none text-[PRIMARY]\' with a thick TEXT outline. caption: \'text-[9px] uppercase tracking-[0.18em]\'. emphasis: a halftone dot field built with \'background-image: radial-gradient(TEXT 1px, transparent 1px); background-size: 6px 6px\' at 20% opacity.',
     typePairings: ['Anton + Work Sans', 'Archivo Black + Karla', 'Bebas Neue + Figtree'],
     seedSpace: {
-      archetypes: ['B', 'C', 'H', 'K'],
+      archetypes: ['B', 'C', 'H', 'K', 'N', 'O', 'Q'],
       colorStrategies: ['BRAND_FULL', 'DUOTONE', 'SPLIT_COMPLEMENTARY'],
       typographyMoods: ['WEIGHT_CLASH', 'SINGLE_LETTER_ANCHOR', 'OUTLINE_FILLED_MIX', 'CONDENSED_TOWER'],
       layoutTensions: ['RULE_HEAVY', 'FULL_BLEED_EDGE', 'FRAME_WITHIN_FRAME', 'COLLAGE_LAYER'],
@@ -481,7 +481,7 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
       'page: \'p-[14mm]\' over a background of two or three wide blurred colour blobs. sectionTitle: \'font-primary text-[36px] font-semibold text-[TEXT]\'. body: \'font-secondary text-[11px] leading-[1.7] text-[TEXT]/80\'. surface: EVERY text block sits on \'bg-[BACKGROUND]/55 border border-white/25 rounded-[24px] p-6\' — never directly on the blurred ground. rule: \'h-px bg-white/30\'. dataBlock: a table inside one glass surface, rows separated by \'border-b border-white/20\'. kpi: \'font-primary text-[56px] text-[TEXT]\' inside its own glass surface. caption: \'text-[9px] text-[TEXT]/55\'. emphasis: raise the surface opacity, never add a colour.',
     typePairings: ['Hanken Grotesk + Figtree', 'Onest + Instrument Sans', 'Epilogue + Public Sans'],
     seedSpace: {
-      archetypes: ['B', 'E', 'F', 'J'],
+      archetypes: ['B', 'E', 'F', 'J', 'N', 'O', 'P'],
       colorStrategies: ['MONOCHROME_ACCENT', 'BRAND_FULL', 'DUOTONE'],
       typographyMoods: ['WEIGHT_CLASH', 'WIDE_WHISPER', 'ALL_LOWERCASE_INTIMATE'],
       layoutTensions: ['COLLAGE_LAYER', 'NEGATIVE_SPACE_HERO', 'FRAME_WITHIN_FRAME', 'CORNER_ANCHOR'],
@@ -523,7 +523,7 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
       'page: \'p-[15mm] bg-[BACKGROUND] rounded-[32px]\'. sectionTitle: \'font-primary text-[38px] font-bold text-[TEXT]\'. body: \'font-secondary text-[11px] leading-[1.7] text-[TEXT]/80\'. surface: \'bg-[PRIMARY]/10 rounded-[32px] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.06)]\' — one soft shadow, one radius, everywhere. rule: \'h-[4px] w-14 bg-[PRIMARY]/40 rounded-full\'. dataBlock: rows as separate soft blocks rather than a ruled table. kpi: \'font-primary text-[56px] text-[PRIMARY]\' on a soft block. caption: \'text-[9px] text-[TEXT]/55\'. emphasis: a bigger soft block. No specular highlight, no metal, no glass.',
     typePairings: ['Bricolage Grotesque + Figtree', 'Onest + Atkinson Hyperlegible', 'Lexend + Karla'],
     seedSpace: {
-      archetypes: ['A', 'B', 'E', 'J'],
+      archetypes: ['A', 'B', 'E', 'J', 'N', 'O', 'P'],
       colorStrategies: ['MONOCHROME_ACCENT', 'BRAND_FULL'],
       typographyMoods: ['WEIGHT_CLASH', 'ALL_LOWERCASE_INTIMATE', 'WIDE_WHISPER'],
       layoutTensions: ['NEGATIVE_SPACE_HERO', 'CORNER_ANCHOR', 'FRAME_WITHIN_FRAME'],
@@ -564,7 +564,7 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
       'page: \'p-[12mm] bg-[BACKGROUND]\' with everything snapped to a 4px grid. sectionTitle: \'font-primary text-[32px] font-bold uppercase tracking-[0.06em] text-[TEXT]\'. body: \'font-secondary text-[11px] leading-[1.6] text-[TEXT]\'. rule: \'h-[4px] bg-[TEXT]\'. dataBlock: table with \'border-[2px] border-[TEXT]\' cells, no radius anywhere. kpi: \'font-primary text-[64px] tabular-nums text-[PRIMARY]\' with a 2px offset TEXT shadow. caption: \'text-[9px] uppercase tracking-[0.16em]\'. emphasis: a 4px checkerboard built with repeating-linear-gradient. Every dimension is a multiple of 4px; no rounded corner, no blur.',
     typePairings: ['Archivo + IBM Plex Sans', 'Chivo + Public Sans', 'Big Shoulders Display + Work Sans'],
     seedSpace: {
-      archetypes: ['C', 'D', 'G', 'L'],
+      archetypes: ['C', 'D', 'G', 'L', 'N', 'P', 'Q'],
       colorStrategies: ['DUOTONE', 'MONOCHROME_ACCENT', 'BRAND_FULL'],
       typographyMoods: ['CONDENSED_TOWER', 'STAGGERED_INDENT', 'WEIGHT_CLASH'],
       layoutTensions: ['RULE_HEAVY', 'FRAME_WITHIN_FRAME', 'CORNER_ANCHOR', 'FULL_BLEED_EDGE'],
@@ -609,7 +609,7 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
       'page: \'p-[15mm] bg-[BACKGROUND]\' on a 6-column grid. sectionNumber: \'font-primary text-[72px] leading-none text-[TEXT]/12\' in the margin. sectionTitle: \'font-primary text-[40px] leading-[1.05] tracking-[-0.015em] text-[TEXT]\'. standfirst: \'font-secondary text-[14px] leading-[1.6] text-[TEXT]/75 max-w-[52ch]\'. body: \'font-secondary text-[10.5px] leading-[1.72] text-[TEXT]/90 columns-2 gap-[8mm] max-w-none\'. rule: \'h-px bg-[TEXT]/15\'. dataBlock: table with \'border-t border-b border-[TEXT]/20\', head row \'uppercase text-[9px] tracking-[0.16em] text-[TEXT]/50\', numbers \'tabular-nums text-right\'. kpi: \'font-primary text-[60px] leading-none\' with a caption under it. pullQuote: \'font-primary text-[22px] leading-[1.35] border-l-0 pl-0 text-[PRIMARY]\'. caption: \'text-[9px] text-[TEXT]/50\' under every figure. Colour appears only in the section title and one rule.',
     typePairings: ['Playfair Display + Source Serif 4', 'Instrument Serif + Work Sans', 'Newsreader + Public Sans'],
     seedSpace: {
-      archetypes: ['A', 'C', 'G', 'K', 'L'],
+      archetypes: ['A', 'C', 'G', 'K', 'L', 'N', 'O', 'P', 'R'],
       colorStrategies: ['MONOCHROME_ACCENT', 'DUOTONE', 'IMAGE_EXTRACTED'],
       typographyMoods: ['WEIGHT_CLASH', 'STAGGERED_INDENT', 'WIDE_WHISPER', 'SINGLE_LETTER_ANCHOR'],
       layoutTensions: ['RULE_HEAVY', 'NEGATIVE_SPACE_HERO', 'FRAME_WITHIN_FRAME', 'TEXT_ESCAPES_BOUNDS'],
@@ -649,7 +649,7 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
       'page: \'p-[13mm] bg-[BACKGROUND] rounded-[28px]\'. sectionTitle: \'font-primary text-[44px] font-bold tracking-[-0.02em]\' with a chrome gradient fill. body: \'font-secondary text-[11px] leading-[1.6] text-[TEXT]/85\'. surface: \'bg-white/40 border border-white/60 rounded-[28px] p-6\'. rule: \'h-[2px] bg-gradient-to-r from-[PRIMARY] to-[ACCENT] rounded-full\'. dataBlock: a glossy bubble table with a 28px radius. kpi: \'font-primary text-[64px]\' in a bubble. caption: \'text-[9px] text-[TEXT]/60\'. emphasis: an iridescent halo. Never matte.',
     typePairings: ['Unbounded + Figtree', 'Syne + Hanken Grotesk', 'Sora + Instrument Sans'],
     seedSpace: {
-      archetypes: ['B', 'F', 'H', 'J'],
+      archetypes: ['B', 'F', 'H', 'J', 'M', 'N', 'O'],
       colorStrategies: ['BRAND_FULL', 'SPLIT_COMPLEMENTARY', 'IMAGE_EXTRACTED'],
       typographyMoods: ['OUTLINE_FILLED_MIX', 'ROTATED_AXIS', 'SINGLE_LETTER_ANCHOR', 'WIDE_WHISPER'],
       layoutTensions: ['COLLAGE_LAYER', 'DIAGONAL_FLOW', 'TEXT_ESCAPES_BOUNDS'],
@@ -694,7 +694,7 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
       'page: \'p-[15mm] bg-[BACKGROUND]\' on a strict 12-column grid, everything flush left. sectionNumber: \'font-primary text-[16px] tabular-nums text-[PRIMARY]\' above the title. sectionTitle: \'font-primary text-[34px] font-medium leading-[1.1] tracking-[-0.01em] text-[TEXT]\'. body: \'font-secondary text-[10.5px] leading-[1.55] text-[TEXT] max-w-[58ch]\'. rule: \'h-[4px] bg-[TEXT]\' as a structural separator, spanning full columns. dataBlock: table with \'border-t-[3px] border-[TEXT]\' on the head and \'border-b border-[TEXT]/20\' on rows, numbers \'tabular-nums text-right\'. kpi: \'font-primary text-[72px] leading-none tabular-nums text-[TEXT]\' with the label in \'text-[10px] uppercase tracking-[0.16em]\'. caption: \'text-[9px] text-[TEXT]/60\'. emphasis: PRIMARY on ONE element per page. No radius, no shadow, no centring, ever.',
     typePairings: ['Archivo + IBM Plex Sans', 'Schibsted Grotesk + Public Sans', 'Hanken Grotesk + Libre Franklin'],
     seedSpace: {
-      archetypes: ['A', 'C', 'D', 'G', 'L'],
+      archetypes: ['A', 'C', 'D', 'G', 'L', 'N', 'P', 'R'],
       colorStrategies: ['MONOCHROME_ACCENT', 'DUOTONE', 'INVERSE'],
       typographyMoods: ['CONDENSED_TOWER', 'WEIGHT_CLASH', 'STAGGERED_INDENT', 'ROTATED_AXIS'],
       layoutTensions: ['RULE_HEAVY', 'NEGATIVE_SPACE_HERO', 'CORNER_ANCHOR', 'FULL_BLEED_EDGE'],
@@ -738,7 +738,7 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
       'page: \'p-[16mm] bg-[BACKGROUND]\' with one dominant image zone and a lot of emptiness. sectionTitle: \'font-primary text-[30px] font-normal tracking-[0.02em] text-[TEXT]\' — deliberately quiet. body: \'font-secondary text-[11px] leading-[1.75] text-[TEXT]/80 max-w-[48ch]\'. rule: none. dataBlock: a minimal table, \'text-[10px] leading-[2]\', no borders. kpi: \'font-primary text-[64px] leading-none\' isolated in empty space. caption: \'text-[9px] text-[TEXT]/45\'. emphasis: scale and emptiness, never colour. The typography must never compete with the image.',
     typePairings: ['Instrument Serif + Work Sans', 'Gloock + Karla', 'Newsreader + Figtree'],
     seedSpace: {
-      archetypes: ['B', 'C', 'E', 'F'],
+      archetypes: ['B', 'C', 'E', 'F', 'M', 'O', 'P'],
       colorStrategies: ['DUOTONE', 'MONOCHROME_ACCENT', 'IMAGE_EXTRACTED'],
       typographyMoods: ['WIDE_WHISPER', 'ALL_LOWERCASE_INTIMATE', 'WEIGHT_CLASH'],
       layoutTensions: ['NEGATIVE_SPACE_HERO', 'FULL_BLEED_EDGE', 'CORNER_ANCHOR', 'TEXT_ESCAPES_BOUNDS'],
@@ -782,7 +782,7 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
       'page: \'p-[15mm] bg-[BACKGROUND]\'. sectionTitle: \'font-primary text-[36px] leading-[1.15] text-[TEXT]\'. body: \'font-secondary text-[11px] leading-[1.75] text-[TEXT]/80 max-w-[58ch]\'. surface: an arch, \'rounded-t-[999px] rounded-b-[40px] bg-[PRIMARY]/10 p-6\'. rule: \'h-px bg-[TEXT]/20\'. dataBlock: a borderless table with generous line height, \'leading-[2.1]\'. kpi: \'font-primary text-[52px] text-[PRIMARY]\'. caption: \'text-[9px] italic text-[TEXT]/55\'. emphasis: a warm tinted ground behind the block. Soft light everywhere, no hard geometry.',
     typePairings: ['Fraunces + Karla', 'Young Serif + Work Sans', 'Bitter + Figtree'],
     seedSpace: {
-      archetypes: ['A', 'B', 'E', 'K'],
+      archetypes: ['A', 'B', 'E', 'K', 'O', 'P', 'R'],
       colorStrategies: ['MONOCHROME_ACCENT', 'DUOTONE', 'IMAGE_EXTRACTED'],
       typographyMoods: ['ALL_LOWERCASE_INTIMATE', 'WIDE_WHISPER', 'STAGGERED_INDENT'],
       layoutTensions: ['NEGATIVE_SPACE_HERO', 'FRAME_WITHIN_FRAME', 'CORNER_ANCHOR', 'FULL_BLEED_EDGE'],
@@ -824,7 +824,7 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
       'page: \'p-[15mm] bg-[TEXT] text-[BACKGROUND]\' with an inner \'border border-[PRIMARY]/50 p-[8mm]\' frame, everything centred on a vertical axis. sectionTitle: \'font-primary text-[38px] uppercase tracking-[0.12em] text-[PRIMARY] text-center\'. body: \'font-secondary text-[10.5px] leading-[1.75] text-[BACKGROUND]/85 text-center max-w-[54ch] mx-auto\'. rule: a double rule, \'h-px bg-[PRIMARY]\' over \'h-[2px] bg-[PRIMARY] mt-1\', centred and narrower than the column. dataBlock: a centred table with fine PRIMARY rules. kpi: \'font-primary text-[56px] text-[PRIMARY]\'. caption: \'text-[9px] italic tracking-[0.1em]\'. emphasis: an ornamental frame. Strict axial symmetry, no sans-serif heading.',
     typePairings: ['Playfair Display + Spectral', 'Libre Baskerville + Crimson Pro', 'Gloock + Lora'],
     seedSpace: {
-      archetypes: ['E', 'G', 'J', 'K'],
+      archetypes: ['E', 'G', 'J', 'K', 'O', 'P', 'R'],
       colorStrategies: ['MONOCHROME_ACCENT', 'DUOTONE'],
       typographyMoods: ['WEIGHT_CLASH', 'WIDE_WHISPER', 'OUTLINE_FILLED_MIX'],
       layoutTensions: ['FRAME_WITHIN_FRAME', 'RULE_HEAVY', 'NEGATIVE_SPACE_HERO'],
@@ -864,7 +864,7 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
       'page: \'p-[12mm] bg-[TEXT] text-[BACKGROUND]\' over a concrete texture. sectionTitle: \'font-primary text-[56px] font-black uppercase italic leading-[0.92] text-[BACKGROUND]\' with a hard offset shadow in ACCENT. body: \'font-secondary text-[11px] leading-[1.55] text-[BACKGROUND]/80\'. rule: \'h-[6px] bg-[ACCENT] -rotate-1\'. dataBlock: table on \'bg-[BACKGROUND]/8\' with \'border-b border-[BACKGROUND]/20\' rows. kpi: \'font-primary text-[88px] leading-none text-[ACCENT]\' running off the edge. caption: \'text-[9px] uppercase tracking-[0.2em] text-[BACKGROUND]/50\'. emphasis: a stencil block. The ground always carries a texture.',
     typePairings: ['Anton + Work Sans', 'Archivo Black + Karla', 'Big Shoulders Display + Figtree'],
     seedSpace: {
-      archetypes: ['B', 'C', 'F', 'H'],
+      archetypes: ['B', 'C', 'F', 'H', 'M', 'N', 'O'],
       colorStrategies: ['BRAND_FULL', 'DUOTONE', 'IMAGE_EXTRACTED', 'INVERSE'],
       typographyMoods: ['CONDENSED_TOWER', 'OUTLINE_FILLED_MIX', 'ROTATED_AXIS', 'SINGLE_LETTER_ANCHOR'],
       layoutTensions: ['TEXT_ESCAPES_BOUNDS', 'DIAGONAL_FLOW', 'COLLAGE_LAYER', 'FULL_BLEED_EDGE'],
@@ -906,7 +906,7 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
       'page: \'p-[16mm] bg-[TEXT] text-[BACKGROUND]\' with wide soft light veils built from \'radial-gradient\' at low opacity, plus a light grain overlay to avoid banding. sectionTitle: \'font-primary text-[38px] font-light tracking-[0.01em] text-[BACKGROUND]\'. body: \'font-secondary text-[11px] leading-[1.8] text-[BACKGROUND]/75 max-w-[54ch]\'. rule: none — zones separate through light. dataBlock: a borderless table, \'leading-[2]\', numbers \'tabular-nums\'. kpi: \'font-primary text-[64px] font-light text-[BACKGROUND]\'. caption: \'text-[9px] text-[BACKGROUND]/45\'. emphasis: raise the light behind the block. No text below 14px over the brightest zone.',
     typePairings: ['Hanken Grotesk + Figtree', 'Epilogue + Instrument Sans', 'Onest + Public Sans'],
     seedSpace: {
-      archetypes: ['B', 'E', 'F', 'I'],
+      archetypes: ['B', 'E', 'F', 'I', 'M', 'O', 'P'],
       colorStrategies: ['MONOCHROME_ACCENT', 'BRAND_FULL', 'DUOTONE'],
       typographyMoods: ['WIDE_WHISPER', 'WEIGHT_CLASH', 'ALL_LOWERCASE_INTIMATE'],
       layoutTensions: ['NEGATIVE_SPACE_HERO', 'FULL_BLEED_EDGE', 'CORNER_ANCHOR'],
@@ -948,7 +948,7 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
       'page: \'p-[15mm] bg-[BACKGROUND]\' with a ruled left margin, \'border-l border-[ACCENT]/40 pl-[10mm]\'. sectionTitle: \'font-primary text-[34px] italic text-[TEXT]\' with a hand-drawn underline built from an irregular SVG-free div, \'h-[3px] bg-[ACCENT] w-[70%] -rotate-[0.6deg]\'. body: \'font-secondary text-[11px] leading-[1.75] text-[TEXT]/85\' — the running text is NEVER handwritten. rule: \'h-px bg-[TEXT]/20\'. dataBlock: a notebook table with light ruled lines. kpi: \'font-primary text-[52px] text-[TEXT]\' circled by a \'rounded-[50%] border-2 border-[ACCENT] px-4 py-2 -rotate-2\'. caption: \'text-[9px] italic text-[TEXT]/55\' set as a margin annotation. emphasis: a highlighter stroke in ACCENT at 35% opacity. Two ink colours maximum.',
     typePairings: ['Young Serif + Karla', 'Fraunces + Work Sans', 'Bricolage Grotesque + Atkinson Hyperlegible'],
     seedSpace: {
-      archetypes: ['A', 'C', 'G', 'K'],
+      archetypes: ['A', 'C', 'G', 'K', 'O', 'P', 'R'],
       colorStrategies: ['MONOCHROME_ACCENT', 'DUOTONE', 'IMAGE_EXTRACTED'],
       typographyMoods: ['ALL_LOWERCASE_INTIMATE', 'STAGGERED_INDENT', 'SINGLE_LETTER_ANCHOR'],
       layoutTensions: ['COLLAGE_LAYER', 'FRAME_WITHIN_FRAME', 'CORNER_ANCHOR', 'RULE_HEAVY'],

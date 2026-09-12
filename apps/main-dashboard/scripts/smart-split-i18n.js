@@ -87,6 +87,7 @@ const CONFIG = {
     'modules/dashboard/pages/show-business-plan/components/additional-info-form': 'dashboard.additionalInfoForm',
     'modules/dashboard/pages/show-business-plan/components/business-plan-display': 'dashboard.businessPlanDisplay',
     'modules/dashboard/pages/show-business-plan/components/business-plan-generation': 'dashboard.businessPlanGeneration',
+    'modules/dashboard/pages/show-business-plan/components/business-plan-structure': 'dashboard.businessPlanStructure',
     'modules/dashboard/pages/show-business-plan': 'dashboard.showBusinessPlan',
     'modules/dashboard/pages/show-diagrams/components/diagram-display': 'dashboard.diagramDisplay',
     'modules/dashboard/pages/show-diagrams/components/diagram-generation': 'dashboard.diagramGeneration',

@@ -1,0 +1,108 @@
+{
+  "dashboard": {
+    "businessPlanStructure": {
+      "title": "Business plan structure",
+      "lede": "Many banks and funds impose their own table of contents. Pick the one your reader expects: it decides which sections are generated, and in what order.",
+      "filterLabel": "Filter by reader",
+      "legend": "Structure template",
+      "edited": "Customised",
+      "researched": "Web research",
+      "catalogEmpty": "Every available section is already in the outline.",
+      "audiences": {
+        "all": "All",
+        "bank": "Bank",
+        "investor": "Investor",
+        "grant": "Grant",
+        "internal": "Internal",
+        "general": "General",
+        "custom": "Custom"
+      },
+      "categories": {
+        "opening": "Opening",
+        "company": "The company",
+        "market": "The market",
+        "offer": "The offer",
+        "strategy": "Strategy",
+        "operations": "Operations",
+        "finance": "Finance",
+        "impact": "Impact",
+        "closing": "Appendices"
+      },
+      "meta": {
+        "sections": "{{count}} sections",
+        "pages": "{{range}} pages",
+        "summary": "{{sections}} sections, {{researched}} of them backed by sourced web research."
+      },
+      "actions": {
+        "customize": "Customise this outline",
+        "doneEditing": "Done customising",
+        "reset": "Back to the template",
+        "openCatalog": "Add a section",
+        "closeCatalog": "Close the catalog",
+        "atMax": "Maximum of {{max}} sections reached",
+        "confirm": "Continue",
+        "saving": "Saving",
+        "moveUpAria": "Move {{section}} up",
+        "moveDownAria": "Move {{section}} down",
+        "removeAria": "Remove {{section}}",
+        "lockedAria": "{{section}} cannot be removed"
+      },
+      "live": {
+        "moved": "{{section}} moved to position {{position}} of {{total}}",
+        "added": "{{section}} added at position {{position}} of {{total}}",
+        "removed": "{{section}} removed from the outline",
+        "reset": "Template outline restored"
+      },
+      "errors": {
+        "load": "Could not load the available structures.",
+        "save": "Saving the structure failed. Try again."
+      },
+      "templates": {
+        "idem-standard": {
+          "name": "Idem standard plan",
+          "description": "A full outline, balanced across market, offer and finance. Use it when nobody imposes a format."
+        },
+        "sba-traditional": {
+          "name": "SBA traditional plan",
+          "description": "The nine-part outline recommended by the U.S. Small Business Administration, expected by most lenders."
+        },
+        "bank-financing-9": {
+          "name": "Bank financing file",
+          "description": "The nine blocks of the guides banks hand out: cover, one-page summary, market, strategy, means, forecast."
+        },
+        "bank-credit-file": {
+          "name": "Full credit file",
+          "description": "The long version a credit committee reads: promoter profile, guarantees, risks, repayment plan."
+        },
+        "vc-seed": {
+          "name": "Fundraising (seed, series A)",
+          "description": "Problem, solution, traction, competition, team, exit. What a fund looks for, in the order it looks."
+        },
+        "lean-canvas": {
+          "name": "Extended lean canvas",
+          "description": "A short format to test your assumptions before writing a long file. Around fifteen pages."
+        },
+        "grant-nonprofit": {
+          "name": "Grant application",
+          "description": "Mission, theory of change, beneficiaries, monitoring and evaluation, sustainability. The vocabulary funders use."
+        },
+        "microfinance-ohada": {
+          "name": "Microfinance (OHADA region)",
+          "description": "Promoter profile, means of production, guarantees, local impact and a SYSCOHADA forecast."
+        },
+        "incubator-application": {
+          "name": "Incubator application",
+          "description": "Short and evidence-led: the problem, proof that it works, the team, the next twelve months."
+        },
+        "internal-strategic": {
+          "name": "Internal strategic plan",
+          "description": "No cover page, no sales pitch: market, strategy, means, measurable objectives, risks."
+        },
+        "custom": {
+          "name": "Compose my outline",
+          "description": "Start from a template and adjust: drop what you don't need, add what's missing, set the order."
+        }
+      }
+    }
+  }
+}
