@@ -41,18 +41,28 @@ export const PITCH_DECK_SECTION_NAMES = [
 export const BRANDING_SECTION_NAMES = [
   'Brand Header',
   'Logo Principal',
+  // Absente des marques dont le nom EST le logo : un logotype purement
+  // typographique n'a pas d'icône, et la charte ne montre pas une page vide.
+  'Logomark',
   'Logo Variation Fond Clair',
   'Logo Variation Fond Sombre',
   'Logo Variation Monochrome',
   'Color Palette',
   'Typography',
+  'Typeface Hierarchy',
   // Page ajoutée après la typographie : elle décrit la grammaire qui assemble
   // le logo, la palette et les polices, et que tous les autres livrables
   // (visuels, business plan, deck, site) doivent respecter.
   'Direction Artistique',
+  'Graphic Patterns',
+  'Brand Imagery',
   'Brand Mockup 1',
   'Brand Mockup 2',
   'Brand Mockup 3',
+  'Brand Billboard',
+  'Brand Stationery',
+  'Social Media Creatives',
+  'Social Media Page Banners',
   // Les deux pages d'usage, en fin de charte.
   'Logo Bonnes Pratiques',
   'Usage Couleurs & Typographie',

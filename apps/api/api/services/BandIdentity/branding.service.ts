@@ -73,8 +73,10 @@ import {
 import { COLOR_PALETTE_SECTION_PROMPT } from './prompts/02_color-palette-section.prompt';
 import { TYPOGRAPHY_SECTION_PROMPT } from './prompts/03_typography-section.prompt';
 import { USAGE_GUIDELINES_SECTION_PROMPT } from './prompts/04_usage-guidelines-section.prompt';
+import { VISUAL_EXAMPLES_SECTION_PROMPT } from './prompts/05_visual-examples-section.prompt';
 import { BRAND_FOOTER_SECTION_PROMPT } from './prompts/07_brand-footer-section.prompt';
-import { MOCKUP_CONFIG } from '../../config/mockup.config';
+import { CHARTER_NAMED_MOCKUPS, MOCKUP_CONFIG } from '../../config/mockup.config';
+import { mockupAnalyzerService } from './mockupAnalyzer.service';
 import { SectionModel } from '../../models/section.model';
 import { BrandIdentityBuilder } from '../../models/builders/brandIdentity.builder';
 import {
@@ -865,9 +867,15 @@ export class BrandingService extends GenericService {
 
     // The cached result may be an incomplete brand guide (it is updated after each
     // step), so only short-circuit on it when nothing needs to be (re)generated.
-    // 8 pages historiques + « Direction Artistique » + la seconde page d'usage
-    // (couleurs & typographie) + les mockups.
-    const expectedSectionCount = 10 + MOCKUP_CONFIG.MOCKUP_COUNT;
+    // ── COMBIEN DE PAGES CETTE CHARTE DOIT-ELLE PORTER ? ────────────────
+    //
+    // Le compte était écrit en dur. Il l'a été deux fois de suite, et deux fois
+    // il a fallu y revenir en ajoutant une page — or s'il se trompe d'une
+    // unité, la charte est soit toujours relue depuis le cache alors qu'il lui
+    // manque une page, soit toujours régénérée alors qu'elle est complète.
+    // Il est maintenant DÉRIVÉ, et la page « Logomark » — absente des marques
+    // dont le nom est le logo — y est comptée pour ce qu'elle est.
+    const expectedSectionCount = this.expectedCharterPageCount(project);
     const currentSections = project.analysisResultModel?.branding?.sections || [];
     const skipCacheRead =
       forceRegenerate || targetSections.length > 0 || currentSections.length < expectedSectionCount;
@@ -923,6 +931,28 @@ export class BrandingService extends GenericService {
         toImgSrc(assetUrls?.withText?.monochrome || logoVariations?.withText?.monochrome) ||
         logoUrl;
 
+      // ── L'ICÔNE SEULE ────────────────────────────────────────────────────
+      //
+      // Elle a sa propre page : c'est la déclinaison qui vit sur une favicon,
+      // un avatar, une étiquette cousue — partout où le nom ne tient pas. Une
+      // charte qui ne la montre pas laisse chacun la recadrer lui-même dans le
+      // logo complet, ce qui est exactement ce qu'elle existe pour empêcher.
+      //
+      // Aucun repli sur le logo complet : une marque de type « name » (le nom
+      // EST le logo) n'a pas d'icône, et poser le logo complet sous le titre
+      // « Logomark » serait une page qui ment. La page est alors absente.
+      const iconLightUrl = toImgSrc(
+        assetUrls?.iconOnly?.lightBackground || logoVariations?.iconOnly?.lightBackground
+      );
+      const iconDarkUrl = toImgSrc(
+        assetUrls?.iconOnly?.darkBackground || logoVariations?.iconOnly?.darkBackground
+      );
+      const iconMonoUrl = toImgSrc(
+        assetUrls?.iconOnly?.monochrome || logoVariations?.iconOnly?.monochrome
+      );
+      const iconUrl = toImgSrc(assetUrls?.icon || logo?.iconSvg);
+      const hasLogomark = Boolean(iconLightUrl || iconDarkUrl || iconMonoUrl || iconUrl);
+
       // Define branding steps
       const steps: IPromptStep[] = [
         {
@@ -942,6 +972,20 @@ export class BrandingService extends GenericService {
           stepName: 'Logo Principal',
           hasDependencies: false,
         },
+        // L'icône seule. Présente uniquement quand la marque en a une : un
+        // logotype purement typographique n'a pas de logomark, et une page qui
+        // en montrerait un recadré serait une page fausse.
+        ...(hasLogomark
+          ? [
+              {
+                promptConstant:
+                  LOGO_SYSTEM_SECTION_PROMPT +
+                  `\n\n**SPECIFIC LOGO URL FOR THIS PAGE:**\nUse this URL for the icon-only mark: "${iconLightUrl || iconUrl}"\n\n`,
+                stepName: 'Logomark',
+                hasDependencies: false,
+              },
+            ]
+          : []),
         {
           promptConstant:
             LOGO_VARIATION_PAGE_PROMPT +
@@ -976,12 +1020,31 @@ export class BrandingService extends GenericService {
           stepName: 'Typography',
           hasDependencies: false,
         },
+        // L'échelle, sur sa propre page. Elle tenait dans un coin de la page de
+        // typographie, en petit, sous le spécimen — donc elle ne DÉMONTRAIT
+        // rien, alors que montrer le rapport entre un titre et une légende est
+        // la seule chose qu'une page de hiérarchie ait à faire.
+        {
+          promptConstant: TYPOGRAPHY_SECTION_PROMPT,
+          stepName: 'Typeface Hierarchy',
+          hasDependencies: false,
+        },
         // Placée après les ATOMES (logo, couleur, typographie) parce que son
         // objet est la grammaire qui les assemble, et avant les mockups, qui en
         // sont la première application.
         {
           promptConstant: ART_DIRECTION_SECTION_PROMPT,
           stepName: 'Direction Artistique',
+          hasDependencies: false,
+        },
+        // Les motifs sont le prolongement direct de la direction artistique :
+        // ce sont eux qu'on décline ensuite sur un packaging, un fond de
+        // diapositive ou une bannière quand la page a besoin de matière sans
+        // avoir de photo. Ils sont DESSINÉS par le rendu, en CSS, depuis la
+        // palette — donc reproductibles par le designer qui reprend le book.
+        {
+          promptConstant: ART_DIRECTION_SECTION_PROMPT,
+          stepName: 'Graphic Patterns',
           hasDependencies: false,
         },
       ];
@@ -1009,6 +1072,38 @@ export class BrandingService extends GenericService {
           execute: () => buildMockupPage(i),
         });
       }
+
+      // Les trois supports IMPOSÉS : grand format, papeterie, univers visuel.
+      // Ils suivent les mises en situation choisies par l'analyseur, à des
+      // indices connus — c'est ce qui permet de nommer leur page sans avoir à
+      // reconnaître un support dans la liste rendue.
+      CHARTER_NAMED_MOCKUPS.forEach((named, offset) => {
+        const index = mockupCount + offset + 1;
+        steps.push({
+          promptConstant: '',
+          stepName: named.stepName,
+          hasDependencies: false,
+          execute: () => buildMockupPage(index),
+        });
+      });
+
+      // ── LES DÉCLINAISONS SOCIALES ─────────────────────────────────────────
+      //
+      // Ce ne sont pas des mises en situation : ce sont des CRÉATIONS, composées
+      // par le rendu à la charte exacte — vraies couleurs, vraies polices, vrai
+      // logo, vrais ratios de chaque réseau. Les faire produire par un modèle
+      // d'image donnerait une photographie de post, inutilisable ; les faire
+      // composer par le rendu donne un gabarit que le community manager reprend.
+      steps.push({
+        promptConstant: VISUAL_EXAMPLES_SECTION_PROMPT,
+        stepName: 'Social Media Creatives',
+        hasDependencies: false,
+      });
+      steps.push({
+        promptConstant: VISUAL_EXAMPLES_SECTION_PROMPT,
+        stepName: 'Social Media Page Banners',
+        hasDependencies: false,
+      });
 
       // ── LES DEUX PAGES D'USAGE, EN FIN DE CHARTE ──────────────────────────
       //
@@ -1091,6 +1186,68 @@ export class BrandingService extends GenericService {
           return items.length ? [{ kind: 'swatches', items }] : undefined;
         }
 
+        // ── L'ÉCHELLE, COMPOSÉE À SES TAILLES RÉELLES ──────────────────
+        //
+        // Les degrés sont ceux du DESIGN SYSTEM du document : la page ne peut
+        // donc pas annoncer une hiérarchie que les autres pages ne tiennent
+        // pas. C'est précisément l'erreur qu'un modèle commet ici — il invente
+        // « H1 48 px / H2 32 px » sans avoir jamais vu la page.
+        if (stepName === 'Typeface Hierarchy' && typography) {
+          const display = typography.primaryFont || charterDesignSystem.fonts.display;
+          const body = typography.secondaryFont || charterDesignSystem.fonts.body;
+          const brand = project.name || 'La marque';
+          return [
+            {
+              kind: 'typeScale',
+              levels: [
+                { label: 'Titre', family: display, step: '3xl', weight: 700, sample: brand, usage: 'Ouverture de page' },
+                { label: 'Sous-titre', family: display, step: 'xl', weight: 600, sample: 'Une idée par page', usage: 'Intertitres' },
+                { label: 'Chapô', family: body, step: 'lg', weight: 400, sample: 'La phrase qui énonce le constat', usage: 'Accroche' },
+                { label: 'Texte', family: body, step: 'base', weight: 400, sample: 'Le texte courant du document', usage: 'Corps' },
+                { label: 'Légende', family: body, step: 'xs', weight: 500, sample: 'Mention, note, source', usage: 'Annotations' },
+              ],
+            },
+          ];
+        }
+
+        // ── LES MOTIFS ────────────────────────────────────────────────────
+        //
+        // Le répertoire est tiré du STYLE de direction artistique : un book
+        // suisse sort en filets et en grille, un book rétro en chevrons et en
+        // damier. Sans cela, les quatre mêmes motifs revenaient sur toutes les
+        // marques — exactement le défaut que ces pages existent pour corriger.
+        if (stepName === 'Graphic Patterns' && palette) {
+          const MOTIFS_BY_SURFACE: Record<string, ('stripes' | 'grid' | 'dots' | 'chevron' | 'arcs' | 'checker')[]> = {
+            geometric: ['grid', 'stripes', 'checker', 'dots'],
+            organic: ['arcs', 'dots', 'stripes', 'chevron'],
+            graphic: ['chevron', 'checker', 'stripes', 'arcs'],
+          };
+          // Un répertoire par famille de style, choisi sur le rayon et la
+          // grille du style plutôt que sur son seul identifiant : deux styles
+          // proches doivent partager leur vocabulaire de motifs.
+          const family =
+            charterDesignSystem.radius === 0
+              ? 'geometric'
+              : charterDesignSystem.radius >= 12
+                ? 'organic'
+                : 'graphic';
+          const motifs = MOTIFS_BY_SURFACE[family];
+          const ink = palette.primary || charterDesignSystem.colors.primary;
+          const accent = palette.accent || charterDesignSystem.colors.accent;
+          const ground = charterDesignSystem.colors.surface;
+          return [
+            {
+              kind: 'patternGrid',
+              patterns: [
+                { name: 'Motif principal', motif: motifs[0], ink, ground, note: 'Aplats et fonds de page' },
+                { name: 'Motif secondaire', motif: motifs[1], ink: accent, ground, note: 'Zones de rappel' },
+                { name: 'Trame fine', motif: motifs[2], ink, ground: charterDesignSystem.colors.neutral['100'], note: 'Fonds discrets' },
+                { name: 'Motif inversé', motif: motifs[3], ink: ground, ground: ink, note: 'Sur fond de marque' },
+              ],
+            },
+          ];
+        }
+
         if (stepName === 'Typography' && typography) {
           const specimens = [
             {
@@ -1138,6 +1295,53 @@ export class BrandingService extends GenericService {
           return [{ kind: 'logoDisplay', variants: [{ url: single.url, label: single.label, background: single.background }] }];
         }
 
+        // ── LES DÉCLINAISONS SOCIALES, COMPOSÉES ICI ──────────────────────
+        //
+        // Le fond, l'encre et le ratio ne sont pas demandés au modèle : le fond
+        // vient de la palette, l'encre est CALCULÉE contre lui par le rendu, et
+        // le ratio est celui du réseau. Ce sont les trois choses qu'une
+        // création sociale générée rate — une accroche illisible sur son aplat,
+        // ou une bannière composée en 16:9 pour un emplacement en 4:1.
+        if (stepName === 'Social Media Creatives') {
+          const brand = project.name || 'La marque';
+          return [
+            {
+              kind: 'socialPosts',
+              posts: [
+                { platform: 'Instagram — 1080 × 1080', kicker: 'Annonce', headline: brand, ground: 'primary', logoUrl: darkLogoUrl },
+                { platform: 'LinkedIn — 1200 × 1200', kicker: 'Prise de parole', headline: 'Une idée, une image', ground: 'light', logoUrl: lightLogoUrl },
+                { platform: 'Facebook — 1080 × 1080', kicker: 'Campagne', headline: 'Le message court', ground: 'dark', logoUrl: darkLogoUrl },
+              ],
+            },
+          ];
+        }
+
+        if (stepName === 'Social Media Page Banners') {
+          const brand = project.name || 'La marque';
+          return [
+            {
+              kind: 'socialBanners',
+              banners: [
+                { platform: 'LinkedIn', ratio: '1584 × 396', headline: brand, tagline: 'La promesse, en une ligne', ground: 'primary', logoUrl: darkLogoUrl },
+                { platform: 'X / Twitter', ratio: '1500 × 500', headline: brand, tagline: 'La promesse, en une ligne', ground: 'dark', logoUrl: darkLogoUrl },
+                { platform: 'Facebook', ratio: '820 × 312', headline: brand, tagline: 'La promesse, en une ligne', ground: 'light', logoUrl: lightLogoUrl },
+              ],
+            },
+          ];
+        }
+
+        // L'icône seule, sur ses trois fonds : c'est une page de comparaison,
+        // pas de présentation — une favicon et une étiquette cousue n'ont pas
+        // le même fond, et c'est ce que le lecteur vient vérifier.
+        if (stepName === 'Logomark') {
+          const marks = [
+            { url: iconLightUrl || iconUrl, label: 'Sur fond clair', background: 'light' as const },
+            { url: iconDarkUrl || iconUrl, label: 'Sur fond sombre', background: 'dark' as const },
+            { url: iconMonoUrl || iconUrl, label: 'Monochrome', background: 'neutral' as const },
+          ].filter((mark) => Boolean(mark.url)) as { url: string; label: string; background: 'light' | 'dark' | 'neutral' }[];
+          return marks.length ? [{ kind: 'logoDisplay', variants: marks }] : undefined;
+        }
+
         if (stepName === 'Logo Bonnes Pratiques') {
           const variants = [
             { url: lightLogoUrl, label: 'Sur fond clair', background: 'light' as const },
@@ -1163,6 +1367,15 @@ export class BrandingService extends GenericService {
         'Typography',
         'Logo Bonnes Pratiques',
         'Usage Couleurs & Typographie',
+        // Les pages dont le spécimen est FABRIQUÉ par le code : échelle
+        // typographique, motifs, créations et bannières sociales. Aucune n'a
+        // de raison de passer par une composition libre — leur matière est
+        // exacte, et le modèle n'y écrit qu'une légende.
+        'Logomark',
+        'Typeface Hierarchy',
+        'Graphic Patterns',
+        'Social Media Creatives',
+        'Social Media Page Banners',
         // Les quatre pages de présentation du logo REJOIGNENT le gabarit. Cf.
         // `specimensFor` : laissées libres, elles produisaient des références
         // administratives inventées et, sur la page monochrome, un débordement.
@@ -3843,12 +4056,20 @@ export class BrandingService extends GenericService {
           // existait, mais le tri la repoussait derrière les mockups.
           'Brand Header',
           'Logo Principal',
+          'Logomark',
           'Logo Variation Fond Clair',
           'Logo Variation Fond Sombre',
           'Logo Variation Monochrome',
           'Color Palette',
           'Typography',
+          'Typeface Hierarchy',
           'Direction Artistique',
+          'Graphic Patterns',
+          // L'univers visuel appartient au LANGAGE de la marque, pas à ses
+          // mises en situation : il dit ce qu'on photographie et comment, ce
+          // dont les pages suivantes sont l'application. Il est produit par le
+          // même appel que les mockups, mais il se lit ici.
+          'Brand Imagery',
           // ── LES NOMS DOIVENT CORRESPONDRE EXACTEMENT ────────────────────
           //
           // Cette liste portait « Brand Mockups » au pluriel, alors que les
@@ -3864,6 +4085,10 @@ export class BrandingService extends GenericService {
             { length: MOCKUP_CONFIG.MOCKUP_COUNT },
             (_, index) => `Brand Mockup ${index + 1}`
           ),
+          'Brand Billboard',
+          'Brand Stationery',
+          'Social Media Creatives',
+          'Social Media Page Banners',
           'Logo Bonnes Pratiques',
           'Usage Couleurs & Typographie',
           'Brand Footer',
@@ -4403,6 +4628,36 @@ ${LOGO_EDIT_PROMPT}`;
   }
 
   /**
+   * Nombre de pages que la charte de CE projet doit porter.
+   *
+   * Sert de seuil au cache : en dessous, la charte est incomplète et doit
+   * reprendre. Il suit donc exactement la liste d'étapes construite plus haut,
+   * et la seule page conditionnelle — « Logomark », absente quand la marque n'a
+   * pas d'icône — y est comptée à la même condition.
+   */
+  private expectedCharterPageCount(project: ProjectModel): number {
+    const logo = project.analysisResultModel?.branding?.logo;
+    const hasLogomark = Boolean(
+      logo?.assetUrls?.icon ||
+        logo?.iconSvg ||
+        logo?.assetUrls?.iconOnly?.lightBackground ||
+        logo?.assetUrls?.iconOnly?.darkBackground ||
+        logo?.assetUrls?.iconOnly?.monochrome ||
+        logo?.variations?.iconOnly?.lightBackground ||
+        logo?.variations?.iconOnly?.darkBackground ||
+        logo?.variations?.iconOnly?.monochrome
+    );
+
+    // Couverture, logo principal, 3 déclinaisons, palette, typographie,
+    // hiérarchie, direction artistique, motifs, 2 pages sociales, 2 pages
+    // d'usage : quatorze pages rédigées, plus la logomark quand elle existe.
+    const written = 14 + (hasLogomark ? 1 : 0);
+    // Mises en situation : celles de l'analyseur, plus les trois imposées.
+    const staged = MOCKUP_CONFIG.MOCKUP_COUNT + CHARTER_NAMED_MOCKUPS.length;
+    return written + staged;
+  }
+
+  /**
    * Fabrique les pages de mise en situation de la charte.
    *
    * Les N mockups sortent d'UN seul appel — l'analyseur choisit les supports
@@ -4468,7 +4723,18 @@ ${LOGO_EDIT_PROMPT}`;
         // rendu « photo de stock » par défaut du modèle, étranger au reste de
         // la charte.
         artDirection,
-        logoVariants
+        logoVariants,
+        // Les trois supports NOMMÉS de la charte, dans l'ordre où ses pages les
+        // attendent. Ils sont ajoutés après ceux de l'analyseur, donc leurs
+        // indices suivent `MOCKUP_COUNT`.
+        CHARTER_NAMED_MOCKUPS.map((named, offset) =>
+          mockupAnalyzerService.buildForcedSupport(
+            named.supportType,
+            MOCKUP_CONFIG.MOCKUP_COUNT + offset + 1,
+            industry,
+            'skipLogo' in named ? named.skipLogo : false
+          )
+        )
       );
     };
 

@@ -260,7 +260,11 @@ console.log('\nStructures réellement rendues');
    * Celui-ci le dit. Il ne regarde pas le catalogue : il regarde la table que
    * le rendu consulte réellement.
    */
-  const MIN_STRUCTURES = 3;
+  // Relevé à cinq : une charte compte désormais une vingtaine de pages, et
+  // trois structures y font six pages identiques. Chaque style tire dans sept à
+  // neuf archétypes — le seuil est donc atteignable sans contorsion, et il
+  // empêche qu'un élargissement futur n'ajoute que des en-têtes.
+  const MIN_STRUCTURES = 5;
   let worst = Number.POSITIVE_INFINITY;
   let worstStyle = '';
   const offenders: string[] = [];

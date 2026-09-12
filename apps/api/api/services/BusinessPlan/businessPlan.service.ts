@@ -207,8 +207,9 @@ export class BusinessPlanService extends GenericService {
 
     try {
       // Les dépendances entre sections ne sont PLUS déclarées ici : elles vivent
-      // dans BUSINESS_PLAN_GRAPH (services/agents/deliverable-graph.ts), au même
-      // endroit que celles du deck, validées (cycles, noms inconnus) et
+      // dans le catalogue (`requires`) et sont assemblées par
+      // `buildBusinessPlanGraph` (services/agents/deliverable-graph.ts), filtrées
+      // sur les sections réellement retenues, validées (cycles, noms inconnus) et
       // documentées avec leur coût en latence.
       // PRÉFIXE STABLE — identique aux neuf sections, émis UNE fois en tête de
       // chaque appel. Il portait auparavant la FIN de chaque `promptConstant`,

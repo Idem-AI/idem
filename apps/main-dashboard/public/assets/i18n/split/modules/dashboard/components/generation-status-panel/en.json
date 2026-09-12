@@ -64,15 +64,23 @@
         "branding": {
           "Brand Header": "Brand header",
           "Logo Principal": "Primary logo",
+          "Logomark": "Logomark",
           "Logo Variation Fond Clair": "Logo — light background",
           "Logo Variation Fond Sombre": "Logo — dark background",
           "Logo Variation Monochrome": "Logo — monochrome",
           "Color Palette": "Color palette",
           "Typography": "Typography",
+          "Typeface Hierarchy": "Typeface hierarchy",
           "Direction Artistique": "Art direction",
+          "Graphic Patterns": "Graphic patterns",
+          "Brand Imagery": "Brand imagery",
           "Brand Mockup 1": "Mockup 1",
           "Brand Mockup 2": "Mockup 2",
           "Brand Mockup 3": "Mockup 3",
+          "Brand Billboard": "Billboard",
+          "Brand Stationery": "Stationery",
+          "Social Media Creatives": "Social creatives",
+          "Social Media Page Banners": "Profile banners",
           "Logo Bonnes Pratiques": "Logo usage",
           "Usage Couleurs & Typographie": "Colour & type usage"
         }
