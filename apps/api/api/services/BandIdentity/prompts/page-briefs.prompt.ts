@@ -179,6 +179,57 @@ No verb, no paragraph, no rule.`
 No verb, no paragraph, no rule.`
   ),
 
+  Logomark: specimen(
+    'Name the icon-only mark. Its three grounds are already placed.',
+    `- "lede": where the icon replaces the full logo, 8 words maximum
+  ("Là où le nom ne tient pas").
+- ONE "cards" block, 2 items. Bodies of 6 words maximum, written as LISTS:
+  the placements it is made for (favicon, avatar, étiquette, application), and
+  the size below which it stops being legible.
+No verb, no paragraph, no rule.`
+  ),
+
+  'Typeface Hierarchy': specimen(
+    'Label the scale. Every level is already set at its real size.',
+    `- "lede": how many levels a page may carry, 8 words maximum.
+- ONE "cards" block of EXACTLY 2 items, bodies of 6 words maximum: the rule for
+  jumping from one level to the next, and what a page must never do (skip a
+  level, invent a sixth).
+Never write a size in pixels or points, and never a font name: the specimen is
+composed at the document's real scale, and any figure you add would contradict
+it.`
+  ),
+
+  'Graphic Patterns': specimen(
+    'Label the motifs. The four are already drawn from the brand palette.',
+    `- "lede": what the motifs are for, 8 words maximum ("De la matière quand il
+  n'y a pas d'image").
+- ONE "cards" block, 2 items, bodies of 6 words maximum, written as LISTS: the
+  supports that carry them (packaging, fonds de page, bannières), and the one
+  place they are banned (behind running text).
+No verb, no paragraph, no CSS, no colour value.`
+  ),
+
+  'Social Media Creatives': specimen(
+    'Label the creatives. The three posts are already composed to the charter.',
+    `- "lede": what holds the series together, 8 words maximum.
+- ONE "cards" block, 2 items, bodies of 6 words maximum: the fixed element that
+  makes three posts a series (the logo's anchor), and the one thing that varies
+  between them (the ground).
+Never write a format, a hex code or a hashtag. No caption copy, no marketing
+sentence: these are gabarits, not a campaign.`
+  ),
+
+  'Social Media Page Banners': specimen(
+    'Label the banners. Each is already drawn at its real network ratio.',
+    `- "lede": the trap a profile banner sets, 8 words maximum ("Le centre seul
+  est visible sur mobile").
+- ONE "cards" block, 2 items, bodies of 6 words maximum: the zone that must stay
+  clear of any element (the avatar's corner), and what never goes on a banner
+  (a paragraph, a phone number).
+Never repeat a pixel dimension: the specimen carries them.`
+  ),
+
   'Color Palette': specimen(
     'Show the distribution. The swatches and their exact values are already placed.',
     `- "lede": the distribution in figures, 8 words maximum.
@@ -249,6 +300,11 @@ table and the cards have not already said it.`
  */
 export const CHARTER_PAGE_VOLUMES: Record<string, string> = {
   'Logo Principal': '1',
+  Logomark: '1',
+  'Typeface Hierarchy': '1',
+  'Graphic Patterns': '1',
+  'Social Media Creatives': '1',
+  'Social Media Page Banners': '1',
   'Logo Variation Fond Clair': '1',
   'Logo Variation Fond Sombre': '1',
   'Logo Variation Monochrome': '1',

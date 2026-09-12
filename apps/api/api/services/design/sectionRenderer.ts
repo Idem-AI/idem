@@ -114,10 +114,20 @@ export const LANDSCAPE_SLIDE: PageFormat = {
  * d'unicité ne pouvaient voir : ils comptaient des dimensions que le rendu ne
  * lisait pas.
  *
- * Six structures, réparties de sorte que CHAQUE style en atteigne au moins
- * trois (moyenne 4,1 pour quatre à cinq archétypes). La vérification est
- * automatique — cf. `check:uniqueness`, section « structures réellement
- * rendues ».
+ * Six structures ont d'abord été posées, de sorte que chaque style en atteigne
+ * au moins trois. C'était trop peu : une charte compte désormais une vingtaine
+ * de pages, et six structures dont un style n'en atteint que trois font la même
+ * page six fois. Quatre de plus ont donc été ajoutées — et surtout, chaque
+ * style tire maintenant dans SEPT à NEUF archétypes au lieu de quatre, ce qui
+ * est le vrai facteur limitant : ajouter des structures sans élargir l'espace
+ * de tirage n'aurait rien changé aux pages livrées.
+ *
+ * Les quatre nouvelles ne déplacent pas un en-tête : elles changent la
+ * SILHOUETTE de la page — un bandeau vertical, deux colonnes, un titre en pied,
+ * un cadre. C'est ce qu'on reconnaît d'une double page avant d'avoir lu un mot.
+ *
+ * La vérification est automatique — cf. `check:uniqueness`, section
+ * « structures réellement rendues ».
  */
 export type LandscapeLayout =
   /** En-tête colonne gauche (5/12), contenu à droite (7/12). */
@@ -131,7 +141,21 @@ export type LandscapeLayout =
   /** En-tête centré sur une mesure resserrée, contenu centré dessous. */
   | 'centered'
   /** En-tête dans le quart haut-gauche, contenu pleine largeur dessous. */
-  | 'corner';
+  | 'corner'
+  // ── LES QUATRE STRUCTURES AJOUTÉES ─────────────────────────────────────
+  //
+  // Six structures pour une charte de vingt pages, dont un style n'en
+  // atteignait que trois, c'est la même page vue sept fois. Les quatre
+  // suivantes ne déplacent pas un en-tête : elles changent la SILHOUETTE de la
+  // page — ce qu'on reconnaît d'une double page avant d'avoir lu un mot.
+  /** Bandeau vertical saignant à gauche, titre tourné à 90°. Contenu à droite. */
+  | 'rail'
+  /** En-tête compact en haut, contenu réparti en DEUX colonnes égales. */
+  | 'split'
+  /** Contenu en haut, en-tête ancré en BAS de page : la silhouette inversée. */
+  | 'base'
+  /** Tout est posé dans un cadre tracé, le titre inscrit sur son filet haut. */
+  | 'inset';
 
 export type PageLayout = 'portrait' | LandscapeLayout;
 
@@ -1234,6 +1258,274 @@ function renderLogoDisplay(
   return `<div${style(grid.container)}${atomic}>${cells}</div>`;
 }
 
+
+/**
+ * L'ÉCHELLE TYPOGRAPHIQUE, COMPOSÉE À SA TAILLE RÉELLE.
+ *
+ * Une page « hiérarchie » qui aligne « H1 — 48 px / H2 — 32 px » dans un tableau
+ * ne démontre rien : elle demande au lecteur de se représenter ce qu'elle avait
+ * justement pour tâche de montrer. Chaque niveau est donc composé ICI à la
+ * taille que son degré vaut dans CE document, dans la famille qui le porte.
+ *
+ * Le degré est lu dans `ds.typeScale` : la page ne peut donc pas annoncer une
+ * échelle que le reste du document ne tient pas.
+ */
+function renderTypeScale(block: Extract<Block, { kind: 'typeScale' }>, ctx: Ctx): string {
+  const { ds } = ctx;
+  const rows = block.levels
+    .map((level) => {
+      const size = ds.typeScale[level.step];
+      return `<div${style({
+        display: 'grid',
+        'grid-template-columns': '22mm 1fr',
+        gap: `${snap(ds.spacing)}px`,
+        'align-items': 'baseline',
+        'padding-bottom': `${snap(ds.spacing * 0.5)}px`,
+        'border-bottom': `1px solid ${ds.colors.rule}`,
+        'margin-bottom': `${snap(ds.spacing * 0.5)}px`,
+      })}${atomic}>
+  <div>
+    <div${style({ 'font-size': `${ds.typeScale.xs}px`, 'font-weight': 700, 'text-transform': 'uppercase', 'letter-spacing': '0.12em', color: ctx.roles.highlight })}>${esc(level.label)}</div>
+    <div${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted, 'margin-top': '2px' })}>${size} / ${level.weight}</div>
+  </div>
+  <div>
+    <div${style({
+        'font-family': `'${level.family}', ${DISPLAY_FALLBACK}`,
+        'font-size': `${size}px`,
+        'font-weight': level.weight,
+        'line-height': 1.08,
+        color: ds.colors.ink,
+        // Un spécimen se lit sur UNE ligne : coupé, il cesse de montrer un
+        // rapport de tailles et montre un rapport de longueurs.
+        'white-space': 'nowrap',
+        overflow: 'hidden',
+        'text-overflow': 'ellipsis',
+      })}>${esc(level.sample)}</div>
+    ${
+      level.usage
+        ? `<div${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted, 'margin-top': '2px' })}>${esc(level.usage)}</div>`
+        : ''
+    }
+  </div>
+</div>`;
+    })
+    .join('');
+  return `<div>${rows}</div>`;
+}
+
+/**
+ * LES MOTIFS DE LA MARQUE, DESSINÉS EN CSS.
+ *
+ * Un motif est ce qu'une identité décline ensuite sur un packaging, un fond de
+ * diapositive ou une bannière : il doit donc être REPRODUCTIBLE, pas illustré.
+ * Chacun est ici un `background-image` construit à partir de deux encres de la
+ * charte — copiable tel quel par le designer qui reprend le document.
+ */
+function patternCss(motif: string, ink: string, ground: string): Record<string, string> {
+  switch (motif) {
+    case 'stripes':
+      return {
+        'background-color': ground,
+        'background-image': `repeating-linear-gradient(45deg, ${ink} 0 6px, transparent 6px 16px)`,
+      };
+    case 'grid':
+      return {
+        'background-color': ground,
+        'background-image': `linear-gradient(${ink} 1px, transparent 1px), linear-gradient(90deg, ${ink} 1px, transparent 1px)`,
+        'background-size': '12px 12px',
+      };
+    case 'dots':
+      return {
+        'background-color': ground,
+        'background-image': `radial-gradient(${ink} 1.6px, transparent 1.7px)`,
+        'background-size': '10px 10px',
+      };
+    case 'chevron':
+      return {
+        'background-color': ground,
+        'background-image': `repeating-linear-gradient(135deg, ${ink} 0 4px, transparent 4px 12px), repeating-linear-gradient(45deg, ${ink} 0 4px, transparent 4px 12px)`,
+      };
+    case 'arcs':
+      return {
+        'background-color': ground,
+        'background-image': `radial-gradient(circle at 0 100%, transparent 12px, ${ink} 12px, ${ink} 14px, transparent 14px)`,
+        'background-size': '20px 20px',
+      };
+    case 'checker':
+    default:
+      return {
+        'background-color': ground,
+        'background-image': `linear-gradient(45deg, ${ink} 25%, transparent 25% 75%, ${ink} 75%), linear-gradient(45deg, ${ink} 25%, transparent 25% 75%, ${ink} 75%)`,
+        'background-size': '16px 16px',
+        'background-position': '0 0, 8px 8px',
+      };
+  }
+}
+
+function renderPatternGrid(block: Extract<Block, { kind: 'patternGrid' }>, ctx: Ctx): string {
+  const { ds } = ctx;
+  const gap = snap(ds.spacing);
+  const grid = subgridRows(2, block.patterns.length, gap);
+  const cells = block.patterns
+    .map(
+      (pattern) => `<div${style(grid.cell)}>
+  <div${style({
+        ...patternCss(pattern.motif, pattern.ink, pattern.ground),
+        height: '34mm',
+        'border-radius': `${ds.radius}px`,
+        border: `1px solid ${ds.colors.rule}`,
+      })}></div>
+  <div>
+    <div${style({ 'font-size': `${ds.typeScale.sm}px`, 'font-weight': 600, color: ds.colors.ink })}>${esc(pattern.name)}</div>
+    ${
+      pattern.note
+        ? `<div${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted, 'line-height': 1.35 })}>${esc(pattern.note)}</div>`
+        : ''
+    }
+  </div>
+</div>`
+    )
+    .join('');
+  return `<div${style(grid.container)}${atomic}>${cells}</div>`;
+}
+
+/**
+ * Les quatre fonds admis par une création de marque, résolus depuis la charte.
+ *
+ * L'encre est CALCULÉE contre le fond, jamais choisie : une accroche illisible
+ * sur son aplat est le défaut le plus courant d'un visuel social généré, et il
+ * est purement mécanique.
+ */
+function socialGround(
+  ground: 'primary' | 'accent' | 'dark' | 'light',
+  ctx: Ctx
+): { bg: string; ink: string; sub: string } {
+  const { ds } = ctx;
+  const bg =
+    ground === 'primary'
+      ? ds.colors.primary
+      : ground === 'accent'
+        ? ds.colors.accent
+        : ground === 'dark'
+          ? ds.colors.neutral['950']
+          : ds.colors.neutral['50'];
+  const ink = contrastRatio('#ffffff', bg) >= 4.5 ? '#ffffff' : '#111111';
+  return { bg, ink, sub: ink === '#ffffff' ? 'rgba(255,255,255,0.72)' : 'rgba(0,0,0,0.62)' };
+}
+
+/**
+ * CRÉATIONS SOCIALES, au carré.
+ *
+ * Elles ne sont pas des mises en situation : ce sont des posts RÉELS, composés
+ * à la charte, que le community manager reprend tels quels. D'où le carré
+ * strict (`aspect-ratio: 1`), la hiérarchie à deux niveaux et le logo posé dans
+ * le même angle sur les trois — trois compositions qui ne partageraient pas
+ * leur ancrage ne feraient pas une série.
+ */
+function renderSocialPosts(block: Extract<Block, { kind: 'socialPosts' }>, ctx: Ctx): string {
+  const { ds } = ctx;
+  const gap = snap(ds.spacing);
+  const grid = subgridRows(2, block.posts.length, gap);
+  const cells = block.posts
+    .map((post) => {
+      const { bg, ink, sub } = socialGround(post.ground, ctx);
+      return `<div${style(grid.cell)}>
+  <div${style({
+        'background-color': bg,
+        color: ink,
+        'aspect-ratio': '1 / 1',
+        'border-radius': `${ds.radius}px`,
+        border: `1px solid ${ds.colors.rule}`,
+        padding: `${snap(ds.spacing * 1.1)}px`,
+        display: 'flex',
+        'flex-direction': 'column',
+        'justify-content': 'space-between',
+        overflow: 'hidden',
+      })}>
+    <div${style({ 'font-size': `${ds.typeScale.xs}px`, 'text-transform': 'uppercase', 'letter-spacing': '0.16em', color: sub })}>${esc(post.kicker ?? post.platform)}</div>
+    <div${style({
+        'font-family': `'${ds.fonts.display}', ${DISPLAY_FALLBACK}`,
+        'font-size': `${ds.typeScale.xl}px`,
+        'font-weight': 700,
+        'line-height': 1.05,
+        'letter-spacing': '-0.02em',
+      })}>${esc(post.headline)}</div>
+    ${
+      post.logoUrl
+        ? `<img src="${esc(post.logoUrl)}" alt=""${style({ height: '7mm', width: 'auto', 'align-self': 'flex-start', 'object-fit': 'contain' })}>`
+        : `<div${style({ width: '14mm', height: '2px', 'background-color': ink })}></div>`
+    }
+  </div>
+  <div${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted })}>${esc(post.platform)}</div>
+</div>`;
+    })
+    .join('');
+  return `<div${style(grid.container)}${atomic}>${cells}</div>`;
+}
+
+/**
+ * BANNIÈRES DE PROFIL, au ratio réel du réseau.
+ *
+ * Le ratio n'est pas décoratif : une bannière LinkedIn est un 4:1, et une
+ * composition qui tient en 16:9 y perd la moitié de sa hauteur. La tuile est
+ * donc dessinée au ratio annoncé, et le chiffre est affiché à côté — c'est ce
+ * qu'un designer vient chercher sur cette page.
+ */
+function renderSocialBanners(
+  block: Extract<Block, { kind: 'socialBanners' }>,
+  ctx: Ctx
+): string {
+  const { ds } = ctx;
+  const gap = snap(ds.spacing);
+  return `<div${style({ display: 'grid', gap: `${gap}px` })}${atomic}>${block.banners
+    .map((banner) => {
+      const { bg, ink, sub } = socialGround(banner.ground, ctx);
+      // Le ratio est donné pour l'humain (« 1584 × 396 ») : on en tire la
+      // proportion réelle quand elle est lisible, et on retombe sur un 4:1
+      // sinon — jamais sur une hauteur arbitraire.
+      const dims = banner.ratio.match(/(\d+)\s*[×x]\s*(\d+)/);
+      const ratio = dims ? `${dims[1]} / ${dims[2]}` : '4 / 1';
+      return `<div>
+  <div${style({
+        'background-color': bg,
+        color: ink,
+        'aspect-ratio': ratio,
+        'border-radius': `${ds.radius}px`,
+        border: `1px solid ${ds.colors.rule}`,
+        padding: `${snap(ds.spacing)}px ${snap(ds.spacing * 1.4)}px`,
+        display: 'flex',
+        'align-items': 'center',
+        gap: `${snap(ds.spacing * 1.2)}px`,
+        overflow: 'hidden',
+      })}>
+    ${
+      banner.logoUrl
+        ? `<img src="${esc(banner.logoUrl)}" alt=""${style({ height: '9mm', width: 'auto', 'object-fit': 'contain', 'flex-shrink': '0' })}>`
+        : ''
+    }
+    <div${style({ 'min-width': '0' })}>
+      <div${style({
+        'font-family': `'${ds.fonts.display}', ${DISPLAY_FALLBACK}`,
+        'font-size': `${ds.typeScale.lg}px`,
+        'font-weight': 700,
+        'line-height': 1.1,
+        'white-space': 'nowrap',
+        overflow: 'hidden',
+        'text-overflow': 'ellipsis',
+      })}>${esc(banner.headline)}</div>
+      ${
+        banner.tagline
+          ? `<div${style({ 'font-size': `${ds.typeScale.xs}px`, color: sub, 'white-space': 'nowrap', overflow: 'hidden', 'text-overflow': 'ellipsis' })}>${esc(banner.tagline)}</div>`
+          : ''
+      }
+    </div>
+  </div>
+  <div${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted, 'margin-top': '3px' })}>${esc(banner.platform)} — ${esc(banner.ratio)} px</div>
+</div>`;
+    })
+    .join('')}</div>`;
+}
+
 /**
  * Références numérotées, en pied de section.
  *
@@ -1331,6 +1623,14 @@ function renderBlock(block: Block, ctx: Ctx): string {
       return renderTypeSpecimen(block, ctx);
     case 'logoDisplay':
       return renderLogoDisplay(block, ctx);
+    case 'typeScale':
+      return renderTypeScale(block, ctx);
+    case 'patternGrid':
+      return renderPatternGrid(block, ctx);
+    case 'socialPosts':
+      return renderSocialPosts(block, ctx);
+    case 'socialBanners':
+      return renderSocialBanners(block, ctx);
     case 'sources':
       return renderSources(block, ctx);
     default:
@@ -1594,6 +1894,13 @@ const HEADER_SHARE: Record<LandscapeLayout, number> = {
   banner: 1,
   centered: 0.62,
   corner: 0.5,
+  // Le titre du rail est TOURNÉ : sa justification n'est pas la largeur de la
+  // page mais sa HAUTEUR. 0,62 de la largeur utile d'une diapositive vaut à peu
+  // près la hauteur utile — c'est la mesure que l'ajusteur doit recevoir.
+  rail: 0.62,
+  split: 1,
+  base: 1,
+  inset: 0.7,
 };
 
 export const ARCHETYPE_LANDSCAPE: Record<string, LandscapeLayout> = {
@@ -1609,6 +1916,16 @@ export const ARCHETYPE_LANDSCAPE: Record<string, LandscapeLayout> = {
   J: 'centered',
   K: 'corner',
   L: 'side',
+  // Les six archétypes ajoutés portent chacun une des quatre structures
+  // nouvelles. Deux d'entre elles en reçoivent deux, avec des en-têtes
+  // délibérément opposés — une page au rail muet et une page au rail chiffré
+  // ne se lisent pas de la même façon.
+  M: 'rail',
+  N: 'split',
+  O: 'base',
+  P: 'inset',
+  Q: 'rail',
+  R: 'split',
 };
 
 const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
@@ -1802,10 +2119,170 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
 </div>`,
     };
   },
+
+  // ── M — RAIL SILENCIEUX ───────────────────────────────────────────────
+  //
+  // Le titre court le long du bord gauche, tourné, sur un bandeau de couleur
+  // qui saigne du haut au bas de la page. Aucune autre structure ne pose son
+  // titre VERTICALEMENT : c'est ce qui rend cette page reconnaissable à un
+  // mètre, avant qu'on en ait lu un mot.
+  M: (content, ctx) => {
+    // ── LE RAIL N'EXISTE QU'EN PAYSAGE ──────────────────────────────────
+    //
+    // En portrait, la page n'est pas coupée verticalement : il n'y a donc pas
+    // de bandeau, et l'encre `onBand` s'y poserait sur le fond de page — un
+    // titre blanc sur une page blanche. L'archétype retombe sur un en-tête
+    // ordinaire, aux couleurs de la page.
+    if (!ctx.landscape) {
+      return {
+        header: `<div${style({ 'margin-bottom': `${ctx.ds.spacing * 2}px`, 'border-left': `6px solid ${ctx.roles.highlight}`, 'padding-left': `${snap(ctx.ds.spacing)}px` })}>${renderKicker(content, ctx, ctx.roles.highlight)}${renderTitle(content, ctx, ctx.roles.heading)}${renderLede(content, ctx, ctx.ds.colors.inkMuted)}</div>`,
+      };
+    }
+    return {
+    header: `<div${style({
+      display: 'flex',
+      'flex-direction': 'column',
+      'justify-content': 'flex-end',
+      height: '100%',
+    })}>
+  <div${style({
+      'writing-mode': 'vertical-rl',
+      transform: 'rotate(180deg)',
+      'font-family': `'${ctx.ds.fonts.display}', ${DISPLAY_FALLBACK}`,
+      'font-size': `${ctx.ds.typeScale.xl}px`,
+      'font-weight': 700,
+      'letter-spacing': '-0.01em',
+      'line-height': 1,
+      color: ctx.roles.onBand,
+      margin: 0,
+    })}>${esc(content.title)}</div>
+</div>`,
+    };
+  },
+
+  // ── N — DEUX COLONNES ─────────────────────────────────────────────────
+  //
+  // En-tête compact en haut, contenu réparti en deux colonnes ÉGALES. La
+  // différence avec `stacked` n'est pas cosmétique : là, un bloc pleine largeur
+  // reste pleine largeur ; ici, tout se range en deux colonnes, et la page a la
+  // densité d'une double page de magazine.
+  N: (content, ctx) => ({
+    header: `<div${style({
+      display: 'flex',
+      'align-items': 'baseline',
+      'justify-content': 'space-between',
+      gap: `${ctx.ds.spacing}px`,
+      'margin-bottom': `${snap(ctx.ds.spacing * 1.5)}px`,
+      'padding-bottom': `${snap(ctx.ds.spacing * 0.75)}px`,
+      'border-bottom': `2px solid ${ctx.roles.heading}`,
+    })}>
+  <div${style({ 'min-width': '0' })}>${renderTitle(content, ctx, ctx.roles.heading)}</div>
+  <div${style({ 'font-size': `${ctx.ds.typeScale.xs}px`, 'text-transform': 'uppercase', 'letter-spacing': '0.16em', color: ctx.roles.highlight, 'white-space': 'nowrap' })}>${esc(content.kicker ?? '')}</div>
+</div>${renderLede(content, ctx, ctx.ds.colors.inkMuted)}`,
+  }),
+
+  // ── O — TITRE EN PIED ─────────────────────────────────────────────────
+  //
+  // La silhouette inversée : le contenu occupe le haut, le titre ferme la page.
+  // Une page se lit de haut en bas, donc placer son titre en bas en fait une
+  // LÉGENDE de ce qui précède — c'est la structure d'une planche, et elle
+  // convient exactement aux pages qui montrent avant de nommer.
+  O: (content, ctx) => ({
+    header: `<div${style({
+      'margin-top': `${snap(ctx.ds.spacing * 1.5)}px`,
+      'padding-top': `${snap(ctx.ds.spacing)}px`,
+      'border-top': `3px solid ${ctx.roles.heading}`,
+      display: 'grid',
+      'grid-template-columns': '1fr auto',
+      gap: `${ctx.ds.spacing}px`,
+      'align-items': 'end',
+    })}>
+  <div${style({ 'min-width': '0' })}>${renderTitle(content, ctx, ctx.roles.heading)}${renderLede(content, ctx, ctx.ds.colors.inkMuted)}</div>
+  <div${style({ 'font-size': `${ctx.ds.typeScale['2xl']}px`, 'font-weight': 900, 'line-height': 0.8, color: ctx.roles.highlight })}>${String(ctx.options.index ?? 1).padStart(2, '0')}</div>
+</div>`,
+  }),
+
+  // ── P — PLANCHE ENCADRÉE ──────────────────────────────────────────────
+  //
+  // Toute la page est une planche : un filet la borde, et le titre est INSCRIT
+  // dessus, en petit, comme la légende gravée d'une planche d'atlas. Le contenu
+  // respire à l'intérieur du cadre.
+  P: (content, ctx) => ({
+    header: `<div${style({ 'margin-bottom': `${snap(ctx.ds.spacing * 1.5)}px` })}>
+  <div${style({
+      display: 'inline-block',
+      'background-color': ctx.roles.ground,
+      padding: `0 ${snap(ctx.ds.spacing * 0.75)}px`,
+      'margin-left': `-${snap(ctx.ds.spacing * 0.75)}px`,
+      'font-family': `'${ctx.ds.fonts.display}', ${DISPLAY_FALLBACK}`,
+      'font-size': `${ctx.ds.typeScale.lg}px`,
+      'font-weight': 600,
+      'text-transform': 'uppercase',
+      'letter-spacing': '0.18em',
+      color: ctx.roles.heading,
+    })}>${esc(content.title)}</div>
+  ${renderLede(content, ctx, ctx.ds.colors.inkMuted)}
+</div>`,
+    rootInsetMm: 10,
+    backdrop: `<div${style({ position: 'absolute', inset: '9mm', border: `2px solid ${ctx.roles.highlight}`, 'pointer-events': 'none' })}></div>`,
+  }),
+
+  // ── Q — RAIL CHIFFRÉ ──────────────────────────────────────────────────
+  //
+  // Le même rail, mais il porte le NUMÉRO de la page en grand et le titre en
+  // petit sous lui. Deux pages au rail ne se confondent donc pas : l'une est
+  // muette et monumentale, l'autre est indexée.
+  Q: (content, ctx) => {
+    // Même raison qu'en « M » : sans bandeau, pas d'encre de bandeau.
+    if (!ctx.landscape) {
+      return {
+        header: `<div${style({ display: 'grid', 'grid-template-columns': '20mm 1fr', gap: `${ctx.ds.spacing}px`, 'align-items': 'start', 'margin-bottom': `${ctx.ds.spacing * 2}px` })}>
+  <div${style({ 'font-size': `${ctx.ds.typeScale['2xl']}px`, 'font-weight': 900, 'line-height': 0.8, color: ctx.roles.highlight })}>${String(ctx.options.index ?? 1).padStart(2, '0')}</div>
+  <div>${renderKicker(content, ctx, ctx.ds.colors.inkMuted)}${renderTitle(content, ctx, ctx.roles.heading)}${renderLede(content, ctx, ctx.ds.colors.inkMuted)}</div>
+</div>`,
+      };
+    }
+    return {
+    header: `<div${style({ display: 'flex', 'flex-direction': 'column', 'justify-content': 'space-between', height: '100%' })}>
+  <div${style({ 'font-size': `${ctx.ds.typeScale['3xl']}px`, 'font-weight': 900, 'line-height': 0.8, color: ctx.roles.onBand })}>${String(ctx.options.index ?? 1).padStart(2, '0')}</div>
+  <div${style({
+      'writing-mode': 'vertical-rl',
+      'font-size': `${ctx.ds.typeScale.sm}px`,
+      'font-weight': 700,
+      'text-transform': 'uppercase',
+      'letter-spacing': '0.24em',
+      color: ctx.roles.onBand,
+    })}>${esc(content.title)}</div>
+</div>`,
+    };
+  },
+
+  // ── R — MANCHETTE À DEUX COLONNES ─────────────────────────────────────
+  //
+  // Deux colonnes également, mais introduites par un titre CENTRÉ et un filet
+  // fin de part et d'autre : le registre du recueil plutôt que celui du
+  // magazine.
+  R: (content, ctx) => ({
+    header: `<div${style({ 'text-align': 'center', 'margin-bottom': `${snap(ctx.ds.spacing * 1.5)}px` })}>
+  ${renderKicker(content, ctx, ctx.roles.highlight)}
+  ${renderTitle(content, ctx, ctx.roles.heading)}
+  <div${style({ width: '100%', height: '1px', 'background-color': ctx.ds.colors.rule, margin: `${snap(ctx.ds.spacing)}px 0 0` })}></div>
+</div>`,
+  }),
 };
 
 /** Archétype de repli : un identifiant inconnu ne doit jamais perdre une page. */
 const DEFAULT_ARCHETYPE = 'A';
+
+/**
+ * Largeur du bandeau vertical de la structure `rail`, en mm.
+ *
+ * Fixe, et non une fraction de la grille : le titre y est TOURNÉ, donc sa
+ * justification est la hauteur de la page et sa largeur ne dépend que du corps
+ * du texte. 26 mm portent confortablement un titre au degré `xl` et le numéro
+ * de page de l'archétype « Q ».
+ */
+const RAIL_MM = 26;
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1942,6 +2419,12 @@ export function renderSection(
     banner: 0.24,
     centered: 0.24,
     corner: 0.24,
+    // Le titre du rail court le long du bord : il ne dispute sa hauteur à
+    // personne, comme les deux dispositions latérales.
+    rail: 0.45,
+    split: 0.22,
+    base: 0.22,
+    inset: 0.22,
   };
   // La borne ne vaut que pour une page à hauteur FIXE. Un document paginé n'a
   // pas de hauteur à répartir : le paginateur lui donne les pages qu'il faut.
@@ -1969,6 +2452,18 @@ export function renderSection(
   ctx.contentWidthPx -= 2 * insetMm * MM_TO_PX;
   if (landscape && (layout === 'side' || layout === 'side-reverse')) {
     ctx.contentWidthPx = ctx.contentWidthPx * (7 / 12) - snap(ctx.ds.spacing * 2);
+  }
+  // Le RAIL prend une bande fixe sur le bord, pas une fraction de la grille :
+  // son titre est tourné, donc sa largeur ne dépend pas de la longueur du
+  // texte. Les blocs perdent cette bande plus la gouttière.
+  if (landscape && layout === 'rail') {
+    ctx.contentWidthPx -= (RAIL_MM + 6) * MM_TO_PX;
+  }
+  // Deux colonnes égales : chaque bloc n'a plus que la moitié de la largeur,
+  // gouttière déduite. L'ignorer ferait composer les chiffres-clés et les
+  // spécimens pour une colonne deux fois trop large.
+  if (landscape && (layout === 'split')) {
+    ctx.contentWidthPx = ctx.contentWidthPx / 2 - snap(ctx.ds.spacing);
   }
   // Réserve : l'estimation d'une largeur de signe reste une estimation, et un
   // dépassement d'un cheveu se voit — deux chiffres qui se touchent — alors
@@ -2186,9 +2681,75 @@ ${blockGrid(gridded, 12)}`
                 // que 332 px au titre, là où l'ajusteur en suppose 430.
                 `<div${style({ 'max-width': `${Math.round(HEADER_SHARE.corner * 100)}%` })}>${chrome.header}</div>
 ${blockGrid(gridded, 12)}`
-              : // `stacked` : en-tête pleine largeur, contenu dans la grille.
-                `${chrome.header}
+              : layout === 'split'
+                ? // DEUX COLONNES ÉGALES. Les blocs ne sont plus rangés dans la
+                  // grille à douze colonnes : ils coulent dans deux colonnes,
+                  // et c'est le navigateur qui équilibre. Un bloc insécable
+                  // (`break-inside: avoid`) n'y est jamais coupé en deux.
+                  `${chrome.header}
+<div${style({ 'column-count': 2, 'column-gap': `${snap(ctx.ds.spacing * 2)}px`, 'column-fill': 'balance' })}>
+${blocks
+  .map(
+    (block) =>
+      `<div${style({ 'break-inside': 'avoid', 'page-break-inside': 'avoid' })}>${block}</div>`
+  )
+  .join('\n')}
+</div>`
+                : layout === 'base'
+                  ? // TITRE EN PIED : le contenu occupe le haut, l'en-tête
+                    // ferme la page. `margin-top:auto` le pousse en bas quelle
+                    // que soit la hauteur réellement occupée par les blocs.
+                    `${blockGrid(gridded, 12)}
+<div${style({ 'margin-top': 'auto' })}>${chrome.header}</div>`
+                  : layout === 'inset'
+                    ? // PLANCHE ENCADRÉE : le cadre est posé par le `backdrop`
+                      // de l'archétype, le retrait par `rootInsetMm`. Ici, le
+                      // flux ordinaire — c'est le cadre qui fait la page.
+                      `${chrome.header}
+${blockGrid(gridded, 12)}`
+                    : // `stacked` : en-tête pleine largeur, contenu dans la grille.
+                      `${chrome.header}
 ${blockGrid(gridded, 12)}`;
+
+    // ── `rail` : LA PAGE EST COUPÉE VERTICALEMENT ────────────────────────
+    //
+    // Le bandeau est POSITIONNÉ, pas posé dans le flux. Une première version le
+    // faisait saigner à coups de marges négatives, comme le bandeau horizontal
+    // de « B » : sur un bord VERTICAL, la marge négative basse pousse l'élément
+    // dans la marge de page, et `check:fit` a mesuré 52,9 px de débordement —
+    // exactement la marge basse — sur les deux archétypes qui l'emploient.
+    //
+    // En `position: absolute`, le bandeau est hors flux : il court d'un bord à
+    // l'autre sans rien pousser, comme le cadre de l'archétype « J ». Le
+    // contenu, lui, se décale par le PADDING GAUCHE de la racine — visible du
+    // paginateur, contrairement à un conteneur intermédiaire.
+    if (layout === 'rail') {
+      const railPad = snap(ctx.ds.spacing);
+      return `${fontLinks(ctx.ds)}<div${style({
+        ...rootStyle,
+        display: 'flex',
+        'flex-direction': 'column',
+        padding: `${page.padding} ${page.padding} ${page.padding} ${RAIL_MM + sideInset + 6}mm`,
+      })}>
+${chrome.backdrop ?? ''}
+<div${style({
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: `${RAIL_MM}mm`,
+        'background-color': ctx.roles.band,
+        color: ctx.roles.onBand,
+        padding: `${page.padding} ${railPad}px`,
+        'box-sizing': 'border-box',
+        overflow: 'hidden',
+      })}>${chrome.header}</div>
+<div${style({ flex: '1 1 auto', 'min-height': 0, ...distribution })}>
+${blockGrid(gridded, 12)}
+</div>
+${footer}
+</div>`;
+    }
 
     // `banner` : l'en-tête est un aplat qui SAIGNE. Sa marge négative doit
     // s'annuler contre la marge de page, ce qui suppose qu'il y soit collé —
@@ -2268,6 +2829,24 @@ ${footer}
  * paragraphes. Perdre un paragraphe est un moindre mal ; perdre le tableau qui
  * le suivait ne l'est pas.
  */
+/**
+ * Blocs dont la HAUTEUR dépend de la largeur de leur colonne.
+ *
+ * Ce sont ceux faits de texte au fil : rétrécir leur colonne les fait descendre
+ * d'autant. Tous les autres — nuanciers, spécimens, déclinaisons de logo,
+ * motifs, créations sociales, chiffres-clés, graphiques — portent une hauteur
+ * posée en millimètres ou un ratio, que l'étroitesse ne change pas.
+ */
+const REFLOWING_BLOCKS: ReadonlySet<string> = new Set([
+  'prose',
+  'cards',
+  'table',
+  'quote',
+  'timeline',
+  'assumption',
+  'sources',
+]);
+
 function fitToPage(
   blocks: Block[],
   page: PageFormat,
@@ -2309,6 +2888,11 @@ function fitToPage(
   // en-tête : il prend les 5/12 de la LARGEUR. On retire donc la colonne, pas
   // le bandeau.
   const lateral = layout === 'side' || layout === 'side-reverse';
+  // Le RAIL est latéral lui aussi — son titre est tourné, il ne coûte donc
+  // aucune hauteur — mais il ne prend qu'une bande de 26 mm sur 269, pas les
+  // 5/12 d'une colonne. Le traiter comme `side` aurait écarté un bloc sur trois
+  // pour de la place qui existait.
+  const railed = layout === 'rail';
 
   // Les quatre dispositions EMPILÉES posent l'en-tête au-dessus des blocs, mais
   // il n'y coûte pas la même hauteur partout : ce qui varie, c'est la largeur
@@ -2322,10 +2906,44 @@ function fitToPage(
   // des débordements MESURÉS par `check:fit` lors de l'ajout des structures
   // (514 px pour `centered`, 8 à 53 px pour `corner`), puis vérifiés par lui.
   const headingCost =
-    layout === 'centered' ? heading * 1.35 : layout === 'corner' ? heading * 1.5 : heading;
+    layout === 'centered'
+      ? heading * 1.35
+      : layout === 'corner'
+        ? heading * 1.5
+        : // `split` et `base` posent un en-tête COMPACT : un titre sur une
+          // ligne, un filet, et c'est tout.
+          layout === 'split' || layout === 'base'
+          ? heading * 0.85
+          : // `inset` n'a pas d'en-tête au sens ordinaire : son titre est une
+            // LÉGENDE inscrite sur le cadre, une ligne en petites capitales.
+            // Lui compter le coût d'un titre pleine page écartait un bloc sur
+            // trois d'une page qui avait la place de le porter.
+            layout === 'inset'
+            ? heading * 0.7
+            : heading;
 
-  const area = lateral ? capacityRatio * (7 / 12) : capacityRatio;
-  const chrome = lateral ? footer : headingCost + footer;
+  // ── CE QU'UNE COLONNE ÉTROITE COÛTE, ET À QUI ────────────────────────────
+  //
+  // Le budget retranchait la LARGEUR perdue à la SURFACE disponible : en
+  // disposition latérale, la page ne valait plus que 7/12 d'elle-même. C'est
+  // juste pour du texte — une colonne deux fois plus étroite le fait descendre
+  // deux fois plus bas — et faux pour tout le reste.
+  //
+  // Un nuancier fait 26 mm de haut, une déclinaison de logo 32 mm, une tuile de
+  // motif 34 mm : leur hauteur est FIXE, et elle ne change pas quand la colonne
+  // rétrécit. Les compter comme du texte revenait à leur facturer une hauteur
+  // qu'ils ne prennent pas — et c'est précisément ce dont une charte est faite.
+  //
+  // Mesuré avant correction : une page portant un nuancier, un spécimen
+  // typographique et une déclinaison de logo — 0,45 page de contenu pour un
+  // budget de 0,39 — perdait son logo, sur une diapositive qui avait la place.
+  //
+  // Le budget garde donc la HAUTEUR pleine de la page, et c'est la matière qui
+  // REFLUE qui paie l'étroitesse de sa colonne.
+  const widthFraction = lateral ? 7 / 12 : railed ? 0.88 : layout === 'inset' ? 0.92 : 1;
+  const reflowPenalty = 1 / widthFraction;
+  const area = capacityRatio;
+  const chrome = lateral || railed ? footer : headingCost + footer;
 
   // Marge de sûreté : l'estimation ignore les retours à la ligne, la casse et
   // les polices réelles. 10 % de réserve évitent le débordement d'un cheveu.
@@ -2344,9 +2962,20 @@ function fitToPage(
   // Les quatre dispositions empilées rangent leurs blocs dans la grille à douze
   // colonnes ; les latérales les posent pleine largeur d'une colonne des 7/12,
   // où deux demi-blocs n'auraient plus de place pour respirer.
-  const spans =
-    !lateral && layout !== 'portrait'
-      ? packRow(blocks).map((entry) => entry.span)
+  // Le rail range ses blocs dans la grille à douze colonnes : sa colonne de
+  // contenu est pleine largeur moins le bandeau.
+  const packed = !lateral && layout !== 'portrait' && layout !== 'split';
+  const spans: (6 | 12)[] = packed
+    ? packRow(blocks).map((entry) => entry.span)
+    : // ── `split` : TOUS les blocs sont à demi-largeur ────────────────────
+      //
+      // Ils coulent dans deux colonnes équilibrées : deux blocs voisins se
+      // retrouvent donc côte à côte, et leur rangée ne coûte que la hauteur du
+      // plus haut. Les compter pleine largeur, comme une disposition latérale,
+      // revenait à supposer que la page n'a qu'une colonne — elle en a deux, et
+      // un bloc sur quatre était écarté pour de la place qui existait.
+      layout === 'split'
+      ? blocks.map(() => 6 as const)
       : blocks.map(() => 12 as const);
 
   /**
@@ -2356,12 +2985,21 @@ function fitToPage(
    * haut de la paire, porté par le PREMIER des deux — le second est alors
    * gratuit, puisqu'il tient dans la hauteur déjà payée.
    */
+  /**
+   * Poids d'un bloc DANS CETTE COLONNE.
+   *
+   * Seule la matière qui reflue paie l'étroitesse : un paragraphe descend
+   * d'autant plus bas que sa colonne est étroite, un nuancier garde ses 26 mm.
+   */
+  const weigh = (block: Block): number =>
+    estimateBlockWeight(block) * (REFLOWING_BLOCKS.has(block.kind) ? reflowPenalty : 1);
+
   const rowCost = (index: number): number => {
-    const weight = estimateBlockWeight(blocks[index]);
+    const weight = weigh(blocks[index]);
     if (spans[index] === 12) return weight;
     // Second d'une paire : sa rangée est déjà payée.
     if (index > 0 && spans[index - 1] === 6) return 0;
-    const partner = spans[index + 1] === 6 ? estimateBlockWeight(blocks[index + 1]) : 0;
+    const partner = spans[index + 1] === 6 ? weigh(blocks[index + 1]) : 0;
     return Math.max(weight, partner);
   };
 

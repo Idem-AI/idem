@@ -18,6 +18,15 @@ export interface SelectedMockupSupport {
   priority: 'primary' | 'secondary';
   mockupIndex: number;
   industryContext: string;
+  /**
+   * Composer la scène SANS y incruster le logo.
+   *
+   * Une seule page l'emploie : « Brand Imagery », dont l'objet est le
+   * traitement de l'image — le sujet, la matière, la lumière — et non la marque
+   * posée dessus. Y imprimer le logo en ferait une mise en situation de plus,
+   * et la charte perdrait la page qui brieffe un photographe.
+   */
+  skipLogo?: boolean;
 }
 
 /**
@@ -414,6 +423,34 @@ export class MockupAnalyzerService {
     });
 
     return selectedSupports;
+  }
+
+  /**
+   * Construit un support IMPOSÉ, sans passer par l'analyse.
+   *
+   * Les trois mises en situation nommées de la charte (grand format, papeterie,
+   * univers visuel) sont attendues quel que soit le secteur : les soumettre au
+   * score de pertinence reviendrait à les perdre sur la moitié des projets — et
+   * `stationery` est précisément l'un des supports que le score PÉNALISE pour
+   * éviter qu'il ne revienne dans tous les books.
+   */
+  buildForcedSupport(
+    supportType: SupportTypeKey,
+    mockupIndex: number,
+    industryContext: string,
+    skipLogo = false
+  ): SelectedMockupSupport {
+    const details = PHYSICAL_SUPPORT_TYPES[supportType];
+    return {
+      supportType,
+      supportName: details.name,
+      examples: details.examples,
+      context: details.context,
+      priority: 'primary',
+      mockupIndex,
+      industryContext,
+      skipLogo,
+    };
   }
 
   /**

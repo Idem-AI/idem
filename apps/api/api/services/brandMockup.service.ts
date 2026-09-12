@@ -195,7 +195,16 @@ export class GeminiMockupService {
     projectId: string,
     pdfFormat?: string,
     artDirection?: ArtDirectionModel | null,
-    logoVariants?: MockupLogoVariants
+    logoVariants?: MockupLogoVariants,
+    /**
+     * Supports IMPOSÉS, ajoutés après ceux que l'analyseur a choisis.
+     *
+     * Ils portent les pages nommées de la charte (grand format, papeterie,
+     * univers visuel), attendues quel que soit le secteur. Ils viennent APRÈS,
+     * et dans l'ordre reçu : l'appelant retrouve ainsi chaque page à un indice
+     * connu, sans avoir à reconnaître un support dans la liste rendue.
+     */
+    forcedSupports: SelectedMockupSupport[] = []
   ): Promise<MockupGenerationResult[]> {
     const startTime = Date.now();
 
@@ -218,12 +227,23 @@ export class GeminiMockupService {
         mockupCount: MOCKUP_CONFIG.MOCKUP_COUNT,
       });
 
-      const selectedSupports = await mockupAnalyzerService.analyzeMockupSupports(
+      const analyzed = await mockupAnalyzerService.analyzeMockupSupports(
         industry,
         projectDescription,
         brandName,
         MOCKUP_CONFIG.MOCKUP_COUNT
       );
+
+      // Les indices des supports imposés sont RÉÉCRITS à la suite de ceux de
+      // l'analyseur : deux supports portant le même `mockupIndex` produiraient
+      // deux fichiers de même nom, et le second écraserait le premier.
+      const selectedSupports: SelectedMockupSupport[] = [
+        ...analyzed,
+        ...forcedSupports.map((support, offset) => ({
+          ...support,
+          mockupIndex: analyzed.length + offset + 1,
+        })),
+      ];
 
       logger.info('Mockup supports selected by analyzer', {
         projectId,
@@ -368,9 +388,16 @@ export class GeminiMockupService {
       // scène est produite librement, et seule sa lecture dit où se trouve la
       // surface imprimable. Sans cette passe, l'incrustation retombait au
       // centre géométrique de l'image, souvent à côté du support.
-      const zone = await this.locateBrandingZone(scene.buffer, mockupName);
-
-      const imageBuffer = await this.printLogo(scene.buffer, request.logos, zone, mockupName);
+      // Une page d'univers visuel ne porte PAS le logo : la scène nue EST le
+      // livrable, et la passe de vision qui suit n'aurait rien à repérer.
+      const imageBuffer = request.selectedSupport.skipLogo
+        ? scene.buffer
+        : await this.printLogo(
+            scene.buffer,
+            request.logos,
+            await this.locateBrandingZone(scene.buffer, mockupName),
+            mockupName
+          );
 
       console.log(
         `[MOCKUP] ✅ Mockup composed for ${request.selectedSupport.mockupIndex} (${Math.round(imageBuffer.length / 1024)}KB) — now uploading to Firebase Storage bucket...`
@@ -481,7 +508,9 @@ export class GeminiMockupService {
     // Sur une mise en situation, le support est le plus souvent clair : c'est la
     // déclinaison sombre du logo qui contraste. Le modèle recevant la scène ET
     // le logo, il adapte le placement ; la déclinaison, elle, reste notre choix.
-    const logo = request.logos.dark ?? request.logos.light;
+    const logo = request.selectedSupport.skipLogo
+      ? undefined
+      : (request.logos.dark ?? request.logos.light);
 
     // Le prompt est demandé en mode « logo joint ». Auparavant, on envoyait le
     // prompt de support VIERGE puis on ajoutait une phrase demandant de poser le

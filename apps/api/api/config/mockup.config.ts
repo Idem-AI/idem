@@ -162,6 +162,18 @@ export const PHYSICAL_SUPPORT_TYPES = {
   },
 
   // Signalétique et extérieur
+  billboard: {
+    name: 'Affichage grand format',
+    examples: ['4x3 urbain', 'Panneau autoroutier', 'Affiche métro', 'Mur pignon'],
+    context:
+      'Panneau grand format en situation urbaine réelle, vu de la rue, avec la perspective et la lumière du lieu',
+  },
+  brand_imagery: {
+    name: 'Univers visuel',
+    examples: ['Scène de marque', 'Sujet en situation', 'Matière et lumière', 'Ambiance'],
+    context:
+      "Photographie d'univers, SANS aucun logo ni texte : elle montre le sujet, le traitement et la lumière de la marque",
+  },
   signage: {
     name: 'Signalétique',
     examples: ['Enseigne façade', 'Panneau directionnel', 'Totem', 'Plaque murale'],
@@ -237,3 +249,28 @@ export const PHYSICAL_SUPPORT_TYPES = {
 
 export type IndustryKey = keyof typeof INDUSTRY_MOCKUP_CATEGORIES;
 export type SupportTypeKey = keyof typeof PHYSICAL_SUPPORT_TYPES;
+
+/**
+ * Mises en situation NOMMÉES de la charte.
+ *
+ * Les `MOCKUP_COUNT` premières mises en situation sont choisies par l'analyseur
+ * selon le secteur : c'est ce qui rend une charte de restaurant différente
+ * d'une charte de cabinet d'avocats. Mais trois supports sont attendus dans
+ * TOUTE charte, quel que soit le secteur — un book qui ne montre pas la marque
+ * en grand format, sur sa papeterie et dans son univers d'images est un book
+ * incomplet. Ceux-là sont donc imposés, et ne passent pas par l'analyseur.
+ *
+ * `skipLogo` distingue l'univers visuel des deux autres : une page « Brand
+ * Imagery » montre le TRAITEMENT de l'image, pas la marque posée dessus. Y
+ * incruster le logo en ferait une quatrième mise en situation, et la charte
+ * perdrait la seule page qui dit à un photographe ce qu'on attend de lui.
+ */
+export const CHARTER_NAMED_MOCKUPS = [
+  { stepName: 'Brand Billboard', supportType: 'billboard' },
+  { stepName: 'Brand Stationery', supportType: 'stationery' },
+  { stepName: 'Brand Imagery', supportType: 'brand_imagery', skipLogo: true },
+] as const satisfies readonly {
+  stepName: string;
+  supportType: SupportTypeKey;
+  skipLogo?: boolean;
+}[];

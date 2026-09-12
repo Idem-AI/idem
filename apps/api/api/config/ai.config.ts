@@ -1080,6 +1080,8 @@ export const AI_CONFIG = {
         // redessinent pas. La composition peut donc diverger sans risque pour
         // la géométrie, qui est importée telle quelle.
         'Logo Principal': { tokens: 36000, temperature: 0.6 },
+        // L'icône seule. Page de comparaison : trois fonds, une légende.
+        Logomark: { tokens: 26000, temperature: 0.6 },
         'Logo Variation Fond Clair': { tokens: 30000, temperature: 0.6 },
         'Logo Variation Fond Sombre': { tokens: 30000, temperature: 0.6 },
         'Logo Variation Monochrome': { tokens: 30000, temperature: 0.6 },
@@ -1093,6 +1095,14 @@ export const AI_CONFIG = {
         // plutôt que la précision — la page palette générique venait d'un 0.25.
         'Color Palette': { tokens: 26000, temperature: 0.6 },
         Typography: { tokens: 26000, temperature: 0.62 },
+        // Pages dont le SPÉCIMEN est entièrement fabriqué par le code :
+        // l'échelle typographique, les motifs, les créations et les bannières
+        // sociales. Le modèle n'y écrit qu'un titre et deux légendes — leur
+        // donner le budget d'une page libre reviendrait à payer pour du vide.
+        'Typeface Hierarchy': { tokens: 20000, temperature: 0.55 },
+        'Graphic Patterns': { tokens: 20000, temperature: 0.6 },
+        'Social Media Creatives': { tokens: 20000, temperature: 0.6 },
+        'Social Media Page Banners': { tokens: 20000, temperature: 0.55 },
         // Page de direction artistique : elle doit DÉMONTRER le style en
         // construisant ses propres blocs de démonstration en CSS. C'est la page
         // la plus inventive de la charte après la couverture.
