@@ -108,7 +108,7 @@ const FAMILIES_PER_REQUEST = 10;
  *   starts with a digit (`Exo 2`, `Source Sans 3` — both produced by our own
  *   typography prompt), and the browser then drops the whole declaration.
  * - The value is `!important`, because `styles.css` forces `* { font-family:
- *   'Jura' !important }` app-wide. An important declaration from a stylesheet
+ *   'Vilevile' !important }` app-wide. An important declaration from a stylesheet
  *   beats a plain inline style, so a preview could never show its own font.
  *   Angular strips the suffix from a style binding and sets the priority flag,
  *   and an important *inline* style outranks an important stylesheet rule.

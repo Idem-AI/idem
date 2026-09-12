@@ -9,7 +9,7 @@
  *   <img>, no style cascade collisions.
  *
  * Pipeline:
- *   AI HTML  →  full HTML doc with Tailwind CDN + Jura font + image embedded
+ *   AI HTML  →  full HTML doc with Tailwind CDN + Vilevile font + image embedded
  *            →  Puppeteer page sized to flyer format
  *            →  page.screenshot({ type: 'png' })
  *            →  upload to MinIO

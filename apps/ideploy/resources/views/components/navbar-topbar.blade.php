@@ -32,7 +32,7 @@
                 <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-md"
                      style="background:rgba(255,180,171,0.1);border:1px solid rgba(255,180,171,0.25);color:#ffb4ab;">
                     <i class="fa-solid fa-shield-halved text-xs"></i>
-                    <span style="font-size:11px;font-weight:700;letter-spacing:.05em;">ADMIN</span>
+                    <span style="font-size:11px;font-weight:700;">ADMIN</span>
                 </div>
             @else
                 @php
@@ -48,7 +48,7 @@
                    class="flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-opacity hover:opacity-80"
                    style="background:{{ $colors['bg'] }};border:1px solid {{ $colors['border'] }};color:{{ $colors['text'] }};">
                     <i class="fa-solid fa-star text-[10px]"></i>
-                    <span style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">{{ $plan }}</span>
+                    <span style="font-size:10px;font-weight:700;text-transform:uppercase;">{{ $plan }}</span>
                 </a>
 
                 {{-- Apps Quota --}}
@@ -58,7 +58,7 @@
                     <i class="fa-solid fa-cube text-[10px]" style="color:{{ $appsAtLimit ? '#ffb4ab' : '#60a5fa' }};"></i>
                     <div class="flex flex-col gap-0.5">
                         <div class="flex items-center justify-between gap-2">
-                            <span style="font-size:9px;font-weight:500;color:#8d919a;text-transform:uppercase;letter-spacing:.05em;">Apps</span>
+                            <span style="font-size:9px;font-weight:500;color:#8d919a;text-transform:uppercase;">Apps</span>
                             <span style="font-size:9px;font-weight:700;color:{{ $appsAtLimit ? '#ffb4ab' : '#e3e1e6' }};">{{ $appsUsed }}/{{ $appsLimit }}</span>
                         </div>
                         <div class="w-14 h-0.5 rounded-full overflow-hidden" style="background:rgba(255,255,255,0.1);">
@@ -74,7 +74,7 @@
                     <i class="fa-solid fa-server text-[10px]" style="color:{{ $serversAtLimit ? '#ffb4ab' : '#4ade80' }};"></i>
                     <div class="flex flex-col gap-0.5">
                         <div class="flex items-center justify-between gap-2">
-                            <span style="font-size:9px;font-weight:500;color:#8d919a;text-transform:uppercase;letter-spacing:.05em;">Srv</span>
+                            <span style="font-size:9px;font-weight:500;color:#8d919a;text-transform:uppercase;">Srv</span>
                             <span style="font-size:9px;font-weight:700;color:{{ $serversAtLimit ? '#ffb4ab' : '#e3e1e6' }};">{{ $serversUsed }}/{{ $serversDisplayLimit }}</span>
                         </div>
                         <div class="w-14 h-0.5 rounded-full overflow-hidden" style="background:rgba(255,255,255,0.1);">

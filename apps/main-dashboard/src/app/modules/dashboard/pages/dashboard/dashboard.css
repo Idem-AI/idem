@@ -88,7 +88,7 @@ button {
 }
 
 .header-logo-placeholder .placeholder-text {
-  font-family: var(--font-jura);
+  font-family: var(--font-vilevile);
   font-weight: var(--font-weight-bold);
   font-size: 2.2rem;
   color: var(--color-text-primary);
@@ -122,7 +122,6 @@ button {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
-  letter-spacing: var(--letter-spacing-widest);
   color: var(--color-text-tertiary);
 }
 
@@ -361,7 +360,6 @@ button {
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
-  letter-spacing: var(--letter-spacing-tight);
   transition: color var(--duration-250) var(--ease-out);
 }
 
@@ -429,7 +427,6 @@ button {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
-  letter-spacing: var(--letter-spacing-wide);
   color: var(--color-text-tertiary);
 }
 
@@ -465,7 +462,6 @@ button {
   font-size: 0.65rem;
   color: color-mix(in srgb, var(--color-text-primary) 40%, transparent);
   text-transform: uppercase;
-  letter-spacing: 0.02em;
   margin-top: 0.1rem;
 }
 
@@ -553,7 +549,6 @@ button {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
-  letter-spacing: var(--letter-spacing-wide);
   padding: 0.1rem 0.35rem;
   border-radius: var(--radius-sm);
   background: var(--glass-border-subtle);

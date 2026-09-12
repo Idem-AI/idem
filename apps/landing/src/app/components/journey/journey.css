@@ -229,7 +229,6 @@
   font-size: clamp(1.9rem, 4.6vw, 3.5rem);
   font-weight: 700;
   line-height: 1.12;
-  letter-spacing: -0.025em;
   text-wrap: balance;
   color: var(--jn-ink);
 }
@@ -372,7 +371,6 @@
 .jn-meta-step {
   font-size: 0.84rem;
   font-weight: 600;
-  letter-spacing: 0.01em;
   color: var(--jn-mark);
 }
 
@@ -381,7 +379,6 @@
   font-size: clamp(1.45rem, 2.6vw, 2.3rem);
   font-weight: 700;
   line-height: 1.15;
-  letter-spacing: -0.02em;
   text-wrap: balance;
   color: var(--jn-ink);
 }
@@ -450,7 +447,6 @@
 .jn-frame-path {
   font-family: var(--font-mono);
   font-size: 0.68rem;
-  letter-spacing: 0.01em;
   color: var(--jn-ink-mute);
 }
 

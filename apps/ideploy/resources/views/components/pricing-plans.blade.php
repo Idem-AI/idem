@@ -35,7 +35,7 @@
             </div>
         </div>
         <div class="p-4 rounded-sm bg-coolgray-400">
-            <h2 id="tier-hobby" class="flex items-start gap-4 text-4xl font-bold tracking-tight">Unlimited Trial
+            <h2 id="tier-hobby" class="flex items-start gap-4 text-4xl font-bold">Unlimited Trial
                 <x-forms.button><a class="font-bold dark:text-white hover:no-underline"
                         href="https://github.com/coollabsio/ideploy">Get Started</a></x-forms.button>
             </h2>
@@ -55,11 +55,11 @@
                     <h3 id="tier-basic" class="text-base font-semibold leading-7 dark:text-white">Basic</h3>
                     <p class="flex items-baseline mt-6 gap-x-1">
                         <span x-show="selected === 'monthly'" x-cloak>
-                            <span class="text-4xl font-bold tracking-tight dark:text-white">$5</span>
+                            <span class="text-4xl font-bold dark:text-white">$5</span>
                             <span class="text-sm font-semibold leading-6 ">/month + VAT</span>
                         </span>
                         <span x-show="selected === 'yearly'" x-cloak>
-                            <span class="text-4xl font-bold tracking-tight dark:text-white">$4</span>
+                            <span class="text-4xl font-bold dark:text-white">$4</span>
                             <span class="text-sm font-semibold leading-6 ">/month + VAT</span>
                         </span>
                     </p>
@@ -123,11 +123,11 @@
                     <h3 id="tier-pro" class="text-base font-semibold leading-7 dark:text-white">Pro</h3>
                     <p class="flex items-baseline mt-6 gap-x-1">
                         <span x-show="selected === 'monthly'" x-cloak>
-                            <span class="text-4xl font-bold tracking-tight dark:text-white">$30</span>
+                            <span class="text-4xl font-bold dark:text-white">$30</span>
                             <span class="text-sm font-semibold leading-6 ">/month + VAT</span>
                         </span>
                         <span x-show="selected === 'yearly'" x-cloak>
-                            <span class="text-4xl font-bold tracking-tight dark:text-white">$27</span>
+                            <span class="text-4xl font-bold dark:text-white">$27</span>
                             <span class="text-sm font-semibold leading-6 ">/month + VAT</span>
                         </span>
                     </p>
@@ -192,11 +192,11 @@
                     <h3 id="tier-ultimate" class="text-base font-semibold leading-7 dark:text-white">Ultimate</h3>
                     <p class="flex items-baseline mt-6 gap-x-1">
                         <span x-show="selected === 'monthly'" x-cloak>
-                            <span class="text-4xl font-bold tracking-tight dark:text-white">Custom</span>
+                            <span class="text-4xl font-bold dark:text-white">Custom</span>
                             {{-- <span class="text-sm font-semibold leading-6 ">pay-as-you-go</span> --}}
                         </span>
                         <span x-show="selected === 'yearly'" x-cloak>
-                            <span class="text-4xl font-bold tracking-tight dark:text-white">Custom</span>
+                            <span class="text-4xl font-bold dark:text-white">Custom</span>
                             {{-- <span class="text-sm font-semibold leading-6 ">/month + VAT</span> --}}
                         </span>
                     </p>
@@ -258,7 +258,7 @@
                 </div>
             </div>
             {{-- <div class="p-4 mt-10 rounded-sm">
-                <div class="flex items-start gap-4 text-xl tracking-tight">Need official support for
+                <div class="flex items-start gap-4 text-xl">Need official support for
                     your self-hosted instance?
                     <x-forms.button>
                         <a class="font-bold dark:text-white hover:no-underline"

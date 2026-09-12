@@ -4,7 +4,7 @@
         display: flex; align-items: center; gap: 12px;
         padding: 10px 12px; border-radius: 12px;
         font-size: 14px; font-weight: 500; text-decoration: none;
-        font-family: 'Jura', sans-serif;
+        font-family: 'Vilevile', sans-serif;
         transition: all 0.18s ease; color: #9ba3c0; width: 100%;
         position: relative; overflow: hidden;
     }
@@ -26,21 +26,21 @@
     }
     .sbi .sbi-icon { width: 18px; text-align: center; flex-shrink: 0; font-size: 14px; }
     .sbi-section {
-        font-size: 9px; font-weight: 700; letter-spacing: .12em;
+        font-size: 9px; font-weight: 700;
         text-transform: uppercase; color: rgba(155,163,192,.38); padding: 0 12px;
-        display: block; margin-bottom: 2px; font-family: 'Jura', sans-serif;
+        display: block; margin-bottom: 2px; font-family: 'Vilevile', sans-serif;
     }
     .sbi-disabled {
         display: flex; align-items: center; gap: 12px;
         padding: 10px 12px; border-radius: 12px;
         font-size: 14px; font-weight: 500;
-        font-family: 'Jura', sans-serif;
+        font-family: 'Vilevile', sans-serif;
         color: rgba(155,163,192,.35); width: 100%;
         opacity: 1; cursor: not-allowed;
     }
     .sbi-badge-soon {
         font-size: 9px; font-weight: 700; padding: 2px 7px;
-        border-radius: 5px; letter-spacing: .06em; text-transform: uppercase;
+        border-radius: 5px;text-transform: uppercase;
         background: rgba(251,191,36,.12); color: #fbbf24;
         border: 1px solid rgba(251,191,36,.28);
     }
@@ -109,7 +109,7 @@
                     <i class="fa-solid fa-shield-halved" style="width:18px;text-align:center;font-size:13px;"></i>
                     <span style="font-size:14px;font-weight:500;">Admin Panel</span>
                 </div>
-                <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;background:rgba(255,180,171,0.12);color:#ffb4ab;border:1px solid rgba(255,180,171,0.28);letter-spacing:.06em;text-transform:uppercase;">ADMIN</span>
+                <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;background:rgba(255,180,171,0.12);color:#ffb4ab;border:1px solid rgba(255,180,171,0.28);text-transform:uppercase;">ADMIN</span>
             </a>
         </div>
         @endif

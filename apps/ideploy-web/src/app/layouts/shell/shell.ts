@@ -46,7 +46,7 @@ interface NavSection {
             <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-md"
                  style="background:color-mix(in srgb, var(--color-danger) 12%, transparent);color:var(--color-danger);border:1px solid color-mix(in srgb, var(--color-danger) 28%, transparent);">
               <i class="fa-solid fa-shield-halved text-xs"></i>
-              <span style="font-size:11px;font-weight:700;letter-spacing:.05em;">{{ 'shell.admin' | translate }}</span>
+              <span style="font-size:11px;font-weight:700;">{{ 'shell.admin' | translate }}</span>
             </div>
           }
           <a routerLink="/subscription"
@@ -54,7 +54,7 @@ interface NavSection {
              class="flex items-center gap-1.5 px-2.5 py-1 rounded-md hover:opacity-80"
              style="background:color-mix(in srgb, var(--color-primary-500) 12%, transparent);color:var(--color-primary-400);border:1px solid color-mix(in srgb, var(--color-primary-500) 28%, transparent);">
             <i class="fa-solid fa-star text-[10px]"></i>
-            <span style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">{{ plan() }}</span>
+            <span style="font-size:10px;font-weight:700;text-transform:uppercase;">{{ plan() }}</span>
           </a>
           <div class="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-md" style="background:var(--glass-bg-subtle);">
             <i class="fa-solid fa-cube text-[10px]" style="color:var(--color-primary-400);"></i>

@@ -797,7 +797,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
           <div className="shrink-0 border-t border-[var(--glass-border)]">
             <button
               type="button"
-              className="w-full flex items-center gap-1.5 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-text-secondary hover:bg-surface-3"
+              className="w-full flex items-center gap-1.5 px-3 py-2 text-xs font-semibold uppercase text-text-secondary hover:bg-surface-3"
               onClick={() => setLayersOpen((o) => !o)}
               aria-expanded={layersOpen}
             >
@@ -1225,7 +1225,7 @@ const BackgroundSection: React.FC<{
         />
         {allowImage && (
           <div className="space-y-2 pt-1 border-t border-gray-200 dark:border-[var(--glass-border)]">
-            <span className="text-[11px] font-medium text-text-tertiary uppercase tracking-wide">
+            <span className="text-[11px] font-medium text-text-tertiary uppercase">
               {t('editMode.bgImage')}
             </span>
             {bg && (
@@ -1491,7 +1491,7 @@ const Section: React.FC<{ title: string; icon?: React.ReactNode; children: React
   children,
 }) => (
   <section>
-    <h3 className="flex items-center gap-1.5 text-xs font-semibold text-text-tertiary mb-2 uppercase tracking-wide">
+    <h3 className="flex items-center gap-1.5 text-xs font-semibold text-text-tertiary mb-2 uppercase">
       {icon}
       {title}
     </h3>

@@ -9,7 +9,7 @@
                     </svg>
                 </div>
                 <div>
-                    <h2 class="text-3xl font-bold text-text-primary tracking-tight">
+                    <h2 class="text-3xl font-bold text-text-primary">
                         <span class="i-underline">Environment Variables</span>
                     </h2>
                     <p class="text-sm text-text-secondary mt-1">Manage secrets and configuration for this resource</p>

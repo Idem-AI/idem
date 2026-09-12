@@ -37,7 +37,7 @@
         {{-- ── Header ── --}}
         <div style="margin-bottom:32px;">
             <h1 style="font-family:'Playfair Display',serif;font-size:48px;font-weight:700;
-                       line-height:1.2;letter-spacing:-.02em;color:#fff;margin:0 0 6px;">Dashboard</h1>
+                       line-height:1.2; color:#fff; margin:0 0 6px;">Dashboard</h1>
             <p style="font-size:14px;color:#c3c6d7;margin:0;">
                 {{ count($projects) }} project{{ count($projects)!==1?'s':'' }} &bull;
                 {{ count($servers) }} server{{ count($servers)!==1?'s':'' }}
@@ -155,7 +155,7 @@
                                     <div style="width:40px;height:40px;border-radius:.5rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#2d3449;border:1px solid rgba(67,70,85,.35);color:{{$v['color']}};">
                                         <span class="msi f" style="font-size:22px;">{{$v['ico']}}</span>
                                     </div>
-                                    <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:9999px;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:{{$sbg}};color:{{$stx}};border:1px solid {{$sbd}};">
+                                    <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:9999px;font-size:9px;font-weight:700;text-transform:uppercase;background:{{$sbg}};color:{{$stx}};border:1px solid {{$sbd}};">
                                         <span class="{{ $pulse?'dbpulse':'' }}" style="width:5px;height:5px;border-radius:50%;background:{{$sdot}};"></span>{{$st}}
                                     </span>
                                 </div>
@@ -165,11 +165,11 @@
                                 </p>
                                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px;">
                                     <div class="db-stat" style="padding:9px 11px;">
-                                        <p style="font-size:8px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#8d919a;margin:0 0 2px;">Resources</p>
+                                        <p style="font-size:8px;font-weight:700;text-transform:uppercase;color:#8d919a;margin:0 0 2px;">Resources</p>
                                         <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#b4c5ff;margin:0;">{{$tot}} Instance{{$tot!==1?'s':''}}</p>
                                     </div>
                                     <div class="db-stat" style="padding:9px 11px;">
-                                        <p style="font-size:8px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#8d919a;margin:0 0 2px;">Deployments</p>
+                                        <p style="font-size:8px;font-weight:700;text-transform:uppercase;color:#8d919a;margin:0 0 2px;">Deployments</p>
                                         <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#89ceff;margin:0;">{{$act}} Active</p>
                                     </div>
                                 </div>
@@ -222,7 +222,7 @@
                     <x-modal-input buttonTitle="" title="New Server" :closeOutside="false">
                         <x-slot:content>
                             <button style="display:inline-flex;align-items:center;gap:7px;padding:9px 20px;border-radius:8px;
-                                           border:none;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.05em;
+                                           border:none;cursor:pointer;font-size:12px;font-weight:700;
                                            text-transform:uppercase;background:#2563eb;color:#fff;
                                            box-shadow:0 4px 12px rgba(37,99,235,.28);transition:background .15s;"
                                     onmouseover="this.style.background='#1d4ed8';"

@@ -2,7 +2,7 @@
     <div class="max-w-7xl mx-auto">
         
         <div class="mb-16">
-            <h1 class="text-4xl md:text-5xl font-black text-white mb-6 drop-shadow-md" style="letter-spacing: -0.04em;">
+            <h1 class="text-4xl md:text-5xl font-black text-white mb-6 drop-shadow-md">
                 Explore what <span class="i-underline">people are building</span>
             </h1>
             <p class="text-xl text-white/60 max-w-2xl font-medium">From complex microservices architectures to simple static portfolios, see how Eploy powers the independent web.</p>

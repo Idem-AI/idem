@@ -61,7 +61,7 @@
             >
               {{ meta.name }}
             </span>
-            <span class="text-xs text-text-tertiary uppercase tracking-wide">
+            <span class="text-xs text-text-tertiary uppercase">
               {{ 'dashboard.businessCards.orientation.' + meta.orientation | translate }} ·
               {{ meta.orientation === 'landscape' ? '85 × 55 mm' : '55 × 85 mm' }}
             </span>
@@ -393,7 +393,7 @@
                         @for (format of ['png', 'pdf']; track format) {
                           <button
                             type="button"
-                            class="glass-card px-3 py-1.5 text-xs uppercase tracking-wide text-text-primary hover:bg-[var(--glass-bg-light)] transition-colors rounded-lg flex items-center gap-1.5 disabled:opacity-50"
+                            class="glass-card px-3 py-1.5 text-xs uppercase text-text-primary hover:bg-[var(--glass-bg-light)] transition-colors rounded-lg flex items-center gap-1.5 disabled:opacity-50"
                             (click)="download($any(side), $any(format))"
                             [disabled]="downloadingKey() !== null"
                           >

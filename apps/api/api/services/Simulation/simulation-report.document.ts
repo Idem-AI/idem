@@ -151,11 +151,11 @@ export async function renderReportDocument(
     footerText: `${report.profile.name} — Rapport de simulation IDEM`,
     onPaginationReport,
     typography: {
-      id: 'idem-jura',
+      id: 'idem-vilevile',
       name: 'IDEM',
       url: IDEM_FONTS_URL,
-      primaryFont: 'Jura',
-      secondaryFont: 'Jura',
+      primaryFont: 'Vilevile',
+      secondaryFont: 'Vilevile',
     },
   });
 }

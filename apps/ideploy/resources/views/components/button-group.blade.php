@@ -8,7 +8,7 @@
         <button 
             type="{{ $button['type'] ?? 'button' }}"
             @class([
-                'px-6 py-2.5 rounded-lg font-semibold uppercase tracking-wide transition-all duration-300',
+                'px-6 py-2.5 rounded-lg font-semibold uppercase transition-all duration-300',
                 'inner-button' => $button['variant'] === 'primary',
                 'outer-button' => $button['variant'] === 'secondary',
                 'danger-button' => $button['variant'] === 'danger',

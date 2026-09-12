@@ -628,7 +628,7 @@
                                     <!-- Existing Resources Section -->
                                     <div class="px-4 pt-3 pb-1">
                                         <h4
-                                            class="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
+                                            class="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase">
                                             Existing Resources
                                         </h4>
                                     </div>
@@ -694,7 +694,7 @@
                                     <!-- Category Header -->
                                     <div class="px-4 pt-3 pb-1">
                                         <h4
-                                            class="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
+                                            class="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase">
                                             {{ $category }}
                                         </h4>
                                     </div>
@@ -750,7 +750,7 @@
                                 <template x-if="filteredCreatableItems.length > 0">
                                     <div class="px-4 pt-3 pb-1">
                                         <h4
-                                            class="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
+                                            class="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase">
                                             Existing Resources
                                         </h4>
                                     </div>
@@ -806,7 +806,7 @@
                                     :key="categoryName">
                                     <div>
                                         <div class="px-4 pt-3 pb-1">
-                                            <h4 class="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider"
+                                            <h4 class="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase"
                                                 x-text="categoryName">
                                             </h4>
                                         </div>

@@ -39,7 +39,7 @@
         {{ completeness().completedCount }}
       </span>
       <span class="text-sm text-text-tertiary">/ {{ completeness().totalCount }}</span>
-      <span class="block text-[11px] uppercase tracking-wider text-text-tertiary mt-0.5">
+      <span class="block text-[11px] uppercase text-text-tertiary mt-0.5">
         {{ 'dashboard.generationPanel.sectionsLabel' | translate }}
       </span>
     </p>
@@ -139,7 +139,7 @@
             </span>
             @if (item.status !== 'complete') {
               <span
-                class="block text-[11px] uppercase tracking-wider"
+                class="block text-[11px] uppercase"
                 [class.text-yellow-500]="item.status === 'empty' || item.status === 'missing'"
                 [class.text-orange-400]="item.status === 'underfilled'"
               >
