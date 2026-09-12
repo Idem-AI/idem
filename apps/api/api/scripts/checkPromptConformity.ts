@@ -43,6 +43,7 @@ import {
 import { AI_CONFIG, FeatureAIConfig } from '../config/ai.config';
 import { buildBusinessPlanSpec } from '../services/BusinessPlan/businessPlanSpec';
 import { BUSINESS_PLAN_SECTION_CATALOG } from '../services/BusinessPlan/structure/section-catalog';
+import { SECTION_PROMPT_SPECS } from '../services/BusinessPlan/prompts/section-prompt.registry';
 import { BUSINESS_PLAN_TEMPLATES } from '../services/BusinessPlan/structure/templates';
 
 let failures = 0;
@@ -325,12 +326,12 @@ console.log('\n  Équipe de recherche : consignes de section');
   // Le catalogue ENTIER, pas seulement les neuf sections historiques : une
   // section n'existe que si une structure peut la choisir, et une structure qui
   // la choisit doit pouvoir la produire.
-  const spec = buildBusinessPlanSpec(
-    BUSINESS_PLAN_SECTION_CATALOG,
-    'Une plateforme de X pour Y.',
-    '',
-    'Cameroun'
-  );
+  const spec = buildBusinessPlanSpec(BUSINESS_PLAN_SECTION_CATALOG, {
+    audience: 'general',
+    projectDescription: 'Une plateforme de X pour Y.',
+    financeContext: '',
+    country: 'Cameroun',
+  });
 
   check(
     'la spécification couvre tout le catalogue',
@@ -363,6 +364,29 @@ console.log('\n  Équipe de recherche : consignes de section');
     missing.length === 0,
     missing.join(', ')
   );
+
+  // Le REGISTRE doit couvrir le catalogue exactement. Une section catalogable
+  // sans prompt partirait avec une consigne vide — elle serait générée, mal, et
+  // rien ne le signalerait : c'est très précisément le défaut que le registre
+  // supprime. La couverture est l'exception, elle a son prompt écrit à la main.
+  const promptKeys = new Set(SECTION_PROMPT_SPECS.map((s) => s.key));
+  const withoutPrompt = BUSINESS_PLAN_SECTION_CATALOG.filter(
+    (section) => !section.freeform && !promptKeys.has(section.key)
+  ).map((section) => section.key);
+  check('chaque section du catalogue a son prompt', withoutPrompt.length === 0, withoutPrompt.join(', '));
+
+  // Et l'inverse : un prompt orphelin est du texte que personne n'atteint.
+  const catalogKeys = new Set(BUSINESS_PLAN_SECTION_CATALOG.map((s) => s.key));
+  const orphanPrompts = SECTION_PROMPT_SPECS.filter((s) => !catalogKeys.has(s.key)).map((s) => s.key);
+  check('aucun prompt orphelin', orphanPrompts.length === 0, orphanPrompts.join(', '));
+
+  // Les noms doivent correspondre EXACTEMENT : c'est le nom canonique qui relie
+  // le catalogue, le prompt, la section persistée et l'ordre du PDF.
+  const mismatched = SECTION_PROMPT_SPECS.filter((spec) => {
+    const section = BUSINESS_PLAN_SECTION_CATALOG.find((s) => s.key === spec.key);
+    return section && section.name !== spec.name;
+  }).map((spec) => spec.key);
+  check('noms canoniques alignés catalogue/prompt', mismatched.length === 0, mismatched.join(', '));
 
   // Un nom canonique en double ferait fusionner deux sections différentes dans
   // le même emplacement du plan : la deuxième écraserait la première à la

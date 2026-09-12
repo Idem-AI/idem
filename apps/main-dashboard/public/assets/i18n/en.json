@@ -3480,6 +3480,22 @@
         "skipInfos": "Generate without this info",
         "generateNow": "Looks good, start generating",
         "fixForm": "Fix via the form"
+      },
+      "structure": {
+        "title": "Plan structure",
+        "subtitle": "It decides which sections are generated, and in what order.",
+        "question": "Before writing: which structure does your reader expect? Many banks and funds impose their own table of contents.",
+        "hint": "Pick a structure to continue.",
+        "showOutline": "Show the outline",
+        "customise": "Compose my outline",
+        "customiseOk": "Composing an outline happens in the workshop: you add, remove and reorder sections one by one there.",
+        "cancel": "Later",
+        "cancelledOk": "Understood. The plan will follow the standard structure if you run it as is.",
+        "saveFailed": "Saving the structure failed. Pick one again.",
+        "loadFailed": "Could not load the available structures.",
+        "chips": {
+          "openAtelier": "Open the workshop"
+        }
       }
     },
     "infoForm": {

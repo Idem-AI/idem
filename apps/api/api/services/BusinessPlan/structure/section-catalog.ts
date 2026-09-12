@@ -17,8 +17,6 @@
  * `prompts/section-briefs.prompt.ts`. Le contrôle de conformité échoue sinon.
  */
 
-import { BP_SECTION_BRIEFS } from '../prompts/section-briefs.prompt';
-
 /** Famille d'une section — sert au regroupement dans le composeur custom. */
 export type BusinessPlanSectionCategory =
   | 'opening'
@@ -467,10 +465,3 @@ export const getSectionByName = (name: string): BusinessPlanSectionDefinition | 
 
 /** Clés valides — sert à filtrer une structure reçue du client. */
 export const isKnownSectionKey = (key: string): boolean => BY_KEY.has(key);
-
-/**
- * Brief de contenu d'une section. Absent = la section retomberait sur un
- * prompt de composition : `npm run check:prompts` vérifie qu'aucune entrée du
- * catalogue (hors couverture) n'est dans ce cas.
- */
-export const getSectionBrief = (name: string): string | undefined => BP_SECTION_BRIEFS[name];
