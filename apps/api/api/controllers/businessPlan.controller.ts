@@ -9,6 +9,13 @@ import { projectService } from '../services/project.service';
 import { ResearchStreamEvent } from '../services/research/research.types';
 import { getRequestLanguage } from '../utils/request-language';
 import { sectionEditingService } from '../services/common/section-editing.service';
+import { BUSINESS_PLAN_SECTION_CATALOG } from '../services/BusinessPlan/structure/section-catalog';
+import {
+  BUSINESS_PLAN_TEMPLATES,
+  CUSTOM_TEMPLATE_ID,
+  DEFAULT_TEMPLATE_ID,
+} from '../services/BusinessPlan/structure/templates';
+import { MAX_SECTIONS, MIN_SECTIONS } from '../services/BusinessPlan/structure/structure.resolver';
 
 // Create instances of the services
 const promptService = new PromptService();
@@ -576,5 +583,143 @@ export const setAdditionalInfoController = async (
       body: req.body,
     });
     res.status(500).json({ message: 'Erreur interne du serveur' });
+  }
+};
+
+
+/**
+ * Catalogue des structures de business plan.
+ *
+ * Une seule requête sert TOUT ce dont l'écran de choix a besoin : les modèles
+ * prédéfinis (SBA, dossier bancaire, fonds d'amorçage, subvention…), le
+ * catalogue des sections composables, et les bornes du composeur libre. Rien
+ * n'est traduit ici — les libellés sont des clés i18n côté client, comme
+ * partout ailleurs dans l'application.
+ *
+ * Endpoint public au sens « pas dépendant du projet » : le catalogue est le
+ * même pour tout le monde, donc il est mis en cache par le client.
+ */
+export const getBusinessPlanStructureCatalogController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    res.status(200).json({
+      defaultTemplateId: DEFAULT_TEMPLATE_ID,
+      customTemplateId: CUSTOM_TEMPLATE_ID,
+      limits: { min: MIN_SECTIONS, max: MAX_SECTIONS },
+      templates: BUSINESS_PLAN_TEMPLATES.map((template) => ({
+        id: template.id,
+        audience: template.audience,
+        source: template.source,
+        estimatedPages: template.estimatedPages,
+        isDefault: !!template.isDefault,
+        sectionKeys: template.sectionKeys,
+      })),
+      sections: BUSINESS_PLAN_SECTION_CATALOG.map((section) => ({
+        key: section.key,
+        name: section.name,
+        category: section.category,
+        needsResearch: section.needsResearch,
+        // La couverture n'est pas retirable : un plan sans page de garde n'est
+        // pas un document qu'on dépose.
+        required: !!section.freeform,
+      })),
+    });
+  } catch (error: any) {
+    logger.error(`Error in getBusinessPlanStructureCatalogController: ${error.message}`, {
+      stack: error.stack,
+    });
+    res.status(500).json({ message: 'Failed to retrieve business plan structure catalog' });
+  }
+};
+
+/** Structure actuellement retenue pour le business plan d'un projet. */
+export const getBusinessPlanStructureController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId } = req.params;
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    if (!projectId) {
+      res.status(400).json({ message: 'Project ID is required' });
+      return;
+    }
+
+    const structure = await businessPlanService.getStructure(userId, projectId as string);
+    if (!structure) {
+      res.status(404).json({ message: 'Project not found' });
+      return;
+    }
+    res.status(200).json(structure);
+  } catch (error: any) {
+    logger.error(
+      `Error in getBusinessPlanStructureController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
+      { stack: error.stack }
+    );
+    res.status(500).json({ message: error.message || 'Failed to retrieve business plan structure' });
+  }
+};
+
+/**
+ * Enregistre la structure choisie. Body: `{ templateId, sectionKeys? }`.
+ *
+ * `sectionKeys` omis avec un `templateId` connu = la structure du modèle. Les
+ * deux fournis = composition libre, validée contre le catalogue : une clé
+ * inconnue est écartée silencieusement, une liste trop courte est refusée en
+ * 400. Valider ICI plutôt qu'à la génération évite de faire échouer un run déjà
+ * facturé.
+ */
+export const setBusinessPlanStructureController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId } = req.params;
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    if (!projectId) {
+      res.status(400).json({ message: 'Project ID is required' });
+      return;
+    }
+
+    const { templateId, sectionKeys } = req.body ?? {};
+    if (typeof templateId !== 'string' || !templateId.trim()) {
+      res.status(400).json({ message: 'A "templateId" is required' });
+      return;
+    }
+    if (sectionKeys !== undefined && !Array.isArray(sectionKeys)) {
+      res.status(400).json({ message: '"sectionKeys" must be an array of section keys' });
+      return;
+    }
+
+    const structure = await businessPlanService.saveStructure(
+      userId,
+      projectId as string,
+      templateId.trim(),
+      sectionKeys
+    );
+    if (!structure) {
+      res.status(400).json({
+        message: `Invalid structure: pick a known template or list between ${MIN_SECTIONS} and ${MAX_SECTIONS} known sections.`,
+      });
+      return;
+    }
+
+    res.status(200).json(structure);
+  } catch (error: any) {
+    logger.error(
+      `Error in setBusinessPlanStructureController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
+      { stack: error.stack, body: req.body }
+    );
+    res.status(500).json({ message: error.message || 'Failed to save business plan structure' });
   }
 };

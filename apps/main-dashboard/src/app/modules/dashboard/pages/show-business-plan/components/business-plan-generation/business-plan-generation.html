@@ -1,4 +1,13 @@
-@if (showAdditionalInfoForm()) {
+@if (showStructureSelector()) {
+  <!-- Étape 1 : le sommaire du document. Elle vient avant le formulaire, parce
+       qu'un financeur regarde la table des matières avant l'adresse postale. -->
+  @if (projectId(); as currentProjectId) {
+    <app-business-plan-structure
+      [projectId]="currentProjectId"
+      (structureConfirmed)="onStructureConfirmed($event)"
+    />
+  }
+} @else if (showAdditionalInfoForm()) {
   <!-- Additional Info Form -->
   <app-additional-info-form
     (formSubmitted)="onAdditionalInfoSubmitted($event)"

@@ -780,6 +780,44 @@ export const AI_CONFIG = {
       // (elles reçoivent les digests des sections dont elles dépendent).
       'Goal Planning': { tokens: 44000, temperature: 0.5 },
       Appendix: { tier: 'M', tokens: 44000, temperature: 0.5 },
+
+      // ── Sections apportées par les STRUCTURES de plan ───────────────────
+      // Un plan bancaire, un plan investisseur et un dossier de subvention ne
+      // portent pas les mêmes sections. Sans réglage ici elles retomberaient
+      // sur le budget de la feature (28 000) : suffisant pour une page courte,
+      // trop juste pour une section nourrie par la recherche, qui se tronque
+      // alors en fin de rédaction — et une section tronquée est perdue.
+      'Executive Summary': { tokens: 44000, temperature: 0.5 },
+      'One-Page Summary': { tier: 'M', tokens: 24000, temperature: 0.5 },
+      'Mission & Vision': { tier: 'M', tokens: 28000, temperature: 0.6 },
+      'Promoter Profile': { tier: 'M', tokens: 28000, temperature: 0.5 },
+      'Management & Team': { tokens: 36000, temperature: 0.55 },
+      'Legal & Regulatory Framework': { sampling: 'precision', tokens: 36000 },
+      'Problem Statement': { tokens: 36000, temperature: 0.5 },
+      'Market Analysis': { tokens: 44000, temperature: 0.5 },
+      'Competitive Analysis': { tokens: 44000, temperature: 0.5 },
+      Solution: { tokens: 36000, temperature: 0.6 },
+      'Unique Value Proposition': { tier: 'M', tokens: 24000, temperature: 0.6 },
+      'Unfair Advantage': { tier: 'M', tokens: 24000, temperature: 0.55 },
+      // Économie unitaire : des chiffres qui doivent s'additionner.
+      'Business Model': { sampling: 'precision', tokens: 44000 },
+      'Strategy & Key Milestones': { tokens: 44000, temperature: 0.5 },
+      'Go-to-Market Strategy': { tokens: 36000, temperature: 0.55 },
+      'Traction & Proof Points': { tier: 'M', tokens: 28000, temperature: 0.45 },
+      'Partnerships & Ecosystem': { tier: 'M', tokens: 28000, temperature: 0.5 },
+      'Operational Plan': { tokens: 44000, temperature: 0.5 },
+      'Resources & Assets': { tier: 'M', tokens: 28000, temperature: 0.45 },
+      'Key Metrics & KPIs': { sampling: 'precision', tokens: 28000 },
+      'Risk Analysis & Mitigation': { tokens: 36000, temperature: 0.5 },
+      // Montant demandé, échéancier, garanties : les trois sections qu'un
+      // comité de crédit recoupe avec le plan financier. Aucune latitude.
+      'Funding Request & Use of Funds': { sampling: 'precision', tokens: 36000 },
+      'Guarantees & Collateral': { sampling: 'precision', tokens: 28000 },
+      'Exit Strategy & Investor Returns': { sampling: 'precision', tokens: 28000 },
+      'Theory of Change': { tokens: 36000, temperature: 0.5 },
+      'Social & Economic Impact': { tokens: 36000, temperature: 0.5 },
+      'Monitoring & Evaluation': { sampling: 'precision', tokens: 28000 },
+      'Sustainability Plan': { tokens: 28000, temperature: 0.5 },
     },
   }),
 
