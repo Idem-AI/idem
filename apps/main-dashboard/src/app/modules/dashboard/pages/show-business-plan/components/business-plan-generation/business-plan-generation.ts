@@ -21,6 +21,8 @@ import {
 import { BusinessPlanModel } from '../../../../models/businessPlan.model';
 import { ProjectModel } from '@idem/shared-models';
 import { AdditionalInfoFormComponent } from '../additional-info-form/additional-info-form';
+import { BusinessPlanStructureComponent } from '../business-plan-structure/business-plan-structure';
+import { BusinessPlanStructureSelection } from '../../../../models/business-plan-structure.model';
 import {
   AgentResearchConsoleComponent,
   PlannedSection,
@@ -28,8 +30,15 @@ import {
 import { environment } from '../../../../../../../environments/environment';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
-/** Noms canoniques des sections du business plan (alignés backend). */
-const BUSINESS_PLAN_SECTIONS = [
+/**
+ * Sections affichées par la console tant que la structure n'a pas été choisie.
+ *
+ * Ce n'est plus LA liste des sections d'un plan : celle-ci vient de la
+ * structure retenue (modèle bancaire, investisseur, subvention…) et arrive par
+ * `onStructureConfirmed`. Ces neuf noms restent le repli du parcours de
+ * régénération ciblée, qui court-circuite le choix de structure.
+ */
+const DEFAULT_BUSINESS_PLAN_SECTIONS = [
   'Cover Page',
   'Company Summary',
   'Opportunity',
@@ -44,7 +53,12 @@ const BUSINESS_PLAN_SECTIONS = [
 @Component({
   selector: 'app-business-plan-generation',
   standalone: true,
-  imports: [AdditionalInfoFormComponent, AgentResearchConsoleComponent, TranslateModule],
+  imports: [
+    AdditionalInfoFormComponent,
+    AgentResearchConsoleComponent,
+    BusinessPlanStructureComponent,
+    TranslateModule,
+  ],
   templateUrl: './business-plan-generation.html',
   styleUrl: './business-plan-generation.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -65,7 +79,15 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
 
   // Signals for reactive state management
   protected readonly projectId = signal<string | null>(null);
-  protected readonly showAdditionalInfoForm = signal<boolean>(true);
+  /**
+   * Première étape du parcours : le sommaire que le document suivra. Elle
+   * précède le formulaire d'informations, parce qu'une banque accepte ou
+   * renvoie un dossier sur sa table des matières, pas sur son adresse postale.
+   */
+  protected readonly showStructureSelector = signal<boolean>(true);
+  protected readonly showAdditionalInfoForm = signal<boolean>(false);
+  /** Sections de la structure retenue, dans l'ordre — pilotent la console. */
+  protected readonly plannedSectionNames = signal<string[]>(DEFAULT_BUSINESS_PLAN_SECTIONS);
   protected readonly additionalInfos = signal<any>(null);
   protected readonly isSavingAdditionalInfo = signal<boolean>(false);
   protected readonly additionalInfoError = signal<string | null>(null);
@@ -103,10 +125,13 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
 
   /** Sections attendues, avec libellés amicaux issus du design system i18n. */
   protected readonly plannedSections = computed<PlannedSection[]>(() =>
-    BUSINESS_PLAN_SECTIONS.map((name) => ({
-      name,
-      label: this.translate.instant(`dashboard.generationPanel.sections.businessPlan.${name}`),
-    })),
+    this.plannedSectionNames().map((name) => {
+      const key = `dashboard.generationPanel.sections.businessPlan.${name}`;
+      const label = this.translate.instant(key);
+      // `instant` rend la clé quand la traduction manque : le nom canonique est
+      // plus lisible qu'un chemin de clé dans la console.
+      return { name, label: label === key ? name : label };
+    }),
   );
 
   /** Phase affichée par la console: en cours / finalisation / terminé. */
@@ -126,9 +151,10 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
         ? sectionsParam.split(',').filter(Boolean)
         : [];
 
-    // Régénération ciblée : les infos additionnelles existent déjà côté projet,
-    // on saute le formulaire et on lance directement la génération.
+    // Régénération ciblée : la structure et les infos additionnelles existent
+    // déjà côté projet, on saute les deux étapes et on relance directement.
     if (this.targetSections.length > 0) {
+      this.showStructureSelector.set(false);
       this.showAdditionalInfoForm.set(false);
       this.generateBusinessPlanWithoutAdditionalInfo();
     }
@@ -137,6 +163,19 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  /**
+   * Structure confirmée : elle est déjà enregistrée sur le projet par le
+   * sélecteur, il ne reste qu'à passer à l'étape suivante et à faire suivre les
+   * sections attendues à la console.
+   */
+  protected onStructureConfirmed(selection: BusinessPlanStructureSelection): void {
+    if (selection.sectionNames.length > 0) {
+      this.plannedSectionNames.set(selection.sectionNames);
+    }
+    this.showStructureSelector.set(false);
+    this.showAdditionalInfoForm.set(true);
   }
 
   /**

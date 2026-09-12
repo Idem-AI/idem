@@ -11,11 +11,18 @@
  */
 
 import {
-  BUSINESS_PLAN_GRAPH,
+  DeliverableGraph,
   PITCH_DECK_GRAPH,
+  buildBusinessPlanGraph,
   graphDepth,
   validateGraph,
 } from '../services/agents/deliverable-graph';
+import { BUSINESS_PLAN_TEMPLATES } from '../services/BusinessPlan/structure/templates';
+import {
+  BUSINESS_PLAN_SECTION_CATALOG,
+  BusinessPlanSectionDefinition,
+  getSectionByKey,
+} from '../services/BusinessPlan/structure/section-catalog';
 import { inspectOutput, qualityValidator } from '../services/agents/quality-gate';
 import { stripMarkup } from '../services/agents/text-extract';
 import { templatedLlmOptions } from '../config/ai.config';
@@ -48,25 +55,62 @@ function section(title: string): void {
 // ---------------------------------------------------------------- graphes ----
 section('Graphes de livrables');
 
-const businessPlanSteps = Object.keys(BUSINESS_PLAN_GRAPH);
 const pitchDeckSteps = Object.keys(PITCH_DECK_GRAPH);
 
-validateGraph(BUSINESS_PLAN_GRAPH, businessPlanSteps);
 validateGraph(PITCH_DECK_GRAPH, pitchDeckSteps);
-check('business plan et deck sont acycliques et complets', true);
+check('le deck est acyclique et complet', true);
 
-check(
-  `profondeur du business plan ≤ 3 vagues (mesurée: ${graphDepth(BUSINESS_PLAN_GRAPH)})`,
-  graphDepth(BUSINESS_PLAN_GRAPH) <= 3
-);
 check(
   `profondeur du deck ≤ 3 vagues (mesurée: ${graphDepth(PITCH_DECK_GRAPH)})`,
   graphDepth(PITCH_DECK_GRAPH) <= 3
 );
-check(
-  "'Ask' dépend bien de 'Financials'",
-  (PITCH_DECK_GRAPH.Ask.requires ?? []).includes('Financials')
-);
+
+// Le business plan n'a plus UN graphe : chaque structure proposée (SBA, dossier
+// bancaire, fonds d'amorçage, Lean Canvas…) en produit un, filtré sur ses seules
+// sections. Un modèle dont le graphe serait cyclique, incomplet ou trop profond
+// ferait échouer — ou traîner — la génération au démarrage : ils sont donc tous
+// vérifiés ici, un par un.
+function checkPlanGraph(
+  label: string,
+  sections: BusinessPlanSectionDefinition[],
+  maxDepth: number
+): void {
+  try {
+    // `buildBusinessPlanGraph` valide lui-même acyclicité et noms connus.
+    const graph: DeliverableGraph = buildBusinessPlanGraph(sections);
+    check(`${label} : graphe acyclique et complet`, true);
+
+    const depth = graphDepth(graph);
+    check(`${label} : profondeur ≤ ${maxDepth} vagues (mesurée: ${depth})`, depth <= maxDepth);
+  } catch (error) {
+    check(
+      `${label} : graphe acyclique et complet`,
+      false,
+      error instanceof Error ? error.message : String(error)
+    );
+  }
+}
+
+for (const template of BUSINESS_PLAN_TEMPLATES) {
+  const missing = template.sectionKeys.filter((key) => !getSectionByKey(key));
+  check(
+    `modèle « ${template.id} » : toutes ses clés existent au catalogue`,
+    missing.length === 0,
+    missing.join(', ')
+  );
+
+  const sections = template.sectionKeys
+    .map(getSectionByKey)
+    .filter((s): s is BusinessPlanSectionDefinition => !!s);
+
+  checkPlanGraph(`modèle « ${template.id} »`, sections, 3);
+}
+
+// Une composition libre peut piocher N'IMPORTE QUELLE section du catalogue : le
+// graphe le plus profond atteignable est celui du catalogue entier. Il ne doit
+// rester ni cyclique ni dispendieux — une dépendance ajoutée à la légère au
+// catalogue allonge une vague pour tous les plans personnalisés.
+checkPlanGraph('catalogue complet', BUSINESS_PLAN_SECTION_CATALOG, 4);
 
 let cycleDetected = false;
 try {

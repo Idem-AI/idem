@@ -42,6 +42,9 @@ import {
 } from '../services/design/sectionPlan';
 import { AI_CONFIG, FeatureAIConfig } from '../config/ai.config';
 import { buildBusinessPlanSpec } from '../services/BusinessPlan/businessPlanSpec';
+import { BUSINESS_PLAN_SECTION_CATALOG } from '../services/BusinessPlan/structure/section-catalog';
+import { SECTION_PROMPT_SPECS } from '../services/BusinessPlan/prompts/section-prompt.registry';
+import { BUSINESS_PLAN_TEMPLATES } from '../services/BusinessPlan/structure/templates';
 
 let failures = 0;
 
@@ -320,9 +323,21 @@ console.log('\n  Consignes contradictoires');
 console.log('\n  Équipe de recherche : consignes de section');
 
 {
-  const spec = buildBusinessPlanSpec('Une plateforme de X pour Y.', '', 'Cameroun');
+  // Le catalogue ENTIER, pas seulement les neuf sections historiques : une
+  // section n'existe que si une structure peut la choisir, et une structure qui
+  // la choisit doit pouvoir la produire.
+  const spec = buildBusinessPlanSpec(BUSINESS_PLAN_SECTION_CATALOG, {
+    audience: 'general',
+    projectDescription: 'Une plateforme de X pour Y.',
+    financeContext: '',
+    country: 'Cameroun',
+  });
 
-  check('la spécification couvre les neuf sections', spec.length === 9, `${spec.length} section(s)`);
+  check(
+    'la spécification couvre tout le catalogue',
+    spec.length === BUSINESS_PLAN_SECTION_CATALOG.length,
+    `${spec.length} / ${BUSINESS_PLAN_SECTION_CATALOG.length} section(s)`
+  );
 
   for (const section of spec) {
     if (section.freeform) {
@@ -349,20 +364,71 @@ console.log('\n  Équipe de recherche : consignes de section');
     missing.length === 0,
     missing.join(', ')
   );
+
+  // Le REGISTRE doit couvrir le catalogue exactement. Une section catalogable
+  // sans prompt partirait avec une consigne vide — elle serait générée, mal, et
+  // rien ne le signalerait : c'est très précisément le défaut que le registre
+  // supprime. La couverture est l'exception, elle a son prompt écrit à la main.
+  const promptKeys = new Set(SECTION_PROMPT_SPECS.map((s) => s.key));
+  const withoutPrompt = BUSINESS_PLAN_SECTION_CATALOG.filter(
+    (section) => !section.freeform && !promptKeys.has(section.key)
+  ).map((section) => section.key);
+  check('chaque section du catalogue a son prompt', withoutPrompt.length === 0, withoutPrompt.join(', '));
+
+  // Et l'inverse : un prompt orphelin est du texte que personne n'atteint.
+  const catalogKeys = new Set(BUSINESS_PLAN_SECTION_CATALOG.map((s) => s.key));
+  const orphanPrompts = SECTION_PROMPT_SPECS.filter((s) => !catalogKeys.has(s.key)).map((s) => s.key);
+  check('aucun prompt orphelin', orphanPrompts.length === 0, orphanPrompts.join(', '));
+
+  // Les noms doivent correspondre EXACTEMENT : c'est le nom canonique qui relie
+  // le catalogue, le prompt, la section persistée et l'ordre du PDF.
+  const mismatched = SECTION_PROMPT_SPECS.filter((spec) => {
+    const section = BUSINESS_PLAN_SECTION_CATALOG.find((s) => s.key === spec.key);
+    return section && section.name !== spec.name;
+  }).map((spec) => spec.key);
+  check('noms canoniques alignés catalogue/prompt', mismatched.length === 0, mismatched.join(', '));
+
+  // Un nom canonique en double ferait fusionner deux sections différentes dans
+  // le même emplacement du plan : la deuxième écraserait la première à la
+  // persistance, sans aucune erreur.
+  const names = BUSINESS_PLAN_SECTION_CATALOG.map((s) => s.name);
+  const duplicated = names.filter((name, i) => names.indexOf(name) !== i);
+  check('les noms canoniques du catalogue sont uniques', duplicated.length === 0, duplicated.join(', '));
+
+  // Chaque modèle doit produire un plan réellement générable : ses clés
+  // existent (garde-fou au chargement de `templates.ts`) et il porte bien un
+  // plan financier, la section qu'aucun lecteur de plan ne laisse passer.
+  for (const template of BUSINESS_PLAN_TEMPLATES) {
+    check(
+      `modèle « ${template.id} » : au moins 5 sections`,
+      template.sectionKeys.length >= 5,
+      `${template.sectionKeys.length} section(s)`
+    );
+    check(
+      `modèle « ${template.id} » : porte un plan financier`,
+      template.sectionKeys.includes('financial-plan')
+    );
+  }
 }
 
 // ── LA CHARTE : CE QUI EST RENDU PAR LE CODE ────────────────────────────────
 //
-// Sept pages sur neuf passent désormais par le gabarit. Les quatre pages de
+// Quinze pages passent désormais par le gabarit. Les quatre pages de
 // logo l'ont rejoint après un livrable réel où, laissées libres, elles ont
-// produit des références administratives inventées et un débordement de texte.
+// produit des références administratives inventées et un débordement de texte ;
+// la page « Usage Couleurs & Typographie » est née du même constat, en
+// rassemblant les règles que les pages spécimen ne portent plus.
 console.log('\n  Charte : couverture du gabarit');
 
 {
   const templated = [
     'Color Palette', 'Typography', 'Logo Bonnes Pratiques',
+    'Usage Couleurs & Typographie',
     'Logo Principal', 'Logo Variation Fond Clair',
     'Logo Variation Fond Sombre', 'Logo Variation Monochrome',
+    // Pages dont le spécimen est fabriqué par le code.
+    'Logomark', 'Typeface Hierarchy', 'Graphic Patterns',
+    'Social Media Creatives', 'Social Media Page Banners',
   ];
   for (const page of templated) {
     check(`« ${page} » dispose d'un brief de contenu`, Boolean(CHARTER_PAGE_BRIEFS[page]));

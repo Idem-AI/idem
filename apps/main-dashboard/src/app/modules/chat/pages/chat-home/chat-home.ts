@@ -70,6 +70,7 @@ import {
   ChartePdfFormat,
   FormatChoiceCardComponent,
 } from '../../components/format-choice-card/format-choice-card';
+import { BpStructureCardComponent } from '../../components/bp-structure-card/bp-structure-card';
 import { ColorModel, TypographyModel } from '../../../dashboard/models/brand-identity.model';
 import { LogoModel, LogoType } from '../../../dashboard/models/logo.model';
 import {
@@ -120,6 +121,7 @@ let chatMessageCounter = 0;
     InfoFormCardComponent,
     GenerationProgressCardComponent,
     FormatChoiceCardComponent,
+    BpStructureCardComponent,
     FeatureLauncherComponent,
   ],
   templateUrl: './chat-home.html',
@@ -175,6 +177,13 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   protected readonly isGenerating = signal(false);
   /** Choix du format de la charte en attente : le composer est bloqué */
   protected readonly awaitingFormatChoice = signal(false);
+  /**
+   * Choix de structure en attente : l'envoi de message reste bloqué jusqu'au
+   * clic, comme pour le format de charte. Laisser l'utilisateur relancer une
+   * conversation au milieu d'un choix enregistrerait la structure par défaut
+   * sans qu'il l'ait vue.
+   */
+  protected readonly awaitingBpStructure = signal(false);
 
   private onboardingState: OnboardingState | null = null;
   private loadedProjectId: string | null = null;
@@ -236,6 +245,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         this.awaitingLogoDescription.set(false);
         this.awaitingBpInfoText.set(false);
         this.awaitingFormatChoice.set(false);
+        this.awaitingBpStructure.set(false);
         this.brandingFlowEngaged.set(false);
         this.pendingLogoType = null;
         this.pendingBpInfos = null;
@@ -294,6 +304,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     this.brandingFlowEngaged.set(false);
     this.awaitingLogoDescription.set(false);
     this.awaitingFormatChoice.set(false);
+    this.awaitingBpStructure.set(false);
     await this.store.load(projectId);
     // Une génération interrompue par un rechargement n'est plus vivante
     for (const message of this.store.messages()) {
@@ -334,8 +345,9 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   protected send(): void {
     const content = this.draft().trim();
     if (!content || this.pendingAssistant() || this.isCreatingProject()) return;
-    // Choix de format en attente : l'envoi reste bloqué jusqu'au clic
-    if (this.awaitingFormatChoice()) return;
+    // Choix de format ou de structure en attente : l'envoi reste bloqué
+    // jusqu'au clic.
+    if (this.awaitingFormatChoice() || this.awaitingBpStructure()) return;
     this.draft.set('');
     this.errorMessage.set(null);
 
@@ -1490,9 +1502,25 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     });
   }
 
-  /** Rédaction du business plan : propose d'abord les infos supplémentaires. */
+  /**
+   * Rédaction du business plan : on demande d'abord le SOMMAIRE.
+   *
+   * Il vient avant les informations complémentaires parce qu'il décide de ce
+   * qui sera écrit : une banque accepte ou renvoie un dossier sur sa table des
+   * matières, et un plan généré au mauvais format doit être refait en entier,
+   * pas corrigé.
+   */
   private startBusinessPlanFlow(): void {
     this.pendingBpInfos = null;
+    this.awaitingBpStructure.set(true);
+    this.appendAssistant({
+      content: this.translate.instant('chat.bp.structure.question'),
+      bpStructureChoice: true,
+    });
+  }
+
+  /** Étape suivante : les informations complémentaires, puis la génération. */
+  private startBusinessPlanInfosFlow(): void {
     this.appendAssistant({
       content: this.translate.instant('chat.bp.intro'),
       chips: [
@@ -1500,6 +1528,68 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         { labelKey: 'chat.bp.chips.freeText', icon: 'pi pi-pencil', action: 'bp-free-text' },
         { labelKey: 'chat.bp.chips.skipInfos', icon: 'pi pi-forward', action: 'bp-generate', payload: 'skip' },
       ],
+    });
+  }
+
+  /**
+   * Structure choisie : elle est enregistrée sur le projet avant de continuer.
+   *
+   * L'enregistrement est bloquant à dessein. La génération lit la structure
+   * depuis le projet ; enchaîner sans attendre la réponse ferait partir un plan
+   * au format précédent, et ce plan-là ne se rattrape pas.
+   */
+  protected onBpStructurePicked(messageId: string, templateId: string): void {
+    const projectId = this.session.activeProjectId();
+    if (!projectId) return;
+
+    this.store.patch(messageId, { selectedOptionId: templateId });
+    this.awaitingBpStructure.set(false);
+    this.appendUser(
+      this.translate.instant(`dashboard.businessPlanStructure.templates.${templateId}.name`),
+    );
+    this.pendingAssistant.set(true);
+
+    this.businessPlanService.saveStructure(projectId, templateId).subscribe({
+      next: () => {
+        this.pendingAssistant.set(false);
+        this.startBusinessPlanInfosFlow();
+      },
+      error: (error) => {
+        console.error('Chat BP: saving the plan structure failed', error);
+        this.pendingAssistant.set(false);
+        // La carte est rendue à l'utilisateur plutôt que de continuer sur une
+        // structure qu'on n'a pas réussi à poser.
+        this.store.patch(messageId, { selectedOptionId: undefined });
+        this.awaitingBpStructure.set(true);
+        this.appendAssistant({ content: this.translate.instant('chat.bp.structure.saveFailed') });
+      },
+    });
+  }
+
+  /** Composition libre du sommaire : l'atelier est fait pour ça, pas le fil. */
+  protected onBpStructureCustomise(messageId: string): void {
+    this.store.patch(messageId, { selectedOptionId: 'customise' });
+    this.awaitingBpStructure.set(false);
+    this.appendUser(this.translate.instant('chat.bp.structure.customise'));
+    this.appendAssistant({
+      content: this.translate.instant('chat.bp.structure.customiseOk'),
+      chips: [
+        {
+          labelKey: 'chat.bp.structure.chips.openAtelier',
+          icon: 'pi pi-external-link',
+          action: 'open-route',
+          payload: '/project/business-plan/generate',
+        },
+      ],
+    });
+  }
+
+  protected onBpStructureCancelled(messageId: string): void {
+    this.store.patch(messageId, { selectedOptionId: 'cancelled' });
+    this.awaitingBpStructure.set(false);
+    this.appendAssistant({
+      content: this.translate.instant('chat.bp.structure.cancelledOk'),
+      chips: this.genericChips(),
     });
   }
 

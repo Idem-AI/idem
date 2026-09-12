@@ -49,6 +49,7 @@
     "modules/dashboard/pages/show-business-plan/components/additional-info-form",
     "modules/dashboard/pages/show-business-plan/components/business-plan-display",
     "modules/dashboard/pages/show-business-plan/components/business-plan-generation",
+    "modules/dashboard/pages/show-business-plan/components/business-plan-structure",
     "modules/dashboard/pages/show-diagrams",
     "modules/dashboard/pages/show-diagrams/components/diagram-display",
     "modules/dashboard/pages/show-diagrams/components/diagram-generation",

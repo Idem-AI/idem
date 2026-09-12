@@ -1,0 +1,129 @@
+<div
+  class="w-full max-w-lg rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] overflow-hidden shadow-lg shadow-black/20"
+>
+  <div class="flex items-center gap-3 p-4 border-b border-[var(--glass-border-subtle)]">
+    <div
+      class="w-10 h-10 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0"
+    >
+      <i class="pi pi-list text-primary text-lg" aria-hidden="true"></i>
+    </div>
+    <div class="min-w-0">
+      <h4 class="text-sm font-semibold text-text-primary">
+        {{ 'chat.bp.structure.title' | translate }}
+      </h4>
+      <p class="text-[11px] text-text-tertiary">
+        {{ 'chat.bp.structure.subtitle' | translate }}
+      </p>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="p-4 space-y-2" aria-hidden="true">
+      @for (i of [1, 2, 3]; track i) {
+        <span class="block h-12 rounded-xl bg-[var(--glass-bg-light)] structure-skeleton"></span>
+      }
+    </div>
+  } @else if (loadFailed()) {
+    <div class="p-4 text-center" role="alert">
+      <p class="text-xs text-text-secondary mb-3">
+        {{ 'chat.bp.structure.loadFailed' | translate }}
+      </p>
+      <button type="button" class="structure-retry" (click)="load()">
+        {{ 'common.retry' | translate }}
+      </button>
+    </div>
+  } @else {
+    <!-- Les tuiles portent role="radio" : un seul modèle est retenu, et la
+         carte se fige dès qu'il l'est. -->
+    <div class="p-3 max-h-[22rem] overflow-y-auto space-y-1.5" role="radiogroup">
+      @for (option of options(); track option.id) {
+        <div>
+          <button
+            type="button"
+            role="radio"
+            [attr.aria-checked]="selected() === option.id"
+            [disabled]="isLocked() && selected() !== option.id"
+            class="choice-tile structure-tile"
+            [class.is-selected]="selected() === option.id"
+            [class.is-dimmed]="!!selected() && selected() !== option.id"
+            (click)="pick(option.id)"
+          >
+            @if (selected() === option.id) {
+              <span class="choice-check"><i class="pi pi-check" aria-hidden="true"></i></span>
+            }
+
+            <span class="flex items-start gap-2.5">
+              <span class="min-w-0 flex-1">
+                <span class="block text-xs font-semibold text-text-primary">
+                  {{ 'dashboard.businessPlanStructure.templates.' + option.id + '.name' | translate }}
+                </span>
+                <span class="block text-[11px] leading-snug text-text-secondary mt-0.5">
+                  {{
+                    'dashboard.businessPlanStructure.templates.' + option.id + '.description'
+                      | translate
+                  }}
+                </span>
+                <span class="flex flex-wrap items-center gap-1.5 mt-1.5 text-[10px] text-text-tertiary">
+                  <span class="structure-tag">
+                    {{ 'dashboard.businessPlanStructure.audiences.' + option.audience | translate }}
+                  </span>
+                  <span>
+                    {{
+                      'dashboard.businessPlanStructure.meta.sections'
+                        | translate: { count: option.sectionCount }
+                    }}
+                  </span>
+                  <span>
+                    {{
+                      'dashboard.businessPlanStructure.meta.pages'
+                        | translate: { range: option.estimatedPages }
+                    }}
+                  </span>
+                </span>
+              </span>
+
+              <!-- Bouton distinct : lire le sommaire ne vaut pas le choisir. -->
+              <span
+                class="structure-peek"
+                role="button"
+                tabindex="0"
+                [attr.aria-expanded]="expandedId() === option.id"
+                [attr.aria-label]="'chat.bp.structure.showOutline' | translate"
+                (click)="toggleOutline(option.id, $event)"
+                (keydown.enter)="toggleOutline(option.id, $event)"
+                (keydown.space)="toggleOutline(option.id, $event)"
+              >
+                <i
+                  class="pi text-[10px]"
+                  [class.pi-chevron-down]="expandedId() !== option.id"
+                  [class.pi-chevron-up]="expandedId() === option.id"
+                  aria-hidden="true"
+                ></i>
+              </span>
+            </span>
+          </button>
+
+          @if (expandedId() === option.id) {
+            <ol class="structure-outline" role="list">
+              @for (name of expandedOutline(); track name) {
+                <li>{{ name }}</li>
+              }
+            </ol>
+          }
+        </div>
+      }
+    </div>
+
+    @if (!selected()) {
+      <div class="px-4 pb-3 flex items-center justify-between gap-3">
+        <button type="button" class="structure-link" (click)="customise()">
+          <i class="pi pi-sliders-h text-[10px]" aria-hidden="true"></i>
+          <span>{{ 'chat.bp.structure.customise' | translate }}</span>
+        </button>
+        <button type="button" class="structure-link is-muted" (click)="cancel()">
+          {{ 'chat.bp.structure.cancel' | translate }}
+        </button>
+      </div>
+    }
+  }
+</div>

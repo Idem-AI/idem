@@ -58,7 +58,7 @@ This solution applies to Windows 10/11 environments
     
   ### 🛠️ 2、Locate this file：
   - C:\Users\13906\AppData\Roaming\nvm\v18.18.1\node_modules\pnpm\bin\pnpm.cjs
-    <span style="color: #3498db; font-weight: 600;">⚠️ 注意：</span> ：nvm前面的地址以你实际本机nvm的具体路径为主件
+    <span style="color: #3498db; font-weight: 600;">⚠️ ：</span> ：nvm前面的地址以你实际本机nvm的具体路径为主件
   
   ###  🛠️ 3、Modify the content of the first line of code in the file.:
     --Original：#!/usr/bin/env node

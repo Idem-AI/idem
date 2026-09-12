@@ -2274,20 +2274,59 @@
           "Marketing & Sales": "Marketing & sales",
           "Financial Plan": "Financial plan",
           "Goal Planning": "Goal planning",
-          "Appendix": "Appendix"
+          "Appendix": "Appendix",
+          "Executive Summary": "Executive summary",
+          "One-Page Summary": "One-page summary",
+          "Mission & Vision": "Mission and vision",
+          "Promoter Profile": "Promoter profile",
+          "Management & Team": "Management and team",
+          "Legal & Regulatory Framework": "Legal and regulatory framework",
+          "Problem Statement": "Problem statement",
+          "Market Analysis": "Market analysis",
+          "Competitive Analysis": "Competitive analysis",
+          "Solution": "Solution",
+          "Unique Value Proposition": "Value proposition",
+          "Unfair Advantage": "Unfair advantage",
+          "Business Model": "Business model",
+          "Strategy & Key Milestones": "Strategy and key milestones",
+          "Go-to-Market Strategy": "Go-to-market strategy",
+          "Traction & Proof Points": "Traction and proof points",
+          "Partnerships & Ecosystem": "Partnerships and ecosystem",
+          "Operational Plan": "Operational plan",
+          "Resources & Assets": "Resources and assets",
+          "Key Metrics & KPIs": "Key metrics",
+          "Risk Analysis & Mitigation": "Risks and mitigation",
+          "Funding Request & Use of Funds": "Funding request",
+          "Guarantees & Collateral": "Guarantees and collateral",
+          "Exit Strategy & Investor Returns": "Exit and investor returns",
+          "Theory of Change": "Theory of change",
+          "Social & Economic Impact": "Social and economic impact",
+          "Monitoring & Evaluation": "Monitoring and evaluation",
+          "Sustainability Plan": "Sustainability plan",
+          "Ressources": "Sources"
         },
         "branding": {
           "Brand Header": "Brand header",
           "Logo Principal": "Primary logo",
+          "Logomark": "Logomark",
           "Logo Variation Fond Clair": "Logo — light background",
           "Logo Variation Fond Sombre": "Logo — dark background",
           "Logo Variation Monochrome": "Logo — monochrome",
-          "Logo Bonnes Pratiques": "Logo best practices",
           "Color Palette": "Color palette",
           "Typography": "Typography",
+          "Typeface Hierarchy": "Typeface hierarchy",
+          "Direction Artistique": "Art direction",
+          "Graphic Patterns": "Graphic patterns",
+          "Brand Imagery": "Brand imagery",
           "Brand Mockup 1": "Mockup 1",
           "Brand Mockup 2": "Mockup 2",
-          "Brand Mockup 3": "Mockup 3"
+          "Brand Mockup 3": "Mockup 3",
+          "Brand Billboard": "Billboard",
+          "Brand Stationery": "Stationery",
+          "Social Media Creatives": "Social creatives",
+          "Social Media Page Banners": "Profile banners",
+          "Logo Bonnes Pratiques": "Logo usage",
+          "Usage Couleurs & Typographie": "Colour & type usage"
         }
       },
       "completeSubtitle": "Every section has been generated. You can regenerate one if needed.",
@@ -2859,6 +2898,110 @@
         "cta": "Run a simulation",
         "note": "The simulator opens in a new tab, with your IDEM account."
       }
+    },
+    "businessPlanStructure": {
+      "title": "Business plan structure",
+      "lede": "Many banks and funds impose their own table of contents. Pick the one your reader expects: it decides which sections are generated, and in what order.",
+      "filterLabel": "Filter by reader",
+      "legend": "Structure template",
+      "edited": "Customised",
+      "researched": "Web research",
+      "catalogEmpty": "Every available section is already in the outline.",
+      "audiences": {
+        "all": "All",
+        "bank": "Bank",
+        "investor": "Investor",
+        "grant": "Grant",
+        "internal": "Internal",
+        "general": "General",
+        "custom": "Custom"
+      },
+      "categories": {
+        "opening": "Opening",
+        "company": "The company",
+        "market": "The market",
+        "offer": "The offer",
+        "strategy": "Strategy",
+        "operations": "Operations",
+        "finance": "Finance",
+        "impact": "Impact",
+        "closing": "Appendices"
+      },
+      "meta": {
+        "sections": "{{count}} sections",
+        "pages": "{{range}} pages",
+        "summary": "{{sections}} sections, {{researched}} of them backed by sourced web research."
+      },
+      "actions": {
+        "customize": "Customise this outline",
+        "doneEditing": "Done customising",
+        "reset": "Back to the template",
+        "openCatalog": "Add a section",
+        "closeCatalog": "Close the catalog",
+        "atMax": "Maximum of {{max}} sections reached",
+        "confirm": "Continue",
+        "saving": "Saving",
+        "moveUpAria": "Move {{section}} up",
+        "moveDownAria": "Move {{section}} down",
+        "removeAria": "Remove {{section}}",
+        "lockedAria": "{{section}} cannot be removed"
+      },
+      "live": {
+        "moved": "{{section}} moved to position {{position}} of {{total}}",
+        "added": "{{section}} added at position {{position}} of {{total}}",
+        "removed": "{{section}} removed from the outline",
+        "reset": "Template outline restored"
+      },
+      "errors": {
+        "load": "Could not load the available structures.",
+        "save": "Saving the structure failed. Try again."
+      },
+      "templates": {
+        "idem-standard": {
+          "name": "Idem standard plan",
+          "description": "A full outline, balanced across market, offer and finance. Use it when nobody imposes a format."
+        },
+        "sba-traditional": {
+          "name": "SBA traditional plan",
+          "description": "The nine-part outline recommended by the U.S. Small Business Administration, expected by most lenders."
+        },
+        "bank-financing-9": {
+          "name": "Bank financing file",
+          "description": "The nine blocks of the guides banks hand out: cover, one-page summary, market, strategy, means, forecast."
+        },
+        "bank-credit-file": {
+          "name": "Full credit file",
+          "description": "The long version a credit committee reads: promoter profile, guarantees, risks, repayment plan."
+        },
+        "vc-seed": {
+          "name": "Fundraising (seed, series A)",
+          "description": "Problem, solution, traction, competition, team, exit. What a fund looks for, in the order it looks."
+        },
+        "lean-canvas": {
+          "name": "Extended lean canvas",
+          "description": "A short format to test your assumptions before writing a long file. Around fifteen pages."
+        },
+        "grant-nonprofit": {
+          "name": "Grant application",
+          "description": "Mission, theory of change, beneficiaries, monitoring and evaluation, sustainability. The vocabulary funders use."
+        },
+        "microfinance-ohada": {
+          "name": "Microfinance (OHADA region)",
+          "description": "Promoter profile, means of production, guarantees, local impact and a SYSCOHADA forecast."
+        },
+        "incubator-application": {
+          "name": "Incubator application",
+          "description": "Short and evidence-led: the problem, proof that it works, the team, the next twelve months."
+        },
+        "internal-strategic": {
+          "name": "Internal strategic plan",
+          "description": "No cover page, no sales pitch: market, strategy, means, measurable objectives, risks."
+        },
+        "custom": {
+          "name": "Compose my outline",
+          "description": "Start from a template and adjust: drop what you don't need, add what's missing, set the order."
+        }
+      }
     }
   },
   "deployment": {
@@ -3347,6 +3490,22 @@
         "skipInfos": "Generate without this info",
         "generateNow": "Looks good, start generating",
         "fixForm": "Fix via the form"
+      },
+      "structure": {
+        "title": "Plan structure",
+        "subtitle": "It decides which sections are generated, and in what order.",
+        "question": "Before writing: which structure does your reader expect? Many banks and funds impose their own table of contents.",
+        "hint": "Pick a structure to continue.",
+        "showOutline": "Show the outline",
+        "customise": "Compose my outline",
+        "customiseOk": "Composing an outline happens in the workshop: you add, remove and reorder sections one by one there.",
+        "cancel": "Later",
+        "cancelledOk": "Understood. The plan will follow the standard structure if you run it as is.",
+        "saveFailed": "Saving the structure failed. Pick one again.",
+        "loadFailed": "Could not load the available structures.",
+        "chips": {
+          "openAtelier": "Open the workshop"
+        }
       }
     },
     "infoForm": {

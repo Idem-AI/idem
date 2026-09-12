@@ -1,9 +1,13 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError, shareReplay, tap } from 'rxjs/operators';
 import { environment } from '../../../../../environments/environment';
 import { BusinessPlanModel, BusinessPlanPdfQuality } from '../../models/businessPlan.model';
+import {
+  BusinessPlanStructure,
+  BusinessPlanStructureCatalog,
+} from '../../models/business-plan-structure.model';
 import { SSEService } from '../../../../shared/services/sse.service';
 import { SSEStepEvent, SSEConnectionConfig } from '../../../../shared/models/sse-step.model';
 
@@ -232,6 +236,54 @@ export class BusinessPlanService {
           });
         }),
       );
+  }
+
+  /**
+   * Catalogue des structures de plan : modèles prédéfinis (dossier bancaire,
+   * plan SBA, plan investisseur, subvention…) et sections composables.
+   *
+   * Le catalogue est le MÊME pour tout le monde et ne change qu'avec un
+   * déploiement : il est mémorisé pour la durée de la session plutôt que
+   * rappelé à chaque ouverture du sélecteur.
+   */
+  private structureCatalog$?: Observable<BusinessPlanStructureCatalog>;
+
+  getStructureCatalog(): Observable<BusinessPlanStructureCatalog> {
+    this.structureCatalog$ ??= this.http
+      .get<BusinessPlanStructureCatalog>(`${this.apiUrl}/structures`)
+      .pipe(
+        shareReplay({ bufferSize: 1, refCount: false }),
+        catchError((error) => {
+          // Un échec ne doit pas geler le cache : la tentative suivante doit
+          // repartir sur une vraie requête.
+          this.structureCatalog$ = undefined;
+          console.error('Error loading business plan structure catalog:', error);
+          return throwError(() => error);
+        }),
+      );
+    return this.structureCatalog$;
+  }
+
+  /** Structure actuellement retenue pour le projet (jamais vide côté API). */
+  getStructure(projectId: string): Observable<BusinessPlanStructure> {
+    return this.http.get<BusinessPlanStructure>(`${this.apiUrl}/${projectId}/structure`);
+  }
+
+  /**
+   * Enregistre la structure choisie AVANT de lancer la génération.
+   *
+   * `sectionKeys` omis = on adopte le sommaire du modèle tel quel. Fourni = le
+   * sommaire a été personnalisé, et l'API le revalide contre son catalogue.
+   */
+  saveStructure(
+    projectId: string,
+    templateId: string,
+    sectionKeys?: string[],
+  ): Observable<BusinessPlanStructure> {
+    return this.http.put<BusinessPlanStructure>(`${this.apiUrl}/${projectId}/structure`, {
+      templateId,
+      ...(sectionKeys ? { sectionKeys } : {}),
+    });
   }
 
   /**

@@ -12,6 +12,7 @@
 # After a successful rotation, previous versions are DISABLED (not destroyed)
 # so you can roll back within 24h if something breaks.
 
+
 set -euo pipefail
 
 NAME="${1:-}"

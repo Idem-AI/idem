@@ -10,7 +10,7 @@ import {
   ISectionResult,
   withGraph,
 } from '../common/generic.service';
-import { BUSINESS_PLAN_GRAPH } from '../agents/deliverable-graph';
+import { buildBusinessPlanGraph } from '../agents/deliverable-graph';
 import { SectionModel } from '../../models/section.model';
 import { PdfService, isUnderfilledSection } from '../pdf.service';
 import { cacheService, CacheOptions } from '../cache.service';
@@ -28,8 +28,18 @@ import { Block } from '../design/sectionContent';
 import { AGENT_GOAL_PLANNING_PROMPT } from './prompts/agent-goal-planning.prompt';
 import { AGENT_APPENDIX_PROMPT } from './prompts/agent-appendix.prompt';
 import { BP_SECTION_EXAMPLE } from './prompts/section-example.prompt';
-import { BP_SECTION_BRIEFS } from './prompts/section-briefs.prompt';
+import {
+  composeBrief,
+  composeHtmlPrompt,
+  readerBlock,
+} from './prompts/section-prompt.registry';
 import { buildBusinessPlanSpec } from './businessPlanSpec';
+import { BusinessPlanStructure } from '../../models/businessPlanStructure.model';
+import {
+  BP_RESOURCES_SECTION_NAME,
+  BusinessPlanSectionDefinition,
+} from './structure/section-catalog';
+import { buildStructure, resolveStructure } from './structure/structure.resolver';
 import { TeamMember } from '../../models/project.model';
 import { storageService } from '../storage.service';
 import { buildLogoBlock, collectLogoUrls } from '../../utils/brand-context.util';
@@ -53,27 +63,49 @@ import {
 } from '../design/documentDesignSystem';
 import { ensureProjectArtDirection } from '../design/artDirection.provider';
 import { researchTeamService } from '../research/research-team.service';
-import {
-  DeliverableSection,
-  ResearchEmit,
-  ResearchedSection,
-} from '../research/research.types';
+import { ResearchEmit, ResearchedSection } from '../research/research.types';
 
-export const BUSINESS_PLAN_SECTION_NAMES = [
-  'Cover Page',
-  'Company Summary',
-  'Opportunity',
-  'Target Audience',
-  'Products & Services',
-  'Marketing & Sales',
-  'Financial Plan',
-  'Goal Planning',
-  'Appendix',
-  // Bibliographie du livrable, en DERNIER. Elle doit figurer ici : le PDF
-  // rejette en fin de document toute section absente de cette liste, et une
-  // page construite mais jamais affichée est le pire des deux mondes.
-  'Ressources',
-];
+/**
+ * Ordre d'affichage d'un plan : les sections de sa structure, puis la
+ * bibliographie.
+ *
+ * La liste était figée à neuf noms. Elle est maintenant dérivée de la structure
+ * choisie sur le projet — modèle bancaire, modèle investisseur, composition
+ * libre. `Ressources` reste en DERNIER et doit y figurer : le PDF rejette en
+ * fin de document toute section absente de cette liste, et une page construite
+ * mais jamais affichée est le pire des deux mondes.
+ */
+export const businessPlanSectionNames = (
+  sections: readonly BusinessPlanSectionDefinition[]
+): string[] => [...sections.map((s) => s.name), BP_RESOURCES_SECTION_NAME];
+
+/**
+ * Prompts de composition d'ORIGINE, par section.
+ *
+ * Ils ne servent plus qu'au repli : quand `IDEM_SECTION_TEMPLATE=off`, la
+ * section doit de nouveau produire sa page en HTML, et c'est ce prompt-là qui
+ * sait le faire. Les sections apportées par les structures (banque,
+ * investisseur, subvention) n'en ont pas — elles retombent sur leur brief de
+ * contenu, ce qui est le comportement voulu : mieux vaut une page composée par
+ * le gabarit qu'une page composée d'après un prompt écrit pour une autre.
+ */
+/** Rang d'une section dans un ordre donné ; les inconnues vont en fin. */
+const orderIndexIn = (order: readonly string[], name: string): number => {
+  const i = order.indexOf(name);
+  return i === -1 ? order.length : i;
+};
+
+const LEGACY_SECTION_PROMPTS: Record<string, string> = {
+  'Cover Page': AGENT_COVER_PROMPT,
+  'Company Summary': AGENT_COMPANY_SUMMARY_PROMPT,
+  Opportunity: AGENT_OPPORTUNITY_PROMPT,
+  'Target Audience': AGENT_TARGET_AUDIENCE_PROMPT,
+  'Products & Services': AGENT_PRODUCTS_SERVICES_PROMPT,
+  'Marketing & Sales': AGENT_MARKETING_SALES_PROMPT,
+  'Financial Plan': AGENT_FINANCIAL_PLAN_PROMPT,
+  'Goal Planning': AGENT_GOAL_PLANNING_PROMPT,
+  Appendix: AGENT_APPENDIX_PROMPT,
+};
 
 export class BusinessPlanService extends GenericService {
   private pdfService: PdfService;
@@ -101,6 +133,15 @@ export class BusinessPlanService extends GenericService {
       return null;
     }
 
+    // STRUCTURE DU PLAN — modèle bancaire, modèle investisseur, composition
+    // libre. Elle décide des sections produites, de leur ordre et de leurs
+    // briefs. Absente (plans d'avant la fonctionnalité), elle retombe sur le
+    // modèle par défaut, qui est la structure historique en neuf sections.
+    const { sections: planSections, audience: planAudience } = resolveStructure(
+      project.analysisResultModel?.businessPlan?.structure
+    );
+    const sectionNames = businessPlanSectionNames(planSections);
+
     const projectDescription =
       this.extractProjectDescription(project) +
       '\n' +
@@ -114,6 +155,9 @@ export class BusinessPlanService extends GenericService {
           description: project.longDescription || project.description,
           branding: project.analysisResultModel?.branding,
           projectDescription,
+          // Sans la structure dans l'empreinte, changer de modèle de plan
+          // servirait le plan précédent depuis le cache.
+          structure: planSections.map((section) => section.key),
         })
       )
       .digest('hex')
@@ -127,7 +171,7 @@ export class BusinessPlanService extends GenericService {
     const skipCacheRead =
       forceRegenerate ||
       targetSections.length > 0 ||
-      currentSections.length < BUSINESS_PLAN_SECTION_NAMES.length;
+      currentSections.length < planSections.length;
 
     if (!skipCacheRead) {
       const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
@@ -163,8 +207,9 @@ export class BusinessPlanService extends GenericService {
 
     try {
       // Les dépendances entre sections ne sont PLUS déclarées ici : elles vivent
-      // dans BUSINESS_PLAN_GRAPH (services/agents/deliverable-graph.ts), au même
-      // endroit que celles du deck, validées (cycles, noms inconnus) et
+      // dans le catalogue (`requires`) et sont assemblées par
+      // `buildBusinessPlanGraph` (services/agents/deliverable-graph.ts), filtrées
+      // sur les sections réellement retenues, validées (cycles, noms inconnus) et
       // documentées avec leur coût en latence.
       // PRÉFIXE STABLE — identique aux neuf sections, émis UNE fois en tête de
       // chaque appel. Il portait auparavant la FIN de chaque `promptConstant`,
@@ -224,29 +269,31 @@ export class BusinessPlanService extends GenericService {
        * Une section RENDUE PAR GABARIT : le modèle produit du contenu, le code
        * produit la page. Sa graine lui donne son archétype de mise en page,
        * distinct de celui de ses voisines.
+       *
+       * @param contentBrief Consigne de CONTENU composée pour ce document
+       *   (destinataire, rang, voisines). C'est elle qui part sous gabarit.
+       * @param htmlPrompt Prompt COMPLET, avec les règles de composition. Il
+       *   n'est utilisé qu'en repli `IDEM_SECTION_TEMPLATE=off`, quand la
+       *   section doit de nouveau produire sa page en HTML.
        */
       const templated = (
-        fallbackPrompt: string,
+        contentBrief: string,
+        htmlPrompt: string,
         stepName: string,
         volume: string,
-        extra = '',
         prependBlocks?: Block[]
       ): IPromptStep => {
         sectionIndex += 1;
         return {
-          // Le prompt d'ORIGINE reste ici : il est le repli quand le gabarit est
-          // coupé (`IDEM_SECTION_TEMPLATE=off`), auquel cas la section doit de
-          // nouveau produire du HTML.
-          promptConstant: `${fallbackPrompt}${extra}`,
+          promptConstant: htmlPrompt,
           stepName,
           stablePrefix: templatedPrefix,
           template: {
-            // Sous gabarit, c'est le brief de CONTENU qui part. Le prompt
-            // d'origine consacrait les trois quarts de son volume à une
-            // composition que le rendu produit désormais (format de page,
-            // Tailwind, Chart.js, compatibilité éditeur) : une consigne inerte
-            // n'est pas neutre, elle prend la place de celles qui comptent.
-            contentBrief: `${BP_SECTION_BRIEFS[stepName] ?? fallbackPrompt}${extra}`,
+            // Sous gabarit, seule la consigne de CONTENU part. Le prompt HTML
+            // consacre les trois quarts de son volume à une composition que le
+            // rendu produit désormais : une consigne inerte n'est pas neutre,
+            // elle prend la place de celles qui comptent.
+            contentBrief,
             designSystem,
             seed: buildSectionSeed(
               artDirection?.styleId,
@@ -286,29 +333,51 @@ export class BusinessPlanService extends GenericService {
         };
       };
 
-      const steps: IPromptStep[] = [
-        freeform(AGENT_COVER_PROMPT, 'Cover Page'),
-        // Volumes augmentés : ces sections produisaient systématiquement trop peu
-        // de contenu pour remplir le nombre de pages allouées (cf. warn
-        // "under-filled page" dans le rapport de pagination PDF).
-        templated(AGENT_COMPANY_SUMMARY_PROMPT, 'Company Summary', '9 to 12'),
-        templated(AGENT_OPPORTUNITY_PROMPT, 'Opportunity', '10 to 13'),
-        templated(AGENT_TARGET_AUDIENCE_PROMPT, 'Target Audience', '7 to 9'),
-        templated(AGENT_PRODUCTS_SERVICES_PROMPT, 'Products & Services', '7 to 9'),
-        templated(AGENT_MARKETING_SALES_PROMPT, 'Marketing & Sales', '9 to 12'),
-        templated(
-          AGENT_FINANCIAL_PLAN_PROMPT,
-          'Financial Plan',
-          '8 to 10',
-          financeContext,
-          buildFinanceBlocks(
-            project.analysisResultModel?.finance,
-            project.additionalInfos?.country
-          )
-        ),
-        templated(AGENT_GOAL_PLANNING_PROMPT, 'Goal Planning', '8 to 11'),
-        templated(AGENT_APPENDIX_PROMPT, 'Appendix', '7 to 10'),
-      ];
+      // Les étapes viennent de la STRUCTURE, pas d'une liste écrite ici : le
+      // plan peut porter neuf sections ou dix-sept, dans l'ordre qu'une banque
+      // impose. Le prompt d'origine (`agent-*`) sert de repli quand le gabarit
+      // est coupé ; les sections introduites avec les structures n'en ont pas,
+      // et retombent alors sur leur brief de contenu — ce qui est exactement ce
+      // que le repli doit faire.
+      const steps: IPromptStep[] = planSections.map((section, index) => {
+        // Contexte de composition de CETTE section dans CE document : son
+        // destinataire, son rang, ses voisines. Sans lui, chaque section
+        // recommence par présenter l'entreprise et le plan se répète.
+        const promptCtx = {
+          audience: planAudience,
+          position: index + 1,
+          total: planSections.length,
+          previous: planSections[index - 1]?.name,
+          next: planSections[index + 1]?.name,
+          financeContext: section.financeContext ? financeContext : undefined,
+        };
+
+        if (section.freeform) {
+          const cover = LEGACY_SECTION_PROMPTS[section.name] ?? '';
+          return freeform(`${readerBlock(planAudience)}\n\n${cover}`, section.name);
+        }
+
+        // Le prompt HTML de repli : celui écrit à la main quand la section en a
+        // un (les neuf historiques, éprouvés page par page), sinon celui
+        // composé — qui porte les mêmes règles de page et de marque.
+        const htmlPrompt =
+          LEGACY_SECTION_PROMPTS[section.name] ??
+          composeHtmlPrompt(section.key, promptCtx) ??
+          '';
+
+        return templated(
+          composeBrief(section.key, promptCtx) ?? '',
+          section.financeContext ? `${htmlPrompt}${financeContext}` : htmlPrompt,
+          section.name,
+          section.volume,
+          section.financeBlocks
+            ? buildFinanceBlocks(
+                project.analysisResultModel?.finance,
+                project.additionalInfos?.country
+              )
+            : undefined
+        );
+      });
 
       // Chaque section produit une page HTML : la grille déterministe attrape
       // troncatures, balises déséquilibrées et gabarits non remplis avant que la
@@ -325,7 +394,7 @@ export class BusinessPlanService extends GenericService {
       const configuredSteps = withGraph(
         AI_CONFIG.businessPlan,
         steps,
-        BUSINESS_PLAN_GRAPH,
+        buildBusinessPlanGraph(planSections),
         sectionQuality,
         stablePrefix
       );
@@ -342,11 +411,16 @@ export class BusinessPlanService extends GenericService {
       // Load existing sections if not forcing regeneration.
       // Sections listed in targetSections are dropped so they get regenerated,
       // while the others are kept as-is (resume semantics).
+      // Les sections qui ne sont PLUS dans la structure sont abandonnées :
+      // sinon un changement de modèle laisserait deux sommaires superposés
+      // dans le même document (cf. le chemin « équipe de recherche »).
+      const inStructure = new Set(sectionNames);
+      const keptSections = currentSections.filter((s) => inStructure.has(s.name));
       const existingSections = forceRegenerate
         ? []
         : targetSections.length > 0
-          ? currentSections.filter((s) => !targetSections.includes(s.name))
-          : currentSections;
+          ? keptSections.filter((s) => !targetSections.includes(s.name))
+          : keptSections;
 
       // Initialize sections array with existing sections to collect results
       let sectionResults: SectionModel[] = [...existingSections];
@@ -404,9 +478,12 @@ export class BusinessPlanService extends GenericService {
               sectionResults.push(section);
             }
 
-            // Sort sections to match the original steps order
-            const stepOrder = steps.map((s) => s.stepName);
-            sectionResults.sort((a, b) => stepOrder.indexOf(a.name) - stepOrder.indexOf(b.name));
+            // Ordre du document = ordre de la structure. Il venait de `steps`,
+            // qui ne connaît pas la bibliographie : celle-ci remontait alors en
+            // tête du plan (indexOf === -1).
+            sectionResults.sort(
+              (a, b) => orderIndexIn(sectionNames, a.name) - orderIndexIn(sectionNames, b.name)
+            );
 
             // Update project immediately after each step
             logger.info(`Updating project after step: ${result.name} - projectId: ${projectId}`);
@@ -429,6 +506,9 @@ export class BusinessPlanService extends GenericService {
               analysisResultModel: {
                 ...currentProject.analysisResultModel,
                 businessPlan: {
+                  // Étalé : écrire `{ sections }` effaçait la structure choisie
+                  // et la qualité PDF à chaque section persistée.
+                  ...currentProject.analysisResultModel?.businessPlan,
                   sections: sectionResults,
                 },
               },
@@ -509,6 +589,7 @@ export class BusinessPlanService extends GenericService {
           analysisResultModel: {
             ...oldProject.analysisResultModel,
             businessPlan: {
+              ...oldProject.analysisResultModel?.businessPlan,
               sections: sectionResults,
             },
           },
@@ -582,23 +663,52 @@ export class BusinessPlanService extends GenericService {
       'business-plan',
       userId,
       projectId,
-      crypto.createHash('sha256').update(projectDescription).digest('hex').substring(0, 16)
+      crypto
+        .createHash('sha256')
+        .update(
+          JSON.stringify({
+            projectDescription,
+            // Une structure différente est un document différent : l'omettre
+            // ferait écrire deux plans sous la même clé de cache.
+            structure: project.analysisResultModel?.businessPlan?.structure?.sectionKeys ?? [],
+          })
+        )
+        .digest('hex')
+        .substring(0, 16)
     );
 
+    // STRUCTURE DU PLAN — c'est elle qui décide des sections produites et de
+    // leur ordre. Un projet sans structure retombe sur le modèle par défaut,
+    // qui est la structure historique en neuf sections : un plan déjà généré
+    // reste donc régénérable à l'identique.
+    const { sections: planSections, audience: planAudience } = resolveStructure(
+      project.analysisResultModel?.businessPlan?.structure
+    );
+    const orderedNames = businessPlanSectionNames(planSections);
+    const inStructure = new Set(orderedNames);
+
     // Résumé/reprise: quelles sections conserver telles quelles.
+    //
+    // Celles qui ne sont PLUS dans la structure sont abandonnées. Sans ce
+    // filtre, changer de modèle après une première génération laisserait les
+    // anciennes sections dans le document : elles ne seraient pas régénérées,
+    // le PDF les rejetterait en fin de document faute de rang, et le plan
+    // porterait deux sommaires superposés.
     const currentSections = project.analysisResultModel?.businessPlan?.sections || [];
+    const keptSections = currentSections.filter((s) => inStructure.has(s.name));
     const existingSections: SectionModel[] = forceRegenerate
       ? []
       : targetSections.length > 0
-        ? currentSections.filter((s) => !targetSections.includes(s.name))
-        : currentSections;
+        ? keptSections.filter((s) => !targetSections.includes(s.name))
+        : keptSections;
     const existingNames = new Set(existingSections.map((s) => s.name));
 
-    const fullSpec = buildBusinessPlanSpec(
+    const fullSpec = buildBusinessPlanSpec(planSections, {
+      audience: planAudience,
       projectDescription,
       financeContext,
-      country
-    );
+      country,
+    });
     // À (re)générer: celles qui ne sont pas conservées (ou celles ciblées).
     const sectionsToGenerate = fullSpec.filter((s) =>
       targetSections.length > 0 ? targetSections.includes(s.name) : !existingNames.has(s.name)
@@ -610,10 +720,7 @@ export class BusinessPlanService extends GenericService {
     }
 
     const sectionResults: SectionModel[] = [...existingSections];
-    const orderIndex = (name: string) => {
-      const i = BUSINESS_PLAN_SECTION_NAMES.indexOf(name);
-      return i === -1 ? BUSINESS_PLAN_SECTION_NAMES.length : i;
-    };
+    const orderIndex = (name: string) => orderIndexIn(orderedNames, name);
 
     const persistSection = async (rs: ResearchedSection): Promise<void> => {
       const section: SectionModel = {
@@ -656,7 +763,10 @@ export class BusinessPlanService extends GenericService {
           ...currentProject,
           analysisResultModel: {
             ...currentProject.analysisResultModel,
-            businessPlan: { sections: sectionResults },
+            businessPlan: {
+              ...currentProject.analysisResultModel?.businessPlan,
+              sections: sectionResults,
+            },
           },
         },
         `users/${userId}/projects`
@@ -680,7 +790,7 @@ export class BusinessPlanService extends GenericService {
         projectId,
         // Bibliographie rassemblée en fin de document plutôt qu'en pied de
         // chaque section — construite par le code, sans appel de modèle.
-        resourcesSectionName: 'Ressources',
+        resourcesSectionName: BP_RESOURCES_SECTION_NAME,
         brandContext,
         language,
         userId,
@@ -814,6 +924,80 @@ export class BusinessPlanService extends GenericService {
     return project.analysisResultModel.businessPlan!;
   }
 
+  /**
+   * Structure retenue pour le business plan d'un projet.
+   *
+   * Rend TOUJOURS une structure exécutable : un projet qui n'a jamais choisi
+   * reçoit le modèle par défaut, ce qui permet à l'UI d'afficher une sélection
+   * cohérente sans traiter le cas « aucune structure ».
+   */
+  async getStructure(userId: string, projectId: string): Promise<BusinessPlanStructure | null> {
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    if (!project) return null;
+    return resolveStructure(project.analysisResultModel?.businessPlan?.structure).structure;
+  }
+
+  /**
+   * Enregistre la structure choisie par l'utilisateur, avant la génération.
+   *
+   * Elle est validée contre le catalogue (`buildStructure`) : une clé inconnue
+   * est écartée, une liste trop courte est refusée. Ce qui est persisté est
+   * donc toujours générable — l'alternative, valider au moment de la
+   * génération, ferait échouer un run déjà facturé.
+   *
+   * @returns La structure normalisée, ou `null` si le projet est introuvable
+   *          ou si le choix ne donne aucune structure valide.
+   */
+  async saveStructure(
+    userId: string,
+    projectId: string,
+    templateId: string | undefined,
+    sectionKeys?: readonly string[] | null
+  ): Promise<BusinessPlanStructure | null> {
+    const structure = buildStructure(templateId, sectionKeys);
+    if (!structure) {
+      logger.warn(
+        `Invalid business plan structure rejected - projectId: ${projectId}, templateId: ${templateId}`
+      );
+      return null;
+    }
+
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    if (!project) {
+      logger.warn(`Project not found: ${projectId} for user: ${userId} when saving BP structure.`);
+      return null;
+    }
+
+    const existing = project.analysisResultModel?.businessPlan;
+    const updated = await this.projectRepository.update(
+      projectId,
+      {
+        ...project,
+        analysisResultModel: {
+          ...project.analysisResultModel,
+          businessPlan: {
+            // Les sections déjà générées sont conservées : changer de structure
+            // ne doit pas effacer un plan, seulement ce qu'il faut (re)produire.
+            sections: existing?.sections ?? [],
+            ...existing,
+            structure,
+          },
+        },
+      },
+      `users/${userId}/projects`
+    );
+    if (!updated) return null;
+
+    // Le PDF stocké ne correspond plus à l'ordre des sections.
+    const pdfCacheKey = cacheService.generateAIKey('business-plan-pdf', userId, projectId);
+    await cacheService.delete(pdfCacheKey, { prefix: 'pdf' });
+
+    logger.info(
+      `Business plan structure saved for project ${projectId}: ${structure.templateId} (${structure.sectionKeys.length} sections)`
+    );
+    return structure;
+  }
+
   async updateBusinessPlan(
     userId: string,
     itemId: string,
@@ -894,6 +1078,11 @@ export class BusinessPlanService extends GenericService {
       return '';
     }
 
+    // L'ordre d'affichage suit la STRUCTURE du plan : une banque qui numérote
+    // ses rubriques attend exactement sa numérotation. Toute section absente de
+    // cette liste est rejetée en fin de document par le paginateur.
+    const { sections: pdfSections } = resolveStructure(businessPlan.structure);
+
     // Generate cache key for PDF
     const pdfCacheKey = cacheService.generateAIKey('business-plan-pdf', userId, projectId);
 
@@ -922,7 +1111,7 @@ export class BusinessPlanService extends GenericService {
       // IMPORTANT: doit correspondre EXACTEMENT aux noms de sections générés
       // (avec les "&"), sinon les sections non reconnues sont rejetées en fin de
       // document. On réutilise donc la liste canonique.
-      sectionDisplayOrder: BUSINESS_PLAN_SECTION_NAMES,
+      sectionDisplayOrder: businessPlanSectionNames(pdfSections),
       footerText: 'Generated by Idem',
       // Le business plan est un document flexible : une section peut s'étendre sur
       // PLUSIEURS pages A4 (contenu détaillé, graphes, sources), sans qu'un bloc
@@ -936,7 +1125,9 @@ export class BusinessPlanService extends GenericService {
       },
       // La couverture est une composition pleine page : elle est rendue telle
       // quelle, jamais redécoupée ni étirée par le paginateur.
-      fixedPageSections: ['Cover Page'],
+      // Les pages à hauteur fixe viennent du catalogue : une composition pleine
+      // page est rendue telle quelle, jamais redécoupée ni étirée.
+      fixedPageSections: pdfSections.filter((section) => section.fixedPage).map((s) => s.name),
       onPaginationReport: (report) => {
         capturedPaginationReport = report;
       },
@@ -1165,8 +1356,21 @@ export class BusinessPlanService extends GenericService {
       project.additionalInfos?.country
     );
 
+    // La section est recomposée avec le destinataire du plan : un plan bancaire
+    // et un plan d'amorçage ne rouvrent pas la même page financière.
+    const { sections: syncSections, audience: syncAudience } = resolveStructure(bp.structure);
+    const syncIndex = syncSections.findIndex((section) => section.name === 'Financial Plan');
+    const syncPrompt =
+      composeHtmlPrompt('financial-plan', {
+        audience: syncAudience,
+        position: syncIndex === -1 ? 1 : syncIndex + 1,
+        total: syncSections.length || 1,
+        previous: syncIndex > 0 ? syncSections[syncIndex - 1]?.name : undefined,
+        next: syncIndex === -1 ? undefined : syncSections[syncIndex + 1]?.name,
+      }) ?? AGENT_FINANCIAL_PLAN_PROMPT;
+
     const step: IPromptStep = {
-      promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}${financeContext}`,
+      promptConstant: `${projectDescription}\n${syncPrompt}\n\nBRAND CONTEXT:\n${brandContext}${financeContext}`,
       stepName: 'Financial Plan',
       hasDependencies: false,
     };

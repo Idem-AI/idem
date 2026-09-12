@@ -8,6 +8,9 @@ COPY package.json package-lock.json tsconfig.base.json ./
 #    qui est du CSS pur — pas de build TS nécessaire)
 COPY ./packages/shared-styles ./packages/shared-styles
 
+COPY ./packages/shared-tour ./packages/shared-tour
+COPY ./packages/shared-trusted-by  ./packages/shared-trusted-by 
+
 # 3. Copier l'application
 COPY ./apps/simulation ./apps/simulation
 

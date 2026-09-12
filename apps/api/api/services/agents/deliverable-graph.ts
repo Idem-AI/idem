@@ -34,44 +34,49 @@ export interface GraphNode {
 export type DeliverableGraph = Record<string, GraphNode>;
 
 /**
- * Business plan — 3 vagues.
+ * Business plan — graphe CONSTRUIT à partir de la structure choisie.
  *
- *  V1  Cover Page · Opportunity · Target Audience · Products & Services
- *  V2  Company Summary · Marketing & Sales · Financial Plan
- *  V3  Goal Planning · Appendix
+ * Les sections d'un plan ne sont plus fixes : une structure « banque » ne
+ * contient pas « Opportunity », une structure « VC » ajoute « Traction » et
+ * « Exit Strategy ». Un graphe figé y répondrait de la pire des façons — il
+ * ferait échouer `validateGraph` sur une dépendance vers une section absente,
+ * au démarrage de la génération.
+ *
+ * Les dépendances vivent donc dans le catalogue (`requires` de chaque section)
+ * et sont FILTRÉES ici sur les sections réellement retenues. Une section dont
+ * toutes les dépendances sont absentes part en première vague : c'est le bon
+ * comportement, elle n'a rien à attendre.
  *
  * `Cover Page` reste sans dépendance À DESSEIN: c'est la première section
  * diffusée en streaming, la faire attendre retarderait le premier affichage
  * pour un gain de cohérence quasi nul (un titre et une identité de marque).
  */
-export const BUSINESS_PLAN_GRAPH: DeliverableGraph = {
-  'Cover Page': { consults: ['branding'] },
-  Opportunity: {},
-  'Target Audience': {},
-  'Products & Services': {},
+export function buildBusinessPlanGraph(
+  sections: ReadonlyArray<{
+    name: string;
+    requires?: string[];
+    consults?: ProjectSectionKey[];
+  }>
+): DeliverableGraph {
+  const present = new Set(sections.map((s) => s.name));
+  const graph: DeliverableGraph = {};
 
-  // La synthèse doit refléter ce qui est réellement écrit ailleurs: c'est la
-  // section la plus lue, et celle où une contradiction se voit immédiatement.
-  'Company Summary': {
-    requires: ['Opportunity', 'Products & Services', 'Target Audience'],
-  },
-  'Marketing & Sales': {
-    requires: ['Target Audience', 'Products & Services'],
-  },
-  // Les chiffres doivent porter sur les produits réellement décrits, aux prix
-  // réellement annoncés — et rester alignés sur le module Finance s'il existe.
-  'Financial Plan': {
-    requires: ['Products & Services', 'Opportunity'],
-    consults: ['finance'],
-  },
+  for (const section of sections) {
+    const requires = (section.requires ?? []).filter((name) => present.has(name));
+    graph[section.name] = {
+      ...(requires.length > 0 ? { requires } : {}),
+      ...(section.consults?.length ? { consults: section.consults } : {}),
+    };
+  }
 
-  'Goal Planning': {
-    requires: ['Marketing & Sales', 'Financial Plan'],
-  },
-  Appendix: {
-    requires: ['Opportunity', 'Financial Plan'],
-  },
-};
+  // Le catalogue déclare des dépendances entre ALTERNATIVES (« Financial Plan »
+  // attend « Opportunity » OU « Market Analysis » selon la structure). Filtrer
+  // ne peut donc pas créer de cycle, mais une faute de frappe dans le catalogue
+  // le pourrait : le contrôle reste, il coûte une passe sur un objet de vingt
+  // clés.
+  validateGraph(graph, [...present]);
+  return graph;
+}
 
 /**
  * Pitch deck — 3 vagues.

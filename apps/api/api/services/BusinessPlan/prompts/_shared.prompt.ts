@@ -55,3 +55,37 @@ export const BP_BRAND_RULES = `<brand_compliance>
 - The LOGO must appear in this section: small, in the same place as in the other sections (header or footer), in the declension that contrasts with the actual background. Follow the <logo> block in BRAND CONTEXT to the letter — exact URL, never invented.
 - This section belongs to a document: same rules, same border radius, same treatment of headings and tables as the others. Spectacular gestures are reserved for the cover.
 </brand_compliance>`
+
+/**
+ * Contraintes TECHNIQUES d'une section qui produit sa page elle-même.
+ *
+ * Elles vivaient recopiées dans chacun des neuf `agent-*.prompt.ts`, à un mot
+ * près, ce qui rendait toute correction partielle par construction. Les
+ * sections apportées par les structures de plan (dossier bancaire, plan
+ * investisseur, subvention…) n'ont jamais eu de prompt écrit à la main : c'est
+ * ce bloc qui leur donne le mode HTML quand `IDEM_SECTION_TEMPLATE=off`.
+ *
+ * À n'ajouter QUE sur le chemin HTML. Sous gabarit la sortie est du JSON, et
+ * une consigne de balisage y ferait produire du HTML que `parseLlmJson`
+ * rejetterait — la section serait alors abandonnée.
+ */
+export const BP_HTML_RULES = `<chart_requirements>
+- One chart at most per page, and only where a figure is easier to read as a shape than as a sentence.
+- Use the brand colours. Set the Chart.js option animation: false.
+- Do NOT include Chart.js script tags: the runtime loads the library itself.
+- A chart never exceeds half of its page, and always carries a reading key stating the conclusion.
+</chart_requirements>
+
+<technical_rules>
+- Output ONLY raw HTML with Tailwind CSS utilities, on a single minified line.
+- PrimeIcons (class "pi pi-icon-name") are preloaded.
+- Use the brand colours and the real charter fonts. No custom CSS, no custom JS.
+- Respect WCAG AA contrast.
+- Do NOT output markdown code fences and do NOT prefix the answer with a language name.
+</technical_rules>
+
+<editor_compatibility>
+- The output is edited afterwards in a visual editor: put visible text in leaf elements (h1..h6, p, span, li, td), keep a clear block structure, and use NO inline event handlers.
+- Any Chart.js chart MUST be a canvas element with a UNIQUE id, followed by ONE inline script calling new Chart(document.getElementById('THAT_ID'), {...}) with options.animation=false. One chart per canvas.
+- Every image carries a textual alternative describing what it shows.
+</editor_compatibility>`;

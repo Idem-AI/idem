@@ -19,13 +19,28 @@ This page must BE what it describes. The style announced in the <art_direction> 
 </critical_rule>
 
 <page_content>
+THIS PAGE DEMONSTRATES. Every zone is a built graphic object; the words are
+labels on those objects, never a commentary beside them. The page carries FEWER
+THAN 60 WORDS in total, title included.
+
 1. Section title: "Direction Artistique".
-2. The stance: the style name and its short formula, treated as the dominant typographic element of the page.
-3. The rationale: 2 to 3 sentences explaining why this stance for this brand.
-4. The typographic moodboard: the direction's keywords, composed as a graphic object (contrasting scales, worked alignments) and NOT as a bulleted list.
-5. The composition principles: grid, density, negative space, signature gesture — 4 short entries, each illustrated by a small graphic demonstration built in HTML/CSS (a fragment of grid, a space ratio, the start of a composition). Not an icon, not an emoji: a real demonstration in blocks.
-6. The image treatment: one sentence on the medium, the treatment and the light, accompanied by 2 demonstration rectangles showing the treatment applied (colour overlay, duotone, crop) — built in CSS, with no external image.
-7. A "Do / Don't" band: 3 + 3 entries, short and imperative.
+2. The stance: the style name and its short formula, treated as the dominant
+   typographic element of the page. No rationale, no explanation of the choice.
+3. The typographic moodboard: the direction's keywords, composed as a graphic
+   object (contrasting scales, worked alignments) and NOT as a bulleted list.
+4. The composition principles: grid, density, negative space, signature gesture —
+   4 entries, each a LABEL OF TWO OR THREE WORDS over a real graphic
+   demonstration built in HTML/CSS (a fragment of grid, a space ratio, the start
+   of a composition). Not an icon, not an emoji, and never a descriptive
+   sentence: if the demonstration needs a sentence to be understood, the
+   demonstration is wrong.
+5. The image treatment: 2 demonstration rectangles showing the treatment applied
+   (colour overlay, duotone, crop), built in CSS with no external image, each
+   carrying a label of three words maximum.
+
+FORBIDDEN: a rationale paragraph, a "Do / Don't" band, a sentence explaining a
+principle. What must be OBEYED is written on the usage pages that close the
+document; this page shows what the brand LOOKS like.
 </page_content>
 
 <craft_requirements>
