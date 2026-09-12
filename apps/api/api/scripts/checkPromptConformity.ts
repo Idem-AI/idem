@@ -42,6 +42,8 @@ import {
 } from '../services/design/sectionPlan';
 import { AI_CONFIG, FeatureAIConfig } from '../config/ai.config';
 import { buildBusinessPlanSpec } from '../services/BusinessPlan/businessPlanSpec';
+import { BUSINESS_PLAN_SECTION_CATALOG } from '../services/BusinessPlan/structure/section-catalog';
+import { BUSINESS_PLAN_TEMPLATES } from '../services/BusinessPlan/structure/templates';
 
 let failures = 0;
 
@@ -320,9 +322,21 @@ console.log('\n  Consignes contradictoires');
 console.log('\n  Équipe de recherche : consignes de section');
 
 {
-  const spec = buildBusinessPlanSpec('Une plateforme de X pour Y.', '', 'Cameroun');
+  // Le catalogue ENTIER, pas seulement les neuf sections historiques : une
+  // section n'existe que si une structure peut la choisir, et une structure qui
+  // la choisit doit pouvoir la produire.
+  const spec = buildBusinessPlanSpec(
+    BUSINESS_PLAN_SECTION_CATALOG,
+    'Une plateforme de X pour Y.',
+    '',
+    'Cameroun'
+  );
 
-  check('la spécification couvre les neuf sections', spec.length === 9, `${spec.length} section(s)`);
+  check(
+    'la spécification couvre tout le catalogue',
+    spec.length === BUSINESS_PLAN_SECTION_CATALOG.length,
+    `${spec.length} / ${BUSINESS_PLAN_SECTION_CATALOG.length} section(s)`
+  );
 
   for (const section of spec) {
     if (section.freeform) {
@@ -349,6 +363,28 @@ console.log('\n  Équipe de recherche : consignes de section');
     missing.length === 0,
     missing.join(', ')
   );
+
+  // Un nom canonique en double ferait fusionner deux sections différentes dans
+  // le même emplacement du plan : la deuxième écraserait la première à la
+  // persistance, sans aucune erreur.
+  const names = BUSINESS_PLAN_SECTION_CATALOG.map((s) => s.name);
+  const duplicated = names.filter((name, i) => names.indexOf(name) !== i);
+  check('les noms canoniques du catalogue sont uniques', duplicated.length === 0, duplicated.join(', '));
+
+  // Chaque modèle doit produire un plan réellement générable : ses clés
+  // existent (garde-fou au chargement de `templates.ts`) et il porte bien un
+  // plan financier, la section qu'aucun lecteur de plan ne laisse passer.
+  for (const template of BUSINESS_PLAN_TEMPLATES) {
+    check(
+      `modèle « ${template.id} » : au moins 5 sections`,
+      template.sectionKeys.length >= 5,
+      `${template.sectionKeys.length} section(s)`
+    );
+    check(
+      `modèle « ${template.id} » : porte un plan financier`,
+      template.sectionKeys.includes('financial-plan')
+    );
+  }
 }
 
 // ── LA CHARTE : CE QUI EST RENDU PAR LE CODE ────────────────────────────────

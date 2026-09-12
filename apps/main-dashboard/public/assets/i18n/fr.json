@@ -2277,7 +2277,36 @@
           "Marketing & Sales": "Marketing et ventes",
           "Financial Plan": "Plan financier",
           "Goal Planning": "Planification des objectifs",
-          "Appendix": "Annexes"
+          "Appendix": "Annexes",
+          "Executive Summary": "Résumé exécutif",
+          "One-Page Summary": "Synthèse d'une page",
+          "Mission & Vision": "Mission et vision",
+          "Promoter Profile": "Profil du promoteur",
+          "Management & Team": "Management et équipe",
+          "Legal & Regulatory Framework": "Cadre juridique et réglementaire",
+          "Problem Statement": "Problème adressé",
+          "Market Analysis": "Analyse du marché",
+          "Competitive Analysis": "Analyse concurrentielle",
+          "Solution": "Solution",
+          "Unique Value Proposition": "Proposition de valeur",
+          "Unfair Advantage": "Avantage décisif",
+          "Business Model": "Modèle économique",
+          "Strategy & Key Milestones": "Stratégie et étapes clés",
+          "Go-to-Market Strategy": "Stratégie de lancement",
+          "Traction & Proof Points": "Traction et preuves",
+          "Partnerships & Ecosystem": "Partenariats et écosystème",
+          "Operational Plan": "Plan opérationnel",
+          "Resources & Assets": "Ressources et actifs",
+          "Key Metrics & KPIs": "Indicateurs clés",
+          "Risk Analysis & Mitigation": "Risques et parades",
+          "Funding Request & Use of Funds": "Demande de financement",
+          "Guarantees & Collateral": "Garanties",
+          "Exit Strategy & Investor Returns": "Sortie et retour investisseur",
+          "Theory of Change": "Théorie du changement",
+          "Social & Economic Impact": "Impact social et économique",
+          "Monitoring & Evaluation": "Suivi et évaluation",
+          "Sustainability Plan": "Plan de pérennité",
+          "Ressources": "Bibliographie"
         },
         "branding": {
           "Brand Header": "En-tête de marque",
@@ -2861,6 +2890,110 @@
         "body": "Une simulation confronte votre modèle à des scénarios défavorables et à des stress tests, puis vous dit à quelles conditions il tient. Vous partez de ce projet : le business plan et les prévisions financières déjà présents sont repris automatiquement.",
         "cta": "Lancer une simulation",
         "note": "Le simulateur s'ouvre dans un nouvel onglet, avec votre compte IDEM."
+      }
+    },
+    "businessPlanStructure": {
+      "title": "Structure du business plan",
+      "lede": "Beaucoup de banques et de fonds imposent leur table des matières. Choisissez celle que votre interlocuteur attend : elle décide des sections générées et de leur ordre.",
+      "filterLabel": "Filtrer par destinataire",
+      "legend": "Modèle de structure",
+      "edited": "Personnalisé",
+      "researched": "Recherche web",
+      "catalogEmpty": "Toutes les sections disponibles sont déjà dans le sommaire.",
+      "audiences": {
+        "all": "Tous",
+        "bank": "Banque",
+        "investor": "Investisseur",
+        "grant": "Subvention",
+        "internal": "Interne",
+        "general": "Polyvalent",
+        "custom": "Sur mesure"
+      },
+      "categories": {
+        "opening": "Ouverture",
+        "company": "L'entreprise",
+        "market": "Le marché",
+        "offer": "L'offre",
+        "strategy": "La stratégie",
+        "operations": "L'exploitation",
+        "finance": "Les finances",
+        "impact": "L'impact",
+        "closing": "Annexes"
+      },
+      "meta": {
+        "sections": "{{count}} sections",
+        "pages": "{{range}} pages",
+        "summary": "{{sections}} sections, dont {{researched}} appuyées sur des recherches web sourcées."
+      },
+      "actions": {
+        "customize": "Personnaliser ce sommaire",
+        "doneEditing": "Terminer la personnalisation",
+        "reset": "Revenir au modèle",
+        "openCatalog": "Ajouter une section",
+        "closeCatalog": "Fermer le catalogue",
+        "atMax": "Maximum de {{max}} sections atteint",
+        "confirm": "Continuer",
+        "saving": "Enregistrement",
+        "moveUpAria": "Monter {{section}}",
+        "moveDownAria": "Descendre {{section}}",
+        "removeAria": "Retirer {{section}}",
+        "lockedAria": "{{section}} ne peut pas être retirée"
+      },
+      "live": {
+        "moved": "{{section}} déplacée en position {{position}} sur {{total}}",
+        "added": "{{section}} ajoutée en position {{position}} sur {{total}}",
+        "removed": "{{section}} retirée du sommaire",
+        "reset": "Sommaire du modèle rétabli"
+      },
+      "errors": {
+        "load": "Impossible de charger les structures disponibles.",
+        "save": "L'enregistrement de la structure a échoué. Réessayez."
+      },
+      "templates": {
+        "idem-standard": {
+          "name": "Plan standard Idem",
+          "description": "Sommaire complet, équilibré entre marché, offre et finances. À prendre si votre interlocuteur n'impose rien."
+        },
+        "sba-traditional": {
+          "name": "Plan traditionnel SBA",
+          "description": "L'ossature en neuf points de l'administration américaine, attendue par la plupart des prêteurs anglo-saxons."
+        },
+        "bank-financing-9": {
+          "name": "Dossier de financement bancaire",
+          "description": "Les neuf blocs des guides remis par les banques : couverture, synthèse d'une page, marché, stratégie, moyens, prévisionnel."
+        },
+        "bank-credit-file": {
+          "name": "Dossier de crédit complet",
+          "description": "La version longue que lit un comité d'engagement : profil du promoteur, garanties, risques, plan de remboursement."
+        },
+        "vc-seed": {
+          "name": "Levée de fonds (amorçage, série A)",
+          "description": "Problème, solution, traction, concurrence, équipe, sortie. Ce qu'un fonds cherche, dans l'ordre où il le cherche."
+        },
+        "lean-canvas": {
+          "name": "Lean canvas étendu",
+          "description": "Format court pour valider ses hypothèses avant d'écrire un dossier long. Une quinzaine de pages."
+        },
+        "grant-nonprofit": {
+          "name": "Demande de subvention",
+          "description": "Mission, théorie du changement, bénéficiaires, suivi-évaluation, pérennité. Le vocabulaire des bailleurs et des fondations."
+        },
+        "microfinance-ohada": {
+          "name": "Microfinance (zone OHADA)",
+          "description": "Profil du promoteur, moyens de production, garanties, impact local et prévisionnel au format SYSCOHADA."
+        },
+        "incubator-application": {
+          "name": "Candidature incubateur",
+          "description": "Format court et démonstratif : le problème, la preuve que ça fonctionne, l'équipe, les objectifs des douze prochains mois."
+        },
+        "internal-strategic": {
+          "name": "Plan stratégique interne",
+          "description": "Sans page de couverture ni argumentaire : marché, stratégie, moyens, objectifs chiffrés, risques."
+        },
+        "custom": {
+          "name": "Composer mon sommaire",
+          "description": "Partez d'un modèle et ajustez : retirez ce qui ne sert pas, ajoutez ce qui manque, fixez l'ordre."
+        }
       }
     }
   },

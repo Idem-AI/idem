@@ -9,6 +9,9 @@ import {
   setAdditionalInfoController,
   saveBusinessPlanSectionsController,
   aiEditBusinessPlanSectionController,
+  getBusinessPlanStructureCatalogController,
+  getBusinessPlanStructureController,
+  setBusinessPlanStructureController,
 } from '../controllers/businessPlan.controller';
 import { authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
@@ -108,6 +111,138 @@ businessPlanRoutes.get(
   checkPolicyAcceptance,
   checkQuota,
   generateBusinessPlanStreamingController
+);
+
+// Structure catalog (templates + composable sections)
+/**
+ * @openapi
+ * /businessPlans/structures:
+ *   get:
+ *     tags:
+ *       - Business Plans
+ *     summary: List the available business plan structures and composable sections
+ *     description: >
+ *       Returns the predefined structures (SBA traditional plan, bank financing file,
+ *       seed-stage investor plan, grant application, lean canvas, ...), the closed catalog
+ *       of sections a custom structure may be composed from, and the bounds of the custom
+ *       composer. Labels are i18n keys resolved by the client.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Structure catalog.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 defaultTemplateId:
+ *                   type: string
+ *                 customTemplateId:
+ *                   type: string
+ *                 limits:
+ *                   type: object
+ *                   properties:
+ *                     min:
+ *                       type: integer
+ *                     max:
+ *                       type: integer
+ *                 templates:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 sections:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       '401':
+ *         description: Unauthorized.
+ */
+businessPlanRoutes.get(
+  `/${resourceName}/structures`,
+  authenticate,
+  getBusinessPlanStructureCatalogController
+);
+
+// Get / set the structure retained for a project's business plan
+/**
+ * @openapi
+ * /businessPlans/{projectId}/structure:
+ *   get:
+ *     tags:
+ *       - Business Plans
+ *     summary: Get the business plan structure retained for a project
+ *     description: Always resolves to an executable structure; a project that never chose one gets the default template.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: The retained structure.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/BusinessPlanStructure'
+ *       '401':
+ *         description: Unauthorized.
+ *       '404':
+ *         description: Project not found.
+ *   put:
+ *     tags:
+ *       - Business Plans
+ *     summary: Set the business plan structure for a project
+ *     description: >
+ *       Pass a templateId alone to adopt a predefined structure, or a templateId plus an
+ *       ordered sectionKeys array to compose a custom one. Keys are validated against the
+ *       catalog; unknown keys are dropped and a too-short list is rejected.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - templateId
+ *             properties:
+ *               templateId:
+ *                 type: string
+ *               sectionKeys:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       '200':
+ *         description: Structure saved.
+ *       '400':
+ *         description: Invalid structure.
+ *       '401':
+ *         description: Unauthorized.
+ *       '404':
+ *         description: Project not found.
+ */
+businessPlanRoutes.get(
+  `/${resourceName}/:projectId/structure`,
+  authenticate,
+  getBusinessPlanStructureController
+);
+
+businessPlanRoutes.put(
+  `/${resourceName}/:projectId/structure`,
+  authenticate,
+  setBusinessPlanStructureController
 );
 
 // Get a specific business plan by its project ID

@@ -1,0 +1,341 @@
+<!--
+  Maître-détail : les modèles à gauche, le sommaire complet à droite.
+
+  C'est le SOMMAIRE qui décide — un dossier bancaire est accepté ou renvoyé sur
+  sa table des matières — donc c'est lui qui occupe la place. Une grille de
+  cartes qui résumerait chaque modèle en trois mots obligerait à cliquer neuf
+  fois pour lire ce qu'on compare.
+-->
+<section class="structure-shell" [attr.aria-busy]="isLoading()">
+  <header class="structure-head">
+    <h1 class="structure-title">
+      {{ 'dashboard.businessPlanStructure.title' | translate }}
+    </h1>
+    <p class="structure-lede">
+      {{ 'dashboard.businessPlanStructure.lede' | translate }}
+    </p>
+  </header>
+
+  @if (isLoading()) {
+    <!-- Squelette calqué sur la vraie mise en page : rien ne bouge à l'arrivée. -->
+    <div class="structure-grid" aria-hidden="true">
+      <div class="structure-pane">
+        <div class="skeleton-chip-row">
+          @for (i of skeletonChips; track i) {
+            <span class="skeleton skeleton-chip"></span>
+          }
+        </div>
+        @for (i of skeletonRows; track i) {
+          <span class="skeleton skeleton-row"></span>
+        }
+      </div>
+      <div class="structure-pane">
+        <span class="skeleton skeleton-title"></span>
+        @for (i of skeletonLines; track i) {
+          <span class="skeleton skeleton-line"></span>
+        }
+      </div>
+    </div>
+  } @else if (loadError()) {
+    <div class="structure-message" role="alert">
+      <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+      <p class="m-0">{{ 'dashboard.businessPlanStructure.errors.load' | translate }}</p>
+      <button type="button" class="inner-button !text-sm !py-2.5 !px-5" (click)="load()">
+        {{ 'common.retry' | translate }}
+      </button>
+    </div>
+  } @else {
+    <div class="structure-grid">
+      <!-- ── Choix du modèle ────────────────────────────────────────────── -->
+      <div class="structure-pane">
+        <div
+          class="audience-filter"
+          role="group"
+          [attr.aria-label]="'dashboard.businessPlanStructure.filterLabel' | translate"
+        >
+          @for (audience of audiences; track audience) {
+            <button
+              type="button"
+              class="audience-chip"
+              [class.is-active]="audienceFilter() === audience"
+              [attr.aria-pressed]="audienceFilter() === audience"
+              (click)="setAudience(audience)"
+            >
+              {{ 'dashboard.businessPlanStructure.audiences.' + audience | translate }}
+            </button>
+          }
+        </div>
+
+        <!--
+          Radios natifs : la navigation au clavier dans un groupe de choix
+          exclusifs est déjà résolue par le navigateur (flèches, annonce du
+          nombre d'options). La réécrire en `role="radio"` la casserait.
+        -->
+        <fieldset class="template-list">
+          <legend class="sr-only">
+            {{ 'dashboard.businessPlanStructure.legend' | translate }}
+          </legend>
+
+          @for (template of templates(); track template.id) {
+            <label
+              class="template-row"
+              [class.is-selected]="selectedTemplateId() === template.id"
+              [class.is-custom]="template.isCustom"
+            >
+              <input
+                type="radio"
+                class="sr-only"
+                name="bp-structure-template"
+                [value]="template.id"
+                [checked]="selectedTemplateId() === template.id"
+                (change)="selectTemplate(template.id)"
+              />
+
+              <span class="template-mark" aria-hidden="true">
+                <i class="pi" [class.pi-check]="selectedTemplateId() === template.id"></i>
+              </span>
+
+              <span class="template-body">
+                <span class="template-name">
+                  {{ 'dashboard.businessPlanStructure.templates.' + template.id + '.name' | translate }}
+                </span>
+                <span class="template-desc">
+                  {{ 'dashboard.businessPlanStructure.templates.' + template.id + '.description' | translate }}
+                </span>
+
+                <span class="template-meta">
+                  <span class="template-tag">
+                    {{ 'dashboard.businessPlanStructure.audiences.' + template.audience | translate }}
+                  </span>
+                  @if (!template.isCustom) {
+                    <span>
+                      {{
+                        'dashboard.businessPlanStructure.meta.sections'
+                          | translate: { count: template.sectionCount }
+                      }}
+                    </span>
+                    <span>
+                      {{
+                        'dashboard.businessPlanStructure.meta.pages'
+                          | translate: { range: template.estimatedPages }
+                      }}
+                    </span>
+                  }
+                </span>
+              </span>
+            </label>
+          }
+        </fieldset>
+      </div>
+
+      <!-- ── Sommaire du modèle choisi ──────────────────────────────────── -->
+      <div class="structure-pane outline-pane">
+        <div class="outline-head">
+          <div class="min-w-0">
+            <h2 class="outline-title">
+              {{
+                'dashboard.businessPlanStructure.templates.' + selectedTemplateId() + '.name'
+                  | translate
+              }}
+            </h2>
+            @if (selectedTemplate(); as template) {
+              @if (template.source) {
+                <p class="outline-source">{{ template.source }}</p>
+              }
+            }
+          </div>
+
+          @if (isEdited()) {
+            <span class="outline-badge">
+              {{ 'dashboard.businessPlanStructure.edited' | translate }}
+            </span>
+          }
+        </div>
+
+        <p class="outline-stats">
+          {{
+            'dashboard.businessPlanStructure.meta.summary'
+              | translate: { sections: outline().length, researched: researchCount() }
+          }}
+        </p>
+
+        <!--
+          Le sommaire est une liste ORDONNÉE : sa numérotation est l'information
+          que l'utilisateur vient vérifier.
+        -->
+        <ol class="outline-list" role="list">
+          @for (row of outline(); track row.key) {
+            <li class="outline-row" [class.is-locked]="row.locked">
+              <span class="outline-index" aria-hidden="true">{{ row.position }}</span>
+
+              <span class="outline-label">
+                <span class="outline-name">{{ row.label }}</span>
+                <span class="outline-hint">
+                  {{ 'dashboard.businessPlanStructure.categories.' + row.category | translate }}
+                  @if (row.needsResearch) {
+                    <span class="outline-researched">
+                      <i class="pi pi-globe text-[10px]" aria-hidden="true"></i>
+                      {{ 'dashboard.businessPlanStructure.researched' | translate }}
+                    </span>
+                  }
+                </span>
+              </span>
+
+              @if (isComposing()) {
+                <span class="outline-actions">
+                  <button
+                    type="button"
+                    class="icon-button"
+                    [disabled]="row.isFirst"
+                    [attr.aria-label]="
+                      'dashboard.businessPlanStructure.actions.moveUpAria'
+                        | translate: { section: row.label }
+                    "
+                    (click)="moveSection(row.key, -1)"
+                  >
+                    <i class="pi pi-arrow-up text-[11px]" aria-hidden="true"></i>
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-button"
+                    [disabled]="row.isLast"
+                    [attr.aria-label]="
+                      'dashboard.businessPlanStructure.actions.moveDownAria'
+                        | translate: { section: row.label }
+                    "
+                    (click)="moveSection(row.key, 1)"
+                  >
+                    <i class="pi pi-arrow-down text-[11px]" aria-hidden="true"></i>
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-button is-danger"
+                    [disabled]="row.locked || outline().length <= limits().min"
+                    [attr.aria-label]="
+                      (row.locked
+                        ? 'dashboard.businessPlanStructure.actions.lockedAria'
+                        : 'dashboard.businessPlanStructure.actions.removeAria'
+                      ) | translate: { section: row.label }
+                    "
+                    (click)="removeSection(row.key)"
+                  >
+                    <i
+                      class="pi text-[11px]"
+                      [class.pi-lock]="row.locked"
+                      [class.pi-times]="!row.locked"
+                      aria-hidden="true"
+                    ></i>
+                  </button>
+                </span>
+              }
+            </li>
+          }
+        </ol>
+
+        @if (isComposing()) {
+          <!-- Tiroir d'ajout : en ligne, pas en modale. Le sommaire doit rester
+               visible pendant qu'on choisit ce qu'on y met. -->
+          <div class="add-drawer">
+            <button
+              type="button"
+              class="panel-ghost-button w-full justify-center"
+              [disabled]="isAtMax()"
+              [attr.aria-expanded]="isAddOpen()"
+              aria-controls="bp-structure-catalog"
+              (click)="toggleAdd()"
+            >
+              <i
+                class="pi text-xs"
+                [class.pi-plus]="!isAddOpen()"
+                [class.pi-minus]="isAddOpen()"
+                aria-hidden="true"
+              ></i>
+              <span>
+                {{
+                  (isAtMax()
+                    ? 'dashboard.businessPlanStructure.actions.atMax'
+                    : isAddOpen()
+                      ? 'dashboard.businessPlanStructure.actions.closeCatalog'
+                      : 'dashboard.businessPlanStructure.actions.openCatalog'
+                  ) | translate: { max: limits().max }
+                }}
+              </span>
+            </button>
+
+            @if (isAddOpen()) {
+              <div id="bp-structure-catalog" class="catalog">
+                @for (group of availableGroups(); track group.category) {
+                  <div class="catalog-group">
+                    <h3 class="catalog-group-title">
+                      {{ 'dashboard.businessPlanStructure.categories.' + group.category | translate }}
+                    </h3>
+                    <div class="catalog-items">
+                      @for (item of group.items; track item.key) {
+                        <button
+                          type="button"
+                          class="catalog-item"
+                          [disabled]="isAtMax()"
+                          (click)="addSection(item.key)"
+                        >
+                          <i class="pi pi-plus text-[10px]" aria-hidden="true"></i>
+                          <span>{{ item.label }}</span>
+                        </button>
+                      }
+                    </div>
+                  </div>
+                } @empty {
+                  <p class="catalog-empty">
+                    {{ 'dashboard.businessPlanStructure.catalogEmpty' | translate }}
+                  </p>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        @if (saveError()) {
+          <p class="outline-error" role="alert">{{ saveError() }}</p>
+        }
+
+        <div class="outline-footer">
+          @if (isComposing()) {
+            <button type="button" class="panel-ghost-button" (click)="stopComposing()">
+              <i class="pi pi-check text-xs" aria-hidden="true"></i>
+              <span>{{ 'dashboard.businessPlanStructure.actions.doneEditing' | translate }}</span>
+            </button>
+            @if (isEdited()) {
+              <button type="button" class="panel-ghost-button" (click)="resetOutline()">
+                <i class="pi pi-undo text-xs" aria-hidden="true"></i>
+                <span>{{ 'dashboard.businessPlanStructure.actions.reset' | translate }}</span>
+              </button>
+            }
+          } @else {
+            <button type="button" class="panel-ghost-button" (click)="startComposing()">
+              <i class="pi pi-sliders-h text-xs" aria-hidden="true"></i>
+              <span>{{ 'dashboard.businessPlanStructure.actions.customize' | translate }}</span>
+            </button>
+          }
+
+          <button
+            type="button"
+            class="inner-button ml-auto !text-sm !py-3 !px-6"
+            [disabled]="!canConfirm()"
+            (click)="confirm()"
+          >
+            @if (isSaving()) {
+              <i class="pi pi-spin pi-spinner text-xs" aria-hidden="true"></i>
+              <span>{{ 'dashboard.businessPlanStructure.actions.saving' | translate }}</span>
+            } @else {
+              <span>{{ 'dashboard.businessPlanStructure.actions.confirm' | translate }}</span>
+              <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Les déplacements du sommaire ne se voient pas sans les yeux : ils sont
+       annoncés ici, sinon le réordonnancement n'existe qu'à la souris. -->
+  <p class="sr-only" role="status" aria-live="polite">{{ liveMessage() }}</p>
+</section>

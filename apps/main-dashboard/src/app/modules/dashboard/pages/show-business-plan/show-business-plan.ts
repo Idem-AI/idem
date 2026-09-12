@@ -14,6 +14,7 @@ import {
   analyzeGenerationCompleteness,
   BUSINESS_PLAN_SECTION_NAMES,
 } from '../../models/generation-completeness';
+import { BusinessPlanCatalogSection } from '../../models/business-plan-structure.model';
 import { ProjectService } from '../../services/project.service';
 import { ProjectModel } from '@idem/shared-models';
 
@@ -54,10 +55,32 @@ export class ShowBusinessPlan implements OnInit {
   protected readonly brandingMissingElements = signal<string[]>([]);
   protected readonly project = signal<ProjectModel | null>(null);
   protected readonly underFilledSections = signal<string[]>([]);
+  /** Catalogue des sections : traduit les clés de structure en noms canoniques. */
+  private readonly catalogSections = signal<BusinessPlanCatalogSection[]>([]);
+
+  /**
+   * Sections ATTENDUES pour ce projet.
+   *
+   * Elles viennent de la structure choisie (dossier bancaire, plan
+   * investisseur, sommaire composé…), pas d'une liste figée : sinon un plan
+   * bancaire de neuf sections serait affiché comme incomplet parce qu'il ne
+   * contient pas « Opportunity ». La liste historique reste le repli tant que
+   * le catalogue n'est pas chargé ou qu'aucune structure n'a été choisie.
+   */
+  protected readonly expectedSectionNames = computed<readonly string[]>(() => {
+    const keys: string[] | undefined =
+      this.project()?.analysisResultModel?.businessPlan?.structure?.sectionKeys;
+    const catalog = this.catalogSections();
+    if (!keys?.length || catalog.length === 0) return BUSINESS_PLAN_SECTION_NAMES;
+
+    const byKey = new Map(catalog.map((section) => [section.key, section.name]));
+    const names = keys.map((key) => byKey.get(key)).filter((name): name is string => !!name);
+    return names.length > 0 ? names : BUSINESS_PLAN_SECTION_NAMES;
+  });
 
   protected readonly completeness = computed(() =>
     analyzeGenerationCompleteness(
-      BUSINESS_PLAN_SECTION_NAMES,
+      this.expectedSectionNames(),
       this.project()?.analysisResultModel?.businessPlan?.sections,
       this.underFilledSections(),
     ),
@@ -74,6 +97,15 @@ export class ShowBusinessPlan implements OnInit {
     this.projectIdFromCookie.set(projectId);
 
     if (projectId) {
+      // Le catalogue est mémorisé par le service : le charger ici ne coûte une
+      // requête qu'à la première ouverture de la session.
+      this.businessPlanService.getStructureCatalog().subscribe({
+        next: (catalog) => this.catalogSections.set(catalog.sections),
+        error: () => {
+          // Sans catalogue, la complétude retombe sur la liste historique.
+        },
+      });
+
       // First check branding completion
       this.checkBrandingCompletion(projectId);
     } else {
