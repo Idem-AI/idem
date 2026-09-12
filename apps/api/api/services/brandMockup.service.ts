@@ -1,51 +1,19 @@
 import logger from '../config/logger';
 import { StorageService } from './storage.service';
 import sharp from 'sharp';
-import {
-  MOCKUP_GENERATION_PROMPT,
-  withoutBrandName,
-} from './BandIdentity/prompts/mockup-generation.prompt';
+import { MOCKUP_GENERATION_PROMPT } from './BandIdentity/prompts/mockup-generation.prompt';
 import {
   mockupAnalyzerService,
   SelectedMockupSupport,
 } from './BandIdentity/mockupAnalyzer.service';
 import { MOCKUP_CONFIG } from '../config/mockup.config';
-import { AI_CONFIG, LLMProvider } from '../config/ai.config';
-import { modelForRole } from '../config/ai-providers.config';
-import { analyzeImage, generateImage, isGlmConfigured } from './glm-media.service';
-
-/**
- * Modèle image de Gemini pour les mises en situation.
- *
- * `flash-image` plutôt que `flash-lite-image` ici : la composition d'un logo
- * réel sur un support en perspective demande plus de soin qu'une photo de
- * produit nue, et c'est le seul endroit du produit où l'écart se voit.
- */
-/**
- * Modèle d'image des mises en situation.
- *
- * Résolu depuis la TABLE DES RÔLES plutôt que fixé ici. Deux modèles d'image
- * coexistaient — celui-ci et celui déclaré pour le rôle `image` — et rien ne
- * les tenait d'accord : une surcharge `AI_OVERRIDES` sur le rôle image n'aurait
- * eu aucun effet sur les mockups, qui sont pourtant le principal usage d'image
- * de la plateforme.
- *
- * `IDEM_GEMINI_MOCKUP_MODEL` reste accepté pour épingler un modèle sur les
- * seuls mockups, sans toucher au reste.
- *
- * Résolu À L'APPEL, jamais à l'import. `modelForRole` interroge le registre,
- * qui résout au passage le backend Gemini et le MÉMORISE. Fixer ce modèle dans
- * une constante de module figeait donc le backend avant que `loadSecrets()`
- * n'ait chargé `.env.secret` : la clé AI Studio arrivait trop tard, et toute
- * génération échouait ensuite sur « GEMINI_API_KEY est absente ».
- */
-function geminiMockupModel(): string {
-  return (
-    process.env.IDEM_GEMINI_MOCKUP_MODEL ||
-    modelForRole(LLMProvider.GEMINI, 'image') ||
-    'gemini-3.1-flash-image'
-  );
-}
+import { AI_CONFIG } from '../config/ai.config';
+import {
+  analyzeImage,
+  GeneratedImage,
+  generateImage,
+  isGlmConfigured,
+} from './glm-media.service';
 import { ArtDirectionModel } from '../models/art-direction.model';
 import {
   buildImageNegativePrompt,
@@ -54,11 +22,12 @@ import {
 import { parseLlmJson } from '../utils/llm-json.util';
 
 /**
- * Fraction de la ZONE DE MARQUAGE réellement couverte par le logo. Un logo qui
- * remplit sa zone jusqu'aux bords trahit le montage : un vrai marquage garde
- * une marge autour de lui.
+ * Fraction de la FACE repérée que couvre le logo. La vision rend la face plane
+ * entière du support, pas une zone d'impression : un logo qui la remplirait
+ * jusqu'aux bords trahirait le montage — un vrai marquage garde de l'air
+ * autour de lui.
  */
-const LOGO_ZONE_COVERAGE = 0.72;
+const LOGO_ZONE_COVERAGE = 0.6;
 
 /**
  * Opacité de l'encre. En dessous de 1, la matière du support — grain du papier,
@@ -85,9 +54,6 @@ const INK_LIGHT_THRESHOLD = 140;
 /** En deçà, la zone rendue par la vision est trop petite pour être crédible. */
 const MIN_ZONE_RATIO = 0.06;
 
-/** En deçà, on ne fait pas confiance à la lecture de la vision. */
-const MIN_ZONE_CONFIDENCE = 0.35;
-
 /**
  * Zone de repli, utilisée quand la vision ne rend rien d'exploitable.
  *
@@ -102,7 +68,6 @@ const DEFAULT_ZONE: BrandingZone = {
   height: 0.26,
   surface: 'light',
   rotation: 0,
-  confidence: 0,
 };
 
 /** URLs des déclinaisons du logo, par fond de destination. */
@@ -136,7 +101,17 @@ interface BrandingZone {
   surface: 'light' | 'dark';
   /** Inclinaison apparente de la surface, en degrés, sens horaire. */
   rotation: number;
-  confidence: number;
+}
+
+/** Ce que la vision lit sur une scène générée. */
+interface SceneReading {
+  /**
+   * La scène porte-t-elle des lettres, des chiffres ou une marque ? `null`
+   * quand la vision n'a pas pu répondre.
+   */
+  markings: boolean | null;
+  /** Où imprimer le logo — la zone de repli quand la lecture est inexploitable. */
+  zone: BrandingZone;
 }
 
 export interface MockupGenerationRequest {
@@ -146,8 +121,8 @@ export interface MockupGenerationRequest {
     secondary: string;
     accent: string;
   };
+  /** Sert à retirer les fragments qui citent la marque ; jamais écrit dans un prompt d'image. */
   brandName: string;
-  projectDescription: string;
   selectedSupport: SelectedMockupSupport;
   pdfFormat?: string;
   /**
@@ -196,10 +171,10 @@ export class GeminiMockupService {
     /**
      * Supports IMPOSÉS, ajoutés après ceux que l'analyseur a choisis.
      *
-     * Ils portent les pages nommées de la charte (grand format, papeterie,
-     * univers visuel), attendues quel que soit le secteur. Ils viennent APRÈS,
-     * et dans l'ordre reçu : l'appelant retrouve ainsi chaque page à un indice
-     * connu, sans avoir à reconnaître un support dans la liste rendue.
+     * Ils portent les supports nommés de la charte (l'univers visuel), attendus
+     * quel que soit le secteur. Ils viennent APRÈS, et dans l'ordre reçu :
+     * l'appelant retrouve ainsi chaque page par son `mockupIndex`, sans avoir à
+     * reconnaître un support dans la liste rendue.
      */
     forcedSupports: SelectedMockupSupport[] = []
   ): Promise<MockupGenerationResult[]> {
@@ -257,30 +232,33 @@ export class GeminiMockupService {
       // une encre foncée sur un support sombre serait illisible.
       const logos = await this.loadLogoSet(logoUrl, logoVariants);
 
-      // Étape 3: Génération de tous les mockups séquentiellement avec les supports sélectionnés
-      // (Pour éviter les erreurs 429 RESOURCE_EXHAUSTED liées aux quotas stricts d'Imagen)
-      logger.info(`Generating ${selectedSupports.length} mockups sequentially`, {
+      // Étape 3 : les scènes sont indépendantes, elles partent ENSEMBLE. En
+      // série, la charte attendait la somme des générations (six scènes, 95 s
+      // mesurés) ; en parallèle, elle n'attend que la plus lente. Une scène
+      // perdue n'emporte plus les autres : sa page seule est omise.
+      logger.info(`Generating ${selectedSupports.length} mockups in parallel`, {
         projectId,
         mockupCount: selectedSupports.length,
       });
 
-      const mockups: MockupGenerationResult[] = [];
-      for (const selectedSupport of selectedSupports) {
-        const mockup = await this.generateMockup(
-          {
-            logos,
-            brandColors,
-            brandName,
-            projectDescription,
-            selectedSupport,
-            pdfFormat,
-            artDirection,
-          },
-          userId,
-          projectId,
-          `mockup-${selectedSupport.mockupIndex}`
+      const settled = await Promise.allSettled(
+        selectedSupports.map((selectedSupport) =>
+          this.generateMockup(
+            { logos, brandColors, brandName, selectedSupport, pdfFormat, artDirection },
+            userId,
+            projectId,
+            `mockup-${selectedSupport.mockupIndex}`
+          )
+        )
+      );
+      const mockups = settled.flatMap((outcome) =>
+        outcome.status === 'fulfilled' ? [outcome.value] : []
+      );
+      if (mockups.length === 0) {
+        const failure = settled.find(
+          (outcome): outcome is PromiseRejectedResult => outcome.status === 'rejected'
         );
-        mockups.push(mockup);
+        throw new Error(failure?.reason?.message || 'no mockup could be generated');
       }
 
       const duration = Date.now() - startTime;
@@ -360,38 +338,15 @@ export class GeminiMockupService {
       // qui disqualifie la page.
       //
       // Tous les fournisseurs passent donc par le même chemin : une scène
-      // VIERGE, sans nom de marque dans le prompt ni logo en pièce jointe, puis
-      // la lecture de la surface imprimable, puis l'incrustation du vrai logo.
-      const scenePrompt = this.buildScenePrompt(request);
+      // NUE, relue par la vision (des lettres ? une marque ? où imprimer ?),
+      // puis l'incrustation du vrai logo.
+      const { scene, reading } = await this.stageCleanScene(request, mockupName);
 
-      logger.info(
-        `[MOCKUP][${mockupName}] Generating blank scene with ${AI_CONFIG.branding.brandMockup.imageModel}`,
-        { mockupName, mockupIndex: request.selectedSupport.mockupIndex, projectId }
-      );
-
-      const scene = await generateImage(scenePrompt, {
-        model: AI_CONFIG.branding.brandMockup.imageModel,
-        fallbackModel: AI_CONFIG.fallback.imageModel,
-        // Quand Gemini sert l'image, le modèle des mises en situation reste
-        // `flash-image` : la matière d'un support photographié y gagne.
-        geminiModel: geminiMockupModel(),
-        tag: mockupName,
-      });
-
-      // Où poser le logo ? La question ne se tranche pas depuis le prompt : la
-      // scène est produite librement, et seule sa lecture dit où se trouve la
-      // surface imprimable. Sans cette passe, l'incrustation retombait au
-      // centre géométrique de l'image, souvent à côté du support.
       // Une page d'univers visuel ne porte PAS le logo : la scène nue EST le
-      // livrable, et la passe de vision qui suit n'aurait rien à repérer.
+      // livrable.
       const imageBuffer = request.selectedSupport.skipLogo
         ? scene.buffer
-        : await this.printLogo(
-            scene.buffer,
-            request.logos,
-            await this.locateBrandingZone(scene.buffer, mockupName),
-            mockupName
-          );
+        : await this.printLogo(scene.buffer, request.logos, reading.zone, mockupName);
 
       console.log(
         `[MOCKUP] ✅ Mockup composed for ${request.selectedSupport.mockupIndex} (${Math.round(imageBuffer.length / 1024)}KB) — now uploading to Firebase Storage bucket...`
@@ -468,45 +423,99 @@ export class GeminiMockupService {
   }
 
   /**
-   * Décrit la scène du mockup : le support NU, avec sa zone de marquage libre.
+   * Décrit la scène du mockup : le support NU.
    *
-   * On reprend le prompt dynamique — il connaît le support et les couleurs,
-   * JAMAIS le nom de la marque : le modèle l'écrirait sur le support. C'est lui qui porte désormais la règle du support vierge : la
-   * consigne était auparavant ajoutée ici, en contradiction avec le bloc
-   * « écris le nom de la marque » que le prompt envoyait juste au-dessus.
+   * Le prompt connaît le support, les couleurs et la direction artistique ;
+   * JAMAIS la description du projet ni le nom de la marque, que le modèle
+   * écrivait sur le support. Le nom sert seulement à retirer les fragments de
+   * direction artistique qui le citent.
    */
   private buildScenePrompt(request: MockupGenerationRequest): string {
-    const { brandName, brandColors, projectDescription, selectedSupport } = request;
-
     return MOCKUP_GENERATION_PROMPT.buildDynamicPrompt({
-      brandColors,
-      // La description porte le nom du projet (« Project Name: … ») et le
-      // répète : il en est retiré avant de partir au modèle d'image.
-      projectDescription: withoutBrandName(projectDescription, brandName),
-      selectedSupport,
+      brandColors: request.brandColors,
+      selectedSupport: request.selectedSupport,
       pdfFormat: request.pdfFormat,
+      brandName: request.brandName,
       artDirectionModifier: buildImageStyleModifier(request.artDirection),
       artDirectionNegative: buildImageNegativePrompt(request.artDirection),
-      artDirectionName: request.artDirection?.styleName,
+      imagerySubjects: request.artDirection?.imagery?.subjects,
     });
   }
 
   /**
-   * Lit la scène et rend la zone où le logo doit être imprimé.
+   * Produit une scène SANS lettres ni marque, et la lit.
    *
-   * Une seule requête de vision par mockup, sur le petit modèle : c'est le prix
-   * à payer pour ne plus poser le logo à l'aveugle. Toute réponse douteuse
-   * (zone hors cadre, minuscule, peu sûre) est refusée au profit du repli — un
-   * mauvais emplacement se voit immédiatement sur le livrable.
+   * Le prompt ne contient plus un mot qui invite à écrire, mais un modèle
+   * d'image garde ses habitudes. La vision relit donc chaque scène : celle qui
+   * porte des lettres, des chiffres ou une marque est régénérée, puisque le logo
+   * incrusté viendrait s'y superposer. Après `SCENE_ATTEMPTS` scènes marquées,
+   * l'erreur remonte et la page est omise.
+   *
+   * Une lecture impossible (vision indisponible, JSON illisible) ne bloque pas :
+   * la scène est gardée, et le logo retombe sur la zone de repli.
    */
-  private async locateBrandingZone(scene: Buffer, mockupName: string): Promise<BrandingZone> {
+  private async stageCleanScene(
+    request: MockupGenerationRequest,
+    mockupName: string
+  ): Promise<{ scene: GeneratedImage; reading: SceneReading }> {
+    const config = AI_CONFIG.branding.brandMockup;
+    const prompt = this.buildScenePrompt(request);
+    const attempts = Math.max(1, MOCKUP_CONFIG.SCENE_ATTEMPTS);
+    const needsZone = !request.selectedSupport.skipLogo;
+
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      const startedAt = Date.now();
+      const scene = await generateImage(prompt, {
+        model: config.imageModel,
+        fallbackModel: config.imageFallbackModel,
+        // Sous Gemini : son modèle image par défaut, le plus rapide, sauf
+        // épinglage. Le logo est composé ici, le modèle n'a rien à marquer.
+        geminiModel: process.env.IDEM_GEMINI_MOCKUP_MODEL || undefined,
+        tag: `${mockupName}#${attempt}`,
+      });
+      const reading = await this.readScene(scene, needsZone, mockupName);
+
+      if (reading.markings !== true) {
+        logger.info(`[MOCKUP][${mockupName}] Clean scene ready`, {
+          attempt,
+          model: scene.model,
+          markings: reading.markings,
+          durationMs: Date.now() - startedAt,
+        });
+        return { scene, reading };
+      }
+
+      logger.warn(
+        `[MOCKUP][${mockupName}] Scene ${attempt}/${attempts} carries lettering or a mark — ${
+          attempt < attempts ? 'regenerating' : 'page dropped'
+        }`
+      );
+    }
+
+    throw new Error(`every generated scene carried lettering or a mark (${attempts} attempts)`);
+  }
+
+  /**
+   * Relit la scène : porte-t-elle des lettres ou une marque, et où imprimer le
+   * logo ?
+   *
+   * Une seule requête de vision par scène. Où poser le logo ne se tranche pas
+   * depuis le prompt : seule la lecture de la scène dit où se trouve la face
+   * imprimable. Toute zone douteuse (hors cadre, minuscule, peu sûre) est
+   * refusée au profit du repli — un mauvais emplacement se voit immédiatement.
+   */
+  private async readScene(
+    scene: GeneratedImage,
+    needsZone: boolean,
+    mockupName: string
+  ): Promise<SceneReading> {
     const config = AI_CONFIG.branding.brandMockup;
 
     try {
       const raw = await analyzeImage(
-        scene.toString('base64'),
-        'image/png',
-        MOCKUP_GENERATION_PROMPT.brandingZoneVision,
+        scene.buffer.toString('base64'),
+        scene.mimeType,
+        MOCKUP_GENERATION_PROMPT.sceneReadingVision,
         {
           model: config.visionModel,
           fallbackModel: config.visionFallbackModel,
@@ -515,65 +524,80 @@ export class GeminiMockupService {
         }
       );
 
-      const zone = this.parseBrandingZone(raw);
-      if (zone) {
-        logger.info(`[MOCKUP][${mockupName}] Branding zone located`, {
-          mockupName,
-          zone,
-        });
-        return zone;
+      const parsed = parseLlmJson<Record<string, unknown>>(raw);
+      const reading: Record<string, unknown> = parsed && typeof parsed === 'object' ? parsed : {};
+      // Le JSON peut arriver enveloppé des balises de repérage du modèle et ne
+      // pas se lire : la réponse est alors reprise dans le texte brut.
+      const markings =
+        typeof reading.markings === 'boolean'
+          ? reading.markings
+          : /"markings"\s*:\s*true/i.test(raw)
+            ? true
+            : /"markings"\s*:\s*false/i.test(raw)
+              ? false
+              : null;
+      const zone = this.parseBrandingZone(reading, raw);
+
+      if (needsZone && zone) {
+        logger.info(`[MOCKUP][${mockupName}] Branding zone located`, { mockupName, zone });
+      } else if (needsZone) {
+        logger.warn(
+          `[MOCKUP][${mockupName}] Vision returned no usable branding zone — falling back to the centre area`,
+          { preview: raw.slice(0, 200) }
+        );
       }
 
-      logger.warn(
-        `[MOCKUP][${mockupName}] Vision returned no usable branding zone — falling back to the centre area`,
-        { preview: raw.slice(0, 200) }
-      );
+      return { markings, zone: zone ?? DEFAULT_ZONE };
     } catch (error: any) {
       logger.warn(
-        `[MOCKUP][${mockupName}] Branding zone detection failed (${error?.message}) — falling back to the centre area`
+        `[MOCKUP][${mockupName}] Scene reading failed (${error?.message}) — scene kept, logo on the centre area`
       );
+      return { markings: null, zone: DEFAULT_ZONE };
     }
-
-    return DEFAULT_ZONE;
   }
 
-  /** Valide le JSON de la vision. Rend `null` dès qu'une valeur est inexploitable. */
-  private parseBrandingZone(raw: string): BrandingZone | null {
-    const parsed = parseLlmJson<Record<string, unknown>>(raw);
-    if (!parsed || typeof parsed !== 'object') return null;
+  /**
+   * Valide la zone lue par la vision. Rend `null` dès qu'une valeur est
+   * inexploitable.
+   *
+   * La boîte arrive en coordonnées entières de 0 à 1000. Quand le JSON ne se
+   * lit pas, elle est reprise dans le texte brut ; quand la vision répond
+   * `"box": null`, le support n'offre pas de face imprimable.
+   */
+  private parseBrandingZone(reading: Record<string, unknown>, raw: string): BrandingZone | null {
+    const corners: unknown[] | undefined =
+      'box' in reading
+        ? Array.isArray(reading.box)
+          ? reading.box
+          : undefined
+        : raw
+            .match(/\[\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*\]/)
+            ?.slice(1);
+    if (!corners || corners.length !== 4) return null;
 
-    const num = (value: unknown): number | null =>
-      typeof value === 'number' && Number.isFinite(value) ? value : null;
+    const [x1, y1, x2, y2] = corners.map((value) => Number(value) / 1000);
+    if (![x1, y1, x2, y2].every((value) => Number.isFinite(value))) return null;
 
-    const x = num(parsed.x);
-    const y = num(parsed.y);
-    const width = num(parsed.width);
-    const height = num(parsed.height);
-    const confidence = num(parsed.confidence) ?? 0;
-
-    if (x === null || y === null || width === null || height === null) return null;
-    if (confidence < MIN_ZONE_CONFIDENCE) return null;
+    // Une boîte qui déborde du cadre est le symptôme d'une lecture approximative,
+    // mais un débordement de quelques pour mille reste récupérable : on la borne.
+    const left = Math.max(0, Math.min(x1, x2));
+    const top = Math.max(0, Math.min(y1, y2));
+    const width = Math.min(1, Math.max(x1, x2)) - left;
+    const height = Math.min(1, Math.max(y1, y2)) - top;
     if (width < MIN_ZONE_RATIO || height < MIN_ZONE_RATIO) return null;
-    if (x < 0 || y < 0 || x >= 1 || y >= 1) return null;
 
-    // Une zone qui déborde du cadre est le symptôme d'une lecture approximative,
-    // mais un débordement de quelques pour cent reste récupérable : on la borne.
-    const clampedWidth = Math.min(width, 1 - x);
-    const clampedHeight = Math.min(height, 1 - y);
-    if (clampedWidth < MIN_ZONE_RATIO || clampedHeight < MIN_ZONE_RATIO) return null;
-
-    const rotation = num(parsed.rotation) ?? 0;
+    const rotation =
+      typeof reading.rotation === 'number' && Number.isFinite(reading.rotation) ? reading.rotation : 0;
 
     return {
-      x,
-      y,
-      width: clampedWidth,
-      height: clampedHeight,
-      surface: parsed.surface === 'dark' ? 'dark' : 'light',
+      x: left,
+      y: top,
+      width,
+      height,
+      surface: reading.surface === 'dark' ? 'dark' : 'light',
       // Au-delà, la surface est trop inclinée pour qu'une simple rotation la
       // suive : on préfère un logo droit à un logo penché dans le mauvais sens.
       rotation: Math.max(-45, Math.min(45, rotation)),
-      confidence,
     };
   }
 

@@ -1273,13 +1273,30 @@ export const AI_CONFIG = {
      * centre géométrique de l'image, souvent à côté du support.
      */
     brandMockup: {
-      imageModel: GLM_MODELS.image,
+      // `cogview-4` d'abord : 12 s mesurés par scène, contre 42 à 57 s pour
+      // `glm-image` — qui refusait de surcroît le long prompt des mises en
+      // situation, trois secondes perdues avant chaque repli. Un support nu
+      // photographié n'en demande pas davantage ; `glm-image` reste le repli.
+      imageModel: GLM_MODELS.imageFallback,
+      imageFallbackModel: GLM_MODELS.image,
       visionModel: GLM_MODELS.vision,
       visionFallbackModel: GLM_MODELS.visionFallback,
       // Le JSON de zone tient en ~60 tokens, mais le modèle est « thinking » :
       // son raisonnement se décompte du même budget et une réponse vide ferait
       // retomber la composition sur son repli, donc sur un placement à l'aveugle.
       visionMaxOutputTokens: 1500,
+    },
+
+    /**
+     * Visuels des publications de la charte, produits par le pipeline des
+     * visuels du module communication. Photo de banque d'abord, même quand le
+     * brief préfère une image générée : chaque génération `glm-image` coûtait
+     * 42 à 57 s à la charte, pour deux visuels. Sans photo, le modèle rapide.
+     */
+    socialPostVisual: {
+      preferStock: true,
+      imageModel: GLM_MODELS.imageFallback,
+      imageFallbackModel: GLM_MODELS.image,
     },
   },
 };

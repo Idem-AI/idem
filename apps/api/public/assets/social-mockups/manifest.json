@@ -80,11 +80,11 @@
       "kind": "post",
       "label": "Publication Instagram",
       "file": "templates/instagram-post.html",
-      "width": 540,
-      "height": 990,
+      "width": 400,
+      "height": 720,
       "media": {
-        "width": 540,
-        "height": 675,
+        "width": 400,
+        "height": 500,
         "format": "post"
       }
     },
@@ -94,11 +94,11 @@
       "kind": "post",
       "label": "Publication LinkedIn",
       "file": "templates/linkedin-post.html",
-      "width": 556,
-      "height": 780,
+      "width": 400,
+      "height": 573,
       "media": {
-        "width": 538,
-        "height": 538,
+        "width": 386,
+        "height": 386,
         "format": "square"
       }
     },
@@ -108,11 +108,11 @@
       "kind": "post",
       "label": "Publication Facebook",
       "file": "templates/facebook-post.html",
-      "width": 556,
-      "height": 780,
+      "width": 400,
+      "height": 572,
       "media": {
-        "width": 540,
-        "height": 540,
+        "width": 388,
+        "height": 388,
         "format": "square"
       }
     },
@@ -122,11 +122,11 @@
       "kind": "post",
       "label": "Publication X",
       "file": "templates/x-post.html",
-      "width": 600,
-      "height": 420,
+      "width": 440,
+      "height": 315,
       "media": {
-        "width": 516,
-        "height": 271,
+        "width": 366,
+        "height": 192,
         "format": "banner"
       }
     }

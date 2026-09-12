@@ -116,9 +116,22 @@ async function main() {
   const used = new Set<string>();
   const html: Record<string, string> = {};
   let index = 1;
+  // `PREVIEW_ARCHETYPES=B,G,O` rend chaque page sous chacune de ces structures :
+  // la graine n'en tire qu'une par page, et un débordement propre à une autre
+  // structure passerait inaperçu. `PREVIEW_PAGES` restreint aux pages nommées.
+  const list = (value?: string) => (value ?? '').split(',').map((entry) => entry.trim()).filter(Boolean);
+  const archetypes = list(process.env.PREVIEW_ARCHETYPES);
+  const only = list(process.env.PREVIEW_PAGES);
   for (const name of Object.keys(pages)) {
+    if (only.length > 0 && !only.includes(name)) continue;
     const seed = wideSeed(buildSectionSeed('swiss', 'preview:charter', name, used), 'swiss');
-    html[name] = (await pages[name](seed, index++)) ?? '';
+    if (archetypes.length === 0) {
+      html[name] = (await pages[name](seed, index++)) ?? '';
+      continue;
+    }
+    for (const archetype of archetypes) {
+      html[`${name} ${archetype}`] = (await pages[name]({ ...seed, archetype }, index++)) ?? '';
+    }
   }
   html['Logo Principal'] = renderSection(
     {
