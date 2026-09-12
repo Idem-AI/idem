@@ -91,6 +91,24 @@ export function wideSeed(seed: SectionSeed, styleId?: string | null): SectionSee
 }
 
 /**
+ * La graine de la page des publications, ramenée à un RAIL.
+ *
+ * Deux publications en portrait sur une diapositive butent sur la HAUTEUR. Sous
+ * un titre posé au-dessus, elles restaient trop petites pour se lire, même une
+ * fois leur légende passée à côté. Le rail pose le titre tourné le long du
+ * bord : il ne prend aucune hauteur, et les publications occupent presque
+ * toute la page. On prend le rail du style quand il en a un, le rail muet sinon.
+ */
+export function railSeed(seed: SectionSeed, styleId?: string | null): SectionSeed {
+  if (ARCHETYPE_LANDSCAPE[seed.archetype] === 'rail') return seed;
+  const pool = resolveStyle(styleId).seedSpace.archetypes.filter(
+    (archetype) => ARCHETYPE_LANDSCAPE[archetype] === 'rail'
+  );
+  const archetype = pool.length > 0 ? pool[seed.archetype.charCodeAt(0) % pool.length] : 'M';
+  return { ...seed, archetype };
+}
+
+/**
  * Raccourcit un texte à des phrases entières, sinon à un mot entier.
  *
  * Les champs d'une direction artistique sont écrits pour être lus seuls ; posés
@@ -286,7 +304,13 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
         const kit = await ctx.socialKit();
         const items = await socialMockupService.renderPostMockups(kit, ctx.renderPostVisual, ctx.uploadMockup);
         if (items.length > 0) {
-          return page(stepName, { lede: POSTS_LEDE, blocks: [{ kind: 'mockupShowcase', items }] }, seed, index);
+          // Ni chapeau ni titre au-dessus : toute la hauteur va aux publications.
+          return page(
+            stepName,
+            { blocks: [{ kind: 'mockupShowcase', items }] },
+            railSeed(seed, ad?.styleId),
+            index
+          );
         }
       } catch (error: any) {
         logger.error(

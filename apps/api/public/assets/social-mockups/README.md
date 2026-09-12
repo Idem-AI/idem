@@ -28,10 +28,10 @@ donc été dessinés pour IDEM d'après les interfaces publiques de chaque rése
 | `x-profile.html` | X | profil | 1200 × 640 | en-tête 598 × 200 |
 | `youtube-channel.html` | YouTube | chaîne | 1200 × 720 | bannière 1040 × 172, vignette 424 × 238 |
 | `instagram-profile.html` | Instagram | profil | 1200 × 720 | 6 tuiles de grille |
-| `instagram-post.html` | Instagram | publication | 400 × 720 | visuel 400 × 500 (4:5) |
-| `linkedin-post.html` | LinkedIn | publication | 400 × 573 | visuel 386 × 386 (1:1) |
-| `facebook-post.html` | Facebook | publication | 400 × 572 | visuel 388 × 388 (1:1) |
-| `x-post.html` | X | publication | 440 × 315 | visuel 366 × 192 (1,9:1) |
+| `instagram-post.html` | Instagram | publication | 400 × 654 | visuel 400 × 500 (4:5) |
+| `linkedin-post.html` | LinkedIn | publication | 400 × 566 | visuel 400 × 400 (1:1) |
+| `facebook-post.html` | Facebook | publication | 400 × 564 | visuel 400 × 400 (1:1) |
+| `x-post.html` | X | publication | 440 × 319 | visuel 362 × 190 (1,9:1) |
 
 Les tailles et formats sont déclarés dans `manifest.json` ; ils doivent rester
 identiques au CSS du gabarit. Les visuels de publication ont exactement le
