@@ -260,10 +260,12 @@ export type SupportTypeKey = keyof typeof PHYSICAL_SUPPORT_TYPES;
  * en grand format, sur sa papeterie et dans son univers d'images est un book
  * incomplet. Ceux-là sont donc imposés, et ne passent pas par l'analyseur.
  *
- * `skipLogo` distingue l'univers visuel des deux autres : une page « Brand
- * Imagery » montre le TRAITEMENT de l'image, pas la marque posée dessus. Y
- * incruster le logo en ferait une quatrième mise en situation, et la charte
- * perdrait la seule page qui dit à un photographe ce qu'on attend de lui.
+ * `skipLogo` distingue l'univers visuel des deux autres : sa photographie montre
+ * le TRAITEMENT de l'image, pas la marque posée dessus. Elle n'a plus de page à
+ * elle : elle illustre la page « Traitement de l'image » de la direction
+ * artistique (cf. `charterComposedPages.ts`). Y incruster le logo en ferait une
+ * mise en situation de plus, et la charte perdrait l'image qui dit à un
+ * photographe ce qu'on attend de lui.
  */
 export const CHARTER_NAMED_MOCKUPS = [
   { stepName: 'Brand Billboard', supportType: 'billboard' },

@@ -21,7 +21,7 @@ export interface SelectedMockupSupport {
   /**
    * Composer la scène SANS y incruster le logo.
    *
-   * Une seule page l'emploie : « Brand Imagery », dont l'objet est le
+   * Un seul support l'emploie : l'univers visuel (« Brand Imagery »), dont l'objet est le
    * traitement de l'image — le sujet, la matière, la lumière — et non la marque
    * posée dessus. Y imprimer le logo en ferait une mise en situation de plus,
    * et la charte perdrait la page qui brieffe un photographe.

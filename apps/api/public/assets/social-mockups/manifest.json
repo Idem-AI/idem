@@ -1,0 +1,134 @@
+{
+  "version": 2,
+  "templates": [
+    {
+      "id": "facebook-page",
+      "network": "facebook",
+      "kind": "profile",
+      "label": "Page Facebook",
+      "file": "templates/facebook-page.html",
+      "width": 1200,
+      "height": 760,
+      "cover": {
+        "width": 940,
+        "height": 348,
+        "format": "facebook-cover"
+      }
+    },
+    {
+      "id": "linkedin-page",
+      "network": "linkedin",
+      "kind": "profile",
+      "label": "Page entreprise LinkedIn",
+      "file": "templates/linkedin-page.html",
+      "width": 1200,
+      "height": 660,
+      "cover": {
+        "width": 748,
+        "height": 128,
+        "format": "linkedin-cover"
+      }
+    },
+    {
+      "id": "x-profile",
+      "network": "x",
+      "kind": "profile",
+      "label": "Profil X",
+      "file": "templates/x-profile.html",
+      "width": 1200,
+      "height": 640,
+      "cover": {
+        "width": 598,
+        "height": 200,
+        "format": "x-header"
+      }
+    },
+    {
+      "id": "youtube-channel",
+      "network": "youtube",
+      "kind": "profile",
+      "label": "Chaîne YouTube",
+      "file": "templates/youtube-channel.html",
+      "width": 1200,
+      "height": 720,
+      "cover": {
+        "width": 1040,
+        "height": 172,
+        "format": "youtube-banner"
+      },
+      "media": {
+        "width": 424,
+        "height": 238,
+        "format": "thumbnail"
+      }
+    },
+    {
+      "id": "instagram-profile",
+      "network": "instagram",
+      "kind": "profile",
+      "label": "Profil Instagram",
+      "file": "templates/instagram-profile.html",
+      "width": 1200,
+      "height": 720,
+      "tiles": {
+        "count": 6
+      }
+    },
+    {
+      "id": "instagram-post",
+      "network": "instagram",
+      "kind": "post",
+      "label": "Publication Instagram",
+      "file": "templates/instagram-post.html",
+      "width": 540,
+      "height": 990,
+      "media": {
+        "width": 540,
+        "height": 675,
+        "format": "post"
+      }
+    },
+    {
+      "id": "linkedin-post",
+      "network": "linkedin",
+      "kind": "post",
+      "label": "Publication LinkedIn",
+      "file": "templates/linkedin-post.html",
+      "width": 556,
+      "height": 780,
+      "media": {
+        "width": 538,
+        "height": 538,
+        "format": "square"
+      }
+    },
+    {
+      "id": "facebook-post",
+      "network": "facebook",
+      "kind": "post",
+      "label": "Publication Facebook",
+      "file": "templates/facebook-post.html",
+      "width": 556,
+      "height": 780,
+      "media": {
+        "width": 540,
+        "height": 540,
+        "format": "square"
+      }
+    },
+    {
+      "id": "x-post",
+      "network": "x",
+      "kind": "post",
+      "label": "Publication X",
+      "file": "templates/x-post.html",
+      "width": 600,
+      "height": 420,
+      "media": {
+        "width": 516,
+        "height": 271,
+        "format": "banner"
+      }
+    }
+  ]
+}

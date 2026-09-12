@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!-- Mockup IDEM · Chaîne YouTube (bureau) · 1200 × 720. Emplacements : cf. ../README.md -->
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+{{{fontLinks}}}
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1200px;height:720px;overflow:hidden;background:#fff;font-family:'Roboto',Arial,sans-serif;color:#0f0f0f;-webkit-font-smoothing:antialiased}
+svg{display:block}
+.mast{height:56px;display:flex;align-items:center;padding:0 16px;gap:16px}
+.logo{display:flex;align-items:center;gap:2px;font-weight:700;font-size:20px;letter-spacing:-1.1px}
+.search{margin-left:auto;display:flex;align-items:center;gap:12px}
+.field{width:520px;height:40px;border:1px solid #d3d3d3;border-radius:20px 0 0 20px;padding:0 16px;display:flex;align-items:center;color:#888;font-size:16px}
+.go{width:64px;height:40px;border:1px solid #d3d3d3;border-left:0;border-radius:0 20px 20px 0;background:#f8f8f8;display:flex;align-items:center;justify-content:center}
+.mic{width:40px;height:40px;border-radius:50%;background:#f2f2f2;display:flex;align-items:center;justify-content:center}
+.tools{margin-left:auto;display:flex;gap:16px;align-items:center}
+.tiny{width:32px;height:32px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.tiny img{width:74%;height:74%;object-fit:contain}
+.layout{display:flex}
+.guide{width:72px;flex:none;padding-top:4px}
+.guide div{height:74px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:10px}
+.main{width:1040px;margin-left:44px}
+.banner{height:172px;border-radius:12px;overflow:hidden;background:#e5e5e5;margin-top:8px}
+.profile{display:flex;gap:24px;margin-top:16px;align-items:center}
+.avatar{width:120px;height:120px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;flex:none}
+.avatar img{width:66%;height:66%;object-fit:contain}
+.name{font-size:36px;font-weight:700;line-height:44px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:880px}
+.meta{margin-top:4px;font-size:14px;color:#606060;white-space:nowrap}
+.meta b{color:#0f0f0f;font-weight:500}
+.desc{margin-top:6px;font-size:14px;color:#606060;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:760px}
+.sub{margin-top:12px;display:inline-flex;height:36px;padding:0 16px;border-radius:18px;background:#0f0f0f;color:#fff;font-size:14px;font-weight:500;align-items:center}
+.tabs{margin-top:14px;display:flex;gap:28px;border-bottom:1px solid #e5e5e5;align-items:center}
+.tabs div{height:48px;display:flex;align-items:center;font-size:16px;font-weight:500;color:#606060;position:relative}
+.tabs .on{color:#0f0f0f}
+.tabs .on:after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:#0f0f0f}
+.featured{margin-top:20px;display:flex;gap:24px}
+.thumb{width:424px;height:238px;border-radius:12px;overflow:hidden;flex:none;background:#e5e5e5;position:relative}
+.dur{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.8);color:#fff;font-size:12px;font-weight:500;padding:1px 4px;border-radius:4px}
+.vtitle{font-size:18px;font-weight:500;line-height:26px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.vmeta{margin-top:8px;font-size:12px;color:#606060}
+.vdesc{margin-top:12px;font-size:12px;line-height:18px;color:#606060;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden;max-width:520px}
+</style>
+</head>
+<body>
+<div class="mast">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="#0f0f0f"><path d="M3 6h18v1.6H3zm0 5.2h18v1.6H3zm0 5.2h18V18H3z"/></svg>
+  <div class="logo"><svg width="30" height="21" viewBox="0 0 30 21"><rect width="30" height="21" rx="5" fill="#ff0033"/><path d="m12 6 8 4.5-8 4.5z" fill="#fff"/></svg>YouTube</div>
+  <div class="search">
+    <div style="display:flex"><div class="field">Search</div><div class="go"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0f0f0f" stroke-width="1.8"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg></div></div>
+    <div class="mic"><svg width="20" height="20" viewBox="0 0 24 24" fill="#0f0f0f"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5.5a6.5 6.5 0 0 0 5.8 6.5V21h1.4v-3.5A6.5 6.5 0 0 0 18.5 11z"/></svg></div>
+  </div>
+  <div class="tools">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0f0f0f" stroke-width="1.7"><rect x="2.5" y="6" width="13" height="12" rx="2"/><path d="m15.5 10 6-3v10l-6-3M9 9.5v5M6.5 12h5"/></svg>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0f0f0f" stroke-width="1.7"><path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>
+    <div class="tiny" style="background:{{avatarGround}}"><img src="{{avatarSrc}}" alt=""></div>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="guide">
+    <div><svg width="24" height="24" viewBox="0 0 24 24" fill="#0f0f0f"><path d="M4 21V10.1L12 4l8 6.1V21h-6v-6h-4v6z"/></svg>Home</div>
+    <div><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0f0f0f" stroke-width="1.7"><path d="M15.5 3.5 8 7.3a3.5 3.5 0 0 0 .4 6.4l1.2.5-1.3.7a3.5 3.5 0 0 0 3.2 6.2l7.5-3.8a3.5 3.5 0 0 0-.4-6.4l-1.2-.5 1.3-.7a3.5 3.5 0 0 0-3.2-6.2z"/><path d="m10.5 9.5 4 2.5-4 2.5z" fill="#0f0f0f"/></svg>Shorts</div>
+    <div><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0f0f0f" stroke-width="1.7"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M6 5h12M8 2.5h8"/><path d="m10.5 11.5 4 2.5-4 2.5z" fill="#0f0f0f"/></svg>Subscriptions</div>
+    <div><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0f0f0f" stroke-width="1.7"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m10 8.5 6 3.5-6 3.5z" fill="#0f0f0f"/></svg>You</div>
+  </div>
+
+  <div class="main">
+    <div class="banner">{{{coverHtml}}}</div>
+    <div class="profile">
+      <div class="avatar" style="background:{{avatarGround}}"><img src="{{avatarSrc}}" alt=""></div>
+      <div style="min-width:0">
+        <div class="name">{{brandName}}</div>
+        <div class="meta"><b>@{{handle}}</b> · 1.2K subscribers · 48 videos</div>
+        <div class="desc">{{bio}}</div>
+        <div class="sub">Subscribe</div>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="on">Home</div><div>Videos</div><div>Shorts</div><div>Playlists</div><div>Community</div>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#606060" stroke-width="1.8"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg>
+    </div>
+    <div class="featured">
+      <div class="thumb">{{{mediaHtml}}}<span class="dur">2:14</span></div>
+      <div style="min-width:0">
+        <div class="vtitle">{{title}}</div>
+        <div class="vmeta">1.2K views · 2 days ago</div>
+        <div class="vdesc">{{postText}}</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -36,6 +36,8 @@ export interface GenerateImageOptions {
   fallbackModel?: string;
   /** Étiquette de journalisation, pour retrouver l'appel dans les traces. */
   tag?: string;
+  /** Modèle à employer quand GEMINI sert l'image. Repli : le modèle image par défaut. */
+  geminiModel?: string;
 }
 
 export interface AnalyzeImageOptions {
@@ -102,11 +104,13 @@ const GEMINI_VISION_MODEL = process.env.IDEM_GEMINI_VISION_MODEL || 'gemini-3.6-
 /** Génération d'image par Gemini : l'image arrive en `inlineData`. */
 async function generateImageWithGemini(
   prompt: string,
-  tag?: string
+  tag?: string,
+  modelOverride?: string
 ): Promise<GeneratedImage> {
+  const model = modelOverride || GEMINI_IMAGE_MODEL;
   const startedAt = Date.now();
   const result: any = await getGoogleGenAIClient().models.generateContent({
-    model: GEMINI_IMAGE_MODEL,
+    model,
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     // Sans cette modalité le modèle répond en TEXTE — il décrit l'image au lieu
     // de la produire, et l'appel réussit en ne rendant rien d'utilisable.
@@ -117,17 +121,17 @@ async function generateImageWithGemini(
   const inline = parts.find((part: any) => part?.inlineData?.data)?.inlineData;
 
   if (!inline?.data) {
-    throw new Error(`${GEMINI_IMAGE_MODEL} n'a renvoyé aucune image`);
+    throw new Error(`${model} n'a renvoyé aucune image`);
   }
 
   logger.info(
-    `Image générée par ${GEMINI_IMAGE_MODEL} en ${Date.now() - startedAt} ms${tag ? ` (${tag})` : ''}`
+    `Image générée par ${model} en ${Date.now() - startedAt} ms${tag ? ` (${tag})` : ''}`
   );
 
   return {
     buffer: Buffer.from(inline.data, 'base64'),
     mimeType: inline.mimeType ?? 'image/jpeg',
-    model: GEMINI_IMAGE_MODEL,
+    model,
   };
 }
 
@@ -173,7 +177,7 @@ export async function generateImage(
   options: GenerateImageOptions = {},
 ): Promise<GeneratedImage> {
   if (mediaProvider() === 'gemini') {
-    return generateImageWithGemini(prompt, options.tag);
+    return generateImageWithGemini(prompt, options.tag, options.geminiModel);
   }
 
   const apiKey = requireKey();
