@@ -16,6 +16,7 @@ import {
   getSectionByKey,
 } from './section-catalog';
 import { BusinessPlanStructure } from '../../../models/businessPlanStructure.model';
+import type { BusinessPlanAudience } from './audience.types';
 import { CUSTOM_TEMPLATE_ID, DEFAULT_TEMPLATE_ID, getTemplate } from './templates';
 
 /** Nombre minimum de sections pour qu'un document mérite le nom de plan. */
@@ -23,16 +24,28 @@ export const MIN_SECTIONS = 3;
 /** Au-delà, la génération coûte plus qu'elle ne rapporte en lisibilité. */
 export const MAX_SECTIONS = 20;
 
+/** Structure exécutable : ce que la génération et le PDF consomment. */
+export interface ResolvedStructure {
+  structure: BusinessPlanStructure;
+  sections: BusinessPlanSectionDefinition[];
+  /**
+   * Destinataire du plan, déduit du modèle retenu.
+   *
+   * C'est lui qui choisit la lentille de lecture appliquée à CHAQUE section
+   * (cf. `prompts/audience-lens.prompt.ts`) : un analyste crédit et un associé
+   * de fonds ouvrent la même page « plan financier » en cherchant deux choses
+   * différentes. Une composition libre retombe sur la lecture polyvalente,
+   * faute de destinataire déclaré.
+   */
+  audience: BusinessPlanAudience;
+}
+
 /**
  * Rend la structure exécutable d'un projet.
  *
  * @param stored Structure persistée sur le projet (peut être absente/invalide).
- * @returns La structure normalisée et la liste ordonnée des définitions.
  */
-export function resolveStructure(stored?: BusinessPlanStructure | null): {
-  structure: BusinessPlanStructure;
-  sections: BusinessPlanSectionDefinition[];
-} {
+export function resolveStructure(stored?: BusinessPlanStructure | null): ResolvedStructure {
   const keys = sanitizeSectionKeys(stored?.sectionKeys);
 
   // Structure absente, vide ou entièrement inconnue : on retombe sur le modèle
@@ -47,16 +60,22 @@ export function resolveStructure(stored?: BusinessPlanStructure | null): {
       sections: template.sectionKeys
         .map(getSectionByKey)
         .filter((s): s is BusinessPlanSectionDefinition => !!s),
+      audience: template.audience,
     };
   }
 
+  const templateId = stored?.templateId || CUSTOM_TEMPLATE_ID;
   return {
     structure: {
-      templateId: stored?.templateId || CUSTOM_TEMPLATE_ID,
+      templateId,
       sectionKeys: keys,
       updatedAt: stored?.updatedAt,
     },
     sections: keys.map(getSectionByKey).filter((s): s is BusinessPlanSectionDefinition => !!s),
+    // Un sommaire personnalisé À PARTIR d'un modèle garde le destinataire de ce
+    // modèle : c'est l'intention de l'utilisateur qui a choisi « dossier
+    // bancaire » avant de retirer deux sections.
+    audience: getTemplate(templateId)?.audience ?? 'general',
   };
 }
 

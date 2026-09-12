@@ -28,7 +28,11 @@ import { Block } from '../design/sectionContent';
 import { AGENT_GOAL_PLANNING_PROMPT } from './prompts/agent-goal-planning.prompt';
 import { AGENT_APPENDIX_PROMPT } from './prompts/agent-appendix.prompt';
 import { BP_SECTION_EXAMPLE } from './prompts/section-example.prompt';
-import { BP_SECTION_BRIEFS } from './prompts/section-briefs.prompt';
+import {
+  composeBrief,
+  composeHtmlPrompt,
+  readerBlock,
+} from './prompts/section-prompt.registry';
 import { buildBusinessPlanSpec } from './businessPlanSpec';
 import { BusinessPlanStructure } from '../../models/businessPlanStructure.model';
 import {
@@ -133,7 +137,7 @@ export class BusinessPlanService extends GenericService {
     // libre. Elle décide des sections produites, de leur ordre et de leurs
     // briefs. Absente (plans d'avant la fonctionnalité), elle retombe sur le
     // modèle par défaut, qui est la structure historique en neuf sections.
-    const { sections: planSections } = resolveStructure(
+    const { sections: planSections, audience: planAudience } = resolveStructure(
       project.analysisResultModel?.businessPlan?.structure
     );
     const sectionNames = businessPlanSectionNames(planSections);
@@ -264,29 +268,31 @@ export class BusinessPlanService extends GenericService {
        * Une section RENDUE PAR GABARIT : le modèle produit du contenu, le code
        * produit la page. Sa graine lui donne son archétype de mise en page,
        * distinct de celui de ses voisines.
+       *
+       * @param contentBrief Consigne de CONTENU composée pour ce document
+       *   (destinataire, rang, voisines). C'est elle qui part sous gabarit.
+       * @param htmlPrompt Prompt COMPLET, avec les règles de composition. Il
+       *   n'est utilisé qu'en repli `IDEM_SECTION_TEMPLATE=off`, quand la
+       *   section doit de nouveau produire sa page en HTML.
        */
       const templated = (
-        fallbackPrompt: string,
+        contentBrief: string,
+        htmlPrompt: string,
         stepName: string,
         volume: string,
-        extra = '',
         prependBlocks?: Block[]
       ): IPromptStep => {
         sectionIndex += 1;
         return {
-          // Le prompt d'ORIGINE reste ici : il est le repli quand le gabarit est
-          // coupé (`IDEM_SECTION_TEMPLATE=off`), auquel cas la section doit de
-          // nouveau produire du HTML.
-          promptConstant: `${fallbackPrompt}${extra}`,
+          promptConstant: htmlPrompt,
           stepName,
           stablePrefix: templatedPrefix,
           template: {
-            // Sous gabarit, c'est le brief de CONTENU qui part. Le prompt
-            // d'origine consacrait les trois quarts de son volume à une
-            // composition que le rendu produit désormais (format de page,
-            // Tailwind, Chart.js, compatibilité éditeur) : une consigne inerte
-            // n'est pas neutre, elle prend la place de celles qui comptent.
-            contentBrief: `${BP_SECTION_BRIEFS[stepName] ?? fallbackPrompt}${extra}`,
+            // Sous gabarit, seule la consigne de CONTENU part. Le prompt HTML
+            // consacre les trois quarts de son volume à une composition que le
+            // rendu produit désormais : une consigne inerte n'est pas neutre,
+            // elle prend la place de celles qui comptent.
+            contentBrief,
             designSystem,
             seed: buildSectionSeed(
               artDirection?.styleId,
@@ -332,14 +338,37 @@ export class BusinessPlanService extends GenericService {
       // est coupé ; les sections introduites avec les structures n'en ont pas,
       // et retombent alors sur leur brief de contenu — ce qui est exactement ce
       // que le repli doit faire.
-      const steps: IPromptStep[] = planSections.map((section) => {
-        const fallback = LEGACY_SECTION_PROMPTS[section.name] ?? BP_SECTION_BRIEFS[section.name] ?? '';
-        if (section.freeform) return freeform(fallback, section.name);
+      const steps: IPromptStep[] = planSections.map((section, index) => {
+        // Contexte de composition de CETTE section dans CE document : son
+        // destinataire, son rang, ses voisines. Sans lui, chaque section
+        // recommence par présenter l'entreprise et le plan se répète.
+        const promptCtx = {
+          audience: planAudience,
+          position: index + 1,
+          total: planSections.length,
+          previous: planSections[index - 1]?.name,
+          next: planSections[index + 1]?.name,
+          financeContext: section.financeContext ? financeContext : undefined,
+        };
+
+        if (section.freeform) {
+          const cover = LEGACY_SECTION_PROMPTS[section.name] ?? '';
+          return freeform(`${readerBlock(planAudience)}\n\n${cover}`, section.name);
+        }
+
+        // Le prompt HTML de repli : celui écrit à la main quand la section en a
+        // un (les neuf historiques, éprouvés page par page), sinon celui
+        // composé — qui porte les mêmes règles de page et de marque.
+        const htmlPrompt =
+          LEGACY_SECTION_PROMPTS[section.name] ??
+          composeHtmlPrompt(section.key, promptCtx) ??
+          '';
+
         return templated(
-          fallback,
+          composeBrief(section.key, promptCtx) ?? '',
+          section.financeContext ? `${htmlPrompt}${financeContext}` : htmlPrompt,
           section.name,
           section.volume,
-          section.financeContext ? financeContext : '',
           section.financeBlocks
             ? buildFinanceBlocks(
                 project.analysisResultModel?.finance,
@@ -651,7 +680,7 @@ export class BusinessPlanService extends GenericService {
     // leur ordre. Un projet sans structure retombe sur le modèle par défaut,
     // qui est la structure historique en neuf sections : un plan déjà généré
     // reste donc régénérable à l'identique.
-    const { sections: planSections } = resolveStructure(
+    const { sections: planSections, audience: planAudience } = resolveStructure(
       project.analysisResultModel?.businessPlan?.structure
     );
     const orderedNames = businessPlanSectionNames(planSections);
@@ -673,12 +702,12 @@ export class BusinessPlanService extends GenericService {
         : keptSections;
     const existingNames = new Set(existingSections.map((s) => s.name));
 
-    const fullSpec = buildBusinessPlanSpec(
-      planSections,
+    const fullSpec = buildBusinessPlanSpec(planSections, {
+      audience: planAudience,
       projectDescription,
       financeContext,
-      country
-    );
+      country,
+    });
     // À (re)générer: celles qui ne sont pas conservées (ou celles ciblées).
     const sectionsToGenerate = fullSpec.filter((s) =>
       targetSections.length > 0 ? targetSections.includes(s.name) : !existingNames.has(s.name)
@@ -1326,8 +1355,21 @@ export class BusinessPlanService extends GenericService {
       project.additionalInfos?.country
     );
 
+    // La section est recomposée avec le destinataire du plan : un plan bancaire
+    // et un plan d'amorçage ne rouvrent pas la même page financière.
+    const { sections: syncSections, audience: syncAudience } = resolveStructure(bp.structure);
+    const syncIndex = syncSections.findIndex((section) => section.name === 'Financial Plan');
+    const syncPrompt =
+      composeHtmlPrompt('financial-plan', {
+        audience: syncAudience,
+        position: syncIndex === -1 ? 1 : syncIndex + 1,
+        total: syncSections.length || 1,
+        previous: syncIndex > 0 ? syncSections[syncIndex - 1]?.name : undefined,
+        next: syncIndex === -1 ? undefined : syncSections[syncIndex + 1]?.name,
+      }) ?? AGENT_FINANCIAL_PLAN_PROMPT;
+
     const step: IPromptStep = {
-      promptConstant: `${projectDescription}\n${AGENT_FINANCIAL_PLAN_PROMPT}\n\nBRAND CONTEXT:\n${brandContext}${financeContext}`,
+      promptConstant: `${projectDescription}\n${syncPrompt}\n\nBRAND CONTEXT:\n${brandContext}${financeContext}`,
       stepName: 'Financial Plan',
       hasDependencies: false,
     };

@@ -20,14 +20,11 @@
  */
 
 import { isKnownSectionKey } from './section-catalog';
+import type { BusinessPlanAudience } from './audience.types';
 
-/** Public visé — sert au filtrage et au classement dans l'UI. */
-export type BusinessPlanAudience =
-  | 'bank'
-  | 'investor'
-  | 'grant'
-  | 'internal'
-  | 'general';
+// Réexporté : les appelants existants importent le type depuis ce module, et le
+// déplacer a été motivé par un cycle de dépendances, pas par un renommage.
+export type { BusinessPlanAudience };
 
 export interface BusinessPlanTemplate {
   id: string;
