@@ -10,14 +10,18 @@ export const LOGO_SYSTEM_SECTION_PROMPT = `<role>Senior brand identity art direc
 </concept_ideas>
 
 <page_content>
-1. Section title: "Logo Principal" (styled to match brand personality).
-2. Primary logo <img> (use the exact URL specified in **SPECIFIC LOGO URL FOR THIS PAGE**).
-3. Concept explanation (2-3 sentences max, in French).
-4. Color codes (hex codes extracted from logo).
-5. "Zone de protection" diagram: the clear space is PROPORTIONAL to the logo itself
-   (Wheeler) — margin = 25% of the logo height on all four sides, visualized with
-   thin dashed guides and labeled "x = 25% de la hauteur du logo". Never an
-   arbitrary pixel value.
+THIS PAGE SHOWS. It does not explain: the usage rules have their own pages at
+the end of the document, and a rule stated here is read twice and applied once.
+
+1. Section title: "Logo Principal".
+2. Primary logo <img> (use the exact URL specified in **SPECIFIC LOGO URL FOR THIS PAGE**),
+   displayed LARGE — it must hold at least half the page.
+3. At most ONE caption line of 8 words. No paragraph, no concept explanation, no
+   metaphor about speed, movement or horizon.
+
+FORBIDDEN on this page: a description of the design, a justification, hex codes,
+a clear-space diagram, a list of formats, a minimum size. All of it belongs to
+the "Bonnes Pratiques" page.
 </page_content>
 
 <page_format>
@@ -51,11 +55,17 @@ export const LOGO_VARIATION_PAGE_PROMPT = `<role>Senior brand identity designer<
 </background_rules>
 
 <page_content>
+THIS PAGE SHOWS. The declension is the subject; the words are a label.
+
 1. Elegant variation label (e.g. "Déclinaison — Fond Clair").
-2. Logo variation displayed large and centered (at least 40-50% page area).
-3. intended background color (bg-[#hex]) for this variation.
-4. Caption explaining when to use it (1-2 sentences in French).
-5. Color references of background and logo colors.
+2. Logo variation displayed large and centered (at least 50% of the page area).
+3. Intended background color (bg-[#hex]) for this variation.
+4. At most TWO short captions of 6 words each, written as lists and not as
+   sentences: the supports it goes on ("Impression, signalétique, courrier"),
+   and the background range it holds on.
+
+FORBIDDEN: a sentence with a verb, a paragraph, a hex code list, a usage rule.
+The rules are grouped on the usage pages that close the document.
 </page_content>
 
 <page_format>
@@ -75,6 +85,12 @@ export const LOGO_VARIATION_PAGE_PROMPT = `<role>Senior brand identity designer<
 
 export const LOGO_BEST_PRACTICES_PAGE_PROMPT = `<role>Brand standards expert</role>
 <objective>Create a DEDICATED FULL-PAGE infographic for logo best practices ("Bonnes Pratiques") in French.</objective>
+
+<where_this_page_sits>
+This page comes AFTER the specimens and the mockups: it is the page a designer
+opens to know what to DO with the mark. It therefore carries EVERY logo rule —
+the ones the declension pages deliberately no longer state.
+</where_this_page_sits>
 
 <page_content>
 1. Page title: "Bonnes Pratiques — Utilisation du Logo".

@@ -2314,12 +2314,14 @@
           "Logo Variation Fond Clair": "Logo — fond clair",
           "Logo Variation Fond Sombre": "Logo — fond sombre",
           "Logo Variation Monochrome": "Logo — monochrome",
-          "Logo Bonnes Pratiques": "Bonnes pratiques du logo",
           "Color Palette": "Palette de couleurs",
           "Typography": "Typographie",
+          "Direction Artistique": "Direction artistique",
           "Brand Mockup 1": "Mockup 1",
           "Brand Mockup 2": "Mockup 2",
-          "Brand Mockup 3": "Mockup 3"
+          "Brand Mockup 3": "Mockup 3",
+          "Logo Bonnes Pratiques": "Utilisation du logo",
+          "Usage Couleurs & Typographie": "Utilisation — couleurs & typographie"
         }
       },
       "completeSubtitle": "Toutes les sections sont générées. Vous pouvez en régénérer une si besoin.",
