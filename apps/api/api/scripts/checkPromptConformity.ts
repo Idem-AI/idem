@@ -31,8 +31,14 @@
 
 import { BP_SECTION_BRIEFS } from '../services/BusinessPlan/prompts/section-briefs.prompt';
 import { SLIDE_BRIEFS } from '../services/PitchDeck/prompts/slide-briefs.prompt';
-import { CHARTER_PAGE_BRIEFS } from '../services/BandIdentity/prompts/page-briefs.prompt';
-import { MOCKUP_GENERATION_PROMPT } from '../services/BandIdentity/prompts/mockup-generation.prompt';
+import {
+  CHARTER_PAGE_BRIEFS,
+  CHARTER_PAGE_HEADINGS,
+} from '../services/BandIdentity/prompts/page-briefs.prompt';
+import {
+  MOCKUP_GENERATION_PROMPT,
+  withoutBrandName,
+} from '../services/BandIdentity/prompts/mockup-generation.prompt';
 import { SECTION_CONTENT_CONTRACT } from '../services/design/sectionContent.prompt';
 import { ANTI_SLOP_BLOCK, CONTENT_RULES_BLOCK } from '../services/design/antiSlop.prompt';
 import {
@@ -284,28 +290,33 @@ console.log('\n  Consignes contradictoires');
     supportType: 't', supportName: 'n', context: 'c', industryContext: 'i',
     mockupIndex: 1, priority: 1, examples: ['a'],
   };
+  // Le chemin « logo joint » a été retiré : le modèle d'image redessinait le
+  // logo au lieu de le poser. Il ne reste qu'une consigne — support VIERGE, logo
+  // incrusté après — et elle ne doit plus jamais contenir le nom de la marque,
+  // que le modèle écrivait sur le support.
   const base: any = {
-    brandName: 'X',
     brandColors: { primary: '#111111', secondary: '#222222', accent: '#333333' },
-    projectDescription: 'd',
+    projectDescription: withoutBrandName(
+      'Project Name: Kora\nProject Description: Kora torréfie son café à Douala. Chez Kora, chaque lot est suivi.',
+      'Kora'
+    ),
     selectedSupport: support,
   };
 
-  const blank = MOCKUP_GENERATION_PROMPT.buildDynamicPrompt({ ...base, logoMode: 'blank' });
-  const attached = MOCKUP_GENERATION_PROMPT.buildDynamicPrompt({ ...base, logoMode: 'attached' });
+  const blank = MOCKUP_GENERATION_PROMPT.buildDynamicPrompt(base);
+  const imagery = MOCKUP_GENERATION_PROMPT.buildDynamicPrompt({
+    ...base,
+    selectedSupport: { ...support, skipLogo: true },
+  });
 
-  const demandsBare = (text: string) => /NO branding at all/.test(text);
-  const forbidsLogo = (text: string) => /ANY logo, wordmark/.test(text);
-  const asksPlacement = (text: string) => /THE ATTACHED IMAGE IS THE BRAND LOGO/.test(text);
-
-  check('mockup « blank » : exige un support vierge', demandsBare(blank) && forbidsLogo(blank));
-  check('mockup « blank » : ne demande PAS de poser un logo', !asksPlacement(blank));
-  check('mockup « attached » : demande de poser le logo joint', asksPlacement(attached));
   check(
-    "mockup « attached » : n'exige plus un support vierge",
-    !demandsBare(attached) && !forbidsLogo(attached),
-    'un support vierge ET un logo posé sont incompatibles'
+    'mockup : exige un support vierge',
+    /Nothing in the frame carries branding/.test(blank) && /ANY logo, wordmark/.test(blank)
   );
+  check('mockup : ne demande jamais de poser un logo', !/ATTACHED IMAGE IS THE BRAND LOGO/.test(blank));
+  check("mockup : le nom de la marque n'atteint pas le modèle d'image", !/Kora/.test(blank) && !/Kora/.test(imagery));
+  check('mockup : réserve une zone de marquage', /RESERVE one printing area/.test(blank));
+  check("univers visuel : aucune zone de marquage réservée", !/RESERVE one printing area/.test(imagery));
 }
 
 // ── L'ÉQUIPE DE RECHERCHE REÇOIT LE MÊME BRIEF QUE LE GABARIT ───────────────
@@ -428,8 +439,12 @@ console.log('\n  Charte : couverture du gabarit');
     'Logo Variation Fond Sombre', 'Logo Variation Monochrome',
     // Pages dont le spécimen est fabriqué par le code.
     'Logomark', 'Typeface Hierarchy', 'Graphic Patterns',
-    'Social Media Creatives', 'Social Media Page Banners',
   ];
+  // Toute page sous gabarit porte un titre de la nomenclature : sans lui, le
+  // titre retombe sur celui du modèle, et la charte change de registre.
+  for (const page of templated) {
+    check(`« ${page} » a un titre de nomenclature`, Boolean(CHARTER_PAGE_HEADINGS[page]?.title));
+  }
   for (const page of templated) {
     check(`« ${page} » dispose d'un brief de contenu`, Boolean(CHARTER_PAGE_BRIEFS[page]));
   }

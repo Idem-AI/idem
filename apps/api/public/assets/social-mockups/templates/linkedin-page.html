@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!-- Mockup IDEM · Page entreprise LinkedIn (bureau) · 1200 × 660. Emplacements : cf. ../README.md -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+{{{fontLinks}}}
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1200px;height:660px;overflow:hidden;background:#f4f2ee;font-family:'Inter',system-ui,sans-serif;color:rgba(0,0,0,.9);-webkit-font-smoothing:antialiased}
+svg{display:block}
+.nav{height:52px;background:#fff;border-bottom:1px solid #e8e8e8;display:flex;align-items:center;padding:0 88px;gap:8px}
+.in{width:34px;height:34px;border-radius:4px;background:#0a66c2;display:flex;align-items:center;justify-content:center}
+.search{width:240px;height:34px;border-radius:4px;background:#edf3f8;display:flex;align-items:center;gap:8px;padding:0 10px;color:rgba(0,0,0,.6);font-size:14px}
+.items{margin-left:auto;display:flex;gap:14px}
+.item{display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(0,0,0,.6);font-size:12px;gap:2px;white-space:nowrap;padding:0 6px;height:52px}
+.me{width:24px;height:24px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.me img{width:76%;height:76%;object-fit:contain}
+.wrap{display:flex;gap:24px;padding:24px 88px 0}
+.main{width:750px}
+.card{background:#fff;border-radius:8px;border:1px solid #e0dfdc;overflow:hidden}
+.cover{height:128px;background:#d9dde2;overflow:hidden}
+.head{position:relative;padding:0 24px}
+.logo{position:absolute;top:-58px;left:24px;width:112px;height:112px;border:4px solid #fff;border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.logo img{width:78%;height:78%;object-fit:contain}
+.name{padding-top:66px;font-size:24px;font-weight:600;line-height:30px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tagline{margin-top:4px;font-size:16px;line-height:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta{margin-top:6px;font-size:14px;line-height:20px;color:rgba(0,0,0,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btns{display:flex;gap:8px;margin:16px 0 14px}
+.btn{height:34px;border-radius:17px;padding:0 16px;font-size:16px;font-weight:600;display:flex;align-items:center;gap:6px}
+.primary{background:#0a66c2;color:#fff}
+.outline{border:1px solid #0a66c2;color:#0a66c2}
+.ghost{border:1px solid rgba(0,0,0,.6);color:rgba(0,0,0,.6)}
+.tabs{display:flex;gap:4px;border-top:1px solid #e8e8e8;padding:0 12px}
+.tab{padding:14px 12px;font-size:14px;font-weight:600;color:rgba(0,0,0,.6)}
+.tab.on{color:#01754f;box-shadow:inset 0 -2px 0 #01754f}
+.overview{margin-top:8px;padding:20px 24px}
+.overview h2{font-size:20px;font-weight:600;margin-bottom:10px}
+.overview p{font-size:14px;line-height:20px;color:rgba(0,0,0,.9);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.side{width:292px}
+.side .card{padding:16px}
+.side h3{font-size:16px;font-weight:600;margin-bottom:14px}
+.row{display:flex;gap:10px;margin-bottom:16px;align-items:flex-start}
+.sq{width:48px;height:48px;border-radius:4px;background:#e6e6e6;flex:none}
+.bar{height:10px;border-radius:5px;background:#ebebeb;margin-bottom:9px}
+.follow{margin-top:8px;height:28px;width:92px;border-radius:14px;border:1px solid rgba(0,0,0,.6);font-size:14px;font-weight:600;color:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center}
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="in"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M4.98 3.5C4.98 4.88 3.87 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1s2.48 1.12 2.48 2.5zM.2 8h4.6v15H.2zM8 8h4.4v2.1h.1c.6-1.2 2.1-2.4 4.4-2.4 4.7 0 5.5 3.1 5.5 7.1V23h-4.6v-7.3c0-1.7 0-4-2.4-4s-2.8 1.9-2.8 3.9V23H8z" transform="translate(1 0)"/></svg></div>
+  <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="2"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>Search</div>
+  <div class="items">
+    <div class="item"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M23 9v2h-2v7a3 3 0 0 1-3 3h-4v-6h-4v6H6a3 3 0 0 1-3-3v-7H1V9l11-7z"/></svg>Home</div>
+    <div class="item"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 16v6H3v-6a3 3 0 0 1 3-3h3a3 3 0 0 1 3 3zm5.5-3A3.5 3.5 0 1 0 14 9.5a3.5 3.5 0 0 0 3.5 3.5zm1 2h-2a2.5 2.5 0 0 0-2.5 2.5V22h7v-4.5a2.5 2.5 0 0 0-2.5-2.5zM7.5 2A4.5 4.5 0 1 0 12 6.5 4.49 4.49 0 0 0 7.5 2z"/></svg>My Network</div>
+    <div class="item"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17 6V5a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3v1H2v4a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V6zM9 5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1H9zm10 9a4 4 0 0 0 3-1.38V17a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3v-4.38A4 4 0 0 0 5 14z"/></svg>Jobs</div>
+    <div class="item"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16 4H8a7 7 0 0 0 0 14h4v4l8.16-5.39A6.78 6.78 0 0 0 23 11.29 7.3 7.3 0 0 0 16 4z"/></svg>Messaging</div>
+    <div class="item"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M22 19h-8.28a2 2 0 1 1-3.44 0H2v-1a4.52 4.52 0 0 1 1.17-2.83l1-1.17h15.7l1 1.17A4.42 4.42 0 0 1 22 18zM18.21 7.44A6.27 6.27 0 0 0 12 2a6.27 6.27 0 0 0-6.21 5.44L5 13h14z"/></svg>Notifications</div>
+    <div class="item"><div class="me" style="background:{{avatarGround}}"><img src="{{avatarSrc}}" alt=""></div>Me ▾</div>
+    <div class="item"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h4v4H3zm7 4h4V3h-4zm7-4v4h4V3zM3 14h4v-4H3zm7 0h4v-4h-4zm7 0h4v-4h-4zM3 21h4v-4H3zm7 0h4v-4h-4zm7 0h4v-4h-4z"/></svg>For Business ▾</div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="main">
+    <div class="card">
+      <div class="cover">{{{coverHtml}}}</div>
+      <div class="head">
+        <div class="logo" style="background:{{avatarGround}}"><img src="{{avatarSrc}}" alt=""></div>
+        <div class="name">{{brandName}}</div>
+        <div class="tagline">{{bio}}</div>
+        <div class="meta">{{category}} · 2,418 followers · 11-50 employees</div>
+        <div class="btns"><div class="btn primary">+ Follow</div><div class="btn outline">Visit website ↗</div><div class="btn ghost">More</div></div>
+      </div>
+      <div class="tabs"><div class="tab on">Home</div><div class="tab">About</div><div class="tab">Posts</div><div class="tab">Jobs</div><div class="tab">People</div></div>
+    </div>
+    <div class="card overview"><h2>Overview</h2><p>{{postText}}</p></div>
+  </div>
+  <div class="side">
+    <div class="card">
+      <h3>Pages people also viewed</h3>
+      <div class="row"><div class="sq"></div><div style="flex:1"><div class="bar" style="width:80%;height:11px"></div><div class="bar" style="width:55%;height:9px"></div><div class="follow">+ Follow</div></div></div>
+      <div class="row"><div class="sq"></div><div style="flex:1"><div class="bar" style="width:70%;height:11px"></div><div class="bar" style="width:60%;height:9px"></div><div class="follow">+ Follow</div></div></div>
+      <div class="row"><div class="sq"></div><div style="flex:1"><div class="bar" style="width:76%;height:11px"></div><div class="bar" style="width:48%;height:9px"></div><div class="follow">+ Follow</div></div></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

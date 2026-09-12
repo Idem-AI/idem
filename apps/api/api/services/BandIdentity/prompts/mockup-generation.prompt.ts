@@ -2,18 +2,39 @@ import { SelectedMockupSupport } from '../mockupAnalyzer.service';
 
 /**
  * Les deux prompts de la mise en situation de marque, et une seule idée : le
- * modèle d'image ne dessine JAMAIS le logo.
+ * modèle d'image ne dessine JAMAIS le logo, et ne connaît JAMAIS le nom de la
+ * marque.
  *
  * Il photographie un support NU en réservant une zone de marquage ; le vrai
  * logo y est incrusté ensuite par composition (cf. `brandMockup.service.ts`).
- * Décrire le logo au modèle lui faisait dessiner un logo approchant — sur un
- * livrable de marque, où le logo doit être exact au pixel près, c'est
- * inacceptable.
+ * Décrire le logo au modèle — ou seulement lui donner le nom de la marque — lui
+ * faisait dessiner un logo approchant, qui se superposait au vrai une fois
+ * celui-ci incrusté : deux marques sur le même support, dont une fausse.
  *
  * Le second prompt est celui de la vision : il relit la scène produite pour
  * dire OÙ poser le logo. Sans lui, l'incrustation retombait au centre
  * géométrique de l'image, c'est-à-dire à côté du support une fois sur deux.
  */
+
+/**
+ * Retire le nom de la marque d'une description avant qu'elle ne parte au
+ * modèle d'image.
+ *
+ * La description du projet commence par « Project Name: … » et répète le nom
+ * dans le texte. Un nom lu par le modèle d'image est un nom écrit sur le
+ * support. La ligne d'en-tête est supprimée ; chaque occurrence restante,
+ * prise en mot entier, devient « the brand ».
+ */
+export function withoutBrandName(description: string, brandName?: string): string {
+  let text = (description || '').replace(/^\s*(project name|nom du projet)\s*:.*$/gim, '').trim();
+  const name = (brandName || '').trim();
+  if (name.length >= 2) {
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    text = text.replace(new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'giu'), 'the brand');
+  }
+  return text;
+}
+
 export const MOCKUP_GENERATION_PROMPT = {
   /**
    * Consigne de vision : localiser la zone de marquage sur la scène générée.
@@ -45,15 +66,8 @@ Rules:
 - If the product offers no usable printing area, answer exactly {"confidence":0}.`,
 
   buildDynamicPrompt: (params: {
-    /**
-     * `blank` : la scène sort VIERGE, le logo est incrusté après (fournisseurs
-     * sans image en entrée). `attached` : le logo est joint à l'appel et le
-     * modèle le pose lui-même. Le défaut est `blank`, qui était le seul
-     * comportement.
-     */
-    logoMode?: 'blank' | 'attached';
-    brandName: string;
     brandColors: { primary: string; secondary: string; accent: string };
+    /** Description du projet, DÉJÀ débarrassée du nom de marque (cf. `withoutBrandName`). */
     projectDescription: string;
     selectedSupport: SelectedMockupSupport;
     pdfFormat?: string;
@@ -65,7 +79,6 @@ Rules:
     artDirectionName?: string;
   }) => {
     const {
-      brandName,
       brandColors,
       projectDescription,
       selectedSupport,
@@ -73,25 +86,11 @@ Rules:
       artDirectionModifier,
       artDirectionNegative,
       artDirectionName,
-      logoMode = 'blank',
     } = params;
 
-    // ── DEUX CHEMINS, DEUX CONSIGNES ─────────────────────────────────────────
-    //
-    // Ce prompt a été écrit pour un fournisseur qui n'accepte PAS d'image en
-    // entrée : la scène y sort vierge, et le vrai logo est incrusté ensuite au
-    // pixel près. D'où « BLANK, UNBRANDED », répété dans l'objectif, dans une
-    // règle dédiée et dans les interdits.
-    //
-    // Le chemin Gemini, lui, REÇOIT le logo en pièce jointe et doit le poser
-    // lui-même. Il recevait pourtant ce même prompt, suivi d'un « place le logo
-    // joint » ajouté à la fin. Le modèle lisait donc trois fois « aucun logo »
-    // et une fois « pose le logo » : il produisait un support nu, ce qui est
-    // exactement ce qu'on lui demandait le plus fort.
-    //
-    // Les deux modes sont donc rendus explicites ici, dans le fichier qui
-    // possède le texte, plutôt que rafistolés par une phrase ajoutée en aval.
-    const branded = logoMode === 'attached';
+    // Une page d'univers visuel n'a pas de support à marquer : c'est une
+    // photographie de la marque, pas d'un objet qui la porte.
+    const imagery = Boolean(selectedSupport.skipLogo);
 
     const formatSpecs =
       pdfFormat === 'A4_PORTRAIT'
@@ -122,17 +121,16 @@ Rules:
         : 'SECONDARY SUPPORT (complementary but relevant)';
 
     return `<role>Elite commercial photographer and art director specialised in staging brands.</role>
-<objective>Create one photorealistic, high-end professional mockup photograph of ${
-      branded
-        ? 'a support CARRYING THE ATTACHED BRAND LOGO, printed on it as it would really be produced'
-        : 'a BLANK, UNBRANDED support, ready to receive a printed logo'
+<objective>Create one photorealistic, high-end professional ${
+      imagery
+        ? 'brand-world photograph: the subject, the material and the light of the brand, with no product carrying any mark'
+        : 'mockup photograph of a BLANK, UNBRANDED support, ready to receive a printed logo'
     }.</objective>
 
 <brand_context>
-- Name: "${brandName}"
 - Industry: ${selectedSupport.industryContext}
 - Colours: primary ${brandColors.primary}, secondary ${brandColors.secondary}, accent ${brandColors.accent}
-- Description: ${projectDescription}
+- Activity: ${projectDescription}
 </brand_context>
 
 <mockup_mission>
@@ -147,35 +145,18 @@ Staging:
 ${selectedSupport.context}
 </mockup_mission>
 
-${branded ? `<logo_placement_rule>
-THE ATTACHED IMAGE IS THE BRAND LOGO. It is printed on the support in this
-photograph — reproduce it EXACTLY as supplied: same shapes, same proportions,
-same colours, same spacing. Do not redraw it, restyle it, simplify it, add an
-outline, or invent any element of it. It is the one thing in the frame that must
-be literally correct.
-
-Print it where the mark genuinely goes on this kind of support (chest of a
-garment, front face of a box, door panel of a vehicle, front of a card…), on a
-surface that is:
-- flat and unbroken: no seam, fold, button, zip, strap or curved edge across it;
-- facing the camera as squarely as the staging allows;
-- evenly lit: no hard specular highlight, no cast shadow, no reflection over it;
-- one plain uniform tone, so the mark reads clearly.
-
-The logo follows the perspective and the lighting of the scene, at the size a
-real print would have — roughly a quarter of the support's visible face. It is
-the ONLY mark on the support: no second logo, no invented wordmark, no slogan,
-no legible text of any kind beside it.
-
-Everything AROUND it stays a full photograph: material, texture, wear, depth of
-field, real environment.
-</logo_placement_rule>` : `<blank_support_rule>
-The support carries NO branding at all: no logo, no monogram, no wordmark, no brand
+<blank_support_rule>
+Nothing in the frame carries branding: no logo, no monogram, no wordmark, no brand
 name, no initial, no slogan, no printed pattern, no label, no sticker, no legible
-text of any kind on it. The real logo is composited onto this photograph afterwards
-at pixel accuracy — anything you draw in its place collides with it and ruins the
-image.
-
+text of any kind. ${
+      imagery
+        ? 'This photograph shows the brand world, not a branded object.'
+        : 'The real logo is composited onto this photograph afterwards at pixel accuracy — anything you draw in its place collides with it and ruins the image.'
+    }
+${
+  imagery
+    ? ''
+    : `
 Instead, RESERVE one printing area on the support, and stage the shot around it:
 - It sits where the brand mark genuinely goes on this kind of support (chest of a
   garment, front face of a box, door panel of a vehicle, front of a card…).
@@ -185,10 +166,11 @@ Instead, RESERVE one printing area on the support, and stage the shot around it:
 - It is evenly lit: no hard specular highlight, no cast shadow, no reflection over it.
 - It is one plain uniform tone, chosen so a logo reads clearly on it.
 - It is large and unmistakable — roughly a third of the frame — and near the centre.
-
+`
+}
 Everything AROUND that area stays a full photograph: material, texture, wear,
 depth of field, real environment.
-</blank_support_rule>`}
+</blank_support_rule>
 
 ${
       artDirectionModifier
@@ -221,11 +203,7 @@ This photograph will be seen next to the brand's other supports: it must carry t
 </format_rules>
 
 <forbidden>
-${
-      branded
-        ? '- Any SECOND mark: an invented wordmark, a slogan, a made-up brand name, or readable text other than the supplied logo.'
-        : '- ANY logo, wordmark, brand name, monogram, initial or readable text printed on the support. The support is blank.'
-    }
+- ANY logo, wordmark, brand name, monogram, initial or readable text anywhere in the frame — on the support, on a sign, on a screen, on packaging in the background.
 - The generic mockup cliché: "a business card lying at an angle on a white marble desk next to a green plant" is THE default render of every generator. Compose something else.
 - Artificial, plastic, over-lit 3D renders.
 - An overloaded scene: one hero support, one context, nothing else.

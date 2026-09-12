@@ -33,6 +33,7 @@
 import { contrastRatio } from './color';
 import { buildGoogleFontLinks } from '../../utils/google-fonts.util';
 import { DocumentDesignSystem } from './documentDesignSystem';
+import { patternCss } from './brandMotifs';
 import { SectionSeed } from './designSeed';
 import logger from '../../config/logger';
 import { Block, condenseForFixedPage, SectionContent, estimateBlockWeight } from './sectionContent';
@@ -1321,47 +1322,6 @@ function renderTypeScale(block: Extract<Block, { kind: 'typeScale' }>, ctx: Ctx)
  * Chacun est ici un `background-image` construit à partir de deux encres de la
  * charte — copiable tel quel par le designer qui reprend le document.
  */
-function patternCss(motif: string, ink: string, ground: string): Record<string, string> {
-  switch (motif) {
-    case 'stripes':
-      return {
-        'background-color': ground,
-        'background-image': `repeating-linear-gradient(45deg, ${ink} 0 6px, transparent 6px 16px)`,
-      };
-    case 'grid':
-      return {
-        'background-color': ground,
-        'background-image': `linear-gradient(${ink} 1px, transparent 1px), linear-gradient(90deg, ${ink} 1px, transparent 1px)`,
-        'background-size': '12px 12px',
-      };
-    case 'dots':
-      return {
-        'background-color': ground,
-        'background-image': `radial-gradient(${ink} 1.6px, transparent 1.7px)`,
-        'background-size': '10px 10px',
-      };
-    case 'chevron':
-      return {
-        'background-color': ground,
-        'background-image': `repeating-linear-gradient(135deg, ${ink} 0 4px, transparent 4px 12px), repeating-linear-gradient(45deg, ${ink} 0 4px, transparent 4px 12px)`,
-      };
-    case 'arcs':
-      return {
-        'background-color': ground,
-        'background-image': `radial-gradient(circle at 0 100%, transparent 12px, ${ink} 12px, ${ink} 14px, transparent 14px)`,
-        'background-size': '20px 20px',
-      };
-    case 'checker':
-    default:
-      return {
-        'background-color': ground,
-        'background-image': `linear-gradient(45deg, ${ink} 25%, transparent 25% 75%, ${ink} 75%), linear-gradient(45deg, ${ink} 25%, transparent 25% 75%, ${ink} 75%)`,
-        'background-size': '16px 16px',
-        'background-position': '0 0, 8px 8px',
-      };
-  }
-}
-
 function renderPatternGrid(block: Extract<Block, { kind: 'patternGrid' }>, ctx: Ctx): string {
   const { ds } = ctx;
   const gap = snap(ds.spacing);
@@ -1527,6 +1487,308 @@ function renderSocialBanners(
 }
 
 /**
+ * Hauteur utile d'une page rognée, en px CSS.
+ *
+ * Les blocs de démonstration (mockups, logo expliqué, direction artistique)
+ * dimensionnent leurs images sur elle : une image dimensionnée sur la LARGEUR
+ * seule sortait deux fois trop haute sur une diapositive, et la page était
+ * réduite pour la faire tenir.
+ */
+function usableHeightPx(ctx: Ctx): number {
+  const page = ctx.options.page ?? PORTRAIT_A4;
+  return (Number.parseFloat(page.minHeight) - 2 * Number.parseFloat(page.padding)) * MM_TO_PX;
+}
+
+const clampLines = (lines: number): Record<string, string | number> => ({
+  display: '-webkit-box',
+  '-webkit-box-orient': 'vertical',
+  '-webkit-line-clamp': lines,
+  overflow: 'hidden',
+});
+
+/**
+ * MOCKUPS DE RÉSEAUX SOCIAUX, en rangée à hauteur commune.
+ *
+ * Un profil en paysage et une publication en portrait n'ont pas le même
+ * rapport : leur donner la même LARGEUR fait d'un mockup un timbre et de
+ * l'autre une colonne. La largeur est donc répartie selon le rapport de
+ * chacun, pour qu'ils partagent leur hauteur et se lisent côte à côte.
+ */
+function renderMockupShowcase(block: Extract<Block, { kind: 'mockupShowcase' }>, ctx: Ctx): string {
+  const { ds } = ctx;
+  const items = block.items.filter((item) => item.url && item.ratio > 0);
+  if (items.length === 0) return '';
+
+  const gap = snap(ds.spacing * 1.5);
+  const available = ctx.contentWidthPx - gap * (items.length - 1);
+  const ratioSum = items.reduce((sum, item) => sum + item.ratio, 0);
+  // La moitié de la hauteur utile : l'en-tête, la légende et le pied de page
+  // prennent le reste, et une légende passée sous le pied de page se voit.
+  const maxHeight = usableHeightPx(ctx) * (ctx.landscape ? 0.5 : 0.46);
+  const height = Math.floor(Math.min(maxHeight, available / ratioSum));
+
+  const figures = items
+    .map((item) => {
+      const width = Math.floor(height * item.ratio);
+      return `<figure${style({ margin: 0, width: `${width}px`, flex: 'none' })}>
+  <img src="${esc(item.url)}" alt="${esc(item.label)}"${style({
+        width: `${width}px`,
+        height: `${height}px`,
+        display: 'block',
+        'object-fit': 'cover',
+        'border-radius': `${ds.radius}px`,
+        border: `1px solid ${ds.colors.rule}`,
+      })}>
+  <figcaption${style({ 'margin-top': `${snap(ds.spacing * 0.5)}px` })}>
+    <div${style({ 'font-size': `${ds.typeScale.sm}px`, 'font-weight': 600, color: ds.colors.ink })}>${esc(item.label)}</div>
+    ${
+      item.caption
+        ? `<div${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted, 'line-height': 1.35 })}>${esc(item.caption)}</div>`
+        : ''
+    }
+  </figcaption>
+</figure>`;
+    })
+    .join('');
+
+  return `<div${style({ display: 'flex', gap: `${gap}px`, 'justify-content': 'center', 'align-items': 'flex-start' })}${atomic}>${figures}</div>`;
+}
+
+/**
+ * LE LOGO ET SON EXPLICATION, côte à côte.
+ *
+ * Posés l'un sous l'autre, le logo prenait la page et l'explication tombait
+ * sous le pli, en quatre cartes identiques que personne ne relie au dessin.
+ * Côte à côte, chaque point se lit en regardant ce qu'il décrit.
+ */
+function renderLogoStory(block: Extract<Block, { kind: 'logoStory' }>, ctx: Ctx): string {
+  const { ds } = ctx;
+  const grounds = {
+    light: ds.colors.neutral['50'],
+    dark: ds.colors.neutral['950'],
+    neutral: ds.colors.neutral['200'],
+  };
+  const gap = snap(ds.spacing * 2);
+  const panelHeight = Math.round(usableHeightPx(ctx) * (ctx.landscape ? 0.6 : 0.4));
+
+  const points = block.points
+    .slice(0, 4)
+    .map(
+      (point, index) => `<div${style({
+        padding: `${snap(ds.spacing * 0.6)}px 0`,
+        'border-top': index === 0 ? undefined : `1px solid ${ds.colors.rule}`,
+      })}>
+  <div${style({ 'font-family': `'${ds.fonts.display}', ${DISPLAY_FALLBACK}`, 'font-size': `${ds.typeScale.base}px`, 'font-weight': 600, color: ctx.roles.heading })}>${esc(point.label)}</div>
+  <div${style({ 'margin-top': '2px', 'font-size': `${ds.typeScale.sm}px`, 'line-height': 1.45, color: ds.colors.inkMuted, ...clampLines(3) })}>${esc(point.text)}</div>
+</div>`
+    )
+    .join('');
+
+  return `<div${style({
+    display: 'grid',
+    'grid-template-columns': ctx.landscape ? 'minmax(0, 1fr) minmax(0, 1fr)' : 'minmax(0, 1fr)',
+    gap: `${gap}px`,
+    'align-items': 'center',
+  })}${atomic}>
+  <div${style({
+    'background-color': grounds[block.background] ?? grounds.light,
+    border: `1px solid ${ds.colors.rule}`,
+    'border-radius': `${ds.radius}px`,
+    height: `${panelHeight}px`,
+    display: 'flex',
+    'align-items': 'center',
+    'justify-content': 'center',
+    padding: `${gap}px`,
+  })}>
+    <img src="${esc(block.url)}" alt="${esc(block.label)}"${style({ 'max-width': '82%', 'max-height': '72%', width: 'auto', height: 'auto' })}>
+  </div>
+  <div>${points}</div>
+</div>`;
+}
+
+/**
+ * LE PARTI PRIS : le nom du style en grand, sa raison, son vocabulaire.
+ *
+ * Les mots-clés sont composés en MOODBOARD typographique — trois corps, deux
+ * encres — et non en liste à puces : c'est la page où le style se montre avant
+ * de se décrire.
+ */
+function renderArtDirectionStance(block: Extract<Block, { kind: 'artDirectionStance' }>, ctx: Ctx): string {
+  const { ds } = ctx;
+  const leftWidth = ctx.contentWidthPx * (ctx.landscape ? 0.56 : 1);
+  const nameSize = fitTitleSize(block.styleName, ds.typeScale['4xl'], leftWidth, -0.02, 0, 1);
+  const strongInk = contrastRatio(ds.colors.primary, ds.colors.surface) >= 4.5 ? ds.colors.primary : ds.colors.ink;
+  const steps: Array<keyof DocumentDesignSystem['typeScale']> = ['2xl', 'base', 'xl', 'lg', '2xl', 'sm', 'xl', 'base'];
+  const inks = [strongInk, ds.colors.inkMuted, ds.colors.ink];
+
+  const keywords = block.keywords
+    .slice(0, 8)
+    .map(
+      (keyword, index) => `<span${style({
+        'font-family': index % 2 === 0 ? `'${ds.fonts.display}', ${DISPLAY_FALLBACK}` : `'${ds.fonts.body}', ${BODY_FALLBACK}`,
+        'font-size': `${ds.typeScale[steps[index % steps.length]]}px`,
+        'font-weight': index % 2 === 0 ? 600 : 400,
+        'line-height': 1.1,
+        color: inks[index % inks.length],
+      })}>${esc(keyword)}</span>`
+    )
+    .join('');
+
+  return `<div${style({
+    display: 'grid',
+    'grid-template-columns': ctx.landscape ? '7fr 5fr' : '1fr',
+    gap: `${snap(ds.spacing * 2.5)}px`,
+    'align-items': 'center',
+  })}${atomic}>
+  <div>
+    <div${style({ 'font-family': `'${ds.fonts.display}', ${DISPLAY_FALLBACK}`, 'font-size': `${nameSize}px`, 'font-weight': 700, 'line-height': 1, 'letter-spacing': '-0.02em', color: strongInk, ...TITLE_WRAP })}>${esc(block.styleName)}</div>
+    <p${style({ margin: `${snap(ds.spacing * 1.2)}px 0 0`, 'font-size': `${ds.typeScale.base}px`, 'line-height': 1.55, color: ds.colors.ink, 'max-width': MEASURE.lede, ...clampLines(5) })}>${esc(block.rationale)}</p>
+  </div>
+  <div${style({ display: 'flex', 'flex-wrap': 'wrap', 'column-gap': `${snap(ds.spacing * 1.2)}px`, 'row-gap': `${snap(ds.spacing * 0.7)}px`, 'align-items': 'baseline' })}>${keywords}</div>
+</div>`;
+}
+
+/** La démonstration d'UN principe de composition, construite avec les couleurs de la charte. */
+function compositionDemo(
+  demo: 'grid' | 'density' | 'whitespace' | 'signature',
+  density: 'airy' | 'balanced' | 'dense',
+  ctx: Ctx,
+  height: number
+): string {
+  const { ds } = ctx;
+  const ink = ds.colors.primary;
+  const soft = ds.colors.neutral['100'] ?? ds.colors.surfaceRaised;
+  const radius = `${ds.radius}px`;
+  const frame = (inner: string) =>
+    `<div${style({ position: 'relative', height: `${height}px`, 'border-radius': radius, border: `1px solid ${ds.colors.rule}`, 'background-color': ds.colors.surface, overflow: 'hidden' })}>${inner}</div>`;
+  const block = (css: Record<string, string>) => `<div${style({ position: 'absolute', 'border-radius': radius, ...css })}></div>`;
+
+  switch (demo) {
+    case 'grid':
+      return frame(
+        `<div${style({ position: 'absolute', inset: '10%', display: 'grid', 'grid-template-columns': 'repeat(12, 1fr)', gap: '3px' })}>${Array.from({ length: 12 }, () => `<div${style({ 'background-color': soft })}></div>`).join('')}</div>` +
+          block({ left: '10%', top: '20%', width: '53%', height: '32%', 'background-color': ink }) +
+          block({ right: '10%', top: '58%', width: '28%', height: '22%', 'background-color': ds.colors.accent })
+      );
+    case 'density': {
+      const bars = density === 'airy' ? 3 : density === 'dense' ? 7 : 5;
+      const gapPct = density === 'airy' ? 12 : density === 'dense' ? 3 : 6;
+      return frame(
+        `<div${style({ position: 'absolute', inset: '12%', display: 'flex', 'flex-direction': 'column', gap: `${gapPct}%` })}>${Array.from(
+          { length: bars },
+          (_, index) => `<div${style({ flex: '1', 'background-color': index === 0 ? ink : soft, 'border-radius': radius, width: `${100 - (index % 3) * 16}%` })}></div>`
+        ).join('')}</div>`
+      );
+    }
+    case 'whitespace': {
+      const share = density === 'airy' ? 0.36 : density === 'dense' ? 0.72 : 0.54;
+      return frame(
+        block({ left: '12%', top: '14%', width: `${Math.round(share * 76)}%`, height: `${Math.round(share * 64)}%`, 'background-color': ink }) +
+          block({ left: '12%', top: `${Math.round(14 + share * 64 + 7)}%`, width: `${Math.round(share * 48)}%`, height: '5%', 'background-color': ds.colors.inkMuted })
+      );
+    }
+    case 'signature':
+    default:
+      return frame(
+        block({ left: '14%', top: '18%', right: '14%', bottom: '18%', border: `2px solid ${ink}` }) +
+          block({ left: '44%', top: '40%', right: '-6%', height: '28%', 'background-color': ds.colors.accent, 'border-radius': '0' })
+      );
+  }
+}
+
+/**
+ * LA GRAMMAIRE DE COMPOSITION : chaque principe DÉMONTRÉ, puis nommé.
+ *
+ * Un principe écrit (« grille modulaire, densité aérée ») ne se voit pas ; un
+ * principe dessiné avec les couleurs de la charte se voit avant d'être lu, et
+ * le texte qui l'accompagne n'a plus qu'à le préciser.
+ */
+function renderCompositionPrinciples(block: Extract<Block, { kind: 'compositionPrinciples' }>, ctx: Ctx): string {
+  const { ds } = ctx;
+  const gap = snap(ds.spacing * 1.2);
+  const columns = ctx.landscape ? block.items.length : 2;
+  const grid = subgridRows(3, columns, gap);
+  const demoHeight = Math.round(usableHeightPx(ctx) * (ctx.landscape ? 0.28 : 0.16));
+
+  const cells = block.items
+    .map(
+      (item) => `<div${style(grid.cell)}>
+  ${compositionDemo(item.demo, block.density, ctx, demoHeight)}
+  <div${style({ 'font-family': `'${ds.fonts.display}', ${DISPLAY_FALLBACK}`, 'font-size': `${ds.typeScale.base}px`, 'font-weight': 600, color: ctx.roles.heading })}>${esc(item.label)}</div>
+  <div${style({ 'font-size': `${ds.typeScale.xs}px`, 'line-height': 1.45, color: ds.colors.inkMuted, ...clampLines(5) })}>${esc(item.text)}</div>
+</div>`
+    )
+    .join('');
+  return `<div${style(grid.container)}${atomic}>${cells}</div>`;
+}
+
+/** Les réglages d'un traitement, ligne par ligne : libellé à gauche, règle à droite. */
+function settingRows(rows: { label: string; value: string }[], ctx: Ctx, lines: number): string {
+  const { ds } = ctx;
+  return rows
+    .map(
+      (row, index) => `<div${style({
+        display: 'grid',
+        'grid-template-columns': '30% minmax(0, 1fr)',
+        gap: `${snap(ds.spacing)}px`,
+        padding: `${snap(ds.spacing * 0.55)}px 0`,
+        'border-top': index === 0 ? undefined : `1px solid ${ds.colors.rule}`,
+      })}>
+  <div${style({ 'font-size': `${ds.typeScale.sm}px`, 'font-weight': 600, color: ds.colors.ink })}>${esc(row.label)}</div>
+  <div${style({ 'font-size': `${ds.typeScale.sm}px`, 'line-height': 1.45, color: ds.colors.inkMuted, ...clampLines(lines) })}>${esc(row.value)}</div>
+</div>`
+    )
+    .join('');
+}
+
+/**
+ * LE TRAITEMENT DE L'IMAGE : la photographie d'univers de la marque, et les
+ * réglages qui la produisent. Sans photographie, les réglages occupent seuls
+ * la page — jamais un aplat à la place de l'image.
+ */
+function renderImageryShowcase(block: Extract<Block, { kind: 'imageryShowcase' }>, ctx: Ctx): string {
+  const { ds } = ctx;
+  const rows = settingRows(block.rows, ctx, 3);
+  if (!block.imageUrl) return `<div${atomic}>${rows}</div>`;
+  const height = Math.round(usableHeightPx(ctx) * (ctx.landscape ? 0.62 : 0.36));
+  return `<div${style({
+    display: 'grid',
+    'grid-template-columns': ctx.landscape ? '5fr 6fr' : '1fr',
+    gap: `${snap(ds.spacing * 2)}px`,
+    'align-items': 'center',
+  })}${atomic}>
+  <img src="${esc(block.imageUrl)}" alt="Photographie d'univers de la marque"${style({ width: '100%', height: `${height}px`, 'object-fit': 'cover', 'border-radius': `${ds.radius}px`, display: 'block' })}>
+  <div>${rows}</div>
+</div>`;
+}
+
+/** LES RÈGLES DE LA DIRECTION : les leviers à gauche, ce qu'on fait et ce qu'on évite à droite. */
+function renderArtDirectionRules(block: Extract<Block, { kind: 'artDirectionRules' }>, ctx: Ctx): string {
+  const { ds } = ctx;
+  const list = (title: string, items: string[], mark: string, markColor: string) =>
+    items.length === 0
+      ? ''
+      : `<div${style({ 'margin-bottom': `${snap(ds.spacing)}px` })}>
+  <div${style({ 'font-family': `'${ds.fonts.display}', ${DISPLAY_FALLBACK}`, 'font-size': `${ds.typeScale.base}px`, 'font-weight': 600, color: ctx.roles.heading, 'margin-bottom': `${snap(ds.spacing * 0.4)}px` })}>${esc(title)}</div>
+  ${items
+    .map(
+      (item) => `<div${style({ display: 'grid', 'grid-template-columns': '16px minmax(0, 1fr)', gap: '6px', 'font-size': `${ds.typeScale.sm}px`, 'line-height': 1.45, color: ds.colors.ink, 'margin-bottom': '4px' })}><span${style({ color: markColor, 'font-weight': 700 })}>${mark}</span><span${style(clampLines(2))}>${esc(item)}</span></div>`
+    )
+    .join('')}
+</div>`;
+
+  return `<div${style({
+    display: 'grid',
+    'grid-template-columns': ctx.landscape ? 'minmax(0, 1fr) minmax(0, 1fr)' : 'minmax(0, 1fr)',
+    gap: `${snap(ds.spacing * 2)}px`,
+    'align-items': 'start',
+  })}${atomic}>
+  <div>${settingRows(block.rows, ctx, 2)}</div>
+  <div>${list('À faire', block.dos.slice(0, 4), '✓', ctx.roles.heading)}${list('À éviter', block.donts.slice(0, 4), '✕', ds.colors.inkMuted)}</div>
+</div>`;
+}
+
+/**
  * Références numérotées, en pied de section.
  *
  * Compactes et discrètes : ce sont des preuves, pas du contenu. Le domaine est
@@ -1631,6 +1893,18 @@ function renderBlock(block: Block, ctx: Ctx): string {
       return renderSocialPosts(block, ctx);
     case 'socialBanners':
       return renderSocialBanners(block, ctx);
+    case 'mockupShowcase':
+      return renderMockupShowcase(block, ctx);
+    case 'logoStory':
+      return renderLogoStory(block, ctx);
+    case 'artDirectionStance':
+      return renderArtDirectionStance(block, ctx);
+    case 'compositionPrinciples':
+      return renderCompositionPrinciples(block, ctx);
+    case 'imageryShowcase':
+      return renderImageryShowcase(block, ctx);
+    case 'artDirectionRules':
+      return renderArtDirectionRules(block, ctx);
     case 'sources':
       return renderSources(block, ctx);
     default:
@@ -2025,7 +2299,12 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   // H — MOSAÏQUE : en-tête décalé, blocs légèrement désalignés.
   H: (content, ctx) => ({
     header: `<div${style({ 'margin-bottom': `${ctx.ds.spacing * 2}px`, transform: 'translateX(-3mm)' })}>
-  <div${style({ display: 'inline-block', 'background-color': ctx.roles.highlight, color: ctx.roles.onHighlight, padding: `4px ${ctx.ds.spacing}px`, 'border-radius': `${ctx.ds.radius}px`, 'font-size': `${ctx.ds.typeScale.xs}px`, 'font-weight': 700, 'text-transform': 'uppercase', 'letter-spacing': '0.12em', 'margin-bottom': `${ctx.ds.spacing * 0.75}px` })}>${esc(content.kicker || 'Section')}</div>
+  ${
+    // Pas de sur-titre, pas de pastille : « Section » n'annonçait rien.
+    content.kicker
+      ? `<div${style({ display: 'inline-block', 'background-color': ctx.roles.highlight, color: ctx.roles.onHighlight, padding: `4px ${ctx.ds.spacing}px`, 'border-radius': `${ctx.ds.radius}px`, 'font-size': `${ctx.ds.typeScale.xs}px`, 'font-weight': 700, 'text-transform': 'uppercase', 'letter-spacing': '0.12em', 'margin-bottom': `${ctx.ds.spacing * 0.75}px` })}>${esc(content.kicker)}</div>`
+      : ''
+  }
   ${renderTitle(content, ctx, ctx.roles.heading)}
   ${renderLede(content, ctx, ctx.ds.colors.inkMuted)}
 </div>`,

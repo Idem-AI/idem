@@ -237,6 +237,51 @@ export class FlyerRenderService {
   }
 
   /**
+   * Capture un document HTML COMPLET à la taille donnée.
+   *
+   * Sert aux mockups de réseaux sociaux de la charte : leurs gabarits sont des
+   * documents autonomes (polices, styles, images en ligne), il n'y a donc rien
+   * à envelopper — seulement à attendre les polices et les images, puis à
+   * photographier. Partage le navigateur des visuels.
+   */
+  async renderDocumentToPng(
+    html: string,
+    width: number,
+    height: number,
+    deviceScaleFactor = 2
+  ): Promise<Buffer> {
+    const browser = await this.getBrowser();
+    const page = await browser.newPage();
+    try {
+      await page.setViewport({ width, height, deviceScaleFactor });
+      await page.setContent(html, { waitUntil: 'load', timeout: 30000 });
+      // Fonction NON async (cf. `swapLogoSrc`) : les helpers de compilation
+      // n'existent pas dans le contexte du navigateur.
+      await page.evaluate(() => {
+        const images = Array.from(document.images).map((img) =>
+          img.complete
+            ? Promise.resolve()
+            : new Promise<void>((resolve) => {
+                img.addEventListener('load', () => resolve(), { once: true });
+                img.addEventListener('error', () => resolve(), { once: true });
+              })
+        );
+        const fonts = (document as any).fonts?.ready ?? Promise.resolve();
+        return Promise.race([
+          Promise.all([...images, fonts]),
+          new Promise<void>((resolve) => setTimeout(resolve, 8000)),
+        ]);
+      });
+      return (await page.screenshot({
+        type: 'png',
+        clip: { x: 0, y: 0, width, height },
+      })) as Buffer;
+    } finally {
+      await page.close().catch(() => undefined);
+    }
+  }
+
+  /**
    * Remonte le logo au seuil de lisibilité, APRÈS rendu.
    *
    * Le prompt donne déjà une taille minimale, mais le modèle y déroge presque

@@ -54,8 +54,13 @@ export const BRANDING_SECTION_NAMES = [
   // le logo, la palette et les polices, et que tous les autres livrables
   // (visuels, business plan, deck, site) doivent respecter.
   'Direction Artistique',
+  // La direction artistique tient désormais sur quatre pages : le parti pris,
+  // la grammaire de composition, le traitement de l'image (qui reprend la
+  // photographie d'univers, autrefois page à part) et les règles.
+  'Art Direction Grammar',
+  'Art Direction Imagery',
+  'Art Direction Principles',
   'Graphic Patterns',
-  'Brand Imagery',
   'Brand Mockup 1',
   'Brand Mockup 2',
   'Brand Mockup 3',
