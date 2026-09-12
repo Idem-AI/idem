@@ -37,8 +37,10 @@ import {
 } from '../services/BandIdentity/prompts/page-briefs.prompt';
 import {
   MOCKUP_GENERATION_PROMPT,
-  withoutBrandName,
+  TEXT_INVITING_WORDS,
 } from '../services/BandIdentity/prompts/mockup-generation.prompt';
+import { INDUSTRY_MOCKUP_CATEGORIES, MOCKUP_CONFIG, supportScene } from '../config/mockup.config';
+import { mockupAnalyzerService } from '../services/BandIdentity/mockupAnalyzer.service';
 import { SECTION_CONTENT_CONTRACT } from '../services/design/sectionContent.prompt';
 import { ANTI_SLOP_BLOCK, CONTENT_RULES_BLOCK } from '../services/design/antiSlop.prompt';
 import {
@@ -291,32 +293,64 @@ console.log('\n  Consignes contradictoires');
     mockupIndex: 1, priority: 1, examples: ['a'],
   };
   // Le chemin « logo joint » a été retiré : le modèle d'image redessinait le
-  // logo au lieu de le poser. Il ne reste qu'une consigne — support VIERGE, logo
-  // incrusté après — et elle ne doit plus jamais contenir le nom de la marque,
-  // que le modèle écrivait sur le support.
+  // logo au lieu de le poser. Il ne reste qu'une consigne — support NU, logo
+  // incrusté après — et aucun mot qui invite à écrire ne doit l'atteindre, pas
+  // même nié : le modèle écrivait un nom sur le support (« LIGGTH » pour la
+  // marque Light, tiré de « side light »), et le vrai logo se posait dessus.
   const base: any = {
     brandColors: { primary: '#111111', secondary: '#222222', accent: '#333333' },
-    projectDescription: withoutBrandName(
-      'Project Name: Kora\nProject Description: Kora torréfie son café à Douala. Chez Kora, chaque lot est suivi.',
-      'Kora'
-    ),
-    selectedSupport: support,
+    selectedSupport: { ...support, supportType: 'shopping_bags' },
+    brandName: 'Kora',
+    artDirectionModifier: 'Kora signature warmth, soft side light, bold typography accents, matte grain',
+    artDirectionNegative: 'distorted text, neon glow',
+    imagerySubjects: 'Les torréfacteurs de Kora au travail, mains et grains de café',
   };
 
   const blank = MOCKUP_GENERATION_PROMPT.buildDynamicPrompt(base);
   const imagery = MOCKUP_GENERATION_PROMPT.buildDynamicPrompt({
     ...base,
-    selectedSupport: { ...support, skipLogo: true },
+    selectedSupport: { ...support, supportType: 'brand_imagery', skipLogo: true },
   });
 
   check(
-    'mockup : exige un support vierge',
-    /Nothing in the frame carries branding/.test(blank) && /ANY logo, wordmark/.test(blank)
+    "mockup : aucun mot qui invite à écrire n'atteint le modèle d'image",
+    !TEXT_INVITING_WORDS.test(blank) && !TEXT_INVITING_WORDS.test(imagery),
+    [blank.match(TEXT_INVITING_WORDS)?.[0], imagery.match(TEXT_INVITING_WORDS)?.[0]].filter(Boolean).join(', ')
   );
-  check('mockup : ne demande jamais de poser un logo', !/ATTACHED IMAGE IS THE BRAND LOGO/.test(blank));
-  check("mockup : le nom de la marque n'atteint pas le modèle d'image", !/Kora/.test(blank) && !/Kora/.test(imagery));
-  check('mockup : réserve une zone de marquage', /RESERVE one printing area/.test(blank));
-  check("univers visuel : aucune zone de marquage réservée", !/RESERVE one printing area/.test(imagery));
+  check("mockup : le nom de la marque n'atteint pas le modèle d'image", !/Kora/i.test(blank) && !/Kora/i.test(imagery));
+  check(
+    "mockup : la direction artistique garde ce qui décrit l'image",
+    /soft side light/.test(blank) && /matte grain/.test(blank) && /neon glow/.test(blank)
+  );
+  check('mockup : la scène vient du support', /paper shopping bag/.test(blank));
+  check(
+    'univers visuel : aucune face réservée au logo',
+    /hero object faces the camera/.test(blank) && !/hero object faces the camera/.test(imagery)
+  );
+  check('mockup : un prompt court', blank.length < 1500, `${blank.length} caractères`);
+  check('vision : relève les lettres et les marques', /"markings"/.test(MOCKUP_GENERATION_PROMPT.sceneReadingVision));
+  // L'exemple chiffré de l'ancienne consigne était recopié tel quel : le logo
+  // tombait au même endroit sur chaque photo.
+  check('vision : aucun exemple chiffré à recopier', !/\d\.\d/.test(MOCKUP_GENERATION_PROMPT.sceneReadingVision));
+  // En fractions sans exemple, la vision rendait des zéros : la zone est une
+  // boîte en coordonnées 0–1000, que \`parseBrandingZone\` lit.
+  check('vision : zone rendue en boîte 0–1000', /"box": \[x1, y1, x2, y2\]/.test(MOCKUP_GENERATION_PROMPT.sceneReadingVision) && /from 0 to 1000/.test(MOCKUP_GENERATION_PROMPT.sceneReadingVision));
+
+  // Aucun secteur ne met en scène un support qui porte des mots, et chacun en
+  // trouve assez pour la charte.
+  for (const [industry, categories] of Object.entries(INDUSTRY_MOCKUP_CATEGORIES)) {
+    const selected: { supportType: any }[] = (mockupAnalyzerService as any).selectSupports(
+      categories,
+      industry,
+      { keywords: [], emphasis: [], scale: 'small' },
+      MOCKUP_CONFIG.MOCKUP_COUNT
+    );
+    check(
+      `mockup : ${industry} met en scène ${MOCKUP_CONFIG.MOCKUP_COUNT} supports nus`,
+      selected.length === MOCKUP_CONFIG.MOCKUP_COUNT && selected.every((entry) => Boolean(supportScene(entry.supportType))),
+      selected.map((entry) => entry.supportType).join(', ')
+    );
+  }
 }
 
 // ── L'ÉQUIPE DE RECHERCHE REÇOIT LE MÊME BRIEF QUE LE GABARIT ───────────────

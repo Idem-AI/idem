@@ -63,9 +63,6 @@ export const BRANDING_SECTION_NAMES = [
   'Graphic Patterns',
   'Brand Mockup 1',
   'Brand Mockup 2',
-  'Brand Mockup 3',
-  'Brand Billboard',
-  'Brand Stationery',
   'Social Media Creatives',
   'Social Media Page Banners',
   // Les deux pages d'usage, en fin de charte.

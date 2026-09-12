@@ -87,7 +87,11 @@ import {
 import { CommunicationService } from '../Communication/communication.service';
 import { ContentIdea } from '../../models/communication.model';
 import { BRAND_FOOTER_SECTION_PROMPT } from './prompts/07_brand-footer-section.prompt';
-import { CHARTER_NAMED_MOCKUPS, MOCKUP_CONFIG } from '../../config/mockup.config';
+import {
+  CHARTER_NAMED_MOCKUPS,
+  isRetiredCharterPage,
+  MOCKUP_CONFIG,
+} from '../../config/mockup.config';
 import { mockupAnalyzerService } from './mockupAnalyzer.service';
 import { SectionModel } from '../../models/section.model';
 import { BrandIdentityBuilder } from '../../models/builders/brandIdentity.builder';
@@ -1112,10 +1116,10 @@ export class BrandingService extends GenericService {
         });
       }
 
-      // Les trois supports IMPOSÉS : grand format, papeterie, univers visuel.
-      // Ils suivent les mises en situation choisies par l'analyseur, à des
-      // indices connus — c'est ce qui permet de nommer leur page sans avoir à
-      // reconnaître un support dans la liste rendue.
+      // Les supports IMPOSÉS (aujourd'hui, l'univers visuel seul). Ils suivent
+      // les mises en situation choisies par l'analyseur, à des indices connus —
+      // c'est ce qui permet de nommer leur page sans avoir à reconnaître un
+      // support dans la liste rendue.
       CHARTER_NAMED_MOCKUPS.forEach((named, offset) => {
         // L'univers visuel n'a plus de page à lui : sa photographie illustre la
         // page « Traitement de l'image » de la direction artistique. Il reste
@@ -1549,7 +1553,13 @@ export class BrandingService extends GenericService {
           : currentSections;
 
       // Initialize sections array to collect results
-      let sections: SectionModel[] = [...existingSections];
+      // Les pages retirées de la charte (grand format, papeterie, mises en
+      // situation au-delà de `MOCKUP_COUNT`) ne survivent pas à la
+      // régénération : les sections sont remplacées par leur nom, et ces
+      // noms-là ne reviennent plus.
+      let sections: SectionModel[] = existingSections.filter(
+        (section) => !isRetiredCharterPage(section.name)
+      );
 
       // Chaque section de la charte reçoit ses propres réglages
       // (voir AI_CONFIG.branding.brandIdentity.sections).
@@ -4139,7 +4149,8 @@ export class BrandingService extends GenericService {
         title: 'Branding',
         projectName: project.name || 'Projet Sans Nom',
         projectDescription: project.longDescription || project.description || '',
-        sections: branding.sections,
+        // Une charte stockée avant le retrait d'une page la porte encore.
+        sections: branding.sections.filter((section) => !isRetiredCharterPage(section.name)),
         sectionDisplayOrder: [
           // L'ordre du PDF est celui de la génération : la charte MONTRE
           // d'abord (signe, déclinaisons, couleurs, polices, direction, puis
@@ -4177,8 +4188,6 @@ export class BrandingService extends GenericService {
             { length: MOCKUP_CONFIG.MOCKUP_COUNT },
             (_, index) => `Brand Mockup ${index + 1}`
           ),
-          'Brand Billboard',
-          'Brand Stationery',
           'Social Media Creatives',
           'Social Media Page Banners',
           'Logo Bonnes Pratiques',
@@ -4825,7 +4834,7 @@ ${LOGO_EDIT_PROMPT}`;
         // la charte.
         artDirection,
         logoVariants,
-        // Les trois supports NOMMÉS de la charte, dans l'ordre où ses pages les
+        // Les supports NOMMÉS de la charte, dans l'ordre où ses pages les
         // attendent. Ils sont ajoutés après ceux de l'analyseur, donc leurs
         // indices suivent `MOCKUP_COUNT`.
         CHARTER_NAMED_MOCKUPS.map((named, offset) =>
@@ -4847,7 +4856,9 @@ ${LOGO_EDIT_PROMPT}`;
         }
 
         const mockups = await pending;
-        const mockup = mockups[mockupNumber - 1];
+        // Par indice, pas par position : une scène omise (des lettres relevées
+        // à chaque tentative) ne décale pas les pages suivantes.
+        const mockup = mockups.find((candidate) => candidate.mockupIndex === mockupNumber);
 
         if (!mockup?.mockupUrl) {
           logger.warn(`[MOCKUP] No image for mockup ${mockupNumber} — page skipped`, {
@@ -5043,7 +5054,15 @@ ${description.slice(0, 3000)}`,
         intent: 'announcement',
         status: 'idea',
       };
-      const { png } = await communication.renderStandaloneVisual(userId, projectId, content, format);
+      // Photo de banque d'abord, modèle d'image rapide sinon : chaque visuel
+      // généré par `glm-image` coûtait de 42 à 57 s à la charte.
+      const { png } = await communication.renderStandaloneVisual(
+        userId,
+        projectId,
+        content,
+        format,
+        AI_CONFIG.branding.socialPostVisual
+      );
       return png;
     };
   }

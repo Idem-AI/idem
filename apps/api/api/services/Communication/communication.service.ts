@@ -34,7 +34,12 @@ import { AGENT_TRENDS_SUMMARY_PROMPT } from './prompts/agent-trends-summary.prom
 import { AGENT_MOMENT_SUGGESTIONS_PROMPT } from './prompts/agent-moment-suggestions.prompt';
 import { AGENT_MOMENT_CONTENT_PROMPT } from './prompts/agent-moment-content.prompt';
 import { buildFlyerEditPrompt } from './prompts/agent-flyer-edit.prompt';
-import { imageSourcingService, ImageBrief, SourcedImage } from './imageSourcing.service';
+import {
+  imageSourcingService,
+  ImageBrief,
+  ImageSourcingPreferences,
+  SourcedImage,
+} from './imageSourcing.service';
 import {
   flyerRenderService,
   minLogoWidthFor,
@@ -681,7 +686,9 @@ export class CommunicationService extends GenericService {
     context: CommunicationContext,
     format: FlyerFormat,
     tag: string,
-    seedKey: string
+    seedKey: string,
+    /** Réglages de sourcing d'un appelant hors module (la charte graphique). */
+    sourcing?: ImageSourcingPreferences
   ): Promise<{ html: string; parsed: Partial<Flyer>; sourced: SourcedImage | null; intent: VisualIntent }> {
     // ---- Step 5a: image brief (tiny LLM call) -------------------------------
     const brief = await this.buildImageBrief(userId, content, context, format);
@@ -693,6 +700,7 @@ export class CommunicationService extends GenericService {
         userId,
         projectId,
         tag,
+        ...sourcing,
       });
     } catch (err: any) {
       logger.warn('Flyer image sourcing failed, falling back to text-only flyer', {
@@ -794,7 +802,8 @@ export class CommunicationService extends GenericService {
     userId: string,
     projectId: string,
     content: ContentIdea,
-    format: FlyerFormat
+    format: FlyerFormat,
+    sourcing?: ImageSourcingPreferences
   ): Promise<{ png: Buffer; headline: string }> {
     const context = await this.extractContext(userId, projectId);
     const { html, parsed } = await this.composeFlyer(
@@ -804,7 +813,8 @@ export class CommunicationService extends GenericService {
       context,
       format,
       `brandbook-${content.id}-${format}`,
-      `brandbook:${projectId}:${content.id}:${format}`
+      `brandbook:${projectId}:${content.id}:${format}`,
+      sourcing
     );
     const logos = context.branding.logoUrls;
     const png = await flyerRenderService.renderFlyerToPng(

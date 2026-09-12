@@ -1507,12 +1507,25 @@ const clampLines = (lines: number): Record<string, string | number> => ({
 });
 
 /**
+ * Part de la hauteur utile d'une diapositive que prend une rangée de
+ * publications légendées sur le côté. Mesurée à l'aperçu sur les structures
+ * larges (bandeau, empilée, centrée, socle, encart) : au-delà, la rangée
+ * passe sous le pied de page de la structure la plus haute.
+ */
+const SIDE_CAPTION_SHOWCASE_SHARE = 0.66;
+
+/**
  * MOCKUPS DE RÉSEAUX SOCIAUX, en rangée à hauteur commune.
  *
  * Un profil en paysage et une publication en portrait n'ont pas le même
  * rapport : leur donner la même LARGEUR fait d'un mockup un timbre et de
  * l'autre une colonne. La largeur est donc répartie selon le rapport de
  * chacun, pour qu'ils partagent leur hauteur et se lisent côte à côte.
+ *
+ * Des publications en portrait sur une diapositive butent sur la HAUTEUR, pas
+ * sur la largeur : leur légende passe alors À CÔTÉ de chaque mockup, et la
+ * hauteur qu'elle rend va au mockup. Légendées dessous, deux publications
+ * tenaient en 7 cm de haut, et leur interface ne se lisait plus.
  */
 function renderMockupShowcase(block: Extract<Block, { kind: 'mockupShowcase' }>, ctx: Ctx): string {
   const { ds } = ctx;
@@ -1520,38 +1533,61 @@ function renderMockupShowcase(block: Extract<Block, { kind: 'mockupShowcase' }>,
   if (items.length === 0) return '';
 
   const gap = snap(ds.spacing * 1.5);
-  const available = ctx.contentWidthPx - gap * (items.length - 1);
+  const sideCaptions = ctx.landscape && items.every((item) => item.ratio <= 1);
+  const captionGap = snap(ds.spacing * 0.75);
+  // Assez large pour « Visuel 1080 × 1350 px » sur une ligne.
+  const captionWidth = sideCaptions ? Math.round(ctx.contentWidthPx * 0.18) : 0;
+  const available =
+    ctx.contentWidthPx -
+    gap * (items.length - 1) -
+    (sideCaptions ? (captionWidth + captionGap) * items.length : 0);
   const ratioSum = items.reduce((sum, item) => sum + item.ratio, 0);
-  // La moitié de la hauteur utile : l'en-tête, la légende et le pied de page
-  // prennent le reste, et une légende passée sous le pied de page se voit.
-  const maxHeight = usableHeightPx(ctx) * (ctx.landscape ? 0.5 : 0.46);
-  const height = Math.floor(Math.min(maxHeight, available / ratioSum));
+  // Légende dessous : la moitié de la hauteur utile — l'en-tête, la légende et
+  // le pied de page prennent le reste, et une légende passée sous le pied de
+  // page se voit. Légende à côté : sa part revient au mockup.
+  const share = sideCaptions ? SIDE_CAPTION_SHOWCASE_SHARE : ctx.landscape ? 0.5 : 0.46;
+  const height = Math.floor(Math.min(usableHeightPx(ctx) * share, available / ratioSum));
 
   const figures = items
     .map((item) => {
       const width = Math.floor(height * item.ratio);
-      return `<figure${style({ margin: 0, width: `${width}px`, flex: 'none' })}>
+      const caption = `<figcaption${style(
+        sideCaptions
+          ? { width: `${captionWidth}px`, flex: 'none' }
+          : { 'margin-top': `${snap(ds.spacing * 0.5)}px` }
+      )}>
+    <div${style({ 'font-size': `${sideCaptions ? ds.typeScale.base : ds.typeScale.sm}px`, 'font-weight': 600, color: ds.colors.ink, 'line-height': 1.3 })}>${esc(item.label)}</div>
+    ${
+      item.caption
+        ? `<div${style({ 'margin-top': '2px', 'font-size': `${sideCaptions ? ds.typeScale.sm : ds.typeScale.xs}px`, color: ds.colors.inkMuted, 'line-height': 1.35 })}>${esc(item.caption)}</div>`
+        : ''
+    }
+  </figcaption>`;
+      return `<figure${style(
+        sideCaptions
+          ? { margin: 0, display: 'flex', 'align-items': 'flex-end', gap: `${captionGap}px`, flex: 'none' }
+          : { margin: 0, width: `${width}px`, flex: 'none' }
+      )}>
   <img src="${esc(item.url)}" alt="${esc(item.label)}"${style({
         width: `${width}px`,
         height: `${height}px`,
         display: 'block',
+        flex: 'none',
         'object-fit': 'cover',
         'border-radius': `${ds.radius}px`,
         border: `1px solid ${ds.colors.rule}`,
       })}>
-  <figcaption${style({ 'margin-top': `${snap(ds.spacing * 0.5)}px` })}>
-    <div${style({ 'font-size': `${ds.typeScale.sm}px`, 'font-weight': 600, color: ds.colors.ink })}>${esc(item.label)}</div>
-    ${
-      item.caption
-        ? `<div${style({ 'font-size': `${ds.typeScale.xs}px`, color: ds.colors.inkMuted, 'line-height': 1.35 })}>${esc(item.caption)}</div>`
-        : ''
-    }
-  </figcaption>
+  ${caption}
 </figure>`;
     })
     .join('');
 
-  return `<div${style({ display: 'flex', gap: `${gap}px`, 'justify-content': 'center', 'align-items': 'flex-start' })}${atomic}>${figures}</div>`;
+  return `<div${style({
+    display: 'flex',
+    gap: `${gap}px`,
+    'justify-content': 'center',
+    'align-items': sideCaptions ? 'flex-end' : 'flex-start',
+  })}${atomic}>${figures}</div>`;
 }
 
 /**

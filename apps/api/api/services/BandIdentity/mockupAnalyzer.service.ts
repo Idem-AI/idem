@@ -1,10 +1,12 @@
 import logger from '../../config/logger';
 import {
+  FALLBACK_STAGED_SUPPORTS,
   INDUSTRY_MOCKUP_CATEGORIES,
   PHYSICAL_SUPPORT_TYPES,
   MOCKUP_CONFIG,
   IndustryKey,
   SupportTypeKey,
+  supportScene,
 } from '../../config/mockup.config';
 
 /**
@@ -397,6 +399,14 @@ export class MockupAnalyzerService {
       }
 
       const supportType = support.type as SupportTypeKey;
+
+      // Un support qui porte des mots par nature (papeterie, enseigne, écran,
+      // menu, carte de visite…) n'est jamais mis en scène : le modèle d'image
+      // y écrivait un nom, et le logo incrusté se posait dessus.
+      if (!supportScene(supportType)) {
+        continue;
+      }
+
       const supportDetails = PHYSICAL_SUPPORT_TYPES[supportType];
 
       selectedSupports.push({
@@ -410,6 +420,25 @@ export class MockupAnalyzerService {
       });
 
       usedSupports.add(support.type);
+    }
+
+    // Les secteurs dont les supports sont surtout de la papeterie et de la
+    // signalétique (finance, éducation…) n'en gardent pas assez : la sélection
+    // est complétée par des objets qui se photographient nus.
+    for (const supportType of FALLBACK_STAGED_SUPPORTS) {
+      if (selectedSupports.length >= mockupCount) break;
+      if (usedSupports.has(supportType)) continue;
+      const supportDetails = PHYSICAL_SUPPORT_TYPES[supportType];
+      selectedSupports.push({
+        supportType,
+        supportName: supportDetails.name,
+        examples: supportDetails.examples,
+        context: supportDetails.context,
+        priority: 'secondary',
+        mockupIndex: selectedSupports.length + 1,
+        industryContext: industryCategories.context,
+      });
+      usedSupports.add(supportType);
     }
 
     logger.info('Final mockup supports selected with diversity', {
@@ -457,13 +486,8 @@ export class MockupAnalyzerService {
    * Retourne des supports par défaut si l'industrie n'est pas reconnue
    */
   private getDefaultMockupSupports(mockupCount: number): SelectedMockupSupport[] {
-    const defaultSupports: SupportTypeKey[] = [
-      'business_cards',
-      'stationery',
-      'digital_interfaces',
-      'packaging',
-      'signage',
-    ];
+    // Des supports qui se photographient nus (cf. `supportScene`).
+    const defaultSupports: SupportTypeKey[] = [...FALLBACK_STAGED_SUPPORTS];
 
     return defaultSupports.slice(0, mockupCount).map((supportType, index) => {
       const supportDetails = PHYSICAL_SUPPORT_TYPES[supportType];

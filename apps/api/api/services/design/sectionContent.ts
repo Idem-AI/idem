@@ -539,7 +539,9 @@ export function estimateBlockWeight(block: Block): number {
     // utile de la page (cf. `usableHeightPx`) : leur poids est celui de la
     // fraction qu'ils en prennent, légendes comprises.
     case 'mockupShowcase':
-      return 0.34;
+      // Des publications en portrait prennent davantage de hauteur : leur
+      // légende passe à côté d'elles (cf. `renderMockupShowcase`).
+      return block.items.every((item) => item.ratio <= 1) ? 0.4 : 0.34;
 
     case 'logoStory':
       return 0.32;

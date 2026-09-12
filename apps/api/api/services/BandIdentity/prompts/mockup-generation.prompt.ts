@@ -1,216 +1,140 @@
-import { SelectedMockupSupport } from '../mockupAnalyzer.service';
+import { supportScene } from '../../../config/mockup.config';
+import type { SelectedMockupSupport } from '../mockupAnalyzer.service';
 
 /**
  * Les deux prompts de la mise en situation de marque, et une seule idée : le
- * modèle d'image ne dessine JAMAIS le logo, et ne connaît JAMAIS le nom de la
- * marque.
+ * modèle d'image ne lit JAMAIS un mot qui l'invite à écrire.
  *
- * Il photographie un support NU en réservant une zone de marquage ; le vrai
- * logo y est incrusté ensuite par composition (cf. `brandMockup.service.ts`).
- * Décrire le logo au modèle — ou seulement lui donner le nom de la marque — lui
- * faisait dessiner un logo approchant, qui se superposait au vrai une fois
- * celui-ci incrusté : deux marques sur le même support, dont une fausse.
+ * Il photographie un support NU ; le vrai logo y est incrusté ensuite par
+ * composition (cf. `brandMockup.service.ts`). L'ancienne consigne répétait une
+ * dizaine de fois « no logo, no wordmark, no brand name, no text » et parlait
+ * de « mockup » : un modèle d'image retient le mot, pas la négation. Il écrivait
+ * donc un nom sur le support — pour la marque Light, un « LIGGTH » tiré de
+ * « side light » — et le logo incrusté se posait dessus. Le prompt décrit
+ * désormais un objet LISSE, en termes positifs, sans la description du projet
+ * ni aucun mot du champ de l'écrit.
  *
- * Le second prompt est celui de la vision : il relit la scène produite pour
- * dire OÙ poser le logo. Sans lui, l'incrustation retombait au centre
- * géométrique de l'image, c'est-à-dire à côté du support une fois sur deux.
+ * Le second prompt est celui de la vision : il relit la scène produite, dit si
+ * elle porte malgré tout des lettres ou une marque — elle est alors régénérée —
+ * et où poser le logo.
  */
 
 /**
- * Retire le nom de la marque d'une description avant qu'elle ne parte au
- * modèle d'image.
- *
- * La description du projet commence par « Project Name: … » et répète le nom
- * dans le texte. Un nom lu par le modèle d'image est un nom écrit sur le
- * support. La ligne d'en-tête est supprimée ; chaque occurrence restante,
- * prise en mot entier, devient « the brand ».
+ * Les mots qui font écrire un modèle d'image. Aucun ne doit l'atteindre, pas
+ * même nié (vérifié par `checkPromptConformity`).
  */
-export function withoutBrandName(description: string, brandName?: string): string {
-  let text = (description || '').replace(/^\s*(project name|nom du projet)\s*:.*$/gim, '').trim();
-  const name = (brandName || '').trim();
-  if (name.length >= 2) {
-    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    text = text.replace(new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'giu'), 'the brand');
+export const TEXT_INVITING_WORDS =
+  /\b(logos?|logotypes?|brands?|branded|branding|wordmarks?|monograms?|emblems?|mock-?ups?|slogans?|texts?|typography|typographic|typefaces?|fonts?|letters?|lettering|labels?|stickers?|signage|captions?|headlines?|names?)\b/i;
+
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Garde d'un fragment ce qui décrit l'image, et rien de ce qui la ferait écrire.
+ *
+ * Les fragments de direction artistique sont écrits pour un designer : ils
+ * parlent volontiers de typographie ou de logo, et citent la marque. Chaque
+ * segment qui le fait est retiré ENTIER — le couper au mot laisserait une
+ * phrase boiteuse, que le modèle compléterait à sa façon.
+ *
+ * Le nom est cherché tel qu'écrit, capitalisé ou en capitales : « Light » est
+ * retiré, la « side light » d'un éclairage est gardée.
+ */
+function keepImageWords(fragment: string | undefined, brandName: string | undefined, max: number): string {
+  const name = (brandName ?? '').trim();
+  const spellings = [name, name.charAt(0).toUpperCase() + name.slice(1), name.toUpperCase()];
+  const namePattern =
+    name.length >= 2
+      ? new RegExp(`(?<![\\p{L}\\p{N}])(${[...new Set(spellings)].map(escapeRegExp).join('|')})(?![\\p{L}\\p{N}])`, 'u')
+      : null;
+
+  const kept: string[] = [];
+  let length = 0;
+  for (const segment of (fragment ?? '').split(/[,;.\n]+/)) {
+    const part = segment.trim();
+    if (!part || TEXT_INVITING_WORDS.test(part) || namePattern?.test(part)) continue;
+    if (length + part.length > max) break;
+    kept.push(part);
+    length += part.length + 2;
   }
-  return text;
+  return kept.join(', ');
 }
 
 export const MOCKUP_GENERATION_PROMPT = {
   /**
-   * Consigne de vision : localiser la zone de marquage sur la scène générée.
+   * Consigne de vision : la scène porte-t-elle des lettres ou une marque, et où
+   * imprimer le logo ?
    *
-   * La réponse attendue est un JSON minuscule (une zone normalisée + le ton de
-   * la surface + son inclinaison), parce que c'est exactement ce dont la
-   * composition a besoin : où, à quelle taille, quelle encre, quel angle.
+   * La zone est demandée en BOÎTE, en coordonnées entières de 0 à 1000. Les
+   * deux formes précédentes échouaient : en fractions avec un exemple chiffré,
+   * la vision recopiait l'exemple (le logo tombait au même endroit sur chaque
+   * photo, en travers d'une anse) ; en fractions sans exemple, elle rendait des
+   * zéros. En boîte 0–1000, mesuré sur quatre scènes : quatre boîtes posées sur
+   * le produit.
    */
-  brandingZoneVision: `You are given a photograph of an UNBRANDED product staged for a brand mockup.
-Locate the ONE area where the brand logo should be printed: the flat, evenly lit,
-unobstructed part of the product that faces the camera, and where a real logo
-would actually go on this kind of support.
+  sceneReadingVision: `You are given a product photograph.
+1. Is there ANY lettering, number, logo, monogram, emblem or brand mark visible anywhere in the photograph (on the product, on a prop, on a sign, a screen, a book or in the background), even small, blurred or misspelled? Stitching, seams, hardware and material texture do not count.
+2. Find the largest flat, evenly lit, unobstructed area on ONE face of the hero product: the place where a printed mark would go. It lies inside that single face, never across an edge or a corner between two faces, and clear of handles, ropes, straps, folds, tape, flaps and highlights.
 
-Answer with ONE JSON object and nothing else — no prose, no markdown fence:
-{"x":0.34,"y":0.28,"width":0.30,"height":0.18,"surface":"light","rotation":-3,"confidence":0.86}
-
-- x, y: top-left corner of that area, as fractions of image width and height (0-1).
-- width, height: its size, as fractions of image width and height (0-1).
-- surface: "light" if that area is bright, so dark ink reads on it; "dark" if that
-  area is dark, so light ink reads on it.
-- rotation: apparent tilt of that area in degrees, positive clockwise, between -45
-  and 45. Use 0 when it faces the camera squarely.
-- confidence: 0-1, how sure you are that this is the right place to print.
-
-Rules:
-- The area must be INSIDE the product. Never on the background, never on a prop.
-- Keep it to the part that is genuinely flat and unobstructed: exclude seams, folds,
-  buttons, handles, straps, curved edges and strong specular highlights.
-- If the product offers no usable printing area, answer exactly {"confidence":0}.`,
+Answer with ONE JSON object and nothing else, no prose, no markdown fence:
+{"markings": true or false, "box": [x1, y1, x2, y2], "surface": "light" or "dark", "rotation": degrees}
+- box: top-left and bottom-right corners of that area, as integers from 0 to 1000 relative to the photograph's width and height; null when the product offers no such area.
+- surface: "light" when the area is bright, so dark ink reads on it; "dark" when it is dark, so light ink reads on it.
+- rotation: apparent tilt of that area in degrees, positive clockwise, from -45 to 45; 0 when it faces the camera.`,
 
   buildDynamicPrompt: (params: {
     brandColors: { primary: string; secondary: string; accent: string };
-    /** Description du projet, DÉJÀ débarrassée du nom de marque (cf. `withoutBrandName`). */
-    projectDescription: string;
     selectedSupport: SelectedMockupSupport;
     pdfFormat?: string;
+    /** Sert à retirer les fragments qui citent la marque. Jamais écrit dans le prompt. */
+    brandName?: string;
     /** Fragment de rendu issu de la direction artistique (anglais, rendu uniquement). */
     artDirectionModifier?: string;
     /** Prompt négatif du style retenu. */
     artDirectionNegative?: string;
-    /** Nom lisible du style, pour situer la consigne. */
-    artDirectionName?: string;
-  }) => {
-    const {
-      brandColors,
-      projectDescription,
-      selectedSupport,
-      pdfFormat,
-      artDirectionModifier,
-      artDirectionNegative,
-      artDirectionName,
-    } = params;
+    /** Sujets de la direction artistique : photographie d'univers seulement. */
+    imagerySubjects?: string;
+  }): string => {
+    const { brandColors, selectedSupport, pdfFormat, brandName } = params;
 
-    // Une page d'univers visuel n'a pas de support à marquer : c'est une
-    // photographie de la marque, pas d'un objet qui la porte.
+    // La photographie d'univers n'a pas de support à marquer : elle montre le
+    // sujet, la matière et la lumière de la marque.
     const imagery = Boolean(selectedSupport.skipLogo);
+    const world = selectedSupport.industryContext;
+    const frame = pdfFormat === 'A4_PORTRAIT' ? 'vertical 3:4 frame' : 'wide horizontal 16:9 frame';
 
-    const formatSpecs =
-      pdfFormat === 'A4_PORTRAIT'
-        ? {
-            orientation: 'PORTRAIT (VERTICAL)',
-            dimensions: '210mm × 297mm',
-            aspectRatio: '1:1.414 (A4 portrait)',
-            imageSize: '2480px × 3508px',
-            description: 'Vertical format. The image MUST be vertical.',
-            criticalInstructions:
-              'CRITICAL: PORTRAIT orientation is mandatory. Ratio 1:1.414. Tight vertical framing so the subject fills the full height.',
-          }
-        : {
-            orientation: 'LANDSCAPE (HORIZONTAL)',
-            dimensions: '297mm × 167mm',
-            aspectRatio: '16:9 (landscape)',
-            imageSize: '2480px × 1395px',
-            description: 'Horizontal format. The image MUST be horizontal.',
-            criticalInstructions:
-              'CRITICAL: LANDSCAPE orientation is mandatory. Ratio 16:9. Wide horizontal framing so the subject fills the full width.',
-          };
+    const subjects = keepImageWords(params.imagerySubjects, brandName, 200);
+    const subject = imagery
+      ? `a candid lifestyle photograph from the world of ${world}${subjects ? `, showing ${subjects}` : ''}`
+      : (supportScene(selectedSupport.supportType) ?? 'a plain object with smooth, uniform surfaces');
+    const render = keepImageWords(params.artDirectionModifier, brandName, 320);
+    const avoid = [
+      keepImageWords(params.artDirectionNegative, brandName, 200),
+      'watermark, illustration, 3D render, plastic look, oversaturated HDR, extra fingers',
+    ]
+      .filter(Boolean)
+      .join(', ');
 
-    const supportExamples = selectedSupport.examples.map((ex) => `  - ${ex}`).join('\n');
-
-    const priorityText =
-      selectedSupport.priority === 'primary'
-        ? 'PRIMARY SUPPORT (the most iconic one for this brand)'
-        : 'SECONDARY SUPPORT (complementary but relevant)';
-
-    return `<role>Elite commercial photographer and art director specialised in staging brands.</role>
-<objective>Create one photorealistic, high-end professional ${
-      imagery
-        ? 'brand-world photograph: the subject, the material and the light of the brand, with no product carrying any mark'
-        : 'mockup photograph of a BLANK, UNBRANDED support, ready to receive a printed logo'
-    }.</objective>
-
-<brand_context>
-- Industry: ${selectedSupport.industryContext}
-- Colours: primary ${brandColors.primary}, secondary ${brandColors.secondary}, accent ${brandColors.accent}
-- Activity: ${projectDescription}
-</brand_context>
-
-<mockup_mission>
-Mockup index: #${selectedSupport.mockupIndex}
-Priority: ${priorityText}
-Support name: ${selectedSupport.supportName}
-
-Supports to create, as examples:
-${supportExamples}
-
-Staging:
-${selectedSupport.context}
-</mockup_mission>
-
-<blank_support_rule>
-Nothing in the frame carries branding: no logo, no monogram, no wordmark, no brand
-name, no initial, no slogan, no printed pattern, no label, no sticker, no legible
-text of any kind. ${
-      imagery
-        ? 'This photograph shows the brand world, not a branded object.'
-        : 'The real logo is composited onto this photograph afterwards at pixel accuracy — anything you draw in its place collides with it and ruins the image.'
+    const lines = [
+      `Photorealistic commercial photograph, ${frame}, full bleed.`,
+      '',
+      `Subject: ${subject}.`,
+      `Setting: a real place from the world of ${world}; one hero subject, shallow depth of field, soft natural shadows.`,
+    ];
+    if (!imagery) {
+      lines.push(
+        'The hero object faces the camera. Its main face is flat, evenly lit, a single uniform colour, large in the frame and near the centre.'
+      );
     }
-${
-  imagery
-    ? ''
-    : `
-Instead, RESERVE one printing area on the support, and stage the shot around it:
-- It sits where the brand mark genuinely goes on this kind of support (chest of a
-  garment, front face of a box, door panel of a vehicle, front of a card…).
-- It is flat and unbroken: no seam, fold, button, zip, strap, handle or curved edge
-  crossing it.
-- It faces the camera as squarely as the staging allows.
-- It is evenly lit: no hard specular highlight, no cast shadow, no reflection over it.
-- It is one plain uniform tone, chosen so a logo reads clearly on it.
-- It is large and unmistakable — roughly a third of the frame — and near the centre.
-`
-}
-Everything AROUND that area stays a full photograph: material, texture, wear,
-depth of field, real environment.
-</blank_support_rule>
+    lines.push(`Colours: ${brandColors.primary}, ${brandColors.secondary} and ${brandColors.accent}, carried by the materials and the set.`);
+    if (render) lines.push(`Render: ${render}.`);
+    lines.push(
+      '',
+      imagery
+        ? 'Clothes, walls and objects are plain and undecorated, with nothing written or drawn on them. Books, papers, screens and shopfronts stay out of the frame.'
+        : 'Every surface is plain and undecorated: bare material and uniform colour, with nothing written or drawn on it.',
+      `Avoid: ${avoid}.`
+    );
 
-${
-      artDirectionModifier
-        ? `<art_direction>
-This brand has a settled art direction${artDirectionName ? `: ${artDirectionName}` : ''}. It decides the RENDER of this photograph — light, material, grading, framing — and overrides the generic photographic settings below wherever they diverge. The subject, however, stays the support being shown.
-Expected render (apply literally): ${artDirectionModifier}
-${artDirectionNegative ? `Keep out of the image: ${artDirectionNegative}` : ''}
-This photograph will be seen next to the brand's other supports: it must carry the SAME light and the SAME grading as they do.
-</art_direction>
-
-`
-        : ''
-    }<photographic_rules>
-1. ABSOLUTE PHOTOGRAPHIC REALISM: a real commercial photograph (no digital illustration, no artificial 3D render). Subtle grain, natural imperfections.
-2. LIGHTING: realistic studio or natural light, soft shadows, reflections on glass, metal or plastic — but the printing area stays evenly lit.
-3. COMPOSITION: rule of thirds, cinematic depth of field (blurred background). The support is the hero, sharp, and clearly visible.
-4. TEXTURES: visible fabric fibres, paper grain, metallic sheen, slight natural wear.
-5. COLOUR: subtle, harmonious integration of the brand colours (${brandColors.primary}, ${brandColors.secondary}, ${brandColors.accent}) into the scene and the material of the support.
-6. CONTEXT: a coherent environment (${selectedSupport.industryContext}). No visual distraction.
-</photographic_rules>
-
-<format_rules>
-- Orientation: ${formatSpecs.orientation}
-- Dimensions: ${formatSpecs.dimensions}
-- Ratio: ${formatSpecs.aspectRatio}
-- Resolution: ${formatSpecs.imageSize}
-- Rule: ${formatSpecs.description}
-- ${formatSpecs.criticalInstructions}
-- The image must cover 100% of the height and width (FULL-PAGE, no white borders).
-</format_rules>
-
-<forbidden>
-- ANY logo, wordmark, brand name, monogram, initial or readable text anywhere in the frame — on the support, on a sign, on a screen, on packaging in the background.
-- The generic mockup cliché: "a business card lying at an angle on a white marble desk next to a green plant" is THE default render of every generator. Compose something else.
-- Artificial, plastic, over-lit 3D renders.
-- An overloaded scene: one hero support, one context, nothing else.
-- Watermarks, distorted text, generation artefacts, oversaturated HDR.
-${artDirectionNegative ? `- ${artDirectionNegative}` : ''}
-</forbidden>
-
-GENERATE THE PHOTOREALISTIC IMAGE ONLY. NO TEXT RESPONSE.`;
+    return lines.join('\n');
   },
 };
