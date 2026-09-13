@@ -191,6 +191,84 @@ l'inverse de ce qu'on cherche (elle impose SON look à toutes les marques) ; des
 recettes par style donnent le même bénéfice — assembler au lieu d'inventer — sans
 uniformiser.
 
+## Les familles de mise en page
+
+Constaté le 13 septembre 2026 : quel que soit le projet, charte et business plan
+sortaient « un seul et même style, avec exactement les mêmes dispositions ». La
+graine faisait varier des **réglages** — quelle couleur va où, l'humeur du titre,
+l'ornement de l'en-tête — posés sur **un seul dessin**. Les blocs (chiffres-clés,
+tableaux, cartes, frises, citations), le pied de page et la colonne de texte
+étaient identiques pour tous les projets ; en portrait, les dispositions
+latérales se ramenaient même toutes à « titre en haut ». Les contrôles passaient
+au vert parce qu'ils comptaient des tirages, pas des pages.
+
+`services/design/layoutFamilies.ts` porte désormais **36 familles nommées**
+(Revue, Rapport annuel, Affiche, Grille modulaire, Carnet de terrain, Atlas,
+Tableau de bord, Gazette, Manifeste, Monographie…). Chacune est une grammaire
+complète sur **18 dimensions visibles** :
+
+| Dimension | Dessins |
+|---|---|
+| Ouverture de section (portrait) | 10 — numéro en marge, aplat saignant, cadre, sur-titre tourné, ouverture de chapitre, titre et chapô en regard… |
+| Pied de page | 6 |
+| Colonne de texte (portrait paginé) | 5 — pleine, décalée, indexée, étroite, appariée |
+| Chiffres-clés | 8 — rangée sous filet, registre, chiffre héros, tuiles, colonnes filetées, bande, libellé d'abord, lignes |
+| Tableaux | 8 |
+| Cartes | 8 |
+| Frises | 6 |
+| Citations | 6 |
+| Hypothèses | 5 |
+| Prose | 6 — dont lettrine, attaque en gras, deux colonnes, alinéas, corps d'essai |
+| Graphiques (cadre et clé de lecture) | 4 |
+| Étiquettes · numérotation · filets · encre des chiffres · angles · échelle du titre · nuancier | 5 · 6 · 5 · 2 · 2 · 3 · 3 |
+
+Chaque valeur est une **fonction de rendu distincte**, jamais un curseur sur un
+dessin commun : `familyChrome.ts` pour l'enveloppe (ouverture, pied de page,
+colonne), `familyBlocks.ts` pour les blocs, les dessins historiques restant dans
+`sectionRenderer.ts` comme l'option d'une famille parmi d'autres. Les primitives
+qu'ils partagent — échappement, ajusteur de titre, contexte de page, ton de la
+famille — vivent dans `renderKit.ts`.
+
+La famille est un **invariant du document** : tirée par livrable
+(`buildDocumentSeed`), déterministe, dans les familles compatibles avec le style
+de la direction artistique (`fits`, neuf au moins par style ; tout le catalogue
+sans direction). L'archétype, la stratégie de couleur et l'humeur typographique
+continuent de varier par-dessus.
+
+En paysage (charte, deck), les **structures** d'archétype restent : elles sont
+calibrées au millimètre contre le débordement des pages rognées. La famille y
+pose son pied de page, ses étiquettes, ses angles, son nuancier et le dessin de
+chaque bloc.
+
+### Ce qui est vérifié
+
+- `check:uniqueness` — au moins 30 familles ; deux familles diffèrent toujours
+  sur au moins huit des dix-huit dimensions ; chaque style ouvre au moins neuf
+  familles ; chaque dessin est porté par au moins deux familles ; quarante
+  projets du même style se répartissent sur la plupart de ses familles.
+- `check:render` — 36 familles, 36 pages distinctes (portrait et paysage) ;
+  charte respectée, contenu échappé, blocs enfants directs de la racine,
+  colonnes portées par le padding de la racine.
+- `check:fit` — chaque famille mesurée dans Chrome (A4 paginé complet et deux
+  diapositives de charte) : ni débordement, ni chevauchement, remplissage. Puis
+  les **silhouettes** : la première page en noir et blanc, sur une grille d'un
+  centimètre ; deux familles doivent différer d'au moins 10 % des cellules
+  encrées. Mesuré à l'introduction : 12 % pour la paire la plus proche, 29 % en
+  médiane.
+
+### Ajouter une famille
+
+1. Ajouter l'entrée à `LAYOUT_FAMILIES`, avec ses styles (`fits`).
+2. `npm run check:uniqueness` dit si elle est trop proche d'une autre sur le
+   papier ; `npm run check:fit`, si elle l'est à l'écran.
+3. Ouvrir `logs/render-preview.html` (groupe « Familles de mise en page ») avant
+   de l'annoncer : un contrôle dit qu'elle diffère, pas qu'elle est belle.
+
+Un nouveau DESSIN (une onzième ouverture, un neuvième tableau) multiplie la
+variété de toutes les familles qui l'adoptent : l'ajouter au type dans
+`layoutFamilies.ts`, l'implémenter dans `familyChrome.ts` ou `familyBlocks.ts`,
+puis au vocabulaire de `checkUniqueness.ts`.
+
 ## Ce que touche la direction artistique
 
 | Module | Ce qu'il reçoit |

@@ -20,6 +20,7 @@
 
 import crypto from 'crypto';
 import { ArtDirectionStyle, resolveStyle } from './artDirection.catalog';
+import { describeFamily, pickFamily, resolveFamily } from './layoutFamilies';
 
 export interface DesignSeed {
   /** Archétype de mise en page (A–L, cf. ARCHETYPE_CATALOG). */
@@ -247,6 +248,12 @@ export interface DocumentSeed {
   typographyMood: string;
   spacingMultiplier: number;
   graphicAccent: string;
+  /**
+   * Famille de mise en page (cf. `layoutFamilies.ts`) : la grammaire de TOUT le
+   * document — ouverture, pied de page, dessin de chaque bloc. Tirée dans les
+   * familles compatibles avec le style, par livrable.
+   */
+  family: string;
 }
 
 /** Graine complète d'une page : les invariants du document + ses propres variantes. */
@@ -270,6 +277,7 @@ export function buildDocumentSeed(styleId: string | null | undefined, docKey: st
     typographyMood: seed.typographyMood,
     spacingMultiplier: seed.spacingMultiplier,
     graphicAccent: seed.graphicAccent,
+    family: pickFamily(styleId, docKey).id,
   };
 }
 
@@ -327,6 +335,7 @@ export function describeDocumentSeed(seed: DocumentSeed): string {
     line('Colour strategy', seed.colorStrategy, COLOR_STRATEGY_CATALOG),
     line('Typographic mood', seed.typographyMood, TYPOGRAPHY_MOOD_CATALOG),
     line('Graphic accent', seed.graphicAccent, GRAPHIC_ACCENT_CATALOG),
+    describeFamily(resolveFamily(seed.family)),
     `- Spatial rhythm: multiply the base spacing unit by ${seed.spacingMultiplier}.`,
   ].join('\n');
 }
