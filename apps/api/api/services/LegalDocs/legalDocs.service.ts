@@ -178,7 +178,12 @@ export class LegalDocsService extends GenericService {
         steps,
         project,
         async (result: ISectionResult) => {
-          if (result.data === 'steps_in_progress' || result.data === 'all_steps_completed') {
+          if (
+            result.data === 'steps_in_progress' ||
+            result.data === 'all_steps_completed' ||
+            // L'aperçu au fil de l'eau est relayé, jamais enregistré comme section.
+            result.name === 'section_delta'
+          ) {
             await streamCallback(result);
             return;
           }

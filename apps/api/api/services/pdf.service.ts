@@ -841,10 +841,16 @@ export class PdfService {
         )) as FixedPageFitReport;
 
         if (fit.fitted.length > 0) {
+          // Les pages qui DÉBORDENT, nommées : sans elles, « 21/21 réduites »
+          // ne disait pas laquelle corriger.
+          const overflowing = fit.fitted
+            .filter((f) => f.overflowMm > 0)
+            .map((f) => `« ${f.name || '?'} » +${f.overflowMm} mm → ${f.scale}×`);
           logger.info(
             `Fixed pages fitted for ${projectName}: ${fit.fitted.length}/${fit.pages} page(s) réduite(s) ` +
               `— échelle du document ${(fit.documentScale ?? 1).toFixed(2)}× ` +
-              `(la plus réduite ${Math.min(...fit.fitted.map((f) => f.scale)).toFixed(2)}×)`
+              `(la plus réduite ${Math.min(...fit.fitted.map((f) => f.scale)).toFixed(2)}×)` +
+              (overflowing.length > 0 ? ` — débordent : ${overflowing.join(' ; ')}` : '')
           );
           fit.fitted
             .filter((f) => f.floored)
@@ -1014,21 +1020,23 @@ export class PdfService {
             box-sizing: border-box;
           }
 
+          /* Polices posées par HÉRITAGE : le texte courant sur body, les titres
+             sur h1..h6, et rien élément par élément. Une règle sur
+             p, div, span, li, td, th l'emporte sur toute police héritée : elle
+             écrasait celle qu'une section pose sur son conteneur (racine des
+             pages rendues par gabarit, classes font-primary / font-secondary
+             des pages écrites par le modèle). Les titres composés en <div>
+             sortaient ainsi dans la police du texte courant, et tout le
+             document dans la police de repli dès que la typographie manquait. */
           body {
             font-family: ${
-              typography?.primaryFont ? `'${typography.primaryFont}'` : "'Archivo'"
+              typography?.secondaryFont ? `'${typography.secondaryFont}'` : "'IBM Plex Sans'"
             }, system-ui, sans-serif;
           }
 
           h1, h2, h3, h4, h5, h6 {
             font-family: ${
               typography?.primaryFont ? `'${typography.primaryFont}'` : "'Archivo'"
-            }, system-ui, sans-serif;
-          }
-
-          p, div, span, li, td, th {
-            font-family: ${
-              typography?.secondaryFont ? `'${typography.secondaryFont}'` : "'IBM Plex Sans'"
             }, system-ui, sans-serif;
           }
 
