@@ -201,6 +201,16 @@ export interface FeatureAIConfig {
    */
   pinModel?: boolean;
   /**
+   * `true` : le modèle a été choisi SUR LA SECTION (`modelName` de la section).
+   *
+   * Distinct de `pinModel`, que les documents composés posent sur TOUTES leurs
+   * sections (`COMPOSED_DOCUMENT`) et que le chemin par gabarit retire d'office
+   * (cf. `generic.service.ts`). Sans ce drapeau, un modèle déclaré sur une
+   * section templatée était ignoré en silence : la section repartait à l'étage
+   * de sa tâche. Posé par `resolveSectionConfig`, jamais à la main.
+   */
+  modelLocked?: boolean;
+  /**
    * Réglages par section, indexés par le `stepName` EXACT de la section.
    *
    * Un budget unique pour toute une feature est un compromis: il est soit trop
@@ -244,6 +254,8 @@ export function resolveSectionConfig(
     // Une section qui déclare son propre `modelName` l'a choisi explicitement :
     // elle est donc épinglée de fait, sinon le routeur écraserait sa décision.
     pinModel: section.pinModel ?? (section.modelName ? true : feature.pinModel),
+    // Le choix de modèle est celui de la SECTION : aucun chemin ne le retire.
+    ...(section.modelName ? { modelLocked: true } : {}),
     // L'étage n'est PAS résolu ici (ce fichier ne connaît pas le routeur) : il
     // est propagé tel quel, `applyTier` le traduit en modèle au moment de l'appel.
     // Un `modelName` déclaré sur la section est une décision explicite : elle
@@ -291,13 +303,18 @@ export const GLM_MODELS = {
   /**
    * Le haut de gamme : stratégie, plan financier, concept de logo, SVG.
    *
-   * ⚠️ NE PAS passer sur `glm-5.3` ni `glm-5.3-flash` : ces modèles raisonnent
-   * TOUJOURS et refusent `thinking: disabled` par un HTTP 400
+   * ⚠️ NE PAS passer CE RÔLE sur `glm-5.3` ni `glm-5.3-flash` : ces modèles
+   * raisonnent TOUJOURS et refusent `thinking: disabled` par un HTTP 400
    * (« This model always engages in thinking and cannot be disabled »). Laissés
    * à leur raisonnement, ils mettent une minute et rendent une sortie VIDE, le
    * budget de tokens étant intégralement consommé par la réflexion.
    * Mesuré sur une génération de SVG : 5.3 → 59 s et 0 caractère ;
    * 5.2 sans raisonnement → 2,5 s et un SVG complet.
+   *
+   * Ils restent employables SECTION PAR SECTION (`modelName` sur la section), là
+   * où le raisonnement est voulu et le budget large — la couverture de la charte,
+   * par exemple. Le point de passage ne leur envoie jamais la coupure du
+   * raisonnement (cf. `canSuppressThinking`).
    */
   reasoning: 'glm-5.2',
   /** Compréhension d'image. */
@@ -1073,9 +1090,28 @@ export const AI_CONFIG = {
       // Sections de la charte (clés = `stepName` de branding.service.ts). Celles
       // qui portent du SVG demandent bien plus de budget que celles qui ne
       // produisent que de la mise en page : un SVG tronqué est inutilisable.
+      //
+      // ── UN MODÈLE PROPRE À UNE SECTION ──────────────────────────────────
+      //
+      // Toute section peut déclarer son modèle, qui l'emporte sur celui de la
+      // feature, sur l'étage du routeur et sur le dépinglage des sections
+      // rendues par gabarit :
+      //
+      //   'Color Palette': { modelName: 'glm-4.7' },                  // un modèle précis
+      //   'Color Palette': { provider: LLMProvider.GEMINI,            // un autre fournisseur
+      //                      modelName: 'gemini-3.6-flash' },
+      //   'Color Palette': { role: 'mechanical' },                    // un rôle, traduit chez
+      //                                                               // le fournisseur en service
+      //
+      // Préférer `role` quand c'est possible : un nom de modèle ne survit pas à
+      // une bascule de fournisseur (`AI_DEFAULT_PROVIDER`), un rôle si. Sans
+      // redéploiement, `AI_OVERRIDES` fait la même chose par variable d'env
+      // (cf. ai-overrides.config.ts).
       sections: {
-        // Couverture de la charte : la page la plus libre du document.
-        'Brand Header': { sampling: 'divergent', tokens: 40000 },
+        // Couverture de la charte : la page la plus libre du document. Servie
+        // par `glm-5.3-flash`, choisi pour cette section : il raisonne toujours,
+        // d'où un budget large, que la réflexion ne vide pas.
+        'Brand Header': { modelName: 'glm-5.3-flash', sampling: 'divergent', tokens: 40000 },
         // Pages logo : elles PRÉSENTENT un logo déjà dessiné, elles ne le
         // redessinent pas. La composition peut donc diverger sans risque pour
         // la géométrie, qui est importée telle quelle.
@@ -1096,17 +1132,14 @@ export const AI_CONFIG = {
         'Color Palette': { tokens: 26000, temperature: 0.6 },
         Typography: { tokens: 26000, temperature: 0.62 },
         // Pages dont le SPÉCIMEN est entièrement fabriqué par le code :
-        // l'échelle typographique, les motifs, les créations et les bannières
-        // sociales. Le modèle n'y écrit qu'un titre et deux légendes — leur
-        // donner le budget d'une page libre reviendrait à payer pour du vide.
+        // l'échelle typographique et les motifs. Le modèle n'y écrit qu'une
+        // accroche et deux légendes — leur donner le budget d'une page libre
+        // reviendrait à payer pour du vide.
+        //
+        // Les quatre pages de direction artistique et les deux pages sociales
+        // n'ont plus d'entrée : elles sont composées par le code, sans modèle.
         'Typeface Hierarchy': { tokens: 20000, temperature: 0.55 },
         'Graphic Patterns': { tokens: 20000, temperature: 0.6 },
-        'Social Media Creatives': { tokens: 20000, temperature: 0.6 },
-        'Social Media Page Banners': { tokens: 20000, temperature: 0.55 },
-        // Page de direction artistique : elle doit DÉMONTRER le style en
-        // construisant ses propres blocs de démonstration en CSS. C'est la page
-        // la plus inventive de la charte après la couverture.
-        'Direction Artistique': { tokens: 36000, temperature: 0.62 },
       },
     }),
 
@@ -1240,13 +1273,30 @@ export const AI_CONFIG = {
      * centre géométrique de l'image, souvent à côté du support.
      */
     brandMockup: {
-      imageModel: GLM_MODELS.image,
+      // `cogview-4` d'abord : 12 s mesurés par scène, contre 42 à 57 s pour
+      // `glm-image` — qui refusait de surcroît le long prompt des mises en
+      // situation, trois secondes perdues avant chaque repli. Un support nu
+      // photographié n'en demande pas davantage ; `glm-image` reste le repli.
+      imageModel: GLM_MODELS.imageFallback,
+      imageFallbackModel: GLM_MODELS.image,
       visionModel: GLM_MODELS.vision,
       visionFallbackModel: GLM_MODELS.visionFallback,
       // Le JSON de zone tient en ~60 tokens, mais le modèle est « thinking » :
       // son raisonnement se décompte du même budget et une réponse vide ferait
       // retomber la composition sur son repli, donc sur un placement à l'aveugle.
       visionMaxOutputTokens: 1500,
+    },
+
+    /**
+     * Visuels des publications de la charte, produits par le pipeline des
+     * visuels du module communication. Photo de banque d'abord, même quand le
+     * brief préfère une image générée : chaque génération `glm-image` coûtait
+     * 42 à 57 s à la charte, pour deux visuels. Sans photo, le modèle rapide.
+     */
+    socialPostVisual: {
+      preferStock: true,
+      imageModel: GLM_MODELS.imageFallback,
+      imageFallbackModel: GLM_MODELS.image,
     },
   },
 };

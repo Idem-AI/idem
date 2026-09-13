@@ -25,16 +25,52 @@
  * Les deux familles sont désormais séparées :
  *
  *   · les pages SPÉCIMEN (logo, déclinaisons, palette, typographie) montrent,
- *     et se taisent : un titre, une accroche de huit mots, UN bloc de légendes
- *     de six mots. Cf. `SPECIMEN_FRAME`.
+ *     et se taisent : une accroche de huit mots, UN bloc de légendes de six
+ *     mots. Cf. `SPECIMEN_FRAME`.
  *   · les deux pages d'USAGE, placées APRÈS les mises en situation, portent
  *     toutes les règles — celles du logo, puis celles de la couleur et de la
  *     typographie. C'est là qu'un designer revient, et il les trouve groupées
  *     au lieu d'éparpillées. Cf. `RULES_FRAME`.
  *
+ * Une exception : la page du LOGO, qui l'explique. Un logo présenté sans sa
+ * raison d'être est un dessin ; la charte doit dire ce que la forme représente,
+ * comment elle est construite et comment le nom est composé. Cf.
+ * `LOGO_STORY_FRAME`.
+ *
  * Les prompts d'origine restent en place pour les pages laissées en génération
  * libre, et comme repli si le mode gabarit est coupé.
  */
+
+/**
+ * La NOMENCLATURE de la charte : le titre de chaque page, imposé par le code.
+ *
+ * Le titre était laissé au modèle, et il produisait deux textes : un sur-titre
+ * juste (« Déclinaisons », « Bannières réseau », « Publications sociales ») et
+ * un titre d'humeur (« Le logo sur ses fonds », « Profil et couverture »,
+ * « Gabarits éditoriaux »). Le lecteur cherchait la page par le premier et la
+ * lisait sous le second. La nomenclature est donc fixée ici, page par page, et
+ * le sur-titre disparaît avec elle : il ne répétait que ce que le titre dit
+ * désormais.
+ */
+export const CHARTER_PAGE_HEADINGS: Record<string, { title: string }> = {
+  'Logo Principal': { title: 'Le logo' },
+  Logomark: { title: 'Symbole seul' },
+  'Logo Variation Fond Clair': { title: 'Déclinaison sur fond clair' },
+  'Logo Variation Fond Sombre': { title: 'Déclinaison sur fond sombre' },
+  'Logo Variation Monochrome': { title: 'Déclinaison monochrome' },
+  'Color Palette': { title: 'Palette de couleurs' },
+  Typography: { title: 'Typographie' },
+  'Typeface Hierarchy': { title: 'Hiérarchie typographique' },
+  'Direction Artistique': { title: 'Direction artistique' },
+  'Art Direction Grammar': { title: 'Grammaire de composition' },
+  'Art Direction Imagery': { title: "Traitement de l'image" },
+  'Art Direction Principles': { title: 'Règles de la direction artistique' },
+  'Graphic Patterns': { title: 'Motifs graphiques' },
+  'Social Media Creatives': { title: 'Publications sociales' },
+  'Social Media Page Banners': { title: 'Bannières réseaux sociaux' },
+  'Logo Bonnes Pratiques': { title: "Règles d'usage du logo" },
+  'Usage Couleurs & Typographie': { title: 'Règles couleur et typographie' },
+};
 
 /**
  * Ce qu'aucune page de charte ne doit porter, spécimen ou usage.
@@ -64,6 +100,14 @@ Write the way a designer briefs another designer: plainly, and only about the
 mark.`;
 
 /**
+ * Le titre est posé par le code (cf. `CHARTER_PAGE_HEADINGS`) : le modèle doit
+ * le savoir, sinon son accroche répète le titre qu'il croit écrire.
+ */
+const IMPOSED_TITLE = `THE PAGE TITLE IS IMPOSED by the document's nomenclature and replaces yours.
+Still output a short "title" field (the contract requires it), but do not spend
+effort on it, and never write a "kicker". Your "lede" must NOT repeat the title.`;
+
+/**
  * Cadre des pages SPÉCIMEN — celles qui MONTRENT.
  *
  * Tout y pousse vers le silence : le spécimen occupe la page, le texte n'est
@@ -78,9 +122,10 @@ specimen, the logo declension — is ALREADY placed on the page, at full size,
 with the project's exact values. It occupies the page and it speaks for itself.
 What you write is a CAPTION, never an explanation.
 
+${IMPOSED_TITLE}
+
 You write exactly this, and nothing more:
 
-- "title": two or three words.
 - "lede": ONE clause, 8 WORDS MAXIMUM. It names; it does not explain.
 - ONE single block. Not two. Each of its entries carries SIX WORDS OR LESS.
 
@@ -101,6 +146,25 @@ takes space away from the only thing on the page anyone came to see.
 ${NEVER_ON_A_CHARTER_PAGE}`;
 
 /**
+ * Cadre de la page du LOGO — la seule page spécimen qui explique.
+ *
+ * L'explication est tirée des FAITS du logo (concept, type, composition du nom,
+ * couleurs), fournis dans `<logo_facts>` par le service. Le modèle ne décrit que
+ * ce qu'il a reçu : un symbole dont on n'a pas le sens n'en reçoit pas un.
+ */
+const LOGO_STORY_FRAME = `You are writing the page that PRESENTS AND EXPLAINS the logo in a brand
+guidelines document. The logo is already placed, large, on the left half of the
+page. Your text sits on the right half, beside it, and explains it.
+
+${IMPOSED_TITLE}
+
+The reader must leave the page knowing what the mark represents, how it is
+built, and how the name is set — explained plainly, from the facts you are
+given in <logo_facts> and nothing else.
+
+${NEVER_ON_A_CHARTER_PAGE}`;
+
+/**
  * Cadre des deux pages d'USAGE, en fin de document.
  *
  * C'est l'ancien `CHARTER_FRAME` : la seule famille de pages où le texte EST le
@@ -110,6 +174,8 @@ ${NEVER_ON_A_CHARTER_PAGE}`;
 const RULES_FRAME = `You are writing ONE of the two USAGE pages that close a brand guidelines
 document. The specimens have been shown earlier, page after page; this page is
 where a designer comes back to know WHAT TO DO with them.
+
+${IMPOSED_TITLE}
 
 You write RULES, and only rules.
 
@@ -140,17 +206,25 @@ const rules = (objective: string, mustCover: string): string =>
   brief(RULES_FRAME, objective, mustCover);
 
 export const CHARTER_PAGE_BRIEFS: Record<string, string> = {
-  // ── PAGES SPÉCIMEN : elles montrent ──────────────────────────────────────
+  // ── LA PAGE DU LOGO : elle montre ET explique ────────────────────────────
 
-  'Logo Principal': specimen(
-    'Name the mark. The logo is already placed, large, on the page.',
-    `- "lede": what the mark is, 8 words maximum, no metaphor about speed,
-  movement or horizon.
-- ONE "cards" block, 2 items MAXIMUM. Titles of one word ("Zone", "Format"),
-  bodies of 6 words maximum: the clear space as a proportion of the logo's own
-  height, and the reference file format.
-Nothing else. No paragraph, no rule, no explanation of the design.`
+  'Logo Principal': brief(
+    LOGO_STORY_FRAME,
+    'Explain the logo that is placed beside your text.',
+    `- "lede": what the logo is, ONE sentence of 14 words maximum.
+- ONE "cards" block of 3 or 4 items, in this order, each drawn from <logo_facts>:
+  1. "Le symbole" — what the icon depicts and what it says about the brand
+     (from the concept). Skip it if the logo has no icon.
+  2. "La construction" — the shapes and the geometry the mark is built from.
+  3. "Le nom" — how the name is set: family, weight, case, spacing.
+  4. "Les couleurs" — what each colour of the mark carries.
+- Each "title" is that label, exactly. Each "body" is ONE sentence of 25 words
+  maximum, plain French, no metaphor about speed, movement, horizon or future.
+- Never write a hex code, a percentage, a size or a font name that is not in
+  <logo_facts>. If a fact is missing, leave that item out rather than invent it.`
   ),
+
+  // ── PAGES SPÉCIMEN : elles montrent ──────────────────────────────────────
 
   'Logo Variation Fond Clair': specimen(
     'Label this declension. The logo is already placed on its ground.',
@@ -208,26 +282,6 @@ it.`
   supports that carry them (packaging, fonds de page, bannières), and the one
   place they are banned (behind running text).
 No verb, no paragraph, no CSS, no colour value.`
-  ),
-
-  'Social Media Creatives': specimen(
-    'Label the creatives. The three posts are already composed to the charter.',
-    `- "lede": what holds the series together, 8 words maximum.
-- ONE "cards" block, 2 items, bodies of 6 words maximum: the fixed element that
-  makes three posts a series (the logo's anchor), and the one thing that varies
-  between them (the ground).
-Never write a format, a hex code or a hashtag. No caption copy, no marketing
-sentence: these are gabarits, not a campaign.`
-  ),
-
-  'Social Media Page Banners': specimen(
-    'Label the banners. Each is already drawn at its real network ratio.',
-    `- "lede": the trap a profile banner sets, 8 words maximum ("Le centre seul
-  est visible sur mobile").
-- ONE "cards" block, 2 items, bodies of 6 words maximum: the zone that must stay
-  clear of any element (the avatar's corner), and what never goes on a banner
-  (a paragraph, a phone number).
-Never repeat a pixel dimension: the specimen carries them.`
   ),
 
   'Color Palette': specimen(
@@ -303,8 +357,6 @@ export const CHARTER_PAGE_VOLUMES: Record<string, string> = {
   Logomark: '1',
   'Typeface Hierarchy': '1',
   'Graphic Patterns': '1',
-  'Social Media Creatives': '1',
-  'Social Media Page Banners': '1',
   'Logo Variation Fond Clair': '1',
   'Logo Variation Fond Sombre': '1',
   'Logo Variation Monochrome': '1',

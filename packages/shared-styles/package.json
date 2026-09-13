@@ -7,13 +7,15 @@
   "exports": {
     "./styles.css": "./styles.css",
     "./tailwind.config": "./tailwind.config.js",
-    "./fonts/fonts.css": "./fonts/fonts.css"
+    "./fonts/fonts.css": "./fonts/fonts.css",
+    "./fonts/icons.css": "./fonts/icons.css"
   },
   "files": [
     "styles.css",
     "tailwind.config.js",
     "README.md",
     "fonts/fonts.css",
+    "fonts/icons.css",
     "fonts/*.woff2",
     "fonts/OFL.txt"
   ],

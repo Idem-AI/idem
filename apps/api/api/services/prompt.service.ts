@@ -662,6 +662,10 @@ export class PromptService {
           ...(def.extraBody ?? {}),
           ...(llmOptions.extraBody ?? {}),
           ...(forceNoThinking ? { thinking: { type: 'disabled' } } : {}),
+          // Un modèle qui raisonne TOUJOURS refuse la coupure par un HTTP 400.
+          // Quelle qu'en soit la source — défaut du fournisseur, chemin par
+          // gabarit, filet de budget — elle ne part donc jamais vers lui.
+          ...(canSuppressThinking(model) ? {} : { thinking: { type: 'enabled' } }),
         } as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming);
 
       /** Réponse vide alors que le budget a été épuisé — signature du raisonnement qui déborde. */
@@ -695,7 +699,9 @@ export class PromptService {
       // « thinking », une température haute rend la réflexion elle-même diffuse,
       // et elle consomme 24 000 tokens sans converger. Le budget minimal ne
       // suffit donc pas à s'en prémunir, il faut ce rattrapage.
-      if (thinkingRequested && starvedByThinking(response)) {
+      // Sans objet sur un modèle qui ne sait pas couper son raisonnement : la
+      // nouvelle tentative serait refusée, et le repli de `runPrompt` prend le relais.
+      if (thinkingRequested && starvedByThinking(response) && canSuppressThinking(usedModel)) {
         logger.warn(
           `${provider}/${usedModel} : raisonnement épuisé sans réponse (finish_reason=length). ` +
             `Nouvelle tentative sur le même modèle, raisonnement désactivé.`
@@ -780,6 +786,9 @@ export class PromptService {
         ...generationParams,
         ...(def.extraBody ?? {}),
         ...(llmOptions.extraBody ?? {}),
+        // Même garde qu'au chemin principal : pas de coupure vers un modèle qui
+        // raisonne toujours (HTTP 400).
+        ...(canSuppressThinking(modelName) ? {} : { thinking: { type: 'enabled' } }),
         tools: openaiTools,
         tool_choice: forceFinal ? 'none' : 'auto',
       } as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming);
@@ -873,6 +882,9 @@ export class PromptService {
       ...generationParams,
       ...(def.extraBody ?? {}),
       ...(llmOptions.extraBody ?? {}),
+      // Même garde qu'au chemin principal : pas de coupure vers un modèle qui
+      // raisonne toujours (HTTP 400).
+      ...(canSuppressThinking(modelName) ? {} : { thinking: { type: 'enabled' } }),
       stream: true,
     } as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming);
 

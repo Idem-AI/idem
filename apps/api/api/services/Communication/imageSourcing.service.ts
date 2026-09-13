@@ -44,6 +44,17 @@ export interface ImageBrief {
   orientation?: 'portrait' | 'landscape' | 'square';
 }
 
+/**
+ * Réglages d'un appelant extérieur au module communication — la charte
+ * graphique, qui veut ses visuels vite et ne suit donc pas les choix du brief.
+ */
+export interface ImageSourcingPreferences {
+  /** Chercher une photo de banque même quand le brief préfère la génération. */
+  preferStock?: boolean;
+  imageModel?: string;
+  imageFallbackModel?: string;
+}
+
 // ─── Gemini model names ────────────────────────────────────────────────────
 // Modèles ET replis viennent d'ai.config.ts : le repli était auparavant déduit
 // de `AI_CONFIG.fallback` (le repli texte global), qui n'a rien à voir avec ce
@@ -82,11 +93,11 @@ export class ImageSourcingService {
 
   async sourceImage(
     brief: ImageBrief,
-    opts: { userId: string; projectId: string; tag: string }
+    opts: { userId: string; projectId: string; tag: string } & ImageSourcingPreferences
   ): Promise<SourcedImage> {
     logger.info(`[ImageSourcing] Sourcing image`, { tag: opts.tag, searchQuery: brief.searchQuery });
     // ── Path A: stock image ──────────────────────────────────────────────
-    if (!brief.preferGenerated && process.env.PEXELS_API_KEY) {
+    if ((opts.preferStock || !brief.preferGenerated) && process.env.PEXELS_API_KEY) {
       try {
         const stockHit = await this.searchPexels(brief);
         if (stockHit) {
@@ -167,9 +178,10 @@ export class ImageSourcingService {
 
   private async generateAndAnalyze(
     brief: ImageBrief,
-    opts: { userId: string; projectId: string; tag: string }
+    opts: { userId: string; projectId: string; tag: string } & ImageSourcingPreferences
   ): Promise<SourcedImage> {
-    logger.info(`[ImageSourcing] Generating with ${GLM_IMAGE_MODEL}`, { tag: opts.tag });
+    const imageModel = opts.imageModel ?? GLM_IMAGE_MODEL;
+    logger.info(`[ImageSourcing] Generating with ${imageModel}`, { tag: opts.tag });
     const start = Date.now();
 
     // Z.ai sépare ce que Gemini faisait d'un bloc : l'image vient d'un
@@ -181,8 +193,8 @@ export class ImageSourcingService {
       : brief.generationPrompt;
 
     const generated = await generateImage(prompt, {
-      model: GLM_IMAGE_MODEL,
-      fallbackModel: GLM_IMAGE_FALLBACK_MODEL,
+      model: imageModel,
+      fallbackModel: opts.imageFallbackModel ?? GLM_IMAGE_FALLBACK_MODEL,
       tag: opts.tag,
     });
     const buffer = generated.buffer;

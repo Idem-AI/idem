@@ -34,7 +34,12 @@ import { AGENT_TRENDS_SUMMARY_PROMPT } from './prompts/agent-trends-summary.prom
 import { AGENT_MOMENT_SUGGESTIONS_PROMPT } from './prompts/agent-moment-suggestions.prompt';
 import { AGENT_MOMENT_CONTENT_PROMPT } from './prompts/agent-moment-content.prompt';
 import { buildFlyerEditPrompt } from './prompts/agent-flyer-edit.prompt';
-import { imageSourcingService, ImageBrief, SourcedImage } from './imageSourcing.service';
+import {
+  imageSourcingService,
+  ImageBrief,
+  ImageSourcingPreferences,
+  SourcedImage,
+} from './imageSourcing.service';
 import {
   flyerRenderService,
   minLogoWidthFor,
@@ -595,17 +600,107 @@ export class CommunicationService extends GenericService {
       if (cached) return cached;
     }
 
+    const flyerId = `flyer-${contentId}-${format}-${Date.now().toString(36)}`;
+    const { html, parsed, sourced, intent } = await this.composeFlyer(
+      userId,
+      projectId,
+      content,
+      context,
+      format,
+      flyerId,
+      `flyer:${projectId}:${contentId}:${format}`
+    );
+
+    // Note: We no longer need the post-processing regex replace for {{IMAGE_URL}} 
+    // because we correctly populate the system prompt now. The AI will see 
+    // the real URL. We keep the logic clean and rely on the prompt quality.
+
+    // Return the URL to our on-the-fly render endpoint.
+    const port = process.env.PORT || '3001';
+    const apiUrl = process.env.API_URL || `http://localhost:${port}`;
+    const renderedUrl = `${apiUrl}/project/communication/${projectId}/flyer/${flyerId}/image`;
+
+    // Aucun CTA sur le visuel, quelle que soit l'intention. L'ancienne règle
+    // « CTA si promotion/recrutement » laissait passer un bouton sur une part
+    // des visuels ; or un post social n'est pas une landing page, et le bouton
+    // dessiné dans une image n'est même pas cliquable. L'appel à l'action vit
+    // dans la LÉGENDE (`content.callToAction`, publiée avec le post).
+    const flyer: Flyer = {
+      id: flyerId,
+      contentId,
+      format,
+      intent,
+      logoUsed: (parsed as Partial<Flyer>).logoUsed,
+      concept: parsed.concept || '',
+      layoutNotes: parsed.layoutNotes || '',
+      marketingText: {
+        headline: parsed.marketingText?.headline || content.title,
+        subheadline: parsed.marketingText?.subheadline,
+        body: parsed.marketingText?.body || content.description,
+      },
+      html,
+      imageUrl: renderedUrl,
+      backgroundImageUrl: sourced?.url,
+      imageSource: sourced?.source,
+      imageAnalysis: sourced?.analysis,
+      imageAttribution: sourced?.attribution,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    await cacheService.set(cacheKey, flyer, { prefix: 'ai', ttl: 7200 });
+
+    // Persist the flyer AND link its id on the owning ContentIdea, whether it
+    // lives in the calendar or in the moments list.
+    await this.patchCommunication(userId, projectId, (existing) => {
+      const nextFlyers = [...(existing.flyers || []), flyer];
+      const linkFlyer = <T extends ContentIdea>(it: T): T =>
+        it.id === contentId ? { ...it, flyerIds: [...(it.flyerIds || []), flyer.id] } : it;
+      const nextCalendar = existing.calendar
+        ? {
+            ...existing.calendar,
+            items: existing.calendar.items.map(linkFlyer),
+            updatedAt: new Date(),
+          }
+        : existing.calendar;
+      const nextMoments = existing.moments ? existing.moments.map(linkFlyer) : existing.moments;
+      return { ...existing, flyers: nextFlyers, calendar: nextCalendar, moments: nextMoments };
+    });
+
+    return flyer;
+  }
+
+  /**
+   * Compose un visuel : brief d'image, image (banque ou génération), puis
+   * composition HTML à la charte et passes déterministes.
+   *
+   * Extrait de `generateFlyer` pour servir aussi la charte graphique, qui montre
+   * des publications composées par CE pipeline — les visuels qu'on promet dans
+   * la charte doivent être ceux que le module communication produira ensuite.
+   * Aucune écriture ici : l'appelant décide de ce qu'il persiste.
+   */
+  private async composeFlyer(
+    userId: string,
+    projectId: string,
+    content: ContentIdea,
+    context: CommunicationContext,
+    format: FlyerFormat,
+    tag: string,
+    seedKey: string,
+    /** Réglages de sourcing d'un appelant hors module (la charte graphique). */
+    sourcing?: ImageSourcingPreferences
+  ): Promise<{ html: string; parsed: Partial<Flyer>; sourced: SourcedImage | null; intent: VisualIntent }> {
     // ---- Step 5a: image brief (tiny LLM call) -------------------------------
     const brief = await this.buildImageBrief(userId, content, context, format);
 
     // ---- Step 5b: source the image (stock first, generate fallback) + scan -
-    const flyerId = `flyer-${contentId}-${format}-${Date.now().toString(36)}`;
     let sourced: SourcedImage | null = null;
     try {
       sourced = await imageSourcingService.sourceImage(brief, {
         userId,
         projectId,
-        tag: flyerId,
+        tag,
+        ...sourcing,
       });
     } catch (err: any) {
       logger.warn('Flyer image sourcing failed, falling back to text-only flyer', {
@@ -614,7 +709,7 @@ export class CommunicationService extends GenericService {
     }
 
     // ---- Step 5c: composition (copy + HTML coherent with the image) --------
-    const seed = this.generateDesignSeed(context, `flyer:${projectId}:${contentId}:${format}`);
+    const seed = this.generateDesignSeed(context, seedKey);
     const intent = this.inferVisualIntent(content);
     // Un SEUL passage de substitution, piloté par une table exhaustive : les
     // remplacements en cascade laissaient passer des marqueurs non résolus
@@ -693,63 +788,63 @@ export class CommunicationService extends GenericService {
       sourced?.analysis.dominantColors || []
     );
 
-    // Note: We no longer need the post-processing regex replace for {{IMAGE_URL}} 
-    // because we correctly populate the system prompt now. The AI will see 
-    // the real URL. We keep the logic clean and rely on the prompt quality.
+    return { html, parsed, sourced, intent };
+  }
 
-    // Return the URL to our on-the-fly render endpoint.
-    const port = process.env.PORT || '3001';
-    const apiUrl = process.env.API_URL || `http://localhost:${port}`;
-    const renderedUrl = `${apiUrl}/project/communication/${projectId}/flyer/${flyerId}/image`;
-
-    // Aucun CTA sur le visuel, quelle que soit l'intention. L'ancienne règle
-    // « CTA si promotion/recrutement » laissait passer un bouton sur une part
-    // des visuels ; or un post social n'est pas une landing page, et le bouton
-    // dessiné dans une image n'est même pas cliquable. L'appel à l'action vit
-    // dans la LÉGENDE (`content.callToAction`, publiée avec le post).
-    const flyer: Flyer = {
-      id: flyerId,
-      contentId,
+  /**
+   * Compose et REND un visuel sans l'inscrire au calendrier du projet.
+   *
+   * C'est ce que la charte graphique pose dans ses mockups de publications :
+   * le même pipeline que les visuels du module communication, sans laisser de
+   * visuel orphelin dans ce module.
+   */
+  async renderStandaloneVisual(
+    userId: string,
+    projectId: string,
+    content: ContentIdea,
+    format: FlyerFormat,
+    sourcing?: ImageSourcingPreferences
+  ): Promise<{ png: Buffer; headline: string }> {
+    const context = await this.extractContext(userId, projectId);
+    const { html, parsed } = await this.composeFlyer(
+      userId,
+      projectId,
+      content,
+      context,
       format,
-      intent,
-      logoUsed: (parsed as Partial<Flyer>).logoUsed,
-      concept: parsed.concept || '',
-      layoutNotes: parsed.layoutNotes || '',
-      marketingText: {
-        headline: parsed.marketingText?.headline || content.title,
-        subheadline: parsed.marketingText?.subheadline,
-        body: parsed.marketingText?.body || content.description,
-      },
+      `brandbook-${content.id}-${format}`,
+      `brandbook:${projectId}:${content.id}:${format}`,
+      sourcing
+    );
+    const logos = context.branding.logoUrls;
+    const png = await flyerRenderService.renderFlyerToPng(
       html,
-      imageUrl: renderedUrl,
-      backgroundImageUrl: sourced?.url,
-      imageSource: sourced?.source,
-      imageAnalysis: sourced?.analysis,
-      imageAttribution: sourced?.attribution,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    await cacheService.set(cacheKey, flyer, { prefix: 'ai', ttl: 7200 });
-
-    // Persist the flyer AND link its id on the owning ContentIdea, whether it
-    // lives in the calendar or in the moments list.
-    await this.patchCommunication(userId, projectId, (existing) => {
-      const nextFlyers = [...(existing.flyers || []), flyer];
-      const linkFlyer = <T extends ContentIdea>(it: T): T =>
-        it.id === contentId ? { ...it, flyerIds: [...(it.flyerIds || []), flyer.id] } : it;
-      const nextCalendar = existing.calendar
-        ? {
-            ...existing.calendar,
-            items: existing.calendar.items.map(linkFlyer),
-            updatedAt: new Date(),
-          }
-        : existing.calendar;
-      const nextMoments = existing.moments ? existing.moments.map(linkFlyer) : existing.moments;
-      return { ...existing, flyers: nextFlyers, calendar: nextCalendar, moments: nextMoments };
-    });
-
-    return flyer;
+      format,
+      {
+        url: context.branding.fontUrl,
+        primaryFont: context.branding.primaryFont,
+        secondaryFont: context.branding.secondaryFont,
+      },
+      {
+        used: typeof parsed.logoUsed === 'string' ? parsed.logoUsed : undefined,
+        primary: logos?.primary,
+        withText: logos?.withText
+          ? {
+              lightBackground: logos.withText.light,
+              darkBackground: logos.withText.dark,
+              monochrome: logos.withText.mono,
+            }
+          : undefined,
+        iconOnly: logos?.iconOnly
+          ? {
+              lightBackground: logos.iconOnly.light,
+              darkBackground: logos.iconOnly.dark,
+              monochrome: logos.iconOnly.mono,
+            }
+          : undefined,
+      }
+    );
+    return { png, headline: parsed.marketingText?.headline || content.title };
   }
 
   async regenerateFlyer(

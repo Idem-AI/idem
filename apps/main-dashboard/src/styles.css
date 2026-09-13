@@ -14,16 +14,12 @@
   font-family: 'Vilevile', sans-serif !important;
 }
 
-/* Permit code segments, icons, and preformatted areas to keep their respective fonts */
-code, pre, i, .pi, [class^="pi-"], [class*=" pi-"] {
-  font-family: inherit !important;
+/* Les icônes sont DANS Vilevile : plus de famille à rattraper ici, un
+   `<i class="pi pi-user">` se dessine avec la police de tout le monde. La
+   règle reste pour le code et le préformaté, que le `*` ci-dessus écraserait. */
+code, pre {
+  font-family: var(--font-mono) !important;
 }
-.pi, [class^="pi-"], [class*=" pi-"] {
-  font-family: 'primeicons' !important;
-}
-
-/* PrimeNG Icons */
-@import 'primeicons/primeicons.css';
 
 /* Tailwind v4 dark variant, driven by the `.dark` class on <html> (set by the
    theme boot script / ThemeService from the shared `idem_theme` cookie). */

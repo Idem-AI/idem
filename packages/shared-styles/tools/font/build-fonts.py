@@ -40,6 +40,7 @@ from fontTools.ttLib.tables import otTables as ot
 from fontTools.subset import Subsetter, Options
 
 from african import add_african_letters
+from icons import ICON_RANGE, add_icons, emit_icons_css
 
 HERE = Path(__file__).resolve().parent
 SOURCE = HERE / "src" / "Jura[wght].ttf"
@@ -105,6 +106,7 @@ KEEP_RANGES = [
     (0x25A0, 0x25FF),  # formes géométriques
     (0xFB00, 0xFB4F),  # ligatures ﬁ ﬂ
     (0xFFFD, 0xFFFD),  # caractère de remplacement
+    ICON_RANGE,        # les icônes PrimeIcons, en zone à usage privé
 ]
 
 
@@ -341,6 +343,9 @@ def build() -> TTFont:
     shift_weights(font)
     add_african_letters(font, log)
     bake_tracking(font, TRACKING_EM)
+    # Après l'approche : une icône n'est pas une lettre, sa chasse ne doit pas
+    # être resserrée — elle se place au pixel où PrimeIcons la place.
+    add_icons(font, log)
     widen_bbox(font)
     set_instances(font)
     rename(font)
@@ -392,8 +397,15 @@ def _to_spec(cps: set[int]) -> str:
 def emit_slices(font: TTFont, out_dir: Path, stem: str) -> list[tuple[str, str, Path]]:
     """Écrit une woff2 par plage. Les plages sont disjointes par construction."""
     covered = set(font.getBestCmap())
-    latin = _parse_spec(LATIN_SPEC) & covered
-    slices = [("latin", latin), ("latin-ext", covered - latin)]
+    icons = {cp for cp in covered if ICON_RANGE[0] <= cp <= ICON_RANGE[1]}
+    latin = (_parse_spec(LATIN_SPEC) & covered) - icons
+    slices = [
+        ("latin", latin),
+        ("latin-ext", covered - latin - icons),
+        # Les icônes dans leur propre tranche : une page qui n'en affiche
+        # aucune ne télécharge rien de plus qu'avant.
+        ("icons", icons),
+    ]
 
     written = []
     for label, cps in slices:
@@ -469,6 +481,7 @@ def main() -> int:
 
     slices = emit_slices(font, FONTS, args.out)
     emit_css(slices, FONTS / "fonts.css")
+    emit_icons_css(FONTS / "icons.css", FAMILY, log)
 
     if args.specimen:
         from specimen import proof_sheet
