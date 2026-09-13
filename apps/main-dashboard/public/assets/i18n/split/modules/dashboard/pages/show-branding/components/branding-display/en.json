@@ -24,7 +24,10 @@
       "buttons": {
         "generate": "Generate Brand Identity"
       },
-      "generationTime": "Generation takes 2-3 minutes"
+      "generationTime": "Generation takes 2-3 minutes",
+      "errors": {
+        "load": "The brand guide could not be loaded. Please try again shortly."
+      }
     }
   }
 }

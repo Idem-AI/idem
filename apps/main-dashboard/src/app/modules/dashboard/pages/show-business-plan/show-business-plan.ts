@@ -3,13 +3,12 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { BusinessPlanService } from '../../services/ai-agents/business-plan.service';
-import { BusinessPlanModel } from '../../models/businessPlan.model';
-import { BusinessPlanDisplayComponent } from './components/business-plan-display/business-plan-display';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { BrandingValidationService } from '../../services/branding-validation.service';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
 import { GenerationStatusPanelComponent } from '../../components/generation-status-panel/generation-status-panel';
+import { DocumentPreviewComponent } from '../../components/document-preview/document-preview';
 import {
   analyzeGenerationCompleteness,
   BUSINESS_PLAN_SECTION_NAMES,
@@ -23,7 +22,7 @@ import { ProjectModel } from '@idem/shared-models';
   standalone: true,
   imports: [
     CommonModule,
-    BusinessPlanDisplayComponent,
+    DocumentPreviewComponent,
     Loader,
     TranslateModule,
     IncompleteProjectBannerComponent,
@@ -44,7 +43,8 @@ export class ShowBusinessPlan implements OnInit {
 
   // Signals for state management
   protected readonly isLoading = signal<boolean>(true);
-  protected readonly existingBusinessPlan = signal<BusinessPlanModel | null>(null);
+  /** true dès que le plan a des sections à afficher (l'aperçu les rend sans PDF). */
+  protected readonly hasBusinessPlan = signal<boolean>(false);
   protected readonly projectIdFromCookie = signal<string | null>(null);
   protected readonly hasError = signal<boolean>(false);
   protected readonly errorMessage = signal<string>('');
@@ -128,7 +128,7 @@ export class ShowBusinessPlan implements OnInit {
 
         // Only load business plan if branding is complete
         if (isComplete) {
-          this.loadExistingBusinessPlan(projectId);
+          this.loadExistingBusinessPlan(projectId, project);
         } else {
           this.isLoading.set(false);
         }
@@ -137,89 +137,34 @@ export class ShowBusinessPlan implements OnInit {
         console.error('Error checking branding completion:', error);
         this.isLoading.set(false);
         this.hasError.set(true);
+        this.isRetryable.set(true);
         this.errorMessage.set('Erreur lors de la vérification du projet');
       },
     });
   }
 
   /**
-   * Load existing business plan PDF for the project
-   * If PDF exists, show display component, otherwise show generation component
+   * Le plan existe dès qu'il a des sections HTML : l'aperçu les rend
+   * directement. Le PDF, lourd à produire comme à afficher, n'est demandé à
+   * l'API qu'au clic sur « Télécharger ».
    */
-  private loadExistingBusinessPlan(projectId: string): void {
-    const fetchQuality = () => {
-      this.businessPlanService.getBusinessPlanPdfQuality(projectId).subscribe({
-        next: (quality) => {
-          const underfilled = (quality?.underFilledSections ?? []).map((s) => s.sectionName);
-          this.underFilledSections.set(underfilled);
-        },
-        error: () => {
-          // Quality info might not exist yet; ignore
-        },
-      });
-    };
-
-    fetchQuality();
-
-    this.businessPlanService.downloadBusinessPlanPdf(projectId).subscribe({
-      next: (pdfBlob: Blob) => {
-        // Re-fetch quality info in case the backend just generated a new PDF and persisted quality
-        fetchQuality();
-
-        if (pdfBlob && pdfBlob.size > 0) {
-          // PDF exists - create a mock BusinessPlanModel to pass to display component
-          const businessPlanWithPdf: BusinessPlanModel = {
-            id: `business-plan-${projectId}`,
-            projectId: projectId,
-            sections: [
-              {
-                name: this.translate.instant('dashboard.showBusinessPlan.businessPlan.name'),
-                type: 'pdf',
-                data: this.translate.instant('dashboard.showBusinessPlan.businessPlan.data'),
-                summary: this.translate.instant('dashboard.showBusinessPlan.businessPlan.summary'),
-              },
-            ],
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            pdfBlob: pdfBlob, // Add the PDF blob to the model
-          };
-          this.existingBusinessPlan.set(businessPlanWithPdf);
-          console.log('Business plan PDF found, showing display component');
-        } else {
-          // Empty PDF - show generate button
-          console.log('Empty PDF found, showing generate button');
-          this.existingBusinessPlan.set(null);
-        }
-        this.isLoading.set(false);
+  private loadExistingBusinessPlan(projectId: string, project: ProjectModel | null): void {
+    this.businessPlanService.getBusinessPlanPdfQuality(projectId).subscribe({
+      next: (quality) => {
+        const underfilled = (quality?.underFilledSections ?? []).map((s) => s.sectionName);
+        this.underFilledSections.set(underfilled);
       },
-      error: (err: any) => {
-        console.error(this.translate.instant('dashboard.showBusinessPlan.errorLoadingPdf'), err);
-
-        // Check if this is a retryable error (other errors except 404)
-        if (err.message === 'DOWNLOAD_ERROR' || err.isRetryable === true) {
-          this.hasError.set(true);
-          this.isRetryable.set(true);
-          this.errorMessage.set(
-            this.translate.instant('dashboard.showBusinessPlan.errors.download'),
-          );
-          console.log(this.translate.instant('dashboard.showBusinessPlan.retryableErrorOccurred'));
-        } else {
-          // 404 or other non-retryable errors - show generate button
-          console.log(this.translate.instant('dashboard.showBusinessPlan.pdfNotFound'));
-          this.hasError.set(false);
-        }
-
-        this.existingBusinessPlan.set(null);
-        this.isLoading.set(false);
+      error: () => {
+        // Quality info might not exist yet; ignore
       },
     });
-  }
 
-  /**
-   * Navigate to the WYSIWYG business plan editor
-   */
-  protected editBusinessPlan(): void {
-    this.router.navigate(['/project/business-plan/edit']);
+    const sections: { data?: unknown }[] =
+      project?.analysisResultModel?.businessPlan?.sections ?? [];
+    this.hasBusinessPlan.set(
+      sections.some((section) => typeof section.data === 'string' && section.data.trim() !== ''),
+    );
+    this.isLoading.set(false);
   }
 
   /**
@@ -242,15 +187,15 @@ export class ShowBusinessPlan implements OnInit {
   }
 
   /**
-   * Retry loading the business plan PDF
+   * Retry loading the project and its business plan
    */
   protected retryLoadBusinessPlan(): void {
-    console.log('Retrying business plan PDF load');
     const projectId = this.projectIdFromCookie();
     if (projectId) {
       this.hasError.set(false);
+      this.isRetryable.set(false);
       this.isLoading.set(true);
-      this.loadExistingBusinessPlan(projectId);
+      this.checkBrandingCompletion(projectId);
     }
   }
 

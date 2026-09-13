@@ -1,0 +1,212 @@
+<section class="dp" [attr.aria-label]="heading()">
+  <header class="dp-head">
+    <!-- Action de tête fournie par la page (ex. retour), sur la ligne du titre. -->
+    <ng-content select="[previewLeading]" />
+    <div class="min-w-0 flex-1">
+      @if (heading()) {
+        <h2 class="dp-title">{{ heading() }}</h2>
+      }
+      <p class="dp-meta">
+        @if (pageCount() > 0) {
+          <span>{{ 'dashboard.documentPreview.pageCount' | translate: { count: pageCount() } }}</span>
+          <span class="dp-meta-dot" aria-hidden="true"></span>
+        }
+        <span class="dp-meta-hint">
+          <i class="pi pi-hand-pointer" aria-hidden="true"></i>
+          {{ 'dashboard.documentPreview.hint' | translate }}
+        </span>
+      </p>
+    </div>
+  </header>
+
+  <div #stage class="dp-stage" [style.height.px]="stageHeight()">
+    <app-editor-canvas
+      mode="preview"
+      variant="inline"
+      [pageFormat]="pageFormat()"
+      [multiPage]="multiPage()"
+      [fonts]="fonts()"
+      [dark]="dark()"
+      [bottomInset]="dockInset"
+      [label]="heading() || ('dashboard.documentPreview.canvasLabel' | translate)"
+      (selectionChange)="onSelectionChange($event)"
+      (escape)="closePopover()"
+    >
+      @if (popover(); as pop) {
+        <div
+          class="dp-popover"
+          [class.dp-popover-above]="pop.placement === 'above'"
+          [class.dp-popover-inside]="pop.placement === 'inside'"
+          [style.left.px]="pop.left"
+          [style.top.px]="pop.top"
+          role="group"
+          [attr.aria-label]="'dashboard.documentPreview.popover.label' | translate"
+          (keydown.escape)="closePopover()"
+        >
+          <span class="dp-kind">
+            <i class="pi {{ kindIcon() }}" aria-hidden="true"></i>
+            {{ 'dashboard.documentPreview.kinds.' + kind() | translate }}
+          </span>
+          <button #popoverEdit type="button" class="dp-popover-edit" (click)="edit()">
+            <i class="pi pi-pencil" aria-hidden="true"></i>
+            {{ 'dashboard.documentPreview.popover.edit' | translate }}
+          </button>
+          <button
+            type="button"
+            class="dp-popover-close"
+            [attr.aria-label]="'dashboard.documentPreview.popover.close' | translate"
+            (click)="closePopover()"
+          >
+            <i class="pi pi-times" aria-hidden="true"></i>
+          </button>
+        </div>
+      }
+    </app-editor-canvas>
+
+    @if (loading()) {
+      <div class="dp-overlay">
+        <div class="dp-skeleton" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+        <p class="text-sm text-text-tertiary">{{ 'dashboard.documentPreview.loading' | translate }}</p>
+      </div>
+    } @else if (loadError()) {
+      <div class="dp-overlay">
+        <i class="pi pi-exclamation-triangle text-3xl text-amber-400" aria-hidden="true"></i>
+        <p class="text-sm text-text-secondary">{{ 'dashboard.documentPreview.error' | translate }}</p>
+      </div>
+    } @else if (pageCount() === 0) {
+      <div class="dp-overlay">
+        <i class="pi pi-file text-3xl text-text-tertiary" aria-hidden="true"></i>
+        <p class="text-sm text-text-secondary">{{ 'dashboard.documentPreview.empty' | translate }}</p>
+      </div>
+    }
+  </div>
+
+  <!-- Dock : pages · zoom · éditer · télécharger. Hors de la scène et collant :
+       posé sur le bas du document, il reste au bas de la fenêtre quand la
+       scène dépasse de l'écran. -->
+  <div
+    class="dp-dock"
+    role="toolbar"
+    [attr.aria-label]="'dashboard.documentPreview.dock.label' | translate"
+  >
+    @if (ready()) {
+      <div #pagesControl class="dp-pages">
+        <button
+          type="button"
+          class="dp-icon-btn dp-page-step"
+          [disabled]="currentIndex() === 0"
+          [attr.aria-label]="'dashboard.documentPreview.dock.previousPage' | translate"
+          (click)="goToPage(currentIndex() - 1)"
+        >
+          <i class="pi pi-chevron-up" aria-hidden="true"></i>
+        </button>
+        <button
+          type="button"
+          class="dp-page-value"
+          aria-haspopup="menu"
+          [attr.aria-expanded]="pagesMenuOpen()"
+          [attr.aria-label]="
+            'dashboard.documentPreview.dock.pagesMenu'
+              | translate: { current: currentIndex() + 1, total: pageCount() }
+          "
+          (click)="pagesMenuOpen.set(!pagesMenuOpen())"
+          (keydown.escape)="pagesMenuOpen.set(false)"
+        >
+          <span class="dp-page-number">{{ currentIndex() + 1 }}<span class="dp-page-total">/{{ pageCount() }}</span></span>
+          @if (currentSection(); as section) {
+            <span class="dp-page-name">{{ section.name }}</span>
+          }
+        </button>
+        <button
+          type="button"
+          class="dp-icon-btn dp-page-step"
+          [disabled]="currentIndex() >= pageCount() - 1"
+          [attr.aria-label]="'dashboard.documentPreview.dock.nextPage' | translate"
+          (click)="goToPage(currentIndex() + 1)"
+        >
+          <i class="pi pi-chevron-down" aria-hidden="true"></i>
+        </button>
+
+        @if (pagesMenuOpen()) {
+          <div class="dp-menu" role="menu" (keydown.escape)="pagesMenuOpen.set(false)">
+            @for (section of sections(); track section.id; let i = $index) {
+              <button
+                type="button"
+                role="menuitemradio"
+                class="dp-menu-item"
+                [attr.aria-checked]="i === currentIndex()"
+                (click)="goToPage(i)"
+              >
+                <span class="dp-menu-index">{{ i + 1 }}</span>
+                <span class="truncate">{{ section.name }}</span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <span class="dp-sep" aria-hidden="true"></span>
+
+      <app-zoom-control
+        class="dp-zoom"
+        menuPlacement="top"
+        [zoom]="canvas()?.zoom() ?? 1"
+        [fitting]="canvas()?.fitting() ?? true"
+        (zoomIn)="canvas()?.zoomStep(1)"
+        (zoomOut)="canvas()?.zoomStep(-1)"
+        (fitWidth)="canvas()?.fitToWidth()"
+        (zoomTo)="canvas()?.zoomTo($event)"
+      />
+
+      <span class="dp-sep" aria-hidden="true"></span>
+    }
+
+    <button
+      type="button"
+      class="dp-action dp-edit"
+      [disabled]="!ready()"
+      [attr.aria-label]="'dashboard.documentPreview.dock.edit' | translate"
+      (click)="edit()"
+    >
+      <i class="pi pi-pencil" aria-hidden="true"></i>
+      <span class="dp-action-label">{{ 'dashboard.documentPreview.dock.edit' | translate }}</span>
+    </button>
+
+    @if (canDownload()) {
+      <button
+        type="button"
+        class="dp-action dp-download"
+        [attr.data-state]="downloadState()"
+        [attr.aria-busy]="downloadState() === 'working'"
+        [attr.aria-label]="downloadLabel() | translate"
+        [disabled]="loading() || downloadState() === 'working'"
+        (click)="download()"
+      >
+        <span class="dp-download-icon" aria-hidden="true">
+          @switch (downloadState()) {
+            @case ('working') {
+              <span class="dp-spinner"></span>
+            }
+            @case ('done') {
+              <i class="pi pi-check"></i>
+            }
+            @case ('error') {
+              <i class="pi pi-refresh"></i>
+            }
+            @default {
+              <i class="pi pi-download"></i>
+            }
+          }
+        </span>
+        <span class="dp-action-label">{{ downloadLabel() | translate }}</span>
+      </button>
+      <span class="sr-only" aria-live="polite">
+        @if (downloadState() !== 'idle') {
+          {{ downloadLabel() | translate }}
+        }
+      </span>
+    }
+  </div>
+</section>

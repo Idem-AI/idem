@@ -2,14 +2,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
-  OnDestroy,
   OnInit,
   computed,
   inject,
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CookieService } from '../../../../shared/services/cookie.service';
@@ -17,7 +15,7 @@ import { Loader } from '../../../../shared/components/loader/loader';
 import { PitchDeckService } from '../../services/ai-agents/pitch-deck.service';
 import { PitchDeckModel } from '../../models/pitchDeck.model';
 import { SSEStepEvent } from '../../../../shared/models/sse-step.model';
-import { PitchDeckPdfViewer } from './pitch-deck-pdf-viewer/pitch-deck-pdf-viewer';
+import { DocumentPreviewComponent } from '../../components/document-preview/document-preview';
 import { BrandingValidationService } from '../../services/branding-validation.service';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
 import { GenerationStatusPanelComponent } from '../../components/generation-status-panel/generation-status-panel';
@@ -42,21 +40,20 @@ const PITCH_DECK_STEP_NAMES: readonly string[] = PITCH_DECK_SECTION_NAMES;
     CommonModule,
     TranslateModule,
     Loader,
-    PitchDeckPdfViewer,
+    DocumentPreviewComponent,
     IncompleteProjectBannerComponent,
     GenerationStatusPanelComponent,
   ],
   templateUrl: './show-pitch-deck.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ShowPitchDeck implements OnInit, OnDestroy {
+export class ShowPitchDeck implements OnInit {
   private readonly pitchDeckService = inject(PitchDeckService);
   private readonly cookieService = inject(CookieService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly brandingValidation = inject(BrandingValidationService);
   private readonly projectService = inject(ProjectService);
   private readonly translate = inject(TranslateService);
-  private readonly router = inject(Router);
 
   protected readonly projectId = signal<string | null>(null);
   protected readonly isLoading = signal(true);
@@ -66,21 +63,11 @@ export class ShowPitchDeck implements OnInit, OnDestroy {
     PITCH_DECK_STEP_NAMES.map((n) => ({ name: n, status: 'pending' })),
   );
   protected readonly errorMessage = signal<string | null>(null);
-  protected readonly pdfBlob = signal<Blob | null>(null);
-  protected readonly pdfLoading = signal(false);
 
   // Branding validation
   protected readonly isBrandingComplete = signal<boolean>(false);
   protected readonly brandingMissingElements = signal<string[]>([]);
   protected readonly project = signal<ProjectModel | null>(null);
-
-  protected readonly slideNames = computed<string[]>(() => {
-    const deck = this.pitchDeck();
-    if (!deck) return [];
-    const order = PITCH_DECK_STEP_NAMES;
-    const sorted = [...deck.sections].sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name));
-    return sorted.map((s) => this.translate.instant('dashboard.showPitchDeck.slides.' + s.name));
-  });
 
   protected readonly completedCount = computed(
     () => this.steps().filter((s) => s.status === 'completed').length,
@@ -134,10 +121,10 @@ export class ShowPitchDeck implements OnInit, OnDestroy {
     });
   }
 
-  ngOnDestroy(): void {
-    this.pdfBlob.set(null);
-  }
-
+  /**
+   * Charge les diapositives. Le PDF n'est plus récupéré ici : l'aperçu rend
+   * les sections directement et ne demande le PDF qu'au téléchargement.
+   */
   private loadPitchDeck(projectId: string): void {
     this.isLoading.set(true);
     this.pitchDeckService
@@ -147,31 +134,10 @@ export class ShowPitchDeck implements OnInit, OnDestroy {
         next: (deck) => {
           this.pitchDeck.set(deck);
           this.isLoading.set(false);
-          if (deck && deck.sections && deck.sections.length > 0) {
-            this.fetchPdfBlob(projectId);
-          }
         },
         error: () => {
           this.pitchDeck.set(null);
           this.isLoading.set(false);
-        },
-      });
-  }
-
-  private fetchPdfBlob(projectId: string): void {
-    this.pdfLoading.set(true);
-    this.pitchDeckService
-      .downloadPitchDeckPdf(projectId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (blob) => {
-          this.pdfBlob.set(blob);
-          this.pdfLoading.set(false);
-        },
-        error: (err) => {
-          console.error('Pitch deck PDF fetch error:', err);
-          this.pdfLoading.set(false);
-          this.errorMessage.set(this.translate.instant('dashboard.showPitchDeck.errors.pdfLoad'));
         },
       });
   }
@@ -181,7 +147,6 @@ export class ShowPitchDeck implements OnInit, OnDestroy {
     if (!pid) return;
     this.errorMessage.set(null);
     this.isGenerating.set(true);
-    this.pdfBlob.set(null);
     this.steps.set(PITCH_DECK_STEP_NAMES.map((n) => ({ name: n, status: 'pending' as const })));
 
     this.pitchDeckService
@@ -232,49 +197,6 @@ export class ShowPitchDeck implements OnInit, OnDestroy {
   protected cancelGeneration(): void {
     this.pitchDeckService.cancelGeneration();
     this.isGenerating.set(false);
-  }
-
-  protected downloadPdf(): void {
-    const pid = this.projectId();
-    if (!pid) return;
-    this.pitchDeckService
-      .downloadPitchDeckPdf(pid)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (blob) => {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `pitch-deck-${pid}.pdf`;
-          a.click();
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-        },
-        error: (err) => {
-          console.error('Error downloading pitch deck PDF:', err);
-          this.errorMessage.set(this.translate.instant('dashboard.showPitchDeck.errors.download'));
-        },
-      });
-  }
-
-  /** Ouvre l'éditeur WYSIWYG du pitch deck. */
-  protected editPitchDeck(): void {
-    this.router.navigate(['/project/pitch-deck/edit']);
-  }
-
-  protected regenerate(): void {
-    const pid = this.projectId();
-    if (!pid) return;
-    this.pdfBlob.set(null);
-    this.pitchDeckService
-      .deletePitchDeck(pid)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          this.pitchDeck.set(null);
-          this.startGeneration(true);
-        },
-        error: () => this.startGeneration(true),
-      });
   }
 
   /**

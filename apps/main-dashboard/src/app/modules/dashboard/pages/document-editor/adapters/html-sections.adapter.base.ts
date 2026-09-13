@@ -70,9 +70,19 @@ export abstract class HtmlSectionsEditorAdapter implements DocumentTypeAdapter {
             secondaryFont: typography?.secondaryFont,
             fontUrl: typography?.url,
           },
+          pageFormat: this.pageFormatOf(bucket),
         };
       }),
     );
+  }
+
+  /**
+   * Format de page réel du document chargé, quand il dépend de ses données
+   * (la charte est en 16:9 ou en A4 portrait selon le choix fait à la
+   * génération). Par défaut : le format déclaré par l'adaptateur.
+   */
+  protected pageFormatOf(_bucket: unknown): PageFormat | undefined {
+    return undefined;
   }
 
   save(projectId: string, sections: EditableSection[]): Observable<unknown> {

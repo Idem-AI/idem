@@ -4,12 +4,17 @@
     [canUndo]="history.canUndo()"
     [canRedo]="history.canRedo()"
     [saveState]="saveState()"
-    [zoom]="zoom()"
+    [zoom]="canvas()?.zoom() ?? 1"
+    [fitting]="canvas()?.fitting() ?? true"
+    [layersOpen]="layersOpen()"
     (undo)="undo()"
     (redo)="redo()"
     (save)="saveNow()"
-    (zoomIn)="zoomIn()"
-    (zoomOut)="zoomOut()"
+    (zoomIn)="canvas()?.zoomStep(1)"
+    (zoomOut)="canvas()?.zoomStep(-1)"
+    (fitWidth)="canvas()?.fitToWidth()"
+    (zoomTo)="canvas()?.zoomTo($event)"
+    (toggleLayers)="layersOpen.set(!layersOpen())"
     (exit)="exit()"
   />
 
@@ -29,28 +34,38 @@
       </div>
     </div>
   } @else {
-    <div class="editor-body">
-      <!-- Panneau gauche : pages / calques -->
-      <aside class="editor-side editor-side-left">
+    <div class="editor-body" [class.layers-open]="layersOpen()" [class.has-selection]="!!selection()">
+      <!-- Panneau gauche : pages / calques (tiroir sur petit écran) -->
+      <aside id="editor-layers" class="editor-side editor-side-left">
         <app-layers-panel
           [sections]="model.sections()"
           [activeSectionId]="activeSectionId()"
           (selectSection)="onSelectSectionFromLayers($event)"
         />
       </aside>
+      <button
+        type="button"
+        class="editor-backdrop"
+        tabindex="-1"
+        [attr.aria-label]="'dashboard.documentEditor.layers.close' | translate"
+        (click)="layersOpen.set(false)"
+      ></button>
 
       <!-- Canvas central -->
-      <main class="editor-main" [attr.aria-label]="'dashboard.documentEditor.canvasLabel' | translate">
+      <main class="editor-main">
         <app-editor-canvas
           [pageFormat]="pageFormat()"
           [multiPage]="multiPage"
           [fitRoot]="fitRoot"
           [fonts]="fonts()"
           [dark]="dark()"
-          [zoom]="zoom()"
+          [captureZoomKeys]="true"
+          [label]="'dashboard.documentEditor.canvasLabel' | translate"
+          (ready)="onCanvasReady()"
           (selectionChange)="onSelectionChange($event)"
           (textChange)="onTextChange($event)"
           (reorderRequest)="onReorderRequest($event)"
+          (escape)="closeInspector()"
         />
 
         @if (loading()) {
@@ -63,13 +78,22 @@
         }
       </main>
 
-      <!-- Panneau droit : inspecteur -->
+      <!-- Panneau droit : inspecteur (panneau bas sur petit écran) -->
       <aside class="editor-side editor-side-right" [attr.aria-label]="'dashboard.documentEditor.inspector' | translate">
         @if (selection(); as sel) {
           <div class="inspector-scroll">
             <header class="inspector-header">
+              <span class="sheet-grip" aria-hidden="true"></span>
               <span class="inspector-tag">{{ sel.tag }}</span>
-              <span class="text-xs text-text-tertiary truncate">{{ selectedSectionName() }}</span>
+              <span class="text-xs text-text-tertiary truncate flex-1">{{ selectedSectionName() }}</span>
+              <button
+                type="button"
+                class="inspector-close"
+                [attr.aria-label]="'dashboard.documentEditor.inspectorClose' | translate"
+                (click)="closeInspector()"
+              >
+                <i class="pi pi-times" aria-hidden="true"></i>
+              </button>
             </header>
 
             @if (sel.isChart && sel.chart) {

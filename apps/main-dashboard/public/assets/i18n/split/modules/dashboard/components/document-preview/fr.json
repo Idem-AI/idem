@@ -1,0 +1,40 @@
+{
+  "dashboard": {
+    "documentPreview": {
+      "canvasLabel": "Aperçu du document",
+      "pageCount": "{{count}} pages",
+      "hint": "Cliquez sur un élément pour le modifier",
+      "loading": "Préparation de l’aperçu…",
+      "error": "L’aperçu n’a pas pu être chargé. Rechargez la page pour réessayer.",
+      "empty": "Ce document ne contient encore aucune page.",
+      "popover": {
+        "label": "Actions sur l’élément",
+        "edit": "Éditer",
+        "close": "Fermer"
+      },
+      "kinds": {
+        "page": "Page",
+        "chart": "Graphique",
+        "heading": "Titre",
+        "image": "Image",
+        "table": "Tableau",
+        "list": "Liste",
+        "text": "Texte",
+        "block": "Bloc"
+      },
+      "dock": {
+        "label": "Actions du document",
+        "previousPage": "Page précédente",
+        "nextPage": "Page suivante",
+        "pagesMenu": "Page {{current}} sur {{total}}, afficher la liste des pages",
+        "edit": "Éditer"
+      },
+      "download": {
+        "idle": "Télécharger",
+        "working": "Préparation…",
+        "done": "Téléchargé",
+        "error": "Échec, réessayer"
+      }
+    }
+  }
+}

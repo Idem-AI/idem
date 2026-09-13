@@ -1651,7 +1651,10 @@
       "buttons": {
         "generate": "Générer l'identité de marque"
       },
-      "generationTime": "La génération prend 2-3 minutes"
+      "generationTime": "La génération prend 2-3 minutes",
+      "errors": {
+        "load": "La charte graphique n’a pas pu être chargée. Réessayez dans un instant."
+      }
     },
     "brandingGeneration": {
       "finalizing": "Finalisation du Branding",
@@ -1889,7 +1892,7 @@
       }
     },
     "businessPlanDisplay": {
-      "title": "PDF du Plan d'Affaires",
+      "title": "Plan d’affaires",
       "loading": "Préparation du contenu du plan d'affaires...",
       "empty": {
         "title": "Aucun Plan d'Affaires Disponible",
@@ -2520,11 +2523,13 @@
         "saved": "Enregistré",
         "saveError": "Échec de l'enregistrement",
         "unsaved": "Modifications non enregistrées",
-        "upToDate": "À jour"
+        "upToDate": "À jour",
+        "pages": "Pages du document"
       },
       "layers": {
         "title": "Pages du document",
-        "pages": "Pages"
+        "pages": "Pages",
+        "close": "Fermer les pages"
       },
       "emptySelection": {
         "title": "Aucun élément sélectionné",
@@ -2603,6 +2608,11 @@
       },
       "flyer": {
         "title": "Éditeur de visuel"
+      },
+      "inspectorClose": "Fermer les propriétés",
+      "zoom": {
+        "menu": "Zoom : {{value}} %",
+        "fitWidth": "Ajuster à la largeur"
       }
     },
     "showCommunication": {
@@ -3050,6 +3060,42 @@
           "name": "Je ne sais pas encore",
           "goal": "Un plan polyvalent"
         }
+      }
+    },
+    "documentPreview": {
+      "canvasLabel": "Aperçu du document",
+      "pageCount": "{{count}} pages",
+      "hint": "Cliquez sur un élément pour le modifier",
+      "loading": "Préparation de l’aperçu…",
+      "error": "L’aperçu n’a pas pu être chargé. Rechargez la page pour réessayer.",
+      "empty": "Ce document ne contient encore aucune page.",
+      "popover": {
+        "label": "Actions sur l’élément",
+        "edit": "Éditer",
+        "close": "Fermer"
+      },
+      "kinds": {
+        "page": "Page",
+        "chart": "Graphique",
+        "heading": "Titre",
+        "image": "Image",
+        "table": "Tableau",
+        "list": "Liste",
+        "text": "Texte",
+        "block": "Bloc"
+      },
+      "dock": {
+        "label": "Actions du document",
+        "previousPage": "Page précédente",
+        "nextPage": "Page suivante",
+        "pagesMenu": "Page {{current}} sur {{total}}, afficher la liste des pages",
+        "edit": "Éditer"
+      },
+      "download": {
+        "idle": "Télécharger",
+        "working": "Préparation…",
+        "done": "Téléchargé",
+        "error": "Échec, réessayer"
       }
     }
   },

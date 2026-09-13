@@ -1,7 +1,7 @@
 {
   "dashboard": {
     "businessPlanDisplay": {
-      "title": "Business Plan PDF",
+      "title": "Business plan",
       "loading": "Preparing business plan content...",
       "empty": {
         "title": "No Business Plan Available",

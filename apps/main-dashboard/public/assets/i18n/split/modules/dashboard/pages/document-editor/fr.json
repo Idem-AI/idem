@@ -19,11 +19,13 @@
         "saved": "Enregistré",
         "saveError": "Échec de l'enregistrement",
         "unsaved": "Modifications non enregistrées",
-        "upToDate": "À jour"
+        "upToDate": "À jour",
+        "pages": "Pages du document"
       },
       "layers": {
         "title": "Pages du document",
-        "pages": "Pages"
+        "pages": "Pages",
+        "close": "Fermer les pages"
       },
       "emptySelection": {
         "title": "Aucun élément sélectionné",
@@ -102,6 +104,11 @@
       },
       "flyer": {
         "title": "Éditeur de visuel"
+      },
+      "inspectorClose": "Fermer les propriétés",
+      "zoom": {
+        "menu": "Zoom : {{value}} %",
+        "fitWidth": "Ajuster à la largeur"
       }
     }
   }

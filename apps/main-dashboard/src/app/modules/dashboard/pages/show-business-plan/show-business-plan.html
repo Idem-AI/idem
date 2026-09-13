@@ -1,4 +1,4 @@
-<div class="w-full min-h-screen md:p-6 rounded-2xl relative">
+<div class="w-full min-h-screen md:px-6 md:pb-6 rounded-2xl relative">
   @if (isLoading()) {
     <!-- Loading State -->
     <div class="max-w-6xl mx-auto">
@@ -15,9 +15,9 @@
     <app-incomplete-project-banner
       [project]="project()!"
     />
-  } @else if (existingBusinessPlan()) {
-    <!-- Completion status + per-section regeneration (also warns when the PDF
-         exists but was generated from an interrupted/incomplete run or has underfilled sections) -->
+  } @else if (hasBusinessPlan()) {
+    <!-- Completion status + per-section regeneration (also warns when the plan
+         comes from an interrupted/incomplete run or has underfilled sections) -->
     @if (completeness().hasStarted) {
       <div class="max-w-6xl mx-auto">
         <app-generation-status-panel
@@ -30,12 +30,13 @@
         />
       </div>
     }
-    <!-- Display existing business plan -->
-    <app-business-plan-display
-      [businessPlan]="existingBusinessPlan()!"
-      [showEditButton]="true"
-      (editRequested)="editBusinessPlan()"
-    ></app-business-plan-display>
+    <!-- Aperçu du plan (rendu comme dans l'éditeur, PDF au téléchargement) -->
+    <div class="max-w-6xl mx-auto">
+      <app-document-preview
+        documentType="business-plan"
+        [heading]="'dashboard.businessPlanDisplay.title' | translate"
+      />
+    </div>
   } @else if (hasError() && isRetryable()) {
     <!-- Error state with retry button -->
     <div class="max-w-6xl mx-auto text-center py-10">
