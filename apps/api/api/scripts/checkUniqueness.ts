@@ -335,7 +335,7 @@ console.log('\nFamilles de mise en page');
    */
   const count = LAYOUT_FAMILIES.length;
   console.log(`     ${count} familles`);
-  check('le catalogue compte au moins trente familles', count >= 30, `${count} familles`);
+  check('le catalogue compte au moins cinquante-cinq familles', count >= 55, `${count} familles`);
   check(
     'les identifiants de famille sont uniques',
     new Set(LAYOUT_FAMILIES.map((entry) => entry.id)).size === count
@@ -361,8 +361,8 @@ console.log('\nFamilles de mise en page');
     `     écart minimal : ${closest.distance} dimensions sur ${dimensions} (${closest.pair}), moyenne ${(total / pairs).toFixed(1)}`
   );
   check(
-    'deux familles diffèrent toujours sur au moins huit dimensions visibles',
-    closest.distance >= 8,
+    'deux familles diffèrent toujours sur au moins neuf dimensions visibles',
+    closest.distance >= 9,
     `${closest.distance} seulement entre ${closest.pair}`
   );
 
@@ -371,7 +371,7 @@ console.log('\nFamilles de mise en page');
   const pools = ART_DIRECTION_STYLE_IDS.map((styleId) => ({ styleId, size: familiesForStyle(styleId).length }));
   const poorest = pools.reduce((a, b) => (b.size < a.size ? b : a));
   console.log(`     style le moins pourvu : ${poorest.styleId} (${poorest.size} familles)`);
-  check('chaque style ouvre au moins neuf familles', poorest.size >= 9, `${poorest.styleId} : ${poorest.size}`);
+  check('chaque style ouvre au moins treize familles', poorest.size >= 13, `${poorest.styleId} : ${poorest.size}`);
   const narrow = LAYOUT_FAMILIES.filter((entry) => entry.fits.length < 4);
   check(
     'chaque famille convient à au moins quatre styles',
@@ -383,17 +383,17 @@ console.log('\nFamilles de mise en page');
   // une seule famille (ou aucune) est un dessin qu'on ne rencontre presque
   // jamais — ou du code mort.
   const vocabulary: Record<string, string[]> = {
-    headers: ['archetype', 'hanging-number', 'bleed-band', 'centered-rule', 'underscored', 'opener', 'split-lede', 'boxed', 'margin-kicker', 'numbered-rule'],
-    folio: ['rule-split', 'centered', 'index-right', 'heavy-bar', 'mark-only', 'tinted-strip'],
+    headers: ['archetype', 'hanging-number', 'bleed-band', 'centered-rule', 'underscored', 'opener', 'split-lede', 'boxed', 'margin-kicker', 'numbered-rule', 'lede-led', 'double-rule', 'ribbon'],
+    folio: ['rule-split', 'centered', 'index-right', 'heavy-bar', 'mark-only', 'tinted-strip', 'running-head', 'corner-number'],
     body: ['full', 'offset', 'indexed', 'narrow', 'paired'],
-    metrics: ['ruled-row', 'ledger', 'hero-list', 'tiles', 'divided', 'band', 'label-first', 'stacked-rows'],
-    table: ['banded', 'booktabs', 'gridded', 'accent-head', 'first-column', 'row-cards', 'inverted-head', 'airy'],
-    cards: ['panels', 'numbered', 'outlined', 'edge-stack', 'ruled-columns', 'inverted-lead', 'definitions', 'tagged'],
-    timeline: ['rail', 'steps', 'date-column', 'boxes', 'leaders', 'big-dates'],
-    quote: ['panel', 'display', 'centered', 'inverted', 'hanging', 'caps'],
-    assumption: ['ruled', 'boxed', 'margin', 'inline', 'edge'],
-    prose: ['plain', 'drop-cap', 'lead-in', 'columns', 'indented', 'essay'],
-    chart: ['keyline', 'headline', 'boxed', 'bare'],
+    metrics: ['ruled-row', 'ledger', 'hero-list', 'tiles', 'divided', 'band', 'label-first', 'stacked-rows', 'inline-sentence', 'stamped', 'staircase'],
+    table: ['banded', 'booktabs', 'gridded', 'accent-head', 'first-column', 'row-cards', 'inverted-head', 'airy', 'striped-columns', 'transposed', 'framed'],
+    cards: ['panels', 'numbered', 'outlined', 'edge-stack', 'ruled-columns', 'inverted-lead', 'definitions', 'tagged', 'stacked-bands', 'staggered', 'monogram', 'corner-number'],
+    timeline: ['rail', 'steps', 'date-column', 'boxes', 'leaders', 'big-dates', 'spine', 'numbered-circles', 'chevrons'],
+    quote: ['panel', 'display', 'centered', 'inverted', 'hanging', 'caps', 'split', 'brackets', 'highlight'],
+    assumption: ['ruled', 'boxed', 'margin', 'inline', 'edge', 'tab', 'footnote'],
+    prose: ['plain', 'drop-cap', 'lead-in', 'columns', 'indented', 'essay', 'large-lead', 'rule-separated'],
+    chart: ['keyline', 'headline', 'boxed', 'bare', 'side-note', 'figure-caption'],
     label: ['caps', 'small-caps', 'italic', 'bold', 'underlined'],
     numbering: ['padded', 'roman', 'section', 'dotted', 'bracketed', 'plain'],
     rules: ['hairline', 'heavy', 'double', 'dotted', 'none'],
@@ -401,6 +401,11 @@ console.log('\nFamilles de mise en page');
     corners: ['style', 'square'],
     titleScale: ['mood', 'moderate', 'discreet'],
     swatches: ['0', '1', '2'],
+    lede: ['muted', 'large', 'italic', 'ruled', 'caps'],
+    figureFace: ['display', 'light', 'italic', 'medium'],
+    chartInk: ['palette', 'monochrome', 'focus', 'outline'],
+    rhythm: ['standard', 'airy', 'tight'],
+    edge: ['none', 'top-bar', 'side-bar', 'frame'],
   };
   const rare: string[] = [];
   for (const [dimension, values] of Object.entries(vocabulary)) {
@@ -420,7 +425,7 @@ console.log('\nFamilles de mise en page');
   const pool = familiesForStyle(styleId).length;
   check(
     'quarante projets du même style se répartissent sur la plupart de ses familles',
-    drawn.size >= Math.min(pool, 10),
+    drawn.size >= Math.min(pool, 14),
     `${drawn.size} familles tirées sur ${pool}`
   );
   check(

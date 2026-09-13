@@ -135,7 +135,7 @@ export interface Ctx {
    * Ce qu'un dessin ne fait qu'UNE fois par page. La lettrine en est l'exemple :
    * posée sur chaque bloc de prose, elle cesserait d'ouvrir la section.
    */
-  state: { dropCapUsed: boolean };
+  state: { dropCapUsed: boolean; leadUsed: boolean; figureCount: number };
   /**
    * Retrait total du bord GAUCHE, en mm. Il diffère de `bleedMm` dès que la
    * famille décale la colonne de texte : un bandeau qui saigne doit alors
@@ -422,17 +422,53 @@ export function renderKicker(content: SectionContent, ctx: Ctx, color: string): 
 
 export function renderLede(content: SectionContent, ctx: Ctx, color: string): string {
   if (!content.lede) return '';
-  return `<p${style({
-    margin: `${snap(ctx.ds.spacing)}px 0 0`,
-    'font-size': `${ctx.ds.typeScale.lg}px`,
+  const { ds } = ctx;
+  // Le chapô prend le TON de la famille. Il sortait gris, au même corps, sous
+  // tous les titres de tous les projets — le trait commun le plus régulier des
+  // pages après le pied de page.
+  //
+  // `color` porte l'encre du fond où il est posé : sur la page, c'est l'encre
+  // secondaire ; sur un aplat, l'encre mesurée de l'aplat. Les dessins qui
+  // passent le chapô à l'encre principale ne le font que sur la page.
+  const onPage = color === ds.colors.inkMuted;
+  const cramped = ctx.options.multiPage === false;
+  const base: Record<string, string | number | undefined> = {
+    margin: `${snap(ds.spacing)}px 0 0`,
+    'font-size': `${ds.typeScale.lg}px`,
     'line-height': 1.4,
     // `52ch` plutôt que `150mm` : la borne suit la taille du texte au lieu de
-    // la contredire. Un chapô composé plus grand tient alors le même nombre de
-    // signes par ligne, ce qui est ce qu'une mesure doit garantir.
+    // la contredire.
     'max-width': MEASURE.lede,
     color,
     'text-wrap': 'pretty',
-  })}>${esc(content.lede)}</p>`;
+  };
+  const variant: Record<string, string | number | undefined> =
+    ctx.family.lede === 'large'
+      ? {
+          'font-family': displayFont(ds),
+          'font-size': `${cramped ? ds.typeScale.lg : ds.typeScale.xl}px`,
+          'line-height': 1.3,
+          'max-width': '44ch',
+          color: onPage ? ds.colors.ink : color,
+        }
+      : ctx.family.lede === 'italic'
+        ? { 'font-family': displayFont(ds), 'font-style': 'italic' }
+        : ctx.family.lede === 'ruled'
+          ? {
+              'border-left': `3px solid ${onPage ? ctx.roles.highlight : color}`,
+              'padding-left': `${snap(ds.spacing)}px`,
+            }
+          : ctx.family.lede === 'caps'
+            ? {
+                'font-size': `${ds.typeScale.sm}px`,
+                'font-weight': 600,
+                'text-transform': 'uppercase',
+                'letter-spacing': '0.06em',
+                'line-height': 1.55,
+                'max-width': '64ch',
+              }
+            : {};
+  return `<p${style({ ...base, ...variant })}>${esc(content.lede)}</p>`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -593,4 +629,48 @@ export function readableOn(ds: DocumentDesignSystem, background: string): string
   return candidates.reduce((best, hex) =>
     contrastRatio(hex, background) > contrastRatio(best, background) ? hex : best
   );
+}
+
+/**
+ * Police et graisse des CHIFFRES mis en valeur, selon la famille.
+ *
+ * Tous les chiffres-clés, dates et numéros sortaient en titrage gras : c'était,
+ * d'une famille à l'autre, le détail commun qu'on reconnaît sans le nommer.
+ */
+export function figureFont(ctx: Ctx, weight: number): Record<string, string | number> {
+  const { ds } = ctx;
+  switch (ctx.family.figureFace) {
+    case 'light':
+      return { 'font-family': `'${ds.fonts.body}', ${BODY_FALLBACK}`, 'font-weight': 300, 'letter-spacing': '-0.03em' };
+    case 'italic':
+      return {
+        'font-family': displayFont(ds),
+        'font-style': 'italic',
+        'font-weight': Math.min(weight, 600),
+        'letter-spacing': '-0.01em',
+      };
+    case 'medium':
+      return { 'font-family': `'${ds.fonts.body}', ${BODY_FALLBACK}`, 'font-weight': 600, 'letter-spacing': '-0.01em' };
+    case 'display':
+    default:
+      return { 'font-family': displayFont(ds), 'font-weight': weight, 'letter-spacing': '-0.02em' };
+  }
+}
+
+/**
+ * Chasse moyenne d'un signe de chiffre, en em, pour la police de la famille.
+ * Le titrage gras est le plus large ; le texte léger, le plus étroit.
+ */
+export function figureAdvance(ctx: Ctx): number {
+  switch (ctx.family.figureFace) {
+    case 'light':
+      return 0.58;
+    case 'medium':
+      return 0.62;
+    case 'italic':
+      return 0.64;
+    case 'display':
+    default:
+      return 0.7;
+  }
 }

@@ -18,17 +18,20 @@
 
 import { Block, SectionContent } from './sectionContent';
 import { HeaderTreatment, LayoutFamily } from './layoutFamilies';
-import { snap } from './layoutGrid';
+import { snap, TITLE_WRAP } from './layoutGrid';
 import {
   atomic,
   cornerRadius,
   Ctx,
   displayFont,
   esc,
+  figureFont,
   figureInk,
+  fitTitleSize,
   formatIndex,
   labelStyle,
   MM_TO_PX,
+  ORPHAN_WORDS,
   readableOn,
   renderKicker,
   renderLede,
@@ -108,6 +111,16 @@ const clip = (text: string, max: number): string => {
   const space = cut.lastIndexOf(' ');
   return `${(space > max * 0.5 ? cut.slice(0, space) : cut).trimEnd()}…`;
 };
+
+/** Soude les mots courts au mot qui précède, comme `renderTitle`. */
+const solder = (title: string): string =>
+  title
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word, i) => (i > 0 && ORPHAN_WORDS.test(word) ? `\u00A0${esc(word)}` : `${i > 0 ? ' ' : ''}${esc(word)}`))
+    .join('')
+    .trim();
 
 /**
  * L'en-tête de section dessiné par la famille. `null` pour `archetype` : c'est
@@ -313,9 +326,156 @@ export function renderFamilyHeader(
 </div>`;
     }
 
+    // HIÉRARCHIE INVERSÉE : le titre devient une étiquette, le chapô l'énoncé
+    // composé en grand. C'est la manchette d'un magazine — on lit d'abord ce que
+    // la section affirme, puis de quoi elle parle. Sans chapô, rien à affirmer.
+    case 'lede-led': {
+      if (!content.lede) return renderFamilyHeader(content, ctx, 'underscored');
+      const statementPx = fitTitleSize(
+        content.lede,
+        cramped ? ds.typeScale.xl : ds.typeScale['2xl'],
+        ctx.headerWidthPx,
+        0,
+        ctx.titleHeightPx,
+        1.2
+      );
+      const kicker = content.kicker ? clip(content.kicker, 32) : '';
+      const soft = ruleLine(ctx, 'soft');
+      return `<div${style({
+        'margin-bottom': after,
+        'padding-bottom': `${snap(ds.spacing)}px`,
+        'border-bottom': soft === 'none' ? undefined : soft,
+      })}>
+  <div${style({ display: 'flex', 'align-items': 'baseline', 'flex-wrap': 'wrap', gap: `${snap(ds.spacing * 0.5)}px ${snap(ds.spacing)}px`, 'margin-bottom': `${snap(ds.spacing * 0.75)}px` })}>
+    <h1${style({ margin: 0, ...labelStyle(ctx, roles.highlight), 'font-size': `${ds.typeScale.sm}px` })}>${solder(content.title)}</h1>
+    ${kicker ? `<span${style(labelStyle(ctx, muted))}>${esc(kicker)}</span>` : ''}
+  </div>
+  <p${style({
+        margin: 0,
+        'font-family': displayFont(ds),
+        'font-size': `${statementPx}px`,
+        'font-weight': 500,
+        'line-height': 1.2,
+        'letter-spacing': '-0.01em',
+        color: roles.heading,
+        'max-width': cramped ? undefined : '34ch',
+        ...TITLE_WRAP,
+      })}>${esc(content.lede)}</p>
+</div>`;
+    }
+
+    // Le titre centré entre deux doubles filets : la page de garde d'un recueil.
+    case 'double-rule': {
+      const line = `3px double ${ds.colors.ink}`;
+      const inner = withWidth(ctx, ctx.headerWidthPx * 0.9);
+      return `<div${style({ 'text-align': 'center', 'margin-bottom': after })}>
+  ${content.kicker ? `<div${style({ ...labelStyle(ctx, roles.highlight), 'margin-bottom': `${snap(ds.spacing * 0.5)}px` })}>${esc(clip(content.kicker, 40))}</div>` : ''}
+  <div${style({ 'border-top': line, 'border-bottom': line, padding: `${snap(ds.spacing)}px 0` })}>${renderTitle(content, inner, roles.heading)}</div>
+  ${content.lede ? `<div${style({ display: 'flex', 'justify-content': 'center' })}>${renderLede(content, inner, muted)}</div>` : ''}
+</div>`;
+    }
+
+    // Le sur-titre en ONGLET posé sur un filet de couleur, comme l'intercalaire
+    // d'un classeur. Sans sur-titre, l'onglet porte le numéro de section.
+    case 'ribbon': {
+      const ground = roles.highlight;
+      const ink = readableOn(ds, ground);
+      const radius = cornerRadius(ctx);
+      return `<div${style({ 'margin-bottom': after })}>
+  <div${style({ 'border-bottom': `2px solid ${ground}`, 'margin-bottom': `${snap(ds.spacing)}px` })}>
+    <span${style({
+        ...labelStyle(ctx, ink),
+        display: 'inline-block',
+        'background-color': ground,
+        color: ink,
+        padding: `${snap(ds.spacing * 0.35)}px ${snap(ds.spacing * 0.9)}px`,
+        'border-radius': `${radius}px ${radius}px 0 0`,
+      })}>${esc(content.kicker ? clip(content.kicker, 32) : index)}</span>
+  </div>
+  ${renderTitle(content, ctx, roles.heading)}
+  ${renderLede(content, ctx, muted)}
+</div>`;
+    }
+
     case 'archetype':
     default:
       return null;
+  }
+}
+
+/** Hauteur réservée en tête de chaque page au titre courant, en mm. */
+export const RUNNING_HEAD_MM = 9;
+
+/**
+ * Le TITRE COURANT d'une famille `running-head` : marque à gauche, numéro et
+ * titre de section à droite, en tête de page.
+ *
+ * En position absolue, enfant direct de la racine : le paginateur le reproduit
+ * sur CHAQUE page qu'il construit, comme le titre courant d'un livre. La racine
+ * lui réserve sa hauteur dans son padding haut.
+ */
+export function runningHead(content: SectionContent, ctx: Ctx): string {
+  const { ds, options } = ctx;
+  const label = labelStyle(ctx, ds.colors.inkMuted);
+  return `<div${style({
+    position: 'absolute',
+    top: `${Math.max(3, Math.round(ctx.padMm * 0.45))}mm`,
+    left: `${ctx.padMm}mm`,
+    right: `${ctx.padMm}mm`,
+    display: 'flex',
+    'align-items': 'baseline',
+    'justify-content': 'space-between',
+    gap: `${snap(ds.spacing)}px`,
+    'padding-bottom': '3px',
+    'border-bottom': `1px solid ${ds.colors.rule}`,
+  })}>
+  <span${style({ ...label, 'white-space': 'nowrap' })}>${esc(options.brandName ?? '')}</span>
+  <span${style({ ...label, 'white-space': 'nowrap', overflow: 'hidden', 'text-overflow': 'ellipsis', 'min-width': '0' })}>${esc(formatIndex(ctx, options.index ?? 1))} · ${esc(content.title)}</span>
+</div>`;
+}
+
+/**
+ * Le NUMÉRO D'ANGLE d'une famille `corner-number` : le numéro de section,
+ * composé en grand dans la marge basse, à droite. Absolu, donc répété sur
+ * chaque page ; il tient entièrement dans le padding bas de la racine.
+ */
+export function cornerNumber(ctx: Ctx): string {
+  const { ds } = ctx;
+  return `<div${style({
+    position: 'absolute',
+    right: `${ctx.padMm}mm`,
+    bottom: `${Math.max(2, Math.round(ctx.padMm * 0.22))}mm`,
+    ...figureFont(ctx, 800),
+    'font-size': `${ds.typeScale['2xl']}px`,
+    'line-height': 1,
+    color: figureInk(ctx),
+  })} aria-hidden="true">${esc(formatIndex(ctx, ctx.options.index ?? 1))}</div>`;
+}
+
+/**
+ * Le BORD DE PAGE de la famille : ce qui signe une page avant tout contenu.
+ *
+ * Aucun n'est un ornement posé pour remplir : une barre de couleur ou un cadre
+ * sont les repères d'un document relié — on reconnaît ses pages sur la tranche.
+ * Absolus, ils se répètent sur chaque page. Le cadre cède la place à celui d'un
+ * archétype qui en dessine déjà un, la barre latérale au bandeau du rail.
+ */
+export function edgeDecoration(ctx: Ctx, layout: string, hasBackdrop: boolean): string {
+  const { ds } = ctx;
+  switch (ctx.family.edge) {
+    case 'top-bar':
+      return `<div${style({ position: 'absolute', left: 0, right: 0, top: 0, height: '3mm', 'background-color': ds.colors.primary })}></div>`;
+    case 'side-bar':
+      return layout === 'rail'
+        ? ''
+        : `<div${style({ position: 'absolute', left: 0, top: 0, bottom: 0, width: '4mm', 'background-color': ds.colors.primary })}></div>`;
+    case 'frame':
+      return hasBackdrop || layout === 'rail'
+        ? ''
+        : `<div${style({ position: 'absolute', inset: '5mm', border: `1px solid ${ds.colors.rule}`, 'pointer-events': 'none' })}></div>`;
+    case 'none':
+    default:
+      return '';
   }
 }
 
@@ -451,6 +611,22 @@ export function renderFolio(content: SectionContent, ctx: Ctx, cramped: boolean,
   ${logo(ctx.landscape ? '7mm' : '8mm') || `<span>${esc(brandName)}</span>`}
   ${titleLabel(ds.colors.ink)}
 </div>`;
+
+    // Le titre courant tient lieu de pied : il est posé en tête de chaque page
+    // (`runningHead`), et la page ne se ferme sur rien.
+    case 'running-head':
+      return '';
+
+    // Le numéro est composé dans l'angle (`cornerNumber`) : le pied ne porte
+    // plus que la marque.
+    case 'corner-number':
+      return `<div${style({
+        display: 'flex',
+        'align-items': 'center',
+        'margin-top': top,
+        'font-size': `${ds.typeScale.xs}px`,
+        color: muted,
+      })}${atomic}>${logo(ctx.landscape ? '6mm' : '7mm') || `<span${style(labelStyle(ctx, muted))}>${esc(brandName)}</span>`}</div>`;
 
     case 'rule-split':
     default:

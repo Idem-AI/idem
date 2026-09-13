@@ -76,7 +76,13 @@ export type HeaderTreatment =
   /** Sur-titre tourné dans une colonne de marge, titre et chapô à côté. */
   | 'margin-kicker'
   /** Ligne d'index « 02 ——— SUR-TITRE », puis le titre. */
-  | 'numbered-rule';
+  | 'numbered-rule'
+  /** Hiérarchie inversée : le titre en étiquette, le chapô composé en grand. */
+  | 'lede-led'
+  /** Titre centré entre deux doubles filets. */
+  | 'double-rule'
+  /** Sur-titre en onglet posé sur un filet de couleur. */
+  | 'ribbon';
 
 /** Pied de page. */
 export type FolioTreatment =
@@ -91,7 +97,11 @@ export type FolioTreatment =
   /** Le logo seul, calé à droite. */
   | 'mark-only'
   /** Bande de fond teinté pleine largeur. */
-  | 'tinted-strip';
+  | 'tinted-strip'
+  /** Aucun pied : un titre courant en tête de CHAQUE page. */
+  | 'running-head'
+  /** Numéro de section composé en grand dans l'angle bas de la page. */
+  | 'corner-number';
 
 /** Disposition du flux en portrait paginé. */
 export type BodyTreatment =
@@ -122,7 +132,13 @@ export type MetricsTreatment =
   /** Libellé d'abord, puis la valeur soulignée. */
   | 'label-first'
   /** Valeur en grand dans une colonne gauche, libellé à côté, ligne par ligne. */
-  | 'stacked-rows';
+  | 'stacked-rows'
+  /** Les chiffres dits en une phrase, valeurs en relief. */
+  | 'inline-sentence'
+  /** Chaque valeur dans un cartouche tracé, libellé dessous. */
+  | 'stamped'
+  /** Lignes décalées en escalier. */
+  | 'staircase';
 
 export type TableTreatment =
   /** En-tête plein, lignes zébrées — le comportement historique. */
@@ -140,7 +156,13 @@ export type TableTreatment =
   /** En-tête en négatif (encre en fond). */
   | 'inverted-head'
   /** Grand interlignage, un seul filet en pied. */
-  | 'airy';
+  | 'airy'
+  /** Colonnes alternées sur fond teinté. */
+  | 'striped-columns'
+  /** Lignes et colonnes transposées (petits tableaux). */
+  | 'transposed'
+  /** Tableau dans un cadre, en-tête teinté, légende en pied de cadre. */
+  | 'framed';
 
 export type CardsTreatment =
   /** Panneaux teintés, le premier en accent — le comportement historique. */
@@ -158,7 +180,15 @@ export type CardsTreatment =
   /** Définitions : titre à gauche, texte à droite. */
   | 'definitions'
   /** Titre en cartouche, texte dessous. */
-  | 'tagged';
+  | 'tagged'
+  /** Bandes pleine largeur alternées. */
+  | 'stacked-bands'
+  /** Deux colonnes décalées en hauteur. */
+  | 'staggered'
+  /** Lettrine carrée de l'initiale du titre, texte à côté. */
+  | 'monogram'
+  /** Boîtes à grand numéro d'angle. */
+  | 'corner-number';
 
 export type TimelineTreatment =
   /** Rail vertical à gauche — le comportement historique. */
@@ -172,7 +202,13 @@ export type TimelineTreatment =
   /** Titre, points de conduite, date. */
   | 'leaders'
   /** Grille de grandes dates. */
-  | 'big-dates';
+  | 'big-dates'
+  /** Épine centrale, étapes alternées à gauche et à droite. */
+  | 'spine'
+  /** Étapes numérotées reliées par une ligne. */
+  | 'numbered-circles'
+  /** Dates en chevrons enchaînés. */
+  | 'chevrons';
 
 export type QuoteTreatment =
   /** Panneau à liseré — le comportement historique. */
@@ -186,7 +222,13 @@ export type QuoteTreatment =
   /** Guillemet dans une colonne de marge. */
   | 'hanging'
   /** Capitales sous un filet épais. */
-  | 'caps';
+  | 'caps'
+  /** L'auteur en grand à gauche, la parole à droite. */
+  | 'split'
+  /** Encadrée de deux équerres. */
+  | 'brackets'
+  /** Texte surligné au marqueur. */
+  | 'highlight';
 
 export type AssumptionTreatment =
   /** Entre deux filets — le comportement historique. */
@@ -198,7 +240,11 @@ export type AssumptionTreatment =
   /** Libellé en gras dans la phrase. */
   | 'inline'
   /** Liseré d'accent. */
-  | 'edge';
+  | 'edge'
+  /** Libellé en onglet sur un cadre. */
+  | 'tab'
+  /** Note de bas de bloc, sous un filet court. */
+  | 'footnote';
 
 export type ProseTreatment =
   /** Mesure bornée — le comportement historique. */
@@ -212,7 +258,11 @@ export type ProseTreatment =
   /** Alinéas en retrait, sans blanc entre paragraphes. */
   | 'indented'
   /** Corps d'essai : plus grand, plus aéré, mesure plus courte. */
-  | 'essay';
+  | 'essay'
+  /** Premier paragraphe de la section composé plus grand. */
+  | 'large-lead'
+  /** Paragraphes séparés par un filet court. */
+  | 'rule-separated';
 
 export type ChartTreatment =
   /** Clé de lecture dessous, sur un liseré — le comportement historique. */
@@ -222,7 +272,11 @@ export type ChartTreatment =
   /** Graphique dans un cadre. */
   | 'boxed'
   /** Rien autour : clé de lecture en légende discrète. */
-  | 'bare';
+  | 'bare'
+  /** Clé de lecture en colonne à côté du tracé. */
+  | 'side-note'
+  /** Légende numérotée « Fig. 2.1 ». */
+  | 'figure-caption';
 
 /** Petites étiquettes : sur-titres, en-têtes de tableau, notes. */
 export type LabelTone = 'caps' | 'small-caps' | 'italic' | 'bold' | 'underlined';
@@ -254,6 +308,53 @@ export type TitleScale =
   | 'moderate'
   /** Plafonné au degré `xl` : le titre annonce, il ne s'impose pas. */
   | 'discreet';
+
+/** Composition du chapô sous le titre — il était gris, au même corps, partout. */
+export type LedeTreatment =
+  | 'muted'
+  /** Grand, en police de titrage, à l'encre. */
+  | 'large'
+  /** Italique de titrage. */
+  | 'italic'
+  /** Sur un liseré d'accent. */
+  | 'ruled'
+  /** Petites capitales espacées. */
+  | 'caps';
+
+/** Dessin des chiffres mis en valeur — ils sortaient tous en titrage gras. */
+export type FigureFace =
+  /** Police de titrage, graisse forte. */
+  | 'display'
+  /** Police de texte, graisse légère. */
+  | 'light'
+  /** Italique de titrage. */
+  | 'italic'
+  /** Police de texte, demi-graisse. */
+  | 'medium';
+
+/** Encre des graphiques — ils étaient identiques dans toutes les familles. */
+export type ChartInk =
+  /** Couleurs de la charte, séries contrastées. */
+  | 'palette'
+  /** Nuances de la seule couleur primaire. */
+  | 'monochrome'
+  /** La première série en accent, les autres en gris. */
+  | 'focus'
+  /** Barres tracées au trait. */
+  | 'outline';
+
+/** Écart entre deux blocs d'un document paginé. */
+export type Rhythm = 'standard' | 'airy' | 'tight';
+
+/** Bord de page : ce qui signe la page avant tout contenu. */
+export type EdgeTreatment =
+  | 'none'
+  /** Barre de couleur en haut de chaque page. */
+  | 'top-bar'
+  /** Barre de couleur le long du bord gauche. */
+  | 'side-bar'
+  /** Filet de cadre fin tout autour. */
+  | 'frame';
 
 export interface LayoutFamily {
   id: string;
@@ -290,6 +391,11 @@ export interface LayoutFamily {
   figures: FigureInk;
   corners: CornerTone;
   titleScale: TitleScale;
+  lede: LedeTreatment;
+  figureFace: FigureFace;
+  chartInk: ChartInk;
+  rhythm: Rhythm;
+  edge: EdgeTreatment;
   /** Présentation du nuancier de charte : pastilles, gamme continue, pile. */
   swatches: 0 | 1 | 2;
 }
@@ -321,10 +427,11 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
     'Cultural magazine: small-caps labels, a drop cap on the first paragraph, figures in rule-divided columns, booktabs tables, roman numerals.',
     ['editorial', 'victorian', 'surreal', 'collage-art', 'bohemian', 'handwritten'],
     {
-      headers: ['underscored', 'centered-rule'], folio: 'centered', body: 'full',
+      headers: ['underscored', 'lede-led'], folio: 'centered', body: 'full',
       metrics: 'divided', table: 'booktabs', cards: 'ruled-columns', timeline: 'date-column',
-      quote: 'display', assumption: 'margin', prose: 'drop-cap', chart: 'headline',
+      quote: 'split', assumption: 'margin', prose: 'drop-cap', chart: 'headline',
       label: 'small-caps', numbering: 'roman', rules: 'hairline', figures: 'ink', corners: 'square', titleScale: 'mood', swatches: 0,
+      lede: 'italic', figureFace: 'display', chartInk: 'palette', rhythm: 'airy', edge: 'none',
     }
   ),
   family(
@@ -336,8 +443,9 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
     {
       headers: ['hanging-number'], folio: 'heavy-bar', body: 'indexed',
       metrics: 'ledger', table: 'gridded', cards: 'definitions', timeline: 'leaders',
-      quote: 'panel', assumption: 'boxed', prose: 'plain', chart: 'boxed',
+      quote: 'panel', assumption: 'boxed', prose: 'plain', chart: 'side-note',
       label: 'bold', numbering: 'dotted', rules: 'hairline', figures: 'ink', corners: 'square', titleScale: 'discreet', swatches: 2,
+      lede: 'muted', figureFace: 'medium', chartInk: 'monochrome', rhythm: 'tight', edge: 'top-bar',
     }
   ),
   family(
@@ -351,6 +459,7 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
       metrics: 'band', table: 'inverted-head', cards: 'inverted-lead', timeline: 'big-dates',
       quote: 'inverted', assumption: 'edge', prose: 'essay', chart: 'bare',
       label: 'caps', numbering: 'padded', rules: 'heavy', figures: 'accent', corners: 'style', titleScale: 'mood', swatches: 1,
+      lede: 'large', figureFace: 'display', chartInk: 'focus', rhythm: 'standard', edge: 'none',
     }
   ),
   family(
@@ -364,6 +473,7 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
       metrics: 'stacked-rows', table: 'accent-head', cards: 'numbered', timeline: 'steps',
       quote: 'caps', assumption: 'inline', prose: 'plain', chart: 'keyline',
       label: 'caps', numbering: 'padded', rules: 'heavy', figures: 'ink', corners: 'square', titleScale: 'mood', swatches: 2,
+      lede: 'caps', figureFace: 'medium', chartInk: 'monochrome', rhythm: 'standard', edge: 'side-bar',
     }
   ),
   family(
@@ -377,6 +487,7 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
       metrics: 'label-first', table: 'airy', cards: 'edge-stack', timeline: 'rail',
       quote: 'hanging', assumption: 'edge', prose: 'indented', chart: 'bare',
       label: 'italic', numbering: 'plain', rules: 'dotted', figures: 'accent', corners: 'style', titleScale: 'moderate', swatches: 0,
+      lede: 'italic', figureFace: 'italic', chartInk: 'outline', rhythm: 'airy', edge: 'frame',
     }
   ),
   family(
@@ -390,6 +501,7 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
       metrics: 'tiles', table: 'first-column', cards: 'outlined', timeline: 'boxes',
       quote: 'centered', assumption: 'boxed', prose: 'lead-in', chart: 'boxed',
       label: 'small-caps', numbering: 'section', rules: 'double', figures: 'ink', corners: 'square', titleScale: 'moderate', swatches: 2,
+      lede: 'ruled', figureFace: 'display', chartInk: 'monochrome', rhythm: 'standard', edge: 'frame',
     }
   ),
   family(
@@ -403,6 +515,7 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
       metrics: 'tiles', table: 'row-cards', cards: 'tagged', timeline: 'steps',
       quote: 'panel', assumption: 'boxed', prose: 'plain', chart: 'boxed',
       label: 'bold', numbering: 'bracketed', rules: 'none', figures: 'accent', corners: 'style', titleScale: 'moderate', swatches: 1,
+      lede: 'muted', figureFace: 'medium', chartInk: 'focus', rhythm: 'tight', edge: 'top-bar',
     }
   ),
   family(
@@ -414,8 +527,9 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
     {
       headers: ['numbered-rule', 'underscored'], folio: 'rule-split', body: 'full',
       metrics: 'hero-list', table: 'booktabs', cards: 'definitions', timeline: 'leaders',
-      quote: 'caps', assumption: 'ruled', prose: 'columns', chart: 'headline',
+      quote: 'caps', assumption: 'ruled', prose: 'columns', chart: 'figure-caption',
       label: 'caps', numbering: 'section', rules: 'double', figures: 'ink', corners: 'square', titleScale: 'moderate', swatches: 2,
+      lede: 'caps', figureFace: 'display', chartInk: 'palette', rhythm: 'tight', edge: 'none',
     }
   ),
   family(
@@ -425,10 +539,11 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
     'Manifesto: chapter-opener headers, an offset column, one hero figure, monumental quotes, bold lead-ins.',
     ['graffiti', 'maximalism', 'pop-art', 'cyberpunk', 'surreal', 'y2k', 'collage-art'],
     {
-      headers: ['opener', 'bleed-band'], folio: 'mark-only', body: 'offset',
+      headers: ['opener', 'bleed-band'], folio: 'corner-number', body: 'offset',
       metrics: 'hero-list', table: 'inverted-head', cards: 'numbered', timeline: 'big-dates',
       quote: 'display', assumption: 'inline', prose: 'lead-in', chart: 'headline',
       label: 'bold', numbering: 'padded', rules: 'heavy', figures: 'accent', corners: 'square', titleScale: 'mood', swatches: 1,
+      lede: 'large', figureFace: 'display', chartInk: 'focus', rhythm: 'airy', edge: 'side-bar',
     }
   ),
   family(
@@ -440,8 +555,9 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
     {
       headers: ['centered-rule', 'margin-kicker'], folio: 'mark-only', body: 'narrow',
       metrics: 'divided', table: 'first-column', cards: 'definitions', timeline: 'date-column',
-      quote: 'centered', assumption: 'inline', prose: 'essay', chart: 'bare',
+      quote: 'centered', assumption: 'inline', prose: 'large-lead', chart: 'bare',
       label: 'italic', numbering: 'plain', rules: 'none', figures: 'ink', corners: 'square', titleScale: 'moderate', swatches: 0,
+      lede: 'italic', figureFace: 'light', chartInk: 'monochrome', rhythm: 'airy', edge: 'none',
     }
   ),
   family(
@@ -453,8 +569,9 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
     {
       headers: ['boxed', 'split-lede'], folio: 'tinted-strip', body: 'paired',
       metrics: 'label-first', table: 'gridded', cards: 'panels', timeline: 'boxes',
-      quote: 'hanging', assumption: 'margin', prose: 'lead-in', chart: 'keyline',
+      quote: 'hanging', assumption: 'tab', prose: 'lead-in', chart: 'keyline',
       label: 'underlined', numbering: 'bracketed', rules: 'hairline', figures: 'accent', corners: 'style', titleScale: 'moderate', swatches: 0,
+      lede: 'ruled', figureFace: 'medium', chartInk: 'palette', rhythm: 'standard', edge: 'top-bar',
     }
   ),
   family(
@@ -468,6 +585,7 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
       metrics: 'stacked-rows', table: 'accent-head', cards: 'outlined', timeline: 'steps',
       quote: 'hanging', assumption: 'edge', prose: 'columns', chart: 'headline',
       label: 'underlined', numbering: 'bracketed', rules: 'dotted', figures: 'ink', corners: 'square', titleScale: 'discreet', swatches: 1,
+      lede: 'caps', figureFace: 'medium', chartInk: 'outline', rhythm: 'tight', edge: 'side-bar',
     }
   ),
   family(
@@ -481,6 +599,7 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
       metrics: 'ruled-row', table: 'first-column', cards: 'panels', timeline: 'big-dates',
       quote: 'display', assumption: 'ruled', prose: 'lead-in', chart: 'keyline',
       label: 'small-caps', numbering: 'padded', rules: 'hairline', figures: 'accent', corners: 'style', titleScale: 'mood', swatches: 1,
+      lede: 'large', figureFace: 'italic', chartInk: 'palette', rhythm: 'airy', edge: 'frame',
     }
   ),
   family(
@@ -494,6 +613,7 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
       metrics: 'band', table: 'airy', cards: 'numbered', timeline: 'leaders',
       quote: 'centered', assumption: 'inline', prose: 'indented', chart: 'bare',
       label: 'caps', numbering: 'plain', rules: 'none', figures: 'accent', corners: 'style', titleScale: 'moderate', swatches: 0,
+      lede: 'italic', figureFace: 'light', chartInk: 'focus', rhythm: 'standard', edge: 'top-bar',
     }
   ),
   family(
@@ -504,9 +624,10 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
     ['graffiti', 'collage-art', 'pop-art', 'y2k', 'pixel-art', 'surreal', 'maximalism', 'vector-art'],
     {
       headers: ['margin-kicker', 'bleed-band'], folio: 'heavy-bar', body: 'paired',
-      metrics: 'label-first', table: 'inverted-head', cards: 'tagged', timeline: 'boxes',
+      metrics: 'stamped', table: 'inverted-head', cards: 'tagged', timeline: 'boxes',
       quote: 'inverted', assumption: 'edge', prose: 'drop-cap', chart: 'bare',
       label: 'underlined', numbering: 'bracketed', rules: 'dotted', figures: 'accent', corners: 'square', titleScale: 'mood', swatches: 1,
+      lede: 'caps', figureFace: 'display', chartInk: 'outline', rhythm: 'tight', edge: 'frame',
     }
   ),
   family(
@@ -518,8 +639,9 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
     {
       headers: ['numbered-rule'], folio: 'centered', body: 'narrow',
       metrics: 'ledger', table: 'booktabs', cards: 'outlined', timeline: 'leaders',
-      quote: 'hanging', assumption: 'ruled', prose: 'indented', chart: 'keyline',
+      quote: 'hanging', assumption: 'footnote', prose: 'indented', chart: 'keyline',
       label: 'small-caps', numbering: 'roman', rules: 'double', figures: 'ink', corners: 'square', titleScale: 'discreet', swatches: 0,
+      lede: 'muted', figureFace: 'italic', chartInk: 'monochrome', rhythm: 'standard', edge: 'frame',
     }
   ),
   family(
@@ -531,8 +653,9 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
     {
       headers: ['numbered-rule'], folio: 'mark-only', body: 'indexed',
       metrics: 'stacked-rows', table: 'accent-head', cards: 'tagged', timeline: 'steps',
-      quote: 'caps', assumption: 'inline', prose: 'columns', chart: 'bare',
+      quote: 'caps', assumption: 'footnote', prose: 'columns', chart: 'bare',
       label: 'underlined', numbering: 'bracketed', rules: 'dotted', figures: 'accent', corners: 'square', titleScale: 'discreet', swatches: 0,
+      lede: 'caps', figureFace: 'light', chartInk: 'outline', rhythm: 'tight', edge: 'top-bar',
     }
   ),
   family(
@@ -543,9 +666,10 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
     ['clay', 'glassmorphism', 'aurora', 'vector-art', 'bohemian'],
     {
       headers: ['split-lede'], folio: 'tinted-strip', body: 'full',
-      metrics: 'label-first', table: 'airy', cards: 'panels', timeline: 'boxes',
+      metrics: 'label-first', table: 'airy', cards: 'monogram', timeline: 'boxes',
       quote: 'display', assumption: 'edge', prose: 'essay', chart: 'headline',
       label: 'italic', numbering: 'plain', rules: 'none', figures: 'accent', corners: 'style', titleScale: 'mood', swatches: 2,
+      lede: 'large', figureFace: 'light', chartInk: 'palette', rhythm: 'airy', edge: 'none',
     }
   ),
   family(
@@ -559,6 +683,7 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
       metrics: 'divided', table: 'airy', cards: 'edge-stack', timeline: 'rail',
       quote: 'centered', assumption: 'margin', prose: 'plain', chart: 'keyline',
       label: 'italic', numbering: 'dotted', rules: 'hairline', figures: 'ink', corners: 'style', titleScale: 'discreet', swatches: 0,
+      lede: 'ruled', figureFace: 'italic', chartInk: 'outline', rhythm: 'standard', edge: 'side-bar',
     }
   ),
   family(
@@ -569,9 +694,10 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
     ['victorian', 'retro', 'bohemian', 'handwritten'],
     {
       headers: ['boxed', 'numbered-rule'], folio: 'centered', body: 'paired',
-      metrics: 'ledger', table: 'first-column', cards: 'definitions', timeline: 'big-dates',
+      metrics: 'ledger', table: 'striped-columns', cards: 'definitions', timeline: 'big-dates',
       quote: 'caps', assumption: 'ruled', prose: 'drop-cap', chart: 'boxed',
       label: 'small-caps', numbering: 'roman', rules: 'double', figures: 'accent', corners: 'square', titleScale: 'mood', swatches: 1,
+      lede: 'italic', figureFace: 'display', chartInk: 'monochrome', rhythm: 'standard', edge: 'frame',
     }
   ),
   family(
@@ -581,10 +707,11 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
     'Wayfinding system: underscored titles hanging from the page edge, an offset column, stacked figure rows, definition lists, heavy rules, capitals everywhere.',
     ['swiss', 'pop-art', 'vector-art', 'graffiti', 'futuristic', 'maximalism', 'cyberpunk'],
     {
-      headers: ['underscored'], folio: 'heavy-bar', body: 'offset',
+      headers: ['underscored'], folio: 'running-head', body: 'offset',
       metrics: 'stacked-rows', table: 'gridded', cards: 'definitions', timeline: 'leaders',
       quote: 'hanging', assumption: 'boxed', prose: 'columns', chart: 'headline',
       label: 'caps', numbering: 'dotted', rules: 'heavy', figures: 'ink', corners: 'square', titleScale: 'mood', swatches: 0,
+      lede: 'caps', figureFace: 'medium', chartInk: 'focus', rhythm: 'standard', edge: 'top-bar',
     }
   ),
   family(
@@ -598,6 +725,7 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
       metrics: 'label-first', table: 'airy', cards: 'numbered', timeline: 'rail',
       quote: 'display', assumption: 'inline', prose: 'indented', chart: 'headline',
       label: 'italic', numbering: 'section', rules: 'hairline', figures: 'ink', corners: 'style', titleScale: 'moderate', swatches: 0,
+      lede: 'italic', figureFace: 'light', chartInk: 'palette', rhythm: 'airy', edge: 'none',
     }
   ),
   family(
@@ -607,10 +735,11 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
     'Showcase: split or framed headers, one hero figure, an inverted lead card, detached table rows, no rules.',
     ['glassmorphism', 'aurora', 'y2k', 'clay', 'pop-art', 'maximalism'],
     {
-      headers: ['split-lede', 'boxed'], folio: 'mark-only', body: 'full',
+      headers: ['lede-led', 'boxed'], folio: 'mark-only', body: 'full',
       metrics: 'hero-list', table: 'row-cards', cards: 'inverted-lead', timeline: 'boxes',
       quote: 'inverted', assumption: 'boxed', prose: 'lead-in', chart: 'boxed',
       label: 'underlined', numbering: 'padded', rules: 'none', figures: 'accent', corners: 'style', titleScale: 'mood', swatches: 1,
+      lede: 'large', figureFace: 'light', chartInk: 'focus', rhythm: 'airy', edge: 'none',
     }
   ),
   family(
@@ -622,8 +751,9 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
     {
       headers: ['margin-kicker', 'underscored'], folio: 'mark-only', body: 'offset',
       metrics: 'divided', table: 'airy', cards: 'ruled-columns', timeline: 'leaders',
-      quote: 'centered', assumption: 'margin', prose: 'plain', chart: 'bare',
+      quote: 'brackets', assumption: 'margin', prose: 'plain', chart: 'bare',
       label: 'caps', numbering: 'plain', rules: 'hairline', figures: 'ink', corners: 'square', titleScale: 'discreet', swatches: 2,
+      lede: 'muted', figureFace: 'light', chartInk: 'outline', rhythm: 'airy', edge: 'frame',
     }
   ),
   family(
@@ -634,9 +764,10 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
     ['surreal', 'collage-art', 'maximalism', 'bohemian', 'aurora', 'handwritten'],
     {
       headers: ['opener'], folio: 'centered', body: 'paired',
-      metrics: 'band', table: 'first-column', cards: 'inverted-lead', timeline: 'date-column',
+      metrics: 'band', table: 'first-column', cards: 'inverted-lead', timeline: 'spine',
       quote: 'display', assumption: 'edge', prose: 'drop-cap', chart: 'headline',
       label: 'small-caps', numbering: 'section', rules: 'heavy', figures: 'accent', corners: 'style', titleScale: 'mood', swatches: 0,
+      lede: 'large', figureFace: 'italic', chartInk: 'palette', rhythm: 'airy', edge: 'side-bar',
     }
   ),
   family(
@@ -646,10 +777,11 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
     'Statement: indexed blocks, one hero figure, detached table rows, outlined cards, running text in two columns.',
     ['futuristic', 'glassmorphism', 'cyberpunk', 'clay', 'pixel-art'],
     {
-      headers: ['numbered-rule'], folio: 'tinted-strip', body: 'indexed',
+      headers: ['numbered-rule'], folio: 'running-head', body: 'indexed',
       metrics: 'hero-list', table: 'row-cards', cards: 'outlined', timeline: 'date-column',
       quote: 'panel', assumption: 'ruled', prose: 'columns', chart: 'keyline',
       label: 'bold', numbering: 'dotted', rules: 'dotted', figures: 'accent', corners: 'style', titleScale: 'discreet', swatches: 2,
+      lede: 'muted', figureFace: 'medium', chartInk: 'monochrome', rhythm: 'tight', edge: 'side-bar',
     }
   ),
   family(
@@ -660,9 +792,10 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
     ['victorian', 'swiss', 'graffiti', 'retro'],
     {
       headers: ['boxed'], folio: 'heavy-bar', body: 'narrow',
-      metrics: 'tiles', table: 'inverted-head', cards: 'definitions', timeline: 'steps',
+      metrics: 'tiles', table: 'framed', cards: 'definitions', timeline: 'steps',
       quote: 'hanging', assumption: 'boxed', prose: 'essay', chart: 'boxed',
       label: 'caps', numbering: 'roman', rules: 'heavy', figures: 'ink', corners: 'square', titleScale: 'mood', swatches: 1,
+      lede: 'ruled', figureFace: 'display', chartInk: 'outline', rhythm: 'standard', edge: 'frame',
     }
   ),
   family(
@@ -676,6 +809,7 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
       metrics: 'label-first', table: 'booktabs', cards: 'edge-stack', timeline: 'big-dates',
       quote: 'caps', assumption: 'margin', prose: 'lead-in', chart: 'bare',
       label: 'bold', numbering: 'section', rules: 'double', figures: 'accent', corners: 'square', titleScale: 'mood', swatches: 0,
+      lede: 'caps', figureFace: 'italic', chartInk: 'focus', rhythm: 'standard', edge: 'side-bar',
     }
   ),
   family(
@@ -689,6 +823,7 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
       metrics: 'ledger', table: 'gridded', cards: 'numbered', timeline: 'rail',
       quote: 'hanging', assumption: 'inline', prose: 'drop-cap', chart: 'keyline',
       label: 'italic', numbering: 'roman', rules: 'dotted', figures: 'accent', corners: 'style', titleScale: 'moderate', swatches: 2,
+      lede: 'italic', figureFace: 'italic', chartInk: 'monochrome', rhythm: 'airy', edge: 'frame',
     }
   ),
   family(
@@ -699,9 +834,10 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
     ['cyberpunk', 'pixel-art', 'futuristic', 'y2k', 'aurora'],
     {
       headers: ['archetype', 'split-lede'], folio: 'index-right', body: 'indexed',
-      metrics: 'tiles', table: 'accent-head', cards: 'numbered', timeline: 'leaders',
+      metrics: 'tiles', table: 'accent-head', cards: 'numbered', timeline: 'numbered-circles',
       quote: 'inverted', assumption: 'edge', prose: 'plain', chart: 'headline',
       label: 'underlined', numbering: 'bracketed', rules: 'heavy', figures: 'accent', corners: 'style', titleScale: 'moderate', swatches: 0,
+      lede: 'caps', figureFace: 'medium', chartInk: 'focus', rhythm: 'tight', edge: 'frame',
     }
   ),
   family(
@@ -715,6 +851,7 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
       metrics: 'hero-list', table: 'banded', cards: 'tagged', timeline: 'steps',
       quote: 'display', assumption: 'boxed', prose: 'lead-in', chart: 'bare',
       label: 'caps', numbering: 'plain', rules: 'hairline', figures: 'accent', corners: 'style', titleScale: 'mood', swatches: 2,
+      lede: 'large', figureFace: 'display', chartInk: 'palette', rhythm: 'standard', edge: 'top-bar',
     }
   ),
   family(
@@ -728,6 +865,7 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
       metrics: 'ruled-row', table: 'airy', cards: 'outlined', timeline: 'leaders',
       quote: 'display', assumption: 'boxed', prose: 'columns', chart: 'bare',
       label: 'small-caps', numbering: 'padded', rules: 'dotted', figures: 'accent', corners: 'square', titleScale: 'moderate', swatches: 1,
+      lede: 'ruled', figureFace: 'light', chartInk: 'monochrome', rhythm: 'tight', edge: 'none',
     }
   ),
   family(
@@ -741,6 +879,7 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
       metrics: 'stacked-rows', table: 'banded', cards: 'panels', timeline: 'big-dates',
       quote: 'hanging', assumption: 'edge', prose: 'plain', chart: 'boxed',
       label: 'italic', numbering: 'padded', rules: 'none', figures: 'accent', corners: 'style', titleScale: 'mood', swatches: 0,
+      lede: 'ruled', figureFace: 'light', chartInk: 'focus', rhythm: 'airy', edge: 'side-bar',
     }
   ),
   family(
@@ -752,8 +891,9 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
     {
       headers: ['hanging-number', 'boxed'], folio: 'rule-split', body: 'narrow',
       metrics: 'ledger', table: 'gridded', cards: 'outlined', timeline: 'boxes',
-      quote: 'caps', assumption: 'margin', prose: 'indented', chart: 'keyline',
+      quote: 'caps', assumption: 'margin', prose: 'indented', chart: 'figure-caption',
       label: 'underlined', numbering: 'dotted', rules: 'hairline', figures: 'ink', corners: 'square', titleScale: 'discreet', swatches: 1,
+      lede: 'muted', figureFace: 'medium', chartInk: 'outline', rhythm: 'tight', edge: 'none',
     }
   ),
   family(
@@ -767,6 +907,7 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
       metrics: 'ruled-row', table: 'accent-head', cards: 'edge-stack', timeline: 'rail',
       quote: 'display', assumption: 'ruled', prose: 'lead-in', chart: 'bare',
       label: 'bold', numbering: 'roman', rules: 'double', figures: 'ink', corners: 'style', titleScale: 'moderate', swatches: 2,
+      lede: 'ruled', figureFace: 'display', chartInk: 'palette', rhythm: 'standard', edge: 'top-bar',
     }
   ),
   family(
@@ -778,8 +919,345 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
     {
       headers: ['archetype'], folio: 'tinted-strip', body: 'paired',
       metrics: 'band', table: 'banded', cards: 'tagged', timeline: 'steps',
-      quote: 'display', assumption: 'edge', prose: 'essay', chart: 'headline',
+      quote: 'highlight', assumption: 'edge', prose: 'essay', chart: 'headline',
       label: 'bold', numbering: 'plain', rules: 'none', figures: 'accent', corners: 'style', titleScale: 'mood', swatches: 0,
+      lede: 'large', figureFace: 'light', chartInk: 'outline', rhythm: 'airy', edge: 'none',
+    }
+  ),
+  family(
+    'journal-de-bord',
+    'Journal de bord',
+    'Carnet de voyage d’entreprise : onglet de sur-titre, titre courant, bandes alternées, épine de frise.',
+    'Logbook: a ribbon tab above each title, a running head on every page, alternating full-width bands, a central-spine timeline, footnote assumptions.',
+    ['handwritten', 'bohemian', 'retro', 'collage-art', 'surreal'],
+    {
+      headers: ['ribbon'], folio: 'running-head', body: 'full',
+      metrics: 'label-first', table: 'striped-columns', cards: 'stacked-bands', timeline: 'spine',
+      quote: 'hanging', assumption: 'footnote', prose: 'plain', chart: 'figure-caption',
+      label: 'italic', numbering: 'plain', rules: 'dotted', figures: 'accent', corners: 'style', titleScale: 'moderate', swatches: 0,
+      lede: 'italic', figureFace: 'italic', chartInk: 'focus', rhythm: 'standard', edge: 'none',
+    }
+  ),
+  family(
+    'planisphere',
+    'Planisphère',
+    'Cartographie : titres entre doubles filets, chiffres en escalier, tableaux transposés, chevrons, cadre fin.',
+    'Planisphere: titles between double rules, staircase figures, transposed tables, chevron timelines, corner brackets on quotes, a thin page frame.',
+    ['victorian', 'editorial', 'surreal', 'vector-art', 'glassmorphism'],
+    {
+      headers: ['double-rule'], folio: 'corner-number', body: 'narrow',
+      metrics: 'staircase', table: 'transposed', cards: 'corner-number', timeline: 'chevrons',
+      quote: 'brackets', assumption: 'tab', prose: 'lead-in', chart: 'side-note',
+      label: 'small-caps', numbering: 'roman', rules: 'double', figures: 'ink', corners: 'square', titleScale: 'mood', swatches: 2,
+      lede: 'ruled', figureFace: 'light', chartInk: 'monochrome', rhythm: 'airy', edge: 'frame',
+    }
+  ),
+  family(
+    'magazine-mode',
+    'Magazine de mode',
+    'Presse de mode : hiérarchie inversée, chiffres en phrase, cartes décalées, texte surligné.',
+    'Fashion magazine: inverted hierarchy (small title, large statement), figures written as a sentence, staggered cards, highlighted quotes, light figures, no rules.',
+    ['minimalism', 'editorial', 'maximalism', 'y2k', 'surreal', 'glassmorphism'],
+    {
+      headers: ['lede-led'], folio: 'mark-only', body: 'offset',
+      metrics: 'inline-sentence', table: 'airy', cards: 'staggered', timeline: 'leaders',
+      quote: 'highlight', assumption: 'inline', prose: 'large-lead', chart: 'bare',
+      label: 'caps', numbering: 'plain', rules: 'none', figures: 'ink', corners: 'square', titleScale: 'discreet', swatches: 1,
+      lede: 'large', figureFace: 'light', chartInk: 'monochrome', rhythm: 'airy', edge: 'none',
+    }
+  ),
+  family(
+    'annuaire',
+    'Annuaire',
+    'Répertoire : titre courant, blocs indexés, colonnes teintées, initiales en lettrines.',
+    'Directory: a running head, indexed blocks, figures as a ledger, striped table columns, monogram cards, numbered-circle timelines, a top colour bar.',
+    ['swiss', 'pixel-art', 'futuristic', 'clay', 'vector-art'],
+    {
+      headers: ['numbered-rule', 'ribbon'], folio: 'running-head', body: 'indexed',
+      metrics: 'ledger', table: 'striped-columns', cards: 'monogram', timeline: 'numbered-circles',
+      quote: 'caps', assumption: 'tab', prose: 'plain', chart: 'figure-caption',
+      label: 'bold', numbering: 'padded', rules: 'hairline', figures: 'ink', corners: 'style', titleScale: 'discreet', swatches: 0,
+      lede: 'caps', figureFace: 'medium', chartInk: 'palette', rhythm: 'tight', edge: 'top-bar',
+    }
+  ),
+  family(
+    'catalogue-raisonne',
+    'Catalogue raisonné',
+    'Catalogue d’œuvres : doubles filets, tableaux encadrés, numéros d’angle, paragraphes filetés.',
+    'Catalogue raisonné: centred titles between double rules, framed tables, corner-numbered boxes, split quotes, rule-separated paragraphs, italic figures.',
+    ['victorian', 'editorial', 'minimalism', 'collage-art', 'surreal'],
+    {
+      headers: ['double-rule'], folio: 'centered', body: 'full',
+      metrics: 'divided', table: 'framed', cards: 'corner-number', timeline: 'date-column',
+      quote: 'split', assumption: 'margin', prose: 'rule-separated', chart: 'figure-caption',
+      label: 'small-caps', numbering: 'section', rules: 'hairline', figures: 'ink', corners: 'square', titleScale: 'moderate', swatches: 2,
+      lede: 'italic', figureFace: 'italic', chartInk: 'monochrome', rhythm: 'airy', edge: 'none',
+    }
+  ),
+  family(
+    'rapport-impact',
+    'Rapport d’impact',
+    'Rapport extra-financier : onglets, chiffres en cartouches, bandes, graphique annoté en marge.',
+    'Impact report: ribbon or split headers, stamped figures, detached table rows, alternating bands, a spine timeline, charts with a side note, a side colour bar.',
+    ['clay', 'vector-art', 'glassmorphism', 'aurora', 'bohemian'],
+    {
+      headers: ['ribbon', 'split-lede'], folio: 'index-right', body: 'full',
+      metrics: 'stamped', table: 'row-cards', cards: 'stacked-bands', timeline: 'spine',
+      quote: 'split', assumption: 'tab', prose: 'large-lead', chart: 'side-note',
+      label: 'bold', numbering: 'padded', rules: 'none', figures: 'accent', corners: 'style', titleScale: 'moderate', swatches: 1,
+      lede: 'ruled', figureFace: 'medium', chartInk: 'focus', rhythm: 'standard', edge: 'side-bar',
+    }
+  ),
+  family(
+    'storyboard',
+    'Storyboard',
+    'Planche de story-board : cadre, cartouches, initiales, chevrons, blocs appariés.',
+    'Storyboard: a page frame, stamped figures, monogram cards, chevron timelines, bracketed quotes, paired blocks, outline charts, heavy rules.',
+    ['pop-art', 'graffiti', 'collage-art', 'pixel-art', 'y2k', 'maximalism'],
+    {
+      headers: ['hanging-number'], folio: 'corner-number', body: 'paired',
+      metrics: 'stamped', table: 'gridded', cards: 'monogram', timeline: 'chevrons',
+      quote: 'brackets', assumption: 'boxed', prose: 'plain', chart: 'figure-caption',
+      label: 'caps', numbering: 'bracketed', rules: 'heavy', figures: 'accent', corners: 'square', titleScale: 'mood', swatches: 1,
+      lede: 'caps', figureFace: 'display', chartInk: 'outline', rhythm: 'tight', edge: 'frame',
+    }
+  ),
+  family(
+    'mode-emploi',
+    'Mode d’emploi',
+    'Notice illustrée : onglets, mesure étroite, étapes numérotées, tableaux encadrés, notes.',
+    'How-to guide: ribbon headers, a narrow measure, numbered lists, numbered-circle steps, framed tables, footnotes, rule-separated paragraphs, a top colour bar.',
+    ['clay', 'vector-art', 'pixel-art', 'retro', 'swiss'],
+    {
+      headers: ['ribbon'], folio: 'heavy-bar', body: 'narrow',
+      metrics: 'label-first', table: 'framed', cards: 'numbered', timeline: 'numbered-circles',
+      quote: 'panel', assumption: 'footnote', prose: 'rule-separated', chart: 'keyline',
+      label: 'underlined', numbering: 'plain', rules: 'heavy', figures: 'ink', corners: 'style', titleScale: 'moderate', swatches: 0,
+      lede: 'muted', figureFace: 'medium', chartInk: 'palette', rhythm: 'standard', edge: 'top-bar',
+    }
+  ),
+  family(
+    'livre-blanc',
+    'Livre blanc',
+    'Étude de fond : hiérarchie inversée, titre courant, chiffres en phrase, tableaux transposés.',
+    'White paper: inverted-hierarchy headers, a running head, a narrow measure, figures as a sentence, transposed tables, numbered figure captions.',
+    ['minimalism', 'swiss', 'editorial', 'futuristic', 'glassmorphism'],
+    {
+      headers: ['lede-led', 'numbered-rule'], folio: 'running-head', body: 'narrow',
+      metrics: 'inline-sentence', table: 'transposed', cards: 'definitions', timeline: 'date-column',
+      quote: 'highlight', assumption: 'footnote', prose: 'large-lead', chart: 'figure-caption',
+      label: 'small-caps', numbering: 'dotted', rules: 'hairline', figures: 'ink', corners: 'square', titleScale: 'discreet', swatches: 2,
+      lede: 'large', figureFace: 'light', chartInk: 'monochrome', rhythm: 'airy', edge: 'none',
+    }
+  ),
+  family(
+    'dossier-de-presse',
+    'Dossier de presse',
+    'Communiqué : aplat ou énoncé en grand, cartouches, cartes décalées, citation d’auteur.',
+    'Press kit: bleeding band or statement headers, stamped figures, staggered cards, split quotes with the speaker large, corner page numbers.',
+    ['maximalism', 'pop-art', 'graffiti', 'editorial', 'y2k'],
+    {
+      headers: ['bleed-band', 'lede-led'], folio: 'corner-number', body: 'full',
+      metrics: 'stamped', table: 'booktabs', cards: 'staggered', timeline: 'big-dates',
+      quote: 'split', assumption: 'inline', prose: 'lead-in', chart: 'side-note',
+      label: 'caps', numbering: 'padded', rules: 'heavy', figures: 'accent', corners: 'square', titleScale: 'mood', swatches: 1,
+      lede: 'large', figureFace: 'display', chartInk: 'focus', rhythm: 'standard', edge: 'none',
+    }
+  ),
+  family(
+    'carte-routiere',
+    'Carte routière',
+    'Itinéraire : chiffres en escalier, colonnes teintées, chevrons, barre latérale.',
+    'Road map: double-rule headers, paired blocks, staircase figures, striped table columns, chevron timelines, a side colour bar.',
+    ['vector-art', 'retro', 'pop-art', 'graffiti', 'cyberpunk'],
+    {
+      headers: ['double-rule'], folio: 'index-right', body: 'paired',
+      metrics: 'staircase', table: 'striped-columns', cards: 'corner-number', timeline: 'chevrons',
+      quote: 'caps', assumption: 'edge', prose: 'plain', chart: 'bare',
+      label: 'bold', numbering: 'bracketed', rules: 'dotted', figures: 'accent', corners: 'style', titleScale: 'moderate', swatches: 0,
+      lede: 'caps', figureFace: 'medium', chartInk: 'outline', rhythm: 'standard', edge: 'side-bar',
+    }
+  ),
+  family(
+    'manuel',
+    'Manuel',
+    'Manuel scolaire : onglets ou cadres, initiales, étapes numérotées, surligné, cadre de page.',
+    'Textbook: ribbon or boxed headers, paired blocks, monogram cards, numbered-circle steps, highlighted quotes, tab assumptions, a page frame.',
+    ['clay', 'handwritten', 'retro', 'bohemian', 'pixel-art'],
+    {
+      headers: ['ribbon', 'boxed'], folio: 'tinted-strip', body: 'paired',
+      metrics: 'tiles', table: 'framed', cards: 'monogram', timeline: 'numbered-circles',
+      quote: 'highlight', assumption: 'tab', prose: 'indented', chart: 'boxed',
+      label: 'underlined', numbering: 'section', rules: 'hairline', figures: 'accent', corners: 'style', titleScale: 'mood', swatches: 2,
+      lede: 'ruled', figureFace: 'italic', chartInk: 'palette', rhythm: 'standard', edge: 'frame',
+    }
+  ),
+  family(
+    'carton',
+    'Carton d’invitation',
+    'Faire-part : doubles filets centrés, mesure étroite, cartouches, équerres, cadre.',
+    'Invitation card: centred titles between double rules, a narrow measure, stamped figures, bracketed quotes, rule-separated paragraphs, a page frame.',
+    ['victorian', 'minimalism', 'handwritten', 'surreal', 'aurora'],
+    {
+      headers: ['double-rule', 'centered-rule'], folio: 'centered', body: 'narrow',
+      metrics: 'stamped', table: 'airy', cards: 'corner-number', timeline: 'leaders',
+      quote: 'brackets', assumption: 'inline', prose: 'rule-separated', chart: 'bare',
+      label: 'small-caps', numbering: 'roman', rules: 'double', figures: 'ink', corners: 'square', titleScale: 'moderate', swatches: 1,
+      lede: 'italic', figureFace: 'light', chartInk: 'monochrome', rhythm: 'airy', edge: 'frame',
+    }
+  ),
+  family(
+    'salle-de-controle',
+    'Salle de contrôle',
+    'Supervision : titre courant, blocs indexés, cartouches, étapes numérotées, graphique annoté.',
+    'Control room: a running head, indexed blocks, stamped figures, framed tables, numbered-circle steps, charts with a side note, a top colour bar.',
+    ['cyberpunk', 'futuristic', 'pixel-art', 'aurora', 'glassmorphism'],
+    {
+      headers: ['hanging-number', 'ribbon'], folio: 'running-head', body: 'indexed',
+      metrics: 'stamped', table: 'framed', cards: 'tagged', timeline: 'numbered-circles',
+      quote: 'inverted', assumption: 'footnote', prose: 'plain', chart: 'side-note',
+      label: 'bold', numbering: 'bracketed', rules: 'dotted', figures: 'accent', corners: 'square', titleScale: 'discreet', swatches: 0,
+      lede: 'caps', figureFace: 'medium', chartInk: 'outline', rhythm: 'tight', edge: 'top-bar',
+    }
+  ),
+  family(
+    'chronique',
+    'Chronique',
+    'Chronique : énoncé en grand, chiffres en phrase, cartes décalées, épine de frise, surligné.',
+    'Chronicle: statement or underscored headers, figures as a sentence, staggered cards, a spine timeline, highlighted quotes, corner page numbers.',
+    ['editorial', 'surreal', 'bohemian', 'collage-art', 'handwritten'],
+    {
+      headers: ['lede-led', 'underscored'], folio: 'corner-number', body: 'full',
+      metrics: 'inline-sentence', table: 'booktabs', cards: 'staggered', timeline: 'spine',
+      quote: 'highlight', assumption: 'margin', prose: 'large-lead', chart: 'figure-caption',
+      label: 'italic', numbering: 'plain', rules: 'hairline', figures: 'ink', corners: 'square', titleScale: 'mood', swatches: 0,
+      lede: 'italic', figureFace: 'italic', chartInk: 'focus', rhythm: 'airy', edge: 'none',
+    }
+  ),
+  family(
+    'panneau-expo',
+    'Panneau d’exposition',
+    'Cimaise : énoncé en grand, colonne décalée, escalier de chiffres, bandes, chevrons.',
+    'Exhibition panel: statement or band headers, an offset column, staircase figures, alternating bands, chevron timelines, split quotes, a side colour bar.',
+    ['collage-art', 'surreal', 'maximalism', 'aurora', 'graffiti', 'pop-art'],
+    {
+      headers: ['lede-led', 'bleed-band'], folio: 'mark-only', body: 'offset',
+      metrics: 'staircase', table: 'first-column', cards: 'stacked-bands', timeline: 'chevrons',
+      quote: 'split', assumption: 'tab', prose: 'lead-in', chart: 'side-note',
+      label: 'caps', numbering: 'section', rules: 'none', figures: 'accent', corners: 'style', titleScale: 'mood', swatches: 2,
+      lede: 'large', figureFace: 'display', chartInk: 'palette', rhythm: 'airy', edge: 'side-bar',
+    }
+  ),
+  family(
+    'fiche-produit',
+    'Fiche produit',
+    'Fiche technique commerciale : onglet, cartouches, colonnes teintées, initiales, barre haute.',
+    'Product sheet: a ribbon tab, stamped figures, striped table columns, monogram cards, box timelines, tab assumptions, a top colour bar.',
+    ['glassmorphism', 'clay', 'y2k', 'vector-art', 'pixel-art', 'futuristic'],
+    {
+      headers: ['ribbon'], folio: 'tinted-strip', body: 'full',
+      metrics: 'stamped', table: 'striped-columns', cards: 'monogram', timeline: 'boxes',
+      quote: 'panel', assumption: 'tab', prose: 'plain', chart: 'boxed',
+      label: 'bold', numbering: 'bracketed', rules: 'none', figures: 'accent', corners: 'style', titleScale: 'discreet', swatches: 1,
+      lede: 'ruled', figureFace: 'medium', chartInk: 'focus', rhythm: 'tight', edge: 'top-bar',
+    }
+  ),
+  family(
+    'portfolio',
+    'Portfolio',
+    'Book de créatif : énoncé en grand, mesure étroite, chiffres en phrase, équerres, cadre.',
+    'Portfolio: statement or margin-kicker headers, a narrow measure, figures as a sentence, staggered cards, bracketed quotes, light figures, a page frame.',
+    ['minimalism', 'surreal', 'y2k', 'aurora', 'glassmorphism', 'maximalism'],
+    {
+      headers: ['lede-led', 'margin-kicker'], folio: 'mark-only', body: 'narrow',
+      metrics: 'inline-sentence', table: 'airy', cards: 'staggered', timeline: 'big-dates',
+      quote: 'brackets', assumption: 'footnote', prose: 'rule-separated', chart: 'bare',
+      label: 'underlined', numbering: 'padded', rules: 'none', figures: 'ink', corners: 'square', titleScale: 'discreet', swatches: 2,
+      lede: 'large', figureFace: 'light', chartInk: 'outline', rhythm: 'airy', edge: 'frame',
+    }
+  ),
+  family(
+    'notice',
+    'Notice technique',
+    'Notice : titre courant, blocs indexés, tableaux transposés, étapes numérotées, notes.',
+    'Technical notice: a running head, indexed blocks, figures as a ledger, transposed tables, numbered-circle steps, footnotes, numbered figure captions.',
+    ['swiss', 'pixel-art', 'cyberpunk', 'futuristic', 'minimalism'],
+    {
+      headers: ['numbered-rule'], folio: 'running-head', body: 'indexed',
+      metrics: 'ledger', table: 'transposed', cards: 'definitions', timeline: 'numbered-circles',
+      quote: 'caps', assumption: 'footnote', prose: 'rule-separated', chart: 'figure-caption',
+      label: 'underlined', numbering: 'dotted', rules: 'heavy', figures: 'ink', corners: 'square', titleScale: 'discreet', swatches: 0,
+      lede: 'caps', figureFace: 'medium', chartInk: 'monochrome', rhythm: 'tight', edge: 'side-bar',
+    }
+  ),
+  family(
+    'calendrier',
+    'Calendrier',
+    'Calendrier : doubles filets, tuiles, colonnes teintées, chevrons, numéros d’angle.',
+    'Calendar: double-rule headers, paired blocks, figure tiles, striped table columns, corner-numbered cards, chevron timelines, corner page numbers.',
+    ['retro', 'pop-art', 'clay', 'vector-art', 'bohemian'],
+    {
+      headers: ['double-rule'], folio: 'corner-number', body: 'paired',
+      metrics: 'tiles', table: 'striped-columns', cards: 'corner-number', timeline: 'chevrons',
+      quote: 'centered', assumption: 'tab', prose: 'large-lead', chart: 'boxed',
+      label: 'caps', numbering: 'padded', rules: 'heavy', figures: 'accent', corners: 'style', titleScale: 'mood', swatches: 2,
+      lede: 'muted', figureFace: 'display', chartInk: 'palette', rhythm: 'standard', edge: 'top-bar',
+    }
+  ),
+  family(
+    'composition-typo',
+    'Composition typographique',
+    'Affiche typographique : énoncé en grand, mesure étroite, escalier de chiffres, citation d’auteur.',
+    'Typographic composition: statement headers, a narrow measure, staircase figures, transposed tables, split quotes, charts with a side note, a page frame.',
+    ['swiss', 'editorial', 'graffiti', 'minimalism', 'collage-art'],
+    {
+      headers: ['lede-led'], folio: 'centered', body: 'narrow',
+      metrics: 'staircase', table: 'transposed', cards: 'ruled-columns', timeline: 'leaders',
+      quote: 'split', assumption: 'inline', prose: 'large-lead', chart: 'side-note',
+      label: 'small-caps', numbering: 'roman', rules: 'none', figures: 'ink', corners: 'square', titleScale: 'moderate', swatches: 0,
+      lede: 'caps', figureFace: 'light', chartInk: 'monochrome', rhythm: 'standard', edge: 'frame',
+    }
+  ),
+  family(
+    'rapport-financier',
+    'Rapport financier',
+    'Comptes annuels : titre courant, cartouches, colonnes teintées, bandes, graphique annoté.',
+    'Financial statements: hanging-number or double-rule headers, a running head, stamped figures, striped table columns, alternating bands, charts with a side note.',
+    ['swiss', 'editorial', 'minimalism', 'victorian', 'glassmorphism'],
+    {
+      headers: ['hanging-number', 'double-rule'], folio: 'running-head', body: 'full',
+      metrics: 'stamped', table: 'striped-columns', cards: 'stacked-bands', timeline: 'date-column',
+      quote: 'split', assumption: 'footnote', prose: 'plain', chart: 'side-note',
+      label: 'small-caps', numbering: 'dotted', rules: 'hairline', figures: 'ink', corners: 'square', titleScale: 'discreet', swatches: 2,
+      lede: 'muted', figureFace: 'medium', chartInk: 'monochrome', rhythm: 'tight', edge: 'none',
+    }
+  ),
+  family(
+    'guide-voyage',
+    'Guide de voyage',
+    'Guide : onglets, colonne décalée, escalier de chiffres, initiales, épine de frise, lettrine.',
+    'Travel guide: ribbon or statement headers, an offset column, staircase figures, monogram cards, a spine timeline, split quotes, a drop cap, a side colour bar.',
+    ['bohemian', 'retro', 'handwritten', 'vector-art', 'collage-art'],
+    {
+      headers: ['ribbon', 'lede-led'], folio: 'tinted-strip', body: 'offset',
+      metrics: 'staircase', table: 'row-cards', cards: 'monogram', timeline: 'spine',
+      quote: 'split', assumption: 'edge', prose: 'drop-cap', chart: 'figure-caption',
+      label: 'italic', numbering: 'section', rules: 'dotted', figures: 'accent', corners: 'style', titleScale: 'mood', swatches: 1,
+      lede: 'italic', figureFace: 'italic', chartInk: 'palette', rhythm: 'airy', edge: 'side-bar',
+    }
+  ),
+  family(
+    'coffret',
+    'Coffret',
+    'Coffret précieux : doubles filets ou cadre, cartouches, numéros d’angle, équerres, cadre de page.',
+    'Gift box: double-rule or boxed headers, a narrow measure, stamped figures, framed tables, corner-numbered cards, bracketed quotes, a page frame.',
+    ['victorian', 'glassmorphism', 'aurora', 'clay', 'y2k'],
+    {
+      headers: ['double-rule', 'boxed'], folio: 'corner-number', body: 'narrow',
+      metrics: 'stamped', table: 'framed', cards: 'corner-number', timeline: 'boxes',
+      quote: 'brackets', assumption: 'tab', prose: 'large-lead', chart: 'boxed',
+      label: 'small-caps', numbering: 'roman', rules: 'double', figures: 'accent', corners: 'style', titleScale: 'moderate', swatches: 0,
+      lede: 'ruled', figureFace: 'italic', chartInk: 'focus', rhythm: 'airy', edge: 'frame',
     }
   ),
 ];
@@ -835,13 +1313,18 @@ export const FAMILY_DIMENSIONS = [
   'corners',
   'titleScale',
   'swatches',
+  'lede',
+  'figureFace',
+  'chartInk',
+  'rhythm',
+  'edge',
 ] as const;
 
 /**
  * Nombre de dimensions VISIBLES sur lesquelles deux familles diffèrent.
  *
  * Les ouvertures comptent pour une dimension : elles diffèrent si les deux
- * familles n'en partagent aucune. Le total possible est donc de dix-huit.
+ * familles n'en partagent aucune. Le total possible est donc de vingt-trois.
  */
 export function familyDistance(a: LayoutFamily, b: LayoutFamily): number {
   const scalar = FAMILY_DIMENSIONS.filter((dimension) => a[dimension] !== b[dimension]).length;

@@ -12,8 +12,10 @@ import { sanitizeSectionHtml } from '../utils/sanitize-section-html';
 import {
   FLOW_PAGINATION_RUNTIME,
   FixedPageFitReport,
+  FlowCompactOptions,
   FlowPaginationReport,
 } from './pdf/flow-pagination.runtime';
+import { ComposedPage, PdfQualityGateReport, runPdfQualityGate } from './pdf/pdfQualityGate';
 import { balanceHtmlFragment } from './pdf/balanceHtml';
 import axios from 'axios';
 
@@ -67,7 +69,18 @@ export interface PdfGenerationOptions {
     maxGapAddHardMm?: number;
     /** Répartir le contenu équitablement entre les pages d'une section (défaut true). */
     balance?: boolean;
+    /** Hauteur restante sous laquelle un bloc n'est plus découpé (défaut 0.18). */
+    minSplitRatio?: number;
+    /** Pages vides et grands blancs, corrigés à la composition (cf. `FlowCompactOptions`). */
+    compact?: FlowCompactOptions;
   };
+  /**
+   * Contrôle du PDF IMPRIMÉ (multiPage uniquement) : chaque page est mesurée,
+   * les pages blanches sont retirées, les trous restants relevés. Sans modèle.
+   */
+  qualityGate?: boolean;
+  /** Rapport du contrôle qualité, remis à l'appelant. */
+  onQualityReport?: (report: PdfQualityGateReport) => void;
   format?: 'A4' | 'Letter'; // Deprecated: pour compatibilité
   margins?: {
     top?: string;
@@ -268,6 +281,7 @@ export class PdfService {
       pageFormat: options.pageFormat,
       fixedPageSections: options.fixedPageSections,
       pagination: options.pagination,
+      qualityGate: options.qualityGate,
     };
 
     return crypto.createHash('sha256').update(JSON.stringify(cacheData)).digest('hex');
@@ -806,6 +820,8 @@ export class PdfService {
             maxGapAddMm: pagination?.maxGapAddMm,
             maxGapAddHardMm: pagination?.maxGapAddHardMm,
             balance: pagination?.balance,
+            minSplitRatio: pagination?.minSplitRatio,
+            compact: pagination?.compact,
           }
         )) as FlowPaginationReport;
 
@@ -868,9 +884,9 @@ export class PdfService {
       const pdfFileName = `pdf-${Date.now()}-${Math.random().toString(36).substring(7)}.pdf`;
       const pdfPath = path.join(tempDir, pdfFileName);
 
-      // Générer le PDF avec timeout optimisé
-      await page.pdf({
-        path: pdfPath,
+      // Mêmes réglages pour l'impression et pour une réimpression par le
+      // contrôle qualité : retirer une page ne doit rien changer aux autres.
+      const printOptions: NonNullable<Parameters<Page['pdf']>[0]> = {
         format,
         printBackground: true,
         margin: margins,
@@ -878,7 +894,16 @@ export class PdfService {
         displayHeaderFooter: false,
         omitBackground: false,
         timeout: 30000, // Réduit de 120s à 30s
-      });
+      };
+
+      // Générer le PDF avec timeout optimisé
+      const printed = await page.pdf({ ...printOptions, path: pdfPath });
+
+      // Le contrôle relit le PDF IMPRIMÉ tant que la page est ouverte : c'est
+      // elle qui réimprime sans les pages blanches.
+      if (multiPage && options.qualityGate) {
+        await applyQualityGate(page, pdfPath, printed, printOptions, projectName, options.onQualityReport);
+      }
 
       await page.close(); // Fermer seulement la page, pas le browser
 
@@ -1380,4 +1405,60 @@ export function isUnderfilledSection(s: { pages: number; fills: number[]; fixed?
   const avgFill = s.fills.reduce((a, b) => a + b, 0) / s.pages;
 
   return hasIntermediateUnderfill || avgFill < 0.45;
+}
+
+/**
+ * Relit le PDF imprimé (cf. `pdfQualityGate`) : les pages blanches sont retirées
+ * par une réimpression du même document, les trous restants sont journalisés.
+ *
+ * Ne fait jamais échouer un rendu : un contrôle qui casse laisse passer le PDF
+ * tel qu'imprimé, et le dit.
+ */
+async function applyQualityGate(
+  page: Page,
+  pdfPath: string,
+  printed: Uint8Array,
+  printOptions: NonNullable<Parameters<Page['pdf']>[0]>,
+  projectName: string,
+  onReport?: (report: PdfQualityGateReport) => void
+): Promise<void> {
+  try {
+    const composed = (await page.evaluate(() =>
+      Array.from(document.querySelectorAll('.idem-page')).map((el) => ({
+        kind: el.classList.contains('idem-signature')
+          ? 'signature'
+          : el.getAttribute('data-idem-kind') || 'unknown',
+        section: el.getAttribute('data-section-name') || '',
+      }))
+    )) as ComposedPage[];
+
+    const report = await runPdfQualityGate(printed, composed, (pageRanges) =>
+      page.pdf({ ...printOptions, path: pdfPath, pageRanges })
+    );
+
+    if (!report.measured) {
+      logger.warn(`PDF quality gate skipped for ${projectName}: ${report.skipped}`);
+    } else {
+      logger.info(
+        `PDF quality gate for ${projectName}: ${report.pagesBefore} → ${report.pagesAfter} page(s)` +
+          (report.removedPages.length > 0
+            ? `, page(s) blanche(s) retirée(s) : ${report.removedPages.join(', ')}`
+            : '') +
+          `, ${report.holes.length} trou(s) restant(s) (${report.durationMs} ms)`
+      );
+      report.holes.forEach((hole) =>
+        logger.warn(
+          `PDF quality gate: page ${hole.page} « ${hole.section} » garde ${Math.round(hole.blank * 100)} % de blanc`
+        )
+      );
+      if (report.pageCountMismatch) {
+        logger.warn(
+          `PDF quality gate: Chrome a imprimé ${report.pagesBefore} page(s) pour ${composed.length} composée(s)`
+        );
+      }
+    }
+    onReport?.(report);
+  } catch (error) {
+    logger.warn(`PDF quality gate failed for ${projectName}, PDF kept as printed:`, error);
+  }
 }

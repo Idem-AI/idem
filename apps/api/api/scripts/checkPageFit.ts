@@ -66,8 +66,9 @@ const SILHOUETTE_ROWS = 30;
  * Écart minimal entre deux silhouettes de famille, en part des cellules encrées
  * par l'une ou l'autre page.
  *
- * Mesuré à l'introduction des familles (13 septembre 2026) : 12 % pour les deux
- * familles les plus proches, 29 % en médiane. Le seuil est calé juste dessous :
+ * Mesuré le 13 septembre 2026 : 12 % pour les deux familles les plus proches et
+ * 29 % en médiane à 36 familles ; 11 % et 33 % à 60 familles, une fois les
+ * dessins nouveaux ajoutés. Le seuil est calé juste dessous :
  * il ne juge pas le goût, il empêche qu'une famille ajoutée soit un doublon
  * d'une autre en noir et blanc. Une prose longue domine la silhouette d'une page
  * paginée ; un écart de dix points y est déjà une autre composition.

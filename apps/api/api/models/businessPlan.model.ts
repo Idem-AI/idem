@@ -17,6 +17,14 @@ export interface BusinessPlanPdfQuality {
   generatedAt: Date;
   /** Sections dont au moins une page est remplie à moins de 60 %. */
   underFilledSections: SectionPdfQuality[];
+  /** Pages retirées avant l'envoi : vides à la composition ou blanches à l'impression. */
+  removedPages?: number;
+  /** Sections commencées sur la dernière page de la précédente, pour fermer un blanc. */
+  continuedSections?: string[];
+  /** Pages du PDF livré où subsiste une bande blanche d'au moins 35 % de la hauteur. */
+  pagesWithHoles?: Array<{ page: number; sectionName: string; blank: number }>;
+  /** `false` quand le contrôle rastérisé n'a pas pu tourner. */
+  printCheck?: boolean;
 }
 
 /**
