@@ -1582,8 +1582,15 @@ export class BrandingService extends GenericService {
           async (result: ISectionResult) => {
             logger.info(`Received streamed result for step: ${result.name}`);
 
-            // Skip progress and completion events - handle only actual step results
-            if (result.data === 'steps_in_progress' || result.data === 'all_steps_completed') {
+            // Ni les événements de progression, ni l'APERÇU au fil de l'eau
+            // (`section_delta`) ne sont des pages : ils sont relayés au client,
+            // jamais enregistrés. L'aperçu l'était, et s'imprimait après la
+            // dernière page de la charte, sous la signature.
+            if (
+              result.data === 'steps_in_progress' ||
+              result.data === 'all_steps_completed' ||
+              result.name === 'section_delta'
+            ) {
               await streamCallback(result);
               return;
             }
