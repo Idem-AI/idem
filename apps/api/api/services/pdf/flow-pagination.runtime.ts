@@ -1338,12 +1338,18 @@ export const FLOW_PAGINATION_RUNTIME = `
      * other eleven pay for it would trade one bad page for a whole small
      * deck. Below the floor, that page is scaled on its own and reported.
      */
+    /* The worst page decides — among the pages that stay above the uniform
+     * floor. A page below it is an outlier: it is scaled alone in pass 2.
+     *
+     * It used to clamp the document to the floor instead (max(floor,
+     * worst)), which made every page pay for the outlier after all: one
+     * page needing 0.74 put all 21 pages of a brand charter at 0.86 —
+     * fourteen percent smaller everywhere, for a single overflowing page. */
     var worst = 1;
     for (var p = 0; p < pages.length; p++) {
-      if (pages[p].exact < worst) { worst = pages[p].exact; }
+      if (pages[p].exact >= uniformFloor && pages[p].exact < worst) { worst = pages[p].exact; }
     }
-    var documentScale = Math.floor(Math.max(uniformFloor, worst) / SCALE_STEP) * SCALE_STEP;
-    if (documentScale > 1) { documentScale = 1; }
+    var documentScale = worst >= 1 ? 1 : Math.floor(worst / SCALE_STEP) * SCALE_STEP;
 
     /* ── PASS 2: APPLY ───────────────────────────────────────────────────
      *

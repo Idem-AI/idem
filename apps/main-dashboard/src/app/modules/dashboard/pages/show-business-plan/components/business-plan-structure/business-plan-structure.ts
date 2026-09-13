@@ -1,12 +1,16 @@
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
+  ElementRef,
   inject,
   input,
   OnInit,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { forkJoin, of } from 'rxjs';
@@ -22,6 +26,7 @@ import {
   BusinessPlanTemplate,
   SECTION_CATEGORY_ORDER,
 } from '../../../../models/business-plan-structure.model';
+import { StructureIllustrationComponent } from './structure-illustration/structure-illustration';
 
 /** Une ligne du sommaire affiché à droite. */
 interface OutlineRow {
@@ -46,6 +51,13 @@ interface TemplateRow {
   estimatedPages: string;
   sectionCount: number;
   isCustom: boolean;
+  isDefault: boolean;
+}
+
+/** Une tuile « à qui allez-vous le remettre ? ». */
+interface AudienceCard {
+  audience: BusinessPlanAudience;
+  templateCount: number;
 }
 
 /** Un groupe du tiroir « ajouter une section ». */
@@ -54,15 +66,12 @@ interface CatalogGroup {
   items: { key: string; label: string; needsResearch: boolean }[];
 }
 
-/** Onglets de filtre, dans l'ordre d'affichage. */
-const AUDIENCES: (BusinessPlanAudience | 'all')[] = [
-  'all',
-  'bank',
-  'investor',
-  'grant',
-  'internal',
-  'general',
-];
+/**
+ * Tuiles de destinataire, dans l'ordre d'affichage. « Polyvalent » ferme la
+ * marche : c'est la réponse de celui qui ne sait pas encore à qui il remettra
+ * son dossier.
+ */
+const AUDIENCES: BusinessPlanAudience[] = ['bank', 'investor', 'grant', 'internal', 'general'];
 
 /**
  * Choix de la structure du business plan, avant sa génération.
@@ -78,13 +87,15 @@ const AUDIENCES: (BusinessPlanAudience | 'all')[] = [
  * brief de contenu, son volume et ses recherches déjà écrits. Une section
  * inventée à la volée n'aurait rien de tout cela.
  *
- * La présentation est un maître-détail : la liste des modèles à gauche, le
- * sommaire complet à droite. C'est le sommaire qui décide, donc c'est lui qui
- * occupe la place — pas une grille de cartes qui le résumerait en trois mots.
+ * L'écran pose les questions dans l'ordre où on se les pose : à qui remet-on
+ * le dossier, quel modèle ce lecteur attend, quel sommaire en sort. Le
+ * sommaire garde la place principale — c'est lui qui décide —, mais on n'y
+ * arrive plus en comparant dix modèles à froid : le destinataire filtre la
+ * liste et sélectionne aussitôt un modèle pertinent.
  */
 @Component({
   selector: 'app-business-plan-structure',
-  imports: [TranslateModule],
+  imports: [TranslateModule, StructureIllustrationComponent],
   templateUrl: './business-plan-structure.html',
   styleUrl: './business-plan-structure.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -92,6 +103,7 @@ const AUDIENCES: (BusinessPlanAudience | 'all')[] = [
 export class BusinessPlanStructureComponent implements OnInit {
   private readonly businessPlanService = inject(BusinessPlanService);
   private readonly translate = inject(TranslateService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly projectId = input.required<string>();
 
@@ -119,16 +131,42 @@ export class BusinessPlanStructureComponent implements OnInit {
   /** Annonce des déplacements pour les lecteurs d'écran. */
   protected readonly liveMessage = signal('');
 
-  protected readonly audiences = AUDIENCES;
+  /**
+   * Hauteur qui fait tenir l'écran entier dans la fenêtre, sous la barre du
+   * dashboard, sans défilement de page (`null` tant qu'elle n'est pas mesurée).
+   * Sur grand écran, les colonnes prennent le reste et défilent chacune de leur
+   * côté : le bouton de validation reste visible.
+   */
+  protected readonly fitHeight = signal<string | null>(null);
+  private readonly shell = viewChild.required<ElementRef<HTMLElement>>('shell');
+  private readonly templateScroll = viewChild<ElementRef<HTMLElement>>('templateScroll');
+
   /** Répétitions du squelette de chargement, figées hors du template. */
-  protected readonly skeletonChips = [1, 2, 3, 4];
-  protected readonly skeletonRows = [1, 2, 3, 4, 5];
+  protected readonly skeletonAudiences = [1, 2, 3, 4, 5];
+  protected readonly skeletonRows = [1, 2, 3, 4];
   protected readonly skeletonLines = [1, 2, 3, 4, 5, 6, 7];
 
   private readonly sectionsByKey = computed(() => {
     const map = new Map<string, BusinessPlanCatalogSection>();
     for (const section of this.catalog()?.sections ?? []) map.set(section.key, section);
     return map;
+  });
+
+  /** Tuiles de destinataire. Un public sans modèle au catalogue n'en a pas. */
+  protected readonly audienceCards = computed<AudienceCard[]>(() => {
+    const templates = this.catalog()?.templates ?? [];
+    return AUDIENCES.map((audience) => ({
+      audience,
+      templateCount: templates.filter((t) => t.audience === audience).length,
+    })).filter((card) => card.templateCount > 0);
+  });
+
+  protected readonly templateTotal = computed(() => this.catalog()?.templates.length ?? 0);
+
+  /** Destinataire qui filtre la liste des modèles, `null` sans filtre. */
+  protected readonly activeAudience = computed<BusinessPlanAudience | null>(() => {
+    const filter = this.audienceFilter();
+    return filter === 'all' ? null : filter;
   });
 
   protected readonly templates = computed<TemplateRow[]>(() => {
@@ -148,6 +186,7 @@ export class BusinessPlanStructureComponent implements OnInit {
         estimatedPages: t.estimatedPages,
         sectionCount: t.sectionKeys.length,
         isCustom: false,
+        isDefault: t.isDefault,
       }));
 
     // La composition libre ferme toujours la liste : c'est la sortie de
@@ -161,6 +200,7 @@ export class BusinessPlanStructureComponent implements OnInit {
       // réordonnancement du sommaire.
       sectionCount: 0,
       isCustom: true,
+      isDefault: false,
     });
     return rows;
   });
@@ -243,6 +283,31 @@ export class BusinessPlanStructureComponent implements OnInit {
 
   protected readonly isAtMax = computed(() => this.outline().length >= this.limits().max);
 
+  constructor() {
+    afterNextRender(() => {
+      // Mesure groupée par image : la hauteur posée redimensionne la page, qui
+      // relance l'observateur ; la valeur est alors identique et rien ne boucle.
+      let frame = 0;
+      const refit = () => {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => this.fitHeight.set(`${this.measureFitHeight()}px`));
+      };
+      refit();
+
+      // La fenêtre, mais aussi ce qui s'insère au-dessus (barre du parcours
+      // assisté) : les deux déplacent la place disponible.
+      const observer = new ResizeObserver(refit);
+      observer.observe(document.body);
+      window.addEventListener('resize', refit);
+
+      this.destroyRef.onDestroy(() => {
+        cancelAnimationFrame(frame);
+        observer.disconnect();
+        window.removeEventListener('resize', refit);
+      });
+    });
+  }
+
   ngOnInit(): void {
     this.load();
   }
@@ -320,6 +385,34 @@ export class BusinessPlanStructureComponent implements OnInit {
     this.selectedTemplateId.set(id);
     this.customKeys.set(null);
     this.isComposing.set(false);
+  }
+
+  /**
+   * Répondre « à qui » filtre les modèles et sélectionne aussitôt le premier de
+   * ce public : le sommaire de droite illustre la réponse sans second clic. Un
+   * sommaire déjà retouché n'est jamais remplacé en silence — seul le clic sur
+   * un modèle le fait. `all` retire le filtre sans toucher à la sélection.
+   */
+  protected setAudience(audience: BusinessPlanAudience | 'all'): void {
+    const catalog = this.catalog();
+    if (!catalog) return;
+
+    this.audienceFilter.set(audience);
+    // La liste vient de changer : on la reprend du haut plutôt qu'au milieu
+    // d'une liste qui n'est plus la même.
+    this.templateScroll()?.nativeElement.scrollTo({ top: 0 });
+    if (audience === 'all') return;
+
+    const keepsWork = this.isEdited() || this.selectedTemplateId() === catalog.customTemplateId;
+    if (keepsWork || this.selectedTemplate()?.audience === audience) return;
+
+    const first = catalog.templates.find((t) => t.audience === audience);
+    if (!first) return;
+    this.selectTemplate(first.id);
+    this.announce('dashboard.businessPlanStructure.live.selected', {
+      template: this.translate.instant(`dashboard.businessPlanStructure.templates.${first.id}.name`),
+      count: first.sectionKeys.length,
+    });
   }
 
   protected startComposing(): void {
@@ -420,10 +513,6 @@ export class BusinessPlanStructureComponent implements OnInit {
     });
   }
 
-  protected setAudience(audience: BusinessPlanAudience | 'all'): void {
-    this.audienceFilter.set(audience);
-  }
-
   /** Libellé traduit d'une section, à partir de son nom canonique backend. */
   private sectionLabel(name: string): string {
     const key = `dashboard.generationPanel.sections.businessPlan.${name}`;
@@ -445,6 +534,23 @@ export class BusinessPlanStructureComponent implements OnInit {
   private defaultTemplate(): BusinessPlanTemplate | undefined {
     const catalog = this.catalog();
     return catalog ? this.templateById(catalog.defaultTemplateId) : undefined;
+  }
+
+  /**
+   * Place disponible pour l'écran : du bord haut du composant jusqu'au bas de
+   * la fenêtre, moins les marges que les conteneurs du layout gardent SOUS lui.
+   * Mesurée plutôt que codée en dur : la barre du parcours assisté n'existe que
+   * dans ce mode, et les marges du layout changent avec la largeur.
+   */
+  private measureFitHeight(): number {
+    const shell = this.shell().nativeElement;
+    const top = shell.getBoundingClientRect().top + window.scrollY;
+    let below = 0;
+    for (let el = shell.parentElement; el && el !== document.body; el = el.parentElement) {
+      const style = getComputedStyle(el);
+      below += parseFloat(style.paddingBottom) + parseFloat(style.borderBottomWidth);
+    }
+    return Math.floor(window.innerHeight - top - below);
   }
 
   private announce(key: string, params: Record<string, unknown>): void {
