@@ -31,8 +31,16 @@
 
 import { BP_SECTION_BRIEFS } from '../services/BusinessPlan/prompts/section-briefs.prompt';
 import { SLIDE_BRIEFS } from '../services/PitchDeck/prompts/slide-briefs.prompt';
-import { CHARTER_PAGE_BRIEFS } from '../services/BandIdentity/prompts/page-briefs.prompt';
-import { MOCKUP_GENERATION_PROMPT } from '../services/BandIdentity/prompts/mockup-generation.prompt';
+import {
+  CHARTER_PAGE_BRIEFS,
+  CHARTER_PAGE_HEADINGS,
+} from '../services/BandIdentity/prompts/page-briefs.prompt';
+import {
+  MOCKUP_GENERATION_PROMPT,
+  TEXT_INVITING_WORDS,
+} from '../services/BandIdentity/prompts/mockup-generation.prompt';
+import { INDUSTRY_MOCKUP_CATEGORIES, MOCKUP_CONFIG, supportScene } from '../config/mockup.config';
+import { mockupAnalyzerService } from '../services/BandIdentity/mockupAnalyzer.service';
 import { SECTION_CONTENT_CONTRACT } from '../services/design/sectionContent.prompt';
 import { ANTI_SLOP_BLOCK, CONTENT_RULES_BLOCK } from '../services/design/antiSlop.prompt';
 import {
@@ -284,28 +292,65 @@ console.log('\n  Consignes contradictoires');
     supportType: 't', supportName: 'n', context: 'c', industryContext: 'i',
     mockupIndex: 1, priority: 1, examples: ['a'],
   };
+  // Le chemin « logo joint » a été retiré : le modèle d'image redessinait le
+  // logo au lieu de le poser. Il ne reste qu'une consigne — support NU, logo
+  // incrusté après — et aucun mot qui invite à écrire ne doit l'atteindre, pas
+  // même nié : le modèle écrivait un nom sur le support (« LIGGTH » pour la
+  // marque Light, tiré de « side light »), et le vrai logo se posait dessus.
   const base: any = {
-    brandName: 'X',
     brandColors: { primary: '#111111', secondary: '#222222', accent: '#333333' },
-    projectDescription: 'd',
-    selectedSupport: support,
+    selectedSupport: { ...support, supportType: 'shopping_bags' },
+    brandName: 'Kora',
+    artDirectionModifier: 'Kora signature warmth, soft side light, bold typography accents, matte grain',
+    artDirectionNegative: 'distorted text, neon glow',
+    imagerySubjects: 'Les torréfacteurs de Kora au travail, mains et grains de café',
   };
 
-  const blank = MOCKUP_GENERATION_PROMPT.buildDynamicPrompt({ ...base, logoMode: 'blank' });
-  const attached = MOCKUP_GENERATION_PROMPT.buildDynamicPrompt({ ...base, logoMode: 'attached' });
+  const blank = MOCKUP_GENERATION_PROMPT.buildDynamicPrompt(base);
+  const imagery = MOCKUP_GENERATION_PROMPT.buildDynamicPrompt({
+    ...base,
+    selectedSupport: { ...support, supportType: 'brand_imagery', skipLogo: true },
+  });
 
-  const demandsBare = (text: string) => /NO branding at all/.test(text);
-  const forbidsLogo = (text: string) => /ANY logo, wordmark/.test(text);
-  const asksPlacement = (text: string) => /THE ATTACHED IMAGE IS THE BRAND LOGO/.test(text);
-
-  check('mockup « blank » : exige un support vierge', demandsBare(blank) && forbidsLogo(blank));
-  check('mockup « blank » : ne demande PAS de poser un logo', !asksPlacement(blank));
-  check('mockup « attached » : demande de poser le logo joint', asksPlacement(attached));
   check(
-    "mockup « attached » : n'exige plus un support vierge",
-    !demandsBare(attached) && !forbidsLogo(attached),
-    'un support vierge ET un logo posé sont incompatibles'
+    "mockup : aucun mot qui invite à écrire n'atteint le modèle d'image",
+    !TEXT_INVITING_WORDS.test(blank) && !TEXT_INVITING_WORDS.test(imagery),
+    [blank.match(TEXT_INVITING_WORDS)?.[0], imagery.match(TEXT_INVITING_WORDS)?.[0]].filter(Boolean).join(', ')
   );
+  check("mockup : le nom de la marque n'atteint pas le modèle d'image", !/Kora/i.test(blank) && !/Kora/i.test(imagery));
+  check(
+    "mockup : la direction artistique garde ce qui décrit l'image",
+    /soft side light/.test(blank) && /matte grain/.test(blank) && /neon glow/.test(blank)
+  );
+  check('mockup : la scène vient du support', /paper shopping bag/.test(blank));
+  check(
+    'univers visuel : aucune face réservée au logo',
+    /hero object faces the camera/.test(blank) && !/hero object faces the camera/.test(imagery)
+  );
+  check('mockup : un prompt court', blank.length < 1500, `${blank.length} caractères`);
+  check('vision : relève les lettres et les marques', /"markings"/.test(MOCKUP_GENERATION_PROMPT.sceneReadingVision));
+  // L'exemple chiffré de l'ancienne consigne était recopié tel quel : le logo
+  // tombait au même endroit sur chaque photo.
+  check('vision : aucun exemple chiffré à recopier', !/\d\.\d/.test(MOCKUP_GENERATION_PROMPT.sceneReadingVision));
+  // En fractions sans exemple, la vision rendait des zéros : la zone est une
+  // boîte en coordonnées 0–1000, que \`parseBrandingZone\` lit.
+  check('vision : zone rendue en boîte 0–1000', /"box": \[x1, y1, x2, y2\]/.test(MOCKUP_GENERATION_PROMPT.sceneReadingVision) && /from 0 to 1000/.test(MOCKUP_GENERATION_PROMPT.sceneReadingVision));
+
+  // Aucun secteur ne met en scène un support qui porte des mots, et chacun en
+  // trouve assez pour la charte.
+  for (const [industry, categories] of Object.entries(INDUSTRY_MOCKUP_CATEGORIES)) {
+    const selected: { supportType: any }[] = (mockupAnalyzerService as any).selectSupports(
+      categories,
+      industry,
+      { keywords: [], emphasis: [], scale: 'small' },
+      MOCKUP_CONFIG.MOCKUP_COUNT
+    );
+    check(
+      `mockup : ${industry} met en scène ${MOCKUP_CONFIG.MOCKUP_COUNT} supports nus`,
+      selected.length === MOCKUP_CONFIG.MOCKUP_COUNT && selected.every((entry) => Boolean(supportScene(entry.supportType))),
+      selected.map((entry) => entry.supportType).join(', ')
+    );
+  }
 }
 
 // ── L'ÉQUIPE DE RECHERCHE REÇOIT LE MÊME BRIEF QUE LE GABARIT ───────────────
@@ -428,8 +473,12 @@ console.log('\n  Charte : couverture du gabarit');
     'Logo Variation Fond Sombre', 'Logo Variation Monochrome',
     // Pages dont le spécimen est fabriqué par le code.
     'Logomark', 'Typeface Hierarchy', 'Graphic Patterns',
-    'Social Media Creatives', 'Social Media Page Banners',
   ];
+  // Toute page sous gabarit porte un titre de la nomenclature : sans lui, le
+  // titre retombe sur celui du modèle, et la charte change de registre.
+  for (const page of templated) {
+    check(`« ${page} » a un titre de nomenclature`, Boolean(CHARTER_PAGE_HEADINGS[page]?.title));
+  }
   for (const page of templated) {
     check(`« ${page} » dispose d'un brief de contenu`, Boolean(CHARTER_PAGE_BRIEFS[page]));
   }

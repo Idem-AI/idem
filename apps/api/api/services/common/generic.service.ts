@@ -98,6 +98,23 @@ export interface SectionTemplate {
    * Le modèle garde ce qu'il sait faire : écrire les règles d'usage autour.
    */
   prependBlocks?: Block[];
+  /**
+   * Titre IMPOSÉ par le livrable, à la place de celui du modèle.
+   *
+   * Une charte se consulte par sa nomenclature : « Déclinaison sur fond
+   * sombre », pas « Le logo sur ses fonds ». Laissé au modèle, le titre
+   * changeait de registre d'une page à l'autre, et le sur-titre qu'il
+   * produisait disait mieux la page que le titre lui-même.
+   */
+  heading?: { title: string; kicker?: string };
+  /**
+   * Recompose les blocs (spécimens compris) avant le rendu.
+   *
+   * Sert aux pages dont la forme réunit une donnée du projet et un texte du
+   * modèle dans UN même objet graphique — le logo et son explication, posés
+   * côte à côte, et non l'un sous l'autre au gré de la grille.
+   */
+  composeBlocks?: (blocks: Block[]) => Block[];
 }
 
 /**
@@ -725,7 +742,13 @@ export class GenericService {
           // gabarit, la composition ne lui est plus demandée — la condition de
           // retrait écrite dans ai.config.ts est donc remplie, section par
           // section, au fur et à mesure de la bascule.
-          pinModel: step.template ? false : step.aiConfig?.pinModel,
+          //
+          // Exception : un modèle déclaré SUR LA SECTION (`modelLocked`) est une
+          // décision explicite de l'auteur, et le dépinglage l'effaçait en
+          // silence — la section repartait à l'étage de sa tâche.
+          pinModel: step.template
+            ? step.aiConfig?.modelLocked === true
+            : step.aiConfig?.pinModel,
         },
         promptType: effectiveConfig.promptType ?? step.stepName,
         tools: useTools ? CONTEXT_TOOL_DECLARATIONS : undefined,
@@ -783,9 +806,17 @@ export class GenericService {
         const withSpecimens = step.template.prependBlocks?.length
           ? { ...parsed, blocks: [...step.template.prependBlocks, ...parsed.blocks] }
           : parsed;
+        const composed = step.template.composeBlocks
+          ? { ...withSpecimens, blocks: step.template.composeBlocks(withSpecimens.blocks) }
+          : withSpecimens;
+        // La nomenclature du livrable l'emporte sur le titre du modèle, et
+        // son sur-titre avec lui : sans sur-titre imposé, la page n'en porte pas.
+        const headed = step.template.heading
+          ? { ...composed, title: step.template.heading.title, kicker: step.template.heading.kicker }
+          : composed;
 
         content = renderSection(
-          withSpecimens,
+          headed,
           step.template.designSystem,
           step.template.seed,
           step.template.render ?? {}

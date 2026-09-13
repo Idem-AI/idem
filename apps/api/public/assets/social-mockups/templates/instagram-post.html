@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!-- Mockup IDEM · Publication Instagram (mobile) · 400 × 654. Visuel 4:5 (flyer « post »). La publication seule, sans les barres de l'application : réduite sur la page, visuel et interface restent grands. Emplacements : cf. ../README.md -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+{{{fontLinks}}}
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:400px;height:654px;overflow:hidden;background:#fff;font-family:'Inter',system-ui,sans-serif;color:#000;-webkit-font-smoothing:antialiased}
+svg{display:block}
+.phead{height:56px;display:flex;align-items:center;gap:10px;padding:0 12px}
+.ring{width:38px;height:38px;border-radius:50%;padding:2px;background:conic-gradient(#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5,#feda75);flex:none}
+.ring>div{width:100%;height:100%;border-radius:50%;border:2px solid #fff;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.ring img{width:70%;height:70%;object-fit:contain}
+.who{min-width:0;flex:1}
+.handle{font-size:15px;line-height:19px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub{font-size:12.5px;line-height:16px;color:#262626;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.media{width:400px;height:500px;background:#efefef;overflow:hidden}
+.media img{width:100%;height:100%;object-fit:cover;display:block}
+.act{height:46px;display:flex;align-items:center;padding:0 12px;gap:16px}
+.act .end{margin-left:auto}
+.cap{height:52px;padding:2px 12px 0;font-size:14.5px;line-height:19px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.cap b{font-weight:600}
+.tags{color:#00376b}
+</style>
+</head>
+<body>
+<div class="phead">
+  <div class="ring"><div style="background:{{avatarGround}}"><img src="{{avatarSrc}}" alt=""></div></div>
+  <div class="who"><div class="handle">{{handle}}</div><div class="sub">{{category}}</div></div>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="#000"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+</div>
+<div class="media"><img src="{{mediaSrc}}" alt=""></div>
+<div class="act">
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z"/></svg>
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M20.7 17.1A9.5 9.5 0 1 0 17.2 20.6L22 22z" stroke-linejoin="round"/></svg>
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M22 3 9.2 10.1M22 3l-7 18-3.9-8.9L2 8.3z" stroke-linejoin="round"/></svg>
+  <svg class="end" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M20 21 12 13.5 4 21V3h16z" stroke-linejoin="round"/></svg>
+</div>
+<div class="cap"><b>{{handle}}</b> {{caption}} <span class="tags">{{hashtags}}</span></div>
+</body>
+</html>

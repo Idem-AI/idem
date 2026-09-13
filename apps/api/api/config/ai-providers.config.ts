@@ -237,6 +237,10 @@ export function buildGeminiThinkingConfig(
 export function canSuppressThinking(modelName: string): boolean {
   if (/gemini-2\.5/i.test(modelName)) return true;
   if (/gemini-3/i.test(modelName)) return !/pro/i.test(modelName);
+  // La famille GLM 5.3 (`glm-5.3`, `glm-5.3-flash`) raisonne TOUJOURS : Z.ai
+  // refuse `thinking: disabled` par un HTTP 400 (« This model always engages in
+  // thinking and cannot be disabled »). Lui envoyer la coupure perd l'appel.
+  if (/^glm-5\.3/i.test(modelName)) return false;
   // Fournisseurs openai-compatible : le raisonnement se coupe par `extraBody`.
   return !/^gemini/i.test(modelName);
 }

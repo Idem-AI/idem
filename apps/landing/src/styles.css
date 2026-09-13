@@ -3,7 +3,6 @@
 @import '@idem/shared-styles/styles.css';
 
 /* PrimeNG Icons */
-@import 'primeicons/primeicons.css';
 
 /* Tailwind v4 dark variant, driven by the `.dark` class on <html> (set by the
    theme boot script / ThemeService from the shared `idem_theme` cookie). */

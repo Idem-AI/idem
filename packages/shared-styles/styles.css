@@ -11,6 +11,12 @@
    Jura 542) ; et l'approche -0.09em est incorporée aux chasses. */
 @import './fonts/fonts.css';
 
+/* Les icônes PrimeIcons sont DANS Vilevile : mêmes classes qu'avant
+   (`<i class="pi pi-user">`), mais plus de police d'icônes séparée à charger,
+   et plus de famille à rattraper. Elles héritent de la couleur et du corps de
+   leur texte comme n'importe quel caractère. */
+@import './fonts/icons.css';
+
 /* Dual theme (dark + light). The active theme is driven by the `.dark` / `.light`
    class on <html> (set by each app's ThemeService / boot script from the shared
    `idem_theme` cookie, defaulting to the browser's prefers-color-scheme). */

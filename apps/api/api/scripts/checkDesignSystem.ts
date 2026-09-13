@@ -198,6 +198,11 @@ check('la police de marque est embarquée, pas demandée à Google', !brand.incl
 check('la police de marque arrive bien dans le document', brand.includes("font-family: 'Vilevile'"));
 check("l'approche de la police est publiée aux gabarits", brand.includes('--idem-font-tracking'));
 
+// Les dessins de PrimeIcons sont dans Vilevile : un document rendu côté serveur
+// doit pouvoir poser un `<i class="pi pi-check">` sans rien charger de plus.
+check('les icônes voyagent avec la police', brand.includes('.pi-check:before'));
+check('les icônes pointent sur la police de marque', /\.pi \{[^}]*Vilevile/.test(brand));
+
 console.log('\n[6] Retenue éditoriale');
 check('le bloc impose le test de soustraction', EDITORIAL_RESTRAINT_BLOCK.includes('SUBTRACTION TEST'));
 check('le bloc interdit le remplissage au quota', EDITORIAL_RESTRAINT_BLOCK.includes('never a quota'));

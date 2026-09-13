@@ -159,6 +159,42 @@ export type Block =
       }[];
     }
   /**
+   * Mockups de réseaux sociaux, déjà rendus en image.
+   *
+   * `ratio` (largeur / hauteur) répartit la largeur de la rangée pour que ses
+   * mockups partagent leur hauteur : un profil en paysage et une publication
+   * en portrait ne se lisent côte à côte que s'ils ont la même.
+   */
+  | {
+      kind: 'mockupShowcase';
+      items: { url: string; label: string; caption?: string; ratio: number }[];
+    }
+  /** Le logo et son explication, côte à côte : la forme d'abord, sa raison ensuite. */
+  | {
+      kind: 'logoStory';
+      url: string;
+      label: string;
+      background: 'light' | 'dark' | 'neutral';
+      points: { label: string; text: string }[];
+    }
+  /** Le parti pris de la direction artistique : son nom, sa raison, son vocabulaire. */
+  | { kind: 'artDirectionStance'; styleName: string; rationale: string; keywords: string[] }
+  /** Les principes de composition, chacun DÉMONTRÉ en CSS avant d'être nommé. */
+  | {
+      kind: 'compositionPrinciples';
+      density: 'airy' | 'balanced' | 'dense';
+      items: { demo: 'grid' | 'density' | 'whitespace' | 'signature'; label: string; text: string }[];
+    }
+  /** Le traitement de l'image : une photographie d'univers et ses réglages. */
+  | { kind: 'imageryShowcase'; imageUrl?: string; rows: { label: string; value: string }[] }
+  /** Les leviers de la direction artistique, puis ce qu'on fait et ce qu'on évite. */
+  | {
+      kind: 'artDirectionRules';
+      rows: { label: string; value: string }[];
+      dos: string[];
+      donts: string[];
+    }
+  /**
    * Références numérotées d'une section appuyée sur une recherche web.
    *
    * Injecté par le service à partir des sources RÉELLES retournées par le
@@ -498,6 +534,29 @@ export function estimateBlockWeight(block: Block): number {
     case 'socialBanners':
       // Des bandeaux très larges et bas, empilés.
       return 0.08 + block.banners.length * 0.07;
+
+    // Les blocs de démonstration dimensionnent leurs images sur la HAUTEUR
+    // utile de la page (cf. `usableHeightPx`) : leur poids est celui de la
+    // fraction qu'ils en prennent, légendes comprises.
+    case 'mockupShowcase':
+      // Des publications en portrait prennent presque toute la hauteur d'une
+      // diapositive (cf. `renderMockupShowcase`).
+      return block.items.every((item) => item.ratio <= 1) ? 0.48 : 0.34;
+
+    case 'logoStory':
+      return 0.32;
+
+    case 'artDirectionStance':
+      return 0.3;
+
+    case 'compositionPrinciples':
+      return 0.3;
+
+    case 'imageryShowcase':
+      return block.imageUrl ? 0.34 : 0.05 + block.rows.length * 0.03;
+
+    case 'artDirectionRules':
+      return 0.06 + Math.max(block.rows.length * 0.03, (block.dos.length + block.donts.length) * 0.025 + 0.04);
 
     case 'sources':
       // Deux lignes par référence, en petit corps.
