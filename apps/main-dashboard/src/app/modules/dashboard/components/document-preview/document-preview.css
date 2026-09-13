@@ -1,0 +1,568 @@
+/* ==========================================================================
+   Aperçu de document : en-tête léger, scène (canvas) et dock flottant.
+   ========================================================================== */
+
+.dp {
+  --dp-dock-h: 3.25rem;
+  --dp-dock-gap: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.dp-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  padding: 0 0.25rem;
+}
+
+.dp-title {
+  /* L'approche négative de Vilevile fait déborder le dernier glyphe : sans
+     cette réserve, `overflow: hidden` le rogne. */
+  padding-inline-end: 0.15em;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dp-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  color: var(--color-text-tertiary);
+}
+
+.dp-meta-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.dp-meta-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Scène : sans fond ni cadre, les pages flottent sur le fond du tableau de
+   bord. Sa hauteur est mesurée (document-preview.ts) pour finir au bas de la
+   fenêtre ; la valeur CSS ne sert qu'avant la première mesure. */
+.dp-stage {
+  position: relative;
+  height: calc(100dvh - 260px);
+  min-height: 380px;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* -- États (chargement, erreur, vide) -- */
+.dp-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.dp-skeleton {
+  display: grid;
+  grid-template-columns: repeat(3, 56px);
+  gap: 10px;
+}
+
+.dp-skeleton span {
+  height: 74px;
+  border-radius: 6px;
+  background: linear-gradient(
+    100deg,
+    var(--glass-bg-subtle) 20%,
+    var(--glass-bg-light) 50%,
+    var(--glass-bg-subtle) 80%
+  );
+  background-size: 200% 100%;
+  animation: dp-shimmer 1.3s ease-in-out infinite;
+}
+
+.dp-skeleton span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.dp-skeleton span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* -- Menu contextuel de l'élément cliqué -- */
+.dp-popover {
+  position: absolute;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: max-content;
+  max-width: 260px;
+  padding: 0.3rem 0.3rem 0.3rem 0.7rem;
+  border-radius: 0.85rem;
+  background: #0f172a;
+  color: #fff;
+  box-shadow:
+    0 18px 40px -10px rgba(2, 6, 23, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+  transform-origin: 1.25rem top;
+  animation: dp-pop 0.16s ease-out;
+}
+
+/* Pointe vers l'élément. */
+.dp-popover::before {
+  content: '';
+  position: absolute;
+  left: 1rem;
+  top: -5px;
+  width: 10px;
+  height: 10px;
+  background: inherit;
+  transform: rotate(45deg);
+  border-radius: 2px;
+}
+
+.dp-popover-above {
+  transform-origin: 1.25rem bottom;
+}
+
+.dp-popover-above::before {
+  top: auto;
+  bottom: -5px;
+}
+
+.dp-popover-inside::before {
+  display: none;
+}
+
+.dp-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding-right: 0.25rem;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.72);
+  white-space: nowrap;
+}
+
+.dp-popover-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 2.1rem;
+  padding: 0 0.85rem;
+  border-radius: 0.6rem;
+  background: var(--gradient-primary, var(--color-primary));
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.dp-popover-edit:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.dp-popover-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 0.6rem;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.dp-popover-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.dp-popover-edit:focus-visible,
+.dp-popover-close:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* -- Dock flottant --
+   Collant (sticky) au bas de la fenêtre. Sa marge haute négative le pose sur
+   le bas de la scène ; sa marge basse rend cette place au flux, la section
+   garde donc la hauteur exacte de l'en-tête et de la scène. */
+.dp-dock {
+  position: sticky;
+  bottom: var(--dp-dock-gap);
+  z-index: 10;
+  align-self: center;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: var(--dp-dock-h);
+  max-width: calc(100% - 2 * var(--dp-dock-gap));
+  margin-top: calc(-1 * (var(--dp-dock-h) + var(--dp-dock-gap)));
+  margin-bottom: var(--dp-dock-gap);
+  padding: 0.35rem;
+  border-radius: 1.1rem;
+  border: 1px solid var(--glass-border);
+  background: color-mix(in srgb, var(--color-surface-2) 84%, transparent);
+  backdrop-filter: blur(18px) saturate(1.3);
+  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+  box-shadow:
+    0 24px 50px -18px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  animation: dp-rise 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.dp-sep {
+  flex-shrink: 0;
+  width: 1px;
+  height: 1.5rem;
+  margin: 0 0.2rem;
+  background: var(--glass-border);
+}
+
+.dp-pages {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.dp-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.6rem;
+  color: var(--color-text-secondary);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.dp-icon-btn:hover:not(:disabled) {
+  background: var(--glass-bg-subtle);
+  color: var(--color-text-primary);
+}
+
+.dp-icon-btn:disabled {
+  opacity: 0.35;
+}
+
+.dp-page-value {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 3.25rem;
+  max-width: 11rem;
+  height: 2.5rem;
+  padding: 0 0.55rem;
+  border-radius: 0.6rem;
+  text-align: left;
+  transition: background-color 0.15s ease;
+}
+
+.dp-page-value:hover,
+.dp-page-value[aria-expanded='true'] {
+  background: var(--glass-bg-subtle);
+}
+
+.dp-page-number {
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.dp-page-total {
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+}
+
+.dp-page-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  color: var(--color-text-tertiary);
+}
+
+.dp-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.85rem);
+  z-index: 60;
+  width: min(18rem, calc(100vw - 2rem));
+  max-height: min(22rem, 60dvh);
+  overflow-y: auto;
+  padding: 0.35rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--glass-border);
+  background: var(--color-surface-2);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+.dp-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.55rem;
+  font-size: 0.82rem;
+  text-align: left;
+  color: var(--color-text-secondary);
+}
+
+.dp-menu-item:hover {
+  background: var(--glass-bg-subtle);
+  color: var(--color-text-primary);
+}
+
+.dp-menu-item[aria-checked='true'] {
+  color: color-mix(in srgb, var(--color-primary) 55%, var(--color-text-primary));
+  font-weight: 600;
+}
+
+.dp-menu-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.4rem;
+  background: var(--glass-bg-subtle);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.dp-menu-item[aria-checked='true'] .dp-menu-index {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* Actions : Éditer (teinte de marque) et Télécharger (dégradé de marque). */
+.dp-action {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: 0.5rem;
+  height: 2.5rem;
+  padding: 0 1rem;
+  border-radius: 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease,
+    filter 0.18s ease;
+}
+
+.dp-action:disabled {
+  opacity: 0.5;
+}
+
+.dp-action:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+.dp-action:not(:disabled):active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Le bleu de marque pur tombe sous 3:1 sur la surface sombre : il est mêlé à la
+   couleur du texte (blanc en sombre, encre en clair), lisible dans les deux thèmes. */
+.dp-edit {
+  color: color-mix(in srgb, var(--color-primary) 55%, var(--color-text-primary));
+  background: color-mix(in srgb, var(--color-primary) 13%, transparent);
+}
+
+.dp-edit:not(:disabled):hover {
+  background: color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
+.dp-download {
+  color: #fff;
+  background: var(--gradient-primary, var(--color-primary));
+  background-size: 200% 100%;
+  box-shadow: 0 8px 20px -8px var(--color-primary-glow, rgba(20, 71, 230, 0.6));
+}
+
+/* Reflet qui balaie le bouton au survol. */
+.dp-download::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.28) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+}
+
+.dp-download:not(:disabled):hover::after {
+  transform: translateX(120%);
+}
+
+.dp-download:not(:disabled):hover {
+  box-shadow: 0 12px 26px -8px var(--color-primary-glow, rgba(20, 71, 230, 0.7));
+}
+
+.dp-download[data-state='working'] {
+  opacity: 1;
+  cursor: progress;
+}
+
+.dp-download[data-state='done'] {
+  background: #059669;
+  box-shadow: 0 8px 20px -8px rgba(5, 150, 105, 0.6);
+}
+
+.dp-download[data-state='error'] {
+  background: #dc2626;
+  box-shadow: 0 8px 20px -8px rgba(220, 38, 38, 0.6);
+}
+
+.dp-download-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+}
+
+.dp-download[data-state='done'] .dp-download-icon {
+  animation: dp-pop 0.25s ease-out;
+}
+
+.dp-spinner {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  animation: dp-spin 0.7s linear infinite;
+}
+
+.dp-icon-btn:focus-visible,
+.dp-page-value:focus-visible,
+.dp-menu-item:focus-visible,
+.dp-action:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* -- Petits écrans : dock pleine largeur, icônes, pas de nom de page -- */
+@media (max-width: 767px) {
+  .dp {
+    --dp-dock-gap: 0.5rem;
+  }
+  .dp-title {
+    font-size: 1.05rem;
+  }
+  .dp-meta-hint,
+  .dp-meta-dot {
+    display: none;
+  }
+  .dp-page-name {
+    display: none;
+  }
+  .dp-dock {
+    align-self: stretch;
+    max-width: none;
+    margin-inline: var(--dp-dock-gap);
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 520px) {
+  .dp-page-step {
+    display: none;
+  }
+  .dp-action {
+    width: 2.75rem;
+    padding: 0;
+  }
+  .dp-action-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+@keyframes dp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes dp-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes dp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dp-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dp-dock,
+  .dp-popover,
+  .dp-download-icon,
+  .dp-skeleton span {
+    animation: none !important;
+  }
+  .dp-action,
+  .dp-download::after {
+    transition: none !important;
+  }
+}

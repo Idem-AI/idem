@@ -1,4 +1,4 @@
-<div class="w-full min-h-screen md:p-6">
+<div class="w-full min-h-screen md:px-6 md:pb-6">
   @if (isLoading()) {
     <div class="max-w-6xl mx-auto text-center py-20">
       <app-loader />
@@ -107,28 +107,8 @@
       </div>
     </div>
   } @else if (pitchDeck() && pitchDeck()!.sections.length > 0 && !isPitchDeckIncomplete()) {
-    <!-- Deck viewer (PDF) -->
-    <div class="max-w-7xl mx-auto">
-      <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <div>
-          <h2 class="text-2xl font-bold text-text-primary mb-1">
-            {{ 'dashboard.showPitchDeck.title' | translate }}
-          </h2>
-          <p class="text-sm text-text-tertiary">
-            {{ pitchDeck()!.sections.length }}
-            {{ 'dashboard.showPitchDeck.generating.slides' | translate }}
-          </p>
-        </div>
-        <button
-          type="button"
-          class="inner-button !py-2 !px-4 !text-xs !normal-case"
-          (click)="editPitchDeck()"
-        >
-          <i class="pi pi-pencil" aria-hidden="true"></i>
-          {{ 'dashboard.showPitchDeck.buttons.edit' | translate }}
-        </button>
-      </div>
-
+    <!-- Aperçu du deck (rendu comme dans l'éditeur, PDF au téléchargement) -->
+    <div class="max-w-7xl mx-auto space-y-6">
       <!-- Régénération d'une diapositive particulière -->
       <app-generation-status-panel
         [completeness]="completeness()"
@@ -138,23 +118,10 @@
         (regenerateSection)="regenerateSection($event)"
       />
 
-      @if (pdfLoading() && !pdfBlob()) {
-        <div class="glass-card p-10 text-center">
-          <div
-            class="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4"
-          ></div>
-          <p class="text-sm text-text-tertiary">
-            {{ 'dashboard.showPitchDeck.loadingPdf' | translate }}
-          </p>
-        </div>
-      } @else if (pdfBlob()) {
-        <app-pitch-deck-pdf-viewer
-          [pdfBlob]="pdfBlob()"
-          [slideNames]="slideNames()"
-          (downloadRequested)="downloadPdf()"
-          (regenerateRequested)="regenerate()"
-        ></app-pitch-deck-pdf-viewer>
-      }
+      <app-document-preview
+        documentType="pitch-deck"
+        [heading]="'dashboard.showPitchDeck.title' | translate"
+      />
 
       @if (errorMessage()) {
         <p class="mt-6 text-sm text-red-400 text-center">{{ errorMessage() }}</p>

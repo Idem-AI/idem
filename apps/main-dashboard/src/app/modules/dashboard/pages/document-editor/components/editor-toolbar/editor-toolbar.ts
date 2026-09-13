@@ -1,20 +1,22 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { SaveState } from '../../models/editor.types';
+import { ZoomControlComponent } from '../zoom-control/zoom-control';
 
 /**
- * Barre d'outils supérieure de l'éditeur : retour, titre, annuler/rétablir,
- * zoom, état de sauvegarde et enregistrement manuel. Chaque contrôle expose ses
- * états (hover/focus/disabled) et respecte le design system.
+ * Barre d'outils supérieure de l'éditeur : retour, pages, titre,
+ * annuler/rétablir, zoom, état de sauvegarde et enregistrement manuel. Sur
+ * petit écran, les libellés cèdent la place aux icônes (l'état de sauvegarde
+ * devient une pastille) pour que chaque contrôle reste atteignable.
  */
 @Component({
   selector: 'app-editor-toolbar',
-  imports: [TranslateModule],
+  imports: [TranslateModule, ZoomControlComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
     <div
-      class="flex items-center gap-3 px-4 h-14 border-b border-[var(--glass-border)] bg-[var(--color-surface-2)]"
+      class="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 h-14 border-b border-[var(--glass-border)] bg-[var(--color-surface-2)]"
     >
       <button
         type="button"
@@ -25,15 +27,28 @@ import { SaveState } from '../../models/editor.types';
         <i class="pi pi-arrow-left" aria-hidden="true"></i>
       </button>
 
-      <div class="min-w-0 flex-1">
+      <button
+        type="button"
+        class="editor-icon-btn"
+        [class.editor-icon-btn-active]="layersOpen()"
+        aria-controls="editor-layers"
+        [attr.aria-expanded]="layersOpen()"
+        [attr.aria-label]="'dashboard.documentEditor.toolbar.pages' | translate"
+        [title]="'dashboard.documentEditor.toolbar.pages' | translate"
+        (click)="toggleLayers.emit()"
+      >
+        <i class="pi pi-clone" aria-hidden="true"></i>
+      </button>
+
+      <div class="min-w-0 flex-1 px-1">
         <h1 class="text-sm font-semibold text-text-primary truncate">{{ title() }}</h1>
-        <p class="text-xs text-text-tertiary truncate">
+        <p class="hidden sm:block text-xs text-text-tertiary truncate">
           {{ 'dashboard.documentEditor.toolbar.subtitle' | translate }}
         </p>
       </div>
 
       <!-- Annuler / Rétablir -->
-      <div class="flex items-center gap-1">
+      <div class="flex items-center">
         <button
           type="button"
           class="editor-icon-btn"
@@ -56,44 +71,41 @@ import { SaveState } from '../../models/editor.types';
         </button>
       </div>
 
-      <div class="w-px h-6 bg-[var(--glass-border)]" role="separator"></div>
+      <div class="hidden md:block w-px h-6 bg-[var(--glass-border)]" role="separator"></div>
 
-      <!-- Zoom -->
-      <div class="flex items-center gap-1">
-        <button
-          type="button"
-          class="editor-icon-btn"
-          (click)="zoomOut.emit()"
-          [attr.aria-label]="'dashboard.documentEditor.toolbar.zoomOut' | translate"
-        >
-          <i class="pi pi-search-minus" aria-hidden="true"></i>
-        </button>
-        <span class="text-xs tabular-nums text-text-secondary w-10 text-center">{{ zoomPercent() }}%</span>
-        <button
-          type="button"
-          class="editor-icon-btn"
-          (click)="zoomIn.emit()"
-          [attr.aria-label]="'dashboard.documentEditor.toolbar.zoomIn' | translate"
-        >
-          <i class="pi pi-search-plus" aria-hidden="true"></i>
-        </button>
-      </div>
+      <app-zoom-control
+        [zoom]="zoom()"
+        [fitting]="fitting()"
+        menuPlacement="bottom"
+        (zoomIn)="zoomIn.emit()"
+        (zoomOut)="zoomOut.emit()"
+        (fitWidth)="fitWidth.emit()"
+        (zoomTo)="zoomTo.emit($event)"
+      />
 
-      <div class="w-px h-6 bg-[var(--glass-border)]" role="separator"></div>
+      <div class="hidden md:block w-px h-6 bg-[var(--glass-border)]" role="separator"></div>
 
-      <!-- État de sauvegarde -->
-      <span class="text-xs min-w-24 text-right" [class]="saveClass()" aria-live="polite">
+      <!-- État de sauvegarde : texte sur grand écran, pastille sinon -->
+      <span class="hidden md:inline text-xs min-w-24 text-right" [class]="saveClass()" aria-live="polite">
         {{ saveLabel() | translate }}
+      </span>
+      <span
+        class="md:hidden inline-block w-2 h-2 rounded-full mx-1"
+        [class]="saveDotClass()"
+        [title]="saveLabel() | translate"
+      >
+        <span class="sr-only">{{ saveLabel() | translate }}</span>
       </span>
 
       <button
         type="button"
-        class="inner-button !py-2 !px-4 !text-xs !normal-case"
+        class="inner-button !py-2 !px-3 sm:!px-4 !text-xs !normal-case"
         [disabled]="saveState() === 'saving'"
+        [attr.aria-label]="'dashboard.documentEditor.toolbar.save' | translate"
         (click)="save.emit()"
       >
         <i class="pi pi-save" aria-hidden="true"></i>
-        {{ 'dashboard.documentEditor.toolbar.save' | translate }}
+        <span class="hidden sm:inline">{{ 'dashboard.documentEditor.toolbar.save' | translate }}</span>
       </button>
     </div>
   `,
@@ -103,6 +115,7 @@ import { SaveState } from '../../models/editor.types';
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        flex-shrink: 0;
         width: 2.25rem;
         height: 2.25rem;
         border-radius: 0.5rem;
@@ -112,6 +125,10 @@ import { SaveState } from '../../models/editor.types';
       .editor-icon-btn:hover:not(:disabled) {
         background: var(--glass-bg-subtle);
         color: var(--color-text-primary);
+      }
+      .editor-icon-btn-active {
+        background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+        color: var(--color-primary);
       }
       .editor-icon-btn:focus-visible {
         outline: 2px solid var(--color-primary);
@@ -130,15 +147,18 @@ export class EditorToolbarComponent {
   readonly canRedo = input<boolean>(false);
   readonly saveState = input<SaveState>('idle');
   readonly zoom = input<number>(1);
+  readonly fitting = input<boolean>(false);
+  readonly layersOpen = input<boolean>(false);
 
   readonly undo = output<void>();
   readonly redo = output<void>();
   readonly save = output<void>();
   readonly zoomIn = output<void>();
   readonly zoomOut = output<void>();
+  readonly fitWidth = output<void>();
+  readonly zoomTo = output<number>();
+  readonly toggleLayers = output<void>();
   readonly exit = output<void>();
-
-  protected readonly zoomPercent = computed(() => Math.round(this.zoom() * 100));
 
   protected readonly saveLabel = computed(() => {
     switch (this.saveState()) {
@@ -161,10 +181,20 @@ export class EditorToolbarComponent {
         return 'text-red-400';
       case 'saved':
         return 'text-emerald-400';
-      case 'saving':
-        return 'text-text-tertiary';
       default:
         return 'text-text-tertiary';
+    }
+  });
+
+  protected readonly saveDotClass = computed(() => {
+    switch (this.saveState()) {
+      case 'error':
+        return 'bg-red-400';
+      case 'dirty':
+      case 'saving':
+        return 'bg-amber-400';
+      default:
+        return 'bg-emerald-400';
     }
   });
 }

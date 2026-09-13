@@ -19,11 +19,13 @@
         "saved": "Saved",
         "saveError": "Save failed",
         "unsaved": "Unsaved changes",
-        "upToDate": "Up to date"
+        "upToDate": "Up to date",
+        "pages": "Document pages"
       },
       "layers": {
         "title": "Document pages",
-        "pages": "Pages"
+        "pages": "Pages",
+        "close": "Close pages"
       },
       "emptySelection": {
         "title": "No element selected",
@@ -102,6 +104,11 @@
       },
       "flyer": {
         "title": "Visual editor"
+      },
+      "inspectorClose": "Close properties",
+      "zoom": {
+        "menu": "Zoom: {{value}}%",
+        "fitWidth": "Fit to width"
       }
     }
   }

@@ -1,0 +1,40 @@
+{
+  "dashboard": {
+    "documentPreview": {
+      "canvasLabel": "Document preview",
+      "pageCount": "{{count}} pages",
+      "hint": "Click an element to edit it",
+      "loading": "Preparing the preview…",
+      "error": "The preview could not be loaded. Reload the page to try again.",
+      "empty": "This document has no pages yet.",
+      "popover": {
+        "label": "Element actions",
+        "edit": "Edit",
+        "close": "Close"
+      },
+      "kinds": {
+        "page": "Page",
+        "chart": "Chart",
+        "heading": "Heading",
+        "image": "Image",
+        "table": "Table",
+        "list": "List",
+        "text": "Text",
+        "block": "Block"
+      },
+      "dock": {
+        "label": "Document actions",
+        "previousPage": "Previous page",
+        "nextPage": "Next page",
+        "pagesMenu": "Page {{current}} of {{total}}, show page list",
+        "edit": "Edit"
+      },
+      "download": {
+        "idle": "Download",
+        "working": "Preparing…",
+        "done": "Downloaded",
+        "error": "Failed, retry"
+      }
+    }
+  }
+}

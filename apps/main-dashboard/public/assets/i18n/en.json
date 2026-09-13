@@ -1648,7 +1648,10 @@
       "buttons": {
         "generate": "Generate Brand Identity"
       },
-      "generationTime": "Generation takes 2-3 minutes"
+      "generationTime": "Generation takes 2-3 minutes",
+      "errors": {
+        "load": "The brand guide could not be loaded. Please try again shortly."
+      }
     },
     "brandingGeneration": {
       "finalizing": "Finalizing Branding",
@@ -1886,7 +1889,7 @@
       }
     },
     "businessPlanDisplay": {
-      "title": "Business Plan PDF",
+      "title": "Business plan",
       "loading": "Preparing business plan content...",
       "empty": {
         "title": "No Business Plan Available",
@@ -2517,11 +2520,13 @@
         "saved": "Saved",
         "saveError": "Save failed",
         "unsaved": "Unsaved changes",
-        "upToDate": "Up to date"
+        "upToDate": "Up to date",
+        "pages": "Document pages"
       },
       "layers": {
         "title": "Document pages",
-        "pages": "Pages"
+        "pages": "Pages",
+        "close": "Close pages"
       },
       "emptySelection": {
         "title": "No element selected",
@@ -2600,6 +2605,11 @@
       },
       "flyer": {
         "title": "Visual editor"
+      },
+      "inspectorClose": "Close properties",
+      "zoom": {
+        "menu": "Zoom: {{value}}%",
+        "fitWidth": "Fit to width"
       }
     },
     "showCommunication": {
@@ -3047,6 +3057,42 @@
           "name": "Not sure yet",
           "goal": "An all-purpose plan"
         }
+      }
+    },
+    "documentPreview": {
+      "canvasLabel": "Document preview",
+      "pageCount": "{{count}} pages",
+      "hint": "Click an element to edit it",
+      "loading": "Preparing the preview…",
+      "error": "The preview could not be loaded. Reload the page to try again.",
+      "empty": "This document has no pages yet.",
+      "popover": {
+        "label": "Element actions",
+        "edit": "Edit",
+        "close": "Close"
+      },
+      "kinds": {
+        "page": "Page",
+        "chart": "Chart",
+        "heading": "Heading",
+        "image": "Image",
+        "table": "Table",
+        "list": "List",
+        "text": "Text",
+        "block": "Block"
+      },
+      "dock": {
+        "label": "Document actions",
+        "previousPage": "Previous page",
+        "nextPage": "Next page",
+        "pagesMenu": "Page {{current}} of {{total}}, show page list",
+        "edit": "Edit"
+      },
+      "download": {
+        "idle": "Download",
+        "working": "Preparing…",
+        "done": "Downloaded",
+        "error": "Failed, retry"
       }
     }
   },

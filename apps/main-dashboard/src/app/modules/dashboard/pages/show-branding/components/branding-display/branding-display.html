@@ -15,7 +15,7 @@
           <h3 class="text-3xl font-bold text-text-primary">
             {{ 'common.error' | translate }}
           </h3>
-          <p class="text-lg text-text-secondary">{{ loadError() }}</p>
+          <p class="text-lg text-text-secondary">{{ loadError()! | translate }}</p>
         </div>
         <button
           (click)="goBack()"
@@ -29,36 +29,24 @@
       </div>
     </div>
   </div>
-} @else if (pdfSrc()) {
-  <!-- Back Button -->
-  <div class="mb-4">
+} @else if (hasBranding()) {
+  <!-- Aperçu de la charte (rendu comme dans l'éditeur, PDF au téléchargement).
+       Le retour à l'aperçu de marque est une icône dans l'en-tête : aucune ligne à lui seul. -->
+  <app-document-preview
+    documentType="branding"
+    [heading]="'dashboard.brandingDisplay.title' | translate"
+  >
     <button
+      previewLeading
+      type="button"
+      class="inline-flex items-center justify-center shrink-0 w-9 h-9 rounded-lg border border-[var(--glass-border)] text-text-secondary transition-colors hover:bg-[var(--glass-bg-subtle)] hover:text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+      [attr.aria-label]="'dashboard.showBranding.buttons.backToOverview' | translate"
+      [title]="'dashboard.showBranding.buttons.backToOverview' | translate"
       (click)="goBack()"
-      class="glass-card px-4 py-2 text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-300 inline-flex items-center gap-2"
     >
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-      </svg>
-      {{ 'dashboard.showBranding.buttons.backToOverview' | translate }}
+      <i class="pi pi-arrow-left" aria-hidden="true"></i>
     </button>
-  </div>
-  <app-pdf-viewer
-    [pdfSrc]="pdfSrc()"
-    [isLoading]="isDownloadingPdf()"
-    [error]="pdfError()"
-    [title]="'dashboard.brandingDisplay.title' | translate"
-    [showPagination]="true"
-    [showEditButton]="true"
-    [editButtonLabel]="'dashboard.showBranding.buttons.edit'"
-    (editRequested)="editBranding()"
-    (regenerateRequested)="regeneratePdf()"
-    (downloadRequested)="downloadPdf()"
-  ></app-pdf-viewer>
-} @else if (branding() && branding()!.sections && branding()!.sections.length > 0) {
-  <div class="w-full h-64 sm:h-96 flex flex-col items-center justify-center">
-    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-    <p class="text-gray-600">{{ 'dashboard.brandingDisplay.loading' | translate }}</p>
-  </div>
+  </app-document-preview>
 } @else {
   <!-- Empty State with SVG Illustration -->
   <div class="w-full min-h-[600px] flex items-center justify-center p-6">
