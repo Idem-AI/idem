@@ -51,6 +51,8 @@ function stripFontLinks(html: string): string {
 }
 
 
+import { LAYOUT_FAMILIES } from '../services/design/layoutFamilies';
+
 let failures = 0;
 
 function check(label: string, condition: boolean, detail = ''): void {
@@ -224,7 +226,10 @@ console.log('\nArchétypes');
 
   const seed = buildDocumentSeed('editorial', 'businessplan:demo');
   const ds = buildDocumentDesignSystem(CHARTER, { styleId: 'editorial' } as any, seed);
-  const base = buildSectionSeed('editorial', 'businessplan:demo', 'Opportunity', new Set());
+  // Famille épinglée : ces assertions portent sur les ARCHÉTYPES, et seule une
+  // famille qui s'en remet à eux (« planche ») leur laisse composer l'en-tête
+  // d'une page portrait. Les familles ont leurs propres vérifications.
+  const base = { ...buildSectionSeed('editorial', 'businessplan:demo', 'Opportunity', new Set()), family: 'planche' };
 
   const rendered = IMPLEMENTED_ARCHETYPES.map((archetype) =>
     renderSection(CONTENT, ds, { ...base, archetype }, { brandName: 'Café des Hauts', index: 3 })
@@ -286,7 +291,10 @@ console.log('\nCompatibilité du paginateur (portrait, multi-pages)');
 {
   const seed = buildDocumentSeed('editorial', 'businessplan:demo');
   const ds = buildDocumentDesignSystem(CHARTER, { styleId: 'editorial' } as any, seed);
-  const base = buildSectionSeed('editorial', 'businessplan:demo', 'Opportunity', new Set());
+  // Famille épinglée : ces assertions portent sur les ARCHÉTYPES, et seule une
+  // famille qui s'en remet à eux (« planche ») leur laisse composer l'en-tête
+  // d'une page portrait. Les familles ont leurs propres vérifications.
+  const base = { ...buildSectionSeed('editorial', 'businessplan:demo', 'Opportunity', new Set()), family: 'planche' };
 
   // Le paginateur prend les ENFANTS DIRECTS de la racine pour blocs : si le flux
   // est enveloppé, il ne voit qu'un bloc géant, insécable, et une section de
@@ -329,7 +337,9 @@ console.log('\nCompatibilité du paginateur (portrait, multi-pages)');
 
   // Aucune colonne CSS sur la racine : `column-count` casserait la mesure en
   // lignes du paginateur.
-  check('aucune colonne CSS sur la racine en portrait', !/column-count/.test(html));
+  // Sur la RACINE seulement : une famille peut composer la prose d'un bloc en
+  // deux colonnes, à l'intérieur d'un enfant que le paginateur déplace entier.
+  check('aucune colonne CSS sur la racine en portrait', !/column-count/.test(root.slice(0, root.indexOf('>'))));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -479,11 +489,125 @@ console.log('\nUnicité du rendu');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Aperçu ouvrable — ce que les assertions ne peuvent pas juger.
+console.log('\nFamilles de mise en page');
 {
   const seed = buildDocumentSeed('editorial', 'businessplan:demo');
   const ds = buildDocumentDesignSystem(CHARTER, { styleId: 'editorial' } as any, seed);
   const base = buildSectionSeed('editorial', 'businessplan:demo', 'Opportunity', new Set());
+  const lintOptions = {
+    palette: CHARTER.colors.colors,
+    extraAllowedColors: derivedPalette(ds),
+    fonts: [CHARTER.typography.primaryFont, CHARTER.typography.secondaryFont],
+    styleId: 'editorial',
+  };
+  const count = LAYOUT_FAMILIES.length;
+
+  const portrait = LAYOUT_FAMILIES.map((family) => ({
+    family,
+    html: renderSection(CONTENT, ds, { ...base, family: family.id }, { brandName: 'Café des Hauts', index: 3 }),
+  }));
+
+  // LA PROPRIÉTÉ QUI MANQUAIT : deux familles ne rendent jamais la même page.
+  check(
+    `les ${count} familles rendent ${count} pages portrait distinctes`,
+    new Set(portrait.map((entry) => entry.html)).size === count,
+    `${new Set(portrait.map((entry) => entry.html)).size} pages distinctes`
+  );
+
+  const lintFailures = portrait
+    .map((entry) => ({ id: entry.family.id, report: lintHtml(entry.html, lintOptions) }))
+    .filter((entry) => entry.report.errorCount > 0);
+  check(
+    'aucune famille ne viole la charte',
+    lintFailures.length === 0,
+    lintFailures.map((entry) => `${entry.id}: ${entry.report.violations.map((v) => v.rule).join(',')}`).join(' | ')
+  );
+
+  const gateFailures = portrait.filter((entry) => !inspectOutput(entry.html, { format: 'html', minChars: 400 }).ok);
+  check('aucune famille n\'échoue la grille qualité', gateFailures.length === 0,
+    gateFailures.map((entry) => entry.family.id).join(', '));
+
+  // Le paginateur prend les enfants directs de la racine pour blocs : aucune
+  // famille ne doit envelopper le flux.
+  const topLevelDivs = (html: string): number => {
+    const root = stripFontLinks(html).trim();
+    const inner = root.slice(root.indexOf('>') + 1, root.lastIndexOf('</div>'));
+    let depth = 0;
+    let top = 0;
+    for (const match of inner.matchAll(/<(\/?)div\b/g)) {
+      if (match[1] === '/') depth -= 1;
+      else {
+        if (depth === 0) top += 1;
+        depth += 1;
+      }
+    }
+    return top;
+  };
+  const wrapped = portrait.filter((entry) => topLevelDivs(entry.html) < CONTENT.blocks.length);
+  check('toutes les familles gardent leurs blocs enfants directs de la racine', wrapped.length === 0,
+    wrapped.map((entry) => `${entry.family.id} (${topLevelDivs(entry.html)})`).join(', '));
+
+  // Une colonne décalée, indexée ou étroite est un PADDING de la racine : c'est
+  // là que le paginateur lit la capacité d'une page.
+  const columned = portrait.filter((entry) => entry.family.body !== 'full' && entry.family.body !== 'paired');
+  const misplaced = columned.filter((entry) => {
+    const rootTag = stripFontLinks(entry.html).trim();
+    const padding = /padding:([^;"]*)/.exec(rootTag.slice(0, rootTag.indexOf('>')))?.[1] ?? '';
+    const values = padding.trim().split(/\s+/).map((value) => Number.parseFloat(value));
+    return values.length !== 4 || !(values[3] > 12);
+  });
+  check('les colonnes de famille sont portées par le padding de la racine', misplaced.length === 0,
+    misplaced.map((entry) => entry.family.id).join(', '));
+
+  // L'échappement ne dépend d'aucun dessin.
+  const hostile = {
+    kicker: '<b>k</b>',
+    title: '<script>alert(1)</script>',
+    lede: '<i>l</i>',
+    blocks: [
+      { kind: 'prose', paragraphs: ['<img src=x onerror=1> ' + 'x'.repeat(200)] },
+      { kind: 'metrics', items: [{ value: '<b>1</b>', label: '<i>l</i>', note: '<u>n</u>' }] },
+      { kind: 'table', headers: ['<b>h</b>', 'b'], rows: [['<script>c</script>', '2']], caption: '<i>c</i>' },
+      { kind: 'cards', items: [{ title: '<b>t</b>', body: '<i>b</i>' }] },
+      { kind: 'timeline', steps: [{ date: '<b>d</b>', title: '<i>t</i>', body: '<u>b</u>' }] },
+      { kind: 'quote', text: '<b>q</b>', attribution: '<i>a</i>' },
+      { kind: 'assumption', statement: '<b>s</b>', basis: '<i>b</i>' },
+    ],
+  } as any;
+  const leaking = LAYOUT_FAMILIES.filter((family) => {
+    const html = renderSection(hostile, ds, { ...base, family: family.id }, {}).replace(/ style="[^"]*"/g, '');
+    return /<script|<b>|<i>|<u>|<img\b(?![^>]*\balt=)/i.test(html);
+  });
+  check('le contenu du modèle reste échappé dans toutes les familles', leaking.length === 0,
+    leaking.map((family) => family.id).join(', '));
+
+  // Paysage : la charte et le deck parlent aussi la grammaire de leur famille.
+  const slides = LAYOUT_FAMILIES.map((family) =>
+    renderSection({ ...CONTENT, blocks: CONTENT.blocks.slice(0, 4) }, ds, { ...base, family: family.id }, {
+      page: LANDSCAPE_SLIDE,
+      multiPage: false,
+      brandName: 'Café des Hauts',
+      index: 2,
+    })
+  );
+  check(`les ${count} familles rendent ${count} diapositives distinctes`, new Set(slides).size === count);
+  check('aucune diapositive de famille ne viole la charte',
+    slides.every((html) => lintHtml(html, lintOptions).errorCount === 0));
+
+  // Les trois présentations du nuancier sont atteignables.
+  check('les trois présentations du nuancier sont portées par des familles',
+    new Set(LAYOUT_FAMILIES.map((family) => family.swatches)).size === 3);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Aperçu ouvrable — ce que les assertions ne peuvent pas juger.
+{
+  const seed = buildDocumentSeed('editorial', 'businessplan:demo');
+  const ds = buildDocumentDesignSystem(CHARTER, { styleId: 'editorial' } as any, seed);
+  // Famille épinglée : ces assertions portent sur les ARCHÉTYPES, et seule une
+  // famille qui s'en remet à eux (« planche ») leur laisse composer l'en-tête
+  // d'une page portrait. Les familles ont leurs propres vérifications.
+  const base = { ...buildSectionSeed('editorial', 'businessplan:demo', 'Opportunity', new Set()), family: 'planche' };
 
   const section = (label: string, html: string) =>
     `<figure style="margin:0"><figcaption style="font:600 13px/1.4 system-ui;color:#555;margin-bottom:8px">${label}</figcaption>${html}</figure>`;
@@ -581,6 +705,15 @@ console.log('\nUnicité du rendu');
     )
   );
 
+  // 4. Une page par FAMILLE de mise en page, même contenu : ce qui change est
+  //    la grammaire du document, pas le texte.
+  const familyPages = LAYOUT_FAMILIES.map((family) =>
+    section(
+      `Famille ${family.name} — ${family.headers.join(' / ')} · ${family.body}`,
+      renderSection(CONTENT, ds, { ...base, family: family.id }, { brandName: 'Café des Hauts', index: 3 })
+    )
+  );
+
   const fonts = [CHARTER.typography.primaryFont, CHARTER.typography.secondaryFont]
     .map((family) => `family=${family.replace(/ /g, '+')}:wght@300;400;500;700;800;900`)
     .join('&');
@@ -599,13 +732,14 @@ console.log('\nUnicité du rendu');
 ${group('Portrait A4 — business plan (paginé)', portrait)}
 ${group('Paysage 16:9 — pitch deck et charte (une page, rognée)', landscape)}
 ${group('Pages spécimens — produites entièrement par le code', specimens)}
+${group('Familles de mise en page — même contenu, grammaires différentes', familyPages)}
 </body></html>`;
 
   const target = resolve(__dirname, '../../logs/render-preview.html');
   mkdirSync(dirname(target), { recursive: true });
   writeFileSync(target, preview, 'utf-8');
   console.log(`\n     Aperçu écrit : ${target}`);
-  console.log(`     ${portrait.length} portraits + ${landscape.length} paysages + ${specimens.length} pages spécimens.`);
+  console.log(`     ${portrait.length} portraits + ${landscape.length} paysages + ${specimens.length} pages spécimens + ${familyPages.length} familles.`);
   console.log('     À ouvrir dans un navigateur pour juger ce qu\'aucune assertion ne juge.');
 }
 
@@ -743,8 +877,10 @@ console.log('\n  Défauts observés sur un business plan livré');
       resources.includes('Rapport sectoriel.'));
     // Les numéros doivent rester ceux CITÉS dans le texte : deux groupes
     // repartent donc à 1, sinon les exposants déjà posés deviennent faux.
+    // Compté DANS les listes de sources : un pied de page de famille peut porter
+    // lui aussi un « 1. » (numérotation pointée), qui n'est pas une référence.
     check('la numérotation reste celle des appels de note (par section)',
-      (resources.match(/>1\.</g) ?? []).length === 2);
+      (resources.match(/<li[^>]*><span[^>]*>1\.<\/span>/g) ?? []).length === 2);
   }
 
   // 8. LES SOURCES NE SONT PLUS EN PIED DE SECTION.

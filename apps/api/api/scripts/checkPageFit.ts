@@ -41,6 +41,7 @@ import { dirname, resolve } from 'path';
 import puppeteer from 'puppeteer';
 
 import { buildDocumentSeed, buildSectionSeed } from '../services/design/designSeed';
+import { LAYOUT_FAMILIES } from '../services/design/layoutFamilies';
 import { buildDocumentDesignSystem } from '../services/design/documentDesignSystem';
 import { SectionContent } from '../services/design/sectionContent';
 import {
@@ -56,6 +57,22 @@ const TOLERANCE = 1.5;
 
 /** Remplissage minimal d'une page à hauteur fixe. */
 const MIN_FILL = 0.45;
+
+/** Grille de silhouette : environ un centimètre par cellule sur une A4. */
+const SILHOUETTE_COLUMNS = 21;
+const SILHOUETTE_ROWS = 30;
+
+/**
+ * Écart minimal entre deux silhouettes de famille, en part des cellules encrées
+ * par l'une ou l'autre page.
+ *
+ * Mesuré à l'introduction des familles (13 septembre 2026) : 12 % pour les deux
+ * familles les plus proches, 29 % en médiane. Le seuil est calé juste dessous :
+ * il ne juge pas le goût, il empêche qu'une famille ajoutée soit un doublon
+ * d'une autre en noir et blanc. Une prose longue domine la silhouette d'une page
+ * paginée ; un écart de dix points y est déjà une autre composition.
+ */
+const MIN_SILHOUETTE_DISTANCE = 0.1;
 
 let failures = 0;
 
@@ -146,9 +163,100 @@ const CARDS_PAGE: SectionContent = {
   ],
 };
 
+/**
+ * Contenu d'un business plan COMPLET : les huit natures de blocs, dont une prose
+ * assez longue pour que les familles à deux colonnes la composent en colonnes.
+ * C'est sur lui que chaque famille est mesurée en portrait paginé.
+ */
+const RICH: SectionContent = {
+  ...CONTENT,
+  blocks: [
+    ...CONTENT.blocks,
+    {
+      kind: 'prose',
+      paragraphs: [
+        "Le prix moyen au kilo a doublé en quatre ans sur le circuit des cafés urbains, sans que la part revenant au producteur ne progresse. C'est cet écart que le projet vient prendre, en achetant directement aux coopératives de l'Ouest et en torréfiant à Douala.",
+        "Les cafés urbains importent encore la moitié de leurs grains torréfiés. Une torréfaction locale réduit le délai entre récolte et tasse de plusieurs mois à quelques semaines, ce que les établissements de spécialité mettent en avant auprès de leur clientèle. Les trois premiers clients pressentis ont confirmé par écrit leur intention d'achat, pour un volume cumulé de 1,8 tonne la première année, sous réserve d'un profil de torréfaction validé à la dégustation.",
+      ],
+    },
+    {
+      kind: 'table',
+      headers: ['Segment', 'Volume annuel', 'Prix moyen/kg', 'Circuit dominant'],
+      rows: [
+        ['Spécialité', '890 t', '9 400 FCFA', 'Cafés urbains'],
+        ['Premium', '1 260 t', '5 200 FCFA', 'Grande distribution'],
+        ['Standard', '3 310 t', '2 100 FCFA', 'Marchés de quartier'],
+      ],
+      caption: 'Source : douanes camerounaises et relevés terrain, 2025.',
+    },
+    {
+      kind: 'cards',
+      items: [
+        { title: 'Torréfaction à Douala', body: 'Unité de 200 kg/jour, à 40 km des coopératives.' },
+        { title: 'Circuit court', body: "Achat direct auprès de six coopératives de l'Ouest." },
+        { title: 'Traçabilité', body: 'Lot, parcelle et date de récolte sur chaque paquet.' },
+      ],
+    },
+    {
+      kind: 'chart',
+      chartType: 'bar',
+      labels: ['2023', '2024', '2025', '2026e'],
+      series: [
+        { name: 'Volume premium', data: [420, 610, 890, 1280] },
+        { name: 'Volume standard', data: [3100, 3180, 3310, 3400] },
+      ],
+      unit: 'tonnes',
+      readingKey: 'Le premium triple quand le standard stagne.',
+    },
+    {
+      kind: 'timeline',
+      steps: [
+        { date: 'T1 2026', title: 'Unité pilote', body: 'Mise en service de la torréfaction.' },
+        { date: 'T3 2026', title: 'Premier circuit', body: 'Douze points de vente à Douala.' },
+        { date: 'T2 2027', title: 'Yaoundé', body: 'Extension du circuit à la capitale.' },
+      ],
+    },
+    { kind: 'quote', text: 'Nous vendions notre récolte sans jamais savoir où elle finissait.', attribution: 'Coopérative de Bafoussam' },
+    { kind: 'assumption', statement: 'Une conversion de 12 % des clients des cafés urbains vers le paquet à emporter.', basis: 'Pilote de trois mois à Bonapriso.' },
+  ],
+};
+
+/** Diapositive de charte chargée : tableau et cartes, les deux blocs les plus larges. */
+const TABLE_SLIDE: SectionContent = {
+  kicker: 'Marché',
+  title: 'Trois segments',
+  lede: 'Le premium tire la croissance.',
+  blocks: [
+    {
+      kind: 'table',
+      headers: ['Segment', 'Volume', 'Prix/kg', 'Circuit'],
+      rows: [
+        ['Spécialité', '890 t', '9 400', 'Cafés'],
+        ['Premium', '1 260 t', '5 200', 'GMS'],
+        ['Standard', '3 310 t', '2 100', 'Marchés'],
+      ],
+    },
+    {
+      kind: 'cards',
+      items: [
+        { title: 'Torréfaction', body: 'Unité de 200 kg/jour.' },
+        { title: 'Circuit court', body: 'Six coopératives de l\'Ouest.' },
+        { title: 'Traçabilité', body: 'Lot et parcelle sur chaque paquet.' },
+      ],
+    },
+  ],
+};
+
 interface PageProbe {
   name: string;
   html: string;
+  /**
+   * Page PAGINÉE (business plan) : sa hauteur n'est pas bornée, le paginateur
+   * la redécoupe. On y mesure la largeur et les chevauchements, pas le
+   * remplissage ni le débordement vertical, qui n'ont pas de sens avant
+   * pagination.
+   */
+  flow?: boolean;
   /** Le format de CETTE page. Une charte peut mêler 16:9 et A4 portrait. */
   width: string;
   height: string;
@@ -252,6 +360,47 @@ function buildPages(): PageProbe[] {
     }),
   });
 
+  // ── LES FAMILLES DE MISE EN PAGE ────────────────────────────────────────
+  //
+  // Chaque famille dessine autrement l'en-tête, le pied de page et CHAQUE bloc :
+  // ce sont autant de largeurs de chiffres, de colonnes et de cadres qu'il faut
+  // mesurer. Trois pages par famille : le business plan complet en portrait
+  // paginé, puis deux diapositives de charte — l'archétype tourne d'une famille
+  // à l'autre, pour que toutes les structures croisent tous les dessins.
+  LAYOUT_FAMILIES.forEach((family, index) => {
+    const familySeed = { ...buildSectionSeed('editorial', 'fit:demo', `F-${family.id}`, new Set()), family: family.id };
+    pages.push({
+      name: `A4 paginé — famille ${family.id}`,
+      width: PORTRAIT_A4.width,
+      height: PORTRAIT_A4.minHeight,
+      flow: true,
+      html: renderSection(RICH, ds, familySeed, { brandName: 'Café des Hauts', index: 3 }),
+    });
+    const archetype = IMPLEMENTED_ARCHETYPES[(index * 5) % IMPLEMENTED_ARCHETYPES.length];
+    pages.push({
+      name: `16:9 famille ${family.id} (archétype ${archetype})`,
+      width: LANDSCAPE_SLIDE.width,
+      height: LANDSCAPE_SLIDE.minHeight,
+      html: renderSection(CONTENT, ds, { ...familySeed, archetype }, {
+        page: LANDSCAPE_SLIDE,
+        multiPage: false,
+        brandName: 'Café des Hauts',
+        index: 4,
+      }),
+    });
+    pages.push({
+      name: `16:9 famille ${family.id} — tableau et cartes`,
+      width: LANDSCAPE_SLIDE.width,
+      height: LANDSCAPE_SLIDE.minHeight,
+      html: renderSection(TABLE_SLIDE, ds, { ...familySeed, archetype: 'G' }, {
+        page: LANDSCAPE_SLIDE,
+        multiPage: false,
+        brandName: 'Café des Hauts',
+        index: 5,
+      }),
+    });
+  });
+
   return pages;
 }
 
@@ -266,7 +415,9 @@ function buildDocument(pages: PageProbe[]): string {
   const sections = pages
     .map(
       (page) =>
-        `<div class="section" data-section-name="${page.name.replace(/"/g, '&quot;')}" style="width:${page.width};height:${page.height};min-height:${page.height};max-height:${page.height}"><div class="data-content">${page.html}</div></div>`
+        page.flow
+          ? `<div class="section flow" data-section-name="${page.name.replace(/"/g, '&quot;')}" style="width:${page.width};min-height:${page.height}"><div class="data-content">${page.html}</div></div>`
+          : `<div class="section" data-section-name="${page.name.replace(/"/g, '&quot;')}" style="width:${page.width};height:${page.height};min-height:${page.height};max-height:${page.height}"><div class="data-content">${page.html}</div></div>`
     )
     .join('\n');
 
@@ -275,6 +426,8 @@ function buildDocument(pages: PageProbe[]): string {
   * { margin: 0; padding: 0; box-sizing: border-box; }
   .section { display: block; overflow: hidden; position: relative; }
   .data-content { width: 100%; height: 100%; }
+  .section.flow { overflow: visible; }
+  .section.flow .data-content { height: auto; }
 </style></head><body>${sections}</body></html>`;
 }
 
@@ -364,6 +517,13 @@ function measureInPage(tolerance: number): Measurement[] {
     for (const parent of containers) {
       const style = getComputedStyle(parent);
       if (style.position === 'absolute' || style.position === 'fixed') continue;
+      // Dans un conteneur MULTI-COLONNES, un paragraphe coupé entre deux
+      // colonnes a pour boîte englobante l'union de ses fragments : elle couvre
+      // les deux colonnes et « chevauche » le paragraphe suivant sans qu'aucun
+      // pixel ne se superpose. Ce n'est pas un défaut, c'est la géométrie des
+      // fragments.
+      const columnCount = Number.parseInt(style.columnCount, 10);
+      if (Number.isFinite(columnCount) && columnCount > 1) continue;
       const kids = Array.from(parent.children).filter((kid) => {
         const kidStyle = getComputedStyle(kid);
         if (kidStyle.position === 'absolute' || kidStyle.position === 'fixed') return false;
@@ -397,6 +557,63 @@ function measureInPage(tolerance: number): Measurement[] {
   }
 
   return results;
+}
+
+
+/**
+ * SILHOUETTE d'une page paginée : une grille grossière de cellules encrées sur
+ * la première hauteur A4 — texte posé, aplats, cadres —, sans aucune couleur.
+ *
+ * C'est la mesure de ce que l'utilisateur voyait : « exactement les mêmes
+ * dispositions ». Deux familles qui ne différeraient que par leurs teintes
+ * auraient la même silhouette ; le contrôle les compare donc en noir et blanc.
+ */
+function silhouettesInPage(columns: number, rows: number): Array<{ name: string; cells: number[] }> {
+  const out: Array<{ name: string; cells: number[] }> = [];
+  const sections = Array.from(document.querySelectorAll('.section.flow'));
+  for (const section of sections) {
+    const name = section.getAttribute('data-section-name') || '?';
+    const box = section.getBoundingClientRect();
+    const pageHeight = box.width * (297 / 210);
+    const cellW = box.width / columns;
+    const cellH = pageHeight / rows;
+    const cells = new Array(columns * rows).fill(0);
+    const mark = (left: number, top: number, right: number, bottom: number) => {
+      const x0 = Math.max(0, Math.floor((left - box.left) / cellW));
+      const x1 = Math.min(columns - 1, Math.floor((right - box.left - 0.5) / cellW));
+      const y0 = Math.max(0, Math.floor((top - box.top) / cellH));
+      const y1 = Math.min(rows - 1, Math.floor((bottom - box.top - 0.5) / cellH));
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) cells[y * columns + x] = 1;
+    };
+    for (const el of Array.from(section.querySelectorAll('*'))) {
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0 || rect.top - box.top > pageHeight) continue;
+      const style = getComputedStyle(el);
+      const hasText = Array.from(el.childNodes).some((node) => node.nodeType === 3 && (node.textContent || '').trim());
+      const filled = style.backgroundColor !== 'rgba(0, 0, 0, 0)' && style.backgroundColor !== 'transparent';
+      if (hasText) {
+        // L'encre d'un texte : la boîte de ses lignes, pas celle de son conteneur.
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        for (const line of Array.from(range.getClientRects())) mark(line.left, line.top, line.right, line.bottom);
+      }
+      // Le fond de page n'est pas de l'encre : seule une surface posée DESSUS compte.
+      if (filled && !el.hasAttribute('data-idem-root') && el.parentElement?.className !== 'data-content') {
+        mark(rect.left, rect.top, rect.right, rect.bottom);
+      }
+      const edges: Array<[string, () => void]> = [
+        ['borderTopWidth', () => mark(rect.left, rect.top, rect.right, rect.top + 1)],
+        ['borderBottomWidth', () => mark(rect.left, rect.bottom - 1, rect.right, rect.bottom)],
+        ['borderLeftWidth', () => mark(rect.left, rect.top, rect.left + 1, rect.bottom)],
+        ['borderRightWidth', () => mark(rect.right - 1, rect.top, rect.right, rect.bottom)],
+      ];
+      for (const [property, draw] of edges) {
+        if (Number.parseFloat((style as unknown as Record<string, string>)[property]) >= 1) draw();
+      }
+    }
+    out.push({ name, cells });
+  }
+  return out;
 }
 
 async function main(): Promise<void> {
@@ -438,8 +655,12 @@ async function main(): Promise<void> {
       check(m.name, m.overlaps.length === 0, m.overlaps.join(' · '));
     }
 
+    // Le remplissage et le débordement vertical n'ont de sens que sur une page à
+    // hauteur FIXE : une page paginée est redécoupée ensuite.
+    const fixed = measurements.filter((m) => !m.name.startsWith('A4 paginé'));
+
     console.log(`\nRemplissage — une page occupe au moins ${Math.round(MIN_FILL * 100)} % de sa hauteur`);
-    for (const m of measurements) {
+    for (const m of fixed) {
       check(
         m.name,
         m.fill >= MIN_FILL,
@@ -448,13 +669,54 @@ async function main(): Promise<void> {
     }
 
     console.log('\nDébordement vertical — le contenu tient dans la page');
-    for (const m of measurements) {
+    for (const m of fixed) {
       check(
         m.name,
         m.overflowBottom <= TOLERANCE,
         m.overflowBottom > TOLERANCE ? `dépasse de ${m.overflowBottom} px en bas` : ''
       );
     }
+
+    // ── SILHOUETTES ────────────────────────────────────────────────────────
+    const silhouettes = (await page.evaluate(silhouettesInPage, SILHOUETTE_COLUMNS, SILHOUETTE_ROWS)) as Array<{
+      name: string;
+      cells: number[];
+    }>;
+    const distances: Array<{ distance: number; pair: string }> = [];
+    const short = (name: string) => name.replace('A4 paginé — famille ', '');
+    for (let i = 0; i < silhouettes.length; i++) {
+      for (let j = i + 1; j < silhouettes.length; j++) {
+        const a = silhouettes[i].cells;
+        const b = silhouettes[j].cells;
+        let union = 0;
+        let differ = 0;
+        for (let k = 0; k < a.length; k++) {
+          if (a[k] || b[k]) union += 1;
+          if (a[k] !== b[k]) differ += 1;
+        }
+        distances.push({
+          distance: union === 0 ? 0 : differ / union,
+          pair: `${short(silhouettes[i].name)} ~ ${short(silhouettes[j].name)}`,
+        });
+      }
+    }
+    distances.sort((a, b) => a.distance - b.distance);
+    const closest = distances[0] ?? { distance: 0, pair: '' };
+    console.log(`\nSilhouettes — deux familles ne dessinent jamais la même page (sans couleur)`);
+    console.log(
+      `     paires les plus proches : ${distances
+        .slice(0, 6)
+        .map((entry) => `${entry.pair} ${Math.round(entry.distance * 100)} %`)
+        .join(' · ')}`
+    );
+    console.log(
+      `     écart médian : ${Math.round((distances[Math.floor(distances.length / 2)]?.distance ?? 0) * 100)} %`
+    );
+    check(
+      `les ${silhouettes.length} familles ont des silhouettes distinctes`,
+      silhouettes.length === LAYOUT_FAMILIES.length && closest.distance >= MIN_SILHOUETTE_DISTANCE,
+      `${Math.round(closest.distance * 100)} % seulement entre ${closest.pair}`
+    );
   } finally {
     await browser.close();
   }
