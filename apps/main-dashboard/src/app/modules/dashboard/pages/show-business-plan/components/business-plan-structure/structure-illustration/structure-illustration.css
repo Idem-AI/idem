@@ -1,0 +1,66 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Tons neutres tirés du thème. Seul l'accent change : gris au repos, couleur
+   primaire quand la tuile est retenue (`--audience-illu-accent`, posée par la
+   tuile). Mélanges plutôt qu'opacité : une forme remplie et cernée garde un
+   contour net. */
+.bp-illu {
+  display: block;
+  width: 100%;
+  height: 100%;
+  --illu-ink: var(--color-text-primary, #0f172a);
+  --illu-accent: var(--audience-illu-accent, var(--color-text-secondary, #475569));
+  --illu-surface: var(--color-surface-1, #ffffff);
+}
+
+.bp-illu * {
+  transition:
+    fill 0.15s ease,
+    stroke 0.15s ease;
+}
+
+.illu-ink {
+  fill: color-mix(in srgb, var(--illu-ink) 55%, transparent);
+}
+
+.illu-ink-soft {
+  fill: color-mix(in srgb, var(--illu-ink) 22%, transparent);
+}
+
+.illu-ink-faint {
+  fill: color-mix(in srgb, var(--illu-ink) 12%, transparent);
+}
+
+.illu-line {
+  stroke: color-mix(in srgb, var(--illu-ink) 22%, transparent);
+}
+
+.illu-line-strong {
+  stroke: color-mix(in srgb, var(--illu-ink) 40%, transparent);
+}
+
+.illu-accent {
+  fill: var(--illu-accent);
+}
+
+.illu-accent-soft {
+  fill: color-mix(in srgb, var(--illu-accent) 14%, transparent);
+}
+
+.illu-accent-line {
+  stroke: var(--illu-accent);
+}
+
+.illu-surface {
+  fill: var(--illu-surface);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bp-illu * {
+    transition: none;
+  }
+}
