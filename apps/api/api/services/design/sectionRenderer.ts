@@ -50,6 +50,7 @@ import {
   DISPLAY_FALLBACK,
   esc,
   escCited,
+  figureFont,
   figureInk,
   fitTitleSize,
   labelStyle,
@@ -65,12 +66,16 @@ import {
 import { LayoutFamily, resolveFamily } from './layoutFamilies';
 import {
   bodyInsetsMm,
+  cornerNumber,
+  edgeDecoration,
   hangsIntoMargin,
   headerTreatmentFor,
   indexMarker,
   pairable,
   renderFamilyHeader,
   renderFolio,
+  RUNNING_HEAD_MM,
+  runningHead,
 } from './familyChrome';
 import {
   renderFamilyAssumption,
@@ -568,6 +573,7 @@ function renderMetrics(block: Extract<Block, { kind: 'metrics' }>, ctx: Ctx): st
         color: figureInk(ctx),
         'line-height': 1,
         'letter-spacing': '-0.03em',
+        ...figureFont(ctx, 800),
         'white-space': 'nowrap',
       })}>${esc(item.value)}</div>
   <div${style({
@@ -598,7 +604,7 @@ function renderMetrics(block: Extract<Block, { kind: 'metrics' }>, ctx: Ctx): st
  */
 function renderChart(block: Extract<Block, { kind: 'chart' }>, ctx: Ctx): string {
   const { ds, roles } = ctx;
-  const palette = [roles.highlight, ds.colors.primary, ds.colors.secondary, ds.colors.neutral['400']];
+  const palette = seriesPalette(ctx);
   const max = Math.max(
     1,
     ...(block.chartType === 'stacked'
@@ -631,7 +637,7 @@ ${block.series
                 const value = serie.data[index] ?? 0;
                 return `<div${style({
                   height: `${((value / max) * plotHeight).toFixed(1)}px`,
-                  'background-color': palette[serieIndex % palette.length],
+                  ...barInk(ctx, palette[serieIndex % palette.length]),
                 })}></div>`;
               })
             : block.series.map((serie, serieIndex) => {
@@ -639,7 +645,7 @@ ${block.series
                 return `<div${style({
                   flex: '1 1 0',
                   height: `${((value / max) * plotHeight).toFixed(1)}px`,
-                  'background-color': palette[serieIndex % palette.length],
+                  ...barInk(ctx, palette[serieIndex % palette.length]),
                   'border-radius': `${Math.min(cornerRadius(ctx), 4)}px ${Math.min(cornerRadius(ctx), 4)}px 0 0`,
                 })}></div>`;
               });
@@ -687,10 +693,21 @@ ${block.series
   // sur un liseré (dessin historique), au-dessus comme un titre de graphique,
   // en légende discrète, ou dans le cadre qui entoure le graphique.
   const frame = ctx.family.chart;
+  // La note en marge a besoin d'une colonne : dans un bloc étroit, elle
+  // redescend sous le tracé.
+  const sideNote = frame === 'side-note' && Boolean(block.readingKey) && ctx.contentWidthPx >= 480;
   const key =
-    !block.readingKey || frame === 'headline'
+    !block.readingKey || frame === 'headline' || sideNote
       ? ''
-      : frame === 'keyline'
+      : frame === 'figure-caption'
+        ? `<div${style({
+            'margin-top': `${snap(ds.spacing * 0.6)}px`,
+            'font-size': `${ds.typeScale.sm}px`,
+            'line-height': 1.45,
+            color: ds.colors.inkMuted,
+            'max-width': MEASURE.prose,
+          })}><span${style(labelStyle(ctx, ds.colors.ink))}>Fig. ${ctx.options.index ?? 1}.${(ctx.state.figureCount += 1)}</span> — ${esc(block.readingKey)}</div>`
+        : frame === 'keyline' || frame === 'side-note'
         ? `<div${style({
             'font-size': `${ds.typeScale.sm}px`,
             color: ds.colors.ink,
@@ -751,7 +768,21 @@ ${block.series
     height: '100%',
   })} role="img" aria-label="${esc(block.readingKey || 'Graphique')}"></canvas>`;
 
-  const inner = `${headline}${unit}<div${style({ position: 'relative', height: `${boxHeight}px` })}>${canvas}<div data-chart-fallback>${plot}${axis}${legend}</div></div>${key}`;
+  const plotBox = `<div${style({ position: 'relative', height: `${boxHeight}px` })}>${canvas}<div data-chart-fallback>${plot}${axis}${legend}</div></div>`;
+  const inner = sideNote
+    ? `${unit}<div${style({
+        display: 'grid',
+        'grid-template-columns': 'minmax(0, 3fr) minmax(0, 1fr)',
+        'column-gap': `${snap(ds.spacing * 1.5)}px`,
+        'align-items': 'start',
+      })}><div${style({ 'min-width': '0' })}>${plotBox}</div><div${style({
+        'padding-top': `${snap(ds.spacing * 0.5)}px`,
+        'border-top': ruleLine(ctx, 'strong'),
+        'font-size': `${ds.typeScale.sm}px`,
+        'line-height': 1.45,
+        color: ds.colors.ink,
+      })}>${esc(block.readingKey)}</div></div>`
+    : `${headline}${unit}${plotBox}${key}`;
   return frame === 'boxed'
     ? `<div${style({
         border: `1px solid ${ds.colors.rule}`,
@@ -759,6 +790,49 @@ ${block.series
         padding: `${snap(ds.spacing * 1.2)}px`,
       })}${atomic}>${inner}</div>`
     : `<div${atomic}>${inner}</div>`;
+}
+
+/**
+ * Les teintes des séries, selon l'ENCRE de la famille.
+ *
+ * Le graphique était le seul bloc strictement identique d'une famille à l'autre :
+ * mêmes couleurs dans le même ordre, mêmes barres pleines. Toutes les teintes
+ * restent tirées de la charte et de ses rampes.
+ */
+function seriesPalette(ctx: Ctx): string[] {
+  const { ds, roles } = ctx;
+  const brand = ds.colors.brand;
+  const neutral = ds.colors.neutral;
+  switch (ctx.family.chartInk) {
+    case 'monochrome':
+      return ds.dark
+        ? [brand['300'], brand['500'], brand['700'], brand['200'], brand['400'], brand['600'], brand['100'], brand['800']]
+        : [brand['700'], brand['500'], brand['300'], brand['900'], brand['600'], brand['400'], brand['800'], brand['200']];
+    case 'focus':
+      return ds.dark
+        ? [roles.highlight, neutral['600'], neutral['500'], neutral['700'], neutral['400'], neutral['800'], neutral['300'], neutral['900']]
+        : [roles.highlight, neutral['300'], neutral['400'], neutral['200'], neutral['500'], neutral['600'], neutral['100'], neutral['700']];
+    case 'palette':
+    case 'outline':
+    default:
+      return [
+        roles.highlight,
+        ds.colors.primary,
+        ds.colors.secondary,
+        brand['400'],
+        brand['700'],
+        neutral['400'],
+        brand['300'],
+        neutral['600'],
+      ];
+  }
+}
+
+/** Barre du tracé de repli : pleine, ou au trait pour l'encre `outline`. */
+function barInk(ctx: Ctx, color: string): Record<string, string> {
+  return ctx.family.chartInk === 'outline'
+    ? { 'background-color': 'transparent', border: `2px solid ${color}`, 'box-sizing': 'border-box' }
+    : { 'background-color': color };
 }
 
 /**
@@ -774,16 +848,8 @@ function buildChartConfig(block: Extract<Block, { kind: 'chart' }>, ctx: Ctx): u
   const { ds, roles } = ctx;
   // Assez de teintes pour un camembert sans répétition visible, toutes tirées
   // de la rampe de marque : la variété reste dans la charte.
-  const palette = [
-    roles.highlight,
-    ds.colors.primary,
-    ds.colors.secondary,
-    ds.colors.brand['400'],
-    ds.colors.brand['700'],
-    ds.colors.neutral['400'],
-    ds.colors.brand['300'],
-    ds.colors.neutral['600'],
-  ];
+  const palette = seriesPalette(ctx);
+  const outline = ctx.family.chartInk === 'outline';
 
   const type = block.chartType;
   const circular = type === 'pie' || type === 'doughnut';
@@ -800,9 +866,11 @@ function buildChartConfig(block: Extract<Block, { kind: 'chart' }>, ctx: Ctx): u
         ? block.labels.map((_, position) => palette[position % palette.length])
         : type === 'area' || type === 'radar'
           ? `${color}33`
-          : color,
+          : outline
+            ? `${color}26`
+            : color,
       borderColor: color,
-      borderWidth: baseType === 'bar' ? 0 : 2,
+      borderWidth: baseType === 'bar' ? (outline ? 2 : 0) : 2,
       fill: type === 'area' || type === 'radar',
       tension: type === 'area' || type === 'line' ? 0.3 : 0,
       pointRadius: 2,
@@ -2312,6 +2380,9 @@ const ARCHETYPE_RENDERERS: Record<string, ArchetypeRenderer> = {
   }),
 };
 
+/** Écart entre deux blocs, relatif au rythme courant, selon la famille. */
+const RHYTHM_FACTOR: Record<LayoutFamily['rhythm'], number> = { standard: 1, airy: 1.45, tight: 0.7 };
+
 /**
  * Plafonne le titre selon l'échelle de la FAMILLE.
  *
@@ -2471,7 +2542,7 @@ export function renderSection(
     titleHeightPx: 0,
     variant: documentVariant(seed),
     family,
-    state: { dropCapUsed: false },
+    state: { dropCapUsed: false, leadUsed: false, figureCount: 0 },
     // Repli : la largeur utile pleine page. Affinée juste après, une fois
     // l'archétype connu.
     contentWidthPx:
@@ -2644,7 +2715,9 @@ export function renderSection(
   // `spacing × gap × 1.5` arrondi — un nombre juste par construction et
   // comparable à aucun autre, alors que la lecture d'une page tient
   // précisément à ce que ses écarts SE COMPARENT.
-  const blockGap = snap(ctx.ds.spacing * ctx.tension.gap * (cramped ? 0.9 : 1.5));
+  // Le rythme de la famille ne s'applique qu'au document paginé : une page
+  // rognée a été budgétée à écart constant (`fitToPage`).
+  const blockGap = snap(ctx.ds.spacing * ctx.tension.gap * (cramped ? 0.9 : 1.5 * RHYTHM_FACTOR[ctx.family.rhythm]));
 
   // Chaque bloc n'est rendu QU'UNE FOIS. Les deux assemblages qui suivent —
   // le flux vertical et la grille — sont deux façons de POSER le même balisage,
@@ -2725,15 +2798,31 @@ export function renderSection(
       : treatment === 'hanging-number' || treatment === 'opener' || treatment === 'numbered-rule';
   const footer = renderFolio(content, ctx, cramped, numberShown);
 
+  // ── LE BORD DE PAGE, LE TITRE COURANT, LE NUMÉRO D'ANGLE ─────────────────
+  //
+  // Tous en position ABSOLUE, enfants directs de la racine : le paginateur les
+  // tient pour des décorations et les reproduit sur chaque page qu'il construit.
+  const runningHeadMm =
+    ctx.family.folio === 'running-head' && options.footer !== false ? RUNNING_HEAD_MM : 0;
+  const decorations = [
+    chrome.backdrop ?? '',
+    edgeDecoration(ctx, landscape ? layout : 'portrait', Boolean(chrome.backdrop)),
+    runningHeadMm ? runningHead(content, ctx) : '',
+    ctx.family.folio === 'corner-number' && options.footer !== false && !numberShown ? cornerNumber(ctx) : '',
+  ].join('');
+
   // Retraits cumulés (tension + archétype), portés par la racine pour rester
   // visibles du paginateur.
   const sideInset = ctx.tension.inset + (chrome.rootInsetMm ?? 0);
   const padNumber = Number(page.padding.replace('mm', ''));
   // Les colonnes de la famille sont ASYMÉTRIQUES (une marge gauche décalée, un
   // index) : le padding porte alors ses quatre valeurs, toujours sur la racine.
+  // Le titre courant se loge dans le padding HAUT : le paginateur le lit, et
+  // aucune ligne de contenu ne passe dessous.
+  const topPadding = runningHeadMm ? `${padNumber + runningHeadMm}mm` : page.padding;
   const insetPadding =
-    body.left || body.right
-      ? `${page.padding} ${padNumber + sideInset + body.right}mm ${page.padding} ${padNumber + sideInset + body.left}mm`
+    body.left || body.right || runningHeadMm
+      ? `${topPadding} ${padNumber + sideInset + body.right}mm ${page.padding} ${padNumber + sideInset + body.left}mm`
       : sideInset
         ? `${page.padding} ${padNumber + sideInset}mm`
         : page.padding;
@@ -2745,7 +2834,7 @@ export function renderSection(
   // interlignes lui-même, et centrer un flux qu'il s'apprête à découper
   // décalerait chaque page d'une quantité différente.
   const usableHeightMm =
-    Number.parseFloat(page.minHeight) - 2 * Number.parseFloat(page.padding);
+    Number.parseFloat(page.minHeight) - 2 * Number.parseFloat(page.padding) - runningHeadMm;
   const distribution = cramped ? distributeVertically(usableHeightMm) : {};
 
   const rootStyle = {
@@ -2876,9 +2965,9 @@ ${blockGrid(gridded, 12)}`;
         ...rootStyle,
         display: 'flex',
         'flex-direction': 'column',
-        padding: `${page.padding} ${page.padding} ${page.padding} ${RAIL_MM + sideInset + 6}mm`,
+        padding: `${topPadding} ${page.padding} ${page.padding} ${RAIL_MM + sideInset + 6}mm`,
       })}>
-${chrome.backdrop ?? ''}
+${decorations}
 <div${style({
         position: 'absolute',
         left: 0,
@@ -2904,7 +2993,7 @@ ${footer}
     // dans ce qui reste.
     if (layout === 'banner') {
       return `${fontLinks(ctx.ds)}<div${style({ ...rootStyle, display: 'flex', 'flex-direction': 'column' })}>
-${chrome.backdrop ?? ''}
+${decorations}
 ${chrome.header}
 <div${style({ flex: '1 1 auto', 'min-height': 0, ...distribution })}>
 ${blockGrid(gridded, 12)}
@@ -2914,7 +3003,7 @@ ${footer}
     }
 
     return `${fontLinks(ctx.ds)}<div${style({ ...rootStyle, display: 'flex', 'flex-direction': 'column' })}>
-${chrome.backdrop ?? ''}
+${decorations}
 <div${style({ flex: '1 1 auto', 'min-height': 0, ...distribution })}>
 ${body}
 </div>
@@ -2943,7 +3032,7 @@ ${footer}
     const head = bleeds ? chrome.header : '';
     const inside = bleeds ? '' : chrome.header;
     return `${fontLinks(ctx.ds)}<div${style({ ...rootStyle, display: 'flex', 'flex-direction': 'column' })}>
-${chrome.backdrop ?? ''}
+${decorations}
 ${head}
 <div${style({ flex: '1 1 auto', 'min-height': 0, ...distribution })}>
 ${inside}
@@ -2954,7 +3043,7 @@ ${footer}
   }
 
   return `${fontLinks(ctx.ds)}<div${style(rootStyle)}>
-${chrome.backdrop ?? ''}
+${decorations}
 ${chrome.header}
 ${blocks.join('\n')}
 ${footer}
@@ -3220,19 +3309,42 @@ function familyWeight(block: Block, family: LayoutFamily): number {
       if (family.metrics === 'ledger' || family.metrics === 'stacked-rows') {
         return 0.6 + block.items.length * 0.6;
       }
+      if (family.metrics === 'staircase') return 0.6 + block.items.length * 0.55;
       if (family.metrics === 'hero-list') return 1.7;
+      if (family.metrics === 'stamped') return 1.6;
       return family.metrics === 'band' || family.metrics === 'tiles' ? 1.35 : 1;
     case 'cards':
-      if (family.cards === 'numbered' || family.cards === 'definitions' || family.cards === 'edge-stack') return 1.45;
-      return family.cards === 'outlined' || family.cards === 'inverted-lead' ? 1.15 : 1;
+      if (
+        family.cards === 'numbered' ||
+        family.cards === 'definitions' ||
+        family.cards === 'edge-stack' ||
+        family.cards === 'monogram' ||
+        family.cards === 'stacked-bands'
+      ) {
+        return 1.5;
+      }
+      if (family.cards === 'staggered') return 1.35;
+      return family.cards === 'outlined' || family.cards === 'inverted-lead' || family.cards === 'corner-number' ? 1.15 : 1;
     case 'table':
-      return family.table === 'airy' ? 1.35 : family.table === 'row-cards' ? 1.25 : 1;
+      if (family.table === 'transposed' && block.rows.length >= 2 && block.rows.length <= 4) {
+        return Math.max(1, (block.headers.length - 1) / block.rows.length);
+      }
+      return family.table === 'airy' ? 1.35 : family.table === 'row-cards' || family.table === 'framed' ? 1.25 : 1;
     case 'timeline':
-      if (family.timeline === 'steps' || family.timeline === 'big-dates' || family.timeline === 'boxes') return 0.7;
+      if (
+        family.timeline === 'steps' ||
+        family.timeline === 'big-dates' ||
+        family.timeline === 'boxes' ||
+        family.timeline === 'numbered-circles' ||
+        family.timeline === 'chevrons'
+      ) {
+        return 0.75;
+      }
+      if (family.timeline === 'spine') return 1.4;
       return family.timeline === 'date-column' ? 1.15 : 1;
     case 'quote':
-      if (family.quote === 'display') return 1.5;
-      return family.quote === 'inverted' || family.quote === 'centered' ? 1.25 : 1;
+      if (family.quote === 'display' || family.quote === 'brackets' || family.quote === 'highlight') return 1.5;
+      return family.quote === 'inverted' || family.quote === 'centered' || family.quote === 'split' ? 1.25 : 1;
     case 'chart':
       return family.chart === 'headline' || family.chart === 'boxed' ? 1.15 : 1;
     default:
