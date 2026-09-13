@@ -67,6 +67,12 @@ export interface RenderOptions {
    *          parce qu'un débordement n'est pas rattrapable en aval.
    */
   multiPage?: boolean;
+  /**
+   * Pied de page (logo et titre de section). `false` pour une page de
+   * démonstration plein cadre — les publications sociales —, qui a besoin de
+   * toute sa hauteur, comme les mises en situation photo qui n'en portent pas.
+   */
+  footer?: boolean;
 }
 
 export interface PageFormat {
@@ -175,11 +181,12 @@ export const LANDSCAPE_A4: PageFormat = {
  * polices « par défaut » — et il aurait raison : sur une page où la police de
  * charte ne charge pas, tomber sur Georgia est un accident, pas une décision.
  *
- * Le pipeline PDF pose par ailleurs ses propres règles d'élément
- * (`h1..h6 { font-family: PRIMARY }`, `p, div, td { font-family: SECONDARY }`).
- * Elles ont une spécificité inférieure aux styles inline posés ici, donc le
- * rendu garde la main — mais les deux désignent les mêmes familles, ce qui
- * évite qu'une page rendue diffère selon qu'elle passe ou non par le PDF.
+ * Le pipeline PDF pose la police du texte sur `body` et celle des titres sur
+ * `h1..h6`, et rien d'autre : un style inline posé ici l'emporte, et tout
+ * élément qui n'en porte pas HÉRITE de la racine de page (`rootStyle`). Il
+ * posait autrefois `p, div, td { font-family: SECONDARY }` — une règle
+ * d'élément bat toujours l'héritage, et elle écrasait la police de charte de
+ * chaque texte composé dans un conteneur stylé.
  */
 const DISPLAY_FALLBACK = 'serif';
 const BODY_FALLBACK = 'sans-serif';
@@ -1516,7 +1523,7 @@ const clampLines = (lines: number): Record<string, string | number> => ({
  * titre tourné le long du bord et ne prend aucune hauteur : la rangée y a
  * presque toute la page.
  */
-const LANDSCAPE_SHOWCASE_SHARE = { rail: 0.86, other: 0.62 } as const;
+const LANDSCAPE_SHOWCASE_SHARE = { rail: 0.86, railWithoutFooter: 0.94, other: 0.62 } as const;
 
 /**
  * MOCKUPS DE RÉSEAUX SOCIAUX, en rangée à hauteur commune.
@@ -1544,7 +1551,9 @@ function renderMockupShowcase(block: Extract<Block, { kind: 'mockupShowcase' }>,
   const share = !ctx.landscape
     ? 0.46
     : ARCHETYPE_LANDSCAPE[ctx.seed.archetype] === 'rail'
-      ? LANDSCAPE_SHOWCASE_SHARE.rail
+      ? ctx.options.footer === false
+        ? LANDSCAPE_SHOWCASE_SHARE.railWithoutFooter
+        : LANDSCAPE_SHOWCASE_SHARE.rail
       : LANDSCAPE_SHOWCASE_SHARE.other;
   const rail = ARCHETYPE_LANDSCAPE[ctx.seed.archetype] === 'rail';
   // Sous un chapeau, la ligne de légende s'en détache d'un demi-pas ; le rail
@@ -2094,6 +2103,23 @@ function fitTitleSize(
   // qu'il annonce : là, une ligne de titre gagnée est une ligne de contenu
   // sauvée, et l'arbitrage penche de l'autre côté.
   const floor = base * (maxHeightPx > 0 ? 0.5 : 0.62);
+
+  // ── UNE SEULE LIGNE, QUAND ELLE TIENT ───────────────────────────────────
+  //
+  // Sur une page à hauteur fixe, l'ajusteur prenait la plus GRANDE taille qui
+  // tenait en trois lignes : « Bannières réseaux sociaux » ou « Grammaire de
+  // composition » sortaient sur deux ou trois lignes là où une seule suffisait,
+  // et la page perdait autant de lignes de contenu. Si le titre tient sur UNE
+  // ligne sans descendre sous 60 % de sa taille de base, il y est composé. La
+  // largeur est comptée à 94 % : l'estimation par signe ne doit pas faire
+  // casser le dernier mot.
+  if (maxHeightPx > 0) {
+    const byOneLine = (columnPx * 0.94) / (totalChars * advance);
+    if (byOneLine >= base * 0.6) {
+      return Math.round(Math.min(base, byOneLine, byLongestWord));
+    }
+  }
+
   let fitted = Math.min(base, byLongestWord, byThreeLines);
   while (fitted > floor && !fitsHeight(fitted)) fitted -= 1;
 
@@ -2123,8 +2149,15 @@ function renderTitle(content: SectionContent, ctx: Ctx, color: string): string {
   // empile, et mange la page. On le réserve donc aux titres de deux ou trois
   // mots courts, et on retombe sur le flux normal au-delà — où le navigateur
   // coupe aux bons endroits, ce qu'il fait mieux qu'une règle fixe.
+  //
+  // Jamais sur une page à hauteur FIXE (charte, deck) : « Palette / de /
+  // couleurs » y prenait trois lignes là où une suffisait, et chaque ligne de
+  // titre y est une ligne de contenu en moins.
   const stackable =
-    ctx.type.stacked && words.length <= 3 && Math.max(...words.map((w) => w.length), 0) <= 12;
+    ctx.type.stacked &&
+    ctx.titleHeightPx <= 0 &&
+    words.length <= 3 &&
+    Math.max(...words.map((w) => w.length), 0) <= 12;
 
   const text = stackable
     ? words.map((w) => esc(w)).join('<br>')
@@ -2901,7 +2934,7 @@ export function renderSection(
       })}>`
     : '';
 
-  const footer = `<div${style({
+  const footer = options.footer === false ? '' : `<div${style({
     display: 'flex',
     'align-items': 'center',
     'justify-content': 'space-between',

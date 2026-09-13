@@ -357,6 +357,9 @@ const RETIRED_CHARTER_PAGES: ReadonlySet<string> = new Set([
   'Brand Billboard',
   'Brand Stationery',
   'Brand Imagery',
+  // L'aperçu de génération au fil de l'eau, enregistré à tort comme une page :
+  // il s'imprimait en fin de charte, sous la signature.
+  'section_delta',
 ]);
 
 /**

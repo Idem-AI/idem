@@ -2905,9 +2905,9 @@
       }
     },
     "businessPlanStructure": {
-      "title": "Structure du business plan",
-      "lede": "Beaucoup de banques et de fonds imposent leur table des matières. Choisissez celle que votre interlocuteur attend : elle décide des sections générées et de leur ordre.",
-      "filterLabel": "Filtrer par destinataire",
+      "title": "Choisissez la structure de votre business plan",
+      "lede": "Chaque destinataire attend un sommaire différent : choisissez le vôtre, les sections seront générées dans cet ordre.",
+      "filterLabel": "Destinataire du business plan",
       "legend": "Modèle de structure",
       "edited": "Personnalisé",
       "researched": "Recherche web",
@@ -2935,7 +2935,9 @@
       "meta": {
         "sections": "{{count}} sections",
         "pages": "{{range}} pages",
-        "summary": "{{sections}} sections, dont {{researched}} appuyées sur des recherches web sourcées."
+        "researchedOne": "1 recherche web sourcée",
+        "researchedMany": "{{count}} recherches web sourcées",
+        "templatesCount": "{{count}} modèles"
       },
       "actions": {
         "customize": "Personnaliser ce sommaire",
@@ -2944,18 +2946,20 @@
         "openCatalog": "Ajouter une section",
         "closeCatalog": "Fermer le catalogue",
         "atMax": "Maximum de {{max}} sections atteint",
-        "confirm": "Continuer",
+        "confirm": "Valider ce sommaire",
         "saving": "Enregistrement",
         "moveUpAria": "Monter {{section}}",
         "moveDownAria": "Descendre {{section}}",
         "removeAria": "Retirer {{section}}",
-        "lockedAria": "{{section}} ne peut pas être retirée"
+        "lockedAria": "{{section}} ne peut pas être retirée",
+        "clearFilter": "Afficher tous les modèles"
       },
       "live": {
         "moved": "{{section}} déplacée en position {{position}} sur {{total}}",
         "added": "{{section}} ajoutée en position {{position}} sur {{total}}",
         "removed": "{{section}} retirée du sommaire",
-        "reset": "Sommaire du modèle rétabli"
+        "reset": "Sommaire du modèle rétabli",
+        "selected": "Modèle « {{template}} » sélectionné : {{count}} sections"
       },
       "errors": {
         "load": "Impossible de charger les structures disponibles.",
@@ -3005,6 +3009,46 @@
         "custom": {
           "name": "Composer mon sommaire",
           "description": "Partez d'un modèle et ajustez : retirez ce qui ne sert pas, ajoutez ce qui manque, fixez l'ordre."
+        }
+      },
+      "defaultBadge": "Par défaut",
+      "flow": {
+        "label": "Étapes de création du business plan",
+        "structure": "Structure",
+        "details": "Informations",
+        "generation": "Génération"
+      },
+      "steps": {
+        "audience": {
+          "title": "À qui allez-vous le remettre ?"
+        },
+        "template": {
+          "title": "Choisissez un modèle"
+        },
+        "outline": {
+          "title": "Vérifiez le sommaire"
+        }
+      },
+      "audienceCards": {
+        "bank": {
+          "name": "Une banque",
+          "goal": "Obtenir un prêt"
+        },
+        "investor": {
+          "name": "Un investisseur",
+          "goal": "Levée de fonds, incubateur"
+        },
+        "grant": {
+          "name": "Un bailleur",
+          "goal": "Obtenir une subvention"
+        },
+        "internal": {
+          "name": "Votre équipe",
+          "goal": "Piloter le projet"
+        },
+        "general": {
+          "name": "Je ne sais pas encore",
+          "goal": "Un plan polyvalent"
         }
       }
     }

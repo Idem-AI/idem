@@ -165,6 +165,13 @@ function densityText(value: string | undefined): string {
 const BANNERS_LEDE = "Chaque bannière garde son message hors de l'avatar et du recadrage mobile.";
 const POSTS_LEDE = 'Deux publications au format natif de chaque réseau, signées par le logo.';
 
+/**
+ * Marge de la page des publications. Elle est plein cadre, comme les mises en
+ * situation photo : 14 mm de marge et un pied de page y laissaient les
+ * publications à 60 % de la hauteur, et leur contenu ne se lisait pas.
+ */
+const SHOWCASE_PADDING = '8mm';
+
 export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<string, ComposedPage> {
   const ad = ctx.artDirection;
 
@@ -172,7 +179,8 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
     stepName: string,
     content: { lede?: string; blocks: Block[] },
     seed: SectionSeed,
-    index: number
+    index: number,
+    render: Partial<RenderOptions> = {}
   ): string =>
     renderSection(
       {
@@ -182,7 +190,7 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
       },
       ctx.designSystem,
       seed,
-      { ...ctx.render, index }
+      { ...ctx.render, ...render, index }
     );
 
   /** Une page de direction artistique n'existe que si la direction existe. */
@@ -309,7 +317,11 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
             stepName,
             { blocks: [{ kind: 'mockupShowcase', items }] },
             railSeed(seed, ad?.styleId),
-            index
+            index,
+            {
+              footer: false,
+              ...(ctx.render.page ? { page: { ...ctx.render.page, padding: SHOWCASE_PADDING } } : {}),
+            }
           );
         }
       } catch (error: any) {
