@@ -191,6 +191,96 @@ l'inverse de ce qu'on cherche (elle impose SON look à toutes les marques) ; des
 recettes par style donnent le même bénéfice — assembler au lieu d'inventer — sans
 uniformiser.
 
+## Les familles de mise en page
+
+Constaté le 13 septembre 2026 : quel que soit le projet, charte et business plan
+sortaient « un seul et même style, avec exactement les mêmes dispositions ». La
+graine faisait varier des **réglages** — quelle couleur va où, l'humeur du titre,
+l'ornement de l'en-tête — posés sur **un seul dessin**. Les blocs (chiffres-clés,
+tableaux, cartes, frises, citations), le pied de page et la colonne de texte
+étaient identiques pour tous les projets ; en portrait, les dispositions
+latérales se ramenaient même toutes à « titre en haut ». Les contrôles passaient
+au vert parce qu'ils comptaient des tirages, pas des pages.
+
+`services/design/layoutFamilies.ts` porte désormais **60 familles nommées**
+(Revue, Rapport annuel, Affiche, Grille modulaire, Carnet de terrain, Atlas,
+Tableau de bord, Gazette, Manifeste, Monographie, Journal de bord, Planisphère,
+Magazine de mode, Annuaire, Livre blanc, Dossier de presse, Salle de contrôle,
+Portfolio, Guide de voyage…). Chacune est une grammaire complète sur
+**23 dimensions visibles** :
+
+| Dimension | Dessins |
+|---|---|
+| Ouverture de section (portrait) | 13 — numéro en marge, aplat saignant, cadre, sur-titre tourné, ouverture de chapitre, titre et chapô en regard, hiérarchie inversée (le chapô en grand), doubles filets, onglet… |
+| Pied de page | 8 — dont titre courant en tête de chaque page, numéro d'angle |
+| Colonne de texte (portrait paginé) | 5 — pleine, décalée, indexée, étroite, appariée |
+| Chiffres-clés | 11 — rangée sous filet, registre, chiffre héros, tuiles, colonnes filetées, bande, libellé d'abord, lignes, phrase, cartouches, escalier |
+| Tableaux | 11 — dont colonnes teintées, transposé, encadré |
+| Cartes | 12 — dont bandes alternées, colonnes décalées, initiales, numéro d'angle |
+| Frises | 9 — dont épine centrale, étapes numérotées, chevrons |
+| Citations | 9 — dont auteur en regard, équerres, surligné |
+| Hypothèses | 7 — dont onglet, note de bas de bloc |
+| Prose | 8 — dont lettrine, attaque en gras, deux colonnes, alinéas, corps d'essai, premier paragraphe agrandi, paragraphes filetés |
+| Graphiques : cadre et clé de lecture | 6 — dont note en marge, légende numérotée |
+| Graphiques : encre | 4 — charte, monochrome, série mise en avant, au trait |
+| Chapô | 5 · Police des chiffres | 4 |
+| Rythme entre blocs | 3 · Bord de page | 4 — aucun, barre haute, barre latérale, cadre |
+| Étiquettes · numérotation · filets · encre des chiffres · angles · échelle du titre · nuancier | 5 · 6 · 5 · 2 · 2 · 3 · 3 |
+
+Les cinq dernières dimensions ajoutées (chapô, police des chiffres, encre des
+graphiques, rythme, bord de page) répondent à une remarque précise : même avec
+36 familles, « il y a toujours un peu de ressemblance entre les éléments ». Les
+chiffres sortaient tous en titrage gras, le chapô toujours gris sous le titre,
+les graphiques identiques, et la page toujours nue.
+
+Chaque valeur est une **fonction de rendu distincte**, jamais un curseur sur un
+dessin commun : `familyChrome.ts` pour l'enveloppe (ouverture, pied de page,
+colonne), `familyBlocks.ts` pour les blocs, les dessins historiques restant dans
+`sectionRenderer.ts` comme l'option d'une famille parmi d'autres. Les primitives
+qu'ils partagent — échappement, ajusteur de titre, contexte de page, ton de la
+famille — vivent dans `renderKit.ts`.
+
+La famille est un **invariant du document** : tirée par livrable
+(`buildDocumentSeed`), déterministe, dans les familles compatibles avec le style
+de la direction artistique (`fits`, neuf au moins par style ; tout le catalogue
+sans direction). L'archétype, la stratégie de couleur et l'humeur typographique
+continuent de varier par-dessus.
+
+En paysage (charte, deck), les **structures** d'archétype restent : elles sont
+calibrées au millimètre contre le débordement des pages rognées. La famille y
+pose son pied de page, ses étiquettes, ses angles, son nuancier et le dessin de
+chaque bloc.
+
+### Ce qui est vérifié
+
+- `check:uniqueness` — au moins 55 familles ; deux familles diffèrent toujours
+  sur au moins neuf des vingt-trois dimensions (moyenne mesurée : 18) ; chaque
+  style ouvre au moins treize familles ; chaque dessin est porté par au moins
+  deux familles ; quarante projets du même style se répartissent sur la plupart
+  de ses familles.
+- `check:render` — 60 familles, 60 pages distinctes (portrait et paysage) ;
+  charte respectée, contenu échappé, blocs enfants directs de la racine,
+  colonnes portées par le padding de la racine.
+- `check:fit` — chaque famille mesurée dans Chrome (A4 paginé complet et deux
+  diapositives de charte) : ni débordement, ni chevauchement, remplissage. Puis
+  les **silhouettes** : la première page en noir et blanc, sur une grille d'un
+  centimètre ; deux familles doivent différer d'au moins 10 % des cellules
+  encrées. Mesuré à 60 familles : 11 % pour la paire la plus proche, 33 % en
+  médiane.
+
+### Ajouter une famille
+
+1. Ajouter l'entrée à `LAYOUT_FAMILIES`, avec ses styles (`fits`).
+2. `npm run check:uniqueness` dit si elle est trop proche d'une autre sur le
+   papier ; `npm run check:fit`, si elle l'est à l'écran.
+3. Ouvrir `logs/render-preview.html` (groupe « Familles de mise en page ») avant
+   de l'annoncer : un contrôle dit qu'elle diffère, pas qu'elle est belle.
+
+Un nouveau DESSIN (une onzième ouverture, un neuvième tableau) multiplie la
+variété de toutes les familles qui l'adoptent : l'ajouter au type dans
+`layoutFamilies.ts`, l'implémenter dans `familyChrome.ts` ou `familyBlocks.ts`,
+puis au vocabulaire de `checkUniqueness.ts`.
+
 ## Ce que touche la direction artistique
 
 | Module | Ce qu'il reçoit |

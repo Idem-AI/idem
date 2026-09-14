@@ -1,4 +1,6 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { PitchDeckService } from '../../../services/ai-agents/pitch-deck.service';
 import { PageFormat } from '../models/editor.types';
 import { HtmlSectionsEditorAdapter } from './html-sections.adapter.base';
 
@@ -10,6 +12,14 @@ export class PitchDeckEditorAdapter extends HtmlSectionsEditorAdapter {
   readonly multiPage = false;
   readonly i18nTitleKey = 'dashboard.documentEditor.pitchDeck.title';
   readonly backRoute = '/project/pitch-deck';
+  readonly editRoute = '/project/pitch-deck/edit';
+  readonly pdfFileName = 'pitch-deck.pdf';
   protected readonly resource = 'pitchDecks';
   protected readonly analysisKey = 'pitchDeck' as const;
+
+  private readonly pitchDeckService = inject(PitchDeckService);
+
+  downloadPdf(projectId: string): Observable<Blob> {
+    return this.pitchDeckService.downloadPitchDeckPdf(projectId);
+  }
 }
