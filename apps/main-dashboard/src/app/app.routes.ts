@@ -194,14 +194,15 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
+    // Liste des business plans : un projet en garde plusieurs.
     path: 'project/business-plan',
-    title: 'navigation.titles.businessPlan',
+    title: 'navigation.titles.businessPlans',
     loadComponent: () =>
-      import('./modules/dashboard/pages/show-business-plan/show-business-plan').then(
-        (m) => m.ShowBusinessPlan,
+      import('./modules/dashboard/pages/deliverable-list/deliverable-list').then(
+        (m) => m.DeliverableListPage,
       ),
     canActivate: [authGuard, surveyGuard, guidedAccessGuard],
-    data: { layout: 'dashboard' },
+    data: { layout: 'dashboard', deliverable: 'businessPlan' },
   },
   {
     path: 'project/business-plan/generate',
@@ -222,6 +223,17 @@ export const routes: Routes = [
       ),
     canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'empty', documentType: 'business-plan' },
+  },
+  {
+    // Déclarée après `generate` et `edit` : un segment littéral n'est pas un identifiant.
+    path: 'project/business-plan/:documentId',
+    title: 'navigation.titles.businessPlan',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/show-business-plan/show-business-plan').then(
+        (m) => m.ShowBusinessPlan,
+      ),
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    data: { layout: 'dashboard' },
   },
   {
     path: 'project/pitch-deck/edit',
@@ -264,7 +276,30 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
+    // Liste des pitch decks : un projet en garde plusieurs (levée, banque, clients…).
     path: 'project/pitch-deck',
+    title: 'navigation.titles.pitchDecks',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/deliverable-list/deliverable-list').then(
+        (m) => m.DeliverableListPage,
+      ),
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    data: { layout: 'dashboard', deliverable: 'pitchDeck' },
+  },
+  {
+    // Choix du type de deck, avant la génération.
+    path: 'project/pitch-deck/new',
+    title: 'navigation.titles.pitchDeckNew',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/show-pitch-deck/pitch-deck-new/pitch-deck-new').then(
+        (m) => m.PitchDeckNewPage,
+      ),
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
+    // Après `new` et `edit` : un segment littéral n'est pas un identifiant.
+    path: 'project/pitch-deck/:documentId',
     title: 'navigation.titles.pitchDeck',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-pitch-deck/show-pitch-deck').then(

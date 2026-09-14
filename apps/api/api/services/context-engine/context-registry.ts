@@ -1,3 +1,4 @@
+import { listDocuments } from '../common/deliverable-documents';
 import { ProjectModel } from '../../models/project.model';
 import { ProjectSectionKey } from '../../models/revision.model';
 
@@ -16,6 +17,9 @@ export interface SectionDefinition {
   description: string;
   extract(project: ProjectModel): unknown;
 }
+
+/** Une liste vide est une section absente : l'historique et la carte du projet l'ignorent. */
+const nonEmpty = <T>(items: T[]): T[] | undefined => (items.length > 0 ? items : undefined);
 
 const SECTION_DEFINITIONS: SectionDefinition[] = [
   {
@@ -43,13 +47,15 @@ const SECTION_DEFINITIONS: SectionDefinition[] = [
   },
   {
     key: 'businessPlan',
-    description: "Business plan complet généré ou édité par l'utilisateur (sections rédigées).",
-    extract: (p) => p.analysisResultModel?.businessPlan,
+    description:
+      "Business plans du projet — une LISTE : un projet peut en garder plusieurs (dossier bancaire, plan investisseur…). Chaque document porte son id, son nom, sa structure et ses sections rédigées.",
+    extract: (p) => nonEmpty(listDocuments(p.analysisResultModel, 'businessPlan')),
   },
   {
     key: 'pitchDeck',
-    description: 'Pitch deck (slides de présentation investisseurs).',
-    extract: (p) => p.analysisResultModel?.pitchDeck,
+    description:
+      'Pitch decks du projet — une LISTE : levée de fonds, banque, présentation commerciale, partenariat, jury… Chaque document porte son id, son nom, son type et ses slides.',
+    extract: (p) => nonEmpty(listDocuments(p.analysisResultModel, 'pitchDeck')),
   },
   {
     key: 'legalDocs',

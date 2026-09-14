@@ -1,0 +1,56 @@
+{
+  "dashboard": {
+    "deliverableList": {
+      "loading": "Loading your documents…",
+      "loadError": "Your documents could not be loaded.",
+      "retry": "Try again",
+      "noProject": {
+        "title": "No project selected",
+        "subtitle": "Select a project to find its documents.",
+        "action": "See my projects"
+      },
+      "updated": "updated {{date}}",
+      "status": {
+        "draft": "Not generated",
+        "partial": "Incomplete",
+        "complete": "Complete"
+      },
+      "actions": {
+        "rename": "Rename",
+        "renameAria": "Rename “{{name}}”",
+        "nameLabel": "Document name",
+        "save": "Save",
+        "delete": "Delete",
+        "deleteAria": "Delete “{{name}}”",
+        "confirmDelete": "Permanently delete this document?"
+      },
+      "errors": {
+        "rename": "The document could not be renamed. Please try again.",
+        "delete": "The document could not be deleted. Please try again."
+      },
+      "businessPlan": {
+        "title": "My business plans",
+        "subtitle": "One plan per reader: bank, investor, grant… Pick the one to open.",
+        "create": "New business plan",
+        "customName": "Custom business plan",
+        "progress": "{{completed}}/{{expected}} sections",
+        "empty": {
+          "title": "No business plan yet",
+          "subtitle": "Pick the structure your reader expects, then generate your first plan.",
+          "action": "Generate a business plan"
+        }
+      },
+      "pitchDeck": {
+        "title": "My pitch decks",
+        "subtitle": "Fundraising, bank, customers, partners, jury… Pick the deck to open.",
+        "create": "New pitch deck",
+        "progress": "{{completed}}/{{expected}} slides",
+        "empty": {
+          "title": "No pitch deck yet",
+          "subtitle": "Pick the kind of deck that fits your audience, then generate it.",
+          "action": "Generate a pitch deck"
+        }
+      }
+    }
+  }
+}

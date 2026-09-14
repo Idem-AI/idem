@@ -62,7 +62,10 @@
       "simulations": "Simulations",
       "welcome": "Welcome",
       "guided": "Guided journey",
-      "financeCalendar": "Accounting calendar"
+      "financeCalendar": "Accounting calendar",
+      "businessPlans": "My business plans",
+      "pitchDecks": "My pitch decks",
+      "pitchDeckNew": "New pitch deck"
     }
   }
 }

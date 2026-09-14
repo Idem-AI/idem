@@ -1,8 +1,9 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { BusinessPlanService } from '../../../services/ai-agents/business-plan.service';
+import { findDeliverableDocument } from '../../../models/deliverable-document.model';
 import { PageFormat } from '../models/editor.types';
-import { HtmlSectionsEditorAdapter } from './html-sections.adapter.base';
+import { HtmlSectionsBucket, HtmlSectionsEditorAdapter } from './html-sections.adapter.base';
 
 /** Adaptateur du Business Plan (A4 portrait). */
 @Injectable({ providedIn: 'root' })
@@ -14,6 +15,7 @@ export class BusinessPlanEditorAdapter extends HtmlSectionsEditorAdapter {
   // pitch deck / la charte graphique.
   readonly multiPage = true;
   readonly i18nTitleKey = 'dashboard.documentEditor.businessPlan.title';
+  /** Liste des plans ; un plan précis s'affiche sous `backRoute/<documentId>`. */
   readonly backRoute = '/project/business-plan';
   readonly editRoute = '/project/business-plan/edit';
   readonly pdfFileName = 'business-plan.pdf';
@@ -22,7 +24,15 @@ export class BusinessPlanEditorAdapter extends HtmlSectionsEditorAdapter {
 
   private readonly businessPlanService = inject(BusinessPlanService);
 
-  downloadPdf(projectId: string): Observable<Blob> {
-    return this.businessPlanService.downloadBusinessPlanPdf(projectId);
+  /** Un projet garde plusieurs plans : celui désigné, le plus récent à défaut. */
+  protected override bucketOf(
+    analysis: Record<string, unknown> | undefined,
+    documentId?: string | null,
+  ): HtmlSectionsBucket | undefined {
+    return findDeliverableDocument(analysis, 'businessPlan', documentId) ?? undefined;
+  }
+
+  downloadPdf(projectId: string, documentId?: string | null): Observable<Blob> {
+    return this.businessPlanService.downloadBusinessPlanPdf(projectId, documentId);
   }
 }

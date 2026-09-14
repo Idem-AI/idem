@@ -1,9 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { BusinessPlanService } from '../../services/ai-agents/business-plan.service';
-import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
+import { Loader } from '../../../../shared/components/loader/loader';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { BrandingValidationService } from '../../services/branding-validation.service';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
@@ -14,14 +13,24 @@ import {
   BUSINESS_PLAN_SECTION_NAMES,
 } from '../../models/generation-completeness';
 import { BusinessPlanCatalogSection } from '../../models/business-plan-structure.model';
+import { BusinessPlanModel } from '../../models/businessPlan.model';
+import {
+  findDeliverableDocument,
+  StoredDeliverableDocument,
+} from '../../models/deliverable-document.model';
 import { ProjectService } from '../../services/project.service';
 import { ProjectModel } from '@idem/shared-models';
+import { businessPlanVariantLabel } from '../../utils/deliverable-labels';
 
+type StoredBusinessPlan = BusinessPlanModel & StoredDeliverableDocument;
+
+/**
+ * Un business plan du projet (`/project/business-plan/:documentId`) : aperçu et
+ * accès à la génération. La liste des plans est une page à part.
+ */
 @Component({
   selector: 'app-show-business-plan',
-  standalone: true,
   imports: [
-    CommonModule,
     DocumentPreviewComponent,
     Loader,
     TranslateModule,
@@ -37,18 +46,25 @@ export class ShowBusinessPlan implements OnInit {
   private readonly businessPlanService = inject(BusinessPlanService);
   private readonly cookieService = inject(CookieService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);
   private readonly brandingValidation = inject(BrandingValidationService);
   private readonly projectService = inject(ProjectService);
+
+  /** Plan affiché, désigné par l'URL. */
+  protected readonly documentId = signal<string | null>(
+    this.route.snapshot.paramMap.get('documentId'),
+  );
 
   // Signals for state management
   protected readonly isLoading = signal<boolean>(true);
   /** true dès que le plan a des sections à afficher (l'aperçu les rend sans PDF). */
   protected readonly hasBusinessPlan = signal<boolean>(false);
+  /** Le plan désigné n'existe pas (supprimé, lien d'un autre projet). */
+  protected readonly notFound = signal<boolean>(false);
   protected readonly projectIdFromCookie = signal<string | null>(null);
   protected readonly hasError = signal<boolean>(false);
   protected readonly errorMessage = signal<string>('');
-  protected readonly isRetryable = signal<boolean>(false);
 
   // Branding validation
   protected readonly isBrandingComplete = signal<boolean>(false);
@@ -58,18 +74,32 @@ export class ShowBusinessPlan implements OnInit {
   /** Catalogue des sections : traduit les clés de structure en noms canoniques. */
   private readonly catalogSections = signal<BusinessPlanCatalogSection[]>([]);
 
+  /** Le plan affiché, parmi ceux du projet. */
+  private readonly plan = computed(() =>
+    findDeliverableDocument<StoredBusinessPlan>(
+      this.project()?.analysisResultModel,
+      'businessPlan',
+      this.documentId(),
+    ),
+  );
+
+  protected readonly variantLabel = computed(() =>
+    businessPlanVariantLabel(this.translate, this.plan()?.structure?.templateId),
+  );
+
+  protected readonly heading = computed(() => this.plan()?.name || this.variantLabel());
+
   /**
-   * Sections ATTENDUES pour ce projet.
+   * Sections ATTENDUES pour ce plan.
    *
-   * Elles viennent de la structure choisie (dossier bancaire, plan
-   * investisseur, sommaire composé…), pas d'une liste figée : sinon un plan
-   * bancaire de neuf sections serait affiché comme incomplet parce qu'il ne
-   * contient pas « Opportunity ». La liste historique reste le repli tant que
-   * le catalogue n'est pas chargé ou qu'aucune structure n'a été choisie.
+   * Elles viennent de sa structure (dossier bancaire, plan investisseur,
+   * sommaire composé…), pas d'une liste figée : sinon un plan bancaire de neuf
+   * sections serait affiché comme incomplet parce qu'il ne contient pas
+   * « Opportunity ». La liste historique reste le repli tant que le catalogue
+   * n'est pas chargé ou qu'aucune structure n'a été choisie.
    */
   protected readonly expectedSectionNames = computed<readonly string[]>(() => {
-    const keys: string[] | undefined =
-      this.project()?.analysisResultModel?.businessPlan?.structure?.sectionKeys;
+    const keys = this.plan()?.structure?.sectionKeys;
     const catalog = this.catalogSections();
     if (!keys?.length || catalog.length === 0) return BUSINESS_PLAN_SECTION_NAMES;
 
@@ -81,7 +111,7 @@ export class ShowBusinessPlan implements OnInit {
   protected readonly completeness = computed(() =>
     analyzeGenerationCompleteness(
       this.expectedSectionNames(),
-      this.project()?.analysisResultModel?.businessPlan?.sections,
+      this.plan()?.sections,
       this.underFilledSections(),
     ),
   );
@@ -98,32 +128,30 @@ export class ShowBusinessPlan implements OnInit {
    * contient pas (la liste historique n'est pas la sienne).
    */
   protected readonly previewOutline = computed(() => {
-    const keys: string[] | undefined =
-      this.project()?.analysisResultModel?.businessPlan?.structure?.sectionKeys;
+    const keys = this.plan()?.structure?.sectionKeys;
     if (keys?.length && this.catalogSections().length === 0) return [];
     return this.completeness().items;
   });
 
   ngOnInit(): void {
-    // Get project ID from cookies
     const projectId = this.cookieService.get('projectId');
     this.projectIdFromCookie.set(projectId);
 
-    if (projectId) {
-      // Le catalogue est mémorisé par le service : le charger ici ne coûte une
-      // requête qu'à la première ouverture de la session.
-      this.businessPlanService.getStructureCatalog().subscribe({
-        next: (catalog) => this.catalogSections.set(catalog.sections),
-        error: () => {
-          // Sans catalogue, la complétude retombe sur la liste historique.
-        },
-      });
-
-      // First check branding completion
-      this.checkBrandingCompletion(projectId);
-    } else {
+    if (!projectId) {
       this.isLoading.set(false);
+      return;
     }
+
+    // Le catalogue est mémorisé par le service : le charger ici ne coûte une
+    // requête qu'à la première ouverture de la session.
+    this.businessPlanService.getStructureCatalog().subscribe({
+      next: (catalog) => this.catalogSections.set(catalog.sections),
+      error: () => {
+        // Sans catalogue, la complétude retombe sur la liste historique.
+      },
+    });
+
+    this.checkBrandingCompletion(projectId);
   }
 
   /**
@@ -139,9 +167,8 @@ export class ShowBusinessPlan implements OnInit {
         this.isBrandingComplete.set(isComplete);
         this.brandingMissingElements.set(missingElements);
 
-        // Only load business plan if branding is complete
         if (isComplete) {
-          this.loadExistingBusinessPlan(projectId, project);
+          this.loadExistingBusinessPlan(projectId);
         } else {
           this.isLoading.set(false);
         }
@@ -150,8 +177,7 @@ export class ShowBusinessPlan implements OnInit {
         console.error('Error checking branding completion:', error);
         this.isLoading.set(false);
         this.hasError.set(true);
-        this.isRetryable.set(true);
-        this.errorMessage.set('Erreur lors de la vérification du projet');
+        this.errorMessage.set(this.translate.instant('dashboard.showBusinessPlan.errors.load'));
       },
     });
   }
@@ -161,8 +187,15 @@ export class ShowBusinessPlan implements OnInit {
    * directement. Le PDF, lourd à produire comme à afficher, n'est demandé à
    * l'API qu'au clic sur « Télécharger ».
    */
-  private loadExistingBusinessPlan(projectId: string, project: ProjectModel | null): void {
-    this.businessPlanService.getBusinessPlanPdfQuality(projectId).subscribe({
+  private loadExistingBusinessPlan(projectId: string): void {
+    const plan = this.plan();
+    if (!plan) {
+      this.notFound.set(true);
+      this.isLoading.set(false);
+      return;
+    }
+
+    this.businessPlanService.getBusinessPlanPdfQuality(projectId, plan.id).subscribe({
       next: (quality) => {
         const underfilled = (quality?.underFilledSections ?? []).map((s) => s.sectionName);
         this.underFilledSections.set(underfilled);
@@ -172,21 +205,22 @@ export class ShowBusinessPlan implements OnInit {
       },
     });
 
-    const sections: { data?: unknown }[] =
-      project?.analysisResultModel?.businessPlan?.sections ?? [];
     this.hasBusinessPlan.set(
-      sections.some((section) => typeof section.data === 'string' && section.data.trim() !== ''),
+      plan.sections.some((section) => typeof section.data === 'string' && section.data.trim() !== ''),
     );
     this.isLoading.set(false);
   }
 
   /**
-   * Navigate to business plan generation page
+   * Génération de CE plan : la page de génération reprend sa structure.
    */
   protected generateBusinessPlan(force = false): void {
-    console.log('Navigating to business plan generation page, force:', force);
+    const documentId = this.documentId();
     this.router.navigate(['/project/business-plan/generate'], {
-      queryParams: force ? { force: 'true' } : {}
+      queryParams: {
+        ...(documentId ? { documentId } : {}),
+        ...(force ? { force: 'true' } : {}),
+      },
     });
   }
 
@@ -194,8 +228,9 @@ export class ShowBusinessPlan implements OnInit {
    * Regenerate a single business plan section (canonical backend step name)
    */
   protected regenerateSection(sectionName: string): void {
+    const documentId = this.documentId();
     this.router.navigate(['/project/business-plan/generate'], {
-      queryParams: { sections: sectionName },
+      queryParams: { ...(documentId ? { documentId } : {}), sections: sectionName },
     });
   }
 
@@ -206,17 +241,19 @@ export class ShowBusinessPlan implements OnInit {
     const projectId = this.projectIdFromCookie();
     if (projectId) {
       this.hasError.set(false);
-      this.isRetryable.set(false);
       this.isLoading.set(true);
       this.checkBrandingCompletion(projectId);
     }
+  }
+
+  protected goToList(): void {
+    this.router.navigate(['/project/business-plan']);
   }
 
   /**
    * Navigate to projects page
    */
   protected goToProjects(): void {
-    console.log('Navigating to projects page');
     this.router.navigate(['/projects']);
   }
 }

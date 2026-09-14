@@ -1,0 +1,173 @@
+<section class="dl-page" aria-labelledby="dl-title">
+  @if (isLoading()) {
+    <div class="text-center py-20">
+      <app-loader />
+      <p class="text-text-tertiary mt-4">{{ 'dashboard.deliverableList.loading' | translate }}</p>
+    </div>
+  } @else if (!projectId()) {
+    <div class="max-w-xl mx-auto text-center py-16">
+      <h1 id="dl-title" class="text-xl font-semibold text-text-primary mb-2">
+        {{ 'dashboard.deliverableList.noProject.title' | translate }}
+      </h1>
+      <p class="text-text-tertiary mb-6">{{ 'dashboard.deliverableList.noProject.subtitle' | translate }}</p>
+      <a class="inner-button" routerLink="/projects">{{ 'dashboard.deliverableList.noProject.action' | translate }}</a>
+    </div>
+  } @else if (loadError()) {
+    <div class="max-w-xl mx-auto text-center py-16">
+      <h1 id="dl-title" class="text-xl font-semibold text-text-primary mb-2">
+        {{ config.i18n + '.title' | translate }}
+      </h1>
+      <p class="text-text-tertiary mb-6" role="alert">{{ 'dashboard.deliverableList.loadError' | translate }}</p>
+      <button type="button" class="inner-button" (click)="retry()">
+        {{ 'dashboard.deliverableList.retry' | translate }}
+      </button>
+    </div>
+  } @else if (!isBrandingComplete() && project()) {
+    <app-incomplete-project-banner [project]="project()!" />
+  } @else {
+    <header class="dl-head">
+      <div class="min-w-0">
+        <h1 id="dl-title" class="text-xl sm:text-2xl font-bold text-text-primary">
+          {{ config.i18n + '.title' | translate }}
+        </h1>
+        <p class="text-sm text-text-tertiary mt-1">{{ config.i18n + '.subtitle' | translate }}</p>
+      </div>
+      @if (cards().length > 0) {
+        <button type="button" class="inner-button dl-create" (click)="create()">
+          <i class="pi pi-plus text-xs" aria-hidden="true"></i>
+          <span>{{ config.i18n + '.create' | translate }}</span>
+        </button>
+      }
+    </header>
+
+    @if (actionError()) {
+      <p class="dl-error" role="alert">{{ actionError() }}</p>
+    }
+
+    @if (cards().length === 0) {
+      <div class="dl-empty">
+        <div class="dl-empty-icon">
+          <i [class]="config.icon" aria-hidden="true"></i>
+        </div>
+        <h2 class="text-xl font-bold text-text-primary mb-2">{{ config.i18n + '.empty.title' | translate }}</h2>
+        <p class="text-text-tertiary mb-6 max-w-md mx-auto">{{ config.i18n + '.empty.subtitle' | translate }}</p>
+        <button type="button" class="inner-button" (click)="create()">
+          {{ config.i18n + '.empty.action' | translate }}
+        </button>
+      </div>
+    } @else {
+      <ul class="dl-grid" role="list">
+        @for (card of cards(); track card.id) {
+          <li class="dl-card" [class.dl-card-busy]="busyId() === card.id" [attr.aria-busy]="busyId() === card.id">
+            <div class="dl-card-top">
+              <span class="dl-variant">
+                <i [class]="config.icon" aria-hidden="true"></i>
+                <span class="truncate">{{ card.variantLabel }}</span>
+              </span>
+              <span class="dl-status text-text-tertiary" [attr.data-status]="card.status">
+                {{ 'dashboard.deliverableList.status.' + card.status | translate }}
+              </span>
+            </div>
+
+            @if (editingId() === card.id) {
+              <form class="dl-rename" (submit)="submitRename($event, card)">
+                <label class="sr-only" [for]="'dl-name-' + card.id">
+                  {{ 'dashboard.deliverableList.actions.nameLabel' | translate }}
+                </label>
+                <input
+                  #renameInput
+                  class="dl-input text-text-primary"
+                  type="text"
+                  maxlength="120"
+                  autocomplete="off"
+                  [id]="'dl-name-' + card.id"
+                  [formControl]="nameControl"
+                  (keydown.escape)="cancelRename()"
+                />
+                <div class="dl-inline-actions">
+                  <button type="button" class="dl-btn text-text-secondary" (click)="cancelRename()">
+                    {{ 'common.cancel' | translate }}
+                  </button>
+                  <button
+                    type="submit"
+                    class="dl-btn dl-btn-primary"
+                    [disabled]="nameControl.invalid || busyId() === card.id"
+                  >
+                    {{ 'dashboard.deliverableList.actions.save' | translate }}
+                  </button>
+                </div>
+              </form>
+            } @else {
+              <h2 class="dl-card-title text-text-primary">
+                <!-- Le lien couvre toute la carte : on ouvre un document d'un clic n'importe où. -->
+                <a class="dl-card-link" [routerLink]="[config.route, card.id]">{{ card.name }}</a>
+              </h2>
+            }
+
+            <div class="dl-progress">
+              <p class="text-xs text-text-tertiary">
+                {{ config.i18n + '.progress' | translate: { completed: card.completed, expected: card.expected } }}
+                @if (card.updatedLabel) {
+                  <span aria-hidden="true"> · </span>
+                  {{ 'dashboard.deliverableList.updated' | translate: { date: card.updatedLabel } }}
+                }
+              </p>
+              <div
+                class="dl-bar"
+                role="progressbar"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                [attr.aria-valuenow]="card.progress"
+                [attr.aria-label]="config.i18n + '.progress' | translate: { completed: card.completed, expected: card.expected }"
+              >
+                <span [style.width.%]="card.progress"></span>
+              </div>
+            </div>
+
+            @if (confirmDeleteId() === card.id) {
+              <div class="dl-confirm" role="group" [attr.aria-label]="'dashboard.deliverableList.actions.confirmDelete' | translate">
+                <p class="text-sm text-text-primary">{{ 'dashboard.deliverableList.actions.confirmDelete' | translate }}</p>
+                <div class="dl-inline-actions">
+                  <button type="button" class="dl-btn text-text-secondary" (click)="cancelDelete()" (keydown.escape)="cancelDelete()">
+                    {{ 'common.cancel' | translate }}
+                  </button>
+                  <button
+                    #confirmDeleteButton
+                    type="button"
+                    class="dl-btn dl-btn-danger"
+                    [disabled]="busyId() === card.id"
+                    (click)="confirmDelete(card)"
+                    (keydown.escape)="cancelDelete()"
+                  >
+                    {{ 'dashboard.deliverableList.actions.delete' | translate }}
+                  </button>
+                </div>
+              </div>
+            } @else if (editingId() !== card.id) {
+              <div class="dl-card-actions">
+                <button
+                  type="button"
+                  class="dl-icon-btn text-text-secondary"
+                  [title]="'dashboard.deliverableList.actions.rename' | translate"
+                  [attr.aria-label]="'dashboard.deliverableList.actions.renameAria' | translate: { name: card.name }"
+                  (click)="startRename(card)"
+                >
+                  <i class="pi pi-pencil text-sm" aria-hidden="true"></i>
+                </button>
+                <button
+                  type="button"
+                  class="dl-icon-btn dl-icon-btn-danger text-text-secondary"
+                  [title]="'dashboard.deliverableList.actions.delete' | translate"
+                  [attr.aria-label]="'dashboard.deliverableList.actions.deleteAria' | translate: { name: card.name }"
+                  (click)="requestDelete(card)"
+                >
+                  <i class="pi pi-trash text-sm" aria-hidden="true"></i>
+                </button>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    }
+  }
+</section>

@@ -121,6 +121,8 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
   });
 
   private projectId: string | null = null;
+  /** Document ouvert quand le projet en garde plusieurs (business plans, pitch decks). */
+  private documentId: string | null = null;
   /** Élément ou page à montrer au premier rendu (lien profond depuis l'aperçu). */
   private pendingTarget: { sectionId: string; path: string | null } | null = null;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -141,6 +143,7 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     });
 
     const query = this.route.snapshot.queryParamMap;
+    this.documentId = query.get(EDITOR_TARGET_PARAMS.document);
     const targetSection = query.get(EDITOR_TARGET_PARAMS.section);
     if (targetSection) {
       this.pendingTarget = { sectionId: targetSection, path: query.get(EDITOR_TARGET_PARAMS.path) };
@@ -154,7 +157,7 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     }
 
     await this.tokenService.waitForAuthReady();
-    this.adapter.load(this.projectId).subscribe({
+    this.adapter.load(this.projectId, this.documentId).subscribe({
       next: (doc) => {
         this.title.set(doc.title);
         this.fonts.set(doc.fonts);
@@ -315,7 +318,7 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     const sel = this.selection();
     if (!sel || !this.projectId) return;
     this.aiLoading.set(true);
-    this.adapter.aiEdit(this.projectId, sel.sectionId, instruction).subscribe({
+    this.adapter.aiEdit(this.projectId, sel.sectionId, instruction, this.documentId).subscribe({
       next: (res) => {
         this.aiLoading.set(false);
         if (!res.html) return;
@@ -386,7 +389,7 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     if (!this.projectId) return;
     if (this.saveState() === 'saving') return;
     this.saveState.set('saving');
-    this.adapter.save(this.projectId, this.model.snapshot()).subscribe({
+    this.adapter.save(this.projectId, this.model.snapshot(), this.documentId).subscribe({
       next: () => {
         this.saveState.set('saved');
         this.scheduleSavedReset();
@@ -427,6 +430,9 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
 
   protected exit(): void {
     if (this.saveState() === 'dirty') this.saveNow();
-    this.router.navigate([this.adapter.backRoute]);
+    // Un document parmi plusieurs revient à SA page, pas à la liste.
+    this.router.navigate(
+      this.documentId ? [this.adapter.backRoute, this.documentId] : [this.adapter.backRoute],
+    );
   }
 }

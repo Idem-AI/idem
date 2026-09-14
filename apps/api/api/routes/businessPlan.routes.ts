@@ -12,6 +12,10 @@ import {
   getBusinessPlanStructureCatalogController,
   getBusinessPlanStructureController,
   setBusinessPlanStructureController,
+  listBusinessPlanDocumentsController,
+  createBusinessPlanDocumentController,
+  renameBusinessPlanDocumentController,
+  deleteBusinessPlanDocumentController,
 } from '../controllers/businessPlan.controller';
 import { authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
@@ -243,6 +247,113 @@ businessPlanRoutes.put(
   `/${resourceName}/:projectId/structure`,
   authenticate,
   setBusinessPlanStructureController
+);
+
+/*
+ * Un projet garde PLUSIEURS business plans. Les routes par projet (génération,
+ * lecture, structure, sections, PDF) acceptent `?documentId=` pour désigner le
+ * plan ; sans lui, elles agissent sur le plan le plus récemment modifié.
+ */
+
+/**
+ * @openapi
+ * /businessPlans/{projectId}/documents:
+ *   get:
+ *     tags:
+ *       - Business Plans
+ *     summary: List the business plans of a project (summaries, without section HTML)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: Business plan summaries (id, name, template, expected and completed sections).
+ *       '404':
+ *         description: Project not found.
+ *   post:
+ *     tags:
+ *       - Business Plans
+ *     summary: Create an empty business plan on a chosen structure
+ *     description: The structure is validated like `PUT /businessPlans/{projectId}/structure`. Generation comes next, with `documentId`.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - templateId
+ *             properties:
+ *               templateId:
+ *                 type: string
+ *               sectionKeys:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               name:
+ *                 type: string
+ *     responses:
+ *       '201':
+ *         description: Business plan created (summary).
+ *       '400':
+ *         description: Invalid structure.
+ *       '404':
+ *         description: Project not found.
+ */
+businessPlanRoutes.get(
+  `/${resourceName}/:projectId/documents`,
+  authenticate,
+  listBusinessPlanDocumentsController
+);
+businessPlanRoutes.post(
+  `/${resourceName}/:projectId/documents`,
+  authenticate,
+  createBusinessPlanDocumentController
+);
+
+/**
+ * @openapi
+ * /businessPlans/{projectId}/documents/{documentId}:
+ *   patch:
+ *     tags:
+ *       - Business Plans
+ *     summary: Rename a business plan
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *   delete:
+ *     tags:
+ *       - Business Plans
+ *     summary: Delete a business plan
+ *     security:
+ *       - bearerAuth: []
+ */
+businessPlanRoutes.patch(
+  `/${resourceName}/:projectId/documents/:documentId`,
+  authenticate,
+  renameBusinessPlanDocumentController
+);
+businessPlanRoutes.delete(
+  `/${resourceName}/:projectId/documents/:documentId`,
+  authenticate,
+  deleteBusinessPlanDocumentController
 );
 
 // Get a specific business plan by its project ID

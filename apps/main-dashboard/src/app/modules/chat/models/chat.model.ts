@@ -99,6 +99,7 @@ export type ChatChipAction =
   | 'legal-type'
   | 'comm-strategy'
   | 'comm-calendar'
+  | 'deck-type'
   | 'open-route';
 
 export interface ChatChip {

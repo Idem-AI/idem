@@ -37,16 +37,39 @@
         "Competition": "Competition",
         "Team": "Team",
         "Financials": "Financials",
-        "Ask": "The Ask"
+        "Ask": "The Ask",
+        "Company Overview": "Company Overview",
+        "Funding Request": "Funding Request",
+        "Repayment Capacity": "Repayment Capacity",
+        "Guarantees": "Guarantees",
+        "Customer Benefits": "Customer Benefits",
+        "Case Studies": "Case Studies",
+        "Pricing": "Pricing",
+        "Next Steps": "Next Steps",
+        "Partnership Model": "Partnership Model",
+        "Partner Benefits": "Partner Benefits",
+        "Impact": "Impact",
+        "Milestones": "Milestones",
+        "Use of Funds": "Use of Funds"
       },
       "errors": {
         "generation": "Something went wrong while generating the deck.",
         "download": "Could not download the PDF.",
-        "pdfLoad": "Could not load the PDF preview."
+        "pdfLoad": "Could not load the PDF preview.",
+        "load": "The pitch deck could not be loaded."
       },
       "loadingPdf": "Loading PDF preview…",
       "buttons": {
-        "edit": "Edit"
+        "edit": "Edit",
+        "backToList": "Back to my pitch decks"
+      },
+      "notFound": {
+        "title": "This pitch deck could not be found",
+        "subtitle": "It may have been deleted. Find your pitch decks in the list."
+      },
+      "draft": {
+        "title": "This pitch deck has not been generated yet",
+        "subtitle": "{{count}} slides will be written and laid out from your project data."
       }
     }
   }
