@@ -67,8 +67,12 @@ const POPOVER_GAP = 10;
 const TALL_ELEMENT_PX = 420;
 /** Place réservée sous le document pour que le dock ne recouvre pas le dernier pied de page. */
 const DOCK_INSET_PX = 104;
-/** Hauteur du pied de page, centré dans l'espace entre deux pages. */
+/** Hauteur du pied de page, posé dans l'espace entre deux pages. */
 const FOOTER_HEIGHT_PX = 28;
+/** Écart entre le bas d'une page et son pied. */
+const FOOTER_OFFSET_PX = 6;
+/** Hauteur plancher du pied tassé : en dessous, l'icône ne se vise plus au doigt. */
+const FOOTER_MIN_HEIGHT_PX = 16;
 
 function kindOf(selection: EditorSelection): ElementKind {
   if (selection.path === '') return 'page';
@@ -269,7 +273,12 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
     if (!canvas || !this.ready() || !this.tracksGeneration()) return [];
     const z = canvas.zoom();
     const pages = this.pages();
-    const offset = Math.max(2, (PREVIEW_PAGE_GAP_PX * z - FOOTER_HEIGHT_PX) / 2);
+    const gap = PREVIEW_PAGE_GAP_PX * z;
+    // Document très réduit (mobile) : l'espace entre deux pages est plus bas
+    // que le pied. Le pied se tasse (icône seule) au lieu de chevaucher les pages.
+    const height = Math.max(FOOTER_MIN_HEIGHT_PX, Math.min(FOOTER_HEIGHT_PX, gap - 4));
+    // Collé sous SA page plutôt que centré : il ne se lit pas comme l'en-tête de la suivante.
+    const offset = Math.max(0, Math.min(FOOTER_OFFSET_PX, gap - height));
     return canvas.sectionLayouts().flatMap((layout) => {
       const index = pages.findIndex((page) => page.id === layout.id);
       if (index < 0) return [];
@@ -280,6 +289,8 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
           left: layout.left * z,
           width: layout.width * z,
           top: (layout.top + layout.height) * z + offset,
+          height,
+          compact: height < FOOTER_HEIGHT_PX,
         },
       ];
     });

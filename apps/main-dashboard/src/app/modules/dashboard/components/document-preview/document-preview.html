@@ -59,9 +59,11 @@
       @for (foot of footers(); track foot.page.id) {
         <div
           class="dp-foot"
+          [class.dp-foot-compact]="foot.compact"
           [style.left.px]="foot.left"
           [style.top.px]="foot.top"
           [style.width.px]="foot.width"
+          [style.height.px]="foot.height"
         >
           <span class="dp-foot-label">
             <span class="dp-foot-index">{{ foot.index + 1 }}</span>

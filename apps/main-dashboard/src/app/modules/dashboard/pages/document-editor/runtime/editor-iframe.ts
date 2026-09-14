@@ -630,8 +630,14 @@ export const PREVIEW_PAGE_GAP_PX = 72;
  * Les tailles de ces dernières sont en `cqw` (largeur de la page) : le message
  * garde les mêmes proportions sur une page A4 comme sur une diapositive 16:9.
  */
-function previewPageStyles(): string {
+function previewPageStyles(multiPage: boolean): string {
+  // Page A4 qui grandit (business plan) : le message se pose en haut de page.
+  // Centré sur 297 mm, il tomberait sous le dock quand on saute à la page.
+  const placeholderAlign = multiPage
+    ? `.idem-placeholder .idem-ph { justify-content: flex-start; padding-top: 16cqw; }`
+    : '';
   return `
+    ${placeholderAlign}
     .idem-doc { gap: ${PREVIEW_PAGE_GAP_PX}px; padding-bottom: ${PREVIEW_PAGE_GAP_PX}px; }
     .idem-placeholder { display: flex; background: #f8fafc; container-type: inline-size; }
     .idem-ph {
@@ -709,7 +715,7 @@ function pageStyles(
       border-radius: 2px;
     }
     ${rootFit}
-    ${mode === 'preview' ? previewPageStyles() : ''}
+    ${mode === 'preview' ? previewPageStyles(multiPage) : ''}
     [data-section-id] * { cursor: ${mode === 'preview' ? 'pointer' : 'default'}; }
     .idem-editing { outline: 2px solid #1447e6 !important; outline-offset: 2px; cursor: text !important; }
     h1,h2,h3,h4,h5,h6 { font-family: var(--idem-primary-font, inherit); }

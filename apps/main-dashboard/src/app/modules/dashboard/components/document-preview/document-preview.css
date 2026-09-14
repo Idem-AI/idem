@@ -145,9 +145,31 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  height: 28px;
   padding: 0 2px;
   pointer-events: none;
+}
+
+/* Pied tassé (espace entre pages plus bas que le pied) : numéro, alerte, icône. */
+.dp-foot-compact .dp-foot-label {
+  font-size: 0.62rem;
+}
+
+.dp-foot-compact .dp-foot-name,
+.dp-foot-compact .dp-foot-btn-label {
+  display: none;
+}
+
+.dp-foot-compact .dp-foot-issue {
+  padding: 0 0.35rem;
+  font-size: 0.58rem;
+}
+
+.dp-foot-compact .dp-foot-btn {
+  width: auto;
+  height: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  font-size: 0.62rem;
 }
 
 .dp-foot-label {
