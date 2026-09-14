@@ -40,6 +40,7 @@ import {
   BusinessPlanSectionDefinition,
 } from './structure/section-catalog';
 import { buildStructure, resolveStructure } from './structure/structure.resolver';
+import { BUSINESS_PLAN_PAGINATION } from './businessPlanPdf.options';
 import { TeamMember } from '../../models/project.model';
 import { storageService } from '../storage.service';
 import { buildLogoBlock, collectLogoUrls } from '../../utils/brand-context.util';
@@ -1106,6 +1107,7 @@ export class BusinessPlanService extends GenericService {
 
     // Capturer le rapport de pagination pour détecter les pages sous-remplies.
     let capturedPaginationReport: import('../pdf/flow-pagination.runtime').FlowPaginationReport | null = null;
+    let capturedQualityReport: import('../pdf/pdfQualityGate').PdfQualityGateReport | null = null;
 
     // Utiliser le PdfService pour générer le PDF
     const pdfPath = await this.pdfService.generatePdf({
@@ -1126,11 +1128,13 @@ export class BusinessPlanService extends GenericService {
       // PLUSIEURS pages A4 (contenu détaillé, graphes, sources), sans qu'un bloc
       // soit coupé entre deux pages. Sans ceci, chaque section est rognée à 1 page.
       multiPage: true,
-      // Empêcher les très grands espaces vides (stretching excessif) après les graphiques
-      pagination: {
-        maxGapAddMm: 3,
-        maxGapAddHardMm: 8,
-        balance: false,
+      // Écarts bornés, pages vides et grands blancs corrigés à la composition.
+      // Réglages partagés avec `npm run check:bpquality`.
+      pagination: BUSINESS_PLAN_PAGINATION,
+      // Le PDF imprimé est relu page par page avant d'être renvoyé.
+      qualityGate: true,
+      onQualityReport: (report) => {
+        capturedQualityReport = report;
       },
       // La couverture est une composition pleine page : elle est rendue telle
       // quelle, jamais redécoupée ni étirée par le paginateur.
@@ -1143,7 +1147,7 @@ export class BusinessPlanService extends GenericService {
     });
 
     // Persister la qualité PDF (sections sous-remplies) sur le projet.
-    await this.persistPdfQuality(userId, projectId, capturedPaginationReport);
+    await this.persistPdfQuality(userId, projectId, capturedPaginationReport, capturedQualityReport);
 
     // Cache the PDF path for future requests
     await cacheService.set(pdfCacheKey, pdfPath, {
@@ -1278,12 +1282,15 @@ export class BusinessPlanService extends GenericService {
   private async persistPdfQuality(
     userId: string,
     projectId: string,
-    report: import('../pdf/flow-pagination.runtime').FlowPaginationReport | null
+    report: import('../pdf/flow-pagination.runtime').FlowPaginationReport | null,
+    printed: import('../pdf/pdfQualityGate').PdfQualityGateReport | null = null
   ): Promise<void> {
     if (!report) return;
 
     const underFilled = report.sections
-      .filter((s) => isUnderfilledSection(s))
+      // Une section posée tout entière sur la page de la précédente n'a pas de
+      // page à elle : il n'y a rien à mesurer.
+      .filter((s) => s.fills.length > 0 && isUnderfilledSection(s))
       .map((s) => ({
         sectionName: s.name,
         worstFill: Math.min(...s.fills),
@@ -1293,6 +1300,14 @@ export class BusinessPlanService extends GenericService {
     const pdfQuality: BusinessPlanPdfQuality = {
       generatedAt: new Date(),
       underFilledSections: underFilled,
+      removedPages: (report.removedPages ?? 0) + (printed?.removedPages.length ?? 0),
+      continuedSections: report.sections.filter((s) => s.continued).map((s) => s.name),
+      pagesWithHoles: (printed?.holes ?? []).map((hole) => ({
+        page: hole.page,
+        sectionName: hole.section,
+        blank: hole.blank,
+      })),
+      printCheck: printed?.measured ?? false,
     };
 
     try {
@@ -1325,6 +1340,12 @@ export class BusinessPlanService extends GenericService {
       } else {
         logger.info(`PDF quality persisted for project ${projectId}: all pages well-filled.`);
       }
+      logger.info(
+        `PDF quality for project ${projectId}: ${pdfQuality.removedPages} page(s) retirée(s), ` +
+          `${pdfQuality.continuedSections?.length ?? 0} section(s) enchaînée(s), ` +
+          `${pdfQuality.pagesWithHoles?.length ?? 0} page(s) avec un blanc ≥ 35 %` +
+          (pdfQuality.printCheck ? '' : ' — contrôle du PDF imprimé non effectué')
+      );
     } catch (err: any) {
       logger.warn(`Could not persist PDF quality for project ${projectId}: ${err.message}`);
     }

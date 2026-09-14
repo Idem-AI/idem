@@ -1648,7 +1648,10 @@
       "buttons": {
         "generate": "Generate Brand Identity"
       },
-      "generationTime": "Generation takes 2-3 minutes"
+      "generationTime": "Generation takes 2-3 minutes",
+      "errors": {
+        "load": "The brand guide could not be loaded. Please try again shortly."
+      }
     },
     "brandingGeneration": {
       "finalizing": "Finalizing Branding",
@@ -1886,7 +1889,7 @@
       }
     },
     "businessPlanDisplay": {
-      "title": "Business Plan PDF",
+      "title": "Business plan",
       "loading": "Preparing business plan content...",
       "empty": {
         "title": "No Business Plan Available",
@@ -2517,11 +2520,13 @@
         "saved": "Saved",
         "saveError": "Save failed",
         "unsaved": "Unsaved changes",
-        "upToDate": "Up to date"
+        "upToDate": "Up to date",
+        "pages": "Document pages"
       },
       "layers": {
         "title": "Document pages",
-        "pages": "Pages"
+        "pages": "Pages",
+        "close": "Close pages"
       },
       "emptySelection": {
         "title": "No element selected",
@@ -2600,6 +2605,11 @@
       },
       "flyer": {
         "title": "Visual editor"
+      },
+      "inspectorClose": "Close properties",
+      "zoom": {
+        "menu": "Zoom: {{value}}%",
+        "fitWidth": "Fit to width"
       }
     },
     "showCommunication": {
@@ -3047,6 +3057,82 @@
           "name": "Not sure yet",
           "goal": "An all-purpose plan"
         }
+      }
+    },
+    "documentPreview": {
+      "canvasLabel": "Document preview",
+      "pageCount": "{{count}} pages",
+      "hint": "Click an element to edit it",
+      "loading": "Preparing the preview…",
+      "error": "The preview could not be loaded. Reload the page to try again.",
+      "empty": "This document has no pages yet.",
+      "popover": {
+        "label": "Element actions",
+        "edit": "Edit",
+        "close": "Close",
+        "regenerate": "Regenerate",
+        "regenerateAria": "Regenerate the “{{section}}” section"
+      },
+      "kinds": {
+        "page": "Page",
+        "chart": "Chart",
+        "heading": "Heading",
+        "image": "Image",
+        "table": "Table",
+        "list": "List",
+        "text": "Text",
+        "block": "Block"
+      },
+      "dock": {
+        "label": "Document actions",
+        "previousPage": "Previous page",
+        "nextPage": "Next page",
+        "pagesMenu": "Page {{current}} of {{total}}, show page list",
+        "edit": "Edit"
+      },
+      "download": {
+        "idle": "Download",
+        "working": "Preparing…",
+        "done": "Downloaded",
+        "error": "Failed, retry"
+      },
+      "status": {
+        "complete": "Generation complete",
+        "blockingOne": "1 section to regenerate",
+        "blockingMany": "{{count}} sections to regenerate",
+        "underfilledOne": "1 underfilled section",
+        "underfilledMany": "{{count}} underfilled sections",
+        "goTo": "Go to the first affected section"
+      },
+      "issues": {
+        "missing": "Missing",
+        "error": "Failed",
+        "underfilled": "Underfilled"
+      },
+      "footer": {
+        "regenerate": "Regenerate",
+        "regenerateAria": "Regenerate the “{{section}}” section"
+      },
+      "regen": {
+        "button": "Regenerate",
+        "resume": "Complete generation",
+        "resumeDesc": "Generates missing or failed sections ({{count}})",
+        "nothingToResume": "Every section is already generated",
+        "all": "Regenerate everything",
+        "allDesc": "Runs the generation again for every section",
+        "confirm": "Confirm: regenerate everything",
+        "confirmDesc": "The current content will be replaced. Click again to start."
+      },
+      "placeholder": {
+        "missing": {
+          "title": "This page has not been generated yet",
+          "message": "Generation stopped before this section. Run it again to complete the document."
+        },
+        "error": {
+          "title": "This page failed to generate",
+          "message": "The content received is empty or incomplete. Regenerate the section to get a full page."
+        },
+        "action": "Regenerate this section"
       }
     }
   },

@@ -40,8 +40,49 @@ export interface FlowPaginationOptions {
   maxInnerGapAddMm?: number;
   /** Spread the content evenly over the pages of a section. */
   balance?: boolean;
+  /**
+   * Hauteur restante (part de la page) sous laquelle un bloc sécable n'est plus
+   * découpé et part entier sur la page suivante. Défaut 0.18.
+   */
+  minSplitRatio?: number;
+  /** Contrôle de compacité — voir `FlowCompactOptions`. Désactivé par défaut. */
+  compact?: FlowCompactOptions;
   /** Push the plan and the per-page filling into `warnings` (diagnostics). */
   debug?: boolean;
+}
+
+/**
+ * CONTRÔLE DE COMPACITÉ — pages vides et grands blancs, corrigés par la mesure.
+ *
+ * Chaque règle est déterministe et ne touche qu'à la COMPOSITION : aucun mot
+ * n'est retiré. Le seul élément qui peut disparaître est le pied de section
+ * (logo et titre courant), qui ne dit rien que la page n'ait déjà dit.
+ */
+export interface FlowCompactOptions {
+  /** Une page qui ne porterait que le pied de section n'est jamais produite. */
+  orphanFolio?: boolean;
+  /**
+   * Dernière page d'une section remplie sous ce ratio : la section est
+   * recomposée avec des écarts resserrés pour tenir en une page de moins.
+   */
+  pullBackBelow?: number;
+  /**
+   * Dernière page d'une section remplie sous ce ratio : la section suivante
+   * commence sur cette page plutôt que sur une page neuve — seulement si les
+   * deux pages ont le même fond, les mêmes marges et la même typographie.
+   */
+  continueBelow?: number;
+  /**
+   * Un bloc insécable qui laisserait un trou en bas de page peut être réduit
+   * jusqu'à ce facteur pour y tenir (1 = jamais).
+   */
+  minFitScale?: number;
+  /**
+   * Filet final : une page de flux sans rien à lire — ni texte ni image, le
+   * pied de section ne comptant pas — est retirée, quelle que soit la règle
+   * qui l'a produite.
+   */
+  dropEmptyPages?: boolean;
 }
 
 export interface FlowPaginationSectionReport {
@@ -58,6 +99,14 @@ export interface FlowPaginationSectionReport {
   repaired: number;
   /** Full-bleed page rendered as-is (cover). */
   fixed: boolean;
+  /** La section commence sur la dernière page de la précédente. */
+  continued?: boolean;
+  /** La section a été recomposée avec des écarts resserrés. */
+  pulledBack?: boolean;
+  /** Le pied de section a été retiré, faute de place. */
+  droppedFolio?: boolean;
+  /** Blocs insécables réduits pour fermer un trou en bas de page. */
+  fitted?: number;
 }
 
 /** Une page à hauteur FIXE qu'il a fallu réduire pour qu'elle tienne. */
@@ -90,6 +139,8 @@ export interface FlowPaginationReport {
   totalPages: number;
   sections: FlowPaginationSectionReport[];
   warnings: string[];
+  /** Pages retirées faute de contenu (contrôle de compacité). */
+  removedPages?: number;
 }
 
 export const FLOW_PAGINATION_RUNTIME = `
@@ -544,7 +595,7 @@ export const FLOW_PAGINATION_RUNTIME = `
       gapAfter: it.gapAfter, gapBefore: gapBefore || 0, keepWithNext: it.keepWithNext,
       textFrom: it.textFrom, textTo: it.textTo, repeatHead: it.repeatHead,
       headHeight: it.headHeight, bodyEl: it.bodyEl, decorations: it.decorations,
-      scale: it.scale, rawH: it.rawH
+      scale: it.scale, rawH: it.rawH, fit: it.fit, folio: it.folio
     };
   }
 
@@ -640,6 +691,10 @@ export const FLOW_PAGINATION_RUNTIME = `
     return total;
   }
 
+  /* Réglages de planification posés par paginate(). planPages reste une
+   * fonction pure de ses arguments et de ces valeurs. */
+  var PLAN = { fitScale: 1, fitMinHole: 0.12 };
+
   /**
    * Greedy packing. When targetPages is set, each page also gets a SOFT
    * budget (remaining height / remaining pages): blocks are then spread evenly
@@ -652,6 +707,7 @@ export const FLOW_PAGINATION_RUNTIME = `
     var queue = items.slice();
     var splits = 0;
     var scaled = 0;
+    var fitted = 0;
     var guard = 0;
     var softCap = capacity;
 
@@ -738,6 +794,28 @@ export const FLOW_PAGINATION_RUNTIME = `
         continue;
       }
 
+      // Trou en bas de page : un bloc insécable à peine trop haut est réduit
+      // juste assez pour tenir, au lieu de partir entier sur la page suivante
+      // en laissant le trou derrière lui. Le plancher borne la réduction : en
+      // dessous, on troquerait un blanc contre un texte trop petit. La prose,
+      // elle, se découpe — elle n'est jamais réduite.
+      if (PLAN.fitScale < 1 && item.kind === 'whole' && item.els.length === 1 &&
+          hardRoom >= capacity * PLAN.fitMinHole && item.h > hardRoom &&
+          hardRoom / item.h >= PLAN.fitScale &&
+          (!canSplit(item.els[0]) || item.els[0].querySelector('img, svg, table, canvas'))) {
+        var closer = cloneItem(item, gap);
+        closer.scale = hardRoom / item.h;
+        closer.rawH = item.h;
+        closer.h = hardRoom;
+        closer.fit = true;
+        fitted++;
+        current.push(closer);
+        used += gap + hardRoom;
+        i++;
+        flush();
+        continue;
+      }
+
       // Pull a trailing heading with the block that follows it.
       while (current.length > 1 && current[current.length - 1].keepWithNext) {
         var back = current.pop();
@@ -747,7 +825,7 @@ export const FLOW_PAGINATION_RUNTIME = `
       flush();
     }
     flush();
-    return { pages: pages, splits: splits, scaled: scaled };
+    return { pages: pages, splits: splits, scaled: scaled, fitted: fitted };
   }
 
   /**
@@ -874,7 +952,9 @@ export const FLOW_PAGINATION_RUNTIME = `
       box.style.width = '100%';
       box.style.height = (rawH * slice.scale) + 'px';
       box.style.overflow = 'hidden';
-      node.style.transformOrigin = 'top left';
+      // Un bloc réduit pour fermer un trou reste centré dans sa colonne : collé
+      // à gauche, il se lirait comme un défaut d'alignement.
+      node.style.transformOrigin = slice.fit ? 'top center' : 'top left';
       node.style.transform = 'scale(' + slice.scale + ')';
       node.style.width = rawW + 'px';
       box.appendChild(node);
@@ -991,6 +1071,275 @@ export const FLOW_PAGINATION_RUNTIME = `
   }
 
   /* =====================================================================
+   * 7b. Compacité : pied de section orphelin, fin de section creuse
+   *
+   * Tout ici est de l'arithmétique sur des mesures, comme le plan lui-même :
+   * les décisions sont prises AVANT de toucher au DOM, un essai refusé ne
+   * coûte donc rien. Aucune règle ne retire un mot.
+   * ===================================================================== */
+
+  /** Texte réduit à ses lettres, pour comparer deux libellés. */
+  function letters(text) {
+    var out = '';
+    var lower = (text || '').toLowerCase();
+    for (var i = 0; i < lower.length; i++) {
+      var c = lower.charAt(i);
+      if (c.toUpperCase() !== c.toLowerCase()) { out += c; }
+    }
+    return out;
+  }
+
+  /**
+   * Le pied de section — logo et titre courant, posé en DERNIER bloc du flux
+   * par le gabarit (familyChrome.renderFolio). Il ne dit rien que la page
+   * n'ait déjà dit : seul sur une page, il en fait une page vide. C'est la page
+   * « vide » relevée sur les plans livrés (93 % de blanc).
+   *
+   * Reconnu par sa géométrie et non par un marqueur : les plans déjà générés
+   * n'en portent pas. Le dernier bloc n'est pris pour un pied de page que s'il
+   * est insécable, bas, court, sans paragraphe ni tableau, ET qu'il porte le
+   * logo ou reprend le titre de la section. Retourne son rang, ou -1.
+   */
+  function detectFolio(items) {
+    var last = items[items.length - 1];
+    if (!last || items.length < 2 || last.els.length !== 1) { return -1; }
+    var el = last.els[0];
+    if (el.hasAttribute('data-idem-folio')) { return items.length - 1; }
+    if (!el.hasAttribute('data-keep-together') || last.h > 32 * MM) { return -1; }
+    var label = letters(el.textContent);
+    if (label.length > 140) { return -1; }
+    if (el.querySelector('p, li, table, h1, h2, h3, h4, h5, h6, canvas, figure')) { return -1; }
+    var logo = false;
+    var images = el.querySelectorAll('img');
+    for (var i = 0; i < images.length; i++) {
+      if ((images[i].getAttribute('alt') || '').toLowerCase().indexOf('logo') >= 0) { logo = true; }
+    }
+    var head = '';
+    for (var j = 0; j < Math.min(3, items.length - 1); j++) {
+      for (var k = 0; k < items[j].els.length; k++) { head += letters(items[j].els[k].textContent); }
+    }
+    if (!logo && !(label && head.indexOf(label) >= 0)) { return -1; }
+    el.setAttribute('data-idem-folio', '1');
+    return items.length - 1;
+  }
+
+  /** Planifie la section avec chaque écart entre blocs multiplié par k (jamais sous 6 px). */
+  function planTighter(items, capacity, minSplitPx, k) {
+    var saved = [];
+    for (var i = 0; i < items.length; i++) {
+      saved.push(items[i].gapAfter);
+      if (items[i].gapAfter > 0) {
+        items[i].gapAfter = Math.max(items[i].gapAfter * k, Math.min(items[i].gapAfter, 6));
+      }
+    }
+    try {
+      return planPages(items, capacity, minSplitPx, 0, 1);
+    } finally {
+      for (var j = 0; j < items.length; j++) { items[j].gapAfter = saved[j]; }
+    }
+  }
+
+  /**
+   * Recompose une section dont la dernière page est vide ou presque :
+   *
+   *  1. écarts resserrés, pied de page conservé — la page disparaît sans que
+   *     rien ne manque ;
+   *  2. à défaut, sans le pied de page, quand c'est lui qui déborde.
+   *
+   * Un essai n'est retenu que s'il économise une page : resserrer pour rien
+   * dégraderait le rythme sans rien rendre au lecteur.
+   */
+  function refinePlan(items, capacity, minSplitPx, plan, compact, folio) {
+    var pages = plan.pages.length;
+    if (pages < 2) { return { plan: plan }; }
+    var last = plan.pages[pages - 1];
+    var onlyFolio = folio >= 0 && last.slices.length > 0;
+    for (var s = 0; s < last.slices.length; s++) {
+      if (!last.slices[s].folio) { onlyFolio = false; }
+    }
+    var weak = compact.pullBackBelow > 0 && last.used < compact.pullBackBelow * capacity;
+    if (!(onlyFolio && compact.orphanFolio) && !weak) { return { plan: plan }; }
+
+    var steps = [0.75, 0.55];
+    for (var i = 0; i < steps.length; i++) {
+      var trial = planTighter(items, capacity, minSplitPx, steps[i]);
+      if (trial.pages.length < pages) { return { plan: trial, pulledBack: true }; }
+    }
+    if (folio >= 0) {
+      var bare = items.slice(0, folio);
+      var scales = [1, 0.75, 0.55];
+      for (var j = 0; j < scales.length; j++) {
+        var without = planTighter(bare, capacity, minSplitPx, scales[j]);
+        if (without.pages.length < pages) {
+          return { plan: without, pulledBack: scales[j] < 1, droppedFolio: true };
+        }
+      }
+    }
+    return { plan: plan };
+  }
+
+  /**
+   * Ce qui doit être identique pour que deux sections partagent une page : le
+   * fond, l'encre, la typographie et les marges verticales. Les marges
+   * LATÉRALES suivent la tension de chaque section et peuvent différer : elles
+   * sont compensées à la pose (voir paginateSection).
+   */
+  function pageSignature(root) {
+    var s = st(root);
+    return [
+      s.backgroundColor, s.backgroundImage, s.color, s.fontFamily, s.fontSize,
+      s.paddingTop, s.paddingBottom
+    ].join('|');
+  }
+
+  /** Marges latérales d'une racine de section, en px. */
+  function sideInsets(root) {
+    var s = st(root);
+    return {
+      left: num(s.paddingLeft) + num(s.borderLeftWidth),
+      right: num(s.paddingRight) + num(s.borderRightWidth)
+    };
+  }
+
+  /** Écart posé entre la fin d'une section et le début de la suivante. */
+  function sectionSeparator(items) {
+    var gaps = [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].gapAfter > 0) { gaps.push(items[i].gapAfter); }
+    }
+    gaps.sort(function (a, b) { return a - b; });
+    var median = gaps.length ? gaps[gaps.length >> 1] : 0;
+    return Math.min(22 * MM, Math.max(12 * MM, median * 2));
+  }
+
+  /**
+   * Remplit l'espace laissé en bas de page par la section précédente avec le
+   * début de celle-ci. Retourne null quand ce début ne serait qu'un titre ou
+   * une bribe : mieux vaut alors une page neuve qu'un titre en bas de page.
+   */
+  function packInto(items, room, capacity, minSplitPx) {
+    var queue = items.slice();
+    var slices = [];
+    var used = 0;
+    var splits = 0;
+    var i = 0;
+    while (i < queue.length) {
+      var item = queue[i];
+      var gap = slices.length ? queue[i - 1].gapAfter : 0;
+      if (used + gap + item.h <= room + EPS) {
+        slices.push(cloneItem(item, gap));
+        used += gap + item.h;
+        i++;
+        continue;
+      }
+      var avail = room - used - gap;
+      if (avail > minSplitPx) {
+        var frag = splitItem(item, avail, 0);
+        if (frag) {
+          slices.push(cloneItem(frag.head, gap));
+          used += gap + frag.head.h;
+          queue[i] = frag.tail;
+          splits++;
+        }
+      }
+      break;
+    }
+    // Un titre ne ferme jamais une page. (Après un découpage, la dernière
+    // tranche est un morceau de bloc, jamais un titre : les rangs restent
+    // alignés sur la file.)
+    while (slices.length && slices[slices.length - 1].keepWithNext) {
+      var back = slices.pop();
+      used -= back.h + back.gapBefore;
+      i--;
+    }
+    var substantive = false;
+    for (var s = 0; s < slices.length; s++) {
+      if (!slices[s].keepWithNext && !slices[s].folio) { substantive = true; }
+    }
+    if (!substantive) { return null; }
+    if (used < Math.min(remainingHeight(items, 0), capacity * 0.12) - EPS) { return null; }
+    slices[0].gapBefore = 0;
+    return { slices: slices, rest: queue.slice(i), splits: splits, used: used };
+  }
+
+  /** Comble une page définitive (écarts étirés, bornés) et rend son remplissage. */
+  function finishPage(page, capacity, opts, name, label, report) {
+    var used = contentHeight(page.host, page.nodes);
+    var before = used;
+    var added = 0;
+    var leftover = capacity - used;
+    if (leftover > 1 && used >= capacity * opts.minFillRatio) {
+      added = fillPage(page.nodes, page.gaps, leftover, opts.maxGapAdd, opts.maxGapAddHard, page.slices);
+      used = contentHeight(page.host, page.nodes);
+      if (capacity - used > capacity * 0.08) {
+        added += fillInner(page.nodes, capacity - used, opts.maxInnerGapAdd);
+        used = contentHeight(page.host, page.nodes);
+      }
+    }
+    if (opts.debug) {
+      report.warnings.push(
+        'fill ' + name + ' ' + label + ': blocks=' + page.nodes.length +
+        ' used=' + Math.round(before) + '/' + Math.round(capacity) +
+        ' added=' + Math.round(added) + ' final=' + Math.round(used)
+      );
+    }
+    return Math.round(Math.min(1, used / capacity) * 100) / 100;
+  }
+
+  /**
+   * Referme la dernière page d'une section — une fois connue la décision de la
+   * section suivante, qui a pu y commencer : réparée, puis comblée.
+   */
+  function closeTail(tail, opts, report) {
+    for (var i = tail.index; i < tail.built.length; i++) {
+      tail.section.repaired += repairPage(tail.built, i, tail.capacity, tail.geo, tail.root);
+    }
+    for (var f = tail.index; f < tail.built.length; f++) {
+      tail.section.fills.push(finishPage(tail.built[f], tail.capacity, opts, tail.section.name, 'p' + (f + 1), report));
+    }
+    tail.section.pages = tail.section.fills.length;
+  }
+
+  /** Une page porte-t-elle quelque chose à lire ? Le pied de section ne compte pas. */
+  function hasSubstance(host) {
+    for (var i = 0; i < host.children.length; i++) {
+      var child = host.children[i];
+      var s = st(child);
+      if (s.display === 'none' || s.position === 'absolute' || s.position === 'fixed') { continue; }
+      if (child.hasAttribute('data-idem-folio')) { continue; }
+      if (s.display !== 'contents' && child.getBoundingClientRect().height < 1) { continue; }
+      if ((child.textContent || '').trim()) { return true; }
+      if (ATOMIC_TAGS[child.tagName] || child.querySelector('img, svg, canvas, video')) { return true; }
+    }
+    return false;
+  }
+
+  /**
+   * Filet final : une page de flux sans rien à lire — ni texte, ni image — est
+   * retirée, quelle que soit la règle qui l'a produite.
+   */
+  function dropEmptyPages(report) {
+    var pages = [].slice.call(document.querySelectorAll('.idem-page[data-idem-kind="flow"]'));
+    var removed = 0;
+    for (var i = 0; i < pages.length; i++) {
+      var page = pages[i];
+      var host = page.firstElementChild;
+      if (host && hasSubstance(host)) { continue; }
+      var name = page.getAttribute('data-section-name') || '';
+      for (var s = 0; s < report.sections.length; s++) {
+        var entry = report.sections[s];
+        if (entry.name !== name || !entry.fills.length) { continue; }
+        entry.fills.splice(entry.fills.indexOf(Math.min.apply(null, entry.fills)), 1);
+        entry.pages = entry.fills.length;
+        break;
+      }
+      page.parentNode.removeChild(page);
+      removed++;
+    }
+    return removed;
+  }
+
+  /* =====================================================================
    * 8. Section pagination
    * ===================================================================== */
 
@@ -1027,12 +1376,26 @@ export const FLOW_PAGINATION_RUNTIME = `
     return host;
   }
 
-  function paginateSection(flow, opts, report) {
+  /**
+   * Pagine une section. tail est la dernière page, encore ouverte, de la
+   * section précédente : cette section peut y commencer (compact.continueBelow).
+   * Retourne la dernière page de CETTE section, encore ouverte — tail si la
+   * section y a tenu tout entière (ou si elle était vide), null après une page
+   * pleine page.
+   */
+  function paginateSection(flow, opts, report, tail) {
     var roots = [];
     for (var i = 0; i < flow.children.length; i++) {
       if (st(flow.children[i]).display !== 'none') { roots.push(flow.children[i]); }
     }
-    if (!roots.length) { return; }
+    var name = flow.getAttribute('data-section-name') || 'section';
+    if (!roots.length) {
+      // Une section vide laissait son conteneur dans le flux, avec son saut de
+      // page forcé : une page blanche à l'impression.
+      flow.parentNode.removeChild(flow);
+      report.warnings.push('section vide retirée : ' + name);
+      return tail;
+    }
     var root = roots[0];
     if (roots.length > 1) {
       // The agent emitted several top-level blocks instead of one container:
@@ -1043,7 +1406,6 @@ export const FLOW_PAGINATION_RUNTIME = `
       for (var m = 0; m < roots.length; m++) { root.appendChild(roots[m]); }
     }
 
-    var name = flow.getAttribute('data-section-name') || 'section';
     var geo = {
       pageW: opts.pageW,
       pageH: opts.pageH,
@@ -1059,26 +1421,112 @@ export const FLOW_PAGINATION_RUNTIME = `
       root.style.overflow = 'hidden';
       var single = document.createElement('div');
       single.className = 'idem-page';
+      single.setAttribute('data-idem-kind', 'fixed');
+      single.setAttribute('data-section-name', name);
       single.appendChild(root);
       flow.parentNode.replaceChild(single, flow);
       report.sections.push({ name: name, pages: 1, fills: [1], splits: 0, scaled: 0, repaired: 0, fixed: true });
-      return;
+      return null;
     }
 
     root.setAttribute('data-idem-root', '1');
     neutralize(root, geo.pageW);
+    // Lue tant que la racine est dans le document : détachée, elle n'a plus de
+    // style calculé, et deux sections ne se ressembleraient jamais.
+    var signature = pageSignature(root);
 
     var ins = insetsOf(root);
     var capacity = geo.pageH - ins.top - ins.bottom - 1;
     if (capacity < 100) { capacity = geo.pageH - 1; }
+    var minSplitPx = capacity * opts.minSplitRatio;
 
     var scan = flowRows(root);
     var items = itemsFromRows(scan.rows);
-    if (!items.length) { return; }
+    if (!items.length) {
+      flow.parentNode.removeChild(flow);
+      report.warnings.push('section vide retirée : ' + name);
+      return tail;
+    }
+
+    var compact = opts.compact;
+    var folio = detectFolio(items);
+    if (folio >= 0) { items[folio].folio = true; }
+
+    var section = {
+      name: name, pages: 0, fills: [], splits: 0, scaled: 0, repaired: 0, fixed: false,
+      continued: false, pulledBack: false, droppedFolio: false, fitted: 0
+    };
+    report.sections.push(section);
+
+    // ── COMMENCER SUR LA DERNIÈRE PAGE DE LA SECTION PRÉCÉDENTE ──────────
+    // Seulement quand cette page est creuse, que les deux pages ont le même
+    // fond, la même typographie et les mêmes marges verticales, et que ce qui
+    // y tient n'est pas qu'un titre (packInto).
+    var insets = sideInsets(root);
+    if (tail && compact.continueBelow > 0 && Math.abs(tail.capacity - capacity) < 2 && tail.signature === signature) {
+      var open = tail.built[tail.index];
+      var tailUsed = contentHeight(open.host, open.nodes);
+      var separator = sectionSeparator(items);
+      var room = capacity - tailUsed - separator;
+      if (tailUsed < compact.continueBelow * capacity && room >= capacity * 0.22) {
+        var start = packInto(items, room, capacity, minSplitPx);
+        if (start) {
+          // Marges latérales différentes : les blocs sont posés dans un cadre
+          // qui rend à la section SA largeur de texte. Ils gardent ainsi la
+          // hauteur mesurée — reflué dans une autre largeur, un texte n'aurait
+          // plus celle que le plan a comptée.
+          var shiftLeft = insets.left - tail.insets.left;
+          var shiftRight = insets.right - tail.insets.right;
+          var framed = Math.abs(shiftLeft) > 0.5 || Math.abs(shiftRight) > 0.5;
+          var target = open.host;
+          if (framed) {
+            target = document.createElement('div');
+            target.setAttribute('data-idem-continued', name);
+            target.style.marginLeft = shiftLeft + 'px';
+            target.style.marginRight = shiftRight + 'px';
+            applyGap(target, separator);
+            open.host.appendChild(target);
+            open.nodes.push(target);
+            open.gaps.push(separator);
+            open.slices.push({ kind: 'whole', els: [target], h: start.used, keepWithNext: false, gapBefore: separator });
+          }
+          for (var r = 0; r < start.slices.length; r++) {
+            var carried = materialize(start.slices[r]);
+            var carriedGap = r === 0 ? (framed ? 0 : separator) : start.slices[r].gapBefore;
+            applyGap(carried, carriedGap);
+            target.appendChild(carried);
+            if (!framed) {
+              open.nodes.push(carried);
+              open.gaps.push(carriedGap);
+              open.slices.push(start.slices[r]);
+            }
+          }
+          section.continued = true;
+          section.splits += start.splits;
+          items = start.rest;
+          if (!items.length) {
+            // Tout a tenu : la section n'a pas de page à elle, la page reste ouverte.
+            flow.parentNode.removeChild(flow);
+            return tail;
+          }
+          folio = items[items.length - 1].folio ? items.length - 1 : -1;
+        }
+      }
+    }
 
     var plan = opts.balance
-      ? balancePlan(items, capacity, capacity * 0.18, opts.maxGapAddHard)
-      : planPages(items, capacity, capacity * 0.18, 0, 1);
+      ? balancePlan(items, capacity, minSplitPx, opts.maxGapAddHard)
+      : planPages(items, capacity, minSplitPx, 0, 1);
+
+    if (compact.orphanFolio || compact.pullBackBelow > 0) {
+      var refined = refinePlan(items, capacity, minSplitPx, plan, compact, folio);
+      plan = refined.plan;
+      section.pulledBack = !!refined.pulledBack;
+      section.droppedFolio = !!refined.droppedFolio;
+    }
+    section.splits += plan.splits;
+    section.scaled = plan.scaled;
+    section.fitted = plan.fitted || 0;
 
     // Build the pages.
     var fragment = document.createDocumentFragment();
@@ -1086,6 +1534,8 @@ export const FLOW_PAGINATION_RUNTIME = `
     for (var p = 0; p < plan.pages.length; p++) {
       var pageEl = document.createElement('div');
       pageEl.className = 'idem-page';
+      pageEl.setAttribute('data-idem-kind', 'flow');
+      pageEl.setAttribute('data-section-name', name);
       var host = makePageHost(root, geo);
       for (var d = 0; d < scan.decorations.length; d++) {
         host.appendChild(scan.decorations[d].cloneNode(true));
@@ -1114,47 +1564,19 @@ export const FLOW_PAGINATION_RUNTIME = `
       );
     }
 
-    var fills = [];
-    var repaired = 0;
     for (var b = 0; b < built.length; b++) {
-      repaired += repairPage(built, b, capacity, geo, root);
+      section.repaired += repairPage(built, b, capacity, geo, root);
     }
-    for (var f = 0; f < built.length; f++) {
-      var page = built[f];
-      var used = contentHeight(page.host, page.nodes);
-      var before = used;
-      var added = 0;
-      var leftover = capacity - used;
-      if (leftover > 1 && used >= capacity * opts.minFillRatio) {
-        added = fillPage(
-          page.nodes, page.gaps, leftover, opts.maxGapAdd, opts.maxGapAddHard, page.slices
-        );
-        used = contentHeight(page.host, page.nodes);
-        if (capacity - used > capacity * 0.08) {
-          added += fillInner(page.nodes, capacity - used, opts.maxInnerGapAdd);
-          used = contentHeight(page.host, page.nodes);
-        }
-      }
-      if (opts.debug) {
-        report.warnings.push(
-          'fill ' + name + ' p' + (f + 1) + ': blocks=' + page.nodes.length +
-          ' planned=' + Math.round((plan.pages[f] && plan.pages[f].used) || 0) +
-          ' used=' + Math.round(before) + '/' + Math.round(capacity) +
-          ' added=' + Math.round(added) + ' final=' + Math.round(used)
-        );
-      }
-      fills.push(Math.min(1, used / capacity));
+    // La dernière page reste ouverte : la section suivante peut y commencer.
+    // closeTail la comble une fois cette décision prise.
+    for (var f = 0; f < built.length - 1; f++) {
+      section.fills.push(finishPage(built[f], capacity, opts, name, 'p' + (f + 1), report));
     }
-
-    report.sections.push({
-      name: name,
-      pages: built.length,
-      fills: fills.map(function (v) { return Math.round(v * 100) / 100; }),
-      splits: plan.splits,
-      scaled: plan.scaled,
-      repaired: repaired,
-      fixed: false
-    });
+    section.pages = section.fills.length;
+    return {
+      built: built, index: built.length - 1, capacity: capacity, geo: geo, root: root,
+      signature: signature, insets: insets, section: section
+    };
   }
 
   function contentHeight(host, nodes) {
@@ -1198,6 +1620,8 @@ export const FLOW_PAGINATION_RUNTIME = `
       if (!next) {
         var pageEl = document.createElement('div');
         pageEl.className = 'idem-page';
+        pageEl.setAttribute('data-idem-kind', 'flow');
+        pageEl.setAttribute('data-section-name', page.pageEl.getAttribute('data-section-name') || '');
         var host = makePageHost(root, geo);
         pageEl.appendChild(host);
         page.pageEl.parentNode.insertBefore(pageEl, page.pageEl.nextSibling);
@@ -1421,18 +1845,48 @@ export const FLOW_PAGINATION_RUNTIME = `
         maxGapAddHard: (opts.maxGapAddHardMm == null ? 26 : opts.maxGapAddHardMm) * MM,
         maxInnerGapAdd: (opts.maxInnerGapAddMm == null ? 10 : opts.maxInnerGapAddMm) * MM,
         balance: opts.balance !== false,
+        minSplitRatio: opts.minSplitRatio == null ? 0.18 : opts.minSplitRatio,
+        compact: {
+          orphanFolio: !!(opts.compact && opts.compact.orphanFolio),
+          pullBackBelow: (opts.compact && opts.compact.pullBackBelow) || 0,
+          continueBelow: (opts.compact && opts.compact.continueBelow) || 0,
+          minFitScale: opts.compact && opts.compact.minFitScale != null ? opts.compact.minFitScale : 1,
+          dropEmptyPages: !!(opts.compact && opts.compact.dropEmptyPages)
+        },
         debug: !!opts.debug
       };
       probe.parentNode.removeChild(probe);
+      PLAN.fitScale = cfg.compact.minFitScale;
 
       var flows = [].slice.call(document.querySelectorAll('.idem-flow'));
+      var tail = null;
       for (var i = 0; i < flows.length; i++) {
+        var next = null;
         try {
-          paginateSection(flows[i], cfg, report);
+          next = paginateSection(flows[i], cfg, report, tail);
         } catch (err) {
           report.warnings.push('section ' + i + ': ' + (err && err.message ? err.message : String(err)));
         }
+        // La page ouverte de la section précédente est refermée dès que la
+        // section suivante ne la reprend plus.
+        if (tail && next !== tail) {
+          try {
+            closeTail(tail, cfg, report);
+          } catch (closeErr) {
+            report.warnings.push('fin de ' + tail.section.name + ': ' + (closeErr && closeErr.message ? closeErr.message : String(closeErr)));
+          }
+        }
+        tail = next;
       }
+      if (tail) {
+        try {
+          closeTail(tail, cfg, report);
+        } catch (lastErr) {
+          report.warnings.push('fin de ' + tail.section.name + ': ' + (lastErr && lastErr.message ? lastErr.message : String(lastErr)));
+        }
+      }
+      // Filet : aucune page de flux sans rien à lire ne part à l'impression.
+      report.removedPages = cfg.compact.dropEmptyPages ? dropEmptyPages(report) : 0;
       report.totalPages = document.querySelectorAll('.idem-page').length;
       return report;
     }

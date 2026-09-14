@@ -1,4 +1,4 @@
-<div class="w-full min-h-screen md:p-6 rounded-2xl relative">
+<div class="w-full min-h-screen md:px-6 md:pb-6 rounded-2xl relative">
   @if (isLoading()) {
     <!-- Loading State -->
     <div class="max-w-6xl mx-auto">
@@ -15,27 +15,20 @@
     <app-incomplete-project-banner
       [project]="project()!"
     />
-  } @else if (existingBusinessPlan()) {
-    <!-- Completion status + per-section regeneration (also warns when the PDF
-         exists but was generated from an interrupted/incomplete run or has underfilled sections) -->
-    @if (completeness().hasStarted) {
-      <div class="max-w-6xl mx-auto">
-        <app-generation-status-panel
-          [completeness]="completeness()"
-          [warningSections]="underFilledSections()"
-          sectionLabelPrefix="dashboard.generationPanel.sections.businessPlan."
-          (resume)="generateBusinessPlan(false)"
-          (regenerateAll)="generateBusinessPlan(true)"
-          (regenerateSection)="regenerateSection($event)"
-        />
-      </div>
-    }
-    <!-- Display existing business plan -->
-    <app-business-plan-display
-      [businessPlan]="existingBusinessPlan()!"
-      [showEditButton]="true"
-      (editRequested)="editBusinessPlan()"
-    ></app-business-plan-display>
+  } @else if (hasBusinessPlan()) {
+    <!-- Aperçu du plan : statut en une ligne, pages manquantes ou en échec dans
+         le document, régénération par page et dans le dock. -->
+    <div class="max-w-6xl mx-auto">
+      <app-document-preview
+        documentType="business-plan"
+        [heading]="'dashboard.businessPlanDisplay.title' | translate"
+        [outline]="previewOutline()"
+        sectionLabelPrefix="dashboard.generationPanel.sections.businessPlan."
+        (regenerateSection)="regenerateSection($event)"
+        (resumeGeneration)="generateBusinessPlan(false)"
+        (regenerateAll)="generateBusinessPlan(true)"
+      />
+    </div>
   } @else if (hasError() && isRetryable()) {
     <!-- Error state with retry button -->
     <div class="max-w-6xl mx-auto text-center py-10">

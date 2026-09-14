@@ -26,6 +26,13 @@ import {
 } from '../services/design/artDirection.catalog';
 import { ARCHETYPE_LANDSCAPE } from '../services/design/sectionRenderer';
 import {
+  FAMILY_DIMENSIONS,
+  familiesForStyle,
+  familyDistance,
+  LAYOUT_FAMILIES,
+  pickFamily,
+} from '../services/design/layoutFamilies';
+import {
   buildDocumentSeed,
   buildPaletteConstraint,
   buildSectionSeed,
@@ -137,6 +144,7 @@ console.log('\nGraine de section');
       typographyMood: seed.typographyMood,
       spacingMultiplier: seed.spacingMultiplier,
       graphicAccent: seed.graphicAccent,
+      family: seed.family,
     })
   );
   check('les invariants sont partagés par toutes les pages du document',
@@ -223,7 +231,12 @@ console.log('\nEspace de tirage');
       (space.contentDensities?.length ?? 1) *
       (space.graphicAccents?.length ?? 1) *
       5 * // spacingMultiplier
-      2; // readingDirection — le reflet des dispositions latérales
+      2 * // readingDirection — le reflet des dispositions latérales
+      // Les familles de mise en page ouvertes au style. Chacune a ses lecteurs
+      // nommés (`familyChrome.ts`, `familyBlocks.ts`) : c'est une dimension
+      // RENDUE, et `check:render` vérifie que deux familles ne rendent jamais la
+      // même page.
+      familiesForStyle(styleId).length;
     total += combos;
     if (combos < smallest) {
       smallest = combos;
@@ -305,6 +318,123 @@ console.log('\nStructures réellement rendues');
         )
       )
     )
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+console.log('\nFamilles de mise en page');
+{
+  /*
+   * ── POURQUOI CE CONTRÔLE ─────────────────────────────────────────────────
+   *
+   * Constaté par l'utilisateur le 13 septembre 2026 : « peu importe le projet,
+   * c'est toujours les mêmes styles, exactement les mêmes dispositions ». Les
+   * contrôles précédents passaient au vert pendant ce temps-là : ils comptaient
+   * des réglages, pas des dessins. Ici, chaque valeur vérifiée désigne une
+   * fonction de rendu distincte.
+   */
+  const count = LAYOUT_FAMILIES.length;
+  console.log(`     ${count} familles`);
+  check('le catalogue compte au moins cinquante-cinq familles', count >= 55, `${count} familles`);
+  check(
+    'les identifiants de famille sont uniques',
+    new Set(LAYOUT_FAMILIES.map((entry) => entry.id)).size === count
+  );
+
+  // L'ÉCART : une famille qui ressemble à une autre n'ajoute pas de variété,
+  // elle ajoute un doublon.
+  let closest = { distance: Number.POSITIVE_INFINITY, pair: '' };
+  let total = 0;
+  let pairs = 0;
+  for (let i = 0; i < count; i++) {
+    for (let j = i + 1; j < count; j++) {
+      const distance = familyDistance(LAYOUT_FAMILIES[i], LAYOUT_FAMILIES[j]);
+      total += distance;
+      pairs += 1;
+      if (distance < closest.distance) {
+        closest = { distance, pair: `${LAYOUT_FAMILIES[i].id} ~ ${LAYOUT_FAMILIES[j].id}` };
+      }
+    }
+  }
+  const dimensions = FAMILY_DIMENSIONS.length + 1;
+  console.log(
+    `     écart minimal : ${closest.distance} dimensions sur ${dimensions} (${closest.pair}), moyenne ${(total / pairs).toFixed(1)}`
+  );
+  check(
+    'deux familles diffèrent toujours sur au moins neuf dimensions visibles',
+    closest.distance >= 9,
+    `${closest.distance} seulement entre ${closest.pair}`
+  );
+
+  // LA COUVERTURE : un utilisateur fidèle à un style doit rencontrer beaucoup de
+  // familles, pas trois.
+  const pools = ART_DIRECTION_STYLE_IDS.map((styleId) => ({ styleId, size: familiesForStyle(styleId).length }));
+  const poorest = pools.reduce((a, b) => (b.size < a.size ? b : a));
+  console.log(`     style le moins pourvu : ${poorest.styleId} (${poorest.size} familles)`);
+  check('chaque style ouvre au moins treize familles', poorest.size >= 13, `${poorest.styleId} : ${poorest.size}`);
+  const narrow = LAYOUT_FAMILIES.filter((entry) => entry.fits.length < 4);
+  check(
+    'chaque famille convient à au moins quatre styles',
+    narrow.length === 0,
+    narrow.map((entry) => entry.id).join(', ')
+  );
+
+  // CHAQUE DESSIN SERT : une valeur déclarée dans le vocabulaire mais portée par
+  // une seule famille (ou aucune) est un dessin qu'on ne rencontre presque
+  // jamais — ou du code mort.
+  const vocabulary: Record<string, string[]> = {
+    headers: ['archetype', 'hanging-number', 'bleed-band', 'centered-rule', 'underscored', 'opener', 'split-lede', 'boxed', 'margin-kicker', 'numbered-rule', 'lede-led', 'double-rule', 'ribbon'],
+    folio: ['rule-split', 'centered', 'index-right', 'heavy-bar', 'mark-only', 'tinted-strip', 'running-head', 'corner-number'],
+    body: ['full', 'offset', 'indexed', 'narrow', 'paired'],
+    metrics: ['ruled-row', 'ledger', 'hero-list', 'tiles', 'divided', 'band', 'label-first', 'stacked-rows', 'inline-sentence', 'stamped', 'staircase'],
+    table: ['banded', 'booktabs', 'gridded', 'accent-head', 'first-column', 'row-cards', 'inverted-head', 'airy', 'striped-columns', 'transposed', 'framed'],
+    cards: ['panels', 'numbered', 'outlined', 'edge-stack', 'ruled-columns', 'inverted-lead', 'definitions', 'tagged', 'stacked-bands', 'staggered', 'monogram', 'corner-number'],
+    timeline: ['rail', 'steps', 'date-column', 'boxes', 'leaders', 'big-dates', 'spine', 'numbered-circles', 'chevrons'],
+    quote: ['panel', 'display', 'centered', 'inverted', 'hanging', 'caps', 'split', 'brackets', 'highlight'],
+    assumption: ['ruled', 'boxed', 'margin', 'inline', 'edge', 'tab', 'footnote'],
+    prose: ['plain', 'drop-cap', 'lead-in', 'columns', 'indented', 'essay', 'large-lead', 'rule-separated'],
+    chart: ['keyline', 'headline', 'boxed', 'bare', 'side-note', 'figure-caption'],
+    label: ['caps', 'small-caps', 'italic', 'bold', 'underlined'],
+    numbering: ['padded', 'roman', 'section', 'dotted', 'bracketed', 'plain'],
+    rules: ['hairline', 'heavy', 'double', 'dotted', 'none'],
+    figures: ['accent', 'ink'],
+    corners: ['style', 'square'],
+    titleScale: ['mood', 'moderate', 'discreet'],
+    swatches: ['0', '1', '2'],
+    lede: ['muted', 'large', 'italic', 'ruled', 'caps'],
+    figureFace: ['display', 'light', 'italic', 'medium'],
+    chartInk: ['palette', 'monochrome', 'focus', 'outline'],
+    rhythm: ['standard', 'airy', 'tight'],
+    edge: ['none', 'top-bar', 'side-bar', 'frame'],
+  };
+  const rare: string[] = [];
+  for (const [dimension, values] of Object.entries(vocabulary)) {
+    for (const value of values) {
+      const users = LAYOUT_FAMILIES.filter((entry) =>
+        ([] as unknown[]).concat((entry as unknown as Record<string, unknown>)[dimension]).map(String).includes(value)
+      ).length;
+      if (users < 2) rare.push(`${dimension}=${value} (${users})`);
+    }
+  }
+  check('chaque dessin du vocabulaire est porté par au moins deux familles', rare.length === 0, rare.join(' · '));
+
+  // LE TIRAGE : quarante projets du même style ne retombent pas sur trois
+  // familles, et un même document retrouve la sienne.
+  const styleId = 'editorial';
+  const drawn = new Set(Array.from({ length: 40 }, (_, i) => pickFamily(styleId, `businessplan:projet-${i}`).id));
+  const pool = familiesForStyle(styleId).length;
+  check(
+    'quarante projets du même style se répartissent sur la plupart de ses familles',
+    drawn.size >= Math.min(pool, 14),
+    `${drawn.size} familles tirées sur ${pool}`
+  );
+  check(
+    'la famille d\'un document est déterministe',
+    pickFamily(styleId, 'businessplan:x').id === pickFamily(styleId, 'businessplan:x').id
+  );
+  check(
+    'la graine de document porte sa famille',
+    buildDocumentSeed(styleId, 'businessplan:projet-0').family === pickFamily(styleId, 'businessplan:projet-0').id
   );
 }
 

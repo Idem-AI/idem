@@ -1,7 +1,7 @@
 {
   "dashboard": {
     "businessPlanDisplay": {
-      "title": "PDF du Plan d'Affaires",
+      "title": "Plan d’affaires",
       "loading": "Préparation du contenu du plan d'affaires...",
       "empty": {
         "title": "Aucun Plan d'Affaires Disponible",

@@ -13,16 +13,13 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { TokenService } from '../../../../shared/services/token.service';
-import { BusinessPlanEditorAdapter } from './adapters/business-plan-editor.adapter';
-import { PitchDeckEditorAdapter } from './adapters/pitch-deck-editor.adapter';
-import { BrandingEditorAdapter } from './adapters/branding-editor.adapter';
-import { BusinessCardEditorAdapter } from './adapters/business-card-editor.adapter';
-import { FlyerEditorAdapter } from './adapters/flyer-editor.adapter';
+import { injectEditorAdapter } from './adapters/inject-editor-adapter';
 import { DocumentModelService } from './services/document-model.service';
 import { EditorHistoryService } from './services/editor-history.service';
 import {
   ChartConfigLite,
   DocumentTypeAdapter,
+  EDITOR_TARGET_PARAMS,
   EditorDocumentType,
   EditorSelection,
   ElementStyle,
@@ -42,9 +39,12 @@ import {
   TextChangeEvent,
 } from './components/editor-canvas/editor-canvas';
 
-const ZOOM_MIN = 0.25;
-const ZOOM_MAX = 2;
 const AUTOSAVE_DEBOUNCE = 1500;
+
+/** En dessous : pages en tiroir, inspecteur en panneau bas (cf. document-editor.css). */
+const COMPACT_QUERY = '(max-width: 1023px)';
+/** À partir de là, le panneau des pages est ouvert d'office. */
+const WIDE_QUERY = '(min-width: 1280px)';
 
 /**
  * Shell de l'éditeur WYSIWYG. Orchestre le modèle (source de vérité), l'historique
@@ -54,6 +54,10 @@ const AUTOSAVE_DEBOUNCE = 1500;
  * Le moteur est générique : le type de document est fourni par un
  * `DocumentTypeAdapter` (ici Business Plan). Modèle et historique sont fournis au
  * niveau du composant → état neuf à chaque ouverture.
+ *
+ * Lien profond : `?section=<id>&path=<chemin>` présélectionne l'élément cliqué
+ * dans l'aperçu et l'amène au centre de la vue ; `?section=<id>` seul ouvre sur
+ * cette page, sans sélection.
  */
 @Component({
   selector: 'app-document-editor',
@@ -83,25 +87,11 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
   protected readonly history = inject(EditorHistoryService);
 
   /** Adaptateur du document en cours, résolu depuis la route (data.documentType). */
-  private readonly adapter: DocumentTypeAdapter = this.resolveAdapter();
+  private readonly adapter: DocumentTypeAdapter = injectEditorAdapter(
+    this.route.snapshot.data['documentType'] as EditorDocumentType | undefined,
+  );
 
-  private resolveAdapter(): DocumentTypeAdapter {
-    const type = this.route.snapshot.data['documentType'] as EditorDocumentType | undefined;
-    switch (type) {
-      case 'pitch-deck':
-        return inject(PitchDeckEditorAdapter);
-      case 'branding':
-        return inject(BrandingEditorAdapter);
-      case 'business-card':
-        return inject(BusinessCardEditorAdapter);
-      case 'flyer':
-        return inject(FlyerEditorAdapter);
-      default:
-        return inject(BusinessPlanEditorAdapter);
-    }
-  }
-
-  private readonly canvas = viewChild(EditorCanvasComponent);
+  protected readonly canvas = viewChild(EditorCanvasComponent);
   private readonly aiPanel = viewChild(AiEditPanelComponent);
 
   protected readonly loading = signal(true);
@@ -109,7 +99,7 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
   protected readonly title = signal('');
   protected readonly fonts = signal<FontHints>({});
   protected readonly dark = signal(false);
-  protected readonly zoom = signal(0.85);
+  protected readonly layersOpen = signal(this.matches(WIDE_QUERY));
   protected readonly selection = signal<EditorSelection | null>(null);
   protected readonly saveState = signal<SaveState>('idle');
   protected readonly aiLoading = signal(false);
@@ -131,6 +121,8 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
   });
 
   private projectId: string | null = null;
+  /** Élément ou page à montrer au premier rendu (lien profond depuis l'aperçu). */
+  private pendingTarget: { sectionId: string; path: string | null } | null = null;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private savedResetTimer: ReturnType<typeof setTimeout> | null = null;
   private unlistenKeys?: () => void;
@@ -147,6 +139,12 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
         e.returnValue = '';
       }
     });
+
+    const query = this.route.snapshot.queryParamMap;
+    const targetSection = query.get(EDITOR_TARGET_PARAMS.section);
+    if (targetSection) {
+      this.pendingTarget = { sectionId: targetSection, path: query.get(EDITOR_TARGET_PARAMS.path) };
+    }
 
     this.projectId = this.cookieService.get('projectId');
     if (!this.projectId) {
@@ -192,6 +190,27 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
 
   protected onSelectSectionFromLayers(sectionId: string): void {
     this.canvas()?.selectPath(sectionId, '');
+    if (this.matches(COMPACT_QUERY)) this.layersOpen.set(false);
+  }
+
+  /** Désélectionne (et referme le panneau bas sur petit écran). */
+  protected closeInspector(): void {
+    this.canvas()?.clearSelection();
+    this.selection.set(null);
+  }
+
+  /** Premier rendu prêt : applique le lien profond, une seule fois. */
+  protected onCanvasReady(): void {
+    const target = this.pendingTarget;
+    if (!target) return;
+    this.pendingTarget = null;
+    if (!this.model.sections().some((s) => s.id === target.sectionId)) return;
+    if (target.path !== null) this.canvas()?.selectPath(target.sectionId, target.path, false);
+    else this.canvas()?.scrollToSection(target.sectionId, false);
+  }
+
+  private matches(query: string): boolean {
+    return typeof window !== 'undefined' && !!window.matchMedia?.(query).matches;
   }
 
   /* ------------------------------------------------------------------ */
@@ -346,18 +365,6 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
 
   private rerender(): void {
     this.canvas()?.render(this.model.sections(), true);
-  }
-
-  /* ------------------------------------------------------------------ */
-  /* Zoom                                                                */
-  /* ------------------------------------------------------------------ */
-
-  protected zoomIn(): void {
-    this.zoom.update((z) => Math.min(ZOOM_MAX, Math.round((z + 0.1) * 100) / 100));
-  }
-
-  protected zoomOut(): void {
-    this.zoom.update((z) => Math.max(ZOOM_MIN, Math.round((z - 0.1) * 100) / 100));
   }
 
   /* ------------------------------------------------------------------ */
