@@ -101,7 +101,12 @@ export interface EditorTarget {
 }
 
 /** Noms des paramètres d'URL du lien profond vers l'éditeur. */
-export const EDITOR_TARGET_PARAMS = { section: 'section', path: 'path' } as const;
+export const EDITOR_TARGET_PARAMS = {
+  section: 'section',
+  path: 'path',
+  /** Document ouvert, quand le projet en garde plusieurs (business plans, pitch decks). */
+  document: 'documentId',
+} as const;
 
 /** Infos de l'élément actuellement sélectionné dans l'iframe. */
 export interface EditorSelection {
@@ -228,18 +233,30 @@ export interface DocumentTypeAdapter {
   readonly fitRoot?: boolean;
   /** Préfixe des clés i18n (ex: 'dashboard.documentEditor'). */
   readonly i18nTitleKey: string;
-  /** Charge le document éditable du projet (sections + polices + titre). */
-  load(projectId: string): Observable<LoadedDocument>;
+  /**
+   * Charge le document éditable du projet (sections + polices + titre).
+   * `documentId` désigne le document quand le projet en garde plusieurs
+   * (business plans, pitch decks) ; absent, le plus récent.
+   */
+  load(projectId: string, documentId?: string | null): Observable<LoadedDocument>;
   /** Persiste l'ensemble des sections éditées. */
-  save(projectId: string, sections: EditableSection[]): Observable<unknown>;
+  save(projectId: string, sections: EditableSection[], documentId?: string | null): Observable<unknown>;
   /** Édition IA d'une section : renvoie le nouveau HTML. */
-  aiEdit(projectId: string, sectionId: string, instruction: string): Observable<{ html: string }>;
-  /** Route de retour vers la page d'affichage. */
+  aiEdit(
+    projectId: string,
+    sectionId: string,
+    instruction: string,
+    documentId?: string | null,
+  ): Observable<{ html: string }>;
+  /**
+   * Route de retour vers la page d'affichage. Un document parmi plusieurs
+   * s'affiche sous `backRoute/<documentId>`.
+   */
   readonly backRoute: string;
   /** Route de l'éditeur de ce document (ouverte depuis l'aperçu). */
   readonly editRoute?: string;
   /** Nom du fichier PDF proposé au téléchargement. */
   readonly pdfFileName?: string;
   /** PDF final du document, produit par l'API (téléchargé à la demande). */
-  downloadPdf?(projectId: string): Observable<Blob>;
+  downloadPdf?(projectId: string, documentId?: string | null): Observable<Blob>;
 }

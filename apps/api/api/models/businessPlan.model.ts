@@ -55,4 +55,16 @@ export interface BusinessPlanModel {
    * Absent si le PDF n'a pas encore été généré ou si toutes les pages sont bien remplies.
    */
   pdfQuality?: BusinessPlanPdfQuality;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+/**
+ * Un business plan du projet. Un projet en garde plusieurs — dossier bancaire,
+ * plan investisseur, subvention… —, dans `analysisResultModel.businessPlans[]`.
+ */
+export interface BusinessPlanDocument extends BusinessPlanModel {
+  id: string;
+  /** Nom donné par l'utilisateur. */
+  name?: string;
 }

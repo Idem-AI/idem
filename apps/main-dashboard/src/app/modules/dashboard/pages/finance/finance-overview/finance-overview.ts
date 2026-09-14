@@ -1,3 +1,4 @@
+import { hasGeneratedDeliverable } from '../../../models/deliverable-document.model';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -251,8 +252,7 @@ export class FinanceOverviewComponent implements OnInit {
 
     // Check if Business Plan is generated
     const project = this.project();
-    const hasBp = !!(project?.analysisResultModel?.businessPlan?.sections &&
-                    project.analysisResultModel.businessPlan.sections.length > 0);
+    const hasBp = hasGeneratedDeliverable(project?.analysisResultModel, 'businessPlan');
 
     if (!hasBp) {
       this.bpMissingDialogVisible.set(true);

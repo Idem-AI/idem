@@ -175,20 +175,24 @@ export class HttpSimulationGateway extends SimulationGateway {
 function toLinkedProject(project: Record<string, unknown>): LinkedProject {
   const analysis = (project['analysisResultModel'] ?? {}) as Record<string, unknown>;
   const assets: string[] = [];
-  const deliverables: [string, string][] = [
-    ['businessPlan', 'Business plan'],
-    ['marketAnalysis', 'Analyse de marché'],
-    ['finance', 'Prévisions financières'],
-    ['branding', 'Identité de marque'],
-    ['communication', 'Marketing & communication'],
-    ['legalDocs', 'Juridique'],
-    ['pitchDeck', 'Pitch deck'],
-    ['development', 'Site web / application'],
-    ['diagrams', 'Diagrammes'],
-    ['deployment', 'Déploiement'],
+  // Business plans et pitch decks vivent en collections (`businessPlans`,
+  // `pitchDecks`) ; l'ancien emplacement unique reste sur les projets que rien
+  // n'a modifiés depuis. Les deux comptent.
+  const deliverables: [string[], string][] = [
+    [['businessPlans', 'businessPlan'], 'Business plan'],
+    [['marketAnalysis'], 'Analyse de marché'],
+    [['finance'], 'Prévisions financières'],
+    [['branding'], 'Identité de marque'],
+    [['communication'], 'Marketing & communication'],
+    [['legalDocs'], 'Juridique'],
+    [['pitchDecks', 'pitchDeck'], 'Pitch deck'],
+    [['development'], 'Site web / application'],
+    [['diagrams'], 'Diagrammes'],
+    [['deployment'], 'Déploiement'],
   ];
-  for (const [key, label] of deliverables) {
-    if (analysis[key]) assets.push(label);
+  const present = (value: unknown): boolean => (Array.isArray(value) ? value.length > 0 : !!value);
+  for (const [keys, label] of deliverables) {
+    if (keys.some((key) => present(analysis[key]))) assets.push(label);
   }
 
   return {

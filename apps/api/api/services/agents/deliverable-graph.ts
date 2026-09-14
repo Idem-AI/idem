@@ -20,6 +20,7 @@
  */
 
 import type { ProjectSectionKey } from '../../models/revision.model';
+import { DEFAULT_PITCH_DECK_TYPE_ID, resolvePitchDeckSlides } from '../PitchDeck/deck-types';
 
 export interface GraphNode {
   /** Sections dont le digest est injecté dans le prompt de celle-ci. */
@@ -51,13 +52,45 @@ export type DeliverableGraph = Record<string, GraphNode>;
  * diffusée en streaming, la faire attendre retarderait le premier affichage
  * pour un gain de cohérence quasi nul (un titre et une identité de marque).
  */
-export function buildBusinessPlanGraph(
-  sections: ReadonlyArray<{
-    name: string;
-    requires?: string[];
-    consults?: ProjectSectionKey[];
-  }>
-): DeliverableGraph {
+export function buildBusinessPlanGraph(sections: ReadonlyArray<CatalogNode>): DeliverableGraph {
+  return buildCatalogGraph(sections);
+}
+
+/**
+ * Pitch deck — graphe CONSTRUIT à partir du type de deck.
+ *
+ * Même raison que le business plan : un deck bancaire ne contient pas
+ * « Traction », une présentation commerciale ne contient pas « Financials ».
+ * Les dépendances vivent dans le catalogue des slides (`deck-types.ts`) et sont
+ * filtrées sur les slides du type retenu.
+ *
+ * `Ask` dépend de `Financials` quand les deux sont présentes : un montant
+ * demandé qui ne découle pas des projections est le défaut le plus visible
+ * d'un deck généré.
+ */
+export function buildPitchDeckGraph(slides: ReadonlyArray<CatalogNode>): DeliverableGraph {
+  return buildCatalogGraph(slides);
+}
+
+/**
+ * Pitch deck investisseur (le deck historique) — 3 vagues.
+ *
+ *  V1  Cover · Problem · Market · Team · Business Model
+ *  V2  Solution · Product · Competition · Financials
+ *  V3  Traction · Ask
+ */
+export const PITCH_DECK_GRAPH: DeliverableGraph = buildPitchDeckGraph(
+  resolvePitchDeckSlides(DEFAULT_PITCH_DECK_TYPE_ID).slides
+);
+
+/** Étape d'un catalogue : son nom et ce dont elle dépend. */
+interface CatalogNode {
+  name: string;
+  requires?: string[];
+  consults?: ProjectSectionKey[];
+}
+
+function buildCatalogGraph(sections: ReadonlyArray<CatalogNode>): DeliverableGraph {
   const present = new Set(sections.map((s) => s.name));
   const graph: DeliverableGraph = {};
 
@@ -77,32 +110,6 @@ export function buildBusinessPlanGraph(
   validateGraph(graph, [...present]);
   return graph;
 }
-
-/**
- * Pitch deck — 3 vagues.
- *
- *  V1  Cover · Problem · Market · Team · Business Model
- *  V2  Solution · Product · Competition · Financials
- *  V3  Traction · Ask
- *
- * `Ask` dépend de `Financials`: un montant demandé qui ne découle pas des
- * projections est le défaut le plus visible d'un deck généré.
- */
-export const PITCH_DECK_GRAPH: DeliverableGraph = {
-  Cover: { consults: ['branding'] },
-  Problem: {},
-  Market: {},
-  Team: {},
-  'Business Model': {},
-
-  Solution: { requires: ['Problem'] },
-  Product: { requires: ['Problem', 'Business Model'] },
-  Competition: { requires: ['Market'] },
-  Financials: { requires: ['Business Model', 'Market'], consults: ['finance'] },
-
-  Traction: { requires: ['Product', 'Business Model'] },
-  Ask: { requires: ['Financials', 'Business Model'] },
-};
 
 /**
  * Vérifie qu'un graphe est acyclique et ne référence que des étapes connues.

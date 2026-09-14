@@ -14,7 +14,7 @@ import {
 } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 import { BusinessPlanService } from '../../../../services/ai-agents/business-plan.service';
 import {
   BusinessPlanAudience,
@@ -27,6 +27,7 @@ import {
   SECTION_CATEGORY_ORDER,
 } from '../../../../models/business-plan-structure.model';
 import { StructureIllustrationComponent } from './structure-illustration/structure-illustration';
+import { businessPlanVariantLabel } from '../../../../utils/deliverable-labels';
 
 /** Une ligne du sommaire affiché à droite. */
 interface OutlineRow {
@@ -106,6 +107,11 @@ export class BusinessPlanStructureComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly projectId = input.required<string>();
+  /**
+   * Plan dont on choisit la structure. Absent : un nouveau plan, créé à la
+   * confirmation sur la structure choisie — ceux déjà rédigés restent intacts.
+   */
+  readonly documentId = input<string | null>(null);
 
   /** Structure enregistrée et confirmée : la génération peut démarrer. */
   readonly structureConfirmed = output<BusinessPlanStructureSelection>();
@@ -320,9 +326,12 @@ export class BusinessPlanStructureComponent implements OnInit {
       catalog: this.businessPlanService.getStructureCatalog(),
       // Un projet qui n'a jamais choisi reçoit quand même une structure : on ne
       // traite donc pas le cas « aucune structure », seulement l'échec réseau.
-      current: this.businessPlanService
-        .getStructure(this.projectId())
-        .pipe(catchError(() => of(null as BusinessPlanStructure | null))),
+      // Un plan existant reprend sa structure ; un nouveau plan part du modèle par défaut.
+      current: this.documentId()
+        ? this.businessPlanService
+            .getStructure(this.projectId(), this.documentId())
+            .pipe(catchError(() => of(null as BusinessPlanStructure | null)))
+        : of(null as BusinessPlanStructure | null),
     }).subscribe({
       next: ({ catalog, current }) => {
         this.catalog.set(catalog);
@@ -496,13 +505,32 @@ export class BusinessPlanStructureComponent implements OnInit {
     // référence de ce sommaire, y compris si le modèle évolue.
     const keys = this.customKeys() ?? undefined;
 
-    this.businessPlanService.saveStructure(this.projectId(), templateId, keys).subscribe({
-      next: (structure) => {
+    const sectionNames = this.outline().map((row) => row.name);
+    const documentId = this.documentId();
+
+    // Un plan existant reçoit la structure. Sinon le plan naît ici, sur la
+    // structure choisie, nommé d'après son modèle : on le renomme depuis la liste.
+    const saved$ = documentId
+      ? this.businessPlanService
+          .saveStructure(this.projectId(), templateId, keys, documentId)
+          .pipe(map((structure) => ({ structure, documentId })))
+      : this.businessPlanService
+          .createBusinessPlan(this.projectId(), {
+            templateId,
+            ...(keys ? { sectionKeys: keys } : {}),
+            name: businessPlanVariantLabel(this.translate, templateId),
+          })
+          .pipe(
+            map((plan) => ({
+              structure: { templateId: plan.variant, sectionKeys: [...this.workingKeys()] },
+              documentId: plan.id,
+            })),
+          );
+
+    saved$.subscribe({
+      next: ({ structure, documentId: savedId }) => {
         this.isSaving.set(false);
-        this.structureConfirmed.emit({
-          structure,
-          sectionNames: this.outline().map((row) => row.name),
-        });
+        this.structureConfirmed.emit({ structure, sectionNames, documentId: savedId });
       },
       error: () => {
         this.isSaving.set(false);

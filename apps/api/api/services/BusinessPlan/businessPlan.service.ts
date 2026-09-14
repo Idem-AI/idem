@@ -3,7 +3,11 @@ import { AI_CONFIG } from '../../config/ai.config';
 
 import { ProjectModel } from '../../models/project.model';
 import logger from '../../config/logger';
-import { BusinessPlanModel, BusinessPlanPdfQuality } from '../../models/businessPlan.model';
+import {
+  BusinessPlanDocument,
+  BusinessPlanModel,
+  BusinessPlanPdfQuality,
+} from '../../models/businessPlan.model';
 import {
   GenericService,
   IPromptStep,
@@ -39,7 +43,11 @@ import {
   BP_RESOURCES_SECTION_NAME,
   BusinessPlanSectionDefinition,
 } from './structure/section-catalog';
-import { buildStructure, resolveStructure } from './structure/structure.resolver';
+import {
+  buildStructure,
+  resolveStructure,
+  structureSectionNames,
+} from './structure/structure.resolver';
 import { BUSINESS_PLAN_PAGINATION } from './businessPlanPdf.options';
 import { TeamMember } from '../../models/project.model';
 import { storageService } from '../storage.service';
@@ -65,6 +73,14 @@ import {
 import { ensureProjectArtDirection } from '../design/artDirection.provider';
 import { researchTeamService } from '../research/research-team.service';
 import { ResearchEmit, ResearchedSection } from '../research/research.types';
+import { deliverableDocumentStore } from '../common/deliverable-document.store';
+import {
+  countCompletedSections,
+  DeliverableDocumentSummary,
+  documentDesignKey,
+  findDocument,
+  listDocuments,
+} from '../common/deliverable-documents';
 
 /**
  * Ordre d'affichage d'un plan : les sections de sa structure, puis la
@@ -96,6 +112,10 @@ const orderIndexIn = (order: readonly string[], name: string): number => {
   return i === -1 ? order.length : i;
 };
 
+/** PDF d'UN plan : un projet en garde plusieurs, chacun avec son rendu. */
+const businessPlanPdfCacheKey = (userId: string, projectId: string, documentId: string): string =>
+  cacheService.generateAIKey('business-plan-pdf', userId, projectId, documentId);
+
 const LEGACY_SECTION_PROMPTS: Record<string, string> = {
   'Cover Page': AGENT_COVER_PROMPT,
   'Company Summary': AGENT_COMPANY_SUMMARY_PROMPT,
@@ -122,10 +142,11 @@ export class BusinessPlanService extends GenericService {
     projectId: string,
     streamCallback?: (sectionResult: ISectionResult) => Promise<void>,
     forceRegenerate = false,
-    targetSections: string[] = []
-  ): Promise<ProjectModel | null> {
+    targetSections: string[] = [],
+    documentId?: string
+  ): Promise<BusinessPlanDocument | null> {
     logger.info(
-      `Generating business plan with streaming for userId: ${userId}, projectId: ${projectId}, force: ${forceRegenerate}, targetSections: [${targetSections.join(', ')}]`
+      `Generating business plan with streaming for userId: ${userId}, projectId: ${projectId}, documentId: ${documentId ?? '(primary)'}, force: ${forceRegenerate}, targetSections: [${targetSections.join(', ')}]`
     );
 
     // Generate cache key based on project content
@@ -134,13 +155,20 @@ export class BusinessPlanService extends GenericService {
       return null;
     }
 
+    const plan = findDocument(project.analysisResultModel, 'businessPlan', documentId);
+    if (!plan) {
+      logger.warn(`No business plan ${documentId ?? '(primary)'} in project ${projectId}`);
+      return null;
+    }
+    // Graine de composition propre au plan : deux plans du projet ne sortent
+    // pas page pour page avec la même disposition.
+    const designKey = documentDesignKey('businessplan', projectId, plan.id);
+
     // STRUCTURE DU PLAN — modèle bancaire, modèle investisseur, composition
     // libre. Elle décide des sections produites, de leur ordre et de leurs
     // briefs. Absente (plans d'avant la fonctionnalité), elle retombe sur le
     // modèle par défaut, qui est la structure historique en neuf sections.
-    const { sections: planSections, audience: planAudience } = resolveStructure(
-      project.analysisResultModel?.businessPlan?.structure
-    );
+    const { sections: planSections, audience: planAudience } = resolveStructure(plan.structure);
     const sectionNames = businessPlanSectionNames(planSections);
 
     const projectDescription =
@@ -164,23 +192,24 @@ export class BusinessPlanService extends GenericService {
       .digest('hex')
       .substring(0, 16);
 
-    const cacheKey = cacheService.generateAIKey('business-plan', userId, projectId, contentHash);
+    // Une clé PAR PLAN : deux plans du même projet ne se servent pas l'un l'autre.
+    const cacheKey = cacheService.generateAIKey('business-plan', userId, projectId, `${plan.id}:${contentHash}`);
 
     // The cached result may be an incomplete plan (it is updated after each step),
     // so only short-circuit on it when nothing needs to be (re)generated.
-    const currentSections = project.analysisResultModel?.businessPlan?.sections || [];
+    const currentSections = plan.sections || [];
     const skipCacheRead =
       forceRegenerate ||
       targetSections.length > 0 ||
       currentSections.length < planSections.length;
 
     if (!skipCacheRead) {
-      const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
+      const cachedResult = await cacheService.get<BusinessPlanDocument>(cacheKey, {
         prefix: 'ai',
         ttl: 7200, // 2 hours
       });
 
-      if (cachedResult) {
+      if (cachedResult?.id === plan.id) {
         logger.info(`Business plan cache hit for projectId: ${projectId}`);
         return cachedResult;
       }
@@ -194,7 +223,7 @@ export class BusinessPlanService extends GenericService {
     const language = getRequestLanguage() === 'fr' ? 'French' : 'English';
 
     // Create brand context for all agents
-    const brandContext = await this.buildBrandContext(userId, projectId, project, language);
+    const brandContext = await this.buildBrandContext(userId, projectId, project, language, designKey);
     const lintContext = this.buildLintContext(project);
 
     // Le contexte financier vient d'un point unique : ce texte servait, dans
@@ -247,7 +276,7 @@ export class BusinessPlanService extends GenericService {
       // étrangères les unes aux autres : les invariants (couleur, typographie,
       // rythme) restent dans le préfixe stable ci-dessus.
       const artDirection = project.analysisResultModel?.branding?.artDirection;
-      const documentSeed = buildDocumentSeed(artDirection?.styleId, `businessplan:${project.id}`);
+      const documentSeed = buildDocumentSeed(artDirection?.styleId, designKey);
 
       // DESIGN SYSTEM CALCULÉ pour ce document : rampes, encres contrastées,
       // échelle typographique, rayon, rythme. Une fois par livrable — les neuf
@@ -298,7 +327,7 @@ export class BusinessPlanService extends GenericService {
             designSystem,
             seed: buildSectionSeed(
               artDirection?.styleId,
-              `businessplan:${project.id}`,
+              designKey,
               stepName,
               usedArchetypes
             ),
@@ -324,7 +353,7 @@ export class BusinessPlanService extends GenericService {
         sectionIndex += 1;
         const seed = buildSectionSeed(
           artDirection?.styleId,
-          `businessplan:${project.id}`,
+          designKey,
           stepName,
           usedArchetypes
         );
@@ -491,63 +520,34 @@ export class BusinessPlanService extends GenericService {
               (a, b) => orderIndexIn(sectionNames, a.name) - orderIndexIn(sectionNames, b.name)
             );
 
-            // Update project immediately after each step
-            logger.info(`Updating project after step: ${result.name} - projectId: ${projectId}`);
-
-            // Get the current project
-            const currentProject = await this.projectRepository.findById(
+            // Persisté après chaque étape, dans CE plan : structure, nom et
+            // qualité PDF sont conservés par le store.
+            const updatedPlan = await deliverableDocumentStore.update(
+              userId,
               projectId,
-              `users/${userId}/projects`
-            );
-            if (!currentProject) {
-              logger.warn(
-                `Project not found with ID: ${projectId} for user: ${userId} during step update.`
-              );
-              throw new Error(`Project not found: ${projectId}`);
-            }
-
-            // Create the updated project with current sections
-            const updatedProjectData = {
-              ...currentProject,
-              analysisResultModel: {
-                ...currentProject.analysisResultModel,
-                businessPlan: {
-                  // Étalé : écrire `{ sections }` effaçait la structure choisie
-                  // et la qualité PDF à chaque section persistée.
-                  ...currentProject.analysisResultModel?.businessPlan,
-                  sections: sectionResults,
-                },
-              },
-            };
-
-            // Update the project in the database
-            const updatedProject = await this.projectRepository.update(
-              projectId,
-              updatedProjectData,
-              `users/${userId}/projects`
+              'businessPlan',
+              plan.id,
+              (current) => ({ ...current, sections: sectionResults })
             );
 
-            if (updatedProject) {
+            if (updatedPlan) {
               logger.info(
-                `Successfully updated project with step: ${result.name} - projectId: ${projectId}`
+                `Successfully updated business plan ${plan.id} with step: ${result.name} - projectId: ${projectId}`
               );
 
-              // Update cache with latest project state
-              await cacheService.set(cacheKey, updatedProject, {
+              // Update cache with latest plan state
+              await cacheService.set(cacheKey, updatedPlan, {
                 prefix: 'ai',
                 ttl: 7200, // 2 hours
               });
-              logger.info(
-                `Business plan cached after step: ${result.name} - projectId: ${projectId}`
-              );
 
               // Only send to frontend after successful database update
               await streamCallback(result);
             } else {
               logger.error(
-                `Failed to update project after step: ${result.name} - projectId: ${projectId}`
+                `Failed to update business plan ${plan.id} after step: ${result.name} - projectId: ${projectId}`
               );
-              throw new Error(`Failed to update project after step: ${result.name}`);
+              throw new Error(`Failed to update business plan after step: ${result.name}`);
             }
           },
           promptConfig,
@@ -558,15 +558,9 @@ export class BusinessPlanService extends GenericService {
         );
 
         // The stored PDF no longer matches the regenerated sections
-        const pdfCacheKey = cacheService.generateAIKey('business-plan-pdf', userId, projectId);
-        await cacheService.delete(pdfCacheKey, { prefix: 'pdf' });
+        await cacheService.delete(businessPlanPdfCacheKey(userId, projectId, plan.id), { prefix: 'pdf' });
 
-        // Return the updated project (it should be available in cache or fetch it again)
-        const finalProject = await this.projectRepository.findById(
-          projectId,
-          `users/${userId}/projects`
-        );
-        return finalProject;
+        return deliverableDocumentStore.find(userId, projectId, 'businessPlan', plan.id);
       } else {
         // Fallback to non-streaming processing
         const stepResults = await this.processSteps(configuredSteps, project, promptConfig);
@@ -577,52 +571,27 @@ export class BusinessPlanService extends GenericService {
           summary: result.summary,
         }));
 
-        // Get the existing project to prepare for update
-        const oldProject = await this.projectRepository.findById(
+        const updatedPlan = await deliverableDocumentStore.update(
+          userId,
           projectId,
-          `users/${userId}/projects`
-        );
-        if (!oldProject) {
-          logger.warn(
-            `Original project not found with ID: ${projectId} for user: ${userId} before updating with business plan.`
-          );
-          return null;
-        }
-
-        // Create the new project with updated business plan
-        const newProject = {
-          ...oldProject,
-          analysisResultModel: {
-            ...oldProject.analysisResultModel,
-            businessPlan: {
-              ...oldProject.analysisResultModel?.businessPlan,
-              sections: sectionResults,
-            },
-          },
-        };
-
-        // Update the project in the database
-        const updatedProject = await this.projectRepository.update(
-          projectId,
-          newProject,
-          `users/${userId}/projects`
+          'businessPlan',
+          plan.id,
+          (current) => ({ ...current, sections: sectionResults })
         );
 
-        if (updatedProject) {
-          logger.info(`Successfully updated project with ID: ${projectId} with business plan`);
+        if (updatedPlan) {
+          logger.info(`Successfully updated business plan ${plan.id} of project ${projectId}`);
 
           // Cache the result for future requests
-          await cacheService.set(cacheKey, updatedProject, {
+          await cacheService.set(cacheKey, updatedPlan, {
             prefix: 'ai',
             ttl: 7200, // 2 hours
           });
-          logger.info(`Business plan cached for projectId: ${projectId}`);
 
           // The stored PDF no longer matches the regenerated sections
-          const pdfCacheKey = cacheService.generateAIKey('business-plan-pdf', userId, projectId);
-          await cacheService.delete(pdfCacheKey, { prefix: 'pdf' });
+          await cacheService.delete(businessPlanPdfCacheKey(userId, projectId, plan.id), { prefix: 'pdf' });
         }
-        return updatedProject;
+        return updatedPlan;
       }
     } catch (error) {
       logger.error(`Error generating business plan for projectId ${projectId}:`, error);
@@ -643,14 +612,22 @@ export class BusinessPlanService extends GenericService {
     projectId: string,
     emit: ResearchEmit,
     forceRegenerate = false,
-    targetSections: string[] = []
-  ): Promise<ProjectModel | null> {
+    targetSections: string[] = [],
+    documentId?: string
+  ): Promise<BusinessPlanDocument | null> {
     logger.info(
-      `Generating business plan with RESEARCH TEAM for userId: ${userId}, projectId: ${projectId}, force: ${forceRegenerate}, targets: [${targetSections.join(', ')}]`
+      `Generating business plan with RESEARCH TEAM for userId: ${userId}, projectId: ${projectId}, documentId: ${documentId ?? '(primary)'}, force: ${forceRegenerate}, targets: [${targetSections.join(', ')}]`
     );
 
     const project = await this.getProject(projectId, userId);
     if (!project) return null;
+
+    const plan = findDocument(project.analysisResultModel, 'businessPlan', documentId);
+    if (!plan) {
+      logger.warn(`No business plan ${documentId ?? '(primary)'} in project ${projectId}`);
+      return null;
+    }
+    const designKey = documentDesignKey('businessplan', projectId, plan.id);
 
     const projectDescription =
       this.extractProjectDescription(project) +
@@ -659,7 +636,7 @@ export class BusinessPlanService extends GenericService {
       JSON.stringify(project.additionalInfos);
 
     const language = getRequestLanguage() === 'fr' ? 'French' : 'English';
-    const brandContext = await this.buildBrandContext(userId, projectId, project, language);
+    const brandContext = await this.buildBrandContext(userId, projectId, project, language, designKey);
 
     const financeContext = this.buildFinanceContext(project);
     const currency = project.analysisResultModel?.finance?.meta?.currency;
@@ -669,27 +646,25 @@ export class BusinessPlanService extends GenericService {
       'business-plan',
       userId,
       projectId,
-      crypto
+      // Un plan = une clé. Une structure différente est un document différent :
+      // l'omettre ferait écrire deux plans sous la même clé de cache.
+      `${plan.id}:${crypto
         .createHash('sha256')
         .update(
           JSON.stringify({
             projectDescription,
-            // Une structure différente est un document différent : l'omettre
-            // ferait écrire deux plans sous la même clé de cache.
-            structure: project.analysisResultModel?.businessPlan?.structure?.sectionKeys ?? [],
+            structure: plan.structure?.sectionKeys ?? [],
           })
         )
         .digest('hex')
-        .substring(0, 16)
+        .substring(0, 16)}`
     );
 
     // STRUCTURE DU PLAN — c'est elle qui décide des sections produites et de
-    // leur ordre. Un projet sans structure retombe sur le modèle par défaut,
-    // qui est la structure historique en neuf sections : un plan déjà généré
-    // reste donc régénérable à l'identique.
-    const { sections: planSections, audience: planAudience } = resolveStructure(
-      project.analysisResultModel?.businessPlan?.structure
-    );
+    // leur ordre. Un plan sans structure retombe sur le modèle par défaut, qui
+    // est la structure historique en neuf sections : un plan déjà généré reste
+    // donc régénérable à l'identique.
+    const { sections: planSections, audience: planAudience } = resolveStructure(plan.structure);
     const orderedNames = businessPlanSectionNames(planSections);
     const inStructure = new Set(orderedNames);
 
@@ -700,7 +675,7 @@ export class BusinessPlanService extends GenericService {
     // anciennes sections dans le document : elles ne seraient pas régénérées,
     // le PDF les rejetterait en fin de document faute de rang, et le plan
     // porterait deux sommaires superposés.
-    const currentSections = project.analysisResultModel?.businessPlan?.sections || [];
+    const currentSections = plan.sections || [];
     const keptSections = currentSections.filter((s) => inStructure.has(s.name));
     const existingSections: SectionModel[] = forceRegenerate
       ? []
@@ -721,8 +696,8 @@ export class BusinessPlanService extends GenericService {
     );
 
     if (sectionsToGenerate.length === 0) {
-      logger.info(`Nothing to generate for project ${projectId} (all sections present).`);
-      return project;
+      logger.info(`Nothing to generate for business plan ${plan.id} of project ${projectId} (all sections present).`);
+      return plan;
     }
 
     const sectionResults: SectionModel[] = [...existingSections];
@@ -757,29 +732,16 @@ export class BusinessPlanService extends GenericService {
       else sectionResults.push(section);
       sectionResults.sort((a, b) => orderIndex(a.name) - orderIndex(b.name));
 
-      const currentProject = await this.projectRepository.findById(
+      // Écrit dans CE plan : structure, nom et qualité PDF sont conservés.
+      const updated = await deliverableDocumentStore.update(
+        userId,
         projectId,
-        `users/${userId}/projects`
+        'businessPlan',
+        plan.id,
+        (current) => ({ ...current, sections: sectionResults })
       );
-      if (!currentProject) throw new Error(`Project not found: ${projectId}`);
-
-      const updated = await this.projectRepository.update(
-        projectId,
-        {
-          ...currentProject,
-          analysisResultModel: {
-            ...currentProject.analysisResultModel,
-            businessPlan: {
-              ...currentProject.analysisResultModel?.businessPlan,
-              sections: sectionResults,
-            },
-          },
-        },
-        `users/${userId}/projects`
-      );
-      if (updated) {
-        await cacheService.set(cacheKey, updated, { prefix: 'ai', ttl: 7200 });
-      }
+      if (!updated) throw new Error(`Business plan ${plan.id} not found in project ${projectId}`);
+      await cacheService.set(cacheKey, updated, { prefix: 'ai', ttl: 7200 });
     };
 
     // Le moteur de recherche reçoit la CHARTE du projet : ses sections sont des
@@ -803,7 +765,9 @@ export class BusinessPlanService extends GenericService {
         currency,
         charter: project.analysisResultModel?.branding,
         artDirection: researchArtDirection,
-        documentKey: `businessplan:${projectId}`,
+        // Propre au plan : deux plans du projet ne tirent pas les mêmes
+        // archétypes page pour page.
+        documentKey: designKey,
         // Partagé par tout le run : deux sections voisines ne peuvent pas tirer
         // le même archétype.
         usedArchetypes: new Set<string>(),
@@ -815,10 +779,9 @@ export class BusinessPlanService extends GenericService {
     );
 
     // Le PDF stocké ne correspond plus aux sections régénérées.
-    const pdfCacheKey = cacheService.generateAIKey('business-plan-pdf', userId, projectId);
-    await cacheService.delete(pdfCacheKey, { prefix: 'pdf' });
+    await cacheService.delete(businessPlanPdfCacheKey(userId, projectId, plan.id), { prefix: 'pdf' });
 
-    return this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    return deliverableDocumentStore.find(userId, projectId, 'businessPlan', plan.id);
   }
 
 
@@ -835,7 +798,9 @@ export class BusinessPlanService extends GenericService {
     userId: string,
     projectId: string,
     project: ProjectModel,
-    language: string
+    language: string,
+    /** Clé de graine du document (`documentDesignKey`). */
+    designKey: string
   ): Promise<string> {
     const branding = project.analysisResultModel?.branding;
     const brandName = project.name || 'Startup';
@@ -856,7 +821,7 @@ export class BusinessPlanService extends GenericService {
     // page, la tension et la densité sont tirés PAR SECTION (cf.
     // `buildSectionSeed`) — une graine unique pour neuf pages ne laissait que
     // deux issues : neuf pages identiques, ou un document incohérent.
-    const documentSeed = buildDocumentSeed(artDirection?.styleId, `businessplan:${project.id}`);
+    const documentSeed = buildDocumentSeed(artDirection?.styleId, designKey);
 
     return [
       `Brand: ${brandName}`,
@@ -912,53 +877,147 @@ export class BusinessPlanService extends GenericService {
     );
   }
 
+  /** Plan désigné, ou le plan principal sans identifiant. */
   async getBusinessPlansByProjectId(
     userId: string,
-    projectId: string
-  ): Promise<BusinessPlanModel | null> {
-    logger.info(`Fetching business plan for projectId: ${projectId}, userId: ${userId}`);
-    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
-    console.log('project', project);
-    if (!project) {
-      logger.warn(
-        `Project not found with ID: ${projectId} for user: ${userId} when fetching business plan.`
-      );
-      return null;
-    }
-    logger.info(`Successfully fetched business plan for projectId: ${projectId}`);
+    projectId: string,
+    documentId?: string
+  ): Promise<BusinessPlanDocument | null> {
+    logger.info(
+      `Fetching business plan ${documentId ?? '(primary)'} for projectId: ${projectId}, userId: ${userId}`
+    );
+    return deliverableDocumentStore.find(userId, projectId, 'businessPlan', documentId);
+  }
 
-    return project.analysisResultModel.businessPlan!;
+  toSummary(plan: BusinessPlanDocument): DeliverableDocumentSummary {
+    const { structure, sections, audience } = resolveStructure(plan.structure);
+    const expectedSectionNames = structureSectionNames(sections);
+    return {
+      id: plan.id,
+      name: plan.name ?? null,
+      variant: structure.templateId,
+      audience,
+      expectedSectionNames,
+      completedSectionCount: countCompletedSections(expectedSectionNames, plan.sections),
+      createdAt: plan.createdAt,
+      updatedAt: plan.updatedAt,
+    };
+  }
+
+  /** Plans du projet, en résumé ; `null` quand le projet est introuvable. */
+  async listDocuments(userId: string, projectId: string): Promise<DeliverableDocumentSummary[] | null> {
+    const plans = await deliverableDocumentStore.list(userId, projectId, 'businessPlan');
+    return plans ? plans.map((plan) => this.toSummary(plan)) : null;
   }
 
   /**
-   * Structure retenue pour le business plan d'un projet.
-   *
-   * Rend TOUJOURS une structure exécutable : un projet qui n'a jamais choisi
-   * reçoit le modèle par défaut, ce qui permet à l'UI d'afficher une sélection
-   * cohérente sans traiter le cas « aucune structure ».
+   * Crée un plan vide sur une structure déjà validée (`buildStructure`) ; la
+   * génération vient ensuite. `null` quand le projet est introuvable.
    */
-  async getStructure(userId: string, projectId: string): Promise<BusinessPlanStructure | null> {
-    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
-    if (!project) return null;
-    return resolveStructure(project.analysisResultModel?.businessPlan?.structure).structure;
+  async createDocument(
+    userId: string,
+    projectId: string,
+    structure: BusinessPlanStructure,
+    name?: string
+  ): Promise<BusinessPlanDocument | null> {
+    return deliverableDocumentStore.create(userId, projectId, 'businessPlan', {
+      structure,
+      sections: [],
+      ...(name ? { name } : {}),
+    });
+  }
+
+  async renameDocument(
+    userId: string,
+    projectId: string,
+    documentId: string,
+    name: string
+  ): Promise<BusinessPlanDocument | null> {
+    return deliverableDocumentStore.update(
+      userId,
+      projectId,
+      'businessPlan',
+      documentId,
+      (plan) => ({ ...plan, name }),
+      // Renommer n'est pas modifier le contenu : le plan garde sa place dans la liste.
+      { touch: false }
+    );
+  }
+
+  async deleteDocument(userId: string, projectId: string, documentId: string): Promise<boolean> {
+    const removed = await deliverableDocumentStore.remove(userId, projectId, 'businessPlan', documentId);
+    if (removed) {
+      await cacheService.delete(businessPlanPdfCacheKey(userId, projectId, documentId), {
+        prefix: 'pdf',
+      });
+    }
+    return removed;
   }
 
   /**
-   * Enregistre la structure choisie par l'utilisateur, avant la génération.
+   * Plan visé par une génération. Sans identifiant (assistant, anciens appels) :
+   * le plan principal, et un plan au modèle par défaut pour un projet qui n'en a
+   * aucun. Un identifiant inconnu rend `null` — on n'écrit pas dans un autre
+   * plan que celui demandé.
+   */
+  async ensureDocument(
+    userId: string,
+    projectId: string,
+    documentId?: string
+  ): Promise<BusinessPlanDocument | null> {
+    if (documentId) {
+      return deliverableDocumentStore.find(userId, projectId, 'businessPlan', documentId);
+    }
+    const primary = await deliverableDocumentStore.find(userId, projectId, 'businessPlan');
+    return (
+      primary ??
+      deliverableDocumentStore.create(userId, projectId, 'businessPlan', {
+        structure: resolveStructure(undefined).structure,
+        sections: [],
+      })
+    );
+  }
+
+  /**
+   * Structure retenue pour un plan.
+   *
+   * Rend TOUJOURS une structure exécutable : un plan qui n'a jamais choisi
+   * reçoit le modèle par défaut, ce qui permet à l'UI d'afficher une sélection
+   * cohérente sans traiter le cas « aucune structure ». `null` quand le projet,
+   * ou le plan désigné, est introuvable.
+   */
+  async getStructure(
+    userId: string,
+    projectId: string,
+    documentId?: string
+  ): Promise<BusinessPlanStructure | null> {
+    const project = await deliverableDocumentStore.loadProject(userId, projectId);
+    if (!project) return null;
+    const plan = findDocument(project.analysisResultModel, 'businessPlan', documentId);
+    if (documentId && !plan) return null;
+    return resolveStructure(plan?.structure).structure;
+  }
+
+  /**
+   * Enregistre la structure choisie pour un plan, avant sa génération.
    *
    * Elle est validée contre le catalogue (`buildStructure`) : une clé inconnue
    * est écartée, une liste trop courte est refusée. Ce qui est persisté est
    * donc toujours générable — l'alternative, valider au moment de la
    * génération, ferait échouer un run déjà facturé.
    *
-   * @returns La structure normalisée, ou `null` si le projet est introuvable
-   *          ou si le choix ne donne aucune structure valide.
+   * Sans `documentId`, la structure s'applique au plan principal ; un projet
+   * sans plan en reçoit un.
+   *
+   * @returns La structure normalisée, ou `null` si le projet ou le plan est
+   *          introuvable, ou si le choix ne donne aucune structure valide.
    */
   async saveStructure(
     userId: string,
     projectId: string,
     templateId: string | undefined,
-    sectionKeys?: readonly string[] | null
+    sectionKeys?: readonly string[] | null,
+    documentId?: string
   ): Promise<BusinessPlanStructure | null> {
     const structure = buildStructure(templateId, sectionKeys);
     if (!structure) {
@@ -968,38 +1027,28 @@ export class BusinessPlanService extends GenericService {
       return null;
     }
 
-    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
-    if (!project) {
-      logger.warn(`Project not found: ${projectId} for user: ${userId} when saving BP structure.`);
+    const plan = await this.ensureDocument(userId, projectId, documentId);
+    if (!plan) {
+      logger.warn(`Business plan ${documentId ?? '(primary)'} not found in project ${projectId} when saving its structure.`);
       return null;
     }
 
-    const existing = project.analysisResultModel?.businessPlan;
-    const updated = await this.projectRepository.update(
+    // Les sections déjà générées sont conservées : changer de structure ne doit
+    // pas effacer un plan, seulement ce qu'il faut (re)produire.
+    const updated = await deliverableDocumentStore.update(
+      userId,
       projectId,
-      {
-        ...project,
-        analysisResultModel: {
-          ...project.analysisResultModel,
-          businessPlan: {
-            // Les sections déjà générées sont conservées : changer de structure
-            // ne doit pas effacer un plan, seulement ce qu'il faut (re)produire.
-            sections: existing?.sections ?? [],
-            ...existing,
-            structure,
-          },
-        },
-      },
-      `users/${userId}/projects`
+      'businessPlan',
+      plan.id,
+      (current) => ({ ...current, structure })
     );
     if (!updated) return null;
 
     // Le PDF stocké ne correspond plus à l'ordre des sections.
-    const pdfCacheKey = cacheService.generateAIKey('business-plan-pdf', userId, projectId);
-    await cacheService.delete(pdfCacheKey, { prefix: 'pdf' });
+    await cacheService.delete(businessPlanPdfCacheKey(userId, projectId, plan.id), { prefix: 'pdf' });
 
     logger.info(
-      `Business plan structure saved for project ${projectId}: ${structure.templateId} (${structure.sectionKeys.length} sections)`
+      `Business plan structure saved for project ${projectId}, plan ${plan.id}: ${structure.templateId} (${structure.sectionKeys.length} sections)`
     );
     return structure;
   }
@@ -1025,7 +1074,7 @@ export class BusinessPlanService extends GenericService {
         return null;
       }
       logger.info(`Successfully updated business plan for itemId: ${itemId}`);
-      return updatedProject.analysisResultModel.businessPlan!;
+      return findDocument(updatedProject.analysisResultModel, 'businessPlan');
     } catch (error: any) {
       logger.error(`Error updating business plan for itemId ${itemId}: ${error.message}`, {
         stack: error.stack,
@@ -1035,36 +1084,17 @@ export class BusinessPlanService extends GenericService {
     }
   }
 
-
-  async deleteBusinessPlan(userId: string, itemId: string): Promise<void> {
-    logger.info(`Attempting to delete business plan for itemId: ${itemId}, userId: ${userId}`);
-    try {
-      const project = await this.projectRepository.findById(itemId, `users/${userId}/projects`);
-      if (!project) {
-        logger.warn(
-          `Project not found with ID: ${itemId} for user: ${userId} when attempting to delete business plan.`
-        );
-        return;
-      }
-      project.analysisResultModel.businessPlan = undefined;
-      await this.projectRepository.update(itemId, project, userId);
-      logger.info(`Successfully deleted business plan for itemId: ${itemId}`);
-    } catch (error: any) {
-      logger.error(`Error deleting business plan for itemId ${itemId}: ${error.message}`, {
-        stack: error.stack,
-        userId,
-      });
-      throw error; // Or return depending on desired error handling
-    }
-  }
-
   /**
    * Génère un PDF à partir des sections de business plan d'un projet
    * @param userId - ID de l'utilisateur
    * @param projectId - ID du projet
    * @returns Chemin vers le fichier PDF temporaire généré
    */
-  async generateBusinessPlanPdf(userId: string, projectId: string): Promise<string> {
+  async generateBusinessPlanPdf(
+    userId: string,
+    projectId: string,
+    documentId?: string
+  ): Promise<string> {
     logger.info(
       `Generating PDF for business plan sections - projectId: ${projectId}, userId: ${userId}`
     );
@@ -1078,7 +1108,7 @@ export class BusinessPlanService extends GenericService {
       throw new Error(`Project not found with ID: ${projectId}`);
     }
 
-    const businessPlan = project.analysisResultModel.businessPlan;
+    const businessPlan = findDocument(project.analysisResultModel, 'businessPlan', documentId);
     if (!businessPlan || !businessPlan.sections || businessPlan.sections.length === 0) {
       logger.warn(`No business plan sections found for project ${projectId} when generating PDF.`);
       return '';
@@ -1089,8 +1119,8 @@ export class BusinessPlanService extends GenericService {
     // cette liste est rejetée en fin de document par le paginateur.
     const { sections: pdfSections } = resolveStructure(businessPlan.structure);
 
-    // Generate cache key for PDF
-    const pdfCacheKey = cacheService.generateAIKey('business-plan-pdf', userId, projectId);
+    // Generate cache key for PDF — one per plan
+    const pdfCacheKey = businessPlanPdfCacheKey(userId, projectId, businessPlan.id);
 
     // Check if PDF is already cached
     const cachedPdfPath = await cacheService.get<string>(pdfCacheKey, {
@@ -1147,7 +1177,13 @@ export class BusinessPlanService extends GenericService {
     });
 
     // Persister la qualité PDF (sections sous-remplies) sur le projet.
-    await this.persistPdfQuality(userId, projectId, capturedPaginationReport, capturedQualityReport);
+    await this.persistPdfQuality(
+      userId,
+      projectId,
+      businessPlan.id,
+      capturedPaginationReport,
+      capturedQualityReport
+    );
 
     // Cache the PDF path for future requests
     await cacheService.set(pdfCacheKey, pdfPath, {
@@ -1259,16 +1295,16 @@ export class BusinessPlanService extends GenericService {
   }
 
   /**
-   * Retourne la qualité PDF du dernier rendu (sections sous-remplies).
-   * Lit directement le champ `pdfQuality` persisté sur le projet.
+   * Retourne la qualité PDF du dernier rendu d'un plan (sections sous-remplies).
+   * Lit directement le champ `pdfQuality` persisté sur le plan.
    */
   async getPdfQuality(
     userId: string,
-    projectId: string
+    projectId: string,
+    documentId?: string
   ): Promise<BusinessPlanPdfQuality | null> {
-    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
-    if (!project) return null;
-    return project.analysisResultModel?.businessPlan?.pdfQuality ?? null;
+    const plan = await deliverableDocumentStore.find(userId, projectId, 'businessPlan', documentId);
+    return plan?.pdfQuality ?? null;
   }
 
   /**
@@ -1282,6 +1318,7 @@ export class BusinessPlanService extends GenericService {
   private async persistPdfQuality(
     userId: string,
     projectId: string,
+    documentId: string,
     report: import('../pdf/flow-pagination.runtime').FlowPaginationReport | null,
     printed: import('../pdf/pdfQualityGate').PdfQualityGateReport | null = null
   ): Promise<void> {
@@ -1311,26 +1348,16 @@ export class BusinessPlanService extends GenericService {
     };
 
     try {
-      const currentProject = await this.projectRepository.findById(
+      // Le rendu n'est pas une modification du contenu : la date du plan reste.
+      const saved = await deliverableDocumentStore.update(
+        userId,
         projectId,
-        `users/${userId}/projects`
+        'businessPlan',
+        documentId,
+        (plan) => ({ ...plan, pdfQuality }),
+        { touch: false }
       );
-      if (!currentProject?.analysisResultModel?.businessPlan) return;
-
-      await this.projectRepository.update(
-        projectId,
-        {
-          ...currentProject,
-          analysisResultModel: {
-            ...currentProject.analysisResultModel,
-            businessPlan: {
-              ...currentProject.analysisResultModel.businessPlan,
-              pdfQuality,
-            },
-          },
-        },
-        `users/${userId}/projects`
-      );
+      if (!saved) return;
 
       if (underFilled.length > 0) {
         logger.info(
@@ -1352,22 +1379,21 @@ export class BusinessPlanService extends GenericService {
   }
 
   /**
-   * Met à jour uniquement la section Financial Plan du business plan
-   * suite à une mise à jour des données financières du projet.
+   * Met à jour la section Financial Plan de CHAQUE business plan du projet qui
+   * en porte une, suite à une mise à jour des données financières du projet.
+   *
+   * Tous les plans, pas seulement le dernier : un dossier bancaire remis avec
+   * les chiffres d'avant la mise à jour contredirait le module Finance, et
+   * c'est la contradiction qu'un analyste crédit relève en premier.
    */
   async updateFinancialPlanSection(userId: string, projectId: string, requestLanguage?: SupportedLanguage): Promise<void> {
-    logger.info(`Updating Financial Plan section of Business Plan for project ${projectId}`);
+    logger.info(`Updating Financial Plan sections of Business Plans for project ${projectId}`);
     const project = await this.getProject(projectId, userId);
-    if (!project || !project.analysisResultModel?.businessPlan) {
-      logger.info(`No business plan exists to sync for project ${projectId}`);
-      return;
-    }
-
-    const bp = project.analysisResultModel.businessPlan;
-    const existingSections = bp.sections || [];
-    const finPlanIndex = existingSections.findIndex(s => s.name === 'Financial Plan');
-    if (finPlanIndex === -1) {
-      logger.info(`Financial Plan section not found in business plan for project ${projectId}`);
+    const plans = listDocuments(project?.analysisResultModel, 'businessPlan').filter((plan) =>
+      (plan.sections || []).some((section) => section.name === 'Financial Plan')
+    );
+    if (!project || plans.length === 0) {
+      logger.info(`No business plan with a Financial Plan section to sync for project ${projectId}`);
       return;
     }
 
@@ -1379,31 +1405,10 @@ export class BusinessPlanService extends GenericService {
 
     const language = (requestLanguage || getRequestLanguage()) === 'fr' ? 'French' : 'English';
 
-    const brandContext = await this.buildBrandContext(userId, projectId, project, language);
-
     const financeContext = buildFinanceNarrative(
       project.analysisResultModel?.finance,
       project.additionalInfos?.country
     );
-
-    // La section est recomposée avec le destinataire du plan : un plan bancaire
-    // et un plan d'amorçage ne rouvrent pas la même page financière.
-    const { sections: syncSections, audience: syncAudience } = resolveStructure(bp.structure);
-    const syncIndex = syncSections.findIndex((section) => section.name === 'Financial Plan');
-    const syncPrompt =
-      composeHtmlPrompt('financial-plan', {
-        audience: syncAudience,
-        position: syncIndex === -1 ? 1 : syncIndex + 1,
-        total: syncSections.length || 1,
-        previous: syncIndex > 0 ? syncSections[syncIndex - 1]?.name : undefined,
-        next: syncIndex === -1 ? undefined : syncSections[syncIndex + 1]?.name,
-      }) ?? AGENT_FINANCIAL_PLAN_PROMPT;
-
-    const step: IPromptStep = {
-      promptConstant: `${projectDescription}\n${syncPrompt}\n\nBRAND CONTEXT:\n${brandContext}${financeContext}`,
-      stepName: 'Financial Plan',
-      hasDependencies: false,
-    };
 
     const promptConfig: PromptConfig = {
       provider: AI_CONFIG.businessPlan.provider,
@@ -1411,44 +1416,75 @@ export class BusinessPlanService extends GenericService {
       skipQuotaCheck: true,
     };
 
-    try {
-      const content = await this.runStepAndAppend(step, project, {
+    // Un plan après l'autre : en parallèle, chaque enregistrement du module
+    // Finance déclencherait autant d'appels simultanés que de plans.
+    for (const plan of plans) {
+      const brandContext = await this.buildBrandContext(
         userId,
-        promptType: 'Financial Plan Auto-Update',
-        promptConfig,
-      });
-
-      existingSections[finPlanIndex] = {
-        ...existingSections[finPlanIndex],
-        data: content,
-        summary: `Financial Plan for Project ${project.id} (Updated from Finance module)`,
-        updatedAt: new Date()
-      } as any;
-
-      const newProject = {
-        ...project,
-        analysisResultModel: {
-          ...project.analysisResultModel,
-          businessPlan: {
-            ...bp,
-            sections: existingSections,
-            updatedAt: new Date(),
-          },
-        },
-      };
-
-      await this.projectRepository.update(
         projectId,
-        newProject,
-        `users/${userId}/projects`
+        project,
+        language,
+        documentDesignKey('businessplan', projectId, plan.id)
       );
 
-      const pdfCacheKey = cacheService.generateAIKey('business-plan-pdf', userId, projectId);
-      await cacheService.delete(pdfCacheKey, { prefix: 'pdf' });
+      // La section est recomposée avec le destinataire du plan : un plan bancaire
+      // et un plan d'amorçage ne rouvrent pas la même page financière.
+      const { sections: syncSections, audience: syncAudience } = resolveStructure(plan.structure);
+      const syncIndex = syncSections.findIndex((section) => section.name === 'Financial Plan');
+      const syncPrompt =
+        composeHtmlPrompt('financial-plan', {
+          audience: syncAudience,
+          position: syncIndex === -1 ? 1 : syncIndex + 1,
+          total: syncSections.length || 1,
+          previous: syncIndex > 0 ? syncSections[syncIndex - 1]?.name : undefined,
+          next: syncIndex === -1 ? undefined : syncSections[syncIndex + 1]?.name,
+        }) ?? AGENT_FINANCIAL_PLAN_PROMPT;
 
-      logger.info(`Successfully auto-updated Financial Plan section in business plan for project ${projectId}`);
-    } catch (err: any) {
-      logger.error(`Failed to auto-update Financial Plan section: ${err.message}`, { stack: err.stack });
+      const step: IPromptStep = {
+        promptConstant: `${projectDescription}\n${syncPrompt}\n\nBRAND CONTEXT:\n${brandContext}${financeContext}`,
+        stepName: 'Financial Plan',
+        hasDependencies: false,
+      };
+
+      try {
+        const content = await this.runStepAndAppend(step, project, {
+          userId,
+          promptType: 'Financial Plan Auto-Update',
+          promptConfig,
+        });
+
+        const updated = await deliverableDocumentStore.update(
+          userId,
+          projectId,
+          'businessPlan',
+          plan.id,
+          (current) => ({
+            ...current,
+            sections: (current.sections || []).map((section) =>
+              section.name === 'Financial Plan'
+                ? {
+                    ...section,
+                    data: content,
+                    summary: `Financial Plan for Project ${project.id} (Updated from Finance module)`,
+                    updatedAt: new Date(),
+                  }
+                : section
+            ),
+          })
+        );
+        if (!updated) continue;
+
+        await cacheService.delete(businessPlanPdfCacheKey(userId, projectId, plan.id), { prefix: 'pdf' });
+
+        logger.info(
+          `Successfully auto-updated Financial Plan section of business plan ${plan.id} for project ${projectId}`
+        );
+      } catch (err: any) {
+        logger.error(
+          `Failed to auto-update Financial Plan section of business plan ${plan.id}: ${err.message}`,
+          { stack: err.stack }
+        );
+      }
     }
   }
 }

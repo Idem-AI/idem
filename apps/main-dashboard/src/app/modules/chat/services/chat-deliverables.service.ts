@@ -1,3 +1,4 @@
+import { findDeliverableDocument } from '../../dashboard/models/deliverable-document.model';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom, Observable, throwError } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
@@ -135,14 +136,15 @@ export class ChatDeliverablesService {
 
     switch (kind) {
       case 'businessPlan': {
-        const sections = analysis?.businessPlan?.sections ?? [];
+        // Le plan le plus récent : c'est lui que la carte présente et télécharge.
+        const sections = findDeliverableDocument(analysis, 'businessPlan')?.sections ?? [];
         return sections.map((s: { name: string; data?: unknown; summary?: string }) => ({
           name: s.name,
           status: this.sectionStatus(!!s.data || !!s.summary),
         }));
       }
       case 'pitchDeck': {
-        const sections = analysis?.pitchDeck?.sections ?? [];
+        const sections = findDeliverableDocument(analysis, 'pitchDeck')?.sections ?? [];
         return sections.map((s: { name: string; data?: unknown; summary?: string }) => ({
           name: s.name,
           status: this.sectionStatus(!!s.data || !!s.summary),
@@ -225,9 +227,11 @@ export class ChatDeliverablesService {
 
   private resolveUpdatedAt(kind: DeliverableKind, project: ProjectModel | null): string | undefined {
     const analysis = project?.analysisResultModel;
+    const businessPlan = findDeliverableDocument(analysis, 'businessPlan');
+    const pitchDeck = findDeliverableDocument(analysis, 'pitchDeck');
     const raw =
-      (kind === 'businessPlan' && (analysis?.businessPlan?.updatedAt || analysis?.businessPlan?.createdAt)) ||
-      (kind === 'pitchDeck' && analysis?.pitchDeck?.generatedAt) ||
+      (kind === 'businessPlan' && (businessPlan?.updatedAt || businessPlan?.createdAt)) ||
+      (kind === 'pitchDeck' && (pitchDeck?.updatedAt || pitchDeck?.generatedAt)) ||
       (kind === 'branding' && (analysis?.branding?.updatedAt || analysis?.branding?.createdAt)) ||
       (kind === 'diagrams' && (analysis?.design?.updatedAt || analysis?.design?.createdAt)) ||
       (kind === 'legalDocs' && analysis?.legalDocs?.updatedAt) ||

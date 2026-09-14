@@ -1,3 +1,4 @@
+import { hasGeneratedDeliverable } from '../../models/deliverable-document.model';
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { CookieService } from '../../../../shared/services/cookie.service';
@@ -134,8 +135,8 @@ export class DashboardComponent implements OnInit {
     const analysis = proj.analysisResultModel;
 
     if (analysis.branding?.sections?.length > 0) completed++;
-    if (analysis.businessPlan) completed++;
-    if (analysis.pitchDeck) completed++;
+    if (hasGeneratedDeliverable(analysis, 'businessPlan')) completed++;
+    if (hasGeneratedDeliverable(analysis, 'pitchDeck')) completed++;
     if (analysis.finance) completed++;
     if (analysis.design?.createdAt || analysis.design?.updatedAt || analysis.design?.content || (analysis.design?.sections && analysis.design.sections.length > 0)) completed++;
     if (analysis.development?.configs?.mode || analysis.development?.configs?.generationType) completed++;
@@ -163,8 +164,8 @@ export class DashboardComponent implements OnInit {
     const analysis = proj.analysisResultModel;
     const states = [
       !!(analysis.branding?.sections?.length > 0),
-      !!analysis.businessPlan,
-      !!analysis.pitchDeck,
+      hasGeneratedDeliverable(analysis, 'businessPlan'),
+      hasGeneratedDeliverable(analysis, 'pitchDeck'),
       !!analysis.finance,
       !!(analysis.design?.createdAt || analysis.design?.updatedAt || analysis.design?.content || (analysis.design?.sections && analysis.design.sections.length > 0)),
       !!(analysis.development?.configs?.mode || analysis.development?.configs?.generationType)

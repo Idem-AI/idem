@@ -1939,7 +1939,8 @@
         "backToProjects": "Back to Projects",
         "generate": "Generate Business Plan",
         "selectProject": "Select a Project",
-        "edit": "Edit"
+        "edit": "Edit",
+        "backToList": "Back to my business plans"
       },
       "empty": {
         "title": "No Business Plan Yet",
@@ -1948,6 +1949,17 @@
           "title": "No Project Selected",
           "subtitle": "Please select a project to view or generate its business plan"
         }
+      },
+      "notFound": {
+        "title": "This business plan could not be found",
+        "subtitle": "It may have been deleted. Find your business plans in the list."
+      },
+      "draft": {
+        "title": "This business plan has not been generated yet",
+        "subtitle": "Its structure is set: start the generation to write its {{count}} sections."
+      },
+      "errors": {
+        "load": "The project could not be loaded."
       }
     },
     "showPitchDeck": {
@@ -1987,16 +1999,39 @@
         "Competition": "Competition",
         "Team": "Team",
         "Financials": "Financials",
-        "Ask": "The Ask"
+        "Ask": "The Ask",
+        "Company Overview": "Company Overview",
+        "Funding Request": "Funding Request",
+        "Repayment Capacity": "Repayment Capacity",
+        "Guarantees": "Guarantees",
+        "Customer Benefits": "Customer Benefits",
+        "Case Studies": "Case Studies",
+        "Pricing": "Pricing",
+        "Next Steps": "Next Steps",
+        "Partnership Model": "Partnership Model",
+        "Partner Benefits": "Partner Benefits",
+        "Impact": "Impact",
+        "Milestones": "Milestones",
+        "Use of Funds": "Use of Funds"
       },
       "errors": {
         "generation": "Something went wrong while generating the deck.",
         "download": "Could not download the PDF.",
-        "pdfLoad": "Could not load the PDF preview."
+        "pdfLoad": "Could not load the PDF preview.",
+        "load": "The pitch deck could not be loaded."
       },
       "loadingPdf": "Loading PDF preview…",
       "buttons": {
-        "edit": "Edit"
+        "edit": "Edit",
+        "backToList": "Back to my pitch decks"
+      },
+      "notFound": {
+        "title": "This pitch deck could not be found",
+        "subtitle": "It may have been deleted. Find your pitch decks in the list."
+      },
+      "draft": {
+        "title": "This pitch deck has not been generated yet",
+        "subtitle": "{{count}} slides will be written and laid out from your project data."
       }
     },
     "legalDocs": {
@@ -3134,6 +3169,116 @@
         },
         "action": "Regenerate this section"
       }
+    },
+    "deliverableList": {
+      "loading": "Loading your documents…",
+      "loadError": "Your documents could not be loaded.",
+      "retry": "Try again",
+      "noProject": {
+        "title": "No project selected",
+        "subtitle": "Select a project to find its documents.",
+        "action": "See my projects"
+      },
+      "updated": "updated {{date}}",
+      "status": {
+        "draft": "Not generated",
+        "partial": "Incomplete",
+        "complete": "Complete"
+      },
+      "actions": {
+        "rename": "Rename",
+        "renameAria": "Rename “{{name}}”",
+        "nameLabel": "Document name",
+        "save": "Save",
+        "delete": "Delete",
+        "deleteAria": "Delete “{{name}}”",
+        "confirmDelete": "Permanently delete this document?"
+      },
+      "errors": {
+        "rename": "The document could not be renamed. Please try again.",
+        "delete": "The document could not be deleted. Please try again."
+      },
+      "businessPlan": {
+        "title": "My business plans",
+        "subtitle": "One plan per reader: bank, investor, grant… Pick the one to open.",
+        "create": "New business plan",
+        "customName": "Custom business plan",
+        "progress": "{{completed}}/{{expected}} sections",
+        "empty": {
+          "title": "No business plan yet",
+          "subtitle": "Pick the structure your reader expects, then generate your first plan.",
+          "action": "Generate a business plan"
+        }
+      },
+      "pitchDeck": {
+        "title": "My pitch decks",
+        "subtitle": "Fundraising, bank, customers, partners, jury… Pick the deck to open.",
+        "create": "New pitch deck",
+        "progress": "{{completed}}/{{expected}} slides",
+        "empty": {
+          "title": "No pitch deck yet",
+          "subtitle": "Pick the kind of deck that fits your audience, then generate it.",
+          "action": "Generate a pitch deck"
+        }
+      }
+    },
+    "pitchDeckTypes": {
+      "title": "Which pitch deck do you want to generate?",
+      "subtitle": "Each kind follows the order and slides its audience expects.",
+      "back": "Back to my pitch decks",
+      "legend": "Pitch deck type",
+      "recommended": "Recommended",
+      "meta": "{{slides}} slides · {{minutes}} min",
+      "audienceLabel": "For",
+      "outline": "The {{count}} slides",
+      "nameLabel": "Deck name",
+      "generate": "Generate this pitch deck",
+      "creating": "Creating…",
+      "hint": "Generation starts right away and takes a few minutes.",
+      "loadError": "Pitch deck types could not be loaded.",
+      "retry": "Try again",
+      "errors": {
+        "create": "The pitch deck could not be created. Please try again."
+      },
+      "audiences": {
+        "investor": "Investors",
+        "bank": "Bank or microfinance",
+        "customer": "Customers and prospects",
+        "partner": "Partners",
+        "jury": "Jury, incubator, funder"
+      },
+      "types": {
+        "investor": {
+          "name": "Fundraising",
+          "description": "The classic deck to convince investors: market, traction, team, amount sought.",
+          "useWhen": "Meeting a business angel, a seed fund or a venture capital fund."
+        },
+        "bank": {
+          "name": "Bank financing",
+          "description": "Present your loan request: financing plan, repayment capacity, guarantees.",
+          "useWhen": "Applying for credit with a bank or a microfinance institution."
+        },
+        "sales": {
+          "name": "Sales presentation",
+          "description": "Show a customer what they gain: quantified benefits, references, offers and next steps.",
+          "useWhen": "Sales meeting, answer to a prospect, product demo."
+        },
+        "partnership": {
+          "name": "Partnership proposal",
+          "description": "Explain what each side brings, what each side gains and how the collaboration works.",
+          "useWhen": "Distributor, key account, NGO or institution you want to team up with."
+        },
+        "competition": {
+          "name": "Competitions and incubators",
+          "description": "Convince a jury: impact, feasibility, milestones and exactly how the funds will be used.",
+          "useWhen": "Startup competition, incubator application, grant request."
+        },
+        "elevator": {
+          "name": "Express pitch",
+          "description": "Six slides for three minutes: problem, solution, market, traction and the ask.",
+          "useWhen": "Demo day, stage pitch, quick first contact."
+        }
+      }
     }
   },
   "deployment": {
@@ -3278,7 +3423,10 @@
       "simulations": "Simulations",
       "welcome": "Welcome",
       "guided": "Guided journey",
-      "financeCalendar": "Accounting calendar"
+      "financeCalendar": "Accounting calendar",
+      "businessPlans": "My business plans",
+      "pitchDecks": "My pitch decks",
+      "pitchDeckNew": "New pitch deck"
     }
   },
   "notFound": {
@@ -3744,6 +3892,14 @@
       "chips": {
         "start": "Start a deployment",
         "list": "View my deployments"
+      }
+    },
+    "deck": {
+      "typeQuestion": "Which kind of pitch deck do you want to generate? Each kind follows the slides its audience expects.",
+      "typesFailed": "I couldn't load the pitch deck types. You can compare them in the workshop.",
+      "createFailed": "The pitch deck couldn't be created. Please try again.",
+      "chips": {
+        "compare": "Compare deck types"
       }
     }
   },

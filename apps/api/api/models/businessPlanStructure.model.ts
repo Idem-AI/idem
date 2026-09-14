@@ -1,7 +1,7 @@
 /**
  * Structure choisie pour le business plan d'un projet.
  *
- * Persistée sur `analysisResultModel.businessPlan.structure`. Elle est lue par
+ * Persistée sur chaque plan (`analysisResultModel.businessPlans[].structure`). Elle est lue par
  * la génération (quelles sections produire, dans quel ordre), par le PDF
  * (ordre d'affichage) et par l'UI (complétude, régénération ciblée).
  *

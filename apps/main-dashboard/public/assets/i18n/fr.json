@@ -1942,7 +1942,8 @@
         "backToProjects": "Retour aux projets",
         "generate": "Générer le plan d'affaires",
         "selectProject": "Sélectionner un projet",
-        "edit": "Éditer"
+        "edit": "Éditer",
+        "backToList": "Retour à mes business plans"
       },
       "empty": {
         "title": "Aucun plan d'affaires pour le moment",
@@ -1951,6 +1952,17 @@
           "title": "Aucun projet sélectionné",
           "subtitle": "Veuillez sélectionner un projet pour voir ou générer son plan d'affaires"
         }
+      },
+      "notFound": {
+        "title": "Ce business plan est introuvable",
+        "subtitle": "Il a peut-être été supprimé. Retrouvez vos business plans dans la liste."
+      },
+      "draft": {
+        "title": "Ce business plan n'a pas encore été généré",
+        "subtitle": "Sa structure est choisie : lancez la génération pour rédiger ses {{count}} sections."
+      },
+      "errors": {
+        "load": "Le projet n’a pas pu être chargé."
       }
     },
     "showPitchDeck": {
@@ -1990,16 +2002,39 @@
         "Competition": "Concurrence",
         "Team": "Équipe",
         "Financials": "Financier",
-        "Ask": "Demande"
+        "Ask": "Demande",
+        "Company Overview": "Présentation de l'entreprise",
+        "Funding Request": "Demande de financement",
+        "Repayment Capacity": "Capacité de remboursement",
+        "Guarantees": "Garanties",
+        "Customer Benefits": "Bénéfices client",
+        "Case Studies": "Références clients",
+        "Pricing": "Offres et tarifs",
+        "Next Steps": "Prochaines étapes",
+        "Partnership Model": "Modèle de partenariat",
+        "Partner Benefits": "Bénéfices partenaire",
+        "Impact": "Impact",
+        "Milestones": "Jalons",
+        "Use of Funds": "Utilisation des fonds"
       },
       "errors": {
         "generation": "Une erreur est survenue pendant la génération du deck.",
         "download": "Impossible de télécharger le PDF.",
-        "pdfLoad": "Impossible de charger l’aperçu PDF."
+        "pdfLoad": "Impossible de charger l’aperçu PDF.",
+        "load": "Le pitch deck n'a pas pu être chargé."
       },
       "loadingPdf": "Chargement de l’aperçu PDF…",
       "buttons": {
-        "edit": "Éditer"
+        "edit": "Éditer",
+        "backToList": "Retour à mes pitch decks"
+      },
+      "notFound": {
+        "title": "Ce pitch deck est introuvable",
+        "subtitle": "Il a peut-être été supprimé. Retrouvez vos pitch decks dans la liste."
+      },
+      "draft": {
+        "title": "Ce pitch deck n'a pas encore été généré",
+        "subtitle": "{{count}} slides seront rédigées et mises en page à partir des données de votre projet."
       }
     },
     "legalDocs": {
@@ -3137,6 +3172,116 @@
         },
         "action": "Régénérer cette section"
       }
+    },
+    "deliverableList": {
+      "loading": "Chargement de vos documents…",
+      "loadError": "Vos documents n'ont pas pu être chargés.",
+      "retry": "Réessayer",
+      "noProject": {
+        "title": "Aucun projet sélectionné",
+        "subtitle": "Sélectionnez un projet pour retrouver ses documents.",
+        "action": "Voir mes projets"
+      },
+      "updated": "modifié le {{date}}",
+      "status": {
+        "draft": "À générer",
+        "partial": "Incomplet",
+        "complete": "Complet"
+      },
+      "actions": {
+        "rename": "Renommer",
+        "renameAria": "Renommer « {{name}} »",
+        "nameLabel": "Nom du document",
+        "save": "Enregistrer",
+        "delete": "Supprimer",
+        "deleteAria": "Supprimer « {{name}} »",
+        "confirmDelete": "Supprimer définitivement ce document ?"
+      },
+      "errors": {
+        "rename": "Le document n'a pas pu être renommé. Réessayez.",
+        "delete": "Le document n'a pas pu être supprimé. Réessayez."
+      },
+      "businessPlan": {
+        "title": "Mes business plans",
+        "subtitle": "Un plan par destinataire : banque, investisseur, subvention… Choisissez celui à afficher.",
+        "create": "Nouveau business plan",
+        "customName": "Business plan sur mesure",
+        "progress": "{{completed}}/{{expected}} sections",
+        "empty": {
+          "title": "Aucun business plan pour le moment",
+          "subtitle": "Choisissez la structure attendue par votre destinataire, puis générez votre premier plan.",
+          "action": "Générer un business plan"
+        }
+      },
+      "pitchDeck": {
+        "title": "Mes pitch decks",
+        "subtitle": "Levée de fonds, banque, clients, partenaires, jury… Choisissez le deck à afficher.",
+        "create": "Nouveau pitch deck",
+        "progress": "{{completed}}/{{expected}} slides",
+        "empty": {
+          "title": "Aucun pitch deck pour le moment",
+          "subtitle": "Choisissez le type de deck adapté à votre audience, puis générez-le.",
+          "action": "Générer un pitch deck"
+        }
+      }
+    },
+    "pitchDeckTypes": {
+      "title": "Quel pitch deck voulez-vous générer ?",
+      "subtitle": "Chaque type suit l'ordre et les slides qu'attend son audience.",
+      "back": "Retour à mes pitch decks",
+      "legend": "Type de pitch deck",
+      "recommended": "Recommandé",
+      "meta": "{{slides}} slides · {{minutes}} min",
+      "audienceLabel": "Pour qui",
+      "outline": "Les {{count}} slides",
+      "nameLabel": "Nom du deck",
+      "generate": "Générer ce pitch deck",
+      "creating": "Création…",
+      "hint": "La génération démarre aussitôt et prend quelques minutes.",
+      "loadError": "Les types de pitch deck n'ont pas pu être chargés.",
+      "retry": "Réessayer",
+      "errors": {
+        "create": "Le pitch deck n'a pas pu être créé. Réessayez."
+      },
+      "audiences": {
+        "investor": "Investisseurs",
+        "bank": "Banque ou microfinance",
+        "customer": "Clients et prospects",
+        "partner": "Partenaires",
+        "jury": "Jury, incubateur, bailleur"
+      },
+      "types": {
+        "investor": {
+          "name": "Levée de fonds",
+          "description": "Le deck classique pour convaincre des investisseurs : marché, traction, équipe, montant recherché.",
+          "useWhen": "Rendez-vous avec un business angel, un fonds d'amorçage ou un fonds de capital-risque."
+        },
+        "bank": {
+          "name": "Financement bancaire",
+          "description": "Présentez votre demande de prêt : plan de financement, capacité de remboursement, garanties.",
+          "useWhen": "Demande de crédit auprès d'une banque ou d'une institution de microfinance."
+        },
+        "sales": {
+          "name": "Présentation commerciale",
+          "description": "Montrez à un client ce qu'il gagne : bénéfices chiffrés, références, offres et prochaines étapes.",
+          "useWhen": "Rendez-vous commercial, réponse à un prospect, démonstration."
+        },
+        "partnership": {
+          "name": "Proposition de partenariat",
+          "description": "Expliquez ce que chacun apporte, ce que chacun gagne et comment la collaboration fonctionne.",
+          "useWhen": "Distributeur, grand compte, ONG ou institution avec qui construire une alliance."
+        },
+        "competition": {
+          "name": "Concours et incubateurs",
+          "description": "Convainquez un jury : impact, faisabilité, jalons et usage précis des fonds.",
+          "useWhen": "Concours de startups, candidature à un incubateur, demande de subvention."
+        },
+        "elevator": {
+          "name": "Pitch express",
+          "description": "Six slides pour trois minutes : le problème, la solution, le marché, la traction et la demande.",
+          "useWhen": "Demo day, pitch sur scène, premier contact rapide."
+        }
+      }
     }
   },
   "deployment": {
@@ -3236,7 +3381,10 @@
       "simulations": "Simulations",
       "welcome": "Bienvenue",
       "guided": "Parcours assisté",
-      "financeCalendar": "Calendrier comptable"
+      "financeCalendar": "Calendrier comptable",
+      "businessPlans": "Mes business plans",
+      "pitchDecks": "Mes pitch decks",
+      "pitchDeckNew": "Nouveau pitch deck"
     }
   },
   "notFound": {
@@ -3710,6 +3858,14 @@
       "chips": {
         "start": "Lancer un déploiement",
         "list": "Voir mes déploiements"
+      }
+    },
+    "deck": {
+      "typeQuestion": "Quel type de pitch deck voulez-vous générer ? Chaque type suit les slides qu’attend son audience.",
+      "typesFailed": "Je n'ai pas pu charger les types de pitch deck. Vous pouvez les comparer dans l'atelier.",
+      "createFailed": "Le pitch deck n'a pas pu être créé. Réessayez.",
+      "chips": {
+        "compare": "Comparer les types"
       }
     }
   },

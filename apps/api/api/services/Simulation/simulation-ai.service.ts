@@ -10,6 +10,7 @@
  * corrompre le moteur en aval.
  */
 
+import { findDocument } from '../common/deliverable-documents';
 import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -637,7 +638,7 @@ export class SimulationAIService {
     // entier revenait à envoyer un SVG de logo — quatre mille caractères de
     // chemins vectoriels qui ne disent rien d'une viabilité.
     const deliverables = {
-      businessPlan: truncate(analysis.businessPlan),
+      businessPlan: truncate(findDocument(analysis, 'businessPlan')),
       finance: truncate(analysis.finance),
       branding: truncate(analysis.branding?.brandName, 120),
       marketAnalysis: truncate(analysis.marketAnalysis),

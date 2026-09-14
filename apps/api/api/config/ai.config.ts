@@ -867,6 +867,23 @@ export const AI_CONFIG = {
       // Projections chiffrées : le slide le plus dense du deck.
       Financials: { sampling: 'precision', tokens: 32000 },
       Ask: { tokens: 20000, temperature: 0.6 },
+
+      // Slides propres aux autres types de deck (`PitchDeck/deck-types.ts`).
+      'Company Overview': { tokens: 20000, temperature: 0.5 },
+      // Plan de financement et service de la dette : des tableaux qui doivent
+      // s'additionner, comme les projections.
+      'Funding Request': { sampling: 'precision', tokens: 24000 },
+      'Repayment Capacity': { sampling: 'precision', tokens: 28000 },
+      Guarantees: { tokens: 20000, temperature: 0.5 },
+      'Customer Benefits': { tokens: 22000, temperature: 0.55 },
+      'Case Studies': { tokens: 22000, temperature: 0.55 },
+      Pricing: { sampling: 'precision', tokens: 24000 },
+      'Next Steps': { tokens: 18000, temperature: 0.55 },
+      'Partnership Model': { tokens: 24000, temperature: 0.55 },
+      'Partner Benefits': { tokens: 22000, temperature: 0.55 },
+      Impact: { tokens: 22000, temperature: 0.55 },
+      Milestones: { tokens: 20000, temperature: 0.5 },
+      'Use of Funds': { sampling: 'precision', tokens: 22000 },
     },
   }),
 
