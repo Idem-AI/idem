@@ -18,7 +18,6 @@ import { SSEStepEvent } from '../../../../shared/models/sse-step.model';
 import { DocumentPreviewComponent } from '../../components/document-preview/document-preview';
 import { BrandingValidationService } from '../../services/branding-validation.service';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
-import { GenerationStatusPanelComponent } from '../../components/generation-status-panel/generation-status-panel';
 import {
   analyzeGenerationCompleteness,
   PITCH_DECK_SECTION_NAMES,
@@ -42,7 +41,6 @@ const PITCH_DECK_STEP_NAMES: readonly string[] = PITCH_DECK_SECTION_NAMES;
     Loader,
     DocumentPreviewComponent,
     IncompleteProjectBannerComponent,
-    GenerationStatusPanelComponent,
   ],
   templateUrl: './show-pitch-deck.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -76,12 +74,6 @@ export class ShowPitchDeck implements OnInit {
   protected readonly completeness = computed(() =>
     analyzeGenerationCompleteness(PITCH_DECK_SECTION_NAMES, this.pitchDeck()?.sections),
   );
-
-  protected readonly isPitchDeckIncomplete = computed(() => {
-    if (this.isGenerating()) return false;
-    const completeness = this.completeness();
-    return completeness.hasStarted && !completeness.isComplete;
-  });
 
   ngOnInit(): void {
     const pid = this.cookieService.get('projectId');

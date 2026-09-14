@@ -1,5 +1,6 @@
 import {
   afterNextRender,
+  afterRenderEffect,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -10,17 +11,22 @@ import {
   input,
   OnDestroy,
   OnInit,
+  output,
   runInInjectionContext,
   signal,
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { TokenService } from '../../../../shared/services/token.service';
+import { SectionCompletionItem } from '../../models/generation-completeness';
 import { injectEditorAdapter } from '../../pages/document-editor/adapters/inject-editor-adapter';
-import { EditorCanvasComponent } from '../../pages/document-editor/components/editor-canvas/editor-canvas';
+import {
+  DocumentActionEvent,
+  EditorCanvasComponent,
+} from '../../pages/document-editor/components/editor-canvas/editor-canvas';
 import { ZoomControlComponent } from '../../pages/document-editor/components/zoom-control/zoom-control';
 import {
   DocumentTypeAdapter,
@@ -31,6 +37,8 @@ import {
   FontHints,
   PageFormat,
 } from '../../pages/document-editor/models/editor.types';
+import { PREVIEW_PAGE_GAP_PX } from '../../pages/document-editor/runtime/editor-iframe';
+import { buildPlaceholderHtml, composePages, PreviewPage } from './preview-pages';
 
 /** Documents qui ont une page d'affichage avec aperçu. */
 export type PreviewDocumentType = Extract<EditorDocumentType, 'business-plan' | 'pitch-deck' | 'branding'>;
@@ -52,15 +60,15 @@ const KIND_ICONS: Record<ElementKind, string> = {
 };
 
 /** Encombrement du menu contextuel, pour le garder dans la page. */
-const POPOVER_WIDTH = 260;
+const POPOVER_WIDTH = 340;
 const POPOVER_HEIGHT = 48;
 const POPOVER_GAP = 10;
 /** Au-delà (px à l'écran), l'élément dépasse la vue : le menu se pose dans son coin haut. */
 const TALL_ELEMENT_PX = 420;
-/** Place réservée sous le document pour que le dock ne recouvre pas la dernière page. */
+/** Place réservée sous le document pour que le dock ne recouvre pas le dernier pied de page. */
 const DOCK_INSET_PX = 104;
-/** Hauteur minimale de la scène : en dessous, on ne lit plus une page. */
-const STAGE_MIN_PX = 380;
+/** Hauteur du pied de page, centré dans l'espace entre deux pages. */
+const FOOTER_HEIGHT_PX = 28;
 
 function kindOf(selection: EditorSelection): ElementKind {
   if (selection.path === '') return 'page';
@@ -77,18 +85,19 @@ function kindOf(selection: EditorSelection): ElementKind {
 /**
  * Aperçu d'un document généré (business plan, pitch deck, charte graphique),
  * rendu comme dans l'éditeur plutôt qu'en PDF : même iframe, mêmes sections,
- * même survol. Cliquer un élément ouvre un menu « Éditer » qui mène à
- * l'éditeur avec cet élément déjà sélectionné et à l'écran.
+ * même survol. Le document défile avec la page, rien ne le coupe.
  *
- * Le PDF n'est plus chargé à l'ouverture : il est demandé à l'API au clic sur
- * « Télécharger ». Les actions vivent dans un dock flottant (pages, zoom,
- * éditer, télécharger) qui reste à portée de pouce sur mobile.
+ *  - Cliquer un élément ouvre un menu : « Éditer » (l'éditeur s'ouvre sur cet
+ *    élément) ou « Régénérer » sa section.
+ *  - Sous chaque page, un pied discret : nom, alerte éventuelle, « Régénérer ».
+ *  - Une section manquante ou en échec est remplacée, à sa place, par une
+ *    page qui l'explique et propose de la régénérer.
+ *  - Le dock (collé au bas de la fenêtre) regroupe pages, zoom, « Régénérer »
+ *    (compléter / tout régénérer), éditer et télécharger. Le PDF n'est demandé
+ *    à l'API qu'au téléchargement.
  *
- * La hauteur de la scène se MESURE : elle va de sa position dans la page
- * jusqu'au bas de la fenêtre, marges des conteneurs déduites. Le document
- * tient donc à l'écran dès l'ouverture, quoi qu'il y ait au-dessus (panneau
- * de statut, en-tête…). Quand la place manque, le dock reste collé au bas de
- * la fenêtre.
+ * La régénération elle-même appartient à la page hôte (routes et flux
+ * différents selon le document) : l'aperçu n'émet que l'intention.
  */
 @Component({
   selector: 'app-document-preview',
@@ -105,38 +114,119 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
   readonly documentType = input.required<PreviewDocumentType>();
   /** Titre affiché au-dessus de l'aperçu. */
   readonly heading = input<string>('');
+  /**
+   * Sections attendues, dans l'ordre du document, avec leur statut
+   * (`analyzeGenerationCompleteness(...).items`). Vide : l'aperçu n'affiche ni
+   * statut ni action de régénération.
+   */
+  readonly outline = input<readonly SectionCompletionItem[]>([]);
+  /** Préfixe i18n des noms de section (se termine par un point). */
+  readonly sectionLabelPrefix = input<string>('');
+  /** Une génération est en cours : les régénérations sont désactivées. */
+  readonly busy = input<boolean>(false);
+
+  /** Régénérer une section (nom canonique). */
+  readonly regenerateSection = output<string>();
+  /** Compléter la génération (sections manquantes ou en échec). */
+  readonly resumeGeneration = output<void>();
+  /** Tout régénérer. */
+  readonly regenerateAll = output<void>();
 
   private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
   private readonly cookieService = inject(CookieService);
   private readonly tokenService = inject(TokenService);
   private readonly injector = inject(Injector);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly canvas = viewChild(EditorCanvasComponent);
-  private readonly stage = viewChild<ElementRef<HTMLElement>>('stage');
   private readonly popoverEdit = viewChild<ElementRef<HTMLButtonElement>>('popoverEdit');
   private readonly pagesControl = viewChild<ElementRef<HTMLElement>>('pagesControl');
+  private readonly regenControl = viewChild<ElementRef<HTMLElement>>('regenControl');
 
   protected readonly dockInset = DOCK_INSET_PX;
   protected readonly loading = signal(true);
   protected readonly loadError = signal(false);
-  protected readonly sections = signal<EditableSection[]>([]);
+  private readonly loadedSections = signal<EditableSection[]>([]);
   protected readonly fonts = signal<FontHints>({});
   protected readonly pageFormat = signal<PageFormat>({ width: '210mm', height: '297mm' });
   protected readonly multiPage = signal(false);
   protected readonly dark = signal(false);
   protected readonly selection = signal<EditorSelection | null>(null);
   protected readonly pagesMenuOpen = signal(false);
+  protected readonly regenMenuOpen = signal(false);
+  /** « Tout régénérer » demande un second clic : le contenu actuel sera remplacé. */
+  protected readonly confirmRegenerateAll = signal(false);
   protected readonly downloadState = signal<DownloadState>('idle');
   protected readonly canDownload = signal(false);
-  protected readonly stageHeight = signal<number | null>(null);
 
-  protected readonly pageCount = computed(() => this.sections().length);
+  /** Pages dans l'ordre du document, pages de remplacement comprises. */
+  protected readonly pages = computed(() =>
+    composePages(this.loadedSections(), this.outline(), (name) => this.labelOf(name)),
+  );
+
+  /** Ce que l'iframe rend : les sections, et une page dessinée pour chaque manque. */
+  private readonly slots = computed<EditableSection[]>(() => {
+    const byId = new Map(this.loadedSections().map((section) => [section.id, section]));
+    return this.pages().map((page) => {
+      const section = page.kind === 'content' ? byId.get(page.id) : undefined;
+      return (
+        section ?? {
+          id: page.id,
+          name: page.name,
+          type: 'placeholder',
+          placeholder: true,
+          html: this.placeholderHtml(page),
+        }
+      );
+    });
+  });
+
+  protected readonly pageCount = computed(() => this.pages().length);
   protected readonly currentIndex = computed(() =>
     Math.max(0, this.canvas()?.currentSectionIndex() ?? 0),
   );
-  protected readonly currentSection = computed(() => this.sections()[this.currentIndex()] ?? null);
+  protected readonly currentPage = computed(() => this.pages()[this.currentIndex()] ?? null);
   protected readonly ready = computed(() => !this.loading() && !this.loadError() && this.pageCount() > 0);
+
+  /** La page hôte suit la génération : statut et régénération sont proposés. */
+  protected readonly tracksGeneration = computed(() => this.outline().length > 0);
+  /** Pages manquantes ou en échec. */
+  protected readonly blockingPages = computed(() => this.pages().filter((page) => page.kind !== 'content'));
+  protected readonly underfilledPages = computed(() =>
+    this.pages().filter((page) => page.issue === 'underfilled'),
+  );
+  protected readonly resumeCount = computed(
+    () => this.outline().filter((item) => item.status === 'missing' || item.status === 'empty').length,
+  );
+
+  /** Résumé d'une ligne dans l'en-tête, à la place de l'ancien panneau de statut. */
+  protected readonly statusSummary = computed(() => {
+    if (!this.tracksGeneration() || !this.ready()) return null;
+    const blocking = this.blockingPages().length;
+    if (blocking > 0) {
+      return {
+        warn: true,
+        count: blocking,
+        key: `dashboard.documentPreview.status.${blocking === 1 ? 'blockingOne' : 'blockingMany'}`,
+      };
+    }
+    const underfilled = this.underfilledPages().length;
+    if (underfilled > 0) {
+      return {
+        warn: true,
+        count: underfilled,
+        key: `dashboard.documentPreview.status.${underfilled === 1 ? 'underfilledOne' : 'underfilledMany'}`,
+      };
+    }
+    return { warn: false, count: 0, key: 'dashboard.documentPreview.status.complete' };
+  });
+
+  /** Page de l'élément sélectionné. */
+  protected readonly selectedPage = computed(() => {
+    const selection = this.selection();
+    return selection ? (this.pages().find((page) => page.id === selection.sectionId) ?? null) : null;
+  });
 
   protected readonly kind = computed(() => {
     const selection = this.selection();
@@ -173,6 +263,28 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
     };
   });
 
+  /** Pieds de page, posés dans l'espace sous chaque page (repère du document zoomé). */
+  protected readonly footers = computed(() => {
+    const canvas = this.canvas();
+    if (!canvas || !this.ready() || !this.tracksGeneration()) return [];
+    const z = canvas.zoom();
+    const pages = this.pages();
+    const offset = Math.max(2, (PREVIEW_PAGE_GAP_PX * z - FOOTER_HEIGHT_PX) / 2);
+    return canvas.sectionLayouts().flatMap((layout) => {
+      const index = pages.findIndex((page) => page.id === layout.id);
+      if (index < 0) return [];
+      return [
+        {
+          page: pages[index],
+          index,
+          left: layout.left * z,
+          width: layout.width * z,
+          top: (layout.top + layout.height) * z + offset,
+        },
+      ];
+    });
+  });
+
   protected readonly downloadLabel = computed(() => {
     switch (this.downloadState()) {
       case 'working':
@@ -189,55 +301,24 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
   private adapter: DocumentTypeAdapter | null = null;
   private projectId: string | null = null;
   private downloadTimer: ReturnType<typeof setTimeout> | null = null;
-  private sizeObserver?: ResizeObserver;
-  private treeObserver?: MutationObserver;
-  private measureFrame = 0;
-  private readonly onWindowResize = () => this.scheduleMeasure();
+  private renderedKey = '';
 
   constructor() {
-    afterNextRender(() => {
-      this.measureStage();
-      window.addEventListener('resize', this.onWindowResize);
-      this.watchLayoutAbove();
-      // Les polices de marque changent la hauteur du titre sans rien redimensionner d'autre.
-      document.fonts?.ready.then(() => this.scheduleMeasure());
+    // Rendu de l'iframe à l'ouverture, puis chaque fois que la liste des pages
+    // change (une section attendue apparaît, un échec est connu). Après le
+    // rendu de la vue : le canvas a déjà reçu format et polices.
+    afterRenderEffect(() => {
+      const canvas = this.canvas();
+      const slots = this.slots();
+      const format = this.pageFormat();
+      if (!canvas || this.loading() || this.loadError()) return;
+      const key = `${format.width}x${format.height}|${slots
+        .map((slot) => (slot.placeholder ? `?${slot.id}` : slot.id))
+        .join('|')}`;
+      if (key === this.renderedKey) return;
+      this.renderedKey = key;
+      canvas.render(slots);
     });
-  }
-
-  /**
-   * Le haut de la scène bouge quand ce qui la précède change de taille après
-   * coup : titre traduit, panneau de statut complété, barre du parcours
-   * guidé. Observer `body` ne suffit pas — les conteneurs en `min-h-screen`
-   * gardent leur hauteur. On observe donc exactement ce qui est AU-DESSUS :
-   * chaque élément qui précède la scène ou l'un de ses conteneurs, et
-   * l'arrivée d'un nouvel élément dans ces conteneurs. La mesure ne dépend pas
-   * de la hauteur de la scène elle-même : elle se stabilise au premier passage.
-   */
-  private watchLayoutAbove(): void {
-    const stage = this.stage()?.nativeElement;
-    if (!stage || typeof ResizeObserver === 'undefined') return;
-    const sizes = new ResizeObserver(() => this.scheduleMeasure());
-    const bind = () => {
-      sizes.disconnect();
-      tree?.disconnect();
-      sizes.observe(document.body);
-      for (let el: Element | null = stage; el && el !== document.body; el = el.parentElement) {
-        for (let sib = el.previousElementSibling; sib; sib = sib.previousElementSibling) {
-          sizes.observe(sib);
-        }
-        if (el.parentElement) tree?.observe(el.parentElement, { childList: true });
-      }
-    };
-    const tree =
-      typeof MutationObserver !== 'undefined'
-        ? new MutationObserver(() => {
-            bind();
-            this.scheduleMeasure();
-          })
-        : undefined;
-    bind();
-    this.sizeObserver = sizes;
-    this.treeObserver = tree;
   }
 
   async ngOnInit(): Promise<void> {
@@ -265,10 +346,8 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
         next: (doc) => {
           this.fonts.set(doc.fonts);
           if (doc.pageFormat) this.pageFormat.set(doc.pageFormat);
-          this.sections.set(doc.sections);
+          this.loadedSections.set(doc.sections);
           this.loading.set(false);
-          // Les entrées du canvas (format, polices) doivent être à jour avant le rendu.
-          setTimeout(() => this.canvas()?.render(doc.sections), 0);
         },
         error: (err) => {
           console.error('Error loading document preview:', err);
@@ -280,50 +359,57 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.downloadTimer) clearTimeout(this.downloadTimer);
-    if (this.measureFrame) cancelAnimationFrame(this.measureFrame);
-    this.sizeObserver?.disconnect();
-    this.treeObserver?.disconnect();
-    window.removeEventListener('resize', this.onWindowResize);
   }
 
   /* ------------------------------------------------------------------ */
-  /* Hauteur de la scène                                                 */
+  /* Pages                                                               */
   /* ------------------------------------------------------------------ */
 
-  private scheduleMeasure(): void {
-    if (this.measureFrame) return;
-    this.measureFrame = requestAnimationFrame(() => {
-      this.measureFrame = 0;
-      this.measureStage();
+  private labelOf(name: string): string {
+    const prefix = this.sectionLabelPrefix();
+    if (!prefix) return name;
+    const key = prefix + name;
+    const label: unknown = this.translate.instant(key);
+    return typeof label === 'string' && label !== key ? label : name;
+  }
+
+  private placeholderHtml(page: PreviewPage): string {
+    const kind = page.kind === 'error' ? 'error' : 'missing';
+    const text = (key: string): string =>
+      this.translate.instant(`dashboard.documentPreview.placeholder.${key}`);
+    return buildPlaceholderHtml(kind, page.name, {
+      section: page.label,
+      title: text(`${kind}.title`),
+      message: text(`${kind}.message`),
+      action: text('action'),
     });
   }
 
-  /**
-   * Hauteur = bas de la fenêtre − haut de la scène − marges basses des
-   * conteneurs (layout du tableau de bord, page). `clientHeight` plutôt
-   * qu'`innerHeight` : sur mobile, il ne varie pas quand la barre d'adresse
-   * se replie, la scène ne saute donc pas pendant le défilement.
-   */
-  private measureStage(): void {
-    const stage = this.stage()?.nativeElement;
-    if (!stage) return;
-    const top = stage.getBoundingClientRect().top + window.scrollY;
-    let below = 0;
-    for (let el = stage.parentElement; el && el !== document.body; el = el.parentElement) {
-      const style = getComputedStyle(el);
-      below += (parseFloat(style.paddingBottom) || 0) + (parseFloat(style.borderBottomWidth) || 0);
-    }
-    const height = Math.round(document.documentElement.clientHeight - top - below);
-    this.stageHeight.set(Math.max(STAGE_MIN_PX, height));
+  protected goToPage(index: number): void {
+    const target = Math.min(Math.max(0, index), this.pageCount() - 1);
+    this.canvas()?.scrollToSection(target);
+    this.pagesMenuOpen.set(false);
+  }
+
+  /** Amène la première page à régénérer (à défaut, la première sous-remplie). */
+  protected goToFirstIssue(): void {
+    const target = this.blockingPages()[0] ?? this.underfilledPages()[0];
+    if (target) this.goToPage(this.pages().indexOf(target));
+  }
+
+  protected togglePagesMenu(): void {
+    this.pagesMenuOpen.update((open) => !open);
+    this.regenMenuOpen.set(false);
   }
 
   /* ------------------------------------------------------------------ */
-  /* Sélection → éditer                                                  */
+  /* Sélection → éditer / régénérer                                      */
   /* ------------------------------------------------------------------ */
 
   protected onSelectionChange(selection: EditorSelection | null): void {
     this.selection.set(selection);
     this.pagesMenuOpen.set(false);
+    this.regenMenuOpen.set(false);
     if (!selection) return;
     // Le focus passe au bouton « Éditer » : Entrée ouvre l'éditeur, Échap referme.
     afterNextRender(() => this.popoverEdit()?.nativeElement.focus({ preventScroll: true }), {
@@ -338,36 +424,67 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
 
   /**
    * Ouvre l'éditeur sur l'élément sélectionné ; sans sélection, sur la page
-   * en cours de lecture.
+   * en cours de lecture (si elle existe dans le document).
    */
   protected edit(): void {
     const route = this.adapter?.editRoute;
     if (!route) return;
     const selection = this.selection();
+    const current = this.currentPage();
     const queryParams: Record<string, string> = {};
     if (selection) {
       queryParams[EDITOR_TARGET_PARAMS.section] = selection.sectionId;
       queryParams[EDITOR_TARGET_PARAMS.path] = selection.path;
-    } else if (this.currentSection()) {
-      queryParams[EDITOR_TARGET_PARAMS.section] = this.currentSection()!.id;
+    } else if (current?.kind === 'content') {
+      queryParams[EDITOR_TARGET_PARAMS.section] = current.id;
     }
     this.router.navigate([route], { queryParams });
   }
 
-  /* ------------------------------------------------------------------ */
-  /* Pages                                                               */
-  /* ------------------------------------------------------------------ */
+  protected regenerate(page: PreviewPage | null): void {
+    if (!page || this.busy()) return;
+    this.closePopover();
+    this.regenerateSection.emit(page.name);
+  }
 
-  protected goToPage(index: number): void {
-    const target = Math.min(Math.max(0, index), this.pageCount() - 1);
-    this.canvas()?.scrollToSection(target);
+  /** Bouton « Régénérer cette section » d'une page de remplacement. */
+  protected onDocumentAction(event: DocumentActionEvent): void {
+    if (event.action === 'regenerate' && event.name && !this.busy()) {
+      this.regenerateSection.emit(event.name);
+    }
+  }
+
+  protected toggleRegenMenu(): void {
+    this.regenMenuOpen.update((open) => !open);
+    this.confirmRegenerateAll.set(false);
     this.pagesMenuOpen.set(false);
   }
 
+  protected resume(): void {
+    if (this.resumeCount() === 0 || this.busy()) return;
+    this.regenMenuOpen.set(false);
+    this.resumeGeneration.emit();
+  }
+
+  protected requestRegenerateAll(): void {
+    if (this.busy()) return;
+    if (!this.confirmRegenerateAll()) {
+      this.confirmRegenerateAll.set(true);
+      return;
+    }
+    this.confirmRegenerateAll.set(false);
+    this.regenMenuOpen.set(false);
+    this.regenerateAll.emit();
+  }
+
   protected onOutsidePointer(event: PointerEvent): void {
-    const control = this.pagesControl()?.nativeElement;
-    if (this.pagesMenuOpen() && control && !control.contains(event.target as Node)) {
+    const target = event.target as Node;
+    if (this.pagesMenuOpen() && !this.pagesControl()?.nativeElement.contains(target)) {
       this.pagesMenuOpen.set(false);
+    }
+    if (this.regenMenuOpen() && !this.regenControl()?.nativeElement.contains(target)) {
+      this.regenMenuOpen.set(false);
+      this.confirmRegenerateAll.set(false);
     }
   }
 

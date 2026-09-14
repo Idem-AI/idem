@@ -106,40 +106,23 @@
         </div>
       </div>
     </div>
-  } @else if (pitchDeck() && pitchDeck()!.sections.length > 0 && !isPitchDeckIncomplete()) {
-    <!-- Aperçu du deck (rendu comme dans l'éditeur, PDF au téléchargement) -->
-    <div class="max-w-7xl mx-auto space-y-6">
-      <!-- Régénération d'une diapositive particulière -->
-      <app-generation-status-panel
-        [completeness]="completeness()"
-        sectionLabelPrefix="dashboard.showPitchDeck.slides."
-        (resume)="startGeneration(false)"
-        (regenerateAll)="startGeneration(true)"
-        (regenerateSection)="regenerateSection($event)"
-      />
-
+  } @else if (pitchDeck() && pitchDeck()!.sections.length > 0) {
+    <!-- Aperçu du deck, complet ou non : les diapositives manquantes ou en échec
+         apparaissent à leur place, avec leur bouton « Régénérer ». -->
+    <div class="max-w-7xl mx-auto">
+      @if (errorMessage()) {
+        <p class="mb-3 text-sm text-red-400 text-center" role="alert">{{ errorMessage() }}</p>
+      }
       <app-document-preview
         documentType="pitch-deck"
         [heading]="'dashboard.showPitchDeck.title' | translate"
-      />
-
-      @if (errorMessage()) {
-        <p class="mt-6 text-sm text-red-400 text-center">{{ errorMessage() }}</p>
-      }
-    </div>
-  } @else if (isPitchDeckIncomplete()) {
-    <!-- Incomplete Pitch Deck State -->
-    <div class="max-w-3xl mx-auto py-10">
-      <app-generation-status-panel
-        [completeness]="completeness()"
+        [outline]="completeness().items"
         sectionLabelPrefix="dashboard.showPitchDeck.slides."
-        (resume)="startGeneration(false)"
-        (regenerateAll)="startGeneration(true)"
+        [busy]="isGenerating()"
         (regenerateSection)="regenerateSection($event)"
+        (resumeGeneration)="startGeneration(false)"
+        (regenerateAll)="startGeneration(true)"
       />
-      @if (errorMessage()) {
-        <p class="mt-6 text-sm text-red-400 text-center">{{ errorMessage() }}</p>
-      }
     </div>
   } @else {
     <!-- Empty state -->

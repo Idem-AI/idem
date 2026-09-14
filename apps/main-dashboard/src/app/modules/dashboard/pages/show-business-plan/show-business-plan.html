@@ -16,25 +16,17 @@
       [project]="project()!"
     />
   } @else if (hasBusinessPlan()) {
-    <!-- Completion status + per-section regeneration (also warns when the plan
-         comes from an interrupted/incomplete run or has underfilled sections) -->
-    @if (completeness().hasStarted) {
-      <div class="max-w-6xl mx-auto">
-        <app-generation-status-panel
-          [completeness]="completeness()"
-          [warningSections]="underFilledSections()"
-          sectionLabelPrefix="dashboard.generationPanel.sections.businessPlan."
-          (resume)="generateBusinessPlan(false)"
-          (regenerateAll)="generateBusinessPlan(true)"
-          (regenerateSection)="regenerateSection($event)"
-        />
-      </div>
-    }
-    <!-- Aperçu du plan (rendu comme dans l'éditeur, PDF au téléchargement) -->
+    <!-- Aperçu du plan : statut en une ligne, pages manquantes ou en échec dans
+         le document, régénération par page et dans le dock. -->
     <div class="max-w-6xl mx-auto">
       <app-document-preview
         documentType="business-plan"
         [heading]="'dashboard.businessPlanDisplay.title' | translate"
+        [outline]="previewOutline()"
+        sectionLabelPrefix="dashboard.generationPanel.sections.businessPlan."
+        (regenerateSection)="regenerateSection($event)"
+        (resumeGeneration)="generateBusinessPlan(false)"
+        (regenerateAll)="generateBusinessPlan(true)"
       />
     </div>
   } @else if (hasError() && isRetryable()) {
