@@ -5,7 +5,6 @@ import { PromptService } from '../services/prompt.service';
 import logger from '../config/logger';
 import { userService } from '../services/user.service';
 import { ISectionResult } from '../services/common/generic.service';
-import { projectService } from '../services/project.service';
 import { ResearchStreamEvent } from '../services/research/research.types';
 import { getRequestLanguage } from '../utils/request-language';
 import { sectionEditingService } from '../services/common/section-editing.service';
@@ -15,14 +14,29 @@ import {
   CUSTOM_TEMPLATE_ID,
   DEFAULT_TEMPLATE_ID,
 } from '../services/BusinessPlan/structure/templates';
-import { MAX_SECTIONS, MIN_SECTIONS } from '../services/BusinessPlan/structure/structure.resolver';
+import {
+  buildStructure,
+  MAX_SECTIONS,
+  MIN_SECTIONS,
+} from '../services/BusinessPlan/structure/structure.resolver';
+import {
+  hasSectionContent,
+  normalizeDocumentName,
+  readDocumentId,
+} from '../services/common/deliverable-documents';
 
 // Create instances of the services
 const promptService = new PromptService();
 const businessPlanService = new BusinessPlanService(promptService);
 
+/*
+ * Un projet garde PLUSIEURS business plans (dossier bancaire, plan
+ * investisseur…). Les routes par projet lisent `?documentId=` pour désigner le
+ * plan ; sans lui, elles agissent sur le plan le plus récemment modifié.
+ */
+
 /**
- * Contrôleur pour récupérer les business plans d'un projet
+ * Contrôleur pour récupérer le business plan d'un projet
  */
 export const getBusinessPlansByProjectController = async (
   req: CustomRequest,
@@ -30,8 +44,9 @@ export const getBusinessPlansByProjectController = async (
 ): Promise<void> => {
   const userId = req.user?.uid;
   const { projectId } = req.params;
+  const documentId = readDocumentId(req.query.documentId);
   logger.info(
-    `getBusinessPlansByProjectController called - UserId: ${userId}, ProjectId: ${projectId}`
+    `getBusinessPlansByProjectController called - UserId: ${userId}, ProjectId: ${projectId}, DocumentId: ${documentId ?? '(primary)'}`
   );
   try {
     if (!userId) {
@@ -44,7 +59,11 @@ export const getBusinessPlansByProjectController = async (
       res.status(400).json({ message: 'Project ID is required' });
       return;
     }
-    const businessPlan = await businessPlanService.getBusinessPlansByProjectId(userId, projectId as string);
+    const businessPlan = await businessPlanService.getBusinessPlansByProjectId(
+      userId,
+      projectId as string,
+      documentId
+    );
     if (businessPlan) {
       logger.info(
         `Business plan fetched successfully for project - UserId: ${userId}, ProjectId: ${projectId}`
@@ -68,7 +87,7 @@ export const getBusinessPlansByProjectController = async (
 };
 
 /**
- * Retourne la qualité PDF du dernier rendu (sections sous-remplies).
+ * Retourne la qualité PDF du dernier rendu d'un plan (sections sous-remplies).
  * Les sections dont le worstFill < 0.60 sont listées ; le frontend peut
  * alors proposer un retry ciblé section par section.
  */
@@ -78,6 +97,7 @@ export const getBusinessPlanPdfQualityController = async (
 ): Promise<void> => {
   const userId = req.user?.uid;
   const { projectId } = req.params;
+  const documentId = readDocumentId(req.query.documentId);
   logger.info(`getBusinessPlanPdfQualityController called - UserId: ${userId}, ProjectId: ${projectId}`);
 
   try {
@@ -90,7 +110,7 @@ export const getBusinessPlanPdfQualityController = async (
       return;
     }
 
-    const pdfQuality = await businessPlanService.getPdfQuality(userId, projectId as string);
+    const pdfQuality = await businessPlanService.getPdfQuality(userId, projectId as string, documentId);
     if (!pdfQuality) {
       // Aucun PDF encore généré ou aucun rapport disponible — réponse vide, pas une erreur.
       res.status(200).json({ underFilledSections: [] });
@@ -114,8 +134,9 @@ export const generateBusinessPlanPdfController = async (
 ): Promise<void> => {
   const { projectId } = req.params;
   const userId = req.user?.uid;
+  const documentId = readDocumentId(req.query.documentId);
   logger.info(
-    `generateBusinessPlanPdfController called - UserId: ${userId}, ProjectId: ${projectId}`
+    `generateBusinessPlanPdfController called - UserId: ${userId}, ProjectId: ${projectId}, DocumentId: ${documentId ?? '(primary)'}`
   );
 
   try {
@@ -132,7 +153,11 @@ export const generateBusinessPlanPdfController = async (
     }
 
     // Générer le PDF à partir des sections du business plan
-    const pdfPath = await businessPlanService.generateBusinessPlanPdf(userId, projectId as string);
+    const pdfPath = await businessPlanService.generateBusinessPlanPdf(
+      userId,
+      projectId as string,
+      documentId
+    );
 
     if (pdfPath === '') {
       res.status(404).json({ message: 'No business plan found' });
@@ -176,8 +201,9 @@ export const getBusinessPlanByIdController = async (
 ): Promise<void> => {
   const userId = req.user?.uid;
   const { projectId } = req.params;
+  const documentId = readDocumentId(req.query.documentId);
   logger.info(
-    `getBusinessPlanByIdController (acting as getByProjectId) called - UserId: ${userId}, ProjectId: ${projectId}`
+    `getBusinessPlanByIdController (acting as getByProjectId) called - UserId: ${userId}, ProjectId: ${projectId}, DocumentId: ${documentId ?? '(primary)'}`
   );
   try {
     if (!userId) {
@@ -185,7 +211,11 @@ export const getBusinessPlanByIdController = async (
       res.status(401).json({ message: 'User not authenticated' });
       return;
     }
-    const businessPlan = await businessPlanService.getBusinessPlansByProjectId(userId, projectId as string);
+    const businessPlan = await businessPlanService.getBusinessPlansByProjectId(
+      userId,
+      projectId as string,
+      documentId
+    );
     if (businessPlan) {
       logger.info(
         `Business plan fetched successfully - UserId: ${userId}, ProjectId: ${projectId}`
@@ -242,7 +272,7 @@ export const updateBusinessPlanController = async (
 
 /**
  * Contrôleur pour sauvegarder les sections éditées dans l'éditeur WYSIWYG.
- * Body: { sections: SectionModel[] }. Persiste sur le projet et invalide le PDF.
+ * Body: { sections: SectionModel[] }. Persiste sur le plan et invalide son PDF.
  */
 export const saveBusinessPlanSectionsController = async (
   req: CustomRequest,
@@ -270,7 +300,8 @@ export const saveBusinessPlanSectionsController = async (
       userId,
       projectId as string,
       'businessPlan',
-      sections
+      sections,
+      readDocumentId(req.query.documentId)
     );
     if (!updated) {
       res.status(404).json({ message: 'Business plan not found for the project' });
@@ -288,7 +319,7 @@ export const saveBusinessPlanSectionsController = async (
 
 /**
  * Contrôleur d'édition IA d'une section. Body: { instruction: string }.
- * Retourne { section, businessPlan } avec le HTML régénéré par l'IA.
+ * Retourne { section, bucket } avec le HTML régénéré par l'IA.
  */
 export const aiEditBusinessPlanSectionController = async (
   req: CustomRequest,
@@ -320,7 +351,8 @@ export const aiEditBusinessPlanSectionController = async (
       'businessPlan',
       sectionId as string,
       instruction,
-      getRequestLanguage()
+      getRequestLanguage(),
+      readDocumentId(req.query.documentId)
     );
     if (!result) {
       res.status(404).json({ message: 'Section not found or AI edit failed' });
@@ -336,30 +368,192 @@ export const aiEditBusinessPlanSectionController = async (
   }
 };
 
+/**
+ * Suppression par l'ancienne route (`DELETE /businessPlans/:projectId`). Un
+ * projet garde désormais plusieurs plans : sans `?documentId=`, on ne devine
+ * pas lequel effacer.
+ */
 export const deleteBusinessPlanController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  const { itemId } = req.params;
-  logger.info(`deleteBusinessPlanController called - UserId: ${userId}, ItemId: ${itemId}`);
+  const { projectId } = req.params;
+  const documentId = readDocumentId(req.query.documentId);
+  logger.info(
+    `deleteBusinessPlanController called - UserId: ${userId}, ProjectId: ${projectId}, DocumentId: ${documentId}`
+  );
   try {
     if (!userId) {
       logger.warn('User not authenticated for deleteBusinessPlanController');
       res.status(401).json({ message: 'User not authenticated' });
       return;
     }
-    await businessPlanService.deleteBusinessPlan(userId, itemId as string);
-    logger.info(`Business plan deleted successfully - UserId: ${userId}, ItemId: ${itemId}`);
+    if (!documentId) {
+      res.status(400).json({ message: 'A "documentId" query parameter is required' });
+      return;
+    }
+    const removed = await businessPlanService.deleteDocument(userId, projectId as string, documentId);
+    if (!removed) {
+      res.status(404).json({ message: 'Business plan not found' });
+      return;
+    }
+    logger.info(`Business plan deleted successfully - UserId: ${userId}, DocumentId: ${documentId}`);
     res.status(204).send();
   } catch (error: any) {
     logger.error(
-      `Error in deleteBusinessPlanController - UserId: ${userId}, ItemId: ${itemId}: ${error.message}`,
+      `Error in deleteBusinessPlanController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
       { stack: error.stack, params: req.params }
     );
     res.status(500).json({
       message: error.message || 'Failed to delete business plan item',
     });
+  }
+};
+
+/** Plans du projet, en résumé (sans le HTML des sections). */
+export const listBusinessPlanDocumentsController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId } = req.params;
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    const plans = await businessPlanService.listDocuments(userId, projectId as string);
+    if (!plans) {
+      res.status(404).json({ message: 'Project not found' });
+      return;
+    }
+    res.status(200).json(plans);
+  } catch (error: any) {
+    logger.error(`Error in listBusinessPlanDocumentsController: ${error.message}`, {
+      stack: error.stack,
+    });
+    res.status(500).json({ message: error.message || 'Failed to list business plans' });
+  }
+};
+
+/**
+ * Crée un plan vide sur la structure choisie. Body: `{ templateId, sectionKeys?, name? }`.
+ * La structure est validée comme par `PUT /structure` : invalide = 400, avant
+ * que le plan n'existe.
+ */
+export const createBusinessPlanDocumentController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId } = req.params;
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+
+    const { templateId, sectionKeys, name } = req.body ?? {};
+    if (typeof templateId !== 'string' || !templateId.trim()) {
+      res.status(400).json({ message: 'A "templateId" is required' });
+      return;
+    }
+    if (sectionKeys !== undefined && !Array.isArray(sectionKeys)) {
+      res.status(400).json({ message: '"sectionKeys" must be an array of section keys' });
+      return;
+    }
+
+    const structure = buildStructure(templateId.trim(), sectionKeys);
+    if (!structure) {
+      res.status(400).json({
+        message: `Invalid structure: pick a known template or list between ${MIN_SECTIONS} and ${MAX_SECTIONS} known sections.`,
+      });
+      return;
+    }
+
+    const plan = await businessPlanService.createDocument(
+      userId,
+      projectId as string,
+      structure,
+      normalizeDocumentName(name)
+    );
+    if (!plan) {
+      res.status(404).json({ message: 'Project not found' });
+      return;
+    }
+    res.status(201).json(businessPlanService.toSummary(plan));
+  } catch (error: any) {
+    logger.error(`Error in createBusinessPlanDocumentController: ${error.message}`, {
+      stack: error.stack,
+      body: req.body,
+    });
+    res.status(500).json({ message: error.message || 'Failed to create business plan' });
+  }
+};
+
+/** Renomme un plan. Body: `{ name }`. */
+export const renameBusinessPlanDocumentController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId, documentId } = req.params;
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    const name = normalizeDocumentName(req.body?.name);
+    if (!name) {
+      res.status(400).json({ message: 'A non-empty "name" is required' });
+      return;
+    }
+    const plan = await businessPlanService.renameDocument(
+      userId,
+      projectId as string,
+      documentId as string,
+      name
+    );
+    if (!plan) {
+      res.status(404).json({ message: 'Business plan not found' });
+      return;
+    }
+    res.status(200).json(businessPlanService.toSummary(plan));
+  } catch (error: any) {
+    logger.error(`Error in renameBusinessPlanDocumentController: ${error.message}`, {
+      stack: error.stack,
+    });
+    res.status(500).json({ message: error.message || 'Failed to rename business plan' });
+  }
+};
+
+export const deleteBusinessPlanDocumentController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId, documentId } = req.params;
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    const removed = await businessPlanService.deleteDocument(
+      userId,
+      projectId as string,
+      documentId as string
+    );
+    if (!removed) {
+      res.status(404).json({ message: 'Business plan not found' });
+      return;
+    }
+    res.status(204).send();
+  } catch (error: any) {
+    logger.error(`Error in deleteBusinessPlanDocumentController: ${error.message}`, {
+      stack: error.stack,
+    });
+    res.status(500).json({ message: error.message || 'Failed to delete business plan' });
   }
 };
 
@@ -383,6 +577,19 @@ export const generateBusinessPlanStreamingController = async (
     if (!projectId) {
       logger.warn('Project ID is required for generateBusinessPlanStreamingController');
       res.status(400).json({ message: 'Project ID is required' });
+      return;
+    }
+
+    // Le plan est résolu AVANT d'ouvrir le flux : un identifiant inconnu est une
+    // erreur de requête, pas une génération qui échoue en cours de route.
+    const plan = await businessPlanService.ensureDocument(
+      userId,
+      projectId as string,
+      readDocumentId(req.query.documentId)
+    );
+    if (!plan) {
+      logger.warn(`Business plan not found for generation - UserId: ${userId}, ProjectId: ${projectId}`);
+      res.status(404).json({ message: 'Business plan not found' });
       return;
     }
 
@@ -428,46 +635,43 @@ export const generateBusinessPlanStreamingController = async (
       .map((s) => s.trim())
       .filter(Boolean);
 
-    // Fetch project to see if this is a retry/resume
-    const project = await projectService.getUserProjectById(userId, projectId as string);
-    const isRetry = !!(
-      project &&
-      !forceRegenerate &&
-      (project.analysisResultModel?.businessPlan?.sections?.length ?? 0) > 0
-    );
+    // Reprise ou régénération ciblée d'un plan déjà entamé : non facturée.
+    const isRetry = !forceRegenerate && plan.sections.some(hasSectionContent);
 
-    let updatedProject;
+    let updatedPlan;
     if (useClassic) {
-      updatedProject = await businessPlanService.generateBusinessPlanWithStreaming(
+      updatedPlan = await businessPlanService.generateBusinessPlanWithStreaming(
         userId,
         projectId as string,
         streamCallback,
         forceRegenerate,
-        targetSections
+        targetSections,
+        plan.id
       );
     } else {
       // Nouveau flux: équipe d'agents de recherche sourcée + salle de contrôle.
       // Chaque ResearchStreamEvent est diffusé tel quel au frontend.
       const emit = async (event: ResearchStreamEvent) => writeSSE(event);
-      updatedProject = await businessPlanService.generateBusinessPlanWithResearchTeam(
+      updatedPlan = await businessPlanService.generateBusinessPlanWithResearchTeam(
         userId,
         projectId as string,
         emit,
         forceRegenerate,
-        targetSections
+        targetSections,
+        plan.id
       );
     }
 
-    if (!updatedProject) {
+    if (!updatedPlan) {
       logger.warn(`Failed to generate business plan - UserId: ${userId}, ProjectId: ${projectId}`);
       writeSSE({ error: 'Failed to generate business plan' });
       res.end();
       return;
     }
 
-    const newBusinessPlan = updatedProject.analysisResultModel?.businessPlan;
-
-    logger.info(`Business plan generation completed - UserId: ${userId}, ProjectId: ${projectId}`);
+    logger.info(
+      `Business plan generation completed - UserId: ${userId}, ProjectId: ${projectId}, DocumentId: ${plan.id}`
+    );
 
     if (!isRetry) {
       userService.incrementUsage(userId, 5);
@@ -477,7 +681,7 @@ export const generateBusinessPlanStreamingController = async (
     }
 
     // Événement métier de fin (le business plan complet).
-    writeSSE({ type: 'complete', businessPlan: newBusinessPlan });
+    writeSSE({ type: 'complete', documentId: plan.id, businessPlan: updatedPlan });
     // Événement de fin technique (convention existante → fermeture propre du SSE).
     writeSSE({ type: 'completed', stepName: 'completion', data: 'all_steps_completed' });
     res.end();
@@ -487,6 +691,10 @@ export const generateBusinessPlanStreamingController = async (
       { stack: error.stack, body: req.body }
     );
 
+    if (!res.headersSent) {
+      res.status(500).json({ message: error.message || 'Failed to generate business plan' });
+      return;
+    }
     // Envoyer une erreur et terminer le stream
     res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
     res.end();
@@ -634,7 +842,7 @@ export const getBusinessPlanStructureCatalogController = async (
   }
 };
 
-/** Structure actuellement retenue pour le business plan d'un projet. */
+/** Structure actuellement retenue pour un business plan du projet. */
 export const getBusinessPlanStructureController = async (
   req: CustomRequest,
   res: Response
@@ -651,9 +859,13 @@ export const getBusinessPlanStructureController = async (
       return;
     }
 
-    const structure = await businessPlanService.getStructure(userId, projectId as string);
+    const structure = await businessPlanService.getStructure(
+      userId,
+      projectId as string,
+      readDocumentId(req.query.documentId)
+    );
     if (!structure) {
-      res.status(404).json({ message: 'Project not found' });
+      res.status(404).json({ message: 'Project or business plan not found' });
       return;
     }
     res.status(200).json(structure);
@@ -705,11 +917,12 @@ export const setBusinessPlanStructureController = async (
       userId,
       projectId as string,
       templateId.trim(),
-      sectionKeys
+      sectionKeys,
+      readDocumentId(req.query.documentId)
     );
     if (!structure) {
       res.status(400).json({
-        message: `Invalid structure: pick a known template or list between ${MIN_SECTIONS} and ${MAX_SECTIONS} known sections.`,
+        message: `Invalid structure or unknown business plan: pick a known template or list between ${MIN_SECTIONS} and ${MAX_SECTIONS} known sections.`,
       });
       return;
     }

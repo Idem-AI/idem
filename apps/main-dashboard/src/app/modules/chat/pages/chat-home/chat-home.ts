@@ -190,6 +190,8 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   private previewBlob: Blob | null = null;
   private pendingLogoType: LogoType | null = null;
   private pendingBpInfos: AdditionalInfos | null = null;
+  /** Plan créé sur la structure choisie dans le fil, généré ensuite. */
+  private pendingBpDocumentId: string | null = null;
   private activeGenerationType: SSEServiceEventType | null = null;
 
   protected readonly messages = this.store.messages;
@@ -819,6 +821,10 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         this.appendUser(this.chipLabel(chip));
         this.runCommunicationGeneration('calendar');
         break;
+      case 'deck-type':
+        this.appendUser(this.chipLabel(chip));
+        void this.createAndGeneratePitchDeck(chip.payload ?? '');
+        break;
       case 'open-route':
         this.uiMode.openInEditor(chip.payload ?? '/project/dashboard');
         break;
@@ -1210,7 +1216,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         this.startBusinessPlanFlow();
         break;
       case 'pitchDeck':
-        await this.runSseGeneration('pitchDeck');
+        await this.startPitchDeckFlow();
         break;
       case 'diagrams':
         await this.runSseGeneration('diagrams');
@@ -1512,6 +1518,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
    */
   private startBusinessPlanFlow(): void {
     this.pendingBpInfos = null;
+    this.pendingBpDocumentId = null;
     this.awaitingBpStructure.set(true);
     this.appendAssistant({
       content: this.translate.instant('chat.bp.structure.question'),
@@ -1532,7 +1539,8 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   /**
-   * Structure choisie : elle est enregistrée sur le projet avant de continuer.
+   * Structure choisie : un NOUVEAU plan est créé sur elle avant de continuer —
+   * les plans déjà rédigés restent intacts.
    *
    * L'enregistrement est bloquant à dessein. La génération lit la structure
    * depuis le projet ; enchaîner sans attendre la réponse ferait partir un plan
@@ -1549,8 +1557,10 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     );
     this.pendingAssistant.set(true);
 
-    this.businessPlanService.saveStructure(projectId, templateId).subscribe({
-      next: () => {
+    const name = this.translate.instant(`dashboard.businessPlanStructure.templates.${templateId}.name`);
+    this.businessPlanService.createBusinessPlan(projectId, { templateId, name }).subscribe({
+      next: (plan) => {
+        this.pendingBpDocumentId = plan.id;
         this.pendingAssistant.set(false);
         this.startBusinessPlanInfosFlow();
       },
@@ -1657,6 +1667,64 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   /**
+   * « Générer un pitch deck » : le type d'abord. Un deck de levée et une
+   * présentation commerciale n'ont ni les mêmes slides ni le même lecteur.
+   */
+  private async startPitchDeckFlow(): Promise<void> {
+    const compareChip = {
+      labelKey: 'chat.deck.chips.compare',
+      icon: 'pi pi-external-link',
+      action: 'open-route' as const,
+      payload: '/project/pitch-deck/new',
+    };
+    this.pendingAssistant.set(true);
+    try {
+      const catalog = await firstValueFrom(this.pitchDeckService.getPitchDeckTypes());
+      this.pendingAssistant.set(false);
+      this.appendAssistant({
+        content: this.translate.instant('chat.deck.typeQuestion'),
+        chips: [
+          ...catalog.types.map((type) => ({
+            labelKey: `dashboard.pitchDeckTypes.types.${type.id}.name`,
+            icon: 'pi pi-desktop',
+            action: 'deck-type' as const,
+            payload: type.id,
+          })),
+          compareChip,
+        ],
+      });
+    } catch (error) {
+      console.error('Chat deck: loading the deck types failed', error);
+      this.pendingAssistant.set(false);
+      this.appendAssistant({
+        content: this.translate.instant('chat.deck.typesFailed'),
+        chips: [compareChip],
+      });
+    }
+  }
+
+  /** Type choisi : le deck est créé, puis généré dans le fil. */
+  private async createAndGeneratePitchDeck(typeId: string): Promise<void> {
+    const projectId = this.session.activeProjectId();
+    if (!projectId || !typeId || this.isGenerating()) return;
+    try {
+      const deck = await firstValueFrom(
+        this.pitchDeckService.createPitchDeck(projectId, {
+          type: typeId,
+          name: this.translate.instant(`dashboard.pitchDeckTypes.types.${typeId}.name`),
+        }),
+      );
+      await this.runSseGeneration('pitchDeck', undefined, undefined, undefined, deck.id);
+    } catch (error) {
+      console.error('Chat deck: creating the pitch deck failed', error);
+      this.appendAssistant({
+        content: this.translate.instant('chat.deck.createFailed'),
+        chips: this.genericChips(),
+      });
+    }
+  }
+
+  /**
    * Génération SSE (business plan / charte graphique) directement dans le
    * chat : un message de progression est mis à jour à chaque étape.
    */
@@ -1665,6 +1733,8 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     infos?: AdditionalInfos,
     pdfFormat?: ChartePdfFormat,
     legalTypes?: LegalDocumentType[],
+    /** Business plan ou pitch deck à générer, parmi ceux du projet. */
+    documentId?: string,
   ): Promise<void> {
     const projectId = this.session.activeProjectId();
     if (!projectId || this.isGenerating()) return;
@@ -1690,11 +1760,17 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     let serviceType: SSEServiceEventType;
     switch (kind) {
       case 'businessPlan':
-        connection = this.businessPlanService.createBusinessplanItem(projectId, infos);
+        connection = this.businessPlanService.createBusinessplanItem(
+          projectId,
+          infos,
+          false,
+          [],
+          documentId ?? this.pendingBpDocumentId,
+        );
         serviceType = 'business-plan';
         break;
       case 'pitchDeck':
-        connection = this.pitchDeckService.generatePitchDeck(projectId);
+        connection = this.pitchDeckService.generatePitchDeck(projectId, false, [], documentId);
         serviceType = 'pitch-deck';
         break;
       case 'branding':

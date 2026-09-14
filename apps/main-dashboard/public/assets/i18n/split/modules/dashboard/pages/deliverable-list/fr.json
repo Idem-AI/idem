@@ -1,0 +1,56 @@
+{
+  "dashboard": {
+    "deliverableList": {
+      "loading": "Chargement de vos documents…",
+      "loadError": "Vos documents n'ont pas pu être chargés.",
+      "retry": "Réessayer",
+      "noProject": {
+        "title": "Aucun projet sélectionné",
+        "subtitle": "Sélectionnez un projet pour retrouver ses documents.",
+        "action": "Voir mes projets"
+      },
+      "updated": "modifié le {{date}}",
+      "status": {
+        "draft": "À générer",
+        "partial": "Incomplet",
+        "complete": "Complet"
+      },
+      "actions": {
+        "rename": "Renommer",
+        "renameAria": "Renommer « {{name}} »",
+        "nameLabel": "Nom du document",
+        "save": "Enregistrer",
+        "delete": "Supprimer",
+        "deleteAria": "Supprimer « {{name}} »",
+        "confirmDelete": "Supprimer définitivement ce document ?"
+      },
+      "errors": {
+        "rename": "Le document n'a pas pu être renommé. Réessayez.",
+        "delete": "Le document n'a pas pu être supprimé. Réessayez."
+      },
+      "businessPlan": {
+        "title": "Mes business plans",
+        "subtitle": "Un plan par destinataire : banque, investisseur, subvention… Choisissez celui à afficher.",
+        "create": "Nouveau business plan",
+        "customName": "Business plan sur mesure",
+        "progress": "{{completed}}/{{expected}} sections",
+        "empty": {
+          "title": "Aucun business plan pour le moment",
+          "subtitle": "Choisissez la structure attendue par votre destinataire, puis générez votre premier plan.",
+          "action": "Générer un business plan"
+        }
+      },
+      "pitchDeck": {
+        "title": "Mes pitch decks",
+        "subtitle": "Levée de fonds, banque, clients, partenaires, jury… Choisissez le deck à afficher.",
+        "create": "Nouveau pitch deck",
+        "progress": "{{completed}}/{{expected}} slides",
+        "empty": {
+          "title": "Aucun pitch deck pour le moment",
+          "subtitle": "Choisissez le type de deck adapté à votre audience, puis générez-le.",
+          "action": "Générer un pitch deck"
+        }
+      }
+    }
+  }
+}

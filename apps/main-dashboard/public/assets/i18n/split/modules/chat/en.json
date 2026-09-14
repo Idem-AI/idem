@@ -431,6 +431,14 @@
         "start": "Start a deployment",
         "list": "View my deployments"
       }
+    },
+    "deck": {
+      "typeQuestion": "Which kind of pitch deck do you want to generate? Each kind follows the slides its audience expects.",
+      "typesFailed": "I couldn't load the pitch deck types. You can compare them in the workshop.",
+      "createFailed": "The pitch deck couldn't be created. Please try again.",
+      "chips": {
+        "compare": "Compare deck types"
+      }
     }
   }
 }

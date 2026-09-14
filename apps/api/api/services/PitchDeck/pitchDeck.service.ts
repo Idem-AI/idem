@@ -1,23 +1,23 @@
 import crypto from 'crypto';
-import { LLMProvider, PromptConfig, PromptService } from '../prompt.service';
+import { PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
 
-import { ProjectModel } from '../../models/project.model';
 import logger from '../../config/logger';
-import { PitchDeckModel } from '../../models/pitchDeck.model';
+import { PitchDeckDocument } from '../../models/pitchDeck.model';
 import {
   GenericService,
   IPromptStep,
   ISectionResult,
   withGraph,
 } from '../common/generic.service';
-import { PITCH_DECK_GRAPH } from '../agents/deliverable-graph';
+import { buildPitchDeckGraph } from '../agents/deliverable-graph';
 import { SectionModel } from '../../models/section.model';
-import { PAGE_FORMATS, PdfService } from '../pdf.service';
+import { PdfService, PAGE_FORMATS } from '../pdf.service';
 import { cacheService } from '../cache.service';
 
 import { PITCH_DECK_SHARED_RULES } from './prompts/_shared.prompt';
-import { SLIDE_BRIEFS } from './prompts/slide-briefs.prompt';
+import { composeSlideBrief } from './prompts/slide-briefs.prompt';
+import { composeSlideHtmlPrompt, coverKindNote } from './prompts/slide-fallback.prompt';
 import { SLIDE_COVER_PROMPT } from './prompts/slide-cover.prompt';
 import { SLIDE_PROBLEM_PROMPT } from './prompts/slide-problem.prompt';
 import { SLIDE_SOLUTION_PROMPT } from './prompts/slide-solution.prompt';
@@ -51,20 +51,60 @@ import {
 } from '../design/documentDesignSystem';
 import { LANDSCAPE_SLIDE } from '../design/sectionRenderer';
 import { ensureProjectArtDirection } from '../design/artDirection.provider';
+import { deliverableDocumentStore } from '../common/deliverable-document.store';
+import {
+  countCompletedSections,
+  DeliverableDocumentSummary,
+  documentDesignKey,
+  findDocument,
+} from '../common/deliverable-documents';
+import {
+  DEFAULT_PITCH_DECK_TYPE_ID,
+  getPitchDeckType,
+  PITCH_DECK_TYPES,
+  resolvePitchDeckSlides,
+} from './deck-types';
 
-export const PITCH_DECK_SLIDE_ORDER = [
-  'Cover',
-  'Problem',
-  'Solution',
-  'Market',
-  'Product',
-  'Business Model',
-  'Traction',
-  'Competition',
-  'Team',
-  'Financials',
-  'Ask',
-];
+/** Ordre des slides du deck investisseur, le deck historique. */
+export const PITCH_DECK_SLIDE_ORDER = getPitchDeckType(DEFAULT_PITCH_DECK_TYPE_ID).slides;
+
+/**
+ * Prompts de composition écrits à la main pour les onze slides historiques. Ils
+ * servent à la couverture (génération libre) et au repli quand le gabarit est
+ * coupé ; les autres slides composent leur repli depuis leur brief.
+ */
+const LEGACY_SLIDE_PROMPTS: Record<string, string> = {
+  Cover: SLIDE_COVER_PROMPT,
+  Problem: SLIDE_PROBLEM_PROMPT,
+  Solution: SLIDE_SOLUTION_PROMPT,
+  Market: SLIDE_MARKET_PROMPT,
+  Product: SLIDE_PRODUCT_PROMPT,
+  'Business Model': SLIDE_BUSINESS_MODEL_PROMPT,
+  Traction: SLIDE_TRACTION_PROMPT,
+  Competition: SLIDE_COMPETITION_PROMPT,
+  Team: SLIDE_TEAM_PROMPT,
+  Financials: SLIDE_FINANCIALS_PROMPT,
+  Ask: SLIDE_ASK_PROMPT,
+};
+
+/** Un deck tel que la page d'affichage le lit : le document, son type et ses slides attendues. */
+export interface PitchDeckView extends PitchDeckDocument {
+  type: string;
+  audience: string;
+  expectedSectionNames: string[];
+}
+
+/** Type de deck proposé à la création. */
+export interface PitchDeckTypeSummary {
+  id: string;
+  audience: string;
+  speakingMinutes: string;
+  isDefault: boolean;
+  slides: string[];
+}
+
+const pdfCacheKey = (userId: string, projectId: string, documentId: string): string =>
+  cacheService.generateAIKey('pitch-deck-pdf', userId, projectId, documentId);
 
 export class PitchDeckService extends GenericService {
   private pdfService: PdfService;
@@ -75,19 +115,151 @@ export class PitchDeckService extends GenericService {
     logger.info('PitchDeckService initialized.');
   }
 
+  /* ------------------------------------------------------------------ */
+  /* Documents                                                           */
+  /* ------------------------------------------------------------------ */
+
+  getTypes(): PitchDeckTypeSummary[] {
+    return PITCH_DECK_TYPES.map((type) => ({
+      id: type.id,
+      audience: type.audience,
+      speakingMinutes: type.speakingMinutes,
+      isDefault: !!type.isDefault,
+      slides: [...type.slides],
+    }));
+  }
+
+  toSummary(deck: PitchDeckDocument): DeliverableDocumentSummary {
+    const type = getPitchDeckType(deck.type);
+    return {
+      id: deck.id,
+      name: deck.name ?? null,
+      variant: type.id,
+      audience: type.audience,
+      expectedSectionNames: [...type.slides],
+      completedSectionCount: countCompletedSections(type.slides, deck.sections),
+      createdAt: deck.createdAt,
+      updatedAt: deck.updatedAt ?? deck.generatedAt,
+    };
+  }
+
+  toView(deck: PitchDeckDocument): PitchDeckView {
+    const type = getPitchDeckType(deck.type);
+    return {
+      ...deck,
+      type: type.id,
+      audience: type.audience,
+      expectedSectionNames: [...type.slides],
+    };
+  }
+
+  /** Decks du projet ; `null` quand le projet est introuvable. */
+  async listDocuments(userId: string, projectId: string): Promise<DeliverableDocumentSummary[] | null> {
+    const decks = await deliverableDocumentStore.list(userId, projectId, 'pitchDeck');
+    return decks ? decks.map((deck) => this.toSummary(deck)) : null;
+  }
+
+  /** Crée un deck vide du type demandé ; la génération vient ensuite. */
+  async createDocument(
+    userId: string,
+    projectId: string,
+    typeId: string,
+    name?: string
+  ): Promise<PitchDeckDocument | null> {
+    return deliverableDocumentStore.create(userId, projectId, 'pitchDeck', {
+      type: getPitchDeckType(typeId).id,
+      ...(name ? { name } : {}),
+      sections: [],
+    });
+  }
+
+  async renameDocument(
+    userId: string,
+    projectId: string,
+    documentId: string,
+    name: string
+  ): Promise<PitchDeckDocument | null> {
+    return deliverableDocumentStore.update(
+      userId,
+      projectId,
+      'pitchDeck',
+      documentId,
+      (deck) => ({ ...deck, name }),
+      // Renommer n'est pas modifier le contenu : le deck garde sa place dans la liste.
+      { touch: false }
+    );
+  }
+
+  async deleteDocument(userId: string, projectId: string, documentId: string): Promise<boolean> {
+    const removed = await deliverableDocumentStore.remove(userId, projectId, 'pitchDeck', documentId);
+    if (removed) {
+      await cacheService.delete(pdfCacheKey(userId, projectId, documentId), { prefix: 'pdf' });
+    }
+    return removed;
+  }
+
+  /**
+   * Deck visé par une génération. Sans identifiant (assistant, anciens appels) :
+   * le deck principal, et un deck investisseur pour un projet qui n'en a aucun.
+   * Un identifiant inconnu rend `null` — on ne génère pas dans un autre deck
+   * que celui demandé.
+   */
+  async ensureDocument(
+    userId: string,
+    projectId: string,
+    documentId?: string
+  ): Promise<PitchDeckDocument | null> {
+    if (documentId) return deliverableDocumentStore.find(userId, projectId, 'pitchDeck', documentId);
+    const primary = await deliverableDocumentStore.find(userId, projectId, 'pitchDeck');
+    return primary ?? this.createDocument(userId, projectId, DEFAULT_PITCH_DECK_TYPE_ID);
+  }
+
+  async getPitchDeckByProjectId(
+    userId: string,
+    projectId: string,
+    documentId?: string
+  ): Promise<PitchDeckView | null> {
+    logger.debug(
+      `PitchDeckService.getPitchDeckByProjectId userId=${userId} projectId=${projectId} documentId=${documentId ?? '(primary)'}`
+    );
+    const deck = await deliverableDocumentStore.find(userId, projectId, 'pitchDeck', documentId);
+    if (!deck) return null;
+    logger.info(
+      `PitchDeckService.getPitchDeckByProjectId: ${deck.sections?.length ?? 0} sections projectId=${projectId} documentId=${deck.id}`
+    );
+    return this.toView(deck);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Génération                                                          */
+  /* ------------------------------------------------------------------ */
+
   async generatePitchDeckWithStreaming(
     userId: string,
     projectId: string,
     streamCallback?: (sectionResult: ISectionResult) => Promise<void>,
     forceRegenerate = false,
-    targetSections: string[] = []
-  ): Promise<ProjectModel | null> {
+    targetSections: string[] = [],
+    documentId?: string
+  ): Promise<PitchDeckDocument | null> {
     logger.info(
-      `Generating pitch deck with streaming for userId: ${userId}, projectId: ${projectId}, force: ${forceRegenerate}, targetSections: [${targetSections.join(', ')}]`
+      `Generating pitch deck with streaming for userId: ${userId}, projectId: ${projectId}, documentId: ${documentId ?? '(primary)'}, force: ${forceRegenerate}, targetSections: [${targetSections.join(', ')}]`
     );
 
     const project = await this.getProject(projectId, userId);
     if (!project) return null;
+
+    const deck = findDocument(project.analysisResultModel, 'pitchDeck', documentId);
+    if (!deck) {
+      logger.warn(`No pitch deck ${documentId ?? '(primary)'} in project ${projectId}`);
+      return null;
+    }
+
+    // Le TYPE décide des slides produites, de leur ordre et du lecteur de chaque
+    // brief. Un deck d'avant les types retombe sur le deck investisseur, qui est
+    // le deck historique en onze slides.
+    const { type: deckType, slides: deckSlides } = resolvePitchDeckSlides(deck.type);
+    const slideOrder = deckSlides.map((slide) => slide.name);
 
     const projectDescription =
       this.extractProjectDescription(project) +
@@ -103,28 +275,30 @@ export class PitchDeckService extends GenericService {
           description: project.longDescription || project.description,
           branding: project.analysisResultModel?.branding,
           projectDescription,
+          deckType: deckType.id,
         })
       )
       .digest('hex')
       .substring(0, 16);
 
-    const cacheKey = cacheService.generateAIKey('pitch-deck', userId, projectId, contentHash);
+    // Une clé PAR DECK : deux decks du même projet ne se servent pas l'un l'autre.
+    const cacheKey = cacheService.generateAIKey('pitch-deck', userId, projectId, `${deck.id}:${contentHash}`);
 
     // The cached result may be an incomplete deck (it is updated after each step),
     // so only short-circuit on it when nothing needs to be (re)generated.
-    const currentSections = project.analysisResultModel?.pitchDeck?.sections || [];
+    const currentSections = deck.sections || [];
     const skipCacheRead =
       forceRegenerate ||
       targetSections.length > 0 ||
-      currentSections.length < PITCH_DECK_SLIDE_ORDER.length;
+      currentSections.length < slideOrder.length;
 
     if (!skipCacheRead) {
-      const cachedResult = await cacheService.get<ProjectModel>(cacheKey, {
+      const cachedResult = await cacheService.get<PitchDeckDocument>(cacheKey, {
         prefix: 'ai',
         ttl: 7200,
       });
-      if (cachedResult) {
-        logger.info(`Pitch deck cache hit for projectId: ${projectId}`);
+      if (cachedResult?.id === deck.id) {
+        logger.info(`Pitch deck cache hit for projectId: ${projectId}, documentId: ${deck.id}`);
         return cachedResult;
       }
     }
@@ -158,7 +332,10 @@ export class PitchDeckService extends GenericService {
     // INVARIANTS du deck : couleur, typographie, rythme, accent graphique.
     // L'archétype de composition est tiré PAR SLIDE (cf. `buildSectionSeed`) :
     // onze slides qui partagent leur archétype sont onze fois la même slide.
-    const deckSeed = buildDocumentSeed(artDirection?.styleId, `pitchdeck:${projectId}`);
+    // La clé est propre au deck : deux decks du projet ne se ressemblent pas
+    // slide pour slide.
+    const designKey = documentDesignKey('pitchdeck', projectId, deck.id);
+    const deckSeed = buildDocumentSeed(artDirection?.styleId, designKey);
 
     // Flat, explicit brand context — LLM uses bg-[#hex], text-[#hex] directly
     const brandContext = [
@@ -190,15 +367,15 @@ export class PitchDeckService extends GenericService {
 
     const knownLogoUrls = collectLogoUrls(logo);
 
-    // PRÉFIXE STABLE — identique aux onze slides, émis UNE fois en tête. Il
+    // PRÉFIXE STABLE — identique à toutes les slides, émis UNE fois en tête. Il
     // portait auparavant la fin de chaque `promptConstant`, derrière la partie
     // variable : le contexte de marque ET les 1 888 tokens de règles partagées
-    // étaient repayés onze fois, sans qu'aucun début de prompt se répète.
+    // étaient repayés à chaque slide, sans qu'aucun début de prompt se répète.
     const stablePrefix = [
       projectDescription,
       `BRAND CONTEXT:\n${brandContext}`,
-      // Les règles communes aux onze slides vivaient AU MILIEU de chacun des
-      // onze prompts (1 888 tokens × 11) : ni mutualisables, ni cacheables.
+      // Les règles communes aux slides vivaient AU MILIEU de chacun des prompts
+      // (1 888 tokens par slide) : ni mutualisables, ni cacheables.
       PITCH_DECK_SHARED_RULES,
     ].join('\n\n');
 
@@ -210,7 +387,7 @@ export class PitchDeckService extends GenericService {
       CONTENT_RULES_BLOCK,
     ].join('\n\n');
 
-    // DESIGN SYSTEM du deck : calculé une fois, partagé par les onze slides.
+    // DESIGN SYSTEM du deck : calculé une fois, partagé par toutes les slides.
     const designSystem = buildDocumentDesignSystem(
       project.analysisResultModel?.branding,
       artDirection,
@@ -226,7 +403,11 @@ export class PitchDeckService extends GenericService {
     let slideIndex = 0;
 
     const seedFor = (stepName: string) =>
-      buildSectionSeed(artDirection?.styleId, `pitchdeck:${projectId}`, stepName, usedArchetypes);
+      buildSectionSeed(artDirection?.styleId, designKey, stepName, usedArchetypes);
+
+    /** Prompt HTML de repli : écrit à la main pour les slides historiques, composé sinon. */
+    const htmlPromptFor = (stepName: string): string =>
+      LEGACY_SLIDE_PROMPTS[stepName] ?? composeSlideHtmlPrompt(stepName, deckType.audience);
 
     /**
      * Slide RENDU PAR GABARIT.
@@ -236,17 +417,18 @@ export class PitchDeckService extends GenericService {
      * et le rendu resserre son échelle — un débordement ici n'est pas
      * rattrapable en aval, contrairement au business plan.
      */
-    const slide = (fallbackPrompt: string, stepName: string): IPromptStep => {
+    const slide = (stepName: string): IPromptStep => {
       slideIndex += 1;
+      const fallbackPrompt = htmlPromptFor(stepName);
       return {
         stepName,
         // Prompt d'origine : le repli quand le gabarit est coupé.
         promptConstant: fallbackPrompt,
         stablePrefix: templatedPrefix,
         template: {
-          // Sous gabarit, le brief ne porte QUE le contenu : la mise en page
-          // est au rendu.
-          contentBrief: SLIDE_BRIEFS[stepName] ?? fallbackPrompt,
+          // Sous gabarit, le brief ne porte QUE le contenu, lu par le
+          // destinataire du deck : la mise en page est au rendu.
+          contentBrief: composeSlideBrief(stepName, deckType.audience) ?? fallbackPrompt,
           designSystem,
           seed: seedFor(stepName),
           volume: '3 to 4',
@@ -261,33 +443,30 @@ export class PitchDeckService extends GenericService {
     };
 
     /** Slide en génération LIBRE : la couverture, où la composition EST le livrable. */
-    const freeformSlide = (prompt: string, stepName: string): IPromptStep => {
+    const freeformSlide = (stepName: string): IPromptStep => {
       slideIndex += 1;
       return {
         stepName,
-        promptConstant: `${prompt}\n\n<composition_for_this_slide>\n${describeSectionSeed(seedFor(stepName))}\n</composition_for_this_slide>`,
+        promptConstant: [
+          htmlPromptFor(stepName),
+          coverKindNote(deckType.audience),
+          `<composition_for_this_slide>\n${describeSectionSeed(seedFor(stepName))}\n</composition_for_this_slide>`,
+        ]
+          .filter(Boolean)
+          .join('\n\n'),
       };
     };
 
-    const steps: IPromptStep[] = [
-      freeformSlide(SLIDE_COVER_PROMPT, 'Cover'),
-      slide(SLIDE_PROBLEM_PROMPT, 'Problem'),
-      slide(SLIDE_SOLUTION_PROMPT, 'Solution'),
-      slide(SLIDE_MARKET_PROMPT, 'Market'),
-      slide(SLIDE_PRODUCT_PROMPT, 'Product'),
-      slide(SLIDE_BUSINESS_MODEL_PROMPT, 'Business Model'),
-      slide(SLIDE_TRACTION_PROMPT, 'Traction'),
-      slide(SLIDE_COMPETITION_PROMPT, 'Competition'),
-      slide(SLIDE_TEAM_PROMPT, 'Team'),
-      slide(SLIDE_FINANCIALS_PROMPT, 'Financials'),
-      slide(SLIDE_ASK_PROMPT, 'Ask'),
-    ];
+    const steps: IPromptStep[] = deckSlides.map((definition) =>
+      definition.freeform ? freeformSlide(definition.name) : slide(definition.name)
+    );
 
     // Chaque slide reçoit son propre budget de tokens et sa température
     // (voir AI_CONFIG.pitchDeck.sections) ; la config de la feature sert de
-    // base pour ceux qui n'en redéfinissent pas. Les dépendances entre slides
-    // vivent dans PITCH_DECK_GRAPH — notamment `Ask` ← `Financials`, pour que le
-    // montant demandé découle des projections affichées deux slides plus tôt.
+    // base pour celles qui n'en redéfinissent pas. Les dépendances entre slides
+    // viennent du catalogue (`deck-types.ts`), filtrées sur les slides du type —
+    // notamment `Ask` ← `Financials`, pour que le montant demandé découle des
+    // projections affichées deux slides plus tôt.
     const slideQuality = {
       format: 'html' as const,
       minChars: 300,
@@ -297,7 +476,7 @@ export class PitchDeckService extends GenericService {
     const configuredSteps = withGraph(
       AI_CONFIG.pitchDeck,
       steps,
-      PITCH_DECK_GRAPH,
+      buildPitchDeckGraph(deckSlides),
       slideQuality,
       stablePrefix
     );
@@ -310,17 +489,57 @@ export class PitchDeckService extends GenericService {
       fallbackModels: AI_CONFIG.pitchDeck.fallbackModels,
     };
 
+    /**
+     * Images sourcées puis passe déterministe anti-générique : couleurs hors
+     * charte, polices écrites en dur, titres en dégradé et images sans alt sont
+     * corrigés sans appel au modèle. Le reste (logo absent, mise en page
+     * générique) est journalisé — sur onze diapositives, il en reste toujours
+     * une qui déroge à la consigne du prompt.
+     */
+    const polishSlide = async (name: string, data: string): Promise<string> => {
+      let html = data;
+      if (typeof html === 'string' && (html.includes('<img') || html.includes('data-image'))) {
+        html = await this.enrichSlideWithImages(html, userId, projectId, name, knownLogoUrls);
+      }
+      if (typeof html === 'string' && html) {
+        html = enforceDesignRules(html, {
+          palette: colorsObj,
+          // Les teintes des rampes DÉRIVENT de la charte : sans cette
+          // déclaration, le linter prendrait le design system calculé pour
+          // une palette inventée.
+          extraAllowedColors: derivedPalette(designSystem),
+          fonts: [primaryFont, secondaryFont].filter(Boolean),
+          expectedLogoUrls: knownLogoUrls,
+          styleId: artDirection?.styleId,
+          label: `deck/${name}`,
+        }).html;
+      }
+      return html;
+    };
 
     // Load existing sections if not forcing regeneration.
     // Sections listed in targetSections are dropped so they get regenerated,
-    // while the others are kept as-is (resume semantics).
+    // while the others are kept as-is (resume semantics). Slides that are not
+    // part of this deck type are left out.
+    const inDeck = new Set(slideOrder);
+    const keptSections = currentSections.filter((s) => inDeck.has(s.name));
     const existingSections = forceRegenerate
       ? []
       : targetSections.length > 0
-        ? currentSections.filter((s) => !targetSections.includes(s.name))
-        : currentSections;
+        ? keptSections.filter((s) => !targetSections.includes(s.name))
+        : keptSections;
 
     let sectionResults: SectionModel[] = [...existingSections];
+
+    const persist = async (): Promise<PitchDeckDocument | null> => {
+      const saved = await deliverableDocumentStore.update(userId, projectId, 'pitchDeck', deck.id, (current) => ({
+        ...current,
+        sections: sectionResults,
+        generatedAt: new Date(),
+      }));
+      if (saved) await cacheService.set(cacheKey, saved, { prefix: 'ai', ttl: 7200 });
+      return saved;
+    };
 
     if (streamCallback) {
       await this.processStepsWithStreaming(
@@ -337,36 +556,7 @@ export class PitchDeckService extends GenericService {
             return;
           }
 
-          let enrichedData = result.data;
-          if (typeof enrichedData === 'string' && (enrichedData.includes('<img') || enrichedData.includes('data-image'))) {
-            enrichedData = await this.enrichSlideWithImages(
-              enrichedData,
-              userId,
-              projectId,
-              result.name,
-              knownLogoUrls
-            );
-          }
-
-          // Passe déterministe anti-générique : couleurs hors charte, polices
-          // écrites en dur, titres en dégradé et images sans alt sont corrigés
-          // sans appel au modèle. Le reste (logo absent, mise en page
-          // générique) est journalisé — sur onze diapositives, il en reste
-          // toujours une qui déroge à la consigne du prompt.
-          if (typeof enrichedData === 'string' && enrichedData) {
-            const lintOptions = {
-              palette: colorsObj,
-              // Les teintes des rampes DÉRIVENT de la charte : sans cette
-              // déclaration, le linter prendrait le design system calculé pour
-              // une palette inventée.
-              extraAllowedColors: derivedPalette(designSystem),
-              fonts: [primaryFont, secondaryFont].filter(Boolean),
-              expectedLogoUrls: knownLogoUrls,
-              styleId: artDirection?.styleId,
-              label: `deck/${result.name}`,
-            };
-            enrichedData = enforceDesignRules(enrichedData, lintOptions).html;
-          }
+          const enrichedData = await polishSlide(result.name, result.data);
 
           const section: SectionModel = {
             name: result.name,
@@ -374,7 +564,7 @@ export class PitchDeckService extends GenericService {
             data: enrichedData,
             summary: result.summary,
           };
-          
+
           // Add or replace in sections array to avoid duplicates
           const existingIndex = sectionResults.findIndex((s) => s.name === section.name);
           if (existingIndex !== -1) {
@@ -383,40 +573,16 @@ export class PitchDeckService extends GenericService {
             sectionResults.push(section);
           }
 
-          // Sort sections to match original step order
-          const stepOrder = steps.map((s) => s.stepName);
-          sectionResults.sort((a, b) => stepOrder.indexOf(a.name) - stepOrder.indexOf(b.name));
+          // Sort sections to match the deck order
+          sectionResults.sort((a, b) => slideOrder.indexOf(a.name) - slideOrder.indexOf(b.name));
 
-          const currentProject = await this.projectRepository.findById(
-            projectId,
-            `users/${userId}/projects`
-          );
-          if (!currentProject) throw new Error(`Project not found: ${projectId}`);
-
-          const updated = await this.projectRepository.update(
-            projectId,
-            {
-              ...currentProject,
-              analysisResultModel: {
-                ...currentProject.analysisResultModel,
-                pitchDeck: {
-                  sections: sectionResults,
-                  generatedAt: new Date(),
-                },
-              },
-            },
-            `users/${userId}/projects`
-          );
-
-          if (updated) {
-            await cacheService.set(cacheKey, updated, { prefix: 'ai', ttl: 7200 });
-            await streamCallback({
-              ...result,
-              data: enrichedData,
-            });
-          } else {
-            throw new Error(`Failed to update project after step: ${result.name}`);
+          if (!(await persist())) {
+            throw new Error(`Failed to update pitch deck ${deck.id} after step: ${result.name}`);
           }
+          await streamCallback({
+            ...result,
+            data: enrichedData,
+          });
         },
         promptConfig,
         'pitch_deck',
@@ -426,110 +592,38 @@ export class PitchDeckService extends GenericService {
       );
 
       // The stored PDF no longer matches the regenerated sections
-      await cacheService.delete(cacheService.generateAIKey('pitch-deck-pdf', userId, projectId), {
-        prefix: 'pdf',
-      });
+      await cacheService.delete(pdfCacheKey(userId, projectId, deck.id), { prefix: 'pdf' });
 
-      return this.projectRepository.findById(projectId, `users/${userId}/projects`);
+      return deliverableDocumentStore.find(userId, projectId, 'pitchDeck', deck.id);
     }
 
     const stepResults = await this.processSteps(configuredSteps, project, promptConfig);
     sectionResults = await Promise.all(
-      stepResults.map(async (r) => {
-        let enrichedData = r.data;
-        if (typeof enrichedData === 'string' && (enrichedData.includes('<img') || enrichedData.includes('data-image'))) {
-          enrichedData = await this.enrichSlideWithImages(
-            enrichedData,
-            userId,
-            projectId,
-            r.name,
-            knownLogoUrls
-          );
-        }
-        // Même passe déterministe que dans la branche streamée : les deux
-        // chemins produisent le même document, ils doivent subir les mêmes
-        // contrôles.
-        if (typeof enrichedData === 'string' && enrichedData) {
-          const lintOptions = {
-            palette: colorsObj,
-            extraAllowedColors: derivedPalette(designSystem),
-            fonts: [primaryFont, secondaryFont].filter(Boolean),
-            expectedLogoUrls: knownLogoUrls,
-            styleId: artDirection?.styleId,
-            label: `deck/${r.name}`,
-          };
-          enrichedData = enforceDesignRules(enrichedData, lintOptions).html;
-        }
-        return {
-          name: r.name,
-          type: r.type,
-          data: enrichedData,
-          summary: r.summary,
-        };
-      })
+      // Même passe que dans la branche streamée : les deux chemins produisent le
+      // même document, ils doivent subir les mêmes contrôles.
+      stepResults.map(async (r) => ({
+        name: r.name,
+        type: r.type,
+        data: await polishSlide(r.name, r.data),
+        summary: r.summary,
+      }))
     );
 
-    const old = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
-    if (!old) return null;
-
-    const updated = await this.projectRepository.update(
-      projectId,
-      {
-        ...old,
-        analysisResultModel: {
-          ...old.analysisResultModel,
-          pitchDeck: {
-            sections: sectionResults,
-            generatedAt: new Date(),
-          },
-        },
-      },
-      `users/${userId}/projects`
-    );
-
+    const updated = await persist();
     if (updated) {
-      await cacheService.set(cacheKey, updated, { prefix: 'ai', ttl: 7200 });
       // The stored PDF no longer matches the regenerated sections
-      await cacheService.delete(cacheService.generateAIKey('pitch-deck-pdf', userId, projectId), {
-        prefix: 'pdf',
-      });
+      await cacheService.delete(pdfCacheKey(userId, projectId, deck.id), { prefix: 'pdf' });
     }
     return updated;
-  }
-
-  async getPitchDeckByProjectId(userId: string, projectId: string): Promise<PitchDeckModel | null> {
-    logger.debug(
-      `PitchDeckService.getPitchDeckByProjectId userId=${userId} projectId=${projectId}`
-    );
-    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
-    if (!project) {
-      logger.warn(`PitchDeckService.getPitchDeckByProjectId: project not found ${projectId}`);
-      return null;
-    }
-    const deck = project.analysisResultModel?.pitchDeck || null;
-    logger.info(
-      `PitchDeckService.getPitchDeckByProjectId: ${deck ? (deck.sections?.length ?? 0) : 0} sections projectId=${projectId}`
-    );
-    return deck;
-  }
-
-  async deletePitchDeck(userId: string, projectId: string): Promise<void> {
-    logger.info(`PitchDeckService.deletePitchDeck userId=${userId} projectId=${projectId}`);
-    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
-    if (!project) {
-      logger.warn(`PitchDeckService.deletePitchDeck: project not found ${projectId}`);
-      return;
-    }
-    project.analysisResultModel.pitchDeck = undefined;
-    await this.projectRepository.update(projectId, project, `users/${userId}/projects`);
-    logger.info(`PitchDeckService.deletePitchDeck: deleted projectId=${projectId}`);
   }
 
   /**
    * Generates a 16:9 landscape slide PDF from the stored sections.
    */
-  async generatePitchDeckPdf(userId: string, projectId: string): Promise<string> {
-    logger.info(`PitchDeckService.generatePitchDeckPdf userId=${userId} projectId=${projectId}`);
+  async generatePitchDeckPdf(userId: string, projectId: string, documentId?: string): Promise<string> {
+    logger.info(
+      `PitchDeckService.generatePitchDeckPdf userId=${userId} projectId=${projectId} documentId=${documentId ?? '(primary)'}`
+    );
     const startedAt = Date.now();
     const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!project) {
@@ -537,7 +631,7 @@ export class PitchDeckService extends GenericService {
       throw new Error(`Project not found with ID: ${projectId}`);
     }
 
-    const pitchDeck = project.analysisResultModel?.pitchDeck;
+    const pitchDeck = findDocument(project.analysisResultModel, 'pitchDeck', documentId);
     if (!pitchDeck || !pitchDeck.sections || pitchDeck.sections.length === 0) {
       logger.warn(
         `PitchDeckService.generatePitchDeckPdf: no sections available for projectId=${projectId}`
@@ -545,7 +639,7 @@ export class PitchDeckService extends GenericService {
       return '';
     }
 
-    const cacheKey = cacheService.generateAIKey('pitch-deck-pdf', userId, projectId);
+    const cacheKey = pdfCacheKey(userId, projectId, pitchDeck.id);
     const cached = await cacheService.get<string>(cacheKey, { prefix: 'pdf', ttl: 3600 });
     if (cached) {
       logger.info(
@@ -560,7 +654,7 @@ export class PitchDeckService extends GenericService {
         projectName: project.name || 'Project',
         projectDescription: project.longDescription || project.description || '',
         sections: pitchDeck.sections,
-        sectionDisplayOrder: PITCH_DECK_SLIDE_ORDER,
+        sectionDisplayOrder: getPitchDeckType(pitchDeck.type).slides,
         pageFormat: PAGE_FORMATS.SLIDE_16_9,
         footerText: 'Confidential — Generated by Idem',
       });

@@ -6,6 +6,7 @@
  * réutiliser l'infrastructure existante (auth, ownership, schemas Mongoose).
  */
 
+import { listDocuments } from '../common/deliverable-documents';
 import { IRepository } from '../../repository/IRepository';
 import { RepositoryFactory } from '../../repository/RepositoryFactory';
 import { ProjectModel } from '../../models/project.model';
@@ -210,8 +211,8 @@ export class FinanceService {
       throw new Error(`Failed to persist finance for project ${projectId}`);
     }
 
-    // Mettre à jour la section Financial Plan du business plan en arrière-plan
-    if (project.analysisResultModel?.businessPlan) {
+    // Mettre à jour la section Financial Plan des business plans en arrière-plan
+    if (listDocuments(project.analysisResultModel, 'businessPlan').length > 0) {
       try {
         const { BusinessPlanService } = require('../BusinessPlan/businessPlan.service');
         const { PromptService } = require('../prompt.service');

@@ -30,7 +30,11 @@
  */
 
 import { BP_SECTION_BRIEFS } from '../services/BusinessPlan/prompts/section-briefs.prompt';
-import { SLIDE_BRIEFS } from '../services/PitchDeck/prompts/slide-briefs.prompt';
+import {
+  DECK_READER_FRAMES,
+  SLIDE_BRIEFS,
+} from '../services/PitchDeck/prompts/slide-briefs.prompt';
+import { PITCH_DECK_SLIDE_CATALOG } from '../services/PitchDeck/deck-types';
 import {
   CHARTER_PAGE_BRIEFS,
   CHARTER_PAGE_HEADINGS,
@@ -112,8 +116,21 @@ console.log('1. Les briefs de gabarit ne décrivent aucune composition');
   const families: [string, Record<string, string>][] = [
     ['business plan', BP_SECTION_BRIEFS],
     ['pitch deck', SLIDE_BRIEFS],
+    // Le cadre de lecture de chaque type de deck part avec chaque brief.
+    ['pitch deck (cadres de lecture)', DECK_READER_FRAMES],
     ['charte', CHARTER_PAGE_BRIEFS],
   ];
+
+  // Une slide sous gabarit sans brief retomberait sur son prompt HTML sans que
+  // rien ne le signale : chaque slide du catalogue, hors couverture, a le sien.
+  const slidesWithoutBrief = PITCH_DECK_SLIDE_CATALOG.filter(
+    (slide) => !slide.freeform && !SLIDE_BRIEFS[slide.name]
+  ).map((slide) => slide.name);
+  check(
+    'chaque slide du catalogue des decks a son brief de contenu',
+    slidesWithoutBrief.length === 0,
+    slidesWithoutBrief.join(', ')
+  );
 
   for (const [family, briefs] of families) {
     const offenders = Object.entries(briefs)

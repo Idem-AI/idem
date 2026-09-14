@@ -128,6 +128,11 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
   readonly sectionLabelPrefix = input<string>('');
   /** Une génération est en cours : les régénérations sont désactivées. */
   readonly busy = input<boolean>(false);
+  /**
+   * Document affiché quand le projet en garde plusieurs (business plans, pitch
+   * decks). Absent : le document le plus récent.
+   */
+  readonly documentId = input<string | null>(null);
 
   /** Régénérer une section (nom canonique). */
   readonly regenerateSection = output<string>();
@@ -351,7 +356,7 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
 
     await this.tokenService.waitForAuthReady();
     adapter
-      .load(this.projectId)
+      .load(this.projectId, this.documentId())
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (doc) => {
@@ -443,6 +448,8 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
     const selection = this.selection();
     const current = this.currentPage();
     const queryParams: Record<string, string> = {};
+    const documentId = this.documentId();
+    if (documentId) queryParams[EDITOR_TARGET_PARAMS.document] = documentId;
     if (selection) {
       queryParams[EDITOR_TARGET_PARAMS.section] = selection.sectionId;
       queryParams[EDITOR_TARGET_PARAMS.path] = selection.path;
@@ -508,7 +515,7 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
     if (!adapter?.downloadPdf || !this.projectId || this.downloadState() === 'working') return;
     this.setDownloadState('working');
     adapter
-      .downloadPdf(this.projectId)
+      .downloadPdf(this.projectId, this.documentId())
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (blob) => {

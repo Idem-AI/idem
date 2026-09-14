@@ -14,9 +14,15 @@ import {
   DeliverableGraph,
   PITCH_DECK_GRAPH,
   buildBusinessPlanGraph,
+  buildPitchDeckGraph,
   graphDepth,
   validateGraph,
 } from '../services/agents/deliverable-graph';
+import {
+  PITCH_DECK_TYPES,
+  getSlideDefinition,
+  resolvePitchDeckSlides,
+} from '../services/PitchDeck/deck-types';
 import { BUSINESS_PLAN_TEMPLATES } from '../services/BusinessPlan/structure/templates';
 import {
   BUSINESS_PLAN_SECTION_CATALOG,
@@ -64,6 +70,32 @@ check(
   `profondeur du deck ≤ 3 vagues (mesurée: ${graphDepth(PITCH_DECK_GRAPH)})`,
   graphDepth(PITCH_DECK_GRAPH) <= 3
 );
+
+// Chaque type de deck (levée, banque, commercial, partenariat, jury, express)
+// produit son propre graphe, filtré sur ses slides : un type dont le graphe
+// serait cyclique, incomplet ou trop profond ferait échouer — ou traîner — sa
+// génération au démarrage.
+for (const type of PITCH_DECK_TYPES) {
+  const missing = type.slides.filter((name) => !getSlideDefinition(name));
+  check(
+    `deck « ${type.id} » : toutes ses slides existent au catalogue`,
+    missing.length === 0,
+    missing.join(', ')
+  );
+
+  try {
+    const graph = buildPitchDeckGraph(resolvePitchDeckSlides(type.id).slides);
+    check(`deck « ${type.id} » : graphe acyclique et complet`, true);
+    const depth = graphDepth(graph);
+    check(`deck « ${type.id} » : profondeur ≤ 3 vagues (mesurée: ${depth})`, depth <= 3);
+  } catch (error) {
+    check(
+      `deck « ${type.id} » : graphe acyclique et complet`,
+      false,
+      error instanceof Error ? error.message : String(error)
+    );
+  }
+}
 
 // Le business plan n'a plus UN graphe : chaque structure proposée (SBA, dossier
 // bancaire, fonds d'amorçage, Lean Canvas…) en produit un, filtré sur ses seules

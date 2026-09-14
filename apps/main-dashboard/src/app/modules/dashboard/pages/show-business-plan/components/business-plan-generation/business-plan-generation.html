@@ -4,6 +4,7 @@
   @if (projectId(); as currentProjectId) {
     <app-business-plan-structure
       [projectId]="currentProjectId"
+      [documentId]="documentId()"
       (structureConfirmed)="onStructureConfirmed($event)"
     />
   }
