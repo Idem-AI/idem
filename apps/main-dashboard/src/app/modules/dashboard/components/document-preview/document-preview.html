@@ -8,10 +8,32 @@
       }
       <p class="dp-meta">
         @if (pageCount() > 0) {
-          <span>{{ 'dashboard.documentPreview.pageCount' | translate: { count: pageCount() } }}</span>
-          <span class="dp-meta-dot" aria-hidden="true"></span>
+          <span class="dp-meta-item">
+            {{ 'dashboard.documentPreview.pageCount' | translate: { count: pageCount() } }}
+          </span>
         }
-        <span class="dp-meta-hint">
+        @if (statusSummary(); as status) {
+          <span class="dp-meta-item">
+            @if (status.warn) {
+              <button
+                type="button"
+                class="dp-status dp-status-warn"
+                [title]="'dashboard.documentPreview.status.goTo' | translate"
+                (click)="goToFirstIssue()"
+              >
+                <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+                {{ status.key | translate: { count: status.count } }}
+                <i class="pi pi-arrow-down text-[0.6rem]" aria-hidden="true"></i>
+              </button>
+            } @else {
+              <span class="dp-status dp-status-ok">
+                <i class="pi pi-check" aria-hidden="true"></i>
+                {{ status.key | translate }}
+              </span>
+            }
+          </span>
+        }
+        <span class="dp-meta-item dp-meta-hint">
           <i class="pi pi-hand-pointer" aria-hidden="true"></i>
           {{ 'dashboard.documentPreview.hint' | translate }}
         </span>
@@ -19,7 +41,7 @@
     </div>
   </header>
 
-  <div #stage class="dp-stage" [style.height.px]="stageHeight()">
+  <div class="dp-stage">
     <app-editor-canvas
       mode="preview"
       variant="inline"
@@ -30,8 +52,44 @@
       [bottomInset]="dockInset"
       [label]="heading() || ('dashboard.documentPreview.canvasLabel' | translate)"
       (selectionChange)="onSelectionChange($event)"
+      (documentAction)="onDocumentAction($event)"
       (escape)="closePopover()"
     >
+      <!-- Pied de chaque page : nom, alerte, « Régénérer » (discret). -->
+      @for (foot of footers(); track foot.page.id) {
+        <div
+          class="dp-foot"
+          [style.left.px]="foot.left"
+          [style.top.px]="foot.top"
+          [style.width.px]="foot.width"
+        >
+          <span class="dp-foot-label">
+            <span class="dp-foot-index">{{ foot.index + 1 }}</span>
+            <span class="dp-foot-name">{{ foot.page.label }}</span>
+            @if (foot.page.issue) {
+              <span class="dp-foot-issue">
+                {{ 'dashboard.documentPreview.issues.' + foot.page.issue | translate }}
+              </span>
+            }
+          </span>
+          <button
+            type="button"
+            class="dp-foot-btn"
+            [disabled]="busy()"
+            [attr.aria-label]="
+              'dashboard.documentPreview.footer.regenerateAria' | translate: { section: foot.page.label }
+            "
+            [title]="
+              'dashboard.documentPreview.footer.regenerateAria' | translate: { section: foot.page.label }
+            "
+            (click)="regenerate(foot.page)"
+          >
+            <i class="pi pi-refresh" aria-hidden="true"></i>
+            <span class="dp-foot-btn-label">{{ 'dashboard.documentPreview.footer.regenerate' | translate }}</span>
+          </button>
+        </div>
+      }
+
       @if (popover(); as pop) {
         <div
           class="dp-popover"
@@ -51,6 +109,21 @@
             <i class="pi pi-pencil" aria-hidden="true"></i>
             {{ 'dashboard.documentPreview.popover.edit' | translate }}
           </button>
+          @if (tracksGeneration() && selectedPage(); as page) {
+            <button
+              type="button"
+              class="dp-popover-regen"
+              [disabled]="busy()"
+              [title]="'dashboard.documentPreview.popover.regenerateAria' | translate: { section: page.label }"
+              [attr.aria-label]="
+                'dashboard.documentPreview.popover.regenerateAria' | translate: { section: page.label }
+              "
+              (click)="regenerate(page)"
+            >
+              <i class="pi pi-refresh" aria-hidden="true"></i>
+              <span class="dp-popover-regen-label">{{ 'dashboard.documentPreview.popover.regenerate' | translate }}</span>
+            </button>
+          }
           <button
             type="button"
             class="dp-popover-close"
@@ -83,9 +156,8 @@
     }
   </div>
 
-  <!-- Dock : pages · zoom · éditer · télécharger. Hors de la scène et collant :
-       posé sur le bas du document, il reste au bas de la fenêtre quand la
-       scène dépasse de l'écran. -->
+  <!-- Dock : pages · zoom · régénérer · éditer · télécharger. Collant : il reste
+       au bas de la fenêtre tant que le document est à l'écran. -->
   <div
     class="dp-dock"
     role="toolbar"
@@ -111,12 +183,12 @@
             'dashboard.documentPreview.dock.pagesMenu'
               | translate: { current: currentIndex() + 1, total: pageCount() }
           "
-          (click)="pagesMenuOpen.set(!pagesMenuOpen())"
+          (click)="togglePagesMenu()"
           (keydown.escape)="pagesMenuOpen.set(false)"
         >
           <span class="dp-page-number">{{ currentIndex() + 1 }}<span class="dp-page-total">/{{ pageCount() }}</span></span>
-          @if (currentSection(); as section) {
-            <span class="dp-page-name">{{ section.name }}</span>
+          @if (currentPage(); as page) {
+            <span class="dp-page-name">{{ page.label }}</span>
           }
         </button>
         <button
@@ -131,7 +203,7 @@
 
         @if (pagesMenuOpen()) {
           <div class="dp-menu" role="menu" (keydown.escape)="pagesMenuOpen.set(false)">
-            @for (section of sections(); track section.id; let i = $index) {
+            @for (page of pages(); track page.id; let i = $index) {
               <button
                 type="button"
                 role="menuitemradio"
@@ -140,7 +212,12 @@
                 (click)="goToPage(i)"
               >
                 <span class="dp-menu-index">{{ i + 1 }}</span>
-                <span class="truncate">{{ section.name }}</span>
+                <span class="truncate flex-1">{{ page.label }}</span>
+                @if (page.issue) {
+                  <span class="dp-menu-issue" [class.dp-menu-issue-soft]="page.issue === 'underfilled'">
+                    {{ 'dashboard.documentPreview.issues.' + page.issue | translate }}
+                  </span>
+                }
               </button>
             }
           </div>
@@ -161,6 +238,79 @@
       />
 
       <span class="dp-sep" aria-hidden="true"></span>
+
+      @if (tracksGeneration()) {
+        <div #regenControl class="dp-regen">
+          <button
+            type="button"
+            class="dp-action dp-regen-btn"
+            aria-haspopup="menu"
+            [attr.aria-expanded]="regenMenuOpen()"
+            [attr.aria-label]="'dashboard.documentPreview.regen.button' | translate"
+            [disabled]="busy()"
+            (click)="toggleRegenMenu()"
+            (keydown.escape)="regenMenuOpen.set(false)"
+          >
+            <i class="pi pi-refresh" aria-hidden="true"></i>
+            <span class="dp-action-label">{{ 'dashboard.documentPreview.regen.button' | translate }}</span>
+            <i class="pi pi-angle-down dp-caret" aria-hidden="true"></i>
+            @if (blockingPages().length > 0) {
+              <span class="dp-badge" aria-hidden="true">{{ blockingPages().length }}</span>
+            }
+          </button>
+
+          @if (regenMenuOpen()) {
+            <div class="dp-menu dp-menu-regen" role="menu" (keydown.escape)="regenMenuOpen.set(false)">
+              <button
+                type="button"
+                role="menuitem"
+                class="dp-menu-item dp-menu-rich"
+                [disabled]="resumeCount() === 0"
+                (click)="resume()"
+              >
+                <i class="pi pi-play dp-menu-icon" aria-hidden="true"></i>
+                <span class="dp-menu-text">
+                  <span class="dp-menu-title">{{ 'dashboard.documentPreview.regen.resume' | translate }}</span>
+                  <span class="dp-menu-desc">
+                    @if (resumeCount() > 0) {
+                      {{ 'dashboard.documentPreview.regen.resumeDesc' | translate: { count: resumeCount() } }}
+                    } @else {
+                      {{ 'dashboard.documentPreview.regen.nothingToResume' | translate }}
+                    }
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                class="dp-menu-item dp-menu-rich"
+                [class.dp-menu-danger]="confirmRegenerateAll()"
+                (click)="requestRegenerateAll()"
+              >
+                <i class="pi pi-refresh dp-menu-icon" aria-hidden="true"></i>
+                <span class="dp-menu-text">
+                  <span class="dp-menu-title">
+                    {{
+                      (confirmRegenerateAll()
+                        ? 'dashboard.documentPreview.regen.confirm'
+                        : 'dashboard.documentPreview.regen.all'
+                      ) | translate
+                    }}
+                  </span>
+                  <span class="dp-menu-desc">
+                    {{
+                      (confirmRegenerateAll()
+                        ? 'dashboard.documentPreview.regen.confirmDesc'
+                        : 'dashboard.documentPreview.regen.allDesc'
+                      ) | translate
+                    }}
+                  </span>
+                </span>
+              </button>
+            </div>
+          }
+        </div>
+      }
     }
 
     <button

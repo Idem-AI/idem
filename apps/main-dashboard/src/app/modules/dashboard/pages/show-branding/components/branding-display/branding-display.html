@@ -35,6 +35,11 @@
   <app-document-preview
     documentType="branding"
     [heading]="'dashboard.brandingDisplay.title' | translate"
+    [outline]="outline()"
+    sectionLabelPrefix="dashboard.generationPanel.sections.branding."
+    (regenerateSection)="regenerateSection($event)"
+    (resumeGeneration)="resumeGeneration()"
+    (regenerateAll)="regenerateAll()"
   >
     <button
       previewLeading

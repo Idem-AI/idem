@@ -47,6 +47,12 @@ export interface ReorderEvent {
   toIndex: number;
 }
 
+/** Bouton d'action du document (ex. « Régénérer » d'une page de remplacement). */
+export interface DocumentActionEvent {
+  action: string;
+  name: string;
+}
+
 /** Bornes et paliers du zoom de l'espace de travail. */
 export const ZOOM_MIN = 0.1;
 export const ZOOM_MAX = 3;
@@ -61,10 +67,18 @@ function clampZoom(value: number): number {
   return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(value * 1000) / 1000));
 }
 
-/** Point de la vue (pixels depuis le coin haut-gauche visible) qui reste fixe pendant un zoom. */
-interface ViewAnchor {
-  vx: number;
-  vy: number;
+/** Point en coordonnées client (fenêtre) qui reste immobile pendant un zoom. */
+interface ClientPoint {
+  cx: number;
+  cy: number;
+}
+
+/** Rectangle en coordonnées client. */
+interface ViewBox {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
 }
 
 /**
@@ -78,6 +92,14 @@ interface ViewAnchor {
  *    pas choisi un zoom lui-même (rotation d'écran, panneau replié…) ;
  *  - suivi de la page visible, pour la navigation par page.
  *
+ * Deux variantes :
+ *  - `workspace` (éditeur plein écran) : le document défile DANS le canvas ;
+ *  - `inline` (page du tableau de bord) : le canvas prend la hauteur du
+ *    document et c'est la PAGE qui défile. Aucune page n'est coupée par un
+ *    bord de conteneur ; seul le zoom au-delà de la largeur défile
+ *    horizontalement dans le canvas.
+ * Tous les calculs se font en coordonnées client, valables pour les deux.
+ *
  * Le contenu projeté (`<ng-content>`) est posé dans le repère du document
  * zoomé : un menu contextuel s'y place en multipliant la boîte de l'élément
  * par le zoom, et défile avec le document.
@@ -86,11 +108,12 @@ interface ViewAnchor {
   selector: 'app-editor-canvas',
   imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '[class.canvas-host-inline]': 'inline()' },
   template: `
     <div
       #scroll
       class="canvas-scroll"
-      [class.canvas-inline]="variant() === 'inline'"
+      [class.canvas-inline]="inline()"
       tabindex="0"
       role="region"
       [attr.aria-label]="label()"
@@ -121,6 +144,7 @@ interface ViewAnchor {
   styles: [
     `
       :host { display: block; height: 100%; }
+      :host(.canvas-host-inline) { height: auto; }
       .canvas-scroll {
         position: relative;
         width: 100%; height: 100%; overflow: auto;
@@ -131,11 +155,16 @@ interface ViewAnchor {
         background-size: 22px 22px;
         padding: 24px;
       }
-      /* Posé dans une page : pas de trame de fond, et une fois le document au
-         bout, la molette fait défiler la page au lieu de rester bloquée. */
-      .canvas-inline {
-        background: none;
+      /* Posé dans une page : le canvas a la hauteur du document, la page
+         défile ; pas de trame ni de marge (celle du document iframe porte
+         l'ombre des pages). */
+      .canvas-scroll.canvas-inline {
+        height: auto;
+        overflow-x: auto;
+        overflow-y: hidden;
         overscroll-behavior: auto;
+        background: none;
+        padding: 0;
       }
       .canvas-scroll:focus-visible {
         outline: 2px solid var(--color-primary);
@@ -155,9 +184,6 @@ interface ViewAnchor {
       @media (max-width: 640px) {
         .canvas-scroll { padding: 8px; }
       }
-      /* Dans une page, pas de marge autour du document : la marge intérieure
-         du document iframe porte déjà l'ombre des pages. */
-      .canvas-scroll.canvas-inline { padding: 0; }
     `,
   ],
 })
@@ -170,8 +196,8 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
   readonly mode = input<EditorMode>('edit');
   /**
    * `workspace` : espace de travail plein écran (trame pointillée, défilement
-   * confiné). `inline` : posé dans une page du tableau de bord (fond
-   * transparent, le défilement se reporte sur la page).
+   * dans le canvas). `inline` : posé dans une page du tableau de bord (fond
+   * transparent, la page défile).
    */
   readonly variant = input<'workspace' | 'inline'>('workspace');
   /** Zoom maximal atteint par l'ajustement à la largeur (jamais d'agrandissement flou). */
@@ -192,6 +218,8 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
   readonly reorderRequest = output<ReorderEvent>();
   /** Échap pressé dans le document, hors édition de texte. */
   readonly escape = output<void>();
+  /** Bouton d'action cliqué dans le document (aperçu). */
+  readonly documentAction = output<DocumentActionEvent>();
 
   private readonly sanitizer = inject(DomSanitizer);
   private readonly renderer = inject(Renderer2);
@@ -201,13 +229,14 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
   private readonly scroll = viewChild<ElementRef<HTMLElement>>('scroll');
   private readonly wrap = viewChild<ElementRef<HTMLElement>>('wrap');
 
+  protected readonly inline = computed(() => this.variant() === 'inline');
   protected readonly srcdoc = signal<SafeHtml>('');
   protected readonly iframeHeight = signal<number>(800);
   protected readonly zoomState = signal<number>(1);
   private readonly fittingState = signal<boolean>(true);
   private readonly layoutState = signal<SectionLayout[]>([]);
-  private readonly scrollTopState = signal<number>(0);
-  private readonly viewportHeightState = signal<number>(0);
+  /** Ligne de lecture (35 % de la vue), en px du document à l'échelle 1. */
+  private readonly probeState = signal<number>(0);
 
   /** Zoom courant (1 = taille réelle). */
   readonly zoom = this.zoomState.asReadonly();
@@ -220,13 +249,11 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
   readonly scaledWidth = computed(() => this.pageWidthPx() * this.zoomState());
   readonly scaledHeight = computed(() => this.iframeHeight() * this.zoomState());
 
-  /** Index de la page lue : la dernière dont le haut a passé le tiers supérieur de la vue. */
+  /** Index de la page lue : la dernière dont le haut a passé la ligne de lecture. */
   readonly currentSectionIndex = computed(() => {
     const layouts = this.layoutState();
     if (layouts.length === 0) return -1;
-    const probe =
-      (this.scrollTopState() - this.wrapOffsetTop + this.viewportHeightState() * 0.35) /
-      this.zoomState();
+    const probe = this.probeState();
     let index = 0;
     layouts.forEach((layout, i) => {
       if (layout.top <= probe) index = i;
@@ -240,7 +267,8 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
   private pendingSectionReveal: { id: string; smooth: boolean } | null = null;
   private revealSmooth = true;
   private scrollFrame = 0;
-  private wrapOffsetTop = 0;
+  /** Hauteur des barres fixées en haut de la fenêtre (variante inline). */
+  private topInset = 0;
 
   constructor() {
     afterNextRender(() => this.observeViewport());
@@ -264,7 +292,9 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
   /** (Re)construit intégralement le document iframe à partir des sections. */
   render(sections: EditableSection[], preserveScroll = false): void {
     const scrollEl = this.scroll()?.nativeElement;
-    if (preserveScroll && scrollEl) this.pendingScrollTop = scrollEl.scrollTop;
+    // En inline, la page garde sa position d'elle-même : la hauteur de
+    // l'iframe est conservée jusqu'au premier message du nouveau document.
+    if (preserveScroll && scrollEl && !this.inline()) this.pendingScrollTop = scrollEl.scrollTop;
     const ctx: RenderContext = {
       primaryFont: this.fonts().primaryFont,
       secondaryFont: this.fonts().secondaryFont,
@@ -305,43 +335,36 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
   /** Ajuste le document à la largeur disponible et suit ensuite ses changements. */
   fitToWidth(): void {
     this.fittingState.set(true);
-    this.applyZoom(this.fitZoom(), { vx: (this.scroll()?.nativeElement.clientWidth ?? 0) / 2, vy: 0 });
+    const view = this.viewBox();
+    this.applyZoom(this.fitZoom(), view ? { cx: view.left + view.width / 2, cy: view.top } : undefined);
   }
 
   /**
    * Applique un zoom en gardant immobile le point du document situé sous
-   * `anchor` (par défaut, le centre de la vue).
+   * `anchor` (par défaut, le centre de la partie visible).
    */
-  private applyZoom(value: number, anchor?: ViewAnchor): void {
+  private applyZoom(value: number, anchor?: ClientPoint): void {
     const next = clampZoom(value);
     const prev = this.zoomState();
-    const el = this.scroll()?.nativeElement;
-    const wrap = this.wrap()?.nativeElement;
     if (Math.abs(next - prev) < 0.001) return;
-    if (!el || !wrap) {
+    const wrap = this.wrap()?.nativeElement;
+    const view = this.viewBox();
+    if (!wrap || !view) {
       this.zoomState.set(next);
       return;
     }
-    const vx = anchor?.vx ?? el.clientWidth / 2;
-    const vy = anchor?.vy ?? el.clientHeight / 2;
-    const docX = (el.scrollLeft + vx - wrap.offsetLeft) / prev;
-    const docY = (el.scrollTop + vy - wrap.offsetTop) / prev;
+    const cx = anchor?.cx ?? view.left + view.width / 2;
+    const cy = anchor?.cy ?? view.top + view.height / 2;
+    const before = wrap.getBoundingClientRect();
+    const docX = (cx - before.left) / prev;
+    const docY = (cy - before.top) / prev;
     this.zoomState.set(next);
     // Rendu synchrone : le défilement se recale sur les nouvelles dimensions
     // dans la même frame, sans saut visible.
     this.cdr.detectChanges();
-    el.scrollLeft = wrap.offsetLeft + docX * next - vx;
-    el.scrollTop = wrap.offsetTop + docY * next - vy;
+    const after = wrap.getBoundingClientRect();
+    this.scrollViewBy(after.left + docX * next - cx, after.top + docY * next - cy, false);
     this.syncViewport();
-  }
-
-  /** Point du document (échelle 1) → ancre dans la vue. */
-  private anchorAtDocPoint(x: number, y: number): ViewAnchor | undefined {
-    const el = this.scroll()?.nativeElement;
-    const wrap = this.wrap()?.nativeElement;
-    if (!el || !wrap) return undefined;
-    const z = this.zoomState();
-    return { vx: wrap.offsetLeft + x * z - el.scrollLeft, vy: wrap.offsetTop + y * z - el.scrollTop };
   }
 
   private fitZoom(): number {
@@ -358,13 +381,12 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
   protected onWheel(event: WheelEvent): void {
     if (!event.ctrlKey && !event.metaKey) return;
     event.preventDefault();
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     // Même sensibilité que le relais de l'iframe (editor-iframe.ts).
     const delta = Math.max(-25, Math.min(25, event.deltaY));
     this.fittingState.set(false);
     this.applyZoom(this.zoomState() * Math.exp(-delta * 0.008), {
-      vx: event.clientX - rect.left,
-      vy: event.clientY - rect.top,
+      cx: event.clientX,
+      cy: event.clientY,
     });
   }
 
@@ -383,20 +405,81 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
   }
 
   /* ------------------------------------------------------------------ */
-  /* Défilement, pages                                                   */
+  /* Vue, défilement, pages                                              */
   /* ------------------------------------------------------------------ */
+
+  /**
+   * Partie visible du canvas, en coordonnées client. En inline, c'est la
+   * portion du canvas dans la fenêtre, sous les barres fixées en haut.
+   */
+  private viewBox(): ViewBox | null {
+    const el = this.scroll()?.nativeElement;
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    if (!this.inline()) {
+      return { left: rect.left, top: rect.top, width: el.clientWidth, height: el.clientHeight };
+    }
+    const top = Math.max(rect.top, this.topInset);
+    const bottom = Math.min(rect.bottom, window.innerHeight);
+    return { left: rect.left, top, width: el.clientWidth, height: Math.max(0, bottom - top) };
+  }
+
+  /**
+   * Défile la vue. Horizontalement : le canvas. Verticalement : le canvas
+   * (workspace) ou la page (inline). `instant` explicite quand ce n'est pas
+   * une navigation : le style global pose `scroll-behavior: smooth`, qui ferait
+   * glisser un recalage de zoom.
+   */
+  private scrollViewBy(dx: number, dy: number, smooth: boolean): void {
+    const el = this.scroll()?.nativeElement;
+    if (!el) return;
+    const behavior: ScrollBehavior = smooth ? 'smooth' : 'instant';
+    if (this.inline()) {
+      if (dx) el.scrollBy({ left: dx, behavior });
+      if (dy) window.scrollBy({ top: dy, behavior });
+    } else if (dx || dy) {
+      el.scrollBy({ left: dx, top: dy, behavior });
+    }
+  }
+
+  /**
+   * Hauteur des barres fixées en haut de la fenêtre (barre du tableau de
+   * bord) : ce qui passe dessous n'est pas visible. Mesurée, pas supposée.
+   */
+  private measureTopInset(): void {
+    let inset = 0;
+    for (const node of document.elementsFromPoint(window.innerWidth / 2, 1)) {
+      const position = getComputedStyle(node).position;
+      if (position === 'fixed' || position === 'sticky') {
+        inset = Math.max(inset, node.getBoundingClientRect().bottom);
+      }
+    }
+    this.topInset = Math.min(inset, window.innerHeight / 3);
+  }
 
   private observeViewport(): void {
     const el = this.scroll()?.nativeElement;
     if (!el) return;
+    if (this.inline()) {
+      this.measureTopInset();
+      this.unlisten.push(
+        this.renderer.listen('window', 'scroll', () => this.onScroll()),
+        this.renderer.listen('window', 'resize', () => {
+          this.measureTopInset();
+          this.onScroll();
+        }),
+      );
+    }
+    const view = this.viewBox();
+    this.applyZoom(this.fitZoom(), view ? { cx: view.left, cy: view.top } : undefined);
     this.syncViewport();
-    this.applyZoom(this.fitZoom(), { vx: 0, vy: 0 });
     if (typeof ResizeObserver === 'undefined') return;
     this.resizeObserver = new ResizeObserver(() => {
-      this.syncViewport();
       if (this.fittingState()) {
-        this.applyZoom(this.fitZoom(), { vx: el.clientWidth / 2, vy: 0 });
+        const box = this.viewBox();
+        this.applyZoom(this.fitZoom(), box ? { cx: box.left + box.width / 2, cy: box.top } : undefined);
       }
+      this.syncViewport();
     });
     this.resizeObserver.observe(el);
   }
@@ -410,11 +493,11 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
   }
 
   private syncViewport(): void {
-    const el = this.scroll()?.nativeElement;
-    if (!el) return;
-    this.wrapOffsetTop = this.wrap()?.nativeElement.offsetTop ?? 0;
-    this.scrollTopState.set(el.scrollTop);
-    this.viewportHeightState.set(el.clientHeight);
+    const view = this.viewBox();
+    const wrap = this.wrap()?.nativeElement;
+    if (!view || !wrap) return;
+    const top = wrap.getBoundingClientRect().top;
+    this.probeState.set((view.top + view.height * 0.35 - top) / this.zoomState());
   }
 
   /** Fait défiler la vue jusqu'au haut d'une page, désignée par son index ou son id. */
@@ -422,34 +505,28 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
     const layouts = this.layoutState();
     const layout =
       typeof target === 'number' ? layouts[target] : layouts.find((l) => l.id === target);
-    const el = this.scroll()?.nativeElement;
-    if (!layout || !el) {
+    const wrap = this.wrap()?.nativeElement;
+    const view = this.viewBox();
+    if (!layout || !wrap || !view) {
       if (typeof target === 'string') this.pendingSectionReveal = { id: target, smooth };
       return;
     }
-    const wrapTop = this.wrap()?.nativeElement.offsetTop ?? 0;
-    el.scrollTo({
-      top: Math.max(0, wrapTop + layout.top * this.zoomState() - 12),
-      behavior: smooth ? 'smooth' : 'auto',
-    });
+    const top = wrap.getBoundingClientRect().top + layout.top * this.zoomState();
+    this.scrollViewBy(0, top - view.top - 12, smooth);
   }
 
   /** Centre dans la vue un élément du document (boîte à l'échelle 1). */
   private reveal(rect: ElementRect, smooth: boolean): void {
-    const el = this.scroll()?.nativeElement;
     const wrap = this.wrap()?.nativeElement;
-    if (!el || !wrap) return;
+    const view = this.viewBox();
+    if (!wrap || !view) return;
     const z = this.zoomState();
-    const top = wrap.offsetTop + rect.top * z;
+    const box = wrap.getBoundingClientRect();
+    const top = box.top + rect.top * z;
     const height = rect.height * z;
-    const targetTop =
-      height > el.clientHeight * 0.7 ? top - 24 : top + height / 2 - el.clientHeight / 2;
-    const targetLeft = wrap.offsetLeft + (rect.left + rect.width / 2) * z - el.clientWidth / 2;
-    el.scrollTo({
-      top: Math.max(0, targetTop),
-      left: Math.max(0, targetLeft),
-      behavior: smooth ? 'smooth' : 'auto',
-    });
+    const targetTop = height > view.height * 0.7 ? top - 24 : top + height / 2 - view.height / 2;
+    const centerX = box.left + (rect.left + rect.width / 2) * z;
+    this.scrollViewBy(centerX - (view.left + view.width / 2), targetTop - view.top, smooth);
   }
 
   /* ------------------------------------------------------------------ */
@@ -512,10 +589,9 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
         if (this.pendingScrollTop != null) {
           const target = this.pendingScrollTop;
           this.pendingScrollTop = null;
-          requestAnimationFrame(() => {
-            const el = this.scroll()?.nativeElement;
-            if (el) el.scrollTop = target;
-          });
+          requestAnimationFrame(() =>
+            this.scroll()?.nativeElement.scrollTo({ top: target, behavior: 'instant' }),
+          );
         }
         if (this.pendingSectionReveal) {
           const pending = this.pendingSectionReveal;
@@ -546,13 +622,20 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
           this.fitToWidth();
         } else {
           this.fittingState.set(false);
+          const box = this.wrap()?.nativeElement.getBoundingClientRect();
+          const z = this.zoomState();
           const anchor =
-            msg.x != null && msg.y != null ? this.anchorAtDocPoint(msg.x, msg.y) : undefined;
-          this.applyZoom(this.zoomState() * msg.factor, anchor);
+            box && msg.x != null && msg.y != null
+              ? { cx: box.left + msg.x * z, cy: box.top + msg.y * z }
+              : undefined;
+          this.applyZoom(z * msg.factor, anchor);
         }
         break;
       case 'escape':
         this.escape.emit();
+        break;
+      case 'action':
+        this.documentAction.emit({ action: msg.action, name: msg.name });
         break;
     }
   }

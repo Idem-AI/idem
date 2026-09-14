@@ -91,6 +91,19 @@ export class ShowBusinessPlan implements OnInit {
     return completeness.hasStarted && (!completeness.isComplete || this.underFilledSections().length > 0);
   });
 
+  /**
+   * Sections attendues transmises à l'aperçu. Tant que le catalogue n'a pas
+   * répondu, les noms d'un plan structuré sont inconnus : on ne transmet rien,
+   * plutôt que d'afficher comme manquantes des sections que ce plan ne
+   * contient pas (la liste historique n'est pas la sienne).
+   */
+  protected readonly previewOutline = computed(() => {
+    const keys: string[] | undefined =
+      this.project()?.analysisResultModel?.businessPlan?.structure?.sectionKeys;
+    if (keys?.length && this.catalogSections().length === 0) return [];
+    return this.completeness().items;
+  });
+
   ngOnInit(): void {
     // Get project ID from cookies
     const projectId = this.cookieService.get('projectId');

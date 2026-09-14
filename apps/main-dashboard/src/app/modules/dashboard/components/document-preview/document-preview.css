@@ -1,5 +1,6 @@
 /* ==========================================================================
-   Aperçu de document : en-tête léger, scène (canvas) et dock flottant.
+   Aperçu de document : en-tête compact, document qui défile avec la page,
+   pieds de page discrets et dock collé au bas de la fenêtre.
    ========================================================================== */
 
 .dp {
@@ -33,33 +34,65 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem 0.5rem;
   margin-top: 0.15rem;
   font-size: 0.78rem;
   color: var(--color-text-tertiary);
 }
 
-.dp-meta-dot {
-  width: 3px;
-  height: 3px;
-  border-radius: 9999px;
-  background: currentColor;
-}
-
-.dp-meta-hint {
+.dp-meta-item {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
 }
 
-/* Scène : sans fond ni cadre, les pages flottent sur le fond du tableau de
-   bord. Sa hauteur est mesurée (document-preview.ts) pour finir au bas de la
-   fenêtre ; la valeur CSS ne sert qu'avant la première mesure. */
+/* Séparateur posé par l'élément lui-même : un élément masqué n'en laisse pas d'orphelin. */
+.dp-meta-item + .dp-meta-item::before {
+  content: '';
+  width: 3px;
+  height: 3px;
+  margin-right: 0.15rem;
+  border-radius: 9999px;
+  background: var(--color-text-tertiary);
+}
+
+/* -- Résumé de génération (remplace le panneau de statut) -- */
+.dp-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 1.5rem;
+  padding: 0 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dp-status-ok {
+  color: color-mix(in srgb, #10b981 60%, var(--color-text-primary));
+  background: color-mix(in srgb, #10b981 12%, transparent);
+}
+
+.dp-status-warn {
+  color: color-mix(in srgb, #f59e0b 60%, var(--color-text-primary));
+  background: color-mix(in srgb, #f59e0b 14%, transparent);
+  transition: background-color 0.15s ease;
+}
+
+.dp-status-warn:hover {
+  background: color-mix(in srgb, #f59e0b 22%, transparent);
+}
+
+.dp-status-warn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Scène : sans fond ni cadre, le document prend sa hauteur et défile avec la page. */
 .dp-stage {
   position: relative;
-  height: calc(100dvh - 260px);
   min-height: 380px;
-  overflow: hidden;
   isolation: isolate;
 }
 
@@ -104,15 +137,92 @@
   animation-delay: 0.3s;
 }
 
+/* -- Pied de page : dans l'espace sous chaque page, volontairement discret -- */
+.dp-foot {
+  position: absolute;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  height: 28px;
+  padding: 0 2px;
+  pointer-events: none;
+}
+
+.dp-foot-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  font-size: 0.72rem;
+  color: var(--color-text-tertiary);
+}
+
+.dp-foot-index {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.dp-foot-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dp-foot-issue {
+  flex-shrink: 0;
+  padding: 0.05rem 0.45rem;
+  border-radius: 9999px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: color-mix(in srgb, #f59e0b 60%, var(--color-text-primary));
+  background: color-mix(in srgb, #f59e0b 14%, transparent);
+}
+
+.dp-foot-btn {
+  pointer-events: auto;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  height: 26px;
+  padding: 0 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  color: var(--color-text-tertiary);
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.dp-foot-btn:hover:not(:disabled) {
+  color: var(--color-text-primary);
+  border-color: var(--glass-border);
+  background: var(--glass-bg-subtle);
+}
+
+.dp-foot-btn:disabled {
+  opacity: 0.4;
+}
+
+.dp-foot-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 /* -- Menu contextuel de l'élément cliqué -- */
 .dp-popover {
   position: absolute;
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.3rem;
   width: max-content;
-  max-width: 260px;
+  max-width: 340px;
   padding: 0.3rem 0.3rem 0.3rem 0.7rem;
   border-radius: 0.85rem;
   background: #0f172a;
@@ -160,24 +270,45 @@
   white-space: nowrap;
 }
 
-.dp-popover-edit {
+.dp-popover-edit,
+.dp-popover-regen {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
   height: 2.1rem;
   padding: 0 0.85rem;
   border-radius: 0.6rem;
-  background: var(--gradient-primary, var(--color-primary));
-  color: #fff;
   font-size: 0.8rem;
   font-weight: 600;
   white-space: nowrap;
-  transition: transform 0.15s ease, filter 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.dp-popover-edit {
+  background: var(--gradient-primary, var(--color-primary));
+  color: #fff;
 }
 
 .dp-popover-edit:hover {
   filter: brightness(1.08);
   transform: translateY(-1px);
+}
+
+.dp-popover-regen {
+  color: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dp-popover-regen:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.dp-popover-regen:disabled {
+  opacity: 0.45;
 }
 
 .dp-popover-close {
@@ -196,6 +327,7 @@
 }
 
 .dp-popover-edit:focus-visible,
+.dp-popover-regen:focus-visible,
 .dp-popover-close:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 2px;
@@ -208,7 +340,7 @@
 .dp-dock {
   position: sticky;
   bottom: var(--dp-dock-gap);
-  z-index: 10;
+  z-index: 30;
   align-self: center;
   box-sizing: border-box;
   display: flex;
@@ -238,7 +370,8 @@
   background: var(--glass-border);
 }
 
-.dp-pages {
+.dp-pages,
+.dp-regen {
   position: relative;
   display: flex;
   align-items: center;
@@ -306,12 +439,13 @@
   color: var(--color-text-tertiary);
 }
 
+/* -- Menus du dock (pages, régénérer) : ils s'ouvrent vers le haut -- */
 .dp-menu {
   position: absolute;
   left: 0;
   bottom: calc(100% + 0.85rem);
   z-index: 60;
-  width: min(18rem, calc(100vw - 2rem));
+  width: min(20rem, calc(100vw - 2rem));
   max-height: min(22rem, 60dvh);
   overflow-y: auto;
   padding: 0.35rem;
@@ -319,6 +453,12 @@
   border: 1px solid var(--glass-border);
   background: var(--color-surface-2);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+.dp-menu-regen {
+  left: auto;
+  right: 0;
+  width: min(19rem, calc(100vw - 2rem));
 }
 
 .dp-menu-item {
@@ -333,9 +473,13 @@
   color: var(--color-text-secondary);
 }
 
-.dp-menu-item:hover {
+.dp-menu-item:hover:not(:disabled) {
   background: var(--glass-bg-subtle);
   color: var(--color-text-primary);
+}
+
+.dp-menu-item:disabled {
+  opacity: 0.5;
 }
 
 .dp-menu-item[aria-checked='true'] {
@@ -361,7 +505,58 @@
   color: #fff;
 }
 
-/* Actions : Éditer (teinte de marque) et Télécharger (dégradé de marque). */
+.dp-menu-issue {
+  flex-shrink: 0;
+  padding: 0.05rem 0.45rem;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: color-mix(in srgb, #f59e0b 60%, var(--color-text-primary));
+  background: color-mix(in srgb, #f59e0b 14%, transparent);
+}
+
+.dp-menu-issue-soft {
+  background: transparent;
+}
+
+.dp-menu-rich {
+  align-items: flex-start;
+  padding: 0.6rem 0.65rem;
+}
+
+.dp-menu-icon {
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+}
+
+.dp-menu-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.dp-menu-title {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.dp-menu-desc {
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--color-text-tertiary);
+}
+
+.dp-menu-danger,
+.dp-menu-danger .dp-menu-title {
+  color: color-mix(in srgb, #ef4444 65%, var(--color-text-primary));
+}
+
+.dp-menu-danger {
+  background: color-mix(in srgb, #ef4444 10%, transparent);
+}
+
+/* Actions : Régénérer (neutre), Éditer (teinte de marque), Télécharger (dégradé). */
 .dp-action {
   position: relative;
   display: inline-flex;
@@ -393,6 +588,40 @@
 
 .dp-action:not(:disabled):active {
   transform: translateY(0) scale(0.98);
+}
+
+.dp-regen-btn {
+  gap: 0.4rem;
+  padding: 0 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.dp-regen-btn:not(:disabled):hover,
+.dp-regen-btn[aria-expanded='true'] {
+  background: var(--glass-bg-subtle);
+  color: var(--color-text-primary);
+}
+
+.dp-caret {
+  font-size: 0.65rem;
+}
+
+.dp-badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1rem;
+  height: 1rem;
+  padding: 0 0.25rem;
+  border-radius: 9999px;
+  background: #f59e0b;
+  color: #1c1917;
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 /* Le bleu de marque pur tombe sous 3:1 sur la surface sombre : il est mêlé à la
@@ -476,7 +705,18 @@
   outline-offset: 2px;
 }
 
-/* -- Petits écrans : dock pleine largeur, icônes, pas de nom de page -- */
+/* -- Réduction progressive du dock : jamais de débordement -- */
+@media (max-width: 900px) {
+  .dp-regen-btn .dp-action-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
 @media (max-width: 767px) {
   .dp {
     --dp-dock-gap: 0.5rem;
@@ -484,8 +724,7 @@
   .dp-title {
     font-size: 1.05rem;
   }
-  .dp-meta-hint,
-  .dp-meta-dot {
+  .dp-meta-hint {
     display: none;
   }
   .dp-page-name {
@@ -497,12 +736,41 @@
     margin-inline: var(--dp-dock-gap);
     justify-content: space-between;
   }
+  .dp-foot-name {
+    display: none;
+  }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 640px) {
   .dp-page-step {
     display: none;
   }
+  .dp-edit {
+    width: 2.75rem;
+    padding: 0;
+  }
+  .dp-edit .dp-action-label,
+  .dp-popover-regen-label,
+  .dp-foot-btn-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .dp-popover-regen {
+    width: 2.1rem;
+    padding: 0;
+    justify-content: center;
+  }
+  .dp-foot-btn {
+    width: 26px;
+    padding: 0;
+  }
+}
+
+@media (max-width: 520px) {
   .dp-action {
     width: 2.75rem;
     padding: 0;
@@ -514,6 +782,10 @@
     overflow: hidden;
     clip: rect(0 0 0 0);
     white-space: nowrap;
+  }
+  .dp-caret,
+  .dp-kind {
+    display: none;
   }
 }
 

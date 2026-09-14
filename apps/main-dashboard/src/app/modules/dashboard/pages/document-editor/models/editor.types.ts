@@ -21,6 +21,11 @@ export interface EditableSection {
   name: string;
   type: string;
   html: string;
+  /**
+   * Aperçu uniquement : page de remplacement (section manquante ou en échec)
+   * dessinée par l'hôte. Ni survol ni sélection ; seul son bouton agit.
+   */
+  placeholder?: boolean;
 }
 
 /** Dimensions de page d'un type de document (pour le calage écran = PDF). */
@@ -85,6 +90,8 @@ export interface SectionLayout {
   id: string;
   top: number;
   height: number;
+  left: number;
+  width: number;
 }
 
 /** Élément à présélectionner à l'ouverture de l'éditeur (lien profond). */
@@ -145,6 +152,8 @@ export type IframeMessage =
       y?: number;
     }
   | { source: typeof IFRAME_TO_HOST; type: 'escape' }
+  /** Bouton d'action du document (`data-idem-action`), ex. « Régénérer » d'une page manquante. */
+  | { source: typeof IFRAME_TO_HOST; type: 'action'; action: string; name: string }
   | { source: typeof IFRAME_TO_HOST; type: 'deselect' }
   | { source: typeof IFRAME_TO_HOST; type: 'text-change'; sectionId: string; path: string; html: string }
   | {

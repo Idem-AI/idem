@@ -384,6 +384,14 @@ const INTERACTION_RUNTIME = `
     if (justDragged) { justDragged = false; e.preventDefault(); e.stopPropagation(); return; }
     var el = e.target;
     if (el.closest && el.closest('[data-idem-ui]')) return;
+    // Bouton d'une page de remplacement (aperçu) : l'action remonte à l'hôte.
+    var action = PREVIEW && el.closest ? el.closest('[data-idem-action]') : null;
+    if (action) {
+      e.preventDefault();
+      e.stopPropagation();
+      post({ type: 'action', action: action.getAttribute('data-idem-action'), name: action.getAttribute('data-idem-name') || '' });
+      return;
+    }
     if (editingEl && el === editingEl) return;
     if (!sectionOf(el)) { clearSelection(); return; }
     e.preventDefault();
@@ -539,12 +547,17 @@ const INTERACTION_RUNTIME = `
 
   /* ----- Hauteur du document (auto-resize de l'iframe) ----- */
   var lastH = 0;
+  // Toutes les pages, pages de remplacement comprises, dans l'ordre du document.
   function sectionLayout() {
-    var list = document.querySelectorAll('[data-section-id]');
+    var list = document.querySelectorAll('.idem-section');
     var out = [];
     for (var i = 0; i < list.length; i++) {
       var r = list[i].getBoundingClientRect();
-      out.push({ id: list[i].getAttribute('data-section-id'), top: r.top + window.scrollY, height: r.height });
+      out.push({
+        id: list[i].getAttribute('data-section-id') || list[i].getAttribute('data-idem-placeholder'),
+        top: r.top + window.scrollY, height: r.height,
+        left: r.left + window.scrollX, width: r.width
+      });
     }
     return out;
   }
@@ -606,6 +619,47 @@ const INTERACTION_RUNTIME = `
 })();
 `;
 
+/**
+ * Espace sous chaque page de l'aperçu (px du document) : l'hôte y pose le pied
+ * de page — nom de la section, alerte, « Régénérer ».
+ */
+export const PREVIEW_PAGE_GAP_PX = 72;
+
+/**
+ * Styles propres à l'aperçu : espacement des pages et pages de remplacement.
+ * Les tailles de ces dernières sont en `cqw` (largeur de la page) : le message
+ * garde les mêmes proportions sur une page A4 comme sur une diapositive 16:9.
+ */
+function previewPageStyles(): string {
+  return `
+    .idem-doc { gap: ${PREVIEW_PAGE_GAP_PX}px; padding-bottom: ${PREVIEW_PAGE_GAP_PX}px; }
+    .idem-placeholder { display: flex; background: #f8fafc; container-type: inline-size; }
+    .idem-ph {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 1.3cqw; margin: 3cqw; padding: 4cqw;
+      border: 2px dashed #cbd5e1; border-radius: 1.6cqw;
+      text-align: center; color: #0f172a;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    .idem-ph-error { border-color: #fcd34d; background: #fffbeb; }
+    .idem-ph-art { width: 20cqw; height: auto; margin-bottom: 1cqw; }
+    .idem-ph-section {
+      font-size: 1.5cqw; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #64748b;
+    }
+    .idem-ph-title { font-family: inherit; font-size: 3.2cqw; font-weight: 700; line-height: 1.15; max-width: 70cqw; }
+    .idem-ph-text { font-size: 1.9cqw; line-height: 1.5; color: #475569; max-width: 58cqw; }
+    .idem-ph-btn {
+      display: inline-flex; align-items: center; gap: .8cqw; margin-top: 1.2cqw;
+      padding: 1.1cqw 2.4cqw; border: none; border-radius: 999px; cursor: pointer;
+      background: #1447e6; color: #fff; font: inherit; font-size: 1.8cqw; font-weight: 600;
+      box-shadow: 0 .6cqw 1.8cqw rgba(20, 71, 230, .28);
+    }
+    .idem-ph-btn:hover { background: #0f3bc4; }
+    .idem-ph-btn:focus-visible { outline: 3px solid #0f172a; outline-offset: 3px; }
+    .idem-ph-btn svg { width: 2cqw; height: 2cqw; }
+  `;
+}
+
 /** Styles de page (calage mm) + affordances d'édition. */
 function pageStyles(
   format: PageFormat,
@@ -655,6 +709,7 @@ function pageStyles(
       border-radius: 2px;
     }
     ${rootFit}
+    ${mode === 'preview' ? previewPageStyles() : ''}
     [data-section-id] * { cursor: ${mode === 'preview' ? 'pointer' : 'default'}; }
     .idem-editing { outline: 2px solid #1447e6 !important; outline-offset: 2px; cursor: text !important; }
     h1,h2,h3,h4,h5,h6 { font-family: var(--idem-primary-font, inherit); }
@@ -677,6 +732,11 @@ export function buildIframeDocument(
   // sans toucher aux classes internes. Sinon (pitch/charte) : HTML tel quel.
   const sectionsHtml = sections
     .map((s, i) => {
+      // Page de remplacement (aperçu) : pas de data-section-id, donc ni survol
+      // ni sélection, et aucun chemin d'édition ne la vise.
+      if (s.placeholder) {
+        return `<section class="idem-section idem-placeholder" data-idem-placeholder="${attr(s.id)}" data-section-index="${i}">${s.html}</section>`;
+      }
       const inner = multiPage ? normalizeRootForFlow(s.html) : s.html;
       return `<section class="idem-section" data-section-id="${attr(s.id)}" data-section-index="${i}">${inner}</section>`;
     })
