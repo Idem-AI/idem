@@ -10,6 +10,10 @@ import {
 } from '../../models/business-plan-structure.model';
 import { SSEService } from '../../../../shared/services/sse.service';
 import { SSEStepEvent, SSEConnectionConfig } from '../../../../shared/models/sse-step.model';
+import {
+  DeliverableDocumentSummary,
+  documentIdQuery,
+} from '../../models/deliverable-document.model';
 
 @Injectable({
   providedIn: 'root',
@@ -34,7 +38,9 @@ export class BusinessPlanService {
     projectId: string,
     additionalInfos?: any,
     force = false,
-    sections: string[] = []
+    sections: string[] = [],
+    /** Plan à générer ; absent, l'API retient le plan le plus récent. */
+    documentId?: string | null,
   ): Observable<SSEStepEvent> {
     console.log('Starting business plan generation with SSE...', {
       projectId,
@@ -47,6 +53,7 @@ export class BusinessPlanService {
     this.closeSSEConnection();
 
     const generationParams = new URLSearchParams();
+    if (documentId) generationParams.set('documentId', documentId);
     if (force) generationParams.set('force', 'true');
     if (sections.length > 0) generationParams.set('sections', sections.join(','));
 
@@ -193,8 +200,8 @@ export class BusinessPlanService {
    * @param projectId Project ID
    * @returns Observable with blob data for PDF download
    */
-  downloadBusinessPlanPdf(projectId: string): Observable<Blob> {
-    const pdfUrl = `${this.apiUrl}/pdf/${projectId}`;
+  downloadBusinessPlanPdf(projectId: string, documentId?: string | null): Observable<Blob> {
+    const pdfUrl = `${this.apiUrl}/pdf/${projectId}${documentIdQuery(documentId)}`;
 
     return this.http
       .get(pdfUrl, {
@@ -238,6 +245,39 @@ export class BusinessPlanService {
       );
   }
 
+  /** Plans du projet, en résumé (sans le HTML des sections). */
+  listBusinessPlans(projectId: string): Observable<DeliverableDocumentSummary[]> {
+    return this.http.get<DeliverableDocumentSummary[]>(`${this.apiUrl}/${projectId}/documents`);
+  }
+
+  /**
+   * Crée un plan vide sur la structure choisie ; la génération se lance ensuite
+   * avec son id. Les plans déjà rédigés ne sont pas touchés.
+   */
+  createBusinessPlan(
+    projectId: string,
+    body: { templateId: string; sectionKeys?: string[]; name?: string },
+  ): Observable<DeliverableDocumentSummary> {
+    return this.http.post<DeliverableDocumentSummary>(`${this.apiUrl}/${projectId}/documents`, body);
+  }
+
+  renameBusinessPlan(
+    projectId: string,
+    documentId: string,
+    name: string,
+  ): Observable<DeliverableDocumentSummary> {
+    return this.http.patch<DeliverableDocumentSummary>(
+      `${this.apiUrl}/${projectId}/documents/${encodeURIComponent(documentId)}`,
+      { name },
+    );
+  }
+
+  deleteBusinessPlan(projectId: string, documentId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiUrl}/${projectId}/documents/${encodeURIComponent(documentId)}`,
+    );
+  }
+
   /**
    * Catalogue des structures de plan : modèles prédéfinis (dossier bancaire,
    * plan SBA, plan investisseur, subvention…) et sections composables.
@@ -265,8 +305,10 @@ export class BusinessPlanService {
   }
 
   /** Structure actuellement retenue pour le projet (jamais vide côté API). */
-  getStructure(projectId: string): Observable<BusinessPlanStructure> {
-    return this.http.get<BusinessPlanStructure>(`${this.apiUrl}/${projectId}/structure`);
+  getStructure(projectId: string, documentId?: string | null): Observable<BusinessPlanStructure> {
+    return this.http.get<BusinessPlanStructure>(
+      `${this.apiUrl}/${projectId}/structure${documentIdQuery(documentId)}`,
+    );
   }
 
   /**
@@ -279,8 +321,9 @@ export class BusinessPlanService {
     projectId: string,
     templateId: string,
     sectionKeys?: string[],
+    documentId?: string | null,
   ): Observable<BusinessPlanStructure> {
-    return this.http.put<BusinessPlanStructure>(`${this.apiUrl}/${projectId}/structure`, {
+    return this.http.put<BusinessPlanStructure>(`${this.apiUrl}/${projectId}/structure${documentIdQuery(documentId)}`, {
       templateId,
       ...(sectionKeys ? { sectionKeys } : {}),
     });
@@ -290,9 +333,12 @@ export class BusinessPlanService {
    * Get PDF quality metrics for a generated business plan.
    * @param projectId Project ID
    */
-  getBusinessPlanPdfQuality(projectId: string): Observable<BusinessPlanPdfQuality> {
+  getBusinessPlanPdfQuality(
+    projectId: string,
+    documentId?: string | null,
+  ): Observable<BusinessPlanPdfQuality> {
     return this.http
-      .get<BusinessPlanPdfQuality>(`${this.apiUrl}/pdf-quality/${projectId}`)
+      .get<BusinessPlanPdfQuality>(`${this.apiUrl}/pdf-quality/${projectId}${documentIdQuery(documentId)}`)
       .pipe(
         catchError((error) => {
           console.error(`Error fetching PDF quality for project ${projectId}:`, error);

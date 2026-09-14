@@ -1,3 +1,4 @@
+import { hasGeneratedDeliverable } from '../../dashboard/models/deliverable-document.model';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ProjectModel } from '@idem/shared-models';
@@ -23,12 +24,6 @@ const EMPTY_EXTERNAL: GuidedExternalState = {
   hasCommunication: false,
   hasDeployment: false,
 };
-
-/** Le projet contient-il une valeur exploitable pour ce chemin ? */
-function hasSections(sections: unknown): boolean {
-  if (!Array.isArray(sections) || sections.length === 0) return false;
-  return sections.some((s: { data?: unknown; summary?: string }) => !!s?.data || !!s?.summary);
-}
 
 /** L'URL demandée tombe-t-elle sous l'un de ces préfixes ? */
 function matchesPath(path: string, prefixes: readonly string[]): boolean {
@@ -90,7 +85,7 @@ export const GUIDED_STEPS: readonly GuidedStepDefinition[] = [
     navLabelKey: 'dashboard.sidebar.businessPlan',
     required: true,
     estimatedMinutes: 15,
-    isDone: (project) => hasSections(project?.analysisResultModel?.businessPlan?.sections),
+    isDone: (project) => hasGeneratedDeliverable(project?.analysisResultModel, 'businessPlan'),
   },
   {
     id: 'finance',
@@ -110,7 +105,7 @@ export const GUIDED_STEPS: readonly GuidedStepDefinition[] = [
     navLabelKey: 'dashboard.sidebar.pitchDeck',
     required: false,
     estimatedMinutes: 10,
-    isDone: (project) => hasSections(project?.analysisResultModel?.pitchDeck?.sections),
+    isDone: (project) => hasGeneratedDeliverable(project?.analysisResultModel, 'pitchDeck'),
   },
   {
     id: 'development',

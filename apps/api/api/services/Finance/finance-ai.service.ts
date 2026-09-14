@@ -8,6 +8,7 @@
  *  - Génération d'un résumé synthétique en langage naturel.
  */
 
+import { findDocument } from '../common/deliverable-documents';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../../config/logger';
 import { resolveJurisdiction } from '../common/accounting-jurisdiction';
@@ -501,7 +502,8 @@ export class FinanceAIService {
   }
 
   private summarizeBusinessPlanForContext(project: ProjectModel): string {
-    const bp: any = project.analysisResultModel?.businessPlan;
+    // Le plan le plus récemment modifié : c'est celui que l'utilisateur travaille.
+    const bp: any = findDocument(project.analysisResultModel, 'businessPlan');
     if (!bp || !bp.sections || bp.sections.length === 0) return 'Aucun business plan disponible.';
 
     const IMPORTANT_SECTIONS = [

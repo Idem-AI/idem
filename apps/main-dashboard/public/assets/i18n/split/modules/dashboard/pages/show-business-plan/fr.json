@@ -8,7 +8,8 @@
         "backToProjects": "Retour aux projets",
         "generate": "Générer le plan d'affaires",
         "selectProject": "Sélectionner un projet",
-        "edit": "Éditer"
+        "edit": "Éditer",
+        "backToList": "Retour à mes business plans"
       },
       "empty": {
         "title": "Aucun plan d'affaires pour le moment",
@@ -17,6 +18,17 @@
           "title": "Aucun projet sélectionné",
           "subtitle": "Veuillez sélectionner un projet pour voir ou générer son plan d'affaires"
         }
+      },
+      "notFound": {
+        "title": "Ce business plan est introuvable",
+        "subtitle": "Il a peut-être été supprimé. Retrouvez vos business plans dans la liste."
+      },
+      "draft": {
+        "title": "Ce business plan n'a pas encore été généré",
+        "subtitle": "Sa structure est choisie : lancez la génération pour rédiger ses {{count}} sections."
+      },
+      "errors": {
+        "load": "Le projet n’a pas pu être chargé."
       }
     }
   }

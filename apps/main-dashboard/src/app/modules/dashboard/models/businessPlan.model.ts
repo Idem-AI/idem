@@ -1,4 +1,5 @@
 import { SectionModel } from './section.model';
+import { BusinessPlanStructure } from './business-plan-structure.model';
 
 /** Qualité de mise en page d'une section dans le dernier PDF généré. */
 export interface SectionPdfQuality {
@@ -17,6 +18,10 @@ export interface BusinessPlanPdfQuality {
 export interface BusinessPlanModel {
   id?: string;
   projectId?: string;
+  /** Nom donné par l'utilisateur. */
+  name?: string | null;
+  /** Structure retenue (dossier bancaire, plan investisseur, sur mesure…). */
+  structure?: BusinessPlanStructure;
   sections: SectionModel[];
   createdAt?: Date;
   updatedAt?: Date;

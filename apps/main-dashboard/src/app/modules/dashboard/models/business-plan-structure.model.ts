@@ -74,6 +74,8 @@ export interface BusinessPlanStructure {
 export interface BusinessPlanStructureSelection {
   structure: BusinessPlanStructure;
   sectionNames: string[];
+  /** Plan qui porte la structure — créé à la confirmation quand il est nouveau. */
+  documentId: string;
 }
 
 /** Ordre d'affichage des familles dans le composeur. */

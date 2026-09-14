@@ -2,8 +2,8 @@ import { ArchitectureModel } from './architecture.model';
 import { BrandIdentityModel } from './brand-identity.model';
 import { DiagramModel } from './diagram.model';
 import { LandingModel } from './landing.model';
-import { BusinessPlanModel } from './businessPlan.model';
-import { PitchDeckModel } from './pitchDeck.model';
+import { BusinessPlanDocument, BusinessPlanModel } from './businessPlan.model';
+import { PitchDeckDocument, PitchDeckModel } from './pitchDeck.model';
 import { LegalDocsModel } from './legalDocs.model';
 import { AdvisorConversationModel } from './advisor.model';
 import { WebContainerModel } from './webcontainer.model';
@@ -56,8 +56,17 @@ import { FinanceModel } from './finance.model';
 export interface AnalysisResultModel {
   id?: string;
   architectures: ArchitectureModel[];
+  /**
+   * Ancien emplacement unique du business plan. Lu comme premier document de
+   * `businessPlans`, retiré à la première écriture (`common/deliverable-documents.ts`).
+   */
   businessPlan?: BusinessPlanModel;
+  /** Business plans du projet (dossier bancaire, plan investisseur…). */
+  businessPlans?: BusinessPlanDocument[];
+  /** Ancien emplacement unique du pitch deck — même traitement que `businessPlan`. */
   pitchDeck?: PitchDeckModel;
+  /** Pitch decks du projet (levée, banque, présentation commerciale…). */
+  pitchDecks?: PitchDeckDocument[];
   legalDocs?: LegalDocsModel;
   advisorConversation?: AdvisorConversationModel;
   communication?: CommunicationModel;

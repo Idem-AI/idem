@@ -80,6 +80,11 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
   // Signals for reactive state management
   protected readonly projectId = signal<string | null>(null);
   /**
+   * Plan généré : celui désigné dans l'URL (régénération, reprise), ou celui
+   * que le sélecteur de structure vient de créer.
+   */
+  protected readonly documentId = signal<string | null>(null);
+  /**
    * Première étape du parcours : le sommaire que le document suivra. Elle
    * précède le formulaire d'informations, parce qu'une banque accepte ou
    * renvoie un dossier sur sa table des matières, pas sur son adresse postale.
@@ -143,6 +148,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.projectId.set(this.cookieService.get('projectId'));
+    this.documentId.set(this.route.snapshot.queryParams['documentId'] ?? null);
     this.isForcingRegeneration = this.route.snapshot.queryParams['force'] === 'true';
 
     const sectionsParam = this.route.snapshot.queryParams['sections'];
@@ -171,6 +177,7 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
    * sections attendues à la console.
    */
   protected onStructureConfirmed(selection: BusinessPlanStructureSelection): void {
+    this.documentId.set(selection.documentId);
     if (selection.sectionNames.length > 0) {
       this.plannedSectionNames.set(selection.sectionNames);
     }
@@ -220,7 +227,8 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
       this.projectId()!,
       undefined,
       this.isForcingRegeneration,
-      this.targetSections
+      this.targetSections,
+      this.documentId(),
     );
 
     this.startGenerationProcess(sseConnection);
@@ -249,7 +257,9 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
     const sseConnection = this.businessPlanService.createBusinessplanItem(
       this.projectId()!,
       additionalInfos,
-      this.isForcingRegeneration
+      this.isForcingRegeneration,
+      [],
+      this.documentId(),
     );
 
     // Use the generation service to handle the SSE connection properly
@@ -416,7 +426,10 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       console.log('Post-processing complete, redirecting to business plan display');
       this.isPostProcessing.set(false);
-      this.router.navigate(['/project/business-plan']);
+      const documentId = this.documentId();
+      this.router.navigate(
+        documentId ? ['/project/business-plan', documentId] : ['/project/business-plan'],
+      );
     }, 4000);
   }
 }

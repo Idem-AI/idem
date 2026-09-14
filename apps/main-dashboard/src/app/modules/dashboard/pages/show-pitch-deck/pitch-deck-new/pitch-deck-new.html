@@ -1,0 +1,113 @@
+<section class="pdn" aria-labelledby="pdn-title">
+  <header class="pdn-head">
+    <button
+      type="button"
+      class="pdn-back text-text-secondary"
+      [title]="'dashboard.pitchDeckTypes.back' | translate"
+      [attr.aria-label]="'dashboard.pitchDeckTypes.back' | translate"
+      (click)="goBack()"
+    >
+      <i class="pi pi-arrow-left" aria-hidden="true"></i>
+    </button>
+    <div class="min-w-0">
+      <h1 id="pdn-title" class="text-xl sm:text-2xl font-bold text-text-primary">
+        {{ 'dashboard.pitchDeckTypes.title' | translate }}
+      </h1>
+      <p class="text-sm text-text-tertiary mt-1">{{ 'dashboard.pitchDeckTypes.subtitle' | translate }}</p>
+    </div>
+  </header>
+
+  @if (isLoading()) {
+    <div class="text-center py-16">
+      <app-loader />
+    </div>
+  } @else if (loadError()) {
+    <div class="text-center py-16">
+      <p class="text-text-tertiary mb-6" role="alert">{{ 'dashboard.pitchDeckTypes.loadError' | translate }}</p>
+      <button type="button" class="inner-button" (click)="load()">
+        {{ 'dashboard.pitchDeckTypes.retry' | translate }}
+      </button>
+    </div>
+  } @else {
+    <div class="pdn-layout">
+      <fieldset class="pdn-types">
+        <legend class="sr-only">{{ 'dashboard.pitchDeckTypes.legend' | translate }}</legend>
+        @for (type of types(); track type.id) {
+          <label class="pdn-type" [class.pdn-type-selected]="type.id === selectedTypeId()">
+            <input
+              class="sr-only"
+              type="radio"
+              name="pitch-deck-type"
+              [value]="type.id"
+              [checked]="type.id === selectedTypeId()"
+              (change)="selectType(type.id)"
+            />
+            <span class="pdn-type-icon" aria-hidden="true"><i [class]="type.icon"></i></span>
+            <span class="pdn-type-body">
+              <span class="pdn-type-name text-text-primary">
+                {{ type.label }}
+                @if (type.isDefault) {
+                  <span class="pdn-badge">{{ 'dashboard.pitchDeckTypes.recommended' | translate }}</span>
+                }
+              </span>
+              <span class="text-sm text-text-secondary">{{ type.description }}</span>
+              <span class="text-xs text-text-tertiary">
+                {{ 'dashboard.pitchDeckTypes.meta' | translate: { slides: type.slides.length, minutes: type.speakingMinutes } }}
+              </span>
+            </span>
+          </label>
+        }
+      </fieldset>
+
+      @if (selectedType(); as type) {
+        <aside class="pdn-detail" aria-labelledby="pdn-detail-title">
+          <p class="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+            {{ 'dashboard.pitchDeckTypes.audienceLabel' | translate }}
+          </p>
+          <p id="pdn-detail-title" class="text-lg font-semibold text-text-primary mt-1">{{ type.audienceLabel }}</p>
+          <p class="text-sm text-text-secondary mt-1">{{ type.useWhen }}</p>
+
+          <h2 class="text-sm font-semibold text-text-primary mt-5">
+            {{ 'dashboard.pitchDeckTypes.outline' | translate: { count: type.slides.length } }}
+          </h2>
+          <ol class="pdn-outline">
+            @for (slide of outline(); track slide.name) {
+              <li class="text-text-secondary">
+                <span class="pdn-outline-index text-text-tertiary" aria-hidden="true">{{ slide.position }}</span>
+                <span>{{ slide.label }}</span>
+              </li>
+            }
+          </ol>
+
+          <form class="pdn-form" (submit)="create($event)">
+            <label for="pdn-name" class="text-sm font-medium text-text-primary">
+              {{ 'dashboard.pitchDeckTypes.nameLabel' | translate }}
+            </label>
+            <input
+              id="pdn-name"
+              class="pdn-input text-text-primary"
+              type="text"
+              maxlength="120"
+              autocomplete="off"
+              [formControl]="nameControl"
+              (input)="onNameInput()"
+            />
+            @if (createError()) {
+              <p class="pdn-error" role="alert">{{ createError() }}</p>
+            }
+            <button type="submit" class="inner-button pdn-submit" [disabled]="isCreating()">
+              @if (isCreating()) {
+                <i class="pi pi-spin pi-spinner text-xs" aria-hidden="true"></i>
+                <span>{{ 'dashboard.pitchDeckTypes.creating' | translate }}</span>
+              } @else {
+                <span>{{ 'dashboard.pitchDeckTypes.generate' | translate }}</span>
+                <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
+              }
+            </button>
+            <p class="text-xs text-text-tertiary text-center">{{ 'dashboard.pitchDeckTypes.hint' | translate }}</p>
+          </form>
+        </aside>
+      }
+    </div>
+  }
+</section>

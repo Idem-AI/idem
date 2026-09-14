@@ -8,7 +8,8 @@
         "backToProjects": "Back to Projects",
         "generate": "Generate Business Plan",
         "selectProject": "Select a Project",
-        "edit": "Edit"
+        "edit": "Edit",
+        "backToList": "Back to my business plans"
       },
       "empty": {
         "title": "No Business Plan Yet",
@@ -17,6 +18,17 @@
           "title": "No Project Selected",
           "subtitle": "Please select a project to view or generate its business plan"
         }
+      },
+      "notFound": {
+        "title": "This business plan could not be found",
+        "subtitle": "It may have been deleted. Find your business plans in the list."
+      },
+      "draft": {
+        "title": "This business plan has not been generated yet",
+        "subtitle": "Its structure is set: start the generation to write its {{count}} sections."
+      },
+      "errors": {
+        "load": "The project could not be loaded."
       }
     }
   }

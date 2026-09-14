@@ -431,6 +431,14 @@
         "start": "Lancer un déploiement",
         "list": "Voir mes déploiements"
       }
+    },
+    "deck": {
+      "typeQuestion": "Quel type de pitch deck voulez-vous générer ? Chaque type suit les slides qu’attend son audience.",
+      "typesFailed": "Je n'ai pas pu charger les types de pitch deck. Vous pouvez les comparer dans l'atelier.",
+      "createFailed": "Le pitch deck n'a pas pu être créé. Réessayez.",
+      "chips": {
+        "compare": "Comparer les types"
+      }
     }
   }
 }

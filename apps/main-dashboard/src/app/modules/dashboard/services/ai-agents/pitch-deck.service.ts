@@ -1,12 +1,21 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError, shareReplay, tap } from 'rxjs/operators';
 import { environment } from '../../../../../environments/environment';
-import { PitchDeckModel } from '../../models/pitchDeck.model';
+import { PitchDeckModel, PitchDeckTypeCatalog } from '../../models/pitchDeck.model';
+import {
+  DeliverableDocumentSummary,
+  documentIdQuery,
+} from '../../models/deliverable-document.model';
 import { SSEService } from '../../../../shared/services/sse.service';
 import { SSEStepEvent, SSEConnectionConfig } from '../../../../shared/models/sse-step.model';
 
+/**
+ * Pitch decks d'un projet. Un projet en garde plusieurs (levée de fonds, banque,
+ * présentation commerciale…) : les appels par deck portent son `documentId`, et
+ * l'API retient le deck le plus récent quand il est omis.
+ */
 @Injectable({ providedIn: 'root' })
 export class PitchDeckService {
   private readonly apiUrl = `${environment.services.api.url}/project/pitchDecks`;
@@ -25,9 +34,11 @@ export class PitchDeckService {
     projectId: string,
     force = false,
     sections: string[] = [],
+    documentId?: string | null,
   ): Observable<SSEStepEvent> {
     this.closeSSEConnection();
     const params = new URLSearchParams();
+    if (documentId) params.set('documentId', documentId);
     if (force) params.set('force', 'true');
     if (sections.length > 0) params.set('sections', sections.join(','));
     const query = params.toString();
@@ -39,22 +50,70 @@ export class PitchDeckService {
     return this.sseService.createConnection(config, 'pitch-deck');
   }
 
-  getPitchDeck(projectId: string): Observable<PitchDeckModel> {
-    return this.http.get<PitchDeckModel>(`${this.apiUrl}/${projectId}`).pipe(
+  /** Un deck, avec son type et ses slides attendues. */
+  getPitchDeck(projectId: string, documentId?: string | null): Observable<PitchDeckModel> {
+    return this.http
+      .get<PitchDeckModel>(`${this.apiUrl}/${projectId}${documentIdQuery(documentId)}`)
+      .pipe(
+        catchError((error) => {
+          console.error(`Error fetching pitch deck for ${projectId}:`, error);
+          return throwError(() => error);
+        }),
+      );
+  }
+
+  /**
+   * Types de deck proposés à la création. Le catalogue est le même pour tous et
+   * ne change qu'avec un déploiement : il est mémorisé pour la session.
+   */
+  private typeCatalog$?: Observable<PitchDeckTypeCatalog>;
+
+  getPitchDeckTypes(): Observable<PitchDeckTypeCatalog> {
+    this.typeCatalog$ ??= this.http.get<PitchDeckTypeCatalog>(`${this.apiUrl}/types`).pipe(
+      shareReplay({ bufferSize: 1, refCount: false }),
       catchError((error) => {
-        console.error(`Error fetching pitch deck for ${projectId}:`, error);
+        // Un échec ne doit pas geler le cache : la tentative suivante repart
+        // sur une vraie requête.
+        this.typeCatalog$ = undefined;
         return throwError(() => error);
       }),
     );
+    return this.typeCatalog$;
   }
 
-  deletePitchDeck(projectId: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${projectId}`);
+  /** Decks du projet, en résumé (sans le HTML des slides). */
+  listPitchDecks(projectId: string): Observable<DeliverableDocumentSummary[]> {
+    return this.http.get<DeliverableDocumentSummary[]>(`${this.apiUrl}/${projectId}/documents`);
   }
 
-  downloadPitchDeckPdf(projectId: string): Observable<Blob> {
+  /** Crée un deck vide du type choisi ; la génération se lance ensuite avec son id. */
+  createPitchDeck(
+    projectId: string,
+    body: { type: string; name?: string },
+  ): Observable<DeliverableDocumentSummary> {
+    return this.http.post<DeliverableDocumentSummary>(`${this.apiUrl}/${projectId}/documents`, body);
+  }
+
+  renamePitchDeck(
+    projectId: string,
+    documentId: string,
+    name: string,
+  ): Observable<DeliverableDocumentSummary> {
+    return this.http.patch<DeliverableDocumentSummary>(
+      `${this.apiUrl}/${projectId}/documents/${encodeURIComponent(documentId)}`,
+      { name },
+    );
+  }
+
+  deletePitchDeck(projectId: string, documentId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiUrl}/${projectId}/documents/${encodeURIComponent(documentId)}`,
+    );
+  }
+
+  downloadPitchDeckPdf(projectId: string, documentId?: string | null): Observable<Blob> {
     return this.http
-      .get(`${this.apiUrl}/pdf/${projectId}`, {
+      .get(`${this.apiUrl}/pdf/${projectId}${documentIdQuery(documentId)}`, {
         responseType: 'blob',
         headers: { Accept: 'application/pdf' },
       })
