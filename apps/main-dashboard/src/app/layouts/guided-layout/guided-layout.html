@@ -7,7 +7,12 @@
         <img
           src="/assets/icons/logo_white.png"
           [alt]="'dashboard.sidebar.logoAlt' | translate"
-          class="w-[50px] sm:w-[104px] h-auto invert hue-rotate-180 dark:invert-0 dark:hue-rotate-0"
+          class="w-[50px] sm:w-[104px] h-auto dark:hidden"
+        />
+        <img
+          src="/assets/icons/logo_dark.png"
+          [alt]="'dashboard.sidebar.logoAlt' | translate"
+          class="w-[50px] sm:w-[104px] h-auto hidden dark:block"
         />
         <app-beta-badge />
       </a>

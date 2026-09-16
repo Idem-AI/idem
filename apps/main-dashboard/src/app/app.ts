@@ -54,7 +54,7 @@ export class App implements OnInit {
 
   /** Layout courant selon la route active */
   protected readonly currentLayout$: Observable<
-    'public' | 'dashboard' | 'global' | 'empty' | 'chat' | 'guided'
+    'public' | 'dashboard' | 'global' | 'empty' | 'chat' | 'guided' | 'bare'
   > = this.router.events.pipe(
     filter((event) => event instanceof NavigationEnd),
     startWith(null),
@@ -70,7 +70,8 @@ export class App implements OnInit {
           | 'global'
           | 'empty'
           | 'chat'
-          | 'guided') || 'public'
+          | 'guided'
+          | 'bare') || 'public'
       );
     }),
     distinctUntilChanged(),

@@ -16,7 +16,11 @@
           href="{{ landingUrl }}"
           class="text-2xl font-bold hover:text-primary transition duration-300 flex items-center gap-2"
         >
-          <img src="/assets/icons/logo_white.png" alt="Lexi" class="sm:w-[120px] w-[50px] h-auto invert hue-rotate-180 dark:invert-0 dark:hue-rotate-0" />
+          <!-- Deux fichiers plutôt qu'un filtre : `invert hue-rotate-180`
+               fabriquait une approximation des couleurs de marque en thème
+               clair. Le logo sombre est maintenant un vrai fichier. -->
+          <img src="/assets/icons/logo_white.png" alt="IDEM" class="sm:w-[120px] w-[50px] h-auto dark:hidden" />
+          <img src="/assets/icons/logo_dark.png" alt="IDEM" class="sm:w-[120px] w-[50px] h-auto hidden dark:block" />
           <app-beta-badge></app-beta-badge>
         </a>
       </div>
