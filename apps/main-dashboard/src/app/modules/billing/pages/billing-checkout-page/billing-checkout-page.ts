@@ -24,37 +24,37 @@ import { PaymentView } from '../../models/billing.model';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, TranslateModule, CheckoutComponent],
   template: `
-    <div class="flex min-h-screen items-center justify-center px-4 py-10">
-      <div class="w-full max-w-md">
-        <div class="mb-6 text-center">
-          <img src="assets/icons/logo.webp" alt="IDEM" class="mx-auto h-10 w-auto" />
-          <h1 class="mt-4 text-xl font-semibold text-text-primary">
+    <!-- Pas de carte autour du paiement : l'écran EST le paiement. Un cadre de
+         plus n'ajouterait qu'une bordure à regarder. -->
+    <div class="min-h-screen px-5 py-10 sm:px-8 sm:py-14">
+      <div class="mx-auto w-full max-w-3xl">
+        <header class="mb-10 flex items-center gap-3">
+          <img src="assets/icons/logo.webp" alt="IDEM" class="h-7 w-auto" />
+          <h1 class="text-base font-medium text-text-secondary">
             {{ 'billing.checkout.title' | translate }}
           </h1>
-        </div>
+        </header>
 
-        <div class="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5">
-          @if (productCode()) {
-            <app-checkout
-              [productCode]="productCode()!"
-              [engine]="engine()"
-              [projectId]="projectId()"
-              [interval]="interval()"
-              [simulationTier]="simulationTier()"
-              [app]="app()"
-              (completed)="onCompleted($event)"
-              (dismissed)="onDismissed()"
-            ></app-checkout>
-          } @else {
-            <p class="text-center text-sm text-text-secondary">
-              Aucune offre n'a été indiquée.
-            </p>
-          }
-        </div>
+        @if (productCode()) {
+          <app-checkout
+            [productCode]="productCode()!"
+            [engine]="engine()"
+            [projectId]="projectId()"
+            [interval]="interval()"
+            [simulationTier]="simulationTier()"
+            [app]="app()"
+            (completed)="onCompleted($event)"
+            (dismissed)="onDismissed()"
+          ></app-checkout>
+        } @else {
+          <p class="text-sm text-text-secondary">
+            {{ 'billing.checkout.noProduct' | translate }}
+          </p>
+        }
 
         @if (returnLabel(); as label) {
-          <p class="mt-4 text-center text-xs text-text-tertiary">
-            Vous reviendrez sur {{ label }} une fois le paiement terminé.
+          <p class="mt-10 border-t border-[var(--glass-border)] pt-4 text-xs text-text-tertiary">
+            {{ 'billing.checkout.returnNote' | translate: { app: label } }}
           </p>
         }
       </div>

@@ -187,7 +187,10 @@ export class PaymentService {
     input: CheckoutInput
   ): Promise<PaymentTransactionModel> {
     const settings = await billingSettingsService.get();
-    if (!settings.paymentsEnabled) {
+    // Par le raccourci, et non par le réglage brut : c'est lui qui honore aussi
+    // `PAYMENTS_ENABLED=false`, l'arrêt d'urgence qui ne dépend ni de la base
+    // ni du panel — donc le seul utilisable quand ce sont eux qui vacillent.
+    if (!(await billingSettingsService.isPaymentsEnabled())) {
       throw new PaymentRefusedError(
         'payments_disabled',
         'Les paiements sont momentanément suspendus. Réessayez plus tard.',

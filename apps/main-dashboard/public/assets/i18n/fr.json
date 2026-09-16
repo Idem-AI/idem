@@ -46,7 +46,8 @@
     "changeLanguage": "Changer de langue",
     "continue": "Continuer",
     "apply": "Appliquer",
-    "reset": "Réinitialiser"
+    "reset": "Réinitialiser",
+    "close": "Fermer"
   },
   "dashboard": {
     "createDevelopment": {
@@ -4234,13 +4235,27 @@
       "waitingTitle": "Validez sur votre téléphone",
       "waitingBody": "Une demande de code a été envoyée au {{phone}}. Saisissez votre code secret Mobile Money.",
       "pinReminder": "Vous n’avez rien reçu ? La demande disparaît parfois de l’écran.",
-      "slowPayment": "Votre opérateur met plus de temps que prévu. Vous pouvez fermer cette fenêtre : nous vous préprévenons dès que le paiement aboutit.",
+      "slowPayment": "Votre opérateur met plus de temps que prévu. Vous pouvez fermer cette fenêtre : nous vous prévenons dès que le paiement aboutit.",
       "successTitle": "Paiement confirmé",
       "successBody": "{{label}} est actif sur votre compte.",
       "failedTitle": "Le paiement n’a pas abouti",
       "noCharge": "Aucun montant n’a été prélevé sur votre compte Mobile Money.",
       "retry": "Réessayer",
-      "continue": "Continuer"
+      "continue": "Continuer",
+      "included": "Inclus",
+      "perMonth": "par mois",
+      "perYear": "par an",
+      "changeProvider": "Changer",
+      "beforePay": "Vous recevrez une demande de code sur ce numéro.",
+      "starting": "Envoi de la demande…",
+      "reference": "Référence",
+      "noProduct": "Aucune offre n'a été indiquée. Revenez à la page des offres pour en choisir une.",
+      "returnNote": "Vous reviendrez sur {{app}} une fois le paiement terminé.",
+      "steps": {
+        "request": "Demande envoyée à votre opérateur",
+        "pin": "Saisissez votre code sur votre téléphone",
+        "confirm": "Confirmation du paiement"
+      }
     },
     "paywall": {
       "title": "Crédits insuffisants",

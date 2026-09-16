@@ -936,7 +936,10 @@ export class BillingController {
       reachable,
       environment: pawapayClient.isProduction() ? 'production' : 'sandbox',
       signatureMode: getSignatureMode(),
-      paymentsEnabled: settings.paymentsEnabled,
+      // Par le raccourci, comme `checkout()` : un écran de santé qui afficherait
+      // « ouvert » pendant que l'arrêt d'urgence refuse les clients serait pire
+      // qu'une absence d'indicateur.
+      paymentsEnabled: await billingSettingsService.isPaymentsEnabled(),
       enforcement: settings.enforcement,
       wallets,
     });
