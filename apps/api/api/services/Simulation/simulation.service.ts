@@ -17,6 +17,9 @@ import { v4 as uuidv4 } from 'uuid';
 import logger from '../../config/logger';
 import { ProjectModel } from '../../models/project.model';
 import { projectService } from '../project.service';
+// Les tarifs de simulation viennent du catalogue de facturation : un prix ne
+// doit exister qu'à un seul endroit.
+import { billingService } from '../billing.service';
 import {
   BlackSwanEvent,
   BlackSwanReport,
@@ -298,50 +301,74 @@ export class SimulationService {
    * calcule pas. Montants en FCFA, arrondis au demi-millier — la zone d'achat
    * sans friction du marché visé se situe entre 2 500 et 10 000 F.
    */
-  getPricing(origin: SimulationOrigin): SimulationPricing {
+  async getPricing(origin: SimulationOrigin): Promise<SimulationPricing> {
     const fromIdem = origin === 'idem-project';
-    return {
-      idemProjectDiscount: fromIdem,
-      plans: [
-        {
-          tier: 'run',
-          price: fromIdem ? 3000 : 4000,
-          listPrice: fromIdem ? 4000 : undefined,
+
+    /**
+     * Correspondance entre les niveaux du moteur et les produits du catalogue.
+     *
+     * Le moteur connaît trois niveaux (`run`, `pack`, `report`) ; le catalogue
+     * porte les prix. Les offres Essentielle et Approfondie existent au
+     * catalogue mais restent inactives tant que le pipeline ne différencie pas
+     * la profondeur — elles n'apparaissent donc pas ici.
+     */
+    const plans: { tier: SimulationTier; productCode: string; includes: string[]; recommended: boolean }[] = [
+      {
+        tier: 'run',
+        productCode: 'sim-standard',
+        includes: [
+          'pricing.includes.scenarios',
+          'pricing.includes.factors',
+          'pricing.includes.index',
+        ],
+        recommended: false,
+      },
+      {
+        tier: 'pack',
+        productCode: 'sim-pack',
+        includes: [
+          'pricing.includes.scenarios',
+          'pricing.includes.factors',
+          'pricing.includes.index',
+          'pricing.includes.report',
+          'pricing.includes.recommendations',
+        ],
+        recommended: true,
+      },
+      {
+        tier: 'report',
+        productCode: 'sim-report',
+        includes: [
+          'pricing.includes.report',
+          'pricing.includes.sensitivity',
+          'pricing.includes.recommendations',
+        ],
+        recommended: false,
+      },
+    ];
+
+    const priced = await Promise.all(
+      plans.map(async (plan) => {
+        const product = await billingService.getProduct(plan.productCode);
+
+        // Prix public par défaut ; prix réduit quand l'analyse part d'un
+        // projet IDEM déjà structuré — moins de tokens à consommer.
+        const price = fromIdem ? (product?.idemPriceXaf ?? product?.priceXaf ?? 0) : (product?.priceXaf ?? 0);
+
+        return {
+          tier: plan.tier,
+          productCode: plan.productCode,
+          price,
+          // Le prix barré n'a de sens que s'il y a réellement une remise.
+          listPrice: fromIdem && product?.priceXaf && product.priceXaf > price ? product.priceXaf : undefined,
           currency: 'FCFA',
-          includes: [
-            'pricing.includes.scenarios',
-            'pricing.includes.factors',
-            'pricing.includes.index',
-          ],
-          recommended: false,
-        },
-        {
-          tier: 'pack',
-          price: fromIdem ? 6500 : 8500,
-          listPrice: fromIdem ? 8500 : 10_500,
-          currency: 'FCFA',
-          includes: [
-            'pricing.includes.scenarios',
-            'pricing.includes.factors',
-            'pricing.includes.index',
-            'pricing.includes.report',
-            'pricing.includes.recommendations',
-          ],
-          recommended: true,
-        },
-        {
-          tier: 'report',
-          price: fromIdem ? 4500 : 6000,
-          currency: 'FCFA',
-          includes: [
-            'pricing.includes.report',
-            'pricing.includes.sensitivity',
-            'pricing.includes.recommendations',
-          ],
-          recommended: false,
-        },
-      ],
-    };
+          includes: plan.includes,
+          recommended: plan.recommended,
+        };
+      })
+    );
+
+    return { idemProjectDiscount: fromIdem, plans: priced };
   }
 
   // ===================================================================

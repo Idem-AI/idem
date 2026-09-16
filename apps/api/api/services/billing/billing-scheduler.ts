@@ -4,6 +4,7 @@ import RedisConnection from '../../config/redis.config';
 import { paymentReconcilerService } from '../payments/payment-reconciler.service';
 import { betaService } from './beta.service';
 import { creditLedgerService } from './credit-ledger.service';
+import { ideploySyncService } from './ideploy-sync.service';
 import { subscriptionRenewalService } from './subscription-renewal.service';
 
 /**
@@ -120,6 +121,15 @@ export const BILLING_JOBS: ScheduledJob[] = [
     intervalMs: 3600_000,
     lockTtlMs: 600_000,
     run: () => betaService.run(),
+  },
+  {
+    // iDeploy vit dans une autre base : le plan payé y est propagé par une
+    // file qui réessaie. Une minute, comme la réconciliation — un client qui
+    // vient de payer son hébergement ne doit pas attendre son plan.
+    name: 'ideploy-sync',
+    intervalMs: 60_000,
+    lockTtlMs: 55_000,
+    run: () => ideploySyncService.run(),
   },
 ];
 

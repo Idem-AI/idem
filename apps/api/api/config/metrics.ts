@@ -245,5 +245,19 @@ export const billingJobRunsTotal = new client.Counter({
   registers: [register],
 });
 
+/**
+ * Retard de la propagation des plans vers iDeploy.
+ *
+ * iDeploy vit dans une autre base : un plan payé y arrive par une file qui
+ * réessaie. Une valeur qui ne redescend pas, c'est un client qui paie un plan
+ * dont il ne dispose pas — et personne d'autre que cette mesure ne le voit.
+ */
+export const billingSyncBacklog = new client.Gauge({
+  name: 'billing_sync_backlog',
+  help: 'Pending and abandoned iDeploy plan propagations',
+  labelNames: ['state', 'service'] as const,
+  registers: [register],
+});
+
 export { register };
 export default register;

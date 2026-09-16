@@ -159,6 +159,15 @@
       "duration": "A few minutes. The run continues if you close the page, and nothing is charged if it fails.",
       "changeTier": "Change level",
       "knowledge": "What the engine will work from:"
+    },
+    "payment": {
+      "heading": "Payment",
+      "lead": "This simulation is paid for before it starts.",
+      "pay": "Pay and launch",
+      "redirecting": "Opening secure payment…",
+      "confirmed": "Payment confirmed. Your simulation can start.",
+      "failed": "The payment did not go through. You can try again — nothing was charged.",
+      "reused": "That payment already started a simulation. A new one is required."
     }
   },
   "tier": {

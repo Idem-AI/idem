@@ -117,6 +117,8 @@ Pitch deck 35 · Prévisionnel 3 ans 40 · Logo + charte 60 · Business plan 70.
 | `billing_invoices` | Factures émises, XAF + équivalent USD figé. |
 | `credit_ledger` | Grand livre append-only, par moteur. |
 | `billing_counters` | Séquences de numérotation des factures. |
+| `credit_balances` | Solde courant par (utilisateur, moteur). Débité par `$inc` conditionnel — voir plus bas. |
+| `billing_sync_jobs` | File de propagation des plans vers iDeploy, avec tentatives et motif d'abandon. |
 
 ### Invariants garantis par la base
 
@@ -195,19 +197,35 @@ L'encaissement Mobile Money est branché (voir [PAYMENTS.md](./PAYMENTS.md)) :
 l'orchestrateur une fois le paiement confirmé auprès de pawaPay, et la
 réconciliation tourne en tâche planifiée.
 
+Sont désormais en place :
+
+- **Application du barème** — `middleware/billing.middleware.ts` réserve les
+  crédits avant la génération et les rembourse si elle échoue, sur les routes de
+  génération, le déblocage de projet AppGen et les capacités de plan.
+- **Renouvellements** — rappels à J-3 et J0, tolérance de 3 jours, puis retour
+  au plan gratuit (`subscription-renewal.service.ts`, tâche horaire).
+- **Péremption du report** — tâche quotidienne sur les octrois arrivés à terme.
+- **Bêta premium** — liste des testeurs, import CSV, invitations et octroi des
+  plans haut de gamme jusqu'à la date décidée dans le panel.
+- **Simulation** — facturée à l'acte : un règlement ouvre une exécution, et une
+  seule (réservation atomique, voir [PAYMENTS.md](./PAYMENTS.md)).
+- **Propagation iDeploy** — le plan payé est poussé dans l'autre base par la
+  file `billing_sync_jobs`, avec rejeu depuis le panel.
+
 Restent à faire :
 
-1. **Application du barème** — `debitCredits()` est atomique et prêt, mais les
-   routes de génération ne l'appellent pas encore. Le réglage `enforcement`
-   (`off` / `log` / `enforce`) existe pour mesurer avant de bloquer.
-2. **Renouvellements** — `renewDueSubscriptions()` n'émet plus que la facture ;
-   la tâche de relance (J-3, J0), la tolérance de 3 jours et le retour au plan
-   gratuit restent à écrire.
-3. **Péremption du report** — `expiresAt` est posé sur chaque octroi, mais
-   aucune tâche ne périme encore les crédits au-delà de 2 mois.
-4. **Échéancier annuel** — `installments` est stocké et validé (1 ou 3), mais
+1. **Passage en `enforce`** — l'application du barème tourne en mode `log` :
+   elle mesure ce qui serait bloqué, sans bloquer. Le basculement se fait dans
+   les réglages, après lecture des chiffres.
+2. **Échéancier annuel** — `installments` est stocké et validé (1 ou 3), mais
    aucun échéancier n'est généré : une seule facture couvre la période.
-5. **Bêta premium** — la liste des testeurs et l'octroi des plans haut de gamme.
+3. **Profondeur des niveaux de Simulation** — les offres Essentielle et
+   Approfondie sont au catalogue mais **inactives** : aujourd'hui une exécution
+   fait la même chose quel que soit le niveau, seule la présence du rapport
+   varie. Les activer suppose de différencier le pipeline — une décision
+   produit, pas un renommage.
+4. **Parrainage IDEM Builders** — les 20 crédits au parrain et au filleul à la
+   première livraison payante ne sont pas implémentés.
 
 ## Rentabilité
 

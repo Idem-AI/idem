@@ -223,6 +223,58 @@ de visuels en coûte 10. Les écritures « incluses » apparaissent au relevé �
 zéro crédit — l'utilisateur voit ce qu'il a obtenu, et le système sait que
 l'inclusion a été consommée.
 
+### iSimulate : payé à l'acte, une exécution par règlement
+
+Une simulation n'est pas facturée en crédits mais à l'unité : elle enchaîne
+plusieurs agents et de la recherche externe pendant quelques minutes, un coût
+trop concentré pour tenir dans un forfait mensuel.
+
+`requireSimulationPayment()` garde les deux routes de lancement (depuis un
+projet IDEM, et depuis un business plan importé). Le contrôle se place **après**
+l'accord et la validation des entrées : inutile de réserver un paiement pour
+une requête qui sera refusée sur un champ manquant.
+
+La réservation se fait en deux temps, et ce n'est pas un détail :
+
+1. `reserveForSimulation()` pose un jeton sur le paiement par une mise à jour
+   conditionnelle — elle n'aboutit que si le règlement n'est pas déjà consommé.
+   Vérifier puis lancer laisserait deux requêtes simultanées passer le contrôle
+   et démarrer deux exécutions coûteuses pour un seul encaissement ;
+2. l'exécution créée, `attachSimulationPayment()` échange le jeton contre son
+   identifiant. Si le lancement échoue, `releaseSimulationPayment()` rend le
+   règlement à son propriétaire plutôt que de lui facturer une simulation qui
+   n'a jamais tourné.
+
+Les bêta-testeurs premium en sont exemptés, et le réglage `enforcement` vaut
+ici comme ailleurs. Pendant la bêta produit (`IS_BETA` côté application), le
+front ne propose pas le paiement : IDEM prend le coût à sa charge.
+
+### iDeploy : le plan vit dans une autre base
+
+iDeploy est une application Laravel sur PostgreSQL. Écrire son plan au moment
+du paiement rendrait l'encaissement dépendant de la disponibilité de cette
+seconde base : une coupure de trente secondes, et un client débité se
+retrouverait sans le plan qu'il vient d'acheter, sans trace de ce qui manque.
+
+L'intention est donc inscrite dans `billing_sync_jobs` — dans la base qui vient
+d'accepter le paiement — puis appliquée par la tâche `ideploy-sync` (toutes les
+minutes) qui réessaie avec un délai croissant. Le paiement reste la source de
+vérité ; la propagation est une conséquence qui peut prendre son temps.
+
+| Moment | Ce qui est inscrit |
+| --- | --- |
+| Livraison d'un abonnement ou d'un renouvellement iDeploy | Le plan et l'échéance de la période payée |
+| Achat d'un pack de déploiements | Des crédits **ajoutés** au solde, sans toucher au plan |
+| Expiration ou résiliation | Retour au plan `hobby`, échéance effacée, crédits déjà payés conservés |
+
+Les deux bases n'ont pas d'identifiant commun : l'e-mail est le seul lien entre
+un compte IDEM et une équipe iDeploy. Quand aucune équipe ne correspond — un
+client peut payer avant d'avoir ouvert son espace de déploiement — la tâche
+réessaie pendant plusieurs heures, puis met le travail de côté avec un motif
+lisible. `GET /billing/internal/sync-jobs` le montre,
+`POST /billing/internal/sync-jobs/:jobId/retry` le rejoue une fois le compte
+créé.
+
 ## Monitoring
 
 **Logs** : `logs/payments.log` (canal dédié, collecté par Promtail avec les

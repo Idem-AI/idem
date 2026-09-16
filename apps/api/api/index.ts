@@ -40,6 +40,7 @@ import {
   PaymentTransaction,
 } from './schemas/payment.schema';
 import { BillingSettings } from './schemas/billingSettings.schema';
+import { BillingSyncJob } from './schemas/billingSync.schema';
 import { BetaTester } from './schemas/betaTester.schema';
 import { EmailLog } from './schemas/emailLog.schema';
 import { billingService } from './services/billing.service';
@@ -321,6 +322,9 @@ function startServer() {
         BillingProduct.init(),
         BillingSubscription.init(),
         BillingPurchase.init(),
+        // File des synchronisations vers iDeploy : la tâche de fond n'y
+        // cherche que ce qui est dû, d'où l'index (statut, prochaine tentative).
+        BillingSyncJob.init(),
         BillingInvoice.init(),
         CreditLedgerEntry.init(),
         // Encaissement : `depositId` et `reference` uniques (idempotence), file

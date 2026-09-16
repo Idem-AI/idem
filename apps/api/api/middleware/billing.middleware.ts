@@ -3,7 +3,10 @@ import logger from '../config/logger';
 import { BillingRequestContext, CustomRequest } from '../interfaces/express.interface';
 import { BUSINESS_CREDIT_COSTS, BillingEngine } from '../models/billing.model';
 import { APPGEN_CREDIT_COSTS } from '../models/plan-limits.model';
+import { SimulationOrigin } from '../models/simulation.model';
+import { simulationService } from '../services/Simulation/simulation.service';
 import { billingService } from '../services/billing.service';
+import { paymentService } from '../services/payments/payment.service';
 import { billingSettingsService } from '../services/billing/billing-settings.service';
 import { creditLedgerService } from '../services/billing/credit-ledger.service';
 import { Entitlements, entitlementsService } from '../services/billing/entitlements.service';
@@ -457,6 +460,202 @@ export function requireProjectAccess() {
       next();
     }
   };
+}
+
+/**
+ * Exige un paiement pour lancer une simulation.
+ *
+ * iSimulate est le seul moteur vendu **à l'acte** et non en crédits : une
+ * exécution enchaîne six appels LLM, son coût est trop concentré pour tenir
+ * dans un forfait mensuel. Un paiement ouvre donc une exécution, et une seule.
+ *
+ * La réservation est posée ici, avant le lancement, parce que c'est le seul
+ * moment où l'on peut encore refuser. Elle laisse un jeton sur la requête que
+ * le contrôleur échange contre l'identifiant de l'exécution — ou relâche si
+ * celle-ci ne démarre pas.
+ */
+export function requireSimulationPayment() {
+  return async (req: CustomRequest, res: Response, next: NextFunction): Promise<void> => {
+    const userId = req.user?.uid;
+
+    if (!userId) {
+      res.status(401).json({
+        error: 'authentication_required',
+        message: 'Connectez-vous pour lancer une simulation.',
+      });
+      return;
+    }
+
+    try {
+      const mode = await billingSettingsService.getEnforcement();
+      if (mode === 'off') {
+        next();
+        return;
+      }
+
+      const tier = String(req.body?.tier ?? '');
+      const entitlements = await entitlementsService.resolve(userId);
+
+      // Bêta premium : la Simulation Approfondie avec rapport est comprise
+      // dans l'accès offert pendant la bêta.
+      if (entitlements.beta.active) {
+        next();
+        return;
+      }
+
+      const reference = String(req.body?.paymentReference ?? '').trim();
+
+      if (!reference) {
+        if (mode === 'log') {
+          logger.info('billing.simulation_payment_shadow', {
+            event: 'billing.simulation_payment_shadow',
+            tier,
+            reason: 'missing_reference',
+            wouldBlock: true,
+          });
+          next();
+          return;
+        }
+
+        res.status(402).json({
+          error: 'payment_required',
+          message: 'Cette simulation doit être payée avant d’être lancée.',
+          engine: 'simulation',
+          action: 'simulation_run',
+          tier,
+          suggestions: await simulationSuggestions(req, tier),
+        });
+        return;
+      }
+
+      const reservation = await paymentService.reserveForSimulation(userId, reference, tier);
+
+      if (!reservation.ok) {
+        if (mode === 'log') {
+          logger.info('billing.simulation_payment_shadow', {
+            event: 'billing.simulation_payment_shadow',
+            tier,
+            reference,
+            reason: reservation.reason,
+            wouldBlock: true,
+          });
+          next();
+          return;
+        }
+
+        res.status(402).json({
+          error: 'payment_required',
+          message: SIMULATION_PAYMENT_MESSAGES[reservation.reason ?? 'unknown_payment'],
+          engine: 'simulation',
+          action: 'simulation_run',
+          tier,
+          reason: reservation.reason,
+          suggestions: await simulationSuggestions(req, tier),
+        });
+        return;
+      }
+
+      req.simulationPayment = { token: reservation.token as string, reference, tier };
+      next();
+    } catch (error: any) {
+      // Même arbitrage qu'ailleurs : une panne de facturation ne bloque pas le
+      // travail. Le paiement non consommé reste réutilisable.
+      logger.error(`billing.simulation_payment_failed: ${error.message}`, {
+        event: 'billing.simulation_payment_failed',
+        stack: error.stack,
+      });
+      next();
+    }
+  };
+}
+
+/** Chaque refus dit à l'utilisateur ce qu'il doit faire, pas seulement que c'est refusé. */
+const SIMULATION_PAYMENT_MESSAGES: Record<string, string> = {
+  unknown_payment: 'Ce paiement est introuvable. Relancez le règlement pour démarrer la simulation.',
+  payment_not_completed:
+    'Votre paiement n’est pas encore confirmé. Patientez quelques instants, puis réessayez.',
+  payment_already_used:
+    'Ce paiement a déjà servi à lancer une simulation. Un nouveau règlement est nécessaire.',
+  tier_mismatch: 'Le forfait payé ne correspond pas à celui demandé.',
+};
+
+/**
+ * L'offre à acheter pour le niveau demandé, lue chez iSimulate.
+ *
+ * On interroge la tarification plutôt que de tenir ici une seconde table
+ * niveau → produit : la correspondance n'existe qu'à un endroit, et le prix
+ * proposé tient déjà compte de la remise projet IDEM.
+ */
+async function simulationSuggestions(
+  req: CustomRequest,
+  tier: string
+): Promise<{ productCode: string; name: string; priceXaf: number; credits: number }[]> {
+  try {
+    const origin: SimulationOrigin =
+      req.body?.origin === 'imported-document' ? 'imported-document' : 'idem-project';
+    const pricing = await simulationService.getPricing(origin);
+    const plan = pricing.plans.find((candidate) => candidate.tier === tier);
+    if (!plan) return [];
+
+    const product = await billingService.getProduct(plan.productCode);
+
+    return [
+      {
+        productCode: plan.productCode,
+        name: product?.name ?? 'Simulation',
+        priceXaf: plan.price,
+        credits: 0,
+      },
+    ];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Rattache le paiement réservé à l'exécution qu'il a permis de lancer.
+ *
+ * À appeler dès que l'exécution a un identifiant : c'est ce qui rend le
+ * paiement définitivement consommé et traçable jusqu'à son livrable.
+ */
+export async function attachSimulationPayment(
+  req: CustomRequest,
+  simulationId: string
+): Promise<void> {
+  const reservation = req.simulationPayment;
+  if (!reservation) return;
+
+  req.simulationPayment = undefined;
+
+  try {
+    await paymentService.attachSimulation(reservation.token, simulationId);
+  } catch (error: any) {
+    // La simulation tourne déjà : on ne la casse pas pour une écriture de
+    // traçabilité. Le jeton restant marque le paiement comme consommé, donc
+    // personne n'est lésé — mais un administrateur doit pouvoir le retrouver.
+    logger.error(`billing.simulation_attach_failed: ${error.message}`, {
+      event: 'billing.simulation_attach_failed',
+      reference: reservation.reference,
+      simulationId,
+    });
+  }
+}
+
+/** Relâche la réservation quand l'exécution n'a pas démarré : le paiement reste utilisable. */
+export async function releaseSimulationPayment(req: CustomRequest): Promise<void> {
+  const reservation = req.simulationPayment;
+  if (!reservation) return;
+
+  req.simulationPayment = undefined;
+
+  try {
+    await paymentService.releaseSimulationReservation(reservation.token);
+  } catch (error: any) {
+    logger.error(`billing.simulation_release_failed: ${error.message}`, {
+      event: 'billing.simulation_release_failed',
+      reference: reservation.reference,
+    });
+  }
 }
 
 /**

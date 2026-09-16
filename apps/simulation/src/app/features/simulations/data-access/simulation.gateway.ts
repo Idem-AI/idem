@@ -30,6 +30,8 @@ export interface CreateFromDocumentInput {
   understanding: ProjectUnderstanding;
   /** Sans lui, l'API refuse la création du projet et le lancement (403). */
   consent: SimulationConsent;
+  /** Référence du paiement qui ouvre cette exécution, consommée au lancement. */
+  paymentReference?: string;
 }
 
 /** Un rapport rendu, prêt à être enregistré par le navigateur. */

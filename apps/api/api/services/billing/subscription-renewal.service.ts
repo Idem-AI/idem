@@ -13,6 +13,7 @@ import {
 } from '../email/templates';
 import { billingSettingsService } from './billing-settings.service';
 import { entitlementsService } from './entitlements.service';
+import { ideploySyncService } from './ideploy-sync.service';
 
 /**
  * Cycle de vie des abonnements, sans prélèvement automatique.
@@ -271,6 +272,16 @@ export class SubscriptionRenewalService {
     }
 
     await entitlementsService.invalidate(subscription.userId);
+
+    // iDeploy vit dans une autre base : sans cette inscription, un abonnement
+    // expiré ici resterait actif là-bas, et l'hébergement continuerait d'être
+    // servi sans contrepartie.
+    if (subscription.engine === 'ideploy') {
+      const user = await User.findOne({ uid: subscription.userId }).lean();
+      if (user?.email) {
+        await ideploySyncService.enqueueDowngrade(subscription.userId, user.email);
+      }
+    }
 
     logger.info('billing.subscription_downgraded', {
       event: 'billing.subscription_downgraded',

@@ -31,6 +31,9 @@ const BillingProductSchema = new Schema<BillingProductDocument>(
     name: { type: String, required: true },
     description: { type: String },
     priceXaf: { type: Number, required: true, default: 0 },
+    // Prix depuis un projet IDEM déjà structuré (iSimulate uniquement) :
+    // moins de tokens à consommer, donc une remise justifiée par le coût réel.
+    idemPriceXaf: { type: Number },
     interval: { type: String, required: true, default: 'month' },
     credits: { type: Number, required: true, default: 0 },
     validityHours: { type: Number },
