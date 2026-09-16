@@ -77,7 +77,9 @@ export const routes: Routes = [
         (m) => m.BillingCheckoutPage,
       ),
     canActivate: [authGuard],
-    data: { layout: 'empty' },
+    // Sans chrome : payer est une tâche qu'on termine, pas un endroit d'où
+    // l'on navigue. Tout ce qui invite à partir travaille contre.
+    data: { layout: 'bare' },
   },
 
   // ============================================

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { CheckoutComponent } from '../../components/checkout/checkout';
@@ -29,7 +29,21 @@ import { PaymentView } from '../../models/billing.model';
     <div class="min-h-screen px-5 py-10 sm:px-8 sm:py-14">
       <div class="mx-auto w-full max-w-3xl">
         <header class="mb-10 flex items-center gap-3">
-          <img src="assets/icons/logo.webp" alt="IDEM" class="h-7 w-auto" />
+          <!-- Retour discret : la seule sortie de l'écran, à côté de son titre,
+               plutôt qu'une barre de navigation qui invite à partir. -->
+          <button
+            type="button"
+            class="-ml-2 flex h-9 w-9 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-[var(--glass-bg-subtle)] hover:text-text-primary"
+            [attr.aria-label]="'common.back' | translate"
+            (click)="goBack()"
+          >
+            <i class="pi pi-arrow-left" aria-hidden="true"></i>
+          </button>
+
+          <!-- Deux fichiers plutôt qu'un filtre CSS : le logo sombre existe. -->
+          <img src="assets/icons/logo_white.png" alt="IDEM" class="h-7 w-auto dark:hidden" />
+          <img src="assets/icons/logo_dark.png" alt="IDEM" class="hidden h-7 w-auto dark:block" />
+
           <h1 class="text-base font-medium text-text-secondary">
             {{ 'billing.checkout.title' | translate }}
           </h1>
@@ -64,6 +78,7 @@ import { PaymentView } from '../../models/billing.model';
 export class BillingCheckoutPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly location = inject(Location);
 
   readonly productCode = signal<string | null>(null);
   readonly engine = signal<string | undefined>(undefined);
@@ -121,6 +136,22 @@ export class BillingCheckoutPage {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Sortie de l'écran de paiement.
+   *
+   * Un arrivant direct — lien collé, retour depuis un autre domaine — n'a pas
+   * d'historique à remonter. Le renvoyer aux offres vaut mieux qu'un bouton
+   * sans effet, ou qu'une sortie du site.
+   */
+  goBack(): void {
+    if (window.history.length > 1) {
+      this.location.back();
+      return;
+    }
+
+    void this.router.navigate(['/billing/plans']);
   }
 
   onCompleted(payment: PaymentView): void {

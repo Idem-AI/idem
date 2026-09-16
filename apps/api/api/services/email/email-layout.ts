@@ -25,7 +25,10 @@ export const BRAND = {
   muted: '#6b7280',
   border: '#e5e7eb',
   surface: '#f7fafc',
-  logo: 'https://idem.africa/assets/icons/logo_white.webp',
+  // Les fichiers sont nommés d'après le thème qu'ils servent : `logo_dark` est
+  // la variante du thème sombre, et l'en-tête de tous les modèles l'est.
+  // Servie par la landing, qui héberge idem.africa.
+  logo: 'https://idem.africa/assets/icons/logo_dark.png',
   console: 'https://console.idem.africa',
   site: 'https://idem.africa',
   fontStack: "'Vilevile', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",

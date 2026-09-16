@@ -19,6 +19,14 @@
     <app-guided-layout>
       <router-outlet (activate)="resetPosition()"></router-outlet>
     </app-guided-layout>
+  } @else if (layout === 'bare') {
+    <!--
+      Aucune chrome : ni barre, ni menu, ni sélecteur. `empty` n'est pas vide —
+      il porte une navigation complète — et le paiement doit rester le seul
+      élément à l'écran. Rendre cette barre conditionnelle selon l'URL aurait
+      couplé une disposition aux routes qu'elle sert.
+    -->
+    <router-outlet (activate)="resetPosition()"></router-outlet>
   }
 }
 
