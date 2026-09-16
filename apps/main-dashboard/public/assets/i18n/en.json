@@ -4289,7 +4289,9 @@
         "request": "Request sent to your provider",
         "pin": "Enter your PIN on your phone",
         "confirm": "Payment confirmation"
-      }
+      },
+      "chooseCountry": "Choose your country",
+      "countryFirst": "Pick your country first."
     },
     "paywall": {
       "title": "Not enough credits",

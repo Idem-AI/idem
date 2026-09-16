@@ -4255,7 +4255,9 @@
         "request": "Demande envoyée à votre opérateur",
         "pin": "Saisissez votre code sur votre téléphone",
         "confirm": "Confirmation du paiement"
-      }
+      },
+      "chooseCountry": "Choisir le pays",
+      "countryFirst": "Choisissez d'abord votre pays."
     },
     "paywall": {
       "title": "Crédits insuffisants",

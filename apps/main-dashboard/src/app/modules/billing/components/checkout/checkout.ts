@@ -23,13 +23,59 @@ import {
 } from '../../models/billing.model';
 
 /**
+ * Pays déduit du fuseau horaire du navigateur.
+ *
+ * Aucune permission demandée, aucun appel réseau : le fuseau est déjà connu.
+ *
+ * **Seuls les noms de ville sans ambiguïté figurent ici.** Dans la base IANA,
+ * `Africa/Dakar` et `Africa/Ouagadougou` sont des alias d'`Africa/Abidjan`, et
+ * `Africa/Douala`, `Africa/Libreville`, `Africa/Brazzaville`, `Africa/Porto-Novo`
+ * des alias d'`Africa/Lagos`. Un navigateur qui normalise vers le fuseau
+ * canonique ne permet donc pas de distinguer le Sénégal de la Côte d'Ivoire.
+ * Dans ce cas on ne présélectionne rien : mieux vaut demander que d'étiqueter
+ * un client dans le mauvais pays, avec le mauvais indicatif.
+ */
+const COUNTRY_BY_TIMEZONE: Record<string, string> = {
+  'Africa/Douala': 'CMR',
+  'Africa/Abidjan': 'CIV',
+  'Africa/Dakar': 'SEN',
+  'Africa/Porto-Novo': 'BEN',
+  'Africa/Ouagadougou': 'BFA',
+  'Africa/Brazzaville': 'COG',
+  'Africa/Libreville': 'GAB',
+};
+
+/** Le pays désigné par le fuseau du navigateur, ou `null` si le doute subsiste. */
+function countryFromTimeZone(): string | null {
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return (zone && COUNTRY_BY_TIMEZONE[zone]) || null;
+  } catch {
+    // Environnement sans `Intl` complet : on demandera le pays, simplement.
+    return null;
+  }
+}
+
+/**
+ * Pays servant au calcul du devis tant qu'aucun n'est choisi.
+ *
+ * Le prix ne dépend pas du pays : XAF et XOF sont à parité fixe 1:1 dans toute
+ * la zone franc. Le montant affiché est donc exact avant même le choix, ce qui
+ * évite de laisser le récapitulatif vide — la première chose qu'on veut lire
+ * sur un écran de paiement.
+ */
+const QUOTE_FALLBACK_COUNTRY = 'CMR';
+
+/**
  * Paiement Mobile Money, de bout en bout.
  *
  * Le parcours suit ce que vit réellement l'abonné :
  *
  *   1. ce qu'il achète et combien ;
- *   2. son numéro — l'opérateur est deviné, jamais demandé en premier
- *      (personne ne pense « MTN_MOMO_CMR », tout le monde connaît son numéro) ;
+ *   2. son pays — deviné quand c'est possible, demandé sinon — puis son
+ *      numéro, dont l'indicatif suit le pays ; l'opérateur est détecté, jamais
+ *      demandé en premier (personne ne pense « MTN_MOMO_CMR », tout le monde
+ *      connaît son numéro) ;
  *   3. l'attente pendant qu'il saisit son code sur son téléphone ;
  *   4. le résultat, avec ce qu'il peut faire s'il a échoué.
  *
@@ -39,10 +85,11 @@ import {
  * de quoi il dispose ; le conteneur le sait déjà. Au-delà de 46rem, le
  * récapitulatif passe à gauche et le formulaire à droite.
  *
- * **Ce que l'écran ne fait pas**, et c'est délibéré : pas de surface vitrée, pas
- * de carte dans une carte, pas de grand cercle qui tourne pendant l'attente, et
- * l'accent ne sert qu'à l'action et aux états. Un paiement demande du calme,
- * pas de la décoration.
+ * **Les champs et les boutons ne sont pas restylés ici.** `select` et
+ * `input[type='tel']` sont habillés par le design system sur l'élément
+ * lui-même, et le bouton principal est `.inner-button`. Redéfinir des valeurs
+ * voisines produisait un écran presque identique au reste de l'application —
+ * l'écart le plus visible qui soit.
  *
  * Deux détails comptent plus qu'ils n'en ont l'air. Le **rappel de saisie du
  * code** après quinze secondes : chez plusieurs opérateurs la demande disparaît
@@ -93,19 +140,19 @@ import {
       </section>
 
       <section class="pay__action">
-        <!-- 1. Numéro et opérateur -->
+        <!-- 1. Pays, numéro, opérateur -->
         @if (step() === 'form') {
           <div class="pay__form">
             <div class="field">
               <label class="field__label" for="pay-country">
                 {{ 'billing.checkout.country' | translate }}
               </label>
-              <select
-                id="pay-country"
-                class="field__control"
-                [ngModel]="country()"
-                (ngModelChange)="onCountryChange($event)"
-              >
+              <!-- Seuls les pays ouverts au paiement Mobile Money figurent ici :
+                   la liste vient du serveur, pas d'une copie locale. -->
+              <select id="pay-country" [ngModel]="country()" (ngModelChange)="onCountryChange($event)">
+                <option value="" disabled>
+                  {{ 'billing.checkout.chooseCountry' | translate }}
+                </option>
                 @for (option of countries(); track option.code) {
                   <option [value]="option.code">{{ option.name }} (+{{ option.prefix }})</option>
                 }
@@ -117,15 +164,20 @@ import {
                 {{ 'billing.checkout.phone' | translate }}
               </label>
               <div class="field__phone">
-                <span class="field__prefix" aria-hidden="true">+{{ selectedCountry()?.prefix }}</span>
+                <!-- L'indicatif suit le pays choisi : il n'est ni saisi ni
+                     modifiable, et l'abonné tape son numéro comme il le dit. -->
+                @if (selectedCountry(); as place) {
+                  <span class="field__prefix" aria-hidden="true">+{{ place.prefix }}</span>
+                }
                 <input
                   id="pay-phone"
                   type="tel"
                   inputmode="numeric"
                   autocomplete="tel-national"
-                  class="field__control field__control--phone"
+                  [class.field__control--phone]="selectedCountry()"
+                  [disabled]="!country()"
                   [placeholder]="'billing.checkout.phonePlaceholder' | translate"
-                  [attr.aria-describedby]="'pay-phone-hint'"
+                  aria-describedby="pay-phone-hint"
                   [ngModel]="phone()"
                   (ngModelChange)="onPhoneChange($event)"
                 />
@@ -134,7 +186,11 @@ import {
               <!-- L'opérateur détecté s'affiche en une ligne plutôt qu'en grille
                    de boutons : dans neuf cas sur dix il est juste, et une
                    question de moins vaut mieux qu'un choix de plus. -->
-              @if (selectedProvider(); as chosen) {
+              @if (!country()) {
+                <p class="field__hint" id="pay-phone-hint">
+                  {{ 'billing.checkout.countryFirst' | translate }}
+                </p>
+              } @else if (selectedProvider(); as chosen) {
                 <p class="field__hint field__hint--detected" id="pay-phone-hint">
                   <span class="dot dot--on" aria-hidden="true"></span>
                   {{ chosen.displayName }}
@@ -153,7 +209,7 @@ import {
 
             <!-- Liste ouverte seulement quand la détection s'est trompée, ou
                  quand rien n'a été détecté. -->
-            @if (providerPickerOpen() || (!selectedProvider() && providers().length > 0)) {
+            @if (providerPickerOpen() || (country() && !selectedProvider() && providers().length > 0)) {
               <div class="field">
                 <span class="field__label" id="pay-provider-label">
                   {{ 'billing.checkout.provider' | translate }}
@@ -188,7 +244,12 @@ import {
               <p class="notice notice--error" role="alert">{{ message }}</p>
             }
 
-            <button type="button" class="primary" [disabled]="!canPay()" (click)="pay()">
+            <button
+              type="button"
+              class="inner-button button-lg w-full"
+              [disabled]="!canPay()"
+              (click)="pay()"
+            >
               @if (isPaying()) {
                 {{ 'billing.checkout.starting' | translate }}
               } @else {
@@ -257,9 +318,11 @@ import {
                 {{ 'billing.checkout.successBody' | translate: { label: payment()?.label } }}
               </p>
 
-              <button type="button" class="primary" (click)="finish()">
-                {{ 'billing.checkout.continue' | translate }}
-              </button>
+              <div class="outcome__actions">
+                <button type="button" class="inner-button button-lg w-full" (click)="finish()">
+                  {{ 'billing.checkout.continue' | translate }}
+                </button>
+              </div>
             } @else {
               <p class="outcome__mark outcome__mark--ko">
                 <i class="pi pi-times" aria-hidden="true"></i>
@@ -276,11 +339,11 @@ import {
 
               <div class="outcome__actions">
                 @if (payment()?.failure?.retryable !== false) {
-                  <button type="button" class="primary" (click)="retry()">
+                  <button type="button" class="inner-button button-lg w-full" (click)="retry()">
                     {{ 'billing.checkout.retry' | translate }}
                   </button>
                 }
-                <button type="button" class="secondary" (click)="finish()">
+                <button type="button" class="button-ghost w-full" (click)="finish()">
                   {{ 'common.close' | translate }}
                 </button>
               </div>
@@ -421,7 +484,11 @@ import {
         margin-top: var(--spacing-5);
       }
 
-      /* ── Formulaire ──────────────────────────────────────────────────── */
+      /* ── Formulaire ──────────────────────────────────────────────────────
+         Les listes déroulantes et les champs téléphone sont habillés par le
+         design system sur l'élément lui-même : fond, bordure, rayon, focus et
+         flèche en viennent. Rien n'est redéfini ici, sauf la place de
+         l'indicatif. */
 
       .pay__form {
         display: grid;
@@ -439,31 +506,6 @@ import {
         color: var(--idem-text-primary);
       }
 
-      .field__control {
-        width: 100%;
-        min-height: 2.875rem;
-        padding: var(--spacing-3) var(--spacing-4);
-        font-size: var(--font-size-base);
-        color: var(--idem-text-primary);
-        background: var(--idem-field-bg);
-        border: 1px solid var(--glass-border);
-        border-radius: var(--radius-xl);
-        transition:
-          border-color var(--duration-150) var(--ease-out),
-          background-color var(--duration-150) var(--ease-out);
-      }
-
-      .field__control:hover {
-        border-color: var(--glass-border-medium);
-      }
-
-      .field__control:focus-visible {
-        outline: 2px solid var(--color-primary);
-        outline-offset: 2px;
-        border-color: var(--color-primary);
-        background: var(--idem-field-bg-focus);
-      }
-
       .field__phone {
         position: relative;
       }
@@ -476,8 +518,10 @@ import {
         font-size: var(--font-size-base);
         color: var(--idem-text-secondary);
         font-variant-numeric: tabular-nums;
+        pointer-events: none;
       }
 
+      /* Seule entorse aux styles du système : la place de l'indicatif. */
       .field__control--phone {
         padding-left: 3.75rem;
         font-variant-numeric: tabular-nums;
@@ -509,12 +553,6 @@ import {
         text-underline-offset: 2px;
       }
 
-      .linkish:focus-visible {
-        outline: 2px solid var(--color-primary);
-        outline-offset: 2px;
-        border-radius: var(--radius-sm);
-      }
-
       .providers {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
@@ -530,7 +568,7 @@ import {
         text-align: left;
         font-size: var(--font-size-sm);
         color: var(--idem-text-primary);
-        background: transparent;
+        background: var(--idem-field-bg);
         border: 1px solid var(--glass-border);
         border-radius: var(--radius-xl);
         cursor: pointer;
@@ -544,19 +582,14 @@ import {
       }
 
       .provider--on {
-        border-color: var(--color-primary);
-        /* Une teinte, pas un aplat : l'accent reste réservé à l'action. */
-        background: color-mix(in oklch, var(--color-primary) 8%, transparent);
+        border-color: color-mix(in oklch, var(--color-primary) 65%, var(--glass-border-strong));
+        background: var(--idem-field-bg-focus);
+        box-shadow: 0 1px 2px color-mix(in oklch, var(--color-primary) 10%, transparent);
       }
 
       .provider:disabled {
+        opacity: 0.5;
         cursor: not-allowed;
-        color: var(--idem-text-disabled);
-      }
-
-      .provider:focus-visible {
-        outline: 2px solid var(--color-primary);
-        outline-offset: 2px;
       }
 
       .provider__logo {
@@ -570,54 +603,6 @@ import {
         margin-left: auto;
         font-size: var(--font-size-xs);
         color: var(--idem-text-tertiary);
-      }
-
-      /* ── Actions ─────────────────────────────────────────────────────── */
-
-      .primary,
-      .secondary {
-        width: 100%;
-        min-height: 3rem;
-        padding: var(--spacing-3) var(--spacing-6);
-        font-size: var(--font-size-base);
-        font-weight: var(--font-weight-semibold);
-        border-radius: var(--radius-xl);
-        cursor: pointer;
-        transition:
-          background-color var(--duration-150) var(--ease-out),
-          opacity var(--duration-150) var(--ease-out);
-      }
-
-      .primary {
-        color: #ffffff;
-        background: var(--color-primary);
-        border: 1px solid var(--color-primary);
-      }
-
-      .primary:hover:not(:disabled) {
-        background: var(--color-primary-600);
-        border-color: var(--color-primary-600);
-      }
-
-      .primary:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
-      }
-
-      .secondary {
-        color: var(--idem-text-primary);
-        background: transparent;
-        border: 1px solid var(--glass-border);
-      }
-
-      .secondary:hover {
-        border-color: var(--glass-border-medium);
-      }
-
-      .primary:focus-visible,
-      .secondary:focus-visible {
-        outline: 2px solid var(--color-primary);
-        outline-offset: 2px;
       }
 
       .pay__next {
@@ -763,19 +748,10 @@ import {
         font-size: var(--font-size-sm);
       }
 
-      .outcome .primary,
-      .outcome__actions {
-        margin-top: var(--spacing-6);
-      }
-
       .outcome__actions {
         display: grid;
         gap: var(--spacing-2);
-      }
-
-      .outcome__actions .primary,
-      .outcome__actions .secondary {
-        margin-top: 0;
+        margin-top: var(--spacing-6);
       }
 
       /* Le mouvement porte un état ; s'il gêne, l'état reste lisible sans lui. */
@@ -784,10 +760,7 @@ import {
           animation: none;
         }
 
-        .field__control,
-        .provider,
-        .primary,
-        .secondary {
+        .provider {
           transition: none;
         }
       }
@@ -817,7 +790,8 @@ export class CheckoutComponent {
   readonly isPaying = signal(false);
   readonly loadError = signal<string | null>(null);
 
-  readonly country = signal('CMR');
+  /** Vide tant que le pays n'est pas établi : on demande plutôt que de supposer. */
+  readonly country = signal<string>('');
   readonly phone = signal('');
   readonly provider = signal<string | null>(null);
   /** Ouvert seulement quand la détection s'est trompée : une question de moins. */
@@ -831,6 +805,7 @@ export class CheckoutComponent {
   private readonly stopPolling = new Subject<void>();
   private predictTimer?: ReturnType<typeof setTimeout>;
 
+  /** Les pays ouverts au Mobile Money, tels que le serveur les déclare. */
   readonly countries = computed(() => this.billing.catalog()?.countries ?? []);
   readonly selectedCountry = computed(() =>
     this.countries().find((entry) => entry.code === this.country()),
@@ -858,6 +833,7 @@ export class CheckoutComponent {
     () =>
       !this.isPaying() &&
       Boolean(this.quote()) &&
+      Boolean(this.country()) &&
       Boolean(this.provider()) &&
       this.phone().replace(/\D/g, '').length >= 8,
   );
@@ -870,14 +846,46 @@ export class CheckoutComponent {
   );
 
   constructor() {
-    // Le devis et les moyens de paiement dépendent du produit et du pays :
-    // un effet les recharge à chaque changement, sans que l'appelant s'en soucie.
+    /**
+     * Le catalogue porte la liste des pays ouverts au paiement.
+     *
+     * Il n'était chargé que par les pages Aperçu et Offres : en arrivant
+     * directement ici — depuis la landing, une relance par e-mail, ou la
+     * fenêtre de paywall — la liste des pays restait vide. Le composant le
+     * charge donc lui-même : il en dépend, il ne peut pas supposer qu'un autre
+     * écran est passé avant lui.
+     */
+    if (!this.billing.catalog()) {
+      this.billing.loadCatalog().subscribe();
+    }
+
+    /**
+     * Le pays deviné n'est posé qu'une fois la liste du serveur connue.
+     *
+     * On vérifie l'appartenance à cette liste plutôt que la seule
+     * correspondance du fuseau : un utilisateur situé dans un pays encore fermé
+     * au paiement ne doit rien voir de présélectionné.
+     */
+    const guess = countryFromTimeZone();
+    effect(() => {
+      const available = this.countries();
+      if (!guess || this.country() || !available.length) return;
+
+      if (available.some((entry) => entry.code === guess)) {
+        this.country.set(guess);
+      }
+    });
+
+    // Le devis dépend du produit ; le pays ne change pas le montant dans la
+    // zone franc, mais l'API en attend un.
     effect(() => {
       const code = this.productCode();
-      const country = this.country();
+      const country = this.country() || QUOTE_FALLBACK_COUNTRY;
       if (code) this.loadQuote(code, country);
     });
 
+    // Les opérateurs, eux, dépendent réellement du pays : rien à charger tant
+    // qu'il n'est pas choisi.
     effect(() => {
       const country = this.country();
       if (country) this.loadMethods(country);
@@ -923,6 +931,8 @@ export class CheckoutComponent {
 
   onCountryChange(code: string): void {
     this.country.set(code);
+    // L'indicatif et les opérateurs changent avec le pays : un opérateur retenu
+    // pour le précédent n'a plus de sens.
     this.provider.set(null);
     this.providerPickerOpen.set(false);
   }
@@ -948,7 +958,7 @@ export class CheckoutComponent {
 
     if (this.predictTimer) clearTimeout(this.predictTimer);
     const digits = value.replace(/\D/g, '');
-    if (digits.length < 8) return;
+    if (digits.length < 8 || !this.country()) return;
 
     this.predictTimer = setTimeout(() => {
       this.billing.predictProvider(digits, this.country()).subscribe({
