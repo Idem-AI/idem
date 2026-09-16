@@ -13,6 +13,11 @@ import useUserStore from '@/stores/userSlice';
 import { redirectToLogin } from '@/hooks/useAuth';
 import { getCurrentUser } from '@/api/persistence/db';
 import type { UserModel } from '@/api/persistence/userModel';
+import {
+  isPaymentRequired,
+  openProjectPassCheckout,
+  readPaymentRequired,
+} from '@/api/billing';
 
 interface DeployModalProps {
   open: boolean;
@@ -74,20 +79,38 @@ export function DeployModal({ open, onClose, onNetlifyDeploy, liveUrl }: DeployM
     }
 
     setIsHandingOff(true);
+
+    // Le serveur vérifie que le projet est débloqué : il lui faut donc
+    // l'identifiant, et le MÊME que celui employé à l'achat du pass — sans
+    // quoi un pass payé ne débloquerait rien.
+    const projectId = new URLSearchParams(window.location.search).get('projectId');
+
     try {
       const response = await fetch(`${API_BASE}/appgen/handoff`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(projectId ? { 'X-Appgen-Project-Id': projectId } : {}),
         },
         credentials: 'include',
         body: JSON.stringify({
           ...payload,
+          projectId,
           target: 'ideploy',
           expiresAt: new Date(Date.now() + HANDOFF_TTL_MS).toISOString(),
         }),
       });
+
+      // Projet non débloqué : on envoie payer plutôt que d'afficher une erreur
+      // technique, et l'utilisateur revient exactement ici ensuite.
+      if (isPaymentRequired(response)) {
+        const refusal = await readPaymentRequired(response);
+        toast.error(refusal?.message ?? t('billing.locked.title'));
+        onClose();
+        openProjectPassCheckout(projectId);
+        return;
+      }
 
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);

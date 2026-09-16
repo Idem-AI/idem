@@ -20,17 +20,15 @@
  *   npx ts-node --transpile-only api/scripts/grantWelcomeCredit.ts --apply  # exécution
  */
 
-import path from 'path';
-import dotenv from 'dotenv';
-
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
-dotenv.config({ path: path.resolve(__dirname, '../../.env.secret') });
-
+import { loadSecrets } from '../config/secrets';
 import mongoDBConnection from '../config/mongodb.config';
 import { User } from '../schemas/user.schema';
 import { BillingSubscription, CreditLedgerEntry } from '../schemas/billing.schema';
 import { billingSettingsService } from '../services/billing/billing-settings.service';
 import { creditLedgerService } from '../services/billing/credit-ledger.service';
+import { firstNameOf } from '../services/email/email-layout';
+import { transactionalEmailService } from '../services/email/email.service';
+import { welcomeCredit as welcomeCreditEmail } from '../services/email/templates';
 
 const APPLY = process.argv.includes('--apply');
 
@@ -49,6 +47,9 @@ async function main(): Promise<void> {
       : 'Crédit de bienvenue — simulation (ajouter --apply pour exécuter)\n'
   );
 
+  // Même chargement de configuration que l'application (développement des
+  // `${…}` compris), sans quoi la connexion MongoDB échoue.
+  await loadSecrets();
   await mongoDBConnection.connect();
 
   const settings = await billingSettingsService.ensureExists();
@@ -88,7 +89,7 @@ async function main(): Promise<void> {
 
   // Curseur plutôt que `find()` : la base de production peut compter des
   // dizaines de milliers de comptes, et rien n'oblige à tous les charger.
-  const cursor = User.find({}, { uid: 1, email: 1 }).lean().cursor();
+  const cursor = User.find({}, { uid: 1, email: 1, displayName: 1 }).lean().cursor();
 
   for await (const user of cursor) {
     report.scanned += 1;
@@ -131,6 +132,28 @@ async function main(): Promise<void> {
       }
 
       report.granted += 1;
+
+      // L'e-mail explique le changement de fonctionnement : des crédits
+      // apparus sans explication inquiètent plus qu'ils ne rassurent. Son
+      // échec ne remet pas en cause l'octroi, déjà inscrit au grand livre.
+      if (user.email) {
+        const message = welcomeCreditEmail({
+          firstName: firstNameOf(user.displayName, user.email),
+          business: welcomeCredit.business,
+          appgen: welcomeCredit.appgen,
+          expiresAt,
+        });
+
+        await transactionalEmailService.send({
+          to: user.email,
+          subject: message.subject,
+          html: message.html,
+          text: message.text,
+          template: 'billing.welcome_credit',
+          relatedType: 'welcome_credit',
+          userId: user.uid,
+        });
+      }
 
       if (report.granted % 100 === 0) {
         console.log(`  … ${report.granted} comptes crédités`);

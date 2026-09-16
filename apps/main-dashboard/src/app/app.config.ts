@@ -16,6 +16,7 @@ import { providePrimeNG } from 'primeng/config';
 import { routes } from './app.routes';
 import { environment } from '../environments/environment';
 import { authInterceptor } from './shared/interceptors/auth.interceptor';
+import { paymentRequiredInterceptor } from './shared/interceptors/payment-required.interceptor';
 import { MyPreset } from './my-preset';
 import { provideMarkdown, MARKED_OPTIONS, MERMAID_OPTIONS } from 'ngx-markdown';
 import { CustomTitleStrategy } from './shared/services/custom-title-strategy';
@@ -26,7 +27,10 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
     { provide: TitleStrategy, useClass: CustomTitleStrategy },
-    provideHttpClient(withInterceptors([authInterceptor])),
+    // `paymentRequiredInterceptor` après l'authentification : un 402 n'a de
+    // sens que sur une requête authentifiée, et l'ordre garantit que le jeton
+    // a été posé avant que le refus soit interprété.
+    provideHttpClient(withInterceptors([authInterceptor, paymentRequiredInterceptor])),
     provideAnimations(),
     provideFirebaseApp(() => initializeApp(environment.firebase)),
     provideAuth(() => getAuth()),

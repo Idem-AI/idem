@@ -363,6 +363,103 @@ export async function refundRequestCredits(req: CustomRequest, reason?: string):
 }
 
 /**
+ * Exige qu'un projet AppGen soit débloqué.
+ *
+ * Le modèle économique d'iCode tient en une phrase : « générer est gratuit,
+ * posséder se paie ». Télécharger le code, l'envoyer sur GitHub ou le déployer
+ * sont les actes de possession — ils supposent un Project Pass (999 F) ou un
+ * abonnement qui l'inclut.
+ *
+ * **Le contrôle est ici, pas dans l'interface.** Les boutons grisés côté client
+ * sont du confort ; seule cette vérification empêche d'appeler directement
+ * l'endpoint. L'identifiant de projet est cherché là où chaque appelant le
+ * place — paramètre d'URL, corps, ou en-tête `X-Appgen-Project-Id` — et doit
+ * être le MÊME que celui employé à l'achat du pass, sans quoi le pass payé ne
+ * débloquerait rien.
+ */
+export function requireProjectAccess() {
+  return async (req: CustomRequest, res: Response, next: NextFunction): Promise<void> => {
+    const userId = req.user?.uid;
+
+    if (!userId) {
+      res.status(401).json({
+        error: 'authentication_required',
+        message: 'Connectez-vous pour utiliser cette fonctionnalité.',
+      });
+      return;
+    }
+
+    try {
+      const mode = await billingSettingsService.getEnforcement();
+      if (mode === 'off') {
+        next();
+        return;
+      }
+
+      const projectId =
+        (req.params?.projectId as string) ||
+        (req.body?.projectId as string) ||
+        (req.headers['x-appgen-project-id'] as string) ||
+        (req.body?.draftId as string);
+
+      if (!projectId) {
+        // Sans identifiant, la question n'a pas de réponse : bloquer serait
+        // arbitraire. On journalise pour que l'appelant fautif se corrige.
+        logger.warn('billing.project_access_unknown', {
+          event: 'billing.project_access_unknown',
+          path: req.originalUrl,
+        });
+        next();
+        return;
+      }
+
+      const unlocked = await entitlementsService.hasProjectAccess(userId, projectId);
+
+      if (unlocked) {
+        next();
+        return;
+      }
+
+      if (mode === 'log') {
+        logger.info('billing.project_access_shadow', {
+          event: 'billing.project_access_shadow',
+          projectId,
+          wouldBlock: true,
+        });
+        next();
+        return;
+      }
+
+      const pass = await billingService.getProduct('appgen-project-pass');
+
+      res.status(402).json({
+        error: 'payment_required',
+        message:
+          'Ce projet n’est pas encore débloqué. Le Project Pass ouvre les modifications, le téléchargement du code, GitHub et le déploiement.',
+        engine: 'appgen',
+        action: 'project_unlock',
+        projectId,
+        suggestions: pass
+          ? [
+              {
+                productCode: pass.code,
+                name: pass.name,
+                priceXaf: pass.priceXaf,
+                credits: pass.credits,
+              },
+            ]
+          : [],
+      });
+    } catch (error: any) {
+      logger.error(`billing.project_access_failed: ${error.message}`, {
+        event: 'billing.project_access_failed',
+      });
+      next();
+    }
+  };
+}
+
+/**
  * Exige une caractéristique de plan (exports sans filigrane, modèles premium,
  * marque blanche…).
  *

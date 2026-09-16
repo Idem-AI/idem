@@ -30,3 +30,14 @@
 
 <!-- Avertissement de quota -->
 <app-quota-warning></app-quota-warning>
+
+<!--
+  Paywall : monté une seule fois pour toute l'application.
+
+  Un refus de l'API pour crédits insuffisants arrive au milieu d'un appel HTTP,
+  souvent déclenché par un service et non par la page affichée. L'hôte est donc
+  ici, à la racine : l'utilisateur voit ce qui manque et peut payer sans quitter
+  son écran de travail.
+-->
+<app-paywall-host />
+

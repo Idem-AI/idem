@@ -4207,5 +4207,96 @@
         "body": "Brand, business plan, finance, legal, website, deployment: each module has its page. Nothing is locked — take them in whatever order suits you."
       }
     }
+  },
+  "billing": {
+    "title": "Billing",
+    "nav": "Billing",
+    "overview": {
+      "title": "My plan",
+      "subtitle": "Your plans, credits and payments",
+      "credits": "Available credits",
+      "noSubscription": "Free plan",
+      "renewsOn": "Renews on {{date}}",
+      "endsOn": "Ends on {{date}}",
+      "complimentary": "Complimentary — premium beta",
+      "pastDue": "Payment overdue: your access stays open until {{date}}.",
+      "payNow": "Pay now",
+      "changePlan": "Change plan",
+      "cancel": "Cancel",
+      "cancelConfirm": "Your access runs until the end of the period you already paid for.",
+      "history": "Payment history",
+      "noPayments": "No payments yet.",
+      "statement": "Credit statement",
+      "betaBanner": "Premium beta active until {{date}}: our most complete plans are open to you."
+    },
+    "plans": {
+      "title": "Plans",
+      "subtitle": "Pay for what you use, with Mobile Money",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "yearlyHint": "2 months free",
+      "perMonth": "/month",
+      "perYear": "/year",
+      "oneTime": "one-off",
+      "credits": "{{count}} credits",
+      "currentPlan": "Current plan",
+      "choose": "Choose",
+      "buy": "Buy",
+      "packs": "Packs",
+      "recharges": "Credit top-ups",
+      "bundles": "Bundles",
+      "addons": "Add-ons",
+      "localAlternative": "Elsewhere: {{price}}"
+    },
+    "engines": {
+      "business": "iBusiness",
+      "appgen": "iCode",
+      "ideploy": "iDeploy"
+    },
+    "checkout": {
+      "title": "Payment",
+      "youArePaying": "You are paying for",
+      "creditsIncluded": "{{count}} credits included",
+      "country": "Country",
+      "phone": "Mobile Money number",
+      "phonePlaceholder": "6 XX XX XX XX",
+      "phoneHint": "The number you will approve the payment on.",
+      "provider": "Provider",
+      "providerClosed": "unavailable",
+      "pay": "Pay {{amount}} {{currency}}",
+      "secured": "Secured by pawaPay. No card details are stored.",
+      "waitingTitle": "Approve on your phone",
+      "waitingBody": "A PIN prompt was sent to {{phone}}. Enter your Mobile Money PIN.",
+      "pinReminder": "Nothing received? The prompt sometimes disappears from the screen.",
+      "slowPayment": "Your provider is taking longer than usual. You can close this window: we will notify you once the payment goes through.",
+      "successTitle": "Payment confirmed",
+      "successBody": "{{label}} is now active on your account.",
+      "failedTitle": "The payment did not go through",
+      "noCharge": "No amount was debited from your Mobile Money account.",
+      "retry": "Try again",
+      "continue": "Continue"
+    },
+    "paywall": {
+      "title": "Not enough credits",
+      "cost": "This deliverable costs {{cost}} credits",
+      "balance": "You have {{balance}} left",
+      "missing": "You need {{missing}} more credits",
+      "upgradeTitle": "Higher plan required",
+      "choose": "Choose a plan",
+      "seeAllPlans": "See all plans",
+      "later": "Later"
+    },
+    "status": {
+      "CREATED": "Created",
+      "ACCEPTED": "Awaiting approval",
+      "SUBMITTED": "Submitted",
+      "PROCESSING": "Processing",
+      "IN_RECONCILIATION": "Verifying",
+      "COMPLETED": "Paid",
+      "FAILED": "Failed",
+      "REJECTED": "Rejected",
+      "NOT_FOUND": "Not completed",
+      "EXPIRED": "Expired"
+    }
   }
 }

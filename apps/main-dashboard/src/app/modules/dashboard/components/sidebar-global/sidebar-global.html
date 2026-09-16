@@ -43,6 +43,11 @@
     <!-- Right section -->
     <div class="flex items-center gap-4">
       @if (user()) {
+        <!-- Crédits : ce que l'utilisateur dépense en générant. -->
+        <div class="hidden md:block">
+          <app-credits-badge />
+        </div>
+
         <!-- Quota Display - Desktop only -->
         <div class="hidden md:block">
           <app-quota-display
@@ -241,6 +246,9 @@
         <!-- Mobile Quota Display -->
         @if (user()) {
           <div class="pb-4 border-b border-[var(--glass-border)]">
+            <div class="mb-3">
+              <app-credits-badge />
+            </div>
             <app-quota-display
               [quotaInfo]="quotaInfo() ?? null"
               [quotaDisplay]="quotaDisplay() ?? null"

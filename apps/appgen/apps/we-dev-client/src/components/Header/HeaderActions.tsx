@@ -9,6 +9,8 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { Modal } from 'antd';
 import { sendToGitHub, getCurrentUser } from '@/api/persistence/db';
+import useBillingStore from '@/stores/billingSlice';
+import { openProjectPassCheckout } from '@/api/billing';
 import { HelpButton } from './HelpButton';
 import { DeployModal } from '../DeployModal/DeployModal';
 import useAppGenContextStore from '@/stores/appgenContextSlice';
@@ -101,6 +103,12 @@ export function HeaderActions() {
   const [isRedeploy, setIsRedeploy] = useState(false);
 
   const handleDownload = async () => {
+    // Télécharger le code est un acte de possession : il suppose un Project
+    // Pass. Le serveur refuse de toute façon les actions qui comptent
+    // (déploiement, GitHub) ; ce contrôle-ci évite surtout de laisser
+    // l'utilisateur croire que c'est gratuit avant de buter dessus.
+    if (!(await ensureProjectUnlocked())) return;
+
     try {
       const zip = new JSZip();
       Object.entries(files).forEach(([path, content]) => {
@@ -127,6 +135,35 @@ export function HeaderActions() {
   // Project this generation is attached to (set when coming from the dashboard).
   const projectId = new URLSearchParams(window.location.search).get('projectId');
   const draftId = draft?.id ?? null;
+
+  const { checkProjectAccess } = useBillingStore();
+
+  /**
+   * Le projet est-il débloqué ?
+   *
+   * Trois issues, et la troisième compte autant que les autres :
+   *  - débloqué → on continue ;
+   *  - verrouillé → on envoie payer, avec retour ici ;
+   *  - **inconnu** (API de facturation injoignable) → on laisse passer. Le
+   *    serveur reste seul juge au moment d'agir ; bloquer sur une panne de
+   *    facturation empêcherait de travailler sans rien protéger.
+   */
+  const ensureProjectUnlocked = async (): Promise<boolean> => {
+    if (!projectId) {
+      // Sans projet rattaché, aucun pass ne peut être acheté ni vérifié.
+      toast.error(t('billing.locked.missingProject'));
+      return false;
+    }
+
+    const unlocked = await checkProjectAccess(projectId);
+    if (unlocked === false) {
+      toast.error(t('billing.locked.title'));
+      openProjectPassCheckout(projectId);
+      return false;
+    }
+
+    return true;
+  };
 
   useEffect(() => {
     getCurrentUser().then((user) => setCurrentUser(user));
@@ -240,6 +277,9 @@ export function HeaderActions() {
   };
 
   const handleSendToGitHub = async () => {
+    // Pousser sur GitHub est l'autre acte de possession du modèle iCode.
+    if (!(await ensureProjectUnlocked())) return;
+
     setIsSendingToGitHub(true);
 
     try {

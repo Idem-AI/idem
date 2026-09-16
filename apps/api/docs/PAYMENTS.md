@@ -175,6 +175,88 @@ franc suppose une grille de prix dédiée (coefficient de pouvoir d'achat) :
 Ce que nous ouvrons commercialement est une chose ; ce qui fonctionne à
 l'instant T en est une autre, et vient toujours de `GET /active-conf`.
 
+## Ce qui est verrouillé côté serveur
+
+Les boutons grisés dans l'interface sont du confort ; ces contrôles-ci sont la
+garantie. Ils vivent dans `middleware/billing.middleware.ts` :
+
+| Contrôle | Où | Effet |
+| --- | --- | --- |
+| `requireCredits(engine, action)` | 35 routes de génération (branding, business plan, pitch deck, prévisionnel, kit juridique, communication, cartes, diagrammes, conseiller) | Réserve les crédits **avant** la génération et les rembourse si elle échoue |
+| `requireProjectAccess()` | `POST /appgen/handoff`, `POST /github/projects/:projectId/push` | Exige un Project Pass ou un abonnement iCode qui l'inclut — « générer est gratuit, posséder se paie » |
+| `requireFeature(clé)` | exports sans filigrane, modèles premium, marque blanche | Réserve une capacité au plan qui la vend |
+| `POST /billing/consume` | appelé par les services qui génèrent ailleurs (AppGen) | Applique le même barème, à distance |
+
+### iCode : le moteur vit ailleurs, le barème reste ici
+
+AppGen génère dans `we-dev-next` (serveur Express distinct), pas dans cette
+API. Ce service ne décide donc rien : avant de générer, il appelle
+`POST /billing/consume` **en relayant le jeton de l'utilisateur**, et renvoie
+le refus tel quel. Dupliquer le barème là-bas l'aurait fait diverger d'ici, et
+c'est l'argent des clients qui en aurait payé l'écart.
+
+Le contrôle est posé juste avant le choix du mode, dernier instant où rien
+n'est parti : aucun en-tête envoyé, aucun appel au modèle. Après le début du
+flux, il serait trop tard pour refuser — et le coût d'inférence serait déjà
+engagé.
+
+Deux natures d'actions y sont distinguées, conformément à « générer est
+gratuit, posséder se paie » :
+
+- **génération initiale** : gratuite mais plafonnée (3/jour en Découverte,
+  illimitée à partir de Starter). Le compteur journalier vit dans Redis avec
+  expiration — un quota gratuit n'est pas un contrôle de sécurité, donc Redis
+  indisponible vaut autorisation ;
+- **modifications** : 1 crédit pour un message, 2 pour un build, 3 pour une
+  action premium.
+
+Si l'API de facturation est injoignable, `we-dev-next` autorise la génération.
+Empêcher de travailler parce qu'un service auxiliaire est tombé coûterait plus
+cher que quelques générations non facturées.
+
+Chacun respecte le réglage `enforcement` : `off` (rien), `log` (mesure sans
+bloquer, le mode de départ), `enforce` (débit réel).
+
+Le barème suit les **livrables** et non les appels : la première génération
+d'une charte coûte 60 crédits, ses déclinaisons sont incluses, et toute relance
+de visuels en coûte 10. Les écritures « incluses » apparaissent au relevé à
+zéro crédit — l'utilisateur voit ce qu'il a obtenu, et le système sait que
+l'inclusion a été consommée.
+
+## Monitoring
+
+**Logs** : `logs/payments.log` (canal dédié, collecté par Promtail avec les
+autres). Chaque ligne porte `event`, `reference`, `depositId`, `provider`,
+`status`, `failureCode`, `durationMs`, et le `requestId` qui relie le paiement
+au reste de la requête.
+
+**Métriques** : `payments_initiated_total`, `payments_completed_total`,
+`payments_failed_total{failure_code}`, `payment_time_to_final_seconds`,
+`pawapay_api_requests_total`, `pawapay_api_duration_seconds`,
+`payment_callbacks_total{result}`, `payments_pending_stuck`,
+`payment_fulfillment_failures_total`, `credits_debited_total{engine,action}`,
+`emails_sent_total{template,status}`, `billing_job_runs_total{job,result}`.
+
+**Alertes** (`idem-admin/monitoring/prometheus/alert-rules.yml`, groupe
+`payments_health`) — neuf règles, dont deux sans seuil parce que toute valeur
+non nulle est un incident :
+
+| Alerte | Gravité | Déclenchement |
+| --- | --- | --- |
+| `PaymentFulfillmentFailure` | critique | Un client a payé sans rien recevoir |
+| `PaymentCallbackSignatureInvalid` | critique | Signature de callback invalide |
+| `PawapayApiErrors` | critique | Plus de 10 % d'appels en erreur |
+| `PaymentReconcilerNotRunning` | critique | La réconciliation ne tourne plus |
+| `PaymentsStuck` | avertissement | Paiement sans statut final depuis 30 min |
+| `PaymentSuccessRateLow` | avertissement | Réussite sous 60 % (volume minimal de 5) |
+| `PaymentCallbackIpRejected` | avertissement | Callback d'une IP inconnue |
+| `BillingJobFailing` | avertissement | Une tâche planifiée échoue |
+| `TransactionalEmailsFailing` | avertissement | Plus de 20 % d'e-mails en échec |
+
+**Tableau Grafana** : `IDEM — Paiements` (uid `idem-payments`) — entonnoir,
+réussite par opérateur, motifs d'échec, latence pawaPay, issue des callbacks,
+et le journal Loki filtré sur `payment.*`.
+
 ## Contrôles
 
 ```bash

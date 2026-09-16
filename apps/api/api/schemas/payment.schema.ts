@@ -114,15 +114,30 @@ PaymentTransactionSchema.index({ userEmail: 1, createdAt: -1 });
 PaymentTransactionSchema.index({ day: 1, status: 1 });
 PaymentTransactionSchema.index({ provider: 1, status: 1, day: 1 });
 
-// Un projet ne se débloque qu'une fois : deux Project Pass payés pour le même
-// projet seraient une erreur de facturation, pas une vente.
+/**
+ * Un projet ne se débloque qu'une fois : deux Project Pass payés pour le même
+ * projet seraient une erreur de facturation, pas une vente.
+ *
+ * Deux précautions, apprises à la dure :
+ *
+ *  - **pas de `sparse`** : MongoDB refuse de le combiner avec un filtre partiel
+ *    (« cannot mix partialFilterExpression and sparse options »), et le refus
+ *    survient à la création de l'index, donc au démarrage de l'API ;
+ *  - **`intent.projectId` doit exister** : sans cette condition, deux recharges
+ *    encaissées — qui ne portent aucun projet — partageraient la clé
+ *    (utilisateur, null, code produit). Le second achat, parfaitement
+ *    légitime, serait rejeté comme un doublon.
+ */
 PaymentTransactionSchema.index(
   { userId: 1, 'intent.projectId': 1, 'intent.productCode': 1 },
   {
     unique: true,
-    partialFilterExpression: { status: 'COMPLETED', 'intent.type': 'purchase' },
+    partialFilterExpression: {
+      status: 'COMPLETED',
+      'intent.type': 'purchase',
+      'intent.projectId': { $exists: true },
+    },
     name: 'one_completed_purchase_per_project_product',
-    sparse: true,
   }
 );
 
