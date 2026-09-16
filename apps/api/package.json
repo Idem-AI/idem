@@ -26,7 +26,11 @@
     "check:provider": "ts-node --transpile-only api/scripts/checkProviderSwitch.ts",
     "check:jurisdictions": "ts-node --transpile-only api/scripts/checkJurisdictions.ts",
     "check:salvage": "ts-node --transpile-only api/scripts/checkHtmlSalvage.ts",
-    "check:mockups": "ts-node --transpile-only api/scripts/checkSocialMockups.ts"
+    "check:mockups": "ts-node --transpile-only api/scripts/checkSocialMockups.ts",
+    "check:billing": "ts-node --transpile-only api/scripts/checkBilling.ts",
+    "check:payments": "ts-node --transpile-only api/scripts/checkPayments.ts",
+    "check:payments:sandbox": "ts-node --transpile-only api/scripts/checkPaymentsSandbox.ts",
+    "grant:welcome": "ts-node --transpile-only api/scripts/grantWelcomeCredit.ts"
   },
   "author": "arolleaguekeng",
   "license": "MIT",

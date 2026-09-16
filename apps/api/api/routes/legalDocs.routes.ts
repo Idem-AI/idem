@@ -11,6 +11,7 @@ import {
 import { authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
+import { firstThenRevision, requireCredits } from '../middleware/billing.middleware';
 
 export const legalDocsRoutes = Router();
 const resourceName = 'legalDocs';
@@ -32,11 +33,21 @@ legalDocsRoutes.get(
 );
 
 /** Generate legal documents with streaming (POST body or GET query params ?types=...&context=base64json) */
+/**
+ * Le modèle économique facture le **kit** OHADA (65 crédits), pas chaque
+ * document : une fois le kit payé sur un projet, régénérer une pièce vaut une
+ * révision.
+ */
+const chargeLegalKit = requireCredits('business', 'legal_kit', {
+  resolve: firstThenRevision('business', 'legal_kit', 'revision'),
+});
+
 legalDocsRoutes.post(
   `/${resourceName}/generate/:projectId`,
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  chargeLegalKit,
   generateLegalDocsStreamingController
 );
 
@@ -45,6 +56,7 @@ legalDocsRoutes.get(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  chargeLegalKit,
   generateLegalDocsStreamingController
 );
 

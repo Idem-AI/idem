@@ -139,11 +139,30 @@ export interface BillingProductModel {
 export const BUSINESS_CREDIT_COSTS = {
   revision: 1,
   flyer: 2,
+  /** Visuel entièrement généré par IA, par opposition au moteur de templates. */
+  ai_visual: 5,
+  /** Carrousel ou jeu de diapositives, jusqu'à 10 vues. */
+  carousel: 5,
   business_card: 10,
+  /**
+   * Relance de 4 visuels de logo au-delà de la session incluse.
+   *
+   * Le barème du modèle limite la session de logo à 8-10 visuels ; au-delà,
+   * chaque relance se paie — c'est le poste le plus coûteux à produire.
+   */
+  logo_relaunch: 10,
   editorial_calendar: 15,
   pitch_deck: 35,
+  /** Stratégie de communication complète : audit, cibles, canaux, ton. */
+  communication_strategy: 40,
   financial_forecast: 40,
+  /** Manuel de procédures (feuille de route du modèle). */
+  procedures_manual: 45,
+  /** Vidéo courte générée par IA (8 s) — le seul livrable réellement cher. */
+  short_video: 60,
   logo_brand: 60,
+  /** Kit juridique OHADA : statuts, pacte d'associés, CGV/CGU. */
+  legal_kit: 65,
   business_plan: 70,
 } as const;
 
@@ -174,8 +193,25 @@ export const ANNUAL_DISCOUNT_RATE = 2 / 12;
 /** Nombre d'échéances acceptées pour un paiement annuel (1 ou 3). */
 export const ALLOWED_INSTALLMENTS = [1, 3] as const;
 
-/** Moyens de paiement de la page publique. `manual` = saisie admin. */
-export type PaymentProvider = 'manual' | 'mtn_momo' | 'orange_money' | 'card';
+/**
+ * Origine d'une ligne de facturation.
+ *
+ * `pawapay` couvre tout l'encaissement Mobile Money : l'opérateur réellement
+ * débité (MTN, Orange, Wave…) est porté par la transaction, pas par la
+ * facture — c'est le prestataire qui nous verse les fonds, et c'est lui qui
+ * fait foi au rapprochement bancaire.
+ *
+ * `beta` et `welcome` ne sont pas des paiements mais des octrois : les isoler
+ * évite de compter un accès offert comme du chiffre d'affaires.
+ */
+export type PaymentProvider =
+  | 'manual'
+  | 'pawapay'
+  | 'beta'
+  | 'welcome'
+  | 'mtn_momo'
+  | 'orange_money'
+  | 'card';
 
 /** Tarifs hors forfait, en XAF. */
 export const OVERAGE_RATES = {
@@ -212,6 +248,21 @@ export interface BillingSubscriptionModel {
   provider: PaymentProvider;
   providerSubscriptionId?: string;
   providerCustomerId?: string;
+  /**
+   * Fin de la tolérance après une échéance impayée. Tant qu'elle n'est pas
+   * dépassée, l'accès est maintenu : le Mobile Money n'ayant pas de
+   * prélèvement automatique, un retard de paiement est la norme, pas un signal
+   * de départ.
+   */
+  graceEndsAt?: Date;
+  /** Résiliation demandée : l'accès court jusqu'à la fin de la période payée. */
+  cancelAtPeriodEnd?: boolean;
+  /** Regroupe les lignes issues d'un même bundle. */
+  bundleId?: string;
+  /** Dernière relance envoyée, pour ne pas relancer deux fois le même jour. */
+  lastReminderAt?: Date;
+  /** Paiement qui a ouvert la période courante. */
+  paymentTransactionId?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -239,6 +290,8 @@ export interface BillingPurchaseModel {
   expiresAt?: Date;
   provider: PaymentProvider;
   providerPaymentId?: string;
+  /** Transaction qui a payé cet achat — index unique : une livraison par paiement. */
+  paymentTransactionId?: string;
   /** Jour `YYYY-MM-DD` de l'achat. */
   day: string;
   createdAt?: Date;
@@ -275,6 +328,8 @@ export interface BillingInvoiceModel {
   paidAt?: Date;
   provider: PaymentProvider;
   providerInvoiceId?: string;
+  /** Transaction qui a réglé la facture. */
+  paymentTransactionId?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -292,7 +347,14 @@ export type CreditEntryReason =
   | 'rollover_expiry'
   | 'manual_adjustment'
   | 'consumption'
-  | 'refund';
+  | 'refund'
+  /**
+   * Crédit de bienvenue accordé une fois aux comptes antérieurs à la
+   * facturation. Sa propre raison, et non `manual_adjustment` : c'est ce qui
+   * rend l'octroi rejouable sans risque (on sait qui l'a déjà reçu) et
+   * mesurable séparément dans le panel admin.
+   */
+  | 'welcome_grant';
 
 /**
  * Mouvement de crédits sur le compteur d'UN moteur.
@@ -320,6 +382,14 @@ export interface CreditLedgerEntryModel {
   purchaseId?: string;
   /** Péremption des crédits reportés (rollover de 2 mois). */
   expiresAt?: Date;
+  /**
+   * Date à laquelle cet octroi a été traité par la tâche de péremption.
+   *
+   * Sans ce marqueur, la tâche relirait indéfiniment les mêmes écritures :
+   * `expiresAt` reste dans le passé pour toujours. Il vaut aussi trace — on
+   * sait quand et pourquoi un solde a fondu.
+   */
+  expiredAt?: Date;
   note?: string;
   day: string;
   createdAt?: Date;
@@ -747,6 +817,33 @@ export const DEFAULT_PRODUCTS: SeedProduct[] = [
 export const BUNDLE_CREDIT_SPLIT: Record<string, Partial<Record<BillingEngine, number>>> = {
   'bundle-launch': { business: 150, appgen: 150 },
   'bundle-complete': { business: 500, appgen: 550 },
+};
+
+/**
+ * Plans réellement ouverts par chaque bundle, moteur par moteur.
+ *
+ * Un bundle n'est pas un abonnement de plus : c'est trois abonnements vendus
+ * ensemble. Sans cette table, souscrire « Launch Pack » créait une seule ligne
+ * ancrée sur `business` — l'acheteur payait 7 499 F et n'obtenait ni le plan
+ * AppGen ni le plan iDeploy qu'on lui avait promis.
+ *
+ * Le prix est porté par la première ligne et les suivantes valent 0 : le MRR
+ * doit compter le bundle une fois, pas trois.
+ */
+export const BUNDLE_COMPOSITION: Record<
+  string,
+  { engine: BillingEngine; productCode: string }[]
+> = {
+  'bundle-launch': [
+    { engine: 'business', productCode: 'business-essential' },
+    { engine: 'appgen', productCode: 'appgen-starter' },
+    { engine: 'ideploy', productCode: 'ideploy-starter' },
+  ],
+  'bundle-complete': [
+    { engine: 'business', productCode: 'business-growth' },
+    { engine: 'appgen', productCode: 'appgen-pro' },
+    { engine: 'ideploy', productCode: 'ideploy-pro' },
+  ],
 };
 
 /** Prix annuel d'un produit mensuel, remise « 2 mois offerts » appliquée. */

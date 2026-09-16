@@ -123,5 +123,127 @@ export const aiOutcomeTotal = new client.Counter({
   registers: [register],
 });
 
+// ==================== MÉTRIQUES DE PAIEMENT ====================
+//
+// L'encaissement Mobile Money échoue souvent, et pour des raisons qui ne sont
+// pas de notre ressort (code non saisi, solde insuffisant, opérateur fermé).
+// Ce qui doit se voir tout de suite, c'est un changement de régime : un
+// opérateur qui décroche, un tunnel qui cesse de convertir, une livraison qui
+// ne suit plus l'encaissement. Ces séries sont alimentées depuis un point
+// unique — `paymentEventsService.record` — comme les métriques IA le sont
+// depuis `aiUsageService.record`.
+
+/** Paiements lancés, par opérateur, pays et nature de produit. */
+export const paymentsInitiatedTotal = new client.Counter({
+  name: 'payments_initiated_total',
+  help: 'Payments initiated',
+  labelNames: ['provider', 'country', 'intent_type', 'service'] as const,
+  registers: [register],
+});
+
+/** Paiements encaissés. Le rapport avec la série précédente EST le taux de conversion. */
+export const paymentsCompletedTotal = new client.Counter({
+  name: 'payments_completed_total',
+  help: 'Payments completed',
+  labelNames: ['provider', 'country', 'intent_type', 'service'] as const,
+  registers: [register],
+});
+
+/**
+ * Paiements échoués, ventilés par code d'échec. C'est la série qui distingue
+ * « nos clients n'ont pas de solde » de « l'opérateur est en panne » — deux
+ * situations identiques sur une courbe de succès, opposées en conduite.
+ */
+export const paymentsFailedTotal = new client.Counter({
+  name: 'payments_failed_total',
+  help: 'Payments that reached a failed state',
+  labelNames: ['provider', 'failure_code', 'status', 'service'] as const,
+  registers: [register],
+});
+
+/** Délai entre le lancement et le statut final : ce que l'abonné attend devant son écran. */
+export const paymentTimeToFinal = new client.Histogram({
+  name: 'payment_time_to_final_seconds',
+  help: 'Seconds between initiation and final status',
+  labelNames: ['provider', 'status', 'service'] as const,
+  // De la validation immédiate (10 s) à la réconciliation tardive (1 h).
+  buckets: [5, 10, 20, 30, 60, 120, 300, 600, 1800, 3600],
+  registers: [register],
+});
+
+/** Appels à l'API pawaPay : c'est ici que se voit une panne côté prestataire. */
+export const pawapayRequestsTotal = new client.Counter({
+  name: 'pawapay_api_requests_total',
+  help: 'Calls to the pawaPay API',
+  labelNames: ['endpoint', 'status', 'service'] as const,
+  registers: [register],
+});
+
+export const pawapayRequestDuration = new client.Histogram({
+  name: 'pawapay_api_duration_seconds',
+  help: 'Duration of pawaPay API calls',
+  labelNames: ['endpoint', 'service'] as const,
+  buckets: [0.1, 0.25, 0.5, 1, 2, 5, 10, 15],
+  registers: [register],
+});
+
+/**
+ * Callbacks reçus, par issue : `accepted`, `signature_invalid`, `ip_rejected`,
+ * `unknown_deposit`, `duplicate`. Une signature invalide n'est jamais anodine.
+ */
+export const paymentCallbacksTotal = new client.Counter({
+  name: 'payment_callbacks_total',
+  help: 'Inbound pawaPay callbacks by outcome',
+  labelNames: ['kind', 'result', 'service'] as const,
+  registers: [register],
+});
+
+/** Paiements sans statut final depuis trop longtemps — la file d'attente du support. */
+export const paymentsStuckGauge = new client.Gauge({
+  name: 'payments_pending_stuck',
+  help: 'Payments pending beyond the expected settlement delay',
+  labelNames: ['service'] as const,
+  registers: [register],
+});
+
+/**
+ * Livraisons échouées après encaissement. Toute valeur non nulle est un client
+ * qui a payé sans rien recevoir : c'est l'alerte la plus grave du système.
+ */
+export const paymentFulfillmentFailuresTotal = new client.Counter({
+  name: 'payment_fulfillment_failures_total',
+  help: 'Fulfilment failures on completed payments',
+  labelNames: ['intent_type', 'service'] as const,
+  registers: [register],
+});
+
+/** Crédits débités, par moteur et par livrable — le pendant métier du coût IA. */
+export const creditsDebitedTotal = new client.Counter({
+  name: 'credits_debited_total',
+  help: 'Credits debited from user meters',
+  labelNames: ['engine', 'action', 'service'] as const,
+  registers: [register],
+});
+
+/** E-mails transactionnels, par modèle et par issue. */
+export const emailsSentTotal = new client.Counter({
+  name: 'emails_sent_total',
+  help: 'Transactional emails sent',
+  labelNames: ['template', 'status', 'service'] as const,
+  registers: [register],
+});
+
+/**
+ * Exécutions des tâches planifiées (réconciliation, renouvellements, bêta).
+ * Une tâche qui cesse de tourner est invisible autrement : elle ne produit ni
+ * erreur ni trafic.
+ */
+export const billingJobRunsTotal = new client.Counter({
+  name: 'billing_job_runs_total',
+  help: 'Scheduled billing job executions',
+  labelNames: ['job', 'result', 'service'] as const,
+  registers: [register],
+});
+
 export { register };
 export default register;

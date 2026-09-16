@@ -1,0 +1,425 @@
+import { NextFunction, Response } from 'express';
+import logger from '../config/logger';
+import { BillingRequestContext, CustomRequest } from '../interfaces/express.interface';
+import { BUSINESS_CREDIT_COSTS, BillingEngine } from '../models/billing.model';
+import { APPGEN_CREDIT_COSTS } from '../models/plan-limits.model';
+import { billingService } from '../services/billing.service';
+import { billingSettingsService } from '../services/billing/billing-settings.service';
+import { creditLedgerService } from '../services/billing/credit-ledger.service';
+import { Entitlements, entitlementsService } from '../services/billing/entitlements.service';
+
+/**
+ * Application du barème en crédits sur les routes de génération.
+ *
+ * Trois choix de conception, chacun résolvant un problème concret :
+ *
+ * **1. On débite AVANT de générer, et on rembourse si ça casse.**
+ * L'inverse — générer puis débiter — laisse la porte ouverte aux générations
+ * lancées en parallèle par un solde qui ne les couvre pas toutes. Débiter
+ * d'abord ferme cette porte ; le remboursement automatique sur réponse en
+ * erreur évite de faire payer un livrable jamais reçu.
+ *
+ * **2. Trois degrés d'application, réglables sans redéploiement.**
+ * Brancher le barème d'un coup sur des comptes habitués à 50 générations
+ * quotidiennes bloquerait des utilisateurs en production sans qu'on ait la
+ * moindre mesure. En mode `log`, chaque refus qui aurait eu lieu est journalisé
+ * et compté, sans rien bloquer : on lit les chiffres, puis on passe à
+ * `enforce`.
+ *
+ * **3. Un refus explique quoi faire.**
+ * Le 402 porte le coût, le solde et les offres qui débloqueraient l'action —
+ * de quoi ouvrir directement la bonne page de paiement, plutôt qu'un message
+ * d'erreur qui laisse l'utilisateur chercher.
+ */
+
+/** Barèmes par moteur, réunis pour que l'appelant ne cite qu'une action. */
+const CREDIT_COSTS: Record<string, Record<string, number>> = {
+  business: BUSINESS_CREDIT_COSTS,
+  appgen: APPGEN_CREDIT_COSTS,
+  ideploy: {},
+};
+
+export interface RequireCreditsOptions {
+  /** Coût fixe, quand le livrable a un prix unique. */
+  cost?: number;
+  /**
+   * Coût ET libellé calculés à l'exécution, quand le prix dépend de l'état du
+   * projet — voir `firstThenRevision`.
+   */
+  resolve?: (req: CustomRequest) => Promise<{ action: string; cost: number }>;
+  /** Exemption conditionnelle, évaluée sur les droits résolus. */
+  exempt?: (req: CustomRequest, entitlements: Entitlements) => boolean;
+}
+
+/**
+ * « Plein tarif la première fois, révision ensuite. »
+ *
+ * Le modèle économique facture des **livrables**, pas des appels au moteur.
+ * Générer la charte graphique coûte 60 crédits ; en ajuster les couleurs dix
+ * minutes plus tard ne doit pas en coûter 60 de plus, sinon le barème punit
+ * l'itération — exactement ce que le produit encourage.
+ *
+ * Le premier passage sur un projet facture `firstAction` à son prix ; les
+ * suivants facturent `repeatAction`, moins cher, et le relevé de l'utilisateur
+ * montre la différence.
+ */
+export function firstThenRevision(
+  engine: BillingEngine,
+  firstAction: string,
+  repeatAction: string
+): (req: CustomRequest) => Promise<{ action: string; cost: number }> {
+  return async (req: CustomRequest) => {
+    const userId = req.user?.uid;
+    const projectId = req.params?.projectId as string | undefined;
+
+    if (!userId || !projectId) {
+      return { action: firstAction, cost: creditCost(engine, firstAction) };
+    }
+
+    const alreadyCharged = await creditLedgerService.hasChargedAction(
+      userId,
+      engine,
+      firstAction,
+      projectId
+    );
+
+    return alreadyCharged
+      ? { action: repeatAction, cost: creditCost(engine, repeatAction) }
+      : { action: firstAction, cost: creditCost(engine, firstAction) };
+  };
+}
+
+/**
+ * « Inclus la première fois, facturé ensuite. »
+ *
+ * Pour les étapes qui appartiennent à un livrable déjà payé — les déclinaisons
+ * d'un logo font partie des 60 crédits de la charte — mais dont la répétition
+ * coûte cher à produire. Le premier passage est inscrit au relevé à zéro
+ * crédit (« inclus »), les suivants sont facturés.
+ */
+export function includedThenRepeat(
+  engine: BillingEngine,
+  includedAction: string,
+  repeatAction: string
+): (req: CustomRequest) => Promise<{ action: string; cost: number }> {
+  return async (req: CustomRequest) => {
+    const userId = req.user?.uid;
+    const projectId = req.params?.projectId as string | undefined;
+
+    if (!userId || !projectId) {
+      return { action: includedAction, cost: 0 };
+    }
+
+    const alreadyUsed = await creditLedgerService.hasChargedAction(
+      userId,
+      engine,
+      includedAction,
+      projectId
+    );
+
+    return alreadyUsed
+      ? { action: repeatAction, cost: creditCost(engine, repeatAction) }
+      : { action: includedAction, cost: 0 };
+  };
+}
+
+/** Coût d'une action, au barème du moteur. */
+export function creditCost(engine: BillingEngine, action: string): number {
+  const cost = CREDIT_COSTS[engine]?.[action];
+  if (cost === undefined) {
+    // Une action hors barème coûte le prix d'une révision plutôt que rien :
+    // facturer zéro par omission ferait des générations gratuites invisibles.
+    logger.warn('billing.unknown_action_cost', {
+      event: 'billing.unknown_action_cost',
+      engine,
+      action,
+    });
+    return 1;
+  }
+  return cost;
+}
+
+/**
+ * Offres qui débloqueraient l'action, de la moins chère à la plus complète.
+ *
+ * Calculées depuis le catalogue et non codées en dur : un prix ajusté en
+ * production doit se refléter dans la proposition faite à l'utilisateur.
+ */
+async function suggestionsFor(
+  engine: BillingEngine,
+  missing: number
+): Promise<{ productCode: string; name: string; priceXaf: number; credits: number }[]> {
+  try {
+    const [recharges, plans] = await Promise.all([
+      billingService.listProducts({ kind: 'recharge' }),
+      billingService.listProducts({ engine, kind: 'subscription' }),
+    ]);
+
+    const rechargeOptions = recharges
+      .filter((product) => product.credits >= missing)
+      .sort((a, b) => a.priceXaf - b.priceXaf)
+      .slice(0, 1);
+
+    // Le plan payant le moins cher du moteur : souvent plus avantageux qu'une
+    // recharge pour qui revient régulièrement.
+    const planOption = plans
+      .filter((product) => product.priceXaf > 0 && product.credits >= missing)
+      .sort((a, b) => a.priceXaf - b.priceXaf)
+      .slice(0, 1);
+
+    return [...rechargeOptions, ...planOption].map((product) => ({
+      productCode: product.code,
+      name: product.name,
+      priceXaf: product.priceXaf,
+      credits: product.credits,
+    }));
+  } catch {
+    // Une suggestion manquante ne doit pas transformer un refus propre en 500.
+    return [];
+  }
+}
+
+/**
+ * Exige puis réserve les crédits d'une action.
+ *
+ * À placer après `authenticate` et après les validations d'entrée : inutile de
+ * débiter pour une requête qui sera rejetée pour un champ manquant.
+ */
+export function requireCredits(
+  engine: BillingEngine,
+  action: string,
+  options: RequireCreditsOptions = {}
+) {
+  return async (req: CustomRequest, res: Response, next: NextFunction): Promise<void> => {
+    const userId = req.user?.uid;
+
+    if (!userId) {
+      res.status(401).json({
+        error: 'authentication_required',
+        message: 'Connectez-vous pour utiliser cette fonctionnalité.',
+      });
+      return;
+    }
+
+    try {
+      const mode = await billingSettingsService.getEnforcement();
+      if (mode === 'off') {
+        next();
+        return;
+      }
+
+      const resolved = options.resolve
+        ? await options.resolve(req)
+        : { action, cost: options.cost ?? creditCost(engine, action) };
+
+      const chargedAction = resolved.action;
+      const cost = Math.max(0, Math.round(resolved.cost));
+
+      // Action incluse dans un livrable déjà payé : rien à débiter, mais on
+      // l'inscrit au relevé — sinon l'utilisateur ne verrait pas ce qu'il a
+      // obtenu, et l'inclusion se rejouerait indéfiniment.
+      if (cost === 0) {
+        if (mode === 'enforce') {
+          await creditLedgerService.recordIncluded(userId, engine, chargedAction, {
+            projectId: (req.params?.projectId as string) ?? undefined,
+            feature: engine,
+          });
+        }
+        next();
+        return;
+      }
+
+      const entitlements = await entitlementsService.resolve(userId);
+
+      if (options.exempt?.(req, entitlements)) {
+        next();
+        return;
+      }
+
+      const balance = entitlements.engines[engine].credits;
+
+      // Mode observation : on mesure ce que l'application coûterait, sans
+      // bloquer personne ni toucher aux soldes.
+      if (mode === 'log') {
+        logger.info('billing.enforcement_shadow', {
+          event: 'billing.enforcement_shadow',
+          engine,
+          action: chargedAction,
+          cost,
+          balance,
+          wouldBlock: balance < cost,
+          plan: entitlements.engines[engine].productCode,
+        });
+        next();
+        return;
+      }
+
+      const result = await creditLedgerService.debit(userId, engine, cost, {
+        action: chargedAction,
+        projectId: (req.params?.projectId as string) ?? undefined,
+        feature: engine,
+      });
+
+      if (!result.allowed) {
+        const suggestions = await suggestionsFor(engine, cost - result.balance);
+
+        res.status(402).json({
+          error: 'payment_required',
+          message:
+            engine === 'business'
+              ? 'Vos crédits iBusiness ne suffisent pas pour ce livrable.'
+              : 'Vos crédits iCode ne suffisent pas pour cette action.',
+          engine,
+          action: chargedAction,
+          cost,
+          balance: result.balance,
+          missing: cost - result.balance,
+          suggestions,
+        });
+        return;
+      }
+
+      const context: BillingRequestContext = {
+        engine,
+        action: chargedAction,
+        cost,
+        charged: true,
+        balanceAfter: result.balance,
+        ledgerEntryId: result.ledgerEntryId,
+      };
+      req.billing = context;
+
+      // Le solde vient de changer : la prochaine lecture doit le voir.
+      await entitlementsService.invalidate(userId);
+
+      /**
+       * Contrepassation automatique si la génération échoue.
+       *
+       * `finish` couvre le cas courant (le contrôleur répond 4xx ou 5xx). Il ne
+       * couvre PAS une génération en flux qui commence en 200 puis casse en
+       * cours de route : ces routes doivent contrepasser elles-mêmes via
+       * `refundRequestCredits(req)`.
+       */
+      res.on('finish', () => {
+        if (res.statusCode < 400 || !req.billing?.charged) return;
+
+        void creditLedgerService
+          .refundDebit(userId, engine, cost, {
+            action: chargedAction,
+            note: `Génération en échec (HTTP ${res.statusCode}) — crédits restitués`,
+          })
+          .then(() => entitlementsService.invalidate(userId))
+          .catch((error: Error) => {
+            // Le pire cas : l'utilisateur a payé sans livrable. On le trace
+            // fort pour qu'un administrateur puisse régulariser.
+            logger.error(`billing.refund_failed: ${error.message}`, {
+              event: 'billing.refund_failed',
+              userId,
+              engine,
+              action,
+              cost,
+            });
+          });
+      });
+
+      next();
+    } catch (error: any) {
+      // Une panne du moteur de facturation ne doit pas empêcher de travailler :
+      // on laisse passer en le signalant. Perdre quelques crédits vaut mieux
+      // que bloquer la plateforme sur une indisponibilité de Redis.
+      logger.error(`billing.enforcement_failed: ${error.message}`, {
+        event: 'billing.enforcement_failed',
+        engine,
+        action,
+        stack: error.stack,
+      });
+      next();
+    }
+  };
+}
+
+/**
+ * Contrepasse explicitement les crédits réservés pour cette requête.
+ *
+ * À appeler depuis un contrôleur qui a répondu 200 avant de constater l'échec
+ * — typiquement une génération en flux (SSE), où le code HTTP est déjà parti.
+ */
+export async function refundRequestCredits(req: CustomRequest, reason?: string): Promise<void> {
+  const context = req.billing;
+  const userId = req.user?.uid;
+
+  if (!context?.charged || !userId) return;
+
+  // Marqué avant l'appel : si `finish` se déclenche entre-temps, il ne
+  // remboursera pas une seconde fois.
+  req.billing = { ...context, charged: false };
+
+  await creditLedgerService.refundDebit(userId, context.engine, context.cost, {
+    action: context.action,
+    note: reason ?? 'Génération interrompue — crédits restitués',
+  });
+
+  await entitlementsService.invalidate(userId);
+}
+
+/**
+ * Exige une caractéristique de plan (exports sans filigrane, modèles premium,
+ * marque blanche…).
+ *
+ * `feature` est un chemin dans les droits : `business.unwatermarkedExports`,
+ * `appgen.premiumModels`, `business.whiteLabel`.
+ */
+export function requireFeature(feature: string, message: string) {
+  return async (req: CustomRequest, res: Response, next: NextFunction): Promise<void> => {
+    const userId = req.user?.uid;
+
+    if (!userId) {
+      res.status(401).json({
+        error: 'authentication_required',
+        message: 'Connectez-vous pour utiliser cette fonctionnalité.',
+      });
+      return;
+    }
+
+    try {
+      const mode = await billingSettingsService.getEnforcement();
+      if (mode === 'off') {
+        next();
+        return;
+      }
+
+      const entitlements = await entitlementsService.resolve(userId);
+      const [scope, key] = feature.split('.');
+      const limits = (entitlements as unknown as Record<string, Record<string, unknown>>)[scope];
+      const allowed = Boolean(limits?.[key]);
+
+      if (allowed) {
+        next();
+        return;
+      }
+
+      if (mode === 'log') {
+        logger.info('billing.feature_shadow', {
+          event: 'billing.feature_shadow',
+          feature,
+          plan: entitlements.engines[(scope as BillingEngine) ?? 'business']?.productCode,
+        });
+        next();
+        return;
+      }
+
+      res.status(402).json({
+        error: 'plan_upgrade_required',
+        message,
+        feature,
+        currentPlan: entitlements.engines[(scope as BillingEngine) ?? 'business']?.productCode,
+      });
+    } catch (error: any) {
+      logger.error(`billing.feature_check_failed: ${error.message}`, {
+        event: 'billing.feature_check_failed',
+        feature,
+      });
+      next();
+    }
+  };
+}

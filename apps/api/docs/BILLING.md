@@ -5,11 +5,14 @@ Transcription du modèle économique publié sur
 commerciale : toute évolution doit être répercutée dans
 `api/models/billing.model.ts`.
 
-> **Aucun encaissement n'a lieu.** Mobile Money (MTN MoMo, Orange Money) et
-> carte sont déclarés comme moyens de paiement, mais rien n'est débité. Tout ce
-> qui précède l'encaissement — catalogue, souscription, crédits, achats,
-> émission de factures — est fonctionnel, pour que le panel admin mesure dès
-> maintenant le chiffre d'affaires face au coût des tokens.
+> **L'encaissement est branché.** Le Mobile Money passe par pawaPay : voir
+> [PAYMENTS.md](./PAYMENTS.md) pour la chaîne complète (initiation,
+> réconciliation, livraison idempotente, traçabilité). Ce document-ci décrit ce
+> qui est vendu ; l'autre décrit comment l'argent rentre.
+>
+> Ce qui n'est pas encore actif : l'application du barème en crédits sur les
+> routes de génération (réglage `enforcement`, en mode `log` par défaut), les
+> relances de renouvellement et la bêta premium. Voir « Ce qui reste à faire ».
 
 ## Trois principes structurants
 
@@ -164,29 +167,47 @@ await billingService.chargeOverage(userId, 'bandwidth_gb', 12);
 await billingService.getAllCreditBalances(userId);
 await billingService.debitBusinessAction(userId, 'business_plan', { projectId });
 
-// Paiement (point d'entrée du futur webhook)
-await billingService.markInvoicePaid(invoiceId, { provider: 'mtn_momo' });
+// Paiement encaissé (appelé par l'orchestrateur, jamais par une route)
+await billingService.applyRenewalPayment(subscriptionId, paymentTransactionId);
+await billingService.markInvoicePaid(invoiceId, { provider: 'pawapay' });
 ```
 
-## Ce qui reste à faire pour encaisser
+## Le solde de crédits n'est plus dans le grand livre
 
-1. **Prestataire de paiement** — `provider`, `providerCustomerId`,
-   `providerSubscriptionId`, `providerPaymentId`, `providerInvoiceId` sont en
-   place. Brancher MTN MoMo / Orange Money / carte et appeler
-   `markInvoicePaid()` depuis le webhook.
-2. **Tâche de renouvellement** — `renewDueSubscriptions()` n'est appelée par
-   aucun planificateur ; elle est prête et idempotente.
-3. **Débit bloquant des crédits** — `debitCredits()` renvoie
-   `{ allowed: false }` sur solde insuffisant, mais **aucun appelant ne
-   l'invoque encore**. À l'activation : appeler avant la génération et propager
-   `allowed`. Attention, `appendLedgerEntry()` relit le solde juste avant
-   d'écrire — deux débits concurrents peuvent calculer le même `balanceAfter`.
-   Passer alors par une transaction ou un compteur atomique par
-   (utilisateur, moteur).
-4. **Péremption du report** — `expiresAt` est posé sur chaque octroi, mais
+Le livre `credit_ledger` reste l'historique append-only, mais le **solde
+courant** vit dans `credit_balances`, un document par (utilisateur, moteur),
+manipulé par `creditLedgerService`.
+
+Ce déplacement corrige une faille réelle : l'ancien `debitCredits()` lisait le
+solde, vérifiait, puis écrivait. Deux générations lancées dans la même seconde
+lisaient le même solde et une seule était facturée. Le contrôle de solde est
+désormais **le filtre de la mise à jour** (`{ balance: { $gte: cost } }` +
+`$inc`), donc atomique côté MongoDB — la base ne tournant pas en replica set,
+c'est la seule garantie disponible, et elle suffit ici.
+
+Les comptes antérieurs n'ont pas de document de solde : il est reconstruit
+depuis le livre au premier accès. Aucune migration à lancer.
+
+## Ce qui reste à faire
+
+L'encaissement Mobile Money est branché (voir [PAYMENTS.md](./PAYMENTS.md)) :
+`purchase()`, `subscribe()` et `applyRenewalPayment()` sont appelés par
+l'orchestrateur une fois le paiement confirmé auprès de pawaPay, et la
+réconciliation tourne en tâche planifiée.
+
+Restent à faire :
+
+1. **Application du barème** — `debitCredits()` est atomique et prêt, mais les
+   routes de génération ne l'appellent pas encore. Le réglage `enforcement`
+   (`off` / `log` / `enforce`) existe pour mesurer avant de bloquer.
+2. **Renouvellements** — `renewDueSubscriptions()` n'émet plus que la facture ;
+   la tâche de relance (J-3, J0), la tolérance de 3 jours et le retour au plan
+   gratuit restent à écrire.
+3. **Péremption du report** — `expiresAt` est posé sur chaque octroi, mais
    aucune tâche ne périme encore les crédits au-delà de 2 mois.
-5. **Échéancier annuel** — `installments` est stocké et validé (1 ou 3), mais
+4. **Échéancier annuel** — `installments` est stocké et validé (1 ou 3), mais
    aucun échéancier n'est généré : une seule facture couvre la période.
+5. **Bêta premium** — la liste des testeurs et l'octroi des plans haut de gamme.
 
 ## Rentabilité
 

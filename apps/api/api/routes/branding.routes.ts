@@ -22,10 +22,43 @@ import {
 } from '../controllers/branding.controller';
 import { authenticate } from '../services/auth.service'; // Updated import path
 import { checkQuota } from '../middleware/quota.middleware';
+import {
+  firstThenRevision,
+  includedThenRepeat,
+  requireCredits,
+} from '../middleware/billing.middleware';
 
 export const brandingRoutes = Router();
 
 const resourceName = 'brandings';
+
+/**
+ * Barème de l'identité visuelle.
+ *
+ * Le modèle économique facture **un livrable** — « logo HD + charte graphique
+ * complète : 60 crédits » — et non chaque appel au moteur d'images. Il précise
+ * aussi que la session de logo est bornée à 8-10 visuels, et que « toute
+ * relance de 4 visuels supplémentaires est débitée 10 crédits ».
+ *
+ * D'où trois contrôles :
+ *  - `chargeBrandSession` : 60 la première fois sur un projet, 10 par relance.
+ *    Partagé par les routes de concepts (POST et flux) et par la génération de
+ *    la charte complète, qui sont trois portes d'entrée du même livrable ;
+ *  - `chargeVariations` : les déclinaisons du logo retenu sont incluses dans
+ *    les 60 ; les regénérer coûte une relance ;
+ *  - une simple révision pour tout ce qui est textuel (couleurs, typographie,
+ *    direction artistique, retouche de section).
+ *
+ * Le poste image est le seul du barème dont la marge est basse (30-55 %) :
+ * c'est précisément celui qu'il ne faut pas laisser tourner gratuitement.
+ */
+const chargeBrandSession = requireCredits('business', 'logo_brand', {
+  resolve: firstThenRevision('business', 'logo_brand', 'logo_relaunch'),
+});
+
+const chargeVariations = requireCredits('business', 'logo_variations', {
+  resolve: includedThenRepeat('business', 'logo_variations', 'logo_relaunch'),
+});
 
 // Middleware to extend connection timeout for heavy processing tasks (AI generation, PDF, etc.)
 const extendedTimeout = (req: any, res: any, next: any) => {
@@ -88,6 +121,7 @@ brandingRoutes.get(
   `/${resourceName}/generate/:projectId`,
   authenticate,
   checkQuota,
+  chargeBrandSession,
   generateBrandingStreamingController
 );
 
@@ -150,10 +184,14 @@ brandingRoutes.get(
  *       '500':
  *         description: Internal server error.
  */
+// Couleurs et typographie sont du texte : coût d'inférence marginal, donc le
+// prix d'une révision. Ces deux routes ne portent pas de `projectId` dans leur
+// chemin, ce qui exclut de toute façon un barème indexé sur le projet.
 brandingRoutes.post(
   `/${resourceName}/generate/colors-typography`,
   authenticate,
   checkQuota,
+  requireCredits('business', 'revision'),
   generateColorsAndTypographyController
 );
 
@@ -162,6 +200,7 @@ brandingRoutes.post(
   `/${resourceName}/generate/colors-typography-from-logo`,
   authenticate,
   checkQuota,
+  requireCredits('business', 'revision'),
   generateColorsAndTypographyFromLogoController
 );
 
@@ -224,6 +263,7 @@ brandingRoutes.post(
   authenticate,
   extendedTimeout,
   checkQuota,
+  chargeBrandSession,
   generateLogoConceptsController
 );
 
@@ -263,6 +303,7 @@ brandingRoutes.get(
   authenticate,
   extendedTimeout,
   checkQuota,
+  chargeBrandSession,
   generateLogoConceptsStreamController
 );
 
@@ -329,6 +370,7 @@ brandingRoutes.get(
   authenticate,
   extendedTimeout,
   checkQuota,
+  chargeVariations,
   generateLogoVariationsStreamController
 );
 
@@ -386,6 +428,7 @@ brandingRoutes.post(
   authenticate,
   extendedTimeout,
   checkQuota,
+  chargeVariations,
   generateLogoVariationsController
 );
 
@@ -528,6 +571,7 @@ brandingRoutes.post(
   `/${resourceName}/:projectId/sections/:sectionId/ai-edit`,
   authenticate,
   checkQuota,
+  requireCredits('business', 'revision'),
   aiEditBrandingSectionController
 );
 
@@ -853,6 +897,8 @@ brandingRoutes.post(
   authenticate,
   extendedTimeout,
   checkQuota,
+  // Retoucher un logo produit de nouveaux visuels : c'est une relance.
+  requireCredits('business', 'logo_relaunch'),
   editLogoController
 );
 
@@ -902,5 +948,7 @@ brandingRoutes.post(
   authenticate,
   extendedTimeout,
   checkQuota,
+  // La direction artistique est un parti pris textuel, pas une image.
+  requireCredits('business', 'revision'),
   regenerateArtDirectionController
 );
