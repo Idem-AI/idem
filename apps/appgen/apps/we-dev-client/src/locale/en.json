@@ -946,5 +946,20 @@
     "cta": "Sign in",
     "later": "Later",
     "free": "Creating an account is free and takes under a minute."
+  },
+  "billing": {
+    "credits": "iCode credits",
+    "creditsTitle": "{{used}} of {{total}} credits used",
+    "locked": {
+      "title": "This project is not unlocked yet",
+      "body": "Generating is free. Downloading the code, pushing it to GitHub or deploying it require the Project Pass.",
+      "cta": "Unlock this project",
+      "missingProject": "Open this project from your IDEM dashboard to unlock it."
+    },
+    "noCredits": {
+      "title": "Not enough iCode credits",
+      "body": "You need {{missing}} more credits for this action.",
+      "cta": "Top up"
+    }
   }
 }

@@ -511,6 +511,9 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     body: {
       model: baseModal.value,
       mode: mode,
+      // Projet IDEM rattaché : le serveur en a besoin pour rattacher la
+      // consommation de crédits au bon projet et vérifier qu'il est débloqué.
+      projectId: new URLSearchParams(window.location.search).get('projectId') ?? undefined,
       // User UI language so the AI answers/generates content in the right language.
       // (Distinct from otherConfig.backendLanguage, which is the target programming language.)
       language: i18n.language,

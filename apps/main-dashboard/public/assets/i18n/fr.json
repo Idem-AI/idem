@@ -4173,5 +4173,96 @@
         "body": "Marque, business plan, finances, juridique, site, déploiement : chaque module a sa page. Rien n'est verrouillé, prenez-les dans l'ordre qui vous arrange."
       }
     }
+  },
+  "billing": {
+    "title": "Facturation",
+    "nav": "Facturation",
+    "overview": {
+      "title": "Mon offre",
+      "subtitle": "Vos plans, vos crédits et vos paiements",
+      "credits": "Crédits disponibles",
+      "noSubscription": "Offre gratuite",
+      "renewsOn": "Renouvellement le {{date}}",
+      "endsOn": "Prend fin le {{date}}",
+      "complimentary": "Offert — bêta premium",
+      "pastDue": "Échéance dépassée : votre accès reste ouvert jusqu’au {{date}}.",
+      "payNow": "Régler maintenant",
+      "changePlan": "Changer d’offre",
+      "cancel": "Résilier",
+      "cancelConfirm": "Votre accès court jusqu’à la fin de la période déjà payée.",
+      "history": "Historique des paiements",
+      "noPayments": "Aucun paiement pour le moment.",
+      "statement": "Relevé de crédits",
+      "betaBanner": "Bêta premium active jusqu’au {{date}} : les offres les plus complètes vous sont ouvertes."
+    },
+    "plans": {
+      "title": "Offres",
+      "subtitle": "Payez ce que vous utilisez, en Mobile Money",
+      "monthly": "Mensuel",
+      "yearly": "Annuel",
+      "yearlyHint": "2 mois offerts",
+      "perMonth": "/mois",
+      "perYear": "/an",
+      "oneTime": "paiement unique",
+      "credits": "{{count}} crédits",
+      "currentPlan": "Offre actuelle",
+      "choose": "Choisir",
+      "buy": "Acheter",
+      "packs": "Packs",
+      "recharges": "Recharges de crédits",
+      "bundles": "Offres groupées",
+      "addons": "Options",
+      "localAlternative": "Ailleurs : {{price}}"
+    },
+    "engines": {
+      "business": "iBusiness",
+      "appgen": "iCode",
+      "ideploy": "iDeploy"
+    },
+    "checkout": {
+      "title": "Paiement",
+      "youArePaying": "Vous payez",
+      "creditsIncluded": "{{count}} crédits inclus",
+      "country": "Pays",
+      "phone": "Numéro Mobile Money",
+      "phonePlaceholder": "6 XX XX XX XX",
+      "phoneHint": "Le numéro sur lequel vous validerez le paiement.",
+      "provider": "Opérateur",
+      "providerClosed": "indisponible",
+      "pay": "Payer {{amount}} {{currency}}",
+      "secured": "Paiement sécurisé par pawaPay. Aucune donnée bancaire n’est stockée.",
+      "waitingTitle": "Validez sur votre téléphone",
+      "waitingBody": "Une demande de code a été envoyée au {{phone}}. Saisissez votre code secret Mobile Money.",
+      "pinReminder": "Vous n’avez rien reçu ? La demande disparaît parfois de l’écran.",
+      "slowPayment": "Votre opérateur met plus de temps que prévu. Vous pouvez fermer cette fenêtre : nous vous préprévenons dès que le paiement aboutit.",
+      "successTitle": "Paiement confirmé",
+      "successBody": "{{label}} est actif sur votre compte.",
+      "failedTitle": "Le paiement n’a pas abouti",
+      "noCharge": "Aucun montant n’a été prélevé sur votre compte Mobile Money.",
+      "retry": "Réessayer",
+      "continue": "Continuer"
+    },
+    "paywall": {
+      "title": "Crédits insuffisants",
+      "cost": "Ce livrable coûte {{cost}} crédits",
+      "balance": "Il vous en reste {{balance}}",
+      "missing": "Il vous manque {{missing}} crédits",
+      "upgradeTitle": "Offre supérieure requise",
+      "choose": "Choisir une offre",
+      "seeAllPlans": "Voir toutes les offres",
+      "later": "Plus tard"
+    },
+    "status": {
+      "CREATED": "Créé",
+      "ACCEPTED": "En attente de validation",
+      "SUBMITTED": "Transmis",
+      "PROCESSING": "En cours",
+      "IN_RECONCILIATION": "Vérification",
+      "COMPLETED": "Payé",
+      "FAILED": "Échoué",
+      "REJECTED": "Refusé",
+      "NOT_FOUND": "Non abouti",
+      "EXPIRED": "Expiré"
+    }
   }
 }

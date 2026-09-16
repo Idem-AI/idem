@@ -10,6 +10,8 @@ import {
 } from '../models/payment.model';
 import { BillingEngine, BillingInterval } from '../models/billing.model';
 import { PaymentCallbackRaw } from '../schemas/payment.schema';
+import RedisConnection from '../config/redis.config';
+import { creditCost } from '../middleware/billing.middleware';
 import { billingService } from '../services/billing.service';
 import { betaService } from '../services/billing/beta.service';
 import { billingSettingsService } from '../services/billing/billing-settings.service';
@@ -322,6 +324,198 @@ export class BillingController {
       handleError(res, error, 'Impossible de charger votre relevé.');
     }
   };
+
+  // ============================================
+  // CONSOMMATION (services internes authentifiés par l'utilisateur)
+  // ============================================
+
+  /**
+   * Débite une action facturable demandée par un autre service IDEM.
+   *
+   * AppGen ne génère pas dans l'API principale : son moteur vit dans
+   * `we-dev-next`. Ce service ne peut donc pas passer par le middleware
+   * `requireCredits`, et il ne doit surtout pas décider seul — sinon le barème
+   * existerait en deux exemplaires, et divergerait.
+   *
+   * Il relaie donc le jeton de l'utilisateur et demande ici l'autorisation. La
+   * règle, le prix et le débit restent au même endroit que pour toutes les
+   * autres générations.
+   *
+   * Deux natures d'actions :
+   *  - **la génération initiale** est gratuite mais plafonnée (3/jour en
+   *    Découverte, illimitée à partir de Starter) — c'est le cœur du modèle
+   *    iCode, « générer est gratuit » ;
+   *  - **les modifications** consomment des crédits, au barème du moteur.
+   */
+  consume = async (req: CustomRequest, res: Response): Promise<void> => {
+    try {
+      const userId = req.user!.uid;
+      const { engine, action, projectId } = req.body ?? {};
+
+      if (engine !== 'business' && engine !== 'appgen' && engine !== 'ideploy') {
+        res.status(400).json({ error: 'invalid_engine', message: 'Moteur inconnu.' });
+        return;
+      }
+      if (!action || typeof action !== 'string') {
+        res.status(400).json({ error: 'invalid_action', message: 'Action requise.' });
+        return;
+      }
+
+      // Le moteur arrive du corps de requête, donc en `any` : on le fige dans
+      // une constante typée après validation, sans quoi chaque lecture des
+      // droits se ferait sur un index non vérifié.
+      const targetEngine: BillingEngine = engine;
+
+      const enforcement = await billingSettingsService.getEnforcement();
+      if (enforcement === 'off') {
+        res.json({ allowed: true, cost: 0, enforcement });
+        return;
+      }
+
+      const entitlements = await entitlementsService.resolve(userId);
+
+      // ── Génération initiale : un quota, pas un débit ────────────────────
+      if (action === 'initial_generation') {
+        const limit = entitlements.appgen.dailyGenerations;
+
+        if (limit === null) {
+          res.json({ allowed: true, cost: 0, unlimited: true, enforcement });
+          return;
+        }
+
+        const used = await this.countDailyGenerations(userId, enforcement === 'enforce');
+
+        if (used > limit) {
+          const plans = await billingService.listProducts({ engine: 'appgen', kind: 'subscription' });
+          const starter = plans
+            .filter((product) => product.priceXaf > 0)
+            .sort((a, b) => a.priceXaf - b.priceXaf)[0];
+
+          logger.info('billing.daily_generation_exceeded', {
+            event: 'billing.daily_generation_exceeded',
+            used,
+            limit,
+          });
+
+          if (enforcement === 'log') {
+            res.json({ allowed: true, cost: 0, wouldBlock: true, enforcement });
+            return;
+          }
+
+          res.status(402).json({
+            error: 'payment_required',
+            message: `Vous avez utilisé vos ${limit} générations offertes du jour. Un abonnement iCode les rend illimitées.`,
+            engine: 'appgen',
+            action,
+            used,
+            limit,
+            suggestions: starter
+              ? [
+                  {
+                    productCode: starter.code,
+                    name: starter.name,
+                    priceXaf: starter.priceXaf,
+                    credits: starter.credits,
+                  },
+                ]
+              : [],
+          });
+          return;
+        }
+
+        res.json({ allowed: true, cost: 0, used, limit, enforcement });
+        return;
+      }
+
+      // ── Modifications : au barème du moteur ─────────────────────────────
+      const cost = creditCost(targetEngine, action);
+
+      if (enforcement === 'log') {
+        const balance = entitlements.engines[targetEngine].credits;
+
+        logger.info('billing.enforcement_shadow', {
+          event: 'billing.enforcement_shadow',
+          engine: targetEngine,
+          action,
+          cost,
+          balance,
+          wouldBlock: balance < cost,
+          source: 'consume',
+        });
+        res.json({ allowed: true, cost, enforcement, wouldBlock: true });
+        return;
+      }
+
+      const result = await creditLedgerService.debit(userId, targetEngine, cost, {
+        action,
+        projectId,
+        feature: engine,
+      });
+
+      await entitlementsService.invalidate(userId);
+
+      if (!result.allowed) {
+        const recharges = await billingService.listProducts({ kind: 'recharge' });
+        const suggestion = recharges
+          .filter((product) => product.credits >= cost - result.balance)
+          .sort((a, b) => a.priceXaf - b.priceXaf)[0];
+
+        res.status(402).json({
+          error: 'payment_required',
+          message: 'Vos crédits iCode ne suffisent pas pour cette action.',
+          engine,
+          action,
+          cost,
+          balance: result.balance,
+          missing: cost - result.balance,
+          suggestions: suggestion
+            ? [
+                {
+                  productCode: suggestion.code,
+                  name: suggestion.name,
+                  priceXaf: suggestion.priceXaf,
+                  credits: suggestion.credits,
+                },
+              ]
+            : [],
+        });
+        return;
+      }
+
+      res.json({ allowed: true, cost, balance: result.balance, enforcement });
+    } catch (error) {
+      handleError(res, error, 'Contrôle des crédits impossible.');
+    }
+  };
+
+  /**
+   * Générations initiales consommées aujourd'hui.
+   *
+   * Compteur Redis avec expiration : la donnée ne vaut rien passé minuit, et
+   * la garder en base ajouterait une collection pour un usage éphémère.
+   *
+   * Redis indisponible ⇒ on renvoie 0, donc on autorise. Un quota gratuit
+   * n'est pas un contrôle de sécurité : mieux vaut offrir une génération de
+   * trop que bloquer un utilisateur parce qu'un cache est tombé.
+   */
+  private async countDailyGenerations(userId: string, increment: boolean): Promise<number> {
+    try {
+      const redis = RedisConnection.getInstance();
+      const key = `appgen:generations:${userId}:${new Date().toISOString().slice(0, 10)}`;
+
+      if (!increment) {
+        const current = await redis.get(key);
+        return Number(current ?? 0) + 1;
+      }
+
+      const used = await redis.incr(key);
+      // Première génération du jour : on pose l'expiration.
+      if (used === 1) await redis.expire(key, 24 * 3600);
+      return used;
+    } catch {
+      return 0;
+    }
+  }
 
   // ============================================
   // WEBHOOK

@@ -134,6 +134,11 @@ class UserService {
           'users',
           uid
         );
+
+        // Compte matérialisé au premier passage par le cookie de session :
+        // même rattachement au programme bêta que dans `createUser`, sans quoi
+        // les comptes créés par ce chemin passeraient à côté.
+        void this.linkBetaProgram(uid, userRecord.email || undefined);
       } else {
         // Update existing user's lastLogin
         logger.info(`Updating lastLogin for user ${uid}`);

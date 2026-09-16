@@ -26,6 +26,7 @@ import {
   QuotaStatus,
 } from '../../../../shared/models/quota.model';
 import { ModeSwitcherComponent } from '../../../../shared/components/mode-switcher/mode-switcher';
+import { CreditsBadgeComponent } from '../../../billing/components/credits-badge/credits-badge';
 
 @Component({
   selector: 'app-sidebar-global',
@@ -39,6 +40,7 @@ import { ModeSwitcherComponent } from '../../../../shared/components/mode-switch
     QuotaDisplayComponent,
     TranslateModule,
     ModeSwitcherComponent,
+    CreditsBadgeComponent,
   ],
   animations: [
     trigger('slideInOut', [
@@ -114,6 +116,12 @@ export class SidebarGlobal {
       labelKey: 'dashboard.sidebarGlobal.projects',
       icon: 'pi pi-folder',
       route: '/projects',
+      isActive: false,
+    },
+    {
+      labelKey: 'billing.nav',
+      icon: 'pi pi-credit-card',
+      route: '/billing',
       isActive: false,
     },
   ]);

@@ -163,6 +163,37 @@ router.post('/checkout', authenticate, checkoutLimit, (req: Request, res: Respon
 
 /**
  * @openapi
+ * /billing/consume:
+ *   post:
+ *     tags: [Billing]
+ *     summary: Autorise et débite une action facturable
+ *     description: >
+ *       Appelé par les services IDEM qui génèrent hors de cette API (AppGen),
+ *       avec le jeton de l'utilisateur. Le barème, le quota de générations
+ *       offertes et le débit restent ici : un second exemplaire de ces règles
+ *       finirait par diverger.
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [engine, action]
+ *             properties:
+ *               engine: { type: string, enum: [business, appgen, ideploy] }
+ *               action: { type: string, example: build }
+ *               projectId: { type: string }
+ *     responses:
+ *       '200': { description: Action autorisée (débit effectué le cas échéant) }
+ *       '402': { description: Crédits insuffisants ou quota du jour atteint }
+ */
+router.post('/consume', authenticate, (req: Request, res: Response) =>
+  billingController.consume(req as any, res)
+);
+
+/**
+ * @openapi
  * /billing/payments/{reference}:
  *   get:
  *     tags: [Billing]

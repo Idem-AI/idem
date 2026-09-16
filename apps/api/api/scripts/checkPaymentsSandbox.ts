@@ -21,12 +21,7 @@
  *   npx ts-node --transpile-only api/scripts/checkPaymentsSandbox.ts
  */
 
-import path from 'path';
-import dotenv from 'dotenv';
-
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
-dotenv.config({ path: path.resolve(__dirname, '../../.env.secret') });
-
+import { loadSecrets } from '../config/secrets';
 import mongoDBConnection from '../config/mongodb.config';
 import { PaymentTransaction, PaymentEvent, CreditBalance } from '../schemas/payment.schema';
 import { BillingPurchase } from '../schemas/billing.schema';
@@ -118,6 +113,11 @@ async function waitForFinalStatus(reference: string, timeoutMs = 90_000) {
 
 async function main(): Promise<void> {
   console.log('Encaissement de bout en bout — bac à sable pawaPay\n');
+
+  // Avant toute lecture d'environnement : le jeton pawaPay et les
+  // identifiants MongoDB vivent dans `.env.secret`, et les `${…}` du `.env`
+  // doivent être développés comme au démarrage de l'API.
+  await loadSecrets();
 
   if (!pawapayClient.isConfigured()) {
     console.error('PAWAPAY_API_TOKEN absent : impossible de lancer ce contrôle.');
