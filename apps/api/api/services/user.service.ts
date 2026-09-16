@@ -54,6 +54,13 @@ class UserService {
       };
       const createdUser = await this.userRepository.create(user, 'users', user.uid);
       logger.info(`User created successfully: ${createdUser.uid}`);
+
+      // Adresse inscrite au programme bêta avant la création du compte : on
+      // ouvre les droits maintenant. Volontairement non attendu et isolé — une
+      // indisponibilité du moteur de facturation ne doit jamais empêcher
+      // quelqu'un de créer son compte.
+      void this.linkBetaProgram(createdUser.uid, createdUser.email);
+
       return createdUser;
     } catch (error: any) {
       logger.error(`Error creating user: ${error.message}`, {
@@ -61,6 +68,24 @@ class UserService {
         details: error,
       });
       throw error;
+    }
+  }
+
+  /**
+   * Rattache un compte au programme bêta premium si son adresse y figure.
+   *
+   * Importé à la demande : `user.service` est chargé très tôt, et une
+   * dépendance statique vers la facturation entraînerait tout le moteur de
+   * paiement dans le graphe d'imports de l'authentification.
+   */
+  private async linkBetaProgram(userId: string, email?: string): Promise<void> {
+    if (!email) return;
+
+    try {
+      const { betaService } = await import('./billing/beta.service');
+      await betaService.matchOnSignup(userId, email);
+    } catch (error: any) {
+      logger.error(`Beta program check failed for ${userId}: ${error.message}`);
     }
   }
 

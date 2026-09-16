@@ -33,7 +33,19 @@ import {
   BillingSubscription,
   CreditLedgerEntry,
 } from './schemas/billing.schema';
+import {
+  CreditBalance,
+  PaymentCallbackRaw,
+  PaymentEvent,
+  PaymentTransaction,
+} from './schemas/payment.schema';
+import { BillingSettings } from './schemas/billingSettings.schema';
+import { BetaTester } from './schemas/betaTester.schema';
+import { EmailLog } from './schemas/emailLog.schema';
 import { billingService } from './services/billing.service';
+import { billingSettingsService } from './services/billing/billing-settings.service';
+import { startBillingScheduler } from './services/billing/billing-scheduler';
+import { billingRoutes } from './routes/billing.routes';
 import { authRoutes } from './routes/auth.routes';
 import { promptRoutes } from './routes/prompt.routes';
 import swaggerJsdoc from 'swagger-jsdoc';
@@ -129,7 +141,22 @@ app.use(cookieParser());
 app.use(cors(buildCorsOptions()));
 
 // Body size limits prevent trivial DoS via huge payloads.
-app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '10mb' }));
+//
+// `verify` conserve le corps EXACT tel qu'il est arrivé. C'est indispensable
+// aux callbacks pawaPay : leur signature couvre un condensat du corps octet
+// pour octet, et re-sérialiser l'objet JSON analysé (ordre des clés, espaces)
+// produirait un condensat différent, donc un rejet de signatures pourtant
+// valides.
+app.use(
+  express.json({
+    limit: process.env.JSON_BODY_LIMIT || '10mb',
+    verify: (req, _res, buf) => {
+      if (req.url?.startsWith('/billing/webhooks/')) {
+        (req as Request & { rawBody?: Buffer }).rawBody = Buffer.from(buf);
+      }
+    },
+  })
+);
 app.use(express.urlencoded({ extended: true, limit: process.env.URLENCODED_BODY_LIMIT || '10mb' }));
 
 // Burst protection + global IP rate limit (in addition to per-route limits).
@@ -176,6 +203,8 @@ app.use('/auth', authRoutes);
 app.use('/auth', userRoutes);
 app.use('/prompt', promptRoutes);
 app.use('/quota', quotaRoutes);
+// Facturation : catalogue, droits, paiement Mobile Money, callbacks pawaPay.
+app.use('/billing', billingRoutes);
 app.use('/archetypes', archetypeRoutes);
 app.use('/github', githubRoutes);
 app.use('/cache', cacheRoutes);
@@ -294,13 +323,32 @@ function startServer() {
         BillingPurchase.init(),
         BillingInvoice.init(),
         CreditLedgerEntry.init(),
+        // Encaissement : `depositId` et `reference` uniques (idempotence), file
+        // de relecture, recherche support, et le compteur de crédits atomique.
+        PaymentTransaction.init(),
+        PaymentEvent.init(),
+        PaymentCallbackRaw.init(),
+        CreditBalance.init(),
+        BillingSettings.init(),
+        // Bêta premium : l'unicité de l'adresse empêche d'inviter deux fois la
+        // même personne depuis deux imports successifs.
+        BetaTester.init(),
+        EmailLog.init(),
       ]);
 
       // Catalogue aligné sur la page de tarification publique. N'écrase jamais
       // un produit existant (un prix ajusté en production doit survivre au
       // redémarrage).
       await billingService.seedProducts();
+
+      // Réglages commerciaux (bêta, mode d'application du barème, grâce).
+      await billingSettingsService.ensureExists();
       console.log('MongoDB indexes created successfully');
+
+      // Réconciliation des paiements : le filet qui rattrape les callbacks
+      // perdus et les livraisons échouées. Démarré après la base, sans quoi
+      // le premier passage échouerait sur une connexion absente.
+      startBillingScheduler();
     } catch (error) {
       console.error('Failed to connect to MongoDB:', error);
       process.exit(1);

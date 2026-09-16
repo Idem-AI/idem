@@ -15,6 +15,7 @@ import {
 import { authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
+import { firstThenRevision, requireCredits } from '../middleware/billing.middleware';
 
 export const pitchDeckRoutes = Router();
 const resourceName = 'pitchDecks';
@@ -69,6 +70,9 @@ pitchDeckRoutes.get(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  requireCredits('business', 'pitch_deck', {
+    resolve: firstThenRevision('business', 'pitch_deck', 'revision'),
+  }),
   generatePitchDeckStreamingController
 );
 
@@ -202,6 +206,7 @@ pitchDeckRoutes.post(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  requireCredits('business', 'revision'),
   aiEditPitchDeckSectionController
 );
 

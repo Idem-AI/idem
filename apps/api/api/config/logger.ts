@@ -24,6 +24,20 @@ const aiTraceFilter = winston.format((info) => {
   return AI_TRACE_PREFIXES.some((p) => event.startsWith(p)) ? info : false;
 });
 
+/**
+ * Canal dédié à l'argent : encaissement, facturation, crédits, bêta, e-mails.
+ *
+ * Isolé du reste pour une raison pratique : quand un client dit « j'ai payé et
+ * je n'ai rien reçu », on veut relire SA transaction sans la chercher au milieu
+ * des générations IA. Le fichier est collecté par Promtail comme les autres
+ * (`/var/log/idem-api/*.log`), donc requêtable dans Grafana.
+ */
+const PAYMENT_TRACE_PREFIXES = ['payment.', 'billing.', 'beta.', 'email.'];
+const paymentTraceFilter = winston.format((info) => {
+  const event = typeof info.event === 'string' ? info.event : '';
+  return PAYMENT_TRACE_PREFIXES.some((p) => event.startsWith(p)) ? info : false;
+});
+
 // Champs "de structure" à ne PAS répéter comme métadonnées inline en console.
 const CONSOLE_HIDDEN_FIELDS = new Set([
   'timestamp',
@@ -125,6 +139,17 @@ const logger = winston.createLogger({
       format: winston.format.combine(aiTraceFilter(), fileFormat),
       maxsize: 10485760, // 10MB
       maxFiles: 5,
+      tailable: true,
+    }),
+    // Canal argent : paiements, facturation, crédits, bêta, e-mails. Rétention
+    // plus longue que les autres (20 Mo × 10) — une contestation de paiement
+    // arrive des semaines après la transaction, et c'est précisément le moment
+    // où l'on a besoin de la trace.
+    new winston.transports.File({
+      filename: 'logs/payments.log',
+      format: winston.format.combine(paymentTraceFilter(), fileFormat),
+      maxsize: 20971520, // 20MB
+      maxFiles: 10,
       tailable: true,
     }),
   ],

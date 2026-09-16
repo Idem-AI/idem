@@ -18,10 +18,21 @@ import {
 } from '../controllers/finance.controller';
 import { checkQuota } from '../middleware/quota.middleware';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
+import { firstThenRevision, requireCredits } from '../middleware/billing.middleware';
 
 export const financeRoutes = Router();
 
 const resource = 'finance';
+
+/**
+ * Le prévisionnel 3 ans vaut 40 crédits au barème. Les deux routes de
+ * remplissage global (POST et flux SSE) sont le même livrable vu de deux
+ * façons : elles partagent donc le même contrôle, et la seconde exécution sur
+ * un projet ne facture plus qu'une révision.
+ */
+const chargeForecast = requireCredits('business', 'financial_forecast', {
+  resolve: firstThenRevision('business', 'financial_forecast', 'revision'),
+});
 
 /**
  * @openapi
@@ -147,6 +158,7 @@ financeRoutes.post(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  chargeForecast,
   aiFillAllController
 );
 
@@ -164,6 +176,7 @@ financeRoutes.get(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  chargeForecast,
   aiFillAllStreamController
 );
 
@@ -180,6 +193,8 @@ financeRoutes.post(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  // Une section seule est une révision, pas un prévisionnel complet.
+  requireCredits('business', 'revision'),
   aiFillSectionController
 );
 
@@ -196,6 +211,7 @@ financeRoutes.post(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  requireCredits('business', 'revision'),
   parseChatIntentController
 );
 
