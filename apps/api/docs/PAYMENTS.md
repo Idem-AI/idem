@@ -159,10 +159,24 @@ curl -X POST -H "x-api-key: $INTERNAL_API_KEY" -H 'Content-Type: application/jso
 | `PAWAPAY_CALLBACK_SIGNATURE` | `enforce`, `log` (défaut) ou `off` |
 | `PAWAPAY_CALLBACK_IPS` | Surcharge de la liste blanche (proxy, tunnel) |
 | `PAWAPAY_PUBLIC_KEY` | Clé publique de secours, au format PEM |
+| `PAYMENTS_ENABLED` | `false` ferme la caisse. Absent ou `true` : c'est le réglage en base qui décide |
+| `IDEPLOY_DB_*` | Base PostgreSQL d'iDeploy — lecture des ressources, écriture du plan payé |
 
 Réglages en base (`billing_settings`, modifiables depuis le panel admin) :
 `paymentsEnabled` (arrêt d'urgence), `enforcement`, `graceDays`, `reminderDays`,
 `enabledCountries`.
+
+**Deux arrêts d'urgence, et c'est voulu.** Le réglage en base ferme la caisse
+sans redéploiement, ce qui est le geste courant. `PAYMENTS_ENABLED=false` la
+ferme sans dépendre de MongoDB ni du panel — c'est-à-dire le jour où ce sont
+justement eux qui posent problème. Les deux passent par
+`billingSettingsService.isPaymentsEnabled()` : lire le réglage brut ailleurs
+ferait silencieusement sauter le second.
+
+La liste blanche des adresses de retour après paiement n'est pas une variable
+d'environnement : elle est codée dans `billing-checkout-page.ts`. Élargir ce qui
+protège d'une redirection ouverte doit coûter un redéploiement et une revue, pas
+l'édition d'un fichier `.env`.
 
 ## Pays ouverts
 

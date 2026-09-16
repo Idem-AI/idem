@@ -28,18 +28,28 @@ import {
  * Le parcours suit ce que vit réellement l'abonné :
  *
  *   1. ce qu'il achète et combien ;
- *   2. son pays et son numéro — l'opérateur est deviné, jamais demandé en
- *      premier (personne ne pense « MTN_MOMO_CMR », tout le monde connaît son
- *      numéro) ;
+ *   2. son numéro — l'opérateur est deviné, jamais demandé en premier
+ *      (personne ne pense « MTN_MOMO_CMR », tout le monde connaît son numéro) ;
  *   3. l'attente pendant qu'il saisit son code sur son téléphone ;
- *   4. le résultat, en français, avec ce qu'il peut faire s'il a échoué.
+ *   4. le résultat, avec ce qu'il peut faire s'il a échoué.
+ *
+ * **Deux colonnes par requête de conteneur, pas par paramètre.** Cet écran sert
+ * à deux endroits : la page de paiement, large, et la fenêtre de paywall,
+ * étroite. Un paramètre de mise en page aurait obligé chaque appelant à savoir
+ * de quoi il dispose ; le conteneur le sait déjà. Au-delà de 46rem, le
+ * récapitulatif passe à gauche et le formulaire à droite.
+ *
+ * **Ce que l'écran ne fait pas**, et c'est délibéré : pas de surface vitrée, pas
+ * de carte dans une carte, pas de grand cercle qui tourne pendant l'attente, et
+ * l'accent ne sert qu'à l'action et aux états. Un paiement demande du calme,
+ * pas de la décoration.
  *
  * Deux détails comptent plus qu'ils n'en ont l'air. Le **rappel de saisie du
- * code** après quinze secondes : chez plusieurs opérateurs la demande
- * disparaît de l'écran et l'abonné croit avoir raté son paiement. Et le
- * **message d'attente au-delà de trois minutes** : le réseau Mobile Money peut
- * confirmer bien plus tard, et il vaut mieux dire « nous vous préviendrons »
- * que d'afficher un échec qui n'en est pas un.
+ * code** après quinze secondes : chez plusieurs opérateurs la demande disparaît
+ * de l'écran et l'abonné croit avoir raté son paiement. Et le **message
+ * d'attente au-delà de trois minutes** : le réseau Mobile Money peut confirmer
+ * bien plus tard, et il vaut mieux dire « nous vous préviendrons » que
+ * d'afficher un échec qui n'en est pas un.
  */
 @Component({
   selector: 'app-checkout',
@@ -47,219 +57,742 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, TranslateModule],
   template: `
-    <div class="w-full max-w-md mx-auto">
-      <!-- 1. Ce qu'on achète -->
-      @if (quote(); as offer) {
-        <div class="rounded-xl border border-[var(--color-primary)]/25 bg-[var(--color-surface-1)] p-4 mb-5">
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <p class="text-sm text-text-secondary">{{ 'billing.checkout.youArePaying' | translate }}</p>
-              <p class="text-base font-semibold text-text-primary mt-0.5">{{ offer.label }}</p>
-              @if (offer.credits > 0) {
-                <p class="text-xs text-text-tertiary mt-1">
-                  {{ 'billing.checkout.creditsIncluded' | translate: { count: offer.credits } }}
+    <div class="pay">
+      <!-- Ce qu'on achète. Reste affiché pendant toute l'opération : l'abonné
+           doit pouvoir vérifier le montant au moment où il tape son code. -->
+      <section class="pay__summary">
+        @if (quote(); as offer) {
+          <p class="pay__eyebrow">{{ 'billing.checkout.youArePaying' | translate }}</p>
+          <h2 class="pay__product">{{ offer.label }}</h2>
+
+          <p class="pay__amount">
+            <span class="pay__figure">{{ offer.amount | number: '1.0-0' }}</span>
+            <span class="pay__currency">{{ offer.currency }}</span>
+          </p>
+          @if (intervalKey(); as key) {
+            <p class="pay__cadence">{{ key | translate }}</p>
+          }
+
+          @if (offer.credits > 0) {
+            <dl class="pay__details">
+              <div class="pay__detail">
+                <dt>{{ 'billing.checkout.included' | translate }}</dt>
+                <dd>{{ 'billing.checkout.creditsIncluded' | translate: { count: offer.credits } }}</dd>
+              </div>
+            </dl>
+          }
+        } @else {
+          <!-- Le devis vient du serveur : tant qu'il n'est pas là, on montre sa
+               forme plutôt qu'un vide ou un montant provisoire. -->
+          <p class="pay__eyebrow">{{ 'billing.checkout.youArePaying' | translate }}</p>
+          <div class="pay__skeleton pay__skeleton--title"></div>
+          <div class="pay__skeleton pay__skeleton--figure"></div>
+        }
+
+        <p class="pay__secured">{{ 'billing.checkout.secured' | translate }}</p>
+      </section>
+
+      <section class="pay__action">
+        <!-- 1. Numéro et opérateur -->
+        @if (step() === 'form') {
+          <div class="pay__form">
+            <div class="field">
+              <label class="field__label" for="pay-country">
+                {{ 'billing.checkout.country' | translate }}
+              </label>
+              <select
+                id="pay-country"
+                class="field__control"
+                [ngModel]="country()"
+                (ngModelChange)="onCountryChange($event)"
+              >
+                @for (option of countries(); track option.code) {
+                  <option [value]="option.code">{{ option.name }} (+{{ option.prefix }})</option>
+                }
+              </select>
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="pay-phone">
+                {{ 'billing.checkout.phone' | translate }}
+              </label>
+              <div class="field__phone">
+                <span class="field__prefix" aria-hidden="true">+{{ selectedCountry()?.prefix }}</span>
+                <input
+                  id="pay-phone"
+                  type="tel"
+                  inputmode="numeric"
+                  autocomplete="tel-national"
+                  class="field__control field__control--phone"
+                  [placeholder]="'billing.checkout.phonePlaceholder' | translate"
+                  [attr.aria-describedby]="'pay-phone-hint'"
+                  [ngModel]="phone()"
+                  (ngModelChange)="onPhoneChange($event)"
+                />
+              </div>
+
+              <!-- L'opérateur détecté s'affiche en une ligne plutôt qu'en grille
+                   de boutons : dans neuf cas sur dix il est juste, et une
+                   question de moins vaut mieux qu'un choix de plus. -->
+              @if (selectedProvider(); as chosen) {
+                <p class="field__hint field__hint--detected" id="pay-phone-hint">
+                  <span class="dot dot--on" aria-hidden="true"></span>
+                  {{ chosen.displayName }}
+                  @if (providers().length > 1) {
+                    <button type="button" class="linkish" (click)="openProviderPicker()">
+                      {{ 'billing.checkout.changeProvider' | translate }}
+                    </button>
+                  }
+                </p>
+              } @else {
+                <p class="field__hint" id="pay-phone-hint">
+                  {{ 'billing.checkout.phoneHint' | translate }}
                 </p>
               }
             </div>
-            <div class="text-right shrink-0">
-              <p class="text-2xl font-bold text-text-primary tabular-nums">
-                {{ offer.amount | number: '1.0-0' }}
-              </p>
-              <p class="text-xs text-text-tertiary">{{ offer.currency }}</p>
-            </div>
-          </div>
-        </div>
-      }
 
-      @if (loadError(); as message) {
-        <div class="rounded-lg border border-danger/30 bg-danger/10 p-4 mb-4">
-          <p class="text-sm text-danger">{{ message }}</p>
-        </div>
-      }
-
-      <!-- 2. Numéro et opérateur -->
-      @if (step() === 'form') {
-        <div class="space-y-4">
-          <label class="block">
-            <span class="text-sm text-text-secondary">{{ 'billing.checkout.country' | translate }}</span>
-            <select
-              class="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2.5 text-text-primary"
-              [ngModel]="country()"
-              (ngModelChange)="onCountryChange($event)"
-            >
-              @for (option of countries(); track option.code) {
-                <option [value]="option.code">{{ option.name }} (+{{ option.prefix }})</option>
-              }
-            </select>
-          </label>
-
-          <label class="block">
-            <span class="text-sm text-text-secondary">{{ 'billing.checkout.phone' | translate }}</span>
-            <div class="relative mt-1">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary text-sm">
-                +{{ selectedCountry()?.prefix }}
-              </span>
-              <input
-                type="tel"
-                inputmode="numeric"
-                autocomplete="tel"
-                class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] py-2.5 pl-14 pr-3 text-text-primary"
-                [placeholder]="'billing.checkout.phonePlaceholder' | translate"
-                [ngModel]="phone()"
-                (ngModelChange)="onPhoneChange($event)"
-              />
-            </div>
-            <span class="mt-1 block text-xs text-text-tertiary">
-              {{ 'billing.checkout.phoneHint' | translate }}
-            </span>
-          </label>
-
-          <!-- L'opérateur détecté est présélectionné ; la liste reste ouverte
-               parce qu'un numéro porté peut appartenir à un autre réseau. -->
-          @if (providers().length > 0) {
-            <div>
-              <span class="text-sm text-text-secondary">{{ 'billing.checkout.provider' | translate }}</span>
-              <div class="mt-2 grid grid-cols-2 gap-2">
-                @for (option of providers(); track option.provider) {
-                  <button
-                    type="button"
-                    class="flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left transition-colors"
-                    [class.border-primary]="provider() === option.provider"
-                    [class.bg-primary]="provider() === option.provider"
-                    [class.text-white]="provider() === option.provider"
-                    [class.border-[var(--color-border)]]="provider() !== option.provider"
-                    [class.opacity-40]="!option.available"
-                    [disabled]="!option.available"
-                    (click)="provider.set(option.provider)"
-                  >
-                    @if (option.logo) {
-                      <img [src]="option.logo" [alt]="option.displayName" class="h-6 w-6 rounded object-contain" />
-                    }
-                    <span class="text-sm">
-                      {{ option.displayName }}
+            <!-- Liste ouverte seulement quand la détection s'est trompée, ou
+                 quand rien n'a été détecté. -->
+            @if (providerPickerOpen() || (!selectedProvider() && providers().length > 0)) {
+              <div class="field">
+                <span class="field__label" id="pay-provider-label">
+                  {{ 'billing.checkout.provider' | translate }}
+                </span>
+                <div class="providers" role="radiogroup" aria-labelledby="pay-provider-label">
+                  @for (option of providers(); track option.provider) {
+                    <button
+                      type="button"
+                      role="radio"
+                      class="provider"
+                      [class.provider--on]="provider() === option.provider"
+                      [attr.aria-checked]="provider() === option.provider"
+                      [disabled]="!option.available"
+                      (click)="chooseProvider(option.provider)"
+                    >
+                      @if (option.logo) {
+                        <img [src]="option.logo" alt="" class="provider__logo" />
+                      }
+                      <span class="provider__name">{{ option.displayName }}</span>
                       @if (!option.available) {
-                        <span class="block text-xs opacity-70">
+                        <span class="provider__closed">
                           {{ 'billing.checkout.providerClosed' | translate }}
                         </span>
                       }
-                    </span>
-                  </button>
-                }
+                    </button>
+                  }
+                </div>
               </div>
-            </div>
-          }
-
-          <button
-            type="button"
-            class="w-full rounded-lg bg-primary px-4 py-3 font-semibold text-white transition-opacity disabled:opacity-40"
-            [disabled]="!canPay()"
-            (click)="pay()"
-          >
-            @if (isPaying()) {
-              <i class="pi pi-spinner pi-spin mr-2"></i>
             }
-            {{ 'billing.checkout.pay' | translate: { amount: quote()?.amount, currency: quote()?.currency } }}
-          </button>
 
-          <p class="text-center text-xs text-text-tertiary">
-            {{ 'billing.checkout.secured' | translate }}
-          </p>
-        </div>
-      }
+            @if (loadError(); as message) {
+              <p class="notice notice--error" role="alert">{{ message }}</p>
+            }
 
-      <!-- 3. Attente de validation -->
-      @if (step() === 'waiting') {
-        <div class="text-center py-6">
-          <div class="mx-auto mb-5 h-16 w-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin"></div>
-
-          <p class="text-base font-semibold text-text-primary">
-            {{ 'billing.checkout.waitingTitle' | translate }}
-          </p>
-          <p class="mt-2 text-sm text-text-secondary">
-            {{ 'billing.checkout.waitingBody' | translate: { phone: payment()?.phoneMasked } }}
-          </p>
-
-          <!-- Rappel de relance : chez plusieurs opérateurs la demande de code
-               disparaît, et l'abonné croit que le paiement a échoué. -->
-          @if (showPinReminder()) {
-            <div class="mt-5 rounded-lg border border-warning/30 bg-warning/10 p-3 text-left">
-              <p class="text-sm text-text-primary">
-                {{ 'billing.checkout.pinReminder' | translate }}
-              </p>
-              @if (pinInstructions(); as instructions) {
-                <p class="mt-1 text-xs text-text-secondary">{{ instructions }}</p>
+            <button type="button" class="primary" [disabled]="!canPay()" (click)="pay()">
+              @if (isPaying()) {
+                {{ 'billing.checkout.starting' | translate }}
+              } @else {
+                {{ 'billing.checkout.pay' | translate: { amount: payAmount(), currency: payCurrency() } }}
               }
-            </div>
-          }
+            </button>
 
-          @if (slowPayment()) {
-            <div class="mt-5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3">
-              <p class="text-sm text-text-secondary">
-                {{ 'billing.checkout.slowPayment' | translate }}
+            <p class="pay__next">{{ 'billing.checkout.beforePay' | translate }}</p>
+          </div>
+        }
+
+        <!-- 2. Attente. Pas de cercle qui tourne : trois étapes nommées, dont
+             celle en cours. L'abonné sait ce qu'on attend de lui. -->
+        @if (step() === 'waiting') {
+          <div class="wait" aria-live="polite">
+            <h3 class="wait__title">{{ 'billing.checkout.waitingTitle' | translate }}</h3>
+            <p class="wait__body">
+              {{ 'billing.checkout.waitingBody' | translate: { phone: payment()?.phoneMasked } }}
+            </p>
+
+            <ol class="steps">
+              <li class="step step--done">
+                <span class="dot dot--done" aria-hidden="true"></span>
+                {{ 'billing.checkout.steps.request' | translate }}
+              </li>
+              <li class="step step--current">
+                <span class="dot dot--pulse" aria-hidden="true"></span>
+                {{ 'billing.checkout.steps.pin' | translate }}
+              </li>
+              <li class="step">
+                <span class="dot" aria-hidden="true"></span>
+                {{ 'billing.checkout.steps.confirm' | translate }}
+              </li>
+            </ol>
+
+            @if (showPinReminder()) {
+              <p class="notice">
+                {{ 'billing.checkout.pinReminder' | translate }}
+                @if (pinInstructions(); as instructions) {
+                  <span class="notice__detail">{{ instructions }}</span>
+                }
               </p>
-            </div>
-          }
-
-          @if (payment()?.reference; as reference) {
-            <p class="mt-5 font-mono text-xs text-text-tertiary">{{ reference }}</p>
-          }
-        </div>
-      }
-
-      <!-- 4. Résultat -->
-      @if (step() === 'result') {
-        <div class="text-center py-4">
-          @if (payment()?.status === 'COMPLETED') {
-            <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
-              <i class="pi pi-check text-2xl text-success"></i>
-            </div>
-            <p class="text-lg font-semibold text-text-primary">
-              {{ 'billing.checkout.successTitle' | translate }}
-            </p>
-            <p class="mt-2 text-sm text-text-secondary">
-              {{ 'billing.checkout.successBody' | translate: { label: payment()?.label } }}
-            </p>
-          } @else {
-            <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-danger/15">
-              <i class="pi pi-times text-2xl text-danger"></i>
-            </div>
-            <p class="text-lg font-semibold text-text-primary">
-              {{ payment()?.failure?.message || ('billing.checkout.failedTitle' | translate) }}
-            </p>
-            @if (payment()?.failure?.hint; as hint) {
-              <p class="mt-2 text-sm text-text-secondary">{{ hint }}</p>
             }
-            <!-- Dire que rien n'a été prélevé : c'est la première inquiétude
-                 après un échec de paiement Mobile Money. -->
-            <p class="mt-3 text-xs text-text-tertiary">
-              {{ 'billing.checkout.noCharge' | translate }}
-            </p>
-          }
 
-          <div class="mt-6 flex flex-col gap-2">
+            @if (slowPayment()) {
+              <p class="notice">{{ 'billing.checkout.slowPayment' | translate }}</p>
+            }
+
+            @if (payment()?.reference; as reference) {
+              <p class="reference">
+                {{ 'billing.checkout.reference' | translate }} <span>{{ reference }}</span>
+              </p>
+            }
+          </div>
+        }
+
+        <!-- 3. Résultat -->
+        @if (step() === 'result') {
+          <div class="outcome" aria-live="polite">
             @if (payment()?.status === 'COMPLETED') {
-              <button type="button" class="w-full rounded-lg bg-primary px-4 py-3 font-semibold text-white" (click)="finish()">
+              <p class="outcome__mark outcome__mark--ok">
+                <i class="pi pi-check" aria-hidden="true"></i>
+                {{ 'billing.checkout.successTitle' | translate }}
+              </p>
+              <p class="outcome__body">
+                {{ 'billing.checkout.successBody' | translate: { label: payment()?.label } }}
+              </p>
+
+              <button type="button" class="primary" (click)="finish()">
                 {{ 'billing.checkout.continue' | translate }}
               </button>
             } @else {
-              @if (payment()?.failure?.retryable !== false) {
-                <button type="button" class="w-full rounded-lg bg-primary px-4 py-3 font-semibold text-white" (click)="retry()">
-                  {{ 'billing.checkout.retry' | translate }}
-                </button>
+              <p class="outcome__mark outcome__mark--ko">
+                <i class="pi pi-times" aria-hidden="true"></i>
+                {{ payment()?.failure?.message || ('billing.checkout.failedTitle' | translate) }}
+              </p>
+              @if (payment()?.failure?.hint; as hint) {
+                <p class="outcome__body">{{ hint }}</p>
               }
-              <button type="button" class="w-full rounded-lg border border-[var(--color-border)] px-4 py-3 text-text-secondary" (click)="finish()">
-                {{ 'common.close' | translate }}
-              </button>
+              <!-- Première inquiétude après un échec Mobile Money : « m'a-t-on
+                   prélevé quand même ? » On y répond avant qu'elle soit posée. -->
+              <p class="outcome__body outcome__body--quiet">
+                {{ 'billing.checkout.noCharge' | translate }}
+              </p>
+
+              <div class="outcome__actions">
+                @if (payment()?.failure?.retryable !== false) {
+                  <button type="button" class="primary" (click)="retry()">
+                    {{ 'billing.checkout.retry' | translate }}
+                  </button>
+                }
+                <button type="button" class="secondary" (click)="finish()">
+                  {{ 'common.close' | translate }}
+                </button>
+              </div>
+            }
+
+            @if (payment()?.reference; as reference) {
+              <p class="reference">
+                {{ 'billing.checkout.reference' | translate }} <span>{{ reference }}</span>
+              </p>
             }
           </div>
-
-          @if (payment()?.reference; as reference) {
-            <p class="mt-4 font-mono text-xs text-text-tertiary">{{ reference }}</p>
-          }
-        </div>
-      }
+        }
+      </section>
     </div>
   `,
+  styles: [
+    `
+      /* Le conteneur décide de la mise en page : page large à deux colonnes,
+         fenêtre de paywall à une seule, sans que l'appelant ait à le dire. */
+      :host {
+        display: block;
+        container-type: inline-size;
+      }
+
+      .pay {
+        display: grid;
+        gap: var(--spacing-8);
+      }
+
+      @container (min-width: 46rem) {
+        .pay {
+          grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+          gap: var(--spacing-10);
+          align-items: start;
+        }
+
+        /* Un filet, pas une carte : la séparation suffit à distinguer ce qu'on
+           achète de ce qu'on saisit. */
+        .pay__action {
+          border-left: 1px solid var(--glass-border);
+          padding-left: var(--spacing-10);
+        }
+
+        .pay__summary {
+          position: sticky;
+          top: var(--spacing-8);
+        }
+      }
+
+      /* ── Ce qu'on achète ─────────────────────────────────────────────── */
+
+      .pay__eyebrow {
+        margin: 0;
+        font-size: var(--font-size-sm);
+        color: var(--idem-text-secondary);
+      }
+
+      .pay__product {
+        margin: var(--spacing-1) 0 0;
+        font-size: var(--font-size-xl);
+        font-weight: var(--font-weight-semibold);
+        line-height: 1.25;
+        color: var(--idem-text-primary);
+        text-wrap: balance;
+      }
+
+      .pay__amount {
+        display: flex;
+        align-items: baseline;
+        gap: var(--spacing-2);
+        margin: var(--spacing-5) 0 0;
+      }
+
+      .pay__figure {
+        font-size: var(--font-size-4xl);
+        font-weight: var(--font-weight-semibold);
+        line-height: 1;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+        color: var(--idem-text-primary);
+      }
+
+      .pay__currency {
+        font-size: var(--font-size-base);
+        color: var(--idem-text-secondary);
+      }
+
+      .pay__cadence {
+        margin: var(--spacing-1) 0 0;
+        font-size: var(--font-size-sm);
+        color: var(--idem-text-secondary);
+      }
+
+      .pay__details {
+        margin: var(--spacing-6) 0 0;
+        padding-top: var(--spacing-4);
+        border-top: 1px solid var(--glass-border);
+      }
+
+      .pay__detail {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--spacing-4);
+        font-size: var(--font-size-sm);
+      }
+
+      .pay__detail dt {
+        color: var(--idem-text-secondary);
+      }
+
+      .pay__detail dd {
+        margin: 0;
+        color: var(--idem-text-primary);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .pay__secured {
+        margin: var(--spacing-6) 0 0;
+        font-size: var(--font-size-xs);
+        line-height: 1.5;
+        color: var(--idem-text-secondary);
+      }
+
+      .pay__skeleton {
+        border-radius: var(--radius-md);
+        background: var(--idem-surface-3);
+      }
+
+      .pay__skeleton--title {
+        height: 1.25rem;
+        width: 70%;
+        margin-top: var(--spacing-2);
+      }
+
+      .pay__skeleton--figure {
+        height: 2.25rem;
+        width: 50%;
+        margin-top: var(--spacing-5);
+      }
+
+      /* ── Formulaire ──────────────────────────────────────────────────── */
+
+      .pay__form {
+        display: grid;
+        gap: var(--spacing-5);
+      }
+
+      .field {
+        display: grid;
+        gap: var(--spacing-2);
+      }
+
+      .field__label {
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-medium);
+        color: var(--idem-text-primary);
+      }
+
+      .field__control {
+        width: 100%;
+        min-height: 2.875rem;
+        padding: var(--spacing-3) var(--spacing-4);
+        font-size: var(--font-size-base);
+        color: var(--idem-text-primary);
+        background: var(--idem-field-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-xl);
+        transition:
+          border-color var(--duration-150) var(--ease-out),
+          background-color var(--duration-150) var(--ease-out);
+      }
+
+      .field__control:hover {
+        border-color: var(--glass-border-medium);
+      }
+
+      .field__control:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+        border-color: var(--color-primary);
+        background: var(--idem-field-bg-focus);
+      }
+
+      .field__phone {
+        position: relative;
+      }
+
+      .field__prefix {
+        position: absolute;
+        top: 50%;
+        left: var(--spacing-4);
+        transform: translateY(-50%);
+        font-size: var(--font-size-base);
+        color: var(--idem-text-secondary);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .field__control--phone {
+        padding-left: 3.75rem;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.02em;
+      }
+
+      .field__hint {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-2);
+        font-size: var(--font-size-sm);
+        color: var(--idem-text-secondary);
+      }
+
+      .field__hint--detected {
+        color: var(--idem-text-primary);
+      }
+
+      .linkish {
+        border: none;
+        background: none;
+        padding: 0;
+        margin-left: auto;
+        font-size: var(--font-size-sm);
+        color: var(--color-primary);
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .linkish:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+        border-radius: var(--radius-sm);
+      }
+
+      .providers {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+        gap: var(--spacing-2);
+      }
+
+      .provider {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-2);
+        min-height: 2.875rem;
+        padding: var(--spacing-2) var(--spacing-3);
+        text-align: left;
+        font-size: var(--font-size-sm);
+        color: var(--idem-text-primary);
+        background: transparent;
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-xl);
+        cursor: pointer;
+        transition:
+          border-color var(--duration-150) var(--ease-out),
+          background-color var(--duration-150) var(--ease-out);
+      }
+
+      .provider:hover:not(:disabled) {
+        border-color: var(--glass-border-medium);
+      }
+
+      .provider--on {
+        border-color: var(--color-primary);
+        /* Une teinte, pas un aplat : l'accent reste réservé à l'action. */
+        background: color-mix(in oklch, var(--color-primary) 8%, transparent);
+      }
+
+      .provider:disabled {
+        cursor: not-allowed;
+        color: var(--idem-text-disabled);
+      }
+
+      .provider:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+      }
+
+      .provider__logo {
+        width: 1.25rem;
+        height: 1.25rem;
+        object-fit: contain;
+        border-radius: var(--radius-sm);
+      }
+
+      .provider__closed {
+        margin-left: auto;
+        font-size: var(--font-size-xs);
+        color: var(--idem-text-tertiary);
+      }
+
+      /* ── Actions ─────────────────────────────────────────────────────── */
+
+      .primary,
+      .secondary {
+        width: 100%;
+        min-height: 3rem;
+        padding: var(--spacing-3) var(--spacing-6);
+        font-size: var(--font-size-base);
+        font-weight: var(--font-weight-semibold);
+        border-radius: var(--radius-xl);
+        cursor: pointer;
+        transition:
+          background-color var(--duration-150) var(--ease-out),
+          opacity var(--duration-150) var(--ease-out);
+      }
+
+      .primary {
+        color: #ffffff;
+        background: var(--color-primary);
+        border: 1px solid var(--color-primary);
+      }
+
+      .primary:hover:not(:disabled) {
+        background: var(--color-primary-600);
+        border-color: var(--color-primary-600);
+      }
+
+      .primary:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .secondary {
+        color: var(--idem-text-primary);
+        background: transparent;
+        border: 1px solid var(--glass-border);
+      }
+
+      .secondary:hover {
+        border-color: var(--glass-border-medium);
+      }
+
+      .primary:focus-visible,
+      .secondary:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+      }
+
+      .pay__next {
+        margin: 0;
+        font-size: var(--font-size-sm);
+        color: var(--idem-text-secondary);
+      }
+
+      /* ── Attente ─────────────────────────────────────────────────────── */
+
+      .wait__title {
+        margin: 0;
+        font-size: var(--font-size-lg);
+        font-weight: var(--font-weight-semibold);
+        color: var(--idem-text-primary);
+      }
+
+      .wait__body {
+        margin: var(--spacing-2) 0 0;
+        font-size: var(--font-size-base);
+        line-height: 1.6;
+        color: var(--idem-text-secondary);
+        max-width: 60ch;
+      }
+
+      .steps {
+        display: grid;
+        gap: var(--spacing-3);
+        margin: var(--spacing-6) 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .step {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-3);
+        font-size: var(--font-size-sm);
+        color: var(--idem-text-tertiary);
+      }
+
+      .step--done,
+      .step--current {
+        color: var(--idem-text-primary);
+      }
+
+      .dot {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: var(--radius-full);
+        background: var(--glass-border-strong);
+        flex-shrink: 0;
+      }
+
+      .dot--done,
+      .dot--on {
+        background: var(--color-primary);
+      }
+
+      .dot--pulse {
+        background: var(--color-primary);
+        animation: pulse 1.6s var(--ease-in-out) infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.45;
+          transform: scale(0.8);
+        }
+      }
+
+      .notice {
+        margin: var(--spacing-5) 0 0;
+        padding: var(--spacing-3) 0 0;
+        border-top: 1px solid var(--glass-border);
+        font-size: var(--font-size-sm);
+        line-height: 1.6;
+        color: var(--idem-text-secondary);
+      }
+
+      .notice--error {
+        margin: 0;
+        padding: 0;
+        border-top: none;
+        color: var(--color-danger);
+      }
+
+      .notice__detail {
+        display: block;
+        margin-top: var(--spacing-1);
+        color: var(--idem-text-tertiary);
+      }
+
+      .reference {
+        margin: var(--spacing-6) 0 0;
+        font-size: var(--font-size-xs);
+        color: var(--idem-text-tertiary);
+      }
+
+      .reference span {
+        font-family: var(--font-mono);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ── Résultat ────────────────────────────────────────────────────── */
+
+      .outcome__mark {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-2);
+        margin: 0;
+        font-size: var(--font-size-lg);
+        font-weight: var(--font-weight-semibold);
+        color: var(--idem-text-primary);
+      }
+
+      .outcome__mark i {
+        font-size: var(--font-size-base);
+      }
+
+      .outcome__mark--ok i {
+        color: var(--color-success);
+      }
+
+      .outcome__mark--ko i {
+        color: var(--color-danger);
+      }
+
+      .outcome__body {
+        margin: var(--spacing-2) 0 0;
+        font-size: var(--font-size-base);
+        line-height: 1.6;
+        color: var(--idem-text-secondary);
+        max-width: 60ch;
+      }
+
+      .outcome__body--quiet {
+        font-size: var(--font-size-sm);
+      }
+
+      .outcome .primary,
+      .outcome__actions {
+        margin-top: var(--spacing-6);
+      }
+
+      .outcome__actions {
+        display: grid;
+        gap: var(--spacing-2);
+      }
+
+      .outcome__actions .primary,
+      .outcome__actions .secondary {
+        margin-top: 0;
+      }
+
+      /* Le mouvement porte un état ; s'il gêne, l'état reste lisible sans lui. */
+      @media (prefers-reduced-motion: reduce) {
+        .dot--pulse {
+          animation: none;
+        }
+
+        .field__control,
+        .provider,
+        .primary,
+        .secondary {
+          transition: none;
+        }
+      }
+    `,
+  ],
 })
 export class CheckoutComponent {
   private readonly billing = inject(BillingService);
@@ -287,6 +820,8 @@ export class CheckoutComponent {
   readonly country = signal('CMR');
   readonly phone = signal('');
   readonly provider = signal<string | null>(null);
+  /** Ouvert seulement quand la détection s'est trompée : une question de moins. */
+  readonly providerPickerOpen = signal(false);
 
   /** Affiché après 15 s d'attente. */
   readonly showPinReminder = signal(false);
@@ -301,6 +836,23 @@ export class CheckoutComponent {
     this.countries().find((entry) => entry.code === this.country()),
   );
   readonly providers = computed<PaymentProviderOption[]>(() => this.methods()?.providers ?? []);
+
+  /** L'opérateur retenu, avec son nom lisible. */
+  readonly selectedProvider = computed(
+    () => this.providers().find((option) => option.provider === this.provider()) ?? null,
+  );
+
+  /** Montant et devise du bouton : ils viennent du devis, jamais d'une saisie. */
+  readonly payAmount = computed(() => this.quote()?.amount ?? 0);
+  readonly payCurrency = computed(() => this.quote()?.currency ?? '');
+
+  /** Périodicité affichée sous le montant, si l'offre en a une. */
+  readonly intervalKey = computed(() => {
+    const value = this.interval();
+    if (value === 'month') return 'billing.checkout.perMonth';
+    if (value === 'year') return 'billing.checkout.perYear';
+    return null;
+  });
 
   readonly canPay = computed(
     () =>
@@ -372,6 +924,16 @@ export class CheckoutComponent {
   onCountryChange(code: string): void {
     this.country.set(code);
     this.provider.set(null);
+    this.providerPickerOpen.set(false);
+  }
+
+  openProviderPicker(): void {
+    this.providerPickerOpen.set(true);
+  }
+
+  chooseProvider(code: string): void {
+    this.provider.set(code);
+    this.providerPickerOpen.set(false);
   }
 
   /**

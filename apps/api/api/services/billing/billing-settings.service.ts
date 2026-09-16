@@ -134,8 +134,20 @@ export class BillingSettingsService {
   // RACCOURCIS DE LECTURE
   // ============================================
 
-  /** Vrai si l'encaissement est ouvert ET le prestataire configuré. */
+  /**
+   * Vrai si l'encaissement est ouvert.
+   *
+   * Deux interrupteurs, et ce n'est pas une redondance : le réglage
+   * `paymentsEnabled` du panel ferme la caisse sans redéploiement, tandis que
+   * `PAYMENTS_ENABLED=false` dans l'environnement la ferme **sans dépendre de
+   * la base ni du panel** — c'est-à-dire le jour où ce sont justement eux qui
+   * posent problème.
+   *
+   * Une variable absente ne décide de rien : seul un `false` explicite coupe.
+   */
   async isPaymentsEnabled(): Promise<boolean> {
+    if (process.env.PAYMENTS_ENABLED === 'false') return false;
+
     const settings = await this.get();
     return settings.paymentsEnabled;
   }

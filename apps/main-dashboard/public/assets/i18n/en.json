@@ -46,7 +46,8 @@
     "changeLanguage": "Change language",
     "continue": "Continue",
     "apply": "Apply",
-    "reset": "Reset"
+    "reset": "Reset",
+    "close": "Close"
   },
   "dashboard": {
     "createDevelopment": {
@@ -4274,7 +4275,21 @@
       "failedTitle": "The payment did not go through",
       "noCharge": "No amount was debited from your Mobile Money account.",
       "retry": "Try again",
-      "continue": "Continue"
+      "continue": "Continue",
+      "included": "Included",
+      "perMonth": "per month",
+      "perYear": "per year",
+      "changeProvider": "Change",
+      "beforePay": "You will get a PIN prompt on this number.",
+      "starting": "Sending the request…",
+      "reference": "Reference",
+      "noProduct": "No plan was specified. Go back to the plans page to pick one.",
+      "returnNote": "You will return to {{app}} once the payment is done.",
+      "steps": {
+        "request": "Request sent to your provider",
+        "pin": "Enter your PIN on your phone",
+        "confirm": "Payment confirmation"
+      }
     },
     "paywall": {
       "title": "Not enough credits",
