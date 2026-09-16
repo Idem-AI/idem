@@ -10,6 +10,10 @@ import * as fs from 'fs-extra';
 
 import logger from '../config/logger';
 import { CustomRequest } from '../interfaces/express.interface';
+import {
+  attachSimulationPayment,
+  releaseSimulationPayment,
+} from '../middleware/billing.middleware';
 import { SimulationOrigin, SimulationTier } from '../models/simulation.model';
 import {
   UnusableDocumentError,
@@ -265,8 +269,12 @@ export const createSimulationFromDocumentController = async (
       // requête n'est jamais repris tel quel.
       consent: req.simulationConsent,
     });
+
+    await attachSimulationPayment(req, simulation.id);
+
     res.status(202).json(simulation);
   } catch (error: any) {
+    await releaseSimulationPayment(req);
     handleError(res, error, 'createSimulationFromDocument');
   }
 };
@@ -325,7 +333,7 @@ export const getPricingController = async (req: CustomRequest, res: Response): P
     ? (originParam as SimulationOrigin)
     : 'idem-project';
 
-  res.status(200).json(simulationService.getPricing(origin));
+  res.status(200).json(await simulationService.getPricing(origin));
 };
 
 // =====================================================================
@@ -374,8 +382,17 @@ export const createSimulationController = async (
         consent: req.simulationConsent,
       }
     );
+
+    // L'exécution a démarré : le paiement réservé lui est définitivement
+    // rattaché. Tant que ce lien n'est pas posé, la réservation pourrait être
+    // relâchée et le règlement resservir.
+    await attachSimulationPayment(req, simulation.id);
+
     res.status(202).json(simulation);
   } catch (error: any) {
+    // Rien n'a été lancé : on rend le paiement à son propriétaire plutôt que
+    // de lui facturer une simulation qui n'a jamais tourné.
+    await releaseSimulationPayment(req);
     handleError(res, error, 'createSimulation');
   }
 };

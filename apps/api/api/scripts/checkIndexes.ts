@@ -46,6 +46,7 @@ import {
 import { BillingSettings } from '../schemas/billingSettings.schema';
 import { BetaTester } from '../schemas/betaTester.schema';
 import { EmailLog } from '../schemas/emailLog.schema';
+import { BillingSyncJob } from '../schemas/billingSync.schema';
 
 /** Exactement la liste initialisée par `index.ts` au démarrage. */
 const MODELS: [string, Model<any>][] = [
@@ -66,6 +67,7 @@ const MODELS: [string, Model<any>][] = [
   ['billing_settings', BillingSettings],
   ['beta_testers', BetaTester],
   ['email_logs', EmailLog],
+  ['billing_sync_jobs', BillingSyncJob],
 ];
 
 /**

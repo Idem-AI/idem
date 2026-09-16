@@ -123,6 +123,19 @@ export class NewSimulation {
   protected readonly launching = signal(false);
 
   /**
+   * Le règlement qui ouvre cette exécution.
+   *
+   * Une simulation se paie à l'acte : un règlement lance une exécution, et une
+   * seule. La référence arrive dans l'adresse au retour du paiement, et l'API
+   * la consomme au lancement.
+   */
+  protected readonly paymentReference = signal<string | null>(null);
+  /** Clé de traduction du message de paiement affiché à l'écran. */
+  protected readonly paymentNotice = signal<string | null>(null);
+  /** Pendant la bêta, IDEM prend le coût à sa charge : aucun détour par le paiement. */
+  protected readonly paymentRequired = computed(() => !this.isBeta && !this.paymentReference());
+
+  /**
    * L'accord, redemandé à chaque lancement.
    *
    * Une simulation lit le projet — ou le business plan téléversé —, en crée le
@@ -293,8 +306,9 @@ export class NewSimulation {
     // Page publique, hors de la coquille de l'espace de travail : personne
     // n'a résolu la session ni chargé les projets avant d'arriver ici.
     void this.loadProjects();
-    // Retour du login : on reprend la source choisie avant le départ.
+    // Retour du login ou du paiement : on reprend où l'on était parti.
     void this.restoreDraft();
+    this.readPaymentReturn();
 
     // On choisit la sélection de départ dès que la liste arrive.
     effect(() => {
@@ -469,6 +483,14 @@ export class NewSimulation {
       return;
     }
 
+    // Le paiement précède l'exécution, jamais l'inverse : une simulation
+    // mobilise plusieurs moteurs pendant quelques minutes, on ne peut pas la
+    // rattraper après coup si le règlement échoue.
+    if (this.paymentRequired()) {
+      await this.payFirst();
+      return;
+    }
+
     const consent: SimulationConsent = {
       privacyPolicyAccepted: this.privacyAccepted(),
       simulationTermsAccepted: this.simulationTermsAccepted(),
@@ -491,6 +513,7 @@ export class NewSimulation {
             // le résultat pouvait ne plus correspondre à l'écran approuvé.
             understanding,
             consent,
+            paymentReference: this.paymentReference() ?? undefined,
           })
         : // Le plan importé n'a pas de projet : l'API crée celui que le
           // document décrit, puis simule dessus.
@@ -501,6 +524,7 @@ export class NewSimulation {
             answers: this.answers(),
             understanding,
             consent,
+            paymentReference: this.paymentReference() ?? undefined,
           });
 
       await this.router.navigate(['/simulations', simulation.id]);
@@ -511,6 +535,74 @@ export class NewSimulation {
       );
     } finally {
       this.launching.set(false);
+    }
+  }
+
+  /**
+   * Départ vers le paiement, puis retour ici.
+   *
+   * Le règlement se fait sur le dashboard : une seule interface de paiement
+   * pour toutes les apps, une seule à maintenir et à auditer. L'assistant part
+   * au stockage de session avant de quitter la page — l'analyse qui vient
+   * d'être approuvée ne doit pas se perdre dans l'aller-retour.
+   */
+  private async payFirst(): Promise<void> {
+    const plan = this.pricing()?.plans.find((entry) => entry.tier === this.selectedTier());
+    if (!plan) {
+      this.toasts.error(this.translate.instant('newRun.pricingFailed') as string);
+      return;
+    }
+
+    await saveDraft({
+      origin: this.origin(),
+      projectId: this.selectedProjectId(),
+      file: this.selectedFile(),
+      step: this.step(),
+      tier: this.selectedTier(),
+      answers: this.answers(),
+      understanding: this.understanding(),
+    });
+
+    const returnUrl = new URL(window.location.href);
+    // Sans ce nettoyage, une référence déjà consommée reviendrait dans
+    // l'adresse de retour et l'écran croirait le nouveau règlement fait.
+    returnUrl.searchParams.delete('payment');
+    returnUrl.searchParams.delete('status');
+
+    const checkout = new URL('/billing/checkout', environment.services.dashboard.url);
+    checkout.searchParams.set('product', plan.productCode);
+    checkout.searchParams.set('tier', plan.tier);
+    checkout.searchParams.set('app', 'simulation');
+    const projectId = this.selectedProjectId();
+    if (projectId) {
+      checkout.searchParams.set('projectId', projectId);
+    }
+    checkout.searchParams.set('returnUrl', returnUrl.toString());
+
+    this.paymentNotice.set('newRun.payment.redirecting');
+    window.location.href = checkout.toString();
+  }
+
+  /**
+   * Lit le résultat du paiement dans l'adresse.
+   *
+   * On ne retient la référence que si le dashboard annonce un règlement
+   * abouti : accepter n'importe quelle valeur laisserait lancer une simulation
+   * en ajoutant un paramètre à la main. L'API revérifie de toute façon.
+   */
+  private readPaymentReturn(): void {
+    const params = this.route.snapshot.queryParamMap;
+    const status = params.get('status');
+    const reference = params.get('payment');
+
+    if (reference && status === 'completed') {
+      this.paymentReference.set(reference);
+      this.paymentNotice.set('newRun.payment.confirmed');
+      return;
+    }
+
+    if (status) {
+      this.paymentNotice.set('newRun.payment.failed');
     }
   }
 
@@ -600,6 +692,22 @@ export class NewSimulation {
     }
     if (draft.file) {
       this.selectedFile.set(draft.file);
+    }
+
+    // Retour de paiement : l'analyse validée avant le départ revient avec
+    // l'utilisateur. La refaire lui coûterait des appels au moteur pour un
+    // résultat qu'il avait déjà approuvé.
+    if (draft.understanding) {
+      this.understanding.set(draft.understanding);
+    }
+    if (draft.answers) {
+      this.answers.set(draft.answers);
+    }
+    if (draft.tier) {
+      this.selectedTier.set(draft.tier);
+    }
+    if (draft.step) {
+      this.step.set(draft.step as Step);
     }
   }
 

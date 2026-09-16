@@ -26,6 +26,7 @@ import {
   nextPollDelayMs,
   normalizePhone,
 } from '../../models/payment.model';
+import { BillingSubscription } from '../../schemas/billing.schema';
 import { PaymentTransaction, PaymentCallbackRaw } from '../../schemas/payment.schema';
 import { User } from '../../schemas/user.schema';
 import { encryptValue, hashValue } from '../../utils/crypto.util';
@@ -33,6 +34,7 @@ import { getTraceContext } from '../../utils/trace.util';
 import { billingService } from '../billing.service';
 import { billingSettingsService } from '../billing/billing-settings.service';
 import { entitlementsService } from '../billing/entitlements.service';
+import { ideploySyncService } from '../billing/ideploy-sync.service';
 import { transactionalEmailService } from '../email/email.service';
 import { firstNameOf } from '../email/email-layout';
 import { paymentFailed, paymentReceipt } from '../email/templates';
@@ -964,6 +966,10 @@ export class PaymentService {
       // ce qu'il vient de payer.
       await entitlementsService.invalidate(transaction.userId);
 
+      // iDeploy est dans une autre base : le plan y est propagé par une file
+      // qui réessaie, jamais en ligne directe — voir `ideploy-sync.service`.
+      await this.syncIDeploy(transaction, outcome.subscriptionId);
+
       // Le reçu part après la livraison : promettre des crédits avant de les
       // avoir accordés serait le seul ordre vraiment fautif.
       void this.sendReceipt(transaction);
@@ -989,6 +995,68 @@ export class PaymentService {
   }
 
   /** Aiguille vers la contrepartie correspondant à l'intention. */
+  /**
+   * Inscrit la propagation du plan vers iDeploy, quand le produit le concerne.
+   *
+   * Ne lève jamais : la livraison est déjà faite et payée. Un échec ici doit
+   * laisser une trace à rejouer, pas annuler ce qui a fonctionné.
+   */
+  private async syncIDeploy(
+    transaction: PaymentTransactionModel,
+    subscriptionId?: string
+  ): Promise<void> {
+    try {
+      const { productCode } = transaction.intent;
+      const plan = ideploySyncService.planForProduct(productCode);
+      const deployCredits = ideploySyncService.deployCreditsForProduct(productCode);
+
+      if (!plan && !deployCredits) return;
+
+      // Les deux bases n'ont pas d'identifiant commun : l'e-mail est le seul
+      // lien entre un compte IDEM et une équipe iDeploy.
+      const user = await User.findOne({ uid: transaction.userId }).lean();
+      if (!user?.email) return;
+
+      if (deployCredits) {
+        // Un pack de déploiements ne change pas le plan : on écrit celui que
+        // le client a déjà, sans quoi l'achat le ferait redescendre.
+        const entitlements = await entitlementsService.resolve(transaction.userId);
+        const current =
+          ideploySyncService.planForProduct(entitlements.engines.ideploy?.productCode) ?? 'hobby';
+
+        await ideploySyncService.enqueueDeployCredits({
+          userId: transaction.userId,
+          email: user.email,
+          plan: current,
+          credits: deployCredits,
+          reference: transaction.reference,
+        });
+        return;
+      }
+
+      // L'échéance vient de l'abonnement qui vient d'être créé ou renouvelé :
+      // c'est elle qui décide de la date à laquelle iDeploy doit couper.
+      const subscription = subscriptionId
+        ? await BillingSubscription.findById(subscriptionId).lean()
+        : null;
+
+      await ideploySyncService.enqueue({
+        userId: transaction.userId,
+        email: user.email,
+        plan: plan as string,
+        startedAt: subscription?.currentPeriodStart ?? new Date(),
+        expiresAt: subscription?.currentPeriodEnd ?? null,
+        reference: transaction.reference,
+      });
+    } catch (error: any) {
+      logger.error(`payment.ideploy_sync_failed: ${error.message}`, {
+        event: 'payment.ideploy_sync_failed',
+        reference: transaction.reference,
+        userId: transaction.userId,
+      });
+    }
+  }
+
   private async deliver(transaction: PaymentTransactionModel): Promise<{
     message: string;
     purchaseId?: string;
@@ -1125,6 +1193,88 @@ export class PaymentService {
     paymentEventsService.recordCallback('deposit', 'accepted');
     await this.pollTransaction(transactionId, 'callback');
     await PaymentCallbackRaw.updateOne({ _id: rawId }, { $set: { processedAt: new Date() } });
+  }
+
+  // ============================================
+  // SIMULATION (facturée à l'acte)
+  // ============================================
+
+  /**
+   * Réserve un paiement pour une exécution de simulation.
+   *
+   * iSimulate est le seul moteur vendu à l'acte : un paiement ouvre **une**
+   * exécution, et une seule. Vérifier puis lancer laisserait une fenêtre où
+   * deux requêtes simultanées passeraient toutes deux le contrôle — deux
+   * simulations coûteuses pour un seul encaissement.
+   *
+   * La réservation est donc atomique : la mise à jour ne réussit que si le
+   * paiement n'est pas déjà consommé. Elle se fait en deux temps parce que
+   * l'identifiant de la simulation n'existe pas encore à cet instant :
+   * on pose un jeton, puis on l'échange contre l'identifiant réel — ou on le
+   * relâche si le lancement échoue.
+   */
+  async reserveForSimulation(
+    userId: string,
+    reference: string,
+    tier: string
+  ): Promise<{ ok: boolean; token?: string; reason?: string }> {
+    const token = `reserved:${uuidv4()}`;
+
+    const reserved = await PaymentTransaction.findOneAndUpdate(
+      {
+        reference,
+        userId,
+        status: 'COMPLETED',
+        'intent.type': 'simulation',
+        'fulfillment.consumedBySimulationId': { $exists: false },
+      },
+      { $set: { 'fulfillment.consumedBySimulationId': token } },
+      { new: true }
+    );
+
+    if (!reserved) {
+      // On distingue les trois refus possibles : l'utilisateur doit savoir
+      // s'il doit payer, attendre, ou nous écrire.
+      const existing = await PaymentTransaction.findOne({ reference, userId }).lean();
+
+      if (!existing) return { ok: false, reason: 'unknown_payment' };
+      if (existing.status !== 'COMPLETED') return { ok: false, reason: 'payment_not_completed' };
+      return { ok: false, reason: 'payment_already_used' };
+    }
+
+    // Le niveau payé doit être celui demandé : on ne lance pas un Pack avec le
+    // paiement d'un rapport seul.
+    if (reserved.intent?.simulationTier && reserved.intent.simulationTier !== tier) {
+      await this.releaseSimulationReservation(token);
+      return { ok: false, reason: 'tier_mismatch' };
+    }
+
+    await paymentEventsService.record({
+      transactionId: String(reserved._id),
+      depositId: reserved.depositId,
+      type: 'admin_action',
+      source: 'api',
+      message: `Paiement réservé pour une simulation (${tier})`,
+      logFields: { reference, tier },
+    });
+
+    return { ok: true, token };
+  }
+
+  /** Échange le jeton de réservation contre l'identifiant réel de l'exécution. */
+  async attachSimulation(token: string, simulationId: string): Promise<void> {
+    await PaymentTransaction.updateOne(
+      { 'fulfillment.consumedBySimulationId': token },
+      { $set: { 'fulfillment.consumedBySimulationId': simulationId } }
+    );
+  }
+
+  /** Relâche une réservation dont le lancement n'a pas abouti. */
+  async releaseSimulationReservation(token: string): Promise<void> {
+    await PaymentTransaction.updateOne(
+      { 'fulfillment.consumedBySimulationId': token },
+      { $unset: { 'fulfillment.consumedBySimulationId': '' } }
+    );
   }
 
   // ============================================

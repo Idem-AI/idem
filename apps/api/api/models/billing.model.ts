@@ -108,6 +108,15 @@ export interface BillingProductModel {
   description?: string;
   /** Prix en XAF (entier). */
   priceXaf: number;
+  /**
+   * Prix réduit quand l'achat part d'un projet IDEM déjà structuré.
+   *
+   * Propre à iSimulate : le moteur n'a alors ni document à analyser ni
+   * informations à redemander, donc moins de tokens à consommer. C'est une
+   * remise **justifiée par le coût réel**, pas une promotion — d'où un champ
+   * dédié plutôt qu'un rabais appliqué à la volée.
+   */
+  idemPriceXaf?: number;
   interval: BillingInterval;
   /** Crédits accordés (par période pour un abonnement, une fois sinon). */
   credits: number;
@@ -766,6 +775,108 @@ export const DEFAULT_PRODUCTS: SeedProduct[] = [
     credits: 0,
     isActive: true,
     sortOrder: 300,
+  },
+
+  // ── I. iSimulate (facturé à l'acte, hors crédits) ────────────────────────
+  //
+  // Le seul moteur vendu à l'acte : une exécution consomme des dizaines
+  // d'appels d'agents et de la recherche externe payante, et l'utilisateur voit
+  // le prix avant de lancer. `idemPriceXaf` est le prix depuis un projet IDEM
+  // déjà structuré — moins de tokens, donc moins cher.
+  {
+    code: 'sim-essential',
+    kind: 'pack',
+    engine: null,
+    name: 'Simulation Essentielle',
+    description: 'Analyse du projet, découverte des facteurs, 6 scénarios, indice de viabilité.',
+    priceXaf: 2999,
+    idemPriceXaf: 1999,
+    interval: 'one_time',
+    credits: 0,
+    /**
+     * Inactif tant que le pipeline ne différencie pas la profondeur.
+     *
+     * Aujourd'hui une exécution fait la même chose quel que soit le niveau :
+     * seule la présence du rapport varie. Vendre une « Essentielle » moins
+     * chère qui livrerait exactement la même analyse qu'une « Standard »
+     * serait une promesse fausse. À activer quand le moteur saura s'arrêter
+     * aux 6 scénarios.
+     */
+    isActive: false,
+    sortOrder: 400,
+  },
+  {
+    code: 'sim-standard',
+    kind: 'pack',
+    engine: null,
+    name: 'Simulation Standard',
+    description: 'Essentielle + recherche externe sourcée, stress tests et analyse de sensibilité.',
+    priceXaf: 6999,
+    idemPriceXaf: 4999,
+    interval: 'one_time',
+    credits: 0,
+    isActive: true,
+    sortOrder: 410,
+  },
+  {
+    code: 'sim-deep',
+    kind: 'pack',
+    engine: null,
+    name: 'Simulation Approfondie',
+    description: 'Standard + Red Team, Customer Simulator, Investor Simulator et chocs extrêmes.',
+    priceXaf: 19999,
+    idemPriceXaf: 14999,
+    interval: 'one_time',
+    credits: 0,
+    /**
+     * Inactif pour la même raison que l'Essentielle : les laboratoires
+     * adverses (Red Team, Customers, Investors) existent déjà, mais comme
+     * endpoints lancés à la demande, pas comme profondeur d'offre. Les vendre
+     * dans un forfait suppose de les enchaîner dans le pipeline.
+     */
+    isActive: false,
+    sortOrder: 420,
+  },
+  {
+    code: 'sim-report',
+    kind: 'pack',
+    engine: null,
+    name: 'Rapport complet',
+    description: 'Conditions de viabilité, sensibilité et recommandations priorisées.',
+    priceXaf: 7999,
+    idemPriceXaf: 4999,
+    interval: 'one_time',
+    credits: 0,
+    isActive: true,
+    sortOrder: 430,
+  },
+  {
+    code: 'sim-pack',
+    kind: 'pack',
+    engine: null,
+    name: 'Pack Simulation + Rapport',
+    description: 'Simulation Standard et rapport complet, l’offre mise en avant.',
+    priceXaf: 11999,
+    idemPriceXaf: 8999,
+    interval: 'one_time',
+    credits: 0,
+    discountLabel: '-31 % vs achat séparé',
+    highlighted: true,
+    isActive: true,
+    sortOrder: 440,
+  },
+  {
+    code: 'sim-rerun',
+    kind: 'pack',
+    engine: null,
+    name: 'Re-simulation',
+    description: 'Scénarios recalculés sur une base de facteurs déjà payée (sous 90 jours).',
+    priceXaf: 1999,
+    idemPriceXaf: 1499,
+    interval: 'one_time',
+    credits: 0,
+    isActive: true,
+    sortOrder: 450,
   },
 
   // ── Recharges de crédits (Business & AppGen, compteurs séparés) ──────────

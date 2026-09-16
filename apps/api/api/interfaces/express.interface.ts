@@ -32,4 +32,12 @@ export interface CustomRequest extends Request {
   simulationConsent?: SimulationConsent;
   /** Crédits réservés pour cette requête ; contrepassés si la génération échoue. */
   billing?: BillingRequestContext;
+  /**
+   * Paiement réservé pour une exécution de simulation.
+   *
+   * iSimulate se paie à l'acte : le jeton est posé avant le lancement puis
+   * échangé contre l'identifiant de l'exécution, ou relâché si elle ne démarre
+   * pas. Sans cet aller-retour, un lancement raté consommerait le paiement.
+   */
+  simulationPayment?: { token: string; reference: string; tier: string };
 }

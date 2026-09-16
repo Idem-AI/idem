@@ -323,5 +323,19 @@ router.post('/internal/credits/adjust', verifyApiKey, (req: Request, res: Respon
   billingController.internalAdjustCredits(req, res)
 );
 
+// --- Synchronisation iDeploy -----------------------------------------------
+//
+// Un plan payé ici doit arriver dans une autre base. Quand la propagation
+// échoue, elle doit être visible et rejouable — sinon le client est le seul à
+// s'apercevoir qu'il paie un plan qu'il n'a pas.
+
+router.get('/internal/sync-jobs', verifyApiKey, (req: Request, res: Response) =>
+  billingController.internalSyncJobs(req, res)
+);
+
+router.post('/internal/sync-jobs/:jobId/retry', verifyApiKey, (req: Request, res: Response) =>
+  billingController.internalSyncJobRetry(req, res)
+);
+
 export { router as billingRoutes };
 export default router;

@@ -17,6 +17,7 @@ import { betaService } from '../services/billing/beta.service';
 import { billingSettingsService } from '../services/billing/billing-settings.service';
 import { creditLedgerService } from '../services/billing/credit-ledger.service';
 import { entitlementsService } from '../services/billing/entitlements.service';
+import { ideploySyncService } from '../services/billing/ideploy-sync.service';
 import { paymentEventsService } from '../services/payments/payment-events.service';
 import { paymentReconcilerService } from '../services/payments/payment-reconciler.service';
 import { PaymentRefusedError, paymentService } from '../services/payments/payment.service';
@@ -643,6 +644,52 @@ export class BillingController {
       res.json(transaction ? presentTransaction(transaction) : {});
     } catch (error) {
       handleError(res, error, 'Vérification impossible.');
+    }
+  };
+
+  /**
+   * File de propagation vers iDeploy.
+   *
+   * Le retard de la file est rendu avec la liste : un plan payé qui n'arrive
+   * pas dans iDeploy est invisible partout ailleurs, et c'est le client qui
+   * s'en aperçoit en premier si personne ne regarde ici.
+   */
+  internalSyncJobs = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const [jobs, backlog] = await Promise.all([
+        ideploySyncService.list({
+          status: req.query.status ? String(req.query.status) : undefined,
+          userId: req.query.userId ? String(req.query.userId) : undefined,
+          limit: req.query.limit ? Number(req.query.limit) : undefined,
+        }),
+        ideploySyncService.backlog(),
+      ]);
+
+      res.json({ jobs, backlog });
+    } catch (error) {
+      handleError(res, error, 'Lecture de la file de synchronisation impossible.');
+    }
+  };
+
+  /**
+   * Rejoue une propagation abandonnée.
+   *
+   * Cas courant : le client a payé iDeploy avant d'avoir ouvert son espace de
+   * déploiement, et aucune équipe ne correspondait à son adresse. Une fois le
+   * compte créé, on rejoue au lieu de refaire payer.
+   */
+  internalSyncJobRetry = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const requeued = await ideploySyncService.retry(String(req.params.jobId));
+
+      if (!requeued) {
+        res.status(404).json({ error: 'not_found' });
+        return;
+      }
+
+      res.json({ requeued: true });
+    } catch (error) {
+      handleError(res, error, 'Rejeu impossible.');
     }
   };
 

@@ -19,7 +19,7 @@ class IdemQuotaService
             return true;
         }
 
-        $planName = $team->idem_subscription_plan ?? 'free';
+        $planName = $this->planNameOf($team);
         $plan = IdemSubscriptionPlan::findByName($planName);
         
         // If plan not found in DB, use sensible defaults (5 apps for free)
@@ -49,7 +49,7 @@ class IdemQuotaService
             return true;
         }
 
-        $planName = $team->idem_subscription_plan ?? 'free';
+        $planName = $this->planNameOf($team);
         $plan = IdemSubscriptionPlan::findByName($planName);
         
         // If plan not found, allow up to 2 servers by default
@@ -108,7 +108,7 @@ class IdemQuotaService
      */
     public function getQuotaUsage(Team $team): array
     {
-        $planName = $team->idem_subscription_plan ?? 'free';
+        $planName = $this->planNameOf($team);
         $plan = IdemSubscriptionPlan::findByName($planName);
         
         if (!$plan) {
@@ -141,7 +141,7 @@ class IdemQuotaService
      */
     public function needsUpgrade(Team $team, string $resourceType = 'app'): array
     {
-        $planName = $team->idem_subscription_plan ?? 'free';
+        $planName = $this->planNameOf($team);
         $plan = IdemSubscriptionPlan::findByName($planName);
         
         if (!$plan) {
@@ -168,18 +168,42 @@ class IdemQuotaService
     }
 
     /**
+     * Les plans IDEM, du plus petit au plus grand.
+     *
+     * Le modèle économique n'en connaît que quatre : Hobby, Starter, Pro,
+     * Scale. Les anciens noms subsistent dans des équipes créées avant la
+     * migration — les traduire ici évite qu'un plan hérité ne trouve aucune
+     * limite et bascule sur les valeurs par défaut.
+     */
+    private const PLAN_HIERARCHY = ['hobby', 'starter', 'pro', 'scale'];
+
+    private const LEGACY_PLAN_NAMES = [
+        'free' => 'hobby',
+        'basic' => 'starter',
+        'enterprise' => 'scale',
+    ];
+
+    /** Nom de plan normalisé de l'équipe, ancien nom traduit si besoin. */
+    private function planNameOf(Team $team): string
+    {
+        $planName = $team->idem_subscription_plan ?? 'hobby';
+
+        return self::LEGACY_PLAN_NAMES[$planName] ?? $planName;
+    }
+
+    /**
      * Suggest next plan based on current plan
      */
     private function suggestNextPlan(string $currentPlan): string
     {
-        $planHierarchy = ['free', 'basic', 'pro', 'enterprise'];
-        $currentIndex = array_search($currentPlan, $planHierarchy);
-        
-        if ($currentIndex === false || $currentIndex >= count($planHierarchy) - 1) {
-            return 'enterprise';
+        $currentPlan = self::LEGACY_PLAN_NAMES[$currentPlan] ?? $currentPlan;
+        $currentIndex = array_search($currentPlan, self::PLAN_HIERARCHY);
+
+        if ($currentIndex === false || $currentIndex >= count(self::PLAN_HIERARCHY) - 1) {
+            return 'scale';
         }
 
-        return $planHierarchy[$currentIndex + 1];
+        return self::PLAN_HIERARCHY[$currentIndex + 1];
     }
 
     /**
@@ -187,10 +211,9 @@ class IdemQuotaService
      */
     public function getUpgradePlans(Team $team): array
     {
-        $currentPlan = $team->idem_subscription_plan;
-        $planHierarchy = ['free', 'basic', 'pro', 'enterprise'];
-        $currentIndex = array_search($currentPlan, $planHierarchy);
-        
+        $currentPlan = $this->planNameOf($team);
+        $currentIndex = array_search($currentPlan, self::PLAN_HIERARCHY);
+
         if ($currentIndex === false) {
             return IdemSubscriptionPlan::getActivePlans()->toArray();
         }
