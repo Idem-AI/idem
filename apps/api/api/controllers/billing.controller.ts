@@ -4,7 +4,6 @@ import { CustomRequest } from '../interfaces/express.interface';
 import {
   DEFAULT_COUNTRY,
   explainFailure,
-  getCountry,
   normalizePhone,
 } from '../models/payment.model';
 import { BillingEngine, BillingInterval } from '../models/billing.model';
@@ -17,6 +16,7 @@ import { billingSettingsService } from '../services/billing/billing-settings.ser
 import { creditLedgerService } from '../services/billing/credit-ledger.service';
 import { entitlementsService } from '../services/billing/entitlements.service';
 import { ideploySyncService } from '../services/billing/ideploy-sync.service';
+import { PricingValidationError, pricingService } from '../services/billing/pricing.service';
 import { paymentCountriesService } from '../services/payments/payment-countries.service';
 import { paymentEventsService } from '../services/payments/payment-events.service';
 import { paymentReconcilerService } from '../services/payments/payment-reconciler.service';
@@ -165,7 +165,7 @@ export class BillingController {
   getPaymentMethods = async (req: CustomRequest, res: Response): Promise<void> => {
     try {
       const countryCode = ((req.query.country as string) || DEFAULT_COUNTRY).toUpperCase();
-      const country = getCountry(countryCode);
+      const country = await pricingService.getCountry(countryCode);
 
       if (!country) {
         res.status(400).json({
@@ -214,7 +214,7 @@ export class BillingController {
         return;
       }
 
-      const countryConf = getCountry(country ?? DEFAULT_COUNTRY);
+      const countryConf = await pricingService.getCountry(country ?? DEFAULT_COUNTRY);
       const normalized = normalizePhone(String(phoneNumber), countryConf);
 
       const prediction = await pawapayClient.predictProvider(normalized);
@@ -693,6 +693,81 @@ export class BillingController {
       res.json({ requeued: true });
     } catch (error) {
       handleError(res, error, 'Rejeu impossible.');
+    }
+  };
+
+  // ============================================
+  // TARIFICATION
+  // ============================================
+
+  /**
+   * Tarification effective, publique.
+   *
+   * Les produits inactifs sont retirés : une offre qu'on ne vend pas n'a pas à
+   * apparaître, même avec un prix.
+   */
+  getPricing = async (_req: Request, res: Response): Promise<void> => {
+    try {
+      const effective = await pricingService.effective();
+      const products = Object.fromEntries(
+        Object.entries(effective.products).filter(([, product]) => product.isActive)
+      );
+
+      res.set('Cache-Control', 'public, max-age=60');
+      res.json({ ...effective, products });
+    } catch (error) {
+      handleError(res, error, 'Impossible de charger la tarification.');
+    }
+  };
+
+  /** Vue complète pour le panel : défauts, surcharges, effectif, anomalies. */
+  internalGetPricing = async (_req: Request, res: Response): Promise<void> => {
+    try {
+      res.json(await pricingService.adminView());
+    } catch (error) {
+      handleError(res, error, 'Impossible de charger la tarification.');
+    }
+  };
+
+  /**
+   * Applique un lot de modifications de prix.
+   *
+   * Une valeur `null` revient au prix du fichier. Le lot est validé en entier
+   * avant toute écriture : les fautes reviennent ensemble, pas une par une.
+   */
+  internalUpdatePricing = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { changes, reason, changedBy } = req.body ?? {};
+      const result = await pricingService.applyChanges(changes, reason, changedBy);
+      res.json({ ...result, pricing: await pricingService.adminView() });
+    } catch (error: any) {
+      if (error instanceof PricingValidationError) {
+        res.status(400).json({ error: 'pricing_invalid', message: error.message, details: error.details });
+        return;
+      }
+      handleError(res, error, 'Enregistrement des prix impossible.');
+    }
+  };
+
+  /** Historique des changements de prix. */
+  internalPricingHistory = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const country =
+        req.query.country === undefined
+          ? undefined
+          : req.query.country === 'catalog'
+            ? null
+            : String(req.query.country);
+
+      res.json({
+        changes: await pricingService.history({
+          country,
+          productCode: req.query.productCode ? String(req.query.productCode) : undefined,
+          limit: req.query.limit ? Number(req.query.limit) : undefined,
+        }),
+      });
+    } catch (error) {
+      handleError(res, error, 'Impossible de charger l’historique des prix.');
     }
   };
 

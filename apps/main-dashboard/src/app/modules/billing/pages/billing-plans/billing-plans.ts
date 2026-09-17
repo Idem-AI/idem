@@ -5,6 +5,8 @@ import { TranslateModule } from '@ngx-translate/core';
 import { BillingService } from '../../services/billing.service';
 import { CheckoutComponent } from '../../components/checkout/checkout';
 import { BillingEngine, BillingProduct } from '../../models/billing.model';
+import { PRICING_DEFAULTS } from '@idem/shared-models/pricing/defaults';
+import { annualPrice } from '@idem/shared-models/pricing/pricing';
 
 /**
  * Les offres.
@@ -59,6 +61,18 @@ import { BillingEngine, BillingProduct } from '../../models/billing.model';
           </button>
         </div>
       </header>
+
+      <!-- Prix affichés sans l'API : on le dit, plutôt que de laisser croire
+           à un montant ferme. -->
+      @if (billing.pricesIndicative()) {
+        <p
+          class="mb-6 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-text-secondary"
+          role="status"
+        >
+          <i class="pi pi-info-circle mt-0.5 text-warning"></i>
+          <span>{{ 'billing.plans.indicativePrices' | translate }}</span>
+        </p>
+      }
 
       <!-- Abonnements, moteur par moteur -->
       @for (engine of engines; track engine) {
@@ -215,7 +229,8 @@ import { BillingEngine, BillingProduct } from '../../models/billing.model';
   `,
 })
 export class BillingPlansPage {
-  private readonly billing = inject(BillingService);
+  // Lu par le gabarit (bandeau « prix indicatifs ») : donc protégé, pas privé.
+  protected readonly billing = inject(BillingService);
   private readonly route = inject(ActivatedRoute);
 
   readonly engines: BillingEngine[] = ['business', 'appgen', 'ideploy'];
@@ -271,13 +286,13 @@ export class BillingPlansPage {
   /**
    * Prix affiché selon la périodicité.
    *
-   * L'annuel applique « 2 mois offerts » (−16,67 %). Le calcul est reproduit
-   * ici pour l'affichage seulement : c'est l'API qui facture, et c'est elle
-   * qui fait foi.
+   * L'annuel passe par la règle partagée avec l'API (`annualPrice`) plutôt que
+   * par une copie locale de la formule : un taux recopié finit par diverger,
+   * et l'écart se découvre au moment de payer.
    */
   displayPrice(product: BillingProduct): number {
     if (this.interval() === 'year' && product.interval === 'month') {
-      return Math.round(product.priceXaf * 12 * (1 - 2 / 12));
+      return annualPrice(product.priceXaf, PRICING_DEFAULTS, true);
     }
     return product.priceXaf;
   }

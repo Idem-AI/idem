@@ -16,11 +16,8 @@ import {
   PaymentStatus,
   PaymentTransactionModel,
   buildCustomerMessage,
-  localAnnualPrice,
-  localPrice,
   explainFailure,
   formatAmountForPawapay,
-  getCountry,
   isFinalPaymentStatus,
   mapPawapayStatus,
   maskPhone,
@@ -39,6 +36,7 @@ import { ideploySyncService } from '../billing/ideploy-sync.service';
 import { transactionalEmailService } from '../email/email.service';
 import { firstNameOf } from '../email/email-layout';
 import { paymentFailed, paymentReceipt } from '../email/templates';
+import { pricingService } from '../billing/pricing.service';
 import { paymentCountriesService } from './payment-countries.service';
 import { paymentEventsService } from './payment-events.service';
 import {
@@ -137,7 +135,7 @@ export class PaymentService {
       throw new PaymentRefusedError('unknown_product', 'Cette offre n’est pas disponible.', 404);
     }
 
-    const country = getCountry(input.country ?? DEFAULT_COUNTRY);
+    const country = await pricingService.getCountry(input.country ?? DEFAULT_COUNTRY);
     if (!country) {
       throw new PaymentRefusedError(
         'country_not_supported',
@@ -179,12 +177,22 @@ export class PaymentService {
       );
     }
 
-    // Le prix se lit dans la grille du pays : il a été fixé pour ce marché, il
-    // n'est pas converti depuis le franc CFA. L'annuel applique ensuite la même
-    // remise au prix LOCAL mensuel — un annuel calculé en F CFA puis converti
-    // tomberait hors de la grille.
-    const monthlyLocal = localPrice(product.priceXaf, country);
-    const amount = isAnnual ? localAnnualPrice(monthlyLocal, country) : monthlyLocal;
+    // Le prix se lit dans la tarification effective du pays — le fichier de
+    // configuration, surchargé par le panel admin : fixé pour ce marché, jamais
+    // converti. Un produit sans prix dans le pays n'est pas vendu : inventer un
+    // montant serait pire que refuser.
+    const local = await pricingService.priceFor(product.code, country.code);
+    if (!local) {
+      throw new PaymentRefusedError(
+        'price_unavailable',
+        'Cette offre n’a pas encore de prix dans votre pays.',
+        400
+      );
+    }
+
+    // L'annuel applique la remise au prix LOCAL mensuel : calculé en F CFA puis
+    // transposé, il tomberait hors de la grille du pays.
+    const amount = isAnnual ? await pricingService.annualFor(local.amount, country.code) : local.amount;
 
     return {
       product,
@@ -227,7 +235,7 @@ export class PaymentService {
     }
 
     const quote = await this.quote(input);
-    const country = getCountry(quote.country)!;
+    const country = (await pricingService.getCountry(quote.country))!;
 
     // Un Project Pass déjà payé ne se revend pas : l'index le refuserait, mais
     // le dire ici évite à l'utilisateur de saisir son code pour rien.

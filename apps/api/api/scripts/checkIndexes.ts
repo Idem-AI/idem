@@ -47,6 +47,7 @@ import { BillingSettings } from '../schemas/billingSettings.schema';
 import { BetaTester } from '../schemas/betaTester.schema';
 import { EmailLog } from '../schemas/emailLog.schema';
 import { BillingSyncJob } from '../schemas/billingSync.schema';
+import { PricingChange, PricingOverride } from '../schemas/pricingOverride.schema';
 
 /** Exactement la liste initialisée par `index.ts` au démarrage. */
 const MODELS: [string, Model<any>][] = [
@@ -68,6 +69,8 @@ const MODELS: [string, Model<any>][] = [
   ['beta_testers', BetaTester],
   ['email_logs', EmailLog],
   ['billing_sync_jobs', BillingSyncJob],
+  ['pricing_overrides', PricingOverride],
+  ['pricing_changes', PricingChange],
 ];
 
 /**

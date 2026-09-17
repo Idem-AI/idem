@@ -41,6 +41,8 @@ import {
 } from './schemas/payment.schema';
 import { BillingSettings } from './schemas/billingSettings.schema';
 import { BillingSyncJob } from './schemas/billingSync.schema';
+import { PricingChange, PricingOverride } from './schemas/pricingOverride.schema';
+import { pricingService } from './services/billing/pricing.service';
 import { BetaTester } from './schemas/betaTester.schema';
 import { EmailLog } from './schemas/emailLog.schema';
 import { billingService } from './services/billing.service';
@@ -325,6 +327,9 @@ function startServer() {
         // File des synchronisations vers iDeploy : la tâche de fond n'y
         // cherche que ce qui est dû, d'où l'index (statut, prochaine tentative).
         BillingSyncJob.init(),
+        // Surcharges de prix (une par prix) et leur historique.
+        PricingOverride.init(),
+        PricingChange.init(),
         BillingInvoice.init(),
         CreditLedgerEntry.init(),
         // Encaissement : `depositId` et `reference` uniques (idempotence), file
@@ -344,6 +349,11 @@ function startServer() {
       // un produit existant (un prix ajusté en production doit survivre au
       // redémarrage).
       await billingService.seedProducts();
+
+      // Les prix effectifs — fichier de tarification surchargé par le panel —
+      // sont recopiés sur les produits : tout le code qui lit `priceXaf` voit
+      // ainsi le prix réellement appliqué, dès le démarrage.
+      await pricingService.materialize();
 
       // Réglages commerciaux (bêta, mode d'application du barème, grâce).
       await billingSettingsService.ensureExists();

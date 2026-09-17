@@ -50,6 +50,79 @@ managées et bundles pèsent autant que le récurrent. `BillingProductKind` les
 distingue, et le panel sépare explicitement récurrent et ponctuel — seul le
 premier alimente le MRR.
 
+## Tarification
+
+Les prix ne vivent plus dans le code. Ils viennent de deux sources, dans cet
+ordre :
+
+1. **Les surcharges du panel admin** (collection `pricing_overrides`) ;
+2. **`packages/shared-models/src/pricing/pricing.config.json`**, versionné dans
+   le dépôt.
+
+Un prix absent des deux n'est pas un prix : la vente est refusée.
+
+### Le fichier
+
+Un seul fichier décrit les 42 offres et les 20 pays : le prix catalogue en
+F CFA, le prix « projet IDEM » des simulations, et la grille locale de chaque
+pays hors zone franc. Les sept pays de la zone franc n'ont pas de grille — ils
+appliquent le prix catalogue, les éditer séparément ferait diverger sept pays à
+parité fixe.
+
+`pricing.schema.json` l'accompagne : l'éditeur complète et signale les fautes
+pendant la saisie.
+
+L'API le **relit sur disque** quand sa date de modification change : corriger un
+prix ne demande pas de redémarrage. Un fichier devenu invalide ne casse rien —
+la dernière configuration valide reste en service et l'incident est journalisé
+(`billing.pricing_file_invalid`). `PRICING_CONFIG_PATH` déplace le fichier en
+production.
+
+### Les surcharges
+
+Le panel admin (« Prix ») n'écrit jamais dans le fichier : il pose des
+surcharges en base, une par prix, avec un motif obligatoire et un historique
+append-only (`pricing_changes`). Un prix se corrige donc en quelques secondes,
+se relit six mois plus tard avec sa raison, et revient au fichier d'un clic.
+
+Les prix effectifs sont recopiés sur `billing_products.priceXaf` au démarrage
+puis chaque minute (tâche `pricing-sync`) : tout le code qui lisait déjà le
+catalogue voit le prix réellement appliqué, sans le savoir.
+
+**Un abonnement en cours ne change pas de prix.** Le montant est figé sur
+l'abonnement à la souscription ; une nouvelle grille ne vaut que pour les
+paiements suivants.
+
+### Endpoints
+
+| Méthode | Chemin | Rôle |
+| --- | --- | --- |
+| GET | `/billing/pricing` | Tarification effective, publique (offres actives) |
+| GET | `/billing/internal/pricing` | Défauts, surcharges, effectif et anomalies |
+| PUT | `/billing/internal/pricing` | Applique un lot `{changes, reason}` |
+| GET | `/billing/internal/pricing/history` | Historique des changements |
+
+Le lot est validé en entier avant toute écriture : produit inconnu, pays de la
+zone franc, `idemPrice` sur une offre qui n'en a pas, montant négatif — les
+fautes reviennent ensemble, et rien n'est écrit.
+
+### Anomalies
+
+`pricingWarnings()` signale sans refuser : une offre sans prix local, une grille
+qui s'inverse (un Cabinet moins cher qu'un Essentiel), un prix au-dessus de la
+zone CFA ou sous le plancher des arbitrages livrés (55 % du prix CFA, en
+dollars). Un prix bas volontaire est légitime ; une grille inversée est presque
+toujours une faute de frappe.
+
+Les taux de change du fichier servent **uniquement** à cet affichage. Aucun prix
+n'est jamais calculé avec.
+
+### Quand l'API est indisponible
+
+Le dashboard embarque ce même fichier au build. Si le catalogue ne se charge
+pas, il affiche le dernier catalogue reçu, puis à défaut les prix embarqués, et
+le dit à l'écran : les montants sont indicatifs, c'est l'API qui facture.
+
 ## Offre
 
 ### IDEM Business
@@ -119,6 +192,8 @@ Pitch deck 35 · Prévisionnel 3 ans 40 · Logo + charte 60 · Business plan 70.
 | `billing_counters` | Séquences de numérotation des factures. |
 | `credit_balances` | Solde courant par (utilisateur, moteur). Débité par `$inc` conditionnel — voir plus bas. |
 | `billing_sync_jobs` | File de propagation des plans vers iDeploy, avec tentatives et motif d'abandon. |
+| `pricing_overrides` | Prix modifiés depuis le panel, un document par prix. Priment sur le fichier. |
+| `pricing_changes` | Historique append-only des changements de prix, avec leur motif. |
 
 ### Invariants garantis par la base
 

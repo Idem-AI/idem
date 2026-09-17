@@ -180,14 +180,20 @@ l'édition d'un fichier `.env`.
 
 ## Pays ouverts
 
-La zone franc uniquement au lancement : **CMR, CIV, SEN, BEN, BFA, COG, GAB**.
-XAF et XOF partagent la parité fixe avec l'euro, donc le prix affiché est le
-prix payé, sans conversion ni risque de change. Ouvrir un marché hors zone
-franc suppose une grille de prix dédiée (coefficient de pouvoir d'achat) :
-`convertFromXaf()` lève explicitement plutôt que d'appliquer un taux implicite.
+**Vingt pays**, chacun avec sa propre grille de prix : voir
+[la tarification](BILLING.md#tarification).
 
-Ce que nous ouvrons commercialement est une chose ; ce qui fonctionne à
-l'instant T en est une autre, et vient toujours de `GET /active-conf`.
+Les sept pays de la zone franc (CMR, CIV, SEN, BEN, BFA, COG, GAB) partagent le
+prix catalogue : XAF et XOF sont à parité, le prix affiché est donc le prix
+payé, sans conversion. Les treize autres ont un prix arbitré marché par marché,
+jamais une conversion : un prix converti suit un taux de change, alors qu'un
+prix se décide en regardant ce que les gens paient déjà sur place.
+
+Ce que nous ouvrons commercialement est une chose ; ce qui encaisse à l'instant
+T en est une autre. `paymentCountriesService.available()` croise les deux : les
+pays tarifés, et ceux que `GET /active-conf` déclare provisionnés. Un pays sans
+grille n'est jamais proposé, et une offre sans prix local est refusée
+(`price_unavailable`) plutôt que vendue à un montant deviné.
 
 ## Ce qui est verrouillé côté serveur
 

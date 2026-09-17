@@ -4202,6 +4202,7 @@
       "monthly": "Mensuel",
       "yearly": "Annuel",
       "yearlyHint": "2 mois offerts",
+      "indicativePrices": "Prix affichés hors connexion au service de facturation : ils peuvent avoir changé. Le montant exact s’affiche au moment du paiement.",
       "perMonth": "/mois",
       "perYear": "/an",
       "oneTime": "paiement unique",
