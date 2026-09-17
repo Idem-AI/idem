@@ -34,7 +34,7 @@
  */
 
 import { contrastRatio } from './color';
-import { buildGoogleFontLinks } from '../../utils/google-fonts.util';
+import { designFontLinks } from '../../utils/google-fonts.util';
 import { DocumentDesignSystem } from './documentDesignSystem';
 import { patternCss } from './brandMotifs';
 import { SectionSeed } from './designSeed';
@@ -2483,11 +2483,13 @@ const RAIL_MM = 26;
  * prévisualisation. Le navigateur dédoublonne les href identiques, le coût est
  * donc celui d'une seule requête pour tout le livrable.
  *
- * `buildGoogleFontLinks` ignore de lui-même les piles système (`serif`,
+ * `designFontLinks` ignore de lui-même les piles système (`serif`,
  * `sans-serif`, Georgia…) : une charte qui n'a pas encore de police n'émet rien.
+ * Il honore aussi la feuille propre à chaque famille, ce qui est le seul moyen
+ * de charger une police venue d'ailleurs que de Google.
  */
 function fontLinks(ds: DocumentDesignSystem): string {
-  const links = buildGoogleFontLinks([ds.fonts.display, ds.fonts.body]);
+  const links = designFontLinks(ds.fonts);
   return links ? `${links}\n` : '';
 }
 

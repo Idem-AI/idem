@@ -62,7 +62,7 @@ STYLE SUGGESTION: {{STYLE_HINT}}
 - The display weight matches the visual weight of the logo.
 - primaryFont carries the personality; secondaryFont must stay readable at 14-16px.
 - WEIGHT RANGE: the display family must offer at least three weights far apart. Typographic hierarchy is what replaces decoration.
-- Two families per set, both on Google Fonts, exact family names.
+- Two families per set, exact family names, both from a catalogue listed in <font_sources>.
 </matching_rules>
 
 <banned_fonts>
@@ -80,6 +80,14 @@ Also banned as dated: Lobster, Pacifico, Comfortaa, Bangers, Righteous.
 - Human / accessible: Bricolage Grotesque, Epilogue, Lexend, Onest + text: Atkinson Hyperlegible, Figtree, Hanken Grotesk.
 </curated_register>
 
+<font_sources>
+Three free catalogues are available. Name the one each family comes from in the "source" field: the stylesheet that loads it is built from that answer, and a wrong source means the font silently does not load.
+- "google" — Google Fonts, the widest catalogue, and the one every other brand uses.
+- "fontshare" — Fontshare (Indian Type Foundry), free for commercial use, ABSENT from Google: Satoshi, General Sans, Switzer, Cabinet Grotesk, Clash Display, Clash Grotesk, Chillax, Ranade, Supreme, Synonym, Technor, Author, Excon, Panchang, Tanker, Alpino, Quilon, Pally, Bespoke Sans, Plein, Amulya, Melodrama, Pilcrow Rounded, Zodiak, Sentient, Boska, Bespoke Serif, Gambetta, Gambarino, Neco, Erode, Rowan, Aktura, Bespoke Slab, Recia, Stardom, Nippo, Sharpie, Bevellier, Array, Chubbo, Segment.
+- "fontsource" — Fontsource, non-Google open families: Geist Sans, Uncut Sans, Nebula Sans, Metropolis, Open Runde, Open Sauce Sans, Hauora Sans, Apfel Grotezk, Adwaita Sans, Cooper Hewitt, Bluu Next, Redaction, Chunk Five, Libre Caslon Condensed, Pretendard, Norwester, Ostrich Sans, Monaspace Neon, Monaspace Xenon, Iosevka, Commit Mono, iA Writer Quattro, Maple Mono.
+Only name a family you are sure exists in the catalogue you attribute it to. If you are unsure, use "google" and a family you know is there.
+</font_sources>
+
 <diversity_rules>
 The 3 sets must belong to 3 DIFFERENT registers. All three must work with the logo; they must not be variations of one another.
 </diversity_rules>
@@ -92,8 +100,10 @@ Return STRICT JSON only.
       "id": "typography-set-1",
       "name": "a short descriptive French name",
       "url": "typography/[url-slug]",
-      "primaryFont": "exact Google Fonts family name",
-      "secondaryFont": "exact Google Fonts family name",
+      "primaryFont": "exact family name of the display family",
+      "primarySource": "google | fontshare | fontsource",
+      "secondaryFont": "exact family name of the text family",
+      "secondarySource": "google | fontshare | fontsource",
       "rationale": "one sentence, in French: how this pairing extends the logo"
     }
     // ... 2 more sets, in different registers

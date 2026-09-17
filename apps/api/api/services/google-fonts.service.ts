@@ -104,6 +104,17 @@ export class GoogleFontsService {
   }
 
   /**
+   * Le catalogue complet, pour le service qui agrège plusieurs sources.
+   *
+   * `search` suffit au front, mais l'agrégateur a besoin de TOUTES les familles
+   * avant de dédupliquer et de classer l'ensemble : tronquer ici reviendrait à
+   * décider du résultat à sa place.
+   */
+  async getCatalogFonts(): Promise<FontSummary[]> {
+    return this.getCatalog();
+  }
+
+  /**
    * Catalogue trié par popularité. Trois niveaux : mémoire → Redis → Google.
    */
   private async getCatalog(): Promise<FontSummary[]> {

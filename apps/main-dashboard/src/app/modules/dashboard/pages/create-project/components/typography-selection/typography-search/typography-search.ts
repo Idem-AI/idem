@@ -1,14 +1,20 @@
 import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import {
+  CatalogFont,
   FontCategory,
-  GoogleFont,
+  FontSourceId,
   TypographyService,
   fontStack,
 } from '../../../../../../../shared/services/typography.service';
 
 interface CategoryFilter {
   readonly id: FontCategory | null;
+  readonly labelKey: string;
+}
+
+interface SourceFilter {
+  readonly id: FontSourceId | null;
   readonly labelKey: string;
 }
 
@@ -22,17 +28,19 @@ interface CategoryFilter {
 export class TypographySearchComponent {
   private readonly typographyService = inject(TypographyService);
 
-  readonly searchResults = input<GoogleFont[]>([]);
+  readonly searchResults = input<CatalogFont[]>([]);
   readonly isSearching = input(false);
   readonly selectedPrimaryFont = input('');
   readonly selectedSecondaryFont = input('');
 
   readonly searchInput = output<string>();
   readonly categoryChanged = output<FontCategory | null>();
-  readonly fontSelected = output<{ font: GoogleFont; type: 'primary' | 'secondary' }>();
+  readonly sourceChanged = output<FontSourceId | null>();
+  readonly fontSelected = output<{ font: CatalogFont; type: 'primary' | 'secondary' }>();
 
   protected readonly searchQuery = signal('');
   protected readonly activeCategory = signal<FontCategory | null>(null);
+  protected readonly activeSource = signal<FontSourceId | null>(null);
 
   protected readonly categories: readonly CategoryFilter[] = [
     { id: null, labelKey: 'dashboard.typographySelection.categories.all' },
@@ -43,13 +51,26 @@ export class TypographySearchComponent {
     { id: 'monospace', labelKey: 'dashboard.typographySelection.categories.monospace' },
   ];
 
+  /**
+   * Les fonderies disponibles. Elles sont listées en dur plutôt que chargées
+   * depuis `/fonts/sources` : ce sont des libellés, la liste bouge à peu près
+   * jamais, et un filtre qui apparaît après coup fait sauter la mise en page.
+   */
+  protected readonly sources: readonly SourceFilter[] = [
+    { id: null, labelKey: 'dashboard.typographySelection.sources.all' },
+    { id: 'google', labelKey: 'dashboard.typographySelection.sources.google' },
+    { id: 'fontshare', labelKey: 'dashboard.typographySelection.sources.fontshare' },
+    { id: 'fontsource', labelKey: 'dashboard.typographySelection.sources.fontsource' },
+    { id: 'custom', labelKey: 'dashboard.typographySelection.sources.custom' },
+  ];
+
   constructor() {
-    // Each row is rendered in its own typeface — pull every visible family in a
-    // single batched Google Fonts request.
+    // Each row is rendered in its own typeface — load every visible family from
+    // the source it actually comes from, not from Google by default.
     effect(() => {
-      const families = this.searchResults().map((font) => font.family);
-      if (families.length > 0) {
-        void this.typographyService.loadGoogleFonts(families);
+      const fonts = this.searchResults();
+      if (fonts.length > 0) {
+        void this.typographyService.loadFonts(fonts);
       }
     });
   }
@@ -71,24 +92,35 @@ export class TypographySearchComponent {
     this.categoryChanged.emit(category);
   }
 
-  protected onFontSelect(font: GoogleFont, type: 'primary' | 'secondary'): void {
+  protected onSourceClick(source: FontSourceId | null): void {
+    if (this.activeSource() === source) return;
+    this.activeSource.set(source);
+    this.sourceChanged.emit(source);
+  }
+
+  protected onFontSelect(font: CatalogFont, type: 'primary' | 'secondary'): void {
     this.fontSelected.emit({ font, type });
   }
 
-  protected stackFor(font: GoogleFont): string {
+  protected stackFor(font: CatalogFont): string {
     return fontStack(font.family, font.category);
   }
 
-  protected categoryLabelKey(font: GoogleFont): string {
+  protected categoryLabelKey(font: CatalogFont): string {
     const match = this.categories.find((category) => category.id === font.category);
     return match?.labelKey ?? 'dashboard.typographySelection.categories.all';
   }
 
-  protected isPrimary(font: GoogleFont): boolean {
+  protected sourceLabelKey(font: CatalogFont): string {
+    const match = this.sources.find((source) => source.id === font.source);
+    return match?.labelKey ?? 'dashboard.typographySelection.sources.google';
+  }
+
+  protected isPrimary(font: CatalogFont): boolean {
     return this.selectedPrimaryFont() === font.family;
   }
 
-  protected isSecondary(font: GoogleFont): boolean {
+  protected isSecondary(font: CatalogFont): boolean {
     return this.selectedSecondaryFont() === font.family;
   }
 }

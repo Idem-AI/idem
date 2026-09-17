@@ -68,23 +68,27 @@
         "saveAsDraft": "Save as Draft",
         "continue": "Continue"
       },
-      "searchPlaceholder": "Search fonts (e.g. Roboto, Open Sans)...",
+      "searchPlaceholder": "Search for a font (e.g. Satoshi, Fraunces)...",
       "searching": "Searching fonts...",
       "noResults": "No fonts found for your search",
-      "searchHint": "Start typing to search Google Fonts",
+      "searchHint": "Start typing to search Google Fonts, Fontshare and Fontsource",
       "selectToPreview": "Select fonts to preview your custom typography mix",
       "custom": {
         "title": "Your Custom Mixes",
         "createNew": "Create New Mix",
-        "searchLabel": "SEARCH GOOGLE FONTS",
-        "searchPlaceholder": "Search fonts (e.g. Roboto, Open Sans)...",
+        "searchLabel": "SEARCH FOR A FONT",
+        "searchPlaceholder": "Search for a font (e.g. Satoshi, Fraunces)...",
         "setPrimary": "Set Primary",
         "setSecondary": "Set Secondary",
         "primaryFont": "PRIMARY FONT",
         "secondaryFont": "SECONDARY FONT",
         "notSelected": "Not selected",
         "addButton": "Add Custom Mix",
-        "searchIntro": "Search the full Google Fonts catalog, then assign a font:"
+        "searchIntro": "Search several free foundries, or import your own font, then assign it:",
+        "panels": {
+          "catalog": "Catalogues",
+          "import": "Import my font"
+        }
       },
       "clearSearch": "Clear search",
       "resultsCount": "{{count}} fonts",
@@ -97,6 +101,33 @@
         "display": "Display",
         "handwriting": "Handwriting",
         "monospace": "Monospace"
+      },
+      "sources": {
+        "label": "Filter by foundry",
+        "all": "All sources",
+        "google": "Google Fonts",
+        "fontshare": "Fontshare",
+        "fontsource": "Fontsource",
+        "custom": "My fonts"
+      },
+      "import": {
+        "dropzone": "Drop your font files here",
+        "formats": "WOFF2, WOFF, TTF or OTF — one weight per file",
+        "browse": "Choose files",
+        "familyLabel": "FAMILY NAME",
+        "familyPlaceholder": "e.g. Satoshi",
+        "categoryLabel": "CATEGORY",
+        "weightHint": "Weight and italics are read from the file name (Bold, 700, Italic…).",
+        "upload": "Import font",
+        "uploading": "Importing…",
+        "removeFile": "Remove file",
+        "libraryTitle": "YOUR IMPORTED FONTS",
+        "delete": "Delete font",
+        "errors": {
+          "format": "Unsupported format: only WOFF2, WOFF, TTF and OTF files are accepted.",
+          "upload": "The import failed.",
+          "delete": "The deletion failed."
+        }
       }
     }
   }

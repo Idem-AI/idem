@@ -96,7 +96,7 @@ export class LogoLockupService {
     const iconSvgClean = wrapSvg(iconInner, parsed.viewBox.x, parsed.viewBox.y, parsed.viewBox.w, parsed.viewBox.h);
     const ink = await measureInkBox(iconSvgClean, parsed.viewBox);
 
-    const loaded = await fontLoader.load(spec.fontFamily, spec.fontWeight);
+    const loaded = await fontLoader.load(spec.fontFamily, spec.fontWeight, spec.fontCssUrl);
     const iconFit = fitTransform(ink, { x: 0, y: 0, w: ICON_BOX, h: ICON_BOX });
     const iconDrawnW = ink.w * iconFit.scale;
     const iconDrawnH = ink.h * iconFit.scale;
@@ -131,10 +131,15 @@ export class LogoLockupService {
    * « initial ») dans la police retenue. À défaut de police téléchargeable, on
    * se contente d'imposer la bonne `font-family`.
    */
-  async outlineSvgText(svg: string, fontFamily: string, fontWeight = 700): Promise<string> {
+  async outlineSvgText(
+    svg: string,
+    fontFamily: string,
+    fontWeight = 700,
+    fontCssUrl?: string
+  ): Promise<string> {
     if (!svg || !/<text\b/i.test(svg)) return svg;
 
-    const loaded = await fontLoader.load(fontFamily, fontWeight);
+    const loaded = await fontLoader.load(fontFamily, fontWeight, fontCssUrl);
     if (!loaded) return enforceFontFamily(svg, fontFamily);
 
     const parsed = parseSvg(svg);
