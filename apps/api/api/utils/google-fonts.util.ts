@@ -44,10 +44,18 @@ export function normalizeFontFamily(raw?: string | null): string {
   return first;
 }
 
-/** Une valeur déjà utilisable telle quelle comme href de feuille de style. */
+/**
+ * Une valeur déjà utilisable telle quelle comme href de feuille de style.
+ *
+ * Trois formes existent désormais : Google (`fonts.googleapis.com`), Fontshare
+ * (`api.fontshare.com/v2/css?...`, qui ne finit pas par `.css`), et tout ce qui
+ * se termine par `.css` — Fontsource via jsDelivr comme la feuille `@font-face`
+ * que nous fabriquons dans notre bucket pour une police importée.
+ */
 export function isStylesheetHref(value?: string | null): boolean {
   const v = String(value ?? '').trim();
-  return /^https?:\/\//i.test(v) && /fonts\.googleapis\.com|\.css(\?|$)/i.test(v);
+  if (!/^https?:\/\//i.test(v)) return false;
+  return /fonts\.googleapis\.com|api\.fontshare\.com\/v2\/css|\.css(\?|$)/i.test(v);
 }
 
 function familyParam(family: string): string {
@@ -118,28 +126,100 @@ export function buildGoogleFontsHref(
   return `https://fonts.googleapis.com/css2?${params.join('&')}&display=swap`;
 }
 
+/**
+ * Une famille retenue pour la marque, telle qu'elle est stockée en base.
+ *
+ * `cssUrl` est le seul champ qui compte ici : quelle que soit la source
+ * (Google, Fontshare, Fontsource, ou une police importée servie depuis notre
+ * bucket), il pointe sur une feuille qui déclare `family`.
+ */
+export interface BrandFontLike {
+  family?: string;
+  source?: string;
+  cssUrl?: string;
+}
+
 export interface BrandTypographyLike {
   url?: string;
   primaryFont?: string;
   secondaryFont?: string;
+  primary?: BrandFontLike | null;
+  secondary?: BrandFontLike | null;
 }
 
 /**
  * Bloc `<link>` des polices de la marque, prêt à être inséré dans un `<head>`.
  *
- * Honore `typography.url` quand il contient RÉELLEMENT une feuille de style
- * (cas d'un projet dont le front aurait stocké l'URL), et la reconstruit sinon.
+ * Trois cas, dans cet ordre :
+ *  1. la famille porte sa propre feuille (`primary.cssUrl`) — c'est le cas dès
+ *     qu'elle vient d'ailleurs que de Google, et le SEUL moyen de charger une
+ *     police importée : elle n'existe dans aucun catalogue public ;
+ *  2. `typography.url` contient réellement une feuille de style ;
+ *  3. à défaut, on reconstruit le lien Google à partir du NOM de la famille —
+ *     le comportement historique, qui reste juste pour les projets existants.
  */
 export function brandFontLinks(typography?: BrandTypographyLike | null): string {
-  const explicit = isStylesheetHref(typography?.url)
-    ? `<link href="${typography?.url}" rel="stylesheet">`
-    : '';
-  const generated = buildGoogleFontLinks([typography?.primaryFont, typography?.secondaryFont]);
-  return [generated, explicit].filter(Boolean).join('\n');
+  const descriptors = [typography?.primary, typography?.secondary].filter(Boolean) as BrandFontLike[];
+
+  const hosted = descriptors.filter((font) => isStylesheetHref(font.cssUrl));
+  const hostedFamilies = new Set(
+    hosted.map((font) => normalizeFontFamily(font.family).toLowerCase()).filter(Boolean)
+  );
+
+  // Seules les familles SANS feuille propre sont redemandées à Google : sinon
+  // le même fichier serait chargé deux fois, et une police non-Google
+  // produirait en plus un lien mort.
+  const remaining = [typography?.primaryFont, typography?.secondaryFont].filter(
+    (family) => !hostedFamilies.has(normalizeFontFamily(family).toLowerCase())
+  );
+
+  const explicit = isStylesheetHref(typography?.url) ? [typography!.url!] : [];
+  const hrefs = [...new Set([...hosted.map((font) => font.cssUrl!), ...explicit])];
+
+  return [
+    buildGoogleFontLinks(remaining),
+    ...hrefs.map((href) => `<link href="${escapeHref(href)}" rel="stylesheet">`),
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
-/** Href unique des polices de la marque (contextes à un seul lien). */
+/**
+ * Href unique des polices de la marque (contextes à un seul lien).
+ *
+ * Un seul lien ne peut pas couvrir deux sources différentes : on privilégie
+ * alors la feuille de la police PRIMAIRE, celle qui porte les titres et donc
+ * l'identité de la marque.
+ */
 export function brandFontsHref(typography?: BrandTypographyLike | null, fallback?: string): string {
   if (isStylesheetHref(typography?.url)) return typography!.url!;
+  if (isStylesheetHref(typography?.primary?.cssUrl)) return typography!.primary!.cssUrl!;
+  if (isStylesheetHref(typography?.secondary?.cssUrl)) return typography!.secondary!.cssUrl!;
   return buildGoogleFontsHref([typography?.primaryFont, typography?.secondaryFont], fallback);
+}
+
+/**
+ * Bloc `<link>` des polices d'un système de document.
+ *
+ * Même règle que `brandFontLinks`, exprimée dans le vocabulaire du design
+ * system : une famille qui porte sa feuille est chargée depuis SA source, les
+ * autres restent demandées à Google par leur nom.
+ */
+export function designFontLinks(fonts: {
+  display?: string;
+  body?: string;
+  displayCss?: string;
+  bodyCss?: string;
+}): string {
+  return brandFontLinks({
+    primaryFont: fonts.display,
+    secondaryFont: fonts.body,
+    primary: fonts.displayCss ? { family: fonts.display, cssUrl: fonts.displayCss } : null,
+    secondary: fonts.bodyCss ? { family: fonts.body, cssUrl: fonts.bodyCss } : null,
+  });
+}
+
+/** Une URL de catalogue peut contenir `&` ou `"` : elle finit dans un attribut HTML. */
+function escapeHref(href: string): string {
+  return href.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 }

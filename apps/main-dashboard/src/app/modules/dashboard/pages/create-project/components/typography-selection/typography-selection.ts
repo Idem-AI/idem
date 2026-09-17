@@ -12,10 +12,11 @@ import {
   inject,
 } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
-import { TypographyModel } from '../../../../models/brand-identity.model';
+import { BrandFont, TypographyModel } from '../../../../models/brand-identity.model';
 import {
+  CatalogFont,
   FontCategory,
-  GoogleFont,
+  FontSourceId,
   TypographyService,
 } from '../../../../../../shared/services/typography.service';
 import { debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs/operators';
@@ -31,6 +32,8 @@ import { TypographyCustomCreatorComponent } from './typography-custom-creator/ty
 interface SearchRequest {
   readonly query: string;
   readonly category: FontCategory | null;
+  /** Fonderie demandée ; `null` = toutes. */
+  readonly source: FontSourceId | null;
 }
 
 @Component({
@@ -70,14 +73,21 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
   protected selectedTypographyId = signal<string | null>(null);
 
   // Custom Selection Signals
-  protected selectedPrimaryFont = signal('');
-  protected selectedSecondaryFont = signal('');
+  //
+  // On garde la POLICE entière, pas seulement son nom : sans sa source et sa
+  // feuille de style, une famille venue de Fontshare, de Fontsource ou du
+  // bucket de l'utilisateur serait redemandée à Google — donc jamais chargée.
+  protected selectedPrimary = signal<BrandFont | null>(null);
+  protected selectedSecondary = signal<BrandFont | null>(null);
+  protected selectedPrimaryFont = computed(() => this.selectedPrimary()?.family ?? '');
+  protected selectedSecondaryFont = computed(() => this.selectedSecondary()?.family ?? '');
 
   // Search Signals
-  protected searchResults = signal<GoogleFont[]>([]);
+  protected searchResults = signal<CatalogFont[]>([]);
   protected isSearching = signal(false);
   protected searchQuery = signal('');
   protected searchCategory = signal<FontCategory | null>(null);
+  protected searchSource = signal<FontSourceId | null>(null);
   protected previewText = signal('Your Brand Name');
 
   // Computed properties
@@ -88,7 +98,7 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
       return this.selectedTypographyId() !== null;
     }
     // For custom tab, we need both fonts selected
-    return this.selectedPrimaryFont().length > 0 && this.selectedSecondaryFont().length > 0;
+    return !!this.selectedPrimary() && !!this.selectedSecondary();
   });
 
   protected currentSelectedTypography = computed(() => {
@@ -101,13 +111,21 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
     }
 
     // For custom tab, return a live preview object
-    if (this.selectedPrimaryFont() || this.selectedSecondaryFont()) {
+    const primary = this.selectedPrimary();
+    const secondary = this.selectedSecondary();
+    if (primary || secondary) {
       return {
         id: 'custom-preview',
         name: 'Custom Selection',
-        primaryFont: this.selectedPrimaryFont() || 'Inter', // Fallback for preview
-        secondaryFont: this.selectedSecondaryFont() || 'Inter', // Fallback for preview
+        primaryFont: primary?.family || 'Inter', // Fallback for preview
+        secondaryFont: secondary?.family || 'Inter', // Fallback for preview
         description: 'Your custom font combination',
+        ...(primary ? { primary } : {}),
+        ...(secondary ? { secondary } : {}),
+        // La feuille de la police de titre : c'est elle qui portera la marque
+        // dans les livrables, et c'est ce qui part en base à la place du lien
+        // Google quand la police vient d'ailleurs.
+        url: primary?.cssUrl ?? secondary?.cssUrl,
       } as TypographyModel;
     }
 
@@ -116,14 +134,12 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
 
   constructor() {
     // Fetch every family shown in the list up-front so the cards and the preview
-    // render with the real typeface instead of the browser default.
+    // render with the real typeface instead of the browser default. Chaque
+    // police est chargée depuis SA source : l'IA en propose désormais qui ne
+    // sont pas chez Google.
     effect(() => {
-      const families = this.typographyModels().flatMap((typography) => [
-        typography.primaryFont,
-        typography.secondaryFont,
-      ]);
-      if (families.length > 0) {
-        void this.typographyService.loadGoogleFonts(families);
+      for (const typography of this.typographyModels()) {
+        void this.typographyService.loadTypography(typography);
       }
     });
   }
@@ -205,22 +221,44 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
 
   protected onSearchInput(query: string): void {
     this.searchQuery.set(query);
-    this.searchSubject.next({ query, category: this.searchCategory() });
+    this.searchSubject.next({
+      query,
+      category: this.searchCategory(),
+      source: this.searchSource(),
+    });
   }
 
   protected onCategoryChanged(category: FontCategory | null): void {
     this.searchCategory.set(category);
-    this.searchSubject.next({ query: this.searchQuery(), category });
+    this.searchSubject.next({ query: this.searchQuery(), category, source: this.searchSource() });
   }
 
-  protected selectFont(event: { font: GoogleFont; type: 'primary' | 'secondary' }): void {
+  protected onSourceChanged(source: FontSourceId | null): void {
+    this.searchSource.set(source);
+    this.searchSubject.next({
+      query: this.searchQuery(),
+      category: this.searchCategory(),
+      source,
+    });
+  }
+
+  protected selectFont(event: { font: CatalogFont; type: 'primary' | 'secondary' }): void {
     const { font, type } = event;
+    const brandFont: BrandFont = {
+      family: font.family,
+      source: font.source,
+      cssUrl: font.cssUrl,
+      category: font.category,
+      weights: font.weights,
+      ...(font.source === 'custom' ? { customFontId: font.sourceId } : {}),
+    };
+
     if (type === 'primary') {
-      this.selectedPrimaryFont.set(font.family);
+      this.selectedPrimary.set(brandFont);
     } else {
-      this.selectedSecondaryFont.set(font.family);
+      this.selectedSecondary.set(brandFont);
     }
-    void this.typographyService.loadGoogleFont(font.family);
+    void this.typographyService.loadFonts([brandFont]);
     this.notifySelectionChange();
   }
 
@@ -230,7 +268,24 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
       this.previewText.set(brandName);
     }
     this.initializeTypographies();
+    this.restoreCustomSelection();
     this.setupSearch();
+  }
+
+  /**
+   * Remet en place la paire déjà choisie dans l'onglet « Personnaliser ».
+   *
+   * Sans cela, l'utilisateur qui revient sur l'étape retrouve le panneau vide
+   * alors que son choix est bien enregistré — et depuis qu'il peut importer sa
+   * propre police, ce vide ressemble à un import perdu.
+   */
+  private restoreCustomSelection(): void {
+    const typography = this.project.analysisResultModel?.branding?.typography;
+    if (!typography?.primary && !typography?.secondary) return;
+
+    if (typography.primary) this.selectedPrimary.set(typography.primary);
+    if (typography.secondary) this.selectedSecondary.set(typography.secondary);
+    void this.typographyService.loadTypography(typography);
   }
 
   /**
@@ -242,7 +297,7 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
     if (this.catalogRequested) return;
     this.catalogRequested = true;
     this.isSearching.set(true);
-    this.searchSubject.next({ query: '', category: null });
+    this.searchSubject.next({ query: '', category: null, source: null });
   }
 
   ngOnDestroy(): void {
@@ -312,16 +367,18 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
         debounceTime(250),
         distinctUntilChanged(
           (previous, current) =>
-            previous.query === current.query && previous.category === current.category,
+            previous.query === current.query &&
+            previous.category === current.category &&
+            previous.source === current.source,
         ),
-        switchMap(({ query, category }) => {
+        switchMap(({ query, category, source }) => {
           // A single character matches almost everything: wait for a real term,
           // but keep browsing by category available with an empty query.
           if (query.trim().length === 1) {
             return of([]);
           }
           this.isSearching.set(true);
-          return this.typographyService.searchGoogleFonts(query, category);
+          return this.typographyService.searchFonts(query, category, source ? [source] : null);
         }),
         takeUntil(this.destroy$),
       )

@@ -24,12 +24,10 @@ export class TypographyCardComponent {
   protected readonly secondaryStack = computed(() => fontStack(this.typography().secondaryFont));
 
   constructor() {
+    // Chaque famille est chargée depuis sa propre source : l'agent en propose
+    // désormais qui ne sont pas chez Google.
     effect(() => {
-      const typography = this.typography();
-      void this.typographyService.loadGoogleFonts([
-        typography.primaryFont,
-        typography.secondaryFont,
-      ]);
+      void this.typographyService.loadTypography(this.typography());
     });
   }
 

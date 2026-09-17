@@ -73,16 +73,58 @@
       </div>
     </div>
 
-    <!-- Typography Search Component -->
-    <app-typography-search
-      class="flex-1 min-h-0 flex flex-col"
-      [searchResults]="searchResults()"
-      [isSearching]="isSearching()"
-      [selectedPrimaryFont]="selectedPrimaryFont()"
-      [selectedSecondaryFont]="selectedSecondaryFont()"
-      (searchInput)="onSearchInput($event)"
-      (categoryChanged)="onCategoryChanged($event)"
-      (fontSelected)="onFontSelected($event)"
-    ></app-typography-search>
+    <!-- Chercher une police, ou apporter la sienne -->
+    <div
+      class="flex gap-1 p-1 mb-3 rounded-lg bg-[var(--glass-bg-light)] border border-[var(--glass-border)] shrink-0"
+      role="group"
+    >
+      <button
+        type="button"
+        (click)="onPanelClick('catalog')"
+        [attr.aria-pressed]="panel() === 'catalog'"
+        class="flex-1 px-3 py-2 rounded-md text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+        [class]="
+          panel() === 'catalog'
+            ? 'bg-primary text-white'
+            : 'text-text-tertiary hover:text-text-primary'
+        "
+      >
+        {{ 'dashboard.typographySelection.custom.panels.catalog' | translate }}
+      </button>
+      <button
+        type="button"
+        (click)="onPanelClick('import')"
+        [attr.aria-pressed]="panel() === 'import'"
+        class="flex-1 px-3 py-2 rounded-md text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+        [class]="
+          panel() === 'import'
+            ? 'bg-primary text-white'
+            : 'text-text-tertiary hover:text-text-primary'
+        "
+      >
+        {{ 'dashboard.typographySelection.custom.panels.import' | translate }}
+      </button>
+    </div>
+
+    @if (panel() === 'catalog') {
+      <!-- Typography Search Component -->
+      <app-typography-search
+        class="flex-1 min-h-0 flex flex-col"
+        [searchResults]="searchResults()"
+        [isSearching]="isSearching()"
+        [selectedPrimaryFont]="selectedPrimaryFont()"
+        [selectedSecondaryFont]="selectedSecondaryFont()"
+        (searchInput)="onSearchInput($event)"
+        (categoryChanged)="onCategoryChanged($event)"
+        (sourceChanged)="onSourceChanged($event)"
+        (fontSelected)="onFontSelected($event)"
+      ></app-typography-search>
+    } @else {
+      <div class="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1">
+        <app-typography-font-import
+          (fontSelected)="onFontSelected($event)"
+        ></app-typography-font-import>
+      </div>
+    }
   </div>
 </div>

@@ -111,10 +111,13 @@
             <app-typography-custom-creator
               [selectedPrimaryFont]="selectedPrimaryFont()"
               [selectedSecondaryFont]="selectedSecondaryFont()"
+              [selectedPrimaryCategory]="selectedPrimary()?.category"
+              [selectedSecondaryCategory]="selectedSecondary()?.category"
               [searchResults]="searchResults()"
               [isSearching]="isSearching()"
               (searchInput)="onSearchInput($event)"
               (categoryChanged)="onCategoryChanged($event)"
+              (sourceChanged)="onSourceChanged($event)"
               (fontSelected)="selectFont($event)"
             ></app-typography-custom-creator>
           }

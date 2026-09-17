@@ -57,7 +57,16 @@ export interface DocumentDesignSystem {
   };
   /** Contrastes réellement obtenus, pour journalisation et vérification. */
   contrast: { inkOnSurface: number; mutedOnSurface: number; inkOnAccent: number };
-  fonts: { display: string; body: string };
+  /**
+   * Les deux familles de la marque, et LA FEUILLE qui les charge.
+   *
+   * `display`/`body` ne sont que des noms : ils suffisaient tant que toute
+   * police venait de Google, où l'URL se déduit du nom. Une famille Fontshare,
+   * Fontsource ou importée par l'utilisateur n'est adressable que par sa
+   * feuille — sans elle, le document sort en police système sans la moindre
+   * erreur.
+   */
+  fonts: { display: string; body: string; displayCss?: string; bodyCss?: string };
   /** Échelle typographique en px, dérivée du ratio du style. */
   typeScale: Record<'xs' | 'sm' | 'base' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl', number>;
   /** Rayon en px, le même partout dans le livrable. */
@@ -168,7 +177,13 @@ export interface BrandCharter {
       text?: string;
     };
   };
-  typography?: { primaryFont?: string; secondaryFont?: string };
+  typography?: {
+    primaryFont?: string;
+    secondaryFont?: string;
+    /** Descripteurs de source, cf. `BrandFontModel` : porteurs de la feuille. */
+    primary?: { family?: string; source?: string; cssUrl?: string } | null;
+    secondary?: { family?: string; source?: string; cssUrl?: string } | null;
+  };
 }
 
 /**
@@ -257,6 +272,8 @@ export function buildDocumentDesignSystem(
     fonts: {
       display: charter?.typography?.primaryFont?.trim() || 'Georgia',
       body: charter?.typography?.secondaryFont?.trim() || 'Helvetica Neue',
+      displayCss: charter?.typography?.primary?.cssUrl,
+      bodyCss: charter?.typography?.secondary?.cssUrl,
     },
     // Jamais sous 1.25 : une échelle plate donne une page qui paraît inachevée.
     typeScale: buildTypeScale(Math.max(1.25, style.typeRatio)),

@@ -60,6 +60,29 @@
     }
   </div>
 
+  <!-- Source Filters — les fonderies, pour ne pas rester enfermé dans Google -->
+  <div
+    class="flex flex-wrap gap-2 shrink-0"
+    role="group"
+    [attr.aria-label]="'dashboard.typographySelection.sources.label' | translate"
+  >
+    @for (source of sources; track source.id) {
+      <button
+        type="button"
+        (click)="onSourceClick(source.id)"
+        [attr.aria-pressed]="activeSource() === source.id"
+        class="px-3 py-1.5 text-xs font-medium rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-[var(--color-surface-1)]"
+        [class]="
+          activeSource() === source.id
+            ? 'bg-[var(--color-surface-3)] text-text-primary border-primary'
+            : 'bg-transparent text-text-tertiary border-[var(--glass-border)] hover:text-text-primary hover:border-[var(--glass-border-medium)]'
+        "
+      >
+        {{ source.labelKey | translate }}
+      </button>
+    }
+  </div>
+
   <!-- Search Results -->
   @if (isSearching()) {
     <div class="flex items-center justify-center py-8" role="status" aria-live="polite">
@@ -84,14 +107,18 @@
             <div class="text-text-primary text-base leading-snug truncate" [style.fontFamily]="stackFor(font)">
               {{ font.family }}
             </div>
-            <div class="text-text-tertiary text-xs mt-0.5">
-              {{ categoryLabelKey(font) | translate }}
-              @if (font.weights?.length) {
-                ·
-                {{
+            <div class="text-text-tertiary text-xs mt-0.5 flex items-center gap-1.5 flex-wrap">
+              <span
+                class="px-1.5 py-0.5 rounded border border-[var(--glass-border)] text-[10px] uppercase tracking-wide"
+                >{{ sourceLabelKey(font) | translate }}</span
+              >
+              <span>{{ categoryLabelKey(font) | translate }}</span>
+              @if (font.weights.length) {
+                <span>·</span>
+                <span>{{
                   'dashboard.typographySelection.weightsCount'
-                    | translate: { count: font.weights?.length }
-                }}
+                    | translate: { count: font.weights.length }
+                }}</span>
               }
             </div>
           </div>
