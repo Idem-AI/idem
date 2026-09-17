@@ -27,16 +27,21 @@ import {
   annualPriceXaf,
 } from '../models/billing.model';
 import {
-  SUPPORTED_COUNTRIES,
   buildCustomerMessage,
-  localAnnualPrice,
-  localPrice,
   explainFailure,
   formatAmountForPawapay,
   maskPhone,
   normalizePhone,
   POLL_SCHEDULE_MS,
 } from '../models/payment.model';
+import { loadPricingDefaults } from '../config/pricing.loader';
+import {
+  annualPrice,
+  applyOverrides,
+  priceInCountry,
+  pricingWarnings,
+  usesCatalogPrice,
+} from '../../../../packages/shared-models/src/pricing/pricing';
 
 let failures = 0;
 
@@ -287,68 +292,142 @@ for (const [bundleCode, parts] of Object.entries(BUNDLE_COMPOSITION)) {
 }
 
 // ============================================
+section('Fichier de tarification');
+// ============================================
+
+/**
+ * Le fichier `pricing.config.json` est la tarification par défaut : l'API le
+ * relit à chaud, le dashboard l'embarque comme valeurs de secours. Il doit
+ * donc rester d'accord avec le catalogue du code (mêmes produits) et avec le
+ * modèle économique (mêmes prix en zone CFA).
+ */
+const pricing = loadPricingDefaults();
+
+const missingInFile = DEFAULT_PRODUCTS.filter((product) => !pricing.products[product.code]);
+check(
+  'Chaque produit du catalogue a son entrée dans le fichier',
+  missingInFile.length === 0,
+  missingInFile.map((product) => product.code).join(', ')
+);
+
+const unknownInFile = Object.keys(pricing.products).filter((code) => !byCode.has(code));
+check('Le fichier ne tarifie aucun produit inconnu du code', unknownInFile.length === 0, unknownInFile.join(', '));
+
+const driftingPrices = Object.entries(EXPECTED_PRICES).filter(
+  ([code, price]) => pricing.products[code] && pricing.products[code].priceXaf !== price
+);
+check(
+  'Prix CFA du fichier = prix du modèle économique',
+  driftingPrices.length === 0,
+  driftingPrices.map(([code, price]) => `${code} ${pricing.products[code].priceXaf} ≠ ${price}`).join(', ')
+);
+
+check(
+  'Remise annuelle : 2 mois sur 12',
+  Math.abs(pricing.annualDiscountRate - 2 / 12) < 0.001,
+  String(pricing.annualDiscountRate)
+);
+
+// ============================================
 section('Pays et devises');
 // ============================================
 
-for (const country of SUPPORTED_COUNTRIES) {
-  check(`${country.code} : indicatif numérique`, /^\d{3}$/.test(country.prefix));
+const countries = Object.entries(pricing.countries);
+
+for (const [code, country] of countries) {
+  check(`${code} : indicatif numérique`, /^\d{3}$/.test(country.prefix));
 }
 
-const francZone = SUPPORTED_COUNTRIES.filter(
-  (country) => country.currency === 'XAF' || country.currency === 'XOF'
+const francZone = countries.filter(
+  ([, country]) => country.currency === 'XAF' || country.currency === 'XOF'
 );
 check('La zone franc compte 7 pays', francZone.length === 7);
 check(
   'La zone franc applique le prix catalogue tel quel',
-  francZone.every((country) => country.prices === undefined)
+  francZone.every(([, country]) => usesCatalogPrice(country))
 );
 
-check('Le F CFA n’a pas de décimales au Cameroun', SUPPORTED_COUNTRIES[0].decimals === 0);
+check('Le F CFA n’a pas de décimales au Cameroun', pricing.countries.CMR.decimals === 0);
 
 /**
- * Hors zone franc, chaque pays a SA grille. Trois garanties :
+ * Hors zone franc, chaque pays a SA grille. Deux garanties :
  *
- *  - elle couvre **tous** les prix du catalogue : un produit sans prix local
- *    retomberait sur une estimation, ce qui n'est pas une tarification ;
- *  - elle ne redescend jamais : un Cabinet ne peut pas coûter moins qu'un
- *    Essentiel, quel que soit le pays ;
- *  - les prix de référence sont ceux arbitrés au modèle économique, au
- *    franc près — le produit ne doit pas diverger de sa documentation.
+ *  - elle couvre **tous** les produits payants : un produit sans prix local
+ *    est un produit qu'on refuse de vendre dans ce pays ;
+ *  - elle ne s'inverse pas : un Cabinet ne peut pas coûter moins qu'un
+ *    Essentiel, quel que soit le pays.
+ *
+ * L'écart avec la zone CFA (en dollars) est un avertissement dans le panel,
+ * pas un refus : il est vérifié ici seulement sur la configuration livrée.
  */
-const catalogPricePoints = [
-  ...new Set([...byCode.values()].map((product) => product.priceXaf).filter((price) => price > 0)),
-].sort((a, b) => a - b);
+const warnings = pricingWarnings(pricing);
 
-for (const country of SUPPORTED_COUNTRIES.filter((entry) => entry.prices)) {
-  const grid = country.prices!;
-  const missing = catalogPricePoints.filter((price) => grid[price] === undefined);
-  check(
-    `${country.code} : grille complète (${catalogPricePoints.length} paliers)`,
-    missing.length === 0
-  );
+for (const [code, country] of countries.filter(([, entry]) => !usesCatalogPrice(entry))) {
+  const own = warnings.filter((warning) => warning.country === code);
+  const missing = own.filter((warning) => warning.kind === 'missing');
+  const inverted = own.filter((warning) => warning.kind === 'order');
+  const spread = own.filter((warning) => warning.kind.startsWith('spread'));
 
-  const values = catalogPricePoints.map((price) => grid[price]);
-  check(
-    `${country.code} : grille jamais décroissante`,
-    values.every((value, index) => index === 0 || value >= values[index - 1])
-  );
+  check(`${code} : grille complète en ${country.currency}`, missing.length === 0, missing.map((w) => w.productCode).join(', '));
+  check(`${code} : grille jamais inversée`, inverted.length === 0, inverted.map((w) => w.message).join(' | '));
+  check(`${code} : entre 55 et 100 % du prix CFA`, spread.length === 0, spread.map((w) => w.message).join(' | '));
 }
 
-const countryByCode = (code: string) =>
-  SUPPORTED_COUNTRIES.find((country) => country.code === code)!;
+const local = (productCode: string, countryCode: string, idem = false) =>
+  priceInCountry(pricing, productCode, countryCode, { idem })?.amount;
 
-check('Zone franc : 2 999 F restent 2 999 F', localPrice(2999, countryByCode('CMR')) === 2999);
-check('Kenya : offre de référence à 650 KES', localPrice(2999, countryByCode('KEN')) === 650);
-check('Rwanda : offre de référence à 6 500 RWF', localPrice(2999, countryByCode('RWA')) === 6500);
-check('Ouganda : offre de référence à 15 000 UGX', localPrice(2999, countryByCode('UGA')) === 15000);
-check('Nigeria : offre de référence à 4 900 NGN', localPrice(2999, countryByCode('NGA')) === 4900);
-check('Malawi : offre de référence à 6 000 MWK', localPrice(2999, countryByCode('MWI')) === 6000);
+check('Zone franc : 2 999 F restent 2 999 F', local('business-essential', 'CMR') === 2999);
+check('Sénégal : même prix qu’au Cameroun', local('business-essential', 'SEN') === 2999);
+check('Kenya : offre de référence à 650 KES', local('business-essential', 'KEN') === 650);
+check('Rwanda : offre de référence à 6 500 RWF', local('business-essential', 'RWA') === 6500);
+check('Ouganda : offre de référence à 15 000 UGX', local('business-essential', 'UGA') === 15000);
+check('Nigeria : offre de référence à 4 900 NGN', local('business-essential', 'NGA') === 4900);
+check('Malawi : offre de référence à 6 000 MWK', local('business-essential', 'MWI') === 6000);
+check('Pays inconnu : pas de prix plutôt qu’un prix inventé', local('business-essential', 'FRA') === undefined);
+check('Produit inconnu : pas de prix', local('nope', 'CMR') === undefined);
+check('Prix projet IDEM en zone franc', local('sim-essential', 'CMR', true) === 1999);
 
-const kenyaAnnual = localAnnualPrice(localPrice(2999, countryByCode('KEN')), countryByCode('KEN'));
+const kenyaAnnual = annualPrice(650, pricing, false);
 check(
   'Annuel local : entre 9 et 12 mois du mensuel local',
-  kenyaAnnual >= 650 * 9 && kenyaAnnual <= 650 * 12
+  kenyaAnnual >= 650 * 9 && kenyaAnnual <= 650 * 12,
+  String(kenyaAnnual)
 );
+/**
+ * L'annuel affiché par le dashboard (calculé depuis le fichier) et l'annuel
+ * encaissé par l'API (calculé par `annualPriceXaf`) doivent tomber au franc
+ * près. Un taux arrondi dans le fichier suffit à les séparer d'un franc — et
+ * c'est le client qui le découvre, au paiement.
+ */
+const annualDrift = [2999, 6999, 9999, 19999, 29999].filter(
+  (monthly) => annualPrice(monthly, pricing, true) !== annualPriceXaf(monthly)
+);
+check(
+  'Annuel : le fichier et le code tombent au franc près',
+  annualDrift.length === 0,
+  annualDrift.map((monthly) => `${monthly} → ${annualPrice(monthly, pricing, true)} ≠ ${annualPriceXaf(monthly)}`).join(', ')
+);
+check('Annuel : 10 mois payés sur 12', annualPriceXaf(2999) === Math.round(2999 * 10));
+
+// ============================================
+section('Surcharges de prix');
+// ============================================
+
+const overridden = applyOverrides(pricing, [
+  { country: null, productCode: 'business-essential', field: 'price', value: 3499 },
+  { country: 'KEN', productCode: 'business-essential', field: 'price', value: 700 },
+  // Refusée : la zone franc ne s'édite pas pays par pays.
+  { country: 'SEN', productCode: 'business-essential', field: 'price', value: 1 },
+  // Ignorées : produit inconnu, montant négatif.
+  { country: null, productCode: 'nope', field: 'price', value: 10 },
+  { country: 'KEN', productCode: 'business-growth', field: 'price', value: -5 },
+]);
+
+check('Surcharge catalogue : appliquée à toute la zone franc', priceInCountry(overridden, 'business-essential', 'SEN')?.amount === 3499);
+check('Surcharge pays : appliquée au pays seul', priceInCountry(overridden, 'business-essential', 'KEN')?.amount === 700);
+check('Surcharge pays : le reste de la grille intact', priceInCountry(overridden, 'business-growth', 'KEN')?.amount === pricing.countries.KEN.prices!['business-growth']);
+check('Zone franc : une surcharge par pays est ignorée', !overridden.countries.SEN.prices);
+check('Les valeurs par défaut ne sont jamais modifiées', pricing.products['business-essential'].priceXaf === 2999);
 
 // ============================================
 section('Format des montants');
@@ -395,7 +474,7 @@ check(
 section('Numéros de téléphone');
 // ============================================
 
-const cameroon = SUPPORTED_COUNTRIES[0];
+const cameroon = { code: 'CMR', ...pricing.countries.CMR };
 check(
   'Saisie locale « 06 51 23 45 67 » → indicatif ajouté',
   normalizePhone('06 51 23 45 67', cameroon) === '237651234567',

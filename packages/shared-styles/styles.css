@@ -1724,8 +1724,8 @@ meter::-webkit-meter-even-less-good-value {
   animation: lds-heart 1.2s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
 }
 
-/* Brand logo replacement on light theme */
-html.light img[src*='logo_white'] {
-  content: url('/assets/icons/idem-logo.png') !important;
-  filter: none !important;
-}
+/* Pas de substitution du logo en thème clair : chaque app fournit les deux
+   variantes de marque (`logo_white.png` sur fond clair, `logo_dark.png` sur
+   fond sombre) et choisit explicitement laquelle afficher. L'ancienne règle
+   remplaçait toute image nommée `logo_white` par `idem-logo.png`, un fichier
+   qui n'existe plus dans la plupart des apps — le logo cassait en clair. */

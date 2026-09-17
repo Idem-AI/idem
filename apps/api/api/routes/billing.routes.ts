@@ -87,6 +87,10 @@ router.get('/payment-methods', authenticate, (req: Request, res: Response) =>
   billingController.getPaymentMethods(req as any, res)
 );
 
+// Tarification effective, publique : les prix ne sont pas un secret, et la page
+// d'offres doit pouvoir les afficher avant toute connexion.
+router.get('/pricing', (req: Request, res: Response) => billingController.getPricing(req, res));
+
 /**
  * @openapi
  * /billing/predict-provider:
@@ -335,6 +339,23 @@ router.get('/internal/sync-jobs', verifyApiKey, (req: Request, res: Response) =>
 
 router.post('/internal/sync-jobs/:jobId/retry', verifyApiKey, (req: Request, res: Response) =>
   billingController.internalSyncJobRetry(req, res)
+);
+
+// --- Tarification ------------------------------------------------------------
+//
+// Le panel lit les valeurs par défaut du fichier, les surcharges et les
+// anomalies ; il écrit des surcharges, jamais le fichier.
+
+router.get('/internal/pricing', verifyApiKey, (req: Request, res: Response) =>
+  billingController.internalGetPricing(req, res)
+);
+
+router.put('/internal/pricing', verifyApiKey, (req: Request, res: Response) =>
+  billingController.internalUpdatePricing(req, res)
+);
+
+router.get('/internal/pricing/history', verifyApiKey, (req: Request, res: Response) =>
+  billingController.internalPricingHistory(req, res)
 );
 
 export { router as billingRoutes };

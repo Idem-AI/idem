@@ -4236,6 +4236,7 @@
       "monthly": "Monthly",
       "yearly": "Yearly",
       "yearlyHint": "2 months free",
+      "indicativePrices": "Prices shown without a connection to the billing service: they may have changed. The exact amount appears at payment time.",
       "perMonth": "/month",
       "perYear": "/year",
       "oneTime": "one-off",

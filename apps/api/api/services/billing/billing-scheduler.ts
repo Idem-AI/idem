@@ -5,6 +5,7 @@ import { paymentReconcilerService } from '../payments/payment-reconciler.service
 import { betaService } from './beta.service';
 import { creditLedgerService } from './credit-ledger.service';
 import { ideploySyncService } from './ideploy-sync.service';
+import { pricingService } from './pricing.service';
 import { subscriptionRenewalService } from './subscription-renewal.service';
 
 /**
@@ -130,6 +131,15 @@ export const BILLING_JOBS: ScheduledJob[] = [
     intervalMs: 60_000,
     lockTtlMs: 55_000,
     run: () => ideploySyncService.run(),
+  },
+  {
+    // Un prix modifié dans le fichier de tarification doit atteindre les
+    // produits sans redémarrage. N'écrit que ce qui diffère : gratuit quand
+    // rien n'a changé.
+    name: 'pricing-sync',
+    intervalMs: 60_000,
+    lockTtlMs: 55_000,
+    run: () => pricingService.materialize(),
   },
 ];
 
