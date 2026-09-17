@@ -3,6 +3,7 @@ import {
   Component,
   DestroyRef,
   inject,
+  input,
   OnInit,
   output,
   signal,
@@ -16,6 +17,7 @@ import {
   TypographyService,
   fontStack,
 } from '../../../../../../../shared/services/typography.service';
+import { FontSlot } from '../typography-pair-bar/typography-pair-bar';
 
 /**
  * Import des polices de l'utilisateur.
@@ -43,7 +45,12 @@ export class TypographyFontImportComponent implements OnInit {
   private readonly typographyService = inject(TypographyService);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly fontSelected = output<{ font: CatalogFont; type: 'primary' | 'secondary' }>();
+  readonly slot = input<FontSlot>('primary');
+  readonly brandName = input('');
+  readonly currentFamily = input('');
+
+  readonly fontSelected = output<CatalogFont>();
+  readonly back = output<void>();
 
   protected readonly accept = ACCEPTED_EXTENSIONS.join(',');
 
@@ -134,11 +141,28 @@ export class TypographyFontImportComponent implements OnInit {
       });
   }
 
-  protected use(font: CustomFont, type: 'primary' | 'secondary'): void {
-    this.fontSelected.emit({ font: toCatalogFont(font), type });
+  /** Clic sur la police : elle remplace celle de l'emplacement en cours. */
+  protected use(font: CustomFont): void {
+    this.fontSelected.emit(toCatalogFont(font));
   }
 
-  protected remove(font: CustomFont): void {
+  /** Le nom du projet fait un bien meilleur spécimen qu'un texte inventé. */
+  protected sample(): string {
+    return this.brandName().trim() || 'Votre marque';
+  }
+
+  protected titleKey(): string {
+    return this.slot() === 'primary'
+      ? 'dashboard.typographySelection.picker.titleHeadings'
+      : 'dashboard.typographySelection.picker.titleBody';
+  }
+
+  protected isCurrent(font: CustomFont): boolean {
+    return this.currentFamily() === font.family;
+  }
+
+  protected remove(event: Event, font: CustomFont): void {
+    event.stopPropagation();
     this.typographyService
       .deleteCustomFont(font.id)
       .pipe(takeUntilDestroyed(this.destroyRef))

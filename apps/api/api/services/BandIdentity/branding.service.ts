@@ -115,10 +115,11 @@ import {
 } from './lockup/logoLockup.service';
 import { COLORS_GENERATION_PROMPT } from './prompts/singleGenerations/colors-generation.prompt';
 import { enforceLightSurfaceOnPalettes } from '../design/lightSurface';
+import { ensureDistinctRolesOnPalettes } from '../design/paletteRoles';
 import { TYPOGRAPHY_GENERATION_PROMPT } from './prompts/singleGenerations/typography-generation.prompt';
 import { fontCatalogService } from '../font-catalog.service';
 import {
-  COLORS_FROM_LOGO_PROMPT,
+  buildColorsFromLogoPrompt,
   TYPOGRAPHY_FROM_LOGO_PROMPT,
 } from './prompts/singleGenerations/colors-from-logo.prompt';
 import {
@@ -1838,8 +1839,9 @@ export class BrandingService extends GenericService {
           }
           // Le fond clair est GARANTI ici, pas espéré du prompt : un seul fond
           // sombre qui passe fait basculer la charte, les livrables et le site
-          // généré en thème sombre d'un bout à l'autre.
-          return enforceLightSurfaceOnPalettes(colors);
+          // généré en thème sombre d'un bout à l'autre. Même doctrine pour la
+          // distinction des rôles.
+          return ensureDistinctRolesOnPalettes(enforceLightSurfaceOnPalettes(colors));
         },
         hasDependencies: false,
       },
@@ -5366,20 +5368,16 @@ ${description.slice(0, 3000)}`,
     // Ça garantit un prompt fiable même si le payload est réduit à l'id.
     const projectDescription = this.extractProjectDescription(createdProject);
 
-    // Determine primary, secondary colors and style hint from logo colors
-    const primaryColor = logoColors.length > 0 ? logoColors[0] : '#6a11cb';
-    const secondaryColor = logoColors.length > 1 ? logoColors[1] : primaryColor;
-    const logoColorsStr = logoColors.length > 0 ? logoColors.join(', ') : primaryColor;
+    // Le prompt distingue lui-même le logo monochrome du logo multicolore :
+    // recopier la primaire dans la secondaire, comme ici auparavant, revenait à
+    // demander au modèle une palette dont deux rôles sur cinq sont la même
+    // couleur. Voir `buildColorsFromLogoPrompt`.
+    const logoColorsStr = logoColors.length > 0 ? logoColors.join(', ') : '#6a11cb';
     const styleHint = this.inferStyleFromColors(logoColors);
 
-    // Build color prompt with logo colors injected (replace all occurrences)
-    const colorPrompt =
-      projectDescription +
-      '\n\n' +
-      COLORS_FROM_LOGO_PROMPT.replace(/\{\{LOGO_COLORS\}\}/g, logoColorsStr)
-        .replace(/\{\{PROJECT_DESCRIPTION\}\}/g, projectDescription)
-        .replace(/\{\{PRIMARY_FROM_LOGO\}\}/g, primaryColor)
-        .replace(/\{\{SECONDARY_FROM_LOGO\}\}/g, secondaryColor);
+    // Le constructeur porte déjà la description dans <logo_context> : la
+    // préfixer en plus la faisait figurer deux fois dans le même prompt.
+    const colorPrompt = buildColorsFromLogoPrompt({ projectDescription, logoColors });
 
     // Build typography prompt with logo context
     const typographyPrompt =
@@ -5566,7 +5564,11 @@ ${description.slice(0, 3000)}`,
             if (!Array.isArray(parsedColors.colors) || parsedColors.colors.length === 0) {
               throw new Error('Response JSON has no non-empty "colors" array');
             }
-            return enforceLightSurfaceOnPalettes(parsedColors.colors);
+            // Fond clair ET rôles distincts : les deux sont garantis par le
+            // code, le prompt ne fait que les demander.
+            return ensureDistinctRolesOnPalettes(
+              enforceLightSurfaceOnPalettes(parsedColors.colors)
+            );
           } catch (error) {
             logger.error(`Error parsing logo-based colors:`, error);
             throw new Error(`Failed to parse logo-based colors`);

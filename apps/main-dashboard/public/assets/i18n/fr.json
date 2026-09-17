@@ -899,8 +899,8 @@
       }
     },
     "typographySelection": {
-      "title": "Sélection de la typographie",
-      "subtitle": "Choisissez la typographie parfaite qui reflète la personnalité de votre marque et améliore la lisibilité.",
+      "title": "Quelle allure pour votre marque ?",
+      "subtitle": "Cliquez sur celle qui vous parle. Vous pourrez changer chaque police ensuite.",
       "error": {
         "title": "Typographie non disponible",
         "description": "Aucune option de typographie disponible. Veuillez revenir à l'étape de sélection des couleurs.",
@@ -922,11 +922,6 @@
       "popular": {
         "title": "Collections de typographie populaires",
         "subtitle": "Combinaisons de typographie sélectionnées et aimées par les designers du monde entier."
-      },
-      "tabs": {
-        "generated": "Généré par l'IA",
-        "popular": "Collections populaires",
-        "custom": "Mélange personnalisé"
       },
       "preview": {
         "brandName": "Le nom de votre marque",
@@ -959,7 +954,8 @@
           "title": "Aucune typographie générée",
           "description": "Nous n'avons pas pu générer d'options de typographie pour votre projet. Cliquez sur régénérer pour réessayer avec des paramètres différents."
         },
-        "regenerate": "Régénérer"
+        "regenerate": "Régénérer",
+        "hint": "Une suggestion pose les deux polices d’un coup."
       },
       "actions": {
         "back": "Retour",
@@ -970,7 +966,7 @@
       "searching": "Recherche de polices...",
       "noResults": "Aucune police trouvée pour votre recherche",
       "searchHint": "Commencez à taper pour chercher dans Google Fonts, Fontshare et Fontsource",
-      "selectToPreview": "Sélectionnez les polices pour prévisualiser votre mélange de typographie personnalisé",
+      "selectToPreview": "Choisissez une police pour voir la marque prendre forme.",
       "custom": {
         "title": "Vos mélanges personnalisés",
         "createNew": "Créer un nouveau mélange",
@@ -982,11 +978,7 @@
         "secondaryFont": "POLICE SECONDAIRE",
         "notSelected": "Non sélectionné",
         "addButton": "Ajouter un mélange personnalisé",
-        "searchIntro": "Cherchez dans plusieurs fonderies libres, ou importez votre propre police, puis assignez-la :",
-        "panels": {
-          "catalog": "Catalogues",
-          "import": "Importer ma police"
-        }
+        "searchIntro": "Cherchez dans plusieurs fonderies libres, ou importez votre propre police, puis assignez-la :"
       },
       "clearSearch": "Effacer la recherche",
       "resultsCount": "{{count}} polices",
@@ -1019,13 +1011,41 @@
         "upload": "Importer la police",
         "uploading": "Import en cours…",
         "removeFile": "Retirer le fichier",
-        "libraryTitle": "VOS POLICES IMPORTÉES",
+        "libraryTitle": "Vos polices",
         "delete": "Supprimer la police",
         "errors": {
           "format": "Format non pris en charge : seuls les fichiers WOFF2, WOFF, TTF et OTF sont acceptés.",
           "upload": "L'import a échoué.",
           "delete": "La suppression a échoué."
-        }
+        },
+        "title": "Importer ma police"
+      },
+      "roles": {
+        "headings": "Titres",
+        "body": "Texte"
+      },
+      "pair": {
+        "empty": "Aucune police choisie",
+        "change": "Changer",
+        "choose": "Choisir"
+      },
+      "gallery": {
+        "hint": "Un clic choisit les deux polices.",
+        "chosen": "Choisie"
+      },
+      "picker": {
+        "titleHeadings": "Police des titres",
+        "titleBody": "Police du texte",
+        "back": "Revenir aux allures",
+        "importCta": "Importer la mienne"
+      },
+      "categoryHints": {
+        "all": "Toutes les familles",
+        "sansSerif": "Net et moderne",
+        "serif": "Classique et sérieux",
+        "display": "Fort et expressif",
+        "handwriting": "Chaleureuse, écrite à la main",
+        "monospace": "Technique, à chasse fixe"
       }
     },
     "createProject": {
