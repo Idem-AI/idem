@@ -1353,9 +1353,13 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       );
     }
 
+    // `min-h-0` : un élément flex a `min-height: auto` par défaut, donc il
+    // refuse de descendre sous la hauteur de son contenu — `overflow-y-auto`
+    // ne déclenche alors jamais, le bloc pousse le conteneur et la
+    // conversation devient inatteignable au lieu de défiler.
     return (
       <div
-        className="flex-1 overflow-y-auto px-1 py-2 message-container [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        className="flex-1 min-h-0 overflow-y-auto px-1 py-2 message-container [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         onScroll={handleScroll} // add scroll event listener
       >
         {/* Project Generation Workspace Header */}
@@ -1554,7 +1558,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
   return (
     <div
-      className="flex h-full flex-col dark:bg-surface-1 max-w-full"
+      className="flex h-full min-h-0 flex-col dark:bg-surface-1 max-w-full"
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >

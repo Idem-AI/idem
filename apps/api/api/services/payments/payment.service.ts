@@ -16,7 +16,8 @@ import {
   PaymentStatus,
   PaymentTransactionModel,
   buildCustomerMessage,
-  convertFromXaf,
+  localAnnualPrice,
+  localPrice,
   explainFailure,
   formatAmountForPawapay,
   getCountry,
@@ -38,6 +39,7 @@ import { ideploySyncService } from '../billing/ideploy-sync.service';
 import { transactionalEmailService } from '../email/email.service';
 import { firstNameOf } from '../email/email-layout';
 import { paymentFailed, paymentReceipt } from '../email/templates';
+import { paymentCountriesService } from './payment-countries.service';
 import { paymentEventsService } from './payment-events.service';
 import {
   ActiveConfOperationType,
@@ -153,11 +155,21 @@ export class PaymentService {
       );
     }
 
+    // Savoir tarifer un pays ne suffit pas : encore faut-il que le compte
+    // pawaPay y soit provisionné. L'écran ne propose que des pays encaissables,
+    // mais une liste d'interface n'est pas une garantie — la requête peut venir
+    // d'ailleurs, ou d'un onglet resté ouvert après un changement de compte.
+    if (!(await paymentCountriesService.isAvailable(country.code))) {
+      throw new PaymentRefusedError(
+        'country_not_supported',
+        'Le paiement n’est pas encore ouvert dans ce pays.',
+        400
+      );
+    }
+
     const interval = input.interval ?? (product.interval === 'one_time' ? 'one_time' : product.interval);
-    const amountXaf =
-      interval === 'year' && product.interval === 'month'
-        ? annualPriceXaf(product.priceXaf)
-        : product.priceXaf;
+    const isAnnual = interval === 'year' && product.interval === 'month';
+    const amountXaf = isAnnual ? annualPriceXaf(product.priceXaf) : product.priceXaf;
 
     if (amountXaf <= 0) {
       throw new PaymentRefusedError(
@@ -167,10 +179,19 @@ export class PaymentService {
       );
     }
 
+    // Le prix se lit dans la grille du pays : il a été fixé pour ce marché, il
+    // n'est pas converti depuis le franc CFA. L'annuel applique ensuite la même
+    // remise au prix LOCAL mensuel — un annuel calculé en F CFA puis converti
+    // tomberait hors de la grille.
+    const monthlyLocal = localPrice(product.priceXaf, country);
+    const amount = isAnnual ? localAnnualPrice(monthlyLocal, country) : monthlyLocal;
+
     return {
       product,
+      // La référence F CFA reste portée par la facture : c'est la base du
+      // reporting consolidé, quel que soit le pays d'encaissement.
       amountXaf,
-      amount: convertFromXaf(amountXaf, country.currency),
+      amount,
       currency: country.currency,
       country: country.code,
       label: product.name,

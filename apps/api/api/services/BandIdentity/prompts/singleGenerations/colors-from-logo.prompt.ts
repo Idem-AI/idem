@@ -16,9 +16,9 @@ PROJECT DESCRIPTION: {{PROJECT_DESCRIPTION}}
 </accent_construction>
 
 <background_and_text>
-- Light background (at least 2 palettes): near-white tinted 2-4% with primary hue.
-- Dark background (max 1 palette): near-black #0B1220 - #16161D. Locked colors must be visible on it (≥ 3:1 contrast).
-- Text: ≥ 7:1 contrast on background. Near-black on light backgrounds, light gray on dark.
+- Background: ALWAYS LIGHT, in all 3 palettes — near-white tinted 2-4% with the primary hue, HSL lightness ≥ 94%. Never a dark, black or mid-tone ground: these palettes drive printed deliverables and generated websites, which are light-surface by policy.
+- The locked colors must read on that light ground (≥ 3:1 contrast). If the logo's primary is too pale to hold up, raise the ACCENT's saturation — never darken the background.
+- Text: near-black with a primary undertone, ≥ 7:1 contrast on the background.
 </background_and_text>
 
 <output_format>

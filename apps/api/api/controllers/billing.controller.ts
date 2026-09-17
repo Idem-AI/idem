@@ -3,7 +3,6 @@ import logger from '../config/logger';
 import { CustomRequest } from '../interfaces/express.interface';
 import {
   DEFAULT_COUNTRY,
-  SUPPORTED_COUNTRIES,
   explainFailure,
   getCountry,
   normalizePhone,
@@ -18,6 +17,7 @@ import { billingSettingsService } from '../services/billing/billing-settings.ser
 import { creditLedgerService } from '../services/billing/credit-ledger.service';
 import { entitlementsService } from '../services/billing/entitlements.service';
 import { ideploySyncService } from '../services/billing/ideploy-sync.service';
+import { paymentCountriesService } from '../services/payments/payment-countries.service';
 import { paymentEventsService } from '../services/payments/payment-events.service';
 import { paymentReconcilerService } from '../services/payments/payment-reconciler.service';
 import { PaymentRefusedError, paymentService } from '../services/payments/payment.service';
@@ -97,7 +97,10 @@ export class BillingController {
 
       res.json({
         currency: 'XAF',
-        countries: SUPPORTED_COUNTRIES,
+        // Seulement les pays où l'on peut réellement encaisser : tarifés ici
+        // ET provisionnés sur le compte pawaPay. Proposer un pays qui échoue au
+        // moment de payer est la pire façon de l'apprendre.
+        countries: await paymentCountriesService.available(),
         products,
       });
     } catch (error) {

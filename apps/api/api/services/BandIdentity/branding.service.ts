@@ -109,6 +109,7 @@ import {
   pickWordmarkColor,
 } from './lockup/logoLockup.service';
 import { COLORS_GENERATION_PROMPT } from './prompts/singleGenerations/colors-generation.prompt';
+import { enforceLightSurfaceOnPalettes } from '../design/lightSurface';
 import { TYPOGRAPHY_GENERATION_PROMPT } from './prompts/singleGenerations/typography-generation.prompt';
 import {
   COLORS_FROM_LOGO_PROMPT,
@@ -1811,7 +1812,10 @@ export class BrandingService extends GenericService {
               `Expected colors array but got ${typeof colors}: ${JSON.stringify(colors).slice(0, 200)}`
             );
           }
-          return colors;
+          // Le fond clair est GARANTI ici, pas espéré du prompt : un seul fond
+          // sombre qui passe fait basculer la charte, les livrables et le site
+          // généré en thème sombre d'un bout à l'autre.
+          return enforceLightSurfaceOnPalettes(colors);
         },
         hasDependencies: false,
       },
@@ -5489,7 +5493,7 @@ ${description.slice(0, 3000)}`,
             if (!Array.isArray(parsedColors.colors) || parsedColors.colors.length === 0) {
               throw new Error('Response JSON has no non-empty "colors" array');
             }
-            return parsedColors.colors;
+            return enforceLightSurfaceOnPalettes(parsedColors.colors);
           } catch (error) {
             logger.error(`Error parsing logo-based colors:`, error);
             throw new Error(`Failed to parse logo-based colors`);
