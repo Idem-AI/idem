@@ -195,17 +195,18 @@ export function buildDocumentDesignSystem(
   const brandHue = hexToOklch(primary)?.h ?? 220;
   const neutral = buildNeutralRamp(brandHue);
 
-  // Le style impose le fond. `either` laisse la main à la charte, qui a le
-  // dernier mot sur son propre fond.
+  // La CHARTE impose le fond, jamais le style.
+  //
+  // `style.surface === 'dark'` forçait le noir auparavant : un projet dont la
+  // palette est claire ressortait en thème sombre parce que le directeur
+  // artistique avait retenu un style sombre, et la charte n'avait plus la main
+  // sur son propre fond. Les styles sombres sont désormais hors sélection
+  // (`SELECTABLE_ART_DIRECTION_STYLE_IDS`), mais les projets antérieurs en
+  // portent encore un : c'est ici qu'ils cessent de basculer la page.
   const charterBackground = firstHex(charter?.colors?.colors?.background);
-  const dark =
-    style.surface === 'dark'
-      ? true
-      : style.surface === 'light'
-        ? false
-        : charterBackground
-          ? relativeLuminance(hexToRgb(charterBackground) ?? { r: 1, g: 1, b: 1 }) < 0.35
-          : false;
+  const dark = charterBackground
+    ? relativeLuminance(hexToRgb(charterBackground) ?? { r: 1, g: 1, b: 1 }) < 0.35
+    : false;
 
   const surface = dark
     ? (charterBackground && relativeLuminance(hexToRgb(charterBackground)!) < 0.35

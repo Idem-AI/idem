@@ -29,7 +29,8 @@ import {
 import {
   SUPPORTED_COUNTRIES,
   buildCustomerMessage,
-  convertFromXaf,
+  localAnnualPrice,
+  localPrice,
   explainFailure,
   formatAmountForPawapay,
   maskPhone,
@@ -290,23 +291,64 @@ section('Pays et devises');
 // ============================================
 
 for (const country of SUPPORTED_COUNTRIES) {
-  check(
-    `${country.code} en zone franc (${country.currency})`,
-    country.currency === 'XAF' || country.currency === 'XOF'
-  );
   check(`${country.code} : indicatif numérique`, /^\d{3}$/.test(country.prefix));
 }
 
-check('Le F CFA n’a pas de décimales au Cameroun', SUPPORTED_COUNTRIES[0].decimals === 0);
-check('Parité XAF/XOF respectée', convertFromXaf(2999, 'XOF') === 2999);
+const francZone = SUPPORTED_COUNTRIES.filter(
+  (country) => country.currency === 'XAF' || country.currency === 'XOF'
+);
+check('La zone franc compte 7 pays', francZone.length === 7);
+check(
+  'La zone franc applique le prix catalogue tel quel',
+  francZone.every((country) => country.prices === undefined)
+);
 
-let conversionRefused = false;
-try {
-  convertFromXaf(2999, 'NGN');
-} catch {
-  conversionRefused = true;
+check('Le F CFA n’a pas de décimales au Cameroun', SUPPORTED_COUNTRIES[0].decimals === 0);
+
+/**
+ * Hors zone franc, chaque pays a SA grille. Trois garanties :
+ *
+ *  - elle couvre **tous** les prix du catalogue : un produit sans prix local
+ *    retomberait sur une estimation, ce qui n'est pas une tarification ;
+ *  - elle ne redescend jamais : un Cabinet ne peut pas coûter moins qu'un
+ *    Essentiel, quel que soit le pays ;
+ *  - les prix de référence sont ceux arbitrés au modèle économique, au
+ *    franc près — le produit ne doit pas diverger de sa documentation.
+ */
+const catalogPricePoints = [
+  ...new Set([...byCode.values()].map((product) => product.priceXaf).filter((price) => price > 0)),
+].sort((a, b) => a - b);
+
+for (const country of SUPPORTED_COUNTRIES.filter((entry) => entry.prices)) {
+  const grid = country.prices!;
+  const missing = catalogPricePoints.filter((price) => grid[price] === undefined);
+  check(
+    `${country.code} : grille complète (${catalogPricePoints.length} paliers)`,
+    missing.length === 0
+  );
+
+  const values = catalogPricePoints.map((price) => grid[price]);
+  check(
+    `${country.code} : grille jamais décroissante`,
+    values.every((value, index) => index === 0 || value >= values[index - 1])
+  );
 }
-check('Une devise hors zone franc est refusée explicitement', conversionRefused);
+
+const countryByCode = (code: string) =>
+  SUPPORTED_COUNTRIES.find((country) => country.code === code)!;
+
+check('Zone franc : 2 999 F restent 2 999 F', localPrice(2999, countryByCode('CMR')) === 2999);
+check('Kenya : offre de référence à 650 KES', localPrice(2999, countryByCode('KEN')) === 650);
+check('Rwanda : offre de référence à 6 500 RWF', localPrice(2999, countryByCode('RWA')) === 6500);
+check('Ouganda : offre de référence à 15 000 UGX', localPrice(2999, countryByCode('UGA')) === 15000);
+check('Nigeria : offre de référence à 4 900 NGN', localPrice(2999, countryByCode('NGA')) === 4900);
+check('Malawi : offre de référence à 6 000 MWK', localPrice(2999, countryByCode('MWI')) === 6000);
+
+const kenyaAnnual = localAnnualPrice(localPrice(2999, countryByCode('KEN')), countryByCode('KEN'));
+check(
+  'Annuel local : entre 9 et 12 mois du mensuel local',
+  kenyaAnnual >= 650 * 9 && kenyaAnnual <= 650 * 12
+);
 
 // ============================================
 section('Format des montants');

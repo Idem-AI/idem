@@ -1,4 +1,4 @@
-import { BillingEngine, BillingInterval } from './billing.model';
+import { BillingEngine, BillingInterval, annualPriceXaf } from './billing.model';
 
 /**
  * Encaissement Mobile Money via pawaPay.
@@ -313,6 +313,24 @@ export interface PaymentCountry {
    * envoyer « 1999.00 » ferait rejeter le dépôt avec `INVALID_AMOUNT`.
    */
   decimals: 0 | 2;
+  /**
+   * La grille de prix du pays, en devise locale.
+   *
+   * **Ces prix sont fixés pour le pays, pas convertis.** Chaque grille part du
+   * revenu local (salaire minimum quand il existe, PIB/hab. PPA sinon), puis
+   * s'ajuste aux points de douleur et aux habitudes relevés : là où le revenu
+   * est irrégulier, les passes et recharges descendent davantage ; les offres
+   * pro, achetées par des entreprises formelles, restent plus proches du prix
+   * de la zone CFA. Chaque montant est enfin posé sur un palier qui se lit.
+   *
+   * La clé est le prix catalogue du produit : elle ne sert qu'à situer le
+   * produit dans l'échelle de l'offre, pour que la hiérarchie reste la même
+   * d'un pays à l'autre — un Cabinet reste plus cher qu'un Essentiel partout.
+   *
+   * Absente en zone franc : XAF et XOF sont à parité, le prix catalogue
+   * s'applique tel quel.
+   */
+  prices?: Record<number, number>;
 }
 
 /**
@@ -328,15 +346,115 @@ export interface PaymentCountry {
  * l'instant T vient toujours de `GET /active-conf` : un opérateur peut être
  * fermé, et la liste ci-dessous n'en saurait rien.
  */
+/**
+ * Les pays que nous savons **tarifer**.
+ *
+ * Savoir tarifer un pays ne suffit pas à y encaisser : il faut encore que le
+ * compte pawaPay y soit provisionné. La liste réellement proposée à l'écran est
+ * l'intersection des deux — voir `payment-countries.service.ts`. Garder ici les
+ * pays pas encore activés permet à une activation côté pawaPay de suffire,
+ * sans redéploiement.
+ *
+ * Les prix de référence sont ceux arbitrés au modèle économique (section
+ * « Tarification Internationale »), sur la base de 2 999 F au Cameroun.
+ */
 export const SUPPORTED_COUNTRIES: PaymentCountry[] = [
+  // ── Zone franc : prix du catalogue tel quel ───────────────────────────────
+  // XAF et XOF sont à parité fixe : le même prix dans les sept pays, sans
+  // conversion ni risque de change. L'offre de référence y pèse 4 à 6 % d'un
+  // salaire minimum (SMIG 2026 : 75 000 F en Côte d'Ivoire, 64 223 F au
+  // Sénégal, 60 000 F au Cameroun, 52 000 F au Bénin) — c'est ce POIDS, et non
+  // le prix, que la grille des autres pays reprend comme point de départ.
   { code: 'CMR', name: 'Cameroun', prefix: '237', currency: 'XAF', decimals: 0 },
   { code: 'CIV', name: "Côte d'Ivoire", prefix: '225', currency: 'XOF', decimals: 0 },
   { code: 'SEN', name: 'Sénégal', prefix: '221', currency: 'XOF', decimals: 0 },
   { code: 'BEN', name: 'Bénin', prefix: '229', currency: 'XOF', decimals: 0 },
   { code: 'BFA', name: 'Burkina Faso', prefix: '226', currency: 'XOF', decimals: 0 },
-  { code: 'COG', name: 'Congo', prefix: '242', currency: 'XAF', decimals: 0 },
+  { code: 'COG', name: 'Congo-Brazzaville', prefix: '242', currency: 'XAF', decimals: 0 },
   // Seul pays de la zone où les opérateurs acceptent les centimes.
   { code: 'GAB', name: 'Gabon', prefix: '241', currency: 'XAF', decimals: 2 },
+
+  // ── Afrique de l'Est ──────────────────────────────────────────────────────
+  // Salaire minimum de 9 000 à 18 000 KES selon la zone. Adoption numérique la plus forte de la région (91 % des exportateurs paient en numérique), et Netflix mobile y coûte 1,55 $ : on y paie déjà le numérique. Au plus près du prix CFA.
+  // Offre de référence : 650 KES.
+  {
+    code: 'KEN', name: "Kenya", prefix: '254', currency: 'KES', decimals: 0,
+    prices: { 499: 100, 500: 100, 900: 180, 999: 210, 1499: 310, 1999: 410, 2499: 510, 2999: 650, 4999: 1100, 6999: 1550, 7499: 1650, 7999: 1750, 9999: 2250, 11999: 2700, 19999: 4550, 24999: 5650, 29999: 6800 },
+  },
+  // Aucun salaire minimum effectif. Les meilleures institutions de la région — une entreprise se crée en 4 jours, l'impôt des PME est à 15 % — et le hub de Kigali : un écosystème formel qui paie ses outils.
+  // Offre de référence : 6 500 RWF.
+  {
+    code: 'RWA', name: "Rwanda", prefix: '250', currency: 'RWF', decimals: 0,
+    prices: { 499: 1050, 500: 1050, 900: 1850, 999: 2050, 1499: 3100, 1999: 4100, 2499: 5150, 2999: 6500, 4999: 11500, 6999: 16000, 7499: 17000, 7999: 18000, 9999: 24000, 11999: 28500, 19999: 47500, 24999: 59500, 29999: 71500 },
+  },
+  // Aucun salaire minimum effectif. Data la moins chère d'Afrique (0,02 $ le Go) : l'usage numérique est massif, mais les revenus restent bas.
+  // Offre de référence : 15 000 UGX.
+  {
+    code: 'UGA', name: "Ouganda", prefix: '256', currency: 'UGX', decimals: 0,
+    prices: { 499: 2250, 500: 2250, 900: 4050, 999: 4500, 1499: 6750, 1999: 8950, 2499: 11000, 2999: 15000, 4999: 27000, 6999: 37500, 7499: 40000, 7999: 43000, 9999: 57500, 11999: 69000, 19999: 115000, 24999: 143000, 29999: 172000 },
+  },
+  // Le frein n'est pas le paiement mais l'usage des outils numériques, sur des infrastructures qui se dégradent et des tarifs parapublics élevés. Prix d'entrée doux pour lever la barrière du premier usage.
+  // Offre de référence : 75 ZMW.
+  {
+    code: 'ZMB', name: "Zambie", prefix: '260', currency: 'ZMW', decimals: 0,
+    prices: { 499: 11, 500: 11, 900: 20, 999: 22, 1499: 34, 1999: 45, 2499: 56, 2999: 75, 4999: 130, 6999: 190, 7499: 200, 7999: 210, 9999: 290, 11999: 340, 19999: 570, 24999: 720, 29999: 860 },
+  },
+
+  // ── Afrique de l'Ouest anglophone, Corne, Afrique australe, RDC ───────────
+  // Petit marché servi par un seul opérateur (Orange), revenus bas : bas de la fourchette.
+  // Offre de référence : 80 SLE.
+  {
+    code: 'SLE', name: "Sierra Leone", prefix: '232', currency: 'SLE', decimals: 0,
+    prices: { 499: 12, 500: 12, 900: 21, 999: 23, 1499: 35, 1999: 47, 2499: 59, 2999: 80, 4999: 140, 6999: 200, 7499: 220, 7999: 230, 9999: 310, 11999: 370, 19999: 610, 24999: 770, 29999: 920 },
+  },
+  // PIB/hab. PPA parmi les plus faibles (1 699 $), capital rare, infrastructures contraintes ; le salaire minimum n'est plus national mais négocié par secteur.
+  // Offre de référence : 220 MZN.
+  {
+    code: 'MOZ', name: "Mozambique", prefix: '258', currency: 'MZN', decimals: 0,
+    prices: { 499: 32, 500: 32, 900: 57, 999: 63, 1499: 95, 1999: 130, 2499: 160, 2999: 220, 4999: 410, 6999: 570, 7499: 620, 7999: 660, 9999: 890, 11999: 1050, 19999: 1800, 24999: 2250, 29999: 2700 },
+  },
+  // Économie dollarisée — le franc congolais et le dollar sont tous deux encaissables —, PIB/hab. PPA de 2 144 $, infrastructures faibles.
+  // Offre de référence : 8 050 CDF.
+  {
+    code: 'COD', name: "RD Congo", prefix: '243', currency: 'CDF', decimals: 0,
+    prices: { 499: 1150, 500: 1150, 900: 2050, 999: 2300, 1499: 3450, 1999: 4550, 2499: 5700, 2999: 8050, 4999: 15000, 6999: 20500, 7499: 22000, 7999: 23500, 9999: 32500, 11999: 39000, 19999: 64500, 24999: 81000, 29999: 97000 },
+  },
+  // Salaire minimum bas (21,77 GHS par jour) mais cedi en hausse de 8,9 % sur l'année, régulation mobile money de référence et data très bon marché. Les PME y restent lentes à adopter le numérique.
+  // Offre de référence : 45 GHS.
+  {
+    code: 'GHA', name: "Ghana", prefix: '233', currency: 'GHS', decimals: 0,
+    prices: { 499: 7, 500: 7, 900: 12, 999: 13, 1499: 20, 1999: 27, 2499: 34, 2999: 45, 4999: 80, 6999: 110, 7499: 120, 7999: 130, 9999: 170, 11999: 210, 19999: 340, 24999: 430, 29999: 520 },
+  },
+  // Salaire minimum de 70 000 NGN (~53 $), 26 % d'adultes exclus du système financier, naira en baisse de 8,4 % sur l'année et concurrence logicielle intense. Mais c'est la plus grande base de fondateurs du continent : l'entrée est basse, les offres pro préservées.
+  // Offre de référence : 4 900 NGN.
+  {
+    code: 'NGA', name: "Nigeria", prefix: '234', currency: 'NGN', decimals: 0,
+    prices: { 499: 700, 500: 700, 900: 1250, 999: 1400, 1499: 2100, 1999: 2800, 2499: 3500, 2999: 4900, 4999: 9000, 6999: 12500, 7499: 13500, 7999: 14500, 9999: 19500, 11999: 23500, 19999: 39500, 24999: 49000, 29999: 59000 },
+  },
+  // Créer une entreprise y prend 26 jours et l'impôt atteint 30 % : économie très informelle. Entrée basse, offres pro préservées pour les entreprises formelles.
+  // Offre de référence : 9 500 TZS.
+  {
+    code: 'TZA', name: "Tanzanie", prefix: '255', currency: 'TZS', decimals: 0,
+    prices: { 499: 1400, 500: 1400, 900: 2500, 999: 2800, 1499: 4200, 1999: 5600, 2499: 7000, 2999: 9500, 4999: 17000, 6999: 24000, 7499: 25500, 7999: 27500, 9999: 36500, 11999: 44000, 19999: 73000, 24999: 91500, 29999: 110000 },
+  },
+  // Contrôle des changes, Telebirr dominant et faible habitude de l'abonnement logiciel : bas de fourchette.
+  // Offre de référence : 590 ETB.
+  {
+    code: 'ETH', name: "Éthiopie", prefix: '251', currency: 'ETB', decimals: 0,
+    prices: { 499: 87, 500: 87, 900: 160, 999: 170, 1499: 260, 1999: 350, 2499: 440, 2999: 590, 4999: 1050, 6999: 1500, 7499: 1600, 7999: 1700, 9999: 2300, 11999: 2750, 19999: 4550, 24999: 5700, 29999: 6850 },
+  },
+  // Micro-marché arrimé au rand sud-africain, servi par M-Pesa : bas de fourchette.
+  // Offre de référence : 59 LSL.
+  {
+    code: 'LSO', name: "Lesotho", prefix: '266', currency: 'LSL', decimals: 0,
+    prices: { 499: 9, 500: 9, 900: 16, 999: 18, 1499: 27, 1999: 35, 2499: 44, 2999: 59, 4999: 100, 6999: 140, 7499: 160, 7999: 170, 9999: 220, 11999: 260, 19999: 430, 24999: 540, 29999: 650 },
+  },
+  // Salaire minimum de 120 000 MWK (~69 $) et PIB/hab. PPA parmi les plus faibles du continent (1 797 $) : plancher de la fourchette.
+  // Offre de référence : 6 000 MWK.
+  {
+    code: 'MWI', name: "Malawi", prefix: '265', currency: 'MWK', decimals: 0,
+    prices: { 499: 850, 500: 850, 900: 1550, 999: 1700, 1499: 2550, 1999: 3400, 2499: 4250, 2999: 6000, 4999: 11000, 6999: 15500, 7499: 16500, 7999: 17500, 9999: 24000, 11999: 29000, 19999: 48000, 24999: 60000, 29999: 72000 },
+  },
 ];
 
 export const DEFAULT_COUNTRY = 'CMR';
@@ -353,11 +471,42 @@ export function getCountry(code: string): PaymentCountry | undefined {
  * délibéré, pour qu'une ouverture de marché passe par une décision de prix
  * explicite et non par un taux de change implicite.
  */
-export function convertFromXaf(amountXaf: number, currency: string): number {
-  if (currency === 'XAF' || currency === 'XOF') return amountXaf;
-  throw new Error(
-    `Devise non prise en charge : ${currency}. Ouvrir un marché hors zone franc exige une grille de prix dédiée (coefficient PPP).`
-  );
+export function localPrice(catalogPriceXaf: number, country: PaymentCountry): number {
+  // Zone franc : le prix catalogue est le prix payé.
+  if (!country.prices) return catalogPriceXaf;
+
+  const fixed = country.prices[catalogPriceXaf];
+  if (fixed !== undefined) return fixed;
+
+  // Un produit ajouté au catalogue sans prix local ne doit pas bloquer le
+  // paiement : on le situe entre ses deux voisins de la grille. `checkBilling`
+  // signale ce cas — c'est un prix à fixer, pas un comportement normal.
+  const tiers = Object.keys(country.prices)
+    .map(Number)
+    .sort((a, b) => a - b);
+  const lower = [...tiers].reverse().find((tier) => tier <= catalogPriceXaf) ?? tiers[0];
+  const ratio = country.prices[lower] / lower;
+
+  return readablePrice(catalogPriceXaf * ratio);
+}
+
+/**
+ * Prix annuel local : la même remise que le catalogue, appliquée au prix
+ * **local** mensuel.
+ *
+ * Calculer l'annuel en F CFA puis le convertir tomberait hors de la grille du
+ * pays ; partir du mensuel local garde l'annuel cohérent avec ce que
+ * l'utilisateur voit déjà affiché.
+ */
+export function localAnnualPrice(monthlyLocal: number, country: PaymentCountry): number {
+  const annual = annualPriceXaf(monthlyLocal);
+  return country.prices ? readablePrice(annual) : annual;
+}
+
+/** Pose un montant sur un palier lisible dans sa magnitude. */
+function readablePrice(amount: number): number {
+  const step = amount < 100 ? 1 : amount < 1000 ? 10 : amount < 10000 ? 50 : amount < 100000 ? 500 : 1000;
+  return Math.max(step, Math.round(amount / step) * step);
 }
 
 /**
