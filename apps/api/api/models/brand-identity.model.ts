@@ -165,6 +165,8 @@ export interface TypographyModel {
   primaryFont: string;
   secondaryFont: string;
   description?: string;
+  /** Une phrase de l'agent : ce que cet appariement dit de la marque. */
+  rationale?: string;
   /** D'où viennent les deux familles, et comment les charger. */
   primary?: BrandFontModel;
   secondary?: BrandFontModel;

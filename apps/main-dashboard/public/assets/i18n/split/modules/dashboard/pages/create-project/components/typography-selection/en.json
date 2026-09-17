@@ -1,8 +1,8 @@
 {
   "dashboard": {
     "typographySelection": {
-      "title": "Typography Selection",
-      "subtitle": "Choose the perfect typography that reflects your brand's personality and enhances readability.",
+      "title": "What should your brand look like?",
+      "subtitle": "Click the one that speaks to you. You can change either typeface afterwards.",
       "error": {
         "title": "Typography Not Available",
         "description": "No typography options available. Please go back to the color selection step.",
@@ -24,11 +24,6 @@
       "popular": {
         "title": "Popular Typography Collections",
         "subtitle": "Curated typography combinations loved by designers worldwide."
-      },
-      "tabs": {
-        "generated": "AI Generated",
-        "popular": "Popular Collections",
-        "custom": "Custom Mix"
       },
       "preview": {
         "brandName": "Your Brand Name",
@@ -61,7 +56,8 @@
           "title": "No Typography Generated",
           "description": "We couldn't generate typography options for your project. Click regenerate to try again with different parameters."
         },
-        "regenerate": "Regenerate"
+        "regenerate": "Regenerate",
+        "hint": "A suggestion fills both slots at once."
       },
       "actions": {
         "back": "Back",
@@ -72,7 +68,7 @@
       "searching": "Searching fonts...",
       "noResults": "No fonts found for your search",
       "searchHint": "Start typing to search Google Fonts, Fontshare and Fontsource",
-      "selectToPreview": "Select fonts to preview your custom typography mix",
+      "selectToPreview": "Pick a typeface to see the brand take shape.",
       "custom": {
         "title": "Your Custom Mixes",
         "createNew": "Create New Mix",
@@ -84,11 +80,7 @@
         "secondaryFont": "SECONDARY FONT",
         "notSelected": "Not selected",
         "addButton": "Add Custom Mix",
-        "searchIntro": "Search several free foundries, or import your own font, then assign it:",
-        "panels": {
-          "catalog": "Catalogues",
-          "import": "Import my font"
-        }
+        "searchIntro": "Search several free foundries, or import your own font, then assign it:"
       },
       "clearSearch": "Clear search",
       "resultsCount": "{{count}} fonts",
@@ -121,13 +113,41 @@
         "upload": "Import font",
         "uploading": "Importing…",
         "removeFile": "Remove file",
-        "libraryTitle": "YOUR IMPORTED FONTS",
+        "libraryTitle": "Your fonts",
         "delete": "Delete font",
         "errors": {
           "format": "Unsupported format: only WOFF2, WOFF, TTF and OTF files are accepted.",
           "upload": "The import failed.",
           "delete": "The deletion failed."
-        }
+        },
+        "title": "Import my font"
+      },
+      "roles": {
+        "headings": "Headings",
+        "body": "Body"
+      },
+      "pair": {
+        "empty": "No typeface chosen",
+        "change": "Change",
+        "choose": "Choose"
+      },
+      "gallery": {
+        "hint": "One click picks both typefaces.",
+        "chosen": "Chosen"
+      },
+      "picker": {
+        "titleHeadings": "Heading typeface",
+        "titleBody": "Body typeface",
+        "back": "Back to the styles",
+        "importCta": "Import my own"
+      },
+      "categoryHints": {
+        "all": "Every family",
+        "sansSerif": "Clean and modern",
+        "serif": "Classic and serious",
+        "display": "Bold and expressive",
+        "handwriting": "Warm, handwritten",
+        "monospace": "Technical, fixed-width"
       }
     }
   }

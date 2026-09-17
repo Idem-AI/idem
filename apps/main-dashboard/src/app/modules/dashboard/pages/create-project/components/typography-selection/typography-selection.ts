@@ -24,10 +24,13 @@ import { Subject, of } from 'rxjs';
 import { TypographyPreviewComponent } from './typography-preview/typography-preview';
 import { ProjectModel } from '@idem/shared-models';
 
-// Import new sub-components
-import { TypographyTabsComponent, TypographyTab } from './typography-tabs/typography-tabs';
-import { TypographyGeneratedListComponent } from './typography-generated-list/typography-generated-list';
-import { TypographyCustomCreatorComponent } from './typography-custom-creator/typography-custom-creator';
+import { FontSlot, TypographyPairBarComponent } from './typography-pair-bar/typography-pair-bar';
+import { TypographyGalleryComponent } from './typography-gallery/typography-gallery';
+import { TypographyPickerComponent } from './typography-picker/typography-picker';
+import { TypographyFontImportComponent } from './typography-font-import/typography-font-import';
+
+/** Ce que le panneau central montre. Une seule chose à la fois. */
+type TypographyView = 'gallery' | 'picker' | 'import';
 
 interface SearchRequest {
   readonly query: string;
@@ -36,14 +39,32 @@ interface SearchRequest {
   readonly source: FontSourceId | null;
 }
 
+/**
+ * Choix de la typographie de la marque.
+ *
+ * L'écran se choisit EN REGARDANT, pas en lisant :
+ *
+ *  - la galerie d'allures est la surface principale. Chaque carte est la page
+ *    de marque en miniature, composée avec le nom du projet : un clic pose les
+ *    deux polices, et c'est le chemin que prendra la plupart des gens ;
+ *  - la paire retenue est rappelée en haut, écrite dans ses propres polices —
+ *    on voit ce qu'on a, pas le nom de ce qu'on a ;
+ *  - « Changer » ouvre le choix de CETTE police-là. Il n'y a donc aucun
+ *    emplacement « actif » implicite à deviner, et jamais plus d'une chose à
+ *    l'écran : la galerie, ou le choix d'une police, ou l'import.
+ *
+ * La PAIRE est l'unique source de vérité. Une allure ne fait que la remplir
+ * d'un coup : l'étape reste donc valide quelle que soit la vue ouverte.
+ */
 @Component({
   selector: 'app-typography-selection',
   imports: [
     TranslateModule,
     TypographyPreviewComponent,
-    TypographyTabsComponent,
-    TypographyGeneratedListComponent,
-    TypographyCustomCreatorComponent,
+    TypographyPairBarComponent,
+    TypographyGalleryComponent,
+    TypographyPickerComponent,
+    TypographyFontImportComponent,
   ],
   templateUrl: './typography-selection.html',
   styleUrls: ['./typography-selection.css'],
@@ -65,78 +86,78 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
   @Output() readonly typographySelectionChanged = new EventEmitter<boolean>();
 
   // Signals
-  protected activeTab = signal<TypographyTab>('generated');
-  protected isLoading = signal(true);
-  protected hasError = signal(false);
-  protected isGenerating = signal(false);
-  protected typographyModels = signal<TypographyModel[]>([]);
-  protected selectedTypographyId = signal<string | null>(null);
+  protected readonly view = signal<TypographyView>('gallery');
+  /** La police que le choix en cours va remplacer. */
+  protected readonly pickerSlot = signal<FontSlot>('primary');
+  protected readonly isLoading = signal(true);
+  protected readonly hasError = signal(false);
+  protected readonly isGenerating = signal(false);
+  protected readonly typographyModels = signal<TypographyModel[]>([]);
 
-  // Custom Selection Signals
-  //
-  // On garde la POLICE entière, pas seulement son nom : sans sa source et sa
-  // feuille de style, une famille venue de Fontshare, de Fontsource ou du
-  // bucket de l'utilisateur serait redemandée à Google — donc jamais chargée.
-  protected selectedPrimary = signal<BrandFont | null>(null);
-  protected selectedSecondary = signal<BrandFont | null>(null);
-  protected selectedPrimaryFont = computed(() => this.selectedPrimary()?.family ?? '');
-  protected selectedSecondaryFont = computed(() => this.selectedSecondary()?.family ?? '');
+  protected readonly selectedPrimary = signal<BrandFont | null>(null);
+  protected readonly selectedSecondary = signal<BrandFont | null>(null);
 
   // Search Signals
-  protected searchResults = signal<CatalogFont[]>([]);
-  protected isSearching = signal(false);
-  protected searchQuery = signal('');
-  protected searchCategory = signal<FontCategory | null>(null);
-  protected searchSource = signal<FontSourceId | null>(null);
-  protected previewText = signal('Your Brand Name');
+  protected readonly searchResults = signal<CatalogFont[]>([]);
+  protected readonly isSearching = signal(false);
+  protected readonly searchQuery = signal('');
+  protected readonly searchCategory = signal<FontCategory | null>(null);
+  protected readonly searchSource = signal<FontSourceId | null>(null);
+  protected readonly previewText = signal('Your Brand Name');
 
   // Computed properties
-  protected hasGeneratedTypographies = computed(() => this.typographyModels().length > 0);
+  protected readonly hasGeneratedTypographies = computed(() => this.typographyModels().length > 0);
 
-  protected canContinue = computed(() => {
-    if (this.activeTab() === 'generated') {
-      return this.selectedTypographyId() !== null;
-    }
-    // For custom tab, we need both fonts selected
-    return !!this.selectedPrimary() && !!this.selectedSecondary();
+  /** L'étape est franchissable dès que les deux emplacements sont remplis. */
+  protected readonly canContinue = computed(
+    () => !!this.selectedPrimary() && !!this.selectedSecondary()
+  );
+
+  /**
+   * La suggestion qui correspond exactement à la paire en cours, s'il y en a
+   * une : c'est ce qui coche la carte, même après un passage par le catalogue.
+   */
+  protected readonly matchingSuggestionId = computed(() => {
+    const primary = this.selectedPrimary()?.family;
+    const secondary = this.selectedSecondary()?.family;
+    if (!primary || !secondary) return null;
+    return (
+      this.typographyModels().find(
+        (typography) =>
+          typography.primaryFont === primary && typography.secondaryFont === secondary
+      )?.id ?? null
+    );
   });
 
-  protected currentSelectedTypography = computed(() => {
-    if (this.activeTab() === 'generated') {
-      return (
-        this.typographyModels().find(
-          (t: TypographyModel) => t.id === this.selectedTypographyId(),
-        ) ?? null
-      );
-    }
-
-    // For custom tab, return a live preview object
+  /** La paire, sous la forme attendue par l'aperçu et par la sauvegarde. */
+  protected readonly currentSelectedTypography = computed<TypographyModel | null>(() => {
     const primary = this.selectedPrimary();
     const secondary = this.selectedSecondary();
-    if (primary || secondary) {
-      return {
-        id: 'custom-preview',
-        name: 'Custom Selection',
-        primaryFont: primary?.family || 'Inter', // Fallback for preview
-        secondaryFont: secondary?.family || 'Inter', // Fallback for preview
-        description: 'Your custom font combination',
-        ...(primary ? { primary } : {}),
-        ...(secondary ? { secondary } : {}),
-        // La feuille de la police de titre : c'est elle qui portera la marque
-        // dans les livrables, et c'est ce qui part en base à la place du lien
-        // Google quand la police vient d'ailleurs.
-        url: primary?.cssUrl ?? secondary?.cssUrl,
-      } as TypographyModel;
-    }
+    if (!primary && !secondary) return null;
 
-    return null;
+    const suggestion = this.typographyModels().find(
+      (typography) => typography.id === this.matchingSuggestionId()
+    );
+
+    return {
+      id: suggestion?.id ?? 'custom-preview',
+      name: suggestion?.name ?? 'Custom Selection',
+      description: suggestion?.description,
+      primaryFont: primary?.family ?? '',
+      secondaryFont: secondary?.family ?? '',
+      ...(primary ? { primary } : {}),
+      ...(secondary ? { secondary } : {}),
+      // La feuille de la police de titre : c'est elle qui portera la marque
+      // dans les livrables, et c'est ce qui part en base à la place du lien
+      // Google quand la police vient d'ailleurs.
+      url: primary?.cssUrl ?? secondary?.cssUrl ?? suggestion?.url,
+    };
   });
 
   constructor() {
-    // Fetch every family shown in the list up-front so the cards and the preview
-    // render with the real typeface instead of the browser default. Chaque
-    // police est chargée depuis SA source : l'IA en propose désormais qui ne
-    // sont pas chez Google.
+    // Les cartes de suggestion se dessinent dans leur propre typographie :
+    // chaque famille est chargée depuis SA source, l'agent en propose désormais
+    // qui ne sont pas chez Google.
     effect(() => {
       for (const typography of this.typographyModels()) {
         void this.typographyService.loadTypography(typography);
@@ -144,22 +165,65 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Event handlers for new template
-  protected onTabChanged(tab: TypographyTab): void {
-    this.activeTab.set(tab);
-    // If switching to generated, ensure something is selected if possible
-    if (tab === 'generated' && !this.selectedTypographyId() && this.typographyModels().length > 0) {
-      this.selectedTypographyId.set(this.typographyModels()[0].id);
-    }
-    if (tab === 'custom') {
-      this.ensureCatalogLoaded();
-    }
+  // ─── Navigation : une seule chose à l'écran à la fois ───────────────────────
+
+  /** « Changer » sur un emplacement ouvre le choix de CETTE police. */
+  protected onChangeRequested(slot: FontSlot): void {
+    this.pickerSlot.set(slot);
+    this.view.set('picker');
+    this.ensureCatalogLoaded();
+  }
+
+  protected onBackToGallery(): void {
+    this.view.set('gallery');
+  }
+
+  protected onImportRequested(): void {
+    this.view.set('import');
+  }
+
+  protected onBackToPicker(): void {
+    this.view.set('picker');
+  }
+
+  /** La police de l'emplacement en cours de modification. */
+  protected currentPickerFamily(): string {
+    const font = this.pickerSlot() === 'primary' ? this.selectedPrimary() : this.selectedSecondary();
+    return font?.family ?? '';
+  }
+
+  // ─── Remplissage de la paire ────────────────────────────────────────────────
+
+  /** Une suggestion remplit les DEUX emplacements : c'est tout son intérêt. */
+  protected onTypographySelected(typography: TypographyModel): void {
+    this.selectedPrimary.set(brandFontOf(typography, 'primary'));
+    this.selectedSecondary.set(brandFontOf(typography, 'secondary'));
+    void this.typographyService.loadTypography(typography);
+    this.typographySelected.emit(typography);
     this.notifySelectionChange();
   }
 
-  protected onTypographySelected(typography: TypographyModel): void {
-    this.selectedTypographyId.set(typography.id);
-    this.typographySelected.emit(typography);
+  /**
+   * Une police choisie remplace celle de l'emplacement en cours.
+   *
+   * On RESTE dans le choix : le rappel du haut et l'aperçu de droite changent
+   * aussitôt, ce qui permet d'en essayer plusieurs à la suite. Renvoyer à la
+   * galerie à chaque clic ferait trois gestes par essai.
+   */
+  protected onFontChosen(font: CatalogFont): void {
+    const brandFont: BrandFont = {
+      family: font.family,
+      source: font.source,
+      cssUrl: font.cssUrl,
+      category: font.category,
+      weights: font.weights,
+      ...(font.source === 'custom' ? { customFontId: font.sourceId } : {}),
+    };
+
+    if (this.pickerSlot() === 'primary') this.selectedPrimary.set(brandFont);
+    else this.selectedSecondary.set(brandFont);
+
+    void this.typographyService.loadFonts([brandFont]);
     this.notifySelectionChange();
   }
 
@@ -173,51 +237,7 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
     this.initializeTypographies();
   }
 
-  // Method to prepare and emit project data when parent requests it
-  public prepareTypographyData(): Partial<ProjectModel> | null {
-    const selectedTypography = this.currentSelectedTypography();
-    if (!selectedTypography) return null;
-
-    // For custom typography, add it to the generatedTypography list so it can be found in project-summary
-    let updatedGeneratedTypography =
-      this.project.analysisResultModel?.branding?.generatedTypography || [];
-
-    if (this.activeTab() === 'custom' && selectedTypography.id === 'custom-preview') {
-      // Create a proper custom typography with unique ID
-      const customTypography: TypographyModel = {
-        ...selectedTypography,
-        id: `custom-${Date.now()}`, // Unique ID for custom typography
-      };
-
-      // Add custom typography to the list if not already present
-      const existingCustomIndex = updatedGeneratedTypography.findIndex((t: TypographyModel) =>
-        t.id.startsWith('custom-'),
-      );
-      if (existingCustomIndex >= 0) {
-        updatedGeneratedTypography[existingCustomIndex] = customTypography;
-      } else {
-        updatedGeneratedTypography = [...updatedGeneratedTypography, customTypography];
-      }
-
-      selectedTypography.id = customTypography.id; // Update the selected typography ID
-    }
-
-    return {
-      analysisResultModel: {
-        ...this.project.analysisResultModel,
-        branding: {
-          ...this.project.analysisResultModel?.branding,
-          typography: selectedTypography,
-          generatedTypography: updatedGeneratedTypography,
-        },
-      },
-    };
-  }
-
-  // Notify parent about selection state changes
-  private notifySelectionChange(): void {
-    this.typographySelectionChanged.emit(this.canContinue());
-  }
+  // ─── Recherche ──────────────────────────────────────────────────────────────
 
   protected onSearchInput(query: string): void {
     this.searchQuery.set(query);
@@ -242,24 +262,53 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
     });
   }
 
-  protected selectFont(event: { font: CatalogFont; type: 'primary' | 'secondary' }): void {
-    const { font, type } = event;
-    const brandFont: BrandFont = {
-      family: font.family,
-      source: font.source,
-      cssUrl: font.cssUrl,
-      category: font.category,
-      weights: font.weights,
-      ...(font.source === 'custom' ? { customFontId: font.sourceId } : {}),
-    };
+  // ─── Sauvegarde ─────────────────────────────────────────────────────────────
 
-    if (type === 'primary') {
-      this.selectedPrimary.set(brandFont);
-    } else {
-      this.selectedSecondary.set(brandFont);
-    }
-    void this.typographyService.loadFonts([brandFont]);
-    this.notifySelectionChange();
+  /**
+   * Prépare l'écriture du projet à la demande du parent.
+   *
+   * La paire choisie est aussi ajoutée à la liste des propositions quand elle
+   * n'en vient pas, pour que le récapitulatif du projet puisse la retrouver.
+   */
+  public prepareTypographyData(): Partial<ProjectModel> | null {
+    const selected = this.currentSelectedTypography();
+    if (!selected || !selected.primaryFont || !selected.secondaryFont) return null;
+
+    const existing = this.project.analysisResultModel?.branding?.generatedTypography || [];
+
+    // Une paire composée à la main n'a pas d'identité propre : on lui en donne
+    // une et on la range auprès des propositions, faute de quoi le
+    // récapitulatif du projet ne saurait pas la retrouver. Une seule à la fois :
+    // la précédente est remplacée, pas empilée.
+    const isCustom = selected.id === 'custom-preview';
+    const typography: TypographyModel = isCustom
+      ? { ...selected, id: `custom-${Date.now()}` }
+      : selected;
+
+    const customIndex = existing.findIndex((t: TypographyModel) => t.id.startsWith('custom-'));
+    const generatedTypography = !isCustom
+      ? existing
+      : customIndex >= 0
+        ? existing.map((t: TypographyModel, index: number) =>
+            index === customIndex ? typography : t
+          )
+        : [...existing, typography];
+
+    return {
+      analysisResultModel: {
+        ...this.project.analysisResultModel,
+        branding: {
+          ...this.project.analysisResultModel?.branding,
+          typography,
+          generatedTypography,
+        },
+      },
+    };
+  }
+
+  // Notify parent about selection state changes
+  private notifySelectionChange(): void {
+    this.typographySelectionChanged.emit(this.canContinue());
   }
 
   ngOnInit(): void {
@@ -268,30 +317,19 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
       this.previewText.set(brandName);
     }
     this.initializeTypographies();
-    this.restoreCustomSelection();
+    this.restoreSelection();
     this.setupSearch();
   }
 
-  /**
-   * Remet en place la paire déjà choisie dans l'onglet « Personnaliser ».
-   *
-   * Sans cela, l'utilisateur qui revient sur l'étape retrouve le panneau vide
-   * alors que son choix est bien enregistré — et depuis qu'il peut importer sa
-   * propre police, ce vide ressemble à un import perdu.
-   */
-  private restoreCustomSelection(): void {
-    const typography = this.project.analysisResultModel?.branding?.typography;
-    if (!typography?.primary && !typography?.secondary) return;
-
-    if (typography.primary) this.selectedPrimary.set(typography.primary);
-    if (typography.secondary) this.selectedSecondary.set(typography.secondary);
-    void this.typographyService.loadTypography(typography);
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   /**
-   * Shows popular families as soon as the custom tab opens, so the panel is
+   * Shows popular families as soon as the browse tab opens, so the panel is
    * browsable before anything is typed. Deferred until then: the catalog is a
-   * ~36 kB download nobody needs while staying on the generated tab.
+   * ~36 kB download nobody needs while staying on the suggestions tab.
    */
   private ensureCatalogLoaded(): void {
     if (this.catalogRequested) return;
@@ -300,26 +338,42 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
     this.searchSubject.next({ query: '', category: null, source: null });
   }
 
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
-
   private initializeTypographies(): void {
     const generatedTypography = this.project.analysisResultModel?.branding?.generatedTypography;
 
     if (generatedTypography && generatedTypography.length > 0) {
       this.typographyModels.set(generatedTypography);
       this.isLoading.set(false);
-      // Auto-select first typography if none selected
-      if (!this.selectedTypographyId()) {
-        this.selectedTypographyId.set(generatedTypography[0].id);
-        this.notifySelectionChange();
-      }
     } else {
       this.isLoading.set(false);
       this.regenerateTypographies();
     }
+  }
+
+  /**
+   * Remet en place la paire déjà enregistrée.
+   *
+   * Sans cela, l'utilisateur qui revient sur l'étape retrouve un écran vide
+   * alors que son choix est bien en base — et depuis qu'il peut importer sa
+   * propre police, ce vide ressemble à un import perdu.
+   */
+  private restoreSelection(): void {
+    const typography = this.project.analysisResultModel?.branding?.typography;
+    if (!typography?.primaryFont && !typography?.secondaryFont) {
+      this.autoSelectFirstSuggestion();
+      return;
+    }
+
+    this.selectedPrimary.set(brandFontOf(typography, 'primary'));
+    this.selectedSecondary.set(brandFontOf(typography, 'secondary'));
+    void this.typographyService.loadTypography(typography);
+    this.notifySelectionChange();
+  }
+
+  /** Une proposition posée d'entrée vaut mieux qu'un écran sans réponse. */
+  private autoSelectFirstSuggestion(): void {
+    const first = this.typographyModels()[0];
+    if (first) this.onTypographySelected(first);
   }
 
   private regenerateTypographies(): void {
@@ -353,11 +407,7 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
 
       this.typographyModels.set(mockTypographies);
       this.isGenerating.set(false);
-      // Auto-select first item
-      if (mockTypographies.length > 0) {
-        this.selectedTypographyId.set(mockTypographies[0].id);
-        this.notifySelectionChange();
-      }
+      if (!this.canContinue()) this.autoSelectFirstSuggestion();
     }, 2000);
   }
 
@@ -394,4 +444,19 @@ export class TypographySelectionComponent implements OnInit, OnDestroy {
         },
       });
   }
+}
+
+/**
+ * La police d'un rôle, descripteur compris quand la donnée le porte.
+ *
+ * Les typographies enregistrées avant l'ouverture aux autres fonderies n'ont
+ * qu'un nom de famille : on les traite comme des polices Google, ce qui était
+ * la seule possibilité à l'époque où elles ont été écrites.
+ */
+function brandFontOf(typography: Partial<TypographyModel>, slot: FontSlot): BrandFont | null {
+  const descriptor = slot === 'primary' ? typography.primary : typography.secondary;
+  if (descriptor?.family) return descriptor;
+
+  const family = (slot === 'primary' ? typography.primaryFont : typography.secondaryFont)?.trim();
+  return family ? { family, source: 'google' } : null;
 }

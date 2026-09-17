@@ -1,82 +1,99 @@
-<div class="sticky top-4 h-full">
+<div class="sticky top-4">
   <div
-    class="bg-[var(--color-surface-1)] border border-[var(--glass-border)] rounded-2xl overflow-hidden relative h-[600px] flex flex-col shadow-sm"
+    class="bg-[var(--color-surface-1)] border border-[var(--glass-border)] rounded-2xl overflow-hidden flex flex-col shadow-sm"
   >
+    <div
+      class="shrink-0 px-5 py-2.5 border-b border-[var(--glass-border)] text-[10px] font-bold uppercase tracking-wide text-text-tertiary"
+    >
+      {{ 'dashboard.typographySelection.preview.livePreview' | translate }}
+    </div>
+
     @if (typography(); as selected) {
-      <div class="grow overflow-y-auto custom-scrollbar relative flex flex-col justify-center">
-        <div class="p-12 space-y-16 w-full">
-          <!-- Title & Subtitle Section -->
-          <div class="space-y-8 text-center">
-            <h1
-              class="text-5xl md:text-6xl font-bold text-text-primary leading-tight"
-              [style.fontFamily]="primaryStack()"
-            >
-              {{ previewText() }}
-            </h1>
-            <p
-              class="text-xl text-text-secondary leading-relaxed max-w-lg mx-auto"
+      <!-- Une page de marque en miniature : le contraste titre/texte se juge en
+           situation, pas sur deux mots posés côte à côte. -->
+      <div class="grow overflow-y-auto custom-scrollbar">
+        <div class="p-6 sm:p-8 space-y-6">
+          <p
+            class="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-tertiary"
+            [style.fontFamily]="secondaryStack()"
+          >
+            {{ 'dashboard.typographySelection.preview.launchingSoon' | translate }}
+          </p>
+
+          <h3
+            class="text-4xl sm:text-5xl font-bold leading-[1.05] text-text-primary break-words"
+            [style.fontFamily]="primaryStack()"
+          >
+            {{ previewText() }}
+          </h3>
+
+          <p class="text-lg leading-relaxed text-text-secondary" [style.fontFamily]="secondaryStack()">
+            {{ 'dashboard.typographySelection.preview.heroSubtitle' | translate }}
+          </p>
+
+          <div class="pt-2">
+            <span
+              class="inline-block px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-medium"
               [style.fontFamily]="secondaryStack()"
+              >{{ 'dashboard.typographySelection.preview.getStarted' | translate }}</span
             >
-              {{ 'dashboard.typographySelection.preview.heroSubtitle' | translate }}
-            </p>
           </div>
 
-          <!-- Quote Section -->
-          <div class="relative max-w-2xl mx-auto text-center pt-8 border-t border-[var(--glass-border)]">
-            <svg
-              class="w-8 h-8 text-text-tertiary mx-auto mb-6"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                d="M14.017 21L14.017 18C14.017 16.896 14.321 16.068 14.929 15.516C15.537 14.964 16.277 14.688 17.149 14.688L17.149 14C17.149 12.344 16.781 11.056 16.045 10.136C15.309 9.216 14.285 8.756 12.973 8.756L12.973 5.756C15.325 5.756 17.149 6.452 18.445 7.844C19.741 9.236 20.389 11.288 20.389 14L20.389 21L14.017 21ZM5.017 21L5.017 18C5.017 16.896 5.321 16.068 5.929 15.516C6.537 14.964 7.277 14.688 8.149 14.688L8.149 14C8.149 12.344 7.781 11.056 7.045 10.136C6.309 9.216 5.285 8.756 3.973 8.756L3.973 5.756C6.325 5.756 8.149 6.452 9.445 7.844C10.741 9.236 11.389 11.288 11.389 14L11.389 21L5.017 21Z"
-              />
-            </svg>
-            <blockquote
-              class="text-2xl italic mb-6 leading-relaxed text-text-primary"
-              [style.fontFamily]="secondaryStack()"
-            >
-              "{{ 'dashboard.typographySelection.preview.quote' | translate }}"
-            </blockquote>
-            <cite
-              class="text-xs font-bold text-text-tertiary not-italic uppercase"
-              [style.fontFamily]="primaryStack()"
-            >
-              — {{ 'dashboard.typographySelection.preview.author' | translate }}
-            </cite>
+          <div class="pt-6 border-t border-[var(--glass-border)] space-y-3">
+            <h4 class="text-xl font-semibold text-text-primary" [style.fontFamily]="primaryStack()">
+              {{ 'dashboard.typographySelection.preview.cardTitle1' | translate }}
+            </h4>
+            <p class="text-sm leading-relaxed text-text-secondary" [style.fontFamily]="secondaryStack()">
+              {{ 'dashboard.typographySelection.preview.bodyText' | translate }}
+            </p>
           </div>
         </div>
       </div>
 
-      <!-- Applied fonts -->
-      <div
-        class="shrink-0 grid grid-cols-2 gap-px bg-[var(--glass-border)] border-t border-[var(--glass-border)]"
-      >
-        <div class="bg-[var(--color-surface-1)] px-5 py-3">
-          <div class="text-[10px] uppercase text-text-tertiary">
-            {{ 'dashboard.typographySelection.preview.fontPrimary' | translate }}
+      <!-- Le spécimen : ce que chaque police dessine, et d'où elle vient. -->
+      <div class="shrink-0 border-t border-[var(--glass-border)] divide-y divide-[var(--glass-border)]">
+        <div class="px-5 py-3">
+          <div class="flex items-baseline justify-between gap-2">
+            <span class="text-[10px] font-bold uppercase tracking-wide text-text-tertiary">
+              {{ 'dashboard.typographySelection.roles.headings' | translate }}
+            </span>
+            <span class="text-xs text-text-tertiary truncate">
+              {{ selected.primaryFont }} · {{ primarySourceKey() | translate }}
+            </span>
           </div>
-          <div class="text-sm text-text-primary truncate" [style.fontFamily]="primaryStack()">
-            {{ selected.primaryFont }}
+          <div
+            class="mt-1 text-xl text-text-primary truncate"
+            [style.fontFamily]="primaryStack()"
+            aria-hidden="true"
+          >
+            AaBbCc 0123 &amp;?!
           </div>
         </div>
-        <div class="bg-[var(--color-surface-1)] px-5 py-3">
-          <div class="text-[10px] uppercase text-text-tertiary">
-            {{ 'dashboard.typographySelection.preview.fontSecondary' | translate }}
+        <div class="px-5 py-3">
+          <div class="flex items-baseline justify-between gap-2">
+            <span class="text-[10px] font-bold uppercase tracking-wide text-text-tertiary">
+              {{ 'dashboard.typographySelection.roles.body' | translate }}
+            </span>
+            <span class="text-xs text-text-tertiary truncate">
+              {{ selected.secondaryFont }} · {{ secondarySourceKey() | translate }}
+            </span>
           </div>
-          <div class="text-sm text-text-primary truncate" [style.fontFamily]="secondaryStack()">
-            {{ selected.secondaryFont }}
+          <div
+            class="mt-1 text-xl text-text-primary truncate"
+            [style.fontFamily]="secondaryStack()"
+            aria-hidden="true"
+          >
+            AaBbCc 0123 &amp;?!
           </div>
         </div>
       </div>
     } @else {
-      <div class="grow flex items-center justify-center bg-[var(--glass-bg-subtle)]">
-        <div class="text-center p-8">
+      <div class="grow flex items-center justify-center bg-[var(--glass-bg-subtle)] min-h-[420px]">
+        <div class="text-center p-8 max-w-xs">
           <div
-            class="w-16 h-16 rounded-full bg-[var(--glass-bg-light)] flex items-center justify-center mb-4 mx-auto text-primary"
+            class="w-14 h-14 rounded-full bg-[var(--glass-bg-light)] flex items-center justify-center mb-4 mx-auto text-primary"
           >
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -85,7 +102,7 @@
               ></path>
             </svg>
           </div>
-          <p class="text-lg font-medium text-text-primary">
+          <p class="text-text-secondary">
             {{ 'dashboard.typographySelection.selectToPreview' | translate }}
           </p>
         </div>

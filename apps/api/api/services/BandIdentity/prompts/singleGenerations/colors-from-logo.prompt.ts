@@ -1,23 +1,99 @@
-export const COLORS_FROM_LOGO_PROMPT = `<role>Senior brand identity color expert</role>
-<objective>Generate 3 premium color palettes complementing the colors from the user's imported logo.</objective>
+export interface ColorsFromLogoPromptInput {
+  projectDescription: string;
+  /** Couleurs mesurées sur le logo importé, la plus couvrante en tête. */
+  logoColors: string[];
+}
 
-<logo_context>
-LOGO COLORS: {{LOGO_COLORS}}
-PRIMARY (LOCKED): {{PRIMARY_FROM_LOGO}}
-SECONDARY (LOCKED): {{SECONDARY_FROM_LOGO}}
-PROJECT DESCRIPTION: {{PROJECT_DESCRIPTION}}
-</logo_context>
+/**
+ * Prompt des palettes construites autour d'un logo importé.
+ *
+ * Deux régimes, parce que les deux situations n'ont rien à voir :
+ *
+ * - Logo MULTICOLORE : la marque a déjà choisi ses deux premières couleurs. On
+ *   les verrouille et le modèle ne décide plus que de l'accent.
+ * - Logo MONOCHROME : seule la primaire est donnée. La secondaire est alors à
+ *   CONSTRUIRE. L'ancienne version recopiait la primaire dans la secondaire, et
+ *   le prompt exigeait ensuite que les deux valent « exactement » cette couleur :
+ *   les trois palettes proposées ne portaient donc que deux couleurs libres au
+ *   lieu de trois, et l'interface se retrouvait sans seconde voix pour ses
+ *   surfaces, ses filets et ses actions secondaires.
+ */
+export function buildColorsFromLogoPrompt(input: ColorsFromLogoPromptInput): string {
+  const logoColors = input.logoColors.filter(Boolean);
+  const primary = logoColors[0] || '#6a11cb';
+  const secondary = logoColors[1];
+  const isMonochromeLogo = !secondary;
 
-<accent_construction>
-- Palette 1: analogous (primary hue ±30°) or deeper tone of secondary (cohesive, safe).
+  const secondaryBrief = isMonochromeLogo
+    ? `SECONDARY: none — the logo carries a single colour. You BUILD it (see <secondary_construction>).`
+    : `SECONDARY (LOCKED, from the logo): ${secondary}`;
+
+  const secondarySection = isMonochromeLogo
+    ? `<secondary_construction>
+The logo gives ONE colour. The secondary is therefore yours to build, and it must NEVER be the primary
+again: a palette whose primary and secondary are the same colour is not a palette — it leaves the brand
+with no second voice for surfaces, rules, secondary buttons and charts.
+Build it FROM the primary so the kinship stays visible, and make it distinct on all three axes:
+- hue: at least 25° away from the primary, or a deliberate chromatic neutral (see palette 2);
+- lightness: at least 15 points away from the primary;
+- saturation: 10 to 30 points below the primary, so it supports instead of competing.
+One construction per palette, so the three proposals are genuinely different offers:
+- Palette 1 — analogous: primary hue ±25-40°, deeper and calmer. The cohesive, safe option.
+- Palette 2 — chromatic neutral: the primary's hue held at 8-15% saturation and 20-30% lightness (a slate
+  or ink that carries the brand hue). The institutional option: it lets the logo colour stay the only
+  bright note on the page.
+- Palette 3 — split-complementary: primary hue +150° or +210°, at equal or lower saturation. The option
+  with the most tension; it must still pass the accent rules below.
+</secondary_construction>`
+    : `<secondary_handling>
+Both primary and secondary come from the logo and are LOCKED. Reproduce them exactly in the three
+palettes; only the accent, the background and the text change from one palette to the next.
+</secondary_handling>`;
+
+  const accentSection = `<accent_construction>
+- Palette 1: analogous (primary hue ±30°) or a deeper tone of the secondary (cohesive, safe).
 - Palette 2: split-complementary (hue +150° or +210°) (temperature shift).
 - Palette 3: complementary (hue +180°) or triadic (±120°) (bold contrast).
-- Accent saturation: 60-90%. Accent must read against background (≥ 3:1 contrast) and not clash with secondary (≥ 20° hue distance).
-</accent_construction>
+- Accent saturation: 60-90%. The accent must read against the background (≥ 3:1 contrast) and must not
+  clash with the secondary (≥ 20° hue distance).${
+    isMonochromeLogo
+      ? `
+- The accent is a THIRD colour: keep it at least 25° of hue away from the secondary you just built, so the
+  palette reads as three distinct voices and not as two shades of one.`
+      : ''
+  }
+</accent_construction>`;
+
+  const secondaryOutput = isMonochromeLogo ? '#... (built, never the primary)' : `${secondary}`;
+  const lockRule = isMonochromeLogo
+    ? `HARD CONSTRAINTS
+- "primary" MUST be exactly "${primary}" in all 3 palettes.
+- "secondary" MUST NOT equal "${primary}" — nor be a barely-shifted version of it (see the distance rules).
+- Within one palette, the 5 values must all be different from one another.
+- The 3 palettes must propose 3 DIFFERENT secondaries.`
+    : `HARD CONSTRAINTS
+- "primary" and "secondary" MUST be exactly "${primary}" and "${secondary}" in all 3 palettes.
+- Within one palette, the 5 values must all be different from one another.`;
+
+  return `<role>Senior brand identity color expert</role>
+<objective>Build 3 premium colour palettes around the colour${
+    logoColors.length > 1 ? 's' : ''
+  } extracted from the user's imported logo.</objective>
+
+<logo_context>
+LOGO COLORS: ${logoColors.length > 0 ? logoColors.join(', ') : primary}
+PRIMARY (LOCKED, from the logo): ${primary}
+${secondaryBrief}
+PROJECT DESCRIPTION: ${input.projectDescription}
+</logo_context>
+
+${secondarySection}
+
+${accentSection}
 
 <background_and_text>
 - Background: ALWAYS LIGHT, in all 3 palettes — near-white tinted 2-4% with the primary hue, HSL lightness ≥ 94%. Never a dark, black or mid-tone ground: these palettes drive printed deliverables and generated websites, which are light-surface by policy.
-- The locked colors must read on that light ground (≥ 3:1 contrast). If the logo's primary is too pale to hold up, raise the ACCENT's saturation — never darken the background.
+- The locked colours must read on that light ground (≥ 3:1 contrast). If the logo's primary is too pale to hold up, raise the ACCENT's saturation — never darken the background.
 - Text: near-black with a primary undertone, ≥ 7:1 contrast on the background.
 </background_and_text>
 
@@ -30,8 +106,8 @@ Return STRICT JSON only.
       "name": "French descriptive name",
       "url": "palette/[url-slug]",
       "colors": {
-        "primary": "{{PRIMARY_FROM_LOGO}}",
-        "secondary": "{{SECONDARY_FROM_LOGO}}",
+        "primary": "${primary}",
+        "secondary": "${secondaryOutput}",
         "accent": "#...",
         "background": "#...",
         "text": "#..."
@@ -40,9 +116,10 @@ Return STRICT JSON only.
     // ... 2 more unique palettes
   ]
 }
-Primary and secondary values in all 3 palettes MUST be exactly "{{PRIMARY_FROM_LOGO}}" and "{{SECONDARY_FROM_LOGO}}".
+${lockRule}
 </output_format>
 `;
+}
 
 export const TYPOGRAPHY_FROM_LOGO_PROMPT = `<role>Senior brand typographer</role>
 <objective>Propose 3 typography systems that complement the logo's visual style and the project identity. Output: strict JSON.</objective>

@@ -2,55 +2,60 @@
   type="button"
   (click)="onSelect()"
   [attr.aria-pressed]="isSelected()"
-  class="group relative w-full text-left p-4 rounded-xl border transition-all duration-300 cursor-pointer h-full flex flex-col gap-3 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-[var(--color-surface-1)]"
+  class="group relative w-full h-full text-left rounded-xl border overflow-hidden transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-[var(--color-surface-1)]"
   [class]="
     isSelected()
-      ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
-      : 'border-[var(--glass-border)] bg-[var(--glass-bg-light)] hover:border-[var(--glass-border-medium)]'
+      ? 'border-primary ring-1 ring-primary/30 shadow-sm'
+      : 'border-[var(--glass-border)] hover:border-[var(--glass-border-medium)] hover:shadow-sm'
   "
 >
-  <!-- Font Preview (Aa) -->
-  <div class="flex items-end gap-3 pb-3 border-b border-[var(--glass-border)]">
-    <span class="text-4xl leading-none text-text-primary" [style.fontFamily]="primaryStack()">
-      Aa
+  <!-- La page en miniature : c'est ÇA, l'allure. -->
+  <span class="block bg-[var(--color-surface-1)] px-5 pt-5 pb-4">
+    <span
+      class="block text-[9px] font-semibold uppercase tracking-[0.16em] text-text-tertiary truncate"
+      [style.fontFamily]="secondaryStack()"
+    >
+      {{ typography().name }}
     </span>
-    <span class="text-2xl leading-none text-text-tertiary" [style.fontFamily]="secondaryStack()">
-      Aa
+
+    <span
+      class="mt-2 text-3xl leading-[1.05] text-text-primary break-words line-clamp-2"
+      [style.fontFamily]="primaryStack()"
+    >
+      {{ sample() }}
     </span>
-  </div>
 
-  <!-- Font Names -->
-  <div class="flex flex-col gap-1">
-    <div class="flex items-center justify-between gap-2">
-      <span class="text-xs text-text-tertiary uppercase">Headings</span>
-      <span
-        class="text-sm text-text-primary font-medium truncate max-w-[120px]"
-        [title]="typography().primaryFont"
-      >
-        {{ typography().primaryFont }}
-      </span>
-    </div>
-    <div class="flex items-center justify-between gap-2">
-      <span class="text-xs text-text-tertiary uppercase">Body</span>
-      <span
-        class="text-sm text-text-secondary truncate max-w-[120px]"
-        [title]="typography().secondaryFont"
-      >
-        {{ typography().secondaryFont }}
-      </span>
-    </div>
-  </div>
+    <span class="block w-8 h-px my-3 bg-[var(--glass-border-medium,var(--glass-border))]"></span>
 
-  <!-- Selection Indicator -->
-  @if (isSelected()) {
-    <div class="absolute top-3 right-3 text-primary">
-      <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-        <path
-          fill-rule="evenodd"
-          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-          clip-rule="evenodd"
-        />
-      </svg>
-    </div>
-  }
+    <span
+      class="text-[13px] leading-relaxed text-text-secondary line-clamp-3"
+      [style.fontFamily]="secondaryStack()"
+    >
+      {{ rationale() || ('dashboard.typographySelection.preview.bodyText' | translate) }}
+    </span>
+  </span>
+
+  <!-- Les deux familles, en petit : l'information vient APRÈS l'image. -->
+  <span
+    class="flex items-center justify-between gap-2 px-5 py-2.5 border-t text-[11px] text-text-tertiary"
+    [class]="
+      isSelected()
+        ? 'border-primary/30 bg-primary/5'
+        : 'border-[var(--glass-border)] bg-[var(--glass-bg-subtle)]'
+    "
+  >
+    <span class="truncate">{{ typography().primaryFont }} + {{ typography().secondaryFont }}</span>
+    @if (isSelected()) {
+      <span class="flex items-center gap-1 text-primary font-medium shrink-0">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path
+            fill-rule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        {{ 'dashboard.typographySelection.gallery.chosen' | translate }}
+      </span>
+    }
+  </span>
 </button>

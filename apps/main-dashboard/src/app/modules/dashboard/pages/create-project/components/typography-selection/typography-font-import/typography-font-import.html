@@ -1,4 +1,21 @@
-<div class="flex flex-col gap-3 min-h-0">
+<div class="flex flex-col gap-3 min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-1">
+  <!-- En-tête : où je suis, et comment je reviens -->
+  <div class="flex items-center gap-2 shrink-0">
+    <button
+      type="button"
+      (click)="back.emit()"
+      class="p-1.5 -ml-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-[var(--glass-bg-light)] transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+      [attr.aria-label]="'dashboard.typographySelection.picker.back' | translate"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+      </svg>
+    </button>
+    <h3 class="text-base font-semibold text-text-primary truncate">
+      {{ 'dashboard.typographySelection.import.title' | translate }}
+    </h3>
+  </div>
+
   <!-- Dropzone -->
   <div
     (dragover)="onDragOver($event)"
@@ -129,60 +146,62 @@
     </div>
   }
 
-  <!-- Bibliothèque de l'utilisateur -->
+  <!-- Vos polices, composées avec le nom de la marque -->
   @if (fonts().length > 0) {
     <div class="flex flex-col gap-2">
-      <p class="text-[10px] uppercase tracking-wide text-text-tertiary font-bold">
-        {{ 'dashboard.typographySelection.import.libraryTitle' | translate }}
+      <p class="text-xs text-text-tertiary">
+        {{ 'dashboard.typographySelection.import.libraryTitle' | translate }} —
+        {{ titleKey() | translate }}
       </p>
-      <ul class="flex flex-col gap-2">
+      <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2">
         @for (font of fonts(); track font.id) {
+          <!-- Le bouton principal et la suppression sont FRÈRES : deux éléments
+               cliquables imbriqués cassent la navigation au clavier. -->
           <li
-            class="flex items-center justify-between gap-3 px-3 py-2 bg-[var(--glass-bg-light)] border border-[var(--glass-border)] rounded-lg"
+            class="relative rounded-lg border transition-colors"
+            [class]="
+              isCurrent(font)
+                ? 'border-primary bg-primary/5'
+                : 'border-[var(--glass-border)] bg-[var(--glass-bg-light)] hover:border-[var(--glass-border-medium)]'
+            "
           >
-            <div class="min-w-0">
-              <div class="text-text-primary text-base leading-snug truncate" [style.fontFamily]="stackFor(font)">
-                {{ font.family }}
-              </div>
-              <div class="text-text-tertiary text-xs mt-0.5">
+            <button
+              type="button"
+              (click)="use(font)"
+              [attr.aria-pressed]="isCurrent(font)"
+              class="w-full text-left px-4 py-3 pr-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <span
+                class="block text-2xl leading-tight text-text-primary truncate"
+                [style.fontFamily]="stackFor(font)"
+                >{{ sample() }}</span
+              >
+              <span class="block text-xs text-text-tertiary truncate mt-1.5">
+                {{ font.family }} ·
                 {{
-                  'dashboard.typographySelection.weightsCount' | translate: { count: font.weights.length }
+                  'dashboard.typographySelection.weightsCount'
+                    | translate: { count: font.weights.length }
                 }}
-              </div>
-            </div>
-            <div class="flex gap-2 shrink-0">
-              <button
-                type="button"
-                (click)="use(font, 'primary')"
-                class="px-3 py-1.5 text-xs font-medium rounded-md border bg-[var(--color-surface-2)] text-text-secondary border-[var(--glass-border)] hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                {{ 'dashboard.typographySelection.custom.setPrimary' | translate }}
-              </button>
-              <button
-                type="button"
-                (click)="use(font, 'secondary')"
-                class="px-3 py-1.5 text-xs font-medium rounded-md border bg-[var(--color-surface-2)] text-text-secondary border-[var(--glass-border)] hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                {{ 'dashboard.typographySelection.custom.setSecondary' | translate }}
-              </button>
-              <button
-                type="button"
-                (click)="remove(font)"
-                [attr.aria-label]="
-                  ('dashboard.typographySelection.import.delete' | translate) + ' — ' + font.family
-                "
-                class="p-1.5 rounded-md text-text-tertiary hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  ></path>
-                </svg>
-              </button>
-            </div>
+              </span>
+            </button>
+
+            <button
+              type="button"
+              (click)="remove($event, font)"
+              [attr.aria-label]="
+                ('dashboard.typographySelection.import.delete' | translate) + ' — ' + font.family
+              "
+              class="absolute top-2 right-2 p-1.5 rounded-md text-text-tertiary hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                ></path>
+              </svg>
+            </button>
           </li>
         }
       </ul>
