@@ -5,7 +5,12 @@ import { AI_CONFIG } from '../../config/ai.config';
 import { SvgToPsdService } from '../svgToPsd.service';
 import * as fs from 'fs-extra';
 
-import { BrandIdentityModel, ColorModel, TypographyModel } from '../../models/brand-identity.model';
+import {
+  BrandIdentityModel,
+  ColorModel,
+  FontSourceId,
+  TypographyModel,
+} from '../../models/brand-identity.model';
 import { LOGO_GENERATION_PROMPT } from './prompts/singleGenerations/00_logo-generation-section.prompt';
 import { LOGO_GENERATION_ICON_TYPE_PROMPT } from './prompts/singleGenerations/00_logo-generation-icon-type.prompt';
 import { LOGO_GENERATION_NAME_TYPE_PROMPT } from './prompts/singleGenerations/00_logo-generation-name-type.prompt';
@@ -109,9 +114,12 @@ import {
   pickWordmarkColor,
 } from './lockup/logoLockup.service';
 import { COLORS_GENERATION_PROMPT } from './prompts/singleGenerations/colors-generation.prompt';
+import { enforceLightSurfaceOnPalettes } from '../design/lightSurface';
+import { ensureDistinctRolesOnPalettes } from '../design/paletteRoles';
 import { TYPOGRAPHY_GENERATION_PROMPT } from './prompts/singleGenerations/typography-generation.prompt';
+import { fontCatalogService } from '../font-catalog.service';
 import {
-  COLORS_FROM_LOGO_PROMPT,
+  buildColorsFromLogoPrompt,
   TYPOGRAPHY_FROM_LOGO_PROMPT,
 } from './prompts/singleGenerations/colors-from-logo.prompt';
 import {
@@ -295,6 +303,24 @@ export interface ILogoVariationStreamEvent {
   svg?: string;
   critique?: LogoCritiqueResult;
   message?: string;
+}
+
+/**
+ * Ce que l'agent de typographie renvoie : des NOMS de familles, et la fonderie
+ * dont il pense qu'elles viennent. Ni l'un ni l'autre n'est garanti exact —
+ * `resolveTypographySources` confronte les deux au catalogue réel.
+ */
+interface RawTypographySet extends Omit<TypographyModel, 'primary' | 'secondary'> {
+  primarySource?: string;
+  secondarySource?: string;
+}
+
+/** Une source inventée par le modèle vaut « aucune préférence ». */
+function normalizeSource(raw?: string): FontSourceId | undefined {
+  const value = String(raw ?? '').toLowerCase().trim();
+  return (['google', 'fontshare', 'fontsource'] as const).includes(value as any)
+    ? (value as FontSourceId)
+    : undefined;
 }
 
 export class BrandingService extends GenericService {
@@ -1811,7 +1837,11 @@ export class BrandingService extends GenericService {
               `Expected colors array but got ${typeof colors}: ${JSON.stringify(colors).slice(0, 200)}`
             );
           }
-          return colors;
+          // Le fond clair est GARANTI ici, pas espéré du prompt : un seul fond
+          // sombre qui passe fait basculer la charte, les livrables et le site
+          // généré en thème sombre d'un bout à l'autre. Même doctrine pour la
+          // distinction des rôles.
+          return ensureDistinctRolesOnPalettes(enforceLightSurfaceOnPalettes(colors));
         },
         hasDependencies: false,
       },
@@ -1869,9 +1899,50 @@ export class BrandingService extends GenericService {
       BrandingService.TYPOGRAPHY_LLM_CONFIG
     );
     const typographyResult = sectionResults[0];
+    const sets = typographyResult.parsedData as RawTypographySet[];
 
     logger.info(`Typography generated successfully`);
-    return typographyResult.parsedData as TypographyModel[];
+    return this.resolveTypographySources(sets, project.userId);
+  }
+
+  /**
+   * Transforme les NOMS de familles proposés par l'agent en polices réellement
+   * chargeables.
+   *
+   * L'agent ne connaît que des noms ; le rendu, lui, a besoin d'une feuille de
+   * style. Tant qu'il n'y avait que Google, l'URL se devinait à partir du nom.
+   * Maintenant qu'une famille peut venir de Fontshare ou de Fontsource, il faut
+   * la retrouver dans son catalogue — et corriger la source quand l'agent s'est
+   * trompé, plutôt que d'émettre un lien qui ne chargerait rien.
+   */
+  private async resolveTypographySources(
+    sets: RawTypographySet[],
+    userId?: string
+  ): Promise<TypographyModel[]> {
+    return Promise.all(
+      (sets ?? []).map(async (set) => {
+        const [primary, secondary] = await Promise.all([
+          fontCatalogService.toBrandFont(set.primaryFont, normalizeSource(set.primarySource), userId),
+          fontCatalogService.toBrandFont(
+            set.secondaryFont,
+            normalizeSource(set.secondarySource),
+            userId
+          ),
+        ]);
+
+        return {
+          ...set,
+          primaryFont: primary.family,
+          secondaryFont: secondary.family,
+          primary,
+          secondary,
+          // Deux familles peuvent venir de deux catalogues : aucun href unique
+          // ne les couvre alors. `url` porte la feuille de la police de titre,
+          // et `brandFontLinks` émet de toute façon un lien par famille.
+          url: primary.cssUrl || set.url,
+        } as TypographyModel;
+      })
+    );
   }
 
   async generateColorsAndTypography(
@@ -2528,6 +2599,7 @@ export class BrandingService extends GenericService {
       const composed = await logoLockupService.compose(svg, {
         brandName,
         fontFamily,
+        fontCssUrl: typography?.primary?.cssUrl,
         fontWeight,
         letterSpacing: normalizeTracking(logoData.wordmarkTracking),
         wordmarkColor: pickWordmarkColor(
@@ -2551,7 +2623,14 @@ export class BrandingService extends GenericService {
       logger.warn('Lockup composition failed, keeping the model SVG with enforced typography');
     }
 
-    return { svg: await logoLockupService.outlineSvgText(svg, fontFamily, fontWeight) };
+    return {
+      svg: await logoLockupService.outlineSvgText(
+        svg,
+        fontFamily,
+        fontWeight,
+        typography?.primary?.cssUrl
+      ),
+    };
   }
 
   /**
@@ -5289,20 +5368,16 @@ ${description.slice(0, 3000)}`,
     // Ça garantit un prompt fiable même si le payload est réduit à l'id.
     const projectDescription = this.extractProjectDescription(createdProject);
 
-    // Determine primary, secondary colors and style hint from logo colors
-    const primaryColor = logoColors.length > 0 ? logoColors[0] : '#6a11cb';
-    const secondaryColor = logoColors.length > 1 ? logoColors[1] : primaryColor;
-    const logoColorsStr = logoColors.length > 0 ? logoColors.join(', ') : primaryColor;
+    // Le prompt distingue lui-même le logo monochrome du logo multicolore :
+    // recopier la primaire dans la secondaire, comme ici auparavant, revenait à
+    // demander au modèle une palette dont deux rôles sur cinq sont la même
+    // couleur. Voir `buildColorsFromLogoPrompt`.
+    const logoColorsStr = logoColors.length > 0 ? logoColors.join(', ') : '#6a11cb';
     const styleHint = this.inferStyleFromColors(logoColors);
 
-    // Build color prompt with logo colors injected (replace all occurrences)
-    const colorPrompt =
-      projectDescription +
-      '\n\n' +
-      COLORS_FROM_LOGO_PROMPT.replace(/\{\{LOGO_COLORS\}\}/g, logoColorsStr)
-        .replace(/\{\{PROJECT_DESCRIPTION\}\}/g, projectDescription)
-        .replace(/\{\{PRIMARY_FROM_LOGO\}\}/g, primaryColor)
-        .replace(/\{\{SECONDARY_FROM_LOGO\}\}/g, secondaryColor);
+    // Le constructeur porte déjà la description dans <logo_context> : la
+    // préfixer en plus la faisait figurer deux fois dans le même prompt.
+    const colorPrompt = buildColorsFromLogoPrompt({ projectDescription, logoColors });
 
     // Build typography prompt with logo context
     const typographyPrompt =
@@ -5489,7 +5564,11 @@ ${description.slice(0, 3000)}`,
             if (!Array.isArray(parsedColors.colors) || parsedColors.colors.length === 0) {
               throw new Error('Response JSON has no non-empty "colors" array');
             }
-            return parsedColors.colors;
+            // Fond clair ET rôles distincts : les deux sont garantis par le
+            // code, le prompt ne fait que les demander.
+            return ensureDistinctRolesOnPalettes(
+              enforceLightSurfaceOnPalettes(parsedColors.colors)
+            );
           } catch (error) {
             logger.error(`Error parsing logo-based colors:`, error);
             throw new Error(`Failed to parse logo-based colors`);
@@ -5544,7 +5623,13 @@ ${description.slice(0, 3000)}`,
       project,
       BrandingService.TYPOGRAPHY_LLM_CONFIG
     );
-    return sectionResults[0].parsedData as TypographyModel[];
+    // Même résolution que pour la génération sans logo : un NOM de famille ne
+    // suffit plus à charger une police depuis qu'elles ne viennent plus toutes
+    // de Google.
+    return this.resolveTypographySources(
+      sectionResults[0].parsedData as RawTypographySet[],
+      project.userId
+    );
   }
 
   /**

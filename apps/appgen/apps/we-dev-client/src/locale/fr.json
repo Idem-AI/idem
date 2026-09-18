@@ -946,5 +946,20 @@
     "cta": "Se connecter",
     "later": "Plus tard",
     "free": "La création de compte est gratuite et prend moins d'une minute."
+  },
+  "billing": {
+    "credits": "crédits iCode",
+    "creditsTitle": "{{used}} sur {{total}} crédits utilisés",
+    "locked": {
+      "title": "Ce projet n’est pas encore débloqué",
+      "body": "Générer est gratuit. Télécharger le code, l’envoyer sur GitHub ou le déployer supposent le Pass Projet.",
+      "cta": "Débloquer ce projet",
+      "missingProject": "Ouvrez ce projet depuis votre tableau de bord IDEM pour pouvoir le débloquer."
+    },
+    "noCredits": {
+      "title": "Crédits iCode insuffisants",
+      "body": "Il vous manque {{missing}} crédits pour cette action.",
+      "cta": "Recharger"
+    }
   }
 }

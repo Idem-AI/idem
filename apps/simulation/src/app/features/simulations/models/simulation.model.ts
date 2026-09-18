@@ -151,4 +151,11 @@ export interface CreateSimulationInput {
   understanding?: ProjectUnderstanding;
   /** Sans lui, l'API refuse le lancement (403). */
   consent: SimulationConsent;
+  /**
+   * Référence du paiement qui ouvre cette exécution.
+   *
+   * Une simulation se paie à l'acte : un règlement lance une exécution, et
+   * une seule. L'API consomme la référence au lancement.
+   */
+  paymentReference?: string;
 }

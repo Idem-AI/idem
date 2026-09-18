@@ -11,6 +11,7 @@ import {
 } from '../controllers/businessCard.controller';
 import { authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
+import { firstThenRevision, requireCredits } from '../middleware/billing.middleware';
 
 export const businessCardRoutes = Router();
 
@@ -46,6 +47,10 @@ businessCardRoutes.post(
   authenticate,
   extendedTimeout,
   checkQuota,
+  // 10 crédits pour le modèle de carte ; le régénérer coûte une révision.
+  requireCredits('business', 'business_card', {
+    resolve: firstThenRevision('business', 'business_card', 'revision'),
+  }),
   generateBusinessCardTemplateController
 );
 
@@ -76,6 +81,7 @@ businessCardRoutes.post(
   authenticate,
   extendedTimeout,
   checkQuota,
+  requireCredits('business', 'revision'),
   aiEditBusinessCardSectionController
 );
 

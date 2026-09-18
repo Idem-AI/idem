@@ -19,6 +19,7 @@ import {
 import { authenticate } from '../services/auth.service';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
 import { checkQuota } from '../middleware/quota.middleware';
+import { firstThenRevision, requireCredits } from '../middleware/billing.middleware';
 
 export const communicationRoutes = Router();
 
@@ -72,6 +73,8 @@ communicationRoutes.post(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  // Préparation interne, facturée au prix d'une révision.
+  requireCredits('business', 'revision'),
   extractContextController
 );
 
@@ -101,6 +104,10 @@ communicationRoutes.get(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  // Stratégie de communication complète : 40 crédits au barème.
+  requireCredits('business', 'communication_strategy', {
+    resolve: firstThenRevision('business', 'communication_strategy', 'revision'),
+  }),
   generateStrategyStreamController
 );
 
@@ -131,6 +138,10 @@ communicationRoutes.get(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  // Calendrier éditorial mensuel : 15 crédits.
+  requireCredits('business', 'editorial_calendar', {
+    resolve: firstThenRevision('business', 'editorial_calendar', 'revision'),
+  }),
   generateCalendarStreamController
 );
 
@@ -183,6 +194,7 @@ communicationRoutes.get(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  requireCredits('business', 'revision'),
   getMomentSuggestionsController
 );
 
@@ -212,6 +224,7 @@ communicationRoutes.post(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  requireCredits('business', 'revision'),
   createMomentController
 );
 
@@ -239,6 +252,9 @@ communicationRoutes.post(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  // 2 crédits : le flyer repose sur un moteur de templates, pas sur une
+  // génération d'image — c'est ce qui permet un visuel à 40 F.
+  requireCredits('business', 'flyer'),
   generateFlyerController
 );
 
@@ -255,6 +271,7 @@ communicationRoutes.post(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  requireCredits('business', 'flyer'),
   regenerateFlyerController
 );
 
@@ -302,6 +319,7 @@ communicationRoutes.post(
   extendedTimeout,
   checkPolicyAcceptance,
   checkQuota,
+  requireCredits('business', 'revision'),
   aiEditFlyerController
 );
 

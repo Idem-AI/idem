@@ -61,22 +61,10 @@ class SubscriptionDashboard extends Component
 
         $team = auth()->user()->currentTeam();
 
-        // Check if Stripe is enabled
-        if (config('idem.stripe.enabled')) {
-            // Create checkout session
-            $result = $this->stripeService->createCheckoutSession($team, $this->selectedPlan);
-            
-            if ($result['success']) {
-                // Redirect to Stripe checkout via JavaScript
-                $this->dispatch('redirect-to-stripe', url: $result['checkout_url']);
-                return;
-            } else {
-                $this->dispatch('error', $result['message']);
-            }
-        } else {
-            // Direct plan change (no payment)
-            $result = $this->subscriptionService->changePlan($team, $this->selectedPlan);
-            
+        // Le plan gratuit ne se paie pas : on l'applique sur place.
+        if ($this->selectedPlan === 'hobby') {
+            $result = $this->subscriptionService->changePlan($team, 'hobby');
+
             if ($result['success']) {
                 $this->dispatch('success', $result['message']);
                 $this->loadData();
@@ -84,7 +72,33 @@ class SubscriptionDashboard extends Component
             } else {
                 $this->dispatch('error', $result['message']);
             }
+
+            return null;
         }
+
+        /**
+         * Tout ce qui se paie passe par la facturation IDEM.
+         *
+         * Stripe n'encaisse pas le Mobile Money, qui est le moyen de paiement
+         * de nos clients. Et surtout : deux interfaces de paiement, ce sont
+         * deux journaux de transactions à rapprocher le jour où un client
+         * conteste un débit. Le plan revient ensuite par la synchronisation,
+         * une fois le règlement confirmé — jamais avant.
+         */
+        return redirect()->away($this->idemCheckoutUrl($this->selectedPlan));
+    }
+
+    /** Adresse de paiement IDEM pour un plan iDeploy, avec retour sur cette page. */
+    private function idemCheckoutUrl(string $planName): string
+    {
+        $query = http_build_query([
+            'product' => 'ideploy-' . $planName,
+            'engine' => 'ideploy',
+            'app' => 'ideploy',
+            'returnUrl' => route('idem.subscription'),
+        ]);
+
+        return rtrim(config('idem.dashboard_url'), '/') . '/billing/checkout?' . $query;
     }
 
     public function cancelSubscription()

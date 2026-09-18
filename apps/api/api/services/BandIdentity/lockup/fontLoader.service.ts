@@ -2,10 +2,11 @@ import axios from 'axios';
 import * as opentype from 'opentype.js';
 import logger from '../../../config/logger';
 import { cacheService } from '../../cache.service';
+import { fontCatalogService } from '../../font-catalog.service';
 
 /**
- * Charge le VRAI fichier de police choisi par l'utilisateur (Google Fonts) et
- * l'expose parsé, avec ses métriques réelles.
+ * Charge le VRAI fichier de police choisi par l'utilisateur et l'expose parsé,
+ * avec ses métriques réelles.
  *
  * Pourquoi : un `font-family="Poppins"` dans un SVG ne garantit rien. Le rendu
  * final passe par librsvg (sharp → PNG), par `<img src="…svg">` ou par un PDF —
@@ -16,6 +17,16 @@ import { cacheService } from '../../cache.service';
  * En chargeant le .ttf ici, on peut mesurer exactement le mot (largeur d'encre,
  * hauteur de capitale, jambages) puis le vectoriser : le logo devient
  * autoportant, identique partout, sans dépendance de police.
+ *
+ * La police n'est plus forcément chez Google : depuis l'ouverture aux autres
+ * fonderies et à l'import, l'appelant passe la FEUILLE de la famille, dans
+ * laquelle on cherche le fichier vectorisable. Google reste le repli quand on
+ * ne connaît qu'un nom — c'est le seul catalogue adressable ainsi.
+ *
+ * Toutes les fonderies ne servent pas du TrueType : Fontsource ne publie que du
+ * WOFF/WOFF2, qu'`opentype.js` ne sait pas décompresser, et un utilisateur peut
+ * n'avoir importé que du WOFF2. Le lockup retombe alors sur son rendu `<text>`
+ * dégradé, exactement comme lorsqu'une famille Google est indisponible.
  */
 
 const GOOGLE_FONTS_CSS_API = 'https://fonts.googleapis.com/css2';
@@ -59,7 +70,7 @@ export class FontLoaderService {
    * Renvoie la police parsée, ou `null` si elle est introuvable / le réseau est
    * indisponible. L'appelant doit alors basculer sur un rendu `<text>` dégradé.
    */
-  async load(family: string, weight = 700): Promise<LoadedFont | null> {
+  async load(family: string, weight = 700, cssUrl?: string): Promise<LoadedFont | null> {
     const normalizedFamily = normalizeFamily(family);
     if (!normalizedFamily) return null;
 
@@ -75,7 +86,7 @@ export class FontLoaderService {
     const pending = this.inFlight.get(key);
     if (pending) return pending;
 
-    const task = this.resolve(normalizedFamily, normalizedWeight, key).finally(() => {
+    const task = this.resolve(normalizedFamily, normalizedWeight, key, cssUrl).finally(() => {
       this.inFlight.delete(key);
     });
     this.inFlight.set(key, task);
@@ -85,10 +96,11 @@ export class FontLoaderService {
   private async resolve(
     family: string,
     weight: number,
-    key: string
+    key: string,
+    cssUrl?: string
   ): Promise<LoadedFont | null> {
     try {
-      const buffer = await this.fetchFontBinary(family, weight);
+      const buffer = await this.fetchFontBinary(family, weight, cssUrl);
       if (!buffer) {
         this.failures.set(key, Date.now());
         return null;
@@ -114,8 +126,12 @@ export class FontLoaderService {
     }
   }
 
-  /** Redis d'abord (partagé entre instances), Google ensuite. */
-  private async fetchFontBinary(family: string, weight: number): Promise<Buffer | null> {
+  /** Redis d'abord (partagé entre instances), la fonderie ensuite. */
+  private async fetchFontBinary(
+    family: string,
+    weight: number,
+    cssUrl?: string
+  ): Promise<Buffer | null> {
     const cacheKey = `${family.toLowerCase().replace(/\s+/g, '-')}-${weight}`;
 
     const cached = await cacheService
@@ -125,7 +141,7 @@ export class FontLoaderService {
       return Buffer.from(cached, 'base64');
     }
 
-    const fileUrl = await this.resolveFontFileUrl(family, weight);
+    const fileUrl = await this.resolveFontFileUrl(family, weight, cssUrl);
     if (!fileUrl) return null;
 
     const response = await axios.get<ArrayBuffer>(fileUrl, {
@@ -147,11 +163,29 @@ export class FontLoaderService {
   }
 
   /**
-   * Interroge l'API CSS de Google et extrait l'URL du .ttf. La graisse demandée
-   * peut ne pas exister dans la famille : on retombe sur les graisses voisines,
-   * puis sur la famille sans contrainte de graisse.
+   * L'URL du fichier vectorisable de la famille.
+   *
+   * La feuille fournie par l'appelant est consultée d'abord : c'est la seule
+   * qui connaisse une police importée ou venue d'une autre fonderie. À défaut,
+   * on interroge le catalogue par le nom — ce qui rattrape les projets d'avant
+   * l'ouverture aux autres sources, dont la typographie ne porte pas encore sa
+   * feuille. Google reste le dernier recours.
    */
-  private async resolveFontFileUrl(family: string, weight: number): Promise<string | null> {
+  private async resolveFontFileUrl(
+    family: string,
+    weight: number,
+    cssUrl?: string
+  ): Promise<string | null> {
+    const stylesheet = cssUrl ?? (await this.lookupStylesheet(family));
+    if (stylesheet) {
+      const fileUrl = await this.fileUrlFromStylesheet(stylesheet);
+      if (fileUrl) return fileUrl;
+      logger.warn(
+        `No vectorisable font file (TTF/OTF) in the stylesheet for "${family}" — ` +
+          'the wordmark will fall back to <text>.'
+      );
+    }
+
     const encodedFamily = encodeURIComponent(family).replace(/%20/g, '+');
     const candidates = [
       ...new Set([weight, ...WEIGHT_FALLBACKS]),
@@ -159,21 +193,44 @@ export class FontLoaderService {
     candidates.push(`${GOOGLE_FONTS_CSS_API}?family=${encodedFamily}`);
 
     for (const url of candidates) {
-      try {
-        const response = await axios.get<string>(url, {
-          timeout: REQUEST_TIMEOUT_MS,
-          responseType: 'text',
-          headers: { 'User-Agent': NEUTRAL_UA },
-        });
-        const fileUrl = extractTtfUrl(String(response.data));
-        if (fileUrl) return fileUrl;
-      } catch {
-        // 400/404 = cette graisse n'existe pas dans la famille : on continue.
-      }
+      const fileUrl = await this.fileUrlFromStylesheet(url);
+      if (fileUrl) return fileUrl;
     }
 
-    logger.warn(`No downloadable TTF found on Google Fonts for "${family}"`);
+    logger.warn(`No downloadable TTF found for "${family}"`);
     return null;
+  }
+
+  /** La feuille d'une famille connue seulement par son nom, via le catalogue. */
+  private async lookupStylesheet(family: string): Promise<string | null> {
+    try {
+      const found = await fontCatalogService.resolve(family);
+      // Une famille Google n'a rien à gagner à passer par sa feuille : le
+      // chemin historique gère déjà le repli de graisse.
+      return found && found.source !== 'google' ? found.cssUrl : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Télécharge une feuille et en extrait le premier fichier vectorisable.
+   *
+   * L'UA neutre est essentiel : servie à un navigateur moderne, la même URL
+   * renvoie du WOFF2, qu'`opentype.js` ne sait pas lire.
+   */
+  private async fileUrlFromStylesheet(url: string): Promise<string | null> {
+    try {
+      const response = await axios.get<string>(url, {
+        timeout: REQUEST_TIMEOUT_MS,
+        responseType: 'text',
+        headers: { 'User-Agent': NEUTRAL_UA },
+      });
+      return extractFontFileUrl(String(response.data));
+    } catch {
+      // 400/404 = cette graisse n'existe pas dans la famille : on continue.
+      return null;
+    }
   }
 }
 
@@ -192,10 +249,18 @@ function normalizeWeight(weight: number): number {
   return Math.min(900, Math.max(100, Math.round(weight / 100) * 100));
 }
 
-/** `src: url(https://…ttf) format('truetype')` → l'URL. */
-function extractTtfUrl(css: string): string | null {
-  const match = css.match(/url\((https:\/\/[^)]+\.ttf)\)/i);
-  return match ? match[1] : null;
+/**
+ * `src: url(https://…ttf)` → l'URL.
+ *
+ * Seuls TrueType et OpenType sont retenus : ce sont les deux formats
+ * qu'`opentype.js` parse. Les guillemets sont optionnels (Google n'en met pas,
+ * Fontshare et notre propre feuille en mettent), et une URL protocole-relative
+ * (`//cdn…`, la forme de Fontshare) est ramenée en HTTPS.
+ */
+function extractFontFileUrl(css: string): string | null {
+  const match = css.match(/url\(\s*['"]?((?:https:)?\/\/[^)'"]+\.(?:ttf|otf))['"]?\s*\)/i);
+  if (!match) return null;
+  return match[1].startsWith('//') ? `https:${match[1]}` : match[1];
 }
 
 /**

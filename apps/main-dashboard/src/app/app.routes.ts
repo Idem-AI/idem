@@ -47,6 +47,42 @@ export const routes: Routes = [
   },
 
   // ============================================
+  // FACTURATION (layout: 'global')
+  // ============================================
+  {
+    path: 'billing',
+    title: 'billing.overview.title',
+    loadComponent: () =>
+      import('./modules/billing/pages/billing-overview/billing-overview').then(
+        (m) => m.BillingOverviewPage,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'global' },
+  },
+  {
+    path: 'billing/plans',
+    title: 'billing.plans.title',
+    loadComponent: () =>
+      import('./modules/billing/pages/billing-plans/billing-plans').then((m) => m.BillingPlansPage),
+    canActivate: [authGuard],
+    data: { layout: 'global' },
+  },
+  // Page de paiement partagée : AppGen, Simulation et iDeploy y renvoient avec
+  // un code produit et une adresse de retour filtrée.
+  {
+    path: 'billing/checkout',
+    title: 'billing.checkout.title',
+    loadComponent: () =>
+      import('./modules/billing/pages/billing-checkout-page/billing-checkout-page').then(
+        (m) => m.BillingCheckoutPage,
+      ),
+    canActivate: [authGuard],
+    // Sans chrome : payer est une tâche qu'on termine, pas un endroit d'où
+    // l'on navigue. Tout ce qui invite à partir travaille contre.
+    data: { layout: 'bare' },
+  },
+
+  // ============================================
   // ONBOARDING (layout: 'empty')
   // ============================================
   {

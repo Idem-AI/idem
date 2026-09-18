@@ -8,6 +8,7 @@ import {
 import { authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
+import { requireCredits } from '../middleware/billing.middleware';
 
 export const advisorRoutes = Router();
 const resourceName = 'advisor';
@@ -28,6 +29,8 @@ advisorRoutes.post(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  // Un échange avec le conseiller vaut une révision au barème iBusiness.
+  requireCredits('business', 'revision'),
   sendAdvisorMessageController
 );
 

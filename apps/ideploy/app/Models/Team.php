@@ -44,6 +44,12 @@ class Team extends Model implements SendsDiscord, SendsEmail, SendsPushover, Sen
 
     protected $casts = [
         'personal_team' => 'boolean',
+        // Services managés activés pour l'équipe, écrits par l'API IDEM au
+        // moment du paiement. Sans ce cast, la colonne JSON revient en chaîne
+        // et chaque lecture devrait la décoder à la main.
+        'idem_addons' => 'array',
+        'idem_subscription_started_at' => 'datetime',
+        'idem_subscription_expires_at' => 'datetime',
     ];
 
     protected static function booted()

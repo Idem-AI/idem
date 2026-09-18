@@ -51,10 +51,47 @@ export interface ArtDirectionModel {
 export interface TypographyModel {
   id: string;
   name: string;
+  /**
+   * Feuille de style qui charge RÉELLEMENT les deux familles : lien du
+   * catalogue retenu (Google, Fontshare, Fontsource) ou, pour une police
+   * importée par l'utilisateur, le `@font-face` servi depuis notre bucket.
+   */
   url?: string;
   primaryFont: string;
   secondaryFont: string;
   description?: string;
+  /** Une phrase de l'agent : ce que cet appariement dit de la marque. */
+  rationale?: string;
+  /** D'où viennent les deux familles, et comment les charger. */
+  primary?: BrandFont;
+  secondary?: BrandFont;
+}
+
+/** Cf. api/models/brand-identity.model.ts. */
+export type FontSourceId = 'google' | 'fontshare' | 'fontsource' | 'custom';
+
+export interface BrandFontFile {
+  url: string;
+  filePath?: string;
+  weight: number;
+  style: 'normal' | 'italic';
+  format: 'woff2' | 'woff' | 'ttf' | 'otf';
+}
+
+/**
+ * Une famille retenue pour la marque, avec de quoi la charger n'importe où.
+ *
+ * `cssUrl` suffit à l'afficher : quelle que soit la source, il pointe sur une
+ * feuille qui déclare la famille sous le nom porté par `family`.
+ */
+export interface BrandFont {
+  family: string;
+  source: FontSourceId;
+  cssUrl?: string;
+  category?: string;
+  weights?: number[];
+  customFontId?: string;
+  files?: BrandFontFile[];
 }
 
 export interface ColorModel {

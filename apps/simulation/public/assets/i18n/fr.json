@@ -159,6 +159,15 @@
       "duration": "Quelques minutes. L'exécution continue si vous fermez la page, et rien n'est retenu si elle échoue.",
       "changeTier": "Changer de niveau",
       "knowledge": "Ce sur quoi le moteur s'appuiera :"
+    },
+    "payment": {
+      "heading": "Paiement",
+      "lead": "Cette simulation se règle avant le lancement.",
+      "pay": "Payer et lancer",
+      "redirecting": "Ouverture du paiement sécurisé…",
+      "confirmed": "Paiement confirmé. Votre simulation peut démarrer.",
+      "failed": "Le paiement n'a pas abouti. Vous pouvez réessayer, rien n'a été débité.",
+      "reused": "Ce règlement a déjà lancé une simulation. Un nouveau paiement est nécessaire."
     }
   },
   "tier": {

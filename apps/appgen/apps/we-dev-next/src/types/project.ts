@@ -148,6 +148,14 @@ export interface ChatRequest {
   };
   tools?: ToolInfo[];
   projectData?: ProjectModel;
+  /**
+   * Projet IDEM rattaché à cette génération.
+   *
+   * Sert au barème : il relie la consommation de crédits au projet, et permet
+   * de vérifier qu'un projet est bien débloqué. Absent pour une génération
+   * lancée hors d'un projet.
+   */
+  projectId?: string;
   /** User UI language ('en' | 'fr') so the AI generates content in the right language. */
   language?: string;
   /**

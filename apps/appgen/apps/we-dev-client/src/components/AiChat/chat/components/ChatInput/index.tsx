@@ -389,7 +389,10 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
   }, [showMentionMenu, updateMentionPosition]);
 
   return (
-    <div className="px-1 py-2 ">
+    // `shrink-0` : sans lui, la zone de saisie se fait comprimer par la
+    // conversation quand la colonne manque de place, au lieu de garder sa
+    // hauteur et de laisser les messages défiler.
+    <div className="shrink-0 px-1 py-2 ">
       <div className="max-w-[640px] w-full mx-auto bg-surface-1">
         <ErrorDisplay
           errors={errors}

@@ -57,7 +57,16 @@ export interface DocumentDesignSystem {
   };
   /** Contrastes réellement obtenus, pour journalisation et vérification. */
   contrast: { inkOnSurface: number; mutedOnSurface: number; inkOnAccent: number };
-  fonts: { display: string; body: string };
+  /**
+   * Les deux familles de la marque, et LA FEUILLE qui les charge.
+   *
+   * `display`/`body` ne sont que des noms : ils suffisaient tant que toute
+   * police venait de Google, où l'URL se déduit du nom. Une famille Fontshare,
+   * Fontsource ou importée par l'utilisateur n'est adressable que par sa
+   * feuille — sans elle, le document sort en police système sans la moindre
+   * erreur.
+   */
+  fonts: { display: string; body: string; displayCss?: string; bodyCss?: string };
   /** Échelle typographique en px, dérivée du ratio du style. */
   typeScale: Record<'xs' | 'sm' | 'base' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl', number>;
   /** Rayon en px, le même partout dans le livrable. */
@@ -168,7 +177,13 @@ export interface BrandCharter {
       text?: string;
     };
   };
-  typography?: { primaryFont?: string; secondaryFont?: string };
+  typography?: {
+    primaryFont?: string;
+    secondaryFont?: string;
+    /** Descripteurs de source, cf. `BrandFontModel` : porteurs de la feuille. */
+    primary?: { family?: string; source?: string; cssUrl?: string } | null;
+    secondary?: { family?: string; source?: string; cssUrl?: string } | null;
+  };
 }
 
 /**
@@ -195,17 +210,18 @@ export function buildDocumentDesignSystem(
   const brandHue = hexToOklch(primary)?.h ?? 220;
   const neutral = buildNeutralRamp(brandHue);
 
-  // Le style impose le fond. `either` laisse la main à la charte, qui a le
-  // dernier mot sur son propre fond.
+  // La CHARTE impose le fond, jamais le style.
+  //
+  // `style.surface === 'dark'` forçait le noir auparavant : un projet dont la
+  // palette est claire ressortait en thème sombre parce que le directeur
+  // artistique avait retenu un style sombre, et la charte n'avait plus la main
+  // sur son propre fond. Les styles sombres sont désormais hors sélection
+  // (`SELECTABLE_ART_DIRECTION_STYLE_IDS`), mais les projets antérieurs en
+  // portent encore un : c'est ici qu'ils cessent de basculer la page.
   const charterBackground = firstHex(charter?.colors?.colors?.background);
-  const dark =
-    style.surface === 'dark'
-      ? true
-      : style.surface === 'light'
-        ? false
-        : charterBackground
-          ? relativeLuminance(hexToRgb(charterBackground) ?? { r: 1, g: 1, b: 1 }) < 0.35
-          : false;
+  const dark = charterBackground
+    ? relativeLuminance(hexToRgb(charterBackground) ?? { r: 1, g: 1, b: 1 }) < 0.35
+    : false;
 
   const surface = dark
     ? (charterBackground && relativeLuminance(hexToRgb(charterBackground)!) < 0.35
@@ -256,6 +272,8 @@ export function buildDocumentDesignSystem(
     fonts: {
       display: charter?.typography?.primaryFont?.trim() || 'Georgia',
       body: charter?.typography?.secondaryFont?.trim() || 'Helvetica Neue',
+      displayCss: charter?.typography?.primary?.cssUrl,
+      bodyCss: charter?.typography?.secondary?.cssUrl,
     },
     // Jamais sous 1.25 : une échelle plate donne une page qui paraît inachevée.
     typeScale: buildTypeScale(Math.max(1.25, style.typeRatio)),

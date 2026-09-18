@@ -63,7 +63,7 @@ ${
 1. Name, to yourself, what this brand actually SELLS — not its industry, its promise (trust, speed, warmth, rigour, status, accessibility).
 2. Eliminate the styles that contradict that promise. An audit firm cannot be Y2K; a festival brand cannot be Swiss Design.
 3. Among those left, keep the one that makes the brand RECOGNISABLE against its direct competitors — not the one that makes it look like the average of its sector.
-4. Check compatibility with the already-approved palette and typography: a style that mandates a dark ground paired with an entirely light palette is a bad pick, so change style (the palette itself never changes).
+4. Check compatibility with the already-approved palette and typography: every deliverable is composed on a LIGHT ground, so pick a style whose grammar holds up there (the palette itself never changes).
 5. Never keep a style "because it is safe". Minimalism chosen by default, with no reason specific to this brand, is the worst pick of all: it is the average wearing the costume of a stance.
 </how_to_choose>
 

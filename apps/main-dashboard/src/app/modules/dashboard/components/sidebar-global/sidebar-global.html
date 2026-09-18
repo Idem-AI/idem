@@ -33,7 +33,12 @@
           <img
             src="/assets/icons/logo_white.png"
             [alt]="'dashboard.sidebarGlobal.logoAlt' | translate"
-            class="sm:w-[120px] w-[50px] h-auto invert hue-rotate-180 dark:invert-0 dark:hue-rotate-0"
+            class="sm:w-[120px] w-[50px] h-auto dark:hidden"
+          />
+          <img
+            src="/assets/icons/logo_dark.png"
+            [alt]="'dashboard.sidebarGlobal.logoAlt' | translate"
+            class="sm:w-[120px] w-[50px] h-auto hidden dark:block"
           />
           <app-beta-badge></app-beta-badge>
         </a>
@@ -43,6 +48,11 @@
     <!-- Right section -->
     <div class="flex items-center gap-4">
       @if (user()) {
+        <!-- Crédits : ce que l'utilisateur dépense en générant. -->
+        <div class="hidden md:block">
+          <app-credits-badge />
+        </div>
+
         <!-- Quota Display - Desktop only -->
         <div class="hidden md:block">
           <app-quota-display
@@ -221,7 +231,12 @@
           <img
             src="/assets/icons/logo_white.png"
             [alt]="'dashboard.sidebarGlobal.logoAlt' | translate"
-            class="w-24 h-auto invert hue-rotate-180 dark:invert-0 dark:hue-rotate-0"
+            class="w-24 h-auto dark:hidden"
+          />
+          <img
+            src="/assets/icons/logo_dark.png"
+            [alt]="'dashboard.sidebarGlobal.logoAlt' | translate"
+            class="w-24 h-auto hidden dark:block"
           />
           <app-beta-badge></app-beta-badge>
         </a>
@@ -241,6 +256,9 @@
         <!-- Mobile Quota Display -->
         @if (user()) {
           <div class="pb-4 border-b border-[var(--glass-border)]">
+            <div class="mb-3">
+              <app-credits-badge />
+            </div>
             <app-quota-display
               [quotaInfo]="quotaInfo() ?? null"
               [quotaDisplay]="quotaDisplay() ?? null"

@@ -260,11 +260,18 @@ export function forgeDesignSystem(
       : 'light'
     : null;
 
+  // Light by default, and a brand's own background is the only thing that can
+  // ask for dark. Without this, a seeded pick landing on a dark direction
+  // turned a perfectly light brand's site black — nobody had asked for it, and
+  // there was no way to tell why one project came out dark and the next did
+  // not. A brand that genuinely wants dark says so through its background.
+  const targetPolarity = brandPolarity ?? 'light';
+
   const candidates = ART_DIRECTIONS.filter(
     (direction) =>
       direction.registers.includes(register) &&
       // Keep only directions whose surface polarity matches the brand's.
-      (!brandPolarity || direction.surface === brandPolarity)
+      direction.surface === targetPolarity
   );
 
   const usable = candidates.length

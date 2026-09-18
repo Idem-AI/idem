@@ -19,6 +19,14 @@
     <app-guided-layout>
       <router-outlet (activate)="resetPosition()"></router-outlet>
     </app-guided-layout>
+  } @else if (layout === 'bare') {
+    <!--
+      Aucune chrome : ni barre, ni menu, ni sélecteur. `empty` n'est pas vide —
+      il porte une navigation complète — et le paiement doit rester le seul
+      élément à l'écran. Rendre cette barre conditionnelle selon l'URL aurait
+      couplé une disposition aux routes qu'elle sert.
+    -->
+    <router-outlet (activate)="resetPosition()"></router-outlet>
   }
 }
 
@@ -30,3 +38,14 @@
 
 <!-- Avertissement de quota -->
 <app-quota-warning></app-quota-warning>
+
+<!--
+  Paywall : monté une seule fois pour toute l'application.
+
+  Un refus de l'API pour crédits insuffisants arrive au milieu d'un appel HTTP,
+  souvent déclenché par un service et non par la page affichée. L'hôte est donc
+  ici, à la racine : l'utilisateur voit ce qui manque et peut payer sans quitter
+  son écran de travail.
+-->
+<app-paywall-host />
+
