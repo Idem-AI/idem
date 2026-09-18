@@ -20,6 +20,7 @@ import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
 import { requireSimulationConsent } from '../middleware/simulationConsent.middleware';
 import { isAcceptedDocument } from '../services/Simulation/document-intake';
 import { checkQuota } from '../middleware/quota.middleware';
+import { requireSimulationPayment } from '../middleware/billing.middleware';
 import { authenticate } from '../services/auth.service';
 
 export const simulationRoutes = Router();
@@ -119,6 +120,9 @@ simulationRoutes.post(
   // qu'on n'a pas. La vérification par projet renvoyait un 400 sur ce parcours.
   requireSimulationConsent,
   checkQuota,
+  // Après l'accord et la validation : on ne réserve pas un paiement pour une
+  // requête qui sera refusée sur un champ manquant.
+  requireSimulationPayment(),
   createSimulationFromDocumentController
 );
 
@@ -222,6 +226,7 @@ simulationRoutes.post(
   // à plusieurs modèles, l'accord se redonne à chaque lancement.
   requireSimulationConsent,
   checkQuota,
+  requireSimulationPayment(),
   createSimulationController
 );
 

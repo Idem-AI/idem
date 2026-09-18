@@ -194,7 +194,7 @@ export class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <img src="https://idem.africa/assets/icons/logo_white.webp" alt="Idem AI" class="logo">
+            <img src="https://idem.africa/assets/icons/logo_dark.png" alt="Idem AI" class="logo">
             <h1>Nouveau Message de Contact</h1>
             <p>Un nouveau message a été reçu via le formulaire de contact</p>
           </div>
@@ -254,7 +254,7 @@ export class EmailService {
           </div>
 
           <div class="footer">
-            <img src="https://idem.africa/assets/icons/logo_white.webp" alt="Idem AI" class="footer-logo">
+            <img src="https://idem.africa/assets/icons/logo_dark.png" alt="Idem AI" class="footer-logo">
             <p>Ce message a été envoyé automatiquement depuis le site web Idem AI</p>
             <p class="brand">Idem AI - L'Intelligence Artificielle Souveraine d'Afrique</p>
           </div>
@@ -563,7 +563,7 @@ Ce message a été envoyé automatiquement depuis le site web Idem AI.
       <body>
         <div class="container">
           <div class="header">
-            <img src="https://idem.africa/assets/icons/logo_white.webp" alt="Idem AI" class="logo">
+            <img src="https://idem.africa/assets/icons/logo_dark.png" alt="Idem AI" class="logo">
             <h1>Merci pour votre message</h1>
             <p>Nous avons bien reçu ${subjectText}</p>
           </div>
@@ -619,7 +619,7 @@ Ce message a été envoyé automatiquement depuis le site web Idem AI.
           </div>
 
           <div class="footer">
-            <img src="https://idem.africa/assets/icons/logo_white.webp" alt="Idem AI" class="footer-logo">
+            <img src="https://idem.africa/assets/icons/logo_dark.png" alt="Idem AI" class="footer-logo">
             <p class="contact-info">contact@idem.africa | idem.africa</p>
             <p>Douala, Cameroun</p>
           </div>

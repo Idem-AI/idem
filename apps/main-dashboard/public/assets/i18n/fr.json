@@ -46,7 +46,8 @@
     "changeLanguage": "Changer de langue",
     "continue": "Continuer",
     "apply": "Appliquer",
-    "reset": "Réinitialiser"
+    "reset": "Réinitialiser",
+    "close": "Fermer"
   },
   "dashboard": {
     "createDevelopment": {
@@ -898,8 +899,8 @@
       }
     },
     "typographySelection": {
-      "title": "Sélection de la typographie",
-      "subtitle": "Choisissez la typographie parfaite qui reflète la personnalité de votre marque et améliore la lisibilité.",
+      "title": "Quelle allure pour votre marque ?",
+      "subtitle": "Cliquez sur celle qui vous parle. Vous pourrez changer chaque police ensuite.",
       "error": {
         "title": "Typographie non disponible",
         "description": "Aucune option de typographie disponible. Veuillez revenir à l'étape de sélection des couleurs.",
@@ -921,11 +922,6 @@
       "popular": {
         "title": "Collections de typographie populaires",
         "subtitle": "Combinaisons de typographie sélectionnées et aimées par les designers du monde entier."
-      },
-      "tabs": {
-        "generated": "Généré par l'IA",
-        "popular": "Collections populaires",
-        "custom": "Mélange personnalisé"
       },
       "preview": {
         "brandName": "Le nom de votre marque",
@@ -958,30 +954,31 @@
           "title": "Aucune typographie générée",
           "description": "Nous n'avons pas pu générer d'options de typographie pour votre projet. Cliquez sur régénérer pour réessayer avec des paramètres différents."
         },
-        "regenerate": "Régénérer"
+        "regenerate": "Régénérer",
+        "hint": "Une suggestion pose les deux polices d’un coup."
       },
       "actions": {
         "back": "Retour",
         "saveAsDraft": "Enregistrer comme brouillon",
         "continue": "Continuer"
       },
-      "searchPlaceholder": "Rechercher des polices (ex. Roboto, Open Sans)...",
+      "searchPlaceholder": "Rechercher une police (ex. Satoshi, Fraunces)...",
       "searching": "Recherche de polices...",
       "noResults": "Aucune police trouvée pour votre recherche",
-      "searchHint": "Commencez à taper pour rechercher dans Google Fonts",
-      "selectToPreview": "Sélectionnez les polices pour prévisualiser votre mélange de typographie personnalisé",
+      "searchHint": "Commencez à taper pour chercher dans Google Fonts, Fontshare et Fontsource",
+      "selectToPreview": "Choisissez une police pour voir la marque prendre forme.",
       "custom": {
         "title": "Vos mélanges personnalisés",
         "createNew": "Créer un nouveau mélange",
-        "searchLabel": "RECHERCHER GOOGLE FONTS",
-        "searchPlaceholder": "Rechercher des polices (ex. Roboto, Open Sans)...",
+        "searchLabel": "RECHERCHER UNE POLICE",
+        "searchPlaceholder": "Rechercher une police (ex. Satoshi, Fraunces)...",
         "setPrimary": "Définir comme primaire",
         "setSecondary": "Définir comme secondaire",
         "primaryFont": "POLICE PRIMAIRE",
         "secondaryFont": "POLICE SECONDAIRE",
         "notSelected": "Non sélectionné",
         "addButton": "Ajouter un mélange personnalisé",
-        "searchIntro": "Cherchez dans tout le catalogue Google Fonts, puis assignez une police :"
+        "searchIntro": "Cherchez dans plusieurs fonderies libres, ou importez votre propre police, puis assignez-la :"
       },
       "clearSearch": "Effacer la recherche",
       "resultsCount": "{{count}} polices",
@@ -994,6 +991,61 @@
         "display": "Display",
         "handwriting": "Manuscrite",
         "monospace": "Monospace"
+      },
+      "sources": {
+        "label": "Filtrer par fonderie",
+        "all": "Toutes les sources",
+        "google": "Google Fonts",
+        "fontshare": "Fontshare",
+        "fontsource": "Fontsource",
+        "custom": "Mes polices"
+      },
+      "import": {
+        "dropzone": "Déposez vos fichiers de police ici",
+        "formats": "WOFF2, WOFF, TTF ou OTF — une graisse par fichier",
+        "browse": "Choisir des fichiers",
+        "familyLabel": "NOM DE LA FAMILLE",
+        "familyPlaceholder": "ex. Satoshi",
+        "categoryLabel": "CATÉGORIE",
+        "weightHint": "La graisse et l'italique sont lus dans le nom du fichier (Bold, 700, Italic…).",
+        "upload": "Importer la police",
+        "uploading": "Import en cours…",
+        "removeFile": "Retirer le fichier",
+        "libraryTitle": "Vos polices",
+        "delete": "Supprimer la police",
+        "errors": {
+          "format": "Format non pris en charge : seuls les fichiers WOFF2, WOFF, TTF et OTF sont acceptés.",
+          "upload": "L'import a échoué.",
+          "delete": "La suppression a échoué."
+        },
+        "title": "Importer ma police"
+      },
+      "roles": {
+        "headings": "Titres",
+        "body": "Texte"
+      },
+      "pair": {
+        "empty": "Aucune police choisie",
+        "change": "Changer",
+        "choose": "Choisir"
+      },
+      "gallery": {
+        "hint": "Un clic choisit les deux polices.",
+        "chosen": "Choisie"
+      },
+      "picker": {
+        "titleHeadings": "Police des titres",
+        "titleBody": "Police du texte",
+        "back": "Revenir aux allures",
+        "importCta": "Importer la mienne"
+      },
+      "categoryHints": {
+        "all": "Toutes les familles",
+        "sansSerif": "Net et moderne",
+        "serif": "Classique et sérieux",
+        "display": "Fort et expressif",
+        "handwriting": "Chaleureuse, écrite à la main",
+        "monospace": "Technique, à chasse fixe"
       }
     },
     "createProject": {
@@ -4172,6 +4224,114 @@
         "title": "Tous vos outils",
         "body": "Marque, business plan, finances, juridique, site, déploiement : chaque module a sa page. Rien n'est verrouillé, prenez-les dans l'ordre qui vous arrange."
       }
+    }
+  },
+  "billing": {
+    "title": "Facturation",
+    "nav": "Facturation",
+    "overview": {
+      "title": "Mon offre",
+      "subtitle": "Vos plans, vos crédits et vos paiements",
+      "credits": "Crédits disponibles",
+      "noSubscription": "Offre gratuite",
+      "renewsOn": "Renouvellement le {{date}}",
+      "endsOn": "Prend fin le {{date}}",
+      "complimentary": "Offert — bêta premium",
+      "pastDue": "Échéance dépassée : votre accès reste ouvert jusqu’au {{date}}.",
+      "payNow": "Régler maintenant",
+      "changePlan": "Changer d’offre",
+      "cancel": "Résilier",
+      "cancelConfirm": "Votre accès court jusqu’à la fin de la période déjà payée.",
+      "history": "Historique des paiements",
+      "noPayments": "Aucun paiement pour le moment.",
+      "statement": "Relevé de crédits",
+      "betaBanner": "Bêta premium active jusqu’au {{date}} : les offres les plus complètes vous sont ouvertes."
+    },
+    "plans": {
+      "title": "Offres",
+      "subtitle": "Payez ce que vous utilisez, en Mobile Money",
+      "monthly": "Mensuel",
+      "yearly": "Annuel",
+      "yearlyHint": "2 mois offerts",
+      "indicativePrices": "Prix affichés hors connexion au service de facturation : ils peuvent avoir changé. Le montant exact s’affiche au moment du paiement.",
+      "perMonth": "/mois",
+      "perYear": "/an",
+      "oneTime": "paiement unique",
+      "credits": "{{count}} crédits",
+      "currentPlan": "Offre actuelle",
+      "choose": "Choisir",
+      "buy": "Acheter",
+      "packs": "Packs",
+      "recharges": "Recharges de crédits",
+      "bundles": "Offres groupées",
+      "addons": "Options",
+      "localAlternative": "Ailleurs : {{price}}"
+    },
+    "engines": {
+      "business": "iBusiness",
+      "appgen": "iCode",
+      "ideploy": "iDeploy"
+    },
+    "checkout": {
+      "title": "Paiement",
+      "youArePaying": "Vous payez",
+      "creditsIncluded": "{{count}} crédits inclus",
+      "country": "Pays",
+      "phone": "Numéro Mobile Money",
+      "phonePlaceholder": "6 XX XX XX XX",
+      "phoneHint": "Le numéro sur lequel vous validerez le paiement.",
+      "provider": "Opérateur",
+      "providerClosed": "indisponible",
+      "pay": "Payer {{amount}} {{currency}}",
+      "secured": "Paiement sécurisé par pawaPay. Aucune donnée bancaire n’est stockée.",
+      "waitingTitle": "Validez sur votre téléphone",
+      "waitingBody": "Une demande de code a été envoyée au {{phone}}. Saisissez votre code secret Mobile Money.",
+      "pinReminder": "Vous n’avez rien reçu ? La demande disparaît parfois de l’écran.",
+      "slowPayment": "Votre opérateur met plus de temps que prévu. Vous pouvez fermer cette fenêtre : nous vous prévenons dès que le paiement aboutit.",
+      "successTitle": "Paiement confirmé",
+      "successBody": "{{label}} est actif sur votre compte.",
+      "failedTitle": "Le paiement n’a pas abouti",
+      "noCharge": "Aucun montant n’a été prélevé sur votre compte Mobile Money.",
+      "retry": "Réessayer",
+      "continue": "Continuer",
+      "included": "Inclus",
+      "perMonth": "par mois",
+      "perYear": "par an",
+      "changeProvider": "Changer",
+      "beforePay": "Vous recevrez une demande de code sur ce numéro.",
+      "starting": "Envoi de la demande…",
+      "reference": "Référence",
+      "noProduct": "Aucune offre n'a été indiquée. Revenez à la page des offres pour en choisir une.",
+      "returnNote": "Vous reviendrez sur {{app}} une fois le paiement terminé.",
+      "steps": {
+        "request": "Demande envoyée à votre opérateur",
+        "pin": "Saisissez votre code sur votre téléphone",
+        "confirm": "Confirmation du paiement"
+      },
+      "chooseCountry": "Choisir le pays",
+      "countryFirst": "Choisissez d'abord votre pays."
+    },
+    "paywall": {
+      "title": "Crédits insuffisants",
+      "cost": "Ce livrable coûte {{cost}} crédits",
+      "balance": "Il vous en reste {{balance}}",
+      "missing": "Il vous manque {{missing}} crédits",
+      "upgradeTitle": "Offre supérieure requise",
+      "choose": "Choisir une offre",
+      "seeAllPlans": "Voir toutes les offres",
+      "later": "Plus tard"
+    },
+    "status": {
+      "CREATED": "Créé",
+      "ACCEPTED": "En attente de validation",
+      "SUBMITTED": "Transmis",
+      "PROCESSING": "En cours",
+      "IN_RECONCILIATION": "Vérification",
+      "COMPLETED": "Payé",
+      "FAILED": "Échoué",
+      "REJECTED": "Refusé",
+      "NOT_FOUND": "Non abouti",
+      "EXPIRED": "Expiré"
     }
   }
 }

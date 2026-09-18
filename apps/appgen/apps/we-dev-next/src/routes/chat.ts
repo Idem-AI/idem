@@ -3,6 +3,7 @@ import { ChatRequest } from '../types/project.js';
 import { handleBuilderMode } from '../handlers/builderHandler.js';
 import { handleChatMode } from '../handlers/chatHandler.js';
 import { ChatLogger } from '../utils/logger.js';
+import { consumeGeneration, resolveBillableAction } from '../services/billingService.js';
 
 const router = Router();
 
@@ -37,6 +38,7 @@ router.post('/', async (req: Request, res: Response) => {
       language,
       qualityRepair,
       workspace,
+      projectId,
     } = req.body as ChatRequest;
 
     // User UI language (from the client) so the AI generates content in the right
@@ -112,6 +114,28 @@ router.post('/', async (req: Request, res: Response) => {
         backendFramework: projectData.analysisResultModel?.development?.configs?.backend?.framework,
         database: projectData.analysisResultModel?.development?.configs?.database?.provider,
       });
+    }
+
+    /**
+     * Contrôle de facturation, AVANT toute génération.
+     *
+     * Placé ici parce que c'est le dernier point où rien n'est encore parti :
+     * aucun en-tête envoyé, aucun appel au modèle, donc un refus peut répondre
+     * un vrai 402 que le client sait interpréter. Après
+     * `pipeDataStreamToResponse`, il serait trop tard pour refuser quoi que ce
+     * soit — et le coût d'inférence serait déjà engagé.
+     */
+    const billable = resolveBillableAction(messages?.length ?? 0, mode as 'chat' | 'builder');
+    const billing = await consumeGeneration({
+      authorization: req.headers.authorization,
+      action: billable,
+      projectId,
+    });
+
+    if (!billing.allowed) {
+      console.log(' PAIEMENT REQUIS — génération refusée:', billable);
+      ChatLogger.info('BILLING_REFUSED', 'Generation refused for billing reasons', billing.refusal);
+      return res.status(402).json(billing.refusal);
     }
 
     console.log('\n MODE SELECTION:', mode);

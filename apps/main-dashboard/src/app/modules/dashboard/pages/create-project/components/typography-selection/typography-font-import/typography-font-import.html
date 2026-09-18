@@ -1,0 +1,210 @@
+<div class="flex flex-col gap-3 min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-1">
+  <!-- En-tête : où je suis, et comment je reviens -->
+  <div class="flex items-center gap-2 shrink-0">
+    <button
+      type="button"
+      (click)="back.emit()"
+      class="p-1.5 -ml-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-[var(--glass-bg-light)] transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+      [attr.aria-label]="'dashboard.typographySelection.picker.back' | translate"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+      </svg>
+    </button>
+    <h3 class="text-base font-semibold text-text-primary truncate">
+      {{ 'dashboard.typographySelection.import.title' | translate }}
+    </h3>
+  </div>
+
+  <!-- Dropzone -->
+  <div
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave()"
+    (drop)="onDrop($event)"
+    class="rounded-xl border border-dashed p-4 text-center transition-colors"
+    [class]="
+      isDragging()
+        ? 'border-primary bg-[var(--glass-bg-light)]'
+        : 'border-[var(--glass-border)] bg-[var(--color-surface-2)]'
+    "
+  >
+    <svg
+      class="w-8 h-8 mx-auto mb-2 text-text-tertiary"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6H16a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+      ></path>
+    </svg>
+    <p class="text-sm text-text-secondary">
+      {{ 'dashboard.typographySelection.import.dropzone' | translate }}
+    </p>
+    <p class="text-xs text-text-tertiary mt-1">
+      {{ 'dashboard.typographySelection.import.formats' | translate }}
+    </p>
+
+    <label
+      class="inline-flex items-center gap-2 mt-3 px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--glass-border)] bg-[var(--glass-bg-light)] text-text-primary cursor-pointer hover:border-[var(--glass-border-medium)] focus-within:ring-2 focus-within:ring-primary"
+    >
+      {{ 'dashboard.typographySelection.import.browse' | translate }}
+      <input
+        type="file"
+        class="sr-only"
+        multiple
+        [attr.accept]="accept"
+        (change)="onFilesPicked($event)"
+      />
+    </label>
+  </div>
+
+  @if (errorKey(); as key) {
+    <p class="text-xs text-red-600" role="alert">
+      {{ key | translate }}
+      @if (errorDetail()) {
+        — {{ errorDetail() }}
+      }
+    </p>
+  }
+
+  <!-- Fichiers en attente + nom de la famille -->
+  @if (pendingFiles().length > 0) {
+    <div
+      class="rounded-xl border border-[var(--glass-border)] bg-[var(--color-surface-2)] p-3 flex flex-col gap-3"
+    >
+      <ul class="flex flex-col gap-1.5">
+        @for (file of pendingFiles(); track file.name + $index) {
+          <li class="flex items-center justify-between gap-2 text-xs text-text-secondary">
+            <span class="truncate">{{ file.name }}</span>
+            <button
+              type="button"
+              (click)="removePendingFile($index)"
+              [attr.aria-label]="
+                ('dashboard.typographySelection.import.removeFile' | translate) + ' — ' + file.name
+              "
+              class="p-1 rounded text-text-tertiary hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </li>
+        }
+      </ul>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <label class="flex flex-col gap-1">
+          <span class="text-[10px] uppercase tracking-wide text-text-tertiary font-bold">
+            {{ 'dashboard.typographySelection.import.familyLabel' | translate }}
+          </span>
+          <input
+            type="text"
+            [value]="family()"
+            (input)="onFamilyInput($event)"
+            placeholder="{{ 'dashboard.typographySelection.import.familyPlaceholder' | translate }}"
+            class="px-3 py-2 rounded-lg bg-[var(--color-surface-1)] border border-[var(--glass-border)] text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </label>
+
+        <label class="flex flex-col gap-1">
+          <span class="text-[10px] uppercase tracking-wide text-text-tertiary font-bold">
+            {{ 'dashboard.typographySelection.import.categoryLabel' | translate }}
+          </span>
+          <select
+            [value]="category()"
+            (change)="onCategoryChange($event)"
+            class="px-3 py-2 rounded-lg bg-[var(--color-surface-1)] border border-[var(--glass-border)] text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            @for (option of categories; track option.id) {
+              <option [value]="option.id">{{ option.labelKey | translate }}</option>
+            }
+          </select>
+        </label>
+      </div>
+
+      <p class="text-[11px] text-text-tertiary">
+        {{ 'dashboard.typographySelection.import.weightHint' | translate }}
+      </p>
+
+      <button
+        type="button"
+        (click)="upload()"
+        [disabled]="!canUpload()"
+        class="px-4 py-2 text-sm font-medium rounded-lg bg-primary text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary"
+      >
+        @if (isUploading()) {
+          {{ 'dashboard.typographySelection.import.uploading' | translate }}
+        } @else {
+          {{ 'dashboard.typographySelection.import.upload' | translate }}
+        }
+      </button>
+    </div>
+  }
+
+  <!-- Vos polices, composées avec le nom de la marque -->
+  @if (fonts().length > 0) {
+    <div class="flex flex-col gap-2">
+      <p class="text-xs text-text-tertiary">
+        {{ 'dashboard.typographySelection.import.libraryTitle' | translate }} —
+        {{ titleKey() | translate }}
+      </p>
+      <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        @for (font of fonts(); track font.id) {
+          <!-- Le bouton principal et la suppression sont FRÈRES : deux éléments
+               cliquables imbriqués cassent la navigation au clavier. -->
+          <li
+            class="relative rounded-lg border transition-colors"
+            [class]="
+              isCurrent(font)
+                ? 'border-primary bg-primary/5'
+                : 'border-[var(--glass-border)] bg-[var(--glass-bg-light)] hover:border-[var(--glass-border-medium)]'
+            "
+          >
+            <button
+              type="button"
+              (click)="use(font)"
+              [attr.aria-pressed]="isCurrent(font)"
+              class="w-full text-left px-4 py-3 pr-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <span
+                class="block text-2xl leading-tight text-text-primary truncate"
+                [style.fontFamily]="stackFor(font)"
+                >{{ sample() }}</span
+              >
+              <span class="block text-xs text-text-tertiary truncate mt-1.5">
+                {{ font.family }} ·
+                {{
+                  'dashboard.typographySelection.weightsCount'
+                    | translate: { count: font.weights.length }
+                }}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              (click)="remove($event, font)"
+              [attr.aria-label]="
+                ('dashboard.typographySelection.import.delete' | translate) + ' — ' + font.family
+              "
+              class="absolute top-2 right-2 p-1.5 rounded-md text-text-tertiary hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                ></path>
+              </svg>
+            </button>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</div>

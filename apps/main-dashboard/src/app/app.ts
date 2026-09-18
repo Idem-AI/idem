@@ -15,6 +15,7 @@ import { DashboardLayoutComponent } from './layouts/dashboard-layout/dashboard-l
 import { ChatLayoutComponent } from './layouts/chat-layout/chat-layout';
 import { GuidedLayoutComponent } from './layouts/guided-layout/guided-layout';
 import { GuidedLockModalComponent } from './modules/guided/components/guided-lock-modal/guided-lock-modal';
+import { PaywallHostComponent } from './modules/billing/components/paywall-host/paywall-host';
 
 @Component({
   selector: 'app-root',
@@ -28,6 +29,7 @@ import { GuidedLockModalComponent } from './modules/guided/components/guided-loc
     ChatLayoutComponent,
     GuidedLayoutComponent,
     GuidedLockModalComponent,
+    PaywallHostComponent,
     AsyncPipe,
   ],
   templateUrl: './app.html',
@@ -52,7 +54,7 @@ export class App implements OnInit {
 
   /** Layout courant selon la route active */
   protected readonly currentLayout$: Observable<
-    'public' | 'dashboard' | 'global' | 'empty' | 'chat' | 'guided'
+    'public' | 'dashboard' | 'global' | 'empty' | 'chat' | 'guided' | 'bare'
   > = this.router.events.pipe(
     filter((event) => event instanceof NavigationEnd),
     startWith(null),
@@ -68,7 +70,8 @@ export class App implements OnInit {
           | 'global'
           | 'empty'
           | 'chat'
-          | 'guided') || 'public'
+          | 'guided'
+          | 'bare') || 'public'
       );
     }),
     distinctUntilChanged(),

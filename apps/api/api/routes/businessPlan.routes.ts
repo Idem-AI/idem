@@ -20,6 +20,7 @@ import {
 import { authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
+import { firstThenRevision, requireCredits } from '../middleware/billing.middleware';
 import multer from 'multer';
 
 export const businessPlanRoutes = Router();
@@ -114,6 +115,11 @@ businessPlanRoutes.get(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  // 70 crédits pour le business plan ; le régénérer ensuite vaut une révision,
+  // sans quoi le barème punirait l'itération que le produit encourage.
+  requireCredits('business', 'business_plan', {
+    resolve: firstThenRevision('business', 'business_plan', 'revision'),
+  }),
   generateBusinessPlanStreamingController
 );
 
@@ -521,6 +527,7 @@ businessPlanRoutes.post(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  requireCredits('business', 'revision'),
   aiEditBusinessPlanSectionController
 );
 

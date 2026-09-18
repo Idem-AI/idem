@@ -1000,6 +1000,17 @@
 
           <sim-disclaimer-note />
 
+          <!-- Retour du paiement : l'utilisateur doit lire ce qui s'est passé
+               là où il va agir, pas dans une notification déjà disparue. -->
+          @if (paymentNotice(); as notice) {
+            <p
+              class="flex items-start gap-2 rounded-lg border border-line bg-panel-sunken px-3 py-2 text-meta leading-relaxed text-ink-muted"
+            >
+              <i class="pi pi-info-circle mt-0.5 shrink-0 text-brand text-[0.75rem]" aria-hidden="true"></i>
+              {{ notice | translate }}
+            </p>
+          }
+
           <div class="flex justify-between gap-3">
             <button type="button" class="button-ghost" (click)="back()">
               {{ 'action.back' | translate }}
@@ -1012,6 +1023,11 @@
             >
               @if (launching()) {
                 {{ 'newRun.launching' | translate }}
+              } @else if (paymentRequired()) {
+                <!-- Le bouton annonce le détour : cliquer mène au paiement,
+                     pas au lancement. Promettre l'un et faire l'autre serait
+                     la pire surprise à cet endroit précis. -->
+                {{ 'newRun.payment.pay' | translate }}
               } @else {
                 {{ 'newRun.launch' | translate }}
               }

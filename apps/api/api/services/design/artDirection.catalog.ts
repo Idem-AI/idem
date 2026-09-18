@@ -962,12 +962,25 @@ export const ART_DIRECTION_STYLES: Record<ArtDirectionStyleId, ArtDirectionStyle
 export const ART_DIRECTION_STYLE_IDS = Object.keys(ART_DIRECTION_STYLES) as ArtDirectionStyleId[];
 
 /**
+ * Identifiants proposés au directeur artistique.
+ *
+ * Les styles à fond sombre obligatoire en sont écartés : la plateforme est à
+ * surface claire (voir `design/lightSurface`), et un style retenu ici impose sa
+ * polarité à TOUS les livrables de la marque pour les trois ans qui suivent.
+ * Un seul tirage sur « cyberpunk » et la charte, le business plan et le deck
+ * sortaient en noir sans que personne ne l'ait demandé.
+ */
+export const SELECTABLE_ART_DIRECTION_STYLE_IDS = ART_DIRECTION_STYLE_IDS.filter(
+  (id) => ART_DIRECTION_STYLES[id].surface !== 'dark'
+);
+
+/**
  * Catalogue condensé injecté dans le prompt de sélection : identifiant, nom,
  * essence et type de marque. Assez pour choisir, pas assez pour noyer le prompt
  * (la fiche complète du style retenu est injectée ensuite).
  */
 export function buildStyleCatalogBrief(): string {
-  return ART_DIRECTION_STYLE_IDS.map((id) => {
+  return SELECTABLE_ART_DIRECTION_STYLE_IDS.map((id) => {
     const s = ART_DIRECTION_STYLES[id];
     return `- ${s.id} — ${s.name}: ${s.essence} Fits: ${s.fitsBrands}`;
   }).join('\n');

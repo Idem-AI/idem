@@ -7,6 +7,14 @@ import { SimulationTier } from './simulation.model';
  */
 export interface SimulationPlan {
   tier: SimulationTier;
+  /**
+   * Produit du catalogue correspondant à ce niveau, servi par l'API.
+   *
+   * C'est lui qu'on passe au paiement : sans cela, l'écran devrait tenir sa
+   * propre table niveau → produit, qui divergerait du catalogue au premier
+   * changement d'offre.
+   */
+  productCode: string;
   price: number;
   /** Undiscounted price, present only when a discount applies. */
   listPrice?: number;

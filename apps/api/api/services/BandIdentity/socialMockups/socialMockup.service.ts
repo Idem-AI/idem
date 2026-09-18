@@ -19,7 +19,7 @@ import logger from '../../../config/logger';
 import { contrastRatio } from '../../design/color';
 import { brandMotifs, patternCss } from '../../design/brandMotifs';
 import { DocumentDesignSystem } from '../../design/documentDesignSystem';
-import { buildGoogleFontLinks } from '../../../utils/google-fonts.util';
+import { designFontLinks } from '../../../utils/google-fonts.util';
 import { flyerRenderService } from '../../Communication/flyerRender.service';
 import { BannerBrand, composeBannerHtml } from './bannerComposer';
 import {
@@ -244,7 +244,7 @@ export class SocialMockupService {
       bio: kit.bio,
       avatarSrc: avatarSrc || EMPTY_IMAGE,
       avatarGround: darkGround ? ds.colors.primary : ds.colors.surface,
-      fontLinks: buildGoogleFontLinks([ds.fonts.display, ds.fonts.body]),
+      fontLinks: designFontLinks(ds.fonts),
     };
   }
 
@@ -280,7 +280,7 @@ export class SocialMockupService {
     // Le format paysage d'une publication X se compose comme une vignette vidéo.
     const composition = format === 'banner' ? 'thumbnail' : format;
     const inner = composeBannerHtml(this.bannerBrand(kit, idea.title || kit.promise), composition, width, height);
-    const html = `<!doctype html><html><head><meta charset="utf-8">${buildGoogleFontLinks([kit.ds.fonts.display, kit.ds.fonts.body])}<style>html,body{margin:0;padding:0}</style></head><body>${inner}</body></html>`;
+    const html = `<!doctype html><html><head><meta charset="utf-8">${designFontLinks(kit.ds.fonts)}<style>html,body{margin:0;padding:0}</style></head><body>${inner}</body></html>`;
     return flyerRenderService.renderDocumentToPng(html, width, height, 1);
   }
 

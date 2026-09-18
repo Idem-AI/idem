@@ -1235,7 +1235,7 @@ export class PdfService {
 
               <!-- Signature centrale -->
               <img
-                src="https://idem.africa/assets/icons/logo.png"
+                src="https://idem.africa/assets/icons/logo_white.png"
                 alt="Idem"
                 style="height:30px;width:auto;display:block;"
               />

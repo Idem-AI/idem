@@ -2,22 +2,55 @@ import { DOCUMENT, Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { map, catchError, tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import {
+  BrandFont,
+  BrandFontFile,
+  FontSourceId,
+  TypographyModel,
+} from '../../modules/dashboard/models/brand-identity.model';
 
 export type FontCategory = 'sans-serif' | 'serif' | 'display' | 'handwriting' | 'monospace';
 
-export interface GoogleFont {
+export type { FontSourceId, BrandFont } from '../../modules/dashboard/models/brand-identity.model';
+
+/**
+ * Une famille du catalogue, quelle que soit sa provenance.
+ *
+ * `cssUrl` est ce qui la rend affichable : le service injecte cette feuille et
+ * n'a plus besoin de savoir si la police vient de Google, de Fontshare, de
+ * Fontsource ou du bucket de l'utilisateur.
+ */
+export interface CatalogFont {
   family: string;
-  variants: string[];
-  subsets: string[];
+  source: FontSourceId;
+  /** Identifiant de la famille dans sa source (slug). */
+  sourceId: string;
   category: string;
-  kind: string;
-  menu?: string;
-  /** Numeric weights actually published for this family. */
-  weights?: number[];
-  /** Lower is more popular. Used to rank search results. */
-  popularity?: number;
+  weights: number[];
+  subsets: string[];
+  cssUrl: string;
+  /** Rang au sein de la source (0 = la plus populaire). */
+  popularity: number;
+  license?: string;
+}
+
+/** Une police importée par l'utilisateur, telle que l'API la renvoie. */
+export interface CustomFont {
+  id: string;
+  family: string;
+  category: string;
+  weights: number[];
+  cssUrl: string;
+  files: BrandFontFile[];
+  createdAt?: string;
+}
+
+export interface FontSourceOption {
+  id: FontSourceId;
+  label: string;
+  url: string;
 }
 
 export interface TypographyPreview {
@@ -29,23 +62,30 @@ export interface TypographyPreview {
   isLoaded: boolean;
 }
 
-/** Font summary as returned by our API (`GET /fonts`). */
-interface FontSummaryDto {
-  family: string;
-  category: string;
-  weights: number[];
-  subsets: string[];
-  popularity: number;
-}
-
 interface FontSearchResponse {
   success: boolean;
-  data: { fonts: FontSummaryDto[]; total: number };
+  data: { fonts: CatalogFont[]; total: number; sources: FontSourceId[] };
+}
+
+interface CustomFontListResponse {
+  success: boolean;
+  data: { fonts: CustomFont[] };
+}
+
+interface CustomFontResponse {
+  success: boolean;
+  data: CustomFont;
+}
+
+interface FontSourcesResponse {
+  success: boolean;
+  data: { sources: FontSourceOption[] };
 }
 
 /**
- * Our own API proxies the Google Fonts catalog: the API key stays server-side
- * (Secret Manager) and the catalog is cached there for every user at once.
+ * Notre API agrège les catalogues : la clé Google reste côté serveur, les
+ * catalogues sont mis en cache une fois pour tous les utilisateurs, et les
+ * polices importées ne sortent jamais du compte qui les a envoyées.
  */
 const FONTS_ENDPOINT = `${environment.services.api.url}/fonts`;
 
@@ -59,9 +99,9 @@ const GENERIC_FALLBACK: Record<string, string> = {
 };
 
 /**
- * Last-resort list used when `GET /fonts` is unreachable or the server has no
- * Google Fonts key configured. Ordered by popularity — the index doubles as the
- * ranking, so the search still behaves sensibly offline.
+ * Last-resort list used when `GET /fonts` is unreachable or every catalog is
+ * down. Ordered by popularity — the index doubles as the ranking, so the search
+ * still behaves sensibly offline.
  */
 const FALLBACK_FAMILIES: ReadonlyArray<[string, FontCategory]> = [
   ['Inter', 'sans-serif'],
@@ -94,10 +134,10 @@ const FALLBACK_FAMILIES: ReadonlyArray<[string, FontCategory]> = [
   ['Space Mono', 'monospace'],
 ];
 
-/** Weights requested when injecting a stylesheet; Google serves the closest available. */
+/** Weights requested when falling back to a Google stylesheet built from a name alone. */
 const REQUESTED_WEIGHTS = [400, 500, 600, 700];
 
-/** Google rejects over-long URLs, so stylesheet requests are batched. */
+/** Google rejects over-long URLs, so name-only stylesheet requests are batched. */
 const FAMILIES_PER_REQUEST = 10;
 
 /**
@@ -124,6 +164,17 @@ function normalizeCategory(category?: string): string {
   return value === 'sans' ? 'sans-serif' : value;
 }
 
+/** Google stylesheet for a family we only know by name. */
+function googleStylesheetUrl(families: string[]): string {
+  const query = families
+    .map(
+      (family) =>
+        `family=${encodeURIComponent(family).replace(/%20/g, '+')}:wght@${REQUESTED_WEIGHTS.join(';')}`,
+    )
+    .join('&');
+  return `https://fonts.googleapis.com/css2?${query}&display=swap`;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -134,6 +185,19 @@ export class TypographyService {
 
   /** family → in-flight or settled load, so a family is never requested twice. */
   private readonly fontLoads = new Map<string, Promise<void>>();
+
+  /**
+   * family → feuille qui la charge, apprise des résultats de recherche et des
+   * typographies déjà choisies.
+   *
+   * Sans ce registre, une famille connue seulement par son nom (une carte de
+   * typographie, un aperçu) serait redemandée à Google — donc jamais chargée si
+   * elle vient de Fontshare, de Fontsource ou du bucket de l'utilisateur.
+   */
+  private readonly familyStylesheets = new Map<string, string>();
+
+  /** Les feuilles déjà insérées dans le document, pour ne pas les redoubler. */
+  private readonly injectedStylesheets = new Map<string, Promise<void>>();
 
   // Typographies populaires pré-définies
   private readonly popularTypographies: TypographyPreview[] = [
@@ -188,17 +252,61 @@ export class TypographyService {
   ];
 
   /**
-   * Charge une police Google Fonts dynamiquement et attend qu'elle soit réellement
-   * disponible pour le rendu.
+   * Charge des polices dont on connaît la source, et résout lorsqu'elles sont
+   * réellement utilisables pour le rendu.
+   */
+  loadFonts(fonts: readonly (BrandFont | CatalogFont | null | undefined)[]): Promise<void> {
+    if (!this.isBrowser) return Promise.resolve();
+
+    const pending: Promise<void>[] = [];
+    const nameOnly: string[] = [];
+
+    for (const font of fonts) {
+      const family = font?.family?.trim();
+      if (!family) continue;
+
+      this.remember(font!);
+      const href = font!.cssUrl || this.familyStylesheets.get(family.toLowerCase());
+      if (href) {
+        pending.push(this.loadFromStylesheet(family, href));
+      } else {
+        nameOnly.push(family);
+      }
+    }
+
+    if (nameOnly.length) pending.push(this.loadGoogleFonts(nameOnly));
+    return Promise.all(pending).then(() => undefined);
+  }
+
+  /** Charge les deux familles d'une typographie, en honorant leur source. */
+  loadTypography(typography?: Partial<TypographyModel> | null): Promise<void> {
+    if (!typography) return Promise.resolve();
+
+    const primary: BrandFont | null = typography.primary
+      ? typography.primary
+      : typography.primaryFont
+        ? { family: typography.primaryFont, source: 'google' as const, cssUrl: undefined }
+        : null;
+    const secondary: BrandFont | null = typography.secondary
+      ? typography.secondary
+      : typography.secondaryFont
+        ? { family: typography.secondaryFont, source: 'google' as const, cssUrl: undefined }
+        : null;
+
+    return this.loadFonts([primary, secondary]);
+  }
+
+  /**
+   * Charge une police connue seulement par son NOM.
+   *
+   * Le registre est consulté d'abord : une famille déjà rencontrée dans la
+   * recherche est chargée depuis sa vraie source. À défaut, on retombe sur
+   * Google — le seul catalogue adressable par nom de famille.
    */
   loadGoogleFont(fontFamily: string): Promise<void> {
     return this.loadGoogleFonts([fontFamily]);
   }
 
-  /**
-   * Charge plusieurs polices en une seule requête (une balise `<link>` peut
-   * déclarer plusieurs familles), et résout lorsque toutes sont utilisables.
-   */
   loadGoogleFonts(families: readonly (string | null | undefined)[]): Promise<void> {
     if (!this.isBrowser) return Promise.resolve();
 
@@ -209,6 +317,12 @@ export class TypographyService {
       const known = this.fontLoads.get(family);
       if (known) {
         pending.push(known);
+        continue;
+      }
+
+      const href = this.familyStylesheets.get(family.toLowerCase());
+      if (href) {
+        pending.push(this.loadFromStylesheet(family, href));
       } else {
         missing.push(family);
       }
@@ -216,7 +330,7 @@ export class TypographyService {
 
     for (let i = 0; i < missing.length; i += FAMILIES_PER_REQUEST) {
       const batch = missing.slice(i, i + FAMILIES_PER_REQUEST);
-      const stylesheet = this.injectStylesheet(batch);
+      const stylesheet = this.injectStylesheet(googleStylesheetUrl(batch));
       for (const family of batch) {
         const load = stylesheet.then(() => this.awaitFontFaces(family));
         this.fontLoads.set(family, load);
@@ -228,28 +342,82 @@ export class TypographyService {
   }
 
   /**
-   * Recherche dans le catalogue Google Fonts complet (~1900 familles), servi par
-   * notre API. Une requête vide renvoie les familles les plus populaires, ce qui
-   * donne quelque chose à parcourir avant même de taper.
+   * Recherche dans le catalogue agrégé — Google Fonts, Fontshare, Fontsource et
+   * les polices importées par l'utilisateur. Une requête vide renvoie les
+   * familles les plus en vue de chaque source, en alternance, pour qu'aucune
+   * source ne soit noyée par le nombre.
    */
-  searchGoogleFonts(
+  searchFonts(
     query: string,
     category?: FontCategory | null,
+    sources?: readonly FontSourceId[] | null,
     limit = 48,
-  ): Observable<GoogleFont[]> {
+  ): Observable<CatalogFont[]> {
     let params = new HttpParams().set('limit', limit);
     if (query.trim()) params = params.set('q', query.trim());
     if (category) params = params.set('category', category);
+    if (sources?.length) params = params.set('source', sources.join(','));
 
     return this.http.get<FontSearchResponse>(FONTS_ENDPOINT, { params }).pipe(
-      map((response) => (response.data?.fonts ?? []).map(fromApi)),
+      map((response) => response.data?.fonts ?? []),
+      tap((fonts) => fonts.forEach((font) => this.remember(font))),
       catchError((error) => {
-        // 503 = clé Google Fonts non configurée côté serveur ; toute autre erreur
-        // = API injoignable. Dans les deux cas la sélection reste utilisable.
+        // API injoignable : la sélection reste utilisable sur la liste intégrée.
         console.warn('Font catalog unavailable, using built-in list:', error);
         return of(searchFallback(query, category, limit));
       }),
     );
+  }
+
+  /** Les catalogues proposés dans le filtre de source. */
+  getFontSources(): Observable<FontSourceOption[]> {
+    return this.http.get<FontSourcesResponse>(`${FONTS_ENDPOINT}/sources`).pipe(
+      map((response) => response.data?.sources ?? []),
+      catchError(() => of([])),
+    );
+  }
+
+  /** Les polices que l'utilisateur a déjà importées. */
+  listCustomFonts(): Observable<CustomFont[]> {
+    return this.http.get<CustomFontListResponse>(`${FONTS_ENDPOINT}/custom`).pipe(
+      map((response) => response.data?.fonts ?? []),
+      tap((fonts) =>
+        fonts.forEach((font) =>
+          this.remember({ family: font.family, source: 'custom', cssUrl: font.cssUrl }),
+        ),
+      ),
+      catchError((error) => {
+        console.warn('Could not list imported fonts:', error);
+        return of([]);
+      }),
+    );
+  }
+
+  /**
+   * Téléverse une famille de l'utilisateur.
+   *
+   * Les fichiers partent dans notre bucket et l'API renvoie la feuille
+   * `@font-face` qu'elle a fabriquée : c'est cette URL qui sera stockée sur le
+   * projet, à la place d'un lien Google.
+   */
+  uploadCustomFont(family: string, files: readonly File[], category = 'sans-serif'): Observable<CustomFont> {
+    const form = new FormData();
+    form.append('family', family);
+    form.append('category', category);
+    for (const file of files) form.append('files', file, file.name);
+
+    return this.http.post<CustomFontResponse>(`${FONTS_ENDPOINT}/custom`, form).pipe(
+      map((response) => response.data),
+      tap((font) =>
+        this.remember({ family: font.family, source: 'custom', cssUrl: font.cssUrl }),
+      ),
+    );
+  }
+
+  deleteCustomFont(fontId: string): Observable<void> {
+    return this.http
+      .delete<{ success: boolean }>(`${FONTS_ENDPOINT}/custom/${fontId}`)
+      .pipe(map(() => undefined));
   }
 
   /**
@@ -289,33 +457,47 @@ export class TypographyService {
   /**
    * Obtient une liste de polices par catégorie
    */
-  getFontsByCategory(category: FontCategory, limit = 48): Observable<GoogleFont[]> {
-    return this.searchGoogleFonts('', category, limit);
+  getFontsByCategory(category: FontCategory, limit = 48): Observable<CatalogFont[]> {
+    return this.searchFonts('', category, null, limit);
   }
 
-  /** Ajoute une feuille de style Google Fonts couvrant plusieurs familles. */
-  private injectStylesheet(families: string[]): Promise<void> {
-    return new Promise((resolve) => {
-      const query = families
-        .map(
-          (family) =>
-            `family=${encodeURIComponent(family).replace(/%20/g, '+')}:wght@${REQUESTED_WEIGHTS.join(';')}`,
-        )
-        .join('&');
+  /** Mémorise la feuille d'une famille pour tous les appels par nom qui suivront. */
+  private remember(font: { family?: string; cssUrl?: string; source?: FontSourceId }): void {
+    const family = font.family?.trim();
+    if (!family || !font.cssUrl) return;
+    this.familyStylesheets.set(family.toLowerCase(), font.cssUrl);
+  }
 
+  private loadFromStylesheet(family: string, href: string): Promise<void> {
+    const known = this.fontLoads.get(family);
+    if (known) return known;
+
+    const load = this.injectStylesheet(href).then(() => this.awaitFontFaces(family));
+    this.fontLoads.set(family, load);
+    return load;
+  }
+
+  /** Insère une feuille de style, une seule fois par URL. */
+  private injectStylesheet(href: string): Promise<void> {
+    const existing = this.injectedStylesheets.get(href);
+    if (existing) return existing;
+
+    const load = new Promise<void>((resolve) => {
       const link = this.document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = `https://fonts.googleapis.com/css2?${query}&display=swap`;
+      link.href = href;
       // A failed stylesheet must not block the caller: the preview simply keeps
       // its generic fallback, so both outcomes resolve.
       link.onload = () => resolve();
       link.onerror = () => {
-        console.warn('Failed to load Google Fonts stylesheet for:', families.join(', '));
+        console.warn('Failed to load font stylesheet:', href);
         resolve();
       };
-
       this.document.head.appendChild(link);
     });
+
+    this.injectedStylesheets.set(href, load);
+    return load;
   }
 
   /**
@@ -348,32 +530,21 @@ function matchScore(family: string, needle: string): number {
   return -1;
 }
 
-function fromApi(font: FontSummaryDto): GoogleFont {
-  return {
-    family: font.family,
-    variants: (font.weights ?? []).map(String),
-    subsets: font.subsets ?? [],
-    category: normalizeCategory(font.category),
-    kind: 'webfont',
-    weights: font.weights ?? [],
-    popularity: font.popularity,
-  };
-}
-
 /** Same ranking rules as the server, applied to the built-in list. */
 function searchFallback(
   query: string,
   category: FontCategory | null | undefined,
   limit: number,
-): GoogleFont[] {
+): CatalogFont[] {
   const needle = query.trim().toLowerCase();
-  const scoped = FALLBACK_FAMILIES.map(([family, fontCategory], index) => ({
+  const scoped: CatalogFont[] = FALLBACK_FAMILIES.map(([family, fontCategory], index) => ({
     family,
-    variants: ['400', '700'],
+    source: 'google' as const,
+    sourceId: family,
     subsets: ['latin'],
     category: fontCategory,
-    kind: 'webfont',
     weights: [400, 700],
+    cssUrl: googleStylesheetUrl([family]),
     popularity: index,
   })).filter((font) => !category || font.category === category);
 

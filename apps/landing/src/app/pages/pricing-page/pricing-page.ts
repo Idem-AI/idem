@@ -5,6 +5,32 @@ import { environment } from '../../../environments/environment';
 
 type PricingEngine = 'business' | 'appgen' | 'ideploy';
 
+/**
+ * Ce que chaque carte de tarif achète réellement.
+ *
+ * Les identifiants d'affichage de cette page et les codes du catalogue de
+ * facturation ne sont pas les mêmes — `essential` ici, `business-essential`
+ * là-bas. Cette table est le seul endroit qui les relie : sans elle, un bouton
+ * « Commencer » mènerait à la page de connexion, et l'utilisateur ne verrait
+ * jamais de paiement.
+ *
+ * Les offres gratuites (Découverte, Hobby) n'y figurent pas : elles mènent à
+ * l'inscription, pas à la caisse.
+ */
+const CHECKOUT_PRODUCTS: Record<string, string> = {
+  essential: 'business-essential',
+  growth: 'business-growth',
+  cabinet: 'business-cabinet',
+  'social-starter': 'social-starter',
+  'social-pro': 'social-pro',
+  'appgen-starter': 'appgen-starter',
+  'appgen-pro': 'appgen-pro',
+  'appgen-studio': 'appgen-studio',
+  'deploy-starter': 'ideploy-starter',
+  'deploy-pro': 'ideploy-pro',
+  'deploy-scale': 'ideploy-scale',
+};
+
 interface PlanCard {
   id: string;
   name: string;
@@ -75,6 +101,31 @@ export class PricingPage implements OnInit {
 
   // Active engine tab
   protected readonly activeEngine = signal<PricingEngine>('business');
+
+  /**
+   * Où mène le bouton d'une carte.
+   *
+   * Un plan payant ouvre le paiement, pas la page de connexion : c'est toute la
+   * différence entre une grille de tarifs et une boutique. Si l'utilisateur
+   * n'est pas connecté, le tableau de bord le lui demandera et le ramènera
+   * exactement ici — son garde conserve la destination.
+   *
+   * Pas d'adresse de retour : après avoir payé, on veut voir ce qu'on vient
+   * d'acheter, donc son espace — pas la grille de tarifs.
+   */
+  protected planLink(plan: PlanCard): string {
+    const productCode = CHECKOUT_PRODUCTS[plan.id];
+    if (!productCode) {
+      return plan.link;
+    }
+
+    const checkout = new URL('/billing/checkout', environment.services.dashboard.url);
+    checkout.searchParams.set('product', productCode);
+    checkout.searchParams.set('interval', 'month');
+    checkout.searchParams.set('app', 'landing');
+
+    return checkout.toString();
+  }
 
   private readonly perMonth = $localize`:@@pricing-page.period.month:/month`;
   private readonly ctaStartFree = $localize`:@@pricing-page.cta.startFree:Start Free`;

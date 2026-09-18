@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { GitHubController } from '../controllers/github.controller';
 import { authenticate } from '../services/auth.service';
+import { requireProjectAccess } from '../middleware/billing.middleware';
 
 const router = Router();
 const githubController = new GitHubController();
@@ -101,9 +102,12 @@ router.get('/auth/callback', githubController.handleOAuthCallbackController.bind
  *       500:
  *         description: Internal server error
  */
+// Envoyer son code sur GitHub est un acte de possession au sens du modèle
+// iCode : il suppose un Project Pass ou un abonnement qui l'inclut.
 router.post(
   '/projects/:projectId/push',
   authenticate,
+  requireProjectAccess(),
   githubController.pushProjectToGitHubController.bind(githubController)
 );
 

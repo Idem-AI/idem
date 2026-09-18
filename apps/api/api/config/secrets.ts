@@ -67,9 +67,10 @@ const OPTIONAL_SECRETS = [
   'GITHUB_CLIENT_ID',
   'GITHUB_CLIENT_SECRET',
   'PEXELS_API_KEY',
-  // Clé Google Cloud avec l'API Web Fonts activée : alimente /fonts (catalogue
-  // Google Fonts servi au dashboard). Absente ⇒ /fonts répond 503 et le front
-  // bascule sur sa liste intégrée.
+  // Clé Google Cloud avec l'API Web Fonts activée : alimente la part Google du
+  // catalogue servi par /fonts. Absente, la recherche fonctionne quand même —
+  // Fontshare, Fontsource et les polices importées répondent sans clé — mais
+  // les ~1900 familles de Google manquent à la liste.
   'GOOGLE_FONTS_API_KEY',
   'SMTP_PASS',
   'IDEPLOY_SHARED_SECRET',

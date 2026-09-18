@@ -863,6 +863,19 @@ export interface SimulationModel {
   failureReason?: string;
   /** L'accord recueilli juste avant ce lancement. */
   consent?: SimulationConsent;
+  /**
+   * Paiement qui a ouvert cette exécution (`PAY-2026-09-000123`).
+   *
+   * iSimulate est le seul moteur facturé à l'acte : une exécution consomme des
+   * dizaines d'appels d'agents et de la recherche externe payante. La référence
+   * est conservée ici pour deux raisons — relier une exécution à son
+   * encaissement lors d'une réclamation, et empêcher qu'un même paiement en
+   * lance deux (la transaction porte le verrou `consumedBySimulationId`).
+   *
+   * Absente quand l'exécution est couverte par un droit : bêta premium, ou
+   * simulation incluse dans un abonnement.
+   */
+  paymentReference?: string;
   createdAt: Date;
   updatedAt: Date;
   completedAt?: Date;
@@ -897,6 +910,14 @@ export interface SimulationSummary {
  */
 export interface SimulationPlan {
   tier: SimulationTier;
+  /**
+   * Produit du catalogue de facturation correspondant à ce niveau.
+   *
+   * Le client s'en sert pour ouvrir le paiement : sans lui, il devrait
+   * deviner quel produit acheter à partir du niveau, et cette correspondance
+   * se retrouverait écrite à deux endroits.
+   */
+  productCode: string;
   price: number;
   /** Prix non remisé, présent seulement lorsqu'une remise s'applique. */
   listPrice?: number;

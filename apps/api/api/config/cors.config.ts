@@ -49,6 +49,13 @@ export function buildCorsOptions(): CorsOptions {
       'Origin',
       'X-Requested-With',
       'X-API-Key',
+      // Sans cet en-tête au préflight, le navigateur bloque tout `POST
+      // /billing/checkout` : c'est la clé d'idempotence qui empêche un double
+      // clic de débiter deux fois. Elle voyage donc sur chaque paiement.
+      'Idempotency-Key',
+      // AppGen identifie le projet à débloquer par un en-tête plutôt que par
+      // l'URL, parce que la route de déploiement est commune à tous.
+      'X-Appgen-Project-Id',
     ],
     exposedHeaders: ['Content-Type', 'Cache-Control', 'Connection', 'X-Accel-Buffering'],
     maxAge: 600,
