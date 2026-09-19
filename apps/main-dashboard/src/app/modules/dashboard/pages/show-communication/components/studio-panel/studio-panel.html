@@ -55,14 +55,12 @@
                           class="sp-visual"
                           (click)="openDialog(visual)"
                         >
-                          <img
-                            [src]="visual.imageUrl"
-                            [alt]="
+                          <app-visual-thumb
+                            [visual]="visual"
+                            [label]="
                               'dashboard.showCommunication.library.previewAlt'
                                 | translate: { title: visual.marketingText.headline }
                             "
-                            [style.aspect-ratio]="formatAspect(visual.format)"
-                            loading="lazy"
                           />
                           <span class="sp-visual-open">
                             <i class="pi pi-arrow-up-right" aria-hidden="true"></i>
@@ -112,7 +110,14 @@
       </ol>
     }
 
-    @if (isSending() && thinkingLabel()) {
+    @if (isComposing()) {
+      <div class="sp-composing glass-card">
+        <app-visual-composing
+          [format]="composingFormat()"
+          [variants]="composingVariants()"
+        />
+      </div>
+    } @else if (isSending() && thinkingLabel()) {
       <p class="sp-thinking" role="status" aria-live="polite">
         <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
         <span>{{ thinkingLabel() | translate }}</span>

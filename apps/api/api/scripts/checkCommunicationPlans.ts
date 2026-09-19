@@ -22,6 +22,7 @@
 import {
   CommunicationModel,
   COMMUNICATION_SCHEMA_VERSION,
+  ContentIdea,
 } from '../models/communication.model';
 import {
   addDays,
@@ -29,6 +30,7 @@ import {
   migrateLegacyCommunication,
   weekOfPeriod,
 } from '../services/Communication/communication.migration';
+import { toContentChannel, toContentChannels } from '../services/Communication/channels';
 
 let failures = 0;
 
@@ -75,6 +77,40 @@ check(
 );
 
 // ───────────────────────────────────────────────────────────────────────────
+// 1bis. Canaux de publication
+//
+// `ContentChannel` est une énumération en minuscules, mais la valeur venait d'un
+// modèle à qui on demandait « primary channels » en texte libre. Un « Instagram »
+// qui passait affichait la CLÉ de traduction brute à l'écran et la même icône
+// pour tous les réseaux. Ces contrôles ferment la porte.
+// ───────────────────────────────────────────────────────────────────────────
+
+console.log('\nCanaux de publication');
+
+check('un nom affiché est ramené en minuscules', toContentChannel('Instagram') === 'instagram');
+check('la casse mixte est acceptée', toContentChannel('LinkedIn') === 'linkedin');
+check('les séparateurs sont ignorés', toContentChannel('linked-in') === 'linkedin');
+check('les accents sont ignorés', toContentChannel('Réseaux sociaux') === 'other');
+check('Twitter devient x', toContentChannel('Twitter') === 'x');
+check('une newsletter devient email', toContentChannel('Newsletter') === 'email');
+check('un site web devient blog', toContentChannel('Site web') === 'blog');
+check(
+  'une valeur composée retient le premier réseau reconnu',
+  toContentChannel('Instagram & Facebook') === 'instagram',
+);
+check('une valeur vide ne donne rien', toContentChannel('') === null);
+check('une valeur inconnue ne donne rien', toContentChannel('carrier pigeon') === null);
+check('un non-texte ne casse pas', toContentChannel(42) === null && toContentChannel(null) === null);
+
+const listed = toContentChannels(['Instagram', 'instagram', 'LinkedIn', 'Social media', 'zzz']);
+check(
+  'une liste est normalisée et dédoublonnée',
+  JSON.stringify(listed) === JSON.stringify(['instagram', 'linkedin', 'other']),
+  JSON.stringify(listed),
+);
+check('une liste absente donne un tableau vide', toContentChannels(undefined).length === 0);
+
+// ───────────────────────────────────────────────────────────────────────────
 // 2. Migration V1 → V2
 // ───────────────────────────────────────────────────────────────────────────
 
@@ -114,7 +150,9 @@ function legacyProject(): CommunicationModel {
           hook: '',
           description: '',
           format: 'post',
-          channel: 'instagram',
+          // Valeur telle que le modèle la produisait : c'est elle qui affichait
+          // la clé de traduction brute dans l'interface.
+          channel: 'Instagram' as ContentIdea['channel'],
           scheduledFor: '2026-09-01',
           week: 1,
           hashtags: [],
@@ -288,6 +326,20 @@ check(
 check(
   'les champs V1 restent en base (retour arrière possible)',
   !!first.model.calendar && !!first.model.moments && !!first.model.flyers,
+);
+check(
+  'un canal en texte libre est CORRIGÉ dans la donnée, pas seulement à l’écran',
+  calendarPlan?.items.find((item) => item.id === 'c1')?.channel === 'instagram',
+  calendarPlan?.items.find((item) => item.id === 'c1')?.channel,
+);
+check(
+  'les canaux de la période sont tous valides',
+  (calendarPlan?.channels ?? []).every((channel) =>
+    ['instagram', 'linkedin', 'facebook', 'tiktok', 'x', 'youtube', 'blog', 'email', 'other'].includes(
+      channel,
+    ),
+  ),
+  JSON.stringify(calendarPlan?.channels),
 );
 
 // ── Idempotence ───────────────────────────────────────────────────────────

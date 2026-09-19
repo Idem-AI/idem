@@ -30,6 +30,13 @@
   }
 }
 
+<!--
+  Dock de changement de mode : monté ici, une seule fois, plutôt que recopié
+  dans chaque en-tête et chaque pied de sidebar. Le composant décide lui-même
+  où il se tait (édition de contenu, paiement) à partir des données de route.
+-->
+<app-mode-dock />
+
 <!-- Modale de blocage du mode Assisté (page hors parcours) -->
 <app-guided-lock-modal />
 
@@ -48,4 +55,3 @@
   son écran de travail.
 -->
 <app-paywall-host />
-

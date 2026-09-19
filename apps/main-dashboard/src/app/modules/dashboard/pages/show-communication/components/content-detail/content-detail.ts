@@ -21,8 +21,11 @@ import {
   FLYER_FORMATS,
   PLANNABLE_CHANNELS,
   channelIcon,
+  channelLabelKey,
   statusPillClass,
+  toChannel,
 } from '../../communication-ui';
+import { VisualComposing } from '../visual-composing/visual-composing';
 import { VisualPreview } from '../visual-preview/visual-preview';
 
 /** Champ actuellement en cours de modification. `null` = tout est en lecture. */
@@ -51,7 +54,7 @@ type EditableField =
  */
 @Component({
   selector: 'app-content-detail',
-  imports: [FormsModule, TranslateModule, VisualPreview],
+  imports: [FormsModule, TranslateModule, VisualComposing, VisualPreview],
   templateUrl: './content-detail.html',
   styleUrl: './content-detail.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -74,6 +77,8 @@ export class ContentDetail {
   readonly failed = output<string>();
 
   protected readonly channelIcon = channelIcon;
+  protected readonly channelLabelKey = channelLabelKey;
+  protected readonly toChannel = toChannel;
   protected readonly statusPillClass = statusPillClass;
   protected readonly channels = PLANNABLE_CHANNELS;
   protected readonly formats = FLYER_FORMATS;

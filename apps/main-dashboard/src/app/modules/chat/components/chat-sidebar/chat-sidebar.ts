@@ -21,7 +21,6 @@ import {
   CATEGORY_ORDER,
 } from '../../services/chat-categorizer.service';
 import { ChatConversationCategory, ChatConversationMeta } from '../../models/chat.model';
-import { ModeSwitcherComponent } from '../../../../shared/components/mode-switcher/mode-switcher';
 import { BetaBadgeComponent } from '../../../../shared/components/beta-badge/beta-badge';
 import { LanguageSelectorComponent } from '../../../../shared/components/language-selector/language-selector';
 import { ThemeToggleComponent } from '../../../../shared/components/theme-toggle/theme-toggle';
@@ -45,7 +44,6 @@ interface ConversationGroup {
   imports: [
     CommonModule,
     TranslateModule,
-    ModeSwitcherComponent,
     BetaBadgeComponent,
     LanguageSelectorComponent,
     ThemeToggleComponent,

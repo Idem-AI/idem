@@ -1,7 +1,5 @@
 <div class="min-h-dvh flex flex-col">
-  <header
-    class="sticky top-0 z-50 glass border-b border-[var(--glass-border)] px-3 py-2.5 lg:px-6"
-  >
+  <header class="sticky top-0 z-50 glass border-b border-[var(--glass-border)] px-3 py-2.5 lg:px-6">
     <div class="max-w-5xl mx-auto flex items-center justify-between gap-3">
       <a routerLink="/console" class="flex items-center gap-2 shrink-0">
         <img
@@ -18,9 +16,6 @@
       </a>
 
       <div class="flex items-center gap-2 sm:gap-3">
-        <!-- Le sélecteur de mode reste la commande la plus visible de l'en-tête -->
-        <app-mode-switcher [current]="'guided'" [alignRight]="true" />
-
         <div class="hidden sm:flex items-center gap-1">
           <app-language-selector direction="down" align="right" />
           <app-theme-toggle />

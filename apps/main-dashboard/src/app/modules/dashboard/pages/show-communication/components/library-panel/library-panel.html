@@ -95,17 +95,15 @@
     <!-- ─────────────── Grille ─────────────── -->
     <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       @for (visual of filtered(); track visual.id) {
-        <li>
+        <li class="lp-item">
           <button type="button" class="lp-card" (click)="open(visual)">
             <span class="lp-thumb">
-              <img
-                [src]="visual.imageUrl"
-                [alt]="
+              <app-visual-thumb
+                [visual]="visual"
+                [label]="
                   'dashboard.showCommunication.library.previewAlt'
                     | translate: { title: visual.marketingText.headline }
                 "
-                [style.aspect-ratio]="formatAspect(visual.format)"
-                loading="lazy"
               />
               @if (isPublished(visual.id)) {
                 <span class="lp-badge">
@@ -124,6 +122,50 @@
               </span>
             </span>
           </button>
+
+          <!--
+            Supprimer : hors du bouton d'ouverture (un bouton dans un bouton n'est
+            pas du HTML valide), et confirmé SUR la vignette pour qu'on voie
+            toujours lequel on s'apprête à jeter.
+          -->
+          @if (confirmingId() === visual.id) {
+            <div class="lp-confirm">
+              <p class="lp-confirm-text">
+                {{ 'dashboard.showCommunication.library.deleteAsk' | translate }}
+              </p>
+              <div class="lp-confirm-actions">
+                <button
+                  type="button"
+                  class="lp-confirm-yes"
+                  [disabled]="deletingId() === visual.id"
+                  (click)="confirmDelete(visual.id)"
+                >
+                  @if (deletingId() === visual.id) {
+                    <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+                  } @else {
+                    <i class="pi pi-trash" aria-hidden="true"></i>
+                  }
+                  {{ 'dashboard.showCommunication.library.deleteConfirm' | translate }}
+                </button>
+                <button type="button" class="outer-button button-sm" (click)="cancelDelete()">
+                  {{ 'common.cancel' | translate }}
+                </button>
+              </div>
+            </div>
+          } @else {
+            <button
+              type="button"
+              class="lp-delete"
+              [attr.aria-label]="
+                'dashboard.showCommunication.library.delete'
+                  | translate: { title: visual.marketingText.headline }
+              "
+              [title]="'dashboard.showCommunication.library.delete' | translate: { title: '' }"
+              (click)="askDelete(visual.id)"
+            >
+              <i class="pi pi-trash" aria-hidden="true"></i>
+            </button>
+          }
         </li>
       }
     </ul>

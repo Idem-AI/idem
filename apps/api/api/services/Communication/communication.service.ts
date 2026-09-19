@@ -31,6 +31,7 @@ import {
   weekOfPeriod,
 } from './communication.migration';
 import { signedVisualImageUrl } from './visualUrl';
+import { toContentChannel, toContentChannels } from './channels';
 import { getSocialConnector } from '../Connectors/social-providers.config';
 import { AssistedShare } from '../Connectors/social-connector.interface';
 import { cacheService } from '../cache.service';
@@ -372,7 +373,13 @@ export class CommunicationService extends GenericService {
       objectives: Array.isArray(parsed.objectives) ? parsed.objectives! : [],
       tone: parsed.tone || 'clear, confident, helpful',
       keywords: Array.isArray(parsed.keywords) ? parsed.keywords! : [],
-      channels: Array.isArray(parsed.channels) ? parsed.channels! : ['linkedin', 'instagram'],
+      // Ramenés vers l'énumération : le modèle répond « Instagram », « LinkedIn »
+      // ou « Réseaux sociaux » en texte libre, et ces valeurs traversaient tout
+      // le module — d'où une clé de traduction introuvable affichée telle quelle
+      // et la même icône pour tous les réseaux.
+      channels: toContentChannels(parsed.channels).length
+        ? toContentChannels(parsed.channels)
+        : ['linkedin', 'instagram'],
       language: parsed.language || 'en',
       branding: {
         primary: (colors as any).primary || '#0ea5e9',
@@ -922,7 +929,7 @@ export class CommunicationService extends GenericService {
       hook: input.hook || '',
       description: input.description || '',
       format: input.format || 'post',
-      channel: input.channel || plan.channels[0] || 'linkedin',
+      channel: toContentChannel(input.channel) || plan.channels[0] || 'linkedin',
       scheduledFor,
       week: weekOfPeriod(plan.period.start, scheduledFor),
       hashtags: Array.isArray(input.hashtags) ? input.hashtags.slice(0, 6) : [],
@@ -1203,8 +1210,12 @@ export class CommunicationService extends GenericService {
       Math.min(days - 1, Math.floor((index * days) / Math.max(1, total)))
     );
     const scheduledFor = this.clampToPeriod(raw.scheduledFor || fallbackDate, plan.period);
+    // Le canal du modèle est normalisé PUIS confronté à ceux que l'utilisateur a
+    // retenus : proposer un contenu pour un réseau qu'il n'a pas coché n'a pas de
+    // sens, et une valeur hors énumération casse l'affichage.
+    const proposed = toContentChannel(raw.channel);
     const channel =
-      raw.channel && plan.channels.includes(raw.channel) ? raw.channel : plan.channels[0] || 'linkedin';
+      proposed && plan.channels.includes(proposed) ? proposed : plan.channels[0] || 'linkedin';
 
     return {
       id: raw.id || `content-${plan.id}-${index + 1}`,
@@ -1260,10 +1271,11 @@ export class CommunicationService extends GenericService {
     channels: ContentChannel[] | undefined,
     context: CommunicationContext | undefined
   ): ContentChannel[] {
-    const cleaned = (channels || []).filter(Boolean);
-    if (cleaned.length) return Array.from(new Set(cleaned)).slice(0, 6);
-    // Repli : les canaux que la boussole a priorisés, sinon LinkedIn.
-    const fromContext = (context?.channels || []).filter(Boolean) as ContentChannel[];
+    // Normalisé même quand l'appelant est le front : un projet ancien peut lui
+    // avoir servi des canaux non conformes, qu'il renverrait tels quels.
+    const cleaned = toContentChannels(channels);
+    if (cleaned.length) return cleaned.slice(0, 6);
+    const fromContext = toContentChannels(context?.channels);
     return fromContext.length ? fromContext.slice(0, 3) : ['linkedin'];
   }
 
@@ -1956,6 +1968,67 @@ export class CommunicationService extends GenericService {
   }
 
   /**
+   * Supprime un visuel, définitivement.
+   *
+   * C'est la seule suppression dure du module, et elle est assumée : un visuel
+   * raté encombre la bibliothèque, et on ne « range » pas une image — on la jette.
+   * Les périodes, elles, s'archivent, parce qu'elles portent l'historique.
+   *
+   * Le lien est défait dans les DEUX sens : sans cela, le contenu propriétaire
+   * garderait un `flyerIds` pointant vers un visuel disparu, et son aperçu
+   * resterait cassé.
+   */
+  async deleteVisual(userId: string, projectId: string, visualId: string): Promise<boolean> {
+    let removed = false;
+
+    await this.patchCommunication(userId, projectId, (existing) => {
+      const library = existing.visuals || existing.flyers || [];
+      const visuals = library.filter((visual) => {
+        const keep = visual.id !== visualId;
+        if (!keep) removed = true;
+        return keep;
+      });
+
+      const unlink = (ids: string[] | undefined) =>
+        ids?.length ? ids.filter((id) => id !== visualId) : ids;
+
+      return {
+        ...existing,
+        visuals,
+        plans: (existing.plans || []).map((plan) => ({
+          ...plan,
+          items: plan.items.map((item) =>
+            item.flyerIds?.includes(visualId)
+              ? { ...item, flyerIds: unlink(item.flyerIds) }
+              : item
+          ),
+        })),
+        // Une publication préparée à partir de ce visuel perd son image, mais garde
+        // sa légende : elle reste publiable à la main.
+        publications: (existing.publications || []).map((publication) =>
+          publication.flyerId === visualId
+            ? { ...publication, flyerId: undefined, imageUrl: undefined }
+            : publication
+        ),
+      };
+    });
+
+    if (removed) {
+      await this.patchCommunication(userId, projectId, (existing) => ({
+        ...existing,
+        visuals: (existing.visuals || []).map((visual) =>
+          visual.siblingIds?.includes(visualId)
+            ? { ...visual, siblingIds: visual.siblingIds.filter((id) => id !== visualId) }
+            : visual
+        ),
+      }));
+      await this.invalidateFlyerImage(projectId, visualId);
+      logger.info('[Communication] Visual deleted', { projectId, visualId });
+    }
+    return removed;
+  }
+
+  /**
    * Inscrit un visuel au calendrier d'une période.
    *
    * Un visuel d'atelier n'a pas de contenu propriétaire : on en crée un à ce
@@ -2000,7 +2073,7 @@ export class CommunicationService extends GenericService {
       hook: visual.marketingText?.subheadline || '',
       description: visual.marketingText?.body || '',
       format: 'post',
-      channel: input.channel || plan.channels[0] || 'linkedin',
+      channel: toContentChannel(input.channel) || plan.channels[0] || 'linkedin',
       scheduledFor: input.date,
       intent: visual.intent,
       caption: input.caption,
@@ -2178,7 +2251,8 @@ export class CommunicationService extends GenericService {
     const context = await this.extractContext(userId, projectId);
     const intent =
       input.intent || this.inferVisualIntent({ title: input.occasion, description: input.message });
-    const channel = input.channel || (context.channels?.[0] as ContentIdea['channel']) || 'linkedin';
+    const channel =
+      toContentChannel(input.channel) || toContentChannels(context.channels)[0] || 'linkedin';
 
     const systemPrompt = AGENT_MOMENT_CONTENT_PROMPT.replace(
       /\{\{LANGUAGE\}\}/g,

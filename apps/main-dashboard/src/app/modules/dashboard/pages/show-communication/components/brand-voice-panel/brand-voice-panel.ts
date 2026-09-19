@@ -25,6 +25,7 @@ import {
   selector: 'app-brand-voice-panel',
   imports: [FormsModule, TranslateModule],
   templateUrl: './brand-voice-panel.html',
+  styleUrl: './brand-voice-panel.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BrandVoicePanel {
@@ -39,23 +40,22 @@ export class BrandVoicePanel {
 
   protected readonly isGenerating = signal(false);
   protected readonly isSaving = signal(false);
-  protected readonly isEditing = signal(false);
   protected readonly stepLabel = signal('');
   protected readonly savedAt = signal<number | null>(null);
 
   /**
-   * Copie de travail. L'édition ne touche pas l'entrée : abandonner ses
-   * modifications doit être possible, et une entrée mutée serait réécrite par le
-   * parent au premier rechargement.
+   * Section en cours de modification : `'summary'`, l'id d'un bloc, ou rien.
+   *
+   * Une seule à la fois, et chacune a son propre crayon. Le bouton « Modifier »
+   * global obligeait à basculer TOUTE la page en édition pour corriger une phrase,
+   * et poussait l'action utile — « Tout réécrire » — en bas de l'écran.
    */
-  protected readonly draft = signal<CommunicationStrategy | null>(null);
+  protected readonly editingId = signal<string | null>(null);
+  /** Texte en cours de saisie pour la section ouverte. */
+  protected readonly draft = signal('');
 
-  protected readonly blocks = computed<StrategyBlock[]>(
-    () => this.draft()?.blocks ?? this.strategy()?.blocks ?? [],
-  );
-  protected readonly summary = computed(
-    () => this.draft()?.summary ?? this.strategy()?.summary ?? '',
-  );
+  protected readonly blocks = computed<StrategyBlock[]>(() => this.strategy()?.blocks ?? []);
+  protected readonly summary = computed(() => this.strategy()?.summary ?? '');
 
   protected generate(force: boolean): void {
     this.isGenerating.set(true);
@@ -83,45 +83,46 @@ export class BrandVoicePanel {
     });
   }
 
-  protected startEditing(): void {
+  protected startEdit(id: string, current: string): void {
+    this.editingId.set(id);
+    this.draft.set(current);
+  }
+
+  protected cancelEdit(): void {
+    this.editingId.set(null);
+    this.draft.set('');
+  }
+
+  /**
+   * Enregistre la seule section modifiée.
+   *
+   * La stratégie complète est renvoyée à l'API (son contrat est un remplacement),
+   * mais construite depuis l'entrée courante : les autres sections ne sont jamais
+   * réécrites de mémoire, donc jamais perdues si elles ont changé entre-temps.
+   */
+  protected saveEdit(): void {
     const current = this.strategy();
-    if (!current) return;
-    // Copie PROFONDE des blocs : un `{...current}` laisserait le tableau partagé,
-    // et taper dans un bloc modifierait l'entrée du parent au fil des frappes.
-    this.draft.set({ ...current, blocks: current.blocks.map((block) => ({ ...block })) });
-    this.isEditing.set(true);
-  }
+    const id = this.editingId();
+    if (!current || !id || this.isSaving()) return;
 
-  protected cancelEditing(): void {
-    this.draft.set(null);
-    this.isEditing.set(false);
-  }
+    const value = this.draft();
+    const next: CommunicationStrategy =
+      id === 'summary'
+        ? { ...current, summary: value }
+        : {
+            ...current,
+            blocks: current.blocks.map((block) =>
+              block.id === id ? { ...block, body: value } : block,
+            ),
+          };
 
-  protected updateSummary(value: string): void {
-    const draft = this.draft();
-    if (!draft) return;
-    this.draft.set({ ...draft, summary: value });
-  }
-
-  protected updateBlock(id: string, value: string): void {
-    const draft = this.draft();
-    if (!draft) return;
-    this.draft.set({
-      ...draft,
-      blocks: draft.blocks.map((block) => (block.id === id ? { ...block, body: value } : block)),
-    });
-  }
-
-  protected save(): void {
-    const draft = this.draft();
-    if (!draft) return;
     this.isSaving.set(true);
-    this.communication.updateStrategy(this.projectId(), draft).subscribe({
+    this.communication.updateStrategy(this.projectId(), next).subscribe({
       next: (model) => {
         if (model.strategy) this.strategyChange.emit(model.strategy);
         this.isSaving.set(false);
-        this.isEditing.set(false);
-        this.draft.set(null);
+        this.editingId.set(null);
+        this.draft.set('');
         this.savedAt.set(Date.now());
       },
       error: (err) => {
@@ -141,7 +142,7 @@ export class BrandVoicePanel {
 
   private emit(strategy: CommunicationStrategy): void {
     this.strategyChange.emit(strategy);
-    this.draft.set(null);
-    this.isEditing.set(false);
+    this.editingId.set(null);
+    this.draft.set('');
   }
 }

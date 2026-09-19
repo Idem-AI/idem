@@ -137,7 +137,7 @@
             (click)="toggleChannel(channel)"
           >
             <i [class]="channelIcon(channel)" class="pw-network-icon" aria-hidden="true"></i>
-            <span>{{ 'dashboard.showCommunication.channels.' + channel | translate }}</span>
+            <span>{{ channelLabelKey(channel) | translate }}</span>
             @if (isPicked(channel)) {
               <i class="pi pi-check pw-network-check" aria-hidden="true"></i>
             }
@@ -199,7 +199,7 @@
             @for (channel of picked(); track channel) {
               <span class="pw-recap-net">
                 <i [class]="channelIcon(channel)" aria-hidden="true"></i>
-                {{ 'dashboard.showCommunication.channels.' + channel | translate }}
+                {{ channelLabelKey(channel) | translate }}
               </span>
             }
           </span>

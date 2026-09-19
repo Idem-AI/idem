@@ -19,8 +19,16 @@
           <!-- Deux fichiers plutôt qu'un filtre : `invert hue-rotate-180`
                fabriquait une approximation des couleurs de marque en thème
                clair. Le logo sombre est maintenant un vrai fichier. -->
-          <img src="/assets/icons/logo_white.png" alt="IDEM" class="sm:w-[120px] w-[50px] h-auto dark:hidden" />
-          <img src="/assets/icons/logo_dark.png" alt="IDEM" class="sm:w-[120px] w-[50px] h-auto hidden dark:block" />
+          <img
+            src="/assets/icons/logo_white.png"
+            alt="IDEM"
+            class="sm:w-[120px] w-[50px] h-auto dark:hidden"
+          />
+          <img
+            src="/assets/icons/logo_dark.png"
+            alt="IDEM"
+            class="sm:w-[120px] w-[50px] h-auto hidden dark:block"
+          />
           <app-beta-badge></app-beta-badge>
         </a>
       </div>
@@ -28,9 +36,6 @@
 
     <!-- Right section -->
     <div class="flex items-center gap-3 sm:gap-4">
-      <!-- Sélecteur de mode : présent partout, pour qu'on sache qu'on peut changer -->
-      <app-mode-switcher [alignRight]="true" />
-
       <!-- Language Selector -->
       <app-language-selector direction="down" align="right" />
       <app-theme-toggle />

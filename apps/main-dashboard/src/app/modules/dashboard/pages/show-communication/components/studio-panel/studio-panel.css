@@ -172,10 +172,8 @@
   outline-offset: 2px;
 }
 
-.sp-visual img {
+.sp-visual app-visual-thumb {
   display: block;
-  width: 100%;
-  object-fit: cover;
 }
 
 .sp-visual-open {
@@ -293,4 +291,10 @@
 
 .sp-clear:hover {
   color: var(--color-text-secondary);
+}
+
+/* Écran de fabrication, posé dans le fil comme une réponse en cours. */
+.sp-composing {
+  margin-top: 1.25rem;
+  padding: 1.1rem;
 }

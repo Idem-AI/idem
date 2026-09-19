@@ -16,6 +16,7 @@ import { BrandingValidationService } from '../../services/branding-validation.se
 import { FontHints } from '../document-editor/models/editor.types';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
 import { ProjectService } from '../../services/project.service';
+import { toChannels } from './communication-ui';
 import { BrandVoicePanel } from './components/brand-voice-panel/brand-voice-panel';
 import { LibraryPanel } from './components/library-panel/library-panel';
 import { PlanPanel } from './components/plan-panel/plan-panel';
@@ -85,9 +86,15 @@ export class ShowCommunication implements OnInit {
   );
   protected readonly strategy = computed(() => this.model()?.strategy ?? null);
 
-  /** Réseaux déjà priorisés pour cette marque — présélection à la création d'un planning. */
-  protected readonly suggestedChannels = computed<ContentChannel[]>(
-    () => (this.model()?.context?.channels ?? []) as ContentChannel[],
+  /**
+   * Réseaux déjà priorisés pour cette marque — présélection à la création d'un planning.
+   *
+   * Normalisés : ils viennent d'une extraction par le modèle, qui répondait en
+   * texte libre avant que l'API ne borne la valeur (« Instagram », « Réseaux
+   * sociaux »). Les projets créés avant en contiennent encore.
+   */
+  protected readonly suggestedChannels = computed<ContentChannel[]>(() =>
+    toChannels(this.model()?.context?.channels),
   );
 
   /** Vrai tant que rien n'existe : on montre alors les trois façons de démarrer. */
@@ -210,6 +217,27 @@ export class ShowCommunication implements OnInit {
   protected onVisualCreated(visual: Flyer): void {
     const existing = this.visuals().filter((item) => item.id !== visual.id);
     this.patch({ visuals: [...existing, visual] });
+  }
+
+  /**
+   * Un visuel a été supprimé.
+   *
+   * Le lien côté contenu est défait par l'API ; ici on retire aussi le visuel des
+   * `flyerIds` en mémoire, sinon la carte du planning continuerait de chercher une
+   * vignette qui n'existe plus.
+   */
+  protected onVisualDeleted(visualId: string): void {
+    this.patch({
+      visuals: this.visuals().filter((visual) => visual.id !== visualId),
+      plans: this.plans().map((plan) => ({
+        ...plan,
+        items: plan.items.map((item) =>
+          item.flyerIds?.includes(visualId)
+            ? { ...item, flyerIds: item.flyerIds.filter((id) => id !== visualId) }
+            : item,
+        ),
+      })),
+    });
   }
 
   protected onPublicationCreated(publication: Publication): void {
