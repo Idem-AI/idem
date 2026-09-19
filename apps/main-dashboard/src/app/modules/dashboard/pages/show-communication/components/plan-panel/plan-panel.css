@@ -1,0 +1,29 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+/*
+ * Sélection d'une période et jour courant.
+ *
+ * Posés en CSS plutôt qu'en classes Tailwind à valeur arbitraire : une classe
+ * comme `ring-[var(--color-accent-500)]` doit être vue par le scanner de Tailwind
+ * pour exister, et dans une liaison `[class.…]` échappée elle ne l'est pas
+ * toujours — le style disparaîtrait alors silencieusement en production.
+ */
+.is-selected {
+  outline: 2px solid var(--color-accent-500);
+  outline-offset: 0;
+}
+
+.is-today {
+  font-weight: 700;
+  color: var(--color-accent-500);
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

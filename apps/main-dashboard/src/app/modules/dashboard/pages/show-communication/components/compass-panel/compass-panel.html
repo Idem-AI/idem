@@ -1,0 +1,158 @@
+<!--
+  Panneau latéral. `role="dialog"` + `aria-modal` pour que les lecteurs d'écran
+  annoncent qu'on entre dans une couche par-dessus la page, et Échap pour en
+  sortir — un panneau qu'on ne peut fermer qu'à la souris est un piège au clavier.
+-->
+<div
+  class="fixed inset-0 z-50 flex justify-end bg-[rgba(15,23,42,0.35)]"
+  (click)="close()"
+  (keydown.escape)="close()"
+  tabindex="-1"
+>
+  <aside
+    class="glass-card h-full w-full max-w-xl overflow-y-auto rounded-none p-6"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="'dashboard.showCommunication.compass.title' | translate"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="mb-5 flex items-start justify-between gap-4">
+      <div>
+        <p class="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent-500)]">
+          {{ 'dashboard.showCommunication.compass.eyebrow' | translate }}
+        </p>
+        <h2 class="mt-1 text-xl font-bold text-[var(--color-text-primary)]">
+          {{ 'dashboard.showCommunication.compass.title' | translate }}
+        </h2>
+        <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
+          {{ 'dashboard.showCommunication.compass.subtitle' | translate }}
+        </p>
+      </div>
+      <button
+        type="button"
+        class="outer-button button-sm shrink-0"
+        [attr.aria-label]="'common.close' | translate"
+        (click)="close()"
+      >
+        <i class="pi pi-times" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    @if (isGenerating()) {
+      <p
+        class="glass mb-4 flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-[var(--color-accent-500)]"
+        role="status"
+        aria-live="polite"
+      >
+        <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+        <span>{{ stepLabel() | translate }}</span>
+      </p>
+    }
+
+    @if (!strategy() && !isGenerating()) {
+      <!-- État vide : ce que la boussole apporte, et son prix, avant de cliquer. -->
+      <div class="glass rounded-2xl p-6 text-center">
+        <i class="pi pi-compass text-4xl text-[var(--color-text-tertiary)]" aria-hidden="true"></i>
+        <h3 class="mt-3 font-semibold text-[var(--color-text-primary)]">
+          {{ 'dashboard.showCommunication.compass.empty.title' | translate }}
+        </h3>
+        <p class="mx-auto mt-2 max-w-sm text-sm text-[var(--color-text-secondary)]">
+          {{ 'dashboard.showCommunication.compass.empty.body' | translate }}
+        </p>
+        <button type="button" class="inner-button mt-5" (click)="generate(false)">
+          <i class="pi pi-sparkles" aria-hidden="true"></i>
+          {{ 'dashboard.showCommunication.compass.empty.cta' | translate }}
+        </button>
+      </div>
+    }
+
+    @if (strategy()) {
+      <section class="glass mb-4 rounded-2xl p-4">
+        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+          {{ 'dashboard.showCommunication.compass.summaryLabel' | translate }}
+        </h3>
+        @if (isEditing()) {
+          <label class="sr-only" for="compass-summary">
+            {{ 'dashboard.showCommunication.compass.summaryLabel' | translate }}
+          </label>
+          <textarea
+            id="compass-summary"
+            class="glass mt-2 w-full rounded-xl p-3 text-sm text-[var(--color-text-primary)]"
+            rows="3"
+            [ngModel]="summary()"
+            (ngModelChange)="updateSummary($event)"
+            name="compassSummary"
+          ></textarea>
+        } @else {
+          <p class="mt-2 text-sm leading-relaxed text-[var(--color-text-primary)]">
+            {{ summary() }}
+          </p>
+        }
+      </section>
+
+      <div class="flex flex-col gap-3">
+        @for (block of blocks(); track block.id) {
+          <article class="glass rounded-2xl p-4">
+            <h3 class="text-sm font-semibold text-[var(--color-text-primary)]">
+              {{ blockLabelKey(block.kind) | translate }}
+            </h3>
+            @if (isEditing()) {
+              <label class="sr-only" [attr.for]="'compass-block-' + block.id">
+                {{ blockLabelKey(block.kind) | translate }}
+              </label>
+              <textarea
+                [id]="'compass-block-' + block.id"
+                class="glass mt-2 w-full rounded-xl p-3 text-sm text-[var(--color-text-primary)]"
+                rows="5"
+                [ngModel]="block.body"
+                (ngModelChange)="updateBlock(block.id, $event)"
+                [name]="'block-' + block.id"
+              ></textarea>
+            } @else {
+              <p
+                class="mt-2 whitespace-pre-line text-sm leading-relaxed text-[var(--color-text-secondary)]"
+              >
+                {{ block.body }}
+              </p>
+            }
+          </article>
+        }
+      </div>
+
+      <footer class="mt-6 flex flex-wrap items-center gap-2">
+        @if (isEditing()) {
+          <button type="button" class="inner-button" [disabled]="isSaving()" (click)="save()">
+            @if (isSaving()) {
+              <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+            } @else {
+              <i class="pi pi-check" aria-hidden="true"></i>
+            }
+            {{ 'dashboard.showCommunication.compass.save' | translate }}
+          </button>
+          <button type="button" class="outer-button" (click)="cancelEditing()">
+            {{ 'common.cancel' | translate }}
+          </button>
+        } @else {
+          <button type="button" class="outer-button" (click)="startEditing()">
+            <i class="pi pi-pencil" aria-hidden="true"></i>
+            {{ 'dashboard.showCommunication.compass.edit' | translate }}
+          </button>
+          <button
+            type="button"
+            class="outer-button"
+            [disabled]="isGenerating()"
+            (click)="generate(true)"
+          >
+            <i class="pi pi-refresh" aria-hidden="true"></i>
+            {{ 'dashboard.showCommunication.compass.regenerate' | translate }}
+          </button>
+        }
+        @if (savedAt()) {
+          <span class="text-xs text-[var(--color-success)]" role="status" aria-live="polite">
+            {{ 'dashboard.showCommunication.compass.saved' | translate }}
+          </span>
+        }
+      </footer>
+    }
+  </aside>
+</div>

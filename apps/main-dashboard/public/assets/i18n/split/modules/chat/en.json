@@ -411,7 +411,10 @@
         "context": "Analyzing context",
         "trends": "Spotting trends",
         "strategy": "Writing the strategy",
-        "calendar": "Building the calendar"
+        "calendar": "Building the calendar",
+        "occasions": "Finding the occasions…",
+        "brief": "Setting the angle…",
+        "content": "Writing the contents…"
       },
       "chips": {
         "strategy": "Generate the strategy",

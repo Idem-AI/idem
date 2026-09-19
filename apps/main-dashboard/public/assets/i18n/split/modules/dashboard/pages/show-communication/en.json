@@ -1,21 +1,19 @@
 {
   "dashboard": {
     "showCommunication": {
-      "eyebrow": "Communication engine",
-      "title": "Communication & editorial calendar",
-      "subtitle": "Strategy, calendar, timely moments and publishing — to keep your brand alive every day.",
-      "loading": "Loading communication engine…",
-      "comingSoon": "Soon",
+      "eyebrow": "Communication",
+      "title": "Communication",
+      "subtitle": "Make your visuals, plan your periods, keep everything in one place.",
+      "loading": "Loading…",
       "tabs": {
-        "strategy": "Strategy",
-        "calendar": "Calendar",
-        "moments": "Moments",
-        "publishing": "Publishing"
+        "studio": "Studio",
+        "plans": "Periods",
+        "library": "Library"
       },
       "selectProject": {
-        "title": "Select a project",
-        "body": "Choose a project from your list to start generating communication assets.",
-        "cta": "Go to my projects"
+        "title": "No project selected",
+        "body": "Pick a project to work on its communication.",
+        "cta": "See my projects"
       },
       "status": {
         "idea": "Idea",
@@ -23,147 +21,221 @@
         "scheduled": "Scheduled",
         "published": "Published"
       },
-      "intent": {
-        "label": "Intent",
-        "awareness": "Awareness",
-        "celebration": "Celebration",
-        "promotion": "Promotion",
-        "recruitment": "Recruitment",
-        "announcement": "Announcement"
+      "formats": {
+        "square": "Square",
+        "story": "Story",
+        "banner": "Banner",
+        "post": "Portrait",
+        "a4": "A4 poster"
       },
-      "strategy": {
-        "empty": {
-          "title": "Generate your communication strategy",
-          "body": "We extract a compact context from your project, pull lightweight trend signals, and produce a structured, editable strategy.",
-          "cta": "Generate strategy"
+      "channels": {
+        "instagram": "Instagram",
+        "facebook": "Facebook",
+        "linkedin": "LinkedIn",
+        "tiktok": "TikTok",
+        "x": "X",
+        "youtube": "YouTube",
+        "blog": "Blog",
+        "email": "Email",
+        "other": "Other"
+      },
+      "networks": {
+        "linkedin": "LinkedIn",
+        "x": "X"
+      },
+      "steps": {
+        "context": "Reading your brand…",
+        "trends": "Scanning your sector…",
+        "strategy": "Writing the compass…",
+        "calendar": "Building the calendar…",
+        "occasions": "Finding the occasions in this period…",
+        "brief": "Setting the angle of the period…",
+        "content": "Writing the contents…"
+      },
+      "errors": {
+        "project": "Could not load the project.",
+        "load": "Could not load your communication.",
+        "credits": "You do not have enough credits for this.",
+        "creditsDetail": "It costs {{cost}} credits, you have {{balance}} left.",
+        "topUp": "Top up"
+      },
+      "doors": {
+        "visual": {
+          "title": "A visual, right now",
+          "body": "Describe what you want to say. The visual comes out on brand.",
+          "price": "2 credits"
         },
-        "context": {
-          "brand": "Brand",
-          "type": "Type",
-          "tone": "Tone"
+        "plan": {
+          "title": "Plan a period",
+          "body": "A month, a launch, a season: real dates, one angle, dated contents.",
+          "price": "15 credits",
+          "cta": "Create a period"
         },
-        "summaryLabel": "Strategy summary",
+        "compass": {
+          "title": "Set your line",
+          "body": "Positioning, tone, channels. Every period then derives its angle from it.",
+          "price": "40 credits · once",
+          "cta": "Open the compass"
+        }
+      },
+      "compass": {
+        "eyebrow": "Your line",
+        "title": "The compass",
+        "subtitle": "Your positioning and your tone. Each period derives its angle from it.",
+        "open": "Compass",
+        "todo": "to define",
+        "summaryLabel": "In short",
+        "edit": "Edit",
+        "save": "Save",
+        "saved": "Saved",
         "regenerate": "Regenerate",
-        "save": "Save changes",
-        "saved": "Changes saved",
-        "trendsTitle": "Trend signals used",
+        "empty": {
+          "title": "No compass yet",
+          "body": "It settles your positioning, your key messages and your tone once and for all. Periods then refer to it instead of starting from scratch.",
+          "cta": "Set my line — 40 credits"
+        },
         "blockKinds": {
           "positioning": "Positioning",
           "pillars": "Content pillars",
-          "messaging": "Key messaging",
+          "messaging": "Key messages",
           "channels": "Channels",
           "cadence": "Cadence",
-          "kpis": "KPIs",
+          "kpis": "Indicators",
           "tone": "Tone of voice",
-          "custom": "Custom block"
+          "custom": "Other"
         }
       },
-      "calendar": {
+      "plans": {
+        "title": "Your periods",
+        "subtitle": "What you say over a precise window of time. Periods stack up — nothing gets overwritten.",
+        "new": "New period",
+        "showArchived": "Show archived",
+        "hideArchived": "Hide archived",
         "empty": {
-          "title": "Build your editorial calendar",
-          "body": "We'll produce 4 weeks of content ideas — titles, hooks, formats, channels — so you can pick what to publish. Visuals are only generated on demand.",
-          "cta": "Generate calendar",
-          "needStrategy": "Generate a strategy first to produce a more relevant calendar."
+          "title": "No period yet",
+          "body": "A period is dates, an objective and dated contents. December can be prepared in October.",
+          "cta": "Create my first period"
         },
-        "filters": {
-          "channel": "Channel",
-          "format": "Format",
-          "allChannels": "All channels",
-          "allFormats": "All formats"
+        "status": {
+          "draft": "Draft",
+          "active": "Running",
+          "done": "Done",
+          "archived": "Archived"
         },
-        "regenerate": "Regenerate calendar",
-        "week": "Week",
-        "ideas": "ideas",
-        "generateVisual": "Visual",
-        "schedule": "Schedule"
+        "itemCount": "{{count}} contents",
+        "generate": "Generate the period — 15 credits",
+        "regenerate": "Regenerate",
+        "archive": "Archive",
+        "notGenerated": "This period has no contents yet.",
+        "brief": {
+          "angle": "Angle of the period",
+          "keyMessage": "Key message",
+          "themes": "Themes",
+          "signals": "What we check at the end"
+        },
+        "viewWeeks": "By week",
+        "viewMonth": "Calendar",
+        "week": "Week {{week}}",
+        "monthCaption": "Scheduled contents, day by day",
+        "weekdays": {
+          "mon": "Mon",
+          "tue": "Tue",
+          "wed": "Wed",
+          "thu": "Thu",
+          "fri": "Fri",
+          "sat": "Sat",
+          "sun": "Sun"
+        },
+        "createVisual": "Create the visual",
+        "itemDate": "Publication date",
+        "removeItem": "Remove this content",
+        "form": {
+          "title": "New period",
+          "subtitle": "Dates first: they decide everything else.",
+          "name": "Name",
+          "namePlaceholder": "November 2026, Shop launch…",
+          "start": "From",
+          "end": "to",
+          "objective": "Objective",
+          "objectivePlaceholder": "Make the shop known to families in the neighbourhood",
+          "kind": "Nature",
+          "kindRegular": "Regular rhythm",
+          "kindCampaign": "Campaign",
+          "cadence": "Rhythm",
+          "perWeek": "{{count}}/week",
+          "channels": "Channels",
+          "occasions": "Occasions in this period",
+          "occasionsLoading": "Looking for occasions…",
+          "occasionsNone": "No notable occasion in this window.",
+          "occasionsHint": "They will be woven into the contents, on their date.",
+          "summary": "{{days}} days · about {{count}} contents",
+          "submit": "Generate — 15 credits"
+        }
+      },
+      "studio": {
+        "empty": {
+          "title": "What do you want to say?",
+          "body": "Describe it in one sentence. The visual comes out with your colours, your fonts and your logo.",
+          "body2": "For instance: “a visual to say we are now open on Saturdays”"
+        },
+        "starters": {
+          "announce": "A visual to announce ",
+          "promotion": "A visual for a promotion on ",
+          "celebration": "A visual to wish ",
+          "recruitment": "A visual to say we are hiring a "
+        },
+        "thinking": "Thinking…",
+        "composing": "Composing the visual…",
+        "composingVariants": "Composing three options…",
+        "retouching": "Retouching the visual…",
+        "declinating": "Adapting the visual…",
+        "writingCaption": "Writing the caption…",
+        "caption": "Caption to publish",
+        "copy": "Copy",
+        "copied": "Copied",
+        "creditsSpent": "{{count}} credits",
+        "inputLabel": "Describe the visual you want",
+        "placeholder": "Describe what you want to communicate…",
+        "send": "Send",
+        "clear": "Clear the conversation",
+        "pricingHint": "Talking is free. A visual costs 2 credits.",
+        "schedule": "Schedule",
+        "toStory": "As a story",
+        "noPlan": "Create a period first to schedule this visual into it.",
+        "planLabel": "Period",
+        "dateLabel": "Publication date"
+      },
+      "library": {
+        "title": "Your visuals",
+        "subtitle": "Everything produced on this project, whatever it came from.",
+        "empty": {
+          "title": "No visual yet",
+          "body": "Use the studio to create one, or generate a period and create the visuals of its contents."
+        },
+        "filterFormat": "Format",
+        "allFormats": "All formats",
+        "filterOrigin": "Origin",
+        "allOrigins": "All origins",
+        "origins": {
+          "plan": "Period",
+          "studio": "Studio",
+          "occasion": "Occasion",
+          "brandbook": "Brand book"
+        },
+        "filterPlan": "Period",
+        "allPlans": "All periods",
+        "count": "{{count}} visuals",
+        "previewAlt": "Visual preview: {{title}}",
+        "brief": "Original request",
+        "concept": "Creative take",
+        "declinate": "Adapt to another format",
+        "publish": "Publish",
+        "publishHint": "The caption is copied and the network opens: all that is left is to paste and publish.",
+        "publishNeedsSchedule": "Schedule this visual into a period first to be able to publish it."
       },
       "visual": {
-        "eyebrow": "Content visual",
-        "format": "Format",
-        "generate": "Generate visual",
-        "regenerate": "Regenerate",
-        "download": "Download PNG",
-        "close": "Close",
-        "generating": "Sourcing image, scanning, composing visual…",
-        "loadingImage": "Loading rendered image…",
-        "noneTitle": "No visual yet",
-        "noneBody": "Click “Generate visual” to create one. We search free stock libraries first, then fall back to AI generation.",
-        "notRendered": "Visual generated but not yet rendered as PNG.",
-        "placeholder": "Marketing text and concept will appear here after generation.",
-        "sourceStock": "Stock photo",
-        "sourceGenerated": "AI generated",
-        "by": "by",
-        "scan": "Image scan",
-        "mood": "Mood",
-        "concept": "Concept",
-        "layout": "Layout notes",
-        "headline": "Headline",
-        "subheadline": "Subheadline",
-        "body": "Body",
-        "cta": "Call to action",
-        "logoUsed": "Logo declension used",
-        "edit": "Edit"
-      },
-      "moments": {
-        "eyebrow": "Timely moments",
-        "empty": {
-          "title": "Keep your brand alive around every occasion",
-          "body": "National holidays, hiring, company anniversary, seasonal promos… Generate a one-off visual and ready-to-publish content in one click.",
-          "cta": "See suggested occasions"
-        },
-        "suggestionsTitle": "Suggested occasions",
-        "refresh": "Refresh suggestions",
-        "createTitle": "Create a free-form moment",
-        "createBody": "Describe the occasion and Idem generates the visual and publishable content.",
-        "generate": "Generate",
-        "generateVisual": "Generate visual",
-        "fields": {
-          "occasion": "Occasion",
-          "occasionPlaceholder": "e.g. World Environment Day, a new job opening…",
-          "date": "Date",
-          "message": "Message / angle",
-          "messagePlaceholder": "What you want to say for this occasion",
-          "intent": "Intent"
-        },
-        "loadingSuggestions": "Finding relevant occasions for your brand…",
-        "noSuggestions": "No suggestions right now. Create a free-form moment below."
-      },
-      "publishing": {
-        "eyebrow": "Publishing",
-        "empty": {
-          "title": "Publish to your networks from Idem",
-          "body": "Prepare, schedule and publish your visuals and captions to LinkedIn and X. Connect a network first or use assisted publishing.",
-          "cta": "Prepare a post"
-        },
-        "queueTitle": "Publishing queue",
-        "readyTitle": "Ready to publish",
-        "readyHint": "Your content that already has a visual. Prepare an assisted post on a network.",
-        "noPublishable": "Generate a visual first (Calendar or Moments tab) to prepare a post.",
-        "prepareOn": "Prepare on",
-        "downloadVisual": "Download visual",
-        "assistedNote": "Assisted publishing: Idem copies the caption, downloads the visual and opens the network composer. You finalize the post on the network.",
-        "publishAssisted": "Publish (assisted)",
-        "markPublished": "Mark as published",
-        "openComposer": "Open composer",
-        "copyCaption": "Copy caption",
-        "captionCopied": "Caption copied",
-        "networks": {
-          "linkedin": "LinkedIn",
-          "x": "X (Twitter)"
-        },
-        "scheduleAt": "Schedule for",
-        "scheduledFor": "Scheduled for"
-      },
-      "errors": {
-        "load": "Failed to load communication data",
-        "checkProject": "Error while checking the project",
-        "strategy": "Strategy generation failed",
-        "calendar": "Calendar generation failed",
-        "flyer": "Visual generation failed",
-        "saveStrategy": "Failed to save strategy",
-        "updateContent": "Failed to update content",
-        "moments": "Moment generation failed",
-        "publish": "Publishing failed"
+        "download": "Download the PNG",
+        "edit": "Retouch"
       }
     }
   }

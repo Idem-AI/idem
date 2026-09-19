@@ -1,0 +1,282 @@
+<section class="mx-auto flex max-w-4xl flex-col" style="min-height: 60vh">
+  <!-- ─────────────── Fil de conversation ─────────────── -->
+  <div class="flex-1">
+    @if (isLoading()) {
+      <p class="py-16 text-center text-sm text-[var(--color-text-secondary)]" role="status">
+        <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+      </p>
+    } @else if (messages().length === 0) {
+      <!--
+        Fil vide : une question, pas un mode d'emploi. Les amorces REMPLISSENT la
+        saisie sans l'envoyer — l'utilisateur complète avec ce qui lui est propre.
+      -->
+      <div class="py-10 text-center">
+        <i class="pi pi-palette text-4xl text-[var(--color-accent-500)]" aria-hidden="true"></i>
+        <h2 class="mt-4 text-xl font-bold text-[var(--color-text-primary)]">
+          {{ 'dashboard.showCommunication.studio.empty.title' | translate }}
+        </h2>
+        <p class="mx-auto mt-2 max-w-md text-sm text-[var(--color-text-secondary)]">
+          {{ 'dashboard.showCommunication.studio.empty.body' | translate }}
+        </p>
+        <ul class="mt-6 flex flex-wrap justify-center gap-2">
+          @for (starter of starters; track starter) {
+            <li>
+              <button type="button" class="outer-button button-sm" (click)="useStarter(starter)">
+                {{ 'dashboard.showCommunication.studio.starters.' + starter | translate }}
+              </button>
+            </li>
+          }
+        </ul>
+      </div>
+    } @else {
+      <ol class="flex flex-col gap-5" aria-live="polite">
+        @for (message of messages(); track message.id) {
+          <li [class.text-right]="message.role === 'user'">
+            @if (message.role === 'user') {
+              <p
+                class="glass ml-auto inline-block max-w-[85%] rounded-2xl px-4 py-2.5 text-left text-sm text-[var(--color-text-primary)]"
+              >
+                {{ message.content }}
+              </p>
+            } @else {
+              <div class="max-w-[95%]">
+                <p class="whitespace-pre-line text-sm leading-relaxed text-[var(--color-text-primary)]">
+                  {{ message.content }}
+                </p>
+
+                <!-- Visuels produits par ce tour -->
+                @if (visualsOf(message).length > 0) {
+                  <ul
+                    class="mt-3 grid gap-3"
+                    [class.grid-cols-1]="visualsOf(message).length === 1"
+                    [class.sm:grid-cols-3]="visualsOf(message).length > 1"
+                  >
+                    @for (visual of visualsOf(message); track visual.id) {
+                      <li class="glass-card overflow-hidden p-2">
+                        <button
+                          type="button"
+                          class="block w-full overflow-hidden rounded-lg"
+                          (click)="openEditor(visual.id)"
+                        >
+                          <img
+                            [src]="visual.imageUrl"
+                            [alt]="
+                              'dashboard.showCommunication.library.previewAlt'
+                                | translate: { title: visual.marketingText.headline }
+                            "
+                            class="w-full object-cover"
+                            [style.aspect-ratio]="formatAspect(visual.format)"
+                            loading="lazy"
+                          />
+                        </button>
+
+                        <p class="mt-2 truncate text-xs font-medium text-[var(--color-text-primary)]">
+                          {{ visual.marketingText.headline }}
+                        </p>
+
+                        <div class="mt-2 flex flex-wrap gap-1">
+                          <button
+                            type="button"
+                            class="outer-button button-sm"
+                            (click)="download(visual)"
+                          >
+                            <i class="pi pi-download" aria-hidden="true"></i>
+                            <span class="sr-only">
+                              {{ 'dashboard.showCommunication.visual.download' | translate }}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            class="outer-button button-sm"
+                            (click)="openEditor(visual.id)"
+                          >
+                            <i class="pi pi-pencil" aria-hidden="true"></i>
+                            <span class="sr-only">
+                              {{ 'dashboard.showCommunication.visual.edit' | translate }}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            class="outer-button button-sm"
+                            (click)="openSchedule(visual.id)"
+                          >
+                            <i class="pi pi-calendar-plus" aria-hidden="true"></i>
+                            <span class="sr-only">
+                              {{ 'dashboard.showCommunication.studio.schedule' | translate }}
+                            </span>
+                          </button>
+                          @if (visual.format !== 'story') {
+                            <button
+                              type="button"
+                              class="outer-button button-sm"
+                              [disabled]="declinatingId() === visual.id"
+                              (click)="declinate(visual, 'story')"
+                            >
+                              @if (declinatingId() === visual.id) {
+                                <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+                              } @else {
+                                <i class="pi pi-mobile" aria-hidden="true"></i>
+                              }
+                              {{ 'dashboard.showCommunication.studio.toStory' | translate }}
+                            </button>
+                          }
+                        </div>
+
+                        <!-- Programmation : une date + une période, rien de plus -->
+                        @if (schedulingVisualId() === visual.id) {
+                          <div class="glass mt-2 rounded-xl p-2">
+                            @if (schedulablePlans().length === 0) {
+                              <p class="text-[11px] text-[var(--color-text-secondary)]">
+                                {{ 'dashboard.showCommunication.studio.noPlan' | translate }}
+                              </p>
+                            } @else {
+                              <label class="sr-only" [attr.for]="'sched-plan-' + visual.id">
+                                {{ 'dashboard.showCommunication.studio.planLabel' | translate }}
+                              </label>
+                              <select
+                                [id]="'sched-plan-' + visual.id"
+                                class="glass w-full rounded-lg px-2 py-1 text-xs text-[var(--color-text-primary)]"
+                                [ngModel]="schedulePlanId()"
+                                (ngModelChange)="schedulePlanId.set($event)"
+                                [name]="'schedPlan' + visual.id"
+                              >
+                                @for (plan of schedulablePlans(); track plan.id) {
+                                  <option [value]="plan.id">{{ plan.name }}</option>
+                                }
+                              </select>
+                              <label class="sr-only" [attr.for]="'sched-date-' + visual.id">
+                                {{ 'dashboard.showCommunication.studio.dateLabel' | translate }}
+                              </label>
+                              <input
+                                [id]="'sched-date-' + visual.id"
+                                type="date"
+                                class="glass mt-1 w-full rounded-lg px-2 py-1 text-xs text-[var(--color-text-primary)]"
+                                [ngModel]="scheduleDate()"
+                                (ngModelChange)="scheduleDate.set($event)"
+                                [name]="'schedDate' + visual.id"
+                              />
+                              <div class="mt-2 flex gap-1">
+                                <button
+                                  type="button"
+                                  class="inner-button button-sm flex-1 justify-center"
+                                  (click)="confirmSchedule()"
+                                >
+                                  {{ 'common.confirm' | translate }}
+                                </button>
+                                <button
+                                  type="button"
+                                  class="outer-button button-sm"
+                                  (click)="cancelSchedule()"
+                                >
+                                  {{ 'common.cancel' | translate }}
+                                </button>
+                              </div>
+                            }
+                          </div>
+                        }
+                      </li>
+                    }
+                  </ul>
+                }
+
+                <!-- Légende proposée -->
+                @if (message.caption) {
+                  <div class="glass mt-3 rounded-xl p-3">
+                    <h3
+                      class="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]"
+                    >
+                      {{ 'dashboard.showCommunication.studio.caption' | translate }}
+                    </h3>
+                    <p
+                      class="mt-1 whitespace-pre-line text-sm text-[var(--color-text-primary)]"
+                    >
+                      {{ message.caption }}
+                    </p>
+                    <button
+                      type="button"
+                      class="outer-button button-sm mt-2"
+                      (click)="copy(message.caption, message.id)"
+                    >
+                      @if (copiedId() === message.id) {
+                        <i class="pi pi-check" aria-hidden="true"></i>
+                        {{ 'dashboard.showCommunication.studio.copied' | translate }}
+                      } @else {
+                        <i class="pi pi-copy" aria-hidden="true"></i>
+                        {{ 'dashboard.showCommunication.studio.copy' | translate }}
+                      }
+                    </button>
+                  </div>
+                }
+
+                @if (message.creditsSpent) {
+                  <p class="mt-2 text-[10px] text-[var(--color-text-tertiary)]">
+                    {{
+                      'dashboard.showCommunication.studio.creditsSpent'
+                        | translate: { count: message.creditsSpent }
+                    }}
+                  </p>
+                }
+              </div>
+            }
+          </li>
+        }
+      </ol>
+    }
+
+    @if (isSending() && thinkingLabel()) {
+      <p
+        class="glass mt-5 flex w-fit items-center gap-2 rounded-xl px-3 py-2 text-sm text-[var(--color-accent-500)]"
+        role="status"
+        aria-live="polite"
+      >
+        <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+        <span>{{ thinkingLabel() | translate }}</span>
+      </p>
+    }
+  </div>
+
+  <!-- ─────────────── Saisie ─────────────── -->
+  <form class="sticky bottom-0 mt-6 pt-2" (ngSubmit)="send()">
+    <div class="glass-card flex items-end gap-2 p-2">
+      <label class="sr-only" for="studio-input">
+        {{ 'dashboard.showCommunication.studio.inputLabel' | translate }}
+      </label>
+      <textarea
+        id="studio-input"
+        rows="2"
+        class="flex-1 resize-none bg-transparent px-2 py-1.5 text-sm text-[var(--color-text-primary)] outline-none"
+        [attr.placeholder]="'dashboard.showCommunication.studio.placeholder' | translate"
+        [ngModel]="draft()"
+        (ngModelChange)="draft.set($event)"
+        name="studioDraft"
+        (keydown.enter)="onEnter($event)"
+      ></textarea>
+      <button
+        type="submit"
+        class="inner-button shrink-0"
+        [disabled]="isSending() || !draft().trim()"
+      >
+        @if (isSending()) {
+          <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+        } @else {
+          <i class="pi pi-arrow-up" aria-hidden="true"></i>
+        }
+        <span class="sr-only">{{ 'dashboard.showCommunication.studio.send' | translate }}</span>
+      </button>
+    </div>
+    <div class="mt-1.5 flex items-center justify-between px-1">
+      <p class="text-[10px] text-[var(--color-text-tertiary)]">
+        {{ 'dashboard.showCommunication.studio.pricingHint' | translate }}
+      </p>
+      @if (messages().length > 0) {
+        <button
+          type="button"
+          class="text-[10px] text-[var(--color-text-tertiary)] underline"
+          (click)="clear()"
+        >
+          {{ 'dashboard.showCommunication.studio.clear' | translate }}
+        </button>
+      }
+    </div>
+  </form>
+</section>

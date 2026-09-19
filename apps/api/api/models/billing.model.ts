@@ -161,6 +161,13 @@ export const BUSINESS_CREDIT_COSTS = {
    */
   logo_relaunch: 10,
   editorial_calendar: 15,
+  /**
+   * Une PÉRIODE de communication : son brief éditorial + ses contenus datés.
+   * Même prix que l'ancien calendrier éditorial, dont elle prend la place —
+   * mais chaque période neuve est un livrable neuf (cf. la portée passée à
+   * `firstThenRevision`), sinon douze mois de plan coûteraient 26 crédits.
+   */
+  communication_plan: 15,
   pitch_deck: 35,
   /** Stratégie de communication complète : audit, cibles, canaux, ton. */
   communication_strategy: 40,

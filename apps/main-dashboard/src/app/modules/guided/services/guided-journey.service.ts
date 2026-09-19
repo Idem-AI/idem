@@ -338,7 +338,15 @@ export class GuidedJourneyService {
       const communication = await firstValueFrom(
         this.communicationService.getCommunication(projectId),
       );
-      return !!communication?.strategy || (communication?.publications?.length ?? 0) > 0;
+      // Un visuel produit dans l'atelier suffit désormais : c'est le chemin le
+      // plus court du module, et l'étape serait restée « à faire » pour qui a
+      // fabriqué dix visuels sans passer par la stratégie.
+      return (
+        !!communication?.strategy ||
+        (communication?.plans?.length ?? 0) > 0 ||
+        (communication?.visuals?.length ?? 0) > 0 ||
+        (communication?.publications?.length ?? 0) > 0
+      );
     } catch {
       return false;
     }

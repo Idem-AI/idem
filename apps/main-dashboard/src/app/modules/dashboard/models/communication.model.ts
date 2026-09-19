@@ -97,12 +97,55 @@ export interface ContentIdea {
   format: ContentFormat;
   channel: ContentChannel;
   scheduledFor: string;
+  /** Rang de semaine DANS la période. La date fait foi, ceci ne sert qu'au regroupement. */
   week: number;
   hashtags: string[];
   callToAction: string;
   intent?: VisualIntent;
   status: ContentStatus;
   flyerIds?: string[];
+  /** Période propriétaire. Absent = contenu libre né dans l'atelier. */
+  planId?: string;
+  /** Occasion qui a motivé ce contenu (absorbe l'ancien `MomentIdea`). */
+  occasion?: string;
+  occasionDate?: string;
+  /** Légende prête à publier. */
+  caption?: string;
+}
+
+// ---------------------------------------------------------------------------
+// PÉRIODES
+// ---------------------------------------------------------------------------
+
+/** La ligne éditoriale d'une période : cinq champs, lisibles d'un coup d'œil. */
+export interface PlanBrief {
+  angle: string;
+  keyMessage: string;
+  themes: { label: string; why: string }[];
+  successSignals: string[];
+  occasions?: { label: string; date: string }[];
+}
+
+export type PlanStatus = 'draft' | 'active' | 'done' | 'archived';
+
+/**
+ * Une période de communication : un objectif, des DATES RÉELLES, un brief et des
+ * contenus datés. Les périodes s'empilent — rien n'est jamais écrasé.
+ */
+export interface CommunicationPlan {
+  id: string;
+  name: string;
+  objective: string;
+  period: { start: string; end: string };
+  kind: 'regular' | 'campaign';
+  postsPerWeek: number;
+  channels: ContentChannel[];
+  brief?: PlanBrief;
+  items: ContentIdea[];
+  status: PlanStatus;
+  generatedAt?: string | Date;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
 }
 
 export interface EditorialCalendar {
@@ -151,9 +194,19 @@ export interface FlyerImageAttribution {
   provider: 'pexels' | 'unsplash' | 'gemini' | 'openai' | 'other';
 }
 
+/** D'où vient un visuel — pilote son classement dans la bibliothèque. */
+export type VisualOrigin = 'plan' | 'studio' | 'occasion' | 'brandbook';
+
 export interface Flyer {
   id: string;
-  contentId: string;
+  /** OPTIONNEL : un visuel d'atelier n'appartient à aucun contenu planifié. */
+  contentId?: string;
+  planId?: string;
+  origin?: VisualOrigin;
+  /** La demande d'origine, en langage naturel. */
+  brief?: string;
+  /** Variantes et déclinaisons issues du même brief. */
+  siblingIds?: string[];
   format: FlyerFormat;
   intent?: VisualIntent;
   logoUsed?: string;
@@ -209,14 +262,68 @@ export interface AssistedShare {
   requiresManualImage: boolean;
 }
 
+// ---------------------------------------------------------------------------
+// ATELIER
+// ---------------------------------------------------------------------------
+
+export interface StudioPendingAction {
+  kind: 'schedule' | 'declinate' | 'publish';
+  visualId?: string;
+  planId?: string;
+  date?: string;
+  channel?: ContentChannel;
+  formats?: FlyerFormat[];
+}
+
+export interface StudioMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  /** Visuels produits par ce tour — affichés en cartes dans le fil. */
+  visualIds?: string[];
+  caption?: string;
+  hashtags?: string[];
+  pendingAction?: StudioPendingAction;
+  /** Crédits débités par ce tour (absent quand il n'a rien coûté). */
+  creditsSpent?: number;
+  createdAt?: string | Date;
+}
+
+export interface StudioConversation {
+  messages: StudioMessage[];
+  updatedAt?: string | Date;
+}
+
+/** Événements du flux de l'atelier. */
+export type StudioStreamEvent =
+  | { type: 'thinking'; label: string }
+  | { type: 'visual'; visual: Flyer }
+  | { type: 'message'; message: StudioMessage }
+  | {
+      type: 'complete';
+      payload: { userMessage: StudioMessage; assistantMessage: StudioMessage; visuals: Flyer[] };
+    }
+  | { type: 'error'; message: string; code?: string; cost?: number; balance?: number };
+
 export interface CommunicationModel {
   context?: CommunicationContext;
+  /** LA BOUSSOLE. */
   strategy?: CommunicationStrategy;
+  /** LES PÉRIODES — remplacent le calendrier unique. */
+  plans?: CommunicationPlan[];
+  /** L'ATELIER. */
+  studio?: StudioConversation;
+  /** LA BIBLIOTHÈQUE (sans le HTML : il est demandé visuel par visuel). */
+  visuals?: Flyer[];
+  publications?: Publication[];
+  occasionSuggestions?: MomentSuggestion[];
+  schemaVersion?: number;
+
+  /** @deprecated plus servis par l'API — conservés pour les types de transition. */
   calendar?: EditorialCalendar;
   moments?: MomentIdea[];
   momentSuggestions?: MomentSuggestion[];
   flyers?: Flyer[];
-  publications?: Publication[];
   trends?: TrendSignal[];
   createdAt?: string | Date;
   updatedAt?: string | Date;
@@ -225,7 +332,7 @@ export interface CommunicationModel {
 /** Streaming event emitted by the backend during strategy/calendar generation. */
 export interface CommunicationStreamEvent {
   type: 'step-start' | 'step-complete' | 'complete' | 'error';
-  step?: 'context' | 'trends' | 'strategy' | 'calendar';
+  step?: 'context' | 'trends' | 'strategy' | 'calendar' | 'occasions' | 'brief' | 'content';
   payload?: any;
   message?: string;
 }
