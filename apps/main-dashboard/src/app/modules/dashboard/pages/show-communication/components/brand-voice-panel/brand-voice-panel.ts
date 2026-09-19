@@ -8,21 +8,26 @@ import {
 } from '../../../../models/communication.model';
 
 /**
- * LA BOUSSOLE — la stratégie de marque.
+ * MA FAÇON DE COMMUNIQUER — à qui la marque parle, sur quel ton, sur quels réseaux.
+ *
+ * C'est la stratégie de marque, appelée par ce qu'elle sert plutôt que par son
+ * nom de métier : « stratégie de communication » — et a fortiori « la boussole »,
+ * son premier intitulé — ne dit pas à quoi ça sert à quelqu'un qui n'a jamais
+ * fait de marketing.
  *
  * Un PANNEAU et non un onglet : on la définit une fois et on la relit rarement.
  * Elle occupait pourtant le premier onglet du module, ce qui plaçait 40 crédits
  * et sept blocs de prose entre l'utilisateur et son premier visuel.
  *
- * Elle reste importante : c'est d'elle que dérive le brief de chaque période.
+ * Elle reste importante : c'est d'elle que chaque planning tire son angle.
  */
 @Component({
-  selector: 'app-compass-panel',
+  selector: 'app-brand-voice-panel',
   imports: [FormsModule, TranslateModule],
-  templateUrl: './compass-panel.html',
+  templateUrl: './brand-voice-panel.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CompassPanel {
+export class BrandVoicePanel {
   private readonly communication = inject(CommunicationService);
 
   readonly projectId = input.required<string>();
@@ -131,7 +136,7 @@ export class CompassPanel {
   }
 
   protected blockLabelKey(kind: StrategyBlock['kind']): string {
-    return `dashboard.showCommunication.compass.blockKinds.${kind}`;
+    return `dashboard.showCommunication.voice.blockKinds.${kind}`;
   }
 
   private emit(strategy: CommunicationStrategy): void {

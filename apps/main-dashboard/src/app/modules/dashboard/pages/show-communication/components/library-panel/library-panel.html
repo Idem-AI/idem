@@ -22,15 +22,12 @@
     <!-- ─────────────── Filtres ─────────────── -->
     <div class="glass mb-5 flex flex-wrap items-end gap-3 rounded-2xl p-3">
       <div>
-        <label
-          for="lib-format"
-          class="text-[10px] font-semibold uppercase text-[var(--color-text-tertiary)]"
-        >
+        <label for="lib-format" class="lp-label">
           {{ 'dashboard.showCommunication.library.filterFormat' | translate }}
         </label>
         <select
           id="lib-format"
-          class="glass mt-1 block rounded-xl px-3 py-1.5 text-sm text-[var(--color-text-primary)]"
+          class="lp-select glass"
           [ngModel]="filterFormat()"
           (ngModelChange)="setFilterFormat($event)"
           name="libFormat"
@@ -47,15 +44,12 @@
       </div>
 
       <div>
-        <label
-          for="lib-origin"
-          class="text-[10px] font-semibold uppercase text-[var(--color-text-tertiary)]"
-        >
+        <label for="lib-origin" class="lp-label">
           {{ 'dashboard.showCommunication.library.filterOrigin' | translate }}
         </label>
         <select
           id="lib-origin"
-          class="glass mt-1 block rounded-xl px-3 py-1.5 text-sm text-[var(--color-text-primary)]"
+          class="lp-select glass"
           [ngModel]="filterOrigin()"
           (ngModelChange)="setFilterOrigin($event)"
           name="libOrigin"
@@ -73,15 +67,12 @@
 
       @if (plannedPlans().length > 0) {
         <div>
-          <label
-            for="lib-plan"
-            class="text-[10px] font-semibold uppercase text-[var(--color-text-tertiary)]"
-          >
+          <label for="lib-plan" class="lp-label">
             {{ 'dashboard.showCommunication.library.filterPlan' | translate }}
           </label>
           <select
             id="lib-plan"
-            class="glass mt-1 block rounded-xl px-3 py-1.5 text-sm text-[var(--color-text-primary)]"
+            class="lp-select glass"
             [ngModel]="filterPlanId()"
             (ngModelChange)="setFilterPlan($event)"
             name="libPlan"
@@ -97,53 +88,42 @@
       }
 
       <p class="ml-auto text-xs text-[var(--color-text-tertiary)]">
-        {{
-          'dashboard.showCommunication.library.count' | translate: { count: filtered().length }
-        }}
+        {{ 'dashboard.showCommunication.library.count' | translate: { count: filtered().length } }}
       </p>
     </div>
 
     <!-- ─────────────── Grille ─────────────── -->
     <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       @for (visual of filtered(); track visual.id) {
-        <li class="glass-card overflow-hidden p-2">
-          <div class="relative">
-            <button
-              type="button"
-              class="block w-full overflow-hidden rounded-lg"
-              (click)="open(visual)"
-            >
+        <li>
+          <button type="button" class="lp-card" (click)="open(visual)">
+            <span class="lp-thumb">
               <img
                 [src]="visual.imageUrl"
                 [alt]="
                   'dashboard.showCommunication.library.previewAlt'
                     | translate: { title: visual.marketingText.headline }
                 "
-                class="w-full object-cover"
                 [style.aspect-ratio]="formatAspect(visual.format)"
                 loading="lazy"
               />
-            </button>
-            @if (isPublished(visual.id)) {
-              <span
-                class="absolute right-1.5 top-1.5 rounded-full border border-[var(--color-success)]/40 bg-[var(--color-success)]/15 px-2 py-0.5 text-[9px] font-semibold uppercase text-[var(--color-success)]"
-              >
-                {{ 'dashboard.showCommunication.status.published' | translate }}
+              @if (isPublished(visual.id)) {
+                <span class="lp-badge">
+                  {{ 'dashboard.showCommunication.status.published' | translate }}
+                </span>
+              }
+            </span>
+            <span class="lp-meta">
+              <span class="lp-title">{{ visual.marketingText.headline }}</span>
+              <span class="lp-sub">
+                <span class="uppercase">
+                  {{ 'dashboard.showCommunication.formats.' + visual.format | translate }}
+                </span>
+                <span aria-hidden="true">·</span>
+                <span>{{ planName(visual.planId) }}</span>
               </span>
-            }
-          </div>
-          <div class="px-1 pt-2">
-            <p class="truncate text-sm font-medium text-[var(--color-text-primary)]">
-              {{ visual.marketingText.headline }}
-            </p>
-            <p class="mt-0.5 flex items-center gap-1.5 text-[10px] text-[var(--color-text-tertiary)]">
-              <span class="uppercase">
-                {{ 'dashboard.showCommunication.formats.' + visual.format | translate }}
-              </span>
-              <span aria-hidden="true">·</span>
-              <span>{{ planName(visual.planId) }}</span>
-            </p>
-          </div>
+            </span>
+          </button>
         </li>
       }
     </ul>
@@ -151,157 +131,15 @@
 </section>
 
 <!-- ═══════════════ Aperçu d'un visuel ═══════════════ -->
-@if (selected(); as visual) {
-  <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,23,42,0.5)] p-4"
-    (click)="close()"
-    (keydown.escape)="close()"
-    tabindex="-1"
-  >
-    <div
-      class="glass-card max-h-[92vh] w-full max-w-4xl overflow-y-auto p-5"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="visual-preview-title"
-      (click)="$event.stopPropagation()"
-    >
-      <header class="mb-4 flex items-start justify-between gap-4">
-        <div class="min-w-0">
-          <h3
-            id="visual-preview-title"
-            class="truncate text-lg font-bold text-[var(--color-text-primary)]"
-          >
-            {{ visual.marketingText.headline }}
-          </h3>
-          <p class="mt-0.5 text-xs text-[var(--color-text-tertiary)]">
-            {{ 'dashboard.showCommunication.formats.' + visual.format | translate }}
-            @if (visual.origin) {
-              · {{ 'dashboard.showCommunication.library.origins.' + visual.origin | translate }}
-            }
-          </p>
-        </div>
-        <button
-          type="button"
-          class="outer-button button-sm shrink-0"
-          [attr.aria-label]="'common.close' | translate"
-          (click)="close()"
-        >
-          <i class="pi pi-times" aria-hidden="true"></i>
-        </button>
-      </header>
-
-      <div class="grid gap-5 md:grid-cols-[1.2fr_1fr]">
-        <img
-          [src]="visual.imageUrl"
-          [alt]="
-            'dashboard.showCommunication.library.previewAlt'
-              | translate: { title: visual.marketingText.headline }
-          "
-          class="w-full rounded-xl object-contain"
-        />
-
-        <div class="flex flex-col gap-4">
-          @if (visual.brief) {
-            <div>
-              <h4
-                class="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]"
-              >
-                {{ 'dashboard.showCommunication.library.brief' | translate }}
-              </h4>
-              <p class="mt-1 text-sm text-[var(--color-text-secondary)]">{{ visual.brief }}</p>
-            </div>
-          }
-          @if (visual.concept) {
-            <div>
-              <h4
-                class="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]"
-              >
-                {{ 'dashboard.showCommunication.library.concept' | translate }}
-              </h4>
-              <p class="mt-1 text-sm text-[var(--color-text-secondary)]">{{ visual.concept }}</p>
-            </div>
-          }
-
-          <!-- Actions -->
-          <div class="flex flex-wrap gap-2">
-            <button type="button" class="inner-button button-sm" (click)="download(visual)">
-              <i class="pi pi-download" aria-hidden="true"></i>
-              {{ 'dashboard.showCommunication.visual.download' | translate }}
-            </button>
-            <button
-              type="button"
-              class="outer-button button-sm"
-              (click)="openEditor(visual.id)"
-            >
-              <i class="pi pi-pencil" aria-hidden="true"></i>
-              {{ 'dashboard.showCommunication.visual.edit' | translate }}
-            </button>
-          </div>
-
-          <!-- Déclinaisons : même copie, autre surface -->
-          <div>
-            <h4
-              class="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]"
-            >
-              {{ 'dashboard.showCommunication.library.declinate' | translate }}
-            </h4>
-            <div class="mt-1 flex flex-wrap gap-1.5">
-              @for (format of formats; track format) {
-                @if (format !== visual.format) {
-                  <button
-                    type="button"
-                    class="outer-button button-sm"
-                    [disabled]="declinatingId() === visual.id"
-                    (click)="declinate(visual, format)"
-                  >
-                    @if (declinatingId() === visual.id) {
-                      <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
-                    }
-                    {{ 'dashboard.showCommunication.formats.' + format | translate }}
-                  </button>
-                }
-              }
-            </div>
-          </div>
-
-          <!-- Publication assistée -->
-          <div>
-            <h4
-              class="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]"
-            >
-              {{ 'dashboard.showCommunication.library.publish' | translate }}
-            </h4>
-            @if (visual.contentId) {
-              <div class="mt-1 flex flex-wrap gap-1.5">
-                @for (network of networks; track network) {
-                  <button
-                    type="button"
-                    class="outer-button button-sm"
-                    [disabled]="publishingKey() === visual.id + ':' + network"
-                    (click)="publish(visual, network)"
-                  >
-                    @if (publishingKey() === visual.id + ':' + network) {
-                      <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
-                    } @else if (network === 'linkedin') {
-                      <i class="pi pi-linkedin" aria-hidden="true"></i>
-                    } @else {
-                      <i class="pi pi-twitter" aria-hidden="true"></i>
-                    }
-                    {{ 'dashboard.showCommunication.networks.' + network | translate }}
-                  </button>
-                }
-              </div>
-              <p class="mt-1.5 text-[10px] text-[var(--color-text-tertiary)]">
-                {{ 'dashboard.showCommunication.library.publishHint' | translate }}
-              </p>
-            } @else {
-              <p class="mt-1 text-xs text-[var(--color-text-secondary)]">
-                {{ 'dashboard.showCommunication.library.publishNeedsSchedule' | translate }}
-              </p>
-            }
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+@if (openVisual(); as visual) {
+  <app-visual-dialog
+    [projectId]="projectId()"
+    [visual]="visual"
+    [fonts]="fonts()"
+    [plans]="plans()"
+    (closed)="close()"
+    (visualCreated)="visualCreated.emit($event)"
+    (publicationCreated)="publicationCreated.emit($event)"
+    (failed)="failed.emit($event)"
+  />
 }

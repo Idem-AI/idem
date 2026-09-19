@@ -7,29 +7,25 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CommunicationService } from '../../../../services/ai-agents/communication.service';
+import { FontHints } from '../../../document-editor/models/editor.types';
 import {
   CommunicationPlan,
   ContentChannel,
   ContentIdea,
   Flyer,
-  MomentSuggestion,
 } from '../../../../models/communication.model';
 import {
-  PLANNABLE_CHANNELS,
   channelIcon,
-  daysBetweenIso,
-  expectedItemCount,
-  firstDayOfNextMonth,
+  formatRange,
   groupByWeek,
-  lastDayOfMonth,
   planStatusPillClass,
   statusPillClass,
   todayIso,
 } from '../../communication-ui';
+import { ContentDetail } from '../content-detail/content-detail';
+import { PlanWizard, PlanWizardResult } from '../plan-wizard/plan-wizard';
 
 /** Une case du calendrier mensuel. */
 interface DayCell {
@@ -46,32 +42,36 @@ interface MonthView {
 }
 
 /**
- * LES PÉRIODES — ce que la marque raconte sur une fenêtre de temps donnée.
+ * MON PLANNING — ce qu'il y a à publier, et quand.
  *
  * Remplace l'onglet « Calendrier », qui ne savait produire qu'« à partir
- * d'aujourd'hui, sur 4 semaines » et écrasait le calendrier précédent à chaque
- * régénération. Ici les périodes s'empilent : « Novembre » et « Lancement
- * boutique » coexistent, et régénérer l'une ne touche pas l'autre.
+ * d'aujourd'hui, sur 4 semaines » et écrasait le précédent à chaque
+ * régénération. Les plannings s'empilent désormais : « Novembre » et
+ * « Lancement boutique » coexistent, et régénérer l'un ne touche pas l'autre.
  *
- * Absorbe aussi l'ancien onglet « Moments » : les occasions du calendrier réel
- * sont proposées AU MOMENT de créer la période, là où elles servent à décider.
+ * Deux gestes structurent l'écran, et deux seulement :
+ *  - une carte se CLIQUE pour voir tout ce qu'elle contient (texte du post,
+ *    mots-clés, date) et le corriger — ces informations étaient produites et
+ *    payées, mais restaient invisibles derrière un titre ;
+ *  - un planning se CRÉE par trois questions, pas par un formulaire.
  */
 @Component({
   selector: 'app-plan-panel',
-  imports: [FormsModule, TranslateModule],
+  imports: [TranslateModule, ContentDetail, PlanWizard],
   templateUrl: './plan-panel.html',
   styleUrls: ['./plan-panel.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PlanPanel {
   private readonly communication = inject(CommunicationService);
-  private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
   readonly projectId = input.required<string>();
   readonly plans = input<CommunicationPlan[]>([]);
-  /** Canaux priorisés par la boussole — servent de présélection. */
+  /** Réseaux déjà priorisés pour cette marque — présélectionnés à la création. */
   readonly suggestedChannels = input<ContentChannel[]>([]);
   readonly visuals = input<Flyer[]>([]);
+  readonly fonts = input<FontHints>({});
 
   readonly plansChange = output<CommunicationPlan[]>();
   readonly visualCreated = output<Flyer>();
@@ -80,23 +80,24 @@ export class PlanPanel {
   protected readonly channelIcon = channelIcon;
   protected readonly statusPillClass = statusPillClass;
   protected readonly planStatusPillClass = planStatusPillClass;
-  protected readonly plannableChannels = PLANNABLE_CHANNELS;
-  protected readonly cadences = [1, 3, 5, 7];
 
   // ── Sélection et vues ────────────────────────────────────────────────────
   protected readonly selectedPlanId = signal<string | null>(null);
   protected readonly view = signal<'weeks' | 'month'>('weeks');
   protected readonly showArchived = signal(false);
+  protected readonly showWizard = signal(false);
+  /** Publication ouverte en détail. */
+  protected readonly openItemId = signal<string | null>(null);
 
   protected readonly visiblePlans = computed(() =>
     this.plans().filter((plan) => this.showArchived() || plan.status !== 'archived'),
   );
 
   /**
-   * Période ouverte : celle choisie, sinon la première non archivée.
+   * Planning ouvert : celui choisi, sinon le premier non archivé.
    *
-   * Le tri vient du serveur (actives d'abord) : ouvrir la première revient donc à
-   * ouvrir celle en cours, ce que l'utilisateur attend en arrivant.
+   * Le tri vient du serveur (actifs d'abord) : ouvrir le premier revient donc à
+   * ouvrir celui en cours, ce que l'utilisateur attend en arrivant.
    */
   protected readonly selectedPlan = computed<CommunicationPlan | null>(() => {
     const plans = this.visiblePlans();
@@ -104,9 +105,22 @@ export class PlanPanel {
     return plans.find((plan) => plan.id === id) ?? plans[0] ?? null;
   });
 
+  /** La publication ouverte, relue dans le planning pour rester à jour. */
+  protected readonly openItem = computed<ContentIdea | null>(() => {
+    const id = this.openItemId();
+    if (!id) return null;
+    return this.selectedPlan()?.items.find((item) => item.id === id) ?? null;
+  });
+
   protected readonly weeks = computed(() => groupByWeek(this.selectedPlan()?.items ?? []));
 
-  /** Le calendrier, mois par mois, sur l'étendue de la période. */
+  /** Dates du planning ouvert, écrites en clair. */
+  protected readonly selectedRange = computed(() => {
+    const plan = this.selectedPlan();
+    return plan ? formatRange(plan.period.start, plan.period.end, this.translate.currentLang) : '';
+  });
+
+  /** Le calendrier, mois par mois, sur l'étendue du planning. */
   protected readonly months = computed<MonthView[]>(() => {
     const plan = this.selectedPlan();
     if (!plan) return [];
@@ -159,7 +173,7 @@ export class PlanPanel {
       }
 
       months.push({
-        label: cursor.toLocaleDateString(undefined, {
+        label: cursor.toLocaleDateString(this.translate.currentLang, {
           month: 'long',
           year: 'numeric',
           timeZone: 'UTC',
@@ -171,45 +185,17 @@ export class PlanPanel {
     return months;
   });
 
-  // ── Formulaire de création ───────────────────────────────────────────────
-  protected readonly showForm = signal(false);
-  protected readonly formName = signal('');
-  protected readonly formObjective = signal('');
-  protected readonly formStart = signal('');
-  protected readonly formEnd = signal('');
-  protected readonly formKind = signal<'regular' | 'campaign'>('regular');
-  protected readonly formPostsPerWeek = signal(3);
-  protected readonly formChannels = signal<ContentChannel[]>([]);
-  protected readonly formOccasions = signal<MomentSuggestion[]>([]);
-  protected readonly isLoadingOccasions = signal(false);
-  protected readonly isSubmitting = signal(false);
-
-  /** Ce que la période produira — affiché avant de payer. */
-  protected readonly formItemCount = computed(() =>
-    this.formStart() && this.formEnd()
-      ? expectedItemCount(this.formStart(), this.formEnd(), this.formPostsPerWeek())
-      : 0,
-  );
-
-  protected readonly formDays = computed(() =>
-    this.formStart() && this.formEnd() ? daysBetweenIso(this.formStart(), this.formEnd()) : 0,
-  );
-
-  protected readonly formValid = computed(
-    () => !!this.formStart() && !!this.formEnd() && this.formChannels().length > 0,
-  );
-
   // ── Génération ──────────────────────────────────────────────────────────
   protected readonly generatingPlanId = signal<string | null>(null);
   protected readonly stepLabel = signal('');
-  protected readonly creatingVisualFor = signal<string | null>(null);
 
   // ==========================================================================
-  // Sélection
+  // Navigation
   // ==========================================================================
 
   protected selectPlan(planId: string): void {
     this.selectedPlanId.set(planId);
+    this.openItemId.set(null);
   }
 
   protected setView(view: 'weeks' | 'month'): void {
@@ -220,130 +206,44 @@ export class PlanPanel {
     this.showArchived.update((value) => !value);
   }
 
+  protected openDetail(item: ContentIdea): void {
+    this.openItemId.set(item.id);
+  }
+
+  protected closeDetail(): void {
+    this.openItemId.set(null);
+  }
+
   // ==========================================================================
-  // Création d'une période
+  // Création
   // ==========================================================================
 
-  /**
-   * Ouvre le formulaire avec des valeurs déjà utiles : le mois PROCHAIN complet.
-   *
-   * C'est le cas d'usage qui manquait le plus — préparer décembre en novembre.
-   * Proposer « aujourd'hui + 4 semaines » reviendrait à reproduire la V1.
-   */
-  protected openForm(): void {
-    const start = firstDayOfNextMonth();
-    this.formName.set('');
-    this.formObjective.set('');
-    this.formStart.set(start);
-    this.formEnd.set(lastDayOfMonth(start));
-    this.formKind.set('regular');
-    this.formPostsPerWeek.set(3);
-    this.formChannels.set(
-      this.suggestedChannels().length
-        ? this.suggestedChannels().slice(0, 3)
-        : ['instagram', 'facebook'],
-    );
-    this.formOccasions.set([]);
-    this.showForm.set(true);
-    this.loadOccasions();
+  protected openWizard(): void {
+    this.showWizard.set(true);
   }
 
-  protected closeForm(): void {
-    this.showForm.set(false);
-  }
-
-  protected setStart(value: string): void {
-    this.formStart.set(value);
-    // La fin suit la borne de départ quand elle devient incohérente, plutôt que
-    // de laisser l'utilisateur devant une période négative.
-    if (this.formEnd() && this.formEnd() < value) {
-      this.formEnd.set(lastDayOfMonth(value));
-    }
-    this.loadOccasions();
-  }
-
-  protected setEnd(value: string): void {
-    this.formEnd.set(value);
-    this.loadOccasions();
-  }
-
-  protected setCadence(postsPerWeek: number): void {
-    this.formPostsPerWeek.set(postsPerWeek);
-  }
-
-  protected setKind(kind: 'regular' | 'campaign'): void {
-    this.formKind.set(kind);
-  }
-
-  protected toggleChannel(channel: ContentChannel): void {
-    this.formChannels.update((channels) =>
-      channels.includes(channel)
-        ? channels.filter((item) => item !== channel)
-        : [...channels, channel],
-    );
-  }
-
-  protected isChannelSelected(channel: ContentChannel): boolean {
-    return this.formChannels().includes(channel);
-  }
-
-  /** Occasions qui tombent dans la fenêtre choisie. Gratuit, donc rechargé librement. */
-  protected loadOccasions(): void {
-    const start = this.formStart();
-    const end = this.formEnd();
-    if (!start || !end || end < start) return;
-
-    this.isLoadingOccasions.set(true);
-    this.communication.getOccasions(this.projectId(), start, end).subscribe({
-      next: (occasions) => {
-        this.formOccasions.set(occasions);
-        this.isLoadingOccasions.set(false);
-      },
-      // Silencieux : les occasions sont un bonus d'aide à la décision. Une erreur
-      // ici ne doit pas empêcher de créer la période.
-      error: () => this.isLoadingOccasions.set(false),
-    });
+  protected closeWizard(): void {
+    this.showWizard.set(false);
   }
 
   /**
-   * Crée la période PUIS la génère.
+   * Crée le planning PUIS le génère.
    *
    * Deux appels, un seul geste : la création ne coûte rien et fixe les dates, la
-   * génération est ce qui se facture. Les séparer dans l'interface ferait un
+   * génération est ce qui se facture. Les séparer dans l'interface laisserait un
    * brouillon vide de plus à comprendre.
    */
-  protected submitForm(): void {
-    if (!this.formValid() || this.isSubmitting()) return;
-    this.isSubmitting.set(true);
-
-    this.communication
-      .createPlan(this.projectId(), {
-        name: this.formName().trim(),
-        objective: this.formObjective().trim(),
-        start: this.formStart(),
-        end: this.formEnd(),
-        kind: this.formKind(),
-        postsPerWeek: this.formPostsPerWeek(),
-        channels: this.formChannels(),
-      })
-      .subscribe({
-        next: (plan) => {
-          this.plansChange.emit([...this.plans(), plan]);
-          this.selectedPlanId.set(plan.id);
-          this.isSubmitting.set(false);
-          this.showForm.set(false);
-          this.generate(plan.id);
-        },
-        error: (err) => {
-          this.failed.emit(err?.error?.message || 'plan-create');
-          this.isSubmitting.set(false);
-        },
-      });
+  protected onWizardSubmit(result: PlanWizardResult): void {
+    this.showWizard.set(false);
+    this.communication.createPlan(this.projectId(), result).subscribe({
+      next: (plan) => {
+        this.plansChange.emit([...this.plans(), plan]);
+        this.selectedPlanId.set(plan.id);
+        this.generate(plan.id);
+      },
+      error: (err) => this.failed.emit(err?.error?.message || 'plan-create'),
+    });
   }
-
-  // ==========================================================================
-  // Génération d'une période
-  // ==========================================================================
 
   protected generate(planId: string): void {
     this.generatingPlanId.set(planId);
@@ -383,83 +283,37 @@ export class PlanPanel {
   }
 
   // ==========================================================================
-  // Contenus
+  // Publications
   // ==========================================================================
 
-  /** Le visuel le plus récent d'un contenu, s'il en a un. */
+  /** Le visuel le plus récent d'une publication, s'il en a un. */
   protected visualOf(item: ContentIdea): Flyer | undefined {
     if (!item.flyerIds?.length) return undefined;
     const wanted = new Set(item.flyerIds);
     return this.visuals().filter((visual) => wanted.has(visual.id)).slice(-1)[0];
   }
 
-  protected createVisual(item: ContentIdea): void {
-    if (this.creatingVisualFor()) return;
-    this.creatingVisualFor.set(item.id);
-
-    this.communication.generateFlyer(this.projectId(), item.id, 'square').subscribe({
-      next: (visual) => {
-        this.visualCreated.emit(visual);
-        const plan = this.selectedPlan();
-        if (plan) {
-          this.replacePlan({
-            ...plan,
-            items: plan.items.map((candidate) =>
-              candidate.id === item.id
-                ? { ...candidate, flyerIds: [...(candidate.flyerIds || []), visual.id] }
-                : candidate,
-            ),
-          });
-        }
-        this.creatingVisualFor.set(null);
-      },
-      error: (err) => {
-        this.failed.emit(err?.error?.message || 'visual');
-        this.creatingVisualFor.set(null);
-      },
+  /** Remontée du détail : une publication a changé. */
+  protected onItemChange(updated: ContentIdea): void {
+    const plan = this.selectedPlan();
+    if (!plan) return;
+    this.replacePlan({
+      ...plan,
+      items: plan.items.map((item) => (item.id === updated.id ? updated : item)),
     });
   }
 
-  /**
-   * Adaptateur d'événement DOM.
-   *
-   * `strictTemplates` type `$event.target` en `EventTarget | null` : le déballage
-   * se fait donc ici plutôt que dans le gabarit, où il ne compilerait pas.
-   */
-  protected onItemDateChange(item: ContentIdea, event: Event): void {
-    const value = (event.target as HTMLInputElement | null)?.value;
-    if (value) this.changeItemDate(item, value);
-  }
-
-  protected changeItemDate(item: ContentIdea, date: string): void {
-    const plan = this.selectedPlan();
-    if (!plan || !date || date === item.scheduledFor) return;
-
-    this.communication
-      .updatePlanItem(this.projectId(), plan.id, item.id, { scheduledFor: date })
-      .subscribe({
-        next: (updated) => this.replacePlan(updated),
-        error: (err) => this.failed.emit(err?.error?.message || 'content-update'),
-      });
-  }
-
-  protected removeItem(item: ContentIdea): void {
+  protected onItemDeleted(itemId: string): void {
     const plan = this.selectedPlan();
     if (!plan) return;
-
-    this.communication.removePlanItem(this.projectId(), plan.id, item.id).subscribe({
+    this.openItemId.set(null);
+    this.communication.removePlanItem(this.projectId(), plan.id, itemId).subscribe({
       next: () =>
         this.replacePlan({
           ...plan,
-          items: plan.items.filter((candidate) => candidate.id !== item.id),
+          items: plan.items.filter((item) => item.id !== itemId),
         }),
       error: (err) => this.failed.emit(err?.error?.message || 'content-remove'),
-    });
-  }
-
-  protected openVisual(visualId: string): void {
-    this.router.navigate(['/project/communication/flyer/edit'], {
-      queryParams: { flyerId: visualId },
     });
   }
 

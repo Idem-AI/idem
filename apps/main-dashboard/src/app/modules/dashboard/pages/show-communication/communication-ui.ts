@@ -128,6 +128,56 @@ export function lastDayOfMonth(iso: string): string {
     .slice(0, 10);
 }
 
+/** Premier jour du mois en cours. */
+export function firstDayOfThisMonth(): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString().slice(0, 10);
+}
+
+/**
+ * Raccourcis de période proposés avant toute saisie de date.
+ *
+ * Trois choix couvrent la quasi-totalité des cas réels ; taper deux dates est
+ * réservé à qui en a vraiment besoin. Demander d'emblée un calendrier à qui veut
+ * juste « organiser le mois prochain » est le premier point où l'on perd
+ * quelqu'un qui ne connaît rien au marketing.
+ */
+export type PeriodPreset = 'thisMonth' | 'nextMonth' | 'twoWeeks' | 'custom';
+
+export function presetRange(preset: PeriodPreset): { start: string; end: string } {
+  switch (preset) {
+    case 'thisMonth': {
+      const start = firstDayOfThisMonth();
+      return { start, end: lastDayOfMonth(start) };
+    }
+    case 'nextMonth': {
+      const start = firstDayOfNextMonth();
+      return { start, end: lastDayOfMonth(start) };
+    }
+    case 'twoWeeks': {
+      const start = todayIso();
+      return { start, end: addDaysIso(start, 13) };
+    }
+    default: {
+      const start = todayIso();
+      return { start, end: addDaysIso(start, 27) };
+    }
+  }
+}
+
+/** Libellé lisible d'une période : « du 1 novembre au 30 novembre ». */
+export function formatRange(start: string, end: string, locale?: string): string {
+  if (!start || !end) return '';
+  const options: Intl.DateTimeFormatOptions = {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  };
+  const from = new Date(`${start}T00:00:00Z`).toLocaleDateString(locale, options);
+  const to = new Date(`${end}T00:00:00Z`).toLocaleDateString(locale, options);
+  return `${from} → ${to}`;
+}
+
 export function daysBetweenIso(start: string, end: string): number {
   const a = Date.parse(`${start}T00:00:00Z`);
   const b = Date.parse(`${end}T00:00:00Z`);

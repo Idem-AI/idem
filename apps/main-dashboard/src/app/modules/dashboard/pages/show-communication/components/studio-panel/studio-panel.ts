@@ -9,16 +9,16 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CommunicationService } from '../../../../services/ai-agents/communication.service';
 import {
   CommunicationPlan,
   Flyer,
-  FlyerFormat,
   StudioMessage,
 } from '../../../../models/communication.model';
-import { FLYER_FORMATS, formatAspect, todayIso } from '../../communication-ui';
+import { FontHints } from '../../../document-editor/models/editor.types';
+import { formatAspect } from '../../communication-ui';
+import { VisualDialog } from '../visual-dialog/visual-dialog';
 
 /** Amorces proposées sur un fil vide — des phrases, pas des catégories. */
 const STARTERS = ['announce', 'promotion', 'celebration', 'recruitment'] as const;
@@ -35,28 +35,27 @@ const STARTERS = ['announce', 'promotion', 'celebration', 'recruitment'] as cons
  */
 @Component({
   selector: 'app-studio-panel',
-  imports: [FormsModule, TranslateModule],
+  imports: [FormsModule, TranslateModule, VisualDialog],
   templateUrl: './studio-panel.html',
+  styleUrl: './studio-panel.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StudioPanel {
   private readonly communication = inject(CommunicationService);
-  private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
 
   readonly projectId = input.required<string>();
   /** Visuels déjà connus du parent — résolvent les `visualIds` des anciens messages. */
   readonly visuals = input<Flyer[]>([]);
   readonly plans = input<CommunicationPlan[]>([]);
+  readonly fonts = input<FontHints>({});
 
   readonly visualCreated = output<Flyer>();
   readonly failed = output<string>();
   readonly needsCredits = output<{ cost: number; balance: number }>();
 
-  protected readonly formats = FLYER_FORMATS;
   protected readonly formatAspect = formatAspect;
   protected readonly starters = STARTERS;
-  protected readonly today = todayIso();
 
   protected readonly messages = signal<StudioMessage[]>([]);
   protected readonly draft = signal('');
@@ -67,16 +66,21 @@ export class StudioPanel {
   /** Visuels produits dans cette session, avant que le parent ne les connaisse. */
   private readonly localVisuals = signal<Flyer[]>([]);
 
-  /** Programmation en cours : id du visuel → formulaire ouvert. */
-  protected readonly schedulingVisualId = signal<string | null>(null);
-  protected readonly scheduleDate = signal(todayIso());
-  protected readonly schedulePlanId = signal('');
+  /**
+   * Visuel ouvert en grand.
+   *
+   * Les actions d'un visuel (télécharger, décliner, programmer, publier) vivent
+   * dans cette fenêtre plutôt que sous chaque vignette du fil : une rangée de six
+   * boutons par visuel rendait la conversation illisible, et c'est là qu'on
+   * retrouve le survol qui désigne les éléments.
+   */
+  protected readonly openVisualId = signal<string | null>(null);
   protected readonly copiedId = signal<string | null>(null);
-  protected readonly declinatingId = signal<string | null>(null);
 
-  protected readonly schedulablePlans = computed(() =>
-    this.plans().filter((plan) => plan.status !== 'archived'),
-  );
+  protected readonly openVisual = computed<Flyer | null>(() => {
+    const id = this.openVisualId();
+    return id ? (this.visualIndex().get(id) ?? null) : null;
+  });
 
   /** Table de résolution des visuels, locale d'abord (elle est plus fraîche). */
   private readonly visualIndex = computed(() => {
@@ -213,52 +217,12 @@ export class StudioPanel {
 
   // ── Actions sur un visuel ────────────────────────────────────────────────
 
-  protected openEditor(visualId: string): void {
-    this.router.navigate(['/project/communication/flyer/edit'], {
-      queryParams: { flyerId: visualId },
-    });
+  protected openDialog(visual: Flyer): void {
+    this.openVisualId.set(visual.id);
   }
 
-  protected declinate(visual: Flyer, format: FlyerFormat): void {
-    if (this.declinatingId()) return;
-    this.declinatingId.set(visual.id);
-
-    this.communication.declinateVisual(this.projectId(), visual.id, [format]).subscribe({
-      next: (created) => {
-        this.localVisuals.update((visuals) => [...visuals, ...created]);
-        for (const item of created) this.visualCreated.emit(item);
-        this.declinatingId.set(null);
-      },
-      error: (err) => {
-        this.failed.emit(err?.error?.message || 'declinate');
-        this.declinatingId.set(null);
-      },
-    });
-  }
-
-  protected openSchedule(visualId: string): void {
-    this.schedulingVisualId.set(visualId);
-    this.scheduleDate.set(todayIso());
-    this.schedulePlanId.set(this.schedulablePlans()[0]?.id || '');
-  }
-
-  protected cancelSchedule(): void {
-    this.schedulingVisualId.set(null);
-  }
-
-  protected confirmSchedule(): void {
-    const visualId = this.schedulingVisualId();
-    const planId = this.schedulePlanId();
-    const date = this.scheduleDate();
-    if (!visualId || !planId || !date) return;
-
-    this.communication.scheduleVisual(this.projectId(), visualId, { planId, date }).subscribe({
-      next: () => this.schedulingVisualId.set(null),
-      error: (err) => {
-        this.failed.emit(err?.error?.message || 'schedule');
-        this.schedulingVisualId.set(null);
-      },
-    });
+  protected closeDialog(): void {
+    this.openVisualId.set(null);
   }
 
   protected copy(text: string, id: string): void {
@@ -274,25 +238,4 @@ export class StudioPanel {
       });
   }
 
-  /**
-   * Enregistre le PNG d'un visuel.
-   *
-   * On télécharge le blob plutôt que de poser un `<a download>` sur l'URL : le
-   * PNG est servi par l'API, et un lien direct ouvrirait un onglet au lieu
-   * d'enregistrer le fichier.
-   */
-  protected download(visual: Flyer): void {
-    if (!visual.imageUrl) return;
-    this.communication.downloadFlyerImage(visual.imageUrl).subscribe({
-      next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${visual.id}.png`;
-        link.click();
-        URL.revokeObjectURL(url);
-      },
-      error: (err) => this.failed.emit(err?.error?.message || 'download'),
-    });
-  }
 }
