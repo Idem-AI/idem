@@ -47,7 +47,8 @@
     "continue": "Continuer",
     "apply": "Appliquer",
     "reset": "Réinitialiser",
-    "close": "Fermer"
+    "close": "Fermer",
+    "confirm": "Confirmer"
   },
   "dashboard": {
     "createDevelopment": {
@@ -2703,26 +2704,29 @@
       }
     },
     "showCommunication": {
-      "eyebrow": "Moteur de communication",
-      "title": "Communication & calendrier éditorial",
-      "subtitle": "Stratégie, calendrier, moments ponctuels et publication — pour faire vivre votre marque au quotidien.",
-      "loading": "Chargement du moteur de communication…",
+      "eyebrow": "Communication",
+      "title": "Communication",
+      "subtitle": "Fabriquez vos visuels, organisez vos périodes, gardez tout au même endroit.",
+      "loading": "Chargement…",
       "comingSoon": "Bientôt",
       "tabs": {
         "strategy": "Stratégie",
         "calendar": "Calendrier",
         "moments": "Moments",
-        "publishing": "Publication"
+        "publishing": "Publication",
+        "studio": "Atelier",
+        "plans": "Périodes",
+        "library": "Bibliothèque"
       },
       "selectProject": {
-        "title": "Sélectionnez un projet",
-        "body": "Choisissez un projet dans votre liste pour générer vos contenus de communication.",
+        "title": "Aucun projet sélectionné",
+        "body": "Choisissez un projet pour accéder à sa communication.",
         "cta": "Voir mes projets"
       },
       "status": {
         "idea": "Idée",
-        "approved": "Approuvé",
-        "scheduled": "Planifié",
+        "approved": "Validé",
+        "scheduled": "Programmé",
         "published": "Publié"
       },
       "intent": {
@@ -2804,7 +2808,7 @@
         "body": "Corps du texte",
         "cta": "Appel à l'action",
         "logoUsed": "Déclinaison de logo utilisée",
-        "edit": "Modifier"
+        "edit": "Retoucher"
       },
       "moments": {
         "eyebrow": "Moments ponctuels",
@@ -2857,7 +2861,7 @@
         "scheduledFor": "Programmé pour"
       },
       "errors": {
-        "load": "Échec du chargement des données de communication",
+        "load": "Impossible de charger la communication.",
         "checkProject": "Erreur lors de la vérification du projet",
         "strategy": "Échec de la génération de la stratégie",
         "calendar": "Échec de la génération du calendrier",
@@ -2865,7 +2869,216 @@
         "saveStrategy": "Échec de l'enregistrement de la stratégie",
         "updateContent": "Échec de la mise à jour du contenu",
         "moments": "Échec de la génération du moment",
-        "publish": "Échec de la publication"
+        "publish": "Échec de la publication",
+        "project": "Impossible de charger le projet.",
+        "credits": "Vos crédits ne suffisent pas pour cette création.",
+        "creditsDetail": "Il faut {{cost}} crédits, il vous en reste {{balance}}.",
+        "topUp": "Recharger"
+      },
+      "formats": {
+        "square": "Carré",
+        "story": "Story",
+        "banner": "Bannière",
+        "post": "Portrait",
+        "a4": "Affiche A4"
+      },
+      "channels": {
+        "instagram": "Instagram",
+        "facebook": "Facebook",
+        "linkedin": "LinkedIn",
+        "tiktok": "TikTok",
+        "x": "X",
+        "youtube": "YouTube",
+        "blog": "Blog",
+        "email": "E-mail",
+        "other": "Autre"
+      },
+      "networks": {
+        "linkedin": "LinkedIn",
+        "x": "X"
+      },
+      "steps": {
+        "context": "Lecture de votre marque…",
+        "trends": "Repérage des tendances du secteur…",
+        "strategy": "Rédaction de la boussole…",
+        "calendar": "Construction du calendrier…",
+        "occasions": "Recherche des occasions de la période…",
+        "brief": "Définition de l'angle de la période…",
+        "content": "Écriture des contenus…"
+      },
+      "doors": {
+        "visual": {
+          "title": "Un visuel, tout de suite",
+          "body": "Décrivez ce que vous voulez dire. Le visuel sort à votre charte.",
+          "price": "2 crédits"
+        },
+        "plan": {
+          "title": "Organiser une période",
+          "body": "Un mois, un lancement, une saison : des dates, un angle, des contenus datés.",
+          "price": "15 crédits",
+          "cta": "Créer une période"
+        },
+        "compass": {
+          "title": "Définir votre ligne",
+          "body": "Positionnement, ton, canaux. Elle guide ensuite toutes vos périodes.",
+          "price": "40 crédits · une fois",
+          "cta": "Ouvrir la boussole"
+        }
+      },
+      "compass": {
+        "eyebrow": "Votre ligne",
+        "title": "La boussole",
+        "subtitle": "Votre positionnement et votre ton. Chaque période en dérive son angle.",
+        "open": "La boussole",
+        "todo": "à définir",
+        "summaryLabel": "En résumé",
+        "edit": "Modifier",
+        "save": "Enregistrer",
+        "saved": "Enregistré",
+        "regenerate": "Régénérer",
+        "empty": {
+          "title": "Pas encore de boussole",
+          "body": "Elle définit une fois pour toutes votre positionnement, vos messages et votre ton. Les périodes s'y réfèrent ensuite au lieu de repartir de zéro.",
+          "cta": "Définir ma ligne — 40 crédits"
+        },
+        "blockKinds": {
+          "positioning": "Positionnement",
+          "pillars": "Piliers de contenu",
+          "messaging": "Messages clés",
+          "channels": "Canaux",
+          "cadence": "Rythme",
+          "kpis": "Indicateurs",
+          "tone": "Ton de voix",
+          "custom": "Autre"
+        }
+      },
+      "plans": {
+        "title": "Vos périodes",
+        "subtitle": "Ce que vous racontez sur une fenêtre de temps précise. Les périodes s'ajoutent, rien ne s'écrase.",
+        "new": "Nouvelle période",
+        "showArchived": "Voir les archivées",
+        "hideArchived": "Masquer les archivées",
+        "empty": {
+          "title": "Aucune période",
+          "body": "Une période, ce sont des dates, un objectif et des contenus datés. Décembre peut se préparer en octobre.",
+          "cta": "Créer ma première période"
+        },
+        "status": {
+          "draft": "Brouillon",
+          "active": "En cours",
+          "done": "Terminée",
+          "archived": "Archivée"
+        },
+        "itemCount": "{{count}} contenus",
+        "generate": "Générer la période — 15 crédits",
+        "regenerate": "Régénérer",
+        "archive": "Archiver",
+        "notGenerated": "Cette période n'a pas encore de contenus.",
+        "brief": {
+          "angle": "Angle de la période",
+          "keyMessage": "Message clé",
+          "themes": "Thèmes",
+          "signals": "Ce qu'on regarde à la fin"
+        },
+        "viewWeeks": "Par semaine",
+        "viewMonth": "Calendrier",
+        "week": "Semaine {{week}}",
+        "monthCaption": "Contenus programmés, jour par jour",
+        "weekdays": {
+          "mon": "Lun",
+          "tue": "Mar",
+          "wed": "Mer",
+          "thu": "Jeu",
+          "fri": "Ven",
+          "sat": "Sam",
+          "sun": "Dim"
+        },
+        "createVisual": "Créer le visuel",
+        "itemDate": "Date de publication",
+        "removeItem": "Retirer ce contenu",
+        "form": {
+          "title": "Nouvelle période",
+          "subtitle": "Les dates d'abord : c'est elles qui décident de tout le reste.",
+          "name": "Nom",
+          "namePlaceholder": "Novembre 2026, Lancement boutique…",
+          "start": "Du",
+          "end": "au",
+          "objective": "Objectif",
+          "objectivePlaceholder": "Faire connaître la boutique aux familles du quartier",
+          "kind": "Nature",
+          "kindRegular": "Rythme de croisière",
+          "kindCampaign": "Temps fort",
+          "cadence": "Rythme",
+          "perWeek": "{{count}}/semaine",
+          "channels": "Canaux",
+          "occasions": "Occasions de cette période",
+          "occasionsLoading": "Recherche des occasions…",
+          "occasionsNone": "Aucune occasion notable sur cette fenêtre.",
+          "occasionsHint": "Elles seront intégrées aux contenus, à leur date.",
+          "summary": "{{days}} jours · environ {{count}} contenus",
+          "submit": "Générer — 15 crédits"
+        }
+      },
+      "studio": {
+        "empty": {
+          "title": "Que voulez-vous communiquer ?",
+          "body": "Décrivez-le en une phrase. Le visuel sort à vos couleurs, vos polices et votre logo.",
+          "body2": "Exemple : « un visuel pour dire qu'on ouvre aussi le samedi »"
+        },
+        "starters": {
+          "announce": "Un visuel pour annoncer ",
+          "promotion": "Un visuel pour une promotion de ",
+          "celebration": "Un visuel pour souhaiter ",
+          "recruitment": "Un visuel pour dire qu'on recrute un "
+        },
+        "thinking": "Je réfléchis…",
+        "composing": "Je compose le visuel…",
+        "composingVariants": "Je compose trois propositions…",
+        "retouching": "Je retouche le visuel…",
+        "declinating": "Je décline le visuel…",
+        "writingCaption": "J'écris la légende…",
+        "caption": "Légende à publier",
+        "copy": "Copier",
+        "copied": "Copié",
+        "creditsSpent": "{{count}} crédits",
+        "inputLabel": "Décrivez le visuel souhaité",
+        "placeholder": "Décrivez ce que vous voulez communiquer…",
+        "send": "Envoyer",
+        "clear": "Effacer la conversation",
+        "pricingHint": "Discuter est gratuit. Un visuel coûte 2 crédits.",
+        "schedule": "Programmer",
+        "toStory": "En story",
+        "noPlan": "Créez d'abord une période pour y programmer ce visuel.",
+        "planLabel": "Période",
+        "dateLabel": "Date de publication"
+      },
+      "library": {
+        "title": "Vos visuels",
+        "subtitle": "Tout ce qui a été produit sur ce projet, quelle qu'en soit l'origine.",
+        "empty": {
+          "title": "Aucun visuel pour l'instant",
+          "body": "Passez par l'atelier pour en créer un, ou générez une période et créez les visuels de ses contenus."
+        },
+        "filterFormat": "Format",
+        "allFormats": "Tous les formats",
+        "filterOrigin": "Origine",
+        "allOrigins": "Toutes origines",
+        "origins": {
+          "plan": "Période",
+          "studio": "Atelier",
+          "occasion": "Occasion",
+          "brandbook": "Charte"
+        },
+        "filterPlan": "Période",
+        "allPlans": "Toutes les périodes",
+        "count": "{{count}} visuels",
+        "previewAlt": "Aperçu du visuel : {{title}}",
+        "brief": "Demande d'origine",
+        "concept": "Parti pris",
+        "declinate": "Décliner dans un autre format",
+        "publish": "Publier",
+        "publishHint": "La légende est copiée et le réseau s'ouvre : il ne reste qu'à coller et publier.",
+        "publishNeedsSchedule": "Programmez d'abord ce visuel dans une période pour pouvoir le publier."
       }
     },
     "businessCards": {
@@ -3891,7 +4104,10 @@
         "context": "Analyse du contexte",
         "trends": "Repérage des tendances",
         "strategy": "Rédaction de la stratégie",
-        "calendar": "Construction du calendrier"
+        "calendar": "Construction du calendrier",
+        "occasions": "Recherche des occasions…",
+        "brief": "Définition de l'angle…",
+        "content": "Écriture des contenus…"
       },
       "chips": {
         "strategy": "Générer la stratégie",

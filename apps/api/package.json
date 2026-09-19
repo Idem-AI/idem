@@ -18,7 +18,7 @@
     "secrets:rotate": "bash scripts/rotate-secret.sh",
     "secrets:purge-history": "bash scripts/purge-env-from-history.sh",
     "check:uniqueness": "ts-node --transpile-only api/scripts/checkUniqueness.ts",
-    "check:all": "npm run check:agents && npm run check:design && npm run check:fonts && npm run check:uniqueness && npm run check:render && npm run check:fit && npm run check:simreport && npm run check:bpquality && npm run check:prompts && npm run check:provider && npm run check:jurisdictions && npm run check:salvage && npm run check:mockups",
+    "check:all": "npm run check:agents && npm run check:design && npm run check:fonts && npm run check:uniqueness && npm run check:render && npm run check:fit && npm run check:simreport && npm run check:bpquality && npm run check:prompts && npm run check:provider && npm run check:jurisdictions && npm run check:salvage && npm run check:mockups && npm run check:flyer && npm run check:comm",
     "check:render": "ts-node --transpile-only api/scripts/checkSectionRenderer.ts",
     "check:fit": "ts-node --transpile-only api/scripts/checkPageFit.ts",
     "check:simreport": "ts-node --transpile-only api/scripts/checkSimulationReport.ts",
@@ -32,7 +32,9 @@
     "check:payments": "ts-node --transpile-only api/scripts/checkPayments.ts",
     "check:payments:sandbox": "ts-node --transpile-only api/scripts/checkPaymentsSandbox.ts",
     "grant:welcome": "ts-node --transpile-only api/scripts/grantWelcomeCredit.ts",
-    "check:indexes": "ts-node --transpile-only api/scripts/checkIndexes.ts"
+    "check:indexes": "ts-node --transpile-only api/scripts/checkIndexes.ts",
+    "check:flyer": "ts-node --transpile-only api/scripts/checkFlyerComposition.ts",
+    "check:comm": "ts-node --transpile-only api/scripts/checkCommunicationPlans.ts"
   },
   "author": "arolleaguekeng",
   "license": "MIT",

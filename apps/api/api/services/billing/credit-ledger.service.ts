@@ -347,7 +347,16 @@ export class CreditLedgerService {
     userId: string,
     engine: BillingEngine,
     action: string,
-    projectId?: string
+    projectId?: string,
+    /**
+     * Portée FINE à l'intérieur du projet — l'id de la période, par exemple.
+     *
+     * Sans elle, « plein tarif la première fois » se lit par projet : le premier
+     * plan de communication coûtait 15 crédits et les onze suivants 1, soit
+     * douze mois de planification pour 26 crédits. Une période neuve est un
+     * livrable neuf, pas la révision de la précédente.
+     */
+    element?: string
   ): Promise<boolean> {
     const filter: Record<string, unknown> = {
       userId,
@@ -356,6 +365,7 @@ export class CreditLedgerService {
       reason: 'consumption',
     };
     if (projectId) filter.projectId = projectId;
+    if (element) filter.element = element;
 
     const existing = await CreditLedgerEntry.exists(filter);
     return Boolean(existing);

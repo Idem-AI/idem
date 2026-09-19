@@ -52,6 +52,12 @@ export interface RequireCreditsOptions {
   resolve?: (req: CustomRequest) => Promise<{ action: string; cost: number }>;
   /** Exemption conditionnelle, évaluée sur les droits résolus. */
   exempt?: (req: CustomRequest, entitlements: Entitlements) => boolean;
+  /**
+   * Élément facturé à l'intérieur du projet — l'id de la période, par exemple.
+   * Inscrit au relevé, puis relu par `firstThenRevision` pour savoir si CET
+   * élément-là a déjà été facturé (et non « un élément de ce projet »).
+   */
+  element?: (req: CustomRequest) => string | undefined;
 }
 
 /**
@@ -69,7 +75,21 @@ export interface RequireCreditsOptions {
 export function firstThenRevision(
   engine: BillingEngine,
   firstAction: string,
-  repeatAction: string
+  repeatAction: string,
+  /**
+   * PORTÉE du « première fois », quand elle est plus fine que le projet.
+   *
+   * Un livrable dont le projet ne contient qu'un exemplaire (la charte, le
+   * business plan) se compte par projet — c'est le défaut. Mais un projet
+   * contient autant de PÉRIODES de communication qu'on veut, et chacune est un
+   * livrable neuf : sans portée, la deuxième période et les suivantes tombaient
+   * au tarif « révision », soit douze mois de planification pour 26 crédits.
+   *
+   * La valeur renvoyée est inscrite au relevé (`element`) puis relue par
+   * `hasChargedAction` — le relevé de l'utilisateur montre donc quelle période
+   * a été facturée.
+   */
+  scope?: (req: CustomRequest) => string | undefined
 ): (req: CustomRequest) => Promise<{ action: string; cost: number }> {
   return async (req: CustomRequest) => {
     const userId = req.user?.uid;
@@ -83,7 +103,8 @@ export function firstThenRevision(
       userId,
       engine,
       firstAction,
-      projectId
+      projectId,
+      scope?.(req)
     );
 
     return alreadyCharged
@@ -91,6 +112,10 @@ export function firstThenRevision(
       : { action: firstAction, cost: creditCost(engine, firstAction) };
   };
 }
+
+/** Portée « une période de communication », lue dans l'URL. */
+export const planScope = (req: CustomRequest): string | undefined =>
+  (req.params?.planId as string | undefined) || undefined;
 
 /**
  * « Inclus la première fois, facturé ensuite. »
@@ -226,6 +251,7 @@ export function requireCredits(
           await creditLedgerService.recordIncluded(userId, engine, chargedAction, {
             projectId: (req.params?.projectId as string) ?? undefined,
             feature: engine,
+            element: options.element?.(req),
           });
         }
         next();
@@ -261,6 +287,7 @@ export function requireCredits(
         action: chargedAction,
         projectId: (req.params?.projectId as string) ?? undefined,
         feature: engine,
+        element: options.element?.(req),
       });
 
       if (!result.allowed) {
