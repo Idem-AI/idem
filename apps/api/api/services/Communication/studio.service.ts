@@ -45,6 +45,7 @@ import { entitlementsService } from '../billing/entitlements.service';
 import { AGENT_STUDIO_PROMPT } from './prompts/agent-studio.prompt';
 import { AGENT_MOMENT_CONTENT_PROMPT } from './prompts/agent-moment-content.prompt';
 import { CommunicationService } from './communication.service';
+import { toContentChannel } from './channels';
 import { setTraceProjectId } from '../../utils/trace.util';
 
 /** Historique relu à chaque tour. Au-delà, la conversation est tronquée par le début. */
@@ -646,9 +647,15 @@ export class StudioService {
     return INTENTS.includes(candidate) ? candidate : undefined;
   }
 
+  /**
+   * Le réseau proposé par l'agent, ramené vers l'énumération.
+   *
+   * Un simple `toLowerCase()` ne suffisait pas : l'agent écrit « Instagram »,
+   * « Twitter » ou « newsletter », et ces valeurs affichaient ensuite une clé de
+   * traduction brute et une icône par défaut dans l'interface.
+   */
   private asChannel(value: unknown): ContentChannel | undefined {
-    const candidate = String(value || '').toLowerCase();
-    return candidate ? (candidate as ContentChannel) : undefined;
+    return toContentChannel(value) ?? undefined;
   }
 
   private safeJson<T>(raw: string): T | null {

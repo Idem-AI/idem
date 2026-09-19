@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common';
 import { BetaBadgeComponent } from '../../shared/components/beta-badge/beta-badge';
 import { LanguageSelectorComponent } from '../../shared/components/language-selector/language-selector';
 import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme-toggle';
-import { ModeSwitcherComponent } from '../../shared/components/mode-switcher/mode-switcher';
 import { QuotaDisplayComponent } from '../../shared/components/quota-display/quota-display';
 import { AuthService } from '../../modules/auth/services/auth.service';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -29,7 +28,6 @@ import { environment } from 'apps/main-dashboard/src/environments/environment';
     QuotaDisplayComponent,
     LanguageSelectorComponent,
     ThemeToggleComponent,
-    ModeSwitcherComponent,
   ],
   templateUrl: './empty-layout.html',
   styleUrl: './empty-layout.css',

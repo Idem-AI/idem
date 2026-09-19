@@ -1,0 +1,445 @@
+/* ---------------------------------------------------------------------------
+   Dock flottant de changement de mode.
+
+   Le coin bas-droite est réservé à cette commande : elle ne bouge plus d'une
+   page à l'autre, donc on finit par la viser sans la chercher. Tout le reste
+   du fichier sert cette promesse — une cible constante, lisible sur clair
+   comme sur sombre, qui ne masque jamais le contenu utile.
+   --------------------------------------------------------------------------- */
+
+:host {
+  position: fixed;
+  right: max(1.25rem, env(safe-area-inset-right, 0px));
+  bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+  display: block;
+
+  /* Deux rôles, deux valeurs. `--dock-accent` habille icônes, bordures et halos :
+     sur fond sombre le bleu de marque y manque de clarté, on remonte d'un cran.
+     `--dock-accent-solid` reste l'aplat qui porte du texte blanc — l'éclaircir
+     ferait tomber le contraste du libellé sous le seuil lisible. */
+  --dock-accent: var(--color-primary);
+  --dock-accent-solid: var(--color-primary);
+
+  /* Seuls les éléments interactifs captent le pointeur : le reste du coin
+     doit rester cliquable par la page qui est dessous. */
+  pointer-events: none;
+}
+
+:host-context(.dark) {
+  --dock-accent: var(--color-primary-400);
+}
+
+:host(.is-hidden) {
+  display: none;
+}
+
+/* Mode Chat sur mobile : le composeur occupe le bas de l'écran et son bouton
+   d'envoi vit exactement dans ce coin. Le dock remonte au-dessus. */
+@media (max-width: 640px) {
+  :host(.is-chat) {
+    bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.dock-root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  pointer-events: auto;
+}
+
+/* --------------------------------------------------------------------------
+   Déclencheur
+   -------------------------------------------------------------------------- */
+
+.dock-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  height: 3.25rem;
+  padding: 0 1rem 0 0.5rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--glass-border-medium);
+  background: var(--glass-bg-intense);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow:
+    var(--glass-shadow-lg),
+    0 18px 38px -20px rgba(2, 6, 23, 0.55);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition:
+    transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.22s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+  animation: dock-trigger-in 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.dock-trigger:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--dock-accent) 45%, transparent);
+  box-shadow:
+    var(--glass-shadow-xl),
+    0 22px 44px -20px color-mix(in srgb, var(--dock-accent) 55%, transparent);
+}
+
+.dock-trigger:active {
+  transform: translateY(0) scale(0.985);
+}
+
+.dock-trigger:focus-visible {
+  outline: none;
+  border-color: var(--dock-accent);
+  box-shadow:
+    var(--glass-shadow-lg),
+    0 0 0 3px color-mix(in srgb, var(--dock-accent) 35%, transparent);
+}
+
+.dock-trigger.is-open {
+  border-color: color-mix(in srgb, var(--dock-accent) 55%, transparent);
+}
+
+.dock-trigger__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--dock-accent) 16%, transparent);
+  color: var(--dock-accent);
+  font-size: 0.875rem;
+}
+
+.dock-trigger__label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+  min-width: 0;
+}
+
+.dock-trigger__kicker {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-tertiary);
+}
+
+.dock-trigger__mode {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dock-trigger__chevron {
+  font-size: 0.625rem;
+  color: var(--color-text-tertiary);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dock-trigger.is-open .dock-trigger__chevron {
+  transform: rotate(180deg);
+}
+
+/* Sous 640 px, le libellé cède la place : la pastille seule garde la même
+   position et le même repère visuel sans manger la largeur utile. */
+@media (max-width: 640px) {
+  .dock-trigger {
+    gap: 0;
+    width: 3.25rem;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .dock-trigger__label,
+  .dock-trigger__chevron {
+    display: none;
+  }
+
+  .dock-trigger__icon {
+    width: auto;
+    height: auto;
+    background: none;
+    font-size: 1.125rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Panneau
+   -------------------------------------------------------------------------- */
+
+.dock-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  pointer-events: auto;
+  animation: dock-fade 0.18s ease both;
+}
+
+.dock-panel {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 0.75rem;
+  width: 21rem;
+  max-width: calc(100vw - 2rem);
+  padding: 0.5rem;
+  border-radius: var(--radius-glass);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-intense);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  box-shadow:
+    var(--glass-shadow-xl),
+    0 28px 60px -28px rgba(2, 6, 23, 0.7);
+  transform-origin: bottom right;
+  animation: dock-panel-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.dock-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.5rem 0.625rem 0.75rem;
+}
+
+.dock-panel__title {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-tertiary);
+}
+
+.dock-panel__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-lg);
+  color: var(--color-text-tertiary);
+  font-size: 0.6875rem;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.dock-panel__close:hover {
+  background: var(--glass-bg-light);
+  color: var(--color-text-primary);
+}
+
+.dock-panel__close:focus-visible {
+  outline: 2px solid var(--dock-accent);
+  outline-offset: 1px;
+}
+
+.dock-panel__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dock-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-2xl);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.16s ease;
+  animation: dock-option-in 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+
+.dock-option:hover:not(.is-active) {
+  background: var(--glass-bg-light);
+  border-color: var(--glass-border);
+}
+
+.dock-option:focus-visible {
+  outline: none;
+  border-color: var(--dock-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dock-accent) 28%, transparent);
+}
+
+.dock-option.is-active {
+  background: var(--dock-accent-solid);
+  box-shadow: 0 10px 24px -12px color-mix(in srgb, var(--dock-accent-solid) 85%, transparent);
+}
+
+.dock-option__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--dock-accent) 14%, transparent);
+  color: var(--dock-accent);
+  font-size: 0.8125rem;
+}
+
+.dock-option.is-active .dock-option__icon {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.dock-option__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.dock-option__head {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.dock-option__name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.dock-option.is-active .dock-option__name {
+  color: #fff;
+}
+
+.dock-option__badge {
+  padding: 0.0625rem 0.375rem;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-secondary) 35%, transparent);
+  background: color-mix(in srgb, var(--color-secondary) 15%, transparent);
+  color: color-mix(in srgb, var(--color-secondary) 55%, var(--color-text-primary));
+  font-size: 0.5625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.dock-option__desc {
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  color: var(--color-text-tertiary);
+}
+
+.dock-option.is-active .dock-option__desc {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.dock-option__check {
+  flex-shrink: 0;
+  margin-top: 0.375rem;
+  font-size: 0.6875rem;
+  color: #fff;
+}
+
+.dock-panel__foot {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+  margin-top: 0.375rem;
+  padding: 0.625rem 0.75rem 0.375rem;
+  border-top: 1px solid var(--glass-border);
+  font-size: 0.625rem;
+  line-height: 1.4;
+  color: var(--color-text-tertiary);
+}
+
+.dock-panel__foot i {
+  margin-top: 0.125rem;
+  font-size: 0.625rem;
+}
+
+/* --------------------------------------------------------------------------
+   Mouvement
+   -------------------------------------------------------------------------- */
+
+@keyframes dock-trigger-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dock-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dock-option-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dock-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-trigger,
+  .dock-panel,
+  .dock-option,
+  .dock-scrim {
+    animation: none;
+  }
+
+  .dock-trigger,
+  .dock-trigger__chevron,
+  .dock-option {
+    transition-property: background-color, border-color, box-shadow, color;
+  }
+
+  .dock-trigger:hover,
+  .dock-trigger:active {
+    transform: none;
+  }
+}

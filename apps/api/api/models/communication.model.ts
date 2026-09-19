@@ -496,5 +496,13 @@ export interface CommunicationModel {
   updatedAt?: Date;
 }
 
-/** Version courante du schéma `CommunicationModel`. */
-export const COMMUNICATION_SCHEMA_VERSION = 2;
+/**
+ * Version courante du schéma `CommunicationModel`.
+ *
+ * 2 → les périodes remplacent le calendrier unique.
+ * 3 → les canaux sont ramenés vers `ContentChannel`. La montée de version fait
+ *     repasser les projets déjà convertis dans la migration, qui nettoie leurs
+ *     valeurs héritées (« Instagram », « Réseaux sociaux ») : sans elle, seul
+ *     l'affichage les rattraperait, et la donnée resterait fausse en base.
+ */
+export const COMMUNICATION_SCHEMA_VERSION = 3;

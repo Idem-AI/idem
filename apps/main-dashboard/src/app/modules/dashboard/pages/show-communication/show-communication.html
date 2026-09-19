@@ -196,6 +196,7 @@
         [publications]="publications()"
         [fonts]="fonts()"
         (visualCreated)="onVisualCreated($event)"
+        (visualDeleted)="onVisualDeleted($event)"
         (publicationCreated)="onPublicationCreated($event)"
         (failed)="onError($event)"
       />

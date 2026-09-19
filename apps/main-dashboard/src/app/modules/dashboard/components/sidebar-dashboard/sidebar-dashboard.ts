@@ -37,7 +37,6 @@ import {
 } from '../../../../shared/models/quota.model';
 import { LanguageSelectorComponent } from 'apps/main-dashboard/src/app/shared/components/language-selector/language-selector';
 import { ThemeToggleComponent } from 'apps/main-dashboard/src/app/shared/components/theme-toggle/theme-toggle';
-import { ModeSwitcherComponent } from '../../../../shared/components/mode-switcher/mode-switcher';
 import { UiModeService } from '../../../../shared/services/ui-mode.service';
 import { GuidedJourneyService } from '../../../guided/services/guided-journey.service';
 
@@ -55,7 +54,6 @@ import { GuidedJourneyService } from '../../../guided/services/guided-journey.se
     TranslateModule,
     LanguageSelectorComponent,
     ThemeToggleComponent,
-    ModeSwitcherComponent,
   ],
   animations: [
     trigger('slideInOut', [

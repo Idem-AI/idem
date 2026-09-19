@@ -71,7 +71,8 @@
         "plan-generate": "Le planning n'a pas pu être rempli.",
         "plan-archive": "Le planning n'a pas pu être archivé.",
         "strategy": "Impossible d'écrire votre façon de communiquer.",
-        "strategy-save": "Vos modifications n'ont pas pu être enregistrées."
+        "strategy-save": "Vos modifications n'ont pas pu être enregistrées.",
+        "visual-delete": "Le visuel n'a pas pu être supprimé."
       },
       "doors": {
         "visual": {
@@ -118,7 +119,8 @@
           "kpis": "Ce que vous regardez",
           "tone": "Votre ton",
           "custom": "Autre"
-        }
+        },
+        "editSection": "Modifier « {{section}} »"
       },
       "plans": {
         "title": "Mon planning",
@@ -329,11 +331,32 @@
         "declinate": "Aussi dans un autre format",
         "publish": "Publier",
         "publishHint": "Le texte est copié et le réseau s'ouvre : il ne reste qu'à coller et publier.",
-        "publishNeedsSchedule": "Mettez d'abord ce visuel au planning pour pouvoir le publier."
+        "publishNeedsSchedule": "Mettez d'abord ce visuel au planning pour pouvoir le publier.",
+        "delete": "Supprimer ce visuel",
+        "deleteAsk": "Supprimer définitivement ce visuel ?",
+        "deleteConfirm": "Supprimer"
       },
       "visual": {
         "download": "Télécharger l'image",
         "edit": "Modifier"
+      },
+      "thumb": {
+        "loading": "Chargement de l'image…",
+        "failed": "L'image n'a pas pu s'afficher.",
+        "retry": "Réessayer",
+        "openInstead": "Ouvrez-le en grand pour le voir."
+      },
+      "composing": {
+        "title": "Je compose votre visuel",
+        "titleVariants": "Je compose {{count}} propositions",
+        "patience": "Cela prend entre 30 secondes et 2 minutes. Vous pouvez attendre ici.",
+        "stages": {
+          "grid": "Je place la mise en page",
+          "image": "Je choisis l'image",
+          "words": "J’écris le texte",
+          "compose": "J’assemble à vos couleurs",
+          "check": "Je vérifie le résultat"
+        }
       }
     }
   }

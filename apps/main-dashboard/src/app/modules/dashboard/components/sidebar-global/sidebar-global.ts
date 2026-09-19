@@ -25,7 +25,6 @@ import {
   BetaRestrictions,
   QuotaStatus,
 } from '../../../../shared/models/quota.model';
-import { ModeSwitcherComponent } from '../../../../shared/components/mode-switcher/mode-switcher';
 import { CreditsBadgeComponent } from '../../../billing/components/credits-badge/credits-badge';
 
 @Component({
@@ -39,7 +38,6 @@ import { CreditsBadgeComponent } from '../../../billing/components/credits-badge
     BetaBadgeComponent,
     QuotaDisplayComponent,
     TranslateModule,
-    ModeSwitcherComponent,
     CreditsBadgeComponent,
   ],
   animations: [

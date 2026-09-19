@@ -26,6 +26,7 @@ import {
 } from '../../communication-ui';
 import { ContentDetail } from '../content-detail/content-detail';
 import { PlanWizard, PlanWizardResult } from '../plan-wizard/plan-wizard';
+import { VisualThumb } from '../visual-thumb/visual-thumb';
 
 /** Une case du calendrier mensuel. */
 interface DayCell {
@@ -57,7 +58,7 @@ interface MonthView {
  */
 @Component({
   selector: 'app-plan-panel',
-  imports: [TranslateModule, ContentDetail, PlanWizard],
+  imports: [TranslateModule, ContentDetail, PlanWizard, VisualThumb],
   templateUrl: './plan-panel.html',
   styleUrls: ['./plan-panel.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

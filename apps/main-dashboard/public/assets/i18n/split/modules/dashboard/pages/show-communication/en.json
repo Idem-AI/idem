@@ -71,7 +71,8 @@
         "plan-generate": "The schedule could not be filled.",
         "plan-archive": "The schedule could not be archived.",
         "strategy": "Could not write how you communicate.",
-        "strategy-save": "Your changes could not be saved."
+        "strategy-save": "Your changes could not be saved.",
+        "visual-delete": "The visual could not be deleted."
       },
       "doors": {
         "visual": {
@@ -118,7 +119,8 @@
           "kpis": "What you watch",
           "tone": "Your tone",
           "custom": "Other"
-        }
+        },
+        "editSection": "Edit “{{section}}”"
       },
       "plans": {
         "title": "My schedule",
@@ -329,11 +331,32 @@
         "declinate": "Also in another format",
         "publish": "Publish",
         "publishHint": "The text is copied and the network opens: all that is left is to paste and publish.",
-        "publishNeedsSchedule": "Add this visual to a schedule first to be able to publish it."
+        "publishNeedsSchedule": "Add this visual to a schedule first to be able to publish it.",
+        "delete": "Delete this visual",
+        "deleteAsk": "Delete this visual for good?",
+        "deleteConfirm": "Delete"
       },
       "visual": {
         "download": "Download the image",
         "edit": "Edit"
+      },
+      "thumb": {
+        "loading": "Loading the image…",
+        "failed": "The image could not be displayed.",
+        "retry": "Try again",
+        "openInstead": "Open it large to see it."
+      },
+      "composing": {
+        "title": "Composing your visual",
+        "titleVariants": "Composing {{count}} options",
+        "patience": "This takes 30 seconds to 2 minutes. You can wait here.",
+        "stages": {
+          "grid": "Laying out the page",
+          "image": "Choosing the image",
+          "words": "Writing the text",
+          "compose": "Assembling it in your colours",
+          "check": "Checking the result"
+        }
       }
     }
   }

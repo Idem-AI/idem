@@ -16,7 +16,7 @@
       <div class="min-w-0">
         <p class="cd-eyebrow">
           <i [class]="channelIcon(item().channel)" aria-hidden="true"></i>
-          {{ 'dashboard.showCommunication.channels.' + item().channel | translate }}
+          {{ channelLabelKey(item().channel) | translate }}
           <span aria-hidden="true">·</span>
           {{ item().scheduledFor }}
         </p>
@@ -92,6 +92,15 @@
               }}
             </p>
           }
+        } @else if (isCreatingVisual()) {
+          <!--
+            Composer prend de vingt secondes à deux minutes. On montre la maquette
+            EN TRAIN de se construire plutôt qu'un disque qui tourne : c'est
+            pendant cette attente que l'utilisateur quittait la page.
+          -->
+          <div class="cd-composing">
+            <app-visual-composing [format]="chosenFormat()" />
+          </div>
         } @else {
           <!-- Pas encore de visuel : un seul geste, et le prix est dit avant -->
           <div class="cd-empty-visual">
@@ -253,13 +262,13 @@
                 <button
                   type="button"
                   class="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm"
-                  [class.inner-button]="item().channel === channel"
-                  [class.outer-button]="item().channel !== channel"
+                  [class.inner-button]="toChannel(item().channel) === channel"
+                  [class.outer-button]="toChannel(item().channel) !== channel"
                   [disabled]="isSaving()"
                   (click)="setChannel(channel)"
                 >
                   <i [class]="channelIcon(channel)" aria-hidden="true"></i>
-                  {{ 'dashboard.showCommunication.channels.' + channel | translate }}
+                  {{ channelLabelKey(channel) | translate }}
                 </button>
               }
             </div>
@@ -271,7 +280,7 @@
           } @else {
             <p class="cd-value flex items-center gap-1.5">
               <i [class]="channelIcon(item().channel)" aria-hidden="true"></i>
-              {{ 'dashboard.showCommunication.channels.' + item().channel | translate }}
+              {{ channelLabelKey(item().channel) | translate }}
             </p>
           }
         </div>

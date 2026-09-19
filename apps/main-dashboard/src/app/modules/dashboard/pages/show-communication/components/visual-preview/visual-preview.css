@@ -10,6 +10,12 @@
    * ici il défile, et le menu d'élément suit puisqu'il vit dans le même repère.
    */
   overflow: auto;
+  /*
+   * Hauteur plancher : l'iframe ne connaît sa taille qu'après son premier
+   * message, et sans ce minimum le cadre s'effondrait à zéro entre-temps —
+   * l'aperçu semblait alors vide alors que le visuel arrivait.
+   */
+  min-height: 12rem;
   border-radius: 0.75rem;
   /*
    * Aucun fond peint ici : le visuel porte le sien, et une plaque de couleur

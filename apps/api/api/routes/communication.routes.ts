@@ -8,6 +8,7 @@ import {
   createPlanController,
   createVisualController,
   declinateVisualController,
+  deleteVisualController,
   extractContextController,
   generateCalendarStreamController,
   generateFlyerController,
@@ -607,6 +608,24 @@ communicationRoutes.get(
   `/${resource}/:projectId/visuals/:visualId`,
   authenticate,
   getVisualController
+);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/visuals/{visualId}:
+ *   delete:
+ *     tags: [Communication]
+ *     summary: Delete a visual for good, unlinking it from its content and publications.
+ *     description: >
+ *       The only hard delete of the module, and a deliberate one: a failed visual
+ *       clutters the library, and an image is not something you archive. Periods,
+ *       which carry history, are archived instead.
+ *     security: [{ bearerAuth: [] }]
+ */
+communicationRoutes.delete(
+  `/${resource}/:projectId/visuals/:visualId`,
+  authenticate,
+  deleteVisualController
 );
 
 /**

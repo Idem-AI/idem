@@ -16,11 +16,13 @@ import {
   PLANNABLE_CHANNELS,
   PeriodPreset,
   channelIcon,
+  channelLabelKey,
   daysBetweenIso,
   expectedItemCount,
   formatRange,
   lastDayOfMonth,
   presetRange,
+  toChannels,
 } from '../../communication-ui';
 
 /** Ce que le parent reçoit pour créer puis générer la période. */
@@ -72,6 +74,7 @@ export class PlanWizard {
   readonly cancelled = output<void>();
 
   protected readonly channelIcon = channelIcon;
+  protected readonly channelLabelKey = channelLabelKey;
   protected readonly channels = PLANNABLE_CHANNELS;
   protected readonly objectiveHints = OBJECTIVE_HINTS;
   protected readonly presets: PeriodPreset[] = ['thisMonth', 'nextMonth', 'twoWeeks', 'custom'];
@@ -102,7 +105,10 @@ export class PlanWizard {
    * l'entrée tout en restant modifiable par les clics.
    */
   protected readonly picked = linkedSignal<ContentChannel[]>(() => {
-    const suggested = this.suggestedChannels();
+    // Normalisés : un projet créé avant le contrôle des canaux transmet encore
+    // « Instagram », qui ne correspondrait à aucun bouton — rien ne serait
+    // présélectionné, et cocher créerait un doublon.
+    const suggested = toChannels(this.suggestedChannels());
     return suggested.length ? suggested.slice(0, 3) : ['instagram', 'facebook'];
   });
 

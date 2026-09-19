@@ -20,6 +20,7 @@
  * bibliothèque.
  */
 import logger from '../../config/logger';
+import { toContentChannel, toContentChannels } from './channels';
 import {
   COMMUNICATION_SCHEMA_VERSION,
   CommunicationModel,
@@ -218,6 +219,26 @@ export function migrateLegacyCommunication(
   if (!model.occasionSuggestions && model.momentSuggestions?.length) {
     model.occasionSuggestions = model.momentSuggestions;
     changed = true;
+  }
+
+  // ── 5. Canaux : ramenés vers l'énumération (schéma 3) ────────────────────
+  // Les valeurs venaient d'un modèle interrogé en texte libre. Un « Instagram »
+  // stocké affichait la clé de traduction brute à l'écran et la même icône pour
+  // tous les réseaux ; les nettoyer ici corrige la donnée elle-même.
+  for (const plan of plans) {
+    const channels = toContentChannels(plan.channels);
+    const fixed = channels.length ? channels : (['linkedin'] as ContentChannel[]);
+    if (JSON.stringify(fixed) !== JSON.stringify(plan.channels)) {
+      plan.channels = fixed;
+      changed = true;
+    }
+    for (const item of plan.items) {
+      const channel = toContentChannel(item.channel) || fixed[0];
+      if (channel !== item.channel) {
+        item.channel = channel;
+        changed = true;
+      }
+    }
   }
 
   if (plans.length) model.plans = plans;

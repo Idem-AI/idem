@@ -2,12 +2,14 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
   output,
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
+import { CommunicationService } from '../../../../services/ai-agents/communication.service';
 import { FontHints } from '../../../document-editor/models/editor.types';
 import {
   CommunicationPlan,
@@ -16,8 +18,9 @@ import {
   Publication,
   VisualOrigin,
 } from '../../../../models/communication.model';
-import { FLYER_FORMATS, formatAspect } from '../../communication-ui';
+import { FLYER_FORMATS } from '../../communication-ui';
 import { VisualDialog } from '../visual-dialog/visual-dialog';
+import { VisualThumb } from '../visual-thumb/visual-thumb';
 
 const ORIGINS: VisualOrigin[] = ['plan', 'studio', 'occasion'];
 
@@ -34,12 +37,14 @@ const ORIGINS: VisualOrigin[] = ['plan', 'studio', 'occasion'];
  */
 @Component({
   selector: 'app-library-panel',
-  imports: [FormsModule, TranslateModule, VisualDialog],
+  imports: [FormsModule, TranslateModule, VisualDialog, VisualThumb],
   templateUrl: './library-panel.html',
   styleUrl: './library-panel.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LibraryPanel {
+  private readonly communication = inject(CommunicationService);
+
   readonly projectId = input.required<string>();
   readonly visuals = input<Flyer[]>([]);
   readonly plans = input<CommunicationPlan[]>([]);
@@ -47,12 +52,22 @@ export class LibraryPanel {
   readonly fonts = input<FontHints>({});
 
   readonly visualCreated = output<Flyer>();
+  readonly visualDeleted = output<string>();
   readonly publicationCreated = output<Publication>();
   readonly failed = output<string>();
 
   protected readonly formats = FLYER_FORMATS;
   protected readonly origins = ORIGINS;
-  protected readonly formatAspect = formatAspect;
+
+  /**
+   * Suppression demandée, en attente de confirmation.
+   *
+   * La confirmation est portée par la vignette elle-même : une boîte de dialogue
+   * par-dessus la grille ferait perdre de vue LEQUEL des visuels on s'apprête à
+   * jeter.
+   */
+  protected readonly confirmingId = signal<string | null>(null);
+  protected readonly deletingId = signal<string | null>(null);
 
   protected readonly filterFormat = signal<FlyerFormat | 'all'>('all');
   protected readonly filterOrigin = signal<VisualOrigin | 'all'>('all');
@@ -116,6 +131,31 @@ export class LibraryPanel {
 
   protected close(): void {
     this.openVisualId.set(null);
+  }
+
+  protected askDelete(visualId: string): void {
+    this.confirmingId.set(visualId);
+  }
+
+  protected cancelDelete(): void {
+    this.confirmingId.set(null);
+  }
+
+  protected confirmDelete(visualId: string): void {
+    if (this.deletingId()) return;
+    this.deletingId.set(visualId);
+    this.communication.deleteVisual(this.projectId(), visualId).subscribe({
+      next: () => {
+        this.visualDeleted.emit(visualId);
+        this.confirmingId.set(null);
+        this.deletingId.set(null);
+        if (this.openVisualId() === visualId) this.openVisualId.set(null);
+      },
+      error: (err) => {
+        this.failed.emit(err?.error?.message || 'visual-delete');
+        this.deletingId.set(null);
+      },
+    });
   }
 
   /** Nom du planning d'un visuel — « — » quand il n'appartient à aucun. */

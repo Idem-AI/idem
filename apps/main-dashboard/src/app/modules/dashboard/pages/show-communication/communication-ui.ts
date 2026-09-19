@@ -52,8 +52,83 @@ export const CHANNEL_ICONS: Record<ContentChannel, string> = {
   other: 'pi pi-globe',
 };
 
-export function channelIcon(channel: ContentChannel | undefined): string {
-  return (channel && CHANNEL_ICONS[channel]) || 'pi pi-globe';
+/**
+ * Ramène une valeur de canal vers l'énumération.
+ *
+ * Miroir de `services/Communication/channels.ts` côté API, et pour la même
+ * raison : la valeur venait d'un modèle de langage en texte libre (« Instagram »,
+ * « Twitter », « newsletter »). Les projets créés avant que l'API ne la normalise
+ * en contiennent encore, d'où ce rattrapage À L'AFFICHAGE — il évite une
+ * migration de données pour deux défauts purement visuels :
+ *
+ *  - `…channels.Instagram` n'existe pas en traduction, donc la CLÉ BRUTE
+ *    s'affichait à la place du nom du réseau ;
+ *  - la table d'icônes ne reconnaissait pas la valeur et retombait sur le globe,
+ *    si bien que tous les réseaux portaient la même icône.
+ */
+const CHANNEL_ALIASES: Record<string, ContentChannel> = {
+  instagram: 'instagram',
+  insta: 'instagram',
+  ig: 'instagram',
+  reels: 'instagram',
+  linkedin: 'linkedin',
+  facebook: 'facebook',
+  fb: 'facebook',
+  meta: 'facebook',
+  messenger: 'facebook',
+  tiktok: 'tiktok',
+  x: 'x',
+  twitter: 'x',
+  youtube: 'youtube',
+  yt: 'youtube',
+  shorts: 'youtube',
+  blog: 'blog',
+  website: 'blog',
+  site: 'blog',
+  article: 'blog',
+  articles: 'blog',
+  email: 'email',
+  mail: 'email',
+  newsletter: 'email',
+  emailing: 'email',
+  other: 'other',
+  autre: 'other',
+};
+
+export function toChannel(value: ContentChannel | string | undefined): ContentChannel {
+  if (!value) return 'other';
+  const key = String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+  return CHANNEL_ALIASES[key] ?? 'other';
+}
+
+export function channelIcon(channel: ContentChannel | string | undefined): string {
+  return CHANNEL_ICONS[toChannel(channel)] || 'pi pi-globe';
+}
+
+/**
+ * Clé de traduction du nom d'un réseau.
+ *
+ * Passer par cette fonction plutôt que de concaténer la valeur brute dans le
+ * gabarit : c'est cette concaténation qui affichait la clé à l'écran.
+ */
+export function channelLabelKey(channel: ContentChannel | string | undefined): string {
+  return `dashboard.showCommunication.channels.${toChannel(channel)}`;
+}
+
+/** Canaux d'une liste, normalisés et dédoublonnés (l'ordre est conservé). */
+export function toChannels(values: readonly (ContentChannel | string)[] | undefined): ContentChannel[] {
+  if (!values?.length) return [];
+  const seen = new Set<ContentChannel>();
+  for (const value of values) {
+    const channel = toChannel(value);
+    // `other` est écarté d'une LISTE : il n'y a pas de réseau « autre » où publier.
+    if (channel !== 'other') seen.add(channel);
+  }
+  return [...seen];
 }
 
 /** Proportions d'aperçu, pour que la vignette ait la forme du format réel. */

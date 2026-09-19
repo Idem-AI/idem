@@ -227,13 +227,12 @@
                   <button type="button" class="pp-card" (click)="openDetail(item)">
                     <span class="pp-card-thumb">
                       @if (visualOf(item); as visual) {
-                        <img
-                          [src]="visual.imageUrl"
-                          [alt]="
+                        <app-visual-thumb
+                          [visual]="visual"
+                          [label]="
                             'dashboard.showCommunication.library.previewAlt'
                               | translate: { title: item.title }
                           "
-                          loading="lazy"
                         />
                       } @else {
                         <span class="pp-card-noimg">

@@ -394,6 +394,18 @@ export class CommunicationService {
       .pipe(catchError((err) => throwError(() => err)));
   }
 
+  /**
+   * DELETE …/visuals/:visualId — suppression définitive.
+   *
+   * La seule suppression dure du module : on n'archive pas une image ratée, on la
+   * jette. Les plannings, eux, portent l'historique et s'archivent.
+   */
+  deleteVisual(projectId: string, visualId: string): Observable<{ deleted: boolean }> {
+    return this.http
+      .delete<{ deleted: boolean }>(`${this.apiUrl}/${projectId}/visuals/${visualId}`)
+      .pipe(catchError((err) => throwError(() => err)));
+  }
+
   /** POST …/visuals/:visualId/declinate */
   declinateVisual(
     projectId: string,

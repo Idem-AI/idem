@@ -14,11 +14,13 @@ import { CommunicationService } from '../../../../services/ai-agents/communicati
 import {
   CommunicationPlan,
   Flyer,
+  FlyerFormat,
   StudioMessage,
 } from '../../../../models/communication.model';
 import { FontHints } from '../../../document-editor/models/editor.types';
-import { formatAspect } from '../../communication-ui';
+import { VisualComposing } from '../visual-composing/visual-composing';
 import { VisualDialog } from '../visual-dialog/visual-dialog';
+import { VisualThumb } from '../visual-thumb/visual-thumb';
 
 /** Amorces proposées sur un fil vide — des phrases, pas des catégories. */
 const STARTERS = ['announce', 'promotion', 'celebration', 'recruitment'] as const;
@@ -35,7 +37,7 @@ const STARTERS = ['announce', 'promotion', 'celebration', 'recruitment'] as cons
  */
 @Component({
   selector: 'app-studio-panel',
-  imports: [FormsModule, TranslateModule, VisualDialog],
+  imports: [FormsModule, TranslateModule, VisualComposing, VisualDialog, VisualThumb],
   templateUrl: './studio-panel.html',
   styleUrl: './studio-panel.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -54,8 +56,18 @@ export class StudioPanel {
   readonly failed = output<string>();
   readonly needsCredits = output<{ cost: number; balance: number }>();
 
-  protected readonly formatAspect = formatAspect;
   protected readonly starters = STARTERS;
+
+  /**
+   * Format et nombre de propositions en cours de composition.
+   *
+   * Sert à l'écran d'attente : il prend la forme du visuel demandé dès la
+   * première seconde, plutôt que d'afficher un disque qui tourne pendant deux
+   * minutes — le moment précis où l'on quitte la page.
+   */
+  protected readonly composingFormat = signal<FlyerFormat>('square');
+  protected readonly composingVariants = signal(1);
+  protected readonly isComposing = signal(false);
 
   protected readonly messages = signal<StudioMessage[]>([]);
   protected readonly draft = signal('');
@@ -172,8 +184,14 @@ export class StudioPanel {
     this.communication.streamStudioMessage(projectId, content).subscribe({
       next: (event) => {
         if (event.type === 'thinking') {
-          this.thinkingLabel.set(`dashboard.showCommunication.studio.${event.label.split('.')[1]}`);
+          const step = event.label.split('.')[1];
+          this.thinkingLabel.set(`dashboard.showCommunication.studio.${step}`);
+          // Seule la composition mérite l'écran de fabrication : les autres
+          // étapes durent quelques secondes et une ligne de texte suffit.
+          this.isComposing.set(step === 'composing' || step === 'composingVariants');
+          this.composingVariants.set(step === 'composingVariants' ? 3 : 1);
         } else if (event.type === 'visual') {
+          this.composingFormat.set(event.visual.format);
           // Le visuel apparaît AVANT le message qui l'accompagne : c'est lui que
           // l'utilisateur attend, et il arrive plusieurs secondes plus tôt.
           this.localVisuals.update((visuals) => [...visuals, event.visual]);
@@ -186,6 +204,7 @@ export class StudioPanel {
           ]);
           this.isSending.set(false);
           this.thinkingLabel.set('');
+          this.isComposing.set(false);
         } else if (event.type === 'error') {
           if (event.code === 'payment_required') {
             this.needsCredits.emit({ cost: event.cost || 0, balance: event.balance || 0 });
@@ -194,16 +213,19 @@ export class StudioPanel {
           }
           this.isSending.set(false);
           this.thinkingLabel.set('');
+          this.isComposing.set(false);
         }
       },
       error: (err) => {
         this.failed.emit(err?.error?.message || err?.message || 'studio');
         this.isSending.set(false);
         this.thinkingLabel.set('');
+        this.isComposing.set(false);
       },
       complete: () => {
         this.isSending.set(false);
         this.thinkingLabel.set('');
+        this.isComposing.set(false);
       },
     });
   }

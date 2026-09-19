@@ -995,6 +995,36 @@ export const scheduleVisualController = async (
   }
 };
 
+// ---------------------------------------------------------------------------
+// DELETE /project/communication/:projectId/visuals/:visualId
+// ---------------------------------------------------------------------------
+export const deleteVisualController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  const visualId = req.params.visualId as string;
+  if (!visualId) {
+    res.status(400).json({ message: 'Visual ID is required' });
+    return;
+  }
+
+  try {
+    const removed = await communicationService.deleteVisual(userId, projectId, visualId);
+    if (!removed) {
+      res.status(404).json({ message: 'Visual not found' });
+      return;
+    }
+    res.status(200).json({ deleted: true, visualId });
+  } catch (error: any) {
+    logger.error(`deleteVisualController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to delete visual' });
+  }
+};
+
 // ===========================================================================
 // ATELIER
 // ===========================================================================

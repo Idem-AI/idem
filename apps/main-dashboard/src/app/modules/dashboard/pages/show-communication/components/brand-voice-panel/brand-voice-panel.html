@@ -4,155 +4,190 @@
   sortir — un panneau qu'on ne peut fermer qu'à la souris est un piège au clavier.
 -->
 <div
-  class="fixed inset-0 z-50 flex justify-end bg-[rgba(15,23,42,0.35)]"
+  class="bv-backdrop"
   (click)="close()"
   (keydown.escape)="close()"
   tabindex="-1"
 >
   <aside
-    class="glass-card h-full w-full max-w-xl overflow-y-auto rounded-none p-6"
+    class="bv-panel glass-card"
     role="dialog"
     aria-modal="true"
     [attr.aria-label]="'dashboard.showCommunication.voice.title' | translate"
     (click)="$event.stopPropagation()"
   >
-    <header class="mb-5 flex items-start justify-between gap-4">
-      <div>
-        <p class="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent-500)]">
+    <!--
+      En-tête COLLÉ en haut : le titre reste lisible pendant qu'on fait défiler,
+      et « Tout réécrire » — la seule action qui porte sur l'ensemble — reste à
+      portée. Les modifications, elles, sont section par section, plus bas.
+    -->
+    <header class="bv-header">
+      <div class="bv-header-text">
+        <p class="bv-eyebrow">
           {{ 'dashboard.showCommunication.voice.eyebrow' | translate }}
         </p>
-        <h2 class="mt-1 text-xl font-bold text-[var(--color-text-primary)]">
-          {{ 'dashboard.showCommunication.voice.title' | translate }}
-        </h2>
-        <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
-          {{ 'dashboard.showCommunication.voice.subtitle' | translate }}
-        </p>
-      </div>
-      <button
-        type="button"
-        class="outer-button button-sm shrink-0"
-        [attr.aria-label]="'common.close' | translate"
-        (click)="close()"
-      >
-        <i class="pi pi-times" aria-hidden="true"></i>
-      </button>
-    </header>
-
-    @if (isGenerating()) {
-      <p
-        class="glass mb-4 flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-[var(--color-accent-500)]"
-        role="status"
-        aria-live="polite"
-      >
-        <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
-        <span>{{ stepLabel() | translate }}</span>
-      </p>
-    }
-
-    @if (!strategy() && !isGenerating()) {
-      <!-- État vide : ce que la boussole apporte, et son prix, avant de cliquer. -->
-      <div class="glass rounded-2xl p-6 text-center">
-        <i class="pi pi-compass text-4xl text-[var(--color-text-tertiary)]" aria-hidden="true"></i>
-        <h3 class="mt-3 font-semibold text-[var(--color-text-primary)]">
-          {{ 'dashboard.showCommunication.voice.empty.title' | translate }}
-        </h3>
-        <p class="mx-auto mt-2 max-w-sm text-sm text-[var(--color-text-secondary)]">
-          {{ 'dashboard.showCommunication.voice.empty.body' | translate }}
-        </p>
-        <button type="button" class="inner-button mt-5" (click)="generate(false)">
-          <i class="pi pi-sparkles" aria-hidden="true"></i>
-          {{ 'dashboard.showCommunication.voice.empty.cta' | translate }}
-        </button>
-      </div>
-    }
-
-    @if (strategy()) {
-      <section class="glass mb-4 rounded-2xl p-4">
-        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
-          {{ 'dashboard.showCommunication.voice.summaryLabel' | translate }}
-        </h3>
-        @if (isEditing()) {
-          <label class="sr-only" for="compass-summary">
-            {{ 'dashboard.showCommunication.voice.summaryLabel' | translate }}
-          </label>
-          <textarea
-            id="compass-summary"
-            class="glass mt-2 w-full rounded-xl p-3 text-sm text-[var(--color-text-primary)]"
-            rows="3"
-            [ngModel]="summary()"
-            (ngModelChange)="updateSummary($event)"
-            name="compassSummary"
-          ></textarea>
-        } @else {
-          <p class="mt-2 text-sm leading-relaxed text-[var(--color-text-primary)]">
-            {{ summary() }}
-          </p>
-        }
-      </section>
-
-      <div class="flex flex-col gap-3">
-        @for (block of blocks(); track block.id) {
-          <article class="glass rounded-2xl p-4">
-            <h3 class="text-sm font-semibold text-[var(--color-text-primary)]">
-              {{ blockLabelKey(block.kind) | translate }}
-            </h3>
-            @if (isEditing()) {
-              <label class="sr-only" [attr.for]="'compass-block-' + block.id">
-                {{ blockLabelKey(block.kind) | translate }}
-              </label>
-              <textarea
-                [id]="'compass-block-' + block.id"
-                class="glass mt-2 w-full rounded-xl p-3 text-sm text-[var(--color-text-primary)]"
-                rows="5"
-                [ngModel]="block.body"
-                (ngModelChange)="updateBlock(block.id, $event)"
-                [name]="'block-' + block.id"
-              ></textarea>
-            } @else {
-              <p
-                class="mt-2 whitespace-pre-line text-sm leading-relaxed text-[var(--color-text-secondary)]"
-              >
-                {{ block.body }}
-              </p>
-            }
-          </article>
-        }
+        <h2 class="bv-title">{{ 'dashboard.showCommunication.voice.title' | translate }}</h2>
       </div>
 
-      <footer class="mt-6 flex flex-wrap items-center gap-2">
-        @if (isEditing()) {
-          <button type="button" class="inner-button" [disabled]="isSaving()" (click)="save()">
-            @if (isSaving()) {
-              <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
-            } @else {
-              <i class="pi pi-check" aria-hidden="true"></i>
-            }
-            {{ 'dashboard.showCommunication.voice.save' | translate }}
-          </button>
-          <button type="button" class="outer-button" (click)="cancelEditing()">
-            {{ 'common.cancel' | translate }}
-          </button>
-        } @else {
-          <button type="button" class="outer-button" (click)="startEditing()">
-            <i class="pi pi-pencil" aria-hidden="true"></i>
-            {{ 'dashboard.showCommunication.voice.edit' | translate }}
-          </button>
+      <div class="bv-header-actions">
+        @if (strategy()) {
           <button
             type="button"
-            class="outer-button"
+            class="outer-button button-sm"
             [disabled]="isGenerating()"
             (click)="generate(true)"
           >
             <i class="pi pi-refresh" aria-hidden="true"></i>
-            {{ 'dashboard.showCommunication.voice.regenerate' | translate }}
+            <span class="bv-action-label">
+              {{ 'dashboard.showCommunication.voice.regenerate' | translate }}
+            </span>
           </button>
         }
-        @if (savedAt()) {
-          <span class="text-xs text-[var(--color-success)]" role="status" aria-live="polite">
-            {{ 'dashboard.showCommunication.voice.saved' | translate }}
-          </span>
+        <button
+          type="button"
+          class="bv-close"
+          [attr.aria-label]="'common.close' | translate"
+          (click)="close()"
+        >
+          <i class="pi pi-times" aria-hidden="true"></i>
+        </button>
+      </div>
+    </header>
+
+    <div class="bv-body">
+      <p class="bv-subtitle">{{ 'dashboard.showCommunication.voice.subtitle' | translate }}</p>
+
+      @if (isGenerating()) {
+        <p class="bv-step" role="status" aria-live="polite">
+          <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+          <span>{{ stepLabel() | translate }}</span>
+        </p>
+      }
+
+      @if (savedAt()) {
+        <p class="bv-saved" role="status" aria-live="polite">
+          <i class="pi pi-check" aria-hidden="true"></i>
+          {{ 'dashboard.showCommunication.voice.saved' | translate }}
+        </p>
+      }
+
+      @if (!strategy() && !isGenerating()) {
+        <!-- État vide : ce que ça apporte, et son prix, avant de cliquer. -->
+        <div class="bv-empty">
+          <i class="pi pi-user-edit bv-empty-icon" aria-hidden="true"></i>
+          <h3 class="bv-empty-title">
+            {{ 'dashboard.showCommunication.voice.empty.title' | translate }}
+          </h3>
+          <p class="bv-empty-body">
+            {{ 'dashboard.showCommunication.voice.empty.body' | translate }}
+          </p>
+          <button type="button" class="inner-button mt-5" (click)="generate(false)">
+            <i class="pi pi-sparkles" aria-hidden="true"></i>
+            {{ 'dashboard.showCommunication.voice.empty.cta' | translate }}
+          </button>
+        </div>
+      }
+
+      @if (strategy()) {
+        <!-- ── En deux phrases ── -->
+        <section class="bv-section">
+          <div class="bv-section-head">
+            <h3 class="bv-label">
+              {{ 'dashboard.showCommunication.voice.summaryLabel' | translate }}
+            </h3>
+            @if (editingId() !== 'summary') {
+              <button
+                type="button"
+                class="bv-pencil"
+                [attr.aria-label]="
+                  'dashboard.showCommunication.voice.editSection'
+                    | translate
+                      : { section: 'dashboard.showCommunication.voice.summaryLabel' | translate }
+                "
+                (click)="startEdit('summary', summary())"
+              >
+                <i class="pi pi-pencil" aria-hidden="true"></i>
+              </button>
+            }
+          </div>
+
+          @if (editingId() === 'summary') {
+            <textarea
+              class="bv-input"
+              rows="3"
+              [ngModel]="draft()"
+              (ngModelChange)="draft.set($event)"
+              name="bvSummary"
+              [attr.aria-label]="'dashboard.showCommunication.voice.summaryLabel' | translate"
+            ></textarea>
+            <div class="bv-edit-actions">
+              <button
+                type="button"
+                class="inner-button button-sm"
+                [disabled]="isSaving()"
+                (click)="saveEdit()"
+              >
+                <i class="pi pi-check" aria-hidden="true"></i>
+                {{ 'common.save' | translate }}
+              </button>
+              <button type="button" class="outer-button button-sm" (click)="cancelEdit()">
+                {{ 'common.cancel' | translate }}
+              </button>
+            </div>
+          } @else {
+            <p class="bv-text">{{ summary() }}</p>
+          }
+        </section>
+
+        <!-- ── Chaque rubrique, avec son propre crayon ── -->
+        @for (block of blocks(); track block.id) {
+          <section class="bv-section">
+            <div class="bv-section-head">
+              <h3 class="bv-label">{{ blockLabelKey(block.kind) | translate }}</h3>
+              @if (editingId() !== block.id) {
+                <button
+                  type="button"
+                  class="bv-pencil"
+                  [attr.aria-label]="
+                    'dashboard.showCommunication.voice.editSection'
+                      | translate: { section: blockLabelKey(block.kind) | translate }
+                  "
+                  (click)="startEdit(block.id, block.body)"
+                >
+                  <i class="pi pi-pencil" aria-hidden="true"></i>
+                </button>
+              }
+            </div>
+
+            @if (editingId() === block.id) {
+              <textarea
+                class="bv-input"
+                rows="6"
+                [ngModel]="draft()"
+                (ngModelChange)="draft.set($event)"
+                [name]="'bv-' + block.id"
+                [attr.aria-label]="blockLabelKey(block.kind) | translate"
+              ></textarea>
+              <div class="bv-edit-actions">
+                <button
+                  type="button"
+                  class="inner-button button-sm"
+                  [disabled]="isSaving()"
+                  (click)="saveEdit()"
+                >
+                  <i class="pi pi-check" aria-hidden="true"></i>
+                  {{ 'common.save' | translate }}
+                </button>
+                <button type="button" class="outer-button button-sm" (click)="cancelEdit()">
+                  {{ 'common.cancel' | translate }}
+                </button>
+              </div>
+            } @else {
+              <p class="bv-text bv-text-block">{{ block.body }}</p>
+            }
+          </section>
         }
-      </footer>
-    }
+      }
+    </div>
   </aside>
 </div>

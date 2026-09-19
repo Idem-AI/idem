@@ -299,3 +299,11 @@
   outline: 2px solid var(--color-danger);
   outline-offset: 2px;
 }
+
+/* Écran de fabrication, à la place de l'aperçu tant qu'il n'existe pas. */
+.cd-composing {
+  border-radius: 1rem;
+  border: 1px solid var(--glass-border-subtle);
+  background: var(--glass-bg-subtle);
+  padding: 1.1rem;
+}

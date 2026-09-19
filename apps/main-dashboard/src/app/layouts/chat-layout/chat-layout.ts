@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ChatSidebarComponent } from '../../modules/chat/components/chat-sidebar/chat-sidebar';
-import { ModeSwitcherComponent } from '../../shared/components/mode-switcher/mode-switcher';
 import { ChatSessionService } from '../../modules/chat/services/chat-session.service';
 import { ChatDeliverablesService } from '../../modules/chat/services/chat-deliverables.service';
 import { NotificationService } from '../../shared/services/notification.service';
@@ -15,7 +14,7 @@ import { NotificationService } from '../../shared/services/notification.service'
 @Component({
   selector: 'app-chat-layout',
   standalone: true,
-  imports: [CommonModule, TranslateModule, ChatSidebarComponent, ModeSwitcherComponent],
+  imports: [CommonModule, TranslateModule, ChatSidebarComponent],
   templateUrl: './chat-layout.html',
   styleUrl: './chat-layout.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
