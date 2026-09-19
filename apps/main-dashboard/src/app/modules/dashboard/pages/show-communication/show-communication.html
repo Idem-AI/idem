@@ -47,15 +47,13 @@
           </p>
         </div>
 
-        <!-- La boussole vit ici : accessible, jamais sur le chemin. -->
-        <button type="button" class="outer-button" (click)="openCompass()">
-          <i class="pi pi-compass" aria-hidden="true"></i>
-          {{ 'dashboard.showCommunication.compass.open' | translate }}
+        <!-- « Ma façon de communiquer » vit ici : accessible, jamais sur le chemin. -->
+        <button type="button" class="outer-button" (click)="openVoice()">
+          <i class="pi pi-user-edit" aria-hidden="true"></i>
+          {{ 'dashboard.showCommunication.voice.open' | translate }}
           @if (!strategy()) {
-            <span
-              class="ml-1 rounded-full bg-[var(--color-accent-500)]/20 px-1.5 py-0.5 text-[9px] uppercase text-[var(--color-accent-500)]"
-            >
-              {{ 'dashboard.showCommunication.compass.todo' | translate }}
+            <span class="sc-todo">
+              {{ 'dashboard.showCommunication.voice.todo' | translate }}
             </span>
           }
         </button>
@@ -120,7 +118,7 @@
     @if (isFirstVisit() && activeScreen() === 'studio') {
       <div class="mx-auto mb-8 grid max-w-5xl gap-4 md:grid-cols-3">
         <div class="glass-card p-5 text-center">
-          <i class="pi pi-palette text-3xl text-[var(--color-accent-500)]" aria-hidden="true"></i>
+          <i class="pi pi-sparkles text-3xl text-[var(--color-accent-500)]" aria-hidden="true"></i>
           <h2 class="mt-3 font-semibold text-[var(--color-text-primary)]">
             {{ 'dashboard.showCommunication.doors.visual.title' | translate }}
           </h2>
@@ -129,6 +127,10 @@
           </p>
           <p class="mt-2 text-[10px] uppercase text-[var(--color-text-tertiary)]">
             {{ 'dashboard.showCommunication.doors.visual.price' | translate }}
+          </p>
+          <p class="mt-3 text-[11px] font-semibold text-[var(--color-accent-500)]">
+            <i class="pi pi-arrow-down" aria-hidden="true"></i>
+            {{ 'dashboard.showCommunication.doors.visual.hereBelow' | translate }}
           </p>
         </div>
         <div class="glass-card p-5 text-center">
@@ -147,18 +149,18 @@
           </button>
         </div>
         <div class="glass-card p-5 text-center">
-          <i class="pi pi-compass text-3xl text-[var(--color-accent-500)]" aria-hidden="true"></i>
+          <i class="pi pi-user-edit text-3xl text-[var(--color-accent-500)]" aria-hidden="true"></i>
           <h2 class="mt-3 font-semibold text-[var(--color-text-primary)]">
-            {{ 'dashboard.showCommunication.doors.compass.title' | translate }}
+            {{ 'dashboard.showCommunication.doors.voice.title' | translate }}
           </h2>
           <p class="mt-1 text-xs text-[var(--color-text-secondary)]">
-            {{ 'dashboard.showCommunication.doors.compass.body' | translate }}
+            {{ 'dashboard.showCommunication.doors.voice.body' | translate }}
           </p>
           <p class="mt-2 text-[10px] uppercase text-[var(--color-text-tertiary)]">
-            {{ 'dashboard.showCommunication.doors.compass.price' | translate }}
+            {{ 'dashboard.showCommunication.doors.voice.price' | translate }}
           </p>
-          <button type="button" class="outer-button button-sm mt-3" (click)="openCompass()">
-            {{ 'dashboard.showCommunication.doors.compass.cta' | translate }}
+          <button type="button" class="outer-button button-sm mt-3" (click)="openVoice()">
+            {{ 'dashboard.showCommunication.doors.voice.cta' | translate }}
           </button>
         </div>
       </div>
@@ -170,6 +172,7 @@
         [projectId]="projectId()!"
         [visuals]="visuals()"
         [plans]="plans()"
+        [fonts]="fonts()"
         (visualCreated)="onVisualCreated($event)"
         (failed)="onError($event)"
         (needsCredits)="onNeedsCredits($event)"
@@ -180,6 +183,7 @@
         [plans]="plans()"
         [visuals]="visuals()"
         [suggestedChannels]="suggestedChannels()"
+        [fonts]="fonts()"
         (plansChange)="onPlansChange($event)"
         (visualCreated)="onVisualCreated($event)"
         (failed)="onError($event)"
@@ -190,19 +194,20 @@
         [visuals]="visuals()"
         [plans]="plans()"
         [publications]="publications()"
+        [fonts]="fonts()"
         (visualCreated)="onVisualCreated($event)"
         (publicationCreated)="onPublicationCreated($event)"
         (failed)="onError($event)"
       />
     }
 
-    <!-- ═══════════════ La boussole ═══════════════ -->
-    @if (isCompassOpen()) {
-      <app-compass-panel
+    <!-- ═══════════════ Ma façon de communiquer ═══════════════ -->
+    @if (isVoiceOpen()) {
+      <app-brand-voice-panel
         [projectId]="projectId()!"
         [strategy]="strategy()"
         (strategyChange)="onStrategyChange($event)"
-        (closed)="closeCompass()"
+        (closed)="closeVoice()"
         (failed)="onError($event)"
       />
     }

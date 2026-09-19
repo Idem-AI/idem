@@ -1,0 +1,301 @@
+.cd-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.cd-panel {
+  width: 100%;
+  max-width: 68rem;
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+/* ── En-tête ──────────────────────────────────────────────────────────────── */
+
+.cd-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.cd-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  color: var(--color-text-tertiary);
+}
+
+.cd-title {
+  margin-top: 0.25rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+}
+
+.cd-status {
+  flex-shrink: 0;
+  border-radius: 999px;
+  border-width: 1px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+}
+
+/* ── Corps : deux colonnes, le visuel d'abord ────────────────────────────── */
+
+.cd-body {
+  display: grid;
+  gap: 1.75rem;
+  padding-top: 1.25rem;
+}
+
+/*
+ * Le visuel passe à gauche seulement quand il y a vraiment la place : sous
+ * 64rem, deux colonnes réduiraient l'aperçu à une vignette illisible et
+ * couperaient les champs.
+ */
+@media (min-width: 64rem) {
+  .cd-body {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  }
+}
+
+.cd-section-title {
+  margin-bottom: 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.cd-visual-actions {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cd-declinate {
+  margin-top: 1rem;
+}
+
+.cd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.cd-empty-visual {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 1rem;
+  border: 1px dashed var(--glass-border-medium);
+  padding: 2rem 1.25rem;
+  text-align: center;
+}
+
+.cd-empty-icon {
+  font-size: 2.25rem;
+  color: var(--color-text-tertiary);
+}
+
+.cd-empty-text {
+  margin-top: 0.75rem;
+  max-width: 22rem;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.cd-format-choice {
+  margin-top: 1.25rem;
+}
+
+.cd-format-choice .cd-label {
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+/* ── Champs modifiables ──────────────────────────────────────────────────── */
+
+.cd-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.cd-field {
+  border-radius: 0.85rem;
+  border: 1px solid var(--glass-border-subtle);
+  padding: 0.7rem 0.85rem;
+}
+
+/* Le texte du post est ce qu'on copiera pour publier : il se distingue. */
+.cd-field-strong {
+  border-color: var(--glass-border-medium);
+  background: var(--glass-bg-subtle);
+}
+
+.cd-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.cd-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+/*
+ * Le bouton « Modifier » reste visible en permanence, jamais révélé au survol :
+ * une action qui n'apparaît qu'au passage de la souris est invisible au doigt et
+ * au clavier.
+ */
+.cd-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 0.5rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.cd-edit-btn:hover {
+  background: var(--glass-bg-medium);
+  color: var(--color-text-primary);
+}
+
+.cd-edit-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.cd-value {
+  margin-top: 0.35rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--color-text-primary);
+}
+
+.cd-value-caption {
+  white-space: pre-line;
+}
+
+.cd-input {
+  margin-top: 0.4rem;
+  width: 100%;
+  border-radius: 0.6rem;
+  border: 1px solid var(--glass-border-medium);
+  background: var(--glass-bg-medium);
+  padding: 0.5rem 0.65rem;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+}
+
+.cd-input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.cd-edit-actions {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.cd-note {
+  margin-top: 0.35rem;
+  font-size: 0.68rem;
+  color: var(--color-text-tertiary);
+}
+
+.cd-tags {
+  margin-top: 0.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.cd-tag {
+  border-radius: 999px;
+  background: var(--glass-bg-medium);
+  padding: 0.15rem 0.55rem;
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+}
+
+.cd-occasion {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--color-accent-500);
+}
+
+/* ── Retrait du planning ─────────────────────────────────────────────────── */
+
+.cd-danger {
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--glass-border-subtle);
+}
+
+.cd-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.72rem;
+  color: var(--color-text-tertiary);
+  transition: color 0.15s ease;
+}
+
+.cd-delete-btn:hover {
+  color: var(--color-danger);
+}
+
+.cd-delete-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--color-danger);
+  padding: 0.35rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-danger);
+}
+
+.cd-delete-confirm:hover {
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+}
+
+.cd-delete-btn:focus-visible,
+.cd-delete-confirm:focus-visible {
+  outline: 2px solid var(--color-danger);
+  outline-offset: 2px;
+}

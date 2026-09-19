@@ -21,6 +21,14 @@ export interface CommunicationContext {
     text?: string;
     primaryFont?: string;
     secondaryFont?: string;
+    /**
+     * Feuille de styles des polices de la marque.
+     *
+     * Indispensable aux aperçus : sans elle, l'iframe rend le visuel dans la
+     * police système, et l'on modifierait une composition qui n'est pas celle du
+     * PNG livré.
+     */
+    fontUrl?: string;
     logoSvg?: string;
   };
   extractedAt: string | Date;

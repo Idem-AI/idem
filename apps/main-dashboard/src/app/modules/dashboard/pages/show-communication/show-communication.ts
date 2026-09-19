@@ -13,9 +13,10 @@ import {
   Publication,
 } from '../../models/communication.model';
 import { BrandingValidationService } from '../../services/branding-validation.service';
+import { FontHints } from '../document-editor/models/editor.types';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
 import { ProjectService } from '../../services/project.service';
-import { CompassPanel } from './components/compass-panel/compass-panel';
+import { BrandVoicePanel } from './components/brand-voice-panel/brand-voice-panel';
 import { LibraryPanel } from './components/library-panel/library-panel';
 import { PlanPanel } from './components/plan-panel/plan-panel';
 import { StudioPanel } from './components/studio-panel/studio-panel';
@@ -25,16 +26,20 @@ type Screen = 'studio' | 'plans' | 'library';
 /**
  * Module Communication — la coquille.
  *
- * Trois écrans et un panneau, là où il y avait quatre onglets de vocabulaire
- * interne (« Moments », « signaux de tendance », blocs de stratégie en
- * textarea) :
+ * Trois écrans nommés par ce qu'on y fait, là où il y avait quatre onglets de
+ * vocabulaire interne (« Moments », « signaux de tendance », « stratégie » en
+ * blocs de textarea) :
  *
- *   ATELIER      on décrit ce qu'on veut, le visuel sort à la charte
- *   PÉRIODES     ce qu'on raconte du 1er au 30, avec des dates réelles
- *   BIBLIOTHÈQUE tous les visuels, atteignables quoi qu'il arrive
- *   + LA BOUSSOLE en panneau : on la définit une fois, on la relit rarement
+ *   CRÉER        on décrit ce qu'on veut, le visuel sort à la charte
+ *   MON PLANNING ce qu'il y a à publier, et quand — avec des dates réelles
+ *   MES VISUELS  tout ce qui a été produit, atteignable quoi qu'il arrive
+ *   + MA FAÇON DE COMMUNIQUER, en panneau : définie une fois, relue rarement
  *
- * L'ATELIER est l'écran par défaut. C'est le seul qui donne un résultat sans rien
+ * Aucun de ces noms ne demande de connaître le marketing. C'était le premier
+ * obstacle : « Atelier », « Périodes », « Bibliothèque » et « la boussole »
+ * décrivaient des métaphores, pas des actions.
+ *
+ * CRÉER est l'écran par défaut. C'est le seul qui donne un résultat sans rien
  * comprendre au vocabulaire du métier — et l'ordre imposé par la V1 (stratégie,
  * puis calendrier, puis visuel : 55 crédits avant de voir quoi que ce soit) était
  * la première raison pour laquelle le module n'était pas utilisé.
@@ -47,7 +52,7 @@ type Screen = 'studio' | 'plans' | 'library';
   imports: [
     TranslateModule,
     IncompleteProjectBannerComponent,
-    CompassPanel,
+    BrandVoicePanel,
     LibraryPanel,
     PlanPanel,
     StudioPanel,
@@ -68,7 +73,7 @@ export class ShowCommunication implements OnInit {
   protected readonly errorMessage = signal('');
   protected readonly model = signal<CommunicationModel | null>(null);
   protected readonly activeScreen = signal<Screen>('studio');
-  protected readonly isCompassOpen = signal(false);
+  protected readonly isVoiceOpen = signal(false);
 
   protected readonly project = signal<ProjectModel | null>(null);
   protected readonly isBrandingComplete = signal(false);
@@ -80,21 +85,36 @@ export class ShowCommunication implements OnInit {
   );
   protected readonly strategy = computed(() => this.model()?.strategy ?? null);
 
-  /** Canaux priorisés par la boussole — présélection à la création d'une période. */
+  /** Réseaux déjà priorisés pour cette marque — présélection à la création d'un planning. */
   protected readonly suggestedChannels = computed<ContentChannel[]>(
     () => (this.model()?.context?.channels ?? []) as ContentChannel[],
   );
 
-  /** Vrai tant que rien n'existe : on montre alors les trois portes d'entrée. */
+  /** Vrai tant que rien n'existe : on montre alors les trois façons de démarrer. */
   protected readonly isFirstVisit = computed(
     () => !this.strategy() && this.plans().length === 0 && this.visuals().length === 0,
   );
 
   protected readonly screens: { id: Screen; icon: string; labelKey: string }[] = [
-    { id: 'studio', icon: 'pi pi-palette', labelKey: 'dashboard.showCommunication.tabs.studio' },
+    { id: 'studio', icon: 'pi pi-sparkles', labelKey: 'dashboard.showCommunication.tabs.studio' },
     { id: 'plans', icon: 'pi pi-calendar', labelKey: 'dashboard.showCommunication.tabs.plans' },
     { id: 'library', icon: 'pi pi-images', labelKey: 'dashboard.showCommunication.tabs.library' },
   ];
+
+  /**
+   * Polices de la marque, transmises aux aperçus.
+   *
+   * Sans elles, l'aperçu d'un visuel retombe sur la police système : on
+   * modifierait une composition qui n'est pas celle du PNG livré.
+   */
+  protected readonly fonts = computed<FontHints>(() => {
+    const branding = this.model()?.context?.branding;
+    return {
+      primaryFont: branding?.primaryFont,
+      secondaryFont: branding?.secondaryFont,
+      fontUrl: branding?.fontUrl,
+    };
+  });
 
   ngOnInit(): void {
     const projectId = this.cookies.get('projectId');
@@ -154,12 +174,12 @@ export class ShowCommunication implements OnInit {
     this.errorMessage.set('');
   }
 
-  protected openCompass(): void {
-    this.isCompassOpen.set(true);
+  protected openVoice(): void {
+    this.isVoiceOpen.set(true);
   }
 
-  protected closeCompass(): void {
-    this.isCompassOpen.set(false);
+  protected closeVoice(): void {
+    this.isVoiceOpen.set(false);
   }
 
   protected goToProjects(): void {

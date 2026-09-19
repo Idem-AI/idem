@@ -1,0 +1,296 @@
+:host {
+  display: block;
+}
+
+.sp-wrap {
+  margin: 0 auto;
+  display: flex;
+  min-height: 60vh;
+  max-width: 48rem;
+  flex-direction: column;
+}
+
+.sp-thread {
+  flex: 1;
+}
+
+.sp-loading {
+  padding: 4rem 0;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+/* ── Fil vide ─────────────────────────────────────────────────────────────── */
+
+.sp-empty {
+  padding: 2.5rem 0;
+  text-align: center;
+}
+
+.sp-empty-icon {
+  font-size: 2.25rem;
+  color: var(--color-accent-500);
+}
+
+.sp-empty-title {
+  margin-top: 1rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.sp-empty-body {
+  margin: 0.5rem auto 0;
+  max-width: 30rem;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+/* Un exemple concret vaut mieux qu'une consigne : on voit la forme attendue. */
+.sp-empty-example {
+  margin: 0.75rem auto 0;
+  max-width: 28rem;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--color-text-tertiary);
+}
+
+.sp-starters {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.sp-starter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border-medium);
+  background: var(--glass-bg-subtle);
+  padding: 0.45rem 0.9rem;
+  font-size: 0.82rem;
+  color: var(--color-text-primary);
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.sp-starter:hover {
+  border-color: var(--color-primary);
+  background: var(--glass-bg-medium);
+}
+
+.sp-starter:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.sp-starter-icon {
+  font-size: 0.65rem;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Messages ─────────────────────────────────────────────────────────────── */
+
+.sp-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.sp-bubble-user {
+  margin-left: auto;
+  display: inline-block;
+  max-width: 85%;
+  border-radius: 1rem;
+  background: var(--glass-bg-medium);
+  padding: 0.6rem 0.95rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+}
+
+.sp-messages > li:has(.sp-bubble-user) {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sp-assistant {
+  max-width: 95%;
+}
+
+.sp-assistant-text {
+  white-space: pre-line;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+}
+
+/* ── Visuels produits ─────────────────────────────────────────────────────── */
+
+.sp-visuals {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.6rem;
+  max-width: 22rem;
+}
+
+.sp-visuals-multi {
+  max-width: none;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/*
+ * La vignette entière est le bouton d'ouverture. L'étiquette ne surgit qu'au
+ * survol, mais le bouton est atteignable au clavier et annoncé : rien d'essentiel
+ * n'est caché derrière la souris.
+ */
+.sp-visual {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 0.8rem;
+  border: 1px solid var(--glass-border);
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.sp-visual:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.sp-visual:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.sp-visual img {
+  display: block;
+  width: 100%;
+  object-fit: cover;
+}
+
+.sp-visual-open {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  background: rgba(15, 23, 42, 0.78);
+  padding: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.sp-visual:hover .sp-visual-open,
+.sp-visual:focus-visible .sp-visual-open {
+  opacity: 1;
+}
+
+/* ── Texte du post ────────────────────────────────────────────────────────── */
+
+.sp-caption {
+  margin-top: 0.75rem;
+  border-radius: 0.8rem;
+  border: 1px solid var(--glass-border-subtle);
+  background: var(--glass-bg-subtle);
+  padding: 0.7rem 0.85rem;
+}
+
+.sp-caption-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.sp-caption-text {
+  margin: 0.35rem 0 0.6rem;
+  white-space: pre-line;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--color-text-primary);
+}
+
+.sp-credits {
+  margin-top: 0.5rem;
+  font-size: 0.65rem;
+  color: var(--color-text-tertiary);
+}
+
+.sp-thinking {
+  margin-top: 1.25rem;
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  background: var(--glass-bg-subtle);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--color-accent-500);
+}
+
+/* ── Saisie ───────────────────────────────────────────────────────────────── */
+
+.sp-composer {
+  position: sticky;
+  bottom: 0;
+  margin-top: 1.5rem;
+  padding-top: 0.5rem;
+}
+
+.sp-composer-box {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.sp-input {
+  flex: 1;
+  resize: none;
+  border: none;
+  background: transparent;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+.sp-composer-foot {
+  margin-top: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0 0.25rem;
+}
+
+.sp-hint,
+.sp-clear {
+  font-size: 0.65rem;
+  color: var(--color-text-tertiary);
+}
+
+.sp-clear {
+  text-decoration: underline;
+}
+
+.sp-clear:hover {
+  color: var(--color-text-secondary);
+}
