@@ -190,7 +190,7 @@ import { PaymentView } from '../../../billing/models/billing.model';
         (click)="cancelling.set(null)"
       >
         <div
-          class="w-full max-w-sm rounded-2xl border border-[var(--glass-border)] bg-[var(--color-surface-1)] p-5"
+          class="w-full max-w-sm modal-panel p-5"
           role="dialog"
           aria-modal="true"
           aria-labelledby="cancel-plan-title"

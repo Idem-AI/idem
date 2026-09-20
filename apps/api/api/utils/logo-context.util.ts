@@ -27,15 +27,6 @@ function pickLogoUrl(hosted?: string, legacy?: string): string | undefined {
   return undefined;
 }
 
-/**
- * Best single logo URL for a prompt (primary/full logo). Returns '' when no
- * hosted URL is available (a fresh project whose PNG upload hasn't run yet).
- */
-export function resolveLogoUrl(logo?: LogoLike | null): string {
-  if (!logo) return '';
-  return pickLogoUrl(logo.assetUrls?.primary, logo.svg) || '';
-}
-
 /** Compact, prompt-safe view of a logo: metadata + hosted URLs, never raw SVG. */
 export interface LogoPromptSummary {
   name?: string;

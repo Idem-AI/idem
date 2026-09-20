@@ -112,7 +112,7 @@ export const GUIDED_STEPS: readonly GuidedStepDefinition[] = [
     icon: 'pi pi-code',
     route: '/project/development',
     generateRoute: '/project/development/create',
-    paths: ['/project/development', '/project/diagrams', '/project/tests'],
+    paths: ['/project/development', '/project/diagrams'],
     navLabelKey: 'dashboard.sidebar.development',
     required: false,
     estimatedMinutes: 25,

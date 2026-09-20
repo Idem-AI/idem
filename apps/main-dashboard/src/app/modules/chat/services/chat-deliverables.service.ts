@@ -20,10 +20,13 @@ interface DeliverableKindConfig {
   editorRoute: string;
   generateRoute?: string;
   pdfSupported: boolean;
+  /** Document rendu page à page dans le fil (aperçu de document). */
+  previewSupported?: boolean;
 }
 
 const KIND_CONFIG: Record<DeliverableKind, DeliverableKindConfig> = {
   businessPlan: {
+    previewSupported: true,
     titleKey: 'chat.deliverables.businessPlan',
     icon: 'pi pi-calendar',
     editorRoute: '/project/business-plan',
@@ -31,6 +34,7 @@ const KIND_CONFIG: Record<DeliverableKind, DeliverableKindConfig> = {
     pdfSupported: true,
   },
   branding: {
+    previewSupported: true,
     titleKey: 'chat.deliverables.branding',
     icon: 'pi pi-palette',
     editorRoute: '/project/branding',
@@ -38,6 +42,7 @@ const KIND_CONFIG: Record<DeliverableKind, DeliverableKindConfig> = {
     pdfSupported: true,
   },
   pitchDeck: {
+    previewSupported: true,
     titleKey: 'chat.deliverables.pitchDeck',
     icon: 'pi pi-desktop',
     editorRoute: '/project/pitch-deck',
@@ -66,6 +71,18 @@ const KIND_CONFIG: Record<DeliverableKind, DeliverableKindConfig> = {
     titleKey: 'chat.deliverables.communication',
     icon: 'pi pi-megaphone',
     editorRoute: '/project/communication',
+    pdfSupported: false,
+  },
+  businessCards: {
+    titleKey: 'chat.deliverables.businessCards',
+    icon: 'pi pi-id-card',
+    editorRoute: '/project/business-cards',
+    pdfSupported: false,
+  },
+  simulations: {
+    titleKey: 'chat.deliverables.simulations',
+    icon: 'pi pi-chart-bar',
+    editorRoute: '/project/simulations',
     pdfSupported: false,
   },
   development: {
@@ -105,20 +122,32 @@ export class ChatDeliverablesService {
     return Object.keys(KIND_CONFIG) as DeliverableKind[];
   }
 
-  /** Construit la carte d'un livrable depuis le projet (analysisResultModel). */
-  buildCard(kind: DeliverableKind, project: ProjectModel | null): DeliverableCardData {
+  /**
+   * Construit la carte d'un livrable depuis le projet (analysisResultModel).
+   *
+   * `documentId` désigne le business plan ou le pitch deck visé quand le projet
+   * en garde plusieurs ; absent, c'est le plus récent — le même que retient
+   * l'API.
+   */
+  buildCard(
+    kind: DeliverableKind,
+    project: ProjectModel | null,
+    documentId?: string | null,
+  ): DeliverableCardData {
     const config = KIND_CONFIG[kind];
-    const sections = this.buildSections(kind, project);
+    const sections = this.buildSections(kind, project, documentId);
     const available = sections.some((s) => s.status !== 'missing');
 
     return {
       kind,
+      documentId: documentId ?? null,
       titleKey: config.titleKey,
       icon: config.icon,
-      updatedAt: this.resolveUpdatedAt(kind, project),
+      updatedAt: this.resolveUpdatedAt(kind, project, documentId),
       sections,
       available,
       pdfSupported: config.pdfSupported,
+      previewSupported: config.previewSupported === true,
       editorRoute: config.editorRoute,
       generateRoute: config.generateRoute,
     };
@@ -131,20 +160,23 @@ export class ChatDeliverablesService {
   private buildSections(
     kind: DeliverableKind,
     project: ProjectModel | null,
+    documentId?: string | null,
   ): DeliverableSectionPreview[] {
     const analysis = project?.analysisResultModel;
 
     switch (kind) {
       case 'businessPlan': {
         // Le plan le plus récent : c'est lui que la carte présente et télécharge.
-        const sections = findDeliverableDocument(analysis, 'businessPlan')?.sections ?? [];
+        const sections =
+          findDeliverableDocument(analysis, 'businessPlan', documentId)?.sections ?? [];
         return sections.map((s: { name: string; data?: unknown; summary?: string }) => ({
           name: s.name,
           status: this.sectionStatus(!!s.data || !!s.summary),
         }));
       }
       case 'pitchDeck': {
-        const sections = findDeliverableDocument(analysis, 'pitchDeck')?.sections ?? [];
+        const sections =
+          findDeliverableDocument(analysis, 'pitchDeck', documentId)?.sections ?? [];
         return sections.map((s: { name: string; data?: unknown; summary?: string }) => ({
           name: s.name,
           status: this.sectionStatus(!!s.data || !!s.summary),
@@ -217,7 +249,13 @@ export class ChatDeliverablesService {
           },
         ];
       }
+      case 'businessCards': {
+        // Le modèle de carte et les personnes vivent derrière leur propre
+        // endpoint : la carte du fil reste un lanceur.
+        return [];
+      }
       case 'communication':
+      case 'simulations':
       case 'deployment':
         // Ces modules vivent derrière leurs propres endpoints (pas dans le
         // projet) : la carte reste un lanceur qui renvoie vers l'éditeur.
@@ -225,10 +263,14 @@ export class ChatDeliverablesService {
     }
   }
 
-  private resolveUpdatedAt(kind: DeliverableKind, project: ProjectModel | null): string | undefined {
+  private resolveUpdatedAt(
+    kind: DeliverableKind,
+    project: ProjectModel | null,
+    documentId?: string | null,
+  ): string | undefined {
     const analysis = project?.analysisResultModel;
-    const businessPlan = findDeliverableDocument(analysis, 'businessPlan');
-    const pitchDeck = findDeliverableDocument(analysis, 'pitchDeck');
+    const businessPlan = findDeliverableDocument(analysis, 'businessPlan', documentId);
+    const pitchDeck = findDeliverableDocument(analysis, 'pitchDeck', documentId);
     const raw =
       (kind === 'businessPlan' && (businessPlan?.updatedAt || businessPlan?.createdAt)) ||
       (kind === 'pitchDeck' && (pitchDeck?.updatedAt || pitchDeck?.generatedAt)) ||
@@ -242,14 +284,14 @@ export class ChatDeliverablesService {
   }
 
   /** Récupère le PDF d'un livrable (réutilise les endpoints existants). */
-  fetchPdf(kind: DeliverableKind, projectId: string): Observable<Blob> {
+  fetchPdf(kind: DeliverableKind, projectId: string, documentId?: string | null): Observable<Blob> {
     switch (kind) {
       case 'businessPlan':
-        return this.businessPlanService.downloadBusinessPlanPdf(projectId);
+        return this.businessPlanService.downloadBusinessPlanPdf(projectId, documentId);
       case 'branding':
         return this.brandingService.downloadBrandingPdf(projectId);
       case 'pitchDeck':
-        return this.pitchDeckService.downloadPitchDeckPdf(projectId);
+        return this.pitchDeckService.downloadPitchDeckPdf(projectId, documentId);
       case 'finance':
         return this.financeService.downloadFinancePdf(projectId);
       default:
@@ -282,6 +324,8 @@ export class ChatDeliverablesService {
       legalDocs: 'legal-docs',
       finance: 'finance-report',
       communication: 'communication',
+      businessCards: 'business-cards',
+      simulations: 'simulations',
       development: 'development',
       deployment: 'deployment',
     };
@@ -289,9 +333,14 @@ export class ChatDeliverablesService {
   }
 
   /** Télécharge un livrable ; résout true si le fichier a été obtenu. */
-  async download(kind: DeliverableKind, projectId: string, projectName?: string): Promise<boolean> {
+  async download(
+    kind: DeliverableKind,
+    projectId: string,
+    projectName?: string,
+    documentId?: string | null,
+  ): Promise<boolean> {
     try {
-      const blob = await firstValueFrom(this.fetchPdf(kind, projectId));
+      const blob = await firstValueFrom(this.fetchPdf(kind, projectId, documentId));
       if (!blob || blob.size === 0) return false;
       this.triggerDownload(blob, this.downloadFilename(kind, projectName));
       return true;
@@ -324,7 +373,13 @@ export class ChatDeliverablesService {
       const total = card.sections.length;
       let statusLabel: string;
       // Modules gérés côté éditeur (pas de statut dérivable du projet).
-      const editorStatusKinds: DeliverableKind[] = ['finance', 'communication', 'deployment'];
+      const editorStatusKinds: DeliverableKind[] = [
+        'finance',
+        'communication',
+        'businessCards',
+        'simulations',
+        'deployment',
+      ];
       if (editorStatusKinds.includes(kind)) {
         statusLabel = this.translate.instant('chat.status.openEditor');
       } else if (total === 0 || ready === 0) {

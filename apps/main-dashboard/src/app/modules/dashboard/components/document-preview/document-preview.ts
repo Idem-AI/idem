@@ -21,6 +21,7 @@ import { Router } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { TokenService } from '../../../../shared/services/token.service';
+import { UiModeService } from '../../../../shared/services/ui-mode.service';
 import { SectionCompletionItem } from '../../models/generation-completeness';
 import { injectEditorAdapter } from '../../pages/document-editor/adapters/inject-editor-adapter';
 import {
@@ -133,6 +134,16 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
    * decks). Absent : le document le plus récent.
    */
   readonly documentId = input<string | null>(null);
+  /**
+   * Où l'aperçu est posé :
+   *  - `page` : une page du tableau de bord. Le document prend sa hauteur
+   *    naturelle et c'est la PAGE qui défile ; le dock colle au bas de la
+   *    fenêtre.
+   *  - `panel` : un panneau de hauteur fixe (tiroir du mode Chat). Le document
+   *    défile DANS l'aperçu et le dock se pose au bas du panneau — la fenêtre,
+   *    elle, ne défile pas.
+   */
+  readonly variant = input<'page' | 'panel'>('page');
 
   /** Régénérer une section (nom canonique). */
   readonly regenerateSection = output<string>();
@@ -142,6 +153,7 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
   readonly regenerateAll = output<void>();
 
   private readonly router = inject(Router);
+  private readonly uiMode = inject(UiModeService);
   private readonly translate = inject(TranslateService);
   private readonly cookieService = inject(CookieService);
   private readonly tokenService = inject(TokenService);
@@ -154,6 +166,10 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
   private readonly regenControl = viewChild<ElementRef<HTMLElement>>('regenControl');
 
   protected readonly dockInset = DOCK_INSET_PX;
+  /** Le canvas défile avec la page (aperçu de page) ou sur lui-même (panneau). */
+  protected readonly canvasVariant = computed(() =>
+    this.variant() === 'panel' ? ('workspace' as const) : ('inline' as const),
+  );
   protected readonly loading = signal(true);
   protected readonly loadError = signal(false);
   private readonly loadedSections = signal<EditableSection[]>([]);
@@ -456,7 +472,9 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
     } else if (current?.kind === 'content') {
       queryParams[EDITOR_TARGET_PARAMS.section] = current.id;
     }
-    this.router.navigate([route], { queryParams });
+    // Passe par le service de mode : ouvrir l'éditeur depuis le tiroir du mode
+    // Chat doit basculer en mode Avancé, comme depuis une carte de livrable.
+    this.uiMode.openInEditor(this.router.createUrlTree([route], { queryParams }).toString());
   }
 
   protected regenerate(page: PreviewPage | null): void {

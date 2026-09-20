@@ -25,32 +25,6 @@
  * no template literals so it can live in a TS template string).
  */
 
-export interface FlowPaginationOptions {
-  /** Page width in mm (210 for A4 portrait). */
-  pageWidthMm: number;
-  /** Page height in mm (297 for A4 portrait). */
-  pageHeightMm: number;
-  /** Do not stretch a page filled under this ratio (avoids grotesque gaps). */
-  minFillRatio?: number;
-  /** Space (mm) a single inter-block gap may gain on a well-filled page. */
-  maxGapAddMm?: number;
-  /** Absolute ceiling (mm) for a single inter-block gap. */
-  maxGapAddHardMm?: number;
-  /** Space (mm) a gap INSIDE a multi-row block may gain. */
-  maxInnerGapAddMm?: number;
-  /** Spread the content evenly over the pages of a section. */
-  balance?: boolean;
-  /**
-   * Hauteur restante (part de la page) sous laquelle un bloc sécable n'est plus
-   * découpé et part entier sur la page suivante. Défaut 0.18.
-   */
-  minSplitRatio?: number;
-  /** Contrôle de compacité — voir `FlowCompactOptions`. Désactivé par défaut. */
-  compact?: FlowCompactOptions;
-  /** Push the plan and the per-page filling into `warnings` (diagnostics). */
-  debug?: boolean;
-}
-
 /**
  * CONTRÔLE DE COMPACITÉ — pages vides et grands blancs, corrigés par la mesure.
  *

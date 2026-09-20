@@ -42,6 +42,8 @@ export type DeliverableKind =
   | 'legalDocs'
   | 'finance'
   | 'communication'
+  | 'businessCards'
+  | 'simulations'
   | 'development'
   | 'deployment';
 
@@ -58,14 +60,26 @@ export interface DeliverableSectionPreview {
  */
 export interface DeliverableCardData {
   kind: DeliverableKind;
+  /**
+   * Document présenté quand le projet en garde plusieurs (business plans,
+   * pitch decks) : la carte, son aperçu et son téléchargement parlent tous du
+   * même. `null` : le plus récent, comme côté API.
+   */
+  documentId?: string | null;
   titleKey: string;
   icon: string;
   updatedAt?: string;
   sections: DeliverableSectionPreview[];
   /** Au moins une partie du contenu existe */
   available: boolean;
-  /** Prévisualisation / téléchargement PDF possibles pour ce livrable */
+  /** Téléchargement PDF possible pour ce livrable */
   pdfSupported: boolean;
+  /**
+   * Le document peut être LU dans le fil (aperçu de document : mêmes pages que
+   * l'éditeur). Un livrable peut avoir un PDF sans avoir de document rendu —
+   * le rapport financier, par exemple, est produit à la demande.
+   */
+  previewSupported: boolean;
   /** Route du mode avancé pour "Ouvrir dans l'éditeur" */
   editorRoute: string;
   /** Route de génération en mode avancé quand le livrable est manquant */
@@ -100,6 +114,14 @@ export type ChatChipAction =
   | 'comm-strategy'
   | 'comm-calendar'
   | 'deck-type'
+  | 'documents'
+  | 'generate-now'
+  | 'regenerate-section'
+  | 'legal-list'
+  | 'legal-download'
+  | 'legal-delete'
+  | 'finance-section'
+  | 'cards-generate'
   | 'open-route';
 
 export interface ChatChip {
@@ -111,6 +133,11 @@ export interface ChatChip {
   action: ChatChipAction;
   /** Selon l'action : texte à envoyer, kind de livrable, valeur d'onboarding… */
   payload?: string;
+  /**
+   * Document visé quand le projet en garde plusieurs (business plans, pitch
+   * decks). Absent : le plus récent, comme côté API.
+   */
+  documentId?: string;
 }
 
 /** Progression d'une génération SSE affichée dans le fil */
@@ -164,6 +191,42 @@ export interface ChatMessageModel {
    * décide des sections générées.
    */
   bpStructureChoice?: boolean;
+  /**
+   * Liste des documents d'un livrable (business plans, pitch decks) : ouvrir,
+   * télécharger, renommer, supprimer, en créer un autre.
+   */
+  documentList?: ChatDocumentListData;
+  /** Documents juridiques générés : télécharger ou supprimer l'un d'eux. */
+  legalDocs?: ChatLegalDocsData;
+}
+
+/** Instantané d'une liste de documents, posé dans le fil. */
+export interface ChatDocumentListData {
+  kind: 'businessPlan' | 'pitchDeck';
+  documents: ChatDocumentListItem[];
+}
+
+export interface ChatDocumentListItem {
+  id: string;
+  name: string;
+  variantLabel: string;
+  status: 'draft' | 'partial' | 'complete';
+  completed: number;
+  expected: number;
+  expectedSectionNames: string[];
+  updatedAt?: string;
+}
+
+/** Documents juridiques du projet, listés dans le fil. */
+export interface ChatLegalDocsData {
+  documents: ChatLegalDocItem[];
+}
+
+export interface ChatLegalDocItem {
+  id: string;
+  name: string;
+  type: string;
+  available: boolean;
 }
 
 /** Étapes de l'onboarding conversationnel */

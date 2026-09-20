@@ -16,5 +16,7 @@ router.patch('/applications/:uuid/pipeline', ctrl.updateConfig);
 router.post('/applications/:uuid/pipeline/trigger', ctrl.trigger);
 router.get('/applications/:uuid/pipeline/executions', ctrl.listExecutions);
 router.get('/pipeline/executions/:executionUuid', ctrl.getExecution);
+router.post('/pipeline/executions/:executionUuid/rerun', ctrl.rerunExecution);
+router.delete('/pipeline/executions/:executionUuid', ctrl.deleteExecution);
 
 export default router;

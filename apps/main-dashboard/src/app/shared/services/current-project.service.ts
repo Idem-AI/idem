@@ -30,6 +30,12 @@ export class CurrentProjectService {
 
   readonly projects = this._projects.asReadonly();
   readonly isLoaded = this._isLoaded.asReadonly();
+  /**
+   * Identifiant du projet ouvert. Lu par les modes qui travaillent avec
+   * l'identifiant plutôt qu'avec l'objet (le chat interroge l'API par id avant
+   * même que la liste soit revenue).
+   */
+  readonly selectedId = this._selectedId.asReadonly();
 
   /** Le projet ouvert, ou `null` si aucun n'est retenu. */
   readonly selected = computed(() => {
@@ -88,6 +94,41 @@ export class CurrentProjectService {
 
     const first = projects[0];
     if (first?.id) this.select(first.id, { navigate: false });
+  }
+
+  /**
+   * Remplace (ou ajoute) un projet dans la liste.
+   *
+   * Le détail complet d'un projet — `analysisResultModel`, donc l'état réel de
+   * chaque livrable — n'arrive qu'à la demande. Quel que soit le mode qui le
+   * demande, il est reversé ici : sans cela, générer un business plan dans le
+   * chat laissait le tableau de bord afficher l'ancien état jusqu'au prochain
+   * rechargement.
+   */
+  upsert(project: ProjectModel): void {
+    if (!project?.id) return;
+    this._projects.update((projects) => {
+      const index = projects.findIndex((existing) => existing.id === project.id);
+      if (index === -1) return [...projects, project];
+      const next = [...projects];
+      next[index] = project;
+      return next;
+    });
+  }
+
+  /** Recharge le détail complet du projet ouvert et le partage. */
+  refreshSelected(): Observable<ProjectModel | null> {
+    const id = this._selectedId();
+    if (!id) return of(null);
+    return this.projectService.getProjectById(id).pipe(
+      tap((project) => {
+        if (project) this.upsert(project);
+      }),
+      catchError((error) => {
+        console.error('CurrentProject: error refreshing the open project', error);
+        return of(null);
+      }),
+    );
   }
 
   /** Retient un projet. La navigation est le cas courant, pas une fatalité. */

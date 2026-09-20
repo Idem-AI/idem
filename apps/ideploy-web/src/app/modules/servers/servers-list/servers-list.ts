@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
+import { environment } from '../../../../environments/environment';
 import {
   ProxyStatus,
   Server,
@@ -16,8 +17,20 @@ import {
   template: `
     <div class="mb-6 flex items-center justify-between">
       <h1 class="text-2xl font-bold">{{ 'servers.title' | translate }}</h1>
-      <a class="button" routerLink="/servers/new">{{ 'servers.addServerButton' | translate }}</a>
+      <div class="flex gap-2">
+        @if (!isProd) {
+          <button class="button-secondary" [disabled]="addingLocal()" (click)="useLocalMachine()">
+            {{ (addingLocal() ? 'servers.addingLocal' : 'servers.useLocalButton') | translate }}
+          </button>
+        }
+        <a class="button-secondary" routerLink="/servers/new/cloud">{{ 'servers.provisionButton' | translate }}</a>
+        <a class="button" routerLink="/servers/new">{{ 'servers.addServerButton' | translate }}</a>
+      </div>
     </div>
+
+    @if (localError()) {
+      <p class="mb-4 text-sm" role="alert" style="color:var(--color-danger);">{{ localError() }}</p>
+    }
 
     @if (loading()) {
       <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'servers.loading' | translate }}</p>
@@ -28,7 +41,7 @@ import {
         @for (server of servers(); track server.uuid) {
           <div class="box flex items-center justify-between">
             <div>
-              <div class="font-semibold">{{ server.name }}</div>
+              <a class="font-semibold hover:underline" [routerLink]="['/servers', server.uuid]">{{ server.name }}</a>
               <div class="text-sm" style="color: var(--color-text-secondary)">
                 {{ server.user }}&#64;{{ server.ip }}:{{ server.port }}
               </div>
@@ -90,6 +103,9 @@ import {
 })
 export class ServersListComponent implements OnInit {
   private api = inject(ApiService);
+  private translate = inject(TranslateService);
+
+  protected readonly isProd = environment.production;
 
   protected readonly servers = signal<Server[]>([]);
   protected readonly loading = signal(true);
@@ -97,14 +113,46 @@ export class ServersListComponent implements OnInit {
   protected readonly proxies = signal<Record<string, ProxyStatus>>({});
   /** Per-server in-flight flag: setup takes minutes and must not be re-triggered. */
   protected readonly busy = signal<Record<string, boolean>>({});
+  protected readonly addingLocal = signal(false);
+  protected readonly localError = signal<string | null>(null);
 
   ngOnInit(): void {
+    this.load();
+  }
+
+  private load(): void {
     this.api.listServers().subscribe({
       next: (servers) => {
         this.servers.set(servers);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
+    });
+  }
+
+  /**
+   * "This machine" — the host running Docker Compose, reached without SSH via
+   * a docker.sock bind mount (see docker-compose.dev.yml). Idempotent server-
+   * side: re-clicking after it already exists just re-confirms Docker works.
+   */
+  protected useLocalMachine(): void {
+    this.addingLocal.set(true);
+    this.localError.set(null);
+    this.api.createLocalServer().subscribe({
+      next: (r) => {
+        this.addingLocal.set(false);
+        if (!r.dockerOk) {
+          this.localError.set(this.translate.instant('servers.localDockerUnreachable'));
+        }
+        this.load();
+      },
+      error: (e) => {
+        this.addingLocal.set(false);
+        this.localError.set(
+          (e as { error?: { error?: { message?: string } } })?.error?.error?.message ??
+            this.translate.instant('servers.localError')
+        );
+      },
     });
   }
 

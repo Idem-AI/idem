@@ -1,91 +1,60 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ProjectModel } from '@idem/shared-models';
-import { ProjectService } from '../../dashboard/services/project.service';
-import { CookieService } from '../../../shared/services/cookie.service';
+import { CurrentProjectService } from '../../../shared/services/current-project.service';
 
 /**
- * Session du mode Chat : projet actif (partagé avec le mode Avancé via le
- * cookie `projectId`) et liste des projets affichée dans la sidebar.
+ * Session du mode Chat : le projet ouvert et la liste des projets.
+ *
+ * Tout est délégué au magasin partagé (`CurrentProjectService`), celui que le
+ * mode Avancé utilise déjà. Le chat tenait auparavant sa propre liste et son
+ * propre cache de détail : les deux modes lisaient le même cookie mais deux
+ * états différents, et un projet créé, choisi ou régénéré d'un côté n'était vu
+ * de l'autre qu'après rechargement de la page.
+ *
+ * Ce service ne garde donc que le vocabulaire du chat (`activeProject`,
+ * `loadProjects`…) par-dessus ce magasin.
  */
 @Injectable({ providedIn: 'root' })
 export class ChatSessionService {
-  private readonly projectService = inject(ProjectService);
-  private readonly cookieService = inject(CookieService);
+  private readonly current = inject(CurrentProjectService);
 
-  readonly activeProjectId = signal<string | null>(this.cookieService.get('projectId'));
-  readonly projects = signal<ProjectModel[]>([]);
-  readonly projectsLoaded = signal(false);
+  readonly activeProjectId = this.current.selectedId;
+  readonly projects = this.current.projects;
+  readonly projectsLoaded = this.current.isLoaded;
   readonly isLoadingProjects = signal(false);
 
-  readonly activeProject = computed<ProjectModel | null>(() => {
-    const id = this.activeProjectId();
-    if (!id) return null;
-    return this.projects().find((p) => p.id === id) ?? null;
-  });
+  readonly activeProject = computed<ProjectModel | null>(() => this.current.selected());
 
-  /** Charge la liste des projets (une seule fois, sauf force). */
+  /** Charge la liste des projets (une seule fois par session, sauf force). */
   async loadProjects(force = false): Promise<ProjectModel[]> {
-    if (this.projectsLoaded() && !force) return this.projects();
     this.isLoadingProjects.set(true);
     try {
-      const projects = (await firstValueFrom(this.projectService.getProjects())) ?? [];
-      this.projects.set(projects);
-      this.projectsLoaded.set(true);
-
-      // Réconcilie le projet actif avec la liste réelle
-      const currentId = this.activeProjectId();
-      const exists = currentId && projects.some((p) => p.id === currentId);
-      if (!exists) {
-        const fallback = projects[0]?.id ?? null;
-        if (fallback) {
-          this.selectProject(fallback);
-        } else {
-          this.activeProjectId.set(null);
-        }
-      }
-      return projects;
+      return (await firstValueFrom(this.current.load(force))) ?? [];
     } catch (error) {
       console.error('ChatSession: error loading projects', error);
-      this.projects.set([]);
-      this.projectsLoaded.set(true);
       return [];
     } finally {
       this.isLoadingProjects.set(false);
     }
   }
 
-  /** Sélectionne un projet : même cookie que le mode Avancé (état partagé). */
+  /**
+   * Choisit un projet sans quitter le chat. Le cookie `projectId` est partagé
+   * avec le mode Avancé et les autres applications IDEM : le projet reste le
+   * même d'un mode à l'autre.
+   */
   selectProject(projectId: string): void {
-    this.cookieService.set('projectId', projectId);
-    this.activeProjectId.set(projectId);
+    this.current.select(projectId, { navigate: false });
   }
 
-  /** Recharge le détail complet du projet actif (analysisResultModel inclus). */
+  /** Recharge le détail complet du projet ouvert (`analysisResultModel`). */
   async fetchActiveProjectDetails(): Promise<ProjectModel | null> {
-    const id = this.activeProjectId();
-    if (!id) return null;
-    try {
-      const project = await firstValueFrom(this.projectService.getProjectById(id));
-      if (project) {
-        this.upsertProject(project);
-      }
-      return project ?? null;
-    } catch (error) {
-      console.error('ChatSession: error fetching project details', error);
-      return null;
-    }
+    return (await firstValueFrom(this.current.refreshSelected())) ?? null;
   }
 
-  /** Met à jour (ou ajoute) un projet dans la liste locale. */
+  /** Partage un projet mis à jour avec les deux modes. */
   upsertProject(project: ProjectModel): void {
-    if (!project.id) return;
-    this.projects.update((list) => {
-      const index = list.findIndex((p) => p.id === project.id);
-      if (index === -1) return [...list, project];
-      const next = [...list];
-      next[index] = project;
-      return next;
-    });
+    this.current.upsert(project);
   }
 }

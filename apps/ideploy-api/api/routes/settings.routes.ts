@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate, requireTeam } from '../middleware/auth.middleware';
+import { requireInstanceAdmin } from '../middleware/authorize.middleware';
 import * as ctrl from '../controllers/settings.controller';
 
 const router = Router();
@@ -12,7 +13,9 @@ router.use(authenticate);
  *   patch: { summary: Update instance settings, tags: [Settings], responses: { 200: { description: OK } } }
  */
 router.get('/instance', ctrl.getInstance);
-router.patch('/instance', ctrl.updateInstance);
+// Instance settings affect every team, so changing them is not something any
+// authenticated user may do — reading them stays open to the shell.
+router.patch('/instance', requireInstanceAdmin, ctrl.updateInstance);
 router.get('/version', ctrl.version);
 router.get('/changelog/reads', ctrl.changelogReads);
 router.post('/changelog/read', ctrl.markChangelogRead);

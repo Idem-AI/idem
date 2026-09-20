@@ -65,9 +65,6 @@ import {
   resolvePitchDeckSlides,
 } from './deck-types';
 
-/** Ordre des slides du deck investisseur, le deck historique. */
-export const PITCH_DECK_SLIDE_ORDER = getPitchDeckType(DEFAULT_PITCH_DECK_TYPE_ID).slides;
-
 /**
  * Prompts de composition écrits à la main pour les onze slides historiques. Ils
  * servent à la couverture (génération libre) et au repli quand le gabarit est

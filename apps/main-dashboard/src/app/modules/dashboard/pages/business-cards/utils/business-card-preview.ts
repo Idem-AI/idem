@@ -1,35 +1,5 @@
 import { BusinessCardOrientation, BUSINESS_CARD_SIZE_MM } from '../../../models/business-card.model';
 
-/**
- * Aperçu client d'une carte de visite.
- *
- * L'aperçu doit être INSTANTANÉ pendant que l'utilisateur remplit le
- * formulaire : on interpole donc le template dans le navigateur (mêmes règles
- * que le rendu serveur) et on l'affiche dans une iframe isolée. Le rendu
- * serveur (300 dpi / PDF) n'intervient qu'au téléchargement.
- */
-
-/** Échappe une valeur utilisateur avant injection dans le HTML du template. */
-export function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-/** Remplace les marqueurs `{{champ}}`; un champ vide donne une chaîne vide. */
-export function interpolateBusinessCard(
-  html: string,
-  values: Record<string, string | undefined | null>,
-): string {
-  return html.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, key: string) => {
-    const value = values[key];
-    return value ? escapeHtml(String(value).trim()) : '';
-  });
-}
-
 /** Retire les blocs `data-field` restés vides (identique au rendu serveur). */
 const EMPTY_FIELD_CLEANUP = `
 (function () {

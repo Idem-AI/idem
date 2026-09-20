@@ -222,13 +222,3 @@ export function computeCost(params: {
     totalCostUsd: round(inputCostUsd + outputCostUsd),
   };
 }
-
-/** Coût total d'un appel (raccourci sur `computeCost`). */
-export function computeCostUsd(params: {
-  modelName: string;
-  inputTokens: number;
-  outputTokens: number;
-  cachedInputTokens?: number;
-}): number {
-  return computeCost(params).totalCostUsd;
-}

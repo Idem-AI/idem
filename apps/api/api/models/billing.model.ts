@@ -43,12 +43,6 @@ export const BILLING_ENGINES: BillingEngine[] = ['business', 'appgen', 'ideploy'
 // ============================================
 
 /**
- * Devise de référence. Les montants sont stockés en unités entières de XAF —
- * le franc CFA n'a pas de centimes, donc pas de conversion en sous-unité.
- */
-export const BASE_CURRENCY = 'XAF';
-
-/**
  * Taux XAF → USD utilisé pour rapprocher le revenu du coût des tokens (facturé
  * en dollars). Surchargeable par `XAF_USD_RATE` sans redéploiement, car le taux
  * bouge et un taux figé faussrait le calcul de marge dans le temps.
@@ -181,8 +175,6 @@ export const BUSINESS_CREDIT_COSTS = {
   legal_kit: 65,
   business_plan: 70,
 } as const;
-
-export type BusinessCreditedAction = keyof typeof BUSINESS_CREDIT_COSTS;
 
 /**
  * Crédits inclus dans un Project Pass AppGen (999 F) : ils couvrent les

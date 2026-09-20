@@ -1,16 +1,4 @@
-import { SelectItemGroup } from 'primeng/api';
 
-export interface PhaseItem {
-  label: string;
-  tier: 'free' | 'standard' | 'premium'; // f, s, p
-}
-
-export interface DevelopmentPhase {
-  id: string;
-  label: string;
-  tier: 'free' | 'standard' | 'premium'; // Niveau global de la phase
-  subItems: PhaseItem[];
-}
 export interface SelectElement {
   name: string;
   code: string;

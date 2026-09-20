@@ -463,14 +463,6 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
   {
-    path: 'project/tests',
-    title: 'navigation.titles.tests',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/show-tests/show-tests').then((m) => m.ShowTestsComponent),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
-    data: { layout: 'dashboard' },
-  },
-  {
     path: 'project/development/create',
     title: 'navigation.titles.createDevelopment',
     loadComponent: () =>

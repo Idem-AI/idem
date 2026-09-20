@@ -4,7 +4,6 @@
  */
 
 export const FINANCE_PROJECTION_MONTHS = 36;
-export const FINANCE_MAX_PRODUCTS = 20;
 
 export type MonthlyArray = number[];
 export type YearlyArray = number[];

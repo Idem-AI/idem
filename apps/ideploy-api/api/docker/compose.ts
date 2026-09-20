@@ -31,20 +31,48 @@ export function generateComposeFile(
   app: ApplicationRow,
   imageTag: string,
   labels?: string[],
-  network?: string
+  network?: string,
+  /**
+   * `KEY=value` runtime environment — an operator's own settings (the
+   * Variables tab) were being stored and shown right back to them, and then
+   * never once reaching the container: nothing here ever read them. `PORT`
+   * is added automatically when not already one of them, because the port
+   * Traefik was told to route to (`ports_exposes`) and the port the app
+   * actually listens on are only the same value if something tells the app
+   * so — most frameworks bind `process.env.PORT` given the chance, but
+   * nothing was ever giving it the chance.
+   */
+  envVars?: string[],
+  port?: number
 ): string {
   const serviceName = `${app.name}-${app.uuid}`.toLowerCase().replace(/[^a-z0-9-]/g, '-');
 
   // Publish ports so the app is reachable. Prefer explicit ports_mappings
-  // ("host:container[,host:container]"), else publish the exposed port 1:1.
+  // ("host:container[,host:container]") — an operator setting that always
+  // wins, e.g. for a raw TCP service Traefik's http/https entrypoints can't
+  // route. Otherwise, only fall back to auto-publishing the exposed port 1:1
+  // when there is no Traefik routing to reach it through instead: every
+  // application defaults to port 3000, so unconditionally publishing it on
+  // the host made any two applications on the same server guaranteed to
+  // collide the moment both had a domain and neither operator had thought to
+  // pick a different port — the domain was the whole point of not needing to.
+  const hasTraefikRouting = Boolean(labels && labels.length > 0);
   const mappings = (app.ports_mappings || '')
     .split(',')
     .map((m) => m.trim())
     .filter(Boolean);
-  if (mappings.length === 0 && app.ports_exposes) {
+  if (mappings.length === 0 && app.ports_exposes && !hasTraefikRouting) {
     const exposed = app.ports_exposes.split(',')[0].trim();
     if (exposed) mappings.push(`${exposed}:${exposed}`);
   }
+
+  // The operator's own vars, plus PORT/HOST — but never overriding a PORT the
+  // operator explicitly set themselves under Variables; their value is the
+  // one that should reach the app either way.
+  const environment = [...(envVars ?? [])];
+  const hasOwnPort = environment.some((e) => /^PORT=/.test(e));
+  if (!hasOwnPort && port) environment.push(`PORT=${port}`);
+  if (!environment.some((e) => /^HOST=/.test(e))) environment.push('HOST=0.0.0.0');
 
   const compose = {
     services: {
@@ -52,6 +80,7 @@ export function generateComposeFile(
         image: imageTag,
         container_name: serviceName,
         restart: 'unless-stopped',
+        ...(environment.length ? { environment } : {}),
         ...(mappings.length ? { ports: mappings } : {}),
         ...networkingFor(labels ?? defaultOwnershipLabels(app), network),
       },

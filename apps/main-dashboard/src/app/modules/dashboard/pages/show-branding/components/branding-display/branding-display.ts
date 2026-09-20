@@ -5,46 +5,15 @@ import { CookieService } from '../../../../../../shared/services/cookie.service'
 import { Loader } from '../../../../../../shared/components/loader/loader';
 import { DocumentPreviewComponent } from '../../../../components/document-preview/document-preview';
 import {
+  expectedBrandingSections,
+  hasCharterContent,
+  StoredBranding,
+} from '../../../../models/branding-charter';
+import {
   analyzeGenerationCompleteness,
-  BRANDING_SECTION_NAMES,
   SectionCompletionItem,
 } from '../../../../models/generation-completeness';
 import { TranslateModule } from '@ngx-translate/core';
-
-interface IconSet {
-  lightBackground?: string;
-  darkBackground?: string;
-  monochrome?: string;
-}
-
-/** Sources d'icône du logo, lues comme l'API les lit. */
-interface LogoIconSources {
-  iconSvg?: string;
-  assetUrls?: { icon?: string; iconOnly?: IconSet };
-  variations?: { iconOnly?: IconSet };
-}
-
-/** Ce que la page lit de la charte stockée. */
-interface StoredBranding {
-  sections?: { name: string; data?: unknown }[];
-  pdfFormat?: string;
-  logo?: LogoIconSources;
-}
-
-/**
- * La page « Logomark » n'existe que si la marque a une icône — même condition
- * que l'API (`expectedCharterPageCount`, branding.service.ts). Sans ce filtre,
- * une marque dont le nom EST le logo afficherait une page manquante qui ne
- * sera jamais générée.
- */
-function hasLogomark(logo: LogoIconSources | undefined): boolean {
-  const sets = [logo?.assetUrls?.iconOnly, logo?.variations?.iconOnly];
-  return Boolean(
-    logo?.assetUrls?.icon ||
-      logo?.iconSvg ||
-      sets.some((set) => set?.lightBackground || set?.darkBackground || set?.monochrome),
-  );
-}
 
 /**
  * Page d'affichage de la charte graphique. La charte est rendue par l'aperçu
@@ -87,15 +56,14 @@ export class BrandingDisplayComponent implements OnInit {
         const branding = project?.analysisResultModel?.branding as unknown as
           | StoredBranding
           | undefined;
-        const sections = branding?.sections ?? [];
         this.pdfFormat = branding?.pdfFormat;
-        this.hasBranding.set(
-          sections.some((section) => typeof section.data === 'string' && section.data.trim() !== ''),
+        this.hasBranding.set(hasCharterContent(branding));
+        this.outline.set(
+          analyzeGenerationCompleteness(
+            expectedBrandingSections(branding),
+            branding?.sections ?? [],
+          ).items,
         );
-        const expected = hasLogomark(branding?.logo)
-          ? BRANDING_SECTION_NAMES
-          : BRANDING_SECTION_NAMES.filter((name) => name !== 'Logomark');
-        this.outline.set(analyzeGenerationCompleteness(expected, sections).items);
         this.isLoading.set(false);
       },
       error: (err) => {

@@ -22,13 +22,6 @@ const CACHE_PREFIX = 'google-fonts';
 const MAX_LIMIT = 100;
 const DEFAULT_LIMIT = 48;
 
-export type FontCategory =
-  | 'sans-serif'
-  | 'serif'
-  | 'display'
-  | 'handwriting'
-  | 'monospace';
-
 /** DTO envoyé au front — sous-ensemble volontairement réduit de la réponse Google. */
 export interface FontSummary {
   family: string;

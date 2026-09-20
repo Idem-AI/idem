@@ -151,10 +151,3 @@ export interface UserProperties {
   [key: string]: string | number | undefined;
 }
 
-// Analytics configuration
-export interface AnalyticsConfig {
-  enabled: boolean;
-  debug?: boolean;
-  anonymizeIp?: boolean;
-  cookieDomain?: string;
-}

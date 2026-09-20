@@ -76,3 +76,27 @@ export async function detach(
     [tagId, taggableId, taggableType]
   );
 }
+
+/**
+ * Tags currently attached to one resource.
+ *
+ * Attach/detach existed with nothing to read the result back with — a client
+ * could change the association but never display it. Scoped through `tags`
+ * (team-scoped) rather than trusting `taggableId` alone, so one team cannot
+ * enumerate another's tag assignments by guessing ids.
+ */
+export async function listForTaggable(
+  teamId: number,
+  taggableType: string,
+  taggableId: number
+): Promise<Tag[]> {
+  const { rows } = await pool.query(
+    `SELECT t.id, t.uuid, t.name
+     FROM tags t
+     JOIN taggables tb ON tb.tag_id = t.id
+     WHERE t.team_id = $1 AND tb.taggable_type = $2 AND tb.taggable_id = $3
+     ORDER BY t.name`,
+    [teamId, taggableType, taggableId]
+  );
+  return rows.map(map);
+}

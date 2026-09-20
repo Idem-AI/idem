@@ -1,4 +1,4 @@
-<section class="dp" [attr.aria-label]="heading()">
+<section class="dp" [class.dp-panel]="variant() === 'panel'" [attr.aria-label]="heading()">
   <header class="dp-head">
     <!-- Action de tête fournie par la page (ex. retour), sur la ligne du titre. -->
     <ng-content select="[previewLeading]" />
@@ -44,7 +44,7 @@
   <div class="dp-stage">
     <app-editor-canvas
       mode="preview"
-      variant="inline"
+      [variant]="canvasVariant()"
       [pageFormat]="pageFormat()"
       [multiPage]="multiPage()"
       [fonts]="fonts()"

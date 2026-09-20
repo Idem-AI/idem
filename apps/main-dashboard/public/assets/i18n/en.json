@@ -156,77 +156,6 @@
       "public": "Public",
       "imposedConstraints": "Imposed Constraints"
     },
-    "addMemberModal": {
-      "title": "Add Team Member",
-      "fields": {
-        "email": "Email Address",
-        "displayName": "Display Name",
-        "role": "Role"
-      },
-      "placeholders": {
-        "email": "member@example.com",
-        "displayName": "John Doe"
-      },
-      "roles": {
-        "admin": {
-          "label": "Admin",
-          "description": "Can manage team and members"
-        },
-        "member": {
-          "label": "Member",
-          "description": "Can view and contribute"
-        },
-        "viewer": {
-          "label": "Viewer",
-          "description": "Can only view"
-        }
-      },
-      "invitationInfo": "An invitation will be sent to the member's email address.",
-      "addMemberButton": "Add Member",
-      "errors": {
-        "failedToAddMember": "Failed to add member"
-      }
-    },
-    "addTeamToProjectModal": {
-      "title": "Add Team to Project",
-      "subtitle": "Choose an existing team or create a new one to add to this project",
-      "tabs": {
-        "existingTeam": "Existing Team",
-        "createNewTeam": "Create New Team"
-      },
-      "fields": {
-        "selectTeam": "Select Team",
-        "projectRoles": "Project Roles",
-        "teamName": "Team Name",
-        "description": "Description"
-      },
-      "placeholders": {
-        "chooseTeam": "Choose a team...",
-        "teamName": "e.g., Frontend Team",
-        "description": "Brief description of the team's purpose..."
-      },
-      "noTeamsAvailable": "No teams available",
-      "createNewTeamSuggestion": "Create a new team to get started",
-      "buttons": {
-        "addTeam": "Add Team",
-        "createAndAdd": "Create & Add Team"
-      },
-      "newTeamInfo": "The team will be created and immediately added to this project with the selected roles.",
-      "errors": {
-        "failedToLoadTeams": "Failed to load teams",
-        "failedToAddTeam": "Failed to add team to project",
-        "teamCreatedButFailedToAdd": "Team created but failed to add to project",
-        "failedToCreateTeam": "Failed to create team"
-      },
-      "roles": {
-        "project-owner": "Project Owner",
-        "project-admin": "Project Admin",
-        "developer": "Developer",
-        "designer": "Designer",
-        "viewer": "Viewer",
-        "contributor": "Contributor"
-      }
-    },
     "projectCard": {
       "logoAlt": "Logo",
       "open": "Open"
@@ -357,50 +286,6 @@
         "initialProjectNotFound": "Initial project ID '{{initialCookieId}}' not found. Navigating to global dashboard."
       },
       "simulations": "Simulations"
-    },
-    "addTeamToProject": {
-      "backToProjectTeams": "Back to Project Teams",
-      "title": "Add Team to Project",
-      "subtitle": "Select a team and assign roles for this project",
-      "selectTeam": "Select Team",
-      "assignRoles": "Assign Project Roles",
-      "assignRolesDescription": "Select one or more roles for",
-      "inThisProject": "in this project",
-      "noTeamsYet": "You don't have any teams yet",
-      "createTeamButton": "Create Team",
-      "members": "members",
-      "selectAtLeastOneRole": "Please select at least one role",
-      "cancel": "Cancel",
-      "addingTeam": "Adding Team...",
-      "addTeamToProject": "Add Team to Project",
-      "loading": "Loading...",
-      "error": "Error",
-      "roles": {
-        "project-owner": {
-          "label": "Project Owner",
-          "description": "Full control over the project"
-        },
-        "project-admin": {
-          "label": "Project Admin",
-          "description": "Manage project settings and members"
-        },
-        "developer": {
-          "label": "Developer",
-          "description": "Write and review code"
-        },
-        "designer": {
-          "label": "Designer",
-          "description": "Create and manage designs"
-        },
-        "viewer": {
-          "label": "Viewer",
-          "description": "View project content only"
-        },
-        "contributor": {
-          "label": "Contributor",
-          "description": "Contribute to project tasks"
-        }
-      }
     },
     "colorCustomizer": {
       "title": "Edit Colors",
@@ -1150,29 +1035,6 @@
         "secondaryColor": "Secondary Color"
       }
     },
-    "createTeam": {
-      "backToTeams": "Back to Teams",
-      "title": "Create New Team",
-      "subtitle": "Create a team to collaborate with others on your projects",
-      "fields": {
-        "name": "Team Name",
-        "description": "Description"
-      },
-      "placeholders": {
-        "name": "Enter team name",
-        "description": "Describe your team's purpose and goals"
-      },
-      "info": {
-        "afterCreationTitle": "After creating the team",
-        "afterCreationBody": "You can add members and assign the team to projects."
-      },
-      "buttons": {
-        "create": "Create Team"
-      },
-      "errors": {
-        "failedToCreate": "Failed to create team"
-      }
-    },
     "dashboard": {
       "loading": "Loading your dashboard...",
       "viewAllProjects": "View All Projects",
@@ -1290,7 +1152,8 @@
           "maxTokens": "tokens max",
           "featureNotAuthorized": "Feature not authorized"
         },
-        "generations": "Generations"
+        "generations": "Generations",
+        "credits": "Credits"
       }
     },
     "aiAssistant": {
@@ -1529,60 +1392,6 @@
         "redeploy": "Redeploy"
       }
     },
-    "globalDashboard": {
-      "title": "Dashboard",
-      "tabs": {
-        "projects": "Projects",
-        "teams": "Teams"
-      },
-      "sections": {
-        "recentProjects": "Recent Projects",
-        "allProjects": "All Projects",
-        "recentTeams": "Recent Teams",
-        "allTeams": "All Teams"
-      },
-      "cards": {
-        "createProject": {
-          "title": "Create New Project",
-          "subtitle": "Start building something amazing"
-        },
-        "createTeam": {
-          "title": "Create New Team",
-          "subtitle": "Build your dream team"
-        }
-      },
-      "empty": {
-        "noProjects": "No projects yet",
-        "noTeams": "No teams yet",
-        "noDescription": "No description"
-      },
-      "buttons": {
-        "createProject": "Create your first project",
-        "createTeam": "Create your first team"
-      },
-      "members": "members"
-    },
-    "myTeams": {
-      "title": "My Teams",
-      "subtitle": "Manage and collaborate with your teams",
-      "buttons": {
-        "create": "Create Team",
-        "createNew": "Create New Team"
-      },
-      "sections": {
-        "recent": "Recent Teams",
-        "all": "All Teams"
-      },
-      "cards": {
-        "create": {
-          "title": "Create your first team"
-        }
-      },
-      "empty": {
-        "noTeams": "You don't have any teams yet. Create one to get started!"
-      },
-      "members": "members"
-    },
     "profile": {
       "title": "Profile",
       "subtitle": "Manage your account settings and preferences",
@@ -1622,21 +1431,6 @@
       "buttons": {
         "upgrade": "Upgrade to Premium",
         "settings": "Account Settings"
-      }
-    },
-    "projectTeams": {
-      "title": "Project Teams",
-      "subtitle": "Manage teams assigned to this project",
-      "buttons": {
-        "addTeam": "Add Team",
-        "addTeamToProject": "Add Team to Project"
-      },
-      "cards": {
-        "members": "{{count}} members",
-        "projectRoles": "Project Roles"
-      },
-      "empty": {
-        "noTeams": "No teams assigned to this project yet"
       }
     },
     "projectsList": {
@@ -1962,14 +1756,6 @@
         "profilePicture": "Profile picture"
       }
     },
-    "businessPlanDisplay": {
-      "title": "Business plan",
-      "loading": "Preparing business plan content...",
-      "empty": {
-        "title": "No Business Plan Available",
-        "subtitle": "No business plan content available."
-      }
-    },
     "businessPlanGeneration": {
       "saving": {
         "title": "Saving Your Business Plan",
@@ -2260,68 +2046,6 @@
           "subtitle": "Please select a project to view or generate its diagrams"
         }
       }
-    },
-    "showTests": {
-      "works": "Show tests works!"
-    },
-    "teamDetailsGlobal": {
-      "backToTeams": "Back to Teams",
-      "assignedProjects": "Assigned Projects",
-      "projects": "projects",
-      "teamMembers": "Team Members",
-      "members": "members",
-      "buttons": {
-        "addMember": "Add Member",
-        "addFirstMember": "Add First Member",
-        "remove": "Remove"
-      },
-      "cards": {
-        "teamRoles": "Team Roles",
-        "teamRole": "Team Role",
-        "joined": "Joined {{date}}"
-      },
-      "empty": {
-        "noProjects": "This team is not assigned to any projects yet",
-        "noMembers": "No members in this team yet"
-      }
-    },
-    "teamDetailsProject": {
-      "backToTeams": "Back to Project Teams",
-      "sections": {
-        "teamMembers": "Team Members"
-      },
-      "cards": {
-        "teamRole": "Team Role",
-        "joined": "Joined {{date}}"
-      },
-      "buttons": {
-        "remove": "Remove"
-      },
-      "empty": {
-        "noMembers": "No members in this team"
-      },
-      "members": "members"
-    },
-    "pdfViewer": {
-      "loading": "Loading PDF...",
-      "wait": "Please wait while we load your document",
-      "noContent": "No PDF to display"
-    },
-    "brandingBlocker": {
-      "dashboard": {
-        "brandingBlocker": {
-          "title": "Brand Identity Required",
-          "description": "To access {{featureName}}, you must first complete your project's brand identity.",
-          "missingElements": "Missing elements:",
-          "backButton": "Back to Dashboard",
-          "completeButton": "Complete Brand Identity"
-        }
-      },
-      "title": "Brand Identity Required",
-      "description": "To access {{featureName}}, you must first complete your project's brand identity.",
-      "missingElements": "Missing elements:",
-      "backButton": "Back to Dashboard",
-      "completeButton": "Complete Brand Identity"
     },
     "completeBranding": {
       "loading": "Loading your project...",
@@ -3854,7 +3578,6 @@
       "advisor": "Advisor",
       "diagrams": "Diagrams",
       "diagramsGenerate": "Diagrams Generation",
-      "tests": "Tests",
       "createDevelopment": "Create Development",
       "development": "Development",
       "ideploy": "iDeploy",
@@ -3909,20 +3632,11 @@
     "noProjects": "No projects found",
     "projectDetails": "Project Details"
   },
-  "teams": {
-    "title": "Teams",
-    "createNew": "Create New Team",
-    "myTeams": "My Teams",
-    "noTeams": "No teams found",
-    "teamDetails": "Team Details"
-  },
   "validation": {
     "required": "{{fieldName}} is required",
     "email": "Please enter a valid email address",
     "minLength": "Minimum {{min}} characters required",
     "maxLength": "Maximum {{max}} characters allowed",
-    "selectAtLeastOneRole": "Please select at least one role",
-    "teamNameMinLength": "Team name must be at least {{min}} characters",
     "deploymentName": "Deployment name is required (minimum {{min}} characters)",
     "invalid": "Invalid field"
   },
@@ -3976,7 +3690,9 @@
       "finance": "Financial Report",
       "communication": "Communication",
       "development": "Development",
-      "deployment": "Deployment"
+      "deployment": "Deployment",
+      "businessCards": "Business cards",
+      "simulations": "Simulations"
     },
     "card": {
       "updatedAt": "Updated",
@@ -4008,7 +3724,10 @@
       "close": "Close",
       "loading": "Loading document…",
       "notAvailable": "This document is not available yet.",
-      "generateNow": "Generate now"
+      "generateNow": "Generate now",
+      "askRegenerateSection": "Regenerate the “{{section}}” page",
+      "askResume": "Fill in the missing pages",
+      "askRegenerateAll": "Regenerate the whole document"
     },
     "responses": {
       "showCard": "Here is your {{title}}:",
@@ -4042,7 +3761,9 @@
         "finance": "Show my financial report",
         "communication": "Show my communication",
         "development": "Show my development",
-        "deployment": "Show my deployments"
+        "deployment": "Show my deployments",
+        "businessCards": "Show my business cards",
+        "simulations": "Show my simulations"
       },
       "generate": {
         "businessPlan": "Write my business plan",
@@ -4053,7 +3774,9 @@
         "finance": "Complete my finances",
         "communication": "Generate my communication",
         "development": "Set up development",
-        "deployment": "Set up deployment"
+        "deployment": "Set up deployment",
+        "businessCards": "Create my business cards",
+        "simulations": "Run a simulation"
       }
     },
     "recap": {
@@ -4280,12 +4003,14 @@
       "failed": "❌ Generating your {{title}} failed.",
       "retryHint": "Would you like to retry?",
       "chips": {
-        "retry": "Retry generation"
+        "retry": "Retry generation",
+        "retrySection": "Retry this page"
       },
       "cardRunning": "Generating your {{title}}",
       "cardDone": "Your {{title}} is ready",
       "cardError": "Generating your {{title}} failed",
-      "steps": "{{done}}/{{total}} steps completed"
+      "steps": "{{done}}/{{total}} steps completed",
+      "resumed": "Your {{title}} is already being generated — I'm picking the progress up here."
     },
     "launcher": {
       "title": "What are we building for {{name}}?",
@@ -4302,7 +4027,9 @@
         "legalDocs": "Articles, terms, contracts and legal notices.",
         "communication": "Strategy, editorial calendar and flyers.",
         "development": "Generation of your app or website.",
-        "deployment": "Deploy your infrastructure and go live."
+        "deployment": "Deploy your infrastructure and go live.",
+        "businessCards": "Your business card template, drawn from your brand guidelines.",
+        "simulations": "Stress-test your model before the market does."
       },
       "state": {
         "ready": "Ready",
@@ -4324,8 +4051,16 @@
         "privacy": "Privacy policy",
         "statutes": "Articles (SAS)",
         "nda": "Non-disclosure agreement (NDA)",
-        "editor": "Browse the full catalog"
-      }
+        "editor": "Browse the full catalog",
+        "list": "Show my legal documents"
+      },
+      "listIntro": "You have {{count}} legal document(s):",
+      "emptyList": "No legal document has been written yet.",
+      "downloadOne": "Download {{name}}",
+      "downloadFailed": "That document could not be downloaded.",
+      "deleted": "Document deleted.",
+      "deleteFailed": "Deletion failed.",
+      "loadFailed": "Your legal documents could not be loaded."
     },
     "comm": {
       "intro": "Let's work on your **communication**. I can define your editorial strategy and build a content calendar. Where do we start?",
@@ -4345,7 +4080,10 @@
       },
       "chips": {
         "strategy": "Generate the strategy",
-        "calendar": "Generate the calendar"
+        "calendar": "Generate the calendar",
+        "studio": "Compose a visual",
+        "library": "My visual library",
+        "plans": "My editorial calendar"
       }
     },
     "dev": {
@@ -4368,6 +4106,64 @@
       "createFailed": "The pitch deck couldn't be created. Please try again.",
       "chips": {
         "compare": "Compare deck types"
+      }
+    },
+    "documents": {
+      "count": "{{count}} document(s)",
+      "empty": "No document yet.",
+      "sections": "{{completed}} / {{expected}} sections written",
+      "open": "Open",
+      "download": "PDF",
+      "rename": "Rename",
+      "delete": "Delete",
+      "confirmDelete": "Confirm deletion",
+      "renameFailed": "Renaming failed. Try again in a moment.",
+      "deleteFailed": "Deletion failed. Try again in a moment.",
+      "status": {
+        "draft": "Draft",
+        "partial": "In progress",
+        "complete": "Complete"
+      },
+      "businessPlan": {
+        "title": "My business plans",
+        "list": "Show all my business plans",
+        "create": "Write another business plan",
+        "intro": "Here are this project's business plans. Open the one you want to read, or create another one for a different reader.",
+        "none": "This project has no business plan yet."
+      },
+      "pitchDeck": {
+        "title": "My pitch decks",
+        "list": "Show all my pitch decks",
+        "create": "Create another pitch deck",
+        "intro": "Here are this project's pitch decks. Open the one you want to present, or create another one for a different audience.",
+        "none": "This project has no pitch deck yet."
+      }
+    },
+    "finance": {
+      "intro": "I can fill in the whole financial model, or a single part if that is the only one to revisit.",
+      "chips": {
+        "fillAll": "Fill everything"
+      },
+      "sectionDone": "“{{section}}” is up to date.",
+      "sectionFailed": "“{{section}}” could not be filled in."
+    },
+    "cards": {
+      "needsBranding": "Business cards are drawn from your brand guidelines: let's complete those first.",
+      "orientationQuestion": "Which format should your cards use?",
+      "chips": {
+        "landscape": "Landscape (85 × 55 mm)",
+        "portrait": "Portrait (55 × 85 mm)",
+        "openHolders": "Show the cards",
+        "addHolder": "Add a person",
+        "edit": "Edit the template"
+      },
+      "done": "Your card template is ready. Add people and each card fills itself in.",
+      "failed": "The card template could not be drawn."
+    },
+    "simulations": {
+      "intro": "Simulations stress-test your model before the market does. This project's summary takes you to the simulator.",
+      "chips": {
+        "open": "Show my simulations"
       }
     }
   },

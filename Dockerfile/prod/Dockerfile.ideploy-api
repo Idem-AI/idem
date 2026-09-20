@@ -1,0 +1,74 @@
+# Build arguments for environment-specific builds
+ARG BUILD_ENV=production
+
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Workspace manifests
+COPY package.json package-lock.json tsconfig.base.json ./
+
+# Shared packages
+COPY ./packages ./packages
+
+# iDeploy API source
+COPY ./apps/ideploy-api ./apps/ideploy-api
+
+# Install all workspaces from root to establish symlinks
+RUN npm install --legacy-peer-deps
+
+WORKDIR /app/apps/ideploy-api
+
+# Generate the Prisma client (schema-only — no DB reachable at build time)
+RUN npx prisma generate
+
+# Compile TypeScript (tsconfig.json: outDir ./dist, rootDir inferred as api/)
+RUN npm run build
+
+# Production stage
+FROM node:20-alpine AS production
+ARG BUILD_ENV
+
+# openssh-client/bash/curl/docker-cli/git: the deployment engine shells out to
+# ssh/scp and to the Docker CLI on remote servers, and runs `docker`/`git`
+# directly for the "local server" case (see Dockerfile/dev/Dockerfile.ideploy-api
+# for the full explanation — same runtime needs apply in production).
+RUN apk update && apk upgrade && \
+    apk add --no-cache \
+    dumb-init \
+    openssh-client \
+    bash \
+    curl \
+    docker-cli \
+    docker-cli-compose \
+    git \
+    ca-certificates \
+    && rm -rf /var/cache/apk/*
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S ideployapi -u 1001
+
+WORKDIR /app
+
+ENV NODE_ENV=${BUILD_ENV:-production}
+
+# Copy the compiled app and its own package.json (needed for `npm run
+# migrate:*` operational scripts on the server; the app itself is started
+# directly with `node`, not `npm start`).
+COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/package*.json ./
+COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/dist ./dist
+COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/prisma ./prisma
+COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/migrations ./migrations
+
+# node_modules live at the workspace root in this monorepo's npm install
+COPY --from=builder --chown=ideployapi:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=ideployapi:nodejs /app/packages ./packages
+
+RUN mkdir -p /app/logs && chown -R ideployapi:nodejs /app/logs
+
+USER ideployapi
+
+EXPOSE 3002
+
+CMD ["node", "dist/index.js"]

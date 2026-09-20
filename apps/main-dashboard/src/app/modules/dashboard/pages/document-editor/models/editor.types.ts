@@ -94,12 +94,6 @@ export interface SectionLayout {
   width: number;
 }
 
-/** Élément à présélectionner à l'ouverture de l'éditeur (lien profond). */
-export interface EditorTarget {
-  sectionId: string;
-  path: string;
-}
-
 /** Noms des paramètres d'URL du lien profond vers l'éditeur. */
 export const EDITOR_TARGET_PARAMS = {
   section: 'section',
