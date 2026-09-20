@@ -1658,7 +1658,48 @@
       },
       "buttons": {
         "create": "Créer votre premier projet"
-      }
+      },
+      "loading": "Chargement de votre espace…",
+      "searchPlaceholder": "Rechercher un projet par nom ou description…",
+      "filters": {
+        "all": "Tous"
+      },
+      "view": {
+        "grid": "Affichage en grille",
+        "list": "Affichage en liste"
+      },
+      "noResults": {
+        "title": "Aucun projet ne correspond",
+        "description": "Vos filtres ne renvoient rien. Essayez d’effacer la recherche ou de choisir une autre catégorie.",
+        "reset": "Réinitialiser les filtres"
+      },
+      "emptyDescription": "Créez votre premier projet : identité de marque, business plan, application et mise en ligne suivront.",
+      "delete": {
+        "title": "Supprimer le projet ?",
+        "subtitle": "Le projet sera retiré de votre tableau de bord.",
+        "body": "Voulez-vous retirer « {{name}} » de votre tableau de bord ? Le projet est archivé en base, mais n’apparaîtra plus dans votre espace.",
+        "cancel": "Annuler",
+        "confirm": "Supprimer",
+        "pending": "Suppression…"
+      },
+      "greeting": {
+        "morning": "Bonjour",
+        "afternoon": "Bon après-midi",
+        "evening": "Bonsoir"
+      },
+      "types": {
+        "enterprise": "Entreprise",
+        "ecommerce": "Commerce",
+        "web": "Web",
+        "mobile": "Mobile",
+        "iot": "IoT",
+        "desktop": "Bureau",
+        "api": "API",
+        "ai": "IA",
+        "blockchain": "Blockchain",
+        "other": "Autre"
+      },
+      "title": "Mes projets"
     },
     "brandingDisplay": {
       "title": "Document d'identité de marque",

@@ -23,12 +23,14 @@ export const routes: Routes = [
   // CONSOLE ET PROJETS
   // ============================================
   {
+    // `/console` et `/projects` servaient deux listes de projets différentes,
+    // à maintenir séparément : celle-ci cherchait, filtrait et classait, celle
+    // -là non. Une seule page désormais, sous les deux adresses — `/console`
+    // reste l'adresse historique, liée depuis le logo et d'autres applications.
     path: 'console',
     title: 'navigation.titles.console',
     loadComponent: () =>
-      import('./modules/dashboard/pages/global-dashboard/global-dashboard').then(
-        (m) => m.GlobalDashboard,
-      ),
+      import('./modules/dashboard/pages/projects-list/projects-list').then((m) => m.ProjectsList),
     canActivate: [authGuard, surveyGuard],
     data: { layout: 'empty' },
   },
@@ -38,12 +40,15 @@ export const routes: Routes = [
     pathMatch: 'full',
   },
   {
+    // Choisir un projet n'est pas naviguer dans un projet : la barre latérale
+    // n'aurait ici que des liens vers les sections d'un projet qu'on n'a pas
+    // encore choisi. Barre du haut seule.
     path: 'projects',
     title: 'navigation.titles.projects',
     loadComponent: () =>
       import('./modules/dashboard/pages/projects-list/projects-list').then((m) => m.ProjectsList),
     canActivate: [authGuard, surveyGuard],
-    data: { layout: 'dashboard' },
+    data: { layout: 'empty' },
   },
 
   // ============================================
@@ -59,7 +64,9 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./modules/account/pages/account-shell/account-shell').then((m) => m.AccountShellPage),
     canActivate: [authGuard],
-    data: { layout: 'dashboard' },
+    // Même règle que la liste des projets : le compte n'appartient à aucun
+    // projet, donc pas de navigation de projet à l'écran.
+    data: { layout: 'empty' },
     children: [
       {
         path: '',
@@ -115,8 +122,8 @@ export const routes: Routes = [
   // ============================================
   {
     // Après paiement : ce qui a été débité, ce que ça change, où reprendre.
-    // Sous la barre latérale et non en pleine page : une fois payé, on veut
-    // justement pouvoir repartir travailler.
+    // Avec la barre du haut, et non en pleine page comme le paiement : une fois
+    // payé, on veut justement pouvoir repartir travailler.
     path: 'billing/success',
     title: 'account.outcome.title',
     loadComponent: () =>
@@ -124,7 +131,7 @@ export const routes: Routes = [
         (m) => m.PaymentOutcomePage,
       ),
     canActivate: [authGuard],
-    data: { layout: 'dashboard' },
+    data: { layout: 'empty' },
   },
   { path: 'billing', redirectTo: 'account', pathMatch: 'full' },
   { path: 'billing/plans', redirectTo: 'account/plans', pathMatch: 'full' },

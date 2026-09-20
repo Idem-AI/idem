@@ -59,19 +59,35 @@ export class App implements OnInit {
     filter((event) => event instanceof NavigationEnd),
     startWith(null),
     map(() => {
+      /**
+       * On retient la disposition la plus profonde **qui en déclare une**.
+       *
+       * Descendre jusqu'à la feuille et ne lire qu'elle ne marche que sur des
+       * routes plates. Dès qu'une route a des enfants — « Mon compte » et ses
+       * onglets — l'enfant ne déclare pas de disposition, et Angular ne lui
+       * transmet pas celle du parent : un parent qui porte un composant
+       * n'hérite son `data` qu'aux enfants de chemin vide
+       * (`paramsInheritanceStrategy: 'emptyOnly'`, la valeur par défaut).
+       *
+       * La lecture retombait donc sur « public », que le gabarit ne sait pas
+       * rendre : la page restait blanche. En gardant la dernière valeur
+       * rencontrée, l'onglet hérite de la disposition de son espace.
+       */
       let route = this.activatedRoute.firstChild;
-      while (route?.firstChild) {
+      let layout: string | undefined;
+
+      while (route) {
+        layout = (route.snapshot.data?.['layout'] as string | undefined) ?? layout;
         route = route.firstChild;
       }
-      return (
-        (route?.snapshot.data?.['layout'] as
-          | 'public'
-          | 'dashboard'
-          | 'empty'
-          | 'chat'
-          | 'guided'
-          | 'bare') || 'public'
-      );
+
+      return (layout as
+        | 'public'
+        | 'dashboard'
+        | 'empty'
+        | 'chat'
+        | 'guided'
+        | 'bare') || 'public';
     }),
     distinctUntilChanged(),
   );

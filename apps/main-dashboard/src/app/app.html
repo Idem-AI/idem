@@ -23,6 +23,15 @@
       couplé une disposition aux routes qu'elle sert.
     -->
     <router-outlet (activate)="resetPosition()"></router-outlet>
+  } @else {
+    <!--
+      Filet de sécurité : une route qui ne déclare aucune disposition connue
+      rendait un écran blanc, sans erreur ni trace. Mieux vaut la servir avec
+      la barre du haut que ne rien afficher du tout.
+    -->
+    <app-empty-layout>
+      <router-outlet (activate)="resetPosition()"></router-outlet>
+    </app-empty-layout>
   }
 }
 
