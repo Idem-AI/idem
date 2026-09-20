@@ -42,7 +42,7 @@
                         <div class="flex items-center gap-2 mb-2">
                             @if ($backup->latest_log)
                                 <span @class([
-                                    'px-3 py-1 rounded-md text-xs font-medium tracking-wide shadow-xs',
+                                    'px-3 py-1 rounded-md text-xs font-medium shadow-xs',
                                     'bg-blue-100/80 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 dark:shadow-blue-900/5' =>
                                         data_get($backup->latest_log, 'status') === 'running',
                                     'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 dark:shadow-red-900/5' =>
@@ -62,7 +62,7 @@
                                 </span>
                             @else
                                 <span
-                                    class="px-3 py-1 rounded-md text-xs font-medium tracking-wide shadow-xs bg-gray-100 text-gray-800 dark:bg-neutral-800 dark:text-gray-200">
+                                    class="px-3 py-1 rounded-md text-xs font-medium shadow-xs bg-gray-100 text-gray-800 dark:bg-neutral-800 dark:text-gray-200">
                                     No executions yet
                                 </span>
                             @endif
@@ -126,7 +126,7 @@
                         <div class="flex items-center gap-2 mb-2">
                             @if ($backup->latest_log)
                                 <span @class([
-                                    'px-3 py-1 rounded-md text-xs font-medium tracking-wide shadow-xs',
+                                    'px-3 py-1 rounded-md text-xs font-medium shadow-xs',
                                     'bg-blue-100/80 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 dark:shadow-blue-900/5' =>
                                         data_get($backup->latest_log, 'status') === 'running',
                                     'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 dark:shadow-red-900/5' =>
@@ -146,7 +146,7 @@
                                 </span>
                             @else
                                 <span
-                                    class="px-3 py-1 rounded-md text-xs font-medium tracking-wide shadow-xs bg-gray-100 text-gray-800 dark:bg-neutral-800 dark:text-gray-200">
+                                    class="px-3 py-1 rounded-md text-xs font-medium shadow-xs bg-gray-100 text-gray-800 dark:bg-neutral-800 dark:text-gray-200">
                                     No executions yet
                                 </span>
                             @endif

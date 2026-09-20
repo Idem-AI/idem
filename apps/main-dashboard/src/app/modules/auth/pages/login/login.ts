@@ -5,6 +5,7 @@ import { AuthService } from '../../services/auth.service';
 import { SeoService } from '../../../../shared/services/seo.service';
 import { Router, ActivatedRoute } from '@angular/router';
 import { LoginCardComponent } from '../../components/login-card/login-card';
+import { redirectToApp } from '../../../../shared/utils/app-redirect';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
@@ -90,6 +91,13 @@ export class Login implements OnInit {
       // Check if we need to redirect to iDeploy
       if (this.redirectTarget === 'ideploy') {
         await this.handleIdeployRedirect();
+        return;
+      }
+
+      // Simulateur : la session voyage par le cookie partagé, il suffit de
+      // ramener l'utilisateur sur la page qu'il demandait.
+      if (this.redirectTarget === 'simulation') {
+        redirectToApp('simulation', this.returnUrl);
         return;
       }
 

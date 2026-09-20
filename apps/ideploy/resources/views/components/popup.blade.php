@@ -31,7 +31,7 @@
                 @if ($buttonText->attributes->whereStartsWith('@click')->first()) @click="bannerVisible=false;{{ $buttonText->attributes->get('@click') }}"
                 @else
             @click="bannerVisible=false;" @endif
-                class="w-full px-4 py-2 text-sm font-medium tracking-wide transition-colors duration-200 rounded-md bg-neutral-100 hover:bg-neutral-200 dark:bg-coolgray-200 lg:w-auto dark:text-neutral-200 dark:hover:bg-coolgray-300 focus:shadow-outline focus:outline-hidden">
+                class="w-full px-4 py-2 text-sm font-medium transition-colors duration-200 rounded-md bg-neutral-100 hover:bg-neutral-200 dark:bg-coolgray-200 lg:w-auto dark:text-neutral-200 dark:hover:bg-coolgray-300 focus:shadow-outline focus:outline-hidden">
                 {{ $buttonText }}
             </button>
         </div>

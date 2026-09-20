@@ -1,18 +1,81 @@
 {
   "dashboard": {
     "researchConsole": {
+      "title": "AI research team",
+      "subtitle": "Your agents gather real, sourced data, live",
       "dialogTitle": "AI sourced generation",
       "viewResults": "View my forecast",
+      "countersLabel": "Research statistics",
+      "counters": {
+        "agents": "active agents",
+        "queries": "searches",
+        "sources": "sources",
+        "sections": "sections"
+      },
+      "team": {
+        "title": "Team",
+        "empty": "Waiting for the agents to start…"
+      },
+      "feed": {
+        "title": "Live activity",
+        "empty": "No activity yet",
+        "starting": "Starting the research…"
+      },
+      "roles": {
+        "orchestrator": "Team lead",
+        "researcher": "Researcher",
+        "writer": "Writer",
+        "verifier": "Verifier"
+      },
+      "agentStatus": {
+        "queued": "Queued",
+        "planning": "Planning",
+        "searching": "Web search",
+        "reading": "Reading",
+        "writing": "Writing",
+        "verifying": "Verifying",
+        "done": "Done",
+        "error": "Error"
+      },
+      "kinds": {
+        "agent_status": "Step",
+        "search_query": "Searching",
+        "source_found": "Source found",
+        "finding": "Key data",
+        "section_drafted": "Section written",
+        "verification": "Verified",
+        "note": "Note"
+      },
+      "sources": {
+        "title": "Cited sources"
+      },
+      "sections": {
+        "title": "Per-section verification",
+        "cited": "cited",
+        "uncited": "unsourced"
+      },
       "phase": {
         "businessPlan": {
-          "running": { "title": "We're building your business plan" },
-          "finalizing": { "title": "Almost there…" },
-          "done": { "title": "Your business plan is ready" }
+          "running": {
+            "title": "We're building your business plan"
+          },
+          "finalizing": {
+            "title": "Almost there…"
+          },
+          "done": {
+            "title": "Your business plan is ready"
+          }
         },
         "finance": {
-          "running": { "title": "We're setting your financial forecast" },
-          "finalizing": { "title": "Almost there…" },
-          "done": { "title": "Your forecast is ready" }
+          "running": {
+            "title": "We're setting your financial forecast"
+          },
+          "finalizing": {
+            "title": "Almost there…"
+          },
+          "done": {
+            "title": "Your forecast is ready"
+          }
         },
         "subtitle": {
           "running": "Our assistants look up real market data and check every figure.",
@@ -22,19 +85,6 @@
       },
       "progress": {
         "sectionsProgress": "{{done}} of {{total}} sections done"
-      },
-      "now": {
-        "live": "Live",
-        "preparing": "Getting ready",
-        "starting": "We're analyzing your project",
-        "almost": "Final stretch",
-        "finalizing": "Putting your document together",
-        "completed": "Done",
-        "done": "All sections are ready"
-      },
-      "journey": {
-        "title": "Steps",
-        "sources": "{{count}} source(s)"
       },
       "sectionStatus": {
         "done": "Done",
@@ -63,37 +113,54 @@
         "taxes": "Taxes and charges",
         "growth": "Market growth"
       },
-      "feed": {
-        "empty": "No activity yet",
-        "starting": "Starting the research…"
+      "now": {
+        "live": "Live",
+        "preparing": "Getting ready",
+        "starting": "We're analyzing your project",
+        "almost": "Final stretch",
+        "finalizing": "Putting your document together",
+        "completed": "Done",
+        "done": "All sections are ready"
+      },
+      "journey": {
+        "title": "Steps",
+        "sources": "{{count}} source(s)"
       },
       "foot": {
         "note": "Nothing made up · {{queries}} searches"
       },
-      "roles": {
-        "orchestrator": "Team lead",
-        "researcher": "Researcher",
-        "writer": "Writer",
-        "verifier": "Verifier"
-      },
-      "agentStatus": {
-        "queued": "Queued",
-        "planning": "Planning",
-        "searching": "Web search",
-        "reading": "Reading",
-        "writing": "Writing",
-        "verifying": "Verifying",
-        "done": "Done",
-        "error": "Error"
-      },
-      "kinds": {
-        "agent_status": "Step",
-        "search_query": "Searching",
-        "source_found": "Source found",
-        "finding": "Key data",
-        "section_drafted": "Section written",
-        "verification": "Verified",
-        "note": "Note"
+      "elapsed": "Elapsed time",
+      "reassurance": {
+        "planning": {
+          "0": "We are splitting the work between our assistants: research, writing, verification.",
+          "1": "Every section gets its own researcher before it is written.",
+          "2": "We are reading your project to know which data to look for."
+        },
+        "searching": {
+          "0": "Our assistants are searching the web for real figures about your market.",
+          "1": "Every figure found is kept together with the link to its source.",
+          "2": "We look for recent data, specific to your geographic area."
+        },
+        "writing": {
+          "0": "We are writing the section from the data found — nothing is invented.",
+          "1": "Figures are carried over as they are, with their year and scope.",
+          "2": "A well-sourced section takes a moment to write."
+        },
+        "verifying": {
+          "0": "We are checking every figure against the source it came from.",
+          "1": "A figure without a source does not stay in your document.",
+          "2": "Verification is what separates a reliable document from a plausible text."
+        },
+        "finalizing": {
+          "0": "We are assembling the sections and laying out your document.",
+          "1": "Just a moment longer: we are ordering the figures and tables.",
+          "2": "One last pass before handing it back to you."
+        },
+        "done": {
+          "0": "Your document is ready, and every figure links back to its source.",
+          "1": "You can now read it through and adjust whatever you want.",
+          "2": "Everything is saved: you will find this document in your project."
+        }
       }
     }
   }

@@ -153,7 +153,7 @@ import { EditorSelection, ElementStyle } from '../../models/editor.types';
       .prop-label {
         display: flex; justify-content: space-between;
         font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
-        letter-spacing: 0.04em; color: var(--color-text-tertiary);
+color: var(--color-text-tertiary);
       }
       .prop-input {
         width: 100%; height: 2.25rem; padding: 0 0.6rem;

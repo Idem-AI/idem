@@ -41,7 +41,7 @@
             {{-- Loading State --}}
             <div x-show="loading" class="flex flex-col items-center justify-center py-12 border border-[rgba(255,255,255,0.05)] rounded-glass bg-surface-1">
                 <div class="w-4 h-4 rounded-full border-2 border-primary-500/20 border-t-primary-500 animate-spin mb-3"></div>
-                <p class="text-[10px] uppercase tracking-widest text-text-tertiary">Indexing registry</p>
+                <p class="text-[10px] uppercase text-text-tertiary">Indexing registry</p>
             </div>
 
             {{-- Unified List View --}}
@@ -51,7 +51,7 @@
                 <div x-show="filteredGitBasedApplications.length > 0">
                     <div class="bg-[rgba(255,255,255,0.02)] px-4 py-2 border-b border-[rgba(255,255,255,0.05)] flex items-center gap-2">
                         <div class="w-1.5 h-1.5 rounded-full bg-primary-500 mt-px"></div>
-                        <span class="text-[10px] text-text-tertiary uppercase tracking-widest font-medium">Git Based Applications</span>
+                        <span class="text-[10px] text-text-tertiary uppercase font-medium">Git Based Applications</span>
                     </div>
                     <div class="divide-y divide-[rgba(255,255,255,0.05)] border-b border-[rgba(255,255,255,0.05)]">
                         <template x-for="application in filteredGitBasedApplications" :key="application.name">
@@ -75,7 +75,7 @@
                 <div x-show="filteredDockerBasedApplications.length > 0">
                     <div class="bg-[rgba(255,255,255,0.02)] px-4 py-2 border-b border-[rgba(255,255,255,0.05)] flex items-center gap-2">
                         <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-px"></div>
-                        <span class="text-[10px] text-text-tertiary uppercase tracking-widest font-medium">Docker Based Applications</span>
+                        <span class="text-[10px] text-text-tertiary uppercase font-medium">Docker Based Applications</span>
                     </div>
                     <div class="divide-y divide-[rgba(255,255,255,0.05)] border-b border-[rgba(255,255,255,0.05)]">
                         <template x-for="application in filteredDockerBasedApplications" :key="application.name">
@@ -99,7 +99,7 @@
                 <div x-show="filteredDatabases.length > 0">
                     <div class="bg-[rgba(255,255,255,0.02)] px-4 py-2 border-b border-[rgba(255,255,255,0.05)] flex items-center gap-2">
                         <div class="w-1.5 h-1.5 rounded-full bg-accent-500 mt-px"></div>
-                        <span class="text-[10px] text-text-tertiary uppercase tracking-widest font-medium">Databases</span>
+                        <span class="text-[10px] text-text-tertiary uppercase font-medium">Databases</span>
                     </div>
                     <div class="divide-y divide-[rgba(255,255,255,0.05)] border-b border-[rgba(255,255,255,0.05)]">
                         <template x-for="database in filteredDatabases" :key="database.id">
@@ -124,9 +124,9 @@
                     <div class="bg-[rgba(255,255,255,0.02)] px-4 py-2 border-b border-[rgba(255,255,255,0.05)] flex items-center justify-between" x-init="loadResources">
                         <div class="flex items-center gap-2">
                             <div class="w-1.5 h-1.5 rounded-full bg-purple-500 mt-px"></div>
-                            <span class="text-[10px] text-text-tertiary uppercase tracking-widest font-medium">One-Click Services</span>
+                            <span class="text-[10px] text-text-tertiary uppercase font-medium">One-Click Services</span>
                         </div>
-                        <button x-on:click="loadResources" class="text-[9px] uppercase tracking-widest text-text-tertiary hover:text-text-primary transition-colors">Reload List</button>
+                        <button x-on:click="loadResources" class="text-[9px] uppercase text-text-tertiary hover:text-text-primary transition-colors">Reload List</button>
                     </div>
                     <div class="divide-y divide-[rgba(255,255,255,0.05)]">
                         <template x-for="service in filteredServices" :key="service.name">
@@ -223,7 +223,7 @@
                 <div class="absolute top-0 left-0 w-full h-[1px] bg-primary-500 origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out"></div>
                 <header class="flex justify-between items-start mb-6">
                     <h3 class="text-sm font-medium text-text-primary group-hover:text-primary-400 transition-colors">IDEM Managed Infrastructure</h3>
-                    <span class="text-[9px] uppercase tracking-widest text-primary-400 border border-primary-500/20 px-1.5 py-0.5 rounded-sm bg-primary-500/10">Recommended</span>
+                    <span class="text-[9px] uppercase text-primary-400 border border-primary-500/20 px-1.5 py-0.5 rounded-sm bg-primary-500/10">Recommended</span>
                 </header>
                 <div class="text-xs text-text-tertiary leading-relaxed mb-8 max-w-sm flex-1">
                     <p class="mb-2">Deploy instantly on our pre-configured network.</p>
@@ -303,7 +303,7 @@
     @if ($current_step === 'servers')
         <div class="border border-[rgba(255,255,255,0.05)] rounded-glass overflow-hidden bg-surface-1">
             <div class="bg-[rgba(255,255,255,0.02)] px-4 py-3 border-b border-[rgba(255,255,255,0.05)] flex justify-between items-center">
-                <span class="text-[10px] text-text-tertiary uppercase tracking-widest font-medium">Select Host Node</span>
+                <span class="text-[10px] text-text-tertiary uppercase font-medium">Select Host Node</span>
                 <a href="/servers" class="text-[10px] text-text-tertiary hover:text-text-primary underline transition-colors">Manage Servers</a>
             </div>
             
@@ -346,7 +346,7 @@
     @if ($current_step === 'destinations')
         <div class="border border-[rgba(255,255,255,0.05)] rounded-glass overflow-hidden bg-surface-1">
             <div class="bg-[rgba(255,255,255,0.02)] px-4 py-3 border-b border-[rgba(255,255,255,0.05)] flex justify-between items-center">
-                <span class="text-[10px] text-text-tertiary uppercase tracking-widest font-medium">Select Network Destination</span>
+                <span class="text-[10px] text-text-tertiary uppercase font-medium">Select Network Destination</span>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 divide-y sm:divide-y-0">
                 @if ($server->isSwarm())
@@ -384,7 +384,7 @@
     @if ($current_step === 'select-postgresql-type')
         <div x-data="{ selecting: false }" class="border border-[rgba(255,255,255,0.05)] rounded-glass overflow-hidden bg-surface-1">
             <div class="bg-[rgba(255,255,255,0.02)] px-4 py-3 border-b border-[rgba(255,255,255,0.05)]">
-                <span class="text-[10px] text-text-tertiary uppercase tracking-widest font-medium">Select PostgreSQL Engine</span>
+                <span class="text-[10px] text-text-tertiary uppercase font-medium">Select PostgreSQL Engine</span>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-[rgba(255,255,255,0.05)]">
                 <div class="group relative p-6 hover:bg-surface-2 transition-colors cursor-pointer flex flex-col"
@@ -393,7 +393,7 @@
                     <div class="absolute inset-y-0 left-0 w-[1px] bg-primary-500 scale-y-0 group-hover:scale-y-100 transition-transform origin-center"></div>
                     <header class="flex justify-between items-start mb-4">
                         <h3 class="text-sm font-medium text-text-primary group-hover:text-primary-400 transition-colors">Standard v17</h3>
-                        <span class="text-[9px] uppercase tracking-widest text-text-tertiary border border-[rgba(255,255,255,0.05)] px-1.5 py-0.5 rounded-sm bg-surface-base">Default</span>
+                        <span class="text-[9px] uppercase text-text-tertiary border border-[rgba(255,255,255,0.05)] px-1.5 py-0.5 rounded-sm bg-surface-base">Default</span>
                     </header>
                     <p class="text-xs text-text-tertiary leading-relaxed mb-6 max-w-sm flex-1">
                         Base distribution. Light, fast, and secure. Standard performance.
@@ -418,7 +418,7 @@
                     <div class="absolute inset-y-0 left-0 w-[1px] bg-green-500 scale-y-0 group-hover:scale-y-100 transition-transform origin-center"></div>
                     <header class="flex justify-between items-start mb-4">
                         <h3 class="text-sm font-medium text-text-primary group-hover:text-green-400 transition-colors">PostGIS</h3>
-                        <span class="text-[9px] uppercase tracking-widest text-text-tertiary border border-[rgba(255,255,255,0.05)] px-1.5 py-0.5 rounded-sm bg-surface-base">AMD only</span>
+                        <span class="text-[9px] uppercase text-text-tertiary border border-[rgba(255,255,255,0.05)] px-1.5 py-0.5 rounded-sm bg-surface-base">AMD only</span>
                     </header>
                     <p class="text-xs text-text-tertiary leading-relaxed mb-6 max-w-sm flex-1">
                         Geospatial extensions built-in for advanced location mapping.

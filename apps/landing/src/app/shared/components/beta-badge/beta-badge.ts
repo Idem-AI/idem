@@ -22,7 +22,7 @@ import { environment } from '../../../../environments/environment';
           </span>
 
           <!-- Texte BETA -->
-          <span class="font-bold tracking-wider text-text-primary">Beta</span>
+          <span class="font-bold text-text-primary">Beta</span>
         </div>
       </div>
     }

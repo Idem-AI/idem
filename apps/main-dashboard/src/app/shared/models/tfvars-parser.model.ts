@@ -4,12 +4,6 @@
 
 export type TfVarType = 'string' | 'number' | 'boolean' | 'list' | 'map' | 'object';
 
-export interface TfVarValue {
-  type: TfVarType;
-  value: any;
-  originalValue?: string; // Pour conserver le format original
-}
-
 export interface TfVariable {
   key: string;
   type: TfVarType;
@@ -70,12 +64,3 @@ export interface TfVarsFormData {
  */
 export type TfVarsEditMode = 'code' | 'form';
 
-/**
- * Edit state for tfvars files
- */
-export interface TfVarsEditState {
-  mode: TfVarsEditMode;
-  canSwitchToCode: boolean;
-  canSwitchToForm: boolean;
-  hasUnsavedChanges: boolean;
-}

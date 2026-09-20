@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import {
   AgentRole,
@@ -173,18 +181,25 @@ export class AgentResearchConsoleComponent {
       sectionName: active.name,
       sectionLabel: active.label,
       actionKey: role ? ROLE_ACTION_KEY[role] : 'dashboard.researchConsole.action.analyzing',
-      query: role === 'researcher' ? this.latestQuery() : undefined,
+      query: role === 'researcher' ? toReadableText(this.latestQuery(), QUERY_LIMIT) : undefined,
     };
   });
 
-  /** Aperçu du texte en cours de rédaction (streaming), pour la section active. */
+  /**
+   * Aperçu du texte en cours de rédaction.
+   *
+   * Le rédacteur produit du HTML : le montrer tel quel affichait des balises et
+   * des classes CSS à quelqu'un qui attend de lire son business plan. On n'en
+   * garde que le texte visible.
+   */
   protected readonly draftPreview = computed<string | undefined>(() => {
     const n = this.now();
     const d = this.state().draft;
-    if (n.mode === 'active' && n.role === 'writer' && d && d.section === n.sectionName) {
-      return d.preview;
+    if (n.mode !== 'active' || n.role !== 'writer' || !d || d.section !== n.sectionName) {
+      return undefined;
     }
-    return undefined;
+    const readable = toReadableText(d.preview);
+    return readable.length >= MIN_PREVIEW_CHARS ? readable : undefined;
   });
 
   // --- Flux de découvertes ------------------------------------------------
@@ -198,7 +213,7 @@ export class AgentResearchConsoleComponent {
         icon: FEED_ICON[a.kind] ?? 'pi-circle-fill',
         tone: FEED_TONE[a.kind] ?? 'section',
         leadKey: `dashboard.researchConsole.kinds.${a.kind}`,
-        text: a.text,
+        text: toReadableText(a.text, FEED_TEXT_LIMIT),
         url: a.source?.url,
         domain: a.source?.domain,
       });
@@ -206,6 +221,150 @@ export class AgentResearchConsoleComponent {
     return items;
   });
 
+  /**
+   * Les sources trouvées, de la plus récente à la plus ancienne.
+   *
+   * C'est la seule liste que l'écran montre désormais. Le flux mêlait
+   * recherches, sections rédigées et vérifications : un journal technique, là
+   * où l'utilisateur veut savoir une chose — sur quoi repose son document.
+   */
+  protected readonly sources = computed(() =>
+    [...this.state().sources].reverse().slice(0, MAX_VISIBLE_SOURCES),
+  );
+
   protected readonly sourceCount = computed(() => this.state().sources.length);
   protected readonly queryCount = computed(() => this.state().queries.length);
+
+  // --- Tenir compagnie pendant l'attente ----------------------------------
+  //
+  // L'opération dure plusieurs minutes et le flux d'événements a des trous :
+  // sans rien à voir bouger, on croit l'écran figé et on ferme. Ces trois
+  // éléments occupent l'attente sans jamais rien inventer sur le travail en
+  // cours — ils décrivent la démarche, ils n'annoncent pas de résultat.
+
+  /** Secondes écoulées, pour que l'attente soit lisible plutôt que subie. */
+  private readonly tick = signal(0);
+
+  protected readonly elapsed = computed(() => {
+    const seconds = this.tick();
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes}:${String(seconds % 60).padStart(2, '0')}`;
+  });
+
+  /**
+   * Scène illustrée, choisie sur ce que fait réellement l'équipe : elle
+   * change quand le rôle actif change, elle ne tourne pas toute seule.
+   */
+  protected readonly scene = computed<SceneName>(() => {
+    const now = this.now();
+    if (now.mode === 'done') return 'done';
+    if (now.mode === 'finalizing') return 'finalizing';
+    switch (now.role) {
+      case 'researcher':
+        return 'searching';
+      case 'writer':
+        return 'writing';
+      case 'verifier':
+        return 'verifying';
+      default:
+        return 'planning';
+    }
+  });
+
+  /** Explication de l'étape en cours, renouvelée pour soutenir l'attention. */
+  protected readonly reassuranceKey = computed(() => {
+    const index = Math.floor(this.tick() / REASSURANCE_ROTATION_SECONDS) % REASSURANCE_COUNT;
+    return `dashboard.researchConsole.reassurance.${this.scene()}.${index}`;
+  });
+
+  constructor() {
+    // Compteur arrêté dès la fin : rien ne doit continuer à tourner derrière
+    // un écran terminé.
+    const timer = setInterval(() => {
+      if (this.phase() !== 'done') {
+        this.tick.update((value) => value + 1);
+      }
+    }, 1000);
+    inject(DestroyRef).onDestroy(() => clearInterval(timer));
+  }
+}
+
+/** Les cinq scènes illustrées, dans l'ordre où on les traverse. */
+export type SceneName = 'planning' | 'searching' | 'writing' | 'verifying' | 'finalizing' | 'done';
+
+/** Nombre de formulations par scène, et cadence de rotation. */
+const REASSURANCE_COUNT = 3;
+const REASSURANCE_ROTATION_SECONDS = 8;
+
+/** Au-delà, la liste devient un mur : les plus récentes suffisent à rassurer. */
+const MAX_VISIBLE_SOURCES = 8;
+
+/** En deçà, l'aperçu clignoterait plus qu'il n'informerait. */
+const MIN_PREVIEW_CHARS = 12;
+const FEED_TEXT_LIMIT = 160;
+const QUERY_LIMIT = 90;
+
+/**
+ * Marqueurs de nos consignes internes. Un texte qui en porte un n'est pas
+ * destiné à l'utilisateur : il vaut mieux ne rien montrer que de lui afficher
+ * la façon dont on parle au modèle.
+ */
+const INTERNAL_MARKERS = [
+  'CONTEXTE PROJET',
+  'DONNÉES À TROUVER',
+  "N'invente rien",
+  'Tu es un',
+  'Réponds UNIQUEMENT',
+];
+
+/**
+ * Rend un texte présentable : balises HTML retirées, entités décodées, espaces
+ * normalisés, longueur bornée.
+ *
+ * Le rédacteur produit du HTML et les agents s'échangent des consignes ; ni
+ * l'un ni l'autre n'a sa place devant quelqu'un qui attend son business plan.
+ */
+function toReadableText(raw: string | undefined, limit?: number): string {
+  if (!raw) {
+    return '';
+  }
+
+  if (INTERNAL_MARKERS.some((marker) => raw.includes(marker))) {
+    return '';
+  }
+
+  // Le flux arrive par morceaux : la fenêtre commence souvent APRÈS l'ouverture
+  // d'une balise et se termine AVANT sa fermeture. Ces deux fragments-là ne
+  // ressemblent pas à des balises complètes, et survivaient au nettoyage —
+  // c'est ce qui laissait passer `...>` en tête et `<div class="stat-ca` en fin.
+  let windowed = raw.replace(/^[\s.…]+/, '');
+  const firstOpen = windowed.indexOf('<');
+  const firstClose = windowed.indexOf('>');
+  if (firstClose !== -1 && (firstOpen === -1 || firstClose < firstOpen)) {
+    windowed = windowed.slice(firstClose + 1);
+  }
+  windowed = windowed.replace(/<[^>]*$/, ' ');
+
+  const text = windowed
+    // Blocs sans contenu lisible, retirés avec leur contenu.
+    .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, ' ')
+    // Une balise fermante de bloc vaut une séparation de mots.
+    .replace(/<\/(p|div|li|h[1-6]|tr|section)>/gi, ' ')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!limit || text.length <= limit) {
+    return text;
+  }
+  // Coupe au dernier mot entier : une phrase tranchée au milieu d'un mot se lit mal.
+  const cut = text.slice(0, limit);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${lastSpace > limit * 0.6 ? cut.slice(0, lastSpace) : cut}…`;
 }

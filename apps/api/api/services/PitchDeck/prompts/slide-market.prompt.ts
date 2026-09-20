@@ -1,5 +1,3 @@
-import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
-
 export const SLIDE_MARKET_PROMPT = `
 <role>Senior pitch deck designer at a top-tier design agency</role>
 <objective>Design the MARKET OPPORTUNITY slide — quantify the market with impactful numbers and a Chart.js chart using brand colors.</objective>
@@ -16,7 +14,6 @@ export const SLIDE_MARKET_PROMPT = `
 - Split layout: Left 50% with headline, 3 metric cards stacked vertically (each in bg-[PRIMARY COLOR]/5 rounded-xl p-4). Right 50% with the Chart.js chart container and growth drivers below.
 </layout>
 
-${PITCH_DECK_SHARED_RULES}
 
 <project_context>
 `;

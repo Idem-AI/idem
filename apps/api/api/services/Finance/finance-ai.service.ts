@@ -8,8 +8,10 @@
  *  - Génération d'un résumé synthétique en langage naturel.
  */
 
+import { findDocument } from '../common/deliverable-documents';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../../config/logger';
+import { resolveJurisdiction } from '../common/accounting-jurisdiction';
 import { AIChatMessage, LLMProvider, PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
 
@@ -206,43 +208,43 @@ export class FinanceAIService {
    */
   buildMarketResearchSpec(project: ProjectModel): DeliverableSection[] {
     const country = project.additionalInfos?.country || '';
-    const geo = country ? ` (zone: ${country})` : '';
-    const ctx = `${project.name || ''} — ${project.description || ''}`.slice(0, 300);
+    const geo = country ? ` (area: ${country})` : '';
+    const ctx = `${project.name || ''} — ${project.longDescription || project.description || ''}`.slice(0, 300);
     return [
       {
         name: 'Prix de marché',
         instructions:
-          'Synthèse des fourchettes de prix de vente constatées pour ce type de produit/service, avec année et zone.',
+          'Synthesis of the observed selling-price ranges for this kind of product or service, with year and area.',
         needsResearch: true,
         researchBriefs: [
-          `Prix de vente pratiqués et fourchettes tarifaires pour ce type d'offre${geo}. Contexte: ${ctx}`,
+          `Selling prices charged and price ranges for this kind of offering${geo}. Context: ${ctx}`,
         ],
       },
       {
         name: 'Structure de coûts',
         instructions:
-          'Synthèse des postes de coûts et marges de référence du secteur (coûts unitaires, charges variables/fixes).',
+          'Synthesis of the sector benchmark cost lines and margins (unit costs, variable and fixed charges).',
         needsResearch: true,
         researchBriefs: [
-          `Structure de coûts, coûts unitaires et marges brutes de référence du secteur${geo}. Contexte: ${ctx}`,
+          `Cost structure, unit costs and benchmark gross margins for the sector${geo}. Context: ${ctx}`,
         ],
       },
       {
         name: 'Fiscalité & charges sociales',
         instructions:
-          "Synthèse des taux d'imposition sur les sociétés, TVA et taux de charges sociales applicables.",
+          'Synthesis of the applicable corporate income tax rates, VAT and social charge rates.',
         needsResearch: true,
         researchBriefs: [
-          `Taux d'impôt sur les sociétés, TVA et charges sociales en vigueur${geo}`,
+          `Corporate income tax rates, VAT and social charges currently in force${geo}`,
         ],
       },
       {
         name: 'Croissance & adoption',
         instructions:
-          "Synthèse des taux de croissance du marché et rythmes d'adoption observés.",
+          'Synthesis of the observed market growth rates and adoption pace.',
         needsResearch: true,
         researchBriefs: [
-          `Taux de croissance annuel du marché et rythme d'adoption pour ce secteur${geo}. Contexte: ${ctx}`,
+          `Annual market growth rate and adoption pace for this sector${geo}. Context: ${ctx}`,
         ],
       },
     ];
@@ -262,11 +264,11 @@ export class FinanceAIService {
       { role: 'system', content: FINANCE_CHAT_INTENT_PROMPT },
       {
         role: 'system',
-        content: `CONTEXTE PROJET:\nNom: ${project.name}\nDescription: ${project.description}\nType: ${project.type}`,
+        content: `CONTEXTE PROJET:\nNom: ${project.name}\nDescription: ${project.longDescription || project.description}\nType: ${project.type}`,
       },
       {
         role: 'system',
-        content: `CONTEXTE FINANCE (résumé):\n${this.summarizeFinanceForContext(currentFinance)}`,
+        content: `FINANCE CONTEXT (summary):\n${this.summarizeFinanceForContext(currentFinance)}`,
       },
       { role: 'user', content: userMessage },
     ];
@@ -463,18 +465,45 @@ export class FinanceAIService {
   private summarizeProjectForContext(project: ProjectModel): string {
     return [
       `Nom: ${project.name || '—'}`,
-      `Description: ${project.description || '—'}`,
+      `Description: ${project.longDescription || project.description || '—'}`,
       `Type: ${project.type || '—'}`,
       `Cible: ${project.targets || '—'}`,
       `Scope: ${project.scope || '—'}`,
       `Taille équipe: ${project.teamSize || '—'}`,
       `Budget: ${project.budgetIntervals || '—'}`,
       `Pays: ${project.additionalInfos?.country || '—'}`,
+      // La juridiction décide du référentiel, de la règle d'exercice, de la
+      // devise et du taux d'IS de droit commun. Sans elle, le modèle transposait
+      // le régime camerounais à un projet nigérian ou marocain.
+      ...(() => {
+        const j = resolveJurisdiction(project.additionalInfos?.country);
+        if (j.framework === 'unknown') {
+          return [
+            'Juridiction comptable: non déterminée — ne présumez aucun référentiel, ' +
+              "aucune règle d'exercice et aucun taux d'imposition.",
+          ];
+        }
+        return [
+          `Juridiction comptable: ${j.country} — ${j.frameworkLabel}`,
+          `Règle d'exercice: ${
+            j.fiscalYearRule === 'calendar-mandatory'
+              ? "année civile obligatoire (1er janvier au 31 décembre)"
+              : j.fiscalYearRule === 'calendar-default'
+                ? 'année civile par défaut, dérogation possible'
+                : 'date de clôture librement arrêtée par la société'
+          }`,
+          `Devise: ${j.currency}`,
+          ...(j.defaultCorporateTaxRatePct !== undefined
+            ? [`Impôt sur les sociétés (droit commun, ${j.taxAsOf}, indicatif): ${j.defaultCorporateTaxRatePct} %`]
+            : []),
+        ];
+      })(),
     ].join('\n');
   }
 
   private summarizeBusinessPlanForContext(project: ProjectModel): string {
-    const bp: any = project.analysisResultModel?.businessPlan;
+    // Le plan le plus récemment modifié : c'est celui que l'utilisateur travaille.
+    const bp: any = findDocument(project.analysisResultModel, 'businessPlan');
     if (!bp || !bp.sections || bp.sections.length === 0) return 'Aucun business plan disponible.';
 
     const IMPORTANT_SECTIONS = [

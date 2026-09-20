@@ -1,0 +1,54 @@
+<section class="py-24 lg:py-32">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6">
+    <h2 class="max-w-3xl text-3xl font-bold leading-tight text-balance text-text-primary sm:text-4xl lg:text-5xl" i18n="@@simulation.sectors.title">
+      Factors depend on the business, not on a template
+    </h2>
+    <p class="mt-5 max-w-2xl text-lg leading-relaxed text-pretty text-text-secondary" i18n="@@simulation.sectors.body">
+      Two businesses, two worlds. A fixed list of twenty variables applied to everyone would describe neither of them properly.
+    </p>
+
+    <div class="mt-14 grid gap-6 sm:grid-cols-2 lg:gap-8">
+      @for (column of sectorFactors; track column.id) {
+        <div class="glass-card overflow-hidden rounded-3xl">
+          <div
+            class="flex items-center gap-4 border-b border-[var(--glass-border-subtle)] bg-linear-to-br p-6"
+            [class]="column.id === 'delivery' ? 'from-accent-500/25 to-primary/10' : 'from-emerald-400/25 to-teal-500/10'"
+          >
+            <span class="grid size-12 shrink-0 place-items-center rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-medium)]">
+              <svg
+                viewBox="0 0 24 24"
+                class="size-6"
+                [class]="column.id === 'delivery' ? 'text-accent-700 dark:text-accent-400' : 'text-emerald-700 dark:text-emerald-400'"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path [attr.d]="column.icon" />
+              </svg>
+            </span>
+            <div>
+              <h3 class="text-lg font-semibold text-text-primary">{{ column.sector }}</h3>
+              <p class="mt-0.5 text-sm text-text-tertiary">{{ column.note }}</p>
+            </div>
+          </div>
+
+          <ul class="flex flex-col gap-2.5 p-6 sm:p-7">
+            @for (factor of column.factors; track factor) {
+              <li class="flex items-center gap-3 text-text-secondary">
+                <span
+                  class="size-1.5 shrink-0 rounded-full"
+                  [class]="column.id === 'delivery' ? 'bg-accent-500' : 'bg-emerald-500'"
+                  aria-hidden="true"
+                ></span>
+                {{ factor }}
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    </div>
+  </div>
+</section>

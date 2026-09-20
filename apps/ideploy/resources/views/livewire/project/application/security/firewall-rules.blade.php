@@ -1,4 +1,4 @@
-<div style="font-family: 'Jura', sans-serif;">
+<div style="font-family: 'Vilevile', sans-serif;">
     <x-slot:title>
         {{ data_get_str($application, 'name')->limit(10) }} > Rules | iDeploy
     </x-slot>
@@ -23,7 +23,7 @@
     {{-- Header --}}
     <div class="flex justify-between items-center mb-6">
         <div>
-            <h1 class="text-2xl font-bold text-white tracking-wide">Rules</h1>
+            <h1 class="text-2xl font-bold text-white">Rules</h1>
             <p class="text-sm text-gray-500 mt-1">Configure custom rules to protect your application</p>
         </div>
         <div class="flex gap-3">
@@ -53,7 +53,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                     </svg>
                 </div>
-                <h3 class="text-base font-semibold text-white mb-2 tracking-wide">There are no enforced rules</h3>
+                <h3 class="text-base font-semibold text-white mb-2">There are no enforced rules</h3>
                 <p class="text-sm text-gray-500 mb-6">Create your first custom firewall rule to get started</p>
                 <button wire:click="openCreateModal" class="inner-button button-sm flex items-center gap-2 mx-auto">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -67,12 +67,12 @@
             <table class="w-full">
                 <thead class="glass-dark border-b border-glass">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Rule</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Conditions</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Action</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Matches</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Rule</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Conditions</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Action</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Matches</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Status</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-400 uppercase">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-glass">
@@ -80,7 +80,7 @@
                         <tr class="hover:bg-white/3 transition-colors duration-150">
                             <td class="px-6 py-4">
                                 <div class="flex flex-col">
-                                    <span class="text-sm font-semibold text-white tracking-wide">{{ $rule['name'] }}</span>
+                                    <span class="text-sm font-semibold text-white">{{ $rule['name'] }}</span>
                                     @if($rule['description'])
                                         <span class="text-xs text-gray-500 mt-1">{{ Str::limit($rule['description'], 60) }}</span>
                                     @endif
@@ -90,7 +90,7 @@
                                 <span class="text-sm text-gray-400">{{ count($rule['conditions']) }} condition(s)</span>
                             </td>
                             <td class="px-6 py-4">
-                                <span class="px-2.5 py-1 rounded-md text-xs font-semibold tracking-wide
+                                <span class="px-2.5 py-1 rounded-md text-xs font-semibold
                                     @if($rule['action'] === 'block') bg-red-900/30 text-red-400 border border-red-800/50
                                     @elseif($rule['action'] === 'captcha') bg-yellow-900/30 text-yellow-400 border border-yellow-800/50
                                     @elseif($rule['action'] === 'allow') bg-green-900/30 text-green-400 border border-green-800/50
@@ -148,7 +148,7 @@
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4"
              x-data="{ step: 1 }"
              x-cloak
-             style="font-family: 'Jura', sans-serif;">
+             style="font-family: 'Vilevile', sans-serif;">
 
             {{-- Backdrop --}}
             <div class="absolute inset-0 bg-black/90 backdrop-blur-sm" wire:click="closeCreateModal"></div>
@@ -159,8 +159,8 @@
                 {{-- Header --}}
                 <div class="flex items-center justify-between px-6 pt-6 pb-4">
                     <div>
-                        <p class="text-xs text-gray-500 tracking-widest uppercase mb-1">Firewall</p>
-                        <h2 class="text-xl font-bold text-white tracking-wide">New Rule</h2>
+                        <p class="text-xs text-gray-500 uppercase mb-1">Firewall</p>
+                        <h2 class="text-xl font-bold text-white">New Rule</h2>
                     </div>
                     <button wire:click="closeCreateModal" class="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -240,7 +240,7 @@
                 <div x-show="step === 2" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-x-2" x-transition:enter-end="opacity-100 translate-x-0">
                     <div class="px-6 py-5 flex flex-col gap-3">
                         <div class="flex items-center gap-3 mb-1">
-                            <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">If</span>
+                            <span class="text-xs font-bold text-gray-500 uppercase">If</span>
                             <div class="flex-1 h-px bg-gray-800"></div>
                         </div>
 
@@ -248,7 +248,7 @@
                             @if($index > 0)
                                 <div class="flex justify-center">
                                     <select wire:model="newRule.logical_operator"
-                                            class="px-5 py-1.5 bg-gray-900 border border-gray-700/80 rounded-lg text-gray-300 text-xs font-bold tracking-widest uppercase focus:outline-none focus:border-primary/60 appearance-none cursor-pointer text-center">
+                                            class="px-5 py-1.5 bg-gray-900 border border-gray-700/80 rounded-lg text-gray-300 text-xs font-bold uppercase focus:outline-none focus:border-primary/60 appearance-none cursor-pointer text-center">
                                         <option value="AND">AND</option>
                                         <option value="OR">OR</option>
                                     </select>

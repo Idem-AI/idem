@@ -1,21 +1,35 @@
 :host {
   display: block;
   height: 100vh;
+  height: 100dvh; /* barre d'adresse mobile : la hauteur visible, pas la théorique */
   overflow: hidden;
 }
 
 .editor-shell {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   background: var(--color-surface-1);
 }
 
+/*
+ * Mise en page par largeur d'écran :
+ *  - ≥ 1280px : pages | canvas | inspecteur, pages repliables ;
+ *  - 1024–1279px : mêmes colonnes, plus étroites ;
+ *  - < 1024px : le canvas prend toute la largeur. Les pages deviennent un
+ *    tiroir à gauche, l'inspecteur un panneau qui monte du bas dès qu'un
+ *    élément est sélectionné. Rien n'est masqué : tout reste éditable.
+ */
 .editor-body {
+  position: relative;
   flex: 1;
   display: grid;
-  grid-template-columns: 220px 1fr 340px;
+  grid-template-columns: 1fr 340px;
   min-height: 0;
+}
+
+.editor-body.layers-open {
+  grid-template-columns: 220px 1fr 340px;
 }
 
 .editor-side {
@@ -25,11 +39,20 @@
 }
 
 .editor-side-left {
+  display: none;
   border-right: 1px solid var(--glass-border);
+}
+
+.layers-open .editor-side-left {
+  display: block;
 }
 
 .editor-side-right {
   border-left: 1px solid var(--glass-border);
+}
+
+.editor-backdrop {
+  display: none;
 }
 
 .editor-main {
@@ -110,7 +133,30 @@
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+}
+
+.inspector-close {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  color: var(--color-text-secondary);
+}
+
+.inspector-close:hover {
+  background: var(--glass-bg-subtle);
+  color: var(--color-text-primary);
+}
+
+.inspector-close:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.sheet-grip {
+  display: none;
 }
 
 .inspector-section {
@@ -139,21 +185,95 @@
   text-align: center;
 }
 
-/* Responsive : masque le panneau des calques sur petit écran. */
-@media (max-width: 1024px) {
+@media (max-width: 1279px) {
   .editor-body {
-    grid-template-columns: 1fr 320px;
+    grid-template-columns: 1fr 300px;
   }
-  .editor-side-left {
-    display: none;
+  .editor-body.layers-open {
+    grid-template-columns: 200px 1fr 300px;
   }
 }
 
-@media (max-width: 720px) {
-  .editor-body {
+@media (max-width: 1023px) {
+  .editor-body,
+  .editor-body.layers-open {
     grid-template-columns: 1fr;
   }
+
+  /* Pages : tiroir gauche au-dessus du canvas. */
+  .editor-side-left {
+    display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 40;
+    width: min(280px, 85vw);
+    box-shadow: 12px 0 40px rgba(0, 0, 0, 0.25);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition:
+      transform 0.22s ease,
+      visibility 0s linear 0.22s;
+  }
+  .layers-open .editor-side-left {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.22s ease;
+  }
+  .layers-open .editor-backdrop {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 35;
+    background: rgba(0, 0, 0, 0.35);
+  }
+
+  /* Inspecteur : panneau bas, visible dès qu'un élément est sélectionné. */
   .editor-side-right {
-    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    max-height: min(60dvh, 560px);
+    border-left: none;
+    border-top: 1px solid var(--glass-border);
+    border-radius: 1rem 1rem 0 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.25);
+    transform: translateY(100%);
+    visibility: hidden;
+    transition:
+      transform 0.25s ease,
+      visibility 0s linear 0.25s;
+  }
+  .has-selection .editor-side-right {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.25s ease;
+  }
+  .inspector-header {
+    padding-top: 1.1rem;
+  }
+  .inspector-close {
+    display: inline-flex;
+  }
+  .sheet-grip {
+    display: block;
+    position: absolute;
+    top: 0.4rem;
+    left: 50%;
+    width: 2.5rem;
+    height: 0.25rem;
+    border-radius: 9999px;
+    transform: translateX(-50%);
+    background: var(--glass-border-strong, var(--glass-border));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editor-side-left,
+  .editor-side-right {
+    transition: none !important;
   }
 }

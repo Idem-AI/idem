@@ -36,6 +36,25 @@
           </p-floatlabel>
         </div>
 
+        <!-- Courte description du projet -->
+        <div class="mb-4 sm:mb-6 w-full">
+          <p-floatlabel variant="in">
+            <textarea
+              pInputTextarea
+              id="dyn_project_short_description"
+              [ngModel]="shortDescription()"
+              (ngModelChange)="onShortDescriptionChange($event)"
+              autocomplete="off"
+              maxlength="200"
+              rows="2"
+              class="w-full text-sm sm:text-base resize-none"
+            ></textarea>
+            <label for="dyn_project_short_description" class="text-sm sm:text-base">{{
+              'dashboard.createProject.steps.description' | translate
+            }} (Max 200)</label>
+          </p-floatlabel>
+        </div>
+
         <!-- Type de projet -->
         <div class="mb-6">
           <label for="dyn_project_type" class="block text-sm sm:text-base font-medium mb-2">

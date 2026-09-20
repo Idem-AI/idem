@@ -46,7 +46,7 @@
                     @endif
                     <div class="flex items-center gap-2 mb-2">
                         <span @class([
-                            'px-3 py-1 rounded-md text-xs font-medium tracking-wide shadow-xs',
+                            'px-3 py-1 rounded-md text-xs font-medium shadow-xs',
                             'bg-blue-100/80 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 dark:shadow-blue-900/5' =>
                                 data_get($execution, 'status') === 'running',
                             'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 dark:shadow-red-900/5' =>

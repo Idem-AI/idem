@@ -1,8 +1,20 @@
 export const USAGE_GUIDELINES_SECTION_PROMPT = `<role>Brand governance expert and editorial designer</role>
 <objective>Create a FULL-PAGE usage guidelines section in French covering color and typography usage rules dynamically matching the brand context.</objective>
 
+<where_this_page_sits>
+This page CLOSES the charter, after the specimens and the mockups. The palette
+and the typefaces have already been SHOWN, page after page: do not present them
+again, do not re-explain what they are. This page states only what a designer
+must DO with them — and it carries every colour and type rule, because the
+specimen pages deliberately state none.
+
+A rule is one sentence, and it is testable: "the accent never covers more than
+10% of a page", not "use the accent sparingly". Prefer tables and short rule
+cards to running text.
+</where_this_page_sits>
+
 <page_content>
-1. Section title: "Règles d'Utilisation".
+1. Section title: "Utilisation — Couleurs & Typographie".
 2. Color application rules:
    - Primary: HEX code, where to use (CTAs, headers), max coverage (e.g. 30%).
    - Secondary: HEX code, where to use.

@@ -1,10 +1,7 @@
 import {
   Component,
   ChangeDetectionStrategy,
-  ElementRef,
-  HostListener,
   inject,
-  ViewChild,
   OnInit,
   signal,
   computed,
@@ -12,32 +9,17 @@ import {
   Output,
   EventEmitter,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { AuthService } from '../../../auth/services/auth.service';
 import { CommonModule } from '@angular/common';
 import { trigger, transition, style, animate, state } from '@angular/animations';
-import { ProjectService } from '../../services/project.service';
-import { ProjectModel } from '@idem/shared-models';
-import { SelectElement } from '../../pages/create-project/datas';
-import { FormsModule } from '@angular/forms';
 import { Router, NavigationEnd, RouterModule } from '@angular/router';
-import { first, switchMap } from 'rxjs/operators';
-import { EMPTY, firstValueFrom } from 'rxjs';
-import { CookieService } from '../../../../shared/services/cookie.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { BetaBadgeComponent } from '../../../../shared/components/beta-badge/beta-badge';
-import { QuotaDisplayComponent } from '../../../../shared/components/quota-display/quota-display';
-import { QuotaService } from '../../../../shared/services/quota.service';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import {
-  QuotaInfoResponse,
-  QuotaDisplayData,
-  BetaRestrictions,
-  QuotaStatus,
-} from '../../../../shared/models/quota.model';
-import { LanguageSelectorComponent } from 'apps/main-dashboard/src/app/shared/components/language-selector/language-selector';
-import { ThemeToggleComponent } from 'apps/main-dashboard/src/app/shared/components/theme-toggle/theme-toggle';
-import { ModeToggleComponent } from '../../../chat/components/mode-toggle/mode-toggle';
+import { UiModeService } from '../../../../shared/services/ui-mode.service';
+import { GuidedJourneyService } from '../../../guided/services/guided-journey.service';
+import { BillingService } from '../../../billing/services/billing.service';
+import { CurrentProjectService } from '../../../../shared/services/current-project.service';
+import { LanguageSelectorComponent } from '../../../../shared/components/language-selector/language-selector';
+import { ThemeToggleComponent } from '../../../../shared/components/theme-toggle/theme-toggle';
 
 @Component({
   selector: 'app-sidebar-dashboard',
@@ -46,14 +28,10 @@ import { ModeToggleComponent } from '../../../chat/components/mode-toggle/mode-t
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
     RouterModule,
-    BetaBadgeComponent,
-    QuotaDisplayComponent,
     TranslateModule,
     LanguageSelectorComponent,
     ThemeToggleComponent,
-    ModeToggleComponent,
   ],
   animations: [
     trigger('slideInOut', [
@@ -111,13 +89,15 @@ import { ModeToggleComponent } from '../../../chat/components/mode-toggle/mode-t
 })
 export class SidebarDashboard implements OnInit {
   // Services and Router
-  private readonly auth = inject(AuthService);
-  private readonly projectService = inject(ProjectService);
   private readonly router = inject(Router);
-  private readonly cookieService = inject(CookieService);
-  private readonly quotaService = inject(QuotaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly translate = inject(TranslateService);
+  private readonly uiModeService = inject(UiModeService);
+  private readonly journey = inject(GuidedJourneyService);
+  private readonly billing = inject(BillingService);
+
+  // Lu par le gabarit (tiroir mobile) : protégé plutôt que privé.
+  protected readonly projects = inject(CurrentProjectService);
 
   // Navigation items
   protected readonly navigationItems = signal<
@@ -243,6 +223,13 @@ export class SidebarDashboard implements OnInit {
       isActive: false,
     },
     {
+      labelKey: 'dashboard.sidebar.simulations',
+      icon: 'pi pi-bolt',
+      route: 'project/simulations',
+      isActive: false,
+      isNew: true,
+    },
+    {
       labelKey: 'dashboard.sidebar.advisor',
       icon: 'pi pi-comments',
       route: 'project/advisor',
@@ -268,6 +255,58 @@ export class SidebarDashboard implements OnInit {
     },
   ]);
 
+  // ─────────────────────────────────────────── Navigation du mode Assisté
+
+  protected readonly isGuidedMode = computed(() => this.uiModeService.mode() === 'guided');
+
+  /**
+   * Le menu complet reste affiché en mode Assisté, mais tout ce que le
+   * parcours n'a pas encore ouvert apparaît grisé et cadenassé : on voit où
+   * l'on va sans pouvoir y sauter. Les étapes déjà produites, elles,
+   * redeviennent cliquables — ce qui est fait reste consultable.
+   */
+  protected readonly displayedNavItems = computed(() => {
+    const guided = this.isGuidedMode();
+    return this.navigationItems().map((item) => {
+      const locked = guided && !this.journey.isRouteAllowed(`/${item.route}`);
+      return {
+        ...item,
+        locked,
+        // Un groupe verrouillé ne se déplie pas : ses sous-pages sont fermées aussi.
+        isExpanded: locked ? false : item.isExpanded,
+      };
+    });
+  });
+
+  /**
+   * Clic sur une entrée verrouillée : on bloque la navigation et on explique.
+   * Le `routerLink` est déjà neutralisé, ceci couvre le clic milieu / Entrée.
+   */
+  protected onNavItemClick(item: { route: string; locked: boolean }, event: Event): void {
+    if (!item.locked) return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.journey.reportBlocked(`/${item.route}`);
+  }
+
+  /** Un groupe verrouillé (Finances) ouvre la modale au lieu de se déplier. */
+  protected onNavGroupClick(item: { route: string; locked: boolean }, event: Event): void {
+    if (item.locked) {
+      this.onNavItemClick(item, event);
+      return;
+    }
+    this.toggleExpand(item);
+  }
+
+  /** Version mobile : même verrou, plus la fermeture du tiroir. */
+  protected onMobileNavItemClick(item: { route: string; locked: boolean }, event: Event): void {
+    if (item.locked) {
+      this.onNavItemClick(item, event);
+      return;
+    }
+    this.toggleMobileDrawer();
+  }
+
   /** Toggle d'expansion d'un item parent (Finances) */
   toggleExpand(item: { route: string }): void {
     const items = this.navigationItems();
@@ -276,20 +315,58 @@ export class SidebarDashboard implements OnInit {
     );
   }
 
+  /**
+   * L'offre et les crédits, résumés pour le pied de la barre.
+   *
+   * Tirés du même signal que « Mon compte » : le chiffre affiché en permanence
+   * et celui de la page de facturation ne peuvent pas diverger, et un paiement
+   * qui aboutit les met à jour tous les deux d'un coup.
+   *
+   * Rien n'est traduit ici. `instant()` lit la table de traduction au moment du
+   * calcul sans s'y abonner : le résumé serait figé dans la langue active au
+   * premier rendu et ne suivrait pas un changement de langue. Le gabarit reçoit
+   * donc une clé et un nombre, et c'est le pipe `translate` — lui, réactif —
+   * qui rend le texte.
+   *
+   * `null` tant que la facturation n'a pas répondu : un « 0 crédit » affiché
+   * par défaut ferait croire à un compte vide.
+   */
+  protected readonly accountSummary = computed(() => {
+    const plans = this.billing.plans();
+    if (plans.length === 0) return null;
+
+    // Les moteurs restés sur l'offre gratuite ne sont pas nommés : l'espace
+    // d'une barre latérale ne supporte pas un inventaire, et c'est l'offre
+    // payée que l'on veut y reconnaître.
+    const paid = plans.filter((plan) => plan.state !== 'free');
+
+    const credits = plans
+      .filter((plan) => plan.engine !== 'ideploy')
+      .reduce((total, plan) => total + plan.credits, 0);
+
+    return {
+      // Une seule offre payée se nomme ; plusieurs se comptent.
+      planName: paid.length === 1 ? `${paid[0].engineLabel} ${paid[0].currentName}` : null,
+      planKey: paid.length === 0 ? 'account.freePlan' : 'account.severalPlans',
+      paidCount: paid.length,
+      credits,
+      needsAttention: this.billing.attention() !== null,
+    };
+  });
+
   // Signals for UI State
-  isLoading = signal(true);
-  isMenuOpen = signal(false);
-  isDropdownOpen = signal(false);
+  protected readonly isLoading = signal(true);
   protected readonly isSidebarCollapsed = signal(false);
   protected readonly isMobileDrawerOpen = signal(false);
-  protected readonly isProjectSelectorOpen = signal(false);
 
-  // Quota Signals (managed locally)
-  protected readonly quotaInfo = signal<QuotaInfoResponse | null>(null);
-  protected readonly quotaDisplay = signal<QuotaDisplayData | null>(null);
-  protected readonly isBeta = signal<boolean>(false);
-  protected readonly betaRestrictions = signal<BetaRestrictions | null>(null);
-  protected readonly isQuotaLoading = signal<boolean>(true);
+  /**
+   * Sélecteur de projet du tiroir mobile, fermé par défaut.
+   *
+   * Un compte avec vingt projets repoussait tout le menu hors de l'écran.
+   * Fermé, le tiroir montre le projet courant puis la navigation ; ouvert, la
+   * liste défile dans sa propre zone.
+   */
+  protected readonly isMobileProjectListOpen = signal(false);
 
   // Computed values for UI states
   protected readonly sidebarState = computed(() =>
@@ -303,40 +380,9 @@ export class SidebarDashboard implements OnInit {
   // Output event to notify parent components of sidebar state changes
   @Output() sidebarCollapsedChange = new EventEmitter<boolean>();
 
-  // User and Project Data Signals
-  protected readonly user = toSignal(this.auth.user$);
-  private readonly _userProjects = signal<ProjectModel[]>([]);
-  protected readonly selectedProject = signal<SelectElement | undefined>(undefined);
-  protected readonly projectIdFromCookie = signal<string | null>(null);
   protected readonly currentRoute = signal<string>('');
 
-  // Computed signal for dropdown project list
-  dropDownProjects = computed(() => {
-    // Add "View All Projects" as the first option
-    const allProjectsOption = {
-      name: this.translate.instant('dashboard.sidebar.viewAllProjects'),
-      code: 'all-projects',
-    };
-
-    // Get the regular project options
-    const projectOptions = this._userProjects().map((p) => ({
-      name: p.name,
-      code: p.id!,
-    }));
-
-    // Return the special option at the top followed by the regular projects
-    return [allProjectsOption, ...projectOptions];
-  });
-
-  @ViewChild('menu') menuRef!: ElementRef;
-
   constructor() {
-    // Initialize projectIdFromCookie from saved cookie
-    const savedProjectId = this.cookieService.get('projectId');
-    if (savedProjectId) {
-      this.projectIdFromCookie.set(savedProjectId);
-    }
-
     // Initialize sidebar collapsed state from localStorage
     const savedSidebarState = localStorage.getItem('sidebarCollapsed');
     if (savedSidebarState) {
@@ -352,210 +398,70 @@ export class SidebarDashboard implements OnInit {
       }
     });
 
-    // Effect to update sidebar menu when selectedProject changes - REMOVED to prevent loops
-    // The updateSidebarRoutes is now only called from router events
-
-    // Initialize project selection after projects load - moved to loadProjects method
-    // This prevents the effect from running multiple times and causing loops
   }
 
   ngOnInit() {
-    this.initializeMenu();
-    this.loadProjects();
-  }
-
-  /**
-   * Initializes project selection after projects are loaded
-   */
-  private initializeProjectSelection(projects: ProjectModel[]): void {
-    if (projects.length === 0) {
-      this.selectedProject.set(undefined);
-      return;
-    }
-
-    const cookieId = this.cookieService.get('projectId');
-
-    if (cookieId) {
-      const projectFromCookie = projects.find((p) => p.id === cookieId);
-      if (projectFromCookie) {
-        // Valid project from cookie
-        this.selectedProject.set({
-          name: projectFromCookie.name,
-          code: cookieId,
-        });
-        return;
-      } else {
-        console.warn(
-          this.translate.instant('dashboard.sidebar.errors.projectNotFound', { cookieId }),
-        );
-      }
-    }
-
-    // Fallback to first project
-    const firstProject = projects[0];
-    this.selectedProject.set({
-      name: firstProject.name,
-      code: firstProject.id!,
-    });
-    this.cookieService.set('projectId', firstProject.id!);
-  }
-
-  /**
-   * Loads quota information from the QuotaService
-   */
-  private loadQuotaInfo(): void {
-    this.isQuotaLoading.set(true);
-
-    this.quotaService
-      .getQuotaInfo()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (info: QuotaInfoResponse) => {
-          this.quotaInfo.set(info);
-          this.isBeta.set(info.isBeta || false);
-          this.processQuotaDisplayData(info);
-          this.isQuotaLoading.set(false);
-        },
-        error: (error) => {
-          console.warn('Failed to load quota info:', error);
-          // Set default values instead of failing
-          this.quotaInfo.set(null);
-          this.isBeta.set(false);
-          this.quotaDisplay.set(null);
-          this.isQuotaLoading.set(false);
-        },
-      });
-  }
-
-  /**
-   * Processes quota info into display data
-   */
-  private processQuotaDisplayData(info: QuotaInfoResponse): void {
-    if (!info) return;
-
-    const dailyPercentage = (info.dailyUsage / info.dailyLimit) * 100;
-    const weeklyPercentage = (info.weeklyUsage / info.weeklyLimit) * 100;
-
-    const displayData: QuotaDisplayData = {
-      dailyPercentage,
-      weeklyPercentage,
-      dailyStatus: this.getQuotaStatus(dailyPercentage),
-      weeklyStatus: this.getQuotaStatus(weeklyPercentage),
-      canUseFeature: info.remainingDaily > 0 && info.remainingWeekly > 0,
-    };
-
-    this.quotaDisplay.set(displayData);
-
-    // Set beta restrictions if user is in beta
-    if (info.isBeta) {
-      this.betaRestrictions.set({
-        maxStyles: 3,
-        maxResolution: '1024x1024',
-        maxOutputTokens: 2000,
-        restrictedPrompts: [],
-        allowedFeatures: ['basic'],
-      });
-    }
-  }
-
-  /**
-   * Determines quota status based on percentage
-   */
-  private getQuotaStatus(percentage: number): QuotaStatus {
-    if (percentage >= 100) return QuotaStatus.EXCEEDED;
-    if (percentage >= 80) return QuotaStatus.WARNING;
-    return QuotaStatus.AVAILABLE;
-  }
-
-  /**
-   * Initializes the menu items
-   */
-  private initializeMenu(): void {
-    // Menu items are now handled by navigationItems signal
     this.updateActiveStates();
+    this.loadProjects();
+
+    // La barre est montée sur toutes les pages de travail : c'est le bon
+    // endroit pour charger les droits une fois. Le catalogue vient avec, sans
+    // lui on connaîtrait le solde mais pas le nom de l'offre.
+    if (!this.billing.me()) this.billing.loadMe().subscribe();
+    if (!this.billing.catalog()) this.billing.loadCatalog().subscribe();
+
+    // La sidebar du mode Assisté est dessinée à partir du parcours : il doit
+    // connaître le projet actif pour savoir ce qui est ouvert.
+    if (this.isGuidedMode()) {
+      void this.journey.loadFromCookie();
+    }
   }
 
   /**
-   * Loads projects from the ProjectService
+   * Charge les projets, puis vérifie qu'on a bien de quoi afficher cette page.
+   *
+   * La liste vient du service partagé : la barre du haut l'a déjà demandée, et
+   * un second appel ne dirait rien de plus.
    */
   private loadProjects(): void {
     this.isLoading.set(true);
-    this.auth.user$
-      .pipe(
-        first(),
-        switchMap((user) => {
-          if (!user) {
-            console.log('User not authenticated.');
-            this._userProjects.set([]);
-            this.isLoading.set(false);
-            return EMPTY;
-          }
-          return this.projectService.getProjects(); // Fetches projects
-        }),
-      )
+
+    this.projects
+      .load()
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (projects) => {
-          this._userProjects.set(projects);
-          this.loadQuotaInfo();
-
-          if (projects.length > 0) {
-            // Initialize project selection immediately
-            this.initializeProjectSelection(projects);
-
-            const initialCookieId = this.cookieService.get('projectId');
-            if (!initialCookieId) {
-              this.router.navigate([`/console`], {
-                replaceUrl: true,
-              });
-            } else {
-              const projectExists = projects.find((p) => p.id === initialCookieId);
-              if (!projectExists) {
-                console.warn(
-                  this.translate.instant('dashboard.sidebar.errors.initialProjectNotFound', {
-                    initialCookieId,
-                  }),
-                );
-                this.router.navigate([`/console`], { replaceUrl: true });
-              }
-            }
-          } else {
-            this.router.navigate([`/project/create`], {
-              replaceUrl: true,
-            });
-          }
           this.isLoading.set(false);
+
+          // Cette barre ne sert plus qu'aux pages de projet : sans projet, il
+          // n'y a rien à y naviguer.
+          if (projects.length === 0) this.leaveProjectScope('/create-project');
         },
-        error: (err) => {
-          console.error('Error fetching projects in ngOnInit:', err);
-          this._userProjects.set([]);
+        error: () => {
           this.isLoading.set(false);
-          // Navigate to create project page on error
-          this.router.navigate(['/project/create'], { replaceUrl: true });
+          this.leaveProjectScope('/create-project');
         },
       });
   }
 
-  onProjectChange(project: SelectElement) {
-    const projectId = project.code;
-    if (projectId) {
-      // Check if "View All Projects" option was selected
-      if (projectId === 'all-projects') {
-        // Navigate to global dashboard
-        this.router.navigate(['/console']);
-        this.isProjectSelectorOpen.set(false);
-        return;
-      }
+  /** Choisit un projet depuis le tiroir mobile, puis referme le tiroir. */
+  protected chooseProject(projectId: string): void {
+    this.toggleMobileDrawer();
+    this.projects.select(projectId);
+  }
 
-      // Regular project selection - save to cookie
-      // Also set selectedProject signal so UI updates immediately
-      this.selectedProject.set(project);
-      this.cookieService.set('projectId', projectId);
-      this.projectIdFromCookie.set(projectId);
-      this.isProjectSelectorOpen.set(false);
-
-      // Navigate to the project dashboard
-      this.router.navigate(['/project/dashboard']);
-    }
+  /**
+   * Renvoie ailleurs, mais seulement depuis une page de projet.
+   *
+   * Cette barre latérale sert désormais aussi « Mon compte » et la liste des
+   * projets, qui n'ont pas besoin d'un projet sélectionné. Rediriger
+   * inconditionnellement — ce que faisait le code précédent — éjectait de sa
+   * facturation tout utilisateur n'ayant encore créé aucun projet, au moment
+   * précis où il venait choisir une offre.
+   */
+  private leaveProjectScope(target: string): void {
+    if (!this.router.url.startsWith('/project/')) return;
+    void this.router.navigate([target], { replaceUrl: true });
   }
 
   updateSidebarRoutes() {
@@ -588,70 +494,19 @@ export class SidebarDashboard implements OnInit {
     this.navigationItems.set(updatedItems);
   }
 
-  /**
-   * Toggles project selector dropdown
-   */
-  toggleProjectSelector(): void {
-    this.isProjectSelectorOpen.update((open) => !open);
-  }
-
-  toggleMenu() {
-    this.isMenuOpen.update((open) => !open);
+  protected toggleMobileProjectList(): void {
+    this.isMobileProjectListOpen.update((open) => !open);
   }
 
   toggleMobileDrawer() {
     this.isMobileDrawerOpen.update((open) => !open);
+    this.isMobileProjectListOpen.set(false);
+
     // Prevent body scroll when drawer is open
     if (this.isMobileDrawerOpen()) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
-    }
-  }
-
-  toggleDropdown() {
-    this.isDropdownOpen.update((open) => !open);
-  }
-
-  navigateTo(path: string) {
-    this.isDropdownOpen.set(false);
-    this.isMobileDrawerOpen.set(false); // Close mobile drawer on navigation
-    // Normalize to absolute URL and navigate reliably
-    const url = path.startsWith('/') ? path : `/${path}`;
-    this.router.navigateByUrl(url);
-  }
-
-  async logout() {
-    this.isDropdownOpen.set(false);
-    try {
-      await firstValueFrom(this.auth.logout());
-      this.router.navigate(['/login']);
-    } catch (error) {
-      console.error('Error during logout:', error);
-      // Navigate to login even if logout fails
-      this.router.navigate(['/login']);
-    }
-  }
-
-  @HostListener('document:click', ['$event'])
-  onClickOutside(event: Event) {
-    if (this.isMenuOpen() && this.menuRef && !this.menuRef.nativeElement.contains(event.target)) {
-      this.isMenuOpen.set(false);
-    }
-  }
-
-  @HostListener('document:click', ['$event.target'])
-  onClickOutsideDropdown(targetElement: HTMLElement) {
-    const dropdownButton = targetElement.closest('button.flex.items-center');
-    const dropdownMenu = targetElement.closest('.fixed.right-0.mt-2');
-    const projectSelector = targetElement.closest('.project-selector');
-
-    if (this.isDropdownOpen() && !dropdownButton && !dropdownMenu) {
-      this.isDropdownOpen.set(false);
-    }
-
-    if (this.isProjectSelectorOpen() && !projectSelector) {
-      this.isProjectSelectorOpen.set(false);
     }
   }
 

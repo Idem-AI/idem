@@ -28,6 +28,12 @@ export interface BusinessCardPromptParams {
   };
   /** Direction artistique libre saisie par l'utilisateur (optionnelle). */
   styleBrief?: string;
+  /**
+   * Bloc `<art_direction>` de la marque. Une carte de visite est le support où
+   * l'écart avec le reste de la charte se voit le plus : elle est tenue à côté
+   * du logo, à quelques centimètres de l'œil.
+   */
+  artDirectionBlock?: string;
 }
 
 /**
@@ -51,6 +57,7 @@ export function buildBusinessCardPrompt(params: BusinessCardPromptParams): strin
     typography,
     logos,
     styleBrief,
+    artDirectionBlock,
   } = params;
 
   return `<role>Senior brand designer specialised in print stationery (business cards)</role>
@@ -70,8 +77,10 @@ export function buildBusinessCardPrompt(params: BusinessCardPromptParams): strin
   · icon on light bg: ${logos.iconLight || '(none)'}
   · icon on dark bg: ${logos.iconDark || '(none)'}
   · icon monochrome: ${logos.iconMono || '(none)'}
-${styleBrief ? `- Art direction requested by the user (MUST be honoured): ${styleBrief}` : ''}
+${styleBrief ? `- Art direction requested by the user for THIS card (MUST be honoured, and it overrides the brand direction below where they conflict): ${styleBrief}` : ''}
 </brand_context>
+
+${artDirectionBlock || ''}
 
 <card_format>
 - Physical size: ${width} mm × ${height} mm (${orientation}), the international standard.

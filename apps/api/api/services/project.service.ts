@@ -222,18 +222,29 @@ class ProjectService {
   }
 
   /**
-   * Conserve les SVG de logo déjà externalisés (URLs MinIO) face à une écriture
-   * client qui repousserait le markup inline.
+   * Conserve les assets de logo déjà produits par le backend face à une
+   * écriture client qui les écraserait.
    *
-   * Le front garde en mémoire le logo tel qu'il l'a reçu en streaming (SVG
-   * inline) et resauvegarde le projet entier à plusieurs moments du workflow.
-   * Quand le backend a externalisé les SVG entre-temps (génération des
-   * déclinaisons), cette écriture arrivait après et remplaçait les URLs par du
-   * markup — les consommateurs qui attendent une URL (aperçus, PDF, pitch deck)
-   * n'affichaient alors plus le logo principal.
+   * Deux formes de perte, toutes deux dues au même écart : le front garde en
+   * mémoire le logo tel qu'il l'a reçu, et resauvegarde le projet ENTIER à
+   * plusieurs moments du workflow, alors que le backend a enrichi le logo
+   * entre-temps. Or Firestore remplace `analysisResultModel` en bloc.
+   *
+   * 1. ÉCRASEMENT — le front repousse du SVG inline là où le backend a posé une
+   *    URL MinIO. Les consommateurs qui attendent une URL (aperçus, PDF, pitch
+   *    deck) n'affichaient alors plus le logo principal.
+   * 2. OMISSION — le front renvoie un logo AMPUTÉ de ses déclinaisons. C'est
+   *    volontaire de sa part (`stripRedundantInlineLogoVariations` les retire
+   *    pour ne pas dépasser la limite de body, et le logo importé est construit
+   *    sans elles), en supposant que le backend les conserve. Il ne le faisait
+   *    pas : les déclinaisons générées à l'import étaient effacées à la
+   *    sauvegarde suivante, et la charte s'affichait ensuite sans aucune
+   *    déclinaison — comme si elles n'avaient jamais été générées.
    *
    * Le garde-fou ne s'applique qu'au même logo (id identique) : choisir un
-   * autre concept reste possible et remplace bien les assets.
+   * autre concept reste possible et remplace bien les assets. Et il ne fait que
+   * COMPLÉTER : une valeur envoyée par le front n'est jamais remplacée par
+   * celle d'en base, sauf dans le cas 1 (inline contre URL hébergée).
    */
   private async preserveHostedLogoAssets(
     userId: string,
@@ -259,7 +270,17 @@ class ProjectService {
       variationSets.some((set) =>
         variationKinds.some((kind) => isInlineSvg(incomingLogo['variations']?.[set]?.[kind]))
       );
-    if (!hasInline) return updatedData;
+
+    // Champs que le backend produit et que le front ne sait pas reconstituer :
+    // s'il en manque un, la lecture en base est justifiée même sans inline.
+    const hostedOnlyFields = ['iconSvg', 'assetUrls'] as const;
+    const omitsHostedAsset =
+      hostedOnlyFields.some((field) => incomingLogo[field] == null) ||
+      variationSets.some((set) =>
+        variationKinds.some((kind) => incomingLogo['variations']?.[set]?.[kind] == null)
+      );
+
+    if (!hasInline && !omitsHostedAsset) return updatedData;
 
     const stored = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     const storedLogo = stored?.analysisResultModel?.branding?.logo as Record<string, any> | undefined;
@@ -270,8 +291,13 @@ class ProjectService {
     const preservedFields: string[] = [];
     const logo: Record<string, any> = { ...incomingLogo };
 
+    // Vrai quand la valeur du front doit céder la place à celle d'en base :
+    // soit elle est absente, soit c'est du markup inline là où une URL existe.
+    const shouldRestore = (incoming: unknown, hosted: unknown): boolean =>
+      isHostedUrl(hosted) && (incoming == null || isInlineSvg(incoming));
+
     for (const field of ['svg', 'iconSvg'] as const) {
-      if (isInlineSvg(logo[field]) && isHostedUrl(storedLogo[field])) {
+      if (shouldRestore(logo[field], storedLogo[field])) {
         logo[field] = storedLogo[field];
         preservedFields.push(field);
       }
@@ -279,22 +305,28 @@ class ProjectService {
 
     for (const set of variationSets) {
       for (const kind of variationKinds) {
-        const incoming = logo['variations']?.[set]?.[kind];
         const hosted = storedLogo['variations']?.[set]?.[kind];
-        if (isInlineSvg(incoming) && isHostedUrl(hosted)) {
+        if (shouldRestore(logo['variations']?.[set]?.[kind], hosted)) {
           logo['variations'] = {
             ...logo['variations'],
-            [set]: { ...logo['variations'][set], [kind]: hosted },
+            [set]: { ...(logo['variations']?.[set] ?? {}), [kind]: hosted },
           };
           preservedFields.push(`variations.${set}.${kind}`);
         }
       }
     }
 
+    // PNG hébergés : le front ne les fabrique jamais, il ne fait que les lire.
+    // Absents du payload, ils sont donc toujours à reprendre de la base.
+    if (logo['assetUrls'] == null && storedLogo['assetUrls'] != null) {
+      logo['assetUrls'] = storedLogo['assetUrls'];
+      preservedFields.push('assetUrls');
+    }
+
     if (preservedFields.length === 0) return updatedData;
 
     logger.info(
-      `Preserved hosted logo SVG URLs against inline overwrite - ProjectId: ${projectId}, fields: ${preservedFields.join(
+      `Preserved hosted logo assets against client overwrite - ProjectId: ${projectId}, fields: ${preservedFields.join(
         ', '
       )}`
     );
@@ -361,7 +393,7 @@ class ProjectService {
     const currency = project.currency || 'Non spécifiée';
     const targets = project.targets || 'Non spécifié';
     const type = project.type || 'Non spécifié';
-    const description = project.description || 'Non spécifiée';
+    const description = project.longDescription || project.description || 'Non spécifiée';
 
     const projectDescription = `
         Projet à analyser :
@@ -482,7 +514,7 @@ class ProjectService {
           let content = await fsExtra.readFile(fullPath, 'utf-8');
           // Basic placeholder replacements
           content = content.replace(/\{\{project\.name\}\}/g, project.name || '');
-          content = content.replace(/\{\{project\.description\}\}/g, project.description || '');
+          content = content.replace(/\{\{project\.description\}\}/g, (project.longDescription || project.description || ''));
           content = content.replace(/\{\{project\.type\}\}/g, project.type || '');
           // Add other simple fields from ProjectModel as needed
 

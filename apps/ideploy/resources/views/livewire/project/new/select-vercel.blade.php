@@ -50,7 +50,7 @@
                 <div x-show="filteredGitBasedApplications.length > 0">
                     <div class="mb-6">
                         <h2 class="text-2xl font-bold text-white mb-2">Applications</h2>
-                        <p class="text-sm text-gray-400 uppercase tracking-wide">Git Based</p>
+                        <p class="text-sm text-gray-400 uppercase">Git Based</p>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -61,7 +61,7 @@
 
                                 {{-- Category Tag --}}
                                 <div class="absolute top-4 left-4">
-                                    <span class="text-xs text-gray-500 uppercase tracking-wider font-semibold">Application</span>
+                                    <span class="text-xs text-gray-500 uppercase font-semibold">Application</span>
                                 </div>
 
                                 {{-- Logo --}}
@@ -84,7 +84,7 @@
                 {{-- Docker Based Applications --}}
                 <div x-show="filteredDockerBasedApplications.length > 0">
                     <div class="mb-6">
-                        <p class="text-sm text-gray-400 uppercase tracking-wide">Docker Based</p>
+                        <p class="text-sm text-gray-400 uppercase">Docker Based</p>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -95,7 +95,7 @@
 
                                 {{-- Category Tag --}}
                                 <div class="absolute top-4 left-4">
-                                    <span class="text-xs text-gray-500 uppercase tracking-wider font-semibold">Docker</span>
+                                    <span class="text-xs text-gray-500 uppercase font-semibold">Docker</span>
                                 </div>
 
                                 {{-- Logo --}}
@@ -130,7 +130,7 @@
 
                                 {{-- Category Tag --}}
                                 <div class="absolute top-4 left-4">
-                                    <span class="text-xs text-green-500 uppercase tracking-wider font-semibold">Database</span>
+                                    <span class="text-xs text-green-500 uppercase font-semibold">Database</span>
                                 </div>
 
                                 {{-- Logo --}}
@@ -179,7 +179,7 @@
 
                                 {{-- Category Tag --}}
                                 <div class="absolute top-4 left-4">
-                                    <span class="text-xs text-purple-500 uppercase tracking-wider font-semibold">Service</span>
+                                    <span class="text-xs text-purple-500 uppercase font-semibold">Service</span>
                                 </div>
 
                                 {{-- Documentation Link --}}

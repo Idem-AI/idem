@@ -37,21 +37,21 @@ export const Editor = ({ fileName, initialLine }: EditorProps) => {
       ref={editorRef}
       className={`
         editor-container h-full w-full overflow-hidden
-        [&_.cm-editor]:!bg-[#ffffff] [&_.cm-editor]:dark:!bg-[#18181a]
+        [&_.cm-editor]:!bg-surface-1 [&_.cm-editor]:dark:!bg-surface-1
         [&_.cm-scroller]:!font-mono
         /* 行号和边栏区域 */
-        [&_.cm-gutters]:!bg-[#f5f5f5] [&_.cm-gutters]:dark:!bg-[#18181a]
-        [&_.cm-gutters]:border-r [&_.cm-gutters]:border-[#e5e5e5] [&_.cm-gutters]:dark:border-[#3c3c3c]
+        [&_.cm-gutters]:!bg-surface-2 [&_.cm-gutters]:dark:!bg-surface-1
+        [&_.cm-gutters]:border-r [&_.cm-gutters]:border-[var(--glass-border)] [&_.cm-gutters]:dark:border-[var(--glass-border)]
         [&_.cm-lineNumbers]:!text-[#237893] [&_.cm-lineNumbers]:dark:!text-[#c5c5c5]
         [&_.cm-gutterElement]:pl-[10px] [&_.cm-gutterElement]:min-w-[40px]
         
         /* 活动行高亮 */
-        [&_.cm-activeLine]:!bg-[#f6f6f6] [&_.cm-activeLine]:dark:!bg-[#2c2c2c]
-        [&_.cm-activeLineGutter]:!bg-[#f6f6f6] [&_.cm-activeLineGutter]:dark:!bg-[#2c2c2c]
+        [&_.cm-activeLine]:!bg-surface-2 [&_.cm-activeLine]:dark:!bg-surface-2
+        [&_.cm-activeLineGutter]:!bg-surface-2 [&_.cm-activeLineGutter]:dark:!bg-surface-2
         
         /* 选择和搜索 */
         [&_.cm-selectionBackground]:!bg-[#add6ff80] [&_.cm-selectionBackground]:dark:!bg-[#3a6da0]
-        [&_.cm-selectionMatch]:!bg-[#c9d0d988] [&_.cm-selectionMatch]:dark:!bg-[#4e4e4e]
+        [&_.cm-selectionMatch]:!bg-[#c9d0d988] [&_.cm-selectionMatch]:dark:!bg-surface-3
         [&_.cm-searchMatch]:!bg-[#ffd70033] [&_.cm-searchMatch]:dark:!bg-[#6b8caf]
         [&_.cm-searchMatch-selected]:!bg-[#ffa50080]
         
@@ -59,12 +59,12 @@ export const Editor = ({ fileName, initialLine }: EditorProps) => {
         [&_.cm-cursor]:!border-l-[2px] [&_.cm-cursor]:!border-l-solid [&_.cm-cursor]:!border-l-[#ff0000] [&_.cm-cursor]:dark:!border-l-[#ff0000]
         
         /* 特殊元素 */
-        [&_.cm-matchingBracket]:!bg-[#c9d0d988] [&_.cm-matchingBracket]:dark:!bg-[#4e4e4e]
+        [&_.cm-matchingBracket]:!bg-[#c9d0d988] [&_.cm-matchingBracket]:dark:!bg-surface-3
         [&_.cm-matchingBracket]:!border-[#569cd6]
         [&_.cm-nonmatchingBracket]:!border-[#cd3131]
-        [&_.cm-foldPlaceholder]:!bg-[#f5f5f5] [&_.cm-foldPlaceholder]:dark:!bg-[#2d2d2d]
-        [&_.cm-tooltip]:!bg-white [&_.cm-tooltip]:dark:!bg-[#1a1a1c]
-        [&_.cm-tooltip]:border-[#e5e5e5] [&_.cm-tooltip]:dark:border-[#454545]
+        [&_.cm-foldPlaceholder]:!bg-surface-2 [&_.cm-foldPlaceholder]:dark:!bg-surface-2
+        [&_.cm-tooltip]:!bg-white [&_.cm-tooltip]:dark:!bg-surface-1
+        [&_.cm-tooltip]:border-[var(--glass-border)] [&_.cm-tooltip]:dark:border-[var(--glass-border)]
         
         /* 语法高亮基础样式 */
         [&_.cm-line]:!text-[#000000] [&_.cm-line]:dark:!text-[#e4e4e4]

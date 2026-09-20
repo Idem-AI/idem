@@ -125,6 +125,7 @@ export interface ProjectModel {
   id?: string;
   name: string;
   description: string;
+  longDescription?: string;
   type:
     | 'web'
     | 'mobile'

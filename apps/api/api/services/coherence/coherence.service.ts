@@ -1,6 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../../config/logger';
-import { AI_CONFIG } from '../../config/ai.config';
 import { RepositoryFactory } from '../../repository/RepositoryFactory';
 import { IRepository } from '../../repository/IRepository';
 import { ProjectModel } from '../../models/project.model';
@@ -12,6 +11,7 @@ import {
 } from '../../models/coherence.model';
 import { CoherenceAlert } from '../../schemas/coherence.schema';
 import { AIChatMessage, promptService } from '../prompt.service';
+import { runAgentPrompt } from '../agents/agent-runtime';
 import { markRevisionAsAI, suppressCoherenceTrigger } from '../../utils/revision-context.util';
 import { logAIEvent } from '../../utils/ai-trace.util';
 import { sectionHasContent, sectionRegistry, summarizeValue } from '../context-engine/context-registry';
@@ -36,26 +36,26 @@ const SECTION_CONTEXT_MAX_CHARS = 7_000;
 /** Code MongoDB pour une violation de contrainte unique (course gagnée par un autre audit/apply concurrent). */
 const MONGO_DUPLICATE_KEY_ERROR = 11000;
 
-const COHERENCE_SYSTEM_PROMPT = `Tu es un auditeur de cohérence pour la plateforme IDEM.
-On te donne deux artefacts d'un même projet d'entreprise et le contrat de cohérence qui les lie.
-Ta mission: détecter les incohérences RÉELLES et importantes (contradictions de fond, données manquantes d'un côté alors que l'autre les définit). Ignore les différences de formulation ou de niveau de détail.
+const COHERENCE_SYSTEM_PROMPT = `You are a coherence auditor for the IDEM platform.
+You are given two artefacts of the same business project and the coherence contract that binds them.
+Your mission: detect REAL and significant inconsistencies (substantive contradictions, data missing on one side while the other defines it). Ignore differences of wording or of level of detail.
 
-Réponds UNIQUEMENT avec un objet JSON valide, sans markdown, au format:
+Answer with a VALID JSON object ONLY, no markdown, in this shape:
 {
   "coherent": boolean,
-  "analysis": "diagnostic en 2-4 phrases, en français",
+  "analysis": "a 2-4 sentence diagnosis, written IN FRENCH",
   "issues": [
     {
-      "description": "l'incohérence constatée",
-      "targetSection": "la section à corriger",
-      "suggestedAction": "l'action concrète recommandée"
+      "description": "the inconsistency observed, IN FRENCH",
+      "targetSection": "the section to fix",
+      "suggestedAction": "the concrete recommended action, IN FRENCH"
     }
   ],
   "financeAutofillRecommended": boolean
 }
 
-"financeAutofillRecommended" = true si la section finance est vide ou très incomplète alors que le business plan définit un modèle économique exploitable — DANS CE CAS, mets-le à true MÊME SI tu réponds coherent=true avec issues=[] (une finance vide n'est pas "incohérente" en soi, mais reste une action recommandée: ce champ est indépendant de "coherent").
-Si les deux artefacts sont cohérents et qu'il n'y a rien à recommander (ou si l'un des deux est trop vide pour juger sans rapport avec l'autre), renvoie coherent=true, issues=[], financeAutofillRecommended=false.`;
+"financeAutofillRecommended" = true when the finance section is empty or very incomplete while the business plan defines a usable economic model — IN THAT CASE set it to true EVEN IF you answer coherent=true with issues=[] (an empty finance module is not "incoherent" in itself, but it is still a recommended action: this field is independent of "coherent").
+If the two artefacts are coherent and there is nothing to recommend (or if one of them is too empty to judge against the other), return coherent=true, issues=[], financeAutofillRecommended=false.`;
 
 export class CoherenceService {
   private readonly projectRepository: IRepository<ProjectModel>;
@@ -148,7 +148,7 @@ export class CoherenceService {
       {
         role: 'user',
         content: [
-          `CONTRAT DE COHÉRENCE (règle "${rule.id}"):`,
+          `COHERENCE CONTRACT (rule "${rule.id}"):`,
           rule.contract,
           '',
           `=== SECTION "${keyA}" ===`,
@@ -160,17 +160,42 @@ export class CoherenceService {
       },
     ];
 
-    const raw = await promptService.runPrompt(
+    // Comparer deux artefacts et rendre un verdict JSON est une VÉRIFICATION,
+    // pas une rédaction : c'est la définition même de l'étage XS du routeur.
+    // L'audit tournait à l'étage rédaction (glm-4.7, 0,60 $/M) alors qu'il se
+    // déclenche à chaque écriture projet et consomme ~3 500 tokens d'entrée —
+    // c'est le poste de fond le plus cher de la plateforme.
+    //
+    // `validate` est ce qui rend la baisse d'étage sûre : un verdict illisible
+    // fait escalader vers l'étage supérieur, une fois. On paie donc le tarif
+    // rédaction seulement quand le petit modèle a réellement échoué.
+    const audit = await runAgentPrompt(
       {
-        provider: AI_CONFIG.default.provider,
-        modelName: AI_CONFIG.default.modelName,
+        role: 'coherence-auditor',
+        task: 'verify',
+        systemPrompt: COHERENCE_SYSTEM_PROMPT,
+        promptType: 'coherence-audit',
+        llmOptions: { temperature: 0.1, maxOutputTokens: 2048, jsonMode: true },
+        validate: (text) => {
+          try {
+            this.parseVerdict(text);
+            return { ok: true };
+          } catch (error: any) {
+            return { ok: false, reason: error?.message ?? 'verdict illisible' };
+          }
+        },
+      },
+      // `runAgentPrompt` place le systemPrompt lui-même ; on ne passe que la charge.
+      messages.filter((message) => message.role !== 'system')[0].content,
+      {
+        userId,
+        projectId,
+        element: `coherence:${ruleId}`,
         // Audit initié par le système: ne consomme pas le quota utilisateur.
         skipQuotaCheck: true,
-        llmOptions: { temperature: 0.2, maxOutputTokens: 2048 },
-      },
-      messages
+      }
     );
-    const verdict = this.parseVerdict(raw);
+    const verdict = this.parseVerdict(audit.text);
     const hasFinanceProposal = rule.supportsFinanceAutofill && verdict.financeAutofillRecommended;
 
     logAIEvent('coherence.verdict', {
@@ -179,6 +204,10 @@ export class CoherenceService {
       coherent: verdict.coherent,
       issuesCount: verdict.issues.length,
       financeAutofillRecommended: verdict.financeAutofillRecommended,
+      // Un taux d'escalade élevé signifierait que l'étage XS ne suffit pas pour
+      // cet audit — c'est la mesure qui autoriserait à revenir en arrière.
+      tier: audit.tier,
+      escalated: audit.escalated,
     });
 
     await this.supersedeOpenAlerts(projectId, ruleId);

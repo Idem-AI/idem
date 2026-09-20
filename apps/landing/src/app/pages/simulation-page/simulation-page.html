@@ -1,0 +1,23 @@
+<div class="relative overflow-hidden">
+  <!-- Ambient light, kept behind everything -->
+  <div class="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+    <div class="absolute -left-40 -top-52 h-[520px] w-[520px] rounded-full bg-linear-to-br from-primary to-accent-500 opacity-[0.08] blur-[130px] dark:opacity-[0.06]"></div>
+    <div class="absolute right-[-10rem] top-[18rem] h-[560px] w-[560px] rounded-full bg-linear-to-tr from-accent-500 to-primary opacity-[0.07] blur-[140px] dark:opacity-[0.05]"></div>
+    <div class="absolute -bottom-52 -right-40 h-[440px] w-[440px] rounded-full bg-linear-to-tr from-accent-500 to-secondary-500 opacity-[0.06] blur-[130px] dark:opacity-[0.05]"></div>
+  </div>
+
+  <div class="relative z-10">
+    <app-simulation-hero />
+    <app-simulation-factor-wall />
+    <app-simulation-pipeline />
+    <app-simulation-sectors />
+    <app-simulation-stress-tests />
+    <app-simulation-readout />
+    <app-simulation-evidence />
+    <app-simulation-report />
+    <app-simulation-loop />
+    <app-simulation-entry />
+    <app-simulation-honesty />
+    <app-simulation-cta />
+  </div>
+</div>

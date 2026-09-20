@@ -65,10 +65,25 @@
                   <app-deliverable-card
                     [card]="card"
                     [busy]="cardBusy()"
-                    (previewRequested)="openPreview(card.kind)"
-                    (downloadRequested)="downloadFromCard(card.kind)"
+                    (previewRequested)="openPreview(card.kind, card.documentId)"
+                    (downloadRequested)="downloadFromCard(card.kind, card.documentId)"
                     (generateRequested)="openGenerateFor(card)"
                     (editorRequested)="openEditor(card.editorRoute)"
+                  />
+                }
+
+                <!-- Documents d'un livrable : un projet garde plusieurs
+                     business plans et plusieurs pitch decks -->
+                @if (msg.documentList; as list) {
+                  <app-document-list-card
+                    [kind]="list.kind"
+                    [documents]="list.documents"
+                    [busy]="cardBusy() || isGenerating()"
+                    (opened)="onDocumentOpened(list.kind, $event)"
+                    (downloaded)="onDocumentDownloaded(list.kind, $event)"
+                    (renamed)="onDocumentRenamed(msg.id, list.kind, $event)"
+                    (removed)="onDocumentRemoved(msg.id, list.kind, $event)"
+                    (createRequested)="onDocumentCreateRequested(list.kind)"
                   />
                 }
 
@@ -111,6 +126,17 @@
                 <!-- Progression d'une génération (business plan, charte, pitch deck) -->
                 @if (msg.generation; as generation) {
                   <app-generation-progress-card [data]="generation" />
+                }
+
+                <!-- Choix de la structure du business plan -->
+                @if (msg.bpStructureChoice) {
+                  <app-bp-structure-card
+                    [selected]="msg.selectedOptionId ?? null"
+                    [disabled]="isGenerating()"
+                    (picked)="onBpStructurePicked(msg.id, $event)"
+                    (customiseRequested)="onBpStructureCustomise(msg.id)"
+                    (cancelled)="onBpStructureCancelled(msg.id)"
+                  />
                 }
 
                 <!-- Choix du format de la charte graphique -->
@@ -180,6 +206,7 @@
         }
         <div class="flex items-end gap-3">
           <textarea
+          data-tour="chat-composer"
             [ngModel]="draft()"
             (ngModelChange)="updateDraft($event)"
             (keydown)="handleKeydown($event)"
@@ -198,9 +225,16 @@
               !draft().trim() ||
               pendingAssistant() ||
               isCreatingProject() ||
-              awaitingFormatChoice()
+              awaitingFormatChoice() ||
+              awaitingBpStructure()
             "
-            [title]="awaitingFormatChoice() ? ('chat.branding.format.hint' | translate) : ''"
+            [title]="
+              awaitingBpStructure()
+                ? ('chat.bp.structure.hint' | translate)
+                : awaitingFormatChoice()
+                  ? ('chat.branding.format.hint' | translate)
+                  : ''
+            "
             (click)="send()"
           >
             {{ 'chat.composer.send' | translate }}
@@ -212,16 +246,19 @@
   }
 </div>
 
-<!-- Panneau de prévisualisation -->
+<!-- Tiroir de lecture : le document tel qu'il sera imprimé, pages manquantes
+     comprises. Régénérer, éditer et télécharger s'y font sans quitter le fil. -->
 @if (preview(); as previewState) {
-  <app-preview-panel
+  <app-document-preview-panel
     [title]="previewState.title"
-    [pdfUrl]="previewState.url"
-    [isLoading]="previewState.isLoading"
-    [error]="previewState.error"
-    [canGenerate]="!isGenerating()"
+    [documentType]="previewState.documentType"
+    [documentId]="previewState.documentId"
+    [outline]="previewState.outline"
+    [sectionLabelPrefix]="previewState.sectionLabelPrefix"
+    [busy]="isGenerating()"
     (closed)="closePreview()"
-    (downloadRequested)="downloadFromPreview()"
-    (generateRequested)="generateFromPreview()"
+    (regenerateSection)="onPreviewRegenerateSection($event)"
+    (resumeGeneration)="onPreviewResume()"
+    (regenerateAll)="onPreviewRegenerateAll()"
   />
 }

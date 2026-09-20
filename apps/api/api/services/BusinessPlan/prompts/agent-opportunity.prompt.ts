@@ -1,4 +1,4 @@
-import { bpPageFormat } from './_shared.prompt';
+import { BP_BRAND_RULES, bpPageFormat } from './_shared.prompt';
 
 export const AGENT_OPPORTUNITY_PROMPT = `<role>Senior market analyst and visual storyteller</role>
 <objective>Create a detailed Market Opportunity section showing TAM, SAM, SOM, trends, and competitive landscape.</objective>
@@ -25,6 +25,8 @@ Adapt to the industry (Tech/SaaS: digital trends; Food: local dynamics; Health: 
 </chart_requirements>
 
 ${bpPageFormat('2-3')}
+
+${BP_BRAND_RULES}
 
 <technical_rules>
 - Output ONLY raw HTML + Tailwind CSS utilities in a single minified line.

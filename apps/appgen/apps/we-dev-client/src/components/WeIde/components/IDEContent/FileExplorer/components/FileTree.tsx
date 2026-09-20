@@ -5,8 +5,10 @@ import { CreateFolderDialog } from "./CreateFolderDialog";
 import { createFile, createFolder } from "../utils/fileSystem";
 import { FileTreeProps } from "../types";
 import { cn } from "@/utils/cn";
+import { useTranslation } from 'react-i18next';
 
 export function FileTree({ items, onFileSelect }: FileTreeProps) {
+  const { t } = useTranslation();
   // 默认展开的文件夹
   const defaultExpanded = {
     src: true,
@@ -69,7 +71,7 @@ export function FileTree({ items, onFileSelect }: FileTreeProps) {
           isDragging && "bg-gray-200/50 dark:bg-gray-800/20"
         )}
         role="tree"
-        aria-label="文件浏览器"
+        aria-label={t('explorer.explorer')}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}

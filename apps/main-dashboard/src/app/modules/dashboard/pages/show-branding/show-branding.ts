@@ -14,7 +14,6 @@ import { ProjectService } from '../../services/project.service';
 import { BrandIdentityModel, ColorModel, TypographyModel } from '../../models/brand-identity.model';
 import { LogoModel } from '../../models/logo.model';
 import { ProjectModel } from '@idem/shared-models';
-import { PdfViewerModule } from 'ng2-pdf-viewer';
 import { Dialog } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
@@ -34,7 +33,6 @@ import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
   imports: [
     CommonModule,
     Loader,
-    PdfViewerModule,
     Dialog,
     ButtonModule,
     TranslateModule,

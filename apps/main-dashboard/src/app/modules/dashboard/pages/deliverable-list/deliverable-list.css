@@ -1,0 +1,275 @@
+:host {
+  display: block;
+}
+
+.dl-page {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0.25rem 0 2.5rem;
+}
+
+.dl-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.dl-create {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dl-error {
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: var(--color-danger, #dc2626);
+}
+
+/* ── État vide ─────────────────────────────────────────────────────────── */
+
+.dl-empty {
+  text-align: center;
+  padding: 3.5rem 1rem;
+}
+
+.dl-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin: 0 auto 1.25rem;
+  border-radius: 1rem;
+  font-size: 1.5rem;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+/* ── Cartes ────────────────────────────────────────────────────────────── */
+
+.dl-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(17.5rem, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dl-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 1.125rem 1.125rem 0.875rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 0.875rem;
+  background: var(--glass-bg-subtle);
+  transition:
+    border-color 150ms ease,
+    opacity 150ms ease;
+}
+
+.dl-card:hover,
+.dl-card:focus-within {
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--glass-border));
+}
+
+.dl-card:has(.dl-card-link:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.dl-card-busy {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.dl-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.dl-variant {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.dl-status {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+}
+
+.dl-status::before {
+  content: '';
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--glass-border-strong, #9ca3af);
+}
+
+.dl-status[data-status='partial']::before {
+  background: var(--color-warning, #d97706);
+}
+
+.dl-status[data-status='complete']::before {
+  background: var(--color-primary);
+}
+
+.dl-card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.dl-card-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Toute la carte ouvre le document ; les actions restent au-dessus du lien. */
+.dl-card-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.dl-card-link:focus-visible {
+  outline: none;
+}
+
+.dl-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.dl-bar {
+  height: 0.25rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--glass-bg-light, rgba(127, 127, 127, 0.18));
+}
+
+.dl-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+  transition: width 200ms ease;
+}
+
+.dl-card-actions,
+.dl-confirm,
+.dl-rename {
+  position: relative;
+  z-index: 1;
+}
+
+.dl-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  margin-top: auto;
+}
+
+.dl-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.dl-icon-btn:hover {
+  background: var(--glass-bg-light, rgba(127, 127, 127, 0.14));
+}
+
+.dl-icon-btn-danger:hover {
+  color: var(--color-danger, #dc2626);
+}
+
+.dl-icon-btn:focus-visible,
+.dl-btn:focus-visible,
+.dl-input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Renommer / confirmer ──────────────────────────────────────────────── */
+
+.dl-rename,
+.dl-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dl-input {
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 0.5rem;
+  background: transparent;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.dl-inline-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.dl-btn {
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition:
+    background-color 150ms ease,
+    opacity 150ms ease;
+}
+
+.dl-btn:hover {
+  background: var(--glass-bg-light, rgba(127, 127, 127, 0.14));
+}
+
+.dl-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.dl-btn-primary,
+.dl-btn-primary:hover {
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.dl-btn-danger,
+.dl-btn-danger:hover {
+  color: #fff;
+  background: var(--color-danger, #dc2626);
+}

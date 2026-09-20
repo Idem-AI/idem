@@ -408,7 +408,7 @@
     </div>
     
     {{-- Bot Management Modal --}}
-    <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ show: @entangle('showBotManagementModal').live }" x-show="show" x-cloak style="font-family: 'Jura', sans-serif;">
+    <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ show: @entangle('showBotManagementModal').live }" x-show="show" x-cloak style="font-family: 'Vilevile', sans-serif;">
         {{-- Backdrop --}}
         <div class="fixed inset-0 bg-black/95 backdrop-blur-md transition-all duration-300" @click="show = false"></div>
             
@@ -418,7 +418,7 @@
                     {{-- Header --}}
                     <div class="flex items-center justify-between px-8 py-6 border-b border-glass bg-gradient-glow">
                         <div>
-                            <h2 class="text-3xl font-bold text-white flex items-center gap-3 tracking-wide i-underline">
+                            <h2 class="text-3xl font-bold text-white flex items-center gap-3 i-underline">
                                 BOT MANAGEMENT
                             </h2>
                             <p class="text-sm text-gray-300 mt-2 font-medium">Pre-configured bot protection templates</p>
@@ -437,7 +437,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                             <div>
-                                <p class="text-sm text-white font-semibold tracking-wide">Pre-configured Protection Templates</p>
+                                <p class="text-sm text-white font-semibold">Pre-configured Protection Templates</p>
                                 <p class="text-xs text-gray-400 mt-1">Import ready-to-use bot detection rules based on User-Agent patterns and behavioral analysis.</p>
                             </div>
                         </div>
@@ -451,7 +451,7 @@
                                     {{-- Template Header --}}
                                     <div class="flex items-start justify-between mb-3">
                                         <div class="flex-1">
-                                            <h3 class="text-sm font-semibold text-white mb-1 tracking-wide">{{ $template['name'] }}</h3>
+                                            <h3 class="text-sm font-semibold text-white mb-1">{{ $template['name'] }}</h3>
                                             <p class="text-xs text-gray-400">{{ $template['description'] }}</p>
                                         </div>
                                         <span class="px-2 py-0.5 rounded text-xs font-medium ml-2
@@ -532,7 +532,7 @@
     </div>
     
     {{-- Rate Limiting Modal --}}
-    <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ show: @entangle('showRateLimitModal').live }" x-show="show" x-cloak style="font-family: 'Jura', sans-serif;">
+    <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ show: @entangle('showRateLimitModal').live }" x-show="show" x-cloak style="font-family: 'Vilevile', sans-serif;">
         {{-- Backdrop --}}
         <div class="fixed inset-0 bg-black/95 backdrop-blur-md transition-all duration-300" @click="show = false"></div>
             
@@ -542,7 +542,7 @@
                     {{-- Header --}}
                     <div class="flex items-center justify-between px-8 py-6 border-b border-glass bg-gradient-glow">
                         <div>
-                            <h2 class="text-3xl font-bold text-white flex items-center gap-3 tracking-wide i-underline">
+                            <h2 class="text-3xl font-bold text-white flex items-center gap-3 i-underline">
                                 PROTECTION PATTERNS
                             </h2>
                             <p class="text-sm text-gray-300 mt-2 font-medium">Pattern-based request filtering and rate limiting</p>
@@ -561,7 +561,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                             </svg>
                             <div>
-                                <p class="text-sm text-white font-semibold tracking-wide">Pre-configured Protection Patterns</p>
+                                <p class="text-sm text-white font-semibold">Pre-configured Protection Patterns</p>
                                 <p class="text-xs text-gray-400 mt-1">Pattern-based request filtering and monitoring. Static rules for request pattern detection. For time-based rate limiting, see CrowdSec Scenarios (coming soon).</p>
                             </div>
                         </div>
@@ -575,7 +575,7 @@
                                     {{-- Template Header --}}
                                     <div class="flex items-start justify-between mb-3">
                                         <div class="flex-1">
-                                            <h3 class="text-sm font-semibold text-white mb-1 tracking-wide">{{ $template['name'] }}</h3>
+                                            <h3 class="text-sm font-semibold text-white mb-1">{{ $template['name'] }}</h3>
                                             <p class="text-xs text-gray-400">{{ $template['description'] }}</p>
                                         </div>
                                         <span class="px-2 py-0.5 rounded text-xs font-medium ml-2
@@ -662,11 +662,11 @@
     
     {{-- Install Modal (si pas activé) --}}
     @if(!$crowdSecAvailable && $showInstallModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto" style="font-family: 'Jura', sans-serif;">
+        <div class="fixed inset-0 z-50 overflow-y-auto" style="font-family: 'Vilevile', sans-serif;">
             <div class="fixed inset-0 bg-black/95 backdrop-blur-md transition-opacity"></div>
             <div class="flex min-h-full items-center justify-center p-4">
                 <div class="relative w-full max-w-md glass-card border-2 border-glass glow-accent p-8">
-                    <h3 class="text-2xl font-bold text-white mb-2 tracking-wide i-underline">Activate Firewall</h3>
+                    <h3 class="text-2xl font-bold text-white mb-2 i-underline">Activate Firewall</h3>
                     <p class="text-sm text-gray-400 mt-4 mb-6">CrowdSec will be automatically installed and configured on your server.</p>
                     
                     <div class="flex gap-3">
@@ -683,7 +683,7 @@
     @endif
 
     {{-- Geo-Blocking Modal --}}
-    <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ show: @entangle('showGeoBlockingModal').live }" x-show="show" x-cloak style="font-family: 'Jura', sans-serif;">
+    <div class="fixed inset-0 z-50 overflow-y-auto" x-data="{ show: @entangle('showGeoBlockingModal').live }" x-show="show" x-cloak style="font-family: 'Vilevile', sans-serif;">
         {{-- Backdrop --}}
         <div class="fixed inset-0 bg-black/95 backdrop-blur-md transition-all duration-300" @click="show = false"></div>
             
@@ -693,7 +693,7 @@
                     {{-- Header --}}
                     <div class="flex items-center justify-between px-8 py-6 border-b border-glass bg-gradient-glow">
                         <div>
-                            <h2 class="text-3xl font-bold text-white flex items-center gap-3 tracking-wide i-underline">
+                            <h2 class="text-3xl font-bold text-white flex items-center gap-3 i-underline">
                                 GEO-BLOCKING
                             </h2>
                             <p class="text-sm text-gray-300 mt-2 font-medium">Block or allow traffic from specific countries</p>
@@ -710,13 +710,13 @@
                         <div class="flex gap-6">
                             <button wire:click="$set('geoBlockingMode', 'blacklist')" class="flex-1 glass-card p-6 border-2 transition-all duration-300 {{ $geoBlockingMode === 'blacklist' ? 'border-danger shadow-glass-hover' : 'border-glass hover:border-gray-600' }}" style="{{ $geoBlockingMode === 'blacklist' ? 'box-shadow: 0 0 20px color-mix(in oklch, var(--color-danger) 50%, transparent);' : '' }}">
                                 <div class="text-left">
-                                    <p class="text-lg font-bold tracking-wide {{ $geoBlockingMode === 'blacklist' ? 'text-danger' : 'text-gray-400' }}">BLACKLIST MODE</p>
+                                    <p class="text-lg font-bold {{ $geoBlockingMode === 'blacklist' ? 'text-danger' : 'text-gray-400' }}">BLACKLIST MODE</p>
                                     <p class="text-sm mt-2 font-medium {{ $geoBlockingMode === 'blacklist' ? 'text-gray-300' : 'text-gray-500' }}">Block selected countries</p>
                                 </div>
                             </button>
                             <button wire:click="$set('geoBlockingMode', 'whitelist')" class="flex-1 glass-card p-6 border-2 transition-all duration-300 {{ $geoBlockingMode === 'whitelist' ? 'border-success shadow-glass-hover' : 'border-glass hover:border-gray-600' }}" style="{{ $geoBlockingMode === 'whitelist' ? 'box-shadow: 0 0 20px color-mix(in oklch, var(--color-success) 50%, transparent);' : '' }}">
                                 <div class="text-left">
-                                    <p class="text-lg font-bold tracking-wide {{ $geoBlockingMode === 'whitelist' ? 'text-success' : 'text-gray-400' }}">WHITELIST MODE</p>
+                                    <p class="text-lg font-bold {{ $geoBlockingMode === 'whitelist' ? 'text-success' : 'text-gray-400' }}">WHITELIST MODE</p>
                                     <p class="text-sm mt-2 font-medium {{ $geoBlockingMode === 'whitelist' ? 'text-gray-300' : 'text-gray-500' }}">Allow only selected countries</p>
                                 </div>
                             </button>
@@ -724,10 +724,10 @@
                         
                         {{-- Quick Actions --}}
                         <div class="flex gap-3 mt-5">
-                            <button wire:click="applySuggestedCountries('whitelist')" class="glass px-4 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white hover:border-primary border border-glass transition-all duration-300 tracking-wide" style="backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
+                            <button wire:click="applySuggestedCountries('whitelist')" class="glass px-4 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white hover:border-primary border border-glass transition-all duration-300" style="backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
                                 EU + US + MAJOR COUNTRIES
                             </button>
-                            <button wire:click="applySuggestedCountries('blacklist')" class="glass px-4 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white hover:border-danger border border-glass transition-all duration-300 tracking-wide" style="backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
+                            <button wire:click="applySuggestedCountries('blacklist')" class="glass px-4 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white hover:border-danger border border-glass transition-all duration-300" style="backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
                                 HIGH-RISK COUNTRIES
                             </button>
                         </div>
@@ -737,7 +737,7 @@
                     <div class="px-6 py-4 max-h-[50vh] overflow-y-auto" x-data="{ localSelected: @entangle('selectedCountries').live }">
                         @foreach($availableCountries as $continent => $countries)
                             <div class="mb-6 last:mb-0">
-                                <h3 class="text-sm font-semibold text-gray-300 mb-3 uppercase tracking-wide">{{ $continent }}</h3>
+                                <h3 class="text-sm font-semibold text-gray-300 mb-3 uppercase">{{ $continent }}</h3>
                                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                                     @foreach($countries as $code => $data)
                                         <button 
@@ -753,7 +753,7 @@
                                             <div class="flex items-center gap-4">
                                                 <span class="text-4xl group-hover:scale-125 transition-transform duration-300">{{ $data['flag'] }}</span>
                                                 <div class="flex-1 min-w-0">
-                                                    <p class="text-base font-bold text-white truncate tracking-wide">{{ $data['name'] }}</p>
+                                                    <p class="text-base font-bold text-white truncate">{{ $data['name'] }}</p>
                                                     <p class="text-xs text-gray-400 font-mono font-semibold">{{ $code }}</p>
                                                 </div>
                                                 <div x-show="localSelected.includes('{{ $code }}')" class="flex-shrink-0" x-transition>
@@ -780,7 +780,7 @@
                                         <div class="w-2 h-2 bg-accent-500 rounded-full animate-pulse"></div>
                                         <span class="text-gray-300 text-sm font-medium">Selected:</span>
                                         <span class="text-white font-bold text-2xl">{{ count($selectedCountries) }}</span>
-                                        <span class="text-gray-400 text-sm font-medium tracking-wide">{{ count($selectedCountries) === 1 ? 'COUNTRY' : 'COUNTRIES' }}</span>
+                                        <span class="text-gray-400 text-sm font-medium">{{ count($selectedCountries) === 1 ? 'COUNTRY' : 'COUNTRIES' }}</span>
                                     </div>
                                 </div>
                             </div>

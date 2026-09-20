@@ -4,15 +4,18 @@
       "steps": {
         "type": {
           "title": "Choisissez le type de logo",
-          "subtitle": "Sélectionnez un type de logo"
+          "subtitle": "Ce choix oriente toutes les propositions que l'IA vous fera ensuite.",
+          "label": "Type"
         },
         "mode": {
           "title": "Comment créer votre logo ?",
-          "subtitle": "Génération par IA ou description personnalisée"
+          "subtitle": "Génération par IA ou description personnalisée",
+          "label": "Création"
         },
         "description": {
           "title": "Décrivez votre logo",
-          "subtitle": "Dites-nous ce que vous voulez"
+          "subtitle": "Dites-nous ce que vous voulez",
+          "label": "Description"
         }
       },
       "types": {

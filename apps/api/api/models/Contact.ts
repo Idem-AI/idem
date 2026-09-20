@@ -34,5 +34,3 @@ export const CONTACT_SUBJECTS = [
   'support',
   'billing',
 ] as const;
-
-export type ContactSubject = (typeof CONTACT_SUBJECTS)[number];

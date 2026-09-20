@@ -15,6 +15,7 @@ import {
   buildSectionEditPrompt,
   EDIT_FORMAT_RULES,
 } from './section-edit.prompt';
+import { findDocument, isDeliverableKind, withDocument } from './deliverable-documents';
 
 /**
  * Clé du document dans `analysisResultModel` (business plan, pitch deck, charte).
@@ -49,18 +50,32 @@ export class SectionEditingService {
     return `users/${userId}/projects`;
   }
 
-  private async invalidatePdfCache(userId: string, projectId: string, key: DocumentKey): Promise<void> {
-    await cacheService.delete(cacheService.generateAIKey(PDF_CACHE_KEY[key], userId, projectId), {
-      prefix: 'pdf',
-    });
+  /**
+   * Oublie le PDF du document. Business plans et pitch decks ont un PDF PAR
+   * document : leur clé porte l'identifiant du document.
+   */
+  private async invalidatePdfCache(
+    userId: string,
+    projectId: string,
+    key: DocumentKey,
+    documentId?: string
+  ): Promise<void> {
+    await cacheService.delete(
+      cacheService.generateAIKey(PDF_CACHE_KEY[key], userId, projectId, documentId),
+      { prefix: 'pdf' }
+    );
   }
 
-  /** Sauvegarde l'ensemble des sections éditées d'un document. */
+  /**
+   * Sauvegarde l'ensemble des sections éditées d'un document. Pour un business
+   * plan ou un pitch deck, `documentId` désigne le document (le principal sans lui).
+   */
   async saveSections(
     userId: string,
     projectId: string,
     key: DocumentKey,
-    sections: SectionModel[]
+    sections: SectionModel[],
+    documentId?: string
   ): Promise<Record<string, unknown> | null> {
     const project = await this.projectRepository.findById(projectId, this.analysisPath(userId));
     if (!project) {
@@ -68,11 +83,31 @@ export class SectionEditingService {
       return null;
     }
     const analysis = (project.analysisResultModel ?? {}) as Record<string, any>;
-    const existing = (analysis[key] ?? {}) as Record<string, unknown>;
     const cleaned = sections.map((s) => ({
       ...s,
       data: typeof s.data === 'string' ? sanitizeSectionHtml(s.data) : s.data,
     }));
+
+    if (isDeliverableKind(key)) {
+      const document = findDocument(analysis, key, documentId);
+      if (!document) {
+        logger.warn(`No ${key} document ${documentId ?? '(primary)'} in project ${projectId} on saveSections.`);
+        return null;
+      }
+      const updatedDocument = { ...document, sections: cleaned, updatedAt: new Date() };
+      await this.projectRepository.update(
+        projectId,
+        { analysisResultModel: withDocument(analysis, key, updatedDocument) } as Partial<ProjectModel>,
+        this.analysisPath(userId)
+      );
+      await this.invalidatePdfCache(userId, projectId, key, document.id);
+      logger.info(
+        `Saved ${cleaned.length} edited ${key} sections for project ${projectId} (document ${document.id}).`
+      );
+      return updatedDocument as unknown as Record<string, unknown>;
+    }
+
+    const existing = (analysis[key] ?? {}) as Record<string, unknown>;
     const updatedBucket = { ...existing, sections: cleaned };
 
     await this.projectRepository.update(
@@ -92,12 +127,18 @@ export class SectionEditingService {
     key: DocumentKey,
     sectionId: string,
     instruction: string,
-    language?: SupportedLanguage
+    language?: SupportedLanguage,
+    documentId?: string
   ): Promise<{ section: SectionModel; bucket: Record<string, unknown> } | null> {
     const project = await this.projectRepository.findById(projectId, this.analysisPath(userId));
     if (!project) return null;
     const analysis = (project.analysisResultModel ?? {}) as Record<string, any>;
-    const bucket = analysis[key] as { sections?: SectionModel[] } | undefined;
+    // Business plan et pitch deck : le document désigné parmi ceux du projet.
+    const deliverable = isDeliverableKind(key) ? findDocument(analysis, key, documentId) : null;
+    const bucket = (isDeliverableKind(key) ? deliverable : analysis[key]) as
+      | { sections?: SectionModel[] }
+      | null
+      | undefined;
     const sections = bucket?.sections ?? [];
     const index = sections.findIndex((s) => s.id === sectionId || s.name === sectionId);
     if (index < 0 || !bucket) {
@@ -114,10 +155,10 @@ export class SectionEditingService {
         .filter((s) => s.exists)
         .map((s) => `- ${s.section}: ${s.description}${s.lastChangeSummary ? ` (last change: ${s.lastChangeSummary})` : ''}`)
         .join('\n');
-      projectContext = `Project "${map.name}" (type: ${map.type}).\nDescription: ${project.description || 'N/A'}\nAvailable sections:\n${existing}`;
+      projectContext = `Project "${map.name}" (type: ${map.type}).\nDescription: ${project.longDescription || project.description || 'N/A'}\nAvailable sections:\n${existing}`;
     } catch (err: any) {
       logger.warn(`Context Engine unavailable for aiEditSection(${key}): ${err.message}`);
-      projectContext = `Project "${project.name}". Description: ${project.description || 'N/A'}`;
+      projectContext = `Project "${project.name}". Description: ${project.longDescription || project.description || 'N/A'}`;
     }
 
     const branding = analysis.branding as { colors?: unknown; typography?: unknown } | undefined;
@@ -156,9 +197,22 @@ export class SectionEditingService {
     const updatedSection: SectionModel = { ...target, data: newHtml, updatedAt: new Date() };
     const updatedSections = [...sections];
     updatedSections[index] = updatedSection;
-    const updatedBucket = { ...bucket, sections: updatedSections };
 
     markRevisionAsAI(`Édition IA – ${target.name}: ${instruction}`.slice(0, 280));
+
+    if (isDeliverableKind(key) && deliverable) {
+      const updatedDocument = { ...deliverable, sections: updatedSections, updatedAt: new Date() };
+      await this.projectRepository.update(
+        projectId,
+        { analysisResultModel: withDocument(analysis, key, updatedDocument) } as Partial<ProjectModel>,
+        this.analysisPath(userId)
+      );
+      await this.invalidatePdfCache(userId, projectId, key, deliverable.id);
+      logger.info(`AI-edited ${key} section "${target.name}" for project ${projectId} (document ${deliverable.id}).`);
+      return { section: updatedSection, bucket: updatedDocument as unknown as Record<string, unknown> };
+    }
+
+    const updatedBucket = { ...bucket, sections: updatedSections };
     await this.projectRepository.update(
       projectId,
       { analysisResultModel: { ...analysis, [key]: updatedBucket } } as Partial<ProjectModel>,

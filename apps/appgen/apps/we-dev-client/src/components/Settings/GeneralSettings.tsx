@@ -67,8 +67,8 @@ const CustomSelect = ({ value, onChange, options, className = "" }) => {
         onClick={() => setIsOpen(!isOpen)}
         className={classNames(
           "w-full px-3 py-2 text-sm text-left rounded-md",
-          "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700",
-          "hover:bg-gray-50 dark:hover:bg-gray-700/50",
+          "bg-surface-1 border border-[var(--glass-border)]",
+          "hover:bg-surface-2/50",
           "focus:outline-none focus:ring-2 focus:ring-purple-500/50",
           "transition-colors duration-200",
           "flex items-center justify-between gap-2",
@@ -95,7 +95,7 @@ const CustomSelect = ({ value, onChange, options, className = "" }) => {
         <div
           className={classNames(
             "absolute z-50 w-full mt-1 rounded-md shadow-lg",
-            "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700",
+            "bg-surface-1 border border-[var(--glass-border)]",
             "max-h-60 overflow-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600"
           )}
         >
@@ -108,7 +108,7 @@ const CustomSelect = ({ value, onChange, options, className = "" }) => {
               }}
               className={classNames(
                 "w-full px-3 py-2 text-sm text-left",
-                "hover:bg-gray-50 dark:hover:bg-gray-700/50",
+                "hover:bg-surface-2/50",
                 "transition-colors duration-200",
                 value === option.value &&
                   "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400"
@@ -132,7 +132,7 @@ const CustomInput = ({ value, onChange, placeholder, className = "" }) => (
     placeholder={placeholder}
     className={classNames(
       "w-full px-3 py-2 text-sm rounded-md",
-      "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700",
+      "bg-surface-1 border border-[var(--glass-border)]",
       "focus:outline-none focus:ring-2 focus:ring-purple-500/50",
       "placeholder-gray-400 dark:placeholder-gray-500",
       "transition-colors duration-200",
@@ -150,8 +150,8 @@ const CustomRadio = ({ checked, onChange, children, value }) => (
       "transition-colors duration-200",
       checked
         ? "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800"
-        : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700",
-      "border hover:bg-gray-50 dark:hover:bg-gray-700/50"
+        : "bg-surface-1 text-text-secondary border-[var(--glass-border)]",
+      "border hover:bg-surface-2/50"
     )}
   >
     <div
@@ -159,7 +159,7 @@ const CustomRadio = ({ checked, onChange, children, value }) => (
         "w-4 h-4 rounded-full border-2 flex items-center justify-center",
         checked
           ? "border-purple-500 dark:border-purple-400"
-          : "border-gray-300 dark:border-gray-600"
+          : "border-[var(--glass-border)]"
       )}
     >
       {checked && (
@@ -179,7 +179,7 @@ const CustomTextArea = ({ value, onChange, placeholder, className = "" }) => (
     rows={4}
     className={classNames(
       "w-full px-3 py-2 text-sm rounded-md",
-      "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700",
+      "bg-surface-1 border border-[var(--glass-border)]",
       "focus:outline-none focus:ring-2 focus:ring-purple-500/50",
       "placeholder-gray-400 dark:placeholder-gray-500",
       "transition-colors duration-200",
@@ -566,14 +566,14 @@ export function GeneralSettings() {
     <div className="h-full flex flex-col">
       <div className="flex-1">
         {/* 标签页切换 */}
-        <nav className="border-b border-gray-200 dark:border-gray-700">
+        <nav className="border-b border-[var(--glass-border)]">
           <button
             className={classNames(
               "px-4 py-2 text-sm font-medium transition-colors duration-200",
               "focus:outline-none",
               activeTab === "general"
                 ? "border-b-2 border-purple-500 text-purple-600 dark:text-purple-400"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                : "text-text-tertiary hover:text-text-secondary"
             )}
             onClick={() => setActiveTab("general")}
           >
@@ -596,7 +596,7 @@ export function GeneralSettings() {
             <div className="space-y-6">
               {/* 主题切换 */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium text-text-secondary">
                   {t("settings.themeMode")}
                 </label>
                 <CustomSelect
@@ -611,7 +611,7 @@ export function GeneralSettings() {
 
               {/* 语言选择 */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium text-text-secondary">
                   {t("settings.Language")}
                 </label>
                 <CustomSelect
@@ -625,7 +625,7 @@ export function GeneralSettings() {
               </div>
             </div>
           )}
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label className="block text-sm font-medium text-text-secondary">
             {t("settings.themeMode")}
           </label>
           <CustomSelect
@@ -640,7 +640,7 @@ export function GeneralSettings() {
 
         {/* 语言选择 */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label className="block text-sm font-medium text-text-secondary">
             {t("settings.Language")}
           </label>
           <CustomSelect

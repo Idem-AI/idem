@@ -65,7 +65,6 @@ button[isError]:not(:disabled) {
   border-radius: 8px;
   font-weight: 600;
   font-size: 13px;
-  letter-spacing: .04em;
   transition: background .15s, border-color .15s, color .15s;
 }
 button[isError]:not(:disabled):hover {
@@ -343,9 +342,8 @@ select.input:focus-visible {
 @utility menu-item {
   @apply flex items-center gap-3 w-full px-3 py-2.5 text-sm rounded-lg transition-all duration-200 cursor-pointer no-underline hover:bg-surface-2;
   color: var(--color-text-secondary);
-  font-family: 'Jura', sans-serif;
+  font-family: 'Vilevile', sans-serif;
   font-weight: 500;
-  letter-spacing: 0.03em;
   border-left: 2px solid transparent;
 }
 
@@ -357,8 +355,7 @@ select.input:focus-visible {
 
 @utility nav-link {
   @apply text-sm font-medium text-gray-400 hover:text-white transition-colors duration-200 pb-3 no-underline;
-  font-family: 'Jura', sans-serif;
-  letter-spacing: 0.04em;
+  font-family: 'Vilevile', sans-serif;
   border-bottom: 2px solid transparent;
 }
 

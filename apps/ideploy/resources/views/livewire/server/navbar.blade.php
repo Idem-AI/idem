@@ -29,7 +29,7 @@
                     @endif
                     <div wire:loading wire:target="checkProxy" class="badge badge-warning"></div>
                     <div wire:loading wire:target="checkProxy"
-                        class="pl-2 pr-1 text-xs font-bold tracking-wider dark:text-warning">
+                        class="pl-2 pr-1 text-xs font-bold dark:text-warning">
                         Checking Ports Availability...
                     </div>
                     @if ($proxyStatus !== 'exited')

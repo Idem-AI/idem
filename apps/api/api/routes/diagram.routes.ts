@@ -10,6 +10,7 @@ import {
 import { authenticate } from '../services/auth.service'; // Updated import path
 import { checkQuota } from '../middleware/quota.middleware';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
+import { requireCredits } from '../middleware/billing.middleware';
 
 export const diagramRoutes = Router();
 
@@ -68,11 +69,17 @@ const resourceName = 'diagrams';
  *       '500':
  *         description: Internal server error.
  */
+/**
+ * Les diagrammes ne figurent pas au barème du modèle économique : ils sont
+ * facturés au prix d'une révision (1 crédit), le poste le moins cher. À
+ * réévaluer si le business plan leur donne un prix propre.
+ */
 diagramRoutes.get(
   `/${resourceName}/generate/:projectId`,
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  requireCredits('business', 'revision'),
   generateDiagramController
 );
 
@@ -115,6 +122,7 @@ diagramRoutes.get(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  requireCredits('business', 'revision'),
   generateDiagramStreamingController
 );
 

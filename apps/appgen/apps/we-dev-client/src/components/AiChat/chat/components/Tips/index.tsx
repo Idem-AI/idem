@@ -29,16 +29,16 @@ const Tips = (props: TipsProps) => {
   };
 
   return (
-    <div className="flex flex-col items-center gap-4 text-gray-500 dark:text-gray-400">
+    <div className="flex flex-col items-center gap-4 text-text-tertiary">
       {initOpen ? (
         <div className="flex flex-col w-full max-w-3xl gap-8 p-8 mx-auto">
           <div className="space-y-4 text-center justify-between items-center flex flex-col">
             <Logo />
-            <h1 className="mb-6 font-bold text-gray-900 dark:text-white text-7xl">
+            <h1 className="mb-6 font-bold text-text-primary text-7xl">
               {t("chat.tips.title")}
             </h1>
 
-            <p className="text-lg text-gray-500 dark:text-gray-400">
+            <p className="text-lg text-text-tertiary">
               you can generate java python js
             </p>
           </div>
@@ -46,8 +46,8 @@ const Tips = (props: TipsProps) => {
           <div className="flex flex-col gap-6">
             {mode === ChatMode.Builder && (
               <div className="grid grid-cols-2 gap-4">
-                <button className="w-full p-4 transition-colors border rounded-lg bg-gray-100 border-gray-200 hover:bg-gray-200 dark:bg-zinc-800/50 dark:border-zinc-700/50 dark:hover:bg-zinc-800">
-                  <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                <button className="w-full p-4 transition-colors border rounded-lg bg-gray-100 border-gray-200 hover:bg-surface-3/50 dark:border-zinc-700/50 dark:hover:bg-zinc-800">
+                  <div className="flex items-center gap-3 text-text-secondary">
                     <Upload className="w-3 h-3" />
                     <span className="text-sm">
                       {t("chat.tips.uploadSketch")}
@@ -55,10 +55,10 @@ const Tips = (props: TipsProps) => {
                   </div>
                 </button>
                 <button
-                  className="w-full p-4 transition-colors border rounded-lg bg-gray-100 border-gray-200 hover:bg-gray-200 dark:bg-zinc-800/50 dark:border-zinc-700/50 dark:hover:bg-zinc-800"
+                  className="w-full p-4 transition-colors border rounded-lg bg-gray-100 border-gray-200 hover:bg-surface-3/50 dark:border-zinc-700/50 dark:hover:bg-zinc-800"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                  <div className="flex items-center gap-3 text-text-secondary">
                     <Upload className="w-3 h-3" />
                     <span className="text-sm">{t("chat.tips.uploadImg")}</span>
                   </div>
@@ -68,14 +68,14 @@ const Tips = (props: TipsProps) => {
           </div>
         </div>
       ) : (
-        <div className="flex flex-col w-full gap-2 p-4 transition-colors border border-gray-200 rounded-lg dark:border-gray-600/30 bg-white/50 dark:bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700/10">
+        <div className="flex flex-col w-full gap-2 p-4 transition-colors border border-gray-200 rounded-lg dark:border-gray-600/30 bg-white/50 dark:bg-transparent hover:bg-surface-2/10">
           <div className="flex items-center gap-2">
             <Code2 className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-            <span className="font-medium text-gray-900 dark:text-gray-300">
+            <span className="font-medium text-text-primary">
               {t("chat.tips.title")}
             </span>
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-text-tertiary">
             {t("chat.tips.description")}
           </p>
           <div className="flex flex-col gap-2 mt-2">

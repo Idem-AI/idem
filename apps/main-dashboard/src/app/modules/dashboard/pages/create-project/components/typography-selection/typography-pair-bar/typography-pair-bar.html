@@ -1,0 +1,72 @@
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+  @for (slot of [
+      { id: 'primary', font: primary(), stack: primaryStack() },
+      { id: 'secondary', font: secondary(), stack: secondaryStack() }
+    ]; track slot.id) {
+    <!-- Conteneur non interactif : « Changer » est un bouton à part entière. -->
+    <div
+      class="rounded-xl border p-4 transition-colors"
+      [class]="
+        editingSlot() === slot.id
+          ? 'border-primary ring-1 ring-primary/20 bg-primary/5'
+          : 'border-[var(--glass-border)] bg-[var(--glass-bg-light)]'
+      "
+    >
+      <div class="flex items-center justify-between gap-2 mb-2.5">
+        <span class="flex items-center gap-2 min-w-0">
+          <!-- Le rôle, dessiné : une ligne forte, puis du texte -->
+          @if (slot.id === 'primary') {
+            <svg class="w-5 h-5 text-text-tertiary shrink-0" viewBox="0 0 20 20" aria-hidden="true">
+              <rect x="2" y="4" width="13" height="3.2" rx="1" fill="currentColor" />
+              <rect x="2" y="10" width="16" height="1.4" rx="0.7" fill="currentColor" opacity="0.4" />
+              <rect x="2" y="13.5" width="11" height="1.4" rx="0.7" fill="currentColor" opacity="0.4" />
+            </svg>
+          } @else {
+            <svg class="w-5 h-5 text-text-tertiary shrink-0" viewBox="0 0 20 20" aria-hidden="true">
+              <rect x="2" y="4.5" width="16" height="1.6" rx="0.8" fill="currentColor" opacity="0.75" />
+              <rect x="2" y="8.5" width="16" height="1.6" rx="0.8" fill="currentColor" opacity="0.75" />
+              <rect x="2" y="12.5" width="16" height="1.6" rx="0.8" fill="currentColor" opacity="0.75" />
+              <rect x="2" y="16.5" width="9" height="1.6" rx="0.8" fill="currentColor" opacity="0.75" />
+            </svg>
+          }
+          <span class="text-[10px] font-bold uppercase tracking-wide text-text-tertiary truncate">
+            {{
+              (slot.id === 'primary'
+                ? 'dashboard.typographySelection.roles.headings'
+                : 'dashboard.typographySelection.roles.body'
+              ) | translate
+            }}
+          </span>
+        </span>
+
+        <button
+          type="button"
+          (click)="onChange($any(slot.id))"
+          class="shrink-0 text-xs font-medium px-2.5 py-1 rounded-md border border-[var(--glass-border)] text-text-secondary hover:text-text-primary hover:border-[var(--glass-border-medium)] transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          {{
+            (slot.font
+              ? 'dashboard.typographySelection.pair.change'
+              : 'dashboard.typographySelection.pair.choose'
+            ) | translate
+          }}
+        </button>
+      </div>
+
+      @if (slot.font) {
+        <!-- Le nom de la marque, écrit avec la police : c'est ça, le choix. -->
+        <p class="text-2xl leading-tight text-text-primary truncate" [style.fontFamily]="slot.stack">
+          {{ sample() }}
+        </p>
+        <p class="text-xs text-text-tertiary truncate mt-1">
+          {{ slot.font.family }} · {{ sourceLabelKey(slot.font) | translate }}
+        </p>
+      } @else {
+        <p class="text-2xl leading-tight text-text-disabled truncate">{{ sample() }}</p>
+        <p class="text-xs text-text-tertiary mt-1">
+          {{ 'dashboard.typographySelection.pair.empty' | translate }}
+        </p>
+      }
+    </div>
+  }
+</div>

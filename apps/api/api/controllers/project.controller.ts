@@ -31,6 +31,16 @@ class ProjectController {
         });
         return;
       }
+
+      // Validate field lengths
+      if (projectData.description.length > 200) {
+        res.status(400).json({ message: 'description must not exceed 200 characters.' });
+        return;
+      }
+      if (otherProjectData.longDescription && otherProjectData.longDescription.length > 15000) {
+        res.status(400).json({ message: 'longDescription must not exceed 15000 characters.' });
+        return;
+      }
       const newProject = await projectService.createUserProject(userId, projectData);
       logger.info(
         `Project created successfully for userId ${userId} with projectId: ${newProject.id}`
@@ -127,6 +137,18 @@ class ProjectController {
         res.status(400).json({ message: 'Project ID is required' });
         return;
       }
+
+      // Validate field lengths on update
+      if (description !== undefined && description.length > 200) {
+        res.status(400).json({ message: 'description must not exceed 200 characters.' });
+        return;
+      }
+      const longDesc = otherUpdatedData.longDescription;
+      if (longDesc !== undefined && longDesc.length > 15000) {
+        res.status(400).json({ message: 'longDescription must not exceed 15000 characters.' });
+        return;
+      }
+
       if (Object.keys(updatedData).length === 0) {
         logger.warn(
           `Update project attempt failed for projectId ${projectId}, userId ${userId}: No update data provided.`

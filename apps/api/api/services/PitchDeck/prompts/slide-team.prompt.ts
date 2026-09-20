@@ -1,5 +1,3 @@
-import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
-
 export const SLIDE_TEAM_PROMPT = `
 <role>Senior pitch deck designer at a top-tier design agency</role>
 <objective>Design the TEAM slide — showcase the team with professional credibility and brand-consistent styling.</objective>
@@ -20,7 +18,6 @@ export const SLIDE_TEAM_PROMPT = `
 - Use initials-based avatars with brand PRIMARY COLOR background — do NOT add <img> tags for team photos.
 </layout>
 
-${PITCH_DECK_SHARED_RULES}
 
 <project_context>
 `;

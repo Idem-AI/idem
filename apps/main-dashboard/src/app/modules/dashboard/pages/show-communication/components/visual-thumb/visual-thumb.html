@@ -1,0 +1,44 @@
+<div class="vt-frame" [style.aspect-ratio]="formatAspect(visual().format)">
+  @if (src()) {
+    <img
+      [src]="src()"
+      [alt]="label() || visual().marketingText.headline"
+      class="vt-img"
+      [class.vt-img-ready]="isLoaded()"
+      loading="lazy"
+      decoding="async"
+      (load)="onLoad()"
+      (error)="onError()"
+    />
+  }
+
+  @if (!isLoaded() && !givenUp()) {
+    <!-- Attente : une trame qui respire, à la forme exacte du visuel attendu. -->
+    <div class="vt-skeleton" role="status" [attr.aria-label]="'dashboard.showCommunication.thumb.loading' | translate">
+      <span class="vt-shimmer"></span>
+    </div>
+  }
+
+  @if (givenUp()) {
+    <!--
+      Jamais une image cassée muette : on dit ce qui s'est passé et on propose
+      l'action. Le fichier lui-même est intact — seul son affichage a échoué.
+    -->
+    <div class="vt-failed">
+      <i class="pi pi-image vt-failed-icon" aria-hidden="true"></i>
+      <p class="vt-failed-text">{{ 'dashboard.showCommunication.thumb.failed' | translate }}</p>
+      @if (showRetry()) {
+        <button type="button" class="vt-retry" (click)="retry(); $event.stopPropagation()">
+          <i class="pi pi-refresh" aria-hidden="true"></i>
+          {{ 'dashboard.showCommunication.thumb.retry' | translate }}
+        </button>
+      } @else {
+        <!-- Imbriquée dans une carte cliquable : c'est la carte qui mène à
+             l'aperçu en grand, où le visuel s'affiche par un autre chemin. -->
+        <p class="vt-failed-hint">
+          {{ 'dashboard.showCommunication.thumb.openInstead' | translate }}
+        </p>
+      }
+    </div>
+  }
+</div>

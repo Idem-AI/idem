@@ -1,0 +1,167 @@
+<div class="vd-backdrop" (click)="close()" (keydown.escape)="close()" tabindex="-1">
+  <div
+    class="vd-panel modal-panel"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="vd-title"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="vd-header">
+      <div class="min-w-0">
+        <h2 id="vd-title" class="vd-title">{{ visual().marketingText.headline }}</h2>
+        <p class="vd-sub">
+          {{ 'dashboard.showCommunication.formats.' + visual().format | translate }}
+          @if (visual().origin) {
+            <span aria-hidden="true">·</span>
+            {{ 'dashboard.showCommunication.library.origins.' + visual().origin | translate }}
+          }
+        </p>
+      </div>
+      <button
+        type="button"
+        class="outer-button button-sm shrink-0"
+        [attr.aria-label]="'common.close' | translate"
+        (click)="close()"
+      >
+        <i class="pi pi-times" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <div class="vd-body">
+      <!-- Aperçu interactif : survol = sélection, clic = « Modifier » -->
+      <div class="vd-preview">
+        <app-visual-preview
+          [projectId]="projectId()"
+          [visual]="visual()"
+          [fonts]="fonts()"
+          [maxHeight]="500"
+          (editRequested)="close()"
+        />
+      </div>
+
+      <div class="vd-actions">
+        <!-- Ce qu'on fait le plus souvent, en premier -->
+        <button type="button" class="inner-button" (click)="download()">
+          <i class="pi pi-download" aria-hidden="true"></i>
+          {{ 'dashboard.showCommunication.visual.download' | translate }}
+        </button>
+
+        @if (schedulablePlans().length > 0 && !visual().contentId) {
+          @if (scheduling()) {
+            <div class="vd-schedule">
+              <label class="vd-label" for="vd-plan">
+                {{ 'dashboard.showCommunication.studio.planLabel' | translate }}
+              </label>
+              <select
+                id="vd-plan"
+                class="vd-input"
+                [ngModel]="schedulePlanId()"
+                (ngModelChange)="schedulePlanId.set($event)"
+                name="vdPlan"
+              >
+                @for (plan of schedulablePlans(); track plan.id) {
+                  <option [value]="plan.id">{{ plan.name }}</option>
+                }
+              </select>
+
+              <label class="vd-label" for="vd-date">
+                {{ 'dashboard.showCommunication.studio.dateLabel' | translate }}
+              </label>
+              <input
+                id="vd-date"
+                type="date"
+                class="vd-input"
+                [ngModel]="scheduleDate()"
+                (ngModelChange)="scheduleDate.set($event)"
+                name="vdDate"
+              />
+
+              <div class="vd-row">
+                <button
+                  type="button"
+                  class="inner-button button-sm"
+                  [disabled]="isBusy()"
+                  (click)="confirmSchedule()"
+                >
+                  {{ 'common.confirm' | translate }}
+                </button>
+                <button type="button" class="outer-button button-sm" (click)="cancelSchedule()">
+                  {{ 'common.cancel' | translate }}
+                </button>
+              </div>
+            </div>
+          } @else {
+            <button type="button" class="outer-button" (click)="openSchedule()">
+              <i class="pi pi-calendar-plus" aria-hidden="true"></i>
+              {{ 'dashboard.showCommunication.studio.schedule' | translate }}
+            </button>
+          }
+        }
+
+        <!-- Déclinaisons -->
+        <div class="vd-block">
+          <p class="vd-label">
+            {{ 'dashboard.showCommunication.detail.otherFormats' | translate }}
+          </p>
+          <div class="vd-chips">
+            @for (format of formats; track format) {
+              @if (format !== visual().format) {
+                <button
+                  type="button"
+                  class="outer-button button-sm"
+                  [disabled]="isBusy()"
+                  (click)="declinate(format)"
+                >
+                  @if (isBusy()) {
+                    <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+                  }
+                  {{ 'dashboard.showCommunication.formats.' + format | translate }}
+                </button>
+              }
+            }
+          </div>
+        </div>
+
+        <!-- Publication assistée -->
+        <div class="vd-block">
+          <p class="vd-label">{{ 'dashboard.showCommunication.library.publish' | translate }}</p>
+          @if (canPublish()) {
+            <div class="vd-chips">
+              @for (network of networks; track network) {
+                <button
+                  type="button"
+                  class="outer-button button-sm"
+                  [disabled]="publishingNetwork() === network"
+                  (click)="publish(network)"
+                >
+                  @if (publishingNetwork() === network) {
+                    <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+                  } @else if (network === 'linkedin') {
+                    <i class="pi pi-linkedin" aria-hidden="true"></i>
+                  } @else {
+                    <i class="pi pi-twitter" aria-hidden="true"></i>
+                  }
+                  {{ 'dashboard.showCommunication.networks.' + network | translate }}
+                </button>
+              }
+            </div>
+            <p class="vd-note">
+              {{ 'dashboard.showCommunication.library.publishHint' | translate }}
+            </p>
+          } @else {
+            <p class="vd-note">
+              {{ 'dashboard.showCommunication.library.publishNeedsSchedule' | translate }}
+            </p>
+          }
+        </div>
+
+        @if (visual().brief) {
+          <div class="vd-block">
+            <p class="vd-label">{{ 'dashboard.showCommunication.library.brief' | translate }}</p>
+            <p class="vd-text">{{ visual().brief }}</p>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>

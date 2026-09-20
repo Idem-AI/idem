@@ -10,11 +10,18 @@
           routerLink="/"
           class="text-2xl font-bold transition duration-300 flex items-center gap-1 relative z-10"
         >
+          <!-- Logo per theme: blue wordmark on light, white wordmark on dark (CSS-driven, no SSR flash) -->
           <img
-            src="/assets/icons/logo_white.webp"
+            src="/assets/icons/logo_white.png"
             i18n-alt="@@header.alt.logo"
             alt="IDEM - Africa's sovereign open source AI platform"
-            class="md:w-[120px] w-[100px] h-auto font-bold logo-pulse"
+            class="md:w-[120px] w-[100px] h-auto font-bold logo-pulse dark:hidden"
+          />
+          <img
+            src="/assets/icons/logo_dark.png"
+            i18n-alt="@@header.alt.logo"
+            alt="IDEM - Africa's sovereign open source AI platform"
+            class="md:w-[120px] w-[100px] h-auto font-bold logo-pulse hidden dark:block"
           />
           <!-- <app-beta-badge /> -->
         </a>
@@ -32,7 +39,7 @@
               {{ item.label }}
               @if (item.badge) {
                 <span
-                  class="text-[10px] font-bold bg-primary text-white px-1.5 py-0.5 rounded shadow-lg shadow-primary/20 uppercase tracking-wider leading-none"
+                  class="text-[10px] font-bold bg-primary text-white px-1.5 py-0.5 rounded shadow-lg shadow-primary/20 uppercase leading-none"
                 >
                   {{ item.badge }}
                 </span>
@@ -214,10 +221,16 @@
       <div class="flex-shrink-0 p-6 border-b border-[var(--glass-border)]">
         <div class="flex items-center justify-between">
           <img
-            src="/assets/icons/logo_white.webp"
+            src="/assets/icons/logo_white.png"
             i18n-alt="@@header.alt.logo"
             alt="IDEM Logo"
-            class="md:w-24 w-16 h-auto"
+            class="md:w-24 w-16 h-auto dark:hidden"
+          />
+          <img
+            src="/assets/icons/logo_dark.png"
+            i18n-alt="@@header.alt.logo"
+            alt="IDEM Logo"
+            class="md:w-24 w-16 h-auto hidden dark:block"
           />
           <button
             (click)="toggleMenu()"
@@ -251,7 +264,7 @@
                 <span>{{ item.label }}</span>
                 @if (item.badge) {
                   <span
-                    class="text-[10px] font-bold bg-primary text-white px-1.5 py-0.5 rounded shadow-lg shadow-primary/20 uppercase tracking-wider leading-none"
+                    class="text-[10px] font-bold bg-primary text-white px-1.5 py-0.5 rounded shadow-lg shadow-primary/20 uppercase leading-none"
                   >
                     {{ item.badge }}
                   </span>
@@ -259,7 +272,7 @@
               </a>
             } @else if (item.type === 'dropdown' && item.items) {
               <div class="mobile-nav-group mt-4">
-                <div class="px-4 py-2 text-xs font-semibold text-text-tertiary uppercase tracking-wider">
+                <div class="px-4 py-2 text-xs font-semibold text-text-tertiary uppercase">
                   {{ item.label }}
                 </div>
                 @for (subItem of item.items; track subItem.route) {
@@ -338,7 +351,7 @@
 
           <!-- Language Selector (Mobile) -->
           <div class="mobile-nav-group mt-4 px-4">
-            <div class="text-[10px] font-bold text-text-tertiary uppercase tracking-wider mb-2" i18n="@@header.mobile.language">
+            <div class="text-[10px] font-bold text-text-tertiary uppercase mb-2" i18n="@@header.mobile.language">
               Language / Langue
             </div>
             <div class="flex gap-2">

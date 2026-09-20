@@ -77,7 +77,7 @@
                 {{-- Branch + re-check + Build Pack row --}}
                 <div class="flex gap-3 items-end">
                     <div class="flex-1">
-                        <label class="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
+                        <label class="block text-xs font-medium text-gray-400 uppercase mb-2">
                             Branch
                             <x-helper helper="Change the branch to deploy. Click the check button to verify it exists." />
                         </label>

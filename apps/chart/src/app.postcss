@@ -3,8 +3,11 @@
  * Using @idem/shared-styles with Tailwind CSS 4
  */
 @import "tailwindcss";
-/* Import shared design system (includes Tailwind 4 and theme) */
 
+/* Vilevile, la police de marque IDEM, héritée du design system. Seule la
+   police est importée ici : le reste de `@idem/shared-styles` porte le thème
+   d'IDEM, qui écraserait celui de l'éditeur Mermaid. */
+@import '@idem/shared-styles/fonts/fonts.css';
 
 /* External fonts and icons */
 @import '@fortawesome/fontawesome-free/css/all.min.css';

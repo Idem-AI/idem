@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Messages, ToolInfo } from '../types/project.js';
 import { StreamingOptions } from '../services/aiService.js';
 import { CONTINUE_PROMPT } from '../config/prompts.js';
-import { deductUserTokens, estimateTokens } from './tokens.js';
+import { reportUsage } from './tokens.js';
 import SwitchableStream from './switchableStream.js';
 import { tool } from 'ai';
 import { jsonSchemaToZodSchema } from './json2zod.js';
@@ -81,7 +81,7 @@ export async function streamResponse(
       // stream wrapper below.
     },
     onFinish: async (response) => {
-      const { text: content, finishReason } = response;
+      const { text: content, finishReason, usage } = response;
 
       ChatLogger.info('FINISH', 'Stream finished', {
         finishReason,
@@ -89,19 +89,18 @@ export async function streamResponse(
         contentPreview: content.substring(0, 200),
       });
 
+      // Compteurs RÉELS du fournisseur, relevés à chaque génération — y compris
+      // celles coupées sur `length`, qui ont bien été facturées.
+      reportUsage({
+        model,
+        mode: 'builder',
+        promptTokens: usage?.promptTokens,
+        completionTokens: usage?.completionTokens,
+        finishReason,
+        userId,
+      });
+
       if (finishReason !== 'length') {
-        const tokens = estimateTokens(content);
-        ChatLogger.debug('TOKENS', 'Estimating and deducting tokens', {
-          tokens,
-          userId,
-          willDeduct: !!userId,
-        });
-
-        if (userId) {
-          await deductUserTokens(userId, tokens);
-          ChatLogger.success('TOKENS', 'Tokens deducted successfully', { tokens, userId });
-        }
-
         ChatLogger.info('STREAM_CLOSE', 'Closing stream (finish reason not length)');
         return stream.close();
       }

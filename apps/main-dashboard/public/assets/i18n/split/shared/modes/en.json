@@ -1,0 +1,27 @@
+{
+  "modes": {
+    "guided": {
+      "name": "Guided",
+      "short": "We move forward together, one step at a time",
+      "long": "IDEM tells you what to do, in what order, and does it with you. Ideal when you don't know where to start."
+    },
+    "chat": {
+      "name": "Chat",
+      "short": "You ask, IDEM delivers",
+      "long": "A conversation, like talking to an adviser. Describe what you need and IDEM generates it."
+    },
+    "advanced": {
+      "name": "Dashboard",
+      "short": "Every tool, freely available",
+      "long": "The full workspace: every module is directly accessible, in whatever order you like."
+    },
+    "switcher": {
+      "label": "Mode",
+      "aria": "Change interface mode",
+      "tooltip": "Change interface mode",
+      "panelTitle": "Choose how you want to work",
+      "recommended": "Recommended",
+      "footer": "You can switch modes at any time. Your project and documents stay exactly the same."
+    }
+  }
+}

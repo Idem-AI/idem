@@ -30,7 +30,7 @@
             </div>
             <div>
               <div class="flex items-center gap-3 mb-2">
-                <h2 class="text-xl font-medium text-[var(--idem-text-primary)] tracking-tight">{{ 'dashboard.showDevelopment.liveApp' | translate }}</h2>
+                <h2 class="text-xl font-medium text-[var(--idem-text-primary)]">{{ 'dashboard.showDevelopment.liveApp' | translate }}</h2>
                 <span class="bg-green-500/10 text-green-600 dark:text-green-400 text-xs px-2.5 py-1 rounded-full font-medium">{{ 'dashboard.showDevelopment.deployed' | translate }}</span>
               </div>
               <a [href]="deployed.url" target="_blank" rel="noopener" class="text-primary hover:text-primary-600 transition-colors break-all text-base">
@@ -64,7 +64,7 @@
         <div class="bg-[var(--idem-surface-1)] border border-[var(--glass-border-subtle)] rounded-3xl p-8 md:p-16 shadow-sm mb-12">
           
           <div class="max-w-2xl">
-            <h1 class="text-4xl md:text-5xl font-semibold text-[var(--idem-text-primary)] tracking-tight mb-6 leading-tight">
+            <h1 class="text-4xl md:text-5xl font-semibold text-[var(--idem-text-primary)] mb-6 leading-tight">
               @if (hasExistingApp()) {
                 <span [innerHTML]="'dashboard.showDevelopment.landingReady' | translate"></span>
               } @else {
@@ -119,7 +119,7 @@
       <!-- Hero Section Editorial Style -->
       <div class="mb-16">
         <div class="max-w-3xl">
-          <h1 class="text-4xl md:text-5xl font-semibold text-[var(--idem-text-primary)] tracking-tight mb-6 leading-tight">
+          <h1 class="text-4xl md:text-5xl font-semibold text-[var(--idem-text-primary)] mb-6 leading-tight">
             @if (hasExistingApp()) {
               {{ 'dashboard.showDevelopment.appExistingTitle' | translate }}
             } @else {
@@ -153,14 +153,14 @@
 
       <!-- Tech Stack Summary (Staggered Layout) -->
       <div class="mb-16">
-        <h2 class="text-2xl font-medium text-[var(--idem-text-primary)] mb-8 tracking-tight">{{ 'dashboard.showDevelopment.stackOverview' | translate }}</h2>
+        <h2 class="text-2xl font-medium text-[var(--idem-text-primary)] mb-8">{{ 'dashboard.showDevelopment.stackOverview' | translate }}</h2>
         <div class="flex flex-col md:flex-row gap-6 md:gap-12 p-8 bg-[var(--idem-surface-1)] border border-[var(--glass-border-subtle)] rounded-2xl shadow-sm">
           
           @if (frontend()?.framework) {
             <div class="flex-1">
               <div class="flex items-center gap-3 mb-3">
                 <i class="pi pi-desktop text-[var(--idem-text-secondary)] text-xl"></i>
-                <h3 class="text-[var(--idem-text-secondary)] font-medium uppercase tracking-widest text-xs">{{ 'dashboard.showDevelopment.frontend' | translate }}</h3>
+                <h3 class="text-[var(--idem-text-secondary)] font-medium uppercase text-xs">{{ 'dashboard.showDevelopment.frontend' | translate }}</h3>
               </div>
               <p class="text-[var(--idem-text-primary)] text-xl font-medium">{{ frontend()!.framework }}</p>
             </div>
@@ -173,7 +173,7 @@
             <div class="flex-1">
               <div class="flex items-center gap-3 mb-3">
                 <i class="pi pi-server text-[var(--idem-text-secondary)] text-xl"></i>
-                <h3 class="text-[var(--idem-text-secondary)] font-medium uppercase tracking-widest text-xs">{{ 'dashboard.showDevelopment.backend' | translate }}</h3>
+                <h3 class="text-[var(--idem-text-secondary)] font-medium uppercase text-xs">{{ 'dashboard.showDevelopment.backend' | translate }}</h3>
               </div>
               <p class="text-[var(--idem-text-primary)] text-xl font-medium">{{ backend()!.framework }}</p>
             </div>
@@ -186,7 +186,7 @@
             <div class="flex-1">
               <div class="flex items-center gap-3 mb-3">
                 <i class="pi pi-database text-[var(--idem-text-secondary)] text-xl"></i>
-                <h3 class="text-[var(--idem-text-secondary)] font-medium uppercase tracking-widest text-xs">{{ 'dashboard.showDevelopment.database' | translate }}</h3>
+                <h3 class="text-[var(--idem-text-secondary)] font-medium uppercase text-xs">{{ 'dashboard.showDevelopment.database' | translate }}</h3>
               </div>
               <p class="text-[var(--idem-text-primary)] text-xl font-medium">{{ database()!.provider }}</p>
             </div>
@@ -200,7 +200,7 @@
         
         <details class="group">
           <summary class="flex items-center justify-between cursor-pointer list-none py-4">
-            <h2 class="text-2xl font-medium text-[var(--idem-text-primary)] tracking-tight">{{ 'dashboard.showDevelopment.configDetails' | translate }}</h2>
+            <h2 class="text-2xl font-medium text-[var(--idem-text-primary)]">{{ 'dashboard.showDevelopment.configDetails' | translate }}</h2>
             <div class="w-10 h-10 rounded-full bg-[var(--idem-surface-2)] flex items-center justify-center group-open:rotate-180 transition-transform duration-300">
               <i class="pi pi-chevron-down text-[var(--idem-text-secondary)]"></i>
             </div>
@@ -231,14 +231,14 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
-                    <h5 class="text-xs uppercase tracking-widest text-[var(--idem-text-secondary)] mb-3">{{ 'dashboard.showDevelopment.styling' | translate }}</h5>
+                    <h5 class="text-xs uppercase text-[var(--idem-text-secondary)] mb-3">{{ 'dashboard.showDevelopment.styling' | translate }}</h5>
                     <p class="text-[var(--idem-text-primary)]">
                       {{ typeof frontend()!.styling === 'string' ? frontend()!.styling : getFeaturesList(frontend()!.styling) }}
                     </p>
                   </div>
                   @if (frontend()?.stateManagement) {
                     <div>
-                      <h5 class="text-xs uppercase tracking-widest text-[var(--idem-text-secondary)] mb-3">{{ 'dashboard.showDevelopment.stateManagement' | translate }}</h5>
+                      <h5 class="text-xs uppercase text-[var(--idem-text-secondary)] mb-3">{{ 'dashboard.showDevelopment.stateManagement' | translate }}</h5>
                       <p class="text-[var(--idem-text-primary)]">{{ frontend()!.stateManagement }}</p>
                     </div>
                   }
@@ -246,7 +246,7 @@
 
                 @if (frontend()?.features) {
                   <div class="mt-8">
-                    <h5 class="text-xs uppercase tracking-widest text-[var(--idem-text-secondary)] mb-4">{{ 'dashboard.showDevelopment.enabledFeatures' | translate }}</h5>
+                    <h5 class="text-xs uppercase text-[var(--idem-text-secondary)] mb-4">{{ 'dashboard.showDevelopment.enabledFeatures' | translate }}</h5>
                     <div class="flex flex-wrap gap-2">
                       @if (typeof frontend()!.features === 'object' && !isFeatureArray(frontend()!.features)) {
                         @for (feature of getObjectKeys(frontend()!.features); track feature) {
@@ -278,25 +278,25 @@
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8 pb-8 border-b border-[var(--glass-border-subtle)]">
                   @if (backend()?.language) {
                     <div>
-                      <h5 class="text-xs uppercase tracking-widest text-[var(--idem-text-secondary)] mb-2">{{ 'dashboard.showDevelopment.language' | translate }}</h5>
+                      <h5 class="text-xs uppercase text-[var(--idem-text-secondary)] mb-2">{{ 'dashboard.showDevelopment.language' | translate }}</h5>
                       <p class="text-[var(--idem-text-primary)] font-medium">{{ backend()!.language }}</p>
                     </div>
                   }
                   @if (backend()?.framework) {
                     <div>
-                      <h5 class="text-xs uppercase tracking-widest text-[var(--idem-text-secondary)] mb-2">{{ 'dashboard.showDevelopment.framework' | translate }}</h5>
+                      <h5 class="text-xs uppercase text-[var(--idem-text-secondary)] mb-2">{{ 'dashboard.showDevelopment.framework' | translate }}</h5>
                       <p class="text-[var(--idem-text-primary)] font-medium">{{ backend()!.framework }}</p>
                     </div>
                   }
                   @if (backend()?.apiType) {
                     <div>
-                      <h5 class="text-xs uppercase tracking-widest text-[var(--idem-text-secondary)] mb-2">{{ 'dashboard.showDevelopment.apiType' | translate }}</h5>
+                      <h5 class="text-xs uppercase text-[var(--idem-text-secondary)] mb-2">{{ 'dashboard.showDevelopment.apiType' | translate }}</h5>
                       <p class="text-[var(--idem-text-primary)] font-medium">{{ backend()!.apiType }}</p>
                     </div>
                   }
                   @if (backend()?.orm) {
                     <div>
-                      <h5 class="text-xs uppercase tracking-widest text-[var(--idem-text-secondary)] mb-2">{{ 'dashboard.showDevelopment.orm' | translate }}</h5>
+                      <h5 class="text-xs uppercase text-[var(--idem-text-secondary)] mb-2">{{ 'dashboard.showDevelopment.orm' | translate }}</h5>
                       <p class="text-[var(--idem-text-primary)] font-medium">{{ backend()!.orm }}</p>
                     </div>
                   }
@@ -304,7 +304,7 @@
 
                 @if (backend()?.features) {
                   <div>
-                    <h5 class="text-xs uppercase tracking-widest text-[var(--idem-text-secondary)] mb-4">{{ 'dashboard.showDevelopment.apiFeatures' | translate }}</h5>
+                    <h5 class="text-xs uppercase text-[var(--idem-text-secondary)] mb-4">{{ 'dashboard.showDevelopment.apiFeatures' | translate }}</h5>
                     <div class="flex flex-wrap gap-2">
                       @if (typeof backend()!.features === 'object' && !isFeatureArray(backend()!.features)) {
                         @for (feature of getObjectKeys(backend()!.features); track feature) {
@@ -352,7 +352,7 @@
 
                 @if (database()?.features) {
                   <div>
-                    <h5 class="text-xs uppercase tracking-widest text-[var(--idem-text-secondary)] mb-4">{{ 'dashboard.showDevelopment.configurations' | translate }}</h5>
+                    <h5 class="text-xs uppercase text-[var(--idem-text-secondary)] mb-4">{{ 'dashboard.showDevelopment.configurations' | translate }}</h5>
                     <div class="flex flex-wrap gap-2">
                       @if (typeof database()!.features === 'object' && !isFeatureArray(database()!.features)) {
                         @for (feature of getObjectKeys(database()!.features); track feature) {
@@ -414,7 +414,7 @@
 
                 @if (constraints() && constraints()!.length > 0) {
                   <div class="mt-8 pt-8 border-t border-[var(--glass-border-subtle)]">
-                    <h5 class="text-xs uppercase tracking-widest text-[var(--idem-text-secondary)] mb-4">{{ 'dashboard.showDevelopment.imposedConstraints' | translate }}</h5>
+                    <h5 class="text-xs uppercase text-[var(--idem-text-secondary)] mb-4">{{ 'dashboard.showDevelopment.imposedConstraints' | translate }}</h5>
                     <ul class="space-y-3">
                       @for (constraint of constraints(); track constraint) {
                         <li class="flex items-start gap-3 text-[var(--idem-text-primary)]">

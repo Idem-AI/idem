@@ -155,7 +155,7 @@ const PIE_LIKE = new Set(['pie', 'doughnut', 'polarArea']);
       .ce-field { display: flex; flex-direction: column; gap: 0.4rem; }
       .ce-label {
         font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
-        letter-spacing: 0.04em; color: var(--color-text-tertiary);
+color: var(--color-text-tertiary);
       }
       .ce-input {
         width: 100%; height: 2.25rem; padding: 0 0.6rem;

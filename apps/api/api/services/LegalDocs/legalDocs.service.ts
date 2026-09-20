@@ -135,7 +135,7 @@ export class LegalDocsService extends GenericService {
       {
         project: {
           name: project.name,
-          description: project.description,
+          description: project.longDescription || project.description,
           type: project.type,
           scope: project.scope,
           targets: project.targets,
@@ -178,7 +178,12 @@ export class LegalDocsService extends GenericService {
         steps,
         project,
         async (result: ISectionResult) => {
-          if (result.data === 'steps_in_progress' || result.data === 'all_steps_completed') {
+          if (
+            result.data === 'steps_in_progress' ||
+            result.data === 'all_steps_completed' ||
+            // L'aperçu au fil de l'eau est relayé, jamais enregistré comme section.
+            result.name === 'section_delta'
+          ) {
             await streamCallback(result);
             return;
           }
@@ -326,7 +331,7 @@ export class LegalDocsService extends GenericService {
       const pdfPath = await this.pdfService.generatePdf({
         title: doc.name,
         projectName: project.name || 'Project',
-        projectDescription: project.description || '',
+        projectDescription: project.longDescription || project.description || '',
         sections: [section],
         pageFormat: PAGE_FORMATS.A4_PORTRAIT,
         footerText: `Document juridique — ${doc.name}`,

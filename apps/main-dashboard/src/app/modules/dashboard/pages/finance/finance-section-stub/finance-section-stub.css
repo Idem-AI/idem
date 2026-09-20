@@ -31,7 +31,6 @@
   font-weight: 600;
   font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
   padding: 0.65rem 0.75rem;
   text-align: left;
   white-space: nowrap;
@@ -154,7 +153,6 @@
   display: block;
   font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
   color: var(--color-text-tertiary);
   margin-bottom: 0.35rem;
   font-weight: 600;
@@ -196,7 +194,6 @@
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
   padding: 0.25rem 0.65rem;
   border-radius: 6px;
   background: rgba(59, 130, 246, 0.12);

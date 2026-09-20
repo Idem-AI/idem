@@ -31,7 +31,7 @@
             </div>
 
             {{-- Texte --}}
-            <h2 class="text-xl font-semibold text-text-primary mb-3 tracking-tight">
+            <h2 class="text-xl font-semibold text-text-primary mb-3">
                 Aucun VPS connecté
             </h2>
             <p class="text-sm text-text-tertiary leading-relaxed max-w-sm mb-8">
@@ -49,7 +49,7 @@
                     Déployer sur IDEM SaaS
                 </button>
                 <a href="/servers"
-                   class="w-full sm:w-auto px-8 py-3 text-xs font-semibold uppercase tracking-widest
+                   class="w-full sm:w-auto px-8 py-3 text-xs font-semibold uppercase
                           flex items-center justify-center gap-2
                           border border-[rgba(255,255,255,0.1)] rounded-xl
                           text-text-secondary bg-transparent
@@ -163,7 +163,7 @@
 
         {{-- Header --}}
         <div class="mb-8 text-center">
-            <h1 class="text-2xl font-bold text-text-primary tracking-tight">Distribution PostgreSQL</h1>
+            <h1 class="text-2xl font-bold text-text-primary">Distribution PostgreSQL</h1>
             <p class="text-sm text-text-secondary mt-2">Choisissez la variante adaptée à vos besoins</p>
         </div>
 
@@ -196,7 +196,7 @@
                                 <p class="text-xs font-mono text-text-tertiary mt-0.5">postgres:17-alpine</p>
                             </div>
                         </div>
-                        <span class="text-[10px] uppercase tracking-widest font-medium text-blue-400 border border-blue-500/25 bg-blue-500/10 px-2 py-0.5 rounded-full flex-shrink-0 ml-2">Recommandé</span>
+                        <span class="text-[10px] uppercase font-medium text-blue-400 border border-blue-500/25 bg-blue-500/10 px-2 py-0.5 rounded-full flex-shrink-0 ml-2">Recommandé</span>
                     </div>
                     <p class="text-xs text-text-secondary leading-relaxed">
                         Distribution officielle légère et rapide. Parfaite pour la majorité des projets.
@@ -278,7 +278,7 @@
                                 <p class="text-xs font-mono text-text-tertiary mt-0.5">postgis/postgis:17-3.5</p>
                             </div>
                         </div>
-                        <span class="text-[10px] uppercase tracking-widest font-medium text-amber-400 border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 rounded-full flex-shrink-0 ml-2">AMD only</span>
+                        <span class="text-[10px] uppercase font-medium text-amber-400 border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 rounded-full flex-shrink-0 ml-2">AMD only</span>
                     </div>
                     <p class="text-xs text-text-secondary leading-relaxed">
                         Extensions géospatiales natives pour la cartographie et l'analyse de données localisées.
@@ -320,7 +320,7 @@
                                 <p class="text-xs font-mono text-text-tertiary mt-0.5">pgvector/pgvector:pg17</p>
                             </div>
                         </div>
-                        <span class="text-[10px] uppercase tracking-widest font-medium text-violet-400 border border-violet-500/25 bg-violet-500/10 px-2 py-0.5 rounded-full flex-shrink-0 ml-2">AI/ML</span>
+                        <span class="text-[10px] uppercase font-medium text-violet-400 border border-violet-500/25 bg-violet-500/10 px-2 py-0.5 rounded-full flex-shrink-0 ml-2">AI/ML</span>
                     </div>
                     <p class="text-xs text-text-secondary leading-relaxed">
                         Stockage vectoriel natif pour les embeddings et les workloads IA avec recherche de similarité.
@@ -343,7 +343,7 @@
         {{-- Action footer --}}
         <div class="flex flex-col sm:flex-row items-center justify-end gap-3">
             <button type="button" onclick="window.history.back()"
-                    class="w-full sm:w-auto px-8 py-3 text-xs font-semibold uppercase tracking-widest
+                    class="w-full sm:w-auto px-8 py-3 text-xs font-semibold uppercase
                            flex items-center justify-center gap-2
                            border border-[rgba(255,255,255,0.1)] rounded-xl
                            text-text-secondary bg-transparent

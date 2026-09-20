@@ -86,7 +86,7 @@
             </div>
             {{-- Texte IDEM --}}
             <div class="flex items-center gap-2">
-                <span class="text-2xl font-bold tracking-tight" style="background: linear-gradient(135deg, #ffffff 0%, #3ca4fa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">IDEM</span>
+                <span class="text-2xl font-bold" style="background: linear-gradient(135deg, #ffffff 0%, #3ca4fa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">IDEM</span>
                 {{-- Badge Beta --}}
                 <span class="px-2 py-0.5 text-xs font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded-full">Beta</span>
             </div>

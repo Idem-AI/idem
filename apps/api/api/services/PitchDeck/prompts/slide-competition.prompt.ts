@@ -1,5 +1,3 @@
-import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
-
 export const SLIDE_COMPETITION_PROMPT = `
 <role>Senior pitch deck designer at a top-tier design agency</role>
 <objective>Design the COMPETITION slide — show competitive positioning clearly and confidently with data visualization.</objective>
@@ -18,7 +16,6 @@ export const SLIDE_COMPETITION_PROMPT = `
 - Top: headline. Center: radar chart or comparison table. Bottom: moat statement card (bg-[PRIMARY COLOR]/5 rounded-xl p-4).
 </layout>
 
-${PITCH_DECK_SHARED_RULES}
 
 <project_context>
 `;

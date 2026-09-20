@@ -31,13 +31,13 @@ export function FileExplorer({ onFileSelect }: FileExplorerProps) {
 
   return (
     <div 
-      className="h-full w-full flex flex-col bg-[#f6f6f6] dark:bg-[#1a1a1c] border-r border-[#e4e4e4] dark:border-[#252525]"
+      className="h-full w-full flex flex-col bg-surface-1 border-r border-[var(--glass-border)]"
       onContextMenu={handleContextMenu}
     >
-      <div className="p-2 flex-shrink-0 text-[#424242] dark:text-white">
+      <div className="p-2 flex-shrink-0 text-text-secondary dark:text-white">
         <Header />
       </div>
-      <div className="flex-1 overflow-y-auto min-h-0 bg-[#f6f6f6] dark:bg-[#1a1a1c]">
+      <div className="flex-1 overflow-y-auto min-h-0 bg-surface-1">
         <FileList files={files} onFileSelect={onFileSelect} />
       </div>
 

@@ -1,9 +1,19 @@
 <!-- Layout container -->
 <div class="min-h-screen">
-  <!-- Sidebar -->
-  <app-sidebar-dashboard (sidebarCollapsedChange)="onSidebarCollapsedChange($event)" />
+  <!--
+    La barre du haut porte les commandes de la barre latérale, qu'elle pilote
+    par référence de gabarit plutôt que par un état recopié dans cette
+    disposition : le repli et le tiroir mobile appartiennent à la barre
+    latérale, et deux copies d'un même booléen finissent par se désaccorder.
+  -->
+  <app-topbar
+    [withSidebar]="true"
+    [withProjectSelector]="true"
+    (toggleSidebar)="sidebar.toggleSidebar()"
+    (openMobileDrawer)="sidebar.toggleMobileDrawer()"
+  />
 
-  <!-- Language Selector - Fixed Position -->
+  <app-sidebar-dashboard #sidebar (sidebarCollapsedChange)="onSidebarCollapsedChange($event)" />
 
   <!-- Main content area -->
   <div
@@ -26,6 +36,9 @@
           'bg-transparent':true
         }"
       >
+        <!-- Fil du parcours assisté : visible uniquement dans le mode Assisté -->
+        <app-guided-step-bar />
+
         <router-outlet></router-outlet>
       </div>
     </div>

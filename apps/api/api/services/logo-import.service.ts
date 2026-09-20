@@ -48,6 +48,14 @@ const SVGO_CONFIG: SvgoConfig = {
   plugins: [
     'removeMetadata',
     'removeDimensions',
+    // Les exports Illustrator/Inkscape — le format le plus courant pour un
+    // logo — portent leurs couleurs dans un bloc <style> et une `class` sur
+    // chaque forme. `removeAttrs` ci-dessous retire les classes : sans ces
+    // trois passes qui replient le CSS dans les attributs, les fills partent
+    // avec elles et le logo ressort ENTIÈREMENT NOIR.
+    'inlineStyles',
+    'minifyStyles',
+    'convertStyleToAttrs',
     'mergePaths',
     'convertPathData',
     'cleanupIds',
@@ -158,11 +166,16 @@ async function processSvg(buffer: Buffer): Promise<LogoImportResult> {
 
   const dimensions = extractSvgDimensions(optimizedSvg);
 
-  // Extract colors from the optimized SVG. A logo made only of black/white/gray
-  // has every color filtered as non-brand — fall back to a rich near-black so
-  // the workflow always has at least one usable primary color.
-  const extractedColors = extractColorsFromSvg(optimizedSvg);
+  // Extract colors from the optimized SVG. Quand l'analyse textuelle ne voit
+  // rien (dégradé, motif, `currentColor`), on MESURE la palette sur le rendu
+  // avant de se rabattre sur un quasi-noir : c'est la différence entre un logo
+  // dont on a lu les couleurs et un logo déclaré noir faute de les avoir lues.
+  let extractedColors = extractColorsFromSvg(optimizedSvg);
   if (extractedColors.length === 0) {
+    extractedColors = await extractColorsFromRenderedSvg(optimizedSvg);
+  }
+  if (extractedColors.length === 0) {
+    // Logo réellement monochrome : un quasi-noir riche, jamais #000000.
     extractedColors.push('#1a1a2e');
   }
 
@@ -181,10 +194,14 @@ async function processSvg(buffer: Buffer): Promise<LogoImportResult> {
  */
 async function extractColorsFromRasterImage(buffer: Buffer): Promise<string[]> {
   try {
-    // Resize to small size for faster color analysis
+    // Resize to small size for faster color analysis.
+    // `ensureAlpha` (et NON `removeAlpha`) : sur un PNG détouré, retirer le
+    // canal alpha laisse les pixels transparents à leur RVB stocké, qui vaut
+    // presque toujours (0,0,0). Ils étaient donc comptés comme du noir, et un
+    // logo sur fond transparent ressortait noir.
     const smallBuffer = await sharp(buffer)
       .resize(100, 100, { fit: 'inside', withoutEnlargement: true })
-      .removeAlpha()
+      .ensureAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
 
@@ -193,36 +210,82 @@ async function extractColorsFromRasterImage(buffer: Buffer): Promise<string[]> {
 
     // Sample pixels and count color occurrences
     for (let i = 0; i < data.length; i += info.channels) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
+      if (info.channels === 4 && data[i + 3] < 128) continue;
 
-      // Quantize to reduce noise (round to nearest 16)
-      const qr = Math.round(r / 16) * 16;
-      const qg = Math.round(g / 16) * 16;
-      const qb = Math.round(b / 16) * 16;
-
-      const hex = `#${qr.toString(16).padStart(2, '0')}${qg.toString(16).padStart(2, '0')}${qb.toString(16).padStart(2, '0')}`;
+      // Quantize to reduce noise (round to nearest 16).
+      // Le hex passe par `rgbToHex`, qui BORNE à 255 : écrit à la main,
+      // `Math.round(255 / 16) * 16` vaut 256, s'écrivait "100" et donnait un
+      // hex de 7 chiffres (#100a000 pour un orange #ff9900). Relu par tranches
+      // de deux, il devenait #100a00 — un quasi-noir, aussitôt écarté par le
+      // filtre. Toute couleur ayant un canal ≥ 248 disparaissait ainsi, et le
+      // repli `#000000` devenait la couleur « extraite » du logo.
+      const hex = rgbToHex(
+        Math.round(data[i] / 16) * 16,
+        Math.round(data[i + 1] / 16) * 16,
+        Math.round(data[i + 2] / 16) * 16
+      );
       colorCounts.set(hex, (colorCounts.get(hex) || 0) + 1);
     }
 
-    // Filter out near-black and near-white, sort by frequency
-    const NON_BRAND = new Set(['#000000', '#101010', '#f0f0f0', '#ffffff']);
-    const sorted = Array.from(colorCounts.entries())
-      .filter(([color]) => {
-        if (NON_BRAND.has(color)) return false;
-        const r = parseInt(color.slice(1, 3), 16);
-        const g = parseInt(color.slice(3, 5), 16);
-        const b = parseInt(color.slice(5, 7), 16);
-        const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-        return lum > 30 && lum < 230; // skip near-black and near-white
-      })
+    return Array.from(colorCounts.entries())
+      .filter(([color]) => isBrandColor(color))
       .sort((a, b) => b[1] - a[1])
-      .map(([color]) => color);
-
-    return sorted.slice(0, 10);
+      .map(([color]) => color)
+      .slice(0, 10);
   } catch (error) {
     logger.error('Error extracting colors from raster image:', error);
+    return [];
+  }
+}
+
+/**
+ * Une couleur de marque, par opposition à un neutre.
+ *
+ * L'ancien test était une bande de luminance (30 < lum < 230) : il jetait le
+ * bleu nuit d'une marque institutionnelle comme le jaune pâle d'une autre, et
+ * laissait passer n'importe quel gris moyen. On teste la SATURATION : un noir,
+ * un blanc et un gris en sont dépourvus quelle que soit leur clarté ; une
+ * couleur de marque en a.
+ */
+function isBrandColor(hex: string): boolean {
+  const rgb = hexToRgbTriplet(hex);
+  if (!rgb) return false;
+
+  const max = Math.max(rgb.r, rgb.g, rgb.b);
+  const min = Math.min(rgb.r, rgb.g, rgb.b);
+  const saturation = max === 0 ? 0 : (max - min) / max;
+
+  if (saturation < 0.12) return false; // neutre
+  return max >= 24 && min <= 248; // ni noyé dans le noir, ni délavé dans le blanc
+}
+
+/**
+ * Parse un hexadécimal à 6 chiffres. Retourne null sur toute autre forme —
+ * volontairement strict : c'est ce qui fait remonter un hex malformé au lieu
+ * de le laisser se faire relire comme une couleur plausible.
+ */
+function hexToRgbTriplet(hex: string): { r: number; g: number; b: number } | null {
+  const match = /^#?([0-9a-f]{6})$/i.exec((hex || '').trim());
+  if (!match) return null;
+  const value = parseInt(match[1], 16);
+  return { r: (value >> 16) & 255, g: (value >> 8) & 255, b: value & 255 };
+}
+
+/**
+ * Palette d'un SVG mesurée sur son RENDU plutôt que sur son texte.
+ *
+ * Repli de `extractColorsFromSvg` : il rattrape les couleurs qu'aucune analyse
+ * textuelle ne voit — dégradés, motifs, `currentColor`, CSS exotique.
+ */
+async function extractColorsFromRenderedSvg(svgContent: string): Promise<string[]> {
+  try {
+    const rendered = await sharp(Buffer.from(svgContent, 'utf-8'), { density: 150 })
+      .resize(200, 200, { fit: 'inside', withoutEnlargement: true })
+      .png()
+      .toBuffer();
+    return await extractColorsFromRasterImage(rendered);
+  } catch (error) {
+    logger.warn(`Could not rasterize SVG for color extraction: ${(error as Error).message}`);
     return [];
   }
 }
@@ -477,12 +540,25 @@ async function traceMaskToPaths(maskPng: Buffer, colorHex: string): Promise<stri
 }
 
 /**
+ * Résultat d'une vectorisation par couches de couleur.
+ *
+ * `clusters` est rendu MÊME quand `result` est null : la palette mesurée sur
+ * l'image d'origine est le travail le plus fiable de tout ce fichier, et
+ * l'ancienne version la jetait en sortant, obligeant le repli à la redécouvrir
+ * par un chemin plus fragile.
+ */
+interface RasterVectorization {
+  result: LogoImportResult | null;
+  clusters: ColorCluster[];
+}
+
+/**
  * Vectorizes a raster logo preserving its colors:
  * quantize palette → binary mask per color → potrace per layer → stacked SVG.
- * Returns null when the image is effectively single-colored (caller falls back
- * to the classic single-color trace).
+ * Returns result=null only when no color layer could be measured or traced
+ * (caller falls back to the classic grayscale single-color trace).
  */
-async function vectorizeMulticolor(buffer: Buffer): Promise<LogoImportResult | null> {
+async function vectorizeMulticolor(buffer: Buffer): Promise<RasterVectorization> {
   const { data, info } = await sharp(buffer)
     .resize(MAX_TRACE_DIMENSION, MAX_TRACE_DIMENSION, { fit: 'inside', withoutEnlargement: true })
     .ensureAlpha()
@@ -492,15 +568,17 @@ async function vectorizeMulticolor(buffer: Buffer): Promise<LogoImportResult | n
   const { width, height, channels } = info;
   const { clusters, background } = quantizeImagePalette(data, width, height, channels);
 
-  if (clusters.length < 2) {
-    logger.info(
-      `Multicolor vectorization skipped: ${clusters.length} color cluster(s) detected, using single-color trace`
-    );
-    return null;
+  if (clusters.length === 0) {
+    logger.info('Layered vectorization skipped: no color cluster detected, using grayscale trace');
+    return { result: null, clusters };
   }
 
+  // Un seul cluster passe ici aussi, désormais. Le repli en niveaux de gris
+  // reconstruisait la forme à partir de la LUMINANCE, ce qui traite un fond
+  // transparent comme du noir et perd la couleur exacte ; le masque par
+  // cluster, lui, s'appuie sur l'alpha et repeint avec la couleur mesurée.
   logger.info(
-    `Multicolor vectorization: ${clusters.length} layers - ${clusters.map((c) => c.hex).join(', ')}`
+    `Layered vectorization: ${clusters.length} layer(s) - ${clusters.map((c) => c.hex).join(', ')}`
   );
 
   // Trace every color layer in parallel; layers are stacked largest-coverage first
@@ -513,31 +591,28 @@ async function vectorizeMulticolor(buffer: Buffer): Promise<LogoImportResult | n
 
   const combinedPaths = layerPaths.filter((p) => p.length > 0).join('');
   if (!combinedPaths) {
-    logger.warn('Multicolor vectorization produced no paths, falling back to single-color trace');
-    return null;
+    logger.warn('Layered vectorization produced no paths, falling back to grayscale trace');
+    return { result: null, clusters };
   }
 
   const rawSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}">${combinedPaths}</svg>`;
   const optimized = optimize(rawSvg, SVGO_CONFIG);
   const optimizedSvg = optimized.data;
 
-  // Filter near-black/near-white for the brand color suggestions, like the raster extractor
-  const extractedColors = clusters
-    .map((c) => c.hex)
-    .filter((hex) => {
-      const r = parseInt(hex.slice(1, 3), 16);
-      const g = parseInt(hex.slice(3, 5), 16);
-      const b = parseInt(hex.slice(5, 7), 16);
-      const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-      return lum > 30 && lum < 230;
-    });
+  // Les neutres sont écartés des SUGGESTIONS de marque, jamais du tracé : un
+  // logo garde son encre noire, il ne la propose simplement pas comme couleur
+  // de marque. S'il n'a que des neutres, on rend quand même sa palette réelle.
+  const brandColors = clusters.map((c) => c.hex).filter(isBrandColor);
 
   return {
-    success: true,
-    svg: optimizedSvg,
-    width,
-    height,
-    extractedColors: extractedColors.length > 0 ? extractedColors : clusters.map((c) => c.hex),
+    result: {
+      success: true,
+      svg: optimizedSvg,
+      width,
+      height,
+      extractedColors: brandColors.length > 0 ? brandColors : clusters.map((c) => c.hex),
+    },
+    clusters,
   };
 }
 
@@ -551,26 +626,43 @@ async function vectorizeMulticolor(buffer: Buffer): Promise<LogoImportResult | n
  * 3. Optimize resulting SVG with SVGO
  */
 async function processRasterImage(buffer: Buffer): Promise<LogoImportResult> {
+  let measuredColors: string[] = [];
+
   try {
-    const multicolor = await vectorizeMulticolor(buffer);
-    if (multicolor) {
-      return multicolor;
+    const { result, clusters } = await vectorizeMulticolor(buffer);
+    if (result) {
+      return result;
     }
+    measuredColors = clusters.map((c) => c.hex);
   } catch (error) {
     logger.warn(
-      `Multicolor vectorization failed, falling back to single-color trace: ${(error as Error).message}`
+      `Layered vectorization failed, falling back to grayscale trace: ${(error as Error).message}`
     );
   }
-  return processSingleColorRaster(buffer);
+
+  return processSingleColorRaster(buffer, measuredColors);
 }
 
 /**
  * Legacy single-color raster vectorization (grayscale + potrace, dominant color).
+ *
+ * @param measuredColors Palette déjà mesurée par la vectorisation en couches,
+ *   quand elle a eu lieu. La recalculer sur un autre chemin donnerait une autre
+ *   réponse pour la même image.
  */
-async function processSingleColorRaster(buffer: Buffer): Promise<LogoImportResult> {
+async function processSingleColorRaster(
+  buffer: Buffer,
+  measuredColors: string[] = []
+): Promise<LogoImportResult> {
   // Step 1: Extract colors from the ORIGINAL image (before grayscale)
-  const extractedColors = await extractColorsFromRasterImage(buffer);
-  const dominantColor = extractedColors.length > 0 ? extractedColors[0] : '#000000';
+  const extractedColors =
+    measuredColors.length > 0 ? measuredColors : await extractColorsFromRasterImage(buffer);
+
+  // Le repli n'est plus #000000. Il posait du noir sur un logo dont on n'avait
+  // pas su lire les couleurs — le tracé ET la couleur de marque proposée
+  // devenaient noirs alors que le logo ne contenait pas de noir.
+  const dominantColor =
+    extractedColors.find(isBrandColor) ?? extractedColors[0] ?? '#1a1a2e';
 
   logger.info(
     `Raster logo import: extracted ${extractedColors.length} colors, dominant: ${dominantColor}`
@@ -695,14 +787,18 @@ export function extractColorsFromSvg(svgContent: string): string[] {
   // Match hex colors in attributes: fill="#abc123", stroke="#abc", stop-color="#aabbcc"
   const hexAttrRegex = /(?:fill|stroke|stop-color|color)\s*=\s*["']#([0-9a-fA-F]{3,8})["']/gi;
   let match: RegExpExecArray | null;
+  const addHex = (raw: string) => {
+    const normalized = normalizeHex(raw);
+    if (normalized) hexColors.add(normalized);
+  };
   while ((match = hexAttrRegex.exec(svgContent)) !== null) {
-    hexColors.add(normalizeHex(match[1]));
+    addHex(match[1]);
   }
 
   // Match hex colors in inline styles: fill:#abc123; stroke:#abc; color:#aabbcc
   const hexStyleRegex = /(?:fill|stroke|stop-color|color)\s*:\s*#([0-9a-fA-F]{3,8})/gi;
   while ((match = hexStyleRegex.exec(svgContent)) !== null) {
-    hexColors.add(normalizeHex(match[1]));
+    addHex(match[1]);
   }
 
   // Match rgb() colors in attributes and styles
@@ -715,34 +811,26 @@ export function extractColorsFromSvg(svgContent: string): string[] {
     hexColors.add(rgbToHex(r, g, b));
   }
 
-  // Filter out non-brand colors (pure black, pure white, near-black, near-white)
-  const NON_BRAND_COLORS = new Set([
-    '#000000',
-    '#ffffff',
-    '#000',
-    '#fff',
-    '#010101',
-    '#020202',
-    '#fefefe',
-    '#fdfdfd',
-    '#111111',
-    '#222222',
-    '#333333',
-    '#eeeeee',
-    '#dddddd',
-    '#cccccc',
-  ]);
+  // Filter out non-brand colors. `isBrandColor` remplace la liste noire de
+  // quinze valeurs qui laissait passer tout gris absent de la liste et jetait
+  // #111 comme #ccc sans distinguer un charbon de marque d'un gris d'interface.
+  const filtered = Array.from(hexColors).filter(isBrandColor);
 
-  const filtered = Array.from(hexColors).filter((color) => {
-    const lower = color.toLowerCase();
-    return !NON_BRAND_COLORS.has(lower);
-  });
-
-  // Sort by frequency of appearance (most used first)
+  // Sort by frequency of appearance (most used first).
+  // On compte les DEUX notations : SVGO réécrit #ff9900 en #f90, et ne
+  // chercher que la forme longue rendait la couleur dominante introuvable —
+  // elle tombait à zéro occurrence et passait DERRIÈRE une couleur
+  // d'appoint. Or c'est `extractedColors[0]` qui devient la couleur primaire
+  // de la charte en aval.
   const colorCounts = new Map<string, number>();
   for (const color of filtered) {
-    const regex = new RegExp(color.replace('#', ''), 'gi');
-    const occurrences = (svgContent.match(regex) || []).length;
+    const long = color.slice(1);
+    const short =
+      long[0] === long[1] && long[2] === long[3] && long[4] === long[5]
+        ? long[0] + long[2] + long[4]
+        : null;
+    const pattern = short ? `${long}|${short}\\b` : long;
+    const occurrences = (svgContent.match(new RegExp(pattern, 'gi')) || []).length;
     colorCounts.set(color, occurrences);
   }
 
@@ -754,15 +842,17 @@ export function extractColorsFromSvg(svgContent: string): string[] {
  */
 function normalizeHex(hex: string): string {
   let h = hex.toLowerCase();
-  // Expand 3-digit hex to 6-digit
-  if (h.length === 3) {
+  // Expand 3- and 4-digit hex (#rgb / #rgba) to 6-digit
+  if (h.length === 3 || h.length === 4) {
     h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
   }
   // Strip alpha channel if 8-digit
   if (h.length === 8) {
     h = h.substring(0, 6);
   }
-  return `#${h}`;
+  // Toute autre longueur (5, 7) est un hex malformé : le laisser passer, c'est
+  // le voir relu par tranches de deux et devenir une couleur qui n'existe pas.
+  return h.length === 6 ? `#${h}` : '';
 }
 
 /**

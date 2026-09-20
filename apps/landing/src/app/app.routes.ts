@@ -45,6 +45,12 @@ export const routes: Routes = [
     data: { layout: 'public' },
   },
   {
+    path: 'simulator',
+    loadComponent: () =>
+      import('./pages/simulation-page/simulation-page').then((m) => m.SimulationPage),
+    data: { layout: 'public' },
+  },
+  {
     path: 'ideploy',
     loadComponent: () => import('./pages/ideploy-page/ideploy-page').then((m) => m.IdeployPage),
     data: { layout: 'public' },
@@ -73,6 +79,17 @@ export const routes: Routes = [
     path: 'beta-policy',
     loadComponent: () =>
       import('./shared/components/beta-policy/beta-policy').then((m) => m.BetaPolicy),
+    data: { layout: 'public' },
+  },
+  {
+    // Conditions propres à la simulation : les conditions générales ne disent
+    // rien de ce qu'un indice de viabilité vaut, ni du trajet d'un business
+    // plan importé. C'est ce que l'utilisateur accepte avant chaque exécution.
+    path: 'simulation-terms',
+    loadComponent: () =>
+      import('./shared/components/simulation-terms/simulation-terms').then(
+        (m) => m.SimulationTerms,
+      ),
     data: { layout: 'public' },
   },
 

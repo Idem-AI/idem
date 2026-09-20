@@ -19,6 +19,8 @@
       "milestones": {
         "brandIdentity": "Identité de marque",
         "businessPlan": "Plan d'affaires",
+        "pitchDeck": "Pitch Deck",
+        "finance": "Prévisions financières",
         "systemDesign": "Diagrammes",
         "development": "Développement",
         "launch": "Lancement"
@@ -39,6 +41,16 @@
           "description": "Créez une stratégie commerciale et une feuille de route complètes",
           "alt": "Plan d'affaires"
         },
+        "pitchDeck": {
+          "title": "Pitch Deck",
+          "description": "Concevez un pitch deck percutant pour convaincre vos partenaires",
+          "alt": "Pitch Deck"
+        },
+        "finance": {
+          "title": "Prévisions financières",
+          "description": "Établissez votre modèle financier, vos prévisions et vos budgets",
+          "alt": "Prévisions financières"
+        },
         "design": {
           "title": "Diagrammes",
           "description": "Concevez l'architecture de votre système et les spécifications techniques",
@@ -49,16 +61,16 @@
           "description": "Construisez et implémentez votre projet avec des technologies modernes",
           "alt": "Développement"
         },
-        "launch": {
-          "title": "Lancement et déploiement",
-          "description": "Déployez votre projet et rendez-le accessible au monde entier",
-          "alt": "Lancement"
-        },
         "comingUp": "À venir",
         "almostThere": "Presque terminé",
         "finalStep": "Dernière étape",
         "startNow": "Commencer maintenant",
-        "nextStep": "Étape suivante"
+        "nextStep": "Étape suivante",
+        "launch": {
+          "title": "Lancement et déploiement",
+          "description": "Déployez votre projet et rendez-le accessible au monde entier",
+          "alt": "Lancement"
+        }
       },
       "info": {
         "created": "Créé",

@@ -36,12 +36,12 @@ export class ProjectDescriptionComponent implements OnInit {
   protected readonly environment = environment;
 
   // Character limits based on beta status
-  protected readonly maxCharacters = environment.isBeta ? 500 : 2000;
+  protected readonly maxCharacters = environment.isBeta ? 10000 : 15000;
 
   constructor() {
-    // Sync textareaContent & auto-resize whenever project().description changes externally
+    // Sync textareaContent & auto-resize whenever project().longDescription changes externally
     effect(() => {
-      const desc = this.project()?.description ?? '';
+      const desc = this.project()?.longDescription ?? '';
       if (desc !== this.textareaContent()) {
         this.textareaContent.set(desc);
         this.characterCount.set(desc.length);
@@ -101,7 +101,7 @@ export class ProjectDescriptionComponent implements OnInit {
     this.textareaContent.set(textarea.value);
 
     // Update project description via output
-    this.projectUpdate.emit({ description: textarea.value });
+    this.projectUpdate.emit({ longDescription: textarea.value });
 
     // Prevent typing if over limit
     if (textarea.value.length > this.maxCharacters) {
@@ -109,7 +109,7 @@ export class ProjectDescriptionComponent implements OnInit {
       textarea.value = truncatedValue;
       this.characterCount.set(this.maxCharacters);
       this.textareaContent.set(truncatedValue);
-      this.projectUpdate.emit({ description: truncatedValue });
+      this.projectUpdate.emit({ longDescription: truncatedValue });
     }
 
     // Auto-resize with mobile-optimized height limits
@@ -135,9 +135,9 @@ export class ProjectDescriptionComponent implements OnInit {
   // Initialize character count and user name when component loads
   ngOnInit(): void {
     const currentProject = this.project();
-    if (currentProject?.description) {
-      this.characterCount.set(currentProject.description.length);
-      this.textareaContent.set(currentProject.description);
+    if (currentProject?.longDescription) {
+      this.characterCount.set(currentProject.longDescription.length);
+      this.textareaContent.set(currentProject.longDescription);
     }
 
     // Get current user name
@@ -259,7 +259,7 @@ export class ProjectDescriptionComponent implements OnInit {
         example.length > this.maxCharacters ? example.substring(0, this.maxCharacters) : example;
 
       // Update project description
-      currentProject.description = truncatedExample;
+      currentProject.longDescription = truncatedExample;
       this.characterCount.set(truncatedExample.length);
       this.textareaContent.set(truncatedExample);
 
@@ -282,7 +282,7 @@ export class ProjectDescriptionComponent implements OnInit {
       }, 0);
 
       // Emit the project update
-      this.projectUpdate.emit({ description: truncatedExample });
+      this.projectUpdate.emit({ longDescription: truncatedExample });
     }
   }
 

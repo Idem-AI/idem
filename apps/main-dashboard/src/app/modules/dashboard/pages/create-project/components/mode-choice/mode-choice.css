@@ -13,8 +13,60 @@
   animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Léger soulèvement au survol : la carte se signale comme cliquable sans
+   recourir à un effet tape-à-l'œil. */
+.mode-card {
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mode-card:hover {
+  transform: translateY(-6px);
+}
+
 /* Light mode background overrides if needed */
 :host-context(.light-theme) .glass {
   background: rgba(255, 255, 255, 0.7);
   border-color: rgba(226, 232, 240, 0.8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fadeIn {
+    animation: none;
+  }
+
+  .mode-card {
+    transition: none;
+  }
+
+  .mode-card:hover {
+    transform: none;
+  }
+}
+
+/* Pastille d'icône : couleurs pilotées ici plutôt qu'en classes Tailwind.
+   La feuille partagée définit `.text-primary` hors de tout `@layer`, et une
+   règle non-layered l'emporte sur n'importe quelle utilitaire Tailwind — donc
+   `group-hover:text-white` n'atteignait jamais l'icône, qui restait bleue sur
+   fond bleu. Le CSS de composant est lui aussi non-layered : l'état survolé
+   et l'état sélectionné s'appliquent sans lutte de spécificité. */
+.card-icon {
+  background-color: color-mix(in oklch, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.mode-card:hover .card-icon {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-icon {
+    transition: none;
+  }
 }

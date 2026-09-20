@@ -1,89 +1,141 @@
 <section class="rc" [attr.data-phase]="phase()">
-  <!-- En-tête compact -->
-  <header class="rc__head">
-    <div class="rc__head-lead">
+  <!-- ══ 1. CE QUI SE PASSE ═══════════════════════════════════════════════
+       L'illustration porte l'information principale : on comprend l'étape
+       avant d'avoir lu quoi que ce soit. -->
+  <div class="rc__stage" [attr.data-scene]="scene()">
+    <svg viewBox="0 0 200 120" class="rc__art" fill="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="rcAccent" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0%" stop-color="var(--color-primary)" />
+          <stop offset="100%" stop-color="var(--color-accent-500)" />
+        </linearGradient>
+      </defs>
+
+      <!-- Le document en cours de constitution, présent à toutes les étapes. -->
+      <rect x="58" y="22" width="84" height="76" rx="6" stroke="currentColor" stroke-opacity=".28" stroke-width="2" />
+      <path class="rc__line rc__line--1" d="M72 42h56" stroke="currentColor" stroke-opacity=".35" stroke-width="3" stroke-linecap="round" />
+      <path class="rc__line rc__line--2" d="M72 56h40" stroke="currentColor" stroke-opacity=".35" stroke-width="3" stroke-linecap="round" />
+      <path class="rc__line rc__line--3" d="M72 70h48" stroke="currentColor" stroke-opacity=".35" stroke-width="3" stroke-linecap="round" />
+      <path class="rc__line rc__line--4" d="M72 84h28" stroke="currentColor" stroke-opacity=".35" stroke-width="3" stroke-linecap="round" />
+
+      <!-- Recherche : la loupe balaie, les sources arrivent. -->
+      <g class="rc__scene rc__scene--searching">
+        <circle cx="44" cy="52" r="16" stroke="url(#rcAccent)" stroke-width="3" />
+        <path d="M56 64l12 12" stroke="url(#rcAccent)" stroke-width="3" stroke-linecap="round" />
+        <circle class="rc__dot rc__dot--1" cx="168" cy="34" r="4" fill="url(#rcAccent)" />
+        <circle class="rc__dot rc__dot--2" cx="176" cy="60" r="3" fill="url(#rcAccent)" />
+        <circle class="rc__dot rc__dot--3" cx="166" cy="84" r="3.5" fill="url(#rcAccent)" />
+      </g>
+
+      <!-- Rédaction : la plume avance sur la page. -->
+      <g class="rc__scene rc__scene--writing">
+        <path d="M150 30l14 14-40 40-18 4 4-18z" stroke="url(#rcAccent)" stroke-width="3" stroke-linejoin="round" />
+        <path d="M146 48l-30 30" stroke="url(#rcAccent)" stroke-width="2" stroke-opacity=".5" stroke-linecap="round" />
+      </g>
+
+      <!-- Vérification : chaque affirmation reçoit sa coche. -->
+      <g class="rc__scene rc__scene--verifying">
+        <path d="M40 60l10 10 20-22" stroke="url(#rcAccent)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M150 40l24-14v30c0 16-10 26-24 32-14-6-24-16-24-32V26z" stroke="url(#rcAccent)" stroke-width="2.5" stroke-linejoin="round" />
+      </g>
+
+      <!-- Planification et mise en forme : les pièces se rangent. -->
+      <g class="rc__scene rc__scene--planning">
+        <circle class="rc__orbit" cx="100" cy="60" r="46" stroke="url(#rcAccent)" stroke-width="2" stroke-dasharray="6 10" />
+      </g>
+
+      <!-- Terminé : le document est complet. -->
+      <g class="rc__scene rc__scene--done">
+        <circle cx="150" cy="86" r="18" fill="url(#rcAccent)" />
+        <path d="M142 86l6 6 12-13" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+    </svg>
+
+    <h2 class="rc__title">{{ titleKey() | translate }}</h2>
+    <p class="rc__note">{{ reassuranceKey() | translate }}</p>
+  </div>
+
+  <!-- ══ 2. OÙ EN EST-ON ══════════════════════════════════════════════════
+       Une barre, un pourcentage, un nom d'étape. La frise segmentée disait la
+       même chose sans que personne puisse la lire. -->
+  <div class="rc__progress">
+    <div class="rc__bar" role="progressbar" [attr.aria-valuenow]="percent()" aria-valuemin="0" aria-valuemax="100">
+      <span class="rc__bar-fill" [style.width.%]="percent()"></span>
+    </div>
+    <div class="rc__progress-meta">
+      <span class="rc__steps">
+        {{ 'dashboard.researchConsole.progress.sectionsProgress' | translate: { done: doneCount(), total: totalCount() } }}
+      </span>
       @if (isRunning()) {
-        <span class="rc__live"><span class="rc__live-dot" aria-hidden="true"></span>{{ 'dashboard.researchConsole.now.live' | translate }}</span>
+        <span class="rc__elapsed">
+          <i class="pi pi-clock" aria-hidden="true"></i>{{ elapsed() }}
+        </span>
       }
-      <h2 class="rc__title">{{ titleKey() | translate }}</h2>
     </div>
-    <span class="rc__count">{{ doneCount() }}<i>/{{ totalCount() }}</i></span>
-  </header>
-
-  <!-- Frise de chapitres (progression + position) -->
-  <div class="rc__chapters" [attr.aria-label]="'dashboard.researchConsole.journey.title' | translate">
-    @for (c of chapters(); track c.name) {
-      <span class="rc__seg" [attr.data-state]="c.state" [attr.title]="c.label"></span>
-    }
   </div>
 
-  <!-- En ce moment (épinglé) -->
-  <div class="rc__now" [attr.data-role]="now().role ?? null" [attr.data-mode]="now().mode">
-    <span class="rc__now-icon" aria-hidden="true">
-      <i class="pi" [class]="now().icon"></i>
-      @if (now().mode === 'active' || now().mode === 'starting') {
-        <span class="rc__bars"><i></i><i></i><i></i><i></i></span>
-      }
-    </span>
-    <div class="rc__now-text">
-      @switch (now().mode) {
-        @case ('active') {
-          <span class="rc__now-line"><b>{{ now().sectionLabel }}</b> — {{ now().actionKey! | translate }}</span>
+  <!-- ══ 3. L'ÉTAPE EN COURS ══════════════════════════════════════════════ -->
+  <div class="rc__current" [attr.data-mode]="now().mode">
+    @switch (now().mode) {
+      @case ('active') {
+        <span class="rc__pulse" aria-hidden="true"></span>
+        <div class="rc__current-text">
+          <span class="rc__current-title">{{ now().sectionLabel }}</span>
+          <span class="rc__current-action">{{ now().actionKey! | translate }}</span>
           @if (draftPreview(); as dp) {
-            <span class="rc__now-draft">…{{ dp }}<span class="rc__caret" aria-hidden="true"></span></span>
+            <span class="rc__current-detail">{{ dp }}<span class="rc__caret" aria-hidden="true"></span></span>
           } @else if (now().query) {
-            <span class="rc__now-query">« {{ now().query }} »</span>
-          }
-        }
-        @case ('starting') {
-          <span class="rc__now-line">{{ 'dashboard.researchConsole.now.starting' | translate }}</span>
-        }
-        @case ('finalizing') {
-          <span class="rc__now-line">{{ 'dashboard.researchConsole.now.finalizing' | translate }}</span>
-        }
-        @case ('done') {
-          <span class="rc__now-line">{{ 'dashboard.researchConsole.now.done' | translate }}</span>
-        }
-      }
-    </div>
-  </div>
-
-  <!-- Flux de découvertes en direct (le cœur) -->
-  <ol class="rc__feed" role="log" aria-live="polite" aria-relevant="additions">
-    @for (item of feed(); track item.key) {
-      <li class="rc__item" [attr.data-tone]="item.tone">
-        <span class="rc__item-icon" aria-hidden="true"><i class="pi" [class]="item.icon"></i></span>
-        <div class="rc__item-body">
-          <span class="rc__item-lead">{{ item.leadKey | translate }}</span>
-          @if (item.url) {
-            <a class="rc__item-link" [href]="item.url" target="_blank" rel="noopener noreferrer">
-              <span class="rc__item-text">{{ item.text }}</span>
-              @if (item.domain) {
-                <span class="rc__item-domain">{{ item.domain }}</span>
-              }
-              <i class="pi pi-external-link" aria-hidden="true"></i>
-            </a>
-          } @else {
-            <span class="rc__item-text">{{ item.text }}</span>
+            <span class="rc__current-detail">{{ now().query }}</span>
           }
         </div>
-      </li>
-    } @empty {
-      <li class="rc__feed-empty">
-        <span class="rc__spin" aria-hidden="true"></span>
-        {{ 'dashboard.researchConsole.feed.starting' | translate }}
-      </li>
+      }
+      @default {
+        <span class="rc__pulse" [class.rc__pulse--still]="now().mode === 'done'" aria-hidden="true"></span>
+        <div class="rc__current-text">
+          <span class="rc__current-title">
+            @switch (now().mode) {
+              @case ('starting') { {{ 'dashboard.researchConsole.now.starting' | translate }} }
+              @case ('finalizing') { {{ 'dashboard.researchConsole.now.finalizing' | translate }} }
+              @case ('done') { {{ 'dashboard.researchConsole.now.done' | translate }} }
+            }
+          </span>
+        </div>
+      }
     }
-  </ol>
+  </div>
 
-  <!-- Confiance + compteurs -->
+  <!-- ══ 4. SUR QUOI REPOSE LE DOCUMENT ═══════════════════════════════════
+       Les sources, et rien d'autre. Le reste — requêtes, sections rédigées,
+       vérifications — était un journal technique. -->
+  @if (sourceCount() > 0) {
+    <div class="rc__sources">
+      <p class="rc__sources-head">
+        <i class="pi pi-verified" aria-hidden="true"></i>
+        {{ 'dashboard.researchConsole.trust.title' | translate: { count: sourceCount() } }}
+      </p>
+
+      <ul class="rc__source-list" role="log" aria-live="polite" aria-relevant="additions">
+        @for (source of sources(); track source.id) {
+          <li class="rc__source">
+            <a class="rc__source-link" [href]="source.url" target="_blank" rel="noopener noreferrer">
+              <span class="rc__source-title">{{ source.title }}</span>
+              <span class="rc__source-domain">
+                {{ source.domain ?? '' }}<i class="pi pi-external-link" aria-hidden="true"></i>
+              </span>
+            </a>
+          </li>
+        }
+      </ul>
+    </div>
+  } @else {
+    <p class="rc__waiting">
+      <span class="rc__spin" aria-hidden="true"></span>
+      {{ 'dashboard.researchConsole.feed.starting' | translate }}
+    </p>
+  }
+
+  <!-- ══ 5. L'ENGAGEMENT ══════════════════════════════════════════════════ -->
   <footer class="rc__foot">
-    <span class="rc__foot-badge">
-      <i class="pi pi-verified" aria-hidden="true"></i>
-      {{ 'dashboard.researchConsole.trust.title' | translate: { count: sourceCount() } }}
-    </span>
-    <span class="rc__foot-note">
-      {{ 'dashboard.researchConsole.foot.note' | translate: { queries: queryCount() } }}
-    </span>
+    {{ 'dashboard.researchConsole.foot.note' | translate: { queries: queryCount() } }}
   </footer>
 </section>

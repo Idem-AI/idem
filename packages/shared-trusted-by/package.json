@@ -1,0 +1,40 @@
+{
+  "name": "@idem/shared-trusted-by",
+  "version": "1.0.0",
+  "description": "Bandeau « Ils nous font confiance » partagé par les landing pages Idem : une seule liste de partenaires, un seul style, un rendu par framework",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./angular": "./src/angular/index.ts",
+    "./react": "./src/react/index.ts",
+    "./partners.json": "./partners.json"
+  },
+  "files": [
+    "src",
+    "assets",
+    "partners.json",
+    "README.md"
+  ],
+  "keywords": [
+    "idem",
+    "partners",
+    "landing",
+    "shared"
+  ],
+  "author": "Idem Team",
+  "license": "MIT",
+  "peerDependencies": {
+    "@angular/core": ">=20",
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "@angular/core": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  }
+}

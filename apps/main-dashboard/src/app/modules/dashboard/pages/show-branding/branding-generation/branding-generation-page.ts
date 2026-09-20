@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { CookieService } from '../../../../../shared/services/cookie.service';
 import { BrandingGenerationComponent } from '../components/branding-generation/branding-generation';
 import { BrandIdentityModel } from '../../../models/brand-identity.model';
+import { UiModeService } from '../../../../../shared/services/ui-mode.service';
 
 @Component({
   selector: 'app-branding-generation-page',
@@ -50,6 +51,7 @@ export class BrandingGenerationPage implements OnInit {
   // Injected services
   private readonly cookieService = inject(CookieService);
   private readonly router = inject(Router);
+  private readonly uiMode = inject(UiModeService);
 
   // Signals for state management
   protected readonly projectId = signal<string | null>(null);
@@ -70,8 +72,8 @@ export class BrandingGenerationPage implements OnInit {
   protected onBrandingGenerated(branding: BrandIdentityModel): void {
     console.log('Branding generation completed, redirecting to display:', branding);
 
-    // Redirect to the branding display page
-    this.router.navigate(['/project/branding/display']);
+    // En mode Assisté, retour au parcours : l'étape se coche et la suivante s'ouvre.
+    this.uiMode.completeStep('/project/branding/display');
   }
 
   /**

@@ -10,7 +10,7 @@
  * garantissant la localisation déterministe des nœuds.
  */
 
-import { EditableSection, PageFormat, RenderContext } from '../models/editor.types';
+import { EditableSection, EditorMode, PageFormat, RenderContext } from '../models/editor.types';
 
 /** Échappe le contenu destiné à un attribut HTML. */
 function attr(value: string): string {
@@ -72,7 +72,9 @@ const INTERACTION_RUNTIME = `
 (function () {
   var SRC = 'idem-editor';
   var HOST = 'idem-editor-host';
-  var INLINE = { B:1,I:1,STRONG:1,EM:1,SPAN:1,A:1,BR:1,SMALL:1,SUB:1,SUP:1,MARK:1,U:1,CODE:1 };
+  // Aperçu : survol et sélection identiques à l'éditeur, contenu intouchable.
+  var PREVIEW = window.__IDEM_MODE === 'preview';
+  var INLINE ={ B:1,I:1,STRONG:1,EM:1,SPAN:1,A:1,BR:1,SMALL:1,SUB:1,SUP:1,MARK:1,U:1,CODE:1 };
 
   var selectedEl = null;
   var editingEl = null;
@@ -220,8 +222,15 @@ const INTERACTION_RUNTIME = `
       textContent: (el.textContent || '').trim().slice(0, 400),
       style: readStyle(el),
       attributes: readAttributes(el),
-      chart: canvas ? chartLite(canvas) : undefined
+      chart: canvas ? chartLite(canvas) : undefined,
+      rect: docRect(el)
     };
+  }
+
+  // Boîte en coordonnées du document (échelle 1) : l'hôte la multiplie par son zoom.
+  function docRect(el) {
+    var r = el.getBoundingClientRect();
+    return { left: r.left + window.scrollX, top: r.top + window.scrollY, width: r.width, height: r.height };
   }
 
   function select(el, notify) {
@@ -356,7 +365,7 @@ const INTERACTION_RUNTIME = `
 
   // Démarrage d'un glissement en pressant l'élément déjà sélectionné (seuil de 5px).
   document.addEventListener('pointerdown', function (e) {
-    if (editingEl || drag) return;
+    if (PREVIEW || editingEl || drag) return;
     if (e.target.closest && e.target.closest('[data-idem-ui]')) return;
     if (selectedEl && e.target === selectedEl && sectionOf(selectedEl)) beginDrag(selectedEl, e);
   }, true);
@@ -375,6 +384,14 @@ const INTERACTION_RUNTIME = `
     if (justDragged) { justDragged = false; e.preventDefault(); e.stopPropagation(); return; }
     var el = e.target;
     if (el.closest && el.closest('[data-idem-ui]')) return;
+    // Bouton d'une page de remplacement (aperçu) : l'action remonte à l'hôte.
+    var action = PREVIEW && el.closest ? el.closest('[data-idem-action]') : null;
+    if (action) {
+      e.preventDefault();
+      e.stopPropagation();
+      post({ type: 'action', action: action.getAttribute('data-idem-action'), name: action.getAttribute('data-idem-name') || '' });
+      return;
+    }
     if (editingEl && el === editingEl) return;
     if (!sectionOf(el)) { clearSelection(); return; }
     e.preventDefault();
@@ -383,6 +400,7 @@ const INTERACTION_RUNTIME = `
   }, true);
 
   document.addEventListener('dblclick', function (e) {
+    if (PREVIEW) return;
     var el = e.target;
     if (!sectionOf(el) || !isTextLeaf(el)) return;
     e.preventDefault();
@@ -392,9 +410,17 @@ const INTERACTION_RUNTIME = `
   }, true);
 
   document.addEventListener('keydown', function (e) {
-    if (!editingEl) return;
-    if (e.key === 'Escape') { e.preventDefault(); commitEdit(); }
-    else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitEdit(); }
+    if (editingEl) {
+      if (e.key === 'Escape') { e.preventDefault(); commitEdit(); }
+      else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitEdit(); }
+      return;
+    }
+    if (e.key === 'Escape') { post({ type: 'escape' }); return; }
+    // Le focus est dans l'iframe : sans relais, Ctrl/⌘ +/- zoomerait le navigateur entier.
+    if (!(e.ctrlKey || e.metaKey)) return;
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); post({ type: 'zoom-gesture', factor: 1.1 }); }
+    else if (e.key === '-') { e.preventDefault(); post({ type: 'zoom-gesture', factor: 1 / 1.1 }); }
+    else if (e.key === '0') { e.preventDefault(); post({ type: 'zoom-gesture', factor: 1, reset: true }); }
   }, true);
 
   document.addEventListener('focusout', function (e) {
@@ -439,11 +465,21 @@ const INTERACTION_RUNTIME = `
       node.remove();
       post({ type: 'deselect' });
     } else if (m.type === 'select-path') {
-      select(node, false);
-      node.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      post({ type: 'select', selection: buildSelection(node, sectionEl) });
+      // Attendre polices, Tailwind et graphiques : la boîte renvoyée sert à
+      // centrer l'élément dans la vue de l'hôte (l'iframe, lui, ne défile pas).
+      whenSettled(function () {
+        if (!document.contains(node)) return;
+        select(node, false);
+        post({ type: 'select', selection: buildSelection(node, sectionEl), reveal: m.reveal !== false });
+      });
     }
   });
+
+  function whenSettled(fn) {
+    function run() { requestAnimationFrame(function () { requestAnimationFrame(fn); }); }
+    if (document.readyState === 'complete') run();
+    else window.addEventListener('load', run, { once: true });
+  }
 
   function cssEscape(s) { return String(s).replace(/["\\\\]/g, '\\\\$&'); }
 
@@ -499,7 +535,7 @@ const INTERACTION_RUNTIME = `
   var _place = place;
   place = function (box, el) {
     _place(box, el);
-    if (box === selBox) {
+    if (box === selBox && !PREVIEW) {
       var r = el.getBoundingClientRect();
       handle.style.left = (r.left + window.scrollX - 11) + 'px';
       handle.style.top = (r.top + window.scrollY - 11) + 'px';
@@ -511,10 +547,69 @@ const INTERACTION_RUNTIME = `
 
   /* ----- Hauteur du document (auto-resize de l'iframe) ----- */
   var lastH = 0;
+  // Toutes les pages, pages de remplacement comprises, dans l'ordre du document.
+  function sectionLayout() {
+    var list = document.querySelectorAll('.idem-section');
+    var out = [];
+    for (var i = 0; i < list.length; i++) {
+      var r = list[i].getBoundingClientRect();
+      out.push({
+        id: list[i].getAttribute('data-section-id') || list[i].getAttribute('data-idem-placeholder'),
+        top: r.top + window.scrollY, height: r.height,
+        left: r.left + window.scrollX, width: r.width
+      });
+    }
+    return out;
+  }
   function reportHeight() {
     var h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
-    if (Math.abs(h - lastH) > 1) { lastH = h; post({ type: 'height', height: h }); }
+    if (Math.abs(h - lastH) > 1) { lastH = h; post({ type: 'height', height: h, sections: sectionLayout() }); }
   }
+
+  /* ----- Gestes de zoom : relayés à l'hôte, qui ne les voit pas passer ----- */
+  document.addEventListener('wheel', function (e) {
+    if (!e.ctrlKey && !e.metaKey) return; // pincement du pavé tactile = molette + ctrl
+    e.preventDefault();
+    // Cran de souris (±100) borné à ±25 → ×1,22 ; pincement (quelques unités) → progressif.
+    var delta = Math.max(-25, Math.min(25, e.deltaY));
+    post({ type: 'zoom-gesture', factor: Math.exp(-delta * 0.008), x: e.pageX, y: e.pageY });
+  }, { passive: false });
+
+  // Pincement tactile. La distance est lue en coordonnées ÉCRAN : en
+  // coordonnées du document, elle ne varierait pas puisque l'hôte rezoome
+  // l'iframe sous les doigts.
+  var pinch = null;
+  function screenDist(t) {
+    var dx = t[0].screenX - t[1].screenX, dy = t[0].screenY - t[1].screenY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+  document.addEventListener('touchstart', function (e) {
+    if (e.touches.length === 2) pinch = { dist: screenDist(e.touches) };
+  }, { passive: true });
+  document.addEventListener('touchmove', function (e) {
+    if (!pinch || e.touches.length !== 2) return;
+    e.preventDefault();
+    var d = screenDist(e.touches);
+    if (pinch.dist > 0 && d > 0) {
+      post({
+        type: 'zoom-gesture', factor: d / pinch.dist,
+        x: (e.touches[0].pageX + e.touches[1].pageX) / 2,
+        y: (e.touches[0].pageY + e.touches[1].pageY) / 2
+      });
+    }
+    pinch.dist = d;
+  }, { passive: false });
+  document.addEventListener('touchend', function (e) { if (e.touches.length < 2) pinch = null; }, { passive: true });
+
+  // Safari (pavé tactile macOS) : événements gesture* au lieu de ctrl + molette.
+  var gestureScale = 1;
+  document.addEventListener('gesturestart', function (e) { e.preventDefault(); gestureScale = 1; });
+  document.addEventListener('gesturechange', function (e) {
+    e.preventDefault();
+    if (pinch) return; // iOS émet aussi les touch* : un seul relais
+    post({ type: 'zoom-gesture', factor: e.scale / gestureScale, x: e.pageX, y: e.pageY });
+    gestureScale = e.scale;
+  });
   if (window.ResizeObserver) { new ResizeObserver(reportHeight).observe(document.body); }
   window.addEventListener('load', reportHeight);
   setTimeout(reportHeight, 300);
@@ -524,8 +619,60 @@ const INTERACTION_RUNTIME = `
 })();
 `;
 
+/**
+ * Espace sous chaque page de l'aperçu (px du document) : l'hôte y pose le pied
+ * de page — nom de la section, alerte, « Régénérer ».
+ */
+export const PREVIEW_PAGE_GAP_PX = 72;
+
+/**
+ * Styles propres à l'aperçu : espacement des pages et pages de remplacement.
+ * Les tailles de ces dernières sont en `cqw` (largeur de la page) : le message
+ * garde les mêmes proportions sur une page A4 comme sur une diapositive 16:9.
+ */
+function previewPageStyles(multiPage: boolean): string {
+  // Page A4 qui grandit (business plan) : le message se pose en haut de page.
+  // Centré sur 297 mm, il tomberait sous le dock quand on saute à la page.
+  const placeholderAlign = multiPage
+    ? `.idem-placeholder .idem-ph { justify-content: flex-start; padding-top: 16cqw; }`
+    : '';
+  return `
+    ${placeholderAlign}
+    .idem-doc { gap: ${PREVIEW_PAGE_GAP_PX}px; padding-bottom: ${PREVIEW_PAGE_GAP_PX}px; }
+    .idem-placeholder { display: flex; background: #f8fafc; container-type: inline-size; }
+    .idem-ph {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 1.3cqw; margin: 3cqw; padding: 4cqw;
+      border: 2px dashed #cbd5e1; border-radius: 1.6cqw;
+      text-align: center; color: #0f172a;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    .idem-ph-error { border-color: #fcd34d; background: #fffbeb; }
+    .idem-ph-art { width: 20cqw; height: auto; margin-bottom: 1cqw; }
+    .idem-ph-section {
+      font-size: 1.5cqw; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #64748b;
+    }
+    .idem-ph-title { font-family: inherit; font-size: 3.2cqw; font-weight: 700; line-height: 1.15; max-width: 70cqw; }
+    .idem-ph-text { font-size: 1.9cqw; line-height: 1.5; color: #475569; max-width: 58cqw; }
+    .idem-ph-btn {
+      display: inline-flex; align-items: center; gap: .8cqw; margin-top: 1.2cqw;
+      padding: 1.1cqw 2.4cqw; border: none; border-radius: 999px; cursor: pointer;
+      background: #1447e6; color: #fff; font: inherit; font-size: 1.8cqw; font-weight: 600;
+      box-shadow: 0 .6cqw 1.8cqw rgba(20, 71, 230, .28);
+    }
+    .idem-ph-btn:hover { background: #0f3bc4; }
+    .idem-ph-btn:focus-visible { outline: 3px solid #0f172a; outline-offset: 3px; }
+    .idem-ph-btn svg { width: 2cqw; height: 2cqw; }
+  `;
+}
+
 /** Styles de page (calage mm) + affordances d'édition. */
-function pageStyles(format: PageFormat, multiPage: boolean, fitRoot: boolean): string {
+function pageStyles(
+  format: PageFormat,
+  multiPage: boolean,
+  fitRoot: boolean,
+  mode: EditorMode,
+): string {
   // multiPage (business plan) : la page grandit avec le contenu (min-height,
   // overflow visible). Sinon (pitch/charte) : page fixe rognée comme le PDF.
   const sectionSizing = multiPage
@@ -556,6 +703,8 @@ function pageStyles(format: PageFormat, multiPage: boolean, fitRoot: boolean): s
   return `
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { background: transparent; }
+    /* Le pincement est relayé à l'hôte : le navigateur ne doit pas zoomer l'iframe. */
+    html { touch-action: pan-x pan-y; }
     .idem-doc { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 20px; }
     .idem-section {
       width: ${format.width};
@@ -566,7 +715,8 @@ function pageStyles(format: PageFormat, multiPage: boolean, fitRoot: boolean): s
       border-radius: 2px;
     }
     ${rootFit}
-    [data-section-id] * { cursor: default; }
+    ${mode === 'preview' ? previewPageStyles(multiPage) : ''}
+    [data-section-id] * { cursor: ${mode === 'preview' ? 'pointer' : 'default'}; }
     .idem-editing { outline: 2px solid #1447e6 !important; outline-offset: 2px; cursor: text !important; }
     h1,h2,h3,h4,h5,h6 { font-family: var(--idem-primary-font, inherit); }
     @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -580,13 +730,19 @@ export function buildIframeDocument(
   format: PageFormat,
   multiPage = false,
   fitRoot = false,
+  mode: EditorMode = 'edit',
 ): string {
-  const primary = ctx.primaryFont || 'Jura';
-  const secondary = ctx.secondaryFont || 'Jura';
+  const primary = ctx.primaryFont || 'Vilevile';
+  const secondary = ctx.secondaryFont || 'Vilevile';
   // Multi-page (BP) : conteneur racine passé en flux (min-h + overflow visible),
   // sans toucher aux classes internes. Sinon (pitch/charte) : HTML tel quel.
   const sectionsHtml = sections
     .map((s, i) => {
+      // Page de remplacement (aperçu) : pas de data-section-id, donc ni survol
+      // ni sélection, et aucun chemin d'édition ne la vise.
+      if (s.placeholder) {
+        return `<section class="idem-section idem-placeholder" data-idem-placeholder="${attr(s.id)}" data-section-index="${i}">${s.html}</section>`;
+      }
       const inner = multiPage ? normalizeRootForFlow(s.html) : s.html;
       return `<section class="idem-section" data-section-id="${attr(s.id)}" data-section-index="${i}">${inner}</section>`;
     })
@@ -615,11 +771,12 @@ ${ctx.fontUrl ? `<link href="${attr(ctx.fontUrl)}" rel="stylesheet" />` : ''}
 </script>
 <style>
   body { font-family: '${secondary}', system-ui, sans-serif; --idem-primary-font: '${primary}'; }
-  ${pageStyles(format, multiPage, fitRoot)}
+  ${pageStyles(format, multiPage, fitRoot, mode)}
 </style>
 </head>
 <body>
 <div class="idem-doc">${sectionsHtml}</div>
+<script>window.__IDEM_MODE = '${mode === 'preview' ? 'preview' : 'edit'}';</script>
 <script>${INTERACTION_RUNTIME}</script>
 </body>
 </html>`;

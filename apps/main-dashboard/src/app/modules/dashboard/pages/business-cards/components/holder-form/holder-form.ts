@@ -61,7 +61,7 @@ const FIELDS: FieldConfig[] = [
               }
               @if (!isUsedByTemplate(field.key)) {
                 <span
-                  class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-[var(--glass-bg-subtle)] text-text-tertiary border border-[var(--glass-border)]"
+                  class="text-[10px] uppercase px-1.5 py-0.5 rounded-sm bg-[var(--glass-bg-subtle)] text-text-tertiary border border-[var(--glass-border)]"
                 >
                   {{ 'dashboard.businessCards.form.unusedField' | translate }}
                 </span>

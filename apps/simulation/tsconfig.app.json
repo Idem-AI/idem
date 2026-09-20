@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/app",
+    // Les paquets partagés (`@idem/*`) sont consommés en source depuis
+    // `packages/` : la racine doit englober le dépôt, pas seulement l'app.
+    "rootDir": "../..",
+    "types": []
+  },
+  "files": ["src/main.ts"],
+  "include": [
+    "src/**/*.d.ts",
+    "../../packages/shared-tour/src/**/*.ts"
+  ]
+}

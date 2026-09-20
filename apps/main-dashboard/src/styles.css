@@ -9,21 +9,17 @@
   --color-accent: var(--color-accent-500);
 }
 
-/* Force standard project font Jura globally */
+/* Force standard project font Vilevile globally */
 * {
-  font-family: 'Jura', sans-serif !important;
+  font-family: 'Vilevile', sans-serif !important;
 }
 
-/* Permit code segments, icons, and preformatted areas to keep their respective fonts */
-code, pre, i, .pi, [class^="pi-"], [class*=" pi-"] {
-  font-family: inherit !important;
+/* Les icônes sont DANS Vilevile : plus de famille à rattraper ici, un
+   `<i class="pi pi-user">` se dessine avec la police de tout le monde. La
+   règle reste pour le code et le préformaté, que le `*` ci-dessus écraserait. */
+code, pre {
+  font-family: var(--font-mono) !important;
 }
-.pi, [class^="pi-"], [class*=" pi-"] {
-  font-family: 'primeicons' !important;
-}
-
-/* PrimeNG Icons */
-@import 'primeicons/primeicons.css';
 
 /* Tailwind v4 dark variant, driven by the `.dark` class on <html> (set by the
    theme boot script / ThemeService from the shared `idem_theme` cookie). */
@@ -398,3 +394,45 @@ code, pre, i, .pi, [class^="pi-"], [class*=" pi-"] {
   }
 }
 
+
+/* ============================================================================
+   IMPRESSION D'UN REÇU
+
+   Le reçu est affiché dans une surcouche, profondément imbriquée sous la
+   coquille de l'application. Une règle d'impression locale au composant ne
+   suffit donc pas : la barre latérale, les onglets et le dock sont montés
+   ailleurs et s'imprimeraient quand même.
+
+   `visibility` plutôt que `display` : masquer un ancêtre en `display: none`
+   emporterait le reçu avec lui, alors qu'une visibilité masquée se laisse
+   rouvrir sur un descendant. La classe n'est posée sur `body` que le temps de
+   l'impression, ce qui laisse le reste de l'application intact.
+   ========================================================================== */
+
+@media print {
+  body.is-printing-receipt * {
+    visibility: hidden;
+  }
+
+  body.is-printing-receipt .receipt,
+  body.is-printing-receipt .receipt * {
+    visibility: visible;
+  }
+
+  body.is-printing-receipt .receipt {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    max-width: none;
+    border: none;
+    border-radius: 0;
+    background: #fff;
+    color: #000;
+  }
+
+  /* Les boutons d'une fenêtre n'ont rien à faire sur un document imprimé. */
+  body.is-printing-receipt .receipt__actions {
+    display: none;
+  }
+}

@@ -18,21 +18,21 @@ export function ActivityBar({
 }: ActivityBarProps) {
   // GitHub 仓库链接
   const handleGithubClick = () => {
-    window.open("https://github.com/idem appgen-dev/idem appgen", "_blank");
+    window.open("https://idem.africa", "_blank");
   };
 
   return (
-    <div className="w-12 bg-[#f6f6f6] dark:bg-[#1a1a1c] flex flex-col items-center py-2 border-r border-[#e4e4e4] dark:border-[#18181a]">
+    <div className="w-12 bg-surface-1 flex flex-col items-center py-2 border-r border-[var(--glass-border)]">
       <Tooltip content="File Explorer" side="right">
         <button
           aria-label="File Explorer"
           className={cn(
             "p-1.5 rounded-md mb-2 transition-all duration-200 relative group",
             activeView === "files"
-              ? "bg-white dark:bg-[#37373D] text-[#424242] dark:text-white"
-              : "text-[#616161] dark:text-[#858585] hover:text-[#424242] hover:bg-[#e8e8e8] dark:hover:text-white dark:hover:bg-[#37373D]",
+              ? "bg-surface-3 text-text-secondary dark:text-white"
+              : "text-text-tertiary hover:text-text-secondary hover:bg-surface-3 dark:hover:text-white dark:hover:bg-surface-3",
             activeView === "files" &&
-              "before:absolute before:left-0 before:top-[20%] before:h-[60%] before:w-[2px] before:bg-[#424242] dark:before:bg-white before:-ml-2"
+              "before:absolute before:left-0 before:top-[20%] before:h-[60%] before:w-[2px] before:bg-surface-3 dark:before:bg-white before:-ml-2"
           )}
           onClick={() => onViewChange("files")}
         >
@@ -46,10 +46,10 @@ export function ActivityBar({
           className={cn(
             "p-1.5 rounded-md mb-2 transition-all duration-200 relative group",
             activeView === "search"
-              ? "bg-white dark:bg-[#37373D] text-[#424242] dark:text-white"
-              : "text-[#616161] dark:text-[#858585] hover:text-[#424242] hover:bg-[#e8e8e8] dark:hover:text-white dark:hover:bg-[#37373D]",
+              ? "bg-surface-3 text-text-secondary dark:text-white"
+              : "text-text-tertiary hover:text-text-secondary hover:bg-surface-3 dark:hover:text-white dark:hover:bg-surface-3",
             activeView === "search" &&
-              "before:absolute before:left-0 before:top-[20%] before:h-[60%] before:w-[2px] before:bg-[#424242] dark:before:bg-white before:-ml-2"
+              "before:absolute before:left-0 before:top-[20%] before:h-[60%] before:w-[2px] before:bg-surface-3 dark:before:bg-white before:-ml-2"
           )}
           onClick={() => onViewChange("search")}
         >
@@ -65,10 +65,10 @@ export function ActivityBar({
           className={cn(
             "p-1.5 opacity-70 rounded-md mb-2 transition-all duration-200 relative group ",
             showTerminal
-              ? "bg-white dark:bg-[#37373D] text-[#424242] dark:text-white"
-              : "text-[#616161] dark:text-[#858585] hover:text-[#424242] hover:bg-[#e8e8e8] dark:hover:text-white dark:hover:bg-[#37373D]",
+              ? "bg-surface-3 text-text-secondary dark:text-white"
+              : "text-text-tertiary hover:text-text-secondary hover:bg-surface-3 dark:hover:text-white dark:hover:bg-surface-3",
             showTerminal &&
-              "before:absolute before:left-0 before:top-[20%] before:h-[60%] before:w-[2px] before:bg-[#424242] dark:before:bg-white before:-ml-2"
+              "before:absolute before:left-0 before:top-[20%] before:h-[60%] before:w-[2px] before:bg-surface-3 dark:before:bg-white before:-ml-2"
           )}
           onClick={onToggleTerminal}
         >
@@ -80,7 +80,7 @@ export function ActivityBar({
         <button
           aria-label="GitHub"
           onClick={handleGithubClick}
-          className="p-1.5 rounded-md mb-2 transition-all duration-200 text-[#616161] dark:text-[#858585] hover:text-[#424242] hover:bg-[#e8e8e8] dark:hover:text-white dark:hover:bg-[#37373D]"
+          className="p-1.5 rounded-md mb-2 transition-all duration-200 text-text-tertiary hover:text-text-secondary hover:bg-surface-3 dark:hover:text-white dark:hover:bg-surface-3"
         >
           <Github className="w-5 h-5" />
         </button>

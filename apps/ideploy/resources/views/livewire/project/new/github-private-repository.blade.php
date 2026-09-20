@@ -3,7 +3,7 @@
     <div class="mb-6 glass-card p-6">
         <div class="flex items-center justify-between gap-4 mb-2">
             <div>
-                <p class="text-xs text-gray-500 tracking-widest uppercase mb-1">GitHub App</p>
+                <p class="text-xs text-gray-500 uppercase mb-1">GitHub App</p>
                 <h1 class="text-2xl font-bold text-white">Create a new Application</h1>
             </div>
             <div class="flex items-center gap-2">
@@ -80,7 +80,7 @@
                 @endif
                 @if ($branches->count() > 0)
                     <div class="mb-3">
-                        <p class="text-xs text-gray-500 tracking-widest uppercase mb-1">Step 2</p>
+                        <p class="text-xs text-gray-500 uppercase mb-1">Step 2</p>
                         <h2 class="text-xl font-bold text-white">Configuration</h2>
                     </div>
                     <div class="flex flex-col gap-4">

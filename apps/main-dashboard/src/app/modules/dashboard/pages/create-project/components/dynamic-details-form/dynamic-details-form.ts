@@ -78,6 +78,7 @@ export class DynamicDetailsFormComponent implements OnInit {
 
   // Réponses : champs d'identité fixes + réponses aux questions (clé = id)
   protected readonly name = signal('');
+  protected readonly shortDescription = signal('');
   protected readonly type = signal('');
   protected readonly answers = signal<Record<string, string>>({});
   /** Saisie libre associée à une option « Autre » (clé = id de question). */
@@ -94,7 +95,11 @@ export class DynamicDetailsFormComponent implements OnInit {
         (answers[currency.id] !== 'other' || !!this.customText()[currency.id]?.trim())
       : true;
     return (
-      this.name().trim().length > 0 && !!this.type() && targetsAnswered && currencyAnswered
+      this.name().trim().length > 0 &&
+      this.shortDescription().trim().length > 0 &&
+      !!this.type() &&
+      targetsAnswered &&
+      currencyAnswered
     );
   });
 
@@ -106,6 +111,7 @@ export class DynamicDetailsFormComponent implements OnInit {
   ngOnInit(): void {
     const p = this.project();
     this.name.set(p?.name?.trim() ?? '');
+    this.shortDescription.set(p?.description?.trim() ?? '');
     this.type.set(this.coerceType(p?.type));
 
     // Questions cœur : immédiates, sans attendre l'IA.
@@ -191,6 +197,14 @@ export class DynamicDetailsFormComponent implements OnInit {
     this.emitUpdate();
   }
 
+  protected onShortDescriptionChange(value: string): void {
+    if (value && value.length > 200) {
+      value = value.substring(0, 200);
+    }
+    this.shortDescription.set(value ?? '');
+    this.emitUpdate();
+  }
+
   protected onTypeChange(value: string): void {
     this.type.set(value ?? '');
     this.emitUpdate();
@@ -241,6 +255,7 @@ export class DynamicDetailsFormComponent implements OnInit {
     const fields = this.planService.buildProjectFieldsFromAnswers(resolved);
     // Nom + type : champs fixes du formulaire, toujours reflétés (même vides)
     fields.name = this.name().trim();
+    fields.description = this.shortDescription().trim();
     fields.type = (this.type() || '') as ProjectModel['type'];
     this.projectUpdate.emit(fields);
   }

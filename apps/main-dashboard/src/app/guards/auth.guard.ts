@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
+import { redirectToApp } from '../shared/utils/app-redirect';
 
 /**
  * Guard pour protéger les routes qui nécessitent une authentification.
@@ -50,6 +51,14 @@ export const publicGuard: CanActivateFn = async (route) => {
     if (user) {
       // Check if there's a redirect parameter (e.g., redirect=ideploy)
       const redirectParam = route.queryParamMap.get('redirect');
+
+      if (redirectParam === 'simulation') {
+        // Déjà connecté : on renvoie directement sur le simulateur, le cookie
+        // de session y est déjà valable.
+        console.log('User already authenticated, redirecting back to the simulator...');
+        redirectToApp('simulation', route.queryParamMap.get('returnUrl'));
+        return false;
+      }
 
       if (redirectParam === 'ideploy') {
         // User is already authenticated and wants to go to iDeploy

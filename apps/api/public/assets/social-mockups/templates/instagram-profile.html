@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!-- Mockup IDEM · Profil Instagram (bureau) · 1200 × 720. Emplacements : cf. ../README.md -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Grand+Hotel&display=swap" rel="stylesheet">
+{{{fontLinks}}}
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1200px;height:720px;overflow:hidden;background:#fff;font-family:'Inter',system-ui,sans-serif;color:#000;display:flex;-webkit-font-smoothing:antialiased}
+svg{display:block}
+.side{width:244px;border-right:1px solid #dbdbdb;padding:26px 12px 0;flex:none}
+.word{font-family:'Grand Hotel',cursive;font-size:32px;padding:0 12px 22px}
+.nv{display:flex;align-items:center;gap:16px;padding:12px;font-size:16px}
+.nv.on{font-weight:700}
+.nv .me{width:24px;height:24px;border-radius:50%;overflow:hidden;border:2px solid #000;display:flex;align-items:center;justify-content:center}
+.nv .me img{width:70%;height:70%;object-fit:contain}
+.main{flex:1;padding:36px 40px 0 60px}
+.header{display:flex;gap:72px;align-items:flex-start;padding-left:40px}
+.avatar{width:150px;height:150px;border-radius:50%;overflow:hidden;flex:none;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 1px #dbdbdb}
+.avatar img{width:64%;height:64%;object-fit:contain}
+.urow{display:flex;align-items:center;gap:10px}
+.uname{font-size:20px;white-space:nowrap;max-width:300px;overflow:hidden;text-overflow:ellipsis}
+.b{height:32px;padding:0 16px;border-radius:8px;font-size:14px;font-weight:600;display:flex;align-items:center;background:#efefef}
+.b.blue{background:#0095f6;color:#fff}
+.stats{display:flex;gap:40px;margin-top:20px;font-size:16px}
+.stats b{font-weight:600}
+.nm{margin-top:16px;font-size:14px;font-weight:600}
+.cat{font-size:14px;color:#737373;margin-top:2px}
+.bio{font-size:14px;line-height:18px;margin-top:2px;max-width:520px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.hl{display:flex;gap:44px;margin:36px 0 0 40px}
+.hl div{width:87px;height:87px;border-radius:50%;padding:4px;box-shadow:0 0 0 1px #dbdbdb}
+.hl span{display:block;width:100%;height:100%;border-radius:50%;background:#fafafa}
+.tabs{margin-top:34px;border-top:1px solid #dbdbdb;display:flex;justify-content:center;gap:60px}
+.tabs div{padding-top:16px;font-size:12px;font-weight:600;letter-spacing:1px;color:#737373;display:flex;gap:6px;align-items:center}
+.tabs .on{color:#000;box-shadow:inset 0 1px 0 #000}
+.grid{margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.grid>div{aspect-ratio:1/1;overflow:hidden;background:#efefef}
+</style>
+</head>
+<body>
+<div class="side">
+  <div class="word">Instagram</div>
+  <div class="nv"><svg width="24" height="24" viewBox="0 0 24 24" fill="#000"><path d="M22 23h-6.001a1 1 0 0 1-1-1v-5.455a2.997 2.997 0 1 0-5.993 0V22a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V11.543a1.002 1.002 0 0 1 .31-.724l10-9.543a1.001 1.001 0 0 1 1.38 0l10 9.543a1.002 1.002 0 0 1 .31.724V22a1 1 0 0 1-1 1z"/></svg>Home</div>
+  <div class="nv"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><circle cx="10.5" cy="10.5" r="7.5"/><path d="m21 21-5.2-5.2"/></svg>Search</div>
+  <div class="nv"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Explore</div>
+  <div class="nv"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M2 8h20M9 2l3 6M15 2l3 6"/><path d="m10 11.5 5 3-5 3z" fill="#000"/></svg>Reels</div>
+  <div class="nv"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M22 3 9.2 10.1M22 3l-7 18-3.9-8.9L2 8.3z"/></svg>Messages</div>
+  <div class="nv"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><path d="M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z"/></svg>Notifications</div>
+  <div class="nv"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M12 7v10M7 12h10"/></svg>Create</div>
+  <div class="nv on"><div class="me" style="background:{{avatarGround}}"><img src="{{avatarSrc}}" alt=""></div>Profile</div>
+</div>
+
+<div class="main">
+  <div class="header">
+    <div class="avatar" style="background:{{avatarGround}}"><img src="{{avatarSrc}}" alt=""></div>
+    <div style="min-width:0">
+      <div class="urow"><div class="uname">{{handle}}</div><div class="b blue">Follow</div><div class="b">Message</div><div class="b" style="padding:0 8px">•••</div></div>
+      <div class="stats"><div><b>248</b> posts</div><div><b>12.4K</b> followers</div><div><b>310</b> following</div></div>
+      <div class="nm">{{brandName}}</div>
+      <div class="cat">{{category}}</div>
+      <div class="bio">{{bio}}</div>
+    </div>
+  </div>
+  <div class="hl"><div><span></span></div><div><span></span></div><div><span></span></div><div><span></span></div><div><span></span></div></div>
+  <div class="tabs">
+    <div class="on"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.4"><rect x="3" y="3" width="18" height="18"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>POSTS</div>
+    <div>REELS</div><div>TAGGED</div>
+  </div>
+  <div class="grid">{{{tiles}}}</div>
+</div>
+</body>
+</html>

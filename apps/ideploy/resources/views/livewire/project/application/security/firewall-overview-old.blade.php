@@ -298,7 +298,7 @@
                     @elseif($stats['all_traffic'] > 0)
                         {{-- Traffic Chart avec données --}}
                         <div class="py-4">
-                            <h4 class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-4">Traffic Over Time</h4>
+                            <h4 class="text-xs font-medium text-gray-500 uppercase mb-4">Traffic Over Time</h4>
                             
                             {{-- Simple Bar Chart --}}
                             <div class="space-y-3">

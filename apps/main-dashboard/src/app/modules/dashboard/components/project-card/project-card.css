@@ -108,10 +108,9 @@
 }
 
 .placeholder-text {
-  font-family: var(--font-jura, 'Jura', sans-serif);
+  font-family: var(--font-vilevile, 'Vilevile', sans-serif);
   font-weight: 700;
   font-size: 1.15rem;
-  letter-spacing: 0.02em;
   color: #ffffff;
   text-shadow: 0 1.5px 3px rgba(0, 0, 0, 0.4);
 }
@@ -130,7 +129,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  letter-spacing: -0.015em;
 }
 
 /* Tile Actions (Delete Button & Chevron) */
@@ -217,5 +215,5 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-family: var(--font-jura, 'Jura', sans-serif);
+  font-family: var(--font-vilevile, 'Vilevile', sans-serif);
 }

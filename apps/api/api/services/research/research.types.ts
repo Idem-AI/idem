@@ -54,17 +54,6 @@ export interface ResearchFinding {
   sourceIds: string[];
 }
 
-/** Résultat d'une passe de recherche pour un brief donné. */
-export interface ResearchResult {
-  brief: string;
-  /** Requêtes réellement exécutées par le moteur (webSearchQueries). */
-  queries: string[];
-  sources: ResearchSource[];
-  findings: ResearchFinding[];
-  /** Synthèse fondée produite par l'agent chercheur (avec citations [sN]). */
-  narrative: string;
-}
-
 /** Problème relevé par l'agent vérificateur. */
 export interface VerificationIssue {
   /** Extrait fautif (ex: une statistique non sourcée). */
@@ -110,6 +99,21 @@ export interface DeliverableSection {
    * des instructions + du contexte projet).
    */
   researchBriefs?: string[];
+  /**
+   * Section composée LIBREMENT, hors gabarit.
+   *
+   * Certaines pages ne sont pas des sections de contenu : une couverture est une
+   * composition pleine page, à hauteur fixe, que le paginateur ne redécoupe pas
+   * et dont la mise en page EST le propos. Lui appliquer le gabarit reviendrait
+   * à en faire une page de contenu comme une autre.
+   *
+   * Sans ce drapeau, ces pages recevaient DEUX consignes contradictoires : leurs
+   * propres instructions (« produis du HTML »), puis le contrat de contenu
+   * structuré (« produis du JSON »). Le modèle suivait l'une ou l'autre, et
+   * quand il suivait la première, l'analyse échouait — la page était alors
+   * publiée telle quelle, par accident, ou perdue.
+   */
+  freeform?: boolean;
 }
 
 // ---------------------------------------------------------------------------

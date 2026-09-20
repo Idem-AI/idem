@@ -30,7 +30,7 @@
       aria-hidden="true"
     ></div>
     <div
-      class="fixed left-0 top-0 bottom-0 w-80 glass border-r border-[var(--glass-border)] flex flex-col shadow-2xl"
+      class="modal-drawer fixed left-0 top-0 bottom-0 w-80 border-r border-[var(--glass-border)] flex flex-col"
     >
       <ng-container
         *ngTemplateOutlet="sidebarContent; context: { collapsed: false }"
@@ -51,7 +51,12 @@
         <img
           src="/assets/icons/logo_white.png"
           [alt]="'dashboard.sidebar.logoAlt' | translate"
-          class="w-[100px] h-auto invert hue-rotate-180 dark:invert-0 dark:hue-rotate-0"
+          class="w-[100px] h-auto dark:hidden"
+        />
+        <img
+          src="/assets/icons/logo_dark.png"
+          [alt]="'dashboard.sidebar.logoAlt' | translate"
+          class="w-[100px] h-auto hidden dark:block"
         />
         <app-beta-badge></app-beta-badge>
       </a>
@@ -150,7 +155,7 @@
   </div>
 
   <!-- Conversations rangées par catégorie -->
-  <div class="flex-1 min-h-0 overflow-y-auto px-3 pb-3">
+  <div class="flex-1 min-h-0 overflow-y-auto px-3 pb-3" data-tour="chat-sidebar">
     @if (!isCollapsed) {
       @if (store.isLoading()) {
         <div class="space-y-2 px-2 pt-1">
@@ -166,7 +171,7 @@
         @for (group of groupedConversations(); track group.category) {
           <div class="mb-2">
             <p
-              class="flex items-center gap-1.5 px-2 pt-3 pb-1.5 text-[10px] uppercase tracking-wider text-text-tertiary font-semibold"
+              class="flex items-center gap-1.5 px-2 pt-3 pb-1.5 text-[10px] uppercase text-text-tertiary font-semibold"
             >
               <i [class]="group.icon" class="text-[10px]"></i>
               {{ 'chat.categories.' + group.category | translate }}
@@ -178,7 +183,8 @@
                   [ngClass]="{
                     'bg-primary shadow-lg shadow-primary/20':
                       store.activeConversationId() === conversation.id,
-                    'hover:bg-[var(--glass-bg-light)]': store.activeConversationId() !== conversation.id,
+                    'hover:bg-[var(--glass-bg-light)]':
+                      store.activeConversationId() !== conversation.id,
                   }"
                 >
                   <button
@@ -221,7 +227,6 @@
   <!-- Pied : switch de mode + utilisateur -->
   <div class="p-3 border-t border-[var(--glass-border)] space-y-3 shrink-0">
     @if (!isCollapsed) {
-      <app-mode-toggle [current]="'chat'" />
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 min-w-0">
           @if (user()?.photoURL) {
@@ -250,7 +255,6 @@
       </div>
     } @else {
       <div class="flex flex-col items-center gap-3">
-        <app-mode-toggle [current]="'chat'" [collapsed]="true" />
         @if (user()?.photoURL) {
           <img
             [src]="user()!.photoURL"

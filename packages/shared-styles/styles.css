@@ -4,7 +4,18 @@
 
 /* Note: Applications using this design system should import Tailwind CSS themselves */
 
-@import url('https://fonts.googleapis.com/css2?family=Jura:wght@300;400;500;600;700&display=swap');
+/* Vilevile — la police de marque IDEM, auto-hébergée (voir tools/font/README.md).
+   Elle est dérivée de Jura sur trois points : l'axe des graisses monte jusqu'à
+   900, donc `font-black` dessine un vrai Black au lieu d'un faux-gras ; toute
+   l'échelle est décalée vers le gras (ce que le CSS appelle 400 dessine un
+   Jura 542) ; et l'approche -0.09em est incorporée aux chasses. */
+@import './fonts/fonts.css';
+
+/* Les icônes PrimeIcons sont DANS Vilevile : mêmes classes qu'avant
+   (`<i class="pi pi-user">`), mais plus de police d'icônes séparée à charger,
+   et plus de famille à rattraper. Elles héritent de la couleur et du corps de
+   leur texte comme n'importe quel caractère. */
+@import './fonts/icons.css';
 
 /* Dual theme (dark + light). The active theme is driven by the `.dark` / `.light`
    class on <html> (set by each app's ThemeService / boot script from the shared
@@ -20,12 +31,17 @@ html.light {
   color-scheme: light;
 }
 
+/* PAS DE `letter-spacing` ICI, NI AILLEURS. L'approche (-0.09em) est
+   incorporée aux chasses de Vilevile : elle vient de la police, pas d'une règle
+   CSS. En reposer une quelque part s'ajouterait à celle de la police au lieu de
+   la remplacer. Pour changer l'approche du produit, un seul endroit :
+   `TRACKING_EM` dans tools/font/build-fonts.py, puis on refabrique.
+   `font-display` est un descripteur de @font-face, pas une propriété : il est
+   déclaré dans fonts/fonts.css. */
 * {
-  font-family: 'Jura', sans-serif;
+  font-family: 'Vilevile', sans-serif;
   font-optical-sizing: auto;
   scroll-behavior: smooth;
-  font-display: swap;
-  letter-spacing: -0.07em;
 }
 
 body {
@@ -115,6 +131,17 @@ html.dark body::before {
   /* Form-control placeholders */
   --idem-placeholder: rgba(15, 23, 42, 0.4);
   --idem-placeholder-focus: rgba(15, 23, 42, 0.6);
+
+  /* Titres. En thème clair ils portent le bleu de marque plutôt que le noir :
+     le noir sur fond clair est neutre, la couleur secondaire signe la page.
+     En thème sombre ce bleu profond deviendrait illisible, d'où la bascule. */
+  --idem-heading: var(--color-secondary-500);
+
+  /* Champs de saisie : légèrement en retrait de leur surface au repos, plus
+     clairs au focus. Deux jetons plutôt qu'une valeur en dur, parce que
+     « s'éclaircir » va dans des directions opposées selon le thème. */
+  --idem-field-bg: var(--idem-surface-2);
+  --idem-field-bg-focus: var(--idem-surface-1);
 }
 
 .dark {
@@ -159,6 +186,13 @@ html.dark body::before {
 
   --idem-placeholder: rgba(255, 255, 255, 0.4);
   --idem-placeholder-focus: rgba(255, 255, 255, 0.6);
+
+  /* Sur fond sombre, un titre reprend la couleur de texte principale : le bleu
+     secondaire (#000060) y serait presque invisible. */
+  --idem-heading: var(--idem-text-primary);
+
+  --idem-field-bg: var(--idem-surface-2);
+  --idem-field-bg-focus: var(--idem-surface-3);
 
   /* Restore deep standard shadows for dark mode */
   --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -231,8 +265,8 @@ html.dark body::before {
      -------------------------------------------------------------------------- */
 
   /* Font Families */
-  --font-sans: 'Jura', sans-serif;
-  --font-jura: 'Jura', sans-serif;
+  --font-sans: 'Vilevile', sans-serif;
+  --font-vilevile: 'Vilevile', sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
   /* Font Sizes - Fluid Typography Scale */
@@ -255,12 +289,38 @@ html.dark body::before {
   --font-size-title-mobile: 1.4rem;
   --font-size-subtitle: 1.7rem;
 
-  /* Font Weights */
+  /* Font Weights — Vilevile couvre 300 à 900 en continu (axe variable).
+     Toute valeur intermédiaire est dessinée, pas interpolée par le navigateur :
+     `font-weight: 660` est un poids réel. */
   --font-weight-light: 300;
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --font-weight-black: 900;
+
+  /* Approche — LE SEUL ENDROIT du dépôt où une valeur d'approche est écrite.
+
+     Vilevile porte -0.09em dans ses chasses, et plus rien dans le produit ne
+     pose d'approche : ni règle `letter-spacing`, ni utilitaire `tracking-*`.
+     Le texte la tient de la police, partout.
+
+     Les jetons ci-dessous ne servent donc plus à personne : ils restent en
+     garde-fou. `letter-spacing` s'AJOUTE à l'approche de la police au lieu de
+     la remplacer — un `tracking-widest` écrit 0.1em rendrait 0.01em à l'écran.
+     Exprimés relativement à ce que la police porte déjà, ils font que si
+     quelqu'un en emploie un un jour, il rendra ce qu'il annonce.
+
+     Pour changer l'approche du produit : `TRACKING_EM` dans
+     tools/font/build-fonts.py, puis la ligne ci-dessous, puis on refabrique. */
+  --idem-font-tracking: -0.09em;
+  --tracking-tighter: calc(-0.05em - var(--idem-font-tracking));
+  --tracking-tight: calc(-0.025em - var(--idem-font-tracking));
+  --tracking-normal: calc(0em - var(--idem-font-tracking));
+  --tracking-wide: calc(0.025em - var(--idem-font-tracking));
+  --tracking-wider: calc(0.05em - var(--idem-font-tracking));
+  --tracking-widest: calc(0.1em - var(--idem-font-tracking));
 
   /* Line Heights */
   --line-height-tight: 1.25;
@@ -432,6 +492,9 @@ html.dark body::before {
   /* Bug fix: --color-light-text was referenced across the design system but
      never defined; alias it to the primary text token. */
   --color-light-text: var(--idem-text-primary);
+
+  /* `text-heading` suit le thème comme les titres eux-mêmes. */
+  --color-heading: var(--idem-heading);
 }
 
 /* ============================================================================
@@ -532,6 +595,33 @@ html.dark body::before {
 .glass-card:hover {
   transform: translateY(-1px);
   box-shadow: var(--glass-shadow-lg);
+}
+
+/* ----------------------------------------------------------------------------
+   SURFACE D'UNE FENÊTRE MODALE
+
+   Une fenêtre posée sur un voile sombre doit être **opaque**. Les panneaux
+   utilisaient `.glass-card` ou les fonds `--glass-bg-*`, c'est-à-dire du blanc
+   translucide : en thème sombre le résultat passe — du sombre sur du sombre —
+   mais en thème clair, 60 % de blanc sur 60 % de noir donne un gris franc. La
+   fenêtre doit se détacher du voile, pas s'y mêler.
+
+   Le verre reste le bon choix pour ce qui flotte au-dessus de la page sans
+   voile (barres, menus, cartes) : c'est la combinaison voile + translucidité
+   qui pose problème, pas la translucidité elle-même.
+   -------------------------------------------------------------------------- */
+
+.modal-panel {
+  background: var(--idem-surface-1);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--glass-shadow-xl);
+}
+
+/* Tiroir latéral : même opacité, coins et ombre en moins — il est collé au bord. */
+.modal-drawer {
+  background: var(--idem-surface-1);
+  box-shadow: var(--glass-shadow-xl);
 }
 
 /* Glow Effects */
@@ -797,6 +887,32 @@ button:disabled {
   }
 }
 
+/* ============================================================================
+   TITRES
+   Une seule règle d'élément : c'est un défaut, que n'importe quelle classe
+   utilitaire (`text-text-primary`, `text-white`…) surcharge sans effort.
+   ============================================================================ */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--idem-heading);
+}
+
+/* Un titre posé sur une surface de marque ou sur une image hérite du contexte :
+   lui imposer le bleu secondaire le rendrait illisible. */
+[data-on-brand] h1,
+[data-on-brand] h2,
+[data-on-brand] h3,
+[data-on-brand] h4,
+[data-on-brand] h5,
+[data-on-brand] h6 {
+  color: inherit;
+}
+
 /* Form Elements - Native HTML Elements */
 
 /* Input (text, email, password, number, url, tel, date, etc.) */
@@ -812,17 +928,20 @@ input[type='datetime-local'],
 input[type='month'],
 input[type='week'],
 input[type='search'] {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
+  background: var(--idem-field-bg);
   border: 1px solid var(--glass-border);
-  color: var(--color-light-text);
+  color: var(--idem-text-primary);
   font-size: var(--font-size-base);
   width: 100%;
   display: block;
   padding: var(--spacing-3) var(--spacing-4);
-  border-radius: var(--radius-lg);
-  transition: all var(--duration-200) var(--ease-out);
+  border-radius: var(--radius-xl);
+  /* Pas de `all` : animer la disposition sur chaque frappe fait vibrer les
+     formulaires. Seules la bordure, l'ombre et le fond bougent. */
+  transition:
+    border-color var(--duration-150) var(--ease-out),
+    box-shadow var(--duration-150) var(--ease-out),
+    background-color var(--duration-150) var(--ease-out);
   outline: none;
   font-family: inherit;
 }
@@ -851,7 +970,6 @@ input[type='month']:hover,
 input[type='week']:hover,
 input[type='search']:hover {
   border-color: var(--glass-border-medium);
-  background: var(--glass-bg-light);
 }
 
 input[type='text']:focus,
@@ -866,12 +984,14 @@ input[type='datetime-local']:focus,
 input[type='month']:focus,
 input[type='week']:focus,
 input[type='search']:focus {
-  border-color: var(--color-primary);
-  background: var(--glass-bg-medium);
-  box-shadow:
-    0 0 0 3px var(--color-primary-glow),
-    0 4px 12px color-mix(in srgb, var(--color-accent-500) 15%, transparent);
-  transform: translateY(-1px);
+  border-color: color-mix(in oklch, var(--color-primary) 65%, var(--glass-border-strong));
+  background: var(--idem-field-bg-focus);
+  /* Pas d'anneau. Un halo de 3 px autour d'un champ est le réflexe des
+     frameworks de 2015 : il épaissit visuellement la bordure de six pixels et
+     donne cet aspect « formulaire administratif ».
+     Ici la bordure passe simplement au bleu et le champ se détache d'un
+     souffle. La couleur seule porte l'état, ce qui laisse la forme intacte. */
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--color-primary) 10%, transparent);
 }
 
 input[type='text']:focus::placeholder,
@@ -912,21 +1032,24 @@ input[type='search'] {
 
 /* Textarea */
 textarea {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
+  background: var(--idem-field-bg);
   border: 1px solid var(--glass-border);
-  color: var(--color-light-text);
+  color: var(--idem-text-primary);
   font-size: var(--font-size-base);
   width: 100%;
   display: block;
   padding: var(--spacing-3) var(--spacing-4);
-  border-radius: var(--radius-lg);
-  transition: all var(--duration-200) var(--ease-out);
+  border-radius: var(--radius-xl);
+  /* Pas de `all` : animer la disposition sur chaque frappe fait vibrer les
+     formulaires. Seules la bordure, l'ombre et le fond bougent. */
+  transition:
+    border-color var(--duration-150) var(--ease-out),
+    box-shadow var(--duration-150) var(--ease-out),
+    background-color var(--duration-150) var(--ease-out);
   outline: none;
+  font-family: inherit;
   resize: vertical;
   min-height: 120px;
-  font-family: inherit;
 }
 
 textarea::placeholder {
@@ -936,15 +1059,17 @@ textarea::placeholder {
 
 textarea:hover {
   border-color: var(--glass-border-medium);
-  background: var(--glass-bg-light);
 }
 
 textarea:focus {
-  border-color: var(--color-primary);
-  background: var(--glass-bg-medium);
-  box-shadow:
-    0 0 0 3px var(--color-primary-glow),
-    0 4px 12px color-mix(in srgb, var(--color-accent-500) 15%, transparent);
+  border-color: color-mix(in oklch, var(--color-primary) 65%, var(--glass-border-strong));
+  background: var(--idem-field-bg-focus);
+  /* Pas d'anneau. Un halo de 3 px autour d'un champ est le réflexe des
+     frameworks de 2015 : il épaissit visuellement la bordure de six pixels et
+     donne cet aspect « formulaire administratif ».
+     Ici la bordure passe simplement au bleu et le champ se détache d'un
+     souffle. La couleur seule porte l'état, ce qui laisse la forme intacte. */
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--color-primary) 10%, transparent);
 }
 
 textarea:focus::placeholder {
@@ -959,21 +1084,24 @@ textarea:disabled {
 
 /* Select */
 select {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
+  background: var(--idem-field-bg);
   border: 1px solid var(--glass-border);
-  color: var(--color-light-text);
+  color: var(--idem-text-primary);
   font-size: var(--font-size-base);
   width: 100%;
   display: block;
   padding: var(--spacing-3) var(--spacing-10) var(--spacing-3) var(--spacing-4);
-  border-radius: var(--radius-lg);
-  transition: all var(--duration-200) var(--ease-out);
+  border-radius: var(--radius-xl);
+  /* Pas de `all` : animer la disposition sur chaque frappe fait vibrer les
+     formulaires. Seules la bordure, l'ombre et le fond bougent. */
+  transition:
+    border-color var(--duration-150) var(--ease-out),
+    box-shadow var(--duration-150) var(--ease-out),
+    background-color var(--duration-150) var(--ease-out);
   outline: none;
+  font-family: inherit;
   cursor: pointer;
   appearance: none;
-  font-family: inherit;
   background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2322D3EE' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right var(--spacing-4) center;
@@ -981,15 +1109,12 @@ select {
 
 select:hover {
   border-color: var(--glass-border-medium);
-  background-color: var(--glass-bg-light);
 }
 
 select:focus {
-  border-color: var(--color-primary);
-  background-color: var(--glass-bg-medium);
-  box-shadow:
-    0 0 0 3px var(--color-primary-glow),
-    0 4px 12px color-mix(in srgb, var(--color-accent-500) 15%, transparent);
+  border-color: color-mix(in oklch, var(--color-primary) 65%, var(--glass-border-strong));
+  background-color: var(--idem-field-bg-focus);
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--color-primary) 10%, transparent);
 }
 
 select:disabled {
@@ -1028,7 +1153,7 @@ input[type='checkbox']:hover {
 input[type='checkbox']:checked {
   background: var(--color-primary);
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-glow);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--color-primary) 22%, transparent);
 }
 
 input[type='checkbox']:checked::after {
@@ -1045,7 +1170,7 @@ input[type='checkbox']:checked::after {
 
 input[type='checkbox']:focus {
   outline: none;
-  box-shadow: 0 0 0 3px var(--color-primary-glow);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--color-primary) 22%, transparent);
 }
 
 input[type='checkbox']:disabled {
@@ -1076,7 +1201,7 @@ input[type='radio']:hover {
 input[type='radio']:checked {
   border-color: var(--color-primary);
   background: var(--glass-bg-medium);
-  box-shadow: 0 0 0 3px var(--color-primary-glow);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--color-primary) 22%, transparent);
 }
 
 input[type='radio']:checked::after {
@@ -1093,7 +1218,7 @@ input[type='radio']:checked::after {
 
 input[type='radio']:focus {
   outline: none;
-  box-shadow: 0 0 0 3px var(--color-primary-glow);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--color-primary) 22%, transparent);
 }
 
 input[type='radio']:disabled {
@@ -1626,8 +1751,8 @@ meter::-webkit-meter-even-less-good-value {
   animation: lds-heart 1.2s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
 }
 
-/* Brand logo replacement on light theme */
-html.light img[src*='logo_white'] {
-  content: url('/assets/icons/idem-logo.png') !important;
-  filter: none !important;
-}
+/* Pas de substitution du logo en thème clair : chaque app fournit les deux
+   variantes de marque (`logo_white.png` sur fond clair, `logo_dark.png` sur
+   fond sombre) et choisit explicitement laquelle afficher. L'ancienne règle
+   remplaçait toute image nommée `logo_white` par `idem-logo.png`, un fichier
+   qui n'existe plus dans la plupart des apps — le logo cassait en clair. */

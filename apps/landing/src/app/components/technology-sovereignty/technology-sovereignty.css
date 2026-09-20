@@ -22,7 +22,6 @@
 
 .ts-figure {
   color: var(--color-primary);
-  letter-spacing: -0.05em;
 }
 .ts-chip {
   background: var(--glass-bg-light);

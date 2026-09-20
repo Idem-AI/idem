@@ -9,20 +9,40 @@
  *   <img>, no style cascade collisions.
  *
  * Pipeline:
- *   AI HTML  →  full HTML doc with Tailwind CDN + Jura font + image embedded
+ *   AI HTML  →  full HTML doc with Tailwind CDN + Vilevile font + image embedded
  *            →  Puppeteer page sized to flyer format
+ *            →  passes de LOGO mesurées (taille, contraste réel)
+ *            →  CONTRÔLE DE COMPOSITION mesuré (cf. design/visualAudit.ts) :
+ *               zone de sécurité, texte rogné, alignement, hiérarchie,
+ *               contraste réel de chaque texte, fond perdu — vérifié ET
+ *               réparé sur la page rendue, sans modèle
  *            →  page.screenshot({ type: 'png' })
  *            →  upload to MinIO
  *            →  return public URL
+ *
+ * Le contrôle travaille sur la PAGE RENDUE et non sur la chaîne HTML : un
+ * `left-[62%]` n'est un défaut que pour certains formats, et seul le moteur de
+ * rendu peut le dire. Le balisage corrigé est renvoyé à l'appelant pour qu'il
+ * remplace celui qu'il a persisté — sinon l'éditeur montrerait une version que
+ * l'utilisateur n'a jamais vue.
  *
  * The browser instance is reused via PdfService's launched Chromium when
  * possible to avoid the cold-start cost on every flyer generation.
  */
 import puppeteer, { Browser, Page } from 'puppeteer';
+import { brandIconStyle } from '../../utils/brand-font.util';
 import sharp from 'sharp';
 import logger from '../../config/logger';
 import { StorageService } from '../storage.service';
+import { brandFontLinks } from '../../utils/google-fonts.util';
 import { FlyerFormat } from '../../models/communication.model';
+import {
+  buildCompositionGrid,
+  CompositionGrid,
+  CompositionPalette,
+  NEUTRAL_SEED,
+} from '../design/compositionGrid';
+import { auditAndRepairVisual, VisualAuditReport } from '../design/visualAudit';
 
 /** Déclinaisons de logo disponibles pour la marque, par famille et polarité. */
 export interface LogoDeclensionSet {
@@ -32,6 +52,32 @@ export interface LogoDeclensionSet {
   icon?: string;
   withText?: { lightBackground?: string; darkBackground?: string; monochrome?: string };
   iconOnly?: { lightBackground?: string; darkBackground?: string; monochrome?: string };
+}
+
+/** Ce que rend une composition photographiée : l'image, le balisage corrigé et le constat. */
+export interface FlyerRenderResult {
+  png: Buffer;
+  /**
+   * Balisage APRÈS réparations mesurées, ou null si rien n'a pu être relevé.
+   * L'appelant a tout intérêt à le persister : c'est la version qui a produit
+   * le PNG livré.
+   */
+  html: string | null;
+  audit: VisualAuditReport;
+}
+
+/** Réglages du contrôle de composition d'un rendu. */
+export interface FlyerRenderOptions {
+  /**
+   * Grille de composition du visuel. Fournie par le compositeur, qui connaît
+   * la graine ; reconstruite en neutre quand le rendu est demandé plus tard
+   * (endpoint image), où la graine n'est plus disponible.
+   */
+  grid?: CompositionGrid;
+  /** Palette de la marque, pour le dosage des couleurs et le fond perdu. */
+  palette?: CompositionPalette;
+  /** Contexte pour les journaux. */
+  label?: string;
 }
 
 interface FlyerSize {
@@ -128,6 +174,24 @@ function meanLuminance(data: Buffer | Uint8Array): number {
   return n ? sum / n : 0;
 }
 
+/**
+ * Grille de contrôle d'un format, en l'absence de graine.
+ *
+ * Le compositeur passe SA grille — celle qui a servi à écrire le prompt, donc
+ * celle sur laquelle le visuel a été dessiné. Les autres appelants (endpoint
+ * image, retouche manuelle) n'ont plus la graine : ils mesurent sur la grille
+ * neutre du format, qui porte les mêmes marges, les mêmes colonnes et la même
+ * échelle de référence.
+ */
+export function defaultGridFor(format: FlyerFormat, palette?: CompositionPalette): CompositionGrid {
+  const dims = FORMAT_DIMENSIONS[format] || FORMAT_DIMENSIONS.square;
+  return buildCompositionGrid(
+    { width: dims.width, height: dims.height, print: format === 'a4' },
+    NEUTRAL_SEED,
+    palette
+  );
+}
+
 /** Largeur minimale attendue du logo, en pixels, pour un format donné. */
 export function minLogoWidthFor(format: FlyerFormat): number {
   const dims = FORMAT_DIMENSIONS[format] || FORMAT_DIMENSIONS.square;
@@ -169,16 +233,36 @@ export class FlyerRenderService {
     innerHtml: string,
     format: FlyerFormat,
     typography?: { url?: string; primaryFont?: string; secondaryFont?: string },
-    /**
-     * Déclinaisons du logo de la marque. Fournies, elles permettent de MESURER
-     * le logo une fois la page rendue, de le remonter au seuil de lisibilité
-     * s'il est trop petit (`enforceLogoVisibility`) et de corriger la
-     * déclinaison si elle ne contraste pas avec le fond (`enforceLogoContrast`).
-     * Un tableau d'URLs reste accepté (appelant historique) : dans ce cas seule
-     * la mise à l'échelle s'applique, faute de savoir quoi substituer.
-     */
-    logos: LogoDeclensionSet | string[] = []
+    logos: LogoDeclensionSet | string[] = [],
+    options: FlyerRenderOptions = {}
   ): Promise<Buffer> {
+    return (await this.renderFlyer(innerHtml, format, typography, logos, options)).png;
+  }
+
+  /**
+   * Rend un visuel ET rapporte l'état de sa composition.
+   *
+   * @param innerHtml  Single-line Tailwind HTML produced by the flyer agent.
+   *                   The outer container size MUST match `format`.
+   * @param format     Flyer format (drives canvas size).
+   * @param typography Optional font configuration.
+   * @param logos      Déclinaisons du logo de la marque. Fournies, elles
+   *                   permettent de MESURER le logo une fois la page rendue, de
+   *                   le remonter au seuil de lisibilité s'il est trop petit
+   *                   (`enforceLogoVisibility`) et de corriger la déclinaison si
+   *                   elle ne contraste pas avec le fond
+   *                   (`enforceLogoContrast`). Un tableau d'URLs reste accepté
+   *                   (appelant historique) : dans ce cas seule la mise à
+   *                   l'échelle s'applique, faute de savoir quoi substituer.
+   * @param options    Grille et palette du contrôle de composition.
+   */
+  async renderFlyer(
+    innerHtml: string,
+    format: FlyerFormat,
+    typography?: { url?: string; primaryFont?: string; secondaryFont?: string },
+    logos: LogoDeclensionSet | string[] = [],
+    options: FlyerRenderOptions = {}
+  ): Promise<FlyerRenderResult> {
     const declensions: LogoDeclensionSet = Array.isArray(logos) ? { used: logos[0] } : logos;
     const logoUrls = Array.isArray(logos) ? logos : this.allLogoUrls(logos);
     const start = Date.now();
@@ -217,6 +301,16 @@ export class FlyerRenderService {
       await this.enforceLogoVisibility(page, dims, logoUrls);
       await this.enforceLogoContrast(page, declensions, logoUrls);
 
+      // Contrôle de composition : tout ce qui suit est MESURÉ sur la page, donc
+      // corrigé avant la photographie. Il tourne aussi bien sur un visuel
+      // fraîchement composé que sur un visuel retouché à la main dans
+      // l'éditeur — c'est la même page rendue.
+      const { report, html: repairedHtml } = await auditAndRepairVisual(page, {
+        grid: options.grid || defaultGridFor(format, options.palette),
+        palette: options.palette,
+        label: options.label || `visuel/${format}`,
+      });
+
       const buffer = (await page.screenshot({
         type: 'png',
         clip: { x: 0, y: 0, width: dims.width, height: dims.height },
@@ -226,9 +320,55 @@ export class FlyerRenderService {
         format,
         sizeKB: Math.round(buffer.length / 1024),
         durationMs: Date.now() - start,
+        compositionScore: report.score,
       });
 
-      return buffer;
+      return { png: buffer, html: repairedHtml, audit: report };
+    } finally {
+      await page.close().catch(() => undefined);
+    }
+  }
+
+  /**
+   * Capture un document HTML COMPLET à la taille donnée.
+   *
+   * Sert aux mockups de réseaux sociaux de la charte : leurs gabarits sont des
+   * documents autonomes (polices, styles, images en ligne), il n'y a donc rien
+   * à envelopper — seulement à attendre les polices et les images, puis à
+   * photographier. Partage le navigateur des visuels.
+   */
+  async renderDocumentToPng(
+    html: string,
+    width: number,
+    height: number,
+    deviceScaleFactor = 2
+  ): Promise<Buffer> {
+    const browser = await this.getBrowser();
+    const page = await browser.newPage();
+    try {
+      await page.setViewport({ width, height, deviceScaleFactor });
+      await page.setContent(html, { waitUntil: 'load', timeout: 30000 });
+      // Fonction NON async (cf. `swapLogoSrc`) : les helpers de compilation
+      // n'existent pas dans le contexte du navigateur.
+      await page.evaluate(() => {
+        const images = Array.from(document.images).map((img) =>
+          img.complete
+            ? Promise.resolve()
+            : new Promise<void>((resolve) => {
+                img.addEventListener('load', () => resolve(), { once: true });
+                img.addEventListener('error', () => resolve(), { once: true });
+              })
+        );
+        const fonts = (document as any).fonts?.ready ?? Promise.resolve();
+        return Promise.race([
+          Promise.all([...images, fonts]),
+          new Promise<void>((resolve) => setTimeout(resolve, 8000)),
+        ]);
+      });
+      return (await page.screenshot({
+        type: 'png',
+        clip: { x: 0, y: 0, width, height },
+      })) as Buffer;
     } finally {
       await page.close().catch(() => undefined);
     }
@@ -633,21 +773,19 @@ export class FlyerRenderService {
     dims: FlyerSize,
     typography?: { url?: string; primaryFont?: string; secondaryFont?: string }
   ): string {
-    const fontUrl = typography?.url || 'https://fonts.googleapis.com/css2?family=Jura:wght@300;400;500;600;700&display=swap';
-    // Clean up Google Font URL if necessary (ensure it has &display=swap)
-    const finalFontUrl = fontUrl.includes('display=swap') ? fontUrl : `${fontUrl}&display=swap`;
-    const fontPrimary = typography?.primaryFont || 'Jura';
-    const fontSecondary = typography?.secondaryFont || 'Jura';
+    // `typography.url` est un slug, pas une feuille de style : la construire à
+    // partir des familles, sinon le visuel sort dans la police système.
+    const fontLinks = brandFontLinks(typography);
+    const fontPrimary = typography?.primaryFont || 'Archivo';
+    const fontSecondary = typography?.secondaryFont || 'IBM Plex Sans';
 
     return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=${dims.width},initial-scale=1">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="${finalFontUrl}" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/primeicons@7.0.0/primeicons.css">
+${fontLinks}
+${brandIconStyle()}
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {

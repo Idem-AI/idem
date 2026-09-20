@@ -210,10 +210,10 @@ export class DevelopmentService extends GenericService {
     // Create README.md
     files['README.md'] = `# ${project.name || 'Project'}
 
-${project.description || 'A project generated from Idem API'}
+${project.longDescription || project.description || 'A project generated from Idem API'}
 
 ## Description
-${project.description || 'No description available'}
+${project.longDescription || project.description || 'No description available'}
 
 ## Getting Started
 This project was generated automatically. Please refer to the documentation for setup instructions.
@@ -229,7 +229,7 @@ ${new Date().toISOString()}
         {
           name: project.name?.toLowerCase().replace(/\s+/g, '-') || 'idem-project',
           version: '1.0.0',
-          description: project.description || 'Generated project',
+          description: project.longDescription || project.description || 'Generated project',
           main: 'index.js',
           scripts: {
             dev: 'vite',
@@ -256,7 +256,7 @@ ${new Date().toISOString()}
 </head>
 <body>
     <h1>${project.name || 'Welcome to your project'}</h1>
-    <p>${project.description || 'This project was generated from Idem API'}</p>
+    <p>${project.longDescription || project.description || 'This project was generated from Idem API'}</p>
 </body>
 </html>`;
 

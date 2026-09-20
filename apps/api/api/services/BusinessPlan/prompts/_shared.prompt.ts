@@ -28,9 +28,64 @@ export function bpPageFormat(pages: string): string {
 </page_format>
 
 <content_volume>
-- Target for this section: ${pages} FULL A4 page(s).
+- Indicative target for this section: ${pages} A4 page(s). It is a TARGET, not a quota.
 ${PAGE_BUDGET}
-- FILL THE PAGES: keep writing until the target is reached, so the last page is at least 85% full. A half-empty page is a defect.
-- Never pad with filler sentences: add depth instead — figures, local examples, hypotheses, risks, timelines, comparisons.
+- Reach it with SUBSTANCE: figures, local examples, stated hypotheses, risks, timelines, comparisons, named sources.
+- If the substance runs out before the target, STOP. A section two thirds full of real content beats a full section padded with sentences that say nothing — and padding is exactly what makes a generated document recognisable.
+- Never write a sentence that restates its heading, announces what the section will say, or would survive a change of company name.
 </content_volume>`;
 }
+
+/**
+ * Règles de marque communes à toutes les sections du plan.
+ *
+ * Elles vivaient dans le contexte de marque, en fin de prompt, où elles se
+ * lisaient comme de la documentation. Les remonter dans le corps du prompt de
+ * section change leur statut : ce sont des consignes de composition, pas des
+ * informations sur l'entreprise. C'est précisément ce qui manquait pour que le
+ * logo soit posé sur la page au lieu d'être seulement « connu ».
+ */
+export const BP_BRAND_RULES = `<brand_compliance>
+- The art direction and the charter supplied in BRAND CONTEXT are not indicative: colours, typefaces and visual grammar come from them, and there is nothing to invent.
+- No hex value outside the palette. Tints come from opacity, never from a hue shift.
+- Two typefaces, the charter ones. Prefer the classes font-primary (headings) and font-secondary (running text): the renderer binds them to the real brand families, whereas a hand-written font-family only works if the name is spelled exactly right. A literal style="font-family: '[FontName]', sans-serif" stays acceptable when the exact charter name is used.
+- HIERARCHY REPLACES DECORATION. It is built on two contrasts, and they are what make a page read without a single ornament:
+  * WEIGHT: a light weight (200/300) against a heavy one (700/800) inside the same family. Never build a whole page on one weight.
+  * SIZE: at least a 3x jump between the section title and the running text, and a real gap between every level. Three levels minimum, never two elements of similar size competing.
+- The LOGO must appear in this section: small, in the same place as in the other sections (header or footer), in the declension that contrasts with the actual background. Follow the <logo> block in BRAND CONTEXT to the letter — exact URL, never invented.
+- This section belongs to a document: same rules, same border radius, same treatment of headings and tables as the others. Spectacular gestures are reserved for the cover.
+</brand_compliance>`
+
+/**
+ * Contraintes TECHNIQUES d'une section qui produit sa page elle-même.
+ *
+ * Elles vivaient recopiées dans chacun des neuf `agent-*.prompt.ts`, à un mot
+ * près, ce qui rendait toute correction partielle par construction. Les
+ * sections apportées par les structures de plan (dossier bancaire, plan
+ * investisseur, subvention…) n'ont jamais eu de prompt écrit à la main : c'est
+ * ce bloc qui leur donne le mode HTML quand `IDEM_SECTION_TEMPLATE=off`.
+ *
+ * À n'ajouter QUE sur le chemin HTML. Sous gabarit la sortie est du JSON, et
+ * une consigne de balisage y ferait produire du HTML que `parseLlmJson`
+ * rejetterait — la section serait alors abandonnée.
+ */
+export const BP_HTML_RULES = `<chart_requirements>
+- One chart at most per page, and only where a figure is easier to read as a shape than as a sentence.
+- Use the brand colours. Set the Chart.js option animation: false.
+- Do NOT include Chart.js script tags: the runtime loads the library itself.
+- A chart never exceeds half of its page, and always carries a reading key stating the conclusion.
+</chart_requirements>
+
+<technical_rules>
+- Output ONLY raw HTML with Tailwind CSS utilities, on a single minified line.
+- PrimeIcons (class "pi pi-icon-name") are preloaded.
+- Use the brand colours and the real charter fonts. No custom CSS, no custom JS.
+- Respect WCAG AA contrast.
+- Do NOT output markdown code fences and do NOT prefix the answer with a language name.
+</technical_rules>
+
+<editor_compatibility>
+- The output is edited afterwards in a visual editor: put visible text in leaf elements (h1..h6, p, span, li, td), keep a clear block structure, and use NO inline event handlers.
+- Any Chart.js chart MUST be a canvas element with a UNIQUE id, followed by ONE inline script calling new Chart(document.getElementById('THAT_ID'), {...}) with options.animation=false. One chart per canvas.
+- Every image carries a textual alternative describing what it shows.
+</editor_compatibility>`;

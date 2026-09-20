@@ -41,10 +41,10 @@ function TerminalTab({
     <div
       className={cn(
         "flex items-center px-4 py-1.5 cursor-pointer transition-colors duration-200",
-        "border-b border-[#e5e5e5] dark:border-[#252525]",
+        "border-b border-[var(--glass-border)]",
         processId == selectProcessId
-          ? "bg-[#ffffff] dark:bg-[#37373d] text-[#424242] dark:text-white"
-          : "bg-[#f5f5f5] dark:bg-[#252526] text-[#616161] dark:text-[#858585] hover:bg-[#e8e8e8] dark:hover:bg-[#2d2d2d]",
+          ? "bg-surface-3 text-text-secondary dark:text-white"
+          : "bg-surface-2 text-text-tertiary hover:bg-surface-3 dark:hover:bg-surface-2",
         processId,
         selectProcessId
       )}
@@ -64,8 +64,8 @@ function TerminalTab({
           className={cn(
             "text-xs font-medium",
             processId == selectProcessId
-              ? "text-[#424242] dark:text-white"
-              : "text-[#616161] dark:text-[#858585]"
+              ? "text-text-secondary dark:text-white"
+              : "text-text-tertiary"
           )}
         >
           {/* Terminal {!isReady && '(Initializing...)'} */}
@@ -81,15 +81,15 @@ function TerminalTab({
         }}
         className={cn(
           "p-1 rounded transition-colors ml-auto",
-          "hover:bg-[#e5e5e5] dark:hover:bg-[#404040]",
+          "hover:bg-surface-3 dark:hover:bg-surface-3",
           "group"
         )}
       >
         <X
           className={cn(
             "w-3 h-3",
-            "text-[#616161] dark:text-[#858585]",
-            "group-hover:text-[#424242] dark:group-hover:text-white"
+            "text-text-tertiary",
+            "group-hover:text-text-secondary dark:group-hover:text-white"
           )}
         />
       </button>
@@ -126,7 +126,7 @@ function TerminalItem({
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-hidden terminal-container bg-white dark:bg-[#18181a] px-2 py-1"
+      className="flex-1 overflow-hidden terminal-container bg-surface-1 px-2 py-1"
       style={{
         display: processId == selectProcessId ? "block" : "none",
       }}

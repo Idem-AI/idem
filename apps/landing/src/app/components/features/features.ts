@@ -1,5 +1,5 @@
-import { Component, signal, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnDestroy, OnInit, PLATFORM_ID, inject, signal } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 
 type AdminTabType = 'logo' | 'brand' | 'business' | 'legal';
 type TechTabType = 'webapp' | 'deployment' | 'documentation';
@@ -24,7 +24,14 @@ export class Features implements OnInit, OnDestroy {
   private readonly adminTabs: AdminTabType[] = ['logo', 'brand', 'business', 'legal'];
   private readonly techTabs: TechTabType[] = ['webapp', 'deployment', 'documentation'];
 
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+
   ngOnInit(): void {
+    // The rotation is decorative and depends on `window`; prerendering has
+    // neither a window nor anyone watching the tabs cycle.
+    if (!this.isBrowser) {
+      return;
+    }
     this.startAdminAutoRotation();
     this.startTechAutoRotation();
   }

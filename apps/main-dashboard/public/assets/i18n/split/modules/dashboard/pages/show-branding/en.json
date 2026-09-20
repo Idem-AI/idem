@@ -18,7 +18,6 @@
         }
       },
       "buttons": {
-        "edit": "Edit",
         "backToOverview": "Back to Overview",
         "backToProjects": "Back to Projects",
         "getCharter": "Get Brand Charter",
@@ -27,6 +26,7 @@
         "generate": "Generate Brand Identity",
         "viewIdentity": "View My Visual Identity",
         "generateIdentity": "Generate My Visual Identity",
+        "edit": "Edit",
         "editIdentity": "Edit",
         "downloadLogos": "Download every logo version"
       },

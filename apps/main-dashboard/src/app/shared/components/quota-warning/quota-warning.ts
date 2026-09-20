@@ -22,7 +22,8 @@ import { QuotaStatus, QuotaInfoResponse, QuotaDisplayData } from '../../models/q
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (shouldShowWarning(); as warning) {
-      <div class="fixed bottom-4 right-4 z-50 max-w-sm">
+      <!-- Au-dessus du dock de mode, qui occupe le coin bas-droite -->
+      <div class="fixed bottom-[5.5rem] right-4 z-50 max-w-sm">
         <div
           class="bg-gradient-to-r from-yellow-500/90 to-orange-500/90 backdrop-blur-sm text-white p-4 rounded-lg shadow-lg border border-yellow-400/30"
         >

@@ -18,7 +18,7 @@
             <nav class="sticky top-6 space-y-1">
                 {{-- Section: Configuration --}}
                 <div class="mb-6">
-                    <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3 px-3">
+                    <div class="text-xs uppercase text-gray-500 font-semibold mb-3 px-3">
                         Configuration
                     </div>
 
@@ -61,7 +61,7 @@
 
                 {{-- Section: Environment --}}
                 <div class="mb-6">
-                    <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3 px-3">
+                    <div class="text-xs uppercase text-gray-500 font-semibold mb-3 px-3">
                         Environment
                     </div>
 
@@ -103,7 +103,7 @@
 
                 {{-- Section: Deployment & Operations --}}
                 <div class="mb-6">
-                    <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3 px-3">
+                    <div class="text-xs uppercase text-gray-500 font-semibold mb-3 px-3">
                         Deployment
                     </div>
 
@@ -184,7 +184,7 @@
 
                 {{-- Section: Monitoring --}}
                 <div class="mb-6">
-                    <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3 px-3">
+                    <div class="text-xs uppercase text-gray-500 font-semibold mb-3 px-3">
                         Monitoring
                     </div>
 
@@ -224,7 +224,7 @@
 
                 {{-- Section: Other --}}
                 <div class="mb-6">
-                    <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3 px-3">
+                    <div class="text-xs uppercase text-gray-500 font-semibold mb-3 px-3">
                         Other
                     </div>
 

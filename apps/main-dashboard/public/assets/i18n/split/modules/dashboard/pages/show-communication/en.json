@@ -1,169 +1,362 @@
 {
   "dashboard": {
     "showCommunication": {
-      "eyebrow": "Communication engine",
-      "title": "Communication & editorial calendar",
-      "subtitle": "Strategy, calendar, timely moments and publishing — to keep your brand alive every day.",
-      "loading": "Loading communication engine…",
-      "comingSoon": "Soon",
+      "eyebrow": "Communication",
+      "title": "My posts",
+      "subtitle": "Create your visuals, plan what you publish, find everything in one place.",
+      "loading": "Loading…",
       "tabs": {
-        "strategy": "Strategy",
-        "calendar": "Calendar",
-        "moments": "Moments",
-        "publishing": "Publishing"
+        "studio": "Create",
+        "plans": "My schedule",
+        "library": "My visuals"
       },
       "selectProject": {
-        "title": "Select a project",
-        "body": "Choose a project from your list to start generating communication assets.",
-        "cta": "Go to my projects"
+        "title": "No project selected",
+        "body": "Pick a project to work on its posts.",
+        "cta": "See my projects"
       },
       "status": {
-        "idea": "Idea",
+        "idea": "To do",
         "approved": "Approved",
         "scheduled": "Scheduled",
         "published": "Published"
       },
-      "intent": {
-        "label": "Intent",
-        "awareness": "Awareness",
-        "celebration": "Celebration",
-        "promotion": "Promotion",
-        "recruitment": "Recruitment",
-        "announcement": "Announcement"
+      "formats": {
+        "square": "Square (post)",
+        "story": "Story (vertical)",
+        "banner": "Banner (cover)",
+        "post": "Portrait",
+        "a4": "Printable poster"
       },
-      "strategy": {
-        "empty": {
-          "title": "Generate your communication strategy",
-          "body": "We extract a compact context from your project, pull lightweight trend signals, and produce a structured, editable strategy.",
-          "cta": "Generate strategy"
-        },
-        "context": {
-          "brand": "Brand",
-          "type": "Type",
-          "tone": "Tone"
-        },
-        "summaryLabel": "Strategy summary",
-        "regenerate": "Regenerate",
-        "save": "Save changes",
-        "saved": "Changes saved",
-        "trendsTitle": "Trend signals used",
-        "blockKinds": {
-          "positioning": "Positioning",
-          "pillars": "Content pillars",
-          "messaging": "Key messaging",
-          "channels": "Channels",
-          "cadence": "Cadence",
-          "kpis": "KPIs",
-          "tone": "Tone of voice",
-          "custom": "Custom block"
-        }
+      "channels": {
+        "instagram": "Instagram",
+        "facebook": "Facebook",
+        "linkedin": "LinkedIn",
+        "tiktok": "TikTok",
+        "x": "X",
+        "youtube": "YouTube",
+        "blog": "Blog",
+        "email": "Email",
+        "other": "Other"
       },
-      "calendar": {
-        "empty": {
-          "title": "Build your editorial calendar",
-          "body": "We'll produce 4 weeks of content ideas — titles, hooks, formats, channels — so you can pick what to publish. Visuals are only generated on demand.",
-          "cta": "Generate calendar",
-          "needStrategy": "Generate a strategy first to produce a more relevant calendar."
-        },
-        "filters": {
-          "channel": "Channel",
-          "format": "Format",
-          "allChannels": "All channels",
-          "allFormats": "All formats"
-        },
-        "regenerate": "Regenerate calendar",
-        "week": "Week",
-        "ideas": "ideas",
-        "generateVisual": "Visual",
-        "schedule": "Schedule"
+      "networks": {
+        "linkedin": "LinkedIn",
+        "x": "X"
       },
-      "visual": {
-        "eyebrow": "Content visual",
-        "format": "Format",
-        "generate": "Generate visual",
-        "regenerate": "Regenerate",
-        "edit": "Edit",
-        "download": "Download PNG",
-        "close": "Close",
-        "generating": "Sourcing image, scanning, composing visual…",
-        "loadingImage": "Loading rendered image…",
-        "noneTitle": "No visual yet",
-        "noneBody": "Click “Generate visual” to create one. We search free stock libraries first, then fall back to AI generation.",
-        "notRendered": "Visual generated but not yet rendered as PNG.",
-        "placeholder": "Marketing text and concept will appear here after generation.",
-        "sourceStock": "Stock photo",
-        "sourceGenerated": "AI generated",
-        "by": "by",
-        "scan": "Image scan",
-        "mood": "Mood",
-        "concept": "Concept",
-        "layout": "Layout notes",
-        "headline": "Headline",
-        "subheadline": "Subheadline",
-        "body": "Body",
-        "cta": "Call to action",
-        "logoUsed": "Logo declension used"
-      },
-      "moments": {
-        "eyebrow": "Timely moments",
-        "empty": {
-          "title": "Keep your brand alive around every occasion",
-          "body": "National holidays, hiring, company anniversary, seasonal promos… Generate a one-off visual and ready-to-publish content in one click.",
-          "cta": "See suggested occasions"
-        },
-        "suggestionsTitle": "Suggested occasions",
-        "refresh": "Refresh suggestions",
-        "createTitle": "Create a free-form moment",
-        "createBody": "Describe the occasion and Idem generates the visual and publishable content.",
-        "generate": "Generate",
-        "generateVisual": "Generate visual",
-        "fields": {
-          "occasion": "Occasion",
-          "occasionPlaceholder": "e.g. World Environment Day, a new job opening…",
-          "date": "Date",
-          "message": "Message / angle",
-          "messagePlaceholder": "What you want to say for this occasion",
-          "intent": "Intent"
-        },
-        "loadingSuggestions": "Finding relevant occasions for your brand…",
-        "noSuggestions": "No suggestions right now. Create a free-form moment below."
-      },
-      "publishing": {
-        "eyebrow": "Publishing",
-        "empty": {
-          "title": "Publish to your networks from Idem",
-          "body": "Prepare, schedule and publish your visuals and captions to LinkedIn and X. Connect a network first or use assisted publishing.",
-          "cta": "Prepare a post"
-        },
-        "queueTitle": "Publishing queue",
-        "readyTitle": "Ready to publish",
-        "readyHint": "Your content that already has a visual. Prepare an assisted post on a network.",
-        "noPublishable": "Generate a visual first (Calendar or Moments tab) to prepare a post.",
-        "prepareOn": "Prepare on",
-        "downloadVisual": "Download visual",
-        "assistedNote": "Assisted publishing: Idem copies the caption, downloads the visual and opens the network composer. You finalize the post on the network.",
-        "publishAssisted": "Publish (assisted)",
-        "markPublished": "Mark as published",
-        "openComposer": "Open composer",
-        "copyCaption": "Copy caption",
-        "captionCopied": "Caption copied",
-        "networks": {
-          "linkedin": "LinkedIn",
-          "x": "X (Twitter)"
-        },
-        "scheduleAt": "Schedule for",
-        "scheduledFor": "Scheduled for"
+      "steps": {
+        "context": "Reading your brand…",
+        "trends": "Looking at your sector…",
+        "strategy": "Writing how you communicate…",
+        "calendar": "Building the schedule…",
+        "occasions": "Looking for the dates that matter…",
+        "brief": "Choosing the main idea…",
+        "content": "Writing your posts…"
       },
       "errors": {
-        "load": "Failed to load communication data",
-        "checkProject": "Error while checking the project",
-        "strategy": "Strategy generation failed",
-        "calendar": "Calendar generation failed",
-        "flyer": "Visual generation failed",
-        "saveStrategy": "Failed to save strategy",
-        "updateContent": "Failed to update content",
-        "moments": "Moment generation failed",
-        "publish": "Publishing failed"
+        "project": "Could not load the project.",
+        "load": "Could not load your posts.",
+        "credits": "You do not have enough credits for this.",
+        "creditsDetail": "It costs {{cost}} credits, you have {{balance}} left.",
+        "topUp": "Top up",
+        "content-update": "The change could not be saved.",
+        "content-remove": "The post could not be removed.",
+        "visual": "The visual could not be created.",
+        "declinate": "The visual could not be adapted to that format.",
+        "download": "The download failed.",
+        "schedule": "Scheduling failed.",
+        "publish": "Preparing the post failed.",
+        "studio": "I could not answer. Try rephrasing in one sentence.",
+        "studio-clear": "The conversation could not be cleared.",
+        "plan-create": "The schedule could not be created.",
+        "plan-generate": "The schedule could not be filled.",
+        "plan-archive": "The schedule could not be archived.",
+        "strategy": "Could not write how you communicate.",
+        "strategy-save": "Your changes could not be saved.",
+        "visual-delete": "The visual could not be deleted."
+      },
+      "doors": {
+        "visual": {
+          "title": "A visual, right now",
+          "body": "Say what you want to announce. The visual comes out with your colours and your logo.",
+          "price": "2 credits",
+          "hereBelow": "It's right below"
+        },
+        "plan": {
+          "title": "Plan my month",
+          "body": "Pick a period: I prepare everything you will have to publish, day by day.",
+          "price": "15 credits",
+          "cta": "Create my schedule"
+        },
+        "voice": {
+          "title": "Say who you are",
+          "body": "Who you talk to, in which tone, on which networks. Everything else follows from it.",
+          "price": "40 credits · once only",
+          "cta": "Get started"
+        }
+      },
+      "voice": {
+        "eyebrow": "Your identity",
+        "title": "How I communicate",
+        "subtitle": "Who you talk to, in which tone, on which networks.",
+        "open": "How I communicate",
+        "todo": "to fill in",
+        "summaryLabel": "In two sentences",
+        "edit": "Edit",
+        "save": "Save",
+        "saved": "Saved",
+        "regenerate": "Rewrite it all",
+        "empty": {
+          "title": "Not filled in yet",
+          "body": "This is where we settle, once and for all, who you talk to, what you have to say and in which tone. Every schedule then uses it instead of starting from scratch.",
+          "cta": "Fill it in — 40 credits"
+        },
+        "blockKinds": {
+          "positioning": "What sets you apart",
+          "pillars": "The subjects you own",
+          "messaging": "What you keep saying",
+          "channels": "Where you show up",
+          "cadence": "How often",
+          "kpis": "What you watch",
+          "tone": "Your tone",
+          "custom": "Other"
+        },
+        "editSection": "Edit “{{section}}”"
+      },
+      "plans": {
+        "title": "My schedule",
+        "subtitle": "What you have to publish, and when. You can prepare several — nothing gets erased.",
+        "new": "New schedule",
+        "showArchived": "Show older ones",
+        "hideArchived": "Hide older ones",
+        "empty": {
+          "title": "Nothing planned yet",
+          "body": "Pick a period and I prepare everything you will have to publish. December can be prepared as early as October.",
+          "cta": "Create my first schedule"
+        },
+        "status": {
+          "draft": "To fill",
+          "active": "Running",
+          "done": "Done",
+          "archived": "Older"
+        },
+        "itemCount": "{{count}} posts",
+        "generate": "Fill the schedule — 15 credits",
+        "regenerate": "Redo it all",
+        "archive": "Archive",
+        "notGenerated": "This schedule is still empty.",
+        "clickHint": "Click a post to see it in full and edit it.",
+        "visualToDo": "Visual to create",
+        "brief": {
+          "angle": "The main idea",
+          "keyMessage": "What people should remember",
+          "themes": "The subjects covered",
+          "signals": "How to know it worked"
+        },
+        "viewWeeks": "By week",
+        "viewMonth": "Calendar",
+        "week": "Week {{week}}",
+        "monthCaption": "Planned posts, day by day",
+        "weekdays": {
+          "mon": "Mon",
+          "tue": "Tue",
+          "wed": "Wed",
+          "thu": "Thu",
+          "fri": "Fri",
+          "sat": "Sat",
+          "sun": "Sun"
+        }
+      },
+      "wizard": {
+        "progress": "Progress",
+        "when": {
+          "question": "For which period?",
+          "help": "Pick a length. You can always adjust the dates afterwards.",
+          "presets": {
+            "thisMonth": "This month",
+            "nextMonth": "Next month",
+            "twoWeeks": "The next 2 weeks",
+            "custom": "I'll pick my dates"
+          },
+          "from": "From",
+          "to": "To",
+          "echo": "That is {{days}} days."
+        },
+        "why": {
+          "question": "What do you want to get out of it?",
+          "help": "One sentence, in your own words. It will guide everything else.",
+          "placeholder": "For instance: make my shop known to families in the neighbourhood",
+          "examples": "Or pick an example"
+        },
+        "objectives": {
+          "known": {
+            "label": "Get known",
+            "text": "Make my business known to new people near me"
+          },
+          "sell": {
+            "label": "Sell more",
+            "text": "Bring in more customers and sell more this month"
+          },
+          "loyal": {
+            "label": "Keep my customers",
+            "text": "Stay present with my current customers and make them want to come back"
+          },
+          "hire": {
+            "label": "Hire",
+            "text": "Find someone to join my team"
+          }
+        },
+        "where": {
+          "question": "Where do you publish, and how often?",
+          "help": "Pick your networks. Two networks kept well beat five left empty.",
+          "howOften": "How often",
+          "freq": {
+            "1": "Once a week",
+            "3": "3 times a week",
+            "5": "5 times a week",
+            "7": "Every day"
+          },
+          "echo": "That will be about {{count}} posts."
+        },
+        "recap": {
+          "question": "Let's recap",
+          "posts": "{{count}} posts, ready to publish",
+          "occasions": "Dates not to miss",
+          "occasionsLoading": "Checking the calendar…",
+          "occasionsNone": "No particular date in this period.",
+          "occasionsHint": "They will be woven into the posts, on the right day.",
+          "submit": "Let's go",
+          "price": "15 credits. You can change everything afterwards."
+        }
+      },
+      "detail": {
+        "visualTitle": "The visual",
+        "contentTitle": "What will be published",
+        "noVisual": "No visual for this post yet. It will be created with your colours, your font and your logo.",
+        "chooseFormat": "What is it for?",
+        "createVisual": "Create the visual — 2 credits",
+        "creating": "Composing the visual…",
+        "otherFormats": "Also in another format",
+        "visualCount": "{{count}} versions of this visual",
+        "emptyValue": "Nothing yet",
+        "noCaption": "No text yet. Click Edit to write it.",
+        "captionPlaceholder": "The text you will publish with the visual…",
+        "hashtagsPlaceholder": "shop, coffee, douala",
+        "hashtagsHint": "Separate them with commas. The # is added for you.",
+        "ctaPlaceholder": "Come and see us, Call us…",
+        "dateBounds": "Between {{start}} and {{end}}",
+        "forOccasion": "Planned for: {{occasion}}",
+        "delete": "Remove from schedule",
+        "deleteAsk": "Remove this post? The visual already created stays in “My visuals”.",
+        "deleteConfirm": "Yes, remove it",
+        "fields": {
+          "title": "What it is about",
+          "date": "Publication date",
+          "channel": "Where to publish it",
+          "hook": "The first line",
+          "description": "What we say",
+          "caption": "The post text",
+          "hashtags": "Keywords (#)",
+          "callToAction": "What you ask the reader"
+        }
+      },
+      "preview": {
+        "loading": "Loading the visual…",
+        "failed": "This visual cannot be displayed.",
+        "canvasLabel": "Visual preview",
+        "menuLabel": "What to do with this element",
+        "edit": "Edit",
+        "hint": "Hover the visual, then click whatever you want to change.",
+        "kinds": {
+          "text": "This text",
+          "image": "This image",
+          "block": "This block"
+        }
+      },
+      "studio": {
+        "empty": {
+          "title": "What do you have to announce?",
+          "body": "Say it in one sentence. The visual comes out with your colours, your font and your logo.",
+          "example": "“a visual to say we are now open on Saturdays”"
+        },
+        "starters": {
+          "announce": "Announce something",
+          "promotion": "A promotion",
+          "celebration": "Wish a holiday",
+          "recruitment": "Say I'm hiring"
+        },
+        "thinking": "Thinking…",
+        "composing": "Composing the visual…",
+        "composingVariants": "Preparing three options…",
+        "retouching": "Retouching the visual…",
+        "declinating": "Adapting the visual…",
+        "writingCaption": "Writing the post text…",
+        "caption": "The post text",
+        "copy": "Copy",
+        "copied": "Copied",
+        "creditsSpent": "{{count}} credits used",
+        "inputLabel": "Describe what you want to announce",
+        "placeholder": "Say what you want to announce…",
+        "send": "Send",
+        "clear": "Clear the conversation",
+        "pricingHint": "Chatting is free. A visual costs 2 credits.",
+        "openVisual": "See it large",
+        "schedule": "Add to schedule",
+        "noPlan": "Create a schedule first to add this visual to it.",
+        "planLabel": "Which schedule",
+        "dateLabel": "On which date"
+      },
+      "library": {
+        "title": "My visuals",
+        "subtitle": "Everything created on this project, wherever it came from.",
+        "empty": {
+          "title": "No visual yet",
+          "body": "Go to “Create” to make one, or fill a schedule and create the visuals of its posts."
+        },
+        "filterFormat": "Format",
+        "allFormats": "All formats",
+        "filterOrigin": "Created from",
+        "allOrigins": "Anywhere",
+        "origins": {
+          "plan": "A schedule",
+          "studio": "The Create screen",
+          "occasion": "A special date",
+          "brandbook": "The brand book"
+        },
+        "filterPlan": "Schedule",
+        "allPlans": "All schedules",
+        "count": "{{count}} visuals",
+        "previewAlt": "Visual preview: {{title}}",
+        "brief": "What was asked",
+        "concept": "The idea behind it",
+        "declinate": "Also in another format",
+        "publish": "Publish",
+        "publishHint": "The text is copied and the network opens: all that is left is to paste and publish.",
+        "publishNeedsSchedule": "Add this visual to a schedule first to be able to publish it.",
+        "delete": "Delete this visual",
+        "deleteAsk": "Delete this visual for good?",
+        "deleteConfirm": "Delete"
+      },
+      "visual": {
+        "download": "Download the image",
+        "edit": "Edit"
+      },
+      "thumb": {
+        "loading": "Loading the image…",
+        "failed": "The image could not be displayed.",
+        "retry": "Try again",
+        "openInstead": "Open it large to see it."
+      },
+      "composing": {
+        "title": "Composing your visual",
+        "titleVariants": "Composing {{count}} options",
+        "patience": "This takes 30 seconds to 2 minutes. You can wait here.",
+        "stages": {
+          "grid": "Laying out the page",
+          "image": "Choosing the image",
+          "words": "Writing the text",
+          "compose": "Assembling it in your colours",
+          "check": "Checking the result"
+        }
       }
     }
   }

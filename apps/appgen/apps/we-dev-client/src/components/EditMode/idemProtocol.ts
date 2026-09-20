@@ -4,7 +4,7 @@
  *
  * L'iframe étant cross-origin, toute communication passe par postMessage.
  * Chaque message porte `source: "idem-edit"` pour éviter les collisions avec
- * les autres messages (ex. REQUEST_BLOB_ACCESS déjà utilisé par PreviewIframe).
+ * les autres messages émis dans la page (ex. REQUEST_BLOB_ACCESS).
  */
 
 export const IDEM_SOURCE = 'idem-edit' as const;
@@ -40,10 +40,26 @@ export function decodeIdemId(id: string | null | undefined): IdemNodeRef | null 
 /* Messages parent -> agent (iframe)                                   */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Mode d'interaction de la barre d'outils flottante posée sur l'aperçu.
+ *
+ * - `off`    : l'aperçu se navigue normalement (liens cliquables, formulaires).
+ * - `select` : on désigne un ou plusieurs éléments ; l'inspecteur et le prompt
+ *              ciblé s'appuient dessus.
+ * - `text`   : un simple clic ouvre l'édition de texte en place. Aucun appel
+ *              modèle n'est fait — l'écriture se fait dans l'AST — donc ce mode
+ *              ne consomme rien.
+ * - `draw`   : annotation libre par-dessus l'aperçu (géré côté parent, l'agent
+ *              se contente de rester inerte).
+ */
+export type EditToolMode = 'off' | 'select' | 'text' | 'draw';
+
 export interface MsgEnableEdit {
   source: typeof IDEM_SOURCE;
   type: 'ENABLE_EDIT';
   enabled: boolean;
+  /** Absent = `select`, pour rester compatible avec l'agent déjà injecté. */
+  mode?: EditToolMode;
 }
 
 /** Le parent demande à l'agent de sélectionner par programme (tableau vide = désélection). */

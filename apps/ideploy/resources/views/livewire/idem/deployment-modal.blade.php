@@ -32,7 +32,7 @@
                                     <div>
                                         <div class="flex items-center gap-2 mb-1.5">
                                             <h4 class="text-sm font-medium text-text-primary group-hover:text-primary-400 transition-colors">IDEM Managed Portal</h4>
-                                            <span class="text-[9px] font-medium px-1.5 py-0.5 rounded border border-[rgba(255,255,255,0.05)] bg-surface-3 text-primary-400 uppercase tracking-widest">Recommended</span>
+                                            <span class="text-[9px] font-medium px-1.5 py-0.5 rounded border border-[rgba(255,255,255,0.05)] bg-surface-3 text-primary-400 uppercase">Recommended</span>
                                         </div>
                                         <p class="text-[11px] text-text-tertiary">Automated provisioning on our global infrastructure.</p>
                                     </div>
@@ -46,7 +46,7 @@
 
                                 @if($deployOnManaged)
                                     <div class="mt-5 pt-5 border-t border-[rgba(255,255,255,0.05)] animate-in fade-in slide-in-from-top-2 duration-300">
-                                        <label class="block text-[10px] font-medium text-text-tertiary uppercase tracking-widest mb-2">Strategy Configuration</label>
+                                        <label class="block text-[10px] font-medium text-text-tertiary uppercase mb-2">Strategy Configuration</label>
                                         <x-forms.select wire:model="serverStrategy" class="bg-surface-1 border border-[rgba(255,255,255,0.05)] text-xs h-8 py-0 pl-2">
                                             @foreach($availableStrategies as $key => $label)
                                                 <option value="{{ $key }}">{{ $label }}</option>
@@ -79,7 +79,7 @@
 
                                 @if(!$deployOnManaged && $canAddServers)
                                     <div class="mt-5 pt-5 border-t border-[rgba(255,255,255,0.05)] animate-in fade-in slide-in-from-top-2 duration-300">
-                                        <label class="block text-[10px] font-medium text-text-tertiary uppercase tracking-widest mb-2">Target Node</label>
+                                        <label class="block text-[10px] font-medium text-text-tertiary uppercase mb-2">Target Node</label>
                                         @if($personalServers?->count() > 0)
                                             <x-forms.select wire:model="personalServerId" class="bg-surface-1 border border-[rgba(255,255,255,0.05)] text-xs h-8 py-0 pl-2">
                                                 <option value="">Scan for node...</option>
@@ -98,7 +98,7 @@
 
                                 @if(!$canAddServers)
                                     <div class="mt-3">
-                                        <p class="text-[10px] font-medium text-orange-400 uppercase tracking-widest">
+                                        <p class="text-[10px] font-medium text-orange-400 uppercase">
                                             Quota Reached ({{ $serverQuota['used'] }}/{{ $serverQuota['limit'] }})
                                         </p>
                                     </div>

@@ -35,14 +35,15 @@ const DIGEST_TTL_SECONDS = 7200;
 /** Au-delà, on tronque avant d'envoyer au résumeur (inutile de payer le superflu). */
 const MAX_SOURCE_CHARS = 40_000;
 
-const DIGEST_SYSTEM_PROMPT = `Tu es un extracteur de faits. On te donne une section d'un livrable d'entreprise.
-Tu produis une fiche COMPACTE destinée à d'autres rédacteurs qui doivent rester cohérents avec cette section.
+const DIGEST_SYSTEM_PROMPT = `You are a fact extractor. You are given one section of a business deliverable.
+You produce a COMPACT brief for other writers who must stay consistent with that section.
 
-Règles:
-- Maximum 120 mots, en puces courtes.
-- Uniquement des FAITS: chiffres, montants et devises, dates, noms propres, segments de clientèle, prix, canaux, engagements pris.
-- Aucune formule de politesse, aucune analyse, aucun HTML, aucun titre.
-- Si un chiffre est présent, il doit apparaître tel quel (mêmes unités, même devise).`;
+Rules:
+- 120 words maximum, in short bullets.
+- FACTS only: figures, amounts and currencies, dates, proper nouns, customer segments, prices, channels, commitments made.
+- No pleasantries, no analysis, no HTML, no headings.
+- Write the brief in the SAME LANGUAGE as the section.
+- Any figure present must appear verbatim (same units, same currency).`;
 
 export interface DigestContext {
   userId?: string;

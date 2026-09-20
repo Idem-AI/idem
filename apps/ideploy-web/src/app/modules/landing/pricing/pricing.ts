@@ -39,7 +39,7 @@ interface OverageRow {
   imports: [RouterLink, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="relative min-h-screen text-white overflow-hidden" style="font-family: 'Jura', sans-serif;">
+    <div class="relative min-h-screen text-white overflow-hidden" style="font-family: 'Vilevile', sans-serif;">
       <!-- Global glassmorphism accents -->
       <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
         <div class="absolute w-[1000px] h-[800px] rounded-full blur-[120px] opacity-20"
@@ -76,7 +76,7 @@ interface OverageRow {
         <!-- ===== HERO ===== -->
         <section class="pt-44 pb-16 px-6 text-center">
           <div class="max-w-4xl mx-auto">
-            <h1 class="font-black text-white mb-6" style="font-size: clamp(2.8rem, 6vw, 5rem); line-height:1.05; letter-spacing:-0.04em;">
+            <h1 class="font-black text-white mb-6" style="font-size: clamp(2.8rem, 6vw, 5rem); line-height:1.05;">
               {{ 'pricing.heroTitle' | translate }}<br /><span class="i-underline">{{ 'pricing.heroTitleAccent' | translate }}</span>
             </h1>
             <p class="text-xl text-white/60 max-w-2xl mx-auto font-medium leading-relaxed mb-6">
@@ -125,7 +125,7 @@ interface OverageRow {
         <!-- ===== PAY PER DEPLOYMENT ===== -->
         <section class="py-16 px-6">
           <div class="max-w-5xl mx-auto glass-card rounded-[2rem] border border-white/10 p-10 md:p-14 text-center">
-            <h2 class="text-3xl md:text-4xl font-black text-white mb-4" style="letter-spacing:-0.03em;">
+            <h2 class="text-3xl md:text-4xl font-black text-white mb-4">
               {{ 'pricing.payTitle' | translate }} <span class="i-underline">{{ 'pricing.payTitleAccent' | translate }}</span>
             </h2>
             <p class="text-white/60 font-medium max-w-2xl mx-auto mb-10">
@@ -151,7 +151,7 @@ interface OverageRow {
         <!-- ===== MANAGED SERVICES ===== -->
         <section class="py-16 px-6">
           <div class="max-w-7xl mx-auto">
-            <h2 class="text-3xl md:text-4xl font-black text-white text-center mb-4" style="letter-spacing:-0.03em;">
+            <h2 class="text-3xl md:text-4xl font-black text-white text-center mb-4">
               {{ 'pricing.managedTitle' | translate }} <span class="i-underline">{{ 'pricing.managedTitleAccent' | translate }}</span>
             </h2>
             <p class="text-white/60 font-medium text-center max-w-2xl mx-auto mb-12">
@@ -174,7 +174,7 @@ interface OverageRow {
         <!-- ===== OVERAGES ===== -->
         <section class="py-16 px-6">
           <div class="max-w-5xl mx-auto">
-            <h2 class="text-3xl md:text-4xl font-black text-white text-center mb-4" style="letter-spacing:-0.03em;">
+            <h2 class="text-3xl md:text-4xl font-black text-white text-center mb-4">
               {{ 'pricing.overagesTitle' | translate }} <span class="i-underline">{{ 'pricing.overagesTitleAccent' | translate }}</span>
             </h2>
             <p class="text-white/60 font-medium text-center max-w-2xl mx-auto mb-12">
@@ -211,7 +211,7 @@ interface OverageRow {
         <section class="py-16 px-6">
           <div class="max-w-5xl mx-auto glass-card rounded-[2rem] border border-white/10 p-10 md:p-14 grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
             <div>
-              <h2 class="text-3xl md:text-4xl font-black text-white mb-4" style="letter-spacing:-0.03em;">
+              <h2 class="text-3xl md:text-4xl font-black text-white mb-4">
                 {{ 'pricing.byosTitle' | translate }} <span class="i-underline">{{ 'pricing.byosTitleAccent' | translate }}</span>
               </h2>
               <p class="text-white/60 font-medium leading-relaxed">
@@ -240,7 +240,7 @@ interface OverageRow {
           <div class="max-w-4xl mx-auto rounded-[3rem] overflow-hidden relative">
             <div class="absolute inset-0 z-0" style="background: linear-gradient(to bottom right, rgba(37,99,235,0.2), black, rgba(34,211,238,0.2));"></div>
             <div class="glass-card relative z-10 p-16 md:p-20 border border-white/10 text-center" style="backdrop-filter: blur(48px);">
-              <h2 class="text-4xl md:text-5xl font-black text-white mb-6" style="letter-spacing:-0.04em;">
+              <h2 class="text-4xl md:text-5xl font-black text-white mb-6">
                 {{ 'pricing.ctaTitle' | translate }} <span class="i-underline">{{ 'pricing.ctaTitleAccent' | translate }}</span>
               </h2>
               <p class="text-xl text-white/70 mb-10 max-w-xl mx-auto font-medium">
@@ -261,7 +261,7 @@ interface OverageRow {
               <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--color-primary-500)">
                 <i class="fa-solid fa-rocket text-xs text-white"></i>
               </div>
-              <span class="text-base font-black text-white tracking-tight">EPLOY</span>
+              <span class="text-base font-black text-white">EPLOY</span>
             </div>
             <p class="text-sm text-white/50 font-medium">{{ 'pricing.footerCopyright' | translate: { year: year } }}</p>
             <div class="flex items-center gap-8">

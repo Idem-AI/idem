@@ -259,7 +259,7 @@ Instead of defining your theme in `tailwind.config.js`, you use the `@theme` dir
 
 @theme {
   --color-primary: oklch(0.55 0.22 264);
-  --font-sans: 'Jura', sans-serif;
+  --font-sans: 'Vilevile', sans-serif;
   --spacing: 0.25rem;
 }
 ```

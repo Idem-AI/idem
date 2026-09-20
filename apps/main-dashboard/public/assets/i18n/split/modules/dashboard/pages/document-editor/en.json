@@ -4,12 +4,6 @@
       "businessPlan": {
         "title": "Business plan editor"
       },
-      "pitchDeck": {
-        "title": "Pitch deck editor"
-      },
-      "branding": {
-        "title": "Brand identity editor"
-      },
       "canvasLabel": "Document preview",
       "inspector": "Properties",
       "loading": "Loading document…",
@@ -25,11 +19,13 @@
         "saved": "Saved",
         "saveError": "Save failed",
         "unsaved": "Unsaved changes",
-        "upToDate": "Up to date"
+        "upToDate": "Up to date",
+        "pages": "Document pages"
       },
       "layers": {
         "title": "Document pages",
-        "pages": "Pages"
+        "pages": "Pages",
+        "close": "Close pages"
       },
       "emptySelection": {
         "title": "No element selected",
@@ -72,13 +68,6 @@
         "removeSeries": "Remove series",
         "value": "Value"
       },
-      "attrs": {
-        "heading": "Attributes",
-        "name": "Name",
-        "value": "Value",
-        "add": "Add",
-        "remove": "Remove attribute"
-      },
       "ai": {
         "title": "AI editing",
         "placeholder": "Describe the change you want for this section…",
@@ -97,11 +86,29 @@
           "subtitle": "The document failed to load. Try again from the page you opened it from."
         }
       },
+      "attrs": {
+        "heading": "Attributes",
+        "name": "Name",
+        "value": "Value",
+        "add": "Add",
+        "remove": "Remove attribute"
+      },
+      "pitchDeck": {
+        "title": "Pitch deck editor"
+      },
+      "branding": {
+        "title": "Brand identity editor"
+      },
       "businessCard": {
         "title": "Business card editor"
       },
       "flyer": {
         "title": "Visual editor"
+      },
+      "inspectorClose": "Close properties",
+      "zoom": {
+        "menu": "Zoom: {{value}}%",
+        "fitWidth": "Fit to width"
       }
     }
   }

@@ -1,0 +1,34 @@
+@keyframes lockFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes lockIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-lockFade {
+  animation: lockFade 0.18s ease-out forwards;
+}
+
+.animate-lockIn {
+  animation: lockIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-lockFade,
+  .animate-lockIn {
+    animation: none;
+  }
+}

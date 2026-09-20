@@ -2,8 +2,6 @@ import { IRepository } from '../../repository/IRepository';
 import { RepositoryFactory } from '../../repository/RepositoryFactory';
 import {
   PromptService,
-  LLMProvider,
-  PromptRequest,
   PromptConfig,
   AIChatMessage,
 } from '../prompt.service';
@@ -11,16 +9,109 @@ import { ProjectModel } from '../../models/project.model';
 import { SectionModel } from '../../models/section.model';
 import { ProjectSectionKey } from '../../models/revision.model';
 // File operations have been removed - using in-memory context
-import { AI_CONFIG, FeatureAIConfig, resolveSectionConfig } from '../../config/ai.config';
+import {
+  AI_CONFIG,
+  FeatureAIConfig,
+  resolveSectionConfig,
+  templatedLlmOptions,
+} from '../../config/ai.config';
 import { applyTier } from '../../config/model-router';
+import { resolveConcurrency } from '../../config/ai-providers.config';
 
 import logger from '../../config/logger';
-import { RunBudget, createRunBudget, runAgent } from '../agents/agent-runtime';
+import { RunBudget, createRunBudget, runAgent, runAgentPrompt } from '../agents/agent-runtime';
 import { buildDependencyContext } from '../agents/section-digest.service';
 import { QualityExpectation, qualityValidator } from '../agents/quality-gate';
 import { verifySection } from '../agents/section-verifier.service';
 import { DeliverableGraph, graphDepth, validateGraph } from '../agents/deliverable-graph';
 import { CONTEXT_TOOL_DECLARATIONS, createContextToolExecutor } from '../context-engine/context-tools';
+import { DocumentDesignSystem } from '../design/documentDesignSystem';
+import { SectionSeed } from '../design/designSeed';
+import { Block, normalizeSectionContent } from '../design/sectionContent';
+import { htmlToSectionContent, looksLikeHtmlPage } from '../design/htmlToSectionContent';
+import {
+  SECTION_PLAN_CONTRACT,
+  describeSectionPlan,
+  normalizeSectionPlan,
+} from '../design/sectionPlan';
+import { RenderOptions, renderSection } from '../design/sectionRenderer';
+import {
+  SECTION_CONTENT_CONTRACT,
+  sectionVolumeDirective,
+} from '../design/sectionContent.prompt';
+import { parseLlmJson } from '../../utils/llm-json.util';
+
+/**
+ * Récupère le texte d'une section renvoyée EN HTML au lieu du contenu structuré.
+ *
+ * Un modèle qui retombe dans son ancien format a fait le travail de fond — les
+ * faits, les chiffres, les citations sont là — et s'est seulement trompé de
+ * contenant. Jeter la section pour cela revient à faire payer au lecteur une
+ * erreur de forme. On garde le fond, le gabarit refait la forme.
+ */
+function salvageHtmlSection(content: string, stepName: string) {
+  if (!looksLikeHtmlPage(content)) return null;
+  const recovered = htmlToSectionContent(content, stepName);
+  if (!recovered) return null;
+  logger.warn(
+    `Section '${stepName}' : sortie en HTML au lieu du contenu structuré. ` +
+      `RÉCUPÉRÉE (${recovered.blocks.length} bloc(s)) et recomposée par le gabarit.`
+  );
+  return normalizeSectionContent(recovered);
+}
+
+/**
+ * Tout ce dont le rendu d'une section a besoin. Porté par l'étape parce que la
+ * graine est PROPRE À LA PAGE (l'archétype varie d'une page à l'autre) alors que
+ * le design system est commun au document.
+ */
+export interface SectionTemplate {
+  designSystem: DocumentDesignSystem;
+  seed: SectionSeed;
+  /** Volume visé, en blocs. Ex : '6 to 8'. */
+  volume: string;
+  render?: RenderOptions;
+  /**
+   * Prompt à employer À LA PLACE de `promptConstant` en mode gabarit.
+   *
+   * Les deux coexistent volontairement sur l'étape : `promptConstant` garde le
+   * prompt d'origine, qui décrit une composition HTML, et reste le REPLI quand
+   * `IDEM_SECTION_TEMPLATE=off`. Écraser `promptConstant` par le brief aurait
+   * rendu l'interrupteur dangereux — la section aurait alors reçu un contrat
+   * JSON sans rendu pour le consommer, donc du JSON brut affiché comme page.
+   */
+  contentBrief?: string;
+  /**
+   * Blocs posés par le SERVICE, à partir des données réelles du projet, avant
+   * ceux que le modèle produit.
+   *
+   * C'est ainsi qu'une page de nuancier reçoit les vraies valeurs hexadécimales
+   * de la charte, une page de typographie les vraies familles, une page de logo
+   * les vraies URLs. Ces valeurs ne passent JAMAIS par le modèle : lui demander
+   * de recopier six chiffres hexadécimaux, c'est accepter qu'une charte affiche
+   * une couleur qui n'est pas celle de la marque.
+   *
+   * Le modèle garde ce qu'il sait faire : écrire les règles d'usage autour.
+   */
+  prependBlocks?: Block[];
+  /**
+   * Titre IMPOSÉ par le livrable, à la place de celui du modèle.
+   *
+   * Une charte se consulte par sa nomenclature : « Déclinaison sur fond
+   * sombre », pas « Le logo sur ses fonds ». Laissé au modèle, le titre
+   * changeait de registre d'une page à l'autre, et le sur-titre qu'il
+   * produisait disait mieux la page que le titre lui-même.
+   */
+  heading?: { title: string; kicker?: string };
+  /**
+   * Recompose les blocs (spécimens compris) avant le rendu.
+   *
+   * Sert aux pages dont la forme réunit une donnée du projet et un texte du
+   * modèle dans UN même objet graphique — le logo et son explication, posés
+   * côte à côte, et non l'un sous l'autre au gré de la grille.
+   */
+  composeBlocks?: (blocks: Block[]) => Block[];
+}
 
 /**
  * Comment une étape reçoit ce que les étapes amont ont produit.
@@ -60,6 +151,34 @@ export interface IPromptStep {
   /** Voir `StepContextMode`. Défaut : `digest` si l'étape a des dépendances. */
   contextMode?: StepContextMode;
   /**
+   * Rendu par GABARIT : le modèle produit un `SectionContent` (contenu
+   * structuré) et le serveur produit le HTML.
+   *
+   * Absent ⇒ comportement historique, le modèle écrit le HTML lui-même. La
+   * bascule se fait donc section par section, ce qui permet de la valider page
+   * par page au lieu de tout basculer d'un coup.
+   *
+   * Quand il est présent, l'étape reçoit le contrat de sortie JSON à la place
+   * des consignes de composition, et sa sortie traverse
+   * `normalizeSectionContent` puis `renderSection`.
+   */
+  template?: SectionTemplate;
+  /**
+   * Préfixe IDENTIQUE à toutes les étapes du livrable — contexte de marque,
+   * direction artistique, invariants de composition, règles anti-générique,
+   * exemple canonique.
+   *
+   * Il est émis en TÊTE des messages, avant tout ce qui varie. C'est la seule
+   * disposition qui rende un cache de préfixe possible : jusqu'ici ce contexte
+   * était concaténé à la FIN de chaque `promptConstant`, derrière la partie
+   * variable, si bien que les ~3 400 tokens communs aux neuf sections étaient
+   * repayés neuf fois et qu'aucun préfixe ne se répétait jamais.
+   *
+   * Posé par `withGraph` / `withSectionConfigs`, donc partagé par référence :
+   * il n'est pas dupliqué en mémoire.
+   */
+  stablePrefix?: string;
+  /**
    * Autorise l'étape à interroger elle-même le Context Engine (branding,
    * finance, historique…) via le function-calling, au lieu de recevoir ces
    * données empilées dans son prompt « au cas où ».
@@ -75,6 +194,19 @@ export interface IPromptStep {
    * la grille déterministe et, si besoin, UNE passe de réparation bornée.
    */
   quality?: QualityExpectation;
+  /**
+   * Produit le contenu de l'étape SANS appeler le LLM.
+   *
+   * Certaines sections ne sont pas rédigées : elles sont fabriquées (une image
+   * générée, un gabarit rempli, un calcul). Les faire passer par le modèle
+   * revenait à payer un prompt complet pour une sortie systématiquement jetée
+   * — c'était le cas des pages de mise en situation de la charte.
+   *
+   * Rendre `null` signifie « pas de section » : l'étape est tenue pour faite,
+   * mais rien n'est persisté ni diffusé. C'est ce qui permet à un livrable
+   * d'omettre une page plutôt que d'en afficher une dégradée.
+   */
+  execute?: () => Promise<string | null>;
 }
 
 /**
@@ -89,11 +221,17 @@ export interface IPromptStep {
  */
 export function withSectionConfigs(
   feature: FeatureAIConfig,
-  steps: IPromptStep[]
+  steps: IPromptStep[],
+  stablePrefix?: string
 ): IPromptStep[] {
   return steps.map((step) => ({
     ...step,
     aiConfig: step.aiConfig ?? applyTier(resolveSectionConfig(feature, step.stepName)),
+    // Le préfixe COURT (sans les règles de composition) n'a de sens que sous
+    // gabarit : coupé, la section retombe sur le prompt HTML d'origine et a de
+    // nouveau besoin de ces règles.
+    stablePrefix: (TEMPLATES_ENABLED ? step.stablePrefix : undefined) ?? stablePrefix,
+    template: TEMPLATES_ENABLED ? step.template : undefined,
   }));
 }
 
@@ -109,7 +247,9 @@ export function withGraph(
   feature: FeatureAIConfig,
   steps: IPromptStep[],
   graph: DeliverableGraph,
-  quality?: QualityExpectation
+  quality?: QualityExpectation,
+  /** Contexte commun à toutes les étapes — cf. `IPromptStep.stablePrefix`. */
+  stablePrefix?: string
 ): IPromptStep[] {
   const stepNames = steps.map((step) => step.stepName);
   validateGraph(graph, stepNames);
@@ -138,7 +278,7 @@ export function withGraph(
     } as IPromptStep;
   });
 
-  return withSectionConfigs(feature, wired);
+  return withSectionConfigs(feature, wired, stablePrefix);
 }
 
 /**
@@ -157,6 +297,81 @@ export function estimateRunBudget(steps: IPromptStep[]): number {
   return Math.max(50_000, perStep * 3);
 }
 
+/**
+ * Étapes lancées de front sur un même livrable.
+ *
+ * ⚠️ NE PAS AUGMENTER sans mesurer. `ResearchTeamService` a fait l'expérience et
+ * l'a documentée : monter de 3 à 5 paraît évident — moins de vagues — et donne
+ * l'inverse, 162 s contre 121 s sur le pipeline complet. Au-delà d'un certain
+ * point, la file d'attente côté fournisseur coûte plus cher que la vague
+ * économisée.
+ *
+ * Mais ce point DÉPEND DU FOURNISSEUR : la valeur mesurée sur Z.ai n'a aucune
+ * raison de valoir pour Gemini, dont les modèles `flash` répondent en moins
+ * d'une seconde. Elle est donc déclarée à côté du modèle
+ * (`ai-providers.config.ts`) et résolue à l'exécution, pour suivre la bascule.
+ */
+const maxParallelSteps = (): number => resolveConcurrency();
+
+/**
+ * Interrupteur global du rendu par gabarit.
+ *
+ * `IDEM_SECTION_TEMPLATE=off` fait retomber TOUTES les sections sur la
+ * génération HTML libre, sans redéploiement. Sert à comparer les deux rendus
+ * côte à côte sur un même projet — c'est la mesure qui décide, pas l'opinion.
+ */
+const TEMPLATES_ENABLED = (process.env.IDEM_SECTION_TEMPLATE ?? '').toLowerCase() !== 'off';
+
+/**
+ * Étape de PLAN avant l'écriture (cf. `sectionPlan.ts`).
+ *
+ * `IDEM_SECTION_PLAN=off` la coupe : la section est alors écrite d'un seul
+ * appel, comme avant. Sert à mesurer ce que le découpage apporte réellement,
+ * sur un même projet et un même modèle.
+ */
+const PLANNING_ENABLED = (process.env.IDEM_SECTION_PLAN ?? '').toLowerCase() !== 'off';
+
+/**
+ * En dessous de ce volume, on n'AJOUTE PAS d'étape de plan.
+ *
+ * Le plan sépare « décider quoi dire » de « l'écrire », ce qui empêche un petit
+ * modèle de combler quand il manque de matière. Mais sur une page qui ne porte
+ * que deux ou trois blocs — un spécimen de charte, un slide — il n'y a
+ * pratiquement rien à planifier : l'aller-retour coûte alors une seconde ou deux
+ * par page sans rien prévenir.
+ *
+ * Le seuil est exprimé en BLOCS parce que c'est l'unité du brief. Les pages de
+ * business plan (7 à 10 blocs) le franchissent, les pages de charte (2 à 3) et
+ * les slides (3 à 4) non.
+ */
+const PLAN_MIN_BLOCKS = Number(process.env.IDEM_PLAN_MIN_BLOCKS ?? 5);
+
+/** Nombre de blocs visé par une étape, lu depuis sa consigne de volume. */
+function targetBlockCount(volume: string): number {
+  const numbers = (volume.match(/\d+/g) ?? []).map(Number);
+  return numbers.length > 0 ? Math.max(...numbers) : 0;
+}
+
+/**
+ * Intervalle minimal entre deux annonces de progression d'une même section.
+ *
+ * Le modèle produit des dizaines de tokens par seconde ; relayer chacun d'eux
+ * jusqu'au client coûterait plus en sérialisation SSE que le confort gagné.
+ * 400 ms suffisent à donner l'impression d'un texte qui s'écrit.
+ */
+const DELTA_THROTTLE_MS = 400;
+
+/** Limite la fréquence des annonces, en laissant toujours passer la dernière. */
+function throttleDelta(emit: (partial: string) => void): (partial: string) => void {
+  let lastAt = 0;
+  return (partial: string) => {
+    const now = Date.now();
+    if (now - lastAt < DELTA_THROTTLE_MS) return;
+    lastAt = now;
+    emit(partial);
+  };
+}
+
 /** Ce dont une étape a besoin en plus de sa propre déclaration pour s'exécuter. */
 export interface StepRunOptions {
   userId?: string;
@@ -167,6 +382,11 @@ export interface StepRunOptions {
   /** Plafond de consommation partagé par toutes les étapes du même livrable. */
   budget?: RunBudget;
   language?: string;
+  /**
+   * Diffuse la section au fil de sa génération. Voir `AgentRunInput.onDelta` :
+   * c'est un APERÇU, remplacé par le contenu validé en fin d'étape.
+   */
+  onDelta?: (payload: { stepName: string; partial: string }) => void;
 }
 
 // Define interface for section result
@@ -211,7 +431,7 @@ export class GenericService {
    */
   protected extractProjectDescription(project: ProjectModel): string {
     const projectName = project.name || 'Startup';
-    const projectDescription = project.description || '';
+    const projectDescription = project.longDescription || project.description || '';
     const projectType = project.type || '';
     const projectScope = project.scope || '';
     const projectTargets = project.targets || '';
@@ -244,12 +464,13 @@ export class GenericService {
 
     // Sans `requiresSteps`, l'étape hérite de tout ce qui précède : c'est le
     // comportement historique, conservé pour ne pas casser les flux existants.
-    const dependencies =
+    const dependencies = (
       step.requiresSteps && step.requiresSteps.length > 0
         ? (step.requiresSteps
             .map((name) => completedSteps.get(name))
             .filter(Boolean) as { name: string; content: string }[])
-        : Array.from(completedSteps.values());
+        : Array.from(completedSteps.values())
+    ).filter((d) => d.content.trim().length > 0);
 
     if (dependencies.length === 0) return '';
 
@@ -300,7 +521,7 @@ export class GenericService {
     project: ProjectModel,
     options: StepRunOptions = {}
   ): Promise<string> {
-    const { userId, promptType, dependencyContext = '', budget, language } = options;
+    const { userId, promptType, dependencyContext = '', budget, language, onDelta } = options;
     const promptConfig: PromptConfig = options.promptConfig ?? {
       provider: AI_CONFIG.default.provider,
       modelName: AI_CONFIG.default.modelName,
@@ -335,8 +556,81 @@ export class GenericService {
         `outils=${useTools ? 'oui' : 'non'})`
     );
 
+    // ── ÉTAPE ① — LE PLAN ────────────────────────────────────────────────────
+    //
+    // Même après que le rendu lui a retiré la composition, une section demande
+    // encore DEUX choses d'un coup au modèle : décider quoi dire, et l'écrire.
+    // Un petit modèle tient trois ou quatre exigences simultanées puis décroche
+    // en silence — en comblant. On sépare donc les deux : ici on décide, à
+    // l'étape ② on remplit.
+    //
+    // Le plan est vérifié SANS modèle (nombre de points, types de blocs
+    // existants) : son échec est détecté avant que la page ne soit écrite, là
+    // où le rattraper coûte quelques centaines de tokens au lieu d'une section.
+    let planDirective = '';
+    const worthPlanning =
+      step.template !== undefined &&
+      targetBlockCount(step.template.volume) >= PLAN_MIN_BLOCKS;
+
+    if (step.template && PLANNING_ENABLED && worthPlanning) {
+      try {
+        const planned = await runAgentPrompt(
+          {
+            role: 'section-planner',
+            task: 'extract',
+            systemPrompt: SECTION_PLAN_CONTRACT,
+            promptType: 'section-plan',
+            // Une charpente tient en quelques centaines de tokens. Un budget
+            // large n'y ajouterait que de la prose.
+            llmOptions: { maxOutputTokens: 1200, temperature: 0.3, jsonMode: true },
+            validate: (text: string) =>
+              normalizeSectionPlan(parseLlmJson(text))
+                ? { ok: true }
+                : { ok: false, reason: 'plan illisible ou trop court' },
+          },
+          [
+            step.template.contentBrief ?? step.promptConstant,
+            dependencyContext ? `SECTIONS ALREADY WRITTEN:\n${dependencyContext}` : '',
+          ]
+            .filter(Boolean)
+            .join('\n\n'),
+          {
+            userId,
+            projectId: project.id,
+            element: `plan:${step.stepName}`,
+            budget,
+            language: language ?? effectiveConfig.language,
+            skipQuotaCheck: true,
+          }
+        );
+
+        const plan = normalizeSectionPlan(parseLlmJson(planned.text));
+        if (plan) {
+          planDirective = describeSectionPlan(plan);
+          logger.info(
+            `Section '${step.stepName}' : plan retenu (${plan.points.length} points, ` +
+              `blocs ${plan.blocks.join('/')}, tier=${planned.tier})`
+          );
+        }
+      } catch (error: any) {
+        // Un plan absent n'empêche pas d'écrire : on retombe sur l'appel unique.
+        logger.warn(
+          `Section '${step.stepName}' : planification impossible (${error?.message}) — écriture directe.`
+        );
+      }
+    }
+
     const messages: AIChatMessage[] = [];
 
+    // ① PRÉFIXE STABLE — byte-identique pour toutes les sections du livrable.
+    //    Il DOIT venir en premier : c'est la seule partie du prompt qui puisse
+    //    être servie depuis un cache de préfixe, et un cache ne s'accroche qu'à
+    //    un début de message inchangé. Tout ce qui varie vient après.
+    if (step.stablePrefix) {
+      messages.push({ role: 'system', content: step.stablePrefix });
+    }
+
+    // ② à partir d'ici, tout varie d'une section à l'autre.
     if (dependencyContext) {
       // Le contexte amont est un RÉSUMÉ : il faut le dire au modèle, sinon il
       // tente de le prolonger ou de le recopier au lieu de s'y conformer.
@@ -360,11 +654,44 @@ export class GenericService {
       });
     }
 
-    messages.push({ role: 'user', content: step.promptConstant });
+    // MODE GABARIT : on remplace les consignes de composition par le contrat de
+    // sortie. Le modèle ne compose plus, il écrit — et ce qu'il écrit est
+    // structuré, donc vérifiable et infalsifiable dans sa forme.
+    messages.push({
+      role: 'user',
+      content: step.template
+        ? [
+            // Le brief de contenu quand la feature en fournit un ; sinon le
+            // prompt d'origine, que le contrat de sortie réoriente vers du JSON.
+            step.template.contentBrief ?? step.promptConstant,
+            // La charpente décidée à l'étape ①. Elle transforme une tâche
+            // ouverte en remplissage : c'est là que l'invention de structure —
+            // donc le comblement — disparaît.
+            planDirective,
+            sectionVolumeDirective(step.template.volume),
+            SECTION_CONTENT_CONTRACT,
+          ]
+            .filter(Boolean)
+            .join('\n\n')
+        : step.promptConstant,
+    });
 
     const result = await runAgent(
       {
         role: 'section-writer',
+        /**
+         * Étage de DÉPART déclaré par la feature ou la section (`tier` dans
+         * `ai.config.ts`).
+         *
+         * Sans lui, l'étage déclaré n'avait d'effet nulle part sous gabarit : une
+         * section templatée est dépinglée d'office plus bas (`pinModel: false`),
+         * et un `baseConfig` non épinglé ne dicte pas l'étage — la section
+         * repartait donc systématiquement à l'étage de sa TÂCHE (`draft` → M),
+         * quoi qu'ait déclaré la feature. C'est le bon défaut pour le volume
+         * courant, et le mauvais pour les livrables qui déclarent explicitement
+         * partir plus haut (plan, charte, deck).
+         */
+        tier: step.aiConfig?.tier,
         // La tâche ne sert que de défaut : `baseConfig` impose le modèle réel
         // choisi par la feature/section, l'étage n'entre en jeu qu'en escalade.
         task: 'draft',
@@ -372,13 +699,49 @@ export class GenericService {
           provider: effectiveConfig.provider,
           modelName: effectiveConfig.modelName,
           fallbackModels: effectiveConfig.fallbackModels,
-          llmOptions: effectiveConfig.llmOptions,
+          llmOptions: {
+            ...effectiveConfig.llmOptions,
+            // Le gabarit change la NATURE de la sortie : ~2 500 tokens de
+            // contenu structuré au lieu de ~10 000 de balisage. Conserver un
+            // budget de 28 000 n'apporterait rien et laisserait le raisonnement
+            // s'étendre sans objet — or c'est la sortie qui fait la latence.
+            ...(step.template ? templatedLlmOptions(effectiveConfig.llmOptions) : {}),
+          },
+          // Sans épinglage explicite, la section part à l'étage de sa TÂCHE
+          // (`draft` → M) et n'escalade que si la grille qualité échoue. C'est
+          // ce qui fait enfin travailler le routeur sur le volume principal.
+          //
+          // Une section rendue par GABARIT est dépinglée d'office : l'épinglage
+          // transitoire existait parce que l'escalade ne détecte pas « la page
+          // est plate » tant que la composition est demandée au modèle. Sous
+          // gabarit, la composition ne lui est plus demandée — la condition de
+          // retrait écrite dans ai.config.ts est donc remplie, section par
+          // section, au fur et à mesure de la bascule.
+          //
+          // Exception : un modèle déclaré SUR LA SECTION (`modelLocked`) est une
+          // décision explicite de l'auteur, et le dépinglage l'effaçait en
+          // silence — la section repartait à l'étage de sa tâche.
+          pinModel: step.template
+            ? step.aiConfig?.modelLocked === true
+            : step.aiConfig?.pinModel,
         },
         promptType: effectiveConfig.promptType ?? step.stepName,
         tools: useTools ? CONTEXT_TOOL_DECLARATIONS : undefined,
         toolExecutor: useTools ? createContextToolExecutor(userId!, project.id!) : undefined,
         maxToolTurns: 4,
-        validate: step.quality ? qualityValidator(step.quality) : undefined,
+        // En mode gabarit, la sortie attendue est un CONTENU structuré : le
+        // contrôle porte donc sur sa lisibilité, pas sur du balisage qui
+        // n'existe plus. Le balisage, lui, est garanti par le rendu.
+        validate: step.template
+          ? (text: string) => {
+              const parsed = normalizeSectionContent(parseLlmJson(text));
+              return parsed
+                ? { ok: true }
+                : { ok: false, reason: 'contenu de section illisible ou vide' };
+            }
+          : step.quality
+            ? qualityValidator(step.quality)
+            : undefined,
       },
       {
         messages,
@@ -393,11 +756,78 @@ export class GenericService {
         file: effectiveConfig.file,
         contextFilePaths: effectiveConfig.contextFilePaths,
         skipQuotaCheck: effectiveConfig.skipQuotaCheck,
-        bypassOutputTokenCap: effectiveConfig.bypassOutputTokenCap,
+        // Étranglé : un événement par token saturerait le canal SSE et
+        // coûterait plus en sérialisation qu'il ne rapporte en confort.
+        onDelta: onDelta ? throttleDelta((partial) => onDelta({ stepName: step.stepName, partial })) : undefined,
       }
     );
 
     let content = result.text;
+
+    // RENDU. Le modèle a produit du contenu ; la page est fabriquée ici, avec la
+    // palette, la grille, la typographie, les contrastes et le logo du document.
+    // Rien de tout cela ne dépend plus de ce que le modèle a bien voulu suivre.
+    if (step.template) {
+      // La récupération HTML est le jumeau de celle de l'équipe de recherche
+      // (cf. `ResearchTeamService.salvage`). Les deux chemins de rendu doivent
+      // tenir la même règle : une sortie mal formatée coûte sa mise en page,
+      // jamais son contenu.
+      const parsed =
+        normalizeSectionContent(parseLlmJson(content)) ??
+        salvageHtmlSection(content, step.stepName);
+      if (parsed) {
+        // Les blocs SPÉCIMENS viennent du projet, pas du modèle : ils sont
+        // posés en tête, avant ce que le modèle a écrit autour d'eux.
+        const withSpecimens = step.template.prependBlocks?.length
+          ? { ...parsed, blocks: [...step.template.prependBlocks, ...parsed.blocks] }
+          : parsed;
+        const composed = step.template.composeBlocks
+          ? { ...withSpecimens, blocks: step.template.composeBlocks(withSpecimens.blocks) }
+          : withSpecimens;
+        // La nomenclature du livrable l'emporte sur le titre du modèle, et
+        // son sur-titre avec lui : sans sur-titre imposé, la page n'en porte pas.
+        const headed = step.template.heading
+          ? { ...composed, title: step.template.heading.title, kicker: step.template.heading.kicker }
+          : composed;
+
+        content = renderSection(
+          headed,
+          step.template.designSystem,
+          step.template.seed,
+          step.template.render ?? {}
+        );
+        logger.info(
+          `Section '${step.stepName}' rendue par gabarit ` +
+            `(archétype ${step.template.seed.archetype}, ${parsed.blocks.length} blocs, ${content.length} car.)`
+        );
+      } else {
+        // ── LA SORTIE BRUTE NE DEVIENT JAMAIS UNE PAGE ────────────────────
+        //
+        // Ce bloc conservait auparavant `content` tel quel, « plutôt que rien ».
+        // C'était une erreur de jugement, et elle s'est vue : des pages de
+        // business plan livrées en JSON brut, accolades et noms de champs
+        // compris, dans un document destiné à des investisseurs.
+        //
+        // « Plutôt que rien » supposait qu'une page dégradée valait mieux qu'une
+        // page absente. C'est faux quand la dégradation est du code source : une
+        // section manquante est une lacune, une page de JSON est un défaut de
+        // fabrication visible par le lecteur, et il juge tout le document
+        // dessus.
+        //
+        // On lève donc. L'appelant enregistre la section dans `failedSteps`,
+        // émet `section_failed` et poursuit : le livrable est incomplet et le
+        // dit, au lieu d'être abîmé sans le dire.
+        const head = content.slice(0, 160).replace(/\s+/g, ' ');
+        logger.error(
+          `Section '${step.stepName}' : sortie vide de tout contenu exploitable, même ` +
+            `après réparation de troncature et récupération du texte. ` +
+            `Début de la sortie : ${head}`
+        );
+        throw new Error(
+          `contenu structuré illisible (ni JSON valide, ni tronqué récupérable)`
+        );
+      }
+    }
 
     // Contrôle + réparation bornée. `verifySection` sort immédiatement si la
     // grille déterministe ne trouve rien : le cas nominal ne coûte rien.
@@ -451,6 +881,8 @@ export class GenericService {
     )
   ): Promise<void> {
     const completedSteps: Map<string, { name: string; content: string }> = new Map();
+    /** Sections tombées, avec leur cause. Rapportées à la fin plutôt qu'ignorées. */
+    const failedSteps: Map<string, string> = new Map();
     const runningSteps: Set<string> = new Set();
     const stepPromises: Map<string, Promise<void>> = new Map();
 
@@ -496,26 +928,54 @@ export class GenericService {
 
         logger.info(`Starting execution of step: ${step.stepName}`);
 
-        const dependencyContext = await this.buildStepContext(step, completedSteps, {
-          userId,
-          projectId: project.id,
-          budget,
-        });
+        // Une étape fabriquée court-circuite le modèle : ni contexte amont à
+        // construire, ni prompt à facturer.
+        const content = step.execute
+          ? await step.execute()
+          : await this.runStepAndAppend(step, project, {
+              userId,
+              promptType: promptType || step.stepName,
+              dependencyContext: await this.buildStepContext(step, completedSteps, {
+                userId,
+                projectId: project.id,
+                budget,
+              }),
+              promptConfig: effectivePromptConfig,
+              budget,
+              // Aperçu au fil de l'eau. La section attendait jusqu'ici d'être
+              // ENTIÈREMENT produite avant d'apparaître : une à trois minutes
+              // devant un indicateur d'activité, alors que le premier
+              // paragraphe est disponible en quelques secondes.
+              //
+              // C'est bien un APERÇU : il n'a passé ni la grille qualité ni la
+              // réparation. L'événement `section` qui suit porte, lui, le
+              // contenu validé et remplace ce qui a été affiché.
+              onDelta: ({ stepName, partial }) => {
+                void stepCallback({
+                  name: 'section_delta',
+                  type: 'event',
+                  data: partial,
+                  summary: `Streaming ${stepName}`,
+                  parsedData: { status: 'streaming', stepName, chars: partial.length },
+                }).catch(() => undefined);
+              },
+            });
 
-        // Execute the current step with the built context
-        const content = await this.runStepAndAppend(step, project, {
-          userId,
-          promptType: promptType || step.stepName,
-          dependencyContext,
-          promptConfig: effectivePromptConfig,
-          budget,
-        });
-
-        // Store the content of this step for future steps
+        // Store the content of this step for future steps. Une étape sans
+        // contenu est enregistrée VIDE : elle est faite (les étapes qui en
+        // dépendent ne doivent pas attendre indéfiniment), mais elle n'entre
+        // dans aucun contexte et ne produit aucune section.
         completedSteps.set(step.stepName, {
           name: step.stepName,
-          content: content,
+          content: content ?? '',
         });
+
+        if (content === null) {
+          logger.info(`Step '${step.stepName}' produced no section — page skipped`);
+          runningSteps.delete(step.stepName);
+          await sendProgressUpdate();
+          return;
+        }
 
         let parsedData = null;
         if (step.modelParser) {
@@ -548,10 +1008,43 @@ export class GenericService {
         await stepCallback(sectionResult);
 
         logger.info(`Completed execution of step: ${step.stepName}`);
-      } catch (error) {
+      } catch (error: any) {
         runningSteps.delete(step.stepName);
         logger.error(`Error executing step ${step.stepName}:`, error);
-        throw error;
+
+        // ⚠️ UNE SECTION QUI ÉCHOUE NE FAIT PLUS AVORTER LE LIVRABLE.
+        //
+        // La propagation de l'erreur ici tuait la génération entière : un
+        // business plan de neuf sections s'arrêtait à la troisième, et
+        // l'utilisateur recevait un document tronqué SANS savoir pourquoi. Or la
+        // cause est presque toujours locale et transitoire — une saturation du
+        // fournisseur sur une section, pas une panne du livrable.
+        //
+        // La section est donc marquée FAITE mais VIDE : les étapes qui en
+        // dépendent cessent de l'attendre (sinon l'ordonnanceur boucle), elle
+        // n'entre dans aucun contexte, et rien n'est persisté pour elle. Le
+        // document sort incomplet et le dit, au lieu d'être amputé en silence.
+        completedSteps.set(step.stepName, { name: step.stepName, content: '' });
+        failedSteps.set(step.stepName, error?.message ?? String(error));
+
+        try {
+          await stepCallback({
+            name: 'section_failed',
+            type: 'event',
+            data: step.stepName,
+            summary: `Section "${step.stepName}" en échec`,
+            parsedData: {
+              status: 'failed',
+              stepName: step.stepName,
+              message: error?.message ?? String(error),
+            },
+          });
+        } catch {
+          // Le client a peut-être fermé la connexion : ne pas transformer un
+          // échec de section en échec de flux.
+        }
+
+        await sendProgressUpdate();
       }
     };
 
@@ -588,8 +1081,11 @@ export class GenericService {
           areDependenciesSatisfied(step)
       );
 
-      // Start execution of ready steps
+      // Start execution of ready steps, dans la limite du plafond de concurrence.
+      // Les étapes non lancées ce tour-ci restent en attente et repartiront au
+      // tour suivant, dès qu'un créneau se libère.
       for (const step of readySteps) {
+        if (stepPromises.size >= maxParallelSteps()) break;
         const stepPromise = executeStep(step);
         stepPromises.set(step.stepName, stepPromise);
 
@@ -662,6 +1158,13 @@ export class GenericService {
     }
 
     // Send final completion message to frontend
+    if (failedSteps.size > 0) {
+      logger.error(
+        `Livrable incomplet : ${failedSteps.size} section(s) en échec — ` +
+          [...failedSteps.entries()].map(([name, why]) => `${name} (${why})`).join(' | ')
+      );
+    }
+
     const completionResult: ISectionResult = {
       name: 'completion',
       type: 'event',
@@ -669,8 +1172,14 @@ export class GenericService {
       summary: `All steps completed successfully for project ${project.id}`,
       parsedData: {
         status: 'completed',
-        message: 'All generation steps have been completed successfully',
+        message:
+          failedSteps.size > 0
+            ? `${steps.length - failedSteps.size}/${steps.length} sections générées — ${failedSteps.size} en échec`
+            : 'All generation steps have been completed successfully',
         totalSteps: steps.length,
+        // Le client doit pouvoir proposer une régénération CIBLÉE : sans cette
+        // liste, un document incomplet oblige à tout refaire.
+        failedSteps: [...failedSteps.entries()].map(([name, reason]) => ({ name, reason })),
         completedSteps: Array.from(completedSteps.keys()),
         projectId: project.id,
         timestamp: new Date().toISOString(),
@@ -701,13 +1210,16 @@ export class GenericService {
   ): Promise<ISectionResult[]> {
     const results: ISectionResult[] = [];
     const completedSteps = new Map<string, { name: string; content: string }>();
-    const stepPromises = new Map<string, Promise<ISectionResult>>();
+    // `null` : l'étape est faite mais ne produit pas de section (cf. `execute`).
+    const stepPromises = new Map<string, Promise<ISectionResult | null>>();
+    /** Étapes réellement en vol — sert de compteur de créneaux. */
+    const running = new Set<string>();
     const pendingSteps = [...steps];
 
     logger.info(`Starting processSteps for ${steps.length} steps in project ${project.id}`);
 
     // Helper function to execute a single step
-    const executeStep = async (step: IPromptStep): Promise<ISectionResult> => {
+    const executeStep = async (step: IPromptStep): Promise<ISectionResult | null> => {
       logger.info(`Starting execution of step: ${step.stepName}`);
 
       const hasDependencies = step.hasDependencies !== undefined ? step.hasDependencies : true;
@@ -720,34 +1232,41 @@ export class GenericService {
           step.requiresSteps && step.requiresSteps.length > 0
             ? (step.requiresSteps
                 .map((stepName) => stepPromises.get(stepName))
-                .filter(Boolean) as Promise<ISectionResult>[])
+                .filter(Boolean) as Promise<ISectionResult | null>[])
             : Array.from(stepPromises.values());
         if (awaited.length > 0) {
           await Promise.all(awaited);
         }
       }
 
-      const dependencyContext = await this.buildStepContext(step, completedSteps, {
-        userId: userId ?? promptConfig?.userId,
-        projectId: project.id,
-        budget,
-      });
-
       try {
-        // Execute the step
-        const content = await this.runStepAndAppend(step, project, {
-          userId: userId ?? promptConfig?.userId,
-          promptType: promptType || step.stepName,
-          dependencyContext,
-          promptConfig,
-          budget,
-        });
+        // Une étape fabriquée (cf. `IPromptStep.execute`) ne passe pas par le
+        // modèle. Elle peut aussi ne rien produire : l'étape est alors tenue
+        // pour faite, sans section.
+        const content = step.execute
+          ? await step.execute()
+          : await this.runStepAndAppend(step, project, {
+              userId: userId ?? promptConfig?.userId,
+              promptType: promptType || step.stepName,
+              dependencyContext: await this.buildStepContext(step, completedSteps, {
+                userId: userId ?? promptConfig?.userId,
+                projectId: project.id,
+                budget,
+              }),
+              promptConfig,
+              budget,
+            });
 
         // Store the completed step
         completedSteps.set(step.stepName, {
           name: step.stepName,
-          content: content,
+          content: content ?? '',
         });
+
+        if (content === null) {
+          logger.info(`Step '${step.stepName}' produced no section — page skipped`);
+          return null;
+        }
 
         // Parse the result if parser is provided
         let parsedData = null;
@@ -777,9 +1296,12 @@ export class GenericService {
 
         logger.info(`Completed execution of step: ${step.stepName}`);
         return result;
-      } catch (error) {
+      } catch (error: any) {
+        // Même règle que la voie streamée : une section qui tombe est signalée,
+        // elle n'emporte pas le livrable. Cf. le commentaire long plus haut.
         logger.error(`Error executing step ${step.stepName}:`, error);
-        throw error;
+        completedSteps.set(step.stepName, { name: step.stepName, content: '' });
+        return null;
       }
     };
 
@@ -819,28 +1341,36 @@ export class GenericService {
         return true;
       });
 
-      // Start execution of ready steps
+      // Start execution of ready steps, sous le même plafond de concurrence que
+      // la voie streamée (cf. MAX_PARALLEL_STEPS). `running` suit les étapes
+      // RÉELLEMENT en vol : `stepPromises` conserve aussi les promesses déjà
+      // résolues (elles servent au rassemblement final), donc sa taille ne peut
+      // pas servir de compteur de créneaux.
+      let launched = 0;
       for (const step of readySteps) {
-        if (!stepPromises.has(step.stepName)) {
-          logger.info(`Launching step: ${step.stepName}`);
-          const promise = executeStep(step);
-          stepPromises.set(step.stepName, promise);
+        if (running.size >= maxParallelSteps()) break;
+        if (stepPromises.has(step.stepName)) continue;
 
-          // Remove from pending
-          const index = pendingSteps.indexOf(step);
-          if (index > -1) {
-            pendingSteps.splice(index, 1);
-          }
+        logger.info(`Launching step: ${step.stepName}`);
+        running.add(step.stepName);
+        const promise = executeStep(step).finally(() => running.delete(step.stepName));
+        stepPromises.set(step.stepName, promise);
+        launched += 1;
+
+        // Remove from pending
+        const index = pendingSteps.indexOf(step);
+        if (index > -1) {
+          pendingSteps.splice(index, 1);
         }
       }
 
-      // If no steps can be started and there are still pending steps,
-      // wait for at least one to complete
-      if (readySteps.length === 0 && pendingSteps.length > 0) {
-        if (stepPromises.size > 0) {
+      // Rien n'a pu démarrer ce tour-ci — soit les dépendances ne sont pas
+      // satisfaites, soit le plafond est atteint. Dans les deux cas il faut
+      // ATTENDRE qu'une étape se termine, sinon la boucle tourne à vide.
+      if (launched === 0 && pendingSteps.length > 0) {
+        if (running.size > 0) {
           await Promise.race(Array.from(stepPromises.values()));
         } else {
-          // This shouldn't happen, but prevent infinite loop
           logger.error('No steps can be started and no steps are running. Breaking loop.');
           break;
         }
@@ -849,7 +1379,9 @@ export class GenericService {
 
     // Wait for all steps to complete
     logger.info(`Waiting for all ${stepPromises.size} steps to complete`);
-    const completedResults = await Promise.all(Array.from(stepPromises.values()));
+    const completedResults = (await Promise.all(Array.from(stepPromises.values()))).filter(
+      (result): result is ISectionResult => result !== null
+    );
 
     // Sort results to match the original step order
     const stepOrder = steps.map((step) => step.stepName);

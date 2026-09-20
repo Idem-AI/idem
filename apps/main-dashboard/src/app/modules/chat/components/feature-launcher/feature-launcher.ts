@@ -42,6 +42,8 @@ const FEATURES: FeatureMeta[] = [
   { kind: 'diagrams', image: 'diagrams.png', descKey: 'chat.launcher.features.diagrams' },
   { kind: 'legalDocs', descKey: 'chat.launcher.features.legalDocs' },
   { kind: 'communication', descKey: 'chat.launcher.features.communication', needsBrandIdentity: true },
+  { kind: 'businessCards', descKey: 'chat.launcher.features.businessCards', needsBrandIdentity: true },
+  { kind: 'simulations', descKey: 'chat.launcher.features.simulations' },
   { kind: 'development', image: 'development.png', descKey: 'chat.launcher.features.development' },
   { kind: 'deployment', descKey: 'chat.launcher.features.deployment' },
 ];

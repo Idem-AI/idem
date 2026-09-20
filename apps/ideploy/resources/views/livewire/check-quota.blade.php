@@ -12,7 +12,7 @@
                 </div>
                 <div class="inline-flex items-center gap-2 px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full mb-4">
                     <div class="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse"></div>
-                    <span class="text-xs font-semibold text-red-400 uppercase tracking-widest">Limit Reached</span>
+                    <span class="text-xs font-semibold text-red-400 uppercase">Limit Reached</span>
                 </div>
                 <h2 class="text-3xl font-bold text-white mb-3">
                     @if($quotaType === 'app')
@@ -48,7 +48,7 @@
                         @endif">
 
                         @if($upgradePlan['highlight'])
-                            <div class="absolute -top-2.5 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-primary text-white text-[10px] font-bold uppercase tracking-wider rounded-full">
+                            <div class="absolute -top-2.5 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-primary text-white text-[10px] font-bold uppercase rounded-full">
                                 Most Popular
                             </div>
                         @endif

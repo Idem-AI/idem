@@ -192,6 +192,14 @@ export type LogoLockupArrangement = 'horizontal' | 'stacked';
 export interface LogoLockupSpec {
   brandName: string;
   fontFamily: string;
+  /**
+   * Feuille qui charge la famille, quand elle ne vient pas de Google.
+   *
+   * Le wordmark est VECTORISÉ à partir du vrai fichier de police : sans ce
+   * lien, une famille Fontshare ou importée par l'utilisateur est introuvable,
+   * et le lockup retombe sur un `<text>` dans la police système.
+   */
+  fontCssUrl?: string;
   fontWeight: number;
   /** Interlettrage en em. */
   letterSpacing: number;

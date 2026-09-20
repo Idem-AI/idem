@@ -4,12 +4,6 @@
       "businessPlan": {
         "title": "Éditeur du business plan"
       },
-      "pitchDeck": {
-        "title": "Éditeur du pitch deck"
-      },
-      "branding": {
-        "title": "Éditeur de la charte graphique"
-      },
       "canvasLabel": "Aperçu du document",
       "inspector": "Propriétés",
       "loading": "Chargement du document…",
@@ -25,11 +19,13 @@
         "saved": "Enregistré",
         "saveError": "Échec de l'enregistrement",
         "unsaved": "Modifications non enregistrées",
-        "upToDate": "À jour"
+        "upToDate": "À jour",
+        "pages": "Pages du document"
       },
       "layers": {
         "title": "Pages du document",
-        "pages": "Pages"
+        "pages": "Pages",
+        "close": "Fermer les pages"
       },
       "emptySelection": {
         "title": "Aucun élément sélectionné",
@@ -72,13 +68,6 @@
         "removeSeries": "Retirer la série",
         "value": "Valeur"
       },
-      "attrs": {
-        "heading": "Attributs",
-        "name": "Nom",
-        "value": "Valeur",
-        "add": "Ajouter",
-        "remove": "Retirer l'attribut"
-      },
       "ai": {
         "title": "Édition par IA",
         "placeholder": "Décrivez la modification à apporter à cette section…",
@@ -97,11 +86,29 @@
           "subtitle": "Le document n'a pas pu être chargé. Réessayez depuis la page d'où vous l'avez ouvert."
         }
       },
+      "attrs": {
+        "heading": "Attributs",
+        "name": "Nom",
+        "value": "Valeur",
+        "add": "Ajouter",
+        "remove": "Retirer l'attribut"
+      },
+      "pitchDeck": {
+        "title": "Éditeur du pitch deck"
+      },
+      "branding": {
+        "title": "Éditeur de la charte graphique"
+      },
       "businessCard": {
         "title": "Éditeur de carte de visite"
       },
       "flyer": {
         "title": "Éditeur de visuel"
+      },
+      "inspectorClose": "Fermer les propriétés",
+      "zoom": {
+        "menu": "Zoom : {{value}} %",
+        "fitWidth": "Ajuster à la largeur"
       }
     }
   }

@@ -3,10 +3,6 @@
     <app-dashboard-layout>
       <router-outlet (activate)="resetPosition()"></router-outlet>
     </app-dashboard-layout>
-  } @else if (layout === 'global') {
-    <app-global-layout>
-      <router-outlet (activate)="resetPosition()"></router-outlet>
-    </app-global-layout>
   } @else if (layout === 'empty') {
     <app-empty-layout>
       <router-outlet (activate)="resetPosition()"></router-outlet>
@@ -15,11 +11,52 @@
     <app-chat-layout>
       <router-outlet></router-outlet>
     </app-chat-layout>
+  } @else if (layout === 'guided') {
+    <app-guided-layout>
+      <router-outlet (activate)="resetPosition()"></router-outlet>
+    </app-guided-layout>
+  } @else if (layout === 'bare') {
+    <!--
+      Aucune chrome : ni barre, ni menu, ni sélecteur. `empty` n'est pas vide —
+      il porte une navigation complète — et le paiement doit rester le seul
+      élément à l'écran. Rendre cette barre conditionnelle selon l'URL aurait
+      couplé une disposition aux routes qu'elle sert.
+    -->
+    <router-outlet (activate)="resetPosition()"></router-outlet>
+  } @else {
+    <!--
+      Filet de sécurité : une route qui ne déclare aucune disposition connue
+      rendait un écran blanc, sans erreur ni trace. Mieux vaut la servir avec
+      la barre du haut que ne rien afficher du tout.
+    -->
+    <app-empty-layout>
+      <router-outlet (activate)="resetPosition()"></router-outlet>
+    </app-empty-layout>
   }
 }
+
+<!--
+  Dock de changement de mode : monté ici, une seule fois, plutôt que recopié
+  dans chaque en-tête et chaque pied de sidebar. Le composant décide lui-même
+  où il se tait (édition de contenu, paiement) à partir des données de route.
+-->
+<app-mode-dock />
+
+<!-- Modale de blocage du mode Assisté (page hors parcours) -->
+<app-guided-lock-modal />
 
 <!-- Conteneur de notifications global -->
 <app-notification-container></app-notification-container>
 
 <!-- Avertissement de quota -->
 <app-quota-warning></app-quota-warning>
+
+<!--
+  Paywall : monté une seule fois pour toute l'application.
+
+  Un refus de l'API pour crédits insuffisants arrive au milieu d'un appel HTTP,
+  souvent déclenché par un service et non par la page affichée. L'hôte est donc
+  ici, à la racine : l'utilisateur voit ce qui manque et peut payer sans quitter
+  son écran de travail.
+-->
+<app-paywall-host />

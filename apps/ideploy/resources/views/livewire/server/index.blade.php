@@ -42,7 +42,7 @@
             <div class="flex items-end justify-between border-b pb-6"
                  style="border-color:rgba(67,70,85,.3)">
                 <div class="space-y-2">
-                    <h2 class="mi-font-display text-[#dae2fd] tracking-tight leading-tight"
+                    <h2 class="mi-font-display text-[#dae2fd] leading-tight"
                         style="font-size:32px;font-weight:600;line-height:1.3">
                         Server Infrastructure
                     </h2>
@@ -85,8 +85,8 @@
                              style="background:linear-gradient(to right,transparent,rgba(37,99,235,.5),transparent)"></div>
 
                         <div class="flex justify-between items-start mb-4">
-                            <span class="mi-font-mono uppercase tracking-wider"
-                                  style="font-size:12px;color:#c3c6d7;font-weight:500;letter-spacing:.05em">
+                            <span class="mi-font-mono uppercase"
+                                  style="font-size:12px;color:#c3c6d7;font-weight:500;">
                                 {{ $m['label'] }}
                             </span>
                             <span class="material-symbols-outlined" style="font-size:20px;color:#2563eb">{{ $m['icon'] }}</span>
@@ -161,21 +161,21 @@
                                         <div class="flex items-center gap-1.5 rounded-full px-2.5 py-1 flex-shrink-0"
                                              style="background:#0d2a1f;border:1px solid rgba(16,185,129,.3)">
                                             <div class="w-1.5 h-1.5 rounded-full animate-pulse" style="background:#10b981"></div>
-                                            <span class="mi-font-mono uppercase tracking-wide"
+                                            <span class="mi-font-mono uppercase"
                                                   style="font-size:11px;color:#10b981;font-weight:500">Online</span>
                                         </div>
                                     @elseif ($isStopped)
                                         <div class="flex items-center gap-1.5 rounded-full px-2.5 py-1 flex-shrink-0"
                                              style="background:#0b1326;border:1px solid #434655">
                                             <div class="w-1.5 h-1.5 rounded-full" style="background:#434655"></div>
-                                            <span class="mi-font-mono uppercase tracking-wide"
+                                            <span class="mi-font-mono uppercase"
                                                   style="font-size:11px;color:#c3c6d7;font-weight:500">Stopped</span>
                                         </div>
                                     @else
                                         <div class="flex items-center gap-1.5 rounded-full px-2.5 py-1 flex-shrink-0"
                                              style="background:rgba(147,0,10,.2);border:1px solid rgba(255,180,171,.3)">
                                             <div class="w-1.5 h-1.5 rounded-full" style="background:#ffb4ab"></div>
-                                            <span class="mi-font-mono uppercase tracking-wide"
+                                            <span class="mi-font-mono uppercase"
                                                   style="font-size:11px;color:#ffb4ab;font-weight:500">Offline</span>
                                         </div>
                                     @endif
@@ -201,28 +201,28 @@
 
                                     <div>
                                         <span class="block mi-font-mono uppercase mb-1"
-                                              style="font-size:10px;color:#c3c6d7;font-weight:500;letter-spacing:.05em">IP Address</span>
-                                        <span class="mi-font-mono tracking-wide"
+                                              style="font-size:10px;color:#c3c6d7;font-weight:500;">IP Address</span>
+                                        <span class="mi-font-mono"
                                               style="font-size:13px;color:#dae2fd">{{ $server->ip ?: '—' }}</span>
                                     </div>
 
                                     <div>
                                         <span class="block mi-font-mono uppercase mb-1"
-                                              style="font-size:10px;color:#c3c6d7;font-weight:500;letter-spacing:.05em">Region</span>
-                                        <span class="mi-font-mono tracking-wide"
+                                              style="font-size:10px;color:#c3c6d7;font-weight:500;">Region</span>
+                                        <span class="mi-font-mono"
                                               style="font-size:13px;color:#dae2fd">{{ $server->region ?: '—' }}</span>
                                     </div>
 
                                     <div>
                                         <span class="block mi-font-mono uppercase mb-1"
-                                              style="font-size:10px;color:#c3c6d7;font-weight:500;letter-spacing:.05em">Spec</span>
-                                        <span class="mi-font-mono tracking-wide"
+                                              style="font-size:10px;color:#c3c6d7;font-weight:500;">Spec</span>
+                                        <span class="mi-font-mono"
                                               style="font-size:13px;color:#dae2fd">{{ $spec ?: '—' }}</span>
                                     </div>
 
                                     <div>
                                         <span class="block mi-font-mono uppercase mb-1"
-                                              style="font-size:10px;color:#c3c6d7;font-weight:500;letter-spacing:.05em">Load</span>
+                                              style="font-size:10px;color:#c3c6d7;font-weight:500;">Load</span>
                                         @if ($isOnline && $loadPct > 0)
                                             <div class="flex items-center gap-2">
                                                 <div class="overflow-hidden rounded-full" style="height:6px;width:64px;background:#2d3449">
@@ -231,7 +231,7 @@
                                                 <span class="mi-font-mono" style="font-size:11px;color:#c3c6d7">{{ $loadPct }}%</span>
                                             </div>
                                         @else
-                                            <span class="mi-font-mono tracking-wide" style="font-size:13px;color:#dae2fd">--</span>
+                                            <span class="mi-font-mono" style="font-size:13px; color:#dae2fd">--</span>
                                         @endif
                                     </div>
 
@@ -248,7 +248,7 @@
                                         <span class="material-symbols-outlined" style="font-size:16px">settings</span>
                                         Configure
                                     </button>
-                                    <span class="mi-font-mono flex items-center gap-0.5 uppercase tracking-wider cursor-pointer transition-colors hover:text-[#b4c5ff]"
+                                    <span class="mi-font-mono flex items-center gap-0.5 uppercase cursor-pointer transition-colors hover:text-[#b4c5ff]"
                                           style="font-size:13px;color:#2563eb">
                                         View Details
                                         <span class="material-symbols-outlined" style="font-size:16px">chevron_right</span>
@@ -260,7 +260,7 @@
                                         <span class="material-symbols-outlined" style="font-size:16px">play_arrow</span>
                                         Start
                                     </button>
-                                    <span class="mi-font-mono flex items-center gap-0.5 uppercase tracking-wider cursor-pointer transition-colors hover:text-[#dae2fd]"
+                                    <span class="mi-font-mono flex items-center gap-0.5 uppercase cursor-pointer transition-colors hover:text-[#dae2fd]"
                                           style="font-size:13px;color:#c3c6d7">
                                         Manage
                                         <span class="material-symbols-outlined" style="font-size:16px">chevron_right</span>

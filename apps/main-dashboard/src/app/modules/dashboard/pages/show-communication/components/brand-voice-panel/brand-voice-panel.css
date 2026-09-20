@@ -1,0 +1,255 @@
+:host {
+  display: block;
+}
+
+.bv-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.bv-panel {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  max-width: 36rem;
+  flex-direction: column;
+  border-radius: 0;
+  padding: 0;
+}
+
+/* ── En-tête collé ────────────────────────────────────────────────────────── */
+
+/*
+ * `sticky` et non simplement en haut du flux : le titre et « Tout réécrire »
+ * restent visibles pendant qu'on fait défiler les rubriques. C'est la demande
+ * même — l'action d'ensemble ne doit pas se retrouver en bas de page.
+ */
+.bv-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-bg-intense);
+  padding: 1.1rem 1.5rem 0.9rem;
+  backdrop-filter: blur(8px);
+}
+
+.bv-header-text {
+  min-width: 0;
+}
+
+.bv-eyebrow {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-accent-500);
+}
+
+.bv-title {
+  margin-top: 0.15rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-text-primary);
+}
+
+.bv-header-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Sur petit écran, « Tout réécrire » se réduit à son icône plutôt que de pousser
+   le titre hors du cadre. */
+@media (max-width: 26rem) {
+  .bv-action-label {
+    display: none;
+  }
+}
+
+.bv-close {
+  display: inline-flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  color: var(--color-text-tertiary);
+}
+
+.bv-close:hover {
+  background: var(--glass-bg-medium);
+  color: var(--color-text-primary);
+}
+
+.bv-close:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Corps ────────────────────────────────────────────────────────────────── */
+
+.bv-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.5rem 2rem;
+}
+
+.bv-subtitle {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.bv-step,
+.bv-saved {
+  margin-top: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 0.7rem;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.8rem;
+}
+
+.bv-step {
+  background: var(--glass-bg-subtle);
+  color: var(--color-accent-500);
+}
+
+.bv-saved {
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+  color: var(--color-success);
+}
+
+/* ── État vide ────────────────────────────────────────────────────────────── */
+
+.bv-empty {
+  margin-top: 1.25rem;
+  border-radius: 1rem;
+  border: 1px dashed var(--glass-border-medium);
+  padding: 2rem 1.25rem;
+  text-align: center;
+}
+
+.bv-empty-icon {
+  font-size: 2.25rem;
+  color: var(--color-text-tertiary);
+}
+
+.bv-empty-title {
+  margin-top: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.bv-empty-body {
+  margin: 0.5rem auto 0;
+  max-width: 24rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+/* ── Rubriques ────────────────────────────────────────────────────────────── */
+
+.bv-section {
+  margin-top: 1rem;
+  border-radius: 0.85rem;
+  border: 1px solid var(--glass-border-subtle);
+  padding: 0.75rem 0.9rem;
+}
+
+.bv-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.bv-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+/*
+ * Un crayon par rubrique, visible en permanence : une action révélée au survol
+ * n'existe ni au doigt ni au clavier. Il ne porte qu'une icône — l'intitulé de la
+ * rubrique juste à côté dit déjà ce qu'on modifie, et `aria-label` le redit pour
+ * les lecteurs d'écran.
+ */
+.bv-pencil {
+  display: inline-flex;
+  height: 1.7rem;
+  width: 1.7rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  border: 1px solid var(--glass-border);
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.bv-pencil:hover {
+  border-color: var(--color-primary);
+  background: var(--glass-bg-medium);
+  color: var(--color-text-primary);
+}
+
+.bv-pencil:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.bv-text {
+  margin-top: 0.4rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+}
+
+.bv-text-block {
+  white-space: pre-line;
+  color: var(--color-text-secondary);
+}
+
+.bv-input {
+  margin-top: 0.4rem;
+  width: 100%;
+  border-radius: 0.6rem;
+  border: 1px solid var(--glass-border-medium);
+  background: var(--glass-bg-medium);
+  padding: 0.5rem 0.65rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--color-text-primary);
+}
+
+.bv-input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.bv-edit-actions {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.4rem;
+}

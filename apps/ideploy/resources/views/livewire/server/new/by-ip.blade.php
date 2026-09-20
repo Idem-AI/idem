@@ -191,7 +191,7 @@
                         <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
                         </svg>
-                        <span class="text-xs font-bold text-blue-400 uppercase tracking-wider">Docker Swarm</span>
+                        <span class="text-xs font-bold text-blue-400 uppercase">Docker Swarm</span>
                         <span class="px-1.5 py-0.5 text-[10px] text-gray-500 bg-gray-800 border border-gray-700 rounded-md">expérimental</span>
                         <a class="text-xs text-blue-400 hover:text-blue-300 underline ml-auto" href="https://ideploy.io/docs/knowledge-base/docker/swarm" target="_blank">docs →</a>
                     </div>

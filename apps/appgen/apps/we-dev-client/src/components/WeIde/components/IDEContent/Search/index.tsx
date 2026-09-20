@@ -21,15 +21,15 @@ export function Search({ onFileSelect }: SearchProps) {
     <div
       className={cn(
         "h-full flex flex-col",
-        "bg-[#FFFFFF] dark:bg-[#18181a]",
-        "text-[#333333] dark:text-[#CCCCCC]"
+        "bg-surface-1",
+        "text-text-secondary"
       )}
     >
       <div
         className={cn(
           "p-2",
-          "border-b border-[#E4E4E4] dark:border-[#3C3C3C]",
-          "bg-[#f6f6f6] dark:bg-[#1a1a1c]",
+          "border-b border-[var(--glass-border)]",
+          "bg-surface-1",
           "shadow-[0_1px_1px_rgba(0,0,0,0.05)] dark:shadow-none"
         )}
       >
@@ -44,7 +44,7 @@ export function Search({ onFileSelect }: SearchProps) {
         className={cn(
           "flex-1 overflow-hidden",
           "p-2",
-          "bg-[#FFFFFF] dark:bg-[#18181a]"
+          "bg-surface-1"
         )}
       >
         <SearchResults

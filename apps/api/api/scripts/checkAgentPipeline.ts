@@ -11,16 +11,37 @@
  */
 
 import {
-  BUSINESS_PLAN_GRAPH,
+  DeliverableGraph,
   PITCH_DECK_GRAPH,
+  buildBusinessPlanGraph,
+  buildPitchDeckGraph,
   graphDepth,
   validateGraph,
 } from '../services/agents/deliverable-graph';
+import {
+  PITCH_DECK_TYPES,
+  getSlideDefinition,
+  resolvePitchDeckSlides,
+} from '../services/PitchDeck/deck-types';
+import { BUSINESS_PLAN_TEMPLATES } from '../services/BusinessPlan/structure/templates';
+import {
+  BUSINESS_PLAN_SECTION_CATALOG,
+  BusinessPlanSectionDefinition,
+  getSectionByKey,
+} from '../services/BusinessPlan/structure/section-catalog';
 import { inspectOutput, qualityValidator } from '../services/agents/quality-gate';
 import { stripMarkup } from '../services/agents/text-extract';
+import { templatedLlmOptions } from '../config/ai.config';
 import { createRunBudget } from '../services/agents/run-budget';
 import { MODEL_TIERS, applyTier, nextTier, tierForTask, tierOfModel } from '../config/model-router';
-import { AI_CONFIG, resolveSectionConfig } from '../config/ai.config';
+import {
+  AI_CONFIG,
+  FeatureAIConfig,
+  MAX_TEMPERATURE_FOR_THINKING,
+  MIN_TOKENS_FOR_THINKING,
+  reconcileThinkingBudget,
+  resolveSectionConfig,
+} from '../config/ai.config';
 
 let failures = 0;
 
@@ -40,25 +61,88 @@ function section(title: string): void {
 // ---------------------------------------------------------------- graphes ----
 section('Graphes de livrables');
 
-const businessPlanSteps = Object.keys(BUSINESS_PLAN_GRAPH);
 const pitchDeckSteps = Object.keys(PITCH_DECK_GRAPH);
 
-validateGraph(BUSINESS_PLAN_GRAPH, businessPlanSteps);
 validateGraph(PITCH_DECK_GRAPH, pitchDeckSteps);
-check('business plan et deck sont acycliques et complets', true);
+check('le deck est acyclique et complet', true);
 
-check(
-  `profondeur du business plan ≤ 3 vagues (mesurée: ${graphDepth(BUSINESS_PLAN_GRAPH)})`,
-  graphDepth(BUSINESS_PLAN_GRAPH) <= 3
-);
 check(
   `profondeur du deck ≤ 3 vagues (mesurée: ${graphDepth(PITCH_DECK_GRAPH)})`,
   graphDepth(PITCH_DECK_GRAPH) <= 3
 );
-check(
-  "'Ask' dépend bien de 'Financials'",
-  (PITCH_DECK_GRAPH.Ask.requires ?? []).includes('Financials')
-);
+
+// Chaque type de deck (levée, banque, commercial, partenariat, jury, express)
+// produit son propre graphe, filtré sur ses slides : un type dont le graphe
+// serait cyclique, incomplet ou trop profond ferait échouer — ou traîner — sa
+// génération au démarrage.
+for (const type of PITCH_DECK_TYPES) {
+  const missing = type.slides.filter((name) => !getSlideDefinition(name));
+  check(
+    `deck « ${type.id} » : toutes ses slides existent au catalogue`,
+    missing.length === 0,
+    missing.join(', ')
+  );
+
+  try {
+    const graph = buildPitchDeckGraph(resolvePitchDeckSlides(type.id).slides);
+    check(`deck « ${type.id} » : graphe acyclique et complet`, true);
+    const depth = graphDepth(graph);
+    check(`deck « ${type.id} » : profondeur ≤ 3 vagues (mesurée: ${depth})`, depth <= 3);
+  } catch (error) {
+    check(
+      `deck « ${type.id} » : graphe acyclique et complet`,
+      false,
+      error instanceof Error ? error.message : String(error)
+    );
+  }
+}
+
+// Le business plan n'a plus UN graphe : chaque structure proposée (SBA, dossier
+// bancaire, fonds d'amorçage, Lean Canvas…) en produit un, filtré sur ses seules
+// sections. Un modèle dont le graphe serait cyclique, incomplet ou trop profond
+// ferait échouer — ou traîner — la génération au démarrage : ils sont donc tous
+// vérifiés ici, un par un.
+function checkPlanGraph(
+  label: string,
+  sections: BusinessPlanSectionDefinition[],
+  maxDepth: number
+): void {
+  try {
+    // `buildBusinessPlanGraph` valide lui-même acyclicité et noms connus.
+    const graph: DeliverableGraph = buildBusinessPlanGraph(sections);
+    check(`${label} : graphe acyclique et complet`, true);
+
+    const depth = graphDepth(graph);
+    check(`${label} : profondeur ≤ ${maxDepth} vagues (mesurée: ${depth})`, depth <= maxDepth);
+  } catch (error) {
+    check(
+      `${label} : graphe acyclique et complet`,
+      false,
+      error instanceof Error ? error.message : String(error)
+    );
+  }
+}
+
+for (const template of BUSINESS_PLAN_TEMPLATES) {
+  const missing = template.sectionKeys.filter((key) => !getSectionByKey(key));
+  check(
+    `modèle « ${template.id} » : toutes ses clés existent au catalogue`,
+    missing.length === 0,
+    missing.join(', ')
+  );
+
+  const sections = template.sectionKeys
+    .map(getSectionByKey)
+    .filter((s): s is BusinessPlanSectionDefinition => !!s);
+
+  checkPlanGraph(`modèle « ${template.id} »`, sections, 3);
+}
+
+// Une composition libre peut piocher N'IMPORTE QUELLE section du catalogue : le
+// graphe le plus profond atteignable est celui du catalogue entier. Il ne doit
+// rester ni cyclique ni dispendieux — une dépendance ajoutée à la légère au
+// catalogue allonge une vague pour tous les plans personnalisés.
+checkPlanGraph('catalogue complet', BUSINESS_PLAN_SECTION_CATALOG, 4);
 
 let cycleDetected = false;
 try {
@@ -182,18 +266,29 @@ check(
   tierOfModel(MODEL_TIERS.S.modelName) === 'S' && tierOfModel('gemini-3.1-pro-preview') === 'S'
 );
 
-const coverConfig = resolveSectionConfig(AI_CONFIG.businessPlan, 'Cover Page');
-check("la page de garde est routée au tier M", coverConfig.tier === 'M');
-const coverRouted = applyTier(coverConfig);
+// L'annexe est la dernière section encore routée au tier M : elle restructure
+// de la matière déjà produite. La couverture, elle, en est SORTIE — composer une
+// première de couverture est le travail le plus créatif du document, pas de la
+// mise en page mécanique.
+const appendixConfig = resolveSectionConfig(AI_CONFIG.businessPlan, 'Appendix');
+check("l'annexe est routée au tier M", appendixConfig.tier === 'M');
+const appendixRouted = applyTier(appendixConfig);
 check(
   'le routage remplace bien le modèle de la feature',
-  coverRouted.modelName === MODEL_TIERS.M.modelName,
-  `obtenu: ${coverRouted.modelName}`
+  appendixRouted.modelName === MODEL_TIERS.M.modelName,
+  `obtenu: ${appendixRouted.modelName}`
 );
 check(
   'le budget de tokens de la section survit au routage',
-  coverRouted.llmOptions?.maxOutputTokens === 9000,
-  `obtenu: ${coverRouted.llmOptions?.maxOutputTokens}`
+  appendixRouted.llmOptions?.maxOutputTokens === 20000,
+  `obtenu: ${appendixRouted.llmOptions?.maxOutputTokens}`
+);
+
+const coverConfig = applyTier(resolveSectionConfig(AI_CONFIG.businessPlan, 'Cover Page'));
+check(
+  'la couverture du plan est servie par le modèle de raisonnement',
+  coverConfig.modelName === AI_CONFIG.businessPlan.modelName,
+  `obtenu: ${coverConfig.modelName}`
 );
 
 const financialConfig = applyTier(resolveSectionConfig(AI_CONFIG.businessPlan, 'Financial Plan'));
@@ -212,6 +307,208 @@ check(
   "un modelName explicite l'emporte sur l'étage",
   explicitModel.modelName === 'modele-impose',
   `obtenu: ${explicitModel.modelName}`
+);
+
+// -------------------------------------------------------------- réglages IA ----
+section("Réglages d'échantillonnage");
+
+/**
+ * Le raisonnement se DÉCOMPTE du budget de sortie. Une feature qui l'active
+ * avec une enveloppe serrée renvoie une réponse vide, sans erreur — c'est la
+ * panne la plus coûteuse à diagnostiquer du module, et elle est invisible en
+ * relecture. On la rend donc mécanique à détecter.
+ */
+const MIN_TOKENS_WITH_THINKING = 8000;
+
+type Named = { path: string; config: FeatureAIConfig };
+const featuresToAudit: Named[] = [
+  { path: 'businessPlan', config: AI_CONFIG.businessPlan },
+  { path: 'pitchDeck', config: AI_CONFIG.pitchDeck },
+  { path: 'branding.brandIdentity', config: AI_CONFIG.branding.brandIdentity },
+  { path: 'branding.logo', config: AI_CONFIG.branding.logo },
+  { path: 'branding.colors', config: AI_CONFIG.branding.colors },
+  { path: 'branding.typography', config: AI_CONFIG.branding.typography },
+  { path: 'branding.artDirection', config: AI_CONFIG.branding.artDirection },
+  { path: 'branding.businessCard', config: AI_CONFIG.branding.businessCard },
+  { path: 'finance.autofill', config: AI_CONFIG.finance.autofill },
+  { path: 'finance.pdfInterpretation', config: AI_CONFIG.finance.pdfInterpretation },
+];
+
+const thinkingEnabled = (config: FeatureAIConfig): boolean =>
+  (config.llmOptions?.extraBody as any)?.thinking?.type === 'enabled';
+
+/**
+ * OÙ LE RAISONNEMENT SE JUSTIFIE ENCORE.
+ *
+ * La règle n'est pas « raisonner est bien ». Elle est : **le raisonnement se
+ * justifie là où le CODE n'a pas repris la décision.** Partout où il l'a
+ * reprise, réfléchir ne change plus la sortie — mais se décompte du budget et
+ * se paie en latence.
+ *
+ * Ce que le code a repris, et qui n'a donc plus à être délibéré :
+ *   · la mise en page          → le gabarit compose (`sectionRenderer`)
+ *   · la conformité de charte  → le linter la tient (`slopLint`)
+ *   · la structure d'une page  → l'étape de plan la décide (M5 ①)
+ *   · l'unicité chromatique    → 648 régions tirées (`buildPaletteConstraint`)
+ *   · l'unicité typographique  → les registres tirés
+ *
+ * Ce qui reste, et pourquoi :
+ *   · `branding.logo`          → géométrie SVG paramétrique : sans réflexion,
+ *                                le modèle n'énumère pas ses contraintes, il
+ *                                les approxime — et le tracé s'en voit
+ *   · `finance.autofill`       → 36 mois de séries qui doivent s'additionner ;
+ *                                aucun code ne peut inventer les hypothèses
+ *   · `branding.artDirection`  → un arbitrage par projet, qui se propage à
+ *                                tout le reste : coût négligeable, portée
+ *                                maximale
+ *   · `branding.businessCard`  → composition libre, hors gabarit
+ *   · `finance.pdfCover`       → idem
+ *   · `finance.pdfInterpretation` → lecture commentée de chiffres réels
+ *
+ * Cette liste est le point de vérité. La modifier est une décision, pas un
+ * réglage : y ajouter une entrée, c'est affirmer que le code ne saurait pas
+ * faire ; en retirer une, c'est affirmer qu'il le fait déjà.
+ */
+const TEMPLATED_MIXED = new Set([
+  'businessPlan',        // 8 sections sous gabarit + 1 couverture libre
+  'pitchDeck',           // 10 slides sous gabarit + 1 couverture libre
+  'branding.brandIdentity', // 3 pages sous gabarit + 9 pages libres
+]);
+
+const THINKING_JUSTIFIED = new Set([
+  'branding.logo',
+  'branding.artDirection',
+  'branding.businessCard',
+  'finance.autofill',
+  'finance.pdfInterpretation',
+]);
+
+for (const { path, config } of featuresToAudit) {
+  const budget = config.llmOptions?.maxOutputTokens ?? 0;
+
+  if (TEMPLATED_MIXED.has(path)) {
+    // Feature MIXTE : ses sections passent par le gabarit, sa couverture non.
+    // Couper au niveau de la feature dégraderait la couverture — la seule page
+    // qui compose encore vraiment. La coupure est donc posée sur le CHEMIN
+    // templaté, et c'est elle qu'on vérifie ici, par son comportement.
+    const templated = templatedLlmOptions(config.llmOptions);
+    check(
+      `${path}: raisonnement coupé sur le chemin gabarit`,
+      templated.thinkingBudget === 0 &&
+        (templated.extraBody as any)?.thinking?.type === 'disabled',
+      `budget=${templated.thinkingBudget} extraBody=${(templated.extraBody as any)?.thinking?.type}`
+    );
+    // La couverture, elle, garde le raisonnement — et doit donc garder la marge
+    // de sortie qui va avec, sans quoi la réflexion consomme l'enveloppe et la
+    // page revient vide.
+    check(
+      `${path}: la couverture garde raisonnement et marge`,
+      thinkingEnabled(config) && budget >= MIN_TOKENS_WITH_THINKING,
+      `raisonnement=${thinkingEnabled(config)} budget=${budget}`
+    );
+    continue;
+  }
+
+  if (!THINKING_JUSTIFIED.has(path)) {
+    // Le code a repris la décision : le raisonnement doit être coupé, et coupé
+    // dans les DEUX dialectes — sinon la coupure ne survit pas à une bascule de
+    // fournisseur, ce qui est le seul moment où elle compte vraiment.
+    check(
+      `${path}: raisonnement coupé (le code a repris la décision)`,
+      !thinkingEnabled(config) && config.llmOptions?.thinkingBudget === 0,
+      `extraBody=${(config.llmOptions?.extraBody as any)?.thinking?.type ?? 'absent'} budget=${config.llmOptions?.thinkingBudget ?? 'absent'}`
+    );
+    continue;
+  }
+
+  check(`${path}: raisonnement activé`, thinkingEnabled(config));
+  check(
+    `${path}: budget compatible avec le raisonnement`,
+    budget >= MIN_TOKENS_WITH_THINKING,
+    `obtenu: ${budget}`
+  );
+  // Une température haute sur un modèle qui raisonne fait diverger la RÉFLEXION :
+  // elle cesse de converger, consomme l'enveloppe entière et renvoie du vide.
+  // Mesuré en production sur la direction artistique réglée à 0.8.
+  const temp = config.llmOptions?.temperature ?? 0;
+  check(
+    `${path}: température compatible avec le raisonnement`,
+    temp <= MAX_TEMPERATURE_FOR_THINKING,
+    `obtenu: ${temp}`
+  );
+  // glm-5.3 raisonne TOUJOURS et refuse qu'on le désactive : il consomme le
+  // budget entier et rend une sortie vide (cf. GLM_MODELS).
+  check(
+    `${path}: modèle pilotable en raisonnement`,
+    !/glm-5\.3/.test(config.modelName),
+    config.modelName
+  );
+  // Chaque section doit elle aussi tenir le seuil : une section qui redéfinit
+  // maxOutputTokens hérite du raisonnement de la feature sans hériter de sa marge.
+  for (const [name, sectionConfig] of Object.entries(config.sections ?? {})) {
+    const resolved = resolveSectionConfig(config, name);
+    const sectionBudget = resolved.llmOptions?.maxOutputTokens ?? 0;
+    if (!thinkingEnabled(resolved)) continue;
+    check(
+      `${path}/${name}: budget compatible avec le raisonnement`,
+      sectionBudget >= MIN_TOKENS_WITH_THINKING,
+      `obtenu: ${sectionBudget}`
+    );
+    const sectionTemp = resolved.llmOptions?.temperature ?? 0;
+    check(
+      `${path}/${name}: température compatible avec le raisonnement`,
+      sectionTemp <= MAX_TEMPERATURE_FOR_THINKING,
+      `obtenu: ${sectionTemp}`
+    );
+  }
+}
+
+// Les tâches de PRÉCISION doivent le rester : une température haute y produit
+// des chiffres qui ne s'additionnent plus et des JSON invalides.
+const precisionTargets: Array<[string, FeatureAIConfig]> = [
+  ['businessPlan/Financial Plan', resolveSectionConfig(AI_CONFIG.businessPlan, 'Financial Plan')],
+  ['pitchDeck/Financials', resolveSectionConfig(AI_CONFIG.pitchDeck, 'Financials')],
+  ['finance.autofill', AI_CONFIG.finance.autofill],
+];
+for (const [label, config] of precisionTargets) {
+  check(
+    `${label}: température maintenue basse (précision)`,
+    (config.llmOptions?.temperature ?? 1) <= 0.4,
+    `obtenu: ${config.llmOptions?.temperature}`
+  );
+}
+
+// Filet de sécurité contre la panne observée en production sur « Logo Critique » :
+// raisonnement actif + enveloppe trop courte = réponse VIDE (finish_reason=length)
+// ou fragment de réflexion pris pour du JSON (« Unexpected token 'Q' »).
+const starved = reconcileThinkingBudget({
+  maxOutputTokens: 4096,
+  extraBody: { thinking: { type: 'enabled' } },
+});
+check('un budget trop court désactive le raisonnement', starved.downgraded);
+check(
+  'et le désactive RÉELLEMENT dans la charge utile',
+  (starved.options.extraBody as any)?.thinking?.type === 'disabled'
+);
+const roomy = reconcileThinkingBudget({
+  maxOutputTokens: MIN_TOKENS_FOR_THINKING,
+  extraBody: { thinking: { type: 'enabled' } },
+});
+check('un budget suffisant laisse le raisonnement actif', !roomy.downgraded);
+check(
+  'et ne touche pas à la charge utile',
+  (roomy.options.extraBody as any)?.thinking?.type === 'enabled'
+);
+check(
+  'sans raisonnement demandé, rien n\'est modifié',
+  !reconcileThinkingBudget({ maxOutputTokens: 500 }).downgraded
+);
+
+// Les deux appels qui ont réellement échoué : ils réduisaient le budget hérité
+// de la feature `logo` sans savoir qu'elle avait activé la réflexion.
+check(
+  'la critique de logo dispose désormais du budget nécessaire',
+  16000 >= MIN_TOKENS_FOR_THINKING
 );
 
 // ------------------------------------------------------------------ budget ----

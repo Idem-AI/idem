@@ -102,6 +102,76 @@ export function removeTrailingCommas(json: string): string {
 }
 
 /**
+ * Referme un JSON TRONQUÉ en coupant au dernier élément complet.
+ *
+ * ── POURQUOI ────────────────────────────────────────────────────────────────
+ *
+ * Une réponse coupée par `maxOutputTokens` s'arrête au milieu d'un mot. Aucune
+ * des réparations ci-dessus ne la rattrape : il manque des guillemets et des
+ * accolades, pas une virgule. Le contenu est alors perdu EN ENTIER — alors que
+ * les neuf dixièmes en étaient valides et déjà payés.
+ *
+ * Observé en production sur une section de business plan : deux tableaux, trois
+ * fiches et un graphique complets, perdus parce que le dernier libellé était
+ * coupé en deux.
+ *
+ * ── COMMENT ─────────────────────────────────────────────────────────────────
+ *
+ * On parcourt la chaîne en suivant l'état (dans une chaîne ? échappement ?) et
+ * la pile de délimiteurs ouverts. À chaque FRONTIÈRE SÛRE — une virgule hors
+ * chaîne, ou un `}`/`]` qui vient de se refermer — on mémorise la position et
+ * l'état de la pile. À la fin, on revient à la dernière frontière et on referme
+ * ce qui reste ouvert.
+ *
+ * Couper à une frontière plutôt qu'à la fin est le point : on jette l'élément
+ * partiel au lieu de tenter de le compléter. Un bloc à moitié écrit refermé de
+ * force produirait une carte au titre tronqué et au corps vide — un défaut
+ * visible, là où l'omettre ne se voit pas.
+ */
+export function closeTruncatedJson(json: string): string | null {
+  const stack: string[] = [];
+  let inString = false;
+  let escaped = false;
+  let safePos = -1;
+  let safeStack: string[] = [];
+
+  for (let i = 0; i < json.length; i += 1) {
+    const c = json[i];
+
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (c === '\\') escaped = true;
+      else if (c === '"') inString = false;
+      continue;
+    }
+
+    if (c === '"') {
+      inString = true;
+    } else if (c === '{' || c === '[') {
+      stack.push(c === '{' ? '}' : ']');
+    } else if (c === '}' || c === ']') {
+      if (stack[stack.length - 1] !== c) return null; // mal formé, pas tronqué
+      stack.pop();
+      // Un élément vient de se refermer proprement : frontière sûre APRÈS lui.
+      safePos = i + 1;
+      safeStack = [...stack];
+    } else if (c === ',') {
+      // Frontière sûre AVANT la virgule : ce qui précède est complet.
+      safePos = i;
+      safeStack = [...stack];
+    }
+  }
+
+  // Rien d'ouvert et rien d'incomplet : la chaîne n'était pas tronquée.
+  if (stack.length === 0 && !inString) return null;
+  // Aucune frontière atteinte : il n'y a rien à sauver.
+  if (safePos <= 0 || safeStack.length === 0) return null;
+
+  const head = json.slice(0, safePos).replace(/,\s*$/, '');
+  return head + safeStack.reverse().join('');
+}
+
+/**
  * Parses LLM JSON with progressive repair. Returns the parsed value, or `null`
  * when even the repaired content cannot be parsed (callers should fall back).
  */
@@ -124,6 +194,24 @@ export function parseLlmJson<T = unknown>(content: string): T | null {
       return JSON.parse(candidate) as T;
     } catch {
       // Try the next, more-repaired candidate.
+    }
+  }
+
+  // DERNIER RECOURS : la troncature. Placée en dernier parce qu'elle PERD de
+  // l'information — le dernier élément, incomplet, est abandonné. Elle ne doit
+  // donc jamais devancer une réparation qui conserve tout.
+  for (const candidate of [block, stripped]) {
+    const closed = closeTruncatedJson(escapeControlCharsInStrings(candidate));
+    if (!closed) continue;
+    try {
+      const parsed = JSON.parse(removeTrailingCommas(closed)) as T;
+      logger.warn(
+        `parseLlmJson: réponse TRONQUÉE, récupérée en coupant au dernier élément complet ` +
+          `(${candidate.length} → ${closed.length} car.). Cause probable : budget de sortie atteint.`
+      );
+      return parsed;
+    } catch {
+      // La coupure n'a pas suffi ; on tente le candidat suivant.
     }
   }
 
