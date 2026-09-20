@@ -54,26 +54,6 @@ export interface IDeployProject {
   updated_at: string;
 }
 
-export interface IDeployEnvironment {
-  id: number;
-  uuid: string;
-  name: string;
-}
-
-export interface IDeployProjectCard {
-  uuid: string;
-  name: string;
-  description: string | null;
-  total: number;
-  active: number;
-  inactive: number;
-  hasApps: boolean;
-  hasDatabases: boolean;
-  hasServices: boolean;
-  environmentNames: string[];
-  lastUpdated: string | null;
-}
-
 export interface IDeploySummary {
   applications: IDeployApplication[];
   databases: IDeployDatabase[];

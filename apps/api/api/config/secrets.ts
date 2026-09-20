@@ -231,14 +231,3 @@ function normalize(): void {
     process.env.FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
   }
 }
-
-/**
- * Returns a redacted snapshot of loaded secrets (for diagnostics).
- */
-export function getSecretsStatus(): Record<string, boolean> {
-  const status: Record<string, boolean> = {};
-  for (const k of [...REQUIRED_SECRETS, ...OPTIONAL_SECRETS]) {
-    status[k] = Boolean(process.env[k]);
-  }
-  return status;
-}

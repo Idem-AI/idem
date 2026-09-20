@@ -2,8 +2,6 @@ import { IRepository } from '../../repository/IRepository';
 import { RepositoryFactory } from '../../repository/RepositoryFactory';
 import {
   PromptService,
-  LLMProvider,
-  PromptRequest,
   PromptConfig,
   AIChatMessage,
 } from '../prompt.service';
@@ -15,7 +13,6 @@ import {
   AI_CONFIG,
   FeatureAIConfig,
   resolveSectionConfig,
-  TEMPLATE_OUTPUT_TOKENS,
   templatedLlmOptions,
 } from '../../config/ai.config';
 import { applyTier } from '../../config/model-router';
@@ -24,8 +21,7 @@ import { resolveConcurrency } from '../../config/ai-providers.config';
 import logger from '../../config/logger';
 import { RunBudget, createRunBudget, runAgent, runAgentPrompt } from '../agents/agent-runtime';
 import { buildDependencyContext } from '../agents/section-digest.service';
-import { QualityExpectation, inspectOutput, qualityValidator } from '../agents/quality-gate';
-import { SlopLintOptions, lintHtml } from '../design/slopLint.service';
+import { QualityExpectation, qualityValidator } from '../agents/quality-gate';
 import { verifySection } from '../agents/section-verifier.service';
 import { DeliverableGraph, graphDepth, validateGraph } from '../agents/deliverable-graph';
 import { CONTEXT_TOOL_DECLARATIONS, createContextToolExecutor } from '../context-engine/context-tools';
@@ -317,7 +313,6 @@ export function estimateRunBudget(steps: IPromptStep[]): number {
  */
 const maxParallelSteps = (): number => resolveConcurrency();
 
-
 /**
  * Interrupteur global du rendu par gabarit.
  *
@@ -375,26 +370,6 @@ function throttleDelta(emit: (partial: string) => void): (partial: string) => vo
     lastAt = now;
     emit(partial);
   };
-}
-
-/**
- * Note une sortie de section — plus BAS est meilleur.
- *
- * Le juge est du CODE : la grille qualité (troncature, balises, gabarits non
- * remplis) et le linter de charte. Un juge IA coûterait un appel de plus et
- * apporterait sa propre variance ; celui-ci ne coûte rien et ne varie pas.
- *
- * Pondération : un défaut BLOQUANT (section inutilisable) pèse bien plus qu'une
- * violation de charte, elle-même plus qu'un avertissement.
- */
-export function scoreSection(
-  text: string,
-  expectation: QualityExpectation,
-  lintOptions: SlopLintOptions = {}
-): number {
-  const gate = inspectOutput(text, expectation);
-  const slop = lintHtml(text, lintOptions);
-  return gate.blocking.length * 10 + slop.errorCount * 3 + slop.warningCount;
 }
 
 /** Ce dont une étape a besoin en plus de sa propre déclaration pour s'exécuter. */

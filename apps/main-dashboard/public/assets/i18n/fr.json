@@ -156,77 +156,6 @@
       "public": "Public",
       "imposedConstraints": "Contraintes Imposées"
     },
-    "addMemberModal": {
-      "title": "Ajouter un membre à l'équipe",
-      "fields": {
-        "email": "Adresse e-mail",
-        "displayName": "Nom d'affichage",
-        "role": "Rôle"
-      },
-      "placeholders": {
-        "email": "membre@example.com",
-        "displayName": "John Doe"
-      },
-      "roles": {
-        "admin": {
-          "label": "Admin",
-          "description": "Peut gérer l'équipe et les membres"
-        },
-        "member": {
-          "label": "Membre",
-          "description": "Peut voir et contribuer"
-        },
-        "viewer": {
-          "label": "Lecteur",
-          "description": "Peut seulement voir"
-        }
-      },
-      "invitationInfo": "Une invitation sera envoyée à l'adresse e-mail du membre.",
-      "addMemberButton": "Ajouter le membre",
-      "errors": {
-        "failedToAddMember": "Échec de l'ajout du membre"
-      }
-    },
-    "addTeamToProjectModal": {
-      "title": "Ajouter une équipe au projet",
-      "subtitle": "Choisissez une équipe existante ou créez-en une nouvelle à ajouter à ce projet",
-      "tabs": {
-        "existingTeam": "Équipe existante",
-        "createNewTeam": "Créer une nouvelle équipe"
-      },
-      "fields": {
-        "selectTeam": "Sélectionner une équipe",
-        "projectRoles": "Rôles dans le projet",
-        "teamName": "Nom de l'équipe",
-        "description": "Description"
-      },
-      "placeholders": {
-        "chooseTeam": "Choisissez une équipe...",
-        "teamName": "ex: Équipe Frontend",
-        "description": "Brève description de l'objectif de l'équipe..."
-      },
-      "noTeamsAvailable": "Aucune équipe disponible",
-      "createNewTeamSuggestion": "Créez une nouvelle équipe pour commencer",
-      "buttons": {
-        "addTeam": "Ajouter l'équipe",
-        "createAndAdd": "Créer et ajouter l'équipe"
-      },
-      "newTeamInfo": "L'équipe sera créée et immédiatement ajoutée à ce projet avec les rôles sélectionnés.",
-      "errors": {
-        "failedToLoadTeams": "Échec du chargement des équipes",
-        "failedToAddTeam": "Échec de l'ajout de l'équipe au projet",
-        "teamCreatedButFailedToAdd": "L'équipe a été créée mais n'a pas pu être ajoutée au projet",
-        "failedToCreateTeam": "Échec de la création de l'équipe"
-      },
-      "roles": {
-        "project-owner": "Propriétaire du projet",
-        "project-admin": "Administrateur du projet",
-        "developer": "Développeur",
-        "designer": "Designer",
-        "viewer": "Lecteur",
-        "contributor": "Contributeur"
-      }
-    },
     "projectCard": {
       "logoAlt": "Logo",
       "open": "Ouvrir"
@@ -357,50 +286,6 @@
         "initialProjectNotFound": "L'ID de projet initial '{{initialCookieId}}' est introuvable. Navigation vers le tableau de bord global."
       },
       "simulations": "Simulations"
-    },
-    "addTeamToProject": {
-      "backToProjectTeams": "Retour aux équipes du projet",
-      "title": "Ajouter une équipe au projet",
-      "subtitle": "Sélectionnez une équipe et attribuez des rôles pour ce projet",
-      "selectTeam": "Sélectionner une équipe",
-      "assignRoles": "Attribuer des rôles de projet",
-      "assignRolesDescription": "Sélectionnez un ou plusieurs rôles pour",
-      "inThisProject": "dans ce projet",
-      "noTeamsYet": "Vous n'avez pas encore d'équipes",
-      "createTeamButton": "Créer une équipe",
-      "members": "membres",
-      "selectAtLeastOneRole": "Veuillez sélectionner au moins un rôle",
-      "cancel": "Annuler",
-      "addingTeam": "Ajout de l'équipe...",
-      "addTeamToProject": "Ajouter l'équipe au projet",
-      "loading": "Chargement...",
-      "error": "Erreur",
-      "roles": {
-        "project-owner": {
-          "label": "Propriétaire du projet",
-          "description": "Contrôle total sur le projet"
-        },
-        "project-admin": {
-          "label": "Administrateur du projet",
-          "description": "Gérer les paramètres et les membres du projet"
-        },
-        "developer": {
-          "label": "Développeur",
-          "description": "Écrire et réviser le code"
-        },
-        "designer": {
-          "label": "Designer",
-          "description": "Créer et gérer les designs"
-        },
-        "viewer": {
-          "label": "Lecteur",
-          "description": "Voir le contenu du projet uniquement"
-        },
-        "contributor": {
-          "label": "Contributeur",
-          "description": "Contribuer aux tâches du projet"
-        }
-      }
     },
     "colorCustomizer": {
       "title": "Modifier les couleurs",
@@ -1153,29 +1038,6 @@
         "secondaryColor": "Couleur secondaire"
       }
     },
-    "createTeam": {
-      "backToTeams": "Retour aux équipes",
-      "title": "Créer une nouvelle équipe",
-      "subtitle": "Créez une équipe pour collaborer avec d'autres sur vos projets",
-      "fields": {
-        "name": "Nom de l'équipe",
-        "description": "Description"
-      },
-      "placeholders": {
-        "name": "Entrez le nom de l'équipe",
-        "description": "Décrivez l'objectif et les buts de votre équipe"
-      },
-      "info": {
-        "afterCreationTitle": "Après la création de l'équipe",
-        "afterCreationBody": "Vous pouvez ajouter des membres et assigner l'équipe à des projets."
-      },
-      "buttons": {
-        "create": "Créer l'équipe"
-      },
-      "errors": {
-        "failedToCreate": "Échec de la création de l'équipe"
-      }
-    },
     "dashboard": {
       "loading": "Chargement de votre tableau de bord...",
       "viewAllProjects": "Voir tous les projets",
@@ -1533,60 +1395,6 @@
         "redeploy": "Redéployer"
       }
     },
-    "globalDashboard": {
-      "title": "Tableau de bord",
-      "tabs": {
-        "projects": "Projets",
-        "teams": "Équipes"
-      },
-      "sections": {
-        "recentProjects": "Projets récents",
-        "allProjects": "Tous les projets",
-        "recentTeams": "Équipes récentes",
-        "allTeams": "Toutes les équipes"
-      },
-      "cards": {
-        "createProject": {
-          "title": "Créer un nouveau projet",
-          "subtitle": "Commencez à construire quelque chose d'incroyable"
-        },
-        "createTeam": {
-          "title": "Créer une nouvelle équipe",
-          "subtitle": "Construisez l'équipe de vos rêves"
-        }
-      },
-      "empty": {
-        "noProjects": "Aucun projet pour le moment",
-        "noTeams": "Aucune équipe pour le moment",
-        "noDescription": "Aucune description"
-      },
-      "buttons": {
-        "createProject": "Créer votre premier projet",
-        "createTeam": "Créer votre première équipe"
-      },
-      "members": "membres"
-    },
-    "myTeams": {
-      "title": "Mes équipes",
-      "subtitle": "Gérez et collaborez avec vos équipes",
-      "buttons": {
-        "create": "Créer une équipe",
-        "createNew": "Créer une nouvelle équipe"
-      },
-      "sections": {
-        "recent": "Équipes récentes",
-        "all": "Toutes les équipes"
-      },
-      "cards": {
-        "create": {
-          "title": "Créez votre première équipe"
-        }
-      },
-      "empty": {
-        "noTeams": "Vous n'avez pas encore d'équipes. Créez-en une pour commencer !"
-      },
-      "members": "membres"
-    },
     "profile": {
       "title": "Profil",
       "subtitle": "Gérez les paramètres et préférences de votre compte",
@@ -1626,21 +1434,6 @@
       "buttons": {
         "upgrade": "Passer à Premium",
         "settings": "Paramètres du compte"
-      }
-    },
-    "projectTeams": {
-      "title": "Équipes du projet",
-      "subtitle": "Gérez les équipes assignées à ce projet",
-      "buttons": {
-        "addTeam": "Ajouter une équipe",
-        "addTeamToProject": "Ajouter une équipe au projet"
-      },
-      "cards": {
-        "members": "{{count}} membres",
-        "projectRoles": "Rôles du projet"
-      },
-      "empty": {
-        "noTeams": "Aucune équipe assignée à ce projet pour le moment"
       }
     },
     "projectsList": {
@@ -1966,14 +1759,6 @@
         "profilePicture": "Photo de profil"
       }
     },
-    "businessPlanDisplay": {
-      "title": "Plan d’affaires",
-      "loading": "Préparation du contenu du plan d'affaires...",
-      "empty": {
-        "title": "Aucun Plan d'Affaires Disponible",
-        "subtitle": "Aucun contenu de plan d'affaires disponible."
-      }
-    },
     "businessPlanGeneration": {
       "saving": {
         "title": "Enregistrement de votre plan d'affaires",
@@ -2264,68 +2049,6 @@
           "subtitle": "Veuillez sélectionner un projet pour voir ou générer ses diagrammes"
         }
       }
-    },
-    "showTests": {
-      "works": "Les tests fonctionnent !"
-    },
-    "teamDetailsGlobal": {
-      "backToTeams": "Retour aux équipes",
-      "assignedProjects": "Projets assignés",
-      "projects": "projets",
-      "teamMembers": "Membres de l'équipe",
-      "members": "membres",
-      "buttons": {
-        "addMember": "Ajouter un membre",
-        "addFirstMember": "Ajouter le premier membre",
-        "remove": "Retirer"
-      },
-      "cards": {
-        "teamRoles": "Rôles de l'équipe",
-        "teamRole": "Rôle dans l'équipe",
-        "joined": "Rejoint le {{date}}"
-      },
-      "empty": {
-        "noProjects": "Cette équipe n'est assignée à aucun projet pour le moment",
-        "noMembers": "Aucun membre dans cette équipe pour le moment"
-      }
-    },
-    "teamDetailsProject": {
-      "backToTeams": "Retour aux équipes du projet",
-      "sections": {
-        "teamMembers": "Membres de l'équipe"
-      },
-      "cards": {
-        "teamRole": "Rôle dans l'équipe",
-        "joined": "Rejoint le {{date}}"
-      },
-      "buttons": {
-        "remove": "Retirer"
-      },
-      "empty": {
-        "noMembers": "Aucun membre dans cette équipe"
-      },
-      "members": "membres"
-    },
-    "pdfViewer": {
-      "loading": "Chargement du PDF...",
-      "wait": "Veuillez patienter pendant le chargement de votre document",
-      "noContent": "Aucun PDF à afficher"
-    },
-    "brandingBlocker": {
-      "dashboard": {
-        "brandingBlocker": {
-          "title": "Identité de marque requise",
-          "description": "Pour accéder à {{featureName}}, vous devez d'abord compléter l'identité de marque de votre projet.",
-          "missingElements": "Éléments manquants :",
-          "backButton": "Retour au tableau de bord",
-          "completeButton": "Compléter l'identité de marque"
-        }
-      },
-      "title": "Identité de marque requise",
-      "description": "Pour accéder à {{featureName}}, vous devez d'abord compléter l'identité de marque de votre projet.",
-      "missingElements": "Éléments manquants :",
-      "backButton": "Retour au tableau de bord",
-      "completeButton": "Compléter l'identité de marque"
     },
     "completeBranding": {
       "loading": "Chargement de votre projet...",
@@ -3813,7 +3536,6 @@
       "advisor": "Conseiller",
       "diagrams": "Diagrammes",
       "diagramsGenerate": "Génération de diagrammes",
-      "tests": "Tests",
       "createDevelopment": "Créer un développement",
       "development": "Développement",
       "ideploy": "iDeploy",
@@ -3868,20 +3590,11 @@
     "noProjects": "Aucun projet trouvé",
     "projectDetails": "Détails du projet"
   },
-  "teams": {
-    "title": "Équipes",
-    "createNew": "Créer une nouvelle équipe",
-    "myTeams": "Mes équipes",
-    "noTeams": "Aucune équipe trouvée",
-    "teamDetails": "Détails de l'équipe"
-  },
   "validation": {
     "required": "{{fieldName}} est requis",
     "email": "Veuillez entrer une adresse e-mail valide",
     "minLength": "Minimum {{min}} caractères requis",
     "maxLength": "Maximum {{max}} caractères autorisés",
-    "selectAtLeastOneRole": "Veuillez sélectionner au moins un rôle",
-    "teamNameMinLength": "Le nom de l'équipe doit contenir au moins {{min}} caractères",
     "deploymentName": "Le nom du déploiement est requis (minimum {{min}} caractères)",
     "invalid": "Champ invalide"
   },

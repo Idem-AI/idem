@@ -460,8 +460,5 @@ const BY_NAME = new Map(BUSINESS_PLAN_SECTION_CATALOG.map((s) => [s.name, s]));
 export const getSectionByKey = (key: string): BusinessPlanSectionDefinition | undefined =>
   BY_KEY.get(key);
 
-export const getSectionByName = (name: string): BusinessPlanSectionDefinition | undefined =>
-  BY_NAME.get(name);
-
 /** Clés valides — sert à filtrer une structure reçue du client. */
 export const isKnownSectionKey = (key: string): boolean => BY_KEY.has(key);

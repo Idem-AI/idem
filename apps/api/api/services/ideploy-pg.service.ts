@@ -1,7 +1,7 @@
 // @ts-nocheck
 import pool from '../config/ideploy-pg.config';
 import logger from '../config/logger';
-import type { IDeploySummary } from './ideploy.service';
+import type { IDeploySummary } from './ideploy.types';
 
 /**
  * Résout la team principale d'un utilisateur à partir de son email.

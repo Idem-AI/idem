@@ -22,11 +22,6 @@
               {
                 "glob": "**/*",
                 "input": "public"
-              },
-              {
-                "glob": "**/*",
-                "input": "src/assets/ngx-extended-pdf-viewer/",
-                "output": "/assets/"
               }
             ],
             "styles": [
@@ -93,11 +88,6 @@
               {
                 "glob": "**/*",
                 "input": "public"
-              },
-              {
-                "glob": "**/*",
-                "input": "src/assets/ngx-extended-pdf-viewer/",
-                "output": "/assets/"
               }
             ],
             "styles": [

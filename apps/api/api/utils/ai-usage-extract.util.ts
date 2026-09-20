@@ -75,19 +75,3 @@ export function estimateUsage(promptText: string, responseText: string): Provide
 export function joinMessagesForEstimate(messages: { content: string }[]): string {
   return messages.map((message) => message.content ?? '').join('\n');
 }
-
-/**
- * Additionne plusieurs relevés d'usage — utilisé par les boucles agentiques
- * (function calling) où un seul appel utilisateur déclenche plusieurs tours de
- * modèle qui doivent être facturés ensemble.
- */
-export function sumUsage(parts: (ProviderTokenUsage | undefined)[]): ProviderTokenUsage {
-  const present = parts.filter((part): part is ProviderTokenUsage => !!part);
-
-  return {
-    inputTokens: present.reduce((sum, part) => sum + part.inputTokens, 0),
-    outputTokens: present.reduce((sum, part) => sum + part.outputTokens, 0),
-    cachedInputTokens: present.reduce((sum, part) => sum + (part.cachedInputTokens ?? 0), 0),
-    estimated: present.some((part) => part.estimated),
-  };
-}

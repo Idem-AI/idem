@@ -14,7 +14,7 @@ COPY package.json package-lock.json tsconfig.base.json ./
 # Copy packages partagés
 COPY ./packages ./packages
 
-# Copy all main-dashboard files (needed for postinstall script)
+# Copy all main-dashboard files
 COPY ./apps/main-dashboard ./apps/main-dashboard
 
 # Install all workspaces from root to establish symlinks

@@ -47,28 +47,6 @@ export interface TerraformVariable {
 }
 
 /**
- * Template model for backward compatibility
- */
-export interface TemplateModel {
-  archetype_id: string;
-  archetype_url: string;
-  description: string;
-  inputs: TemplateInput[];
-}
-
-export interface TemplateInput {
-  name: string;
-  type: string;
-  default?: any;
-  required?: boolean;
-  sensitive?: boolean;
-  optional?: boolean;
-  allowed_values?: string[];
-  fields?: Record<string, string>;
-  object_fields?: Record<string, string | Record<string, any>>;
-}
-
-/**
  * Create archetype payload for API calls
  */
 export interface CreateArchetypePayload {

@@ -61,12 +61,6 @@ export interface IdeployLimits {
   logRetentionHours: number;
 }
 
-export interface PlanLimits {
-  business: BusinessLimits;
-  appgen: AppgenLimits;
-  ideploy: IdeployLimits;
-}
-
 /** Plan gratuit de chaque moteur — le repli quand rien n'est souscrit. */
 export const FREE_PLAN_CODES: Record<BillingEngine, string> = {
   business: 'business-discovery',
@@ -218,18 +212,6 @@ export function limitsForPlan(
   }
 }
 
-/** Codes connus d'un moteur — utilisé par les contrôles de conformité. */
-export function knownPlanCodes(engine: BillingEngine): string[] {
-  switch (engine) {
-    case 'business':
-      return Object.keys(BUSINESS_LIMITS);
-    case 'appgen':
-      return Object.keys(APPGEN_LIMITS);
-    case 'ideploy':
-      return Object.keys(IDEPLOY_LIMITS);
-  }
-}
-
 /**
  * Coût en crédits d'une action iCode, selon la complexité.
  *
@@ -241,5 +223,3 @@ export const APPGEN_CREDIT_COSTS = {
   build: 2,
   premium: 3,
 } as const;
-
-export type AppgenCreditedAction = keyof typeof APPGEN_CREDIT_COSTS;

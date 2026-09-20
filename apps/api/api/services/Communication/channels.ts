@@ -24,19 +24,6 @@
  */
 import { ContentChannel } from '../../models/communication.model';
 
-/** Les seules valeurs qu'un canal peut prendre. */
-export const CONTENT_CHANNELS: ContentChannel[] = [
-  'instagram',
-  'linkedin',
-  'facebook',
-  'tiktok',
-  'x',
-  'youtube',
-  'blog',
-  'email',
-  'other',
-];
-
 /**
  * Ce qu'on rencontre réellement en sortie de modèle, ou saisi à la main.
  *

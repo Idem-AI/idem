@@ -233,11 +233,6 @@ export interface PromptRequest {
   bypassOutputTokenCap?: boolean;
 }
 
-export interface AIResponse {
-  content: string;
-  summary: string;
-}
-
 /** Une source brute issue des groundingMetadata Gemini (URL toujours réelle). */
 export interface GroundedSourceRaw {
   /** Index dans groundingChunks — sert d'ancre pour les supports. */
