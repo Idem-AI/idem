@@ -329,6 +329,46 @@ export class BillingController {
     }
   };
 
+  /**
+   * Factures de l'utilisateur.
+   *
+   * Le libellé commercial est résolu ici plutôt que côté client : une facture
+   * peut porter un code produit absent du catalogue courant — un plan retiré
+   * de la vente, un dépassement (`overage-*`) qui n'a jamais été un produit —
+   * et l'historique doit rester lisible des années après l'encaissement.
+   */
+  listInvoices = async (req: CustomRequest, res: Response): Promise<void> => {
+    try {
+      const [invoices, products] = await Promise.all([
+        billingService.listInvoices(req.user!.uid),
+        billingService.listProducts({ includeInactive: true }),
+      ]);
+
+      const nameByCode = new Map(products.map((product) => [product.code, product.name]));
+
+      res.json({
+        invoices: invoices.map((invoice) => ({
+          number: invoice.number,
+          status: invoice.status,
+          productCode: invoice.productCode,
+          label: nameByCode.get(invoice.productCode) ?? invoice.productCode,
+          kind: invoice.kind,
+          engine: invoice.engine,
+          amountXaf: invoice.amountXaf,
+          periodStart: invoice.periodStart,
+          periodEnd: invoice.periodEnd,
+          issuedAt: invoice.issuedAt,
+          paidAt: invoice.paidAt,
+          // Fait le lien avec la ligne de paiement : « cette facture, c'est ce
+          // débit-là sur mon téléphone ».
+          paymentTransactionId: invoice.paymentTransactionId,
+        })),
+      });
+    } catch (error) {
+      handleError(res, error, 'Impossible de charger vos factures.');
+    }
+  };
+
   // ============================================
   // CONSOMMATION (services internes authentifiés par l'utilisateur)
   // ============================================

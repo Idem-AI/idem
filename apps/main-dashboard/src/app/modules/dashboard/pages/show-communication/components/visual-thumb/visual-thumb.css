@@ -1,0 +1,118 @@
+:host {
+  display: block;
+}
+
+.vt-frame {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 0.6rem;
+  background: var(--glass-bg-subtle);
+}
+
+.vt-img {
+  display: block;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  /* Apparition en fondu une fois chargée : évite le saut sec sur la trame. */
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.vt-img-ready {
+  opacity: 1;
+}
+
+/* ── Attente ──────────────────────────────────────────────────────────────── */
+
+.vt-skeleton {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.vt-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    color-mix(in srgb, var(--color-primary) 10%, transparent) 50%,
+    transparent 80%
+  );
+  background-size: 200% 100%;
+  animation: vt-sweep 1.4s linear infinite;
+}
+
+@keyframes vt-sweep {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Une animation perpétuelle est une gêne pour qui y est sensible. */
+@media (prefers-reduced-motion: reduce) {
+  .vt-shimmer {
+    animation: none;
+    background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  }
+}
+
+/* ── Échec ────────────────────────────────────────────────────────────────── */
+
+.vt-failed {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.vt-failed-icon {
+  font-size: 1.35rem;
+  color: var(--color-text-tertiary);
+}
+
+.vt-failed-text {
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--color-text-tertiary);
+}
+
+.vt-failed-hint {
+  font-size: 0.62rem;
+  line-height: 1.3;
+  color: var(--color-text-tertiary);
+  opacity: 0.85;
+}
+
+.vt-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--glass-border-medium);
+  padding: 0.2rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.vt-retry:hover {
+  border-color: var(--color-primary);
+  color: var(--color-text-primary);
+}
+
+.vt-retry:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

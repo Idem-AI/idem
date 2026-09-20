@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, ElementRef, HostListener, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  HostListener,
+  inject,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -7,7 +14,6 @@ import { AuthService } from '../../modules/auth/services/auth.service';
 import { BetaBadgeComponent } from '../../shared/components/beta-badge/beta-badge';
 import { LanguageSelectorComponent } from '../../shared/components/language-selector/language-selector';
 import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme-toggle';
-import { ModeSwitcherComponent } from '../../shared/components/mode-switcher/mode-switcher';
 
 /**
  * Layout du mode Assisté : volontairement dépouillé.
@@ -26,7 +32,6 @@ import { ModeSwitcherComponent } from '../../shared/components/mode-switcher/mod
     BetaBadgeComponent,
     LanguageSelectorComponent,
     ThemeToggleComponent,
-    ModeSwitcherComponent,
   ],
   templateUrl: './guided-layout.html',
   styleUrl: './guided-layout.css',

@@ -1,3 +1,17 @@
+/*
+  Cette page occupe la hauteur que la disposition lui laisse : son en-tête
+  reste en place et seule la liste défile. `--layout-chrome` est publié par la
+  disposition — barre du haut plus marge basse — pour que cette valeur ne soit
+  pas recopiée ici, où elle se désaccorderait au premier ajustement.
+
+  `100dvh` et non `100vh` : sur mobile, la barre d'adresse rétractable fausse
+  `vh` et la liste dépasserait sous l'écran.
+*/
+:host {
+  display: block;
+  height: calc(100dvh - var(--layout-chrome, 7.5rem));
+}
+
 :host {
   display: block;
 }
@@ -19,33 +33,6 @@
   animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* ===== Header Area ===== */
-
-.header-create-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.55rem 1.25rem;
-  background: var(--color-text-primary);
-  color: var(--color-bg-darker);
-  border: none;
-  border-radius: 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: var(--glass-shadow-sm);
-  transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
-}
-
-.header-create-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--glass-shadow);
-}
-
-.header-create-btn:active {
-  transform: translateY(0);
-}
-
 /* ===== Toolbar (Search & Filter Control) ===== */
 
 .toolbar-panel {
@@ -55,7 +42,7 @@
   justify-content: space-between;
   gap: 1rem;
   margin-top: 1.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.25rem;
   padding: 0.75rem 1rem;
   background: var(--glass-bg-subtle);
   border: 1px solid var(--glass-border-subtle);
@@ -137,7 +124,7 @@
 .filter-tab.active {
   color: var(--color-text-primary);
   background: var(--color-surface-1);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--glass-shadow-sm);
 }
 
 .tab-badge {
@@ -266,9 +253,10 @@
 }
 
 .create-project-card:hover .create-plus-icon-wrapper {
-  background-color: var(--color-text-primary);
-  border-color: var(--color-text-primary);
-  color: var(--color-bg-darker);
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  border-style: solid;
+  color: #ffffff;
   transform: scale(1.03);
 }
 
@@ -357,29 +345,6 @@
   margin: 0 0 1.5rem 0;
 }
 
-.empty-cta-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.6rem 1.5rem;
-  background: var(--color-text-primary);
-  color: var(--color-bg-darker);
-  border: none;
-  border-radius: 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.empty-cta-btn:hover {
-  transform: translateY(-1px);
-}
-
-.empty-cta-btn:active {
-  transform: translateY(0);
-}
-
 /* ===== Responsive Adaptations ===== */
 
 @media (max-width: 767px) {
@@ -405,4 +370,10 @@
   .layout-toggle-group {
     align-self: flex-end;
   }
+}
+
+/* Les états vides centrent leur contenu : le bouton de la charte est un
+   conteneur `flex`, il ne se centre donc pas avec `text-align` seul. */
+.empty-state-container .inner-button {
+  align-self: center;
 }

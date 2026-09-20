@@ -90,6 +90,9 @@ export class BillingCheckoutPage {
 
   private returnUrl: string | null = null;
 
+  /** Transaction aboutie, retenue jusqu'à ce que l'utilisateur ferme l'écran. */
+  private settled: PaymentView | null = null;
+
   constructor() {
     const params = this.route.snapshot.queryParamMap;
 
@@ -151,15 +154,37 @@ export class BillingCheckoutPage {
       return;
     }
 
-    void this.router.navigate(['/billing/plans']);
+    void this.router.navigate(['/account/plans']);
   }
 
+  /**
+   * Paiement abouti.
+   *
+   * Rien ne bouge tant que l'utilisateur n'a pas fermé : le composant de
+   * paiement affiche sa confirmation, et c'est « Continuer » qui déclenche la
+   * sortie. Partir ici escamoterait l'écran qui dit que le paiement est passé.
+   */
   onCompleted(payment: PaymentView): void {
-    this.leave({ payment: payment.reference, status: 'completed' });
+    this.settled = payment;
   }
 
+  /**
+   * Sortie de l'écran.
+   *
+   * Vers l'application d'origine quand il y en a une, sinon vers le
+   * récapitulatif du paiement — jamais vers une liste de factures muette, qui
+   * était le point exact où l'utilisateur perdait le fil : il venait de payer,
+   * et rien à l'écran ne lui disait ce qu'il avait obtenu.
+   */
   onDismissed(): void {
-    this.leave({});
+    const payment = this.settled;
+
+    if (!payment) {
+      this.leave({});
+      return;
+    }
+
+    this.leave({ payment: payment.reference, status: 'completed' });
   }
 
   /**
@@ -170,7 +195,13 @@ export class BillingCheckoutPage {
    */
   private leave(params: Record<string, string>): void {
     if (!this.returnUrl) {
-      void this.router.navigate(['/billing']);
+      // Un paiement réglé a son récapitulatif ; un écran quitté sans payer
+      // ramène simplement au compte.
+      void (params['payment']
+        ? this.router.navigate(['/billing/success'], {
+            queryParams: { payment: params['payment'] },
+          })
+        : this.router.navigate(['/account']));
       return;
     }
 

@@ -26,7 +26,7 @@ import { CheckoutComponent } from '../checkout/checkout';
     @if (paywall.pending(); as refusal) {
       <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" (click)="close()">
         <div
-          class="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-dark)] p-5"
+          class="w-full max-w-md rounded-2xl border border-[var(--glass-border)] bg-[var(--color-surface-1)] p-5"
           (click)="$event.stopPropagation()"
         >
           @if (paywall.checkoutProduct(); as product) {
@@ -61,7 +61,7 @@ import { CheckoutComponent } from '../checkout/checkout';
             </div>
 
             @if (refusal.cost !== undefined) {
-              <div class="mb-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3">
+              <div class="mb-4 rounded-lg border border-[var(--glass-border)] bg-[var(--color-surface-2)] p-3">
                 <div class="flex items-center justify-between text-sm">
                   <span class="text-text-secondary">{{ 'billing.paywall.cost' | translate: { cost: refusal.cost } }}</span>
                   <span class="text-text-tertiary">{{ 'billing.paywall.balance' | translate: { balance: refusal.balance } }}</span>
@@ -80,7 +80,7 @@ import { CheckoutComponent } from '../checkout/checkout';
                 @for (suggestion of refusal.suggestions; track suggestion.productCode) {
                   <button
                     type="button"
-                    class="flex w-full items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 py-3 text-left transition-colors hover:border-primary"
+                    class="flex w-full items-center justify-between rounded-lg border border-[var(--glass-border)] bg-[var(--color-surface-1)] px-4 py-3 text-left transition-colors hover:border-primary"
                     (click)="paywall.buy(suggestion.productCode, refusal.engine)"
                   >
                     <span>
@@ -98,7 +98,7 @@ import { CheckoutComponent } from '../checkout/checkout';
             }
 
             <div class="mt-4 flex items-center justify-between">
-              <a class="text-sm text-primary hover:underline" routerLink="/billing/plans" (click)="close()">
+              <a class="text-sm text-primary hover:underline" routerLink="/account/plans" (click)="close()">
                 {{ 'billing.paywall.seeAllPlans' | translate }}
               </a>
               <button type="button" class="text-sm text-text-tertiary hover:text-text-primary" (click)="close()">
@@ -119,10 +119,17 @@ export class PaywallHostComponent {
     this.paywall.close();
   }
 
+  /**
+   * Paiement abouti.
+   *
+   * On recharge les droits, et **on ne ferme pas**. Fermer ici — ce que faisait
+   * le code précédent — escamotait l'écran de confirmation du composant de
+   * paiement à la milliseconde où il s'affichait : l'utilisateur voyait la
+   * fenêtre disparaître sans jamais lire que son paiement était passé, ni ce
+   * qu'il avait obtenu. C'est lui qui ferme, par « Continuer », et ce bouton
+   * émet `dismissed`.
+   */
   onPaid(): void {
-    // Les crédits viennent d'arriver : on les recharge avant de rendre la main,
-    // pour que l'utilisateur relance sa génération sans rien rafraîchir.
     this.billing.loadMe().subscribe();
-    this.paywall.close();
   }
 }

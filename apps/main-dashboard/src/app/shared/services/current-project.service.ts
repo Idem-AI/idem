@@ -1,0 +1,102 @@
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
+import { Observable, of } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
+import { ProjectModel } from '@idem/shared-models';
+import { ProjectService } from '../../modules/dashboard/services/project.service';
+import { CookieService } from './cookie.service';
+
+/**
+ * Le projet en cours de consultation.
+ *
+ * Extrait de la barre latérale, où il vivait en même temps que la navigation du
+ * projet et la barre du haut. Le sélecteur est visuellement dans la barre du
+ * haut, la redirection « aucun projet » concerne la barre latérale : les deux
+ * composants ont besoin de la même liste, et la charger deux fois donnerait
+ * deux appels réseau et deux vérités possibles.
+ *
+ * L'identifiant retenu vit dans un cookie partagé entre les applications IDEM :
+ * passer d'iCode au tableau de bord ne doit pas faire perdre le projet ouvert.
+ */
+@Injectable({ providedIn: 'root' })
+export class CurrentProjectService {
+  private readonly projectService = inject(ProjectService);
+  private readonly cookies = inject(CookieService);
+  private readonly router = inject(Router);
+
+  private readonly _projects = signal<ProjectModel[]>([]);
+  private readonly _selectedId = signal<string | null>(null);
+  private readonly _isLoaded = signal(false);
+
+  readonly projects = this._projects.asReadonly();
+  readonly isLoaded = this._isLoaded.asReadonly();
+
+  /** Le projet ouvert, ou `null` si aucun n'est retenu. */
+  readonly selected = computed(() => {
+    const id = this._selectedId();
+    if (!id) return null;
+    return this._projects().find((project) => project.id === id) ?? null;
+  });
+
+  readonly hasProjects = computed(() => this._projects().length > 0);
+
+  constructor() {
+    // Le cookie est lu d'emblée : l'écran peut afficher le bon nom dès que la
+    // liste arrive, sans attendre un second tour.
+    this._selectedId.set(this.cookies.get('projectId'));
+  }
+
+  /**
+   * Charge la liste une fois par session.
+   *
+   * Les appelants suivants reçoivent l'état déjà chargé : la barre du haut et
+   * la barre latérale s'initialisent l'une après l'autre, et un second appel
+   * réseau n'apprendrait rien.
+   */
+  load(force = false): Observable<ProjectModel[]> {
+    if (this._isLoaded() && !force) return of(this._projects());
+
+    return this.projectService.getProjects().pipe(
+      tap((projects) => {
+        this._projects.set(projects);
+        this._isLoaded.set(true);
+        this.reconcileSelection(projects);
+      }),
+      catchError(() => {
+        this._projects.set([]);
+        this._isLoaded.set(true);
+        return of([]);
+      }),
+    );
+  }
+
+  /**
+   * Aligne le projet retenu sur ce qui existe réellement.
+   *
+   * Un cookie peut désigner un projet supprimé, ou appartenir à un autre
+   * compte après un changement de session. Plutôt que de laisser l'interface
+   * afficher un nom introuvable, on retombe sur le premier projet.
+   */
+  private reconcileSelection(projects: ProjectModel[]): void {
+    if (projects.length === 0) {
+      this._selectedId.set(null);
+      return;
+    }
+
+    const current = this._selectedId();
+    if (current && projects.some((project) => project.id === current)) return;
+
+    const first = projects[0];
+    if (first?.id) this.select(first.id, { navigate: false });
+  }
+
+  /** Retient un projet. La navigation est le cas courant, pas une fatalité. */
+  select(projectId: string, options: { navigate?: boolean } = {}): void {
+    this._selectedId.set(projectId);
+    this.cookies.set('projectId', projectId);
+
+    if (options.navigate !== false) {
+      void this.router.navigate(['/project/dashboard']);
+    }
+  }
+}

@@ -754,6 +754,22 @@ export class BillingService {
     return `${prefix}-${String(seq).padStart(6, '0')}`;
   }
 
+  /**
+   * Factures d'un utilisateur, de la plus récente à la plus ancienne.
+   *
+   * Les brouillons sont écartés : une facture `draft` est un état interne de
+   * l'émission, pas un document que le client doit voir apparaître puis
+   * disparaître de son historique.
+   */
+  async listInvoices(userId: string, limit = 100): Promise<BillingInvoiceModel[]> {
+    const invoices = await BillingInvoice.find({ userId, status: { $ne: 'draft' } })
+      .sort({ issuedAt: -1 })
+      .limit(limit)
+      .lean();
+
+    return invoices.map((invoice: any) => ({ ...invoice, id: String(invoice._id) }));
+  }
+
   /** Marque une facture payée. Point d'entrée du futur webhook Mobile Money. */
   async markInvoicePaid(
     invoiceId: string,

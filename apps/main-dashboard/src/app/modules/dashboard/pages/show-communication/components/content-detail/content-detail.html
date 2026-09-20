@@ -1,0 +1,574 @@
+<div
+  class="cd-backdrop"
+  (click)="close()"
+  (keydown.escape)="close()"
+  tabindex="-1"
+>
+  <div
+    class="cd-panel glass-card"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="cd-title"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- ─────────────── En-tête ─────────────── -->
+    <header class="cd-header">
+      <div class="min-w-0">
+        <p class="cd-eyebrow">
+          <i [class]="channelIcon(item().channel)" aria-hidden="true"></i>
+          {{ channelLabelKey(item().channel) | translate }}
+          <span aria-hidden="true">·</span>
+          {{ item().scheduledFor }}
+        </p>
+        <h2 id="cd-title" class="cd-title">{{ item().title }}</h2>
+      </div>
+      <div class="flex shrink-0 items-center gap-2">
+        <span class="cd-status" [class]="statusPillClass(item().status)">
+          {{ 'dashboard.showCommunication.status.' + item().status | translate }}
+        </span>
+        <button
+          type="button"
+          class="outer-button button-sm"
+          [attr.aria-label]="'common.close' | translate"
+          (click)="close()"
+        >
+          <i class="pi pi-times" aria-hidden="true"></i>
+        </button>
+      </div>
+    </header>
+
+    <div class="cd-body">
+      <!-- ═══════════ Colonne gauche : le visuel ═══════════ -->
+      <section class="cd-visual">
+        <h3 class="cd-section-title">
+          {{ 'dashboard.showCommunication.detail.visualTitle' | translate }}
+        </h3>
+
+        @if (visual(); as current) {
+          <!--
+            L'aperçu réagit au survol et au clic, comme celui de la charte :
+            désigner un élément puis « Modifier » ouvre l'éditeur dessus.
+          -->
+          <app-visual-preview
+            [projectId]="projectId()"
+            [visual]="current"
+            [fonts]="fonts()"
+            [maxHeight]="420"
+          />
+
+          <div class="cd-visual-actions">
+            <button type="button" class="inner-button button-sm" (click)="download()">
+              <i class="pi pi-download" aria-hidden="true"></i>
+              {{ 'dashboard.showCommunication.visual.download' | translate }}
+            </button>
+          </div>
+
+          <!-- Déclinaisons : même contenu, autre surface -->
+          <div class="cd-declinate">
+            <p class="cd-label">
+              {{ 'dashboard.showCommunication.detail.otherFormats' | translate }}
+            </p>
+            <div class="cd-chips">
+              @for (format of formats; track format) {
+                @if (format !== current.format) {
+                  <button
+                    type="button"
+                    class="outer-button button-sm"
+                    [disabled]="isCreatingVisual()"
+                    (click)="declinate(format)"
+                  >
+                    {{ 'dashboard.showCommunication.formats.' + format | translate }}
+                  </button>
+                }
+              }
+            </div>
+          </div>
+
+          @if (allVisuals().length > 1) {
+            <p class="cd-note">
+              {{
+                'dashboard.showCommunication.detail.visualCount'
+                  | translate: { count: allVisuals().length }
+              }}
+            </p>
+          }
+        } @else if (isCreatingVisual()) {
+          <!--
+            Composer prend de vingt secondes à deux minutes. On montre la maquette
+            EN TRAIN de se construire plutôt qu'un disque qui tourne : c'est
+            pendant cette attente que l'utilisateur quittait la page.
+          -->
+          <div class="cd-composing">
+            <app-visual-composing [format]="chosenFormat()" />
+          </div>
+        } @else {
+          <!-- Pas encore de visuel : un seul geste, et le prix est dit avant -->
+          <div class="cd-empty-visual">
+            <i class="pi pi-image cd-empty-icon" aria-hidden="true"></i>
+            <p class="cd-empty-text">
+              {{ 'dashboard.showCommunication.detail.noVisual' | translate }}
+            </p>
+
+            <fieldset class="cd-format-choice">
+              <legend class="cd-label">
+                {{ 'dashboard.showCommunication.detail.chooseFormat' | translate }}
+              </legend>
+              <div class="cd-chips">
+                @for (format of formats; track format) {
+                  <button
+                    type="button"
+                    class="rounded-xl px-3 py-1.5 text-sm"
+                    [class.inner-button]="chosenFormat() === format"
+                    [class.outer-button]="chosenFormat() !== format"
+                    [attr.aria-pressed]="chosenFormat() === format"
+                    (click)="setFormat(format)"
+                  >
+                    {{ 'dashboard.showCommunication.formats.' + format | translate }}
+                  </button>
+                }
+              </div>
+            </fieldset>
+
+            <button
+              type="button"
+              class="inner-button mt-4"
+              [disabled]="isCreatingVisual()"
+              (click)="createVisual()"
+            >
+              @if (isCreatingVisual()) {
+                <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+                {{ 'dashboard.showCommunication.detail.creating' | translate }}
+              } @else {
+                <i class="pi pi-sparkles" aria-hidden="true"></i>
+                {{ 'dashboard.showCommunication.detail.createVisual' | translate }}
+              }
+            </button>
+          </div>
+        }
+      </section>
+
+      <!-- ═══════════ Colonne droite : le contenu, modifiable ═══════════ -->
+      <section class="cd-fields">
+        <h3 class="cd-section-title">
+          {{ 'dashboard.showCommunication.detail.contentTitle' | translate }}
+        </h3>
+
+        <!-- Titre -->
+        <div class="cd-field">
+          <div class="cd-field-head">
+            <span class="cd-label">
+              {{ 'dashboard.showCommunication.detail.fields.title' | translate }}
+            </span>
+            @if (editing() !== 'title') {
+              <button type="button" class="cd-edit-btn" (click)="startEdit('title')">
+                <i class="pi pi-pencil" aria-hidden="true"></i>
+                {{ 'common.edit' | translate }}
+              </button>
+            }
+          </div>
+          @if (editing() === 'title') {
+            <input
+              type="text"
+              class="cd-input"
+              [ngModel]="draft()"
+              (ngModelChange)="draft.set($event)"
+              name="cdTitle"
+              [attr.aria-label]="'dashboard.showCommunication.detail.fields.title' | translate"
+            />
+            <div class="cd-edit-actions">
+              <button
+                type="button"
+                class="inner-button button-sm"
+                [disabled]="isSaving()"
+                (click)="saveEdit()"
+              >
+                <i class="pi pi-check" aria-hidden="true"></i>
+                {{ 'common.save' | translate }}
+              </button>
+              <button type="button" class="outer-button button-sm" (click)="cancelEdit()">
+                {{ 'common.cancel' | translate }}
+              </button>
+            </div>
+          } @else {
+            <p class="cd-value">{{ item().title }}</p>
+          }
+        </div>
+
+        <!-- Date -->
+        <div class="cd-field">
+          <div class="cd-field-head">
+            <span class="cd-label">
+              {{ 'dashboard.showCommunication.detail.fields.date' | translate }}
+            </span>
+            @if (editing() !== 'scheduledFor') {
+              <button type="button" class="cd-edit-btn" (click)="startEdit('scheduledFor')">
+                <i class="pi pi-pencil" aria-hidden="true"></i>
+                {{ 'common.edit' | translate }}
+              </button>
+            }
+          </div>
+          @if (editing() === 'scheduledFor') {
+            <input
+              type="date"
+              class="cd-input"
+              [ngModel]="draft()"
+              (ngModelChange)="draft.set($event)"
+              [min]="period().start"
+              [max]="period().end"
+              name="cdDate"
+              [attr.aria-label]="'dashboard.showCommunication.detail.fields.date' | translate"
+            />
+            <p class="cd-note">
+              {{
+                'dashboard.showCommunication.detail.dateBounds'
+                  | translate: { start: period().start, end: period().end }
+              }}
+            </p>
+            <div class="cd-edit-actions">
+              <button
+                type="button"
+                class="inner-button button-sm"
+                [disabled]="isSaving()"
+                (click)="saveEdit()"
+              >
+                <i class="pi pi-check" aria-hidden="true"></i>
+                {{ 'common.save' | translate }}
+              </button>
+              <button type="button" class="outer-button button-sm" (click)="cancelEdit()">
+                {{ 'common.cancel' | translate }}
+              </button>
+            </div>
+          } @else {
+            <p class="cd-value">{{ item().scheduledFor }}</p>
+          }
+        </div>
+
+        <!-- Réseau -->
+        <div class="cd-field">
+          <div class="cd-field-head">
+            <span class="cd-label">
+              {{ 'dashboard.showCommunication.detail.fields.channel' | translate }}
+            </span>
+            @if (editing() !== 'channel') {
+              <button type="button" class="cd-edit-btn" (click)="startEdit('channel')">
+                <i class="pi pi-pencil" aria-hidden="true"></i>
+                {{ 'common.edit' | translate }}
+              </button>
+            }
+          </div>
+          @if (editing() === 'channel') {
+            <div class="cd-chips">
+              @for (channel of channels; track channel) {
+                <button
+                  type="button"
+                  class="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm"
+                  [class.inner-button]="toChannel(item().channel) === channel"
+                  [class.outer-button]="toChannel(item().channel) !== channel"
+                  [disabled]="isSaving()"
+                  (click)="setChannel(channel)"
+                >
+                  <i [class]="channelIcon(channel)" aria-hidden="true"></i>
+                  {{ channelLabelKey(channel) | translate }}
+                </button>
+              }
+            </div>
+            <div class="cd-edit-actions">
+              <button type="button" class="outer-button button-sm" (click)="cancelEdit()">
+                {{ 'common.cancel' | translate }}
+              </button>
+            </div>
+          } @else {
+            <p class="cd-value flex items-center gap-1.5">
+              <i [class]="channelIcon(item().channel)" aria-hidden="true"></i>
+              {{ channelLabelKey(item().channel) | translate }}
+            </p>
+          }
+        </div>
+
+        <!-- Accroche -->
+        <div class="cd-field">
+          <div class="cd-field-head">
+            <span class="cd-label">
+              {{ 'dashboard.showCommunication.detail.fields.hook' | translate }}
+            </span>
+            @if (editing() !== 'hook') {
+              <button type="button" class="cd-edit-btn" (click)="startEdit('hook')">
+                <i class="pi pi-pencil" aria-hidden="true"></i>
+                {{ 'common.edit' | translate }}
+              </button>
+            }
+          </div>
+          @if (editing() === 'hook') {
+            <textarea
+              rows="2"
+              class="cd-input"
+              [ngModel]="draft()"
+              (ngModelChange)="draft.set($event)"
+              name="cdHook"
+              [attr.aria-label]="'dashboard.showCommunication.detail.fields.hook' | translate"
+            ></textarea>
+            <div class="cd-edit-actions">
+              <button
+                type="button"
+                class="inner-button button-sm"
+                [disabled]="isSaving()"
+                (click)="saveEdit()"
+              >
+                <i class="pi pi-check" aria-hidden="true"></i>
+                {{ 'common.save' | translate }}
+              </button>
+              <button type="button" class="outer-button button-sm" (click)="cancelEdit()">
+                {{ 'common.cancel' | translate }}
+              </button>
+            </div>
+          } @else {
+            <p class="cd-value">
+              {{ item().hook || ('dashboard.showCommunication.detail.emptyValue' | translate) }}
+            </p>
+          }
+        </div>
+
+        <!-- De quoi ça parle -->
+        <div class="cd-field">
+          <div class="cd-field-head">
+            <span class="cd-label">
+              {{ 'dashboard.showCommunication.detail.fields.description' | translate }}
+            </span>
+            @if (editing() !== 'description') {
+              <button type="button" class="cd-edit-btn" (click)="startEdit('description')">
+                <i class="pi pi-pencil" aria-hidden="true"></i>
+                {{ 'common.edit' | translate }}
+              </button>
+            }
+          </div>
+          @if (editing() === 'description') {
+            <textarea
+              rows="3"
+              class="cd-input"
+              [ngModel]="draft()"
+              (ngModelChange)="draft.set($event)"
+              name="cdDescription"
+              [attr.aria-label]="
+                'dashboard.showCommunication.detail.fields.description' | translate
+              "
+            ></textarea>
+            <div class="cd-edit-actions">
+              <button
+                type="button"
+                class="inner-button button-sm"
+                [disabled]="isSaving()"
+                (click)="saveEdit()"
+              >
+                <i class="pi pi-check" aria-hidden="true"></i>
+                {{ 'common.save' | translate }}
+              </button>
+              <button type="button" class="outer-button button-sm" (click)="cancelEdit()">
+                {{ 'common.cancel' | translate }}
+              </button>
+            </div>
+          } @else {
+            <p class="cd-value">
+              {{
+                item().description || ('dashboard.showCommunication.detail.emptyValue' | translate)
+              }}
+            </p>
+          }
+        </div>
+
+        <!-- Le texte du post -->
+        <div class="cd-field cd-field-strong">
+          <div class="cd-field-head">
+            <span class="cd-label">
+              {{ 'dashboard.showCommunication.detail.fields.caption' | translate }}
+            </span>
+            <div class="flex items-center gap-2">
+              @if (item().caption) {
+                <button type="button" class="cd-edit-btn" (click)="copyCaption()">
+                  @if (copied()) {
+                    <i class="pi pi-check" aria-hidden="true"></i>
+                    {{ 'dashboard.showCommunication.studio.copied' | translate }}
+                  } @else {
+                    <i class="pi pi-copy" aria-hidden="true"></i>
+                    {{ 'dashboard.showCommunication.studio.copy' | translate }}
+                  }
+                </button>
+              }
+              @if (editing() !== 'caption') {
+                <button type="button" class="cd-edit-btn" (click)="startEdit('caption')">
+                  <i class="pi pi-pencil" aria-hidden="true"></i>
+                  {{ 'common.edit' | translate }}
+                </button>
+              }
+            </div>
+          </div>
+          @if (editing() === 'caption') {
+            <textarea
+              rows="6"
+              class="cd-input"
+              [ngModel]="draft()"
+              (ngModelChange)="draft.set($event)"
+              name="cdCaption"
+              [attr.placeholder]="
+                'dashboard.showCommunication.detail.captionPlaceholder' | translate
+              "
+              [attr.aria-label]="'dashboard.showCommunication.detail.fields.caption' | translate"
+            ></textarea>
+            <div class="cd-edit-actions">
+              <button
+                type="button"
+                class="inner-button button-sm"
+                [disabled]="isSaving()"
+                (click)="saveEdit()"
+              >
+                <i class="pi pi-check" aria-hidden="true"></i>
+                {{ 'common.save' | translate }}
+              </button>
+              <button type="button" class="outer-button button-sm" (click)="cancelEdit()">
+                {{ 'common.cancel' | translate }}
+              </button>
+            </div>
+          } @else {
+            <p class="cd-value cd-value-caption">
+              {{ item().caption || ('dashboard.showCommunication.detail.noCaption' | translate) }}
+            </p>
+          }
+        </div>
+
+        <!-- Mots-clés -->
+        <div class="cd-field">
+          <div class="cd-field-head">
+            <span class="cd-label">
+              {{ 'dashboard.showCommunication.detail.fields.hashtags' | translate }}
+            </span>
+            @if (editing() !== 'hashtags') {
+              <button type="button" class="cd-edit-btn" (click)="startEdit('hashtags')">
+                <i class="pi pi-pencil" aria-hidden="true"></i>
+                {{ 'common.edit' | translate }}
+              </button>
+            }
+          </div>
+          @if (editing() === 'hashtags') {
+            <input
+              type="text"
+              class="cd-input"
+              [ngModel]="draft()"
+              (ngModelChange)="draft.set($event)"
+              name="cdHashtags"
+              [attr.placeholder]="
+                'dashboard.showCommunication.detail.hashtagsPlaceholder' | translate
+              "
+              [attr.aria-label]="'dashboard.showCommunication.detail.fields.hashtags' | translate"
+            />
+            <p class="cd-note">
+              {{ 'dashboard.showCommunication.detail.hashtagsHint' | translate }}
+            </p>
+            <div class="cd-edit-actions">
+              <button
+                type="button"
+                class="inner-button button-sm"
+                [disabled]="isSaving()"
+                (click)="saveEdit()"
+              >
+                <i class="pi pi-check" aria-hidden="true"></i>
+                {{ 'common.save' | translate }}
+              </button>
+              <button type="button" class="outer-button button-sm" (click)="cancelEdit()">
+                {{ 'common.cancel' | translate }}
+              </button>
+            </div>
+          } @else if (item().hashtags.length > 0) {
+            <ul class="cd-tags">
+              @for (tag of item().hashtags; track tag) {
+                <li class="cd-tag">#{{ tag }}</li>
+              }
+            </ul>
+          } @else {
+            <p class="cd-value">
+              {{ 'dashboard.showCommunication.detail.emptyValue' | translate }}
+            </p>
+          }
+        </div>
+
+        <!-- Ce qu'on demande au lecteur -->
+        <div class="cd-field">
+          <div class="cd-field-head">
+            <span class="cd-label">
+              {{ 'dashboard.showCommunication.detail.fields.callToAction' | translate }}
+            </span>
+            @if (editing() !== 'callToAction') {
+              <button type="button" class="cd-edit-btn" (click)="startEdit('callToAction')">
+                <i class="pi pi-pencil" aria-hidden="true"></i>
+                {{ 'common.edit' | translate }}
+              </button>
+            }
+          </div>
+          @if (editing() === 'callToAction') {
+            <input
+              type="text"
+              class="cd-input"
+              [ngModel]="draft()"
+              (ngModelChange)="draft.set($event)"
+              name="cdCta"
+              [attr.placeholder]="'dashboard.showCommunication.detail.ctaPlaceholder' | translate"
+              [attr.aria-label]="
+                'dashboard.showCommunication.detail.fields.callToAction' | translate
+              "
+            />
+            <div class="cd-edit-actions">
+              <button
+                type="button"
+                class="inner-button button-sm"
+                [disabled]="isSaving()"
+                (click)="saveEdit()"
+              >
+                <i class="pi pi-check" aria-hidden="true"></i>
+                {{ 'common.save' | translate }}
+              </button>
+              <button type="button" class="outer-button button-sm" (click)="cancelEdit()">
+                {{ 'common.cancel' | translate }}
+              </button>
+            </div>
+          } @else {
+            <p class="cd-value">
+              {{
+                item().callToAction ||
+                  ('dashboard.showCommunication.detail.emptyValue' | translate)
+              }}
+            </p>
+          }
+        </div>
+
+        @if (item().occasion) {
+          <p class="cd-occasion">
+            <i class="pi pi-star-fill" aria-hidden="true"></i>
+            {{
+              'dashboard.showCommunication.detail.forOccasion'
+                | translate: { occasion: item().occasion }
+            }}
+          </p>
+        }
+
+        <!-- Retirer du planning : discret, et confirmé sur place -->
+        <div class="cd-danger">
+          @if (confirmingDelete()) {
+            <p class="cd-note">{{ 'dashboard.showCommunication.detail.deleteAsk' | translate }}</p>
+            <div class="cd-edit-actions">
+              <button type="button" class="cd-delete-confirm" (click)="confirmDelete()">
+                <i class="pi pi-trash" aria-hidden="true"></i>
+                {{ 'dashboard.showCommunication.detail.deleteConfirm' | translate }}
+              </button>
+              <button type="button" class="outer-button button-sm" (click)="cancelDelete()">
+                {{ 'common.cancel' | translate }}
+              </button>
+            </div>
+          } @else {
+            <button type="button" class="cd-delete-btn" (click)="askDelete()">
+              <i class="pi pi-trash" aria-hidden="true"></i>
+              {{ 'dashboard.showCommunication.detail.delete' | translate }}
+            </button>
+          }
+        </div>
+      </section>
+    </div>
+  </div>
+</div>

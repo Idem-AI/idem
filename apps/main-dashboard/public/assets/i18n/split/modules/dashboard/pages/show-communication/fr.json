@@ -1,169 +1,362 @@
 {
   "dashboard": {
     "showCommunication": {
-      "eyebrow": "Moteur de communication",
-      "title": "Communication & calendrier éditorial",
-      "subtitle": "Stratégie, calendrier, moments ponctuels et publication — pour faire vivre votre marque au quotidien.",
-      "loading": "Chargement du moteur de communication…",
-      "comingSoon": "Bientôt",
+      "eyebrow": "Communication",
+      "title": "Mes publications",
+      "subtitle": "Créez vos visuels, organisez ce que vous publiez, retrouvez tout au même endroit.",
+      "loading": "Chargement…",
       "tabs": {
-        "strategy": "Stratégie",
-        "calendar": "Calendrier",
-        "moments": "Moments",
-        "publishing": "Publication"
+        "studio": "Créer",
+        "plans": "Mon planning",
+        "library": "Mes visuels"
       },
       "selectProject": {
-        "title": "Sélectionnez un projet",
-        "body": "Choisissez un projet dans votre liste pour générer vos contenus de communication.",
+        "title": "Aucun projet sélectionné",
+        "body": "Choisissez un projet pour travailler sur ses publications.",
         "cta": "Voir mes projets"
       },
       "status": {
-        "idea": "Idée",
-        "approved": "Approuvé",
-        "scheduled": "Planifié",
+        "idea": "À faire",
+        "approved": "Validé",
+        "scheduled": "Programmé",
         "published": "Publié"
       },
-      "intent": {
-        "label": "Intention",
-        "awareness": "Notoriété",
-        "celebration": "Célébration",
-        "promotion": "Promotion",
-        "recruitment": "Recrutement",
-        "announcement": "Annonce"
+      "formats": {
+        "square": "Carré (post)",
+        "story": "Story (vertical)",
+        "banner": "Bannière (couverture)",
+        "post": "Portrait",
+        "a4": "Affiche à imprimer"
       },
-      "strategy": {
-        "empty": {
-          "title": "Générez votre stratégie de communication",
-          "body": "Nous extrayons un contexte compact de votre projet, captons des signaux de tendance légers et produisons une stratégie structurée et éditable.",
-          "cta": "Générer la stratégie"
-        },
-        "context": {
-          "brand": "Marque",
-          "type": "Type",
-          "tone": "Ton"
-        },
-        "summaryLabel": "Résumé de la stratégie",
-        "regenerate": "Régénérer",
-        "save": "Enregistrer",
-        "saved": "Modifications enregistrées",
-        "trendsTitle": "Signaux de tendance utilisés",
-        "blockKinds": {
-          "positioning": "Positionnement",
-          "pillars": "Piliers de contenu",
-          "messaging": "Messages clés",
-          "channels": "Canaux",
-          "cadence": "Cadence",
-          "kpis": "Indicateurs",
-          "tone": "Ton de voix",
-          "custom": "Bloc libre"
-        }
+      "channels": {
+        "instagram": "Instagram",
+        "facebook": "Facebook",
+        "linkedin": "LinkedIn",
+        "tiktok": "TikTok",
+        "x": "X",
+        "youtube": "YouTube",
+        "blog": "Blog",
+        "email": "E-mail",
+        "other": "Autre"
       },
-      "calendar": {
-        "empty": {
-          "title": "Construisez votre calendrier éditorial",
-          "body": "Nous produisons 4 semaines d'idées de contenu — titres, accroches, formats, canaux — pour choisir quoi publier. Les visuels ne sont générés qu'à la demande.",
-          "cta": "Générer le calendrier",
-          "needStrategy": "Générez d'abord une stratégie pour un calendrier plus pertinent."
-        },
-        "filters": {
-          "channel": "Canal",
-          "format": "Format",
-          "allChannels": "Tous les canaux",
-          "allFormats": "Tous les formats"
-        },
-        "regenerate": "Régénérer le calendrier",
-        "week": "Semaine",
-        "ideas": "idées",
-        "generateVisual": "Visuel",
-        "schedule": "Programmer"
+      "networks": {
+        "linkedin": "LinkedIn",
+        "x": "X"
       },
-      "visual": {
-        "eyebrow": "Visuel du contenu",
-        "format": "Format",
-        "generate": "Générer le visuel",
-        "regenerate": "Régénérer",
-        "download": "Télécharger le PNG",
-        "close": "Fermer",
-        "generating": "Recherche d'image, analyse et composition du visuel…",
-        "loadingImage": "Chargement de l'image rendue…",
-        "noneTitle": "Pas encore de visuel",
-        "noneBody": "Cliquez sur « Générer le visuel » pour créer un visuel. Nous cherchons d'abord dans les banques d'images libres, puis basculons sur la génération IA.",
-        "notRendered": "Visuel généré mais pas encore rendu en PNG.",
-        "placeholder": "Le texte marketing et le concept apparaîtront ici après génération.",
-        "sourceStock": "Photo de stock",
-        "sourceGenerated": "Généré par IA",
-        "by": "par",
-        "scan": "Analyse de l'image",
-        "mood": "Ambiance",
-        "concept": "Concept",
-        "layout": "Notes de mise en page",
-        "headline": "Titre",
-        "subheadline": "Sous-titre",
-        "body": "Corps du texte",
-        "cta": "Appel à l'action",
-        "logoUsed": "Déclinaison de logo utilisée",
-        "edit": "Modifier"
-      },
-      "moments": {
-        "eyebrow": "Moments ponctuels",
-        "empty": {
-          "title": "Faites vivre votre marque au fil des occasions",
-          "body": "Fêtes nationales, recrutement, anniversaire de l'entreprise, promotions saisonnières… Générez un visuel ponctuel et un contenu prêt à publier en un clic.",
-          "cta": "Voir les occasions suggérées"
-        },
-        "suggestionsTitle": "Occasions suggérées",
-        "refresh": "Actualiser les suggestions",
-        "createTitle": "Créer un moment libre",
-        "createBody": "Décrivez l'occasion et Idem génère le visuel et le contenu publiable.",
-        "generate": "Générer",
-        "generateVisual": "Générer le visuel",
-        "fields": {
-          "occasion": "Occasion",
-          "occasionPlaceholder": "Ex. : Journée mondiale de l'environnement, ouverture d'un poste…",
-          "date": "Date",
-          "message": "Message / angle",
-          "messagePlaceholder": "Ce que vous voulez dire pour cette occasion",
-          "intent": "Intention"
-        },
-        "loadingSuggestions": "Recherche d'occasions pertinentes pour votre marque…",
-        "noSuggestions": "Aucune suggestion pour le moment. Créez un moment libre ci-dessous."
-      },
-      "publishing": {
-        "eyebrow": "Publication",
-        "empty": {
-          "title": "Publiez sur vos réseaux depuis Idem",
-          "body": "Préparez, programmez et publiez vos visuels et légendes sur LinkedIn et X. Connectez d'abord un réseau ou utilisez la publication assistée.",
-          "cta": "Préparer une publication"
-        },
-        "queueTitle": "File de publication",
-        "readyTitle": "Prêt à publier",
-        "readyHint": "Vos contenus disposant d'un visuel. Préparez une publication assistée sur un réseau.",
-        "noPublishable": "Générez d'abord un visuel (onglet Calendrier ou Moments) pour préparer une publication.",
-        "prepareOn": "Préparer sur",
-        "downloadVisual": "Télécharger le visuel",
-        "assistedNote": "Publication assistée : Idem copie la légende, télécharge le visuel et ouvre le composer du réseau. Vous finalisez la publication sur le réseau.",
-        "publishAssisted": "Publier (assisté)",
-        "markPublished": "Marquer comme publié",
-        "openComposer": "Ouvrir le composer",
-        "copyCaption": "Copier la légende",
-        "captionCopied": "Légende copiée",
-        "networks": {
-          "linkedin": "LinkedIn",
-          "x": "X (Twitter)"
-        },
-        "scheduleAt": "Programmer le",
-        "scheduledFor": "Programmé pour"
+      "steps": {
+        "context": "Je relis votre marque…",
+        "trends": "Je regarde votre secteur…",
+        "strategy": "J'écris votre façon de communiquer…",
+        "calendar": "Je construis le planning…",
+        "occasions": "Je cherche les dates importantes…",
+        "brief": "Je choisis l'idée principale…",
+        "content": "J'écris vos publications…"
       },
       "errors": {
-        "load": "Échec du chargement des données de communication",
-        "checkProject": "Erreur lors de la vérification du projet",
-        "strategy": "Échec de la génération de la stratégie",
-        "calendar": "Échec de la génération du calendrier",
-        "flyer": "Échec de la génération du visuel",
-        "saveStrategy": "Échec de l'enregistrement de la stratégie",
-        "updateContent": "Échec de la mise à jour du contenu",
-        "moments": "Échec de la génération du moment",
-        "publish": "Échec de la publication"
+        "project": "Impossible de charger le projet.",
+        "load": "Impossible de charger vos publications.",
+        "credits": "Vos crédits ne suffisent pas pour cette création.",
+        "creditsDetail": "Il faut {{cost}} crédits, il vous en reste {{balance}}.",
+        "topUp": "Recharger",
+        "content-update": "La modification n'a pas pu être enregistrée.",
+        "content-remove": "La publication n'a pas pu être retirée.",
+        "visual": "Le visuel n'a pas pu être créé.",
+        "declinate": "Le visuel n'a pas pu être adapté à ce format.",
+        "download": "Le téléchargement a échoué.",
+        "schedule": "La programmation a échoué.",
+        "publish": "La préparation du post a échoué.",
+        "studio": "Je n'ai pas réussi à répondre. Reformulez en une phrase.",
+        "studio-clear": "La conversation n'a pas pu être effacée.",
+        "plan-create": "Le planning n'a pas pu être créé.",
+        "plan-generate": "Le planning n'a pas pu être rempli.",
+        "plan-archive": "Le planning n'a pas pu être archivé.",
+        "strategy": "Impossible d'écrire votre façon de communiquer.",
+        "strategy-save": "Vos modifications n'ont pas pu être enregistrées.",
+        "visual-delete": "Le visuel n'a pas pu être supprimé."
+      },
+      "doors": {
+        "visual": {
+          "title": "Un visuel, tout de suite",
+          "body": "Dites ce que vous voulez annoncer. Le visuel sort avec vos couleurs et votre logo.",
+          "price": "2 crédits",
+          "hereBelow": "C'est juste en dessous"
+        },
+        "plan": {
+          "title": "Organiser mon mois",
+          "body": "Choisissez une période : je prépare tout ce que vous aurez à publier, jour par jour.",
+          "price": "15 crédits",
+          "cta": "Créer mon planning"
+        },
+        "voice": {
+          "title": "Dire qui vous êtes",
+          "body": "À qui vous parlez, sur quel ton, sur quels réseaux. Tout le reste s'en inspire.",
+          "price": "40 crédits · une seule fois",
+          "cta": "Commencer"
+        }
+      },
+      "voice": {
+        "eyebrow": "Votre identité",
+        "title": "Ma façon de communiquer",
+        "subtitle": "À qui vous parlez, sur quel ton, sur quels réseaux.",
+        "open": "Ma façon de communiquer",
+        "todo": "à remplir",
+        "summaryLabel": "En deux phrases",
+        "edit": "Modifier",
+        "save": "Enregistrer",
+        "saved": "Enregistré",
+        "regenerate": "Tout réécrire",
+        "empty": {
+          "title": "Pas encore renseigné",
+          "body": "On y note une fois pour toutes à qui vous parlez, ce que vous avez à dire et sur quel ton. Chaque planning s'en sert ensuite, au lieu de repartir de zéro.",
+          "cta": "Le remplir — 40 crédits"
+        },
+        "blockKinds": {
+          "positioning": "Ce qui vous distingue",
+          "pillars": "Vos sujets de prédilection",
+          "messaging": "Ce que vous répétez",
+          "channels": "Où vous êtes présent",
+          "cadence": "À quelle fréquence",
+          "kpis": "Ce que vous regardez",
+          "tone": "Votre ton",
+          "custom": "Autre"
+        },
+        "editSection": "Modifier « {{section}} »"
+      },
+      "plans": {
+        "title": "Mon planning",
+        "subtitle": "Ce que vous avez à publier, et quand. Vous pouvez en préparer plusieurs : rien ne s'efface.",
+        "new": "Nouveau planning",
+        "showArchived": "Voir les anciens",
+        "hideArchived": "Masquer les anciens",
+        "empty": {
+          "title": "Rien de prévu pour le moment",
+          "body": "Choisissez une période et je prépare tout ce que vous aurez à publier. Décembre peut se préparer dès octobre.",
+          "cta": "Créer mon premier planning"
+        },
+        "status": {
+          "draft": "À remplir",
+          "active": "En cours",
+          "done": "Terminé",
+          "archived": "Ancien"
+        },
+        "itemCount": "{{count}} publications",
+        "generate": "Remplir le planning — 15 crédits",
+        "regenerate": "Tout refaire",
+        "archive": "Archiver",
+        "notGenerated": "Ce planning est encore vide.",
+        "clickHint": "Cliquez sur une publication pour la voir en entier et la modifier.",
+        "visualToDo": "Visuel à créer",
+        "brief": {
+          "angle": "L'idée principale",
+          "keyMessage": "Ce que les gens doivent retenir",
+          "themes": "Les sujets abordés",
+          "signals": "Comment savoir si ça a marché"
+        },
+        "viewWeeks": "Par semaine",
+        "viewMonth": "Calendrier",
+        "week": "Semaine {{week}}",
+        "monthCaption": "Publications prévues, jour par jour",
+        "weekdays": {
+          "mon": "Lun",
+          "tue": "Mar",
+          "wed": "Mer",
+          "thu": "Jeu",
+          "fri": "Ven",
+          "sat": "Sam",
+          "sun": "Dim"
+        }
+      },
+      "wizard": {
+        "progress": "Avancement",
+        "when": {
+          "question": "Pour quelle période ?",
+          "help": "Choisissez une durée. Vous pourrez toujours ajuster les dates ensuite.",
+          "presets": {
+            "thisMonth": "Ce mois-ci",
+            "nextMonth": "Le mois prochain",
+            "twoWeeks": "Les 2 prochaines semaines",
+            "custom": "Je choisis mes dates"
+          },
+          "from": "Du",
+          "to": "Au",
+          "echo": "Soit {{days}} jours."
+        },
+        "why": {
+          "question": "Qu'est-ce que vous voulez obtenir ?",
+          "help": "En une phrase, avec vos mots. C'est ce qui guidera tout le contenu.",
+          "placeholder": "Exemple : faire connaître ma boutique aux familles du quartier",
+          "examples": "Ou choisissez un exemple"
+        },
+        "objectives": {
+          "known": {
+            "label": "Me faire connaître",
+            "text": "Faire connaître mon activité à de nouvelles personnes près de moi"
+          },
+          "sell": {
+            "label": "Vendre plus",
+            "text": "Faire venir plus de clients et vendre davantage ce mois-ci"
+          },
+          "loyal": {
+            "label": "Garder mes clients",
+            "text": "Rester présent auprès de mes clients actuels et leur donner envie de revenir"
+          },
+          "hire": {
+            "label": "Recruter",
+            "text": "Trouver quelqu'un pour rejoindre mon équipe"
+          }
+        },
+        "where": {
+          "question": "Où publiez-vous, et à quelle fréquence ?",
+          "help": "Choisissez vos réseaux. Mieux vaut deux réseaux bien tenus que cinq à l'abandon.",
+          "howOften": "À quelle fréquence",
+          "freq": {
+            "1": "1 fois par semaine",
+            "3": "3 fois par semaine",
+            "5": "5 fois par semaine",
+            "7": "Tous les jours"
+          },
+          "echo": "Cela fera environ {{count}} publications."
+        },
+        "recap": {
+          "question": "On récapitule",
+          "posts": "{{count}} publications, prêtes à publier",
+          "occasions": "Dates à ne pas rater",
+          "occasionsLoading": "Je regarde le calendrier…",
+          "occasionsNone": "Aucune date particulière sur cette période.",
+          "occasionsHint": "Elles seront intégrées aux publications, le bon jour.",
+          "submit": "C'est parti",
+          "price": "15 crédits. Vous pourrez tout modifier ensuite."
+        }
+      },
+      "detail": {
+        "visualTitle": "Le visuel",
+        "contentTitle": "Ce qui sera publié",
+        "noVisual": "Pas encore de visuel pour cette publication. Il sera créé avec vos couleurs, votre police et votre logo.",
+        "chooseFormat": "Pour quel usage ?",
+        "createVisual": "Créer le visuel — 2 crédits",
+        "creating": "Je compose le visuel…",
+        "otherFormats": "Aussi dans un autre format",
+        "visualCount": "{{count}} versions de ce visuel",
+        "emptyValue": "Rien pour le moment",
+        "noCaption": "Aucun texte pour l'instant. Cliquez sur Modifier pour l'écrire.",
+        "captionPlaceholder": "Le texte que vous publierez avec le visuel…",
+        "hashtagsPlaceholder": "boutique, café, douala",
+        "hashtagsHint": "Séparez-les par des virgules. Le # est ajouté automatiquement.",
+        "ctaPlaceholder": "Passez nous voir, Appelez-nous…",
+        "dateBounds": "Entre le {{start}} et le {{end}}",
+        "forOccasion": "Publication prévue pour : {{occasion}}",
+        "delete": "Retirer du planning",
+        "deleteAsk": "Retirer cette publication ? Le visuel déjà créé sera conservé dans « Mes visuels ».",
+        "deleteConfirm": "Oui, retirer",
+        "fields": {
+          "title": "De quoi il s'agit",
+          "date": "Date de publication",
+          "channel": "Où le publier",
+          "hook": "La première phrase",
+          "description": "Ce qu'on raconte",
+          "caption": "Le texte du post",
+          "hashtags": "Mots-clés (#)",
+          "callToAction": "Ce qu'on demande au lecteur"
+        }
+      },
+      "preview": {
+        "loading": "Chargement du visuel…",
+        "failed": "Ce visuel ne peut pas être affiché.",
+        "canvasLabel": "Aperçu du visuel",
+        "menuLabel": "Que faire de cet élément",
+        "edit": "Modifier",
+        "hint": "Passez la souris sur le visuel, puis cliquez sur ce que vous voulez changer.",
+        "kinds": {
+          "text": "Ce texte",
+          "image": "Cette image",
+          "block": "Ce bloc"
+        }
+      },
+      "studio": {
+        "empty": {
+          "title": "Qu'avez-vous à annoncer ?",
+          "body": "Dites-le en une phrase. Le visuel sort avec vos couleurs, votre police et votre logo.",
+          "example": "« un visuel pour dire qu'on ouvre aussi le samedi »"
+        },
+        "starters": {
+          "announce": "Annoncer quelque chose",
+          "promotion": "Une promotion",
+          "celebration": "Souhaiter une fête",
+          "recruitment": "Dire que je recrute"
+        },
+        "thinking": "Je réfléchis…",
+        "composing": "Je compose le visuel…",
+        "composingVariants": "Je prépare trois propositions…",
+        "retouching": "Je retouche le visuel…",
+        "declinating": "J'adapte le visuel…",
+        "writingCaption": "J'écris le texte du post…",
+        "caption": "Le texte du post",
+        "copy": "Copier",
+        "copied": "Copié",
+        "creditsSpent": "{{count}} crédits utilisés",
+        "inputLabel": "Décrivez ce que vous voulez annoncer",
+        "placeholder": "Dites ce que vous voulez annoncer…",
+        "send": "Envoyer",
+        "clear": "Effacer la conversation",
+        "pricingHint": "Discuter ne coûte rien. Un visuel coûte 2 crédits.",
+        "openVisual": "Voir en grand",
+        "schedule": "Mettre au planning",
+        "noPlan": "Créez d'abord un planning pour y mettre ce visuel.",
+        "planLabel": "Dans quel planning",
+        "dateLabel": "À quelle date"
+      },
+      "library": {
+        "title": "Mes visuels",
+        "subtitle": "Tout ce qui a été créé sur ce projet, d'où que ça vienne.",
+        "empty": {
+          "title": "Aucun visuel pour l'instant",
+          "body": "Allez dans « Créer » pour en faire un, ou remplissez un planning et créez les visuels de ses publications."
+        },
+        "filterFormat": "Format",
+        "allFormats": "Tous les formats",
+        "filterOrigin": "Créé depuis",
+        "allOrigins": "Peu importe",
+        "origins": {
+          "plan": "Un planning",
+          "studio": "L'écran Créer",
+          "occasion": "Une date spéciale",
+          "brandbook": "La charte"
+        },
+        "filterPlan": "Planning",
+        "allPlans": "Tous les plannings",
+        "count": "{{count}} visuels",
+        "previewAlt": "Aperçu du visuel : {{title}}",
+        "brief": "Ce qui a été demandé",
+        "concept": "L'idée du visuel",
+        "declinate": "Aussi dans un autre format",
+        "publish": "Publier",
+        "publishHint": "Le texte est copié et le réseau s'ouvre : il ne reste qu'à coller et publier.",
+        "publishNeedsSchedule": "Mettez d'abord ce visuel au planning pour pouvoir le publier.",
+        "delete": "Supprimer ce visuel",
+        "deleteAsk": "Supprimer définitivement ce visuel ?",
+        "deleteConfirm": "Supprimer"
+      },
+      "visual": {
+        "download": "Télécharger l'image",
+        "edit": "Modifier"
+      },
+      "thumb": {
+        "loading": "Chargement de l'image…",
+        "failed": "L'image n'a pas pu s'afficher.",
+        "retry": "Réessayer",
+        "openInstead": "Ouvrez-le en grand pour le voir."
+      },
+      "composing": {
+        "title": "Je compose votre visuel",
+        "titleVariants": "Je compose {{count}} propositions",
+        "patience": "Cela prend entre 30 secondes et 2 minutes. Vous pouvez attendre ici.",
+        "stages": {
+          "grid": "Je place la mise en page",
+          "image": "Je choisis l'image",
+          "words": "J’écris le texte",
+          "compose": "J’assemble à vos couleurs",
+          "check": "Je vérifie le résultat"
+        }
       }
     }
   }

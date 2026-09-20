@@ -47,7 +47,8 @@
     "continue": "Continue",
     "apply": "Apply",
     "reset": "Reset",
-    "close": "Close"
+    "close": "Close",
+    "confirm": "Confirm"
   },
   "dashboard": {
     "createDevelopment": {
@@ -356,26 +357,6 @@
         "initialProjectNotFound": "Initial project ID '{{initialCookieId}}' not found. Navigating to global dashboard."
       },
       "simulations": "Simulations"
-    },
-    "sidebarGlobal": {
-      "dashboard": "Dashboard",
-      "projects": "Projects",
-      "teams": "Teams",
-      "sr": {
-        "openMobileMenu": "Open mobile menu",
-        "toggleSidebar": "Toggle sidebar"
-      },
-      "logoAlt": "Lexi",
-      "userAvatarAlt": "Avatar",
-      "userMenu": {
-        "profile": "Profile",
-        "settings": "Settings",
-        "logout": "Logout"
-      },
-      "poweredBy": "Powered by",
-      "mobile": {
-        "navigation": "Navigation"
-      }
     },
     "addTeamToProject": {
       "backToProjectTeams": "Back to Project Teams",
@@ -1284,7 +1265,6 @@
         "title": "Quota Warning",
         "daily": "Daily:",
         "weekly": "Weekly:",
-        "credits": "Credits",
         "beta": "BETA",
         "messages": {
           "approaching": "You are approaching your quota limit",
@@ -1309,7 +1289,8 @@
           "resolution": "Resolution:",
           "maxTokens": "tokens max",
           "featureNotAuthorized": "Feature not authorized"
-        }
+        },
+        "generations": "Generations"
       }
     },
     "aiAssistant": {
@@ -1674,7 +1655,48 @@
       },
       "buttons": {
         "create": "Create your first project"
-      }
+      },
+      "loading": "Loading your workspace…",
+      "searchPlaceholder": "Search projects by name or description…",
+      "filters": {
+        "all": "All"
+      },
+      "view": {
+        "grid": "Grid view",
+        "list": "List view"
+      },
+      "noResults": {
+        "title": "No matching projects",
+        "description": "Your filters returned nothing. Try clearing the search or picking another category.",
+        "reset": "Reset filters"
+      },
+      "emptyDescription": "Create your first project: brand identity, business plan, application and deployment all follow from it.",
+      "delete": {
+        "title": "Delete this project?",
+        "subtitle": "The project will be removed from your dashboard.",
+        "body": "Remove “{{name}}” from your dashboard? The project stays archived in the database but will no longer appear in your workspace.",
+        "cancel": "Cancel",
+        "confirm": "Delete",
+        "pending": "Deleting…"
+      },
+      "greeting": {
+        "morning": "Good morning",
+        "afternoon": "Good afternoon",
+        "evening": "Good evening"
+      },
+      "types": {
+        "enterprise": "Enterprise",
+        "ecommerce": "Commerce",
+        "web": "Web",
+        "mobile": "Mobile",
+        "iot": "IoT",
+        "desktop": "Desktop",
+        "api": "API",
+        "ai": "AI",
+        "blockchain": "Blockchain",
+        "other": "Other"
+      },
+      "title": "My projects"
     },
     "brandingDisplay": {
       "title": "Brand Identity Document",
@@ -2700,24 +2722,27 @@
       }
     },
     "showCommunication": {
-      "eyebrow": "Communication engine",
-      "title": "Communication & editorial calendar",
-      "subtitle": "Strategy, calendar, timely moments and publishing — to keep your brand alive every day.",
-      "loading": "Loading communication engine…",
+      "eyebrow": "Communication",
+      "title": "My posts",
+      "subtitle": "Create your visuals, plan what you publish, find everything in one place.",
+      "loading": "Loading…",
       "comingSoon": "Soon",
       "tabs": {
         "strategy": "Strategy",
         "calendar": "Calendar",
         "moments": "Moments",
-        "publishing": "Publishing"
+        "publishing": "Publishing",
+        "studio": "Create",
+        "plans": "My schedule",
+        "library": "My visuals"
       },
       "selectProject": {
-        "title": "Select a project",
-        "body": "Choose a project from your list to start generating communication assets.",
-        "cta": "Go to my projects"
+        "title": "No project selected",
+        "body": "Pick a project to work on its posts.",
+        "cta": "See my projects"
       },
       "status": {
-        "idea": "Idea",
+        "idea": "To do",
         "approved": "Approved",
         "scheduled": "Scheduled",
         "published": "Published"
@@ -2781,7 +2806,7 @@
         "format": "Format",
         "generate": "Generate visual",
         "regenerate": "Regenerate",
-        "download": "Download PNG",
+        "download": "Download the image",
         "close": "Close",
         "generating": "Sourcing image, scanning, composing visual…",
         "loadingImage": "Loading rendered image…",
@@ -2854,15 +2879,403 @@
         "scheduledFor": "Scheduled for"
       },
       "errors": {
-        "load": "Failed to load communication data",
+        "load": "Could not load your posts.",
         "checkProject": "Error while checking the project",
-        "strategy": "Strategy generation failed",
+        "strategy": "Could not write how you communicate.",
         "calendar": "Calendar generation failed",
         "flyer": "Visual generation failed",
         "saveStrategy": "Failed to save strategy",
         "updateContent": "Failed to update content",
         "moments": "Moment generation failed",
-        "publish": "Publishing failed"
+        "publish": "Preparing the post failed.",
+        "project": "Could not load the project.",
+        "credits": "You do not have enough credits for this.",
+        "creditsDetail": "It costs {{cost}} credits, you have {{balance}} left.",
+        "topUp": "Top up",
+        "content-update": "The change could not be saved.",
+        "content-remove": "The post could not be removed.",
+        "visual": "The visual could not be created.",
+        "declinate": "The visual could not be adapted to that format.",
+        "download": "The download failed.",
+        "schedule": "Scheduling failed.",
+        "studio": "I could not answer. Try rephrasing in one sentence.",
+        "studio-clear": "The conversation could not be cleared.",
+        "plan-create": "The schedule could not be created.",
+        "plan-generate": "The schedule could not be filled.",
+        "plan-archive": "The schedule could not be archived.",
+        "strategy-save": "Your changes could not be saved.",
+        "visual-delete": "The visual could not be deleted."
+      },
+      "formats": {
+        "square": "Square (post)",
+        "story": "Story (vertical)",
+        "banner": "Banner (cover)",
+        "post": "Portrait",
+        "a4": "Printable poster"
+      },
+      "channels": {
+        "instagram": "Instagram",
+        "facebook": "Facebook",
+        "linkedin": "LinkedIn",
+        "tiktok": "TikTok",
+        "x": "X",
+        "youtube": "YouTube",
+        "blog": "Blog",
+        "email": "Email",
+        "other": "Other"
+      },
+      "networks": {
+        "linkedin": "LinkedIn",
+        "x": "X"
+      },
+      "steps": {
+        "context": "Reading your brand…",
+        "trends": "Looking at your sector…",
+        "strategy": "Writing how you communicate…",
+        "calendar": "Building the schedule…",
+        "occasions": "Looking for the dates that matter…",
+        "brief": "Choosing the main idea…",
+        "content": "Writing your posts…"
+      },
+      "doors": {
+        "visual": {
+          "title": "A visual, right now",
+          "body": "Say what you want to announce. The visual comes out with your colours and your logo.",
+          "price": "2 credits",
+          "hereBelow": "It's right below"
+        },
+        "plan": {
+          "title": "Plan my month",
+          "body": "Pick a period: I prepare everything you will have to publish, day by day.",
+          "price": "15 credits",
+          "cta": "Create my schedule"
+        },
+        "compass": {
+          "title": "Set your line",
+          "body": "Positioning, tone, channels. Every period then derives its angle from it.",
+          "price": "40 credits · once",
+          "cta": "Open the compass"
+        },
+        "voice": {
+          "title": "Say who you are",
+          "body": "Who you talk to, in which tone, on which networks. Everything else follows from it.",
+          "price": "40 credits · once only",
+          "cta": "Get started"
+        }
+      },
+      "compass": {
+        "eyebrow": "Your line",
+        "title": "The compass",
+        "subtitle": "Your positioning and your tone. Each period derives its angle from it.",
+        "open": "Compass",
+        "todo": "to define",
+        "summaryLabel": "In short",
+        "edit": "Edit",
+        "save": "Save",
+        "saved": "Saved",
+        "regenerate": "Regenerate",
+        "empty": {
+          "title": "No compass yet",
+          "body": "It settles your positioning, your key messages and your tone once and for all. Periods then refer to it instead of starting from scratch.",
+          "cta": "Set my line — 40 credits"
+        },
+        "blockKinds": {
+          "positioning": "Positioning",
+          "pillars": "Content pillars",
+          "messaging": "Key messages",
+          "channels": "Channels",
+          "cadence": "Cadence",
+          "kpis": "Indicators",
+          "tone": "Tone of voice",
+          "custom": "Other"
+        }
+      },
+      "plans": {
+        "title": "My schedule",
+        "subtitle": "What you have to publish, and when. You can prepare several — nothing gets erased.",
+        "new": "New schedule",
+        "showArchived": "Show older ones",
+        "hideArchived": "Hide older ones",
+        "empty": {
+          "title": "Nothing planned yet",
+          "body": "Pick a period and I prepare everything you will have to publish. December can be prepared as early as October.",
+          "cta": "Create my first schedule"
+        },
+        "status": {
+          "draft": "To fill",
+          "active": "Running",
+          "done": "Done",
+          "archived": "Older"
+        },
+        "itemCount": "{{count}} posts",
+        "generate": "Fill the schedule — 15 credits",
+        "regenerate": "Redo it all",
+        "archive": "Archive",
+        "notGenerated": "This schedule is still empty.",
+        "brief": {
+          "angle": "The main idea",
+          "keyMessage": "What people should remember",
+          "themes": "The subjects covered",
+          "signals": "How to know it worked"
+        },
+        "viewWeeks": "By week",
+        "viewMonth": "Calendar",
+        "week": "Week {{week}}",
+        "monthCaption": "Planned posts, day by day",
+        "weekdays": {
+          "mon": "Mon",
+          "tue": "Tue",
+          "wed": "Wed",
+          "thu": "Thu",
+          "fri": "Fri",
+          "sat": "Sat",
+          "sun": "Sun"
+        },
+        "createVisual": "Create the visual",
+        "itemDate": "Publication date",
+        "removeItem": "Remove this content",
+        "form": {
+          "title": "New period",
+          "subtitle": "Dates first: they decide everything else.",
+          "name": "Name",
+          "namePlaceholder": "November 2026, Shop launch…",
+          "start": "From",
+          "end": "to",
+          "objective": "Objective",
+          "objectivePlaceholder": "Make the shop known to families in the neighbourhood",
+          "kind": "Nature",
+          "kindRegular": "Regular rhythm",
+          "kindCampaign": "Campaign",
+          "cadence": "Rhythm",
+          "perWeek": "{{count}}/week",
+          "channels": "Channels",
+          "occasions": "Occasions in this period",
+          "occasionsLoading": "Looking for occasions…",
+          "occasionsNone": "No notable occasion in this window.",
+          "occasionsHint": "They will be woven into the contents, on their date.",
+          "summary": "{{days}} days · about {{count}} contents",
+          "submit": "Generate — 15 credits"
+        },
+        "clickHint": "Click a post to see it in full and edit it.",
+        "visualToDo": "Visual to create"
+      },
+      "studio": {
+        "empty": {
+          "title": "What do you have to announce?",
+          "body": "Say it in one sentence. The visual comes out with your colours, your font and your logo.",
+          "body2": "For instance: “a visual to say we are now open on Saturdays”",
+          "example": "“a visual to say we are now open on Saturdays”"
+        },
+        "starters": {
+          "announce": "Announce something",
+          "promotion": "A promotion",
+          "celebration": "Wish a holiday",
+          "recruitment": "Say I'm hiring"
+        },
+        "thinking": "Thinking…",
+        "composing": "Composing the visual…",
+        "composingVariants": "Preparing three options…",
+        "retouching": "Retouching the visual…",
+        "declinating": "Adapting the visual…",
+        "writingCaption": "Writing the post text…",
+        "caption": "The post text",
+        "copy": "Copy",
+        "copied": "Copied",
+        "creditsSpent": "{{count}} credits used",
+        "inputLabel": "Describe what you want to announce",
+        "placeholder": "Say what you want to announce…",
+        "send": "Send",
+        "clear": "Clear the conversation",
+        "pricingHint": "Chatting is free. A visual costs 2 credits.",
+        "schedule": "Add to schedule",
+        "toStory": "As a story",
+        "noPlan": "Create a schedule first to add this visual to it.",
+        "planLabel": "Which schedule",
+        "dateLabel": "On which date",
+        "openVisual": "See it large"
+      },
+      "library": {
+        "title": "My visuals",
+        "subtitle": "Everything created on this project, wherever it came from.",
+        "empty": {
+          "title": "No visual yet",
+          "body": "Go to “Create” to make one, or fill a schedule and create the visuals of its posts."
+        },
+        "filterFormat": "Format",
+        "allFormats": "All formats",
+        "filterOrigin": "Created from",
+        "allOrigins": "Anywhere",
+        "origins": {
+          "plan": "A schedule",
+          "studio": "The Create screen",
+          "occasion": "A special date",
+          "brandbook": "The brand book"
+        },
+        "filterPlan": "Schedule",
+        "allPlans": "All schedules",
+        "count": "{{count}} visuals",
+        "previewAlt": "Visual preview: {{title}}",
+        "brief": "What was asked",
+        "concept": "The idea behind it",
+        "declinate": "Also in another format",
+        "publish": "Publish",
+        "publishHint": "The text is copied and the network opens: all that is left is to paste and publish.",
+        "publishNeedsSchedule": "Add this visual to a schedule first to be able to publish it.",
+        "delete": "Delete this visual",
+        "deleteAsk": "Delete this visual for good?",
+        "deleteConfirm": "Delete"
+      },
+      "voice": {
+        "eyebrow": "Your identity",
+        "title": "How I communicate",
+        "subtitle": "Who you talk to, in which tone, on which networks.",
+        "open": "How I communicate",
+        "todo": "to fill in",
+        "summaryLabel": "In two sentences",
+        "edit": "Edit",
+        "save": "Save",
+        "saved": "Saved",
+        "regenerate": "Rewrite it all",
+        "empty": {
+          "title": "Not filled in yet",
+          "body": "This is where we settle, once and for all, who you talk to, what you have to say and in which tone. Every schedule then uses it instead of starting from scratch.",
+          "cta": "Fill it in — 40 credits"
+        },
+        "blockKinds": {
+          "positioning": "What sets you apart",
+          "pillars": "The subjects you own",
+          "messaging": "What you keep saying",
+          "channels": "Where you show up",
+          "cadence": "How often",
+          "kpis": "What you watch",
+          "tone": "Your tone",
+          "custom": "Other"
+        },
+        "editSection": "Edit “{{section}}”"
+      },
+      "wizard": {
+        "progress": "Progress",
+        "when": {
+          "question": "For which period?",
+          "help": "Pick a length. You can always adjust the dates afterwards.",
+          "presets": {
+            "thisMonth": "This month",
+            "nextMonth": "Next month",
+            "twoWeeks": "The next 2 weeks",
+            "custom": "I'll pick my dates"
+          },
+          "from": "From",
+          "to": "To",
+          "echo": "That is {{days}} days."
+        },
+        "why": {
+          "question": "What do you want to get out of it?",
+          "help": "One sentence, in your own words. It will guide everything else.",
+          "placeholder": "For instance: make my shop known to families in the neighbourhood",
+          "examples": "Or pick an example"
+        },
+        "objectives": {
+          "known": {
+            "label": "Get known",
+            "text": "Make my business known to new people near me"
+          },
+          "sell": {
+            "label": "Sell more",
+            "text": "Bring in more customers and sell more this month"
+          },
+          "loyal": {
+            "label": "Keep my customers",
+            "text": "Stay present with my current customers and make them want to come back"
+          },
+          "hire": {
+            "label": "Hire",
+            "text": "Find someone to join my team"
+          }
+        },
+        "where": {
+          "question": "Where do you publish, and how often?",
+          "help": "Pick your networks. Two networks kept well beat five left empty.",
+          "howOften": "How often",
+          "freq": {
+            "1": "Once a week",
+            "3": "3 times a week",
+            "5": "5 times a week",
+            "7": "Every day"
+          },
+          "echo": "That will be about {{count}} posts."
+        },
+        "recap": {
+          "question": "Let's recap",
+          "posts": "{{count}} posts, ready to publish",
+          "occasions": "Dates not to miss",
+          "occasionsLoading": "Checking the calendar…",
+          "occasionsNone": "No particular date in this period.",
+          "occasionsHint": "They will be woven into the posts, on the right day.",
+          "submit": "Let's go",
+          "price": "15 credits. You can change everything afterwards."
+        }
+      },
+      "detail": {
+        "visualTitle": "The visual",
+        "contentTitle": "What will be published",
+        "noVisual": "No visual for this post yet. It will be created with your colours, your font and your logo.",
+        "chooseFormat": "What is it for?",
+        "createVisual": "Create the visual — 2 credits",
+        "creating": "Composing the visual…",
+        "otherFormats": "Also in another format",
+        "visualCount": "{{count}} versions of this visual",
+        "emptyValue": "Nothing yet",
+        "noCaption": "No text yet. Click Edit to write it.",
+        "captionPlaceholder": "The text you will publish with the visual…",
+        "hashtagsPlaceholder": "shop, coffee, douala",
+        "hashtagsHint": "Separate them with commas. The # is added for you.",
+        "ctaPlaceholder": "Come and see us, Call us…",
+        "dateBounds": "Between {{start}} and {{end}}",
+        "forOccasion": "Planned for: {{occasion}}",
+        "delete": "Remove from schedule",
+        "deleteAsk": "Remove this post? The visual already created stays in “My visuals”.",
+        "deleteConfirm": "Yes, remove it",
+        "fields": {
+          "title": "What it is about",
+          "date": "Publication date",
+          "channel": "Where to publish it",
+          "hook": "The first line",
+          "description": "What we say",
+          "caption": "The post text",
+          "hashtags": "Keywords (#)",
+          "callToAction": "What you ask the reader"
+        }
+      },
+      "preview": {
+        "loading": "Loading the visual…",
+        "failed": "This visual cannot be displayed.",
+        "canvasLabel": "Visual preview",
+        "menuLabel": "What to do with this element",
+        "edit": "Edit",
+        "hint": "Hover the visual, then click whatever you want to change.",
+        "kinds": {
+          "text": "This text",
+          "image": "This image",
+          "block": "This block"
+        }
+      },
+      "thumb": {
+        "loading": "Loading the image…",
+        "failed": "The image could not be displayed.",
+        "retry": "Try again",
+        "openInstead": "Open it large to see it."
+      },
+      "composing": {
+        "title": "Composing your visual",
+        "titleVariants": "Composing {{count}} options",
+        "patience": "This takes 30 seconds to 2 minutes. You can wait here.",
+        "stages": {
+          "grid": "Laying out the page",
+          "image": "Choosing the image",
+          "words": "Writing the text",
+          "compose": "Assembling it in your colours",
+          "check": "Checking the result"
+        }
       }
     },
     "businessCards": {
@@ -3925,7 +4338,10 @@
         "context": "Analyzing context",
         "trends": "Spotting trends",
         "strategy": "Writing the strategy",
-        "calendar": "Building the calendar"
+        "calendar": "Building the calendar",
+        "occasions": "Finding the occasions…",
+        "brief": "Setting the angle…",
+        "content": "Writing the contents…"
       },
       "chips": {
         "strategy": "Generate the strategy",
@@ -4366,6 +4782,98 @@
       "REJECTED": "Rejected",
       "NOT_FOUND": "Not completed",
       "EXPIRED": "Expired"
+    }
+  },
+  "account": {
+    "title": "My account",
+    "subtitle": "Your plan, your credits, your payments and your invoices.",
+    "tabs": {
+      "overview": "Overview",
+      "plans": "Plans",
+      "usage": "Usage",
+      "payments": "Payments & invoices",
+      "profile": "Profile"
+    },
+    "engines": {
+      "business": {
+        "what": "Business plan, branding, legal and financial documents"
+      },
+      "appgen": {
+        "what": "Generating and editing your applications"
+      },
+      "ideploy": {
+        "what": "Hosting and shipping your apps"
+      }
+    },
+    "free": "Free",
+    "freePlan": "Free plan",
+    "severalPlans": "{{count}} active plans",
+    "perMonth": "/month",
+    "credits": "Credits",
+    "creditsShort": "{{count}} credits",
+    "creditsOn": "On the {{plan}} plan",
+    "upgradeTo": "Upgrade to {{plan}}",
+    "topTier": "You are on the most complete plan",
+    "seeAllOffers": "See plans",
+    "yourPlan": "Your plan",
+    "nextStep": "Next step up",
+    "switchDown": "Switch to this plan",
+    "switchDownNote": "Switching to a lower plan replaces your current one and is charged immediately. Credits you already hold are kept.",
+    "cancel": "Cancel plan",
+    "cancelTitle": "Cancel {{plan}}?",
+    "manage": "Manage",
+    "lastPayment": "Latest transaction",
+    "viewReceipt": "View receipt",
+    "statement": "Credit statement",
+    "noStatement": "No credit movement yet.",
+    "allEngines": "All",
+    "quotaTitle": "Free generations",
+    "quotaHint": "Separate from credits: a rate limit that resets on its own, with nothing to pay.",
+    "packsHint": "One specific need, paid once.",
+    "rechargesHint": "More credits, without changing plan.",
+    "bundlesHint": "Several engines, bundled.",
+    "addonsHint": "Services added on top of your plan.",
+    "payments": "Payments",
+    "invoices": "Invoices",
+    "paymentsVsInvoices": "A payment is a debit on your phone. An invoice is the document behind it: a renewal issues one without a new debit, and a declined payment leaves none.",
+    "noInvoices": "No invoices yet.",
+    "invoicesUnavailable": "Your invoices could not be loaded. Try again in a moment.",
+    "periodCovered": "period",
+    "viewInvoice": "View",
+    "details": "Details",
+    "invoice": "Invoice",
+    "invoiceStatus": {
+      "paid": "Paid",
+      "open": "Due",
+      "void": "Voided",
+      "uncollectible": "Uncollectible"
+    },
+    "receiptIssuer": "IDEM Africa",
+    "billedTo": "Billed to",
+    "description": "Description",
+    "amount": "Amount",
+    "total": "Total",
+    "paidOn": "Paid on {{date}}",
+    "print": "Print",
+    "signInMethod": "Signed in with",
+    "emailStatus": "Email address",
+    "emailVerified": "Verified",
+    "emailUnverified": "Not verified",
+    "currentOffer": "Current plan",
+    "preferences": "Preferences",
+    "language": "Language",
+    "theme": "Theme",
+    "outcome": {
+      "title": "Payment summary",
+      "noReference": "No payment was specified.",
+      "notFound": "This payment could not be found on your account.",
+      "backToAccount": "Back to my account",
+      "product": "Item",
+      "paidAt": "Date",
+      "whatChanged": "What this changes",
+      "deliveryPending": "Your payment went through. Activation sometimes takes a moment — this screen updates on its own.",
+      "resume": "Back to work",
+      "seeInvoice": "See my invoices"
     }
   }
 }

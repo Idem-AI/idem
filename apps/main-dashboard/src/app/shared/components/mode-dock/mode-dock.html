@@ -1,0 +1,101 @@
+@if (isVisible()) {
+  <!--
+    Voile mobile : sur petit écran le panneau occupe presque toute la largeur,
+    il doit se lire comme une feuille posée sur la page, pas comme une bulle
+    perdue au-dessus du contenu.
+  -->
+  @if (isOpen()) {
+    <div class="dock-scrim sm:hidden" (click)="close()" aria-hidden="true"></div>
+  }
+
+  <div class="dock-root">
+    <!-- Panneau : chaque mode décrit en une ligne, le mode actif est coché -->
+    @if (isOpen()) {
+      <div
+        id="mode-dock-panel"
+        class="dock-panel"
+        role="menu"
+        [attr.aria-label]="'modes.switcher.panelTitle' | translate"
+      >
+        <div class="dock-panel__head">
+          <p class="dock-panel__title">{{ 'modes.switcher.panelTitle' | translate }}</p>
+          <button
+            type="button"
+            class="dock-panel__close"
+            (click)="close(true)"
+            [attr.aria-label]="'common.close' | translate"
+          >
+            <i class="pi pi-times" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div class="dock-panel__list">
+          @for (option of options; track option.mode; let i = $index) {
+            <button
+              #option
+              type="button"
+              role="menuitemradio"
+              [attr.aria-checked]="option.mode === activeMode()"
+              (click)="select(option.mode)"
+              (keydown)="onPanelKeydown($event, i)"
+              class="dock-option"
+              [class.is-active]="option.mode === activeMode()"
+              [style.--i]="i"
+            >
+              <span class="dock-option__icon">
+                <i [ngClass]="option.icon" aria-hidden="true"></i>
+              </span>
+
+              <span class="dock-option__body">
+                <span class="dock-option__head">
+                  <span class="dock-option__name">{{ option.labelKey | translate }}</span>
+                  @if (option.mode === recommendedMode() && option.mode !== activeMode()) {
+                    <span class="dock-option__badge">
+                      {{ 'modes.switcher.recommended' | translate }}
+                    </span>
+                  }
+                </span>
+                <span class="dock-option__desc">{{ option.descriptionKey | translate }}</span>
+              </span>
+
+              @if (option.mode === activeMode()) {
+                <i class="pi pi-check dock-option__check" aria-hidden="true"></i>
+              }
+            </button>
+          }
+        </div>
+
+        <p class="dock-panel__foot">
+          <i class="pi pi-info-circle" aria-hidden="true"></i>
+          <span>{{ 'modes.switcher.footer' | translate }}</span>
+        </p>
+      </div>
+    }
+
+    <!-- Déclencheur : le mode courant est écrit, jamais deviné à l'icône seule -->
+    <button
+      #trigger
+      type="button"
+      class="dock-trigger"
+      [class.is-open]="isOpen()"
+      (click)="toggle()"
+      [attr.aria-expanded]="isOpen()"
+      aria-haspopup="menu"
+      aria-controls="mode-dock-panel"
+      [attr.aria-label]="'modes.switcher.aria' | translate"
+      [title]="'modes.switcher.tooltip' | translate"
+      data-tour="mode-switcher"
+    >
+      <span class="dock-trigger__icon">
+        <i [ngClass]="activeOption().icon" aria-hidden="true"></i>
+      </span>
+
+      <span class="dock-trigger__label">
+        <span class="dock-trigger__kicker">{{ 'modes.switcher.label' | translate }}</span>
+        <span class="dock-trigger__mode">{{ activeOption().labelKey | translate }}</span>
+      </span>
+
+      <i class="pi pi-chevron-up dock-trigger__chevron" aria-hidden="true"></i>
+    </button>
+  </div>
+}

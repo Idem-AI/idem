@@ -7,9 +7,12 @@
  * banque d'images que tout le monde utilise — le plus gros contributeur au
  * sentiment de « déjà vu » sur les visuels sortis du module.
  *
- * Deux corrections : la requête doit viser une image SPÉCIFIQUE et incarnée, et
+ * Trois corrections : la requête doit viser une image SPÉCIFIQUE et incarnée,
  * le rendu doit suivre la direction artistique de la marque (mêmes lumière,
- * matière et étalonnage que ses autres visuels).
+ * matière et étalonnage que ses autres visuels), et le cadrage doit laisser le
+ * vide LÀ OÙ LE TEXTE TOMBERA — ce que la grille de composition sait déjà, et
+ * qu'on lui transmet (`{{COMPOSITION_NEED}}`) au lieu de demander vaguement
+ * « de l'espace pour le texte ».
  */
 
 export const AGENT_IMAGE_BRIEF_PROMPT = `<role>Art director in charge of a brand's image choices.</role>
@@ -31,7 +34,8 @@ The render style above applies to EVERY image of this brand. It must show up in 
 </art_direction>
 
 <composition_need>
-The photograph is not the visual: text will be laid over it. Describe, in generationPrompt, where the empty space sits (sky, wall, blurred zone, flat) so the composition has somewhere to land.
+The photograph is not the visual: text will be laid over it, and the layout grid ALREADY knows where.
+{{COMPOSITION_NEED}}
 </composition_need>
 
 <output_schema>

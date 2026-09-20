@@ -7,7 +7,6 @@
     "modules/dashboard/components/generation-status-panel",
     "modules/dashboard/components/project-card",
     "modules/dashboard/components/sidebar-dashboard",
-    "modules/dashboard/components/sidebar-global",
     "modules/dashboard/pages/add-team-to-project",
     "modules/dashboard/pages/business-cards",
     "modules/dashboard/pages/create-project",
