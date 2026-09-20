@@ -1,9 +1,0 @@
-{
-  "dashboard": {
-    "pdfViewer": {
-      "loading": "Loading PDF...",
-      "wait": "Please wait while we load your document",
-      "noContent": "No PDF to display"
-    }
-  }
-}

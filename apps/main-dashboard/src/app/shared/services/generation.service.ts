@@ -347,6 +347,19 @@ export class GenerationService {
    * @param serviceType Service type
    * @returns Current state or null
    */
+  /**
+   * Flux d'une génération DÉJÀ en cours, ou `null` s'il n'y en a pas.
+   *
+   * Une génération appartient à l'application, pas à l'écran qui l'a lancée :
+   * lancée depuis le tableau de bord puis suivie depuis le chat, c'est la même
+   * — et la facturer deux fois parce que l'autre mode ne la voyait pas serait
+   * une erreur visible sur la facture.
+   */
+  observeGeneration(serviceType: SSEServiceEventType): Observable<SSEGenerationState> | null {
+    const state = this.generationStates.get(serviceType);
+    return state?.value.isGenerating ? state.asObservable() : null;
+  }
+
   getGenerationState(serviceType: SSEServiceEventType): SSEGenerationState | null {
     return this.generationStates.get(serviceType)?.value || null;
   }

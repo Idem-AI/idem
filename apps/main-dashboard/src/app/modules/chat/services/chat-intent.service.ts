@@ -7,7 +7,8 @@ export type ChatIntentType =
   | 'status'
   | 'export-all'
   | 'complete-branding'
-  | 'generate';
+  | 'generate'
+  | 'documents';
 
 export interface ChatIntent {
   type: ChatIntentType;
@@ -31,8 +32,16 @@ const KIND_PATTERNS: Array<{ kind: DeliverableKind; pattern: RegExp }> = [
     pattern: /financ(es?|ier|ière)|rapport financier|pr[ée]visionnel|tr[ée]sorerie|cash\s*-?flow|bilan/i,
   },
   {
+    kind: 'businessCards',
+    pattern: /cartes? de visite|business cards?|\bcarte de visite\b/i,
+  },
+  {
     kind: 'communication',
     pattern: /communication|marketing|r[ée]seaux sociaux|social media|calendrier [ée]ditorial|strat[ée]gie de comm|posts?\b|flyers?/i,
+  },
+  {
+    kind: 'simulations',
+    pattern: /simulations?|simule[rz]?|simulateur|scénarios?|scenarios?|stress ?test/i,
   },
   {
     kind: 'development',
@@ -43,6 +52,14 @@ const KIND_PATTERNS: Array<{ kind: DeliverableKind; pattern: RegExp }> = [
     pattern: /d[ée]ploie?ment|d[ée]ployer|\bdeploy\b|infrastructure|terraform|h[ée]bergement|hosting|mise en (ligne|production)/i,
   },
 ];
+
+/**
+ * « Mes business plans », « la liste de mes decks » : le projet en garde
+ * plusieurs, et nommer le livrable au pluriel demande la liste, pas le dernier
+ * document écrit.
+ */
+const LIST_PATTERN =
+  /\b(listes?|liste[rz]?|mes|tous (mes|les)|combien de)\b|\ball my\b|\blist (my|all)\b/i;
 
 const SHOW_VERBS = /montre|affiche|voir|ouvr(e|ir)|consulter?|regarde|pr[ée]sente|show|display|open|view|see\b/i;
 const DOWNLOAD_VERBS = /t[ée]l[ée]charge(r|z)?|\bdownload\b|exporte(r|z)?\b(?!.*notion)|\bpdf\b|\bexport\b(?!.*all)/i;
@@ -78,6 +95,11 @@ export class ChatIntentService {
     if (kind) {
       if (DOWNLOAD_VERBS.test(text)) {
         return { type: 'download', kind };
+      }
+      // La liste passe avant la génération : « crée-moi la liste » n'existe
+      // pas, mais « mes business plans » ne doit pas en rédiger un de plus.
+      if ((kind === 'businessPlan' || kind === 'pitchDeck') && LIST_PATTERN.test(text)) {
+        return { type: 'documents', kind };
       }
       if (GENERATE_VERBS.test(text)) {
         return { type: 'generate', kind };

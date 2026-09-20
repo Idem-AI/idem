@@ -61,7 +61,6 @@
     "modules/teams",
     "shared/common",
     "shared/components/not-found",
-    "shared/components/pdf-viewer",
     "shared/errors",
     "shared/modes",
     "shared/navigation",

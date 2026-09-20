@@ -38,6 +38,15 @@ export class DeliverableCardComponent {
 
   protected readonly canUsePdf = computed(() => this.card().available && this.card().pdfSupported);
 
+  /**
+   * Lire le document dans le fil. Un livrable téléchargeable n'est pas
+   * forcément lisible : le rapport financier est produit à la demande, il n'a
+   * pas de pages à montrer avant d'être demandé.
+   */
+  protected readonly canPreview = computed(
+    () => this.card().available && this.card().previewSupported,
+  );
+
   protected readonly showGenerate = computed(
     () => !this.card().available && !!this.card().generateRoute,
   );
