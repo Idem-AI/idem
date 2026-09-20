@@ -26,6 +26,14 @@ export async function get(req: CustomRequest, res: Response): Promise<void> {
   }
 }
 
+export async function listResources(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    ok(res, await service.listWorkspaceResources(req.user!.currentTeamId!, String(req.params.uuid)));
+  } catch (err) {
+    respondWithError(res, err, 'Listing the workspace resources');
+  }
+}
+
 export async function create(req: CustomRequest, res: Response): Promise<void> {
   try {
     ok(res, await service.createWorkspace(req.user!.currentTeamId!, req.body), 201);

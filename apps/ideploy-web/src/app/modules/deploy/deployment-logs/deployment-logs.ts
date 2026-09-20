@@ -23,31 +23,28 @@ import { startWith, switchMap, takeWhile } from 'rxjs/operators';
   imports: [RouterLink, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- Header -->
-    <div class="flex h-16 items-center justify-between border-b px-6 mb-8" style="border-color:var(--color-surface-2);">
-      <a routerLink="/dashboard" class="flex items-center gap-2 text-sm transition-colors hover:text-white" style="color:var(--color-text-secondary);">
-        <i class="fa-solid fa-arrow-left"></i> {{ 'deploy.backToDashboard' | translate }}
-      </a>
-      <span class="text-sm font-semibold font-mono text-white/90">{{ 'deploy.deploymentLogs' | translate }}</span>
-      <span class="w-12"></span>
-    </div>
+    <a routerLink="/dashboard" class="mb-4 inline-flex items-center gap-2 text-sm transition-colors hover:text-white" style="color:var(--color-text-secondary);">
+      <i class="fa-solid fa-chevron-left text-[10px]"></i> {{ 'deploy.backToDashboard' | translate }}
+    </a>
 
-    <div class="mx-auto max-w-4xl px-6 pb-12">
+    <div class="mx-auto max-w-4xl pb-12">
       @if (deployment()) {
-        <!-- Details Card -->
-        <div class="db-glass mb-6 p-6">
-          <div class="flex flex-wrap items-start justify-between gap-4">
+        <!-- Details -->
+        <div class="box box-flush mb-4">
+          <div class="box-header">
             <div>
-              <h1 class="text-2xl font-bold font-mono text-white/95">
+              <h1 class="font-mono text-xl font-bold text-white/95">
                 {{ deployment().application_name }}
               </h1>
-              <p class="text-sm mt-1" style="color:var(--color-text-secondary);">
-                {{ 'deploy.branch' | translate }} <span class="font-mono text-xs px-1.5 py-0.5 rounded bg-white/5 text-white/80"><i class="fa-solid fa-code-branch mr-1"></i>{{ deployment().application_git_branch || 'main' }}</span>
+              <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">
+                {{ 'deploy.branch' | translate }}
+                <span class="rounded px-1.5 py-0.5 font-mono text-xs" style="background:var(--color-surface-2);">
+                  <i class="fa-solid fa-code-branch mr-1" aria-hidden="true"></i>{{ deployment().application_git_branch || 'main' }}
+                </span>
               </p>
             </div>
-            
+
             <div class="flex items-center gap-3">
-              <!-- Status Badge -->
               @switch (deployment().status) {
                 @case ('queued') {
                   <span class="status-badge bg-white/5 text-white/70 border border-white/10">
@@ -71,43 +68,42 @@ import { startWith, switchMap, takeWhile } from 'rxjs/operators';
                 }
               }
 
-              <!-- Live URL Button -->
               @if (deployment().status === 'finished' && deployment().application_url) {
                 <a [href]="deployment().application_url" target="_blank" rel="noopener noreferrer"
-                   class="button cursor-pointer text-xs px-3 py-1.5 inline-flex items-center gap-1.5 shadow-lg shadow-blue-500/10 transition-transform hover:scale-[1.02]">
-                  {{ 'deploy.visitApp' | translate }} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                   class="button inline-flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-xs transition-transform hover:scale-[1.02]">
+                  {{ 'deploy.visitApp' | translate }} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]" aria-hidden="true"></i>
                 </a>
               }
             </div>
           </div>
         </div>
       } @else {
-        <!-- Skeleton Card -->
-        <div class="db-glass mb-6 p-6 dbpulse">
-          <div class="h-6 w-48 rounded bg-white/10 mb-2"></div>
-          <div class="h-4 w-32 rounded bg-white/10"></div>
+        <div class="box box-flush mb-4 dbpulse">
+          <div class="box-header">
+            <div>
+              <div class="mb-2 h-6 w-48 rounded bg-white/10"></div>
+              <div class="h-4 w-32 rounded bg-white/10"></div>
+            </div>
+          </div>
         </div>
       }
 
-      <!-- Terminal Window -->
-      <div class="rounded-xl overflow-hidden border border-white/10 shadow-2xl" style="background-color: #0b0f19;">
-        <!-- Terminal Header -->
-        <div class="flex items-center justify-between px-4 py-3 bg-white/[0.02] border-b border-white/5">
+      <!-- Terminal -->
+      <div class="box box-flush">
+        <div class="box-header">
           <div class="flex items-center gap-1.5">
-            <span class="w-3 h-3 rounded-full bg-[#ff5f56]"></span>
-            <span class="w-3 h-3 rounded-full bg-[#ffbd2e]"></span>
-            <span class="w-3 h-3 rounded-full bg-[#27c93f]"></span>
-            <span class="text-xs font-mono ml-2 text-white/40">build-console</span>
+            <span class="h-3 w-3 rounded-full bg-[#ff5f56]"></span>
+            <span class="h-3 w-3 rounded-full bg-[#ffbd2e]"></span>
+            <span class="h-3 w-3 rounded-full bg-[#27c93f]"></span>
+            <span class="ml-2 font-mono text-xs text-white/40">build-console</span>
           </div>
-          
-          <button (click)="copyLogs()" class="text-xs px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 text-white/80 transition-colors cursor-pointer inline-flex items-center gap-1" [title]="'deploy.copyLogsTitle' | translate">
-            <i class="fa-solid fa-copy"></i> {{ 'deploy.copyLogs' | translate }}
+          <button class="icon-button" (click)="copyLogs()" [title]="'deploy.copyLogsTitle' | translate">
+            <i class="fa-solid fa-copy text-xs" aria-hidden="true"></i>
           </button>
         </div>
 
-        <!-- Terminal Logs -->
         <pre
-          class="p-4 overflow-auto whitespace-pre-wrap font-mono text-xs leading-relaxed text-[#c9d1d9]"
+          class="overflow-auto whitespace-pre-wrap p-4 font-mono text-xs leading-relaxed text-[#c9d1d9]"
           style="max-height: 65vh; min-height: 250px; background-color: #080b12;"
         >@for (line of lines(); track $index) {<span>{{ line }}</span>
 }@if (lines().length === 0) {<span style="color: var(--color-text-tertiary)">{{ 'deploy.waitingForLogs' | translate }}</span>}</pre>
