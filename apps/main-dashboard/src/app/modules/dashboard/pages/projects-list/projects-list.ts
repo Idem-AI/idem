@@ -23,6 +23,21 @@ import { SafeHtmlPipe } from '../../../../shared/pipes/safe-html.pipe';
 
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { AnalyticsService } from '../../../../shared/services/analytics.service';
+import { UiModeService } from '../../../../shared/services/ui-mode.service';
+
+/** Types de projet traduits, tels que proposés à la création. */
+const KNOWN_PROJECT_TYPES = new Set([
+  'enterprise',
+  'ecommerce',
+  'web',
+  'mobile',
+  'iot',
+  'desktop',
+  'api',
+  'ai',
+  'blockchain',
+  'other',
+]);
 
 @Component({
   selector: 'app-projects-list',
@@ -39,6 +54,7 @@ export class ProjectsList implements OnInit {
   private readonly translate = inject(TranslateService);
   private readonly notificationService = inject(NotificationService);
   private readonly analyticsService = inject(AnalyticsService);
+  private readonly uiModeService = inject(UiModeService);
 
   // Data signals and state
   userProjects$!: Observable<ProjectModel[]>;
@@ -64,49 +80,115 @@ export class ProjectsList implements OnInit {
   /** Total number of projects for stats display */
   protected readonly projectCount = signal(0);
 
-  /** Dynamic greeting based on time of day */
+  /**
+   * Rappel du parcours assisté.
+   *
+   * Repris de la console, que cette page remplace : en mode Assisté, on doit
+   * pouvoir reprendre où l'on s'est arrêté sans repasser par un projet.
+   * Seulement s'il existe un projet — sinon il n'y a rien à reprendre.
+   */
+  protected readonly showGuidedResume = computed(
+    () => this.uiModeService.mode() === 'guided' && this.allProjects().length > 0,
+  );
+
+  protected resumeGuidedJourney(): void {
+    void this.router.navigate(['/guided']);
+  }
+
+  /** Salutation selon l'heure. Les clés existent en français et en anglais. */
   protected readonly greeting = computed(() => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 12) return 'dashboard.projectsList.greeting.morning';
+    if (hour < 18) return 'dashboard.projectsList.greeting.afternoon';
+    return 'dashboard.projectsList.greeting.evening';
   });
 
-  /** Filtered project list based on search and type */
+  /**
+   * Type d'un projet, ramené à son code.
+   *
+   * Le champ est un objet `{ code, name }` dans le modèle, mais d'anciens
+   * enregistrements portent encore une simple chaîne. Lire les deux formes ici,
+   * une fois, évite de répéter la question partout — et évite surtout qu'un
+   * projet mal formé ne réponde à aucun filtre.
+   */
+  private typeCodeOf(project: ProjectModel): string {
+    const type = project.type as unknown;
+    if (typeof type === 'string') return type.toLowerCase();
+    const code = (type as { code?: string; name?: string } | null)?.code
+      ?? (type as { name?: string } | null)?.name;
+    return (code ?? '').toLowerCase();
+  }
+
+  /** Date de dernière activité, pour le classement. */
+  private lastTouched(project: ProjectModel): number {
+    const raw = project.updatedAt ?? project.createdAt;
+    const date = raw instanceof Date ? raw : new Date(raw);
+    // Une date absente ou illisible ne doit pas renvoyer NaN : la comparaison
+    // deviendrait imprévisible et l'ordre du tableau, aléatoire.
+    return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+  }
+
+  /**
+   * Les onglets de filtre, déduits des projets réellement présents.
+   *
+   * Ils étaient figés sur quatre types — web, mobile, iot, desktop — alors que
+   * la création en propose dix. Un projet « enterprise » ou « ecommerce », les
+   * plus courants ici, n'apparaissait sous aucun onglet : cliquer vidait la
+   * liste, et les compteurs affichaient zéro. Construire les onglets à partir
+   * des données garantit qu'ils correspondent toujours à ce qu'on a.
+   */
+  protected readonly typeTabs = computed(() => {
+    const counts = new Map<string, number>();
+
+    for (const project of this.allProjects()) {
+      const code = this.typeCodeOf(project);
+      if (!code) continue;
+      counts.set(code, (counts.get(code) ?? 0) + 1);
+    }
+
+    const tabs = [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([code, count]) => ({
+        code,
+        count,
+        // Un code inconnu — donnée ancienne, type retiré du formulaire — n'a
+        // pas de traduction. Sans repli, l'onglet afficherait la clé brute.
+        labelKey: KNOWN_PROJECT_TYPES.has(code) ? `dashboard.projectsList.types.${code}` : null,
+        label: code,
+      }));
+
+    return [
+      {
+        code: 'all',
+        count: this.allProjects().length,
+        labelKey: 'dashboard.projectsList.filters.all',
+        label: 'all',
+      },
+      ...tabs,
+    ];
+  });
+
+  /**
+   * La liste affichée : filtrée, cherchée, puis classée.
+   *
+   * Le classement manquait entièrement — la liste sortait dans l'ordre rendu
+   * par l'API. Le projet modifié en dernier passe désormais devant, ce qui est
+   * l'ordre dans lequel on revient travailler.
+   */
   protected readonly filteredProjects = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     const filter = this.selectedTypeFilter();
-    let list = this.allProjects();
 
-    if (filter !== 'all') {
-      list = list.filter((p) => {
-        const type = typeof p.type === 'string' ? p.type : (p.type as any)?.code || (p.type as any)?.name || '';
-        return type.toLowerCase() === filter.toLowerCase();
-      });
-    }
-
-    if (query) {
-      list = list.filter((p) => 
-        p.name.toLowerCase().includes(query) || 
-        (p.description && p.description.toLowerCase().includes(query))
-      );
-    }
-
-    return list;
-  });
-
-  /** Projects grouped by type count for filters display */
-  protected readonly typeCounts = computed(() => {
-    const projects = this.allProjects();
-    const counts = { all: projects.length, web: 0, mobile: 0, iot: 0, desktop: 0 };
-    for (const p of projects) {
-      const type = typeof p.type === 'string' ? p.type : (p.type as any)?.code || (p.type as any)?.name || '';
-      const lowerType = type.toLowerCase() as keyof typeof counts;
-      if (lowerType in counts) {
-        counts[lowerType]++;
-      }
-    }
-    return counts;
+    return this.allProjects()
+      .filter((project) => filter === 'all' || this.typeCodeOf(project) === filter)
+      .filter((project) => {
+        if (!query) return true;
+        // Un projet sans nom ni description ne doit pas faire échouer la
+        // recherche pour tous les autres.
+        const haystack = `${project.name ?? ''} ${project.description ?? ''}`.toLowerCase();
+        return haystack.includes(query);
+      })
+      .sort((a, b) => this.lastTouched(b) - this.lastTouched(a));
   });
 
   ngOnInit() {

@@ -1062,6 +1062,50 @@ export const AI_CONFIG = {
       temperature: 0.7,
       tokens: 5000,
     }),
+    // Occasions d'une FENÊTRE de dates (et non « les 8 prochaines semaines ») :
+    // du rappel de calendrier, pas du raisonnement. Ce qui compte ici est
+    // l'exactitude des dates — d'où une température basse : à 0.7 le modèle
+    // inventait des journées mondiales plausibles mais fausses.
+    occasions: feature({
+      role: 'mechanical',
+      promptType: 'communication_occasions',
+      temperature: 0.3,
+      tokens: 4000,
+      thinking: false,
+      json: true,
+    }),
+    // Brief d'une période : cinq champs courts dérivés de la boussole. C'est un
+    // travail de décision, pas de volume — budget modeste, mais raisonnement
+    // actif : c'est ce brief qui pilote ensuite TOUS les contenus de la période.
+    planBrief: feature({
+      role: 'reasoning',
+      promptType: 'communication_plan_brief',
+      temperature: 0.7,
+      topP: 0.95,
+      tokens: 8000,
+    }),
+    // Contenus datés d'une période. Mêmes réglages que l'ancien calendrier : le
+    // volume de sortie ET l'exigence de non-répétition sur 12 à 20 idées
+    // justifient le modèle de raisonnement et une température haute.
+    planContent: feature({
+      role: 'reasoning',
+      promptType: 'communication_plan_content',
+      temperature: 0.8,
+      topP: 0.95,
+      topK: 64,
+      tokens: 20000,
+    }),
+    // L'ATELIER : un agent à outils, en conversation. Il ne produit pas de
+    // livrable, il TRADUIT une demande en appel d'outil — donc peu de tokens de
+    // sortie, mais du raisonnement (choisir le format, l'intention, et savoir
+    // quand retoucher plutôt que recréer). Le `role: 'writing'` suffit : la
+    // composition, elle, tourne sur `flyer`.
+    studio: feature({
+      role: 'writing',
+      promptType: 'communication_studio',
+      temperature: 0.6,
+      tokens: 6000,
+    }),
     // Contenu d'un moment : la légende est publiée telle quelle par
     // l'utilisateur — c'est de l'écriture, pas du remplissage de gabarit.
     moment: feature({

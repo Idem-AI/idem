@@ -183,7 +183,8 @@
                   [ngClass]="{
                     'bg-primary shadow-lg shadow-primary/20':
                       store.activeConversationId() === conversation.id,
-                    'hover:bg-[var(--glass-bg-light)]': store.activeConversationId() !== conversation.id,
+                    'hover:bg-[var(--glass-bg-light)]':
+                      store.activeConversationId() !== conversation.id,
                   }"
                 >
                   <button
@@ -226,7 +227,6 @@
   <!-- Pied : switch de mode + utilisateur -->
   <div class="p-3 border-t border-[var(--glass-border)] space-y-3 shrink-0">
     @if (!isCollapsed) {
-      <app-mode-switcher [current]="'chat'" [dropUp]="true" />
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 min-w-0">
           @if (user()?.photoURL) {
@@ -255,7 +255,6 @@
       </div>
     } @else {
       <div class="flex flex-col items-center gap-3">
-        <app-mode-switcher [current]="'chat'" [compact]="true" />
         @if (user()?.photoURL) {
           <img
             [src]="user()!.photoURL"

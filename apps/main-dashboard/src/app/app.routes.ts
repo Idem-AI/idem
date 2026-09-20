@@ -20,15 +20,17 @@ export const routes: Routes = [
   },
 
   // ============================================
-  // GLOBAL DASHBOARD ROUTES (layout: 'global')
+  // CONSOLE ET PROJETS
   // ============================================
   {
+    // `/console` et `/projects` servaient deux listes de projets différentes,
+    // à maintenir séparément : celle-ci cherchait, filtrait et classait, celle
+    // -là non. Une seule page désormais, sous les deux adresses — `/console`
+    // reste l'adresse historique, liée depuis le logo et d'autres applications.
     path: 'console',
     title: 'navigation.titles.console',
     loadComponent: () =>
-      import('./modules/dashboard/pages/global-dashboard/global-dashboard').then(
-        (m) => m.GlobalDashboard,
-      ),
+      import('./modules/dashboard/pages/projects-list/projects-list').then((m) => m.ProjectsList),
     canActivate: [authGuard, surveyGuard],
     data: { layout: 'empty' },
   },
@@ -38,35 +40,103 @@ export const routes: Routes = [
     pathMatch: 'full',
   },
   {
+    // Choisir un projet n'est pas naviguer dans un projet : la barre latérale
+    // n'aurait ici que des liens vers les sections d'un projet qu'on n'a pas
+    // encore choisi. Barre du haut seule.
     path: 'projects',
     title: 'navigation.titles.projects',
     loadComponent: () =>
       import('./modules/dashboard/pages/projects-list/projects-list').then((m) => m.ProjectsList),
     canActivate: [authGuard, surveyGuard],
-    data: { layout: 'global' },
+    data: { layout: 'empty' },
   },
 
   // ============================================
-  // FACTURATION (layout: 'global')
+  // MON COMPTE (layout: 'dashboard')
+  //
+  // Un seul espace pour l'offre, les crédits, les paiements, les factures et
+  // le profil. Ces informations vivaient sur trois écrans sans lien entre eux,
+  // sous une seconde barre latérale ; elles répondent toutes à la même
+  // question — « où en est mon compte » — et tiennent donc au même endroit.
   // ============================================
   {
-    path: 'billing',
-    title: 'billing.overview.title',
+    path: 'account',
     loadComponent: () =>
-      import('./modules/billing/pages/billing-overview/billing-overview').then(
-        (m) => m.BillingOverviewPage,
+      import('./modules/account/pages/account-shell/account-shell').then((m) => m.AccountShellPage),
+    canActivate: [authGuard],
+    // Même règle que la liste des projets : le compte n'appartient à aucun
+    // projet, donc pas de navigation de projet à l'écran.
+    data: { layout: 'empty' },
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        title: 'account.tabs.overview',
+        loadComponent: () =>
+          import('./modules/account/pages/account-overview/account-overview').then(
+            (m) => m.AccountOverviewPage,
+          ),
+      },
+      {
+        path: 'plans',
+        title: 'billing.plans.title',
+        loadComponent: () =>
+          import('./modules/account/pages/account-plans/account-plans').then(
+            (m) => m.AccountPlansPage,
+          ),
+      },
+      {
+        path: 'usage',
+        title: 'account.tabs.usage',
+        loadComponent: () =>
+          import('./modules/account/pages/account-usage/account-usage').then(
+            (m) => m.AccountUsagePage,
+          ),
+      },
+      {
+        path: 'payments',
+        title: 'account.tabs.payments',
+        loadComponent: () =>
+          import('./modules/account/pages/account-payments/account-payments').then(
+            (m) => m.AccountPaymentsPage,
+          ),
+      },
+      {
+        path: 'profile',
+        title: 'navigation.titles.profilePage',
+        loadComponent: () =>
+          import('./modules/account/pages/account-profile/account-profile').then(
+            (m) => m.AccountProfilePage,
+          ),
+      },
+    ],
+  },
+
+  // ============================================
+  // FACTURATION
+  //
+  // `/billing/*` reste l'adresse publique du paiement : AppGen, Simulation et
+  // iDeploy y renvoient depuis leurs propres interfaces, et des liens déjà
+  // partagés la portent. Les anciennes pages de consultation redirigent vers
+  // « Mon compte » ; seul le paiement lui-même vit encore ici.
+  // ============================================
+  {
+    // Après paiement : ce qui a été débité, ce que ça change, où reprendre.
+    // Avec la barre du haut, et non en pleine page comme le paiement : une fois
+    // payé, on veut justement pouvoir repartir travailler.
+    path: 'billing/success',
+    title: 'account.outcome.title',
+    loadComponent: () =>
+      import('./modules/account/pages/payment-outcome/payment-outcome').then(
+        (m) => m.PaymentOutcomePage,
       ),
     canActivate: [authGuard],
-    data: { layout: 'global' },
+    data: { layout: 'empty' },
   },
-  {
-    path: 'billing/plans',
-    title: 'billing.plans.title',
-    loadComponent: () =>
-      import('./modules/billing/pages/billing-plans/billing-plans').then((m) => m.BillingPlansPage),
-    canActivate: [authGuard],
-    data: { layout: 'global' },
-  },
+  { path: 'billing', redirectTo: 'account', pathMatch: 'full' },
+  { path: 'billing/plans', redirectTo: 'account/plans', pathMatch: 'full' },
+  // Lié depuis trois menus sans avoir jamais existé : menait au 404.
+  { path: 'settings', redirectTo: 'account/profile', pathMatch: 'full' },
   // Page de paiement partagée : AppGen, Simulation et iDeploy y renvoient avec
   // un code produit et une adresse de retour filtrée.
   {
@@ -461,14 +531,9 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
 
-  {
-    path: 'project/profile',
-    title: 'navigation.titles.profilePage',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/profile/profile').then((m) => m.ProfileComponent),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
-    data: { layout: 'dashboard' },
-  },
+  // Le profil a rejoint « Mon compte » : l'identité et l'offre se consultaient
+  // sur deux écrans qui se contredisaient.
+  { path: 'project/profile', redirectTo: 'account/profile', pathMatch: 'full' },
 
   // ============================================
   // FINANCE MODULE ROUTES (layout: 'dashboard')

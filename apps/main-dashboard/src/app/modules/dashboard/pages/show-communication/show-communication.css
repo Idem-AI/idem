@@ -16,3 +16,21 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/*
+ * Pastille « à définir » sur « Ma façon de communiquer ».
+ *
+ * En CSS et non en classes Tailwind à valeur arbitraire : dans une liaison
+ * échappée, le scanner de Tailwind ne voit pas toujours la classe, et le style
+ * disparaît sans bruit en production.
+ */
+.sc-todo {
+  margin-left: 0.3rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-accent-500) 20%, transparent);
+  padding: 0.1rem 0.4rem;
+  font-size: 0.56rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-accent-500);
+}

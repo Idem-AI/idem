@@ -55,7 +55,7 @@ export class TourService {
           { key: 'progress', target: '[data-tour="guided-progress"]', placement: 'bottom' },
           { key: 'steps', target: '[data-tour="guided-steps"]', placement: 'right' },
           { key: 'current', target: '[data-tour="guided-current"]', placement: 'right' },
-          { key: 'switch', target: '[data-tour="mode-switcher"]', placement: 'bottom' },
+          { key: 'switch', target: '[data-tour="mode-switcher"]', placement: 'top' },
           { key: 'done', celebrate: true },
         ];
       case 'chat':
@@ -64,7 +64,7 @@ export class TourService {
           { key: 'composer', target: '[data-tour="chat-composer"]', placement: 'top' },
           { key: 'conversations', target: '[data-tour="chat-sidebar"]', placement: 'right' },
           { key: 'export', target: '[data-tour="chat-export"]', placement: 'bottom' },
-          { key: 'switch', target: '[data-tour="mode-switcher"]', placement: 'bottom' },
+          { key: 'switch', target: '[data-tour="mode-switcher"]', placement: 'top' },
           { key: 'done', celebrate: true },
         ];
       default:
@@ -72,7 +72,7 @@ export class TourService {
           { key: 'welcome' },
           { key: 'project', target: '[data-tour="project-selector"]', placement: 'bottom' },
           { key: 'nav', target: '[data-tour="dashboard-nav"]', placement: 'right' },
-          { key: 'switch', target: '[data-tour="mode-switcher"]', placement: 'bottom' },
+          { key: 'switch', target: '[data-tour="mode-switcher"]', placement: 'top' },
           { key: 'done', celebrate: true },
         ];
     }

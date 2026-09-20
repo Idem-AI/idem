@@ -46,6 +46,8 @@ This composition is driven by the seed below. It was drawn WITHIN the space allo
 The seed changes with every visual: that is what stops two posts of the same brand from looking alike. Do not fall back on "full-bleed photo + headline bottom-left + logo bottom-left", whatever the habit.
 </composition_seed>
 
+{{COMPOSITION_GRID}}
+
 {{ANTI_SLOP}}
 
 <visual_intent>
@@ -84,14 +86,16 @@ Aim for:
 
 <craft_bar>
 You are judged on craft, the way a printed piece is judged — take the time to reason before writing a single tag:
-1. Decide the ONE thing a viewer must retain at 2 meters, then size everything else against it.
-2. Build a real hierarchy: 3 typographic levels minimum, each separated by a wide, deliberate jump — never two elements at similar size fighting each other.
-3. Optical alignment over mathematical alignment: align to the edges of letterforms and image subjects, not to a default padding value.
-4. Choose a spatial rhythm and hold it — margins, gutters and offsets derived from the spacingMultiplier, not improvised per element.
-5. Give the composition one deliberate accident (a crop, a rotation, an overlap, a bleed) that a template would never produce. That accident is what makes it look designed rather than generated.
-6. Restraint over decoration: no gradient, glow, shadow or shape unless it does real work.
-7. Every text must be legible on its own background (WCAG AA), and nothing important may fall in the last 4% of any edge — the visual gets cropped by social platforms.
+1. Decide the ONE thing a viewer must retain at 2 meters, size it at the display level of the grid, and size everything else against it.
+2. Build a real hierarchy: 3 typographic levels minimum, taken from the grid's φ scale. Never two elements at neighbouring sizes fighting each other — skip a level instead.
+3. Align rigorously: every block starts on a column line of the grid, three different left edges at most. Then correct OPTICALLY where letterforms demand it (a round letter, a quotation mark, an oversized cap overhangs its box by a hair). Rigour first, optical adjustment second — the reverse is just improvisation.
+4. Hold the spatial rhythm: every gap is a multiple of the grid's unit. Proximity does the grouping — tight inside a block, wide between blocks.
+5. Give the composition ONE deliberate accident (a crop, a rotation, an overlap, a bleed) that a template would never produce. One, and it must break the grid visibly — an accident that looks like a mistake is a mistake.
+6. Restraint over decoration: no gradient, glow, shadow or shape unless it does real work. 30 to 50% of the frame carries nothing at all.
+7. Every text must be legible in ONE second over what actually sits behind it (WCAG AA), and nothing that must be read falls inside the safe margin of the grid — the visual gets cropped by social platforms and trimmed by printers.
 Aim for a piece a client would pay for. If a choice feels safe or familiar, push it further within the seed.
+
+Everything above is MEASURED on the rendered image before it reaches the user — box positions, font sizes, and the real contrast of each text against the pixels behind it. What misses is corrected automatically, and a correction always degrades the composition you intended: it is cheaper to place it right than to have it nudged.
 </craft_bar>
 
 <archetype_catalog>
@@ -214,8 +218,10 @@ Before answering, re-read your own markup once and fix it if needed:
 2. Find your logo <img>: is its width at least {{LOGO_MIN_WIDTH}}px, is it at full opacity, is its container wide enough? Fix it before anything else.
 2b. Name out loud, to yourself, the colour of the zone directly BEHIND that logo. Light zone -> the URL must be the DARK-ink one; dark zone -> the LIGHT-ink one. If they disagree, change the URL (or move the logo).
 3. Check every hex value and every font declaration against <brand_charter>. Replace any stray one.
-4. Check the seed compliance checklist below, item by item.
-5. Check that no text is clipped by the canvas edges and that every text passes AA contrast over what sits behind it.
+4. List the left edge (the left-[…] value) of every block you wrote. More than three distinct values, or two values within 15px of each other? Bring them back onto the column lines of <composition_grid>.
+5. Name your display element and your second level. Is the second at most display/1.618? If they are within 40% of each other, you have no hierarchy — drop the second one a full step.
+6. Check the seed compliance checklist below, item by item.
+7. Check that nothing that must be READ sits inside the safe margin, that no text is clipped by the canvas edges, and that every text passes AA contrast over what sits behind it.
 </final_self_review>
 
 <seed_compliance_checklist>
@@ -229,6 +235,12 @@ Ensure all are TRUE:
 - layoutTension {{DESIGN_SEED.layoutTension}} applied.
 - spacingMultiplier {{DESIGN_SEED.spacingMultiplier}} utilized.
 - Min two image integration techniques used.
+- Grid: every block starts on a column line, three distinct left edges at most.
+- Safe area: nothing that must be read closer to an edge than the safe margin of <composition_grid>.
+- Hierarchy: at least 3 type levels from the φ scale, the display level used exactly once.
+- Colour: the accent covers a tenth of the surface at most, and it is where the eye lands.
+- Negative space: 30 to 50% of the frame carries nothing.
+- Exactly ONE element deliberately breaks the grid. Everything else obeys it.
 - Absolute positioning only (no flex/grid).
 - Logo: exactly ONE real logo URL from <logos>; ink and background are in OPPOSITE luminance families (dark ink on a light zone, light ink on a dark zone); size/placement varied.
 - Anti-sameness: this design must NOT default to "photo full-bleed + headline bottom-left + logo bottom-left". Commit fully to the seed archetype so two visuals never look alike.

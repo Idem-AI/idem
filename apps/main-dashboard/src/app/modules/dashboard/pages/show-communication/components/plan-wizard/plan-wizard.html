@@ -1,0 +1,285 @@
+<div class="pw-backdrop" (click)="cancel()" (keydown.escape)="cancel()" tabindex="-1">
+  <div
+    class="pw-panel glass-card"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="pw-question"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- ─────────────── Progression ─────────────── -->
+    <div class="pw-progress" role="group" [attr.aria-label]="'dashboard.showCommunication.wizard.progress' | translate">
+      @for (index of [1, 2, 3, 4]; track index) {
+        <span
+          class="pw-dot"
+          [class.pw-dot-done]="index < step()"
+          [class.pw-dot-current]="index === step()"
+          [attr.aria-current]="index === step() ? 'step' : null"
+        ></span>
+      }
+      <button
+        type="button"
+        class="pw-close"
+        [attr.aria-label]="'common.close' | translate"
+        (click)="cancel()"
+      >
+        <i class="pi pi-times" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <!-- ═══════════ 1. Quand ? ═══════════ -->
+    @if (step() === 1) {
+      <h2 id="pw-question" class="pw-question">
+        {{ 'dashboard.showCommunication.wizard.when.question' | translate }}
+      </h2>
+      <p class="pw-help">{{ 'dashboard.showCommunication.wizard.when.help' | translate }}</p>
+
+      <div class="pw-cards">
+        @for (option of presets; track option) {
+          <button
+            type="button"
+            class="pw-card"
+            [class.pw-card-active]="preset() === option"
+            [attr.aria-pressed]="preset() === option"
+            (click)="choosePreset(option)"
+          >
+            <span class="pw-card-title">
+              {{ 'dashboard.showCommunication.wizard.when.presets.' + option | translate }}
+            </span>
+          </button>
+        }
+      </div>
+
+      <!-- Les dates restent visibles et modifiables : un raccourci ne doit pas
+           cacher ce qu'il a choisi à votre place. -->
+      <div class="pw-dates">
+        <div>
+          <label for="pw-start" class="pw-label">
+            {{ 'dashboard.showCommunication.wizard.when.from' | translate }}
+          </label>
+          <input
+            id="pw-start"
+            type="date"
+            class="pw-input"
+            [ngModel]="start()"
+            (ngModelChange)="setStart($event)"
+            name="pwStart"
+          />
+        </div>
+        <div>
+          <label for="pw-end" class="pw-label">
+            {{ 'dashboard.showCommunication.wizard.when.to' | translate }}
+          </label>
+          <input
+            id="pw-end"
+            type="date"
+            class="pw-input"
+            [ngModel]="end()"
+            (ngModelChange)="setEnd($event)"
+            [min]="start()"
+            name="pwEnd"
+          />
+        </div>
+      </div>
+
+      @if (days() > 0) {
+        <p class="pw-echo">
+          {{ 'dashboard.showCommunication.wizard.when.echo' | translate: { days: days() } }}
+        </p>
+      }
+    }
+
+    <!-- ═══════════ 2. Pour obtenir quoi ? ═══════════ -->
+    @if (step() === 2) {
+      <h2 id="pw-question" class="pw-question">
+        {{ 'dashboard.showCommunication.wizard.why.question' | translate }}
+      </h2>
+      <p class="pw-help">{{ 'dashboard.showCommunication.wizard.why.help' | translate }}</p>
+
+      <label class="sr-only" for="pw-objective">
+        {{ 'dashboard.showCommunication.wizard.why.question' | translate }}
+      </label>
+      <textarea
+        id="pw-objective"
+        rows="3"
+        class="pw-input pw-textarea"
+        [ngModel]="objective()"
+        (ngModelChange)="objective.set($event)"
+        name="pwObjective"
+        [attr.placeholder]="'dashboard.showCommunication.wizard.why.placeholder' | translate"
+      ></textarea>
+
+      <p class="pw-label pw-mt">
+        {{ 'dashboard.showCommunication.wizard.why.examples' | translate }}
+      </p>
+      <div class="pw-chips">
+        @for (hint of objectiveHints; track hint) {
+          <button type="button" class="outer-button button-sm" (click)="useHint(hint)">
+            {{ 'dashboard.showCommunication.wizard.objectives.' + hint + '.label' | translate }}
+          </button>
+        }
+      </div>
+    }
+
+    <!-- ═══════════ 3. Où et combien ? ═══════════ -->
+    @if (step() === 3) {
+      <h2 id="pw-question" class="pw-question">
+        {{ 'dashboard.showCommunication.wizard.where.question' | translate }}
+      </h2>
+      <p class="pw-help">{{ 'dashboard.showCommunication.wizard.where.help' | translate }}</p>
+
+      <div class="pw-networks">
+        @for (channel of channels; track channel) {
+          <button
+            type="button"
+            class="pw-network"
+            [class.pw-network-active]="isPicked(channel)"
+            [attr.aria-pressed]="isPicked(channel)"
+            (click)="toggleChannel(channel)"
+          >
+            <i [class]="channelIcon(channel)" class="pw-network-icon" aria-hidden="true"></i>
+            <span>{{ channelLabelKey(channel) | translate }}</span>
+            @if (isPicked(channel)) {
+              <i class="pi pi-check pw-network-check" aria-hidden="true"></i>
+            }
+          </button>
+        }
+      </div>
+
+      <h3 class="pw-label pw-mt">
+        {{ 'dashboard.showCommunication.wizard.where.howOften' | translate }}
+      </h3>
+      <div class="pw-cards pw-cards-tight">
+        @for (value of frequencies; track value) {
+          <button
+            type="button"
+            class="pw-card"
+            [class.pw-card-active]="frequency() === value"
+            [attr.aria-pressed]="frequency() === value"
+            (click)="setFrequency(value)"
+          >
+            <span class="pw-card-title">
+              {{ 'dashboard.showCommunication.wizard.where.freq.' + value | translate }}
+            </span>
+          </button>
+        }
+      </div>
+
+      @if (itemCount() > 0)
+      {
+        <p class="pw-echo">
+          {{
+            'dashboard.showCommunication.wizard.where.echo' | translate: { count: itemCount() }
+          }}
+        </p>
+      }
+    }
+
+    <!-- ═══════════ 4. Récapitulatif ═══════════ -->
+    @if (step() === 4) {
+      <h2 id="pw-question" class="pw-question">
+        {{ 'dashboard.showCommunication.wizard.recap.question' | translate }}
+      </h2>
+
+      <ul class="pw-recap">
+        <li class="pw-recap-row">
+          <i class="pi pi-calendar pw-recap-icon" aria-hidden="true"></i>
+          <span>{{ range() }}</span>
+        </li>
+        <li class="pw-recap-row">
+          <i class="pi pi-file-edit pw-recap-icon" aria-hidden="true"></i>
+          <span>
+            {{
+              'dashboard.showCommunication.wizard.recap.posts' | translate: { count: itemCount() }
+            }}
+          </span>
+        </li>
+        <li class="pw-recap-row">
+          <i class="pi pi-share-alt pw-recap-icon" aria-hidden="true"></i>
+          <span class="pw-recap-nets">
+            @for (channel of picked(); track channel) {
+              <span class="pw-recap-net">
+                <i [class]="channelIcon(channel)" aria-hidden="true"></i>
+                {{ channelLabelKey(channel) | translate }}
+              </span>
+            }
+          </span>
+        </li>
+        @if (objective()) {
+          <li class="pw-recap-row">
+            <i class="pi pi-flag pw-recap-icon" aria-hidden="true"></i>
+            <span>{{ objective() }}</span>
+          </li>
+        }
+      </ul>
+
+      <!-- Les dates à ne pas rater : l'ancien onglet « Moments » vivait ici -->
+      <div class="pw-occasions">
+        <h3 class="pw-label">
+          {{ 'dashboard.showCommunication.wizard.recap.occasions' | translate }}
+        </h3>
+        @if (isLoadingOccasions()) {
+          <p class="pw-note" role="status" aria-live="polite">
+            <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+            {{ 'dashboard.showCommunication.wizard.recap.occasionsLoading' | translate }}
+          </p>
+        } @else if (occasions().length === 0) {
+          <p class="pw-note">
+            {{ 'dashboard.showCommunication.wizard.recap.occasionsNone' | translate }}
+          </p>
+        } @else {
+          <ul class="pw-occasion-list">
+            @for (occasion of occasions(); track occasion.id) {
+              <li class="pw-occasion">
+                <span aria-hidden="true">{{ occasion.emoji || '•' }}</span>
+                <span class="pw-occasion-name">{{ occasion.occasion }}</span>
+                @if (occasion.date) {
+                  <span class="pw-note">{{ occasion.date }}</span>
+                }
+              </li>
+            }
+          </ul>
+          <p class="pw-note">
+            {{ 'dashboard.showCommunication.wizard.recap.occasionsHint' | translate }}
+          </p>
+        }
+      </div>
+    }
+
+    <!-- ─────────────── Pied : navigation ─────────────── -->
+    <footer class="pw-footer">
+      @if (step() > 1) {
+        <button type="button" class="outer-button" (click)="back()">
+          <i class="pi pi-arrow-left" aria-hidden="true"></i>
+          {{ 'common.previous' | translate }}
+        </button>
+      } @else {
+        <button type="button" class="outer-button" (click)="cancel()">
+          {{ 'common.cancel' | translate }}
+        </button>
+      }
+
+      @if (step() < totalSteps) {
+        <button
+          type="button"
+          class="inner-button"
+          [disabled]="!canAdvance()"
+          (click)="next()"
+        >
+          {{ 'common.next' | translate }}
+          <i class="pi pi-arrow-right" aria-hidden="true"></i>
+        </button>
+      } @else {
+        <button type="button" class="inner-button" (click)="submit()">
+          <i class="pi pi-sparkles" aria-hidden="true"></i>
+          {{ 'dashboard.showCommunication.wizard.recap.submit' | translate }}
+        </button>
+      }
+    </footer>
+
+    @if (step() === totalSteps) {
+      <p class="pw-price">
+        {{ 'dashboard.showCommunication.wizard.recap.price' | translate }}
+      </p>
+    }
+  </div>
+</div>

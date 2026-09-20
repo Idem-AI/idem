@@ -1,0 +1,214 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+/*
+ * Sélection d'un planning et jour courant.
+ *
+ * Posés en CSS plutôt qu'en classes Tailwind à valeur arbitraire : une classe
+ * comme `ring-[var(--color-accent-500)]` doit être vue par le scanner de Tailwind
+ * pour exister, et dans une liaison `[class.…]` échappée elle ne l'est pas
+ * toujours — le style disparaîtrait alors silencieusement en production.
+ */
+.is-selected {
+  outline: 2px solid var(--color-accent-500);
+  outline-offset: 0;
+}
+
+.is-today {
+  font-weight: 700;
+  color: var(--color-accent-500);
+}
+
+.pp-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Carte d'une publication ─────────────────────────────────────────────── */
+
+/*
+ * La carte ENTIÈRE est cliquable. Un bouton plutôt qu'un div avec un
+ * `(click)` : le clavier y accède, le lecteur d'écran l'annonce comme une
+ * action, et le focus est visible sans rien ajouter.
+ */
+.pp-card {
+  display: flex;
+  width: 100%;
+  gap: 0.75rem;
+  border-radius: 1rem;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-subtle);
+  padding: 0.7rem;
+  text-align: left;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.pp-card:hover {
+  border-color: var(--color-primary);
+  background: var(--glass-bg-medium);
+  transform: translateY(-1px);
+}
+
+.pp-card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.pp-card-thumb {
+  display: block;
+  width: 4.5rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 0.6rem;
+}
+
+.pp-card-thumb app-visual-thumb {
+  display: block;
+}
+
+.pp-card-noimg {
+  display: flex;
+  aspect-ratio: 1 / 1;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--glass-border-medium);
+  border-radius: 0.6rem;
+  color: var(--color-text-tertiary);
+}
+
+.pp-card-body {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pp-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.pp-card-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-text-primary);
+}
+
+.pp-card-status {
+  flex-shrink: 0;
+  border-radius: 999px;
+  border-width: 1px;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+}
+
+.pp-card-occasion {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-accent-500);
+}
+
+.pp-card-hook {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.pp-card-meta {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.7rem;
+  color: var(--color-text-tertiary);
+}
+
+/* « Visuel à créer » : ce qui reste à faire se lit sur la carte, sans l'ouvrir. */
+.pp-card-todo {
+  border-radius: 999px;
+  border: 1px solid var(--color-accent-500);
+  padding: 0.05rem 0.4rem;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-accent-500);
+}
+
+/* ── Calendrier ──────────────────────────────────────────────────────────── */
+
+.pp-weekday {
+  padding-bottom: 0.5rem;
+  text-align: center;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.pp-day {
+  height: 6rem;
+  width: 14.28%;
+  border: 1px solid var(--glass-border);
+  padding: 0.25rem;
+  vertical-align: top;
+}
+
+.pp-day-out {
+  opacity: 0.4;
+}
+
+.pp-day-num {
+  display: block;
+  text-align: right;
+  font-size: 0.65rem;
+  color: var(--color-text-tertiary);
+}
+
+.pp-day-item {
+  margin-top: 0.25rem;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 0.3rem;
+  background: var(--glass-bg-medium);
+  padding: 0.1rem 0.25rem;
+  text-align: left;
+  font-size: 0.65rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-primary);
+}
+
+.pp-day-item:hover {
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+
+.pp-day-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}

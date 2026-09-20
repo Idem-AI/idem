@@ -1,0 +1,57 @@
+<div class="vp-frame" [style.max-height.px]="maxHeight()">
+  @if (isLoading()) {
+    <p class="vp-state" role="status" aria-live="polite">
+      <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+      {{ 'dashboard.showCommunication.preview.loading' | translate }}
+    </p>
+  } @else if (loadFailed()) {
+    <p class="vp-state">
+      <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+      {{ 'dashboard.showCommunication.preview.failed' | translate }}
+    </p>
+  }
+
+  <app-editor-canvas
+    mode="preview"
+    variant="inline"
+    [pageFormat]="pageFormat()"
+    [fitRoot]="true"
+    [fonts]="fonts()"
+    [label]="'dashboard.showCommunication.preview.canvasLabel' | translate"
+    (selectionChange)="onSelectionChange($event)"
+    (escape)="closeMenu()"
+  >
+    <!--
+      Menu posé DANS le repère du document zoomé : il suit l'élément cliqué même
+      après un changement de zoom ou un défilement.
+    -->
+    @if (menu(); as position) {
+      <div
+        class="vp-menu"
+        [style.left.px]="position.left"
+        [style.top.px]="position.top"
+        role="group"
+        [attr.aria-label]="'dashboard.showCommunication.preview.menuLabel' | translate"
+      >
+        <span class="vp-menu-kind">{{ selectionLabel() | translate }}</span>
+        <button #menuEdit type="button" class="vp-menu-edit" (click)="edit()">
+          <i class="pi pi-pencil" aria-hidden="true"></i>
+          {{ 'dashboard.showCommunication.preview.edit' | translate }}
+        </button>
+        <button
+          type="button"
+          class="vp-menu-close"
+          [attr.aria-label]="'common.close' | translate"
+          (click)="closeMenu()"
+        >
+          <i class="pi pi-times" aria-hidden="true"></i>
+        </button>
+      </div>
+    }
+  </app-editor-canvas>
+</div>
+
+<p class="vp-hint">
+  <i class="pi pi-info-circle" aria-hidden="true"></i>
+  {{ 'dashboard.showCommunication.preview.hint' | translate }}
+</p>

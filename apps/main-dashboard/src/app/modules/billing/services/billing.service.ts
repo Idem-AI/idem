@@ -16,6 +16,8 @@ import {
   ProviderPrediction,
   Quote,
 } from '../models/billing.model';
+import { BILLING_ENGINES, EnginePlanView, buildEnginePlanView } from '../models/plan.model';
+import { BillingInvoice } from '../models/invoice.model';
 
 /** Dernier catalogue reçu de l'API, relu quand elle ne répond plus. */
 const CATALOG_SNAPSHOT_KEY = 'idem.billing.catalog';
@@ -63,6 +65,57 @@ export class BillingService {
   readonly betaActive = computed(() =>
     (this.me()?.subscriptions ?? []).some((subscription) => subscription.complimentary),
   );
+
+  /**
+   * L'offre de chaque moteur, prête à afficher.
+   *
+   * Dérivée du catalogue et des droits plutôt que recalculée dans chaque page :
+   * « quelle est mon offre » et « qu'y a-t-il au-dessus » sont les deux
+   * questions posées par la barre latérale, l'aperçu du compte et la page des
+   * offres, et elles doivent y recevoir exactement la même réponse.
+   *
+   * Vide tant que le catalogue n'est pas là : afficher « Découverte » par
+   * défaut ferait passer un abonné payant pour un compte gratuit le temps d'un
+   * chargement.
+   */
+  readonly plans = computed<EnginePlanView[]>(() => {
+    const products = this.catalog()?.products ?? [];
+    if (products.length === 0) return [];
+
+    const me = this.me();
+    const subscriptions = me?.subscriptions ?? [];
+
+    return BILLING_ENGINES.map((engine) =>
+      buildEnginePlanView(engine, products, subscriptions, me?.credits?.[engine] ?? 0),
+    );
+  });
+
+  /**
+   * Ce qui appelle une action, s'il y a quelque chose.
+   *
+   * Une seule alerte à la fois, la plus urgente : un impayé prime sur une bêta
+   * qui se termine, qui prime sur un solde de crédits au plus bas. Trois
+   * bandeaux empilés ne se lisent plus comme des priorités.
+   */
+  readonly attention = computed<{ kind: 'past_due' | 'beta_ending' | 'low_credits'; plan: EnginePlanView } | null>(() => {
+    const plans = this.plans();
+    if (plans.length === 0) return null;
+
+    const pastDue = plans.find((plan) => plan.state === 'past_due');
+    if (pastDue) return { kind: 'past_due', plan: pastDue };
+
+    const beta = plans.find((plan) => plan.state === 'complimentary');
+    if (beta) return { kind: 'beta_ending', plan: beta };
+
+    // Moins de dix crédits sur un moteur dont on a une offre payante : c'est
+    // l'utilisateur actif qui va se heurter au paywall en pleine génération.
+    const low = plans.find(
+      (plan) => plan.engine !== 'ideploy' && plan.credits < 10 && plan.state !== 'free',
+    );
+    if (low) return { kind: 'low_credits', plan: low };
+
+    return null;
+  });
 
   // ============================================
   // DROITS ET CATALOGUE
@@ -227,6 +280,15 @@ export class BillingService {
 
   listPayments(): Observable<{ payments: PaymentView[] }> {
     return this.http.get<{ payments: PaymentView[] }>(`${this.base}/payments`);
+  }
+
+  /**
+   * Factures émises. Distinctes des paiements : un paiement est un débit sur un
+   * téléphone, une facture est le document qui le justifie — et un
+   * renouvellement automatique produit une facture sans nouveau débit visible.
+   */
+  listInvoices(): Observable<{ invoices: BillingInvoice[] }> {
+    return this.http.get<{ invoices: BillingInvoice[] }>(`${this.base}/invoices`);
   }
 
   cancelSubscription(engine: BillingEngine): Observable<unknown> {

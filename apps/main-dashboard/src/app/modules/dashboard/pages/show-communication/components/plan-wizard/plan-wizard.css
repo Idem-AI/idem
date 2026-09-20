@@ -1,0 +1,346 @@
+.pw-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.pw-panel {
+  position: relative;
+  width: 100%;
+  max-width: 34rem;
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: 1.1rem 1.5rem 1.5rem;
+}
+
+/* ── Progression ──────────────────────────────────────────────────────────── */
+
+.pw-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding-bottom: 1.25rem;
+}
+
+/*
+ * Quatre points plutôt qu'un « étape 2/4 » : on voit où l'on est d'un coup d'œil
+ * sans avoir à lire, et l'écran ne commence pas par un chiffre.
+ */
+.pw-dot {
+  height: 0.35rem;
+  width: 1.75rem;
+  border-radius: 999px;
+  background: var(--glass-border-medium);
+  transition:
+    background-color 0.2s ease,
+    width 0.2s ease;
+}
+
+.pw-dot-done {
+  background: var(--color-accent-500);
+}
+
+.pw-dot-current {
+  width: 2.75rem;
+  background: var(--color-primary);
+}
+
+.pw-close {
+  margin-left: auto;
+  display: inline-flex;
+  height: 1.9rem;
+  width: 1.9rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  color: var(--color-text-tertiary);
+}
+
+.pw-close:hover {
+  background: var(--glass-bg-medium);
+  color: var(--color-text-primary);
+}
+
+.pw-close:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Question ─────────────────────────────────────────────────────────────── */
+
+.pw-question {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+}
+
+.pw-help {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.pw-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.pw-mt {
+  margin-top: 1.25rem;
+  display: block;
+}
+
+.pw-note {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Cartes de choix ─────────────────────────────────────────────────────── */
+
+.pw-cards {
+  margin-top: 1.1rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.pw-cards-tight {
+  margin-top: 0.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 30rem) {
+  .pw-cards-tight {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/*
+ * Cibles larges (56px de haut) : ce parcours se fait aussi au pouce, sur un
+ * téléphone, et un bouton de 32px s'y rate une fois sur trois.
+ */
+.pw-card {
+  display: flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.85rem;
+  border: 1.5px solid var(--glass-border);
+  background: var(--glass-bg-subtle);
+  padding: 0.6rem 0.75rem;
+  text-align: center;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.pw-card:hover {
+  border-color: var(--glass-border-strong);
+  transform: translateY(-1px);
+}
+
+.pw-card-active {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.pw-card-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* ── Dates ────────────────────────────────────────────────────────────────── */
+
+.pw-dates {
+  margin-top: 1.1rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.pw-input {
+  margin-top: 0.3rem;
+  width: 100%;
+  border-radius: 0.7rem;
+  border: 1px solid var(--glass-border-medium);
+  background: var(--glass-bg-medium);
+  padding: 0.6rem 0.7rem;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+}
+
+.pw-input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.pw-textarea {
+  margin-top: 1rem;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+/* Renvoie en clair ce que le choix implique, avant de continuer. */
+.pw-echo {
+  margin-top: 0.9rem;
+  border-radius: 0.7rem;
+  background: var(--glass-bg-subtle);
+  padding: 0.5rem 0.7rem;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.pw-chips {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+/* ── Réseaux ──────────────────────────────────────────────────────────────── */
+
+.pw-networks {
+  margin-top: 1.1rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+@media (min-width: 30rem) {
+  .pw-networks {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.pw-network {
+  display: flex;
+  min-height: 3.25rem;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.85rem;
+  border: 1.5px solid var(--glass-border);
+  background: var(--glass-bg-subtle);
+  padding: 0.6rem 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.pw-network:hover {
+  border-color: var(--glass-border-strong);
+}
+
+.pw-network-active {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.pw-network-icon {
+  font-size: 1.05rem;
+  color: var(--color-text-secondary);
+}
+
+.pw-network-check {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--color-primary);
+}
+
+/* ── Récapitulatif ───────────────────────────────────────────────────────── */
+
+.pw-recap {
+  margin-top: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  border-radius: 0.85rem;
+  border: 1px solid var(--glass-border-subtle);
+  padding: 0.85rem;
+}
+
+.pw-recap-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+}
+
+.pw-recap-icon {
+  margin-top: 0.15rem;
+  font-size: 0.85rem;
+  color: var(--color-accent-500);
+}
+
+.pw-recap-nets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pw-recap-net {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.pw-occasions {
+  margin-top: 1rem;
+}
+
+.pw-occasion-list {
+  margin-top: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pw-occasion {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.pw-occasion-name {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* ── Pied ─────────────────────────────────────────────────────────────────── */
+
+.pw-footer {
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-top: 1px solid var(--glass-border);
+  padding-top: 1rem;
+}
+
+.pw-price {
+  margin-top: 0.6rem;
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--color-text-tertiary);
+}

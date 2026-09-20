@@ -41,6 +41,12 @@ export interface FlyerEditPromptInput {
    * qu'on a écarté.
    */
   artDirectionBlock?: string;
+  /**
+   * Bloc `<grid_invariants>` : marge, colonnes, rythme, échelle typographique.
+   * Sans lui, le texte ajouté par une retouche atterrit à une abscisse de son
+   * cru et devient le seul élément du visuel à n'être aligné sur rien.
+   */
+  gridBlock?: string;
 }
 
 export function buildFlyerEditPrompt(input: FlyerEditPromptInput): string {
@@ -65,6 +71,8 @@ ${input.imageContext ? `- Background image: ${input.imageContext}` : ''}
 
 ${input.artDirectionBlock || ''}
 
+${input.gridBlock || ''}
+
 <editing_rules>
 - This is a RETOUCH, not a new composition. Apply ONLY what the instruction asks and keep everything else byte-for-byte: layout, positions, colors, wording, image, logo placement.
 - If the instruction is vague, choose the smallest change that satisfies it.
@@ -82,7 +90,8 @@ These hold whatever the instruction says — they are the module's rules, not pr
 - NO BUTTON, NO CTA, NO BADGE, NO PILL, never a <button> tag. The call to action lives in the post caption, not on the image. If the user asks for a button, express the idea as type instead.
 - Exactly ONE logo, taken from the declension URLs above (never invented, never inline SVG). Minimum width ${input.minLogoWidth}px, full opacity, h-auto, container never narrower than the logo. Dark-ink declension on a light zone, light-ink declension on a dark zone.
 - Every hex value comes from the brand palette; every text element carries font-primary (display) or font-secondary (running text).
-- WCAG AA contrast for every text over what actually sits behind it.
+- WCAG AA contrast for every text over what actually sits behind it — measured on the rendered pixels after you answer, not on the colour you imagine is behind it.
+- Anything you add or move lands on the grid above: an existing left edge, a multiple of the vertical unit, a size from the type scale.
 - The art direction above still holds after the edit: same border radius, same rules and shadows, same image treatment. Never "improve" the visual by rounding corners, adding a soft shadow or a gradient — those are the defaults the direction deliberately rules out.
 </invariants>
 
