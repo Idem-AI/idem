@@ -123,16 +123,27 @@ async function lifecycle(
 ): Promise<void> {
   const uuid = String(req.params.uuid);
   try {
-    ok(
-      res,
-      await dbService.lifecycle(
-        req.user!.currentTeamId!,
-        String(req.params.type),
-        uuid,
-        action,
-        (chunk) => realtime.databaseLog(uuid, chunk)
-      )
+    const result = await dbService.lifecycle(
+      req.user!.currentTeamId!,
+      String(req.params.type),
+      uuid,
+      action,
+      (chunk) => realtime.databaseLog(uuid, chunk)
     );
+    // `lifecycle` itself already re-checks the container twice before
+    // answering (see its own doc comment) — a command that ran without
+    // throwing but left the container not actually up is still a failure,
+    // not a 200. Verified live: two databases were created while the server
+    // was under heavy load from an unrelated crash-loop, never came up, and
+    // every caller (the architecture guide's inline step, this database's
+    // own detail page) treated the resulting 200 as success because nothing
+    // here ever turned `{ success: false }` into an HTTP failure a caller's
+    // own error handling would actually run.
+    if (!result.success) {
+      fail(res, `Database did not report as running after ${action}. Check its console for what happened.`, 502, 'DB_LIFECYCLE_NOT_CONFIRMED');
+      return;
+    }
+    ok(res, result);
   } catch (err) {
     logger.error(`db ${action} error`, { message: (err as Error).message });
     void realtime.databaseLog(uuid, `\n❌ ${(err as Error).message || `Failed to ${action} database`}\n`);

@@ -322,9 +322,15 @@ async function desiredTargetsFromOtherConfigs(config: EnforcementConfigRow): Pro
 /** Client for managing decisions. Requires the server's machine credential. */
 function managementClient(config: EnforcementConfigRow): CrowdSecLapiClient {
   if (!config.crowdsec) {
+    // Named after the one concrete action that fixes this — "(re)configure
+    // the proxy" told an operator nothing they could act on; verified live
+    // against a real server (159.69.185.176) that this exact gap left a
+    // firewall permanently unable to enforce with no way to tell why from
+    // the message alone. "Install CrowdSec" is the server detail page's own
+    // button label for this action (`server-detail.ts`), not a paraphrase.
     throw unprocessable(
       'CROWDSEC_NOT_CONFIGURED',
-      "CrowdSec is not provisioned on this application's server yet. (Re)configure the server's proxy first."
+      "CrowdSec is not installed on this application's server yet — install CrowdSec from the server's page, then try again."
     );
   }
   return new CrowdSecLapiClient({
@@ -520,8 +526,10 @@ async function ourDecisions(client: CrowdSecLapiClient): Promise<DecisionTarget[
  */
 export type EnforcementReasonCode =
   | 'firewall_off'
+  | 'crowdsec_not_installed'
   | 'crowdsec_unreachable'
   | 'bouncer_not_registered'
+  | 'rules_not_applied'
   | 'all_rules_unsupported'
   | 'no_rules_configured'
   | 'summary';
@@ -572,6 +580,30 @@ export async function getLiveStatus(
 
   const bouncerRegistered = Boolean(config.crowdsec?.bouncerKey);
   const lapiReachable = config.crowdsec ? (await managementClient(config).health()).reachable : false;
+  const crowdsecReadyForLookup = lapiReachable && bouncerRegistered;
+
+  // Whether CrowdSec *could* enforce an address rule is not whether it
+  // actually *is* — a rule just created (or one `enforce()` failed to push,
+  // or one CrowdSec forgot after a restart) has no live decision behind it
+  // yet. Verified live against a real deployment: right after adding a rule,
+  // this used to report "enforced" from reachability alone, at the same
+  // moment the UI's own "pending apply" banner said the opposite — two
+  // contradictory claims on the same screen. Only a rule with a decision
+  // `ourDecisions` can actually see is "enforced" now.
+  let liveCrowdsecRules: typeof crowdsecRules = [];
+  if (crowdsecReadyForLookup && crowdsecRules.length > 0) {
+    try {
+      const current = await ourDecisions(managementClient(config));
+      const currentKeys = new Set(current.map(targetKey));
+      liveCrowdsecRules = crowdsecRules.filter((rule) => rule.targets.every((t) => currentKeys.has(targetKey(t))));
+    } catch {
+      // A lookup failure here means "cannot confirm", not "confirmed absent"
+      // and not "confirmed present" — leaving the list empty already reports
+      // the honest, conservative answer (not enforced) without throwing and
+      // taking the whole status read down with it.
+      liveCrowdsecRules = [];
+    }
+  }
 
   const of = (
     state: LiveEnforcementStatus['state'],
@@ -597,24 +629,60 @@ export async function getLiveStatus(
     return of('not_enforced', 'The firewall is turned off for this application.', 'firewall_off', {}, 0, 0);
   }
 
-  const crowdsecReady = lapiReachable && bouncerRegistered;
-  const rulesEnforced = crowdsecReady ? crowdsecRules.length : 0;
+  const crowdsecReady = crowdsecReadyForLookup;
+  const rulesEnforced = liveCrowdsecRules.length;
   const rulesPendingRedeploy = proxyRules.length;
 
   if (crowdsecRules.length > 0 && !crowdsecReady) {
-    const why = !lapiReachable
-      ? 'CrowdSec is not reachable, so no decision can be consulted'
-      : 'no bouncer is registered, so the proxy is not consulting CrowdSec';
+    // "Not installed" and "installed but currently unreachable" call for
+    // different action — the first needs a one-time setup step (Install
+    // CrowdSec, on the server's own page), the second is a transient outage
+    // worth waiting out or investigating separately. Reporting both as
+    // "unreachable" told an operator who had never installed it to wait for
+    // something that was never going to come back on its own — confirmed
+    // live: this exact ambiguity is why the firewall looked broken rather
+    // than merely unset up.
+    const why = !config.crowdsec
+      ? 'CrowdSec is not installed on this server yet'
+      : !lapiReachable
+        ? 'CrowdSec is not reachable, so no decision can be consulted'
+        : 'no bouncer is registered, so the proxy is not consulting CrowdSec';
     const reason =
       `${why}: ${crowdsecRules.length} address-scoped rule(s) are not being filtered` +
       (rulesPendingRedeploy > 0
         ? `. ${rulesPendingRedeploy} country rule(s) are configured and will apply at the next deploy.`
         : '.');
+    const reasonCode: EnforcementReasonCode = !config.crowdsec
+      ? 'crowdsec_not_installed'
+      : lapiReachable
+        ? 'bouncer_not_registered'
+        : 'crowdsec_unreachable';
     return of(
       rulesPendingRedeploy > 0 ? 'partially_enforced' : 'not_enforced',
       reason,
-      lapiReachable ? 'bouncer_not_registered' : 'crowdsec_unreachable',
+      reasonCode,
       { addressRules: crowdsecRules.length, pendingRedeploy: rulesPendingRedeploy },
+      rulesEnforced,
+      rulesPendingRedeploy
+    );
+  }
+
+  if (rulesEnforced < crowdsecRules.length) {
+    // Infrastructure is ready — CrowdSec answers, a bouncer is registered —
+    // but not every configured address rule has a decision behind it yet.
+    // Most commonly this is a rule created (or edited) since the last
+    // "Apply now": the row exists, CrowdSec has never been told about it.
+    const missing = crowdsecRules.length - rulesEnforced;
+    const reason =
+      `${missing} address-scoped rule(s) are configured but have not been applied yet — apply the firewall to push them to CrowdSec` +
+      (rulesPendingRedeploy > 0
+        ? `. ${rulesPendingRedeploy} country rule(s) are configured and will apply at the next deploy.`
+        : '.');
+    return of(
+      rulesEnforced > 0 || rulesPendingRedeploy > 0 ? 'partially_enforced' : 'not_enforced',
+      reason,
+      'rules_not_applied',
+      { addressRules: missing, pendingRedeploy: rulesPendingRedeploy },
       rulesEnforced,
       rulesPendingRedeploy
     );

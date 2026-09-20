@@ -13,8 +13,13 @@ import {
   pipelineStatusIcon,
 } from '../../../shared/utils/pipeline-status.util';
 
-/** The stages the API knows about, in the order it runs them. */
-const AVAILABLE_STAGES = ['language_detection', 'sonarqube', 'trivy', 'deploy'] as const;
+/** The stages the API knows about, in the order it runs them, each with what a first-time operator actually needs to know before deciding to include it. */
+const AVAILABLE_STAGES = [
+  { key: 'language_detection', icon: 'fa-solid fa-magnifying-glass-chart' },
+  { key: 'sonarqube', icon: 'fa-solid fa-chart-simple' },
+  { key: 'trivy', icon: 'fa-solid fa-shield-virus' },
+  { key: 'deploy', icon: 'fa-solid fa-rocket' },
+] as const;
 
 /** How often the run list is refreshed while something is still active. */
 const POLL_INTERVAL_MS = 4_000;
@@ -26,6 +31,13 @@ const POLL_INTERVAL_MS = 4_000;
  * Stages are ordered and the order is meaningful (scan before deploy), so they
  * are presented as a fixed sequence to enable or disable rather than a free
  * list to sort: an operator cannot produce an invalid pipeline by accident.
+ *
+ * "Run pipeline" is never gated on the enabled toggle — that toggle only
+ * decides whether a deploy triggers the pipeline *automatically*; asking to
+ * enable automatic runs before you can even try one manually had no backend
+ * rule behind it (`pipeline.service.ts`'s own `trigger()` never checks
+ * `enabled`) and just meant a first-time visitor stared at a dead button
+ * with no visible reason why.
  */
 @Component({
   selector: 'app-application-pipeline',
@@ -41,11 +53,15 @@ const POLL_INTERVAL_MS = 4_000;
       {{ 'pipeline.backToApplication' | translate }}
     </a>
 
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-      <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
-        {{ 'pipeline.title' | translate }}
-      </h1>
-      <button class="button" (click)="run()" [disabled]="running() || !config()?.enabled">
+    <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
+          {{ 'pipeline.title' | translate }}
+        </h1>
+        <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">{{ 'pipeline.subtitle' | translate }}</p>
+      </div>
+      <button class="button" (click)="run()" [disabled]="running()">
+        <i class="fa-solid fa-play mr-1.5 text-xs" aria-hidden="true"></i>
         {{ (running() ? 'pipeline.running' : 'pipeline.runNow') | translate }}
       </button>
     </div>
@@ -55,58 +71,78 @@ const POLL_INTERVAL_MS = 4_000;
     }
 
     @if (config(); as c) {
-      <div class="grid gap-4 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
+      <div class="grid gap-4 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
         <section class="box self-start">
-          <h2 class="mb-3 text-sm font-semibold">{{ 'pipeline.configuration' | translate }}</h2>
+          <div class="mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-sliders text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
+            <h2 class="text-sm font-semibold">{{ 'pipeline.configuration' | translate }}</h2>
+          </div>
 
-          <label class="mb-4 flex items-center gap-2 text-sm">
+          <label class="mb-1 flex items-center gap-2 text-sm">
             <input type="checkbox" [checked]="c.enabled" (change)="toggleEnabled(c)" />
             {{ 'pipeline.enabled' | translate }}
           </label>
-          @if (!c.enabled) {
-            <p class="mb-4 text-sm" style="color:var(--color-text-secondary);">
-              {{ 'pipeline.disabledHint' | translate }}
-            </p>
-          }
+          <p class="mb-4 text-xs" style="color:var(--color-text-secondary);">
+            {{ (c.enabled ? 'pipeline.enabledHint' : 'pipeline.disabledHint') | translate }}
+          </p>
 
           <p class="mb-2 text-sm font-medium">{{ 'pipeline.stages' | translate }}</p>
-          <ul class="mb-4 space-y-2">
-            @for (stage of availableStages; track stage; let i = $index) {
-              <li class="flex items-center gap-2 text-sm">
+          <p class="mb-3 text-xs" style="color:var(--color-text-tertiary);">{{ 'pipeline.stagesHint' | translate }}</p>
+          <ul class="mb-2">
+            @for (stage of availableStages; track stage.key; let i = $index; let last = $last) {
+              <li class="relative flex gap-3 pb-3" [class.pb-0]="last">
+                @if (!last) {
+                  <span class="absolute top-8 left-[15px] w-px" style="bottom:0;background:var(--color-surface-2);" aria-hidden="true"></span>
+                }
                 <span
-                  class="inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px]"
-                  style="background:var(--color-surface-2);color:var(--color-text-secondary);font-variant-numeric:tabular-nums;"
+                  class="relative z-10 mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs"
+                  [style.background]="c.stages.includes(stage.key) ? 'color-mix(in srgb, var(--color-primary-400) 18%, transparent)' : 'var(--color-surface-2)'"
+                  [style.color]="c.stages.includes(stage.key) ? 'var(--color-primary-400)' : 'var(--color-text-tertiary)'"
                   aria-hidden="true"
-                  >{{ i + 1 }}</span
                 >
-                <label class="flex items-center gap-2">
-                  <input type="checkbox" [checked]="c.stages.includes(stage)" (change)="toggleStage(c, stage)" />
-                  {{ 'pipeline.stage.' + stage | translate }}
+                  <i [class]="stage.icon"></i>
+                </span>
+                <label class="flex-1 cursor-pointer pt-1">
+                  <span class="flex items-center gap-2 text-sm font-medium">
+                    <input type="checkbox" [checked]="c.stages.includes(stage.key)" (change)="toggleStage(c, stage.key)" />
+                    {{ 'pipeline.stage.' + stage.key | translate }}
+                  </span>
+                  <span class="mt-0.5 block text-xs" style="color:var(--color-text-secondary);">
+                    {{ 'pipeline.stageDesc.' + stage.key | translate }}
+                  </span>
                 </label>
               </li>
             }
           </ul>
+          <p class="mb-5 text-xs" style="color:var(--color-text-tertiary);">
+            <i class="fa-solid fa-check mr-1"></i>{{ 'pipeline.autoSaveHint' | translate }}
+          </p>
 
-          <form class="space-y-3" [formGroup]="triggerForm" (ngSubmit)="saveTrigger(c)">
+          <form class="space-y-3 border-t pt-4" style="border-color:var(--color-surface-2);" [formGroup]="triggerForm" (ngSubmit)="saveTrigger(c)">
             <div>
               <label class="mb-1 block text-sm" for="trigger-mode">{{ 'pipeline.triggerMode' | translate }}</label>
               <select class="input" id="trigger-mode" formControlName="trigger_mode">
                 <option value="manual">{{ 'pipeline.trigger.manual' | translate }}</option>
                 <option value="on_push">{{ 'pipeline.trigger.onPush' | translate }}</option>
               </select>
-            </div>
-            <div>
-              <label class="mb-1 block text-sm" for="trigger-branches">{{ 'pipeline.triggerBranches' | translate }}</label>
-              <input
-                class="input"
-                id="trigger-branches"
-                formControlName="trigger_branches"
-                [placeholder]="'pipeline.branchesPlaceholder' | translate"
-              />
               <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">
-                {{ 'pipeline.branchesHint' | translate }}
+                {{ (triggerForm.controls.trigger_mode.value === 'on_push' ? 'pipeline.triggerHint.onPush' : 'pipeline.triggerHint.manual') | translate }}
               </p>
             </div>
+            @if (triggerForm.controls.trigger_mode.value === 'on_push') {
+              <div>
+                <label class="mb-1 block text-sm" for="trigger-branches">{{ 'pipeline.triggerBranches' | translate }}</label>
+                <input
+                  class="input"
+                  id="trigger-branches"
+                  formControlName="trigger_branches"
+                  [placeholder]="'pipeline.branchesPlaceholder' | translate"
+                />
+                <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">
+                  {{ 'pipeline.branchesHint' | translate }}
+                </p>
+              </div>
+            }
             <button class="button" type="submit" [disabled]="saving()">
               {{ (saving() ? 'pipeline.saving' : 'pipeline.save') | translate }}
             </button>
@@ -115,14 +151,29 @@ const POLL_INTERVAL_MS = 4_000;
 
         <section class="box overflow-hidden p-0">
           <div class="flex items-center justify-between gap-2 p-4" style="border-bottom:1px solid var(--color-surface-2);">
-            <h2 class="text-sm font-semibold">{{ 'pipeline.executions' | translate }}</h2>
-            <button class="text-xs" style="color:var(--color-text-secondary);" (click)="loadExecutions()">
-              {{ 'pipeline.refresh' | translate }}
+            <h2 class="flex items-center gap-2 text-sm font-semibold">
+              <i class="fa-solid fa-timeline text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
+              {{ 'pipeline.executions' | translate }}
+            </h2>
+            <button class="icon-button" [title]="'pipeline.refresh' | translate" [attr.aria-label]="'pipeline.refresh' | translate" (click)="loadExecutions()">
+              <i class="fa-solid fa-rotate-right text-xs" aria-hidden="true"></i>
             </button>
           </div>
 
           @if (executions().length === 0) {
-            <p class="p-4 text-sm" style="color:var(--color-text-secondary);">{{ 'pipeline.noExecutions' | translate }}</p>
+            <div class="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+              <div class="flex h-14 w-14 items-center justify-center rounded-full" style="background:var(--color-surface-2);">
+                <i class="fa-solid fa-timeline text-xl" style="color:var(--color-text-tertiary);" aria-hidden="true"></i>
+              </div>
+              <div>
+                <p class="text-sm font-semibold">{{ 'pipeline.noExecutionsTitle' | translate }}</p>
+                <p class="mt-1 max-w-sm text-sm" style="color:var(--color-text-secondary);">{{ 'pipeline.noExecutionsDesc' | translate }}</p>
+              </div>
+              <button class="button mt-1" type="button" (click)="run()" [disabled]="running()">
+                <i class="fa-solid fa-play mr-1.5 text-xs" aria-hidden="true"></i>
+                {{ (running() ? 'pipeline.running' : 'pipeline.runNow') | translate }}
+              </button>
+            </div>
           } @else {
             <div class="overflow-x-auto">
               <table class="vtable">
@@ -293,7 +344,7 @@ export class ApplicationPipelineComponent implements OnInit, OnDestroy {
   protected toggleStage(c: PipelineConfig, stage: string): void {
     const selected = new Set(c.stages);
     selected.has(stage) ? selected.delete(stage) : selected.add(stage);
-    const stages = AVAILABLE_STAGES.filter((s) => selected.has(s));
+    const stages = AVAILABLE_STAGES.map((s) => s.key).filter((s) => selected.has(s));
     this.persist(c, { stages });
   }
 

@@ -29,6 +29,8 @@ jobs:
       appgen: ${{ steps.filter.outputs.appgen }}
       packages: ${{ steps.filter.outputs.packages }}
       ideploy: ${{ steps.filter.outputs.ideploy }}
+      ideploy-api: ${{ steps.filter.outputs.ideploy-api }}
+      ideploy-web: ${{ steps.filter.outputs.ideploy-web }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -56,6 +58,13 @@ jobs:
               - 'packages/**'
             ideploy:
               - 'apps/ideploy/**'
+            ideploy-api:
+              - 'apps/ideploy-api/**'
+              - 'packages/shared-models/**'
+              - 'packages/shared-auth-client/**'
+            ideploy-web:
+              - 'apps/ideploy-web/**'
+              - 'packages/shared-models/**'
 
   # ==========================
   # Quality checks
@@ -70,7 +79,9 @@ jobs:
       needs.detect-changes.outputs.main-dashboard == 'true' ||
       needs.detect-changes.outputs.chart == 'true' ||
       needs.detect-changes.outputs.appgen == 'true' ||
-      needs.detect-changes.outputs.packages == 'true'
+      needs.detect-changes.outputs.packages == 'true' ||
+      needs.detect-changes.outputs.ideploy-api == 'true' ||
+      needs.detect-changes.outputs.ideploy-web == 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -99,6 +110,14 @@ jobs:
         run: npm run lint:all
         continue-on-error: true
 
+      - name: Build iDeploy API (typecheck)
+        if: needs.detect-changes.outputs.ideploy-api == 'true'
+        run: npm run build:ideploy-api
+
+      - name: Typecheck iDeploy Web
+        if: needs.detect-changes.outputs.ideploy-web == 'true'
+        run: npm run typecheck:ideploy-web
+
   # ==========================
   # Summary
   # ==========================
@@ -119,6 +138,8 @@ jobs:
           echo "- **Chart**: ${{ needs.detect-changes.outputs.chart == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **AppGen**: ${{ needs.detect-changes.outputs.appgen == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Packages**: ${{ needs.detect-changes.outputs.packages == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **iDeploy API**: ${{ needs.detect-changes.outputs.ideploy-api == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **iDeploy Web**: ${{ needs.detect-changes.outputs.ideploy-web == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Quality Checks Status:" >> $GITHUB_STEP_SUMMARY
           echo "- **Status**: ${{ needs.quality.result == 'success' && '✅ Passed' || (needs.quality.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }}" >> $GITHUB_STEP_SUMMARY

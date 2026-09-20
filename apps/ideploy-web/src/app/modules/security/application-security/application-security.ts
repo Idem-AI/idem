@@ -13,6 +13,9 @@ import {
   RateLimitTemplate,
 } from '../../../shared/models/ideploy.models';
 
+/** A conservative, UI-level sanity check — the backend stores conditions as free-form JSON and never validates the shape; this only stops an obvious typo before it reaches the network. */
+const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
+
 /**
  * Application security — WAF, geo-blocking, rate limiting, and what the agent
  * has seen. Replaces the three legacy Livewire screens (FirewallOverview,
@@ -24,6 +27,15 @@ import {
  * mutation (`applyRequired`) and this screen repeats it, because an operator who
  * believes a control is live when it is not is worse off than one with no
  * control at all.
+ *
+ * Redesigned around three problems a first-time visitor actually hit: the
+ * same numbers (requests/blocked/ban duration) were shown twice — once in
+ * the hero, again inside the WAF card — with no indication either copy was
+ * the same fact; every "no X configured yet" empty state described the gap
+ * without a way to close it from the same spot; and the address-rule table
+ * had a delete button but no way to ever add a row — `createFirewallRule`
+ * existed on the API client and was never called from anywhere. This page
+ * now owns that creation flow instead of only ever showing an empty list.
  */
 @Component({
   selector: 'app-application-security',
@@ -39,12 +51,18 @@ import {
       {{ 'security.app.backToApplication' | translate }}
     </a>
 
-    <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
+    <h1 class="heading-serif mb-1" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
       {{ 'security.app.title' | translate }}
     </h1>
+    <p class="mb-6 text-sm" style="color:var(--color-text-secondary);">{{ 'security.app.subtitle' | translate }}</p>
 
     @if (error()) {
-      <p class="mb-4 text-sm" role="alert" style="color:var(--color-danger);">{{ error() }}</p>
+      <div class="mb-4 flex flex-wrap items-center gap-3 text-sm" role="alert">
+        <span style="color:var(--color-danger);">{{ error() }}</span>
+        <button class="button-secondary text-xs px-3 py-1.5" type="button" (click)="loadAll()">
+          {{ 'security.app.retry' | translate }}
+        </button>
+      </div>
     }
 
     <!-- Saved ≠ enforced. Stated once, at the top, where it is unavoidable. -->
@@ -69,10 +87,13 @@ import {
       the WAF toggle plus whether it is actually being enforced (a saved rule
       is not a live one — see the module doc), not a manufactured "all systems
       normal" that hides the one thing this screen exists to be honest about.
+      The single place these four numbers are shown — every section below
+      states its *own* facts (which template is active, how many countries)
+      instead of repeating these.
     -->
     @if (firewall(); as fw) {
       <section class="box box-flush mb-4">
-        <div class="grid grid-cols-1 gap-0 sm:grid-cols-[220px_1fr]">
+        <div class="grid grid-cols-1 gap-0 sm:grid-cols-[240px_1fr]">
           <div class="flex flex-col items-center justify-center gap-2 p-6 text-center" style="border-bottom:1px solid var(--color-surface-2);">
             <i [class]="heroIcon(fw)" class="text-3xl" [style.color]="heroColor(fw)" aria-hidden="true"></i>
             <p class="text-sm font-semibold">{{ heroTitleKey(fw) | translate }}</p>
@@ -89,7 +110,13 @@ import {
             </div>
             <div>
               <dt class="text-xs" style="color:var(--color-text-secondary);">{{ 'security.app.rules' | translate }}</dt>
-              <dd class="text-xl font-semibold" style="font-variant-numeric:tabular-nums;">{{ rules().length }}</dd>
+              <dd class="text-xl font-semibold" style="font-variant-numeric:tabular-nums;">
+                @if (fw.enforcement) {
+                  {{ fw.enforcement.rulesEnforced }}<span style="color:var(--color-text-tertiary);">/{{ fw.enforcement.rulesConfigured }}</span>
+                } @else {
+                  {{ rules().length }}
+                }
+              </dd>
             </div>
             <div>
               <dt class="text-xs" style="color:var(--color-text-secondary);">{{ 'security.app.banDuration' | translate }}</dt>
@@ -101,18 +128,21 @@ import {
     }
 
     <div class="grid gap-4 lg:grid-cols-2">
-      <!-- WAF -->
+      <!-- WAF + address rules -->
       <section class="box">
-        <div class="box-header">
-          <h2 class="box-title">{{ 'security.app.waf' | translate }}</h2>
+        <div class="mb-1 flex items-center gap-2">
+          <i class="fa-solid fa-shield text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
+          <h2 class="text-sm font-semibold">{{ 'security.app.waf' | translate }}</h2>
         </div>
+        <p class="mb-3 text-xs" style="color:var(--color-text-secondary);">{{ 'security.app.wafDesc' | translate }}</p>
+
         @if (firewall(); as fw) {
           <label class="mb-3 flex items-center gap-2 text-sm">
             <input type="checkbox" [checked]="fw.enabled" (change)="toggleFirewall(fw)" />
             {{ 'security.app.wafEnabled' | translate }}
           </label>
 
-          @if (fw.enforcement && fw.enforcement.state !== 'enforced') {
+          @if (fw.enabled && fw.enforcement && fw.enforcement.state !== 'enforced') {
             <p
               class="mb-3 rounded-lg p-3 text-sm"
               role="status"
@@ -122,60 +152,82 @@ import {
               {{ ('security.app.reasons.' + fw.enforcement.reasonCode) | translate: fw.enforcement.reasonParams }}
             </p>
           }
-
-          <dl class="space-y-2 text-sm">
-            <div class="flex justify-between gap-2">
-              <dt style="color:var(--color-text-secondary);">{{ 'security.app.totalRequests' | translate }}</dt>
-              <dd style="font-variant-numeric:tabular-nums;">{{ fw.total_requests }}</dd>
-            </div>
-            <div class="flex justify-between gap-2">
-              <dt style="color:var(--color-text-secondary);">{{ 'security.app.totalBlocked' | translate }}</dt>
-              <dd style="font-variant-numeric:tabular-nums;">{{ fw.total_blocked }}</dd>
-            </div>
-            <div class="flex justify-between gap-2">
-              <dt style="color:var(--color-text-secondary);">{{ 'security.app.banDuration' | translate }}</dt>
-              <dd style="font-variant-numeric:tabular-nums;">{{ fw.ban_duration }}s</dd>
-            </div>
-          </dl>
         } @else {
           <p class="text-sm" style="color:var(--color-text-secondary);">{{ 'security.app.loading' | translate }}</p>
+        }
+
+        <!-- Add rule -->
+        <form class="mb-3 rounded-xl border p-3" style="border-color:var(--color-surface-2);" [formGroup]="ruleForm" (ngSubmit)="addRule()">
+          <p class="mb-2 text-xs font-medium">{{ 'security.app.addRuleTitle' | translate }}</p>
+          <div class="flex flex-wrap items-end gap-2">
+            <div class="min-w-[120px] flex-1">
+              <label class="mb-1 block text-xs" style="color:var(--color-text-secondary);" for="rule-name">{{ 'security.app.ruleNameLabel' | translate }}</label>
+              <input class="input" id="rule-name" formControlName="name" [placeholder]="'security.app.ruleNamePlaceholder' | translate" />
+            </div>
+            <div class="min-w-[140px] flex-1">
+              <label class="mb-1 block text-xs" style="color:var(--color-text-secondary);" for="rule-ip">{{ 'security.app.ruleIpLabel' | translate }}</label>
+              <input class="input font-mono" id="rule-ip" formControlName="ip" placeholder="203.0.113.5" />
+            </div>
+            <button class="button px-3 py-2 text-xs" type="submit" [disabled]="ruleForm.invalid || addingRule()">
+              {{ (addingRule() ? 'security.app.adding' : 'security.app.addRule') | translate }}
+            </button>
+          </div>
+          @if (ruleForm.controls.ip.touched && ruleForm.controls.ip.invalid) {
+            <p class="mt-1.5 text-xs" style="color:var(--color-danger);">{{ 'security.app.invalidIp' | translate }}</p>
+          }
+          @if (ruleFormError()) {
+            <p class="mt-1.5 text-xs" style="color:var(--color-danger);">{{ ruleFormError() }}</p>
+          }
+        </form>
+
+        @if (rules().length === 0) {
+          <p class="text-xs" style="color:var(--color-text-tertiary);">{{ 'security.app.noRules' | translate }}</p>
+        } @else {
+          <ul class="-mx-1 space-y-1">
+            @for (r of rules(); track r.id) {
+              <li class="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-[var(--glass-bg-subtle)]">
+                <div class="min-w-0">
+                  <span class="font-medium">{{ r.name }}</span>
+                  <span class="ml-2 font-mono text-xs" style="color:var(--color-text-secondary);">{{ ruleTarget(r) }}</span>
+                </div>
+                <button class="shrink-0 text-xs" style="color:var(--color-danger);" (click)="removeRule(r)" [attr.aria-label]="'security.app.delete' | translate">
+                  <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                </button>
+              </li>
+            }
+          </ul>
         }
       </section>
 
       <!-- Rate limiting -->
       <section class="box">
-        <div class="box-header">
-          <h2 class="box-title">{{ 'security.app.rateLimit' | translate }}</h2>
+        <div class="mb-1 flex items-center gap-2">
+          <i class="fa-solid fa-gauge-high text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
+          <h2 class="text-sm font-semibold">{{ 'security.app.rateLimit' | translate }}</h2>
         </div>
+        <p class="mb-3 text-xs" style="color:var(--color-text-secondary);">{{ 'security.app.rateLimitDesc' | translate }}</p>
+
         @if (rateLimit(); as rl) {
-          <p class="mb-3 text-sm">
-            <span style="color:var(--color-text-secondary);">{{ 'security.app.activeTemplate' | translate }}</span>
-            <strong class="ml-2">{{ rl.template }}</strong>
-          </p>
-          <dl class="mb-3 space-y-1.5 text-sm">
-            <div class="flex justify-between gap-2">
-              <dt style="color:var(--color-text-secondary);">{{ 'security.app.averagePerSecond' | translate }}</dt>
-              <dd style="font-variant-numeric:tabular-nums;">{{ rl.averagePerSecond }}</dd>
-            </div>
-            <div class="flex justify-between gap-2">
-              <dt style="color:var(--color-text-secondary);">{{ 'security.app.burst' | translate }}</dt>
-              <dd style="font-variant-numeric:tabular-nums;">{{ rl.burst }}</dd>
-            </div>
-            <div class="flex justify-between gap-2">
-              <dt style="color:var(--color-text-secondary);">{{ 'security.app.concurrency' | translate }}</dt>
-              <dd style="font-variant-numeric:tabular-nums;">{{ rl.concurrencyLimit }}</dd>
-            </div>
-          </dl>
-          <button class="text-xs" style="color:var(--color-danger);" (click)="clearRateLimit()">
-            {{ 'security.app.removeRateLimit' | translate }}
-          </button>
+          <div class="mb-3 rounded-xl border p-3" style="border-color:var(--color-surface-2);">
+            <p class="mb-2 text-sm">
+              <i class="fa-solid fa-circle-check mr-1" style="color:var(--color-success);"></i>
+              <span style="color:var(--color-text-secondary);">{{ 'security.app.activeTemplate' | translate }}</span>
+              <strong class="ml-1">{{ rl.template }}</strong>
+            </p>
+            <dl class="grid grid-cols-3 gap-2 text-xs" style="color:var(--color-text-secondary);">
+              <div>{{ 'security.app.averagePerSecond' | translate }}<br /><strong style="color:var(--color-text-primary);font-variant-numeric:tabular-nums;">{{ rl.averagePerSecond }}</strong></div>
+              <div>{{ 'security.app.burst' | translate }}<br /><strong style="color:var(--color-text-primary);font-variant-numeric:tabular-nums;">{{ rl.burst }}</strong></div>
+              <div>{{ 'security.app.concurrency' | translate }}<br /><strong style="color:var(--color-text-primary);font-variant-numeric:tabular-nums;">{{ rl.concurrencyLimit }}</strong></div>
+            </dl>
+            <button class="mt-2 text-xs" style="color:var(--color-danger);" (click)="clearRateLimit()">
+              {{ 'security.app.removeRateLimit' | translate }}
+            </button>
+          </div>
         } @else {
-          <p class="mb-3 text-sm" style="color:var(--color-text-secondary);">
-            {{ 'security.app.noRateLimit' | translate }}
-          </p>
+          <p class="mb-3 text-xs" style="color:var(--color-text-tertiary);">{{ 'security.app.noRateLimit' | translate }}</p>
         }
 
-        <div class="mt-3">
+        <div class="mb-1">
           <label class="mb-1 block text-sm" for="rl-template">{{ 'security.app.applyTemplate' | translate }}</label>
           <div class="flex gap-2">
             <select class="input flex-1" id="rl-template" [value]="chosenTemplate()" (change)="onTemplatePick($event)">
@@ -190,6 +242,8 @@ import {
           </div>
           @if (chosenTemplateDetail(); as t) {
             <p class="mt-2 text-xs" style="color:var(--color-text-secondary);">{{ t.description }}</p>
+          } @else {
+            <p class="mt-2 text-xs" style="color:var(--color-text-tertiary);">{{ 'security.app.chooseTemplateHint' | translate }}</p>
           }
         </div>
 
@@ -224,10 +278,11 @@ import {
 
     <!-- Geo-blocking -->
     <section class="box mt-4">
-      <div class="box-header">
-        <h2 class="box-title">{{ 'security.app.geoBlocking' | translate }}</h2>
+      <div class="mb-1 flex items-center gap-2">
+        <i class="fa-solid fa-earth-americas text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
+        <h2 class="text-sm font-semibold">{{ 'security.app.geoBlocking' | translate }}</h2>
       </div>
-      <p class="mb-3 text-sm" style="color:var(--color-text-secondary);">
+      <p class="mb-3 text-xs" style="color:var(--color-text-secondary);">
         {{ 'security.app.geoHint' | translate }}
       </p>
 
@@ -238,7 +293,7 @@ import {
       }
 
       @if (geo(); as g) {
-        <div class="mb-3">
+        <div class="mb-3 rounded-xl border p-3" style="border-color:var(--color-surface-2);">
           <p class="mb-2 text-sm">
             <span style="color:var(--color-text-secondary);">{{ 'security.app.currentlyBlocked' | translate }}</span>
             <strong class="ml-2" style="font-variant-numeric:tabular-nums;">{{ g.countries.length }}</strong>
@@ -255,7 +310,7 @@ import {
           </button>
         </div>
       } @else {
-        <p class="mb-3 text-sm" style="color:var(--color-text-secondary);">{{ 'security.app.noGeoRule' | translate }}</p>
+        <p class="mb-3 text-xs" style="color:var(--color-text-tertiary);">{{ 'security.app.noGeoRule' | translate }}</p>
       }
 
       <!-- Continents first: picking 250 countries one at a time is not a design. -->
@@ -314,52 +369,22 @@ import {
       <button class="button" (click)="saveGeo()" [disabled]="!hasGeoSelection() || savingGeo()">
         {{ (savingGeo() ? 'security.app.saving' : 'security.app.saveGeo') | translate }}
       </button>
-    </section>
-
-    <!-- Rules -->
-    <section class="box box-flush mt-4">
-      <div class="box-header">
-        <h2 class="box-title">
-          {{ 'security.app.rules' | translate }}
-          <span class="ml-1 font-normal" style="color:var(--color-text-secondary);">({{ rules().length }})</span>
-        </h2>
-      </div>
-      @if (rules().length === 0) {
-        <p class="px-5 pb-5 text-sm" style="color:var(--color-text-secondary);">{{ 'security.app.noRules' | translate }}</p>
-      } @else {
-        <table class="vtable">
-          <thead>
-            <tr>
-              <th>{{ 'security.app.ruleName' | translate }}</th>
-              <th>{{ 'security.app.ruleAction' | translate }}</th>
-              <th>{{ 'security.app.priority' | translate }}</th>
-              <th class="text-right">{{ 'security.app.actionsCol' | translate }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (r of rules(); track r.id) {
-              <tr>
-                <td class="font-medium">{{ r.name }}</td>
-                <td style="color:var(--color-text-secondary);">{{ r.action }}</td>
-                <td style="font-variant-numeric:tabular-nums;color:var(--color-text-secondary);">{{ r.priority }}</td>
-                <td class="text-right">
-                  <button class="text-xs" style="color:var(--color-danger);" (click)="removeRule(r)">
-                    {{ 'security.app.delete' | translate }}
-                  </button>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
+      @if (!hasGeoSelection()) {
+        <p class="mt-2 text-xs" style="color:var(--color-text-tertiary);">{{ 'security.app.saveGeoHint' | translate }}</p>
       }
     </section>
 
     <!-- What the agent has seen -->
-    <div class="mt-4 grid gap-4 lg:grid-cols-2">
+    <h2 class="mt-6 mb-1 flex items-center gap-2 text-sm font-semibold">
+      <i class="fa-solid fa-eye text-sm" style="color:var(--color-primary-400);" aria-hidden="true"></i>
+      {{ 'security.app.activity' | translate }}
+    </h2>
+    <p class="mb-3 text-xs" style="color:var(--color-text-secondary);">{{ 'security.app.activityDesc' | translate }}</p>
+    <div class="grid gap-4 lg:grid-cols-2">
       <section class="box box-flush">
         <div class="box-header">
-          <h2 class="box-title">{{ 'security.app.alerts' | translate }}</h2>
-          <button class="icon-button" [title]="'security.app.refresh' | translate" (click)="loadAlerts()">
+          <h3 class="box-title">{{ 'security.app.alerts' | translate }}</h3>
+          <button class="icon-button" [title]="'security.app.refresh' | translate" [attr.aria-label]="'security.app.refresh' | translate" (click)="loadAlerts()">
             <i class="fa-solid fa-rotate-right text-xs" aria-hidden="true"></i>
           </button>
         </div>
@@ -382,8 +407,8 @@ import {
 
       <section class="box box-flush">
         <div class="box-header">
-          <h2 class="box-title">{{ 'security.app.traffic' | translate }}</h2>
-          <button class="icon-button" [title]="'security.app.refresh' | translate" (click)="loadTraffic()">
+          <h3 class="box-title">{{ 'security.app.traffic' | translate }}</h3>
+          <button class="icon-button" [title]="'security.app.refresh' | translate" [attr.aria-label]="'security.app.refresh' | translate" (click)="loadTraffic()">
             <i class="fa-solid fa-rotate-right text-xs" aria-hidden="true"></i>
           </button>
         </div>
@@ -437,11 +462,19 @@ export class ApplicationSecurityComponent implements OnInit {
   protected readonly applying = signal(false);
   protected readonly savingGeo = signal(false);
 
+  protected readonly addingRule = signal(false);
+  protected readonly ruleFormError = signal<string | null>(null);
+
   protected readonly rateLimitForm = this.fb.nonNullable.group({
     averagePerSecond: [10, [Validators.required, Validators.min(1)]],
     burst: [20, [Validators.required, Validators.min(1)]],
     periodSeconds: [1, [Validators.required, Validators.min(1)]],
     concurrencyLimit: [50, [Validators.required, Validators.min(1)]],
+  });
+
+  protected readonly ruleForm = this.fb.nonNullable.group({
+    name: ['', Validators.required],
+    ip: ['', [Validators.required, Validators.pattern(IP_PATTERN)]],
   });
 
   /** Continent codes paired with their name in the active language. */
@@ -496,19 +529,62 @@ export class ApplicationSecurityComponent implements OnInit {
     return `security.app.hero.${this.heroState(fw)}Subtitle`;
   }
 
+  /** The one condition shape this page's own "Add rule" form ever creates — a rule made some other way (the legacy app, the API directly) still renders sensibly instead of blank. */
+  protected ruleTarget(rule: FirewallRule): string {
+    const conditions = rule.conditions;
+    if (Array.isArray(conditions) && conditions[0]?.field === 'ip') {
+      return String(conditions[0].value);
+    }
+    return this.translate.instant('security.app.customCondition');
+  }
+
   ngOnInit(): void {
     this.uuid = this.route.snapshot.paramMap.get('uuid') ?? '';
+    this.loadAll();
+  }
+
+  /**
+   * Every read this page needs, fired together — previously only
+   * `loadAlerts`/`loadTraffic` had an `error` handler at all; the other six
+   * silently left their signal at its initial empty state on failure, with
+   * nothing on screen saying so. Verified live: a burst of this many
+   * parallel calls, each independently re-verifying the same session against
+   * the central Idem API, could get an unrelated one of them rate-limited —
+   * fixed at the source (`idem-auth.service.ts` now caches/de-dupes a
+   * verification), but a transient failure is still a real possibility this
+   * page should recover from visibly, not silently.
+   */
+  protected loadAll(): void {
+    this.error.set(null);
     const locale = this.translate.currentLang || 'en';
 
-    this.api.getFirewall(this.uuid).subscribe((f) => this.firewall.set(f));
-    this.api.listFirewallRules(this.uuid).subscribe((r) => this.rules.set(r));
-    this.api.getGeoBlocking(this.uuid, locale).subscribe((g) => this.geo.set(g));
-    this.api.listCountries(locale).subscribe((cat) => {
-      this.countries.set(cat.countries);
-      this.continents.set(cat.continents);
+    this.api.getFirewall(this.uuid).subscribe({
+      next: (f) => this.firewall.set(f),
+      error: (e) => this.report(e, 'security.app.wafError'),
     });
-    this.api.listRateLimitTemplates().subscribe((t) => this.templates.set(t));
-    this.api.getRateLimit(this.uuid).subscribe((rl) => this.rateLimit.set(rl));
+    this.api.listFirewallRules(this.uuid).subscribe({
+      next: (r) => this.rules.set(r),
+      error: (e) => this.report(e, 'security.app.ruleError'),
+    });
+    this.api.getGeoBlocking(this.uuid, locale).subscribe({
+      next: (g) => this.geo.set(g),
+      error: (e) => this.report(e, 'security.app.geoError'),
+    });
+    this.api.listCountries(locale).subscribe({
+      next: (cat) => {
+        this.countries.set(cat.countries);
+        this.continents.set(cat.continents);
+      },
+      error: (e) => this.report(e, 'security.app.geoError'),
+    });
+    this.api.listRateLimitTemplates().subscribe({
+      next: (t) => this.templates.set(t),
+      error: (e) => this.report(e, 'security.app.rateLimitError'),
+    });
+    this.api.getRateLimit(this.uuid).subscribe({
+      next: (rl) => this.rateLimit.set(rl),
+      error: (e) => this.report(e, 'security.app.rateLimitError'),
+    });
     this.loadAlerts();
     this.loadTraffic();
   }
@@ -564,6 +640,34 @@ export class ApplicationSecurityComponent implements OnInit {
       },
       error: (e) => this.report(e, 'security.app.wafError'),
     });
+  }
+
+  protected addRule(): void {
+    if (this.ruleForm.invalid) {
+      this.ruleForm.markAllAsTouched();
+      return;
+    }
+    const { name, ip } = this.ruleForm.getRawValue();
+    this.addingRule.set(true);
+    this.ruleFormError.set(null);
+    this.api
+      .createFirewallRule(this.uuid, {
+        name: name.trim(),
+        conditions: [{ field: 'ip', operator: 'equals', value: ip.trim() }],
+        action: 'block',
+      })
+      .subscribe({
+        next: (rule) => {
+          this.rules.update((list) => [...list, rule]);
+          this.pendingApply.set(true);
+          this.addingRule.set(false);
+          this.ruleForm.reset();
+        },
+        error: (e) => {
+          this.ruleFormError.set((e as { error?: { error?: { message?: string } } })?.error?.error?.message ?? this.translate.instant('security.app.addRuleError'));
+          this.addingRule.set(false);
+        },
+      });
   }
 
   protected removeRule(rule: FirewallRule): void {

@@ -9,7 +9,8 @@ export async function authUrl(req: CustomRequest, res: Response): Promise<void> 
   if (!github.isConfigured()) {
     return fail(res, 'GitHub OAuth is not configured (set GITHUB_CLIENT_ID/SECRET).', 503, 'GITHUB_NOT_CONFIGURED');
   }
-  ok(res, { authUrl: github.getAuthUrl(req.user!.id, Date.now()) });
+  const returnTo = typeof req.query.return_to === 'string' ? req.query.return_to : undefined;
+  ok(res, { authUrl: github.getAuthUrl(req.user!.id, Date.now(), returnTo) });
 }
 
 /** GET /github/auth/callback — OAuth redirect target (NOT authenticated; uses state). */

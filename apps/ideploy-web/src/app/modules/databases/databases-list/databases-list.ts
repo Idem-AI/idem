@@ -155,11 +155,11 @@ export class DatabasesListComponent implements OnInit {
         project_name: target.project_name,
       })
       .subscribe({
-        // Straight to the resource that was just created, not back to a list
-        // it now silently sits in — that's the page with the Start button and
-        // the live console, and it's what the "was this created?" question
-        // actually needs an answer from.
         next: (db) => {
+          // Straight to the resource that was just created, not back to a list
+          // it now silently sits in — that's the page with the Start button and
+          // the live console, and it's what the "was this created?" question
+          // actually needs an answer from.
           this.saving.set(false);
           this.router.navigate(['/databases', db.type, db.uuid]);
         },
