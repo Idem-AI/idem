@@ -12,3 +12,9 @@
     opacity: 1;
   }
 }
+
+/* L'aperçu remplit le tiroir : c'est lui qui défile, pas le tiroir. */
+.chat-doc-preview {
+  display: block;
+  height: 100%;
+}

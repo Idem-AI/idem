@@ -65,10 +65,25 @@
                   <app-deliverable-card
                     [card]="card"
                     [busy]="cardBusy()"
-                    (previewRequested)="openPreview(card.kind)"
-                    (downloadRequested)="downloadFromCard(card.kind)"
+                    (previewRequested)="openPreview(card.kind, card.documentId)"
+                    (downloadRequested)="downloadFromCard(card.kind, card.documentId)"
                     (generateRequested)="openGenerateFor(card)"
                     (editorRequested)="openEditor(card.editorRoute)"
+                  />
+                }
+
+                <!-- Documents d'un livrable : un projet garde plusieurs
+                     business plans et plusieurs pitch decks -->
+                @if (msg.documentList; as list) {
+                  <app-document-list-card
+                    [kind]="list.kind"
+                    [documents]="list.documents"
+                    [busy]="cardBusy() || isGenerating()"
+                    (opened)="onDocumentOpened(list.kind, $event)"
+                    (downloaded)="onDocumentDownloaded(list.kind, $event)"
+                    (renamed)="onDocumentRenamed(msg.id, list.kind, $event)"
+                    (removed)="onDocumentRemoved(msg.id, list.kind, $event)"
+                    (createRequested)="onDocumentCreateRequested(list.kind)"
                   />
                 }
 
@@ -231,16 +246,19 @@
   }
 </div>
 
-<!-- Panneau de prévisualisation -->
+<!-- Tiroir de lecture : le document tel qu'il sera imprimé, pages manquantes
+     comprises. Régénérer, éditer et télécharger s'y font sans quitter le fil. -->
 @if (preview(); as previewState) {
-  <app-preview-panel
+  <app-document-preview-panel
     [title]="previewState.title"
-    [pdfUrl]="previewState.url"
-    [isLoading]="previewState.isLoading"
-    [error]="previewState.error"
-    [canGenerate]="!isGenerating()"
+    [documentType]="previewState.documentType"
+    [documentId]="previewState.documentId"
+    [outline]="previewState.outline"
+    [sectionLabelPrefix]="previewState.sectionLabelPrefix"
+    [busy]="isGenerating()"
     (closed)="closePreview()"
-    (downloadRequested)="downloadFromPreview()"
-    (generateRequested)="generateFromPreview()"
+    (regenerateSection)="onPreviewRegenerateSection($event)"
+    (resumeGeneration)="onPreviewResume()"
+    (regenerateAll)="onPreviewRegenerateAll()"
   />
 }

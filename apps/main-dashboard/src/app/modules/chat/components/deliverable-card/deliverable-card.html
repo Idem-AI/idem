@@ -55,7 +55,7 @@
   <!-- Actions -->
   <div class="px-4 pb-4 pt-1 space-y-3">
     <div class="flex flex-wrap items-center gap-2">
-      @if (canUsePdf()) {
+      @if (canPreview()) {
         <button
           type="button"
           (click)="previewRequested.emit()"
@@ -65,6 +65,8 @@
           <i class="pi pi-eye text-[11px]"></i>
           {{ 'chat.card.actions.preview' | translate }}
         </button>
+      }
+      @if (canUsePdf()) {
         <button
           type="button"
           (click)="downloadRequested.emit()"

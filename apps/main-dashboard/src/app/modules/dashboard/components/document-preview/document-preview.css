@@ -384,6 +384,30 @@
   animation: dp-rise 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
 }
 
+/* -- Variante panneau (tiroir du mode Chat) --
+   L'aperçu remplit son panneau : le document défile dans la scène, et le dock
+   se pose au bas du panneau. Collant au bas de la FENÊTRE, il resterait
+   au-dessous d'un tiroir qui ne fait pas la hauteur de l'écran. */
+.dp-panel {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+}
+
+.dp-panel .dp-stage {
+  flex: 1;
+  min-height: 0;
+}
+
+.dp-panel .dp-dock {
+  position: absolute;
+  left: 50%;
+  bottom: var(--dp-dock-gap);
+  transform: translateX(-50%);
+  margin: 0;
+  max-width: calc(100% - 2 * var(--dp-dock-gap));
+}
+
 .dp-sep {
   flex-shrink: 0;
   width: 1px;

@@ -1293,7 +1293,8 @@
           "maxTokens": "tokens max",
           "featureNotAuthorized": "Fonctionnalité non autorisée"
         },
-        "generations": "Générations"
+        "generations": "Générations",
+        "credits": "Crédits"
       }
     },
     "aiAssistant": {
@@ -3942,7 +3943,9 @@
       "finance": "Rapport financier",
       "communication": "Communication",
       "development": "Développement",
-      "deployment": "Déploiement"
+      "deployment": "Déploiement",
+      "businessCards": "Cartes de visite",
+      "simulations": "Simulations"
     },
     "card": {
       "updatedAt": "Modifié le",
@@ -3974,7 +3977,10 @@
       "close": "Fermer",
       "loading": "Chargement du document…",
       "notAvailable": "Ce document n'est pas encore disponible.",
-      "generateNow": "Générer maintenant"
+      "generateNow": "Générer maintenant",
+      "askRegenerateSection": "Régénère la page « {{section}} »",
+      "askResume": "Complète les pages manquantes",
+      "askRegenerateAll": "Régénère tout le document"
     },
     "responses": {
       "showCard": "Voici votre {{title}} :",
@@ -4008,7 +4014,9 @@
         "finance": "Voir mon rapport financier",
         "communication": "Voir ma communication",
         "development": "Voir mon développement",
-        "deployment": "Voir mes déploiements"
+        "deployment": "Voir mes déploiements",
+        "businessCards": "Voir mes cartes de visite",
+        "simulations": "Voir mes simulations"
       },
       "generate": {
         "businessPlan": "Rédiger mon business plan",
@@ -4019,7 +4027,9 @@
         "finance": "Compléter mes finances",
         "communication": "Générer ma communication",
         "development": "Configurer le développement",
-        "deployment": "Configurer le déploiement"
+        "deployment": "Configurer le déploiement",
+        "businessCards": "Créer mes cartes de visite",
+        "simulations": "Lancer une simulation"
       }
     },
     "recap": {
@@ -4246,12 +4256,14 @@
       "failed": "❌ La génération de votre {{title}} a échoué.",
       "retryHint": "Voulez-vous réessayer ?",
       "chips": {
-        "retry": "Réessayer la génération"
+        "retry": "Réessayer la génération",
+        "retrySection": "Réessayer cette page"
       },
       "cardRunning": "Génération de votre {{title}}",
       "cardDone": "Votre {{title}} est prêt",
       "cardError": "La génération de votre {{title}} a échoué",
-      "steps": "{{done}}/{{total}} étapes terminées"
+      "steps": "{{done}}/{{total}} étapes terminées",
+      "resumed": "Votre {{title}} est déjà en cours de génération — je reprends le suivi ici."
     },
     "launcher": {
       "title": "Que construisons-nous pour {{name}} ?",
@@ -4268,7 +4280,9 @@
         "legalDocs": "Statuts, CGU, contrats et mentions légales.",
         "communication": "Stratégie, calendrier éditorial et flyers.",
         "development": "Génération de votre application ou site web.",
-        "deployment": "Déploiement de votre infrastructure et mise en ligne."
+        "deployment": "Déploiement de votre infrastructure et mise en ligne.",
+        "businessCards": "Le modèle de vos cartes de visite, dessiné depuis votre charte.",
+        "simulations": "Éprouvez votre modèle avant le marché."
       },
       "state": {
         "ready": "Prêt",
@@ -4290,8 +4304,16 @@
         "privacy": "Politique de confidentialité",
         "statutes": "Statuts (SAS)",
         "nda": "Accord de confidentialité (NDA)",
-        "editor": "Voir tout le catalogue"
-      }
+        "editor": "Voir tout le catalogue",
+        "list": "Voir mes documents juridiques"
+      },
+      "listIntro": "Vous avez {{count}} document(s) juridique(s) :",
+      "emptyList": "Aucun document juridique n'a encore été rédigé.",
+      "downloadOne": "Télécharger {{name}}",
+      "downloadFailed": "Ce document n'a pas pu être téléchargé.",
+      "deleted": "Document supprimé.",
+      "deleteFailed": "La suppression n'a pas abouti.",
+      "loadFailed": "Impossible de charger vos documents juridiques."
     },
     "comm": {
       "intro": "Passons à votre **communication**. Je peux définir votre stratégie éditoriale et bâtir un calendrier de contenus. Par quoi commençons-nous ?",
@@ -4311,7 +4333,10 @@
       },
       "chips": {
         "strategy": "Générer la stratégie",
-        "calendar": "Générer le calendrier"
+        "calendar": "Générer le calendrier",
+        "studio": "Composer un visuel",
+        "library": "Ma bibliothèque de visuels",
+        "plans": "Mon calendrier éditorial"
       }
     },
     "dev": {
@@ -4334,6 +4359,64 @@
       "createFailed": "Le pitch deck n'a pas pu être créé. Réessayez.",
       "chips": {
         "compare": "Comparer les types"
+      }
+    },
+    "documents": {
+      "count": "{{count}} document(s)",
+      "empty": "Aucun document pour l'instant.",
+      "sections": "{{completed}} / {{expected}} sections rédigées",
+      "open": "Ouvrir",
+      "download": "PDF",
+      "rename": "Renommer",
+      "delete": "Supprimer",
+      "confirmDelete": "Confirmer la suppression",
+      "renameFailed": "Le renommage n'a pas abouti. Réessayez dans un instant.",
+      "deleteFailed": "La suppression n'a pas abouti. Réessayez dans un instant.",
+      "status": {
+        "draft": "Brouillon",
+        "partial": "En cours",
+        "complete": "Complet"
+      },
+      "businessPlan": {
+        "title": "Mes business plans",
+        "list": "Voir tous mes business plans",
+        "create": "Rédiger un autre business plan",
+        "intro": "Voici les business plans de ce projet. Ouvrez celui que vous voulez lire, ou créez-en un autre pour un autre destinataire.",
+        "none": "Ce projet n'a pas encore de business plan."
+      },
+      "pitchDeck": {
+        "title": "Mes pitch decks",
+        "list": "Voir tous mes pitch decks",
+        "create": "Créer un autre pitch deck",
+        "intro": "Voici les pitch decks de ce projet. Ouvrez celui que vous voulez présenter, ou créez-en un autre pour un autre public.",
+        "none": "Ce projet n'a pas encore de pitch deck."
+      }
+    },
+    "finance": {
+      "intro": "Je peux remplir tout le modèle financier, ou une seule partie si c'est la seule à revoir.",
+      "chips": {
+        "fillAll": "Tout compléter"
+      },
+      "sectionDone": "« {{section}} » est à jour.",
+      "sectionFailed": "« {{section}} » n'a pas pu être complétée."
+    },
+    "cards": {
+      "needsBranding": "Les cartes de visite se dessinent depuis votre charte : complétons-la d'abord.",
+      "orientationQuestion": "Dans quel format dessinons-nous vos cartes ?",
+      "chips": {
+        "landscape": "Paysage (85 × 55 mm)",
+        "portrait": "Portrait (55 × 85 mm)",
+        "openHolders": "Voir les cartes",
+        "addHolder": "Ajouter une personne",
+        "edit": "Modifier le modèle"
+      },
+      "done": "Votre modèle de carte est prêt. Ajoutez les personnes, chaque carte s'y remplit toute seule.",
+      "failed": "Le modèle de carte n'a pas pu être dessiné."
+    },
+    "simulations": {
+      "intro": "Les simulations mettent votre modèle à l'épreuve avant le marché. Le récapitulatif de ce projet vous mène au simulateur.",
+      "chips": {
+        "open": "Voir mes simulations"
       }
     }
   },
