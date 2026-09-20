@@ -192,7 +192,15 @@ async function executeOverSsh(
   const attempt = async (): Promise<ExecResult> => {
     if (local) {
       // Run directly on the host shell (Docker Desktop / local daemon).
-      return captureChild(spawn('bash', ['-c', command]));
+      // Fed via stdin (`bash -s`), not as a `-c` argument — the same reason
+      // the SSH path below already does this: an argument sits in that
+      // process's own command line for the life of the command, readable by
+      // anything on the machine with `ps aux`/`/proc/<pid>/cmdline`. That
+      // was a real gap here specifically: a database's generated `docker
+      // run` already carries a decrypted password this way, and a git clone
+      // of a private repository now carries an OAuth token the same way —
+      // both are commands this path can run.
+      return captureChild(spawn('bash', ['-s']), command);
     }
     const useMux = await ensureMultiplexedConnection(server, keyPath);
     const args = [

@@ -14,6 +14,7 @@ import * as appService from './application.service';
 import * as deploymentService from './deployment.service';
 import * as serviceService from './service.service';
 import * as workspaceService from './workspace.service';
+import * as envVarService from './env-var.service';
 import { STANDALONE_DOCKER_TYPE } from './workspace.service';
 import { getTemplateCompose } from './templates.service';
 import { unprocessable } from '../utils/errors';
@@ -68,9 +69,17 @@ export interface QuickDeployDto {
   /** Environment within the workspace. Defaults to `production`. */
   environment?: string;
   base_directory?: string;
+  install_command?: string;
   build_command?: string;
   start_command?: string;
   ports_exposes?: string;
+  /**
+   * Set before the first deployment is created, not after — a build that
+   * needs one of these to compile (an API base URL baked in at build time,
+   * for instance) must have it on the very first attempt, the same way it
+   * would need it on every attempt after.
+   */
+  environment_variables?: { key: string; value: string }[];
 }
 
 export interface QuickDeployResult {
@@ -132,10 +141,26 @@ export async function quickDeploy(teamId: number, dto: QuickDeployDto): Promise<
     destination_id: destinationId,
     destination_type: STANDALONE_DOCKER_TYPE,
     base_directory: dto.base_directory,
+    install_command: dto.install_command,
     build_command: dto.build_command,
     start_command: dto.start_command,
     ports_exposes: dto.ports_exposes,
   });
+
+  // Saved before the first deployment is created (see the DTO field's own
+  // doc comment) — both build-time and runtime by default, since this form
+  // has no way yet to ask which a given key is for and a var a build needed
+  // is one the running container plausibly needs too.
+  for (const { key, value } of dto.environment_variables ?? []) {
+    if (!key.trim()) continue;
+    await envVarService.upsertForApplication(teamId, app.uuid, {
+      key: key.trim(),
+      value,
+      is_runtime: true,
+      is_buildtime: true,
+    });
+  }
+
   const { deploymentUuid } = await deploymentService.createDeployment(app, teamId, {});
   return {
     kind: 'application',

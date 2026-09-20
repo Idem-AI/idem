@@ -373,7 +373,21 @@ export async function setStatus(t: DbType, uuid: string, status: string): Promis
  * credentials, a corrupt volume). Trusting the exit code alone is exactly how
  * a database's status could say "running" while `docker ps` disagreed.
  */
-const DB_SETTLE_MS = 4000;
+const DB_SETTLE_MS = 6000;
+
+/**
+ * A second look, after giving a slower failure more time to happen — a first
+ * run initialising a fresh Postgres/MySQL data directory can still be doing
+ * that past `DB_SETTLE_MS`, and a server under heavy load (confirmed live
+ * this session: another application's crash-loop drove load average past
+ * 120) can delay it further still. Verified live: two databases created
+ * while the server was under exactly that load reported `running` at the
+ * single check this used to make, then were gone entirely minutes later —
+ * nothing here had looked again to catch it. One re-check, after this grace
+ * period, is what actually confirms the container is still there rather than
+ * merely was a few seconds ago.
+ */
+const DB_CONFIRM_GRACE_MS = 8000;
 
 export async function lifecycle(
   teamId: number,
@@ -428,17 +442,31 @@ export async function lifecycle(
   // start/restart: wait out the settle window, then ask Docker directly what
   // actually happened, rather than trust the exit code of the command that
   // only started the container.
+  const inspectStatus = async (): Promise<string> => {
+    const inspect = await executeRemoteCommand(
+      server!,
+      key!,
+      `docker inspect ${containerName} --format '{{.State.Status}}' 2>/dev/null`,
+      { noRetry: true }
+    );
+    return inspect.stdout.trim() || 'exited';
+  };
+
   await new Promise((resolve) => setTimeout(resolve, DB_SETTLE_MS));
   log(`\nChecking container status after ${DB_SETTLE_MS / 1000}s…\n`);
-  const inspect = await executeRemoteCommand(
-    server!,
-    key!,
-    `docker inspect ${containerName} --format '{{.State.Status}}' 2>/dev/null`,
-    { noRetry: true }
-  );
-  const actualStatus = inspect.stdout.trim() || 'exited';
-  await setStatus(t, uuid, actualStatus);
+  let actualStatus = await inspectStatus();
   log(`  ${containerName}: ${actualStatus}\n`);
+
+  if (actualStatus === 'running') {
+    // Confirmed once; confirm it again after giving a slower failure a real
+    // chance to happen — see `DB_CONFIRM_GRACE_MS`'s own doc comment.
+    await new Promise((resolve) => setTimeout(resolve, DB_CONFIRM_GRACE_MS));
+    log(`Confirming it is still up after a further ${DB_CONFIRM_GRACE_MS / 1000}s…\n`);
+    actualStatus = await inspectStatus();
+    log(`  ${containerName}: ${actualStatus}\n`);
+  }
+
+  await setStatus(t, uuid, actualStatus);
 
   return { success: result.exitCode === 0 && actualStatus === 'running', output: result.stdout + result.stderr };
 }

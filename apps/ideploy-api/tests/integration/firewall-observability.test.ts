@@ -33,7 +33,23 @@ afterAll(async () => {
 beforeEach(async () => {
   await truncateAll();
   stub.reset();
-  client = new CrowdSecLapiClient({ baseUrl: stub.url, apiKey: 'k', timeoutMs: 2000 });
+  // `apiKey` was never a real `LapiConfig` field — a stale name from before
+  // the client split bouncer/machine credentials (see its own module doc);
+  // `vitest`'s esbuild transform strips types without checking them, so the
+  // excess property never surfaced as a compile error, only as every read
+  // here failing with "machine credentials... not supplied". `listDecisions`
+  // accepts a bouncer key, but `listAlerts`/`deleteAlert` require a genuine
+  // machine login every time (unconditionally, matching real CrowdSec: an
+  // alert carries more than a bouncer's coarse decision list needs) — so
+  // this suite needs both, plus the login stub every machine call makes.
+  stub.on('POST', '/v1/watchers/login', { body: { token: 'stub-machine-jwt' } });
+  client = new CrowdSecLapiClient({
+    baseUrl: stub.url,
+    bouncerKey: 'k',
+    machineId: 'localhost',
+    machinePassword: 'stub-machine-password',
+    timeoutMs: 2000,
+  });
 });
 
 /** An application row to hang observability data off. */

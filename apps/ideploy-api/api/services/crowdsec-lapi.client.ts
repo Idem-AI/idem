@@ -319,8 +319,19 @@ export class CrowdSecLapiClient {
             events: [],
             events_count: 1,
             source: { scope: 'ip', value: request.ip },
+            // Both `start_at`/`stop_at` and `decisions[].duration` end up
+            // governing the ban's actual length — verified live against a
+            // real CrowdSec instance (v1.7.8) with an isolated repro: a
+            // 100s-duration request produced a decision reported as "1m40s"
+            // remaining when `stop_at` was set to `start_at` (i.e. an
+            // instant alert window), but "3m20s" — exactly double — when
+            // `stop_at` was `start_at + duration` as it naively would be.
+            // CrowdSec adds the alert's own window to the decision's
+            // duration rather than treating them as the same span. Keeping
+            // the alert's window at zero width leaves `decisions[].duration`
+            // as the single source of truth for how long the ban lasts.
             start_at: isoIn(0),
-            stop_at: isoIn(durationSeconds * 1000),
+            stop_at: isoIn(0),
             capacity: 0,
             leakspeed: '',
             labels: null,

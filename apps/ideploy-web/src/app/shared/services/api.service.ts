@@ -49,6 +49,7 @@ import {
   Tag,
   ApplyRequired,
   CountryCatalogue,
+  DetectedFramework,
   FirewallConfig,
   FirewallRule,
   GeoMode,
@@ -93,19 +94,19 @@ export class ApiService {
       this.http.get<ApiResponse<{ connected: boolean; username: string | null }>>(`${this.base}/github/user`)
     ).pipe(map((r) => r.username));
   }
-  githubAuthUrl(): Observable<string> {
+  /** `returnTo` (a same-origin path, e.g. the architecture guide's own URL) is where the OAuth round-trip sends the browser back to — default `/new-project` otherwise. */
+  githubAuthUrl(returnTo?: string): Observable<string> {
+    const q = returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : '';
     return this.unwrap(
-      this.http.get<ApiResponse<{ authUrl: string }>>(`${this.base}/github/auth/url`)
+      this.http.get<ApiResponse<{ authUrl: string }>>(`${this.base}/github/auth/url${q}`)
     ).pipe(map((r) => r.authUrl));
   }
   githubRepositories(): Observable<GithubRepo[]> {
     return this.unwrap(this.http.get<ApiResponse<GithubRepo[]>>(`${this.base}/github/repositories`));
   }
-  githubDetect(repo: string): Observable<{ preset: string; buildPack: string; hasDockerfile: boolean; hasDockerCompose: boolean }> {
+  githubDetect(repo: string): Observable<DetectedFramework> {
     return this.unwrap(
-      this.http.get<ApiResponse<{ preset: string; buildPack: string; hasDockerfile: boolean; hasDockerCompose: boolean }>>(
-        `${this.base}/github/detect?repo=${encodeURIComponent(repo)}`
-      )
+      this.http.get<ApiResponse<DetectedFramework>>(`${this.base}/github/detect?repo=${encodeURIComponent(repo)}`)
     );
   }
   githubDisconnect(): Observable<unknown> {
@@ -118,19 +119,19 @@ export class ApiService {
       this.http.get<ApiResponse<{ connected: boolean; username: string | null }>>(`${this.base}/gitlab/user`)
     ).pipe(map((r) => r.username));
   }
-  gitlabAuthUrl(): Observable<string> {
+  /** See `githubAuthUrl`'s note on `returnTo`. */
+  gitlabAuthUrl(returnTo?: string): Observable<string> {
+    const q = returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : '';
     return this.unwrap(
-      this.http.get<ApiResponse<{ authUrl: string }>>(`${this.base}/gitlab/auth/url`)
+      this.http.get<ApiResponse<{ authUrl: string }>>(`${this.base}/gitlab/auth/url${q}`)
     ).pipe(map((r) => r.authUrl));
   }
   gitlabRepositories(): Observable<GithubRepo[]> {
     return this.unwrap(this.http.get<ApiResponse<GithubRepo[]>>(`${this.base}/gitlab/repositories`));
   }
-  gitlabDetect(repo: string): Observable<{ preset: string; buildPack: string; hasDockerfile: boolean; hasDockerCompose: boolean }> {
+  gitlabDetect(repo: string): Observable<DetectedFramework> {
     return this.unwrap(
-      this.http.get<ApiResponse<{ preset: string; buildPack: string; hasDockerfile: boolean; hasDockerCompose: boolean }>>(
-        `${this.base}/gitlab/detect?repo=${encodeURIComponent(repo)}`
-      )
+      this.http.get<ApiResponse<DetectedFramework>>(`${this.base}/gitlab/detect?repo=${encodeURIComponent(repo)}`)
     );
   }
   gitlabDisconnect(): Observable<unknown> {
@@ -340,10 +341,16 @@ export class ApiService {
   listDatabases(): Observable<Database[]> {
     return this.unwrap(this.http.get<ApiResponse<Database[]>>(`${this.base}/databases`));
   }
-  /** As with applications, the destination is resolved from the workspace, not client-chosen. */
+  /**
+   * As with applications, the destination is resolved from the workspace, not
+   * client-chosen. `credentials` is optional and per-field: any column left
+   * out (e.g. `postgres_password`) keeps the backend's own default or
+   * securely auto-generated value — only what's actually supplied here
+   * overrides it.
+   */
   createDatabase(
     type: DatabaseType,
-    body: { name: string; workspace_uuid: string; environment_name?: string; project_name?: string }
+    body: { name: string; workspace_uuid: string; environment_name?: string; project_name?: string; credentials?: Record<string, string> }
   ): Observable<Database> {
     return this.unwrap(this.http.post<ApiResponse<Database>>(`${this.base}/databases/${type}`, body));
   }
@@ -796,9 +803,12 @@ export class ApiService {
     /** Find-or-create a workspace by name. */
     workspace_name?: string;
     base_directory?: string;
+    install_command?: string;
     build_command?: string;
     start_command?: string;
     ports_exposes?: string;
+    /** Saved before the first deployment, so a build that needs one has it. */
+    environment_variables?: { key: string; value: string }[];
   }): Observable<{ kind: 'application' | 'service'; deploymentUuid?: string; serviceUuid?: string; server: string }> {
     return this.unwrap(
       this.http.post<ApiResponse<{ kind: 'application' | 'service'; deploymentUuid?: string; serviceUuid?: string; server: string }>>(

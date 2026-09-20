@@ -541,6 +541,46 @@ export interface GithubRepo {
   language?: string;
 }
 
+/** A variable named by the repository's own `.env.example` (or `.sample`/`.template`). */
+export interface DetectedEnvVar {
+  key: string;
+  /** The value committed in the example file, if any — never a real secret. */
+  defaultValue: string;
+}
+
+/** Something worth telling the operator before they deploy — see ecosystem-detection.service.ts on the backend. */
+export interface EcosystemWarning {
+  code: string;
+  message: string;
+  /** 'blocking': the build engine will fail outright. 'warning': it'll work, but worth attention. */
+  severity: 'blocking' | 'warning';
+}
+
+export interface DetectedFramework {
+  preset: string;
+  buildPack: string;
+  hasDockerfile: boolean;
+  hasDockerCompose: boolean;
+  envVars: DetectedEnvVar[];
+  /** 'node' | 'java-maven' | 'java-gradle' | 'python' | 'go' | 'ruby' | 'php' | 'dockerfile' | 'unknown'. */
+  ecosystem: string;
+  buildTool?: string;
+  /** The port the framework listens on by convention, or null when there's no reliable convention (e.g. Go). */
+  suggestedPort: number | null;
+  /** Set only when the framework doesn't read $PORT on its own — the exact start command needed. */
+  startCommandHint?: string;
+  warnings: EcosystemWarning[];
+  /** Set only when exactly one application root was found outside the repository root — the Root Directory field, pre-filled instead of blank. */
+  rootDirSuggestion?: string;
+  /** Set only when 2+ application roots were found and none could be picked automatically. */
+  monorepoCandidates?: ManifestDirectory[];
+}
+
+export interface ManifestDirectory {
+  dir: string;
+  manifestFile: string;
+}
+
 /**
  * Whether the saved rules actually filter traffic.
  *
