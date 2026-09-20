@@ -24,6 +24,7 @@ import {
   ElementStyle,
   FontHints,
   HOST_TO_IFRAME,
+  HostMessage,
   IFRAME_TO_HOST,
   IframeMessage,
   PageFormat,
@@ -567,7 +568,7 @@ export class EditorCanvasComponent implements OnInit, OnDestroy {
     this.post({ source: HOST_TO_IFRAME, type: 'set-theme', dark });
   }
 
-  private post(message: unknown): void {
+  private post(message: HostMessage): void {
     this.frame()?.nativeElement.contentWindow?.postMessage(message, '*');
   }
 

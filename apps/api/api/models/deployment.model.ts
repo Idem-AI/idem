@@ -63,17 +63,6 @@ export interface ChatMessage {
   requestedSensitiveVariables?: SensitiveVariable[];
 }
 
-export interface ArchitectureTemplate {
-  id: string;
-  archetype_id: string;
-  provider: 'aws' | 'gcp' | 'azure';
-  category: string;
-  name: string;
-  description: string;
-  tags: string[];
-  icon: string;
-}
-
 // Form configuration interfaces
 export interface FormOption {
   name: string;

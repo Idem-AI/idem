@@ -108,11 +108,6 @@ export function getAiOverrides(): Record<string, AiOverride> {
   return table;
 }
 
-/** Réinitialise la table mémorisée. Réservé aux tests et aux scripts. */
-export function resetAiOverrides(): void {
-  parsed = null;
-}
-
 /**
  * Trouve la clé de surcharge qui s'applique à un `promptType`.
  *

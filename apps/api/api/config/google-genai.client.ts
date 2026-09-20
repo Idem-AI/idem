@@ -3,7 +3,6 @@ import {
   describeGeminiBackend,
   getGeminiBackend,
   isGeminiConfigured,
-  resetGeminiBackend,
 } from './ai-providers.config';
 import logger from './logger';
 import { installFetchDiagnostics } from '../utils/fetch-diagnostics';
@@ -78,10 +77,4 @@ export function getGoogleGenAIClient(): GoogleGenAI {
 
   logger.info(`Client Gemini initialisé — ${describeGeminiBackend()}`);
   return client;
-}
-
-/** Réinitialise le client et le backend mémorisés. Réservé aux tests. */
-export function resetGoogleGenAIClient(): void {
-  client = undefined;
-  resetGeminiBackend();
 }

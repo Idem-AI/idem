@@ -80,9 +80,6 @@ export interface FiscalCalendar {
 }
 
 export const FINANCE_PROJECTION_MONTHS = 36;
-export const FINANCE_PROJECTION_YEARS = 7; // certains tableaux vont jusqu'à 7 ans
-export const FINANCE_MAX_PRODUCTS = 20;
-
 /** Calendrier par défaut : exercice 1 = année civile en cours, clôture au 31 décembre. */
 export const defaultFiscalCalendar = (): FiscalCalendar => ({
   firstYear: new Date().getFullYear(),

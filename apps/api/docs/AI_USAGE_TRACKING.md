@@ -118,11 +118,15 @@ la base. Un index TTL la purge automatiquement.
 AI_USAGE_TTL_DAYS=400   # 0 = conservation illimitée
 ```
 
-Les compteurs journaliers de `token_usage` (qui alimentent les plafonds de
-`token-tracking.service.ts`) ne sont pas purgés. Ils sont mis à jour par
-`aiUsageService.record()` via un `$inc` + upsert **atomique** : une génération de
-4 variantes lance 4 écritures concurrentes, et le read-modify-write d'origine
-perdait silencieusement des incréments.
+Les compteurs journaliers de `token_usage` ne sont pas purgés. Ils sont mis à
+jour par `aiUsageService.record()` via un `$inc` + upsert **atomique** : une
+génération de 4 variantes lance 4 écritures concurrentes, et le
+read-modify-write d'origine perdait silencieusement des incréments.
+
+Le service qui lisait ces compteurs pour appliquer des plafonds
+(`token-tracking.service.ts`) n'existe plus : il n'était appelé que par le
+proxy AppGen, lui-même retiré des routes. Les plafonds sont aujourd'hui tenus
+par la facturation (`requireCredits`, `billing.middleware.ts`).
 
 ## Garantie de non-régression
 

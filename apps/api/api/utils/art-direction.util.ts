@@ -11,7 +11,6 @@
 
 import { ArtDirectionModel } from '../models/art-direction.model';
 import {
-  ART_DIRECTION_STYLES,
   buildStyleSheet,
   resolveStyle,
 } from '../services/design/artDirection.catalog';
@@ -143,14 +142,4 @@ export function buildImageNegativePrompt(ad?: ArtDirectionModel | null): string 
   ]
     .filter(Boolean)
     .join(', ');
-}
-
-/**
- * Résumé d'une ligne, pour les contextes où le bloc complet ne tient pas
- * (en-tête de contexte projet, journaux, digest de section).
- */
-export function summarizeArtDirection(ad?: ArtDirectionModel | null): string {
-  if (!ad || !ad.styleId) return '';
-  const style = ART_DIRECTION_STYLES[ad.styleId];
-  return `${ad.styleName || style?.name || ad.styleId} — ${ad.tagline || style?.essence || ''} (keywords: ${(ad.keywords || []).slice(0, 6).join(', ')})`;
 }

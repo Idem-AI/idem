@@ -37,8 +37,6 @@ export type MultiDocumentKind = 'businessPlan' | 'pitchDeck';
  */
 export type ChatDocumentSummary = ChatDocumentListItem;
 
-export type ChatDocumentStatus = ChatDocumentListItem['status'];
-
 interface PreviewConfig {
   documentType: PreviewDocumentType;
   /** Préfixe i18n des noms de section (se termine par un point). */

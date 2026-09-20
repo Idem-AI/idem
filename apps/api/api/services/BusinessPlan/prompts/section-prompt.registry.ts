@@ -68,11 +68,6 @@ const BY_NAME = new Map(SECTION_PROMPT_SPECS.map((spec) => [spec.name, spec]));
   }
 }
 
-export const getSectionPromptSpec = (key: string): SectionPromptSpec | undefined => BY_KEY.get(key);
-
-export const getSectionPromptSpecByName = (name: string): SectionPromptSpec | undefined =>
-  BY_NAME.get(name);
-
 /**
  * Contexte neutre : utilisé par les briefs par défaut et par les contrôles.
  * Une consigne composée sans contexte reste valable, elle est seulement moins
