@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { map, Observable, throwError } from 'rxjs';
+import { forkJoin, map, Observable, throwError } from 'rxjs';
 import { environment } from '../../../../../../environments/environment';
 import { ProjectService } from '../../../services/project.service';
 import { Flyer, FlyerFormat } from '../../../models/communication.model';
@@ -70,17 +70,26 @@ export class FlyerEditorAdapter implements DocumentTypeAdapter {
       return throwError(() => new Error('No flyerId in the URL'));
     }
 
-    return this.projectService.getProjectById(projectId).pipe(
-      map((project) => {
+    // Le visuel est demandé à son PROPRE endpoint, et non extrait du document
+    // projet : celui-ci ne transporte plus le HTML des visuels dans les lectures
+    // courantes (une page Tailwind par visuel alourdissait chaque navigation du
+    // dashboard), et un visuel produit après la V2 n'est plus dans `flyers[]`.
+    // La typographie, elle, vit bien dans le projet.
+    return forkJoin({
+      visual: this.http.get<Flyer>(
+        `${this.apiBase}/${projectId}/visuals/${encodeURIComponent(this.flyerId)}`,
+      ),
+      project: this.projectService.getProjectById(projectId),
+    }).pipe(
+      map(({ visual, project }) => {
         const analysis = project?.analysisResultModel as
           | {
-              communication?: { flyers?: Flyer[] };
               branding?: {
                 typography?: { primaryFont?: string; secondaryFont?: string; url?: string };
               };
             }
           | undefined;
-        const flyer = analysis?.communication?.flyers?.find((f) => f.id === this.flyerId);
+        const flyer = visual;
         if (!flyer?.html) throw new Error(`Flyer ${this.flyerId} not found`);
 
         const sections: EditableSection[] = [

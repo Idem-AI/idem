@@ -21,7 +21,7 @@ export const saveBrandingSectionsController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   try {
     if (!userId) { res.status(401).json({ message: 'User not authenticated' }); return; }
     if (!projectId) { res.status(400).json({ message: 'Project ID is required' }); return; }
@@ -181,7 +181,7 @@ export const generateLogoConceptsController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
   logger.info(
     `generateLogoConceptsController called - UserId: ${userId}, ProjectId: ${projectId}`
@@ -255,7 +255,7 @@ export const generateLogoConceptsStreamController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
   logger.info(
     `generateLogoConceptsStreamController called - UserId: ${userId}, ProjectId: ${projectId}`
@@ -377,7 +377,7 @@ export const cancelLogoConceptsController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
   try {
     if (!userId) {
@@ -409,7 +409,7 @@ export const generateLogoVariationsStreamController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
   logger.info(
     `generateLogoVariationsStreamController called - UserId: ${userId}, ProjectId: ${projectId}`
@@ -536,7 +536,7 @@ export const generateLogoVariationsController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const { selectedLogo } = req.body;
   const userId = req.user?.uid;
   logger.info(
@@ -613,7 +613,7 @@ export const getBrandingsByProjectController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
   logger.info(
     `getBrandingsByProjectController called - UserId: ${userId}, ProjectId: ${projectId}`
@@ -685,7 +685,7 @@ export const updateBrandingController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
   logger.info(`updateBrandingController called - UserId: ${userId}, ProjectId: ${projectId}`, {
     body: req.body,
@@ -731,7 +731,7 @@ export const deleteBrandingController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
   logger.info(`deleteBrandingController called - UserId: ${userId}, ProjectId: ${projectId}`);
   try {
@@ -773,7 +773,7 @@ export const generateBrandingStreamingController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const { format } = req.query;
   const userId = req.user?.uid;
   const pdfFormat = (format as string) || 'SLIDE_16_9';
@@ -896,7 +896,7 @@ export const generateBrandingPdfController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
   logger.info(`generateBrandingPdfController called - UserId: ${userId}, ProjectId: ${projectId}`);
 
@@ -1045,7 +1045,7 @@ export const generateLogosZipController = async (
  * Contrôleur pour éditer un logo existant avec AI
  */
 export const editLogoController = async (req: CustomRequest, res: Response): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const { logosvg, modificationPrompt } = req.body;
   const userId = req.user?.uid;
 
@@ -1100,5 +1100,70 @@ export const editLogoController = async (req: CustomRequest, res: Response): Pro
       message: 'Error editing logo',
       error: error.message,
     });
+  }
+};
+
+/**
+ * Direction artistique du projet.
+ *
+ * GET la renvoie (en la générant si elle n'existe pas encore), POST en propose
+ * une AUTRE — le style déjà retenu est explicitement écarté du catalogue, sans
+ * quoi le brief étant inchangé, le modèle reproposerait le même.
+ */
+export const getArtDirectionController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const projectId = req.params.projectId as string;
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    const project = await projectService.getUserProjectById(userId, projectId);
+    if (!project) {
+      res.status(404).json({ message: 'Project not found' });
+      return;
+    }
+    const direction = await brandingService.ensureArtDirection(userId, projectId, project);
+    if (!direction) {
+      res.status(404).json({ message: 'No branding available for this project' });
+      return;
+    }
+    res.status(200).json(direction);
+  } catch (error) {
+    logger.error(`Error in getArtDirectionController - ProjectId: ${projectId}`, {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    res.status(500).json({ message: 'Error resolving art direction' });
+  }
+};
+
+export const regenerateArtDirectionController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const projectId = req.params.projectId as string;
+  try {
+    if (!userId) {
+      res.status(401).json({ message: 'User not authenticated' });
+      return;
+    }
+    const direction = await brandingService.regenerateArtDirection(userId, projectId);
+    if (!direction) {
+      res.status(404).json({ message: 'Project or branding not found' });
+      return;
+    }
+    logger.info(`Art direction regenerated - ProjectId: ${projectId}`, {
+      styleId: direction.styleId,
+    });
+    res.status(200).json(direction);
+  } catch (error) {
+    logger.error(`Error in regenerateArtDirectionController - ProjectId: ${projectId}`, {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    res.status(500).json({ message: 'Error regenerating art direction' });
   }
 };

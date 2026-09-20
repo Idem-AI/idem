@@ -46,6 +46,8 @@
     "changeLanguage": "Change language",
     "continue": "Continue",
     "apply": "Apply",
-    "reset": "Reset"
+    "reset": "Reset",
+    "close": "Close",
+    "confirm": "Confirm"
   }
 }

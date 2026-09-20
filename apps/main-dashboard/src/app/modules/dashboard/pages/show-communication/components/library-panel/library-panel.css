@@ -1,0 +1,198 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.lp-label {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.lp-select {
+  margin-top: 0.25rem;
+  border-radius: 0.75rem;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.85rem;
+  color: var(--color-text-primary);
+}
+
+.lp-select:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+/* ── Vignette ─────────────────────────────────────────────────────────────── */
+
+.lp-card {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-subtle);
+  padding: 0.5rem;
+  text-align: left;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.lp-card:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+.lp-card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.lp-thumb {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: 0.6rem;
+}
+
+.lp-thumb app-visual-thumb {
+  display: block;
+}
+
+.lp-badge {
+  position: absolute;
+  right: 0.4rem;
+  top: 0.4rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-success) 45%, transparent);
+  background: color-mix(in srgb, var(--color-success) 18%, rgba(255, 255, 255, 0.85));
+  padding: 0.1rem 0.45rem;
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-success);
+}
+
+.lp-meta {
+  display: block;
+  padding: 0.5rem 0.25rem 0.15rem;
+}
+
+.lp-title {
+  display: block;
+  overflow: hidden;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-primary);
+}
+
+.lp-sub {
+  margin-top: 0.15rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.62rem;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Suppression ──────────────────────────────────────────────────────────── */
+
+.lp-item {
+  position: relative;
+}
+
+/*
+ * Le bouton n'apparaît qu'au survol ou au focus, mais il reste dans l'ordre de
+ * tabulation : atteignable au clavier, discret à la souris. Jeter une image ne
+ * doit pas être la première chose qu'on voit sur une grille.
+ */
+.lp-delete {
+  position: absolute;
+  right: 0.85rem;
+  top: 0.85rem;
+  display: inline-flex;
+  height: 1.75rem;
+  width: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  border: 1px solid var(--glass-border-medium);
+  background: var(--glass-bg-intense);
+  font-size: 0.7rem;
+  color: var(--color-text-tertiary);
+  opacity: 0;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.lp-item:hover .lp-delete,
+.lp-delete:focus-visible {
+  opacity: 1;
+}
+
+.lp-delete:hover {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.lp-delete:focus-visible {
+  outline: 2px solid var(--color-danger);
+  outline-offset: 2px;
+}
+
+.lp-confirm {
+  position: absolute;
+  inset: 0.5rem;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  border-radius: 0.75rem;
+  background: var(--glass-bg-intense);
+  padding: 0.85rem;
+  text-align: center;
+  backdrop-filter: blur(4px);
+}
+
+.lp-confirm-text {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-text-primary);
+}
+
+.lp-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.lp-confirm-yes {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--color-danger);
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-danger);
+}
+
+.lp-confirm-yes:hover {
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+}
+
+.lp-confirm-yes:focus-visible {
+  outline: 2px solid var(--color-danger);
+  outline-offset: 2px;
+}

@@ -17,18 +17,53 @@ import {
   editLogoController,
   saveBrandingSectionsController,
   aiEditBrandingSectionController,
+  getArtDirectionController,
+  regenerateArtDirectionController,
 } from '../controllers/branding.controller';
 import { authenticate } from '../services/auth.service'; // Updated import path
 import { checkQuota } from '../middleware/quota.middleware';
+import {
+  firstThenRevision,
+  includedThenRepeat,
+  requireCredits,
+} from '../middleware/billing.middleware';
 
 export const brandingRoutes = Router();
 
 const resourceName = 'brandings';
 
+/**
+ * Barème de l'identité visuelle.
+ *
+ * Le modèle économique facture **un livrable** — « logo HD + charte graphique
+ * complète : 60 crédits » — et non chaque appel au moteur d'images. Il précise
+ * aussi que la session de logo est bornée à 8-10 visuels, et que « toute
+ * relance de 4 visuels supplémentaires est débitée 10 crédits ».
+ *
+ * D'où trois contrôles :
+ *  - `chargeBrandSession` : 60 la première fois sur un projet, 10 par relance.
+ *    Partagé par les routes de concepts (POST et flux) et par la génération de
+ *    la charte complète, qui sont trois portes d'entrée du même livrable ;
+ *  - `chargeVariations` : les déclinaisons du logo retenu sont incluses dans
+ *    les 60 ; les regénérer coûte une relance ;
+ *  - une simple révision pour tout ce qui est textuel (couleurs, typographie,
+ *    direction artistique, retouche de section).
+ *
+ * Le poste image est le seul du barème dont la marge est basse (30-55 %) :
+ * c'est précisément celui qu'il ne faut pas laisser tourner gratuitement.
+ */
+const chargeBrandSession = requireCredits('business', 'logo_brand', {
+  resolve: firstThenRevision('business', 'logo_brand', 'logo_relaunch'),
+});
+
+const chargeVariations = requireCredits('business', 'logo_variations', {
+  resolve: includedThenRepeat('business', 'logo_variations', 'logo_relaunch'),
+});
+
 // Middleware to extend connection timeout for heavy processing tasks (AI generation, PDF, etc.)
 const extendedTimeout = (req: any, res: any, next: any) => {
-  req.setTimeout(180000); // 3 minutes
-  res.setTimeout(180000); // 3 minutes
+  req.setTimeout(900000); // 15 min — le raisonnement triple la durée d'un appel
+  res.setTimeout(900000);
   next();
 };
 
@@ -86,6 +121,7 @@ brandingRoutes.get(
   `/${resourceName}/generate/:projectId`,
   authenticate,
   checkQuota,
+  chargeBrandSession,
   generateBrandingStreamingController
 );
 
@@ -148,10 +184,14 @@ brandingRoutes.get(
  *       '500':
  *         description: Internal server error.
  */
+// Couleurs et typographie sont du texte : coût d'inférence marginal, donc le
+// prix d'une révision. Ces deux routes ne portent pas de `projectId` dans leur
+// chemin, ce qui exclut de toute façon un barème indexé sur le projet.
 brandingRoutes.post(
   `/${resourceName}/generate/colors-typography`,
   authenticate,
   checkQuota,
+  requireCredits('business', 'revision'),
   generateColorsAndTypographyController
 );
 
@@ -160,6 +200,7 @@ brandingRoutes.post(
   `/${resourceName}/generate/colors-typography-from-logo`,
   authenticate,
   checkQuota,
+  requireCredits('business', 'revision'),
   generateColorsAndTypographyFromLogoController
 );
 
@@ -222,6 +263,7 @@ brandingRoutes.post(
   authenticate,
   extendedTimeout,
   checkQuota,
+  chargeBrandSession,
   generateLogoConceptsController
 );
 
@@ -261,6 +303,7 @@ brandingRoutes.get(
   authenticate,
   extendedTimeout,
   checkQuota,
+  chargeBrandSession,
   generateLogoConceptsStreamController
 );
 
@@ -327,6 +370,7 @@ brandingRoutes.get(
   authenticate,
   extendedTimeout,
   checkQuota,
+  chargeVariations,
   generateLogoVariationsStreamController
 );
 
@@ -384,6 +428,7 @@ brandingRoutes.post(
   authenticate,
   extendedTimeout,
   checkQuota,
+  chargeVariations,
   generateLogoVariationsController
 );
 
@@ -526,6 +571,7 @@ brandingRoutes.post(
   `/${resourceName}/:projectId/sections/:sectionId/ai-edit`,
   authenticate,
   checkQuota,
+  requireCredits('business', 'revision'),
   aiEditBrandingSectionController
 );
 
@@ -649,8 +695,8 @@ brandingRoutes.delete(`/${resourceName}/delete/:projectId`, authenticate, delete
  */
 // Middleware pour augmenter le timeout pour la génération PDF
 const pdfTimeout = (req: any, res: any, next: any) => {
-  req.setTimeout(180000); // 3 minutes
-  res.setTimeout(180000); // 3 minutes
+  req.setTimeout(900000); // 15 min — le raisonnement triple la durée d'un appel
+  res.setTimeout(900000);
   next();
 };
 
@@ -851,5 +897,58 @@ brandingRoutes.post(
   authenticate,
   extendedTimeout,
   checkQuota,
+  // Retoucher un logo produit de nouveaux visuels : c'est une relance.
+  requireCredits('business', 'logo_relaunch'),
   editLogoController
+);
+
+/**
+ * @openapi
+ * /project/brandings/{projectId}/art-direction:
+ *   get:
+ *     tags: [Branding]
+ *     summary: Direction artistique du projet (générée si absente)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       '200':
+ *         description: Direction artistique
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ArtDirectionModel'
+ *       '404': { description: Projet ou charte introuvable }
+ *   post:
+ *     tags: [Branding]
+ *     summary: Propose une AUTRE direction artistique (le style courant est écarté)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       '200':
+ *         description: Nouvelle direction artistique
+ *       '404': { description: Projet ou charte introuvable }
+ */
+brandingRoutes.get(
+  `/${resourceName}/:projectId/art-direction`,
+  authenticate,
+  extendedTimeout,
+  getArtDirectionController
+);
+
+brandingRoutes.post(
+  `/${resourceName}/:projectId/art-direction`,
+  authenticate,
+  extendedTimeout,
+  checkQuota,
+  // La direction artistique est un parti pris textuel, pas une image.
+  requireCredits('business', 'revision'),
+  regenerateArtDirectionController
 );

@@ -4,15 +4,18 @@
       "steps": {
         "type": {
           "title": "Choose Logo Type",
-          "subtitle": "Select one logo type"
+          "subtitle": "This choice shapes every logo the AI will propose next.",
+          "label": "Type"
         },
         "mode": {
           "title": "How to create your logo?",
-          "subtitle": "AI generation or custom description"
+          "subtitle": "AI generation or custom description",
+          "label": "Creation"
         },
         "description": {
           "title": "Describe Your Logo",
-          "subtitle": "Tell us what you want"
+          "subtitle": "Tell us what you want",
+          "label": "Description"
         }
       },
       "types": {

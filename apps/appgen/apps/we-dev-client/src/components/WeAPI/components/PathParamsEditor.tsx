@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Input, Button, Space, Alert, Tabs } from 'antd';
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { Plus, Trash2 } from 'lucide-react';
 import { PathParam } from '../types';
 
 interface PathParamsEditorProps {

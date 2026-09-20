@@ -24,6 +24,15 @@
       ],
       "@/*": [
         "./src/*"
+      ],
+      "@idem/shared-tour": [
+        "../../../../packages/shared-tour/src"
+      ],
+      "@idem/shared-trusted-by": [
+        "../../../../packages/shared-trusted-by/src"
+      ],
+      "@idem/shared-trusted-by/*": [
+        "../../../../packages/shared-trusted-by/src/*"
       ]
     }
   },

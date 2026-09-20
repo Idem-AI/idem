@@ -1,4 +1,4 @@
-import { bpPageFormat } from './_shared.prompt';
+import { BP_BRAND_RULES, bpPageFormat } from './_shared.prompt';
 
 export const AGENT_TARGET_AUDIENCE_PROMPT = `<role>Senior customer research analyst</role>
 <objective>Create a Target Audience section defining realistic personas, pain points, and segmentations.</objective>
@@ -20,6 +20,8 @@ export const AGENT_TARGET_AUDIENCE_PROMPT = `<role>Senior customer research anal
 </chart_requirements>
 
 ${bpPageFormat('2')}
+
+${BP_BRAND_RULES}
 
 <technical_rules>
 - Output ONLY raw HTML + Tailwind CSS utilities in a single minified line.

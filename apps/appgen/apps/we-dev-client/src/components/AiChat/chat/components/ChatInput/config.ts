@@ -10,5 +10,8 @@ export const aiProvierIcon = {
     "claude": ClaudeIcon,
     "ollama": OllamaIcon,
     "claude37": ClaudeIcon,
-    "gemini": GeminiIcon
+    "gemini": GeminiIcon,
+    // Pas d'icône propre à GLM pour l'instant : on réutilise celle d'OpenAI,
+    // son API étant celle qu'il expose.
+    "glm": OpenaiIcon
 }

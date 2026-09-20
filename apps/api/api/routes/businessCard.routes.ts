@@ -11,6 +11,7 @@ import {
 } from '../controllers/businessCard.controller';
 import { authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
+import { firstThenRevision, requireCredits } from '../middleware/billing.middleware';
 
 export const businessCardRoutes = Router();
 
@@ -18,8 +19,8 @@ const resourceName = 'business-cards';
 
 /** Génération IA et rendu Chromium dépassent le timeout par défaut. */
 const extendedTimeout = (req: any, res: any, next: any) => {
-  req.setTimeout(180000);
-  res.setTimeout(180000);
+  req.setTimeout(900000); // 15 min — le raisonnement triple la durée d'un appel
+  res.setTimeout(900000);
   next();
 };
 
@@ -46,6 +47,10 @@ businessCardRoutes.post(
   authenticate,
   extendedTimeout,
   checkQuota,
+  // 10 crédits pour le modèle de carte ; le régénérer coûte une révision.
+  requireCredits('business', 'business_card', {
+    resolve: firstThenRevision('business', 'business_card', 'revision'),
+  }),
   generateBusinessCardTemplateController
 );
 
@@ -76,6 +81,7 @@ businessCardRoutes.post(
   authenticate,
   extendedTimeout,
   checkQuota,
+  requireCredits('business', 'revision'),
   aiEditBusinessCardSectionController
 );
 

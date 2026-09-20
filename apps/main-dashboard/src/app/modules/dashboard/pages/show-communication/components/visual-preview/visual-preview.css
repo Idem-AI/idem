@@ -1,0 +1,108 @@
+:host {
+  display: block;
+}
+
+.vp-frame {
+  position: relative;
+  /*
+   * `auto` et non `hidden` : une story fait 1080×1920, donc plus haut que le
+   * cadre. Masquer le dépassement couperait le bas du visuel sans le dire ;
+   * ici il défile, et le menu d'élément suit puisqu'il vit dans le même repère.
+   */
+  overflow: auto;
+  /*
+   * Hauteur plancher : l'iframe ne connaît sa taille qu'après son premier
+   * message, et sans ce minimum le cadre s'effondrait à zéro entre-temps —
+   * l'aperçu semblait alors vide alors que le visuel arrivait.
+   */
+  min-height: 12rem;
+  border-radius: 0.75rem;
+  /*
+   * Aucun fond peint ici : le visuel porte le sien, et une plaque de couleur
+   * derrière lui fausserait la lecture de ses marges — c'est la règle des pages
+   * d'aperçu du tableau de bord.
+   */
+}
+
+.vp-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 3rem 1rem;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+/* ── Menu de l'élément cliqué ─────────────────────────────────────────────── */
+
+.vp-menu {
+  position: absolute;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.35rem 0.3rem 0.6rem;
+  border-radius: 0.7rem;
+  background: rgba(15, 23, 42, 0.92);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
+  backdrop-filter: blur(6px);
+}
+
+.vp-menu-kind {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.72);
+  white-space: nowrap;
+}
+
+.vp-menu-edit,
+.vp-menu-close {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 1.9rem;
+  border-radius: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    filter 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.vp-menu-edit {
+  padding: 0 0.75rem;
+  background: var(--gradient-primary, var(--color-primary));
+  color: #fff;
+}
+
+.vp-menu-edit:hover {
+  filter: brightness(1.08);
+}
+
+.vp-menu-close {
+  width: 1.9rem;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.vp-menu-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+/* Contraste du focus sur fond sombre : la bordure claire reste visible. */
+.vp-menu-edit:focus-visible,
+.vp-menu-close:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.vp-hint {
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  color: var(--color-text-tertiary);
+}

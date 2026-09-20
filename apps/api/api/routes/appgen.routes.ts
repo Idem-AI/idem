@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../services/auth.service';
+import { requireProjectAccess } from '../middleware/billing.middleware';
 import { createHandoffController, getHandoffController } from '../controllers/appgen.controller';
 
 const router = Router();
@@ -52,7 +53,10 @@ const router = Router();
  *       500:
  *         description: Erreur serveur
  */
-router.post('/handoff', authenticate, createHandoffController);
+// Déployer, c'est posséder : le projet doit avoir été débloqué (Project Pass
+// ou abonnement iCode qui l'inclut). Le contrôle est ici et non dans
+// l'interface AppGen, qui ne peut rien garantir.
+router.post('/handoff', authenticate, requireProjectAccess(), createHandoffController);
 
 /**
  * @swagger

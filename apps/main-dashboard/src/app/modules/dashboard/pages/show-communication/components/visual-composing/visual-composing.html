@@ -1,0 +1,78 @@
+<div class="vc-wrap" role="status" aria-live="polite">
+  <!--
+    La maquette, à la forme exacte du format demandé. Chaque couche apparaît
+    quand son étape arrive : on voit le visuel se construire, on n'attend pas
+    devant un disque qui tourne.
+  -->
+  <div class="vc-stage" [style.aspect-ratio]="formatAspect(format())">
+    <!-- 1. La grille de composition -->
+    <div class="vc-grid" [class.vc-on]="stage() >= 0" aria-hidden="true">
+      <span class="vc-grid-line vc-grid-v1"></span>
+      <span class="vc-grid-line vc-grid-v2"></span>
+      <span class="vc-grid-line vc-grid-h1"></span>
+    </div>
+
+    <!-- 2. La zone d'image qui se remplit -->
+    <div class="vc-photo" [class.vc-on]="stage() >= 1" aria-hidden="true">
+      <span class="vc-photo-fill"></span>
+      <i class="pi pi-image vc-photo-icon"></i>
+    </div>
+
+    <!-- 3. Les lignes de texte qui se posent -->
+    <div class="vc-copy" [class.vc-on]="stage() >= 2" aria-hidden="true">
+      <span class="vc-line vc-line-1"></span>
+      <span class="vc-line vc-line-2"></span>
+      <span class="vc-line vc-line-3"></span>
+    </div>
+
+    <!-- 4. Le bloc de marque : logo et signature -->
+    <div class="vc-brand" [class.vc-on]="stage() >= 3" aria-hidden="true">
+      <span class="vc-logo"></span>
+      <span class="vc-sign"></span>
+    </div>
+
+    <!-- 5. Le contrôle : un balayage qui passe sur la composition finie -->
+    @if (stage() >= 4) {
+      <span class="vc-scan" aria-hidden="true"></span>
+    }
+
+    <!-- Plusieurs propositions : deux cartes décalées derrière la principale -->
+    @if (variants() > 1) {
+      <span class="vc-ghost vc-ghost-1" aria-hidden="true"></span>
+      <span class="vc-ghost vc-ghost-2" aria-hidden="true"></span>
+    }
+  </div>
+
+  <!-- ── Ce qui se passe, dit en mots ── -->
+  <div class="vc-side">
+    <p class="vc-title">
+      @if (variants() > 1) {
+        {{ 'dashboard.showCommunication.composing.titleVariants' | translate: { count: variants() } }}
+      } @else {
+        {{ 'dashboard.showCommunication.composing.title' | translate }}
+      }
+    </p>
+
+    <ol class="vc-steps">
+      @for (item of stages; track item; let i = $index) {
+        <li class="vc-step" [class.vc-step-done]="isDone(i)" [class.vc-step-current]="isCurrent(i)">
+          <span class="vc-bullet" aria-hidden="true">
+            @if (isDone(i)) {
+              <i class="pi pi-check"></i>
+            } @else if (isCurrent(i)) {
+              <i class="pi pi-spin pi-spinner"></i>
+            }
+          </span>
+          <span class="vc-step-label">
+            {{ 'dashboard.showCommunication.composing.stages.' + item | translate }}
+          </span>
+        </li>
+      }
+    </ol>
+
+    <div class="vc-bar" role="presentation">
+      <span class="vc-bar-fill" [style.width.%]="progress()"></span>
+    </div>
+    <p class="vc-note">{{ 'dashboard.showCommunication.composing.patience' | translate }}</p>
+  </div>
+</div>

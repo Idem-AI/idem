@@ -220,6 +220,7 @@ import { appStatusDisplay } from '../../../shared/utils/app-status.util';
 export class DashboardComponent implements OnInit {
   private api = inject(ApiService);
   private translate = inject(TranslateService);
+  private tour = inject(TourService);
 
   protected readonly apps = signal<Application[]>([]);
   protected readonly workspaces = signal<Workspace[]>([]);
@@ -255,6 +256,10 @@ export class DashboardComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    // Le tableau de bord est la porte d'entrée d'iDeploy : c'est ici qu'on
+    // présente les lieux, la première fois seulement.
+    void this.tour.maybeStart();
+
     forkJoin({
       apps: this.api.listApplications(),
       workspaces: this.api.listWorkspaces(),

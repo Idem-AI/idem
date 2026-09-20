@@ -12,18 +12,40 @@ import dotenv from 'dotenv';
 import * as fs from 'fs-extra';
 import logger from '../config/logger';
 import restrictionsService from './restrictions.service';
+import axios from 'axios';
 import OpenAI from 'openai';
 import { userService } from './user.service';
 dotenv.config();
 
-import { LLMProvider, LLMOptions, AI_CONFIG } from '../config/ai.config';
 import {
+  LLMProvider,
+  LLMOptions,
+  AI_CONFIG,
+  GLM_MODELS,
+  MAX_TEMPERATURE_FOR_THINKING,
+  MIN_TOKENS_FOR_THINKING,
+  TEXT_FALLBACK_MODELS,
+  reconcileThinkingBudget,
+} from '../config/ai.config';
+import {
+  GLM_ENDPOINTS,
+  buildGeminiThinkingConfig,
+  canSuppressThinking,
+  getGlmApiKey,
   getProvider,
   providerSupports,
   resolveGlobalOverride,
 } from '../config/ai-providers.config';
+import { applyAiOverride } from '../config/ai-overrides.config';
 import { describeGeminiBackend, getGoogleGenAIClient } from '../config/google-genai.client';
 import { withGeminiFallback } from '../utils/gemini-fallback';
+import {
+  describeError,
+  isRateLimited,
+  isTransientNetworkError,
+  sleep,
+  withRetry,
+} from '../utils/retry';
 import { getRequestLanguage } from '../utils/request-language';
 import { logAIEvent, previewValue } from '../utils/ai-trace.util';
 import {
@@ -37,18 +59,124 @@ import { aiUsageService } from './ai-usage.service';
 export { LLMProvider, LLMOptions };
 
 /**
- * Le modèle accepte-t-il `thinkingConfig.thinkingBudget` ?
- *
- * Google pilote le raisonnement différemment selon la génération: la famille
- * 2.5 prend un budget en tokens (0 = désactivé), les modèles 3.x un niveau
- * (`thinkingLevel`) dont le minimum n'est pas « aucun ». Envoyer un budget nul
- * à un 3.x fait donc échouer la requête — et comme un appel peut basculer sur
- * un repli d'une autre famille, la question se pose modèle par modèle, pas une
- * fois pour toutes. Un modèle inconnu est traité comme non supporté: ignorer un
- * réglage d'économie est bénin, casser la génération ne l'est pas.
+ * Pause entre deux modèles de la chaîne de repli, quand l'échec précédent était
+ * une panne réseau. Basculer de modèle ne répare pas une connexion absente: il
+ * faut aussi laisser passer quelques instants.
  */
-function supportsThinkingBudget(modelName: string): boolean {
-  return /gemini-2\.5/i.test(modelName);
+const INTER_MODEL_DELAY_MS = 1000;
+
+/**
+ * Hôtes qui ne sont PAS des éditeurs : ce sont des redirecteurs de moteur de
+ * recherche. Leur nom ne doit jamais apparaître comme source d'un fait.
+ */
+const REDIRECT_HOSTS = [
+  'vertexaisearch.cloud.google.com',
+  'grounding-api-redirect.googleapis.com',
+  'googleusercontent.com',
+];
+
+/**
+ * Attente avant le repli suivant quand le QUOTA est saturé, multipliée par le
+ * rang du repli. Volontairement plus longue que le délai réseau : une fenêtre
+ * de quota se rouvre à la minute, pas à la seconde.
+ */
+const RATE_LIMIT_DELAY_MS = Number(process.env.LLM_RATE_LIMIT_DELAY_MS ?? 4000);
+
+/**
+ * Résout le couple (fournisseur, modèle) réellement appelé.
+ *
+ * Trois niveaux, du plus général au plus précis, et le plus précis l'emporte :
+ *   1. ce que la feature déclare      (`ai.config.ts`)
+ *   2. `AI_DEFAULT_PROVIDER`          — bascule globale, traduite par RÔLE
+ *   3. `AI_OVERRIDES`                 — surcharge ciblée, par `promptType`
+ *
+ * Regroupé ici pour que les quatre points d'entrée du service (prompt, outils,
+ * flux, recherche fondée) appliquent exactement la même règle. Une divergence
+ * entre eux se manifesterait par une génération qui part sur un fournisseur
+ * différent des autres, sans que rien ne le dise.
+ */
+function resolveRouting<T extends PromptConfig>(request: T): T {
+  const switched = resolveGlobalOverride(request);
+  const { config, applied } = applyAiOverride(switched, request.promptType);
+
+  if (applied) {
+    logger.info(`Aiguillage: surcharge "${applied}" (promptType=${request.promptType ?? '—'})`);
+  } else if (switched.provider !== request.provider || switched.modelName !== request.modelName) {
+    logger.info(
+      `Aiguillage: bascule globale ${request.provider}/${request.modelName} → ` +
+        `${switched.provider}/${switched.modelName}`
+    );
+  }
+
+  return config as T;
+}
+
+/**
+ * Le mode JSON doit-il être demandé au fournisseur pour cet appel ?
+ *
+ * Deux garde-fous, tous deux nécessaires :
+ *
+ *  - `LLM_JSON_MODE=off` coupe la fonctionnalité entière sans redéploiement.
+ *    Le contrat `response_format` est standard côté OpenAI mais son support
+ *    varie d'un modèle à l'autre chez les passerelles compatibles ; un
+ *    interrupteur évite d'avoir à repasser sur quarante configurations si un
+ *    modèle le refuse.
+ *
+ *  - le mot « json » doit apparaître dans le prompt. C'est une exigence de
+ *    l'API OpenAI (« messages must contain the word 'json' »), reprise par la
+ *    plupart des implémentations compatibles : sans elle, la requête est
+ *    rejetée. Comme tous nos prompts JSON le mentionnent déjà, la condition est
+ *    silencieuse en pratique — mais elle empêche une feature mal étiquetée de
+ *    faire échouer sa génération.
+ */
+function jsonModeFor(
+  llmOptions: LLMOptions,
+  messages: { content?: unknown }[]
+): boolean {
+  if (!llmOptions.jsonMode) return false;
+  if ((process.env.LLM_JSON_MODE ?? '').toLowerCase() === 'off') return false;
+  return messages.some(
+    (message) => typeof message.content === 'string' && /json/i.test(message.content)
+  );
+}
+
+/**
+ * Incrémente le quota SANS bloquer la réponse.
+ *
+ * C'est un compteur, pas une transaction: l'appel modèle a déjà réussi et son
+ * résultat est prêt à partir. L'attendre ajoutait une écriture base au chemin
+ * critique de chaque génération — sept fois dans ce fichier — pour une valeur
+ * que personne ne relit dans la milliseconde. L'échec reste journalisé.
+ */
+function incrementUsageInBackground(userId: string): void {
+  void userService
+    .incrementUsage(userId, 1)
+    .catch((quotaError) =>
+      logger.error(`Failed to increment quota for user ${userId}:`, quotaError)
+    );
+}
+
+/**
+ * Choisit un modèle de repli valide et différent du primaire.
+ *
+ * Le second repli était historiquement `gemini-2.0-flash` en dur — un modèle
+ * que Vertex ne sert plus (404 « Publisher model ... was not found »). Dès que
+ * le primaire valait `AI_CONFIG.fallback.textModel`, tout échec basculait donc
+ * sur un modèle inexistant: le repli était perdant par construction.
+ *
+ * Le repli vient désormais du FOURNISSEUR appelé, pas d'une constante globale:
+ * cette fonction ne sert que la branche Gemini, et lui proposer la chaîne
+ * `TEXT_FALLBACK_MODELS` (devenue 100 % GLM) reproduisait exactement le défaut
+ * qu'elle prétendait corriger — un nom de modèle que le backend ne sert pas.
+ */
+function pickFallbackModel(
+  provider: LLMProvider,
+  modelName: string,
+  fallbackModels?: string[]
+): string {
+  const providerDefaults = getProvider(provider).defaultFallbackModels ?? [];
+  const chain = [...(fallbackModels ?? []), ...providerDefaults];
+  return chain.find((candidate) => candidate && candidate !== modelName) ?? modelName;
 }
 
 export interface PromptConfig {
@@ -76,16 +204,7 @@ export interface PromptConfig {
    * variable dans les messages (économie d'input tokens).
    */
   cachedContent?: string;
-  /**
-   * Exempte cet appel du plafond global MAX_OUTPUT_TOKENS.
-   *
-   * Réservé aux appels INTERNES dont le budget de ai.config.ts est un choix
-   * délibéré (SVG de logo, HTML de carte de visite…) : une réponse tronquée y
-   * est inexploitable, donc plafonner revient à casser la fonctionnalité. Le
-   * plafond reste actif pour l'endpoint public /prompt, dont le corps de
-   * requête est fourni par le client — `promptController` retire d'ailleurs ce
-   * drapeau de la charge utile entrante.
-   */
+  /** Exempte cet appel du plafond global MAX_OUTPUT_TOKENS. */
   bypassOutputTokenCap?: boolean;
 }
 
@@ -110,13 +229,8 @@ export interface PromptRequest {
   fallbackModels?: string[];
   language?: string;
   cachedContent?: string;
-  /** Voir PromptConfig.bypassOutputTokenCap — jamais accepté depuis le client. */
+  /** Exempte cet appel du plafond global MAX_OUTPUT_TOKENS. */
   bypassOutputTokenCap?: boolean;
-}
-
-export interface AIResponse {
-  content: string;
-  summary: string;
 }
 
 /** Une source brute issue des groundingMetadata Gemini (URL toujours réelle). */
@@ -134,7 +248,16 @@ export interface GroundedSupport {
   sourceIndexes: number[];
 }
 
-/** Résultat d'un appel fondé (grounding Google Search). */
+/** Un résultat brut de l'endpoint `/web_search` de Z.ai. */
+interface GlmSearchResult {
+  title: string;
+  link: string;
+  content: string;
+  media?: string;
+  publish_date?: string;
+}
+
+/** Résultat d'un appel fondé (recherche web du fournisseur). */
 export interface GroundedResult {
   /** Texte produit par le modèle, appuyé sur les résultats de recherche. */
   text: string;
@@ -186,6 +309,17 @@ export class PromptService {
       apiKey,
       ...(def.baseUrl ? { baseURL: def.baseUrl } : {}),
       ...(def.defaultHeaders ? { defaultHeaders: def.defaultHeaders } : {}),
+      // Le réessai est géré UNE seule fois, par `withRetry`, qui sait distinguer
+      // le transitoire réseau (à rejouer) de la saturation (à basculer de
+      // modèle). Le défaut du SDK (2 réessais) s'empilait par-dessus, et
+      // par-dessus la chaîne de repli : jusqu'à 3 modèles × 3 tentatives × 3
+      // réessais SDK = 27 appels fournisseur pour une seule génération, tous
+      // facturés dès qu'ils atteignaient le modèle.
+      maxRetries: 0,
+      // Le défaut du SDK est de 10 MINUTES. Une génération bloquée retenait donc
+      // son créneau de concurrence dix minutes avant de basculer. 180 s couvrent
+      // largement la plus lourde des générations (48 000 tokens de sortie).
+      timeout: Number(process.env.LLM_TIMEOUT_MS ?? 180_000),
     });
     this._openaiClients.set(provider, client);
     logger.info(
@@ -268,22 +402,15 @@ export class PromptService {
         lastMessageTurn.parts.push(filePart);
 
         // run prompt
-        const fallbackModel = AI_CONFIG.fallback.textModel;
-        const secondaryFallback = 'gemini-2.0-flash';
-        const effectiveFallbackModel = modelName === fallbackModel ? secondaryFallback : fallbackModel;
-
-        const result = await withGeminiFallback(
-          () => this.genAIClient.models.generateContent({
-            model: modelName,
-            contents: geminiContent,
-          }),
-          () => this.genAIClient.models.generateContent({
-            model: effectiveFallbackModel,
-            contents: geminiContent,
-          }),
-          modelName,
-          effectiveFallbackModel
-        );
+        //
+        // Aucun repli imbriqué ici. `runPrompt` — seul appelant de cette
+        // méthode — parcourt déjà `fallbackModels` en rejouant chaque modèle
+        // sur panne réseau. Un second repli à cet étage doublait le nombre
+        // d'appels et court-circuitait la chaîne déclarée en configuration.
+        const result = await this.genAIClient.models.generateContent({
+          model: modelName,
+          contents: geminiContent,
+        });
         // Relevé de consommation avant tout retour/erreur : l'appel a été
         // facturé par Google même si la réponse est inexploitable.
         if (usageSink) {
@@ -349,44 +476,34 @@ export class PromptService {
       ...(llmOptions.temperature !== undefined && { temperature: llmOptions.temperature }),
       ...(llmOptions.topP && { topP: llmOptions.topP }),
       ...(llmOptions.topK && { topK: llmOptions.topK }),
-      ...(llmOptions.thinkingBudget !== undefined && supportsThinkingBudget(model)
-        ? { thinkingConfig: { thinkingBudget: llmOptions.thinkingBudget } }
-        : {}),
+      ...buildGeminiThinkingConfig(model, llmOptions.thinkingBudget),
+      // Sortie JSON contrainte — équivalent Gemini de `response_format` côté
+      // OpenAI. Sans cette ligne, `jsonMode` n'aurait d'effet que sur un
+      // fournisseur, et la garantie de format dépendrait de qui sert le modèle :
+      // exactement ce que le dispositif cherche à supprimer.
+      ...(llmOptions.jsonMode ? { responseMimeType: 'application/json' } : {}),
       ...(cachedContent && { cachedContent }),
     });
 
-    if (llmOptions.thinkingBudget !== undefined && !supportsThinkingBudget(modelName)) {
-      logger.info(
-        `thinkingBudget=${llmOptions.thinkingBudget} ignoré pour "${modelName}" : réglage propre à la ` +
-          `famille Gemini 2.5. Épingler un modèle 2.5 dans ai.config.ts pour le rendre effectif.`
+    if (
+      llmOptions.thinkingBudget === 0 &&
+      !canSuppressThinking(modelName)
+    ) {
+      logger.warn(
+        `Raisonnement NON coupé pour "${modelName}" : ce modèle n'expose aucun réglage connu. ` +
+          `Les tokens de réflexion se décompteront de maxOutputTokens ` +
+          `(${llmOptions.maxOutputTokens ?? 'défaut'}) — une réponse vide est possible sur un budget serré.`
       );
     }
 
-    const fallbackModel = AI_CONFIG.fallback.textModel;
-    const secondaryFallback = 'gemini-2.0-flash';
-    const effectiveFallbackModel = modelName === fallbackModel ? secondaryFallback : fallbackModel;
-
+    // Un seul appel, un seul modèle: la résilience (réessai réseau puis bascule
+    // de modèle) est portée une fois pour toutes par `runPrompt`.
     const config = buildConfig(modelName);
-    const result = await withGeminiFallback(
-      () =>
-        this.genAIClient.models.generateContent({
-          model: modelName,
-          contents: geminiContent,
-          config,
-        }),
-      () =>
-        this.genAIClient.models.generateContent({
-          model: effectiveFallbackModel,
-          contents: geminiContent,
-          // Le cache est lié au modèle principal: on ne le réutilise pas sur le repli.
-          config: {
-            ...buildConfig(effectiveFallbackModel),
-            ...(cachedContent ? { cachedContent: undefined } : {}),
-          },
-        }),
-      modelName,
-      effectiveFallbackModel
-    );
+    const result = await this.genAIClient.models.generateContent({
+      model: modelName,
+      contents: geminiContent,
+      config,
+    });
     if (usageSink) {
       usageSink.usage = extractGeminiUsage(result);
       usageSink.modelUsed = modelName;
@@ -504,6 +621,9 @@ export class PromptService {
         ...(llmOptions.temperature !== undefined && { temperature: llmOptions.temperature }),
         ...(llmOptions.topP !== undefined && { top_p: llmOptions.topP }),
         // Pas de topK dans l'API OpenAI.
+        ...(jsonModeFor(llmOptions, openaiMessages)
+          ? { response_format: { type: 'json_object' as const } }
+          : {}),
       };
 
       // Le SDK n'upload pas de fichier ici : on injecte son contenu comme contexte
@@ -524,7 +644,10 @@ export class PromptService {
         }
       }
 
-      const doCreate = (model: string) =>
+      const thinkingRequested =
+        ((llmOptions.extraBody as any) ?? (def.extraBody as any))?.thinking?.type === 'enabled';
+
+      const doCreate = (model: string, forceNoThinking = false) =>
         client.chat.completions.create({
           model,
           messages: openaiMessages,
@@ -533,10 +656,21 @@ export class PromptService {
           // le raisonnement GLM sur la génération de logo). La feature l'emporte.
           ...(def.extraBody ?? {}),
           ...(llmOptions.extraBody ?? {}),
+          ...(forceNoThinking ? { thinking: { type: 'disabled' } } : {}),
+          // Un modèle qui raisonne TOUJOURS refuse la coupure par un HTTP 400.
+          // Quelle qu'en soit la source — défaut du fournisseur, chemin par
+          // gabarit, filet de budget — elle ne part donc jamais vers lui.
+          ...(canSuppressThinking(model) ? {} : { thinking: { type: 'enabled' } }),
         } as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming);
+
+      /** Réponse vide alors que le budget a été épuisé — signature du raisonnement qui déborde. */
+      const starvedByThinking = (candidate: any): boolean =>
+        !candidate?.choices?.[0]?.message?.content &&
+        candidate?.choices?.[0]?.finish_reason === 'length';
 
       // Repli optionnel propre au fournisseur (ex: glm-5.2 → glm-4.6).
       let response;
+      let usedModel = modelName;
       try {
         response = await doCreate(modelName);
       } catch (primaryError: any) {
@@ -544,10 +678,30 @@ export class PromptService {
           logger.warn(
             `${provider} model "${modelName}" failed (${primaryError.message || primaryError}). Retrying with "${def.fallbackModel}"...`
           );
+          usedModel = def.fallbackModel;
           response = await doCreate(def.fallbackModel);
         } else {
           throw primaryError;
         }
+      }
+
+      // Auto-réparation : le modèle a raisonné jusqu'à épuiser l'enveloppe et n'a
+      // rien écrit. Changer de MODÈLE ne sert à rien — le repli hérite du même
+      // réglage et échoue à l'identique, ce qu'on a observé en production. Ce
+      // qu'il faut retirer, c'est le raisonnement, sur le même modèle.
+      //
+      // Le cas survient même avec un budget confortable : sur un modèle
+      // « thinking », une température haute rend la réflexion elle-même diffuse,
+      // et elle consomme 24 000 tokens sans converger. Le budget minimal ne
+      // suffit donc pas à s'en prémunir, il faut ce rattrapage.
+      // Sans objet sur un modèle qui ne sait pas couper son raisonnement : la
+      // nouvelle tentative serait refusée, et le repli de `runPrompt` prend le relais.
+      if (thinkingRequested && starvedByThinking(response) && canSuppressThinking(usedModel)) {
+        logger.warn(
+          `${provider}/${usedModel} : raisonnement épuisé sans réponse (finish_reason=length). ` +
+            `Nouvelle tentative sur le même modèle, raisonnement désactivé.`
+        );
+        response = await doCreate(usedModel, true);
       }
 
       // Relevé de consommation avant les contrôles de validité : une enveloppe
@@ -627,6 +781,9 @@ export class PromptService {
         ...generationParams,
         ...(def.extraBody ?? {}),
         ...(llmOptions.extraBody ?? {}),
+        // Même garde qu'au chemin principal : pas de coupure vers un modèle qui
+        // raisonne toujours (HTTP 400).
+        ...(canSuppressThinking(modelName) ? {} : { thinking: { type: 'enabled' } }),
         tools: openaiTools,
         tool_choice: forceFinal ? 'none' : 'auto',
       } as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming);
@@ -704,6 +861,14 @@ export class PromptService {
       ...(llmOptions.maxOutputTokens && { max_tokens: llmOptions.maxOutputTokens }),
       ...(llmOptions.temperature !== undefined && { temperature: llmOptions.temperature }),
       ...(llmOptions.topP !== undefined && { top_p: llmOptions.topP }),
+      // LE MODE JSON VAUT AUSSI EN FLUX. Il ne passait que par l'appel
+      // non-streamé : un `jsonMode: true` était donc accepté sans effet dès
+      // que l'appelant voulait un aperçu pendant la rédaction. C'est le cas du
+      // rédacteur de l'équipe de recherche — la seule garantie de format de
+      // ses sections tombait précisément là où le contenu est le plus long.
+      ...(jsonModeFor(llmOptions, openaiMessages)
+        ? { response_format: { type: 'json_object' as const } }
+        : {}),
     };
 
     const stream = await client.chat.completions.create({
@@ -712,6 +877,9 @@ export class PromptService {
       ...generationParams,
       ...(def.extraBody ?? {}),
       ...(llmOptions.extraBody ?? {}),
+      // Même garde qu'au chemin principal : pas de coupure vers un modèle qui
+      // raisonne toujours (HTTP 400).
+      ...(canSuppressThinking(modelName) ? {} : { thinking: { type: 'enabled' } }),
       stream: true,
     } as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming);
 
@@ -802,7 +970,7 @@ export class PromptService {
     // Interrupteur global optionnel (AI_DEFAULT_PROVIDER / AI_DEFAULT_MODEL) :
     // permet de faire tourner idem entièrement sur un autre fournisseur sans
     // toucher aux configs par fonctionnalité. Sans variable d'env → no-op.
-    const { provider, modelName } = resolveGlobalOverride(request);
+    const { provider, modelName } = resolveRouting(request);
     const {
       llmOptions = {},
       file,
@@ -873,20 +1041,89 @@ export class PromptService {
     const effectiveLanguage = language ?? getRequestLanguage();
     const languageDirective = this.buildLanguageDirective(effectiveLanguage);
     if (languageDirective && modifiedMessages.length > 0) {
-      // Append to the LAST message rather than inserting a new system message:
-      // this keeps message roles/adjacency intact (Gemini rejects consecutive
-      // same-role turns) and benefits from recency for stronger adherence.
-      const lastIdx = modifiedMessages.length - 1;
-      const last = modifiedMessages[lastIdx];
-      modifiedMessages = [
-        ...modifiedMessages.slice(0, lastIdx),
-        { ...last, content: `${last.content}\n\n${languageDirective}` },
-      ];
-      logger.info(`Injected language directive (language=${effectiveLanguage}).`);
+      // Où poser la directive ? Deux contraintes, et un ordre de priorité.
+      //
+      // On n'insère JAMAIS un message système supplémentaire : cela casserait
+      // l'adjacence des rôles (Gemini refuse deux tours de même rôle) — d'où la
+      // concaténation dans un message existant.
+      //
+      // Quand le premier message est un message système (c'est le cas de toutes
+      // les générations par sections depuis l'introduction du préfixe stable),
+      // la directive va à la FIN DE CE PREMIER BLOC. Elle reste ainsi devant le
+      // contenu variable — donc lue tard par rapport aux consignes de la
+      // feature — tout en laissant le début du prompt strictement identique
+      // d'une section à l'autre : la concaténer au dernier message rendait au
+      // contraire la fin du prompt différente à chaque appel.
+      //
+      // Sans message système en tête, on retombe sur le comportement d'origine.
+      const headIsSystem = modifiedMessages[0]?.role === 'system';
+      const targetIdx = headIsSystem ? 0 : modifiedMessages.length - 1;
+      const target = modifiedMessages[targetIdx];
+      modifiedMessages = modifiedMessages.map((message, index) =>
+        index === targetIdx
+          ? { ...target, content: `${target.content}\n\n${languageDirective}` }
+          : message
+      );
+      logger.info(
+        `Injected language directive (language=${effectiveLanguage}, position=${headIsSystem ? 'system-head' : 'last-message'}).`
+      );
     }
 
-    const modelsToTry = [modelName, ...(request.fallbackModels || [])];
     const kind = getProvider(provider).kind;
+
+    // Raisonnement et budget de sortie doivent être cohérents, sinon la réponse
+    // revient vide sans erreur (cf. reconcileThinkingBudget). Arbitré ICI, au
+    // seul point de passage : une quinzaine de services recopient des
+    // `llmOptions` depuis ai.config.ts en réduisant le budget pour leur propre
+    // usage, sans savoir que la feature a activé la réflexion.
+    const reconciled = reconcileThinkingBudget(llmOptions);
+    if (reconciled.downgraded) {
+      logger.warn(
+        `Raisonnement désactivé pour ce${promptType ? ` '${promptType}'` : 't appel'} : ` +
+          `budget de ${llmOptions.maxOutputTokens} tokens insuffisant (minimum ${MIN_TOKENS_FOR_THINKING}). ` +
+          `La réflexion aurait consommé toute l'enveloppe et renvoyé une réponse vide.`
+      );
+    }
+    if (reconciled.temperatureClamped !== undefined) {
+      logger.warn(
+        `Température écrêtée de ${reconciled.temperatureClamped} à ${MAX_TEMPERATURE_FOR_THINKING} ` +
+          `pour ce${promptType ? ` '${promptType}'` : 't appel'} : le raisonnement est actif, et ` +
+          `au-delà de ce seuil la réflexion cesse de converger — elle épuise l'enveloppe et ` +
+          `renvoie une réponse vide.`
+      );
+    }
+    const effectiveLlmOptions = reconciled.options;
+
+    // Filet de sécurité: une chaîne de repli absente est presque toujours un
+    // OUBLI, pas une décision. Une quinzaine de services recopient
+    // `provider`/`modelName`/`llmOptions` depuis ai.config.ts en laissant
+    // `fallbackModels` derrière eux — la feature déclarait bien un repli, il
+    // n'arrivait simplement jamais jusqu'ici (`fallbacks=0` dans les logs) et
+    // le moindre incident réseau faisait échouer la génération sans seconde
+    // chance. Le défaut est appliqué ICI, au seul point de passage, plutôt
+    // qu'ajouté à chaque appelant — où le prochain l'oublierait à son tour.
+    //
+    // Le défaut vient du FOURNISSEUR (`defaultFallbackModels`), jamais d'une
+    // famille de modèles: proposer une chaîne Google à Z.ai — ou l'inverse —
+    // ne produit que des 404 en cascade. Le garde-fou précédent testait
+    // `kind === 'gemini'` et appliquait `TEXT_FALLBACK_MODELS`, devenue
+    // entre-temps 100 % GLM: il servait des noms GLM à Vertex et laissait GLM
+    // sans repli. Cf. ai-providers.config.ts.
+    // Une bascule de fournisseur invalide les replis DÉCLARÉS : ils nomment des
+    // modèles de l'ancien fournisseur, que le nouveau ne connaît pas. Les
+    // envoyer quand même produirait une cascade de 404 à l'endroit précis où le
+    // filet devait servir.
+    const providerSwitched = provider !== request.provider;
+    const declaredFallbacks = providerSwitched ? [] : (request.fallbackModels ?? []);
+    const effectiveFallbacks =
+      declaredFallbacks.length > 0
+        ? declaredFallbacks
+        : (getProvider(provider).defaultFallbackModels ?? []);
+
+    // Doublons écartés : la chaîne de repli commence souvent par le modèle
+    // primaire de la feature — on rejouerait alors celui qui vient d'échouer
+    // avant d'en essayer un autre.
+    const modelsToTry = [...new Set([modelName, ...effectiveFallbacks])];
 
     let result: string | undefined;
     let lastError: any;
@@ -894,51 +1131,84 @@ export class PromptService {
     // sur les DEUX modèles, et les deux doivent apparaître dans le journal.
     const attempts: { model: string; sink: UsageSink; startedAt: number }[] = [];
 
+    /** Un appel, un modèle. Le choix de l'adaptateur ne dépend que du fournisseur. */
+    const callModel = async (model: string, sink: UsageSink): Promise<string> => {
+      switch (kind) {
+        case 'gemini':
+          return this._runGeminiPrompt(
+            model,
+            modifiedMessages,
+            effectiveLlmOptions,
+            file,
+            request.cachedContent,
+            sink
+          );
+        case 'openai-compatible':
+          return this._runOpenAICompatiblePrompt(
+            provider,
+            model,
+            modifiedMessages,
+            effectiveLlmOptions,
+            file,
+            sink
+          );
+        default:
+          const unsupportedProviderError = new Error(`Unsupported provider kind: ${kind}`);
+          logger.error(
+            `Unsupported provider kind encountered in runPrompt: ${unsupportedProviderError.message}`,
+            { provider, kind, stack: unsupportedProviderError.stack }
+          );
+          throw unsupportedProviderError;
+      }
+    };
+
     for (let i = 0; i < modelsToTry.length; i++) {
       const currentModel = modelsToTry[i];
+
+      // La panne précédente était réseau : changer de modèle n'y répond pas,
+      // c'est la connexion qui manquait. On laisse un instant s'écouler avant
+      // de repartir, sinon toute la chaîne s'épuise dans la même seconde.
+      if (i > 0 && isTransientNetworkError(lastError)) {
+        await sleep(INTER_MODEL_DELAY_MS);
+      }
+
+      // QUOTA saturé : sur une offre gratuite, il est partagé par le projet
+      // entier, pas par modèle. Basculer immédiatement épuise la chaîne en
+      // quelques millisecondes et perd la génération, là où quelques secondes
+      // d'attente l'auraient sauvée. L'attente croît avec le rang du repli.
+      if (i > 0 && isRateLimited(lastError)) {
+        const wait = RATE_LIMIT_DELAY_MS * i;
+        logger.warn(
+          `Quota saturé sur ${modelsToTry[i - 1]} — attente de ${wait} ms avant ` +
+            `${currentModel}. Sur une offre gratuite le quota est partagé : basculer ` +
+            `sans attendre ne fait qu'épuiser la chaîne.`
+        );
+        await sleep(wait);
+      }
+
       const sink: UsageSink = {};
       const attemptStartedAt = Date.now();
       attempts.push({ model: currentModel, sink, startedAt: attemptStartedAt });
       try {
-        switch (kind) {
-          case 'gemini':
-            result = await this._runGeminiPrompt(
-              currentModel,
-              modifiedMessages,
-              llmOptions,
-              file,
-              request.cachedContent,
-              sink
-            );
-            break;
-          case 'openai-compatible':
-            result = await this._runOpenAICompatiblePrompt(
-              provider,
-              currentModel,
-              modifiedMessages,
-              llmOptions,
-              file,
-              sink
-            );
-            break;
-          default:
-            const unsupportedProviderError = new Error(`Unsupported provider kind: ${kind}`);
-            logger.error(
-              `Unsupported provider kind encountered in runPrompt: ${unsupportedProviderError.message}`,
-              { provider, kind, stack: unsupportedProviderError.stack }
-            );
-            throw unsupportedProviderError;
-        }
-        
+        // Chaque modèle a droit à plusieurs essais AVANT qu'on ne bascule : un
+        // `fetch failed` est temporel, et le modèle suivant échouerait pareil
+        // s'il partait sur la même connexion défaillante. Seul le transitoire
+        // réseau est rejoué — une saturation (429/503) bascule immédiatement.
+        result = await withRetry(() => callModel(currentModel, sink), {
+          label: `${provider}/${currentModel}`,
+        });
+
         lastError = undefined;
         break; // Success, exit retry loop
       } catch (error: any) {
         lastError = error;
         if (i < modelsToTry.length - 1) {
-          logger.warn(`Model ${currentModel} failed, falling back to ${modelsToTry[i + 1]}... Error: ${error.message}`);
+          logger.warn(
+            `Model ${currentModel} failed, falling back to ${modelsToTry[i + 1]}... Error: ${describeError(error)}`
+          );
         } else {
           logger.error(
-            `Error in runPrompt for provider ${provider}, model ${currentModel} (exhausted fallbacks): ${error.message}`,
+            `Error in runPrompt for provider ${provider}, model ${currentModel} (exhausted fallbacks): ${describeError(error)}`,
             { stack: error.stack, details: error }
           );
         }
@@ -948,7 +1218,15 @@ export class PromptService {
     // Journalisation de la consommation, y compris pour les tentatives en échec :
     // un modèle qui répond puis échoue au parsing a bien été facturé, et le
     // masquer sous-estimerait le coût réel de la plateforme.
-    await this.recordUsageAttempts({
+    // Journalisation de la consommation, tentatives en échec comprises : un
+    // modèle qui répond puis échoue au parsing a bien été facturé.
+    //
+    // HORS du chemin critique. `record` écrit trois fois en base (événement,
+    // agrégat quotidien, compteur de tokens) et avalait déjà ses propres
+    // erreurs — mais attendues ici, ces écritures ajoutaient 50 à 300 ms à
+    // CHAQUE appel modèle, soit plusieurs secondes sur un projet complet.
+    // L'observabilité ne doit ni faire échouer une génération, ni la ralentir.
+    void this.recordUsageAttempts({
       attempts,
       provider,
       promptType,
@@ -956,7 +1234,7 @@ export class PromptService {
       messages: modifiedMessages,
       resultText: result,
       error: lastError,
-    });
+    }).catch((error) => logger.warn(`Relevé d'usage perdu: ${describeError(error)}`));
 
     if (lastError) {
       throw lastError;
@@ -968,13 +1246,7 @@ export class PromptService {
 
     // Increment quota after successful API call
     if (userId && !skipQuotaCheck) {
-      try {
-        await userService.incrementUsage(userId, 1);
-        logger.info(`Incremented quota usage for user ${userId}`);
-      } catch (quotaError) {
-        logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
-        // Don't throw here as the API call was successful
-      }
+      incrementUsageInBackground(userId);
     }
 
     return result;
@@ -995,7 +1267,7 @@ export class PromptService {
     executeTool: (name: string, args: Record<string, unknown>) => Promise<unknown>,
     options: { maxToolTurns?: number } = {}
   ): Promise<string> {
-    const { provider, modelName } = resolveGlobalOverride(request);
+    const { provider, modelName } = resolveRouting(request);
     const { llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
 
     if (!messages || messages.length === 0) {
@@ -1054,11 +1326,7 @@ export class PromptService {
         durationMs: Date.now() - loopStartedAt,
       });
       if (userId && !skipQuotaCheck) {
-        try {
-          await userService.incrementUsage(userId, 1);
-        } catch (quotaError) {
-          logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
-        }
+        incrementUsageInBackground(userId);
       }
       return text;
     }
@@ -1088,8 +1356,7 @@ export class PromptService {
       toolConfig: { functionCallingConfig: { mode: FunctionCallingConfigMode.AUTO } },
     };
 
-    const fallbackModel = AI_CONFIG.fallback.textModel;
-    const effectiveFallbackModel = modelName === fallbackModel ? 'gemini-2.0-flash' : fallbackModel;
+    const effectiveFallbackModel = pickFallbackModel(provider, modelName, request.fallbackModels);
 
     const loopStartedAt = Date.now();
     logAIEvent('ai.agentic_loop_start', {
@@ -1175,11 +1442,7 @@ export class PromptService {
     });
 
     if (userId && !skipQuotaCheck) {
-      try {
-        await userService.incrementUsage(userId, 1);
-      } catch (quotaError) {
-        logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
-      }
+      incrementUsageInBackground(userId);
     }
 
     return finalText;
@@ -1200,21 +1463,30 @@ export class PromptService {
     request: PromptConfig,
     messages: AIChatMessage[]
   ): Promise<GroundedResult> {
-    const { provider, llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
+    // Même interrupteur global que les autres points d'entrée : sans lui, une
+    // bascule de fournisseur laissait la recherche fondée sur l'ancien — donc
+    // sur un endpoint dont la clé n'est plus configurée.
+    const { provider, modelName: overriddenModel } = resolveRouting(request);
+    const { llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
+    request = { ...request, provider, modelName: overriddenModel };
 
     if (!messages || messages.length === 0) {
       throw new Error('Messages array cannot be empty.');
     }
 
-    // Le grounding (Google Search) est propre à Gemini. Si la config pointe un
-    // fournisseur incapable (ex: GLM), on retombe sur le modèle Gemini par défaut
-    // plutôt que d'envoyer un modèle inconnu au SDK Google.
+    // Chaque fournisseur fonde ses réponses à sa façon : Google par un outil
+    // intégré au modèle, Z.ai par un endpoint de recherche distinct. Les deux
+    // rendent le même contrat — du texte et de vraies sources.
     const groundingSupported = providerSupports(provider, 'grounding');
-    const modelName = groundingSupported ? request.modelName : AI_CONFIG.default.modelName;
+    const modelName = groundingSupported ? overriddenModel : AI_CONFIG.default.modelName;
     if (!groundingSupported) {
       logger.warn(
-        `runGroundedResearch: le fournisseur ${provider} ne supporte pas le grounding — repli sur Gemini (${modelName}).`
+        `runGroundedResearch: le fournisseur ${provider} ne fonde pas ses réponses — repli sur ${modelName}.`
       );
+    }
+
+    if (provider === LLMProvider.GLM) {
+      return this.runGlmGroundedResearch({ ...request, modelName }, messages);
     }
 
     if (userId && !skipQuotaCheck) {
@@ -1287,14 +1559,147 @@ export class PromptService {
     });
 
     if (userId && !skipQuotaCheck) {
-      try {
-        await userService.incrementUsage(userId, 1);
-      } catch (quotaError) {
-        logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
-      }
+      incrementUsageInBackground(userId);
     }
 
     return { text, ...parsed };
+  }
+
+  /**
+   * Recherche fondée via Z.ai — deux temps, là où Gemini n'en fait qu'un.
+   *
+   * L'endpoint `/web_search` interroge le web et rend des résultats déjà mis
+   * en forme pour un modèle ; on les passe ensuite en contexte à la génération,
+   * en imposant la citation par `[sN]`. C'est ce marquage qui permet de
+   * reconstituer l'association segments → sources que Google livre, lui, dans
+   * ses `groundingMetadata`.
+   *
+   * Aucune donnée n'est acceptée hors de ces résultats : c'est le même socle
+   * anti-invention, obtenu autrement.
+   */
+  private async runGlmGroundedResearch(
+    request: PromptConfig,
+    messages: AIChatMessage[]
+  ): Promise<GroundedResult> {
+    const { modelName, llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
+    const startedAt = Date.now();
+
+    // Le message de recherche est un brief entier — contexte projet, consignes,
+    // liste de points. L'envoyer tel quel à un moteur de recherche donnerait de
+    // mauvais résultats, et l'afficher à l'utilisateur lui montrerait nos
+    // instructions internes. On en tire donc de vraies requêtes courtes.
+    const brief = [...messages].reverse().find((m) => m.role === 'user')?.content ?? '';
+    const queries = buildSearchQueries(brief);
+    logAIEvent('ai.grounded_research_start', {
+      modelName,
+      promptType: request.promptType,
+      queryCount: queries.length,
+    });
+
+    // Une recherche par point à couvrir, en parallèle : c'est ce que faisait le
+    // grounding de Google, et ce que la qualité des résultats demande.
+    const batches = await Promise.all(queries.map((q) => this.searchWeb(q, SEARCH_RESULTS_PER_QUERY)));
+    const results = dedupeByLink(batches.flat());
+
+    if (results.length === 0) {
+      // Sans source, une réponse « fondée » n'en serait pas une : mieux vaut
+      // rendre un résultat vide que du texte inventé qui en aurait l'air.
+      logger.warn('runGlmGroundedResearch: la recherche web n\'a rien renvoyé.');
+      return { text: '', queries, sources: [], supports: [] };
+    }
+
+    const sources: GroundedSourceRaw[] = results.map((result, index) => ({
+      index,
+      title: result.title,
+      url: result.link,
+      domain: safeDomain(result.link),
+    }));
+
+    const dossier = sources
+      .map(
+        (source, index) =>
+          `[s${index}] ${source.title} — ${source.url}\n${results[index].content}`
+      )
+      .join('\n\n');
+
+    const grounded: AIChatMessage[] = [
+      ...messages.filter((m) => m.role === 'system'),
+      {
+        role: 'system',
+        content:
+          'You answer ONLY from the search results below. ' +
+          'State no figure, no fact and no date that is not in them. ' +
+          'Every claim taken from a source carries its reference in brackets, ' +
+          'as [s0], [s1]… matching the numbered results.' +
+          `\n\n--- SEARCH RESULTS ---\n${dossier}`,
+      },
+      ...messages.filter((m) => m.role !== 'system'),
+    ];
+
+    const text = await this.runPrompt(
+      {
+        ...request,
+        provider: LLMProvider.GLM,
+        modelName,
+        llmOptions,
+        language,
+        userId,
+        // Le quota est décompté une fois, à la fin, comme le fait la voie Gemini.
+        skipQuotaCheck: true,
+      },
+      grounded
+    );
+
+    const supports = extractCitationSupports(text, sources.length);
+
+    logAIEvent('ai.grounded_research_end', {
+      modelName,
+      durationMs: Date.now() - startedAt,
+      textLength: text.length,
+      sourceCount: sources.length,
+      queryCount: queries.length,
+    });
+
+    if (userId && !skipQuotaCheck) {
+      incrementUsageInBackground(userId);
+    }
+
+    return { text, queries, sources, supports };
+  }
+
+  /**
+   * Appelle l'endpoint de recherche de Z.ai. Hors contrat OpenAI : c'est une
+   * requête HTTP à part, avec son propre corps.
+   */
+  private async searchWeb(query: string, count = 10): Promise<GlmSearchResult[]> {
+    const apiKey = getGlmApiKey();
+    if (!apiKey || !query.trim()) {
+      return [];
+    }
+
+    try {
+      const response = await axios.post<{ search_result?: GlmSearchResult[] }>(
+        GLM_ENDPOINTS.webSearch,
+        {
+          search_engine: GLM_MODELS.searchEngine,
+          search_query: query.slice(0, 1000),
+          count,
+        },
+        {
+          headers: { Authorization: `Bearer ${apiKey}` },
+          timeout: 30_000,
+        }
+      );
+
+      const results = (response.data?.search_result ?? []).filter(
+        (result) => result?.link && result?.content
+      );
+      logger.info(`Z.ai web search returned ${results.length} results for "${query.slice(0, 60)}"`);
+      return results;
+    } catch (error: any) {
+      logger.error(`Z.ai web search failed: ${error?.message}`, { status: error?.response?.status });
+      return [];
+    }
   }
 
   /**
@@ -1313,6 +1718,15 @@ export class PromptService {
     // bas — un aller-retour perdu par génération, pour une cause invisible.
     if (!providerSupports(LLMProvider.GEMINI, 'contextCache')) {
       logger.debug(`Context cache unavailable on this backend — ${describeGeminiBackend()}.`);
+      return null;
+    }
+
+    // Le cache de contexte est une notion Gemini : le demander pour un modèle
+    // d'un autre fournisseur envoie un nom inconnu à Google, qui répond par une
+    // erreur avalée plus bas. Un aller-retour perdu à chaque génération, sans
+    // trace lisible.
+    if (!modelName.startsWith('gemini')) {
+      logger.debug(`Context cache skipped: ${modelName} is not a Gemini model.`);
       return null;
     }
 
@@ -1365,7 +1779,7 @@ export class PromptService {
     messages: AIChatMessage[],
     onDelta: (cumulativeText: string) => void
   ): Promise<string> {
-    const { provider, modelName } = resolveGlobalOverride(request);
+    const { provider, modelName } = resolveRouting(request);
     const {
       llmOptions = {},
       userId,
@@ -1407,11 +1821,7 @@ export class PromptService {
             onDelta
           );
           if (userId && !skipQuotaCheck) {
-            try {
-              await userService.incrementUsage(userId, 1);
-            } catch (quotaError) {
-              logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
-            }
+            incrementUsageInBackground(userId);
           }
           return full;
         } catch (error: any) {
@@ -1437,6 +1847,10 @@ export class PromptService {
       ...(llmOptions.maxOutputTokens && { maxOutputTokens: llmOptions.maxOutputTokens }),
       ...(llmOptions.temperature !== undefined && { temperature: llmOptions.temperature }),
       ...(llmOptions.topP && { topP: llmOptions.topP }),
+      // Pendant qu'on y est, le pendant Gemini du même oubli (cf. le flux
+      // openai-compatible ci-dessus) : `responseMimeType` n'était posé que sur
+      // le chemin non-streamé.
+      ...(llmOptions.jsonMode ? { responseMimeType: 'application/json' } : {}),
       ...(systemParts.length > 0 && { systemInstruction: systemParts.join('\n\n') }),
       ...(cachedContent && { cachedContent }),
     };
@@ -1462,11 +1876,7 @@ export class PromptService {
     }
 
     if (userId && !skipQuotaCheck) {
-      try {
-        await userService.incrementUsage(userId, 1);
-      } catch (quotaError) {
-        logger.error(`Failed to increment quota for user ${userId}:`, quotaError);
-      }
+      incrementUsageInBackground(userId);
     }
 
     return full;
@@ -1483,10 +1893,22 @@ export class PromptService {
     chunks.forEach((chunk, index) => {
       const web = chunk.web;
       if (web?.uri) {
+        // ⚠️ NE PAS déduire le domaine de l'URL quand celle-ci est un
+        // REDIRECTEUR.
+        //
+        // Le grounding Google ne renvoie pas l'URL de l'éditeur : il renvoie un
+        // lien de redirection vers `vertexaisearch.cloud.google.com`. En déduire
+        // l'hôte affichait ce domaine technique en guise de source — un lecteur
+        // y voyait « vertexaisearch.cloud.google.com » là où il attendait le nom
+        // du média, et le doute portait alors sur tout le document.
+        //
+        // Google fournit le vrai domaine à part (`web.domain`). En son absence,
+        // mieux vaut n'afficher AUCUN domaine que le mauvais.
         let domain = web.domain;
         if (!domain) {
           try {
-            domain = new URL(web.uri).hostname.replace(/^www\./, '');
+            const host = new URL(web.uri).hostname.replace(/^www\./, '');
+            domain = REDIRECT_HOSTS.some((redirect) => host.endsWith(redirect)) ? undefined : host;
           } catch {
             domain = undefined;
           }
@@ -1551,3 +1973,108 @@ export class PromptService {
 }
 
 export const promptService = new PromptService();
+
+/** Domaine d'une URL, ou `undefined` si elle est malformée. */
+function safeDomain(url: string): string | undefined {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Reconstitue l'association segments → sources à partir des marqueurs `[sN]`
+ * laissés par le modèle.
+ *
+ * Google livre cette carte dans ses métadonnées ; avec une recherche externe il
+ * faut la relire dans le texte. Chaque phrase portant au moins une référence
+ * devient un support, débarrassé de ses marqueurs.
+ */
+function extractCitationSupports(text: string, sourceCount: number): GroundedSupport[] {
+  if (!text || sourceCount === 0) {
+    return [];
+  }
+
+  const supports: GroundedSupport[] = [];
+  // Découpe à la phrase : c'est l'unité que porte une citation.
+  for (const sentence of text.split(/(?<=[.!?])\s+/)) {
+    const indexes = [...sentence.matchAll(/\[s(\d+)\]/g)]
+      .map((match) => Number.parseInt(match[1], 10))
+      .filter((index) => Number.isInteger(index) && index >= 0 && index < sourceCount);
+
+    if (indexes.length === 0) {
+      continue;
+    }
+
+    const cleaned = sentence.replace(/\s*\[s\d+\]/g, '').trim();
+    if (cleaned) {
+      supports.push({ text: cleaned, sourceIndexes: [...new Set(indexes)] });
+    }
+  }
+
+  return supports;
+}
+
+/**
+ * Résultats demandés par requête. Descendu de 5 à 4 : le dossier envoyé au
+ * modèle rétrécit d'autant, et c'est lui qui pèse sur la latence de la
+ * synthèse — pas la recherche elle-même, qui tient en trois secondes.
+ */
+const SEARCH_RESULTS_PER_QUERY = 4;
+
+/**
+ * Requêtes par section. Descendu de 4 à 3 : au-delà, les résultats se
+ * recoupent et l'on paie une recherche de plus pour la même information.
+ */
+const MAX_SEARCH_QUERIES = 3;
+
+/**
+ * Tire de vraies requêtes de recherche d'un brief de recherche.
+ *
+ * Le brief mêle contexte projet, consignes internes et liste de points à
+ * couvrir. Un moteur de recherche n'en fait rien de bon, et l'utilisateur qui
+ * verrait passer « N'invente rien » dans l'interface se demanderait à qui on
+ * parle. On ne garde donc que les points à couvrir, un par requête, ancrés sur
+ * le pays quand le brief le mentionne.
+ */
+export function buildSearchQueries(brief: string): string[] {
+  const mission = /DONNÉES À TROUVER[^:]*:\s*([\s\S]*?)(?:\n\s*\n|$)/i.exec(brief)?.[1] ?? '';
+  const country = /Pays:\s*([^\n]+)/i.exec(brief)?.[1]?.trim();
+
+  const points = mission
+    .split('\n')
+    .map((line) => line.replace(/^\s*\d+[.)]\s*/, '').trim())
+    .filter((line) => line.length > 8);
+
+  const queries = points.slice(0, MAX_SEARCH_QUERIES).map((point) => {
+    const base = point.replace(/\s+/g, ' ').slice(0, 180);
+    // Le pays n'est ajouté que s'il manque : une requête qui le répète perd en
+    // précision.
+    return country && !base.toLowerCase().includes(country.toLowerCase())
+      ? `${base} ${country}`
+      : base;
+  });
+
+  if (queries.length > 0) {
+    return queries;
+  }
+
+  // Brief sans liste de points : on retombe sur sa première phrase utile.
+  const fallback = brief
+    .replace(/CONTEXTE PROJET:|DONNÉES À TROUVER[^:]*:/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 180);
+  return fallback ? [fallback] : [];
+}
+
+/** Une même page trouvée par deux requêtes ne compte qu'une fois. */
+function dedupeByLink<T extends { link: string }>(results: T[]): T[] {
+  const seen = new Set<string>();
+  return results.filter((result) => {
+    if (seen.has(result.link)) return false;
+    seen.add(result.link);
+    return true;
+  });
+}

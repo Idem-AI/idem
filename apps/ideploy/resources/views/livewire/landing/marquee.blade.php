@@ -1,6 +1,6 @@
 <section class="py-12 px-6 border-y border-white/5 bg-transparent overflow-hidden">
     <div class="max-w-7xl mx-auto flex items-center mb-8">
-        <p class="text-white/40 text-sm font-bold uppercase tracking-widest px-4">Supported Stacks & Partners</p>
+        <p class="text-white/40 text-sm font-bold uppercase px-4">Supported Stacks & Partners</p>
         <div class="flex-1 h-[1px] bg-white/5 ml-4"></div>
     </div>
     

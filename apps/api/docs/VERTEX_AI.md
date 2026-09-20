@@ -91,14 +91,13 @@ Le découpage tient en deux fichiers, et un seul se modifie.
 
 Les capacités suivent le backend : `getProvider()` recalcule `contextCache` selon la région, et tout le code passe déjà par le garde-fou `providerSupports()`. Une capacité qui disparaît avec un backend se déclare donc au même endroit que le backend lui-même.
 
-Les cinq services qui construisaient leur propre client passent par la fabrique :
+Les services qui construisaient leur propre client passent par la fabrique :
 
 - `services/prompt.service.ts` (chemin principal)
 - `services/brandMockup.service.ts`
 - `services/BandIdentity/logoAnalysis.service.ts`
-- `services/BandIdentity/mockupHtmlGenerator.service.ts`
 - `services/Communication/imageSourcing.service.ts`
 
-Construire un `GoogleGenAI` directement ailleurs ferait repartir cet appel-là sur AI Studio sans que rien ne le signale. C'est exactement ce qui rendait la bascule incomplète : `mockupHtmlGenerator` utilisait encore `@google/generative-ai`, le SDK historique, qui ne sait pas parler à Vertex — il a été migré vers `@google/genai`.
+Construire un `GoogleGenAI` directement ailleurs ferait repartir cet appel-là sur AI Studio sans que rien ne le signale.
 
 Les gardes qui testaient `process.env.GEMINI_API_KEY` pour décider si une génération était possible utilisent maintenant `isGeminiConfigured()`, qui interroge le backend actif.

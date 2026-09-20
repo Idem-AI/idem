@@ -1,0 +1,12 @@
+/*
+  Place occupée par la disposition elle-même : la barre du haut (`pt-20`, 5rem)
+  plus la marge basse (`pb-10`, 2.5rem).
+
+  Elle est publiée ici pour les pages qui gèrent leur propre défilement — la
+  liste des projets, dont l'en-tête reste fixe. Sans cela, chacune recopierait
+  la somme et la première retouche du gabarit les désaccorderait en silence.
+*/
+:host {
+  --layout-chrome: 7.5rem;
+}
+

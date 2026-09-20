@@ -22,13 +22,6 @@ const CACHE_PREFIX = 'google-fonts';
 const MAX_LIMIT = 100;
 const DEFAULT_LIMIT = 48;
 
-export type FontCategory =
-  | 'sans-serif'
-  | 'serif'
-  | 'display'
-  | 'handwriting'
-  | 'monospace';
-
 /** DTO envoyé au front — sous-ensemble volontairement réduit de la réponse Google. */
 export interface FontSummary {
   family: string;
@@ -101,6 +94,17 @@ export class GoogleFontsService {
       fonts: matched.slice(0, safeLimit).map((entry) => entry.font),
       total: matched.length,
     };
+  }
+
+  /**
+   * Le catalogue complet, pour le service qui agrège plusieurs sources.
+   *
+   * `search` suffit au front, mais l'agrégateur a besoin de TOUTES les familles
+   * avant de dédupliquer et de classer l'ensemble : tronquer ici reviendrait à
+   * décider du résultat à sa place.
+   */
+  async getCatalogFonts(): Promise<FontSummary[]> {
+    return this.getCatalog();
   }
 
   /**

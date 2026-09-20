@@ -67,7 +67,6 @@
         .ip-label {
             font-size: 12px;
             text-transform: uppercase;
-            letter-spacing: 1px;
             color: #a0aec0;
             margin-bottom: 8px;
             font-weight: 600;

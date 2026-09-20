@@ -19,7 +19,7 @@ export function QuotaSettings() {
 
   if (!user?.id) {
     return (
-      <div className="flex flex-col items-center justify-center h-[200px] text-gray-500 dark:text-gray-400">
+      <div className="flex flex-col items-center justify-center h-[200px] text-text-tertiary">
         <div className="mb-4 translate">{t("common.please_login")}</div>
         <button
           onClick={() => {
@@ -61,7 +61,7 @@ export function QuotaSettings() {
 
   return (
     <div>
-      <h2 className="text-[16px] font-medium text-gray-900 dark:text-white mb-4 translate">
+      <h2 className="text-[16px] font-medium text-text-primary mb-4 translate">
         {t("usage.usage")}
       </h2>
 
@@ -93,24 +93,24 @@ export function QuotaSettings() {
       {/* Usage Stats */}
       <div className="space-y-4">
         <div className="flex justify-between items-center text-[14px]">
-          <span className="text-gray-500 dark:text-gray-400 translate">
+          <span className="text-text-tertiary translate">
             {t("usage.billing_cycle")}
           </span>
-          <span className="text-gray-900 dark:text-white translate">
+          <span className="text-text-primary translate">
             {userQuota.resetTime?.toLocaleString() || "1970-01-01"}
           </span>
         </div>
 
         <div className="flex justify-between items-center text-[14px]">
-          <span className="text-gray-500 dark:text-gray-400 translate">{t("usage.type")}</span>
-          <span className="text-gray-900 dark:text-white">{userQuota.tierType}</span>
+          <span className="text-text-tertiary translate">{t("usage.type")}</span>
+          <span className="text-text-primary">{userQuota.tierType}</span>
         </div>
       </div>
 
       {/* Buy More Button */}
       <button
         onClick={() => {
-          const url = "https://idemappgen.ai/user";
+          const url = `${process.env.REACT_APP_IDEM_MAIN_APP_URL || 'https://idem.africa'}/account`;
           window.open(url, "_blank", "noopener,noreferrer");
         }}
         className="mt-8 w-full bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-4 py-1.5 transition-colors text-[14px]"

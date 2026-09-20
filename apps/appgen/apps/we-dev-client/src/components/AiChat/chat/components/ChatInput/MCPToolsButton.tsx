@@ -1,4 +1,4 @@
-import {CodeOutlined} from '@ant-design/icons'
+import { Code2 } from 'lucide-react';
 import {Dropdown, Switch, Tooltip} from 'antd'
 import {FC, useEffect, useRef, useState} from 'react'
 import {useTranslation} from 'react-i18next'
@@ -90,7 +90,7 @@ const MCPToolsButton: FC<Props> = ({ToolbarButton, disabled}) => {
             disabled={disabled}
             overlayClassName="mention-models-dropdown">
             <ToolbarButton type="text" ref={dropdownRef} disabled={disabled}>
-                <CodeOutlined style={{
+                <Code2 style={{
                     color: enabledMCPs.length > 0 ? '#d97757' : 'var(--color-icon)',
                     opacity: disabled ? 0.5 : 1
                 }}/>

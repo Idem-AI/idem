@@ -189,12 +189,19 @@ export class ColorCustomizerComponent {
     return this.hslToHex(newHue, newSat, newLight);
   }
 
+  /**
+   * Fond dérivé de la secondaire : un blanc CASSÉ, teinté de cette secondaire.
+   *
+   * Cette méthode posait auparavant une clarté de 5 % — un quasi-noir. Changer
+   * la couleur secondaire suffisait donc à faire basculer tout le projet en
+   * thème sombre, sans que l'utilisateur n'ait touché au fond : la charte, les
+   * livrables et le site généré alignent tous leur polarité sur ce champ.
+   */
   private adjustBackgroundForSecondary(secondaryHex: string): string {
     const hsl = this.hexToHSL(secondaryHex);
-    // Create a very dark background that complements the secondary color
     const newHue = (hsl.h + 10) % 360; // Slight hue shift
-    const newSat = Math.max(10, hsl.s * 0.3); // Desaturate
-    const newLight = 5; // Very dark
+    const newSat = Math.min(12, hsl.s * 0.15); // Une teinte, pas une couleur
+    const newLight = 97; // Blanc cassé
     return this.hslToHex(newHue, newSat, newLight);
   }
 

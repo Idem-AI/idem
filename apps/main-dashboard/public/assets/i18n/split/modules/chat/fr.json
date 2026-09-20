@@ -16,15 +16,6 @@
       "collapse": "Replier la barre latérale",
       "expand": "Déployer la barre latérale"
     },
-    "categories": {
-      "business": "Business",
-      "marketing": "Marketing",
-      "finance": "Finances",
-      "legal": "Juridique",
-      "branding": "Marque",
-      "tech": "Technique",
-      "general": "Général"
-    },
     "header": {
       "newProject": "Nouveau projet",
       "subtitle": "Mode Chat",
@@ -58,7 +49,9 @@
       "finance": "Rapport financier",
       "communication": "Communication",
       "development": "Développement",
-      "deployment": "Déploiement"
+      "deployment": "Déploiement",
+      "businessCards": "Cartes de visite",
+      "simulations": "Simulations"
     },
     "card": {
       "updatedAt": "Modifié le",
@@ -86,11 +79,10 @@
       "developmentSection": "Configuration de développement"
     },
     "preview": {
-      "download": "Télécharger",
       "close": "Fermer",
-      "loading": "Chargement du document…",
-      "notAvailable": "Ce document n'est pas encore disponible.",
-      "generateNow": "Générer maintenant"
+      "askRegenerateSection": "Régénère la page « {{section}} »",
+      "askResume": "Complète les pages manquantes",
+      "askRegenerateAll": "Régénère tout le document"
     },
     "responses": {
       "showCard": "Voici votre {{title}} :",
@@ -124,7 +116,9 @@
         "finance": "Voir mon rapport financier",
         "communication": "Voir ma communication",
         "development": "Voir mon développement",
-        "deployment": "Voir mes déploiements"
+        "deployment": "Voir mes déploiements",
+        "businessCards": "Voir mes cartes de visite",
+        "simulations": "Voir mes simulations"
       },
       "generate": {
         "businessPlan": "Rédiger mon business plan",
@@ -135,55 +129,9 @@
         "finance": "Compléter mes finances",
         "communication": "Générer ma communication",
         "development": "Configurer le développement",
-        "deployment": "Configurer le déploiement"
-      }
-    },
-    "bp": {
-      "intro": "Très bien, rédigeons votre **business plan** ! Pour un résultat plus complet, je peux y intégrer vos informations de contact et d'équipe. Comment voulez-vous les fournir ?",
-      "formIntro": "Remplissez ce mini-formulaire — seuls les champs renseignés seront utilisés :",
-      "freeTextPrompt": "Écrivez vos informations librement (équipe, rôles, contact…) et je les structurerai. Par exemple : *« Nous sommes deux : Alice (CEO) et Bob (CTO). Contact : hello@start.up, +237 6 12 34 56 78, Douala, Cameroun. »*",
-      "parsedSummary": "Voici ce que j'ai compris :",
-      "parseFailed": "Je n'ai pas réussi à structurer ces informations. Réessayez avec le formulaire, ou générez sans ces infos.",
-      "chips": {
-        "fillForm": "Remplir le formulaire",
-        "freeText": "Écrire en texte libre",
-        "skipInfos": "Générer sans ces infos",
-        "generateNow": "C'est bon, lance la génération",
-        "fixForm": "Corriger via le formulaire"
-      }
-    },
-    "infoForm": {
-      "title": "Informations supplémentaires",
-      "subtitle": "Contact et équipe pour le business plan",
-      "email": "Email",
-      "phone": "Téléphone",
-      "city": "Ville",
-      "country": "Pays",
-      "address": "Adresse",
-      "team": "Équipe",
-      "memberName": "Nom",
-      "memberRole": "Rôle (ex. CEO)",
-      "memberEmail": "Email (optionnel)",
-      "addMember": "Ajouter un membre",
-      "removeMember": "Retirer ce membre",
-      "submit": "Valider et générer",
-      "skip": "Passer",
-      "submitted": "Informations enregistrées",
-      "submittedAs": "J'ai rempli le formulaire d'informations",
-      "contact": "Contact"
-    },
-    "generation": {
-      "start": "C'est parti ! Je prépare votre {{title}}… ⏳",
-      "inProgress": "Génération de votre {{title}} en cours",
-      "done": "✅ Votre {{title}} est prêt !",
-      "failed": "❌ La génération de votre {{title}} a échoué.",
-      "cardRunning": "Génération de votre {{title}}",
-      "cardDone": "Votre {{title}} est prêt",
-      "cardError": "La génération de votre {{title}} a échoué",
-      "steps": "{{done}}/{{total}} étapes terminées",
-      "retryHint": "Voulez-vous réessayer ?",
-      "chips": {
-        "retry": "Réessayer la génération"
+        "deployment": "Configurer le déploiement",
+        "businessCards": "Créer mes cartes de visite",
+        "simulations": "Lancer une simulation"
       }
     },
     "recap": {
@@ -208,10 +156,76 @@
         "confirm": "Créer le projet"
       }
     },
-    "banner": {
-      "title": "Complétez votre identité de marque",
-      "missing": "Il manque :",
-      "cta": "Compléter maintenant"
+    "onboarding": {
+      "welcome": "Bonjour ! 👋 Créons votre projet ensemble, étape par étape. Première question : **décrivez votre idée en quelques phrases.** Que voulez-vous construire, et pour résoudre quel problème ?",
+      "resume": "Content de vous revoir ! 👋 Reprenons la création de votre projet exactement là où vous vous étiez arrêté.",
+      "questions": {
+        "description": "Décrivez votre idée en quelques phrases : que voulez-vous construire, et pour résoudre quel problème ?",
+        "name": "Très bien ! Quel **nom** voulez-vous donner à votre projet ?",
+        "type": "Parfait. Quel **type de projet** est-ce ?",
+        "targets": "Qui est votre **public cible** principal ?",
+        "scope": "Quelle est la **portée géographique** visée ?",
+        "teamSize": "Combien de personnes composent votre **équipe** ?",
+        "budget": "Quelle est votre **fourchette de budget** ?",
+        "recap": "Voici le récapitulatif de votre projet. Vérifiez les informations, acceptez les politiques puis confirmez la création. ✨"
+      },
+      "confirmHint": "Utilisez la carte ci-dessus pour confirmer la création du projet, ou cliquez sur « Recommencer ».",
+      "success": "🎉 Votre projet **{{name}}** est créé ! Vous pouvez maintenant générer vos livrables, me poser des questions ou suivre votre avancement — tout se passe ici.",
+      "errors": {
+        "descriptionTooShort": "Pouvez-vous m'en dire un peu plus ? Quelques phrases suffisent pour bien démarrer.",
+        "nameRequired": "Il me faut un nom pour votre projet. Lequel choisissez-vous ?",
+        "createFailed": "La création du projet a échoué. Vérifiez votre connexion puis confirmez à nouveau.",
+        "planFailed": "Je n'ai pas pu préparer mes questions, mais on peut continuer directement vers le récapitulatif."
+      },
+      "actions": {
+        "skip": "Passer cette question",
+        "skipped": "(question passée)"
+      },
+      "options": {
+        "type": {
+          "enterprise": "Création d'entreprise",
+          "web": "Application web",
+          "mobile": "Application mobile",
+          "iot": "IoT",
+          "desktop": "Application desktop",
+          "api": "API / Backend",
+          "ai": "IA / ML",
+          "blockchain": "Blockchain",
+          "ecommerce": "Commerce / E-commerce",
+          "other": "Autres"
+        },
+        "targets": {
+          "business": "Entreprises",
+          "students": "Étudiants",
+          "general-public": "Grand public",
+          "government": "Administrations",
+          "healthcare": "Professionnels de santé"
+        },
+        "scope": {
+          "local": "Locale",
+          "departmental": "Départementale",
+          "regional": "Régionale",
+          "national": "Nationale",
+          "international": "Internationale"
+        },
+        "teamSize": {
+          "1": "Solo",
+          "2-5": "2 à 5 personnes",
+          "6-10": "6 à 10 personnes",
+          "10+": "Plus de 10 personnes"
+        },
+        "budget": {
+          "lt-5k": "Moins de 5 000 €",
+          "5k-20k": "5 000 € à 20 000 €",
+          "20k-50k": "20 000 € à 50 000 €",
+          "gt-50k": "Plus de 50 000 €"
+        }
+      },
+      "aiWelcome": "Parfait, {{name}} ! 🚀 J'ai bien noté votre idée. Laissez-moi vous poser quelques questions pour bien cadrer votre projet.",
+      "composerPlaceholder": "Écrivez votre réponse, ou choisissez une suggestion…",
+      "customType": "Très bien. Décrivez en quelques mots le type de votre projet :",
+      "aiWelcomeNoName": "Parfait ! 🚀 J'ai bien noté votre idée. Laissez-moi vous poser quelques questions simples pour bien cadrer votre projet.",
+      "customCurrency": "D'accord. Quelle devise souhaitez-vous utiliser ?"
     },
     "branding": {
       "invite": "Passons maintenant à votre **identité de marque** (logo, couleurs, typographie). Voulez-vous la générer avec l'IA, ou importer votre propre logo ?",
@@ -224,20 +238,6 @@
       "describeLogo": "Décrivez en quelques mots le logo que vous imaginez — formes, ambiance, symboles… (optionnel)",
       "generatingLogos": "Je génère vos **concepts de logos**… Cela peut prendre une minute. ⏳",
       "chooseLogo": "Voici vos concepts de logos. Lequel choisissez-vous ?",
-      "generatingVariations": "Beau choix ! Je génère maintenant les **déclinaisons de votre logo** (fond clair, fond sombre, monochrome)… ⏳",
-      "zipStarted": "Le téléchargement de vos logos (ZIP) est lancé. 📦",
-      "zipUnavailable": "Le pack de logos n'est pas encore disponible.",
-      "charteExists": "Votre **charte graphique** a déjà été générée. ✨ Que voulez-vous en faire ?",
-      "format": {
-        "title": "Format de la charte graphique",
-        "subtitle": "Cliquez pour choisir le format du document",
-        "question": "Dans quel **format** voulez-vous votre charte graphique ?",
-        "portrait": "Portrait (A4)",
-        "landscape": "Paysage (16:9)",
-        "hint": "Choisissez un format pour continuer",
-        "cancel": "Annuler",
-        "cancelledOk": "Pas de souci, on annule. Dites-moi quand vous voudrez générer votre charte."
-      },
       "complete": "🎉 Votre **identité de marque est complète** ! Logo, déclinaisons, couleurs et typographie sont enregistrés. Prochaine étape : générer votre charte graphique.",
       "alreadyComplete": "Votre identité de marque est déjà complète. La voici :",
       "thisPalette": "Cette palette",
@@ -271,122 +271,101 @@
       "errors": {
         "generation": "La génération a échoué. On réessaie ?",
         "save": "Impossible d'enregistrer votre choix. Réessayez."
+      },
+      "generatingVariations": "Beau choix ! Je génère maintenant les **déclinaisons de votre logo** (fond clair, fond sombre, monochrome)… ⏳",
+      "zipStarted": "Le téléchargement de vos logos (ZIP) est lancé. 📦",
+      "zipUnavailable": "Le pack de logos n'est pas encore disponible.",
+      "charteExists": "Votre **charte graphique** a déjà été générée. ✨ Que voulez-vous en faire ?",
+      "format": {
+        "title": "Format de la charte graphique",
+        "subtitle": "Cliquez pour choisir le format du document",
+        "question": "Dans quel **format** voulez-vous votre charte graphique ?",
+        "portrait": "Portrait (A4)",
+        "landscape": "Paysage (16:9)",
+        "hint": "Choisissez un format pour continuer",
+        "cancel": "Annuler",
+        "cancelledOk": "Pas de souci, on annule. Dites-moi quand vous voudrez générer votre charte."
       }
     },
-    "onboarding": {
-      "welcome": "Bonjour ! 👋 Créons votre projet ensemble, étape par étape. Première question : **décrivez votre idée en quelques phrases.** Que voulez-vous construire, et pour résoudre quel problème ?",
-      "resume": "Content de vous revoir ! 👋 Reprenons la création de votre projet exactement là où vous vous étiez arrêté.",
-      "aiWelcome": "Parfait, {{name}} ! 🚀 J'ai bien noté votre idée. Laissez-moi vous poser quelques questions pour bien cadrer votre projet.",
-      "aiWelcomeNoName": "Parfait ! 🚀 J'ai bien noté votre idée. Laissez-moi vous poser quelques questions simples pour bien cadrer votre projet.",
-      "customType": "Très bien. Décrivez en quelques mots le type de votre projet :",
-      "customCurrency": "D'accord. Quelle devise souhaitez-vous utiliser ?",
-      "composerPlaceholder": "Écrivez votre réponse, ou choisissez une suggestion…",
-      "questions": {
-        "description": "Décrivez votre idée en quelques phrases : que voulez-vous construire, et pour résoudre quel problème ?",
-        "name": "Très bien ! Quel **nom** voulez-vous donner à votre projet ?",
-        "type": "Parfait. Quel **type de projet** est-ce ?",
-        "targets": "Qui est votre **public cible** principal ?",
-        "scope": "Quelle est la **portée géographique** visée ?",
-        "teamSize": "Combien de personnes composent votre **équipe** ?",
-        "budget": "Quelle est votre **fourchette de budget** ?",
-        "recap": "Voici le récapitulatif de votre projet. Vérifiez les informations, acceptez les politiques puis confirmez la création. ✨"
+    "banner": {
+      "title": "Complétez votre identité de marque",
+      "missing": "Il manque :",
+      "cta": "Compléter maintenant"
+    },
+    "categories": {
+      "business": "Business",
+      "marketing": "Marketing",
+      "finance": "Finances",
+      "legal": "Juridique",
+      "branding": "Marque",
+      "tech": "Technique",
+      "general": "Général"
+    },
+    "bp": {
+      "intro": "Très bien, rédigeons votre **business plan** ! Pour un résultat plus complet, je peux y intégrer vos informations de contact et d'équipe. Comment voulez-vous les fournir ?",
+      "formIntro": "Remplissez ce mini-formulaire — seuls les champs renseignés seront utilisés :",
+      "freeTextPrompt": "Écrivez vos informations librement (équipe, rôles, contact…) et je les structurerai. Par exemple : *« Nous sommes deux : Alice (CEO) et Bob (CTO). Contact : hello@start.up, +237 6 12 34 56 78, Douala, Cameroun. »*",
+      "parsedSummary": "Voici ce que j'ai compris :",
+      "parseFailed": "Je n'ai pas réussi à structurer ces informations. Réessayez avec le formulaire, ou générez sans ces infos.",
+      "chips": {
+        "fillForm": "Remplir le formulaire",
+        "freeText": "Écrire en texte libre",
+        "skipInfos": "Générer sans ces infos",
+        "generateNow": "C'est bon, lance la génération",
+        "fixForm": "Corriger via le formulaire"
       },
-      "confirmHint": "Utilisez la carte ci-dessus pour confirmer la création du projet, ou cliquez sur « Recommencer ».",
-      "success": "🎉 Votre projet **{{name}}** est créé ! Vous pouvez maintenant générer vos livrables, me poser des questions ou suivre votre avancement — tout se passe ici.",
-      "errors": {
-        "descriptionTooShort": "Pouvez-vous m'en dire un peu plus ? Quelques phrases suffisent pour bien démarrer.",
-        "nameRequired": "Il me faut un nom pour votre projet. Lequel choisissez-vous ?",
-        "createFailed": "La création du projet a échoué. Vérifiez votre connexion puis confirmez à nouveau.",
-        "planFailed": "Je n'ai pas pu préparer mes questions, mais on peut continuer directement vers le récapitulatif."
-      },
-      "actions": {
-        "skip": "Passer cette question",
-        "skipped": "(question passée)"
-      },
-      "options": {
-        "type": {
-          "enterprise": "Création d'entreprise",
-          "ecommerce": "Commerce / E-commerce",
-          "web": "Application web",
-          "mobile": "Application mobile",
-          "iot": "IoT",
-          "desktop": "Application desktop",
-          "api": "API / Backend",
-          "ai": "IA / ML",
-          "blockchain": "Blockchain",
-          "other": "Autres"
-        },
-        "targets": {
-          "business": "Entreprises",
-          "students": "Étudiants",
-          "general-public": "Grand public",
-          "government": "Administrations",
-          "healthcare": "Professionnels de santé"
-        },
-        "scope": {
-          "local": "Locale",
-          "departmental": "Départementale",
-          "regional": "Régionale",
-          "national": "Nationale",
-          "international": "Internationale"
-        },
-        "teamSize": {
-          "1": "Solo",
-          "2-5": "2 à 5 personnes",
-          "6-10": "6 à 10 personnes",
-          "10+": "Plus de 10 personnes"
-        },
-        "budget": {
-          "lt-5k": "Moins de 5 000 €",
-          "5k-20k": "5 000 € à 20 000 €",
-          "20k-50k": "20 000 € à 50 000 €",
-          "gt-50k": "Plus de 50 000 €"
+      "structure": {
+        "title": "Structure du plan",
+        "subtitle": "Elle décide des sections générées et de leur ordre.",
+        "question": "Avant d'écrire : quelle structure votre interlocuteur attend-il ? Beaucoup de banques et de fonds imposent leur table des matières.",
+        "hint": "Choisissez une structure pour continuer.",
+        "showOutline": "Voir le sommaire",
+        "customise": "Composer mon sommaire",
+        "customiseOk": "La composition d'un sommaire se fait dans l'atelier : on y ajoute, retire et réordonne les sections une par une.",
+        "cancel": "Plus tard",
+        "cancelledOk": "Entendu. Le plan suivra la structure standard si vous le lancez tel quel.",
+        "saveFailed": "L'enregistrement de la structure a échoué. Choisissez à nouveau.",
+        "loadFailed": "Impossible de charger les structures disponibles.",
+        "chips": {
+          "openAtelier": "Ouvrir l'atelier"
         }
       }
     },
-    "legal": {
-      "intro": "Créons vos **documents juridiques**. Quel document voulez-vous générer ? (Pour des statuts précis — capital, associés — complétez le contexte dans l'éditeur.)",
-      "chips": {
-        "essentials": "Pack essentiel (CGU, CGV, confidentialité, mentions)",
-        "cgu": "CGU",
-        "cgv": "CGV",
-        "privacy": "Politique de confidentialité",
-        "statutes": "Statuts (SAS)",
-        "nda": "Accord de confidentialité (NDA)",
-        "editor": "Voir tout le catalogue"
-      }
+    "infoForm": {
+      "title": "Informations supplémentaires",
+      "subtitle": "Contact et équipe pour le business plan",
+      "email": "Email",
+      "phone": "Téléphone",
+      "city": "Ville",
+      "country": "Pays",
+      "address": "Adresse",
+      "team": "Équipe",
+      "memberName": "Nom",
+      "memberRole": "Rôle (ex. CEO)",
+      "memberEmail": "Email (optionnel)",
+      "addMember": "Ajouter un membre",
+      "removeMember": "Retirer ce membre",
+      "submit": "Valider et générer",
+      "skip": "Passer",
+      "submitted": "Informations enregistrées",
+      "submittedAs": "J'ai rempli le formulaire d'informations",
+      "contact": "Contact"
     },
-    "comm": {
-      "intro": "Passons à votre **communication**. Je peux définir votre stratégie éditoriale et bâtir un calendrier de contenus. Par quoi commençons-nous ?",
-      "introNeedsBranding": "Passons à votre **communication**. 💡 Astuce : complétez d'abord votre identité de marque pour des visuels cohérents. Par quoi commençons-nous ?",
-      "strategyTitle": "Stratégie de communication",
-      "calendarTitle": "Calendrier éditorial",
-      "strategyDone": "✅ Votre **stratégie de communication** est prête ! Vous pouvez maintenant générer votre calendrier éditorial ou l'affiner dans l'éditeur.",
-      "calendarDone": "✅ Votre **calendrier éditorial** est prêt ! Ouvrez l'éditeur pour créer des flyers ou ajuster vos contenus.",
-      "steps": {
-        "context": "Analyse du contexte",
-        "trends": "Repérage des tendances",
-        "strategy": "Rédaction de la stratégie",
-        "calendar": "Construction du calendrier"
+    "generation": {
+      "start": "C'est parti ! Je prépare votre {{title}}… ⏳",
+      "inProgress": "Génération de votre {{title}} en cours",
+      "done": "✅ Votre {{title}} est prêt !",
+      "failed": "❌ La génération de votre {{title}} a échoué.",
+      "retryHint": "Voulez-vous réessayer ?",
+      "chips": {
+        "retry": "Réessayer la génération",
+        "retrySection": "Réessayer cette page"
       },
-      "chips": {
-        "strategy": "Générer la stratégie",
-        "calendar": "Générer le calendrier"
-      }
-    },
-    "dev": {
-      "intro": "L'**atelier de développement** génère le code de votre application ou site web (landing, app web, PWA…) à partir de votre projet. Ouvrez-le pour choisir votre configuration.",
-      "chips": {
-        "open": "Ouvrir l'atelier de développement",
-        "view": "Voir ma configuration"
-      }
-    },
-    "deploy": {
-      "intro": "L'**assistant de déploiement** met votre projet en ligne (infrastructure, Terraform, CI/CD). Il a besoin d'un dépôt Git. Lançons un déploiement ou consultons les précédents.",
-      "chips": {
-        "start": "Lancer un déploiement",
-        "list": "Voir mes déploiements"
-      }
+      "cardRunning": "Génération de votre {{title}}",
+      "cardDone": "Votre {{title}} est prêt",
+      "cardError": "La génération de votre {{title}} a échoué",
+      "steps": "{{done}}/{{total}} étapes terminées",
+      "resumed": "Votre {{title}} est déjà en cours de génération — je reprends le suivi ici."
     },
     "launcher": {
       "title": "Que construisons-nous pour {{name}} ?",
@@ -403,7 +382,9 @@
         "legalDocs": "Statuts, CGU, contrats et mentions légales.",
         "communication": "Stratégie, calendrier éditorial et flyers.",
         "development": "Génération de votre application ou site web.",
-        "deployment": "Déploiement de votre infrastructure et mise en ligne."
+        "deployment": "Déploiement de votre infrastructure et mise en ligne.",
+        "businessCards": "Le modèle de vos cartes de visite, dessiné depuis votre charte.",
+        "simulations": "Éprouvez votre modèle avant le marché."
       },
       "state": {
         "ready": "Prêt",
@@ -415,6 +396,130 @@
       },
       "open": "Ouvrir",
       "brandCalloutHint": "Logo, couleurs et typographie — la base de tous vos livrables."
+    },
+    "legal": {
+      "intro": "Créons vos **documents juridiques**. Quel document voulez-vous générer ? (Pour des statuts précis — capital, associés — complétez le contexte dans l'éditeur.)",
+      "chips": {
+        "essentials": "Pack essentiel (CGU, CGV, confidentialité, mentions)",
+        "cgu": "CGU",
+        "cgv": "CGV",
+        "privacy": "Politique de confidentialité",
+        "statutes": "Statuts (SAS)",
+        "nda": "Accord de confidentialité (NDA)",
+        "editor": "Voir tout le catalogue",
+        "list": "Voir mes documents juridiques"
+      },
+      "listIntro": "Vous avez {{count}} document(s) juridique(s) :",
+      "emptyList": "Aucun document juridique n'a encore été rédigé.",
+      "downloadOne": "Télécharger {{name}}",
+      "downloadFailed": "Ce document n'a pas pu être téléchargé.",
+      "deleted": "Document supprimé.",
+      "deleteFailed": "La suppression n'a pas abouti.",
+      "loadFailed": "Impossible de charger vos documents juridiques."
+    },
+    "comm": {
+      "intro": "Passons à votre **communication**. Je peux définir votre stratégie éditoriale et bâtir un calendrier de contenus. Par quoi commençons-nous ?",
+      "introNeedsBranding": "Passons à votre **communication**. 💡 Astuce : complétez d'abord votre identité de marque pour des visuels cohérents. Par quoi commençons-nous ?",
+      "strategyTitle": "Stratégie de communication",
+      "calendarTitle": "Calendrier éditorial",
+      "strategyDone": "✅ Votre **stratégie de communication** est prête ! Vous pouvez maintenant générer votre calendrier éditorial ou l'affiner dans l'éditeur.",
+      "calendarDone": "✅ Votre **calendrier éditorial** est prêt ! Ouvrez l'éditeur pour créer des flyers ou ajuster vos contenus.",
+      "steps": {
+        "context": "Analyse du contexte",
+        "trends": "Repérage des tendances",
+        "strategy": "Rédaction de la stratégie",
+        "calendar": "Construction du calendrier",
+        "occasions": "Recherche des occasions…",
+        "brief": "Définition de l'angle…",
+        "content": "Écriture des contenus…"
+      },
+      "chips": {
+        "strategy": "Générer la stratégie",
+        "calendar": "Générer le calendrier",
+        "studio": "Composer un visuel",
+        "library": "Ma bibliothèque de visuels",
+        "plans": "Mon calendrier éditorial"
+      }
+    },
+    "dev": {
+      "intro": "L'**atelier de développement** génère le code de votre application ou site web (landing, app web, PWA…) à partir de votre projet. Ouvrez-le pour choisir votre configuration.",
+      "chips": {
+        "open": "Ouvrir l'atelier de développement",
+        "view": "Voir ma configuration"
+      }
+    },
+    "deploy": {
+      "intro": "L'**assistant de déploiement** met votre projet en ligne (infrastructure, Terraform, CI/CD). Il a besoin d'un dépôt Git. Lançons un déploiement ou consultons les précédents.",
+      "chips": {
+        "start": "Lancer un déploiement",
+        "list": "Voir mes déploiements"
+      }
+    },
+    "deck": {
+      "typeQuestion": "Quel type de pitch deck voulez-vous générer ? Chaque type suit les slides qu’attend son audience.",
+      "typesFailed": "Je n'ai pas pu charger les types de pitch deck. Vous pouvez les comparer dans l'atelier.",
+      "createFailed": "Le pitch deck n'a pas pu être créé. Réessayez.",
+      "chips": {
+        "compare": "Comparer les types"
+      }
+    },
+    "documents": {
+      "count": "{{count}} document(s)",
+      "empty": "Aucun document pour l'instant.",
+      "sections": "{{completed}} / {{expected}} sections rédigées",
+      "open": "Ouvrir",
+      "download": "PDF",
+      "rename": "Renommer",
+      "delete": "Supprimer",
+      "confirmDelete": "Confirmer la suppression",
+      "renameFailed": "Le renommage n'a pas abouti. Réessayez dans un instant.",
+      "deleteFailed": "La suppression n'a pas abouti. Réessayez dans un instant.",
+      "status": {
+        "draft": "Brouillon",
+        "partial": "En cours",
+        "complete": "Complet"
+      },
+      "businessPlan": {
+        "title": "Mes business plans",
+        "list": "Voir tous mes business plans",
+        "create": "Rédiger un autre business plan",
+        "intro": "Voici les business plans de ce projet. Ouvrez celui que vous voulez lire, ou créez-en un autre pour un autre destinataire.",
+        "none": "Ce projet n'a pas encore de business plan."
+      },
+      "pitchDeck": {
+        "title": "Mes pitch decks",
+        "list": "Voir tous mes pitch decks",
+        "create": "Créer un autre pitch deck",
+        "intro": "Voici les pitch decks de ce projet. Ouvrez celui que vous voulez présenter, ou créez-en un autre pour un autre public.",
+        "none": "Ce projet n'a pas encore de pitch deck."
+      }
+    },
+    "finance": {
+      "intro": "Je peux remplir tout le modèle financier, ou une seule partie si c'est la seule à revoir.",
+      "chips": {
+        "fillAll": "Tout compléter"
+      },
+      "sectionDone": "« {{section}} » est à jour.",
+      "sectionFailed": "« {{section}} » n'a pas pu être complétée."
+    },
+    "cards": {
+      "needsBranding": "Les cartes de visite se dessinent depuis votre charte : complétons-la d'abord.",
+      "orientationQuestion": "Dans quel format dessinons-nous vos cartes ?",
+      "chips": {
+        "landscape": "Paysage (85 × 55 mm)",
+        "portrait": "Portrait (55 × 85 mm)",
+        "openHolders": "Voir les cartes",
+        "addHolder": "Ajouter une personne",
+        "edit": "Modifier le modèle"
+      },
+      "done": "Votre modèle de carte est prêt. Ajoutez les personnes, chaque carte s'y remplit toute seule.",
+      "failed": "Le modèle de carte n'a pas pu être dessiné."
+    },
+    "simulations": {
+      "intro": "Les simulations mettent votre modèle à l'épreuve avant le marché. Le récapitulatif de ce projet vous mène au simulateur.",
+      "chips": {
+        "open": "Voir mes simulations"
+      }
     }
   }
 }

@@ -106,27 +106,3 @@ export const validateInput = (inputField: string = 'content') => {
     }
   };
 };
-
-/**
- * Middleware to add system information to responses
- */
-export const addSystemInfo = (
-  req: Request & { user?: { uid: string } },
-  res: Response,
-  next: NextFunction
-): void => {
-  const originalJson = res.json;
-
-  res.json = function (body: any) {
-    const enhancedBody = {
-      ...body,
-      systemInfo: {
-        limitations: restrictionsService.getLimitationsMessage(),
-        restrictions: restrictionsService.getRestrictions(),
-      },
-    };
-    return originalJson.call(this, enhancedBody);
-  };
-
-  next();
-};

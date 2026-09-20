@@ -29,6 +29,9 @@ export class GenerationStatusPanelComponent {
   /** Résultat de analyzeGenerationCompleteness pour le document affiché. */
   readonly completeness = input.required<GenerationCompleteness>();
 
+  /** Sections ayant un avertissement de qualité (ex. sous-remplissage PDF). */
+  readonly warningSections = input<string[]>([]);
+
   /**
    * Préfixe de clé de traduction pour les noms de sections (doit se terminer
    * par un point, ex: 'dashboard.generationPanel.sections.businessPlan.').
@@ -46,18 +49,35 @@ export class GenerationStatusPanelComponent {
   /** Régénérer une seule section (nom canonique backend). */
   readonly regenerateSection = output<string>();
 
-  /**
-   * Déplié par défaut quand le document est incomplet ; se recale si la
-   * complétude change (fin d'une reprise), tout en laissant l'utilisateur
-   * replier ou déplier à la main entre-temps.
-   */
-  protected readonly expanded = linkedSignal(() => !this.completeness().isComplete);
+  protected readonly hasWarnings = computed(() => (this.warningSections() ?? []).length > 0);
 
-  protected readonly headingKey = computed(() =>
-    this.completeness().isComplete
-      ? 'dashboard.generationPanel.completeTitle'
-      : 'dashboard.generationPanel.incompleteTitle',
+  /**
+   * Déplié par défaut quand le document est incomplet ou présente des avertissements ;
+   * se recale si la complétude ou les avertissements changent.
+   */
+  protected readonly expanded = linkedSignal(
+    () => !this.completeness().isComplete || this.hasWarnings(),
   );
+
+  protected readonly headingKey = computed(() => {
+    if (!this.completeness().isComplete) {
+      return 'dashboard.generationPanel.incompleteTitle';
+    }
+    if (this.hasWarnings()) {
+      return 'dashboard.generationPanel.warningTitle';
+    }
+    return 'dashboard.generationPanel.completeTitle';
+  });
+
+  protected readonly subtitleKey = computed(() => {
+    if (!this.completeness().isComplete) {
+      return 'dashboard.generationPanel.incompleteSubtitle';
+    }
+    if (this.hasWarnings()) {
+      return 'dashboard.generationPanel.warningSubtitle';
+    }
+    return 'dashboard.generationPanel.completeSubtitle';
+  });
 
   protected toggleExpanded(): void {
     this.expanded.update((value) => !value);

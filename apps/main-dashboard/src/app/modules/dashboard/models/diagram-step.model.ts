@@ -12,18 +12,3 @@ export interface DiagramStepEvent {
   };
 }
 
-export interface DiagramStep {
-  stepName: string;
-  status: 'progress' | 'completed';
-  content?: string;
-  timestamp: string;
-  summary: string;
-}
-
-export interface DiagramGenerationState {
-  steps: DiagramStep[];
-  currentStep: DiagramStep | null;
-  isGenerating: boolean;
-  error: string | null;
-  completed: boolean;
-}

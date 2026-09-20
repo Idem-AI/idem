@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard, publicGuard } from './guards/auth.guard';
+import { surveyGuard } from './guards/survey.guard';
+import { guidedAccessGuard } from './guards/guided-access.guard';
 
 export const routes: Routes = [
   // Redirect root to console
@@ -18,16 +20,18 @@ export const routes: Routes = [
   },
 
   // ============================================
-  // GLOBAL DASHBOARD ROUTES (layout: 'global')
+  // CONSOLE ET PROJETS
   // ============================================
   {
+    // `/console` et `/projects` servaient deux listes de projets différentes,
+    // à maintenir séparément : celle-ci cherchait, filtrait et classait, celle
+    // -là non. Une seule page désormais, sous les deux adresses — `/console`
+    // reste l'adresse historique, liée depuis le logo et d'autres applications.
     path: 'console',
     title: 'navigation.titles.console',
     loadComponent: () =>
-      import('./modules/dashboard/pages/global-dashboard/global-dashboard').then(
-        (m) => m.GlobalDashboard,
-      ),
-    canActivate: [authGuard],
+      import('./modules/dashboard/pages/projects-list/projects-list').then((m) => m.ProjectsList),
+    canActivate: [authGuard, surveyGuard],
     data: { layout: 'empty' },
   },
   {
@@ -36,12 +40,142 @@ export const routes: Routes = [
     pathMatch: 'full',
   },
   {
+    // Choisir un projet n'est pas naviguer dans un projet : la barre latérale
+    // n'aurait ici que des liens vers les sections d'un projet qu'on n'a pas
+    // encore choisi. Barre du haut seule.
     path: 'projects',
     title: 'navigation.titles.projects',
     loadComponent: () =>
       import('./modules/dashboard/pages/projects-list/projects-list').then((m) => m.ProjectsList),
+    canActivate: [authGuard, surveyGuard],
+    data: { layout: 'empty' },
+  },
+
+  // ============================================
+  // MON COMPTE (layout: 'dashboard')
+  //
+  // Un seul espace pour l'offre, les crédits, les paiements, les factures et
+  // le profil. Ces informations vivaient sur trois écrans sans lien entre eux,
+  // sous une seconde barre latérale ; elles répondent toutes à la même
+  // question — « où en est mon compte » — et tiennent donc au même endroit.
+  // ============================================
+  {
+    path: 'account',
+    loadComponent: () =>
+      import('./modules/account/pages/account-shell/account-shell').then((m) => m.AccountShellPage),
     canActivate: [authGuard],
-    data: { layout: 'global' },
+    // Même règle que la liste des projets : le compte n'appartient à aucun
+    // projet, donc pas de navigation de projet à l'écran.
+    data: { layout: 'empty' },
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        title: 'account.tabs.overview',
+        loadComponent: () =>
+          import('./modules/account/pages/account-overview/account-overview').then(
+            (m) => m.AccountOverviewPage,
+          ),
+      },
+      {
+        path: 'plans',
+        title: 'billing.plans.title',
+        loadComponent: () =>
+          import('./modules/account/pages/account-plans/account-plans').then(
+            (m) => m.AccountPlansPage,
+          ),
+      },
+      {
+        path: 'usage',
+        title: 'account.tabs.usage',
+        loadComponent: () =>
+          import('./modules/account/pages/account-usage/account-usage').then(
+            (m) => m.AccountUsagePage,
+          ),
+      },
+      {
+        path: 'payments',
+        title: 'account.tabs.payments',
+        loadComponent: () =>
+          import('./modules/account/pages/account-payments/account-payments').then(
+            (m) => m.AccountPaymentsPage,
+          ),
+      },
+      {
+        path: 'profile',
+        title: 'navigation.titles.profilePage',
+        loadComponent: () =>
+          import('./modules/account/pages/account-profile/account-profile').then(
+            (m) => m.AccountProfilePage,
+          ),
+      },
+    ],
+  },
+
+  // ============================================
+  // FACTURATION
+  //
+  // `/billing/*` reste l'adresse publique du paiement : AppGen, Simulation et
+  // iDeploy y renvoient depuis leurs propres interfaces, et des liens déjà
+  // partagés la portent. Les anciennes pages de consultation redirigent vers
+  // « Mon compte » ; seul le paiement lui-même vit encore ici.
+  // ============================================
+  {
+    // Après paiement : ce qui a été débité, ce que ça change, où reprendre.
+    // Avec la barre du haut, et non en pleine page comme le paiement : une fois
+    // payé, on veut justement pouvoir repartir travailler.
+    path: 'billing/success',
+    title: 'account.outcome.title',
+    loadComponent: () =>
+      import('./modules/account/pages/payment-outcome/payment-outcome').then(
+        (m) => m.PaymentOutcomePage,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'empty' },
+  },
+  { path: 'billing', redirectTo: 'account', pathMatch: 'full' },
+  { path: 'billing/plans', redirectTo: 'account/plans', pathMatch: 'full' },
+  // Lié depuis trois menus sans avoir jamais existé : menait au 404.
+  { path: 'settings', redirectTo: 'account/profile', pathMatch: 'full' },
+  // Page de paiement partagée : AppGen, Simulation et iDeploy y renvoient avec
+  // un code produit et une adresse de retour filtrée.
+  {
+    path: 'billing/checkout',
+    title: 'billing.checkout.title',
+    loadComponent: () =>
+      import('./modules/billing/pages/billing-checkout-page/billing-checkout-page').then(
+        (m) => m.BillingCheckoutPage,
+      ),
+    canActivate: [authGuard],
+    // Sans chrome : payer est une tâche qu'on termine, pas un endroit d'où
+    // l'on navigue. Tout ce qui invite à partir travaille contre.
+    data: { layout: 'bare' },
+  },
+
+  // ============================================
+  // ONBOARDING (layout: 'empty')
+  // ============================================
+  {
+    path: 'welcome',
+    title: 'navigation.titles.welcome',
+    loadComponent: () =>
+      import('./modules/onboarding/pages/welcome-survey/welcome-survey').then(
+        (m) => m.WelcomeSurveyPage,
+      ),
+    canActivate: [authGuard],
+    data: { layout: 'empty' },
+  },
+
+  // ============================================
+  // GUIDED MODE ROUTES (layout: 'guided')
+  // ============================================
+  {
+    path: 'guided',
+    title: 'navigation.titles.guided',
+    loadComponent: () =>
+      import('./modules/guided/pages/guided-home/guided-home').then((m) => m.GuidedHomePage),
+    canActivate: [authGuard, surveyGuard],
+    data: { layout: 'guided' },
   },
 
   // ============================================
@@ -52,7 +186,7 @@ export const routes: Routes = [
     title: 'navigation.titles.chat',
     loadComponent: () =>
       import('./modules/chat/pages/chat-home/chat-home').then((m) => m.ChatHomePage),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard],
     data: { layout: 'chat' },
   },
   {
@@ -60,7 +194,7 @@ export const routes: Routes = [
     title: 'navigation.titles.chatNew',
     loadComponent: () =>
       import('./modules/chat/pages/chat-home/chat-home').then((m) => m.ChatHomePage),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard],
     data: { layout: 'chat', onboarding: true },
   },
 
@@ -72,7 +206,7 @@ export const routes: Routes = [
     title: 'navigation.titles.dashboard',
     loadComponent: () =>
       import('./modules/dashboard/pages/dashboard/dashboard').then((m) => m.DashboardComponent),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -82,7 +216,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/show-branding/show-branding').then(
         (m) => m.ShowBrandingComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -92,7 +226,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/complete-branding/complete-branding').then(
         (m) => m.CompleteBrandingPage,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'empty' },
   },
   {
@@ -102,7 +236,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/business-cards/business-cards').then(
         (m) => m.BusinessCardsPage,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -112,7 +246,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/document-editor/document-editor').then(
         (m) => m.DocumentEditorComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'empty', documentType: 'business-card' },
   },
   {
@@ -122,7 +256,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/show-branding/components/branding-display/branding-display').then(
         (m) => m.BrandingDisplayComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -132,7 +266,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/show-branding/branding-generation/branding-generation-page').then(
         (m) => m.BrandingGenerationPage,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -142,7 +276,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/create-project/components/logo-variations/logo-variations').then(
         (m) => m.LogoVariationsComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -152,7 +286,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/create-project/components/color-selection/color-selection').then(
         (m) => m.ColorSelectionComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -162,18 +296,19 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/create-project/components/typography-selection/typography-selection').then(
         (m) => m.TypographySelectionComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
+    // Liste des business plans : un projet en garde plusieurs.
     path: 'project/business-plan',
-    title: 'navigation.titles.businessPlan',
+    title: 'navigation.titles.businessPlans',
     loadComponent: () =>
-      import('./modules/dashboard/pages/show-business-plan/show-business-plan').then(
-        (m) => m.ShowBusinessPlan,
+      import('./modules/dashboard/pages/deliverable-list/deliverable-list').then(
+        (m) => m.DeliverableListPage,
       ),
-    canActivate: [authGuard],
-    data: { layout: 'dashboard' },
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    data: { layout: 'dashboard', deliverable: 'businessPlan' },
   },
   {
     path: 'project/business-plan/generate',
@@ -182,7 +317,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/show-business-plan/business-plan-generation/business-plan-generation-page').then(
         (m) => m.BusinessPlanGenerationPage,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -192,8 +327,19 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/document-editor/document-editor').then(
         (m) => m.DocumentEditorComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'empty', documentType: 'business-plan' },
+  },
+  {
+    // Déclarée après `generate` et `edit` : un segment littéral n'est pas un identifiant.
+    path: 'project/business-plan/:documentId',
+    title: 'navigation.titles.businessPlan',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/show-business-plan/show-business-plan').then(
+        (m) => m.ShowBusinessPlan,
+      ),
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    data: { layout: 'dashboard' },
   },
   {
     path: 'project/pitch-deck/edit',
@@ -202,7 +348,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/document-editor/document-editor').then(
         (m) => m.DocumentEditorComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'empty', documentType: 'pitch-deck' },
   },
   {
@@ -212,7 +358,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/document-editor/document-editor').then(
         (m) => m.DocumentEditorComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'empty', documentType: 'branding' },
   },
   {
@@ -222,7 +368,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/document-editor/document-editor').then(
         (m) => m.DocumentEditorComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'empty', documentType: 'flyer' },
   },
   {
@@ -232,17 +378,40 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/show-communication/show-communication').then(
         (m) => m.ShowCommunication,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
+    // Liste des pitch decks : un projet en garde plusieurs (levée, banque, clients…).
     path: 'project/pitch-deck',
+    title: 'navigation.titles.pitchDecks',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/deliverable-list/deliverable-list').then(
+        (m) => m.DeliverableListPage,
+      ),
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    data: { layout: 'dashboard', deliverable: 'pitchDeck' },
+  },
+  {
+    // Choix du type de deck, avant la génération.
+    path: 'project/pitch-deck/new',
+    title: 'navigation.titles.pitchDeckNew',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/show-pitch-deck/pitch-deck-new/pitch-deck-new').then(
+        (m) => m.PitchDeckNewPage,
+      ),
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
+    // Après `new` et `edit` : un segment littéral n'est pas un identifiant.
+    path: 'project/pitch-deck/:documentId',
     title: 'navigation.titles.pitchDeck',
     loadComponent: () =>
       import('./modules/dashboard/pages/show-pitch-deck/show-pitch-deck').then(
         (m) => m.ShowPitchDeck,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -250,7 +419,19 @@ export const routes: Routes = [
     title: 'navigation.titles.legalDocs',
     loadComponent: () =>
       import('./modules/dashboard/pages/legal-docs/legal-docs').then((m) => m.LegalDocsPage),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
+    // Récapitulatif seulement : simuler appartient à `apps/simulation`, qui
+    // partage la même session IDEM.
+    path: 'project/simulations',
+    title: 'navigation.titles.simulations',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/simulations-overview/simulations-overview').then(
+        (m) => m.SimulationsOverview,
+      ),
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -258,7 +439,7 @@ export const routes: Routes = [
     title: 'navigation.titles.advisor',
     loadComponent: () =>
       import('./modules/dashboard/pages/advisor/advisor').then((m) => m.AdvisorPage),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -268,7 +449,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/show-diagrams/show-diagrams').then(
         (m) => m.ShowDiagramsComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -278,15 +459,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/show-diagrams/diagram-generation/diagram-generation-page').then(
         (m) => m.DiagramGenerationPage,
       ),
-    canActivate: [authGuard],
-    data: { layout: 'dashboard' },
-  },
-  {
-    path: 'project/tests',
-    title: 'navigation.titles.tests',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/show-tests/show-tests').then((m) => m.ShowTestsComponent),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -296,7 +469,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/development/create-development/create-development').then(
         (m) => m.CreateDevelopmentComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -306,7 +479,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/development/show-development/show-development').then(
         (m) => m.ShowDevelopment,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -316,7 +489,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/ideploy-overview/ideploy-overview').then(
         (m) => m.IDeployOverview,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -326,7 +499,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/deployment/create-deployment/create-deployment').then(
         (m) => m.CreateDeployment,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -336,7 +509,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/deployment/deployment-list/deployment-list').then(
         (m) => m.DeploymentList,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -346,18 +519,13 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/deployment/deployment-details/deployment-details').then(
         (m) => m.DeploymentDetails,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
 
-  {
-    path: 'project/profile',
-    title: 'navigation.titles.profilePage',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/profile/profile').then((m) => m.ProfileComponent),
-    canActivate: [authGuard],
-    data: { layout: 'dashboard' },
-  },
+  // Le profil a rejoint « Mon compte » : l'identité et l'offre se consultaient
+  // sur deux écrans qui se contredisaient.
+  { path: 'project/profile', redirectTo: 'account/profile', pathMatch: 'full' },
 
   // ============================================
   // FINANCE MODULE ROUTES (layout: 'dashboard')
@@ -369,7 +537,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-overview/finance-overview').then(
         (m) => m.FinanceOverviewComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -379,7 +547,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'products' },
   },
   {
@@ -389,7 +557,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'salesObjectives' },
   },
   {
@@ -399,7 +567,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'variableCharges' },
   },
   {
@@ -409,7 +577,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'fixedCharges' },
   },
   {
@@ -419,7 +587,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'taxesParams' },
   },
   {
@@ -429,7 +597,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'revenueParams' },
   },
   {
@@ -439,7 +607,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'investments' },
   },
   {
@@ -449,7 +617,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'amortization' },
   },
   {
@@ -459,8 +627,18 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'financing' },
+  },
+  {
+    path: 'project/finance/calendar',
+    title: 'navigation.titles.financeCalendar',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
+        (m) => m.FinanceSectionStubComponent,
+      ),
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    data: { layout: 'dashboard', sectionKey: 'fiscalCalendar' },
   },
   {
     path: 'project/finance/ratios-params',
@@ -469,7 +647,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'ratiosParams' },
   },
   {
@@ -479,7 +657,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'compteExploitation' },
   },
   {
@@ -489,7 +667,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'bilan' },
   },
   {
@@ -499,7 +677,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'fluxTresorerie' },
   },
   {
@@ -509,7 +687,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard],
+    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'ratios' },
   },
 

@@ -12,6 +12,7 @@ import { firstValueFrom } from 'rxjs';
 import { ProjectModel } from '@idem/shared-models';
 import { ProjectService } from '../../services/project.service';
 import { CookieService } from '../../../../shared/services/cookie.service';
+import { UiModeService } from '../../../../shared/services/ui-mode.service';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { LogoChoiceComponent } from '../create-project/components/logo-choice/logo-choice';
@@ -57,6 +58,7 @@ export class CompleteBrandingPage implements OnInit {
   private readonly router = inject(Router);
   private readonly projectService = inject(ProjectService);
   private readonly cookieService = inject(CookieService);
+  private readonly uiMode = inject(UiModeService);
   private readonly translate = inject(TranslateService);
 
   @ViewChild(LogoChoiceComponent) logoChoiceComponent?: LogoChoiceComponent;
@@ -356,7 +358,9 @@ export class CompleteBrandingPage implements OnInit {
 
     const doNavigate = () => {
       this.isFinalizing.set(false);
-      this.router.navigate(['/project/dashboard']);
+      // En mode Assisté, retour au parcours : l'étape « identité visuelle »
+      // se coche et la suivante s'ouvre.
+      this.uiMode.completeStep('/project/dashboard');
     };
 
     // Passe par la file séquentielle : la finalisation (isComplete) ne doit pas

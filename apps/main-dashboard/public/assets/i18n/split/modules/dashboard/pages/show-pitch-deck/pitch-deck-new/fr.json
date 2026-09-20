@@ -1,0 +1,62 @@
+{
+  "dashboard": {
+    "pitchDeckTypes": {
+      "title": "Quel pitch deck voulez-vous générer ?",
+      "subtitle": "Chaque type suit l'ordre et les slides qu'attend son audience.",
+      "back": "Retour à mes pitch decks",
+      "legend": "Type de pitch deck",
+      "recommended": "Recommandé",
+      "meta": "{{slides}} slides · {{minutes}} min",
+      "audienceLabel": "Pour qui",
+      "outline": "Les {{count}} slides",
+      "nameLabel": "Nom du deck",
+      "generate": "Générer ce pitch deck",
+      "creating": "Création…",
+      "hint": "La génération démarre aussitôt et prend quelques minutes.",
+      "loadError": "Les types de pitch deck n'ont pas pu être chargés.",
+      "retry": "Réessayer",
+      "errors": {
+        "create": "Le pitch deck n'a pas pu être créé. Réessayez."
+      },
+      "audiences": {
+        "investor": "Investisseurs",
+        "bank": "Banque ou microfinance",
+        "customer": "Clients et prospects",
+        "partner": "Partenaires",
+        "jury": "Jury, incubateur, bailleur"
+      },
+      "types": {
+        "investor": {
+          "name": "Levée de fonds",
+          "description": "Le deck classique pour convaincre des investisseurs : marché, traction, équipe, montant recherché.",
+          "useWhen": "Rendez-vous avec un business angel, un fonds d'amorçage ou un fonds de capital-risque."
+        },
+        "bank": {
+          "name": "Financement bancaire",
+          "description": "Présentez votre demande de prêt : plan de financement, capacité de remboursement, garanties.",
+          "useWhen": "Demande de crédit auprès d'une banque ou d'une institution de microfinance."
+        },
+        "sales": {
+          "name": "Présentation commerciale",
+          "description": "Montrez à un client ce qu'il gagne : bénéfices chiffrés, références, offres et prochaines étapes.",
+          "useWhen": "Rendez-vous commercial, réponse à un prospect, démonstration."
+        },
+        "partnership": {
+          "name": "Proposition de partenariat",
+          "description": "Expliquez ce que chacun apporte, ce que chacun gagne et comment la collaboration fonctionne.",
+          "useWhen": "Distributeur, grand compte, ONG ou institution avec qui construire une alliance."
+        },
+        "competition": {
+          "name": "Concours et incubateurs",
+          "description": "Convainquez un jury : impact, faisabilité, jalons et usage précis des fonds.",
+          "useWhen": "Concours de startups, candidature à un incubateur, demande de subvention."
+        },
+        "elevator": {
+          "name": "Pitch express",
+          "description": "Six slides pour trois minutes : le problème, la solution, le marché, la traction et la demande.",
+          "useWhen": "Demo day, pitch sur scène, premier contact rapide."
+        }
+      }
+    }
+  }
+}

@@ -4,7 +4,6 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ChatSidebarComponent } from '../../modules/chat/components/chat-sidebar/chat-sidebar';
 import { ChatSessionService } from '../../modules/chat/services/chat-session.service';
 import { ChatDeliverablesService } from '../../modules/chat/services/chat-deliverables.service';
-import { UiModeService } from '../../shared/services/ui-mode.service';
 import { NotificationService } from '../../shared/services/notification.service';
 
 /**
@@ -23,7 +22,6 @@ import { NotificationService } from '../../shared/services/notification.service'
 export class ChatLayoutComponent {
   protected readonly session = inject(ChatSessionService);
   private readonly deliverables = inject(ChatDeliverablesService);
-  private readonly uiModeService = inject(UiModeService);
   private readonly notification = inject(NotificationService);
   private readonly translate = inject(TranslateService);
 
@@ -45,11 +43,6 @@ export class ChatLayoutComponent {
 
   protected onSidebarCollapsedChange(collapsed: boolean): void {
     this.isSidebarCollapsed.set(collapsed);
-  }
-
-  protected switchToAdvanced(): void {
-    const target = this.session.activeProjectId() ? '/project/dashboard' : '/console';
-    this.uiModeService.switchToAdvanced(target);
   }
 
   /** Tout exporter : télécharge les PDF disponibles du projet actif. */

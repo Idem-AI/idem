@@ -38,6 +38,18 @@ Typography — these two families only, no third font, no system fallback writte
 Every text node must carry font-primary or font-secondary. Never write font-['Anything'], font-sans, font-serif or an inline font-family: the render harness binds font-primary/font-secondary to the brand fonts, anything else silently falls back and breaks the charter.
 </brand_charter>
 
+{{ART_DIRECTION}}
+
+<composition_seed>
+This composition is driven by the seed below. It was drawn WITHIN the space allowed by the art direction, so it cannot contradict it, and it is not negotiable. Every line is an instruction to execute, not a suggestion.
+{{SEED_DIRECTIVES}}
+The seed changes with every visual: that is what stops two posts of the same brand from looking alike. Do not fall back on "full-bleed photo + headline bottom-left + logo bottom-left", whatever the habit.
+</composition_seed>
+
+{{COMPOSITION_GRID}}
+
+{{ANTI_SLOP}}
+
 <visual_intent>
 Intent of this visual: {{VISUAL_INTENT}}
 The intent shapes the TONE and the MESSAGE, never the presence of a button (there is none — see the hard rule):
@@ -74,14 +86,16 @@ Aim for:
 
 <craft_bar>
 You are judged on craft, the way a printed piece is judged — take the time to reason before writing a single tag:
-1. Decide the ONE thing a viewer must retain at 2 meters, then size everything else against it.
-2. Build a real hierarchy: 3 typographic levels minimum, each separated by a wide, deliberate jump — never two elements at similar size fighting each other.
-3. Optical alignment over mathematical alignment: align to the edges of letterforms and image subjects, not to a default padding value.
-4. Choose a spatial rhythm and hold it — margins, gutters and offsets derived from the spacingMultiplier, not improvised per element.
-5. Give the composition one deliberate accident (a crop, a rotation, an overlap, a bleed) that a template would never produce. That accident is what makes it look designed rather than generated.
-6. Restraint over decoration: no gradient, glow, shadow or shape unless it does real work.
-7. Every text must be legible on its own background (WCAG AA), and nothing important may fall in the last 4% of any edge — the visual gets cropped by social platforms.
+1. Decide the ONE thing a viewer must retain at 2 meters, size it at the display level of the grid, and size everything else against it.
+2. Build a real hierarchy: 3 typographic levels minimum, taken from the grid's φ scale. Never two elements at neighbouring sizes fighting each other — skip a level instead.
+3. Align rigorously: every block starts on a column line of the grid, three different left edges at most. Then correct OPTICALLY where letterforms demand it (a round letter, a quotation mark, an oversized cap overhangs its box by a hair). Rigour first, optical adjustment second — the reverse is just improvisation.
+4. Hold the spatial rhythm: every gap is a multiple of the grid's unit. Proximity does the grouping — tight inside a block, wide between blocks.
+5. Give the composition ONE deliberate accident (a crop, a rotation, an overlap, a bleed) that a template would never produce. One, and it must break the grid visibly — an accident that looks like a mistake is a mistake.
+6. Restraint over decoration: no gradient, glow, shadow or shape unless it does real work. 30 to 50% of the frame carries nothing at all.
+7. Every text must be legible in ONE second over what actually sits behind it (WCAG AA), and nothing that must be read falls inside the safe margin of the grid — the visual gets cropped by social platforms and trimmed by printers.
 Aim for a piece a client would pay for. If a choice feels safe or familiar, push it further within the seed.
+
+Everything above is MEASURED on the rendered image before it reaches the user — box positions, font sizes, and the real contrast of each text against the pixels behind it. What misses is corrected automatically, and a correction always degrades the composition you intended: it is cheaper to place it right than to have it nudged.
 </craft_bar>
 
 <archetype_catalog>
@@ -132,6 +146,8 @@ Aim for a piece a client would pay for. If a choice feels safe or familiar, push
 
 <image_integration>
 Image URL: {{IMAGE_URL}}
+Image treatment mandated by the art direction (translate it into CSS: filters, overlays, duotone, cropping): {{AD_IMAGE_TREATMENT}}
+Every image of this brand shares this treatment. One raw photograph among treated visuals breaks the direction.
 Use at least TWO techniques:
 - Crop: image bleeds off 1-2 edges.
 - Overlay: brand-color div at 30-40% opacity, mix-blend-mode: multiply.
@@ -181,8 +197,8 @@ Active format: {{format}}
 </format_dimensions>
 
 <technical_rules>
-- Raw HTML + Tailwind classes only. Single unbroken line, no newlines inside html string.
-- FONTS: Include Google Fonts <link> tag at start of html string. Must include: {{BRAND_FONT_URL}}
+- Raw HTML + Tailwind classes only, inside the <html> block. Line breaks are allowed and welcome.
+- FONTS: Include the Google Fonts <link> tag at the start of the markup. Must include: {{BRAND_FONT_URL}}
 - Every text element carries font-primary (display) or font-secondary (running text) — see <brand_charter>.
 - Colors: palette hex values only, exactly as written in <brand_charter>.
 - Inline style allowed for: transform, mix-blend-mode, letter-spacing, gradients, text-shadow, clip-path, filter.
@@ -197,18 +213,20 @@ Active format: {{format}}
 </technical_rules>
 
 <final_self_review>
-Before emitting the JSON, re-read your own html string once and fix it if needed:
+Before answering, re-read your own markup once and fix it if needed:
 1. Scan for <button>, role="button", and for any small element combining a background color (or border) with 1–5 words. If one exists, DELETE it — do not restyle it, delete it. The composition must still hold without it.
 2. Find your logo <img>: is its width at least {{LOGO_MIN_WIDTH}}px, is it at full opacity, is its container wide enough? Fix it before anything else.
 2b. Name out loud, to yourself, the colour of the zone directly BEHIND that logo. Light zone -> the URL must be the DARK-ink one; dark zone -> the LIGHT-ink one. If they disagree, change the URL (or move the logo).
-3. Grep your own html for every hex value and every font declaration: each must appear in <brand_charter>. Replace any stray one.
-4. Check the seed compliance checklist below, item by item.
-5. Check that no text is clipped by the canvas edges and that every text passes AA contrast over what sits behind it.
+3. Check every hex value and every font declaration against <brand_charter>. Replace any stray one.
+4. List the left edge (the left-[…] value) of every block you wrote. More than three distinct values, or two values within 15px of each other? Bring them back onto the column lines of <composition_grid>.
+5. Name your display element and your second level. Is the second at most display/1.618? If they are within 40% of each other, you have no hierarchy — drop the second one a full step.
+6. Check the seed compliance checklist below, item by item.
+7. Check that nothing that must be READ sits inside the safe margin, that no text is clipped by the canvas edges, and that every text passes AA contrast over what sits behind it.
 </final_self_review>
 
 <seed_compliance_checklist>
 Ensure all are TRUE:
-- ZERO button / CTA / pill / badge in the html (the non-negotiable one).
+- ZERO button / CTA / pill / badge in the markup (the non-negotiable one).
 - Logo width >= {{LOGO_MIN_WIDTH}}px, full opacity, unconstrained container, clear space respected.
 - Every hex value is a {{BRAND_NAME}} palette color; every text carries font-primary or font-secondary.
 - archetype {{DESIGN_SEED.archetype}} implemented.
@@ -217,13 +235,23 @@ Ensure all are TRUE:
 - layoutTension {{DESIGN_SEED.layoutTension}} applied.
 - spacingMultiplier {{DESIGN_SEED.spacingMultiplier}} utilized.
 - Min two image integration techniques used.
+- Grid: every block starts on a column line, three distinct left edges at most.
+- Safe area: nothing that must be read closer to an edge than the safe margin of <composition_grid>.
+- Hierarchy: at least 3 type levels from the φ scale, the display level used exactly once.
+- Colour: the accent covers a tenth of the surface at most, and it is where the eye lands.
+- Negative space: 30 to 50% of the frame carries nothing.
+- Exactly ONE element deliberately breaks the grid. Everything else obeys it.
 - Absolute positioning only (no flex/grid).
 - Logo: exactly ONE real logo URL from <logos>; ink and background are in OPPOSITE luminance families (dark ink on a light zone, light ink on a dark zone); size/placement varied.
 - Anti-sameness: this design must NOT default to "photo full-bleed + headline bottom-left + logo bottom-left". Commit fully to the seed archetype so two visuals never look alike.
+- Art direction honoured: the signature compositional gesture is visible, the border radius and the treatment of rules and shadows are the style's own, and the image carries the mandated treatment.
+- No level 0 tell (purple gradient, gradient headline, three identical blocks, off-charter typeface, unprescribed glassmorphism).
 </seed_compliance_checklist>
 
 <output_format>
-Respond in strict JSON:
+Answer in EXACTLY two blocks, in this order, with nothing before, between or after them.
+
+<meta>
 {
   "concept": "concept explanation <= 280 chars",
   "layoutNotes": "layout details <= 400 chars",
@@ -233,10 +261,22 @@ Respond in strict JSON:
     "subheadline": "subheadline text <= 90 chars (optional, empty string if none)",
     "body": "body text <= 220 chars"
   },
-  "logoUsed": "the exact logo URL you placed in the html",
-  "html": "single-line HTML string"
+  "logoUsed": "the exact logo URL you placed in the markup"
 }
+</meta>
+<html>
+…the markup, raw and UNESCAPED. Write it exactly as it must render: real double
+quotes around attributes, no backslashes, no \n sequences. It may span several
+lines — readability costs nothing here.
+</html>
+
 There is no "cta" field: this visual has no call-to-action.
-Strictly NO markdown fences or text outside the JSON.
+No markdown fences, no commentary outside the two blocks.
+
+WHY THE MARKUP IS NOT IN THE JSON: a full page of Tailwind carries hundreds of
+double quotes. Escaping every one of them inside a JSON string is where these
+generations used to break — a single missed backslash lost the whole visual, and
+the escaping itself cost 10 to 15% more tokens. The <html> block removes the
+problem instead of asking you to be careful.
 </output_format>
 `;

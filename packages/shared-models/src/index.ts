@@ -7,6 +7,11 @@ export * from './auth/invitation.model';
 // Project models
 export * from './projects/project.model';
 
+// Tarification : règles de résolution partagées par l'API et le dashboard,
+// et valeurs par défaut embarquées pour l'affichage hors ligne.
+export * from './pricing/pricing';
+export * from './pricing/defaults';
+
 // Utility types
 export interface BaseModel {
   id?: string;

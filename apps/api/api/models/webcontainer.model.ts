@@ -17,29 +17,3 @@ export interface WebContainerModel {
   };
   userId: string;
 }
-
-export interface CreateWebContainerRequest {
-  projectId: string;
-  name: string;
-  description?: string;
-  metadata?: {
-    workdirName: string;
-    ports?: number[];
-    files?: string[];
-    fileContents?: Record<string, string>;
-    url?: string;
-  };
-}
-
-export interface UpdateWebContainerRequest {
-  status?: 'creating' | 'active' | 'stopped' | 'error';
-  metadata?: {
-    workdirName?: string;
-    ports?: number[];
-    files?: string[];
-    fileContents?: Record<string, string>;
-    url?: string;
-    githubUrl?: string;
-    lastPushedAt?: string;
-  };
-}

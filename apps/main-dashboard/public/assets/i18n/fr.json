@@ -46,7 +46,9 @@
     "changeLanguage": "Changer de langue",
     "continue": "Continuer",
     "apply": "Appliquer",
-    "reset": "Réinitialiser"
+    "reset": "Réinitialiser",
+    "close": "Fermer",
+    "confirm": "Confirmer"
   },
   "dashboard": {
     "createDevelopment": {
@@ -154,77 +156,6 @@
       "public": "Public",
       "imposedConstraints": "Contraintes Imposées"
     },
-    "addMemberModal": {
-      "title": "Ajouter un membre à l'équipe",
-      "fields": {
-        "email": "Adresse e-mail",
-        "displayName": "Nom d'affichage",
-        "role": "Rôle"
-      },
-      "placeholders": {
-        "email": "membre@example.com",
-        "displayName": "John Doe"
-      },
-      "roles": {
-        "admin": {
-          "label": "Admin",
-          "description": "Peut gérer l'équipe et les membres"
-        },
-        "member": {
-          "label": "Membre",
-          "description": "Peut voir et contribuer"
-        },
-        "viewer": {
-          "label": "Lecteur",
-          "description": "Peut seulement voir"
-        }
-      },
-      "invitationInfo": "Une invitation sera envoyée à l'adresse e-mail du membre.",
-      "addMemberButton": "Ajouter le membre",
-      "errors": {
-        "failedToAddMember": "Échec de l'ajout du membre"
-      }
-    },
-    "addTeamToProjectModal": {
-      "title": "Ajouter une équipe au projet",
-      "subtitle": "Choisissez une équipe existante ou créez-en une nouvelle à ajouter à ce projet",
-      "tabs": {
-        "existingTeam": "Équipe existante",
-        "createNewTeam": "Créer une nouvelle équipe"
-      },
-      "fields": {
-        "selectTeam": "Sélectionner une équipe",
-        "projectRoles": "Rôles dans le projet",
-        "teamName": "Nom de l'équipe",
-        "description": "Description"
-      },
-      "placeholders": {
-        "chooseTeam": "Choisissez une équipe...",
-        "teamName": "ex: Équipe Frontend",
-        "description": "Brève description de l'objectif de l'équipe..."
-      },
-      "noTeamsAvailable": "Aucune équipe disponible",
-      "createNewTeamSuggestion": "Créez une nouvelle équipe pour commencer",
-      "buttons": {
-        "addTeam": "Ajouter l'équipe",
-        "createAndAdd": "Créer et ajouter l'équipe"
-      },
-      "newTeamInfo": "L'équipe sera créée et immédiatement ajoutée à ce projet avec les rôles sélectionnés.",
-      "errors": {
-        "failedToLoadTeams": "Échec du chargement des équipes",
-        "failedToAddTeam": "Échec de l'ajout de l'équipe au projet",
-        "teamCreatedButFailedToAdd": "L'équipe a été créée mais n'a pas pu être ajoutée au projet",
-        "failedToCreateTeam": "Échec de la création de l'équipe"
-      },
-      "roles": {
-        "project-owner": "Propriétaire du projet",
-        "project-admin": "Administrateur du projet",
-        "developer": "Développeur",
-        "designer": "Designer",
-        "viewer": "Lecteur",
-        "contributor": "Contributeur"
-      }
-    },
     "projectCard": {
       "logoAlt": "Logo",
       "open": "Ouvrir"
@@ -286,7 +217,8 @@
         "exploitation": "Compte d'exploitation",
         "bilan": "Bilan prévisionnel",
         "cashflow": "Flux de trésorerie",
-        "ratios": "Ratios & Indicateurs"
+        "ratios": "Ratios & Indicateurs",
+        "fiscalCalendar": "Calendrier comptable"
       },
       "status": {
         "empty": "Vide",
@@ -341,7 +273,8 @@
         "profile": "Profil",
         "globalDashboard": "Tableau de bord global",
         "settings": "Paramètres",
-        "logout": "Déconnexion"
+        "logout": "Déconnexion",
+        "allProjects": "Tous les projets"
       },
       "poweredBy": "Propulsé par",
       "mobile": {
@@ -351,71 +284,8 @@
       "errors": {
         "projectNotFound": "L'ID de projet '{{cookieId}}' du cookie est introuvable. Utilisation du premier projet à la place.",
         "initialProjectNotFound": "L'ID de projet initial '{{initialCookieId}}' est introuvable. Navigation vers le tableau de bord global."
-      }
-    },
-    "sidebarGlobal": {
-      "dashboard": "Tableau de bord",
-      "projects": "Projets",
-      "teams": "Équipes",
-      "sr": {
-        "openMobileMenu": "Ouvrir le menu mobile",
-        "toggleSidebar": "Basculer la barre latérale"
       },
-      "logoAlt": "Lexi",
-      "userAvatarAlt": "Avatar",
-      "userMenu": {
-        "profile": "Profil",
-        "settings": "Paramètres",
-        "logout": "Déconnexion"
-      },
-      "poweredBy": "Propulsé par",
-      "mobile": {
-        "navigation": "Navigation"
-      }
-    },
-    "addTeamToProject": {
-      "backToProjectTeams": "Retour aux équipes du projet",
-      "title": "Ajouter une équipe au projet",
-      "subtitle": "Sélectionnez une équipe et attribuez des rôles pour ce projet",
-      "selectTeam": "Sélectionner une équipe",
-      "assignRoles": "Attribuer des rôles de projet",
-      "assignRolesDescription": "Sélectionnez un ou plusieurs rôles pour",
-      "inThisProject": "dans ce projet",
-      "noTeamsYet": "Vous n'avez pas encore d'équipes",
-      "createTeamButton": "Créer une équipe",
-      "members": "membres",
-      "selectAtLeastOneRole": "Veuillez sélectionner au moins un rôle",
-      "cancel": "Annuler",
-      "addingTeam": "Ajout de l'équipe...",
-      "addTeamToProject": "Ajouter l'équipe au projet",
-      "loading": "Chargement...",
-      "error": "Erreur",
-      "roles": {
-        "project-owner": {
-          "label": "Propriétaire du projet",
-          "description": "Contrôle total sur le projet"
-        },
-        "project-admin": {
-          "label": "Administrateur du projet",
-          "description": "Gérer les paramètres et les membres du projet"
-        },
-        "developer": {
-          "label": "Développeur",
-          "description": "Écrire et réviser le code"
-        },
-        "designer": {
-          "label": "Designer",
-          "description": "Créer et gérer les designs"
-        },
-        "viewer": {
-          "label": "Lecteur",
-          "description": "Voir le contenu du projet uniquement"
-        },
-        "contributor": {
-          "label": "Contributeur",
-          "description": "Contribuer aux tâches du projet"
-        }
-      }
+      "simulations": "Simulations"
     },
     "colorCustomizer": {
       "title": "Modifier les couleurs",
@@ -506,15 +376,18 @@
       "steps": {
         "type": {
           "title": "Choisissez le type de logo",
-          "subtitle": "Sélectionnez un type de logo"
+          "subtitle": "Ce choix oriente toutes les propositions que l'IA vous fera ensuite.",
+          "label": "Type"
         },
         "mode": {
           "title": "Comment créer votre logo ?",
-          "subtitle": "Génération par IA ou description personnalisée"
+          "subtitle": "Génération par IA ou description personnalisée",
+          "label": "Création"
         },
         "description": {
           "title": "Décrivez votre logo",
-          "subtitle": "Dites-nous ce que vous voulez"
+          "subtitle": "Dites-nous ce que vous voulez",
+          "label": "Description"
         }
       },
       "types": {
@@ -892,8 +765,8 @@
       }
     },
     "typographySelection": {
-      "title": "Sélection de la typographie",
-      "subtitle": "Choisissez la typographie parfaite qui reflète la personnalité de votre marque et améliore la lisibilité.",
+      "title": "Quelle allure pour votre marque ?",
+      "subtitle": "Cliquez sur celle qui vous parle. Vous pourrez changer chaque police ensuite.",
       "error": {
         "title": "Typographie non disponible",
         "description": "Aucune option de typographie disponible. Veuillez revenir à l'étape de sélection des couleurs.",
@@ -915,11 +788,6 @@
       "popular": {
         "title": "Collections de typographie populaires",
         "subtitle": "Combinaisons de typographie sélectionnées et aimées par les designers du monde entier."
-      },
-      "tabs": {
-        "generated": "Généré par l'IA",
-        "popular": "Collections populaires",
-        "custom": "Mélange personnalisé"
       },
       "preview": {
         "brandName": "Le nom de votre marque",
@@ -952,30 +820,31 @@
           "title": "Aucune typographie générée",
           "description": "Nous n'avons pas pu générer d'options de typographie pour votre projet. Cliquez sur régénérer pour réessayer avec des paramètres différents."
         },
-        "regenerate": "Régénérer"
+        "regenerate": "Régénérer",
+        "hint": "Une suggestion pose les deux polices d’un coup."
       },
       "actions": {
         "back": "Retour",
         "saveAsDraft": "Enregistrer comme brouillon",
         "continue": "Continuer"
       },
-      "searchPlaceholder": "Rechercher des polices (ex. Roboto, Open Sans)...",
+      "searchPlaceholder": "Rechercher une police (ex. Satoshi, Fraunces)...",
       "searching": "Recherche de polices...",
       "noResults": "Aucune police trouvée pour votre recherche",
-      "searchHint": "Commencez à taper pour rechercher dans Google Fonts",
-      "selectToPreview": "Sélectionnez les polices pour prévisualiser votre mélange de typographie personnalisé",
+      "searchHint": "Commencez à taper pour chercher dans Google Fonts, Fontshare et Fontsource",
+      "selectToPreview": "Choisissez une police pour voir la marque prendre forme.",
       "custom": {
         "title": "Vos mélanges personnalisés",
         "createNew": "Créer un nouveau mélange",
-        "searchLabel": "RECHERCHER GOOGLE FONTS",
-        "searchPlaceholder": "Rechercher des polices (ex. Roboto, Open Sans)...",
+        "searchLabel": "RECHERCHER UNE POLICE",
+        "searchPlaceholder": "Rechercher une police (ex. Satoshi, Fraunces)...",
         "setPrimary": "Définir comme primaire",
         "setSecondary": "Définir comme secondaire",
         "primaryFont": "POLICE PRIMAIRE",
         "secondaryFont": "POLICE SECONDAIRE",
         "notSelected": "Non sélectionné",
         "addButton": "Ajouter un mélange personnalisé",
-        "searchIntro": "Cherchez dans tout le catalogue Google Fonts, puis assignez une police :"
+        "searchIntro": "Cherchez dans plusieurs fonderies libres, ou importez votre propre police, puis assignez-la :"
       },
       "clearSearch": "Effacer la recherche",
       "resultsCount": "{{count}} polices",
@@ -988,6 +857,61 @@
         "display": "Display",
         "handwriting": "Manuscrite",
         "monospace": "Monospace"
+      },
+      "sources": {
+        "label": "Filtrer par fonderie",
+        "all": "Toutes les sources",
+        "google": "Google Fonts",
+        "fontshare": "Fontshare",
+        "fontsource": "Fontsource",
+        "custom": "Mes polices"
+      },
+      "import": {
+        "dropzone": "Déposez vos fichiers de police ici",
+        "formats": "WOFF2, WOFF, TTF ou OTF — une graisse par fichier",
+        "browse": "Choisir des fichiers",
+        "familyLabel": "NOM DE LA FAMILLE",
+        "familyPlaceholder": "ex. Satoshi",
+        "categoryLabel": "CATÉGORIE",
+        "weightHint": "La graisse et l'italique sont lus dans le nom du fichier (Bold, 700, Italic…).",
+        "upload": "Importer la police",
+        "uploading": "Import en cours…",
+        "removeFile": "Retirer le fichier",
+        "libraryTitle": "Vos polices",
+        "delete": "Supprimer la police",
+        "errors": {
+          "format": "Format non pris en charge : seuls les fichiers WOFF2, WOFF, TTF et OTF sont acceptés.",
+          "upload": "L'import a échoué.",
+          "delete": "La suppression a échoué."
+        },
+        "title": "Importer ma police"
+      },
+      "roles": {
+        "headings": "Titres",
+        "body": "Texte"
+      },
+      "pair": {
+        "empty": "Aucune police choisie",
+        "change": "Changer",
+        "choose": "Choisir"
+      },
+      "gallery": {
+        "hint": "Un clic choisit les deux polices.",
+        "chosen": "Choisie"
+      },
+      "picker": {
+        "titleHeadings": "Police des titres",
+        "titleBody": "Police du texte",
+        "back": "Revenir aux allures",
+        "importCta": "Importer la mienne"
+      },
+      "categoryHints": {
+        "all": "Toutes les familles",
+        "sansSerif": "Net et moderne",
+        "serif": "Classique et sérieux",
+        "display": "Fort et expressif",
+        "handwriting": "Chaleureuse, écrite à la main",
+        "monospace": "Technique, à chasse fixe"
       }
     },
     "createProject": {
@@ -1016,31 +940,6 @@
       "modeChat": "Conversation",
       "modeForm": "Formulaire",
       "switchToForm": "Passer au formulaire",
-      "modeChoice": {
-        "badge": "Mode d'accompagnement",
-        "title": "Comment souhaitez-vous continuer ?",
-        "subtitle": "Votre description est enregistrée. Choisissez l'expérience qui vous convient le mieux pour finaliser la création de votre projet.",
-        "backToDescription": "Modifier la description",
-        "form": {
-          "title": "Formulaire classique",
-          "tag": "Saisie étape par étape",
-          "description": "Remplissez un formulaire structuré étape par étape pour renseigner les détails techniques et fonctionnels de votre projet.",
-          "feature1": "Vue d'ensemble claire et rapide",
-          "feature2": "Champs structurés et guidés",
-          "feature3": "Contrôle direct sur chaque paramètre",
-          "button": "Continuer avec le formulaire"
-        },
-        "chat": {
-          "title": "Interface Chat interactive",
-          "badge": "Recommandé",
-          "tag": "IA Assistée",
-          "description": "Une interface de chat simple et facile à prendre en main pour vous guider et utiliser toutes les fonctionnalités d'IDEM.",
-          "feature1": "Accompagnement IA intelligent et personnalisé",
-          "feature2": "Accès simple à toutes les fonctionnalités IDEM",
-          "feature3": "Expérience fluide, dynamique et interactive",
-          "button": "Démarrer avec le Chat"
-        }
-      },
       "foundations": {
         "title": "Parlons de votre projet",
         "subtitle": "Quelques bases pour démarrer — l'IA s'occupe du reste en conversation.",
@@ -1050,6 +949,37 @@
         "namePlaceholder": "Ex. ArtisanHub",
         "typeLabel": "Type de projet",
         "continue": "Continuer"
+      },
+      "guidedHint": "Après la création, IDEM vous guidera étape par étape.",
+      "modeChoice": {
+        "badge": "Mode d'accompagnement",
+        "title": "Comment souhaitez-vous être accompagné ?",
+        "subtitle": "Votre description est enregistrée. Choisissez la façon de travailler qui vous ressemble — vous pourrez en changer à tout moment.",
+        "backToDescription": "Modifier la description",
+        "recommended": "Conseillé",
+        "personalized": "Recommandation basée sur vos réponses",
+        "switchLater": "Quel que soit votre choix, vous pourrez changer de mode à tout moment depuis le menu en haut de l’écran.",
+        "guided": {
+          "title": "Mode Assisté",
+          "tag": "Étape par étape",
+          "description": "IDEM vous guide dans l'ordre : une seule étape à la fois, la suivante se débloque quand la précédente est terminée.",
+          "forWho": "Pour vous si vous débutez et ne savez pas par où commencer.",
+          "button": "Être guidé"
+        },
+        "chat": {
+          "title": "Mode Chat",
+          "tag": "Conversation",
+          "description": "Vous décrivez ce dont vous avez besoin en langage courant, IDEM le génère et vous répond.",
+          "forWho": "Pour vous si vous préférez demander plutôt que chercher.",
+          "button": "Discuter avec IDEM"
+        },
+        "form": {
+          "title": "Tableau de bord",
+          "tag": "Accès complet",
+          "description": "Un formulaire structuré, puis l'espace complet : tous les modules accessibles librement, dans l'ordre que vous voulez.",
+          "forWho": "Pour vous si vous savez déjà ce que vous cherchez.",
+          "button": "Ouvrir le tableau de bord"
+        }
       }
     },
     "logoChoice": {
@@ -1106,29 +1036,6 @@
         "extractedColors": "Couleurs principales",
         "primaryColor": "Couleur primaire",
         "secondaryColor": "Couleur secondaire"
-      }
-    },
-    "createTeam": {
-      "backToTeams": "Retour aux équipes",
-      "title": "Créer une nouvelle équipe",
-      "subtitle": "Créez une équipe pour collaborer avec d'autres sur vos projets",
-      "fields": {
-        "name": "Nom de l'équipe",
-        "description": "Description"
-      },
-      "placeholders": {
-        "name": "Entrez le nom de l'équipe",
-        "description": "Décrivez l'objectif et les buts de votre équipe"
-      },
-      "info": {
-        "afterCreationTitle": "Après la création de l'équipe",
-        "afterCreationBody": "Vous pouvez ajouter des membres et assigner l'équipe à des projets."
-      },
-      "buttons": {
-        "create": "Créer l'équipe"
-      },
-      "errors": {
-        "failedToCreate": "Échec de la création de l'équipe"
       }
     },
     "dashboard": {
@@ -1223,7 +1130,6 @@
         "title": "Avertissement de quota",
         "daily": "Quotidien :",
         "weekly": "Hebdomadaire :",
-        "credits": "Crédits",
         "beta": "BÊTA",
         "messages": {
           "approaching": "Vous approchez de votre limite de quota",
@@ -1248,7 +1154,9 @@
           "resolution": "Résolution :",
           "maxTokens": "tokens max",
           "featureNotAuthorized": "Fonctionnalité non autorisée"
-        }
+        },
+        "generations": "Générations",
+        "credits": "Crédits"
       }
     },
     "aiAssistant": {
@@ -1487,60 +1395,6 @@
         "redeploy": "Redéployer"
       }
     },
-    "globalDashboard": {
-      "title": "Tableau de bord",
-      "tabs": {
-        "projects": "Projets",
-        "teams": "Équipes"
-      },
-      "sections": {
-        "recentProjects": "Projets récents",
-        "allProjects": "Tous les projets",
-        "recentTeams": "Équipes récentes",
-        "allTeams": "Toutes les équipes"
-      },
-      "cards": {
-        "createProject": {
-          "title": "Créer un nouveau projet",
-          "subtitle": "Commencez à construire quelque chose d'incroyable"
-        },
-        "createTeam": {
-          "title": "Créer une nouvelle équipe",
-          "subtitle": "Construisez l'équipe de vos rêves"
-        }
-      },
-      "empty": {
-        "noProjects": "Aucun projet pour le moment",
-        "noTeams": "Aucune équipe pour le moment",
-        "noDescription": "Aucune description"
-      },
-      "buttons": {
-        "createProject": "Créer votre premier projet",
-        "createTeam": "Créer votre première équipe"
-      },
-      "members": "membres"
-    },
-    "myTeams": {
-      "title": "Mes équipes",
-      "subtitle": "Gérez et collaborez avec vos équipes",
-      "buttons": {
-        "create": "Créer une équipe",
-        "createNew": "Créer une nouvelle équipe"
-      },
-      "sections": {
-        "recent": "Équipes récentes",
-        "all": "Toutes les équipes"
-      },
-      "cards": {
-        "create": {
-          "title": "Créez votre première équipe"
-        }
-      },
-      "empty": {
-        "noTeams": "Vous n'avez pas encore d'équipes. Créez-en une pour commencer !"
-      },
-      "members": "membres"
-    },
     "profile": {
       "title": "Profil",
       "subtitle": "Gérez les paramètres et préférences de votre compte",
@@ -1582,21 +1436,6 @@
         "settings": "Paramètres du compte"
       }
     },
-    "projectTeams": {
-      "title": "Équipes du projet",
-      "subtitle": "Gérez les équipes assignées à ce projet",
-      "buttons": {
-        "addTeam": "Ajouter une équipe",
-        "addTeamToProject": "Ajouter une équipe au projet"
-      },
-      "cards": {
-        "members": "{{count}} membres",
-        "projectRoles": "Rôles du projet"
-      },
-      "empty": {
-        "noTeams": "Aucune équipe assignée à ce projet pour le moment"
-      }
-    },
     "projectsList": {
       "sections": {
         "recent": "Projets récents",
@@ -1613,7 +1452,48 @@
       },
       "buttons": {
         "create": "Créer votre premier projet"
-      }
+      },
+      "loading": "Chargement de votre espace…",
+      "searchPlaceholder": "Rechercher un projet par nom ou description…",
+      "filters": {
+        "all": "Tous"
+      },
+      "view": {
+        "grid": "Affichage en grille",
+        "list": "Affichage en liste"
+      },
+      "noResults": {
+        "title": "Aucun projet ne correspond",
+        "description": "Vos filtres ne renvoient rien. Essayez d’effacer la recherche ou de choisir une autre catégorie.",
+        "reset": "Réinitialiser les filtres"
+      },
+      "emptyDescription": "Créez votre premier projet : identité de marque, business plan, application et mise en ligne suivront.",
+      "delete": {
+        "title": "Supprimer le projet ?",
+        "subtitle": "Le projet sera retiré de votre tableau de bord.",
+        "body": "Voulez-vous retirer « {{name}} » de votre tableau de bord ? Le projet est archivé en base, mais n’apparaîtra plus dans votre espace.",
+        "cancel": "Annuler",
+        "confirm": "Supprimer",
+        "pending": "Suppression…"
+      },
+      "greeting": {
+        "morning": "Bonjour",
+        "afternoon": "Bon après-midi",
+        "evening": "Bonsoir"
+      },
+      "types": {
+        "enterprise": "Entreprise",
+        "ecommerce": "Commerce",
+        "web": "Web",
+        "mobile": "Mobile",
+        "iot": "IoT",
+        "desktop": "Bureau",
+        "api": "API",
+        "ai": "IA",
+        "blockchain": "Blockchain",
+        "other": "Autre"
+      },
+      "title": "Mes projets"
     },
     "brandingDisplay": {
       "title": "Document d'identité de marque",
@@ -1639,7 +1519,10 @@
       "buttons": {
         "generate": "Générer l'identité de marque"
       },
-      "generationTime": "La génération prend 2-3 minutes"
+      "generationTime": "La génération prend 2-3 minutes",
+      "errors": {
+        "load": "La charte graphique n’a pas pu être chargée. Réessayez dans un instant."
+      }
     },
     "brandingGeneration": {
       "finalizing": "Finalisation du Branding",
@@ -1876,14 +1759,6 @@
         "profilePicture": "Photo de profil"
       }
     },
-    "businessPlanDisplay": {
-      "title": "PDF du Plan d'Affaires",
-      "loading": "Préparation du contenu du plan d'affaires...",
-      "empty": {
-        "title": "Aucun Plan d'Affaires Disponible",
-        "subtitle": "Aucun contenu de plan d'affaires disponible."
-      }
-    },
     "businessPlanGeneration": {
       "saving": {
         "title": "Enregistrement de votre plan d'affaires",
@@ -1927,7 +1802,8 @@
         "backToProjects": "Retour aux projets",
         "generate": "Générer le plan d'affaires",
         "selectProject": "Sélectionner un projet",
-        "edit": "Éditer"
+        "edit": "Éditer",
+        "backToList": "Retour à mes business plans"
       },
       "empty": {
         "title": "Aucun plan d'affaires pour le moment",
@@ -1936,6 +1812,17 @@
           "title": "Aucun projet sélectionné",
           "subtitle": "Veuillez sélectionner un projet pour voir ou générer son plan d'affaires"
         }
+      },
+      "notFound": {
+        "title": "Ce business plan est introuvable",
+        "subtitle": "Il a peut-être été supprimé. Retrouvez vos business plans dans la liste."
+      },
+      "draft": {
+        "title": "Ce business plan n'a pas encore été généré",
+        "subtitle": "Sa structure est choisie : lancez la génération pour rédiger ses {{count}} sections."
+      },
+      "errors": {
+        "load": "Le projet n’a pas pu être chargé."
       }
     },
     "showPitchDeck": {
@@ -1975,16 +1862,39 @@
         "Competition": "Concurrence",
         "Team": "Équipe",
         "Financials": "Financier",
-        "Ask": "Demande"
+        "Ask": "Demande",
+        "Company Overview": "Présentation de l'entreprise",
+        "Funding Request": "Demande de financement",
+        "Repayment Capacity": "Capacité de remboursement",
+        "Guarantees": "Garanties",
+        "Customer Benefits": "Bénéfices client",
+        "Case Studies": "Références clients",
+        "Pricing": "Offres et tarifs",
+        "Next Steps": "Prochaines étapes",
+        "Partnership Model": "Modèle de partenariat",
+        "Partner Benefits": "Bénéfices partenaire",
+        "Impact": "Impact",
+        "Milestones": "Jalons",
+        "Use of Funds": "Utilisation des fonds"
       },
       "errors": {
         "generation": "Une erreur est survenue pendant la génération du deck.",
         "download": "Impossible de télécharger le PDF.",
-        "pdfLoad": "Impossible de charger l’aperçu PDF."
+        "pdfLoad": "Impossible de charger l’aperçu PDF.",
+        "load": "Le pitch deck n'a pas pu être chargé."
       },
       "loadingPdf": "Chargement de l’aperçu PDF…",
       "buttons": {
-        "edit": "Éditer"
+        "edit": "Éditer",
+        "backToList": "Retour à mes pitch decks"
+      },
+      "notFound": {
+        "title": "Ce pitch deck est introuvable",
+        "subtitle": "Il a peut-être été supprimé. Retrouvez vos pitch decks dans la liste."
+      },
+      "draft": {
+        "title": "Ce pitch deck n'a pas encore été généré",
+        "subtitle": "{{count}} slides seront rédigées et mises en page à partir des données de votre projet."
       }
     },
     "legalDocs": {
@@ -2140,68 +2050,6 @@
         }
       }
     },
-    "showTests": {
-      "works": "Les tests fonctionnent !"
-    },
-    "teamDetailsGlobal": {
-      "backToTeams": "Retour aux équipes",
-      "assignedProjects": "Projets assignés",
-      "projects": "projets",
-      "teamMembers": "Membres de l'équipe",
-      "members": "membres",
-      "buttons": {
-        "addMember": "Ajouter un membre",
-        "addFirstMember": "Ajouter le premier membre",
-        "remove": "Retirer"
-      },
-      "cards": {
-        "teamRoles": "Rôles de l'équipe",
-        "teamRole": "Rôle dans l'équipe",
-        "joined": "Rejoint le {{date}}"
-      },
-      "empty": {
-        "noProjects": "Cette équipe n'est assignée à aucun projet pour le moment",
-        "noMembers": "Aucun membre dans cette équipe pour le moment"
-      }
-    },
-    "teamDetailsProject": {
-      "backToTeams": "Retour aux équipes du projet",
-      "sections": {
-        "teamMembers": "Membres de l'équipe"
-      },
-      "cards": {
-        "teamRole": "Rôle dans l'équipe",
-        "joined": "Rejoint le {{date}}"
-      },
-      "buttons": {
-        "remove": "Retirer"
-      },
-      "empty": {
-        "noMembers": "Aucun membre dans cette équipe"
-      },
-      "members": "membres"
-    },
-    "pdfViewer": {
-      "loading": "Chargement du PDF...",
-      "wait": "Veuillez patienter pendant le chargement de votre document",
-      "noContent": "Aucun PDF à afficher"
-    },
-    "brandingBlocker": {
-      "dashboard": {
-        "brandingBlocker": {
-          "title": "Identité de marque requise",
-          "description": "Pour accéder à {{featureName}}, vous devez d'abord compléter l'identité de marque de votre projet.",
-          "missingElements": "Éléments manquants :",
-          "backButton": "Retour au tableau de bord",
-          "completeButton": "Compléter l'identité de marque"
-        }
-      },
-      "title": "Identité de marque requise",
-      "description": "Pour accéder à {{featureName}}, vous devez d'abord compléter l'identité de marque de votre projet.",
-      "missingElements": "Éléments manquants :",
-      "backButton": "Retour au tableau de bord",
-      "completeButton": "Compléter l'identité de marque"
-    },
     "completeBranding": {
       "loading": "Chargement de votre projet...",
       "projectNotFound": "Projet introuvable.",
@@ -2238,11 +2086,14 @@
     "generationPanel": {
       "incompleteTitle": "Génération incomplète",
       "incompleteSubtitle": "La génération a été interrompue. Reprenez-la pour obtenir les sections manquantes.",
+      "warningTitle": "Avertissement de mise en page",
+      "warningSubtitle": "Certaines sections ont un volume sous-rempli dans le PDF. Vous pouvez les régénérer.",
       "completeTitle": "Génération terminée",
       "status": {
         "complete": "Générée",
         "missing": "Manquante",
-        "empty": "Incomplète"
+        "empty": "Incomplète",
+        "underfilled": "Volume sous-rempli"
       },
       "actions": {
         "resume": "Compléter la génération",
@@ -2262,20 +2113,61 @@
           "Marketing & Sales": "Marketing et ventes",
           "Financial Plan": "Plan financier",
           "Goal Planning": "Planification des objectifs",
-          "Appendix": "Annexes"
+          "Appendix": "Annexes",
+          "Executive Summary": "Résumé exécutif",
+          "One-Page Summary": "Synthèse d'une page",
+          "Mission & Vision": "Mission et vision",
+          "Promoter Profile": "Profil du promoteur",
+          "Management & Team": "Management et équipe",
+          "Legal & Regulatory Framework": "Cadre juridique et réglementaire",
+          "Problem Statement": "Problème adressé",
+          "Market Analysis": "Analyse du marché",
+          "Competitive Analysis": "Analyse concurrentielle",
+          "Solution": "Solution",
+          "Unique Value Proposition": "Proposition de valeur",
+          "Unfair Advantage": "Avantage décisif",
+          "Business Model": "Modèle économique",
+          "Strategy & Key Milestones": "Stratégie et étapes clés",
+          "Go-to-Market Strategy": "Stratégie de lancement",
+          "Traction & Proof Points": "Traction et preuves",
+          "Partnerships & Ecosystem": "Partenariats et écosystème",
+          "Operational Plan": "Plan opérationnel",
+          "Resources & Assets": "Ressources et actifs",
+          "Key Metrics & KPIs": "Indicateurs clés",
+          "Risk Analysis & Mitigation": "Risques et parades",
+          "Funding Request & Use of Funds": "Demande de financement",
+          "Guarantees & Collateral": "Garanties",
+          "Exit Strategy & Investor Returns": "Sortie et retour investisseur",
+          "Theory of Change": "Théorie du changement",
+          "Social & Economic Impact": "Impact social et économique",
+          "Monitoring & Evaluation": "Suivi et évaluation",
+          "Sustainability Plan": "Plan de pérennité",
+          "Ressources": "Bibliographie"
         },
         "branding": {
           "Brand Header": "En-tête de marque",
           "Logo Principal": "Logo principal",
+          "Logomark": "Logomark (icône)",
           "Logo Variation Fond Clair": "Logo — fond clair",
           "Logo Variation Fond Sombre": "Logo — fond sombre",
           "Logo Variation Monochrome": "Logo — monochrome",
-          "Logo Bonnes Pratiques": "Bonnes pratiques du logo",
           "Color Palette": "Palette de couleurs",
           "Typography": "Typographie",
+          "Typeface Hierarchy": "Hiérarchie typographique",
+          "Direction Artistique": "Direction artistique",
+          "Art Direction Grammar": "Grammaire de composition",
+          "Art Direction Imagery": "Traitement de l'image",
+          "Art Direction Principles": "Règles de la direction artistique",
+          "Graphic Patterns": "Motifs graphiques",
           "Brand Mockup 1": "Mockup 1",
           "Brand Mockup 2": "Mockup 2",
-          "Brand Mockup 3": "Mockup 3"
+          "Brand Mockup 3": "Mockup 3",
+          "Brand Billboard": "Affichage grand format",
+          "Brand Stationery": "Papeterie",
+          "Social Media Creatives": "Publications sociales",
+          "Social Media Page Banners": "Bannières réseaux sociaux",
+          "Logo Bonnes Pratiques": "Utilisation du logo",
+          "Usage Couleurs & Typographie": "Utilisation — couleurs & typographie"
         }
       },
       "completeSubtitle": "Toutes les sections sont générées. Vous pouvez en régénérer une si besoin.",
@@ -2410,6 +2302,39 @@
       },
       "foot": {
         "note": "Aucune donnée inventée · {{queries}} recherches"
+      },
+      "elapsed": "Temps écoulé",
+      "reassurance": {
+        "planning": {
+          "0": "Nous répartissons le travail entre nos assistants : recherche, rédaction, vérification.",
+          "1": "Chaque section aura son chercheur dédié avant d'être rédigée.",
+          "2": "Nous lisons votre projet pour savoir quelles données chercher."
+        },
+        "searching": {
+          "0": "Nos assistants interrogent le web pour trouver des chiffres réels sur votre marché.",
+          "1": "Chaque donnée trouvée est conservée avec le lien de sa source.",
+          "2": "Nous cherchons des données récentes et situées sur votre zone géographique."
+        },
+        "writing": {
+          "0": "Nous rédigeons la section à partir des données trouvées, sans rien inventer.",
+          "1": "Les chiffres sont repris tels quels, avec leur année et leur périmètre.",
+          "2": "Une section bien documentée demande quelques instants d'écriture."
+        },
+        "verifying": {
+          "0": "Nous relisons chaque affirmation chiffrée pour la rattacher à sa source.",
+          "1": "Une donnée sans source ne reste pas dans votre document.",
+          "2": "La vérification est ce qui distingue un document fiable d'un texte plausible."
+        },
+        "finalizing": {
+          "0": "Nous assemblons les sections et mettons votre document en forme.",
+          "1": "Encore quelques instants : nous ordonnons les chiffres et les tableaux.",
+          "2": "Dernière relecture avant de vous rendre la main."
+        },
+        "done": {
+          "0": "Votre document est prêt, chaque chiffre renvoie à sa source.",
+          "1": "Vous pouvez maintenant relire et ajuster ce qui vous semble utile.",
+          "2": "Tout est enregistré : vous retrouverez ce document dans votre projet."
+        }
       }
     },
     "documentEditor": {
@@ -2431,11 +2356,13 @@
         "saved": "Enregistré",
         "saveError": "Échec de l'enregistrement",
         "unsaved": "Modifications non enregistrées",
-        "upToDate": "À jour"
+        "upToDate": "À jour",
+        "pages": "Pages du document"
       },
       "layers": {
         "title": "Pages du document",
-        "pages": "Pages"
+        "pages": "Pages",
+        "close": "Fermer les pages"
       },
       "emptySelection": {
         "title": "Aucun élément sélectionné",
@@ -2514,29 +2441,37 @@
       },
       "flyer": {
         "title": "Éditeur de visuel"
+      },
+      "inspectorClose": "Fermer les propriétés",
+      "zoom": {
+        "menu": "Zoom : {{value}} %",
+        "fitWidth": "Ajuster à la largeur"
       }
     },
     "showCommunication": {
-      "eyebrow": "Moteur de communication",
-      "title": "Communication & calendrier éditorial",
-      "subtitle": "Stratégie, calendrier, moments ponctuels et publication — pour faire vivre votre marque au quotidien.",
-      "loading": "Chargement du moteur de communication…",
+      "eyebrow": "Communication",
+      "title": "Mes publications",
+      "subtitle": "Créez vos visuels, organisez ce que vous publiez, retrouvez tout au même endroit.",
+      "loading": "Chargement…",
       "comingSoon": "Bientôt",
       "tabs": {
         "strategy": "Stratégie",
         "calendar": "Calendrier",
         "moments": "Moments",
-        "publishing": "Publication"
+        "publishing": "Publication",
+        "studio": "Créer",
+        "plans": "Mon planning",
+        "library": "Mes visuels"
       },
       "selectProject": {
-        "title": "Sélectionnez un projet",
-        "body": "Choisissez un projet dans votre liste pour générer vos contenus de communication.",
+        "title": "Aucun projet sélectionné",
+        "body": "Choisissez un projet pour travailler sur ses publications.",
         "cta": "Voir mes projets"
       },
       "status": {
-        "idea": "Idée",
-        "approved": "Approuvé",
-        "scheduled": "Planifié",
+        "idea": "À faire",
+        "approved": "Validé",
+        "scheduled": "Programmé",
         "published": "Publié"
       },
       "intent": {
@@ -2598,7 +2533,7 @@
         "format": "Format",
         "generate": "Générer le visuel",
         "regenerate": "Régénérer",
-        "download": "Télécharger le PNG",
+        "download": "Télécharger l'image",
         "close": "Fermer",
         "generating": "Recherche d'image, analyse et composition du visuel…",
         "loadingImage": "Chargement de l'image rendue…",
@@ -2671,15 +2606,403 @@
         "scheduledFor": "Programmé pour"
       },
       "errors": {
-        "load": "Échec du chargement des données de communication",
+        "load": "Impossible de charger vos publications.",
         "checkProject": "Erreur lors de la vérification du projet",
-        "strategy": "Échec de la génération de la stratégie",
+        "strategy": "Impossible d'écrire votre façon de communiquer.",
         "calendar": "Échec de la génération du calendrier",
         "flyer": "Échec de la génération du visuel",
         "saveStrategy": "Échec de l'enregistrement de la stratégie",
         "updateContent": "Échec de la mise à jour du contenu",
         "moments": "Échec de la génération du moment",
-        "publish": "Échec de la publication"
+        "publish": "La préparation du post a échoué.",
+        "project": "Impossible de charger le projet.",
+        "credits": "Vos crédits ne suffisent pas pour cette création.",
+        "creditsDetail": "Il faut {{cost}} crédits, il vous en reste {{balance}}.",
+        "topUp": "Recharger",
+        "content-update": "La modification n'a pas pu être enregistrée.",
+        "content-remove": "La publication n'a pas pu être retirée.",
+        "visual": "Le visuel n'a pas pu être créé.",
+        "declinate": "Le visuel n'a pas pu être adapté à ce format.",
+        "download": "Le téléchargement a échoué.",
+        "schedule": "La programmation a échoué.",
+        "studio": "Je n'ai pas réussi à répondre. Reformulez en une phrase.",
+        "studio-clear": "La conversation n'a pas pu être effacée.",
+        "plan-create": "Le planning n'a pas pu être créé.",
+        "plan-generate": "Le planning n'a pas pu être rempli.",
+        "plan-archive": "Le planning n'a pas pu être archivé.",
+        "strategy-save": "Vos modifications n'ont pas pu être enregistrées.",
+        "visual-delete": "Le visuel n'a pas pu être supprimé."
+      },
+      "formats": {
+        "square": "Carré (post)",
+        "story": "Story (vertical)",
+        "banner": "Bannière (couverture)",
+        "post": "Portrait",
+        "a4": "Affiche à imprimer"
+      },
+      "channels": {
+        "instagram": "Instagram",
+        "facebook": "Facebook",
+        "linkedin": "LinkedIn",
+        "tiktok": "TikTok",
+        "x": "X",
+        "youtube": "YouTube",
+        "blog": "Blog",
+        "email": "E-mail",
+        "other": "Autre"
+      },
+      "networks": {
+        "linkedin": "LinkedIn",
+        "x": "X"
+      },
+      "steps": {
+        "context": "Je relis votre marque…",
+        "trends": "Je regarde votre secteur…",
+        "strategy": "J'écris votre façon de communiquer…",
+        "calendar": "Je construis le planning…",
+        "occasions": "Je cherche les dates importantes…",
+        "brief": "Je choisis l'idée principale…",
+        "content": "J'écris vos publications…"
+      },
+      "doors": {
+        "visual": {
+          "title": "Un visuel, tout de suite",
+          "body": "Dites ce que vous voulez annoncer. Le visuel sort avec vos couleurs et votre logo.",
+          "price": "2 crédits",
+          "hereBelow": "C'est juste en dessous"
+        },
+        "plan": {
+          "title": "Organiser mon mois",
+          "body": "Choisissez une période : je prépare tout ce que vous aurez à publier, jour par jour.",
+          "price": "15 crédits",
+          "cta": "Créer mon planning"
+        },
+        "compass": {
+          "title": "Définir votre ligne",
+          "body": "Positionnement, ton, canaux. Elle guide ensuite toutes vos périodes.",
+          "price": "40 crédits · une fois",
+          "cta": "Ouvrir la boussole"
+        },
+        "voice": {
+          "title": "Dire qui vous êtes",
+          "body": "À qui vous parlez, sur quel ton, sur quels réseaux. Tout le reste s'en inspire.",
+          "price": "40 crédits · une seule fois",
+          "cta": "Commencer"
+        }
+      },
+      "compass": {
+        "eyebrow": "Votre ligne",
+        "title": "La boussole",
+        "subtitle": "Votre positionnement et votre ton. Chaque période en dérive son angle.",
+        "open": "La boussole",
+        "todo": "à définir",
+        "summaryLabel": "En résumé",
+        "edit": "Modifier",
+        "save": "Enregistrer",
+        "saved": "Enregistré",
+        "regenerate": "Régénérer",
+        "empty": {
+          "title": "Pas encore de boussole",
+          "body": "Elle définit une fois pour toutes votre positionnement, vos messages et votre ton. Les périodes s'y réfèrent ensuite au lieu de repartir de zéro.",
+          "cta": "Définir ma ligne — 40 crédits"
+        },
+        "blockKinds": {
+          "positioning": "Positionnement",
+          "pillars": "Piliers de contenu",
+          "messaging": "Messages clés",
+          "channels": "Canaux",
+          "cadence": "Rythme",
+          "kpis": "Indicateurs",
+          "tone": "Ton de voix",
+          "custom": "Autre"
+        }
+      },
+      "plans": {
+        "title": "Mon planning",
+        "subtitle": "Ce que vous avez à publier, et quand. Vous pouvez en préparer plusieurs : rien ne s'efface.",
+        "new": "Nouveau planning",
+        "showArchived": "Voir les anciens",
+        "hideArchived": "Masquer les anciens",
+        "empty": {
+          "title": "Rien de prévu pour le moment",
+          "body": "Choisissez une période et je prépare tout ce que vous aurez à publier. Décembre peut se préparer dès octobre.",
+          "cta": "Créer mon premier planning"
+        },
+        "status": {
+          "draft": "À remplir",
+          "active": "En cours",
+          "done": "Terminé",
+          "archived": "Ancien"
+        },
+        "itemCount": "{{count}} publications",
+        "generate": "Remplir le planning — 15 crédits",
+        "regenerate": "Tout refaire",
+        "archive": "Archiver",
+        "notGenerated": "Ce planning est encore vide.",
+        "brief": {
+          "angle": "L'idée principale",
+          "keyMessage": "Ce que les gens doivent retenir",
+          "themes": "Les sujets abordés",
+          "signals": "Comment savoir si ça a marché"
+        },
+        "viewWeeks": "Par semaine",
+        "viewMonth": "Calendrier",
+        "week": "Semaine {{week}}",
+        "monthCaption": "Publications prévues, jour par jour",
+        "weekdays": {
+          "mon": "Lun",
+          "tue": "Mar",
+          "wed": "Mer",
+          "thu": "Jeu",
+          "fri": "Ven",
+          "sat": "Sam",
+          "sun": "Dim"
+        },
+        "createVisual": "Créer le visuel",
+        "itemDate": "Date de publication",
+        "removeItem": "Retirer ce contenu",
+        "form": {
+          "title": "Nouvelle période",
+          "subtitle": "Les dates d'abord : c'est elles qui décident de tout le reste.",
+          "name": "Nom",
+          "namePlaceholder": "Novembre 2026, Lancement boutique…",
+          "start": "Du",
+          "end": "au",
+          "objective": "Objectif",
+          "objectivePlaceholder": "Faire connaître la boutique aux familles du quartier",
+          "kind": "Nature",
+          "kindRegular": "Rythme de croisière",
+          "kindCampaign": "Temps fort",
+          "cadence": "Rythme",
+          "perWeek": "{{count}}/semaine",
+          "channels": "Canaux",
+          "occasions": "Occasions de cette période",
+          "occasionsLoading": "Recherche des occasions…",
+          "occasionsNone": "Aucune occasion notable sur cette fenêtre.",
+          "occasionsHint": "Elles seront intégrées aux contenus, à leur date.",
+          "summary": "{{days}} jours · environ {{count}} contenus",
+          "submit": "Générer — 15 crédits"
+        },
+        "clickHint": "Cliquez sur une publication pour la voir en entier et la modifier.",
+        "visualToDo": "Visuel à créer"
+      },
+      "studio": {
+        "empty": {
+          "title": "Qu'avez-vous à annoncer ?",
+          "body": "Dites-le en une phrase. Le visuel sort avec vos couleurs, votre police et votre logo.",
+          "body2": "Exemple : « un visuel pour dire qu'on ouvre aussi le samedi »",
+          "example": "« un visuel pour dire qu'on ouvre aussi le samedi »"
+        },
+        "starters": {
+          "announce": "Annoncer quelque chose",
+          "promotion": "Une promotion",
+          "celebration": "Souhaiter une fête",
+          "recruitment": "Dire que je recrute"
+        },
+        "thinking": "Je réfléchis…",
+        "composing": "Je compose le visuel…",
+        "composingVariants": "Je prépare trois propositions…",
+        "retouching": "Je retouche le visuel…",
+        "declinating": "J'adapte le visuel…",
+        "writingCaption": "J'écris le texte du post…",
+        "caption": "Le texte du post",
+        "copy": "Copier",
+        "copied": "Copié",
+        "creditsSpent": "{{count}} crédits utilisés",
+        "inputLabel": "Décrivez ce que vous voulez annoncer",
+        "placeholder": "Dites ce que vous voulez annoncer…",
+        "send": "Envoyer",
+        "clear": "Effacer la conversation",
+        "pricingHint": "Discuter ne coûte rien. Un visuel coûte 2 crédits.",
+        "schedule": "Mettre au planning",
+        "toStory": "En story",
+        "noPlan": "Créez d'abord un planning pour y mettre ce visuel.",
+        "planLabel": "Dans quel planning",
+        "dateLabel": "À quelle date",
+        "openVisual": "Voir en grand"
+      },
+      "library": {
+        "title": "Mes visuels",
+        "subtitle": "Tout ce qui a été créé sur ce projet, d'où que ça vienne.",
+        "empty": {
+          "title": "Aucun visuel pour l'instant",
+          "body": "Allez dans « Créer » pour en faire un, ou remplissez un planning et créez les visuels de ses publications."
+        },
+        "filterFormat": "Format",
+        "allFormats": "Tous les formats",
+        "filterOrigin": "Créé depuis",
+        "allOrigins": "Peu importe",
+        "origins": {
+          "plan": "Un planning",
+          "studio": "L'écran Créer",
+          "occasion": "Une date spéciale",
+          "brandbook": "La charte"
+        },
+        "filterPlan": "Planning",
+        "allPlans": "Tous les plannings",
+        "count": "{{count}} visuels",
+        "previewAlt": "Aperçu du visuel : {{title}}",
+        "brief": "Ce qui a été demandé",
+        "concept": "L'idée du visuel",
+        "declinate": "Aussi dans un autre format",
+        "publish": "Publier",
+        "publishHint": "Le texte est copié et le réseau s'ouvre : il ne reste qu'à coller et publier.",
+        "publishNeedsSchedule": "Mettez d'abord ce visuel au planning pour pouvoir le publier.",
+        "delete": "Supprimer ce visuel",
+        "deleteAsk": "Supprimer définitivement ce visuel ?",
+        "deleteConfirm": "Supprimer"
+      },
+      "voice": {
+        "eyebrow": "Votre identité",
+        "title": "Ma façon de communiquer",
+        "subtitle": "À qui vous parlez, sur quel ton, sur quels réseaux.",
+        "open": "Ma façon de communiquer",
+        "todo": "à remplir",
+        "summaryLabel": "En deux phrases",
+        "edit": "Modifier",
+        "save": "Enregistrer",
+        "saved": "Enregistré",
+        "regenerate": "Tout réécrire",
+        "empty": {
+          "title": "Pas encore renseigné",
+          "body": "On y note une fois pour toutes à qui vous parlez, ce que vous avez à dire et sur quel ton. Chaque planning s'en sert ensuite, au lieu de repartir de zéro.",
+          "cta": "Le remplir — 40 crédits"
+        },
+        "blockKinds": {
+          "positioning": "Ce qui vous distingue",
+          "pillars": "Vos sujets de prédilection",
+          "messaging": "Ce que vous répétez",
+          "channels": "Où vous êtes présent",
+          "cadence": "À quelle fréquence",
+          "kpis": "Ce que vous regardez",
+          "tone": "Votre ton",
+          "custom": "Autre"
+        },
+        "editSection": "Modifier « {{section}} »"
+      },
+      "wizard": {
+        "progress": "Avancement",
+        "when": {
+          "question": "Pour quelle période ?",
+          "help": "Choisissez une durée. Vous pourrez toujours ajuster les dates ensuite.",
+          "presets": {
+            "thisMonth": "Ce mois-ci",
+            "nextMonth": "Le mois prochain",
+            "twoWeeks": "Les 2 prochaines semaines",
+            "custom": "Je choisis mes dates"
+          },
+          "from": "Du",
+          "to": "Au",
+          "echo": "Soit {{days}} jours."
+        },
+        "why": {
+          "question": "Qu'est-ce que vous voulez obtenir ?",
+          "help": "En une phrase, avec vos mots. C'est ce qui guidera tout le contenu.",
+          "placeholder": "Exemple : faire connaître ma boutique aux familles du quartier",
+          "examples": "Ou choisissez un exemple"
+        },
+        "objectives": {
+          "known": {
+            "label": "Me faire connaître",
+            "text": "Faire connaître mon activité à de nouvelles personnes près de moi"
+          },
+          "sell": {
+            "label": "Vendre plus",
+            "text": "Faire venir plus de clients et vendre davantage ce mois-ci"
+          },
+          "loyal": {
+            "label": "Garder mes clients",
+            "text": "Rester présent auprès de mes clients actuels et leur donner envie de revenir"
+          },
+          "hire": {
+            "label": "Recruter",
+            "text": "Trouver quelqu'un pour rejoindre mon équipe"
+          }
+        },
+        "where": {
+          "question": "Où publiez-vous, et à quelle fréquence ?",
+          "help": "Choisissez vos réseaux. Mieux vaut deux réseaux bien tenus que cinq à l'abandon.",
+          "howOften": "À quelle fréquence",
+          "freq": {
+            "1": "1 fois par semaine",
+            "3": "3 fois par semaine",
+            "5": "5 fois par semaine",
+            "7": "Tous les jours"
+          },
+          "echo": "Cela fera environ {{count}} publications."
+        },
+        "recap": {
+          "question": "On récapitule",
+          "posts": "{{count}} publications, prêtes à publier",
+          "occasions": "Dates à ne pas rater",
+          "occasionsLoading": "Je regarde le calendrier…",
+          "occasionsNone": "Aucune date particulière sur cette période.",
+          "occasionsHint": "Elles seront intégrées aux publications, le bon jour.",
+          "submit": "C'est parti",
+          "price": "15 crédits. Vous pourrez tout modifier ensuite."
+        }
+      },
+      "detail": {
+        "visualTitle": "Le visuel",
+        "contentTitle": "Ce qui sera publié",
+        "noVisual": "Pas encore de visuel pour cette publication. Il sera créé avec vos couleurs, votre police et votre logo.",
+        "chooseFormat": "Pour quel usage ?",
+        "createVisual": "Créer le visuel — 2 crédits",
+        "creating": "Je compose le visuel…",
+        "otherFormats": "Aussi dans un autre format",
+        "visualCount": "{{count}} versions de ce visuel",
+        "emptyValue": "Rien pour le moment",
+        "noCaption": "Aucun texte pour l'instant. Cliquez sur Modifier pour l'écrire.",
+        "captionPlaceholder": "Le texte que vous publierez avec le visuel…",
+        "hashtagsPlaceholder": "boutique, café, douala",
+        "hashtagsHint": "Séparez-les par des virgules. Le # est ajouté automatiquement.",
+        "ctaPlaceholder": "Passez nous voir, Appelez-nous…",
+        "dateBounds": "Entre le {{start}} et le {{end}}",
+        "forOccasion": "Publication prévue pour : {{occasion}}",
+        "delete": "Retirer du planning",
+        "deleteAsk": "Retirer cette publication ? Le visuel déjà créé sera conservé dans « Mes visuels ».",
+        "deleteConfirm": "Oui, retirer",
+        "fields": {
+          "title": "De quoi il s'agit",
+          "date": "Date de publication",
+          "channel": "Où le publier",
+          "hook": "La première phrase",
+          "description": "Ce qu'on raconte",
+          "caption": "Le texte du post",
+          "hashtags": "Mots-clés (#)",
+          "callToAction": "Ce qu'on demande au lecteur"
+        }
+      },
+      "preview": {
+        "loading": "Chargement du visuel…",
+        "failed": "Ce visuel ne peut pas être affiché.",
+        "canvasLabel": "Aperçu du visuel",
+        "menuLabel": "Que faire de cet élément",
+        "edit": "Modifier",
+        "hint": "Passez la souris sur le visuel, puis cliquez sur ce que vous voulez changer.",
+        "kinds": {
+          "text": "Ce texte",
+          "image": "Cette image",
+          "block": "Ce bloc"
+        }
+      },
+      "thumb": {
+        "loading": "Chargement de l'image…",
+        "failed": "L'image n'a pas pu s'afficher.",
+        "retry": "Réessayer",
+        "openInstead": "Ouvrez-le en grand pour le voir."
+      },
+      "composing": {
+        "title": "Je compose votre visuel",
+        "titleVariants": "Je compose {{count}} propositions",
+        "patience": "Cela prend entre 30 secondes et 2 minutes. Vous pouvez attendre ici.",
+        "stages": {
+          "grid": "Je place la mise en page",
+          "image": "Je choisis l'image",
+          "words": "J’écris le texte",
+          "compose": "J’assemble à vos couleurs",
+          "check": "Je vérifie le résultat"
+        }
       }
     },
     "businessCards": {
@@ -2781,6 +3104,373 @@
       "done": "Traitement terminé",
       "hold": "Laissez cet onglet ouvert : la génération s'arrête si vous quittez la page.",
       "stopped": "Génération interrompue"
+    },
+    "simulations": {
+      "title": "Simulations",
+      "description": "Mettez ce projet à l'épreuve avant de le lancer : le moteur cherche les facteurs qui peuvent le faire basculer, les met sous tension, et vous dit où le modèle casse.",
+      "newRun": "Nouvelle simulation",
+      "latest": "Dernière exécution terminée",
+      "revision": "Révision n° {{number}}",
+      "hasReport": "rapport disponible",
+      "stats": {
+        "total": "Simulations",
+        "completed": "Terminées",
+        "running": "En cours",
+        "reports": "Rapports"
+      },
+      "status": {
+        "draft": "Brouillon",
+        "awaiting-confirmation": "À confirmer",
+        "running": "En cours",
+        "completed": "Terminée",
+        "failed": "Échouée"
+      },
+      "verdict": {
+        "go": "Go",
+        "go-with-conditions": "Go sous conditions",
+        "no-go": "No-go",
+        "unknown": "Sans verdict"
+      },
+      "empty": {
+        "title": "Ce projet n'a pas encore été simulé",
+        "body": "Une simulation confronte votre modèle à des scénarios défavorables et à des stress tests, puis vous dit à quelles conditions il tient. Vous partez de ce projet : le business plan et les prévisions financières déjà présents sont repris automatiquement.",
+        "cta": "Lancer une simulation",
+        "note": "Le simulateur s'ouvre dans un nouvel onglet, avec votre compte IDEM."
+      }
+    },
+    "businessPlanStructure": {
+      "title": "Choisissez la structure de votre business plan",
+      "lede": "Chaque destinataire attend un sommaire différent : choisissez le vôtre, les sections seront générées dans cet ordre.",
+      "filterLabel": "Destinataire du business plan",
+      "legend": "Modèle de structure",
+      "edited": "Personnalisé",
+      "researched": "Recherche web",
+      "catalogEmpty": "Toutes les sections disponibles sont déjà dans le sommaire.",
+      "audiences": {
+        "all": "Tous",
+        "bank": "Banque",
+        "investor": "Investisseur",
+        "grant": "Subvention",
+        "internal": "Interne",
+        "general": "Polyvalent",
+        "custom": "Sur mesure"
+      },
+      "categories": {
+        "opening": "Ouverture",
+        "company": "L'entreprise",
+        "market": "Le marché",
+        "offer": "L'offre",
+        "strategy": "La stratégie",
+        "operations": "L'exploitation",
+        "finance": "Les finances",
+        "impact": "L'impact",
+        "closing": "Annexes"
+      },
+      "meta": {
+        "sections": "{{count}} sections",
+        "pages": "{{range}} pages",
+        "researchedOne": "1 recherche web sourcée",
+        "researchedMany": "{{count}} recherches web sourcées",
+        "templatesCount": "{{count}} modèles"
+      },
+      "actions": {
+        "customize": "Personnaliser ce sommaire",
+        "doneEditing": "Terminer la personnalisation",
+        "reset": "Revenir au modèle",
+        "openCatalog": "Ajouter une section",
+        "closeCatalog": "Fermer le catalogue",
+        "atMax": "Maximum de {{max}} sections atteint",
+        "confirm": "Valider ce sommaire",
+        "saving": "Enregistrement",
+        "moveUpAria": "Monter {{section}}",
+        "moveDownAria": "Descendre {{section}}",
+        "removeAria": "Retirer {{section}}",
+        "lockedAria": "{{section}} ne peut pas être retirée",
+        "clearFilter": "Afficher tous les modèles"
+      },
+      "live": {
+        "moved": "{{section}} déplacée en position {{position}} sur {{total}}",
+        "added": "{{section}} ajoutée en position {{position}} sur {{total}}",
+        "removed": "{{section}} retirée du sommaire",
+        "reset": "Sommaire du modèle rétabli",
+        "selected": "Modèle « {{template}} » sélectionné : {{count}} sections"
+      },
+      "errors": {
+        "load": "Impossible de charger les structures disponibles.",
+        "save": "L'enregistrement de la structure a échoué. Réessayez."
+      },
+      "templates": {
+        "idem-standard": {
+          "name": "Plan standard Idem",
+          "description": "Sommaire complet, équilibré entre marché, offre et finances. À prendre si votre interlocuteur n'impose rien."
+        },
+        "sba-traditional": {
+          "name": "Plan traditionnel SBA",
+          "description": "L'ossature en neuf points de l'administration américaine, attendue par la plupart des prêteurs anglo-saxons."
+        },
+        "bank-financing-9": {
+          "name": "Dossier de financement bancaire",
+          "description": "Les neuf blocs des guides remis par les banques : couverture, synthèse d'une page, marché, stratégie, moyens, prévisionnel."
+        },
+        "bank-credit-file": {
+          "name": "Dossier de crédit complet",
+          "description": "La version longue que lit un comité d'engagement : profil du promoteur, garanties, risques, plan de remboursement."
+        },
+        "vc-seed": {
+          "name": "Levée de fonds (amorçage, série A)",
+          "description": "Problème, solution, traction, concurrence, équipe, sortie. Ce qu'un fonds cherche, dans l'ordre où il le cherche."
+        },
+        "lean-canvas": {
+          "name": "Lean canvas étendu",
+          "description": "Format court pour valider ses hypothèses avant d'écrire un dossier long. Une quinzaine de pages."
+        },
+        "grant-nonprofit": {
+          "name": "Demande de subvention",
+          "description": "Mission, théorie du changement, bénéficiaires, suivi-évaluation, pérennité. Le vocabulaire des bailleurs et des fondations."
+        },
+        "microfinance-ohada": {
+          "name": "Microfinance (zone OHADA)",
+          "description": "Profil du promoteur, moyens de production, garanties, impact local et prévisionnel au format SYSCOHADA."
+        },
+        "incubator-application": {
+          "name": "Candidature incubateur",
+          "description": "Format court et démonstratif : le problème, la preuve que ça fonctionne, l'équipe, les objectifs des douze prochains mois."
+        },
+        "internal-strategic": {
+          "name": "Plan stratégique interne",
+          "description": "Sans page de couverture ni argumentaire : marché, stratégie, moyens, objectifs chiffrés, risques."
+        },
+        "custom": {
+          "name": "Composer mon sommaire",
+          "description": "Partez d'un modèle et ajustez : retirez ce qui ne sert pas, ajoutez ce qui manque, fixez l'ordre."
+        }
+      },
+      "defaultBadge": "Par défaut",
+      "flow": {
+        "label": "Étapes de création du business plan",
+        "structure": "Structure",
+        "details": "Informations",
+        "generation": "Génération"
+      },
+      "steps": {
+        "audience": {
+          "title": "À qui allez-vous le remettre ?"
+        },
+        "template": {
+          "title": "Choisissez un modèle"
+        },
+        "outline": {
+          "title": "Vérifiez le sommaire"
+        }
+      },
+      "audienceCards": {
+        "bank": {
+          "name": "Une banque",
+          "goal": "Obtenir un prêt"
+        },
+        "investor": {
+          "name": "Un investisseur",
+          "goal": "Levée de fonds, incubateur"
+        },
+        "grant": {
+          "name": "Un bailleur",
+          "goal": "Obtenir une subvention"
+        },
+        "internal": {
+          "name": "Votre équipe",
+          "goal": "Piloter le projet"
+        },
+        "general": {
+          "name": "Je ne sais pas encore",
+          "goal": "Un plan polyvalent"
+        }
+      }
+    },
+    "documentPreview": {
+      "canvasLabel": "Aperçu du document",
+      "pageCount": "{{count}} pages",
+      "hint": "Cliquez sur un élément pour le modifier",
+      "loading": "Préparation de l’aperçu…",
+      "error": "L’aperçu n’a pas pu être chargé. Rechargez la page pour réessayer.",
+      "empty": "Ce document ne contient encore aucune page.",
+      "popover": {
+        "label": "Actions sur l’élément",
+        "edit": "Éditer",
+        "close": "Fermer",
+        "regenerate": "Régénérer",
+        "regenerateAria": "Régénérer la section « {{section}} »"
+      },
+      "kinds": {
+        "page": "Page",
+        "chart": "Graphique",
+        "heading": "Titre",
+        "image": "Image",
+        "table": "Tableau",
+        "list": "Liste",
+        "text": "Texte",
+        "block": "Bloc"
+      },
+      "dock": {
+        "label": "Actions du document",
+        "previousPage": "Page précédente",
+        "nextPage": "Page suivante",
+        "pagesMenu": "Page {{current}} sur {{total}}, afficher la liste des pages",
+        "edit": "Éditer"
+      },
+      "download": {
+        "idle": "Télécharger",
+        "working": "Préparation…",
+        "done": "Téléchargé",
+        "error": "Échec, réessayer"
+      },
+      "status": {
+        "complete": "Génération complète",
+        "blockingOne": "1 section à régénérer",
+        "blockingMany": "{{count}} sections à régénérer",
+        "underfilledOne": "1 section sous-remplie",
+        "underfilledMany": "{{count}} sections sous-remplies",
+        "goTo": "Aller à la première section concernée"
+      },
+      "issues": {
+        "missing": "Manquante",
+        "error": "Échec",
+        "underfilled": "Sous-remplie"
+      },
+      "footer": {
+        "regenerate": "Régénérer",
+        "regenerateAria": "Régénérer la section « {{section}} »"
+      },
+      "regen": {
+        "button": "Régénérer",
+        "resume": "Compléter la génération",
+        "resumeDesc": "Génère les sections manquantes ou en échec ({{count}})",
+        "nothingToResume": "Toutes les sections sont déjà générées",
+        "all": "Tout régénérer",
+        "allDesc": "Relance la génération de chaque section",
+        "confirm": "Confirmer : tout régénérer",
+        "confirmDesc": "Le contenu actuel sera remplacé. Cliquez à nouveau pour lancer."
+      },
+      "placeholder": {
+        "missing": {
+          "title": "Cette page n’a pas encore été générée",
+          "message": "La génération s’est arrêtée avant cette section. Relancez-la pour compléter le document."
+        },
+        "error": {
+          "title": "La génération de cette page a échoué",
+          "message": "Le contenu reçu est vide ou incomplet. Régénérez la section pour obtenir une page complète."
+        },
+        "action": "Régénérer cette section"
+      }
+    },
+    "deliverableList": {
+      "loading": "Chargement de vos documents…",
+      "loadError": "Vos documents n'ont pas pu être chargés.",
+      "retry": "Réessayer",
+      "noProject": {
+        "title": "Aucun projet sélectionné",
+        "subtitle": "Sélectionnez un projet pour retrouver ses documents.",
+        "action": "Voir mes projets"
+      },
+      "updated": "modifié le {{date}}",
+      "status": {
+        "draft": "À générer",
+        "partial": "Incomplet",
+        "complete": "Complet"
+      },
+      "actions": {
+        "rename": "Renommer",
+        "renameAria": "Renommer « {{name}} »",
+        "nameLabel": "Nom du document",
+        "save": "Enregistrer",
+        "delete": "Supprimer",
+        "deleteAria": "Supprimer « {{name}} »",
+        "confirmDelete": "Supprimer définitivement ce document ?"
+      },
+      "errors": {
+        "rename": "Le document n'a pas pu être renommé. Réessayez.",
+        "delete": "Le document n'a pas pu être supprimé. Réessayez."
+      },
+      "businessPlan": {
+        "title": "Mes business plans",
+        "subtitle": "Un plan par destinataire : banque, investisseur, subvention… Choisissez celui à afficher.",
+        "create": "Nouveau business plan",
+        "customName": "Business plan sur mesure",
+        "progress": "{{completed}}/{{expected}} sections",
+        "empty": {
+          "title": "Aucun business plan pour le moment",
+          "subtitle": "Choisissez la structure attendue par votre destinataire, puis générez votre premier plan.",
+          "action": "Générer un business plan"
+        }
+      },
+      "pitchDeck": {
+        "title": "Mes pitch decks",
+        "subtitle": "Levée de fonds, banque, clients, partenaires, jury… Choisissez le deck à afficher.",
+        "create": "Nouveau pitch deck",
+        "progress": "{{completed}}/{{expected}} slides",
+        "empty": {
+          "title": "Aucun pitch deck pour le moment",
+          "subtitle": "Choisissez le type de deck adapté à votre audience, puis générez-le.",
+          "action": "Générer un pitch deck"
+        }
+      }
+    },
+    "pitchDeckTypes": {
+      "title": "Quel pitch deck voulez-vous générer ?",
+      "subtitle": "Chaque type suit l'ordre et les slides qu'attend son audience.",
+      "back": "Retour à mes pitch decks",
+      "legend": "Type de pitch deck",
+      "recommended": "Recommandé",
+      "meta": "{{slides}} slides · {{minutes}} min",
+      "audienceLabel": "Pour qui",
+      "outline": "Les {{count}} slides",
+      "nameLabel": "Nom du deck",
+      "generate": "Générer ce pitch deck",
+      "creating": "Création…",
+      "hint": "La génération démarre aussitôt et prend quelques minutes.",
+      "loadError": "Les types de pitch deck n'ont pas pu être chargés.",
+      "retry": "Réessayer",
+      "errors": {
+        "create": "Le pitch deck n'a pas pu être créé. Réessayez."
+      },
+      "audiences": {
+        "investor": "Investisseurs",
+        "bank": "Banque ou microfinance",
+        "customer": "Clients et prospects",
+        "partner": "Partenaires",
+        "jury": "Jury, incubateur, bailleur"
+      },
+      "types": {
+        "investor": {
+          "name": "Levée de fonds",
+          "description": "Le deck classique pour convaincre des investisseurs : marché, traction, équipe, montant recherché.",
+          "useWhen": "Rendez-vous avec un business angel, un fonds d'amorçage ou un fonds de capital-risque."
+        },
+        "bank": {
+          "name": "Financement bancaire",
+          "description": "Présentez votre demande de prêt : plan de financement, capacité de remboursement, garanties.",
+          "useWhen": "Demande de crédit auprès d'une banque ou d'une institution de microfinance."
+        },
+        "sales": {
+          "name": "Présentation commerciale",
+          "description": "Montrez à un client ce qu'il gagne : bénéfices chiffrés, références, offres et prochaines étapes.",
+          "useWhen": "Rendez-vous commercial, réponse à un prospect, démonstration."
+        },
+        "partnership": {
+          "name": "Proposition de partenariat",
+          "description": "Expliquez ce que chacun apporte, ce que chacun gagne et comment la collaboration fonctionne.",
+          "useWhen": "Distributeur, grand compte, ONG ou institution avec qui construire une alliance."
+        },
+        "competition": {
+          "name": "Concours et incubateurs",
+          "description": "Convainquez un jury : impact, faisabilité, jalons et usage précis des fonds.",
+          "useWhen": "Concours de startups, candidature à un incubateur, demande de subvention."
+        },
+        "elevator": {
+          "name": "Pitch express",
+          "description": "Six slides pour trois minutes : le problème, la solution, le marché, la traction et la demande.",
+          "useWhen": "Demo day, pitch sur scène, premier contact rapide."
+        }
+      }
     }
   },
   "deployment": {
@@ -2846,7 +3536,6 @@
       "advisor": "Conseiller",
       "diagrams": "Diagrammes",
       "diagramsGenerate": "Génération de diagrammes",
-      "tests": "Tests",
       "createDevelopment": "Créer un développement",
       "development": "Développement",
       "ideploy": "iDeploy",
@@ -2876,7 +3565,14 @@
       "brandingEdit": "Édition de la charte graphique",
       "businessCards": "Cartes de visite",
       "businessCardsEdit": "Éditeur de carte de visite",
-      "flyerEdit": "Éditeur de visuel"
+      "flyerEdit": "Éditeur de visuel",
+      "simulations": "Simulations",
+      "welcome": "Bienvenue",
+      "guided": "Parcours assisté",
+      "financeCalendar": "Calendrier comptable",
+      "businessPlans": "Mes business plans",
+      "pitchDecks": "Mes pitch decks",
+      "pitchDeckNew": "Nouveau pitch deck"
     }
   },
   "notFound": {
@@ -2894,20 +3590,11 @@
     "noProjects": "Aucun projet trouvé",
     "projectDetails": "Détails du projet"
   },
-  "teams": {
-    "title": "Équipes",
-    "createNew": "Créer une nouvelle équipe",
-    "myTeams": "Mes équipes",
-    "noTeams": "Aucune équipe trouvée",
-    "teamDetails": "Détails de l'équipe"
-  },
   "validation": {
     "required": "{{fieldName}} est requis",
     "email": "Veuillez entrer une adresse e-mail valide",
     "minLength": "Minimum {{min}} caractères requis",
     "maxLength": "Maximum {{max}} caractères autorisés",
-    "selectAtLeastOneRole": "Veuillez sélectionner au moins un rôle",
-    "teamNameMinLength": "Le nom de l'équipe doit contenir au moins {{min}} caractères",
     "deploymentName": "Le nom du déploiement est requis (minimum {{min}} caractères)",
     "invalid": "Champ invalide"
   },
@@ -2969,7 +3656,9 @@
       "finance": "Rapport financier",
       "communication": "Communication",
       "development": "Développement",
-      "deployment": "Déploiement"
+      "deployment": "Déploiement",
+      "businessCards": "Cartes de visite",
+      "simulations": "Simulations"
     },
     "card": {
       "updatedAt": "Modifié le",
@@ -3001,7 +3690,10 @@
       "close": "Fermer",
       "loading": "Chargement du document…",
       "notAvailable": "Ce document n'est pas encore disponible.",
-      "generateNow": "Générer maintenant"
+      "generateNow": "Générer maintenant",
+      "askRegenerateSection": "Régénère la page « {{section}} »",
+      "askResume": "Complète les pages manquantes",
+      "askRegenerateAll": "Régénère tout le document"
     },
     "responses": {
       "showCard": "Voici votre {{title}} :",
@@ -3035,7 +3727,9 @@
         "finance": "Voir mon rapport financier",
         "communication": "Voir ma communication",
         "development": "Voir mon développement",
-        "deployment": "Voir mes déploiements"
+        "deployment": "Voir mes déploiements",
+        "businessCards": "Voir mes cartes de visite",
+        "simulations": "Voir mes simulations"
       },
       "generate": {
         "businessPlan": "Rédiger mon business plan",
@@ -3046,7 +3740,9 @@
         "finance": "Compléter mes finances",
         "communication": "Générer ma communication",
         "development": "Configurer le développement",
-        "deployment": "Configurer le déploiement"
+        "deployment": "Configurer le déploiement",
+        "businessCards": "Créer mes cartes de visite",
+        "simulations": "Lancer une simulation"
       }
     },
     "recap": {
@@ -3228,6 +3924,22 @@
         "skipInfos": "Générer sans ces infos",
         "generateNow": "C'est bon, lance la génération",
         "fixForm": "Corriger via le formulaire"
+      },
+      "structure": {
+        "title": "Structure du plan",
+        "subtitle": "Elle décide des sections générées et de leur ordre.",
+        "question": "Avant d'écrire : quelle structure votre interlocuteur attend-il ? Beaucoup de banques et de fonds imposent leur table des matières.",
+        "hint": "Choisissez une structure pour continuer.",
+        "showOutline": "Voir le sommaire",
+        "customise": "Composer mon sommaire",
+        "customiseOk": "La composition d'un sommaire se fait dans l'atelier : on y ajoute, retire et réordonne les sections une par une.",
+        "cancel": "Plus tard",
+        "cancelledOk": "Entendu. Le plan suivra la structure standard si vous le lancez tel quel.",
+        "saveFailed": "L'enregistrement de la structure a échoué. Choisissez à nouveau.",
+        "loadFailed": "Impossible de charger les structures disponibles.",
+        "chips": {
+          "openAtelier": "Ouvrir l'atelier"
+        }
       }
     },
     "infoForm": {
@@ -3257,12 +3969,14 @@
       "failed": "❌ La génération de votre {{title}} a échoué.",
       "retryHint": "Voulez-vous réessayer ?",
       "chips": {
-        "retry": "Réessayer la génération"
+        "retry": "Réessayer la génération",
+        "retrySection": "Réessayer cette page"
       },
       "cardRunning": "Génération de votre {{title}}",
       "cardDone": "Votre {{title}} est prêt",
       "cardError": "La génération de votre {{title}} a échoué",
-      "steps": "{{done}}/{{total}} étapes terminées"
+      "steps": "{{done}}/{{total}} étapes terminées",
+      "resumed": "Votre {{title}} est déjà en cours de génération — je reprends le suivi ici."
     },
     "launcher": {
       "title": "Que construisons-nous pour {{name}} ?",
@@ -3279,7 +3993,9 @@
         "legalDocs": "Statuts, CGU, contrats et mentions légales.",
         "communication": "Stratégie, calendrier éditorial et flyers.",
         "development": "Génération de votre application ou site web.",
-        "deployment": "Déploiement de votre infrastructure et mise en ligne."
+        "deployment": "Déploiement de votre infrastructure et mise en ligne.",
+        "businessCards": "Le modèle de vos cartes de visite, dessiné depuis votre charte.",
+        "simulations": "Éprouvez votre modèle avant le marché."
       },
       "state": {
         "ready": "Prêt",
@@ -3301,8 +4017,16 @@
         "privacy": "Politique de confidentialité",
         "statutes": "Statuts (SAS)",
         "nda": "Accord de confidentialité (NDA)",
-        "editor": "Voir tout le catalogue"
-      }
+        "editor": "Voir tout le catalogue",
+        "list": "Voir mes documents juridiques"
+      },
+      "listIntro": "Vous avez {{count}} document(s) juridique(s) :",
+      "emptyList": "Aucun document juridique n'a encore été rédigé.",
+      "downloadOne": "Télécharger {{name}}",
+      "downloadFailed": "Ce document n'a pas pu être téléchargé.",
+      "deleted": "Document supprimé.",
+      "deleteFailed": "La suppression n'a pas abouti.",
+      "loadFailed": "Impossible de charger vos documents juridiques."
     },
     "comm": {
       "intro": "Passons à votre **communication**. Je peux définir votre stratégie éditoriale et bâtir un calendrier de contenus. Par quoi commençons-nous ?",
@@ -3315,11 +4039,17 @@
         "context": "Analyse du contexte",
         "trends": "Repérage des tendances",
         "strategy": "Rédaction de la stratégie",
-        "calendar": "Construction du calendrier"
+        "calendar": "Construction du calendrier",
+        "occasions": "Recherche des occasions…",
+        "brief": "Définition de l'angle…",
+        "content": "Écriture des contenus…"
       },
       "chips": {
         "strategy": "Générer la stratégie",
-        "calendar": "Générer le calendrier"
+        "calendar": "Générer le calendrier",
+        "studio": "Composer un visuel",
+        "library": "Ma bibliothèque de visuels",
+        "plans": "Mon calendrier éditorial"
       }
     },
     "dev": {
@@ -3335,6 +4065,577 @@
         "start": "Lancer un déploiement",
         "list": "Voir mes déploiements"
       }
+    },
+    "deck": {
+      "typeQuestion": "Quel type de pitch deck voulez-vous générer ? Chaque type suit les slides qu’attend son audience.",
+      "typesFailed": "Je n'ai pas pu charger les types de pitch deck. Vous pouvez les comparer dans l'atelier.",
+      "createFailed": "Le pitch deck n'a pas pu être créé. Réessayez.",
+      "chips": {
+        "compare": "Comparer les types"
+      }
+    },
+    "documents": {
+      "count": "{{count}} document(s)",
+      "empty": "Aucun document pour l'instant.",
+      "sections": "{{completed}} / {{expected}} sections rédigées",
+      "open": "Ouvrir",
+      "download": "PDF",
+      "rename": "Renommer",
+      "delete": "Supprimer",
+      "confirmDelete": "Confirmer la suppression",
+      "renameFailed": "Le renommage n'a pas abouti. Réessayez dans un instant.",
+      "deleteFailed": "La suppression n'a pas abouti. Réessayez dans un instant.",
+      "status": {
+        "draft": "Brouillon",
+        "partial": "En cours",
+        "complete": "Complet"
+      },
+      "businessPlan": {
+        "title": "Mes business plans",
+        "list": "Voir tous mes business plans",
+        "create": "Rédiger un autre business plan",
+        "intro": "Voici les business plans de ce projet. Ouvrez celui que vous voulez lire, ou créez-en un autre pour un autre destinataire.",
+        "none": "Ce projet n'a pas encore de business plan."
+      },
+      "pitchDeck": {
+        "title": "Mes pitch decks",
+        "list": "Voir tous mes pitch decks",
+        "create": "Créer un autre pitch deck",
+        "intro": "Voici les pitch decks de ce projet. Ouvrez celui que vous voulez présenter, ou créez-en un autre pour un autre public.",
+        "none": "Ce projet n'a pas encore de pitch deck."
+      }
+    },
+    "finance": {
+      "intro": "Je peux remplir tout le modèle financier, ou une seule partie si c'est la seule à revoir.",
+      "chips": {
+        "fillAll": "Tout compléter"
+      },
+      "sectionDone": "« {{section}} » est à jour.",
+      "sectionFailed": "« {{section}} » n'a pas pu être complétée."
+    },
+    "cards": {
+      "needsBranding": "Les cartes de visite se dessinent depuis votre charte : complétons-la d'abord.",
+      "orientationQuestion": "Dans quel format dessinons-nous vos cartes ?",
+      "chips": {
+        "landscape": "Paysage (85 × 55 mm)",
+        "portrait": "Portrait (55 × 85 mm)",
+        "openHolders": "Voir les cartes",
+        "addHolder": "Ajouter une personne",
+        "edit": "Modifier le modèle"
+      },
+      "done": "Votre modèle de carte est prêt. Ajoutez les personnes, chaque carte s'y remplit toute seule.",
+      "failed": "Le modèle de carte n'a pas pu être dessiné."
+    },
+    "simulations": {
+      "intro": "Les simulations mettent votre modèle à l'épreuve avant le marché. Le récapitulatif de ce projet vous mène au simulateur.",
+      "chips": {
+        "open": "Voir mes simulations"
+      }
+    }
+  },
+  "modes": {
+    "guided": {
+      "name": "Assisté",
+      "short": "On avance ensemble, une étape à la fois",
+      "long": "IDEM vous dit quoi faire, dans quel ordre, et le fait avec vous. Idéal quand on ne sait pas par où commencer."
+    },
+    "chat": {
+      "name": "Chat",
+      "short": "Vous demandez, IDEM produit",
+      "long": "Une conversation, comme avec un conseiller. Vous décrivez ce dont vous avez besoin, IDEM le génère."
+    },
+    "advanced": {
+      "name": "Tableau de bord",
+      "short": "Tous les outils, accessibles librement",
+      "long": "L'espace complet : chaque module est accessible directement, dans l'ordre que vous voulez."
+    },
+    "switcher": {
+      "label": "Mode",
+      "aria": "Changer de mode d'interface",
+      "tooltip": "Changer de mode d'interface",
+      "panelTitle": "Choisissez votre façon de travailler",
+      "recommended": "Conseillé",
+      "footer": "Vous pouvez changer de mode à tout moment. Votre projet et vos documents restent identiques."
+    }
+  },
+  "onboarding": {
+    "survey": {
+      "oneClick": "Un clic suffit.",
+      "stepCounter": "Question {{current}} sur {{total}}",
+      "questions": {
+        "stage": {
+          "label": "Où en êtes-vous aujourd'hui ?",
+          "options": {
+            "idea": {
+              "label": "J'ai une idée",
+              "hint": "Rien n'est encore lancé"
+            },
+            "starting": {
+              "label": "Je démarre",
+              "hint": "Les premières démarches sont en cours"
+            },
+            "running": {
+              "label": "Mon activité tourne",
+              "hint": "J'ai déjà des clients"
+            }
+          }
+        },
+        "clarity": {
+          "label": "Savez-vous par où commencer ?",
+          "options": {
+            "lost": {
+              "label": "Pas du tout",
+              "hint": "Dites-moi quoi faire en premier"
+            },
+            "partial": {
+              "label": "Un peu",
+              "hint": "J'ai des idées, mais j'ai besoin d'aide"
+            },
+            "clear": {
+              "label": "Oui, très bien",
+              "hint": "Je sais exactement ce qu'il me faut"
+            }
+          }
+        },
+        "workStyle": {
+          "label": "Comment préférez-vous avancer ?",
+          "options": {
+            "stepByStep": {
+              "label": "Étape par étape",
+              "hint": "Une seule chose à faire à la fois"
+            },
+            "conversation": {
+              "label": "En discutant",
+              "hint": "Je demande, on me répond"
+            },
+            "autonomy": {
+              "label": "En autonomie",
+              "hint": "Donnez-moi tous les outils"
+            }
+          }
+        },
+        "comfort": {
+          "label": "Votre aisance avec les outils numériques ?",
+          "options": {
+            "beginner": {
+              "label": "Débutant",
+              "hint": "Je préfère qu'on me montre"
+            },
+            "intermediate": {
+              "label": "À l’aise",
+              "hint": "Je me débrouille bien"
+            },
+            "expert": {
+              "label": "Expert",
+              "hint": "Les interfaces complexes ne me font pas peur"
+            }
+          }
+        }
+      },
+      "reasons": {
+        "guided": "Vous préférez avancer pas à pas : le mode Assisté vous dit quoi faire en premier et ne débloque la suite qu’une fois chaque étape terminée.",
+        "chat": "Vous préférez échanger : le mode Chat vous laisse demander ce dont vous avez besoin, en langage courant.",
+        "advanced": "Vous savez où vous allez : le Tableau de bord vous donne accès à tous les outils, sans détour."
+      },
+      "result": {
+        "badge": "Votre profil",
+        "title": "Voici le mode que nous vous conseillons",
+        "recommended": "Conseillé",
+        "start": "Commencer",
+        "review": "Revoir mes réponses",
+        "changeable": "Vous pourrez changer de mode à tout moment depuis le menu en haut de l’écran.",
+        "saving": "Enregistrement…",
+        "saveError": "Vos réponses n'ont pas pu être enregistrées. Vérifiez votre connexion et réessayez."
+      },
+      "duration": "Moins d'une minute"
+    }
+  },
+  "guided": {
+    "loading": "Nous préparons votre parcours…",
+    "empty": {
+      "title": "Commençons par votre projet",
+      "subtitle": "Décrivez votre idée en quelques lignes. C'est la seule chose dont IDEM a besoin pour construire tout le reste avec vous.",
+      "cta": "Créer mon projet"
+    },
+    "header": {
+      "title": "Votre parcours — {{project}}",
+      "progress": "{{done}} / {{total}} étapes terminées",
+      "allDone": "Toutes les étapes sont terminées. Félicitations !",
+      "refresh": "Actualiser"
+    },
+    "badges": {
+      "current": "À faire maintenant",
+      "optional": "Facultatif"
+    },
+    "status": {
+      "done": "Terminé",
+      "locked": "Se débloque quand l'étape précédente est terminée",
+      "skipped": "Étape passée",
+      "duration": "Environ {{minutes}} min"
+    },
+    "actions": {
+      "start": "Commencer",
+      "review": "Revoir",
+      "skip": "Passer cette étape",
+      "resume": "Reprendre cette étape",
+      "requiredHint": "Cette étape est nécessaire : les suivantes s'appuient dessus."
+    },
+    "bar": {
+      "label": "Parcours assisté",
+      "allDone": "Toutes les étapes sont terminées",
+      "back": "Retour au parcours",
+      "stepPrefix": "Étape {{index}} sur {{total}}"
+    },
+    "resume": {
+      "title": "Reprendre mon parcours assisté",
+      "subtitle": "Retrouvez l'étape en cours et continuez là où vous vous êtes arrêté."
+    },
+    "footer": {
+      "freedom": "Vous n'êtes pas enfermé : le tableau de bord complet reste accessible à tout moment.",
+      "openAdvanced": "Ouvrir le tableau de bord"
+    },
+    "steps": {
+      "project": {
+        "title": "Définir votre projet",
+        "why": "Tout part de là : ce que vous vendez, à qui, et où. IDEM s'en sert pour produire tout le reste.",
+        "outcome": "Vous obtenez la fiche de votre projet, réutilisée par tous vos documents."
+      },
+      "branding": {
+        "title": "Créer votre identité visuelle",
+        "why": "Un logo, des couleurs, une typographie : c'est ce qui rend votre activité reconnaissable et crédible dès le premier contact.",
+        "outcome": "Vous obtenez un logo, une palette, une typographie et votre charte en PDF."
+      },
+      "businessPlan": {
+        "title": "Rédiger votre business plan",
+        "why": "Le document qu'on vous demandera à la banque, dans un concours ou devant un partenaire. Il met vos idées à plat.",
+        "outcome": "Vous obtenez un business plan complet, prêt à présenter et à télécharger."
+      },
+      "finance": {
+        "title": "Chiffrer votre activité",
+        "why": "Combien ça coûte, combien ça rapporte, à partir de quand. Sans ces chiffres, aucun financement n'est possible.",
+        "outcome": "Vous obtenez votre prévisionnel, votre compte d'exploitation et votre trésorerie."
+      },
+      "pitchDeck": {
+        "title": "Préparer votre pitch",
+        "why": "La version courte de votre projet, celle qui tient en dix minutes devant un investisseur ou un partenaire.",
+        "outcome": "Vous obtenez une présentation prête à projeter."
+      },
+      "legalDocs": {
+        "title": "Mettre vos documents en règle",
+        "why": "Statuts, contrats, conditions générales : les documents qui protègent votre activité et rassurent vos clients.",
+        "outcome": "Vous obtenez vos documents juridiques, adaptés à votre activité."
+      },
+      "communication": {
+        "title": "Faire connaître votre activité",
+        "why": "Une fois les bases posées, il faut aller chercher les clients. On construit votre plan de communication.",
+        "outcome": "Vous obtenez une stratégie, un calendrier de publications et vos premiers visuels."
+      },
+      "development": {
+        "title": "Créer votre site internet",
+        "why": "Votre vitrine en ligne : c'est là qu'on vous trouve, qu'on comprend ce que vous vendez et qu'on vous contacte.",
+        "outcome": "Vous obtenez le code de votre site ou de votre application, prêt à être mis en ligne."
+      },
+      "deployment": {
+        "title": "Mettre votre site en ligne",
+        "why": "Un site qui n'est pas en ligne ne sert à rien. On l'installe sur un hébergement et on lui donne son adresse.",
+        "outcome": "Vous obtenez un site accessible publiquement, à son adresse."
+      }
+    },
+    "nav": {
+      "lockedHint": "Cette section s'ouvrira quand vous en serez là dans le parcours."
+    },
+    "lock": {
+      "title": "Une étape à la fois",
+      "messageKnown": "En mode Assisté, « {{section}} » s'ouvrira quand vous en serez là. On termine d'abord ce qui est en cours : chaque étape sert à la suivante.",
+      "messageUnknown": "En mode Assisté, cette section n'est pas encore accessible. On termine d'abord l'étape en cours : chaque étape sert à la suivante.",
+      "currentLabel": "Votre étape en cours",
+      "goToCurrent": "Aller à mon étape en cours",
+      "stayOnJourney": "Revenir à mon parcours",
+      "switchToAdvanced": "Ou passer en mode Tableau de bord pour tout ouvrir"
+    }
+  },
+  "tour": {
+    "common": {
+      "next": "Suivant",
+      "back": "Retour",
+      "skip": "Passer",
+      "finish": "C'est parti !",
+      "stepOf": "Étape {current} sur {total}",
+      "dialogLabel": "Visite guidée d'IDEM"
+    },
+    "guided": {
+      "welcome": {
+        "title": "Bienvenue ! On fait le tour ?",
+        "body": "Trente secondes pour repérer l'essentiel. Rien à retenir par cœur : tout reste visible à l'écran."
+      },
+      "progress": {
+        "title": "Votre avancement",
+        "body": "Vous voyez ici où vous en êtes : ce qui est fait, ce qui reste. La barre se remplit toute seule à mesure que vos documents sortent."
+      },
+      "steps": {
+        "title": "Votre parcours, dans l’ordre",
+        "body": "Neuf étapes, de l'idée à la mise en ligne. Les suivantes restent fermées tant que la précédente n'est pas bouclée — c'est voulu : une chose à la fois, et on n'oublie rien."
+      },
+      "current": {
+        "title": "L’étape du moment",
+        "body": "La seule qui vous demande quelque chose. Cliquez sur « Commencer » : IDEM vous emmène au bon endroit, puis vous ramène ici."
+      },
+      "switch": {
+        "title": "Changer de mode, quand vous voulez",
+        "body": "Ce bouton bascule entre l'accompagnement pas à pas, le chat et le tableau de bord complet. Votre projet et vos documents ne bougent pas d'un poil."
+      },
+      "done": {
+        "title": "Vous êtes prêt !",
+        "body": "Il ne reste qu'à commencer. Et si vous vous sentez à l'étroit, le sélecteur de mode est votre porte de sortie."
+      }
+    },
+    "chat": {
+      "welcome": {
+        "title": "Bienvenue ! On fait le tour ?",
+        "body": "Quelques secondes pour repérer l’essentiel du mode Chat."
+      },
+      "composer": {
+        "title": "Dites ce dont vous avez besoin",
+        "body": "Écrivez comme à un conseiller : « fais-moi un business plan », « propose-moi des couleurs ». IDEM comprend et produit le document."
+      },
+      "conversations": {
+        "title": "Vos échanges, rangés",
+        "body": "Chaque conversation est classée par thème — marque, finances, juridique. Vous retrouvez d'un coup d'œil ce que vous avez déjà demandé."
+      },
+      "export": {
+        "title": "Tout récupérer",
+        "body": "Ce bouton télécharge en une fois tous les documents produits pour ce projet, en PDF."
+      },
+      "switch": {
+        "title": "Changer de mode, quand vous voulez",
+        "body": "Ce bouton bascule entre l'accompagnement pas à pas, le chat et le tableau de bord complet. Votre projet et vos documents ne bougent pas d'un poil."
+      },
+      "done": {
+        "title": "Vous êtes prêt !",
+        "body": "Posez votre première question, IDEM s’occupe du reste."
+      }
+    },
+    "advanced": {
+      "welcome": {
+        "title": "Bienvenue ! On fait le tour ?",
+        "body": "Trente secondes pour repérer l’essentiel de votre espace de travail."
+      },
+      "switch": {
+        "title": "Changer de mode, quand vous voulez",
+        "body": "Ce bouton bascule entre l'accompagnement pas à pas, le chat et le tableau de bord complet. Votre projet et vos documents ne bougent pas d'un poil."
+      },
+      "done": {
+        "title": "Vous êtes prêt !",
+        "body": "À vous de jouer. Le tableau de bord ne cache rien : chaque module est accessible depuis le menu de gauche."
+      },
+      "project": {
+        "title": "Le projet ouvert",
+        "body": "Ce sélecteur indique sur quel projet vous travaillez. Tout ce que vous voyez à l'écran s'y rapporte — et vous pouvez en changer d'ici."
+      },
+      "nav": {
+        "title": "Tous vos outils",
+        "body": "Marque, business plan, finances, juridique, site, déploiement : chaque module a sa page. Rien n'est verrouillé, prenez-les dans l'ordre qui vous arrange."
+      }
+    }
+  },
+  "billing": {
+    "title": "Facturation",
+    "nav": "Facturation",
+    "overview": {
+      "title": "Mon offre",
+      "subtitle": "Vos plans, vos crédits et vos paiements",
+      "credits": "Crédits disponibles",
+      "noSubscription": "Offre gratuite",
+      "renewsOn": "Renouvellement le {{date}}",
+      "endsOn": "Prend fin le {{date}}",
+      "complimentary": "Offert — bêta premium",
+      "pastDue": "Échéance dépassée : votre accès reste ouvert jusqu’au {{date}}.",
+      "payNow": "Régler maintenant",
+      "changePlan": "Changer d’offre",
+      "cancel": "Résilier",
+      "cancelConfirm": "Votre accès court jusqu’à la fin de la période déjà payée.",
+      "history": "Historique des paiements",
+      "noPayments": "Aucun paiement pour le moment.",
+      "statement": "Relevé de crédits",
+      "betaBanner": "Bêta premium active jusqu’au {{date}} : les offres les plus complètes vous sont ouvertes."
+    },
+    "plans": {
+      "title": "Offres",
+      "subtitle": "Payez ce que vous utilisez, en Mobile Money",
+      "monthly": "Mensuel",
+      "yearly": "Annuel",
+      "yearlyHint": "2 mois offerts",
+      "indicativePrices": "Prix affichés hors connexion au service de facturation : ils peuvent avoir changé. Le montant exact s’affiche au moment du paiement.",
+      "perMonth": "/mois",
+      "perYear": "/an",
+      "oneTime": "paiement unique",
+      "credits": "{{count}} crédits",
+      "currentPlan": "Offre actuelle",
+      "choose": "Choisir",
+      "buy": "Acheter",
+      "packs": "Packs",
+      "recharges": "Recharges de crédits",
+      "bundles": "Offres groupées",
+      "addons": "Options",
+      "localAlternative": "Ailleurs : {{price}}"
+    },
+    "engines": {
+      "business": "iBusiness",
+      "appgen": "iCode",
+      "ideploy": "iDeploy"
+    },
+    "checkout": {
+      "title": "Paiement",
+      "youArePaying": "Vous payez",
+      "creditsIncluded": "{{count}} crédits inclus",
+      "country": "Pays",
+      "phone": "Numéro Mobile Money",
+      "phonePlaceholder": "6 XX XX XX XX",
+      "phoneHint": "Le numéro sur lequel vous validerez le paiement.",
+      "provider": "Opérateur",
+      "providerClosed": "indisponible",
+      "pay": "Payer {{amount}} {{currency}}",
+      "secured": "Paiement sécurisé par pawaPay. Aucune donnée bancaire n’est stockée.",
+      "waitingTitle": "Validez sur votre téléphone",
+      "waitingBody": "Une demande de code a été envoyée au {{phone}}. Saisissez votre code secret Mobile Money.",
+      "pinReminder": "Vous n’avez rien reçu ? La demande disparaît parfois de l’écran.",
+      "slowPayment": "Votre opérateur met plus de temps que prévu. Vous pouvez fermer cette fenêtre : nous vous prévenons dès que le paiement aboutit.",
+      "successTitle": "Paiement confirmé",
+      "successBody": "{{label}} est actif sur votre compte.",
+      "failedTitle": "Le paiement n’a pas abouti",
+      "noCharge": "Aucun montant n’a été prélevé sur votre compte Mobile Money.",
+      "retry": "Réessayer",
+      "continue": "Continuer",
+      "included": "Inclus",
+      "perMonth": "par mois",
+      "perYear": "par an",
+      "changeProvider": "Changer",
+      "beforePay": "Vous recevrez une demande de code sur ce numéro.",
+      "starting": "Envoi de la demande…",
+      "reference": "Référence",
+      "noProduct": "Aucune offre n'a été indiquée. Revenez à la page des offres pour en choisir une.",
+      "returnNote": "Vous reviendrez sur {{app}} une fois le paiement terminé.",
+      "steps": {
+        "request": "Demande envoyée à votre opérateur",
+        "pin": "Saisissez votre code sur votre téléphone",
+        "confirm": "Confirmation du paiement"
+      },
+      "chooseCountry": "Choisir le pays",
+      "countryFirst": "Choisissez d'abord votre pays."
+    },
+    "paywall": {
+      "title": "Crédits insuffisants",
+      "cost": "Ce livrable coûte {{cost}} crédits",
+      "balance": "Il vous en reste {{balance}}",
+      "missing": "Il vous manque {{missing}} crédits",
+      "upgradeTitle": "Offre supérieure requise",
+      "choose": "Choisir une offre",
+      "seeAllPlans": "Voir toutes les offres",
+      "later": "Plus tard"
+    },
+    "status": {
+      "CREATED": "Créé",
+      "ACCEPTED": "En attente de validation",
+      "SUBMITTED": "Transmis",
+      "PROCESSING": "En cours",
+      "IN_RECONCILIATION": "Vérification",
+      "COMPLETED": "Payé",
+      "FAILED": "Échoué",
+      "REJECTED": "Refusé",
+      "NOT_FOUND": "Non abouti",
+      "EXPIRED": "Expiré"
+    }
+  },
+  "account": {
+    "title": "Mon compte",
+    "subtitle": "Votre offre, vos crédits, vos paiements et vos factures.",
+    "tabs": {
+      "overview": "Aperçu",
+      "plans": "Offres",
+      "usage": "Consommation",
+      "payments": "Paiements & factures",
+      "profile": "Profil"
+    },
+    "engines": {
+      "business": {
+        "what": "Business plan, branding, documents juridiques et financiers"
+      },
+      "appgen": {
+        "what": "Génération et modification de vos applications"
+      },
+      "ideploy": {
+        "what": "Hébergement et mise en production de vos apps"
+      }
+    },
+    "free": "Gratuit",
+    "freePlan": "Offre gratuite",
+    "severalPlans": "{{count}} offres actives",
+    "perMonth": "/mois",
+    "credits": "Crédits",
+    "creditsShort": "{{count}} crédits",
+    "creditsOn": "Sur l’offre {{plan}}",
+    "upgradeTo": "Passer à {{plan}}",
+    "topTier": "Vous êtes sur l’offre la plus complète",
+    "seeAllOffers": "Voir les offres",
+    "yourPlan": "Votre offre",
+    "nextStep": "Échelon suivant",
+    "switchDown": "Revenir à cette offre",
+    "switchDownNote": "Revenir à une offre inférieure remplace votre offre actuelle et se paie immédiatement. Les crédits déjà acquis vous restent.",
+    "cancel": "Résilier",
+    "cancelTitle": "Résilier {{plan}} ?",
+    "manage": "Gérer",
+    "lastPayment": "Dernière opération",
+    "viewReceipt": "Voir le reçu",
+    "statement": "Relevé de crédits",
+    "noStatement": "Aucun mouvement de crédits pour le moment.",
+    "allEngines": "Tous",
+    "quotaTitle": "Générations offertes",
+    "quotaHint": "Indépendant des crédits : une limite de cadence qui se remet à zéro toute seule, sans rien à payer.",
+    "packsHint": "Un besoin précis, payé une fois.",
+    "rechargesHint": "Des crédits en plus, sans changer d’offre.",
+    "bundlesHint": "Plusieurs moteurs, à prix groupé.",
+    "addonsHint": "Des services qui s’ajoutent à votre offre.",
+    "payments": "Paiements",
+    "invoices": "Factures",
+    "paymentsVsInvoices": "Un paiement est un débit sur votre téléphone. Une facture est le document qui le justifie : un renouvellement en émet une sans nouveau débit, et un paiement refusé n’en laisse aucune.",
+    "noInvoices": "Aucune facture pour le moment.",
+    "invoicesUnavailable": "Vos factures n’ont pas pu être chargées. Réessayez dans un instant.",
+    "periodCovered": "période",
+    "viewInvoice": "Voir",
+    "details": "Détail",
+    "invoice": "Facture",
+    "invoiceStatus": {
+      "paid": "Payée",
+      "open": "À payer",
+      "void": "Annulée",
+      "uncollectible": "Irrécouvrable"
+    },
+    "receiptIssuer": "IDEM Africa",
+    "billedTo": "Facturé à",
+    "description": "Description",
+    "amount": "Montant",
+    "total": "Total",
+    "paidOn": "Payée le {{date}}",
+    "print": "Imprimer",
+    "signInMethod": "Connexion via",
+    "emailStatus": "Adresse e-mail",
+    "emailVerified": "Vérifiée",
+    "emailUnverified": "Non vérifiée",
+    "currentOffer": "Offre en cours",
+    "preferences": "Préférences",
+    "language": "Langue",
+    "theme": "Thème",
+    "outcome": {
+      "title": "Récapitulatif du paiement",
+      "noReference": "Aucun paiement n’a été indiqué.",
+      "notFound": "Ce paiement est introuvable sur votre compte.",
+      "backToAccount": "Revenir à mon compte",
+      "product": "Offre",
+      "paidAt": "Date",
+      "whatChanged": "Ce que ça change",
+      "deliveryPending": "Votre paiement est encaissé. L’activation prend parfois quelques instants — cet écran se met à jour tout seul.",
+      "resume": "Reprendre mon travail",
+      "seeInvoice": "Voir mes factures"
     }
   }
 }

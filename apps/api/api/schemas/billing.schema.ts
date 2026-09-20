@@ -31,6 +31,9 @@ const BillingProductSchema = new Schema<BillingProductDocument>(
     name: { type: String, required: true },
     description: { type: String },
     priceXaf: { type: Number, required: true, default: 0 },
+    // Prix depuis un projet IDEM déjà structuré (iSimulate uniquement) :
+    // moins de tokens à consommer, donc une remise justifiée par le coût réel.
+    idemPriceXaf: { type: Number },
     interval: { type: String, required: true, default: 'month' },
     credits: { type: Number, required: true, default: 0 },
     validityHours: { type: Number },
@@ -78,6 +81,11 @@ const BillingSubscriptionSchema = new Schema<BillingSubscriptionDocument>(
     provider: { type: String, required: true, default: 'manual' },
     providerSubscriptionId: { type: String },
     providerCustomerId: { type: String },
+    graceEndsAt: { type: Date },
+    cancelAtPeriodEnd: { type: Boolean, default: false },
+    bundleId: { type: String },
+    lastReminderAt: { type: Date },
+    paymentTransactionId: { type: String },
   },
   { timestamps: true, collection: 'billing_subscriptions' }
 );
@@ -133,9 +141,22 @@ const BillingPurchaseSchema = new Schema<BillingPurchaseDocument>(
     expiresAt: { type: Date },
     provider: { type: String, required: true, default: 'manual' },
     providerPaymentId: { type: String },
+    paymentTransactionId: { type: String },
     day: { type: String, required: true },
   },
   { timestamps: true, collection: 'billing_purchases' }
+);
+
+/**
+ * Un paiement ne livre qu'une fois.
+ *
+ * Deuxième filet d'idempotence, après le verrou sur la transaction : si un
+ * callback et le réconciliateur déclenchaient la livraison en même temps, la
+ * base refuserait le second achat plutôt que de créditer deux fois.
+ */
+BillingPurchaseSchema.index(
+  { paymentTransactionId: 1 },
+  { unique: true, sparse: true, name: 'one_purchase_per_payment' }
 );
 
 // Chiffre d'affaires ponctuel par période / produit — le pendant du MRR.
@@ -190,9 +211,13 @@ const BillingInvoiceSchema = new Schema<BillingInvoiceDocument>(
     paidAt: { type: Date },
     provider: { type: String, required: true, default: 'manual' },
     providerInvoiceId: { type: String },
+    paymentTransactionId: { type: String },
   },
   { timestamps: true, collection: 'billing_invoices' }
 );
+
+// Retrouver la facture d'un paiement (reçu, litige, remboursement).
+BillingInvoiceSchema.index({ paymentTransactionId: 1 }, { sparse: true });
 
 // Chiffre d'affaires par période — la requête du calcul de rentabilité.
 BillingInvoiceSchema.index({ status: 1, day: 1 });
@@ -239,10 +264,23 @@ const CreditLedgerEntrySchema = new Schema<CreditLedgerEntryDocument>(
     subscriptionId: { type: String },
     purchaseId: { type: String },
     expiresAt: { type: Date },
+    expiredAt: { type: Date },
     note: { type: String },
     day: { type: String, required: true },
   },
   { timestamps: true, collection: 'credit_ledger' }
+);
+
+/**
+ * File de la péremption : octrois arrivés à terme et pas encore traités.
+ *
+ * L'index porte sur les trois champs du filtre, dans l'ordre de sélectivité —
+ * sans lui, la tâche quotidienne parcourrait un grand livre qui ne fait que
+ * grandir.
+ */
+CreditLedgerEntrySchema.index(
+  { expiredAt: 1, expiresAt: 1, delta: 1 },
+  { name: 'credit_expiry_queue' }
 );
 
 /**

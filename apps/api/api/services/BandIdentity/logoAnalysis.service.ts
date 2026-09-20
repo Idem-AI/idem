@@ -1,10 +1,9 @@
-import { GoogleGenAI, Type } from '@google/genai';
+import { Type } from '@google/genai';
 import logger from '../../config/logger';
 import { AI_CONFIG } from '../../config/ai.config';
-import { withGeminiFallback } from '../../utils/gemini-fallback';
+import { analyzeImage, isGlmConfigured } from '../glm-media.service';
 import { convertSvgToPng } from '../logo-import.service';
 import { LOGO_ANALYSIS_PROMPT } from './prompts/singleGenerations/logo-analysis.prompt';
-import { describeGeminiBackend, getGoogleGenAIClient, isGeminiConfigured } from '../../config/google-genai.client';
 
 /**
  * Structured result of the vision analysis of an imported logo.
@@ -82,67 +81,30 @@ const logoAnalysisSchema = {
  * redesign brief for the "improve my logo" flow.
  */
 export class LogoAnalysisService {
-  private _geminiAI?: GoogleGenAI;
 
-  private get geminiAI(): GoogleGenAI {
-    if (!this._geminiAI) {
-      this._geminiAI = getGoogleGenAIClient();
-    }
-    return this._geminiAI;
-  }
 
   async analyzeLogo(svg: string): Promise<LogoAnalysisResult> {
-    if (!isGeminiConfigured()) {
-      throw new Error(
-        `Backend Gemini non configuré (${describeGeminiBackend()}). Impossible d'analyser le logo.`
-      );
+    if (!isGlmConfigured()) {
+      throw new Error('GLM_API_KEY is not configured. Cannot analyse a logo.');
     }
 
     logger.info(`Logo analysis: rendering SVG (${svg.length} chars) to PNG for vision model`);
     const pngBuffer = await convertSvgToPng(svg, 512, 512);
     const base64Image = pngBuffer.toString('base64');
 
-    const contents = [
-      {
-        role: 'user',
-        parts: [
-          { text: LOGO_ANALYSIS_PROMPT },
-          { inlineData: { mimeType: 'image/png', data: base64Image } },
-        ],
-      },
-    ];
-
+    // GLM lit l'image par le contrat OpenAI. Il n'a pas d'équivalent du
+    // `responseSchema` de Gemini : la consigne du prompt porte seule le format,
+    // et la lecture en aval valide déjà ce qui revient.
     const primaryModel = AI_CONFIG.branding.logoAnalysis.modelName;
-    const fallbackModel = AI_CONFIG.fallback.textModel;
 
-    const response = await withGeminiFallback(
-      () =>
-        this.geminiAI.models.generateContent({
-          model: primaryModel,
-          contents,
-          config: {
-            temperature: AI_CONFIG.branding.logoAnalysis.llmOptions?.temperature,
-            maxOutputTokens: AI_CONFIG.branding.logoAnalysis.llmOptions?.maxOutputTokens,
-            responseMimeType: 'application/json',
-            responseSchema: logoAnalysisSchema,
-          },
-        }),
-      () =>
-        this.geminiAI.models.generateContent({
-          model: fallbackModel,
-          contents,
-          config: {
-            temperature: AI_CONFIG.branding.logoAnalysis.llmOptions?.temperature,
-            maxOutputTokens: AI_CONFIG.branding.logoAnalysis.llmOptions?.maxOutputTokens,
-            responseMimeType: 'application/json',
-            responseSchema: logoAnalysisSchema,
-          },
-        }),
-      primaryModel,
-      fallbackModel
-    );
+    const rawText = (
+      await analyzeImage(base64Image, 'image/png', LOGO_ANALYSIS_PROMPT, {
+        model: primaryModel,
+        maxOutputTokens: AI_CONFIG.branding.logoAnalysis.llmOptions?.maxOutputTokens,
+        temperature: AI_CONFIG.branding.logoAnalysis.llmOptions?.temperature,
+      })
+    ).trim();
 
-    const rawText = response.text?.trim() || '';
 
     if (!rawText) {
       throw new Error('Logo analysis returned an empty response');

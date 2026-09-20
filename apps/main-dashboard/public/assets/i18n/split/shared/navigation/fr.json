@@ -22,16 +22,12 @@
       "selectTypography": "Sélection de la typographie",
       "businessPlan": "Business Plan",
       "businessPlanGenerate": "Génération du business plan",
-      "businessPlanEdit": "Édition du business plan",
-      "pitchDeckEdit": "Édition du pitch deck",
-      "brandingEdit": "Édition de la charte graphique",
       "communication": "Communication",
       "pitchDeck": "Pitch Deck",
       "legalDocs": "Documents légaux",
       "advisor": "Conseiller",
       "diagrams": "Diagrammes",
       "diagramsGenerate": "Génération de diagrammes",
-      "tests": "Tests",
       "createDevelopment": "Créer un développement",
       "development": "Développement",
       "ideploy": "iDeploy",
@@ -56,9 +52,19 @@
       "financeRatios": "Finance Ratios",
       "createProject": "Créer un projet",
       "notFound": "Page non trouvée",
+      "businessPlanEdit": "Édition du business plan",
+      "pitchDeckEdit": "Édition du pitch deck",
+      "brandingEdit": "Édition de la charte graphique",
       "businessCards": "Cartes de visite",
       "businessCardsEdit": "Éditeur de carte de visite",
-      "flyerEdit": "Éditeur de visuel"
+      "flyerEdit": "Éditeur de visuel",
+      "simulations": "Simulations",
+      "welcome": "Bienvenue",
+      "guided": "Parcours assisté",
+      "financeCalendar": "Calendrier comptable",
+      "businessPlans": "Mes business plans",
+      "pitchDecks": "Mes pitch decks",
+      "pitchDeckNew": "Nouveau pitch deck"
     }
   }
 }

@@ -7,17 +7,23 @@ import {
 } from '../services/Communication/communication.service';
 import { PromptService } from '../services/prompt.service';
 import {
+  CommunicationPlan,
   FlyerFormat,
   VisualIntent,
   ContentChannel,
   SocialNetwork,
+  PlanStatus,
   PublicationStatus,
+  VisualOrigin,
 } from '../models/communication.model';
+import { InsufficientCreditsError, StudioService } from '../services/Communication/studio.service';
+import { verifyVisualImageToken } from '../services/Communication/visualUrl';
 import { SUPPORTED_NETWORKS } from '../services/Connectors/social-providers.config';
 import { getRequestLanguage } from '../utils/request-language';
 
 const promptService = new PromptService();
 const communicationService = new CommunicationService(promptService);
+const studioService = new StudioService(communicationService);
 
 function writeEvent(res: Response, payload: object): void {
   res.write(`data: ${JSON.stringify(payload)}\n\n`);
@@ -72,7 +78,10 @@ export const getCommunicationController = async (
   if (!projectId) return;
 
   try {
-    const communication = await communicationService.getCommunication(userId, projectId);
+    // Version ALLÉGÉE : le HTML des visuels (5 à 15 ko chacun) ne sert qu'à
+    // l'éditeur et au rendu. Le transporter ici faisait peser 400 ko l'ouverture
+    // du module pour un écran qui n'affiche que des PNG.
+    const communication = await communicationService.getCommunicationLight(userId, projectId);
     if (!communication) {
       res.status(200).json({});
       return;
@@ -517,6 +526,19 @@ export const getFlyerImageController = async (
     return;
   }
 
+  // Cet endpoint ne peut pas être authentifié : une balise <img src> ne porte pas
+  // d'en-tête `Authorization`. Le jeton capacitaire remplace l'authentification —
+  // sans lui, les visuels d'un projet étaient énumérables (l'id d'un visuel est
+  // un slug de modèle suivi d'un horodatage).
+  if (!verifyVisualImageToken(projectId, flyerId, queryString(req.query.t))) {
+    logger.warn('[Communication] Rejected an unsigned visual image request', {
+      projectId,
+      flyerId,
+    });
+    res.status(403).json({ message: 'Invalid or missing image token' });
+    return;
+  }
+
   try {
     const buffer = await communicationService.getFlyerImage(projectId, flyerId);
     res.setHeader('Content-Type', 'image/png');
@@ -525,5 +547,581 @@ export const getFlyerImageController = async (
   } catch (error: any) {
     logger.error(`getFlyerImageController error: ${error.message}`, { stack: error.stack });
     res.status(404).json({ message: error.message || 'Image not found' });
+  }
+};
+
+// ===========================================================================
+// PÉRIODES
+// ===========================================================================
+
+/** Lit une date ISO de la requête, ou `undefined` si elle n'est pas exploitable. */
+function isoDate(value: unknown): string | undefined {
+  const candidate = typeof value === 'string' ? value.slice(0, 10) : undefined;
+  if (!candidate || !/^\d{4}-\d{2}-\d{2}$/.test(candidate)) return undefined;
+  return Number.isFinite(Date.parse(candidate)) ? candidate : undefined;
+}
+
+/** Canaux transmis par le front, nettoyés. */
+function channels(value: unknown): ContentChannel[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const cleaned = value.filter((item): item is string => typeof item === 'string' && !!item.trim());
+  return cleaned.length ? (cleaned as ContentChannel[]) : undefined;
+}
+
+function requirePlanId(req: CustomRequest, res: Response): string | null {
+  const planId = req.params.planId as string;
+  if (!planId) {
+    res.status(400).json({ message: 'Plan ID is required' });
+    return null;
+  }
+  return planId;
+}
+
+// ---------------------------------------------------------------------------
+// GET /project/communication/:projectId/plans
+// ---------------------------------------------------------------------------
+export const listPlansController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+
+  try {
+    const plans = await communicationService.listPlans(userId, projectId);
+    res.status(200).json(plans);
+  } catch (error: any) {
+    logger.error(`listPlansController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to list plans' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// POST /project/communication/:projectId/plans   (aucune IA, 0 crédit)
+// ---------------------------------------------------------------------------
+export const createPlanController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+
+  const start = isoDate(req.body?.start);
+  const end = isoDate(req.body?.end);
+  if (!start || !end) {
+    res.status(400).json({ message: 'start and end are required (YYYY-MM-DD)' });
+    return;
+  }
+
+  try {
+    const plan = await communicationService.createPlan(userId, projectId, {
+      name: (req.body?.name || '').toString(),
+      objective: (req.body?.objective || '').toString(),
+      start,
+      end,
+      kind: req.body?.kind === 'campaign' ? 'campaign' : 'regular',
+      postsPerWeek: Number(req.body?.postsPerWeek) || undefined,
+      channels: channels(req.body?.channels),
+    });
+    res.status(201).json(plan);
+  } catch (error: any) {
+    logger.error(`createPlanController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to create plan' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// GET /project/communication/:projectId/plans/:planId/generate   (SSE)
+// ---------------------------------------------------------------------------
+export const generatePlanStreamController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  const planId = requirePlanId(req, res);
+  if (!planId) return;
+
+  openSseStream(res);
+
+  try {
+    const plan = await communicationService.generatePlan(userId, projectId, planId, {
+      streamCallback: async (event: CommunicationStreamEvent) => {
+        writeEvent(res, event);
+      },
+    });
+    writeEvent(res, { type: 'complete', payload: { plan } });
+    res.end();
+  } catch (error: any) {
+    logger.error(`generatePlanStreamController error: ${error.message}`, { stack: error.stack });
+    writeEvent(res, { type: 'error', message: error.message });
+    res.end();
+  }
+};
+
+// ---------------------------------------------------------------------------
+// PUT /project/communication/:projectId/plans/:planId
+// ---------------------------------------------------------------------------
+export const updatePlanController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  const planId = requirePlanId(req, res);
+  if (!planId) return;
+
+  try {
+    const updated = await communicationService.updatePlan(userId, projectId, planId, {
+      name: req.body?.name,
+      objective: req.body?.objective,
+      start: isoDate(req.body?.start),
+      end: isoDate(req.body?.end),
+      postsPerWeek: req.body?.postsPerWeek !== undefined ? Number(req.body.postsPerWeek) : undefined,
+      channels: channels(req.body?.channels),
+      status: req.body?.status as PlanStatus | undefined,
+      brief: req.body?.brief,
+    });
+    if (!updated) {
+      res.status(404).json({ message: 'Plan not found' });
+      return;
+    }
+    res.status(200).json(updated);
+  } catch (error: any) {
+    logger.error(`updatePlanController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to update plan' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// DELETE /project/communication/:projectId/plans/:planId   (archive)
+// ---------------------------------------------------------------------------
+export const archivePlanController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  const planId = requirePlanId(req, res);
+  if (!planId) return;
+
+  try {
+    const archived = await communicationService.archivePlan(userId, projectId, planId);
+    if (!archived) {
+      res.status(404).json({ message: 'Plan not found' });
+      return;
+    }
+    res.status(200).json({ archived: true, planId });
+  } catch (error: any) {
+    logger.error(`archivePlanController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to archive plan' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// PUT / POST / DELETE  …/plans/:planId/items[/:itemId]
+// ---------------------------------------------------------------------------
+export const updatePlanItemController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  const planId = requirePlanId(req, res);
+  if (!planId) return;
+  const itemId = req.params.itemId as string;
+  if (!itemId) {
+    res.status(400).json({ message: 'Item ID is required' });
+    return;
+  }
+
+  try {
+    const updated = await communicationService.updatePlanItem(
+      userId,
+      projectId,
+      planId,
+      itemId,
+      req.body || {}
+    );
+    if (!updated) {
+      res.status(404).json({ message: 'Plan or item not found' });
+      return;
+    }
+    res.status(200).json(updated);
+  } catch (error: any) {
+    logger.error(`updatePlanItemController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to update content' });
+  }
+};
+
+export const addPlanItemController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  const planId = requirePlanId(req, res);
+  if (!planId) return;
+
+  const title = (req.body?.title || '').toString().trim();
+  if (!title) {
+    res.status(400).json({ message: 'title is required' });
+    return;
+  }
+
+  try {
+    const item = await communicationService.addPlanItem(userId, projectId, planId, {
+      ...req.body,
+      title,
+    });
+    if (!item) {
+      res.status(404).json({ message: 'Plan not found' });
+      return;
+    }
+    res.status(201).json(item);
+  } catch (error: any) {
+    logger.error(`addPlanItemController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to add content' });
+  }
+};
+
+export const removePlanItemController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  const planId = requirePlanId(req, res);
+  if (!planId) return;
+  const itemId = req.params.itemId as string;
+
+  try {
+    const removed = await communicationService.removePlanItem(userId, projectId, planId, itemId);
+    if (!removed) {
+      res.status(404).json({ message: 'Content not found' });
+      return;
+    }
+    res.status(200).json({ removed: true, itemId });
+  } catch (error: any) {
+    logger.error(`removePlanItemController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to remove content' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// GET /project/communication/:projectId/occasions?from&to
+// ---------------------------------------------------------------------------
+export const getOccasionsController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+
+  const from = isoDate(queryString(req.query.from));
+  const to = isoDate(queryString(req.query.to));
+  if (!from || !to) {
+    res.status(400).json({ message: 'from and to are required (YYYY-MM-DD)' });
+    return;
+  }
+
+  try {
+    const occasions = await communicationService.getOccasions(userId, projectId, from, to, {
+      force: req.query.force === 'true',
+    });
+    res.status(200).json(occasions);
+  } catch (error: any) {
+    logger.error(`getOccasionsController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to list occasions' });
+  }
+};
+
+// ===========================================================================
+// BIBLIOTHÈQUE DE VISUELS
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// GET /project/communication/:projectId/visuals
+// ---------------------------------------------------------------------------
+export const listVisualsController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+
+  try {
+    const visuals = await communicationService.listVisuals(userId, projectId, {
+      planId: queryString(req.query.planId),
+      format: queryString(req.query.format) as FlyerFormat | undefined,
+      origin: queryString(req.query.origin) as VisualOrigin | undefined,
+    });
+    res.status(200).json(visuals);
+  } catch (error: any) {
+    logger.error(`listVisualsController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to list visuals' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// GET /project/communication/:projectId/visuals/:visualId   (HTML compris)
+// ---------------------------------------------------------------------------
+export const getVisualController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  const visualId = req.params.visualId as string;
+
+  try {
+    const visual = await communicationService.getVisual(userId, projectId, visualId);
+    if (!visual) {
+      res.status(404).json({ message: 'Visual not found' });
+      return;
+    }
+    res.status(200).json(visual);
+  } catch (error: any) {
+    logger.error(`getVisualController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to read visual' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// POST /project/communication/:projectId/visuals   (visuel libre, depuis un brief)
+// ---------------------------------------------------------------------------
+export const createVisualController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+
+  const brief = (req.body?.brief || '').toString().trim();
+  if (!brief) {
+    res.status(400).json({ message: 'brief is required' });
+    return;
+  }
+
+  const variants = Math.min(3, Math.max(1, Number(req.body?.variants) || 1));
+  const input = {
+    brief,
+    format: (req.body?.format || 'square') as FlyerFormat,
+    intent: req.body?.intent as VisualIntent | undefined,
+    withPhoto: req.body?.withPhoto !== false,
+  };
+
+  try {
+    const visuals =
+      variants > 1
+        ? await communicationService.createVisualVariants(userId, projectId, {
+            ...input,
+            count: variants,
+          })
+        : [await communicationService.createVisualFromBrief(userId, projectId, input)];
+    res.status(201).json(visuals);
+  } catch (error: any) {
+    logger.error(`createVisualController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to create visual' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// POST /project/communication/:projectId/visuals/:visualId/declinate
+// ---------------------------------------------------------------------------
+export const declinateVisualController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  const visualId = req.params.visualId as string;
+
+  const formats = Array.isArray(req.body?.formats) ? (req.body.formats as FlyerFormat[]) : [];
+  if (!formats.length) {
+    res.status(400).json({ message: 'formats is required' });
+    return;
+  }
+
+  try {
+    const created = await communicationService.declinateVisual(
+      userId,
+      projectId,
+      visualId,
+      formats
+    );
+    res.status(201).json(created);
+  } catch (error: any) {
+    logger.error(`declinateVisualController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to declinate visual' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// POST /project/communication/:projectId/visuals/:visualId/schedule
+// ---------------------------------------------------------------------------
+export const scheduleVisualController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  const visualId = req.params.visualId as string;
+
+  const planId = (req.body?.planId || '').toString();
+  const date = isoDate(req.body?.date);
+  if (!planId || !date) {
+    res.status(400).json({ message: 'planId and date (YYYY-MM-DD) are required' });
+    return;
+  }
+
+  try {
+    const item = await communicationService.scheduleVisual(userId, projectId, {
+      visualId,
+      planId,
+      date,
+      channel: req.body?.channel as ContentChannel | undefined,
+      caption: req.body?.caption,
+    });
+    if (!item) {
+      res.status(404).json({ message: 'Plan or visual not found' });
+      return;
+    }
+    res.status(200).json(item);
+  } catch (error: any) {
+    logger.error(`scheduleVisualController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to schedule visual' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// DELETE /project/communication/:projectId/visuals/:visualId
+// ---------------------------------------------------------------------------
+export const deleteVisualController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  const visualId = req.params.visualId as string;
+  if (!visualId) {
+    res.status(400).json({ message: 'Visual ID is required' });
+    return;
+  }
+
+  try {
+    const removed = await communicationService.deleteVisual(userId, projectId, visualId);
+    if (!removed) {
+      res.status(404).json({ message: 'Visual not found' });
+      return;
+    }
+    res.status(200).json({ deleted: true, visualId });
+  } catch (error: any) {
+    logger.error(`deleteVisualController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to delete visual' });
+  }
+};
+
+// ===========================================================================
+// ATELIER
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// GET /project/communication/:projectId/studio
+// ---------------------------------------------------------------------------
+export const getStudioController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+
+  try {
+    const conversation = await studioService.getConversation(userId, projectId);
+    res.status(200).json(conversation);
+  } catch (error: any) {
+    logger.error(`getStudioController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to read the studio conversation' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// DELETE /project/communication/:projectId/studio
+// ---------------------------------------------------------------------------
+export const clearStudioController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+
+  try {
+    await studioService.clearConversation(userId, projectId);
+    res.status(200).json({ cleared: true });
+  } catch (error: any) {
+    logger.error(`clearStudioController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to clear the conversation' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// POST /project/communication/:projectId/studio/message   (SSE)
+//
+// Un tour de chat peut produire un visuel : une à trois minutes. Le flux SSE
+// sert la latence PERÇUE — l'utilisateur voit l'étape en cours, puis le visuel
+// apparaître avant le message qui l'accompagne.
+//
+// La facturation est portée par l'OUTIL appelé, pas par la route : converser est
+// gratuit, produire se paie (cf. `StudioService`).
+// ---------------------------------------------------------------------------
+export const studioMessageController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+
+  const content = (req.body?.content || '').toString().trim();
+  if (!content) {
+    res.status(400).json({ message: 'content is required' });
+    return;
+  }
+
+  openSseStream(res);
+
+  try {
+    const reply = await studioService.sendMessage(userId, projectId, content, async (event) => {
+      writeEvent(res, event);
+    });
+    writeEvent(res, {
+      type: 'complete',
+      payload: {
+        userMessage: reply.userMessage,
+        assistantMessage: reply.assistantMessage,
+        visuals: reply.visuals,
+      },
+    });
+    res.end();
+  } catch (error: any) {
+    if (error instanceof InsufficientCreditsError) {
+      // Le refus voyage DANS le flux : la réponse a déjà ses en-têtes SSE, donc
+      // un 402 ne pourrait plus être émis. Le front le traduit en invitation à
+      // recharger, comme le 402 du middleware.
+      writeEvent(res, {
+        type: 'error',
+        code: 'payment_required',
+        message: 'insufficient_credits',
+        cost: error.cost,
+        balance: error.balance,
+      });
+      res.end();
+      return;
+    }
+    logger.error(`studioMessageController error: ${error.message}`, { stack: error.stack });
+    writeEvent(res, { type: 'error', message: error.message });
+    res.end();
   }
 };

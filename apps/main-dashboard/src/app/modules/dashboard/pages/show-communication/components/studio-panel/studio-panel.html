@@ -1,0 +1,179 @@
+<section class="sp-wrap">
+  <!-- ─────────────── Fil de conversation ─────────────── -->
+  <div class="sp-thread">
+    @if (isLoading()) {
+      <p class="sp-loading" role="status">
+        <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+      </p>
+    } @else if (messages().length === 0) {
+      <!--
+        Fil vide : une question, pas un mode d'emploi. Les exemples REMPLISSENT la
+        saisie sans l'envoyer — on complète avec ce qui nous est propre.
+      -->
+      <div class="sp-empty">
+        <i class="pi pi-sparkles sp-empty-icon" aria-hidden="true"></i>
+        <h2 class="sp-empty-title">
+          {{ 'dashboard.showCommunication.studio.empty.title' | translate }}
+        </h2>
+        <p class="sp-empty-body">
+          {{ 'dashboard.showCommunication.studio.empty.body' | translate }}
+        </p>
+        <p class="sp-empty-example">
+          {{ 'dashboard.showCommunication.studio.empty.example' | translate }}
+        </p>
+        <ul class="sp-starters">
+          @for (starter of starters; track starter) {
+            <li>
+              <button type="button" class="sp-starter" (click)="useStarter(starter)">
+                <i class="pi pi-plus sp-starter-icon" aria-hidden="true"></i>
+                {{ 'dashboard.showCommunication.studio.starters.' + starter | translate }}
+              </button>
+            </li>
+          }
+        </ul>
+      </div>
+    } @else {
+      <ol class="sp-messages" aria-live="polite">
+        @for (message of messages(); track message.id) {
+          <li>
+            @if (message.role === 'user') {
+              <p class="sp-bubble-user">{{ message.content }}</p>
+            } @else {
+              <div class="sp-assistant">
+                <p class="sp-assistant-text">{{ message.content }}</p>
+
+                <!-- Visuels produits par ce tour : la vignette ouvre l'aperçu -->
+                @if (visualsOf(message).length > 0) {
+                  <ul
+                    class="sp-visuals"
+                    [class.sp-visuals-multi]="visualsOf(message).length > 1"
+                  >
+                    @for (visual of visualsOf(message); track visual.id) {
+                      <li>
+                        <button
+                          type="button"
+                          class="sp-visual"
+                          (click)="openDialog(visual)"
+                        >
+                          <app-visual-thumb
+                            [visual]="visual"
+                            [label]="
+                              'dashboard.showCommunication.library.previewAlt'
+                                | translate: { title: visual.marketingText.headline }
+                            "
+                          />
+                          <span class="sp-visual-open">
+                            <i class="pi pi-arrow-up-right" aria-hidden="true"></i>
+                            {{ 'dashboard.showCommunication.studio.openVisual' | translate }}
+                          </span>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+
+                <!-- Texte du post, prêt à coller -->
+                @if (message.caption) {
+                  <div class="sp-caption">
+                    <h3 class="sp-caption-label">
+                      {{ 'dashboard.showCommunication.studio.caption' | translate }}
+                    </h3>
+                    <p class="sp-caption-text">{{ message.caption }}</p>
+                    <button
+                      type="button"
+                      class="outer-button button-sm"
+                      (click)="copy(message.caption, message.id)"
+                    >
+                      @if (copiedId() === message.id) {
+                        <i class="pi pi-check" aria-hidden="true"></i>
+                        {{ 'dashboard.showCommunication.studio.copied' | translate }}
+                      } @else {
+                        <i class="pi pi-copy" aria-hidden="true"></i>
+                        {{ 'dashboard.showCommunication.studio.copy' | translate }}
+                      }
+                    </button>
+                  </div>
+                }
+
+                @if (message.creditsSpent) {
+                  <p class="sp-credits">
+                    {{
+                      'dashboard.showCommunication.studio.creditsSpent'
+                        | translate: { count: message.creditsSpent }
+                    }}
+                  </p>
+                }
+              </div>
+            }
+          </li>
+        }
+      </ol>
+    }
+
+    @if (isComposing()) {
+      <div class="sp-composing glass-card">
+        <app-visual-composing
+          [format]="composingFormat()"
+          [variants]="composingVariants()"
+        />
+      </div>
+    } @else if (isSending() && thinkingLabel()) {
+      <p class="sp-thinking" role="status" aria-live="polite">
+        <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+        <span>{{ thinkingLabel() | translate }}</span>
+      </p>
+    }
+  </div>
+
+  <!-- ─────────────── Saisie ─────────────── -->
+  <form class="sp-composer" (ngSubmit)="send()">
+    <div class="sp-composer-box glass-card">
+      <label class="sr-only" for="studio-input">
+        {{ 'dashboard.showCommunication.studio.inputLabel' | translate }}
+      </label>
+      <textarea
+        id="studio-input"
+        rows="2"
+        class="sp-input"
+        [attr.placeholder]="'dashboard.showCommunication.studio.placeholder' | translate"
+        [ngModel]="draft()"
+        (ngModelChange)="draft.set($event)"
+        name="studioDraft"
+        (keydown.enter)="onEnter($event)"
+      ></textarea>
+      <button
+        type="submit"
+        class="inner-button shrink-0"
+        [disabled]="isSending() || !draft().trim()"
+      >
+        @if (isSending()) {
+          <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+        } @else {
+          <i class="pi pi-arrow-up" aria-hidden="true"></i>
+        }
+        <span class="sr-only">{{ 'dashboard.showCommunication.studio.send' | translate }}</span>
+      </button>
+    </div>
+    <div class="sp-composer-foot">
+      <p class="sp-hint">{{ 'dashboard.showCommunication.studio.pricingHint' | translate }}</p>
+      @if (messages().length > 0) {
+        <button type="button" class="sp-clear" (click)="clear()">
+          {{ 'dashboard.showCommunication.studio.clear' | translate }}
+        </button>
+      }
+    </div>
+  </form>
+</section>
+
+<!-- ═══════════════ Aperçu d'un visuel ═══════════════ -->
+@if (openVisual(); as visual) {
+  <app-visual-dialog
+    [projectId]="projectId()"
+    [visual]="visual"
+    [fonts]="fonts()"
+    [plans]="plans()"
+    (closed)="closeDialog()"
+    (visualCreated)="visualCreated.emit($event)"
+    (failed)="failed.emit($event)"
+  />
+}

@@ -1,0 +1,8 @@
+/* ============================================================================
+   IDEM SIMULATOR — page shell
+   Every section owns its own styles; only the ambient backdrop lives here.
+   ============================================================================ */
+
+:host {
+  display: block;
+}

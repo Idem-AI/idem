@@ -1,0 +1,73 @@
+<section class="py-24 lg:py-32">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6">
+    <div class="grid items-start gap-12 lg:grid-cols-2 lg:gap-16">
+      <div>
+        <h2 class="text-3xl font-bold leading-tight text-balance text-text-primary sm:text-4xl lg:text-5xl" i18n="@@simulation.readout.title">
+          An index, never on its own
+        </h2>
+        <p class="mt-5 text-lg leading-relaxed text-pretty text-text-secondary" i18n="@@simulation.readout.body">
+          An index of 72 backed by solid data and an index of 72 riddled with uncertainty do not mean the same thing. IDEM always shows both together.
+        </p>
+
+        <dl class="mt-10 flex flex-col gap-6">
+          <div class="rounded-2xl border border-[var(--glass-border-subtle)] bg-[var(--glass-bg-subtle)] p-5">
+            <dt class="font-semibold text-text-primary" i18n="@@simulation.readout.robustness.term">Robustness</dt>
+            <dd class="mt-1 leading-relaxed text-text-secondary" i18n="@@simulation.readout.robustness.def">
+              How well the model keeps holding as the factors deteriorate.
+            </dd>
+          </div>
+          <div class="rounded-2xl border border-[var(--glass-border-subtle)] bg-[var(--glass-bg-subtle)] p-5">
+            <dt class="font-semibold text-text-primary" i18n="@@simulation.readout.confidence.term">Confidence level</dt>
+            <dd class="mt-1 leading-relaxed text-text-secondary" i18n="@@simulation.readout.confidence.def">
+              The quality of the data the analysis rests on, assumptions included.
+            </dd>
+          </div>
+          <div class="rounded-2xl border border-[var(--glass-border-subtle)] bg-[var(--glass-bg-subtle)] p-5">
+            <dt class="font-semibold text-text-primary" i18n="@@simulation.readout.uncertainties.term">Main uncertainties</dt>
+            <dd class="mt-1 leading-relaxed text-text-secondary" i18n="@@simulation.readout.uncertainties.def">
+              What the simulation could not establish, and what still has to be checked on the ground.
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      <!-- A real readout, not a marketing metric tile -->
+      <div class="glass-card rounded-3xl p-6 sm:p-8">
+        <p class="text-sm text-text-tertiary" i18n="@@simulation.readout.card.label">Simulated viability index</p>
+
+        <div class="mt-4 flex items-end gap-4">
+          <span class="text-6xl font-bold leading-none text-text-primary sm:text-7xl">72</span>
+          <span class="pb-2 text-xl text-text-tertiary">/ 100</span>
+        </div>
+
+        <div class="mt-6 h-2 w-full overflow-hidden rounded-full bg-[var(--glass-bg-subtle)]">
+          <div class="h-full rounded-full bg-linear-to-r from-primary to-accent-500" style="width: 72%"></div>
+        </div>
+
+        <dl class="mt-7 grid grid-cols-2 gap-5 border-t border-[var(--glass-border-subtle)] pt-6">
+          <div>
+            <dt class="text-sm text-text-tertiary" i18n="@@simulation.readout.card.robustness">Robustness</dt>
+            <dd class="mt-0.5 font-semibold text-text-primary" i18n="@@simulation.readout.card.robustnessValue">Medium to high</dd>
+          </div>
+          <div>
+            <dt class="text-sm text-text-tertiary" i18n="@@simulation.readout.card.confidence">Confidence</dt>
+            <dd class="mt-0.5 font-semibold text-text-primary" i18n="@@simulation.readout.card.confidenceValue">Medium</dd>
+          </div>
+        </dl>
+
+        <div class="mt-6 border-t border-[var(--glass-border-subtle)] pt-6">
+          <p class="text-sm text-text-tertiary" i18n="@@simulation.readout.card.uncertainties">Main uncertainties</p>
+          <ul class="mt-3 flex flex-wrap gap-2">
+            <li class="rounded-full border border-[var(--glass-border)] px-3 py-1 text-sm text-text-secondary" i18n="@@simulation.readout.card.u1">conversion rate</li>
+            <li class="rounded-full border border-[var(--glass-border)] px-3 py-1 text-sm text-text-secondary" i18n="@@simulation.readout.card.u2">real acquisition cost</li>
+            <li class="rounded-full border border-[var(--glass-border)] px-3 py-1 text-sm text-text-secondary" i18n="@@simulation.readout.card.u3">competitor response</li>
+          </ul>
+        </div>
+
+        <p class="mt-6 border-t border-[var(--glass-border-subtle)] pt-5 text-sm leading-relaxed text-text-tertiary" i18n="@@simulation.readout.card.caveat">
+          This index measures how robust the project is across the scenarios that were run. It is not a prediction of success.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>

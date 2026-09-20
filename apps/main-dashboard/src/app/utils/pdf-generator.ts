@@ -1,6 +1,5 @@
 import { jsPDF } from 'jspdf';
 import { marked } from 'marked';
-import TurndownService from 'turndown';
 
 async function convertSvgToBase64(svg: SVGSVGElement): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -130,8 +129,3 @@ export async function markdownToHtml(markdown: string): Promise<string> {
   return await marked(markdown);
 }
 
-const turndownService = new TurndownService();
-
-export function htmlToMarkdown(html: string): string {
-  return turndownService.turndown(html);
-}

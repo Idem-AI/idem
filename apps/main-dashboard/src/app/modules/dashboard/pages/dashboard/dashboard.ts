@@ -1,3 +1,4 @@
+import { hasGeneratedDeliverable } from '../../models/deliverable-document.model';
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { CookieService } from '../../../../shared/services/cookie.service';
@@ -7,7 +8,8 @@ import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
-import { UiModeService } from '../../../../shared/services/ui-mode.service';
+import { MODE_HOME_ROUTE, UiModeService } from '../../../../shared/services/ui-mode.service';
+import { TourService } from '../../../../shared/services/tour.service';
 import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
 
 @Component({
@@ -32,6 +34,7 @@ export class DashboardComponent implements OnInit {
   protected readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);
   private readonly uiModeService = inject(UiModeService);
+  private readonly tour = inject(TourService);
 
   readonly project = signal<ProjectModel | null>(null);
   readonly isLoading = signal<boolean>(true);
@@ -74,10 +77,19 @@ export class DashboardComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Si l'utilisateur est en mode chat, on le redirige par défaut vers l'interface de chat
-    if (this.uiModeService.mode() === 'chat') {
-      this.router.navigate(['/chat']);
+    // Le mode Chat a sa propre vue du projet : on y renvoie l'utilisateur.
+    // Le mode Assisté, lui, garde accès à cette page — la barre de parcours
+    // affichée au-dessus ramène au parcours en un clic.
+    const mode = this.uiModeService.mode();
+    if (mode === 'chat') {
+      this.router.navigateByUrl(MODE_HOME_ROUTE.chat);
       return;
+    }
+
+    // Le tableau de bord projet est le vrai lieu de travail du mode Avancé :
+    // c'est ici qu'on présente les outils, pas sur la liste des projets.
+    if (mode === 'advanced') {
+      void this.tour.maybeStart('advanced');
     }
 
     this.isLoading.set(true);
@@ -123,8 +135,8 @@ export class DashboardComponent implements OnInit {
     const analysis = proj.analysisResultModel;
 
     if (analysis.branding?.sections?.length > 0) completed++;
-    if (analysis.businessPlan) completed++;
-    if (analysis.pitchDeck) completed++;
+    if (hasGeneratedDeliverable(analysis, 'businessPlan')) completed++;
+    if (hasGeneratedDeliverable(analysis, 'pitchDeck')) completed++;
     if (analysis.finance) completed++;
     if (analysis.design?.createdAt || analysis.design?.updatedAt || analysis.design?.content || (analysis.design?.sections && analysis.design.sections.length > 0)) completed++;
     if (analysis.development?.configs?.mode || analysis.development?.configs?.generationType) completed++;
@@ -152,8 +164,8 @@ export class DashboardComponent implements OnInit {
     const analysis = proj.analysisResultModel;
     const states = [
       !!(analysis.branding?.sections?.length > 0),
-      !!analysis.businessPlan,
-      !!analysis.pitchDeck,
+      hasGeneratedDeliverable(analysis, 'businessPlan'),
+      hasGeneratedDeliverable(analysis, 'pitchDeck'),
       !!analysis.finance,
       !!(analysis.design?.createdAt || analysis.design?.updatedAt || analysis.design?.content || (analysis.design?.sections && analysis.design.sections.length > 0)),
       !!(analysis.development?.configs?.mode || analysis.development?.configs?.generationType)

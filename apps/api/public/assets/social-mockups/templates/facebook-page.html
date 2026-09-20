@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!-- Mockup IDEM · Page Facebook (bureau) · 1200 × 760. Emplacements : cf. ../README.md -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+{{{fontLinks}}}
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1200px;height:760px;overflow:hidden;background:#f0f2f5;font-family:'Inter',Helvetica,Arial,sans-serif;color:#050505;-webkit-font-smoothing:antialiased}
+svg{display:block}
+.top{position:relative;z-index:2;height:56px;background:#fff;display:flex;align-items:center;padding:0 16px;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.brandmark{width:40px;height:40px;border-radius:50%;background:#0866ff;display:flex;align-items:center;justify-content:center;flex:none}
+.search{margin-left:8px;width:240px;height:40px;border-radius:20px;background:#f0f2f5;display:flex;align-items:center;gap:8px;padding:0 12px;color:#65676b;font-size:15px}
+.nav{position:absolute;left:50%;top:0;transform:translateX(-50%);display:flex;height:56px}
+.nav div{width:112px;display:flex;align-items:center;justify-content:center;color:#65676b;position:relative}
+.nav .on{color:#0866ff}
+.nav .on:after{content:'';position:absolute;left:4px;right:4px;bottom:0;height:3px;background:#0866ff;border-radius:2px 2px 0 0}
+.right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.circle{width:40px;height:40px;border-radius:50%;background:#e4e6eb;display:flex;align-items:center;justify-content:center;color:#050505}
+.head{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.wrap{width:940px;margin:0 auto}
+.cover{width:940px;height:348px;border-radius:0 0 8px 8px;overflow:hidden;background:#dadde1}
+.row{position:relative;height:124px}
+.avatar{position:absolute;left:32px;top:-84px;width:176px;height:176px;border-radius:50%;border:4px solid #fff;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.avatar img{width:70%;height:70%;object-fit:contain}
+.id{position:absolute;left:228px;top:18px;right:330px}
+.name{font-size:32px;font-weight:700;line-height:38px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta{margin-top:4px;font-size:15px;color:#65676b;font-weight:600}
+.btns{position:absolute;right:16px;top:44px;display:flex;gap:8px}
+.btn{height:36px;border-radius:6px;padding:0 12px;display:flex;align-items:center;gap:6px;font-size:15px;font-weight:600;background:#e4e6eb;color:#050505}
+.btn.blue{background:#0866ff;color:#fff}
+.tabs{border-top:1px solid #ced0d4;margin:0 16px;display:flex;height:60px;align-items:stretch}
+.tabs div{padding:0 16px;display:flex;align-items:center;font-size:15px;font-weight:600;color:#65676b;position:relative}
+.tabs .on{color:#0866ff}
+.tabs .on:after{content:'';position:absolute;left:0;right:0;bottom:0;height:3px;background:#0866ff;border-radius:2px 2px 0 0}
+.body{width:940px;margin:16px auto 0;display:grid;grid-template-columns:372px 1fr;gap:16px;align-items:start;padding:0 16px}
+.card{background:#fff;border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.12);padding:14px 16px}
+.card h2{font-size:20px;font-weight:700;margin-bottom:12px}
+.bio{text-align:center;font-size:15px;line-height:20px;padding-bottom:14px;border-bottom:1px solid #ced0d4;margin-bottom:12px}
+.line{display:flex;align-items:center;gap:10px;font-size:15px;margin-top:10px;color:#050505;white-space:nowrap;overflow:hidden}
+.line span{overflow:hidden;text-overflow:ellipsis}
+.link{color:#0064d1}
+.post .phead{display:flex;gap:8px;align-items:center}
+.small{width:40px;height:40px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;flex:none}
+.small img{width:72%;height:72%;object-fit:contain}
+.pname{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ptime{font-size:13px;color:#65676b}
+.ptext{margin-top:12px;font-size:15px;line-height:20px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="brandmark"><svg width="22" height="22" viewBox="0 0 24 24"><path fill="#fff" d="M13.5 22v-8.1h2.7l.4-3.2h-3.1V8.7c0-.9.3-1.5 1.6-1.5h1.7V4.3c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2.3H7.3v3.2h2.8V22z"/></svg></div>
+  <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#65676b" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search Facebook</div>
+  <div class="nav">
+    <div class="on"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 2.5 11h2.8v9.5h5.2v-6h3v6h5.2V11h2.8z"/></svg></div>
+    <div><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z" fill="currentColor"/></svg></div>
+    <div><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h16l-1.5 11h-13z"/><path d="M8 9V7a4 4 0 0 1 8 0v2"/></svg></div>
+    <div><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M2.5 19c.6-3 2.8-4.5 5.5-4.5s4.9 1.5 5.5 4.5M13 15c.9-.4 1.9-.5 3-.5 2.7 0 4.9 1.5 5.5 4.5"/></svg></div>
+    <div><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="7" width="19" height="11" rx="5.5"/><path d="M7 11v3M5.5 12.5h3"/><circle cx="16" cy="12" r="1" fill="currentColor"/><circle cx="18" cy="14" r="1" fill="currentColor"/></svg></div>
+  </div>
+  <div class="right">
+    <div class="circle"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/></svg></div>
+    <div class="circle"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5C6.6 2.5 2.5 6.4 2.5 11.5c0 2.7 1.1 5 3 6.6V21l2.8-1.5c1.1.3 2.3.5 3.7.5 5.4 0 9.5-3.9 9.5-9S17.4 2.5 12 2.5zm1 12-2.4-2.6-4.7 2.6 5.2-5.5 2.5 2.6 4.6-2.6z"/></svg></div>
+    <div class="circle"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22a2.5 2.5 0 0 0 2.4-2h-4.8a2.5 2.5 0 0 0 2.4 2zm7-6v-5a7 7 0 0 0-5.5-6.8V3.5a1.5 1.5 0 0 0-3 0v.7A7 7 0 0 0 5 11v5l-2 2v1h18v-1z"/></svg></div>
+    <div class="small" style="background:{{avatarGround}}"><img src="{{avatarSrc}}" alt=""></div>
+  </div>
+</div>
+
+<div class="head">
+  <div class="wrap">
+    <div class="cover">{{{coverHtml}}}</div>
+    <div class="row">
+      <div class="avatar" style="background:{{avatarGround}}"><img src="{{avatarSrc}}" alt=""></div>
+      <div class="id">
+        <div class="name">{{brandName}}</div>
+        <div class="meta">12K followers · 38 following</div>
+      </div>
+      <div class="btns">
+        <div class="btn blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M2 21h4V9H2zm20-11a2 2 0 0 0-2-2h-6.3l1-4.6v-.3a1.5 1.5 0 0 0-.5-1.1L13.2 1 6.6 7.6A2 2 0 0 0 6 9v10a2 2 0 0 0 2 2h9a2 2 0 0 0 1.8-1.2l3-7.1c.1-.2.2-.5.2-.7z"/></svg>Follow</div>
+        <div class="btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="#050505"><path d="M12 2.5C6.6 2.5 2.5 6.4 2.5 11.5c0 2.7 1.1 5 3 6.6V21l2.8-1.5c1.1.3 2.3.5 3.7.5 5.4 0 9.5-3.9 9.5-9S17.4 2.5 12 2.5z"/></svg>Message</div>
+        <div class="btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="#050505"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></div>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="on">Posts</div><div>About</div><div>Mentions</div><div>Reviews</div><div>Followers</div><div>Photos</div><div>More ▾</div>
+    </div>
+  </div>
+</div>
+
+<div class="body">
+  <div class="card">
+    <h2>Intro</h2>
+    <div class="bio">{{bio}}</div>
+    <div class="line"><svg width="20" height="20" viewBox="0 0 24 24" fill="#8c939d"><circle cx="12" cy="12" r="10"/><path d="M11 10h2v7h-2zm0-4h2v2h-2z" fill="#fff"/></svg><span><b>Page</b> · {{category}}</span></div>
+    <div class="line"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8c939d" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.8 5.5 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.5-3.8-9S9.5 5.5 12 3z"/></svg><span class="link">facebook.com/{{handle}}</span></div>
+  </div>
+  <div class="card post">
+    <div class="phead">
+      <div class="small" style="background:{{avatarGround}}"><img src="{{avatarSrc}}" alt=""></div>
+      <div style="min-width:0"><div class="pname">{{brandName}}</div><div class="ptime">2h · <svg style="display:inline;vertical-align:-2px" width="12" height="12" viewBox="0 0 24 24" fill="#65676b"><circle cx="12" cy="12" r="10"/></svg></div></div>
+    </div>
+    <div class="ptext">{{postText}}</div>
+  </div>
+</div>
+</body>
+</html>

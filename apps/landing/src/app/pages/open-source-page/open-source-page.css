@@ -5,7 +5,6 @@
 
 .os-num {
   color: color-mix(in oklch, var(--color-primary) 55%, transparent);
-  letter-spacing: -0.05em;
   min-width: 2ch;
 }
 

@@ -21,6 +21,11 @@ export interface EditableSection {
   name: string;
   type: string;
   html: string;
+  /**
+   * Aperçu uniquement : page de remplacement (section manquante ou en échec)
+   * dessinée par l'hôte. Ni survol ni sélection ; seul son bouton agit.
+   */
+  placeholder?: boolean;
 }
 
 /** Dimensions de page d'un type de document (pour le calage écran = PDF). */
@@ -64,6 +69,39 @@ export interface EditorAttribute {
   value: string;
 }
 
+/**
+ * Mode du document iframe :
+ *  - `edit` : sélection, édition de texte au double-clic, glisser-déposer ;
+ *  - `preview` : même survol et même sélection, mais le contenu est intouchable.
+ *    Sert à la page d'affichage, qui renvoie vers l'éditeur.
+ */
+export type EditorMode = 'edit' | 'preview';
+
+/** Rectangle en pixels CSS du document iframe (échelle 1, avant zoom). */
+export interface ElementRect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+/** Position d'une page/section dans le document iframe (échelle 1). */
+export interface SectionLayout {
+  id: string;
+  top: number;
+  height: number;
+  left: number;
+  width: number;
+}
+
+/** Noms des paramètres d'URL du lien profond vers l'éditeur. */
+export const EDITOR_TARGET_PARAMS = {
+  section: 'section',
+  path: 'path',
+  /** Document ouvert, quand le projet en garde plusieurs (business plans, pitch decks). */
+  document: 'documentId',
+} as const;
+
 /** Infos de l'élément actuellement sélectionné dans l'iframe. */
 export interface EditorSelection {
   sectionId: string;
@@ -82,6 +120,8 @@ export interface EditorSelection {
   /** Tous les attributs HTML de l'élément (class, style, src, data-*, …). */
   attributes: EditorAttribute[];
   chart?: ChartConfigLite;
+  /** Boîte de l'élément dans le document iframe (ancre des menus contextuels). */
+  rect: ElementRect;
 }
 
 /* ------------------------------------------------------------------ */
@@ -94,8 +134,25 @@ export const HOST_TO_IFRAME = 'idem-editor-host';
 /** Messages émis par le runtime de l'iframe vers l'hôte Angular. */
 export type IframeMessage =
   | { source: typeof IFRAME_TO_HOST; type: 'ready' }
-  | { source: typeof IFRAME_TO_HOST; type: 'height'; height: number }
-  | { source: typeof IFRAME_TO_HOST; type: 'select'; selection: EditorSelection }
+  | { source: typeof IFRAME_TO_HOST; type: 'height'; height: number; sections: SectionLayout[] }
+  | { source: typeof IFRAME_TO_HOST; type: 'select'; selection: EditorSelection; reveal?: boolean }
+  /**
+   * Geste de zoom né DANS l'iframe (Ctrl/⌘ + molette, pincement, Ctrl/⌘ + =/-/0) :
+   * l'hôte ne voit aucun événement quand le pointeur survole l'iframe.
+   * `factor` multiplie le zoom ; `reset` revient à l'ajustement à la largeur.
+   * `x`/`y` : point d'ancrage en pixels du document iframe (échelle 1).
+   */
+  | {
+      source: typeof IFRAME_TO_HOST;
+      type: 'zoom-gesture';
+      factor: number;
+      reset?: boolean;
+      x?: number;
+      y?: number;
+    }
+  | { source: typeof IFRAME_TO_HOST; type: 'escape' }
+  /** Bouton d'action du document (`data-idem-action`), ex. « Régénérer » d'une page manquante. */
+  | { source: typeof IFRAME_TO_HOST; type: 'action'; action: string; name: string }
   | { source: typeof IFRAME_TO_HOST; type: 'deselect' }
   | { source: typeof IFRAME_TO_HOST; type: 'text-change'; sectionId: string; path: string; html: string }
   | {
@@ -114,7 +171,7 @@ export type HostMessage =
   | { source: typeof HOST_TO_IFRAME; type: 'apply-attr'; sectionId: string; path: string; name: string; value: string | null }
   | { source: typeof HOST_TO_IFRAME; type: 'move-node'; sectionId: string; path: string; toIndex: number }
   | { source: typeof HOST_TO_IFRAME; type: 'remove-node'; sectionId: string; path: string }
-  | { source: typeof HOST_TO_IFRAME; type: 'select-path'; sectionId: string; path: string }
+  | { source: typeof HOST_TO_IFRAME; type: 'select-path'; sectionId: string; path: string; reveal?: boolean }
   | { source: typeof HOST_TO_IFRAME; type: 'clear-selection' }
   | { source: typeof HOST_TO_IFRAME; type: 'set-theme'; dark: boolean };
 
@@ -170,12 +227,30 @@ export interface DocumentTypeAdapter {
   readonly fitRoot?: boolean;
   /** Préfixe des clés i18n (ex: 'dashboard.documentEditor'). */
   readonly i18nTitleKey: string;
-  /** Charge le document éditable du projet (sections + polices + titre). */
-  load(projectId: string): Observable<LoadedDocument>;
+  /**
+   * Charge le document éditable du projet (sections + polices + titre).
+   * `documentId` désigne le document quand le projet en garde plusieurs
+   * (business plans, pitch decks) ; absent, le plus récent.
+   */
+  load(projectId: string, documentId?: string | null): Observable<LoadedDocument>;
   /** Persiste l'ensemble des sections éditées. */
-  save(projectId: string, sections: EditableSection[]): Observable<unknown>;
+  save(projectId: string, sections: EditableSection[], documentId?: string | null): Observable<unknown>;
   /** Édition IA d'une section : renvoie le nouveau HTML. */
-  aiEdit(projectId: string, sectionId: string, instruction: string): Observable<{ html: string }>;
-  /** Route de retour vers la page d'affichage. */
+  aiEdit(
+    projectId: string,
+    sectionId: string,
+    instruction: string,
+    documentId?: string | null,
+  ): Observable<{ html: string }>;
+  /**
+   * Route de retour vers la page d'affichage. Un document parmi plusieurs
+   * s'affiche sous `backRoute/<documentId>`.
+   */
   readonly backRoute: string;
+  /** Route de l'éditeur de ce document (ouverte depuis l'aperçu). */
+  readonly editRoute?: string;
+  /** Nom du fichier PDF proposé au téléchargement. */
+  readonly pdfFileName?: string;
+  /** PDF final du document, produit par l'API (téléchargé à la demande). */
+  downloadPdf?(projectId: string, documentId?: string | null): Observable<Blob>;
 }

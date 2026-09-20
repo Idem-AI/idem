@@ -40,7 +40,7 @@
       <!-- Toolbar for year-based sections -->
       @if (['salesObjectives', 'amortization', 'compteExploitation', 'bilan', 'fluxTresorerie'].includes(sectionKey())) {
         <div class="flex items-center gap-2 mb-6">
-          <span class="text-xs text-text-tertiary uppercase tracking-wider font-semibold mr-2">Année :</span>
+          <span class="text-xs text-text-tertiary uppercase font-semibold mr-2">Année :</span>
           <div class="year-tabs">
             @for (year of yearLabels(); track $index) {
               <button class="year-tab" [class.active]="selectedYear() === $index" (click)="selectYear($index)">
@@ -398,6 +398,64 @@
             <div class="param-field">
               <label>CMPC / WACC (%)</label>
               <input type="number" [(ngModel)]="ratiosParams()!.cmpcPct" (ngModelChange)="markDirty()">
+              <small>Recalculé depuis la structure de financement si l'option ci-dessous est active.</small>
+            </div>
+            <div class="param-field">
+              <label>
+                <input type="checkbox" [(ngModel)]="ratiosParams()!.cmpcAuto" (ngModelChange)="markDirty()">
+                Déduire le CMPC de la structure de financement
+              </label>
+            </div>
+            <div class="param-field">
+              <label>Coût des fonds propres (%)</label>
+              <input type="number" [(ngModel)]="ratiosParams()!.costOfEquityPct" (ngModelChange)="markDirty()">
+            </div>
+            <div class="param-field">
+              <label>Nombre de parts sociales</label>
+              <input type="number" [(ngModel)]="ratiosParams()!.numberOfShares" (ngModelChange)="markDirty()">
+              <small>Sert au calcul de la valeur et du dividende par part.</small>
+            </div>
+          </div>
+        }
+        @case ('fiscalCalendar') {
+          <div class="param-grid">
+            <div class="param-field">
+              <label>Année d'ouverture du premier exercice</label>
+              <input type="number" [(ngModel)]="fiscalCalendar().firstYear" (ngModelChange)="markDirty()">
+              <small>Premier exercice : {{ yearLabels()[0] }}.</small>
+            </div>
+            <div class="param-field">
+              <label>Mois de clôture de l'exercice</label>
+              <select
+                [(ngModel)]="fiscalCalendar().fiscalYearEndMonth"
+                (ngModelChange)="markDirty()"
+                [disabled]="calendarYearEnforced()"
+              >
+                @for (name of monthNames; track name; let i = $index) {
+                  <option [value]="i + 1">{{ name }}</option>
+                }
+              </select>
+              <small>
+                @if (calendarYearEnforced()) {
+                  La juridiction du projet impose un exercice calé sur l'année civile :
+                  la clôture est fixée au 31 décembre et n'est pas modifiable.
+                } @else {
+                  La juridiction du projet laisse la société arrêter sa date de clôture.
+                  Une clôture hors décembre fait porter à l'exercice deux années civiles.
+                }
+              </small>
+            </div>
+            <div class="param-field">
+              <label>Mois de démarrage effectif de l'activité</label>
+              <select [(ngModel)]="fiscalCalendar().activityStartMonth" (ngModelChange)="markDirty()">
+                @for (name of monthNames; track name; let i = $index) {
+                  <option [value]="i + 1">{{ name }}</option>
+                }
+              </select>
+              <small>
+                {{ firstYearActiveMonths() }} mois d'exploitation sur le premier exercice
+                {{ yearLabels()[0] }} : c'est un exercice tronqué, non comparable à une année pleine.
+              </small>
             </div>
           </div>
         }
@@ -532,15 +590,15 @@
           <div class="grid md:grid-cols-3 gap-6">
             @if (computedData()?.ratios; as ratios) {
               <div class="glass p-5 rounded-xl text-center">
-                <div class="text-xs text-text-tertiary uppercase tracking-wide mb-2">Valeur Actuelle Nette (VAN)</div>
+                <div class="text-xs text-text-tertiary uppercase mb-2">Valeur Actuelle Nette (VAN)</div>
                 <div class="text-2xl font-bold text-text-primary">{{ formatCurrency(ratios.van) }}</div>
               </div>
               <div class="glass p-5 rounded-xl text-center">
-                <div class="text-xs text-text-tertiary uppercase tracking-wide mb-2">Taux de Rentabilité Interne (TRI)</div>
+                <div class="text-xs text-text-tertiary uppercase mb-2">Taux de Rentabilité Interne (TRI)</div>
                 <div class="text-2xl font-bold text-text-primary">{{ formatPercent(ratios.tri) }}</div>
               </div>
               <div class="glass p-5 rounded-xl text-center">
-                <div class="text-xs text-text-tertiary uppercase tracking-wide mb-2">Délai de Récupération (DRCI)</div>
+                <div class="text-xs text-text-tertiary uppercase mb-2">Délai de Récupération (DRCI)</div>
                 <div class="text-2xl font-bold text-text-primary">{{ ratios.drci }} ans</div>
               </div>
             }

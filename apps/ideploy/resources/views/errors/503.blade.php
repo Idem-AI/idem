@@ -2,7 +2,7 @@
 <div class="flex flex-col items-center justify-center h-full">
     <div>
         <p class="font-mono font-semibold text-7xl dark:text-warning">503</p>
-        <h1 class="mt-4 font-bold tracking-tight dark:text-white">We are working on serious things.</h1>
+        <h1 class="mt-4 font-bold dark:text-white">We are working on serious things.</h1>
         <p class="text-base leading-7 dark:text-neutral-400 text-black">Service Unavailable. Be right back. Thanks for
             your
             patience.

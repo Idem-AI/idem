@@ -1,11 +1,19 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError, shareReplay, tap } from 'rxjs/operators';
 import { environment } from '../../../../../environments/environment';
-import { BusinessPlanModel } from '../../models/businessPlan.model';
+import { BusinessPlanModel, BusinessPlanPdfQuality } from '../../models/businessPlan.model';
+import {
+  BusinessPlanStructure,
+  BusinessPlanStructureCatalog,
+} from '../../models/business-plan-structure.model';
 import { SSEService } from '../../../../shared/services/sse.service';
 import { SSEStepEvent, SSEConnectionConfig } from '../../../../shared/models/sse-step.model';
+import {
+  DeliverableDocumentSummary,
+  documentIdQuery,
+} from '../../models/deliverable-document.model';
 
 @Injectable({
   providedIn: 'root',
@@ -30,7 +38,9 @@ export class BusinessPlanService {
     projectId: string,
     additionalInfos?: any,
     force = false,
-    sections: string[] = []
+    sections: string[] = [],
+    /** Plan à générer ; absent, l'API retient le plan le plus récent. */
+    documentId?: string | null,
   ): Observable<SSEStepEvent> {
     console.log('Starting business plan generation with SSE...', {
       projectId,
@@ -43,6 +53,7 @@ export class BusinessPlanService {
     this.closeSSEConnection();
 
     const generationParams = new URLSearchParams();
+    if (documentId) generationParams.set('documentId', documentId);
     if (force) generationParams.set('force', 'true');
     if (sections.length > 0) generationParams.set('sections', sections.join(','));
 
@@ -189,8 +200,8 @@ export class BusinessPlanService {
    * @param projectId Project ID
    * @returns Observable with blob data for PDF download
    */
-  downloadBusinessPlanPdf(projectId: string): Observable<Blob> {
-    const pdfUrl = `${this.apiUrl}/pdf/${projectId}`;
+  downloadBusinessPlanPdf(projectId: string, documentId?: string | null): Observable<Blob> {
+    const pdfUrl = `${this.apiUrl}/pdf/${projectId}${documentIdQuery(documentId)}`;
 
     return this.http
       .get(pdfUrl, {
@@ -230,6 +241,108 @@ export class BusinessPlanService {
             (genericError as any).isRetryable = true;
             return genericError;
           });
+        }),
+      );
+  }
+
+  /** Plans du projet, en résumé (sans le HTML des sections). */
+  listBusinessPlans(projectId: string): Observable<DeliverableDocumentSummary[]> {
+    return this.http.get<DeliverableDocumentSummary[]>(`${this.apiUrl}/${projectId}/documents`);
+  }
+
+  /**
+   * Crée un plan vide sur la structure choisie ; la génération se lance ensuite
+   * avec son id. Les plans déjà rédigés ne sont pas touchés.
+   */
+  createBusinessPlan(
+    projectId: string,
+    body: { templateId: string; sectionKeys?: string[]; name?: string },
+  ): Observable<DeliverableDocumentSummary> {
+    return this.http.post<DeliverableDocumentSummary>(`${this.apiUrl}/${projectId}/documents`, body);
+  }
+
+  renameBusinessPlan(
+    projectId: string,
+    documentId: string,
+    name: string,
+  ): Observable<DeliverableDocumentSummary> {
+    return this.http.patch<DeliverableDocumentSummary>(
+      `${this.apiUrl}/${projectId}/documents/${encodeURIComponent(documentId)}`,
+      { name },
+    );
+  }
+
+  deleteBusinessPlan(projectId: string, documentId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiUrl}/${projectId}/documents/${encodeURIComponent(documentId)}`,
+    );
+  }
+
+  /**
+   * Catalogue des structures de plan : modèles prédéfinis (dossier bancaire,
+   * plan SBA, plan investisseur, subvention…) et sections composables.
+   *
+   * Le catalogue est le MÊME pour tout le monde et ne change qu'avec un
+   * déploiement : il est mémorisé pour la durée de la session plutôt que
+   * rappelé à chaque ouverture du sélecteur.
+   */
+  private structureCatalog$?: Observable<BusinessPlanStructureCatalog>;
+
+  getStructureCatalog(): Observable<BusinessPlanStructureCatalog> {
+    this.structureCatalog$ ??= this.http
+      .get<BusinessPlanStructureCatalog>(`${this.apiUrl}/structures`)
+      .pipe(
+        shareReplay({ bufferSize: 1, refCount: false }),
+        catchError((error) => {
+          // Un échec ne doit pas geler le cache : la tentative suivante doit
+          // repartir sur une vraie requête.
+          this.structureCatalog$ = undefined;
+          console.error('Error loading business plan structure catalog:', error);
+          return throwError(() => error);
+        }),
+      );
+    return this.structureCatalog$;
+  }
+
+  /** Structure actuellement retenue pour le projet (jamais vide côté API). */
+  getStructure(projectId: string, documentId?: string | null): Observable<BusinessPlanStructure> {
+    return this.http.get<BusinessPlanStructure>(
+      `${this.apiUrl}/${projectId}/structure${documentIdQuery(documentId)}`,
+    );
+  }
+
+  /**
+   * Enregistre la structure choisie AVANT de lancer la génération.
+   *
+   * `sectionKeys` omis = on adopte le sommaire du modèle tel quel. Fourni = le
+   * sommaire a été personnalisé, et l'API le revalide contre son catalogue.
+   */
+  saveStructure(
+    projectId: string,
+    templateId: string,
+    sectionKeys?: string[],
+    documentId?: string | null,
+  ): Observable<BusinessPlanStructure> {
+    return this.http.put<BusinessPlanStructure>(`${this.apiUrl}/${projectId}/structure${documentIdQuery(documentId)}`, {
+      templateId,
+      ...(sectionKeys ? { sectionKeys } : {}),
+    });
+  }
+
+  /**
+   * Get PDF quality metrics for a generated business plan.
+   * @param projectId Project ID
+   */
+  getBusinessPlanPdfQuality(
+    projectId: string,
+    documentId?: string | null,
+  ): Observable<BusinessPlanPdfQuality> {
+    return this.http
+      .get<BusinessPlanPdfQuality>(`${this.apiUrl}/pdf-quality/${projectId}${documentIdQuery(documentId)}`)
+      .pipe(
+        catchError((error) => {
+          console.error(`Error fetching PDF quality for project ${projectId}:`, error);
+          return throwError(() => error);
         }),
       );
   }

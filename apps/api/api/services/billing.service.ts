@@ -4,6 +4,7 @@ import {
   ALLOWED_INSTALLMENTS,
   ANNUAL_DISCOUNT_RATE,
   BILLING_ENGINES,
+  BUNDLE_COMPOSITION,
   BUNDLE_CREDIT_SPLIT,
   BUSINESS_CREDIT_COSTS,
   BillingEngine,
@@ -31,6 +32,7 @@ import {
   CreditLedgerEntry,
 } from '../schemas/billing.schema';
 import { User } from '../schemas/user.schema';
+import { creditLedgerService } from './billing/credit-ledger.service';
 
 /**
  * Moteur de facturation.
@@ -39,12 +41,15 @@ import { User } from '../schemas/user.schema';
  * moteurs à compteurs séparés, prix en F CFA, revenu mêlant abonnements et
  * achats ponctuels.
  *
- * **Aucun encaissement n'a lieu.** Mobile Money et carte sont déclarés comme
- * moyens de paiement mais rien n'est débité : `provider` vaut `manual` par
- * défaut, et `markInvoicePaid()` est le point d'entrée prévu pour le webhook
- * d'un futur prestataire. Tout le reste — catalogue, souscription, crédits,
- * émission de factures — est fonctionnel, pour que le panel admin mesure dès
- * maintenant le chiffre d'affaires face au coût des tokens.
+ * **L'encaissement est branché.** `services/payments/payment.service.ts`
+ * appelle `purchase()`, `subscribe()` et `applyRenewalPayment()` une fois le
+ * paiement confirmé auprès de pawaPay, en passant l'identifiant de la
+ * transaction — ce qui rend la livraison traçable et non rejouable (index
+ * unique `one_purchase_per_payment`).
+ *
+ * Les mouvements de crédits sont délégués à `creditLedgerService` : le solde y
+ * est tenu par un compteur atomique, seule façon de rendre le débit juste sous
+ * concurrence (voir l'en-tête de ce service).
  */
 
 /** Jour UTC `YYYY-MM-DD`. */
@@ -161,12 +166,16 @@ export class BillingService {
       providerCustomerId?: string;
       priceOverrideXaf?: number;
       startAt?: Date;
+      /** Paiement qui ouvre la période — rend la livraison traçable. */
+      paymentTransactionId?: string;
+      /** Statut initial : `trialing` pour un accès offert (bêta premium). */
+      status?: 'active' | 'trialing';
     } = {}
   ): Promise<BillingSubscriptionModel> {
     const product = await this.getProduct(productCode);
     if (!product) throw new Error(`Unknown billing product: ${productCode}`);
 
-    if (product.kind !== 'subscription' && product.kind !== 'bundle') {
+    if (product.kind !== 'subscription' && product.kind !== 'bundle' && product.kind !== 'addon') {
       throw new Error(`Product ${productCode} is not subscribable (kind: ${product.kind})`);
     }
 
@@ -184,37 +193,195 @@ export class BillingService {
     const start = options.startAt ?? new Date();
     const priceXaf = options.priceOverrideXaf ?? this.resolvePriceXaf(product, interval);
 
-    // Un bundle couvre plusieurs moteurs : on l'ancre sur `business`, et la
-    // répartition des crédits est faite par BUNDLE_CREDIT_SPLIT.
+    /**
+     * Un bundle est vendu comme un produit mais vécu comme trois abonnements.
+     *
+     * L'ancrer sur `business` — ce que faisait le code précédent — donnait à
+     * l'acheteur du Launch Pack ses crédits Business et rien d'autre : ni le
+     * plan AppGen, ni le plan iDeploy qu'il venait de payer. On ouvre donc une
+     * ligne par moteur, reliées par `bundleId`, et le prix reste porté par la
+     * première pour que le MRR compte le bundle une seule fois.
+     */
+    const composition = BUNDLE_COMPOSITION[productCode];
+
+    if (composition) {
+      const bundleId = `${productCode}:${Date.now()}`;
+      let head: BillingSubscriptionModel | null = null;
+
+      for (const [index, part] of composition.entries()) {
+        const partProduct = await this.getProduct(part.productCode);
+        if (!partProduct) {
+          logger.error(`Bundle ${productCode} references unknown product ${part.productCode}`);
+          continue;
+        }
+
+        const line = await this.createSubscriptionLine(userId, partProduct, {
+          engine: part.engine,
+          // Le prix total sur la première ligne, 0 sur les suivantes.
+          priceXaf: index === 0 ? priceXaf : 0,
+          interval,
+          installments,
+          start,
+          provider: options.provider ?? 'manual',
+          providerSubscriptionId: options.providerSubscriptionId,
+          providerCustomerId: options.providerCustomerId,
+          paymentTransactionId: options.paymentTransactionId,
+          status: options.status ?? 'active',
+          bundleId,
+          // Le palier utilisateur suit le bundle, pas ses composants.
+          subscriptionTier: index === 0 ? product.subscriptionTier : undefined,
+        });
+
+        if (index === 0) head = line;
+      }
+
+      logger.info(`User ${userId} subscribed to bundle ${productCode} (${priceXaf} XAF / ${interval})`);
+      if (!head) throw new Error(`Bundle ${productCode} could not be opened`);
+      return head;
+    }
+
     const engine: BillingEngine = product.engine ?? 'business';
 
-    await this.cancelActiveSubscription(userId, engine, 'replaced by a new subscription');
-
-    const subscription = await BillingSubscription.create({
-      userId,
+    const subscription = await this.createSubscriptionLine(userId, product, {
       engine,
-      productCode,
-      status: 'active',
       priceXaf,
       interval,
       installments,
-      currentPeriodStart: start,
-      currentPeriodEnd: addInterval(start, interval),
-      consecutivePeriods: 1,
+      start,
       provider: options.provider ?? 'manual',
       providerSubscriptionId: options.providerSubscriptionId,
       providerCustomerId: options.providerCustomerId,
+      paymentTransactionId: options.paymentTransactionId,
+      status: options.status ?? 'active',
+      subscriptionTier: product.subscriptionTier,
     });
 
-    if (product.subscriptionTier) {
+    logger.info(`User ${userId} subscribed to ${productCode} (${priceXaf} XAF / ${interval})`);
+    return subscription;
+  }
+
+  /**
+   * Ouvre une ligne d'abonnement sur un moteur : annule la précédente (l'index
+   * unique refuserait deux lignes actives sur le même moteur), crée la
+   * nouvelle et accorde ses crédits.
+   */
+  private async createSubscriptionLine(
+    userId: string,
+    product: BillingProductModel,
+    params: {
+      engine: BillingEngine;
+      priceXaf: number;
+      interval: BillingInterval;
+      installments: number;
+      start: Date;
+      provider: PaymentProvider;
+      providerSubscriptionId?: string;
+      providerCustomerId?: string;
+      paymentTransactionId?: string;
+      status: 'active' | 'trialing';
+      bundleId?: string;
+      subscriptionTier?: BillingProductModel['subscriptionTier'];
+    }
+  ): Promise<BillingSubscriptionModel> {
+    await this.cancelActiveSubscription(userId, params.engine, 'replaced by a new subscription');
+
+    const subscription = await BillingSubscription.create({
+      userId,
+      engine: params.engine,
+      productCode: product.code,
+      status: params.status,
+      priceXaf: params.priceXaf,
+      interval: params.interval,
+      installments: params.installments,
+      currentPeriodStart: params.start,
+      currentPeriodEnd: addInterval(params.start, params.interval),
+      consecutivePeriods: 1,
+      provider: params.provider,
+      providerSubscriptionId: params.providerSubscriptionId,
+      providerCustomerId: params.providerCustomerId,
+      paymentTransactionId: params.paymentTransactionId,
+      bundleId: params.bundleId,
+    });
+
+    if (params.subscriptionTier) {
       // Le palier lu par les quotas de l'API suit le produit souscrit.
-      await User.updateOne({ uid: userId }, { $set: { subscription: product.subscriptionTier } });
+      await User.updateOne({ uid: userId }, { $set: { subscription: params.subscriptionTier } });
     }
 
     await this.grantSubscriptionCredits(userId, product, String(subscription._id), 1);
 
-    logger.info(`User ${userId} subscribed to ${productCode} (${priceXaf} XAF / ${interval})`);
     return { ...subscription.toObject(), id: String(subscription._id) } as BillingSubscriptionModel;
+  }
+
+  /**
+   * Applique le paiement d'une période à un abonnement existant.
+   *
+   * Appelée par l'orchestrateur quand un renouvellement (ou une échéance
+   * annuelle) est encaissé : la fenêtre glisse, les crédits de la période sont
+   * accordés avec le bonus de fidélité, la facture de la période est marquée
+   * payée et la tolérance d'impayé est levée.
+   */
+  async applyRenewalPayment(
+    subscriptionId: string,
+    paymentTransactionId: string
+  ): Promise<BillingSubscriptionModel | null> {
+    const subscription = await BillingSubscription.findById(subscriptionId);
+    if (!subscription) return null;
+
+    const product = await this.getProduct(subscription.productCode);
+    const periodNumber = (subscription.consecutivePeriods ?? 1) + 1;
+
+    // La nouvelle période part de la fin de l'ancienne quand celle-ci n'est pas
+    // encore écoulée (paiement anticipé), sinon de maintenant — un abonné qui
+    // règle avec trois jours de retard ne perd pas trois jours.
+    const now = new Date();
+    const nextStart =
+      subscription.currentPeriodEnd > now ? subscription.currentPeriodEnd : now;
+
+    await BillingSubscription.updateOne(
+      { _id: subscriptionId },
+      {
+        $set: {
+          status: 'active',
+          currentPeriodStart: nextStart,
+          currentPeriodEnd: addInterval(nextStart, subscription.interval),
+          consecutivePeriods: periodNumber,
+          paymentTransactionId,
+          provider: 'pawapay',
+        },
+        $unset: { graceEndsAt: '', lastReminderAt: '' },
+      }
+    );
+
+    if (product) {
+      await this.grantSubscriptionCredits(
+        subscription.userId,
+        product,
+        subscriptionId,
+        periodNumber
+      );
+    }
+
+    // La facture de la période écoulée passe à « payée ». `findOneAndUpdate`
+    // et non `updateOne` : seule la plus récente des factures ouvertes est
+    // réglée par ce paiement, et `updateOne` ne sait pas trier.
+    await BillingInvoice.findOneAndUpdate(
+      { subscriptionId, status: { $in: ['open', 'draft'] } },
+      {
+        $set: {
+          status: 'paid',
+          paidAt: new Date(),
+          provider: 'pawapay',
+          paymentTransactionId,
+        },
+      },
+      { sort: { issuedAt: -1 } }
+    );
+
+    logger.info(`Subscription ${subscriptionId} renewed (period ${periodNumber})`);
+
+    const updated = await BillingSubscription.findById(subscriptionId).lean();
+    return updated ? ({ ...updated, id: String(updated._id) } as BillingSubscriptionModel) : null;
   }
 
   /**
@@ -393,6 +560,8 @@ export class BillingService {
       provider?: PaymentProvider;
       providerPaymentId?: string;
       priceOverrideXaf?: number;
+      /** Paiement à l'origine de l'achat — index unique : une livraison par paiement. */
+      paymentTransactionId?: string;
     } = {}
   ): Promise<BillingPurchaseModel> {
     const product = await this.getProduct(productCode);
@@ -427,6 +596,7 @@ export class BillingService {
       expiresAt,
       provider: options.provider ?? 'manual',
       providerPaymentId: options.providerPaymentId,
+      paymentTransactionId: options.paymentTransactionId,
       day: dayKey(now),
     });
 
@@ -454,6 +624,10 @@ export class BillingService {
       engine,
       amountXaf: priceXaf,
       provider: options.provider ?? 'manual',
+      paymentTransactionId: options.paymentTransactionId,
+      // Un achat encaissé produit une facture déjà payée : elle ne passe pas
+      // par l'état « à payer », qui n'aurait duré que le temps d'un aller-retour.
+      status: options.paymentTransactionId ? 'paid' : undefined,
     });
 
     logger.info(`User ${userId} purchased ${productCode} (${priceXaf} XAF)`);
@@ -520,6 +694,7 @@ export class BillingService {
     periodEnd?: Date;
     provider?: PaymentProvider;
     status?: BillingInvoiceModel['status'];
+    paymentTransactionId?: string;
   }): Promise<BillingInvoiceModel | null> {
     const issuedAt = new Date();
     const xafPerUsd = getXafPerUsd();
@@ -543,7 +718,9 @@ export class BillingService {
         periodEnd: params.periodEnd,
         day: dayKey(issuedAt),
         issuedAt,
+        paidAt: params.status === 'paid' ? issuedAt : undefined,
         provider: params.provider ?? 'manual',
+        paymentTransactionId: params.paymentTransactionId,
       });
 
       logger.info(`Invoice ${invoice.number} issued for ${params.userId}: ${params.amountXaf} XAF`);
@@ -577,6 +754,22 @@ export class BillingService {
     return `${prefix}-${String(seq).padStart(6, '0')}`;
   }
 
+  /**
+   * Factures d'un utilisateur, de la plus récente à la plus ancienne.
+   *
+   * Les brouillons sont écartés : une facture `draft` est un état interne de
+   * l'émission, pas un document que le client doit voir apparaître puis
+   * disparaître de son historique.
+   */
+  async listInvoices(userId: string, limit = 100): Promise<BillingInvoiceModel[]> {
+    const invoices = await BillingInvoice.find({ userId, status: { $ne: 'draft' } })
+      .sort({ issuedAt: -1 })
+      .limit(limit)
+      .lean();
+
+    return invoices.map((invoice: any) => ({ ...invoice, id: String(invoice._id) }));
+  }
+
   /** Marque une facture payée. Point d'entrée du futur webhook Mobile Money. */
   async markInvoicePaid(
     invoiceId: string,
@@ -602,26 +795,20 @@ export class BillingService {
   // ============================================
 
   /**
-   * Solde du compteur d'un moteur.
+   * Les mouvements de crédits passent tous par `creditLedgerService`.
    *
-   * Lu depuis la DERNIÈRE écriture (`balanceAfter`) de ce moteur plutôt que par
-   * une somme de tous les `delta` : O(1) sur un livre qui ne fait que grandir.
+   * Ces méthodes restent ici pour les appelants historiques, mais elles ne
+   * font que déléguer : le solde vit désormais dans `credit_balances`, où un
+   * `$inc` conditionnel garantit qu'un débit concurrent ne peut pas être
+   * offert. Le grand livre reste l'historique.
    */
   async getCreditBalance(userId: string, engine: BillingEngine): Promise<number> {
-    const last = await CreditLedgerEntry.findOne({ userId, engine })
-      .sort({ createdAt: -1, _id: -1 })
-      .select('balanceAfter')
-      .lean();
-
-    return last?.balanceAfter ?? 0;
+    return creditLedgerService.getBalance(userId, engine);
   }
 
   /** Soldes des trois compteurs. */
   async getAllCreditBalances(userId: string): Promise<Record<BillingEngine, number>> {
-    const balances = await Promise.all(
-      BILLING_ENGINES.map(async (engine) => [engine, await this.getCreditBalance(userId, engine)] as const)
-    );
-    return Object.fromEntries(balances) as Record<BillingEngine, number>;
+    return creditLedgerService.getAllBalances(userId);
   }
 
   async grantCredits(
@@ -636,17 +823,17 @@ export class BillingService {
       expiresAt?: Date;
     } = {}
   ): Promise<number> {
-    if (amount <= 0) throw new Error('Credit grant must be positive');
-    return this.appendLedgerEntry(userId, engine, amount, reason, options);
+    return creditLedgerService.grant(userId, engine, amount, reason, options);
   }
 
   /**
    * Débite le compteur d'un moteur pour un livrable.
    *
-   * Renvoie `{ allowed: false }` sans écrire quand le solde est insuffisant :
-   * c'est à l'appelant de refuser la génération. **Aucun appelant ne l'invoque
-   * encore** — l'offre créditée n'est pas activée. Voir docs/BILLING.md pour la
-   * mise en service (et la précaution de concurrence à prendre alors).
+   * Renvoie `{ allowed: false }` sans rien écrire quand le solde est
+   * insuffisant : c'est à l'appelant de refuser la génération. Le contrôle de
+   * solde et le débit ne forment qu'une seule opération atomique, donc deux
+   * générations lancées simultanément sont facturées deux fois — ce qui
+   * n'était pas le cas avant.
    */
   async debitCredits(
     userId: string,
@@ -659,22 +846,8 @@ export class BillingService {
       element?: string;
       aiUsageEventId?: string;
     } = {}
-  ): Promise<{ allowed: boolean; cost: number; balance: number }> {
-    const balance = await this.getCreditBalance(userId, engine);
-
-    if (balance < cost) {
-      logger.warn(
-        `Insufficient ${engine} credits for ${userId}: needs ${cost} for "${action}", has ${balance}`
-      );
-      return { allowed: false, cost, balance };
-    }
-
-    const newBalance = await this.appendLedgerEntry(userId, engine, -cost, 'consumption', {
-      action,
-      ...context,
-    });
-
-    return { allowed: true, cost, balance: newBalance };
+  ): Promise<{ allowed: boolean; cost: number; balance: number; ledgerEntryId?: string }> {
+    return creditLedgerService.debit(userId, engine, cost, { action, ...context });
   }
 
   /** Débit d'un livrable Business, au barème de la page publique. */
@@ -682,38 +855,8 @@ export class BillingService {
     userId: string,
     action: keyof typeof BUSINESS_CREDIT_COSTS,
     context: { projectId?: string; feature?: string; element?: string; aiUsageEventId?: string } = {}
-  ): Promise<{ allowed: boolean; cost: number; balance: number }> {
+  ): Promise<{ allowed: boolean; cost: number; balance: number; ledgerEntryId?: string }> {
     return this.debitCredits(userId, 'business', action, BUSINESS_CREDIT_COSTS[action], context);
-  }
-
-  /**
-   * Ajoute une écriture et renvoie le nouveau solde du moteur.
-   *
-   * Le solde est relu juste avant l'écriture : deux débits concurrents peuvent
-   * donc calculer le même `balanceAfter`. Acceptable tant que le débit n'est
-   * pas branché ; à l'activation, passer par une transaction ou un compteur
-   * atomique par (utilisateur, moteur).
-   */
-  private async appendLedgerEntry(
-    userId: string,
-    engine: BillingEngine,
-    delta: number,
-    reason: CreditEntryReason,
-    extra: Record<string, unknown> = {}
-  ): Promise<number> {
-    const balanceAfter = (await this.getCreditBalance(userId, engine)) + delta;
-
-    await CreditLedgerEntry.create({
-      userId,
-      engine,
-      delta,
-      balanceAfter,
-      reason,
-      day: dayKey(),
-      ...extra,
-    });
-
-    return balanceAfter;
   }
 
   /** Relevé de crédits d'un moteur, le plus récent d'abord. */
@@ -721,14 +864,8 @@ export class BillingService {
     userId: string,
     engine?: BillingEngine,
     limit = 100
-  ): Promise<any[]> {
-    const filter: Record<string, any> = { userId };
-    if (engine) filter.engine = engine;
-
-    return CreditLedgerEntry.find(filter)
-      .sort({ createdAt: -1 })
-      .limit(Math.min(Math.max(limit, 1), 500))
-      .lean();
+  ): Promise<Record<string, unknown>[]> {
+    return creditLedgerService.getStatement(userId, engine, limit);
   }
 }
 

@@ -67,9 +67,10 @@ const OPTIONAL_SECRETS = [
   'GITHUB_CLIENT_ID',
   'GITHUB_CLIENT_SECRET',
   'PEXELS_API_KEY',
-  // Clé Google Cloud avec l'API Web Fonts activée : alimente /fonts (catalogue
-  // Google Fonts servi au dashboard). Absente ⇒ /fonts répond 503 et le front
-  // bascule sur sa liste intégrée.
+  // Clé Google Cloud avec l'API Web Fonts activée : alimente la part Google du
+  // catalogue servi par /fonts. Absente, la recherche fonctionne quand même —
+  // Fontshare, Fontsource et les polices importées répondent sans clé — mais
+  // les ~1900 familles de Google manquent à la liste.
   'GOOGLE_FONTS_API_KEY',
   'SMTP_PASS',
   'IDEPLOY_SHARED_SECRET',
@@ -100,6 +101,28 @@ export async function loadSecrets(): Promise<void> {
   expandEnvVars();
   validateRequired();
   normalize();
+  await invalidateEnvDerivedCaches();
+}
+
+/**
+ * Drop every configuration that was resolved from process.env BEFORE this
+ * point.
+ *
+ * Modules are imported before bootstrap() awaits loadSecrets(), so any of them
+ * that resolves configuration at import time reads a half-loaded environment:
+ * .env is already there, .env.secret is not. The Gemini backend memoises its
+ * resolution, so a single import-time lookup froze it with a missing API key
+ * and every generation failed afterwards with "GEMINI_API_KEY est absente" —
+ * while the key was in fact loaded a few milliseconds later.
+ *
+ * Invalidating here costs one object rebuild and removes the whole class of
+ * bug: whatever was resolved too early is simply resolved again, now that the
+ * environment is complete. Imported dynamically so this module keeps no static
+ * dependency on the AI registry.
+ */
+async function invalidateEnvDerivedCaches(): Promise<void> {
+  const { resetGeminiBackend } = await import('./ai-providers.config');
+  resetGeminiBackend();
 }
 
 function expandEnvVars(): void {
@@ -207,15 +230,4 @@ function normalize(): void {
   if (process.env.FIREBASE_PRIVATE_KEY) {
     process.env.FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
   }
-}
-
-/**
- * Returns a redacted snapshot of loaded secrets (for diagnostics).
- */
-export function getSecretsStatus(): Record<string, boolean> {
-  const status: Record<string, boolean> = {};
-  for (const k of [...REQUIRED_SECRETS, ...OPTIONAL_SECRETS]) {
-    status[k] = Boolean(process.env[k]);
-  }
-  return status;
 }

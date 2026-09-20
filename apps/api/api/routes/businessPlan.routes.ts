@@ -5,13 +5,22 @@ import {
   deleteBusinessPlanController,
   generateBusinessPlanStreamingController,
   generateBusinessPlanPdfController,
+  getBusinessPlanPdfQualityController,
   setAdditionalInfoController,
   saveBusinessPlanSectionsController,
   aiEditBusinessPlanSectionController,
+  getBusinessPlanStructureCatalogController,
+  getBusinessPlanStructureController,
+  setBusinessPlanStructureController,
+  listBusinessPlanDocumentsController,
+  createBusinessPlanDocumentController,
+  renameBusinessPlanDocumentController,
+  deleteBusinessPlanDocumentController,
 } from '../controllers/businessPlan.controller';
 import { authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
+import { firstThenRevision, requireCredits } from '../middleware/billing.middleware';
 import multer from 'multer';
 
 export const businessPlanRoutes = Router();
@@ -106,7 +115,251 @@ businessPlanRoutes.get(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  // 70 crédits pour le business plan ; le régénérer ensuite vaut une révision,
+  // sans quoi le barème punirait l'itération que le produit encourage.
+  requireCredits('business', 'business_plan', {
+    resolve: firstThenRevision('business', 'business_plan', 'revision'),
+  }),
   generateBusinessPlanStreamingController
+);
+
+// Structure catalog (templates + composable sections)
+/**
+ * @openapi
+ * /businessPlans/structures:
+ *   get:
+ *     tags:
+ *       - Business Plans
+ *     summary: List the available business plan structures and composable sections
+ *     description: >
+ *       Returns the predefined structures (SBA traditional plan, bank financing file,
+ *       seed-stage investor plan, grant application, lean canvas, ...), the closed catalog
+ *       of sections a custom structure may be composed from, and the bounds of the custom
+ *       composer. Labels are i18n keys resolved by the client.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Structure catalog.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 defaultTemplateId:
+ *                   type: string
+ *                 customTemplateId:
+ *                   type: string
+ *                 limits:
+ *                   type: object
+ *                   properties:
+ *                     min:
+ *                       type: integer
+ *                     max:
+ *                       type: integer
+ *                 templates:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 sections:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       '401':
+ *         description: Unauthorized.
+ */
+businessPlanRoutes.get(
+  `/${resourceName}/structures`,
+  authenticate,
+  getBusinessPlanStructureCatalogController
+);
+
+// Get / set the structure retained for a project's business plan
+/**
+ * @openapi
+ * /businessPlans/{projectId}/structure:
+ *   get:
+ *     tags:
+ *       - Business Plans
+ *     summary: Get the business plan structure retained for a project
+ *     description: Always resolves to an executable structure; a project that never chose one gets the default template.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: The retained structure.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/BusinessPlanStructure'
+ *       '401':
+ *         description: Unauthorized.
+ *       '404':
+ *         description: Project not found.
+ *   put:
+ *     tags:
+ *       - Business Plans
+ *     summary: Set the business plan structure for a project
+ *     description: >
+ *       Pass a templateId alone to adopt a predefined structure, or a templateId plus an
+ *       ordered sectionKeys array to compose a custom one. Keys are validated against the
+ *       catalog; unknown keys are dropped and a too-short list is rejected.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - templateId
+ *             properties:
+ *               templateId:
+ *                 type: string
+ *               sectionKeys:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       '200':
+ *         description: Structure saved.
+ *       '400':
+ *         description: Invalid structure.
+ *       '401':
+ *         description: Unauthorized.
+ *       '404':
+ *         description: Project not found.
+ */
+businessPlanRoutes.get(
+  `/${resourceName}/:projectId/structure`,
+  authenticate,
+  getBusinessPlanStructureController
+);
+
+businessPlanRoutes.put(
+  `/${resourceName}/:projectId/structure`,
+  authenticate,
+  setBusinessPlanStructureController
+);
+
+/*
+ * Un projet garde PLUSIEURS business plans. Les routes par projet (génération,
+ * lecture, structure, sections, PDF) acceptent `?documentId=` pour désigner le
+ * plan ; sans lui, elles agissent sur le plan le plus récemment modifié.
+ */
+
+/**
+ * @openapi
+ * /businessPlans/{projectId}/documents:
+ *   get:
+ *     tags:
+ *       - Business Plans
+ *     summary: List the business plans of a project (summaries, without section HTML)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: Business plan summaries (id, name, template, expected and completed sections).
+ *       '404':
+ *         description: Project not found.
+ *   post:
+ *     tags:
+ *       - Business Plans
+ *     summary: Create an empty business plan on a chosen structure
+ *     description: The structure is validated like `PUT /businessPlans/{projectId}/structure`. Generation comes next, with `documentId`.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - templateId
+ *             properties:
+ *               templateId:
+ *                 type: string
+ *               sectionKeys:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               name:
+ *                 type: string
+ *     responses:
+ *       '201':
+ *         description: Business plan created (summary).
+ *       '400':
+ *         description: Invalid structure.
+ *       '404':
+ *         description: Project not found.
+ */
+businessPlanRoutes.get(
+  `/${resourceName}/:projectId/documents`,
+  authenticate,
+  listBusinessPlanDocumentsController
+);
+businessPlanRoutes.post(
+  `/${resourceName}/:projectId/documents`,
+  authenticate,
+  createBusinessPlanDocumentController
+);
+
+/**
+ * @openapi
+ * /businessPlans/{projectId}/documents/{documentId}:
+ *   patch:
+ *     tags:
+ *       - Business Plans
+ *     summary: Rename a business plan
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *   delete:
+ *     tags:
+ *       - Business Plans
+ *     summary: Delete a business plan
+ *     security:
+ *       - bearerAuth: []
+ */
+businessPlanRoutes.patch(
+  `/${resourceName}/:projectId/documents/:documentId`,
+  authenticate,
+  renameBusinessPlanDocumentController
+);
+businessPlanRoutes.delete(
+  `/${resourceName}/:projectId/documents/:documentId`,
+  authenticate,
+  deleteBusinessPlanDocumentController
 );
 
 // Get a specific business plan by its project ID
@@ -274,6 +527,7 @@ businessPlanRoutes.post(
   authenticate,
   checkPolicyAcceptance,
   checkQuota,
+  requireCredits('business', 'revision'),
   aiEditBusinessPlanSectionController
 );
 
@@ -401,8 +655,8 @@ businessPlanRoutes.delete(
  */
 // Middleware pour augmenter le timeout pour la génération PDF
 const pdfTimeout = (req: any, res: any, next: any) => {
-  req.setTimeout(180000); // 3 minutes
-  res.setTimeout(180000); // 3 minutes
+  req.setTimeout(900000); // 15 min — le raisonnement triple la durée d'un appel
+  res.setTimeout(900000);
   next();
 };
 
@@ -411,6 +665,17 @@ businessPlanRoutes.get(
   authenticate,
   pdfTimeout,
   generateBusinessPlanPdfController
+);
+
+/**
+ * GET /businessPlans/pdf-quality/:projectId
+ * Retourne les sections dont au moins une page est sous-remplie dans le dernier PDF généré.
+ * Utilisé par le frontend pour proposer un retry ciblé par section.
+ */
+businessPlanRoutes.get(
+  `/${resourceName}/pdf-quality/:projectId`,
+  authenticate,
+  getBusinessPlanPdfQualityController
 );
 
 // Set additional information for a business plan project (with team member images upload)

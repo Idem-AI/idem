@@ -24,7 +24,10 @@
       "buttons": {
         "generate": "Générer l'identité de marque"
       },
-      "generationTime": "La génération prend 2-3 minutes"
+      "generationTime": "La génération prend 2-3 minutes",
+      "errors": {
+        "load": "La charte graphique n’a pas pu être chargée. Réessayez dans un instant."
+      }
     }
   }
 }

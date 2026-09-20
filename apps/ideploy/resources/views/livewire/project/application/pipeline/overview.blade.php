@@ -70,11 +70,11 @@
         <table class="w-full">
             <thead class="bg-gray-900/50 border-b border-gray-800">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Pipeline</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Triggered by</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Stages</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Pipeline</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Triggered by</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Stages</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-800">

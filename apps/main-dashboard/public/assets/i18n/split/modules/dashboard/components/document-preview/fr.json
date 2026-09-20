@@ -1,0 +1,80 @@
+{
+  "dashboard": {
+    "documentPreview": {
+      "canvasLabel": "Aperçu du document",
+      "pageCount": "{{count}} pages",
+      "hint": "Cliquez sur un élément pour le modifier",
+      "loading": "Préparation de l’aperçu…",
+      "error": "L’aperçu n’a pas pu être chargé. Rechargez la page pour réessayer.",
+      "empty": "Ce document ne contient encore aucune page.",
+      "popover": {
+        "label": "Actions sur l’élément",
+        "edit": "Éditer",
+        "close": "Fermer",
+        "regenerate": "Régénérer",
+        "regenerateAria": "Régénérer la section « {{section}} »"
+      },
+      "kinds": {
+        "page": "Page",
+        "chart": "Graphique",
+        "heading": "Titre",
+        "image": "Image",
+        "table": "Tableau",
+        "list": "Liste",
+        "text": "Texte",
+        "block": "Bloc"
+      },
+      "dock": {
+        "label": "Actions du document",
+        "previousPage": "Page précédente",
+        "nextPage": "Page suivante",
+        "pagesMenu": "Page {{current}} sur {{total}}, afficher la liste des pages",
+        "edit": "Éditer"
+      },
+      "download": {
+        "idle": "Télécharger",
+        "working": "Préparation…",
+        "done": "Téléchargé",
+        "error": "Échec, réessayer"
+      },
+      "status": {
+        "complete": "Génération complète",
+        "blockingOne": "1 section à régénérer",
+        "blockingMany": "{{count}} sections à régénérer",
+        "underfilledOne": "1 section sous-remplie",
+        "underfilledMany": "{{count}} sections sous-remplies",
+        "goTo": "Aller à la première section concernée"
+      },
+      "issues": {
+        "missing": "Manquante",
+        "error": "Échec",
+        "underfilled": "Sous-remplie"
+      },
+      "footer": {
+        "regenerate": "Régénérer",
+        "regenerateAria": "Régénérer la section « {{section}} »"
+      },
+      "regen": {
+        "button": "Régénérer",
+        "resume": "Compléter la génération",
+        "resumeDesc": "Génère les sections manquantes ou en échec ({{count}})",
+        "nothingToResume": "Toutes les sections sont déjà générées",
+        "all": "Tout régénérer",
+        "allDesc": "Relance la génération de chaque section",
+        "confirm": "Confirmer : tout régénérer",
+        "confirmDesc": "Le contenu actuel sera remplacé. Cliquez à nouveau pour lancer."
+      },
+      "placeholder": {
+        "missing": {
+          "title": "Cette page n’a pas encore été générée",
+          "message": "La génération s’est arrêtée avant cette section. Relancez-la pour compléter le document."
+        },
+        "error": {
+          "title": "La génération de cette page a échoué",
+          "message": "Le contenu reçu est vide ou incomplet. Régénérez la section pour obtenir une page complète."
+        },
+        "action": "Régénérer cette section"
+      }
+    }
+  }
+}

@@ -1,0 +1,952 @@
+/* Sélecteur de structure du business plan.
+
+   Les styles sont ici plutôt qu'en classes utilitaires : l'écran a beaucoup
+   d'états (sélectionné, personnalisé, verrouillé, plafonné) et les empiler en
+   bindings de classe rendait le template illisible — même arbitrage que le
+   panneau d'état de génération.
+
+   Parti pris visuel : sobre. Tons neutres du thème ; la couleur primaire ne
+   sert qu'à dire « c'est retenu » (destinataire, modèle, filtre, étape en
+   cours) et au bouton principal. */
+
+:host {
+  display: block;
+  /* Les colonnes suivent la place réellement disponible, barre latérale
+     ouverte ou non, plutôt que la largeur de la fenêtre. */
+  container: bp-structure / inline-size;
+}
+
+.structure-shell {
+  width: 100%;
+  max-width: 76rem;
+  margin: 0 auto;
+}
+
+/* ── En-tête ──────────────────────────────────────────────────────────── */
+
+.structure-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.head-main {
+  min-width: 0;
+}
+
+/* Titre à gauche, étapes du parcours à droite : une ligne de moins. */
+@container bp-structure (min-width: 44rem) {
+  .structure-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .head-main {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .flow-steps {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 0.3125rem;
+  }
+}
+
+.flow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+}
+
+.flow-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--color-text-tertiary);
+}
+
+.flow-step + .flow-step::before {
+  content: '';
+  width: 1rem;
+  height: 1px;
+  background: var(--glass-border-strong);
+}
+
+.flow-dot {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 9999px;
+  border: 1.5px solid var(--glass-border-strong);
+}
+
+.flow-step.is-current {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.flow-step.is-current .flow-dot {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.structure-title {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+  text-wrap: balance;
+}
+
+.structure-lede {
+  max-width: 75ch;
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+}
+
+/* Écran d'ordinateur bas : l'introduction cède sa ligne aux listes. Les titres
+   d'étape disent déjà quoi faire. */
+@media (min-width: 768px) and (max-height: 760px) {
+  .structure-lede {
+    display: none;
+  }
+}
+
+/* ── Titres d'étape ───────────────────────────────────────────────────── */
+
+.step-block {
+  margin-bottom: 1rem;
+}
+
+.step-head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.step-number {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid var(--glass-border-strong);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+
+.step-title {
+  min-width: 0;
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+}
+
+.step-count {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+/* Le filtre actif, là où il agit. */
+.filter-chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+  padding: 0.0625rem 0.125rem 0.0625rem 0.5625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 40%, transparent);
+}
+
+.filter-clear {
+  width: 1.375rem;
+  height: 1.375rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-size: 0.5625rem;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.filter-clear:hover {
+  color: var(--color-text-primary);
+  background: var(--glass-bg-medium);
+}
+
+/* ── Choix : pastille de radio commune aux destinataires et aux modèles ── */
+
+/* Le radio reste l'élément focalisable et annoncé, mais ne prend aucune place.
+   Masqué ici plutôt que par `sr-only` : le style global des radios, déclaré
+   hors layer, l'emporte sur les utilitaires Tailwind et lui rendait 20px de
+   large. Sélecteurs à deux classes pour dépasser `input[type='radio']` sans
+   dépendre de l'attribut d'encapsulation. Les cartes sont `position: relative`
+   pour le contenir : sans cela il se place par rapport au document, échappe à
+   la zone qui défile et rallonge la page. */
+.audience-card .choice-radio,
+.template-card .choice-radio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Le focus vit sur le radio masqué : il est reporté sur la carte, au clavier
+   seulement ; un clic n'a pas à laisser d'anneau. */
+.audience-card:has(.choice-radio:focus-visible),
+.template-card:has(.choice-radio:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.choice-mark {
+  flex-shrink: 0;
+  position: relative;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  border: 1.5px solid var(--glass-border-strong);
+  background: var(--color-surface-1);
+  transition: border-color 0.15s ease;
+}
+
+.choice-mark::after {
+  content: '';
+  position: absolute;
+  inset: 2.5px;
+  border-radius: inherit;
+  background: var(--color-primary);
+  transform: scale(0);
+  transition: transform 0.15s ease;
+}
+
+.is-selected > .choice-mark {
+  border-color: var(--color-primary);
+}
+
+.is-selected > .choice-mark::after {
+  transform: scale(1);
+}
+
+/* ── 1. Destinataires ─────────────────────────────────────────────────── */
+
+.audience-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+@container bp-structure (min-width: 26rem) {
+  .audience-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Sur deux colonnes, la cinquième tuile resterait seule : elle prend la ligne. */
+@container bp-structure (min-width: 26rem) and (max-width: 39.99rem) {
+  .audience-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+
+@container bp-structure (min-width: 40rem) {
+  .audience-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Dès que les colonnes passent côte à côte, les cinq tuiles tiennent sur une
+   seule ligne : chaque ligne gagnée revient aux listes. Tant que la place est
+   juste, l'illustration s'efface pour laisser le libellé lisible. */
+@container bp-structure (min-width: 52rem) {
+  .audience-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+/* Deux classes : la règle de base de `.audience-art`, plus bas, l'emporterait
+   sinon à spécificité égale. */
+@container bp-structure (min-width: 52rem) and (max-width: 63.99rem) {
+  .audience-card .audience-art {
+    display: none;
+  }
+}
+
+.audience-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--glass-border);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.audience-card:hover {
+  background: var(--glass-bg-light);
+  border-color: var(--glass-border-medium);
+}
+
+/* Retenu : contour doublé, fond teinté, pastille pleine et illustration en
+   couleur — plusieurs signaux, pour qu'on ne se demande pas ce qui est choisi. */
+.audience-card.is-selected {
+  --audience-illu-accent: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 7%, transparent);
+}
+
+.audience-art {
+  flex-shrink: 0;
+  display: block;
+  width: 2.5rem;
+  height: 1.875rem;
+  border-radius: 0.375rem;
+  background: var(--glass-bg-light);
+}
+
+.audience-card.is-selected .audience-art {
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.audience-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.audience-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+}
+
+.audience-goal {
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--color-text-secondary);
+}
+
+/* ── Modèles et sommaire ──────────────────────────────────────────────── */
+
+.structure-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem 1.25rem;
+  align-items: start;
+}
+
+.template-column,
+.outline-column {
+  min-width: 0;
+}
+
+/* Grand écran : l'écran entier tient dans la fenêtre (`--bp-fit-height`, mesurée
+   par le composant), sans défilement de page. En-tête et destinataires gardent
+   leur hauteur ; les deux colonnes prennent le reste et défilent chacune de
+   leur côté ; le pied du sommaire, avec le bouton de validation, reste visible.
+   Plancher de 30rem : sur un écran très bas, la page reprend le défilement
+   plutôt que d'écraser les colonnes. Sur mobile, pas de défilement imbriqué :
+   la page défile normalement. */
+@container bp-structure (min-width: 52rem) {
+  .structure-shell {
+    display: flex;
+    flex-direction: column;
+    height: var(--bp-fit-height, auto);
+    min-height: 30rem;
+  }
+
+  .structure-head,
+  .step-block {
+    flex-shrink: 0;
+  }
+
+  .structure-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .structure-grid {
+    flex: 1;
+    min-height: 0;
+    grid-template-columns: minmax(0, 24rem) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .template-column,
+  .outline-column {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .template-scroll,
+  .outline-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .outline-panel {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .skeleton-column {
+    overflow: hidden;
+  }
+}
+
+/* ── 2. Liste des modèles ─────────────────────────────────────────────── */
+
+.template-scroll {
+  /* Laisse la place à l'anneau de focus quand la zone défile. */
+  padding: 3px;
+}
+
+.template-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* Les deux groupes de choix sont des `fieldset` : le style global leur donne un
+   fond de panneau, qui dépassait en bande sous les cartes. */
+.audience-grid,
+.template-list {
+  background: none;
+  box-shadow: none;
+}
+
+.template-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--glass-border);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.template-card:hover {
+  background: var(--glass-bg-light);
+}
+
+.template-card.is-custom {
+  border-style: dashed;
+}
+
+.template-card.is-selected {
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 7%, transparent);
+}
+
+.template-card.is-custom.is-selected {
+  border-style: solid;
+}
+
+.template-card .choice-mark {
+  margin-top: 0.125rem;
+}
+
+.template-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.template-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+}
+
+.template-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+}
+
+.template-badge,
+.outline-badge {
+  flex-shrink: 0;
+  padding: 0 0.375rem;
+  border-radius: 0.3125rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--glass-border-medium);
+}
+
+.template-desc {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.template-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+/* ── 3. Sommaire ──────────────────────────────────────────────────────── */
+
+.outline-panel {
+  border-radius: 0.75rem;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-subtle);
+}
+
+.outline-head {
+  flex-shrink: 0;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.outline-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.outline-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+  text-wrap: balance;
+}
+
+.outline-badge {
+  margin-left: auto;
+}
+
+.outline-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.125rem 0.375rem;
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.outline-body {
+  padding: 0.125rem 1rem;
+}
+
+.outline-body:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.outline-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.outline-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4375rem 0;
+}
+
+.outline-row + .outline-row {
+  border-top: 1px solid var(--glass-border-subtle);
+}
+
+.outline-index {
+  flex-shrink: 0;
+  width: 1.25rem;
+  text-align: right;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-tertiary);
+}
+
+.outline-label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.outline-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--color-text-primary);
+}
+
+.outline-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  color: var(--color-text-tertiary);
+}
+
+.outline-researched {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1875rem;
+}
+
+.outline-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.1875rem;
+  flex-shrink: 0;
+}
+
+.icon-button {
+  width: 1.75rem;
+  height: 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.4375rem;
+  color: var(--color-text-tertiary);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.icon-button:hover:not(:disabled) {
+  color: var(--color-text-primary);
+  background: var(--glass-bg-light);
+  border-color: var(--glass-border);
+}
+
+.icon-button.is-danger:hover:not(:disabled) {
+  color: var(--color-danger, #dc2626);
+}
+
+.icon-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── Tiroir d'ajout ───────────────────────────────────────────────────── */
+
+.add-drawer {
+  margin: 0.5rem 0 0.75rem;
+}
+
+.catalog {
+  margin-top: 0.625rem;
+  padding: 0.875rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-light);
+}
+
+.catalog-group + .catalog-group {
+  margin-top: 0.875rem;
+}
+
+.catalog-group-title {
+  margin: 0 0 0.4375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.catalog-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3125rem;
+}
+
+.catalog-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  padding: 0.3125rem 0.625rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.catalog-item:hover:not(:disabled) {
+  color: var(--color-text-primary);
+  background: var(--glass-bg-medium);
+  border-color: var(--glass-border-medium);
+}
+
+.catalog-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.catalog-empty {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Pied ─────────────────────────────────────────────────────────────── */
+
+.outline-error {
+  flex-shrink: 0;
+  margin: 0.625rem 1rem 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--color-danger, #dc2626);
+  background: color-mix(in srgb, var(--color-danger, #dc2626) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-danger, #dc2626) 24%, transparent);
+}
+
+.outline-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-top: 1px solid var(--glass-border);
+}
+
+.panel-ghost-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.panel-ghost-button:hover:not(:disabled) {
+  background: var(--glass-bg-medium);
+  border-color: var(--glass-border-medium);
+}
+
+.panel-ghost-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.icon-button:focus-visible,
+.catalog-item:focus-visible,
+.filter-clear:focus-visible,
+.panel-ghost-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Au doigt, les petites commandes passent à 44px : réordonner un sommaire au
+   pouce avec des cibles de 28px mène au mauvais bouton. */
+@media (pointer: coarse) {
+  .filter-clear {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .icon-button {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+}
+
+/* ── États de chargement et d'erreur ──────────────────────────────────── */
+
+.structure-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 1rem;
+  background: var(--glass-bg-subtle);
+}
+
+.structure-message i {
+  font-size: 1.5rem;
+  color: var(--color-danger, #dc2626);
+}
+
+.skeleton {
+  display: block;
+  border-radius: 0.5rem;
+  background: var(--glass-bg-light);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-shimmer);
+  transform: translateX(-100%);
+  animation: structure-shimmer 1.4s ease-out infinite;
+}
+
+/* Les décalages remplacent les titres d'étape absents du squelette. */
+.skeleton-audience {
+  height: 3rem;
+  border-radius: 0.625rem;
+}
+
+.structure-body[aria-hidden='true'] .step-block,
+.skeleton-row:first-child,
+.skeleton-panel {
+  margin-top: 2.25rem;
+}
+
+.skeleton-row {
+  height: 4.5rem;
+  margin-bottom: 0.375rem;
+  border-radius: 0.625rem;
+}
+
+.skeleton-panel {
+  padding: 0.75rem 1rem;
+}
+
+.skeleton-title {
+  height: 2.75rem;
+  margin-bottom: 0.625rem;
+}
+
+.skeleton-line {
+  height: 2.25rem;
+  margin-bottom: 0.25rem;
+}
+
+@keyframes structure-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Le mouvement n'apporte rien d'indispensable ici : il est retiré quand le
+   système le demande. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none;
+  }
+
+  /* Le bouton principal du design system porte un dégradé animé en continu :
+     un mouvement permanent est exactement ce que ce réglage demande de retirer. */
+  .inner-button {
+    animation: none;
+  }
+
+  .filter-clear,
+  .choice-mark,
+  .choice-mark::after,
+  .audience-card,
+  .template-card,
+  .icon-button,
+  .catalog-item,
+  .panel-ghost-button {
+    transition-duration: 0.01ms;
+  }
+}

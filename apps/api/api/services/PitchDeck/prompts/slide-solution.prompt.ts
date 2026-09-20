@@ -1,5 +1,3 @@
-import { PITCH_DECK_SHARED_RULES } from './_shared.prompt';
-
 export const SLIDE_SOLUTION_PROMPT = `
 <role>Senior pitch deck designer at a top-tier design agency</role>
 <objective>Design the SOLUTION slide — clearly present the value proposition and key capabilities with striking visual appeal.</objective>
@@ -17,7 +15,6 @@ export const SLIDE_SOLUTION_PROMPT = `
 - Optional: thin accent line (w-16 h-1 bg-[ACCENT COLOR] rounded-full) between headline and capabilities.
 </layout>
 
-${PITCH_DECK_SHARED_RULES}
 
 <project_context>
 `;

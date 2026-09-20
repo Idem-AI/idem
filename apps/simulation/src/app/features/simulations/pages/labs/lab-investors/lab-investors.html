@@ -1,0 +1,82 @@
+<sim-lab-panel
+  lab="investors"
+  [heading]="'lab.investors.heading' | translate"
+  [body]="'lab.investors.body' | translate"
+>
+  @if (report(); as report) {
+    <div class="flex flex-col gap-6">
+      <div class="glass-card p-5">
+        <h3 class="text-label font-semibold text-ink-muted">
+          {{ 'lab.investors.readiness' | translate }}
+        </h3>
+        <p class="mt-1 text-display font-semibold tabular-nums text-ink">
+          {{ report.readinessScore }}<span class="text-h3 font-normal text-ink-subtle">/100</span>
+        </p>
+        <div
+          class="mt-3 h-2 w-full overflow-hidden rounded-full bg-panel-sunken"
+          role="meter"
+          [attr.aria-valuenow]="report.readinessScore"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          [attr.aria-label]="'lab.investors.readiness' | translate"
+        >
+          <div class="h-full rounded-full bg-primary" [style.width.%]="report.readinessScore"></div>
+        </div>
+      </div>
+
+      <ul class="grid gap-3 sm:grid-cols-2">
+        @for (verdict of report.verdicts; track verdict.profile) {
+          <li class="glass-card p-5">
+            <div class="flex items-baseline justify-between gap-3">
+              <h3 class="text-sm font-semibold text-ink">{{ verdict.name }}</h3>
+              <span class="text-sm font-semibold tabular-nums text-ink">{{ verdict.score }}</span>
+            </div>
+            <p class="mt-0.5 text-meta text-ink-subtle">
+              {{ 'investorProfile.' + verdict.profile | translate }}
+            </p>
+            <p class="mt-2.5 max-w-[60ch] text-sm leading-relaxed text-ink-muted">{{ verdict.reaction }}</p>
+
+            @if (verdict.objections.length) {
+              <ul class="mt-3 flex flex-col gap-1.5">
+                @for (objection of verdict.objections; track objection) {
+                  <li class="flex items-start gap-2 text-meta leading-relaxed text-ink-muted">
+                    <span class="mt-1.5 size-1 shrink-0 rounded-full bg-verdict-warn" aria-hidden="true"></span>
+                    {{ objection }}
+                  </li>
+                }
+              </ul>
+            }
+
+            <p
+              class="mt-3 inline-flex items-center gap-1.5 text-meta font-semibold"
+              [class.text-verdict-go]="verdict.wouldMeetAgain"
+              [class.text-verdict-stop]="!verdict.wouldMeetAgain"
+            >
+              <span class="size-1.5 rounded-full bg-current" aria-hidden="true"></span>
+              {{
+                (verdict.wouldMeetAgain ? 'lab.investors.secondMeeting' : 'lab.investors.noSecondMeeting')
+                  | translate
+              }}
+            </p>
+          </li>
+        }
+      </ul>
+
+      @if (report.expectedObjections.length) {
+        <div class="rounded-xl border border-line bg-panel-sunken p-4">
+          <h3 class="text-label font-semibold text-ink">
+            {{ 'lab.investors.prepare' | translate }}
+          </h3>
+          <ul class="mt-2 flex flex-col gap-1.5">
+            @for (objection of report.expectedObjections; track objection) {
+              <li class="flex items-start gap-2 text-sm leading-relaxed text-ink-muted">
+                <span class="mt-2 size-1 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+                {{ objection }}
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    </div>
+  }
+</sim-lab-panel>

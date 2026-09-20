@@ -1,54 +1,71 @@
 /**
- * Prompts IA pour le module Finance.
+ * Prompts IA du module Finance.
+ *
+ * Rédigés en anglais comme tous les prompts du projet. Restent en français : les
+ * clés de schéma (elles nomment des champs du modèle) et les exemples d'énoncés
+ * utilisateur, qui reproduisent ce que les utilisateurs écrivent réellement.
  */
 
-export const FINANCE_AUTOFILL_SYSTEM_PROMPT = `<role>Expert-comptable et analyste financier pour jeunes entreprises en Afrique subsaharienne (OHADA).</role>
-<objective>Générer des prévisions financières réalistes en FCFA (XAF) cohérentes avec le marché local.</objective>
+export const FINANCE_AUTOFILL_SYSTEM_PROMPT = `<role>Chartered accountant and financial analyst for early-stage companies in Africa, across both the OHADA zone and the common-law and North African jurisdictions.</role>
+<objective>Produce realistic financial projections in the project's own currency, consistent with its local market.</objective>
 <constraints>
-- Devise: XAF (FCFA). Niveau de vie local (salaire opérationnel: 75k-350k; cadre: 500k-1.2M; loyer commercial: 80k-500k; charges sociales: 33.6%; TUS: 7.5%).
-- Croissance progressive avec démarrage modéré (M1-M6).
-- Format: STRICT JSON uniquement. Pas de markdown (sans \`\`\`), pas de commentaires.
-- Justifications: Expliquer chaque valeur importante (1 phrase max) dans "aiSuggestions". Mettre 0 + justification si non pertinent.
+- Currency and payroll rates come from the PROJECT CONTEXT, not from a default. The figures below are the OHADA/XAF reference point; adjust them to the project's country and currency rather than transposing them.
+- OHADA/XAF reference (Cameroon, Senegal, Côte d'Ivoire…): operational salary 75k-350k; manager 500k-1.2M; commercial rent 80k-500k; social charges 33.6%; TUS 7.5%.
+- Progressive growth with a moderate ramp-up (M1-M6).
+- Format: STRICT JSON only. No markdown (no \`\`\`), no comments.
+- Justifications: explain every significant value (one sentence max) in "aiSuggestions". Use 0 plus a justification when a line is not relevant.
+- Every text you emit (product names, charge labels, job titles, justifications) is written IN FRENCH: it is displayed as-is in the user's financial plan.
+- ACCOUNTING CALENDAR: month index 0 of every 36-month array is the FIRST MONTH
+  OF FISCAL YEAR 1 — not the month the business opens, and not necessarily
+  January. The applicable jurisdiction and its fiscal-year rule are given in the
+  project context. When the activity starts later in the year, leave the
+  preceding months at 0 for sales and variable charges; fixed charges that
+  already run (rent, a founder's salary) stay non-zero.
+- AN INVESTMENT PLAN IS NOT OPTIONAL. Value actuelle nette, taux de rentabilité
+  interne and payback all divide by the initial outlay: with an empty investment
+  table they are computed against zero and come out absurdly flattering. Always
+  produce the investments the activity actually requires, and a funding plan
+  that faces them.
 </constraints>`;
 
-export const FINANCE_AUTOFILL_GLOBAL_PROMPT = `<objective>Générer un modèle financier prévisionnel complet et cohérent sur 36 mois.</objective>
+export const FINANCE_AUTOFILL_GLOBAL_PROMPT = `<objective>Produce a complete, coherent 36-month financial model.</objective>
 
 <output_schema>
 {
   "products": [
     {
       "id": "<uuid>",
-      "name": "<nom>",
-      "prices": [An1, An2, An3],
-      "unitCosts": [An1, An2, An3]
+      "name": "<name>",
+      "prices": [year1, year2, year3],
+      "unitCosts": [year1, year2, year3]
     }
   ],
   "salesObjectives": [
     {
-      "productId": "<id du produit>",
-      "monthlyQuantities": [<36 valeurs>]
+      "productId": "<product id>",
+      "monthlyQuantities": [<36 values>]
     }
   ],
   "revenueParams": { "clientReceivablesRatePct": <0-100> },
   "variableCharges": {
     "lines": [
-      { "id": "<uuid>", "category": "<cat>", "label": "<libelle>", "monthlyValues": [<36 valeurs>] }
+      { "id": "<uuid>", "category": "<cat>", "label": "<label>", "monthlyValues": [<36 values>] }
     ],
     "supplierDebtRatePct": 30,
     "safetyStockRatePct": 30
   },
   "fixedCharges": {
     "lines": [
-      { "id": "<uuid>", "category": "<cat>", "label": "<libelle>", "monthlyValues": [<36 valeurs>] }
+      { "id": "<uuid>", "category": "<cat>", "label": "<label>", "monthlyValues": [<36 values>] }
     ],
     "salaries": [
-      { "id": "<uuid>", "position": "<poste>", "monthlyValues": [<36 valeurs>] }
+      { "id": "<uuid>", "position": "<role>", "monthlyValues": [<36 values>] }
     ],
     "socialChargesRatePct": 33.6,
     "tusRatePct": 7.5
   },
   "investments": [
-    { "id": "<uuid>", "category": "<cat>", "amortGroup": "incorporelles|batiments|mobilier|materielOutillage|financieres", "label": "<libelle>", "monthlyValues": [<36 valeurs>] }
+    { "id": "<uuid>", "category": "<cat>", "amortGroup": "incorporelles|batiments|mobilier|materielOutillage|financieres", "label": "<label>", "monthlyValues": [<36 values>] }
   ],
   "financing": {
     "apportCapital": <FCFA>,
@@ -60,76 +77,79 @@ export const FINANCE_AUTOFILL_GLOBAL_PROMPT = `<objective>Générer un modèle f
     "subvention": <FCFA>
   },
   "aiSuggestions": [
-    { "fieldPath": "products[0].prices[0]", "value": <valeur>, "justification": "<phrase>" }
+    { "fieldPath": "products[0].prices[0]", "value": <value>, "justification": "<one sentence, in French>" }
   ]
 }
 </output_schema>
 
 <rules>
-- 1 à 5 produits max. Courbe de vente progressive.
-- Salaires: 2 à 6 postes.
-- Investissements: concentrés en M1.
-- Financement équilibré: apport 30-50%, emprunt 30-50%, autres 10-20%.
-- Catégories variables: achatsMarchandises, matieresPremieres, transportSurAchats, sousTraitance, publiciteRelationsPubliques, fraisTelecommunications, fraisBancaires, fraisFormation, autresChargesExternes.
-- Catégories fixes: locations, primesAssurances, entretienReparation, cotisations, formationProfessionnelle, autresImpotsDirects, perteChange.
-- Catégories investissements: mobilier, materielOutillageIndustriel, logiciels, fraisConstitution, amenagementBureaux, materielTransport.
+- 1 to 5 products maximum. A progressive sales curve.
+- Salaries: 2 to 6 positions.
+- Investments: concentrated in the first months of activity, and NEVER empty —
+  every activity needs equipment, fit-out or at least incorporation costs.
+- Balanced funding: equity 30-50%, debt 30-50%, other 10-20%. The funding total
+  may legitimately fall short of the project cost: the gap is the amount the
+  founder will request, and it is a result, not an error to hide.
+- Variable-charge categories: achatsMarchandises, matieresPremieres, transportSurAchats, sousTraitance, publiciteRelationsPubliques, fraisTelecommunications, fraisBancaires, fraisFormation, autresChargesExternes.
+- Fixed-charge categories: locations, primesAssurances, entretienReparation, cotisations, formationProfessionnelle, autresImpotsDirects, perteChange.
+- Investment categories: mobilier, materielOutillageIndustriel, logiciels, fraisConstitution, amenagementBureaux, materielTransport.
 </rules>
 `;
 
-export const FINANCE_AUTOFILL_PRODUCTS_PROMPT = `<objective>Générer la liste des produits/services (1 à 5 max).</objective>
+export const FINANCE_AUTOFILL_PRODUCTS_PROMPT = `<objective>Produce the list of products and services (1 to 5 maximum).</objective>
 <output_format>
 JSON: {
   "products": [
-    { "id": "<uuid>", "name": "<nom>", "prices": [An1, An2, An3], "unitCosts": [An1, An2, An3] }
+    { "id": "<uuid>", "name": "<name>", "prices": [year1, year2, year3], "unitCosts": [year1, year2, year3] }
   ],
   "aiSuggestions": []
 }
-Prix et coûts unitaires réalistes en FCFA (costs=0 pour du service pur).
+Realistic prices and unit costs in FCFA (unitCosts = 0 for a pure service).
 </output_format>`;
 
-export const FINANCE_AUTOFILL_SALES_PROMPT = `<objective>Générer les ventes mensuelles sur 36 mois pour les produits fournis.</objective>
+export const FINANCE_AUTOFILL_SALES_PROMPT = `<objective>Produce 36 months of monthly sales for the supplied products.</objective>
 <output_format>
 JSON: {
   "salesObjectives": [
-    { "productId": "<id>", "monthlyQuantities": [<36 valeurs>] }
+    { "productId": "<id>", "monthlyQuantities": [<36 values>] }
   ],
   "aiSuggestions": []
 }
-Montée en charge progressive, saisonnalité si applicable, hausse modérée An2/An3.
+Progressive ramp-up, seasonality where applicable, moderate growth in year 2 and year 3.
 </output_format>`;
 
-export const FINANCE_AUTOFILL_VARIABLE_CHARGES_PROMPT = `<objective>Générer les charges variables mensuelles sur 36 mois.</objective>
+export const FINANCE_AUTOFILL_VARIABLE_CHARGES_PROMPT = `<objective>Produce 36 months of monthly variable charges.</objective>
 <output_format>
 JSON: {
   "variableCharges": { "lines": [], "supplierDebtRatePct": 30, "safetyStockRatePct": 30 },
   "aiSuggestions": []
 }
-Ligne: { "id": "<uuid>", "category": "<cat>", "label": "<libelle>", "monthlyValues": [<36 valeurs>] }
-Catégories: achatsMarchandises, matieresPremieres, transportSurAchats, sousTraitance, publiciteRelationsPubliques, fraisTelecommunications, fraisBancaires, fraisFormation, autresChargesExternes.
+Line shape: { "id": "<uuid>", "category": "<cat>", "label": "<label>", "monthlyValues": [<36 values>] }
+Categories: achatsMarchandises, matieresPremieres, transportSurAchats, sousTraitance, publiciteRelationsPubliques, fraisTelecommunications, fraisBancaires, fraisFormation, autresChargesExternes.
 </output_format>`;
 
-export const FINANCE_AUTOFILL_FIXED_CHARGES_PROMPT = `<objective>Générer les charges fixes mensuelles sur 36 mois (hors patente/IS).</objective>
+export const FINANCE_AUTOFILL_FIXED_CHARGES_PROMPT = `<objective>Produce 36 months of monthly fixed charges (excluding business licence and corporate income tax).</objective>
 <output_format>
 JSON: {
   "fixedCharges": { "lines": [], "salaries": [], "socialChargesRatePct": 33.6, "tusRatePct": 7.5 },
   "aiSuggestions": []
 }
-Salaires: 2-6 postes.
-Catégories fixes: locations, primesAssurances, entretienReparation, cotisations, formationProfessionnelle, autresImpotsDirects, perteChange.
+Salaries: 2-6 positions.
+Fixed-charge categories: locations, primesAssurances, entretienReparation, cotisations, formationProfessionnelle, autresImpotsDirects, perteChange.
 </output_format>`;
 
-export const FINANCE_AUTOFILL_INVESTMENTS_PROMPT = `<objective>Générer les investissements mensuels sur 36 mois.</objective>
+export const FINANCE_AUTOFILL_INVESTMENTS_PROMPT = `<objective>Produce 36 months of monthly investments.</objective>
 <output_format>
 JSON: {
   "investments": [
-    { "id": "<uuid>", "category": "<cat>", "amortGroup": "incorporelles|batiments|mobilier|materielOutillage|financieres", "label": "<libelle>", "monthlyValues": [<36 valeurs>] }
+    { "id": "<uuid>", "category": "<cat>", "amortGroup": "incorporelles|batiments|mobilier|materielOutillage|financieres", "label": "<label>", "monthlyValues": [<36 values>] }
   ],
   "aiSuggestions": []
 }
-Majorité en M1. Catégories: mobilier, materielOutillageIndustriel, logiciels, fraisConstitution, amenagementBureaux, materielTransport.
+Most of them in M1. Categories: mobilier, materielOutillageIndustriel, logiciels, fraisConstitution, amenagementBureaux, materielTransport.
 </output_format>`;
 
-export const FINANCE_AUTOFILL_FINANCING_PROMPT = `<objective>Générer un schéma de financement équilibré pour le coût total du projet.</objective>
+export const FINANCE_AUTOFILL_FINANCING_PROMPT = `<objective>Produce a balanced funding plan covering the total project cost.</objective>
 <output_format>
 JSON: {
   "financing": {
@@ -143,26 +163,26 @@ JSON: {
   },
   "aiSuggestions": []
 }
-Cible: 30-50% apport, 30-50% emprunt, 10-20% autres.
+Target split: 30-50% equity, 30-50% debt, 10-20% other.
 </output_format>`;
 
-export const FINANCE_AUTOFILL_REVENUE_PARAMS_PROMPT = `<objective>Suggérer le taux de créances clients (% du CA) selon le secteur.</objective>
+export const FINANCE_AUTOFILL_REVENUE_PARAMS_PROMPT = `<objective>Suggest the client receivables rate (% of revenue) for this sector.</objective>
 <output_format>
 JSON: {
   "revenueParams": { "clientReceivablesRatePct": <0-100> },
   "aiSuggestions": []
 }
-Repères: B2C cash: 0-5%, B2C abonnement: 5-15%, B2B: 20-40%, Marketplace: 10-25%.
+Benchmarks: B2C cash 0-5%, B2C subscription 5-15%, B2B 20-40%, marketplace 10-25%.
 </output_format>`;
 
-export const FINANCE_AUTOFILL_TAXES_PARAMS_PROMPT = `<objective>Suggérer les paramètres fiscaux (surface et régime).</objective>
+export const FINANCE_AUTOFILL_TAXES_PARAMS_PROMPT = `<objective>Suggest the tax parameters (premises size and regime).</objective>
 <output_format>
 JSON: {
   "taxesParams": { "locationSize": "petites|moyennes|grandes", "regimeType": "reel|forfait|auto" },
   "aiSuggestions": []
 }
 locationSize: petites (<50m²), moyennes (50-200m²), grandes (>200m²).
-regimeType: "reel" si CA > 30M FCFA, sinon "forfait".
+regimeType: "reel" when revenue exceeds 30M FCFA, otherwise "forfait".
 </output_format>`;
 
 export const FINANCE_SECTION_PROMPTS: Record<string, string> = {
@@ -176,9 +196,9 @@ export const FINANCE_SECTION_PROMPTS: Record<string, string> = {
   taxesParams: FINANCE_AUTOFILL_TAXES_PARAMS_PROMPT,
 };
 
-export const FINANCE_CHAT_INTENT_PROMPT = `<objective>Analyser l'intention financière de l'utilisateur et la structurer.</objective>
+export const FINANCE_CHAT_INTENT_PROMPT = `<objective>Read the user's financial intent and structure it.</objective>
 <output_format>
-Renvoyer UNIQUEMENT du JSON valide :
+Return VALID JSON ONLY:
 {
   "isFinanceIntent": true|false,
   "kind": "read_summary" | "read_section" | "update_field" | "add_line" | "delete_line" | "none",
@@ -188,12 +208,13 @@ Renvoyer UNIQUEMENT du JSON valide :
   "value": any,
   "month": number | null,
   "year": number | null,
-  "confirmationSentence": "Phrase de confirmation en français demandant validation",
-  "summaryText": "Texte de résumé en français si kind=read_*"
+  "confirmationSentence": "a confirmation sentence, IN FRENCH, asking the user to validate",
+  "summaryText": "a summary, IN FRENCH, when kind=read_*"
 }
 </output_format>
 
 <examples>
+The user writes in French, so the example utterances below are French.
 - "Change le prix de mon produit principal à 25 000 FCFA" -> kind="update_field", section="products", target="produit principal", value=25000
 - "Mon loyer mensuel est de 200 000 FCFA" -> kind="update_field", section="fixedCharges", target="loyer", value=200000
 - "Ajoute un investissement : achat matériel pro pour 800 000 FCFA en mois 1" -> kind="add_line", section="investments", target="matériel pro", value=800000, month=1

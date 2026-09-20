@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tarification IDEM",
+  "description": "Prix par défaut du catalogue et grilles par pays. Les surcharges posées dans le panel admin priment sur ces valeurs.",
+  "type": "object",
+  "required": ["version", "baseCurrency", "annualDiscountRate", "products", "countries"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": {
+      "type": "string",
+      "description": "Date de la dernière révision (AAAA-MM-JJ).",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "baseCurrency": { "const": "XAF" },
+    "annualDiscountRate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 0.5,
+      "description": "Remise de l'annuel. 0,1667 = 2 mois offerts sur 12."
+    },
+    "usdRatesAsOf": { "type": "string", "description": "Date du relevé des taux indicatifs." },
+    "usdRates": {
+      "type": "object",
+      "description": "Unités de devise pour 1 dollar. Indicatif : sert à afficher les équivalents, jamais à fixer un prix.",
+      "additionalProperties": { "type": "number", "exclusiveMinimum": 0 }
+    },
+    "products": {
+      "type": "object",
+      "description": "Produits du catalogue, par code.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["name", "kind", "engine", "interval", "credits", "priceXaf", "isActive", "sortOrder"],
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "kind": {
+            "type": "string",
+            "enum": ["subscription", "pack", "recharge", "day_pass", "project_pass", "addon", "bundle"]
+          },
+          "engine": { "enum": ["business", "appgen", "ideploy", null] },
+          "interval": { "enum": ["month", "year", "one_time"] },
+          "credits": { "type": "integer", "minimum": 0 },
+          "priceXaf": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Prix de la zone CFA, en F CFA entiers."
+          },
+          "idemPriceXaf": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Prix réduit quand l'achat part d'un projet IDEM."
+          },
+          "highlighted": { "type": "boolean" },
+          "discountLabel": { "type": "string" },
+          "isActive": { "type": "boolean" },
+          "sortOrder": { "type": "integer" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "countries": {
+      "type": "object",
+      "description": "Pays, par code ISO alpha-3. Sans « prices », le pays applique le prix de la zone CFA.",
+      "propertyNames": { "pattern": "^[A-Z]{3}$" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["name", "prefix", "currency", "decimals"],
+        "properties": {
+          "name": { "type": "string" },
+          "prefix": { "type": "string", "pattern": "^\\d{1,4}$" },
+          "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+          "decimals": { "enum": [0, 2] },
+          "prices": {
+            "type": "object",
+            "description": "Grille du pays : prix en devise locale, par code produit.",
+            "additionalProperties": { "type": "number", "minimum": 0 }
+          },
+          "idemPrices": {
+            "type": "object",
+            "description": "Prix « projet IDEM » en devise locale, par code produit.",
+            "additionalProperties": { "type": "number", "minimum": 0 }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
