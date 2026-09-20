@@ -1655,7 +1655,48 @@
       },
       "buttons": {
         "create": "Create your first project"
-      }
+      },
+      "loading": "Loading your workspace…",
+      "searchPlaceholder": "Search projects by name or description…",
+      "filters": {
+        "all": "All"
+      },
+      "view": {
+        "grid": "Grid view",
+        "list": "List view"
+      },
+      "noResults": {
+        "title": "No matching projects",
+        "description": "Your filters returned nothing. Try clearing the search or picking another category.",
+        "reset": "Reset filters"
+      },
+      "emptyDescription": "Create your first project: brand identity, business plan, application and deployment all follow from it.",
+      "delete": {
+        "title": "Delete this project?",
+        "subtitle": "The project will be removed from your dashboard.",
+        "body": "Remove “{{name}}” from your dashboard? The project stays archived in the database but will no longer appear in your workspace.",
+        "cancel": "Cancel",
+        "confirm": "Delete",
+        "pending": "Deleting…"
+      },
+      "greeting": {
+        "morning": "Good morning",
+        "afternoon": "Good afternoon",
+        "evening": "Good evening"
+      },
+      "types": {
+        "enterprise": "Enterprise",
+        "ecommerce": "Commerce",
+        "web": "Web",
+        "mobile": "Mobile",
+        "iot": "IoT",
+        "desktop": "Desktop",
+        "api": "API",
+        "ai": "AI",
+        "blockchain": "Blockchain",
+        "other": "Other"
+      },
+      "title": "My projects"
     },
     "brandingDisplay": {
       "title": "Brand Identity Document",

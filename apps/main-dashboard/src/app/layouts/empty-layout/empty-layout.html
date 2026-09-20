@@ -1,128 +1,13 @@
-<!-- Mobile Drawer Backdrop -->
-@if (isMobileDrawerOpen()) {
-  <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" (click)="toggleMobileDrawer()"></div>
-}
+<!--
+  Disposition sans barre latérale : la barre du haut, et rien d'autre.
 
-<!-- Top Navigation Bar -->
-<nav
-  class="fixed top-0 left-0 right-0 z-50 glass border-b border-[var(--glass-border)] px-3 py-3 lg:px-6 transition-all duration-300"
->
-  <div class="flex items-center justify-between">
-    <!-- Left Section with Logo and Mobile Menu Button -->
-    <div class="flex items-center">
-      <!-- Logo -->
-      <div class="flex-shrink-0 flex items-center">
-        <a
-          href="{{ landingUrl }}"
-          class="text-2xl font-bold hover:text-primary transition duration-300 flex items-center gap-2"
-        >
-          <!-- Deux fichiers plutôt qu'un filtre : `invert hue-rotate-180`
-               fabriquait une approximation des couleurs de marque en thème
-               clair. Le logo sombre est maintenant un vrai fichier. -->
-          <img
-            src="/assets/icons/logo_white.png"
-            alt="IDEM"
-            class="sm:w-[120px] w-[50px] h-auto dark:hidden"
-          />
-          <img
-            src="/assets/icons/logo_dark.png"
-            alt="IDEM"
-            class="sm:w-[120px] w-[50px] h-auto hidden dark:block"
-          />
-          <app-beta-badge></app-beta-badge>
-        </a>
-      </div>
-    </div>
+  Elle portait auparavant sa propre copie de cette barre — même logo, même menu
+  utilisateur, mêmes commandes, jamais tout à fait identiques à l'autre. C'est
+  désormais le composant partagé, avec les commandes de barre latérale
+  désactivées puisqu'il n'y en a pas ici.
+-->
+<app-topbar />
 
-    <!-- Right section -->
-    <div class="flex items-center gap-3 sm:gap-4">
-      <!-- Language Selector -->
-      <app-language-selector direction="down" align="right" />
-      <app-theme-toggle />
-
-      @if (user()) {
-        <!-- Quota Display - Desktop only -->
-        <div class="hidden md:block">
-          <app-quota-display
-            [quotaInfo]="quotaInfo() ?? null"
-            [quotaDisplay]="quotaDisplay() ?? null"
-            [isBeta]="isBeta()"
-            [betaRestrictions]="betaRestrictions() ?? null"
-            [isLoading]="isQuotaLoading()"
-          ></app-quota-display>
-        </div>
-
-        <!-- User Menu -->
-        <div class="relative">
-          <button
-            (click)="toggleDropdown()"
-            class="flex items-center gap-2 p-1 rounded-full hover:bg-[var(--glass-bg-light)] transition-all duration-200"
-          >
-            <img
-              [src]="user()!.photoURL"
-              alt="Avatar"
-              class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-[var(--glass-border-medium)]"
-            />
-          </button>
-
-          <!-- User Dropdown -->
-          @if (isDropdownOpen()) {
-            <div
-              class="absolute right-0 mt-2 w-56 bg-bg-dark border border-[var(--glass-border)] rounded-xl shadow-xl z-50 py-2"
-            >
-              <div class="px-4 py-3 border-b border-[var(--glass-border)]">
-                <p class="text-text-primary font-medium truncate">{{ user()!.displayName }}</p>
-                <p class="text-text-tertiary text-sm truncate">{{ user()!.email }}</p>
-              </div>
-
-              <a
-                routerLink="/account/profile"
-                (click)="navigateTo('/account/profile')"
-                class="flex items-center gap-3 px-4 py-3 text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-200"
-              >
-                <i class="pi pi-user text-primary"></i>
-                <span>{{ 'dashboard.sidebar.userMenu.profile' | translate }}</span>
-              </a>
-
-              <a
-                routerLink="/projects"
-                (click)="navigateTo('/projects')"
-                class="flex items-center gap-3 px-4 py-3 text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-200"
-              >
-                <i class="pi pi-folder text-accent"></i>
-                <span>{{ 'dashboard.sidebar.viewAllProjects' | translate }}</span>
-              </a>
-
-              <!-- « Paramètres » menait à une route qui n'a jamais existé. Ce
-                   qu'on y cherchait — l'offre, les crédits, les factures — est
-                   sous « Mon compte ». -->
-              <a
-                routerLink="/account"
-                (click)="navigateTo('/account')"
-                class="flex items-center gap-3 px-4 py-3 text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-200"
-              >
-                <i class="pi pi-wallet text-secondary"></i>
-                <span>{{ 'account.title' | translate }}</span>
-              </a>
-
-              <hr class="border-[var(--glass-border)] my-2" />
-
-              <button
-                (click)="logout()"
-                class="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 transition-all duration-200"
-              >
-                <i class="pi pi-sign-out"></i>
-                <span>{{ 'dashboard.sidebar.userMenu.logout' | translate }}</span>
-              </button>
-            </div>
-          }
-        </div>
-      } @else {}
-    </div>
-  </div>
-</nav>
-
-<!-- Main Content -->
-<div class="pt-16 min-h-screen pb-10">
+<div class="pt-20 min-h-screen pb-10">
   <router-outlet></router-outlet>
 </div>

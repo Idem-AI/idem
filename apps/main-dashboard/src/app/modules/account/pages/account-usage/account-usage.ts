@@ -21,9 +21,11 @@ import { QuotaInfoResponse } from '../../../../shared/models/quota.model';
  *    se remet à zéro toute seule et ne se recharge pas.
  *
  * On ne peut pas les fusionner — ce sont deux mécanismes distincts côté API —
- * mais on peut cesser de les présenter comme s'ils étaient de même nature. Le
- * relevé occupe donc la page, et le quota est relégué à un encadré qui dit ce
- * qu'il est.
+ * mais on peut cesser de les présenter comme s'ils étaient de même nature.
+ *
+ * D'où l'ordre : ce dont on dispose maintenant (soldes, puis quota du jour),
+ * et seulement ensuite l'historique qui l'explique. Le quota garde son encadré
+ * distinct, qui dit ce qu'il est.
  */
 @Component({
   selector: 'app-account-usage',
@@ -45,7 +47,56 @@ import { QuotaInfoResponse } from '../../../../shared/models/quota.model';
       }
     </div>
 
-    <!-- Relevé -->
+    <!--
+      Quota, juste au-dessus du relevé.
+
+      Il fermait la page, après le relevé, alors qu'il décrit ce dont on
+      dispose aujourd'hui — au même titre que les soldes. Sa place est donc
+      avec eux, avant l'historique qui, lui, regarde en arrière. Il garde son
+      cadre distinct : c'est une cadence offerte, pas de la monnaie.
+    -->
+    @if (quota(); as info) {
+      <section class="mb-6 rounded-xl border border-[var(--glass-border)] bg-[var(--color-surface-2)] p-4">
+        <h2 class="text-sm font-medium text-text-primary">
+          {{ 'account.quotaTitle' | translate }}
+        </h2>
+        <p class="mt-1 text-xs text-text-tertiary">{{ 'account.quotaHint' | translate }}</p>
+
+        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <div class="flex items-baseline justify-between text-sm">
+              <span class="text-text-secondary">{{ 'dashboard.profile.quota.daily' | translate }}</span>
+              <span class="tabular-nums text-text-primary">
+                {{ info.remainingDaily }} / {{ info.dailyLimit }}
+              </span>
+            </div>
+            <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-surface-3)]">
+              <div
+                class="h-full rounded-full bg-primary transition-all duration-500"
+                [style.width.%]="percent(info.dailyUsage, info.dailyLimit)"
+              ></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-baseline justify-between text-sm">
+              <span class="text-text-secondary">{{ 'dashboard.profile.quota.weekly' | translate }}</span>
+              <span class="tabular-nums text-text-primary">
+                {{ info.remainingWeekly }} / {{ info.weeklyLimit }}
+              </span>
+            </div>
+            <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-surface-3)]">
+              <div
+                class="h-full rounded-full bg-primary transition-all duration-500"
+                [style.width.%]="percent(info.weeklyUsage, info.weeklyLimit)"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    }
+
+    <!-- Relevé : l'historique, après ce dont on dispose -->
     <section>
       <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 class="text-sm font-medium uppercase tracking-wide text-text-tertiary">
@@ -117,48 +168,6 @@ import { QuotaInfoResponse } from '../../../../shared/models/quota.model';
         </div>
       }
     </section>
-
-    <!-- Quota : dit pour ce qu'il est, à part des crédits -->
-    @if (quota(); as info) {
-      <section class="mt-6 rounded-xl border border-[var(--glass-border)] bg-[var(--color-surface-2)] p-4">
-        <h2 class="text-sm font-medium text-text-primary">
-          {{ 'account.quotaTitle' | translate }}
-        </h2>
-        <p class="mt-1 text-xs text-text-tertiary">{{ 'account.quotaHint' | translate }}</p>
-
-        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <div class="flex items-baseline justify-between text-sm">
-              <span class="text-text-secondary">{{ 'dashboard.profile.quota.daily' | translate }}</span>
-              <span class="tabular-nums text-text-primary">
-                {{ info.remainingDaily }} / {{ info.dailyLimit }}
-              </span>
-            </div>
-            <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-surface-3)]">
-              <div
-                class="h-full rounded-full bg-primary transition-all duration-500"
-                [style.width.%]="percent(info.dailyUsage, info.dailyLimit)"
-              ></div>
-            </div>
-          </div>
-
-          <div>
-            <div class="flex items-baseline justify-between text-sm">
-              <span class="text-text-secondary">{{ 'dashboard.profile.quota.weekly' | translate }}</span>
-              <span class="tabular-nums text-text-primary">
-                {{ info.remainingWeekly }} / {{ info.weeklyLimit }}
-              </span>
-            </div>
-            <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-surface-3)]">
-              <div
-                class="h-full rounded-full bg-primary transition-all duration-500"
-                [style.width.%]="percent(info.weeklyUsage, info.weeklyLimit)"
-              ></div>
-            </div>
-          </div>
-        </div>
-      </section>
-    }
   `,
 })
 export class AccountUsagePage {

@@ -57,21 +57,38 @@ import { BillingService } from '../../../billing/services/billing.service';
         </div>
       }
 
-      <!-- Onglets. La correspondance exacte ne vaut que pour l'aperçu : sans
-           elle, « Aperçu » resterait actif sur chacun de ses enfants et deux
-           onglets s'allumeraient ensemble. -->
+      <!--
+        Onglets en pastilles, avec icône.
+
+        Le soulignement fin qui les marquait auparavant ne se distinguait de la
+        bordure de la page que par un trait de deux pixels, dans une couleur
+        proche : on ne voyait ni qu'il s'agissait d'onglets, ni lequel était
+        actif. Les pastilles reprennent la commande segmentée déjà employée sur
+        la page des offres — même geste, même apparence.
+
+        La correspondance exacte ne vaut que pour l'aperçu : sans elle,
+        « Aperçu » resterait actif sur chacun de ses enfants.
+      -->
       <nav
-        class="mb-6 flex gap-1 overflow-x-auto border-b border-[var(--glass-border)] pb-px"
+        class="mb-6 flex gap-1 overflow-x-auto rounded-xl border border-[var(--glass-border)] bg-[var(--color-surface-2)] p-1"
         [attr.aria-label]="'account.title' | translate"
       >
         @for (tab of tabs; track tab.route) {
           <a
             [routerLink]="tab.route"
-            routerLinkActive="border-primary text-text-primary"
+            routerLinkActive
+            #active="routerLinkActive"
             [routerLinkActiveOptions]="{ exact: tab.exact }"
-            class="-mb-px shrink-0 border-b-2 border-transparent px-3 py-2.5 text-sm font-medium text-text-tertiary transition-colors hover:text-text-primary"
+            [attr.aria-current]="active.isActive ? 'page' : null"
+            class="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+            [class]="
+              active.isActive
+                ? 'bg-primary text-white'
+                : 'text-text-secondary hover:bg-[var(--glass-bg-light)] hover:text-text-primary'
+            "
           >
-            {{ tab.labelKey | translate }}
+            <i [class]="tab.icon" class="text-xs" aria-hidden="true"></i>
+            <span>{{ tab.labelKey | translate }}</span>
           </a>
         }
       </nav>
@@ -84,11 +101,11 @@ export class AccountShellPage {
   private readonly billing = inject(BillingService);
 
   protected readonly tabs = [
-    { route: '/account', labelKey: 'account.tabs.overview', exact: true },
-    { route: '/account/plans', labelKey: 'account.tabs.plans', exact: false },
-    { route: '/account/usage', labelKey: 'account.tabs.usage', exact: false },
-    { route: '/account/payments', labelKey: 'account.tabs.payments', exact: false },
-    { route: '/account/profile', labelKey: 'account.tabs.profile', exact: false },
+    { route: '/account', labelKey: 'account.tabs.overview', icon: 'pi pi-home', exact: true },
+    { route: '/account/plans', labelKey: 'account.tabs.plans', icon: 'pi pi-th-large', exact: false },
+    { route: '/account/usage', labelKey: 'account.tabs.usage', icon: 'pi pi-bolt', exact: false },
+    { route: '/account/payments', labelKey: 'account.tabs.payments', icon: 'pi pi-receipt', exact: false },
+    { route: '/account/profile', labelKey: 'account.tabs.profile', icon: 'pi pi-user', exact: false },
   ];
 
   /**
@@ -144,10 +161,11 @@ export class AccountShellPage {
   });
 
   constructor() {
-    // Une seule fois pour tout l'espace : les onglets lisent ensuite les mêmes
-    // signaux, sans rappeler l'API à chaque changement d'onglet.
-    this.billing.loadCatalog().subscribe();
-    this.billing.loadMe().subscribe();
+    // La barre du haut les a déjà demandés sur la page précédente : on ne
+    // recharge que ce qui manque. Les onglets lisent ensuite les mêmes signaux,
+    // sans rappeler l'API à chaque changement d'onglet.
+    if (!this.billing.catalog()) this.billing.loadCatalog().subscribe();
+    if (!this.billing.me()) this.billing.loadMe().subscribe();
   }
 }
 
