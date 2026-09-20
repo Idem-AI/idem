@@ -26,7 +26,7 @@ import { CheckoutComponent } from '../checkout/checkout';
     @if (paywall.pending(); as refusal) {
       <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" (click)="close()">
         <div
-          class="w-full max-w-md rounded-2xl border border-[var(--glass-border)] bg-[var(--color-surface-1)] p-5"
+          class="w-full max-w-md modal-panel p-5"
           (click)="$event.stopPropagation()"
         >
           @if (paywall.checkoutProduct(); as product) {

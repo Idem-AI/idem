@@ -359,6 +359,15 @@ export class SidebarDashboard implements OnInit {
   protected readonly isSidebarCollapsed = signal(false);
   protected readonly isMobileDrawerOpen = signal(false);
 
+  /**
+   * Sélecteur de projet du tiroir mobile, fermé par défaut.
+   *
+   * Un compte avec vingt projets repoussait tout le menu hors de l'écran.
+   * Fermé, le tiroir montre le projet courant puis la navigation ; ouvert, la
+   * liste défile dans sa propre zone.
+   */
+  protected readonly isMobileProjectListOpen = signal(false);
+
   // Computed values for UI states
   protected readonly sidebarState = computed(() =>
     this.isSidebarCollapsed() ? 'collapsed' : 'expanded',
@@ -485,8 +494,14 @@ export class SidebarDashboard implements OnInit {
     this.navigationItems.set(updatedItems);
   }
 
+  protected toggleMobileProjectList(): void {
+    this.isMobileProjectListOpen.update((open) => !open);
+  }
+
   toggleMobileDrawer() {
     this.isMobileDrawerOpen.update((open) => !open);
+    this.isMobileProjectListOpen.set(false);
+
     // Prevent body scroll when drawer is open
     if (this.isMobileDrawerOpen()) {
       document.body.style.overflow = 'hidden';

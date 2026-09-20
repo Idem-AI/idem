@@ -144,7 +144,7 @@ import { AuthService } from '../../../auth/services/auth.service';
         (click)="opened.set(null)"
       >
         <div
-          class="receipt w-full max-w-lg overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--color-surface-1)]"
+          class="receipt w-full max-w-lg overflow-hidden modal-panel"
           role="dialog"
           aria-modal="true"
           [attr.aria-label]="invoice.number"
