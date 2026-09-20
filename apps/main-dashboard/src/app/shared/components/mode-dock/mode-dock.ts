@@ -57,7 +57,6 @@ const LAYOUT_MODE: Readonly<Record<string, UiMode>> = {
   guided: 'guided',
   chat: 'chat',
   dashboard: 'advanced',
-  global: 'advanced',
 };
 
 /**

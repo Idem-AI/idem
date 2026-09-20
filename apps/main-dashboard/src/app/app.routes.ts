@@ -20,7 +20,7 @@ export const routes: Routes = [
   },
 
   // ============================================
-  // GLOBAL DASHBOARD ROUTES (layout: 'global')
+  // CONSOLE ET PROJETS
   // ============================================
   {
     path: 'console',
@@ -43,30 +43,93 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./modules/dashboard/pages/projects-list/projects-list').then((m) => m.ProjectsList),
     canActivate: [authGuard, surveyGuard],
-    data: { layout: 'global' },
+    data: { layout: 'dashboard' },
   },
 
   // ============================================
-  // FACTURATION (layout: 'global')
+  // MON COMPTE (layout: 'dashboard')
+  //
+  // Un seul espace pour l'offre, les crédits, les paiements, les factures et
+  // le profil. Ces informations vivaient sur trois écrans sans lien entre eux,
+  // sous une seconde barre latérale ; elles répondent toutes à la même
+  // question — « où en est mon compte » — et tiennent donc au même endroit.
   // ============================================
   {
-    path: 'billing',
-    title: 'billing.overview.title',
+    path: 'account',
     loadComponent: () =>
-      import('./modules/billing/pages/billing-overview/billing-overview').then(
-        (m) => m.BillingOverviewPage,
+      import('./modules/account/pages/account-shell/account-shell').then((m) => m.AccountShellPage),
+    canActivate: [authGuard],
+    data: { layout: 'dashboard' },
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        title: 'account.tabs.overview',
+        loadComponent: () =>
+          import('./modules/account/pages/account-overview/account-overview').then(
+            (m) => m.AccountOverviewPage,
+          ),
+      },
+      {
+        path: 'plans',
+        title: 'billing.plans.title',
+        loadComponent: () =>
+          import('./modules/account/pages/account-plans/account-plans').then(
+            (m) => m.AccountPlansPage,
+          ),
+      },
+      {
+        path: 'usage',
+        title: 'account.tabs.usage',
+        loadComponent: () =>
+          import('./modules/account/pages/account-usage/account-usage').then(
+            (m) => m.AccountUsagePage,
+          ),
+      },
+      {
+        path: 'payments',
+        title: 'account.tabs.payments',
+        loadComponent: () =>
+          import('./modules/account/pages/account-payments/account-payments').then(
+            (m) => m.AccountPaymentsPage,
+          ),
+      },
+      {
+        path: 'profile',
+        title: 'navigation.titles.profilePage',
+        loadComponent: () =>
+          import('./modules/account/pages/account-profile/account-profile').then(
+            (m) => m.AccountProfilePage,
+          ),
+      },
+    ],
+  },
+
+  // ============================================
+  // FACTURATION
+  //
+  // `/billing/*` reste l'adresse publique du paiement : AppGen, Simulation et
+  // iDeploy y renvoient depuis leurs propres interfaces, et des liens déjà
+  // partagés la portent. Les anciennes pages de consultation redirigent vers
+  // « Mon compte » ; seul le paiement lui-même vit encore ici.
+  // ============================================
+  {
+    // Après paiement : ce qui a été débité, ce que ça change, où reprendre.
+    // Sous la barre latérale et non en pleine page : une fois payé, on veut
+    // justement pouvoir repartir travailler.
+    path: 'billing/success',
+    title: 'account.outcome.title',
+    loadComponent: () =>
+      import('./modules/account/pages/payment-outcome/payment-outcome').then(
+        (m) => m.PaymentOutcomePage,
       ),
     canActivate: [authGuard],
-    data: { layout: 'global' },
+    data: { layout: 'dashboard' },
   },
-  {
-    path: 'billing/plans',
-    title: 'billing.plans.title',
-    loadComponent: () =>
-      import('./modules/billing/pages/billing-plans/billing-plans').then((m) => m.BillingPlansPage),
-    canActivate: [authGuard],
-    data: { layout: 'global' },
-  },
+  { path: 'billing', redirectTo: 'account', pathMatch: 'full' },
+  { path: 'billing/plans', redirectTo: 'account/plans', pathMatch: 'full' },
+  // Lié depuis trois menus sans avoir jamais existé : menait au 404.
+  { path: 'settings', redirectTo: 'account/profile', pathMatch: 'full' },
   // Page de paiement partagée : AppGen, Simulation et iDeploy y renvoient avec
   // un code produit et une adresse de retour filtrée.
   {
@@ -461,14 +524,9 @@ export const routes: Routes = [
     data: { layout: 'dashboard' },
   },
 
-  {
-    path: 'project/profile',
-    title: 'navigation.titles.profilePage',
-    loadComponent: () =>
-      import('./modules/dashboard/pages/profile/profile').then((m) => m.ProfileComponent),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
-    data: { layout: 'dashboard' },
-  },
+  // Le profil a rejoint « Mon compte » : l'identité et l'offre se consultaient
+  // sur deux écrans qui se contredisaient.
+  { path: 'project/profile', redirectTo: 'account/profile', pathMatch: 'full' },
 
   // ============================================
   // FINANCE MODULE ROUTES (layout: 'dashboard')

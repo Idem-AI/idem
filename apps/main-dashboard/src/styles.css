@@ -394,3 +394,45 @@ code, pre {
   }
 }
 
+
+/* ============================================================================
+   IMPRESSION D'UN REÇU
+
+   Le reçu est affiché dans une surcouche, profondément imbriquée sous la
+   coquille de l'application. Une règle d'impression locale au composant ne
+   suffit donc pas : la barre latérale, les onglets et le dock sont montés
+   ailleurs et s'imprimeraient quand même.
+
+   `visibility` plutôt que `display` : masquer un ancêtre en `display: none`
+   emporterait le reçu avec lui, alors qu'une visibilité masquée se laisse
+   rouvrir sur un descendant. La classe n'est posée sur `body` que le temps de
+   l'impression, ce qui laisse le reste de l'application intact.
+   ========================================================================== */
+
+@media print {
+  body.is-printing-receipt * {
+    visibility: hidden;
+  }
+
+  body.is-printing-receipt .receipt,
+  body.is-printing-receipt .receipt * {
+    visibility: visible;
+  }
+
+  body.is-printing-receipt .receipt {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    max-width: none;
+    border: none;
+    border-radius: 0;
+    background: #fff;
+    color: #000;
+  }
+
+  /* Les boutons d'une fenêtre n'ont rien à faire sur un document imprimé. */
+  body.is-printing-receipt .receipt__actions {
+    display: none;
+  }
+}

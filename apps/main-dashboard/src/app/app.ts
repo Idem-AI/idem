@@ -4,7 +4,6 @@ import { RouterOutlet, NavigationEnd } from '@angular/router';
 import { LanguageService } from './shared/services/language.service';
 import { ThemeService } from './shared/services/theme.service';
 import { AuthSyncService } from './shared/services/auth-sync.service';
-import { GlobalLayoutComponent } from './layouts/global-layout/global-layout';
 import { EmptyLayout } from './layouts/empty-layout/empty-layout';
 import { NotificationContainerComponent } from './shared/components/notification-container/notification-container';
 import { QuotaWarningComponent } from './shared/components/quota-warning/quota-warning';
@@ -22,7 +21,6 @@ import { ModeDockComponent } from './shared/components/mode-dock/mode-dock';
   selector: 'app-root',
   imports: [
     RouterOutlet,
-    GlobalLayoutComponent,
     EmptyLayout,
     NotificationContainerComponent,
     QuotaWarningComponent,
@@ -56,7 +54,7 @@ export class App implements OnInit {
 
   /** Layout courant selon la route active */
   protected readonly currentLayout$: Observable<
-    'public' | 'dashboard' | 'global' | 'empty' | 'chat' | 'guided' | 'bare'
+    'public' | 'dashboard' | 'empty' | 'chat' | 'guided' | 'bare'
   > = this.router.events.pipe(
     filter((event) => event instanceof NavigationEnd),
     startWith(null),
@@ -69,7 +67,6 @@ export class App implements OnInit {
         (route?.snapshot.data?.['layout'] as
           | 'public'
           | 'dashboard'
-          | 'global'
           | 'empty'
           | 'chat'
           | 'guided'

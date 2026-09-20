@@ -358,26 +358,6 @@
       },
       "simulations": "Simulations"
     },
-    "sidebarGlobal": {
-      "dashboard": "Tableau de bord",
-      "projects": "Projets",
-      "teams": "Équipes",
-      "sr": {
-        "openMobileMenu": "Ouvrir le menu mobile",
-        "toggleSidebar": "Basculer la barre latérale"
-      },
-      "logoAlt": "Lexi",
-      "userAvatarAlt": "Avatar",
-      "userMenu": {
-        "profile": "Profil",
-        "settings": "Paramètres",
-        "logout": "Déconnexion"
-      },
-      "poweredBy": "Propulsé par",
-      "mobile": {
-        "navigation": "Navigation"
-      }
-    },
     "addTeamToProject": {
       "backToProjectTeams": "Retour aux équipes du projet",
       "title": "Ajouter une équipe au projet",
@@ -1288,7 +1268,6 @@
         "title": "Avertissement de quota",
         "daily": "Quotidien :",
         "weekly": "Hebdomadaire :",
-        "credits": "Crédits",
         "beta": "BÊTA",
         "messages": {
           "approaching": "Vous approchez de votre limite de quota",
@@ -1313,7 +1292,8 @@
           "resolution": "Résolution :",
           "maxTokens": "tokens max",
           "featureNotAuthorized": "Fonctionnalité non autorisée"
-        }
+        },
+        "generations": "Générations"
       }
     },
     "aiAssistant": {
@@ -4727,6 +4707,98 @@
       "REJECTED": "Refusé",
       "NOT_FOUND": "Non abouti",
       "EXPIRED": "Expiré"
+    }
+  },
+  "account": {
+    "title": "Mon compte",
+    "subtitle": "Votre offre, vos crédits, vos paiements et vos factures.",
+    "tabs": {
+      "overview": "Aperçu",
+      "plans": "Offres",
+      "usage": "Consommation",
+      "payments": "Paiements & factures",
+      "profile": "Profil"
+    },
+    "engines": {
+      "business": {
+        "what": "Business plan, branding, documents juridiques et financiers"
+      },
+      "appgen": {
+        "what": "Génération et modification de vos applications"
+      },
+      "ideploy": {
+        "what": "Hébergement et mise en production de vos apps"
+      }
+    },
+    "free": "Gratuit",
+    "freePlan": "Offre gratuite",
+    "severalPlans": "{{count}} offres actives",
+    "perMonth": "/mois",
+    "credits": "Crédits",
+    "creditsShort": "{{count}} crédits",
+    "creditsOn": "Sur l’offre {{plan}}",
+    "upgradeTo": "Passer à {{plan}}",
+    "topTier": "Vous êtes sur l’offre la plus complète",
+    "seeAllOffers": "Voir les offres",
+    "yourPlan": "Votre offre",
+    "nextStep": "Échelon suivant",
+    "switchDown": "Revenir à cette offre",
+    "switchDownNote": "Revenir à une offre inférieure remplace votre offre actuelle et se paie immédiatement. Les crédits déjà acquis vous restent.",
+    "cancel": "Résilier",
+    "cancelTitle": "Résilier {{plan}} ?",
+    "manage": "Gérer",
+    "lastPayment": "Dernière opération",
+    "viewReceipt": "Voir le reçu",
+    "statement": "Relevé de crédits",
+    "noStatement": "Aucun mouvement de crédits pour le moment.",
+    "allEngines": "Tous",
+    "quotaTitle": "Générations offertes",
+    "quotaHint": "Indépendant des crédits : une limite de cadence qui se remet à zéro toute seule, sans rien à payer.",
+    "packsHint": "Un besoin précis, payé une fois.",
+    "rechargesHint": "Des crédits en plus, sans changer d’offre.",
+    "bundlesHint": "Plusieurs moteurs, à prix groupé.",
+    "addonsHint": "Des services qui s’ajoutent à votre offre.",
+    "payments": "Paiements",
+    "invoices": "Factures",
+    "paymentsVsInvoices": "Un paiement est un débit sur votre téléphone. Une facture est le document qui le justifie : un renouvellement en émet une sans nouveau débit, et un paiement refusé n’en laisse aucune.",
+    "noInvoices": "Aucune facture pour le moment.",
+    "invoicesUnavailable": "Vos factures n’ont pas pu être chargées. Réessayez dans un instant.",
+    "periodCovered": "période",
+    "viewInvoice": "Voir",
+    "details": "Détail",
+    "invoice": "Facture",
+    "invoiceStatus": {
+      "paid": "Payée",
+      "open": "À payer",
+      "void": "Annulée",
+      "uncollectible": "Irrécouvrable"
+    },
+    "receiptIssuer": "IDEM Africa",
+    "billedTo": "Facturé à",
+    "description": "Description",
+    "amount": "Montant",
+    "total": "Total",
+    "paidOn": "Payée le {{date}}",
+    "print": "Imprimer",
+    "signInMethod": "Connexion via",
+    "emailStatus": "Adresse e-mail",
+    "emailVerified": "Vérifiée",
+    "emailUnverified": "Non vérifiée",
+    "currentOffer": "Offre en cours",
+    "preferences": "Préférences",
+    "language": "Langue",
+    "theme": "Thème",
+    "outcome": {
+      "title": "Récapitulatif du paiement",
+      "noReference": "Aucun paiement n’a été indiqué.",
+      "notFound": "Ce paiement est introuvable sur votre compte.",
+      "backToAccount": "Revenir à mon compte",
+      "product": "Offre",
+      "paidAt": "Date",
+      "whatChanged": "Ce que ça change",
+      "deliveryPending": "Votre paiement est encaissé. L’activation prend parfois quelques instants — cet écran se met à jour tout seul.",
+      "resume": "Reprendre mon travail",
+      "seeInvoice": "Voir mes factures"
     }
   }
 }

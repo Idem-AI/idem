@@ -358,26 +358,6 @@
       },
       "simulations": "Simulations"
     },
-    "sidebarGlobal": {
-      "dashboard": "Dashboard",
-      "projects": "Projects",
-      "teams": "Teams",
-      "sr": {
-        "openMobileMenu": "Open mobile menu",
-        "toggleSidebar": "Toggle sidebar"
-      },
-      "logoAlt": "Lexi",
-      "userAvatarAlt": "Avatar",
-      "userMenu": {
-        "profile": "Profile",
-        "settings": "Settings",
-        "logout": "Logout"
-      },
-      "poweredBy": "Powered by",
-      "mobile": {
-        "navigation": "Navigation"
-      }
-    },
     "addTeamToProject": {
       "backToProjectTeams": "Back to Project Teams",
       "title": "Add Team to Project",
@@ -1285,7 +1265,6 @@
         "title": "Quota Warning",
         "daily": "Daily:",
         "weekly": "Weekly:",
-        "credits": "Credits",
         "beta": "BETA",
         "messages": {
           "approaching": "You are approaching your quota limit",
@@ -1310,7 +1289,8 @@
           "resolution": "Resolution:",
           "maxTokens": "tokens max",
           "featureNotAuthorized": "Feature not authorized"
-        }
+        },
+        "generations": "Generations"
       }
     },
     "aiAssistant": {
@@ -4761,6 +4741,98 @@
       "REJECTED": "Rejected",
       "NOT_FOUND": "Not completed",
       "EXPIRED": "Expired"
+    }
+  },
+  "account": {
+    "title": "My account",
+    "subtitle": "Your plan, your credits, your payments and your invoices.",
+    "tabs": {
+      "overview": "Overview",
+      "plans": "Plans",
+      "usage": "Usage",
+      "payments": "Payments & invoices",
+      "profile": "Profile"
+    },
+    "engines": {
+      "business": {
+        "what": "Business plan, branding, legal and financial documents"
+      },
+      "appgen": {
+        "what": "Generating and editing your applications"
+      },
+      "ideploy": {
+        "what": "Hosting and shipping your apps"
+      }
+    },
+    "free": "Free",
+    "freePlan": "Free plan",
+    "severalPlans": "{{count}} active plans",
+    "perMonth": "/month",
+    "credits": "Credits",
+    "creditsShort": "{{count}} credits",
+    "creditsOn": "On the {{plan}} plan",
+    "upgradeTo": "Upgrade to {{plan}}",
+    "topTier": "You are on the most complete plan",
+    "seeAllOffers": "See plans",
+    "yourPlan": "Your plan",
+    "nextStep": "Next step up",
+    "switchDown": "Switch to this plan",
+    "switchDownNote": "Switching to a lower plan replaces your current one and is charged immediately. Credits you already hold are kept.",
+    "cancel": "Cancel plan",
+    "cancelTitle": "Cancel {{plan}}?",
+    "manage": "Manage",
+    "lastPayment": "Latest transaction",
+    "viewReceipt": "View receipt",
+    "statement": "Credit statement",
+    "noStatement": "No credit movement yet.",
+    "allEngines": "All",
+    "quotaTitle": "Free generations",
+    "quotaHint": "Separate from credits: a rate limit that resets on its own, with nothing to pay.",
+    "packsHint": "One specific need, paid once.",
+    "rechargesHint": "More credits, without changing plan.",
+    "bundlesHint": "Several engines, bundled.",
+    "addonsHint": "Services added on top of your plan.",
+    "payments": "Payments",
+    "invoices": "Invoices",
+    "paymentsVsInvoices": "A payment is a debit on your phone. An invoice is the document behind it: a renewal issues one without a new debit, and a declined payment leaves none.",
+    "noInvoices": "No invoices yet.",
+    "invoicesUnavailable": "Your invoices could not be loaded. Try again in a moment.",
+    "periodCovered": "period",
+    "viewInvoice": "View",
+    "details": "Details",
+    "invoice": "Invoice",
+    "invoiceStatus": {
+      "paid": "Paid",
+      "open": "Due",
+      "void": "Voided",
+      "uncollectible": "Uncollectible"
+    },
+    "receiptIssuer": "IDEM Africa",
+    "billedTo": "Billed to",
+    "description": "Description",
+    "amount": "Amount",
+    "total": "Total",
+    "paidOn": "Paid on {{date}}",
+    "print": "Print",
+    "signInMethod": "Signed in with",
+    "emailStatus": "Email address",
+    "emailVerified": "Verified",
+    "emailUnverified": "Not verified",
+    "currentOffer": "Current plan",
+    "preferences": "Preferences",
+    "language": "Language",
+    "theme": "Theme",
+    "outcome": {
+      "title": "Payment summary",
+      "noReference": "No payment was specified.",
+      "notFound": "This payment could not be found on your account.",
+      "backToAccount": "Back to my account",
+      "product": "Item",
+      "paidAt": "Date",
+      "whatChanged": "What this changes",
+      "deliveryPending": "Your payment went through. Activation sometimes takes a moment — this screen updates on its own.",
+      "resume": "Back to work",
+      "seeInvoice": "See my invoices"
     }
   }
 }
