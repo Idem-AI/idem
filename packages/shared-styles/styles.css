@@ -597,6 +597,33 @@ html.dark body::before {
   box-shadow: var(--glass-shadow-lg);
 }
 
+/* ----------------------------------------------------------------------------
+   SURFACE D'UNE FENÊTRE MODALE
+
+   Une fenêtre posée sur un voile sombre doit être **opaque**. Les panneaux
+   utilisaient `.glass-card` ou les fonds `--glass-bg-*`, c'est-à-dire du blanc
+   translucide : en thème sombre le résultat passe — du sombre sur du sombre —
+   mais en thème clair, 60 % de blanc sur 60 % de noir donne un gris franc. La
+   fenêtre doit se détacher du voile, pas s'y mêler.
+
+   Le verre reste le bon choix pour ce qui flotte au-dessus de la page sans
+   voile (barres, menus, cartes) : c'est la combinaison voile + translucidité
+   qui pose problème, pas la translucidité elle-même.
+   -------------------------------------------------------------------------- */
+
+.modal-panel {
+  background: var(--idem-surface-1);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--glass-shadow-xl);
+}
+
+/* Tiroir latéral : même opacité, coins et ombre en moins — il est collé au bord. */
+.modal-drawer {
+  background: var(--idem-surface-1);
+  box-shadow: var(--glass-shadow-xl);
+}
+
 /* Glow Effects */
 .glow-primary {
   box-shadow: 0 0 15px var(--color-primary-glow);

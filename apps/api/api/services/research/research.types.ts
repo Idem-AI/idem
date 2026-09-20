@@ -54,17 +54,6 @@ export interface ResearchFinding {
   sourceIds: string[];
 }
 
-/** Résultat d'une passe de recherche pour un brief donné. */
-export interface ResearchResult {
-  brief: string;
-  /** Requêtes réellement exécutées par le moteur (webSearchQueries). */
-  queries: string[];
-  sources: ResearchSource[];
-  findings: ResearchFinding[];
-  /** Synthèse fondée produite par l'agent chercheur (avec citations [sN]). */
-  narrative: string;
-}
-
 /** Problème relevé par l'agent vérificateur. */
 export interface VerificationIssue {
   /** Extrait fautif (ex: une statistique non sourcée). */

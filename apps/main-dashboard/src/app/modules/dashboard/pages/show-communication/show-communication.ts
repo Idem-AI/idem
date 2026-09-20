@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ProjectModel } from '@idem/shared-models';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { CommunicationService } from '../../services/ai-agents/communication.service';
@@ -65,6 +65,7 @@ type Screen = 'studio' | 'plans' | 'library';
 export class ShowCommunication implements OnInit {
   private readonly communication = inject(CommunicationService);
   private readonly cookies = inject(CookieService);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly brandingValidation = inject(BrandingValidationService);
   private readonly projectService = inject(ProjectService);
@@ -73,7 +74,12 @@ export class ShowCommunication implements OnInit {
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal('');
   protected readonly model = signal<CommunicationModel | null>(null);
-  protected readonly activeScreen = signal<Screen>('studio');
+  /**
+   * Écran ouvert. `?screen=` permet d'arriver directement sur l'atelier, le
+   * calendrier ou la bibliothèque : le mode Chat y renvoie, et un lien partagé
+   * retrouve l'endroit dont on parlait.
+   */
+  protected readonly activeScreen = signal<Screen>(this.initialScreen());
   protected readonly isVoiceOpen = signal(false);
 
   protected readonly project = signal<ProjectModel | null>(null);
@@ -122,6 +128,13 @@ export class ShowCommunication implements OnInit {
       fontUrl: branding?.fontUrl,
     };
   });
+
+  private initialScreen(): Screen {
+    const requested = this.route.snapshot.queryParamMap.get('screen');
+    return requested === 'plans' || requested === 'library' || requested === 'studio'
+      ? requested
+      : 'studio';
+  }
 
   ngOnInit(): void {
     const projectId = this.cookies.get('projectId');

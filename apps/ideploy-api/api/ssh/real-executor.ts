@@ -135,8 +135,23 @@ function delay(ms: number): Promise<void> {
 
 /**
  * Execute a command on the remote server over SSH, streaming output.
- * Mirrors ExecuteRemoteCommand: heredoc-wrapped `bash -se`, multiplexing,
+ * Mirrors ExecuteRemoteCommand: heredoc-wrapped `bash -s`, multiplexing,
  * retries with exponential backoff.
+ *
+ * Deliberately `bash -s`, not `bash -se`: every caller in this codebase
+ * chains its own steps with `&&` exactly where one failing should stop the
+ * rest — `-e` (errexit) adds nothing there, `&&` already does it. What it
+ * *does* change is every step deliberately written to be allowed to fail
+ * (`docker compose down 2>/dev/null; next-step`, the idiom for "try this,
+ * don't care") — under `-e`, that failure aborts the whole script right
+ * there, silently, since the same `2>/dev/null` that was supposed to make it
+ * ignorable also hides the reason. Confirmed live: a service's first-ever
+ * `docker compose down --remove-orphans` (nothing to bring down yet) exits 1,
+ * and every step after it — pull, up, the deploy itself — never ran, with
+ * empty stdout and empty stderr to show for it. `server-setup.service.ts`'s
+ * provisioning script hit this same trap early enough to need its own
+ * `set +e`; this removes the actual cause instead of leaving every other
+ * caller to rediscover it.
  */
 async function executeOverSsh(
   server: ServerRow,
@@ -177,14 +192,22 @@ async function executeOverSsh(
   const attempt = async (): Promise<ExecResult> => {
     if (local) {
       // Run directly on the host shell (Docker Desktop / local daemon).
-      return captureChild(spawn('bash', ['-c', command]));
+      // Fed via stdin (`bash -s`), not as a `-c` argument — the same reason
+      // the SSH path below already does this: an argument sits in that
+      // process's own command line for the life of the command, readable by
+      // anything on the machine with `ps aux`/`/proc/<pid>/cmdline`. That
+      // was a real gap here specifically: a database's generated `docker
+      // run` already carries a decrypted password this way, and a git clone
+      // of a private repository now carries an OAuth token the same way —
+      // both are commands this path can run.
+      return captureChild(spawn('bash', ['-s']), command);
     }
     const useMux = await ensureMultiplexedConnection(server, keyPath);
     const args = [
       ...(useMux ? muxOptions(server) : []),
       ...commonSshOptions(server, keyPath),
       target,
-      'bash -se',
+      'bash -s',
     ];
     return captureChild(spawn('timeout', [String(SSH.commandTimeout), 'ssh', ...args]), command);
   };

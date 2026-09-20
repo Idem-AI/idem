@@ -123,11 +123,57 @@ function mapRule(r: Record<string, unknown>): FirewallRule {
 
 export async function listRules(teamId: number, appUuid: string): Promise<FirewallRule[]> {
   const config = await getOrCreateConfig(teamId, appUuid);
+  return listRulesByConfigId(config.id);
+}
+
+/**
+ * Rules for a config, without the team-scoped ownership check `listRules`
+ * does through `getOrCreateConfig`.
+ *
+ * For `firewall-enforcement.service.ts` reconciling *other* applications'
+ * rules on the same server — CrowdSec's decisions are shared by every
+ * application the bouncer protects, not scoped to whichever app happens to
+ * be reconciling right now, so working out what is safe to release means
+ * reading rules that do not belong to the caller's own team.
+ */
+export async function listRulesByConfigId(configId: number): Promise<FirewallRule[]> {
   const { rows } = await pool.query(
     'SELECT * FROM firewall_rules WHERE firewall_config_id = $1 ORDER BY priority',
-    [config.id]
+    [configId]
   );
   return rows.map(mapRule);
+}
+
+export interface EnabledConfigRef {
+  configId: number;
+  applicationId: number;
+  appUuid: string;
+}
+
+/**
+ * Every enabled firewall config for an application on the given server,
+ * across every team.
+ *
+ * CrowdSec is provisioned once per server (see `firewall-enforcement.service.ts`)
+ * and its decisions are address-scoped, not application-scoped — so deciding
+ * whether a decision is safe to release has to look at every application
+ * sharing that server's CrowdSec, not just the one being reconciled.
+ */
+export async function listEnabledConfigsOnServer(serverId: number): Promise<EnabledConfigRef[]> {
+  const { rows } = await pool.query(
+    `SELECT fw.id AS config_id, a.id AS application_id, a.uuid AS app_uuid
+     FROM firewall_configs fw
+     JOIN applications a ON a.id = fw.application_id
+     JOIN standalone_dockers sd ON sd.id = a.destination_id AND a.destination_type LIKE '%StandaloneDocker'
+     JOIN servers s ON s.id = sd.server_id
+     WHERE s.id = $1 AND fw.enabled = true`,
+    [serverId]
+  );
+  return rows.map((r) => ({
+    configId: Number(r.config_id),
+    applicationId: Number(r.application_id),
+    appUuid: String(r.app_uuid),
+  }));
 }
 
 export async function createRule(

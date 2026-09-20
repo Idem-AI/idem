@@ -40,7 +40,15 @@ import { DiagramsService } from '../../../dashboard/services/ai-agents/diagrams.
 import { LegalDocsService } from '../../../dashboard/services/ai-agents/legal-docs.service';
 import { CommunicationService } from '../../../dashboard/services/ai-agents/communication.service';
 import { FinanceService } from '../../../dashboard/services/finance.service';
-import { LegalDocumentType } from '../../../dashboard/models/legalDocs.model';
+import { LegalDocumentType, LegalDocsModel } from '../../../dashboard/models/legalDocs.model';
+import {
+  BusinessCardOrientation,
+  BusinessCardHolder,
+} from '../../../dashboard/models/business-card.model';
+import { BusinessCardService } from '../../../dashboard/services/ai-agents/business-card.service';
+import { FinanceSectionKey } from '../../../dashboard/models/finance.model';
+import { PreviewDocumentType } from '../../../dashboard/components/document-preview/document-preview';
+import { SectionCompletionItem } from '../../../dashboard/models/generation-completeness';
 import { CommunicationStreamEvent } from '../../../dashboard/models/communication.model';
 import { ChatSessionService } from '../../services/chat-session.service';
 import { ChatConversationStoreService } from '../../services/chat-conversation-store.service';
@@ -49,13 +57,20 @@ import { ChatDeliverablesService } from '../../services/chat-deliverables.servic
 import { ChatOnboardingService } from '../../services/chat-onboarding.service';
 import { ChatBrandingService } from '../../services/chat-branding.service';
 import {
+  ChatDocumentsService,
+  ChatDocumentSummary,
+  MultiDocumentKind,
+  PreviewableKind,
+} from '../../services/chat-documents.service';
+import {
   AdditionalInfos,
   ChatAdditionalInfoService,
 } from '../../services/chat-additional-info.service';
 import { DeliverableCardComponent } from '../../components/deliverable-card/deliverable-card';
 import { RecapCardComponent } from '../../components/recap-card/recap-card';
 import { SuggestionChipsComponent } from '../../components/suggestion-chips/suggestion-chips';
-import { PreviewPanelComponent } from '../../components/preview-panel/preview-panel';
+import { DocumentPreviewPanelComponent } from '../../components/document-preview-panel/document-preview-panel';
+import { DocumentListCardComponent } from '../../components/document-list-card/document-list-card';
 import { ColorOptionsCardComponent } from '../../components/color-options-card/color-options-card';
 import { TypographyOptionsCardComponent } from '../../components/typography-options-card/typography-options-card';
 import { LogoOptionsCardComponent } from '../../components/logo-options-card/logo-options-card';
@@ -84,12 +99,38 @@ import {
   OnboardingState,
 } from '../../models/chat.model';
 
+/**
+ * Document ouvert dans le tiroir de lecture.
+ *
+ * Ce n'est plus un PDF : le tiroir rend les sections du document, comme la
+ * page d'affichage du mode Avancé et comme l'éditeur. Le PDF n'est demandé à
+ * l'API qu'au téléchargement.
+ */
 interface PreviewState {
-  kind: DeliverableKind;
+  kind: PreviewableKind;
+  /** Document visé, quand le projet en garde plusieurs. */
+  documentId: string | null;
+  documentType: PreviewDocumentType;
   title: string;
-  url: string | null;
-  isLoading: boolean;
-  error: string | null;
+  /** Pages attendues et leur état, dans l'ordre du document. */
+  outline: SectionCompletionItem[];
+  sectionLabelPrefix: string;
+}
+
+/** Options d'une génération lancée depuis le fil. */
+interface SseGenOptions {
+  /** Informations complémentaires du business plan. */
+  infos?: AdditionalInfos;
+  /** Format de la charte graphique (portrait / paysage). */
+  pdfFormat?: ChartePdfFormat;
+  /** Types de documents juridiques à rédiger. */
+  legalTypes?: LegalDocumentType[];
+  /** Business plan ou pitch deck visé, parmi ceux du projet. */
+  documentId?: string | null;
+  /** Sections à régénérer ; vide, la génération complète ce qui manque. */
+  sections?: string[];
+  /** Tout régénérer, y compris les sections déjà écrites. */
+  force?: boolean;
 }
 
 /** Livrables générés in-chat via le moteur SSE partagé (GenerationService). */
@@ -113,7 +154,8 @@ let chatMessageCounter = 0;
     DeliverableCardComponent,
     RecapCardComponent,
     SuggestionChipsComponent,
-    PreviewPanelComponent,
+    DocumentPreviewPanelComponent,
+    DocumentListCardComponent,
     ColorOptionsCardComponent,
     TypographyOptionsCardComponent,
     LogoOptionsCardComponent,
@@ -149,11 +191,13 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   private readonly legalDocsService = inject(LegalDocsService);
   private readonly communicationService = inject(CommunicationService);
   private readonly financeService = inject(FinanceService);
+  private readonly businessCardService = inject(BusinessCardService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly session = inject(ChatSessionService);
   protected readonly store = inject(ChatConversationStoreService);
   protected readonly deliverables = inject(ChatDeliverablesService);
+  protected readonly documents = inject(ChatDocumentsService);
 
   @ViewChild('scrollAnchor') private scrollAnchor?: ElementRef<HTMLDivElement>;
 
@@ -187,12 +231,12 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
 
   private onboardingState: OnboardingState | null = null;
   private loadedProjectId: string | null = null;
-  private previewBlob: Blob | null = null;
   private pendingLogoType: LogoType | null = null;
   private pendingBpInfos: AdditionalInfos | null = null;
   /** Plan créé sur la structure choisie dans le fil, généré ensuite. */
   private pendingBpDocumentId: string | null = null;
-  private activeGenerationType: SSEServiceEventType | null = null;
+  /** Générations déjà reprises dans ce fil (une seule carte par génération). */
+  private readonly adoptedGenerations = new Set<SSEServiceEventType>();
 
   protected readonly messages = this.store.messages;
   protected readonly isEmpty = computed(() => this.messages().length === 0);
@@ -292,10 +336,11 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.revokePreviewUrl();
-    if (this.isGenerating() && this.activeGenerationType) {
-      this.generationService.cancelGeneration(this.activeGenerationType);
-    }
+    // La génération en cours n'est PAS annulée en quittant le chat : elle
+    // appartient au projet, pas à l'écran, elle est déjà facturée, et le mode
+    // Avancé la laisse vivre de la même façon. Quitter le fil pour aller
+    // vérifier autre chose ne doit pas coûter le travail en cours — le chat
+    // la reprend à son retour (`reconcileRunningGenerations`).
   }
 
   // ─────────────────────────────────────────────── Modes
@@ -308,16 +353,108 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     this.awaitingFormatChoice.set(false);
     this.awaitingBpStructure.set(false);
     await this.store.load(projectId);
-    // Une génération interrompue par un rechargement n'est plus vivante
+    this.reconcileRunningGenerations();
+    // Rafraîchit le détail du projet (sections des livrables) en arrière-plan
+    void this.session.fetchActiveProjectDetails();
+  }
+
+  /** Livrable correspondant à chaque flux SSE de l'application. */
+  private static readonly KIND_BY_SERVICE: Partial<Record<SSEServiceEventType, SseGenKind>> = {
+    'business-plan': 'businessPlan',
+    'pitch-deck': 'pitchDeck',
+    branding: 'branding',
+    diagram: 'diagrams',
+    'finance-fill': 'finance',
+    'legal-docs': 'legalDocs',
+  };
+
+  /**
+   * Remet le fil d'accord avec les générations réellement en cours.
+   *
+   * Une génération appartient à l'application : lancée depuis le tableau de
+   * bord ou depuis une autre conversation, elle continue. Le fil doit donc
+   * distinguer deux cartes qui se ressemblent — celle dont la génération a été
+   * coupée par un rechargement (en échec), et celle dont la génération tourne
+   * encore (reprise). Sans cette distinction, l'utilisateur relançait une
+   * génération déjà payée.
+   */
+  private reconcileRunningGenerations(): void {
+    const live = new Map<string, { serviceType: SSEServiceEventType; kind: SseGenKind }>();
+    for (const [serviceType, kind] of Object.entries(ChatHomePage.KIND_BY_SERVICE) as Array<
+      [SSEServiceEventType, SseGenKind]
+    >) {
+      if (!this.generationService.observeGeneration(serviceType)) continue;
+      live.set(this.translate.instant(this.deliverables.config(kind).titleKey), {
+        serviceType,
+        kind,
+      });
+    }
+
     for (const message of this.store.messages()) {
-      if (message.generation?.status === 'running') {
+      const generation = message.generation;
+      if (generation?.status !== 'running') continue;
+      const running = live.get(generation.title);
+      if (running && !this.adoptedGenerations.has(running.serviceType)) {
+        live.delete(generation.title);
+        this.followGeneration(running.kind, running.serviceType, message.id, generation.title);
+      } else {
         this.store.patch(message.id, {
-          generation: { ...message.generation, status: 'error', stepsInProgress: [] },
+          generation: { ...generation, status: 'error', stepsInProgress: [] },
         });
       }
     }
-    // Rafraîchit le détail du projet (sections des livrables) en arrière-plan
-    void this.session.fetchActiveProjectDetails();
+
+    // Génération lancée ailleurs : elle n'a pas encore de carte dans ce fil.
+    for (const [title, running] of live) {
+      if (this.adoptedGenerations.has(running.serviceType)) continue;
+      const progressId = this.nextId();
+      this.store.append({
+        id: progressId,
+        role: 'assistant',
+        content: this.translate.instant('chat.generation.resumed', { title }),
+        createdAt: new Date().toISOString(),
+        generation: { title, status: 'running', completedSteps: [], stepsInProgress: [] },
+      });
+      this.followGeneration(running.kind, running.serviceType, progressId, title);
+    }
+  }
+
+  /** Suit une génération déjà en cours et met sa carte à jour jusqu'au bout. */
+  private followGeneration(
+    kind: SseGenKind,
+    serviceType: SSEServiceEventType,
+    progressId: string,
+    title: string,
+  ): void {
+    const running = this.generationService.observeGeneration(serviceType);
+    if (!running) return;
+    this.adoptedGenerations.add(serviceType);
+    this.isGenerating.set(true);
+
+    let finished = false;
+    const release = () => {
+      finished = true;
+      this.adoptedGenerations.delete(serviceType);
+    };
+
+    running.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (state: SSEGenerationState) => {
+        if (finished) return;
+        this.store.patch(progressId, { generation: this.toProgressData(title, state) });
+        if (state.completed) {
+          release();
+          void this.finishGeneration(kind, progressId, title, state);
+        } else if (state.error) {
+          release();
+          this.failGeneration(kind, progressId, title, state);
+        }
+      },
+      error: () => {
+        if (finished) return;
+        release();
+        this.failGeneration(kind, progressId, title, null);
+      },
+    });
   }
 
   private enterOnboarding(): void {
@@ -447,6 +584,9 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
       case 'generate':
         await this.startGeneration(intent.kind!);
         break;
+      case 'documents':
+        await this.respondWithDocuments(intent.kind as MultiDocumentKind);
+        break;
     }
   }
 
@@ -463,9 +603,9 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     }
   }
 
-  private respondWithCard(kind: DeliverableKind): void {
+  private respondWithCard(kind: DeliverableKind, documentId?: string | null): void {
     const project = this.session.activeProject();
-    const card = this.deliverables.buildCard(kind, project);
+    const card = this.deliverables.buildCard(kind, project, documentId);
     const title = this.translate.instant(card.titleKey);
     this.appendAssistant({
       content: this.translate.instant(
@@ -473,7 +613,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         { title },
       ),
       card,
-      chips: this.buildCardChips(kind, card.available, card.pdfSupported),
+      chips: this.buildCardChips(kind, card.available, card.pdfSupported, documentId),
     });
   }
 
@@ -481,6 +621,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     kind: DeliverableKind,
     available: boolean,
     pdfSupported: boolean,
+    documentId?: string | null,
   ): ChatChip[] {
     const chips: ChatChip[] = [];
     if (kind === 'branding' && !this.branding.isComplete(this.session.activeProject())) {
@@ -507,12 +648,41 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         payload: kind,
       });
     }
+    // Lire le document sans quitter la conversation : c'est l'aperçu complet
+    // (pages, régénération, édition), pas un aperçu PDF.
+    if (available && this.documents.isPreviewable(kind)) {
+      chips.push({
+        labelKey: 'chat.card.actions.preview',
+        icon: 'pi pi-eye',
+        action: 'preview',
+        payload: kind,
+        documentId: documentId ?? undefined,
+      });
+    }
     if (available && pdfSupported) {
       chips.push({
         labelKey: 'chat.chips.downloadPdf',
         icon: 'pi pi-download',
         action: 'download',
         payload: kind,
+        documentId: documentId ?? undefined,
+      });
+    }
+    // Les livrables que le projet garde en plusieurs exemplaires : la liste
+    // est le seul endroit d'où l'on ouvre, renomme ou supprime les autres.
+    if (kind === 'businessPlan' || kind === 'pitchDeck') {
+      chips.push({
+        labelKey: `chat.documents.${kind}.list`,
+        icon: 'pi pi-list',
+        action: 'documents',
+        payload: kind,
+      });
+    }
+    if (kind === 'legalDocs' && available) {
+      chips.push({
+        labelKey: 'chat.legal.chips.list',
+        icon: 'pi pi-list',
+        action: 'legal-list',
       });
     }
     chips.push({
@@ -529,6 +699,8 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
       legalDocs: 'finance',
       finance: 'businessPlan',
       communication: 'pitchDeck',
+      businessCards: 'communication',
+      simulations: 'finance',
       development: 'deployment',
       deployment: 'diagrams',
     };
@@ -607,7 +779,10 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         };
   }
 
-  private async respondWithDownload(kind: DeliverableKind): Promise<void> {
+  private async respondWithDownload(
+    kind: DeliverableKind,
+    documentId?: string | null,
+  ): Promise<void> {
     const projectId = this.session.activeProjectId();
     if (!projectId) return;
     const project = this.session.activeProject();
@@ -615,17 +790,17 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     const title = this.translate.instant(config.titleKey);
 
     if (!config.pdfSupported) {
-      const card = this.deliverables.buildCard(kind, project);
+      const card = this.deliverables.buildCard(kind, project, documentId);
       this.appendAssistant({
         content: this.translate.instant('chat.responses.noPdf', { title }),
         card,
-        chips: this.buildCardChips(kind, card.available, card.pdfSupported),
+        chips: this.buildCardChips(kind, card.available, card.pdfSupported, documentId),
       });
       return;
     }
 
     this.pendingAssistant.set(true);
-    const ok = await this.deliverables.download(kind, projectId, project?.name);
+    const ok = await this.deliverables.download(kind, projectId, project?.name, documentId);
     this.pendingAssistant.set(false);
 
     if (ok) {
@@ -634,11 +809,11 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         chips: this.genericChips(),
       });
     } else {
-      const card = this.deliverables.buildCard(kind, project);
+      const card = this.deliverables.buildCard(kind, project, documentId);
       this.appendAssistant({
         content: this.translate.instant('chat.responses.downloadUnavailable', { title }),
         card,
-        chips: this.buildCardChips(kind, card.available, card.pdfSupported),
+        chips: this.buildCardChips(kind, card.available, card.pdfSupported, documentId),
       });
     }
   }
@@ -699,11 +874,15 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         break;
       case 'show':
         this.appendUser(this.chipLabel(chip));
-        this.respondWithCard(chip.payload as DeliverableKind);
+        this.respondWithCard(chip.payload as DeliverableKind, chip.documentId);
         break;
       case 'download':
         this.appendUser(this.chipLabel(chip));
-        void this.respondWithDownload(chip.payload as DeliverableKind);
+        void this.respondWithDownload(chip.payload as DeliverableKind, chip.documentId);
+        break;
+      case 'documents':
+        this.appendUser(this.chipLabel(chip));
+        void this.respondWithDocuments(chip.payload as MultiDocumentKind);
         break;
       case 'status':
         this.appendUser(this.chipLabel(chip));
@@ -794,7 +973,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         this.appendUser(this.chipLabel(chip));
         this.awaitingBpInfoText.set(false);
         const infos = chip.payload === 'with-infos' ? this.pendingBpInfos : null;
-        void this.runSseGeneration('businessPlan', infos ?? undefined);
+        void this.runSseGeneration('businessPlan', { infos: infos ?? undefined });
         break;
       }
       case 'download-logos-zip': {
@@ -803,7 +982,43 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         break;
       }
       case 'preview':
-        void this.openPreview(chip.payload as DeliverableKind);
+        void this.openPreview(chip.payload as DeliverableKind, chip.documentId);
+        break;
+      case 'regenerate-section': {
+        // `payload` = « livrable:Nom de section » (nom canonique côté API).
+        const [kind, ...rest] = (chip.payload ?? '').split(':');
+        const sectionName = rest.join(':');
+        if (!kind || !sectionName) break;
+        this.appendUser(this.chipLabel(chip));
+        void this.runSseGeneration(kind as SseGenKind, {
+          documentId: chip.documentId,
+          sections: [sectionName],
+        });
+        break;
+      }
+      case 'generate-now':
+        // Lance la génération telle quelle, sans repasser par le parcours de
+        // choix (format, structure, section…) qui l'a proposée.
+        this.appendUser(this.chipLabel(chip));
+        void this.runSseGeneration(chip.payload as SseGenKind, { documentId: chip.documentId });
+        break;
+      case 'legal-list':
+        this.appendUser(this.chipLabel(chip));
+        void this.respondWithLegalDocs();
+        break;
+      case 'legal-download':
+        void this.downloadLegalDocument(chip.payload ?? '');
+        break;
+      case 'legal-delete':
+        void this.deleteLegalDocument(chip.payload ?? '');
+        break;
+      case 'finance-section':
+        this.appendUser(this.chipLabel(chip));
+        void this.fillFinanceSection(chip.payload as FinanceSectionKey);
+        break;
+      case 'cards-generate':
+        this.appendUser(this.chipLabel(chip));
+        void this.generateBusinessCards((chip.payload as BusinessCardOrientation) ?? 'landscape');
         break;
       case 'charte-regenerate':
         this.appendUser(this.chipLabel(chip));
@@ -859,7 +1074,10 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     void this.startGeneration(card.kind);
   }
 
-  protected async downloadFromCard(kind: DeliverableKind): Promise<void> {
+  protected async downloadFromCard(
+    kind: DeliverableKind,
+    documentId?: string | null,
+  ): Promise<void> {
     const projectId = this.session.activeProjectId();
     if (!projectId || this.cardBusy()) return;
     this.cardBusy.set(true);
@@ -868,6 +1086,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         kind,
         projectId,
         this.session.activeProject()?.name,
+        documentId,
       );
       if (!ok) {
         const title = this.translate.instant(this.deliverables.config(kind).titleKey);
@@ -880,62 +1099,212 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     }
   }
 
-  // ─────────────────────────────────────────────── Prévisualisation
+  // ─────────────────────────────────────────────── Lecture d'un document
 
-  protected async openPreview(kind: DeliverableKind): Promise<void> {
+  /**
+   * Ouvre un document dans le tiroir de lecture.
+   *
+   * Le tiroir rend les sections du document — mêmes pages que l'éditeur, pages
+   * manquantes signalées à leur place, régénération page par page. Les
+   * livrables qui n'ont pas de document rendu (diagrammes, juridique, finance)
+   * retombent sur leur PDF ou sur leur module.
+   */
+  protected async openPreview(
+    kind: DeliverableKind,
+    documentId?: string | null,
+  ): Promise<void> {
     const projectId = this.session.activeProjectId();
     if (!projectId) return;
-    const title = this.translate.instant(this.deliverables.config(kind).titleKey);
-    this.revokePreviewUrl();
-    this.preview.set({ kind, title, url: null, isLoading: true, error: null });
+    if (!this.documents.isPreviewable(kind)) {
+      await this.respondWithDownload(kind);
+      return;
+    }
 
+    this.cardBusy.set(true);
     try {
-      const blob = await firstValueFrom(this.deliverables.fetchPdf(kind, projectId));
-      const current = this.preview();
-      if (!current || current.kind !== kind) return;
-      if (!blob || blob.size === 0) {
-        this.preview.set({ ...current, isLoading: false, error: this.translate.instant('chat.preview.notAvailable') });
-        return;
+      // L'aperçu lit les sections depuis l'API ; le fil, lui, a besoin de
+      // l'état à jour pour savoir ce qui manque encore.
+      const project = (await this.session.fetchActiveProjectDetails()) ?? this.session.activeProject();
+      let targetId = documentId ?? null;
+      let expectedSectionNames: string[] | undefined;
+
+      if (kind !== 'branding') {
+        const summaries = await this.documents.list(kind, projectId);
+        const target = summaries.find((doc) => doc.id === targetId) ?? summaries[0];
+        targetId = target?.id ?? null;
+        expectedSectionNames = target?.expectedSectionNames;
       }
-      this.previewBlob = blob;
-      const url = URL.createObjectURL(blob);
-      this.preview.set({ ...current, url, isLoading: false });
-    } catch {
-      const current = this.preview();
-      if (!current || current.kind !== kind) return;
-      this.preview.set({ ...current, isLoading: false, error: this.translate.instant('chat.preview.notAvailable') });
+
+      const config = this.documents.previewConfig(kind);
+      const fallbackTitle = this.translate.instant(this.deliverables.config(kind).titleKey);
+      this.preview.set({
+        kind,
+        documentId: targetId,
+        documentType: config.documentType,
+        sectionLabelPrefix: config.sectionLabelPrefix,
+        title: this.documents.heading(kind, project, targetId, fallbackTitle),
+        outline: this.documents.outline(kind, project, targetId, expectedSectionNames),
+      });
+    } finally {
+      this.cardBusy.set(false);
     }
   }
 
   protected closePreview(): void {
-    this.revokePreviewUrl();
     this.preview.set(null);
   }
 
-  protected downloadFromPreview(): void {
-    const current = this.preview();
-    if (!current || !this.previewBlob) return;
-    this.deliverables.triggerDownload(
-      this.previewBlob,
-      this.deliverables.downloadFilename(current.kind, this.session.activeProject()?.name),
-    );
+  /** Nom lisible d'une section (le fil parle de « Plan financier », pas de `Financial Plan`). */
+  private sectionLabel(prefix: string, name: string): string {
+    if (!prefix) return name;
+    const label: unknown = this.translate.instant(prefix + name);
+    return typeof label === 'string' && label !== prefix + name ? label : name;
   }
 
-  /** « Générer maintenant » depuis le panneau de prévisualisation. */
-  protected generateFromPreview(): void {
+  /**
+   * Régénérer une page depuis le tiroir.
+   *
+   * La génération repart dans la conversation plutôt que dans le tiroir : elle
+   * dure, elle est facturée, et l'utilisateur doit pouvoir la suivre — et la
+   * retrouver — au même endroit que toutes les autres.
+   */
+  protected onPreviewRegenerateSection(sectionName: string): void {
     const current = this.preview();
-    if (!current) return;
+    if (!current || this.isGenerating()) return;
+    const label = this.sectionLabel(current.sectionLabelPrefix, sectionName);
     this.closePreview();
-    this.appendUser(this.translate.instant('chat.preview.generateNow'));
-    void this.startGeneration(current.kind);
+    this.appendUser(this.translate.instant('chat.preview.askRegenerateSection', { section: label }));
+    void this.runSseGeneration(current.kind, {
+      documentId: current.documentId,
+      sections: [sectionName],
+    });
   }
 
-  private revokePreviewUrl(): void {
+  /** Compléter : seules les pages manquantes ou en échec sont générées. */
+  protected onPreviewResume(): void {
     const current = this.preview();
-    if (current?.url) {
-      URL.revokeObjectURL(current.url);
+    if (!current || this.isGenerating()) return;
+    this.closePreview();
+    this.appendUser(this.translate.instant('chat.preview.askResume'));
+    void this.runSseGeneration(current.kind, { documentId: current.documentId });
+  }
+
+  protected onPreviewRegenerateAll(): void {
+    const current = this.preview();
+    if (!current || this.isGenerating()) return;
+    this.closePreview();
+    this.appendUser(this.translate.instant('chat.preview.askRegenerateAll'));
+    void this.runSseGeneration(current.kind, { documentId: current.documentId, force: true });
+  }
+
+  // ─────────────────────────────────────────────── Documents d'un livrable
+
+  /**
+   * Liste les business plans (ou les pitch decks) du projet dans le fil.
+   *
+   * Un projet en garde plusieurs — dossier bancaire et plan investisseur, deck
+   * de levée et présentation commerciale. Sans cette liste, le chat agissait
+   * toujours sur le plus récent.
+   */
+  private async respondWithDocuments(kind: MultiDocumentKind): Promise<void> {
+    const projectId = this.session.activeProjectId();
+    if (!projectId) return;
+    this.pendingAssistant.set(true);
+    const documents = await this.documents.list(kind, projectId);
+    this.pendingAssistant.set(false);
+    this.appendAssistant({
+      content: this.translate.instant(
+        documents.length > 0 ? `chat.documents.${kind}.intro` : `chat.documents.${kind}.none`,
+        { count: documents.length },
+      ),
+      documentList: { kind, documents },
+    });
+  }
+
+  /** Rafraîchit la liste posée dans un message après une action. */
+  private async refreshDocumentList(messageId: string, kind: MultiDocumentKind): Promise<void> {
+    const projectId = this.session.activeProjectId();
+    if (!projectId) return;
+    const documents = await this.documents.list(kind, projectId);
+    this.store.patch(messageId, { documentList: { kind, documents } });
+  }
+
+  protected onDocumentOpened(kind: MultiDocumentKind, documentId: string): void {
+    void this.openPreview(kind, documentId);
+  }
+
+  protected async onDocumentDownloaded(
+    kind: MultiDocumentKind,
+    documentId: string,
+  ): Promise<void> {
+    const projectId = this.session.activeProjectId();
+    if (!projectId || this.cardBusy()) return;
+    this.cardBusy.set(true);
+    try {
+      const ok = await this.deliverables.download(
+        kind,
+        projectId,
+        this.session.activeProject()?.name,
+        documentId,
+      );
+      if (!ok) {
+        const title = this.translate.instant(this.deliverables.config(kind).titleKey);
+        this.appendAssistant({
+          content: this.translate.instant('chat.responses.downloadUnavailable', { title }),
+        });
+      }
+    } finally {
+      this.cardBusy.set(false);
     }
-    this.previewBlob = null;
+  }
+
+  protected async onDocumentRenamed(
+    messageId: string,
+    kind: MultiDocumentKind,
+    change: { id: string; name: string },
+  ): Promise<void> {
+    const projectId = this.session.activeProjectId();
+    if (!projectId || this.cardBusy()) return;
+    this.cardBusy.set(true);
+    try {
+      await firstValueFrom(this.documents.rename(kind, projectId, change.id, change.name));
+      await this.refreshDocumentList(messageId, kind);
+      await this.session.fetchActiveProjectDetails();
+    } catch (error) {
+      console.error('Chat documents: rename failed', error);
+      this.appendAssistant({ content: this.translate.instant('chat.documents.renameFailed') });
+    } finally {
+      this.cardBusy.set(false);
+    }
+  }
+
+  protected async onDocumentRemoved(
+    messageId: string,
+    kind: MultiDocumentKind,
+    documentId: string,
+  ): Promise<void> {
+    const projectId = this.session.activeProjectId();
+    if (!projectId || this.cardBusy()) return;
+    this.cardBusy.set(true);
+    try {
+      await firstValueFrom(this.documents.remove(kind, projectId, documentId));
+      // Le document ouvert vient peut-être d'être supprimé.
+      if (this.preview()?.documentId === documentId) this.closePreview();
+      await this.refreshDocumentList(messageId, kind);
+      await this.session.fetchActiveProjectDetails();
+    } catch (error) {
+      console.error('Chat documents: delete failed', error);
+      this.appendAssistant({ content: this.translate.instant('chat.documents.deleteFailed') });
+    } finally {
+      this.cardBusy.set(false);
+    }
+  }
+
+  /** « Créer un autre document » : le parcours de création, dans le fil. */
+  protected onDocumentCreateRequested(kind: MultiDocumentKind): void {
+    if (this.isGenerating() || this.pendingAssistant()) return;
+    this.appendUser(this.translate.instant(`chat.documents.${kind}.create`));
+    void this.startGeneration(kind);
   }
 
   // ─────────────────────────────────────────────── Identité de marque (flux conversationnel)
@@ -1222,13 +1591,19 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         await this.runSseGeneration('diagrams');
         break;
       case 'finance':
-        await this.runSseGeneration('finance');
+        this.startFinanceFlow();
         break;
       case 'legalDocs':
         this.startLegalDocsFlow();
         break;
       case 'communication':
         this.startCommunicationFlow();
+        break;
+      case 'businessCards':
+        this.startBusinessCardsFlow();
+        break;
+      case 'simulations':
+        this.openSimulationsGuide();
         break;
       case 'development':
         this.openDevelopmentGuide();
@@ -1270,7 +1645,293 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   private generateLegalDocs(rawTypes: string): void {
     const types = rawTypes.split(',').filter(Boolean) as LegalDocumentType[];
     if (types.length === 0) return;
-    void this.runSseGeneration('legalDocs', undefined, undefined, types);
+    void this.runSseGeneration('legalDocs', { legalTypes: types });
+  }
+
+  /**
+   * Les documents juridiques déjà rédigés, avec de quoi les télécharger ou
+   * les retirer un par un — ce que seule la page du mode Avancé permettait.
+   */
+  private async respondWithLegalDocs(): Promise<void> {
+    const projectId = this.session.activeProjectId();
+    if (!projectId) return;
+    this.pendingAssistant.set(true);
+    try {
+      const legal = await firstValueFrom(this.legalDocsService.getLegalDocs(projectId));
+      this.pendingAssistant.set(false);
+      this.appendLegalDocsMessage(legal);
+    } catch (error) {
+      console.error('Chat legal: loading the documents failed', error);
+      this.pendingAssistant.set(false);
+      this.appendAssistant({
+        content: this.translate.instant('chat.legal.loadFailed'),
+        chips: [{ labelKey: 'chat.legal.chips.list', icon: 'pi pi-refresh', action: 'legal-list' }],
+      });
+    }
+  }
+
+  /** Un document juridique = deux chips (télécharger, supprimer), dans le fil. */
+  private appendLegalDocsMessage(legal: LegalDocsModel | null): void {
+    const documents = (legal?.documents ?? []).filter((doc) => !!doc.id);
+    if (documents.length === 0) {
+      this.appendAssistant({
+        content: this.translate.instant('chat.legal.emptyList'),
+        chips: [
+          { labelKey: 'chat.chips.generate.legalDocs', icon: 'pi pi-sparkles', action: 'generate', payload: 'legalDocs' },
+        ],
+      });
+      return;
+    }
+
+    const chips: ChatChip[] = [];
+    for (const doc of documents) {
+      chips.push({
+        label: this.translate.instant('chat.legal.downloadOne', { name: doc.name }),
+        icon: 'pi pi-download',
+        action: 'legal-download',
+        payload: doc.id!,
+      });
+    }
+    chips.push({
+      labelKey: 'chat.chips.generate.legalDocs',
+      icon: 'pi pi-sparkles',
+      action: 'generate',
+      payload: 'legalDocs',
+    });
+    chips.push({
+      labelKey: 'chat.legal.chips.editor',
+      icon: 'pi pi-arrow-up-right',
+      action: 'open-route',
+      payload: '/project/legal-docs',
+    });
+
+    const lines = [this.translate.instant('chat.legal.listIntro', { count: documents.length }), ''];
+    for (const doc of documents) {
+      lines.push(`- **${doc.name}**`);
+    }
+    this.appendAssistant({ content: lines.join('\n'), chips });
+  }
+
+  private async downloadLegalDocument(documentId: string): Promise<void> {
+    const projectId = this.session.activeProjectId();
+    if (!projectId || !documentId || this.cardBusy()) return;
+    this.cardBusy.set(true);
+    try {
+      const blob = await firstValueFrom(
+        this.legalDocsService.downloadDocumentPdf(projectId, documentId),
+      );
+      if (!blob || blob.size === 0) throw new Error('empty');
+      const name = (this.session.activeProject()?.name || 'idem')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/gi, '-');
+      this.deliverables.triggerDownload(blob, `${name}-${documentId}.pdf`);
+    } catch (error) {
+      console.error('Chat legal: download failed', error);
+      this.appendAssistant({ content: this.translate.instant('chat.legal.downloadFailed') });
+    } finally {
+      this.cardBusy.set(false);
+    }
+  }
+
+  private async deleteLegalDocument(documentId: string): Promise<void> {
+    const projectId = this.session.activeProjectId();
+    if (!projectId || !documentId || this.cardBusy()) return;
+    this.cardBusy.set(true);
+    try {
+      const legal = await firstValueFrom(
+        this.legalDocsService.deleteDocument(projectId, documentId),
+      );
+      await this.session.fetchActiveProjectDetails();
+      this.appendAssistant({ content: this.translate.instant('chat.legal.deleted') });
+      this.appendLegalDocsMessage(legal);
+    } catch (error) {
+      console.error('Chat legal: delete failed', error);
+      this.appendAssistant({ content: this.translate.instant('chat.legal.deleteFailed') });
+    } finally {
+      this.cardBusy.set(false);
+    }
+  }
+
+  // ─────────────────────────────────────────────── Finance
+
+  /**
+   * Sections du module Finance remplissables une par une, comme en mode
+   * Avancé. La clé technique et la clé de libellé diffèrent : les libellés de
+   * la barre latérale sont ceux que l'utilisateur lit déjà ailleurs.
+   */
+  private static readonly FINANCE_SECTIONS: Array<{
+    key: FinanceSectionKey;
+    labelKey: string;
+  }> = [
+    { key: 'products', labelKey: 'dashboard.finance.sections.products' },
+    { key: 'salesObjectives', labelKey: 'dashboard.finance.sections.sales' },
+    { key: 'variableCharges', labelKey: 'dashboard.finance.sections.charges' },
+    { key: 'fixedCharges', labelKey: 'dashboard.finance.sections.fixedCharges' },
+    { key: 'investments', labelKey: 'dashboard.finance.sections.investments' },
+    { key: 'financing', labelKey: 'dashboard.finance.sections.financing' },
+  ];
+
+  /**
+   * Propose de remplir tout le modèle financier, ou une seule section.
+   *
+   * Le tout-en-un rejoue chaque section : quand une seule est à revoir, le
+   * faire coûte le prix du modèle entier pour un résultat identique ailleurs.
+   */
+  private startFinanceFlow(): void {
+    const chips: ChatChip[] = [
+      {
+        labelKey: 'chat.finance.chips.fillAll',
+        icon: 'pi pi-sparkles',
+        action: 'generate-now',
+        payload: 'finance',
+      },
+      ...ChatHomePage.FINANCE_SECTIONS.map((section) => ({
+        labelKey: section.labelKey,
+        icon: 'pi pi-pencil',
+        action: 'finance-section' as const,
+        payload: section.key,
+      })),
+      {
+        labelKey: 'chat.card.actions.openEditor',
+        icon: 'pi pi-arrow-up-right',
+        action: 'open-route' as const,
+        payload: '/project/finance',
+      },
+    ];
+    this.appendAssistant({ content: this.translate.instant('chat.finance.intro'), chips });
+  }
+
+  /** Remplissage IA d'une section du modèle financier. */
+  private async fillFinanceSection(sectionKey: FinanceSectionKey): Promise<void> {
+    const projectId = this.session.activeProjectId();
+    if (!projectId || this.pendingAssistant()) return;
+    const label = this.translate.instant(
+      ChatHomePage.FINANCE_SECTIONS.find((section) => section.key === sectionKey)?.labelKey ??
+        `dashboard.finance.sections.${sectionKey}`,
+    );
+    this.pendingAssistant.set(true);
+    try {
+      await firstValueFrom(this.financeService.autoFillSection(projectId, sectionKey));
+      this.pendingAssistant.set(false);
+      this.appendAssistant({
+        content: this.translate.instant('chat.finance.sectionDone', { section: label }),
+        chips: [
+          {
+            labelKey: 'chat.chips.downloadPdf',
+            icon: 'pi pi-download',
+            action: 'download',
+            payload: 'finance',
+          },
+          {
+            labelKey: 'chat.card.actions.openEditor',
+            icon: 'pi pi-arrow-up-right',
+            action: 'open-route',
+            payload: '/project/finance',
+          },
+        ],
+      });
+    } catch (error) {
+      console.error(`Chat finance: filling ${sectionKey} failed`, error);
+      this.pendingAssistant.set(false);
+      this.appendAssistant({
+        content: this.translate.instant('chat.finance.sectionFailed', { section: label }),
+        chips: [
+          {
+            labelKey: 'chat.generation.chips.retry',
+            icon: 'pi pi-refresh',
+            action: 'finance-section',
+            payload: sectionKey,
+          },
+        ],
+      });
+    }
+  }
+
+  // ─────────────────────────────────────────────── Cartes de visite
+
+  /** Le modèle de carte se dessine depuis la charte : il faut donc une charte. */
+  private startBusinessCardsFlow(): void {
+    if (!this.branding.isComplete(this.session.activeProject())) {
+      this.appendAssistant({
+        content: this.translate.instant('chat.cards.needsBranding'),
+        chips: this.brandingInviteChips(),
+      });
+      return;
+    }
+    this.appendAssistant({
+      content: this.translate.instant('chat.cards.orientationQuestion'),
+      chips: [
+        {
+          labelKey: 'chat.cards.chips.landscape',
+          icon: 'pi pi-credit-card',
+          action: 'cards-generate',
+          payload: 'landscape',
+        },
+        {
+          labelKey: 'chat.cards.chips.portrait',
+          icon: 'pi pi-id-card',
+          action: 'cards-generate',
+          payload: 'portrait',
+        },
+        {
+          labelKey: 'chat.card.actions.openEditor',
+          icon: 'pi pi-arrow-up-right',
+          action: 'open-route',
+          payload: '/project/business-cards',
+        },
+      ],
+    });
+  }
+
+  private async generateBusinessCards(orientation: BusinessCardOrientation): Promise<void> {
+    const projectId = this.session.activeProjectId();
+    if (!projectId || this.pendingAssistant()) return;
+    this.pendingAssistant.set(true);
+    try {
+      const card = await firstValueFrom(
+        this.businessCardService.generateTemplate(projectId, { orientation }),
+      );
+      this.pendingAssistant.set(false);
+      this.appendAssistant({
+        content: this.translate.instant('chat.cards.done'),
+        chips: this.businessCardChips(card.holders ?? []),
+      });
+    } catch (error) {
+      console.error('Chat cards: template generation failed', error);
+      this.pendingAssistant.set(false);
+      this.appendAssistant({
+        content: this.translate.instant('chat.cards.failed'),
+        chips: [
+          {
+            labelKey: 'chat.generation.chips.retry',
+            icon: 'pi pi-refresh',
+            action: 'cards-generate',
+            payload: orientation,
+          },
+        ],
+      });
+    }
+  }
+
+  /**
+   * Le modèle est dessiné ; les personnes (et donc les cartes à imprimer) se
+   * gèrent sur leur page, où chaque carte se relit avant d'être exportée.
+   */
+  private businessCardChips(holders: BusinessCardHolder[]): ChatChip[] {
+    return [
+      {
+        labelKey: holders.length > 0 ? 'chat.cards.chips.openHolders' : 'chat.cards.chips.addHolder',
+        icon: 'pi pi-users',
+        action: 'open-route',
+        payload: '/project/business-cards',
+      },
+      {
+        labelKey: 'chat.cards.chips.edit',
+        icon: 'pi pi-pencil',
+        action: 'open-route',
+        payload: '/project/business-cards/edit',
+      },
+    ];
   }
 
   // ─────────────────────────────────────────────── Communication
@@ -1286,11 +1947,25 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
       chips: [
         { labelKey: 'chat.comm.chips.strategy', icon: 'pi pi-compass', action: 'comm-strategy' },
         { labelKey: 'chat.comm.chips.calendar', icon: 'pi pi-calendar', action: 'comm-calendar' },
+        // Composer un visuel se fait à l'atelier : le fil y mène directement
+        // plutôt que de déposer l'utilisateur sur le premier onglet venu.
         {
-          labelKey: 'chat.card.actions.openEditor',
-          icon: 'pi pi-arrow-up-right',
+          labelKey: 'chat.comm.chips.studio',
+          icon: 'pi pi-sparkles',
           action: 'open-route',
-          payload: '/project/communication',
+          payload: '/project/communication?screen=studio',
+        },
+        {
+          labelKey: 'chat.comm.chips.library',
+          icon: 'pi pi-images',
+          action: 'open-route',
+          payload: '/project/communication?screen=library',
+        },
+        {
+          labelKey: 'chat.comm.chips.plans',
+          icon: 'pi pi-list',
+          action: 'open-route',
+          payload: '/project/communication?screen=plans',
         },
       ],
     });
@@ -1317,8 +1992,6 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
       generation: { title, status: 'running', completedSteps: [], stepsInProgress: [] },
     });
     this.isGenerating.set(true);
-    // Flux géré hors GenerationService : rien à annuler côté SSEService partagé.
-    this.activeGenerationType = null;
 
     const completed: string[] = [];
     const stream =
@@ -1446,6 +2119,25 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     this.appendAssistant({ content: this.translate.instant('chat.dev.intro'), chips });
   }
 
+  /**
+   * Simulations : le récapitulatif vit dans le tableau de bord, la simulation
+   * elle-même dans l'application dédiée (même session IDEM). Le chat mène aux
+   * deux plutôt que de prétendre simuler dans le fil.
+   */
+  private openSimulationsGuide(): void {
+    this.appendAssistant({
+      content: this.translate.instant('chat.simulations.intro'),
+      chips: [
+        {
+          labelKey: 'chat.simulations.chips.open',
+          icon: 'pi pi-chart-bar',
+          action: 'open-route',
+          payload: '/project/simulations',
+        },
+      ],
+    });
+  }
+
   /** Guide vers l'assistant de déploiement (Terraform / infrastructure). */
   private openDeploymentGuide(): void {
     this.appendAssistant({
@@ -1496,7 +2188,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         format === 'A4_PORTRAIT' ? 'chat.branding.format.portrait' : 'chat.branding.format.landscape',
       ),
     );
-    void this.runSseGeneration('branding', undefined, format);
+    void this.runSseGeneration('branding', { pdfFormat: format });
   }
 
   protected onFormatCancelled(messageId: string): void {
@@ -1607,7 +2299,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   protected onInfoFormSubmitted(messageId: string, infos: AdditionalInfos): void {
     this.store.patch(messageId, { selectedOptionId: 'submitted' });
     this.appendUser(this.translate.instant('chat.infoForm.submittedAs'));
-    void this.runSseGeneration('businessPlan', infos);
+    void this.runSseGeneration('businessPlan', { infos });
   }
 
   protected onInfoFormSkipped(messageId: string): void {
@@ -1714,7 +2406,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
           name: this.translate.instant(`dashboard.pitchDeckTypes.types.${typeId}.name`),
         }),
       );
-      await this.runSseGeneration('pitchDeck', undefined, undefined, undefined, deck.id);
+      await this.runSseGeneration('pitchDeck', { documentId: deck.id });
     } catch (error) {
       console.error('Chat deck: creating the pitch deck failed', error);
       this.appendAssistant({
@@ -1725,20 +2417,25 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   /**
-   * Génération SSE (business plan / charte graphique) directement dans le
-   * chat : un message de progression est mis à jour à chaque étape.
+   * Génération SSE directement dans le chat : un message de progression est
+   * mis à jour à chaque étape.
+   *
+   * `options.sections` cible des sections précises et `options.force` reprend
+   * tout à zéro : ce sont les mêmes paramètres que ceux du mode Avancé, si
+   * bien que régénérer une page depuis le tiroir de lecture coûte exactement
+   * ce qu'elle coûte là-bas — une section, pas un document entier.
    */
-  private async runSseGeneration(
-    kind: SseGenKind,
-    infos?: AdditionalInfos,
-    pdfFormat?: ChartePdfFormat,
-    legalTypes?: LegalDocumentType[],
-    /** Business plan ou pitch deck à générer, parmi ceux du projet. */
-    documentId?: string,
-  ): Promise<void> {
+  private async runSseGeneration(kind: SseGenKind, options: SseGenOptions = {}): Promise<void> {
     const projectId = this.session.activeProjectId();
     if (!projectId || this.isGenerating()) return;
 
+    // Le plan créé par le parcours « rédiger un business plan » ne vaut que
+    // pour le business plan : le passer à une autre génération viserait un
+    // document d'un autre livrable.
+    const documentId =
+      options.documentId ?? (kind === 'businessPlan' ? this.pendingBpDocumentId : null);
+    const sections = options.sections ?? [];
+    const force = options.force ?? false;
     const title = this.translate.instant(this.deliverables.config(kind).titleKey);
     const progressId = this.nextId();
     const progressMessage: ChatMessageModel = {
@@ -1762,21 +2459,25 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
       case 'businessPlan':
         connection = this.businessPlanService.createBusinessplanItem(
           projectId,
-          infos,
-          false,
-          [],
-          documentId ?? this.pendingBpDocumentId,
+          options.infos,
+          force,
+          sections,
+          documentId,
         );
         serviceType = 'business-plan';
         break;
       case 'pitchDeck':
-        connection = this.pitchDeckService.generatePitchDeck(projectId, false, [], documentId);
+        connection = this.pitchDeckService.generatePitchDeck(projectId, force, sections, documentId);
         serviceType = 'pitch-deck';
         break;
       case 'branding':
         connection = this.brandingApiService.createBrandIdentityModel(
           projectId,
-          pdfFormat ?? 'SLIDE_16_9',
+          // Régénérer une page d'une charte existante ne doit pas en changer
+          // le format : les autres pages ont déjà été rendues dans l'ancien.
+          options.pdfFormat ?? this.storedCharteFormat() ?? 'SLIDE_16_9',
+          force,
+          sections,
         );
         serviceType = 'branding';
         break;
@@ -1789,11 +2490,10 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         serviceType = 'finance-fill';
         break;
       case 'legalDocs':
-        connection = this.legalDocsService.generate(projectId, legalTypes ?? [], {});
+        connection = this.legalDocsService.generate(projectId, options.legalTypes ?? [], {});
         serviceType = 'legal-docs';
         break;
     }
-    this.activeGenerationType = serviceType;
 
     let finished = false;
     this.generationService
@@ -1807,25 +2507,33 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
           });
           if (state.completed) {
             finished = true;
-            void this.finishGeneration(kind, progressId, title, state);
+            void this.finishGeneration(kind, progressId, title, state, documentId);
           } else if (state.error) {
             finished = true;
-            this.failGeneration(kind, progressId, title, state);
+            this.failGeneration(kind, progressId, title, state, options);
           }
         },
         error: (error) => {
           if (finished) return;
           finished = true;
           console.error(`Chat: ${kind} generation failed`, error);
-          this.failGeneration(kind, progressId, title, null);
+          this.failGeneration(kind, progressId, title, null, options);
         },
         complete: () => {
           if (!finished) {
             finished = true;
-            void this.finishGeneration(kind, progressId, title, null);
+            void this.finishGeneration(kind, progressId, title, null, documentId);
           }
         },
       });
+  }
+
+  /** Format dans lequel la charte a déjà été rendue, s'il y en a un. */
+  private storedCharteFormat(): ChartePdfFormat | null {
+    const branding = this.session.activeProject()?.analysisResultModel?.branding as
+      | { pdfFormat?: string }
+      | undefined;
+    return (branding?.pdfFormat as ChartePdfFormat) ?? null;
   }
 
   private toProgressData(
@@ -1847,6 +2555,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     progressId: string,
     title: string,
     state: SSEGenerationState | null,
+    documentId?: string | null,
   ): Promise<void> {
     this.isGenerating.set(false);
     this.store.patch(progressId, {
@@ -1859,11 +2568,11 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
       },
     });
     const project = await this.session.fetchActiveProjectDetails();
-    const card = this.deliverables.buildCard(kind, project);
+    const card = this.deliverables.buildCard(kind, project, documentId);
     this.appendAssistant({
       content: this.translate.instant('chat.responses.showCard', { title }),
       card,
-      chips: this.buildCardChips(kind, card.available, card.pdfSupported),
+      chips: this.buildCardChips(kind, card.available, card.pdfSupported, documentId),
     });
   }
 
@@ -1872,6 +2581,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
     progressId: string,
     title: string,
     state: SSEGenerationState | null,
+    options: SseGenOptions = {},
   ): void {
     this.isGenerating.set(false);
     this.store.patch(progressId, {
@@ -1882,11 +2592,25 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         stepsInProgress: [],
       },
     });
+    // La reprise vise ce qui a échoué : une section précise reste une section.
+    const retry: ChatChip =
+      options.sections?.length === 1
+        ? {
+            labelKey: 'chat.generation.chips.retrySection',
+            icon: 'pi pi-refresh',
+            action: 'regenerate-section',
+            payload: `${kind}:${options.sections[0]}`,
+            documentId: options.documentId ?? undefined,
+          }
+        : {
+            labelKey: 'chat.generation.chips.retry',
+            icon: 'pi pi-refresh',
+            action: 'generate',
+            payload: kind,
+          };
     this.appendAssistant({
       content: this.translate.instant('chat.generation.retryHint'),
-      chips: [
-        { labelKey: 'chat.generation.chips.retry', icon: 'pi pi-refresh', action: 'generate', payload: kind },
-      ],
+      chips: [retry],
     });
   }
 

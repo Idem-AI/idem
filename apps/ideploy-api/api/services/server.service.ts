@@ -19,6 +19,7 @@ import {
   checkReadiness,
   provision,
 } from './server-setup.service';
+import { HealthProbe, probeServer } from './server-health.service';
 
 /**
  * The Docker network every managed container joins, so resources in the same
@@ -62,6 +63,46 @@ export async function getServerById(teamId: number, id: number): Promise<ServerR
   return rows[0] ? mapServer(rows[0]) : null;
 }
 
+export interface ServerSettings {
+  /**
+   * A real domain pointed at this server (a wildcard `A`/`ALIAS` record — e.g.
+   * `*.apps.example.com` → the server's IP) replaces sslip.io for every
+   * application on it. sslip.io itself resolves correctly everywhere (this
+   * has been verified repeatedly against public resolvers) — where it fails
+   * is specific client-side/ISP DNS resolvers that refuse or rate-limit
+   * dynamic-DNS-style domains, which nothing on our side can fix. A domain
+   * the operator actually controls has no such failure mode.
+   */
+  wildcardDomain: string | null;
+}
+
+/** Read this server's own settings row — created for every server at registration. */
+export async function getServerSettings(teamId: number, uuid: string): Promise<ServerSettings> {
+  const server = await getServer(teamId, uuid);
+  if (!server) throw notFound('Server');
+  const { rows } = await pool.query('SELECT wildcard_domain FROM server_settings WHERE server_id = $1 LIMIT 1', [
+    server.id,
+  ]);
+  return { wildcardDomain: (rows[0]?.wildcard_domain as string | null) ?? null };
+}
+
+export async function updateServerSettings(
+  teamId: number,
+  uuid: string,
+  dto: { wildcardDomain?: string | null }
+): Promise<ServerSettings> {
+  const server = await getServer(teamId, uuid);
+  if (!server) throw notFound('Server');
+  if (dto.wildcardDomain !== undefined) {
+    const value = dto.wildcardDomain?.trim().replace(/^https?:\/\//, '').replace(/\/$/, '') || null;
+    await pool.query('UPDATE server_settings SET wildcard_domain = $1, updated_at = now() WHERE server_id = $2', [
+      value,
+      server.id,
+    ]);
+  }
+  return getServerSettings(teamId, uuid);
+}
+
 export async function getPrivateKey(teamId: number, id: number): Promise<PrivateKeyRow | null> {
   const { rows } = await pool.query(
     'SELECT * FROM private_keys WHERE id = $1 AND team_id = $2 LIMIT 1',
@@ -87,6 +128,20 @@ export interface CreateServerDto {
   port?: number;
   user?: string;
   private_key_id: number;
+  /** Dedicated to building Docker images — no application ever deploys onto it. */
+  is_build_server?: boolean;
+  /** Docker Swarm role. Mutually exclusive; only meaningful for clustered setups. */
+  is_swarm_manager?: boolean;
+  is_swarm_worker?: boolean;
+  /**
+   * Part of the shared IDEM-managed fleet `placeOnManagedServer` places
+   * workspaces onto — never client-settable, only ever set by the admin
+   * server-management endpoints (`admin.service.ts`).
+   */
+  idem_managed?: boolean;
+  country_code?: string | null;
+  region?: string | null;
+  city?: string | null;
 }
 
 export interface CreatedServer {
@@ -121,13 +176,22 @@ async function insertServerWithDependencies(
     port: number;
     user: string;
     privateKeyId: number;
+    isBuildServer: boolean;
+    isSwarmManager: boolean;
+    isSwarmWorker: boolean;
+    idemManaged: boolean;
+    countryCode: string | null;
+    region: string | null;
+    city: string | null;
   }
 ): Promise<CreatedServer> {
   const uuid = randomUUID();
 
   const { rows } = await client.query(
-    `INSERT INTO servers (uuid, name, description, ip, port, "user", team_id, private_key_id, proxy, created_at, updated_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'{}', now(), now()) RETURNING *`,
+    `INSERT INTO servers
+       (uuid, name, description, ip, port, "user", team_id, private_key_id, proxy,
+        idem_managed, country_code, region, city, created_at, updated_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'{}',$9,$10,$11,$12, now(), now()) RETURNING *`,
     [
       uuid,
       params.name,
@@ -137,15 +201,19 @@ async function insertServerWithDependencies(
       params.user,
       teamId,
       params.privateKeyId,
+      params.idemManaged,
+      params.countryCode,
+      params.region,
+      params.city,
     ]
   );
   const server = mapServer(rows[0]);
 
-  // Every other column has a database default; only the link is ours to set.
+  // Every other column has a database default; only the role flags are ours to set.
   await client.query(
-    `INSERT INTO server_settings (server_id, created_at, updated_at)
-     VALUES ($1, now(), now())`,
-    [server.id]
+    `INSERT INTO server_settings (server_id, is_build_server, is_swarm_manager, is_swarm_worker, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, now(), now())`,
+    [server.id, params.isBuildServer, params.isSwarmManager, params.isSwarmWorker]
   );
 
   const destination = await client.query(
@@ -167,6 +235,13 @@ export async function createServer(teamId: number, dto: CreateServerDto): Promis
   const key = await getPrivateKey(teamId, dto.private_key_id);
   if (!key) throw notFound('Private key');
 
+  // A build server never also carries a Swarm role, and a server is at most one
+  // of manager/worker — silently reconciled here rather than trusted from the
+  // client, since a contradictory combination in the database is a stuck server.
+  const isBuildServer = Boolean(dto.is_build_server);
+  const isSwarmManager = !isBuildServer && Boolean(dto.is_swarm_manager);
+  const isSwarmWorker = !isBuildServer && !isSwarmManager && Boolean(dto.is_swarm_worker);
+
   const created = await withTransaction((client) =>
     insertServerWithDependencies(client, teamId, {
       name: dto.name,
@@ -175,6 +250,13 @@ export async function createServer(teamId: number, dto: CreateServerDto): Promis
       port: dto.port ?? 22,
       user: dto.user ?? 'root',
       privateKeyId: dto.private_key_id,
+      isBuildServer,
+      isSwarmManager,
+      isSwarmWorker,
+      idemManaged: Boolean(dto.idem_managed),
+      countryCode: dto.country_code ?? null,
+      region: dto.region ?? null,
+      city: dto.city ?? null,
     })
   );
 
@@ -229,6 +311,83 @@ export async function getServerOccupancy(serverId: number): Promise<ServerOccupa
     services,
     total: applications + databases + services,
   };
+}
+
+/** One resource deployed on a server, flattened across the three kinds. */
+export interface ServerResource {
+  uuid: string;
+  name: string;
+  kind: 'application' | 'database' | 'service';
+  /** The database engine (`postgresql`, `redis`, …) — null for the other kinds. */
+  databaseType: string | null;
+  status: string | null;
+}
+
+/**
+ * Everything deployed on a server, as rows rather than counts.
+ *
+ * `getServerOccupancy` answers "may I delete this server"; this answers "what is
+ * on it", which is what the detail screen shows. The table name is interpolated
+ * from `DB_TYPES` — a closed, code-owned registry, never request input — while
+ * the server id stays a bound parameter.
+ */
+export async function listServerResources(
+  teamId: number,
+  uuid: string
+): Promise<ServerResource[]> {
+  const server = await getServer(teamId, uuid);
+  if (!server) throw notFound('Server');
+
+  const selectFrom = (
+    table: string,
+    kind: ServerResource['kind'],
+    dbType: string | null,
+    // `services` has no status column of its own (a Service is a stack; its
+    // status lives on its service_applications/service_databases rows) — a
+    // bare `status` against it threw "column does not exist", uncaught,
+    // inside this function's own `Promise.all`, so any server that had ever
+    // hosted a Service failed to list *any* of its resources, silently.
+    statusExpr = 'r.status'
+  ) =>
+    pool
+      .query<{ uuid: string; name: string; status: string | null }>(
+        `SELECT r.uuid, r.name, ${statusExpr} AS status FROM ${table} r WHERE ${ON_SERVER_DESTINATION} ORDER BY r.name`,
+        [server.id]
+      )
+      .then(({ rows }) =>
+        rows.map((r) => ({
+          uuid: String(r.uuid),
+          name: String(r.name),
+          kind,
+          databaseType: dbType,
+          status: r.status ?? null,
+        }))
+      );
+
+  // One entry per distinct table: several logical types share a table (keydb and
+  // redis, for instance), and querying it twice would duplicate every row.
+  const databaseTables = new Map<string, string>();
+  for (const type of Object.values(DB_TYPES)) {
+    if (!databaseTables.has(type.table)) databaseTables.set(type.table, type.key);
+  }
+
+  const SERVICE_STATUS_EXPR = `(
+    SELECT sa.status FROM service_applications sa WHERE sa.service_id = r.id ORDER BY sa.id LIMIT 1
+  )`;
+
+  const groups = await Promise.all([
+    selectFrom('applications', 'application', null),
+    selectFrom('services', 'service', null, SERVICE_STATUS_EXPR),
+    ...[...databaseTables].map(([table, key]) => selectFrom(table, 'database', key)),
+  ]);
+
+  return groups.flat();
+}
+
+/** Liveness and disk headroom for a single server, probed on demand. */
+export async function getServerHealth(teamId: number, uuid: string): Promise<HealthProbe> {
+  const { server, key } = await serverWithKey(teamId, uuid);
+  return probeServer(server, key);
 }
 
 /**
@@ -329,6 +488,13 @@ export async function ensureLocalServer(
         port: 22,
         user: process.env.USER || process.env.USERNAME || 'root',
         privateKeyId: Number(key.rows[0].id),
+        isBuildServer: false,
+        isSwarmManager: false,
+        isSwarmWorker: false,
+        idemManaged: false,
+        countryCode: null,
+        region: null,
+        city: null,
       });
     });
     server = created.server;
@@ -431,4 +597,37 @@ export async function setUpServer(
 ): Promise<ProvisionResult> {
   const { server, key } = await serverWithKey(teamId, uuid);
   return provision(server, key, onData);
+}
+
+export interface DockerCleanupResult {
+  success: boolean;
+  /** Human-readable summary `docker system prune` prints — includes space reclaimed. */
+  output: string;
+}
+
+/**
+ * Reclaim disk space: dangling images, stopped containers, unused build cache,
+ * and (opt-in) unused volumes/networks. Ports the on-demand half of
+ * `DockerCleanup` — the scheduled/threshold-triggered half is a fuller feature
+ * (cron settings UI, `server_settings.docker_cleanup_*`) not built yet.
+ *
+ * Never touches named volumes unless `pruneVolumes` is explicitly set: a
+ * database's data directory is also an "unused volume" the moment its
+ * container is stopped, and losing it silently is a much worse outcome than
+ * a server that stays a bit fuller than it has to.
+ */
+export async function cleanupDocker(
+  teamId: number,
+  uuid: string,
+  opts: { pruneVolumes?: boolean } = {},
+  onData?: (chunk: string) => void
+): Promise<DockerCleanupResult> {
+  const { server, key } = await serverWithKey(teamId, uuid);
+  const parts = ['docker system prune -af'];
+  if (opts.pruneVolumes) parts.push('docker volume prune -f');
+  const result = await executeRemoteCommand(server, key, parts.join(' && '), {
+    onData,
+    noRetry: true,
+  });
+  return { success: result.exitCode === 0, output: result.stdout + result.stderr };
 }

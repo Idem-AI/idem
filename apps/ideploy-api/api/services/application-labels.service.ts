@@ -85,11 +85,23 @@ function toRedirect(value: unknown): RedirectDirection {
   return value === 'www' || value === 'non-www' ? value : 'both';
 }
 
+/**
+ * Defaults to Traefik, not "none": nothing in this codebase ever writes
+ * `servers.proxy.type` (proxy.service.ts's startProxy only ever touches
+ * `.status`), and Traefik — via buildTraefikCompose — is the only proxy this
+ * platform actually deploys; there is no `buildCaddyCompose`, no code path
+ * that starts one. `.type` staying unset therefore meant every application on
+ * every server got zero traefik.* labels, forever: the container ran, but
+ * nothing ever routed a domain to it. Explicit "none" (set nowhere today, but
+ * a real, distinct choice if this platform ever supports running without a
+ * proxy) still switches routing off; the previous behaviour was "unset reads
+ * as off", which is the wrong default for a value nothing sets.
+ */
 function toProxyType(value: unknown): ProxyType {
   const type = String(value ?? '').toLowerCase();
-  if (type === 'traefik') return 'traefik';
   if (type === 'caddy') return 'caddy';
-  return 'none';
+  if (type === 'none') return 'none';
+  return 'traefik';
 }
 
 /**
@@ -114,10 +126,8 @@ export async function loadLabelContext(app: ApplicationRow): Promise<LabelContex
             a.is_http_basic_auth_enabled,
             a.http_basic_auth_username,
             a.http_basic_auth_password,
-            fw.enabled           AS firewall_enabled,
-            fw.crowdsec_api_key  AS crowdsec_api_key,
-            fw.crowdsec_lapi_url AS crowdsec_lapi_url,
-            fw.ban_duration      AS crowdsec_ban_duration,
+            fw.enabled              AS firewall_enabled,
+            s.crowdsec_bouncer_key  AS crowdsec_bouncer_key,
             (SELECT r.conditions FROM firewall_rules r
               WHERE r.firewall_config_id = fw.id AND r.name = $2 AND r.enabled = true
               LIMIT 1) AS geo_conditions,
@@ -154,17 +164,20 @@ export async function loadLabelContext(app: ApplicationRow): Promise<LabelContex
   // bouncer key cannot authenticate to the Local API, so the middleware would be
   // declared and fail every lookup — configuration that looks protective and is
   // not. Better to emit nothing and let the enforcement status say why.
+  //
+  // The key comes from `servers`, not `firewall_configs`: CrowdSec and its one
+  // bouncer identity are provisioned once per server (`proxy.service.ts`,
+  // alongside Traefik), and every application on that server whose firewall is
+  // on shares it — there is no per-application bouncer. The host is always the
+  // internal Docker DNS name, never the external admin URL ideploy-api itself
+  // uses: this label is read by the bouncer *plugin*, running inside Traefik
+  // on the very same server's network as the crowdsec container it is
+  // addressing, so it never needs to leave that network.
   const firewallEnabled = Boolean(r.firewall_enabled);
-  const bouncerKey = (r.crowdsec_api_key as string) ?? null;
+  const bouncerKey = tryDecryptString(r.crowdsec_bouncer_key as string | null);
   const crowdsec: CrowdSecBouncer | null =
     firewallEnabled && bouncerKey
-      ? {
-          apiKey: bouncerKey,
-          lapiHost: stripScheme(
-            (r.crowdsec_lapi_url as string) ?? DEFAULT_LAPI_URL
-          ),
-          banDurationSeconds: Number(r.crowdsec_ban_duration ?? 3600),
-        }
+      ? { apiKey: bouncerKey, lapiHost: stripScheme(DEFAULT_LAPI_URL) }
       : null;
 
   const blockedCountries = firewallEnabled ? parseGeoBlockedCountries(r.geo_conditions) : [];

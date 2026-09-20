@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 
 @Component({
@@ -9,9 +9,25 @@ import { ApiService } from '../../../shared/services/api.service';
   template: `
     <h1 class="mb-6 text-2xl font-bold">{{ 'subscription.title' | translate }}</h1>
 
+    @if (error()) {
+      <p class="mb-4 text-sm" role="alert" style="color:var(--color-danger);">{{ error() }}</p>
+    }
+
     @if (subscription(); as s) {
       <div class="box mb-6">
-        <div class="text-lg font-semibold">{{ 'subscription.currentPlan' | translate }} {{ s.plan }}</div>
+        <div class="flex items-center justify-between gap-3">
+          <div class="text-lg font-semibold">{{ 'subscription.currentPlan' | translate }} {{ s.plan }}</div>
+          <div class="flex gap-2">
+            <button class="button-secondary" (click)="openPortal()" [disabled]="portalLoading()">
+              {{ (portalLoading() ? 'subscription.opening' : 'subscription.managePayment') | translate }}
+            </button>
+            @if (s.plan !== 'free') {
+              <button class="text-xs" style="color:var(--color-danger);" (click)="cancel()">
+                {{ 'subscription.cancel' | translate }}
+              </button>
+            }
+          </div>
+        </div>
         @if (quota(); as q) {
           <div class="mt-2 text-sm">
             {{ 'subscription.apps' | translate }} {{ q.apps.used }}/{{ q.apps.limit || '∞' }}
@@ -48,10 +64,18 @@ import { ApiService } from '../../../shared/services/api.service';
 })
 export class SubscriptionPageComponent implements OnInit {
   private api = inject(ApiService);
+  private translate = inject(TranslateService);
 
   protected readonly subscription = signal<{ plan: string; appLimit: number; serverLimit: number; expiresAt: string | null } | null>(null);
   protected readonly quota = signal<{ apps: { used: number; limit: number; ok: boolean }; servers: { used: number; limit: number; ok: boolean } } | null>(null);
   protected readonly plans = signal<Record<string, unknown>[]>([]);
+  protected readonly error = signal<string | null>(null);
+  protected readonly portalLoading = signal(false);
+
+  private report(err: unknown): void {
+    const message = (err as { error?: { error?: { message?: string } } })?.error?.error?.message;
+    this.error.set(message ?? this.translate.instant('subscription.genericError'));
+  }
 
   ngOnInit(): void {
     this.reload();
@@ -61,6 +85,30 @@ export class SubscriptionPageComponent implements OnInit {
 
   private reload(): void {
     this.api.getSubscription().subscribe((s) => this.subscription.set(s));
+  }
+
+  /** Stripe's own billing portal — invoices, payment method, cancellation. */
+  protected openPortal(): void {
+    this.portalLoading.set(true);
+    this.error.set(null);
+    this.api.billingPortal().subscribe({
+      next: (r) => {
+        if (r.url) window.location.href = r.url;
+        this.portalLoading.set(false);
+      },
+      error: (e) => {
+        this.report(e);
+        this.portalLoading.set(false);
+      },
+    });
+  }
+
+  protected cancel(): void {
+    this.error.set(null);
+    this.api.cancelSubscription().subscribe({
+      next: () => this.reload(),
+      error: (e) => this.report(e),
+    });
   }
 
   /** Paid plan → Stripe checkout; free/switch → direct plan change. */

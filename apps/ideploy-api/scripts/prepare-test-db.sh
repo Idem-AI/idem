@@ -15,8 +15,10 @@ COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.dev.yml}"
 ENV_FILE="${ENV_FILE:-.env.dev}"
 PG_SERVICE="${PG_SERVICE:-postgres}"
 
-TEST_DB="${TEST_DB_DATABASE:-coolify_test}"
-DB_USER="${IDEPLOY_DB_USERNAME:-coolify}"
+# Defaults follow the dev stack: the Postgres role is `ideploy`, not `coolify`
+# (the fork's original name). Overridable for CI.
+TEST_DB="${TEST_DB_DATABASE:-ideploy_test}"
+DB_USER="${IDEPLOY_DB_USERNAME:-ideploy}"
 DIRECT_PSQL="${DIRECT_PSQL:-0}"
 
 # Locate the snapshot relative to this script, so the caller's cwd does not matter.

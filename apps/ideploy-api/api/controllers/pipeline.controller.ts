@@ -53,3 +53,21 @@ export async function getExecution(req: CustomRequest, res: Response): Promise<v
     fail(res, (err as Error).message || 'Failed to fetch execution');
   }
 }
+
+export async function rerunExecution(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    ok(res, await pipeline.rerun(team(req), String(req.params.executionUuid)), 202);
+  } catch (err) {
+    fail(res, (err as Error).message || 'Failed to re-run the pipeline');
+  }
+}
+
+export async function deleteExecution(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    const deleted = await pipeline.deleteExecution(team(req), String(req.params.executionUuid));
+    if (!deleted) return fail(res, 'Execution not found', 404, 'NOT_FOUND');
+    ok(res, { deleted: true });
+  } catch (err) {
+    fail(res, (err as Error).message || 'Failed to delete the execution');
+  }
+}

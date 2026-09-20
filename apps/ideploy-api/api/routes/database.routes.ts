@@ -40,6 +40,7 @@ router.get('/backups/executions/:executionUuid/download', ctrl.downloadBackup);
  */
 router.post('/:type', ctrl.create);
 router.get('/:type/:uuid', ctrl.get);
+router.patch('/:type/:uuid/credentials', ctrl.updateCredentials);
 router.delete('/:type/:uuid', ctrl.remove);
 
 // Lifecycle

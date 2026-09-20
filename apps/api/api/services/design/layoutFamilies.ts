@@ -1262,8 +1262,6 @@ export const LAYOUT_FAMILIES: LayoutFamily[] = [
   ),
 ];
 
-export const LAYOUT_FAMILY_IDS = LAYOUT_FAMILIES.map((entry) => entry.id);
-
 const BY_ID = new Map(LAYOUT_FAMILIES.map((entry) => [entry.id, entry]));
 
 /** Famille par identifiant, ou la première du catalogue si l'identifiant est inconnu. */

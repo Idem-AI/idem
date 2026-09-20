@@ -11,7 +11,6 @@
  */
 
 import {
-  BUSINESS_PLAN_SECTION_CATALOG,
   BusinessPlanSectionDefinition,
   getSectionByKey,
 } from './section-catalog';
@@ -140,7 +139,3 @@ const sameOrder = (a: readonly string[], b: readonly string[]): boolean =>
 export const structureSectionNames = (
   sections: readonly BusinessPlanSectionDefinition[]
 ): string[] => sections.map((s) => s.name);
-
-/** Toutes les sections du catalogue, pour l'endpoint de découverte. */
-export const catalogSections = (): BusinessPlanSectionDefinition[] =>
-  BUSINESS_PLAN_SECTION_CATALOG;

@@ -1,13 +1,21 @@
-import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { environment } from '../../../../environments/environment';
+import { parseEnvFile } from '../../../shared/utils/parse-env-file.util';
+import { EcosystemWarning, ManifestDirectory } from '../../../shared/models/ideploy.models';
 import {
   WorkspaceChoice,
   WorkspaceChoicePickerComponent,
 } from '../../../shared/components/workspace-choice-picker/workspace-choice-picker';
+
+interface EnvRow {
+  key: string;
+  value: string;
+  reveal: boolean;
+}
 
 interface Preset {
   label: string;
@@ -54,13 +62,52 @@ interface Preset {
             <input id="teamName" name="teamName" class="input bg-opacity-50 cursor-not-allowed" [value]="teamName()" disabled />
           </div>
           <div>
-            <label class="mb-1 block text-sm font-semibold text-white/80" for="projectName">{{ 'projects.import.projectName' | translate }}</label>
+            <label class="mb-1 block text-sm font-semibold text-white/80" for="projectName">{{ 'projects.import.applicationName' | translate }}</label>
             <input id="projectName" name="projectName" class="input" [(ngModel)]="projectName" autocomplete="off" />
           </div>
         </div>
 
+        <!-- Where this lands matters more than the build details below it —
+             asked right after naming the application, not buried under them. -->
+        <div class="mb-5 rounded-xl p-4 border" style="background:var(--color-surface-1);border-color:var(--color-surface-2);">
+          <app-workspace-choice-picker
+            [suggestedName]="projectName"
+            [lockedWorkspaceUuid]="lockedWorkspaceUuid()"
+            (choiceChange)="workspaceChoice.set($event)"
+          />
+        </div>
+
         <div class="mb-4">
           <label class="mb-1 block text-sm font-semibold text-white/80" for="appPreset">{{ 'projects.import.appPreset' | translate }}</label>
+
+          <!--
+            "Detected configuration" summary — what ecosystem-detection.service.ts
+            actually found in the repository, shown before the override dropdown
+            rather than only inside it, the same way Vercel leads with what it
+            read instead of an empty form. Kept in sync with the dropdown below:
+            the icon/label follow presetIndex() so overriding the preset updates
+            this card too, while the ecosystem/build-tool line stays what was
+            genuinely detected (there's nothing to override it with).
+          -->
+          @if (detecting()) {
+            <div class="mb-2 flex items-center gap-2 rounded-xl p-3 border text-sm" style="background:var(--color-surface-1);border-color:var(--color-surface-2);color:var(--color-text-secondary);">
+              <i class="fa-solid fa-circle-notch fa-spin"></i> {{ 'projects.import.detecting' | translate }}
+            </div>
+          } @else if (ecosystemLabel()) {
+            <div class="mb-2 flex items-center gap-3 rounded-xl p-3 border" style="background:var(--color-surface-1);border-color:var(--color-surface-2);">
+              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style="background:var(--color-surface-2);">
+                <i [class]="presets[presetIndex()].icon" class="text-base" style="color:var(--color-text-secondary);"></i>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="text-sm font-semibold text-white/90">{{ presets[presetIndex()].label }}</div>
+                <div class="text-xs" style="color:var(--color-text-tertiary);">{{ ecosystemLabel() }}</div>
+              </div>
+              <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold" style="background:rgba(34,197,94,0.15);color:#4ade80;">
+                <i class="fa-solid fa-check mr-1"></i>{{ 'projects.import.autoDetectedBadge' | translate }}
+              </span>
+            </div>
+          }
+
           <select id="appPreset" name="appPreset" class="input cursor-pointer" [ngModel]="presetIndex()" (ngModelChange)="presetIndex.set(+$event)">
             @for (p of presets; track p.label; let i = $index) {
               <option [value]="i">{{ p.label }}</option>
@@ -92,17 +139,62 @@ interface Preset {
           }
         </div>
 
+        <!--
+          Pre-flight findings from ecosystem detection (see
+          ecosystem-detection.service.ts) — shown here, not buried in a
+          deploy log, because a 'blocking' one (e.g. an unsupported Gradle
+          version) means the build engine will refuse this repo exactly as
+          configured, and finding that out after a full build cycle is the
+          failure mode this exists to prevent.
+        -->
+        @if (ecosystemWarnings().length > 0) {
+          <div class="mb-4 space-y-2">
+            @for (w of ecosystemWarnings(); track w.code) {
+              <div
+                class="rounded-xl p-3 text-sm border"
+                [style.background]="w.severity === 'blocking' ? 'rgba(239,68,68,0.08)' : 'color-mix(in srgb, var(--color-warning) 12%, transparent)'"
+                [style.border-color]="w.severity === 'blocking' ? 'rgba(239,68,68,0.3)' : 'color-mix(in srgb, var(--color-warning) 40%, transparent)'"
+              >
+                <i
+                  class="fa-solid fa-triangle-exclamation mr-1.5"
+                  [style.color]="w.severity === 'blocking' ? '#f87171' : 'var(--color-warning)'"
+                ></i>
+                <span [style.color]="w.severity === 'blocking' ? '#f87171' : 'var(--color-warning)'">{{ w.message }}</span>
+              </div>
+            }
+          </div>
+        }
+
         <div class="mb-5">
           <label class="mb-1 block text-sm font-semibold text-white/80" for="rootDir">{{ 'projects.import.rootDirectory' | translate }}</label>
-          <input id="rootDir" name="rootDir" class="input font-mono" [(ngModel)]="rootDir" placeholder="./" autocomplete="off" />
-          <p class="mt-1 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.import.rootDirHint' | translate }}</p>
-        </div>
+          <input id="rootDir" name="rootDir" class="input font-mono" [ngModel]="rootDir" (ngModelChange)="onRootDirEdit($event)" placeholder="./" autocomplete="off" />
+          @if (rootDirAutoDetected()) {
+            <p class="mt-1 text-xs" style="color:#4ade80;"><i class="fa-solid fa-check mr-1"></i>{{ 'projects.import.detectedFromRepo' | translate }}</p>
+          } @else {
+            <p class="mt-1 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.import.rootDirHint' | translate }}</p>
+          }
 
-        <div class="mb-5 rounded-xl p-4 border" style="background:var(--color-surface-1);border-color:var(--color-surface-2);">
-          <app-workspace-choice-picker
-            [suggestedName]="projectName"
-            (choiceChange)="workspaceChoice.set($event)"
-          />
+          <!--
+            Monorepo, ambiguous: 2+ plausible application roots, none pickable
+            automatically (see findManifestDirectories's doc comment on the
+            backend for why this form doesn't guess). Shown as an explicit
+            choice instead of leaving the field blank with no hint that a
+            choice was even needed.
+          -->
+          @if (monorepoCandidates().length > 0) {
+            <div class="mt-2 rounded-xl border p-3" style="background:color-mix(in srgb, var(--color-warning) 8%, transparent);border-color:color-mix(in srgb, var(--color-warning) 30%, transparent);">
+              <p class="mb-2 text-xs font-semibold" style="color:var(--color-warning);">
+                <i class="fa-solid fa-diagram-project mr-1"></i>{{ 'projects.import.monorepoFound' | translate: { count: monorepoCandidates().length } }}
+              </p>
+              <div class="flex flex-wrap gap-2">
+                @for (c of monorepoCandidates(); track c.dir) {
+                  <button type="button" class="button-secondary cursor-pointer text-xs px-2.5 py-1.5 font-mono" (click)="pickMonorepoCandidate(c.dir)">
+                    {{ c.dir }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
         </div>
 
         <!-- Collapsibles -->
@@ -113,21 +205,110 @@ interface Preset {
         </button>
         @if (showBuild()) {
           <div class="mb-3 space-y-3 px-1">
+            <input class="input font-mono" [(ngModel)]="installCommand" [placeholder]="'projects.import.installCommandPlaceholder' | translate" [attr.aria-label]="'projects.import.installCommandLabel' | translate" autocomplete="off" />
             <input class="input font-mono" [(ngModel)]="buildCommand" [placeholder]="'projects.import.buildCommandPlaceholder' | translate" [attr.aria-label]="'projects.import.buildCommandLabel' | translate" autocomplete="off" />
-            <input class="input font-mono" [(ngModel)]="startCommand" [placeholder]="'projects.import.startCommandPlaceholder' | translate" [attr.aria-label]="'projects.import.startCommandLabel' | translate" autocomplete="off" />
-            <input class="input font-mono" [(ngModel)]="portsExposes" [placeholder]="'projects.import.portPlaceholder' | translate" [attr.aria-label]="'projects.import.portLabel' | translate" autocomplete="off" />
+            <div>
+              <input class="input font-mono" [ngModel]="startCommand" (ngModelChange)="onStartCommandEdit($event)" [placeholder]="'projects.import.startCommandPlaceholder' | translate" [attr.aria-label]="'projects.import.startCommandLabel' | translate" autocomplete="off" />
+              @if (startCommandAutoDetected()) {
+                <p class="mt-1 text-xs" style="color:#4ade80;"><i class="fa-solid fa-check mr-1"></i>{{ 'projects.import.detectedFromRepo' | translate }}</p>
+              }
+            </div>
+            <div>
+              <input class="input font-mono" [ngModel]="portsExposes" (ngModelChange)="onPortEdit($event)" [placeholder]="'projects.import.portPlaceholder' | translate" [attr.aria-label]="'projects.import.portLabel' | translate" autocomplete="off" />
+              @if (portAutoDetected()) {
+                <p class="mt-1 text-xs" style="color:#4ade80;"><i class="fa-solid fa-check mr-1"></i>{{ 'projects.import.detectedFromRepo' | translate }}</p>
+              }
+            </div>
           </div>
         }
 
-        <button class="mb-5 flex w-full items-center gap-2 rounded-lg p-3 text-left text-sm font-semibold cursor-pointer hover:bg-white/[0.02] transition-colors"
+        <!--
+          Environment variables — the repository's own .env.example (or
+          .sample/.template) already names what a build like this one needs,
+          and usually commits a usable value for most of them; asking the
+          operator to read the source and retype both by hand is exactly the
+          friction Vercel's own import flow removes. See the ngOnInit
+          detect() subscription for why pre-filling from that file discloses
+          nothing the repository doesn't already show.
+        -->
+        <button class="mb-3 flex w-full items-center justify-between gap-2 rounded-lg p-3 text-left text-sm font-semibold cursor-pointer hover:bg-white/[0.02] transition-colors"
                 style="border:1px solid var(--color-surface-2);" (click)="showEnv.set(!showEnv())">
-          <i class="fa-solid" [class.fa-chevron-right]="!showEnv()" [class.fa-chevron-down]="showEnv()"></i>
-          {{ 'projects.import.envVariables' | translate }}
+          <span class="flex items-center gap-2">
+            <i class="fa-solid" [class.fa-chevron-right]="!showEnv()" [class.fa-chevron-down]="showEnv()"></i>
+            {{ 'projects.import.envVariables' | translate }}
+          </span>
+          @if (envRows().length > 0) {
+            <span class="rounded-full px-2 py-0.5 text-xs font-semibold" style="background:rgba(59,130,246,0.15);color:#60a5fa;">
+              {{ 'projects.import.envDetectedBadge' | translate: { count: envRows().length } }}
+            </span>
+          }
         </button>
         @if (showEnv()) {
-          <p class="mb-4 px-1 text-xs" style="color:var(--color-text-tertiary);">
-            {{ 'projects.import.envHint' | translate }}
-          </p>
+          <div class="mb-5 px-1">
+            <p class="mb-3 text-xs" style="color:var(--color-text-tertiary);">
+              {{ 'projects.import.envHint' | translate }}
+            </p>
+
+            @if (envRows().length > 0) {
+              <div class="mb-3 space-y-2">
+                @for (row of envRows(); track $index; let i = $index) {
+                  <div class="flex items-center gap-2">
+                    <input
+                      class="input font-mono flex-1"
+                      style="min-width:0;"
+                      [value]="row.key"
+                      (input)="updateEnvKey(i, $any($event.target).value)"
+                      [placeholder]="'projects.import.envKeyPlaceholder' | translate"
+                      [attr.aria-label]="'projects.import.envKeyLabel' | translate"
+                      autocomplete="off"
+                    />
+                    <div class="relative flex-1" style="min-width:0;">
+                      <input
+                        class="input font-mono w-full pr-9"
+                        [attr.type]="row.reveal ? 'text' : 'password'"
+                        [value]="row.value"
+                        (input)="updateEnvValue(i, $any($event.target).value)"
+                        [placeholder]="'projects.import.envValuePlaceholder' | translate"
+                        [attr.aria-label]="'projects.import.envValueLabel' | translate"
+                        autocomplete="off"
+                      />
+                      <button
+                        type="button"
+                        class="absolute top-1/2 right-2.5 -translate-y-1/2 cursor-pointer"
+                        style="color:var(--color-text-tertiary);"
+                        [attr.aria-label]="(row.reveal ? 'projects.import.hideValue' : 'projects.import.revealValue') | translate"
+                        (click)="toggleReveal(i)"
+                      >
+                        <i class="fa-solid text-xs" [class.fa-eye]="!row.reveal" [class.fa-eye-slash]="row.reveal"></i>
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      class="cursor-pointer px-2 py-2 text-sm"
+                      style="color:var(--color-text-tertiary);"
+                      [attr.aria-label]="'projects.import.removeVariable' | translate"
+                      (click)="removeEnvRow(i)"
+                    >
+                      <i class="fa-solid fa-minus"></i>
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+
+            <div class="flex flex-wrap items-center gap-3">
+              <button type="button" class="button-secondary cursor-pointer text-xs px-3 py-1.5" (click)="addEnvRow()">
+                <i class="fa-solid fa-plus mr-1"></i>{{ 'projects.import.addVariable' | translate }}
+              </button>
+              <button type="button" class="text-xs font-semibold hover:underline cursor-pointer" style="color:#60a5fa;" (click)="envFileInput.click()">
+                <i class="fa-solid fa-file-import mr-1"></i>{{ 'projects.import.importEnvFile' | translate }}
+              </button>
+              <input #envFileInput type="file" accept=".env,text/plain" class="hidden" (change)="onImportEnvFile($event)" />
+            </div>
+            @if (envImportError()) {
+              <p class="mt-2 text-xs" style="color:var(--color-danger);">{{ envImportError() }}</p>
+            }
+          </div>
         }
 
         @if (error()) {
@@ -215,18 +396,56 @@ export class ImportConfigComponent implements OnInit {
   protected readonly buildMethod = signal<'docker' | 'buildless'>('buildless');
   /** Where this lands — an existing workspace, or a new one. Never implicit. */
   protected readonly workspaceChoice = signal<WorkspaceChoice | null>(null);
+  /** Set when arriving from a specific workspace's "+ Nouvelle ressource" link. */
+  protected readonly lockedWorkspaceUuid = signal<string | null>(null);
   protected readonly deploying = signal(false);
   protected readonly settingUpLocal = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly showBuild = signal(false);
   protected readonly showEnv = signal(false);
+  protected readonly envRows = signal<EnvRow[]>([]);
+  protected readonly envImportError = signal<string | null>(null);
+  /** Pre-flight findings from ecosystem detection — a blocking one means the build engine will refuse this repo as-is. */
+  protected readonly ecosystemWarnings = signal<EcosystemWarning[]>([]);
+  /** Raw detection results, kept only for the "detected configuration" summary — the preset dropdown above stays the actual source of truth for what deploys. */
+  protected readonly detectedEcosystem = signal<string | null>(null);
+  protected readonly detectedBuildTool = signal<string | null>(null);
+  protected readonly detecting = signal(false);
+  protected readonly portAutoDetected = signal(false);
+  protected readonly startCommandAutoDetected = signal(false);
+  protected readonly rootDirAutoDetected = signal(false);
+  /** Set only when the repository has 2+ plausible application roots and none could be picked automatically. */
+  protected readonly monorepoCandidates = signal<ManifestDirectory[]>([]);
+
+  private static readonly ECOSYSTEM_NAMES: Record<string, string> = {
+    node: 'Node.js',
+    'java-maven': 'Java',
+    'java-gradle': 'Java',
+    python: 'Python',
+    go: 'Go',
+    ruby: 'Ruby',
+    php: 'PHP',
+    dockerfile: 'Docker',
+  };
+
+  /** "Java · Maven", "Node.js · pnpm", … — null while nothing recognisable was found (a plain "Other" repo, or detection still running). */
+  protected readonly ecosystemLabel = computed(() => {
+    const eco = this.detectedEcosystem();
+    if (!eco || eco === 'unknown') return null;
+    const name = ImportConfigComponent.ECOSYSTEM_NAMES[eco] ?? eco;
+    const tool = this.detectedBuildTool();
+    return tool ? `${name} · ${tool}` : name;
+  });
 
   protected projectName = '';
   protected rootDir = './';
+  protected installCommand = '';
   protected buildCommand = '';
   protected startCommand = '';
   protected portsExposes = '';
   private cloneUrl = '';
+  /** Which connected provider (if any) supplied this repo — decides whether `githubDetect` or `gitlabDetect` runs. Defaults to 'github' for a pasted URL, matching the previous behaviour. */
+  private provider: 'github' | 'gitlab' = 'github';
 
   protected readonly presets: Preset[] = [
     { label: 'Vite', icon: 'fa-solid fa-bolt', buildPack: 'nixpacks' },
@@ -234,7 +453,22 @@ export class ImportConfigComponent implements OnInit {
     { label: 'Node.js', icon: 'fa-brands fa-node-js', buildPack: 'nixpacks' },
     { label: 'Angular', icon: 'fa-brands fa-angular', buildPack: 'nixpacks' },
     { label: 'Static', icon: 'fa-solid fa-file-code', buildPack: 'static' },
+    // Nixpacks (the build engine) already builds every one of these
+    // natively — the gap was only ever that nothing here recognised or
+    // labelled them. See ecosystem-detection.service.ts on the backend.
+    { label: 'Spring Boot (Maven)', icon: 'fa-brands fa-java', buildPack: 'nixpacks' },
+    { label: 'Java (Maven)', icon: 'fa-brands fa-java', buildPack: 'nixpacks' },
+    { label: 'Spring Boot (Gradle)', icon: 'fa-brands fa-java', buildPack: 'nixpacks' },
+    { label: 'Java (Gradle)', icon: 'fa-brands fa-java', buildPack: 'nixpacks' },
+    { label: 'Django', icon: 'fa-brands fa-python', buildPack: 'nixpacks' },
+    { label: 'FastAPI', icon: 'fa-brands fa-python', buildPack: 'nixpacks' },
+    { label: 'Flask', icon: 'fa-brands fa-python', buildPack: 'nixpacks' },
     { label: 'Python', icon: 'fa-brands fa-python', buildPack: 'nixpacks' },
+    { label: 'Go', icon: 'fa-solid fa-terminal', buildPack: 'nixpacks' },
+    { label: 'Ruby on Rails', icon: 'fa-solid fa-gem', buildPack: 'nixpacks' },
+    { label: 'Ruby', icon: 'fa-solid fa-gem', buildPack: 'nixpacks' },
+    { label: 'Laravel', icon: 'fa-brands fa-php', buildPack: 'nixpacks' },
+    { label: 'PHP', icon: 'fa-brands fa-php', buildPack: 'nixpacks' },
     { label: 'Dockerfile', icon: 'fa-brands fa-docker', buildPack: 'dockerfile' },
     { label: 'Other', icon: 'fa-solid fa-cube', buildPack: 'nixpacks' },
   ];
@@ -246,22 +480,79 @@ export class ImportConfigComponent implements OnInit {
     this.branch.set(q.get('branch') || 'main');
     this.projectName = q.get('name') || 'app';
     this.cloneUrl = q.get('clone') || '';
+    this.provider = q.get('provider') === 'gitlab' ? 'gitlab' : 'github';
+    this.lockedWorkspaceUuid.set(q.get('workspace'));
     // Fallback preset from the repo language passed by the list…
     this.presetIndex.set(this.detectPreset(q.get('language') || ''));
     this.api.me().subscribe((m) => this.teamName.set(m.team?.name ?? 'My Team'));
     // …then refine by inspecting the repo's files (package.json / Dockerfile).
     if (repo.includes('/')) {
-      this.api.githubDetect(repo).subscribe({
+      this.detecting.set(true);
+      const detect$ = this.provider === 'gitlab' ? this.api.gitlabDetect(repo) : this.api.githubDetect(repo);
+      detect$.subscribe({
         next: (d) => {
+          this.detecting.set(false);
+          this.detectedEcosystem.set(d.ecosystem ?? null);
+          this.detectedBuildTool.set(d.buildTool ?? null);
           const idx = this.presets.findIndex((p) => p.label === d.preset);
           if (idx >= 0) this.presetIndex.set(idx);
           this.hasDockerfile.set(d.hasDockerfile);
           this.hasDockerCompose.set(d.hasDockerCompose || false);
           // Default to the suggested method; user can switch when a Dockerfile exists.
           this.buildMethod.set(d.buildPack === 'dockerfile' ? 'docker' : 'buildless');
+          // Both the keys AND the values the repository's own .env.example
+          // (or .sample/.template) already commits — that file is public in
+          // the repository regardless of what this form does with it, so
+          // pre-filling from it discloses nothing the user couldn't already
+          // see, and it's exactly the value most of these keys actually want
+          // (APP_ENV=local, LOG_CHANNEL=stack, …). What it doesn't carry —
+          // a real secret — the example file left blank in the first place
+          // (APP_KEY=, DB_PASSWORD=), which arrives here blank too, ready
+          // for the operator to fill in the one that matters.
+          // Shown in the clear by default, not masked: these came from a
+          // public file in the repository, so hiding them behind a reveal
+          // click protects nothing and only adds back the friction detecting
+          // them was supposed to remove. Masking stays available per-row for
+          // whichever key the operator ends up typing a real secret into.
+          if (d.envVars?.length) {
+            this.envRows.set(d.envVars.map((v) => ({ key: v.key, value: v.defaultValue, reveal: true })));
+          }
+          // Port convention + start command for the ecosystem actually
+          // detected (Spring Boot → 8080, Flask → 5000, …) instead of the
+          // blind 3000 every non-Node deploy silently got before. See
+          // ecosystem-detection.service.ts for the per-framework table.
+          if (d.suggestedPort !== null && d.suggestedPort !== undefined) {
+            this.portsExposes = String(d.suggestedPort);
+            this.portAutoDetected.set(true);
+          }
+          if (d.startCommandHint) {
+            this.startCommand = d.startCommandHint;
+            this.startCommandAutoDetected.set(true);
+          }
+          this.ecosystemWarnings.set(d.warnings ?? []);
+          // Monorepo: nothing recognisable at the repository root, but
+          // exactly one subdirectory had an application in it — the Root
+          // Directory field that used to be left blank for the operator to
+          // guess at is now pre-filled with where the detector actually
+          // found something. Two or more candidates is genuinely ambiguous
+          // (which service is "the" one to deploy is not this form's call
+          // to make), so those are offered as a pick list instead.
+          if (d.rootDirSuggestion) {
+            this.rootDir = d.rootDirSuggestion;
+            this.rootDirAutoDetected.set(true);
+          }
+          this.monorepoCandidates.set(d.monorepoCandidates ?? []);
+          // Expand "Build and Output Settings" automatically when there is
+          // something here worth the operator actually looking at — an
+          // auto-filled value or a pre-flight warning left collapsed is the
+          // same as not detecting it at all.
+          if (d.suggestedPort || d.startCommandHint || (d.warnings ?? []).length > 0) {
+            this.showBuild.set(true);
+          }
         },
         error: () => {
           /* keep the language-based guess + buildless default */
+          this.detecting.set(false);
         },
       });
     }
@@ -276,6 +567,79 @@ export class ImportConfigComponent implements OnInit {
     else if (l === 'html' || l === 'css') label = 'Static';
     const idx = this.presets.findIndex((p) => p.label === label);
     return idx >= 0 ? idx : 0;
+  }
+
+  protected onStartCommandEdit(value: string): void {
+    this.startCommand = value;
+    this.startCommandAutoDetected.set(false);
+  }
+
+  protected onPortEdit(value: string): void {
+    this.portsExposes = value;
+    this.portAutoDetected.set(false);
+  }
+
+  protected onRootDirEdit(value: string): void {
+    this.rootDir = value;
+    this.rootDirAutoDetected.set(false);
+  }
+
+  protected pickMonorepoCandidate(dir: string): void {
+    this.rootDir = dir;
+    this.rootDirAutoDetected.set(true);
+    this.monorepoCandidates.set([]);
+  }
+
+  protected addEnvRow(): void {
+    this.envRows.update((rows) => [...rows, { key: '', value: '', reveal: false }]);
+  }
+
+  protected removeEnvRow(index: number): void {
+    this.envRows.update((rows) => rows.filter((_, i) => i !== index));
+  }
+
+  protected updateEnvKey(index: number, key: string): void {
+    this.envRows.update((rows) => rows.map((r, i) => (i === index ? { ...r, key } : r)));
+  }
+
+  protected updateEnvValue(index: number, value: string): void {
+    this.envRows.update((rows) => rows.map((r, i) => (i === index ? { ...r, value } : r)));
+  }
+
+  protected toggleReveal(index: number): void {
+    this.envRows.update((rows) => rows.map((r, i) => (i === index ? { ...r, reveal: !r.reveal } : r)));
+  }
+
+  /**
+   * Read a picked `.env` file and merge its keys in.
+   *
+   * Merge, not replace: a file picked after detection already populated some
+   * keys is adding to that list, matching what "Import .env" means on the
+   * platform this flow is modelled on — it is not a reset button.
+   */
+  protected onImportEnvFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    this.envImportError.set(null);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = typeof reader.result === 'string' ? reader.result : '';
+      const parsed = parseEnvFile(text);
+      if (parsed.length === 0) {
+        this.envImportError.set(this.translate.instant('projects.import.envImportEmpty'));
+        return;
+      }
+      this.envRows.update((rows) => {
+        const byKey = new Map(rows.map((r) => [r.key, r]));
+        for (const { key, value } of parsed) byKey.set(key, { key, value, reveal: false });
+        return [...byKey.values()];
+      });
+    };
+    reader.onerror = () => this.envImportError.set(this.translate.instant('projects.import.envImportError'));
+    reader.readAsText(file);
   }
 
   /** Set up the local machine as a server, then deploy. */
@@ -321,7 +685,14 @@ export class ImportConfigComponent implements OnInit {
     }
     this.deploying.set(true);
     this.error.set(null);
-    const buildPack = this.buildMethod() === 'docker' ? 'dockerfile' : 'buildless';
+    // 'nixpacks', not the UI's own 'buildless' label — the backend's
+    // BuildPack union has no 'buildless' member, so that string previously
+    // reached `toBuildPack()` unrecognised and fell back to 'nixpacks' by
+    // implicit default rather than by a mapping that says so.
+    const buildPack = this.buildMethod() === 'docker' ? 'dockerfile' : 'nixpacks';
+    const environmentVariables = this.envRows()
+      .filter((r) => r.key.trim())
+      .map((r) => ({ key: r.key.trim(), value: r.value }));
     this.api
       .quickDeploy({
         name: this.projectName,
@@ -331,9 +702,11 @@ export class ImportConfigComponent implements OnInit {
         git_branch: this.branch(),
         build_pack: buildPack,
         base_directory: this.rootDir,
+        install_command: this.installCommand || undefined,
         build_command: this.buildCommand || undefined,
         start_command: this.startCommand || undefined,
         ports_exposes: this.portsExposes || undefined,
+        environment_variables: environmentVariables.length > 0 ? environmentVariables : undefined,
       })
       .subscribe({
         next: (res) => {

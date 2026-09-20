@@ -14,6 +14,7 @@ import * as appService from '../services/application.service';
 import * as serverService from '../services/server.service';
 import * as pipelineService from '../services/pipeline.service';
 import * as deploymentService from '../services/deployment.service';
+import { resolveGitCredential } from '../services/git-credentials.service';
 import { pipelineWorkdirFor } from '../utils/paths';
 import { PipelineJobData } from '../services/pipeline.service';
 
@@ -37,18 +38,33 @@ async function processPipeline(job: Job<PipelineJobData>): Promise<void> {
   if (!server || !key) throw new Error('Server or key not found');
 
   const workdir = pipelineWorkdirFor(executionUuid);
+  // Which stage's job row is currently 'running', so a failure that never
+  // reaches that stage's own setJobStatus call (an SSH exception, not just a
+  // non-zero exit) still marks it 'failed' instead of leaving it 'running'
+  // forever — indistinguishable, in the UI, from a pipeline stuck mid-flight.
+  let currentStage: string | null = null;
 
   try {
     for (const stage of stages) {
+      currentStage = stage;
       await pipelineService.setJobStatus(executionId, stage, 'running');
       await log(`\n──► Stage: ${stage}`);
 
       if (stage === 'language_detection') {
+        if (!app.git_repository) throw new Error('Application has no git repository to clone');
+        // A private repository needs something to authenticate the clone
+        // with, same as `deployment.worker.ts`'s own clone step — this one
+        // had never picked up that fix, so a pipeline for any private repo
+        // failed at the very first stage: `git clone` given the plain URL
+        // has no TTY to prompt on and nothing to authenticate with.
+        // Verified live against a real private repo (`Ebolo1/wegift-backend`).
+        const credential = await resolveGitCredential(teamId, app.git_repository);
+        const cloneUrl = credential?.authenticatedUrl ?? app.git_repository;
         const r = await executeRemoteCommand(
           server,
           key,
-          `rm -rf ${workdir} && git clone --depth 1 -b ${branch} ${app.git_repository} ${workdir} && ls ${workdir}`,
-          { onData: (c) => log(c) }
+          `rm -rf ${workdir} && git clone --depth 1 -b ${branch} ${cloneUrl} ${workdir} && ls ${workdir}`,
+          { onData: (c) => log(c), redact: credential ? [credential.token] : undefined }
         );
         await pipelineService.setJobStatus(executionId, stage, r.exitCode === 0 ? 'success' : 'failed', r.stdout + r.stderr);
         if (r.exitCode !== 0) throw new Error('git clone failed');
@@ -88,6 +104,12 @@ async function processPipeline(job: Job<PipelineJobData>): Promise<void> {
     const message = (err as Error).message;
     logger.error('Pipeline failed', { executionUuid, message });
     await log(`\n❌ Pipeline failed: ${message}`);
+    // The stage whose command actually threw (rather than exiting non-zero,
+    // which each stage already reports for itself) would otherwise still
+    // read 'running' forever — this closes it out, without stomping on a
+    // detailed log a stage already recorded for itself (see the function's
+    // own doc comment for the real failure this was caught in).
+    if (currentStage) await pipelineService.markStillRunningAsFailed(executionId, currentStage, message);
     await pipelineService.setExecutionStatus(executionId, 'failed');
     throw err;
   } finally {

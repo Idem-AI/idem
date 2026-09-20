@@ -17,6 +17,7 @@ import { ApiService } from '../../../shared/services/api.service';
         <div class="mb-2 flex items-center gap-2 text-sm">
           <code>{{ v.key }}</code>
           <span style="color: var(--color-text-secondary)">= {{ v.value }}</span>
+          <button class="ml-auto text-xs text-red-400" (click)="remove(v)">{{ 'sharedVariables.delete' | translate }}</button>
         </div>
       }
       <form class="mt-3 flex gap-2" [formGroup]="form" (ngSubmit)="add()">
@@ -59,6 +60,14 @@ export class SharedVariablesComponent implements OnInit {
     this.api.upsertSharedVariable('team', id, this.form.getRawValue()).subscribe(() => {
       this.form.reset();
       this.load();
+    });
+  }
+
+  protected remove(v: { key: string }): void {
+    const id = this.teamId();
+    if (id === null) return;
+    this.api.deleteSharedVariable('team', id, v.key).subscribe(() => {
+      this.vars.update((list) => list.filter((x) => x.key !== v.key));
     });
   }
 }

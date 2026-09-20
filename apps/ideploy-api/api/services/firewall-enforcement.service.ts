@@ -98,6 +98,34 @@ export function targetKey(target: DecisionTarget): string {
   return `${target.scope}:${target.value}`;
 }
 
+/**
+ * How many ban/unban calls to CrowdSec run at once during reconciliation.
+ *
+ * Reconciliation replays the *entire* difference on every call, including
+ * decisions left over from before — verified live: a backlog of 376 stale
+ * decisions, released one at a time with `await` in a `for` loop, took over
+ * two minutes and was still running when it was killed. That is long enough
+ * to blow through any reasonable HTTP timeout on the request that triggered
+ * it, which would make a firewall that did eventually apply look like one
+ * that had failed. A small bounded concurrency keeps a large backlog from
+ * being a multi-minute request while not hammering CrowdSec's Local API with
+ * hundreds of simultaneous connections.
+ */
+const RECONCILE_CONCURRENCY = 8;
+
+/** Run `fn` over `items`, at most `RECONCILE_CONCURRENCY` in flight at once. */
+async function runBounded<T>(items: T[], fn: (item: T) => Promise<void>): Promise<void> {
+  let cursor = 0;
+  const worker = async (): Promise<void> => {
+    for (;;) {
+      const index = cursor++;
+      if (index >= items.length) return;
+      await fn(items[index]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(RECONCILE_CONCURRENCY, items.length) }, worker));
+}
+
 function conditionsOf(rule: FirewallRule): RuleCondition[] {
   const raw = rule.conditions;
   if (Array.isArray(raw)) return raw as RuleCondition[];
@@ -212,19 +240,28 @@ export interface EnforcementConfigRow {
   id: number;
   applicationId: number;
   enabled: boolean;
-  lapiUrl: string;
-  apiKey: string | null;
-  bouncerKey: string | null;
   banDurationSeconds: number;
+  /** null when the application has no server/destination resolved yet. */
+  serverId: number | null;
+  /** null when this application's server has no CrowdSec provisioned yet. */
+  crowdsec: { lapiUrl: string; machinePassword: string; bouncerKey: string | null; serverIp: string } | null;
 }
 
+/**
+ * CrowdSec is provisioned once per *server* (`proxy.service.ts`, alongside
+ * Traefik), not per application: its decisions are address-scoped and the one
+ * bouncer identity it registers is shared by every application on that server
+ * whose labels attach the bouncer middleware. `firewall_configs` still holds
+ * what genuinely is per-application — whether the firewall is on, the ban
+ * duration, the saved rules — so this stitches the two together rather than
+ * pretending an application has its own CrowdSec.
+ */
 async function loadConfig(teamId: number, appUuid: string): Promise<EnforcementConfigRow> {
   const app = await appService.getApplication(teamId, appUuid);
   if (!app) throw unprocessable('NOT_FOUND', 'Application not found.');
 
   const { rows } = await pool.query(
-    `SELECT id, application_id, enabled, crowdsec_lapi_url, crowdsec_api_key,
-            crowdsec_bouncer_key, ban_duration
+    `SELECT id, application_id, enabled, ban_duration
      FROM firewall_configs WHERE application_id = $1 LIMIT 1`,
     [app.id]
   );
@@ -233,55 +270,76 @@ async function loadConfig(teamId: number, appUuid: string): Promise<EnforcementC
     throw unprocessable('FIREWALL_NOT_CONFIGURED', 'This application has no firewall configuration.');
   }
 
+  const server = await appService.getApplicationServer(app.id);
+  const { getCrowdSecCredentials } = await import('./proxy.service');
+  const crowdsec = server ? await getCrowdSecCredentials(server.serverId) : null;
+
   return {
     id: Number(r.id),
     applicationId: Number(r.application_id),
     enabled: Boolean(r.enabled),
-    lapiUrl: String(r.crowdsec_lapi_url ?? process.env.CROWDSEC_LAPI_URL ?? 'http://crowdsec:8080'),
-    apiKey: (r.crowdsec_api_key as string) ?? null,
-    bouncerKey: (r.crowdsec_bouncer_key as string) ?? null,
     banDurationSeconds: Number(r.ban_duration ?? 3600),
+    serverId: server?.serverId ?? null,
+    crowdsec: crowdsec
+      ? {
+          lapiUrl: crowdsec.lapiUrl,
+          machinePassword: crowdsec.machinePassword,
+          bouncerKey: crowdsec.bouncerKey,
+          serverIp: crowdsec.serverIp,
+        }
+      : null,
   };
 }
 
-/** Client for managing decisions. Requires the management credential. */
-function managementClient(config: EnforcementConfigRow): CrowdSecLapiClient {
-  if (!config.apiKey) {
-    throw unprocessable(
-      'CROWDSEC_NOT_CONFIGURED',
-      'No CrowdSec API key is configured for this application. Install CrowdSec on the server first.'
-    );
+/**
+ * What every *other* enabled firewall config on this application's server
+ * currently wants blocked.
+ *
+ * CrowdSec's decisions are shared by every application the bouncer protects
+ * (see `EnforcementConfigRow.crowdsec`'s doc comment) — without this, turning
+ * a firewall off on one application, or reconciling its rules, would release
+ * an address a *different* application on the same server still needs
+ * blocked, the moment the two happened to disagree about it.
+ */
+async function desiredTargetsFromOtherConfigs(config: EnforcementConfigRow): Promise<DecisionTarget[]> {
+  if (config.serverId === null) return [];
+  const { listEnabledConfigsOnServer, listRulesByConfigId } = await import('./firewall.service');
+  const siblings = await listEnabledConfigsOnServer(config.serverId);
+
+  const targets: DecisionTarget[] = [];
+  for (const sibling of siblings) {
+    if (sibling.applicationId === config.applicationId) continue;
+    const rules = await listRulesByConfigId(sibling.configId);
+    const analyses = rules.filter((r) => r.enabled).map(analyseRule);
+    const crowdsecTargets = analyses
+      .filter((a) => a.enforceability === 'enforceable' && a.enforcedBy === 'crowdsec')
+      .flatMap((a) => a.targets);
+    targets.push(...crowdsecTargets);
   }
-  return new CrowdSecLapiClient({ baseUrl: config.lapiUrl, apiKey: config.apiKey });
+  return targets;
 }
 
-/**
- * Make sure a bouncer credential exists, registering one if needed.
- *
- * Deliberately a *separate* credential from the management key: the bouncer key
- * ends up in a Docker label, readable by anyone who can inspect the container,
- * and a read-only credential there cannot be used to lift bans.
- *
- * @returns the bouncer key, and whether it was just created — a new key means
- * the container's labels change, so it must be redeployed.
- */
-export async function ensureBouncer(
-  teamId: number,
-  appUuid: string
-): Promise<{ bouncerKey: string; created: boolean }> {
-  const config = await loadConfig(teamId, appUuid);
-  if (config.bouncerKey) return { bouncerKey: config.bouncerKey, created: false };
-
-  const client = managementClient(config);
-  const bouncerKey = await client.createBouncer(`ideploy-${appUuid}`);
-
-  await pool.query(
-    'UPDATE firewall_configs SET crowdsec_bouncer_key = $2, updated_at = now() WHERE id = $1',
-    [config.id, bouncerKey]
-  );
-  logger.info('Registered a CrowdSec bouncer for an application', { appUuid });
-
-  return { bouncerKey, created: true };
+/** Client for managing decisions. Requires the server's machine credential. */
+function managementClient(config: EnforcementConfigRow): CrowdSecLapiClient {
+  if (!config.crowdsec) {
+    // Named after the one concrete action that fixes this — "(re)configure
+    // the proxy" told an operator nothing they could act on; verified live
+    // against a real server (159.69.185.176) that this exact gap left a
+    // firewall permanently unable to enforce with no way to tell why from
+    // the message alone. "Install CrowdSec" is the server detail page's own
+    // button label for this action (`server-detail.ts`), not a paraphrase.
+    throw unprocessable(
+      'CROWDSEC_NOT_CONFIGURED',
+      "CrowdSec is not installed on this application's server yet — install CrowdSec from the server's page, then try again."
+    );
+  }
+  return new CrowdSecLapiClient({
+    baseUrl: config.crowdsec.lapiUrl,
+    machineId: 'localhost',
+    machinePassword: config.crowdsec.machinePassword,
+    bouncerKey: config.crowdsec.bouncerKey ?? undefined,
+    serverIp: config.crowdsec.serverIp,
+  });
 }
 
 export interface EnforcementResult {
@@ -317,6 +375,18 @@ export interface EnforcementResult {
  * time the application deploys, so they only ever show up below as
  * `pendingRedeploy` — the honest answer for something that is saved but not yet
  * in force.
+ *
+ * Enabled and disabled configs are reconciled through the same diff, not two
+ * separate code paths: a disabled config simply *wants* nothing, rather than
+ * being handled by a variant that only knows how to release exactly what its
+ * own remaining rules still name. That distinction is not academic — verified
+ * live: deleting a rule and then, in the same "Apply", turning the firewall
+ * off left the address it had banned in force forever, because the earlier
+ * disable-path only ever released targets its (by then already-deleted) rule
+ * could still describe. Diffing against live CrowdSec state instead means a
+ * decision orphaned by a deleted rule is released by the *next* reconciliation
+ * from anyone on the server, not only by the one call that happened to still
+ * remember it.
  */
 export async function enforce(teamId: number, appUuid: string): Promise<EnforcementResult> {
   const config = await loadConfig(teamId, appUuid);
@@ -325,14 +395,18 @@ export async function enforce(teamId: number, appUuid: string): Promise<Enforcem
   const unsupported = analyses.filter((a) => a.enforceability === 'unsupported');
   const enforceable = analyses.filter((a) => a.enforceability === 'enforceable');
   const proxyTargets = enforceable.filter((a) => a.enforcedBy === 'proxy').flatMap((a) => a.targets);
+  const crowdsecTargets = enforceable.filter((a) => a.enforcedBy === 'crowdsec').flatMap((a) => a.targets);
+  // Nothing, while this application's own firewall is off — its rules still
+  // describe what it *would* block (kept above for `unsupported`/redeploy
+  // reporting), but an off switch means an empty desired set here.
+  const ownDesired = config.enabled ? crowdsecTargets : [];
 
-  if (!config.enabled) {
-    // Disabling the firewall must actually release the addresses, not merely
-    // stop adding new ones. The proxy's own labels still need a redeploy to drop.
-    const released = await releaseAll(config);
+  if (!config.enabled && !config.crowdsec) {
+    // Off, and this server never had CrowdSec provisioned — nothing to
+    // reconcile against.
     return {
       blocked: [],
-      released,
+      released: [],
       pendingRedeploy: [],
       unsupported,
       redeployRequired: proxyTargets.length > 0,
@@ -340,28 +414,30 @@ export async function enforce(teamId: number, appUuid: string): Promise<Enforcem
     };
   }
 
-  const { created } = await ensureBouncer(teamId, appUuid);
+  // Throws CROWDSEC_NOT_CONFIGURED when enabled but this server has no
+  // CrowdSec — unchanged from before this diff was unified.
   const client = managementClient(config);
 
-  const crowdsecTargets = enforceable.filter((a) => a.enforcedBy === 'crowdsec').flatMap((a) => a.targets);
-  const desiredKeys = new Set(crowdsecTargets.map(targetKey));
+  // A decision still wanted by a *different* application sharing this
+  // server's CrowdSec must survive this application's own reconciliation —
+  // see `desiredTargetsFromOtherConfigs`.
+  const siblingTargets = await desiredTargetsFromOtherConfigs(config);
+  const desiredKeys = new Set([...ownDesired, ...siblingTargets].map(targetKey));
 
   const current = await ourDecisions(client);
   const currentKeys = new Set(current.map(targetKey));
 
-  const toBlock = crowdsecTargets.filter((t) => !currentKeys.has(targetKey(t)));
+  const toBlock = ownDesired.filter((t) => !currentKeys.has(targetKey(t)));
   const toRelease = current.filter((t) => !desiredKeys.has(targetKey(t)));
 
-  for (const target of toBlock) {
-    await client.banIp({
+  await runBounded(toBlock, (target) =>
+    client.banIp({
       ip: target.value,
       durationSeconds: config.banDurationSeconds,
       reason: `Blocked by an iDeploy firewall rule (${appUuid})`,
-    });
-  }
-  for (const target of toRelease) {
-    await client.unbanIp(target.value);
-  }
+    })
+  );
+  await runBounded(toRelease, (target) => client.unbanIp(target.value));
 
   logger.info('Firewall rules reconciled', {
     appUuid,
@@ -371,8 +447,18 @@ export async function enforce(teamId: number, appUuid: string): Promise<Enforcem
     unsupported: unsupported.length,
   });
 
+  if (!config.enabled) {
+    return {
+      blocked: [],
+      released: toRelease,
+      pendingRedeploy: [],
+      unsupported,
+      redeployRequired: proxyTargets.length > 0,
+      reason: 'The firewall is turned off for this application.',
+    };
+  }
+
   const reasons = [
-    created && 'a bouncer was just registered, so the proxy must be redeployed to start consulting it',
     proxyTargets.length > 0 &&
       `${proxyTargets.length} rule(s) block by country, which only takes effect at the next deploy`,
   ].filter((r): r is string => Boolean(r));
@@ -387,26 +473,73 @@ export async function enforce(teamId: number, appUuid: string): Promise<Enforcem
   };
 }
 
+/**
+ * A management client for a server's CrowdSec directly, bypassing the
+ * per-application config lookup. Used by `proxy.service.ts` to re-probe
+ * reachability right after provisioning, when there is no application in
+ * play yet.
+ */
+export async function getServerCrowdSecClient(serverId: number): Promise<CrowdSecLapiClient | null> {
+  const { getCrowdSecCredentials } = await import('./proxy.service');
+  const creds = await getCrowdSecCredentials(serverId);
+  if (!creds) return null;
+  return new CrowdSecLapiClient({
+    baseUrl: creds.lapiUrl,
+    machineId: 'localhost',
+    machinePassword: creds.machinePassword,
+    bouncerKey: creds.bouncerKey ?? undefined,
+    serverIp: creds.serverIp,
+  });
+}
+
 /** Addresses currently blocked by decisions we created. */
 async function ourDecisions(client: CrowdSecLapiClient): Promise<DecisionTarget[]> {
   const decisions = await client.listDecisions({ origin: DECISION_ORIGIN });
-  return decisions.filter((d) => d.scope === 'ip').map((d) => ({ scope: 'ip', value: d.value }));
+  // Verified against a real instance (CrowdSec 1.7.8): the `origin` query
+  // parameter on `GET /v1/decisions` is not honoured at all — a request
+  // scoped to `origin=ideploy` came back with every decision on the server,
+  // CAPI's community blocklist included (12,526 of them against 2 genuinely
+  // ours). Trusting that "filtered" response is what made `enforce()`
+  // reconcile CrowdSec's own detections as if this application's rules had
+  // authored them: on a real run it started deleting the community
+  // blocklist, 1,548 entries gone before the process was stopped. The origin
+  // has to be checked again here, against what the server actually sent back
+  // — never assumed from the request that was made.
+  //
+  // Also: CrowdSec echoes the scope back title-cased ("Ip"), not as sent
+  // ("ip"). A strict `=== 'ip'` compare against that never matched a single
+  // decision — every reconciliation believed nothing was banned yet, so
+  // `enforce()` re-banned an address on every call instead of recognising it
+  // was already blocked, and disabling the firewall never actually released
+  // anything already in force.
+  return decisions
+    .filter((d) => d.origin === DECISION_ORIGIN && d.scope.toLowerCase() === 'ip')
+    .map((d) => ({ scope: 'ip', value: d.value }));
 }
 
-/** Lift every decision we created for this application. */
-async function releaseAll(config: EnforcementConfigRow): Promise<DecisionTarget[]> {
-  if (!config.apiKey) return [];
-  const client = managementClient(config);
-  const targets = await ourDecisions(client);
-  for (const target of targets) {
-    await client.unbanIp(target.value);
-  }
-  return targets;
-}
+/**
+ * Stable identifier for `reason`, so the UI can show it in the operator's own
+ * language instead of the English sentence built for logs and API consumers.
+ * `reason` itself stays — it is what ends up in server logs, and a plain
+ * string is still the right shape for anything reading this outside our own
+ * frontend (a CLI, another team's dashboard).
+ */
+export type EnforcementReasonCode =
+  | 'firewall_off'
+  | 'crowdsec_not_installed'
+  | 'crowdsec_unreachable'
+  | 'bouncer_not_registered'
+  | 'rules_not_applied'
+  | 'all_rules_unsupported'
+  | 'no_rules_configured'
+  | 'summary';
 
 export interface LiveEnforcementStatus {
   state: 'enforced' | 'partially_enforced' | 'not_enforced';
   reason: string;
+  reasonCode: EnforcementReasonCode;
+  /** Interpolation values for the reasonCode's translated template. */
+  reasonParams: Record<string, number>;
   rulesConfigured: number;
   /** Address-scoped rules being filtered by CrowdSec right now. */
   rulesEnforced: number;
@@ -445,20 +578,45 @@ export async function getLiveStatus(
   const crowdsecRules = enforceable.filter((a) => a.enforcedBy === 'crowdsec');
   const proxyRules = enforceable.filter((a) => a.enforcedBy === 'proxy');
 
-  const bouncerRegistered = Boolean(config.bouncerKey);
-  const lapiReachable = config.apiKey
-    ? (await new CrowdSecLapiClient({ baseUrl: config.lapiUrl, apiKey: config.apiKey }).health())
-        .reachable
-    : false;
+  const bouncerRegistered = Boolean(config.crowdsec?.bouncerKey);
+  const lapiReachable = config.crowdsec ? (await managementClient(config).health()).reachable : false;
+  const crowdsecReadyForLookup = lapiReachable && bouncerRegistered;
+
+  // Whether CrowdSec *could* enforce an address rule is not whether it
+  // actually *is* — a rule just created (or one `enforce()` failed to push,
+  // or one CrowdSec forgot after a restart) has no live decision behind it
+  // yet. Verified live against a real deployment: right after adding a rule,
+  // this used to report "enforced" from reachability alone, at the same
+  // moment the UI's own "pending apply" banner said the opposite — two
+  // contradictory claims on the same screen. Only a rule with a decision
+  // `ourDecisions` can actually see is "enforced" now.
+  let liveCrowdsecRules: typeof crowdsecRules = [];
+  if (crowdsecReadyForLookup && crowdsecRules.length > 0) {
+    try {
+      const current = await ourDecisions(managementClient(config));
+      const currentKeys = new Set(current.map(targetKey));
+      liveCrowdsecRules = crowdsecRules.filter((rule) => rule.targets.every((t) => currentKeys.has(targetKey(t))));
+    } catch {
+      // A lookup failure here means "cannot confirm", not "confirmed absent"
+      // and not "confirmed present" — leaving the list empty already reports
+      // the honest, conservative answer (not enforced) without throwing and
+      // taking the whole status read down with it.
+      liveCrowdsecRules = [];
+    }
+  }
 
   const of = (
     state: LiveEnforcementStatus['state'],
     reason: string,
+    reasonCode: EnforcementReasonCode,
+    reasonParams: Record<string, number>,
     rulesEnforced: number,
     rulesPendingRedeploy: number
   ): LiveEnforcementStatus => ({
     state,
     reason,
+    reasonCode,
+    reasonParams,
     rulesConfigured: rules.length,
     rulesEnforced,
     rulesPendingRedeploy,
@@ -468,25 +626,63 @@ export async function getLiveStatus(
   });
 
   if (!config.enabled) {
-    return of('not_enforced', 'The firewall is turned off for this application.', 0, 0);
+    return of('not_enforced', 'The firewall is turned off for this application.', 'firewall_off', {}, 0, 0);
   }
 
-  const crowdsecReady = lapiReachable && bouncerRegistered;
-  const rulesEnforced = crowdsecReady ? crowdsecRules.length : 0;
+  const crowdsecReady = crowdsecReadyForLookup;
+  const rulesEnforced = liveCrowdsecRules.length;
   const rulesPendingRedeploy = proxyRules.length;
 
   if (crowdsecRules.length > 0 && !crowdsecReady) {
-    const why = !lapiReachable
-      ? 'CrowdSec is not reachable, so no decision can be consulted'
-      : 'no bouncer is registered, so the proxy is not consulting CrowdSec';
+    // "Not installed" and "installed but currently unreachable" call for
+    // different action — the first needs a one-time setup step (Install
+    // CrowdSec, on the server's own page), the second is a transient outage
+    // worth waiting out or investigating separately. Reporting both as
+    // "unreachable" told an operator who had never installed it to wait for
+    // something that was never going to come back on its own — confirmed
+    // live: this exact ambiguity is why the firewall looked broken rather
+    // than merely unset up.
+    const why = !config.crowdsec
+      ? 'CrowdSec is not installed on this server yet'
+      : !lapiReachable
+        ? 'CrowdSec is not reachable, so no decision can be consulted'
+        : 'no bouncer is registered, so the proxy is not consulting CrowdSec';
     const reason =
       `${why}: ${crowdsecRules.length} address-scoped rule(s) are not being filtered` +
       (rulesPendingRedeploy > 0
         ? `. ${rulesPendingRedeploy} country rule(s) are configured and will apply at the next deploy.`
         : '.');
+    const reasonCode: EnforcementReasonCode = !config.crowdsec
+      ? 'crowdsec_not_installed'
+      : lapiReachable
+        ? 'bouncer_not_registered'
+        : 'crowdsec_unreachable';
     return of(
       rulesPendingRedeploy > 0 ? 'partially_enforced' : 'not_enforced',
       reason,
+      reasonCode,
+      { addressRules: crowdsecRules.length, pendingRedeploy: rulesPendingRedeploy },
+      rulesEnforced,
+      rulesPendingRedeploy
+    );
+  }
+
+  if (rulesEnforced < crowdsecRules.length) {
+    // Infrastructure is ready — CrowdSec answers, a bouncer is registered —
+    // but not every configured address rule has a decision behind it yet.
+    // Most commonly this is a rule created (or edited) since the last
+    // "Apply now": the row exists, CrowdSec has never been told about it.
+    const missing = crowdsecRules.length - rulesEnforced;
+    const reason =
+      `${missing} address-scoped rule(s) are configured but have not been applied yet — apply the firewall to push them to CrowdSec` +
+      (rulesPendingRedeploy > 0
+        ? `. ${rulesPendingRedeploy} country rule(s) are configured and will apply at the next deploy.`
+        : '.');
+    return of(
+      rulesEnforced > 0 || rulesPendingRedeploy > 0 ? 'partially_enforced' : 'not_enforced',
+      reason,
+      'rules_not_applied',
+      { addressRules: missing, pendingRedeploy: rulesPendingRedeploy },
       rulesEnforced,
       rulesPendingRedeploy
     );
@@ -498,6 +694,8 @@ export async function getLiveStatus(
       unsupported.length > 0
         ? 'None of the configured rules can be enforced — see the details on each.'
         : 'No rule is configured.',
+      unsupported.length > 0 ? 'all_rules_unsupported' : 'no_rules_configured',
+      {},
       0,
       0
     );
@@ -516,6 +714,8 @@ export async function getLiveStatus(
   return of(
     fullyEnforced ? 'enforced' : 'partially_enforced',
     `${reason}.`,
+    'summary',
+    { enforced: rulesEnforced, pendingRedeploy: rulesPendingRedeploy, unsupported: unsupported.length },
     rulesEnforced,
     rulesPendingRedeploy
   );

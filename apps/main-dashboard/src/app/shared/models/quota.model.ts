@@ -1,11 +1,3 @@
-export interface QuotaData {
-  dailyUsage: number;
-  weeklyUsage: number;
-  lastResetDaily: string;
-  lastResetWeekly: string;
-  quotaUpdatedAt?: Date;
-}
-
 export interface QuotaInfoResponse {
   dailyUsage: number;
   weeklyUsage: number;
@@ -14,29 +6,6 @@ export interface QuotaInfoResponse {
   remainingDaily: number;
   remainingWeekly: number;
   isBeta: boolean;
-}
-
-export interface QuotaCheckResult {
-  allowed: boolean;
-  remainingDaily: number;
-  remainingWeekly: number;
-  message?: string;
-}
-
-export interface FeatureValidationResponse {
-  allowed: boolean;
-  message?: string;
-}
-
-export interface BetaInfoResponse {
-  isBeta: boolean;
-  allowedFeatures: string[];
-  restrictions: {
-    maxStyles: number;
-    maxResolution: string;
-    maxOutputTokens: number;
-    restrictedPrompts: string[];
-  };
 }
 
 export interface BetaRestrictions {

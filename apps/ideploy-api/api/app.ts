@@ -43,6 +43,8 @@ import subscriptionRoutes from './routes/subscription.routes';
 import settingsRoutes from './routes/settings.routes';
 import resourcesRoutes from './routes/resources.routes';
 import githubRoutes from './routes/github.routes';
+import gitlabRoutes from './routes/gitlab.routes';
+import adminRoutes from './routes/admin.routes';
 import webhookRoutes, { managementRouter as webhookManagementRoutes } from './routes/webhook.routes';
 
 const swaggerSpec = swaggerJsdoc({
@@ -119,7 +121,9 @@ export function createApp(): Express {
   app.use('/api/v1/settings', settingsRoutes);
   app.use('/api/v1', resourcesRoutes); // /version, /resources
   app.use('/api/v1/github', githubRoutes);
+  app.use('/api/v1/gitlab', gitlabRoutes);
   app.use('/api/v1', webhookManagementRoutes); // /applications/:uuid/webhooks/*
+  app.use('/api/v1/admin', adminRoutes);
 
   // ── Error handling ───────────────────────────────────
   app.use(notFound);

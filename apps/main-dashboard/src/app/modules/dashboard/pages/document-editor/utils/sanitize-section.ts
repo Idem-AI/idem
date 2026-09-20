@@ -32,7 +32,3 @@ export function sanitizeSectionHtml(html: string): string {
   return out.trim();
 }
 
-/** Indique si un HTML contient le bruit de sources (pour audit/log éventuel). */
-export function hasSourcesNoise(html: string): boolean {
-  return SOURCES_HEADING.test(html) || /grounding-api-redirect/i.test(html);
-}

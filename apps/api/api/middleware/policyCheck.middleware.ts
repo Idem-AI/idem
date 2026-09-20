@@ -74,38 +74,3 @@ export const checkPolicyAcceptance = async (
     });
   }
 };
-
-/**
- * Middleware optionnel pour vérifier les politiques avec un avertissement seulement
- * Utilisé pour les routes où l'acceptation est recommandée mais pas obligatoire
- */
-export const checkPolicyAcceptanceOptional = async (
-  req: CustomRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  const userId = req.user?.uid;
-  const projectId = req.params.projectId || req.body.projectId;
-
-  try {
-    if (userId && projectId) {
-      const isPolicyAccepted = await policyAcceptanceService.isPolicyAccepted(userId, projectId);
-
-      if (!isPolicyAccepted) {
-        logger.info(
-          `Policy not accepted (optional check) - UserId: ${userId}, ProjectId: ${projectId}`
-        );
-        // Ajouter une propriété à la requête pour informer le contrôleur
-        req.policyWarning = {
-          requiresFinalization: true,
-          finalizeEndpoint: `/projects/${projectId}/finalize`,
-        };
-      }
-    }
-  } catch (error) {
-    logger.error('Error in optional policy check', error);
-    // En cas d'erreur, continuer sans bloquer
-  }
-
-  next();
-};

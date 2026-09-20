@@ -4,10 +4,15 @@
   "description": "Angular 20 frontend for iDeploy \u2014 rewrite of the Laravel/Livewire UI.",
   "scripts": {
     "ng": "ng",
+    "env:dev": "node scripts/set-env.js",
+    "env:prod": "NODE_ENV=production node scripts/set-env.js",
+    "prestart": "npm run env:dev",
     "start": "ng serve --port 4202",
+    "prebuild": "npm run env:prod",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "lint": "ng lint"
+    "lint": "ng lint",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json"
   },
   "private": true,
   "dependencies": {
@@ -26,6 +31,8 @@
     "@ngx-translate/http-loader": "^17.0.0",
     "@primeng/themes": "^20.0.0",
     "@tailwindcss/postcss": "^4.1.16",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
     "laravel-echo": "^2.1.5",
     "postcss": "^8.5.6",
     "primeicons": "^7.0.0",

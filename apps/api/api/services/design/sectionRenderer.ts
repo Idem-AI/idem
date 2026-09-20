@@ -215,13 +215,6 @@ export type LandscapeLayout =
 
 export type PageLayout = 'portrait' | LandscapeLayout;
 
-export const LANDSCAPE_A4: PageFormat = {
-  width: '297mm',
-  minHeight: '210mm',
-  padding: '14mm',
-  orientation: 'landscape',
-};
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Échappement. Tout texte venu du modèle traverse cette fonction : c'est la
 // frontière entre du CONTENU et du BALISAGE, et elle n'a pas d'exception.

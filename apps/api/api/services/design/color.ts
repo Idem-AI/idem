@@ -111,11 +111,6 @@ export const hexToOklch = (hex: string): Oklch | null => {
 
 export const oklchToHex = (oklch: Oklch): string => rgbToHex(oklchToRgb(oklch));
 
-/** CSS `oklch()` literal, rounded to keep the injected prompt block small. */
-export function formatOklch({ l, c, h }: Oklch): string {
-  return `oklch(${(clamp(l, 0, 1) * 100).toFixed(1)}% ${Math.max(0, c).toFixed(3)} ${((h % 360) + 360).toFixed(1)})`;
-}
-
 /** WCAG 2.1 relative luminance. */
 export function relativeLuminance({ r, g, b }: Rgb): number {
   return (

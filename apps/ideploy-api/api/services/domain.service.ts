@@ -129,3 +129,67 @@ export async function resolvesTo(host: string, expectedIp: string): Promise<bool
     return false;
   }
 }
+
+// ── Auto-generated, DNS-free hostnames ─────────────────────────────
+//
+// Ports Laravel's `sslip()` / `generateFqdn()`. A deployed resource with no
+// domain of its own must still be reachable over HTTPS the moment it starts:
+// sslip.io's own nameservers parse the IP straight out of the hostname and
+// answer it as the A record, so `{random}.{ip}.sslip.io` resolves publicly
+// with zero DNS configuration on our side — and the Traefik labels this
+// resource already gets (`docker/labels.ts`) make its ACME resolver issue a
+// real Let's Encrypt certificate for it the same way it would for any other
+// domain, no special-casing needed there.
+//
+// Without this, a resource with no domain fell back to `computeAppLink`'s
+// `http://localhost:{port}` — correct only when the browser happens to be on
+// the same machine as the server, wrong for every real deployment.
+
+/** DNS-free hostname for a server's own IP (IPv6 colons become dashes). */
+export function sslipHost(ip: string): string {
+  return ip.includes(':') ? `${ip.replace(/:/g, '-')}.sslip.io` : `${ip}.sslip.io`;
+}
+
+/** The server's configured wildcard domain, if the operator set one — else null. */
+async function getWildcardDomain(serverId: number): Promise<string | null> {
+  const { rows } = await pool.query(
+    'SELECT wildcard_domain FROM server_settings WHERE server_id = $1 LIMIT 1',
+    [serverId]
+  );
+  const value = (rows[0]?.wildcard_domain as string | null | undefined)?.trim();
+  return value ? value.replace(/^https?:\/\//, '').replace(/\/$/, '') : null;
+}
+
+/**
+ * A working hostname for a resource that was not given one of its own —
+ * `{random}.{host}`, where `host` is the server's wildcard domain if
+ * configured, otherwise its sslip.io address.
+ */
+export async function generateFqdn(serverId: number, serverIp: string, random: string): Promise<string> {
+  const wildcard = await getWildcardDomain(serverId);
+  const host = wildcard || sslipHost(serverIp);
+  return `${random}.${host}`;
+}
+
+/** Slug used as the auto-generated subdomain — same shape as the internal Docker hostname. */
+export function subdomainSlug(name: string, uuid: string): string {
+  return `${name}-${uuid}`
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+/** The server (id + IP) a Docker destination sits on — needed before the resource it belongs to exists yet. */
+export async function getServerForDestination(
+  destinationId: number
+): Promise<{ id: number; ip: string } | null> {
+  const { rows } = await pool.query(
+    `SELECT s.id, s.ip
+     FROM standalone_dockers sd
+     JOIN servers s ON s.id = sd.server_id
+     WHERE sd.id = $1 LIMIT 1`,
+    [destinationId]
+  );
+  return rows[0] ? { id: Number(rows[0].id), ip: String(rows[0].ip) } : null;
+}

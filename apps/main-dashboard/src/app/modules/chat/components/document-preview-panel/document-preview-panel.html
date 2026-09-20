@@ -1,0 +1,45 @@
+<div class="fixed inset-0 z-[60] flex justify-end">
+  <!-- Backdrop -->
+  <div
+    class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+    (click)="closed.emit()"
+    aria-hidden="true"
+  ></div>
+
+  <!-- Tiroir -->
+  <div
+    class="modal-drawer relative h-full w-full md:w-[min(1120px,92vw)] border-l border-[var(--glass-border)] flex flex-col preview-panel-slide"
+  >
+    <!-- En-tête : le titre du document et la sortie. Tout le reste (pages,
+         zoom, régénérer, éditer, télécharger) vit dans le dock de l'aperçu. -->
+    <div
+      class="flex items-center justify-between gap-3 px-4 py-3 border-b border-[var(--glass-border)] shrink-0"
+    >
+      <h3 class="text-sm font-semibold text-text-primary truncate">{{ title() }}</h3>
+      <button
+        type="button"
+        (click)="closed.emit()"
+        class="p-2 text-text-tertiary hover:text-text-primary hover:bg-[var(--glass-bg-light)] rounded-lg transition-all duration-200"
+        [attr.aria-label]="'chat.preview.close' | translate"
+      >
+        <i class="pi pi-times text-sm"></i>
+      </button>
+    </div>
+
+    <!-- Document -->
+    <div class="flex-1 min-h-0 px-3 pb-3 pt-2">
+      <app-document-preview
+        class="chat-doc-preview"
+        variant="panel"
+        [documentType]="documentType()"
+        [documentId]="documentId()"
+        [outline]="outline()"
+        [sectionLabelPrefix]="sectionLabelPrefix()"
+        [busy]="busy()"
+        (regenerateSection)="regenerateSection.emit($event)"
+        (resumeGeneration)="resumeGeneration.emit()"
+        (regenerateAll)="regenerateAll.emit()"
+      />
+    </div>
+  </div>
+</div>

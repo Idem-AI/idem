@@ -1,0 +1,141 @@
+<div
+  class="w-full max-w-md rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] overflow-hidden shadow-lg shadow-black/20"
+>
+  <div
+    class="flex items-center justify-between gap-3 px-4 py-3 border-b border-[var(--glass-border-subtle)]"
+  >
+    <h4 class="text-sm font-semibold text-text-primary truncate">{{ titleKey() | translate }}</h4>
+    <span class="text-[11px] text-text-tertiary shrink-0">
+      {{ 'chat.documents.count' | translate: { count: documents().length } }}
+    </span>
+  </div>
+
+  @if (documents().length === 0) {
+    <p class="px-4 py-3 text-xs text-text-tertiary">{{ 'chat.documents.empty' | translate }}</p>
+  } @else {
+    <ul class="divide-y divide-[var(--glass-border-subtle)]">
+      @for (document of documents(); track document.id) {
+        <li class="px-4 py-3 space-y-2">
+          @if (editingId() === document.id) {
+            <input
+              type="text"
+              class="w-full text-sm"
+              [ngModel]="draftName()"
+              (ngModelChange)="draftName.set($event)"
+              (keydown.enter)="commitRename(document)"
+              (keydown.escape)="cancelRename()"
+              [attr.aria-label]="'chat.documents.rename' | translate"
+            />
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                class="text-[11px] font-semibold text-primary hover:underline"
+                (click)="commitRename(document)"
+              >
+                {{ 'common.save' | translate }}
+              </button>
+              <button
+                type="button"
+                class="text-[11px] text-text-tertiary hover:text-text-primary"
+                (click)="cancelRename()"
+              >
+                {{ 'common.cancel' | translate }}
+              </button>
+            </div>
+          } @else {
+            <div class="flex items-start gap-2">
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-medium text-text-primary truncate">{{ document.name }}</p>
+                <p class="text-[11px] text-text-tertiary truncate">
+                  {{ document.variantLabel }}
+                  @if (document.updatedAt) {
+                    · {{ document.updatedAt | date: 'dd/MM/yyyy' }}
+                  }
+                </p>
+              </div>
+              <span
+                class="text-[10px] uppercase shrink-0 mt-0.5"
+                [class.text-emerald-400]="document.status === 'complete'"
+                [class.text-amber-400]="document.status === 'partial'"
+                [class.text-text-disabled]="document.status === 'draft'"
+              >
+                {{ 'chat.documents.status.' + document.status | translate }}
+              </span>
+            </div>
+
+            @if (document.expected > 0) {
+              <div class="h-1 rounded-full bg-[var(--color-surface-3)] overflow-hidden">
+                <div
+                  class="h-full bg-primary rounded-full"
+                  [style.width.%]="progress(document)"
+                ></div>
+              </div>
+              <p class="text-[10px] text-text-tertiary">
+                {{
+                  'chat.documents.sections'
+                    | translate: { completed: document.completed, expected: document.expected }
+                }}
+              </p>
+            }
+
+            <div class="flex flex-wrap items-center gap-2 pt-0.5">
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary hover:bg-primary/80 text-white text-[11px] font-semibold transition-all duration-200 disabled:opacity-50"
+                [disabled]="busy() || document.status === 'draft'"
+                (click)="opened.emit(document.id)"
+              >
+                <i class="pi pi-eye text-[10px]"></i>
+                {{ 'chat.documents.open' | translate }}
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[var(--glass-border)] text-text-secondary text-[11px] font-semibold hover:bg-[var(--glass-bg-light)] transition-all duration-200 disabled:opacity-50"
+                [disabled]="busy() || document.status === 'draft'"
+                (click)="downloaded.emit(document.id)"
+              >
+                <i class="pi pi-download text-[10px]"></i>
+                {{ 'chat.documents.download' | translate }}
+              </button>
+              <button
+                type="button"
+                class="text-[11px] text-text-tertiary hover:text-text-primary transition-colors"
+                [disabled]="busy()"
+                (click)="startRename(document)"
+              >
+                {{ 'chat.documents.rename' | translate }}
+              </button>
+              <button
+                type="button"
+                class="text-[11px] transition-colors"
+                [class.text-text-tertiary]="confirmDeleteId() !== document.id"
+                [class.text-red-400]="confirmDeleteId() === document.id"
+                [disabled]="busy()"
+                (click)="requestDelete(document)"
+              >
+                {{
+                  (confirmDeleteId() === document.id
+                    ? 'chat.documents.confirmDelete'
+                    : 'chat.documents.delete'
+                  ) | translate
+                }}
+              </button>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
+
+  <div class="px-4 py-3 border-t border-[var(--glass-border-subtle)]">
+    <button
+      type="button"
+      class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary hover:underline disabled:opacity-50"
+      [disabled]="busy()"
+      (click)="createRequested.emit()"
+    >
+      <i class="pi pi-plus text-[10px]"></i>
+      {{ createKey() | translate }}
+    </button>
+  </div>
+</div>

@@ -11,18 +11,9 @@ import {
   ContentStatus,
   FlyerFormat,
   PlanStatus,
-  VisualIntent,
 } from '../../models/communication.model';
 
 export const FLYER_FORMATS: FlyerFormat[] = ['square', 'story', 'banner', 'post', 'a4'];
-
-export const VISUAL_INTENTS: VisualIntent[] = [
-  'awareness',
-  'celebration',
-  'promotion',
-  'recruitment',
-  'announcement',
-];
 
 /**
  * Canaux proposés à la création d'une période.

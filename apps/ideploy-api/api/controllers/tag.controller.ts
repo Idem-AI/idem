@@ -51,3 +51,23 @@ export async function detach(req: CustomRequest, res: Response): Promise<void> {
     fail(res, (err as Error).message || 'Failed to detach tag');
   }
 }
+
+/**
+ * @swagger
+ * /api/v1/tags/for/{taggableType}/{taggableId}:
+ *   get: { summary: Tags attached to one resource, tags: [Tags], responses: { 200: { description: OK } } }
+ */
+export async function listForTaggable(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    ok(
+      res,
+      await tagService.listForTaggable(
+        req.user!.currentTeamId!,
+        String(req.params.taggableType),
+        Number(req.params.taggableId)
+      )
+    );
+  } catch (err) {
+    fail(res, (err as Error).message || 'Failed to list tags for this resource');
+  }
+}
