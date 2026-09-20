@@ -19,11 +19,14 @@
  *    them what happens next.
  */
 import { ServerRow, PrivateKeyRow } from '../models/ideploy.types';
-import { executeRemoteCommand, testConnection } from '../ssh/ssh';
+import { executeRemoteCommand, testConnection, isLocalServer } from '../ssh/ssh';
 import logger from '../config/logger';
 
 /** Docker releases before 24 lack BuildKit behaviour the build engine relies on. */
 export const MINIMUM_DOCKER_MAJOR = 24;
+
+/** Pinned Docker release, matching the Laravel side's `docker.minimum_required_version`. */
+const DOCKER_PINNED_VERSION = '24.0';
 
 /** Disk fullness at which deployments start failing in confusing ways. */
 export const DISK_WARNING_PERCENT = 90;
@@ -55,6 +58,7 @@ export type CheckId =
   | 'docker_engine'
   | 'docker_version'
   | 'docker_compose'
+  | 'nixpacks'
   | 'network'
   | 'disk';
 
@@ -94,8 +98,16 @@ const PROBE_SCRIPT = [
   'echo "OS_NAME=$PRETTY_NAME"',
   'echo "DOCKER_VERSION=$(docker version --format \'{{.Server.Version}}\' 2>/dev/null)"',
   'echo "COMPOSE_VERSION=$(docker compose version --short 2>/dev/null)"',
+  'echo "NIXPACKS_VERSION=$(nixpacks --version 2>/dev/null)"',
   'echo "NETWORK=$(docker network inspect ideploy --format \'{{.Name}}\' 2>/dev/null)"',
-  'echo "DISK_USED_PCT=$(df -P / 2>/dev/null | awk \'NR==2{print $5}\' | tr -d %)"',
+  // A local server (ssh/target.ts's isLocalServer) runs this inside the
+  // ideploy-api container itself, where `df /` would report the container's
+  // own thin overlay layer — not the disk the check is meant to warn about.
+  // /hostfs is that machine's real root, bind-mounted read-only for exactly
+  // this (docker-compose.dev.yml); a remote server has no such path, so it
+  // falls back to its own `/` as before.
+  'DISK_TARGET=/; [ -d /hostfs ] && DISK_TARGET=/hostfs',
+  'echo "DISK_USED_PCT=$(df -P $DISK_TARGET 2>/dev/null | awk \'NR==2{print $5}\' | tr -d %)"',
   'echo "PROBE_DONE=1"',
 ].join('\n');
 
@@ -191,6 +203,21 @@ export function interpretProbe(values: Record<string, string>): CheckResult[] {
   );
 
   checks.push(
+    values.NIXPACKS_VERSION
+      ? { id: 'nixpacks', label: 'Nixpacks builder', status: 'ok', detail: values.NIXPACKS_VERSION }
+      : {
+          id: 'nixpacks',
+          label: 'Nixpacks builder',
+          // Not a hard failure: only the default build pack (apps with no
+          // Dockerfile) needs it — a server serving only Dockerfile/Compose
+          // apps is genuinely ready without it.
+          status: 'warning',
+          detail: 'Not installed — deploying an application without its own Dockerfile will fail.',
+          remedy: 'Run the server setup step to install it.',
+        }
+  );
+
+  checks.push(
     values.NETWORK
       ? { id: 'network', label: 'Shared Docker network', status: 'ok', detail: values.NETWORK }
       : {
@@ -254,6 +281,7 @@ export async function checkReadiness(
         { id: 'docker_engine', label: 'Docker Engine', status: 'skipped' },
         { id: 'docker_version', label: 'Docker version', status: 'skipped' },
         { id: 'docker_compose', label: 'Docker Compose plugin', status: 'skipped' },
+        { id: 'nixpacks', label: 'Nixpacks builder', status: 'skipped' },
         { id: 'network', label: 'Shared Docker network', status: 'skipped' },
       ],
     };
@@ -290,37 +318,194 @@ const DAEMON_CONFIG = JSON.stringify(
 /**
  * Steps run by `provision`, in order. Each is idempotent so the whole thing can
  * be re-run safely on a partially configured host.
+ *
+ * Deliberately `set +e`, not `set -e`: a fresh server is rarely pristine — a
+ * held apt/dnf lock from unattended-upgrades or cloud-init still finishing is
+ * the single most common reason a first provisioning attempt used to die
+ * outright, on a problem that resolves itself in seconds if retried. Every
+ * install step below is retried and every non-critical one degrades instead
+ * of aborting the rest of the script; `checkReadiness` afterwards — not this
+ * script's exit code — is what actually decides success (see `provision`).
+ *
+ * Ports Coolify's `InstallDocker` action: OS-family prerequisite install,
+ * a pinned Docker version (not whatever `get.docker.com` resolves to today),
+ * and a `jq`-merged daemon.json rather than an overwrite — a server that
+ * already runs Docker with its own daemon.json keeps its own settings.
  */
-function provisioningScript(): string {
+function provisioningScript(local: boolean): string {
+  // A local server's Docker is the host's own daemon, reached through the
+  // docker.sock mount (ssh/target.ts's isLocalServer) — nothing to install or
+  // reconfigure, only the shared network is ours to ensure.
+  if (local) {
+    return [
+      'set +e',
+      'echo "→ Local server — Docker is this machine\'s own daemon; nothing to install"',
+      // Baked into the ideploy-api image's own Dockerfile too — this is the
+      // fallback for whenever that image predates it, since this container's
+      // filesystem (outside its bind mounts) does not survive a rebuild.
+      'echo "→ Checking nixpacks"',
+      'if ! command -v nixpacks >/dev/null 2>&1; then',
+      '  echo "→ Installing nixpacks"',
+      '  curl -fsSL https://nixpacks.com/install.sh | bash',
+      '  for candidate in /root/.nixpacks/bin/nixpacks "$HOME/.nixpacks/bin/nixpacks"; do',
+      '    [ -x "$candidate" ] && [ ! -e /usr/local/bin/nixpacks ] && ln -sf "$candidate" /usr/local/bin/nixpacks',
+      '  done',
+      'else',
+      '  echo "→ nixpacks already present"',
+      'fi',
+      'echo "→ Ensuring the shared network"',
+      'docker network inspect ideploy >/dev/null 2>&1 || docker network create --attachable ideploy',
+      'echo "→ Verifying"',
+      'docker version --format "Docker {{.Server.Version}}" 2>&1',
+      'docker compose version --short 2>&1',
+      'nixpacks --version 2>&1',
+      'echo "→ Setup complete"',
+    ].join('\n');
+  }
+
   return [
-    'set -e',
+    'set +e',
+    '. /etc/os-release 2>/dev/null',
+    // Retries a flaky/locked package-manager call a few times before giving
+    // up on it — a held lock clears on its own far more often than not.
+    'retry() {',
+    '  n=0',
+    '  until [ "$n" -ge 6 ]; do',
+    '    "$@" && return 0',
+    '    n=$((n + 1))',
+    '    echo "→ Package manager busy, retrying in 5s ($n/6)..."',
+    '    sleep 5',
+    '  done',
+    '  echo "→ Still busy after retries — continuing, some packages may already be present"',
+    '  return 0',
+    '}',
+    // A held apt/dpkg lock is not always someone else's apt-get finishing in
+    // the next few seconds — cloud images occasionally leave `apt.systemd.daily`
+    // wedged indefinitely (a stalled network fetch on first boot, months
+    // before anyone notices), which no bounded wait ever outlives. Only a lock
+    // held for a genuinely long time (10+ minutes — far past any legitimate
+    // apt run) is treated as stale and cleared; anything more recent is left
+    // alone; `fuser` missing (rare, non-Debian minimal images) just skips this.
+    'clear_stale_apt_lock() {',
+    '  command -v fuser >/dev/null 2>&1 || return 0',
+    '  for lockfile in /var/lib/apt/lists/lock /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock; do',
+    '    pid=$(fuser "$lockfile" 2>/dev/null | tr -d " ")',
+    '    [ -n "$pid" ] || continue',
+    '    elapsed=$(ps -o etimes= -p "$pid" 2>/dev/null | tr -d " ")',
+    '    if [ -n "$elapsed" ] && [ "$elapsed" -gt 600 ] 2>/dev/null; then',
+    '      echo "→ $lockfile held by PID $pid for ${elapsed}s — stale, clearing it"',
+    '      kill -9 "$pid" 2>/dev/null || true',
+    '      rm -f /var/lib/apt/lists/lock /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock 2>/dev/null',
+    '      dpkg --configure -a >/dev/null 2>&1 || true',
+    '    fi',
+    '  done',
+    '}',
+    // A third-party repo (security scanners, monitoring agents — added by
+    // some other tool at some other time, not ours to assume is healthy) can
+    // fail `apt-get update` *permanently*, not transiently: a malformed
+    // entry, an expired key, a repo that stopped existing. No amount of
+    // retrying changes that outcome, and it silently takes the *entire*
+    // update down — including the packages we actually need from the distro's
+    // own, perfectly fine repos. Named in the error output (apt says exactly
+    // which sources.list.d file it came from), so it can be disabled
+    // specifically rather than guessed at.
+    'apt_update_resilient() {',
+    '  out=$(apt-get update -y 2>&1)',
+    '  rc=$?',
+    '  if [ $rc -ne 0 ]; then',
+    '    broken=$(echo "$out" | grep -oE "/etc/apt/sources\\.list\\.d/[A-Za-z0-9._-]+\\.list" | sort -u)',
+    '    if [ -n "$broken" ]; then',
+    '      echo "$broken" | while read -r f; do',
+    '        [ -f "$f" ] && echo "→ Disabling broken third-party repo: $f" && mv "$f" "$f.disabled-by-ideploy"',
+    '      done',
+    '      out=$(apt-get update -y 2>&1)',
+    '      rc=$?',
+    '    fi',
+    '  fi',
+    '  echo "$out"',
+    '  return $rc',
+    '}',
+    'echo "→ Installing prerequisites (curl, wget, git, jq)"',
+    'case "$ID" in',
+    '  ubuntu|debian|raspbian)',
+    '    clear_stale_apt_lock',
+    '    retry apt_update_resilient >/dev/null',
+    '    for pkg in curl wget git jq; do command -v "$pkg" >/dev/null || retry apt-get install -y "$pkg" >/dev/null 2>&1; done',
+    '    ;;',
+    '  centos|fedora|rhel|rocky|almalinux)',
+    '    for pkg in curl wget git jq; do command -v "$pkg" >/dev/null || retry dnf install -y "$pkg" >/dev/null 2>&1; done',
+    '    ;;',
+    '  sles|opensuse-leap|opensuse-tumbleweed)',
+    '    for pkg in curl wget git jq; do command -v "$pkg" >/dev/null || retry zypper install -y "$pkg" >/dev/null 2>&1; done',
+    '    ;;',
+    '  alpine)',
+    '    for pkg in curl wget git jq; do command -v "$pkg" >/dev/null || retry apk add --no-cache "$pkg" >/dev/null 2>&1; done',
+    '    ;;',
+    '  *)',
+    '    echo "→ Unrecognised distribution (${ID:-unknown}) — skipping prerequisite install, hoping curl/git/jq are already there"',
+    '    ;;',
+    'esac',
     'echo "→ Checking Docker"',
-    // The convenience script is what Coolify uses, and it handles the
-    // distribution differences for us.
     'if ! docker version >/dev/null 2>&1; then',
-    '  echo "→ Installing Docker"',
-    '  curl -fsSL https://get.docker.com | sh',
+    `  echo "→ Installing Docker ${DOCKER_PINNED_VERSION}"`,
+    '  clear_stale_apt_lock',
+    // Same fallback chain as the Laravel side: the pinned-version installer
+    // first, the convenience script (latest) if that one is unreachable —
+    // and the whole attempt is retried, not just our own apt-get calls: the
+    // installer runs its own `apt-get update` internally, which hits the
+    // exact same lock our prerequisite step already cleared once but a
+    // concurrent process could still be contending for.
+    `  install_docker() { curl -fsSL https://releases.rancher.com/install-docker/${DOCKER_PINNED_VERSION}.sh | sh || curl -fsSL https://get.docker.com | sh; }`,
+    '  retry install_docker',
     'else',
     '  echo "→ Docker already present"',
     'fi',
     'echo "→ Configuring the Docker daemon (log rotation)"',
     'mkdir -p /etc/docker',
-    // Only write when the content differs, so we do not restart the daemon —
-    // and interrupt running containers — on every re-run.
     `cat > /tmp/ideploy-daemon.json <<'IDEPLOY_EOF'\n${DAEMON_CONFIG}\nIDEPLOY_EOF`,
-    'if ! cmp -s /tmp/ideploy-daemon.json /etc/docker/daemon.json; then',
+    // Merge onto whatever daemon.json already exists rather than overwrite it —
+    // a server provisioned before iDeploy touched it may have its own settings
+    // (registry mirrors, storage driver) that a blind overwrite would silently
+    // drop.
+    'if command -v jq >/dev/null 2>&1 && [ -s /etc/docker/daemon.json ]; then',
+    '  jq -s ".[0] * .[1]" /etc/docker/daemon.json /tmp/ideploy-daemon.json > /tmp/ideploy-daemon-merged.json 2>/dev/null',
+    '  [ -s /tmp/ideploy-daemon-merged.json ] && mv /tmp/ideploy-daemon-merged.json /tmp/ideploy-daemon.json',
+    'fi',
+    'if ! cmp -s /tmp/ideploy-daemon.json /etc/docker/daemon.json 2>/dev/null; then',
     '  mv /tmp/ideploy-daemon.json /etc/docker/daemon.json',
     '  echo "→ Restarting Docker to apply the configuration"',
+    '  systemctl enable docker >/dev/null 2>&1 || true',
     '  systemctl restart docker 2>/dev/null || service docker restart 2>/dev/null || true',
+    '  sleep 2',
     'else',
     '  rm -f /tmp/ideploy-daemon.json',
     '  echo "→ Daemon configuration already current"',
+    '  systemctl enable docker >/dev/null 2>&1 || true',
+    'fi',
+    // The build engine's nixpacks build pack (Vite/Node/Python/… without a
+    // Dockerfile — the common case) runs the real `nixpacks` binary directly
+    // on this server, not through any "nixpacks Docker image": no such
+    // general-purpose image exists. Installed to /usr/local/bin explicitly
+    // rather than trusting the installer's default, which can land somewhere
+    // only an interactive login shell's PATH would pick up — a deployment
+    // runs over a plain non-interactive SSH command.
+    'echo "→ Checking nixpacks"',
+    'if ! command -v nixpacks >/dev/null 2>&1; then',
+    '  echo "→ Installing nixpacks"',
+    '  install_nixpacks() { curl -fsSL https://nixpacks.com/install.sh | bash; }',
+    '  retry install_nixpacks',
+    '  for candidate in /root/.nixpacks/bin/nixpacks "$HOME/.nixpacks/bin/nixpacks"; do',
+    '    [ -x "$candidate" ] && [ ! -e /usr/local/bin/nixpacks ] && ln -sf "$candidate" /usr/local/bin/nixpacks',
+    '  done',
+    'else',
+    '  echo "→ nixpacks already present"',
     'fi',
     'echo "→ Ensuring the shared network"',
     'docker network inspect ideploy >/dev/null 2>&1 || docker network create --attachable ideploy',
     'echo "→ Verifying"',
-    'docker version --format "Docker {{.Server.Version}}"',
-    'docker compose version --short',
+    'docker version --format "Docker {{.Server.Version}}" 2>&1',
+    'docker compose version --short 2>&1',
+    'nixpacks --version 2>&1',
     'echo "→ Setup complete"',
   ].join('\n');
 }
@@ -343,7 +528,7 @@ export async function provision(
 ): Promise<ProvisionResult> {
   logger.info('Provisioning server', { uuid: server.uuid, ip: server.ip });
 
-  const result = await executeRemoteCommand(server, key, provisioningScript(), {
+  const result = await executeRemoteCommand(server, key, provisioningScript(isLocalServer(server)), {
     onData: (chunk) => onData?.(chunk),
     noRetry: true,
   });

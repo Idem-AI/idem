@@ -1,0 +1,156 @@
+{
+  "n8n": {
+    "overview": "n8n is a fair-code workflow automation platform for building and running both simple automations and AI agents, combining a visual drag-and-drop canvas with the ability to drop into custom JavaScript/Python code wherever the built-in nodes aren't enough. It connects to over 1,500 integrations out of the box and ships with more than 9,000 ready-made workflow templates covering common automation and AI-agent patterns.\n\nBuilt on Node.js and TypeScript, n8n lets teams design multi-step processes that combine data transformation, third-party API calls, and AI reasoning in the same canvas. Its AI-agent tooling is model-agnostic \u2014 it works with OpenAI, Anthropic, Google, and self-hosted open-source models, so a workflow can switch providers without being rebuilt.\n\nFor production use, n8n includes role-based access control and audit trails, so a workflow that started as a prototype can be handed to a team without redesigning it. Self-hosting it, as this template does, gives full control over execution data and credentials instead of routing them through a third-party SaaS.\n\nn8n is distributed under a Sustainable Use License (a \"fair-code\" model): the source is available and free to self-host, with a separate enterprise license for organizations that need commercial terms.",
+    "screenshots": [
+      "1.png",
+      "2.webp",
+      "3.webp",
+      "4.webp",
+      "5.webp"
+    ]
+  },
+  "activepieces": {
+    "overview": "Activepieces is an open-source workflow automation platform positioned as a self-hosted alternative to Zapier, pairing a no-code visual flow builder for non-technical users with a type-safe, TypeScript \"pieces\" framework for developers who want to build their own integrations. It ships with 280+ integrations (\"pieces\"), roughly 60% of them contributed by the community, and every piece is published as an open-source npm package.\n\nA flow is built by choosing a trigger (a webhook, a schedule, a new row in a spreadsheet) and chaining actions after it; each step is configured through a side panel, with support for branching, loops, auto-retries, and human-in-the-loop steps such as approvals, chat prompts, and form inputs. A distinguishing feature is that every installed piece is automatically exposed as an MCP (Model Context Protocol) server, so AI agents in tools like Claude Desktop, Cursor, or Windsurf can call the same integrations a human would configure visually.\n\nFor self-hosted deployments like this one, Activepieces supports network isolation and custom branding, and the whole flow builder, its execution history, and its templates gallery run inside your own infrastructure rather than a third-party cloud.",
+    "screenshots": [
+      "1.png",
+      "2.gif",
+      "3.png",
+      "4.png",
+      "5.png"
+    ]
+  },
+  "ghost": {
+    "overview": "Ghost is an open-source, headless Node.js content management system built specifically for professional publishing: blogging, newsletters, and paid memberships/subscriptions, rather than being a general-purpose website builder. The project describes itself as \"fiercely independent, professional publishing,\" and it has been downloaded more than 100 million times.\n\nThe admin interface centers on a Posts list and a rewritten editor (\"Koenig\", built on React and Lexical) that supports rich-media cards, native image editing, and markdown shortcuts alongside normal rich-text formatting. Built-in membership and subscription tooling lets a publisher gate content behind a paywall, send newsletters to segmented member lists, and track subscriber and revenue metrics from a dashboard, without bolting on a separate SaaS for payments or email.\n\nBecause it's headless, Ghost's content is available through an API that plugs into static site generators and existing front-end stacks, and it integrates with tools publishers already use \u2014 Slack, Zapier, Mailchimp, Unsplash, and various analytics providers. Self-hosting it, as this template does, is the same codebase Ghost's own managed \"Ghost(Pro)\" service runs, just without the managed SSL/backups/CDN layer.\n\nGhost is maintained by the non-profit Ghost Foundation and distributed under the MIT license.",
+    "screenshots": [
+      "1.png",
+      "2.png",
+      "3.png",
+      "4.png"
+    ]
+  },
+  "uptime-kuma": {
+    "overview": "Uptime Kuma is a self-hosted uptime-monitoring application: it periodically checks whether your own services are up, without routing that monitoring through a third-party SaaS. It supports HTTP(s), TCP, WebSocket, DNS-record, and Docker-container checks, at intervals as frequent as every 20 seconds, and it monitors SSL certificate expiry alongside plain availability.\n\nThe interface is a real-time Vue 3 dashboard that updates monitor status live rather than on page refresh, and it supports multiple languages. When a check fails, Uptime Kuma can notify through more than 90 integrations \u2014 Telegram, Discord, Slack, and email among them \u2014 so an outage is reported wherever your team already gets pinged.\n\nBeyond the private dashboard, it can publish one or more public status pages, each mappable to its own domain, for the classic \"is it just me\" page a team shares with users during an incident. It also supports proxy configurations for checks that need to originate from behind a proxy, and two-factor authentication for the dashboard itself.\n\nBecause it's self-hosted, every check, notification rule, and status page lives on your own infrastructure rather than a monitoring vendor's.",
+    "screenshots": [
+      "1.jpg",
+      "2.jpg",
+      "3.png",
+      "4.jpg",
+      "5.jpg"
+    ]
+  },
+  "metabase": {
+    "overview": "Metabase is an open-source business-intelligence tool built to let people answer their own data questions \u2014 \"ask questions and learn from data\" \u2014 without needing to already know SQL. Non-technical users build charts and filters through a point-and-click query builder; people who do know SQL can drop into a native SQL editor for anything the visual builder can't express.\n\nIt connects to a wide range of databases \u2014 PostgreSQL, MySQL, and others, through both official and community-maintained drivers \u2014 and turns saved questions into dashboards with cross-filtering and auto-refresh. An AI assistant (\"Metabot\") can help draft a query or explain a chart in plain language, and dashboards can be scheduled to email or Slack a report on a recurring cadence, or trigger an alert when a metric crosses a threshold.\n\nMetabase also supports embedding: a dashboard or chart built inside it can be embedded into another internal tool or a customer-facing product, with the same permissions applied. It's aimed at teams of any size who want a shared, browsable layer over their data rather than a spreadsheet passed around by email.\n\nThe self-hosted edition used here is licensed under AGPL; commercial editions with additional features are available separately under Metabase's own commercial license.",
+    "screenshots": [
+      "1.webp",
+      "2.png"
+    ]
+  },
+  "umami": {
+    "overview": "Umami is a self-hosted, privacy-focused web analytics platform built as an alternative to Google Analytics \u2014 it tracks visits, pageviews, referrers, and conversions without cookies and without the tracking-script surveillance model those tools rely on. Because it's self-hosted, the raw visit data stays on your own infrastructure instead of a third-party analytics vendor's.\n\nThe dashboard shows the metrics a team actually checks day to day: total views and unique visitors, bounce rate, average visit duration, top pages, and top referrers, filterable by time range, alongside audience segmentation and cohort analysis for looking at how specific groups of visitors behave over time. It also tracks custom events and revenue/conversion goals, not just raw pageviews.\n\nUmami is built on Node.js with a PostgreSQL (or MySQL) backend, and a site is instrumented by adding a single lightweight tracking script \u2014 no cookie-consent banner is required in most jurisdictions specifically because it doesn't use cookies. It's aimed at site owners and small-to-medium teams who want real traffic numbers without handing visitor data to an ad-supported analytics platform, and the project has an active open-source contributor base.",
+    "screenshots": [
+      "1.png"
+    ]
+  },
+  "vaultwarden": {
+    "overview": "Vaultwarden is an unofficial, self-hosted, Rust-based server implementation of the Bitwarden password-manager API \u2014 a lightweight alternative to Bitwarden's own official server, built for individuals, families, and small organizations who want to self-host rather than depend on a cloud password vault. It implements nearly the full Bitwarden Client API: individual vaults, organizations for sharing credentials with other people, attachments, website icons, and an admin panel for managing the instance itself.\n\nBecause it speaks the same client API, every official Bitwarden client \u2014 the browser extensions, the mobile apps, and the desktop app \u2014 connects to a self-hosted Vaultwarden server exactly as it would to Bitwarden's own cloud, with no separate client to install; the screenshots on this page are of those official Bitwarden apps (the Generator, Send, and vault-list screens) since Vaultwarden serves that identical interface, not a UI of its own. Multi-factor authentication is supported through authenticator apps, email, FIDO2/WebAuthn security keys, YubiKey, and Duo.\n\nBecause bugs in this reimplementation are Vaultwarden's own, not Bitwarden's, the project asks that issues be reported to the Vaultwarden repository rather than to Bitwarden support. It's distributed under the AGPL-3.0 license, and while at least one Bitwarden employee has contributed to it, the project is community-maintained and not an official Bitwarden product. Production deployments need HTTPS via a reverse proxy in front of it, since the vault's own end-to-end encryption still depends on the connection to the server being secure in transit.",
+    "screenshots": [
+      "1.png",
+      "2.png",
+      "3.png",
+      "4.png"
+    ]
+  },
+  "grafana": {
+    "overview": "Grafana is an open-source observability and dashboarding platform for querying, visualizing, and alerting on metrics, logs, and traces pulled from many different backends at once \u2014 Prometheus, Loki, Elasticsearch, InfluxDB, PostgreSQL, and dozens of other data sources, official and community-maintained. A single dashboard panel can combine data from more than one source, with the source chosen per query rather than per dashboard.\n\nDashboards support templating variables so the same dashboard layout can be reused across services or environments instead of being rebuilt for each one, and the \"Explore\" view is built for ad-hoc investigation \u2014 running one-off queries and comparing results across time ranges and sources without first building a saved dashboard, then pivoting straight from a metric into the matching logs.\n\nGrafana's alerting engine defines threshold-based rules visually and routes firing alerts to Slack, PagerDuty, OpsGenie, and other on-call tools. It's aimed at infrastructure and operations teams who need one place to watch metrics and logs from otherwise-separate systems, in cloud-native and traditional environments alike.\n\nThe self-hosted edition here is licensed under AGPL-3.0 (with an Apache-2.0-licensed subset), and it's the same open-source core Grafana's own hosted Cloud offering runs on top of.",
+    "screenshots": [
+      "1.png",
+      "2.jpg",
+      "3.png",
+      "4.png"
+    ]
+  },
+  "pocketbase": {
+    "overview": "PocketBase is an open-source backend that ships as a single executable file: an embedded SQLite database with realtime subscriptions, built-in user authentication, and file storage, without standing up a separate database server or writing an auth system from scratch. It's aimed at developers who want a complete backend for a small-to-medium app without the operational overhead of a multi-service stack.\n\nThe admin dashboard (shown in the screenshot) is where collections \u2014 PocketBase's equivalent of database tables \u2014 get created and edited: field types, access rules, and indexes are all configured visually, and every collection is instantly browsable and editable as data. Realtime subscriptions mean a client watching a collection is pushed changes as they happen, rather than polling for them.\n\nClient apps talk to it over a REST-ish API, with official SDKs for JavaScript (covering browsers, Node.js, and React Native) and Dart (web, mobile, desktop, and CLI), so a single PocketBase instance can back a web app and its mobile counterpart at once. Beyond running it as a standalone server, it can also be imported as a Go framework to add custom business logic while still shipping as one portable executable \u2014 the same trait that makes self-hosting it, as this template does, a single container rather than a multi-service stack.",
+    "screenshots": [
+      "1.png"
+    ]
+  },
+  "directus": {
+    "overview": "Directus is a backend platform that points at an existing SQL database \u2014 PostgreSQL, MySQL, MariaDB, MS SQL, SQLite, OracleDB, or CockroachDB \u2014 and generates a REST and GraphQL API from its schema automatically, instead of requiring the API to be hand-written and kept in sync with the database by hand. It's built for teams that already have (or want) a real relational database as the source of truth, with a management UI layered on top rather than a proprietary datastore underneath.\n\nThat management layer is the \"Studio\": a visual interface (shown in the screenshot managing a product catalog) where non-technical team members can browse, filter, and edit records, upload and organize files, and manage user roles and field-level permissions, without touching SQL or the API directly. An embedded AI Assistant can create content, translate fields, and trigger workflows from inside that same interface, and a native MCP (Model Context Protocol) server lets AI agents such as Claude or ChatGPT connect to the data through the same permission system that applies to human users.\n\nBecause the API is generated from whatever schema the database already has, Directus can be layered onto a pre-existing database rather than requiring the data to be migrated into a Directus-specific format first. Self-hosting it, as this template does, keeps that database and the generated API under your own infrastructure instead of Directus's managed Cloud offering.",
+    "screenshots": [
+      "1.png"
+    ]
+  },
+  "nocodb": {
+    "overview": "NocoDB is an open-source, self-hostable alternative to Airtable: it turns a plain SQL database into a spreadsheet-style application, with a rich grid UI for tables, columns, and rows layered on top of a real relational database rather than a proprietary datastore. Records can be viewed as a grid, gallery, form, Kanban board, or calendar (shown in the screenshots), and can be sorted, filtered, and grouped the way a spreadsheet is, while still being backed by SQL underneath.\n\nField types go beyond plain text and numbers to include links between tables, lookups and rollups pulled from linked records, formula fields, and file attachments, plus fine-grained access control based on user roles \u2014 the CRM view in the screenshot, with deals grouped by pipeline stage, is a typical example of what a team builds with these pieces. An app-store of workflow automations connects a base to external services like Slack, Discord, AWS S3, and email providers, and every base is also reachable programmatically through a REST API and SDK for building custom tools on top of it.\n\nIt's aimed at teams \u2014 from small groups to larger organizations \u2014 who want the ease of a spreadsheet-like tool without vendor lock-in to a closed platform, since the underlying data is a database you already own and can query or export directly.",
+    "screenshots": [
+      "1.png",
+      "2.webp",
+      "3.png",
+      "4.webp",
+      "5.webp"
+    ]
+  },
+  "immich": {
+    "overview": "Immich is a self-hosted photo and video backup and management platform, positioned as a privacy-focused alternative to Google Photos: your library lives on your own infrastructure instead of a commercial cloud photo service. Both a mobile app and a web interface (shown in the screenshots) are first-class clients, and the mobile app can automatically back up new photos and videos in the background whenever it's opened.\n\nOrganization goes beyond a flat camera roll: Immich does facial recognition and clustering to group photos by the people in them, extracts EXIF metadata for search, and uses CLIP-based object/scene search so a photo can be found by describing what's in it rather than only by date or filename. Shared albums let multiple people contribute to and view the same collection, and multi-user support means a household can run one Immich instance with separate accounts and libraries rather than one shared login.\n\nOther library features include stacking near-duplicate or burst photos together, archiving items out of the main view without deleting them, and a \"Memories\" feature that resurfaces photos from the same day in past years. It's built with Flutter for the mobile client, Node.js/NestJS for the backend, and SvelteKit for the web app, and it targets both self-hosting enthusiasts and anyone who wants stronger control over their own photo library than a commercial cloud service offers.",
+    "screenshots": [
+      "1.png"
+    ]
+  },
+  "paperless": {
+    "overview": "Paperless-ngx is a self-hosted document management system that turns scanned or digital documents \u2014 invoices, tax records, insurance papers \u2014 into a searchable digital archive, so paper originals can be discarded once they're indexed. It's the official successor to the original Paperless and Paperless-ng projects, maintained collaboratively by a distributed team.\n\nEvery document that comes in is run through OCR, so its text content becomes full-text searchable rather than just a filename and a scan date; the documents view (shown in the screenshot) lets you browse, filter by tag, correspondent, or document type, and open, edit, or download any document from a grid of thumbnails. Correspondents, tags, and document types are all first-class, filterable fields, so an archive can be organized the way a specific household or small office actually needs, not a fixed folder structure.\n\nBecause it's meant to hold sensitive personal documents, the project is explicit that it should only run on a trusted, local server \u2014 documents are stored as plaintext on disk rather than encrypted at rest \u2014 and it's deployed via Docker Compose for a straightforward, self-contained install. A public demo is available at demo.paperless-ngx.com for trying the interface before committing to self-hosting it.",
+    "screenshots": [
+      "1.png"
+    ]
+  },
+  "chatwoot": {
+    "overview": "Chatwoot is a self-hosted, open-source customer-support platform that gathers conversations from multiple channels \u2014 website live chat, email, Facebook, Instagram, Twitter/X, WhatsApp, Telegram, Line, and SMS \u2014 into one shared inbox, positioned as an alternative to Intercom, Zendesk, or Salesforce Service Cloud for teams that want to keep their support data on their own infrastructure. The dashboard (shown in the screenshot) lists open conversations per agent or team on the left, with the full conversation thread, contact details, and internal tools in the same view.\n\nAn AI agent called \"Captain\" can answer routine queries and handle first-response automation before a human agent needs to step in, and a built-in help-center portal lets a team publish FAQs and articles for self-service, reducing the number of conversations that reach an agent at all. Day-to-day agent tooling includes private internal notes, @mentions, labels, canned responses, keyboard shortcuts, and automatic conversation assignment.\n\nFor managing contacts, it supports custom attributes, pre-chat forms, and segmentation, plus proactive outbound campaigns rather than only reactive replies. Reporting covers conversations, individual agents, inboxes, labels, teams, and customer-satisfaction scores, and it integrates with Slack, Dialogflow, Google Translate, Shopify, and Linear, plus custom dashboard apps for anything not covered out of the box.",
+    "screenshots": [
+      "1.png",
+      "2.png"
+    ]
+  },
+  "calcom": {
+    "overview": "This template deploys \"Cal.diy\" \u2014 the current name of the self-hosted, community edition of the Cal.com scheduling platform. Cal.com's own project explicitly distinguishes the two: Cal.diy is the free, self-hosted build meant for personal, non-production use, while the commercially supported, enterprise-ready service is Cal.com itself, hosted by the Cal.com team or offered as on-prem enterprise access.\n\nFunctionally it's an open-source alternative to Calendly: a booking page where invitees pick an open time slot from your calendar, with event types, availability rules, and calendar sync (Google Calendar, Outlook, and others) so it doesn't double-book against meetings that exist outside it. Video conferencing is built in through Daily.co, and CRM integrations with HubSpot, Zoho, and Pipedrive let a completed booking sync straight into a sales pipeline instead of needing to be logged manually.\n\nThe stack is Next.js, React, tRPC, Tailwind CSS, Prisma, and PostgreSQL, and the project is licensed entirely under MIT \u2014 the self-hosted build has no separate closed-source \"Enterprise Edition\" tier the way some open-core products do. Because it is the community edition, the project's own documentation is explicit that self-hosting it in production requires real comfort with server administration, database operations, and securing the credentials it stores; it's built for technically proficient self-hosters, not a drop-in managed replacement for Cal.com's hosted service.",
+    "screenshots": [
+      "1.png",
+      "2.png",
+      "3.png",
+      "4.png"
+    ]
+  },
+  "wikijs": {
+    "overview": "Wiki.js is an open-source, self-hosted wiki application built on Node.js for teams and individuals who need a shared place to write and organize documentation. Pages are written in Markdown (among other supported editors), and the project has drawn a large community \u2014 over 28,000 GitHub stars and an active base of contributors and sponsors.\n\nIt runs cross-platform and is commonly deployed via Docker, which is how this template installs it, so a team gets a private, self-hosted knowledge base rather than a page tree on a third-party wiki host. Content is organized into pages and can be structured to match however a specific team already organizes its documentation, rather than forcing a fixed hierarchy.\n\nBecause it's self-hosted, page history, search, and access to the underlying content stay on infrastructure the deploying team controls. Wiki.js is distributed under the AGPL-3.0 license, and ongoing development is funded in part through GitHub Sponsors, Patreon, and OpenCollective backers.\n\n(No screenshot gallery is available yet for this template \u2014 its official site did not expose fetchable screenshot assets at the time this catalog was compiled.)"
+  },
+  "portainer": {
+    "overview": "Portainer is a lightweight management UI for containerized environments \u2014 Docker, Docker Swarm, Kubernetes, and Azure Container Instances \u2014 that puts a graphical interface (and a full API) in front of operations most people would otherwise run by hand at the command line. The Images list, Stacks list, and dashboard widgets shown in the screenshots are typical of what an operator sees day to day: pulling and browsing images, deploying and managing multi-container stacks, and checking environment resource usage, all from the browser.\n\nIt manages the resources any container orchestrator exposes \u2014 containers, images, volumes, and networks \u2014 across one or more connected environments, and it ships as a single container itself, so standing it up doesn't require a heavier install than what it's meant to manage. It runs on both Linux and Windows hosts.\n\nThe edition deployed by this template is the open-source Community Edition; a separate commercial Business Edition adds features like role-based access control and vendor support for organizations that need them. Development is active, with the backend written in Go and the frontend in React, and releases ship on a roughly bi-monthly cadence.",
+    "screenshots": [
+      "1.png",
+      "2.png",
+      "3.png"
+    ]
+  },
+  "jellyfin": {
+    "overview": "Jellyfin is a free, open-source media server for organizing and streaming a personal collection of movies, TV shows, and music to apps on other devices \u2014 positioned explicitly as an alternative to the proprietary Emby and Plex, with, in the project's own words, \"no strings attached, no premium licenses or features, and no hidden agendas.\" It began as a fork of Emby 3.5.2 and was ported onto .NET for broader cross-platform support.\n\nThe server transcodes media on the fly (via bundled ffmpeg) so a file encoded one way can still play on a device that doesn't natively support it, and it exposes a documented API (with a Swagger interface built into the web client) for anything that needs programmatic access rather than going through the UI. The web interface, shown in the screenshots, is also the default client \u2014 reachable on port 8096 \u2014 with a home screen organized by library (Movies, Live TV, Music), search, and per-item metadata and playback controls; dedicated mobile and TV apps exist as separate downloads for streaming to other devices.\n\nDevelopment is community-run with no company behind it commercially: the project is translated into many languages via Weblate and accepts contributions directly on GitHub. It's licensed under GPL-2.0, and is aimed at anyone who wants to self-host their own media library rather than depend on a commercial media-server product.",
+    "screenshots": [
+      "1.png",
+      "2.png",
+      "3.png",
+      "4.png",
+      "5.png"
+    ]
+  },
+  "gitea": {
+    "overview": "Gitea is a self-hosted, all-in-one Git service written in Go \u2014 repository hosting plus code review, issue tracking, kanban-style project boards, a wiki per repository, and CI/CD that can reuse existing GitHub Actions workflows, all in one lightweight application rather than a hosted platform. The screenshots show the pieces that make it a full GitHub/GitLab alternative rather than just a Git host: the activity dashboard, the issues list, pull requests, and the explore page for browsing repositories, users, and organizations on an instance.\n\nBecause it's written in Go, a single Gitea binary runs on Linux, macOS, FreeBSD, OpenBSD, and Windows, across x86, ARM, RISC-V, and PowerPC \u2014 broad enough hardware support that it can run on everything from a small ARM board to a normal server. It's aimed at teams and organizations that want an alternative to GitHub or GitLab where the infrastructure, and the data sovereignty that comes with it, stays under their own control, whether that's for cost reasons, compliance requirements, or simply preferring to self-host.\n\nBeyond self-hosting it, as this template does, Gitea also runs a free hosted service at gitea.com with a limited number of free repositories, and a public live demo is available at demo.gitea.com for trying the interface before deploying an instance.",
+    "screenshots": [
+      "1.png",
+      "2.png",
+      "3.png",
+      "4.png",
+      "5.png"
+    ]
+  },
+  "vikunja": {
+    "overview": "Vikunja is a self-hosted, open-source task and project management application, describing itself as \"the task manager you actually own\" \u2014 the emphasis being that tasks, projects, and their history live on infrastructure you control rather than a proprietary cloud to-do app. It's built with a Go backend and a Vue.js frontend, and is usable through both a web interface and a dedicated desktop app.\n\nCore functionality covers task organization and project management \u2014 creating tasks, grouping them into projects, and tracking them through to completion \u2014 with a documented API available for anyone who wants to integrate Vikunja with other tools or build a custom client against it. The project is under active development, with a large commit history and a genuinely community-driven contributor base reflected in its GitHub activity.\n\nFor teams that outgrow the free self-hosted feature set, the same developers offer \"Vikunja Pro\" as a paid upgrade with admin panels, audit logging, and time tracking, plus a fully hosted \"Vikunja Cloud\" for anyone who'd rather not run the infrastructure themselves \u2014 though the self-hosted edition deployed by this template remains fully open source under AGPL-3.0-or-later (GPL-3.0-or-later for the desktop client).\n\n(No screenshot gallery is available yet for this template \u2014 its official site did not expose fetchable screenshot assets at the time this catalog was compiled.)"
+  }
+}

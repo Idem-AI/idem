@@ -95,13 +95,35 @@ export async function hetznerServerTypes(req: CustomRequest, res: Response): Pro
 }
 
 export async function hetznerCreateServer(req: CustomRequest, res: Response): Promise<void> {
-  const { name, server_type, image } = req.body ?? {};
+  const { name, server_type, image, location, init_script_id } = req.body ?? {};
   if (!name || !server_type || !image) {
     return fail(res, 'name, server_type and image are required', 422, 'VALIDATION');
   }
   try {
+    // A cloud-init script is referenced by id, never sent as content: the
+    // script is the team's, and resolving it here keeps the client from being
+    // able to run arbitrary first-boot code by crafting a request body.
+    let userData: string | undefined;
+    if (init_script_id) {
+      const script = await cloud.getInitScript(req.user!.currentTeamId!, Number(init_script_id));
+      if (!script) return fail(res, 'Cloud-init script not found', 404, 'NOT_FOUND');
+      userData = script;
+    }
+
     const client = await hetznerClient(req);
-    ok(res, await client.createServer(req.body), 201);
+    // Explicit field list: `req.body` would forward anything the caller sent
+    // straight to the provider, including fields we have not vetted.
+    ok(
+      res,
+      await client.createServer({
+        name: String(name),
+        server_type: String(server_type),
+        image: String(image),
+        location: location ? String(location) : undefined,
+        user_data: userData,
+      }),
+      201
+    );
   } catch (err) {
     logger.error('hetznerCreateServer error', { message: (err as Error).message });
     fail(res, (err as Error).message || 'Failed to create Hetzner server');

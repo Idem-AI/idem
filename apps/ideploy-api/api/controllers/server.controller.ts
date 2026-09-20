@@ -3,6 +3,8 @@ import { CustomRequest } from '../interfaces/express.interface';
 import { ok, fail, respondWithError } from '../utils/response';
 import logger from '../config/logger';
 import * as serverService from '../services/server.service';
+import * as proxyService from '../services/proxy.service';
+import { realtime } from '../services/realtime.service';
 
 export async function listServers(req: CustomRequest, res: Response): Promise<void> {
   try {
@@ -22,6 +24,25 @@ export async function getServer(req: CustomRequest, res: Response): Promise<void
   } catch (err) {
     logger.error('getServer error', { message: (err as Error).message });
     fail(res, 'Failed to fetch server');
+  }
+}
+
+export async function getServerSettings(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    ok(res, await serverService.getServerSettings(req.user!.currentTeamId!, String(req.params.uuid)));
+  } catch (err) {
+    respondWithError(res, err, 'Loading the server settings');
+  }
+}
+
+export async function updateServerSettings(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    ok(
+      res,
+      await serverService.updateServerSettings(req.user!.currentTeamId!, String(req.params.uuid), req.body ?? {})
+    );
+  } catch (err) {
+    respondWithError(res, err, 'Saving the server settings');
   }
 }
 
@@ -75,11 +96,76 @@ export async function validateServer(req: CustomRequest, res: Response): Promise
   }
 }
 
-/** Install and configure Docker, then re-check readiness. */
+/**
+ * Install and configure Docker, then re-check readiness.
+ *
+ * Streams every line of the setup script to `server-provision.{uuid}` as it
+ * runs (subscribed to by the server detail page) — a multi-minute install
+ * that reports nothing until it either succeeds or fails is exactly what made
+ * "it's stuck" and "it silently failed" indistinguishable before.
+ */
 export async function setUpServer(req: CustomRequest, res: Response): Promise<void> {
+  const uuid = String(req.params.uuid);
+  const teamId = req.user!.currentTeamId!;
   try {
-    ok(res, await serverService.setUpServer(req.user!.currentTeamId!, String(req.params.uuid)));
+    const result = await serverService.setUpServer(teamId, uuid, (chunk) =>
+      realtime.provisionLog(uuid, chunk)
+    );
+    // Matches the Laravel side: a server that just became ready starts serving
+    // traffic without a second manual step. Best-effort — a proxy hiccup here
+    // must not turn a successful setup into a reported failure; "Démarrer le
+    // proxy" is still one click away on this same page if it doesn't.
+    if (result.success) {
+      try {
+        await proxyService.startProxy(teamId, uuid, (chunk) => realtime.provisionLog(uuid, chunk));
+      } catch (err) {
+        logger.warn('Auto-starting the proxy after setup failed', {
+          uuid,
+          message: (err as Error).message,
+        });
+      }
+    }
+    ok(res, result);
   } catch (err) {
     respondWithError(res, err, 'Setting up the server');
+  }
+}
+
+/** Reclaim disk space — dangling images, stopped containers, unused build cache. */
+export async function dockerCleanup(req: CustomRequest, res: Response): Promise<void> {
+  const uuid = String(req.params.uuid);
+  try {
+    ok(
+      res,
+      await serverService.cleanupDocker(
+        req.user!.currentTeamId!,
+        uuid,
+        { pruneVolumes: Boolean(req.body?.prune_volumes) },
+        (chunk) => realtime.provisionLog(uuid, chunk)
+      )
+    );
+  } catch (err) {
+    respondWithError(res, err, 'Cleaning up Docker on this server');
+  }
+}
+
+/** Applications, databases and services currently deployed on this server. */
+export async function listServerResources(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    ok(
+      res,
+      await serverService.listServerResources(req.user!.currentTeamId!, String(req.params.uuid))
+    );
+  } catch (err) {
+    respondWithError(res, err, 'Listing the resources on this server');
+  }
+}
+
+/** Liveness and disk headroom, probed on demand over SSH. */
+export async function getServerHealth(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    ok(res, await serverService.getServerHealth(req.user!.currentTeamId!, String(req.params.uuid)));
+  } catch (err) {
+    respondWithError(res, err, 'Checking the health of this server');
   }
 }

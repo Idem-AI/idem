@@ -7,6 +7,7 @@ const router = Router();
 // One-click template catalog is GLOBAL (not team-scoped) — only needs auth.
 // Registered before requireTeam so it never 403s on team resolution.
 router.get('/templates', authenticate, ctrl.listTemplates);
+router.get('/templates/:name', authenticate, ctrl.getTemplate);
 
 // Everything else is team-scoped.
 router.use(authenticate, requireTeam);

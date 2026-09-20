@@ -7,6 +7,7 @@ import * as geo from '../services/geo-blocking.service';
 import * as rateLimit from '../services/rate-limit-templates.service';
 import * as crowdsec from '../services/crowdsec.service';
 import * as ssl from '../services/ssl.service';
+import * as pat from '../services/pat.service';
 
 const team = (req: CustomRequest) => req.user!.currentTeamId!;
 const appUuid = (req: CustomRequest) => String(req.params.uuid);
@@ -21,10 +22,15 @@ const serverUuid = (req: CustomRequest) => String(req.params.serverUuid);
  */
 export async function getConfig(req: CustomRequest, res: Response): Promise<void> {
   try {
-    const [config, enforcement] = await Promise.all([
-      firewall.getOrCreateConfig(team(req), appUuid(req)),
-      firewall.getEnforcementStatus(team(req), appUuid(req)),
-    ]);
+    // Sequential, not Promise.all: getEnforcementStatus reads the same
+    // firewall_configs row getOrCreateConfig may be inserting. Run in
+    // parallel, and the very first request for an application (nothing in
+    // firewall_configs yet) races its own SELECT against its own INSERT —
+    // the read losing that race threw FIREWALL_NOT_CONFIGURED (422) even
+    // though the config was created a few milliseconds later in the same
+    // request. Creating first guarantees the row exists before it is read.
+    const config = await firewall.getOrCreateConfig(team(req), appUuid(req));
+    const enforcement = await firewall.getEnforcementStatus(team(req), appUuid(req));
     ok(res, { ...config, enforcement });
   } catch (err) {
     respondWithError(res, err, 'Loading the firewall configuration');
@@ -260,5 +266,52 @@ export async function deleteCert(req: CustomRequest, res: Response): Promise<voi
     ok(res, { deleted: true });
   } catch (err) {
     fail(res, 'Failed to delete certificate');
+  }
+}
+
+// ── Personal access tokens ────────────────────────────────
+/**
+ * The caller's own tokens. The token values themselves are not stored in a
+ * recoverable form and are never returned here — only what a token is for.
+ */
+export async function listApiTokens(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    ok(res, await pat.listTokens(req.user!.id));
+  } catch (err) {
+    respondWithError(res, err, 'Listing the API tokens');
+  }
+}
+
+/**
+ * Issue a token. The plaintext is in this response and nowhere else — the
+ * interface has to tell the user to copy it now.
+ */
+export async function createApiToken(req: CustomRequest, res: Response): Promise<void> {
+  const { name, abilities, expiresInDays } = req.body ?? {};
+  if (typeof name !== 'string' || !name.trim()) {
+    return fail(res, 'A name is required.', 422, 'VALIDATION');
+  }
+  try {
+    const issued = await pat.createToken(
+      { id: req.user!.id, currentTeamId: req.user!.currentTeamId! },
+      {
+        name,
+        abilities: Array.isArray(abilities) ? abilities.map(String) : undefined,
+        expiresInDays: expiresInDays === undefined ? undefined : Number(expiresInDays),
+      }
+    );
+    ok(res, issued, 201);
+  } catch (err) {
+    respondWithError(res, err, 'Creating the API token');
+  }
+}
+
+export async function revokeApiToken(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    const revoked = await pat.revokeToken(req.user!.id, Number(req.params.id));
+    if (!revoked) return fail(res, 'Token not found', 404, 'NOT_FOUND');
+    ok(res, { revoked: true });
+  } catch (err) {
+    respondWithError(res, err, 'Revoking the API token');
   }
 }

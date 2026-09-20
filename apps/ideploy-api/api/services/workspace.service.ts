@@ -716,3 +716,94 @@ export async function resolveWorkspaceDestination(
 export function internalHostname(resourceName: string, resourceUuid: string): string {
   return `${resourceName}-${resourceUuid}`.toLowerCase().replace(/[^a-z0-9-]/g, '-');
 }
+
+// ── What lives here ─────────────────────────────────────────
+
+export interface WorkspaceResource {
+  uuid: string;
+  name: string;
+  kind: 'application' | 'database' | 'service';
+  /** The database engine (`postgresql`, `redis`, …) — null for the other kinds. */
+  databaseType: string | null;
+  status: string | null;
+  environmentName: string;
+  /** How its neighbours in this workspace reach it — same Docker network, resolved by name. */
+  internalHost: string;
+  /** Applications only: the URL the deployment worker gave it (own domain or auto-generated). */
+  fqdn: string | null;
+}
+
+/**
+ * Every application, database and service in this workspace, across all its
+ * environments — what the detail screen shows instead of a bare count. This is
+ * the same "rows, not counts" shape `listServerResources` gives a server, on
+ * the axis (workspace) people actually think in when they ask "what's in
+ * here", including the security/pipeline/insights screens each application
+ * links to being reachable from where it's listed.
+ */
+export async function listWorkspaceResources(
+  teamId: number,
+  uuid: string
+): Promise<WorkspaceResource[]> {
+  await requireWorkspace(teamId, uuid);
+
+  const selectFrom = (
+    table: string,
+    kind: WorkspaceResource['kind'],
+    dbType: string | null,
+    extraColumns: string,
+    // `services` has no status column of its own — unlike every other table
+    // here, a Service is a stack, and its status lives on its
+    // service_applications/service_databases rows instead. Selecting a bare
+    // `r.status` against it threw "column does not exist", uncaught, on every
+    // single workspace that had ever held a Service: this whole query runs
+    // inside a `Promise.all`, so one table missing a column failed all of it,
+    // silently, and the page fell back to showing nothing.
+    statusExpr = 'r.status'
+  ) =>
+    pool
+      .query<{
+        uuid: string;
+        name: string;
+        status: string | null;
+        environment_name: string;
+        fqdn?: string | null;
+      }>(
+        `SELECT r.uuid, r.name, ${statusExpr} AS status, e.name AS environment_name${extraColumns}
+         FROM ${table} r
+         JOIN environments e ON e.id = r.environment_id
+         JOIN projects p ON p.id = e.project_id
+         WHERE p.team_id = $1 AND p.uuid = $2
+         ORDER BY e.name, r.name`,
+        [teamId, uuid]
+      )
+      .then(({ rows }) =>
+        rows.map((r) => ({
+          uuid: String(r.uuid),
+          name: String(r.name),
+          kind,
+          databaseType: dbType,
+          status: r.status ?? null,
+          environmentName: String(r.environment_name),
+          internalHost: internalHostname(r.name, r.uuid),
+          fqdn: r.fqdn ? String(r.fqdn).split(',')[0].trim() : null,
+        }))
+      );
+
+  const databaseTables = new Map<string, string>();
+  for (const type of Object.values(DB_TYPES)) {
+    if (!databaseTables.has(type.table)) databaseTables.set(type.table, type.key);
+  }
+
+  const SERVICE_STATUS_EXPR = `(
+    SELECT sa.status FROM service_applications sa WHERE sa.service_id = r.id ORDER BY sa.id LIMIT 1
+  )`;
+
+  const groups = await Promise.all([
+    selectFrom('applications', 'application', null, ', r.fqdn'),
+    selectFrom('services', 'service', null, '', SERVICE_STATUS_EXPR),
+    ...[...databaseTables].map(([table, key]) => selectFrom(table, 'database', key, '')),
+  ]);
+
+  return groups.flat();
+}

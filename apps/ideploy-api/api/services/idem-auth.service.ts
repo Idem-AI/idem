@@ -12,10 +12,35 @@
  * second auth system here.
  */
 import axios from 'axios';
+import { createHash } from 'crypto';
 import pool from '../config/db.config';
+import redis from '../config/redis.config';
 import logger from '../config/logger';
 
 const IDEM_API_URL = process.env.IDEM_API_URL || 'http://localhost:3001';
+
+/**
+ * How long a verified session is trusted before re-checking with the central
+ * API. Every request `authenticate` middleware handles calls `verifySession`
+ * fresh — a single page that fires N parallel calls (the firewall screen
+ * fires ~8 in `ngOnInit`) used to mean N outbound round trips to the central
+ * API for the identical cookie. Verified live: those round trips share one
+ * *global, cross-user* rate-limit bucket on the central API's side (keyed by
+ * `ideploy-api`'s own container IP, not the end user's — there's no reverse
+ * proxy between them in this environment), so a single browser's page load
+ * could tip a shared budget over and get a *different, unrelated* request
+ * 429'd — which is what "Unauthenticated: invalid or missing session" on
+ * only the alerts/traffic panel of an otherwise fully-loaded firewall page
+ * actually was. A short TTL absorbs exactly that kind of burst without
+ * meaningfully delaying how soon a revoked session stops working.
+ */
+const SESSION_CACHE_TTL_SECONDS = 20;
+
+function cacheKey(sessionCookie: string): string {
+  // The cookie itself is a live credential — never used as a Redis key or
+  // logged verbatim; only its hash identifies the cache entry.
+  return `ideploy:session-verify:${createHash('sha256').update(sessionCookie).digest('hex')}`;
+}
 
 export interface IdemProfile {
   uid: string;
@@ -31,12 +56,50 @@ export interface SyncedUser {
   name: string;
 }
 
+/** De-dupes truly-simultaneous verifications of the same cookie within this one process — the Redis cache below only helps once the first of a burst has actually returned. */
+const inFlight = new Map<string, Promise<IdemProfile | null>>();
+
 /**
  * Verify a session cookie against the central Idem API and return the profile,
  * or null if unauthenticated. Mirrors IdemAuthService::verifySession.
+ *
+ * Cached briefly (see `SESSION_CACHE_TTL_SECONDS`) and de-duped in-process —
+ * only a *successful* verification is cached: a failure might be this
+ * specific call getting rate-limited rather than the session actually being
+ * invalid, and caching that would make a genuinely valid session look
+ * logged-out for the whole TTL instead of just this one request.
  */
 export async function verifySession(sessionCookie: string | undefined): Promise<IdemProfile | null> {
   if (!sessionCookie) return null;
+
+  const key = cacheKey(sessionCookie);
+  try {
+    const cached = await redis.get(key);
+    if (cached) return JSON.parse(cached) as IdemProfile;
+  } catch {
+    // Redis unavailable — fall through to a live check rather than fail the request over a cache miss.
+  }
+
+  const existing = inFlight.get(key);
+  if (existing) return existing;
+
+  const verification = verifySessionUncached(sessionCookie)
+    .then(async (profile) => {
+      if (profile) {
+        try {
+          await redis.set(key, JSON.stringify(profile), 'EX', SESSION_CACHE_TTL_SECONDS);
+        } catch {
+          /* caching is an optimisation, not a requirement */
+        }
+      }
+      return profile;
+    })
+    .finally(() => inFlight.delete(key));
+  inFlight.set(key, verification);
+  return verification;
+}
+
+async function verifySessionUncached(sessionCookie: string): Promise<IdemProfile | null> {
   try {
     const { data, status } = await axios.get(`${IDEM_API_URL}/auth/profile`, {
       headers: { Cookie: `session=${sessionCookie}`, Accept: 'application/json' },

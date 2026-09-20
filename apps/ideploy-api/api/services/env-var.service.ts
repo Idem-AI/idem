@@ -7,6 +7,7 @@
  * on the shared live schema we introspect the real columns once and only write
  * the ones that exist. `value` is a Laravel `encrypted` cast → encrypted at rest.
  */
+import { randomUUID } from 'node:crypto';
 import pool from '../config/db.config';
 import { encryptString, tryDecryptString } from '../utils/laravel-crypto';
 import * as appService from './application.service';
@@ -99,6 +100,14 @@ export async function upsertForApplication(
     key: dto.key,
     value: encryptString(dto.value),
   };
+  // NOT NULL with no database-level default — Laravel generates it in the
+  // model's own `creating` hook, which this reimplementation never ran.
+  // Verified live: every call to this function failed outright with
+  // `null value in column "uuid" ... violates not-null constraint` before
+  // this fix — meaning the application's own Environment tab, and not only
+  // the quick-deploy flow this was caught from, has never been able to save
+  // a variable at all.
+  if (cols.has('uuid')) values.uuid = randomUUID();
   if (cols.has('resourceable_type')) values.resourceable_type = APP_MODEL;
   if (cols.has('resourceable_id')) values.resourceable_id = app.id;
   if (cols.has('application_id')) values.application_id = app.id;

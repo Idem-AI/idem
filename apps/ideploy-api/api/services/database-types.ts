@@ -9,7 +9,7 @@
  *   laravel-crypto and decrypted before being injected into the container.
  */
 export interface DbField {
-  /** DB column name. */
+  /** DB column name (also the key credentials are looked up by, even for a `viaEnvVar` field). */
   col: string;
   /** Container env var name (omit for columns not passed as env, e.g. redis pass via command). */
   env?: string;
@@ -19,6 +19,16 @@ export interface DbField {
   encrypted?: boolean;
   /** Auto-generate a random secret when not provided. */
   generate?: boolean;
+  /**
+   * This field has no column on the engine's own table — its real storage is
+   * a row in the polymorphic `environment_variables` table, under this key.
+   * Confirmed against the live schema: Coolify's own `move_redis_password_to_envs`
+   * migration dropped `standalone_redis.redis_password` and moved it there;
+   * `standalone_redis` genuinely has no password column to write to. Adding
+   * the column back would just diverge from the schema a real migration
+   * already changed on purpose.
+   */
+  viaEnvVar?: string;
 }
 
 export interface DbType {
@@ -100,7 +110,11 @@ export const DB_TYPES: Record<string, DbType> = {
     model: 'App\\Models\\StandaloneRedis',
     image: 'redis:7-alpine',
     port: 6379,
-    fields: [{ col: 'redis_password', encrypted: true, generate: true }],
+    // No `standalone_redis.redis_password` column exists (see `viaEnvVar`'s
+    // own doc comment) — confirmed live: creating a Redis database threw
+    // `column "redis_password" of relation "standalone_redis" does not
+    // exist` before this fix.
+    fields: [{ col: 'redis_password', encrypted: true, generate: true, viaEnvVar: 'REDIS_PASSWORD' }],
     command: (c) => `redis-server --requirepass ${c.redis_password}`,
   },
   keydb: {

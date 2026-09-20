@@ -7,6 +7,7 @@ import * as dbService from '../services/database.service';
 import * as backupService from '../services/db-backup.service';
 import { getDbType } from '../services/database-types';
 import { resolveWorkspaceDestination } from '../services/workspace.service';
+import { realtime } from '../services/realtime.service';
 
 export async function list(req: CustomRequest, res: Response): Promise<void> {
   try {
@@ -18,9 +19,16 @@ export async function list(req: CustomRequest, res: Response): Promise<void> {
   }
 }
 
+/**
+ * Returns the full detail: credentials and a ready connection string, not
+ * just the metadata `list` returns — this is a single-record, team-scoped
+ * fetch the operator is already looking at their own resource through, the
+ * same trust boundary `service.controller.ts::get` already returns
+ * `docker_compose_raw` (itself full of secrets) under.
+ */
 export async function get(req: CustomRequest, res: Response): Promise<void> {
   try {
-    const db = await dbService.getDatabase(
+    const db = await dbService.getDatabaseDetail(
       req.user!.currentTeamId!,
       String(req.params.type),
       String(req.params.uuid)
@@ -29,6 +37,31 @@ export async function get(req: CustomRequest, res: Response): Promise<void> {
     ok(res, db);
   } catch (err) {
     fail(res, 'Failed to fetch database');
+  }
+}
+
+/**
+ * Overwrite one or more credential fields (username/password/initial DB…).
+ * Only takes effect on the next start/restart — see
+ * `database.service.ts::updateCredentials` for why a running container isn't
+ * live-reconfigured.
+ */
+export async function updateCredentials(req: CustomRequest, res: Response): Promise<void> {
+  const updates = req.body ?? {};
+  if (typeof updates !== 'object' || Array.isArray(updates) || Object.keys(updates).length === 0) {
+    return fail(res, 'At least one credential field is required', 422, 'VALIDATION');
+  }
+  try {
+    const db = await dbService.updateCredentials(
+      req.user!.currentTeamId!,
+      String(req.params.type),
+      String(req.params.uuid),
+      updates
+    );
+    if (!db) return fail(res, 'Database not found', 404, 'NOT_FOUND');
+    ok(res, db);
+  } catch (err) {
+    respondWithError(res, err, 'Updating the database credentials');
   }
 }
 
@@ -88,18 +121,32 @@ async function lifecycle(
   res: Response,
   action: 'start' | 'stop' | 'restart'
 ): Promise<void> {
+  const uuid = String(req.params.uuid);
   try {
-    ok(
-      res,
-      await dbService.lifecycle(
-        req.user!.currentTeamId!,
-        String(req.params.type),
-        String(req.params.uuid),
-        action
-      )
+    const result = await dbService.lifecycle(
+      req.user!.currentTeamId!,
+      String(req.params.type),
+      uuid,
+      action,
+      (chunk) => realtime.databaseLog(uuid, chunk)
     );
+    // `lifecycle` itself already re-checks the container twice before
+    // answering (see its own doc comment) — a command that ran without
+    // throwing but left the container not actually up is still a failure,
+    // not a 200. Verified live: two databases were created while the server
+    // was under heavy load from an unrelated crash-loop, never came up, and
+    // every caller (the architecture guide's inline step, this database's
+    // own detail page) treated the resulting 200 as success because nothing
+    // here ever turned `{ success: false }` into an HTTP failure a caller's
+    // own error handling would actually run.
+    if (!result.success) {
+      fail(res, `Database did not report as running after ${action}. Check its console for what happened.`, 502, 'DB_LIFECYCLE_NOT_CONFIRMED');
+      return;
+    }
+    ok(res, result);
   } catch (err) {
     logger.error(`db ${action} error`, { message: (err as Error).message });
+    void realtime.databaseLog(uuid, `\n❌ ${(err as Error).message || `Failed to ${action} database`}\n`);
     fail(res, (err as Error).message || `Failed to ${action} database`);
   }
 }

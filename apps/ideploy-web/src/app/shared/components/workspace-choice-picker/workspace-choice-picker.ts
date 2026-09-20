@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, effect, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../../services/api.service';
@@ -29,6 +29,20 @@ export interface WorkspaceChoice {
   template: `
     <div class="space-y-2">
       <label class="mb-1 block text-sm">{{ 'workspaceChoicePicker.label' | translate }}</label>
+
+      @if (locked() && lockedWorkspace(); as ws) {
+        <div class="flex items-center justify-between gap-2 rounded-lg px-3 py-2" style="background:var(--glass-bg-subtle);">
+          <span class="text-sm">
+            {{ 'workspaceChoicePicker.lockedInto' | translate:{ name: ws.name } }}
+          </span>
+          <button type="button" class="text-xs font-semibold hover:underline" style="color:var(--color-primary-400);" (click)="unlock()">
+            {{ 'workspaceChoicePicker.change' | translate }}
+          </button>
+        </div>
+        <p class="text-xs" style="color: var(--color-text-secondary)">
+          {{ 'workspaceChoicePicker.existingHint' | translate }}
+        </p>
+      } @else {
 
       @if (workspaces().length > 0) {
         <div class="flex gap-2 text-xs">
@@ -74,6 +88,7 @@ export interface WorkspaceChoice {
           {{ 'workspaceChoicePicker.newHint' | translate }}
         </p>
       }
+      }
     </div>
   `,
 })
@@ -83,12 +98,26 @@ export class WorkspaceChoicePickerComponent implements OnInit {
   /** Prefills the "create new" name — typically the thing being deployed. */
   readonly suggestedName = input<string>('');
 
+  /**
+   * Preselects and locks onto this workspace — set when the flow was entered
+   * from that workspace's own page (its "+ Nouvelle ressource" button), so the
+   * choice already made there isn't asked again. The operator can still
+   * override via "Changer": a lock is a strong default, never a constraint.
+   */
+  readonly lockedWorkspaceUuid = input<string | null>(null);
+
   readonly choiceChange = output<WorkspaceChoice | null>();
 
   protected readonly workspaces = signal<Workspace[]>([]);
   protected readonly mode = signal<'new' | 'existing'>('new');
   protected readonly selectedUuid = signal<string>('');
   protected readonly newName = signal<string>('');
+  /** Set to false once the operator clicks "Changer". */
+  protected readonly locked = signal(true);
+
+  protected readonly lockedWorkspace = computed(
+    () => this.workspaces().find((w) => w.uuid === this.lockedWorkspaceUuid()) ?? null
+  );
 
   constructor() {
     // Keeps the suggested name in sync until the operator actually types
@@ -98,12 +127,26 @@ export class WorkspaceChoicePickerComponent implements OnInit {
       if (!this.touchedName) this.newName.set(suggested);
       this.emit();
     });
+    // Once the workspace list has loaded and the lock target resolves,
+    // commit to it as the choice — same shape as picking it by hand.
+    effect(() => {
+      const ws = this.lockedWorkspace();
+      if (ws && this.locked()) {
+        this.mode.set('existing');
+        this.selectedUuid.set(ws.uuid);
+        this.emit();
+      }
+    });
   }
 
   private touchedName = false;
 
   ngOnInit(): void {
     this.api.listWorkspaces().subscribe((list) => this.workspaces.set(list));
+  }
+
+  protected unlock(): void {
+    this.locked.set(false);
   }
 
   protected setMode(mode: 'new' | 'existing'): void {

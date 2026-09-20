@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } from '@angular/core';
+import { NavigationEnd, Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
 import { ApiService } from '../../shared/services/api.service';
 import { AuthService } from '../../shared/services/auth.service';
 import { LanguageSelectorComponent } from '../../shared/components/language-selector/language-selector';
@@ -17,10 +18,33 @@ interface NavSection {
   items: NavItem[];
 }
 
+const APP_ROUTE = /^\/applications\/([^/]+)/;
+
+/** The application-scoped nav shown while inside one app, Vercel's own project sidebar. */
+function appNav(uuid: string): NavSection[] {
+  const base = `/applications/${uuid}`;
+  return [
+    {
+      items: [
+        { path: base, label: 'shell.nav.appOverview', icon: 'fa-solid fa-gauge' },
+        { path: `${base}/deployments`, label: 'shell.nav.appDeployments', icon: 'fa-solid fa-rocket' },
+        { path: `${base}/pipeline`, label: 'shell.nav.appPipeline', icon: 'fa-solid fa-diagram-project' },
+        { path: `${base}/security`, label: 'shell.nav.appFirewall', icon: 'fa-solid fa-shield-halved' },
+        { path: `${base}/insights`, label: 'shell.nav.appInsights', icon: 'fa-solid fa-chart-line' },
+        { path: `${base}/terminal`, label: 'shell.nav.appTerminal', icon: 'fa-solid fa-terminal' },
+      ],
+    },
+  ];
+}
+
 /**
  * Authenticated app shell — topbar (logo, plan/usage badges, user menu) + dark
- * glass sidebar, ported 1:1 from the Laravel navbar-topbar / navbar-modern.
- * Used as the layout for all guarded routes.
+ * glass sidebar, Vercel-style: the sidebar's top section is context-sensitive
+ * (the account-wide nav on every global page, one application's own nav —
+ * Overview/Deployments/Pipeline/Firewall/Insights/Terminal — the moment the
+ * URL is inside `/applications/:uuid`), while the bottom "Configuration"
+ * section (settings, keys, team, …) never changes: those are account-wide no
+ * matter which application you are looking at.
  */
 @Component({
   selector: 'app-shell',
@@ -42,12 +66,14 @@ interface NavSection {
         </a>
 
         <div class="flex items-center gap-3">
-          @if (me()?.idemRole === 'admin') {
-            <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-md"
-                 style="background:color-mix(in srgb, var(--color-danger) 12%, transparent);color:var(--color-danger);border:1px solid color-mix(in srgb, var(--color-danger) 28%, transparent);">
+          @if (isInstanceAdmin()) {
+            <!-- The badge doubles as the way in: it was previously inert. -->
+            <a routerLink="/admin"
+               class="flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:opacity-80"
+               style="background:color-mix(in srgb, var(--color-danger) 12%, transparent);color:var(--color-danger);border:1px solid color-mix(in srgb, var(--color-danger) 28%, transparent);">
               <i class="fa-solid fa-shield-halved text-xs"></i>
-              <span style="font-size:11px;font-weight:700;">{{ 'shell.admin' | translate }}</span>
-            </div>
+              <span style="font-size:11px;font-weight:700;letter-spacing:.05em;">{{ 'shell.admin' | translate }}</span>
+            </a>
           }
           <a routerLink="/subscription"
              data-tour="ideploy-plan"
@@ -102,27 +128,46 @@ interface NavSection {
 
     <div class="fixed top-16 bottom-0 left-0 z-40 w-64 flex flex-col">
       <nav class="flex flex-col flex-1 sidebar-scroll sidebar-shell overflow-y-auto">
-        <div data-tour="ideploy-team" style="padding:16px 12px; border-bottom:1px solid var(--glass-border-subtle);">
-          <div class="flex items-center gap-2 px-1">
-            <i class="fa-solid fa-users-rectangle" style="color:var(--color-primary-400);"></i>
-            <span class="text-sm font-semibold text-white">{{ me()?.team?.name ?? ('shell.myTeam' | translate) }}</span>
-          </div>
+        <div style="padding:16px 12px; border-bottom:1px solid var(--glass-border-subtle);">
+          @if (appContext(); as app) {
+            <!-- In an application's own context: this header names the application,
+                 not the team — a back arrow is the way out, same as Vercel's own
+                 project sidebar reads "‹ project-name" instead of the team switcher. -->
+            <a routerLink="/dashboard" class="flex items-center gap-2 px-1 group" [title]="'shell.backToOverview' | translate">
+              <i class="fa-solid fa-chevron-left text-xs" style="color:var(--color-text-tertiary);"></i>
+              <i class="fa-solid fa-cube text-xs" style="color:var(--color-primary-400);"></i>
+              <span class="truncate text-sm font-semibold text-white group-hover:text-blue-400 transition-colors">{{ app.name }}</span>
+            </a>
+          } @else {
+            <div class="flex items-center gap-2 px-1">
+              <i class="fa-solid fa-users-rectangle" style="color:var(--color-primary-400);"></i>
+              <span class="text-sm font-semibold text-white">{{ me()?.team?.name ?? ('shell.myTeam' | translate) }}</span>
+            </div>
+          }
         </div>
         <ul role="list" class="flex flex-col flex-1 px-3 py-5 gap-y-0.5">
-          @for (section of nav; track section.title || 'main') {
+          @for (section of topNav(); track section.title || 'main') {
             @if (section.title) {
               <li style="padding-top:20px; padding-bottom:5px;"><span class="sbi-section">{{ section.title! | translate }}</span></li>
             }
             @for (item of section.items; track item.path) {
               <li>
                 <a class="sbi" [routerLink]="item.path" routerLinkActive="active"
-                   [attr.data-tour]="'ideploy-nav-' + item.path.slice(1)"
-                   [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }">
+                   [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' || item.path === appOverviewPath() }">
                   <i class="sbi-icon" [class]="item.icon"></i>
                   <span>{{ item.label | translate }}</span>
                 </a>
               </li>
             }
+          }
+          @if (isInstanceAdmin()) {
+            <li style="padding-top:20px; padding-bottom:5px;"><span class="sbi-section">{{ 'shell.nav.sectionAdmin' | translate }}</span></li>
+            <li>
+              <a class="sbi" routerLink="/admin" routerLinkActive="active">
+                <i class="sbi-icon fa-solid fa-shield-halved"></i>
+                <span>{{ 'shell.nav.admin' | translate }}</span>
+              </a>
+            </li>
           }
           <li>
             <div class="sbi-disabled" style="justify-content:space-between;">
@@ -133,6 +178,17 @@ interface NavSection {
               <span class="sbi-badge-soon">{{ 'shell.soon' | translate }}</span>
             </div>
           </li>
+
+          <!-- Always the account's own — never scoped to whichever application is open. -->
+          <li style="padding-top:20px; padding-bottom:5px;"><span class="sbi-section">{{ 'shell.nav.sectionConfiguration' | translate }}</span></li>
+          @for (item of bottomNav; track item.path) {
+            <li>
+              <a class="sbi" [routerLink]="item.path" routerLinkActive="active">
+                <i class="sbi-icon" [class]="item.icon"></i>
+                <span>{{ item.label | translate }}</span>
+              </a>
+            </li>
+          }
         </ul>
       </nav>
     </div>
@@ -147,8 +203,15 @@ interface NavSection {
 export class ShellComponent implements OnInit {
   private api = inject(ApiService);
   private auth = inject(AuthService);
+  private router = inject(Router);
 
   protected readonly authUser = toSignal(this.auth.user$, { initialValue: null });
+  /** Kept in step with INSTANCE_ADMIN_ROLES in the API and the route guard. */
+  protected isInstanceAdmin(): boolean {
+    const role = this.me()?.idemRole?.toLowerCase();
+    return role === 'admin' || role === 'owner' || role === 'root' || role === 'superadmin';
+  }
+
   protected readonly me = signal<{ name: string; email: string; photoUrl: string | null; idemRole: string | null; team: { id: number; name: string } | null } | null>(null);
   protected readonly plan = signal('free');
   protected readonly appsUsed = signal(0);
@@ -156,7 +219,10 @@ export class ShellComponent implements OnInit {
   protected readonly serversUsed = signal(0);
   protected readonly serversLimit = signal(0);
 
-  protected readonly nav: NavSection[] = [
+  /** Which application's own nav (if any) the sidebar's top section is currently showing. */
+  protected readonly appContext = signal<{ uuid: string; name: string } | null>(null);
+
+  protected readonly globalNav: NavSection[] = [
     { items: [{ path: '/dashboard', label: 'shell.nav.dashboard', icon: 'fa-solid fa-house' }] },
     {
       title: 'shell.nav.sectionDeploy',
@@ -178,17 +244,28 @@ export class ShellComponent implements OnInit {
         { path: '/tags', label: 'shell.nav.tags', icon: 'fa-solid fa-tags' },
       ],
     },
-    {
-      title: 'shell.nav.sectionConfiguration',
-      items: [
-        { path: '/settings', label: 'shell.nav.settings', icon: 'fa-solid fa-gear' },
-        { path: '/shared-variables', label: 'shell.nav.sharedVariables', icon: 'fa-solid fa-code' },
-        { path: '/notifications', label: 'shell.nav.notifications', icon: 'fa-regular fa-bell' },
-        { path: '/security/keys', label: 'shell.nav.keysTokens', icon: 'fa-solid fa-key' },
-        { path: '/team', label: 'shell.nav.team', icon: 'fa-solid fa-users' },
-      ],
-    },
   ];
+
+  /** Unconditionally account-wide — the "bottom" half the top section never touches. */
+  protected readonly bottomNav: NavItem[] = [
+    { path: '/settings', label: 'shell.nav.settings', icon: 'fa-solid fa-gear' },
+    { path: '/shared-variables', label: 'shell.nav.sharedVariables', icon: 'fa-solid fa-code' },
+    { path: '/notifications', label: 'shell.nav.notifications', icon: 'fa-regular fa-bell' },
+    { path: '/security/keys', label: 'shell.nav.sshKeys', icon: 'fa-solid fa-key' },
+    { path: '/security/tokens', label: 'shell.nav.apiTokens', icon: 'fa-solid fa-id-badge' },
+    { path: '/team', label: 'shell.nav.team', icon: 'fa-solid fa-users' },
+  ];
+
+  protected readonly topNav = computed<NavSection[]>(() => {
+    const app = this.appContext();
+    return app ? appNav(app.uuid) : this.globalNav;
+  });
+
+  /** The one app-nav item (Overview) that needs exact matching — every sub-page's path is also its prefix. */
+  protected readonly appOverviewPath = computed(() => {
+    const app = this.appContext();
+    return app ? `/applications/${app.uuid}` : null;
+  });
 
   protected photoUrl(): string | null {
     return this.authUser()?.photoURL ?? this.me()?.photoUrl ?? null;
@@ -221,6 +298,33 @@ export class ShellComponent implements OnInit {
       this.serversUsed.set(q.servers.used);
       this.appsLimit.set(q.apps.limit);
       this.serversLimit.set(q.servers.limit);
+    });
+
+    this.syncAppContext(this.router.url);
+    this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe((e) => {
+      this.syncAppContext((e as NavigationEnd).urlAfterRedirects);
+    });
+  }
+
+  /** Switch the sidebar's top section in or out of an application's own nav, based on the URL alone. */
+  private syncAppContext(url: string): void {
+    const match = APP_ROUTE.exec(url);
+    const uuid = match?.[1];
+    if (!uuid) {
+      if (this.appContext()) this.appContext.set(null);
+      return;
+    }
+    if (this.appContext()?.uuid === uuid) return; // Already showing this application's nav.
+    this.appContext.set({ uuid, name: uuid }); // Placeholder while the real name loads.
+    this.api.getApplication(uuid).subscribe({
+      next: (app) => {
+        if (this.appContext()?.uuid === uuid) this.appContext.set({ uuid, name: app.name });
+      },
+      error: () => {
+        // Not this team's application (or it was deleted) — fall back to the global nav
+        // rather than pin the sidebar to a name that will never resolve.
+        if (this.appContext()?.uuid === uuid) this.appContext.set(null);
+      },
     });
   }
 }
