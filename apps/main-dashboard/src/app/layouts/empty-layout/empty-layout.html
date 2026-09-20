@@ -76,12 +76,12 @@
               </div>
 
               <a
-                routerLink="/project/profile"
-                (click)="navigateTo('/project/profile')"
+                routerLink="/account/profile"
+                (click)="navigateTo('/account/profile')"
                 class="flex items-center gap-3 px-4 py-3 text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-200"
               >
                 <i class="pi pi-user text-primary"></i>
-                <span>Profile</span>
+                <span>{{ 'dashboard.sidebar.userMenu.profile' | translate }}</span>
               </a>
 
               <a
@@ -90,16 +90,19 @@
                 class="flex items-center gap-3 px-4 py-3 text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-200"
               >
                 <i class="pi pi-folder text-accent"></i>
-                <span>All Projects</span>
+                <span>{{ 'dashboard.sidebar.viewAllProjects' | translate }}</span>
               </a>
 
+              <!-- « Paramètres » menait à une route qui n'a jamais existé. Ce
+                   qu'on y cherchait — l'offre, les crédits, les factures — est
+                   sous « Mon compte ». -->
               <a
-                routerLink="/settings"
-                (click)="navigateTo('/settings')"
+                routerLink="/account"
+                (click)="navigateTo('/account')"
                 class="flex items-center gap-3 px-4 py-3 text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-200"
               >
-                <i class="pi pi-cog text-secondary"></i>
-                <span>Settings</span>
+                <i class="pi pi-wallet text-secondary"></i>
+                <span>{{ 'account.title' | translate }}</span>
               </a>
 
               <hr class="border-[var(--glass-border)] my-2" />
@@ -109,7 +112,7 @@
                 class="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 transition-all duration-200"
               >
                 <i class="pi pi-sign-out"></i>
-                <span>Logout</span>
+                <span>{{ 'dashboard.sidebar.userMenu.logout' | translate }}</span>
               </button>
             </div>
           }

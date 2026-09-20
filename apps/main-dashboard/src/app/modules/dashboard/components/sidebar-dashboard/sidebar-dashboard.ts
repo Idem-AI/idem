@@ -35,10 +35,9 @@ import {
   BetaRestrictions,
   QuotaStatus,
 } from '../../../../shared/models/quota.model';
-import { LanguageSelectorComponent } from 'apps/main-dashboard/src/app/shared/components/language-selector/language-selector';
-import { ThemeToggleComponent } from 'apps/main-dashboard/src/app/shared/components/theme-toggle/theme-toggle';
 import { UiModeService } from '../../../../shared/services/ui-mode.service';
 import { GuidedJourneyService } from '../../../guided/services/guided-journey.service';
+import { BillingService } from '../../../billing/services/billing.service';
 
 @Component({
   selector: 'app-sidebar-dashboard',
@@ -52,8 +51,6 @@ import { GuidedJourneyService } from '../../../guided/services/guided-journey.se
     BetaBadgeComponent,
     QuotaDisplayComponent,
     TranslateModule,
-    LanguageSelectorComponent,
-    ThemeToggleComponent,
   ],
   animations: [
     trigger('slideInOut', [
@@ -120,6 +117,7 @@ export class SidebarDashboard implements OnInit {
   private readonly translate = inject(TranslateService);
   private readonly uiModeService = inject(UiModeService);
   private readonly journey = inject(GuidedJourneyService);
+  private readonly billing = inject(BillingService);
 
   // Navigation items
   protected readonly navigationItems = signal<
@@ -337,6 +335,45 @@ export class SidebarDashboard implements OnInit {
     );
   }
 
+  /**
+   * L'offre et les crédits, résumés pour le pied de la barre.
+   *
+   * Tirés du même signal que « Mon compte » : le chiffre affiché en permanence
+   * et celui de la page de facturation ne peuvent pas diverger, et un paiement
+   * qui aboutit les met à jour tous les deux d'un coup.
+   *
+   * Rien n'est traduit ici. `instant()` lit la table de traduction au moment du
+   * calcul sans s'y abonner : le résumé serait figé dans la langue active au
+   * premier rendu et ne suivrait pas un changement de langue. Le gabarit reçoit
+   * donc une clé et un nombre, et c'est le pipe `translate` — lui, réactif —
+   * qui rend le texte.
+   *
+   * `null` tant que la facturation n'a pas répondu : un « 0 crédit » affiché
+   * par défaut ferait croire à un compte vide.
+   */
+  protected readonly accountSummary = computed(() => {
+    const plans = this.billing.plans();
+    if (plans.length === 0) return null;
+
+    // Les moteurs restés sur l'offre gratuite ne sont pas nommés : l'espace
+    // d'une barre latérale ne supporte pas un inventaire, et c'est l'offre
+    // payée que l'on veut y reconnaître.
+    const paid = plans.filter((plan) => plan.state !== 'free');
+
+    const credits = plans
+      .filter((plan) => plan.engine !== 'ideploy')
+      .reduce((total, plan) => total + plan.credits, 0);
+
+    return {
+      // Une seule offre payée se nomme ; plusieurs se comptent.
+      planName: paid.length === 1 ? `${paid[0].engineLabel} ${paid[0].currentName}` : null,
+      planKey: paid.length === 0 ? 'account.freePlan' : 'account.severalPlans',
+      paidCount: paid.length,
+      credits,
+      needsAttention: this.billing.attention() !== null,
+    };
+  });
+
   // Signals for UI State
   isLoading = signal(true);
   isMenuOpen = signal(false);
@@ -423,6 +460,12 @@ export class SidebarDashboard implements OnInit {
   ngOnInit() {
     this.initializeMenu();
     this.loadProjects();
+
+    // La barre est montée sur toutes les pages de travail : c'est le bon
+    // endroit pour charger les droits une fois. Le catalogue vient avec, sans
+    // lui on connaîtrait le solde mais pas le nom de l'offre.
+    if (!this.billing.me()) this.billing.loadMe().subscribe();
+    if (!this.billing.catalog()) this.billing.loadCatalog().subscribe();
 
     // La sidebar du mode Assisté est dessinée à partir du parcours : il doit
     // connaître le projet actif pour savoir ce qui est ouvert.
@@ -571,9 +614,7 @@ export class SidebarDashboard implements OnInit {
 
             const initialCookieId = this.cookieService.get('projectId');
             if (!initialCookieId) {
-              this.router.navigate([`/console`], {
-                replaceUrl: true,
-              });
+              this.leaveProjectScope('/console');
             } else {
               const projectExists = projects.find((p) => p.id === initialCookieId);
               if (!projectExists) {
@@ -582,13 +623,11 @@ export class SidebarDashboard implements OnInit {
                     initialCookieId,
                   }),
                 );
-                this.router.navigate([`/console`], { replaceUrl: true });
+                this.leaveProjectScope('/console');
               }
             }
           } else {
-            this.router.navigate([`/project/create`], {
-              replaceUrl: true,
-            });
+            this.leaveProjectScope('/create-project');
           }
           this.isLoading.set(false);
         },
@@ -596,10 +635,23 @@ export class SidebarDashboard implements OnInit {
           console.error('Error fetching projects in ngOnInit:', err);
           this._userProjects.set([]);
           this.isLoading.set(false);
-          // Navigate to create project page on error
-          this.router.navigate(['/project/create'], { replaceUrl: true });
+          this.leaveProjectScope('/create-project');
         },
       });
+  }
+
+  /**
+   * Renvoie ailleurs, mais seulement depuis une page de projet.
+   *
+   * Cette barre latérale sert désormais aussi « Mon compte » et la liste des
+   * projets, qui n'ont pas besoin d'un projet sélectionné. Rediriger
+   * inconditionnellement — ce que faisait le code précédent — éjectait de sa
+   * facturation tout utilisateur n'ayant encore créé aucun projet, au moment
+   * précis où il venait choisir une offre.
+   */
+  private leaveProjectScope(target: string): void {
+    if (!this.router.url.startsWith('/project/')) return;
+    void this.router.navigate([target], { replaceUrl: true });
   }
 
   onProjectChange(project: SelectElement) {

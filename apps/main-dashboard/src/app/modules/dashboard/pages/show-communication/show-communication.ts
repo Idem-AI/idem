@@ -194,7 +194,7 @@ export class ShowCommunication implements OnInit {
   }
 
   protected goToBilling(): void {
-    this.router.navigate(['/billing']);
+    this.router.navigate(['/account']);
   }
 
   // ── Remontées des écrans ─────────────────────────────────────────────────

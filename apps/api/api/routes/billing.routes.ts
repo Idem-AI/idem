@@ -239,6 +239,23 @@ router.get('/credits', authenticate, (req: Request, res: Response) =>
   billingController.getCreditStatement(req as any, res)
 );
 
+/**
+ * @openapi
+ * /billing/invoices:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Factures de l'utilisateur
+ *     description: >
+ *       Les factures sont émises à chaque encaissement et à chaque
+ *       renouvellement. Les brouillons ne sont pas exposés.
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       '200': { description: Factures, de la plus récente à la plus ancienne }
+ */
+router.get('/invoices', authenticate, (req: Request, res: Response) =>
+  billingController.listInvoices(req as any, res)
+);
+
 // ============================================
 // WEBHOOK PAWAPAY
 // ============================================

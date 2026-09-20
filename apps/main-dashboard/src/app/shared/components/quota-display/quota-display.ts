@@ -8,6 +8,15 @@ import {
   BetaRestrictions,
 } from '../../models/quota.model';
 
+/**
+ * Jauge du quota de générations, dans la barre du haut.
+ *
+ * Elle s'intitulait « Crédits » tout en affichant le quota quotidien : deux
+ * grandeurs sans rapport portaient le même nom, et le chiffre lu ici ne
+ * correspondait jamais au solde de crédits affiché ailleurs. Le quota est une
+ * cadence offerte qui se remet à zéro seule ; les crédits sont la monnaie, et
+ * ils vivent désormais dans le pied de la barre latérale et sous « Mon compte ».
+ */
 @Component({
   selector: 'app-quota-display',
   standalone: true,
@@ -34,7 +43,7 @@ import {
               [style.width.%]="quotaDisplay.dailyPercentage"
             ></div>
           </div>
-          <span class="sm:text-lg text-xs whitespace-nowrap text-text-primary">{{ 'dashboard.dashboard.quotaWarning.credits' | translate }}</span>
+          <span class="sm:text-lg text-xs whitespace-nowrap text-text-primary">{{ 'dashboard.dashboard.quotaWarning.generations' | translate }}</span>
           <span class="sm:text-lg text-xs whitespace-nowrap" [class]="getDailyStatusClass()">
             {{ quotaInfo?.remainingDaily || 0 }}/{{ quotaInfo?.dailyLimit || 0 }}
           </span>

@@ -125,12 +125,21 @@
               </div>
 
               <a
-                routerLink="/project/profile"
-                (click)="navigateTo('/project/profile')"
+                routerLink="/account/profile"
+                (click)="navigateTo('/account/profile')"
                 class="flex items-center gap-3 px-4 py-3 text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-200"
               >
                 <i class="pi pi-user text-primary"></i>
                 <span>{{ 'dashboard.sidebar.userMenu.profile' | translate }}</span>
+              </a>
+
+              <a
+                routerLink="/account"
+                (click)="navigateTo('/account')"
+                class="flex items-center gap-3 px-4 py-3 text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-200"
+              >
+                <i class="pi pi-wallet text-secondary"></i>
+                <span>{{ 'account.title' | translate }}</span>
               </a>
 
               <a
@@ -140,15 +149,6 @@
               >
                 <i class="pi pi-th-large text-secondary"></i>
                 <span>{{ 'dashboard.sidebar.userMenu.globalDashboard' | translate }}</span>
-              </a>
-
-              <a
-                routerLink="/settings"
-                (click)="navigateTo('/settings')"
-                class="flex items-center gap-3 px-4 py-3 text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-200"
-              >
-                <i class="pi pi-cog text-secondary"></i>
-                <span>{{ 'dashboard.sidebar.userMenu.settings' | translate }}</span>
               </a>
 
               <hr class="border-[var(--glass-border)] my-2" />
@@ -317,19 +317,54 @@
     }
   </nav>
 
-  <!-- Sidebar Footer -->
-  <div class="p-4 border-t border-[var(--glass-border)] space-y-3">
+  <!--
+    Pied de la barre : l'offre et les crédits.
+
+    Ils vivaient dans un badge de la barre du haut, qu'il fallait survoler pour
+    lire, et sur une page de facturation qu'il fallait aller chercher. Ici
+    l'utilisateur voit en permanence où il en est, et « Mon compte » est à un
+    clic depuis n'importe quelle page.
+  -->
+  <div class="p-3 border-t border-[var(--glass-border)]">
     @if (!isSidebarCollapsed()) {
-      <div class="z-50">
-        <app-language-selector />
-        <app-theme-toggle />
-      </div>
+      <a
+        routerLink="/account"
+        class="block rounded-xl border border-[var(--glass-border)] p-3 transition-colors hover:border-[var(--color-primary)]"
+      >
+        @if (accountSummary(); as summary) {
+          <div class="flex items-center justify-between gap-2">
+            <span class="truncate text-sm font-medium text-text-primary">
+              @if (summary.planName) {
+                {{ summary.planName }}
+              } @else {
+                {{ summary.planKey | translate: { count: summary.paidCount } }}
+              }
+            </span>
+            @if (summary.needsAttention) {
+              <span class="shrink-0 h-2 w-2 rounded-full bg-warning" aria-hidden="true"></span>
+            }
+          </div>
+
+          <div class="mt-1.5 flex items-center gap-1.5 text-xs text-text-tertiary">
+            <i class="pi pi-bolt text-[10px]" aria-hidden="true"></i>
+            <span class="tabular-nums">
+              {{ 'account.creditsShort' | translate: { count: summary.credits } }}
+            </span>
+          </div>
+        } @else {
+          <span class="text-sm text-text-tertiary">{{ 'account.title' | translate }}</span>
+        }
+
+        <span class="mt-2 block text-xs text-primary">{{ 'account.manage' | translate }}</span>
+      </a>
     } @else {
-      <div class="flex flex-col items-center gap-3">
-        <div class="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
-          <i class="pi pi-globe text-primary text-sm"></i>
-        </div>
-      </div>
+      <a
+        routerLink="/account"
+        class="flex h-9 w-full items-center justify-center rounded-lg bg-primary/15 transition-colors hover:bg-primary/25"
+        [title]="'account.title' | translate"
+      >
+        <i class="pi pi-wallet text-primary text-sm" aria-hidden="true"></i>
+      </a>
     }
   </div>
 </aside>
@@ -500,6 +535,27 @@
               }
             }
           </nav>
+        </div>
+
+        <!-- Mon compte, au pied du tiroir comme au pied de la barre : même
+             place, même geste, que l'on soit sur mobile ou sur grand écran. -->
+        <div class="pt-4 border-t border-[var(--glass-border)]">
+          <a
+            routerLink="/account"
+            (click)="toggleMobileDrawer()"
+            class="flex items-center justify-between gap-3 p-3 rounded-xl text-text-primary hover:bg-[var(--glass-bg-light)] transition-all duration-200"
+          >
+            <span class="flex items-center gap-3">
+              <i class="pi pi-wallet text-lg text-primary" aria-hidden="true"></i>
+              <span class="font-medium">{{ 'account.title' | translate }}</span>
+            </span>
+
+            @if (accountSummary(); as summary) {
+              <span class="text-xs text-text-tertiary tabular-nums">
+                {{ 'account.creditsShort' | translate: { count: summary.credits } }}
+              </span>
+            }
+          </a>
         </div>
       </div>
     </div>

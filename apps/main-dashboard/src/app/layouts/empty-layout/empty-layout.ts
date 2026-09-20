@@ -16,6 +16,7 @@ import {
   QuotaStatus,
 } from '../../shared/models/quota.model';
 import { environment } from 'apps/main-dashboard/src/environments/environment';
+import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-empty-layout',
@@ -28,6 +29,7 @@ import { environment } from 'apps/main-dashboard/src/environments/environment';
     QuotaDisplayComponent,
     LanguageSelectorComponent,
     ThemeToggleComponent,
+    TranslateModule,
   ],
   templateUrl: './empty-layout.html',
   styleUrl: './empty-layout.css',
