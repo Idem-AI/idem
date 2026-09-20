@@ -217,7 +217,7 @@
     <!-- Drawer -->
     <div
       [@mobileDrawerSlide]
-      class="fixed left-0 top-0 bottom-0 w-80 glass border-r border-[var(--glass-border)] flex flex-col shadow-2xl"
+      class="modal-drawer fixed left-0 top-0 bottom-0 w-80 border-r border-[var(--glass-border)] flex flex-col"
     >
       <!-- Header -->
       <div class="flex items-center justify-between p-4 border-b border-[var(--glass-border)]">
@@ -234,38 +234,68 @@
 
       <!-- Content -->
       <div class="flex-1 overflow-y-auto p-4 space-y-6">
-        <!-- Projet ouvert. Le quota qui figurait ici a disparu : il annonçait
-             « Crédits » en montrant le quota de générations, et le vrai solde
-             est désormais dans la barre du haut, sur mobile comme ailleurs. -->
-        <div>
-          <h3 class="text-sm font-medium text-text-tertiary mb-3">
-            {{ 'dashboard.sidebar.mobile.currentProject' | translate }}
-          </h3>
-          <div class="space-y-2">
-            <a
-              routerLink="/projects"
-              (click)="toggleMobileDrawer()"
-              class="w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 text-left text-text-secondary hover:bg-[var(--glass-bg-light)]"
-            >
-              <i class="pi pi-list text-primary"></i>
-              <span class="font-medium">{{ 'dashboard.sidebar.viewAllProjects' | translate }}</span>
-            </a>
+        <!--
+          Projet ouvert, replié.
 
-            @for (project of projects.projects(); track project.id) {
-              <button
-                type="button"
-                (click)="chooseProject(project.id!)"
-                class="w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 text-left"
-                [class.bg-primary]="projects.selected()?.id === project.id"
-                [class.text-white]="projects.selected()?.id === project.id"
-                [class.text-text-secondary]="projects.selected()?.id !== project.id"
-                [class.hover:bg-surface-3]="projects.selected()?.id !== project.id"
-              >
-                <div class="w-2 h-2 rounded-full bg-accent"></div>
-                <span class="font-medium">{{ project.name }}</span>
-              </button>
-            }
-          </div>
+          Les projets étaient listés les uns sous les autres, avant le menu : un
+          compte qui en a vingt repoussait toute la navigation hors de l'écran,
+          et il fallait faire défiler vingt lignes pour atteindre « Branding ».
+          Le sélecteur se comporte maintenant comme celui de la barre du haut
+          sur grand écran — fermé par défaut, il ne montre que le projet courant.
+        -->
+        <div>
+          <button
+            type="button"
+            class="glass-card flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[var(--glass-bg-light)]"
+            [attr.aria-expanded]="isMobileProjectListOpen()"
+            aria-controls="mobile-project-list"
+            (click)="toggleMobileProjectList()"
+          >
+            <span class="flex min-w-0 items-center gap-3">
+              <span class="h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+              <span class="truncate font-medium text-text-primary">
+                {{ projects.selected()?.name || ('dashboard.sidebar.selectProject' | translate) }}
+              </span>
+            </span>
+            <i
+              class="pi pi-chevron-down shrink-0 text-xs text-text-tertiary transition-transform duration-200"
+              [class.rotate-180]="isMobileProjectListOpen()"
+              aria-hidden="true"
+            ></i>
+          </button>
+
+          @if (isMobileProjectListOpen()) {
+            <!-- Hauteur bornée : au-delà, la liste défile sur elle-même plutôt
+                 que de repousser le menu une seconde fois. -->
+            <div
+              id="mobile-project-list"
+              class="mt-2 max-h-56 space-y-1 overflow-y-auto rounded-xl border border-[var(--glass-border)] p-1"
+            >
+              @for (project of projects.projects(); track project.id) {
+                <button
+                  type="button"
+                  class="flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition-colors"
+                  [class.bg-primary]="projects.selected()?.id === project.id"
+                  [class.text-white]="projects.selected()?.id === project.id"
+                  [class.text-text-secondary]="projects.selected()?.id !== project.id"
+                  [class.hover:bg-surface-3]="projects.selected()?.id !== project.id"
+                  (click)="chooseProject(project.id!)"
+                >
+                  <span class="h-2 w-2 shrink-0 rounded-full bg-accent" aria-hidden="true"></span>
+                  <span class="truncate text-sm font-medium">{{ project.name }}</span>
+                </button>
+              }
+            </div>
+          }
+
+          <a
+            routerLink="/projects"
+            class="mt-2 flex items-center gap-2 px-1 text-xs text-primary"
+            (click)="toggleMobileDrawer()"
+          >
+            <i class="pi pi-list text-[10px]" aria-hidden="true"></i>
+            <span>{{ 'dashboard.sidebar.viewAllProjects' | translate }}</span>
+          </a>
         </div>
 
         <!-- Mobile Navigation -->
