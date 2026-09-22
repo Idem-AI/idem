@@ -13,6 +13,13 @@ RUN npm install --legacy-peer-deps
 
 WORKDIR /app/apps/ideploy-web
 
+# Generates src/environments/environment.prod.ts from the server's own .env
+# (same spot apps/landing's Dockerfile copies its .env for mynode.js to
+# read) — that whole environments/ directory is gitignored (see
+# scripts/set-env.js), so there is no committed file for `ng build`'s
+# production fileReplacements to pick up without this. A value missing here
+# fails the build loudly instead of silently shipping a build that talks to
+# the wrong backend.
 COPY .env .env
 
 RUN npm run build
