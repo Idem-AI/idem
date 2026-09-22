@@ -98,9 +98,15 @@ Dans ton environnement de production (Cloud Run, App Engine, etc.), configure :
 ```bash
 USE_SECRET_MANAGER=true
 GCP_PROJECT_ID=lexis-ia
-SECRET_PREFIX=idem-api
+SECRET_PREFIX=
 NODE_ENV=production
 ```
+
+`SECRET_PREFIX` doit rester **vide** : les secrets sont stockés dans Secret
+Manager sous leur nom nu (`PAWAPAY_API_TOKEN`, `FIREBASE_PRIVATE_KEY`, …).
+Une valeur ici fait chercher `idem-api-PAWAPAY_API_TOKEN` : aucun secret ne
+serait trouvé. C'est un ancien `SECRET_PREFIX=idem-api` (sans tiret final) qui
+a laissé le secret orphelin `idem-apiFIREBASE_PROJECT_ID`, à supprimer.
 
 L'API chargera automatiquement tous les secrets depuis Secret Manager au démarrage.
 
@@ -146,9 +152,13 @@ Total : 55 secrets
 - MONGODB_URI, REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DB
 - MINIO_* (7 secrets)
 
-**API Keys (6) :**
-- GEMINI_API_KEY, DEEPSEEK_API_KEY, OPENAI_API_KEY
-- PEXELS_API_KEY, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
+**API Keys (8) :**
+- GEMINI_API_KEY, DEEPSEEK_API_KEY, OPENAI_API_KEY, GLM_API_KEY
+- PEXELS_API_KEY, GOOGLE_FONTS_API_KEY, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
+
+**Paiements (1) :**
+- PAWAPAY_API_TOKEN — jeton d'encaissement pawaPay. Les autres réglages
+  pawaPay ne sont pas des secrets et vivent dans `.env.production`.
 
 **Security (3) :**
 - SENSITIVE_VARS_ENCRYPTION_KEY

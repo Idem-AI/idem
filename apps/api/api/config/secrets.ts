@@ -75,6 +75,13 @@ const OPTIONAL_SECRETS = [
   'SMTP_PASS',
   'IDEPLOY_SHARED_SECRET',
   'ADMIN_EMAILS',
+  // Jeton d'API pawaPay (encaissement Mobile Money). Optionnel au démarrage :
+  // sans lui l'API se lève normalement, mais le client refuse de partir à la
+  // première tentative d'encaissement (`services/payments/pawapay.client.ts`).
+  // Les autres réglages pawaPay — PAWAPAY_ENV, PAWAPAY_CALLBACK_SIGNATURE,
+  // PAWAPAY_CALLBACK_IPS, PAWAPAY_PUBLIC_KEY — ne sont pas des secrets et
+  // restent dans la configuration d'environnement (.env.production).
+  'PAWAPAY_API_TOKEN',
 ] as const;
 
 let loaded = false;
