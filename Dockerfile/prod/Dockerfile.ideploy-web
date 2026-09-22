@@ -13,27 +13,7 @@ RUN npm install --legacy-peer-deps
 
 WORKDIR /app/apps/ideploy-web
 
-# Generates src/environments/environment.prod.ts from these build args — that
-# whole directory is gitignored (see scripts/set-env.js), so there is no
-# committed file for `ng build`'s production fileReplacements to pick up
-# without this. A value missing here fails the build loudly instead of
-# silently shipping a build that talks to the wrong backend.
-ARG IDEPLOY_API_URL
-ARG IDEPLOY_API_VERSION=v1
-ARG SERVICES_API_URL
-ARG SERVICES_DASHBOARD_URL
-ARG PUSHER_APP_KEY
-ARG PUSHER_HOST
-ARG PUSHER_PORT=6001
-ARG PUSHER_SCHEME=https
-ENV IDEPLOY_API_URL=${IDEPLOY_API_URL}
-ENV IDEPLOY_API_VERSION=${IDEPLOY_API_VERSION}
-ENV SERVICES_API_URL=${SERVICES_API_URL}
-ENV SERVICES_DASHBOARD_URL=${SERVICES_DASHBOARD_URL}
-ENV PUSHER_APP_KEY=${PUSHER_APP_KEY}
-ENV PUSHER_HOST=${PUSHER_HOST}
-ENV PUSHER_PORT=${PUSHER_PORT}
-ENV PUSHER_SCHEME=${PUSHER_SCHEME}
+COPY .env .env
 
 RUN npm run build
 
