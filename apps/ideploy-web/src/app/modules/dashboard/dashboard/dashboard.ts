@@ -7,6 +7,7 @@ import { ApiService } from '../../../shared/services/api.service';
 import { Application, Workspace } from '../../../shared/models/ideploy.models';
 import { techIcon } from '../../../shared/utils/tech-icon.util';
 import { appStatusDisplay } from '../../../shared/utils/app-status.util';
+import { TourService } from '../../../shared/services/tour.service';
 
 /**
  * Vercel-style overview: every application in a flat, searchable grid (each
