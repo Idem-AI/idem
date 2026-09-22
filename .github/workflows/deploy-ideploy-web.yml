@@ -38,7 +38,6 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 30m
-          envs: IDEPLOY_API_URL,SERVICES_API_URL,SERVICES_DASHBOARD_URL,PUSHER_APP_KEY,PUSHER_HOST,PUSHER_PORT,PUSHER_SCHEME
           script: |
             set -e
 
@@ -81,18 +80,11 @@ jobs:
             done
 
             # Build image — frontend env values are baked in at build time
-            # (see apps/ideploy-web/scripts/set-env.js), not read at runtime.
+            # from the server's own .env (Dockerfile.ideploy-web copies it
+            # in, same as Dockerfile.landing does for apps/landing), not
+            # read at runtime.
             echo "Building Docker image..."
-            docker build \
-              -f Dockerfile/prod/Dockerfile.ideploy-web \
-              --build-arg IDEPLOY_API_URL="$IDEPLOY_API_URL" \
-              --build-arg SERVICES_API_URL="$SERVICES_API_URL" \
-              --build-arg SERVICES_DASHBOARD_URL="$SERVICES_DASHBOARD_URL" \
-              --build-arg PUSHER_APP_KEY="$PUSHER_APP_KEY" \
-              --build-arg PUSHER_HOST="$PUSHER_HOST" \
-              --build-arg PUSHER_PORT="$PUSHER_PORT" \
-              --build-arg PUSHER_SCHEME="$PUSHER_SCHEME" \
-              -t $IMAGE_TAG .
+            docker build -f Dockerfile/prod/Dockerfile.ideploy-web -t $IMAGE_TAG .
 
             # Push image
             echo "Pushing image to registry..."
@@ -129,11 +121,3 @@ jobs:
             docker image prune -f
 
             echo "iDeploy Web deployed successfully!"
-        env:
-          IDEPLOY_API_URL: ${{ vars.IDEPLOY_API_URL }}
-          SERVICES_API_URL: ${{ vars.SERVICES_API_URL }}
-          SERVICES_DASHBOARD_URL: ${{ vars.SERVICES_DASHBOARD_URL }}
-          PUSHER_APP_KEY: ${{ secrets.PUSHER_APP_KEY }}
-          PUSHER_HOST: ${{ vars.PUSHER_HOST }}
-          PUSHER_PORT: ${{ vars.PUSHER_PORT }}
-          PUSHER_SCHEME: ${{ vars.PUSHER_SCHEME }}
