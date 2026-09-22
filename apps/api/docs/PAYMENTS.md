@@ -154,7 +154,7 @@ curl -X POST -H "x-api-key: $INTERNAL_API_KEY" -H 'Content-Type: application/jso
 
 | Variable | Rôle |
 | --- | --- |
-| `PAWAPAY_API_TOKEN` | Jeton d'API. Absent ⇒ aucun encaissement possible |
+| `PAWAPAY_API_TOKEN` | Jeton d'API. Absent ⇒ aucun encaissement possible. Seule variable pawaPay qui soit un secret : en production elle est chargée depuis Secret Manager par `config/secrets.ts` |
 | `PAWAPAY_ENV` | `sandbox` (défaut) ou `production` |
 | `PAWAPAY_CALLBACK_SIGNATURE` | `enforce`, `log` (défaut) ou `off` |
 | `PAWAPAY_CALLBACK_IPS` | Surcharge de la liste blanche (proxy, tunnel) |
@@ -342,7 +342,10 @@ important : **rejouer une livraison ne crédite pas deux fois**.
 
 ## Mise en production
 
-1. Compte pawaPay en production, jeton créé et déposé dans Secret Manager.
+1. Compte pawaPay en production, jeton créé et déposé dans Secret Manager sous
+   le nom nu `PAWAPAY_API_TOKEN` (pas de préfixe — `SECRET_PREFIX` est vide) et
+   listé dans `OPTIONAL_SECRETS` de `config/secrets.ts`, sans quoi il n'est
+   jamais lu.
 2. `PAWAPAY_ENV=production`.
 3. URL de callback déclarée : `https://api.idem.africa/billing/webhooks/pawapay/deposits`.
 4. Signature activée côté pawaPay, puis `PAWAPAY_CALLBACK_SIGNATURE=enforce`.
