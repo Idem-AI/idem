@@ -8,39 +8,47 @@ const path = require('path');
 
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Dev only: docker-compose.dev.yml's `ideploy-api`/`soketi` services both
-// read PUSHER_APP_KEY from this same repo-root file, so the browser has to
-// use the identical value or every websocket subscribe fails immediately
-// with "App key … does not exist" (code 4001) — this silently broke once
-// already (see git history on this file) from a generated key drifting out
-// of sync with a hand-edited environment.ts. Read directly rather than via
-// the `dotenv` package, which isn't one of this workspace's dependencies —
-// this file only ever needs plain `KEY=value` lines. Not required: a bare
-// host checkout without .env.dev still gets a working (if key-less) build
-// via the fallbacks below.
-if (!isProduction) {
-  const envDevPath = path.join(__dirname, '../../../.env.dev');
-  if (fs.existsSync(envDevPath)) {
-    for (const line of fs.readFileSync(envDevPath, 'utf8').split('\n')) {
-      const match = /^\s*([\w.-]+)\s*=\s*(.*)?\s*$/.exec(line);
-      if (match && !(match[1] in process.env)) {
-        process.env[match[1]] = (match[2] || '').replace(/^["']|["']$/g, '');
-      }
+// Reads plain `KEY=value` lines into process.env, never overriding a value
+// already set there (matches dotenv's own precedence: real env/build-args
+// win over the file). Not the `dotenv` package — it isn't one of this
+// workspace's dependencies, and this only ever needs the simple case.
+function loadEnvFile(envPath) {
+  if (!fs.existsSync(envPath)) return;
+  for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
+    const match = /^\s*([\w.-]+)\s*=\s*(.*)?\s*$/.exec(line);
+    if (match && !(match[1] in process.env)) {
+      process.env[match[1]] = (match[2] || '').replace(/^["']|["']$/g, '');
     }
   }
 }
 
-// In production these come from real build args (see
-// Dockerfile/prod/Dockerfile.ideploy-web and the deploy workflow) — no
-// guessed domain defaults here, unlike the dev branch below, because a wrong
-// guess would silently ship a build that talks to the wrong backend.
+if (isProduction) {
+  // Dockerfile.ideploy-web copies the server's own .env into this
+  // directory before running the build (COPY .env .env, same spot
+  // apps/landing's Dockerfile copies its .env for mynode.js to read) —
+  // load it from right here, not the repo root.
+  loadEnvFile(path.join(__dirname, '../.env'));
+} else {
+  // Dev only: docker-compose.dev.yml's `ideploy-api`/`soketi` services both
+  // read PUSHER_APP_KEY from this same repo-root file, so the browser has to
+  // use the identical value or every websocket subscribe fails immediately
+  // with "App key … does not exist" (code 4001) — this silently broke once
+  // already (see git history on this file) from a generated key drifting out
+  // of sync with a hand-edited environment.ts. Not required: a bare host
+  // checkout without .env.dev still gets a working (if key-less) build via
+  // the fallbacks below.
+  loadEnvFile(path.join(__dirname, '../../../.env.dev'));
+}
+
+// No guessed domain defaults in production, unlike the dev fallbacks below —
+// a wrong guess would silently ship a build that talks to the wrong backend.
 const requiredInProd = ['IDEPLOY_API_URL', 'SERVICES_API_URL', 'SERVICES_DASHBOARD_URL', 'PUSHER_APP_KEY'];
 if (isProduction) {
   const missing = requiredInProd.filter((v) => !process.env[v]);
   if (missing.length > 0) {
     console.error(`\n❌ Missing required environment variables for a production build:`);
     missing.forEach((v) => console.error(`   - ${v}`));
-    console.error(`\nPass them as Docker build-args (see Dockerfile/prod/Dockerfile.ideploy-web).\n`);
+    console.error(`\nSet them in the .env copied into the image, or pass them as Docker build-args (see Dockerfile/prod/Dockerfile.ideploy-web).\n`);
     process.exit(1);
   }
 }
@@ -73,6 +81,18 @@ export const environment = {
 
 const outDir = path.join(__dirname, '../src/environments');
 fs.mkdirSync(outDir, { recursive: true });
-const outFile = path.join(outDir, isProduction ? 'environment.prod.ts' : 'environment.ts');
-fs.writeFileSync(outFile, content);
-console.log(`✅ Wrote ${path.relative(process.cwd(), outFile)}`);
+
+// angular.json's `production` fileReplacements swaps environment.ts's
+// *content* for environment.prod.ts's at build time, but esbuild still
+// resolves the import against environment.ts's path first — if that file
+// doesn't physically exist, module resolution fails before the replacement
+// ever applies ("Cannot find module … environments/environment", not a
+// missing-env-var error). Verified live: a production build with every
+// required var set still failed this way, because prod mode only ever wrote
+// environment.prod.ts. Writing the same content to both makes the swap a
+// no-op either way and guarantees the path esbuild looks for always exists.
+const outFiles = isProduction ? ['environment.prod.ts', 'environment.ts'] : ['environment.ts'];
+for (const name of outFiles) {
+  fs.writeFileSync(path.join(outDir, name), content);
+}
+console.log(`✅ Wrote ${outFiles.map((f) => path.relative(process.cwd(), path.join(outDir, f))).join(', ')}`);
