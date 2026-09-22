@@ -81,6 +81,18 @@ export const environment = {
 
 const outDir = path.join(__dirname, '../src/environments');
 fs.mkdirSync(outDir, { recursive: true });
-const outFile = path.join(outDir, isProduction ? 'environment.prod.ts' : 'environment.ts');
-fs.writeFileSync(outFile, content);
-console.log(`✅ Wrote ${path.relative(process.cwd(), outFile)}`);
+
+// angular.json's `production` fileReplacements swaps environment.ts's
+// *content* for environment.prod.ts's at build time, but esbuild still
+// resolves the import against environment.ts's path first — if that file
+// doesn't physically exist, module resolution fails before the replacement
+// ever applies ("Cannot find module … environments/environment", not a
+// missing-env-var error). Verified live: a production build with every
+// required var set still failed this way, because prod mode only ever wrote
+// environment.prod.ts. Writing the same content to both makes the swap a
+// no-op either way and guarantees the path esbuild looks for always exists.
+const outFiles = isProduction ? ['environment.prod.ts', 'environment.ts'] : ['environment.ts'];
+for (const name of outFiles) {
+  fs.writeFileSync(path.join(outDir, name), content);
+}
+console.log(`✅ Wrote ${outFiles.map((f) => path.relative(process.cwd(), path.join(outDir, f))).join(', ')}`);
