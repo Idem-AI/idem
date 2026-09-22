@@ -98,7 +98,12 @@ nginx-certbot/
 # SSL/TLS Certificates and Scripts
 *-letsencrypt*.sh
 init-letsencrypt.sh
-data/
+# Anchored to the repo root on purpose: an unscoped `data/` matched every
+# directory named `data` anywhere in the tree — including
+# apps/ideploy-web/src/app/shared/data/, real source code (the whole
+# Architecture Guide feature's template definitions) that had silently never
+# been trackable by git since the day it was created.
+/data/
 
 # Docker Compose temporary files
 .docker-compose.yml
