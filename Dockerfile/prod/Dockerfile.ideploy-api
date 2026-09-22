@@ -53,13 +53,20 @@ WORKDIR /app
 
 ENV NODE_ENV=${BUILD_ENV:-production}
 
-# Copy the compiled app and its own package.json (needed for `npm run
-# migrate:*` operational scripts on the server; the app itself is started
-# directly with `node`, not `npm start`).
+# Copy the compiled app and its own package.json — needed both for `npm run
+# migrate:*` operational scripts on the server, and because CMD itself now
+# starts the app via `npm run start:provisioned`, not a bare `node ...`.
 COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/package*.json ./
 COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/dist ./dist
 COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/prisma ./prisma
 COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/migrations ./migrations
+
+# Automatic DB provisioning (see scripts/provision-db.js's own doc comment):
+# a fresh database has no Laravel around anymore to have created the base
+# schema, so the CMD below bootstraps it from this snapshot before every
+# server start — a no-op once the schema already exists.
+COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/scripts/provision-db.js ./scripts/provision-db.js
+COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/tests/schema.sql ./tests/schema.sql
 
 # node_modules mostly land at the workspace root in this monorepo's npm
 # install, but hoisting isn't guaranteed for every package — verified live:
@@ -79,4 +86,4 @@ USER ideployapi
 
 EXPOSE 3002
 
-CMD ["node", "dist/index.js"]
+CMD ["npm", "run", "start:provisioned"]
