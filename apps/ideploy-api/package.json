@@ -13,7 +13,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "db:provision": "node scripts/provision-db.js",
-    "start:provisioned": "npm run db:provision && npm run migrate:up && node dist/index.js",
+    "start:provisioned": "bash scripts/start-provisioned.sh",
     "migrate:up": "node-pg-migrate -m migrations -t pgmigrations --ignore-pattern '(\\..*|.*\\.md)' up",
     "migrate:down": "node-pg-migrate -m migrations -t pgmigrations --ignore-pattern '(\\..*|.*\\.md)' down",
     "migrate:status": "node-pg-migrate -m migrations -t pgmigrations --ignore-pattern '(\\..*|.*\\.md)' --dry-run up",

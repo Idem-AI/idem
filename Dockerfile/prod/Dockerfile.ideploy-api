@@ -66,6 +66,7 @@ COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/migrations .
 # schema, so the CMD below bootstraps it from this snapshot before every
 # server start — a no-op once the schema already exists.
 COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/scripts/provision-db.js ./scripts/provision-db.js
+COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/scripts/start-provisioned.sh ./scripts/start-provisioned.sh
 COPY --from=builder --chown=ideployapi:nodejs /app/apps/ideploy-api/tests/schema.sql ./tests/schema.sql
 
 # node_modules mostly land at the workspace root in this monorepo's npm
