@@ -34,7 +34,22 @@ const path = require('path');
 const { Pool } = require('pg');
 
 async function main() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  // Mirrors api/config/db.config.ts's own connection exactly, rather than
+  // requiring DATABASE_URL — verified live in production that this is the
+  // actual gap: the app's own pool has always connected fine off these
+  // individual IDEPLOY_DB_* vars, but nothing in the automatic startup path
+  // needed DATABASE_URL before this script, so it was never configured
+  // there. DATABASE_URL still wins if it *is* set (matches node-pg-migrate
+  // and Prisma, which only ever read that one).
+  const pool = process.env.DATABASE_URL
+    ? new Pool({ connectionString: process.env.DATABASE_URL })
+    : new Pool({
+        host: process.env.IDEPLOY_DB_HOST || 'localhost',
+        port: parseInt(process.env.IDEPLOY_DB_PORT || '5432', 10),
+        database: process.env.IDEPLOY_DB_DATABASE || 'ideploy',
+        user: process.env.IDEPLOY_DB_USERNAME || 'ideploy',
+        password: process.env.IDEPLOY_DB_PASSWORD || 'password',
+      });
 
   const { rows } = await pool.query("SELECT to_regclass('public.servers') AS exists");
   if (rows[0].exists) {
@@ -82,6 +97,11 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('[provision-db] FAILED:', err.message);
+  // A bare err.message was silently empty for whatever actually failed in
+  // production once — logging the whole error object (code, detail, stack)
+  // instead means a real next failure is actually debuggable from `docker
+  // logs` alone.
+  console.error('[provision-db] FAILED:', err && err.message ? err.message : err);
+  if (err && err.stack) console.error(err.stack);
   process.exit(1);
 });
