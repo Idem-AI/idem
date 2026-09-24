@@ -321,6 +321,27 @@ export const analyseProjectController = async (
   }
 };
 
+/**
+ * Ce dont le moteur disposera pour ce projet, avant toute lecture.
+ *
+ * Interrogé par l'écran de lancement pour prévenir des entrées manquantes tant
+ * qu'il est encore temps de les produire. Gratuit et sans modèle : la réponse
+ * ne fait que compter ce que le projet porte déjà.
+ */
+export const getProjectInputsController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const context = requireContext(req, res);
+  if (!context) return;
+
+  try {
+    res.status(200).json(await simulationService.getProjectInputs(context.userId, context.projectId));
+  } catch (error: any) {
+    handleError(res, error, 'getProjectInputs');
+  }
+};
+
 export const getPricingController = async (req: CustomRequest, res: Response): Promise<void> => {
   const userId = req.user?.uid;
   if (!userId) {

@@ -152,7 +152,7 @@ const INVESTOR_PROFILES: InvestorProfile[] = ['growth', 'impact', 'technology', 
  * sans qu'aucune trace n'explique pourquoi. Toute évolution de la forme
  * attendue incrémente ce nombre.
  */
-const UNDERSTANDING_SCHEMA_VERSION = 3;
+const UNDERSTANDING_SCHEMA_VERSION = 4;
 
 /** Ce que la lecture peut recevoir sans dépasser ce que le contexte supporte. */
 const MAX_EXTRAS = 8;
@@ -657,7 +657,66 @@ Pays: ${project.additionalInfos?.country ?? 'non précisé'}
 Ville: ${project.additionalInfos?.city ?? 'non précisée'}
 
 LIVRABLES DISPONIBLES:
-${JSON.stringify(deliverables, null, 2)}`;
+${JSON.stringify(deliverables, null, 2)}
+
+STRATÉGIE DE COMMUNICATION:
+${this.describeCommunication(analysis)}`;
+  }
+
+  /**
+   * La stratégie de communication du projet, en quelques lignes.
+   *
+   * Elle ne part pas en JSON brut comme les autres livrables, et ce n'est pas
+   * une question de goût : `analysisResultModel.communication` porte aussi les
+   * visuels produits — du HTML Tailwind sur une ligne, des URL d'images, une
+   * conversation d'atelier entière. Tronquer l'objet à quatre mille caractères
+   * enverrait donc le balisage d'un flyer et rien de la stratégie.
+   *
+   * Ce qui compte ici tient en trois choses, et ce sont les seules extraites :
+   * le positionnement et le ton (qui disent à qui l'on parle), les CANAUX et la
+   * CADENCE (qui disent comment les clients arrivent, donc ce que coûte une
+   * acquisition et à quel rythme elle peut monter). Les canaux sont relus sur
+   * les périodes planifiées en plus des blocs : une stratégie raconte ce qu'on
+   * aimerait faire, un planning dit ce qui est réellement prévu.
+   */
+  private describeCommunication(analysis: any): string {
+    const communication = analysis?.communication;
+    const strategy = communication?.strategy;
+    const lines: string[] = [];
+
+    const summary = String(strategy?.summary ?? '').trim();
+    if (summary) {
+      lines.push(`Résumé: ${truncate(summary, 500)}`);
+    }
+
+    const blocks = (strategy?.blocks ?? []) as { kind?: string; title?: string; body?: string }[];
+    for (const block of blocks) {
+      const body = String(block?.body ?? '').trim();
+      if (!body) continue;
+      lines.push(`${block.kind || block.title || 'bloc'}: ${truncate(body, 500)}`);
+    }
+
+    // Les périodes archivées décrivent un passé : elles ne disent rien de
+    // l'effort d'acquisition que le projet s'apprête à consentir.
+    const plans = (communication?.plans ?? []) as {
+      status?: string;
+      postsPerWeek?: number;
+      channels?: string[];
+    }[];
+    const live = plans.filter((plan) => plan?.status !== 'archived');
+    if (live.length > 0) {
+      const channels = [...new Set(live.flatMap((plan) => plan.channels ?? []))];
+      const cadence = Math.max(...live.map((plan) => plan.postsPerWeek ?? 0));
+      lines.push(`Périodes de communication planifiées: ${live.length}`);
+      if (channels.length > 0) {
+        lines.push(`Canaux effectivement retenus: ${channels.join(', ')}`);
+      }
+      if (cadence > 0) {
+        lines.push(`Cadence prévue: ${cadence} publication(s) par semaine`);
+      }
+    }
+
+    return lines.length > 0 ? lines.join('\n') : 'non disponible';
   }
 
   /**

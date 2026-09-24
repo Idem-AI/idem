@@ -36,6 +36,13 @@ import { getSocialConnector } from '../Connectors/social-providers.config';
 import { AssistedShare } from '../Connectors/social-connector.interface';
 import { cacheService } from '../cache.service';
 
+import { findDocument } from '../common/deliverable-documents';
+import {
+  MissingProjectInputsError,
+  STRATEGY_REQUIRED_INPUTS,
+  assessProjectInputs,
+  missingAmong,
+} from '../common/project-inputs';
 import { GenericService } from '../common/generic.service';
 import { AIChatMessage, PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG, FeatureAIConfig } from '../../config/ai.config';
@@ -92,7 +99,10 @@ export type CommunicationStreamEvent =
   | { type: 'step-start'; step: string }
   | { type: 'step-complete'; step: string; payload: any }
   | { type: 'complete'; payload: CommunicationModel }
-  | { type: 'error'; message: string };
+  // `code` et `missing` ne sont renseignés que pour les refus que l'interface
+  // sait traiter — aujourd'hui l'absence des livrables dont la stratégie
+  // dérive. Une panne reste un message, sans code.
+  | { type: 'error'; message: string; code?: string; missing?: readonly string[] };
 
 /**
  * Traduit une entrée de `ai.config.ts` en `PromptConfig` complet.
@@ -522,6 +532,15 @@ export class CommunicationService extends GenericService {
     opts: { force?: boolean; streamCallback?: (e: CommunicationStreamEvent) => Promise<void> } = {}
   ): Promise<CommunicationStrategy> {
     logger.info(`[Communication] Generating strategy`, { userId, projectId, force: opts.force });
+
+    // Avant tout appel de modèle : la stratégie dérive du business plan et des
+    // prévisions financières, et sans eux il n'y a rien à en déduire.
+    const project = await this.getProject(projectId, userId);
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+    this.assertStrategyInputs(project);
+
     const stream = opts.streamCallback;
     await stream?.({ type: 'step-start', step: 'context' });
     const context = await this.extractContext(userId, projectId);
@@ -531,11 +550,17 @@ export class CommunicationService extends GenericService {
     const trends = await this.getTrendSignals(userId, projectId, context);
     await stream?.({ type: 'step-complete', step: 'trends', payload: trends });
 
+    // Les chiffres du projet, tels quels. Le contexte extrait est volontairement
+    // minuscule — dix champs, aucun montant : il ne peut pas porter un prix ni
+    // un budget, et une stratégie qui ne les connaît pas propose des canaux que
+    // le projet ne peut pas payer.
+    const foundations = this.buildStrategyFoundations(project);
+
     const cacheKey = cacheService.generateAIKey(
       'communication-strategy',
       userId,
       projectId,
-      this.shortHash({ context, trendIds: trends.map((t) => t.id) })
+      this.shortHash({ context, foundations, trendIds: trends.map((t) => t.id) })
     );
     if (!opts.force) {
       const cached = await cacheService.get<CommunicationStrategy>(cacheKey, {
@@ -556,6 +581,7 @@ export class CommunicationService extends GenericService {
         content:
           'CONTEXT:\n' +
           JSON.stringify(context) +
+          (foundations ? `\n\n${foundations}` : '') +
           '\n\nTRENDS:\n' +
           JSON.stringify(trends.map((t) => ({ label: t.label, description: t.description }))),
       },
@@ -2755,7 +2781,149 @@ export class CommunicationService extends GenericService {
         );
       }
     }
+
+    // Les deux livrables dont la stratégie DÉRIVE. Le résumé du projet ne
+    // portait que sa fiche : la proposition de valeur et la cible extraites
+    // décrivaient donc une marque, jamais un commerce — elles ignoraient ce qui
+    // est vendu, à quel prix, et avec quels moyens.
+    const foundations = this.buildStrategyFoundations(project);
+    if (foundations) parts.push(`\n${foundations}`);
+
     return parts.join('\n');
+  }
+
+  /**
+   * Le business plan et les prévisions financières, en quelques lignes.
+   *
+   * Envoyé à l'extraction du contexte ET à l'écriture de la stratégie : le
+   * premier appel en tire une proposition de valeur et une cible justes, le
+   * second a besoin des CHIFFRES eux-mêmes — un contexte tient en dix champs,
+   * il ne transporte ni prix ni budget. `assertStrategyInputs` garantit que ces
+   * deux blocs sont là quand la stratégie s'écrit.
+   */
+  private buildStrategyFoundations(project: ProjectModel): string | null {
+    const blocks: string[] = [];
+
+    const plan = this.summarizeBusinessPlanForStrategy(project);
+    if (plan) blocks.push(`BUSINESS PLAN (what is actually sold, to whom):\n${plan}`);
+
+    const finance = this.summarizeFinanceForStrategy(project);
+    if (finance) blocks.push(`FINANCIAL FORECAST (the means and the figures):\n${finance}`);
+
+    return blocks.length > 0 ? blocks.join('\n\n') : null;
+  }
+
+  /**
+   * Les sections du business plan qui disent à qui l'on parle et de quoi.
+   *
+   * On ne prend QUE les résumés, et seulement des sections utiles à une
+   * stratégie de communication : le document entier pèse plusieurs dizaines de
+   * milliers de caractères, et la trésorerie prévisionnelle n'apprend rien à
+   * qui doit choisir un ton et des canaux.
+   */
+  private summarizeBusinessPlanForStrategy(project: ProjectModel): string | null {
+    const plan = findDocument(project.analysisResultModel ?? null, 'businessPlan');
+    if (!plan) return null;
+
+    const wanted =
+      /(r[ée]sum[ée]|synth[èe]se|executive|march[ée]|client|concurrence|offre|produit|service|proposition|valeur|business model|mod[èe]le|strat[ée]gie|commercial|marketing)/i;
+    const lines: string[] = [];
+    for (const section of plan.sections ?? []) {
+      const summary = String(section?.summary ?? '').trim();
+      if (!summary || !wanted.test(section?.name ?? '')) continue;
+      lines.push(`- ${section.name}: ${summary.slice(0, 600)}`);
+      if (lines.length >= 8) break;
+    }
+    return lines.length > 0 ? lines.join('\n') : null;
+  }
+
+  /**
+   * Les chiffres qu'une stratégie de communication doit respecter.
+   *
+   * Un panier moyen de 2 000 F et un panier de 2 000 000 F n'appellent ni le
+   * même ton, ni les mêmes canaux, ni la même cadence — et une stratégie qui
+   * ignore le budget de communication réellement provisionné propose des
+   * campagnes que le projet ne peut pas payer. Les tableaux mensuels ne partent
+   * jamais : seulement les totaux.
+   */
+  private summarizeFinanceForStrategy(project: ProjectModel): string | null {
+    const finance = project.analysisResultModel?.finance;
+    if (!finance) return null;
+
+    const currency = finance.meta?.currency || project.currency || 'XAF';
+    const lines: string[] = [];
+
+    const products = (finance.products ?? []).slice(0, 6);
+    if (products.length > 0) {
+      lines.push(
+        `- Offer and prices (${currency}): ${products
+          .map((product: any) => `${product?.name ?? 'produit'} @ ${product?.unitPrice ?? '?'}`)
+          .join(' · ')}`
+      );
+    }
+
+    const yearlyRevenue = finance.computed?.revenue?.yearlyTotal;
+    if (Array.isArray(yearlyRevenue) && yearlyRevenue.length > 0) {
+      lines.push(`- Projected yearly revenue (${currency}): ${yearlyRevenue.join(' · ')}`);
+    }
+
+    // Le poste de communication, quand il existe dans les charges fixes : c'est
+    // la borne de ce que la stratégie peut proposer.
+    const marketingBudget = this.marketingBudgetOf(finance);
+    if (marketingBudget !== null) {
+      lines.push(`- Monthly marketing / communication budget (${currency}): ${marketingBudget}`);
+    }
+
+    return lines.length > 0 ? lines.join('\n') : null;
+  }
+
+  /**
+   * Le budget de communication lu dans les charges fixes, `null` s'il n'y en a
+   * pas. Reconnu sur le libellé : le modèle Finance n'a pas de poste dédié.
+   */
+  private marketingBudgetOf(finance: any): number | null {
+    const lines = Object.values(finance?.fixedCharges ?? {})
+      .flat()
+      .filter((line): line is Record<string, unknown> => !!line && typeof line === 'object');
+
+    let total = 0;
+    let found = false;
+    for (const line of lines) {
+      const label = String(line['label'] ?? line['name'] ?? '');
+      if (!/(communicat|marketing|publicit|pub\b|advertis)/i.test(label)) continue;
+      const amount = Number(line['monthlyAmount'] ?? line['amount'] ?? 0);
+      if (!Number.isFinite(amount)) continue;
+      total += amount;
+      found = true;
+    }
+    return found ? Math.round(total) : null;
+  }
+
+  /**
+   * Refuse d'écrire une stratégie de communication sans ses deux entrées.
+   *
+   * Ce n'est pas une précaution de forme. Une stratégie produite sur la seule
+   * fiche du projet est plausible et creuse : elle invente un positionnement
+   * sans savoir ce qui est vendu, et propose des campagnes sans savoir ce qui
+   * peut être dépensé. Or tout le module en DÉRIVE — chaque période y prend son
+   * angle, chaque visuel son ton. Une boussole fausse fait dévier tout ce qui
+   * la suit, et l'utilisateur paie chacune de ces dérives.
+   *
+   * @throws MissingProjectInputsError avec la liste, pour que l'interface
+   * nomme ce qui manque et y conduise.
+   */
+  private assertStrategyInputs(project: ProjectModel): void {
+    const { inputs } = assessProjectInputs(project);
+    const missing = missingAmong(inputs, STRATEGY_REQUIRED_INPUTS);
+    if (missing.length === 0) return;
+
+    logger.info(`[Communication] Strategy refused, missing inputs: ${missing.join(', ')}`, {
+      projectId: project.id,
+    });
+    throw new MissingProjectInputsError(
+      missing,
+      "La stratégie de communication se déduit du business plan et des prévisions financières. Générez-les d'abord : sans eux, la stratégie décrirait une marque, pas votre activité."
+    );
   }
 
   private hashProjectForContext(project: ProjectModel): string {
@@ -2789,10 +2957,43 @@ export class CommunicationService extends GenericService {
           // pris pendant deux heures.
           artDirection: project.analysisResultModel?.branding?.artDirection?.styleId,
           logo: logoFingerprint,
+          // Le business plan et les prévisions nourrissent désormais le résumé
+          // envoyé au modèle : sans eux dans l'empreinte, compléter son plan
+          // laissait le contexte — donc la stratégie et le ton des visuels —
+          // calé sur la fiche projet seule pendant deux heures.
+          plan: this.businessPlanFingerprint(project),
+          finance: this.financeFingerprint(project),
         })
       )
       .digest('hex')
       .substring(0, 16);
+  }
+
+  /**
+   * Empreinte du business plan : ce qui change quand son contenu change.
+   *
+   * On ne hache pas le document — plusieurs dizaines de milliers de caractères
+   * à chaque lecture de contexte. Le nombre de sections remplies et la date de
+   * dernière écriture suffisent à dater une régénération.
+   */
+  private businessPlanFingerprint(project: ProjectModel): string | null {
+    const plan = findDocument(project.analysisResultModel ?? null, 'businessPlan');
+    if (!plan) return null;
+    const filled = (plan.sections ?? []).filter(
+      (section) => String(section?.summary ?? '').trim().length > 0
+    ).length;
+    return `${filled}:${new Date(plan.updatedAt ?? 0).getTime()}`;
+  }
+
+  /** Même principe pour les prévisions financières. */
+  private financeFingerprint(project: ProjectModel): string | null {
+    const finance = project.analysisResultModel?.finance;
+    if (!finance) return null;
+    return [
+      (finance.products ?? []).length,
+      (finance.salesObjectives ?? []).length,
+      new Date(finance.updatedAt ?? 0).getTime(),
+    ].join(':');
   }
 
   /**

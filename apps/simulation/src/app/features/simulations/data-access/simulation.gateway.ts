@@ -5,6 +5,7 @@ import {
   SimulationTier,
   LabName,
   LinkedProject,
+  ProjectInputs,
   ProjectUnderstanding,
   Simulation,
   SimulationConsent,
@@ -43,6 +44,17 @@ export interface ReportDownload {
 export abstract class SimulationGateway {
   /** Projets IDEM que l'utilisateur connecté peut simuler. */
   abstract listProjects(): Observable<LinkedProject[]>;
+
+  /**
+   * Dit lesquels des trois livrables d'appui — business plan, prévisions
+   * financières, stratégie de communication — le projet porte déjà.
+   *
+   * Gratuit, sans modèle : c'est un comptage sur le projet. Interrogé AVANT la
+   * lecture, pour que l'écran puisse prévenir tant qu'il est encore temps de
+   * produire ce qui manque — le signaler après coup reviendrait à dire à
+   * l'utilisateur, le travail fait, qu'il aurait pu être meilleur.
+   */
+  abstract getProjectInputs(projectId: string): Observable<ProjectInputs>;
 
   /**
    * Lit le projet et renvoie ce qui est su, à chercher, incertain ou manquant.
