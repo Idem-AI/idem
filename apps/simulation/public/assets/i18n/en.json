@@ -698,5 +698,27 @@
         "body": "A simulation is a costed hypothesis, not a prediction. It is up to you to put it to the test."
       }
     }
+  },
+  "inputs": {
+    "heading": "Three deliverables make a simulation realistic",
+    "subtitle": "Your project does not carry all three yet. The engine will still run, but it will have to estimate what is missing — and a scenario built on estimates is worth exactly what those estimates are worth.",
+    "illustrationAlt": "Three deliverables feed the projection; the missing ones leave it trailing off into dashes.",
+    "note": "Nothing is blocked: you can start the reading now. The report will state, line by line, what was estimated for lack of a source.",
+    "continueAnyway": "Continue anyway",
+    "complete": "Complete the project",
+    "item": {
+      "businessPlan": {
+        "label": "Business plan",
+        "effect": "Without it, the offer, the market and the business model are inferred from the project description."
+      },
+      "finance": {
+        "label": "Financial forecast",
+        "effect": "Without it, prices, costs and starting capital are estimated from the sector and the country."
+      },
+      "communication": {
+        "label": "Communication strategy",
+        "effect": "Without it, customer acquisition cost and growth pace are assumed — the two figures that decide your break-even date."
+      }
+    }
   }
 }

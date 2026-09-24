@@ -9,6 +9,7 @@ import {
   deleteSimulationController,
   generateReportController,
   getPricingController,
+  getProjectInputsController,
   downloadReportPdfController,
   getReportController,
   getSimulationController,
@@ -151,6 +152,32 @@ simulationRoutes.get(`/${resource}/:projectId`, authenticate, listSimulationsCon
  *       '200': { description: Available plans }
  */
 simulationRoutes.get(`/${resource}/:projectId/pricing`, authenticate, getPricingController);
+
+/**
+ * @openapi
+ * /project/simulations/{projectId}/inputs:
+ *   get:
+ *     tags: [Simulation]
+ *     summary: Which simulation inputs the project already carries
+ *     description: >
+ *       Reports the presence of the three deliverables a realistic run relies
+ *       on — business plan, financial forecast, communication strategy — so the
+ *       launch screen can warn before anything is read or billed. No model call
+ *       and no quota: the answer only counts what the project already holds.
+ *       None of the three is mandatory; a run on the bare project description
+ *       stays possible, simply more hypothetical.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       '200':
+ *         description: Presence of each input, and the list of the missing ones
+ *       '404': { description: Project not found }
+ */
+simulationRoutes.get(`/${resource}/:projectId/inputs`, authenticate, getProjectInputsController);
 
 /**
  * @openapi

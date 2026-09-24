@@ -1,0 +1,166 @@
+:host {
+  display: block;
+}
+
+.si-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.si-panel {
+  display: flex;
+  width: 100%;
+  max-width: 32rem;
+  max-height: 90dvh;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 1.6rem;
+  animation: si-rise 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes si-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* L'illustration suit le texte courant : les traits neutres sont tracés en
+   `currentColor`, les deux thèmes sont donc couverts sans seconde palette. */
+.si-illustration {
+  align-self: center;
+  width: 100%;
+  max-width: 19rem;
+  height: 6rem;
+  color: var(--color-text-primary);
+}
+
+.si-title {
+  margin-top: 1.2rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+}
+
+.si-subtitle {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.si-list {
+  margin-top: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  list-style: none;
+  padding: 0;
+}
+
+.si-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 0.85rem;
+  background: var(--color-surface-2);
+  padding: 0.8rem 0.9rem;
+}
+
+/* Un livrable déjà là reste dans la liste, en retrait : voir ce qui est acquis
+   à côté de ce qui manque dit combien il reste de chemin. */
+.si-item-done {
+  opacity: 0.62;
+}
+
+.si-item-mark {
+  display: inline-flex;
+  height: 1.5rem;
+  width: 1.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  margin-top: 0.1rem;
+  font-size: 0.65rem;
+  background: color-mix(in srgb, var(--color-warning) 16%, transparent);
+  color: var(--color-warning);
+}
+
+.si-item-done .si-item-mark {
+  background: color-mix(in srgb, var(--color-success) 16%, transparent);
+  color: var(--color-success);
+}
+
+.si-item-text {
+  min-width: 0;
+}
+
+.si-item-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.si-item-effect {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.si-actions {
+  margin-top: 1.4rem;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 0.6rem;
+}
+
+@media (min-width: 30rem) {
+  .si-actions {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+/* « Plus tard » reste offert, en retrait : la stratégie n'est pas urgente, mais
+   ce n'est pas ce que l'écran recommande. */
+.si-later {
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+  transition: color var(--duration-150, 150ms) ease;
+}
+
+.si-later:hover {
+  color: var(--color-text-primary);
+}
+
+.si-primary {
+  font-size: 0.875rem;
+  padding: 0.7rem 1.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .si-panel {
+    animation: none;
+  }
+}

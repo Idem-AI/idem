@@ -1,5 +1,6 @@
 import {
   ApplicationConfig,
+  provideAppInitializer,
   provideBrowserGlobalErrorListeners,
   provideZoneChangeDetection,
   importProvidersFrom,
@@ -20,11 +21,16 @@ import { paymentRequiredInterceptor } from './shared/interceptors/payment-requir
 import { MyPreset } from './my-preset';
 import { provideMarkdown, MARKED_OPTIONS, MERMAID_OPTIONS } from 'ngx-markdown';
 import { CustomTitleStrategy } from './shared/services/custom-title-strategy';
+import { adoptIncomingProject } from './shared/services/incoming-project';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
+    // Avant le routage : un lien entrant d'une autre application IDEM peut
+    // désigner le projet à ouvrir, et les pages lisent le cookie dès leur
+    // initialisation.
+    provideAppInitializer(adoptIncomingProject),
     provideRouter(routes),
     { provide: TitleStrategy, useClass: CustomTitleStrategy },
     // `paymentRequiredInterceptor` après l'authentification : un 402 n'a de

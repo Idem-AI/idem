@@ -357,6 +357,26 @@
           "compose": "J’assemble à vos couleurs",
           "check": "Je vérifie le résultat"
         }
+      },
+      "strategyInputs": {
+        "heading": "Votre façon de communiquer se déduit de deux livrables",
+        "subtitle": "Elle ne s'invente pas : le business plan dit ce que vous vendez et à qui, les prévisions financières donnent vos prix et vos moyens. Sans eux, la stratégie décrirait une marque, pas votre activité — et tout ce qui en découle ensuite, plannings et visuels, hériterait de cette erreur.",
+        "illustrationAlt": "Deux livrables alimentent la boussole de la marque ; sans eux, l'aiguille reste sans direction.",
+        "later": "Plus tard",
+        "goTo": {
+          "businessPlan": "Générer mon business plan",
+          "finance": "Compléter mes prévisions"
+        },
+        "item": {
+          "businessPlan": {
+            "label": "Business plan",
+            "effect": "Il donne le positionnement, le marché et la concurrence — de quoi fonder un angle qui vous distingue vraiment."
+          },
+          "finance": {
+            "label": "Prévisions financières",
+            "effect": "Elles donnent vos prix et votre budget de communication — de quoi proposer des canaux que vous pouvez réellement financer."
+          }
+        }
       }
     }
   }

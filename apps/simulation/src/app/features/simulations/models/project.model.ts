@@ -125,6 +125,27 @@ export interface LinkedProject {
   updatedAt: string;
 }
 
+/**
+ * Les trois livrables sur lesquels une simulation s'appuie, dans l'ordre où un
+ * projet les produit.
+ *
+ * Chacun répond à une question que les deux autres ne posent pas : le business
+ * plan dit ce qui est vendu et à qui, les prévisions donnent les prix et les
+ * charges, la stratégie de communication dit par quels canaux les clients
+ * arrivent — donc ce que coûte une acquisition et à quel rythme elle monte.
+ * Sans le troisième, le moteur devait inventer les deux paramètres qui décident
+ * à eux seuls de la date d'équilibre.
+ */
+export const PROJECT_INPUT_KEYS = ['businessPlan', 'finance', 'communication'] as const;
+
+export type ProjectInputKey = (typeof PROJECT_INPUT_KEYS)[number];
+
+/** État renvoyé par l'API : vrai par livrable présent, plus la liste des absents. */
+export interface ProjectInputs {
+  inputs: Record<ProjectInputKey, boolean>;
+  missing: ProjectInputKey[];
+}
+
 /** Les quatre états, dans l'ordre où ils se lisent. */
 const KNOWLEDGE_ORDER: readonly KnowledgeState[] = [
   'known',
