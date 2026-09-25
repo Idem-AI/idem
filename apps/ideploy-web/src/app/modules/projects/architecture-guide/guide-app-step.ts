@@ -83,7 +83,7 @@ interface Preset {
             </button>
           </div>
         } @else {
-          <input class="input font-mono text-xs" [ngModel]="repoQuery()" (ngModelChange)="repoQuery.set($event)" [placeholder]="'projects.new.searchReposPlaceholder' | translate" />
+          <input type="text" class="font-mono text-xs" [ngModel]="repoQuery()" (ngModelChange)="repoQuery.set($event)" [placeholder]="'projects.new.searchReposPlaceholder' | translate" />
           @if (filteredRepos().length === 0) {
             <div class="glass-card p-6 text-center text-sm" style="color:var(--color-text-secondary);">{{ 'projects.new.noRepos' | translate }}</div>
           } @else {
@@ -111,7 +111,7 @@ interface Preset {
 
         <div>
           <label class="mb-1 block text-sm font-semibold">{{ 'projects.import.applicationName' | translate }}</label>
-          <input class="input" [ngModel]="projectName()" (ngModelChange)="projectName.set($event)" autocomplete="off" />
+          <input type="text"  [ngModel]="projectName()" (ngModelChange)="projectName.set($event)" autocomplete="off" />
         </div>
 
         @if (detecting()) {
@@ -135,7 +135,7 @@ interface Preset {
           <div class="space-y-1.5 rounded-xl p-3 border text-sm" style="border-color:var(--color-surface-2);">
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="radio" name="guideAppBuildMethod" [checked]="buildMethod() === 'docker'" (change)="buildMethod.set('docker')" />
-              <span><i class="pi pi-box mr-1 text-blue-400"></i>{{ 'projects.import.useDocker' | translate }}</span>
+              <span><i class="pi pi-box mr-1 text-primary-400"></i>{{ 'projects.import.useDocker' | translate }}</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="radio" name="guideAppBuildMethod" [checked]="buildMethod() === 'buildless'" (change)="buildMethod.set('buildless')" />
@@ -159,7 +159,7 @@ interface Preset {
 
         <div>
           <label class="mb-1 block text-sm font-semibold">{{ 'projects.import.rootDirectory' | translate }}</label>
-          <input class="input font-mono" [ngModel]="rootDir()" (ngModelChange)="onRootDirEdit($event)" placeholder="./" autocomplete="off" />
+          <input type="text" class="font-mono" [ngModel]="rootDir()" (ngModelChange)="onRootDirEdit($event)" placeholder="./" autocomplete="off" />
           @if (rootDirAutoDetected()) {
             <p class="mt-1 text-xs" style="color:#4ade80;"><i class="pi pi-check mr-1"></i>{{ 'projects.import.detectedFromRepo' | translate }}</p>
           }
@@ -183,10 +183,10 @@ interface Preset {
         </button>
         @if (showBuild()) {
           <div class="space-y-3 px-1">
-            <input class="input font-mono" [ngModel]="installCommand()" (ngModelChange)="installCommand.set($event)" [placeholder]="'projects.import.installCommandPlaceholder' | translate" autocomplete="off" />
-            <input class="input font-mono" [ngModel]="buildCommand()" (ngModelChange)="buildCommand.set($event)" [placeholder]="'projects.import.buildCommandPlaceholder' | translate" autocomplete="off" />
-            <input class="input font-mono" [ngModel]="startCommand()" (ngModelChange)="onStartCommandEdit($event)" [placeholder]="'projects.import.startCommandPlaceholder' | translate" autocomplete="off" />
-            <input class="input font-mono" [ngModel]="portsExposes()" (ngModelChange)="onPortEdit($event)" [placeholder]="'projects.import.portPlaceholder' | translate" autocomplete="off" />
+            <input type="text" class="font-mono" [ngModel]="installCommand()" (ngModelChange)="installCommand.set($event)" [placeholder]="'projects.import.installCommandPlaceholder' | translate" autocomplete="off" />
+            <input type="text" class="font-mono" [ngModel]="buildCommand()" (ngModelChange)="buildCommand.set($event)" [placeholder]="'projects.import.buildCommandPlaceholder' | translate" autocomplete="off" />
+            <input type="text" class="font-mono" [ngModel]="startCommand()" (ngModelChange)="onStartCommandEdit($event)" [placeholder]="'projects.import.startCommandPlaceholder' | translate" autocomplete="off" />
+            <input type="text" class="font-mono" [ngModel]="portsExposes()" (ngModelChange)="onPortEdit($event)" [placeholder]="'projects.import.portPlaceholder' | translate" autocomplete="off" />
           </div>
         }
 
@@ -208,9 +208,9 @@ interface Preset {
                 @for (row of envRows(); track $index; let i = $index) {
                   <div>
                     <div class="flex items-center gap-2">
-                      <input class="input font-mono flex-1" style="min-width:0;" [value]="row.key" (input)="updateEnvKey(i, $any($event.target).value)" autocomplete="off" />
+                      <input type="text" class="font-mono flex-1 !w-auto min-w-0" style="min-width:0;" [value]="row.key" (input)="updateEnvKey(i, $any($event.target).value)" autocomplete="off" />
                       <div class="relative flex-1" style="min-width:0;">
-                        <input class="input font-mono w-full pr-9" [attr.type]="row.reveal ? 'text' : 'password'" [value]="row.value" (input)="updateEnvValue(i, $any($event.target).value)" autocomplete="off" />
+                        <input type="text" class="font-mono !w-full pr-9" [attr.type]="row.reveal ? 'text' : 'password'" [value]="row.value" (input)="updateEnvValue(i, $any($event.target).value)" autocomplete="off" />
                         <button type="button" class="absolute top-1/2 right-2.5 -translate-y-1/2" style="color:var(--color-text-tertiary);" (click)="toggleReveal(i)">
                           <i class="pi text-xs" [class.pi-eye]="!row.reveal" [class.pi-eye-slash]="row.reveal"></i>
                         </button>

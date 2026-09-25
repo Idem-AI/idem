@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { S3Storage } from '../../../shared/models/ideploy.models';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state';
 
 /**
  * S3-compatible storages — where scheduled backups are copied off-server.
@@ -13,7 +14,7 @@ import { S3Storage } from '../../../shared/models/ideploy.models';
  */
 @Component({
   selector: 'app-storages-list',
-  imports: [ReactiveFormsModule, TranslateModule],
+  imports: [ReactiveFormsModule, TranslateModule, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h1 class="heading-serif mb-6" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
@@ -27,7 +28,7 @@ import { S3Storage } from '../../../shared/models/ideploy.models';
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <div>
         @if (storages().length === 0) {
-          <div class="glass-card p-4">{{ 'storages.empty' | translate }}</div>
+          <div class="glass-card"><app-empty-state kind="store" [title]="'storages.empty' | translate" /></div>
         } @else {
           <div class="space-y-3">
             @for (s of storages(); track s.uuid) {
@@ -52,30 +53,30 @@ import { S3Storage } from '../../../shared/models/ideploy.models';
         <h2 class="text-sm font-semibold">{{ 'storages.newStorage' | translate }}</h2>
         <div>
           <label class="mb-1 block text-sm" for="s3-name">{{ 'storages.name' | translate }}</label>
-          <input class="input" id="s3-name" formControlName="name" />
+          <input type="text"  id="s3-name" formControlName="name" />
         </div>
         <div>
           <label class="mb-1 block text-sm" for="s3-bucket">{{ 'storages.bucket' | translate }}</label>
-          <input class="input" id="s3-bucket" formControlName="bucket" />
+          <input type="text"  id="s3-bucket" formControlName="bucket" />
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="mb-1 block text-sm" for="s3-region">{{ 'storages.region' | translate }}</label>
-            <input class="input" id="s3-region" formControlName="region" />
+            <input type="text"  id="s3-region" formControlName="region" />
           </div>
           <div>
             <label class="mb-1 block text-sm" for="s3-endpoint">{{ 'storages.endpoint' | translate }}</label>
-            <input class="input" id="s3-endpoint" formControlName="endpoint" placeholder="https://…" />
+            <input type="text"  id="s3-endpoint" formControlName="endpoint" placeholder="https://…" />
           </div>
         </div>
         <p class="text-xs" style="color:var(--color-text-secondary);">{{ 'storages.endpointHint' | translate }}</p>
         <div>
           <label class="mb-1 block text-sm" for="s3-key">{{ 'storages.accessKey' | translate }}</label>
-          <input class="input font-mono" id="s3-key" autocomplete="off" formControlName="key" />
+          <input type="text" class="font-mono" id="s3-key" autocomplete="off" formControlName="key" />
         </div>
         <div>
           <label class="mb-1 block text-sm" for="s3-secret">{{ 'storages.secretKey' | translate }}</label>
-          <input class="input font-mono" id="s3-secret" type="password" autocomplete="off" formControlName="secret" />
+          <input class="font-mono" id="s3-secret" type="password" autocomplete="off" formControlName="secret" />
           <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'storages.secretHint' | translate }}</p>
         </div>
         <button class="inner-button" type="submit" [disabled]="form.invalid || saving()">

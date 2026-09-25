@@ -68,7 +68,7 @@ export interface WorkspaceChoice {
       }
 
       @if (mode() === 'existing' && workspaces().length > 0) {
-        <select class="input" [ngModel]="selectedUuid()" (ngModelChange)="onExistingChange($event)">
+        <select  [ngModel]="selectedUuid()" (ngModelChange)="onExistingChange($event)">
           <option value="" disabled>{{ 'workspaceChoicePicker.choose' | translate }}</option>
           @for (ws of workspaces(); track ws.uuid) {
             <option [value]="ws.uuid">{{ ws.name }}</option>
@@ -78,8 +78,8 @@ export interface WorkspaceChoice {
           {{ 'workspaceChoicePicker.existingHint' | translate }}
         </p>
       } @else {
-        <input
-          class="input"
+        <input type="text"
+          
           [ngModel]="newName()"
           (ngModelChange)="onNewNameChange($event)"
           [placeholder]="'workspaceChoicePicker.namePlaceholder' | translate"

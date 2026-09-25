@@ -121,7 +121,7 @@ function appNav(uuid: string): NavSection[] {
                 <img [src]="photoUrl()!" class="w-8 h-8 rounded-full object-cover" alt=""
                      style="border:1px solid var(--glass-border);" />
               } @else {
-                <span class="w-8 h-8 rounded-full flex items-center justify-center gradient-primary text-xs font-bold text-white">{{ initial() }}</span>
+                <span class="w-8 h-8 rounded-full flex items-center justify-center gradient-primary text-xs font-bold text-text-primary">{{ initial() }}</span>
               }
             </button>
 
@@ -172,12 +172,12 @@ function appNav(uuid: string): NavSection[] {
             <a routerLink="/dashboard" class="flex items-center gap-2 px-1 group" [title]="'shell.backToOverview' | translate">
               <i class="pi pi-chevron-left text-xs" style="color:var(--color-text-tertiary);"></i>
               <i class="pi pi-box text-xs" style="color:var(--color-primary-400);"></i>
-              <span class="truncate text-sm font-semibold text-white group-hover:text-blue-400 transition-colors">{{ app.name }}</span>
+              <span class="truncate text-sm font-semibold text-text-primary group-hover:text-primary-400 transition-colors">{{ app.name }}</span>
             </a>
           } @else {
             <div class="flex items-center gap-2 px-1">
               <i class="pi pi-users" style="color:var(--color-primary-400);"></i>
-              <span class="text-sm font-semibold text-white">{{ me()?.team?.name ?? ('shell.myTeam' | translate) }}</span>
+              <span class="text-sm font-semibold text-text-primary">{{ me()?.team?.name ?? ('shell.myTeam' | translate) }}</span>
             </div>
           }
         </div>
@@ -190,7 +190,7 @@ function appNav(uuid: string): NavSection[] {
               <li>
                 <a [routerLink]="item.path" routerLinkActive="bg-primary/15 text-primary border-primary/30"
                    [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' || item.path === appOverviewPath() }"
-                   class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 border border-transparent text-text-secondary hover:bg-primary hover:text-white">
+                   class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 border border-transparent text-text-secondary hover:bg-primary hover:text-text-primary">
                   <i [class]="item.icon" class="text-lg shrink-0 w-5 text-center"></i>
                   <span class="text-sm font-medium">{{ item.label | translate }}</span>
                 </a>
@@ -200,7 +200,7 @@ function appNav(uuid: string): NavSection[] {
           @if (isInstanceAdmin()) {
             <li style="padding-top:20px; padding-bottom:5px;"><span class="block px-3 text-[10px] font-bold uppercase" style="color:color-mix(in srgb, var(--color-text-tertiary) 65%, transparent);">{{ 'shell.nav.sectionAdmin' | translate }}</span></li>
             <li>
-              <a routerLink="/admin" routerLinkActive="bg-primary/15 text-primary border-primary/30" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 border border-transparent text-text-secondary hover:bg-primary hover:text-white">
+              <a routerLink="/admin" routerLinkActive="bg-primary/15 text-primary border-primary/30" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 border border-transparent text-text-secondary hover:bg-primary hover:text-text-primary">
                 <i class="pi pi-shield text-lg shrink-0 w-5 text-center"></i>
                 <span class="text-sm font-medium">{{ 'shell.nav.admin' | translate }}</span>
               </a>
@@ -221,7 +221,7 @@ function appNav(uuid: string): NavSection[] {
           <li style="padding-top:20px; padding-bottom:5px;"><span class="block px-3 text-[10px] font-bold uppercase" style="color:color-mix(in srgb, var(--color-text-tertiary) 65%, transparent);">{{ 'shell.nav.sectionConfiguration' | translate }}</span></li>
           @for (item of bottomNav; track item.path) {
             <li>
-              <a [routerLink]="item.path" routerLinkActive="bg-primary/15 text-primary border-primary/30" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 border border-transparent text-text-secondary hover:bg-primary hover:text-white">
+              <a [routerLink]="item.path" routerLinkActive="bg-primary/15 text-primary border-primary/30" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 border border-transparent text-text-secondary hover:bg-primary hover:text-text-primary">
                 <i [class]="item.icon" class="text-lg shrink-0 w-5 text-center"></i>
                 <span class="text-sm font-medium">{{ item.label | translate }}</span>
               </a>

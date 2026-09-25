@@ -10,10 +10,11 @@ import {
   WorkspaceTarget,
   WorkspaceTargetPickerComponent,
 } from '../../../shared/components/workspace-target-picker/workspace-target-picker';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state';
 
 @Component({
   selector: 'app-databases-list',
-  imports: [RouterLink, ReactiveFormsModule, TranslateModule, WorkspaceTargetPickerComponent],
+  imports: [RouterLink, ReactiveFormsModule, TranslateModule, WorkspaceTargetPickerComponent, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h1 class="mb-6 text-2xl font-bold">{{ 'databases.title' | translate }}</h1>
@@ -23,7 +24,7 @@ import {
         @if (loading()) {
           <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'databases.loading' | translate }}</p>
         } @else if (databases().length === 0) {
-          <div class="glass-card p-4">{{ 'databases.empty' | translate }}</div>
+          <div class="glass-card"><app-empty-state kind="store" [title]="'databases.empty' | translate" /></div>
         } @else {
           <div class="space-y-3">
             @for (db of databases(); track db.uuid) {
@@ -78,7 +79,7 @@ import {
         <form class="space-y-3" [formGroup]="form" (ngSubmit)="create()">
           <div>
             <label class="mb-1 block text-sm">{{ 'databases.name' | translate }}</label>
-            <input class="input" formControlName="name" />
+            <input type="text"  formControlName="name" />
           </div>
 
           <app-workspace-target-picker (targetChange)="target.set($event)" />

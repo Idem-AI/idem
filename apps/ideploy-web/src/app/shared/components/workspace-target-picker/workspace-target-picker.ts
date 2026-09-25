@@ -36,7 +36,7 @@ export interface WorkspaceTarget {
           </p>
         } @else {
           <select
-            class="input"
+            
             [ngModel]="selectedWorkspace()?.uuid ?? ''"
             (ngModelChange)="onWorkspaceUuidChange($event)"
           >
@@ -51,7 +51,7 @@ export interface WorkspaceTarget {
       @if (selectedWorkspace(); as ws) {
         <div>
           <label class="mb-1 block text-sm">{{ 'workspaceTargetPicker.environment' | translate }}</label>
-          <select class="input" [ngModel]="selectedEnvironment()" (ngModelChange)="onEnvironmentChange($event)">
+          <select  [ngModel]="selectedEnvironment()" (ngModelChange)="onEnvironmentChange($event)">
             @for (env of ws.environments; track env.uuid) {
               <option [value]="env.name">{{ env.name }}</option>
             }
@@ -63,8 +63,8 @@ export interface WorkspaceTarget {
             {{ 'workspaceTargetPicker.project' | translate }}
             <span style="color: var(--color-text-secondary)">{{ 'workspaceTargetPicker.projectOptional' | translate }}</span>
           </label>
-          <input
-            class="input"
+          <input type="text"
+            
             list="workspace-target-picker-projects"
             [ngModel]="projectName()"
             (ngModelChange)="onProjectNameChange($event)"

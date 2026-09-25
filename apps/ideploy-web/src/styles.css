@@ -45,16 +45,6 @@
  * (not solid-filled) secondary actions. Every token referenced is one of
  * ours already — this changes structure and spacing, never a colour. */
 @layer components {
-  .input {
-    @apply w-full rounded-lg px-3 py-2 text-sm transition-colors;
-    background-color: var(--color-surface-1);
-    color: var(--color-text-primary);
-    border: 1px solid var(--color-surface-2);
-  }
-  .input:focus {
-    outline: none;
-    border-color: var(--color-primary-500);
-  }
   .menu-item {
     @apply block rounded-lg px-3 py-2 text-sm;
     color: var(--color-text-secondary);

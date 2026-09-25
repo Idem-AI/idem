@@ -59,7 +59,7 @@ import { GuideServiceStepComponent } from './guide-service-step';
             <div class="mb-1 flex items-center gap-3">
               <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border" [style.border-color]="workspace() ? 'var(--color-success)' : 'var(--color-surface-2)'" [style.background]="workspace() ? 'var(--color-success)' : 'transparent'">
                 @if (workspace()) {
-                  <i class="pi pi-check text-xs text-white"></i>
+                  <i class="pi pi-check text-xs text-text-primary"></i>
                 } @else {
                   <i class="pi pi-sitemap text-xs" style="color:var(--color-text-tertiary);"></i>
                 }
@@ -83,7 +83,7 @@ import { GuideServiceStepComponent } from './guide-service-step';
                 <div class="mb-1 flex items-center gap-4">
                   <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border" [style.border-color]="isDone(i, step) ? 'var(--color-success)' : 'var(--color-surface-2)'" [style.background]="isDone(i, step) ? 'var(--color-success)' : 'transparent'">
                     @if (isDone(i, step)) {
-                      <i class="pi pi-check text-xs text-white"></i>
+                      <i class="pi pi-check text-xs text-text-primary"></i>
                     } @else if (i > activeIndex()) {
                       <i class="pi pi-lock text-xs" style="color:var(--color-text-tertiary);"></i>
                     } @else {

@@ -162,11 +162,11 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
           <div class="flex flex-wrap items-end gap-2">
             <div class="min-w-[120px] flex-1">
               <label class="mb-1 block text-xs" style="color:var(--color-text-secondary);" for="rule-name">{{ 'security.app.ruleNameLabel' | translate }}</label>
-              <input class="input" id="rule-name" formControlName="name" [placeholder]="'security.app.ruleNamePlaceholder' | translate" />
+              <input type="text"  id="rule-name" formControlName="name" [placeholder]="'security.app.ruleNamePlaceholder' | translate" />
             </div>
             <div class="min-w-[140px] flex-1">
               <label class="mb-1 block text-xs" style="color:var(--color-text-secondary);" for="rule-ip">{{ 'security.app.ruleIpLabel' | translate }}</label>
-              <input class="input font-mono" id="rule-ip" formControlName="ip" placeholder="203.0.113.5" />
+              <input type="text" class="font-mono" id="rule-ip" formControlName="ip" placeholder="203.0.113.5" />
             </div>
             <button class="inner-button px-3 py-2 text-xs" type="submit" [disabled]="ruleForm.invalid || addingRule()">
               {{ (addingRule() ? 'security.app.adding' : 'security.app.addRule') | translate }}
@@ -230,7 +230,7 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
         <div class="mb-1">
           <label class="mb-1 block text-sm" for="rl-template">{{ 'security.app.applyTemplate' | translate }}</label>
           <div class="flex gap-2">
-            <select class="input flex-1" id="rl-template" [value]="chosenTemplate()" (change)="onTemplatePick($event)">
+            <select class="flex-1 !w-auto min-w-0" id="rl-template" [value]="chosenTemplate()" (change)="onTemplatePick($event)">
               <option value="">{{ 'security.app.chooseTemplate' | translate }}</option>
               @for (t of templates(); track t.key) {
                 <option [value]="t.key">{{ t.name }}</option>
@@ -254,19 +254,19 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
           <form class="mt-3 grid grid-cols-2 gap-2" [formGroup]="rateLimitForm" (ngSubmit)="saveCustomRateLimit()">
             <label class="text-sm">
               {{ 'security.app.averagePerSecond' | translate }}
-              <input class="input mt-1" type="number" min="1" formControlName="averagePerSecond" />
+              <input class="mt-1" type="number" min="1" formControlName="averagePerSecond" />
             </label>
             <label class="text-sm">
               {{ 'security.app.burst' | translate }}
-              <input class="input mt-1" type="number" min="1" formControlName="burst" />
+              <input class="mt-1" type="number" min="1" formControlName="burst" />
             </label>
             <label class="text-sm">
               {{ 'security.app.periodSeconds' | translate }}
-              <input class="input mt-1" type="number" min="1" formControlName="periodSeconds" />
+              <input class="mt-1" type="number" min="1" formControlName="periodSeconds" />
             </label>
             <label class="text-sm">
               {{ 'security.app.concurrency' | translate }}
-              <input class="input mt-1" type="number" min="1" formControlName="concurrencyLimit" />
+              <input class="mt-1" type="number" min="1" formControlName="concurrencyLimit" />
             </label>
             <button class="inner-button col-span-2 mt-1" type="submit" [disabled]="rateLimitForm.invalid">
               {{ 'security.app.saveCustom' | translate }}
@@ -330,8 +330,8 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
         <label class="mb-1.5 block text-sm font-medium" for="geo-country">
           {{ 'security.app.blockCountries' | translate }}
         </label>
-        <input
-          class="input"
+        <input type="text"
+          
           id="geo-country"
           [value]="countryFilter()"
           (input)="onCountryFilter($event)"

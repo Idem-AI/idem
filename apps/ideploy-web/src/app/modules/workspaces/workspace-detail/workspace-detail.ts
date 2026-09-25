@@ -112,8 +112,8 @@ import { Workspace, WorkspaceEnvironment, WorkspaceResource } from '../../../sha
           </ul>
 
           <form class="flex gap-2" [formGroup]="environmentForm" (ngSubmit)="addEnvironment(ws)">
-            <input
-              class="input flex-1"
+            <input type="text"
+              class="flex-1 !w-auto min-w-0"
               formControlName="name"
               [placeholder]="'workspaces.env.placeholder' | translate"
               [attr.aria-label]="'workspaces.env.add' | translate"

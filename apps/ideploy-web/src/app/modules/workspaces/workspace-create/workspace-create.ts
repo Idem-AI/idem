@@ -61,9 +61,9 @@ import {
             <label class="mb-1 block text-sm" for="ws-name">
               {{ 'workspaces.form.name' | translate }}
             </label>
-            <input
+            <input type="text"
               id="ws-name"
-              class="input"
+              
               formControlName="name"
               [placeholder]="'workspaces.form.namePlaceholder' | translate"
             />
@@ -76,7 +76,7 @@ import {
             <label class="mb-1 block text-sm" for="ws-description">
               {{ 'workspaces.form.description' | translate }}
             </label>
-            <input id="ws-description" class="input" formControlName="description" />
+            <input type="text" id="ws-description"  formControlName="description" />
           </div>
 
           <button
@@ -130,7 +130,7 @@ import {
                   </a>
                 </p>
               } @else {
-                <select id="ws-server" class="input" formControlName="server_uuid">
+                <select id="ws-server"  formControlName="server_uuid">
                   <option value="">{{ 'workspaces.form.chooseServer' | translate }}</option>
                   @for (server of servers(); track server.uuid) {
                     <option [value]="server.uuid">{{ server.name }} — {{ server.ip }}</option>
@@ -143,7 +143,7 @@ import {
               <label class="mb-1 block text-sm" for="ws-region">
                 {{ 'workspaces.form.region' | translate }}
               </label>
-              <select id="ws-region" class="input" formControlName="region">
+              <select id="ws-region"  formControlName="region">
                 <option value="">
                   {{ 'workspaces.form.defaultRegion' | translate:{ region: options()?.defaultRegion } }}
                 </option>

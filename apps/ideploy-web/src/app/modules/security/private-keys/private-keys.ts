@@ -98,11 +98,11 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
           <p class="text-xs" style="color:var(--color-text-secondary);">{{ 'security.generateHint' | translate }}</p>
           <div>
             <label class="mb-1 block text-sm" for="gen-name">{{ 'security.name' | translate }}</label>
-            <input class="input" id="gen-name" formControlName="name" />
+            <input type="text"  id="gen-name" formControlName="name" />
           </div>
           <div>
             <label class="mb-1 block text-sm" for="gen-type">{{ 'security.keyType' | translate }}</label>
-            <select class="input" id="gen-type" formControlName="type">
+            <select  id="gen-type" formControlName="type">
               <option value="ed25519">ed25519</option>
               <option value="rsa">RSA</option>
             </select>
@@ -120,11 +120,11 @@ import { PrivateKey, SshKeyType } from '../../../shared/models/ideploy.models';
           <h2 class="text-sm font-semibold">{{ 'security.addKeyTitle' | translate }}</h2>
           <div>
             <label class="mb-1 block text-sm" for="key-name">{{ 'security.name' | translate }}</label>
-            <input class="input" id="key-name" formControlName="name" />
+            <input type="text"  id="key-name" formControlName="name" />
           </div>
           <div>
             <label class="mb-1 block text-sm" for="key-pem">{{ 'security.privateKeyPem' | translate }}</label>
-            <textarea class="input font-mono" id="key-pem" rows="6" formControlName="private_key"></textarea>
+            <textarea class="font-mono" id="key-pem" rows="6" formControlName="private_key"></textarea>
           </div>
           <button class="inner-button" type="submit" [disabled]="form.invalid || saving()">
             {{ saving() ? ('security.saving' | translate) : ('security.addKey' | translate) }}

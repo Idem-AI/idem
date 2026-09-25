@@ -24,8 +24,8 @@ interface ChannelState {
             <input type="checkbox" [(ngModel)]="ch.enabled" />
             {{ 'notifications.enabled' | translate }}
           </label>
-          <input
-            class="input mb-2"
+          <input type="text"
+            class="mb-2"
             [placeholder]="'notifications.webhookPlaceholder' | translate"
             [(ngModel)]="ch.webhook"
           />

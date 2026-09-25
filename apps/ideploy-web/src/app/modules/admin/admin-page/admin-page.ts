@@ -199,19 +199,19 @@ import {
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label class="mb-1 block text-sm" for="srv-name">{{ 'admin.servers.name' | translate }}</label>
-              <input id="srv-name" class="input" formControlName="name" autocomplete="off" />
+              <input type="text" id="srv-name"  formControlName="name" autocomplete="off" />
             </div>
             <div>
               <label class="mb-1 block text-sm" for="srv-ip">{{ 'admin.servers.ip' | translate }}</label>
-              <input id="srv-ip" class="input font-mono" formControlName="ip" autocomplete="off" />
+              <input type="text" id="srv-ip" class="font-mono" formControlName="ip" autocomplete="off" />
             </div>
             <div>
               <label class="mb-1 block text-sm" for="srv-port">{{ 'admin.servers.port' | translate }}</label>
-              <input id="srv-port" class="input" type="number" formControlName="port" />
+              <input id="srv-port"  type="number" formControlName="port" />
             </div>
             <div>
               <label class="mb-1 block text-sm" for="srv-user">{{ 'admin.servers.user' | translate }}</label>
-              <input id="srv-user" class="input font-mono" formControlName="user" />
+              <input type="text" id="srv-user" class="font-mono" formControlName="user" />
             </div>
           </div>
 
@@ -223,7 +223,7 @@ import {
                 <a routerLink="/security/keys" style="color:var(--color-primary-400);">{{ 'admin.servers.createKeyLink' | translate }}</a>
               </p>
             } @else {
-              <select id="srv-key" class="input" formControlName="private_key_id">
+              <select id="srv-key"  formControlName="private_key_id">
                 <option [ngValue]="0" disabled>{{ 'admin.servers.choosePrivateKey' | translate }}</option>
                 @for (key of privateKeys(); track key.id) {
                   <option [ngValue]="key.id">{{ key.name }}</option>
@@ -235,15 +235,15 @@ import {
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div>
               <label class="mb-1 block text-sm" for="srv-country">{{ 'admin.servers.countryCode' | translate }}</label>
-              <input id="srv-country" class="input font-mono uppercase" formControlName="country_code" maxlength="2" placeholder="DE" />
+              <input type="text" id="srv-country" class="font-mono uppercase" formControlName="country_code" maxlength="2" placeholder="DE" />
             </div>
             <div>
               <label class="mb-1 block text-sm" for="srv-region">{{ 'admin.servers.region' | translate }}</label>
-              <input id="srv-region" class="input" formControlName="region" />
+              <input type="text" id="srv-region"  formControlName="region" />
             </div>
             <div>
               <label class="mb-1 block text-sm" for="srv-city">{{ 'admin.servers.city' | translate }}</label>
-              <input id="srv-city" class="input" formControlName="city" />
+              <input type="text" id="srv-city"  formControlName="city" />
             </div>
           </div>
 

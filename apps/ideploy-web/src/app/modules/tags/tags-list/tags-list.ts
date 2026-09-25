@@ -25,7 +25,7 @@ import { Tag } from '../../../shared/models/ideploy.models';
         </div>
       }
       <form class="flex gap-2" [formGroup]="form" (ngSubmit)="add()">
-        <input class="input flex-1" [placeholder]="'tags.newTagPlaceholder' | translate" formControlName="name" />
+        <input type="text" class="flex-1 !w-auto min-w-0" [placeholder]="'tags.newTagPlaceholder' | translate" formControlName="name" />
         <button class="inner-button" type="submit" [disabled]="form.invalid">{{ 'tags.add' | translate }}</button>
       </form>
     </div>

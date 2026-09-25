@@ -152,8 +152,8 @@ import { credentialLabel, isSecretField } from '../../../shared/utils/db-credent
               {{ 'databases.detail.internalUrl' | translate }}
             </label>
             <div class="flex items-center gap-2">
-              <input
-                class="input font-mono text-xs"
+              <input type="text"
+                class="font-mono text-xs"
                 readonly
                 [type]="revealed().has('__url') ? 'text' : 'password'"
                 [value]="db.connection_url ?? ''"
@@ -172,8 +172,8 @@ import { credentialLabel, isSecretField } from '../../../shared/utils/db-credent
                 {{ 'databases.detail.publicUrl' | translate }}
               </label>
               <div class="flex items-center gap-2">
-                <input
-                  class="input font-mono text-xs"
+                <input type="text"
+                  class="font-mono text-xs"
                   readonly
                   [type]="revealed().has('__public_url') ? 'text' : 'password'"
                   [value]="db.public_connection_url"
@@ -203,8 +203,8 @@ import { credentialLabel, isSecretField } from '../../../shared/utils/db-credent
                 {{ credentialLabel(col) }}
               </label>
               <div class="flex items-center gap-2">
-                <input
-                  class="input font-mono text-xs"
+                <input type="text"
+                  class="font-mono text-xs"
                   [type]="!isSecretField(col) || revealed().has(col) ? 'text' : 'password'"
                   [value]="credentialEdits()[col]"
                   (input)="onCredentialInput(col, $event)"
@@ -321,13 +321,13 @@ import { credentialLabel, isSecretField } from '../../../shared/utils/db-credent
         }
 
         <form class="mt-4 flex flex-wrap items-center gap-2" [formGroup]="scheduleForm" (ngSubmit)="addSchedule()">
-          <input
-            class="input w-48"
+          <input type="text"
+            class="!w-48"
             formControlName="frequency"
             [placeholder]="'databases.detail.cronPlaceholder' | translate"
           />
           <input
-            class="input w-32"
+            class="!w-32"
             type="number"
             min="1"
             max="365"
