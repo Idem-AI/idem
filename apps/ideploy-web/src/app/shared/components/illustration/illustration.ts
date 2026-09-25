@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 /** Les scènes disponibles. Ajouter un nom ici oblige à dessiner son cas. */
 export type IllustrationName =
   | 'box'
+  | 'code'
   | 'server'
   | 'store'
   | 'activity'
@@ -75,6 +76,15 @@ export type IllustrationName =
             stroke="var(--color-primary-500)"
             stroke-width="1.5"
             stroke-linecap="round" />
+        }
+        @case ('code') {
+          <!-- Un dépôt : une fenêtre de code, et la branche qui en part. -->
+          <rect x="26" y="20" width="56" height="44" rx="5" stroke="currentColor" stroke-width="1.5" opacity=".55" />
+          <path d="M26 30h56" stroke="currentColor" stroke-width="1.5" opacity=".35" />
+          <path d="M38 42l-5 5 5 5M52 42l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity=".55" />
+          <circle cx="92" cy="30" r="3" stroke="var(--color-primary-500)" stroke-width="1.5" />
+          <circle cx="92" cy="66" r="3" stroke="var(--color-primary-500)" stroke-width="1.5" />
+          <path d="M92 33v30M92 44c0 8-6 10-10 10" stroke="var(--color-primary-500)" stroke-width="1.5" stroke-linecap="round" />
         }
         @case ('server') {
           @for (row of [0, 1, 2]; track row) {

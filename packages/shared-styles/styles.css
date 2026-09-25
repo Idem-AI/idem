@@ -256,6 +256,10 @@ html.dark body::before {
   --color-warning: oklch(0.7 0.18 75);
   --color-info: oklch(0.6 0.15 240);
 
+  /* Texte posé sur un aplat de marque (bouton principal, lien survolé) :
+     blanc dans les deux thèmes, puisque le fond, lui, ne change pas. */
+  --color-on-primary: #ffffff;
+
   /* NOTE: background / surface / text tokens are THEME-REACTIVE and therefore
      defined in the `@theme inline` block below (mapped onto the --idem-* raw
      variables that flip with .dark / .light). */
@@ -674,7 +678,7 @@ button:disabled {
   background-size: 200% 100%;
   animation: gradient-shift 3s ease infinite;
   /* White in BOTH themes: the button sits on the brand gradient, not a surface */
-  color: #ffffff;
+  color: var(--color-on-primary);
   padding: var(--spacing-3) var(--spacing-6);
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
