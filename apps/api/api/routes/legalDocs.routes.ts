@@ -7,6 +7,10 @@ import {
   clearLegalDocsController,
   generateLegalDocsStreamingController,
   generateLegalDocPdfController,
+  getLegalRecommendationsController,
+  saveLegalContextController,
+  updateLegalDocController,
+  aiEditLegalDocController,
 } from '../controllers/legalDocs.controller';
 import { authenticate } from '../services/auth.service';
 import { checkQuota } from '../middleware/quota.middleware';
@@ -68,12 +72,38 @@ legalDocsRoutes.get(
   generateLegalDocPdfController
 );
 
+/** Enregistre le HTML d'un document édité (éditeur WYSIWYG) */
+legalDocsRoutes.put(
+  `/${resourceName}/:projectId/documents/:documentId`,
+  authenticate,
+  updateLegalDocController
+);
+
+/** Édition IA d'un document : facturée comme une révision, comme les autres livrables */
+legalDocsRoutes.post(
+  `/${resourceName}/:projectId/documents/:documentId/ai-edit`,
+  authenticate,
+  checkQuota,
+  requireCredits('business', 'revision'),
+  aiEditLegalDocController
+);
+
 /** Delete a single document */
 legalDocsRoutes.delete(
   `/${resourceName}/:projectId/documents/:documentId`,
   authenticate,
   deleteLegalDocController
 );
+
+/** Forme juridique et documents recommandés pour le projet, contexte pré-rempli */
+legalDocsRoutes.get(
+  `/${resourceName}/:projectId/recommendations`,
+  authenticate,
+  getLegalRecommendationsController
+);
+
+/** Enregistre le contexte (dont la forme retenue) sans générer ; renvoie les recommandations */
+legalDocsRoutes.put(`/${resourceName}/:projectId/context`, authenticate, saveLegalContextController);
 
 /** Clear all legal documents for a project */
 legalDocsRoutes.delete(`/${resourceName}/:projectId`, authenticate, clearLegalDocsController);

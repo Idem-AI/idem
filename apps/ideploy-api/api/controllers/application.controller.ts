@@ -20,6 +20,16 @@ export async function listApplications(req: CustomRequest, res: Response): Promi
   }
 }
 
+export async function deleteApplication(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    const result = await appService.deleteApplication(req.user!.currentTeamId!, String(req.params.uuid));
+    if (!result) return fail(res, 'Application not found', 404, 'NOT_FOUND');
+    ok(res, { deleted: true, serverCleanup: result.serverCleanup });
+  } catch (err) {
+    respondWithError(res, err, 'Deleting the application');
+  }
+}
+
 export async function getApplication(req: CustomRequest, res: Response): Promise<void> {
   try {
     const app = await appService.getApplication(req.user!.currentTeamId!, String(req.params.uuid));

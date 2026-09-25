@@ -6,13 +6,13 @@ import { environment } from '../../../../../../environments/environment';
 import { DeploymentModel } from '../../../models/deployment.model';
 import { CookieService } from '../../../../../shared/services/cookie.service';
 import { DeploymentService } from '../../../services/deployment.service';
-import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 @Component({
   selector: 'app-deployment-list',
   standalone: true,
-  imports: [CommonModule, RouterLink, Loader, TranslateModule],
+  imports: [CommonModule, RouterLink, TranslateModule, IdemLoaderComponent],
   templateUrl: './deployment-list.html',
   styleUrl: './deployment-list.css',
 })

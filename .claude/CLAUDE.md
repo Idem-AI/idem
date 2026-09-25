@@ -1,3 +1,9 @@
+# Règles de conception — à lire en premier
+
+**`AGENTS.md`, à la racine de ce dépôt, fait partie de ces instructions.** Il
+porte le design system, le chargement partagé, le minimalisme et les
+illustrations. Le lire avant d'écrire un écran, un style ou un livrable.
+
 
 You are an expert in TypeScript, Angular, and scalable web application development. You write functional, maintainable, performant, and accessible code following Angular and TypeScript best practices.
 

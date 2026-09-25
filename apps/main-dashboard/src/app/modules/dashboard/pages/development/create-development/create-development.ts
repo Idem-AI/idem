@@ -9,7 +9,6 @@ import { initEmptyObject } from '../../../../../utils/init-empty-object';
 import { AuthService } from '../../../../auth/services/auth.service';
 import { ProjectModel } from '@idem/shared-models';
 import { ProjectService } from '../../../services/project.service';
-import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { TranslateModule } from '@ngx-translate/core';
 
 import {
@@ -25,20 +24,19 @@ import { first } from 'rxjs/operators';
 import { DevelopmentService } from '../../../services/ai-agents/development.service';
 import { Router } from '@angular/router';
 import { DeploymentConfigComponent } from './components/deployment-config/deployment-config';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 @Component({
   selector: 'app-show-development',
   standalone: true,
   imports: [
-    Loader,
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
     FrontendConfigComponent,
     BackendConfigComponent,
     DatabaseConfigComponent,
-    DeploymentConfigComponent,
-  ],
+    DeploymentConfigComponent, IdemLoaderComponent],
   templateUrl: './create-development.html',
   styleUrl: './create-development.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

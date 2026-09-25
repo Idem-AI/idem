@@ -47,6 +47,12 @@ export interface IdemProfile {
   email: string;
   displayName?: string | null;
   photoURL?: string | null;
+  /**
+   * Super user of the whole platform, as decided by the central API
+   * (`ADMIN_EMAILS` there). Undefined when the central API did not say — an
+   * older build — in which case the local role is left as it is.
+   */
+  isSuperUser?: boolean;
 }
 
 export interface SyncedUser {
@@ -112,6 +118,7 @@ async function verifySessionUncached(sessionCookie: string): Promise<IdemProfile
         email: String(data.email),
         displayName: data.displayName ?? null,
         photoURL: data.photoURL ?? null,
+        isSuperUser: typeof data.isSuperUser === 'boolean' ? data.isSuperUser : undefined,
       };
     }
     return null;
@@ -151,6 +158,24 @@ async function ensurePersonalTeam(userId: number, name: string): Promise<void> {
 }
 
 /**
+ * Mirror the central API's super-user status onto the instance role.
+ *
+ * The central API is the only source of truth: a super user there administers
+ * this instance, and losing the status there demotes here on the next request.
+ * `users.idem_role` only accepts `admin` or `member` (CHECK constraint).
+ */
+async function syncInstanceRole(userId: number, isSuperUser: boolean | undefined): Promise<void> {
+  if (isSuperUser === undefined) return;
+
+  const role = isSuperUser ? 'admin' : 'member';
+  const { rowCount } = await pool.query(
+    'UPDATE users SET idem_role = $1, updated_at = now() WHERE id = $2 AND idem_role IS DISTINCT FROM $1',
+    [role, userId]
+  );
+  if (rowCount) logger.info('[IDEM Auth] Instance role synced from central API', { userId, role });
+}
+
+/**
  * Find-or-create the local user from a verified profile. Mirrors
  * IdemAuthService::syncUser (match by idem_uid, else link by email, else create;
  * password stays null because auth is delegated). Also guarantees the user has
@@ -172,6 +197,7 @@ export async function syncUser(profile: IdemProfile): Promise<SyncedUser> {
        WHERE id = $4`,
       [name, profile.email, profile.photoURL ?? null, id]
     );
+    await syncInstanceRole(id, profile.isSuperUser);
     await ensurePersonalTeam(id, name);
     return { id, idem_uid: profile.uid, email: profile.email, name };
   }
@@ -190,41 +216,20 @@ export async function syncUser(profile: IdemProfile): Promise<SyncedUser> {
       [profile.uid, name, profile.photoURL ?? null, id]
     );
     logger.info('[IDEM Auth] Existing user linked to IDEM', { userId: id, uid: profile.uid });
+    await syncInstanceRole(id, profile.isSuperUser);
     await ensurePersonalTeam(id, name);
     return { id, idem_uid: profile.uid, email: profile.email, name };
   }
 
-  // 3. Create — a genuinely new user, by both idem_uid and email. Racy on
-  // purpose to check for, not to prevent: a first login fires several
-  // requests in parallel (the app shell alone is ~5-8 on load), every one of
-  // them hits this same "doesn't exist yet" branch before any of them has
-  // committed, and only one INSERT wins — verified live: the others failed
-  // this exact unique constraint and surfaced as a blanket "Unauthenticated"
-  // on whichever of the parallel requests lost. Postgres error 23505 =
-  // unique_violation; on that specific error (and only that one), the row
-  // now exists because a sibling request just created it — re-run step 1's
-  // lookup instead of re-throwing.
-  try {
-    const created = await pool.query(
-      `INSERT INTO users (idem_uid, name, email, photo_url, email_verified_at, password, created_at, updated_at)
-       VALUES ($1,$2,$3,$4, now(), NULL, now(), now()) RETURNING id`,
-      [profile.uid, name, profile.email, profile.photoURL ?? null]
-    );
-    const id = Number(created.rows[0].id);
-    logger.info('[IDEM Auth] New user created from API', { userId: id, uid: profile.uid });
-    await ensurePersonalTeam(id, name);
-    return { id, idem_uid: profile.uid, email: profile.email, name };
-  } catch (err) {
-    if ((err as { code?: string }).code !== '23505') throw err;
-    logger.info('[IDEM Auth] Lost the create race to a concurrent request — reusing its row', {
-      uid: profile.uid,
-    });
-    const race = await pool.query(
-      'SELECT id, idem_uid, email, name FROM users WHERE idem_uid = $1 OR lower(email) = lower($2) LIMIT 1',
-      [profile.uid, profile.email]
-    );
-    const id = Number(race.rows[0].id);
-    await ensurePersonalTeam(id, name);
-    return { id, idem_uid: profile.uid, email: profile.email, name };
-  }
+  // 3. Create
+  const created = await pool.query(
+    `INSERT INTO users (idem_uid, name, email, photo_url, email_verified_at, password, created_at, updated_at)
+     VALUES ($1,$2,$3,$4, now(), NULL, now(), now()) RETURNING id`,
+    [profile.uid, name, profile.email, profile.photoURL ?? null]
+  );
+  const id = Number(created.rows[0].id);
+  logger.info('[IDEM Auth] New user created from API', { userId: id, uid: profile.uid });
+  await syncInstanceRole(id, profile.isSuperUser);
+  await ensurePersonalTeam(id, name);
+  return { id, idem_uid: profile.uid, email: profile.email, name };
 }

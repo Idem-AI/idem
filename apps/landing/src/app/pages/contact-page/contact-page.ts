@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 interface ContactForm {
   name: string;
@@ -29,7 +30,7 @@ interface FAQ {
 @Component({
   selector: 'app-contact-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, IdemLoaderComponent],
   templateUrl: './contact-page.html',
   styleUrl: './contact-page.css',
 })

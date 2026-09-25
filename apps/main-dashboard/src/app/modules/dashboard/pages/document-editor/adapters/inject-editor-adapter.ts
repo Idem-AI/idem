@@ -4,6 +4,7 @@ import { BrandingEditorAdapter } from './branding-editor.adapter';
 import { BusinessCardEditorAdapter } from './business-card-editor.adapter';
 import { BusinessPlanEditorAdapter } from './business-plan-editor.adapter';
 import { FlyerEditorAdapter } from './flyer-editor.adapter';
+import { LegalDocEditorAdapter } from './legal-doc-editor.adapter';
 import { PitchDeckEditorAdapter } from './pitch-deck-editor.adapter';
 
 /**
@@ -21,6 +22,8 @@ export function injectEditorAdapter(type: EditorDocumentType | undefined): Docum
       return inject(BusinessCardEditorAdapter);
     case 'flyer':
       return inject(FlyerEditorAdapter);
+    case 'legal-doc':
+      return inject(LegalDocEditorAdapter);
     default:
       return inject(BusinessPlanEditorAdapter);
   }

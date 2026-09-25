@@ -7,7 +7,10 @@ import {
   LegalDocsContext,
   LegalDocsModel,
   LegalDocumentCatalogEntry,
+  LegalDocumentModel,
   LegalDocumentType,
+  LegalFormEntry,
+  LegalRecommendations,
 } from '../../models/legalDocs.model';
 import { SSEService } from '../../../../shared/services/sse.service';
 import { SSEStepEvent, SSEConnectionConfig } from '../../../../shared/models/sse-step.model';
@@ -26,8 +29,20 @@ export class LegalDocsService {
     this.sseService.cancelGeneration('legal-docs');
   }
 
-  getCatalog(): Observable<{ catalog: LegalDocumentCatalogEntry[] }> {
-    return this.http.get<{ catalog: LegalDocumentCatalogEntry[] }>(`${this.apiUrl}/catalog`);
+  getCatalog(): Observable<{ catalog: LegalDocumentCatalogEntry[]; forms: LegalFormEntry[] }> {
+    return this.http.get<{ catalog: LegalDocumentCatalogEntry[]; forms: LegalFormEntry[] }>(
+      `${this.apiUrl}/catalog`,
+    );
+  }
+
+  /** Forme juridique et documents recommandés, contexte pré-rempli depuis le projet. */
+  getRecommendations(projectId: string): Observable<LegalRecommendations> {
+    return this.http.get<LegalRecommendations>(`${this.apiUrl}/${projectId}/recommendations`);
+  }
+
+  /** Enregistre le contexte (dont la forme retenue) ; renvoie les recommandations recalculées. */
+  saveContext(projectId: string, context: LegalDocsContext): Observable<LegalRecommendations> {
+    return this.http.put<LegalRecommendations>(`${this.apiUrl}/${projectId}/context`, { context });
   }
 
   getRequiredFields(types: LegalDocumentType[]): Observable<{ requiredFields: string[] }> {
@@ -72,6 +87,26 @@ export class LegalDocsService {
       reconnectionDelay: 1000,
     };
     return this.sseService.createConnection(config, 'legal-docs');
+  }
+
+  /** Enregistre le HTML d'un document édité (éditeur WYSIWYG). */
+  updateDocument(projectId: string, documentId: string, data: string): Observable<{ document: LegalDocumentModel }> {
+    return this.http.put<{ document: LegalDocumentModel }>(
+      `${this.apiUrl}/${projectId}/documents/${documentId}`,
+      { data },
+    );
+  }
+
+  /** Édition IA d'un document : renvoie le document réécrit. */
+  aiEditDocument(
+    projectId: string,
+    documentId: string,
+    instruction: string,
+  ): Observable<{ document: LegalDocumentModel }> {
+    return this.http.post<{ document: LegalDocumentModel }>(
+      `${this.apiUrl}/${projectId}/documents/${documentId}/ai-edit`,
+      { instruction },
+    );
   }
 
   downloadDocumentPdf(projectId: string, documentId: string): Observable<Blob> {

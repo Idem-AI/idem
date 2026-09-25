@@ -1,7 +1,7 @@
 <section class="dl-page" aria-labelledby="dl-title">
   @if (isLoading()) {
     <div class="text-center py-20">
-      <app-loader />
+      <idem-loader block />
       <p class="text-text-tertiary mt-4">{{ 'dashboard.deliverableList.loading' | translate }}</p>
     </div>
   } @else if (!projectId()) {

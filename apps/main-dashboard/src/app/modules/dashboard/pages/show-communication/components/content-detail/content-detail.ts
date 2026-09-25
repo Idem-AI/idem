@@ -27,6 +27,7 @@ import {
 } from '../../communication-ui';
 import { VisualComposing } from '../visual-composing/visual-composing';
 import { VisualPreview } from '../visual-preview/visual-preview';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /** Champ actuellement en cours de modification. `null` = tout est en lecture. */
 type EditableField =
@@ -54,7 +55,7 @@ type EditableField =
  */
 @Component({
   selector: 'app-content-detail',
-  imports: [FormsModule, TranslateModule, VisualComposing, VisualPreview],
+  imports: [FormsModule, TranslateModule, VisualComposing, VisualPreview, IdemLoaderComponent],
   templateUrl: './content-detail.html',
   styleUrl: './content-detail.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

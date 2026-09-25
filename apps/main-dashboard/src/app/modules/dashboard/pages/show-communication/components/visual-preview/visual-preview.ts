@@ -23,6 +23,7 @@ import {
 } from '../../../document-editor/models/editor.types';
 import { CommunicationService } from '../../../../services/ai-agents/communication.service';
 import { Flyer, FlyerFormat } from '../../../../models/communication.model';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Dimensions réelles de chaque format, en pixels.
@@ -62,7 +63,7 @@ const MENU_GAP = 8;
  */
 @Component({
   selector: 'app-visual-preview',
-  imports: [TranslateModule, EditorCanvasComponent],
+  imports: [TranslateModule, EditorCanvasComponent, IdemLoaderComponent],
   templateUrl: './visual-preview.html',
   styleUrl: './visual-preview.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

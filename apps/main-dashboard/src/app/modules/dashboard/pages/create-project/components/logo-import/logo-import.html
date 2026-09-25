@@ -226,7 +226,7 @@
         <!-- Loading state with app-loader (auto-upload) -->
         @if (isUploading() || isProcessing()) {
           <div class="space-y-3">
-            <app-loader></app-loader>
+            <idem-loader block />
             <p class="text-xs text-text-tertiary text-center">
               @if (isProcessing()) {
                 {{ 'dashboard.logoImport.upload.processing' | translate }}

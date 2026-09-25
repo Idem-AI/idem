@@ -16,6 +16,7 @@ import { PipelineProgress } from '../../components/pipeline-progress/pipeline-pr
 import { ViabilityGauge } from '../../components/viability-gauge/viability-gauge';
 import { ReportDownloadService, SimulationStore } from '../../data-access';
 import { FactorTier, Recommendation, Risk } from '../../models';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Ce que l'exécution achète : le jugement, et assez du raisonnement pour
@@ -23,7 +24,7 @@ import { FactorTier, Recommendation, Risk } from '../../models';
  */
 @Component({
   selector: 'sim-simulation-overview',
-  imports: [RouterLink, TranslatePipe, ViabilityGauge, PipelineProgress, DisclaimerNote],
+  imports: [RouterLink, TranslatePipe, ViabilityGauge, PipelineProgress, DisclaimerNote, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './simulation-overview.html',
 })

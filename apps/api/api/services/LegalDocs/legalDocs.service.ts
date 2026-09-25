@@ -6,6 +6,8 @@ import {
   LegalDocsModel,
   LegalDocumentModel,
   LegalDocumentType,
+  LegalFormCode,
+  LegalRecommendations,
 } from '../../models/legalDocs.model';
 import { ProjectModel } from '../../models/project.model';
 import { SectionModel } from '../../models/section.model';
@@ -14,9 +16,14 @@ import { GenericService, IPromptStep, ISectionResult } from '../common/generic.s
 import { PAGE_FORMATS, PdfService } from '../pdf.service';
 import { LLMProvider, PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
+import { sectionEditingService } from '../common/section-editing.service';
+import { sanitizeSectionHtml } from '../../utils/sanitize-section-html';
+import { SupportedLanguage } from '../../utils/request-language';
 
-import { LEGAL_DOCS_CATALOG, getCatalogEntry } from './catalog';
+import { LEGAL_DOCS_CATALOG, getCatalogEntry, isStatutesType, legacyStatutesForm } from './catalog';
+import { LEGAL_FORMS, getLegalForm, normalizeLegalForm } from './legalForms';
 import { getLegalDocPrompt } from './prompts';
+import { buildRecommendations, prefillContext, recommendLegalForm } from './recommendation';
 
 export interface LegalDocsGenerationRequest {
   types: LegalDocumentType[];
@@ -35,6 +42,126 @@ export class LegalDocsService extends GenericService {
 
   getCatalog() {
     return LEGAL_DOCS_CATALOG;
+  }
+
+  getLegalForms() {
+    return LEGAL_FORMS;
+  }
+
+  /**
+   * Forme juridique et documents recommandés pour le projet, avec le contexte
+   * pré-rempli depuis ses informations.
+   */
+  async getRecommendations(userId: string, projectId: string): Promise<LegalRecommendations | null> {
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    if (!project) {
+      logger.warn(`LegalDocsService.getRecommendations: project not found ${projectId}`);
+      return null;
+    }
+    const recommendations = buildRecommendations(project, project.analysisResultModel?.legalDocs?.context);
+    logger.info(
+      `LegalDocsService.getRecommendations projectId=${projectId} jurisdiction=${recommendations.jurisdiction} form=${recommendations.form.code} chosen=${recommendations.prefill.legalForm || '-'}`
+    );
+    return recommendations;
+  }
+
+  /**
+   * Enregistre le contexte (dont la forme juridique retenue) sans rien générer,
+   * et renvoie les recommandations recalculées pour cette forme.
+   */
+  async saveContext(
+    userId: string,
+    projectId: string,
+    context: LegalDocsContext
+  ): Promise<LegalRecommendations | null> {
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    if (!project) {
+      logger.warn(`LegalDocsService.saveContext: project not found ${projectId}`);
+      return null;
+    }
+    const current = project.analysisResultModel?.legalDocs;
+    const merged: LegalDocsContext = {
+      ...(current?.context || {}),
+      ...context,
+      legalForm: normalizeLegalForm(context.legalForm) || '',
+    };
+    await this.projectRepository.update(
+      projectId,
+      {
+        ...project,
+        analysisResultModel: {
+          ...project.analysisResultModel,
+          legalDocs: {
+            documents: current?.documents || [],
+            context: merged,
+            updatedAt: new Date(),
+          },
+        },
+      },
+      `users/${userId}/projects`
+    );
+    logger.info(`LegalDocsService.saveContext projectId=${projectId} legalForm=${merged.legalForm || '-'}`);
+    return buildRecommendations(project, merged);
+  }
+
+  /**
+   * Rend une demande de génération cohérente, d'où qu'elle vienne (page, chat) :
+   * - les anciens types `statuts_sarl` / `statuts_sas` deviennent `statuts` ;
+   * - la forme juridique vient de la demande, sinon du contexte enregistré,
+   *   sinon de la recommandation ;
+   * - le contexte manquant est complété depuis le projet.
+   */
+  private normalizeRequest(
+    project: ProjectModel,
+    request: LegalDocsGenerationRequest
+  ): { types: LegalDocumentType[]; context: LegalDocsContext; legalForm: LegalFormCode } {
+    const saved = project.analysisResultModel?.legalDocs?.context;
+    const legacyForm = request.types.map(legacyStatutesForm).find(Boolean);
+    const provided = request.context || {};
+    const prefill = prefillContext(project, saved);
+    const context: LegalDocsContext = { ...prefill };
+    for (const [key, value] of Object.entries(provided)) {
+      const empty = value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0);
+      if (!empty) (context as Record<string, unknown>)[key] = value;
+    }
+    const legalForm =
+      normalizeLegalForm(provided.legalForm) ||
+      legacyForm ||
+      normalizeLegalForm(saved?.legalForm) ||
+      recommendLegalForm(project, context.country).code;
+    context.legalForm = legalForm;
+
+    const types = Array.from(
+      new Set(request.types.map((t) => (isStatutesType(t) ? 'statuts' : t)))
+    ) as LegalDocumentType[];
+    // Une entreprise individuelle n'a pas de statuts : on ne les rédige pas.
+    const withoutStatutes = getLegalForm(legalForm)?.hasStatutes === false;
+    return {
+      types: withoutStatutes ? types.filter((t) => t !== 'statuts') : types,
+      context,
+      legalForm,
+    };
+  }
+
+  /** Nom affiché d'un document ; les statuts portent leur forme (« Statuts SAS »). */
+  private documentName(type: LegalDocumentType, legalForm: LegalFormCode): string {
+    const entry = getCatalogEntry(type);
+    if (type === 'statuts') {
+      const form = getLegalForm(legalForm);
+      return form ? `Statuts ${form.acronym}` : entry?.nameFr || type;
+    }
+    return entry?.nameFr || type;
+  }
+
+  /**
+   * Fusionne un document dans la liste : il remplace celui de même type, et de
+   * nouveaux statuts remplacent aussi les anciens (`statuts_sarl`, `statuts_sas`)
+   * — une société n'a qu'un jeu de statuts.
+   */
+  private mergeDocument(existing: LegalDocumentModel[], doc: LegalDocumentModel): LegalDocumentModel[] {
+    const sameSlot = (d: LegalDocumentModel) =>
+      d.type === doc.type || (isStatutesType(doc.type) && isStatutesType(d.type));
+    return [...existing.filter((d) => !sameSlot(d)), doc];
   }
 
   /**
@@ -101,6 +228,86 @@ export class LegalDocsService extends GenericService {
     return updated?.analysisResultModel?.legalDocs || null;
   }
 
+  /**
+   * Remplace le HTML d'un document juridique (éditeur WYSIWYG) et oublie son
+   * PDF : le prochain téléchargement reflète la modification.
+   */
+  async updateDocumentHtml(
+    userId: string,
+    projectId: string,
+    documentId: string,
+    html: string
+  ): Promise<LegalDocumentModel | null> {
+    return this.replaceDocumentHtml(userId, projectId, documentId, sanitizeSectionHtml(html));
+  }
+
+  /**
+   * Édition IA d'un document juridique : même moteur que les sections du
+   * business plan (contexte projet, règles de format, coût, traçabilité).
+   */
+  async aiEditDocument(
+    userId: string,
+    projectId: string,
+    documentId: string,
+    instruction: string,
+    language?: SupportedLanguage
+  ): Promise<LegalDocumentModel | null> {
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    const doc = project?.analysisResultModel?.legalDocs?.documents.find((d) => d.id === documentId);
+    if (!project || !doc) {
+      logger.warn(`LegalDocsService.aiEditDocument: document not found ${documentId}`);
+      return null;
+    }
+    const html = await sectionEditingService.rewriteHtml({
+      userId,
+      project,
+      projectId,
+      formatKey: 'legalDocs',
+      element: doc.type,
+      sectionName: doc.name,
+      currentHtml: doc.data,
+      instruction,
+      language,
+    });
+    if (!html) return null;
+    return this.replaceDocumentHtml(userId, projectId, documentId, html);
+  }
+
+  private async replaceDocumentHtml(
+    userId: string,
+    projectId: string,
+    documentId: string,
+    html: string
+  ): Promise<LegalDocumentModel | null> {
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    const legalDocs = project?.analysisResultModel?.legalDocs;
+    const index = legalDocs?.documents.findIndex((d) => d.id === documentId) ?? -1;
+    if (!project || !legalDocs || index < 0) {
+      logger.warn(`LegalDocsService.replaceDocumentHtml: document not found ${documentId}`);
+      return null;
+    }
+    const updatedDoc: LegalDocumentModel = { ...legalDocs.documents[index], data: html };
+    const documents = [...legalDocs.documents];
+    documents[index] = updatedDoc;
+    await this.projectRepository.update(
+      projectId,
+      {
+        ...project,
+        analysisResultModel: {
+          ...project.analysisResultModel,
+          legalDocs: { ...legalDocs, documents, updatedAt: new Date() },
+        },
+      },
+      `users/${userId}/projects`
+    );
+    await cacheService.delete(
+      cacheService.generateAIKey('legal-doc-pdf', userId, projectId, documentId),
+      { prefix: 'pdf' }
+    );
+    logger.info(`LegalDocsService: document ${documentId} updated (${html.length} chars) projectId=${projectId}`);
+    return updatedDoc;
+  }
+
   async clearLegalDocs(userId: string, projectId: string): Promise<void> {
     logger.info(`LegalDocsService.clearLegalDocs userId=${userId} projectId=${projectId}`);
     const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
@@ -131,6 +338,15 @@ export class LegalDocsService extends GenericService {
     const project = await this.getProject(projectId, userId);
     if (!project) return null;
 
+    const normalized = this.normalizeRequest(project, request);
+    if (normalized.types.length === 0) {
+      logger.warn(`LegalDocsService.generate: nothing to generate after normalization projectId=${projectId}`);
+      return project;
+    }
+    request = { ...request, types: normalized.types, context: normalized.context };
+    const legalForm = normalized.legalForm;
+    const form = getLegalForm(legalForm);
+
     const contextBlock = JSON.stringify(
       {
         project: {
@@ -141,12 +357,11 @@ export class LegalDocsService extends GenericService {
           targets: project.targets,
         },
         providedContext: request.context || {},
+        legalForm: form
+          ? { code: form.code, acronym: form.acronym, name: form.nameFr, nameEn: form.nameEn }
+          : legalForm,
         brandName: project.name,
-        language:
-          request.context?.country &&
-          /south africa|nigeria|ghana|kenya|rwanda/i.test(request.context.country)
-            ? 'en'
-            : 'fr',
+        language: form?.jurisdictions.includes('common_law') ? 'en' : 'fr',
       },
       null,
       2
@@ -162,7 +377,7 @@ export class LegalDocsService extends GenericService {
     const steps: IPromptStep[] = request.types.map((type) => ({
       stepName: type,
       hasDependencies: false,
-      promptConstant: `${getLegalDocPrompt(type)}\n\n${contextBlock}`,
+      promptConstant: `${getLegalDocPrompt(type, legalForm)}\n\n${contextBlock}`,
     }));
 
     const promptConfig: PromptConfig = {
@@ -187,14 +402,15 @@ export class LegalDocsService extends GenericService {
             await streamCallback(result);
             return;
           }
-          const entry = getCatalogEntry(result.name as LegalDocumentType);
+          const type = result.name as LegalDocumentType;
           const doc: LegalDocumentModel = {
             id: uuidv4(),
-            type: result.name as LegalDocumentType,
-            name: entry?.nameFr || result.name,
+            type,
+            name: this.documentName(type, legalForm),
             data: result.data,
             summary: result.summary,
             generatedAt: now,
+            ...(type === 'statuts' ? { legalForm } : {}),
           };
           generated.push(doc);
 
@@ -207,12 +423,10 @@ export class LegalDocsService extends GenericService {
           const existing = request.replaceExisting
             ? []
             : current.analysisResultModel?.legalDocs?.documents || [];
-          // Avoid duplicates on same type when replaceExisting not set: replace if same type
-          const merged = existing.filter((d) => d.type !== doc.type);
-          merged.push(doc);
+          const merged = this.mergeDocument(existing, doc);
 
           const updatedLegalDocs: LegalDocsModel = {
-            context: request.context || current.analysisResultModel?.legalDocs?.context,
+            context: request.context,
             documents: merged,
             updatedAt: now,
           };
@@ -250,14 +464,15 @@ export class LegalDocsService extends GenericService {
     // Non-streaming fallback
     const results = await this.processSteps(steps, project, promptConfig);
     for (const r of results) {
-      const entry = getCatalogEntry(r.name as LegalDocumentType);
+      const type = r.name as LegalDocumentType;
       generated.push({
         id: uuidv4(),
-        type: r.name as LegalDocumentType,
-        name: entry?.nameFr || r.name,
+        type,
+        name: this.documentName(type, legalForm),
         data: r.data,
         summary: r.summary,
         generatedAt: now,
+        ...(type === 'statuts' ? { legalForm } : {}),
       });
     }
 
@@ -266,8 +481,7 @@ export class LegalDocsService extends GenericService {
     const existing = request.replaceExisting
       ? []
       : current.analysisResultModel?.legalDocs?.documents || [];
-    const merged = existing.filter((d) => !generated.find((g) => g.type === d.type));
-    merged.push(...generated);
+    const merged = generated.reduce((docs, doc) => this.mergeDocument(docs, doc), existing);
 
     const updated = await this.projectRepository.update(
       projectId,

@@ -210,7 +210,8 @@ export interface ResolvedTarget {
  */
 export async function resolveTarget(
   teamId: number,
-  dto: CreateWorkspaceDto
+  dto: CreateWorkspaceDto,
+  superUser = false
 ): Promise<ResolvedTarget> {
   const type = dto.deployment_type ?? 'saas';
 
@@ -234,7 +235,7 @@ export async function resolveTarget(
 
   let region = DEFAULT_REGION;
   if (dto.region) {
-    if (!(await canSelectRegion(teamId))) {
+    if (!(await canSelectRegion(teamId, superUser))) {
       throw forbidden(
         'REGION_SELECTION_NOT_ALLOWED',
         'Choosing a hosting region is available on the Pro and Enterprise plans. ' +
@@ -260,10 +261,11 @@ export async function resolveTarget(
  */
 export async function createWorkspace(
   teamId: number,
-  dto: CreateWorkspaceDto
+  dto: CreateWorkspaceDto,
+  superUser = false
 ): Promise<Workspace> {
   const type = dto.deployment_type ?? 'saas';
-  const target = await resolveTarget(teamId, dto);
+  const target = await resolveTarget(teamId, dto, superUser);
 
   const { rows } = await pool.query(
     'SELECT 1 FROM projects WHERE team_id = $1 AND lower(name) = lower($2) LIMIT 1',

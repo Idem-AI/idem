@@ -4,7 +4,7 @@
     <!-- Header Section -->
     <div class="text-center mb-12">
       <div class="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-[var(--glass-bg-light)] border border-[var(--glass-border)] mb-4">
-        <span class="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+        <idem-loader size="xs" />
         <span class="text-sm font-medium text-text-secondary">Génération des palettes...</span>
       </div>
       <h1 class="sm:text-4xl text-2xl font-bold text-text-primary mb-4">
@@ -25,17 +25,17 @@
       >
         <ng-template let-item>
           <div class="p-4 sm:p-6 border-2 border-[var(--glass-border)] glass rounded-xl">
-            <div class="h-6 skeleton-loader rounded-lg mb-3"></div>
+            <idem-loader size="sm" />
             <div class="flex gap-2 mb-4">
               @for (color of [1, 2, 3, 4]; track color) {
-                <div class="w-8 h-8 skeleton-loader rounded-full"></div>
+                <idem-loader size="lg" />
               }
             </div>
             <div class="p-3 rounded-lg bg-[var(--glass-bg-light)] border border-[var(--glass-border-subtle)]">
-              <div class="h-4 skeleton-loader rounded mb-2"></div>
+              <idem-loader size="xs" />
               <div class="flex gap-2">
-                <div class="w-16 h-6 skeleton-loader rounded"></div>
-                <div class="w-12 h-6 skeleton-loader rounded"></div>
+                <idem-loader size="sm" />
+                <idem-loader size="sm" />
               </div>
             </div>
           </div>

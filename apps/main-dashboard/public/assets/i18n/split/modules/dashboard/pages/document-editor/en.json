@@ -109,6 +109,9 @@
       "zoom": {
         "menu": "Zoom: {{value}}%",
         "fitWidth": "Fit to width"
+      },
+      "legalDoc": {
+        "title": "Legal document editor"
       }
     }
   }

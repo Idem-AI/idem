@@ -17,9 +17,9 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MarkdownModule } from 'ngx-markdown';
 import { CookieService } from '../../../../shared/services/cookie.service';
-import { Loader } from '../../../../shared/components/loader/loader';
 import { AdvisorService } from '../../services/ai-agents/advisor.service';
 import { AdvisorMessage } from '../../models/advisor.model';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 const SUGGESTED_PROMPTS_FR = [
   'Analyse mon projet et dis-moi ce qu’il manque pour démarrer sérieusement.',
@@ -31,7 +31,7 @@ const SUGGESTED_PROMPTS_FR = [
 @Component({
   selector: 'app-advisor',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, MarkdownModule, Loader],
+  imports: [CommonModule, FormsModule, TranslateModule, MarkdownModule, IdemLoaderComponent],
   templateUrl: './advisor.html',
   styleUrls: ['./advisor-markdown.css'],
   encapsulation: ViewEncapsulation.None,

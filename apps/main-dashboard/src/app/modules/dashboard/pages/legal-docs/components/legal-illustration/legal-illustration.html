@@ -1,0 +1,103 @@
+<svg
+  viewBox="0 0 160 120"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+  class="w-full h-full"
+  stroke="currentColor"
+  stroke-width="1.75"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+  focusable="false"
+>
+  @switch (scene()) {
+    @case ('hero') {
+      <!-- Un acte juridique, signé et scellé -->
+      <path d="M50 20 h44 l16 16 v64 a4 4 0 0 1 -4 4 h-56 a4 4 0 0 1 -4 -4 v-76 a4 4 0 0 1 4 -4 z" />
+      <path d="M94 20 v12 a4 4 0 0 0 4 4 h12" />
+      <path d="M58 44 h28 M58 54 h40 M58 64 h40 M58 74 h24" />
+      <path d="M58 90 q5 -8 10 0 t10 0" />
+      <g class="accent">
+        <circle cx="110" cy="92" r="13" />
+        <path d="M104.5 92 l4 4 l7 -8" />
+      </g>
+    }
+
+    @case ('writing') {
+      <!-- Rédaction en cours : les lignes s'écrivent -->
+      <path d="M46 16 h56 a4 4 0 0 1 4 4 v80 a4 4 0 0 1 -4 4 h-56 a4 4 0 0 1 -4 -4 v-80 a4 4 0 0 1 4 -4 z" />
+      <path d="M54 30 h24" />
+      <path class="write-line" d="M54 44 h40" />
+      <path class="write-line write-line-2" d="M54 56 h34" />
+      <path class="write-line write-line-3" d="M54 68 h40" />
+      <g class="pen accent">
+        <path d="M100 58 l20 -20 l6 6 l-20 20 l-9 3 z" />
+        <path d="M114 44 l6 6" />
+      </g>
+    }
+
+    @case ('ready') {
+      <!-- Documents prêts -->
+      <path d="M40 28 h40 l12 12 v56 a4 4 0 0 1 -4 4 h-48 a4 4 0 0 1 -4 -4 v-64 a4 4 0 0 1 4 -4 z" />
+      <path d="M58 20 h40 l12 12 v56" />
+      <path d="M46 48 h28 M46 58 h36 M46 68 h30" />
+      <g class="accent">
+        <circle cx="100" cy="88" r="15" />
+        <path d="M93.5 88 l5 5 l8.5 -9.5" />
+      </g>
+    }
+
+    @case ('solo') {
+      <!-- Entreprise individuelle : une boutique, en son nom propre -->
+      <path d="M34 50 v52 h92 v-52" />
+      <path d="M28 36 h104 l-4 14 h-96 z" class="accent" />
+      <path d="M49 50 v4 a8.5 8.5 0 0 1 -17 0 M66 50 v4 a8.5 8.5 0 0 1 -17 0 M83 50 v4 a8.5 8.5 0 0 1 -17 0 M100 50 v4 a8.5 8.5 0 0 1 -17 0 M117 50 v4 a8.5 8.5 0 0 1 -17 0" />
+      <path d="M46 72 h26 v18 h-26 z" />
+      <path d="M92 102 v-30 h20 v30" />
+      <path d="M26 102 h108" />
+    }
+
+    @case ('solo-shield') {
+      <!-- Associé unique, patrimoine protégé -->
+      <path d="M36 24 h40 l12 12 v60 a4 4 0 0 1 -4 4 h-48 a4 4 0 0 1 -4 -4 v-68 a4 4 0 0 1 4 -4 z" />
+      <path d="M44 44 h28 M44 54 h36 M44 64 h22" />
+      <g class="accent">
+        <path d="M108 44 l22 8 v18 c0 16 -10 26 -22 30 c-12 -4 -22 -14 -22 -30 v-18 z" />
+        <path d="M100 72 l6 6 l11 -12" />
+      </g>
+    }
+
+    @case ('solo-growth') {
+      <!-- Fondateur seul, projet de croissance -->
+      <path d="M28 100 h104" />
+      <path d="M40 100 v-20 M62 100 v-32 M84 100 v-44 M106 100 v-58" stroke-width="8" stroke-opacity="0.3" />
+      <g class="accent">
+        <path d="M34 72 L60 54 L78 62 L120 26" />
+        <path d="M106 26 h14 v14" />
+      </g>
+    }
+
+    @case ('partners') {
+      <!-- Plusieurs associés : le capital partagé en parts -->
+      <circle cx="72" cy="62" r="38" />
+      <path d="M72 62 v-38 M72 62 l33 19 M72 62 l-33 19" />
+      <path class="accent" d="M72 24 a38 38 0 0 1 33 57 l-33 -19 z" />
+    }
+
+    @case ('startup') {
+      <!-- Croissance et investisseurs : une fusée au décollage -->
+      <path d="M80 14 c16 12 22 32 18 58 h-36 c-4 -26 2 -46 18 -58 z" />
+      <circle cx="80" cy="44" r="7" class="accent" />
+      <path d="M62 58 l-14 16 v10 l16 -6 M98 58 l14 16 v10 l-16 -6" />
+      <path class="accent" d="M72 78 c0 10 4 18 8 24 c4 -6 8 -14 8 -24" />
+    }
+
+    @case ('corporate') {
+      <!-- Grande entreprise : une institution, un conseil, des comptes contrôlés -->
+      <path class="accent" d="M28 44 L80 18 L132 44 z" />
+      <path d="M32 50 h96" />
+      <path d="M44 56 v36 M64 56 v36 M80 56 v36 M96 56 v36 M116 56 v36" />
+      <path d="M28 98 h104 M22 106 h116" />
+    }
+  }
+</svg>

@@ -18,7 +18,6 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Observable } from 'rxjs';
 import { ProjectModel } from '@idem/shared-models';
 import { CookieService } from '../../../../shared/services/cookie.service';
-import { Loader } from '../../../../shared/components/loader/loader';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
 import { BrandingValidationService } from '../../services/branding-validation.service';
 import { ProjectService } from '../../services/project.service';
@@ -30,6 +29,7 @@ import {
   documentActivityTime,
 } from '../../models/deliverable-document.model';
 import { businessPlanVariantLabel, pitchDeckTypeLabel } from '../../utils/deliverable-labels';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 type DocumentStatus = 'draft' | 'partial' | 'complete';
 
@@ -81,7 +81,7 @@ const CONFIG: Record<DeliverableKind, DeliverableListConfig> = {
  */
 @Component({
   selector: 'app-deliverable-list',
-  imports: [TranslateModule, ReactiveFormsModule, RouterLink, Loader, IncompleteProjectBannerComponent],
+  imports: [TranslateModule, ReactiveFormsModule, RouterLink, IncompleteProjectBannerComponent, IdemLoaderComponent],
   templateUrl: './deliverable-list.html',
   styleUrl: './deliverable-list.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -21,6 +21,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ProjectModel, ProjectTeamMember } from '@idem/shared-models';
 import { ProjectService } from '../../../../services/project.service';
 import { CookieService } from '../../../../../../shared/services/cookie.service';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 @Component({
   selector: 'app-additional-info-form',
@@ -35,8 +36,7 @@ import { CookieService } from '../../../../../../shared/services/cookie.service'
     DividerModule,
     MessageModule,
     SkeletonModule,
-    TranslateModule,
-  ],
+    TranslateModule, IdemLoaderComponent],
   templateUrl: './additional-info-form.html',
   styleUrl: './additional-info-form.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

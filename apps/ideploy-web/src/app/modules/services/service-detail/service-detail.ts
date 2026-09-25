@@ -4,6 +4,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
 import { RealtimeService } from '../../../shared/services/realtime.service';
 import { ServiceDetail } from '../../../shared/models/ideploy.models';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Service (stack) detail — what the compose file produced, and the controls
@@ -16,7 +17,7 @@ import { ServiceDetail } from '../../../shared/models/ideploy.models';
  */
 @Component({
   selector: 'app-service-detail',
-  imports: [RouterLink, TranslateModule],
+  imports: [RouterLink, TranslateModule, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <a
@@ -68,7 +69,7 @@ import { ServiceDetail } from '../../../shared/models/ideploy.models';
           <div class="box-header">
             <h2 class="box-title flex items-center gap-2">
               @if (busy()) {
-                <i class="pi pi-spinner pi-spin text-xs" style="color:var(--color-primary-400);" aria-hidden="true"></i>
+                <idem-loader size="xs" />
               } @else {
                 <i class="pi pi-code text-xs" style="color:var(--color-text-tertiary);" aria-hidden="true"></i>
               }

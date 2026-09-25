@@ -29,6 +29,7 @@ import {
 } from '../../../../../../shared/components/agent-research-console/agent-research-console';
 import { environment } from '../../../../../../../environments/environment';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Sections affichées par la console tant que la structure n'a pas été choisie.
@@ -57,8 +58,7 @@ const DEFAULT_BUSINESS_PLAN_SECTIONS = [
     AdditionalInfoFormComponent,
     AgentResearchConsoleComponent,
     BusinessPlanStructureComponent,
-    TranslateModule,
-  ],
+    TranslateModule, IdemLoaderComponent],
   templateUrl: './business-plan-generation.html',
   styleUrl: './business-plan-generation.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

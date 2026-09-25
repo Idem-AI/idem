@@ -1,6 +1,7 @@
 import { Component, computed, input, output, signal, OnInit, OnDestroy, inject, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 export interface CreationStep {
   id: string;
@@ -12,12 +13,11 @@ export interface CreationStep {
   status: 'pending' | 'active' | 'completed';
 }
 
-import { Loader } from '../../../../../../shared/components/loader/loader';
 
 @Component({
   selector: 'app-logo-creation-simulator',
   standalone: true,
-  imports: [CommonModule, TranslateModule, Loader],
+  imports: [CommonModule, TranslateModule, IdemLoaderComponent],
   template: `
     <!-- Main Container avec design responsive original -->
     <div class="w-full min-h-screen  font-jura relative overflow-hidden">
@@ -101,7 +101,7 @@ import { Loader } from '../../../../../../shared/components/loader/loader';
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                       </svg>
                     } @else if (step.status === 'active') {
-                      <app-loader class="transform scale-50"></app-loader>
+                      <idem-loader block />
                     } @else {
                       <span class="text-xs font-bold text-gray-600">{{ i + 1 }}</span>
                     }
@@ -148,7 +148,7 @@ import { Loader } from '../../../../../../shared/components/loader/loader';
                       </svg>
                     } @else if (step.status === 'active') {
                       <div class="absolute inset-0 rounded-full border-2 border-primary animate-ping opacity-30"></div>
-                      <app-loader class="transform scale-50 lg:scale-75"></app-loader>
+                      <idem-loader block />
                     } @else {
                       <span class="text-sm lg:text-lg font-bold text-gray-600">{{ i + 1 }}</span>
                     }

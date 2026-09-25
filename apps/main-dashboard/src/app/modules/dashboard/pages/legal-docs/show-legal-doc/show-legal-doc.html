@@ -1,0 +1,48 @@
+<div class="w-full min-h-screen md:px-6 md:pb-6">
+  @if (isLoading()) {
+    <div class="max-w-6xl mx-auto py-20">
+      <idem-loader block [label]="'common.loading' | translate" />
+    </div>
+  } @else if (hasError()) {
+    <div class="max-w-md mx-auto text-center py-16" role="alert">
+      <app-legal-illustration class="w-40 h-[120px] mx-auto" scene="hero" />
+      <h1 class="text-xl font-semibold text-text-primary mt-6">
+        {{ 'dashboard.legalDocs.show.error.title' | translate }}
+      </h1>
+      <p class="text-text-secondary mt-2">{{ 'dashboard.legalDocs.show.error.subtitle' | translate }}</p>
+      <div class="flex justify-center gap-3 mt-6">
+        <button type="button" class="inner-button" (click)="load()">{{ 'common.retry' | translate }}</button>
+        <button type="button" class="outer-button" (click)="goToList()">
+          {{ 'dashboard.legalDocs.show.backToList' | translate }}
+        </button>
+      </div>
+    </div>
+  } @else if (document(); as doc) {
+    <div class="max-w-6xl mx-auto">
+      <app-document-preview documentType="legal-doc" [documentId]="documentId()" [heading]="doc.name">
+        <button
+          previewLeading
+          type="button"
+          class="inline-flex items-center justify-center shrink-0 w-9 h-9 rounded-lg border border-[var(--glass-border)] text-text-secondary transition-colors hover:bg-[var(--glass-bg-subtle)] hover:text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+          [attr.aria-label]="'dashboard.legalDocs.show.backToList' | translate"
+          [title]="'dashboard.legalDocs.show.backToList' | translate"
+          (click)="goToList()"
+        >
+          <i class="pi pi-arrow-left" aria-hidden="true"></i>
+        </button>
+      </app-document-preview>
+    </div>
+  } @else {
+    <!-- Document supprimé, ou lien d'un autre projet -->
+    <div class="max-w-md mx-auto text-center py-16">
+      <app-legal-illustration class="w-40 h-[120px] mx-auto" scene="hero" />
+      <h1 class="text-xl font-semibold text-text-primary mt-6">
+        {{ 'dashboard.legalDocs.show.notFound.title' | translate }}
+      </h1>
+      <p class="text-text-secondary mt-2">{{ 'dashboard.legalDocs.show.notFound.subtitle' | translate }}</p>
+      <button type="button" class="inner-button mt-6" (click)="goToList()">
+        {{ 'dashboard.legalDocs.show.backToList' | translate }}
+      </button>
+    </div>
+  }
+</div>

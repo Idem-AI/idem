@@ -1,12 +1,17 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { LayoutGrid, LogOut, Coins } from 'lucide-react';
+import { LayoutGrid, LogOut, Coins, MessageSquare } from 'lucide-react';
 import type { UserModel } from '../../api/persistence/userModel';
 import useUserStore from '@/stores/userSlice';
 import Popover from '@/components/ui/Popover';
 
 interface UserProfileProps {
   user: UserModel;
+  /**
+   * Entrée « Ouvrir le chat » : fournie par la landing, d'où l'on rejoint
+   * l'atelier. Absente dans l'en-tête de l'atelier, où l'on y est déjà.
+   */
+  onOpenChat?: () => void;
 }
 
 const PLAN_LABEL: Record<string, string> = {
@@ -25,7 +30,7 @@ const PLAN_LABEL: Record<string, string> = {
  * l'identité de la personne connectée est la dernière information dont elle a
  * besoin en permanence — elle sait qui elle est.
  */
-export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
+export const UserProfile: React.FC<UserProfileProps> = ({ user, onOpenChat }) => {
   const { t } = useTranslation();
   const { logout, user: storeUser } = useUserStore();
 
@@ -96,6 +101,20 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
               ) : null}
             </div>
           </div>
+
+          {onOpenChat && (
+            <button
+              type="button"
+              onClick={() => {
+                close();
+                onOpenChat();
+              }}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-text-secondary hover:bg-surface-2 hover:text-text-primary transition-colors"
+            >
+              <MessageSquare className="w-4 h-4" />
+              {t('header.openChat')}
+            </button>
+          )}
 
           <a
             href={`${mainAppUrl}/console`}

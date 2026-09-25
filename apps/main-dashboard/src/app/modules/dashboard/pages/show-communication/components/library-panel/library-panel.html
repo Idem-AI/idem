@@ -141,7 +141,7 @@
                   (click)="confirmDelete(visual.id)"
                 >
                   @if (deletingId() === visual.id) {
-                    <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+                    <idem-loader size="xs" />
                   } @else {
                     <i class="pi pi-trash" aria-hidden="true"></i>
                   }

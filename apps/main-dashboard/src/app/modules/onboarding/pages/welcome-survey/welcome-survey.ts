@@ -7,6 +7,7 @@ import { UiModeService, MODE_HOME_ROUTE } from '../../../../shared/services/ui-m
 import { ModeIllustrationComponent } from '../../../../shared/components/mode-illustration/mode-illustration';
 import { UiMode } from '../../../chat/models/chat.model';
 import { SurveyOption, SurveyQuestion } from '../../../../shared/models/onboarding-survey.model';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 interface ModeCard {
   mode: UiMode;
@@ -47,7 +48,7 @@ const MODE_CARDS: readonly ModeCard[] = [
 @Component({
   selector: 'app-welcome-survey',
   standalone: true,
-  imports: [CommonModule, TranslateModule, ModeIllustrationComponent],
+  imports: [CommonModule, TranslateModule, ModeIllustrationComponent, IdemLoaderComponent],
   templateUrl: './welcome-survey.html',
   styleUrl: './welcome-survey.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

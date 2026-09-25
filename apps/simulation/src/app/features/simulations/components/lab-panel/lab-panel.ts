@@ -3,6 +3,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 import { SimulationStore } from '../../data-access';
 import { LabName } from '../../models';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Cadre commun des analyses complémentaires.
@@ -13,7 +14,7 @@ import { LabName } from '../../models';
  */
 @Component({
   selector: 'sim-lab-panel',
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="flex flex-col gap-5">
@@ -37,7 +38,7 @@ import { LabName } from '../../models';
 
       @if (pending()) {
         <div class="glass-card flex items-center gap-3 p-6" aria-live="polite">
-          <span class="loader loader-sm" aria-hidden="true"></span>
+          <idem-loader size="xs" />
           <p class="text-sm text-ink-muted">{{ 'lab.runningBody' | translate }}</p>
         </div>
       } @else if (available()) {

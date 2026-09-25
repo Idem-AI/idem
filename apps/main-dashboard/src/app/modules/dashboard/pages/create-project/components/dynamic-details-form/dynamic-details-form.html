@@ -98,7 +98,7 @@
           <!-- Chargement des questions contextuelles -->
           <div class="space-y-6" aria-live="polite">
             <p class="text-sm text-text-tertiary flex items-center gap-2">
-              <i class="pi pi-spin pi-spinner"></i>
+              <idem-loader size="xs" />
               {{ 'dashboard.projectDetails.dynamic.loading' | translate }}
             </p>
             @for (row of skeletonRows; track row) {

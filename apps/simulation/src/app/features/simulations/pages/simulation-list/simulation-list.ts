@@ -10,6 +10,7 @@ import { SkeletonList } from '../../../../shared/components/skeleton-list/skelet
 import { SimulationStore } from '../../data-access';
 import { SimulationSummary } from '../../models';
 import { VerdictBadge } from '../../components/verdict-badge/verdict-badge';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 @Component({
   selector: 'sim-simulation-list',
@@ -21,8 +22,7 @@ import { VerdictBadge } from '../../components/verdict-badge/verdict-badge';
     EmptyState,
     SkeletonList,
     VerdictBadge,
-    DisclaimerNote,
-  ],
+    DisclaimerNote, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './simulation-list.html',
 })

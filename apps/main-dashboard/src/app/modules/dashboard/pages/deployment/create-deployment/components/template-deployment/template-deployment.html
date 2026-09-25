@@ -163,7 +163,7 @@
             "
           >
             @if (loadingDeployment()) {
-              <i class="pi pi-spinner animate-spin"></i> {{ 'common.saving' | translate }}
+              <idem-loader /> {{ 'common.saving' | translate }}
             } @else {
               <i class="pi pi-rocket"></i>
               {{ 'dashboard.templateDeployment.buttons.save' | translate }}

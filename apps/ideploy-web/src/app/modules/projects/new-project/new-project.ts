@@ -1,286 +1,298 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SlicePipe } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ApiService } from '../../../shared/services/api.service';
 import { GithubRepo, ServiceTemplate } from '../../../shared/models/ideploy.models';
 import { ARCHITECTURE_TEMPLATES } from '../../../shared/data/architecture-templates';
-import { serviceLogoUrl, serviceScreenshotUrl } from '../../../shared/utils/service-logo.util';
+import { serviceLogoUrl } from '../../../shared/utils/service-logo.util';
+import { IllustrationComponent, IllustrationName } from '../../../shared/components/illustration/illustration';
 import {
   WorkspaceTarget,
   WorkspaceTargetPickerComponent,
 } from '../../../shared/components/workspace-target-picker/workspace-target-picker';
 
-type GitProvider = 'github' | 'gitlab';
-/** What the left panel is currently showing — the provider picker, one provider's repo list, or a git-less quick-deploy form. */
-type ImportMode = 'pick' | GitProvider | 'compose' | 'image';
+/** The one question the page asks: where does the thing to put online come from? */
+type Source = 'code' | 'docker' | 'template';
+type CodeTab = 'github' | 'gitlab' | 'url';
+type DockerTab = 'image' | 'compose';
+
+interface SourceChoice {
+  id: Source;
+  illustration: IllustrationName;
+  titleKey: string;
+  descKey: string;
+}
+
+/** How many one-click apps the page shows before sending to the full catalog. */
+const FEATURED_TEMPLATES = 6;
 
 /**
- * New Project — Vercel-style import flow.
+ * New project — one question, then one panel.
  *
- * "Import Git Repository" now offers every source iDeploy actually supports:
- * GitHub and GitLab (each its own self-contained OAuth connect, see
- * `github.service.ts` / `gitlab.service.ts`), plus two git-less quick-deploys
- * — Docker Compose and Docker Image — which both land as a Service (this
- * rewrite's docker-compose-stack primitive), the same creation path already
- * used by `/services`' own custom-compose form.
- *
- * Two legacy iDeploy sources are deliberately NOT here yet: Bitbucket (asked
- * to be skipped for now) and a git-less standalone Dockerfile build (that one
- * needs a real new deploy path — building an image with no repository to
- * clone — not just a UI entry; see the session notes for why it was left out
- * rather than half-built).
+ * The page first asks what is being put online (code, a Docker image, a
+ * ready-made app) and only then shows the controls for that answer. Every
+ * source iDeploy supports is still here — GitHub, GitLab, a public Git URL,
+ * an image, a compose file, the template catalog and the architecture guides —
+ * but never all on screen at once.
  */
 @Component({
   selector: 'app-new-project',
-  imports: [FormsModule, ReactiveFormsModule, RouterLink, SlicePipe, TranslateModule, WorkspaceTargetPickerComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    SlicePipe,
+    TranslateModule,
+    IdemLoaderComponent,
+    IllustrationComponent,
+    WorkspaceTargetPickerComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- Top bar -->
-    <div class="flex h-16 items-center justify-between border-b px-6" style="border-color:var(--color-surface-2);">
+    <header class="flex h-16 items-center justify-between border-b px-4 sm:px-6" style="border-color:var(--glass-border-subtle);">
       <a routerLink="/dashboard" class="flex items-center gap-2 text-sm transition-colors hover:text-text-primary" style="color:var(--color-text-secondary);">
-        <i class="pi pi-arrow-left"></i> {{ 'projects.common.back' | translate }}
+        <i class="pi pi-arrow-left" aria-hidden="true"></i> {{ 'projects.common.back' | translate }}
       </a>
-      <span class="text-sm font-semibold font-mono text-text-primary">{{ 'projects.common.newProject' | translate }}</span>
-      <span class="w-12"></span>
-    </div>
+      <a routerLink="/dashboard" class="shrink-0" aria-label="iDeploy">
+        <img src="/assets/logos/Ideploy%20logo%20light.png" alt="iDeploy" class="h-7 w-auto dark:hidden" />
+        <img src="/assets/logos/Ideploy%20logo%20dark.png" alt="" aria-hidden="true" class="hidden h-7 w-auto dark:block" />
+      </a>
+      <span class="w-16" aria-hidden="true"></span>
+    </header>
 
-    <div class="mx-auto max-w-5xl px-6 py-12">
-      <h1 class="heading-serif mb-8 text-center" style="font-size:40px;font-weight:700;color:var(--color-text-primary);">{{ 'projects.new.heading' | translate }}</h1>
-
-      <!-- Git URL prompt -->
-      <div class="mb-2 flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 border"
-           style="background:var(--glass-bg-subtle);border-color:var(--glass-border);"
-           [class.focus-within:border-blue-500/80]="true"
-           [class.focus-within:ring-2]="true"
-           [class.focus-within:ring-blue-500/20]="true">
-        <i class="pi pi-link text-primary-400"></i>
-        <input type="text" class="flex-1 bg-transparent outline-none text-sm !w-auto min-w-0" [placeholder]="'projects.new.gitUrlPlaceholder' | translate"
-               [attr.aria-label]="'projects.new.gitUrlLabel' | translate"
-               [(ngModel)]="gitUrl" (keyup.enter)="importUrl()" style="color:var(--color-text-primary);" />
-        @if (gitUrl) {
-          <button class="inner-button cursor-pointer text-xs font-semibold py-1.5 px-3" (click)="importUrl()">{{ 'projects.new.continue' | translate }}</button>
-        }
-      </div>
-      <p class="mb-10 text-center text-sm" style="color:var(--color-text-tertiary);">
-        {{ 'projects.new.subheading' | translate }}
+    <main class="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
+      <h1 class="mb-2 text-center text-3xl font-bold text-text-primary">{{ 'projects.start.heading' | translate }}</h1>
+      <p class="mx-auto mb-10 max-w-xl text-center text-sm" style="color:var(--color-text-secondary);">
+        {{ 'projects.start.subheading' | translate }}
       </p>
 
-      <div class="grid grid-cols-1 gap-10 lg:grid-cols-2">
-        <!-- ===== Import Git Repository ===== -->
-        <div>
-          <h2 class="mb-4 text-xl font-semibold font-mono text-text-primary">{{ 'projects.new.importGitRepo' | translate }}</h2>
+      <!-- Step 1 — the source -->
+      <div class="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3" role="radiogroup" [attr.aria-label]="'projects.start.sourceLabel' | translate">
+        @for (choice of sources; track choice.id) {
+          <button
+            type="button"
+            role="radio"
+            [attr.aria-checked]="source() === choice.id"
+            class="glass-card relative flex cursor-pointer items-center gap-4 rounded-2xl p-4 text-left transition-colors sm:flex-col sm:gap-2 sm:p-5 sm:text-center"
+            [style.border-color]="source() === choice.id ? 'var(--color-primary-500)' : null"
+            [style.box-shadow]="source() === choice.id ? '0 0 0 1px var(--color-primary-500)' : null"
+            (click)="selectSource(choice.id)">
+            @if (source() === choice.id) {
+              <i class="pi pi-check-circle absolute right-3 top-3 text-sm" style="color:var(--color-primary-500);" aria-hidden="true"></i>
+            }
+            <app-illustration class="shrink-0" [name]="choice.illustration" [width]="illustrationWidth" />
+            <span class="flex min-w-0 flex-col gap-1 pr-5 sm:pr-0">
+              <span class="font-semibold text-text-primary">{{ choice.titleKey | translate }}</span>
+              <span class="text-xs leading-relaxed" style="color:var(--color-text-secondary);">{{ choice.descKey | translate }}</span>
+            </span>
+          </button>
+        }
+      </div>
 
-          @if (mode() === 'pick') {
-            <div class="glass-card rounded-2xl p-8">
-              <p class="mb-6 text-center text-sm" style="color:var(--color-text-secondary);">
-                {{ 'projects.new.selectProviderHint' | translate }}
-              </p>
-              <div class="mx-auto max-w-sm space-y-2.5">
-                @for (source of importSources; track source.id) {
-                  <button
-                    type="button"
-                    class="glass-card flex w-full items-center gap-3 rounded-xl p-4 text-sm font-semibold transition-colors hover:border-[var(--color-primary-500)] cursor-pointer"
-                    (click)="source.mode === 'github' || source.mode === 'gitlab' ? pickProvider(source.mode) : mode.set(source.mode)"
-                  >
-                    <i [class]="source.icon" class="w-5 text-center text-lg" [style.color]="source.iconColor"></i>
-                    {{ source.labelKey | translate }}
-                  </button>
-                }
-              </div>
-              <div class="mt-6 text-center">
-                <a routerLink="/sources" class="text-xs hover:underline" style="color:var(--color-text-tertiary);">
-                  {{ 'projects.new.manageConnections' | translate }} <i class="pi pi-external-link ml-0.5 text-[10px]"></i>
-                </a>
-              </div>
+      <!-- Step 2 — the panel for that source -->
+      <section class="glass-card rounded-2xl p-5 sm:p-6">
+        @switch (source()) {
+          @case ('code') {
+            <div class="mb-5 flex border-b" role="tablist" style="border-color:var(--glass-border-subtle);">
+              @for (tab of codeTabs; track tab.id) {
+                <button type="button" role="tab" class="-mb-px flex flex-1 cursor-pointer items-center justify-center gap-2 border-b-2 py-2.5 text-sm font-medium transition-colors"
+                        [attr.aria-selected]="codeTab() === tab.id"
+                        [style.border-color]="codeTab() === tab.id ? 'var(--color-primary-500)' : 'transparent'"
+                        [style.color]="codeTab() === tab.id ? 'var(--color-text-primary)' : 'var(--color-text-secondary)'"
+                        (click)="selectCodeTab(tab.id)">
+                  <i [class]="tab.icon" aria-hidden="true"></i>{{ tab.labelKey | translate }}
+                </button>
+              }
             </div>
-          } @else if (mode() === 'github' || mode() === 'gitlab') {
-            <button class="mb-3 text-xs hover:text-text-primary transition-colors cursor-pointer" style="color:var(--color-text-tertiary);" (click)="mode.set('pick')">
-              <i class="pi pi-arrow-left mr-1"></i>{{ 'projects.new.chooseAnotherSource' | translate }}
-            </button>
 
-            @if (providerUser() === undefined) {
-              <p class="text-sm" style="color:var(--color-text-secondary);">{{ 'projects.new.checkingProvider' | translate }}</p>
+            @if (codeTab() === 'url') {
+              <form (ngSubmit)="importUrl()" [formGroup]="urlForm">
+                <label for="git-url" class="mb-1.5 block text-sm font-medium">{{ 'projects.start.urlLabel' | translate }}</label>
+                <div class="flex flex-col gap-2 sm:flex-row">
+                  <input id="git-url" type="url" class="flex-1 !w-auto min-w-0 font-mono" formControlName="url"
+                         placeholder="https://github.com/organisation/projet" autocomplete="off" />
+                  <button class="inner-button" type="submit" [disabled]="urlForm.invalid">{{ 'projects.start.continue' | translate }}</button>
+                </div>
+                <p class="mt-2 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.start.urlHint' | translate }}</p>
+              </form>
+            } @else if (providerUser() === undefined) {
+              <idem-loader block [label]="'projects.start.checkingProvider' | translate" />
             } @else if (providerUser() === null) {
-              <div class="glass-card text-center p-8 rounded-2xl">
-                <i class="text-4xl mb-3" [class]="mode() === 'github' ? 'pi pi-github' : 'pi pi-sitemap'" style="color:var(--color-text-secondary);"></i>
-                <p class="mb-4 text-sm" style="color:var(--color-text-secondary);">
-                  {{ (mode() === 'github' ? 'projects.new.connectGithubDesc' : 'projects.new.connectGitlabDesc') | translate }}
+              <div class="flex flex-col items-center py-6 text-center">
+                <i class="mb-3 text-3xl text-text-secondary" [class]="providerIcon()" aria-hidden="true"></i>
+                <p class="mb-4 max-w-sm text-sm" style="color:var(--color-text-secondary);">
+                  {{ (codeTab() === 'github' ? 'projects.start.connectGithubDesc' : 'projects.start.connectGitlabDesc') | translate }}
                 </p>
-                <button class="inner-button cursor-pointer" (click)="connectProvider()">
-                  <i class="mr-2" [class]="mode() === 'github' ? 'pi pi-github' : 'pi pi-sitemap'"></i>
-                  {{ (mode() === 'github' ? 'projects.new.connectGithub' : 'projects.new.connectGitlab') | translate }}
+                <button type="button" class="inner-button" [disabled]="connecting()" (click)="connectProvider()">
+                  @if (connecting()) { <idem-loader size="xs" /> }
+                  {{ (codeTab() === 'github' ? 'projects.start.connectGithub' : 'projects.start.connectGitlab') | translate }}
                 </button>
               </div>
             } @else {
-              <div class="mb-4 flex items-center gap-3">
-                <span class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-mono border" style="background:var(--glass-bg-subtle);border-color:var(--glass-border);color:var(--color-text-secondary);">
-                  <i [class]="mode() === 'github' ? 'pi pi-github' : 'pi pi-sitemap'"></i> {{ providerUser() }}
+              <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <span class="text-xs" style="color:var(--color-text-secondary);">
+                  <i class="mr-1" [class]="providerIcon()" aria-hidden="true"></i>{{ providerUser() }}
                 </span>
-                <div class="relative flex-1">
-                  <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-[10px]" style="color:var(--color-text-tertiary);"></i>
-                  <input type="text" class="font-mono text-xs" style="padding-left:30px;height:36px;" [placeholder]="'projects.new.searchReposPlaceholder' | translate" [attr.aria-label]="'projects.new.searchReposLabel' | translate" [ngModel]="repoQuery()" (ngModelChange)="repoQuery.set($event)" />
+                <div class="sm:ml-auto sm:w-64">
+                  <input type="search" class="text-sm" [attr.aria-label]="'projects.start.searchRepos' | translate"
+                         [placeholder]="'projects.start.searchRepos' | translate"
+                         [value]="repoQuery()" (input)="repoQuery.set($any($event.target).value)" />
                 </div>
               </div>
-              @if (filteredRepos().length === 0) {
-                <div class="glass-card p-8 text-center text-sm" style="color:var(--color-text-secondary);">{{ 'projects.new.noRepos' | translate }}</div>
+
+              @if (reposLoading()) {
+                <div class="space-y-2" aria-hidden="true">
+                  @for (i of [0, 1, 2, 3]; track i) { <div class="skeleton h-14 rounded-xl"></div> }
+                </div>
+              } @else if (filteredRepos().length === 0) {
+                <p class="py-8 text-center text-sm" style="color:var(--color-text-secondary);">{{ 'projects.start.noRepos' | translate }}</p>
               } @else {
-                <div class="overflow-y-auto rounded-xl glass-card p-0" style="max-height: 400px;">
+                <ul class="custom-scrollbar max-h-[420px] overflow-y-auto rounded-xl border" style="border-color:var(--glass-border-subtle);">
                   @for (repo of filteredRepos(); track repo.fullName) {
-                    <div class="flex items-center gap-4 p-3.5 hover:bg-[var(--glass-bg-subtle)] transition-colors duration-150" style="border-bottom:1px solid var(--glass-border-subtle);">
-                      <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-primary-400">
-                        <i class="pi pi-sitemap"></i>
-                      </div>
+                    <li class="flex items-center gap-3 border-b px-4 py-3 last:border-b-0" style="border-color:var(--glass-border-subtle);">
                       <div class="min-w-0 flex-1">
-                        <div class="truncate text-sm font-semibold text-text-primary font-mono">{{ repo.name }}
-                          @if (repo.private) { <i class="pi pi-lock ml-1.5 text-[10px]" style="color:var(--color-text-tertiary);" [title]="'projects.new.privateRepo' | translate"></i> }
+                        <div class="flex items-center gap-1.5 truncate text-sm font-medium text-text-primary">
+                          {{ repo.name }}
+                          @if (repo.private) {
+                            <i class="pi pi-lock text-[10px]" style="color:var(--color-text-tertiary);" [attr.aria-label]="'projects.start.privateRepo' | translate"></i>
+                          }
                         </div>
-                        <div class="truncate text-[10px] font-mono mt-0.5" style="color:var(--color-text-tertiary);">{{ 'projects.new.updated' | translate }} {{ repo.updatedAt | slice:0:10 }}</div>
+                        <div class="mt-0.5 text-xs" style="color:var(--color-text-tertiary);">
+                          {{ 'projects.start.updated' | translate }} {{ repo.updatedAt | slice: 0 : 10 }}
+                        </div>
                       </div>
-                      <button class="outer-button cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-[var(--glass-bg-subtle)] transition-colors" (click)="importRepo(repo)">{{ 'projects.new.import' | translate }}</button>
-                    </div>
+                      <button type="button" class="outer-button button-sm" (click)="importRepo(repo)">{{ 'projects.start.import' | translate }}</button>
+                    </li>
                   }
-                </div>
+                </ul>
               }
-              <button class="mt-3 text-xs hover:text-text-primary transition-colors cursor-pointer" style="color:var(--color-text-tertiary);" (click)="disconnectProvider()">
-                {{ (mode() === 'github' ? 'projects.new.disconnectGithub' : 'projects.new.disconnectGitlab') | translate }}
-              </button>
+
+              <div class="mt-3 flex items-center justify-between text-xs" style="color:var(--color-text-tertiary);">
+                <a routerLink="/sources" class="hover:underline">{{ 'projects.start.manageConnections' | translate }}</a>
+                <button type="button" class="cursor-pointer hover:underline" (click)="disconnectProvider()">
+                  {{ (codeTab() === 'github' ? 'projects.start.disconnectGithub' : 'projects.start.disconnectGitlab') | translate }}
+                </button>
+              </div>
             }
-          } @else if (mode() === 'compose') {
-            <button class="mb-3 text-xs hover:text-text-primary transition-colors cursor-pointer" style="color:var(--color-text-tertiary);" (click)="mode.set('pick')">
-              <i class="pi pi-arrow-left mr-1"></i>{{ 'projects.new.chooseAnotherSource' | translate }}
-            </button>
-            <form class="glass-card space-y-3 rounded-2xl p-5" [formGroup]="composeForm" (ngSubmit)="deployCompose()">
-              <p class="text-xs" style="color:var(--color-text-secondary);">{{ 'projects.new.composeHint' | translate }}</p>
-              <div>
-                <label class="mb-1 block text-xs font-semibold">{{ 'projects.new.name' | translate }}</label>
-                <input type="text"  formControlName="name" />
-              </div>
-              <app-workspace-target-picker (targetChange)="target.set($event)" />
-              <div>
-                <label class="mb-1 block text-xs font-semibold">{{ 'projects.new.composeLabel' | translate }}</label>
-                <textarea class="font-mono" rows="8" formControlName="compose" placeholder="services:
-  app:
-    image: myorg/myapp:latest"></textarea>
-              </div>
-              @if (error()) { <p class="text-sm text-red-400">{{ error() }}</p> }
-              <button class="inner-button w-full" type="submit" [disabled]="composeForm.invalid || !target() || busy()">
-                {{ (busy() ? 'projects.common.deploying' : 'projects.new.deployCompose') | translate }}
-              </button>
-            </form>
-          } @else if (mode() === 'image') {
-            <button class="mb-3 text-xs hover:text-text-primary transition-colors cursor-pointer" style="color:var(--color-text-tertiary);" (click)="mode.set('pick')">
-              <i class="pi pi-arrow-left mr-1"></i>{{ 'projects.new.chooseAnotherSource' | translate }}
-            </button>
-            <form class="glass-card space-y-3 rounded-2xl p-5" [formGroup]="imageForm" (ngSubmit)="deployImage()">
-              <p class="text-xs" style="color:var(--color-text-secondary);">{{ 'projects.new.imageHint' | translate }}</p>
-              <div>
-                <label class="mb-1 block text-xs font-semibold">{{ 'projects.new.name' | translate }}</label>
-                <input type="text"  formControlName="name" />
-              </div>
-              <app-workspace-target-picker (targetChange)="target.set($event)" />
-              <div>
-                <label class="mb-1 block text-xs font-semibold">{{ 'projects.new.imageLabel' | translate }}</label>
-                <input type="text" class="font-mono" formControlName="image" placeholder="nginx:latest" />
-              </div>
-              @if (error()) { <p class="text-sm text-red-400">{{ error() }}</p> }
-              <button class="inner-button w-full" type="submit" [disabled]="imageForm.invalid || !target() || busy()">
-                {{ (busy() ? 'projects.common.deploying' : 'projects.new.deployImage') | translate }}
-              </button>
-            </form>
           }
-        </div>
 
-        <!-- ===== Clone Template ===== -->
-        <div>
-          <div class="mb-4 flex items-center justify-between">
-            <h2 class="text-xl font-semibold font-mono text-text-primary">{{ 'projects.new.cloneTemplate' | translate }}</h2>
-            <a routerLink="/templates" class="text-sm font-semibold hover:underline" style="color:#60a5fa;">{{ 'projects.new.browseAll' | translate }}</a>
-          </div>
-
-          <!-- Two different kinds of "template": a ready-made app to deploy in one click,
-               vs. a multi-resource architecture this rewrite can't wire up automatically —
-               see architecture-templates.ts for why the second one is a checklist, not a deploy button. -->
-          <div class="mb-4 flex gap-1 rounded-xl p-1" style="background:var(--glass-bg-subtle);border:1px solid var(--glass-border);">
-            <button type="button" class="flex-1 rounded-lg py-1.5 text-xs font-semibold transition-colors cursor-pointer"
-                    [style.background]="templateTab() === 'architectures' ? 'var(--color-surface-2)' : 'transparent'"
-                    [style.color]="templateTab() === 'architectures' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)'"
-                    (click)="templateTab.set('architectures')">
-              {{ 'architectures.tabLabel' | translate }}
-            </button>
-            <button type="button" class="flex-1 rounded-lg py-1.5 text-xs font-semibold transition-colors cursor-pointer"
-                    [style.background]="templateTab() === 'apps' ? 'var(--color-surface-2)' : 'transparent'"
-                    [style.color]="templateTab() === 'apps' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)'"
-                    (click)="templateTab.set('apps')">
-              {{ 'projects.new.oneClickAppsTab' | translate }}
-            </button>
-          </div>
-
-          @if (templateTab() === 'architectures') {
-            <p class="mb-3 text-xs" style="color:var(--color-text-tertiary);">{{ 'architectures.pickerHint' | translate }}</p>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              @for (a of architectureTemplates; track a.id) {
-                <a [routerLink]="['/new-project/guide', a.id]" [queryParams]="workspaceUuid ? { workspace: workspaceUuid } : {}"
-                   class="glass-card flex flex-col overflow-hidden hover:border-[var(--color-primary-500)] transition-all duration-200 rounded-2xl group">
-                  <div class="flex-1 p-5">
-                    <div class="mb-2 font-semibold font-mono text-text-primary group-hover:text-primary-400 transition-colors">{{ a.name | translate }}</div>
-                    <p class="text-xs leading-relaxed" style="color:var(--color-text-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ a.description | translate }}</p>
-                  </div>
-                  <!-- No real screenshot exists for an abstract multi-resource guide — an honest
-                       iconographic panel, not a fabricated "preview" of something that isn't a single deploy. -->
-                  <div class="relative flex h-24 items-center justify-center" [style.background]="archVisualBg(a.id)">
-                    <i [class]="a.icon" class="text-3xl" style="color:rgba(255,255,255,0.85);"></i>
-                    <span class="absolute bottom-2 right-3 rounded-full px-2 py-0.5 text-[10px] font-semibold" style="background:rgba(0,0,0,0.35);color:white;">
-                      {{ a.steps.length }} {{ 'architectures.steps' | translate }}
-                    </span>
-                  </div>
-                </a>
+          @case ('docker') {
+            <div class="mb-5 flex border-b" role="tablist" style="border-color:var(--glass-border-subtle);">
+              @for (tab of dockerTabs; track tab.id) {
+                <button type="button" role="tab" class="-mb-px flex-1 cursor-pointer border-b-2 py-2.5 text-sm font-medium transition-colors"
+                        [attr.aria-selected]="dockerTab() === tab.id"
+                        [style.border-color]="dockerTab() === tab.id ? 'var(--color-primary-500)' : 'transparent'"
+                        [style.color]="dockerTab() === tab.id ? 'var(--color-text-primary)' : 'var(--color-text-secondary)'"
+                        (click)="dockerTab.set(tab.id); error.set(null)">
+                  {{ tab.labelKey | translate }}
+                </button>
               }
             </div>
-          } @else {
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              @for (t of templates(); track t.name) {
-                <div class="glass-card flex flex-col overflow-hidden hover:border-[var(--color-primary-500)] transition-all duration-200 rounded-2xl group">
-                  <div class="flex-1 p-5">
-                    <div class="mb-2 font-semibold capitalize font-mono text-text-primary group-hover:text-primary-400 transition-colors">{{ t.name }}</div>
-                    <p class="text-xs leading-relaxed" style="color:var(--color-text-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ t.slogan || ('projects.new.oneClickBoilerplate' | translate) }}</p>
-                  </div>
-                  <div class="relative flex h-24 items-center justify-center overflow-hidden" style="background:var(--color-surface-2);">
-                    @if (templateScreenshot(t); as shot) {
-                      <img [src]="shot" class="h-full w-full object-cover" alt="" (error)="onVisualError($event)" />
-                    } @else if (templateLogo(t); as logo) {
-                      <img [src]="logo" class="h-12 w-12 object-contain" alt="" (error)="onVisualError($event)" />
-                    } @else {
-                      <i [class]="getTemplateIcon(t.name)" class="text-3xl"></i>
-                    }
-                  </div>
-                  <button class="outer-button w-full cursor-pointer hover:bg-blue-500 hover:text-text-primary transition-all text-xs font-semibold py-1.5 rounded-none border-0 border-t" style="border-color:var(--glass-border-subtle);" [disabled]="busy()" (click)="cloneTemplate(t)">{{ 'projects.common.deploy' | translate }}</button>
+
+            <form class="space-y-4" [formGroup]="dockerForm" (ngSubmit)="deployDocker()">
+              <div>
+                <label for="docker-name" class="mb-1.5 block text-sm font-medium">{{ 'projects.start.name' | translate }}</label>
+                <input id="docker-name" type="text" formControlName="name" [placeholder]="'projects.start.namePlaceholder' | translate" />
+              </div>
+
+              @if (dockerTab() === 'image') {
+                <div>
+                  <label for="docker-image" class="mb-1.5 block text-sm font-medium">{{ 'projects.start.imageLabel' | translate }}</label>
+                  <input id="docker-image" type="text" class="font-mono" formControlName="image" placeholder="nginx:latest" />
+                  <p class="mt-1.5 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.start.imageHint' | translate }}</p>
+                </div>
+              } @else {
+                <div>
+                  <label for="docker-compose" class="mb-1.5 block text-sm font-medium">docker-compose.yml</label>
+                  <textarea id="docker-compose" class="font-mono text-sm" rows="9" formControlName="compose"
+                            placeholder="services:&#10;  app:&#10;    image: organisation/app:latest"></textarea>
+                  <p class="mt-1.5 text-xs" style="color:var(--color-text-tertiary);">{{ 'projects.start.composeHint' | translate }}</p>
                 </div>
               }
-            </div>
+
+              <app-workspace-target-picker class="block" (targetChange)="target.set($event)" />
+
+              @if (error()) {
+                <p class="text-sm" role="alert" style="color:var(--color-danger);">{{ error() }}</p>
+              }
+              <button class="inner-button w-full" type="submit" [disabled]="!dockerReady() || busy()">
+                @if (busy()) { <idem-loader size="xs" /> }
+                {{ (busy() ? 'projects.start.publishing' : 'projects.start.publish') | translate }}
+              </button>
+            </form>
           }
-        </div>
-      </div>
 
-      <!-- Create Empty Project -->
-      <div class="mt-12 glass-card p-6 rounded-2xl flex flex-wrap items-center justify-between gap-4 hover:border-[var(--glass-border)] transition-all duration-200">
-        <div class="flex items-center gap-4">
-          <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--glass-bg-subtle)] text-text-secondary">
-            <i class="pi pi-box text-lg"></i>
-          </div>
-          <div>
-            <div class="font-semibold font-mono text-text-primary">{{ 'projects.new.createEmpty' | translate }}</div>
-            <p class="text-xs mt-0.5" style="color:var(--color-text-secondary);">{{ 'projects.new.createEmptyDesc' | translate }}</p>
-          </div>
-        </div>
-        <button class="outer-button cursor-pointer text-xs font-semibold py-2 px-4 rounded-xl hover:bg-[var(--glass-bg-light)] hover:text-text-primary transition-all" (click)="createEmpty()">{{ 'projects.new.createEmpty' | translate }}</button>
-      </div>
+          @case ('template') {
+            <div class="mb-3 flex items-baseline justify-between">
+              <h2 class="font-semibold text-text-primary">{{ 'projects.start.popularApps' | translate }}</h2>
+              <a routerLink="/templates" class="text-sm font-medium text-primary-500 hover:underline">{{ 'projects.start.browseCatalog' | translate }}</a>
+            </div>
 
-      @if (error() && mode() !== 'compose' && mode() !== 'image') {
-        <p class="mt-4 text-sm text-red-400 bg-red-500/5 border border-red-500/20 p-3 rounded-lg">{{ error() }}</p>
-      }
-    </div>
+            @if (templatesLoading()) {
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2" aria-hidden="true">
+                @for (i of [0, 1, 2, 3]; track i) { <div class="skeleton h-16 rounded-xl"></div> }
+              </div>
+            } @else {
+              <ul class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                @for (t of templates(); track t.name) {
+                  <li class="flex items-center gap-3 rounded-xl border p-3" style="border-color:var(--glass-border-subtle);">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg" style="background:var(--glass-bg-subtle);">
+                      @if (templateLogo(t); as logo) {
+                        <img [src]="logo" class="h-6 w-6 object-contain" alt="" (error)="onLogoError($event)" />
+                      } @else {
+                        <i class="pi pi-box text-text-secondary" aria-hidden="true"></i>
+                      }
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div class="truncate text-sm font-medium capitalize text-text-primary">{{ t.name }}</div>
+                      <div class="truncate text-xs" style="color:var(--color-text-secondary);">{{ t.slogan || ('projects.start.readyToUse' | translate) }}</div>
+                    </div>
+                    <button type="button" class="outer-button button-sm" [disabled]="busy()" (click)="cloneTemplate(t)">
+                      @if (busyTemplate() === t.name) { <idem-loader size="xs" /> }
+                      {{ 'projects.start.publishShort' | translate }}
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+
+            @if (error()) {
+              <p class="mt-3 text-sm" role="alert" style="color:var(--color-danger);">{{ error() }}</p>
+            }
+
+            <h2 class="mb-1 mt-8 font-semibold text-text-primary">{{ 'projects.start.architecturesTitle' | translate }}</h2>
+            <p class="mb-3 text-xs" style="color:var(--color-text-secondary);">{{ 'projects.start.architecturesHint' | translate }}</p>
+            <ul class="overflow-hidden rounded-xl border" style="border-color:var(--glass-border-subtle);">
+              @for (a of architectureTemplates; track a.id) {
+                <li class="border-b last:border-b-0" style="border-color:var(--glass-border-subtle);">
+                  <a [routerLink]="['/new-project/guide', a.id]" [queryParams]="workspaceUuid ? { workspace: workspaceUuid } : {}"
+                     class="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--glass-bg-subtle)]">
+                    <i [class]="a.icon" class="w-5 text-center text-text-secondary" aria-hidden="true"></i>
+                    <div class="min-w-0 flex-1">
+                      <div class="text-sm font-medium text-text-primary">{{ a.name | translate }}</div>
+                      <div class="truncate text-xs" style="color:var(--color-text-secondary);">{{ a.description | translate }}</div>
+                    </div>
+                    <span class="tag shrink-0 text-[10px]">{{ a.steps.length }} {{ 'architectures.steps' | translate }}</span>
+                    <i class="pi pi-chevron-right text-xs" style="color:var(--color-text-tertiary);" aria-hidden="true"></i>
+                  </a>
+                </li>
+              }
+            </ul>
+          }
+        }
+
+        @if (error() && source() === 'code') {
+          <p class="mt-4 text-sm" role="alert" style="color:var(--color-danger);">{{ error() }}</p>
+        }
+      </section>
+
+      <p class="mt-8 text-center text-sm" style="color:var(--color-text-secondary);">
+        {{ 'projects.start.emptyPrompt' | translate }}
+        <a routerLink="/workspaces/new" class="font-medium text-primary-500 hover:underline">{{ 'projects.start.emptyLink' | translate }}</a>
+      </p>
+    </main>
   `,
 })
 export class NewProjectComponent implements OnInit {
@@ -290,157 +302,172 @@ export class NewProjectComponent implements OnInit {
   private translate = inject(TranslateService);
   private fb = inject(FormBuilder);
 
-  protected readonly mode = signal<ImportMode>('pick');
-  protected readonly templateTab = signal<'architectures' | 'apps'>('architectures');
-  protected readonly architectureTemplates = ARCHITECTURE_TEMPLATES;
-  /** Dark glass button, brand-coloured icon — the original, preferred look. */
-  protected readonly importSources: { id: string; mode: ImportMode; icon: string; iconColor: string; labelKey: string }[] = [
-    { id: 'github', mode: 'github', icon: 'pi pi-github', iconColor: 'var(--color-text-primary)', labelKey: 'projects.new.continueWithGithub' },
-    { id: 'gitlab', mode: 'gitlab', icon: 'pi pi-sitemap', iconColor: '#fc6d26', labelKey: 'projects.new.continueWithGitlab' },
-    { id: 'compose', mode: 'compose', icon: 'pi pi-box', iconColor: '#2496ed', labelKey: 'projects.new.continueWithCompose' },
-    { id: 'image', mode: 'image', icon: 'pi pi-box', iconColor: '#60a5fa', labelKey: 'projects.new.continueWithImage' },
+  protected readonly sources: SourceChoice[] = [
+    { id: 'code', illustration: 'code', titleKey: 'projects.start.sourceCode', descKey: 'projects.start.sourceCodeDesc' },
+    { id: 'docker', illustration: 'box', titleKey: 'projects.start.sourceDocker', descKey: 'projects.start.sourceDockerDesc' },
+    { id: 'template', illustration: 'store', titleKey: 'projects.start.sourceTemplate', descKey: 'projects.start.sourceTemplateDesc' },
   ];
-  /** `undefined` = still checking; `null` = checked, not connected; a string = the connected username. Shared by both providers — only one is ever shown at a time. */
+  protected readonly codeTabs: { id: CodeTab; icon: string; labelKey: string }[] = [
+    { id: 'github', icon: 'pi pi-github', labelKey: 'projects.start.tabGithub' },
+    { id: 'gitlab', icon: 'pi pi-sitemap', labelKey: 'projects.start.tabGitlab' },
+    { id: 'url', icon: 'pi pi-link', labelKey: 'projects.start.tabUrl' },
+  ];
+  protected readonly dockerTabs: { id: DockerTab; labelKey: string }[] = [
+    { id: 'image', labelKey: 'projects.start.tabImage' },
+    { id: 'compose', labelKey: 'projects.start.tabCompose' },
+  ];
+  protected readonly architectureTemplates = ARCHITECTURE_TEMPLATES;
+  /** Smaller on phones, where the three choices sit as rows rather than columns. */
+  protected readonly illustrationWidth = window.matchMedia('(min-width: 640px)').matches ? 96 : 64;
+
+  protected readonly source = signal<Source>('code');
+  protected readonly codeTab = signal<CodeTab>('github');
+  protected readonly dockerTab = signal<DockerTab>('image');
+
+  /** `undefined` = still checking; `null` = not connected; a string = the connected username. */
   protected readonly githubUser = signal<string | null | undefined>(undefined);
   protected readonly gitlabUser = signal<string | null | undefined>(undefined);
   protected readonly githubRepos = signal<GithubRepo[]>([]);
   protected readonly gitlabRepos = signal<GithubRepo[]>([]);
+  private readonly githubReposLoading = signal(false);
+  private readonly gitlabReposLoading = signal(false);
+
   protected readonly templates = signal<ServiceTemplate[]>([]);
+  protected readonly templatesLoading = signal(true);
+
   protected readonly repoQuery = signal('');
+  protected readonly connecting = signal(false);
   protected readonly busy = signal(false);
+  protected readonly busyTemplate = signal<string | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly target = signal<WorkspaceTarget | null>(null);
-  protected gitUrl = '';
-  /** Set when arriving from a specific workspace's "+ Nouvelle ressource" link — also read directly by the template to carry it into the architecture guide link. */
+  /** Set when arriving from a workspace's "new resource" link, and carried into every next step. */
   protected workspaceUuid: string | null = null;
 
-  protected readonly providerUser = computed(() => (this.mode() === 'gitlab' ? this.gitlabUser() : this.githubUser()));
-  private readonly providerRepos = computed(() => (this.mode() === 'gitlab' ? this.gitlabRepos() : this.githubRepos()));
+  protected readonly urlForm = this.fb.nonNullable.group({ url: ['', Validators.required] });
+  protected readonly dockerForm = this.fb.nonNullable.group({
+    name: ['', Validators.required],
+    image: [''],
+    compose: [''],
+  });
+  /** Reactive-form values are not signals; mirrored so `dockerReady` can be computed. */
+  private readonly dockerValue = signal(this.dockerForm.getRawValue());
 
+  protected readonly providerUser = computed(() => (this.codeTab() === 'gitlab' ? this.gitlabUser() : this.githubUser()));
+  protected readonly reposLoading = computed(() =>
+    this.codeTab() === 'gitlab' ? this.gitlabReposLoading() : this.githubReposLoading()
+  );
   protected readonly filteredRepos = computed(() => {
+    const repos = this.codeTab() === 'gitlab' ? this.gitlabRepos() : this.githubRepos();
     const q = this.repoQuery().trim().toLowerCase();
-    const repos = this.providerRepos();
     return q ? repos.filter((r) => r.fullName.toLowerCase().includes(q)) : repos;
   });
-
-  protected readonly composeForm = this.fb.nonNullable.group({
-    name: ['', Validators.required],
-    compose: ['', Validators.required],
+  protected readonly providerIcon = computed(() => (this.codeTab() === 'gitlab' ? 'pi pi-sitemap' : 'pi pi-github'));
+  protected readonly dockerReady = computed(() => {
+    const v = this.dockerValue();
+    const payload = this.dockerTab() === 'image' ? v.image : v.compose;
+    return v.name.trim() !== '' && payload.trim() !== '' && this.target() !== null;
   });
-  protected readonly imageForm = this.fb.nonNullable.group({
-    name: ['', Validators.required],
-    image: ['', Validators.required],
-  });
-
-  protected getTemplateIcon(name: string): string {
-    const n = name.toLowerCase();
-    if (n.includes('angular')) return 'pi pi-desktop text-red-500';
-    if (n.includes('node')) return 'pi pi-code text-green-500';
-    if (n.includes('python')) return 'pi pi-code text-primary-400';
-    if (n.includes('docker')) return 'pi pi-box text-primary-400';
-    if (n.includes('next') || n.includes('react')) return 'pi pi-desktop text-sky-400';
-    if (n.includes('static')) return 'pi pi-file text-amber-500';
-    if (n.includes('vite')) return 'pi pi-bolt text-yellow-400';
-    return 'pi pi-box text-primary-400';
-  }
-
-  /** A real UI screenshot — only present for the curated subset of templates (see `template-enrichment.json`). */
-  protected templateScreenshot(t: ServiceTemplate): string | null {
-    const first = t.screenshots?.[0];
-    return first ? serviceScreenshotUrl(first) : null;
-  }
-
-  /** Every template has this — the vendored catalog's own icon, not a screenshot. */
-  protected templateLogo(t: ServiceTemplate): string | null {
-    return serviceLogoUrl(t.logo);
-  }
-
-  protected onVisualError(event: Event): void {
-    (event.target as HTMLImageElement).style.display = 'none';
-  }
-
-  /** A stable, distinct dark tint per architecture — same accessibility reasoning as `importSources` above (icon on a dark fill, never text needing to sit on the bright hue itself). */
-  protected archVisualBg(id: string): string {
-    const palette: Record<string, string> = {
-      '3-tier': 'linear-gradient(135deg, #0c4a6e, #075985)',
-      'fullstack-monolith': 'linear-gradient(135deg, #431407, #7c2d12)',
-      'api-database': 'linear-gradient(135deg, #134e4a, #115e59)',
-      'static-site': 'linear-gradient(135deg, #3730a3, #4338ca)',
-      microservices: 'linear-gradient(135deg, #581c87, #6b21a8)',
-    };
-    return palette[id] ?? 'linear-gradient(135deg, #18181b, #27272a)';
-  }
 
   ngOnInit(): void {
     this.workspaceUuid = this.route.snapshot.queryParamMap.get('workspace');
-    this.api.listServiceTemplates().subscribe((t) => this.templates.set(t.slice(0, 4)));
+    this.dockerForm.valueChanges.subscribe(() => this.dockerValue.set(this.dockerForm.getRawValue()));
+
+    this.api.listServiceTemplates().subscribe({
+      next: (t) => {
+        this.templates.set(t.slice(0, FEATURED_TEMPLATES));
+        this.templatesLoading.set(false);
+      },
+      error: () => this.templatesLoading.set(false),
+    });
 
     this.api.githubStatus().subscribe({
       next: (user) => {
         this.githubUser.set(user);
-        if (user) this.api.githubRepositories().subscribe((r) => this.githubRepos.set(r));
+        if (!user) return;
+        this.githubReposLoading.set(true);
+        this.api.githubRepositories().subscribe({
+          next: (r) => this.githubRepos.set(r),
+          complete: () => this.githubReposLoading.set(false),
+          error: () => this.githubReposLoading.set(false),
+        });
       },
       error: () => this.githubUser.set(null),
     });
     this.api.gitlabStatus().subscribe({
       next: (user) => {
         this.gitlabUser.set(user);
-        if (user) this.api.gitlabRepositories().subscribe((r) => this.gitlabRepos.set(r));
+        if (!user) return;
+        this.gitlabReposLoading.set(true);
+        this.api.gitlabRepositories().subscribe({
+          next: (r) => this.gitlabRepos.set(r),
+          complete: () => this.gitlabReposLoading.set(false),
+          error: () => this.gitlabReposLoading.set(false),
+        });
       },
       error: () => this.gitlabUser.set(null),
     });
 
-    // Returning from an OAuth redirect (`?github=connected` / `?gitlab=error` …) —
-    // land straight back on that provider's panel instead of the picker.
+    // Back from an OAuth redirect (`?github=connected`, `?gitlab=error`…):
+    // land on that provider's tab rather than the default.
     const qp = this.route.snapshot.queryParamMap;
-    if (qp.has('github')) this.mode.set('github');
-    else if (qp.has('gitlab')) this.mode.set('gitlab');
+    if (qp.has('gitlab')) this.codeTab.set('gitlab');
   }
 
-  protected pickProvider(provider: GitProvider): void {
+  protected selectSource(source: Source): void {
+    this.source.set(source);
+    this.error.set(null);
+  }
+
+  protected selectCodeTab(tab: CodeTab): void {
+    this.codeTab.set(tab);
     this.repoQuery.set('');
-    this.mode.set(provider);
+    this.error.set(null);
+  }
+
+  protected templateLogo(t: ServiceTemplate): string | null {
+    return serviceLogoUrl(t.logo);
+  }
+
+  protected onLogoError(event: Event): void {
+    (event.target as HTMLImageElement).style.display = 'none';
   }
 
   protected connectProvider(): void {
+    const provider = this.codeTab();
+    if (provider === 'url') return;
     this.error.set(null);
-    const provider = this.mode();
-    if (provider !== 'github' && provider !== 'gitlab') return;
+    this.connecting.set(true);
     const authUrl$ = provider === 'github' ? this.api.githubAuthUrl() : this.api.gitlabAuthUrl();
     authUrl$.subscribe({
       next: (url) => {
         if (!url) {
-          this.error.set(this.translate.instant(provider === 'github' ? 'projects.new.errGithubNotConfigured' : 'projects.new.errGitlabNotConfigured'));
+          this.connecting.set(false);
+          this.error.set(this.translate.instant(`projects.start.${provider}NotConfigured`));
           return;
         }
         window.location.href = url;
       },
       error: (e) => {
-        // The API answers "not configured" as a proper error (503
-        // GITHUB_NOT_CONFIGURED / GITLAB_NOT_CONFIGURED), not a network
-        // failure — showing "can't reach the API" for that case sent people
-        // chasing the wrong fix.
+        this.connecting.set(false);
+        // "Not configured" is a proper API answer (503 *_NOT_CONFIGURED), not a
+        // network failure — they call for different fixes.
         const code = (e as { error?: { error?: { code?: string } } })?.error?.error?.code;
         const notConfigured = code === 'GITHUB_NOT_CONFIGURED' || code === 'GITLAB_NOT_CONFIGURED';
         this.error.set(
-          this.translate.instant(
-            notConfigured
-              ? provider === 'github' ? 'projects.new.errGithubNotConfigured' : 'projects.new.errGitlabNotConfigured'
-              : provider === 'github' ? 'projects.new.errGithubUnreachable' : 'projects.new.errGitlabUnreachable'
-          )
+          this.translate.instant(`projects.start.${provider}${notConfigured ? 'NotConfigured' : 'Unreachable'}`)
         );
       },
     });
   }
 
   protected disconnectProvider(): void {
-    const provider = this.mode();
-    if (provider === 'github') {
+    if (this.codeTab() === 'github') {
       this.api.githubDisconnect().subscribe(() => {
         this.githubUser.set(null);
         this.githubRepos.set([]);
       });
-    } else if (provider === 'gitlab') {
+    } else if (this.codeTab() === 'gitlab') {
       this.api.gitlabDisconnect().subscribe(() => {
         this.gitlabUser.set(null);
         this.gitlabRepos.set([]);
@@ -456,21 +483,20 @@ export class NewProjectComponent implements OnInit {
         branch: repo.defaultBranch || 'main',
         name: repo.name,
         language: repo.language || '',
-        provider: this.mode(),
+        provider: this.codeTab(),
         workspace: this.workspaceUuid,
       },
     });
   }
 
   protected importUrl(): void {
-    if (!this.gitUrl.trim()) return;
-    const url = this.gitUrl.trim();
+    const url = this.urlForm.getRawValue().url.trim();
+    if (!url) return;
     const fullName = this.parseGithubFullName(url);
     const name = fullName?.split('/').pop() || url.split('/').pop()?.replace(/\.git$/, '') || 'app';
     this.router.navigate(['/new-project/import'], {
-      // `repo` in `owner/name` form (when resolvable) lets the next step run the
-      // same auto-detection (framework, Dockerfile) used for connected-GitHub
-      // imports — a pasted public repo URL gets the same smart defaults.
+      // `repo` in `owner/name` form lets the next step run the same framework
+      // detection as a connected-GitHub import.
       queryParams: { clone: url, repo: fullName || name, branch: 'main', name, provider: 'github', workspace: this.workspaceUuid },
     });
   }
@@ -490,78 +516,49 @@ export class NewProjectComponent implements OnInit {
 
   protected cloneTemplate(t: ServiceTemplate): void {
     this.busy.set(true);
+    this.busyTemplate.set(t.name);
     this.error.set(null);
     this.api
-      .quickDeploy({
-        name: t.name,
-        template: t.name,
-        workspace_uuid: this.workspaceUuid || undefined,
-      })
+      .quickDeploy({ name: t.name, template: t.name, workspace_uuid: this.workspaceUuid || undefined })
       .subscribe({
         next: () => this.router.navigate(['/services']),
-        error: (e) => {
-          this.busy.set(false);
-          this.error.set(e?.error?.error?.message ?? this.translate.instant('projects.common.deploymentFailed'));
-        },
-      });
-  }
-
-  /** Git-less: a pasted/typed docker-compose.yml, deployed as a Service — the same primitive `/services`' own custom-compose form uses. */
-  protected deployCompose(): void {
-    const target = this.target();
-    if (this.composeForm.invalid || !target) return;
-    const { name, compose } = this.composeForm.getRawValue();
-    this.busy.set(true);
-    this.error.set(null);
-    this.api
-      .createService({
-        name,
-        workspace_uuid: target.workspace_uuid,
-        environment_name: target.environment_name,
-        project_name: target.project_name,
-        docker_compose_raw: compose,
-      })
-      .subscribe({
-        next: (svc) => this.router.navigate(['/services', svc.uuid]),
-        error: (e) => {
-          this.busy.set(false);
-          this.error.set(e?.error?.error?.message ?? this.translate.instant('projects.common.deploymentFailed'));
-        },
-      });
-  }
-
-  /** Git-less: a bare image reference, wrapped into a minimal one-service compose and deployed the same way. */
-  protected deployImage(): void {
-    const target = this.target();
-    if (this.imageForm.invalid || !target) return;
-    const { name, image } = this.imageForm.getRawValue();
-    const compose = `services:\n  app:\n    image: '${image.trim()}'\n    restart: unless-stopped\n`;
-    this.busy.set(true);
-    this.error.set(null);
-    this.api
-      .createService({
-        name,
-        workspace_uuid: target.workspace_uuid,
-        environment_name: target.environment_name,
-        project_name: target.project_name,
-        docker_compose_raw: compose,
-      })
-      .subscribe({
-        next: (svc) => this.router.navigate(['/services', svc.uuid]),
-        error: (e) => {
-          this.busy.set(false);
-          this.error.set(e?.error?.error?.message ?? this.translate.instant('projects.common.deploymentFailed'));
-        },
+        error: (e) => this.fail(e),
       });
   }
 
   /**
-   * "Create empty" now means creating a Workspace: the old flow inserted a bare
-   * `projects` row with no deployment target or server, which is exactly the
-   * state a workspace refuses to be created in — the target and region are
-   * asked for once, here, rather than defaulted silently.
+   * Git-less deploy, as a Service. A bare image is wrapped into a one-service
+   * compose so both tabs take the same path as `/services`' custom-compose form.
    */
-  protected createEmpty(): void {
-    void this.router.navigate(['/workspaces/new']);
+  protected deployDocker(): void {
+    const target = this.target();
+    if (!this.dockerReady() || !target) return;
+    const { name, image, compose } = this.dockerForm.getRawValue();
+    const raw =
+      this.dockerTab() === 'image'
+        ? `services:\n  app:\n    image: '${image.trim()}'\n    restart: unless-stopped\n`
+        : compose;
+
+    this.busy.set(true);
+    this.error.set(null);
+    this.api
+      .createService({
+        name: name.trim(),
+        workspace_uuid: target.workspace_uuid,
+        environment_name: target.environment_name,
+        project_name: target.project_name,
+        docker_compose_raw: raw,
+      })
+      .subscribe({
+        next: (svc) => this.router.navigate(['/services', svc.uuid]),
+        error: (e) => this.fail(e),
+      });
+  }
+
+  private fail(e: unknown): void {
+    this.busy.set(false);
+    this.busyTemplate.set(null);
+    const message = (e as { error?: { error?: { message?: string } } })?.error?.error?.message;
+    this.error.set(message ?? this.translate.instant('projects.common.deploymentFailed'));
   }
 }

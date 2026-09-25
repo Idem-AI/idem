@@ -8,6 +8,7 @@ import {
   fontStack,
 } from '../../../../../../../shared/services/typography.service';
 import { FontSlot } from '../typography-pair-bar/typography-pair-bar';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 interface CategoryTile {
   readonly id: FontCategory | null;
@@ -32,7 +33,7 @@ interface CategoryTile {
  */
 @Component({
   selector: 'app-typography-picker',
-  imports: [TranslateModule],
+  imports: [TranslateModule, IdemLoaderComponent],
   templateUrl: './typography-picker.html',
   styleUrls: ['./typography-picker.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

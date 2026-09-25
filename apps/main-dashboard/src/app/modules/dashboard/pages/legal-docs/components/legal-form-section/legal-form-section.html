@@ -1,0 +1,219 @@
+<section class="glass-card p-6 md:p-8" aria-labelledby="legal-form-title">
+  <h2 id="legal-form-title" class="sr-only">{{ 'dashboard.legalDocs.form.sectionTitle' | translate }}</h2>
+
+  @if (chosenForm(); as form) {
+    <!-- Forme retenue : résumé compact -->
+    <div class="flex flex-col sm:flex-row sm:items-center gap-5">
+      <app-legal-illustration class="w-24 h-[72px] shrink-0" [scene]="scenes[form.code]" />
+      <div class="flex-1 min-w-0">
+        <p class="text-sm text-text-secondary">{{ 'dashboard.legalDocs.form.chosenLabel' | translate }}</p>
+        <p class="text-xl font-semibold text-text-primary mt-0.5">
+          {{ form.acronym }}
+          <span class="font-normal text-text-secondary">· {{ name(form) }}</span>
+        </p>
+        <p class="text-sm text-text-secondary mt-1 max-w-[65ch]">
+          @if (form.code === recommendation().code) {
+            <i class="pi pi-check-circle text-primary-500 mr-1" aria-hidden="true"></i>
+            {{ 'dashboard.legalDocs.form.matchesReco' | translate }}
+          } @else {
+            {{ 'dashboard.legalDocs.form.differsFromReco' | translate: { acronym: recommended()?.acronym } }}
+          }
+        </p>
+      </div>
+      <button
+        type="button"
+        class="outer-button button-sm shrink-0 self-start sm:self-center"
+        [attr.aria-expanded]="comparing()"
+        aria-controls="legal-form-compare"
+        (click)="toggleCompare()"
+      >
+        {{ (comparing() ? 'dashboard.legalDocs.form.hideCompare' : 'dashboard.legalDocs.form.change') | translate }}
+      </button>
+    </div>
+  } @else if (recommended(); as form) {
+    <!-- Pas encore de choix : la recommandation, expliquée -->
+    <div class="grid md:grid-cols-[200px_1fr] gap-6 md:gap-8 items-start">
+      <app-legal-illustration class="w-40 md:w-full h-32 md:h-[150px]" [scene]="scenes[form.code]" />
+      <div class="min-w-0">
+        <span class="tag">
+          <i class="pi pi-star text-primary-500" aria-hidden="true"></i>
+          {{ 'dashboard.legalDocs.form.recommendedFor' | translate: { name: projectName() } }}
+        </span>
+        <p class="text-2xl font-semibold text-text-primary mt-3 text-balance">
+          {{ form.acronym }}
+          <span class="font-normal text-text-secondary">· {{ name(form) }}</span>
+        </p>
+        <p class="text-text-secondary mt-1 max-w-[65ch]">{{ summary(form) }}</p>
+
+        <h3 class="text-sm font-semibold text-text-primary mt-5">
+          {{ 'dashboard.legalDocs.form.why' | translate }}
+        </h3>
+        <ul class="mt-2 space-y-2">
+          @for (reason of recommendation().reasons; track $index) {
+            <li class="flex gap-2.5 text-sm text-text-primary max-w-[70ch]">
+              <i class="pi pi-check text-primary-500 mt-1 text-xs" aria-hidden="true"></i>
+              <span>{{ t(reason) }}</span>
+            </li>
+          }
+        </ul>
+
+        @if (alternative(); as alt) {
+          <p class="text-sm text-text-secondary mt-4 max-w-[70ch]">
+            <span class="font-medium text-text-primary">
+              {{ 'dashboard.legalDocs.form.otherOption' | translate: { acronym: alt.form.acronym } }}
+            </span>
+            {{ t(alt.reason) }}
+          </p>
+        }
+
+        <div class="flex flex-wrap gap-3 mt-6">
+          <button type="button" class="inner-button" [disabled]="saving()" (click)="pick(form.code)">
+            @if (saving()) {
+              <idem-loader size="xs" />
+            }
+            {{ 'dashboard.legalDocs.form.chooseThis' | translate: { acronym: form.acronym } }}
+          </button>
+          <button
+            type="button"
+            class="outer-button"
+            [attr.aria-expanded]="comparing()"
+            aria-controls="legal-form-compare"
+            (click)="toggleCompare()"
+          >
+            {{ (comparing() ? 'dashboard.legalDocs.form.hideCompare' : 'dashboard.legalDocs.form.compare') | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (comparing() && focused(); as form) {
+    <!-- Comparaison : une forme à la fois, détaillée -->
+    <div id="legal-form-compare" class="mt-8 pt-6 border-t border-[var(--glass-border)]">
+      <h3 class="text-base font-semibold text-text-primary">
+        {{ 'dashboard.legalDocs.form.compareTitle' | translate }}
+      </h3>
+      <p class="text-sm text-text-secondary mt-1">
+        {{ 'dashboard.legalDocs.form.compareHint' | translate }}
+      </p>
+
+      <div
+        class="flex flex-wrap gap-2 mt-4"
+        role="tablist"
+        [attr.aria-label]="'dashboard.legalDocs.form.compareTitle' | translate"
+        (keydown)="onTabsKeydown($event)"
+      >
+        @for (f of forms(); track f.code) {
+          <button
+            type="button"
+            role="tab"
+            class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border text-sm transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+            [class]="tabClass(f.code === form.code)"
+            [attr.data-code]="f.code"
+            [attr.aria-selected]="f.code === form.code"
+            [attr.tabindex]="f.code === form.code ? 0 : -1"
+            aria-controls="legal-form-detail"
+            (click)="focus(f.code)"
+          >
+            <span class="font-semibold">{{ f.acronym }}</span>
+            @if (f.code === recommendation().code) {
+              <i class="pi pi-star text-primary-500 text-xs" [attr.aria-label]="'dashboard.legalDocs.form.recommendedBadge' | translate"></i>
+            }
+            @if (f.code === chosen()) {
+              <i class="pi pi-check text-xs" [attr.aria-label]="'dashboard.legalDocs.form.chosenBadge' | translate"></i>
+            }
+          </button>
+        }
+      </div>
+
+      <div id="legal-form-detail" role="tabpanel" class="mt-6 grid md:grid-cols-[160px_1fr] gap-6">
+        <app-legal-illustration class="hidden md:block w-full h-[120px]" [scene]="scenes[form.code]" />
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-2">
+            <p class="text-lg font-semibold text-text-primary">{{ name(form) }}</p>
+            @if (form.code === recommendation().code) {
+              <span class="tag">
+                <i class="pi pi-star text-primary-500" aria-hidden="true"></i>
+                {{ 'dashboard.legalDocs.form.recommendedBadge' | translate }}
+              </span>
+            }
+          </div>
+          <p class="text-text-secondary mt-1 max-w-[65ch]">{{ summary(form) }}</p>
+          <p class="text-sm text-text-primary mt-3 max-w-[65ch]">
+            <span class="font-medium">{{ 'dashboard.legalDocs.form.idealFor' | translate }}</span>
+            {{ idealFor(form) }}
+          </p>
+
+          <dl class="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 mt-5">
+            @for (fact of facts(form); track fact.key) {
+              <div>
+                <dt class="text-xs text-text-secondary">
+                  {{ 'dashboard.legalDocs.form.facts.' + fact.key | translate }}
+                </dt>
+                <dd class="text-sm font-medium text-text-primary mt-0.5">{{ fact.value }}</dd>
+              </div>
+            }
+          </dl>
+
+          <div class="grid sm:grid-cols-2 gap-6 mt-5">
+            <div>
+              <h4 class="text-sm font-semibold text-text-primary">
+                {{ 'dashboard.legalDocs.form.pros' | translate }}
+              </h4>
+              <ul class="mt-2 space-y-1.5">
+                @for (item of pros(form); track $index) {
+                  <li class="flex gap-2 text-sm text-text-secondary">
+                    <i class="pi pi-plus text-primary-500 text-xs mt-1" aria-hidden="true"></i>
+                    <span>{{ item }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+            <div>
+              <h4 class="text-sm font-semibold text-text-primary">
+                {{ 'dashboard.legalDocs.form.cons' | translate }}
+              </h4>
+              <ul class="mt-2 space-y-1.5">
+                @for (item of cons(form); track $index) {
+                  <li class="flex gap-2 text-sm text-text-secondary">
+                    <i class="pi pi-minus text-xs mt-1" aria-hidden="true"></i>
+                    <span>{{ item }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+          </div>
+
+          @if (!form.hasStatutes) {
+            <p class="text-sm text-text-secondary mt-5 flex gap-2">
+              <i class="pi pi-info-circle mt-0.5" aria-hidden="true"></i>
+              {{ 'dashboard.legalDocs.form.noStatutes' | translate }}
+            </p>
+          }
+          @if (statutesForm() && statutesForm() !== form.code && form.code !== chosen()) {
+            <p class="text-sm text-text-primary mt-5 flex gap-2" role="note">
+              <i class="pi pi-exclamation-triangle text-[var(--color-warning)] mt-0.5" aria-hidden="true"></i>
+              {{ 'dashboard.legalDocs.form.statutesWarning' | translate: { acronym: statutesAcronym() } }}
+            </p>
+          }
+
+          <div class="mt-6">
+            @if (form.code === chosen()) {
+              <p class="text-sm text-text-secondary flex items-center gap-2">
+                <i class="pi pi-check text-primary-500" aria-hidden="true"></i>
+                {{ 'dashboard.legalDocs.form.alreadyChosen' | translate }}
+              </p>
+            } @else {
+              <button type="button" class="inner-button" [disabled]="saving()" (click)="pick(form.code)">
+                @if (saving()) {
+                  <idem-loader size="xs" />
+                }
+                {{ 'dashboard.legalDocs.form.chooseThis' | translate: { acronym: form.acronym } }}
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</section>

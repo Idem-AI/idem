@@ -175,7 +175,7 @@
           class="w-full sm:w-auto min-w-[240px] inline-flex items-center justify-center gap-2.5 px-10 py-4 rounded-2xl inner-button text-base font-semibold disabled:opacity-60 disabled:cursor-wait"
         >
           @if (isSaving()) {
-            <i class="pi pi-spinner pi-spin text-sm"></i>
+            <idem-loader size="sm" />
             {{ 'onboarding.survey.result.saving' | translate }}
           } @else {
             {{ 'onboarding.survey.result.start' | translate }}
