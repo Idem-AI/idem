@@ -343,4 +343,23 @@ export interface CommunicationStreamEvent {
   step?: 'context' | 'trends' | 'strategy' | 'calendar' | 'occasions' | 'brief' | 'content';
   payload?: any;
   message?: string;
+  /**
+   * Refus que l'interface sait traiter, plutôt qu'une panne à afficher.
+   * `MISSING_PROJECT_INPUTS` : la génération demande un livrable absent, et
+   * `missing` dit lequel.
+   */
+  code?: string;
+  missing?: StrategyInputKey[];
 }
+
+/**
+ * Les livrables dont la stratégie de communication DÉRIVE.
+ *
+ * Une stratégie qui ne connaît ni ce qui est vendu ni les moyens disponibles
+ * n'est pas une stratégie, c'est un exercice de style — et tout le module en
+ * dérive ensuite : chaque période y prend son angle, chaque visuel son ton. Une
+ * boussole fausse fait dévier tout ce qui la suit.
+ */
+export const STRATEGY_INPUT_KEYS = ['businessPlan', 'finance'] as const;
+
+export type StrategyInputKey = (typeof STRATEGY_INPUT_KEYS)[number];

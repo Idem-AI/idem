@@ -11,6 +11,7 @@ import { environment } from '@env';
 import { AuthService } from '../../../../core/auth';
 import { ToastService } from '../../../../core/ui/toast.service';
 import { SignInDialog } from '../../../auth/components/sign-in-dialog/sign-in-dialog';
+import { InputsRequiredDialog } from '../../components/inputs-required-dialog/inputs-required-dialog';
 import { DisclaimerNote } from '../../../../shared/components/disclaimer-note/disclaimer-note';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { SimulationGateway, SimulationStore } from '../../data-access';
@@ -20,6 +21,7 @@ import { canStashFile, saveDraft, takeDraft } from './new-run-draft';
 const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.md', '.markdown'];
 import {
   KnowledgeState,
+  ProjectInputKey,
   ProjectUnderstanding,
   SimulationConsent,
   SimulationOrigin,
@@ -28,6 +30,18 @@ import {
   SimulationTier,
   groupKnowledge,
 } from '../../models';
+
+/**
+ * Où l'on produit chaque livrable d'appui, dans le tableau de bord IDEM.
+ *
+ * Il n'y a pas d'écran pour cela ici : le simulateur consomme les livrables, il
+ * ne les fabrique pas. « Compléter le projet » quitte donc l'application.
+ */
+const DASHBOARD_PATHS: Record<ProjectInputKey, string> = {
+  businessPlan: '/project/business-plan',
+  finance: '/project/finance',
+  communication: '/project/communication',
+};
 
 /**
  * Quatre étapes.
@@ -60,6 +74,7 @@ type Step = 'source' | 'analysis' | 'plan' | 'confirm';
     PageHeader,
     DisclaimerNote,
     SignInDialog,
+    InputsRequiredDialog,
     TrustedByComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -110,6 +125,20 @@ export class NewSimulation {
   protected readonly understanding = signal<ProjectUnderstanding | null>(null);
   protected readonly analysing = signal(false);
   protected readonly answers = signal<Record<string, string>>({});
+
+  /** Les livrables d'appui que le projet choisi ne porte pas encore. */
+  protected readonly missingInputs = signal<readonly ProjectInputKey[]>([]);
+  /**
+   * Le projet pour lequel le comptage a déjà été fait.
+   *
+   * L'avertissement ne se donne qu'une fois par projet — le redonner à chaque
+   * tentative serait une porte à repousser, pas un conseil. Mémoriser POUR QUEL
+   * projet, et non un simple « déjà vu », est ce qui permet d'en changer et
+   * d'être averti du suivant.
+   */
+  private readonly inputsCheckedFor = signal<string | null>(null);
+  /** Vrai quand l'avertissement est à l'écran et attend une décision. */
+  protected readonly inputsWarningOpen = signal(false);
 
   /**
    * Bêta produit : les tarifs restent à l'écran, barrés, et l'exécution est
@@ -387,6 +416,13 @@ export class NewSimulation {
       return;
     }
 
+    // Les livrables d'appui se vérifient AVANT la lecture. Signaler après coup
+    // qu'un business plan manquait reviendrait à annoncer, le travail fait,
+    // qu'il aurait pu être meilleur — et à le refaire pour en profiter.
+    if (await this.warnAboutMissingInputs()) {
+      return;
+    }
+
     this.analysing.set(true);
     this.documentError.set(null);
     this.step.set('analysis');
@@ -426,6 +462,72 @@ export class NewSimulation {
     } finally {
       this.analysing.set(false);
     }
+  }
+
+  /**
+   * Ouvre l'avertissement si le projet manque d'un livrable d'appui. Rend vrai
+   * quand l'appelant doit s'arrêter là et attendre la décision.
+   *
+   * Ne concerne que les projets IDEM : un business plan importé N'EST que ce
+   * document, il n'a ni prévisions ni stratégie de communication à porter, et
+   * le projet qu'il décrit n'existera qu'au lancement.
+   *
+   * La question ne se pose qu'une fois par projet. Une panne du comptage ne
+   * bloque rien : mieux vaut simuler sans l'avertissement que ne pas simuler.
+   */
+  private async warnAboutMissingInputs(): Promise<boolean> {
+    const projectId = this.selectedProjectId();
+    if (
+      this.origin() !== 'idem-project' ||
+      !projectId ||
+      this.inputsCheckedFor() === projectId
+    ) {
+      return false;
+    }
+
+    try {
+      const { missing } = await firstValueFrom(this.gateway.getProjectInputs(projectId));
+      this.inputsCheckedFor.set(projectId);
+      this.missingInputs.set(missing);
+      if (missing.length === 0) {
+        return false;
+      }
+      this.inputsWarningOpen.set(true);
+      return true;
+    } catch {
+      // Le comptage n'a pas abouti : on n'a rien à dire, et rien à empêcher.
+      this.inputsCheckedFor.set(projectId);
+      this.missingInputs.set([]);
+      return false;
+    }
+  }
+
+  /** « Continuer quand même » : la lecture part, avec les estimations que cela implique. */
+  protected continueWithoutInputs(): void {
+    this.inputsWarningOpen.set(false);
+    void this.analyse();
+  }
+
+  /**
+   * « Compléter le projet » : départ vers le livrable manquant, dans le
+   * tableau de bord IDEM.
+   *
+   * Le premier de la liste, qui est aussi le premier dans l'ordre de
+   * production : le business plan nourrit les prévisions, qui nourrissent la
+   * stratégie de communication. Commencer par la fin serait à refaire.
+   */
+  protected completeProject(): void {
+    this.inputsWarningOpen.set(false);
+    const projectId = this.selectedProjectId();
+    const first = this.missingInputs()[0];
+    if (!projectId || !first) {
+      return;
+    }
+    // Le projet voyage dans l'adresse : le tableau de bord retient le dernier
+    // projet ouvert dans un cookie, qui ne désigne pas forcément celui-ci.
+    const target = new URL(DASHBOARD_PATHS[first], environment.services.dashboard.url);
+    target.searchParams.set('projectId', projectId);
+    window.location.href = target.toString();
   }
 
   /**

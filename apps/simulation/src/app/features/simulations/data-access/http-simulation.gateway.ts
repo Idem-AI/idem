@@ -8,6 +8,7 @@ import {
   CreateSimulationInput,
   LabName,
   LinkedProject,
+  ProjectInputs,
   ProjectUnderstanding,
   Simulation,
   SimulationOrigin,
@@ -44,6 +45,12 @@ export class HttpSimulationGateway extends SimulationGateway {
     return this.http
       .get<Record<string, unknown>[]>(`${this.apiUrl}/projects`, { withCredentials: true })
       .pipe(map((projects) => projects.map((project) => toLinkedProject(project))));
+  }
+
+  override getProjectInputs(projectId: string): Observable<ProjectInputs> {
+    return this.http.get<ProjectInputs>(`${this.base(projectId)}/inputs`, {
+      withCredentials: true,
+    });
   }
 
   override analyseProject(projectId: string): Observable<ProjectUnderstanding> {
@@ -190,9 +197,8 @@ function toLinkedProject(project: Record<string, unknown>): LinkedProject {
     [['diagrams'], 'Diagrammes'],
     [['deployment'], 'Déploiement'],
   ];
-  const present = (value: unknown): boolean => (Array.isArray(value) ? value.length > 0 : !!value);
   for (const [keys, label] of deliverables) {
-    if (keys.some((key) => present(analysis[key]))) assets.push(label);
+    if (keys.some((key) => isDeliverablePresent(key, analysis[key]))) assets.push(label);
   }
 
   return {
@@ -203,6 +209,57 @@ function toLinkedProject(project: Record<string, unknown>): LinkedProject {
     availableAssets: assets,
     updatedAt: String(project['updatedAt'] ?? project['createdAt'] ?? new Date().toISOString()),
   };
+}
+
+/**
+ * Vrai quand un livrable existe VRAIMENT, et pas seulement en tant qu'objet.
+ *
+ * Trois sections ne peuvent pas se juger par leur simple présence, et ce sont
+ * précisément les trois sur lesquelles une simulation s'appuie :
+ *   · `finance` s'écrit dès la première ouverture du module, garni de ses
+ *     valeurs d'usine (barèmes d'impôt, durées d'amortissement) ;
+ *   · `communication` existe dès qu'un visuel a été produit dans l'atelier,
+ *     sans qu'aucune stratégie n'ait été définie ;
+ *   · un business plan existe dès qu'on a choisi son sommaire.
+ *
+ * Les compter comme présents faisait afficher « Prévisions financières » sous
+ * un projet qui n'en a pas une seule ligne — et, depuis que l'écran avertit des
+ * livrables manquants, faisait dire deux choses contraires sur le même écran.
+ * Ces règles sont celles de `services/common/project-inputs.ts` côté API.
+ */
+function isDeliverablePresent(key: string, value: unknown): boolean {
+  if (Array.isArray(value)) {
+    return key === 'businessPlans' || key === 'pitchDecks'
+      ? value.some((document) => hasFilledSection(document))
+      : value.length > 0;
+  }
+  if (!value) return false;
+
+  if (key === 'businessPlan' || key === 'pitchDeck') {
+    return hasFilledSection(value);
+  }
+  if (key === 'finance') {
+    const finance = value as { products?: unknown[]; salesObjectives?: unknown[] };
+    return (finance.products?.length ?? 0) > 0 && (finance.salesObjectives?.length ?? 0) > 0;
+  }
+  if (key === 'communication') {
+    const strategy = (value as { strategy?: { summary?: string; blocks?: { body?: string }[] } })
+      .strategy;
+    if (!strategy) return false;
+    return (
+      (strategy.summary ?? '').trim().length > 0 ||
+      (strategy.blocks ?? []).some((block) => (block?.body ?? '').trim().length > 0)
+    );
+  }
+  return true;
+}
+
+/** Vrai quand au moins une section du document porte du contenu. */
+function hasFilledSection(document: unknown): boolean {
+  const sections = (document as { sections?: { data?: unknown }[] } | null)?.sections ?? [];
+  return sections.some((section) =>
+    typeof section?.data === 'string' ? section.data.trim().length > 0 : section?.data != null,
+  );
 }
 
 /** Extrait le nom de fichier d'un en-tête `Content-Disposition`. */

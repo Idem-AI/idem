@@ -1,20 +1,22 @@
 /* ============================================================================
-   Site footer — one cohesive glass surface, flat typographic columns.
-   All colors pull from the shared design system tokens so the footer flips
-   correctly between the light and dark themes.
-   ============================================================================ */
+   Site footer — a signature block, not a link dump.
+   ---------------------------------------------------------------------------
+   Three bands: a strip of verifiable facts (licence, hosting, local clock),
+   a body with the brand beside three short columns, and one signature line.
+   Every colour comes from the shared tokens so both themes follow.
+   ========================================================================== */
 
-.site-footer {
+.ft {
   position: relative;
+  color: var(--color-text-primary);
+  background: var(--glass-bg-subtle);
 }
 
-/* Single branded top edge (replaces the per-section rotated hairlines). */
-.site-footer::before {
+/* One branded hairline closes the page above the footer. */
+.ft::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  inset: 0 0 auto 0;
   height: 1px;
   background: linear-gradient(
     90deg,
@@ -24,33 +26,217 @@
     transparent
   );
   opacity: 0.7;
-  z-index: 1;
 }
 
-/* Soft brand glow anchored bottom-left for depth without clutter. */
-.footer-glow {
-  background: var(--gradient-radial-primary);
+/* Shared measure, so the three bands line up on the same left edge. */
+.ft-shell {
+  width: 100%;
+  max-width: 80rem;
+  margin-inline: auto;
+  padding-inline: clamp(1.25rem, 5vw, 2.5rem);
 }
 
-/* Column headings — consistent, quiet, no decorative bullet. */
-.footer-heading {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
+/* ── Signature strip ─────────────────────────────────────────────────────── */
+
+.ft-strip {
+  border-bottom: 1px solid var(--glass-border-subtle);
+}
+
+.ft-strip-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 2rem;
+  padding-block: 0.9rem;
+}
+
+.ft-fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.ft-fact-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+
+.ft-fact-link {
+  text-decoration: none;
+  transition: color var(--duration-200) var(--ease-out);
+}
+
+.ft-fact-link:hover,
+.ft-fact-link:focus-visible {
   color: var(--color-text-primary);
 }
 
-/* -------------------------------------------------------------------------- */
-/* Navigation links — animated underline reveal + accessible focus ring.       */
-/* -------------------------------------------------------------------------- */
-.footer-link {
+/* The clock is the one live thing on the page: mono, so the digits do not
+   shuffle the line every time the minute changes. */
+.ft-clock {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+
+.ft-live {
+  width: 0.45rem;
+  height: 0.45rem;
+  flex: none;
+  border-radius: 9999px;
+  background: var(--color-success);
+  animation: ft-pulse 2.6s ease-out infinite;
+}
+
+@keyframes ft-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--color-success) 55%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 0.5rem transparent;
+  }
+}
+
+/* ── Body ────────────────────────────────────────────────────────────────── */
+
+.ft-body {
+  display: grid;
+  gap: clamp(2.5rem, 6vw, 5rem);
+  padding-block: clamp(2.75rem, 6vw, 4.5rem);
+}
+
+@media (min-width: 900px) {
+  .ft-body {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+}
+
+.ft-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.25rem;
+  max-width: 30rem;
+}
+
+.ft-logo {
+  display: inline-flex;
+  width: 7.5rem;
+}
+
+.ft-logo img {
+  width: 100%;
+  height: auto;
+}
+
+/* Blue wordmark on light, white wordmark on dark. CSS-driven, so there is no
+   flash of the wrong logo before hydration. */
+.ft-logo-dark {
+  display: none;
+}
+
+:host-context(html.dark) .ft-logo-light {
+  display: none;
+}
+
+:host-context(html.dark) .ft-logo-dark {
+  display: block;
+}
+
+.ft-tagline {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+}
+
+.ft-social {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ft-social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border-subtle);
+  color: var(--color-text-tertiary);
+  font-size: 1rem;
+  transition-property: color, border-color, background-color, transform;
+  transition-duration: var(--duration-200);
+  transition-timing-function: var(--ease-out);
+}
+
+.ft-social-link:hover {
+  color: var(--color-text-primary);
+  border-color: var(--glass-border-medium);
+  background: var(--glass-bg-light);
+  transform: translateY(-2px);
+}
+
+.ft-social-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Columns ─────────────────────────────────────────────────────────────── */
+
+.ft-nav {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 2rem clamp(2rem, 4vw, 4rem);
+}
+
+@media (min-width: 900px) {
+  .ft-nav {
+    grid-template-columns: repeat(3, minmax(9rem, auto));
+  }
+}
+
+.ft-col-title {
+  margin: 0 0 1rem;
+  font-size: 0.7rem;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.ft-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ── Links ───────────────────────────────────────────────────────────────── */
+
+.ft-link {
   position: relative;
   display: inline-block;
   width: fit-content;
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
+  text-decoration: none;
   transition: color var(--duration-300) var(--ease-out);
 }
 
-.footer-link::after {
+.ft-link::after {
   content: '';
   position: absolute;
   left: 0;
@@ -63,112 +249,136 @@
   transition: transform var(--duration-300) var(--ease-out);
 }
 
-.footer-link:hover,
-.footer-link:focus-visible {
+.ft-link:hover,
+.ft-link:focus-visible {
   color: var(--color-text-primary);
 }
 
-.footer-link:hover::after,
-.footer-link:focus-visible::after {
+.ft-link:hover::after,
+.ft-link:focus-visible::after {
   transform: scaleX(1);
 }
 
-.footer-link:focus-visible {
+.ft-link:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 3px;
   border-radius: 2px;
 }
 
-/* -------------------------------------------------------------------------- */
-/* Social icon buttons — glass affordance, lift on hover, ring on focus.       */
-/* -------------------------------------------------------------------------- */
-.footer-social {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: var(--radius-xl);
-  color: var(--color-text-secondary);
-  background: var(--glass-bg-subtle);
-  border: 1px solid var(--glass-border);
-  transition-property: color, background-color, border-color, transform, box-shadow;
-  transition-duration: var(--duration-300);
-  transition-timing-function: var(--ease-out);
-}
-
-.footer-social:hover {
-  color: var(--color-text-primary);
-  background: var(--glass-bg-light);
-  border-color: var(--glass-border-medium);
-  transform: translateY(-2px);
-  box-shadow: var(--glass-shadow);
-}
-
-.footer-social:focus-visible {
-  color: var(--color-text-primary);
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-/* -------------------------------------------------------------------------- */
-/* Language toggle buttons.                                                     */
-/* -------------------------------------------------------------------------- */
-.footer-lang {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.75rem;
-  border-radius: var(--radius-lg);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
+/* An outbound link says so, quietly. */
+.ft-link-out::before {
+  content: '↗';
+  margin-right: 0.3rem;
+  font-size: 0.8em;
   color: var(--color-text-tertiary);
-  background: var(--glass-bg-subtle);
-  border: 1px solid var(--glass-border-subtle);
-  cursor: pointer;
-  transition-property: color, background-color, border-color, transform;
-  transition-duration: var(--duration-200);
-  transition-timing-function: var(--ease-out);
 }
 
-.footer-lang:hover {
-  color: var(--color-text-primary);
-  background: var(--glass-bg-light);
+/* ── Signature line ──────────────────────────────────────────────────────── */
+
+.ft-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  padding-block: 1.5rem;
+  border-top: 1px solid var(--glass-border-subtle);
 }
 
-.footer-lang:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+.ft-copy {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
 }
 
-.footer-lang-active {
-  color: var(--color-text-primary);
-  background: var(--glass-bg-light);
-  border-color: var(--glass-border-medium);
+.ft-sep {
+  opacity: 0.5;
+}
+
+/* The one line of voice the footer keeps. */
+.ft-claim {
+  color: var(--color-primary);
   font-weight: var(--font-weight-semibold);
 }
 
-/* -------------------------------------------------------------------------- */
-/* Divider between the main footer and the bottom bar.                         */
-/* -------------------------------------------------------------------------- */
-.footer-divider {
-  height: 1px;
-  width: 100%;
-  background: linear-gradient(90deg, transparent, var(--glass-border-strong), transparent);
+.ft-legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-/* -------------------------------------------------------------------------- */
-/* Motion is an enhancement, never a requirement.                              */
-/* -------------------------------------------------------------------------- */
+.ft-legal .ft-link {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.ft-prefs {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Two letters in one pill: the language switch is a toggle, not a menu. */
+.ft-lang {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 9999px;
+  border: 1px solid var(--glass-border-subtle);
+  background: var(--glass-bg-subtle);
+}
+
+.ft-lang-btn {
+  padding: 0.25rem 0.6rem;
+  border: 0;
+  border-radius: 9999px;
+  background: none;
+  font-size: 0.68rem;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition:
+    color var(--duration-200) var(--ease-out),
+    background-color var(--duration-200) var(--ease-out);
+}
+
+.ft-lang-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.ft-lang-btn.is-active {
+  color: var(--color-text-primary);
+  background: var(--glass-bg-light);
+}
+
+.ft-lang-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Motion is an enhancement, never a requirement ───────────────────────── */
+
 @media (prefers-reduced-motion: reduce) {
-  .footer-link,
-  .footer-link::after,
-  .footer-social,
-  .footer-lang {
+  .ft-link,
+  .ft-link::after,
+  .ft-fact-link,
+  .ft-social-link,
+  .ft-lang-btn {
     transition: none;
   }
 
-  .footer-social:hover {
+  .ft-social-link:hover {
     transform: none;
+  }
+
+  .ft-live {
+    animation: none;
   }
 }

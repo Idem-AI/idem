@@ -11,15 +11,18 @@ import {
   ContentChannel,
   Flyer,
   Publication,
+  StrategyInputKey,
 } from '../../models/communication.model';
 import { BrandingValidationService } from '../../services/branding-validation.service';
 import { FontHints } from '../document-editor/models/editor.types';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
 import { ProjectService } from '../../services/project.service';
 import { toChannels } from './communication-ui';
+import { STRATEGY_INPUT_ROUTES, missingStrategyInputs } from './strategy-inputs';
 import { BrandVoicePanel } from './components/brand-voice-panel/brand-voice-panel';
 import { LibraryPanel } from './components/library-panel/library-panel';
 import { PlanPanel } from './components/plan-panel/plan-panel';
+import { StrategyInputsDialog } from './components/strategy-inputs-dialog/strategy-inputs-dialog';
 import { StudioPanel } from './components/studio-panel/studio-panel';
 
 type Screen = 'studio' | 'plans' | 'library';
@@ -56,6 +59,7 @@ type Screen = 'studio' | 'plans' | 'library';
     BrandVoicePanel,
     LibraryPanel,
     PlanPanel,
+    StrategyInputsDialog,
     StudioPanel,
   ],
   templateUrl: './show-communication.html',
@@ -91,6 +95,21 @@ export class ShowCommunication implements OnInit {
     () => this.model()?.publications ?? [],
   );
   protected readonly strategy = computed(() => this.model()?.strategy ?? null);
+
+  /**
+   * Les livrables dont la façon de communiquer dérive et qui manquent encore.
+   *
+   * Compté sur le projet déjà chargé — aucun appel de plus : la coquille le
+   * charge pour vérifier la charte, et `analysisResultModel` porte déjà tout ce
+   * qu'il faut pour répondre.
+   */
+  protected readonly strategyGaps = computed<StrategyInputKey[]>(() =>
+    missingStrategyInputs(this.project()),
+  );
+
+  /** Les livrables nommés par la fenêtre ouverte ; vide = fenêtre fermée. */
+  protected readonly blockedInputs = signal<readonly StrategyInputKey[]>([]);
+  protected readonly isStrategyBlockedOpen = signal(false);
 
   /**
    * Réseaux déjà priorisés pour cette marque — présélection à la création d'un planning.
@@ -218,6 +237,23 @@ export class ShowCommunication implements OnInit {
 
   protected onStrategyChange(strategy: CommunicationStrategy): void {
     this.patch({ strategy });
+  }
+
+  /**
+   * La stratégie n'a pas été générée : un livrable dont elle dérive manque.
+   *
+   * La fenêtre s'ouvre PAR-DESSUS le panneau, qui reste ouvert derrière : on
+   * revient à sa façon de communiquer d'un Échap, sans avoir à la réouvrir.
+   */
+  protected onStrategyBlocked(missing: readonly StrategyInputKey[]): void {
+    this.blockedInputs.set(missing.length > 0 ? missing : this.strategyGaps());
+    this.isStrategyBlockedOpen.set(true);
+  }
+
+  /** Départ vers le livrable manquant. Le projet ouvert ne change pas. */
+  protected goToStrategyInput(key: StrategyInputKey): void {
+    this.isStrategyBlockedOpen.set(false);
+    void this.router.navigate([STRATEGY_INPUT_ROUTES[key]]);
   }
 
   /**

@@ -698,5 +698,27 @@
         "body": "Une simulation est une hypothèse chiffrée, pas une prédiction. À vous de la mettre à l’épreuve."
       }
     }
+  },
+  "inputs": {
+    "heading": "Trois livrables rendent la simulation réaliste",
+    "subtitle": "Votre projet n'en porte pas encore la totalité. Le moteur simulera quand même, mais il devra estimer ce qui manque — et un scénario bâti sur des estimations vaut ce que valent ces estimations.",
+    "illustrationAlt": "Trois livrables alimentent la projection ; ceux qui manquent la laissent se prolonger en pointillés.",
+    "note": "Rien n'est bloqué : vous pouvez lancer la lecture dès maintenant. Le rapport indiquera, ligne par ligne, ce qui a été estimé faute de source.",
+    "continueAnyway": "Continuer quand même",
+    "complete": "Compléter le projet",
+    "item": {
+      "businessPlan": {
+        "label": "Business plan",
+        "effect": "Sans lui, l'offre, le marché et le modèle économique sont déduits de la description du projet."
+      },
+      "finance": {
+        "label": "Prévisions financières",
+        "effect": "Sans elles, les prix, les charges et le capital de départ sont estimés d'après le secteur et le pays."
+      },
+      "communication": {
+        "label": "Stratégie de communication",
+        "effect": "Sans elle, le coût d'acquisition d'un client et le rythme de croissance sont supposés — les deux chiffres qui décident de votre date d'équilibre."
+      }
+    }
   }
 }

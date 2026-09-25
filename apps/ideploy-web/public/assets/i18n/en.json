@@ -1,80 +1,197 @@
 {
   "landing": {
-    "logoAlt": "EPLOY Logo",
-    "navShowcase": "Showcase",
-    "navPlatform": "Platform",
-    "navPricing": "Pricing",
-    "navDashboard": "Dashboard",
-    "logout": "Logout",
-    "login": "Log in",
-    "getStarted": "Get started",
-    "heroImageAlt": "Server Room",
-    "heroTitleLine1": "Deploy apps,",
-    "heroTitleAccent": "Not servers",
-    "heroSubtitle": "The leading platform to deploy, scale, and secure your applications without leaving your workspace. Powered by Idem.",
-    "getStartedFree": "Get started for free",
-    "talkToSales": "Talk to sales",
-    "supportedStacks": "Supported Stacks & Partners",
+    "heroTitleLine1": "Your app online,",
+    "heroTitleAccent": "with no server to manage",
+    "heroSubtitle": "You write the code. iDeploy puts it online, gives it a secure web address, backs it up and watches it. Nothing to install, not a single command to type.",
+    "getStartedFree": "Start for free",
+    "viewPricing": "See pricing",
     "trustedBy": "Trusted by",
-    "showcaseTitle": "Explore what",
-    "showcaseTitleAccent": "people are building",
-    "showcaseSubtitle": "From complex microservices architectures to simple static portfolios, see how Eploy powers the independent web.",
-    "joinCommunity": "Join the community",
-    "pillar1Title": "Push to",
-    "pillar1TitleAccent": "deploy",
-    "pillar1TitleRest": "It's that simple.",
-    "pillar1Body": "Connect your GitHub repo, select your branch, and hit deploy. EPLOY automatically builds your Docker image, provisions an SSL cert, and launches your app securely.",
-    "pillar1Feature1": "Automatic builds based on Nixpacks",
-    "pillar1Feature2": "Pre-configured Let's Encrypt SSL",
-    "pillar1ImageAlt": "Code deployment log",
-    "productionReady": "Production Ready",
-    "deploymentLog": "deployment-39ffa2z completed in 12.4s",
-    "pillar2ImageAlt": "Server clusters data",
-    "pillar2Title": "Instantiate DBs",
-    "pillar2TitleMid": "in",
-    "pillar2TitleAccent": "1-Click",
-    "pillar2Body": "Stop manually configuring databases. Provision Postgres, Redis, MongoDB, or MySQL instances in one click. Completely managed, inherently secure, with native scheduled backups.",
-    "pillar2Feature1": "Scheduled S3 backups natively supported",
-    "pillar2Feature2": "Automatic environment variable tunneling",
-    "featuresTitle": "Everything you",
-    "featuresTitleAccent": "need",
-    "featuresTitleRest": "Nothing you don't.",
-    "feature1Title": "Any Language",
-    "feature1Body": "Nixpacks integration means if it builds on your machine, it builds on Eploy. No Dockerfile required.",
-    "feature2Title": "Auto SSL",
-    "feature2Body": "We automatically generate and renew Let's Encrypt certificates for all your connected custom domains.",
-    "feature3Title": "PR Previews",
-    "feature3Body": "Every pull request gets its own isolated deployment environment. Review changes live before merging to production. Automatically destroyed when merged, keeping costs at zero.",
-    "building": "Building...",
-    "testimonialQuote": "Since migrating our entire agency server fleet to Eploy, our deployment velocity increased by 400% while server overhead dropped to zero. It's the Heroku alternative we actually own.",
-    "testimonialRole": "Lead DevOps, Systema",
-    "rolesTitle": "Built for how you",
-    "rolesTitleAccent": "work",
-    "howItWorksTitleAccent": "How",
-    "howItWorksTitle": "it works",
-    "step1Title": "1. Connect Provider",
-    "step1Body": "Link your GitHub, GitLab, or Bitbucket account. We only ask for the permissions we absolutely need.",
-    "step2Title": "2. Define Destination",
-    "step2Body": "Add any Linux server using an SSH key. A $4/mo Hetzner VPS works just fine.",
-    "step3Title": "3. Deploy",
-    "step3Body": "Hit deploy. We automatically build the container and route the traffic. It just works.",
-    "ctaTitle": "Ready to",
-    "ctaTitleAccent": "host?",
-    "ctaSubtitle": "5 free deployments, a free domain with automatic SSL and commercial use allowed from day one. Paid plans start at 2 999 F/month.",
-    "viewPricing": "View pricing",
-    "ctaLicense": "MIT Licensed. Open Source forever.",
-    "footerCopyright": "© {{year}} EPLOY · Powered seamlessly by Idem Frameworks",
-    "signIn": "Sign In",
-    "githubRepo": "GitHub Repository"
+    "logoAlt": "iDeploy",
+    "heroImageAlt": "Server room",
+    "nav": {
+      "how": "How it works",
+      "where": "Hosting",
+      "services": "Services",
+      "pricing": "Pricing",
+      "login": "Log in",
+      "start": "Get started",
+      "menu": "My account",
+      "dashboard": "Dashboard",
+      "profile": "My profile",
+      "logout": "Sign out"
+    },
+    "steps": {
+      "title": "Four steps, once",
+      "subtitle": "After that, every change to your code ships on its own.",
+      "s1": {
+        "title": "Connect your code",
+        "body": "From GitHub, GitLab or a Docker file."
+      },
+      "s2": {
+        "title": "Choose where it runs",
+        "body": "Our servers, or yours."
+      },
+      "s3": {
+        "title": "Tick what you need",
+        "body": "Firewall, scans, backups."
+      },
+      "s4": {
+        "title": "It is live",
+        "body": "Web address and certificate included."
+      },
+      "renderTitle": "online-store",
+      "renderUrl": "store.idem.africa",
+      "renderDone": "Live · 42s",
+      "log": {
+        "clone": {
+          "label": "Code fetched",
+          "time": "1.2s"
+        },
+        "detect": {
+          "label": "Language detected — Node 22",
+          "time": "0.4s"
+        },
+        "build": {
+          "label": "App built",
+          "time": "31.8s"
+        },
+        "ssl": {
+          "label": "HTTPS certificate issued",
+          "time": "8.3s"
+        },
+        "swap": {
+          "label": "Traffic switched, no downtime",
+          "time": "0.3s"
+        }
+      }
+    },
+    "where": {
+      "title": "Our servers, or yours",
+      "subtitle": "The same product either way. You choose who owns the machine.",
+      "or": "or",
+      "idem": {
+        "title": "IDEM infrastructure",
+        "body": "You look after nothing. We pick the machine, maintain it and replace it if it fails.",
+        "p1": "Nothing to prepare, nothing to install",
+        "p2": "Updates and security included",
+        "p3": "Billed with your plan"
+      },
+      "own": {
+        "title": "Your own server",
+        "body": "Plug your VPS in once with an SSH key. iDeploy installs it, secures it and keeps it current.",
+        "p1": "Connected once, then one click to deploy",
+        "p2": "Your data stays with you",
+        "p3": "Hetzner provisioning built in"
+      }
+    },
+    "guard": {
+      "title": "Protected and watched",
+      "subtitle": "Everything switches on from the interface. You never touch the server.",
+      "firewall": {
+        "title": "Firewall and WAF",
+        "body": "Block an address or a country, throttle the rate."
+      },
+      "pipeline": {
+        "title": "Scans before release",
+        "body": "Code quality and known vulnerabilities. If it fails, nothing ships."
+      },
+      "monitoring": {
+        "title": "Monitoring",
+        "body": "Your apps and your servers, read continuously."
+      },
+      "alerts": {
+        "title": "Alerts",
+        "body": "Told where your team already talks."
+      },
+      "console": {
+        "app": "store-api",
+        "state": "Live",
+        "requests": "requests",
+        "blocked": "blocked",
+        "cpu": "cpu",
+        "memory": "memory",
+        "disk": "disk",
+        "stages": "Last scan",
+        "sonar": "Code quality",
+        "trivy": "Vulnerabilities",
+        "sonarResult": "A",
+        "trivyResult": "0 findings"
+      }
+    },
+    "also": {
+      "title": "And also",
+      "items": {
+        "database": {
+          "title": "Databases in one click",
+          "body": "PostgreSQL, MySQL, MongoDB, Redis and four more engines, backed up automatically."
+        },
+        "workspace": {
+          "title": "Workspaces",
+          "body": "Your site, API and database on a private network, reachable by name."
+        },
+        "preview": {
+          "title": "Preview environments",
+          "body": "A test address per pull request, removed on merge."
+        },
+        "rollback": {
+          "title": "Rollback",
+          "body": "An earlier version goes back online in one click."
+        },
+        "terminal": {
+          "title": "Terminal in the browser",
+          "body": "A session on the server or container, with no SSH client."
+        },
+        "env": {
+          "title": "Variables picked up",
+          "body": "Read from your .env.example, shared across projects."
+        },
+        "cron": {
+          "title": "Scheduled tasks and volumes",
+          "body": "A command on a schedule, files that survive deployments."
+        },
+        "team": {
+          "title": "Team",
+          "body": "Invitations, roles and shared variables."
+        }
+      }
+    },
+    "services": {
+      "title": "278 services ready to install",
+      "subtitle": "Invoicing, dashboards, file storage, AI assistants: one click, and the service runs on your side.",
+      "cta": "Browse the catalogue"
+    },
+    "pricingTeaser": {
+      "title": "Your first app is on us",
+      "subtitle": "The free plan is enough for a real project in production, commercial use included. You pay the day you need more.",
+      "cta": "Start for free",
+      "secondaryCta": "Compare plans",
+      "freePrice": "0 F",
+      "freeLabel": "forever",
+      "free": {
+        "apps": "2 hosted apps",
+        "deployments": "5 free deployments",
+        "domain": ".idem.africa address + 1 custom domain with HTTPS",
+        "database": "1 database",
+        "commercial": "Commercial use allowed"
+      },
+      "paidNote": "Paid plans from 2,999 F/month."
+    },
+    "closing": {
+      "title": "Ready to put your app online?",
+      "subtitle": "Create your account, connect your code, and watch it start.",
+      "note": "No card required · Mobile Money accepted"
+    },
+    "footer": {
+      "blurb": "iDeploy puts your apps online and keeps them there: deployment, web address, security, backups and monitoring.",
+      "productTitle": "Product",
+      "startTitle": "Get started",
+      "createAccount": "Create an account",
+      "settingsTitle": "Display",
+      "copyright": "© {{year}} iDeploy — an IDEM product",
+      "madeIn": "Priced in F CFA · Mobile Money and card"
+    }
   },
   "pricing": {
-    "logoAlt": "EPLOY Logo",
-    "navShowcase": "Showcase",
-    "navPlatform": "Platform",
-    "navPricing": "Pricing",
-    "navDashboard": "Dashboard",
-    "login": "Log in",
-    "getStarted": "Get started",
     "heroTitle": "Generous at entry.",
     "heroTitleAccent": "Priced for growth.",
     "heroSubtitle": "Every account gets 5 free deployments, a free yourapp.idem.africa domain and free custom domains with automatic SSL. Commercial use allowed from day one — even on the free plan.",
@@ -84,7 +201,9 @@
     "payTitle": "No subscription?",
     "payTitleAccent": "Pay per deployment.",
     "paySubtitle": "Your first 5 deployments are free — enough to put your first app in production and iterate. After that, pay as you ship.",
+    "payCard1Value": "100 F",
     "payCard1Label": "per deployment",
+    "payCard2Value": "900 F",
     "payCard2Label": "pack of 10 deployments",
     "payCard3Value": "Unlimited",
     "payCard3Label": "on any paid plan",
@@ -105,9 +224,7 @@
     "ctaTitleAccent": "on us",
     "ctaSubtitle": "Free domain, free SSL, 5 free deployments, commercial use allowed. Start now, upgrade when your app grows.",
     "getStartedFree": "Get started for free",
-    "backToHome": "Back to home",
-    "footerCopyright": "© {{year}} EPLOY · Powered seamlessly by Idem Frameworks",
-    "signIn": "Sign In"
+    "backToHome": "Back to home"
   },
   "dashboard": {
     "searchProjects": "Search Projects…",

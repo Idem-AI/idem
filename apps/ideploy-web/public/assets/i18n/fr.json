@@ -1,80 +1,197 @@
 {
   "landing": {
-    "logoAlt": "Logo EPLOY",
-    "navShowcase": "Vitrine",
-    "navPlatform": "Plateforme",
-    "navPricing": "Tarifs",
-    "navDashboard": "Tableau de bord",
-    "logout": "Déconnexion",
-    "login": "Se connecter",
-    "getStarted": "Commencer",
-    "heroImageAlt": "Salle des serveurs",
-    "heroTitleLine1": "Déployez des apps,",
-    "heroTitleAccent": "Pas des serveurs",
-    "heroSubtitle": "La plateforme de référence pour déployer, faire évoluer et sécuriser vos applications sans quitter votre espace de travail. Propulsé par Idem.",
+    "heroTitleLine1": "Votre application en ligne,",
+    "heroTitleAccent": "sans serveur à gérer",
+    "heroSubtitle": "Vous écrivez votre code. iDeploy le met en ligne, lui donne une adresse web sécurisée, le sauvegarde et le surveille. Rien à installer, aucune commande à taper.",
     "getStartedFree": "Commencer gratuitement",
-    "talkToSales": "Contacter l'équipe commerciale",
-    "supportedStacks": "Stacks & partenaires pris en charge",
-    "trustedBy": "Ils nous font confiance",
-    "showcaseTitle": "Découvrez ce que",
-    "showcaseTitleAccent": "les gens construisent",
-    "showcaseSubtitle": "Des architectures microservices complexes aux simples portfolios statiques, découvrez comment Eploy propulse le web indépendant.",
-    "joinCommunity": "Rejoindre la communauté",
-    "pillar1Title": "Poussez pour",
-    "pillar1TitleAccent": "déployer",
-    "pillar1TitleRest": "C'est aussi simple que ça.",
-    "pillar1Body": "Connectez votre dépôt GitHub, choisissez votre branche et lancez le déploiement. EPLOY construit automatiquement votre image Docker, provisionne un certificat SSL et lance votre application en toute sécurité.",
-    "pillar1Feature1": "Builds automatiques basés sur Nixpacks",
-    "pillar1Feature2": "SSL Let's Encrypt préconfiguré",
-    "pillar1ImageAlt": "Journal de déploiement de code",
-    "productionReady": "Prêt pour la production",
-    "deploymentLog": "deployment-39ffa2z terminé en 12,4s",
-    "pillar2ImageAlt": "Données de clusters de serveurs",
-    "pillar2Title": "Créez des BDD",
-    "pillar2TitleMid": "en",
-    "pillar2TitleAccent": "1 clic",
-    "pillar2Body": "Finie la configuration manuelle des bases de données. Provisionnez des instances Postgres, Redis, MongoDB ou MySQL en un clic. Entièrement gérées, sécurisées par nature, avec des sauvegardes planifiées natives.",
-    "pillar2Feature1": "Sauvegardes S3 planifiées prises en charge nativement",
-    "pillar2Feature2": "Tunnelisation automatique des variables d'environnement",
-    "featuresTitle": "Tout ce dont vous",
-    "featuresTitleAccent": "avez besoin",
-    "featuresTitleRest": "Rien de superflu.",
-    "feature1Title": "N'importe quel langage",
-    "feature1Body": "Grâce à l'intégration de Nixpacks, si ça se compile sur votre machine, ça se compile sur Eploy. Aucun Dockerfile requis.",
-    "feature2Title": "SSL automatique",
-    "feature2Body": "Nous générons et renouvelons automatiquement les certificats Let's Encrypt pour tous vos domaines personnalisés connectés.",
-    "feature3Title": "Aperçus de PR",
-    "feature3Body": "Chaque pull request obtient son propre environnement de déploiement isolé. Passez les changements en revue en direct avant de fusionner en production. Détruit automatiquement lors de la fusion, ce qui maintient les coûts à zéro.",
-    "building": "Construction en cours...",
-    "testimonialQuote": "Depuis la migration de toute notre flotte de serveurs d'agence vers Eploy, notre vélocité de déploiement a augmenté de 400 % tandis que la charge serveur est tombée à zéro. C'est l'alternative à Heroku que nous possédons vraiment.",
-    "testimonialRole": "Lead DevOps, Systema",
-    "rolesTitle": "Conçu pour votre façon de",
-    "rolesTitleAccent": "travailler",
-    "howItWorksTitleAccent": "Comment",
-    "howItWorksTitle": "ça marche",
-    "step1Title": "1. Connecter le fournisseur",
-    "step1Body": "Reliez votre compte GitHub, GitLab ou Bitbucket. Nous ne demandons que les autorisations strictement nécessaires.",
-    "step2Title": "2. Définir la destination",
-    "step2Body": "Ajoutez n'importe quel serveur Linux à l'aide d'une clé SSH. Un VPS Hetzner à 4 $/mois fait très bien l'affaire.",
-    "step3Title": "3. Déployer",
-    "step3Body": "Lancez le déploiement. Nous construisons automatiquement le conteneur et acheminons le trafic. Ça fonctionne, tout simplement.",
-    "ctaTitle": "Prêt à",
-    "ctaTitleAccent": "héberger ?",
-    "ctaSubtitle": "5 déploiements gratuits, un domaine gratuit avec SSL automatique et usage commercial autorisé dès le premier jour. Les forfaits payants démarrent à 2 999 F/mois.",
     "viewPricing": "Voir les tarifs",
-    "ctaLicense": "Sous licence MIT. Open source pour toujours.",
-    "footerCopyright": "© {{year}} EPLOY · Propulsé en toute fluidité par Idem Frameworks",
-    "signIn": "Se connecter",
-    "githubRepo": "Dépôt GitHub"
+    "trustedBy": "Ils nous font confiance",
+    "logoAlt": "iDeploy",
+    "heroImageAlt": "Salle de serveurs",
+    "nav": {
+      "how": "Comment ça marche",
+      "where": "Hébergement",
+      "services": "Services",
+      "pricing": "Tarifs",
+      "login": "Se connecter",
+      "start": "Commencer",
+      "menu": "Mon compte",
+      "dashboard": "Tableau de bord",
+      "profile": "Mon profil",
+      "logout": "Se déconnecter"
+    },
+    "steps": {
+      "title": "Quatre étapes, une seule fois",
+      "subtitle": "Ensuite, chaque modification de votre code repart en ligne toute seule.",
+      "s1": {
+        "title": "Connectez votre code",
+        "body": "Depuis GitHub, GitLab ou un fichier Docker."
+      },
+      "s2": {
+        "title": "Choisissez où ça tourne",
+        "body": "Nos serveurs, ou le vôtre."
+      },
+      "s3": {
+        "title": "Cochez ce qu'il vous faut",
+        "body": "Pare-feu, analyses, sauvegardes."
+      },
+      "s4": {
+        "title": "C'est en ligne",
+        "body": "Adresse web et certificat compris."
+      },
+      "renderTitle": "boutique-en-ligne",
+      "renderUrl": "boutique.idem.africa",
+      "renderDone": "En ligne · 42 s",
+      "log": {
+        "clone": {
+          "label": "Code récupéré",
+          "time": "1,2 s"
+        },
+        "detect": {
+          "label": "Langage détecté — Node 22",
+          "time": "0,4 s"
+        },
+        "build": {
+          "label": "Application construite",
+          "time": "31,8 s"
+        },
+        "ssl": {
+          "label": "Certificat HTTPS émis",
+          "time": "8,3 s"
+        },
+        "swap": {
+          "label": "Trafic basculé, sans coupure",
+          "time": "0,3 s"
+        }
+      }
+    },
+    "where": {
+      "title": "Nos serveurs, ou le vôtre",
+      "subtitle": "Le même produit dans les deux cas. Vous choisissez qui possède la machine.",
+      "or": "ou",
+      "idem": {
+        "title": "Infrastructure IDEM",
+        "body": "Vous ne vous occupez de rien. Nous choisissons la machine, la maintenons et la remplaçons si elle tombe.",
+        "p1": "Rien à préparer, rien à installer",
+        "p2": "Mises à jour et sécurité incluses",
+        "p3": "Facturé avec votre forfait"
+      },
+      "own": {
+        "title": "Votre propre serveur",
+        "body": "Vous branchez votre VPS une fois avec une clé SSH. iDeploy l'installe, le sécurise et le garde à jour.",
+        "p1": "Connecté une fois, puis un clic pour déployer",
+        "p2": "Vos données restent chez vous",
+        "p3": "Provisionnement Hetzner intégré"
+      }
+    },
+    "guard": {
+      "title": "Protégé et surveillé",
+      "subtitle": "Tout s'active depuis l'interface. Vous ne touchez jamais au serveur.",
+      "firewall": {
+        "title": "Pare-feu et WAF",
+        "body": "Bloquez une adresse ou un pays, limitez le débit."
+      },
+      "pipeline": {
+        "title": "Analyse avant mise en ligne",
+        "body": "Qualité du code et failles connues. Si ça échoue, rien ne part."
+      },
+      "monitoring": {
+        "title": "Supervision",
+        "body": "Vos applications et vos serveurs, relevés en continu."
+      },
+      "alerts": {
+        "title": "Alertes",
+        "body": "Prévenu là où votre équipe discute déjà."
+      },
+      "console": {
+        "app": "boutique-api",
+        "state": "En ligne",
+        "requests": "requêtes",
+        "blocked": "bloquées",
+        "cpu": "processeur",
+        "memory": "mémoire",
+        "disk": "disque",
+        "stages": "Dernière analyse",
+        "sonar": "Qualité du code",
+        "trivy": "Vulnérabilités",
+        "sonarResult": "A",
+        "trivyResult": "0 faille"
+      }
+    },
+    "also": {
+      "title": "Et aussi",
+      "items": {
+        "database": {
+          "title": "Bases de données en un clic",
+          "body": "PostgreSQL, MySQL, MongoDB, Redis et quatre autres moteurs, sauvegardés automatiquement."
+        },
+        "workspace": {
+          "title": "Workspaces",
+          "body": "Votre site, votre API et votre base sur un réseau privé, joignables par leur nom."
+        },
+        "preview": {
+          "title": "Environnements de preview",
+          "body": "Une adresse de test par pull request, supprimée à la fusion."
+        },
+        "rollback": {
+          "title": "Retour arrière",
+          "body": "Une version précédente est remise en ligne en un clic."
+        },
+        "terminal": {
+          "title": "Terminal dans le navigateur",
+          "body": "Une session sur le serveur ou le conteneur, sans client SSH."
+        },
+        "env": {
+          "title": "Variables reprises",
+          "body": "Lues depuis votre .env.example, partagées entre projets."
+        },
+        "cron": {
+          "title": "Tâches planifiées et volumes",
+          "body": "Une commande à heure fixe, des fichiers qui survivent aux déploiements."
+        },
+        "team": {
+          "title": "Équipe",
+          "body": "Invitations, rôles et variables communes."
+        }
+      }
+    },
+    "services": {
+      "title": "278 services prêts à installer",
+      "subtitle": "Facturation, tableaux de bord, fichiers, assistants IA : un clic, et le service tourne chez vous.",
+      "cta": "Parcourir le catalogue"
+    },
+    "pricingTeaser": {
+      "title": "Votre première application est offerte",
+      "subtitle": "Le forfait gratuit suffit pour un vrai projet en production, usage commercial compris. Vous payez le jour où vous avez besoin de plus.",
+      "cta": "Commencer gratuitement",
+      "secondaryCta": "Comparer les forfaits",
+      "freePrice": "0 F",
+      "freeLabel": "pour toujours",
+      "free": {
+        "apps": "2 applications hébergées",
+        "deployments": "5 déploiements offerts",
+        "domain": "Adresse .idem.africa + 1 domaine personnalisé avec HTTPS",
+        "database": "1 base de données",
+        "commercial": "Usage commercial autorisé"
+      },
+      "paidNote": "Forfaits payants à partir de 2 999 F/mois."
+    },
+    "closing": {
+      "title": "Prêt à mettre votre application en ligne ?",
+      "subtitle": "Créez votre compte, connectez votre code, et regardez-la démarrer.",
+      "note": "Sans carte bancaire · Mobile Money accepté"
+    },
+    "footer": {
+      "blurb": "iDeploy met vos applications en ligne et les y garde : déploiement, adresse web, sécurité, sauvegardes et supervision.",
+      "productTitle": "Produit",
+      "startTitle": "Commencer",
+      "createAccount": "Créer un compte",
+      "settingsTitle": "Affichage",
+      "copyright": "© {{year}} iDeploy — un produit IDEM",
+      "madeIn": "Paiement en F CFA · Mobile Money et carte bancaire"
+    }
   },
   "pricing": {
-    "logoAlt": "Logo EPLOY",
-    "navShowcase": "Vitrine",
-    "navPlatform": "Plateforme",
-    "navPricing": "Tarifs",
-    "navDashboard": "Tableau de bord",
-    "login": "Se connecter",
-    "getStarted": "Commencer",
     "heroTitle": "Généreux à l'entrée.",
     "heroTitleAccent": "Pensé pour la croissance.",
     "heroSubtitle": "Chaque compte bénéficie de 5 déploiements gratuits, d'un domaine yourapp.idem.africa gratuit et de domaines personnalisés gratuits avec SSL automatique. Usage commercial autorisé dès le premier jour — même sur le forfait gratuit.",
@@ -84,7 +201,9 @@
     "payTitle": "Pas d'abonnement ?",
     "payTitleAccent": "Payez au déploiement.",
     "paySubtitle": "Vos 5 premiers déploiements sont gratuits — de quoi mettre votre première app en production et itérer. Ensuite, payez au fil de vos livraisons.",
+    "payCard1Value": "100 F",
     "payCard1Label": "par déploiement",
+    "payCard2Value": "900 F",
     "payCard2Label": "pack de 10 déploiements",
     "payCard3Value": "Illimité",
     "payCard3Label": "sur tout forfait payant",
@@ -105,9 +224,7 @@
     "ctaTitleAccent": "offerte",
     "ctaSubtitle": "Domaine gratuit, SSL gratuit, 5 déploiements gratuits, usage commercial autorisé. Commencez maintenant, montez en gamme quand votre app grandit.",
     "getStartedFree": "Commencer gratuitement",
-    "backToHome": "Retour à l'accueil",
-    "footerCopyright": "© {{year}} EPLOY · Propulsé en toute fluidité par Idem Frameworks",
-    "signIn": "Se connecter"
+    "backToHome": "Retour à l'accueil"
   },
   "dashboard": {
     "searchProjects": "Rechercher des projets…",

@@ -1046,4 +1046,14 @@
       (confirmed)="confirmSignIn()"
     />
   }
+
+  <!-- Un livrable d'appui manque : dit avant la lecture, pas après. -->
+  @if (inputsWarningOpen()) {
+    <sim-inputs-required-dialog
+      [missing]="missingInputs()"
+      (continued)="continueWithoutInputs()"
+      (completed)="completeProject()"
+      (dismissed)="inputsWarningOpen.set(false)"
+    />
+  }
 </div>

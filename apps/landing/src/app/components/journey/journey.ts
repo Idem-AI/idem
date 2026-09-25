@@ -12,14 +12,16 @@ import {
   viewChildren,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { environment } from '../../../environments/environment';
 
 interface Stage {
   /** Stable, non-localized path fragment shown in the mock browser bar. */
   readonly path: string;
+  /** Short story beat, used by the rail and by assistive tech. */
   readonly step: string;
   readonly title: string;
   readonly caption: string;
+  /** Product name and price, the only place a product is named. */
   readonly price: string;
   readonly ctaLabel: string;
   readonly link: string;
@@ -29,41 +31,31 @@ interface Stage {
 
 /* Two dissolve windows, both measured in fractions of one scroll step.
    Imagery gets the long one: two screenshots blending reads as depth.
-   Copy gets the short one, offset earlier, so the outgoing text is gone
-   before the incoming text arrives. Text over text is never legible. */
+   Copy gets the short one, so the outgoing text is fully gone before the
+   incoming text arrives. Text over text is never legible.
+
+   Copy is readable across 2 x TEXT_IN of the step and absent beyond TEXT_OUT,
+   which leaves a quiet gap between two sections rather than a cross-fade. */
 const SCENE_IN = 0.3;
-const SCENE_OUT = 0.7;
-const TEXT_IN = 0.2;
-const TEXT_OUT = 0.42;
-/** Residual smoothing on top of the eased step, in case scroll input is raw. */
-const EASE_HALFLIFE_MS = 120;
+const SCENE_OUT = 0.72;
+const TEXT_IN = 0.3;
+const TEXT_OUT = 0.5;
+
+/* Chapter length is set in the stylesheet (--jn-step) rather than here, but
+   it is the one number that decides whether a gesture skips a chapter: one
+   trackpad flick covers roughly 700px, so a chapter shorter than that lands
+   the reader past the next chapter and reads as a double scroll. CSS
+   scroll-snap was tried instead and rejected — with snap areas this size a
+   single wheel notch is pulled straight back to where it started, which is
+   the freezing this section was fixed for in the first place. */
+
+/** Smoothing of the mapped position, in case scroll input is coarse. Short:
+ *  the picture has to feel attached to the finger, not towed behind it. */
+const EASE_HALFLIFE_MS = 85;
+/** Below this, the eased position is snapped and the loop goes quiet. */
+const SETTLE_EPSILON = 0.0006;
 /** Auto-advance delay for the screenshot swiper. */
 const SWIPER_INTERVAL_MS = 5200;
-
-/* Step animation. Owned here rather than delegated to the browser's smooth
-   scroll: its duration is unspecified and it can be cancelled out from under
-   us, which is what let a single flick land two sections away. */
-const STEP_BASE_MS = 400;
-const STEP_PER_SECTION_MS = 70;
-const STEP_MAX_MS = 900;
-/** Rest after a step. Guarantees the section that was reached is seen at rest
- *  before anything can move again, so nothing ever looks skipped over. */
-const STEP_SETTLE_MS = 150;
-
-/* One gesture, one section. Quiet gap that separates two gestures. It has to
-   clear the gaps inside macOS trackpad inertia, which keeps firing, with
-   pauses, long after the fingers lift. */
-const GESTURE_GAP_MS = 260;
-/** Wheel distance that commits the first step of a fresh gesture. */
-const WHEEL_START_PX = 12;
-/** Distance needed to keep stepping without ever lifting off. */
-const WHEEL_CHAIN_PX = 240;
-/* Inertia decays, a gesture under way does not. Once a step is committed the
-   rest of the burst is read as coasting until an event comes back up to this
-   share of the burst's peak, which only happens if the user is still pushing. */
-const WHEEL_ENERGY_RATIO = 0.6;
-/** Swipe distance that commits a step. */
-const TOUCH_STEP_PX = 42;
 
 /** Clamped smoothstep: no overshoot, decelerating at both ends. */
 function smoothstep(value: number): number {
@@ -71,28 +63,24 @@ function smoothstep(value: number): number {
   return t * t * (3 - 2 * t);
 }
 
-/** Eased both ways: a step starts from rest and arrives at rest. */
-function easeInOutCubic(t: number): number {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-}
-
 /**
  * Pinned, scroll-driven story of one entrepreneur going from a sentence to a
  * live company.
  *
- * Scroll position stays the single source of truth. The stage is
- * `position: sticky`, so sections can only advance while it is pinned
- * full-screen, and one gesture is quantized to exactly one section by scrolling
- * the page to that section's resting offset. At either end the gesture is
- * handed straight back to the page, so arriving and leaving are ordinary
- * scrolls with nothing to lock, release, or re-align.
+ * The page scrolls natively from end to end. Nothing here calls
+ * `preventDefault`, and nothing drives `scrollTo` behind the user's back: the
+ * section only *reads* the scroll offset and maps it to a position in the
+ * story. That is the whole fix for the section feeling stuck — an engine that
+ * quantised gestures had to decide which wheel events belonged to which
+ * gesture, and every wrong guess showed up as a frozen or late section.
  *
- * A single rAF loop reads that offset, eases it, and writes a handful of custom
- * properties per visible section. Nothing else animates.
+ * A single rAF loop reads the offset, eases it, and writes a handful of custom
+ * properties on the two or three sections near the reading head. Geometry is
+ * measured on resize, never per frame, so the loop never forces layout.
  */
 @Component({
   selector: 'app-journey',
-  imports: [RouterLink],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './journey.html',
   styleUrl: './journey.css',
@@ -121,155 +109,158 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
   protected readonly imageIndices = signal<readonly number[]>([]);
 
   protected readonly navStart = $localize`:@@journey.nav.start:The idea`;
-  protected readonly navDone = $localize`:@@journey.nav.done:Live`;
-  private readonly seePricing = $localize`:@@journey.pricingCta:See pricing`;
+  protected readonly navDone = $localize`:@@journey.nav.done:Launched`;
+  protected readonly createProjectUrl = `${environment.services.dashboard.url}/create-project`;
 
+  /* The story is one person, one business, start to finish. Every caption
+     stays in her words: what she gets, not what the product does. */
   protected readonly stages: readonly Stage[] = [
     {
-      path: 'brand',
-      step: $localize`:@@what-is-idem.step.brand.label:Brand`,
-      title: $localize`:@@services.brand.name:Brand identity`,
-      caption: $localize`:@@journey.brand.caption:Her logo, brand guidelines and business cards, ready in minutes.`,
-      price: $localize`:@@services.brand.price:Identity Pack from 1,999 F`,
-      ctaLabel: $localize`:@@services.brand.cta:Create my brand`,
+      path: 'marque',
+      step: $localize`:@@journey.step.name:The name`,
+      title: $localize`:@@journey.name.title:Her business has a name: Verda`,
+      caption: $localize`:@@journey.name.caption:A logo, colours, business cards. Enough to introduce herself to a customer on day one.`,
+      price: $localize`:@@journey.name.price:Identity Pack · from 1,999 F`,
+      ctaLabel: $localize`:@@journey.name.cta:Create my brand`,
       link: '/pricing',
       images: [
-        'assets/images/overview/brand-identity.webp',
-        'assets/images/overview/generated logos options.webp',
-        'assets/images/overview/logo variations.webp',
-        'assets/images/overview/colors palette.webp',
-        'assets/images/overview/typography.webp',
+        'assets/images/journey/01-marque-charte.webp',
+        'assets/images/journey/01-marque-palette.webp',
+        'assets/images/journey/01-marque-mockup.webp',
       ],
-      imageAlt: $localize`:@@services.brand.alt:IDEM brand studio: generated logo concepts and OKLCH color palette`,
+      imageAlt: $localize`:@@journey.name.alt:The Verda brand book: logo, colour palette and typography`,
     },
     {
-      path: 'strategy',
-      step: $localize`:@@what-is-idem.step.strategy.label:Strategy`,
-      title: $localize`:@@journey.strategy.title:Business plan & pitch deck`,
-      caption: $localize`:@@journey.strategy.caption:A structured business plan and an investor pitch deck, ready to present.`,
-      price: $localize`:@@services.strategy.price:Strategy Pack from 2,999 F`,
-      ctaLabel: $localize`:@@services.strategy.cta:Build my plan`,
+      path: 'plan',
+      step: $localize`:@@journey.step.plan:The plan`,
+      title: $localize`:@@journey.plan.title:Her business plan is written`,
+      caption: $localize`:@@journey.plan.caption:What she sells, to whom, at what cost. The document a bank asks for, plus the deck she shows an investor.`,
+      price: $localize`:@@journey.plan.price:Strategy Pack · from 2,999 F`,
+      ctaLabel: $localize`:@@journey.plan.cta:Write my plan`,
       link: '/pricing',
       images: [
-        'assets/images/overview/businessplan.webp',
-        'assets/images/overview/pitchdek.webp',
+        'assets/images/journey/02-plan-types.webp',
+        'assets/images/journey/02-plan-couverture.webp',
+        'assets/images/journey/02-plan-financier.webp',
+        'assets/images/journey/02-plan-objectifs.webp',
       ],
-      imageAlt: $localize`:@@services.strategy.alt:IDEM business plan dashboard with financial projections and OHADA compliance`,
+      imageAlt: $localize`:@@journey.plan.alt:Verda's business plan and investor pitch deck`,
     },
     {
-      path: 'finance',
-      step: $localize`:@@journey.step.finance:Finances`,
-      title: $localize`:@@journey.finance.title:Financial projections`,
-      caption: $localize`:@@journey.finance.caption:3-year forecasts, then plan vs actuals tracked month by month.`,
-      price: $localize`:@@services.finance.price:Included in the Strategy Pack`,
-      ctaLabel: this.seePricing,
+      path: 'finances',
+      step: $localize`:@@journey.step.numbers:The numbers`,
+      title: $localize`:@@journey.numbers.title:She knows when she starts earning`,
+      caption: $localize`:@@journey.numbers.caption:Price per kilo collected, running costs, the month she breaks even. Three years ahead, updated as the real numbers come in.`,
+      price: $localize`:@@journey.numbers.price:Included in the Strategy Pack`,
+      ctaLabel: $localize`:@@journey.numbers.cta:See the pricing`,
       link: '/pricing',
       images: [
-        'assets/images/overview/financial dashboard.webp',
-        'assets/images/overview/financial-report.webp',
+        'assets/images/journey/03-finances-previsions.webp',
+        'assets/images/journey/03-finances-rapport.webp',
       ],
-      imageAlt: $localize`:@@journey.finance.alt:IDEM financial projections and 3-year revenue forecast dashboard`,
+      imageAlt: $localize`:@@journey.numbers.alt:Verda's financial projections and three-year forecast`,
     },
     {
-      path: 'legal',
-      step: $localize`:@@journey.step.legal:Legal`,
-      title: $localize`:@@journey.legal.title:OHADA legal kit`,
-      caption: $localize`:@@journey.legal.caption:Articles, shareholder agreement and T&Cs, compliant with OHADA law.`,
-      price: $localize`:@@services.legal.price:Compliance Pack from 2,499 F`,
-      ctaLabel: this.seePricing,
-      link: '/pricing',
-      images: ['assets/images/overview/statust-of-enterprise.webp'],
-      imageAlt: $localize`:@@journey.legal.alt:OHADA legal document kit and articles of association generator`,
+      path: 'simulateur',
+      step: $localize`:@@journey.step.test:The test`,
+      title: $localize`:@@journey.test.title:She tests it before spending a franc`,
+      caption: $localize`:@@journey.test.caption:What if the price of plastic drops? What if a competitor opens next door? The simulator plays out the scenarios and shows which ones she survives.`,
+      price: $localize`:@@journey.test.price:IDEM Simulator · free during the beta`,
+      ctaLabel: $localize`:@@journey.test.cta:Try the simulator`,
+      link: '/simulator',
+      images: [
+        'assets/images/journey/04-simulateur-accueil.webp',
+        'assets/images/journey/04-simulateur-analyse.webp',
+      ],
+      imageAlt: $localize`:@@journey.test.alt:IDEM Simulator: business scenarios played out over three years`,
     },
     {
-      path: 'media',
-      step: $localize`:@@journey.step.media:Communication`,
-      title: 'IDEM Media',
-      caption: $localize`:@@journey.media.caption:Communication strategy, editorial calendar and one-click publishing of flyers and videos to her networks.`,
-      price: $localize`:@@offer.media.price:1,999–4,999 F/mo`,
-      ctaLabel: this.seePricing,
+      path: 'juridique',
+      step: $localize`:@@journey.step.papers:The paperwork`,
+      title: $localize`:@@journey.papers.title:Her company is on the right side of the law`,
+      caption: $localize`:@@journey.papers.caption:Articles of association, shareholder agreement, terms of sale. OHADA-compliant and ready to file.`,
+      price: $localize`:@@journey.papers.price:Compliance Pack · from 2,499 F`,
+      ctaLabel: $localize`:@@journey.papers.cta:See the pricing`,
       link: '/pricing',
       images: [
-        'assets/images/overview/editorial calander.webp',
-        'assets/images/overview/falyer-generation.webp',
+        'assets/images/journey/05-juridique-documents.webp',
+        'assets/images/journey/05-juridique-statuts.webp',
       ],
-      imageAlt: $localize`:@@services.media.alt:IDEM Media social editorial calendar and content publisher`,
+      imageAlt: $localize`:@@journey.papers.alt:OHADA articles of association generated for Verda`,
     },
     {
-      path: 'icode',
-      step: $localize`:@@what-is-idem.step.product.label:Product`,
-      title: 'iCode',
-      caption: $localize`:@@journey.code.caption:Her online shop, generated from a sentence and editable live.`,
-      price: $localize`:@@services.code.price:Free to generate · Project Pass 999 F`,
-      ctaLabel: $localize`:@@services.code.cta:Discover iCode`,
+      path: 'communication',
+      step: $localize`:@@journey.step.clients:The customers`,
+      title: $localize`:@@journey.clients.title:Her first customers find her`,
+      caption: $localize`:@@journey.clients.caption:A month of posts planned, the visuals already designed, and one button to publish them on her networks.`,
+      price: $localize`:@@journey.clients.price:IDEM Media · 1,999–4,999 F/mo`,
+      ctaLabel: $localize`:@@journey.clients.cta:See the pricing`,
+      link: '/pricing',
+      images: [
+        'assets/images/journey/06-communication-calendrier.webp',
+        'assets/images/journey/06-communication-visuels.webp',
+        'assets/images/journey/06-communication-post.webp',
+      ],
+      imageAlt: $localize`:@@journey.clients.alt:Verda's editorial calendar and generated social media posts`,
+    },
+    {
+      path: 'site',
+      step: $localize`:@@journey.step.site:The website`,
+      title: $localize`:@@journey.site.title:Her website builds itself in front of her`,
+      caption: $localize`:@@journey.site.caption:She describes what she wants in one sentence. Companies can book a collection online.`,
+      price: $localize`:@@journey.site.price:iCode · free to generate`,
+      ctaLabel: $localize`:@@journey.site.cta:Discover iCode`,
       link: '/idev',
-      images: ['assets/images/overview/generated-website-icode.webp'],
-      imageAlt: $localize`:@@services.code.alt:iCode editor with a live web-app preview generated by AI`,
+      images: ['assets/images/journey/07-site-icode.webp'],
+      imageAlt: $localize`:@@journey.site.alt:The Verda website generated in the iCode editor`,
     },
     {
-      path: 'ideploy',
-      step: $localize`:@@what-is-idem.step.deploy.label:Deploy`,
-      title: 'iDeploy',
-      caption: $localize`:@@journey.deploy.caption:Her site goes live on cafe.idem.africa, free domain and SSL.`,
-      price: $localize`:@@services.deploy.price:5 deployments free`,
-      ctaLabel: $localize`:@@services.deploy.cta:Deploy with iDeploy`,
+      path: 'en-ligne',
+      step: $localize`:@@journey.step.online:Online`,
+      title: $localize`:@@journey.online.title:Her website is live`,
+      caption: $localize`:@@journey.online.caption:verda.idem.africa — address, security certificate and hosting on African servers, in one click.`,
+      price: $localize`:@@journey.online.price:iDeploy · 5 free deployments`,
+      ctaLabel: $localize`:@@journey.online.cta:Deploy with iDeploy`,
       link: '/ideploy',
-      images: ['assets/images/overview/hosted-website.webp'],
-      imageAlt: $localize`:@@services.deploy.alt:iDeploy console: domain management, one-click deploy status and server metrics`,
+      images: [
+        'assets/images/journey/08-ligne-site.webp',
+        'assets/images/journey/08-ligne-ideploy.webp',
+      ],
+      imageAlt: $localize`:@@journey.online.alt:The Verda website online, hosted in Africa`,
     },
     {
       path: 'conseil',
-      step: $localize`:@@what-is-idem.step.support.label:Support`,
-      title: 'IDEM Conseil',
-      caption: $localize`:@@journey.conseil.caption:A certified advisor helps her land her first financing.`,
-      price: $localize`:@@services.conseil.price:from 2,500 F/mo`,
-      ctaLabel: this.seePricing,
+      step: $localize`:@@journey.step.funding:The funding`,
+      title: $localize`:@@journey.funding.title:An advisor helps her get funded`,
+      caption: $localize`:@@journey.funding.caption:A certified expert goes through her file with her, then introduces her to banks and investors.`,
+      price: $localize`:@@journey.funding.price:IDEM Conseil · from 2,500 F/mo`,
+      ctaLabel: $localize`:@@journey.funding.cta:Talk to an advisor`,
       link: '/pricing',
-      images: [
-        'assets/images/overview/businessplan.webp',
-        'assets/images/overview/financial-report.webp',
-      ],
-      imageAlt: $localize`:@@services.conseil.alt:IDEM Conseil portal: certified advisor profiles and investor-matching dashboard`,
+      images: ['assets/images/journey/09-conseil-accompagnement.webp'],
+      imageAlt: $localize`:@@journey.funding.alt:IDEM Conseil: a certified advisor reviewing the funding file`,
     },
   ];
 
   /** Intro + stages + outro. */
   protected readonly sectionCount = this.stages.length + 2;
 
-  /** Zero-padded position of a stage in the sequence. */
-  protected stepNumber(index: number): string {
-    return String(index + 1).padStart(2, '0');
-  }
 
   /* ── Scroll engine state ─────────────────────────────────────── */
   private rafId = 0;
   private frameStamp = 0;
   private lastScrollY = -1;
-  private targetPos = 0;
   private renderPos = 0;
   private settled = false;
   private observer?: IntersectionObserver;
+  private resizeObserver?: ResizeObserver;
   private reduceMotion = false;
   private motionQuery?: MediaQueryList;
 
-  /* ── Step animation ──────────────────────────────────────────── */
-  /** Section the step in flight is travelling to, null when at rest. */
-  private navTarget: number | null = null;
-  private stepFrom = 0;
-  private stepStamp = 0;
-  private stepDuration = 0;
-
-  /* ── Gesture state ───────────────────────────────────────────── */
-  private wasPinned = false;
-  private wheelAccum = 0;
-  private lastWheelStamp = 0;
-  private wheelPeak = 0;
-  /** This gesture scrolled the section into place: it may not also step. */
-  private entryGesture = false;
-  /** A step was committed; what is left of the burst is read as inertia. */
-  private coasting = false;
-  private swipeStartY = 0;
-  private swipeStepped = false;
+  /* ── Geometry, measured on resize rather than every frame ────── */
+  /** Document offset of the host's top edge. */
+  private hostTop = 0;
+  /** Scrollable distance the pinned stage travels across. */
+  private span = 0;
 
   /* ── Swiper state ────────────────────────────────────────────── */
   private swiperTimerId: ReturnType<typeof setInterval> | null = null;
@@ -281,6 +272,11 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
     this.reduceMotion = e.matches;
     if (this.reduceMotion) this.stopSwiper();
     else this.startSwiper();
+  };
+
+  private readonly onResize = () => {
+    this.measure();
+    this.settled = false;
   };
 
   constructor() {
@@ -307,7 +303,8 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
     this.live.set(true);
 
     this.zone.runOutsideAngular(() => {
-      this.renderPos = this.targetPos = this.readPosition();
+      this.measure();
+      this.renderPos = this.readPosition();
       this.paint(this.renderPos);
 
       this.observer = new IntersectionObserver(
@@ -318,6 +315,15 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
         { rootMargin: '15% 0px 15% 0px' }
       );
       this.observer.observe(this.hostEl.nativeElement);
+
+      // Anything that changes the page's height moves the pinned range: the
+      // host's own growth, and the content above it settling (fonts, images).
+      this.resizeObserver = new ResizeObserver(this.onResize);
+      this.resizeObserver.observe(this.hostEl.nativeElement);
+      this.resizeObserver.observe(document.documentElement);
+
+      window.addEventListener('resize', this.onResize, { passive: true });
+      window.addEventListener('orientationchange', this.onResize, { passive: true });
     });
 
     this.startSwiper();
@@ -325,7 +331,12 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.observer?.disconnect();
+    this.resizeObserver?.disconnect();
     this.motionQuery?.removeEventListener('change', this.onMotionChange);
+    if (isPlatformBrowser(this.platformId)) {
+      window.removeEventListener('resize', this.onResize);
+      window.removeEventListener('orientationchange', this.onResize);
+    }
     this.stop();
     this.stopSwiper();
   }
@@ -339,38 +350,35 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
     this.frameStamp = 0;
     this.lastScrollY = -1;
     this.settled = false;
+    this.measure();
 
-    // Explicitly outside Angular: neither the frame loop nor the input
-    // listeners should register as pending work or trigger change detection.
+    // Explicitly outside Angular: the frame loop should not register as
+    // pending work or trigger change detection.
     this.zone.runOutsideAngular(() => {
       this.rafId = requestAnimationFrame(this.tick);
-      window.addEventListener('wheel', this.onWheel, { passive: false });
-      window.addEventListener('touchstart', this.onTouchStart, { passive: true });
-      window.addEventListener('touchmove', this.onTouchMove, { passive: false });
-      window.addEventListener('keydown', this.onKeyDown);
     });
   }
 
   private stop(): void {
-    window.removeEventListener('wheel', this.onWheel);
-    window.removeEventListener('touchstart', this.onTouchStart);
-    window.removeEventListener('touchmove', this.onTouchMove);
-    window.removeEventListener('keydown', this.onKeyDown);
-    this.cancelStep();
-    this.wasPinned = false;
-    this.entryGesture = false;
-    this.coasting = false;
-
     if (!this.rafId) return;
     cancelAnimationFrame(this.rafId);
     this.rafId = 0;
   }
 
+  /**
+   * Caches the pinned range. Reading `offsetHeight` forces layout, so it
+   * happens here — on resize — and never inside the frame loop, which only
+   * needs `window.scrollY`.
+   */
+  private measure(): void {
+    const host = this.hostEl.nativeElement;
+    const stage = this.stageRef().nativeElement;
+    this.hostTop = host.getBoundingClientRect().top + window.scrollY;
+    this.span = host.offsetHeight - stage.offsetHeight;
+  }
+
   private readonly tick = (now: number): void => {
     this.rafId = requestAnimationFrame(this.tick);
-
-    // A step in flight owns the scroll offset for its duration.
-    if (this.navTarget !== null) this.driveStep(now);
 
     const scrollY = window.scrollY;
     const moved = scrollY !== this.lastScrollY;
@@ -385,11 +393,11 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
     const dt = this.frameStamp ? Math.min(80, now - this.frameStamp) : 16.7;
     this.frameStamp = now;
 
-    this.targetPos = this.readPosition();
+    const target = this.readPosition();
+    const delta = target - this.renderPos;
 
-    const delta = this.targetPos - this.renderPos;
-    if (this.reduceMotion || Math.abs(delta) < 0.0008) {
-      this.renderPos = this.targetPos;
+    if (this.reduceMotion || Math.abs(delta) < SETTLE_EPSILON) {
+      this.renderPos = target;
       this.settled = true;
     } else {
       // Exponential approach, framerate independent.
@@ -400,205 +408,11 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
     this.paint(this.renderPos);
   };
 
-  /* ────────────────────────────────────────────────────────────── */
-  /*  Gestures: one gesture moves exactly one section                */
-  /*  Only while the stage is actually pinned full-screen, measured  */
-  /*  rather than guessed, so approaching or leaving the section is  */
-  /*  always an ordinary page scroll.                                */
-  /* ────────────────────────────────────────────────────────────── */
-
-  private isPinned(): boolean {
-    const rect = this.hostEl.nativeElement.getBoundingClientRect();
-    const stageHeight = this.stageRef().nativeElement.offsetHeight;
-    return rect.top <= 1 && rect.bottom >= stageHeight - 1;
-  }
-
-  /**
-   * Section a step in this direction would land on, or null when the page
-   * should keep the gesture: not pinned yet, or already at the end the gesture
-   * points towards. Returning null is what makes leaving the section an
-   * ordinary scroll with nothing to unlock.
-   */
-  private nextIndex(forward: boolean): number | null {
-    if (!this.isPinned()) {
-      this.wasPinned = false;
-      return null;
-    }
-    const from = this.navTarget ?? Math.round(this.readPosition());
-    const next = from + (forward ? 1 : -1);
-    return next < 0 || next > this.sectionCount - 1 ? null : next;
-  }
-
-  /** A step is playing, or holding on the section it just reached. */
-  private stepBusy(): boolean {
-    return this.navTarget !== null;
-  }
-
-  /** Starts a step. The rAF loop drives it from here. */
-  private moveTo(index: number): void {
-    const from = this.readPosition();
-
-    if (this.reduceMotion) {
-      this.scrollToPosition(index);
-      return;
-    }
-
-    this.navTarget = index;
-    this.stepFrom = from;
-    this.stepStamp = 0;
-    this.stepDuration = Math.min(
-      STEP_MAX_MS,
-      STEP_BASE_MS + STEP_PER_SECTION_MS * Math.abs(index - from)
-    );
-  }
-
-  /** Advances the step, recomputed from live geometry so it lands exactly. */
-  private driveStep(now: number): void {
-    const target = this.navTarget;
-    if (target === null) return;
-    if (!this.stepStamp) this.stepStamp = now;
-
-    const elapsed = now - this.stepStamp;
-    const t = Math.min(1, elapsed / this.stepDuration);
-    const pos = t < 1 ? this.stepFrom + (target - this.stepFrom) * easeInOutCubic(t) : target;
-
-    if (!this.scrollToPosition(pos)) {
-      this.navTarget = null;
-      return;
-    }
-
-    // Then hold on the target for a moment. Re-asserting it absorbs any layout
-    // shift that happened mid-step, and the section is seen at rest before
-    // anything else can move, so nothing ever reads as skipped over.
-    if (elapsed >= this.stepDuration + STEP_SETTLE_MS) this.navTarget = null;
-  }
-
-  private cancelStep(): void {
-    this.navTarget = null;
-    this.wheelAccum = 0;
-  }
-
-  private readonly onWheel = (event: WheelEvent): void => {
-    if (event.ctrlKey) return; // pinch zoom
-
-    const forward = event.deltaY > 0;
-    const next = this.nextIndex(forward);
-    if (next === null) {
-      this.wheelAccum = 0;
-      return;
-    }
-
-    event.preventDefault();
-
-    const now = event.timeStamp;
-    const magnitude = Math.abs(event.deltaY);
-
-    // One gesture is one burst. Trackpad inertia keeps firing, with gaps, long
-    // after the fingers lift; only real quiet separates two gestures.
-    const fresh = now - this.lastWheelStamp > GESTURE_GAP_MS;
-    this.lastWheelStamp = now;
-
-    if (fresh) {
-      this.entryGesture = false;
-      this.coasting = false;
-      this.wheelPeak = 0;
-      this.wheelAccum = 0;
-    }
-    this.wheelPeak = Math.max(this.wheelPeak, magnitude);
-
-    // The burst that scrolled the section into place is spent on that arrival,
-    // however much inertia is left in it.
-    if (!this.wasPinned) {
-      this.wasPinned = true;
-      this.entryGesture = !fresh;
-    }
-    if (this.entryGesture) {
-      this.wheelAccum = 0;
-      return;
-    }
-
-    // Mid-step, or the section just reached is still settling. Swallowing here
-    // is what keeps one gesture worth one section.
-    if (this.stepBusy()) {
-      this.wheelAccum = 0;
-      return;
-    }
-
-    // Back up near the burst's peak means the user is still pushing, so this is
-    // fresh intent rather than the tail of the flick that already stepped.
-    if (this.coasting && magnitude >= this.wheelPeak * WHEEL_ENERGY_RATIO) {
-      this.coasting = false;
-      this.wheelAccum = 0;
-    }
-    if (this.coasting) {
-      this.wheelAccum = 0;
-      return;
-    }
-
-    // A direction change starts the count over.
-    if (this.wheelAccum * event.deltaY < 0) this.wheelAccum = 0;
-    this.wheelAccum += event.deltaY;
-
-    // A fresh gesture commits at once. Scrolling that never lifted off has to
-    // cover real distance.
-    if (Math.abs(this.wheelAccum) < (fresh ? WHEEL_START_PX : WHEEL_CHAIN_PX)) return;
-
-    this.wheelAccum = 0;
-    this.coasting = true;
-    this.moveTo(next);
-  };
-
-  private readonly onTouchStart = (event: TouchEvent): void => {
-    this.swipeStartY = event.touches[0].clientY;
-    // A swipe that starts before the section is pinned, or while a step is
-    // still playing, belongs to the page rather than to the story.
-    this.swipeStepped = !this.isPinned() || this.stepBusy();
-  };
-
-  private readonly onTouchMove = (event: TouchEvent): void => {
-    const delta = this.swipeStartY - event.touches[0].clientY;
-    const next = this.nextIndex(delta > 0);
-    if (next === null) return;
-
-    event.preventDefault();
-    if (this.swipeStepped || Math.abs(delta) < TOUCH_STEP_PX) return;
-    this.swipeStepped = true;
-    this.moveTo(next);
-  };
-
-  private readonly onKeyDown = (event: KeyboardEvent): void => {
-    if (event.metaKey || event.ctrlKey || event.altKey) return;
-
-    const forward =
-      event.key === 'ArrowDown' || event.key === 'PageDown' || event.key === ' ';
-    const back = event.key === 'ArrowUp' || event.key === 'PageUp';
-    if (!forward && !back) return;
-
-    // Never swallow keys meant for a focused control. The target is not always
-    // an element: keys can arrive on the document itself.
-    const target = event.target;
-    if (
-      target instanceof Element &&
-      target.closest('a, button, input, select, textarea, [contenteditable]')
-    ) {
-      return;
-    }
-
-    const next = this.nextIndex(forward);
-    if (next === null) return;
-
-    event.preventDefault();
-    // Held keys repeat fast: one step at a time, not one per repeat.
-    if (!this.stepBusy()) this.moveTo(next);
-  };
-
   /** Scroll offset inside the pinned range, mapped to a slide position. */
   private readPosition(): number {
-    const rect = this.hostEl.nativeElement.getBoundingClientRect();
-    const span = rect.height - this.stageRef().nativeElement.offsetHeight;
-    if (span <= 0) return 0;
-    const progress = Math.min(1, Math.max(0, -rect.top / span));
-    return progress * (this.sectionCount - 1);
+    if (this.span <= 0) return 0;
+    const progress = (window.scrollY - this.hostTop) / this.span;
+    return Math.min(1, Math.max(0, progress)) * (this.sectionCount - 1);
   }
 
   /** Writes the per-slide motion variables. Transforms and opacity only. */
@@ -627,7 +441,14 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
       const text = smoothstep((TEXT_OUT - distance) / (TEXT_OUT - TEXT_IN));
 
       if (!wasNear) el.classList.add('is-near');
-      el.classList.toggle('is-current', distance < 0.5);
+
+      // Hysteresis around the halfway mark. `is-current` starts the closing
+      // animation, so a reading head resting exactly on the boundary must not
+      // be able to toggle it on and off frame after frame.
+      const wasCurrent = el.classList.contains('is-current');
+      const isCurrent = distance < (wasCurrent ? 0.55 : 0.45);
+      if (isCurrent !== wasCurrent) el.classList.toggle('is-current', isCurrent);
+
       el.style.setProperty('--e', scene.toFixed(3));
       el.style.setProperty('--w', (1 - scene).toFixed(3));
       el.style.setProperty('--t', text.toFixed(3));
@@ -644,27 +465,19 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  /** Rail navigation: scrolls the page to the resting point of one section. */
+  /**
+   * Rail navigation: an ordinary smooth page scroll to a section's resting
+   * offset. Native, so the user interrupting it just takes the scroll back.
+   */
   protected goTo(index: number): void {
     if (!isPlatformBrowser(this.platformId)) return;
-    this.moveTo(index);
-  }
-
-  /**
-   * Puts a section position under the viewport, this frame.
-   *
-   * `instant`, never `auto`: `auto` defers to the computed `scroll-behavior`,
-   * which the design system sets to `smooth` globally. That had the browser
-   * animating towards every frame of an animation that is already eased, so
-   * steps landed short and never truly finished.
-   */
-  private scrollToPosition(pos: number): boolean {
-    const rect = this.hostEl.nativeElement.getBoundingClientRect();
-    const span = rect.height - this.stageRef().nativeElement.offsetHeight;
-    if (span <= 0) return false;
-    const ratio = pos / (this.sectionCount - 1);
-    window.scrollTo({ top: window.scrollY + rect.top + span * ratio, behavior: 'instant' });
-    return true;
+    this.measure();
+    if (this.span <= 0) return;
+    const ratio = index / (this.sectionCount - 1);
+    window.scrollTo({
+      top: this.hostTop + this.span * ratio,
+      behavior: this.reduceMotion ? 'auto' : 'smooth',
+    });
   }
 
   /* ────────────────────────────────────────────────────────────── */
