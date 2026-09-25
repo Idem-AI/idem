@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 import { ChatSessionService } from '../../services/chat-session.service';
 import { AdditionalInfos } from '../../services/chat-additional-info.service';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 interface TeamMemberDraft {
   name: string;
@@ -20,7 +21,7 @@ interface TeamMemberDraft {
 @Component({
   selector: 'app-info-form-card',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule],
+  imports: [CommonModule, FormsModule, TranslateModule, IdemLoaderComponent],
   templateUrl: './info-form-card.html',
   styleUrl: './info-form-card.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

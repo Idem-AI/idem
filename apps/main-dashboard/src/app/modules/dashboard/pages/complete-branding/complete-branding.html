@@ -2,7 +2,7 @@
   <!-- Loading -->
   <div class="h-screen w-full flex items-center justify-center">
     <div class="text-center space-y-4">
-      <div class="w-12 h-12 mx-auto border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <idem-loader size="lg" />
       <p class="text-text-tertiary">{{ 'dashboard.completeBranding.loading' | translate }}</p>
     </div>
   </div>
@@ -201,7 +201,7 @@
               class="flex items-center px-8 py-3 text-base font-semibold inner-button rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
               @if (isFinalizing()) {
-                <span class="w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                <idem-loader size="sm" />
                 {{ 'common.saving' | translate }}
               } @else {
                 <i class="pi pi-check mr-2"></i>

@@ -1,7 +1,7 @@
 <div class="w-full min-h-screen md:px-6 md:pb-6">
   @if (isLoading()) {
     <div class="max-w-6xl mx-auto text-center py-20">
-      <app-loader />
+      <idem-loader block />
       <p class="text-text-tertiary mt-4">{{ 'dashboard.showPitchDeck.loading' | translate }}</p>
     </div>
   } @else if (!projectId()) {
@@ -77,9 +77,7 @@
                     />
                   </svg>
                 } @else if (step.status === 'in-progress') {
-                  <div
-                    class="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin"
-                  ></div>
+                  <idem-loader size="xs" />
                 } @else {
                   <div class="w-2 h-2 rounded-full bg-[var(--glass-border-strong)]"></div>
                 }

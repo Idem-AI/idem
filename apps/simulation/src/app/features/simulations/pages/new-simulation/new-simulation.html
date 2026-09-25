@@ -465,10 +465,7 @@
         <section class="flex flex-col gap-5">
           @if (analysing()) {
             <div class="glass-card flex flex-col items-center gap-3 p-10 text-center">
-              <span
-                class="size-5 animate-spin rounded-full border-2 border-line border-t-brand"
-                aria-hidden="true"
-              ></span>
+              <idem-loader size="sm" />
               <p class="text-sm font-medium text-ink" role="status" aria-live="polite">
                 {{ 'newRun.analysing' | translate }}
               </p>

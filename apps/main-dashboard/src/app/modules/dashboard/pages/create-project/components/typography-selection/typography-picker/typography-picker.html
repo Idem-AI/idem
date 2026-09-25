@@ -119,7 +119,7 @@
   <!-- Les polices, composées avec le nom de la marque -->
   @if (isSearching()) {
     <div class="flex items-center justify-center py-10" role="status" aria-live="polite">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" aria-hidden="true"></div>
+      <idem-loader size="lg" />
       <span class="ml-3 text-text-tertiary">{{
         'dashboard.typographySelection.searching' | translate
       }}</span>

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { SimulationProgress } from '../../models';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * The run, made legible while it happens.
@@ -11,7 +12,7 @@ import { SimulationProgress } from '../../models';
  */
 @Component({
   selector: 'sim-pipeline-progress',
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div>
@@ -62,7 +63,7 @@ import { SimulationProgress } from '../../models';
                   </svg>
                 }
                 @case ('active') {
-                  <span class="size-3.5 animate-spin rounded-full border-2 border-line border-t-brand"></span>
+                  <idem-loader size="xs" />
                 }
                 @case ('failed') {
                   <span class="size-2 rounded-full bg-verdict-stop"></span>

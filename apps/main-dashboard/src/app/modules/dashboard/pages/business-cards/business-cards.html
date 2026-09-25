@@ -1,7 +1,7 @@
 <div class="w-full min-h-screen md:p-6">
   @if (isLoading()) {
     <div class="max-w-7xl mx-auto py-20 text-center">
-      <app-loader />
+      <idem-loader block />
       <p class="text-text-tertiary mt-4">{{ 'dashboard.businessCards.loading' | translate }}</p>
     </div>
   } @else {
@@ -41,13 +41,7 @@
                 (click)="generateTemplate()"
                 [disabled]="isGenerating()"
               >
-                <i
-                  class="pi text-xs"
-                  [class.pi-refresh]="!isGenerating()"
-                  [class.pi-spinner]="isGenerating()"
-                  [class.pi-spin]="isGenerating()"
-                  aria-hidden="true"
-                ></i>
+                <idem-loader size="xs" />
                 {{ 'dashboard.businessCards.actions.regenerate' | translate }}
               </button>
             </div>
@@ -168,13 +162,7 @@
                   (click)="generateTemplate()"
                   [disabled]="isGenerating()"
                 >
-                  <i
-                    class="pi"
-                    [class.pi-sparkles]="!isGenerating()"
-                    [class.pi-spinner]="isGenerating()"
-                    [class.pi-spin]="isGenerating()"
-                    aria-hidden="true"
-                  ></i>
+                  <idem-loader size="xs" />
                   <span>
                     {{
                       (isGenerating()
@@ -397,13 +385,7 @@
                             (click)="download($any(side), $any(format))"
                             [disabled]="downloadingKey() !== null"
                           >
-                            <i
-                              class="pi text-[10px]"
-                              [class.pi-download]="downloadingKey() !== downloadKey($any(side), $any(format))"
-                              [class.pi-spinner]="downloadingKey() === downloadKey($any(side), $any(format))"
-                              [class.pi-spin]="downloadingKey() === downloadKey($any(side), $any(format))"
-                              aria-hidden="true"
-                            ></i>
+                            <idem-loader size="xs" />
                             {{ format }}
                           </button>
                         }

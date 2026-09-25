@@ -2,7 +2,7 @@
   <!-- Loading state -->
   @if (loading()) {
     <div class="flex items-center justify-center py-20">
-      <app-loader />
+      <idem-loader block />
     </div>
   } @else if (!loading() && !isBrandingComplete()) {
     <!-- Incomplete Project Banner -->

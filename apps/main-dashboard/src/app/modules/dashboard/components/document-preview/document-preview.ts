@@ -40,6 +40,7 @@ import {
 } from '../../pages/document-editor/models/editor.types';
 import { PREVIEW_PAGE_GAP_PX } from '../../pages/document-editor/runtime/editor-iframe';
 import { buildPlaceholderHtml, composePages, PreviewPage } from './preview-pages';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /** Documents qui ont une page d'affichage avec aperçu. */
 export type PreviewDocumentType = Extract<EditorDocumentType, 'business-plan' | 'pitch-deck' | 'branding'>;
@@ -106,7 +107,7 @@ function kindOf(selection: EditorSelection): ElementKind {
  */
 @Component({
   selector: 'app-document-preview',
-  imports: [TranslateModule, EditorCanvasComponent, ZoomControlComponent],
+  imports: [TranslateModule, EditorCanvasComponent, ZoomControlComponent, IdemLoaderComponent],
   templateUrl: './document-preview.html',
   styleUrl: './document-preview.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

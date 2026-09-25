@@ -11,7 +11,6 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CookieService } from '../../../../shared/services/cookie.service';
-import { Loader } from '../../../../shared/components/loader/loader';
 import { ProjectService } from '../../services/project.service';
 import { BusinessCardService } from '../../services/ai-agents/business-card.service';
 import {
@@ -30,6 +29,7 @@ import { CardPreviewComponent } from './components/card-preview/card-preview';
 import { GenerationPreviewComponent } from './components/generation-preview/generation-preview';
 import { HolderFormComponent } from './components/holder-form/holder-form';
 import { CardPreviewFonts } from './utils/business-card-preview';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /** Panneau de droite : consultation d'une carte ou saisie d'une personne. */
 type WorkspaceMode = 'view' | 'form';
@@ -47,11 +47,9 @@ type WorkspaceMode = 'view' | 'form';
   imports: [
     FormsModule,
     TranslateModule,
-    Loader,
     CardPreviewComponent,
     GenerationPreviewComponent,
-    HolderFormComponent,
-  ],
+    HolderFormComponent, IdemLoaderComponent],
   templateUrl: './business-cards.html',
   styleUrl: './business-cards.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

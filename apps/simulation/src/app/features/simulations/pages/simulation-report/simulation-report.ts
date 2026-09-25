@@ -14,6 +14,7 @@ import { VerdictBadge } from '../../components/verdict-badge/verdict-badge';
 import { ViabilityGauge } from '../../components/viability-gauge/viability-gauge';
 import { ReportDownloadService, SimulationGateway, SimulationStore } from '../../data-access';
 import { FactorTier, Recommendation, Risk, SimulationReport } from '../../models';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 interface ReportSection {
   id: string;
@@ -51,8 +52,7 @@ interface ReportRow {
     SensitivityChart,
     CashflowChart,
     EvidenceChip,
-    DisclaimerNote,
-  ],
+    DisclaimerNote, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './simulation-report.html',
 })

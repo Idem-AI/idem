@@ -8,6 +8,7 @@ import { Database, DatabaseDetail, DatabaseType } from '../../../shared/models/i
 import { DB_ENGINES, dbEngine } from '../../../shared/utils/db-icon.util';
 import { credentialLabel, isSecretField } from '../../../shared/utils/db-credentials.util';
 import { GuideSessionService } from '../../../shared/services/guide-session.service';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /** The engines a step's "primary database" picker offers — the cache engines below are only ever the optional second one. */
 const PRIMARY_DB_TYPES: DatabaseType[] = ['postgresql', 'mysql', 'mariadb', 'mongodb', 'clickhouse'];
@@ -51,7 +52,7 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
  */
 @Component({
   selector: 'app-guide-db-step',
-  imports: [FormsModule, TranslateModule],
+  imports: [FormsModule, TranslateModule, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-4">
@@ -150,7 +151,7 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
               } @else if (primaryStatus() === 'start-failed') {
                 <i class="pi pi-exclamation-triangle" style="color:var(--color-danger);"></i>
               } @else {
-                <i class="pi pi-spinner pi-spin" style="color:var(--color-primary-400);"></i>
+                <idem-loader size="xs" />
               }
               <span>{{ (primaryStatus() === 'creating' ? 'architectures.dbStep.creatingRow' : primaryStatus() === 'started' ? 'architectures.dbStep.startedLabel' : primaryStatus() === 'start-failed' ? 'architectures.dbStep.startFailedLabel' : 'architectures.dbStep.startingContainer') | translate: { name: db.name } }}</span>
             </div>
@@ -171,7 +172,7 @@ type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-fail
               } @else if (cacheStatus() === 'start-failed') {
                 <i class="pi pi-exclamation-triangle" style="color:var(--color-danger);"></i>
               } @else {
-                <i class="pi pi-spinner pi-spin" style="color:var(--color-primary-400);"></i>
+                <idem-loader size="xs" />
               }
               <span>{{ (cacheStatus() === 'creating' ? 'architectures.dbStep.creatingRow' : cacheStatus() === 'started' ? 'architectures.dbStep.startedLabel' : cacheStatus() === 'start-failed' ? 'architectures.dbStep.startFailedLabel' : 'architectures.dbStep.startingContainer') | translate: { name: db.name } }}</span>
             </div>

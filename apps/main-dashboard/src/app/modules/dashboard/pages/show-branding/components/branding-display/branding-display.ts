@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, inject, signal, OnInit } from '@ang
 import { Router } from '@angular/router';
 import { ProjectService } from '../../../../services/project.service';
 import { CookieService } from '../../../../../../shared/services/cookie.service';
-import { Loader } from '../../../../../../shared/components/loader/loader';
 import { DocumentPreviewComponent } from '../../../../components/document-preview/document-preview';
 import {
   expectedBrandingSections,
@@ -14,6 +13,7 @@ import {
   SectionCompletionItem,
 } from '../../../../models/generation-completeness';
 import { TranslateModule } from '@ngx-translate/core';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Page d'affichage de la charte graphique. La charte est rendue par l'aperçu
@@ -23,7 +23,7 @@ import { TranslateModule } from '@ngx-translate/core';
  */
 @Component({
   selector: 'app-branding-display',
-  imports: [DocumentPreviewComponent, Loader, TranslateModule],
+  imports: [DocumentPreviewComponent, TranslateModule, IdemLoaderComponent],
   templateUrl: './branding-display.html',
   styleUrl: './branding-display.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -3,12 +3,12 @@ import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { LogoImportService, LogoImportResponse, LogoUploadProgress } from '../../../../services/logo-import.service';
 import { LogoVariations } from '../../../../models/logo.model';
-import { Loader } from '../../../../../../shared/components/loader/loader';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 @Component({
   selector: 'app-logo-import',
   standalone: true,
-  imports: [CommonModule, TranslateModule, Loader],
+  imports: [CommonModule, TranslateModule, IdemLoaderComponent],
   templateUrl: './logo-import.html',
   styleUrl: './logo-import.css',
 })

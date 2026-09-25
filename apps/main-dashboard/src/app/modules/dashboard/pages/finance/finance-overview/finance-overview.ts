@@ -31,6 +31,7 @@ import {
 import { GenerationService } from '../../../../../shared/services/generation.service';
 import { SSEGenerationState } from '../../../../../shared/models/sse-step.model';
 import { Subscription } from 'rxjs';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /** Sujets de recherche marché (noms alignés sur le backend financeAIService). */
 const FINANCE_RESEARCH_TOPICS: { name: string; labelKey: string }[] = [
@@ -58,8 +59,7 @@ interface SectionCardVM {
     TranslateModule,
     AiFillButtonComponent,
     AgentResearchConsoleComponent,
-    DialogModule,
-  ],
+    DialogModule, IdemLoaderComponent],
   templateUrl: './finance-overview.html',
   styleUrl: './finance-overview.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

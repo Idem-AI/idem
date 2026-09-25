@@ -19,6 +19,7 @@ import {
 import { CookieService } from '../../../../../../../shared/services/cookie.service';
 import { DeploymentService } from '../../../../../services/deployment.service';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 const MOCK_TEMPLATES: ArchitectureTemplate[] = [
   {
@@ -52,7 +53,7 @@ const MOCK_TEMPLATES: ArchitectureTemplate[] = [
 @Component({
   selector: 'app-template-deployment',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, IdemLoaderComponent],
   templateUrl: './template-deployment.html',
   styleUrl: './template-deployment.css',
 })

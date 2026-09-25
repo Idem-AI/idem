@@ -5,6 +5,7 @@ import { ChatSidebarComponent } from '../../modules/chat/components/chat-sidebar
 import { ChatSessionService } from '../../modules/chat/services/chat-session.service';
 import { ChatDeliverablesService } from '../../modules/chat/services/chat-deliverables.service';
 import { NotificationService } from '../../shared/services/notification.service';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Layout du mode Chat : sidebar à gauche (navigation, switch de mode),
@@ -14,7 +15,7 @@ import { NotificationService } from '../../shared/services/notification.service'
 @Component({
   selector: 'app-chat-layout',
   standalone: true,
-  imports: [CommonModule, TranslateModule, ChatSidebarComponent],
+  imports: [CommonModule, TranslateModule, ChatSidebarComponent, IdemLoaderComponent],
   templateUrl: './chat-layout.html',
   styleUrl: './chat-layout.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

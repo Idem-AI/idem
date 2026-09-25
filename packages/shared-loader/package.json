@@ -1,0 +1,22 @@
+{
+  "name": "@idem/shared-loader",
+  "version": "1.0.0",
+  "description": "L'unique indicateur de chargement d'Idem : un seul composant, partagé par toutes les applications, pour que l'attente se présente partout de la même façon",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./angular": "./src/angular/index.ts"
+  },
+  "files": ["src", "README.md"],
+  "keywords": ["idem", "loader", "spinner", "shared"],
+  "author": "Idem Team",
+  "license": "MIT",
+  "peerDependencies": {
+    "@angular/core": ">=20"
+  },
+  "peerDependenciesMeta": {
+    "@angular/core": { "optional": true }
+  }
+}

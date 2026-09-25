@@ -3,6 +3,10 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "paths": {
+      "@idem/shared-loader": ["../../packages/shared-loader/src"],
+      "@idem/shared-loader/*": ["../../packages/shared-loader/src/*"]
+    },
     "strict": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,

@@ -80,7 +80,7 @@
                 class="px-3 py-2 bg-linear-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 disabled:from-gray-600 disabled:to-gray-700 disabled:opacity-50 rounded-lg text-white transition-all flex items-center justify-center min-w-[40px]"
               >
                 @if (loadingGitInfo()) {
-                  <i class="pi pi-spinner animate-spin"></i>
+                  <idem-loader />
                 } @else {
                   <i class="pi pi-refresh"></i>
                 }
@@ -140,7 +140,7 @@
           "
         >
           @if (loadingDeployment()) {
-            <i class="pi pi-spinner animate-spin"></i> {{ 'common.deploying' | translate }}
+            <idem-loader /> {{ 'common.deploying' | translate }}
           } @else {
             <i class="pi pi-rocket"></i>
             {{ 'dashboard.quickDeployment.buttons.create' | translate }}

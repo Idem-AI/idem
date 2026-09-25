@@ -442,7 +442,7 @@
                 (click)="confirm()"
               >
                 @if (isSaving()) {
-                  <i class="pi pi-spin pi-spinner text-xs" aria-hidden="true"></i>
+                  <idem-loader size="xs" />
                   <span>{{ 'dashboard.businessPlanStructure.actions.saving' | translate }}</span>
                 } @else {
                   <span>{{ 'dashboard.businessPlanStructure.actions.confirm' | translate }}</span>

@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { AuthService } from '../../../../core/auth';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /** Le cookie met parfois un instant à être lisible après la redirection. */
 const VERIFY_ATTEMPTS = 3;
@@ -18,7 +19,7 @@ const RETRY_DELAY_MS = 400;
  */
 @Component({
   selector: 'sim-sso-callback',
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main
@@ -32,10 +33,7 @@ const RETRY_DELAY_MS = 400;
           {{ 'auth.signIn' | translate }}
         </button>
       } @else {
-        <div
-          class="size-6 animate-spin rounded-full border-2 border-line border-t-brand"
-          aria-hidden="true"
-        ></div>
+        <idem-loader size="sm" />
         <p class="text-sm text-ink-muted" role="status" aria-live="polite">
           {{ 'handoff.connecting' | translate }}
         </p>

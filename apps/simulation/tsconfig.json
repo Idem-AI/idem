@@ -22,6 +22,9 @@
     "preserveSymlinks": true,
     "lib": ["ES2022", "dom"],
     "paths": {
+      "@angular/*": ["./node_modules/@angular/*"],
+      "@idem/shared-loader": ["../../packages/shared-loader/src"],
+      "@idem/shared-loader/*": ["../../packages/shared-loader/src/*"],
       "@core/*": ["./src/app/core/*"],
       "@shared/*": ["./src/app/shared/*"],
       "@features/*": ["./src/app/features/*"],

@@ -113,7 +113,7 @@
                   (click)="declinate(format)"
                 >
                   @if (isBusy()) {
-                    <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+                    <idem-loader size="xs" />
                   }
                   {{ 'dashboard.showCommunication.formats.' + format | translate }}
                 </button>
@@ -135,7 +135,7 @@
                   (click)="publish(network)"
                 >
                   @if (publishingNetwork() === network) {
-                    <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+                    <idem-loader size="xs" />
                   } @else if (network === 'linkedin') {
                     <i class="pi pi-linkedin" aria-hidden="true"></i>
                   } @else {

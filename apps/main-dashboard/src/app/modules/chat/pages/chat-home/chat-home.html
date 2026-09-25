@@ -1,7 +1,7 @@
 <div class="h-full flex flex-col chat-home-page">
   @if (isInitializing() || store.isLoading()) {
     <div class="flex-1 flex items-center justify-center">
-      <app-loader />
+      <idem-loader block />
     </div>
   } @else {
     <!-- Avertissement : identité de marque incomplète

@@ -196,7 +196,7 @@
           <div>
             <div class="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center mb-5 group-hover:bg-primary/20 transition-colors">
               @if (isAnalyzing()) {
-                <i class="pi pi-spin pi-spinner text-xl text-primary"></i>
+                <idem-loader size="xs" />
               } @else {
                 <i class="pi pi-bolt text-xl text-primary"></i>
               }
@@ -221,7 +221,7 @@
             class="w-full py-3 px-4 rounded-xl bg-primary text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 group-hover:bg-primary/90 transition-all duration-200 disabled:opacity-50"
           >
             @if (isAnalyzing()) {
-              <i class="pi pi-spin pi-spinner text-xs"></i>
+              <idem-loader size="xs" />
               <span>{{ 'dashboard.logoChoice.postImport.analyzing' | translate }}</span>
             } @else {
               <span>{{ 'dashboard.logoChoice.postImport.improve.title' | translate }}</span>

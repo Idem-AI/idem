@@ -45,6 +45,7 @@
     "@angular/platform-browser-dynamic": "^20.0.0",
     "@angular/router": "^20.0.0",
     "@idem/shared-styles": "file:../../packages/shared-styles",
+    "@idem/shared-loader": "file:../../packages/shared-loader",
     "@ngx-translate/core": "^17.0.0",
     "@ngx-translate/http-loader": "^17.0.0",
     "@primeng/themes": "^20.0.0",

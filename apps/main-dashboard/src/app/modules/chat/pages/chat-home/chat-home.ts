@@ -23,7 +23,6 @@ import { MarkdownModule } from 'ngx-markdown';
 import { firstValueFrom, Observable } from 'rxjs';
 import { ProjectModel } from '@idem/shared-models';
 
-import { Loader } from '../../../../shared/components/loader/loader';
 import { UiModeService } from '../../../../shared/services/ui-mode.service';
 import { TourService } from '../../../../shared/services/tour.service';
 import { GenerationService } from '../../../../shared/services/generation.service';
@@ -98,6 +97,7 @@ import {
   OnboardingPolicyAcceptances,
   OnboardingState,
 } from '../../models/chat.model';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Document ouvert dans le tiroir de lecture.
@@ -150,7 +150,6 @@ let chatMessageCounter = 0;
     FormsModule,
     TranslateModule,
     MarkdownModule,
-    Loader,
     DeliverableCardComponent,
     RecapCardComponent,
     SuggestionChipsComponent,
@@ -164,8 +163,7 @@ let chatMessageCounter = 0;
     GenerationProgressCardComponent,
     FormatChoiceCardComponent,
     BpStructureCardComponent,
-    FeatureLauncherComponent,
-  ],
+    FeatureLauncherComponent, IdemLoaderComponent],
   templateUrl: './chat-home.html',
   // Réutilise les styles markdown de l'advisor (classe .advisor-message)
   styleUrls: ['./chat-home.css', '../../../dashboard/pages/advisor/advisor-markdown.css'],
@@ -1630,7 +1628,7 @@ export class ChatHomePage implements OnInit, AfterViewChecked, OnDestroy {
         { labelKey: 'chat.legal.chips.cgu', icon: 'pi pi-file', action: 'legal-type', payload: 'cgu' },
         { labelKey: 'chat.legal.chips.cgv', icon: 'pi pi-file', action: 'legal-type', payload: 'cgv' },
         { labelKey: 'chat.legal.chips.privacy', icon: 'pi pi-shield', action: 'legal-type', payload: 'privacy_policy' },
-        { labelKey: 'chat.legal.chips.statutes', icon: 'pi pi-building', action: 'legal-type', payload: 'statuts_sas' },
+        { labelKey: 'chat.legal.chips.statutes', icon: 'pi pi-building', action: 'legal-type', payload: 'statuts' },
         { labelKey: 'chat.legal.chips.nda', icon: 'pi pi-lock', action: 'legal-type', payload: 'nda' },
         {
           labelKey: 'chat.legal.chips.editor',

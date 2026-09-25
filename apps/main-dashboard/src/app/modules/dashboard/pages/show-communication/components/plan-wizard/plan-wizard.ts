@@ -24,6 +24,7 @@ import {
   presetRange,
   toChannels,
 } from '../../communication-ui';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /** Ce que le parent reçoit pour créer puis générer la période. */
 export interface PlanWizardResult {
@@ -57,7 +58,7 @@ const OBJECTIVE_HINTS = ['known', 'sell', 'loyal', 'hire'] as const;
  */
 @Component({
   selector: 'app-plan-wizard',
-  imports: [FormsModule, TranslateModule],
+  imports: [FormsModule, TranslateModule, IdemLoaderComponent],
   templateUrl: './plan-wizard.html',
   styleUrl: './plan-wizard.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

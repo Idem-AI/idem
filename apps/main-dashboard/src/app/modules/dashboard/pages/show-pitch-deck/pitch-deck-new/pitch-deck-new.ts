@@ -12,10 +12,10 @@ import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CookieService } from '../../../../../shared/services/cookie.service';
-import { Loader } from '../../../../../shared/components/loader/loader';
 import { PitchDeckService } from '../../../services/ai-agents/pitch-deck.service';
 import { PitchDeckType, PitchDeckTypeCatalog } from '../../../models/pitchDeck.model';
 import { pitchDeckTypeLabel } from '../../../utils/deliverable-labels';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /** Une carte de type, libellés résolus. */
 interface TypeCard extends PitchDeckType {
@@ -45,7 +45,7 @@ const TYPE_ICONS: Record<string, string> = {
  */
 @Component({
   selector: 'app-pitch-deck-new',
-  imports: [TranslateModule, ReactiveFormsModule, Loader],
+  imports: [TranslateModule, ReactiveFormsModule, IdemLoaderComponent],
   templateUrl: './pitch-deck-new.html',
   styleUrl: './pitch-deck-new.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

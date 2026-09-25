@@ -1898,74 +1898,124 @@
       }
     },
     "legalDocs": {
-      "title": "Documents juridiques",
-      "subtitle": "Générez des brouillons de documents juridiques adaptés au contexte africain (zone OHADA + pays de common law). Chaque document doit être relu par un juriste avant usage.",
-      "selected": "sélectionné(s)",
-      "addMore": "Ajouter d’autres documents",
-      "missingFields": "Champs requis manquants",
-      "missingFieldsShort": "champ(s) requis manquant(s)",
-      "stepper": {
-        "select": "Choisir",
-        "context": "Contexte",
-        "generate": "Générer"
-      },
+      "title": "Juridique",
+      "subtitle": "Choisissez la forme de votre entreprise, puis générez les documents dont votre projet a besoin. Nous vous disons lesquels, et pourquoi.",
+      "disclaimer": "Ce sont des brouillons adaptés à votre pays. Faites-les relire par un juriste avant de les signer.",
       "noProject": {
         "title": "Aucun projet sélectionné",
-        "subtitle": "Sélectionnez un projet pour choisir et générer ses documents juridiques."
+        "subtitle": "Ouvrez un projet pour voir la forme d'entreprise et les documents que nous vous recommandons."
       },
-      "steps": {
-        "selection": {
-          "title": "1 — Choisissez les documents nécessaires",
-          "subtitle": "Seuls les champs requis par votre sélection seront demandés."
+      "form": {
+        "sectionTitle": "Forme de l'entreprise",
+        "recommendedFor": "Recommandée pour {{name}}",
+        "why": "Pourquoi cette forme",
+        "otherOption": "Autre option, {{acronym}} :",
+        "chooseThis": "Choisir {{acronym}}",
+        "compare": "Comparer les formes",
+        "hideCompare": "Fermer la comparaison",
+        "change": "Changer de forme",
+        "chosenLabel": "Forme retenue",
+        "matchesReco": "C'est la forme que nous recommandons pour ce projet.",
+        "differsFromReco": "Pour ce projet, nous recommandions {{acronym}}. Votre choix est pris en compte.",
+        "compareTitle": "Les formes possibles dans votre pays",
+        "compareHint": "Une entreprise n'a qu'une forme. Parcourez-les, puis choisissez celle qui vous ressemble.",
+        "recommendedBadge": "Recommandée",
+        "chosenBadge": "Retenue",
+        "alreadyChosen": "C'est votre forme actuelle.",
+        "idealFor": "Idéale pour :",
+        "facts": {
+          "partners": "Associés",
+          "capital": "Capital",
+          "liability": "Responsabilité",
+          "leader": "Dirigeant"
         },
-        "context": {
-          "title": "2 — Contexte de l’entreprise",
-          "subtitle": "L’IA utilise ces données comme source de vérité. Elle n’invente rien."
-        }
+        "pros": "Avantages",
+        "cons": "Limites",
+        "noStatutes": "Pas de statuts à rédiger avec cette forme : vous exercez en votre nom.",
+        "statutesWarning": "Vos statuts actuels sont rédigés pour {{acronym}}. Avec cette forme, il faudra les régénérer."
+      },
+      "docs": {
+        "title": "Documents pour {{name}}",
+        "progress": "{{done}} sur {{total}} documents essentiels prêts",
+        "selectRecommended": "Cocher les recommandés",
+        "clear": "Tout décocher",
+        "statutes": "Statuts",
+        "ready": "Prêt",
+        "outdated": "À régénérer",
+        "chooseFormFirst": "Choisissez d'abord la forme de l'entreprise, plus haut : les statuts en dépendent.",
+        "selectedCount": "{{count}} document(s) sélectionné(s)",
+        "confirmDelete": "Supprimer « {{name}} » ? Cette action est définitive."
       },
       "groups": {
-        "company": "Structure sociétaire",
-        "contracts": "Contrats",
-        "customers": "Clients & public",
-        "internal": "Interne"
+        "essential": {
+          "title": "Essentiels",
+          "hint": "Sans eux, votre activité n'est pas en règle."
+        },
+        "recommended": {
+          "title": "Recommandés",
+          "hint": "Pas obligatoires, mais ils vous protègent vu votre projet."
+        },
+        "later": {
+          "title": "Pour plus tard",
+          "hint": "Disponibles si votre situation change."
+        }
+      },
+      "details": {
+        "back": "Retour aux documents",
+        "title": "Vérifiez vos informations",
+        "subtitle": "Nous avons pré-rempli ce que nous savons de votre projet. Les documents reprennent ces informations telles quelles.",
+        "nothingNeeded": "Aucune information supplémentaire n'est nécessaire.",
+        "willGenerate": "À générer :",
+        "missing": "{{count}} information(s) à compléter"
       },
       "fields": {
         "country": "Pays",
         "legalForm": "Forme juridique",
         "capital": "Capital social",
         "currency": "Devise",
-        "headOffice": "Siège social",
-        "companyEmail": "Email de l’entreprise",
-        "companyPhone": "Téléphone de l’entreprise",
+        "headOffice": "Adresse du siège",
+        "headOfficePlaceholder": "Rue, quartier, ville",
+        "companyEmail": "E-mail de l'entreprise",
+        "companyPhone": "Téléphone (facultatif)",
         "website": "Site web",
-        "activityDescription": "Activité (objet social)",
-        "founders": "Associés / fondateurs",
+        "activityDescription": "Activité de l'entreprise",
+        "activityPlaceholder": "Ce que fait l'entreprise, en une ou deux phrases",
+        "founders": "Associés",
+        "foundersHint": "Nom, rôle et part de chacun. Les parts peuvent rester vides.",
+        "soleFounder": "Associé unique",
+        "soleFounderHint": "La personne qui détient toute l'entreprise.",
         "addFounder": "Ajouter un associé",
-        "noFounders": "Aucun associé ajouté. Ajoutez-en au moins un.",
+        "removeFounder": "Retirer l'associé",
         "founderName": "Nom complet",
-        "founderShares": "Parts (%)",
-        "founderRole": "Rôle"
+        "founderRole": "Rôle (gérant, président…)",
+        "founderShares": "Part (%)"
       },
       "actions": {
-        "generate": "Générer les documents sélectionnés",
-        "download": "Télécharger le PDF",
-        "downloadAll": "Tout télécharger",
-        "regenerate": "Régénérer"
+        "continue": "Continuer",
+        "generate": "Générer {{count}} document(s)",
+        "preview": "Aperçu",
+        "download": "Télécharger le PDF"
       },
       "generating": {
-        "title": "Génération des documents"
+        "title": "Rédaction en cours",
+        "subtitle": "Comptez environ une minute par document. Vous pouvez rester sur cette page.",
+        "cancel": "Arrêter la rédaction",
+        "status": {
+          "pending": "En attente",
+          "in-progress": "En cours",
+          "completed": "Prêt"
+        }
       },
-      "generated": {
-        "title": "Documents générés",
-        "count": "document(s) prêts"
+      "success": {
+        "title": "{{count}} document(s) prêt(s)",
+        "subtitle": "Ouvrez l'aperçu ou téléchargez le PDF depuis la liste ci-dessous."
       },
       "errors": {
-        "catalog": "Impossible de charger le catalogue de documents.",
-        "generation": "La génération a échoué. Réessayez."
-      },
-      "status": {
-        "generating": "Génération en cours…",
-        "ready": "Prêt"
+        "load": "Impossible de charger l'espace juridique. Rechargez la page.",
+        "saveForm": "Votre choix de forme n'a pas été enregistré. Réessayez.",
+        "generation": "La génération a échoué. Vos informations sont conservées, réessayez.",
+        "download": "Le PDF n'a pas pu être téléchargé. Réessayez.",
+        "delete": "Le document n'a pas pu être supprimé. Réessayez."
       }
     },
     "advisor": {

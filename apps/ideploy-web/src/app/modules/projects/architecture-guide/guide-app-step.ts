@@ -10,6 +10,7 @@ import { GuideSessionService } from '../../../shared/services/guide-session.serv
 import { GuideStepRole } from '../../../shared/data/architecture-templates';
 import { parseEnvFile } from '../../../shared/utils/parse-env-file.util';
 import { forEcosystem, isApiUrlKey, isDatabaseUrlKey, isRedisUrlKey } from '../../../shared/utils/guide-env-link.util';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 type GitProvider = 'github' | 'gitlab';
 type Stage = 'provider' | 'repos' | 'configure' | 'deploying' | 'result';
@@ -51,7 +52,7 @@ interface Preset {
  */
 @Component({
   selector: 'app-guide-app-step',
-  imports: [FormsModule, TranslateModule],
+  imports: [FormsModule, TranslateModule, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-4">
@@ -116,7 +117,7 @@ interface Preset {
 
         @if (detecting()) {
           <div class="flex items-center gap-2 rounded-xl p-3 border text-sm" style="border-color:var(--color-surface-2);color:var(--color-text-secondary);">
-            <i class="pi pi-spinner pi-spin"></i> {{ 'projects.import.detecting' | translate }}
+            <idem-loader size="xs" /> {{ 'projects.import.detecting' | translate }}
           </div>
         } @else if (ecosystemLabel()) {
           <div class="flex items-center gap-3 rounded-xl p-3 border" style="border-color:var(--color-surface-2);">
@@ -250,7 +251,7 @@ interface Preset {
       @if (stage() === 'deploying') {
         <div class="space-y-3">
           <div class="flex items-center gap-2 text-sm">
-            <i class="pi pi-spinner pi-spin" style="color:var(--color-primary-400);"></i>
+            <idem-loader size="xs" />
             <span>{{ (deploymentInfo()?.status === 'in_progress' ? 'deploy.statusInProgress' : 'deploy.statusQueued') | translate }}</span>
           </div>
           <pre class="max-h-56 overflow-auto rounded-xl p-3 font-mono text-xs leading-relaxed" style="background:#080b12;color:#c9d1d9;">@for (line of consoleLines(); track $index) {<span>{{ line }}</span>

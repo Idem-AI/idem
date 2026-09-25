@@ -16,7 +16,6 @@ import { LogoModel } from '../../models/logo.model';
 import { ProjectModel } from '@idem/shared-models';
 import { Dialog } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
-import { Loader } from 'apps/main-dashboard/src/app/shared/components/loader/loader';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { BrandingValidationService } from '../../services/branding-validation.service';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
@@ -26,19 +25,18 @@ import {
   BRANDING_SECTION_NAMES,
 } from '../../models/generation-completeness';
 import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 @Component({
   selector: 'app-show-branding',
   standalone: true,
   imports: [
     CommonModule,
-    Loader,
     Dialog,
     ButtonModule,
     TranslateModule,
     IncompleteProjectBannerComponent,
-    GenerationStatusPanelComponent,
-  ],
+    GenerationStatusPanelComponent, IdemLoaderComponent],
   templateUrl: './show-branding.html',
   styleUrl: './show-branding.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

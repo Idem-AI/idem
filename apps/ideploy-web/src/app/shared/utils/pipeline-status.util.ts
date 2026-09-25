@@ -17,11 +17,13 @@ export function pipelineStatusBackground(status: string): string {
   return `color-mix(in srgb, ${pipelineStatusColor(status)} 16%, transparent)`;
 }
 
-/** FontAwesome class for a status badge (sized for normal text). */
+/**
+ * Glyph for a status badge. `running` is absent on purpose: an in-progress
+ * stage renders `<idem-loader>` instead, so the app has one spinner, not two.
+ */
 export function pipelineStatusIcon(status: string): string {
   if (status === 'success') return 'pi pi-check-circle';
   if (status === 'failed') return 'pi pi-times-circle';
-  if (status === 'running') return 'pi pi-spinner pi-spin';
   if (status === 'skipped') return 'pi pi-forward';
   return 'pi pi-clock';
 }
@@ -30,7 +32,6 @@ export function pipelineStatusIcon(status: string): string {
 export function pipelineStageMarkIcon(status: string): string {
   if (status === 'success') return 'pi pi-check text-[9px]';
   if (status === 'failed') return 'pi pi-times text-[9px]';
-  if (status === 'running') return 'pi pi-spinner pi-spin text-[8px]';
   if (status === 'skipped') return 'pi pi-forward text-[8px]';
   return '';
 }

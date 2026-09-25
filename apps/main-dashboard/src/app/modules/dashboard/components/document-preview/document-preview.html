@@ -339,7 +339,7 @@
         <span class="dp-download-icon" aria-hidden="true">
           @switch (downloadState()) {
             @case ('working') {
-              <span class="dp-spinner"></span>
+              <idem-loader />
             }
             @case ('done') {
               <i class="pi pi-check"></i>

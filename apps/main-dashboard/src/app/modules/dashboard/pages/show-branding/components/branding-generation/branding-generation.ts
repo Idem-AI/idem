@@ -23,11 +23,12 @@ import { CookieService } from '../../../../../../shared/services/cookie.service'
 import { GenerationService } from '../../../../../../shared/services/generation.service';
 import { SSEGenerationState } from '../../../../../../shared/models/sse-step.model';
 import { BrandIdentityModel } from '../../../../models/brand-identity.model';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 @Component({
   selector: 'app-branding-generation',
   standalone: true,
-  imports: [DatePipe, SkeletonModule, TranslateModule, PdfFormatSelectorComponent],
+  imports: [DatePipe, SkeletonModule, TranslateModule, PdfFormatSelectorComponent, IdemLoaderComponent],
   templateUrl: './branding-generation.html',
   styleUrl: './branding-generation.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { GenerationProgressData } from '../../models/chat.model';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 /**
  * Carte de progression d'une génération SSE dans le fil de conversation :
@@ -10,7 +11,7 @@ import { GenerationProgressData } from '../../models/chat.model';
 @Component({
   selector: 'app-generation-progress-card',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslateModule, IdemLoaderComponent],
   templateUrl: './generation-progress-card.html',
   styleUrl: './generation-progress-card.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

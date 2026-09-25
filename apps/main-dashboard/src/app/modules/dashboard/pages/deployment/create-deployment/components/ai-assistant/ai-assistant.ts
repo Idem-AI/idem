@@ -37,6 +37,7 @@ import { DeploymentService } from '../../../../../services/deployment.service';
 import { AuthService } from '../../../../../../auth/services/auth.service';
 import { MarkdownModule } from 'ngx-markdown';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 // Import Prism core only - specific languages are already imported in app.config.ts
 import 'prismjs';
@@ -50,8 +51,7 @@ import 'prismjs';
     ReactiveFormsModule,
     MarkdownModule,
     DialogModule,
-    TranslateModule,
-  ],
+    TranslateModule, IdemLoaderComponent],
   templateUrl: './ai-assistant.html',
   styleUrl: './ai-assistant.css',
 })

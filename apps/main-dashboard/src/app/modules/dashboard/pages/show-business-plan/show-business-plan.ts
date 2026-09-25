@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, inject, OnInit, signal, computed } 
 import { ActivatedRoute, Router } from '@angular/router';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { BusinessPlanService } from '../../services/ai-agents/business-plan.service';
-import { Loader } from '../../../../shared/components/loader/loader';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { BrandingValidationService } from '../../services/branding-validation.service';
 import { IncompleteProjectBannerComponent } from '../../components/incomplete-project-banner/incomplete-project-banner';
@@ -21,6 +20,7 @@ import {
 import { ProjectService } from '../../services/project.service';
 import { ProjectModel } from '@idem/shared-models';
 import { businessPlanVariantLabel } from '../../utils/deliverable-labels';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
 type StoredBusinessPlan = BusinessPlanModel & StoredDeliverableDocument;
 
@@ -32,11 +32,9 @@ type StoredBusinessPlan = BusinessPlanModel & StoredDeliverableDocument;
   selector: 'app-show-business-plan',
   imports: [
     DocumentPreviewComponent,
-    Loader,
     TranslateModule,
     IncompleteProjectBannerComponent,
-    GenerationStatusPanelComponent,
-  ],
+    GenerationStatusPanelComponent, IdemLoaderComponent],
   templateUrl: './show-business-plan.html',
   styleUrls: ['./show-business-plan.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
