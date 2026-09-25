@@ -332,7 +332,8 @@
       "empty": "Aucune application pour l'instant.",
       "statusLabel": "statut :",
       "queuing": "Mise en file…",
-      "createFailed": "Échec de la création de l'application"
+      "createFailed": "Échec de la création de l'application",
+      "cleanupFailed": "L'application a été supprimée, mais son serveur n'a pas pu être nettoyé : des conteneurs ou des volumes peuvent encore y tourner. Vérifiez le serveur."
     },
     "detail": {
       "restart": "Redémarrer",
@@ -414,7 +415,15 @@
       "fileContentPlaceholder": "Contenu du fichier",
       "addFile": "Ajouter",
       "tags": "Tags",
-      "attachTag": "Ajouter un tag…"
+      "attachTag": "Ajouter un tag…",
+      "dangerZone": "Zone de danger",
+      "deleteHint": "Supprimer l'application arrête ses conteneurs et efface ses volumes, ses variables d'environnement, ses tâches planifiées et son historique de déploiement. C'est définitif.",
+      "deleteApplication": "Supprimer l'application",
+      "deleteConfirmLabel": "Pour confirmer, tapez le nom de l'application : {{name}}",
+      "deleteConfirm": "Supprimer définitivement",
+      "deleting": "Suppression…",
+      "cancel": "Annuler",
+      "deleteError": "La suppression a échoué. Réessayez dans un instant."
     }
   },
   "projects": {

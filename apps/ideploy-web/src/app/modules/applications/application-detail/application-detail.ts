@@ -413,6 +413,39 @@ const APPLICATION_TAGGABLE_TYPE = 'App\\Models\\Application';
         </form>
       </section>
 
+      <!-- Danger zone -->
+      <section class="glass-card p-4 mb-6" style="border-color:color-mix(in srgb, var(--color-danger) 35%, transparent);">
+        <h2 class="mb-1 text-sm font-semibold">{{ 'applications.detail.dangerZone' | translate }}</h2>
+        <p class="mb-3 text-sm" style="color:var(--color-text-secondary);">
+          {{ 'applications.detail.deleteHint' | translate }}
+        </p>
+        @if (confirmingDelete()) {
+          <label class="mb-2 block text-sm" for="delete-confirm">
+            {{ 'applications.detail.deleteConfirmLabel' | translate: { name: a.name } }}
+          </label>
+          <div class="flex flex-wrap gap-2">
+            <input id="delete-confirm" type="text" class="flex-1 !w-auto min-w-0" autocomplete="off"
+                   [value]="deleteConfirmText()" (input)="deleteConfirmText.set($any($event.target).value)" />
+            <button class="outer-button" style="color:var(--color-danger);" (click)="removeApplication()"
+                    [disabled]="deleting() || deleteConfirmText().trim() !== a.name">
+              {{ (deleting() ? 'applications.detail.deleting' : 'applications.detail.deleteConfirm') | translate }}
+            </button>
+            <button class="outer-button" (click)="cancelDelete()" [disabled]="deleting()">
+              {{ 'applications.detail.cancel' | translate }}
+            </button>
+          </div>
+        } @else {
+          <button class="outer-button" style="color:var(--color-danger);" (click)="confirmingDelete.set(true)">
+            {{ 'applications.detail.deleteApplication' | translate }}
+          </button>
+        }
+        @if (deleteError(); as message) {
+          <p class="mt-2 text-sm" role="alert" style="color:var(--color-danger);">{{ message }}</p>
+        } @else if (deleteFailed()) {
+          <p class="mt-2 text-sm" role="alert" style="color:var(--color-danger);">{{ 'applications.detail.deleteError' | translate }}</p>
+        }
+      </section>
+
     } @else {
       <p class="text-sm" style="color: var(--color-text-secondary)">{{ 'applications.loading' | translate }}</p>
     }
@@ -454,6 +487,13 @@ export class ApplicationDetailComponent implements OnInit {
   protected readonly latestDeployment = computed<DeploymentHistoryItem | null>(() => this.deployments()[0] ?? null);
 
   protected readonly settingsOpen = signal(false);
+
+  protected readonly confirmingDelete = signal(false);
+  protected readonly deleteConfirmText = signal('');
+  protected readonly deleting = signal(false);
+  /** The API's own explanation (e.g. a deployment is running), when it gave one. */
+  protected readonly deleteError = signal<string | null>(null);
+  protected readonly deleteFailed = signal(false);
 
   /**
    * A live iframe of the app's own URL, standing in for the screenshot
@@ -616,6 +656,31 @@ export class ApplicationDetailComponent implements OnInit {
   protected removeEnv(env: EnvVar): void {
     this.api.deleteEnvVar(this.uuid, env.key).subscribe(() => {
       this.envVars.update((list) => list.filter((e) => e.key !== env.key));
+    });
+  }
+
+  protected cancelDelete(): void {
+    this.confirmingDelete.set(false);
+    this.deleteConfirmText.set('');
+    this.deleteError.set(null);
+    this.deleteFailed.set(false);
+  }
+
+  protected removeApplication(): void {
+    this.deleting.set(true);
+    this.deleteError.set(null);
+    this.deleteFailed.set(false);
+    this.api.deleteApplication(this.uuid).subscribe({
+      next: (res) =>
+        this.router.navigate(['/applications'], {
+          queryParams: res.serverCleanup === 'failed' ? { cleanup: 'failed' } : {},
+        }),
+      error: (e) => {
+        const message = (e as { error?: { error?: { message?: string } } })?.error?.error?.message;
+        if (message) this.deleteError.set(message);
+        else this.deleteFailed.set(true);
+        this.deleting.set(false);
+      },
     });
   }
 

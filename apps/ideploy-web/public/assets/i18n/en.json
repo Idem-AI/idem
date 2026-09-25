@@ -332,7 +332,8 @@
       "empty": "No applications yet.",
       "statusLabel": "status:",
       "queuing": "Queuing…",
-      "createFailed": "Failed to create application"
+      "createFailed": "Failed to create application",
+      "cleanupFailed": "The application was deleted, but its server could not be cleaned: containers or volumes may still be running there. Check the server."
     },
     "detail": {
       "restart": "Restart",
@@ -414,7 +415,15 @@
       "fileContentPlaceholder": "File content",
       "addFile": "Add",
       "tags": "Tags",
-      "attachTag": "Attach a tag…"
+      "attachTag": "Attach a tag…",
+      "dangerZone": "Danger zone",
+      "deleteHint": "Deleting the application stops its containers and erases its volumes, environment variables, scheduled tasks and deployment history. This cannot be undone.",
+      "deleteApplication": "Delete application",
+      "deleteConfirmLabel": "To confirm, type the application name: {{name}}",
+      "deleteConfirm": "Delete permanently",
+      "deleting": "Deleting…",
+      "cancel": "Cancel",
+      "deleteError": "Deleting failed. Try again in a moment."
     }
   },
   "projects": {
