@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import Redis from 'ioredis';
 import logger from '../config/logger';
+import { isSuperUser } from '../utils/super-user.util';
 
 interface RateLimitConfig {
   windowMs: number;
@@ -271,9 +272,8 @@ export const rateLimitByUser = (config: Partial<RateLimitConfig> = {}) => {
       }
 
       // Check if user is admin (unlimited)
-      const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map((e) => e.trim());
       const user = req.user as any;
-      if (user.email && adminEmails.includes(user.email.toLowerCase())) {
+      if (isSuperUser(user.email)) {
         logger.info(`Admin user ${userId} bypassing rate limit`);
         next();
         return;

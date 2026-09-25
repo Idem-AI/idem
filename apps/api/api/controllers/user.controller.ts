@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import logger from '../config/logger';
 import admin from 'firebase-admin';
 import { userService } from '../services/user.service';
+import { isSuperUser } from '../utils/super-user.util';
 import { restoreSessionFromRefreshToken } from '../services/sessionCookie.service';
 import { CustomRequest } from '../interfaces/express.interface';
 import { OnboardingProfile, OnboardingUiMode } from '../models/userModel';
@@ -54,7 +55,9 @@ export const profileController = async (req: Request, res: Response): Promise<vo
       `Successfully verified session cookie for user: ${userIdForLogging}. Retrieving profile.`,
       { userId: userIdForLogging }
     );
-    res.status(200).json(profile);
+    // Les applications satellites lisent le statut ici plutôt que de dupliquer
+    // `ADMIN_EMAILS` dans leur propre configuration.
+    res.status(200).json({ ...profile, isSuperUser: isSuperUser(profile.email) });
   } catch (error: any) {
     logger.error('Error verifying session cookie or fetching user data:', {
       userId: userIdForLogging,

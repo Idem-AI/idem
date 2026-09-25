@@ -67,7 +67,7 @@ const FALLBACK_LIMITS = { appLimit: 5, serverLimit: 2 };
  * 2, so a stored value cannot be distinguished from "never configured", and
  * trusting it would silently cap enterprise teams at 2 applications.
  */
-export async function getSubscription(teamId: number): Promise<Subscription> {
+export async function getSubscription(teamId: number, superUser = false): Promise<Subscription> {
   const { rows } = await pool.query(
     `SELECT t.idem_subscription_plan,
             t.custom_server_limit,
@@ -93,11 +93,12 @@ export async function getSubscription(teamId: number): Promise<Subscription> {
     FALLBACK_LIMITS.serverLimit
   );
 
+  // A platform super user is not bound by the team's plan, as on the central API.
   return {
     plan: String(r.idem_subscription_plan ?? 'free'),
-    appLimit,
-    serverLimit,
-    allowsRegionSelection: Boolean(r.plan_allows_region_selection),
+    appLimit: superUser ? UNLIMITED : appLimit,
+    serverLimit: superUser ? UNLIMITED : serverLimit,
+    allowsRegionSelection: superUser || Boolean(r.plan_allows_region_selection),
     expiresAt: r.idem_subscription_expires_at ? String(r.idem_subscription_expires_at) : null,
     stripeCustomerId: r.stripe_customer_id ? String(r.stripe_customer_id) : null,
     stripeSubscriptionId: r.stripe_subscription_id ? String(r.stripe_subscription_id) : null,
@@ -115,8 +116,8 @@ export interface Quota {
 }
 
 /** Current usage against the plan's limits. */
-export async function getQuota(teamId: number): Promise<Quota> {
-  const sub = await getSubscription(teamId);
+export async function getQuota(teamId: number, superUser = false): Promise<Quota> {
+  const sub = await getSubscription(teamId, superUser);
   const appCount = await pool.query(
     `SELECT count(*)::int AS n FROM applications a
      JOIN environments e ON e.id = a.environment_id
@@ -139,8 +140,8 @@ export async function getQuota(teamId: number): Promise<Quota> {
  * region. Driven by the plan row rather than a list of plan names in code, so
  * repricing does not mean a deploy.
  */
-export async function canSelectRegion(teamId: number): Promise<boolean> {
-  return (await getSubscription(teamId)).allowsRegionSelection;
+export async function canSelectRegion(teamId: number, superUser = false): Promise<boolean> {
+  return (await getSubscription(teamId, superUser)).allowsRegionSelection;
 }
 
 /** Admin/override: change a team's plan + limits directly. */
