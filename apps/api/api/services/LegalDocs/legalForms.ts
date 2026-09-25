@@ -364,7 +364,7 @@ export interface JurisdictionInfo {
  * retient l'OHADA : c'est le marché principal d'IDEM.
  */
 export function detectJurisdiction(country?: string): JurisdictionInfo {
-  if (!country || !country.trim()) return { jurisdiction: 'ohada' };
+  if (typeof country !== 'string' || !country.trim()) return { jurisdiction: 'ohada' };
   const c = normalize(country);
   const candidates = [
     ...OHADA_COUNTRIES.map((e) => ({ ...e, jurisdiction: 'ohada' as const })),

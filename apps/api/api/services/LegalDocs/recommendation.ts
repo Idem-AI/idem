@@ -50,20 +50,42 @@ const BANK_RE = /\bbanque|\bbank(ing)?\b|microfinance|micro-finance|\bemf\b|éta
 const INSURANCE_RE = /assurance|insurance|réassurance|reinsurance/i;
 const LISTING_RE = /\bbourse\b|stock exchange|\bipo\b|appel public [àa] l.[ée]pargne|cot(é|er) en bourse|brvm|bvmac/i;
 
+/**
+ * Ramène un champ du projet à du texte. Les projets stockés ne respectent pas
+ * toujours le modèle : `targets` ou `constraints` arrivent parfois en tableau,
+ * parfois en chaîne, parfois absents.
+ */
+function asText(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (Array.isArray(value)) return value.map(asText).filter(Boolean).join(' ');
+  if (typeof value === 'object') return Object.values(value as Record<string, unknown>).map(asText).join(' ');
+  return String(value);
+}
+
+/** Membres d'équipe nommés, quel que soit le format stocké. */
+function teamMembersOf(project: ProjectModel): Array<{ name: string; role: string }> {
+  const raw = project.additionalInfos?.teamMembers;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((m) => ({ name: asText(m?.name).trim(), role: asText(m?.role).trim() }))
+    .filter((m) => m.name);
+}
+
 function readSignals(project: ProjectModel, country?: string): ProjectSignals {
-  const text = [project.description, project.longDescription, ...(project.constraints || [])]
+  const text = [project.description, project.longDescription, asText(project.constraints)]
+    .map(asText)
     .filter(Boolean)
     .join(' ');
-  const targets = (project.targets || '').toLowerCase();
-  const teamSize = (project.teamSize || '').trim();
-  const members = project.additionalInfos?.teamMembers?.filter((m) => m?.name?.trim()) || [];
+  const targets = asText(project.targets).toLowerCase();
+  const teamSize = asText(project.teamSize).trim();
+  const members = teamMembersOf(project);
   const partnerCount = Math.max(members.length, teamSize && teamSize !== '1' ? 2 : 1);
   const solo = teamSize === '1' || (!teamSize && members.length <= 1);
   const type = project.type || 'other';
 
   return {
     name: project.name || '',
-    jurisdiction: detectJurisdiction(country || project.additionalInfos?.country).jurisdiction,
+    jurisdiction: detectJurisdiction(asText(country || project.additionalInfos?.country)).jurisdiction,
     solo,
     partnerCount: solo ? 1 : partnerCount,
     digital: DIGITAL_TYPES.includes(type),
@@ -73,7 +95,7 @@ function readSignals(project: ProjectModel, country?: string): ProjectSignals {
     fundraising: FUNDRAISING_RE.test(text),
     regulatedSector: BANK_RE.test(text) ? 'bank' : INSURANCE_RE.test(text) ? 'insurance' : null,
     publicListing: LISTING_RE.test(text),
-    international: (project.scope || '').toLowerCase() === 'international',
+    international: asText(project.scope).toLowerCase().includes('international'),
     b2b: /business|government|entreprise|administration/.test(targets),
     b2c: /general-public|students|grand public|particulier/.test(targets) || type === 'ecommerce',
     health: /healthcare|santé|sante|health/.test(targets) || /\bsant[ée]\b|médical|medical|patient|clinique|clinic/i.test(text),
@@ -475,7 +497,7 @@ export function recommendDocuments(
 
   // Règlement intérieur
   out.push(
-    project.teamSize === '10+'
+    asText(project.teamSize).trim() === '10+'
       ? doc('internal_regulations', 'recommended', r(
           'Avec plus de 10 personnes, des règles communes écrites deviennent nécessaires.',
           'With more than 10 people, written shared rules become necessary.'
@@ -495,24 +517,25 @@ export function recommendDocuments(
 /** Contexte déduit du projet : l'utilisateur n'a plus qu'à vérifier. */
 export function prefillContext(project: ProjectModel, saved?: LegalDocsContext): LegalDocsContext {
   const info = project.additionalInfos;
-  const country = saved?.country || info?.country || '';
+  const country = asText(saved?.country || info?.country).trim();
   const detected = detectJurisdiction(country);
-  const headOffice = [info?.address, info?.zipCode, info?.city].filter((v) => v && v.trim()).join(', ');
-  const founders = (info?.teamMembers || [])
-    .filter((m) => m?.name?.trim())
-    .map((m) => ({ name: m.name.trim(), role: m.role || '', shares: '' }));
+  const headOffice = [info?.address, info?.zipCode, info?.city]
+    .map((v) => asText(v).trim())
+    .filter(Boolean)
+    .join(', ');
+  const founders = teamMembersOf(project).map((m) => ({ ...m, shares: '' }));
 
   return {
     country,
     ohadaZone: detected.jurisdiction === 'ohada',
     legalForm: normalizeLegalForm(saved?.legalForm) || '',
     capital: saved?.capital || '',
-    currency: saved?.currency || project.currency || detected.currency || 'XAF',
+    currency: saved?.currency || asText(project.currency) || detected.currency || 'XAF',
     headOffice: saved?.headOffice || headOffice,
-    companyEmail: saved?.companyEmail || info?.email || '',
-    companyPhone: saved?.companyPhone || info?.phone || '',
+    companyEmail: saved?.companyEmail || asText(info?.email),
+    companyPhone: saved?.companyPhone || asText(info?.phone),
     website: saved?.website || '',
-    activityDescription: saved?.activityDescription || project.description || '',
+    activityDescription: saved?.activityDescription || asText(project.description),
     founders: saved?.founders?.length ? saved.founders : founders,
     additionalClauses: saved?.additionalClauses,
   };
