@@ -92,8 +92,7 @@ import { environment } from '../../../../environments/environment';
 
             @if (menuOpen()) {
               <div
-                class="absolute right-0 mt-3 w-56 overflow-hidden glass-card"
-                style="border-radius: var(--radius-xl);"
+                class="absolute right-0 mt-3 w-56 overflow-hidden modal-panel"
                 (click)="$event.stopPropagation()">
                 <div class="px-4 py-3" style="border-bottom: 1px solid var(--glass-border-subtle);">
                   <p class="text-sm font-bold truncate">{{ u.displayName || u.email }}</p>
